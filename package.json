@@ -1,0 +1,37 @@
+{
+  "name": "la-lanh",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm db:up && concurrently --kill-others-on-fail --names api,web --prefix-colors magenta,green \"pnpm api:dev\" \"pnpm web:dev\"",
+    "dev:down": "pnpm db:down",
+    "build": "pnpm contracts:check && pnpm web:build && pnpm api:build",
+    "check": "pnpm contracts:check && pnpm web:lint && pnpm web:typecheck && pnpm web:test && pnpm api:lint && pnpm api:typecheck && pnpm api:test",
+    "test": "pnpm web:test && pnpm api:test",
+    "web:dev": "pnpm --filter @la-lanh/web dev",
+    "web:build": "pnpm --filter @la-lanh/web build",
+    "web:lint": "pnpm --filter @la-lanh/web lint",
+    "web:typecheck": "pnpm --filter @la-lanh/web typecheck",
+    "web:test": "pnpm --filter @la-lanh/web test",
+    "web:e2e": "pnpm --filter @la-lanh/web e2e",
+    "api:dev": "uv run --directory apps/api uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload",
+    "api:build": "uv run --directory apps/api python -m compileall -q app",
+    "api:lint": "uv run --directory apps/api ruff check app tests scripts migrations && uv run --directory apps/api ruff format --check app tests scripts migrations",
+    "api:typecheck": "uv run --directory apps/api mypy app tests scripts",
+    "api:test": "uv run --directory apps/api pytest",
+    "api:openapi": "uv run --directory apps/api python -m scripts.export_openapi",
+    "contracts:generate": "pnpm api:openapi && pnpm --filter @la-lanh/contracts generate",
+    "contracts:check": "uv run --directory apps/api python -m scripts.export_openapi --check && pnpm --filter @la-lanh/contracts check",
+    "db:up": "docker compose -f infra/compose/compose.yaml up -d --wait postgres",
+    "db:down": "docker compose -f infra/compose/compose.yaml down",
+    "db:logs": "docker compose -f infra/compose/compose.yaml logs -f postgres"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

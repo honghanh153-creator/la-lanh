@@ -1,0 +1,40 @@
+# Operating-system files
+.DS_Store
+**/.DS_Store
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# JavaScript dependencies and outputs
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+coverage/
+**/coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+apps/web/tests/visual/**/*-actual.png
+apps/web/tests/visual/**/*-diff.png
+
+# Python environments, caches, and generated outputs
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.uv-cache/
+.coverage
+htmlcov/
+apps/api/.alembic-temp/
+
+# Prototype is retained as a visual source, never as a build input
+prototype/node_modules/
+prototype/dist/
+prototype/.DS_Store

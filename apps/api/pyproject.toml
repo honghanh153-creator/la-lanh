@@ -1,0 +1,52 @@
+[project]
+name = "la-lanh-api"
+version = "0.1.0"
+description = "Versioned API foundation for Lá Lành"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "alembic>=1.18.0,<2",
+  "asyncpg>=0.31.0,<1",
+  "fastapi>=0.128.0,<1",
+  "prometheus-client>=0.24.1,<1",
+  "pydantic-settings>=2.12.0,<3",
+  "sqlalchemy[asyncio]>=2.0.45,<3",
+  "uvicorn[standard]>=0.40.0,<1",
+]
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28.1,<1",
+  "mypy>=1.19.1,<2",
+  "pytest>=9.0.2,<10",
+  "pytest-asyncio>=1.3.0,<2",
+  "ruff>=0.15.0,<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-config --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "S", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["prometheus_client.*"]
+ignore_missing_imports = true

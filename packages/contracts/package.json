@@ -1,0 +1,25 @@
+{
+  "name": "@la-lanh/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./openapi/v1.json": "./openapi/v1.json"
+  },
+  "files": [
+    "openapi",
+    "src"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "check": "node scripts/generate.mjs --check"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.9.1"
+  }
+}
