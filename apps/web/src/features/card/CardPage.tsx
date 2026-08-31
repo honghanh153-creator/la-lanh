@@ -12,12 +12,12 @@ function cardSvg(label: string, symbol: string, note: string): string {
   <rect width="1080" height="1350" rx="52" fill="#160620"/>
   <circle cx="900" cy="300" r="280" fill="#d8ff00"/><circle cx="820" cy="350" r="210" fill="#291135"/>
   <path d="M0 1030 L1080 850 L1080 1350 L0 1350Z" fill="#fff5df"/>
-  <text x="72" y="105" fill="#160620" font-family="Arial Black" font-size="56"><tspan fill="#d8ff00">LÁ LÀNH*</tspan></text>
-  <text x="80" y="400" fill="#fff5df" font-family="Arial" font-size="38" font-weight="700">MẶT TRỜI CỦA TÔI Ở</text>
-  <text x="72" y="610" fill="#d8ff00" font-family="Arial Black" font-size="132">${label.toUpperCase()}</text>
-  <text x="760" y="710" fill="#ff6d61" font-family="Arial" font-size="220">${symbol}</text>
-  <text x="90" y="1030" fill="#160620" font-family="Arial" font-size="48" font-weight="700">${note}</text>
-  <text x="90" y="1250" fill="#6a4776" font-family="Arial" font-size="30">Tính bằng Swiss Ephemeris thật · la-lanh</text>
+  <text x="72" y="105" fill="#160620" font-family="Avenir Next Condensed, Arial Narrow, sans-serif" font-size="56" font-weight="900"><tspan fill="#d8ff00">LÁ LÀNH*</tspan></text>
+  <text x="80" y="400" fill="#fff5df" font-family="Avenir Next, Segoe UI, sans-serif" font-size="38" font-weight="700">MẶT TRỜI CỦA TÔI Ở</text>
+  <text x="72" y="610" fill="#d8ff00" font-family="Avenir Next Condensed, Arial Narrow, sans-serif" font-size="132" font-weight="900">${label.toUpperCase()}</text>
+  <text x="760" y="710" fill="#ff6d61" font-family="Avenir Next, Segoe UI, sans-serif" font-size="220">${symbol}</text>
+  <text x="90" y="1030" fill="#160620" font-family="Avenir Next, Segoe UI, sans-serif" font-size="48" font-weight="700">${note}</text>
+  <text x="90" y="1250" fill="#6a4776" font-family="Avenir Next, Segoe UI, sans-serif" font-size="30">Tính bằng Swiss Ephemeris thật · la-lanh</text>
   </svg>`;
 }
 

@@ -35,7 +35,7 @@ export function WelcomePage() {
   const isLastSlide = slideIndex === welcomeSlides.length - 1;
 
   const advance = () => {
-    if (isLastSlide) void navigate("/consent");
+    if (isLastSlide) void navigate("/birth");
     else setSlideIndex((current) => current + 1);
   };
 
@@ -80,7 +80,7 @@ export function WelcomePage() {
           <ArrowRight aria-hidden="true" size={21} weight="bold" />
         </PrimaryButton>
         {!isLastSlide ? (
-          <button className="text-button" onClick={() => void navigate("/consent")} type="button">
+          <button className="text-button" onClick={() => void navigate("/birth")} type="button">
             Bỏ qua giới thiệu
           </button>
         ) : (

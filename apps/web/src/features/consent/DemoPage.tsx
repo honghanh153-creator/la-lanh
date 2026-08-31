@@ -15,7 +15,7 @@ export function DemoPage() {
         <p>Cho cảm xúc đi trước lý trí một nhịp. Vài phút im lặng có thể nói đúng điều hơn một câu trả lời vội.</p>
       </section>
       <footer className="flow-actions">
-        <button className="electric-button" onClick={() => void navigate("/consent")} type="button">Tạo Lá của riêng mình <ArrowRight /></button>
+        <button className="electric-button" onClick={() => void navigate("/birth")} type="button">Tạo Lá của riêng mình <ArrowRight /></button>
         <button className="text-button" onClick={() => void navigate("/welcome")} type="button">Thoát bản xem thử</button>
       </footer>
     </main>

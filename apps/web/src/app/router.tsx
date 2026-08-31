@@ -52,6 +52,7 @@ export const appRoutes: RouteObject[] = [
         element: <WelcomePage />,
       },
       { path: "consent", element: <ConsentPage /> },
+      { path: "privacy", element: <ConsentPage /> },
       { path: "demo", element: <DemoPage /> },
       { path: "birth", element: <BirthDatePage /> },
       { path: "reveal", element: <RevealPage /> },

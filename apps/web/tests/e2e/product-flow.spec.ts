@@ -47,12 +47,12 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   await page.goto("/welcome");
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await page.getByRole("button", { name: "Bắt đầu" }).click();
-  await page.getByRole("button", { name: "Đồng ý & dùng thử" }).click();
   await expect(page).toHaveURL(/\/birth$/);
 
-  await page.getByLabel("Ngày").fill("01");
-  await page.getByLabel("Tháng").fill("01");
-  await page.getByLabel("Năm").fill("1990");
+  await page.getByRole("textbox", { name: "Ngày" }).fill("01");
+  await page.getByRole("textbox", { name: "Tháng" }).fill("01");
+  await page.getByRole("textbox", { name: "Năm" }).fill("1990");
+  await page.getByRole("checkbox", { name: "Tôi đã hiểu và đồng ý để Lá Lành xử lý ngày sinh cho mục đích này." }).check();
   await page.getByRole("button", { name: "Bật mí Lá của mình" }).click();
 
   await expect(page.getByRole("heading", { name: "Ma Kết" })).toBeVisible();
@@ -67,4 +67,22 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   await page.getByRole("link", { name: "Chia sẻ" }).click();
   await expect(page.getByRole("heading", { name: "Ma Kết" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Tải SVG" })).toBeEnabled();
+});
+
+test("child birth date is stopped before any personal data is sent", async ({ page }) => {
+  let birthProfileRequests = 0;
+  await page.route("**/v1/birth-profile", async (route) => {
+    birthProfileRequests += 1;
+    await route.fulfill({ status: 500, json: { code: "SHOULD_NOT_BE_CALLED" } });
+  });
+
+  await page.goto("/birth");
+  await page.getByRole("textbox", { name: "Ngày" }).fill("01");
+  await page.getByRole("textbox", { name: "Tháng" }).fill("01");
+  await page.getByRole("textbox", { name: "Năm" }).fill("2020");
+  await page.getByRole("checkbox", { name: "Tôi đã hiểu và đồng ý để Lá Lành xử lý ngày sinh cho mục đích này." }).check();
+  await page.getByRole("button", { name: "Bật mí Lá của mình" }).click();
+
+  await expect(page.getByRole("alert")).toContainText("dưới 16 tuổi");
+  expect(birthProfileRequests).toBe(0);
 });

@@ -1,0 +1,19 @@
+{
+  "name": "Lá Lành",
+  "short_name": "Lá Lành",
+  "description": "Một lời nhắc đúng lúc, được viết từ chuyển động thật của bầu trời.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0517",
+  "theme_color": "#1d0829",
+  "orientation": "portrait",
+  "categories": ["lifestyle"],
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
