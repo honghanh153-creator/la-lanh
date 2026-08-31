@@ -1,0 +1,13 @@
+id: astro_reference_v1
+zodiac: tropical
+positions: geocentric_apparent
+ephemeris: swiss
+ephemeris_flags: [speed]
+node: true
+house_system: placidus
+aspects:
+  conjunction: {angle: 0, orb: 8}
+  sextile: {angle: 60, orb: 5}
+  square: {angle: 90, orb: 7}
+  trine: {angle: 120, orb: 7}
+  opposition: {angle: 180, orb: 8}

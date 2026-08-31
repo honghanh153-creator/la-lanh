@@ -7,18 +7,78 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import router as v1_router
 from app.config import Settings, get_settings
 from app.db.session import Database
+from app.domains.astro import NatalChartEngine
+from app.domains.astro.ffi.swisseph import SwissEphemerisError
+from app.domains.birth.postgres import PostgresBirthRepository
+from app.domains.birth.repository import BirthRepository
+from app.domains.birth.service import BirthChartService
+from app.domains.guest.postgres import PostgresGuestRepository
+from app.domains.guest.repository import GuestRepository
+from app.domains.guest.service import GuestSessionService
+from app.infrastructure.crypto import (
+    AesGcmEnvelopeCipher,
+    SecretHasher,
+    StaticDataKeyProvider,
+    decode_key,
+)
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.observability.metrics import MetricsMiddleware, metrics_response
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    *,
+    guest_repository: GuestRepository | None = None,
+    birth_repository: BirthRepository | None = None,
+) -> FastAPI:
     resolved_settings = settings or get_settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         database = Database(str(resolved_settings.database_url))
+        await database.initialize()
         app.state.database = database
-        app.state.readiness_probe = database.ping
+        engine: NatalChartEngine | None
+        try:
+            engine = NatalChartEngine()
+            app.state.astro_engine = engine
+            app.state.astro_engine_error = None
+        except SwissEphemerisError as error:
+            engine = None
+            app.state.astro_engine = None
+            app.state.astro_engine_error = str(error)
+
+        async def readiness_probe() -> bool:
+            if app.state.astro_engine_error is not None:
+                return False
+            return await database.ping()
+
+        app.state.readiness_probe = readiness_probe
+        repository = guest_repository or PostgresGuestRepository(database.sessions)
+        envelope = AesGcmEnvelopeCipher(
+            StaticDataKeyProvider(
+                decode_key(
+                    resolved_settings.guest_encryption_key.get_secret_value(),
+                    expected_bytes=32,
+                )
+            )
+        )
+        app.state.guest_session_service = GuestSessionService(
+            repository,
+            SecretHasher(decode_key(resolved_settings.guest_hash_key.get_secret_value())),
+            envelope,
+            consent_version=resolved_settings.consent_version,
+            consent_purpose=resolved_settings.consent_purpose,
+        )
+        app.state.birth_chart_service = (
+            BirthChartService(
+                birth_repository or PostgresBirthRepository(database.sessions),
+                engine,
+                envelope,
+            )
+            if engine is not None
+            else None
+        )
         try:
             yield
         finally:

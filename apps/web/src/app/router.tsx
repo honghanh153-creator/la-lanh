@@ -6,6 +6,16 @@ import {
   useRouteError,
 } from "react-router-dom";
 
+import { ExistingUserPage } from "../features/account/ExistingUserPage";
+import { BirthDatePage } from "../features/birth/BirthDatePage";
+import { CardPage } from "../features/card/CardPage";
+import { ConsentPage } from "../features/consent/ConsentPage";
+import { DemoPage } from "../features/consent/DemoPage";
+import { EntryPage } from "../features/entry/EntryPage";
+import { HomePage } from "../features/home/HomePage";
+import { ProfilePage } from "../features/profile/ProfilePage";
+import { RevealPage } from "../features/reveal/RevealPage";
+import { SavedPage } from "../features/saved/SavedPage";
 import { WelcomePage } from "../features/welcome/WelcomePage";
 import { AppShell } from "./AppShell";
 
@@ -35,8 +45,21 @@ export const appRoutes: RouteObject[] = [
     children: [
       {
         index: true,
+        element: <EntryPage />,
+      },
+      {
+        path: "welcome",
         element: <WelcomePage />,
       },
+      { path: "consent", element: <ConsentPage /> },
+      { path: "demo", element: <DemoPage /> },
+      { path: "birth", element: <BirthDatePage /> },
+      { path: "reveal", element: <RevealPage /> },
+      { path: "home", element: <HomePage /> },
+      { path: "card", element: <CardPage /> },
+      { path: "saved", element: <SavedPage /> },
+      { path: "profile", element: <ProfilePage /> },
+      { path: "existing-user", element: <ExistingUserPage /> },
     ],
   },
 ];

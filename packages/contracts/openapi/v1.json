@@ -1,6 +1,231 @@
 {
   "components": {
     "schemas": {
+      "BirthDateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "birth_date"
+        ],
+        "title": "BirthDateRequest",
+        "type": "object"
+      },
+      "BirthRevealResponse": {
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "calculation": {
+            "$ref": "#/components/schemas/DateOnlySunResult"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "profile_id": {
+            "format": "uuid",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "resumed": {
+            "title": "Resumed",
+            "type": "boolean"
+          },
+          "snapshot_id": {
+            "format": "uuid",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_id",
+          "snapshot_id",
+          "birth_date",
+          "calculation",
+          "created_at",
+          "resumed"
+        ],
+        "title": "BirthRevealResponse",
+        "type": "object"
+      },
+      "DateOnlySunResult": {
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/ZodiacSign"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "interval_end_utc": {
+            "format": "date-time",
+            "title": "Interval End Utc",
+            "type": "string"
+          },
+          "interval_start_utc": {
+            "format": "date-time",
+            "title": "Interval Start Utc",
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/EngineProvenance"
+          },
+          "sign": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ZodiacSign"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "birth_date",
+          "status",
+          "sign",
+          "candidates",
+          "interval_start_utc",
+          "interval_end_utc",
+          "provenance"
+        ],
+        "title": "DateOnlySunResult",
+        "type": "object"
+      },
+      "EngineProvenance": {
+        "properties": {
+          "engine": {
+            "default": "swiss_ephemeris",
+            "title": "Engine",
+            "type": "string"
+          },
+          "ephemeris_set": {
+            "default": "de441-se1-1800-2399",
+            "title": "Ephemeris Set",
+            "type": "string"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "release_commit": {
+            "default": "af9823fe7b06ffefe3d3968fdc5680be8b5eec5f",
+            "title": "Release Commit",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "profile"
+        ],
+        "title": "EngineProvenance",
+        "type": "object"
+      },
+      "GuestCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 22,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "purpose": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Purpose",
+            "type": "string"
+          }
+        },
+        "required": [
+          "consent_version",
+          "purpose",
+          "idempotency_key"
+        ],
+        "title": "GuestCreateRequest",
+        "type": "object"
+      },
+      "GuestSessionResponse": {
+        "properties": {
+          "csrf_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Csrf Token"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "onboarding_status": {
+            "title": "Onboarding Status",
+            "type": "string"
+          },
+          "resumed": {
+            "default": false,
+            "title": "Resumed",
+            "type": "boolean"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "onboarding_status",
+          "expires_at"
+        ],
+        "title": "GuestSessionResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "api_version": {
@@ -30,6 +255,34 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "ProblemResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "code"
+        ],
+        "title": "ProblemResponse",
+        "type": "object"
+      },
       "ReadinessResponse": {
         "properties": {
           "status": {
@@ -46,6 +299,64 @@
         ],
         "title": "ReadinessResponse",
         "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "ZodiacSign": {
+        "enum": [
+          "aries",
+          "taurus",
+          "gemini",
+          "cancer",
+          "leo",
+          "virgo",
+          "libra",
+          "scorpio",
+          "sagittarius",
+          "capricorn",
+          "aquarius",
+          "pisces"
+        ],
+        "title": "ZodiacSign",
+        "type": "string"
       }
     }
   },
@@ -56,6 +367,236 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/birth-profile": {
+      "get": {
+        "operationId": "get_birth_profile_v1_birth_profile_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_guest",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Guest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthRevealResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Birth Profile",
+        "tags": [
+          "birth-chart"
+        ]
+      },
+      "post": {
+        "operationId": "create_birth_profile_v1_birth_profile_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BirthDateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthRevealResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Create Birth Profile",
+        "tags": [
+          "birth-chart"
+        ]
+      }
+    },
+    "/v1/guest-session": {
+      "delete": {
+        "operationId": "delete_guest_session_v1_guest_session_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Guest Session",
+        "tags": [
+          "guest"
+        ]
+      }
+    },
+    "/v1/guest-sessions": {
+      "post": {
+        "operationId": "create_guest_session_v1_guest_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create Guest Session",
+        "tags": [
+          "guest"
+        ]
+      }
+    },
     "/v1/health": {
       "get": {
         "operationId": "getHealth",
@@ -105,6 +646,65 @@
         "summary": "Readiness",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/v1/session": {
+      "get": {
+        "operationId": "get_session_v1_session_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "__Host-la_lanh_guest",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "  Host-La Lanh Guest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session",
+        "tags": [
+          "guest"
         ]
       }
     }

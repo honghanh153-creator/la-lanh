@@ -33,6 +33,8 @@ __pycache__/
 .coverage
 htmlcov/
 apps/api/.alembic-temp/
+apps/api/*.db
+vendor/swisseph/build/
 
 # Prototype is retained as a visual source, never as a build input
 prototype/node_modules/

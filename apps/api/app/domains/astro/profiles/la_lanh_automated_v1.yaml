@@ -1,0 +1,6 @@
+id: la_lanh_automated_v1
+inherits: astro_reference_v1
+date_only:
+  timezone_range: [UTC+14, UTC-12]
+  sample_interval_hours: 6
+  ingress_behavior: return_candidates

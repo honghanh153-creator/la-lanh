@@ -1,5 +1,6 @@
 import { ArrowRight } from "@phosphor-icons/react";
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { PrimaryButton } from "../../shared/ui/PrimaryButton";
@@ -28,14 +29,14 @@ const welcomeSlides = [
 ] as const;
 
 export function WelcomePage() {
+  const navigate = useNavigate();
   const [slideIndex, setSlideIndex] = useState(0);
   const slide = welcomeSlides[slideIndex];
   const isLastSlide = slideIndex === welcomeSlides.length - 1;
 
   const advance = () => {
-    if (!isLastSlide) {
-      setSlideIndex((current) => current + 1);
-    }
+    if (isLastSlide) void navigate("/consent");
+    else setSlideIndex((current) => current + 1);
   };
 
   return (
@@ -79,10 +80,17 @@ export function WelcomePage() {
           <ArrowRight aria-hidden="true" size={21} weight="bold" />
         </PrimaryButton>
         {!isLastSlide ? (
-          <button className="text-button" onClick={() => setSlideIndex(welcomeSlides.length - 1)} type="button">
+          <button className="text-button" onClick={() => void navigate("/consent")} type="button">
             Bỏ qua giới thiệu
           </button>
-        ) : <span className="welcome__footer-spacer" aria-hidden="true" />}
+        ) : (
+          <button className="text-button" onClick={() => setSlideIndex(0)} type="button">
+            Quay lại
+          </button>
+        )}
+        <Link className="welcome__login-link" to="/existing-user">
+          Mình đã có tài khoản
+        </Link>
       </footer>
     </main>
   );

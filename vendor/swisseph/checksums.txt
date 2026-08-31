@@ -1,0 +1,5 @@
+# Swiss Ephemeris official release v2.10.3final
+# Commit af9823fe7b06ffefe3d3968fdc5680be8b5eec5f
+20aa1c1d68d98895493aef8a4d67d596823309d55078f6d7a9bdbe0d0c7e8d80  ephe/sepl_18.se1
+1aca59fbd7f73d3882768a847890304261051c5ed965b952b4c9d7c5951833a4  ephe/semo_18.se1
+df4e9a08186f91e2c91f454ee2d404bf5ecbe61500b2324c28d26e6da2076dc6  ephe/seas_18.se1

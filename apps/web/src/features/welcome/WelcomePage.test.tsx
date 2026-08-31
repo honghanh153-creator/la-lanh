@@ -1,11 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 
 import { WelcomePage } from "./WelcomePage";
 
+function renderPage() {
+  return render(<MemoryRouter><WelcomePage /></MemoryRouter>);
+}
+
 describe("WelcomePage", () => {
   it("renders the preserved Electric Note welcome baseline", () => {
-    render(<WelcomePage />);
+    renderPage();
 
     expect(screen.getByLabelText("Lá Lành")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Một lời nhắc đúng lúc." })).toBeInTheDocument();
@@ -17,7 +22,7 @@ describe("WelcomePage", () => {
     const user = userEvent.setup();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
-    render(<WelcomePage />);
+    renderPage();
     await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
 
     expect(screen.getByRole("heading", { name: "Chỉ cần ngày sinh. Thế là đủ." })).toBeInTheDocument();
