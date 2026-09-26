@@ -1,0 +1,50 @@
+{
+  "run_id": "2026-09-20-vong-la-return-ladder",
+  "status": "complete",
+  "verdict": "ready_for_local_review",
+  "scope": [
+    "apps/web/src/shared/storage/matchingIntroExposure.ts",
+    "apps/web/src/features/matching/matchingIntroExposure.test.ts",
+    "apps/web/src/features/matching/MatchingLandingPage.tsx",
+    "apps/web/src/features/matching/MatchingLandingPage.test.tsx",
+    "apps/web/src/features/matching/MatchingPage.tsx",
+    "apps/web/src/features/matching/MatchingPage.test.tsx",
+    "apps/web/src/shared/storage/clearPersonalData.ts",
+    "apps/web/src/shared/storage/clearPersonalData.test.ts",
+    "docs/user-stories/US-14-chuan-bi-profile-matching-ready.md"
+  ],
+  "intent": "Deliver a privacy-first three-visit Vong La acquisition ladder that escalates curiosity without pretending unfinished matching stages are live.",
+  "reviewers": [
+    "correctness",
+    "testing",
+    "security",
+    "maintainability"
+  ],
+  "findings": [],
+  "actionable_findings": [],
+  "resolved_during_review": [
+    "Protected browser storage acquisition from SecurityError.",
+    "Kept the visible variant stable after transient persistent-write failures.",
+    "Rejected malformed, fractional, and out-of-range visit records.",
+    "Marked conversion only after a successful profile save.",
+    "Continued all personal-data cleanup attempts even when an earlier removal fails.",
+    "Qualified all candidate, request, mutual, and chat copy as future work.",
+    "Added explicit tests for all three variants, failed saves, storage failure, and deletion failure."
+  ],
+  "verification": {
+    "web_tests": "93 passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "production_build": "passed",
+    "runtime_mock_guard": "passed",
+    "privacy_guard": "passed",
+    "mobile_release_guard": "passed",
+    "mobile_guard_tests": "4 passed",
+    "browser_qa": "390x844 landing and CTA-to-profile-sheet flow passed with no console warnings or errors"
+  },
+  "known_deferred_scope": [
+    "US-12 and US-13 pair-chart runtime",
+    "US-15 through US-18 candidate deck, private request, mutual match, chat, and recap runtime",
+    "Native bundle synchronization until a real HTTPS production API base URL is configured"
+  ]
+}

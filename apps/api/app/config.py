@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEVELOPMENT_HASH_KEY = "bGEtbGFuaC1kZXYtaGFzaC1rZXktMzItYnl0ZXMhISE="
 DEVELOPMENT_ENCRYPTION_KEY = "bGEtbGFuaC1kZXYtZW5jcnlwdGlvbi1rZXktMzIhISE="
+PINNED_OPENAI_MODEL: Literal["gpt-5.4-mini-2026-03-17"] = "gpt-5.4-mini-2026-03-17"
 
 
 class Settings(BaseSettings):
@@ -25,11 +26,28 @@ class Settings(BaseSettings):
     consent_purpose: str = "birth_profile_basic"
     guest_cookie_name: str = "la_lanh_guest"
     guest_csrf_cookie_name: str = "la_lanh_csrf"
+    owner_cookie_name: str = "la_lanh_owner"
+    cookie_domain: str | None = Field(
+        default=None,
+        pattern=r"^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$",
+    )
+    native_app_enabled: bool = False
+    owner_ttl_days: int = Field(default=30, ge=1, le=30)
     guest_cookie_secure: bool = False
     guest_ttl_days: int = Field(default=30, ge=1, le=30)
     guest_replay_minutes: int = Field(default=10, ge=1, le=10)
     guest_hash_key: SecretStr = SecretStr(DEVELOPMENT_HASH_KEY)
     guest_encryption_key: SecretStr = SecretStr(DEVELOPMENT_ENCRYPTION_KEY)
+    generation_enabled: bool = False
+    generation_provider: Literal["disabled", "openai"] = "disabled"
+    generation_governance_approved: bool = False
+    generation_openai_api_key: SecretStr | None = None
+    generation_openai_model: Literal["gpt-5.4-mini-2026-03-17"] = PINNED_OPENAI_MODEL
+    generation_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
+    generation_lease_seconds: int = Field(default=120, ge=30, le=600)
+    generation_max_attempts: int = Field(default=2, ge=1, le=3)
+    generation_retry_delay_seconds: int = Field(default=60, ge=10, le=3600)
+    swisseph_license_mode: Literal["development", "agpl", "professional"] = "development"
 
     model_config = SettingsConfigDict(
         env_file=("../../.env", ".env"),
@@ -41,7 +59,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_security_settings(self) -> "Settings":
+        if self.guest_csrf_cookie_name != "la_lanh_csrf":
+            raise ValueError("guest CSRF cookie name is fixed by the app client contract")
+        if self.generation_lease_seconds <= self.generation_timeout_seconds:
+            raise ValueError("generation lease must exceed the provider timeout")
+        if self.generation_enabled:
+            if self.generation_provider != "openai":
+                raise ValueError("enabled generation requires the pinned OpenAI provider")
+            if self.generation_openai_api_key is None:
+                raise ValueError("enabled generation requires an OpenAI API key")
+            if not self.generation_governance_approved:
+                raise ValueError("enabled generation requires explicit governance approval")
         if self.environment in {"staging", "production"}:
+            if self.swisseph_license_mode == "development":
+                raise ValueError(
+                    "a Swiss Ephemeris AGPL or professional license posture is required "
+                    "outside local development"
+                )
             if not self.database_url.startswith("postgresql+asyncpg://"):
                 raise ValueError("PostgreSQL with asyncpg is mandatory outside local development")
             if not self.guest_cookie_secure:
@@ -54,6 +88,19 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "a managed guest encryption key is required outside local development"
                 )
+            if self.native_app_enabled and self.cookie_domain is None:
+                raise ValueError(
+                    "a cookie domain is required for Capacitor native HTTP session persistence"
+                )
+        if self.cookie_domain is not None and any(
+            name.startswith("__Host-")
+            for name in (
+                self.guest_cookie_name,
+                self.guest_csrf_cookie_name,
+                self.owner_cookie_name,
+            )
+        ):
+            raise ValueError("__Host- cookies cannot be configured with a Domain attribute")
         if self.guest_cookie_name.startswith("__Host-") and not self.guest_cookie_secure:
             if self.environment != "test":
                 raise ValueError("__Host- cookies require Secure")

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lá Lành Design QA comparison</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 28px; color: #fff8ea; background: #080a24; font-family: system-ui, sans-serif; }
+      section { width: max-content; padding: 18px; border: 1px solid #676394; border-radius: 18px; background: #111331; }
+      section + section { margin-top: 28px; }
+      h1 { margin: 0 0 16px; font-size: 18px; }
+      .pair { display: grid; grid-template-columns: repeat(2, auto); gap: 18px; align-items: start; }
+      figure { margin: 0; }
+      figcaption { margin-bottom: 8px; color: #d9ff35; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      img { display: block; border: 1px solid #676394; border-radius: 12px; background: #fff8ea; }
+      #full img { width: 390px; height: auto; }
+      #focus img { width: 390px; height: auto; }
+    </style>
+  </head>
+  <body>
+    <section id="full">
+      <h1>Full view · source direction và implementation sau sửa</h1>
+      <div class="pair">
+        <figure>
+          <figcaption>Source · Cosmic Glass Signal</figcaption>
+          <img src="../../design-directions/home-2026-09-02-v2/02-cosmic-glass-signal.png" alt="Source design" />
+        </figure>
+        <figure>
+          <figcaption>Implementation · final runtime viewport</figcaption>
+          <img src="implementation-final-copy-390x844.png" alt="Implementation after final contrast and copy fix" />
+        </figure>
+      </div>
+    </section>
+
+    <section id="focus">
+      <h1>Focused paper region · cách dùng màu trên nền sáng</h1>
+      <div class="pair">
+        <figure>
+          <figcaption>Source · chữ ink đậm, accent có giới hạn</figcaption>
+          <img src="source-paper-focus.png" alt="Source paper region" />
+        </figure>
+        <figure>
+          <figcaption>Implementation · deep leaf ink sau sửa</figcaption>
+          <img src="implementation-final-experiment-focus.png" alt="Experiment region after final contrast and copy fix" />
+        </figure>
+      </div>
+    </section>
+
+    <section id="iteration">
+      <h1>Iteration evidence · trước và sau sửa tương phản</h1>
+      <div class="pair">
+        <figure>
+          <figcaption>Trước · lime 1.08:1</figcaption>
+          <img src="implementation-before-experiment@2x.png" alt="Experiment region before fix" />
+        </figure>
+        <figure>
+          <figcaption>Sau · deep leaf 6.89:1</figcaption>
+          <img src="implementation-final-experiment-focus.png" alt="Experiment region after final contrast and copy fix" />
+        </figure>
+      </div>
+    </section>
+  </body>
+</html>

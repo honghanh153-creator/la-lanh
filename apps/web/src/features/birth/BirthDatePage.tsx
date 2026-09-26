@@ -1,17 +1,11 @@
-import { ArrowLeft, ArrowRight, LockKey, Planet, ShieldCheck, Trash } from "@phosphor-icons/react";
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { ApiProblem, createBirthProfile, createGuest, getSession } from "../../shared/api/client";
-import { BrandMark } from "../../shared/ui/BrandMark";
-
-function idempotencyKey(): string {
-  const existing = sessionStorage.getItem("la-lanh-guest-create-key");
-  if (existing) return existing;
-  const value = crypto.randomUUID();
-  sessionStorage.setItem("la-lanh-guest-create-key", value);
-  return value;
-}
+import { ApiProblem, createBirthProfile, getDailyNote, getSession } from "../../shared/api/client";
+import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
+import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 
 function validDate(day: string, month: string, year: string): string | null {
   if (!/^\d{1,2}$/.test(day) || !/^\d{1,2}$/.test(month) || !/^\d{4}$/.test(year)) {
@@ -22,7 +16,7 @@ function validDate(day: string, month: string, year: string): string | null {
   const numericYear = Number(year);
   const value = new Date(Date.UTC(numericYear, numericMonth - 1, numericDay));
   if (
-    numericYear < 1800 || numericYear > new Date().getFullYear()
+    numericYear < new Date().getFullYear() - 120 || numericYear > new Date().getFullYear()
     || value.getUTCFullYear() !== numericYear
     || value.getUTCMonth() !== numericMonth - 1
     || value.getUTCDate() !== numericDay
@@ -31,7 +25,7 @@ function validDate(day: string, month: string, year: string): string | null {
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
-function isChildBirthDate(birthDate: string): boolean {
+function isUnder18(birthDate: string): boolean {
   const birth = new Date(`${birthDate}T00:00:00.000Z`);
   const today = new Date();
   let age = today.getUTCFullYear() - birth.getUTCFullYear();
@@ -39,99 +33,112 @@ function isChildBirthDate(birthDate: string): boolean {
   const birthdayNotReached = monthDelta < 0
     || (monthDelta === 0 && today.getUTCDate() < birth.getUTCDate());
   if (birthdayNotReached) age -= 1;
-  return age < 16;
-}
-
-async function ensureGuestSession() {
-  try {
-    await getSession();
-  } catch (error) {
-    if (error instanceof ApiProblem && error.status === 401) {
-      await createGuest(idempotencyKey());
-      sessionStorage.removeItem("la-lanh-guest-create-key");
-      return;
-    }
-    throw error;
-  }
+  return age < 18;
 }
 
 export function BirthDatePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const dayInput = useRef<HTMLInputElement>(null);
+  const yearInput = useRef<HTMLInputElement>(null);
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
-  const [consented, setConsented] = useState(false);
   const [pending, setPending] = useState(false);
+  const [profileCreated, setProfileCreated] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getSession(controller.signal).catch((reason: unknown) => {
+      if (!controller.signal.aborted && reason instanceof ApiProblem && reason.status === 401) {
+        void navigate("/welcome", { replace: true });
+      }
+    });
+    return () => controller.abort();
+  }, [navigate]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const birthDate = validDate(day, month, year);
     if (!birthDate) {
       setError("Ngày này chưa đúng. Kiểm tra lại ngày, tháng và năm nhé.");
+      dayInput.current?.focus();
       return;
     }
-    if (isChildBirthDate(birthDate)) {
-      setError("Lá Lành chưa xử lý dữ liệu của người dưới 16 tuổi khi chưa có xác nhận của phụ huynh hoặc người giám hộ.");
-      return;
-    }
-    if (!consented) {
-      setError("Bạn cần tick đồng ý trước khi Lá Lành gửi ngày sinh để tính Lá Khai Sinh.");
+    if (isUnder18(birthDate)) {
+      setError("Lá Lành hiện dành cho người từ 18 tuổi.");
+      yearInput.current?.focus();
       return;
     }
     setPending(true);
     setError(null);
     try {
-      await ensureGuestSession();
-      await createBirthProfile(birthDate);
-      void navigate("/reveal");
+      if (!profileCreated) {
+        const profile = await createBirthProfile(birthDate);
+        queryClient.setQueryData(["birth-profile"], profile);
+        setProfileCreated(true);
+      }
+      await queryClient.fetchQuery({
+        queryKey: ["daily-note"],
+        queryFn: ({ signal }) => getDailyNote(signal),
+        staleTime: 60_000,
+      });
+      void navigate(
+        Boolean(sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY))
+          || sessionStorage.getItem("la-lanh-radar-owner-start") === "1"
+          ? "/birth-time"
+          : "/reveal",
+        { replace: true },
+      );
     } catch {
-      setError("Chưa đọc được bầu trời lúc này. Dữ liệu chưa bị lưu — thử lại nhé.");
+      const hasProfile = queryClient.getQueryData(["birth-profile"]) !== undefined;
+      setError(hasProfile
+        ? "Ngày sinh đã khớp, nhưng Vibe chưa về kịp. Thử tải lại nhé."
+        : "Kết nối vừa lỗi một nhịp. Ngày sinh của bạn vẫn được giữ để thử lại.");
     } finally {
       setPending(false);
     }
   };
 
+  const actions = (
+    <>
+      <button className="signal-station__button" disabled={pending} form="birth-date-form" type="submit">
+        {pending ? "Đang khớp tín hiệu…" : profileCreated ? "Tải lại Vibe" : "Khớp tín hiệu"}
+        <ArrowRight aria-hidden="true" />
+      </button>
+      <button className="signal-station__back" disabled={pending} onClick={() => void navigate(-1)} type="button">
+        <ArrowLeft aria-hidden="true" /> Quay lại
+      </button>
+    </>
+  );
+
   return (
-    <main className="flow-page birth-page">
-      <header className="flow-header">
-        <button aria-label="Quay lại" className="icon-button" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button>
-        <BrandMark />
-        <span className="flow-header__step">01 / 02</span>
-      </header>
-      <section className="birth-intro">
-        <span className="birth-intro__planet" aria-hidden="true"><Planet weight="duotone" /></span>
-        <p className="eyebrow">Lá Khai Sinh</p>
-        <h1>Bạn đáp xuống Trái Đất ngày nào?</h1>
-        <p>Chỉ cần ngày sinh. Giờ và nơi sinh có thể bật mí sau.</p>
-      </section>
-      <form className="birth-form" onSubmit={(event) => void submit(event)} noValidate>
-        <fieldset>
+    <SignalStationFrame act={1} actions={actions} loading={pending} titleId="birth-title">
+      <h1 id="birth-title">Bạn xuất hiện ngày nào?</h1>
+      <p className="signal-station__lead">Chỉ ngày sinh thôi. Giờ và nơi sinh có thể bật mí sau.</p>
+      <form autoComplete="off" className="signal-date-form" id="birth-date-form" onSubmit={(event) => void submit(event)} noValidate>
+        <fieldset className="signal-date-fields" disabled={pending}>
           <legend className="sr-only">Ngày sinh</legend>
-          <label><span>Ngày</span><input autoComplete="bday-day" inputMode="numeric" maxLength={2} onChange={(event) => setDay(event.target.value.replace(/\D/g, ""))} placeholder="DD" value={day} /></label>
-          <span className="date-divider">/</span>
-          <label><span>Tháng</span><input autoComplete="bday-month" inputMode="numeric" maxLength={2} onChange={(event) => setMonth(event.target.value.replace(/\D/g, ""))} placeholder="MM" value={month} /></label>
-          <span className="date-divider">/</span>
-          <label className="birth-form__year"><span>Năm</span><input autoComplete="bday-year" inputMode="numeric" maxLength={4} onChange={(event) => setYear(event.target.value.replace(/\D/g, ""))} placeholder="YYYY" value={year} /></label>
-        </fieldset>
-        <section className="privacy-consent" aria-label="Đồng ý xử lý dữ liệu ngày sinh">
-          <p className="privacy-consent__title"><ShieldCheck size={18} weight="fill" /> Trước khi gửi ngày sinh</p>
-          <ul>
-            <li><Planet size={16} /> Dữ liệu dùng để tính Lá Khai Sinh và note cá nhân hóa.</li>
-            <li><LockKey size={16} /> Ngày sinh được gửi qua kênh bảo mật, mã hóa khi lưu; không nằm trong cookie hay URL.</li>
-            <li><Trash size={16} /> Phiên khách tự hết hạn sau 30 ngày và có thể xóa ngay trong mục Mình.</li>
-          </ul>
-          <label className="consent-check">
-            <input checked={consented} onChange={(event) => setConsented(event.target.checked)} type="checkbox" />
-            <span>Tôi đã hiểu và đồng ý để Lá Lành xử lý ngày sinh cho mục đích này.</span>
+          <label className="signal-date-field">
+            <span>Ngày</span>
+            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={2} onChange={(event) => setDay(event.target.value.replace(/\D/g, ""))} placeholder="DD" ref={dayInput} value={day} />
           </label>
-          <Link className="detail-link" to="/privacy">Xem quyền dữ liệu & bảo mật</Link>
-        </section>
-        {error ? <p className="inline-error" role="alert">{error}</p> : null}
-        <button className="electric-button" disabled={pending} type="submit">
-          {pending ? "Đang đọc chuyển động thật…" : "Bật mí Lá của mình"}<ArrowRight />
-        </button>
+          <span className="signal-date-divider" aria-hidden="true">/</span>
+          <label className="signal-date-field">
+            <span>Tháng</span>
+            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={2} onChange={(event) => setMonth(event.target.value.replace(/\D/g, ""))} placeholder="MM" value={month} />
+          </label>
+          <span className="signal-date-divider" aria-hidden="true">/</span>
+          <label className="signal-date-field">
+            <span>Năm</span>
+            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={4} onChange={(event) => setYear(event.target.value.replace(/\D/g, ""))} placeholder="YYYY" ref={yearInput} value={year} />
+          </label>
+        </fieldset>
+        <p className="signal-station__privacy">Ngày sinh không xuất hiện khi chia sẻ.</p>
+        {pending ? <p className="signal-station__notice" role="status">Đang tìm Mặt Trời và viết Vibe đầu tiên…</p> : null}
+        {error ? <p className="signal-station__error" id="birth-error" role="alert">{error}</p> : null}
       </form>
-    </main>
+    </SignalStationFrame>
   );
 }

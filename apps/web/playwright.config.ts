@@ -6,6 +6,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:4173",
+    serviceWorkers: "block",
     trace: "retain-on-failure",
   },
   webServer: {
@@ -16,11 +17,11 @@ export default defineConfig({
   projects: [
     {
       name: "mobile-chromium",
-      use: { ...devices["iPhone 13"] },
+      use: { ...devices["iPhone 13"], serviceWorkers: "block" },
     },
     {
       name: "desktop-chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], serviceWorkers: "block" },
     },
   ],
 });

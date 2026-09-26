@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Lá Lành</string>
+    <string name="title_activity_main">Lá Lành</string>
+    <string name="package_name">vn.lalanh.app</string>
+    <string name="custom_url_scheme">vn.lalanh.app</string>
+</resources>

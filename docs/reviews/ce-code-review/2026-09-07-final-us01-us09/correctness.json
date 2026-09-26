@@ -1,0 +1,110 @@
+{
+  "reviewer": "correctness",
+  "findings": [
+    {
+      "title": "Projection scope collapses distinct chart configurations",
+      "severity": "P1",
+      "file": "apps/api/app/domains/readings/models.py",
+      "line": 589,
+      "why_it_matters": "Changing Whole Sign to Placidus, or one Jyotish ayanamsa to another, can continue showing the synthesis produced for the previous setting. The projection identity collapses all configurations that share purpose, tradition, date, timezone, and observation time; the repository then parks the newly computed configuration as an optional update while the reading-detail screen renders only the old active revision. Including the calculation configuration in projection identity preserves the user's explicit setting as a separate active reading.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Add the plan/chart config_hash to canonical_projection_scope_key and to the persisted ReadingProjectionRecord scope invariant (including the database migration and validation), then create or fetch projections by that configuration-aware key. Add a regression test that requests two house systems or ayanamsas for the same guest, purpose, tradition, and instant and asserts that each response has its own matching active revision.",
+      "confidence": 100,
+      "evidence": [
+        "apps/api/app/domains/readings/models.py:589 -- parts = (\n        purpose.value,\n        tradition.value,\n        local_date.isoformat(),\n        timezone_name,\n        observed_at.astimezone(UTC).isoformat(),\n    )",
+        "apps/api/app/domains/readings/planner.py:170 -- config_hash=chart.config_hash,",
+        "apps/api/app/domains/readings/postgres.py:231 -- if projection.active_revision_id != revision.id:",
+        "apps/api/app/domains/readings/postgres.py:232 -- projection.available_revision_id = revision.id",
+        "apps/web/src/features/insights/ReadingDetailPage.tsx:51 -- {claimId === \"synthesis\" && readingQuery.data ? <ReadingContent content={readingQuery.data.active} /> : null}"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Activation leaves exact-revision actions on stale revision",
+      "severity": "P1",
+      "file": "apps/web/src/shared/api/client.ts",
+      "line": 90,
+      "why_it_matters": "Immediately after a user opens an available Aura revision, Save and Create safe link can be rejected because they still send the pre-activation revision ID. The module-level value is populated by the earlier daily-note fetch and takes precedence over the cache that HomePage updates after activation; the API correctly rejects that stale expected revision. Updating the authoritative revision value from the activation response makes these exact-revision actions target what the user is currently seeing.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Make activateReadingProjection await the response, assign lastDailyRevisionId = projection.active.revision_id, and return the projection. Also make currentDailyRevisionId prefer the current cached projection or consolidate both sources into one authoritative revision store; add a client test for getDailyNote(old) -> activate(new) -> save/share and assert both payloads carry new.",
+      "confidence": 100,
+      "evidence": [
+        "apps/web/src/shared/api/client.ts:89 -- function currentDailyRevisionId(): string | null {\n  return lastDailyRevisionId\n    ?? readCachedDailyNote()?.note.reading_projection?.active.revision_id\n    ?? null;\n}",
+        "apps/web/src/shared/api/client.ts:209 -- lastDailyRevisionId = note.reading_projection?.active.revision_id ?? null;",
+        "apps/web/src/shared/api/client.ts:422-436 -- activateReadingProjection returns request<ReadingProjection>(...) directly and never updates lastDailyRevisionId.",
+        "apps/web/src/shared/api/client.ts:292 -- body: JSON.stringify({ format, revision_id: currentDailyRevisionId() }),",
+        "apps/api/app/api/v1/routes/saved_notes.py:103 -- if expected_revision_id is not None and projection.active.revision_id != expected_revision_id:"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Consent clearing deletes the installed offline shell",
+      "severity": "P1",
+      "file": "apps/web/src/shared/storage/clearPersonalData.ts",
+      "line": 21,
+      "why_it_matters": "Every user who accepts consent deletes the service worker's non-personal app-shell cache, so a later offline restart has no cached index or offline page to display. The deleted cache is normally populated only during service-worker installation, and accepting consent does not reinstall the worker. Restricting deletion to caches that actually contain personal data preserves both privacy semantics and the promised app-first fallback.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Stop deleting every la-lanh-* cache. Delete only an explicit allowlist of personal-data cache names (currently the service worker caches only static public assets), or rename the app-shell cache to a clearly non-personal namespace and exclude it; verify consent and account deletion leave the shell cache available while all personal stores are cleared.",
+      "confidence": 100,
+      "evidence": [
+        "apps/web/src/shared/storage/clearPersonalData.ts:21 -- await Promise.all(names.filter((name) => name.startsWith(\"la-lanh-\")).map((name) => window.caches.delete(name)));",
+        "apps/web/public/sw.js:3 -- const CACHE_NAME = \"la-lanh-app-shell-v4\";",
+        "apps/web/public/sw.js:20 -- caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),",
+        "apps/web/src/features/consent/ConsentPage.tsx:30 -- await clearPersonalDataOnDevice();"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Offline shell omits executable web bundles",
+      "severity": "P2",
+      "file": "apps/web/public/sw.js",
+      "line": 49,
+      "why_it_matters": "An offline navigation may return the cached index but still fail to boot the React application because requests for Vite's generated JavaScript and CSS bundles are ignored by the service worker. A regular browser HTTP cache can mask this after some visits, but it is not the reliable app-shell fallback the service worker claims to provide. Precaching the build manifest or deliberately caching same-origin generated assets makes the cached HTML executable offline.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Generate the service-worker precache list from Vite's build manifest (preferred), including the hashed JS/CSS imported by index.html, or add a versioned cache-first strategy for same-origin /assets/ build outputs. Verify in a clean browser by activating the worker, clearing the ordinary HTTP cache, disabling the network, and navigating from a cold page.",
+      "confidence": 75,
+      "evidence": [
+        "apps/web/public/sw.js:49 -- if (url.origin !== self.location.origin || !APP_SHELL.includes(url.pathname)) return;",
+        "apps/web/public/sw.js:4-16 -- APP_SHELL lists index/offline/manifest/icons and authored note images, but no generated JavaScript or CSS bundle paths.",
+        "apps/web/public/sw.js:44 -- .catch(() => caches.match(\"/index.html\").then((cached) => cached ?? caches.match(\"/offline.html\"))),"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Mean-node charts use true-node transit positions",
+      "severity": "P2",
+      "file": "apps/api/app/domains/astro/engine.py",
+      "line": 365,
+      "why_it_matters": "A guest selecting mean-node calculation receives transit contacts computed with the true node, so daily and transit-to-natal interpretations do not honor the selected chart configuration. Natal calculation swaps the node body correctly, but the shared transit path always iterates the fixed true-node body list. Passing node mode into transit calculation and selecting the same body as natal computation keeps the deterministic reading internally consistent.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Pass resolved.node_mode into _transiting_bodies and construct its body list by replacing TRUE_NODE with (MEAN_NODE, 10) when NodeMode.MEAN, mirroring calculate_chart. Keep config_hash in the cache key and add fixtures proving mean- and true-node transit snapshots differ and expose the selected node name.",
+      "confidence": 100,
+      "evidence": [
+        "apps/api/app/domains/astro/engine.py:363 -- with self._native.calculation_scope(sidereal_mode):\n            calculated = tuple(\n                self._body_position(julian_day_ut, body, body_id, sidereal=sidereal)\n                for body, body_id in BODY_IDS\n            )",
+        "apps/api/app/domains/astro/engine.py:56 -- (BodyName.TRUE_NODE, 11),",
+        "apps/api/app/domains/astro/engine.py:197 -- node_body = (\n                (BodyName.TRUE_NODE, 11)\n                if resolved.node_mode is NodeMode.TRUE\n                else (BodyName.MEAN_NODE, 10)\n            )"
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [
+    "Native Capacitor cookie, CSRF, and secure-storage lifecycle behavior was not exercised on an iOS or Android runtime in this review.",
+    "Provider-enabled generation depends on a separately running worker; no production worker wiring was visible in the reviewed executable deployment scope, so that optional path still needs deployment-level verification."
+  ],
+  "testing_gaps": [
+    "No test requests two calculation configurations for the same reading scope and proves their active projections remain isolated.",
+    "No web client test covers activation followed immediately by exact-revision save and share actions.",
+    "No cold-cache offline test verifies that consent/privacy clearing preserves a bootable installed app shell.",
+    "No transit test asserts that NodeMode.MEAN selects Swiss Ephemeris body 10 instead of the true node."
+  ]
+}

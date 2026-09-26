@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation · Birth-chart synthesis agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0d0718;--surface:#191027;--surface2:#241533;--ink:#fff9ec;--muted:#c7bcd3;--lime:#dfff2f;--coral:#ff786c;--lav:#c99df6;--line:#56416d;--green:#a7ebc8}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 86% 2%,#38204e 0,transparent 30rem),var(--bg);color:var(--ink);font:400 16px/1.68 "Be Vietnam Pro",system-ui,sans-serif}.page{width:min(940px,calc(100% - 32px));margin:auto;padding:52px 0 72px}header,.panel,.idea,.sample{border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border-radius:26px}header{padding:34px}.eyebrow,.axis,.label{font-size:.75rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase}.eyebrow,.label{color:var(--lime)}h1{font-size:clamp(2.1rem,6vw,4.1rem);line-height:1.03;max-width:14ch;margin:.35rem 0 1rem}h2{font-size:1.55rem;margin:3rem 0 1rem}h3{font-size:1.32rem;line-height:1.28;margin:.2rem 0 .8rem}.lede,p{max-width:72ch}.lede{color:var(--muted)}.meta-row,.chips,.jump{display:flex;flex-wrap:wrap;gap:8px}.meta-row{margin-top:20px}.meta,.chip{padding:7px 11px;border:1px solid var(--line);border-radius:999px;font-size:.78rem;background:rgba(255,255,255,.04)}.meta strong{color:var(--ink)}nav{position:sticky;top:10px;z-index:3;display:flex;gap:7px;overflow:auto;margin:18px 0;padding:10px;border:1px solid var(--line);border-radius:18px;background:rgba(13,7,24,.9);backdrop-filter:blur(16px)}nav a,.jump a{color:var(--ink);text-decoration:none;white-space:nowrap;font-size:.84rem;font-weight:650;padding:7px 10px;border-radius:10px}nav a:hover,.jump a:hover{background:var(--surface2);color:var(--lime)}section{scroll-margin-top:90px}.panel,.idea,.sample{padding:24px;margin:14px 0}.panel ul{margin:0;padding-left:1.25rem}.panel li+li{margin-top:.55rem}.axes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.axis-card{padding:16px;border:1px solid var(--line);border-radius:17px;background:var(--surface2)}.axis-card strong{display:block;color:var(--lime);margin-bottom:4px}.jump{margin-bottom:18px}.jump a{border:1px solid var(--line)}.idea{position:relative;overflow:hidden}.idea.top{border-color:var(--lime);box-shadow:0 0 0 1px rgba(223,255,47,.2),0 24px 70px rgba(0,0,0,.26)}.rank{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--lime);color:#160d20;font-weight:800}.axis{color:var(--lav);margin:.8rem 0 .25rem}.idea dl{display:grid;grid-template-columns:8.5rem 1fr;gap:10px 16px;margin:18px 0 0}.idea dt{font-weight:700;color:var(--muted)}.idea dd{margin:0}.chips{margin-top:18px}.chip.conf{color:#07160f;background:var(--green);border-color:transparent}.backbone{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:20px}.backbone div{position:relative;min-height:112px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface2)}.backbone strong{display:block;color:var(--lime);margin-bottom:6px}.backbone div+div:before{content:"→";position:absolute;left:-17px;top:40px;color:var(--coral);font-weight:800}.sample{background:#f4ecd9;color:#21132e;border-color:#dcccae}.sample h3{font-size:clamp(1.65rem,5vw,2.45rem);max-width:17ch}.sample .label{color:#6e3ca0}.sample-grid{display:grid;grid-template-columns:1.35fr .85fr;gap:22px}.receipt{padding:16px;border:1px solid #cab89b;border-radius:15px;background:#fff9ec}.receipt ul{padding-left:1.1rem;margin:.6rem 0}.micro{font-size:.82rem;color:#665a69}.consent{border-left:4px solid var(--lime)}table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:18px;overflow:hidden}th,td{text-align:left;vertical-align:top;padding:13px;border-bottom:1px solid var(--line)}th{color:var(--lime);font-size:.77rem;text-transform:uppercase;letter-spacing:.06em}.source-list a{color:var(--lime)}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.78rem}@media(max-width:720px){.page{width:min(100% - 20px,940px);padding-top:20px}header,.panel,.idea,.sample{padding:19px}.backbone,.sample-grid{grid-template-columns:1fr}.backbone div+div:before{display:none}.idea dl{grid-template-columns:1fr;gap:2px}.idea dd{margin-bottom:10px}table{display:block;overflow:auto}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media(prefers-reduced-transparency:reduce){nav{backdrop-filter:none;background:var(--bg)}}
+  </style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <p class="eyebrow">Lá Lành · Product ideation</p>
+    <h1>Agent đọc chart phải có “biên lai”</h1>
+    <p class="lede">Một agent nội dung không chỉ đổi giọng văn. Nó cần chọn đúng tín hiệu từ toàn chart, kết nối chúng thành một luận điểm riêng, nói ra bằng ngôn ngữ đời thường và chứng minh vì sao câu đó xuất hiện. Hướng đề xuất kết hợp bốn ý đầu thành một hệ thống tối thiểu hoàn chỉnh.</p>
+    <div class="meta-row">
+      <span class="meta"><strong>Date</strong> · <time datetime="2026-09-12">2026-09-12</time></span>
+      <span class="meta"><strong>Topic</strong> · chart-synthesis-agent</span>
+      <span class="meta"><strong>Mode</strong> · repo-grounded</span>
+      <span class="meta"><strong>Focus</strong> · useful, specific, Gen Z chart readings</span>
+    </div>
+  </header>
+
+  <nav aria-label="Đi tới phần"><a href="#grounding">Grounding</a><a href="#consent">Consent</a><a href="#axes">Axes</a><a href="#voice-bank">Voice bank</a><a href="#ideas">7 ideas</a><a href="#sample">Mẫu đọc</a><a href="#cuts">Cuts</a><a href="#sources">Sources</a></nav>
+
+  <section id="grounding">
+    <h2>Codebase context</h2>
+    <div class="panel">
+      <ul>
+        <li>Daily Note hiện có 12 mẫu theo Sun và 4 mẫu Aura theo nguyên tố trội; full chart chủ yếu được liệt kê thành Sun, Moon, Mercury, Venus và Mars chứ chưa thực sự được tổng hợp.</li>
+        <li>Sky Chapter tính được transit thật nhưng phần diễn giải vẫn có thể đúng về kỹ thuật mà không tạo ra hiểu biết mới. “Bonus” đang được hiển thị như một entitlement, chưa phải một phát hiện.</li>
+        <li>Backend đã có nền tốt: <code>factor_refs</code>, confidence, tradition, provenance và full factor graph. Khoảng trống là lớp chọn tín hiệu, tạo luận điểm, kiểm chứng và biên tập.</li>
+        <li>UI hiện tại đặt prose dài, metadata kỹ thuật và disclaimer cùng cấp độ. Người dùng phải tự làm công việc của editor: tìm câu đáng đọc giữa dữ liệu và lời phòng vệ.</li>
+        <li>Ranh giới đúng vẫn là: engine tính; rules chọn và xếp hạng; agent diễn đạt; validator chặn câu không có bằng chứng. Agent không được tự tính chart hoặc tự phát minh aspect.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="consent">
+    <h2>Consent không phải vật cản</h2>
+    <div class="panel consent">
+      <p><strong>Đúng: consent ban đầu và mục đích sử dụng rõ ràng đã cho phép Lá tạo và diễn giải chart trong tài khoản cá nhân.</strong> Không cần hỏi lại trước mỗi note, mỗi chapter hay mỗi lần người dùng mở sâu.</p>
+      <p>Phần vẫn cần quản trị ở backend không phải để cản reading: chỉ gửi cho model các factor cần dùng thay vì ngày giờ/nơi sinh thô; công khai nếu có nhà cung cấp AI thứ ba; không dùng reading riêng để train mặc định; hỗ trợ rút consent/xóa dữ liệu; bảo vệ cả chart dẫn xuất vì nó vẫn liên quan tới một cá nhân.</p>
+      <p class="micro">Trên UI: một disclosure gọn trong Quyền riêng tư/Settings là đủ. Không lặp legal card trên từng màn nội dung.</p>
+    </div>
+  </section>
+
+  <section id="axes">
+    <h2>Topic axes</h2>
+    <div class="axes">
+      <div class="axis-card"><strong>Synthesis</strong>Từ factor graph tới một luận điểm nhiều lớp.</div>
+      <div class="axis-card"><strong>Voice</strong>Gen Z, có duyên, không văn mẫu và không “thầy phán”.</div>
+      <div class="axis-card"><strong>Daily value</strong>Natal ổn định được bầu trời hôm nay remix ra sao.</div>
+      <div class="axis-card"><strong>Evidence &amp; safety</strong>Mỗi claim có căn cứ, confidence và giới hạn.</div>
+      <div class="axis-card"><strong>Evaluation &amp; learning</strong>Đo specificity, salience, lặp và phản hồi riêng tư.</div>
+    </div>
+  </section>
+
+  <section id="voice-bank">
+    <h2>Extension 2026-09-12 · Người dùng muốn Lá nói thế nào?</h2>
+    <div class="panel consent">
+      <p><strong>Nguyên tắc:</strong> chart quyết định nội dung được đọc; người dùng quyết định cách muốn nghe. Không được suy rằng một người “Moon nước” sẽ thích lời mềm hay “Mars lửa” sẽ thích bị nói thẳng.</p>
+      <p>Đã tạo 31 hướng thô qua năm trục: mức trực diện, độ ấm, độ cợt, độ sâu và lượng thuật ngữ. Sau khi gộp trùng và loại các hướng gây áp lực, giả thân mật hoặc làm lệch nghĩa, còn 6 hướng đáng giữ.</p>
+    </div>
+    <div class="jump"><a href="#voice-1">1 · Preset + dial</a><a href="#voice-2">2 · Recast</a><a href="#voice-3">3 · Sensitivity</a><a href="#voice-4">4 · Content shape</a><a href="#voice-5">5 · Jargon</a><a href="#voice-6">6 · Feedback</a></div>
+
+    <article class="idea top" id="voice-1">
+      <span class="rank">1</span><p class="axis">Control</p><h3>Một preset mặc định, ba núm chỉnh nhỏ</h3>
+      <p><strong>Description:</strong> Default là <strong>Rõ nhưng có duyên</strong>: 70% grounded, 30% playful, tối đa một nhịp cợt trong một note. Trong <em>Mình → Cách Lá nói với bạn</em>, user chọn một preset rồi chỉnh ba núm: <strong>ngắn ↔ sâu</strong>, <strong>mềm ↔ thẳng</strong>, <strong>nghiêm ↔ cợt nhẹ</strong>. Không bắt user cấu hình trước khi nhận value.</p>
+      <p><strong>Preset bank:</strong> Rõ gọn · Mềm nhưng rõ · Cợt nhẹ · Có logic · Đọc sâu. Preset chỉ là tổ hợp ban đầu của các núm, không phải năm personality agent khác nhau.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> sản phẩm cần voice Gen Z nhưng các màn hiện tại dễ rơi vào một giọng chung; <strong>reasoned:</strong> preset giúp bắt đầu nhanh, dial xử lý khác biệt cá nhân mà không tạo hàng chục persona khó kiểm soát.</dd><dt>Rationale</dt><dd>Cho user ownership mà không kéo dài onboarding; renderer vẫn dùng một semantic frame và một bộ safety gate.</dd><dt>Downsides</dt><dd>Nếu ba núm đổi mọi từ, số biến thể sẽ nổ. Chỉ cho phép chúng đổi độ dài, mức trực diện và tối đa một playful beat.</dd><dt>Confidence</dt><dd>95%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="voice-2">
+      <span class="rank">2</span><p class="axis">Recovery</p><h3>“Nói lại theo cách khác” nhưng giữ nguyên biên lai</h3>
+      <p><strong>Description:</strong> Ở cuối note có action nhỏ “Nói lại theo cách khác”. User chọn <em>ngắn hơn / dễ hiểu hơn / thẳng hơn / mềm hơn</em>. Hệ thống chỉ recast bề mặt câu chữ; thesis id, factor refs, confidence và micro-action semantics phải giữ nguyên.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> người dùng hiện chỉ có thể nhận hoặc bỏ cả bài đọc; <strong>reasoned:</strong> recast giải quyết mismatch giọng ngay tại thời điểm đọc mà không biến feedback thành một lần regenerate chart.</dd><dt>Rationale</dt><dd>Đây là lối thoát nhanh hơn Settings và cũng tạo dữ liệu preference ít nhạy cảm hơn free text.</dd><dt>Downsides</dt><dd>Cần semantic-equivalence test; nếu recast đổi mức chắc chắn hoặc lời khuyên thì phải fail closed.</dd><dt>Confidence</dt><dd>93%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="voice-3">
+      <span class="rank">3</span><p class="axis">Safety</p><h3>Playfulness budget theo độ nhạy, không theo cung</h3>
+      <p><strong>Description:</strong> Voice profile có `playfulness_budget` 0–1. Với chủ đề mất mát, sức khỏe, tiền, bạo lực, khủng hoảng hoặc nội dung user đánh dấu nhạy cảm, budget tự về 0; app vẫn rõ và ấm nhưng bỏ nhịp cợt. UI không giả vờ rằng safety override là sở thích của user.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> anti-influence gate đã chặn chỉ thị high-stakes; <strong>reasoned:</strong> cùng một câu đùa có thể dễ chịu trong chuyện rep tin nhắn nhưng gây tổn thương trong grief hoặc an toàn cá nhân.</dd><dt>Rationale</dt><dd>Giữ chất trẻ ở nơi phù hợp mà không dùng “Gen Z” làm giấy phép cà khịa cảm xúc.</dd><dt>Downsides</dt><dd>Classifier false positive có thể làm giọng khô; ưu tiên an toàn và cho user biết “Lá đã nói gọn vì đây là chủ đề nhạy cảm” trong receipt, không dựng legal card.</dd><dt>Confidence</dt><dd>94%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="voice-4">
+      <span class="rank">4</span><p class="axis">Comprehension</p><h3>Chọn “hình dáng bài đọc”, không chỉ chọn tone</h3>
+      <p><strong>Description:</strong> Một số người không ghét giọng; họ ghét cách thông tin được đóng gói. Bank có bốn shape dùng cùng thesis: <strong>Bắt gặp mình</strong> (cảnh đời thường trước), <strong>Hiểu cơ chế</strong> (vì sao trước), <strong>Thử một bước</strong> (action trước), <strong>Xem căn cứ</strong> (evidence trước). Shape có thể đổi theo surface hoặc user chọn.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> feedback trước đây cho thấy “không hiểu astro” và “nội dung chung chung” không chỉ là lỗi từ vựng; <strong>external:</strong> năm sách nền phân chia rõ building blocks, synthesis, life arena và timing.</dd><dt>Rationale</dt><dd>Tạo cảm giác linh hoạt thật thay vì cùng một đoạn văn được thay vài từ Gen Z.</dd><dt>Downsides</dt><dd>Không nên cho chọn cả bốn trước onboarding; bắt đầu bằng shape theo surface rồi học từ action recast.</dd><dt>Confidence</dt><dd>91%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="voice-5">
+      <span class="rank">5</span><p class="axis">Learning</p><h3>Hai tầng thuật ngữ: đời thường trước, astro khi muốn học</h3>
+      <p><strong>Description:</strong> Default không jargon trong hook/thesis. User bật <em>“Cho mình học astro”</em> để mỗi đoạn có một dòng giải thích thuật ngữ liên quan; không đổ cả glossary vào bài. Evidence receipt luôn giữ tên hành tinh, cung, nhà, góc, orb và phase chính xác.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> người dùng từng phản hồi việc chỉ thấy “Moon ở đâu” mà không hiểu ý nghĩa; <strong>reasoned:</strong> giấu hết thuật ngữ làm mất khả năng học, còn đưa thuật ngữ lên trước làm người mới bỏ cuộc.</dd><dt>Rationale</dt><dd>Cho cả người mới và người đã biết astro dùng cùng sản phẩm mà không cần hai knowledge engine.</dd><dt>Downsides</dt><dd>Glossary phải bám tradition/config; không được giải thích Western term trong Jyotish surface.</dd><dt>Confidence</dt><dd>92%</dd><dt>Complexity</dt><dd>Low</dd></dl>
+    </article>
+
+    <article class="idea" id="voice-6">
+      <span class="rank">6</span><p class="axis">Learning loop</p><h3>Feedback bank hỏi đúng lỗi, không hỏi “bạn có thích không?”</h3>
+      <p><strong>Description:</strong> Action phản hồi gồm: <em>quá chung · khó hiểu · quá dài · quá gắt · quá sến · không hợp giọng · căn cứ chưa thuyết phục</em>. Chỉ lưu label, voice version, lens và factor class; không gửi nguyên reading, ngày giờ/nơi sinh hoặc câu chuyện riêng vào analytics.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> repo đã có privacy-first feedback direction; <strong>reasoned:</strong> một nút thích/không thích không phân biệt lỗi knowledge, synthesis, voice hay UX.</dd><dt>Rationale</dt><dd>Biến lời chê thành regression case có thể sửa đúng lớp, đồng thời giữ dữ liệu tối thiểu.</dd><dt>Downsides</dt><dd>Label vẫn chủ quan và có selection bias; không được dùng nó làm bằng chứng astrology chính xác.</dd><dt>Confidence</dt><dd>90%</dd><dt>Complexity</dt><dd>Low</dd></dl>
+    </article>
+
+    <div class="sample">
+      <p class="label">Cùng một insight, bốn cách nghe · semantic meaning phải giữ nguyên</p>
+      <p><strong>Rõ gọn:</strong> Bạn đang sửa câu trả lời vì muốn hiểu thật chắc. Vấn đề không còn là thiếu dữ kiện; là chưa muốn chốt.</p>
+      <p><strong>Mềm nhưng rõ:</strong> Có vẻ bạn đang cần thêm một nhịp an toàn trước khi nói câu chính. Khi đủ rồi, một câu ngắn có thể tốt hơn giải thích thêm.</p>
+      <p><strong>Cợt nhẹ:</strong> Đầu đã mở cuộc họp lần ba, còn câu cần nói vẫn đứng ngoài cửa. Có thể dữ kiện đủ rồi.</p>
+      <p><strong>Có logic:</strong> Pattern xuất hiện khi nhu cầu hiểu rõ gặp xu hướng trì hoãn kết luận. Dấu hiệu ngoài đời là sửa cùng một tin nhắn nhiều lần dù ý chính không đổi.</p>
+    </div>
+
+    <table><thead><tr><th>Ý đã loại</th><th>Lý do</th></tr></thead><tbody>
+      <tr><td>Tự suy tone từ Moon, Mercury hoặc element</td><td>Không có căn cứ rằng chart dự đoán preference lời văn; dễ biến stereotype thành personalization.</td></tr>
+      <tr><td>Mười hai giọng theo mười hai cung</td><td>Novelty bề mặt, combinatorial explosion và củng cố Sun-sign flattening.</td></tr>
+      <tr><td>Persona “bestie cà khịa” luôn bật</td><td>Giả thân mật, nhanh cũ và nguy hiểm ở nội dung nhạy cảm.</td></tr>
+      <tr><td>Ô free-text “hãy nói với tôi như…”</td><td>Mở prompt-injection surface và kéo nội dung riêng tư vào pipeline; preset + dial đủ cho MVP.</td></tr>
+      <tr><td>Tự học giọng từ tin nhắn/chat cá nhân</td><td>Vượt purpose consent và data minimization; sản phẩm hiện không cần chatbot.</td></tr>
+      <tr><td>Mỗi lần bấm recast tạo một insight mới</td><td>Đổi nghĩa và evidence; recast chỉ được đổi delivery.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="ideas">
+    <h2>Ranked ideas</h2>
+    <div class="jump"><a href="#idea-1">1 · Thesis</a><a href="#idea-2">2 · Grammar</a><a href="#idea-3">3 · Today</a><a href="#idea-4">4 · Receipt</a><a href="#idea-5">5 · Arena</a><a href="#idea-6">6 · Ledger</a><a href="#idea-7">7 · Feedback</a></div>
+
+    <article class="idea top" id="idea-1">
+      <span class="rank">1</span><p class="axis">Synthesis</p><h3>Lá Thesis Engine</h3>
+      <p><strong>Description:</strong> Rules xếp hạng các signature, rulership, aspect, house, dignity và transit; agent nhận một evidence bundle đã khóa rồi viết ra một “luận điểm Lá” có phiên bản. Một thesis gồm động lực chính, lực hỗ trợ, điểm căng và nơi dễ xuất hiện trong đời sống. Home, deep reading và share card dùng các phép chiếu khác nhau của cùng thesis thay vì tự sinh ba câu chuyện lệch nhau.</p>
+      <div class="backbone" aria-label="Luồng khái niệm của agent"><div><strong>Chart truth</strong>Engine tạo factor graph</div><div><strong>Salience</strong>Rules chọn 3–7 tín hiệu</div><div><strong>Thesis</strong>Agent tổng hợp có cấu trúc</div><div><strong>Surfaces</strong>Note, chapter, share</div></div>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> repo đã tách computation khỏi interpretation và có provenance ở cấp reading. <strong>external:</strong> nghiên cứu attribution cho thấy generation đáng tin cần nối claim với dữ liệu nguồn.</dd><dt>Rationale</dt><dd>Giải quyết lỗi gốc: “đủ chart nhưng vẫn đọc như Sun-only”. Đồng thời ngăn nội dung giữa các màn tự mâu thuẫn.</dd><dt>Downsides</dt><dd>Cần schema thesis ổn định và versioning. Nếu salience ranking kém, câu chữ hay đến đâu cũng chỉ làm sai một cách thuyết phục hơn.</dd></dl>
+      <div class="chips"><span class="chip conf">Confidence 94%</span><span class="chip">Complexity · High</span><span class="chip">Top pick</span></div>
+    </article>
+
+    <article class="idea" id="idea-2">
+      <span class="rank">2</span><p class="axis">Voice</p><h3>“Bắt gặp mình” grammar</h3>
+      <p><strong>Description:</strong> Mỗi bài đọc đi theo nhịp <strong>hook riêng → cảnh đời thường → điều hôm nay làm lệch nhịp → một thử nghiệm nhỏ</strong>. Hook không dùng thuật ngữ astro; thuật ngữ chỉ xuất hiện trong “Vì sao Lá đọc vậy?”. Mỗi card tối đa một nhịp cợt nhẹ, cấm ẩn dụ sến, cấm khen chung kiểu “sâu sắc, độc đáo, nhạy cảm”.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> UI hiện có prose dài và thuật ngữ lấn nội dung. <strong>external:</strong> Co–Star dùng editorial voice sắc; CHANI nối interpretation với hành động; The Pattern dẫn bằng theme đời sống thay vì danh sách placement.</dd><dt>Rationale</dt><dd>Người không biết astro vẫn thấy mình trong tình huống cụ thể trước khi quyết định có muốn xem dữ liệu hay không.</dd><dt>Downsides</dt><dd>Giọng cợt rất dễ thành vô duyên ở chủ đề grief, sức khỏe, tiền bạc hoặc xung đột. Cần sensitivity classifier và voice dial theo ngữ cảnh.</dd></dl>
+      <div class="chips"><span class="chip conf">Confidence 93%</span><span class="chip">Complexity · Medium</span></div>
+    </article>
+
+    <article class="idea" id="idea-3">
+      <span class="rank">3</span><p class="axis">Daily value</p><h3>Today Remixes You</h3>
+      <p><strong>Description:</strong> Note không đổi toàn bộ con người theo ngày. Nó lấy một natal baseline ổn định rồi giải thích transit nào đang tăng âm lượng, bẻ hướng hoặc cho baseline đó một lối ra mới. Sky card chỉ xuất hiện nếu tạo được semantic delta so với thesis; nếu không, hệ thống im lặng thay vì bịa “bonus”.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> transit hiện có nhưng tách khỏi natal meaning; bonus card chưa chứng minh phần tăng thêm. <strong>reasoned:</strong> giá trị hằng ngày chỉ tồn tại khi “hôm nay” thay đổi cách biểu hiện của một pattern cá nhân đã biết.</dd><dt>Rationale</dt><dd>Tạo reason-to-return mà vẫn giữ continuity: Lá nhớ bạn là ai nhưng nhận ra hôm nay không hoàn toàn giống hôm qua.</dd><dt>Downsides</dt><dd>Cần ngưỡng salience, phase/timing và fallback không-transit. Không được ép ngày nào cũng phải có drama.</dd></dl>
+      <div class="chips"><span class="chip conf">Confidence 92%</span><span class="chip">Complexity · High</span></div>
+    </article>
+
+    <article class="idea" id="idea-4">
+      <span class="rank">4</span><p class="axis">Evidence &amp; safety</p><h3>Receipt-first trust</h3>
+      <p><strong>Description:</strong> Agent xuất atomic claims trước, prose sau. Mỗi claim có factor refs, tradition, precision, confidence và loại diễn giải; một validator kiểm tra số liệu/aspect, cấm claim không có nguồn và post-edit câu quá khẳng định. UI chỉ hiện một link nhỏ “Vì sao Lá đọc vậy?”; disclaimer mềm nằm ở cuối receipt, không tranh spotlight với nội dung.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> repo đã có phần lớn metadata cần thiết. <strong>external:</strong> FActScore, attribution evaluation và salience post-edit đều ủng hộ việc đánh giá claim theo đơn vị nhỏ thay vì tin vào cả đoạn văn trôi chảy.</dd><dt>Rationale</dt><dd>Evidence trở thành một phần của trải nghiệm “vi diệu”: nhiều mảnh thật hội tụ thành một câu đọc, không phải một bảng cảnh báo khổng lồ.</dd><dt>Downsides</dt><dd>Validator không tự chứng minh astrology đúng khoa học; nó chỉ chứng minh bài viết trung thành với hệ quy chiếu và dữ liệu chart đã chọn.</dd></dl>
+      <div class="chips"><span class="chip conf">Confidence 91%</span><span class="chip">Complexity · Medium</span></div>
+    </article>
+
+    <article class="idea" id="idea-5">
+      <span class="rank">5</span><p class="axis">Evaluation</p><h3>Chart Lineup Arena</h3>
+      <p><strong>Description:</strong> Ngoài review “nghe hay không”, test agent bằng near-neighbor charts: đổi Moon, giờ sinh, Ascendant hoặc một transit quan trọng rồi kiểm tra reading có đổi đúng chỗ không. Thêm decoy chart để reviewer chọn bài nào thực sự thuộc chart gốc, cùng stress suite cho retrograde, cusp, thiếu giờ sinh và hai tradition.</p>
+      <dl><dt>Basis</dt><dd><strong>reasoned:</strong> bài đọc generic có thể được nhiều người nhận là đúng; kiểm tra phân biệt giữa các chart gần nhau buộc agent chứng minh specificity. Hiệu ứng Barnum là rủi ro sản phẩm thật, không chỉ là vấn đề copy.</dd><dt>Rationale</dt><dd>Đây là cách trực tiếp nhất để phát hiện “đọc ai cũng trúng” trước khi người dùng phát hiện hộ.</dd><dt>Downsides</dt><dd>Cần corpus đã được chuyên gia review và rubric tách factuality, specificity, usefulness, tone. Không nên dùng “user thấy đúng” làm metric duy nhất.</dd></dl>
+      <div class="chips"><span class="chip conf">Confidence 84%</span><span class="chip">Complexity · Medium</span></div>
+    </article>
+
+    <article class="idea" id="idea-6">
+      <span class="rank">6</span><p class="axis">Daily value</p><h3>Seven-day Leitmotif Ledger</h3>
+      <p><strong>Description:</strong> Backend lưu dấu vết theme, metaphor, advice và factors đã dùng trong bảy ngày. Agent có thể tiếp tục một chương khi transit còn hiệu lực, nhưng bị cooldown với hook/cảnh/CTA lặp. Continuity được ưu tiên; paraphrase giả mới bị phạt.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> sản phẩm tạo note hằng ngày nhưng chưa có memory contract cho nội dung. <strong>reasoned:</strong> mỗi generation độc lập sẽ hoặc lặp, hoặc ngẫu nhiên đến mức Lá giống người mất trí nhớ.</dd><dt>Rationale</dt><dd>Tạo cảm giác app đang theo một hành trình thật thay vì bốc thêm một fortune cookie mỗi sáng.</dd><dt>Downsides</dt><dd>Ledger là dữ liệu hành vi dẫn xuất; cần retention ngắn, không chứa nhật ký tự do và phải xóa cùng profile.</dd></dl>
+      <div class="chips"><span class="chip conf">Confidence 86%</span><span class="chip">Complexity · Medium</span></div>
+    </article>
+
+    <article class="idea" id="idea-7">
+      <span class="rank">7</span><p class="axis">Learning</p><h3>Private feedback → regression</h3>
+      <p><strong>Description:</strong> Bốn phản hồi rõ nghĩa — “trúng”, “quá chung”, “khó hiểu”, “không hợp giọng” — tạo test case riêng cho quality pipeline. Analytics chỉ nhận label, surface, content version và factor class; reading text, birth input và câu chuyện người dùng không đi cùng event.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> đây là tài khoản cá nhân và dữ liệu chart nhạy cảm theo ngữ cảnh. <strong>reasoned:</strong> muốn agent tiến bộ cần feedback có cấu trúc, nhưng không cần copy nội dung riêng tư vào analytics để biết lỗi thuộc nhóm nào.</dd><dt>Rationale</dt><dd>Biến phản hồi thành regression suite thay vì một dashboard vanity “bao nhiêu người bấm thích”.</dd><dt>Downsides</dt><dd>Label chủ quan và có selection bias. Cần kết hợp với factual/evidence checks, không dùng để fine-tune mặc định.</dd></dl>
+      <div class="chips"><span class="chip conf">Confidence 88%</span><span class="chip">Complexity · Medium</span></div>
+    </article>
+  </section>
+
+  <section id="sample">
+    <h2>Mẫu output: cụ thể trước, astro sau</h2>
+    <div class="sample">
+      <div class="sample-grid">
+        <div>
+          <p class="label">Minh họa · không phải scientific claim</p>
+          <h3>Bạn đang giữ chắc hơi quá.</h3>
+          <p>Một phần muốn mọi thứ có kế hoạch; phần khác chỉ chịu mở lòng khi vẫn còn đủ khoảng thở.</p>
+          <p><strong>Dễ bắt gặp nhất:</strong> lúc bạn định rep cho “đúng”, rồi cuối cùng sửa câu ba lần. Hôm nay chuyện kết nối có thể muốn đổi luật một chút — chưa cần tự biên luôn ending.</p>
+          <p><strong>Thử một cái nhỏ:</strong> gửi một câu hỏi thật thay vì một câu trả lời hoàn hảo.</p>
+        </div>
+        <aside class="receipt">
+          <p class="label">Vì sao Lá đọc vậy?</p>
+          <ul>
+            <li>Sun + Mercury Capricorn · xu hướng cấu trúc và kiểm soát cách diễn đạt.</li>
+            <li>Moon Pisces · cảm xúc thấm nhanh hơn phần ngoài biểu lộ.</li>
+            <li>Venus Aquarius + Uranus trine Venus đang tới · thử một cách kết nối bớt theo kịch bản.</li>
+          </ul>
+          <p class="micro">Đây là diễn giải phản tư từ các factor đã chọn, không phải dự đoán chắc chắn hay lời khuyên quyết định.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section id="cuts">
+    <h2>Rejection summary</h2>
+    <table><thead><tr><th>Idea</th><th>Reason cut or merged</th></tr></thead><tbody>
+      <tr><td>LLM copywriter sau template hiện tại</td><td>Chỉ paraphrase đầu ra Sun/element; không sửa được logic generic.</td></tr>
+      <tr><td>Một chatbot tự đọc raw chart</td><td>Trao cả tính toán, chọn factor và diễn giải cho một model tạo vùng lỗi quá rộng và khó kiểm chứng.</td></tr>
+      <tr><td>Luôn có “bonus hôm nay”</td><td>Tạo áp lực bịa insight khi transit không đủ mới hoặc đủ mạnh.</td></tr>
+      <tr><td>Không thuật ngữ astro ở mọi nơi</td><td>Đã làm mềm: hook không jargon, nhưng evidence receipt vẫn cần ngôn ngữ chart để người dùng học sâu.</td></tr>
+      <tr><td>Tự suy voice từ chart</td><td>Chart không phải bằng chứng về sở thích lời văn; thay bằng preset + dial do user chủ động chọn.</td></tr>
+      <tr><td>Long-form disclaimer trên từng card</td><td>Gây lấn nội dung. Chuyển thành microcopy ở receipt và governance đầy đủ trong Settings/Privacy.</td></tr>
+      <tr><td>Matching/synastry agent ngay giai đoạn này</td><td>Vượt phạm vi personal natal + daily transit; chỉ mở sau khi single-chart synthesis qua được quality gate.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="sources" class="source-list">
+    <h2>External grounding</h2>
+    <div class="panel"><ul>
+      <li><a href="https://www.costarastrology.com/">Co–Star</a> — sharp editorial voice and personalized timing patterns.</li>
+      <li><a href="https://www.chani.com/app?view=home">CHANI</a> — complete-chart interpretation connected to personal transits and actions.</li>
+      <li><a href="https://www.thepattern.com/">The Pattern</a> — life-theme framing before technical astrology detail.</li>
+      <li><a href="https://direct.mit.edu/coli/article/49/4/777/116438/Measuring-Attribution-in-Natural-Language">Measuring Attribution in Natural Language Generation</a> — claim-to-source attribution.</li>
+      <li><a href="https://aclanthology.org/2023.emnlp-main.741/">FActScore</a> — atomic-fact evaluation for generated text.</li>
+      <li><a href="https://aclanthology.org/2024.inlg-main.50/">Hashem et al.</a> — salience critic and post-editing for data-to-text generation.</li>
+      <li><a href="https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf">NIST AI 600-1</a> — generative-AI risk management profile.</li>
+      <li><a href="https://genai.owasp.org/llmrisk/llm01-prompt-injection/">OWASP · Prompt Injection</a> and <a href="https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/">Sensitive Information Disclosure</a>.</li>
+      <li><a href="https://vanban.chinhphu.vn/?classid=1&amp;docid=214590&amp;pageid=27160&amp;typegroup=">Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15</a> — official Vietnamese legal text.</li>
+      <li><a href="https://developer.apple.com/app-store/app-privacy-details/">Apple App Privacy Details</a> and <a href="https://support.google.com/googleplay/android-developer/answer/10787469">Google Play Data safety</a> — app disclosure obligations.</li>
+      <li><a href="https://pubmed.ncbi.nlm.nih.gov/18110193/">Forer-effect replication record</a> — grounding for the “generic reading” evaluation risk.</li>
+    </ul></div>
+  </section>
+
+  <footer class="composition-signal">Composed <time datetime="2026-09-12T09:30:00Z">2026-09-12T09:30:00Z</time> by ce-ideate from <code>docs/plans/2026-09-06-1954-feat-chart-synthesis-agent-plan.md</code>, the current Lá Lành repository, the v2 knowledge engine and cited external sources.</footer>
+</main>
+</body>
+</html>

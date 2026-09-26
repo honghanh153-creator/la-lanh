@@ -1,0 +1,69 @@
+{
+  "reviewer": "api-contract",
+  "findings": [
+    {
+      "title": "Birth profile calculation shape now varies",
+      "severity": "P1",
+      "file": "apps/api/app/api/v1/routes/birth_profiles.py",
+      "line": 31,
+      "why_it_matters": "Existing clients of GET /v1/birth-profile were promised a DateOnlySunResult and can safely read fields such as calculation.candidates. After a user adds time and place, the active snapshot is replaced by a NatalChart, and the same endpoint now serializes that incompatible object instead. A richer calculation needs a new/versioned surface (or a separately named field) so old clients retain the original response shape.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Preserve calculation: DateOnlySunResult on /v1/birth-profile by loading the profile's date-only snapshot for this legacy endpoint, and expose NatalChart only through the new supplement/insights surfaces. If replacing calculation is intentional, publish it on a versioned endpoint and give the union an explicit discriminator with a documented migration path.",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/app/api/v1/routes/birth_profiles.py:31 -- calculation: DateOnlySunResult | NatalChart",
+        "apps/api/app/domains/birth/postgres.py:136 -- profile.current_snapshot_id = active.id",
+        "apps/api/app/domains/birth/service.py:246 -- result=stored.result,"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Owner result has no generated response schema",
+      "severity": "P1",
+      "file": "apps/api/app/api/v1/routes/la_chung.py",
+      "line": 196,
+      "why_it_matters": "The owner-result API has a stable six-field payload, but the route suppresses its response model, so the generated OpenAPI and TypeScript operation expose its successful body as unknown. The web client works around that contract hole with a hand-written structural type, meaning a server-side rename or nullability change will not be caught by the shared contract. Declaring the result model makes the generated client and runtime interface enforce the same shape.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Add an OwnerResultResponse Pydantic model for request_id, recipient_label, identity_mode, display_alias, statements, and submitted_at; set it as owner_result's response_model; then replace the hand-written getLaChungResult return type with the generated components schema and regenerate packages/contracts.",
+      "confidence": 100,
+      "evidence": [
+        "apps/api/app/api/v1/routes/la_chung.py:196 -- @router.get(\"/la-chung/results/{request_id}\", response_model=None)",
+        "apps/api/app/domains/la_chung/service.py:301 -- return {",
+        "packages/contracts/src/v1.ts:2685 -- \"application/json\": unknown;",
+        "apps/web/src/shared/api/client.ts:523 -- export function getLaChungResult(requestId: string, signal?: AbortSignal): Promise<{"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Problem responses are omitted from contracts",
+      "severity": "P1",
+      "file": "apps/api/app/api/v1/routes/daily_notes.py",
+      "line": 183,
+      "why_it_matters": "Normal failures such as an expired session, CSRF rejection, stale revision, or unavailable reading return an application/problem+json body with type, title, status, and code, while the generated OpenAPI declares those status codes with no body. Generated clients therefore cannot parse the error contract that the server actually sends; La Chung mutations also introduce bare empty failures, adding a third error convention beside the existing guest ProblemResponse. A shared documented problem schema restores a single, consumable failure contract.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Move the existing type/title/status/code problem shape into a shared Pydantic ProblemResponse and declare it for every runtime error status using application/problem+json content (including 401/403/404/409/503). Change the La Chung bare Response failure branches to that same payload, then regenerate OpenAPI/TypeScript and add contract assertions for one failure per route family.",
+      "confidence": 100,
+      "evidence": [
+        "apps/api/app/api/v1/routes/daily_notes.py:183 -- responses={401: {}, 403: {}, 404: {}, 409: {}, 503: {}},",
+        "apps/api/app/api/v1/routes/daily_notes.py:135 -- def _reading_problem(status: int, code: str) -> JSONResponse:",
+        "apps/api/app/api/v1/routes/daily_notes.py:144 -- media_type=\"application/problem+json\",",
+        "apps/api/app/api/v1/routes/la_chung.py:127 -- return Response(status_code=401)",
+        "apps/api/app/api/v1/routes/guest_sessions.py:31 -- class ProblemResponse(BaseModel):"
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [
+    "Other new route responses declared with empty response objects may have the same OpenAPI-versus-runtime error-body drift; this review focused on the changed public API families."
+  ],
+  "testing_gaps": [
+    "No contract test was found that compares documented non-2xx response schemas and media types with runtime responses for the new reading, saved-note, share, and La Chung endpoints.",
+    "No backward-compatibility test exercises GET /v1/birth-profile after a successful birth supplement to assert the legacy calculation shape."
+  ]
+}

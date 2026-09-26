@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation: Radar Hợp Gu thành báo cáo đáng đọc và đáng share</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#07091c;
+      --panel:#11142d;
+      --panel-2:#171735;
+      --paper:#fff9ea;
+      --paper-ink:#17142b;
+      --ink:#faf7ff;
+      --muted:#b9b0d1;
+      --line:#343258;
+      --lime:#dfff36;
+      --violet:#bf9cff;
+      --coral:#ff8f80;
+      --sky:#8edcff;
+      --good:#baf7d0;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0;
+      background:
+        radial-gradient(circle at 82% 2%,rgba(100,55,160,.28),transparent 29rem),
+        linear-gradient(180deg,#08091f,var(--bg) 45%);
+      color:var(--ink);
+      font:15px/1.68 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    main { width:min(960px,calc(100% - 32px)); margin:0 auto; padding:44px 0 80px; }
+    header,.panel,.idea,.rejects,.sources { border:1px solid var(--line); border-radius:24px; background:rgba(17,20,45,.9); }
+    header { padding:32px; }
+    .eyebrow,.meta dt,.label { color:var(--lime); font-size:.74rem; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
+    h1 { max-width:17ch; margin:.3rem 0 1rem; font-size:clamp(2.15rem,6vw,4.5rem); line-height:1; letter-spacing:-.05em; }
+    h2 { margin:3.1rem 0 1rem; font-size:1.65rem; letter-spacing:-.025em; }
+    h3 { margin:.2rem 0 .65rem; font-size:1.24rem; line-height:1.3; }
+    h4 { margin:1.25rem 0 .4rem; font-size:1rem; }
+    p { max-width:73ch; }
+    strong { color:#fff; }
+    .muted { color:var(--muted); }
+    .meta { display:flex; flex-wrap:wrap; gap:18px 28px; margin:1.6rem 0 0; }
+    .meta div { min-width:150px; }
+    .meta dd { margin:.1rem 0 0; color:var(--muted); }
+    .panel,.idea,.rejects,.sources { padding:24px; }
+    .grid-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .mini { padding:18px; border:1px solid var(--line); border-radius:18px; background:#0d1027; }
+    .mini ul { margin:.6rem 0 0; padding-left:1.2rem; color:var(--muted); }
+    .mini li + li { margin-top:.35rem; }
+    .axes { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; padding:0; list-style:none; }
+    .axes li { padding:14px 16px; border:1px solid var(--line); border-radius:15px; color:var(--muted); background:#10122a; }
+    .jump { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }
+    .jump a { padding:7px 11px; border:1px solid var(--line); border-radius:999px; color:var(--violet); text-decoration:none; }
+    .idea { margin:14px 0; }
+    .rank { display:inline-grid; width:32px; height:32px; place-items:center; margin-right:8px; border-radius:50%; color:var(--paper-ink); background:var(--lime); font-weight:900; }
+    .tag { display:inline-block; margin-left:8px; padding:3px 9px; border:1px solid #64731e; border-radius:999px; color:var(--lime); font-size:.72rem; vertical-align:middle; }
+    .idea dl { display:grid; grid-template-columns:120px 1fr; gap:7px 14px; margin:1.1rem 0 0; }
+    .idea dt { color:var(--violet); font-weight:800; }
+    .idea dd { margin:0; color:var(--muted); }
+    .idea dd strong { color:var(--ink); }
+    .visual { margin:20px 0 8px; padding:18px; border:1px solid var(--line); border-radius:18px; overflow:auto; background:#0b0e24; }
+    .visual svg { display:block; width:100%; min-width:700px; height:auto; }
+    .report-sample { margin:20px 0 8px; padding:24px; border-radius:20px; background:var(--paper); color:var(--paper-ink); }
+    .report-sample strong { color:var(--paper-ink); }
+    .report-sample .label { color:#685a8a; }
+    .report-sample h4 { font-size:1.35rem; letter-spacing:-.025em; }
+    .report-sample blockquote { margin:14px 0; padding:14px 16px; border-left:4px solid #92a900; background:#f2efdc; border-radius:0 12px 12px 0; }
+    .report-sample small { color:#625b70; }
+    .pill-row { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+    .pill { padding:6px 10px; border-radius:999px; background:#e8e1f6; color:#45365e; font-size:.8rem; font-weight:750; }
+    .tier { display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:stretch; margin:18px 0 4px; }
+    .tier > div { padding:18px; border:1px solid var(--line); border-radius:18px; background:#0d1027; }
+    .tier .arrow { display:grid; place-items:center; border:0; background:transparent; color:var(--lime); font-size:1.5rem; }
+    .good { color:var(--good); }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:11px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--lime); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; }
+    td:first-child { width:54px; color:var(--violet); font-weight:800; }
+    a { color:#d6c0ff; }
+    code { color:#f6c8ff; }
+    footer { margin-top:38px; color:#81799b; font-size:.78rem; }
+    @media (max-width:700px) {
+      main { width:min(100% - 20px,960px); padding-top:18px; }
+      header,.panel,.idea,.rejects,.sources { padding:18px; }
+      .grid-2,.tier { grid-template-columns:1fr; }
+      .tier .arrow { transform:rotate(90deg); min-height:24px; }
+      .idea dl { grid-template-columns:1fr; }
+      .idea dd { margin-bottom:7px; }
+      h1 { font-size:2.35rem; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Ideation · Repo-grounded</p>
+    <h1>Radar Hợp Gu phải kể được chuyện của đúng hai người này.</h1>
+    <p>Đề xuất này không thay flow đang có. Nó giữ Pair Signature, ba chỉ số độc lập và bốn phần chính; phần thay đổi nằm ở cách engine gom bằng chứng, cách viết thành tình huống đời thường, và cách biến một insight thành món đồ đẹp để lưu hoặc share mà không làm lộ báo cáo check kín.</p>
+    <dl class="meta">
+      <div><dt>Date</dt><dd><time datetime="2026-09-26">2026-09-26</time></dd></div>
+      <div><dt>Topic</dt><dd>radar-living-relationship-report-share</dd></div>
+      <div><dt>Focus</dt><dd>deep reading · current-fit · safe sharing</dd></div>
+      <div><dt>Mode</dt><dd>repo-grounded</dd></div>
+    </dl>
+  </header>
+
+  <h2>Codebase Context</h2>
+  <section class="panel">
+    <p><strong>Vấn đề đã xác minh:</strong> dữ liệu nền không chỉ có Sun/Moon. Hệ thống hiện đã có natal của hai người, Synastry, house overlay hai chiều và midpoint Composite. Nhưng ở lớp xuất nội dung, một <code>Motif</code> chỉ giữ một <code>SynastryContact</code>; projector tiếp tục chọn một contact “hợp” và một contact “cấn” mạnh nhất. Vì vậy dữ liệu nhiều nhưng câu chuyện bị nén thành một ý, rồi bọc bằng copy chung.</p>
+    <p><strong>Vấn đề trên giao diện:</strong> trang kết quả đang có Pair Signature, ba meter và bốn card phẳng. Mỗi card chỉ có một đoạn giải thích; phần “Chart nào tạo ra điều này?” mở thẳng vào thuật ngữ. Người mới không có đủ chuyện đời thường để hiểu, người biết astro lại không thấy engine đã tổng hợp đủ sâu.</p>
+    <div class="grid-2">
+      <div class="mini">
+        <p class="label">Giữ nguyên</p>
+        <ul>
+          <li>Flow check kín và route kết quả hiện tại.</li>
+          <li>Pair Signature + Bắt sóng / Dễ phối hợp / Lực cấn.</li>
+          <li>Bốn phần: Điểm hợp, Điểm cấn, Hai phía, Đem ra đời thật.</li>
+          <li>Result mã hóa, owner-only và tự hết hạn.</li>
+          <li>Ngôn ngữ không phán số phận hay xác suất thành công.</li>
+        </ul>
+      </div>
+      <div class="mini">
+        <p class="label">Mở rộng</p>
+        <ul>
+          <li>Mỗi phần dùng một cụm bằng chứng, không dùng một góc đơn lẻ.</li>
+          <li>Có các lớp giao tiếp, cảm xúc, quan tâm, lực hút, nhịp tiến và repair.</li>
+          <li>Cho thấy khác biệt A→B, B→A và nhịp chung của hai người.</li>
+          <li>Chiều sâu thay đổi theo lượng evidence; thiếu thì nói thiếu.</li>
+          <li>Share một insight đã preview, không share nhầm toàn bộ dữ liệu kín.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <h2>Topic Axes</h2>
+  <ul class="axes">
+    <li>Gom và tổng hợp bằng chứng chart</li>
+    <li>Ma trận nội dung đời thường</li>
+    <li>Báo cáo mobile dễ scan và đọc sâu</li>
+    <li>Share loop có giá trị</li>
+    <li>Privacy, consent và quality gate</li>
+  </ul>
+
+  <h2>Ranked Ideas</h2>
+  <nav class="jump" aria-label="Danh sách ý tưởng">
+    <a href="#idea-1">1. Living Dossier</a>
+    <a href="#idea-2">2. Scene Matrix</a>
+    <a href="#idea-3">3. Share Capsule</a>
+    <a href="#idea-4">4. Two-Sided Lens</a>
+    <a href="#idea-5">5. Navigator</a>
+    <a href="#idea-6">6. Consent Tiers</a>
+    <a href="#idea-7">7. Quality Gate</a>
+  </nav>
+
+  <article class="idea" id="idea-1">
+    <h3><span class="rank">1</span>Living Relationship Dossier — báo cáo sống, không phải bốn câu horoscope <span class="tag">Khuyến nghị</span></h3>
+    <p>Giữ đúng bốn phần đang có, nhưng mỗi phần trở thành một chương có nhiều module nhỏ và chỉ xuất hiện khi có đủ bằng chứng. “Điểm hợp” có thể nói rõ hai người dễ vào nhau ở giao tiếp hay cảm xúc; “Điểm cấn” tách điều kích hoạt và cách nó lộ ra; “Hai phía” cho thấy sự bất đối xứng; “Đem ra đời thật” cho một cách kiểm chứng. Pair Signature ở đầu báo cáo phải là một mâu thuẫn có ý nghĩa, ví dụ: <em>“Dễ bị nhau thu hút, nhưng không cùng cách cần được trấn an.”</em></p>
+    <div class="visual" aria-label="Minh họa cấu trúc báo cáo mới bám trên kết quả hiện tại">
+      <svg viewBox="0 0 900 250" role="img" aria-label="Pair Signature và ba chỉ số dẫn vào bốn chương sâu, sau đó là evidence appendix">
+        <defs><marker id="arrow-a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#bf9cff"/></marker></defs>
+        <g fill="#171735" stroke="#45426d" stroke-width="1.5">
+          <rect x="20" y="22" width="190" height="72" rx="18"/>
+          <rect x="260" y="22" width="170" height="72" rx="18"/>
+          <rect x="480" y="22" width="180" height="72" rx="18"/>
+          <rect x="710" y="22" width="170" height="72" rx="18"/>
+          <rect x="108" y="157" width="150" height="68" rx="16"/>
+          <rect x="286" y="157" width="150" height="68" rx="16"/>
+          <rect x="464" y="157" width="150" height="68" rx="16"/>
+          <rect x="642" y="157" width="150" height="68" rx="16"/>
+        </g>
+        <g fill="#faf7ff" font-family="system-ui" font-size="14" text-anchor="middle">
+          <text x="115" y="52">Evidence clusters</text><text x="115" y="74">natal · synastry · overlay · composite</text>
+          <text x="345" y="52">Pair Signature</text><text x="345" y="74">hai sự thật cùng tồn tại</text>
+          <text x="570" y="52">Ba chỉ số hiện tại</text><text x="570" y="74">lớp scan nhanh</text>
+          <text x="795" y="52">Bốn chương hiện tại</text><text x="795" y="74">được đọc sâu</text>
+          <text x="183" y="185">Điểm hợp</text><text x="183" y="205">2–3 khía cạnh</text>
+          <text x="361" y="185">Điểm cấn</text><text x="361" y="205">trigger + repair</text>
+          <text x="539" y="185">Hai phía</text><text x="539" y="205">A→B · B→A · chung</text>
+          <text x="717" y="185">Đời thật</text><text x="717" y="205">thử và quan sát</text>
+        </g>
+        <g stroke="#bf9cff" stroke-width="2" marker-end="url(#arrow-a)">
+          <path d="M210 58H250"/><path d="M430 58H470"/><path d="M660 58H700"/><path d="M795 94V130H183V147"/><path d="M795 130H361V147"/><path d="M795 130H539V147"/><path d="M795 130H717V147"/>
+        </g>
+      </svg>
+    </div>
+    <div class="report-sample">
+      <p class="label">Minh họa cấu trúc — chỉ xuất khi evidence hỗ trợ</p>
+      <h4>Dễ thấy có tín hiệu, nhưng hai người không cùng cách giữ nhịp.</h4>
+      <p>Một phía có thể xem phản hồi rõ và đều là dấu hiệu quan tâm. Phía còn lại dễ nói thật hơn khi không bị ép phải trả lời ngay. Thế nên chemistry có thể đến nhanh, còn cảm giác an tâm lại cần hai người học cách báo trước nhịp của mình.</p>
+      <div class="pill-row"><span class="pill">Giao tiếp</span><span class="pill">Cảm xúc</span><span class="pill">Nhịp tiến</span></div>
+      <blockquote><strong>Dấu hiệu dễ nhận ra:</strong> sau một cuộc nói chuyện đang rất vào, một khoảng im lặng ngắn có thể bị hai người hiểu theo hai cách hoàn toàn khác nhau.</blockquote>
+      <small>Đây là cấu trúc mẫu, không phải reading của cặp hiện tại.</small>
+    </div>
+    <dl>
+      <dt>Axis</dt><dd>Tổng hợp evidence + report depth.</dd>
+      <dt>Basis</dt><dd><strong>direct:</strong> projector hiện chọn một fit contact và một tension contact; <strong>external:</strong> Astrodienst và The Pattern đều cho nhiều lớp đọc cho cùng một connection thay vì một kết luận duy nhất.</dd>
+      <dt>Rationale</dt><dd>Đổi đơn vị từ “góc mạnh nhất” sang “câu chuyện được nhiều bằng chứng nâng đỡ”, nên nội dung mới khác nhau ở cấp ý nghĩa chứ không chỉ khác từ.</dd>
+      <dt>Downsides</dt><dd>Cần xử lý evidence trái chiều, kiểm soát trùng ý giữa chương và chấp nhận có báo cáo ngắn hơn khi thiếu giờ sinh.</dd>
+      <dt>Confidence</dt><dd>96%</dd>
+      <dt>Complexity</dt><dd>High</dd>
+    </dl>
+  </article>
+
+  <article class="idea" id="idea-2">
+    <h3><span class="rank">2</span>Scene-to-Evidence Matrix — nói cảnh thật trước, nói hành tinh sau</h3>
+    <p>Mỗi đoạn phải đi qua cùng một “xương sống” nội dung: <strong>cụm bằng chứng → hai nhu cầu hoặc chức năng → tình huống dễ gặp → mỗi phía có thể phản ứng ra sao → chỗ dễ hiểu lệch → điều có thể quan sát để kiểm chứng → evidence và giới hạn.</strong> Context crush, friend, partner hay someone sẽ thay cảnh và câu hỏi, nhưng không được thay chart facts.</p>
+    <div class="report-sample">
+      <p class="label">Thay cho câu abstract kiểu “hai nhu cầu khuếch đại nhau”</p>
+      <h4>Một người cần câu trả lời rõ; người kia cần thêm thời gian mới nói thật.</h4>
+      <p>Trong lúc nhắn tin, bạn có thể thấy yên tâm hơn khi người kia nói thẳng họ đang bận, khó chịu hay cần nghỉ. Người kia lại có thể im một nhịp vì chưa biết diễn đạt sao cho không làm mọi thứ căng hơn. Nếu không nói trước, sự im lặng của họ dễ bị đọc thành lạnh nhạt; câu hỏi dồn của bạn lại dễ bị họ đọc thành áp lực.</p>
+      <p><strong>Điểm hợp:</strong> khi đã cảm thấy an toàn, hai người có khả năng đi vào chuyện thật thay vì chỉ xã giao.</p>
+      <p><strong>Điểm dễ cấn:</strong> thời điểm cần rõ ràng của người này có thể trùng đúng lúc người kia cần lùi lại để nghĩ.</p>
+      <p><strong>Thử kiểm chứng:</strong> lần tới nếu cuộc nói chuyện ngắt quãng, thử báo “mình cần một lúc, tối mình quay lại” và xem nhịp đó có làm cả hai bớt đoán nhau không.</p>
+      <small>Phần “Vì sao Lá đọc vậy?” mới hiển thị body, aspect, house, orb và mức thiếu chính xác.</small>
+    </div>
+    <dl>
+      <dt>Axis</dt><dd>Content matrix.</dd>
+      <dt>Basis</dt><dd><strong>direct:</strong> copy hiện chỉ thay context ở micro-experiment cuối; <strong>reasoned:</strong> người đọc chỉ nhận ra mình trong một tình huống cụ thể, không nhận ra mình trong cụm từ “độ an toàn và kết nối”.</dd>
+      <dt>Rationale</dt><dd>Tạo specificity mà không cần bịa sự kiện đã xảy ra; câu chữ vẫn mở vì dùng “có thể”, sau đó mời người dùng đối chiếu.</dd>
+      <dt>Downsides</dt><dd>Cần ngân hàng scene lớn, tránh lặp motif “im lặng/nhắn tin”, và phải chặn lời khuyên có tính thao túng hoặc chẩn đoán.</dd>
+      <dt>Confidence</dt><dd>95%</dd>
+      <dt>Complexity</dt><dd>High</dd>
+    </dl>
+  </article>
+
+  <article class="idea" id="idea-3">
+    <h3><span class="rank">3</span>Share Capsule Studio — share một insight, không bê cả hồ sơ kín ra ngoài</h3>
+    <p>Trong từng chương có nút “Lưu thành card”. Người dùng chọn một ý, xem preview chính xác rồi xuất card 9:16 hoặc 1:1. Card mặc định dùng “Bạn × người ấy”, không có ngày/giờ/nơi sinh, tên thật, raw chart hay danh sách aspect. Nội dung card kết thúc bằng một câu hỏi nhẹ để mở cuộc nói chuyện, thay vì chỉ khoe điểm compatibility.</p>
+    <div class="grid-2">
+      <div class="report-sample">
+        <p class="label">Card 01 · Điểm hợp</p>
+        <h4>Hai người dễ nói chuyện thật khi không ai phải diễn là mình ổn.</h4>
+        <p>Điểm đáng giữ của kết nối này là khả năng đi qua chuyện bề mặt — miễn là cả hai được phép chậm lại trước khi trả lời.</p>
+        <p><strong>Câu mở:</strong> “Có phải tụi mình nói chuyện dễ hơn khi không cố giải quyết ngay không?”</p>
+      </div>
+      <div class="report-sample">
+        <p class="label">Card 02 · Hai phía</p>
+        <h4>Cùng một khoảng im lặng, hai người có thể nghe thành hai tín hiệu khác nhau.</h4>
+        <p>Một phía nghe “họ không quan tâm”; phía kia chỉ đang nghĩ cho kỹ. Đây là điều để hỏi nhau, không phải kết luận về nhau.</p>
+        <p><strong>Câu mở:</strong> “Lúc im, bạn thường cần khoảng riêng hay muốn người kia hỏi tiếp?”</p>
+      </div>
+    </div>
+    <dl>
+      <dt>Axis</dt><dd>Share loop.</dd>
+      <dt>Basis</dt><dd><strong>direct:</strong> sản phẩm đã có render PNG 9:16/1:1, native share, download và safe snapshot cho Daily Note; <strong>external:</strong> Snapchat dùng astrology như conversation starter và hỗ trợ download/share.</dd>
+      <dt>Rationale</dt><dd>Biến báo cáo thành một vật thể đáng lưu, đồng thời share đúng phần người dùng muốn nói thay vì phát tán toàn bộ dữ liệu của hai người.</dd>
+      <dt>Downsides</dt><dd>Cần kiểm tra cắt chữ, contrast, preview payload và tránh card bị dùng như bằng chứng “người này toxic/hợp 90%”.</dd>
+      <dt>Confidence</dt><dd>94%</dd>
+      <dt>Complexity</dt><dd>Medium</dd>
+    </dl>
+  </article>
+
+  <article class="idea" id="idea-4">
+    <h3><span class="rank">4</span>Two-Sided Lens — bạn, người kia và nhịp chung không phải một chuyện</h3>
+    <p>Hệ thống đã tính house overlay hai chiều và Composite, nhưng UI hiện chỉ nói chung “hai người”. Hướng này đưa ba lăng kính vào đúng chương cần thiết: <strong>Bạn có thể cảm thấy</strong>, <strong>người kia có thể nhận tín hiệu</strong>, và <strong>khi ở cạnh nhau, hai người dễ tạo ra nhịp gì</strong>. Lăng kính chỉ xuất khi có evidence riêng; không giả giọng hay khẳng định nội tâm của người kia.</p>
+    <dl>
+      <dt>Axis</dt><dd>Personalization.</dd>
+      <dt>Basis</dt><dd><strong>direct:</strong> A→B và B→A đã có ở fact layer nhưng bị nén trong projection; <strong>reasoned:</strong> chính sự bất đối xứng giải thích vì sao một interaction quan trọng theo hai cách khác nhau.</dd>
+      <dt>Rationale</dt><dd>Dùng tốt hơn dữ liệu đang có trước khi bổ sung technique mới; đây là lớp tạo cảm giác “đúng hai người này” rõ nhất.</dd>
+      <dt>Downsides</dt><dd>Nếu ngôn ngữ không đủ conditional, nó biến thành mind-reading. Phải hiển thị giới hạn rõ khi thiếu giờ sinh.</dd>
+      <dt>Confidence</dt><dd>93%</dd>
+      <dt>Complexity</dt><dd>Medium</dd>
+    </dl>
+  </article>
+
+  <article class="idea" id="idea-5">
+    <h3><span class="rank">5</span>Constellation Navigator — ba chỉ số trở thành bản đồ, không phải ba con số đứng im</h3>
+    <p>Giữ ba meter hiện tại làm lớp scan nhanh. Khi chạm “Bắt sóng”, app tô sáng các đoạn nói về lực chú ý và attraction; “Dễ phối hợp” dẫn tới giao tiếp, cảm xúc, cách cho–nhận; “Lực cấn” dẫn tới trigger, khác nhịp và repair. Người dùng có thể đọc bản tóm tắt trong ba phút hoặc đi sâu từng chương, thay vì scroll qua một dải card phẳng.</p>
+    <dl>
+      <dt>Axis</dt><dd>Report UX.</dd>
+      <dt>Basis</dt><dd><strong>direct:</strong> ba meter đã hiện hữu và người dùng đã quen; <strong>external:</strong> The Pattern cho overview trước rồi mở “Go Deeper” theo connection.</dd>
+      <dt>Rationale</dt><dd>Báo cáo sâu hơn nhưng không làm người dùng mới ngợp. Cùng một cấu trúc phục vụ cả scan nhanh và đọc kỹ.</dd>
+      <dt>Downsides</dt><dd>Cần thiết kế progress/anchor tốt trên mobile; nếu chia quá nhiều tab sẽ làm người dùng mất cảm giác đang đọc một câu chuyện liền mạch.</dd>
+      <dt>Confidence</dt><dd>91%</dd>
+      <dt>Complexity</dt><dd>Medium</dd>
+    </dl>
+  </article>
+
+  <article class="idea" id="idea-6">
+    <h3><span class="rank">6</span>Consent-Tiered Sharing — share theo đúng nguồn dữ liệu và mức đồng ý</h3>
+    <p>Share là một mục đích tiết lộ mới, nên không thể coi consent dùng app là consent công khai dữ liệu cặp đôi. Chế độ check kín và chế độ cả hai cùng tham gia cần hai khả năng share khác nhau.</p>
+    <div class="tier" aria-label="Hai mức share theo consent">
+      <div>
+        <p class="label">Check kín</p>
+        <h4>Ảnh trích đoạn ẩn danh</h4>
+        <p class="muted">Render trên thiết bị, một insight đã preview, không link báo cáo, không identifier, không raw chart.</p>
+        <p class="good">Phù hợp với boundary owner-only hiện tại.</p>
+      </div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div>
+        <p class="label">Cả hai đã tham gia</p>
+        <h4>Link báo cáo riêng có thể thu hồi</h4>
+        <p class="muted">Consent share riêng, preview payload, capability link có hạn dùng, revoke, snapshot không âm thầm đổi.</p>
+        <p class="good">Chỉ mở khi cả hai có quyền với kết quả.</p>
+      </div>
+    </div>
+    <dl>
+      <dt>Axis</dt><dd>Privacy + share.</dd>
+      <dt>Basis</dt><dd><strong>direct:</strong> private Radar result hiện owner-only, mã hóa và có retention; share service hiện đã có token, TTL, snapshot và revoke; <strong>external:</strong> W3C yêu cầu share do người dùng chủ động và cảnh báo rủi ro tiết lộ dữ liệu ngoài ý muốn.</dd>
+      <dt>Rationale</dt><dd>Cho sản phẩm có growth loop mà không lén biến “check kín” thành “public profile của người kia”.</dd>
+      <dt>Downsides</dt><dd>Cần thêm share-specific projection, abuse handling và legal review trước khi mở link full report.</dd>
+      <dt>Confidence</dt><dd>97%</dd>
+      <dt>Complexity</dt><dd>Medium</dd>
+    </dl>
+  </article>
+
+  <article class="idea" id="idea-7">
+    <h3><span class="rank">7</span>Specificity &amp; Distinctness Gate — chặn câu nghe hay nhưng không nói gì</h3>
+    <p>Một chương không được xuất chỉ vì có đủ chữ. Nó phải có: một chức năng hoặc nhu cầu rõ; một tình huống cụ thể; cách mỗi phía có thể trải nghiệm; một nguồn lực hoặc điểm lệch có ý nghĩa; điều người dùng quan sát được; và evidence/limit truy ngược. Sau đó chạy ba phép thử: đổi một người thì bài phải đổi; chart gần giống chỉ được đổi đúng phần evidence thay đổi; hai chương trong cùng báo cáo không được nói lại một ý bằng từ khác.</p>
+    <dl>
+      <dt>Axis</dt><dd>Quality gate.</dd>
+      <dt>Basis</dt><dd><strong>direct:</strong> unit test hiện có thể pass dù nội dung abstract; <strong>reasoned:</strong> “không sai chart” không đồng nghĩa “đáng đọc”.</dd>
+      <dt>Rationale</dt><dd>Biến lỗi content hời hợt thành lỗi release, thay vì chờ người dùng đọc xong rồi than “nói gì cũng đúng”.</dd>
+      <dt>Downsides</dt><dd>Cần golden pairs, human review và đo semantic overlap. Gate quá cứng có thể làm bài ngắn khi evidence mỏng — nhưng ngắn và thật tốt hơn dài và rỗng.</dd>
+      <dt>Confidence</dt><dd>95%</dd>
+      <dt>Complexity</dt><dd>Medium</dd>
+    </dl>
+  </article>
+
+  <h2>Recommended Combination</h2>
+  <section class="panel">
+    <p><strong>Không nên chọn một trong bảy như các feature rời.</strong> Hướng mạnh nhất là một chuỗi liền: <strong>Living Dossier</strong> là bộ khung, <strong>Scene-to-Evidence</strong> là cách viết, <strong>Two-Sided Lens</strong> là rule cá nhân hóa, <strong>Constellation Navigator</strong> là UX, <strong>Specificity Gate</strong> là điều kiện xuất bản, còn <strong>Share Capsule + Consent Tiers</strong> là vòng lưu/share an toàn.</p>
+    <p>Điểm quan trọng: trước khi thêm Davison, transit hay nhiều chart khác, nên dùng hết giá trị của natal + Synastry + directional overlays + Composite đang có. Technique mới chỉ nên vào khi nó trả lời được một câu mới mà report hiện chưa trả lời; nếu chỉ làm danh sách evidence dài hơn thì không tăng giá trị.</p>
+  </section>
+
+  <h2>Rejection Summary</h2>
+  <section class="rejects">
+    <table>
+      <thead><tr><th>#</th><th>Ý tưởng đã cân nhắc</th><th>Quyết định và lý do</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Evidence Cluster Chapters</td><td>Gộp vào Living Dossier; đây là cơ chế lõi chứ không phải hướng riêng.</td></tr>
+        <tr><td>2</td><td>Everyday Scene Bank</td><td>Gộp vào Scene-to-Evidence Matrix để scene luôn gắn với evidence.</td></tr>
+        <tr><td>3</td><td>Two-Sided Perspective</td><td>Giữ thành Two-Sided Lens vì tận dụng trực tiếp overlay hai chiều hiện có.</td></tr>
+        <tr><td>4</td><td>Variable Depth</td><td>Gộp vào Living Dossier; tránh filler khi evidence mỏng.</td></tr>
+        <tr><td>5</td><td>Meaning-before-Mechanism</td><td>Gộp vào Scene Matrix; không cần tồn tại như feature riêng.</td></tr>
+        <tr><td>6</td><td>Context Across Report</td><td>Gộp vào Scene Matrix; context đổi ví dụ, không được đổi fact.</td></tr>
+        <tr><td>7</td><td>Missing-Precision Honesty</td><td>Gộp vào Quality Gate; thiếu giờ sinh phải làm mỏng claim, không bù bằng copy.</td></tr>
+        <tr><td>8</td><td>Remove Equal-Length Cards</td><td>Gộp vào Living Dossier/Navigator; độ dài theo evidence.</td></tr>
+        <tr><td>9</td><td>Meters as Table of Contents</td><td>Giữ trong Constellation Navigator vì bám đúng ba meter hiện tại.</td></tr>
+        <tr><td>10</td><td>No Astrology Above the Fold</td><td>Làm mềm thành “không có thuật ngữ chưa giải nghĩa”; cấm tuyệt đối sẽ làm mất bản sắc sản phẩm.</td></tr>
+        <tr><td>11</td><td>Report Compiler</td><td>Giữ như cơ chế Quality Gate, không trình bày như concept người dùng.</td></tr>
+        <tr><td>12</td><td>One Share Insight at a Time</td><td>Gộp vào Share Capsule để giảm lộ dữ liệu và tăng độ đẹp.</td></tr>
+        <tr><td>13</td><td>Image-First Sharing</td><td>Gộp vào Share Capsule; phù hợp nhất với check kín.</td></tr>
+        <tr><td>14</td><td>Luôn ẩn score trên card</td><td>Loại như quy tắc tuyệt đối; có thể cho opt-in sau preview, nhưng không mặc định và không biến thành verdict.</td></tr>
+        <tr><td>15</td><td>Field Guide, không phải verdict</td><td>Giữ như framing xuyên suốt Living Dossier.</td></tr>
+        <tr><td>16</td><td>Relationship Dossier</td><td>Được nâng thành hướng xếp hạng số 1.</td></tr>
+        <tr><td>17</td><td>Shared Contradiction Hero</td><td>Gộp vào Pair Signature đầu báo cáo.</td></tr>
+        <tr><td>18</td><td>“Điều này không có nghĩa là…”</td><td>Gộp vào Two-Sided Lens và evidence limits; disclaimer cần nằm cạnh claim nhạy cảm.</td></tr>
+        <tr><td>19</td><td>Chapter Confidence hiển thị công khai</td><td>Chỉ giữ nội bộ dưới dạng salience/precision; nhãn confidence dễ tạo cảm giác khoa học giả.</td></tr>
+        <tr><td>20</td><td>Share như conversation opener</td><td>Gộp vào Share Capsule qua câu hỏi ở cuối card.</td></tr>
+        <tr><td>21</td><td>Share như một món quà</td><td>Gộp vào Share Capsule; ưu tiên insight trân trọng thay vì khoe điểm.</td></tr>
+        <tr><td>22</td><td>Radar Report Schema v3</td><td>Giữ như nền của Living Dossier, không phải một trải nghiệm độc lập.</td></tr>
+        <tr><td>23</td><td>Chapter Diversity Planner</td><td>Gộp vào Living Dossier/Quality Gate để chặn các chương nói trùng.</td></tr>
+        <tr><td>24</td><td>Specificity Gate</td><td>Được nâng thành hướng xếp hạng số 7.</td></tr>
+        <tr><td>25</td><td>Distinctness Lab v2</td><td>Gộp vào Quality Gate; test đổi người và near-neighbor.</td></tr>
+        <tr><td>26</td><td>Feedback từng chapter</td><td>Hoãn; lúc này sẽ tăng clutter. Chỉ nên dùng sau như công cụ nghiên cứu “trúng/chung”.</td></tr>
+        <tr><td>27</td><td>Reusable Safe Share Artifact</td><td>Gộp vào Share Capsule, tận dụng pattern snapshot/token hiện có.</td></tr>
+        <tr><td>28</td><td>Frozen Report + Version Receipt</td><td>Gộp vào Consent Tiers; link cũ không được tự đổi khi matrix cập nhật.</td></tr>
+        <tr><td>29</td><td>Medical Report Structure</td><td>Loại; dễ khiến astrology mang giọng chẩn đoán và quá nghiêm trọng.</td></tr>
+        <tr><td>30</td><td>Magazine Feature Story</td><td>Chỉ giữ nhịp kể và pull-quote trong Navigator, không sao chép phong cách tạp chí nguyên khối.</td></tr>
+        <tr><td>31</td><td>Wrapped-like Cards</td><td>Gộp vào Share Capsule; phù hợp với story frame hơn toàn report.</td></tr>
+        <tr><td>32</td><td>Museum Rooms</td><td>Chỉ giữ ý progressive disclosure; ẩn dụ “phòng trưng bày” không cần xuất hiện với người dùng.</td></tr>
+        <tr><td>33</td><td>Travel Guide for Two</td><td>Loại; “đường dễ đi/đoạn dễ lạc” vẫn dễ rơi vào chữ nghĩa abstract.</td></tr>
+        <tr><td>34</td><td>Case File Evidence Tabs</td><td>Loại; cảm giác điều tra và giám sát không phù hợp check người quen kín đáo.</td></tr>
+        <tr><td>35</td><td>Tasting Wheel</td><td>Loại; thêm radar chart trang trí trong khi model hiện chỉ có ba chỉ số đáng tin cậy.</td></tr>
+        <tr><td>36</td><td>Cấm tên hành tinh trong main reading</td><td>Làm mềm và gộp vào Scene Matrix; tên hành tinh có thể xuất hiện khi đã được giải nghĩa.</td></tr>
+        <tr><td>37</td><td>Đọc hết trong ba phút</td><td>Gộp vào Navigator như scan mode.</td></tr>
+        <tr><td>38</td><td>Keepsake mode tám phút</td><td>Gộp vào Navigator như deep mode, không tạo flow riêng.</td></tr>
+        <tr><td>39</td><td>Không có public full report từ check kín</td><td>Giữ thành privacy boundary trong Consent Tiers.</td></tr>
+        <tr><td>40</td><td>Mutual Share Upgrade</td><td>Gộp vào Consent Tiers; chỉ mở sau consent share riêng.</td></tr>
+        <tr><td>41</td><td>Anonymous by Default</td><td>Gộp vào Share Capsule/Consent Tiers; nickname chỉ thêm sau preview.</td></tr>
+        <tr><td>42</td><td>Local Render, Zero Provider</td><td>Gộp vào Share Capsule; không gửi facts cặp đôi sang image/AI SaaS.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <h2>Sources &amp; References</h2>
+  <section class="sources">
+    <ul>
+      <li><a href="https://thepattern.zendesk.com/hc/en-us/articles/360046292451-What-are-Bonds">The Pattern — What are Bonds?</a>: nhiều traits, summary và “Go Deeper” thay đổi theo từng connection.</li>
+      <li><a href="https://www.astro.com/prod/pr_ac_i.htm?lang=i&amp;pa=nmo">Astrodienst — Partner Horoscope</a>: relationship reading dùng nhiều lớp inter-chart và Composite.</li>
+      <li><a href="https://www.astro.com/faq/fq_sh_tp_r.htm">Astrodienst — Relationship Horoscope FAQ</a>: phân biệt Synastry, Composite và Davison.</li>
+      <li><a href="https://newsroom.snap.com/snapchat-astrology">Snapchat Astrology</a>: compatibility theo nhiều dimension, dùng để mở conversation và hỗ trợ share.</li>
+      <li><a href="https://www.w3.org/TR/web-share/">W3C Web Share API</a>: user-mediated sharing, preview và rủi ro tiết lộ dữ liệu.</li>
+      <li><a href="https://www.w3.org/TR/privacy-principles/">W3C Privacy Principles</a>: disclosure mới phải phù hợp mong muốn của người dùng và có biện pháp bảo vệ.</li>
+      <li><a href="https://vanban.chinhphu.vn/?docid=214590&amp;pageid=27160&amp;typegroupid=3">Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15</a>, hiệu lực từ 2026-01-01; cần legal review trước khi mở full-report sharing.</li>
+      <li><code>apps/api/app/domains/radar/reading.py</code>, <code>apps/web/src/features/radar/RadarContinuePage.tsx</code>, <code>apps/api/app/domains/share/service.py</code>.</li>
+      <li><code>docs/foundation/la-lanh-radar-hop-gu-spec.md</code> và <code>docs/foundation/la-lanh-relationship-engine-spec.md</code>.</li>
+    </ul>
+  </section>
+
+  <footer class="composition-signal">Composed 2026-09-26T10:54:00+07:00 by ce-ideate from the current Radar implementation, foundation specs, prior relationship-reading ideation, and the user's content/share review.</footer>
+</main>
+</body>
+</html>

@@ -7,9 +7,9 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-la_lanh}
       POSTGRES_USER: ${POSTGRES_USER:-la_lanh}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-la_lanh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env before starting PostgreSQL}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 3s

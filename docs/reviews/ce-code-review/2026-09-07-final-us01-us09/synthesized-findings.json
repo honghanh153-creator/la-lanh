@@ -1,0 +1,29 @@
+{
+  "run_id": "2026-09-07-final-us01-us09",
+  "findings": [
+    {"#": 1, "severity": "P1", "title": "Birth profile calculation shape needs an explicit discriminator", "disposition": "applied"},
+    {"#": 2, "severity": "P1", "title": "Owner result needs a generated response schema", "disposition": "applied"},
+    {"#": 3, "severity": "P2", "title": "Document problem response bodies in OpenAPI", "disposition": "accepted-residual"},
+    {"#": 4, "severity": "P1", "title": "Projection scope must include chart configuration", "disposition": "applied"},
+    {"#": 5, "severity": "P1", "title": "Activation must update the authoritative active revision", "disposition": "applied"},
+    {"#": 6, "severity": "P1", "title": "Personal-data cleanup must preserve the non-personal app shell", "disposition": "applied"},
+    {"#": 7, "severity": "P2", "title": "Fresh installs must precache executable fingerprinted bundles", "disposition": "applied"},
+    {"#": 8, "severity": "P2", "title": "Mean-node charts must use mean-node transits", "disposition": "applied"},
+    {"#": 9, "severity": "P2", "title": "Duplicate-report migration needs an executable preflight", "disposition": "applied"},
+    {"#": 10, "severity": "P2", "title": "Saved history needs pagination before persistent accounts", "disposition": "accepted-residual"},
+    {"#": 11, "severity": "P1", "title": "Invite creation needs an idempotency contract", "disposition": "applied"},
+    {"#": 12, "severity": "P1", "title": "Recipient labels need record-bound encryption", "disposition": "applied-new-writes-release-gate-legacy"},
+    {"#": 13, "severity": "P1", "title": "Invite creation and resend need admission limits", "disposition": "applied"},
+    {"#": 14, "severity": "P2", "title": "Public invite responses need no-index headers", "disposition": "applied"},
+    {"#": 15, "severity": "P1", "title": "API requests need bounded deadlines", "disposition": "applied"},
+    {"#": 16, "severity": "P2", "title": "Generation worker must recover after operational failures", "disposition": "applied"},
+    {"#": 17, "severity": "P1", "title": "Guest deletion must serialize with the provider-send boundary", "disposition": "applied-postgresql-evidence-pending"},
+    {"#": 18, "severity": "P1", "title": "iOS WebView needs an ASCII-safe scheme", "disposition": "applied-native-evidence-pending"},
+    {"#": 19, "severity": "P2", "title": "Admission policy branches need endpoint tests", "disposition": "applied"},
+    {"#": 20, "severity": "P2", "title": "Offline save and unsave paths need client tests", "disposition": "applied"},
+    {"#": 21, "severity": "P1", "title": "Device-data cleanup needs lifecycle coverage", "disposition": "applied"},
+    {"#": 22, "severity": "P2", "title": "Service worker lifecycle needs automated coverage", "disposition": "applied"},
+    {"#": 23, "severity": "P1", "title": "Refetch must not offer deterministic downgrade after generated activation", "disposition": "applied"},
+    {"#": 24, "severity": "P1", "title": "Privacy deletion needs a longer client deadline", "disposition": "applied"}
+  ]
+}

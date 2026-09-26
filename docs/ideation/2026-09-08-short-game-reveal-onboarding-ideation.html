@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation: Onboarding ngắn như một màn mở khóa</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f8f1e8;
+      --muted: #bbb3cf;
+      --night: #080a23;
+      --panel: rgba(31, 25, 67, .84);
+      --line: rgba(196, 179, 255, .24);
+      --lime: #dcff45;
+      --cyan: #76edff;
+      --coral: #ff776f;
+      --violet: #a68aff;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 86% 4%, rgba(118, 237, 255, .09), transparent 25rem),
+                  radial-gradient(circle at 15% 22%, rgba(166, 138, 255, .13), transparent 32rem), var(--night);
+      color: var(--ink);
+      font: 400 15px/1.7 "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+    }
+    a { color: var(--cyan); }
+    main { width: min(920px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 80px; }
+    header { padding: 28px; border: 1px solid var(--line); border-radius: 26px; background: linear-gradient(145deg, rgba(55, 44, 104, .76), rgba(12, 14, 44, .9)); }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 13px; }
+    .kicker { margin: 22px 0 8px; color: var(--lime); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { max-width: 18ch; margin: 0; font-size: clamp(34px, 7vw, 64px); line-height: 1.03; letter-spacing: -.045em; }
+    h2 { margin: 56px 0 18px; font-size: 25px; line-height: 1.25; letter-spacing: -.025em; }
+    h3 { margin: 0; font-size: 20px; line-height: 1.3; }
+    p { max-width: 72ch; }
+    .lede { color: var(--muted); font-size: 17px; }
+    .verdict { margin-top: 22px; padding: 16px 18px; border-left: 4px solid var(--lime); background: rgba(220, 255, 69, .07); border-radius: 0 16px 16px 0; }
+    .axes, .jump, .cards { display: grid; gap: 12px; }
+    .axes { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .axis, .idea, .cut, .source { border: 1px solid var(--line); background: var(--panel); border-radius: 20px; }
+    .axis { padding: 16px; }
+    .axis strong { color: var(--lime); display: block; margin-bottom: 4px; }
+    .jump { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom: 18px; }
+    .jump a { padding: 11px 14px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--ink); }
+    .idea { padding: 24px; scroll-margin-top: 20px; }
+    .idea--winner { border-color: rgba(220, 255, 69, .55); box-shadow: 0 0 0 1px rgba(220, 255, 69, .1), 0 24px 60px rgba(0, 0, 0, .22); }
+    .rank { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin-right: 10px; border-radius: 50%; background: var(--lime); color: #111326; font-weight: 800; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .tag { border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; color: var(--muted); font-size: 12px; }
+    dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px 18px; margin: 16px 0 0; }
+    dt { color: var(--muted); font-weight: 600; }
+    dd { margin: 0; }
+    .flow { margin: 20px 0 6px; padding: 18px; background: rgba(7, 8, 28, .74); border-radius: 18px; overflow-x: auto; }
+    .flow ol { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 12px; min-width: 620px; margin: 0; padding: 0; list-style: none; }
+    .flow li { position: relative; padding: 16px; border: 1px solid var(--line); border-radius: 16px; }
+    .flow li:not(:last-child)::after { content: "→"; position: absolute; right: -13px; top: 42%; color: var(--lime); font-weight: 800; z-index: 2; }
+    .flow small { display: block; color: var(--lime); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .microcopy { margin-top: 16px; padding: 14px 16px; border-radius: 14px; background: rgba(118, 237, 255, .07); color: #dffbff; }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 18px; background: var(--panel); }
+    th, td { padding: 13px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--lime); font-size: 13px; }
+    tr:last-child td { border-bottom: 0; }
+    .principle { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .principle article { padding: 18px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); }
+    .principle h3 { color: var(--cyan); font-size: 16px; }
+    .sources { display: grid; gap: 10px; }
+    .source { padding: 14px 16px; }
+    footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    @media (max-width: 620px) {
+      main { width: min(100% - 20px, 920px); padding-top: 18px; }
+      header, .idea { padding: 20px; }
+      .principle { grid-template-columns: 1fr; }
+      dl { grid-template-columns: 1fr; gap: 2px; }
+      dt:not(:first-child) { margin-top: 10px; }
+      table { display: block; overflow-x: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="meta"><span>Ngày: <time datetime="2026-09-08">2026-09-08</time></span><span>Topic: short-game-reveal-onboarding</span><span>Focus: ngắn, chơi như mở khóa, không lừa consent</span><span>Mode: repo-grounded</span></div>
+    <p class="kicker">Lá Lành · onboarding ideation</p>
+    <h1>Không “học dùng app”. Mở một tín hiệu.</h1>
+    <p class="lede">Thay carousel và chuỗi màn hình rời bằng một nghi thức ngắn: nhập ngày sinh, hiểu rõ dữ liệu được dùng thế nào, rồi chủ động hé mở lớp đầu tiên của mình.</p>
+    <p class="verdict"><strong>Top pick: Trạm Bắt Sóng × Nhật Thực Hé Mở.</strong> Một canvas duy nhất mời người dùng vào phiên khách, xin consent rõ ràng trước khi hỏi ngày sinh, rồi biến phép tính thật thành một tín hiệu được hé mở — ba hồi, hai quyết định, không có lựa chọn giả.</p>
+  </header>
+
+  <section>
+    <h2>Codebase Context</h2>
+    <p>Flow hiện tại có hai welcome slide, consent riêng, DOB riêng, compute, một lần fetch/loading nữa ở reveal, rồi CTA sang Home. Nó đúng về nền tảng guest-first nhưng chậm tới giá trị và tạo cảm giác “điền form qua nhiều cửa”. US-01/US-02 đã yêu cầu consent trước DOB, không login wall, guest TTL 30 ngày, age gate 18+, ngày sinh không xuất hiện trong URL/log/share, Reduce Motion và touch target 44px.</p>
+    <p>Hướng thị giác giữ nguyên Cosmic Glass Signal: midnight indigo, smoky-lilac glass, lime/cyan signal; Be Vietnam Pro là font duy nhất; glass dành cho controls/disclosure, nội dung đọc dùng nền đủ đặc để scan. Web là bản QA; app Capacitor iOS/Android vẫn là sản phẩm chính.</p>
+  </section>
+
+  <section>
+    <h2>Topic Axes</h2>
+    <div class="axes">
+      <div class="axis"><strong>Tốc độ tới “aha”</strong>Tối đa hai quyết định trước khi thấy giá trị cá nhân.</div>
+      <div class="axis"><strong>Cảm giác mở khóa</strong>Chơi bằng phản hồi có ý nghĩa, không bằng tutorial trang trí.</div>
+      <div class="axis"><strong>Trust boundary</strong>Consent rõ, trung tính, tách khỏi gesture reveal.</div>
+      <div class="axis"><strong>Khả năng dùng thật</strong>Tap/keyboard/screen reader và Reduce Motion đều hoàn tất được flow.</div>
+      <div class="axis"><strong>Đúng chất Lá Lành</strong>Hiện đại, bí ẩn, ấm vừa đủ; không tarot ngẫu nhiên hay “định mệnh”.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ranked Ideas</h2>
+    <nav class="jump" aria-label="Đi nhanh tới ý tưởng">
+      <a href="#idea-1">1. Trạm Bắt Sóng</a><a href="#idea-2">2. Mật Mã Lá</a><a href="#idea-3">3. Nhật Thực Hé Mở</a><a href="#idea-4">4. Hộp Kín Vũ Trụ</a>
+    </nav>
+    <div class="cards">
+      <article class="idea idea--winner" id="idea-1">
+        <h3><span class="rank">1</span>Trạm Bắt Sóng × Nhật Thực — recommended</h3>
+        <p><strong>Description:</strong> Màn đầu tiên đã là trải nghiệm thay vì tutorial. Hook và tóm tắt quyền dữ liệu nằm cùng một canvas; user chọn “Đồng ý &amp; bắt tín hiệu” trước khi app hỏi ngày sinh. DOB sau đó làm dải nhiễu trở nên rõ dần, trạng thái compute bám vào bước thật, và một lớp nhật thực rút sang bên để lộ Vibe card rồi liền mạch thành Home.</p>
+        <div class="flow" aria-label="Flow ba hồi của Trạm Bắt Sóng">
+          <ol>
+            <li><small>Hồi 1 · Mời vào</small><strong>Tín hiệu đang bị khóa</strong><br>Mục đích, TTL và quyền từ chối hiện trước dữ liệu sinh.</li>
+            <li><small>Hồi 2 · Khớp sóng</small><strong>Nhập ngày sinh</strong><br>Tám điểm sáng phản hồi theo validity; progress là bước tính thật.</li>
+            <li><small>Hồi 3 · Hé mở</small><strong>Nhật thực rút xuống</strong><br>Vibe card xuất hiện và trở thành phần đầu của Home.</li>
+          </ol>
+        </div>
+        <p class="microcopy"><strong>Hook mẫu:</strong> “Có một tín hiệu đã đi cùng bạn từ ngày bạn xuất hiện.” · Consent CTA: “Đồng ý &amp; bắt tín hiệu” · Input: “Ngày bạn xuất hiện” · Compute: “Đã tìm thấy Mặt Trời” · Reveal: “Chạm để hé mở” · Safety line: “Một gợi ý để tự soi, không phải nhãn dán cố định.”</p>
+        <div class="tags"><span class="tag">Axis: speed-to-value</span><span class="tag">Axis: reveal</span><span class="tag">Axis: trust</span></div>
+        <dl>
+          <dt>Basis</dt><dd><strong>direct:</strong> “Signal” là từ khóa của design direction đã chọn; DOB là input cá nhân hóa duy nhất, còn welcome/reveal hiện bị tách thành nhiều route. <strong>external:</strong> Apple khuyến nghị onboarding nhanh, vui, có thể bỏ qua và học bằng tương tác.</dd>
+          <dt>Rationale</dt><dd>Mọi phản hồi thị giác đều gắn với tiến độ thật. Tuning chỉ biểu diễn hệ thống đang khớp dữ liệu; user kiểm soát nhịp reveal chứ không “xoay” ra một kết quả khác.</dd>
+          <dt>Downsides</dt><dd>Phải giữ reading surface ấm để tránh quá sci-fi. Consent vẫn là một quyết định riêng, trung tính; không được biến CTA reveal thành chấp thuận dữ liệu.</dd>
+          <dt>Confidence</dt><dd>94%</dd>
+          <dt>Complexity</dt><dd>Medium</dd>
+        </dl>
+      </article>
+
+      <article class="idea" id="idea-2">
+        <h3><span class="rank">2</span>Mật Mã Lá</h3>
+        <p><strong>Description:</strong> Sau consent, tám chữ số ngày sinh thắp tám điểm như một mã mở cửa. Khi đủ và hợp lệ, cánh cửa ánh sáng mở để bước vào compute và reveal.</p>
+        <div class="tags"><span class="tag">Axis: input delight</span><span class="tag">Axis: low-friction</span></div>
+        <dl><dt>Basis</dt><dd><strong>direct:</strong> current DOB là input bắt buộc duy nhất; phản hồi theo validity biến form thật thành mechanic thật.</dd><dt>Rationale</dt><dd>Rất rõ goal và không thêm step. “Mã” chỉ là khóa vào reading, không phải mã định danh bản chất con người.</dd><dt>Downsides</dt><dd>Cụm “mật mã của bạn” dễ mang nghĩa quyết định luận; phải nói “mật mã để mở Lá đầu tiên” và tuyệt đối không hỏi DOB trước consent.</dd><dt>Confidence</dt><dd>87%</dd><dt>Complexity</dt><dd>Low–Medium</dd></dl>
+      </article>
+
+      <article class="idea" id="idea-3">
+        <h3><span class="rank">3</span>Nhật Thực Hé Mở</h3>
+        <p><strong>Description:</strong> Một mặt trăng che phần chữ chính. Sau compute, user tap nút hoặc kéo nhẹ để quầng sáng tách ra và lộ một câu đọc đầu tiên. Gesture chỉ là enhancement; nút luôn thực hiện cùng hành động.</p>
+        <div class="tags"><span class="tag">Axis: mystery</span><span class="tag">Axis: accessible motion</span></div>
+        <dl><dt>Basis</dt><dd><strong>external:</strong> W3C yêu cầu simple-pointer alternatives cho path-based gestures và hỗ trợ reduced motion.</dd><dt>Rationale</dt><dd>Hình ảnh mạnh và hợp celestial reveal, nhưng tốt nhất là treatment cuối của một journey có logic rõ như Trạm Bắt Sóng.</dd><dt>Downsides</dt><dd>Không tự giải thích lý do cần DOB; nếu đứng một mình dễ thành gimmick. Bản tap/static phải có giá trị ngang bản kéo/animation.</dd><dt>Confidence</dt><dd>80%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+      </article>
+
+      <article class="idea" id="idea-4">
+        <h3><span class="rank">4</span>Hộp Kín Vũ Trụ</h3>
+        <p><strong>Description:</strong> Sau DOB và compute, một hộp quà số có niêm phong sáng lên. User tap “Mở món quà” để lộ Vibe, điểm mạnh và một note ngắn.</p>
+        <div class="tags"><span class="tag">Axis: emotional payoff</span><span class="tag">Axis: warmth</span></div>
+        <dl><dt>Basis</dt><dd><strong>reasoned:</strong> unboxing tạo payoff cảm xúc mà không giả vờ phép tính là ngẫu nhiên.</dd><dt>Rationale</dt><dd>Ấm và dễ hiểu hơn sci-fi, nhưng phù hợp như treatment dự phòng hơn là metaphor tổ chức cả journey.</dd><dt>Downsides</dt><dd>Có thể làm basic Sun reading giống “giải thưởng”, đồng thời lấy mất lãnh địa món quà của Aura unlock sau này.</dd><dt>Confidence</dt><dd>73%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2>Nguyên tắc bảo vệ trải nghiệm</h2>
+    <div class="principle">
+      <article><h3>Chơi ở reveal, không chơi với consent</h3><p>Không dùng “vuốt để đồng ý”, không giấu từ chối, không biến “Tiếp tục” thành một hành vi xử lý dữ liệu. Consent vẫn là hành động khẳng định, có mục đích cụ thể và đường xem bản demo.</p></article>
+      <article><h3>Bí ẩn nhưng không phán</h3><p>“Hé mở một góc” tốt hơn “lật sự thật tuyệt đối”. Vibe là prompt tự soi; placement và dữ liệu dùng để đọc luôn có provenance.</p></article>
+      <article><h3>Một gesture luôn có một nút</h3><p>Drag, peel và flip chỉ tăng cảm giác. Tap, keyboard, screen reader và Reduce Motion phải nhận cùng kết quả, không phải phiên bản hạng hai.</p></article>
+      <article><h3>Game loop kết thúc ở giá trị thật</h3><p>Không coin, streak hay lựa chọn ngẫu nhiên. Phần thưởng duy nhất là kết quả được tính từ DOB và note dùng được ngay.</p></article>
+    </div>
+  </section>
+
+  <section>
+    <h2>Rejection Summary</h2>
+    <table>
+      <thead><tr><th>#</th><th>Ý tưởng</th><th>Lý do loại</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Sợi Chỉ Chòm Sao</td><td>Date-only không tạo ra một chòm sao factual duy nhất; dùng như causal story sẽ ngụ ý provenance giả. Chỉ giữ làm ambient art.</td></tr>
+        <tr><td>2</td><td>Ba Lá Úp</td><td>Lựa chọn lá không ảnh hưởng phép tính, tạo cảm giác agency giả hoặc bói ngẫu nhiên.</td></tr>
+        <tr><td>3</td><td>Tarot draw</td><td>Trộn sai mental model: chart xác định từ dữ liệu sinh, không phải lá rút ngẫu nhiên.</td></tr>
+        <tr><td>4</td><td>Quiz tính cách trước DOB</td><td>Kéo dài flow và làm người dùng “tự khai” đúng điều mà sản phẩm hứa sẽ hé mở.</td></tr>
+        <tr><td>5</td><td>Streak, coin, XP</td><td>Không giúp first value; dễ dùng FOMO và áp lực cảm xúc ở điểm người dùng chưa tin sản phẩm.</td></tr>
+        <tr><td>6</td><td>Scratch-only reveal</td><td>Không đáp ứng simple-pointer/keyboard/screen-reader; gesture-only là điểm chặn.</td></tr>
+        <tr><td>7</td><td>Cosmic quest nhiều level</td><td>Đổi một onboarding dài thành một onboarding dài có trang trí.</td></tr>
+        <tr><td>8</td><td>Carousel “gamified”</td><td>Vẫn bắt đọc trước khi làm; không giải quyết duplication và time-to-value.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Sources &amp; Research</h2>
+    <div class="sources">
+      <div class="source"><a href="https://developer.apple.com/design/human-interface-guidelines/onboarding">Apple HIG · Onboarding</a> — fast, fun, optional; teach through interaction; postpone nonessential setup.</div>
+      <div class="source"><a href="https://developer.apple.com/design/human-interface-guidelines/design-principles">Apple HIG · Design principles</a> — agency, responsibility, transparency, simplicity and delight.</div>
+      <div class="source"><a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/lawful-basis/consent/what-is-valid-consent/">ICO · What is valid consent?</a> — freely given, specific, informed, unambiguous affirmative action.</div>
+      <div class="source"><a href="https://www.w3.org/WAI/WCAG22/Understanding/pointer-gestures.html">W3C · Pointer Gestures</a> and <a href="https://www.w3.org/WAI/WCAG21/Techniques/css/C39.html">Reduce Motion technique</a> — gesture alternatives and motion preference.</div>
+      <div class="source"><code>apps/web/src/features/welcome/WelcomePage.tsx</code>, <code>ConsentPage.tsx</code>, <code>BirthDatePage.tsx</code>, <code>RevealPage.tsx</code> — current product flow.</div>
+      <div class="source"><code>docs/user-stories/US-01-bat-dau-che-do-khach.md</code>, <code>US-02-khai-ngay-sinh-reveal-la-khai-sinh.md</code>, <code>docs/legal/privacy-security-flow-notes.md</code> — existing product, validation and privacy authority.</div>
+    </div>
+  </section>
+
+  <footer class="composition-signal">Composed 2026-09-08T16:41:08+07:00 by ce-ideate from the Lá Lành onboarding review request, current repository, and cited external guidance.</footer>
+</main>
+</body>
+</html>

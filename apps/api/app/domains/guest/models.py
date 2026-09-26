@@ -6,6 +6,7 @@ from uuid import UUID
 
 class GuestState(StrEnum):
     ACTIVE = "active"
+    DELETING = "deleting"
     REVOKED = "revoked"
 
 

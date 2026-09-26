@@ -16,3 +16,18 @@ class BirthProfileNotFound(BirthDomainError):
 class ChartEngineUnavailable(BirthDomainError):
     code = "CHART_ENGINE_UNAVAILABLE"
     status_code = 503
+
+
+class BirthChartBusy(BirthDomainError):
+    code = "BIRTH_CHART_BUSY"
+    status_code = 429
+
+
+class BirthSupplementInvalid(BirthDomainError):
+    code = "BIRTH_SUPPLEMENT_INVALID"
+    status_code = 422
+
+
+class BirthSupplementConsentInvalid(BirthDomainError):
+    code = "BIRTH_SUPPLEMENT_CONSENT_INVALID"
+    status_code = 422

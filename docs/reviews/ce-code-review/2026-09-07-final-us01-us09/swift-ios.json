@@ -1,0 +1,27 @@
+{
+  "reviewer": "swift-ios",
+  "findings": [
+    {
+      "title": "Use a valid iOS WebView scheme",
+      "severity": "P1",
+      "file": "apps/mobile/capacitor.config.ts",
+      "line": 15,
+      "why_it_matters": "The packaged iOS app will be configured to load its bundled WebView content from `Lá Lành://localhost`, but that value is not a valid URL scheme: it contains non-ASCII characters and a space. URL construction rejects this value, so Capacitor cannot form the local content URL and the app can fail to load its interface. Replacing it with an ASCII scheme such as `la-lanh` preserves the display name while giving the WebView a valid origin.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Change `ios.scheme` to an ASCII URL scheme such as `la-lanh`, then run Capacitor sync and launch a Release build to confirm the bundled WebView opens at `la-lanh://localhost` and native API requests still pass their CSRF/origin checks.",
+      "confidence": 100,
+      "evidence": [
+        "apps/mobile/capacitor.config.ts:15 --     scheme: \"Lá Lành\",",
+        "The synced iOS configuration reproduces this unchanged as `\"scheme\": \"Lá Lành\"`; a URL parser rejects `Lá Lành://localhost` because URL schemes must use ASCII letters, digits, `+`, `-`, and `.` after the initial letter."
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": [
+    "Native iOS toolchain was unavailable: archive and launch the Release app to verify the privacy manifest is bundled, WebView debugging remains disabled, and the local WebView starts successfully after the scheme correction.",
+    "Exercise a real HTTPS API session on an iOS device or simulator: create/resume the cookie-backed guest session, persist the non-auth CSRF token, and complete a mutation after relaunch."
+  ]
+}

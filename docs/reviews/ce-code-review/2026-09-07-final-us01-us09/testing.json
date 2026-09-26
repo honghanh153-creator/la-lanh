@@ -1,0 +1,84 @@
+{
+  "reviewer": "testing",
+  "findings": [
+    {
+      "title": "Admission policy branches lack endpoint tests",
+      "severity": "P2",
+      "file": "apps/api/app/middleware/admission.py",
+      "line": 51,
+      "why_it_matters": "The new rate limiter protects birth-chart computation and public capability routes, but only guest creation is tested. A path or method regression could leave these expensive or public endpoints unmetered until production traffic exposes it. Direct endpoint tests make the intended policy assignment and 429 behavior part of the contract.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Extend apps/api/tests/middleware/test_admission.py with cases that exceed the limit for POST /v1/birth-profile and a /v1/public/... (or /v1/share-artifacts/...) request, asserting a 429 before the endpoint body runs; also cover the global-limit branch with distinct peers.",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/app/middleware/admission.py:51 -- if request.method == \"POST\" and path in {",
+        "apps/api/app/middleware/admission.py:55 -- if path.startswith(\"/v1/public/\") or path.startswith(\"/v1/share-artifacts/\"):",
+        "apps/api/tests/middleware/test_admission.py:11 -- def test_guest_creation_is_bounded_before_the_endpoint_runs() -> None:"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Offline saved-note client paths lack tests",
+      "severity": "P2",
+      "file": "apps/web/src/shared/api/client.ts",
+      "line": 247,
+      "why_it_matters": "When a device loses connectivity, a save or unsave must be queued with the active session epoch and revision so it can replay safely after reconnecting. The queue unit tests do not exercise the client catch paths that classify the transport failure and construct that intent, so a regression can silently lose offline user actions or replay them against the wrong session.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Add client tests that seed a session epoch, make fetch reject with TypeError, call saveDailyNote and unsaveDailyNote, then assert the exact queued intent and its revision. Include a non-connectivity ApiProblem case that proves nothing is queued, plus a getSession/listSavedNotes replay assertion.",
+      "confidence": 75,
+      "evidence": [
+        "apps/web/src/shared/api/client.ts:247 -- } catch (error) {",
+        "apps/web/src/shared/api/client.ts:249 -- if (epoch && isConnectivityFailure(error)) {",
+        "apps/web/src/shared/api/client.native.test.ts:3 -- import { createBirthProfile, createGuest } from \"./client\";"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Device-data deletion cleanup lacks lifecycle coverage",
+      "severity": "P1",
+      "file": "apps/web/src/shared/storage/clearPersonalData.ts",
+      "line": 11,
+      "why_it_matters": "A deletion request promises to remove the guest's on-device traces, including in-memory fallbacks, persisted saved cards, queued mutations, session data, and Cache Storage entries. No test invokes this aggregate cleanup or its Cache Storage branch, so an omitted key or failed async cache deletion can leave personal data behind while deletion appears to have succeeded.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Add a clearPersonalData.test.ts that seeds every listed local/session key, note and saved caches, a queued mutation, and both la-lanh and unrelated Cache Storage names; await clearPersonalDataOnDevice and assert that only the personal entries and la-lanh caches are removed.",
+      "confidence": 75,
+      "evidence": [
+        "apps/web/src/shared/storage/clearPersonalData.ts:11 -- export async function clearPersonalDataOnDevice(): Promise<void> {",
+        "apps/web/src/shared/storage/clearPersonalData.ts:19 -- if (\"caches\" in window) {",
+        "apps/web/src/shared/storage/noteCache.test.ts:20 -- describe(\"noteCache privacy\", () => {"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Service worker lifecycle has no tests",
+      "severity": "P2",
+      "file": "apps/web/public/sw.js",
+      "line": 25,
+      "why_it_matters": "The new worker controls which responses remain available offline and deletes caches during activation. Without tests for activation and navigation fallback, a cache-version change can erase an unintended cache or leave a guest without the promised offline shell, while API responses must remain uncached.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Add service-worker tests with mocked Cache Storage and fetch that cover install precaching, activate cleanup, navigation failure fallback, API bypass, and app-shell asset fallback. Assert Cache Storage calls and the returned response for each branch rather than only registering listeners.",
+      "confidence": 75,
+      "evidence": [
+        "apps/web/public/sw.js:25 -- self.addEventListener(\"activate\", (event) => {",
+        "apps/web/public/sw.js:41 -- if (request.mode === \"navigate\") {",
+        "apps/web/public/sw.js:49 -- if (url.origin !== self.location.origin || !APP_SHELL.includes(url.pathname)) return;"
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": [
+    "Admission control's birth-compute, public-capability, and global-limit branches are not directly exercised.",
+    "The web client has no test from a connectivity failure through queued saved-note replay.",
+    "Personal-data deletion has no aggregate browser-storage and Cache Storage cleanup test.",
+    "The service-worker install, activate, and fetch lifecycle has no automated coverage."
+  ]
+}

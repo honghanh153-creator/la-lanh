@@ -24,6 +24,13 @@ class BirthProfileRow(Base):
         ),
         nullable=True,
     )
+    profile_level: Mapped[int] = mapped_column(default=1, nullable=False)
+    birth_time_ciphertext: Mapped[str | None] = mapped_column(Text)
+    birth_place_ciphertext: Mapped[str | None] = mapped_column(Text)
+    time_precision: Mapped[str] = mapped_column(String(32), default="unknown", nullable=False)
+    place_display_name: Mapped[str | None] = mapped_column(String(120))
+    timezone_id: Mapped[str | None] = mapped_column(String(64))
+    supplement_consent_version: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
 
@@ -54,9 +61,12 @@ class ChartSnapshotRow(Base):
     schema_version: Mapped[str] = mapped_column(String(32), nullable=False)
     engine_version: Mapped[str] = mapped_column(String(32), nullable=False)
     calculation_profile: Mapped[str] = mapped_column(String(64), nullable=False)
-    result_payload: Mapped[dict[str, object]] = mapped_column(
-        JSON().with_variant(JSONB, "postgresql"), nullable=False
+    # Kept nullable only so existing development databases can be migrated once.
+    # New writes use result_ciphertext and never persist a readable chart payload.
+    result_payload: Mapped[dict[str, object] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
     )
+    result_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
 
     profile: Mapped[BirthProfileRow] = relationship(

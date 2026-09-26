@@ -1,97 +1,74 @@
 import { ArrowRight } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { BrandMark } from "../../shared/ui/BrandMark";
-import { PrimaryButton } from "../../shared/ui/PrimaryButton";
+import { createGuest } from "../../shared/api/client";
+import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
+import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 
-const welcomeSlides = [
-  {
-    eyebrow: "Không phải horoscope chung chung",
-    title: (
-      <>
-        Một lời nhắc <em>đúng lúc.</em>
-      </>
-    ),
-    body: "Lá Lành đọc chuyển động thật của bầu trời và gửi bạn một note nhỏ mỗi ngày.",
-    action: "Tiếp tục",
-  },
-  {
-    eyebrow: "Bắt đầu thật nhẹ",
-    title: (
-      <>
-        Chỉ cần ngày sinh. <em>Thế là đủ.</em>
-      </>
-    ),
-    body: "Giờ và nơi sinh có thể thêm sau, khi bạn muốn lời nhắn chạm sâu hơn.",
-    action: "Bắt đầu",
-  },
-] as const;
+function idempotencyKey(): string {
+  const existing = sessionStorage.getItem("la-lanh-guest-create-key");
+  if (existing) return existing;
+  const value = crypto.randomUUID();
+  sessionStorage.setItem("la-lanh-guest-create-key", value);
+  return value;
+}
 
 export function WelcomePage() {
   const navigate = useNavigate();
-  const [slideIndex, setSlideIndex] = useState(0);
-  const slide = welcomeSlides[slideIndex];
-  const isLastSlide = slideIndex === welcomeSlides.length - 1;
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const routeState = location.state as { expired?: boolean; offline?: boolean } | null;
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const advance = () => {
-    if (isLastSlide) void navigate("/birth");
-    else setSlideIndex((current) => current + 1);
+  const begin = async () => {
+    if (pending) return;
+    setPending(true);
+    setError(null);
+    const key = idempotencyKey();
+    try {
+      await clearPersonalDataOnDevice();
+      sessionStorage.setItem("la-lanh-guest-create-key", key);
+      queryClient.clear();
+      await createGuest(key);
+      sessionStorage.removeItem("la-lanh-guest-create-key");
+      void navigate("/birth", { replace: true });
+    } catch {
+      setError("Chưa bật được tín hiệu. Kiểm tra kết nối rồi thử lại nhé.");
+    } finally {
+      setPending(false);
+    }
   };
 
+  const actions = (
+    <>
+      <button className="signal-station__button" disabled={pending} onClick={() => void begin()} type="button">
+        <span>{pending ? "Đang bật tín hiệu…" : "Đồng ý & bật tín hiệu"}</span>
+        <ArrowRight aria-hidden="true" size={21} weight="bold" />
+      </button>
+      <Link className="signal-station__secondary" to="/demo">Xem bản mẫu</Link>
+      <p className="signal-station__privacy">
+        Dữ liệu dùng để tính Lá đầu tiên · <Link to="/privacy">Xem chi tiết</Link>
+      </p>
+    </>
+  );
+
   return (
-    <main className="welcome" aria-labelledby="welcome-title">
-      <header className="welcome__header">
-        <BrandMark />
-        <span className="welcome__spark" aria-hidden="true">
-          ✦
-        </span>
-      </header>
-
-      <div className="celestial-collage" aria-hidden="true">
-        <span className="celestial-collage__orbit" />
-        <span className="celestial-collage__sun" />
-        <span className="celestial-collage__moon" />
-        <span className="celestial-collage__star">✦</span>
-      </div>
-
-      <section
-        className="welcome__copy"
-        aria-label={`Giới thiệu ${slideIndex + 1} trên ${welcomeSlides.length}`}
-        aria-live="polite"
-      >
-        <p className="eyebrow">{slide.eyebrow}</p>
-        <h1 id="welcome-title">{slide.title}</h1>
-        <p>{slide.body}</p>
-      </section>
-
-      <footer className="welcome__footer">
-        <div className="pagination" aria-label="Tiến độ giới thiệu">
-          {welcomeSlides.map((item, index) => (
-            <span
-              className={index === slideIndex ? "pagination__dot pagination__dot--active" : "pagination__dot"}
-              aria-label={`${index === slideIndex ? "Đang ở" : "Trang"} ${index + 1}: ${item.eyebrow}`}
-              key={item.eyebrow}
-            />
-          ))}
-        </div>
-        <PrimaryButton onClick={advance}>
-          <span>{slide.action}</span>
-          <ArrowRight aria-hidden="true" size={21} weight="bold" />
-        </PrimaryButton>
-        {!isLastSlide ? (
-          <button className="text-button" onClick={() => void navigate("/birth")} type="button">
-            Bỏ qua giới thiệu
-          </button>
-        ) : (
-          <button className="text-button" onClick={() => setSlideIndex(0)} type="button">
-            Quay lại
-          </button>
-        )}
-        <Link className="welcome__login-link" to="/existing-user">
-          Mình đã có tài khoản
-        </Link>
-      </footer>
-    </main>
+    <SignalStationFrame act={0} actions={actions} loading={pending} titleId="welcome-title">
+      <h1 id="welcome-title">Có một tín hiệu đã đi cùng bạn từ ngày bạn xuất hiện.</h1>
+      <p className="signal-station__lead">Chỉ cần ngày sinh. Chưa cần tài khoản.</p>
+      <p className="signal-station__privacy">
+        Phiên khách tự hết hạn sau 30 ngày không hoạt động. Bạn có thể từ chối, xem bản mẫu hoặc xóa dữ liệu bất cứ lúc nào.
+      </p>
+      {routeState?.expired ? (
+        <p className="signal-station__notice" role="status">Phiên trước đã hết hạn. Dữ liệu cũ không còn được hiển thị; bạn có thể bắt đầu một Lá mới.</p>
+      ) : null}
+      {routeState?.offline ? (
+        <p className="signal-station__notice" role="status">Bạn đang offline. Bản mẫu vẫn xem được mà không cần tạo phiên khách.</p>
+      ) : null}
+      {error ? <p className="signal-station__error" role="alert">{error}</p> : null}
+    </SignalStationFrame>
   );
 }

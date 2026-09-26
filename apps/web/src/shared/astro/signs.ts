@@ -11,6 +11,6 @@ export const signDetails: Record<ZodiacSign, { label: string; symbol: string; no
   scorpio: { label: "Bọ Cạp", symbol: "♏︎", note: "Điều chưa nói ra vẫn đang chỉ cho bạn một hướng đi." },
   sagittarius: { label: "Nhân Mã", symbol: "♐︎", note: "Tò mò thêm một chút — câu chuyện chưa dừng ở đây." },
   capricorn: { label: "Ma Kết", symbol: "♑︎", note: "Bạn không cần hoàn thành tất cả để thấy mình đã đi xa." },
-  aquarius: { label: "Bảo Bình", symbol: "♒︎", note: "Ý nghĩ khác thường ấy có thể là tín hiệu, không phải nhiễu." },
+  aquarius: { label: "Bảo Bình", symbol: "♒︎", note: "Ý nghĩ khác thường ấy đáng được thử ở quy mô nhỏ." },
   pisces: { label: "Song Ngư", symbol: "♓︎", note: "Tin vào điều bạn cảm được trước khi gọi tên được nó." },
 };

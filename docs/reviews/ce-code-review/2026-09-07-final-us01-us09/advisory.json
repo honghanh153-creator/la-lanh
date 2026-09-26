@@ -1,0 +1,14 @@
+{
+  "run_id": "2026-09-07-final-us01-us09",
+  "release_gates": [
+    "Run migration up/down and two-connection deletion/send concurrency on disposable PostgreSQL.",
+    "Backfill or purge legacy plaintext snapshots and recipient labels with envelope-key-aware verification.",
+    "Build and test signed iOS and Android binaries against a production-like HTTPS API.",
+    "Keep external generation and generated Jyotish disabled until provider governance and expert review pass.",
+    "Verify distributed admission control, capability-token log redaction and store privacy disclosures in deployed infrastructure."
+  ],
+  "residual_risks": [
+    "The local environment has no PostgreSQL, Xcode/Simulator or Android JDK, so source and SQLite evidence cannot close those runtime gates.",
+    "The production bundle remains about 606 kB minified JavaScript; route-level code splitting is a performance follow-up, not a correctness blocker for the local MVP."
+  ]
+}

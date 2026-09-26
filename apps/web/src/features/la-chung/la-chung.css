@@ -1,0 +1,100 @@
+.la-chung-page { max-width: 46rem; min-height: 100dvh; margin: 0 auto; padding: 1rem 1rem 3rem; }
+.text-link, .text-button { border: 0; color: var(--cyan); background: transparent; text-decoration: none; }
+.witness-hero { padding: 3rem 0 1.2rem; }
+.witness-hero h1, .public-landing h1, .review-step h1, .receipt-step h1, .result-hero h1 { margin: .7rem 0; font-size: clamp(2.25rem, 10vw, 3.4rem); font-weight: 800; letter-spacing: -.065em; line-height: 1; }
+.witness-hero > p:last-child { max-width: 31rem; color: var(--text-muted); line-height: 1.6; }
+.witness-orbit { display: grid; width: 4.4rem; height: 4.4rem; place-items: center; border: 1px solid var(--signal); border-radius: 50%; color: var(--signal-text); background: var(--signal); box-shadow: 0 0 2.5rem rgb(183 217 0 / 28%); }
+.privacy-bento { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin: .5rem 0 1rem; }
+.privacy-bento article { min-height: 10rem; padding: 1rem; border: 1px solid var(--line); border-radius: 1.3rem; background: var(--glass); }
+.privacy-bento svg { color: var(--cyan); }
+.privacy-bento strong, .privacy-bento p { display: block; margin-top: .65rem; }
+.privacy-bento p { color: var(--text-muted); font-size: .78rem; line-height: 1.45; }
+.cosmic-field { display: block; padding: 1rem; border: 1px solid var(--line); border-radius: 1.2rem; background: var(--glass); }
+.cosmic-field span, .cosmic-field small { display: block; }
+.cosmic-field input { width: 100%; min-height: 3.5rem; margin: .5rem 0; padding: 0 .85rem; border: 1px solid var(--line); border-radius: .8rem; color: var(--text); background: transparent; font: inherit; }
+.cosmic-field small { color: var(--text-muted); }
+.context-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin: 1rem 0; padding: 0; border: 0; }
+.context-grid legend { grid-column: 1 / -1; margin-bottom: .4rem; font-weight: 800; }
+.context-grid button { min-height: 6rem; padding: .8rem; border: 1px solid var(--line); border-radius: 1rem; color: var(--text); background: var(--glass); text-align: left; }
+.context-grid button strong, .context-grid button small { display: block; }
+.context-grid button small { margin-top: .35rem; color: var(--text-muted); }
+.context-grid button.is-active { border-color: var(--signal); box-shadow: inset 0 0 0 1px var(--signal); }
+.invite-preview-card { margin: 1.5rem 0 1rem; padding: 1.4rem; border: 1px solid rgb(255 255 255 / 55%); border-radius: 1.5rem; color: #21172e; background: var(--paper); box-shadow: var(--shadow); transform: rotate(-1deg); }
+.invite-preview-card > p { color: #d95745; font-size: .75rem; font-weight: 800; }
+.invite-preview-card h1 { font-size: clamp(2rem, 9vw, 3.2rem); letter-spacing: -.06em; line-height: 1; }
+.invite-preview-card blockquote { margin: 1rem 0; color: #5e5367; line-height: 1.55; }
+.disclosure-list { padding: .7rem 1rem; border-left: 2px solid var(--cyan); }
+.disclosure-list p { display: flex; gap: .5rem; color: var(--text-muted); font-size: .8rem; }
+.owner-checkpoint { position: fixed; z-index: 20; right: 1rem; bottom: 1rem; left: 1rem; max-width: 30rem; margin: auto; padding: 1.2rem; border: 1px solid var(--signal); border-radius: 1.4rem; background: var(--glass-strong); box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 45%); backdrop-filter: blur(1.5rem); }
+.owner-checkpoint h2 { margin: .45rem 0; }
+.share-actions { display: grid; gap: .6rem; }
+.invite-list { display: grid; gap: .7rem; }
+.invite-list article { padding: 1rem; border: 1px solid var(--line); border-radius: 1.2rem; background: var(--glass); }
+.invite-list h2 { margin: .45rem 0 .2rem; }
+.invite-list p { margin: 0; color: var(--text-muted); font-size: .8rem; }
+.status-chip { display: inline-block; padding: .25rem .55rem; border: 1px solid var(--line); border-radius: 999px; color: var(--cyan); font-size: .67rem; text-transform: uppercase; }
+.status-chip--completed { color: var(--signal); }
+.status-chip--revoked, .status-chip--expired, .status-chip--withdrawn { color: var(--peach); }
+.compact-actions { display: flex; gap: .5rem; margin-top: .8rem; }
+.compact-actions button { min-height: 2.75rem; padding: 0 .7rem; border: 1px solid var(--line); border-radius: .8rem; color: var(--text); background: transparent; }
+.public-la-page { min-height: 100dvh; padding: 1rem 1rem 3rem; color: var(--text); background: var(--page-bg) url('/assets/note/cosmic-glass-sky.png') top center / cover fixed; }
+.public-header { display: flex; align-items: center; justify-content: space-between; max-width: 42rem; margin: auto; }
+.mini-brand { padding: .5rem .75rem; border: 1px solid var(--signal); border-radius: .65rem; font-weight: 800; }
+.public-header button { width: 2.75rem; height: 2.75rem; border: 1px solid var(--line); border-radius: 50%; color: var(--text); background: var(--glass); }
+.public-landing, .statement-step, .review-step, .receipt-step, .safe-terminal { max-width: 42rem; margin: 2.5rem auto 0; }
+.public-landing > p, .review-step > p, .receipt-step > p { color: var(--text-muted); line-height: 1.6; }
+.public-privacy { display: flex; gap: .8rem; margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--glass); }
+.public-privacy span, .public-privacy strong, .public-privacy small { display: block; }
+.public-privacy small { margin-top: .25rem; color: var(--text-muted); }
+.statement-step > header { display: flex; align-items: center; gap: .8rem; }
+.statement-step > header div { display: flex; flex: 1; align-items: center; justify-content: space-between; }
+.statement-list { display: grid; gap: .55rem; padding-bottom: 9rem; }
+.statement-list button { display: flex; align-items: center; justify-content: space-between; min-height: 4.4rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 1rem; color: var(--text); background: var(--glass); text-align: left; }
+.statement-list button[aria-pressed="true"] { border-color: var(--signal); background: color-mix(in srgb, var(--glass) 82%, var(--signal)); }
+.statement-list button svg { flex: 0 0 auto; color: var(--signal); }
+.sticky-public-action { position: fixed; right: 0; bottom: 0; left: 0; padding: .7rem 1rem max(.7rem, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--nav-bg); backdrop-filter: blur(1.3rem); }
+.sticky-public-action p { margin: 0 0 .4rem; color: var(--text-muted); font-size: .72rem; text-align: center; }
+.sticky-public-action .electric-button { width: min(100%, 40rem); margin: auto; }
+.review-statements { display: grid; gap: .4rem; }
+.review-statements p { padding: .8rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--glass); }
+.review-step fieldset { display: grid; gap: .6rem; margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: 1rem; }
+.review-step label { min-height: 2.75rem; }
+.review-step input[type="text"], .review-step fieldset > input { min-height: 3rem; padding: 0 .8rem; border: 1px solid var(--line); border-radius: .8rem; color: var(--text); background: transparent; }
+.receipt-step, .safe-terminal { text-align: center; }
+.receipt-step .witness-orbit, .safe-terminal svg { margin: auto; }
+.result-hero { margin: 2.5rem 0 1.2rem; }
+.result-hero > svg { color: var(--signal); }
+.result-stack { display: grid; gap: .7rem; }
+.result-stack article { display: grid; grid-template-columns: 2rem 1fr; gap: .6rem; padding: 1rem; border: 1px solid var(--line); border-radius: 1.2rem; background: var(--glass); }
+.result-stack span { color: var(--peach); font-size: .7rem; }
+.result-stack p { margin: 0; font-size: 1.05rem; line-height: 1.45; }
+.result-privacy { display: flex; gap: .6rem; margin-top: 1rem; color: var(--text-muted); }
+@media (max-width: 350px) { .privacy-bento, .context-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-transparency: reduce) { .public-la-page { background-color: var(--page-bg); background-image: none; } .owner-checkpoint { backdrop-filter: none; } }
+.report-sheet {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  align-items: end;
+  background: rgb(8 3 17 / 70%);
+  backdrop-filter: blur(10px);
+}
+
+.report-sheet > div {
+  display: grid;
+  gap: 12px;
+  padding: 26px 22px calc(28px + env(safe-area-inset-bottom));
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 28px 28px 0 0;
+  background: #170d29;
+}
+
+.report-sheet button:not(.text-button) {
+  min-height: 48px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 16px;
+  color: var(--cream);
+  background: rgb(255 255 255 / 6%);
+  text-align: left;
+}

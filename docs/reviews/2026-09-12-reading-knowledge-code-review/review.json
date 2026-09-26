@@ -1,0 +1,30 @@
+{
+  "schema": "ce-code-review-receipt/v1",
+  "date": "2026-09-12",
+  "scope": "reading-knowledge-daily-note",
+  "verdict": "local_qa_go_public_release_no_go",
+  "reviewers": [
+    "correctness",
+    "security",
+    "maintainability",
+    "testing"
+  ],
+  "resolved_findings": 10,
+  "deferred_fail_closed": [
+    "typed_factor_payload_storage_migration",
+    "external_prose_semantic_binding",
+    "metadata_only_pending_update",
+    "public_release_security_privacy_licensing_gates"
+  ],
+  "verification": {
+    "backend_tests": 216,
+    "frontend_tests": 42,
+    "ruff": "passed",
+    "mypy_source_files": 100,
+    "eslint": "passed",
+    "typescript": "passed",
+    "production_build": "passed",
+    "privacy_guard": "passed",
+    "mobile_guard": "4/4 passed"
+  }
+}

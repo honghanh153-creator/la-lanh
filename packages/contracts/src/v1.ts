@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/v1/birth-places/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search Birth Places */
+        post: operations["search_birth_places_v1_birth_places_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/birth-profile": {
         parameters: {
             query?: never;
@@ -16,6 +33,199 @@ export interface paths {
         put?: never;
         /** Create Birth Profile */
         post: operations["create_birth_profile_v1_birth_profile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/birth-profile/supplement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Birth Supplement */
+        get: operations["get_birth_supplement_v1_birth_profile_supplement_get"];
+        put?: never;
+        /** Add Birth Supplement */
+        post: operations["add_birth_supplement_v1_birth_profile_supplement_post"];
+        /** Remove Birth Supplement */
+        delete: operations["remove_birth_supplement_v1_birth_profile_supplement_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Daily Note */
+        get: operations["get_daily_note_v1_daily_note_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Project Daily Note Context */
+        post: operations["project_daily_note_context_v1_daily_note_context_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/experiment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current Experiment */
+        get: operations["get_current_experiment_v1_daily_note_experiment_get"];
+        put?: never;
+        post?: never;
+        /** Undo Experiment */
+        delete: operations["undo_experiment_v1_daily_note_experiment_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/experiment/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reflect On Experiment */
+        post: operations["reflect_on_experiment_v1_daily_note_experiment_outcome_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/resonance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Resonance Status */
+        get: operations["get_resonance_status_v1_daily_note_resonance_get"];
+        put?: never;
+        post?: never;
+        /** Clear Resonance */
+        delete: operations["clear_resonance_v1_daily_note_resonance_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/{daily_note_id}/experiment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Choose Experiment */
+        put: operations["choose_experiment_v1_daily_note__daily_note_id__experiment_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/{daily_note_id}/mood": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current Mood */
+        get: operations["get_current_mood_v1_daily_note__daily_note_id__mood_get"];
+        /** Check In Mood */
+        put: operations["check_in_mood_v1_daily_note__daily_note_id__mood_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/{daily_note_id}/resonance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Record Resonance */
+        put: operations["record_resonance_v1_daily_note__daily_note_id__resonance_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/{daily_note_id}/saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Note */
+        put: operations["save_note_v1_daily_note__daily_note_id__saved_put"];
+        post?: never;
+        /** Unsave Note */
+        delete: operations["unsave_note_v1_daily_note__daily_note_id__saved_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/daily-note/{daily_note_id}/share-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Share Artifact */
+        post: operations["create_share_artifact_v1_daily_note__daily_note_id__share_artifacts_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -73,6 +283,555 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/identity/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Claim Identity */
+        post: operations["claim_identity_v1_identity_claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/insights/configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Supported Configs */
+        get: operations["supported_configs_v1_insights_configs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/insights/current-sky": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Sky */
+        get: operations["current_sky_v1_insights_current_sky_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/insights/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Insight Overview */
+        get: operations["insight_overview_v1_insights_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/insights/readings/{purpose}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Private Reading */
+        get: operations["private_reading_v1_insights_readings__purpose__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/la-chung/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Invites */
+        get: operations["list_invites_v1_la_chung_requests_get"];
+        put?: never;
+        /** Create Invite */
+        post: operations["create_invite_v1_la_chung_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/la-chung/requests/{request_id}/replacement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace Invite */
+        post: operations["replace_invite_v1_la_chung_requests__request_id__replacement_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/la-chung/requests/{request_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Invite */
+        post: operations["resend_invite_v1_la_chung_requests__request_id__resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/la-chung/requests/{request_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Invite */
+        post: operations["revoke_invite_v1_la_chung_requests__request_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/la-chung/results/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Owner Result */
+        get: operations["owner_result_v1_la_chung_results__request_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Owner Result */
+        delete: operations["delete_owner_result_v1_la_chung_results__request_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/la-chung/results/{request_id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hide Owner Result */
+        post: operations["hide_owner_result_v1_la_chung_results__request_id__hide_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/matching/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant Consent */
+        post: operations["grant_consent_v1_matching_consent_post"];
+        /** Withdraw Consent */
+        delete: operations["withdraw_consent_v1_matching_consent_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/matching/pool-membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Pool Membership */
+        put: operations["set_pool_membership_v1_matching_pool_membership_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/matching/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Profile */
+        put: operations["put_profile_v1_matching_profile_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/matching/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Readiness */
+        get: operations["get_readiness_v1_matching_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/la-chung/receipt/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw Response */
+        post: operations["withdraw_response_v1_public_la_chung_receipt_withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/la-chung/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Invite */
+        get: operations["public_invite_v1_public_la_chung__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/la-chung/{token}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report Invite */
+        post: operations["report_invite_v1_public_la_chung__token__report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/la-chung/{token}/responses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Response */
+        post: operations["submit_response_v1_public_la_chung__token__responses_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Invite */
+        get: operations["current_invite_v1_public_radar_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/current/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Invite */
+        post: operations["accept_invite_v1_public_radar_current_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/current/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Invite */
+        post: operations["decline_invite_v1_public_radar_current_decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Receipt Result */
+        get: operations["receipt_result_v1_public_radar_receipt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/receipt/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw Result */
+        post: operations["withdraw_result_v1_public_radar_receipt_withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/radar/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Preview */
+        get: operations["public_preview_v1_public_radar__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/private-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Private Check */
+        post: operations["create_private_check_v1_radar_private_checks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Requests */
+        get: operations["list_requests_v1_radar_requests_get"];
+        put?: never;
+        /** Create Request */
+        post: operations["create_request_v1_radar_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/requests/{request_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Request */
+        post: operations["revoke_request_v1_radar_requests__request_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/requests/{request_id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Share Request */
+        post: operations["share_request_v1_radar_requests__request_id__share_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/results/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Owner Result */
+        get: operations["owner_result_v1_radar_results__request_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Owner Result */
+        delete: operations["delete_owner_result_v1_radar_results__request_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reading-projections/{scope_key}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Activate Reading Projection */
+        put: operations["activate_reading_projection_v1_reading_projections__scope_key__activate_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reading-projections/{scope_key}/aura-transition/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Acknowledge Aura Transition */
+        put: operations["acknowledge_aura_transition_v1_reading_projections__scope_key__aura_transition_acknowledge_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ready": {
         parameters: {
             query?: never;
@@ -82,6 +841,23 @@ export interface paths {
         };
         /** Readiness */
         get: operations["getReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/saved-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Saved Notes */
+        get: operations["list_saved_notes_v1_saved_notes_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -107,10 +883,152 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/session/onboarding-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Onboarding Status */
+        put: operations["update_onboarding_status_v1_session_onboarding_status_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/share-artifacts/{artifact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Share Artifact */
+        delete: operations["revoke_share_artifact_v1_share_artifacts__artifact_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/share-artifacts/{share_token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Share Artifact */
+        get: operations["get_share_artifact_v1_share_artifacts__share_token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AcknowledgeAuraTransitionRequest */
+        AcknowledgeAuraTransitionRequest: {
+            /** Transition Id */
+            transition_id: string;
+        };
+        /** ActivateReadingRequest */
+        ActivateReadingRequest: {
+            /**
+             * Expected Revision Id
+             * Format: uuid
+             */
+            expected_revision_id: string;
+        };
+        /**
+         * ApproxWindow
+         * @enum {string}
+         */
+        ApproxWindow: "morning" | "noon" | "afternoon" | "evening" | "night";
+        /** Aspect */
+        Aspect: {
+            /** Applying */
+            applying: boolean;
+            body_a: components["schemas"]["BodyName"];
+            body_b: components["schemas"]["BodyName"];
+            /** Exact Angle */
+            exact_angle: number;
+            /** Kind */
+            kind: string;
+            /** Orb */
+            orb: number;
+        };
+        /** AuraAwakeningResponse */
+        AuraAwakeningResponse: {
+            /** Confidence */
+            confidence: string;
+            /** Factors */
+            factors: string[];
+            /** Headline */
+            headline: string;
+            /** Precision Label */
+            precision_label: string;
+            /** Scoring Version */
+            scoring_version: string;
+            /** Summary */
+            summary: string;
+        };
+        /**
+         * AuraTransitionProjection
+         * @description Evidence-derived profile transition without shadow active/available depth fields.
+         */
+        AuraTransitionProjection: {
+            /**
+             * Acknowledged
+             * @default false
+             */
+            acknowledged: boolean;
+            profile_readiness: components["schemas"]["ProfileReadiness"];
+            /** Transition Id */
+            transition_id?: string | null;
+            /** Unlock Layers */
+            unlock_layers: components["schemas"]["AuraUnlockLayer"][];
+        };
+        /**
+         * AuraUnlockLayer
+         * @enum {string}
+         */
+        AuraUnlockLayer: "multi_factor" | "house_arena" | "rising_angles" | "current_sky";
+        /** AvailableReadingUpdate */
+        AvailableReadingUpdate: {
+            content: components["schemas"]["ReadingContentProjection"];
+            /**
+             * Message
+             * @default Có một bản đọc mới đang chờ bạn
+             */
+            message: string;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+        };
+        /**
+         * Ayanamsa
+         * @enum {string}
+         */
+        Ayanamsa: "lahiri" | "raman" | "krishnamurti";
+        /**
+         * BackgroundLens
+         * @enum {string}
+         */
+        BackgroundLens: "auto" | "relationships" | "communication" | "work" | "energy" | "self_care";
         /** BirthDateRequest */
         BirthDateRequest: {
             /**
@@ -126,7 +1044,13 @@ export interface components {
              * Format: date
              */
             birth_date: string;
-            calculation: components["schemas"]["DateOnlySunResult"];
+            /** Calculation */
+            calculation: components["schemas"]["DateOnlySunResult"] | components["schemas"]["NatalChart"];
+            /**
+             * Calculation Kind
+             * @enum {string}
+             */
+            calculation_kind: "date_only_sun" | "natal_chart";
             /**
              * Created At
              * Format: date-time
@@ -145,25 +1069,188 @@ export interface components {
              */
             snapshot_id: string;
         };
-        /** DateOnlySunResult */
-        DateOnlySunResult: {
+        /** BirthSupplementRemoveRequest */
+        BirthSupplementRemoveRequest: {
             /**
-             * Birth Date
+             * Remove Place
+             * @default false
+             */
+            remove_place: boolean;
+            /**
+             * Remove Time
+             * @default false
+             */
+            remove_time: boolean;
+        };
+        /** BirthSupplementRequest */
+        BirthSupplementRequest: {
+            approx_window?: components["schemas"]["ApproxWindow"] | null;
+            /** Birth Time Local */
+            birth_time_local?: string | null;
+            birth_time_mode: components["schemas"]["BirthTimeMode"];
+            /** Consent Version */
+            consent_version: string;
+            /** Place Id */
+            place_id?: string | null;
+        };
+        /** BirthSupplementResponse */
+        BirthSupplementResponse: {
+            chart: components["schemas"]["NatalChart"] | null;
+            /** Place Display Name */
+            place_display_name: string | null;
+            /**
+             * Profile Id
+             * Format: uuid
+             */
+            profile_id: string;
+            /** Profile Level */
+            profile_level: number;
+            /** Snapshot Id */
+            snapshot_id: string | null;
+            /** Time Precision */
+            time_precision: string;
+            /** Timezone Id */
+            timezone_id: string | null;
+        };
+        /** BirthSupplementStateResponse */
+        BirthSupplementStateResponse: {
+            approx_window: components["schemas"]["ApproxWindow"] | null;
+            birth_time_mode: components["schemas"]["BirthTimeMode"];
+            /** Place Display Name */
+            place_display_name: string | null;
+            /**
+             * Profile Id
+             * Format: uuid
+             */
+            profile_id: string;
+            /** Profile Level */
+            profile_level: number;
+            /** Time Precision */
+            time_precision: string;
+            /** Timezone Id */
+            timezone_id: string | null;
+        };
+        /**
+         * BirthTimeMode
+         * @enum {string}
+         */
+        BirthTimeMode: "exact" | "approx_window" | "unknown";
+        /**
+         * BodyName
+         * @enum {string}
+         */
+        BodyName: "sun" | "moon" | "mercury" | "venus" | "mars" | "jupiter" | "saturn" | "uranus" | "neptune" | "pluto" | "true_node" | "mean_node" | "south_node" | "chiron";
+        /** BodyPosition */
+        BodyPosition: {
+            body: components["schemas"]["BodyName"];
+            /** Degree In Sign */
+            degree_in_sign: number;
+            /** Distance Au */
+            distance_au: number;
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            /** Longitude Speed */
+            longitude_speed: number;
+            /** Retrograde */
+            retrograde: boolean;
+            sign: components["schemas"]["ZodiacSign"];
+        };
+        /** CalculationConfig */
+        CalculationConfig: {
+            ayanamsa?: components["schemas"]["Ayanamsa"] | null;
+            /** @default placidus */
+            house_system: components["schemas"]["HouseSystem"];
+            /** @default true */
+            node_mode: components["schemas"]["NodeMode"];
+            /** @default western */
+            tradition: components["schemas"]["Tradition"];
+            /** @default tropical */
+            zodiac: components["schemas"]["ZodiacMode"];
+        };
+        /** ChartAngles */
+        ChartAngles: {
+            /** Armc */
+            armc: number;
+            /** Ascendant */
+            ascendant: number;
+            /** Midheaven */
+            midheaven: number;
+            /** Vertex */
+            vertex: number;
+        };
+        /**
+         * ChartType
+         * @enum {string}
+         */
+        ChartType: "date_only_natal" | "natal" | "daily_transit" | "transit_to_natal" | "synastry" | "composite_midpoint" | "davison_relationship" | "jyotish_navamsa" | "relationship_bundle" | "compatibility_facts";
+        /** ContextProjectionRequest */
+        ContextProjectionRequest: {
+            background_lens: components["schemas"]["BackgroundLens"];
+        };
+        /** CurrentSkyResponse */
+        CurrentSkyResponse: {
+            /** Bodies */
+            bodies: components["schemas"]["InsightBodyProjection"][];
+            /** Config Hash */
+            config_hash: string;
+            /** Note */
+            note: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            tradition: components["schemas"]["Tradition"];
+        };
+        /** DailyNoteResponse */
+        DailyNoteResponse: {
+            /** Astrology Source Version */
+            astrology_source_version: string;
+            awakening?: components["schemas"]["AuraAwakeningResponse"] | null;
+            /** Body */
+            body: string;
+            /** Content Version */
+            content_version: string;
+            /** Context Label */
+            context_label: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            fallback_reason: components["schemas"]["FallbackReason"] | null;
+            /** Fallback Used */
+            fallback_used: boolean;
+            /** Full Body */
+            full_body: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Note Date
              * Format: date
              */
-            birth_date: string;
+            note_date: string;
+            persona_label: components["schemas"]["PersonaLabel"];
+            persona_mode: components["schemas"]["PersonaMode"];
+            /** Persona Version */
+            persona_version: string;
+            reading_projection?: components["schemas"]["ReadingProjection"] | null;
+            sky_chapter?: components["schemas"]["SkyChapterResponse"] | null;
+            source_level: components["schemas"]["SourceLevel"];
+            /** Title */
+            title: string;
+        };
+        /** DateOnlySunResult */
+        DateOnlySunResult: {
             /** Candidates */
             candidates: components["schemas"]["ZodiacSign"][];
-            /**
-             * Interval End Utc
-             * Format: date-time
-             */
-            interval_end_utc: string;
-            /**
-             * Interval Start Utc
-             * Format: date-time
-             */
-            interval_start_utc: string;
+            /** @default date_only_natal */
+            chart_type: components["schemas"]["ChartType"];
             provenance: components["schemas"]["EngineProvenance"];
             sign: components["schemas"]["ZodiacSign"] | null;
             /** Status */
@@ -171,6 +1258,12 @@ export interface components {
         };
         /** EngineProvenance */
         EngineProvenance: {
+            ayanamsa?: components["schemas"]["Ayanamsa"] | null;
+            /**
+             * Config Hash
+             * @default western-v1
+             */
+            config_hash: string;
             /**
              * Engine
              * @default swiss_ephemeris
@@ -188,8 +1281,141 @@ export interface components {
              * @default af9823fe7b06ffefe3d3968fdc5680be8b5eec5f
              */
             release_commit: string;
+            /** @default western */
+            tradition: components["schemas"]["Tradition"];
             /** Version */
             version: string;
+            /** @default tropical */
+            zodiac: components["schemas"]["ZodiacMode"];
+        };
+        /** ExperimentChooseRequest */
+        ExperimentChooseRequest: {
+            /** Action Key */
+            action_key: string;
+            background_lens: components["schemas"]["BackgroundLens"];
+            /** Consent Version */
+            consent_version: string;
+            /** Expected Experiment Id */
+            expected_experiment_id?: string | null;
+            /** Expected Version */
+            expected_version?: number | null;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+        };
+        /** ExperimentMutationRequest */
+        ExperimentMutationRequest: {
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Experiment Id
+             * Format: uuid
+             */
+            experiment_id: string;
+        };
+        /**
+         * ExperimentOutcome
+         * @enum {string}
+         */
+        ExperimentOutcome: "not_tried" | "helpful" | "no_difference" | "not_for_now";
+        /** ExperimentOutcomeRequest */
+        ExperimentOutcomeRequest: {
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Experiment Id
+             * Format: uuid
+             */
+            experiment_id: string;
+            outcome: components["schemas"]["ExperimentOutcome"];
+        };
+        /**
+         * ExperimentProjection
+         * @description Server-owned action grammar; clients never split or author this prose.
+         */
+        ExperimentProjection: {
+            /** Action */
+            action: string;
+            /** Action Key */
+            action_key: string;
+            /** Observation */
+            observation: string;
+            /** Permission */
+            permission: string;
+        };
+        /** ExperimentResponse */
+        ExperimentResponse: {
+            /** Action */
+            action: string;
+            /** Action Key */
+            action_key: string;
+            background_lens: components["schemas"]["BackgroundLens"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Daily Note Id
+             * Format: uuid
+             */
+            daily_note_id: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Observation */
+            observation: string;
+            outcome: components["schemas"]["ExperimentOutcome"] | null;
+            /** Permission */
+            permission: string;
+            /** Reflected At */
+            reflected_at: string | null;
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            state: components["schemas"]["ExperimentState"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ExperimentState
+         * @enum {string}
+         */
+        ExperimentState: "chosen" | "reflected";
+        /**
+         * FallbackReason
+         * @enum {string}
+         */
+        FallbackReason: "ambiguous_sun" | "incomplete_natal_chart" | "missing_sun" | "legacy_row";
+        /**
+         * GenderPreference
+         * @enum {string}
+         */
+        GenderPreference: "women" | "men" | "nonbinary" | "everyone";
+        /** GrahaDrishti */
+        GrahaDrishti: {
+            from_body: components["schemas"]["BodyName"];
+            /** Houses Apart */
+            houses_apart: number;
+            /** Kind */
+            kind: string;
+            to_body: components["schemas"]["BodyName"];
         };
         /** GuestCreateRequest */
         GuestCreateRequest: {
@@ -213,6 +1439,8 @@ export interface components {
              * @default false
              */
             resumed: boolean;
+            /** Session Epoch */
+            session_epoch: string;
             /** State */
             state: string;
         };
@@ -236,6 +1464,350 @@ export interface components {
              */
             status: "ok";
         };
+        /** HousePosition */
+        HousePosition: {
+            /** Longitude */
+            longitude: number;
+            /** Number */
+            number: number;
+            sign: components["schemas"]["ZodiacSign"];
+        };
+        /**
+         * HouseSystem
+         * @enum {string}
+         */
+        HouseSystem: "placidus" | "whole_sign" | "equal";
+        /**
+         * IdentityMode
+         * @enum {string}
+         */
+        IdentityMode: "anonymous" | "alias";
+        /** InsightBodyProjection */
+        InsightBodyProjection: {
+            body: components["schemas"]["BodyName"];
+            /** Degree In Sign */
+            degree_in_sign: number;
+            /** Retrograde */
+            retrograde: boolean;
+            sign: components["schemas"]["ZodiacSign"];
+        };
+        /** InsightOverviewResponse */
+        InsightOverviewResponse: {
+            /**
+             * Bodies
+             * @default []
+             */
+            bodies: components["schemas"]["InsightBodyProjection"][];
+            /**
+             * Houses Available
+             * @default false
+             */
+            houses_available: boolean;
+            reading?: components["schemas"]["InsightReading"] | null;
+            reading_projection?: components["schemas"]["ReadingProjection"] | null;
+            /**
+             * Required Fields
+             * @default []
+             */
+            required_fields: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ready" | "locked";
+            /**
+             * Time Precision
+             * @default unknown
+             */
+            time_precision: string;
+        };
+        /** InsightReading */
+        InsightReading: {
+            /** Claims */
+            claims: components["schemas"]["ReadingClaim"][];
+            /** Config Hash */
+            config_hash: string;
+            /**
+             * Disclaimer
+             * @default Nội dung mang tính diễn giải và tham khảo, không phải dự đoán chắc chắn hay lời khuyên chuyên môn.
+             */
+            disclaimer: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            provenance: components["schemas"]["EngineProvenance"];
+            tradition: components["schemas"]["Tradition"];
+        };
+        /** InviteCreateRequest */
+        InviteCreateRequest: {
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "bff" | "crush" | "couple" | "friend" | "workmate";
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Recipient Label */
+            recipient_label: string;
+        };
+        /** InviteResponse */
+        InviteResponse: {
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Recipient Label */
+            recipient_label: string;
+            /** Share Url */
+            share_url?: string | null;
+            status: components["schemas"]["RequestStatus"];
+        };
+        /** MatchingConsentInput */
+        MatchingConsentInput: {
+            /** Version */
+            version: string;
+        };
+        /**
+         * MatchingGender
+         * @enum {string}
+         */
+        MatchingGender: "woman" | "man" | "nonbinary";
+        /**
+         * MatchingIntent
+         * @enum {string}
+         */
+        MatchingIntent: "dating" | "friendship" | "open";
+        /** MatchingProfileInput */
+        MatchingProfileInput: {
+            /** Display Name */
+            display_name: string;
+            gender_identity: components["schemas"]["MatchingGender"];
+            gender_preference: components["schemas"]["GenderPreference"];
+            intent: components["schemas"]["MatchingIntent"];
+            /** Max Age */
+            max_age: number;
+            /** Min Age */
+            min_age: number;
+            /** Region Code */
+            region_code: string;
+            /** @default de_la_can */
+            weekly_intent: components["schemas"]["WeeklyIntent"];
+        };
+        /** MatchingProfileResponse */
+        MatchingProfileResponse: {
+            /** Active */
+            active: boolean;
+            /** Display Name */
+            display_name: string;
+            gender_identity: components["schemas"]["MatchingGender"];
+            gender_preference: components["schemas"]["GenderPreference"];
+            intent: components["schemas"]["MatchingIntent"];
+            /** Joined At */
+            joined_at: string | null;
+            /** Max Age */
+            max_age: number;
+            /** Min Age */
+            min_age: number;
+            /** Region Code */
+            region_code: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            weekly_intent: components["schemas"]["WeeklyIntent"];
+        };
+        /** MatchingReadinessResponse */
+        MatchingReadinessResponse: {
+            /** Birth Profile Level */
+            birth_profile_level: number;
+            /** Checks */
+            checks: components["schemas"]["ReadinessCheck"][];
+            /** Consent Version */
+            consent_version: string | null;
+            profile: components["schemas"]["MatchingProfileResponse"] | null;
+            /** Ready */
+            ready: boolean;
+            /** Verification Reason Code */
+            verification_reason_code: string | null;
+            verification_status: components["schemas"]["VerificationStatus"];
+        };
+        /** MoodRequest */
+        MoodRequest: {
+            mood: components["schemas"]["MoodValue"];
+        };
+        /** MoodResponse */
+        MoodResponse: {
+            /**
+             * Checked In At
+             * Format: date-time
+             */
+            checked_in_at: string;
+            /**
+             * Daily Note Id
+             * Format: uuid
+             */
+            daily_note_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            mood: components["schemas"]["MoodValue"];
+        };
+        /**
+         * MoodValue
+         * @enum {string}
+         */
+        MoodValue: "Rực" | "Chill" | "Đuối" | "Căng" | "Lạc trôi";
+        /** NakshatraPosition */
+        NakshatraPosition: {
+            body: components["schemas"]["BodyName"];
+            /** Degree In Nakshatra */
+            degree_in_nakshatra: number;
+            /** Index */
+            index: number;
+            /** Name */
+            name: string;
+            /** Pada */
+            pada: number;
+        };
+        /** NatalChart */
+        NatalChart: {
+            angles: components["schemas"]["ChartAngles"] | null;
+            /** Aspects */
+            aspects: components["schemas"]["Aspect"][];
+            /** Bodies */
+            bodies: components["schemas"]["BodyPosition"][];
+            /** @default natal */
+            chart_type: components["schemas"]["ChartType"];
+            config?: components["schemas"]["CalculationConfig"];
+            /**
+             * Config Hash
+             * @default western-v1
+             */
+            config_hash: string;
+            /**
+             * Graha Drishti
+             * @default []
+             */
+            graha_drishti: components["schemas"]["GrahaDrishti"][];
+            house_system: components["schemas"]["HouseSystem"];
+            /** Houses */
+            houses: components["schemas"]["HousePosition"][] | null;
+            /** Julian Day Ut */
+            julian_day_ut: number;
+            /**
+             * Nakshatras
+             * @default []
+             */
+            nakshatras: components["schemas"]["NakshatraPosition"][];
+            provenance: components["schemas"]["EngineProvenance"];
+            /** @default exact */
+            time_precision: components["schemas"]["TimePrecision"];
+        };
+        /**
+         * NodeMode
+         * @enum {string}
+         */
+        NodeMode: "true" | "mean";
+        /**
+         * OnboardingStatus
+         * @enum {string}
+         */
+        OnboardingStatus: "birth_pending" | "computing" | "basic_revealed" | "completed";
+        /** OnboardingStatusRequest */
+        OnboardingStatusRequest: {
+            status: components["schemas"]["OnboardingStatus"];
+        };
+        /** OwnerClaimResponse */
+        OwnerClaimResponse: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Principal Id
+             * Format: uuid
+             */
+            principal_id: string;
+            /** Resumed */
+            resumed: boolean;
+        };
+        /** OwnerResultResponse */
+        OwnerResultResponse: {
+            /** Display Alias */
+            display_alias: string | null;
+            identity_mode: components["schemas"]["IdentityMode"];
+            /** Recipient Label */
+            recipient_label: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Statements */
+            statements: string[];
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+        };
+        /**
+         * PersonaLabel
+         * @enum {string}
+         */
+        PersonaLabel: "Nóng" | "Bền" | "Lanh" | "Mềm" | "Rực" | "Gọn" | "Duyên" | "Sâu" | "Phiêu" | "Chắc" | "Khác" | "Mộng";
+        /**
+         * PersonaMode
+         * @enum {string}
+         */
+        PersonaMode: "vibe" | "aura";
+        /** PlaceResultResponse */
+        PlaceResultResponse: {
+            /** Confidence */
+            confidence: string;
+            /** Country Code */
+            country_code: string;
+            /** Display Name */
+            display_name: string;
+            /** Place Id */
+            place_id: string;
+            /** Timezone Id */
+            timezone_id: string;
+        };
+        /** PlaceSearchRequest */
+        PlaceSearchRequest: {
+            /** Query */
+            query: string;
+        };
+        /**
+         * PlanMode
+         * @enum {string}
+         */
+        PlanMode: "full_synthesis" | "vibe_fallback" | "limited";
+        /** PoolMembershipInput */
+        PoolMembershipInput: {
+            /** Active */
+            active: boolean;
+        };
         /** ProblemResponse */
         ProblemResponse: {
             /** Code */
@@ -250,6 +1822,217 @@ export interface components {
              */
             type: string;
         };
+        /**
+         * ProfileReadiness
+         * @enum {string}
+         */
+        ProfileReadiness: "vibe" | "limited" | "aura_ready";
+        /** PublicInviteResponse */
+        PublicInviteResponse: {
+            /** Context */
+            context: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Privacy Note
+             * @default Không cần tài khoản, ngày sinh hay danh bạ.
+             */
+            privacy_note: string;
+            /** Recipient Label */
+            recipient_label: string;
+            /** Statements */
+            statements: components["schemas"]["PublicStatementResponse"][];
+        };
+        /** PublicRadarInviteResponse */
+        PublicRadarInviteResponse: {
+            /**
+             * Consent Version
+             * @default radar-pair-v1
+             */
+            consent_version: string;
+            /** Context */
+            context: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Privacy Note
+             * @default Người mời không nhìn thấy ngày, giờ hoặc nơi sinh của bạn. Kết quả chỉ mở sau khi bạn tự nhập và đồng ý.
+             */
+            privacy_note: string;
+            /** Recipient Label */
+            recipient_label: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Requires Exact Birth Profile
+             * @default true
+             */
+            requires_exact_birth_profile: boolean;
+        };
+        /** PublicShareArtifactResponse */
+        PublicShareArtifactResponse: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            format: components["schemas"]["ShareFormat"];
+            safe_snapshot: components["schemas"]["SafeShareSnapshotResponse"];
+        };
+        /** PublicStatementResponse */
+        PublicStatementResponse: {
+            /** Domain */
+            domain: string;
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** RadarAcceptRequest */
+        RadarAcceptRequest: {
+            /** Consent Version */
+            consent_version: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+        };
+        /** RadarBoundActionRequest */
+        RadarBoundActionRequest: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+        };
+        /** RadarCreateRequest */
+        RadarCreateRequest: {
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "crush" | "friend" | "partner" | "someone";
+            /** Recipient Label */
+            recipient_label: string;
+        };
+        /** RadarInviteResponse */
+        RadarInviteResponse: {
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            mode: components["schemas"]["RadarMode"];
+            /** Recipient Label */
+            recipient_label: string;
+            /** Share Url */
+            share_url?: string | null;
+            status: components["schemas"]["RadarStatus"];
+        };
+        /**
+         * RadarMode
+         * @enum {string}
+         */
+        RadarMode: "private_check" | "consented_invite";
+        /** RadarPrivateCheckRequest */
+        RadarPrivateCheckRequest: {
+            /** Authorization Attested */
+            authorization_attested: boolean;
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /** Birth Time Local */
+            birth_time_local: string;
+            /** Consent Version */
+            consent_version: string;
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "crush" | "friend" | "partner" | "someone";
+            /** Place Id */
+            place_id: string;
+            /** Recipient Label */
+            recipient_label: string;
+        };
+        /** RadarResultResponse */
+        RadarResultResponse: {
+            /** Compatibility Map */
+            compatibility_map?: {
+                [key: string]: unknown;
+            }[];
+            /** Dimensions */
+            dimensions?: {
+                [key: string]: unknown;
+            }[];
+            /** Disclaimer */
+            disclaimer: string;
+            /** Headline */
+            headline: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            mode?: components["schemas"]["RadarMode"] | null;
+            /** Pair Signature */
+            pair_signature?: {
+                [key: string]: unknown;
+            } | null;
+            /** Recipient Label */
+            recipient_label?: string | null;
+            /** Request Id */
+            request_id?: string | null;
+            /** Sections */
+            sections?: {
+                [key: string]: unknown;
+            }[];
+            /** Strongest Contacts */
+            strongest_contacts?: {
+                [key: string]: unknown;
+            }[];
+            /** Summary */
+            summary: string;
+            /** Version */
+            version: string;
+        };
+        /**
+         * RadarStatus
+         * @enum {string}
+         */
+        RadarStatus: "pending" | "completed" | "revoked" | "withdrawn" | "expired";
+        /** ReadinessCheck */
+        ReadinessCheck: {
+            /** Blocking */
+            blocking: boolean;
+            /** Complete */
+            complete: boolean;
+            /** Key */
+            key: string;
+        };
         /** ReadinessResponse */
         ReadinessResponse: {
             /**
@@ -258,6 +2041,351 @@ export interface components {
              */
             status: "ready" | "not_ready";
         };
+        /** ReadingClaim */
+        ReadingClaim: {
+            /** Confidence */
+            confidence: string;
+            domain: components["schemas"]["ReadingDomain"];
+            /**
+             * Evidence
+             * @default []
+             */
+            evidence: string[];
+            /** Factor Refs */
+            factor_refs: string[];
+            /**
+             * Hook
+             * @default
+             */
+            hook: string;
+            /** Id */
+            id: string;
+            /**
+             * Manifestation
+             * @default
+             */
+            manifestation: string;
+            /**
+             * Meaning
+             * @default
+             */
+            meaning: string;
+            /**
+             * Micro Action
+             * @default
+             */
+            micro_action: string;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
+            /**
+             * Watch For
+             * @default
+             */
+            watch_for: string;
+        };
+        /**
+         * ReadingContentProjection
+         * @description The single private response contract shared by Daily and Insights.
+         */
+        ReadingContentProjection: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Disclaimer */
+            disclaimer: string;
+            evidence: components["schemas"]["ReadingEvidenceProjection"];
+            experiment?: components["schemas"]["ExperimentProjection"] | null;
+            mode: components["schemas"]["PlanMode"];
+            precision: components["schemas"]["TimePrecision"];
+            purpose: components["schemas"]["ReadingPurpose"];
+            /**
+             * Revision Id
+             * Format: uuid
+             */
+            revision_id: string;
+            sections: components["schemas"]["ReadingSectionsProjection"];
+            source: components["schemas"]["ReadingRevisionSource"];
+            tradition: components["schemas"]["Tradition"];
+        };
+        /**
+         * ReadingDomain
+         * @enum {string}
+         */
+        ReadingDomain: "core" | "emotions" | "mind" | "relating" | "drive" | "current_sky";
+        /** ReadingEvidenceProjection */
+        ReadingEvidenceProjection: {
+            /** Claims */
+            claims: string[];
+            /** Framework Disclosure */
+            framework_disclosure: string;
+            /** Title */
+            title: string;
+        };
+        /** ReadingProjection */
+        ReadingProjection: {
+            active: components["schemas"]["ReadingContentProjection"];
+            aura_transition: components["schemas"]["AuraTransitionProjection"];
+            available_update?: components["schemas"]["AvailableReadingUpdate"] | null;
+            /** Scope Key */
+            scope_key: string;
+        };
+        /**
+         * ReadingPurpose
+         * @enum {string}
+         */
+        ReadingPurpose: "daily_note" | "aura" | "reading_detail" | "personalized_sky";
+        /**
+         * ReadingRevisionSource
+         * @enum {string}
+         */
+        ReadingRevisionSource: "deterministic" | "generated";
+        /**
+         * ReadingSectionsProjection
+         * @description User-visible prose only; internal planning and gate state never crosses the API.
+         */
+        ReadingSectionsProjection: {
+            /** Hook */
+            hook: string;
+            /** Manifestation */
+            manifestation: string;
+            /** Micro Action */
+            micro_action: string;
+            /** Thesis */
+            thesis: string;
+            /** Transit */
+            transit?: string | null;
+        };
+        /** ReportRequest */
+        ReportRequest: {
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "not_for_me" | "unsafe" | "spam" | "other";
+        };
+        /**
+         * RequestStatus
+         * @enum {string}
+         */
+        RequestStatus: "pending" | "completed" | "revoked" | "expired" | "replaced" | "withdrawn" | "deleted";
+        /**
+         * ResonanceChoice
+         * @enum {string}
+         */
+        ResonanceChoice: "hit" | "miss";
+        /** ResonanceClearRequest */
+        ResonanceClearRequest: {
+            /**
+             * Revoke Consent
+             * @default false
+             */
+            revoke_consent: boolean;
+        };
+        /** ResonanceRequest */
+        ResonanceRequest: {
+            background_lens?: components["schemas"]["BackgroundLens"] | null;
+            choice: components["schemas"]["ResonanceChoice"];
+            /** Consent Version */
+            consent_version: string;
+            /** Revision Id */
+            revision_id?: string | null;
+        };
+        /** ResonanceResponse */
+        ResonanceResponse: {
+            background_lens: components["schemas"]["BackgroundLens"] | null;
+            choice: components["schemas"]["ResonanceChoice"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ResonanceStatusResponse */
+        ResonanceStatusResponse: {
+            /** Consented */
+            consented: boolean;
+            /** Feedback Count */
+            feedback_count: number;
+            last_choice: components["schemas"]["ResonanceChoice"] | null;
+        };
+        /** SafeShareSnapshotResponse */
+        SafeShareSnapshotResponse: {
+            /** Body */
+            body: string;
+            /** Content Version */
+            content_version: string;
+            /** Context Label */
+            context_label: string;
+            /** Persona Label */
+            persona_label: string;
+            /** Persona Mode */
+            persona_mode: string;
+            /** Persona Version */
+            persona_version: string;
+            /** Title */
+            title: string;
+            /** Watermark */
+            watermark: string;
+        };
+        /** SavedNoteRequest */
+        SavedNoteRequest: {
+            /** Revision Id */
+            revision_id?: string | null;
+        };
+        /** SavedNoteResponse */
+        SavedNoteResponse: {
+            /**
+             * Daily Note Id
+             * Format: uuid
+             */
+            daily_note_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note Snapshot */
+            note_snapshot: {
+                [key: string]: unknown;
+            };
+            reading_snapshot?: components["schemas"]["ReadingContentProjection"] | null;
+            /** Revision Id */
+            revision_id?: string | null;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+        };
+        /** ShareArtifactRequest */
+        ShareArtifactRequest: {
+            /** @default story_9_16 */
+            format: components["schemas"]["ShareFormat"];
+            /** Revision Id */
+            revision_id?: string | null;
+        };
+        /** ShareArtifactResponse */
+        ShareArtifactResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Daily Note Id
+             * Format: uuid
+             */
+            daily_note_id: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            format: components["schemas"]["ShareFormat"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Path */
+            public_path?: string | null;
+            /** Revision Id */
+            revision_id?: string | null;
+            safe_snapshot: components["schemas"]["SafeShareSnapshotResponse"];
+            /** Token */
+            token?: string | null;
+        };
+        /**
+         * ShareFormat
+         * @enum {string}
+         */
+        ShareFormat: "story_9_16" | "square_1_1";
+        /** SkyChapterResponse */
+        SkyChapterResponse: {
+            /** Disclaimer */
+            disclaimer: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Orb */
+            orb: number;
+            /** Orb Policy Version */
+            orb_policy_version: string;
+            phase: components["schemas"]["TransitPhase"];
+            /** Phase Label */
+            phase_label: string;
+            /** Ranking Version */
+            ranking_version: string;
+            /** Signal Label */
+            signal_label: string;
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * SourceLevel
+         * @enum {string}
+         */
+        SourceLevel: "date_only_sun" | "natal_chart";
+        /** SubmitResponseRequest */
+        SubmitResponseRequest: {
+            /** Display Alias */
+            display_alias?: string | null;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** @default anonymous */
+            identity_mode: components["schemas"]["IdentityMode"];
+            /** Statement Ids */
+            statement_ids: string[];
+        };
+        /** SubmitResponseResult */
+        SubmitResponseResult: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Resumed */
+            resumed: boolean;
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+        };
+        /** SupportedConfigResponse */
+        SupportedConfigResponse: {
+            /** Ayanamsas */
+            ayanamsas: components["schemas"]["Ayanamsa"][];
+            /** House Systems */
+            house_systems: components["schemas"]["HouseSystem"][];
+            /** Node Modes */
+            node_modes: components["schemas"]["NodeMode"][];
+            /** Recommended */
+            recommended: components["schemas"]["CalculationConfig"][];
+        };
+        /**
+         * TimePrecision
+         * @enum {string}
+         */
+        TimePrecision: "exact" | "approximate" | "unknown";
+        /**
+         * Tradition
+         * @enum {string}
+         */
+        Tradition: "western" | "jyotish";
+        /**
+         * TransitPhase
+         * @enum {string}
+         */
+        TransitPhase: "approaching" | "exact" | "separating";
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -272,6 +2400,21 @@ export interface components {
             type: string;
         };
         /**
+         * VerificationStatus
+         * @enum {string}
+         */
+        VerificationStatus: "not_started" | "pending" | "pass" | "fail";
+        /**
+         * WeeklyIntent
+         * @enum {string}
+         */
+        WeeklyIntent: "de_noi_chuyen" | "di_cham" | "goc_moi" | "de_la_can";
+        /**
+         * ZodiacMode
+         * @enum {string}
+         */
+        ZodiacMode: "tropical" | "sidereal";
+        /**
          * ZodiacSign
          * @enum {string}
          */
@@ -285,6 +2428,44 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    search_birth_places_v1_birth_places_search_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceSearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaceResultResponse"][];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_birth_profile_v1_birth_profile_get: {
         parameters: {
             query?: never;
@@ -375,7 +2556,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Entity */
+            /** @description Unprocessable Content */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -384,6 +2565,861 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_birth_supplement_v1_birth_profile_supplement_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BirthSupplementStateResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    add_birth_supplement_v1_birth_profile_supplement_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BirthSupplementRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BirthSupplementResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    remove_birth_supplement_v1_birth_profile_supplement_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BirthSupplementRemoveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BirthSupplementStateResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_daily_note_v1_daily_note_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_guest?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyNoteResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_daily_note_context_v1_daily_note_context_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContextProjectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingProjection"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_current_experiment_v1_daily_note_experiment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExperimentResponse"] | null;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    undo_experiment_v1_daily_note_experiment_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperimentMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reflect_on_experiment_v1_daily_note_experiment_outcome_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperimentOutcomeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExperimentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_resonance_status_v1_daily_note_resonance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResonanceStatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    clear_resonance_v1_daily_note_resonance_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResonanceClearRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    choose_experiment_v1_daily_note__daily_note_id__experiment_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                daily_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperimentChooseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExperimentResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_current_mood_v1_daily_note__daily_note_id__mood_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                daily_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoodResponse"] | null;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_in_mood_v1_daily_note__daily_note_id__mood_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                daily_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoodRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoodResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    record_resonance_v1_daily_note__daily_note_id__resonance_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                daily_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResonanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResonanceResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    save_note_v1_daily_note__daily_note_id__saved_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                daily_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SavedNoteRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedNoteResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unsave_note_v1_daily_note__daily_note_id__saved_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                daily_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_share_artifact_v1_daily_note__daily_note_id__share_artifacts_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                daily_note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareArtifactRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareArtifactResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -469,7 +3505,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
-            /** @description Unprocessable Entity */
+            /** @description Unprocessable Content */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -497,6 +3533,1375 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
                 };
+            };
+        };
+    };
+    claim_identity_v1_identity_claim_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerClaimResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    supported_configs_v1_insights_configs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportedConfigResponse"];
+                };
+            };
+        };
+    };
+    current_sky_v1_insights_current_sky_get: {
+        parameters: {
+            query?: {
+                tradition?: components["schemas"]["Tradition"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentSkyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    insight_overview_v1_insights_overview_get: {
+        parameters: {
+            query?: {
+                tradition?: components["schemas"]["Tradition"];
+                ayanamsa?: components["schemas"]["Ayanamsa"] | null;
+                node_mode?: components["schemas"]["NodeMode"];
+                house_system?: components["schemas"]["HouseSystem"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightOverviewResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    private_reading_v1_insights_readings__purpose__get: {
+        parameters: {
+            query?: {
+                tradition?: components["schemas"]["Tradition"];
+                ayanamsa?: components["schemas"]["Ayanamsa"] | null;
+                node_mode?: components["schemas"]["NodeMode"];
+                house_system?: components["schemas"]["HouseSystem"] | null;
+            };
+            header?: never;
+            path: {
+                purpose: "aura" | "reading_detail" | "personalized_sky";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingProjection"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_invites_v1_la_chung_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteResponse"][];
+                };
+            };
+        };
+    };
+    create_invite_v1_la_chung_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    replace_invite_v1_la_chung_requests__request_id__replacement_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_invite_v1_la_chung_requests__request_id__resend_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_invite_v1_la_chung_requests__request_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    owner_result_v1_la_chung_results__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_owner_result_v1_la_chung_results__request_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    hide_owner_result_v1_la_chung_results__request_id__hide_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    grant_consent_v1_matching_consent_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchingConsentInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    withdraw_consent_v1_matching_consent_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_pool_membership_v1_matching_pool_membership_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PoolMembershipInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchingProfileResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_profile_v1_matching_profile_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchingProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchingProfileResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_readiness_v1_matching_readiness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchingReadinessResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    withdraw_response_v1_public_la_chung_receipt_withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_lc_receipt?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_invite_v1_public_la_chung__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicInviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_invite_v1_public_la_chung__token__report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_response_v1_public_la_chung__token__responses_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitResponseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmitResponseResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_invite_v1_public_radar_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_radar_invite?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRadarInviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_invite_v1_public_radar_current_accept_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                la_lanh_radar_invite?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarAcceptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_invite_v1_public_radar_current_decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_radar_invite?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarBoundActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    receipt_result_v1_public_radar_receipt_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_radar_receipt?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_result_v1_public_radar_receipt_withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_radar_receipt?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarBoundActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_preview_v1_public_radar__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRadarInviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_private_check_v1_radar_private_checks_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarPrivateCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_requests_v1_radar_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarInviteResponse"][];
+                };
+            };
+        };
+    };
+    create_request_v1_radar_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarInviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_request_v1_radar_requests__request_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    share_request_v1_radar_requests__request_id__share_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarInviteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    owner_result_v1_radar_results__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_owner_result_v1_radar_results__request_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_reading_projection_v1_reading_projections__scope_key__activate_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                scope_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateReadingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingProjection"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    acknowledge_aura_transition_v1_reading_projections__scope_key__aura_transition_acknowledge_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                scope_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcknowledgeAuraTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingProjection"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -529,6 +4934,44 @@ export interface operations {
             };
         };
     };
+    list_saved_notes_v1_saved_notes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                la_lanh_guest?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedNoteResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_session_v1_session_get: {
         parameters: {
             query?: never;
@@ -557,6 +5000,149 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_onboarding_status_v1_session_onboarding_status_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnboardingStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuestSessionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_share_artifact_v1_share_artifacts__artifact_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_share_artifact_v1_share_artifacts__share_token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                share_token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicShareArtifactResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

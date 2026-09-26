@@ -19,7 +19,12 @@ const patterns = [
 const findings = [];
 for (const runtimeRoot of runtimeRoots) {
   for (const file of globSync(`${runtimeRoot}/**/*.{py,ts,tsx}`, { cwd: root })) {
-    if (allowed.has(file)) {
+    if (
+      allowed.has(file)
+      || file.includes(".test.")
+      || file.includes(".spec.")
+      || file.includes("/test/")
+    ) {
       continue;
     }
     const body = readFileSync(join(root, file), "utf8");

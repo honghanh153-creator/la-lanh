@@ -1,0 +1,29 @@
+{
+  "reviewer": "data-migration",
+  "findings": [
+    {
+      "title": "Add executable duplicate-report preflight",
+      "severity": "P2",
+      "file": "apps/api/migrations/versions/20260907_0012_encrypt_private_snapshots.py",
+      "line": 25,
+      "why_it_matters": "A production database containing two historical reports with the same request and reason will cause the new unique-index build to abort, leaving the release migration unapplied. The runbook names this as a No-Go condition but does not provide an executable check, so an operator cannot reliably prove the migration is safe before the deploy window. A read-only preflight that fails the rollout when it returns rows makes the gate observable without deleting report history automatically.",
+      "autofix_class": "manual",
+      "owner": "release",
+      "requires_verification": true,
+      "suggested_fix": "Add this required preflight to the release runbook or a checked-in release script and block the migration if it returns rows: SELECT request_id, reason, COUNT(*) AS duplicate_count FROM la_chung_reports GROUP BY request_id, reason HAVING COUNT(*) > 1; Resolve each duplicate set under the retention policy, then rerun the query and the PostgreSQL migration-up check before deploying.",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/migrations/versions/20260907_0012_encrypt_private_snapshots.py:25-30 -- op.create_index(\"ux_la_chung_reports_request_reason\", \"la_chung_reports\", [\"request_id\", \"reason\"], unique=True)",
+        "apps/api/migrations/versions/20260904_0008_identity_la_chung.py:90-103 -- la_chung_reports was created with only the non-unique ix_la_chung_report_request_created index.",
+        "docs/operations/chart-synthesis-release-runbook.md:29 -- Before migration `20260907_0012`, preflight confirms there are no duplicate Lá Chứng reports for the same `(request_id, reason)`; resolve duplicates before creating the unique index."
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [
+    "PostgreSQL migration up/down and the two-worker lease/CAS test remain explicit No-Go release gates; the local runbook reports Docker/PostgreSQL unavailable on this machine."
+  ],
+  "testing_gaps": [
+    "No checked-in PostgreSQL migration fixture demonstrates that the duplicate-report preflight catches existing duplicates before 20260907_0012 attempts its unique-index build."
+  ]
+}

@@ -3,11 +3,29 @@
   "short_name": "Lá Lành",
   "description": "Một lời nhắc đúng lúc, được viết từ chuyển động thật của bầu trời.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "background_color": "#0f0517",
   "theme_color": "#1d0829",
   "orientation": "portrait",
-  "categories": ["lifestyle"],
+  "categories": ["lifestyle", "health", "social"],
+  "shortcuts": [
+    {
+      "name": "Note hôm nay",
+      "short_name": "Hôm nay",
+      "description": "Mở lời nhắc nhỏ của ngày hôm nay.",
+      "url": "/home",
+      "icons": [{ "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Đã lưu",
+      "short_name": "Đã lưu",
+      "description": "Xem lại những note đã giữ.",
+      "url": "/saved",
+      "icons": [{ "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ],
   "icons": [
     {
       "src": "/app-icon.svg",

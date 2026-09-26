@@ -3,10 +3,11 @@ from typing import cast
 from uuid import UUID
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.domains.birth.models import BirthSnapshotRecord
+from app.domains.birth.models import BirthSnapshotRecord, BirthSupplement, BirthSupplementStored
 from app.main import create_app
 from tests.guest.test_guest_service import MemoryGuestRepository
 
@@ -15,6 +16,7 @@ class MemoryBirthRepository:
     def __init__(self) -> None:
         self.current: dict[UUID, BirthSnapshotRecord] = {}
         self.by_input: dict[tuple[UUID, bytes], BirthSnapshotRecord] = {}
+        self.supplements: dict[UUID, BirthSupplementStored] = {}
 
     async def save_or_replay(self, record: BirthSnapshotRecord) -> tuple[BirthSnapshotRecord, bool]:
         existing = self.by_input.get((record.guest_id, record.input_hash))
@@ -37,6 +39,51 @@ class MemoryBirthRepository:
 
     async def find_current(self, guest_id: UUID) -> BirthSnapshotRecord | None:
         return self.current.get(guest_id)
+
+    async def find_by_input_hash(
+        self, guest_id: UUID, input_hash: bytes
+    ) -> BirthSnapshotRecord | None:
+        return self.by_input.get((guest_id, input_hash))
+
+    async def save_supplement(
+        self,
+        guest_id: UUID,
+        snapshot: BirthSnapshotRecord | None,
+        supplement: BirthSupplement,
+    ) -> BirthSnapshotRecord | None:
+        if snapshot is not None:
+            self.current[guest_id] = snapshot
+            self.by_input[(guest_id, snapshot.input_hash)] = snapshot
+        current = self.current[guest_id]
+        self.supplements[guest_id] = BirthSupplementStored(
+            profile_id=current.profile_id,
+            profile_level=(
+                3 if supplement.birth_place_ciphertext and supplement.birth_time_ciphertext else 2
+            ),
+            birth_time_ciphertext=supplement.birth_time_ciphertext,
+            birth_place_ciphertext=supplement.birth_place_ciphertext,
+            time_precision=supplement.birth_time_mode.value,
+            supplement_consent_version=supplement.consent_version,
+        )
+        return snapshot
+
+    async def find_supplement(self, guest_id: UUID) -> BirthSupplementStored | None:
+        return self.supplements.get(guest_id)
+
+    async def clear_supplement(
+        self, guest_id: UUID, *, remove_time: bool, remove_place: bool
+    ) -> BirthSupplementStored:
+        stored = self.supplements[guest_id]
+        updated = BirthSupplementStored(
+            profile_id=stored.profile_id,
+            profile_level=1 if remove_time else 2,
+            birth_time_ciphertext=None if remove_time else stored.birth_time_ciphertext,
+            birth_place_ciphertext=None if remove_place else stored.birth_place_ciphertext,
+            time_precision="unknown" if remove_time else stored.time_precision,
+            supplement_consent_version=stored.supplement_consent_version,
+        )
+        self.supplements[guest_id] = updated
+        return updated
 
 
 @pytest.fixture
@@ -91,6 +138,7 @@ def test_birth_date_is_computed_by_real_engine_and_encrypted_at_rest(
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["calculation_kind"] == "date_only_sun"
     assert payload["calculation"]["status"] == "certain"
     assert payload["calculation"]["sign"] == "capricorn"
     assert payload["calculation"]["provenance"]["engine"] == "swiss_ephemeris"
@@ -107,6 +155,12 @@ def test_same_birth_input_replays_immutable_snapshot(birth_client: TestClient) -
     first = birth_client.post(
         "/v1/birth-profile", json={"birth_date": "1990-01-01"}, headers=headers
     )
+
+    def fail_if_recomputed(_birth_date) -> None:  # type: ignore[no-untyped-def]
+        raise AssertionError("replayed input must not enter Swiss Ephemeris")
+
+    app = cast(FastAPI, birth_client.app)
+    app.state.birth_chart_service._engine.calculate_date_only_sun = fail_if_recomputed
     second = birth_client.post(
         "/v1/birth-profile", json={"birth_date": "1990-01-01"}, headers=headers
     )
@@ -140,5 +194,24 @@ def test_future_birth_date_is_rejected_without_snapshot(birth_client: TestClient
             "X-CSRF-Token": csrf_token,
         },
     )
+    assert response.status_code == 422
+    assert response.json()["code"] == "BIRTH_DATE_OUT_OF_RANGE"
+
+
+@pytest.mark.parametrize("birth_date", ["2010-01-01", "1800-01-01"])
+def test_age_policy_rejects_under_18_and_over_120(
+    birth_client: TestClient,
+    birth_date: str,
+) -> None:
+    csrf_token = create_guest(birth_client)
+    response = birth_client.post(
+        "/v1/birth-profile",
+        json={"birth_date": birth_date},
+        headers={
+            "Origin": "http://127.0.0.1:5173",
+            "X-CSRF-Token": csrf_token,
+        },
+    )
+
     assert response.status_code == 422
     assert response.json()["code"] == "BIRTH_DATE_OUT_OF_RANGE"

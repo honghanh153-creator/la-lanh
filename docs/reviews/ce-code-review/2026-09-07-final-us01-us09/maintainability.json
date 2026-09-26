@@ -1,0 +1,28 @@
+{
+  "reviewer": "maintainability",
+  "findings": [
+    {
+      "title": "Uncontracted owner result response",
+      "severity": "P2",
+      "file": "apps/api/app/api/v1/routes/la_chung.py",
+      "line": 196,
+      "why_it_matters": "The owner-result endpoint publishes an unvalidated dictionary, so the generated shared contract records its successful payload as unknown while the web client maintains a second, handwritten response shape. A future change to the service payload can therefore pass API and contract checks but break ResultPage when it reads fields such as statements. Defining one response model at the API boundary lets contract generation type the client from the same source of truth.",
+      "autofix_class": "advisory",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Add a typed OwnerResultResponse Pydantic model for request_id, recipient_label, identity_mode, display_alias, statements, and submitted_at; return it from owner_result (mapping the service result or a typed domain record). Regenerate contracts and replace the handwritten Promise object in client.ts with components[\"schemas\"][\"OwnerResultResponse\"].",
+      "confidence": 50,
+      "evidence": [
+        "apps/api/app/api/v1/routes/la_chung.py:196 -- @router.get(\"/la-chung/results/{request_id}\", response_model=None)",
+        "apps/api/app/api/v1/routes/la_chung.py:197 -- async def owner_result(request_id: UUID, request: Request) -> dict[str, object] | Response:",
+        "packages/contracts/src/v1.ts:2681 -- \"application/json\": unknown;",
+        "apps/web/src/shared/api/client.ts:523 -- export function getLaChungResult(requestId: string, signal?: AbortSignal): Promise<{"
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": [
+    "No web test exercises ResultPage against the owner-result response shape; the existing La Chung browser test covers only the public response flow."
+  ]
+}

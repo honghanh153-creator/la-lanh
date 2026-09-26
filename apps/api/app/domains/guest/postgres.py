@@ -1,13 +1,16 @@
+import asyncio
 from datetime import datetime
 from typing import Any, cast
+from uuid import UUID
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import joinedload
 
 from app.domains.guest.models import (
+    ConsentRecord,
     CreationMaterial,
     GuestSessionRecord,
     GuestState,
@@ -15,6 +18,7 @@ from app.domains.guest.models import (
     StoredCreation,
 )
 from app.domains.guest.tables import ConsentRow, GuestCreationRow, GuestSessionRow
+from app.domains.readings.tables import ReadingGenerationAttemptRow
 
 
 class PostgresGuestRepository:
@@ -102,12 +106,51 @@ class PostgresGuestRepository:
             )
 
     async def delete_by_token_hash(self, token_hash: bytes, now: datetime) -> bool:
-        del now
+        guest_id: UUID | None = None
+        async with self._sessions() as session, session.begin():
+            guest = await session.scalar(
+                select(GuestSessionRow)
+                .where(GuestSessionRow.token_hash == token_hash)
+                .with_for_update()
+            )
+            if guest is None:
+                return False
+            guest_id = guest.id
+            guest.state = GuestState.DELETING.value
+
+            # Anything that has not crossed the durable provider-send marker is cancelled.
+            # Attempts already sending are allowed to finish, and deletion does not report
+            # success until they are terminal, so no provider disclosure can begin after 204.
+            await session.execute(
+                delete(ReadingGenerationAttemptRow).where(
+                    ReadingGenerationAttemptRow.guest_id == guest_id,
+                    ReadingGenerationAttemptRow.request_started_at.is_(None),
+                )
+            )
+
+        while await self._started_generation_count(guest_id):  # noqa: ASYNC110 - cross-process DB state
+            await asyncio.sleep(0.05)
+
         async with self._sessions() as session, session.begin():
             result = await session.execute(
-                delete(GuestSessionRow).where(GuestSessionRow.token_hash == token_hash)
+                delete(GuestSessionRow).where(
+                    GuestSessionRow.id == guest_id,
+                    GuestSessionRow.state == GuestState.DELETING.value,
+                )
             )
             return bool(cast(CursorResult[Any], result).rowcount)
+
+    async def _started_generation_count(self, guest_id: UUID) -> int:
+        async with self._sessions() as session:
+            count = await session.scalar(
+                select(func.count())
+                .select_from(ReadingGenerationAttemptRow)
+                .where(
+                    ReadingGenerationAttemptRow.guest_id == guest_id,
+                    ReadingGenerationAttemptRow.request_started_at.is_not(None),
+                )
+            )
+            return int(count or 0)
 
     async def purge_expired(self, now: datetime, batch_size: int) -> int:
         async with self._sessions() as session, session.begin():
@@ -144,6 +187,44 @@ class PostgresGuestRepository:
                 delete(GuestSessionRow).where(GuestSessionRow.id.in_(ids))
             )
             return int(cast(CursorResult[Any], result).rowcount or 0)
+
+    async def save_consent(self, consent: ConsentRecord) -> None:
+        async with self._sessions() as session, session.begin():
+            row = await session.scalar(
+                select(ConsentRow).where(
+                    ConsentRow.guest_id == consent.guest_id,
+                    ConsentRow.purpose == consent.purpose,
+                )
+            )
+            if row is None:
+                session.add(
+                    ConsentRow(
+                        guest_id=consent.guest_id,
+                        version=consent.version,
+                        purpose=consent.purpose,
+                        accepted_at=consent.accepted_at,
+                    )
+                )
+            else:
+                row.version = consent.version
+                row.accepted_at = consent.accepted_at
+                row.revoked_at = None
+
+    async def revoke_consent(self, guest_id: UUID, purpose: str, revoked_at: datetime) -> None:
+        async with self._sessions() as session, session.begin():
+            await session.execute(
+                update(ConsentRow)
+                .where(ConsentRow.guest_id == guest_id, ConsentRow.purpose == purpose)
+                .values(revoked_at=revoked_at)
+            )
+
+    async def update_onboarding(self, guest_id: UUID, status: OnboardingStatus) -> None:
+        async with self._sessions() as session, session.begin():
+            await session.execute(
+                update(GuestSessionRow)
+                .where(GuestSessionRow.id == guest_id)
+                .values(onboarding_status=status.value)
+            )
 
 
 def _stored_creation(row: GuestCreationRow) -> StoredCreation:

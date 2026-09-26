@@ -1,0 +1,36 @@
+{
+  "reviewer": "security",
+  "findings": [
+    {
+      "title": "CWE-359 Deleted guest data can still reach provider",
+      "severity": "P1",
+      "file": "apps/api/app/domains/readings/worker.py",
+      "line": 73,
+      "why_it_matters": "A guest can complete profile deletion while a leased worker still holds the decrypted ReadingPlan, after which the worker can transfer that derived chart data to the external provider. The deletion epoch and database cascades only prevent the provider result from being written back; they do not cancel or re-authorize the outbound disclosure. Coordinating deletion with an explicit provider-send state makes deletion either win before an unstarted send or wait for an already-started send before confirming completion.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Introduce a two-phase deletion/send protocol keyed by guest and deletion epoch: first mark the guest as deleting and cancel every unstarted generation attempt; let a worker transition to a non-cancellable `sending` state only while atomically verifying that the guest is still active; and do not return deletion success until any already-sending attempt has reached a terminal state. Preserve the existing post-send CAS as the defense against late writes.",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/app/domains/readings/worker.py:73 -- result = await self._provider.generate(lease.plan_record.plan)",
+        "apps/api/app/domains/readings/worker.py:62-67 -- The request-start marker is committed before the provider call, but no guest/deletion authorization is checked between that commit and the external call.",
+        "apps/api/app/api/v1/routes/guest_sessions.py:164 -- await _service(request).delete(token)",
+        "apps/api/app/domains/readings/postgres.py:568-569 -- if attempt is None: return False; the deletion epoch protects final persistence only after provider processing.",
+        "apps/api/tests/readings/test_worker.py:475-478 -- The late-worker test deletes the guest from inside `generate`, proving deletion and provider processing can overlap, but it asserts only that first-party rows stay deleted.",
+        "docs/plans/2026-09-06-1954-feat-chart-synthesis-agent-plan.md:87 -- R21 requires deletion to block late workers, while provider retention is treated as a separate release constraint."
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [
+    "Legacy plaintext compatibility remains intentionally enabled: migration 20260904_0007 does not backfill existing chart result_payload rows, and 20260907_0012 explicitly leaves existing daily/saved/share plaintext readable. The documented key-aware backfill-or-delete release gate must complete before production release and before compatibility columns are removed.",
+    "Capability-path redaction and distributed admission controls are deployment responsibilities outside this checkout; the reviewed application only provides an in-process rate-limit backstop.",
+    "External provider abuse-monitoring retention, processing region, subprocessors, and cross-border handling remain governance gates. Generation is off by default and requires explicit governance approval, so this is not an active default-path finding."
+  ],
+  "testing_gaps": [
+    "There is no concurrency test proving that a deletion which completes before the provider network request begins prevents that outbound request; the current late-worker test verifies only that deleted database rows cannot be recreated.",
+    "There is no production-upgrade/backfill test proving legacy plaintext chart, daily, saved, and share columns are empty before release.",
+    "Native cookie persistence, CSRF enforcement, and guest deletion still require end-to-end validation on signed iOS and Android builds against the production HTTPS API origin."
+  ]
+}

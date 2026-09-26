@@ -1,0 +1,90 @@
+{
+  "reviewer": "project-standards",
+  "findings": [
+    {
+      "title": "Invite creation has no idempotency contract",
+      "severity": "P1",
+      "file": "apps/api/app/api/v1/routes/la_chung.py",
+      "line": 20,
+      "why_it_matters": "A retry after a lost response, or two near-simultaneous create requests, creates distinct requests and capability links instead of returning the original one. That breaks the documented one-request lifecycle and leaves the owner with extra live links to revoke. Add a client-generated idempotency key to the create request and persist an owner-plus-draft-bound hash with a uniqueness constraint so the service can replay the original invite.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Add an idempotency_key field to InviteCreateRequest and createLaChungInvite; derive and persist an HMAC/hash over principal_id, idempotency key, and normalized draft in LaChungRequestRow with a unique constraint. On conflict, return the existing still-valid invite/token envelope after verifying the draft matches; add lost-response and concurrent-create tests.",
+      "confidence": 100,
+      "evidence": [
+        "apps/api/app/api/v1/routes/la_chung.py:20-23 -- class InviteCreateRequest(BaseModel): ... recipient_label: str = Field(min_length=1, max_length=40); context: Literal[\"bff\", \"crush\", \"couple\", \"friend\", \"workmate\"]",
+        "apps/api/app/domains/la_chung/service.py:75-76 -- token = secrets.token_urlsafe(32); request_id = uuid4()",
+        "AGENTS.md:9-11 -- \"Read the relevant PRD, SRS, product plan, user story, AC, validation rules, edge cases, and DoD.\" and \"Keep API contracts ... aligned with runtime behavior.\"",
+        "docs/user-stories/US-08-gui-loi-moi-la-chung.md:137 -- \"AC06: Duplicate tap/retry chỉ tạo một request cho cùng idempotency key/draft.\""
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Recipient labels persist without encryption",
+      "severity": "P1",
+      "file": "apps/api/app/domains/la_chung/tables.py",
+      "line": 23,
+      "why_it_matters": "A recipient’s chosen name or nickname is personal social data and is stored directly in the database, so a database read exposes it without the scoped envelope key required by the product contract. The capability token is encrypted, but the label is not. Store the normalized label in a record-bound envelope ciphertext and decrypt it only in owner-authorized or valid-capability projections, with a migration/backfill for existing rows.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Replace LaChungRequestRow.recipient_label with recipient_label_ciphertext (and key-version metadata if required by the existing envelope format), encrypt/decrypt it with a request-bound context in LaChungService, and add a key-aware migration/backfill plus owner/public projection tests.",
+      "confidence": 100,
+      "evidence": [
+        "apps/api/app/domains/la_chung/tables.py:23 -- recipient_label: Mapped[str] = mapped_column(String(40), nullable=False)",
+        "apps/api/app/domains/la_chung/service.py:80 -- recipient_label=label,",
+        "AGENTS.md:22-25 -- \"Inventory every personal-data field ... stored\" and \"Verify ... encryption ...\"; runtime behavior and privacy documentation must remain consistent.",
+        "docs/user-stories/US-08-gui-loi-moi-la-chung.md:119 -- \"recipient_label_ciphertext | encrypted string | ... | 1–40, owner only, retention-bound.\"",
+        "docs/user-stories/US-08-gui-loi-moi-la-chung.md:153 -- \"Recipient label nhạy cảm | Encrypt/private; không public/notification/analytics; cho edit/delete.\""
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Invite creation and resend bypass admission limits",
+      "severity": "P1",
+      "file": "apps/api/app/middleware/admission.py",
+      "line": 69,
+      "why_it_matters": "An authenticated owner can create or resend unlimited active capability links because the admission middleware only covers guest creation, birth computation, and public routes. This leaves the documented create/resend abuse control unenforced and permits capability-link spam from a single session. Add owner invite creation and resend paths to the admission policy with limits appropriate for the seven-day lifecycle.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Extend _policy with explicit POST policies for /v1/la-chung/requests and /v1/la-chung/requests/{request_id}/resend (using a route-aware match), then add tests that the limits return 429 without affecting revoke or valid public submit flows.",
+      "confidence": 100,
+      "evidence": [
+        "apps/api/app/middleware/admission.py:69-80 -- _policy admits only POST /v1/guest-sessions, birth-profile POSTs, and paths beginning /v1/public/ or /v1/share-artifacts/; it returns None for every other path.",
+        "apps/api/app/api/v1/routes/la_chung.py:113 -- @router.post(\"/la-chung/requests\", response_model=InviteResponse, responses={401: {}, 422: {}})",
+        "apps/api/app/api/v1/routes/la_chung.py:146 -- @router.post(\"/la-chung/requests/{request_id}/resend\", response_model=InviteResponse)",
+        "AGENTS.md:16 -- \"Review ... abuse/rate limits ... public endpoints, share links ...\"",
+        "docs/user-stories/US-08-gui-loi-moi-la-chung.md:128 -- \"Mutations require CSRF/origin on web, auth, authorization, rate limit and idempotency.\""
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Public invite API omits no-index header",
+      "severity": "P2",
+      "file": "apps/api/app/api/v1/routes/la_chung.py",
+      "line": 92,
+      "why_it_matters": "The public capability API can expose the recipient label and curated response prompt at a token-bearing URL, but its defense-in-depth headers do not prohibit indexing. Static frontend headers cover the shared page, not direct API responses. Add the same X-Robots-Tag policy used by public share artifacts to keep every public invite surface consistently non-indexable.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Set response.headers[\"X-Robots-Tag\"] = \"noindex, nofollow, noarchive\" in _safe_public and extend the public invite header tests to cover successful and terminal responses.",
+      "confidence": 100,
+      "evidence": [
+        "apps/api/app/api/v1/routes/la_chung.py:92-98 -- _safe_public sets Cache-Control, Referrer-Policy, X-Content-Type-Options, and Content-Security-Policy, but no X-Robots-Tag header.",
+        "apps/api/app/api/v1/routes/la_chung.py:237 -- @public_router.get(\"/public/la-chung/{token}\", response_model=PublicInviteResponse)",
+        "AGENTS.md:30 -- \"Treat every public share/invite as sensitive-by-capability: prevent caching/indexing, keep tokens out of logs/referrers, and preserve revocation behavior.\"",
+        "apps/api/app/api/v1/routes/share_artifacts.py:189 -- response.headers[\"X-Robots-Tag\"] = \"noindex, nofollow, noarchive\""
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [
+    "The chart-synthesis runbook marks distributed edge limits, capability URL redaction in CDN/WAF/proxy logs, native device validation, and store disclosures as release No-Go evidence. They cannot be confirmed from this working copy alone."
+  ],
+  "testing_gaps": [
+    "No test was found that proves create-invite replay returns the original capability for an identical idempotency key after a lost response or concurrent requests.",
+    "No test was found that verifies recipient labels are encrypted at rest or that the public invite API emits a no-index response header."
+  ]
+}

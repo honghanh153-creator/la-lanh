@@ -1,17 +1,16 @@
 # Swiss Ephemeris release gate
 
-Lá Lành uses the official Swiss Ephemeris C source directly. The upstream license requires a choice before software distribution or activation of a public service:
+Lá Lành dùng Swiss Ephemeris native để tạo dữ liệu tính thật. Swiss Ephemeris có mô hình dual license: AGPL hoặc professional license. Việc chạy local cho phát triển không đồng nghĩa ứng dụng đóng source đã đủ quyền phân phối.
 
-1. release the complete combined work under AGPL-3.0 or a compatible license and satisfy its network-source obligations; or
-2. purchase and sign the Swiss Ephemeris Professional License.
+Trước khi public service hoặc gửi binary iOS/Android:
 
-## Gate
+1. Legal chọn và ghi nhận một trong hai posture: toàn bộ work liên quan tuân AGPL, hoặc professional license còn hiệu lực bao phủ backend/binary được phân phối.
+2. Lưu license proof, version, release commit và ephemeris checksum cùng release evidence.
+3. Production startup từ chối bật chart service nếu license mode không được cấu hình.
+4. Store listing và third-party notices khớp với lựa chọn pháp lý.
 
-Production/public deployment is **blocked** until the product owner records one of those two choices and legal review confirms it. Preview builds must remain private and access controlled. The vendored copyright and license notices must remain intact in every build and source distribution.
+Web staging trên Cloud Run cũng là networked use và không được xem như chạy local. `Settings` từ
+chối môi trường `staging`/`production` nếu `LA_LANH_SWISSEPH_LICENSE_MODE` vẫn là `development`;
+script deploy còn yêu cầu bằng chứng vận hành tương ứng cho lựa chọn AGPL hoặc professional.
 
-Evidence required to open the gate:
-
-- chosen license model and approval owner;
-- signed professional agreement or AGPL release checklist;
-- release artifact retaining upstream notices;
-- deployment configuration explicitly acknowledging the license choice.
+Nguồn chính thức: https://www.astro.com/swisseph/

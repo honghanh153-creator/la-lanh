@@ -1,6 +1,7 @@
 import asyncio
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 import pytest
 
@@ -9,7 +10,12 @@ from app.domains.guest.errors import (
     GuestExpired,
     IdempotencyReplayExpired,
 )
-from app.domains.guest.models import CreationMaterial, StoredCreation
+from app.domains.guest.models import (
+    ConsentRecord,
+    CreationMaterial,
+    OnboardingStatus,
+    StoredCreation,
+)
 from app.domains.guest.service import GuestSessionService
 from app.infrastructure.crypto import AesGcmEnvelopeCipher, SecretHasher, StaticDataKeyProvider
 
@@ -19,6 +25,7 @@ class MemoryGuestRepository:
         self.creations: dict[bytes, StoredCreation] = {}
         self.guests: dict[bytes, StoredCreation] = {}
         self._lock = asyncio.Lock()
+        self.consents: dict[tuple[UUID, str], ConsentRecord] = {}
 
     async def create_or_replay(self, material: CreationMaterial) -> StoredCreation:
         async with self._lock:
@@ -69,6 +76,19 @@ class MemoryGuestRepository:
         for token_hash in expired:
             del self.guests[token_hash]
         return len(expired)
+
+    async def save_consent(self, consent: ConsentRecord) -> None:
+        self.consents[(consent.guest_id, consent.purpose)] = consent
+
+    async def revoke_consent(self, guest_id: UUID, purpose: str, revoked_at: datetime) -> None:
+        del revoked_at
+        self.consents.pop((guest_id, purpose), None)
+
+    async def update_onboarding(self, guest_id: UUID, status: OnboardingStatus) -> None:
+        for token_hash, stored in list(self.guests.items()):
+            if stored.guest.id == guest_id:
+                updated = replace(stored, guest=replace(stored.guest, onboarding_status=status))
+                self.guests[token_hash] = updated
 
 
 @pytest.fixture

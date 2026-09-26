@@ -4,9 +4,9 @@ from fastapi import APIRouter, Cookie, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domains.guest.errors import GuestDomainError
-from app.domains.guest.models import GuestSessionRecord
+from app.domains.guest.models import GuestSessionRecord, OnboardingStatus
 from app.domains.guest.service import GuestSessionService
-from app.infrastructure.csrf import normalize_origin, require_trusted_origin
+from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
 router = APIRouter()
 
@@ -25,6 +25,7 @@ class GuestSessionResponse(BaseModel):
     expires_at: str
     csrf_token: str | None = None
     resumed: bool = False
+    session_epoch: str
 
 
 class ProblemResponse(BaseModel):
@@ -32,6 +33,12 @@ class ProblemResponse(BaseModel):
     title: str
     status: int
     code: str
+
+
+class OnboardingStatusRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: OnboardingStatus
 
 
 def _service(request: Request) -> GuestSessionService:
@@ -53,12 +60,18 @@ def _problem(error: GuestDomainError) -> Response:
     )
 
 
-def _payload(guest: GuestSessionRecord, *, csrf_token: str | None = None) -> dict[str, object]:
+def _payload(
+    guest: GuestSessionRecord,
+    *,
+    session_epoch: str,
+    csrf_token: str | None = None,
+) -> dict[str, object]:
     return {
         "state": guest.state.value,
         "onboarding_status": guest.onboarding_status.value,
         "expires_at": guest.expires_at.isoformat(),
         "csrf_token": csrf_token,
+        "session_epoch": session_epoch,
     }
 
 
@@ -87,6 +100,7 @@ async def create_guest_session(
         httponly=True,
         samesite="lax",
         path="/",
+        domain=settings.cookie_domain,
     )
     response.set_cookie(
         key=settings.guest_csrf_cookie_name,
@@ -96,8 +110,16 @@ async def create_guest_session(
         httponly=False,
         samesite="lax",
         path="/",
+        domain=settings.cookie_domain,
     )
-    return {**_payload(result.guest, csrf_token=result.csrf_token), "resumed": result.resumed}
+    return {
+        **_payload(
+            result.guest,
+            session_epoch=_service(request).session_epoch(result.guest),
+            csrf_token=result.csrf_token,
+        ),
+        "resumed": result.resumed,
+    }
 
 
 @router.get(
@@ -116,10 +138,12 @@ async def get_session(
         guest = await _service(request).resume(token)
     except GuestDomainError as error:
         response = _problem(error)
-        response.delete_cookie(settings.guest_cookie_name, path="/")
-        response.delete_cookie(settings.guest_csrf_cookie_name, path="/")
+        response.delete_cookie(settings.guest_cookie_name, path="/", domain=settings.cookie_domain)
+        response.delete_cookie(
+            settings.guest_csrf_cookie_name, path="/", domain=settings.cookie_domain
+        )
         return response
-    return _payload(guest)
+    return _payload(guest, session_epoch=_service(request).session_epoch(guest))
 
 
 @router.delete(
@@ -134,18 +158,38 @@ async def delete_guest_session(
 ) -> Response:
     settings = request.app.state.settings
     token = request.cookies.get(settings.guest_cookie_name)
-    trusted_origins = frozenset(
-        origin
-        for configured in settings.cors_origins
-        if (origin := normalize_origin(str(configured))) is not None
-    )
     try:
-        require_trusted_origin(request, trusted_origins)
+        require_trusted_origin(request, trusted_origins(request))
         await _service(request).verify_csrf(token, csrf_token)
         await _service(request).delete(token)
     except GuestDomainError as error:
         return _problem(error)
-    response.delete_cookie(settings.guest_cookie_name, path="/")
-    response.delete_cookie(settings.guest_csrf_cookie_name, path="/")
+    response.delete_cookie(settings.guest_cookie_name, path="/", domain=settings.cookie_domain)
+    response.delete_cookie(settings.guest_csrf_cookie_name, path="/", domain=settings.cookie_domain)
+    response.delete_cookie(settings.owner_cookie_name, path="/v1", domain=settings.cookie_domain)
+    response.delete_cookie("la_lanh_radar_invite", path="/v1/public/radar")
+    response.delete_cookie("la_lanh_radar_receipt", path="/v1/public/radar/receipt")
     response.status_code = 204
     return response
+
+
+@router.put(
+    "/session/onboarding-status",
+    response_model=GuestSessionResponse,
+    responses={401: {"model": ProblemResponse}, 403: {"model": ProblemResponse}},
+)
+async def update_onboarding_status(
+    body: OnboardingStatusRequest,
+    request: Request,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> dict[str, object] | Response:
+    settings = request.app.state.settings
+    token = request.cookies.get(settings.guest_cookie_name)
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        guest = await _service(request).verify_csrf(token, csrf_token)
+        await _service(request).set_onboarding_status(guest.id, body.status)
+        guest = await _service(request).resume(token)
+    except GuestDomainError as error:
+        return _problem(error)
+    return _payload(guest, session_epoch=_service(request).session_epoch(guest))

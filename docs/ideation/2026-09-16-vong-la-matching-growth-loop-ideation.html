@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ideation — Vòng Lá matching growth loop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
+  <style>
+    :root{color-scheme:dark;--bg:#07091d;--panel:#12152e;--glass:#191b3bd9;--line:#514f78;--ink:#fff9ea;--muted:#c7bfd8;--lime:#dfff36;--violet:#c69aff;--coral:#ff776e;--cyan:#7adff1;--paper:#f8efdf;--paper-ink:#21162d;--good:#a8e7bd}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 82% 0,#2a2454 0,transparent 28rem),radial-gradient(circle at 0 45%,#11264a 0,transparent 30rem),var(--bg);color:var(--ink);font:400 15px/1.68 "Be Vietnam Pro",system-ui,sans-serif}.page{width:min(980px,calc(100% - 32px));margin:auto;padding:48px 0 80px}.hero,.panel,.idea{border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022));border-radius:25px}.hero{position:relative;overflow:hidden;padding:34px}.hero:after{content:"✦";position:absolute;right:34px;top:18px;color:var(--coral);font-size:5rem;opacity:.55}.eyebrow,.label,.axis{font-size:.74rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.eyebrow,.label{color:var(--lime)}h1{max-width:15ch;margin:.35rem 0 .8rem;font-size:clamp(2.25rem,7vw,4.5rem);line-height:1.02;letter-spacing:-.045em}h2{margin:3.2rem 0 1rem;font-size:1.55rem}h3{margin:.3rem 0 .75rem;font-size:1.34rem;line-height:1.25}.lede{max-width:72ch;color:#e8e1ef;font-size:1.04rem}.meta,.chips,.jump{display:flex;flex-wrap:wrap;gap:8px}.meta{margin-top:22px}.chip{padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);font-size:.78rem}.chip b{color:var(--ink)}nav{position:sticky;top:10px;z-index:4;display:flex;gap:7px;overflow:auto;margin:18px 0;padding:10px;border:1px solid var(--line);border-radius:18px;background:#0c0e25e8;backdrop-filter:blur(16px)}nav a,.jump a{white-space:nowrap;color:var(--ink);text-decoration:none;padding:7px 10px;border-radius:10px;font-weight:700;font-size:.82rem}nav a:hover,.jump a:hover{background:var(--panel);color:var(--lime)}section{scroll-margin-top:92px}.panel,.idea{padding:24px;margin:14px 0}.panel p,.panel li,.idea p{max-width:78ch}.scope{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.scope-card,.axis-card{padding:17px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}.scope-card b,.axis-card b{display:block;color:var(--lime);margin-bottom:5px}.scope-card small{display:block;margin-top:8px;color:var(--muted)}.axes{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.axis-card{min-height:128px}.axis-card span{color:var(--violet);font-weight:800}.north-star{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;align-items:center}.paper{padding:24px;border-radius:8px 22px 10px 7px;background:var(--paper);color:var(--paper-ink);transform:rotate(-.25deg);box-shadow:0 18px 50px #0006}.paper .label{color:#5b3f82}.paper h3{font-size:1.55rem}.promise{border-left:4px solid var(--coral);padding-left:14px}.jump{margin:0 0 18px}.jump a{border:1px solid var(--line)}.idea{position:relative;overflow:hidden}.idea.top{border-color:var(--lime);box-shadow:0 0 0 1px rgba(223,255,54,.16),0 22px 72px #0007}.rank{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--lime);color:#101426;font-weight:900}.axis{color:var(--violet);margin:.85rem 0 .2rem}.idea dl{display:grid;grid-template-columns:8.8rem 1fr;gap:9px 16px;margin:18px 0 0}.idea dt{font-weight:700;color:var(--muted)}.idea dd{margin:0}.idea svg{display:block;width:100%;height:auto;margin-top:18px;border:1px solid var(--line);border-radius:18px;background:#0d1028}.confidence{background:var(--good);border:0;color:#10251a}.warn{color:#ffd9a3}.matrix{width:100%;border-collapse:collapse;background:var(--panel);border-radius:18px;overflow:hidden}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--line)}th{color:var(--lime);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em}.source-list{display:grid;gap:9px}.source-list a{color:var(--cyan)}code{color:#f0d5ff}footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.78rem}
+    @media(max-width:720px){.page{width:min(100% - 20px,980px);padding-top:20px}.hero,.panel,.idea{padding:20px}.hero:after{font-size:3rem;right:16px}.north-star{grid-template-columns:1fr}.idea dl{grid-template-columns:1fr;gap:2px}.idea dd{margin-bottom:10px}.matrix{display:block;overflow:auto}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media(prefers-reduced-transparency:reduce){nav{backdrop-filter:none;background:var(--panel)}}
+  </style>
+</head>
+<body>
+<main class="page">
+  <header class="hero">
+    <div class="eyebrow">Lá Lành · Matching ideation</div>
+    <h1>Vòng Lá: ít người, nhiều lý do để muốn gặp</h1>
+    <p class="lede">Điểm nhấn không nên là “astro chọn đúng người cho bạn”. Hướng khác biệt hơn là: <strong>chart không chọn thay bạn; chart giúp bạn biết điều gì đáng để ý giữa hai người</strong>. Từ đó, 5 lá trở thành một nghi thức kết nối có chủ đích, không phải Tinder được bọc lại bằng hình vũ trụ.</p>
+    <div class="meta">
+      <span class="chip"><b>Date</b> 2026-09-16</span>
+      <span class="chip"><b>Topic</b> vong-la-matching-growth-loop</span>
+      <span class="chip"><b>Focus</b> acquisition · matching · mutual · safety</span>
+      <span class="chip"><b>Mode</b> repo-grounded</span>
+      <span class="chip"><b>Result</b> 7 hướng / 36 ứng viên</span>
+    </div>
+  </header>
+
+  <nav aria-label="Mục lục"><a href="#grounding">Grounding</a><a href="#scope">US map</a><a href="#axes">Axes</a><a href="#ideas">7 hướng</a><a href="#cuts">Đã loại</a><a href="#sources">Nguồn</a></nav>
+
+  <section id="grounding">
+    <h2>Grounding Context</h2>
+    <div class="panel north-star">
+      <div>
+        <p><strong>Hệ thống hiện có đủ khung flow nhưng chưa có một lời hứa sản phẩm xuyên suốt.</strong> US-10/11 tạo social acquisition bằng Pitch Card; US-14 chuẩn bị matching-ready; US-15/16 tạo batch 5 lá và mutual; US-17/18 chat và recap. Tuy nhiên, “top 5 theo compatibility” vẫn gần một bảng xếp hạng hồ sơ, trong khi Pitch Card và Lá Ghép chưa để lại giá trị rõ ở trải nghiệm Vòng Lá.</p>
+        <p><strong>Khoảng trống kỹ thuật:</strong> backend mới có lớp fact cho synastry/compatibility; chưa có module matching end-to-end. Công thức hiện tại thiên về Moon/Venus/Mars và có tổng điểm, phù hợp làm tín hiệu nội bộ sơ bộ nhưng chưa đủ làm lời giải thích “full chart” hoặc kết luận quan hệ.</p>
+        <p><strong>Ràng buộc không được phá:</strong> đúng 5 lá, mở tối đa 3, không mua thêm; mutual hai chiều; không GPS/khoảng cách số; không compatibility %; không auto-send; matching consent tách riêng; block/report luôn dễ thấy.</p>
+      </div>
+      <div class="paper">
+        <div class="label">LỜI HỨA SẢN PHẨM</div>
+        <h3>Không đoán ai là định mệnh.</h3>
+        <p class="promise">Mỗi tuần, Lá Lành đưa ra 5 kiểu kết nối đáng thử — kèm lý do đủ thật để bạn tự quyết có mở lòng hay không.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="scope">
+    <h2>Những US thực sự liên quan tới matching</h2>
+    <div class="scope">
+      <div class="scope-card"><b>Acquire · US-10, US-11</b>Pitch Card kéo một người vào bằng góc nhìn của bạn thân. Accept chỉ mở đường, không tự đưa vào pool.<small>Cần nối với Friend co-sign, không dùng làm điểm xếp hạng.</small></div>
+      <div class="scope-card"><b>Optional social proof · US-08, US-09</b>Lá Chứng tạo một góc nhìn có consent từ người quen, nhưng hiện chưa thuộc matching contract.<small>Chỉ tái sử dụng khi chủ thể tự chọn từng câu và cấp consent riêng; không tự tổng hợp vào hồ sơ.</small></div>
+      <div class="scope-card"><b>Pair preview · US-12, US-13</b>Lá Ghép tạo giá trị hai người và chứng minh engine synastry trước matching.<small>Không tái sử dụng dữ liệu riêng vào pool nếu chưa có consent mới.</small></div>
+      <div class="scope-card"><b>Readiness · US-14</b>Intent, preference, khu vực rộng, xác minh ảnh và matching consent.<small>Nên thêm intent theo tuần; không suy ra intent từ hành vi.</small></div>
+      <div class="scope-card"><b>Core ritual · US-15, US-16</b>5 lá úp, mở tối đa 3, request kín, chỉ mutual mới lộ danh tính quan tâm.<small>Đây là nơi cần tạo signature moment.</small></div>
+      <div class="scope-card"><b>Connection · US-17, US-18</b>Icebreaker, chat an toàn, recap và quay lại vòng sau.<small>Cần một “món quà mutual” và private learning loop.</small></div>
+      <div class="scope-card"><b>Gates · US-19 + US-01/02/06</b>Đăng nhập đúng lúc; ngày/giờ/nơi sinh tạo tầng bằng chứng; account claim không mất dữ liệu.<small>App là đích release; web chỉ landing/deep-link companion.</small></div>
+    </div>
+  </section>
+
+  <section id="axes">
+    <h2>Topic Axes</h2>
+    <div class="axes">
+      <div class="axis-card"><span>01</span><b>Entry</b>Pitch, friend-assisted acquisition và đường vào pool không ép buộc.</div>
+      <div class="axis-card"><span>02</span><b>Saturday ritual</b>Sự chờ đợi, 5 lá khác nhau và scarcity không biến thành dark pattern.</div>
+      <div class="axis-card"><span>03</span><b>Meaning</b>Giải thích synastry dễ hiểu, có caveat, không chấm định mệnh.</div>
+      <div class="axis-card"><span>04</span><b>Connection</b>Biến mutual thành một bước chung có ý nghĩa, không chỉ mở ô chat trống.</div>
+      <div class="axis-card"><span>05</span><b>Trust</b>Safety, privacy, moderation, low-pool và phản hồi riêng tư.</div>
+    </div>
+  </section>
+
+  <section id="ideas">
+    <h2>Ranked Ideas</h2>
+    <div class="jump"><a href="#idea-1">1 Five energies</a><a href="#idea-2">2 Intent Dial</a><a href="#idea-3">3 Lá Nối</a><a href="#idea-4">4 Friend co-sign</a><a href="#idea-5">5 Trusted Orbit</a><a href="#idea-6">6 Private loop</a><a href="#idea-7">7 Pool Pulse</a></div>
+
+    <article class="idea top" id="idea-1">
+      <span class="rank">1</span><div class="axis">Saturday ritual · Compatibility meaning</div>
+      <h3>5 Lá = 5 kiểu kết nối, không phải top 5 người</h3>
+      <p><strong>Description:</strong> Engine vẫn lọc hard preference và safety trước, nhưng lớp cuối tối ưu cả <em>bộ năm</em> thay vì xếp năm điểm cao nhất. Mỗi slot mang một lời hứa quan hệ khác nhau — ví dụ “dễ nói thật”, “khác nhịp nhưng tò mò”, “đi chậm mà bền”, “cùng bật ý tưởng”, “một góc bạn ít thử”. Mỗi nhãn phải truy được về intent overlap và các contact synastry thật; một bộ không được lặp cùng một luận điểm năm lần.</p>
+      <svg viewBox="0 0 820 220" role="img" aria-label="Năm lá đại diện năm kiểu kết nối khác nhau">
+        <defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#dfff36"/><stop offset="1" stop-color="#c69aff"/></linearGradient></defs>
+        <text x="28" y="35" fill="#fff9ea" font-size="17" font-family="Be Vietnam Pro, sans-serif" font-weight="700">Từ leaderboard một chiều → một setlist có chủ đích</text>
+        <g font-family="Be Vietnam Pro, sans-serif" font-size="12" text-anchor="middle">
+          <rect x="28" y="66" width="138" height="116" rx="18" fill="#181b3b" stroke="#dfff36"/><text x="97" y="112" fill="#dfff36">DỄ NÓI THẬT</text><text x="97" y="137" fill="#c7bfd8">giao tiếp</text>
+          <rect x="184" y="66" width="138" height="116" rx="18" fill="#181b3b" stroke="#ff776e"/><text x="253" y="112" fill="#ffb0a9">KHÁC MÀ HÚT</text><text x="253" y="137" fill="#c7bfd8">độ tương phản</text>
+          <rect x="340" y="66" width="138" height="116" rx="18" fill="#181b3b" stroke="#c69aff"/><text x="409" y="112" fill="#dec1ff">ĐI CHẬM</text><text x="409" y="137" fill="#c7bfd8">nhịp an toàn</text>
+          <rect x="496" y="66" width="138" height="116" rx="18" fill="#181b3b" stroke="#7adff1"/><text x="565" y="112" fill="#a7eef9">BẬT Ý TƯỞNG</text><text x="565" y="137" fill="#c7bfd8">cùng tạo năng lượng</text>
+          <rect x="652" y="66" width="138" height="116" rx="18" fill="#181b3b" stroke="url(#g)"/><text x="721" y="112" fill="#fff9ea">GÓC MỚI</text><text x="721" y="137" fill="#c7bfd8">ngoài vùng quen</text>
+        </g>
+      </svg>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> US-15 đã khóa đúng 5 card, mở tối đa 3 và yêu cầu label từ aspect thật; SRS đã có pipeline lọc ba lớp. <strong>reasoned:</strong> tối ưu diversity của slate làm giới hạn năm lá trở thành giá trị, thay vì cắt ngắn một leaderboard.</dd>
+        <dt>Rationale</dt><dd>Đây là signature mà đối thủ swipe khó sao chép bằng UI. Người dùng chọn một <em>kiểu kết nối muốn thử</em>, không chọn người chỉ vì điểm cao.</dd>
+        <dt>Expected value</dt><dd>Tăng card-open quality, giảm cảm giác hồ sơ na ná nhau và tạo ngôn ngữ dễ chia sẻ: “tuần này mình mở lá Khác mà hút”.</dd>
+        <dt>Downsides</dt><dd>Cần thuật toán slate-diversity và taxonomy có evidence; một candidate có thể phù hợp nhiều slot. Không được hy sinh hard preference/safety để lấp đủ năm kiểu.</dd>
+        <dt>Validation</dt><dd>Wizard-of-Oz 100 bộ card; đo tỷ lệ mở phân bố theo slot, perceived variety, reason comprehension và regret sau mở.</dd>
+        <dt>Confidence</dt><dd>93%</dd><dt>Complexity</dt><dd>High</dd>
+      </dl>
+      <div class="chips"><span class="chip confidence">North-star</span><span class="chip">Gộp “Why this leaf” vào card detail</span></div>
+    </article>
+
+    <article class="idea" id="idea-2">
+      <span class="rank">2</span><div class="axis">Agency · Weekly relevance</div>
+      <h3>Intent Dial — “Tuần này bạn muốn gặp nhau theo cách nào?”</h3>
+      <p><strong>Description:</strong> Trước cutoff, user chọn một nhịp cho riêng vòng tuần đó: “Dễ nói chuyện”, “Đi chậm”, “Ra khỏi vùng quen”, hoặc “Để Lá cân”. Đây là overlay ngắn hạn trên intent cứng của US-14; tự hết hạn sau recap, không biến thành personality label và có thể bỏ qua.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> US-14 yêu cầu intent phải do user chủ động chọn và cấm suy ra từ Pitch/hành vi. <strong>external:</strong> Bumble Opening Moves và Hinge Prompt Feedback cho thấy scaffolding nhỏ có thể giảm ma sát khởi đầu mà vẫn để user kiểm soát.</dd>
+        <dt>Rationale</dt><dd>Chart và profile ít thay đổi; mong muốn của một tuần có thể đổi. Một lựa chọn nhẹ giúp matching có tính thời điểm mà không cần theo dõi ngầm.</dd>
+        <dt>Expected value</dt><dd>Cho user cảm giác tham gia vào phép ghép, tạo lý do quay lại trước tối thứ Bảy và làm lời giải thích card cụ thể hơn.</dd>
+        <dt>Downsides</dt><dd>Thêm một bước trước vòng. Cần default “Để Lá cân” và không được mở rộng preference cứng chỉ vì weekly dial.</dd>
+        <dt>Validation</dt><dd>A/B optional dial; đo completion, distribution, open-to-request conversion và tỷ lệ user thấy card “đúng điều mình muốn tuần này”.</dd>
+        <dt>Confidence</dt><dd>89%</dd><dt>Complexity</dt><dd>Medium</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-3">
+      <span class="rank">3</span><div class="axis">Mutual · Connection</div>
+      <h3>Lá Nối — món quà chỉ xuất hiện khi cả hai cùng mở</h3>
+      <p><strong>Description:</strong> Mutual không đẩy thẳng vào ô chat trống. Hai người cùng nhận một shared card gồm: <strong>chỗ dễ bắt sóng</strong>, <strong>chỗ dễ lệch nhịp</strong>, và <strong>ba cửa mở</strong>. Mỗi người chọn riêng một cửa; nếu trùng, app mở prompt chung. Nếu không trùng, cả ba vẫn đưa vào composer để sửa — tuyệt đối không auto-send. Nội dung là giả thuyết quan hệ có căn cứ, không phải kết luận “hợp/không hợp”.</p>
+      <svg viewBox="0 0 820 205" role="img" aria-label="Hai lựa chọn riêng cùng tạo ra một Lá Nối sau mutual">
+        <g font-family="Be Vietnam Pro, sans-serif"><circle cx="130" cy="102" r="62" fill="#1b1d43" stroke="#c69aff"/><text x="130" y="98" text-anchor="middle" fill="#fff9ea" font-size="14" font-weight="700">Bạn chọn</text><text x="130" y="122" text-anchor="middle" fill="#c7bfd8" font-size="12">1 cửa mở</text><circle cx="690" cy="102" r="62" fill="#1b1d43" stroke="#7adff1"/><text x="690" y="98" text-anchor="middle" fill="#fff9ea" font-size="14" font-weight="700">Người kia chọn</text><text x="690" y="122" text-anchor="middle" fill="#c7bfd8" font-size="12">1 cửa mở</text><path d="M195 102H310M510 102H625" stroke="#ff776e" stroke-width="3"/><rect x="310" y="47" width="200" height="110" rx="22" fill="#dfff36"/><text x="410" y="92" text-anchor="middle" fill="#11142a" font-size="18" font-weight="900">LÁ NỐI</text><text x="410" y="119" text-anchor="middle" fill="#293111" font-size="12">shared signal · editable prompt</text></g>
+      </svg>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> US-17 đã yêu cầu đúng ba icebreaker từ synastry và bắt user sửa trước gửi; engine có synastry contacts. <strong>reasoned:</strong> biến hai consent riêng thành một vật thể chung tạo cảm giác “chúng ta vừa mở được thứ gì đó”, mạnh hơn chat blank state.</dd>
+        <dt>Rationale</dt><dd>Đây là payoff cảm xúc của cả tuần và là lý do matching thuộc Lá Lành, không phải generic chat.</dd>
+        <dt>Expected value</dt><dd>Tăng first-message rate và chất lượng mở lời; tạo một khoảnh khắc có thể chụp/share mà không lộ dữ liệu người kia.</dd>
+        <dt>Downsides</dt><dd>Copy dễ thành văn vẻ hoặc định mệnh hóa. Content gate phải chặn tuyệt đối hóa, lời khuyên xúi giục và claim không truy được tới factor.</dd>
+        <dt>Validation</dt><dd>Prototype 3 variants; test người không biết astrology có hiểu trong 10 giây, có sửa prompt và có thấy bớt áp lực nhắn đầu tiên không.</dd>
+        <dt>Confidence</dt><dd>91%</dd><dt>Complexity</dt><dd>Medium–High</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-4">
+      <span class="rank">4</span><div class="axis">Entry · Social proof</div>
+      <h3>Bạn thân giữ một góc Lá</h3>
+      <p><strong>Description:</strong> Sau khi B accept Pitch Card, B có thể tự chọn đúng một câu curated của người pitch làm “góc nhìn bên ngoài” trên matching profile. Câu chỉ hiện sau flip, có nhãn nguồn rõ, có thể tắt bất cứ lúc nào và <strong>không ảnh hưởng ranking</strong>. Người bạn không được xem candidates, approve hay điều khiển match.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> US-10/11 đã có Pitch Card curated, sender context và cấm auto-enroll. <strong>external:</strong> Tinder Double Date xác nhận nhu cầu dùng bạn bè để giảm áp lực vào dating, nhưng Lá Lành có thể dùng social proof mà vẫn giữ quyết định cá nhân.</dd>
+        <dt>Rationale</dt><dd>Nối acquisition loop với core product mà không lấy lời bạn bè làm “sự thật” hay tín hiệu thuật toán.</dd>
+        <dt>Expected value</dt><dd>Tăng invite conversion, làm profile bớt tự quảng cáo và tạo lý do tự nhiên để chia sẻ.</dd>
+        <dt>Downsides</dt><dd>Cần consent hai phía, revoke, anti-bullying và curated statements. Không cho free text ở phiên bản đầu.</dd>
+        <dt>Validation</dt><dd>Đo opt-in, profile trust, report rate và liệu người xem có phân biệt rõ “bạn nói” với “Lá đọc” hay không.</dd>
+        <dt>Confidence</dt><dd>86%</dd><dt>Complexity</dt><dd>Medium</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-5">
+      <span class="rank">5</span><div class="axis">Trust · Safety</div>
+      <h3>Trusted Orbit — an tâm trước, trong và sau cuộc hẹn</h3>
+      <p><strong>Description:</strong> Từ chat, user có thể tạo một “kế hoạch gặp” tối giản: thời gian, địa điểm công cộng do họ tự nhập, giờ check-in và người tin cậy nhận bản chia sẻ qua native share. App không thu continuous location. Block/report vẫn truy cập được sau unmatch; cảnh báo an toàn xuất hiện đúng ngữ cảnh, không hù dọa.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>external:</strong> Bumble có Share Date, ID Verification và các lớp safety; eSafety khuyến nghị quyền kiểm soát, settings bảo vệ mặc định và công cụ report/block dễ tiếp cận. <strong>direct:</strong> US-14/17 đã yêu cầu verification, report SLA và không GPS.</dd>
+        <dt>Rationale</dt><dd>Matching chỉ hấp dẫn bền khi user tin rằng app đứng về phía họ lúc có chuyện, không chỉ lúc tạo mutual.</dd>
+        <dt>Expected value</dt><dd>Tăng trust và khả năng chuyển từ chat sang gặp an toàn; tạo khác biệt bằng product care thay vì claim thuật toán.</dd>
+        <dt>Downsides</dt><dd>Không được khiến user hiểu đây là bảo đảm an toàn. Cần retention ngắn, quyền xóa và liên kết hỗ trợ khẩn cấp theo địa phương.</dd>
+        <dt>Validation</dt><dd>Safety review, threat model, usability test trong tình huống căng thẳng; đo thời gian tìm block/report và tỷ lệ hoàn thành share plan.</dd>
+        <dt>Confidence</dt><dd>88%</dd><dt>Complexity</dt><dd>High</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-6">
+      <span class="rank">6</span><div class="axis">Learning · Safety</div>
+      <h3>Private Signal Loop — học từ trải nghiệm, không chấm điểm con người</h3>
+      <p><strong>Description:</strong> Sau chat hoặc sau cuộc hẹn do user tự đánh dấu, app hỏi riêng: “Lá này có giúp bạn bắt đầu đúng hơn không?”, “Intent có khớp không?”, “Bạn có thấy an toàn không?”. Câu trả lời dùng cho chất lượng set, safety và preference do user khai; không hiện cho đối phương, không biến thành popularity score, và có mục xem/xóa dữ liệu.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>external:</strong> Hinge “We Met?” dùng phản hồi riêng sau hẹn; “Did This Bother You?” tạo safety check-in trong chat. <strong>reasoned:</strong> feedback về <em>trải nghiệm</em> ít gây tổn thương và có ích hơn việc rate một người.</dd>
+        <dt>Rationale</dt><dd>Đóng vòng learning cho matching engine trong khi vẫn giữ dignity của cả hai bên.</dd>
+        <dt>Expected value</dt><dd>Cải thiện relevance, phát hiện safety issue sớm và giảm lặp một kiểu match không hữu ích.</dd>
+        <dt>Downsides</dt><dd>Feedback có bias, có thể bị trả đũa. Safety signal phải tách khỏi ranking signal; quyết định moderation không thể chỉ dựa vào một phản hồi.</dd>
+        <dt>Validation</dt><dd>Test wording và perceived privacy; theo dõi completion, false report pattern và calibration trước khi tác động ranking.</dd>
+        <dt>Confidence</dt><dd>84%</dd><dt>Complexity</dt><dd>High</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-7">
+      <span class="rank">7</span><div class="axis">Pool health · Cold start</div>
+      <h3>Pool Pulse — thà hẹn vòng sau còn hơn ghép bừa</h3>
+      <p><strong>Description:</strong> Nếu pool không đủ sau hard filters, app hiển thị trạng thái thật: “Vòng này chưa gom đủ người đúng intent của bạn”. User chọn giữ chỗ tuần sau, đổi <em>soft preference</em> cụ thể, hoặc tham gia một cohort chủ đề khi khu vực đã đủ mật độ. Không âm thầm mở rộng tuổi/intent; khu vực chỉ mở rộng ở cấp vùng và phải báo trước.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> US-15 hiện cho mở rộng vùng minh bạch khi pool thấp, nhưng chưa định nghĩa quyền chọn/carry-over. <strong>external:</strong> nghiên cứu về curated dating markets cho thấy scarcity và phân bổ thị trường cần được thiết kế cùng pool constraints, không chỉ làm giao diện ít lựa chọn.</dd>
+        <dt>Rationale</dt><dd>Cold start là rủi ro sống còn. Thành thật về supply bảo vệ trust tốt hơn năm card chất lượng thấp được lấp cho đủ.</dd>
+        <dt>Expected value</dt><dd>Giữ người dùng trong giai đoạn pool nhỏ, tạo expectation đúng và giúp vận hành cohort theo density thật.</dd>
+        <dt>Downsides</dt><dd>Empty state vẫn có thể gây hụt hẫng; themed cohorts dễ chia nhỏ pool hơn nữa nếu mở quá sớm.</dd>
+        <dt>Validation</dt><dd>Mô phỏng theo region/intent; đặt ngưỡng density trước khi bật cohort; đo carry-over retention và complaint rate.</dd>
+        <dt>Confidence</dt><dd>82%</dd><dt>Complexity</dt><dd>Medium–High</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section id="cuts">
+    <h2>Rejection Summary</h2>
+    <div class="panel">
+      <table class="matrix">
+        <thead><tr><th>#</th><th>Ý tưởng đã cân nhắc</th><th>Lý do loại hoặc gộp</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Compatibility % / “soulmate score”</td><td>Biến giả thuyết thành phán quyết; trái PRD và làm yếu trust.</td></tr>
+          <tr><td>2</td><td>Infinite swipe ngoài giờ Vòng Lá</td><td>Phá positioning ít nhưng sâu, tăng fatigue.</td></tr>
+          <tr><td>3</td><td>Mua thêm lượt mở</td><td>Dark pattern và phá giới hạn cứng 3/5.</td></tr>
+          <tr><td>4</td><td>AI auto-send icebreaker</td><td>Mất agency; có thể gửi câu không phù hợp thay user.</td></tr>
+          <tr><td>5</td><td>Exact distance / nearby radar</td><td>Rủi ro stalking, dữ liệu vị trí nhạy cảm, không cần cho value cốt lõi.</td></tr>
+          <tr><td>6</td><td>Anonymous secret admirer</td><td>Rủi ro quấy rối và phá double opt-in.</td></tr>
+          <tr><td>7</td><td>Friend approve/rank candidate</td><td>Xâm phạm autonomy và lộ dữ liệu người thứ ba.</td></tr>
+          <tr><td>8</td><td>Friend statement tác động ranking</td><td>Ý kiến xã hội không phải compatibility evidence; dễ gaming.</td></tr>
+          <tr><td>9</td><td>Dùng lịch sử Lá Ghép để suy preference</td><td>Purpose creep; cần consent khác và dễ suy diễn mối quan hệ riêng.</td></tr>
+          <tr><td>10</td><td>Public popularity/likes count</td><td>Tạo cạnh tranh và tổn thương; không giúp mutual chất lượng.</td></tr>
+          <tr><td>11</td><td>Receiver thấy ai request trước mutual</td><td>Phá tính kín và tạo áp lực từ chối.</td></tr>
+          <tr><td>12</td><td>Expiring mutual/chat countdown</td><td>Scarcity chuyển thành cưỡng ép; giữ cửa Vòng Lá, không khóa quan hệ.</td></tr>
+          <tr><td>13</td><td>Chat streak</td><td>Tối ưu hành vi mở app thay vì chất lượng kết nối.</td></tr>
+          <tr><td>14</td><td>Astrology chatbot trong chat</td><td>Phạm vi lớn, dễ xúi giục và chen vào giao tiếp giữa hai người.</td></tr>
+          <tr><td>15</td><td>AI đọc nội dung chat để rerank</td><td>Purpose creep và giám sát quá mức.</td></tr>
+          <tr><td>16</td><td>Mandatory video/audio profile</td><td>Moderation và accessibility burden cao cho MVP.</td></tr>
+          <tr><td>17</td><td>Invite reward mở thêm lá</td><td>Khuyến khích spam/fraud và phá scarcity.</td></tr>
+          <tr><td>18</td><td>Destiny verdict sau mutual</td><td>Deterministic, có thể ảnh hưởng quyết định quan hệ.</td></tr>
+          <tr><td>19</td><td>Continuous location safety tracking</td><td>Thu thập quá mức; native trusted sharing đủ cho phiên bản đầu.</td></tr>
+          <tr><td>20</td><td>Verification badge = “safe person”</td><td>Xác minh danh tính không bảo đảm hành vi; tạo false confidence.</td></tr>
+          <tr><td>21</td><td>Fabricated preview card trước readiness</td><td>Fake personalization là thao túng, không phải demo trung thực.</td></tr>
+          <tr><td>22</td><td>Ẩn toàn bộ bio ở lần flip đầu</td><td>Biến con người thành pattern astrology; thiếu context để quyết định.</td></tr>
+          <tr><td>23</td><td>Auto-pause pool vì không mở app</td><td>Hygiene rule hữu ích nhưng không phải growth highlight; để backlog.</td></tr>
+          <tr><td>24</td><td>Spotify Blend cho hai chart</td><td>Quá derivative và dễ thành score trang trí.</td></tr>
+          <tr><td>25</td><td>5 card chỉ xếp giảm dần theo score</td><td>Gộp/thay bằng slate diversity; top-five đồng dạng không tạo khám phá.</td></tr>
+          <tr><td>26</td><td>Why this leaf là một màn riêng</td><td>Gộp vào card detail để giảm thêm bước.</td></tr>
+          <tr><td>27</td><td>Recap share như ý tưởng độc lập</td><td>US-18 đã có; giữ như growth surface sau khi core ritual ổn.</td></tr>
+          <tr><td>28</td><td>Friendship mode như app riêng</td><td>Giữ là intent hạng nhất, nhưng không tách pool/product quá sớm.</td></tr>
+          <tr><td>29</td><td>Weekly themed cohort cho mọi vùng</td><td>Chỉ giữ trong Pool Pulse khi density đủ; bật toàn cục sẽ chia nhỏ pool.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="sources">
+    <h2>Sources &amp; References</h2>
+    <div class="panel source-list">
+      <strong>Repo evidence</strong>
+      <code>docs/user-stories/US-10-tao-va-gui-pitch-card.md</code>
+      <code>docs/user-stories/US-11-mo-va-phan-hoi-pitch-card.md</code>
+      <code>docs/user-stories/US-08-gui-loi-moi-la-chung.md</code>
+      <code>docs/user-stories/US-09-phan-hoi-va-nhan-la-chung.md</code>
+      <code>docs/user-stories/US-12-tao-va-gui-la-ghep.md</code>
+      <code>docs/user-stories/US-13-hoan-tat-full-la-ghep.md</code>
+      <code>docs/user-stories/US-14-chuan-bi-profile-matching-ready.md</code>
+      <code>docs/user-stories/US-15-tham-gia-vong-la-mo-nam-la.md</code>
+      <code>docs/user-stories/US-16-gui-request-va-mutual-match.md</code>
+      <code>docs/user-stories/US-17-chat-an-toan-va-icebreaker.md</code>
+      <code>docs/user-stories/US-18-xem-chia-se-recap-chu-nhat.md</code>
+      <code>docs/user-stories/US-19-xac-thuc-khi-can.md</code>
+      <code>docs/foundation/la-lanh-prd.md</code>
+      <code>docs/foundation/la-lanh-srs.md</code>
+      <code>apps/api/app/domains/astro/engine.py</code>
+      <strong>Current product and market references</strong>
+      <a href="https://www.tinderpressroom.com/2025-06-17-Tinder-Launches-Double-Date-The-New-Way-to-Make-Connections-with-Your-Bestie">Tinder — Double Date launch</a>
+      <a href="https://help.hinge.co/hc/en-us/articles/30558825479315-What-is-the-Prompt-Feedback-feature">Hinge — Prompt Feedback</a>
+      <a href="https://help.hinge.co/hc/en-us/articles/360010692913-Worum-geht-es-in-Wir-haben-uns-getroffen">Hinge — We Met? private feedback</a>
+      <a href="https://help.hinge.co/hc/en-us/articles/47313953563411-What-is-Did-This-Bother-You">Hinge — Did This Bother You?</a>
+      <a href="https://www.safety.bumble.com/the-buzz/bumble-dating-features">Bumble — ID verification and Share Date</a>
+      <a href="https://www.safety.bumble.com/the-buzz/bumble-opening-moves">Bumble — Opening Moves</a>
+      <a href="https://arxiv.org/abs/2308.02584">Curated dating markets — research paper</a>
+      <strong>Safety, privacy, and regulatory context</strong>
+      <a href="https://www.esafety.gov.au/industry/safety-by-design">eSafety — Safety by Design</a>
+      <a href="https://www.esafety.gov.au/key-topics/staying-safe/online-dating">eSafety — Online dating safety</a>
+      <a href="https://www.ftc.gov/news-events/news/press-releases/2026/03/ftc-takes-action-against-match-okcupid-deceiving-users-sharing-personal-data-third-party">FTC — Match/OkCupid data-sharing action, 2026</a>
+      <a href="https://vanban.chinhphu.vn/?docid=214590&amp;pageid=27160">Việt Nam — Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15</a>
+      <p class="warn">Các nguồn pháp lý được dùng để đặt product risk gates, không thay thế tư vấn pháp lý trước production launch.</p>
+    </div>
+  </section>
+
+  <footer class="composition-signal">Composed 2026-09-16T16:40+07:00 by ce-ideate from the current Lá Lành repository and user prompt context.</footer>
+</main>
+</body>
+</html>

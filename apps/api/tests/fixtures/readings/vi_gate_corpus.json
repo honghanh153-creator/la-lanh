@@ -1,0 +1,28 @@
+{
+  "anti_influence_reject": [
+    {"code": "anti_absolute_certainty", "text": "Điều này chắc chắn đúng với bạn."},
+    {"code": "anti_absolute_certainty", "text": "Ban luon luon phai song theo dau hieu nay."},
+    {"code": "anti_fate", "text": "Số phận của bạn đã được an bài."},
+    {"code": "anti_dependency", "text": "Chỉ Lá hiểu bạn thật sự."},
+    {"code": "anti_urgency", "text": "Hãy làm ngay trước khi quá muộn."},
+    {"code": "anti_isolation", "text": "Đừng nói với ai và hãy tránh xa mọi người."},
+    {"code": "anti_guilt_fear", "text": "Nếu không nghe Lá, bạn sẽ hối hận."},
+    {"code": "anti_diagnosis", "text": "Bạn bị trầm cảm và rối loạn lo âu."},
+    {"code": "anti_medical_command", "text": "Hãy ngừng thuốc ngay hôm nay."},
+    {"code": "anti_legal_command", "text": "Hãy ký hợp đồng này, không cần hỏi luật sư."},
+    {"code": "anti_financial_command", "text": "Bạn phải bán hết cổ phiếu ngay."},
+    {"code": "anti_safety_command", "text": "Cứ lái xe dù bạn đang kiệt sức."}
+  ],
+  "anti_influence_accept": [
+    "Gợi ý này không chắc chắn và bạn có thể bỏ qua.",
+    "Đây không phải định mệnh hay một lời chẩn đoán.",
+    "Bạn không cần làm ngay; cứ chọn lúc phù hợp.",
+    "Ví dụ về câu cần tránh: “chỉ Lá hiểu bạn”.",
+    "Lá không thay thế tư vấn y tế, pháp lý hay tài chính."
+  ],
+  "editorial_reject": [
+    {"code": "editorial_banned_phrase", "text": "Vũ trụ thì thầm rằng bạn nên mở lòng."},
+    {"code": "editorial_generic_healing", "text": "Hãy chữa lành đứa trẻ bên trong và nâng tần số."},
+    {"code": "editorial_forced_slang", "text": "Bạn slay, quá flex, đúng chất main character."}
+  ]
+}

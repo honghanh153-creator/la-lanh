@@ -62,10 +62,12 @@ def test_create_guest_sets_opaque_http_only_cookie_without_login(
 
 
 def test_guest_resumes_from_cookie(guest_client: TestClient) -> None:
-    create_guest(guest_client)
+    created = create_guest(guest_client)
     response = guest_client.get("/v1/session")
     assert response.status_code == 200
     assert response.json()["state"] == "active"
+    assert response.json()["session_epoch"] == created["session_epoch"]
+    assert len(str(response.json()["session_epoch"])) == 64
 
 
 def test_delete_requires_origin_and_csrf_then_clears_guest(guest_client: TestClient) -> None:
@@ -83,6 +85,39 @@ def test_delete_requires_origin_and_csrf_then_clears_guest(guest_client: TestCli
     )
     assert deleted.status_code == 204
     assert guest_client.get("/v1/session").status_code == 401
+
+
+def test_native_mutation_accepts_explicit_app_marker_without_browser_origin(
+    guest_client: TestClient,
+) -> None:
+    payload = create_guest(guest_client)
+
+    deleted = guest_client.delete(
+        "/v1/guest-session",
+        headers={
+            "X-La-Lanh-Client": "capacitor-v1",
+            "X-CSRF-Token": str(payload["csrf_token"]),
+        },
+    )
+
+    assert deleted.status_code == 204
+
+
+def test_native_marker_does_not_bypass_an_untrusted_browser_origin(
+    guest_client: TestClient,
+) -> None:
+    payload = create_guest(guest_client)
+
+    rejected = guest_client.delete(
+        "/v1/guest-session",
+        headers={
+            "Origin": "https://evil.example",
+            "X-La-Lanh-Client": "capacitor-v1",
+            "X-CSRF-Token": str(payload["csrf_token"]),
+        },
+    )
+
+    assert rejected.status_code == 403
 
 
 def test_unknown_consent_version_sets_no_cookie(guest_client: TestClient) -> None:

@@ -1,6 +1,222 @@
 {
   "components": {
     "schemas": {
+      "AcknowledgeAuraTransitionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "transition_id": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Transition Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "transition_id"
+        ],
+        "title": "AcknowledgeAuraTransitionRequest",
+        "type": "object"
+      },
+      "ActivateReadingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision_id": {
+            "format": "uuid",
+            "title": "Expected Revision Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision_id"
+        ],
+        "title": "ActivateReadingRequest",
+        "type": "object"
+      },
+      "ApproxWindow": {
+        "enum": [
+          "morning",
+          "noon",
+          "afternoon",
+          "evening",
+          "night"
+        ],
+        "title": "ApproxWindow",
+        "type": "string"
+      },
+      "Aspect": {
+        "properties": {
+          "applying": {
+            "title": "Applying",
+            "type": "boolean"
+          },
+          "body_a": {
+            "$ref": "#/components/schemas/BodyName"
+          },
+          "body_b": {
+            "$ref": "#/components/schemas/BodyName"
+          },
+          "exact_angle": {
+            "title": "Exact Angle",
+            "type": "number"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "orb": {
+            "title": "Orb",
+            "type": "number"
+          }
+        },
+        "required": [
+          "body_a",
+          "body_b",
+          "kind",
+          "exact_angle",
+          "orb",
+          "applying"
+        ],
+        "title": "Aspect",
+        "type": "object"
+      },
+      "AuraAwakeningResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "factors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "precision_label": {
+            "title": "Precision Label",
+            "type": "string"
+          },
+          "scoring_version": {
+            "title": "Scoring Version",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "headline",
+          "summary",
+          "factors",
+          "precision_label",
+          "scoring_version",
+          "confidence"
+        ],
+        "title": "AuraAwakeningResponse",
+        "type": "object"
+      },
+      "AuraTransitionProjection": {
+        "additionalProperties": false,
+        "description": "Evidence-derived profile transition without shadow active/available depth fields.",
+        "properties": {
+          "acknowledged": {
+            "default": false,
+            "title": "Acknowledged",
+            "type": "boolean"
+          },
+          "profile_readiness": {
+            "$ref": "#/components/schemas/ProfileReadiness"
+          },
+          "transition_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transition Id"
+          },
+          "unlock_layers": {
+            "items": {
+              "$ref": "#/components/schemas/AuraUnlockLayer"
+            },
+            "maxItems": 4,
+            "title": "Unlock Layers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "profile_readiness",
+          "unlock_layers"
+        ],
+        "title": "AuraTransitionProjection",
+        "type": "object"
+      },
+      "AuraUnlockLayer": {
+        "enum": [
+          "multi_factor",
+          "house_arena",
+          "rising_angles",
+          "current_sky"
+        ],
+        "title": "AuraUnlockLayer",
+        "type": "string"
+      },
+      "AvailableReadingUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/ReadingContentProjection"
+          },
+          "message": {
+            "default": "Có một bản đọc mới đang chờ bạn",
+            "title": "Message",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision_id",
+          "content"
+        ],
+        "title": "AvailableReadingUpdate",
+        "type": "object"
+      },
+      "Ayanamsa": {
+        "enum": [
+          "lahiri",
+          "raman",
+          "krishnamurti"
+        ],
+        "title": "Ayanamsa",
+        "type": "string"
+      },
+      "BackgroundLens": {
+        "enum": [
+          "auto",
+          "relationships",
+          "communication",
+          "work",
+          "energy",
+          "self_care"
+        ],
+        "title": "BackgroundLens",
+        "type": "string"
+      },
       "BirthDateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -24,7 +240,23 @@
             "type": "string"
           },
           "calculation": {
-            "$ref": "#/components/schemas/DateOnlySunResult"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DateOnlySunResult"
+              },
+              {
+                "$ref": "#/components/schemas/NatalChart"
+              }
+            ],
+            "title": "Calculation"
+          },
+          "calculation_kind": {
+            "enum": [
+              "date_only_sun",
+              "natal_chart"
+            ],
+            "title": "Calculation Kind",
+            "type": "string"
           },
           "created_at": {
             "format": "date-time",
@@ -50,6 +282,7 @@
           "profile_id",
           "snapshot_id",
           "birth_date",
+          "calculation_kind",
           "calculation",
           "created_at",
           "resumed"
@@ -57,13 +290,532 @@
         "title": "BirthRevealResponse",
         "type": "object"
       },
-      "DateOnlySunResult": {
+      "BirthSupplementRemoveRequest": {
+        "additionalProperties": false,
         "properties": {
-          "birth_date": {
-            "format": "date",
-            "title": "Birth Date",
+          "remove_place": {
+            "default": false,
+            "title": "Remove Place",
+            "type": "boolean"
+          },
+          "remove_time": {
+            "default": false,
+            "title": "Remove Time",
+            "type": "boolean"
+          }
+        },
+        "title": "BirthSupplementRemoveRequest",
+        "type": "object"
+      },
+      "BirthSupplementRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "approx_window": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApproxWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "birth_time_local": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{2}:\\d{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Time Local"
+          },
+          "birth_time_mode": {
+            "$ref": "#/components/schemas/BirthTimeMode"
+          },
+          "consent_version": {
+            "title": "Consent Version",
             "type": "string"
           },
+          "place_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Id"
+          }
+        },
+        "required": [
+          "birth_time_mode",
+          "consent_version"
+        ],
+        "title": "BirthSupplementRequest",
+        "type": "object"
+      },
+      "BirthSupplementResponse": {
+        "properties": {
+          "chart": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NatalChart"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "place_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Display Name"
+          },
+          "profile_id": {
+            "format": "uuid",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "profile_level": {
+            "title": "Profile Level",
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "time_precision": {
+            "title": "Time Precision",
+            "type": "string"
+          },
+          "timezone_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone Id"
+          }
+        },
+        "required": [
+          "profile_id",
+          "snapshot_id",
+          "profile_level",
+          "time_precision",
+          "place_display_name",
+          "timezone_id",
+          "chart"
+        ],
+        "title": "BirthSupplementResponse",
+        "type": "object"
+      },
+      "BirthSupplementStateResponse": {
+        "properties": {
+          "approx_window": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApproxWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "birth_time_mode": {
+            "$ref": "#/components/schemas/BirthTimeMode"
+          },
+          "place_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Display Name"
+          },
+          "profile_id": {
+            "format": "uuid",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "profile_level": {
+            "title": "Profile Level",
+            "type": "integer"
+          },
+          "time_precision": {
+            "title": "Time Precision",
+            "type": "string"
+          },
+          "timezone_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone Id"
+          }
+        },
+        "required": [
+          "profile_id",
+          "profile_level",
+          "time_precision",
+          "birth_time_mode",
+          "approx_window",
+          "place_display_name",
+          "timezone_id"
+        ],
+        "title": "BirthSupplementStateResponse",
+        "type": "object"
+      },
+      "BirthTimeMode": {
+        "enum": [
+          "exact",
+          "approx_window",
+          "unknown"
+        ],
+        "title": "BirthTimeMode",
+        "type": "string"
+      },
+      "BodyName": {
+        "enum": [
+          "sun",
+          "moon",
+          "mercury",
+          "venus",
+          "mars",
+          "jupiter",
+          "saturn",
+          "uranus",
+          "neptune",
+          "pluto",
+          "true_node",
+          "mean_node",
+          "south_node",
+          "chiron"
+        ],
+        "title": "BodyName",
+        "type": "string"
+      },
+      "BodyPosition": {
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/BodyName"
+          },
+          "degree_in_sign": {
+            "title": "Degree In Sign",
+            "type": "number"
+          },
+          "distance_au": {
+            "title": "Distance Au",
+            "type": "number"
+          },
+          "latitude": {
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "title": "Longitude",
+            "type": "number"
+          },
+          "longitude_speed": {
+            "title": "Longitude Speed",
+            "type": "number"
+          },
+          "retrograde": {
+            "title": "Retrograde",
+            "type": "boolean"
+          },
+          "sign": {
+            "$ref": "#/components/schemas/ZodiacSign"
+          }
+        },
+        "required": [
+          "body",
+          "longitude",
+          "latitude",
+          "distance_au",
+          "longitude_speed",
+          "retrograde",
+          "sign",
+          "degree_in_sign"
+        ],
+        "title": "BodyPosition",
+        "type": "object"
+      },
+      "CalculationConfig": {
+        "properties": {
+          "ayanamsa": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Ayanamsa"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "house_system": {
+            "$ref": "#/components/schemas/HouseSystem",
+            "default": "placidus"
+          },
+          "node_mode": {
+            "$ref": "#/components/schemas/NodeMode",
+            "default": "true"
+          },
+          "tradition": {
+            "$ref": "#/components/schemas/Tradition",
+            "default": "western"
+          },
+          "zodiac": {
+            "$ref": "#/components/schemas/ZodiacMode",
+            "default": "tropical"
+          }
+        },
+        "title": "CalculationConfig",
+        "type": "object"
+      },
+      "ChartAngles": {
+        "properties": {
+          "armc": {
+            "title": "Armc",
+            "type": "number"
+          },
+          "ascendant": {
+            "title": "Ascendant",
+            "type": "number"
+          },
+          "midheaven": {
+            "title": "Midheaven",
+            "type": "number"
+          },
+          "vertex": {
+            "title": "Vertex",
+            "type": "number"
+          }
+        },
+        "required": [
+          "ascendant",
+          "midheaven",
+          "armc",
+          "vertex"
+        ],
+        "title": "ChartAngles",
+        "type": "object"
+      },
+      "ChartType": {
+        "enum": [
+          "date_only_natal",
+          "natal",
+          "daily_transit",
+          "transit_to_natal",
+          "synastry",
+          "composite_midpoint",
+          "davison_relationship",
+          "jyotish_navamsa",
+          "relationship_bundle",
+          "compatibility_facts"
+        ],
+        "title": "ChartType",
+        "type": "string"
+      },
+      "ContextProjectionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "background_lens": {
+            "$ref": "#/components/schemas/BackgroundLens"
+          }
+        },
+        "required": [
+          "background_lens"
+        ],
+        "title": "ContextProjectionRequest",
+        "type": "object"
+      },
+      "CurrentSkyResponse": {
+        "properties": {
+          "bodies": {
+            "items": {
+              "$ref": "#/components/schemas/InsightBodyProjection"
+            },
+            "title": "Bodies",
+            "type": "array"
+          },
+          "config_hash": {
+            "title": "Config Hash",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "tradition": {
+            "$ref": "#/components/schemas/Tradition"
+          }
+        },
+        "required": [
+          "observed_at",
+          "tradition",
+          "config_hash",
+          "bodies",
+          "note"
+        ],
+        "title": "CurrentSkyResponse",
+        "type": "object"
+      },
+      "DailyNoteResponse": {
+        "properties": {
+          "astrology_source_version": {
+            "title": "Astrology Source Version",
+            "type": "string"
+          },
+          "awakening": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuraAwakeningResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "content_version": {
+            "title": "Content Version",
+            "type": "string"
+          },
+          "context_label": {
+            "title": "Context Label",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FallbackReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fallback_used": {
+            "title": "Fallback Used",
+            "type": "boolean"
+          },
+          "full_body": {
+            "title": "Full Body",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note_date": {
+            "format": "date",
+            "title": "Note Date",
+            "type": "string"
+          },
+          "persona_label": {
+            "$ref": "#/components/schemas/PersonaLabel"
+          },
+          "persona_mode": {
+            "$ref": "#/components/schemas/PersonaMode"
+          },
+          "persona_version": {
+            "title": "Persona Version",
+            "type": "string"
+          },
+          "reading_projection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReadingProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sky_chapter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SkyChapterResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_level": {
+            "$ref": "#/components/schemas/SourceLevel"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "note_date",
+          "title",
+          "body",
+          "full_body",
+          "context_label",
+          "content_version",
+          "persona_mode",
+          "persona_label",
+          "persona_version",
+          "source_level",
+          "astrology_source_version",
+          "fallback_used",
+          "fallback_reason",
+          "created_at"
+        ],
+        "title": "DailyNoteResponse",
+        "type": "object"
+      },
+      "DateOnlySunResult": {
+        "properties": {
           "candidates": {
             "items": {
               "$ref": "#/components/schemas/ZodiacSign"
@@ -71,15 +823,9 @@
             "title": "Candidates",
             "type": "array"
           },
-          "interval_end_utc": {
-            "format": "date-time",
-            "title": "Interval End Utc",
-            "type": "string"
-          },
-          "interval_start_utc": {
-            "format": "date-time",
-            "title": "Interval Start Utc",
-            "type": "string"
+          "chart_type": {
+            "$ref": "#/components/schemas/ChartType",
+            "default": "date_only_natal"
           },
           "provenance": {
             "$ref": "#/components/schemas/EngineProvenance"
@@ -100,12 +846,9 @@
           }
         },
         "required": [
-          "birth_date",
           "status",
           "sign",
           "candidates",
-          "interval_start_utc",
-          "interval_end_utc",
           "provenance"
         ],
         "title": "DateOnlySunResult",
@@ -113,6 +856,21 @@
       },
       "EngineProvenance": {
         "properties": {
+          "ayanamsa": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Ayanamsa"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "config_hash": {
+            "default": "western-v1",
+            "title": "Config Hash",
+            "type": "string"
+          },
           "engine": {
             "default": "swiss_ephemeris",
             "title": "Engine",
@@ -132,9 +890,17 @@
             "title": "Release Commit",
             "type": "string"
           },
+          "tradition": {
+            "$ref": "#/components/schemas/Tradition",
+            "default": "western"
+          },
           "version": {
             "title": "Version",
             "type": "string"
+          },
+          "zodiac": {
+            "$ref": "#/components/schemas/ZodiacMode",
+            "default": "tropical"
           }
         },
         "required": [
@@ -142,6 +908,315 @@
           "profile"
         ],
         "title": "EngineProvenance",
+        "type": "object"
+      },
+      "ExperimentChooseRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_key": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Action Key",
+            "type": "string"
+          },
+          "background_lens": {
+            "$ref": "#/components/schemas/BackgroundLens"
+          },
+          "consent_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "expected_experiment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Experiment Id"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision_id",
+          "background_lens",
+          "action_key",
+          "consent_version"
+        ],
+        "title": "ExperimentChooseRequest",
+        "type": "object"
+      },
+      "ExperimentMutationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "experiment_id": {
+            "format": "uuid",
+            "title": "Experiment Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "experiment_id",
+          "expected_version"
+        ],
+        "title": "ExperimentMutationRequest",
+        "type": "object"
+      },
+      "ExperimentOutcome": {
+        "enum": [
+          "not_tried",
+          "helpful",
+          "no_difference",
+          "not_for_now"
+        ],
+        "title": "ExperimentOutcome",
+        "type": "string"
+      },
+      "ExperimentOutcomeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "experiment_id": {
+            "format": "uuid",
+            "title": "Experiment Id",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ExperimentOutcome"
+          }
+        },
+        "required": [
+          "experiment_id",
+          "expected_version",
+          "outcome"
+        ],
+        "title": "ExperimentOutcomeRequest",
+        "type": "object"
+      },
+      "ExperimentProjection": {
+        "additionalProperties": false,
+        "description": "Server-owned action grammar; clients never split or author this prose.",
+        "properties": {
+          "action": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Action",
+            "type": "string"
+          },
+          "action_key": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Action Key",
+            "type": "string"
+          },
+          "observation": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Observation",
+            "type": "string"
+          },
+          "permission": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Permission",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action_key",
+          "action",
+          "observation",
+          "permission"
+        ],
+        "title": "ExperimentProjection",
+        "type": "object"
+      },
+      "ExperimentResponse": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "action_key": {
+            "title": "Action Key",
+            "type": "string"
+          },
+          "background_lens": {
+            "$ref": "#/components/schemas/BackgroundLens"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "daily_note_id": {
+            "format": "uuid",
+            "title": "Daily Note Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "observation": {
+            "title": "Observation",
+            "type": "string"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExperimentOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "permission": {
+            "title": "Permission",
+            "type": "string"
+          },
+          "reflected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reflected At"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ExperimentState"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "daily_note_id",
+          "revision_id",
+          "state",
+          "background_lens",
+          "action_key",
+          "action",
+          "observation",
+          "permission",
+          "outcome",
+          "created_at",
+          "updated_at",
+          "expires_at",
+          "reflected_at"
+        ],
+        "title": "ExperimentResponse",
+        "type": "object"
+      },
+      "ExperimentState": {
+        "enum": [
+          "chosen",
+          "reflected"
+        ],
+        "title": "ExperimentState",
+        "type": "string"
+      },
+      "FallbackReason": {
+        "enum": [
+          "ambiguous_sun",
+          "incomplete_natal_chart",
+          "missing_sun",
+          "legacy_row"
+        ],
+        "title": "FallbackReason",
+        "type": "string"
+      },
+      "GenderPreference": {
+        "enum": [
+          "women",
+          "men",
+          "nonbinary",
+          "everyone"
+        ],
+        "title": "GenderPreference",
+        "type": "string"
+      },
+      "GrahaDrishti": {
+        "properties": {
+          "from_body": {
+            "$ref": "#/components/schemas/BodyName"
+          },
+          "houses_apart": {
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Houses Apart",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "to_body": {
+            "$ref": "#/components/schemas/BodyName"
+          }
+        },
+        "required": [
+          "from_body",
+          "to_body",
+          "houses_apart",
+          "kind"
+        ],
+        "title": "GrahaDrishti",
         "type": "object"
       },
       "GuestCreateRequest": {
@@ -200,6 +1275,10 @@
             "title": "Resumed",
             "type": "boolean"
           },
+          "session_epoch": {
+            "title": "Session Epoch",
+            "type": "string"
+          },
           "state": {
             "title": "State",
             "type": "string"
@@ -208,7 +1287,8 @@
         "required": [
           "state",
           "onboarding_status",
-          "expires_at"
+          "expires_at",
+          "session_epoch"
         ],
         "title": "GuestSessionResponse",
         "type": "object"
@@ -255,6 +1335,875 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "HousePosition": {
+        "properties": {
+          "longitude": {
+            "title": "Longitude",
+            "type": "number"
+          },
+          "number": {
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Number",
+            "type": "integer"
+          },
+          "sign": {
+            "$ref": "#/components/schemas/ZodiacSign"
+          }
+        },
+        "required": [
+          "number",
+          "longitude",
+          "sign"
+        ],
+        "title": "HousePosition",
+        "type": "object"
+      },
+      "HouseSystem": {
+        "enum": [
+          "placidus",
+          "whole_sign",
+          "equal"
+        ],
+        "title": "HouseSystem",
+        "type": "string"
+      },
+      "IdentityMode": {
+        "enum": [
+          "anonymous",
+          "alias"
+        ],
+        "title": "IdentityMode",
+        "type": "string"
+      },
+      "InsightBodyProjection": {
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/BodyName"
+          },
+          "degree_in_sign": {
+            "title": "Degree In Sign",
+            "type": "number"
+          },
+          "retrograde": {
+            "title": "Retrograde",
+            "type": "boolean"
+          },
+          "sign": {
+            "$ref": "#/components/schemas/ZodiacSign"
+          }
+        },
+        "required": [
+          "body",
+          "sign",
+          "degree_in_sign",
+          "retrograde"
+        ],
+        "title": "InsightBodyProjection",
+        "type": "object"
+      },
+      "InsightOverviewResponse": {
+        "properties": {
+          "bodies": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/InsightBodyProjection"
+            },
+            "title": "Bodies",
+            "type": "array"
+          },
+          "houses_available": {
+            "default": false,
+            "title": "Houses Available",
+            "type": "boolean"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InsightReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reading_projection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReadingProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required_fields": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Fields",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "locked"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "time_precision": {
+            "default": "unknown",
+            "title": "Time Precision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "InsightOverviewResponse",
+        "type": "object"
+      },
+      "InsightReading": {
+        "properties": {
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/ReadingClaim"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "config_hash": {
+            "title": "Config Hash",
+            "type": "string"
+          },
+          "disclaimer": {
+            "default": "Nội dung mang tính diễn giải và tham khảo, không phải dự đoán chắc chắn hay lời khuyên chuyên môn.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/EngineProvenance"
+          },
+          "tradition": {
+            "$ref": "#/components/schemas/Tradition"
+          }
+        },
+        "required": [
+          "tradition",
+          "config_hash",
+          "observed_at",
+          "claims",
+          "provenance"
+        ],
+        "title": "InsightReading",
+        "type": "object"
+      },
+      "InviteCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "enum": [
+              "bff",
+              "crush",
+              "couple",
+              "friend",
+              "workmate"
+            ],
+            "title": "Context",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 16,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "recipient_label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Recipient Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient_label",
+          "context",
+          "idempotency_key"
+        ],
+        "title": "InviteCreateRequest",
+        "type": "object"
+      },
+      "InviteResponse": {
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "recipient_label": {
+            "title": "Recipient Label",
+            "type": "string"
+          },
+          "share_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Url"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RequestStatus"
+          }
+        },
+        "required": [
+          "id",
+          "recipient_label",
+          "context",
+          "status",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "InviteResponse",
+        "type": "object"
+      },
+      "MatchingConsentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "MatchingConsentInput",
+        "type": "object"
+      },
+      "MatchingGender": {
+        "enum": [
+          "woman",
+          "man",
+          "nonbinary"
+        ],
+        "title": "MatchingGender",
+        "type": "string"
+      },
+      "MatchingIntent": {
+        "enum": [
+          "dating",
+          "friendship",
+          "open"
+        ],
+        "title": "MatchingIntent",
+        "type": "string"
+      },
+      "MatchingProfileInput": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "maxLength": 32,
+            "minLength": 2,
+            "pattern": "^[^<>\\n\\r]+$",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "gender_identity": {
+            "$ref": "#/components/schemas/MatchingGender"
+          },
+          "gender_preference": {
+            "$ref": "#/components/schemas/GenderPreference"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/MatchingIntent"
+          },
+          "max_age": {
+            "maximum": 120.0,
+            "minimum": 18.0,
+            "title": "Max Age",
+            "type": "integer"
+          },
+          "min_age": {
+            "maximum": 120.0,
+            "minimum": 18.0,
+            "title": "Min Age",
+            "type": "integer"
+          },
+          "region_code": {
+            "maxLength": 64,
+            "minLength": 2,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "title": "Region Code",
+            "type": "string"
+          },
+          "weekly_intent": {
+            "$ref": "#/components/schemas/WeeklyIntent",
+            "default": "de_la_can"
+          }
+        },
+        "required": [
+          "display_name",
+          "gender_identity",
+          "intent",
+          "gender_preference",
+          "min_age",
+          "max_age",
+          "region_code"
+        ],
+        "title": "MatchingProfileInput",
+        "type": "object"
+      },
+      "MatchingProfileResponse": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "gender_identity": {
+            "$ref": "#/components/schemas/MatchingGender"
+          },
+          "gender_preference": {
+            "$ref": "#/components/schemas/GenderPreference"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/MatchingIntent"
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Joined At"
+          },
+          "max_age": {
+            "title": "Max Age",
+            "type": "integer"
+          },
+          "min_age": {
+            "title": "Min Age",
+            "type": "integer"
+          },
+          "region_code": {
+            "title": "Region Code",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "weekly_intent": {
+            "$ref": "#/components/schemas/WeeklyIntent"
+          }
+        },
+        "required": [
+          "display_name",
+          "gender_identity",
+          "intent",
+          "gender_preference",
+          "min_age",
+          "max_age",
+          "region_code",
+          "weekly_intent",
+          "active",
+          "joined_at",
+          "updated_at"
+        ],
+        "title": "MatchingProfileResponse",
+        "type": "object"
+      },
+      "MatchingReadinessResponse": {
+        "properties": {
+          "birth_profile_level": {
+            "title": "Birth Profile Level",
+            "type": "integer"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "consent_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consent Version"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MatchingProfileResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "verification_reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Reason Code"
+          },
+          "verification_status": {
+            "$ref": "#/components/schemas/VerificationStatus"
+          }
+        },
+        "required": [
+          "ready",
+          "profile",
+          "consent_version",
+          "verification_status",
+          "verification_reason_code",
+          "birth_profile_level",
+          "checks"
+        ],
+        "title": "MatchingReadinessResponse",
+        "type": "object"
+      },
+      "MoodRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mood": {
+            "$ref": "#/components/schemas/MoodValue"
+          }
+        },
+        "required": [
+          "mood"
+        ],
+        "title": "MoodRequest",
+        "type": "object"
+      },
+      "MoodResponse": {
+        "properties": {
+          "checked_in_at": {
+            "format": "date-time",
+            "title": "Checked In At",
+            "type": "string"
+          },
+          "daily_note_id": {
+            "format": "uuid",
+            "title": "Daily Note Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mood": {
+            "$ref": "#/components/schemas/MoodValue"
+          }
+        },
+        "required": [
+          "id",
+          "daily_note_id",
+          "mood",
+          "checked_in_at"
+        ],
+        "title": "MoodResponse",
+        "type": "object"
+      },
+      "MoodValue": {
+        "enum": [
+          "Rực",
+          "Chill",
+          "Đuối",
+          "Căng",
+          "Lạc trôi"
+        ],
+        "title": "MoodValue",
+        "type": "string"
+      },
+      "NakshatraPosition": {
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/BodyName"
+          },
+          "degree_in_nakshatra": {
+            "exclusiveMaximum": 13.333333333333334,
+            "minimum": 0.0,
+            "title": "Degree In Nakshatra",
+            "type": "number"
+          },
+          "index": {
+            "maximum": 27.0,
+            "minimum": 1.0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pada": {
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Pada",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "body",
+          "name",
+          "index",
+          "pada",
+          "degree_in_nakshatra"
+        ],
+        "title": "NakshatraPosition",
+        "type": "object"
+      },
+      "NatalChart": {
+        "properties": {
+          "angles": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChartAngles"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "aspects": {
+            "items": {
+              "$ref": "#/components/schemas/Aspect"
+            },
+            "title": "Aspects",
+            "type": "array"
+          },
+          "bodies": {
+            "items": {
+              "$ref": "#/components/schemas/BodyPosition"
+            },
+            "title": "Bodies",
+            "type": "array"
+          },
+          "chart_type": {
+            "$ref": "#/components/schemas/ChartType",
+            "default": "natal"
+          },
+          "config": {
+            "$ref": "#/components/schemas/CalculationConfig"
+          },
+          "config_hash": {
+            "default": "western-v1",
+            "title": "Config Hash",
+            "type": "string"
+          },
+          "graha_drishti": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/GrahaDrishti"
+            },
+            "title": "Graha Drishti",
+            "type": "array"
+          },
+          "house_system": {
+            "$ref": "#/components/schemas/HouseSystem"
+          },
+          "houses": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HousePosition"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Houses"
+          },
+          "julian_day_ut": {
+            "title": "Julian Day Ut",
+            "type": "number"
+          },
+          "nakshatras": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/NakshatraPosition"
+            },
+            "title": "Nakshatras",
+            "type": "array"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/EngineProvenance"
+          },
+          "time_precision": {
+            "$ref": "#/components/schemas/TimePrecision",
+            "default": "exact"
+          }
+        },
+        "required": [
+          "julian_day_ut",
+          "bodies",
+          "houses",
+          "angles",
+          "aspects",
+          "house_system",
+          "provenance"
+        ],
+        "title": "NatalChart",
+        "type": "object"
+      },
+      "NodeMode": {
+        "enum": [
+          "true",
+          "mean"
+        ],
+        "title": "NodeMode",
+        "type": "string"
+      },
+      "OnboardingStatus": {
+        "enum": [
+          "birth_pending",
+          "computing",
+          "basic_revealed",
+          "completed"
+        ],
+        "title": "OnboardingStatus",
+        "type": "string"
+      },
+      "OnboardingStatusRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OnboardingStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "OnboardingStatusRequest",
+        "type": "object"
+      },
+      "OwnerClaimResponse": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "principal_id": {
+            "format": "uuid",
+            "title": "Principal Id",
+            "type": "string"
+          },
+          "resumed": {
+            "title": "Resumed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "principal_id",
+          "expires_at",
+          "resumed"
+        ],
+        "title": "OwnerClaimResponse",
+        "type": "object"
+      },
+      "OwnerResultResponse": {
+        "properties": {
+          "display_alias": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Alias"
+          },
+          "identity_mode": {
+            "$ref": "#/components/schemas/IdentityMode"
+          },
+          "recipient_label": {
+            "title": "Recipient Label",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "statements": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Statements",
+            "type": "array"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "recipient_label",
+          "identity_mode",
+          "display_alias",
+          "statements",
+          "submitted_at"
+        ],
+        "title": "OwnerResultResponse",
+        "type": "object"
+      },
+      "PersonaLabel": {
+        "enum": [
+          "Nóng",
+          "Bền",
+          "Lanh",
+          "Mềm",
+          "Rực",
+          "Gọn",
+          "Duyên",
+          "Sâu",
+          "Phiêu",
+          "Chắc",
+          "Khác",
+          "Mộng"
+        ],
+        "title": "PersonaLabel",
+        "type": "string"
+      },
+      "PersonaMode": {
+        "enum": [
+          "vibe",
+          "aura"
+        ],
+        "title": "PersonaMode",
+        "type": "string"
+      },
+      "PlaceResultResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "place_id": {
+            "title": "Place Id",
+            "type": "string"
+          },
+          "timezone_id": {
+            "title": "Timezone Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "place_id",
+          "display_name",
+          "country_code",
+          "timezone_id",
+          "confidence"
+        ],
+        "title": "PlaceResultResponse",
+        "type": "object"
+      },
+      "PlaceSearchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "PlaceSearchRequest",
+        "type": "object"
+      },
+      "PlanMode": {
+        "enum": [
+          "full_synthesis",
+          "vibe_fallback",
+          "limited"
+        ],
+        "title": "PlanMode",
+        "type": "string"
+      },
+      "PoolMembershipInput": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active"
+        ],
+        "title": "PoolMembershipInput",
+        "type": "object"
+      },
       "ProblemResponse": {
         "properties": {
           "code": {
@@ -283,6 +2232,478 @@
         "title": "ProblemResponse",
         "type": "object"
       },
+      "ProfileReadiness": {
+        "enum": [
+          "vibe",
+          "limited",
+          "aura_ready"
+        ],
+        "title": "ProfileReadiness",
+        "type": "string"
+      },
+      "PublicInviteResponse": {
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "privacy_note": {
+            "default": "Không cần tài khoản, ngày sinh hay danh bạ.",
+            "title": "Privacy Note",
+            "type": "string"
+          },
+          "recipient_label": {
+            "title": "Recipient Label",
+            "type": "string"
+          },
+          "statements": {
+            "items": {
+              "$ref": "#/components/schemas/PublicStatementResponse"
+            },
+            "title": "Statements",
+            "type": "array"
+          }
+        },
+        "required": [
+          "recipient_label",
+          "context",
+          "expires_at",
+          "statements"
+        ],
+        "title": "PublicInviteResponse",
+        "type": "object"
+      },
+      "PublicRadarInviteResponse": {
+        "properties": {
+          "consent_version": {
+            "default": "radar-pair-v1",
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "privacy_note": {
+            "default": "Người mời không nhìn thấy ngày, giờ hoặc nơi sinh của bạn. Kết quả chỉ mở sau khi bạn tự nhập và đồng ý.",
+            "title": "Privacy Note",
+            "type": "string"
+          },
+          "recipient_label": {
+            "title": "Recipient Label",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "requires_exact_birth_profile": {
+            "default": true,
+            "title": "Requires Exact Birth Profile",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "request_id",
+          "recipient_label",
+          "context",
+          "expires_at"
+        ],
+        "title": "PublicRadarInviteResponse",
+        "type": "object"
+      },
+      "PublicShareArtifactResponse": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/ShareFormat"
+          },
+          "safe_snapshot": {
+            "$ref": "#/components/schemas/SafeShareSnapshotResponse"
+          }
+        },
+        "required": [
+          "format",
+          "safe_snapshot",
+          "expires_at"
+        ],
+        "title": "PublicShareArtifactResponse",
+        "type": "object"
+      },
+      "PublicStatementResponse": {
+        "properties": {
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "domain"
+        ],
+        "title": "PublicStatementResponse",
+        "type": "object"
+      },
+      "RadarAcceptRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "consent_version"
+        ],
+        "title": "RadarAcceptRequest",
+        "type": "object"
+      },
+      "RadarBoundActionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "RadarBoundActionRequest",
+        "type": "object"
+      },
+      "RadarCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "enum": [
+              "crush",
+              "friend",
+              "partner",
+              "someone"
+            ],
+            "title": "Context",
+            "type": "string"
+          },
+          "recipient_label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Recipient Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient_label",
+          "context"
+        ],
+        "title": "RadarCreateRequest",
+        "type": "object"
+      },
+      "RadarInviteResponse": {
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/RadarMode"
+          },
+          "recipient_label": {
+            "title": "Recipient Label",
+            "type": "string"
+          },
+          "share_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Url"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RadarStatus"
+          }
+        },
+        "required": [
+          "id",
+          "recipient_label",
+          "context",
+          "mode",
+          "status",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "RadarInviteResponse",
+        "type": "object"
+      },
+      "RadarMode": {
+        "enum": [
+          "private_check",
+          "consented_invite"
+        ],
+        "title": "RadarMode",
+        "type": "string"
+      },
+      "RadarPrivateCheckRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "authorization_attested": {
+            "title": "Authorization Attested",
+            "type": "boolean"
+          },
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "birth_time_local": {
+            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Birth Time Local",
+            "type": "string"
+          },
+          "consent_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "context": {
+            "enum": [
+              "crush",
+              "friend",
+              "partner",
+              "someone"
+            ],
+            "title": "Context",
+            "type": "string"
+          },
+          "place_id": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Place Id",
+            "type": "string"
+          },
+          "recipient_label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Recipient Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient_label",
+          "context",
+          "birth_date",
+          "birth_time_local",
+          "place_id",
+          "consent_version",
+          "authorization_attested"
+        ],
+        "title": "RadarPrivateCheckRequest",
+        "type": "object"
+      },
+      "RadarResultResponse": {
+        "properties": {
+          "compatibility_map": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Compatibility Map",
+            "type": "array"
+          },
+          "dimensions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Dimensions",
+            "type": "array"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadarMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pair_signature": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pair Signature"
+          },
+          "recipient_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient Label"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "sections": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "strongest_contacts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Strongest Contacts",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "headline",
+          "summary",
+          "disclaimer"
+        ],
+        "title": "RadarResultResponse",
+        "type": "object"
+      },
+      "RadarStatus": {
+        "enum": [
+          "pending",
+          "completed",
+          "revoked",
+          "withdrawn",
+          "expired"
+        ],
+        "title": "RadarStatus",
+        "type": "string"
+      },
+      "ReadinessCheck": {
+        "properties": {
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "complete",
+          "blocking"
+        ],
+        "title": "ReadinessCheck",
+        "type": "object"
+      },
       "ReadinessResponse": {
         "properties": {
           "status": {
@@ -299,6 +2720,853 @@
         ],
         "title": "ReadinessResponse",
         "type": "object"
+      },
+      "ReadingClaim": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/ReadingDomain"
+          },
+          "evidence": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "factor_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Factor Refs",
+            "type": "array"
+          },
+          "hook": {
+            "default": "",
+            "title": "Hook",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "manifestation": {
+            "default": "",
+            "title": "Manifestation",
+            "type": "string"
+          },
+          "meaning": {
+            "default": "",
+            "title": "Meaning",
+            "type": "string"
+          },
+          "micro_action": {
+            "default": "",
+            "title": "Micro Action",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "watch_for": {
+            "default": "",
+            "title": "Watch For",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "domain",
+          "title",
+          "summary",
+          "factor_refs",
+          "confidence"
+        ],
+        "title": "ReadingClaim",
+        "type": "object"
+      },
+      "ReadingContentProjection": {
+        "additionalProperties": false,
+        "description": "The single private response contract shared by Daily and Insights.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/ReadingEvidenceProjection"
+          },
+          "experiment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExperimentProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/PlanMode"
+          },
+          "precision": {
+            "$ref": "#/components/schemas/TimePrecision"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/ReadingPurpose"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/ReadingSectionsProjection"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ReadingRevisionSource"
+          },
+          "tradition": {
+            "$ref": "#/components/schemas/Tradition"
+          }
+        },
+        "required": [
+          "revision_id",
+          "source",
+          "mode",
+          "purpose",
+          "tradition",
+          "precision",
+          "sections",
+          "evidence",
+          "disclaimer",
+          "created_at"
+        ],
+        "title": "ReadingContentProjection",
+        "type": "object"
+      },
+      "ReadingDomain": {
+        "enum": [
+          "core",
+          "emotions",
+          "mind",
+          "relating",
+          "drive",
+          "current_sky"
+        ],
+        "title": "ReadingDomain",
+        "type": "string"
+      },
+      "ReadingEvidenceProjection": {
+        "additionalProperties": false,
+        "properties": {
+          "claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "framework_disclosure": {
+            "title": "Framework Disclosure",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "claims",
+          "framework_disclosure"
+        ],
+        "title": "ReadingEvidenceProjection",
+        "type": "object"
+      },
+      "ReadingProjection": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "$ref": "#/components/schemas/ReadingContentProjection"
+          },
+          "aura_transition": {
+            "$ref": "#/components/schemas/AuraTransitionProjection"
+          },
+          "available_update": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AvailableReadingUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope_key": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Scope Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_key",
+          "active",
+          "aura_transition"
+        ],
+        "title": "ReadingProjection",
+        "type": "object"
+      },
+      "ReadingPurpose": {
+        "enum": [
+          "daily_note",
+          "aura",
+          "reading_detail",
+          "personalized_sky"
+        ],
+        "title": "ReadingPurpose",
+        "type": "string"
+      },
+      "ReadingRevisionSource": {
+        "enum": [
+          "deterministic",
+          "generated"
+        ],
+        "title": "ReadingRevisionSource",
+        "type": "string"
+      },
+      "ReadingSectionsProjection": {
+        "additionalProperties": false,
+        "description": "User-visible prose only; internal planning and gate state never crosses the API.",
+        "properties": {
+          "hook": {
+            "title": "Hook",
+            "type": "string"
+          },
+          "manifestation": {
+            "title": "Manifestation",
+            "type": "string"
+          },
+          "micro_action": {
+            "title": "Micro Action",
+            "type": "string"
+          },
+          "thesis": {
+            "title": "Thesis",
+            "type": "string"
+          },
+          "transit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transit"
+          }
+        },
+        "required": [
+          "hook",
+          "thesis",
+          "manifestation",
+          "micro_action"
+        ],
+        "title": "ReadingSectionsProjection",
+        "type": "object"
+      },
+      "ReportRequest": {
+        "properties": {
+          "reason": {
+            "enum": [
+              "not_for_me",
+              "unsafe",
+              "spam",
+              "other"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ReportRequest",
+        "type": "object"
+      },
+      "RequestStatus": {
+        "enum": [
+          "pending",
+          "completed",
+          "revoked",
+          "expired",
+          "replaced",
+          "withdrawn",
+          "deleted"
+        ],
+        "title": "RequestStatus",
+        "type": "string"
+      },
+      "ResonanceChoice": {
+        "enum": [
+          "hit",
+          "miss"
+        ],
+        "title": "ResonanceChoice",
+        "type": "string"
+      },
+      "ResonanceClearRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "revoke_consent": {
+            "default": false,
+            "title": "Revoke Consent",
+            "type": "boolean"
+          }
+        },
+        "title": "ResonanceClearRequest",
+        "type": "object"
+      },
+      "ResonanceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "background_lens": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundLens"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "choice": {
+            "$ref": "#/components/schemas/ResonanceChoice"
+          },
+          "consent_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          }
+        },
+        "required": [
+          "choice",
+          "consent_version"
+        ],
+        "title": "ResonanceRequest",
+        "type": "object"
+      },
+      "ResonanceResponse": {
+        "properties": {
+          "background_lens": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundLens"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "choice": {
+            "$ref": "#/components/schemas/ResonanceChoice"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "choice",
+          "background_lens",
+          "created_at"
+        ],
+        "title": "ResonanceResponse",
+        "type": "object"
+      },
+      "ResonanceStatusResponse": {
+        "properties": {
+          "consented": {
+            "title": "Consented",
+            "type": "boolean"
+          },
+          "feedback_count": {
+            "title": "Feedback Count",
+            "type": "integer"
+          },
+          "last_choice": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResonanceChoice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "consented",
+          "feedback_count",
+          "last_choice"
+        ],
+        "title": "ResonanceStatusResponse",
+        "type": "object"
+      },
+      "SafeShareSnapshotResponse": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "content_version": {
+            "title": "Content Version",
+            "type": "string"
+          },
+          "context_label": {
+            "title": "Context Label",
+            "type": "string"
+          },
+          "persona_label": {
+            "title": "Persona Label",
+            "type": "string"
+          },
+          "persona_mode": {
+            "title": "Persona Mode",
+            "type": "string"
+          },
+          "persona_version": {
+            "title": "Persona Version",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "watermark": {
+            "title": "Watermark",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body",
+          "context_label",
+          "content_version",
+          "persona_mode",
+          "persona_label",
+          "persona_version",
+          "watermark"
+        ],
+        "title": "SafeShareSnapshotResponse",
+        "type": "object"
+      },
+      "SavedNoteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "revision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          }
+        },
+        "title": "SavedNoteRequest",
+        "type": "object"
+      },
+      "SavedNoteResponse": {
+        "properties": {
+          "daily_note_id": {
+            "format": "uuid",
+            "title": "Daily Note Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note_snapshot": {
+            "additionalProperties": true,
+            "title": "Note Snapshot",
+            "type": "object"
+          },
+          "reading_snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReadingContentProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          },
+          "saved_at": {
+            "format": "date-time",
+            "title": "Saved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "daily_note_id",
+          "note_snapshot",
+          "saved_at"
+        ],
+        "title": "SavedNoteResponse",
+        "type": "object"
+      },
+      "ShareArtifactRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "$ref": "#/components/schemas/ShareFormat",
+            "default": "story_9_16"
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          }
+        },
+        "title": "ShareArtifactRequest",
+        "type": "object"
+      },
+      "ShareArtifactResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "daily_note_id": {
+            "format": "uuid",
+            "title": "Daily Note Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/ShareFormat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "public_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Path"
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          },
+          "safe_snapshot": {
+            "$ref": "#/components/schemas/SafeShareSnapshotResponse"
+          },
+          "token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token"
+          }
+        },
+        "required": [
+          "id",
+          "daily_note_id",
+          "format",
+          "safe_snapshot",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ShareArtifactResponse",
+        "type": "object"
+      },
+      "ShareFormat": {
+        "enum": [
+          "story_9_16",
+          "square_1_1"
+        ],
+        "title": "ShareFormat",
+        "type": "string"
+      },
+      "SkyChapterResponse": {
+        "properties": {
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "orb": {
+            "title": "Orb",
+            "type": "number"
+          },
+          "orb_policy_version": {
+            "title": "Orb Policy Version",
+            "type": "string"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/TransitPhase"
+          },
+          "phase_label": {
+            "title": "Phase Label",
+            "type": "string"
+          },
+          "ranking_version": {
+            "title": "Ranking Version",
+            "type": "string"
+          },
+          "signal_label": {
+            "title": "Signal Label",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "summary",
+          "phase",
+          "phase_label",
+          "signal_label",
+          "orb",
+          "observed_at",
+          "orb_policy_version",
+          "ranking_version",
+          "disclaimer"
+        ],
+        "title": "SkyChapterResponse",
+        "type": "object"
+      },
+      "SourceLevel": {
+        "enum": [
+          "date_only_sun",
+          "natal_chart"
+        ],
+        "title": "SourceLevel",
+        "type": "string"
+      },
+      "SubmitResponseRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "display_alias": {
+            "anyOf": [
+              {
+                "maxLength": 24,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Alias"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 16,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "identity_mode": {
+            "$ref": "#/components/schemas/IdentityMode",
+            "default": "anonymous"
+          },
+          "statement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 3,
+            "title": "Statement Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "statement_ids",
+          "idempotency_key"
+        ],
+        "title": "SubmitResponseRequest",
+        "type": "object"
+      },
+      "SubmitResponseResult": {
+        "properties": {
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "resumed": {
+            "title": "Resumed",
+            "type": "boolean"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "submitted_at",
+          "resumed"
+        ],
+        "title": "SubmitResponseResult",
+        "type": "object"
+      },
+      "SupportedConfigResponse": {
+        "properties": {
+          "ayanamsas": {
+            "items": {
+              "$ref": "#/components/schemas/Ayanamsa"
+            },
+            "title": "Ayanamsas",
+            "type": "array"
+          },
+          "house_systems": {
+            "items": {
+              "$ref": "#/components/schemas/HouseSystem"
+            },
+            "title": "House Systems",
+            "type": "array"
+          },
+          "node_modes": {
+            "items": {
+              "$ref": "#/components/schemas/NodeMode"
+            },
+            "title": "Node Modes",
+            "type": "array"
+          },
+          "recommended": {
+            "items": {
+              "$ref": "#/components/schemas/CalculationConfig"
+            },
+            "title": "Recommended",
+            "type": "array"
+          }
+        },
+        "required": [
+          "recommended",
+          "ayanamsas",
+          "node_modes",
+          "house_systems"
+        ],
+        "title": "SupportedConfigResponse",
+        "type": "object"
+      },
+      "TimePrecision": {
+        "enum": [
+          "exact",
+          "approximate",
+          "unknown"
+        ],
+        "title": "TimePrecision",
+        "type": "string"
+      },
+      "Tradition": {
+        "enum": [
+          "western",
+          "jyotish"
+        ],
+        "title": "Tradition",
+        "type": "string"
+      },
+      "TransitPhase": {
+        "enum": [
+          "approaching",
+          "exact",
+          "separating"
+        ],
+        "title": "TransitPhase",
+        "type": "string"
       },
       "ValidationError": {
         "properties": {
@@ -340,6 +3608,34 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VerificationStatus": {
+        "enum": [
+          "not_started",
+          "pending",
+          "pass",
+          "fail"
+        ],
+        "title": "VerificationStatus",
+        "type": "string"
+      },
+      "WeeklyIntent": {
+        "enum": [
+          "de_noi_chuyen",
+          "di_cham",
+          "goc_moi",
+          "de_la_can"
+        ],
+        "title": "WeeklyIntent",
+        "type": "string"
+      },
+      "ZodiacMode": {
+        "enum": [
+          "tropical",
+          "sidereal"
+        ],
+        "title": "ZodiacMode",
+        "type": "string"
+      },
       "ZodiacSign": {
         "enum": [
           "aries",
@@ -367,6 +3663,47 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/birth-places/search": {
+      "post": {
+        "operationId": "search_birth_places_v1_birth_places_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlaceResultResponse"
+                  },
+                  "title": "Response Search Birth Places V1 Birth Places Search Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Search Birth Places",
+        "tags": [
+          "birth-chart"
+        ]
+      }
+    },
     "/v1/birth-profile": {
       "get": {
         "operationId": "get_birth_profile_v1_birth_profile_get",
@@ -472,7 +3809,7 @@
             "description": "Forbidden"
           },
           "422": {
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "description": "Service Unavailable"
@@ -481,6 +3818,987 @@
         "summary": "Create Birth Profile",
         "tags": [
           "birth-chart"
+        ]
+      }
+    },
+    "/v1/birth-profile/supplement": {
+      "delete": {
+        "operationId": "remove_birth_supplement_v1_birth_profile_supplement_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BirthSupplementRemoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthSupplementStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Remove Birth Supplement",
+        "tags": [
+          "birth-chart"
+        ]
+      },
+      "get": {
+        "operationId": "get_birth_supplement_v1_birth_profile_supplement_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthSupplementStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Birth Supplement",
+        "tags": [
+          "birth-chart"
+        ]
+      },
+      "post": {
+        "operationId": "add_birth_supplement_v1_birth_profile_supplement_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BirthSupplementRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthSupplementResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Add Birth Supplement",
+        "tags": [
+          "birth-chart"
+        ]
+      }
+    },
+    "/v1/daily-note": {
+      "get": {
+        "operationId": "get_daily_note_v1_daily_note_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_guest",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Guest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyNoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Daily Note",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/daily-note/context": {
+      "post": {
+        "operationId": "project_daily_note_context_v1_daily_note_context_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextProjectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingProjection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Project Daily Note Context",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/daily-note/experiment": {
+      "delete": {
+        "operationId": "undo_experiment_v1_daily_note_experiment_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExperimentMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Undo Experiment",
+        "tags": [
+          "daily-note"
+        ]
+      },
+      "get": {
+        "operationId": "get_current_experiment_v1_daily_note_experiment_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ExperimentResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Current Experiment V1 Daily Note Experiment Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "summary": "Get Current Experiment",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/daily-note/experiment/outcome": {
+      "post": {
+        "operationId": "reflect_on_experiment_v1_daily_note_experiment_outcome_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExperimentOutcomeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExperimentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Reflect On Experiment",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/daily-note/resonance": {
+      "delete": {
+        "operationId": "clear_resonance_v1_daily_note_resonance_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResonanceClearRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear Resonance",
+        "tags": [
+          "daily-note"
+        ]
+      },
+      "get": {
+        "operationId": "get_resonance_status_v1_daily_note_resonance_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResonanceStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "summary": "Get Resonance Status",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/daily-note/{daily_note_id}/experiment": {
+      "put": {
+        "operationId": "choose_experiment_v1_daily_note__daily_note_id__experiment_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "daily_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Daily Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExperimentChooseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExperimentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Choose Experiment",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/daily-note/{daily_note_id}/mood": {
+      "get": {
+        "operationId": "get_current_mood_v1_daily_note__daily_note_id__mood_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "daily_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Daily Note Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MoodResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Current Mood V1 Daily Note  Daily Note Id  Mood Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Current Mood",
+        "tags": [
+          "daily-note"
+        ]
+      },
+      "put": {
+        "operationId": "check_in_mood_v1_daily_note__daily_note_id__mood_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "daily_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Daily Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Check In Mood",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/daily-note/{daily_note_id}/resonance": {
+      "put": {
+        "operationId": "record_resonance_v1_daily_note__daily_note_id__resonance_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "daily_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Daily Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResonanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResonanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Record Resonance",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/daily-note/{daily_note_id}/saved": {
+      "delete": {
+        "operationId": "unsave_note_v1_daily_note__daily_note_id__saved_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "daily_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Daily Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unsave Note",
+        "tags": [
+          "saved-notes"
+        ]
+      },
+      "put": {
+        "operationId": "save_note_v1_daily_note__daily_note_id__saved_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "daily_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Daily Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SavedNoteRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedNoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Note",
+        "tags": [
+          "saved-notes"
+        ]
+      }
+    },
+    "/v1/daily-note/{daily_note_id}/share-artifacts": {
+      "post": {
+        "operationId": "create_share_artifact_v1_daily_note__daily_note_id__share_artifacts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "daily_note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Daily Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareArtifactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareArtifactResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Create Share Artifact",
+        "tags": [
+          "share"
         ]
       }
     },
@@ -588,7 +4906,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           }
         },
         "summary": "Create Guest Session",
@@ -615,6 +4933,1985 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/v1/identity/claim": {
+      "post": {
+        "operationId": "claim_identity_v1_identity_claim_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerClaimResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Claim Identity",
+        "tags": [
+          "identity"
+        ]
+      }
+    },
+    "/v1/insights/configs": {
+      "get": {
+        "operationId": "supported_configs_v1_insights_configs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportedConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Supported Configs",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/v1/insights/current-sky": {
+      "get": {
+        "operationId": "current_sky_v1_insights_current_sky_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tradition",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Tradition",
+              "default": "western"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentSkyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Current Sky",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/v1/insights/overview": {
+      "get": {
+        "operationId": "insight_overview_v1_insights_overview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tradition",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Tradition",
+              "default": "western"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ayanamsa",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Ayanamsa"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ayanamsa"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_mode",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/NodeMode",
+              "default": "true"
+            }
+          },
+          {
+            "in": "query",
+            "name": "house_system",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HouseSystem"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "House System"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightOverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Insight Overview",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/v1/insights/readings/{purpose}": {
+      "get": {
+        "operationId": "private_reading_v1_insights_readings__purpose__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "purpose",
+            "required": true,
+            "schema": {
+              "enum": [
+                "aura",
+                "reading_detail",
+                "personalized_sky"
+              ],
+              "title": "Purpose",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tradition",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Tradition",
+              "default": "western"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ayanamsa",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Ayanamsa"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ayanamsa"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_mode",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/NodeMode",
+              "default": "true"
+            }
+          },
+          {
+            "in": "query",
+            "name": "house_system",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HouseSystem"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "House System"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingProjection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Private Reading",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/v1/la-chung/requests": {
+      "get": {
+        "operationId": "list_invites_v1_la_chung_requests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InviteResponse"
+                  },
+                  "title": "Response List Invites V1 La Chung Requests Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Invites",
+        "tags": [
+          "la-chung"
+        ]
+      },
+      "post": {
+        "operationId": "create_invite_v1_la_chung_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Create Invite",
+        "tags": [
+          "la-chung"
+        ]
+      }
+    },
+    "/v1/la-chung/requests/{request_id}/replacement": {
+      "post": {
+        "operationId": "replace_invite_v1_la_chung_requests__request_id__replacement_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace Invite",
+        "tags": [
+          "la-chung"
+        ]
+      }
+    },
+    "/v1/la-chung/requests/{request_id}/resend": {
+      "post": {
+        "operationId": "resend_invite_v1_la_chung_requests__request_id__resend_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resend Invite",
+        "tags": [
+          "la-chung"
+        ]
+      }
+    },
+    "/v1/la-chung/requests/{request_id}/revoke": {
+      "post": {
+        "operationId": "revoke_invite_v1_la_chung_requests__request_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Invite",
+        "tags": [
+          "la-chung"
+        ]
+      }
+    },
+    "/v1/la-chung/results/{request_id}": {
+      "delete": {
+        "operationId": "delete_owner_result_v1_la_chung_results__request_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Owner Result",
+        "tags": [
+          "la-chung"
+        ]
+      },
+      "get": {
+        "operationId": "owner_result_v1_la_chung_results__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Owner Result",
+        "tags": [
+          "la-chung"
+        ]
+      }
+    },
+    "/v1/la-chung/results/{request_id}/hide": {
+      "post": {
+        "operationId": "hide_owner_result_v1_la_chung_results__request_id__hide_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hide Owner Result",
+        "tags": [
+          "la-chung"
+        ]
+      }
+    },
+    "/v1/matching/consent": {
+      "delete": {
+        "operationId": "withdraw_consent_v1_matching_consent_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Withdraw Consent",
+        "tags": [
+          "matching"
+        ]
+      },
+      "post": {
+        "operationId": "grant_consent_v1_matching_consent_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchingConsentInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Grant Consent",
+        "tags": [
+          "matching"
+        ]
+      }
+    },
+    "/v1/matching/pool-membership": {
+      "put": {
+        "operationId": "set_pool_membership_v1_matching_pool_membership_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PoolMembershipInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchingProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Pool Membership",
+        "tags": [
+          "matching"
+        ]
+      }
+    },
+    "/v1/matching/profile": {
+      "put": {
+        "operationId": "put_profile_v1_matching_profile_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchingProfileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchingProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Profile",
+        "tags": [
+          "matching"
+        ]
+      }
+    },
+    "/v1/matching/readiness": {
+      "get": {
+        "operationId": "get_readiness_v1_matching_readiness_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchingReadinessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        },
+        "summary": "Get Readiness",
+        "tags": [
+          "matching"
+        ]
+      }
+    },
+    "/v1/public/la-chung/receipt/withdraw": {
+      "post": {
+        "operationId": "withdraw_response_v1_public_la_chung_receipt_withdraw_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_lc_receipt",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Lc Receipt"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Withdraw Response",
+        "tags": [
+          "la-chung-public"
+        ]
+      }
+    },
+    "/v1/public/la-chung/{token}": {
+      "get": {
+        "operationId": "public_invite_v1_public_la_chung__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicInviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Public Invite",
+        "tags": [
+          "la-chung-public"
+        ]
+      }
+    },
+    "/v1/public/la-chung/{token}/report": {
+      "post": {
+        "operationId": "report_invite_v1_public_la_chung__token__report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Invite",
+        "tags": [
+          "la-chung-public"
+        ]
+      }
+    },
+    "/v1/public/la-chung/{token}/responses": {
+      "post": {
+        "operationId": "submit_response_v1_public_la_chung__token__responses_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitResponseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitResponseResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Response",
+        "tags": [
+          "la-chung-public"
+        ]
+      }
+    },
+    "/v1/public/radar/current": {
+      "get": {
+        "operationId": "current_invite_v1_public_radar_current_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_radar_invite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Radar Invite"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRadarInviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Current Invite",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/public/radar/current/accept": {
+      "post": {
+        "operationId": "accept_invite_v1_public_radar_current_accept_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "la_lanh_radar_invite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Radar Invite"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Invite",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/public/radar/current/decline": {
+      "post": {
+        "operationId": "decline_invite_v1_public_radar_current_decline_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_radar_invite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Radar Invite"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarBoundActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decline Invite",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/public/radar/receipt": {
+      "get": {
+        "operationId": "receipt_result_v1_public_radar_receipt_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_radar_receipt",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Radar Receipt"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Receipt Result",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/public/radar/receipt/withdraw": {
+      "post": {
+        "operationId": "withdraw_result_v1_public_radar_receipt_withdraw_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_radar_receipt",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Radar Receipt"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarBoundActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Withdraw Result",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/public/radar/{token}": {
+      "get": {
+        "operationId": "public_preview_v1_public_radar__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRadarInviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Public Preview",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
+    "/v1/radar/private-checks": {
+      "post": {
+        "operationId": "create_private_check_v1_radar_private_checks_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarPrivateCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Private Check",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/requests": {
+      "get": {
+        "operationId": "list_requests_v1_radar_requests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RadarInviteResponse"
+                  },
+                  "title": "Response List Requests V1 Radar Requests Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Requests",
+        "tags": [
+          "radar"
+        ]
+      },
+      "post": {
+        "operationId": "create_request_v1_radar_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarInviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Request",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/requests/{request_id}/revoke": {
+      "post": {
+        "operationId": "revoke_request_v1_radar_requests__request_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Request",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/requests/{request_id}/share": {
+      "post": {
+        "operationId": "share_request_v1_radar_requests__request_id__share_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarInviteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Share Request",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/results/{request_id}": {
+      "delete": {
+        "operationId": "delete_owner_result_v1_radar_results__request_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Owner Result",
+        "tags": [
+          "radar"
+        ]
+      },
+      "get": {
+        "operationId": "owner_result_v1_radar_results__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Owner Result",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/reading-projections/{scope_key}/activate": {
+      "put": {
+        "operationId": "activate_reading_projection_v1_reading_projections__scope_key__activate_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_key",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "Scope Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateReadingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingProjection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Activate Reading Projection",
+        "tags": [
+          "daily-note"
+        ]
+      }
+    },
+    "/v1/reading-projections/{scope_key}/aura-transition/acknowledge": {
+      "put": {
+        "operationId": "acknowledge_aura_transition_v1_reading_projections__scope_key__aura_transition_acknowledge_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_key",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "Scope Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcknowledgeAuraTransitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingProjection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Acknowledge Aura Transition",
+        "tags": [
+          "daily-note"
         ]
       }
     },
@@ -646,6 +6943,62 @@
         "summary": "Readiness",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/v1/saved-notes": {
+      "get": {
+        "operationId": "list_saved_notes_v1_saved_notes_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "la_lanh_guest",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "La Lanh Guest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedNoteResponse"
+                  },
+                  "title": "Response List Saved Notes V1 Saved Notes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Saved Notes",
+        "tags": [
+          "saved-notes"
         ]
       }
     },
@@ -705,6 +7058,191 @@
         "summary": "Get Session",
         "tags": [
           "guest"
+        ]
+      }
+    },
+    "/v1/session/onboarding-status": {
+      "put": {
+        "operationId": "update_onboarding_status_v1_session_onboarding_status_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Onboarding Status",
+        "tags": [
+          "guest"
+        ]
+      }
+    },
+    "/v1/share-artifacts/{artifact_id}": {
+      "delete": {
+        "operationId": "revoke_share_artifact_v1_share_artifacts__artifact_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artifact_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artifact Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Share Artifact",
+        "tags": [
+          "share"
+        ]
+      }
+    },
+    "/v1/share-artifacts/{share_token}": {
+      "get": {
+        "operationId": "get_share_artifact_v1_share_artifacts__share_token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "share_token",
+            "required": true,
+            "schema": {
+              "title": "Share Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicShareArtifactResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Share Artifact",
+        "tags": [
+          "share"
         ]
       }
     }

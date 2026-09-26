@@ -1,0 +1,28 @@
+{
+  "run_id": "2026-09-07-final-us01-us09",
+  "accepted_and_recorded_in": "docs/reviews/2026-09-07-chart-synthesis-release-review.md",
+  "findings": [
+    {
+      "#": 3,
+      "severity": "P2",
+      "file": "apps/api/app/api/v1/routes/daily_notes.py",
+      "line": 183,
+      "title": "Document problem response bodies in OpenAPI",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "suggested_fix": "Add one shared ProblemResponse contract and align validation/domain failure media types before publishing an external SDK.",
+      "confidence": 75
+    },
+    {
+      "#": 10,
+      "severity": "P2",
+      "file": "apps/api/app/domains/saved/postgres.py",
+      "line": 64,
+      "title": "Saved history needs pagination before persistent accounts",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "suggested_fix": "Add a stable cursor and Load more before US19 removes the current 30-day guest-session bound.",
+      "confidence": 75
+    }
+  ]
+}

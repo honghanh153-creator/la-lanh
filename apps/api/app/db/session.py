@@ -1,10 +1,20 @@
-from sqlalchemy import text
+from typing import Any
+
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
+
+def _enable_sqlite_foreign_keys(dbapi_connection: Any, _connection_record: Any) -> None:
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+    finally:
+        cursor.close()
 
 
 class Database:
@@ -15,6 +25,8 @@ class Database:
             pool_pre_ping=True,
             pool_recycle=300,
         )
+        if self.is_local_sqlite:
+            event.listen(self.engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
         self.sessions = async_sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
     async def initialize(self) -> None:

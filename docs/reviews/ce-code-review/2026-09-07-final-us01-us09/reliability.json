@@ -1,0 +1,49 @@
+{
+  "reviewer": "reliability",
+  "findings": [
+    {
+      "title": "Give API requests a bounded deadline",
+      "severity": "P1",
+      "file": "apps/web/src/shared/api/client.ts",
+      "line": 105,
+      "why_it_matters": "When the API, native transport, or a proxy accepts a connection but stops responding, every new API-backed screen can remain pending indefinitely because the shared request boundary has no deadline. The new Daily, reading, save, and native-session flows all use this boundary, so the UI cannot reach its existing error or offline fallback state. Compose each caller signal with a short shared timeout so callers receive a failure they can render or queue instead of waiting forever.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "In request(), create a bounded AbortSignal (for example 15 seconds) and compose it with init?.signal before fetch; preserve caller cancellation and translate a timeout into the same user-visible retry/offline path used by the affected screens. Add a client test for a fetch promise that never resolves.",
+      "confidence": 75,
+      "evidence": [
+        "apps/web/src/shared/api/client.ts:105-114 -- async function request<T>(path: string, init?: RequestInit): Promise<T> {\n  const response = await fetch(`${runtimeConfig.VITE_API_BASE_URL}${path}`, {\n    ...init,\n    credentials: \"include\",\n    headers: {\n      Accept: \"application/json\",\n      ...nativeClientHeader(),\n      ...init?.headers,\n    },\n  });",
+        "apps/web/src/shared/api/client.ts:207-210 -- export async function getDailyNote(signal?: AbortSignal): Promise<DailyNote> {\n  const note = await request<DailyNote>(\"/daily-note\", { signal });\n  lastDailyRevisionId = note.reading_projection?.active.revision_id ?? null;\n  return note;",
+        "apps/web/src/shared/api/client.ts:240-248 -- export async function saveDailyNote(\n  dailyNoteId: string,\n  revisionId: string | null = currentDailyRevisionId(),\n): Promise<SavedNote> {\n  try {\n    return await request<SavedNote>(`/daily-note/${dailyNoteId}/saved`, {"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Keep the generation worker alive after failures",
+      "severity": "P2",
+      "file": "apps/api/app/domains/readings/worker.py",
+      "line": 166,
+      "why_it_matters": "A transient database failure, lease-finalization failure, or unexpected provider exception escapes process_one and terminates the sole worker loop. No later attempts are leased until an external supervisor restarts the process, leaving optional generated updates permanently pending even after the dependency recovers. Catch and log loop-level operational failures, then use a capped backoff before the next lease; do not retry a possibly sent provider request directly, so the existing durable ambiguity rule remains intact.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Wrap process_one() in run_forever() with an Exception handler that logs a safe error, sleeps using capped exponential backoff with jitter, and then continues leasing; reset the backoff after a successful iteration. Do not call the provider again from the handler. Add tests that make a repository operation and an unexpected provider call fail once, then verify the loop continues and preserves the durable lease semantics.",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/app/domains/readings/worker.py:166-169 -- async def run_forever(self, *, poll_seconds: float = 2.0) -> None:\n    while True:\n        if not await self.process_one():\n            await asyncio.sleep(poll_seconds)",
+        "apps/api/app/domains/readings/worker.py:73-84 -- result = await self._provider.generate(lease.plan_record.plan)\ncompleted_at = self._clock()\nif isinstance(result, GenerationSuccess):\n    await self._accept_success(lease, result, completed_at)\nelif isinstance(result, GenerationTransient):\n    await self._handle_transient(lease, result, completed_at)\nelse:\n    await self._repository.fail_generation_attempt(",
+        "apps/api/app/domains/readings/worker.py:55-58 -- lease = await self._repository.lease_generation_attempt(\n    now=self._clock(),\n    lease_for_seconds=self._lease_seconds,\n)"
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [
+    "Generation is deliberately optional and has a durable ambiguity rule after the pre-send marker; the proposed loop recovery must not bypass that rule by reissuing a provider call.",
+    "The repository documents a separate worker process, but this checkout contains no deploy manifest for it; deployment supervision and restart behavior should be verified before enabling generation."
+  ],
+  "testing_gaps": [
+    "The client tests cover native headers and CSRF persistence but not a stalled API request reaching a bounded error state.",
+    "Worker tests cover result-state transitions and lease races but not recovery of the run loop after a repository or unexpected provider exception."
+  ]
+}

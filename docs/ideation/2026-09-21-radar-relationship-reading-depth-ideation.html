@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation: Radar đọc cặp đôi có chiều sâu</title>
+  <style>
+    :root { color-scheme: dark; --bg:#08091d; --panel:#12142d; --ink:#f7f3ff; --muted:#b8afd0; --line:#312e59; --lime:#d9ff37; --violet:#b995ff; --coral:#ff8b7c; --paper:#fff9e9; --paper-ink:#16152c; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(circle at 80% 0,#24174b 0,transparent 34rem),var(--bg); color:var(--ink); font:15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { width:min(940px,calc(100% - 32px)); margin:0 auto; padding:48px 0 80px; }
+    header { padding:32px; border:1px solid var(--line); border-radius:28px; background:linear-gradient(135deg,rgba(20,22,49,.96),rgba(16,12,40,.88)); }
+    .kicker,.meta dt { color:var(--lime); font-size:.76rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    h1 { max-width:16ch; margin:.25rem 0 1rem; font-size:clamp(2.1rem,7vw,4.6rem); line-height:.98; letter-spacing:-.055em; }
+    h2 { margin:3rem 0 1rem; font-size:1.65rem; letter-spacing:-.025em; }
+    h3 { margin:.2rem 0 .7rem; font-size:1.22rem; }
+    p { max-width:72ch; }
+    .meta { display:flex; flex-wrap:wrap; gap:20px; margin:1.5rem 0 0; }
+    .meta div { min-width:140px; }
+    .meta dd { margin:.1rem 0 0; color:var(--muted); }
+    .context,.idea,.rejects,.sources { padding:24px; border:1px solid var(--line); border-radius:22px; background:rgba(18,20,45,.82); }
+    .context strong { color:var(--lime); }
+    .axes { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; padding:0; list-style:none; }
+    .axes li { padding:14px 16px; border:1px solid var(--line); border-radius:15px; color:var(--muted); background:#10122a; }
+    .jump { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }
+    .jump a { padding:7px 11px; border:1px solid var(--line); border-radius:999px; color:var(--violet); text-decoration:none; }
+    .idea { margin:14px 0; }
+    .rank { display:inline-grid; width:30px; height:30px; place-items:center; margin-right:7px; border-radius:50%; color:var(--paper-ink); background:var(--lime); font-weight:900; }
+    .idea dl { display:grid; grid-template-columns:110px 1fr; gap:6px 14px; margin:1rem 0 0; }
+    .idea dt { color:var(--violet); font-weight:800; }
+    .idea dd { margin:0; color:var(--muted); }
+    .flow { margin:20px 0 6px; padding:18px; border:1px solid var(--line); border-radius:18px; overflow:auto; background:#0c0e24; }
+    .flow svg { display:block; width:100%; min-width:660px; height:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--lime); font-size:.75rem; letter-spacing:.08em; text-transform:uppercase; }
+    a { color:#d3b9ff; }
+    code { color:#f5c6ff; }
+    .tag { display:inline-block; margin-left:8px; padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:.72rem; }
+    footer { margin-top:38px; color:#81799b; font-size:.78rem; }
+    @media (max-width:640px) { main{width:min(100% - 20px,940px);padding-top:18px} header,.context,.idea,.rejects,.sources{padding:18px}.idea dl{grid-template-columns:1fr}.idea dd{margin-bottom:8px} }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="kicker">Ideation · Repo-grounded</p>
+    <h1>Radar phải kể được chuyện của đúng hai người này.</h1>
+    <p>Không thêm “văn hay” lên sáu nhãn cũ. Hướng đề xuất là giữ bằng chứng chart đủ sâu, gom thành một dấu vân tay tương tác, rồi dịch nó thành những tình huống người bình thường có thể nhận ra và tự kiểm chứng. Bản cập nhật này bổ sung Compatibility Map để người dùng scan nhanh mức bắt sóng và mức va chạm trước khi đọc sâu.</p>
+    <dl class="meta">
+      <div><dt>Date</dt><dd><time datetime="2026-09-21">2026-09-21</time></dd></div>
+      <div><dt>Topic</dt><dd>radar-relationship-reading-depth</dd></div>
+      <div><dt>Focus</dt><dd>chart depth · content matrix · plain-language reading</dd></div>
+      <div><dt>Mode</dt><dd>repo-grounded</dd></div>
+    </dl>
+  </header>
+
+  <h2>Codebase Context</h2>
+  <section class="context">
+    <p><strong>Vấn đề đã xác minh:</strong> calculation hiện có Synastry v2, house overlay hai chiều và midpoint Composite. Tuy nhiên <code>radar-result-v1</code> chỉ xếp sáu dimension theo contact mạnh nhất rồi lấy một đoạn copy tĩnh cho mỗi dimension. Hai cặp chart khác nhau vì thế có thể đọc gần như cùng một bài.</p>
+    <p><strong>Điểm nghẽn không nằm ở số lượng sách:</strong> registry đã có 23 editorial concept từ 10 nguồn và có provenance. Nhưng planner hiện chọn concept theo dimension, chưa hiểu cụm bằng chứng, chiều A→B/B→A, mâu thuẫn giữa các contact, giai đoạn quan hệ hay tình huống sử dụng.</p>
+    <p><strong>Ranh giới sản phẩm:</strong> Radar là công cụ tự soi, không phải phép đo khoa học về độ hợp. Không chấm phần trăm, không suy ý định/độ an toàn, không chẩn đoán attachment. Raw birth data của người thứ hai trong flow check kín chỉ được tính transient và không được đưa vào log, analytics hay content provider.</p>
+  </section>
+
+  <h2>Topic Axes</h2>
+  <ul class="axes">
+    <li>Độ sâu và vai trò của từng loại chart</li>
+    <li>Cách gom bằng chứng thành pattern riêng của một cặp</li>
+    <li>Ma trận tình huống và giọng kể</li>
+    <li>Cấu trúc đọc dễ hiểu trên app</li>
+    <li>Safety, privacy và đo chất lượng</li>
+  </ul>
+
+  <h2>Ranked Ideas</h2>
+  <nav class="jump" aria-label="Danh sách ý tưởng">
+    <a href="#idea-1">1. Pair Signature</a><a href="#idea-2">2. Scenario Matrix</a><a href="#idea-3">3. Hai chiều cảm nhận</a><a href="#idea-4">4. Chart ladder</a><a href="#idea-5">5. Tension pairs</a><a href="#idea-6">6. Evidence receipt</a><a href="#idea-7">7. Distinctness lab</a>
+  </nav>
+
+  <article class="idea" id="idea-1">
+    <h3><span class="rank">1</span>Pair Signature — dấu vân tay tương tác của đúng cặp này <span class="tag">Khuyến nghị</span></h3>
+    <p>Thay vì chọn dimension cao nhất, engine gom 2–4 bằng chứng liên quan thành một motif có nghĩa: ví dụ “bắt chuyện nhanh nhưng dễ hiểu nhầm lúc im lặng”, “thể hiện quan tâm khác nhịp”, hoặc “hút nhau mạnh nhưng người tiến người lùi”. Mỗi motif phải chứa nguồn lực, điểm dễ lệch và một cách kiểm chứng ngoài đời. Compatibility Map được tính từ chính các motif này, không chạy một công thức tách rời.</p>
+    <div class="flow" aria-label="Minh họa luồng tổng hợp Pair Signature">
+      <svg viewBox="0 0 860 170" role="img" aria-label="Chart facts đi qua motif, tình huống và thành nội dung dễ hiểu">
+        <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#b995ff"/></marker></defs>
+        <g fill="#151835" stroke="#4a4675" stroke-width="1.5"><rect x="10" y="45" width="160" height="78" rx="16"/><rect x="230" y="45" width="160" height="78" rx="16"/><rect x="450" y="45" width="160" height="78" rx="16"/><rect x="670" y="45" width="180" height="78" rx="16"/></g>
+        <g fill="#f7f3ff" font-family="system-ui" font-size="14" text-anchor="middle"><text x="90" y="74">Synastry + overlays</text><text x="90" y="96">+ Composite</text><text x="310" y="74">Cụm bằng chứng</text><text x="310" y="96">có hướng + mâu thuẫn</text><text x="530" y="74">Pair Signature</text><text x="530" y="96">riêng của cặp</text><text x="760" y="74">Tình huống đời thường</text><text x="760" y="96">+ câu hỏi kiểm chứng</text></g>
+        <g stroke="#b995ff" stroke-width="2" marker-end="url(#arrow)"><path d="M170 84H220"/><path d="M390 84H440"/><path d="M610 84H660"/></g>
+      </svg>
+    </div>
+    <dl><dt>Axis</dt><dd>Gom bằng chứng</dd><dt>Basis</dt><dd><strong>direct:</strong> runtime hiện chỉ có dimension + copy tĩnh; <strong>external:</strong> Astrodienst khuyên kết hợp phân tích hai natal, inter-aspects/house placements và Composite thay vì dựa một contact.</dd><dt>Rationale</dt><dd>Đây là thay đổi làm kết quả khác nhau ở cấp ý nghĩa, không phải thay từ.</dd><dt>Downsides</dt><dd>Cần taxonomy motif, xử lý bằng chứng trái chiều và fixture đủ rộng; phức tạp hơn việc thêm template.</dd><dt>Confidence</dt><dd>95%</dd><dt>Complexity</dt><dd>High</dd></dl>
+  </article>
+
+  <h2>Focused Revision: Pair Signature + Compatibility Map</h2>
+  <section class="context">
+    <p><strong>Điều học được từ bài mẫu:</strong> hook “hút mạnh nhưng không nhẹ nhàng” rất hiệu quả vì đặt hai sự thật cạnh nhau. Phần có giá trị nhất là cấu trúc <em>tổng quan → điểm mạnh → điểm khó → điều kiện để vận hành</em>. Phần nên rút là bảy chương placement riêng, các câu khẳng định quá chắc và điểm “tiềm năng lâu dài” vì chart không biết mức trưởng thành, ý định hay hành vi thực tế của hai người.</p>
+    <p><strong>Quyết định đề xuất:</strong> vẫn hiển thị phần trăm, nhưng gọi là <em>chỉ số từ chart</em>, không phải xác suất thành công. Các chỉ số độc lập, không cộng thành 100 và luôn đi cùng Pair Signature giải thích vì sao.</p>
+  </section>
+
+  <article class="idea" id="score-model-a">
+    <h3><span class="rank">A</span>Ba chỉ số độc lập <span class="tag">Khuyến nghị</span></h3>
+    <p><strong>Bắt sóng</strong> đo lực chú ý, chemistry và độ dễ kích hoạt nhau; <strong>Dễ phối hợp</strong> đo lượng evidence cho giao tiếp, cảm xúc và nhịp hành động có thể đi cùng nhau; <strong>Lực cấn</strong> đo lượng ma sát cần thương lượng. Một cặp có thể đồng thời cao ở Bắt sóng và Lực cấn.</p>
+    <dl><dt>Ví dụ</dt><dd><strong>Bắt sóng 86%</strong> · <strong>Dễ phối hợp 58%</strong> · <strong>Lực cấn 72%</strong></dd><dt>Điểm mạnh</dt><dd>Khớp bài mẫu, dễ scan và giữ được nghịch lý “hút nhưng mệt”.</dd><dt>Giới hạn</dt><dd>Phải có tooltip “chỉ số chart, không phải xác suất mối quan hệ thành công” và không được dùng để xếp hạng người.</dd><dt>Confidence</dt><dd>94%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+  </article>
+
+  <article class="idea" id="score-model-b">
+    <h3><span class="rank">B</span>Một Compatibility % + một Conflict %</h3>
+    <p>Hiển thị “Hợp nhịp 71%” và “Dễ va 68%”, sau đó Pair Signature giải thích. Hai số không bù nhau và có thể cùng cao.</p>
+    <dl><dt>Điểm mạnh</dt><dd>Rất dễ hiểu trong một giây, đáp ứng kỳ vọng quen thuộc về compatibility.</dd><dt>Downsides</dt><dd>“Hợp nhịp” vẫn dễ bị đọc thành verdict tổng thể; người dùng có thể bỏ qua phần giải thích và chỉ chụp con số.</dd><dt>Confidence</dt><dd>78%</dd><dt>Complexity</dt><dd>Low–Medium</dd></dl>
+  </article>
+
+  <article class="idea" id="score-model-c">
+    <h3><span class="rank">C</span>Điểm tổng có điều kiện</h3>
+    <p>Hiển thị “Compatibility 72%” và thêm điều kiện như “cao khi rõ ràng, thấp khi mập mờ”. Đây là phiên bản gần nhất với bài mẫu.</p>
+    <dl><dt>Điểm mạnh</dt><dd>Có hook mạnh và shareable.</dd><dt>Downsides</dt><dd>Hai mức điểm theo giả định hành vi không còn là phép tính chart; nó giả vờ biết tương lai và mức trưởng thành của người dùng.</dd><dt>Confidence</dt><dd>42%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+  </article>
+
+  <section class="context">
+    <p><strong>Cách tính nên dùng:</strong> mỗi evidence cluster tạo contribution riêng vào ba kênh. Exactness/orb quyết định độ mạnh; loại body, angle/overlay và mức lặp quyết định salience; aspect geometry và motif quyết định contribution vào Bắt sóng, Dễ phối hợp hoặc Lực cấn. Square/opposition không tự động là “không hợp”: chúng có thể tăng cả Bắt sóng lẫn Lực cấn. Trine/sextile có thể tăng Dễ phối hợp nhưng không được tự động thành độ bền.</p>
+    <p><strong>Không chấm:</strong> “tiềm năng lâu dài”, “khả năng cưới”, “độ an toàn”, “người ấy có thật lòng không” hoặc “trưởng thành bao nhiêu”. Các yếu tố này cần hành vi và lựa chọn ngoài đời mà chart không có.</p>
+  </section>
+
+  <section class="context">
+    <p class="kicker">Mẫu output rút gọn</p>
+    <h3>Hút nhau rõ, nhưng nhịp này không tự chạy êm.</h3>
+    <p>Hai bạn dễ làm nhau thấy hứng thú, được chú ý và muốn tiến gần. Điểm dễ mệt nằm ở chỗ cảm xúc lên nhanh nhưng cách phản hồi và giữ nhịp chưa chắc giống nhau: một người cần tín hiệu rõ, người kia có thể chậm lại khi thấy áp lực.</p>
+    <p><strong>Bắt sóng 86%</strong> · <strong>Dễ phối hợp 58%</strong> · <strong>Lực cấn 72%</strong></p>
+    <p><strong>Điểm hợp:</strong> dễ bắt chuyện, tạo năng lượng và khiến nhau thấy kết nối này có gì đó khác bình thường.</p>
+    <p><strong>Điểm cấn:</strong> im lặng, phản hồi thất thường hoặc kỳ vọng không nói ra dễ bị hiểu thành không ưu tiên nhau.</p>
+    <p><strong>Nếu muốn kiểm chứng:</strong> nhìn vào cách hai người giữ lời và quay lại nói chuyện sau một lần lệch nhịp — đừng chỉ nhìn lúc chemistry đang cao.</p>
+    <p><small>Ba chỉ số mô tả pattern trong hai chart, không phải xác suất mối quan hệ thành công.</small></p>
+  </section>
+
+  <article class="idea" id="idea-2">
+    <h3><span class="rank">2</span>Scenario Matrix — kể theo lúc người dùng thực sự gặp nhau</h3>
+    <p>Content bank xoay quanh hành vi nhìn thấy được: nhắn tin, lên lịch, mở lời, thể hiện quan tâm, cần khoảng riêng, tranh luận, làm hòa và đặt ranh giới. Context <code>crush</code>, <code>friend</code>, <code>partner</code>, <code>someone</code> chỉ thay ví dụ và câu hỏi; không thay chart facts.</p>
+    <dl><dt>Axis</dt><dd>Ma trận nội dung</dd><dt>Basis</dt><dd><strong>direct:</strong> người dùng đang không hiểu “Moon ở vị trí nào” giúp gì; <strong>external:</strong> Gottman chuyển quan hệ thành micro-behavior như bid, turning toward và repair thay vì nhãn tính cách.</dd><dt>Rationale</dt><dd>Người không biết astrology vẫn nhận ra “đúng lúc nào” và có thể bác bỏ nếu không đúng.</dd><dt>Downsides</dt><dd>Phải tránh biến ví dụ thành lời khuyên hay suy diễn sự kiện đã xảy ra.</dd><dt>Confidence</dt><dd>93%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+  </article>
+
+  <article class="idea" id="idea-3">
+    <h3><span class="rank">3</span>Hai chiều cảm nhận — A chạm B không đồng nghĩa B chạm A giống nhau</h3>
+    <p>Mỗi motif quan trọng được phép có hai perspective: “bạn có thể thấy…” và “người kia có thể nhận tín hiệu này như…”. House overlay A→B/B→A và vai trò planet owner/receiver là căn cứ; câu chữ luôn conditional, không giả giọng người kia.</p>
+    <dl><dt>Axis</dt><dd>Độ sâu chart + copy</dd><dt>Basis</dt><dd><strong>direct:</strong> engine đã tính overlay hai chiều nhưng projection bỏ mất; <strong>reasoned:</strong> chính bất đối xứng giải thích vì sao cùng một interaction mà hai người nhớ khác nhau.</dd><dt>Rationale</dt><dd>Tạo cảm giác cá nhân hóa mạnh mà không cần thu thêm background riêng tư.</dd><dt>Downsides</dt><dd>Nếu viết chắc chắn sẽ thành mind-reading; cần language gate nghiêm.</dd><dt>Confidence</dt><dd>91%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+  </article>
+
+  <article class="idea" id="idea-4">
+    <h3><span class="rank">4</span>Chart Ladder — mỗi chart trả lời đúng một câu</h3>
+    <p>Natal baseline trả lời “mỗi người mang nhịp gì vào kết nối”; Synastry trả lời “hai nhịp chạm nhau ra sao”; house overlay trả lời “chuyện ấy dễ lộ ở vùng nào”; Composite trả lời “khi ở cạnh nhau, nhịp chung dễ thành gì”. Transit và Davison không nằm trong kết quả nền; chỉ mở sau như “vì sao dạo này điều này nổi lên”, khi đủ phương pháp và consent.</p>
+    <dl><dt>Axis</dt><dd>Vai trò chart</dd><dt>Basis</dt><dd><strong>external:</strong> Astrodienst phân biệt Synastry, midpoint Composite và Davison; Composite là construction biểu tượng còn Davison là midpoint thời gian/địa điểm.</dd><dt>Rationale</dt><dd>Ngăn engine “đếm nhiều technique” nhưng làm người đọc rối; mỗi lớp phải kiếm được chỗ trong câu chuyện.</dd><dt>Downsides</dt><dd>Composite house và corrected Davison hiện chưa đủ chuẩn, nên phải fail-closed.</dd><dt>Confidence</dt><dd>94%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+  </article>
+
+  <article class="idea" id="idea-5">
+    <h3><span class="rank">5</span>Tension Pair — luôn đọc cả “dễ vào” và “dễ mệt”</h3>
+    <p>Không có contact nào được phép đứng một mình thành verdict. Một reading tốt ghép ít nhất một nguồn lực với một điểm cần thương lượng. Khi có bằng chứng trái chiều, output nói rõ “hai điều này có thể cùng đúng” thay vì chọn phe hoặc làm mờ bằng chữ “mixed”.</p>
+    <dl><dt>Axis</dt><dd>Tổng hợp và uncertainty</dd><dt>Basis</dt><dd><strong>direct:</strong> tone hiện nén thành flow/activation/mixed; <strong>reasoned:</strong> quan hệ thật vừa có lực hút vừa có điểm cấn, và sự cùng tồn tại mới tạo specificity.</dd><dt>Rationale</dt><dd>Giảm Barnum effect và tránh cả lời tâng bốc lẫn red-flag astrology.</dd><dt>Downsides</dt><dd>Cần rule xác định khi nào bằng chứng đủ mạnh để foreground.</dd><dt>Confidence</dt><dd>90%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+  </article>
+
+  <article class="idea" id="idea-6">
+    <h3><span class="rank">6</span>Evidence Receipt — giải nghĩa trước, thuật ngữ sau</h3>
+    <p>Mỗi card mở bằng tiếng đời thường. Accordion “Vì sao Lá đọc vậy?” mới hiện chart factors, orb, chiều tác động, giới hạn do thiếu giờ sinh và nguồn concept. Người dùng hiểu nội dung mà vẫn kiểm tra được, thay vì nhận câu “dựa trên 3 contact”.</p>
+    <dl><dt>Axis</dt><dd>UX nội dung</dd><dt>Basis</dt><dd><strong>direct:</strong> UI hiện chỉ đếm số contact, không nói chúng nối hai chức năng nào; <strong>reasoned:</strong> explainability có ích khi giải nghĩa claim, không phải khi chỉ phô metadata.</dd><dt>Rationale</dt><dd>Giữ trải nghiệm dễ vào nhưng không biến engine thành hộp đen.</dd><dt>Downsides</dt><dd>Cần bản dịch nhất quán cho body/aspect/house và tránh thuật ngữ kỹ thuật ở lớp đầu.</dd><dt>Confidence</dt><dd>92%</dd><dt>Complexity</dt><dd>Low–Medium</dd></dl>
+  </article>
+
+  <article class="idea" id="idea-7">
+    <h3><span class="rank">7</span>Distinctness Lab — test “đổi người thì bài có đổi thật không?”</h3>
+    <p>Thêm bộ benchmark cặp chart với ba phép thử: swap một người, near-neighbor chart và missing-time degradation. Đo semantic overlap, số claim đổi, bằng chứng còn hợp lệ và khả năng người không biết astro kể lại ý chính bằng lời của họ.</p>
+    <dl><dt>Axis</dt><dd>Đo chất lượng</dd><dt>Basis</dt><dd><strong>direct:</strong> audit hiện đã yêu cầu near-neighbor nhưng Radar chưa có distinctness benchmark; <strong>reasoned:</strong> passing unit tests không chứng minh nội dung có hồn.</dd><dt>Rationale</dt><dd>Biến “cảm giác cá nhân hóa” thành release gate thay vì tranh luận cảm tính.</dd><dt>Downsides</dt><dd>Cần golden corpus và human review; metric ngữ nghĩa không tự nó đánh giá sự hữu ích.</dd><dt>Confidence</dt><dd>89%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+  </article>
+
+  <h2>Rejection Summary</h2>
+  <section class="rejects">
+    <table>
+      <thead><tr><th>#</th><th>Ý tưởng đã cân nhắc</th><th>Lý do loại</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Một điểm compatibility duy nhất, không có breakdown</td><td>Nén mất nghịch lý “vừa hút vừa cấn” và dễ bị đọc như xác suất thành công. Thay bằng ba chỉ số độc lập gắn với Pair Signature.</td></tr>
+        <tr><td>2</td><td>Hiện toàn bộ aspect thành danh sách dài</td><td>Có vẻ “nhiều dữ liệu” nhưng đẩy công việc tổng hợp sang người dùng.</td></tr>
+        <tr><td>3</td><td>Cho LLM tự viết từ raw chart</td><td>Khó kiểm chứng, dễ bịa fact, rò dữ liệu và vượt content gate.</td></tr>
+        <tr><td>4</td><td>Thêm thật nhiều template đồng nghĩa</td><td>Tăng biến thể chữ nhưng không tăng biến thể insight.</td></tr>
+        <tr><td>5</td><td>Dùng transit làm hero ngay khi check</td><td>Trộn “nhịp nền” với “vì sao dạo này”, khiến kết quả mau lỗi thời và dễ thành dự báo.</td></tr>
+        <tr><td>6</td><td>Gắn nhãn attachment/personality cho hai người</td><td>Không thể suy ra từ birth chart và có nguy cơ chẩn đoán, đóng khung.</td></tr>
+        <tr><td>7</td><td>Mở Jyotish D9/Ashtakoota để làm kết quả “xịn” hơn</td><td>Fact layer chưa có expert-approved interpretation; không được mix tradition hoặc dùng điểm để rank.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <h2>Kết luận hướng nên mang sang requirement</h2>
+  <section class="context">
+    <p><strong>Chọn Pair Signature + Compatibility Map + Scenario Matrix:</strong> Pair Signature là xương sống tính toán; ba chỉ số Bắt sóng, Dễ phối hợp và Lực cấn là lớp scan nhanh; Scenario Matrix là ngôn ngữ đầu ra. Hai chiều cảm nhận, Chart Ladder, Tension Pair và Evidence Receipt là các rule bắt buộc. Distinctness Lab là release gate.</p>
+    <p>V1 chỉ cần Western Tropical với hai chart đủ giờ/nơi sinh. Không mở thêm technique chỉ để tăng cảm giác “xịn”; mở chart nào thì chart đó phải thay đổi được một phần nội dung có ích và vẫn truy ngược được bằng chứng.</p>
+  </section>
+
+  <h2>Sources &amp; References</h2>
+  <section class="sources">
+    <ul>
+      <li><a href="https://www.astro.com/prod/pr_relation_p.htm">Astrodienst — Relationship Charts</a>: vai trò Synastry, house placements, Composite và Davison.</li>
+      <li><a href="https://www.astro.com/swisseph/swisseph.htm">Swiss Ephemeris documentation</a>: calculation baseline, houses và planetary positions.</li>
+      <li><a href="https://www.gottman.com/about/research/">The Gottman Institute — Research overview</a>: micro-behaviors, bids, repair và shared meaning.</li>
+      <li><a href="https://www.gottman.com/blog/repair-secret-weapon-emotionally-connected-couples/">The Gottman Institute — Repair attempts</a>: chuyển khái niệm quan hệ thành hành vi có thể quan sát.</li>
+      <li><a href="https://vanban.chinhphu.vn/?docid=214590&amp;pageid=27160">Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15</a>, hiệu lực 2026-01-01.</li>
+      <li><a href="https://mas.owasp.org/MASVS/12-MASVS-PRIVACY/">OWASP MASVS Privacy</a>: tối thiểu hóa dữ liệu, tránh lộ dữ liệu nhạy cảm trên client/log/UI.</li>
+      <li><code>apps/api/app/domains/radar/service.py</code>, <code>apps/api/app/domains/astro/engine.py</code>, <code>apps/api/app/domains/relationships/knowledge.py</code>.</li>
+      <li><code>docs/foundation/la-lanh-relationship-engine-spec.md</code> và <code>docs/reviews/2026-09-18-knowledge-base-coverage-audit.md</code>.</li>
+    </ul>
+  </section>
+
+  <footer>Updated 2026-09-21 by ce-ideate from the current Radar result review, the supplied sample reading and repository evidence.</footer>
+</main>
+</body>
+</html>

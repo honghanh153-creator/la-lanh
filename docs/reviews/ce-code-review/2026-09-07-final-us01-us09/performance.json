@@ -1,0 +1,27 @@
+{
+  "reviewer": "performance",
+  "findings": [
+    {
+      "title": "Paginate saved-note history",
+      "severity": "P2",
+      "file": "apps/api/app/domains/saved/postgres.py",
+      "line": 64,
+      "why_it_matters": "Opening Saved Notes fetches every saved record for a guest, decrypts every encrypted snapshot, and returns each full reading payload before the page can render. Because saved history grows for the lifetime of an account and the client mounts an article for every response item, users with a long history will see progressively slower navigation, larger response bodies, and avoidable memory/DOM pressure. A bounded cursor page lets the initial screen render promptly while preserving access to older notes on demand.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Replace the array endpoint with a cursor-paginated response (for example, 20 records ordered by saved_at DESC, id DESC), add a matching (guest_id, saved_at DESC, id DESC) index, and have SavedPage request subsequent pages with an explicit Load more control or an infinite query. Keep the default page size bounded server-side even when the client omits it.",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/app/domains/saved/postgres.py:64-69 -- rows = await session.scalars(select(SavedNoteRow).where(SavedNoteRow.guest_id == guest_id).order_by(SavedNoteRow.saved_at.desc())); return tuple(_record(row, self._envelope) for row in rows)",
+        "apps/api/app/api/v1/routes/saved_notes.py:108-129 -- GET /saved-notes accepts no page or cursor parameters and builds a response item for every saved record.",
+        "apps/web/src/features/saved/SavedPage.tsx:72-90 -- notes.map renders every returned saved note, including each full reading snapshot."
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": [
+    "No saved-notes test exercises a guest with multiple pages of encrypted saved readings or asserts a bounded response size."
+  ]
+}

@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ideation — Ma trận cá nhân hoá Daily Note</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
+  <style>
+    :root{color-scheme:dark;--bg:#09051a;--panel:#171028;--glass:#211735d9;--ink:#fff8e9;--muted:#c8bbd6;--line:#4f3d68;--lime:#ddff32;--coral:#ff766d;--lav:#c99cff;--cyan:#75ddf2;--paper:#f5ecd9;--paper-ink:#24152e;--good:#9de3bd}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 85% 2%,#3d245a 0,transparent 28rem),radial-gradient(circle at 0 38%,#13294f 0,transparent 32rem),var(--bg);color:var(--ink);font:400 15px/1.68 "Be Vietnam Pro",system-ui,sans-serif}
+    .page{width:min(960px,calc(100% - 32px));margin:auto;padding:52px 0 80px}.hero,.panel,.idea{border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025));border-radius:26px}.hero{position:relative;overflow:hidden;padding:34px}.hero:after{content:"✦";position:absolute;right:36px;top:22px;color:var(--coral);font-size:5rem;opacity:.55}.eyebrow,.axis,.label{font-size:.75rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.eyebrow,.label{color:var(--lime)}h1{max-width:14ch;margin:.35rem 0 .8rem;font-size:clamp(2.2rem,7vw,4.5rem);line-height:1.02;letter-spacing:-.045em}h2{margin:3.1rem 0 1rem;font-size:1.55rem}h3{margin:.25rem 0 .7rem;font-size:1.32rem;line-height:1.26}.lede{max-width:70ch;color:#e6dced;font-size:1.04rem}.meta,.chips,.jump{display:flex;flex-wrap:wrap;gap:8px}.meta{margin-top:22px}.chip{padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);font-size:.78rem}.chip b{color:var(--ink)}nav{position:sticky;top:10px;z-index:4;display:flex;gap:7px;overflow:auto;margin:18px 0;padding:10px;border:1px solid var(--line);border-radius:18px;background:#0d081de8;backdrop-filter:blur(16px)}nav a,.jump a{white-space:nowrap;color:var(--ink);text-decoration:none;padding:7px 10px;border-radius:10px;font-weight:650;font-size:.83rem}nav a:hover,.jump a:hover{background:var(--panel);color:var(--lime)}section{scroll-margin-top:92px}.panel,.idea{padding:24px;margin:14px 0}.panel p,.panel li,.idea p{max-width:76ch}.axes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.axis-card{padding:17px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}.axis-card b{display:block;color:var(--lime);margin-bottom:4px}.jump{margin:0 0 18px}.jump a{border:1px solid var(--line)}.idea{position:relative;overflow:hidden}.idea.top{border-color:var(--lime);box-shadow:0 0 0 1px rgba(221,255,50,.17),0 22px 72px #0007}.rank{display:inline-grid;place-items:center;width:35px;height:35px;border-radius:50%;background:var(--lime);color:#150b22;font-weight:900}.axis{color:var(--lav);margin:.85rem 0 .2rem}.idea dl{display:grid;grid-template-columns:8.5rem 1fr;gap:9px 16px;margin:18px 0 0}.idea dt{font-weight:700;color:var(--muted)}.idea dd{margin:0}.confidence{background:var(--good);border:0;color:#10251a}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:22px 0 4px}.flow div{position:relative;min-height:112px;padding:14px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}.flow div+div:before{content:"→";position:absolute;left:-17px;top:40px;color:var(--coral);font-weight:900}.flow b{display:block;color:var(--lime);font-size:.8rem;margin-bottom:6px}.note-demo{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:20px}.paper{padding:22px;border-radius:6px 18px 10px 6px;background:var(--paper);color:var(--paper-ink);transform:rotate(-.35deg);box-shadow:0 18px 50px #0006}.paper .label{color:#7354a3}.paper h3{font-size:1.55rem}.glass{padding:18px;border:1px solid #6a5388;border-radius:20px;background:var(--glass)}.glass b{display:block;color:var(--lime);margin-bottom:8px}.signal{border-left:4px solid var(--coral);padding-left:12px}.source-list{display:grid;gap:8px}.source-list a{color:var(--cyan)}table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:18px;overflow:hidden}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--line)}th{color:var(--lime);font-size:.76rem;text-transform:uppercase;letter-spacing:.06em}footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.79rem}
+    @media(max-width:720px){.page{width:min(100% - 20px,960px);padding-top:20px}.hero,.panel,.idea{padding:20px}.hero:after{font-size:3rem;right:16px}.flow,.note-demo{grid-template-columns:1fr}.flow div{min-height:auto}.flow div+div:before{display:none}.idea dl{grid-template-columns:1fr;gap:2px}.idea dd{margin-bottom:10px}table{display:block;overflow:auto}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media(prefers-reduced-transparency:reduce){nav,.glass{backdrop-filter:none;background:var(--panel)}}
+  </style>
+</head>
+<body>
+<main class="page">
+  <header class="hero">
+    <div class="eyebrow">Lá Lành · Product knowledge ideation</div>
+    <h1>Daily Note cá nhân hơn, không cần đoán mò</h1>
+    <p class="lede">Mở rộng “tổ hợp” không phải bằng cách nhân thêm câu chữ. Hướng mạnh nhất vẫn là năm lớp Chart → Time → Context → Voice → Gate, nhưng bản rà soát 15/09 cho thấy ba mắt xích chưa thành sản phẩm: Context chưa có trend có căn cứ, CTA chưa tạo giá trị sau cú chạm, và Aura đã tính xong nhưng chưa tạo ra một khoảnh khắc nâng cấp người dùng nhìn thấy.</p>
+    <div class="meta">
+      <span class="chip"><b>Date</b> 2026-09-15 · cập nhật từ bản 2026-09-14</span>
+      <span class="chip"><b>Topic</b> daily-note-personalization-matrix</span>
+      <span class="chip"><b>Focus</b> tổ hợp có ý nghĩa, cá nhân hoá và không lặp</span>
+      <span class="chip"><b>Mode</b> repo-grounded</span>
+      <span class="chip"><b>Result</b> giữ 7 hướng nền · thêm 6 quyết định sửa sản phẩm / 50 ứng viên</span>
+    </div>
+  </header>
+
+  <nav aria-label="Mục lục">
+    <a href="#grounding">Grounding</a><a href="#axes">Axes</a><a href="#ideas">7 hướng nền</a><a href="#correction">6 quyết định mới</a><a href="#cuts">Đã loại</a><a href="#sources">Nguồn</a>
+  </nav>
+
+  <section id="grounding">
+    <h2>Grounding Context</h2>
+    <div class="panel">
+      <p><strong>Điểm xuất phát:</strong> engine hiện đã có chart factors, interpretive lens, editorial mode, manifestation, action và chu kỳ 630 ngày; test có thể chứng minh 365 output khác nhau. Nhưng “khác tuple” chưa đồng nghĩa “khác ý”. Một nhóm factor nổi bật nhỏ vẫn có thể quay lại dưới nhiều câu chữ và tất cả cùng kết thúc bằng lời khuyên chung như chậm lại, quan sát, nói rõ.</p>
+      <p><strong>Ranh giới cần giữ:</strong> natal là nền; transit chỉ là kích hoạt thời điểm; một note chỉ có một thesis; context không được biến thành evidence; feedback không được biến thành chẩn đoán hay lá phiếu xác nhận astrology. Daily Note phải đọc được trong 3–5 giây, chi tiết mở dần, app-first 390×844, Be Vietnam Pro duy nhất.</p>
+      <p><strong>Phát hiện chính:</strong> Astrodienst cũng không luôn chọn transit “mạnh nhất” cho từng ngày vì một ảnh hưởng dài có thể lặp nhiều tháng; họ phân bố các transit trên cả năm để giữ relevance lẫn variation. Đây là bằng chứng tốt cho việc thêm lớp temporal editor, nhưng Lá Lành còn cần semantic gate và user-declared context để đạt cảm giác cá nhân.</p>
+    </div>
+  </section>
+
+  <section id="axes">
+    <h2>Topic Axes</h2>
+    <div class="axes">
+      <div class="axis-card"><b>01 · Evidence</b>Độ sâu tổng hợp chart và xử lý dữ liệu giờ sinh không chắc chắn.</div>
+      <div class="axis-card"><b>02 · Time</b>Relevance theo ngày, nhịp transit và chống lặp ở cấp ý.</div>
+      <div class="axis-card"><b>03 · Agency</b>Bối cảnh và feedback do người dùng tự chọn, có consent và reset.</div>
+      <div class="axis-card"><b>04 · Language</b>Cảnh đời cụ thể, giọng nói gần gũi nhưng không gượng Gen Z.</div>
+      <div class="axis-card"><b>05 · Reveal</b>Hierarchy app, “vì sao hôm nay” và progressive disclosure.</div>
+    </div>
+  </section>
+
+  <section id="ideas">
+    <h2>Ranked Ideas</h2>
+    <div class="jump">
+      <a href="#idea-1">1 Signal Stack</a><a href="#idea-2">2 Semantic Setlist</a><a href="#idea-3">3 Two-Speed Story</a><a href="#idea-4">4 Context Dial</a><a href="#idea-5">5 Resonance</a><a href="#idea-6">6 Scene Grammar</a><a href="#idea-7">7 Stable Islands</a>
+    </div>
+
+    <article class="idea top" id="idea-1">
+      <span class="rank">1</span>
+      <div class="axis">All five axes · umbrella direction</div>
+      <h3>Personal Signal Stack</h3>
+      <p><strong>Description:</strong> Biến mỗi note thành kết quả của năm lớp độc lập, không phải một ma trận trộn tất cả với tất cả. Chart tạo danh sách claim hợp lệ; temporal editor chọn điều đáng nói hôm nay; context tùy chọn chọn sân khấu đời thường; delivery profile chọn cách nói; quality gate kiểm tra specificity, novelty, safety và provenance trước khi publish.</p>
+      <div class="flow" aria-label="Mô hình năm lớp">
+        <div><b>1 · CHART</b>Những gì được phép nói</div>
+        <div><b>2 · TIME</b>Vì sao đáng nói hôm nay</div>
+        <div><b>3 · CONTEXT</b>Nó lộ ra ở đâu</div>
+        <div><b>4 · VOICE</b>Người này muốn nghe thế nào</div>
+        <div><b>5 · GATE</b>Có đủ riêng, mới và an toàn?</div>
+      </div>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> repo đã tách chart facts, factor plan, knowledge atoms, renderer và các gates; methodology cũng ghi rõ “chart quyết định nội dung; user quyết định cách muốn nghe”.</dd>
+        <dt>Rationale</dt><dd>Đây là khung giữ hệ thống flexible mà không nổ Cartesian product. Mỗi lớp có thể mở rộng, test và version riêng; personalization vẫn giải thích được.</dd>
+        <dt>Downsides</dt><dd>Phải có contract rất chặt để context/feedback không lấn sang chart truth. Nếu UI phô cả năm lớp cùng lúc, note sẽ mất vẻ tự nhiên.</dd>
+        <dt>Confidence</dt><dd>94%</dd><dt>Complexity</dt><dd>High</dd>
+      </dl>
+      <div class="chips"><span class="chip confidence">Top pick</span><span class="chip">Tăng chiều sâu trước, tăng số câu sau</span></div>
+    </article>
+
+    <article class="idea" id="idea-2">
+      <span class="rank">2</span>
+      <div class="axis">Temporal relevance · content quality</div>
+      <h3>Semantic Setlist + Genericity Gate</h3>
+      <p><strong>Description:</strong> Trước hết chọn một pool ứng viên đủ đúng theo chart và transit. Sau đó rerank theo khoảng cách ý nghĩa với các ngày lân cận: thesis, factor family, life arena, tension, manifestation, action và cadence. Candidate cuối còn phải qua gate: không quá giống stock advice, không chỉ đổi từ, không lặp cùng social geometry, không giả “vì sao hôm nay”.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> knowledge spec yêu cầu note mới phải khác ở cấp ý; audit đã chỉ ra output khác nhau vẫn có thể cảm thấy giống nhau. <strong>external:</strong> Maximal Marginal Relevance cân bằng relevance và diversity.</dd>
+        <dt>Rationale</dt><dd>Đây là cách đo đúng vấn đề người dùng đang cảm thấy. 365 chuỗi khác nhau không còn là đích; đích là 365 ngày có thesis và cách ứng dụng đủ xa nhau.</dd>
+        <dt>Downsides</dt><dd>Cần ontology/embedding hoặc signature tốt; phạt lặp quá mạnh có thể đẩy một factor yếu hơn lên dù nó kém relevant.</dd>
+        <dt>Confidence</dt><dd>93%</dd><dt>Complexity</dt><dd>Medium–High</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-3">
+      <span class="rank">3</span>
+      <div class="axis">Temporal relevance · mobile reveal</div>
+      <h3>Two-Speed Daily Story</h3>
+      <p><strong>Description:</strong> Tách rõ “nền đang chạy” và “điều thật sự đổi hôm nay”. Một slow transit có thể trở lại theo các chương approach → exact → separating hoặc nhận ra → ma sát → resource → thử nghiệm, nhưng headline chỉ đổi khi activation, phase hoặc hero focus đổi thật. Không có delta thì UI nói thẳng “nền này vẫn đang tiếp diễn” thay vì dựng một tín hiệu mới.</p>
+      <div class="note-demo">
+        <div class="paper"><div class="label">HÔM NAY ĐỔI</div><h3>Đừng vội nhận phần việc chưa ai thật sự giao.</h3><p>Một cuộc trao đổi có thể làm ranh giới của bạn rõ hơn thường lệ.</p></div>
+        <div class="glass"><b>NỀN ĐANG CHẠY</b><p class="signal">Một chu kỳ dài về trách nhiệm vẫn còn. Hôm nay chỉ là lúc nó lộ ra trong giao tiếp.</p><small>Chạm để xem căn cứ chart.</small></div>
+      </div>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> engine spec phân biệt slow background với fast “today”; audit đề xuất “Điều đã đổi từ hôm qua” chỉ khi có thay đổi thật. <strong>external:</strong> Astrodienst phân bố long-running transits để tránh lặp.</dd>
+        <dt>Rationale</dt><dd>Biến lặp lại thành một câu chuyện có tiến triển, đồng thời khiến “why today?” thành phần có giá trị thay vì một nhãn trang trí.</dd>
+        <dt>Downsides</dt><dd>Nếu người dùng bỏ nhiều ngày, notion “chapter” có thể khó theo. Cần fallback tự-contained cho mọi note.</dd>
+        <dt>Confidence</dt><dd>91%</dd><dt>Complexity</dt><dd>Medium</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-4">
+      <span class="rank">4</span>
+      <div class="axis">User-steerable context</div>
+      <h3>Today’s Context Dial</h3>
+      <p><strong>Description:</strong> Một lựa chọn nhẹ “Hôm nay chuyện gì đang chiếm sóng?” với 5 enum hiện có và “Để Lá chọn”. Lựa chọn chỉ đổi manifestation và micro-action của note hiện tại; không tăng confidence, không sửa chart evidence, không suy luận hoàn cảnh. Mặc định ephemeral trong ngày và có thể bỏ qua.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> repo đã có 5 BackgroundLens, quy định context chỉ chọn ví dụ đời thường, nhưng Daily Note API chưa nhận lựa chọn này.</dd>
+        <dt>Rationale</dt><dd>Một chart-specific note vẫn có thể trượt vì nói đúng chuyện nhưng sai bối cảnh. Lựa chọn tường minh tốt hơn đoán ngầm và tạo cảm giác “đúng lúc” rõ ràng.</dd>
+        <dt>Downsides</dt><dd>Thêm bước có thể làm mất cảm giác được khám phá. Nên là chip nhỏ sau hero hoặc một lần chạm, không chặn note.</dd>
+        <dt>Confidence</dt><dd>90%</dd><dt>Complexity</dt><dd>Low–Medium</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-5">
+      <span class="rank">5</span>
+      <div class="axis">Feedback · privacy</div>
+      <h3>Resonance Without Surveillance</h3>
+      <p><strong>Description:</strong> Sau khi đọc, user chọn “Trúng”, “Chưa trúng” hoặc “Góc khác”. Feedback chỉ điều chỉnh tần suất của lens, scene family và delivery posture trong một cửa sổ có giới hạn; không sửa chart, không tạo personality profile, không thu free text mặc định. Có consent riêng, giải thích ngắn, reset/delete và decay.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> knowledge spec đã dành contract cho consented ranking adaptation từ feedback bounded và cấm free-text training; phần adaptation hiện chưa được triển khai.</dd>
+        <dt>Rationale</dt><dd>Hệ thống học được “cách diễn giải nào hữu ích” thay vì tuyên bố “người dùng là ai”. Đây là personalization tích lũy nhưng vẫn có quyền sửa và quên.</dd>
+        <dt>Downsides</dt><dd>Binary feedback dễ overfit và tạo filter bubble. Cần exploration floor để thỉnh thoảng vẫn thử góc mới; “chưa trúng” không được hiểu là dữ liệu chart sai.</dd>
+        <dt>Confidence</dt><dd>88%</dd><dt>Complexity</dt><dd>Medium</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-6">
+      <span class="rank">6</span>
+      <div class="axis">Voice · everyday manifestations</div>
+      <h3>Scene Grammar, Not a Synonym Bank</h3>
+      <p><strong>Description:</strong> Mở rộng knowledge atom theo cấu trúc cảnh: ai khởi đầu, cue nào xuất hiện, điều gì đang bị đe doạ, bối cảnh, mức năng lượng, hành vi quan sát được và một response reversible. Cùng một thesis có thể hiện ra ở tin nhắn chưa gửi, lịch bị chen, kỳ vọng mập mờ, cuộc họp đông người, kế hoạch đổi phút chót—nhưng chỉ dùng scene phù hợp với factor và context.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> bank hiện đã có các cảnh cụ thể nhưng thường quay lại cùng social shape “hai nhu cầu va nhau → chậm lại → nói rõ”; spec yêu cầu khác ở cấp ý, không chỉ đổi từ.</dd>
+        <dt>Rationale</dt><dd>Tăng specificity ở nơi user cảm nhận trực tiếp nhất: một khoảnh khắc đời thật. Nó phong phú hơn mà không cần thêm claim astrology hoặc slang mau cũ.</dd>
+        <dt>Downsides</dt><dd>Cảnh quá cụ thể có thể thành đoán mò hoặc thiên kiến văn hoá. Mỗi scene cần eligibility, anti-Barnum review và counterexample test.</dd>
+        <dt>Confidence</dt><dd>87%</dd><dt>Complexity</dt><dd>Medium–High</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-7">
+      <span class="rank">7</span>
+      <div class="axis">Chart evidence · uncertainty</div>
+      <h3>Stable Islands for Approximate Birth Time</h3>
+      <p><strong>Description:</strong> Khi user chỉ biết khoảng giờ sinh, sample chart trên cả interval và chỉ dùng placements/factors giữ nguyên về cung, nhà/góc nếu đủ ổn định, aspect eligibility và confidence. Phần không ổn định được giữ lại khỏi prose; UI giải thích ngắn “đọc từ những phần không đổi trong khoảng giờ bạn nhớ”.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> astro spec đã cho phép publish factors ổn định qua sampled interval; planner hiện loại midpoint facts vì chưa có stability proof.</dd>
+        <dt>Rationale</dt><dd>Lấp khoảng trống giữa full chart và Sun-only mà không ép user bịa giờ chính xác. Đây là cá nhân hoá thêm bằng evidence thật, không bằng copy.</dd>
+        <dt>Downsides</dt><dd>Tính toán và kiểm thử phức tạp; một số interval vẫn chỉ còn rất ít factor. Cần ngôn ngữ confidence cực gọn để không phá scan.</dd>
+        <dt>Confidence</dt><dd>86%</dd><dt>Complexity</dt><dd>High</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section id="correction">
+    <h2>15/09 · Sáu quyết định sửa sản phẩm</h2>
+    <div class="panel">
+      <p><strong>Kết luận thẳng:</strong> người dùng nhận xét đúng. Context Dial hiện chỉ thay câu ví dụ; “Mình thử việc này” chỉ đổi một boolean; Aura mới bị giấu sau một gift chỉ hiện ở chế độ Auto. Đây là lỗi contract sản phẩm, không phải lỗi trang trí.</p>
+      <p><strong>Ba trục rà soát:</strong> (1) trend theo lĩnh vực phải tách tín hiệu chart khỏi bối cảnh user chọn; (2) action phải có nghĩa trước và sau cú chạm; (3) nhập giờ/nơi sinh phải tạo Aura-ready ngay, rồi mới xin quyền thay Note hôm nay.</p>
+    </div>
+    <div class="jump">
+      <a href="#fix-1">1 Aura Cutover</a><a href="#fix-2">2 Arena Signal</a><a href="#fix-3">3 One Small Experiment</a><a href="#fix-4">4 Arena Chapters</a><a href="#fix-5">5 Aura Diff</a><a href="#fix-6">6 Action Portfolio</a>
+    </div>
+
+    <article class="idea top" id="fix-1">
+      <span class="rank">1</span>
+      <div class="axis">Depth transition · ưu tiên sửa trước</div>
+      <h3>Aura Cutover Reveal</h3>
+      <p><strong>Description:</strong> Sau khi giờ và nơi sinh hợp lệ tạo được chart sâu, không trả user về Home với cùng nhãn Vibe. Chuyển thẳng tới một màn reveal toàn màn hình: <em>“Aura đã sẵn sàng”</em>, kèm receipt chỉ nêu những lớp thực sự vừa mở—ví dụ House arena, một tổ hợp đa-factor độc lập, Rising/angles hoặc nhịp transit nếu đủ ngưỡng. User xem preview rồi chọn <strong>“Dùng Aura hôm nay”</strong> hoặc <strong>“Giữ Note hiện tại”</strong>.</p>
+      <div class="flow" style="grid-template-columns:repeat(3,1fr)" aria-label="Chuyển từ Vibe sang Aura">
+        <div><b>VIBE</b>Một lớp từ ngày sinh</div>
+        <div><b>AURA READY</b>Chart sâu đã tính · xem delta thật</div>
+        <div><b>AURA ACTIVE</b>User chủ động dùng bản đủ lớp</div>
+      </div>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> exact supplement hiện đã tạo top-level Aura và full-synthesis revision, nhưng active reading vẫn là Vibe tới khi activation; gift còn bị ẩn khi context khác Auto. <strong>external:</strong> CHANI làm giá trị của giờ/nơi sinh hữu hình qua Ascendant, angles và House.</dd>
+        <dt>Rationale</dt><dd>Tôn trọng quyết định “không hot-swap” của US-03 mà vẫn đáp ứng US-06: profile chuyển sang Aura ngay, còn thay Note hôm nay là một quyết định có hiểu biết. Dữ liệu nhạy cảm tạo payoff ngay tại điểm nhập.</dd>
+        <dt>Downsides</dt><dd>Cần tách rõ <code>profile_depth</code>, <code>available_reading_depth</code> và <code>active_reading_depth</code>; thêm route/state cho preview và xử lý activation conflict. Không được hứa lớp nào engine chưa xác nhận.</dd>
+        <dt>Confidence</dt><dd>95%</dd><dt>Complexity</dt><dd>High</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="fix-2">
+      <span class="rank">2</span>
+      <div class="axis">Arena trajectory</div>
+      <h3>Arena Signal Envelope</h3>
+      <p><strong>Description:</strong> “Hôm nay chuyện gì đang chiếm sóng?” trở thành bộ chuyển arena có tín hiệu thật, không còn là copy filter. API trả một object riêng gồm arena, nguồn căn cứ, phase/direction, strength band, confidence band và trạng thái <code>building | foreground | easing | steady | no_clear_shift</code>. Chỉ factor/House/transit quyết định trend; context user chọn chỉ quyết định arena muốn soi.</p>
+      <div class="note-demo">
+        <div class="paper"><div class="label">BẠN ĐANG SOI · CÔNG VIỆC</div><h3>Nhịp đang rõ dần.</h3><p>Một tín hiệu có căn cứ đang đi vào tiền cảnh ở arena này.</p></div>
+        <div class="glass"><b>NẾU KHÔNG ĐỦ TÍN HIỆU</b><p class="signal">Nền đang ổn định · chưa có chuyển động thời điểm đủ rõ.</p><small>Không bịa trend để chiều lựa chọn.</small></div>
+      </div>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> factor nội bộ đã có domain, House, strength, salience, confidence và transit phase; public projection hiện không có trường trend nào. Context hiện chỉ thay manifestation/micro-action.</dd>
+        <dt>Rationale</dt><dd>Biến “chiếm sóng” thành lời hứa có thể kiểm thử. User biết đâu là điều họ chọn, đâu là điều chart hỗ trợ, và vẫn nhận một câu trả lời trung thực khi arena đó đang yên.</dd>
+        <dt>Downsides</dt><dd>Cần mapping domain/House → arena đời thường và typed contract mới. Timescale chỉ được ở mức thô cho tới khi engine có duration/window được kiểm chứng. Trạng thái “không có chuyển động rõ” có thể xuất hiện thường xuyên nhưng đó là trust feature.</dd>
+        <dt>Confidence</dt><dd>94%</dd><dt>Complexity</dt><dd>Medium–High</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="fix-3">
+      <span class="rank">3</span>
+      <div class="axis">Action loop</div>
+      <h3>One Small Experiment</h3>
+      <p><strong>Description:</strong> Bỏ CTA mơ hồ “Mình thử việc này”. Micro-action trở thành một thí nghiệm nhỏ có ba phần: việc reversible cần thử, điều cần để ý, và quyền bỏ qua. CTA chính là <strong>“Giữ để thử hôm nay”</strong>; tap tạo trạng thái <code>chosen</code> gắn với Note/revision/lens/action, đồng bộ ở Home và Note Detail, có <strong>“Bỏ giữ”</strong>. Lần quay lại phù hợp mới hỏi tùy chọn: <em>“Chưa thử / Có ích / Không khác / Không hợp lúc này”</em>.</p>
+      <div class="flow" style="grid-template-columns:repeat(3,1fr)" aria-label="Vòng đời một thử nghiệm nhỏ">
+        <div><b>GIỮ</b>Lưu cùng Note · chưa gọi là hoàn thành</div>
+        <div><b>THỬ HOẶC BỎ</b>User toàn quyền · không streak</div>
+        <div><b>PHẢN HỒI</b>Optional · outcome khác Resonance</div>
+      </div>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> CTA hiện chỉ đảo local boolean, reset khi đổi context và biến mất ở Note Detail; Mood/Resonance đã có enum-only, owner check, expiry và delete. <strong>external:</strong> How We Feel, Oura và Exist tách hành động tức thời khỏi quan sát tích lũy.</dd>
+        <dt>Rationale</dt><dd>Cú chạm có ý nghĩa rõ: giữ một thử nghiệm để quay lại, không giả rằng user đã làm xong. Outcome chỉ phản ánh usefulness, không dùng để “xác nhận astrology” và không trộn với “Trúng/Chưa trúng”.</dd>
+        <dt>Downsides</dt><dd>Cần action identity, persistence có hạn, undo/delete, consent đúng lúc và expiry. Nếu follow-up xuất hiện quá sớm hoặc quá thường, nó biến thành task manager; missed day không được tạo áp lực.</dd>
+        <dt>Confidence</dt><dd>93%</dd><dt>Complexity</dt><dd>Medium</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="fix-4">
+      <span class="rank">4</span>
+      <div class="axis">Arena trajectory · continuity</div>
+      <h3>Stateless Arena Chapters</h3>
+      <p><strong>Description:</strong> Dùng identity của factor/transit và phase để nối các ngày thành một chương: “cùng tín hiệu, đang rõ hơn”, “đang ở tiền cảnh”, “đang hạ”. Nếu không có delta thật, Note nói “nhịp này vẫn đang tiếp diễn”; chỉ gọi “mới hôm nay” khi hero, activation hoặc phase đổi. Continuity đến từ astronomical identity, không từ theo dõi hành vi hay lưu arena preference.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> engine đã có deterministic factor ID và <code>approaching/exact/separating</code>; Two-Speed Daily Story đã tách nền dài khỏi thay đổi hôm nay. <strong>external:</strong> The Pattern tạo return value bằng các cycle theo thời gian.</dd>
+        <dt>Rationale</dt><dd>Biến nội dung lặp thành tiến triển có nghĩa. Arena Signal nói trạng thái hôm nay; Chapter nói nó nằm ở đâu trong câu chuyện nhiều ngày.</dd>
+        <dt>Downsides</dt><dd>Không được bịa start/end date hoặc duration. Note vẫn phải tự hiểu được nếu user bỏ app nhiều ngày; cần rule rõ cho đổi hero và retrograde reversal.</dd>
+        <dt>Confidence</dt><dd>90%</dd><dt>Complexity</dt><dd>Medium</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="fix-5">
+      <span class="rank">5</span>
+      <div class="axis">Depth transition · semantic integrity</div>
+      <h3>Thesis-Preserving Aura Diff</h3>
+      <p><strong>Description:</strong> Nếu evidence tương thích, bản Aura preview giữ thesis của Note Vibe rồi cho thấy đúng phần được cộng thêm: cơ chế chart thứ hai, House arena, và current-sky phase khi đủ điều kiện. Nếu engine chọn một hero khác khiến thesis đổi, UI phải nói <em>“Aura mở một góc đọc mới”</em> thay vì giả đây chỉ là bản cũ sâu hơn.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> full synthesis yêu cầu evidence độc lập, nhưng hai revision Vibe/Aura được sinh riêng nên không bảo đảm cùng thesis; explicit activation chỉ bảo đảm một active revision.</dd>
+        <dt>Rationale</dt><dd>Ngăn before/after reveal trở thành thủ thuật marketing. User luôn biết mình đang xem một note được làm nét hơn hay một góc đọc mới có căn cứ khác.</dd>
+        <dt>Downsides</dt><dd>Cần semantic compatibility contract giữa revisions; có thể phải regenerate available revision quanh thesis hiện tại hoặc chấp nhận nhãn “góc mới”. Đây là engine/content work, không chỉ UI.</dd>
+        <dt>Confidence</dt><dd>88%</dd><dt>Complexity</dt><dd>High</dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="fix-6">
+      <span class="rank">6</span>
+      <div class="axis">Action loop · compounding</div>
+      <h3>Action Portfolio With an Exploration Floor</h3>
+      <p><strong>Description:</strong> Chỉ sau khi có đủ nhiều outcome đã consent và chưa hết hạn, hệ thống mới ưu tiên các <em>action family</em> từng được user đánh dấu hữu ích—ví dụ quan sát trước khi nhắn thay vì luôn soạn tin. Vẫn chừa exploration floor để thử góc mới, có decay/reset/delete, và chỉ nói “kiểu thử này từng hữu ích hơn”, không suy ra personality hay thay chart claim.</p>
+      <dl>
+        <dt>Basis</dt><dd><strong>direct:</strong> context đã được phép đổi micro-action mà không đổi evidence; adaptive ranking hiện chưa triển khai. <strong>external:</strong> Oura/Exist chỉ phản chiếu pattern sau nhiều quan sát và giữ uncertainty.</dd>
+        <dt>Rationale</dt><dd>Tạo giá trị tích lũy cho CTA mà không biến feedback thành lá phiếu xác nhận astrology. Đây là lớp sau khi One Small Experiment đã đủ dữ liệu và trust.</dd>
+        <dt>Downsides</dt><dd>Không có giá trị cho user mới; threshold không được bịa trước research/QA; dễ tạo filter bubble nếu exploration/decay yếu. Nên brainstorm như phase sau, không chặn ba sửa chữa đầu.</dd>
+        <dt>Confidence</dt><dd>78%</dd><dt>Complexity</dt><dd>High</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section id="cuts">
+    <h2>Rejection Summary</h2>
+    <table>
+      <thead><tr><th>#</th><th>Ý tưởng đã cân nhắc</th><th>Lý do loại hoặc gộp</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Reader-Owned Voice standalone</td><td>Hợp lệ nhưng gộp vào delivery layer của Signal Stack; tách riêng dễ làm vỡ editorial identity.</td></tr>
+        <tr><td>2</td><td>One counter-reading + one question</td><td>Khá mạnh nhưng repo chưa có contract xác định factual boundary cho counter-reading; giữ làm nhánh nghiên cứu sau.</td></tr>
+        <tr><td>3</td><td>A note that teaches its pattern</td><td>Có giá trị nhưng thiếu sequencing/curriculum basis; scope hiện tại là personalization, không phải khóa học.</td></tr>
+        <tr><td>4</td><td>Personalize by subtraction</td><td>Chưa vượt ambition floor; có thể là control phụ của Context/Resonance sau này.</td></tr>
+        <tr><td>5</td><td>Micro-Quest Deck</td><td>Xung đột one-micro-action contract và tăng choice overload trên mobile.</td></tr>
+        <tr><td>6</td><td>Editorial Seasons</td><td>Kém grounded hơn Transit Chapters và có thể áp một nhịp tuần nhân tạo lên evidence mới.</td></tr>
+        <tr><td>7</td><td>Stateless Factor Portfolio</td><td>Phần lớn trùng rotation date-keyed hiện có; Semantic Setlist giải quyết novelty ở tầng sâu hơn.</td></tr>
+        <tr><td>8</td><td>Transparent Personalization Receipt</td><td>Provenance/evidence disclosure đã tồn tại; delta chưa đủ lớn để là hướng riêng.</td></tr>
+        <tr><td>9</td><td>Climate / Front / Gust</td><td>Ẩn dụ tốt nhưng ba lớp đồng thời dễ vi phạm giới hạn một transit activation; gộp thành Two-Speed.</td></tr>
+        <tr><td>10</td><td>Genericity Gate standalone</td><td>Gộp với Semantic Setlist vì selection và publish gate cần cùng một semantic signature.</td></tr>
+        <tr><td>11</td><td>Transit Chapters standalone</td><td>Gộp vào Two-Speed Daily Story để continuity luôn đi cùng honest delta.</td></tr>
+        <tr><td>12</td><td>Privacy preference vector</td><td>Đúng hướng nhưng chưa có storage contract; gộp vào Resonance với nguyên tắc bounded/decay/reset.</td></tr>
+        <tr><td>13</td><td>Chatbot / free-text journal context</td><td>Scope overrun, rủi ro safety/privacy và không cần thiết để làm Daily Note tốt hơn.</td></tr>
+        <tr><td>14</td><td>Thêm dignity/sect/dispositor/progression ngay</td><td>Chưa có verified corpus/contract tương ứng; thêm factor trước khi có interpretation evidence sẽ tạo false depth.</td></tr>
+        <tr><td>15</td><td>Chiếc context dial đang giả làm radar</td><td>Chẩn đoán đúng nhưng Arena Signal Envelope biến nó thành contract kiểm thử được.</td></tr>
+        <tr><td>16</td><td>Một lựa chọn arena không tự tạo ra tín hiệu</td><td>Gộp vào trạng thái no-signal và mismatch của Arena Signal Envelope.</td></tr>
+        <tr><td>17</td><td>Một chu kỳ dài đang bị ép thành thời tiết 24 giờ</td><td>Stateless Arena Chapters xử lý continuity cụ thể hơn mà không bịa duration.</td></tr>
+        <tr><td>18</td><td>“Mình thử việc này” hiện chỉ là một trạng thái nút</td><td>Chẩn đoán đúng; One Small Experiment là phương án sửa hoàn chỉnh hơn.</td></tr>
+        <tr><td>19</td><td>Cam kết biến mất khi người dùng đổi góc nhìn</td><td>Identity và parity đã được gộp vào One Small Experiment.</td></tr>
+        <tr><td>20</td><td>“Trúng” không có nghĩa là “việc thử này có ích”</td><td>Semantic separation là rule bắt buộc bên trong One Small Experiment.</td></tr>
+        <tr><td>21</td><td>Aura đang đúng trong metadata nhưng sai trong trải nghiệm</td><td>Aura Cutover Reveal giải trực tiếp split state này.</td></tr>
+        <tr><td>22</td><td>“Mở bản đủ lớp” đang yêu cầu một cú đổi mù</td><td>Được hấp thụ bởi evidence receipt của Aura Cutover Reveal.</td></tr>
+        <tr><td>23</td><td>Context/Signal Receipt</td><td>Tách context và signal đúng nhưng trùng với typed Arena Signal Envelope.</td></tr>
+        <tr><td>24</td><td>Honest Arena Redirect</td><td>Là hành vi mismatch bên trong Arena Signal Envelope, chưa đủ độc lập.</td></tr>
+        <tr><td>25</td><td>The Note Admits When Nothing Changed</td><td>Stateless Arena Chapters bao phủ continuity đầy đủ hơn.</td></tr>
+        <tr><td>26</td><td>Commitment Is Not Completion</td><td>Phân biệt intention/outcome đã là lõi của One Small Experiment.</td></tr>
+        <tr><td>27</td><td>No State, No Button</td><td>Interim fix hợp lệ nhưng giá trị thấp hơn xây action loop có giới hạn.</td></tr>
+        <tr><td>28</td><td>One Consent, One Aura Handoff</td><td>Yêu cầu pre-authorize replacement trước khi thấy evidence delta; yếu hơn cutover sau recompute.</td></tr>
+        <tr><td>29</td><td>Aura Evidence Reveal</td><td>Gộp trọn vào Aura Cutover Reveal.</td></tr>
+        <tr><td>30</td><td>Aura Cannot Hide Behind Context</td><td>Là behavior bắt buộc của Aura Cutover, không phải hướng độc lập.</td></tr>
+        <tr><td>31</td><td>The Dial That Can Disagree</td><td>Là UI rendering của Arena Signal Envelope.</td></tr>
+        <tr><td>32</td><td>A CTA With a Receipt</td><td>Immediate semantics tốt nhưng One Small Experiment có cả lifecycle.</td></tr>
+        <tr><td>33</td><td>Outcome Echo</td><td>Bounded reflection đã nằm trong One Small Experiment.</td></tr>
+        <tr><td>34</td><td>Aura Ready Is a First-Class State</td><td>Được Aura Cutover Reveal kết hợp với evidence receipt và activation choice.</td></tr>
+        <tr><td>35</td><td>Delta Check</td><td>Analogy có thật nhưng chưa có comparable measurement hay delta limit được validate.</td></tr>
+        <tr><td>36</td><td>Arena Control Chart</td><td>SPC cần historical stochastic baseline/control limits; ở đây chỉ là thuật ngữ trang trí.</td></tr>
+        <tr><td>37</td><td>Signal Envelope cho “chiếm sóng”</td><td>Ẩn dụ âm thanh dễ hiểu nhưng không thêm evidence model.</td></tr>
+        <tr><td>38</td><td>Borrow One Experiment</td><td>Library metaphor không thêm cấu trúc ngoài One Small Experiment.</td></tr>
+        <tr><td>39</td><td>Citizen-Science Field Card</td><td>Provenance phù hợp nhưng hành vi đã được One Small Experiment bao phủ.</td></tr>
+        <tr><td>40</td><td>Sequential Pattern Threshold</td><td>Ngưỡng ví dụ bị bịa và chưa có sampling/confidence contract.</td></tr>
+        <tr><td>41</td><td>Blue-Green Aura Cutover</td><td>Analogy hợp lệ; Aura Cutover Reveal là cách gọi product-native hơn.</td></tr>
+        <tr><td>42</td><td>Aura Focus Stack Receipt</td><td>Analogy tốt nhưng functionality trùng hai survivor Aura.</td></tr>
+        <tr><td>43</td><td>The Context Dial Becomes a Trajectory Dial</td><td>Đúng hướng nhưng kém testable hơn Arena Signal Envelope.</td></tr>
+        <tr><td>44</td><td>A Daily Note Is an Episode, Not a Snapshot</td><td>Stateless Arena Chapters mô tả mechanism rõ hơn.</td></tr>
+        <tr><td>45</td><td>Tap Starts a Trial</td><td>Intent semantics đã nằm trong One Small Experiment.</td></tr>
+        <tr><td>46</td><td>The Action Is an Observation Prompt</td><td>Là content grammar bên trong One Small Experiment.</td></tr>
+        <tr><td>47</td><td>Aura Starts at Recompute, Not at Note Replacement</td><td>Được Aura Cutover Reveal hấp thụ.</td></tr>
+        <tr><td>48</td><td>Aura Is a Delta, Not a Replacement</td><td>Thesis-Preserving Aura Diff xử lý compatibility và failure case chặt hơn.</td></tr>
+        <tr><td>49</td><td>Ask at the Unlock Edge</td><td>Preview trước compute dễ overpromise eligibility; postcompute receipt đáng tin hơn.</td></tr>
+        <tr><td>50</td><td>Quiet Is a Valid Trend</td><td>Là một state bắt buộc của Arena Signal Envelope.</td></tr>
+        <tr><td>51</td><td>Trajectory Is Data, Not Copy</td><td>Gần như trùng Arena Signal Envelope nhưng ít field hơn.</td></tr>
+        <tr><td>52</td><td>One Thesis, Two Clocks</td><td>Bị refute: có thể ám chỉ selected arena có cả natal/current-sky evidence dù không overlap.</td></tr>
+        <tr><td>53</td><td>The Forgetful Experiment Ledger</td><td>Là hạ tầng persistence bên trong One Small Experiment.</td></tr>
+        <tr><td>54</td><td>No Checkmark Ever</td><td>Phân biệt intention/outcome đúng nhưng trùng survivor action loop.</td></tr>
+        <tr><td>55</td><td>Aura Preview Takes the Screen</td><td>Full-screen transition đã nằm trong Aura Cutover Reveal.</td></tr>
+        <tr><td>56</td><td>Same Thesis, Swipe the Depth</td><td>Bị refute: lens invariance không bảo đảm hai revision Vibe/Aura có cùng thesis.</td></tr>
+        <tr><td>57</td><td>Signal Forecast Card</td><td>Over-bundle contract và continuity; hai survivor riêng dễ quyết định/test hơn.</td></tr>
+        <tr><td>58</td><td>Personal Signal Loop</td><td>Là roadmap ba trục, không phải một improvement độc lập để lựa chọn.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="sources">
+    <h2>Sources & References</h2>
+    <div class="panel source-list">
+      <a href="../../docs/foundation/la-lanh-reading-knowledge-spec.md">Repo · Reading knowledge specification</a>
+      <a href="../../docs/foundation/la-lanh-astro-engine-spec.md">Repo · Astro engine specification</a>
+      <a href="../../docs/foundation/la-lanh-interpretation-corpus-methodology.md">Repo · Interpretation corpus methodology</a>
+      <a href="../../docs/reviews/2026-09-12-note-content-usp-audit/README.md">Repo · Daily Note content and USP audit</a>
+      <a href="https://www.astro.com/faq/fq_fh_transits_e.htm">Astrodienst · How daily transits are selected and distributed</a>
+      <a href="https://aclanthology.org/X98-1025/">ACL Anthology · Maximal Marginal Relevance</a>
+      <a href="https://developer.apple.com/design/human-interface-guidelines/machine-learning">Apple HIG · Machine learning, explicit feedback and privacy</a>
+      <a href="https://developer.apple.com/design/human-interface-guidelines/notifications">Apple HIG · Notifications and personal information</a>
+      <a href="https://www.thepattern.com/app-features">The Pattern · Cycles, transits and time travel</a>
+      <a href="https://www.chani.com/astro-education/how-to-work-with-astrology-on-a-daily-basis">CHANI · Daily transits, houses and duration</a>
+      <a href="https://www.chani.com/astro-education/new-mc-ic-and-dc-are-now-in-the-chani-app">CHANI · Exact birth time unlocks angles</a>
+      <a href="https://howwefeel.org/">How We Feel · Check-in to reflection and action</a>
+      <a href="https://ouraring.com/blog/discoveries/">Oura · Evidence thresholds and personal discoveries</a>
+      <a href="https://exist.io/">Exist · Experiments, correlations and uncertainty</a>
+      <a href="https://developer.apple.com/design/human-interface-guidelines/privacy">Apple HIG · Ask for sensitive data in context</a>
+    </div>
+  </section>
+
+  <footer class="composition-signal">Composed 2026-09-15T14:45:00+07:00 by ce-ideate from the Lá Lành repository, the 2026-09-14 ideation baseline, three new evidence dossiers, external primary-source research, and the user’s product critique.</footer>
+</main>
+</body>
+</html>

@@ -5,6 +5,7 @@ import hashlib
 import os
 import platform
 import threading
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -12,6 +13,7 @@ from typing import cast
 SE_GREG_CAL = 1
 SEFLG_SWIEPH = 2
 SEFLG_SPEED = 256
+SEFLG_SIDEREAL = 64 * 1024
 CALCULATION_FLAGS = SEFLG_SWIEPH | SEFLG_SPEED
 ERROR_BUFFER_SIZE = 256
 EPHEMERIS_CHECKSUMS = {
@@ -97,6 +99,12 @@ class SwissEphemerisNative:
     def _configure_signatures(self) -> None:
         self._library.swe_set_ephe_path.argtypes = [ctypes.c_char_p]
         self._library.swe_set_ephe_path.restype = None
+        self._library.swe_set_sid_mode.argtypes = [
+            ctypes.c_int32,
+            ctypes.c_double,
+            ctypes.c_double,
+        ]
+        self._library.swe_set_sid_mode.restype = None
         self._library.swe_julday.argtypes = [
             ctypes.c_int,
             ctypes.c_int,
@@ -139,14 +147,24 @@ class SwissEphemerisNative:
         with self._lock:
             return float(self._library.swe_julday(year, month, day, hour, SE_GREG_CAL))
 
-    def calculate(self, julian_day_ut: float, body_id: int) -> NativePosition:
+    @contextmanager
+    def calculation_scope(self, sidereal_mode: int | None = None):  # type: ignore[no-untyped-def]
+        """Hold Swiss Ephemeris' process-global configuration for a complete chart batch."""
+        with self._lock:
+            if sidereal_mode is not None:
+                self._library.swe_set_sid_mode(sidereal_mode, 0.0, 0.0)
+            yield
+
+    def calculate(
+        self, julian_day_ut: float, body_id: int, *, sidereal: bool = False
+    ) -> NativePosition:
         values = (ctypes.c_double * 6)()
         error = ctypes.create_string_buffer(ERROR_BUFFER_SIZE)
         with self._lock:
             result_flags = self._library.swe_calc_ut(
                 julian_day_ut,
                 body_id,
-                CALCULATION_FLAGS,
+                CALCULATION_FLAGS | (SEFLG_SIDEREAL if sidereal else 0),
                 values,
                 error,
             )
@@ -165,13 +183,15 @@ class SwissEphemerisNative:
         latitude: float,
         longitude: float,
         house_code: str,
+        *,
+        sidereal: bool = False,
     ) -> NativeHouses:
         cusps = (ctypes.c_double * 13)()
         angles = (ctypes.c_double * 10)()
         with self._lock:
             result = self._library.swe_houses_ex(
                 julian_day_ut,
-                0,
+                SEFLG_SIDEREAL if sidereal else 0,
                 latitude,
                 longitude,
                 ord(house_code),

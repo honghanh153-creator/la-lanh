@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ideation — Context Dial và Vòng Lá gọn hơn</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&amp;display=swap">
+  <style>
+    :root{--bg:#07091e;--panel:#11132d;--panel2:#171838;--ink:#f8f2e8;--muted:#b9afd0;--line:#39345f;--lime:#dcff37;--violet:#bf92ff;--coral:#ff806c;--paper:#fff7e8;--paperink:#17162d;--good:#bdffd1;--shadow:0 20px 70px #0007}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:radial-gradient(circle at 80% 0,#2b2059 0,transparent 28rem),radial-gradient(circle at 0 48%,#102b4a 0,transparent 30rem),var(--bg);font:400 15px/1.65 "Be Vietnam Pro",system-ui,sans-serif}
+    a{color:inherit}.page{width:min(960px,calc(100% - 28px));margin:auto;padding:34px 0 72px}.hero,.panel,.idea{border:1px solid var(--line);border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018));box-shadow:var(--shadow)}.hero{padding:34px;overflow:hidden;position:relative}.hero:after{content:"✦";position:absolute;right:34px;top:10px;color:var(--coral);font-size:5rem;opacity:.6}.eyebrow,.axis,.meta-label{font-size:.73rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.eyebrow,.meta-label{color:var(--lime)}h1{max-width:16ch;margin:.35rem 0 1rem;font-size:clamp(2.25rem,7vw,4.3rem);line-height:1;letter-spacing:-.05em}h2{margin:3rem 0 1rem;font-size:1.55rem;letter-spacing:-.025em}h3{margin:.25rem 0 .75rem;font-size:1.36rem;line-height:1.25}.lede{max-width:72ch;color:#ebe4f3;font-size:1.04rem}.meta,.jump,.axis-grid{display:flex;flex-wrap:wrap;gap:8px}.meta{margin-top:22px}.chip{padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);font-size:.78rem}.chip b{color:var(--ink)}nav{position:sticky;top:8px;z-index:5;display:flex;gap:7px;overflow:auto;margin:16px 0;padding:9px;border:1px solid var(--line);border-radius:17px;background:#0b0d23e8;backdrop-filter:blur(16px)}nav a,.jump a{white-space:nowrap;padding:7px 10px;border-radius:10px;text-decoration:none;font-size:.81rem;font-weight:700}nav a:hover,.jump a:hover{color:var(--lime);background:rgba(255,255,255,.06)}section{scroll-margin-top:84px}.panel,.idea{padding:24px;margin:14px 0}.panel p,.panel li,.idea p{max-width:76ch}.axis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}.axis-card{padding:17px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.035)}.axis-card b{display:block;color:var(--violet);margin-bottom:5px}.north-star{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;align-items:center}.paper{padding:24px;border-radius:7px 22px 10px 8px;background:var(--paper);color:var(--paperink);transform:rotate(-.25deg);box-shadow:0 20px 50px #0006}.paper .meta-label{color:#5f4284}.paper h3{font-size:1.55rem}.jump{margin-bottom:18px}.jump a{border:1px solid var(--line)}.idea{position:relative;overflow:hidden}.idea.top{border-color:var(--lime);box-shadow:0 0 0 1px rgba(220,255,55,.16),var(--shadow)}.rank{display:inline-grid;width:36px;height:36px;place-items:center;border-radius:50%;color:#101426;background:var(--lime);font-weight:900}.axis{margin:.85rem 0 .2rem;color:var(--violet)}.idea dl{display:grid;grid-template-columns:8.5rem 1fr;gap:9px 16px;margin:18px 0 0}.idea dt{color:var(--muted);font-weight:700}.idea dd{margin:0}.confidence{color:#10251a;background:var(--good);border:0}.complexity{color:#161229;background:#dfccff;border:0}.idea svg{display:block;width:100%;height:auto;margin-top:20px;border:1px solid var(--line);border-radius:18px;background:#0b0d26}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px}table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.025)}th,td{padding:12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}th{color:var(--lime);font-size:.73rem;letter-spacing:.06em;text-transform:uppercase}tbody tr:last-child td{border-bottom:0}.sources{display:grid;gap:8px}.sources a{color:#bfe4ff}.composition-signal{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.78rem}
+    @media(max-width:720px){.page{width:min(100% - 18px,960px);padding-top:18px}.hero,.panel,.idea{padding:20px}.hero:after{font-size:3rem;right:14px}.north-star{grid-template-columns:1fr}.idea dl{grid-template-columns:1fr;gap:2px}.idea dd{margin-bottom:10px}}
+  </style>
+</head>
+<body>
+<main class="page">
+  <header class="hero">
+    <p class="eyebrow">Lá Lành · Product ideation</p>
+    <h1>Ít màn hơn. Mỗi tap có nghĩa hơn.</h1>
+    <p class="lede">Làm lại hai bề mặt đang gây hụt giá trị: Context Dial trên Home và readiness của Vòng Lá. Hướng mạnh nhất là đưa Note lên trước, biến lựa chọn góc thành một hành động có kết quả rõ; đồng thời nén Vòng Lá về một progress bar, một CTA đúng việc còn thiếu và một profile sheet.</p>
+    <div class="meta">
+      <span class="chip"><span class="meta-label">Ngày</span> <time datetime="2026-09-18">2026-09-18</time></span>
+      <span class="chip"><span class="meta-label">Chủ đề</span> context-dial-vong-la-compression</span>
+      <span class="chip"><span class="meta-label">Nguồn căn cứ</span> codebase Lá Lành hiện tại</span>
+      <span class="chip"><span class="meta-label">Sàng lọc</span> 26 ý tưởng → 6 giữ lại</span>
+    </div>
+  </header>
+
+  <nav aria-label="Đi tới phần">
+    <a href="#grounding">Căn cứ</a><a href="#axes">Trục</a><a href="#ideas">Ý tưởng</a><a href="#rejections">Đã loại</a><a href="#sources">Nguồn</a>
+  </nav>
+
+  <section id="grounding" class="panel">
+    <p class="eyebrow">Grounding context</p>
+    <h2>Vấn đề không phải thiếu tính năng</h2>
+    <div class="north-star">
+      <div>
+        <p>Home đã có projection theo context, nhưng picker xuất hiện trước Note và chỉ hứa “đổi cách diễn đạt”. Người dùng phải tự phân loại vấn đề trước khi thấy app hiểu gì về họ — chi phí nhận thức lớn hơn phần thưởng.</p>
+        <p>Vòng Lá đã có readiness thật và safety fail-closed, nhưng đang mở đồng thời hero, năm dòng checklist, form, consent, verification và launch. Mọi phần đều là glass card cùng cấp nên vừa dài vừa phẳng.</p>
+        <p>Không được giải bằng fake candidate, compatibility score, tự suy intent hay ẩn safety. Cần progressive disclosure: thấy trạng thái tổng, biết đúng việc kế tiếp, mở chi tiết khi cần.</p>
+      </div>
+      <aside class="paper">
+        <p class="meta-label">North star</p>
+        <h3>Một màn = một câu trả lời + một hành động.</h3>
+        <p>Home trả lời “Note hôm nay nói gì?”. Vòng Lá trả lời “Mình còn thiếu gì để vào vòng?”.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="axes">
+    <h2>Topic axes</h2>
+    <div class="axis-grid">
+      <article class="axis-card"><b>1 · Ý nghĩa</b><span>Lựa chọn “chiếm sóng” phải nói rõ Note sẽ giúp nhìn điều gì khác đi.</span></article>
+      <article class="axis-card"><b>2 · Home hierarchy</b><span>Note là value artifact; context là công cụ đổi góc, không phải cổng chặn trước Note.</span></article>
+      <article class="axis-card"><b>3 · Readiness</b><span>Progress + next best action thay cho danh sách năm hàng luôn mở.</span></article>
+      <article class="axis-card"><b>4 · Profile & depth</b><span>Profile ở sheet; chiều sâu đến từ state transition, không phải thêm panel.</span></article>
+    </div>
+  </section>
+
+  <section id="ideas">
+    <h2>Ranked ideas</h2>
+    <div class="jump"><a href="#idea-1">1 Note trước</a><a href="#idea-2">2 Hỏi tác dụng</a><a href="#idea-3">3 Control Deck</a><a href="#idea-4">4 Profile Sheet</a><a href="#idea-5">5 Safety Relay</a><a href="#idea-6">6 Constellation</a></div>
+
+    <article class="idea top" id="idea-1">
+      <span class="rank">1</span><div class="axis">Home hierarchy</div>
+      <h3>Note trước, “Đổi góc” sau</h3>
+      <p><strong>Description:</strong> Bỏ khối “Hôm nay chuyện gì đang chiếm sóng?” khỏi vị trí trước Note. Home mở thẳng Daily Note mặc định; ngay trên mép cream paper chỉ có một chip nhỏ: <em>Góc đang đọc · Lá chọn</em>. Tap chip hoặc “Đổi góc” mở một sheet chọn lens; chọn xong Note morph nhẹ sang phiên bản mới và hiện một dòng “Đã đổi phần nào”.</p>
+      <dl>
+        <dt>Basis</dt><dd><code>direct:</code> Home hiện đặt picker ở `HomePage.tsx:330–336` trước Note ở `338–363`, trong khi `US-03:392` đã coi đổi góc là hành động explicit theo yêu cầu.</dd>
+        <dt>Rationale</dt><dd>Người dùng nhận giá trị trước rồi mới tinh chỉnh. Context trở thành công cụ có chủ đích, không còn là câu hỏi bắt buộc nhưng mơ hồ.</dd>
+        <dt>Downsides</dt><dd>Khả năng discover lens giảm; cần chip đủ nhận biết và một lần coach-mark nhẹ, không lặp.</dd>
+        <dt>Confidence</dt><dd><span class="chip confidence">94%</span></dd>
+        <dt>Complexity</dt><dd><span class="chip complexity">Medium</span></dd>
+      </dl>
+      <svg viewBox="0 0 760 210" role="img" aria-label="Minh họa Note xuất hiện trước, chip đổi góc mở sheet">
+        <rect x="30" y="26" width="240" height="158" rx="22" fill="#fff7e8"/><text x="52" y="58" fill="#5f4284" font-size="13" font-weight="800">NOTE HÔM NAY</text><text x="52" y="94" fill="#17162d" font-size="24" font-weight="800">Nội dung đến trước.</text><rect x="52" y="124" width="142" height="34" rx="17" fill="#eee4f7"/><text x="68" y="146" fill="#5f4284" font-size="12">Góc · Lá chọn  ›</text>
+        <path d="M290 105h84" stroke="#dcff37" stroke-width="3"/><path d="M362 95l12 10-12 10" fill="none" stroke="#dcff37" stroke-width="3"/>
+        <rect x="396" y="34" width="330" height="142" rx="24" fill="#171838" stroke="#bf92ff"/><rect x="520" y="47" width="78" height="5" rx="3" fill="#756d99"/><text x="422" y="78" fill="#f8f2e8" font-size="16" font-weight="800">Bạn muốn soi theo góc nào?</text><text x="422" y="108" fill="#b9afd0" font-size="12">Công việc · Quan hệ · Giao tiếp · Chăm mình</text><rect x="422" y="126" width="278" height="34" rx="17" fill="#dcff37"/><text x="512" y="148" fill="#101426" font-size="12" font-weight="800">Đổi cách nhìn</text>
+      </svg>
+    </article>
+
+    <article class="idea" id="idea-2">
+      <span class="rank">2</span><div class="axis">Ý nghĩa lựa chọn</div>
+      <h3>Hỏi tác dụng, không hỏi danh mục</h3>
+      <p><strong>Description:</strong> Đổi câu hỏi thành “Bạn muốn Note giúp nhìn rõ điều gì?” và viết mỗi lens như một kết quả: <em>Công việc — chốt việc đáng làm</em>, <em>Quan hệ — đọc nhịp giữa hai người</em>, <em>Giao tiếp — tìm câu cần nói</em>, <em>Chăm mình — giữ phần năng lượng còn lại</em>. Tap vẫn chỉ gửi enum cũ; không thu free text và không suy thành sở thích.</p>
+      <dl>
+        <dt>Basis</dt><dd><code>direct:</code> `SignalContextPicker.tsx:6–16` hiện chỉ đặt label/detail theo category; `US-03:387–390` giới hạn effect ở manifestation và micro-action, đủ để mô tả kết quả cụ thể mà không đổi chart fact.</dd>
+        <dt>Rationale</dt><dd>Người dùng hiểu ngay “tap này làm được gì”, thay vì phải đoán ý nghĩa của “chiếm sóng”.</dd>
+        <dt>Downsides</dt><dd>Copy phải được kiểm thử với output engine để không hứa vượt quá khả năng của từng lens.</dd>
+        <dt>Confidence</dt><dd><span class="chip confidence">92%</span></dd>
+        <dt>Complexity</dt><dd><span class="chip complexity">Low</span></dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-3">
+      <span class="rank">3</span><div class="axis">Nén readiness</div>
+      <h3>Vòng Lá Control Deck</h3>
+      <p><strong>Description:</strong> Sau hero ngắn là một control deck duy nhất: thanh tiến độ <em>2/5</em>, một status line <em>Còn thiếu hồ sơ ghép</em>, một CTA <em>Tạo hồ sơ</em>. Những điều đã xong không thành card; nút info mở danh sách đầy đủ khi người dùng muốn kiểm tra. Khi state đổi, cùng một deck đổi CTA sang consent, verification rồi tham gia — không nối thêm section xuống dưới.</p>
+      <dl>
+        <dt>Basis</dt><dd><code>direct:</code> `MatchingPage.tsx:190–235` đang mở checklist + profile + consent + verification + launch cùng lúc; flow canonical `US-14:22–28` vốn tuần tự.</dd>
+        <dt>Rationale</dt><dd>Màn đầu trả lời đúng câu hỏi “còn thiếu gì?” và đưa người dùng tới hành động đó trong một viewport.</dd>
+        <dt>Downsides</dt><dd>Phải định nghĩa ưu tiên khi có nhiều blocker và vẫn giữ đường xem toàn bộ điều kiện.</dd>
+        <dt>Confidence</dt><dd><span class="chip confidence">95%</span></dd>
+        <dt>Complexity</dt><dd><span class="chip complexity">Medium</span></dd>
+      </dl>
+      <svg viewBox="0 0 760 220" role="img" aria-label="Minh họa một control deck với progress bar và CTA theo việc còn thiếu">
+        <rect x="38" y="28" width="684" height="164" rx="28" fill="#171838" stroke="#4b4776"/><text x="68" y="62" fill="#bf92ff" font-size="12" font-weight="800">SẴN SÀNG VÀO VÒNG</text><text x="650" y="62" fill="#dcff37" font-size="13" text-anchor="end">2/5</text><rect x="68" y="78" width="624" height="8" rx="4" fill="#39345f"/><rect x="68" y="78" width="250" height="8" rx="4" fill="#dcff37"/><text x="68" y="120" fill="#f8f2e8" font-size="22" font-weight="800">Còn thiếu hồ sơ ghép</text><text x="68" y="145" fill="#b9afd0" font-size="12">Tên hiển thị · intent · tuổi · khu vực</text><rect x="510" y="111" width="182" height="54" rx="18" fill="#dcff37"/><text x="601" y="144" fill="#101426" font-size="14" text-anchor="middle" font-weight="800">Tạo hồ sơ →</text>
+      </svg>
+    </article>
+
+    <article class="idea" id="idea-4">
+      <span class="rank">4</span><div class="axis">Profile popup</div>
+      <h3>Profile Signal Sheet</h3>
+      <p><strong>Description:</strong> “Tạo hồ sơ ghép” mở một medium bottom sheet giữ nguyên context Vòng Lá. Sheet chỉ có profile task, hỗ trợ mở rộng lên full height khi bàn phím xuất hiện. Sau khi lưu, sheet đóng và control deck đổi thành receipt nhỏ: <em>An · Hẹn hò · Đà Nẵng</em>, kèm nút Sửa. Không render form inline trên trang.</p>
+      <dl>
+        <dt>Basis</dt><dd><code>direct:</code> form hiện nằm inline ở `MatchingPage.tsx:204–214`; <code>external:</code> Apple HIG Sheets mô tả sheet là bề mặt cho scoped task và medium detent hỗ trợ progressive disclosure trên iPhone.</dd>
+        <dt>Rationale</dt><dd>Đúng mong muốn “chỉ cần một nút pop up”, đồng thời tách task nhập liệu khỏi màn trạng thái.</dd>
+        <dt>Downsides</dt><dd>Form nhiều field có thể vượt medium detent; cần focus/keyboard/dismiss-unsaved tốt và cho phép sheet mở rộng.</dd>
+        <dt>Confidence</dt><dd><span class="chip confidence">93%</span></dd>
+        <dt>Complexity</dt><dd><span class="chip complexity">Medium</span></dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-5">
+      <span class="rank">5</span><div class="axis">Nén readiness</div>
+      <h3>Safety Relay — mỗi lần chỉ trao một chốt</h3>
+      <p><strong>Description:</strong> Profile, consent và verification trở thành ba chặng nối tiếp của cùng CTA slot. Mỗi chặng mở một sheet riêng, hoàn tất xong quay về deck và tự chuyển sang CTA kế tiếp. Completed state chỉ hiện bằng node trên progress bar; disclosure “Vì sao cần?” nằm trong sheet đúng lúc, không thành một card dài trên main page.</p>
+      <dl>
+        <dt>Basis</dt><dd><code>direct:</code> `US-14:33–41` yêu cầu các chốt độc lập nhưng không buộc trình bày đồng thời; <code>external:</code> Apple HIG khuyên modality chỉ dùng khi giúp tập trung vào một task rõ.</dd>
+        <dt>Rationale</dt><dd>Safety vẫn đầy đủ và có consent thật, nhưng người dùng không phải đọc tất cả policy trước khi biết mình đang làm bước nào.</dd>
+        <dt>Downsides</dt><dd>Nếu tiến độ không được persist/resume tốt, flow dễ tạo cảm giác “hết popup này tới popup khác”. Mỗi lần chỉ được mở một sheet.</dd>
+        <dt>Confidence</dt><dd><span class="chip confidence">88%</span></dd>
+        <dt>Complexity</dt><dd><span class="chip complexity">Medium</span></dd>
+      </dl>
+    </article>
+
+    <article class="idea" id="idea-6">
+      <span class="rank">6</span><div class="axis">Chiều sâu thị giác</div>
+      <h3>Constellation Progress — độ sâu đến từ trạng thái</h3>
+      <p><strong>Description:</strong> Thanh tiến độ có năm node tín hiệu; node active phát sáng và hero orbit dịch chuyển nhẹ về phía node kế tiếp. Khi đủ chốt, các node nối thành một constellation và CTA chuyển từ lime solid sang “Mở Vòng Lá”. Không thêm card, không render người giả, không dùng trang trí chuyển động liên tục.</p>
+      <dl>
+        <dt>Basis</dt><dd><code>direct:</code> `matching.css:74–125` dùng nhiều panel cùng cấp nên hierarchy phẳng; <code>external:</code> Material 3 Expressive 2026 nhấn mạnh progress indicators, contrasting shapes và motion để biểu đạt state.</dd>
+        <dt>Rationale</dt><dd>Tạo cảm giác đang mở khóa một trạm thật mà vẫn giữ scan nhanh và trung thực về tiến độ.</dd>
+        <dt>Downsides</dt><dd>Cần Reduce Motion, contrast và đảm bảo visual không làm thanh tiến độ khó hiểu hơn.</dd>
+        <dt>Confidence</dt><dd><span class="chip confidence">82%</span></dd>
+        <dt>Complexity</dt><dd><span class="chip complexity">Medium</span></dd>
+      </dl>
+      <svg viewBox="0 0 760 150" role="img" aria-label="Minh họa progress bar năm node tạo thành constellation">
+        <path d="M90 76C180 32 246 112 335 67S500 38 665 74" fill="none" stroke="#514b7a" stroke-width="3"/><path d="M90 76C180 32 246 112 335 67" fill="none" stroke="#dcff37" stroke-width="4"/><g fill="#dcff37"><circle cx="90" cy="76" r="10"/><circle cx="210" cy="59" r="10"/><circle cx="335" cy="67" r="14"/></g><g fill="#171838" stroke="#bf92ff" stroke-width="3"><circle cx="485" cy="54" r="10"/><circle cx="665" cy="74" r="10"/></g><circle cx="335" cy="67" r="27" fill="none" stroke="#dcff37" opacity=".35"/><text x="335" y="126" text-anchor="middle" fill="#f8f2e8" font-size="14" font-weight="800">3/5 · Xác minh ảnh</text>
+      </svg>
+    </article>
+  </section>
+
+  <section id="rejections">
+    <h2>Rejection summary</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Ý tưởng đã cân nhắc</th><th>Lý do loại</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Giữ picker hiện tại, chỉ đổi headline</td><td>Không sửa thứ bậc; vẫn bắt chọn trước khi thấy giá trị.</td></tr>
+        <tr><td>2</td><td>Bento sáu context lớn hơn</td><td>Làm category nổi hơn nhưng không làm tác dụng rõ hơn; tăng clutter.</td></tr>
+        <tr><td>3</td><td>Trend riêng cho Công việc/Quan hệ/Giao tiếp</td><td>Đòi một lớp dữ liệu/timing mới và dễ biến chart signal thành lời khẳng định giả.</td></tr>
+        <tr><td>4</td><td>Tự suy context từ mood hoặc lịch sử</td><td>Vi phạm explicit choice và mở purpose creep về dữ liệu hành vi.</td></tr>
+        <tr><td>5</td><td>Ô free text “điều đang làm bạn bận tâm”</td><td>Thu dữ liệu nhạy cảm, tăng moderation/privacy burden, trái allowlist enum.</td></tr>
+        <tr><td>6</td><td>Xóa Context Dial hoàn toàn</td><td>Mất agency và khả năng đổi manifestation/micro-action đã có giá trị kỹ thuật thật.</td></tr>
+        <tr><td>7</td><td>Context nằm lẫn trong prose của Note</td><td>Không còn control rõ ràng; người dùng khó biết đâu là chart fact, đâu là framing.</td></tr>
+        <tr><td>8</td><td>Context carousel auto-rotate</td><td>Trái quy tắc không tự rotate và khiến nội dung đổi ngoài ý muốn.</td></tr>
+        <tr><td>9</td><td>Checklist Vòng Lá dạng carousel ngang</td><td>Che bớt chiều dài bằng horizontal scroll nhưng vẫn giữ năm item cạnh tranh.</td></tr>
+        <tr><td>10</td><td>Accordion cho năm checklist item</td><td>Vẫn là dashboard hồ sơ dài; chỉ đổi cách đóng/mở từng hàng.</td></tr>
+        <tr><td>11</td><td>Progress ring thay progress bar</td><td>Đẹp nhưng kém scan, không cho thấy sequence năm bước rõ bằng bar/node.</td></tr>
+        <tr><td>12</td><td>Sticky CTA trên layout hiện tại</td><td>Thêm action nhưng không loại phần scroll và hierarchy phẳng.</td></tr>
+        <tr><td>13</td><td>Profile là một route full-screen</td><td>Mất context Vòng Lá; quá nặng cho một scoped data-entry task.</td></tr>
+        <tr><td>14</td><td>Profile wizard nhiều màn</td><td>Tăng số bước và cảm giác onboarding lần hai; không phù hợp yêu cầu popup gọn.</td></tr>
+        <tr><td>15</td><td>Nested sheet cho từng field</td><td>Modal chồng modal làm tăng cognitive load và khó xử lý focus/dismiss.</td></tr>
+        <tr><td>16</td><td>Đưa toàn bộ consent vào main page rồi collapse</td><td>Vẫn chiếm một surface thường trực dù chỉ cần ở thời điểm cấp quyền.</td></tr>
+        <tr><td>17</td><td>Ẩn hoàn toàn safety requirement</td><td>Ngắn hơn nhưng đánh đổi trust và khả năng hiểu vì sao app cần dữ liệu.</td></tr>
+        <tr><td>18</td><td>XP, badge hoặc streak cho readiness</td><td>Game hóa consent/verification tạo pressure sai và không phục vụ matching quality.</td></tr>
+        <tr><td>19</td><td>Preview năm candidate giả để màn bớt phẳng</td><td>Vi phạm no-mock runtime và tạo kỳ vọng cá nhân hóa không có thật.</td></tr>
+        <tr><td>20</td><td>Thêm gradient/orb/card trang trí</td><td>Không có cấu trúc mới; tăng noise nhưng không tạo chiều sâu thông tin.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="sources" class="panel">
+    <p class="eyebrow">Sources & references</p>
+    <h2>Căn cứ có thể kiểm tra</h2>
+    <div class="sources">
+      <code>apps/web/src/features/home/HomePage.tsx</code>
+      <code>apps/web/src/shared/ui/SignalContextPicker.tsx</code>
+      <code>apps/web/src/features/matching/MatchingPage.tsx</code>
+      <code>apps/web/src/features/matching/matching.css</code>
+      <code>docs/user-stories/US-03-doc-note-hom-nay.md</code>
+      <code>docs/user-stories/US-14-chuan-bi-profile-matching-ready.md</code>
+      <a href="https://developer.apple.com/design/human-interface-guidelines/sheets">Apple HIG — Sheets</a>
+      <a href="https://developer.apple.com/design/human-interface-guidelines/layout">Apple HIG — Layout</a>
+      <a href="https://developer.apple.com/design/human-interface-guidelines/modality">Apple HIG — Modality</a>
+      <a href="https://m3.material.io/">Material Design 3 Expressive</a>
+    </div>
+  </section>
+
+  <footer class="composition-signal">Composed 2026-09-18T13:55Z by ce-ideate from the current Lá Lành product, user feedback, US-03 and US-14.</footer>
+</main>
+</body>
+</html>

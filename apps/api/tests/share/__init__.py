@@ -1,0 +1,1 @@
+"""Share domain tests."""

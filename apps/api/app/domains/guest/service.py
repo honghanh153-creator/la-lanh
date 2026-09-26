@@ -3,6 +3,7 @@ import re
 import secrets
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
+from uuid import UUID
 
 from app.domains.guest.errors import (
     ConsentPurposeInvalid,
@@ -132,6 +133,11 @@ class GuestSessionService:
         if not deleted:
             raise GuestExpired
 
+    def session_epoch(self, guest: GuestSessionRecord) -> str:
+        """Opaque client cache boundary; changes whenever a new guest session is created."""
+
+        return self._hasher.digest("guest-session-epoch", str(guest.id)).hex()
+
     async def verify_csrf(
         self, token: str | None, csrf_token: str | None, *, now: datetime | None = None
     ) -> GuestSessionRecord:
@@ -146,6 +152,44 @@ class GuestSessionService:
         if batch_size < 1 or batch_size > 1000:
             raise ValueError("batch_size must be between 1 and 1000")
         return await self._repository.purge_expired(now or datetime.now(UTC), batch_size)
+
+    async def accept_deep_birth_consent(
+        self, guest_id: UUID, *, version: str, now: datetime | None = None
+    ) -> None:
+        if version != "birth-profile-deep-v1":
+            raise ConsentVersionInvalid
+        await self._repository.save_consent(
+            ConsentRecord(
+                guest_id=guest_id,
+                version=version,
+                purpose="birth_profile_deep",
+                accepted_at=now or datetime.now(UTC),
+            )
+        )
+
+    async def accept_resonance_consent(
+        self, guest_id: UUID, *, version: str, now: datetime | None = None
+    ) -> None:
+        if version != "reading-resonance-v1":
+            raise ConsentVersionInvalid
+        await self._repository.save_consent(
+            ConsentRecord(
+                guest_id=guest_id,
+                version=version,
+                purpose="reading_resonance",
+                accepted_at=now or datetime.now(UTC),
+            )
+        )
+
+    async def revoke_resonance_consent(
+        self, guest_id: UUID, *, now: datetime | None = None
+    ) -> None:
+        await self._repository.revoke_consent(
+            guest_id, "reading_resonance", now or datetime.now(UTC)
+        )
+
+    async def set_onboarding_status(self, guest_id: UUID, status: OnboardingStatus) -> None:
+        await self._repository.update_onboarding(guest_id, status)
 
     def _validate_consent(self, version: str, purpose: str) -> None:
         if version != self._consent_version:
