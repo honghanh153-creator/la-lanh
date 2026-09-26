@@ -2,6 +2,13 @@
 
 Thư mục dự án trung tâm của Lá Lành.
 
+## Giấy phép và mã nguồn
+
+Toàn bộ sản phẩm được phát hành theo **GNU Affero General Public License v3.0 or later
+(AGPL-3.0-or-later)**. Người dùng tương tác với Lá Lành qua mạng có thể lấy Corresponding Source
+tại repository này. Xem [`LICENSE`](LICENSE), [`NOTICE`](NOTICE) và các thông báo gốc của Swiss
+Ephemeris trong [`vendor/swisseph`](vendor/swisseph).
+
 ## Tài liệu nền tảng
 
 Các tài liệu trong [`docs/foundation`](docs/foundation) là bộ tài liệu định hướng chính cho mọi hoạt động sản phẩm và kỹ thuật:

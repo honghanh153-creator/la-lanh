@@ -1,5 +1,9 @@
 # Web beta release runbook
 
+> Hosting note: the active beta target is now Hetzner + Supabase. Follow
+> `docs/operations/hetzner-supabase-release-runbook.md`. The Google Cloud sections below are retained
+> as the prior deployment design and are not the current execution path.
+
 This runbook gates a Lá Lành web beta that processes birth data, inferred astrology profiles,
 relationship inputs, mood and private share capabilities. A reachable URL is not a completed
 release.

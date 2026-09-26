@@ -1,0 +1,17 @@
+Lá Lành
+Copyright (C) 2026 Lá Lành contributors
+
+This complete work is licensed under the GNU Affero General Public License,
+version 3 or any later version (AGPL-3.0-or-later). The full license text is
+included in LICENSE.
+
+Network users can obtain the Corresponding Source at:
+https://github.com/honghanh153-creator/la-lanh
+
+This work includes Swiss Ephemeris, Copyright (C) 1997-2021 Astrodienst AG,
+Switzerland, used under the GNU Affero General Public License. Its original
+license notices are preserved in vendor/swisseph/LICENSE and
+vendor/swisseph/LICENSE.TXT. The names of Astrodienst and the Swiss Ephemeris
+authors are not used to promote this product.
+
+The program is provided without warranty; see LICENSE for details.

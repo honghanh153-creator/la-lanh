@@ -62,11 +62,34 @@ export function ConsentPage() {
           <article><ShieldCheck aria-hidden="true" /><div><strong>Chưa cần tài khoản</strong><p>Không cần phone hay email. Phiên khách tự xóa sau 30 ngày không hoạt động.</p></div></article>
           <article><Trash aria-hidden="true" /><div><strong>Bạn luôn có quyền xóa</strong><p>Xem, sửa, rút đồng ý hoặc xóa toàn bộ trong mục Mình. Dữ liệu trên máy có thể mất nếu gỡ app.</p></div></article>
           {isDetail ? <>
-            <article><LockKey aria-hidden="true" /><div><strong>Cách bảo vệ</strong><p>Ngày sinh được xử lý trên server, mã hóa khi lưu và không đặt trong URL, cookie hay link chia sẻ.</p></div></article>
+            <article><LockKey aria-hidden="true" /><div><strong>Cách bảo vệ</strong><p>Thông tin sinh được mã hóa trong ứng dụng trước khi lưu và không đặt trong URL, cookie hay link chia sẻ. Kết nối tới hệ thống dùng HTTPS/TLS.</p></div></article>
+            <article><ShieldCheck aria-hidden="true" /><div><strong>Dữ liệu beta đi đâu?</strong><p>Khi bạn đồng ý, dữ liệu được truyền từ Việt Nam để xử lý trên máy chủ Hetzner tại Đức và lưu trong cơ sở dữ liệu Supabase tại Frankfurt, Đức. Lá Lành chỉ dùng dữ liệu để vận hành tính năng, không bán hoặc dùng cho quảng cáo.</p></div></article>
             <article><WarningCircle aria-hidden="true" /><div><strong>Độ tuổi & phiên bản</strong><p>Lá Lành hiện dành cho người từ 18 tuổi. Chính sách áp dụng: birth-profile-v1.</p></div></article>
           </> : null}
         </div>
         <p className="privacy-plain">Đồng ý dữ liệu sinh tách biệt với đăng nhập và marketing. Bạn vẫn có thể dùng app ở chế độ khách.</p>
+        {isDetail ? (
+          <p className="privacy-plain">
+            Lá Lành là phần mềm nguồn mở AGPL, được cung cấp không kèm bảo hành. {" "}
+            <a
+              className="detail-link"
+              href="https://github.com/honghanh153-creator/la-lanh"
+              rel="noreferrer"
+              target="_blank"
+            >
+              Xem mã nguồn tương ứng
+            </a>
+            {" · "}
+            <a
+              className="detail-link"
+              href="https://github.com/honghanh153-creator/la-lanh/blob/main/LICENSE"
+              rel="noreferrer"
+              target="_blank"
+            >
+              Đọc giấy phép
+            </a>
+          </p>
+        ) : null}
       </section>
 
       <footer className="flow-actions">

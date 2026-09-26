@@ -1,0 +1,22 @@
+{
+	admin off
+}
+
+{$APP_HOSTNAME} {
+	encode zstd gzip
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		X-Robots-Tag "noindex, nofollow, noarchive"
+	}
+
+	reverse_proxy app:8080 {
+		health_uri /v1/ready
+		health_interval 30s
+		health_timeout 5s
+	}
+}

@@ -1,5 +1,12 @@
 # Swiss Ephemeris release gate
 
+## Release decision — 2026-09-26
+
+Chủ sản phẩm đã phê duyệt phát hành public-source theo AGPL. Toàn bộ combined/networked work dùng
+Swiss Ephemeris được cấp phép AGPL-3.0-or-later, repository nguồn được public và link Corresponding
+Source được hiển thị trong giao diện quyền dữ liệu. Release evidence phải ghi commit và image digest
+thực tế sau khi deployment hoàn tất.
+
 Lá Lành dùng Swiss Ephemeris native để tạo dữ liệu tính thật. Swiss Ephemeris có mô hình dual license: AGPL hoặc professional license. Việc chạy local cho phát triển không đồng nghĩa ứng dụng đóng source đã đủ quyền phân phối.
 
 Trước khi public service hoặc gửi binary iOS/Android:
