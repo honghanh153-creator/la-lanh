@@ -16,7 +16,8 @@ check_200 /welcome
 check_200 /home
 check_200 /radar
 
-headers="$(curl --fail --silent --show-error --head "${BASE_URL}/radar")"
+headers="$(curl --fail --silent --show-error --head \
+  -H 'Accept: text/html' "${BASE_URL}/radar")"
 grep -Eiq '^strict-transport-security:.*max-age=' <<<"$headers"
 grep -Eiq '^referrer-policy:[[:space:]]*no-referrer' <<<"$headers"
 grep -Eiq '^x-robots-tag:.*noindex' <<<"$headers"
