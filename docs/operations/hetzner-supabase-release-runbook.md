@@ -1,101 +1,380 @@
-# Hetzner + Supabase release runbook
+# Hetzner + Supabase deployment playbook
 
-Use this runbook for the closed Lá Lành web beta. The canonical implementation plan and reusable
-checklist are in `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
+This is the canonical, restart-safe playbook for deploying the Lá Lành closed web beta. A future
+operator or Codex session should be able to use it without relying on chat history. The companion
+status checklist is
+`docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Required owner decisions
+## Known-good recovery anchor
 
-- Select a Supabase project and region. For this long-running IPv4 VPS, copy the **session pooler**
-  connection string on port 5432 from Supabase's Connect dialog.
-- Approve and retain evidence for either a Swiss Ephemeris professional license or an
-  AGPL-compliant public-source release.
-- Review the closed-beta processor/cross-border disclosure for Hetzner Germany and the selected
-  Supabase region. Update the privacy notice before inviting testers.
-- Keep AI generation disabled unless the separate governance gate is approved.
+| Item | Value verified on 2026-09-26 |
+|---|---|
+| Product URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
+| VPS | `2.28.136.44` |
+| Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
+| Public source | `https://github.com/honghanh153-creator/la-lanh` |
+| Deployed release | commit/image tag `b9a70bb` / `la-lanh:b9a70bb` |
+| Image digest | `sha256:d632748d0fb867190dd4badb6dff3e68d3eb74062dd3439c830852007ea1f745` |
+| Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
+| Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 
-Never paste the database password, full database URL, cryptographic keys, or API secrets into chat,
-Git, issue trackers, or shell command arguments. Create the secret files from an interactive server
-terminal. Keep the parent directory root-owned with mode `0700`; files use mode `0600` and runtime
-UID/GID `65532:65532` so the non-root application process can read its mounted secrets.
+The database password and full connection URL exist only in `/opt/la-lanh/secrets/database_url` on
+the VPS. Do not retrieve, print, log, or paste them into chat. A deployment should not need the
+password unless that file is missing or the database password was rotated.
 
-## Server layout
+## What “successful” means
+
+A release is successful only when all of these are true:
+
+- the selected commit is available in the public repository before it serves users;
+- the app container is healthy and `/v1/ready` confirms PostgreSQL and Swiss Ephemeris readiness;
+- Caddy serves a trusted HTTPS certificate and HTTP redirects to HTTPS;
+- browser deep links load rather than showing a blank SPA;
+- security/privacy headers remain present and ports other than 22, 80, and 443 are not public;
+- no secret or sensitive request path appears in Git, build output, `docker inspect`, or logs;
+- smoke and browser acceptance pass;
+- the release evidence and unresolved operations are recorded in the deployment plan.
+
+## Non-negotiable safety rules
+
+- Never paste a password, full database URL, cryptographic key, cookie, receipt token, or share token
+  into chat, Git, shell arguments, screenshots, issues, or logs.
+- Never expose port `8080`; only Caddy publishes `80/443`.
+- Never enable Caddy or Uvicorn request access logs while capability tokens can appear in URLs.
+- Never run an automatic Alembic downgrade in production.
+- Never restore an old database directly into service. Restore in isolation and reconcile user
+  deletions made after the restore point first.
+- Use only synthetic identities for production acceptance. Delete the generated test data and revoke
+  test capabilities afterward.
+- AI generation remains disabled until its separate governance gate is approved.
+
+## Server and network contract
 
 ```text
-/opt/la-lanh/current/        committed source snapshot
-/opt/la-lanh/secrets/        root-owned secret files
-/opt/la-lanh/releases/       release metadata and prior snapshots
+Browser -> HTTPS :443 -> Caddy -> app:8080 on private Compose network
+                                   -> Supabase session pooler :5432 over TLS
 ```
 
-Required secret files are `database_url`, `guest_hash_key`, and `guest_encryption_key`. The database
-URL must start with `postgresql+asyncpg://`, use the exact Supabase session-pooler host/username,
-include port 5432, and require TLS. Percent-encode reserved password characters.
+```text
+/opt/la-lanh/current/        active committed source snapshot
+/opt/la-lanh/releases/       immutable release snapshots and evidence
+/opt/la-lanh/secrets/        root-managed runtime secret files
+```
 
-Use `infra/hetzner/configure-database.sh PROJECT_REF POOLER_HOST` from an interactive VPS terminal.
-It prompts with hidden input, percent-encodes the password, and writes the connection string with
-mode `0600`, keeping the credential out of chat and shell history.
+Required secret files are `database_url`, `guest_hash_key`, and `guest_encryption_key`. The secrets
+directory is mode `0700`. Each file is mode `0600`, owned by runtime UID/GID `65532:65532`, so the
+non-root app process can read the Compose-mounted secret.
 
-Generate the two application keys on the server with a cryptographically secure generator. Each
-file must contain one base64-encoded 32-byte value and a trailing newline is acceptable.
+Network policy:
 
-## First deployment order
+- Hetzner Cloud firewall: ICMP, TCP 22, TCP 80, and TCP 443 only.
+- Host UFW: TCP 22 only from the current operator IP; TCP 80/443 and UDP 443 publicly reachable.
+- TCP 8080 and PostgreSQL ports are never opened publicly.
 
-1. Verify SSH, UFW, unattended upgrades and the Hetzner firewall remain healthy.
-2. Install Docker Engine and the Compose plugin from a supported repository.
-3. Transfer a committed repository snapshot to `/opt/la-lanh/current` without `.git`, local
-   databases, `.env` files, caches or dependencies.
-4. Copy `infra/hetzner/app.env.example` to `infra/hetzner/app.env`, set the exact HTTPS origin, and
-   replace the development license mode only after its gate is approved.
-5. Write the three secret files directly on the server; keep the directory `0700`, and set files to
-   runtime UID/GID `65532:65532` with mode `0600`.
-6. Export `APP_HOSTNAME` and an immutable `LA_LANH_RELEASE_ID` in the operator shell.
-7. Run `infra/hetzner/deploy.sh`. It validates configuration, builds the image, applies migrations,
-   waits for readiness, and then starts Caddy.
-8. Open host and Hetzner firewall ports 80/tcp, 443/tcp and 443/udp. Keep 8080 closed.
-9. Run `infra/hetzner/smoke.sh https://HOSTNAME` and complete browser acceptance from the plan.
+## Phase 0 — resume and preflight
 
-## Database safety
-
-- The browser does not use Supabase APIs or keys. FastAPI is the only application database client.
-- Before migration, run `python -m scripts.check_database_tls` through the app service. It verifies
-  encrypted transport while deliberately suppressing connection details on failure.
-- Prefer a non-exposed database schema. If tables stay in an exposed schema, enable RLS and revoke
-  `anon`/`authenticated` access unless the product explicitly needs it.
-- Run Alembic migrations before replacing the app. Do not automatically downgrade a live schema.
-- Verify Supabase backups and retention for the selected plan. A restore must reconcile user
-  deletions made after the restore point before traffic resumes.
-
-## Retention jobs
-
-Run these from the current source directory with the same Compose environment, record aggregate
-counts only, and schedule both at least every six hours:
+Run locally from `/Users/phamhanh/Documents/New project/la-lanh`:
 
 ```sh
-docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app \
-  python -m scripts.cleanup_guests --batch-size 500
-docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app \
-  python -m scripts.cleanup_expired --batch-size 500
+git status --short
+git fetch origin
+git branch --show-current
+git log -5 --oneline
+git rev-parse HEAD
+gh repo view honghanh153-creator/la-lanh --json visibility,url,defaultBranchRef
+pnpm check
+bash -n infra/hetzner/*.sh
+```
+
+Stop before deployment if the worktree has unexplained changes, checks fail, the chosen commit is not
+in the public repository, or repository visibility is not `PUBLIC`. This product uses the authorized
+AGPL release posture, so deployed corresponding source must remain available.
+
+Verify SSH without weakening the firewall:
+
+```sh
+ssh -i ~/.ssh/la_lanh_hetzner_ed25519 root@2.28.136.44
+```
+
+If SSH times out after the operator's public IP changed, use the Hetzner web console to update the
+host UFW rule before retrying. Do not temporarily expose password SSH.
+
+On the VPS, inspect non-secret state:
+
+```sh
+docker version
+docker compose version
+systemctl is-active docker
+systemctl --failed
+ufw status verbose
+find /opt/la-lanh/secrets -maxdepth 1 -type f -printf '%f %m %u:%g\n'
+```
+
+Do not run commands that print secret file contents.
+
+## Phase 1 — choose and publish an immutable release
+
+The release ID is the 12-character Git commit SHA. Commit and push the intended release to public
+`main` before transferring it to the server. Record the full SHA locally:
+
+```sh
+git rev-parse HEAD
+git rev-parse --short=12 HEAD
+git branch -r --contains HEAD
+```
+
+If `origin/main` is not listed by the last command, merge or push through the project's normal
+review workflow first. Do not deploy an uncommitted worktree or a source tree that is unavailable to
+users under the AGPL posture.
+
+Create a clean archive locally, replacing `<RELEASE_ID>` with the printed 12-character SHA:
+
+```sh
+git archive --format=tar -o /private/tmp/la-lanh-<RELEASE_ID>.tar <RELEASE_ID>
+shasum -a 256 /private/tmp/la-lanh-<RELEASE_ID>.tar
+scp -i ~/.ssh/la_lanh_hetzner_ed25519 /private/tmp/la-lanh-<RELEASE_ID>.tar root@2.28.136.44:/opt/la-lanh/releases/
+```
+
+On the VPS, extract it without copying `.git`, local databases, `.env`, caches, or dependencies:
+
+```sh
+install -d -m 0755 /opt/la-lanh/releases/<RELEASE_ID>/source
+tar -xf /opt/la-lanh/releases/la-lanh-<RELEASE_ID>.tar -C /opt/la-lanh/releases/<RELEASE_ID>/source
+```
+
+Copy only the non-secret server configuration from the last release, or initialize it from the
+example on the first release:
+
+```sh
+cp /opt/la-lanh/current/infra/hetzner/app.env /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/app.env
+chmod 0600 /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/app.env
+```
+
+Review the file without changing the established contract:
+
+- exact origin: `https://la-lanh.2-28-136-44.sslip.io`;
+- secure guest cookies enabled;
+- generation disabled;
+- required web distribution enabled;
+- Swiss Ephemeris license mode `agpl`.
+
+`app.env` contains no secret values, but keep it server-only to avoid accidental environment drift.
+
+## Phase 2 — secrets and database readiness
+
+Normally, keep the existing secret files. Recreate the database URL only after a password rotation or
+if the file is missing. From an interactive VPS terminal:
+
+```sh
+cd /opt/la-lanh/releases/<RELEASE_ID>/source
+infra/hetzner/configure-database.sh rlowapjpwsamjftpggen <SESSION_POOLER_HOST>
+```
+
+The helper asks for the password with hidden input, percent-encodes reserved characters, requires TLS,
+and writes the file without putting the credential into shell history.
+
+If application keys are missing, generate fresh base64-encoded 32-byte values directly into the
+secret files. Rotating existing keys is a separate migration because it can invalidate or make
+existing encrypted guest data unreadable; do not rotate them casually.
+
+Verify permissions, never contents:
+
+```sh
+chmod 0700 /opt/la-lanh/secrets
+chmod 0600 /opt/la-lanh/secrets/database_url /opt/la-lanh/secrets/guest_hash_key /opt/la-lanh/secrets/guest_encryption_key
+chown 65532:65532 /opt/la-lanh/secrets/database_url /opt/la-lanh/secrets/guest_hash_key /opt/la-lanh/secrets/guest_encryption_key
+```
+
+## Phase 3 — build, probe, migrate, and start privately
+
+From the new release directory on the VPS:
+
+```sh
+cd /opt/la-lanh/releases/<RELEASE_ID>/source
+export APP_HOSTNAME=la-lanh.2-28-136-44.sslip.io
+export LA_LANH_RELEASE_ID=<RELEASE_ID>
+export LA_LANH_SECRETS_DIR=/opt/la-lanh/secrets
+docker compose -f infra/hetzner/compose.yaml config --quiet
+docker compose -f infra/hetzner/compose.yaml build app
+docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app python -m scripts.check_database_tls
+docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app alembic upgrade head
+docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app alembic current
+docker compose -f infra/hetzner/compose.yaml up -d --remove-orphans --wait app
+docker compose -f infra/hetzner/compose.yaml ps
+```
+
+The TLS probe intentionally checks the configured TLS policy plus a real query. `pg_stat_ssl` may not
+give useful results through Supavisor and is not the release gate.
+
+Verify readiness from inside the private app container:
+
+```sh
+docker compose -f infra/hetzner/compose.yaml exec -T app python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8080/v1/ready', timeout=5).status)"
+```
+
+Do not start or restart public Caddy if migration or private readiness fails. Fix the release or return
+to the known-good app image first.
+
+## Phase 4 — firewall, Caddy, and certificate
+
+For a first deployment, open host UFW and Hetzner Cloud firewall only after private readiness passes.
+For an ordinary update these rules should already exist.
+
+In the Hetzner UI, create **separate** inbound rules for TCP 80 and TCP 443. The port field does not
+accept `80,443`. Keep 8080 closed. UDP 443 is optional for HTTP/3 but is already allowed in the known-
+good host configuration.
+
+Start the full stack:
+
+```sh
+docker compose -f infra/hetzner/compose.yaml up -d --remove-orphans --wait
+docker compose -f infra/hetzner/compose.yaml ps
+docker compose -f infra/hetzner/compose.yaml logs --since 10m caddy
+```
+
+On a first certificate issuance, a brief TLS alert can occur before Caddy finishes the ACME flow.
+Wait and confirm `certificate obtained successfully` in Caddy logs instead of weakening TLS or
+reconfiguring the proxy.
+
+After the public stack is healthy, update the active pointer:
+
+```sh
+ln -sfn /opt/la-lanh/releases/<RELEASE_ID>/source /opt/la-lanh/current.next
+mv -Tf /opt/la-lanh/current.next /opt/la-lanh/current
+```
+
+If `/opt/la-lanh/current` is still a real directory from the first deployment rather than a symlink,
+preserve it as a legacy release before performing this one-time conversion. Never delete the active
+tree while containers or rollback evidence depend on it.
+
+## Phase 5 — public smoke and browser acceptance
+
+Run from either the VPS release directory or a trusted local checkout:
+
+```sh
+infra/hetzner/smoke.sh https://la-lanh.2-28-136-44.sslip.io
+```
+
+The smoke script deliberately sends `Accept: text/html` for SPA routes. A default curl request with
+`Accept: */*` may receive `404` on a deep link by design and does not prove the browser route is broken.
+
+Browser acceptance, in a fresh/private session:
+
+- `/welcome` renders, has the expected title, and has no console errors;
+- direct navigation to `/home`, `/radar`, and `/privacy` renders without a blank page;
+- `/privacy` names the current processors and links to public source and `LICENSE`;
+- mobile-width layout has no clipped critical text or controls;
+- network responses include HSTS, `no-referrer`, `noindex`, `no-store`, CSP, COOP,
+  Permissions-Policy, and `X-Frame-Options`;
+- cookies created by the flow are `Secure` and host-only;
+- a mutation without a CSRF token is rejected.
+
+Then complete a synthetic data-writing test:
+
+1. welcome -> consent -> synthetic birth date -> reveal -> home -> daily note;
+2. add synthetic time/place and verify the richer profile survives refresh;
+3. complete Radar private input, reload the result, and verify share controls;
+4. delete the synthetic result/profile and verify revoked capability URLs are no longer readable.
+
+Do not use real birth or relationship data for this operator test.
+
+## Phase 6 — operations gates
+
+Run both retention jobs once, record aggregate counts only, and then schedule them at least every six
+hours:
+
+```sh
+docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app python -m scripts.cleanup_guests --batch-size 500
+docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app python -m scripts.cleanup_expired --batch-size 500
+```
+
+Before inviting external testers, record the actual backup/restore capability of the active Supabase
+plan. Do not claim point-in-time recovery or automated backups unless the dashboard and plan confirm
+them. A restore rehearsal must happen in an isolated project/database and must account for deletions
+made after the restore point.
+
+The first deployed beta passed availability checks, but the cleanup timers, backup capability record,
+full synthetic data-writing E2E, and rollback drill remain open until the companion checklist says
+otherwise.
+
+## Phase 7 — release evidence and handoff
+
+Append or update the “Known-good deployed release” table in the deployment plan with:
+
+- UTC deployment date/time;
+- full commit and 12-character image tag;
+- image digest from `docker image inspect`;
+- public URL and certificate issuer/status;
+- migration head;
+- smoke/browser results;
+- current and previous image tags;
+- unresolved checklist items and exact next action.
+
+Use this handoff template for the next session:
+
+```text
+Public URL:
+Current release commit/image:
+Previous release commit/image:
+Image digest:
+Migration head:
+Smoke result and timestamp:
+Browser E2E result and timestamp:
+Retention timer status:
+Backup capability/restore drill status:
+Unresolved blockers:
+Secrets: remain only on VPS; not copied or displayed.
 ```
 
 ## Rollback
 
-Record the current and previous image tags before every release. For an application rollback, set
-`LA_LANH_RELEASE_ID` to the prior built tag and run Compose without rebuilding. Confirm that the
-prior app version is compatible with the already-applied schema, then run public smoke checks.
+Rollback changes the application image/source only. It does not downgrade the live database.
 
-Do not put an old database backup directly into service. Restore into isolation, reconcile
-post-backup deletions, validate ownership boundaries, and only then cut over.
+1. Record failing and previous release IDs.
+2. Confirm the previous app is compatible with the current, already-migrated schema.
+3. From the previous release source directory, export the previous immutable
+   `LA_LANH_RELEASE_ID`, the same `APP_HOSTNAME`, and the secrets directory.
+4. Run Compose without `build` and wait for health.
+5. Restore `/opt/la-lanh/current` to the previous source pointer only after health passes.
+6. Run public smoke and browser deep-link checks again.
+7. Preserve the failed image and logs until the incident is understood; never include secret values
+   or capability URLs in the incident record.
 
-## Incident checks
+If the previous image was pruned, rebuild it only from the matching public Git commit. If schema
+compatibility is uncertain, stop traffic and diagnose rather than guessing or downgrading.
 
-- `docker compose -f infra/hetzner/compose.yaml ps`
-- `docker compose -f infra/hetzner/compose.yaml logs --since 15m app caddy`
-- `curl --fail https://HOSTNAME/v1/ready`
-- `systemctl --failed`
-- `ufw status verbose`
+## Incident triage
 
-Logs must never include request bodies, birth data, coordinates, relationship content, cookies,
-database URLs, receipt tokens, or share tokens. Caddy access logs and Uvicorn access logs remain
-disabled because capability tokens currently occur in URLs.
+```sh
+docker compose -f /opt/la-lanh/current/infra/hetzner/compose.yaml ps
+docker compose -f /opt/la-lanh/current/infra/hetzner/compose.yaml logs --since 15m app caddy
+curl --fail https://la-lanh.2-28-136-44.sslip.io/v1/ready
+systemctl --failed
+ufw status verbose
+```
+
+Redact or avoid any URL containing a share/capability token before saving diagnostic output.
+
+## Known pitfalls and their proven fixes
+
+1. **Reserved characters in the Supabase password:** always use `configure-database.sh`; manual URLs
+   can break parsing. Alembic also needs encoded percent signs escaped for its configuration layer.
+2. **Secret permission failures:** parent directory is `0700`; files are `0600` and owned by
+   `65532:65532`.
+3. **Wrong Supabase mode:** use the IPv4 Supavisor **session** pooler on `5432` with `ssl=require`,
+   not transaction mode or a browser-side key.
+4. **Misleading TLS introspection:** Supavisor may hide `pg_stat_ssl`; use the shipped TLS probe and
+   successful query.
+5. **Buildx warning:** a non-fatal output/import warning is not a deployment failure if the tagged
+   image exists and Compose starts it.
+6. **Early TLS alert:** normal while Caddy is obtaining the first certificate; inspect Caddy logs and
+   wait for issuance.
+7. **SPA curl 404:** send `Accept: text/html`; the smoke script already does this.
+8. **Hetzner port syntax:** add TCP 80 and TCP 443 as separate firewall rules.
+9. **Privacy leaks in logs:** keep both proxy and app access logs disabled because tokens can occur in
+   paths.
+10. **Secret exposure during debugging:** inspect file metadata and health status, never `cat` secret
+    files or run `docker inspect` output through a public transcript without redaction.
 
 ## Official references
 

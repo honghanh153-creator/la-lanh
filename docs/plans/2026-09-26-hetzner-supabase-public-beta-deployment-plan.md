@@ -1,8 +1,9 @@
 ---
 title: Hetzner + Supabase public beta deployment
 date: 2026-09-26
-status: implementation-ready
+status: deployed-with-operations-follow-ups
 deepened: 2026-09-26
+deployed: 2026-09-26
 ---
 
 # Hetzner + Supabase public beta deployment
@@ -38,6 +39,26 @@ Success is not merely a reachable page. A fresh user must be able to complete th
 - The application already serves its built SPA and API from one origin through `apps/api/app/cloud_run.py` and disables Uvicorn access logs.
 - Runtime settings reject staging/production unless PostgreSQL, secure cookies, managed cryptographic keys, HTTPS origins, and a non-development Swiss Ephemeris license posture are configured.
 - The database schema is managed by Alembic through `apps/api/migrations/`.
+
+## Known-good deployed release
+
+This is the recovery anchor for a future session. It contains no credentials.
+
+| Item | Verified value |
+|---|---|
+| Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
+| Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
+| Deployed application commit/tag | `b9a70bb` / `la-lanh:b9a70bb` |
+| Deployed image digest | `sha256:d632748d0fb867190dd4badb6dff3e68d3eb74062dd3439c830852007ea1f745` |
+| Documentation/smoke follow-up | `d4f7a43` |
+| Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
+| Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
+| Database | Supavisor session pooler on port `5432`, TLS required |
+
+Verified on 2026-09-26: public health/readiness, SPA deep links, HTTPS redirect and certificate,
+security/privacy headers, `/welcome`, and `/privacy`. The public smoke script passed. The full
+production data-writing journey and scheduled retention/backup operations remain explicit follow-ups
+below and must not be reported as complete.
 
 ## Architecture
 
@@ -155,28 +176,32 @@ The frontend never receives a Supabase database password, service-role key, or d
 
 ### Repository and server
 
-- [ ] Add and verify U1 artifacts.
-- [ ] Install Docker/Compose on VPS.
-- [ ] Create release directories and transfer a committed source snapshot.
-- [ ] Build the application image successfully on the 4 GB VPS.
+- [x] Add and verify U1 artifacts.
+- [x] Install Docker/Compose on VPS.
+- [x] Create release directories and transfer a committed source snapshot.
+- [x] Build the application image successfully on the 4 GB VPS.
 
 ### Owner unblockers
 
-- [ ] Create/select a Supabase project and choose the intended region.
-- [ ] Put the Supabase **session pooler** connection string into the server secret file without pasting it into chat.
+- [x] Create/select Supabase project `rlowapjpwsamjftpggen` in Frankfurt.
+- [x] Put the Supabase **session pooler** connection string into the server secret file without pasting it into chat.
 - [x] Product owner authorized an AGPL-compliant public-source release on 2026-09-26.
 - [x] The in-app privacy detail names Hetzner Germany and Supabase Frankfurt as the beta processors/destinations.
-- [ ] If using an owned domain, point its A record to `2.28.136.44`; otherwise approve the temporary generated beta hostname.
+- [x] Approve and deploy temporary hostname `la-lanh.2-28-136-44.sslip.io`.
+- [ ] Replace the temporary hostname with an owned domain before a broad/public launch.
 
 ### Release
 
-- [ ] Generate production cryptographic keys on the VPS.
-- [ ] Run Alembic migrations.
-- [ ] Start app privately and pass local readiness checks.
-- [ ] Configure DNS/TLS and open inbound 80/443.
-- [ ] Pass public smoke tests and browser E2E acceptance.
+- [x] Generate production cryptographic keys on the VPS.
+- [x] Run Alembic migrations to head.
+- [x] Start app privately and pass local readiness checks.
+- [x] Configure DNS/TLS and open inbound 80/443 while keeping 8080 closed.
+- [x] Pass public smoke tests and browser acceptance for availability, deep links, privacy copy, and console health.
 - [ ] Run cleanup jobs once and enable timers.
-- [ ] Record image/version, rollback command, URL, date, and unresolved launch risks.
+- [ ] Confirm and record the Supabase backup/restore capability for the active plan.
+- [ ] Run the full synthetic data-writing E2E journey in U7, including deletion/revocation checks.
+- [ ] Perform a controlled restart and rollback dry run against the current schema.
+- [x] Record image/version, URL, date, and unresolved launch risks.
 
 ## Rollback
 
@@ -195,10 +220,16 @@ The frontend never receives a Supabase database password, service-role key, or d
 
 ## Definition of done
 
-- R1–R8 pass and evidence is captured in the runbook.
+- R1–R6 pass and evidence is captured in the runbook.
+- R7 passes after a controlled restart and rollback dry run.
+- R8 passes after both cleanup jobs run once, timers are active, and backup capability is recorded.
+- U7 passes with synthetic test data and post-test deletion/revocation verified.
 - No P0/P1 security or privacy defect is known.
 - R9 is explicitly approved before external testers are invited.
 - The deployment and rollback can be repeated from the runbook without relying on this conversation.
+
+Until the remaining boxes are checked, describe this as a technically deployed closed beta, not a
+fully operations-complete production release.
 
 ## Sources checked
 
