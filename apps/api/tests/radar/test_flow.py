@@ -207,6 +207,7 @@ def test_private_check_computes_without_persisting_other_person_birth_input(
             json={
                 "recipient_label": "Người hay seen",
                 "context": "crush",
+                "voice": "playful_grounded",
                 "birth_date": "1996-07-21",
                 "birth_time_local": "19:40",
                 "place_id": "vn-dak-lak",
@@ -219,6 +220,8 @@ def test_private_check_computes_without_persisting_other_person_birth_input(
         payload = response.json()
         assert payload["request_id"]
         assert payload["mode"] == "private_check"
+        assert payload["metadata"]["voice"] == "playful_grounded"
+        assert payload["metadata"]["voice_label"] == "Hơi cợt, vẫn có căn"
         _assert_dossier_payload(payload)
         _assert_no_raw_birth_data(payload)
         assert "score" not in response.text.lower()
@@ -229,15 +232,16 @@ def test_private_check_computes_without_persisting_other_person_birth_input(
         with sqlite3.connect(database) as connection:
             columns = {row[1] for row in connection.execute("PRAGMA table_info(radar_requests)")}
             row = connection.execute(
-                "SELECT mode, consent_version, authorization_attested_at, token_hash, "
+                "SELECT mode, consent_version, authorization_attested_at, token_hash, voice, "
                 "recipient_label_ciphertext, result_ciphertext FROM radar_requests"
             ).fetchone()
         assert {"birth_date", "birth_time_local", "place_id"}.isdisjoint(columns)
         assert row[0:2] == ("private_check", "radar-authorized-input-v1")
         assert row[2] is not None and row[3] is None
-        assert row[4].startswith("aesgcm:") and "Người hay seen" not in row[4]
-        assert row[5].startswith("aesgcm:")
-        assert payload["headline"] not in row[5]
+        assert row[4] == "playful_grounded"
+        assert row[5].startswith("aesgcm:") and "Người hay seen" not in row[5]
+        assert row[6].startswith("aesgcm:")
+        assert payload["headline"] not in row[6]
 
         request_id = payload["request_id"]
         stored = owner.get(f"/v1/radar/results/{request_id}")

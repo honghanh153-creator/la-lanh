@@ -9,7 +9,7 @@ import { BrandMark } from "../../shared/ui/BrandMark";
 import "../matching/matching.css";
 import "./radar.css";
 import { RadarFlowSteps } from "./RadarFlowSteps";
-import { RADAR_CONTEXT_OPTIONS, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
+import { radarVoiceLabel, RADAR_CONTEXT_OPTIONS, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
 
 type RadarSection = NonNullable<RadarResult["sections"]>[number];
 
@@ -125,7 +125,7 @@ export function RadarContinuePage() {
   const chartMissing = accept.error instanceof ApiProblem && accept.error.status === 409;
   const acceptMismatch = accept.error instanceof ApiProblem && accept.error.status === 422;
   const contextLabel = RADAR_CONTEXT_OPTIONS.find(([value]) => value === invite.data.context)?.[1] ?? "Một người";
-  return <main className="matching-page radar-public radar-continue"><header className="matching-header"><BrandMark /><span className="matching-signal"><LockKey /> consent riêng</span></header><RadarFlowSteps current={2} /><section className="radar-public__signal"><p className="eyebrow">Lời mời: {contextLabel.toLowerCase()}</p><h1>{invite.data.recipient_label}, đây đúng là lời mời bạn vừa mở?</h1><p>Radar chỉ chạy cho đúng kết nối này. Dữ liệu thô không hiện trong kết quả và không được gửi cho người mời.</p></section>
+  return <main className="matching-page radar-public radar-continue"><header className="matching-header"><BrandMark /><span className="matching-signal"><LockKey /> consent riêng</span></header><RadarFlowSteps current={2} /><section className="radar-public__signal"><p className="eyebrow">Lời mời: {contextLabel.toLowerCase()}</p><h1>{invite.data.recipient_label}, đây đúng là lời mời bạn vừa mở?</h1><p>Radar chỉ chạy cho đúng kết nối này, với giọng “{radarVoiceLabel(invite.data.voice)}”. Dữ liệu thô không hiện trong kết quả và không được gửi cho người mời.</p></section>
     {session.isLoading ? <section aria-live="polite" className="radar-owner-refresh"><Sparkle className="matching-pulse" /><p>Đang kiểm tra chart trên thiết bị này…</p></section> : missingSession ? <section className="radar-public__card"><Sparkle /><h2>Tạo chart riêng trước</h2><p>Chưa cần tài khoản. Phiên khách tự hết hạn sau 30 ngày không hoạt động.</p><Link className="matching-primary" to="/consent">Tạo chart của mình <ArrowRight /></Link></section> : session.isError ? <section className="radar-public__card"><h2>Chưa kiểm tra được chart.</h2><p>Dữ liệu chưa được gửi. Kiểm tra mạng rồi thử lại.</p><button className="matching-primary" onClick={() => void session.refetch()} type="button">Thử lại</button></section> : <section className="radar-public__card"><ShieldCheck /><h2>Chỉ đồng ý cho phép đọc hai chart</h2><ul><li>Dùng natal chart, synastry và composite để tạo các tín hiệu nhiều chiều.</li><li>Không chia sẻ ngày, giờ, nơi sinh hoặc tọa độ với người kia.</li><li>Không dùng Radar để xếp hạng, quảng cáo hoặc tìm người lạ.</li></ul><label className="consent-check"><input checked={consented} onChange={(event) => setConsented(event.target.checked)} type="checkbox" /><span>Tôi đồng ý dùng chart của mình cho đúng lần Radar “{invite.data.recipient_label}” và hiểu đây là nội dung tự soi, không phải lời khuyên quyết định.</span></label>{chartMissing ? <p className="matching-message">Chart chưa đủ giờ và nơi sinh.</p> : null}{acceptMismatch ? <p className="matching-message">Lời mời đã thay đổi hoặc hết hạn. Mở lại link gốc để tiếp tục an toàn.</p> : null}{accept.isError && !chartMissing && !acceptMismatch ? <p className="matching-message">Radar chưa tính xong. Chưa có consent nào bị ghi nhận—bạn có thể thử lại.</p> : null}{chartMissing ? <Link className="matching-secondary" to="/birth-time">Hoàn thiện chart của mình</Link> : null}<button className="matching-primary" disabled={!consented || accept.isPending || acceptMismatch} onClick={() => accept.mutate()} type="button">{accept.isPending ? "Đang đọc hai chart…" : accept.isError && !acceptMismatch ? "Thử bật Radar lại" : "Đồng ý & bật Radar"}<ArrowRight /></button></section>}
   </main>;
 }
@@ -165,6 +165,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
       <span className="radar-signature__kicker">{signature.kicker}</span>
       <h1>{signature.headline}</h1>
       <p>{signature.summary}</p>
+      {result.metadata?.voice_label ? <small className="radar-reading-voice">Giọng đọc bạn chọn · {result.metadata.voice_label}</small> : null}
     </section>
 
     <section aria-labelledby="radar-map-title" className="radar-compatibility-map">

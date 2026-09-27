@@ -17,6 +17,7 @@ from app.domains.radar.service import (
     RadarInvalid,
     RadarService,
 )
+from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
 router = APIRouter()
@@ -29,12 +30,14 @@ class RadarCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     recipient_label: str = Field(min_length=1, max_length=40)
     context: Literal["crush", "friend", "partner", "someone"]
+    voice: RelationshipVoice = RelationshipVoice.STRAIGHT_WARM
 
 
 class RadarPrivateCheckRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     recipient_label: str = Field(min_length=1, max_length=40)
     context: Literal["crush", "friend", "partner", "someone"]
+    voice: RelationshipVoice = RelationshipVoice.STRAIGHT_WARM
     birth_date: date
     birth_time_local: str = Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     place_id: str = Field(min_length=2, max_length=80)
@@ -46,6 +49,7 @@ class RadarInviteResponse(BaseModel):
     id: UUID
     recipient_label: str
     context: str
+    voice: str
     mode: RadarMode
     status: RadarStatus
     created_at: datetime
@@ -57,6 +61,7 @@ class PublicRadarInviteResponse(BaseModel):
     request_id: UUID
     recipient_label: str
     context: str
+    voice: str
     expires_at: datetime
     consent_version: str = CONSENT_VERSION
     requires_exact_birth_profile: bool = True
@@ -134,6 +139,7 @@ def _invite(view: RadarInviteView, share_url: str | None = None) -> RadarInviteR
         id=view.id,
         recipient_label=view.recipient_label,
         context=view.context,
+        voice=view.voice,
         mode=view.mode,
         status=view.status,
         created_at=view.created_at,
@@ -155,6 +161,7 @@ async def create_private_check(
             owner_guest_id=owner.source_guest_id,
             recipient_label=body.recipient_label,
             context=body.context,
+            voice=body.voice,
             birth_date=body.birth_date,
             birth_time_local=body.birth_time_local,
             place_id=body.place_id,
@@ -185,6 +192,7 @@ async def create_request(
             owner_guest_id=owner.source_guest_id,
             recipient_label=body.recipient_label,
             context=body.context,
+            voice=body.voice,
         )
     except OwnerSessionUnavailable:
         return Response(status_code=401)
@@ -278,6 +286,7 @@ async def current_invite(
         request_id=invite.request_id,
         recipient_label=invite.recipient_label,
         context=invite.context,
+        voice=invite.voice,
         expires_at=invite.expires_at,
     )
 
@@ -403,5 +412,6 @@ async def public_preview(
         request_id=invite.request_id,
         recipient_label=invite.recipient_label,
         context=invite.context,
+        voice=invite.voice,
         expires_at=invite.expires_at,
     )

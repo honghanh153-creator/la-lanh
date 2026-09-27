@@ -10,12 +10,13 @@ import {
   listRadarInvites,
   revokeRadarInvite,
   type RadarInvite,
+  type RadarVoice,
 } from "../../shared/api/client";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import "../matching/matching.css";
 import "./radar.css";
 import { RadarFlowSteps } from "./RadarFlowSteps";
-import { RADAR_CONTEXT_OPTIONS } from "./radarOptions";
+import { RADAR_CONTEXT_OPTIONS, RADAR_VOICE_OPTIONS } from "./radarOptions";
 import { RADAR_HISTORY_QUERY_KEY, useRadarOwnerBinding } from "./useRadarOwnerBinding";
 
 export function RadarStartPage() {
@@ -24,6 +25,7 @@ export function RadarStartPage() {
   const queryClient = useQueryClient();
   const [label, setLabel] = useState("");
   const [context, setContext] = useState<RadarInvite["context"]>("crush");
+  const [voice, setVoice] = useState<RadarVoice>("straight_warm");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const activeOwnerEpoch = useRef<string | null>(null);
@@ -42,6 +44,7 @@ export function RadarStartPage() {
     if (activeOwnerEpoch.current && activeOwnerEpoch.current !== owner.epoch) {
       setLabel("");
       setContext("crush");
+      setVoice("straight_warm");
       setShareUrl(null);
       setMessage(null);
     }
@@ -63,7 +66,7 @@ export function RadarStartPage() {
   }, [location.hash, query.isFetching]);
 
   const create = useMutation({
-    mutationFn: () => createRadarInvite({ recipient_label: label.trim(), context }),
+    mutationFn: () => createRadarInvite({ recipient_label: label.trim(), context, voice }),
     onMutate: () => {
       shareRequestSequence.current += 1;
       setShareUrl(null);
@@ -129,6 +132,7 @@ export function RadarStartPage() {
     {owner.isReady ? <form className="radar-create" onSubmit={submit}>
       <label><span>Tên gọi của người ấy</span><input autoComplete="off" maxLength={40} onChange={(event) => setLabel(event.target.value)} placeholder="Ví dụ: Mèo, An, người hay seen…" required value={label} /></label>
       <fieldset><legend>Hai bạn đang là…</legend><div className="radar-contexts">{RADAR_CONTEXT_OPTIONS.map(([value, text]) => <button aria-pressed={context === value} className={context === value ? "is-selected" : ""} key={value} onClick={() => setContext(value)} type="button">{text}</button>)}</div></fieldset>
+      <fieldset><legend>Bạn muốn Radar nói kiểu nào?</legend><div className="radar-voices">{RADAR_VOICE_OPTIONS.map(([value, title, description]) => <button aria-pressed={voice === value} className={voice === value ? "is-selected" : ""} key={value} onClick={() => setVoice(value)} type="button"><strong>{title}</strong><small>{description}</small></button>)}</div></fieldset>
       <div className="radar-consent-note"><LockKey /><p><strong>Không cần dữ liệu của người kia ở bước này.</strong><br />Radar chỉ chạy khi họ tự hoàn thiện chart và đồng ý dùng cho lần check này.</p></div>
       <button className="matching-primary" disabled={create.isPending || owner.isPending || !label.trim()} type="submit">{create.isPending ? "Đang tạo link riêng…" : "Tạo link bật Radar"}<ArrowRight /></button>
     </form> : null}

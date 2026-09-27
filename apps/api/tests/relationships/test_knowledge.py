@@ -2,6 +2,7 @@ from app.domains.astro.models import RelationshipDimension, RelationshipDimensio
 from app.domains.relationships.knowledge import (
     BOOK_SOURCES,
     EDITORIAL_CONCEPTS,
+    PUBLISHABLE_PROMPT_CONCEPT_IDS,
     RELATIONSHIP_KNOWLEDGE_VERSION,
     VOICE_PROFILES,
     build_editorial_plan,
@@ -77,6 +78,7 @@ def test_editorial_plan_is_deterministic_diverse_and_evidence_bound() -> None:
     assert len({prompt.dimension for prompt in first.prompts}) == 3
     assert len({prompt.concept_id for prompt in first.prompts}) == 3
     assert all(prompt.evidence_ids for prompt in first.prompts)
+    assert all(prompt.concept_id in PUBLISHABLE_PROMPT_CONCEPT_IDS for prompt in first.prompts)
     assert first.voice_profile.voice is RelationshipVoice.PLAYFUL_GROUNDED
     assert "không phải kết luận" in first.disclaimer
 

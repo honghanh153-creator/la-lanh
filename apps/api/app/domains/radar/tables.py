@@ -28,6 +28,7 @@ class RadarRequestRow(Base):
     )
     recipient_label_ciphertext: Mapped[str] = mapped_column(Text, nullable=False)
     context: Mapped[str] = mapped_column(String(24), nullable=False)
+    voice: Mapped[str] = mapped_column(String(32), nullable=False, default="straight_warm")
     mode: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[str] = mapped_column(String(24), nullable=False)
     consent_version: Mapped[str | None] = mapped_column(String(64))

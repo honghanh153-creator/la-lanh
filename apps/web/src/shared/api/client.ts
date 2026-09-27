@@ -73,15 +73,18 @@ export type RadarInvite = {
   id: string;
   recipient_label: string;
   context: "crush" | "friend" | "partner" | "someone";
+  voice: RadarVoice;
   mode: "private_check" | "consented_invite";
   status: "pending" | "completed" | "revoked" | "withdrawn" | "expired";
   created_at: string;
   expires_at: string;
   share_url?: string | null;
 };
+export type RadarVoice = "straight_warm" | "gentle_specific" | "playful_grounded" | "deep_dive";
 export type RadarPrivateCheckInput = {
   recipient_label: string;
   context: RadarInvite["context"];
+  voice: RadarVoice;
   birth_date: string;
   birth_time_local: string;
   place_id: string;
@@ -91,6 +94,7 @@ export type PublicRadarInvite = {
   request_id: string;
   recipient_label: string;
   context: string;
+  voice: RadarVoice;
   expires_at: string;
   consent_version: string;
   requires_exact_birth_profile: boolean;
@@ -182,6 +186,8 @@ export type RadarResult = {
     chart_config_version: string;
     evidence_ids: string[];
     concept_ids: string[];
+    voice: RadarVoice;
+    voice_label: string;
   } | null;
   disclaimer: string;
 };
@@ -825,6 +831,7 @@ export function setMatchingPoolMembership(active: boolean): Promise<MatchingProf
 export function createRadarInvite(input: {
   recipient_label: string;
   context: RadarInvite["context"];
+  voice: RadarVoice;
 }): Promise<RadarInvite> {
   return request<RadarInvite>("/radar/requests", {
     method: "POST",

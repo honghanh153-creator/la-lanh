@@ -2312,12 +2312,17 @@
             "default": true,
             "title": "Requires Exact Birth Profile",
             "type": "boolean"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
           }
         },
         "required": [
           "request_id",
           "recipient_label",
           "context",
+          "voice",
           "expires_at"
         ],
         "title": "PublicRadarInviteResponse",
@@ -2423,6 +2428,10 @@
             "minLength": 1,
             "title": "Recipient Label",
             "type": "string"
+          },
+          "voice": {
+            "$ref": "#/components/schemas/RelationshipVoice",
+            "default": "straight_warm"
           }
         },
         "required": [
@@ -2473,12 +2482,17 @@
           },
           "status": {
             "$ref": "#/components/schemas/RadarStatus"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "recipient_label",
           "context",
+          "voice",
           "mode",
           "status",
           "created_at",
@@ -2539,6 +2553,10 @@
             "minLength": 1,
             "title": "Recipient Label",
             "type": "string"
+          },
+          "voice": {
+            "$ref": "#/components/schemas/RelationshipVoice",
+            "default": "straight_warm"
           }
         },
         "required": [
@@ -2990,6 +3008,17 @@
         ],
         "title": "ReadingSectionsProjection",
         "type": "object"
+      },
+      "RelationshipVoice": {
+        "description": "Explicit delivery preference; never inferred from chart or behaviour.",
+        "enum": [
+          "straight_warm",
+          "gentle_specific",
+          "playful_grounded",
+          "deep_dive"
+        ],
+        "title": "RelationshipVoice",
+        "type": "string"
       },
       "ReportRequest": {
         "properties": {

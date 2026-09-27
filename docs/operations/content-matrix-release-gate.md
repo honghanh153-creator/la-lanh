@@ -29,6 +29,8 @@ qualify as enrichment.
 ## Mandatory checklist for every normal deployment
 
 - [ ] Run `pnpm content:audit` and attach the output to release evidence.
+- [ ] Run `pnpm experience:audit`, then complete the human mobile review in
+      `docs/operations/user-experience-release-gate.md`.
 - [ ] Run the complete reading, relationship, and Radar test suites.
 - [ ] Compare representative Daily Note and Radar outputs with the currently deployed release.
 - [ ] Add at least one reviewed, evidence-bound content improvement: a new useful atom, a missing

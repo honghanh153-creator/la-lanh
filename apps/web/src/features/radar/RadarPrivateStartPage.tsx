@@ -11,12 +11,13 @@ import {
   searchBirthPlaces,
   type PlaceResult,
   type RadarInvite,
+  type RadarVoice,
 } from "../../shared/api/client";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import "../matching/matching.css";
 import "./radar.css";
 import { RadarFlowSteps } from "./RadarFlowSteps";
-import { RADAR_CONTEXT_OPTIONS } from "./radarOptions";
+import { RADAR_CONTEXT_OPTIONS, RADAR_VOICE_OPTIONS } from "./radarOptions";
 import { RADAR_HISTORY_QUERY_KEY, useRadarOwnerBinding } from "./useRadarOwnerBinding";
 
 function adultBirthDate(day: string, month: string, year: string): string | null {
@@ -39,6 +40,7 @@ export function RadarPrivateStartPage() {
   const queryClient = useQueryClient();
   const [label, setLabel] = useState("");
   const [context, setContext] = useState<RadarInvite["context"]>("crush");
+  const [voice, setVoice] = useState<RadarVoice>("straight_warm");
   const [birthDay, setBirthDay] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthYear, setBirthYear] = useState("");
@@ -82,6 +84,7 @@ export function RadarPrivateStartPage() {
     if (activeOwnerEpoch.current && activeOwnerEpoch.current !== owner.epoch) {
       setLabel("");
       setContext("crush");
+      setVoice("straight_warm");
       setBirthDay("");
       setBirthMonth("");
       setBirthYear("");
@@ -107,6 +110,7 @@ export function RadarPrivateStartPage() {
     mutationFn: () => createPrivateRadarCheck({
       recipient_label: label.trim(),
       context,
+      voice,
       birth_date: birthDate ?? "",
       birth_time_local: birthTime,
       place_id: selectedPlace?.place_id ?? "",
@@ -170,6 +174,7 @@ export function RadarPrivateStartPage() {
       <div className="radar-form-heading"><span>01</span><div><strong>Người bạn muốn check</strong><p>Thông tin này không được gửi cho người ấy.</p></div></div>
       <label><span>Tên gọi để bạn dễ nhớ</span><input autoComplete="off" maxLength={40} onChange={(event) => setLabel(event.target.value)} placeholder="Ví dụ: An, Mèo, người hay seen…" required value={label} /></label>
       <fieldset><legend>Hai bạn đang là…</legend><div className="radar-contexts">{RADAR_CONTEXT_OPTIONS.map(([value, text]) => <button aria-pressed={context === value} className={context === value ? "is-selected" : ""} key={value} onClick={() => setContext(value)} type="button">{text}</button>)}</div></fieldset>
+      <fieldset><legend>Bạn muốn Radar nói kiểu nào?</legend><div className="radar-voices">{RADAR_VOICE_OPTIONS.map(([value, title, description]) => <button aria-pressed={voice === value} className={voice === value ? "is-selected" : ""} key={value} onClick={() => setVoice(value)} type="button"><strong>{title}</strong><small>{description}</small></button>)}</div></fieldset>
 
       <div className="radar-form-heading"><span>02</span><div><strong>Thông tin sinh của họ</strong><p>Đủ giờ và nơi sinh giúp đọc Moon, Rising, House và các góc hai chart.</p></div></div>
       <div className="radar-birth-grid">

@@ -1877,6 +1877,8 @@ export interface components {
              * @default true
              */
             requires_exact_birth_profile: boolean;
+            /** Voice */
+            voice: string;
         };
         /** PublicShareArtifactResponse */
         PublicShareArtifactResponse: {
@@ -1924,6 +1926,8 @@ export interface components {
             context: "crush" | "friend" | "partner" | "someone";
             /** Recipient Label */
             recipient_label: string;
+            /** @default straight_warm */
+            voice: components["schemas"]["RelationshipVoice"];
         };
         /** RadarInviteResponse */
         RadarInviteResponse: {
@@ -1950,6 +1954,8 @@ export interface components {
             /** Share Url */
             share_url?: string | null;
             status: components["schemas"]["RadarStatus"];
+            /** Voice */
+            voice: string;
         };
         /**
          * RadarMode
@@ -1978,6 +1984,8 @@ export interface components {
             place_id: string;
             /** Recipient Label */
             recipient_label: string;
+            /** @default straight_warm */
+            voice: components["schemas"]["RelationshipVoice"];
         };
         /** RadarResultResponse */
         RadarResultResponse: {
@@ -2159,6 +2167,12 @@ export interface components {
             /** Transit */
             transit?: string | null;
         };
+        /**
+         * RelationshipVoice
+         * @description Explicit delivery preference; never inferred from chart or behaviour.
+         * @enum {string}
+         */
+        RelationshipVoice: "straight_warm" | "gentle_specific" | "playful_grounded" | "deep_dive";
         /** ReportRequest */
         ReportRequest: {
             /**

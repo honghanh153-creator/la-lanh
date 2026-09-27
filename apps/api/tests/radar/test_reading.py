@@ -1,15 +1,17 @@
 import json
 from datetime import UTC, datetime
 
-from app.domains.astro.engine import NatalChartEngine
+from app.domains.astro.engine import NatalChartEngine, summarize_synastry_dimensions
 from app.domains.astro.models import (
     BodyName,
     ChartInput,
     ContactTone,
     RelationshipBundle,
+    RelationshipDimension,
     SynastryContact,
 )
 from app.domains.radar.reading import BODY_LABELS, build_radar_reading
+from app.domains.relationships.models import RelationshipVoice
 
 
 def _bundle(second_birth: datetime) -> RelationshipBundle:
@@ -42,6 +44,7 @@ def _clustered_bundle() -> RelationshipBundle:
             exact_angle=120,
             strength=0.92,
             tone=ContactTone.FLOW,
+            dimensions=(RelationshipDimension.COMMUNICATION, RelationshipDimension.EMOTIONAL),
         ),
         SynastryContact(
             body_a=BodyName.MOON,
@@ -51,6 +54,7 @@ def _clustered_bundle() -> RelationshipBundle:
             exact_angle=60,
             strength=0.84,
             tone=ContactTone.FLOW,
+            dimensions=(RelationshipDimension.EMOTIONAL, RelationshipDimension.COMMUNICATION),
         ),
         SynastryContact(
             body_a=BodyName.SATURN,
@@ -60,6 +64,11 @@ def _clustered_bundle() -> RelationshipBundle:
             exact_angle=90,
             strength=0.94,
             tone=ContactTone.ACTIVATION,
+            dimensions=(
+                RelationshipDimension.COMMUNICATION,
+                RelationshipDimension.GROWTH,
+                RelationshipDimension.FRICTION,
+            ),
         ),
         SynastryContact(
             body_a=BodyName.MARS,
@@ -69,6 +78,11 @@ def _clustered_bundle() -> RelationshipBundle:
             exact_angle=180,
             strength=0.80,
             tone=ContactTone.ACTIVATION,
+            dimensions=(
+                RelationshipDimension.DRIVE,
+                RelationshipDimension.RELATING,
+                RelationshipDimension.FRICTION,
+            ),
         ),
         SynastryContact(
             body_a=BodyName.PLUTO,
@@ -78,10 +92,12 @@ def _clustered_bundle() -> RelationshipBundle:
             exact_angle=120,
             strength=0.99,
             tone=ContactTone.FLOW,
+            dimensions=(RelationshipDimension.RELATING,),
         ),
     )
+    synastry = bundle.synastry.model_copy(update={"contacts": contacts})
     return bundle.model_copy(
-        update={"synastry": bundle.synastry.model_copy(update={"contacts": contacts})}
+        update={"synastry": synastry, "dimensions": summarize_synastry_dimensions(synastry)}
     )
 
 
@@ -234,6 +250,46 @@ def test_dossier_clusters_related_contacts_and_exposes_layered_chapters() -> Non
         )
 
 
+def test_radar_publishes_evidence_bound_editorial_actions() -> None:
+    reading = build_radar_reading(
+        _clustered_bundle(),
+        context="crush",
+        voice=RelationshipVoice.PLAYFUL_GROUNDED,
+    )
+
+    check = reading["sections"][-1]
+    actions = check["highlights"]
+
+    assert actions
+    assert reading["metadata"]["voice"] == "playful_grounded"
+    assert reading["metadata"]["voice_label"] == "Hơi cợt, vẫn có căn"
+    assert reading["metadata"]["concept_ids"] == [item["concept_id"] for item in actions]
+    disclosed = {receipt["evidence_id"] for receipt in check["evidence"]}
+    assert all(set(item["evidence_ids"]) <= disclosed for item in actions)
+    assert actions[0]["body"].startswith("Mini test")
+    assert len({item["body"].split(":", 1)[0] for item in actions}) == len(actions)
+
+
+def test_voice_changes_delivery_without_changing_chart_claims() -> None:
+    bundle = _clustered_bundle()
+    straight = build_radar_reading(
+        bundle,
+        context="partner",
+        voice=RelationshipVoice.STRAIGHT_WARM,
+    )
+    gentle = build_radar_reading(
+        bundle,
+        context="partner",
+        voice=RelationshipVoice.GENTLE_SPECIFIC,
+    )
+
+    assert straight["pair_signature"] == gentle["pair_signature"]
+    assert straight["compatibility_map"] == gentle["compatibility_map"]
+    assert straight["metadata"]["evidence_ids"] == gentle["metadata"]["evidence_ids"]
+    assert straight["metadata"]["concept_ids"] == gentle["metadata"]["concept_ids"]
+    assert straight["sections"][-1]["highlights"] != gentle["sections"][-1]["highlights"]
+
+
 def test_context_changes_scenario_not_chart_evidence_or_indices() -> None:
     bundle = _bundle(datetime(1992, 7, 21, 12, 40, tzinfo=UTC))
 
@@ -294,6 +350,7 @@ def test_sparse_single_cluster_does_not_invent_a_distinct_tension() -> None:
             exact_angle=120,
             strength=0.92,
             tone=ContactTone.FLOW,
+            dimensions=(RelationshipDimension.COMMUNICATION, RelationshipDimension.EMOTIONAL),
         ),
     )
     sparse = bundle.model_copy(

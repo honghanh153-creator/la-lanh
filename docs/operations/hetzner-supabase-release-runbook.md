@@ -120,6 +120,7 @@ Before choosing the release commit, complete the content release gate in
 
 ```sh
 pnpm content:audit
+pnpm experience:audit
 ```
 
 For a normal release, record the reviewed content improvement and its regression fixture. An urgent

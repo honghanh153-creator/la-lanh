@@ -7,7 +7,7 @@ import { BrandMark } from "../../shared/ui/BrandMark";
 import "../matching/matching.css";
 import "./radar.css";
 import { RadarFlowSteps } from "./RadarFlowSteps";
-import { RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
+import { radarVoiceLabel, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
 
 export function PublicRadarPage() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export function PublicRadarPage() {
     <header className="matching-header"><BrandMark /><span className="matching-signal"><LockKey /> link riêng</span></header>
     <RadarFlowSteps current={1} />
     <section className="radar-public__signal"><span><Sparkle weight="fill" /></span><p className="eyebrow">Có người muốn check độ bắt sóng</p><h1>{invite.recipient_label}, bật Radar cùng họ?</h1><p>Radar đặt hai birth chart cạnh nhau để đọc nhịp giao tiếp, cảm xúc, sức hút và chỗ dễ lệch sóng.</p></section>
-    <section className="radar-public__card"><article><EyeSlash /><div><strong>Dữ liệu sinh không được trao đổi</strong><p>Người gửi không nhìn thấy ngày, giờ hay nơi sinh của bạn.</p></div></article><article><ShieldCheck /><div><strong>Bạn quyết định riêng cho lần này</strong><p>Chưa đồng ý thì Radar chưa tính. Bạn có thể rút kết quả sau đó.</p></div></article><article><LockKey /><div><strong>Không phải lời phán</strong><p>Không điểm hợp nhau, không suy ra ý định hay độ an toàn của một người.</p></div></article></section>
+    <section className="radar-public__card"><article><EyeSlash /><div><strong>Dữ liệu sinh không được trao đổi</strong><p>Người gửi không nhìn thấy ngày, giờ hay nơi sinh của bạn.</p></div></article><article><ShieldCheck /><div><strong>Bạn quyết định riêng cho lần này</strong><p>Chưa đồng ý thì Radar chưa tính. Bạn có thể rút kết quả sau đó.</p></div></article><article><LockKey /><div><strong>Giọng đọc: {radarVoiceLabel(invite.voice)}</strong><p>Bạn biết trước cách Radar sẽ nói. Đây không phải lời phán hay xác suất thành công.</p></div></article></section>
     <Link className="matching-primary" onClick={continueFlow} to="/radar/continue">Xem mình cần làm gì <ArrowRight /></Link>
     {decline.isError ? <p className="matching-message" role="alert">Chưa đóng được lời mời. Dữ liệu chưa thay đổi—bạn có thể thử lại.</p> : null}
     <button className="matching-secondary" disabled={decline.isPending} onClick={() => decline.mutate()} type="button">{decline.isPending ? "Đang đóng lời mời…" : decline.isError ? "Thử đóng lại" : "Không tham gia"}</button>

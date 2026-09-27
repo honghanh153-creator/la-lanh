@@ -16,7 +16,12 @@ from app.domains.astro.models import (
     RelationshipBundle,
     SynastryContact,
 )
-from app.domains.relationships.knowledge import RELATIONSHIP_KNOWLEDGE_VERSION
+from app.domains.relationships.knowledge import (
+    RELATIONSHIP_KNOWLEDGE_VERSION,
+    build_editorial_plan,
+    voice_profile,
+)
+from app.domains.relationships.models import RelationshipPrompt, RelationshipVoice
 
 RENDERER_VERSION = "radar-living-dossier-v1"
 GATE_VERSION = "conditional-reflection-v3"
@@ -309,13 +314,18 @@ CONTEXT_CHECKS = {
 }
 
 
-def build_radar_reading(bundle: RelationshipBundle, *, context: str) -> dict[str, Any]:
+def build_radar_reading(
+    bundle: RelationshipBundle,
+    *,
+    context: str,
+    voice: RelationshipVoice = RelationshipVoice.STRAIGHT_WARM,
+) -> dict[str, Any]:
     """Project relationship facts into a layered, traceable public dossier."""
 
     safe_context = context if context in CONTEXT_CHECKS else "someone"
     motifs = _motifs(bundle)
     if not motifs:
-        return _low_signal_reading(bundle, context=safe_context)
+        return _low_signal_reading(bundle, context=safe_context, voice=voice)
 
     clusters = _clusters(motifs)
 
@@ -343,6 +353,9 @@ def build_radar_reading(bundle: RelationshipBundle, *, context: str) -> dict[str
         _chapter_receipts(tension, tension_support, mode="friction") if active_tension else []
     )
     check = CONTEXT_CHECKS[safe_context]
+    editorial_actions, editorial_receipts, voice_label = _editorial_actions(
+        bundle, motifs=motifs, voice=voice
+    )
     sections: list[dict[str, Any]] = [
         {
             "key": "fit",
@@ -415,7 +428,7 @@ def build_radar_reading(bundle: RelationshipBundle, *, context: str) -> dict[str
                 dict.fromkeys([fit.label, *([tension.label] if active_tension else [])])
             ),
             "depth": "focused",
-            "highlights": [],
+            "highlights": editorial_actions,
             "scene": None,
             "perspectives": [],
             "observation": {
@@ -424,7 +437,11 @@ def build_radar_reading(bundle: RelationshipBundle, *, context: str) -> dict[str
                 "body": _observation_body(fit, active_tension, safe_context),
             },
             "evidence": _dedupe_receipts(
-                [fit_receipts[0], *([tension_receipts[0]] if tension_receipts else [])]
+                [
+                    fit_receipts[0],
+                    *([tension_receipts[0]] if tension_receipts else []),
+                    *editorial_receipts,
+                ]
             ),
         },
     ]
@@ -490,7 +507,9 @@ def build_radar_reading(bundle: RelationshipBundle, *, context: str) -> dict[str
             "gate_version": GATE_VERSION,
             "chart_config_version": bundle.provenance.config_hash,
             "evidence_ids": all_evidence_ids,
-            "concept_ids": ["cross_chart_contacts", "house_interchange", "observable_experiment"],
+            "concept_ids": [item["concept_id"] for item in editorial_actions],
+            "voice": voice.value,
+            "voice_label": voice_label,
         },
         "disclaimer": (
             "Ba chỉ báo là bản đồ tương tác từ hai chart, không phải xác suất thành công. "
@@ -499,7 +518,96 @@ def build_radar_reading(bundle: RelationshipBundle, *, context: str) -> dict[str
     }
 
 
-def _low_signal_reading(bundle: RelationshipBundle, *, context: str) -> dict[str, Any]:
+def _editorial_actions(
+    bundle: RelationshipBundle,
+    *,
+    motifs: list[Motif],
+    voice: RelationshipVoice,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    """Render only prompts whose source evidence survives the Radar filter."""
+
+    plan = build_editorial_plan(bundle.dimensions, voice=voice, limit=3)
+    motif_by_fact = {_dimension_evidence_id(item.contact): item for item in motifs}
+    actions: list[dict[str, Any]] = []
+    receipts: list[dict[str, Any]] = []
+    for index, prompt in enumerate(plan.prompts):
+        supporting = [
+            motif_by_fact[evidence_id]
+            for evidence_id in prompt.evidence_ids
+            if evidence_id in motif_by_fact
+        ]
+        if not supporting:
+            continue
+        prompt_receipts = [_contact_receipt(item) for item in supporting]
+        receipts.extend(prompt_receipts)
+        actions.append(
+            {
+                "key": f"action:{prompt.concept_id}",
+                "concept_id": prompt.concept_id,
+                "label": f"Thử ngoài đời · {_dimension_label(prompt)}",
+                "title": prompt.label,
+                "body": _render_prompt(prompt, voice, index=index),
+                "evidence_ids": [item.evidence_id for item in supporting],
+            }
+        )
+    return actions, _dedupe_receipts(receipts), plan.voice_profile.label
+
+
+def _dimension_label(prompt: RelationshipPrompt) -> str:
+    return {
+        "communication": "cách nói chuyện",
+        "emotional": "cảm xúc",
+        "relating": "cách kết nối",
+        "drive": "nhịp chủ động",
+        "growth": "đường dài",
+        "friction": "lúc dễ cấn",
+    }[prompt.dimension.value]
+
+
+def _render_prompt(
+    prompt: RelationshipPrompt,
+    voice: RelationshipVoice,
+    *,
+    index: int,
+) -> str:
+    base = prompt.prompt_pattern[0].lower() + prompt.prompt_pattern[1:]
+    if voice is RelationshipVoice.GENTLE_SPECIFIC:
+        prefixes = (
+            "Nếu thấy đủ thoải mái, ",
+            "Một cách nhẹ hơn: ",
+            "Bạn có thể bắt đầu bằng việc ",
+        )
+        return f"{prefixes[index % len(prefixes)]}{base}"
+    if voice is RelationshipVoice.PLAYFUL_GROUNDED:
+        prefixes = (
+            "Mini test, khỏi chơi trò đoán ý: ",
+            "Thử bản đời thường: ",
+            "Check nhẹ một nhịp: ",
+        )
+        return f"{prefixes[index % len(prefixes)]}{base}"
+    if voice is RelationshipVoice.DEEP_DIVE:
+        prefixes = (
+            "Từ tín hiệu đang nổi bật trong chart, ",
+            "Để kiểm chứng lớp này ngoài đời, ",
+            "Thay vì kết luận từ chart, ",
+        )
+        return (
+            f"{prefixes[index % len(prefixes)]}{base} Sau đó đối chiếu phản hồi thật: "
+            "hai người có nói rõ hơn, tôn trọng ranh giới hơn hay vẫn phải đoán nhau?"
+        )
+    return prompt.prompt_pattern
+
+
+def _dimension_evidence_id(contact: SynastryContact) -> str:
+    return f"synastry:{contact.body_a.value}:{contact.body_b.value}:{contact.kind}"
+
+
+def _low_signal_reading(
+    bundle: RelationshipBundle,
+    *,
+    context: str,
+    voice: RelationshipVoice,
+) -> dict[str, Any]:
     """Return an honest short report when no pair-specific contact survives filtering."""
 
     perspective_body, perspective_receipts, perspective_items = _perspective(bundle, [])
@@ -611,7 +719,9 @@ def _low_signal_reading(bundle: RelationshipBundle, *, context: str) -> dict[str
             "gate_version": GATE_VERSION,
             "chart_config_version": bundle.provenance.config_hash,
             "evidence_ids": evidence_ids,
-            "concept_ids": ["evidence_limit", "observable_experiment"],
+            "concept_ids": [],
+            "voice": voice.value,
+            "voice_label": voice_profile(voice).label,
         },
         "disclaimer": (
             "Bản đọc ngắn vì Radar chưa có đủ bằng chứng riêng của cặp. "

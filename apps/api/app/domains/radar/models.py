@@ -23,6 +23,7 @@ class RadarInviteView:
     id: UUID
     recipient_label: str
     context: str
+    voice: str
     mode: RadarMode
     status: RadarStatus
     created_at: datetime
@@ -34,6 +35,7 @@ class RadarPublicInvite:
     request_id: UUID
     recipient_label: str
     context: str
+    voice: str
     expires_at: datetime
 
 

@@ -17,6 +17,7 @@ describe("PublicRadarPage", () => {
       request_id: "request-1",
       recipient_label: "Mèo",
       context: "crush",
+      voice: "straight_warm",
       expires_at: "2026-09-27T00:00:00Z",
       consent_version: "radar-pair-v1",
       requires_exact_birth_profile: true,

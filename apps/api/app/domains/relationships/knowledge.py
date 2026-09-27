@@ -231,7 +231,9 @@ EDITORIAL_CONCEPTS: tuple[EditorialConcept, ...] = (
         label="Quay lại sau va chạm",
         source_ids=("seven-principles-gottman-silver",),
         dimensions=(RelationshipDimension.FRICTION, RelationshipDimension.COMMUNICATION),
-        prompt_pattern="Nếu câu chuyện nóng lên, thống nhất một câu để tạm dừng và giờ quay lại.",
+        prompt_pattern=(
+            "Nếu câu chuyện nóng lên, thống nhất một câu để tạm dừng và hẹn rõ khi nào quay lại."
+        ),
         safety_boundary=(
             "Safety and boundaries override repair; never normalize intimidation or abuse."
         ),
@@ -417,6 +419,29 @@ EDITORIAL_CONCEPTS: tuple[EditorialConcept, ...] = (
     ),
 )
 
+# These concepts are safe to render as direct, ordinary-life actions. Astrology
+# method concepts stay available to the evidence/explanation layer, but must not
+# leak internal terms such as Composite, cross-aspect or Jyotish into a CTA.
+PUBLISHABLE_PROMPT_CONCEPT_IDS = frozenset(
+    {
+        "closeness_needs",
+        "clear_reassurance",
+        "connection_cycle",
+        "repair_reach",
+        "know_the_person",
+        "clean_request",
+        "turn_toward",
+        "observable_experiment",
+        "repair_attempt",
+        "values_conversation",
+        "shared_meaning",
+        "play_and_growth",
+        "boundaried_intimacy",
+        "spark_is_not_evidence",
+        "observation_feeling_need_request",
+    }
+)
+
 
 VOICE_PROFILES: tuple[VoiceProfile, ...] = (
     VoiceProfile(
@@ -499,7 +524,8 @@ def build_editorial_plan(
         available = tuple(
             concept
             for concept in concepts_for_dimension(evidence.dimension)
-            if concept.concept_id not in used_concepts
+            if concept.concept_id in PUBLISHABLE_PROMPT_CONCEPT_IDS
+            and concept.concept_id not in used_concepts
         )
         if not available:
             continue

@@ -21,6 +21,7 @@ from app.domains.radar.models import (
 )
 from app.domains.radar.reading import build_radar_reading
 from app.domains.radar.tables import RadarRequestRow
+from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
 
 CAPABILITY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
@@ -70,6 +71,7 @@ class RadarService:
         owner_guest_id: UUID,
         recipient_label: str,
         context: str,
+        voice: RelationshipVoice,
         now: datetime | None = None,
     ) -> tuple[RadarInviteView, str]:
         label = " ".join(recipient_label.split())
@@ -88,6 +90,7 @@ class RadarService:
                 label.encode(), context=f"radar-label:{request_id}".encode()
             ),
             context=context,
+            voice=voice.value,
             mode=RadarMode.CONSENTED_INVITE.value,
             status=RadarStatus.PENDING.value,
             token_hash=self._hasher.digest("radar-capability", token),
@@ -109,6 +112,7 @@ class RadarService:
         owner_guest_id: UUID,
         recipient_label: str,
         context: str,
+        voice: RelationshipVoice,
         birth_date: date,
         birth_time_local: str,
         place_id: str,
@@ -139,7 +143,9 @@ class RadarService:
         except BirthDomainError as error:
             raise RadarInvalid from error
         projection = _reading(
-            self._engine.calculate_relationship_bundle(chart_a, chart_b), context=context
+            self._engine.calculate_relationship_bundle(chart_a, chart_b),
+            context=context,
+            voice=voice,
         )
         current = now or datetime.now(UTC)
         request_id = uuid4()
@@ -151,6 +157,7 @@ class RadarService:
                 label.encode(), context=f"radar-label:{request_id}".encode()
             ),
             context=context,
+            voice=voice.value,
             mode=RadarMode.PRIVATE_CHECK.value,
             status=RadarStatus.COMPLETED.value,
             consent_version=consent_version,
@@ -218,6 +225,7 @@ class RadarService:
             request_id=row.id,
             recipient_label=self._label(row),
             context=row.context,
+            voice=row.voice,
             expires_at=row.expires_at,
         )
 
@@ -254,10 +262,12 @@ class RadarService:
             owner_projection = _reading(
                 self._engine.calculate_relationship_bundle(chart_a, chart_b),
                 context=row.context,
+                voice=RelationshipVoice(row.voice),
             )
             recipient_projection = _reading(
                 self._engine.calculate_relationship_bundle(chart_b, chart_a),
                 context=row.context,
+                voice=RelationshipVoice(row.voice),
             )
             receipt = secrets.token_urlsafe(32)
             row.recipient_guest_id = recipient_guest_id
@@ -393,6 +403,7 @@ class RadarService:
             id=row.id,
             recipient_label=self._label(row),
             context=row.context,
+            voice=row.voice,
             mode=RadarMode(row.mode),
             status=self._effective_status(row, now),
             created_at=row.created_at,
@@ -407,8 +418,13 @@ class RadarService:
         return status
 
 
-def _reading(bundle: RelationshipBundle, *, context: str) -> dict[str, Any]:
+def _reading(
+    bundle: RelationshipBundle,
+    *,
+    context: str,
+    voice: RelationshipVoice,
+) -> dict[str, Any]:
     try:
-        return build_radar_reading(bundle, context=context)
+        return build_radar_reading(bundle, context=context, voice=voice)
     except ValueError as error:
         raise RadarInvalid from error
