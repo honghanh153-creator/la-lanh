@@ -1,7 +1,15 @@
 from collections.abc import Awaitable, Callable
+from types import SimpleNamespace
+from typing import cast
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+from app.db.session import Database
+from app.domains.astro.engine import NatalChartEngine
+from app.domains.astro.ffi.swisseph import SwissEphemerisError
+from app.main import _runtime_ready
 
 
 def test_health_reports_versioned_service_without_claiming_database_readiness(
@@ -55,3 +63,20 @@ def test_metrics_expose_api_request_instrumentation(client: TestClient) -> None:
     assert response.status_code == 200
     assert "la_lanh_http_requests_total" in response.text
     assert 'route="/v1/health"' in response.text
+
+
+@pytest.mark.asyncio
+async def test_runtime_readiness_fails_when_worker_chart_canary_fails() -> None:
+    async def ping() -> bool:
+        return True
+
+    def calculate_date_only_sun(_birth_date) -> None:  # type: ignore[no-untyped-def]
+        raise SwissEphemerisError("worker ephemeris is not initialized")
+
+    database = cast(Database, SimpleNamespace(ping=ping))
+    engine = cast(
+        NatalChartEngine,
+        SimpleNamespace(calculate_date_only_sun=calculate_date_only_sun),
+    )
+
+    assert await _runtime_ready(database, engine) is False

@@ -1,6 +1,7 @@
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import date, timedelta
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,6 +49,16 @@ from app.middleware.correlation import CorrelationIdMiddleware
 from app.observability.metrics import MetricsMiddleware, metrics_response
 
 
+async def _runtime_ready(database: Database, engine: NatalChartEngine | None) -> bool:
+    if engine is None or not await database.ping():
+        return False
+    try:
+        await asyncio.to_thread(engine.calculate_date_only_sun, date(2000, 1, 1))
+    except SwissEphemerisError:
+        return False
+    return True
+
+
 def create_app(
     settings: Settings | None = None,
     *,
@@ -73,9 +84,7 @@ def create_app(
             app.state.astro_engine_error = str(error)
 
         async def readiness_probe() -> bool:
-            if app.state.astro_engine_error is not None:
-                return False
-            return await database.ping()
+            return await _runtime_ready(database, engine)
 
         app.state.readiness_probe = readiness_probe
         repository = guest_repository or PostgresGuestRepository(database.sessions)

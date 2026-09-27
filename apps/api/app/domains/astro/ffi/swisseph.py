@@ -93,8 +93,9 @@ class SwissEphemerisNative:
         self._library = ctypes.CDLL(str(resolved_library))
         self._configure_signatures()
         self._ephemeris_path = resolved_ephemeris
+        self._thread_state = threading.local()
         with self._lock:
-            self._library.swe_set_ephe_path(str(resolved_ephemeris).encode())
+            self._ensure_thread_ephemeris()
 
     def _configure_signatures(self) -> None:
         self._library.swe_set_ephe_path.argtypes = [ctypes.c_char_p]
@@ -147,10 +148,17 @@ class SwissEphemerisNative:
         with self._lock:
             return float(self._library.swe_julday(year, month, day, hour, SE_GREG_CAL))
 
+    def _ensure_thread_ephemeris(self) -> None:
+        if getattr(self._thread_state, "ephemeris_ready", False):
+            return
+        self._library.swe_set_ephe_path(str(self._ephemeris_path).encode())
+        self._thread_state.ephemeris_ready = True
+
     @contextmanager
     def calculation_scope(self, sidereal_mode: int | None = None):  # type: ignore[no-untyped-def]
-        """Hold Swiss Ephemeris' process-global configuration for a complete chart batch."""
+        """Initialize thread-local state and hold configuration for a complete chart batch."""
         with self._lock:
+            self._ensure_thread_ephemeris()
             if sidereal_mode is not None:
                 self._library.swe_set_sid_mode(sidereal_mode, 0.0, 0.0)
             yield
@@ -161,6 +169,7 @@ class SwissEphemerisNative:
         values = (ctypes.c_double * 6)()
         error = ctypes.create_string_buffer(ERROR_BUFFER_SIZE)
         with self._lock:
+            self._ensure_thread_ephemeris()
             result_flags = self._library.swe_calc_ut(
                 julian_day_ut,
                 body_id,
@@ -189,6 +198,7 @@ class SwissEphemerisNative:
         cusps = (ctypes.c_double * 13)()
         angles = (ctypes.c_double * 10)()
         with self._lock:
+            self._ensure_thread_ephemeris()
             result = self._library.swe_houses_ex(
                 julian_day_ut,
                 SEFLG_SIDEREAL if sidereal else 0,
