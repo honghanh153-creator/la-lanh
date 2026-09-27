@@ -13,9 +13,9 @@ status checklist is
 | VPS | `2.28.136.44` |
 | Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
 | Public source | `https://github.com/honghanh153-creator/la-lanh` |
-| Deployed release | commit/image tag `a2c05ee` / `la-lanh:a2c05ee` |
-| Image digest | `sha256:33d629d37946a94eeef4eb0b1dc119f5fce120bf88baa8463e05dda0d81ddf24` |
-| Previous rollback image | `la-lanh:b9a70bb` |
+| Deployed release | commit/image tag `0b3fecb65297` / `la-lanh:0b3fecb65297` |
+| Image digest | `sha256:bf9b0047e4b5077990ff7af52791e5dc3b473c044ee096b8b011b890f3025bb3` |
+| Previous rollback image | `la-lanh:6befb7a4b00d` |
 | Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
 | Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 

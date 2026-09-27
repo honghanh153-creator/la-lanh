@@ -48,15 +48,16 @@ This is the recovery anchor for a future session. It contains no credentials.
 |---|---|
 | Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
-| Deployed application commit/tag | `a2c05ee` / `la-lanh:a2c05ee` |
-| Deployed image digest | `sha256:33d629d37946a94eeef4eb0b1dc119f5fce120bf88baa8463e05dda0d81ddf24` |
-| Previous rollback image | `la-lanh:b9a70bb` |
+| Deployed application commit/tag | `0b3fecb65297` / `la-lanh:0b3fecb65297` |
+| Deployed image digest | `sha256:bf9b0047e4b5077990ff7af52791e5dc3b473c044ee096b8b011b890f3025bb3` |
+| Previous rollback image | `la-lanh:6befb7a4b00d` |
 | Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
 | Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
 | Database | Supavisor session pooler on port `5432`, TLS required |
 
-Verified again on 2026-09-27: public health/readiness, SPA deep links, HTTPS redirect and certificate,
-security/privacy headers, `/welcome`, and `/privacy`. The public smoke script passed. A synthetic
+Verified again on 2026-09-27 at 08:00 UTC for release `0b3fecb65297`: public health/readiness, SPA
+deep links, HTTPS redirect and certificate, security/privacy headers, `/welcome`, and `/privacy`.
+The public smoke script passed and the in-app browser loaded `/welcome` without console errors. A synthetic
 production journey passed guest consent, birth chart, daily note, mood, save/share, place search,
 time/place supplementation, full profile, owner claim, matching readiness, private Radar creation and
 reload, deletion, capability revocation, unsave, and guest deletion. All synthetic records were
@@ -202,7 +203,9 @@ The frontend never receives a Supabase database password, service-role key, or d
 - [x] Start app privately and pass local readiness checks.
 - [x] Configure DNS/TLS and open inbound 80/443 while keeping 8080 closed.
 - [x] Pass public smoke tests and browser acceptance for availability, deep links, privacy copy, and console health.
-- [ ] Run cleanup jobs once and enable timers.
+- [x] Run both cleanup jobs once for release `0b3fecb65297` (0 expired guest sessions; 0 expired
+      experiments/resonance rows).
+- [ ] Enable and verify recurring cleanup timers.
 - [ ] Confirm and record the Supabase backup/restore capability for the active plan.
 - [x] Run the full synthetic data-writing E2E journey in U7, including deletion/revocation checks.
 - [ ] Perform a controlled restart and rollback dry run against the current schema.
