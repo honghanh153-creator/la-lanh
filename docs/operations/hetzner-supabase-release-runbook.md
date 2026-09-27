@@ -13,15 +13,22 @@ status checklist is
 | VPS | `2.28.136.44` |
 | Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
 | Public source | `https://github.com/honghanh153-creator/la-lanh` |
-| Deployed release | commit/image tag `0b3fecb65297` / `la-lanh:0b3fecb65297` |
-| Image digest | `sha256:bf9b0047e4b5077990ff7af52791e5dc3b473c044ee096b8b011b890f3025bb3` |
-| Previous rollback image | `la-lanh:6befb7a4b00d` |
+| Deployed release | commit/image tag `7f4940d7c59f` / `la-lanh:7f4940d7c59f` |
+| Image digest | `sha256:6afd9183d5c7de20fb6769a77580f9f387cbb21dbdceb8398d927307b4c5efb5` |
+| Previous rollback image | `la-lanh:0b3fecb65297` |
 | Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
 | Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 
 The database password and full connection URL exist only in `/opt/la-lanh/secrets/database_url` on
 the VPS. Do not retrieve, print, log, or paste them into chat. A deployment should not need the
 password unless that file is missing or the database password was rotated.
+
+Release `7f4940d7c59f` was verified on 2026-09-27 with the full repository gate, public smoke,
+PostgreSQL TLS probe, Alembic head `20260927_0021`, private readiness, and live birthplace API
+acceptance: exactly 34 current province-level units, current-name lookup and clearly labelled former-
+province lookup. Release `281f831a95ab` is not a rollback candidate because production acceptance
+found its empty-query catalog browse path still returned `422`; the defect was fixed and captured by
+an API-level regression test before `7f4940d7c59f` replaced it.
 
 ## What “successful” means
 

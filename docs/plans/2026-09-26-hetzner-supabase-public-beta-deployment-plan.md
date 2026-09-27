@@ -48,9 +48,9 @@ This is the recovery anchor for a future session. It contains no credentials.
 |---|---|
 | Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
-| Deployed application commit/tag | `0b3fecb65297` / `la-lanh:0b3fecb65297` |
-| Deployed image digest | `sha256:bf9b0047e4b5077990ff7af52791e5dc3b473c044ee096b8b011b890f3025bb3` |
-| Previous rollback image | `la-lanh:6befb7a4b00d` |
+| Deployed application commit/tag | `7f4940d7c59f` / `la-lanh:7f4940d7c59f` |
+| Deployed image digest | `sha256:6afd9183d5c7de20fb6769a77580f9f387cbb21dbdceb8398d927307b4c5efb5` |
+| Previous rollback image | `la-lanh:0b3fecb65297` |
 | Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
 | Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
 | Database | Supavisor session pooler on port `5432`, TLS required |
@@ -63,6 +63,15 @@ time/place supplementation, full profile, owner claim, matching readiness, priva
 reload, deletion, capability revocation, unsave, and guest deletion. All synthetic records were
 deleted. Scheduled retention/backup operations and the controlled rollback drill remain explicit
 follow-ups below and must not be reported as complete.
+
+Release `7f4940d7c59f` was deployed and verified on 2026-09-27 at 10:03 UTC. The release adds the
+versioned 34-unit Vietnam birthplace catalog, all 29 former province-name lookups, complete matching
+region options and an allow-list validation gate. Live acceptance proved the empty catalog returns
+34 current units, `Đà Nẵng` resolves canonically and `Bình Dương` resolves with its current mapping
+shown. The first release candidate exposed an API/service validation mismatch (`422` on empty browse);
+the corrected release includes an API-level regression test so the defect cannot pass the release
+suite again. The content delta for this release is the explicit, plain-language administrative-name
+mapping; no unrelated astrology prose was added merely to satisfy the content gate.
 
 ## Architecture
 
