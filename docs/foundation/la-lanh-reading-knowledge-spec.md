@@ -28,7 +28,7 @@ Swiss Ephemeris facts
   → factor planner (allowlist + salience + tradition)
   → versioned knowledge atoms
   → synthesis frame
-  → evidence / anti-influence / editorial / privacy gates
+  → evidence / anti-influence / editorial / meaning / privacy gates
   → immutable revision
   → user explicitly activates an available update
 ```
@@ -143,7 +143,11 @@ V4 không dùng mọi dimension trong cùng một note. Lens quyết định dim
 
 ## 7. Quality gates
 
-Candidate chỉ publish khi qua đủ evidence, anti-influence, editorial và privacy gates. Editorial gate chặn lặp section, văn sáo và “tín hiệu vũ trụ”. Privacy gate chặn DOB, giờ/nơi/tọa độ, email, token và UUID trong prose.
+Candidate chỉ publish khi qua đủ evidence, anti-influence, editorial, meaning và privacy gates.
+Editorial gate chặn lặp section, văn sáo và “tín hiệu vũ trụ”. Meaning gate buộc hook, thesis,
+manifestation và action cùng xuất phát từ một semantic blueprint, đúng context người dùng chọn,
+đúng factor refs và có cảnh/hành động quan sát được. Privacy gate chặn DOB, giờ/nơi/tọa độ, email,
+token và UUID trong prose.
 
 Editorial gate v3 còn chặn hai lỗi từng lọt qua QA:
 

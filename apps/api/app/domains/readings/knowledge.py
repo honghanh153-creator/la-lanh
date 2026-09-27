@@ -24,6 +24,7 @@ from app.domains.readings.models import (
     FactorKind,
     ReadingPlan,
     ReadingPurpose,
+    SemanticArena,
 )
 
 KNOWLEDGE_VERSION = INTERPRETATION_KNOWLEDGE_VERSION
@@ -86,6 +87,10 @@ class InterpretationFrame:
     micro_action: str
     evidence_factor_refs: tuple[str, ...]
     knowledge_refs: tuple[str, ...]
+    arena: SemanticArena = SemanticArena.GENERAL
+    mechanism_key: str = "general"
+    scene_key: str = "general"
+    action_key: str = "observe"
 
 
 PLANETS: dict[str, PlanetMeaning] = {
@@ -330,14 +335,18 @@ SIGNS: dict[str, SignMeaning] = {
         "mềm, giàu tưởng tượng và bắt bầu không khí rất nhanh",
         "hòa vào cảm giác chung rồi khó tìm lại phần của mình",
         (
-            "khi một cuộc trò chuyện, playlist hoặc căn phòng đổi mood và bạn mang "
-            "cảm giác đó đi cả buổi"
+            "khi một tin nhắn đổi giọng hoặc căn phòng bỗng im, rồi bạn tự nối thêm "
+            "ý nghĩa trước khi biết chuyện gì thật sự xảy ra"
         ),
-        ("đặt tên ba thứ đang cảm", "rời màn hình vài phút", "chọn một ranh giới mềm nhưng rõ"),
         (
-            "Bạn có thể đang cảm quá nhiều thứ cùng lúc.",
-            "Một cảm giác mơ hồ chưa cần thành kết luận.",
-            "Trực giác có điều muốn nói; dữ kiện vẫn cần được mời vào phòng.",
+            "tách điều đã xảy ra khỏi phần bạn đang tự nối thêm",
+            "viết tên cảm xúc trước khi đoán nguyên nhân",
+            "hỏi một câu rõ thay vì tự hoàn thành phần còn thiếu",
+        ),
+        (
+            "Một tin nhắn ngắn có thể kéo theo cả phần bạn tự nối thêm.",
+            "Bạn bắt mood rất nhanh; phần khó là biết cảm giác nào thực sự thuộc về mình.",
+            "Cảm giác đầu tiên đáng nghe, nhưng chưa cần biến thành kết luận.",
         ),
     ),
 }
@@ -385,7 +394,7 @@ HOUSES: dict[int, HouseMeaning] = {
     ),
     11: HouseMeaning(
         "quan hệ bạn bè, cộng đồng và kế hoạch tương lai",
-        "khi muốn thuộc về một nhóm mà vẫn giữ tiếng nói riêng",
+        "trong quan hệ với một nhóm, khi muốn thuộc về mà vẫn giữ tiếng nói riêng",
     ),
     12: HouseMeaning(
         "đời sống bên trong và khoảng nghỉ",
@@ -434,12 +443,64 @@ LENS_MANIFESTATIONS: dict[BackgroundLens, str] = {
     BackgroundLens.COMMUNICATION: (
         "khi câu cần nói rất ngắn nhưng phần giải thích trong đầu lại quá dài"
     ),
-    BackgroundLens.WORK: (
-        "trong công việc, khi nhận thêm đầu việc, chốt ưu tiên hoặc bảo vệ thời gian tập trung"
-    ),
+    BackgroundLens.WORK: ("trong công việc, khi nhận thêm việc hoặc phải chốt ưu tiên"),
     BackgroundLens.ENERGY: "khi đầu óc còn muốn chạy nhưng cơ thể đã giảm tốc",
     BackgroundLens.SELF_CARE: "khi cả nghỉ ngơi cũng bắt đầu giống một mục tiêu phải hoàn thành",
 }
+
+LENS_HOOKS: dict[BackgroundLens, str] = {
+    BackgroundLens.RELATIONSHIPS: "Trong một mối quan hệ đang khiến bạn để tâm",
+    BackgroundLens.COMMUNICATION: "Trong cuộc nói chuyện bạn đang nghĩ tới",
+    BackgroundLens.WORK: "Ở công việc hôm nay",
+    BackgroundLens.ENERGY: "Khi sức chứa đang xuống",
+    BackgroundLens.SELF_CARE: "Trong cách bạn chăm mình hôm nay",
+}
+
+LENS_ACTIONS: dict[BackgroundLens, str] = {
+    BackgroundLens.RELATIONSHIPS: (
+        "chọn một điều bạn đang đoán về người kia, rồi đổi nó thành một câu hỏi "
+        "có thể trả lời thẳng"
+    ),
+    BackgroundLens.COMMUNICATION: (
+        "viết ba dòng: điều đã xảy ra, điều bạn đang cảm và điều bạn muốn hỏi"
+    ),
+    BackgroundLens.WORK: (
+        "chọn một đầu việc, viết tiêu chuẩn hoàn thành của nó và để phần còn lại chờ"
+    ),
+    BackgroundLens.ENERGY: (
+        "giảm một kích thích trong mười phút rồi kiểm tra xem sức chứa có đổi không"
+    ),
+    BackgroundLens.SELF_CARE: (
+        "chọn một việc chăm mình đủ nhỏ để làm mà không cần biến nó thành thành tích"
+    ),
+}
+
+
+def semantic_arena(background_lens: BackgroundLens | None) -> SemanticArena:
+    if background_lens is None or background_lens is BackgroundLens.AUTO:
+        return SemanticArena.GENERAL
+    return SemanticArena(background_lens.value)
+
+
+def _apply_background_lens(
+    plan: ReadingPlan,
+    *,
+    hook: str,
+    manifestation: str,
+    micro_action: str,
+) -> tuple[str, str, str]:
+    lens = plan.background_lens
+    if lens is None or lens is BackgroundLens.AUTO:
+        return hook, manifestation, micro_action
+    contextual_hook = f"{LENS_HOOKS[lens]}, {hook[0].lower()}{hook[1:]}"
+    contextual_manifestation = (
+        f"Cụ thể, pattern này dễ lộ ra {LENS_MANIFESTATIONS[lens]}. {manifestation}"
+    )
+    contextual_action = (
+        f"Thử {LENS_ACTIONS[lens]}. Sau đó ghi lại điều gì thực sự xảy ra; "
+        "đừng dùng cảm giác ban đầu để chốt hộ kết quả."
+    )
+    return contextual_hook, contextual_manifestation, contextual_action
 
 
 def _parts(factor: DerivedFactor) -> list[str]:
@@ -567,19 +628,28 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
                 len(reflections),
             ),
         )
+        hook = hooks[hook_slot]
+        manifestation = (
+            f"{manifestations[manifestation_slot]} "
+            "Dữ kiện đầu vào vẫn còn một khoảng chưa xác định."
+        )
+        micro_action = (
+            f"{actions[action_slot]} {closings[closing_slot]} {reflections[reflection_slot]}"
+        )
+        hook, manifestation, micro_action = _apply_background_lens(
+            plan,
+            hook=hook,
+            manifestation=manifestation,
+            micro_action=micro_action,
+        )
         return InterpretationFrame(
-            hook=hooks[hook_slot],
+            hook=hook,
             thesis=(
                 "Khi chưa có giờ sinh, Lá chưa thể biết chắc Mặt Trời thuộc phía nào. "
                 "Vì vậy bản này không mượn đặc điểm của một cung để đoán bạn."
             ),
-            manifestation=(
-                f"{manifestations[manifestation_slot]} "
-                "Dữ kiện đầu vào vẫn còn một khoảng chưa xác định."
-            ),
-            micro_action=(
-                f"{actions[action_slot]} {closings[closing_slot]} {reflections[reflection_slot]}"
-            ),
+            manifestation=manifestation,
+            micro_action=micro_action,
             evidence_factor_refs=(factor.id,),
             knowledge_refs=(
                 "mode:date-only-ambiguous",
@@ -589,6 +659,10 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
                     f"{reflection_slot}"
                 ),
             ),
+            arena=semantic_arena(plan.background_lens),
+            mechanism_key="date-only-ambiguous",
+            scene_key=f"{semantic_arena(plan.background_lens).value}:uncertain-sign",
+            action_key=f"clarify-data:{action_slot}",
         )
     sign = raw_signs[0] if raw_signs and raw_signs[0] in SIGNS else "pisces"
     meaning = SIGNS[sign]
@@ -624,21 +698,28 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
         if close_slot == 0
         else "Nếu không thấy khác, bỏ thử nghiệm này và giữ lại dữ kiện thật."
     )
+    manifestation = (
+        f"Trong đời thường, pattern này có thể lộ ra {meaning.manifestation}. {mode_copy} "
+        "Không khớp việc thật thì bỏ qua."
+    )
+    micro_action = (
+        f"Thử {practice}. {reflections[reflection_slot]} {close} "
+        "Có giờ sinh chính xác và nơi sinh, Lá mới đọc thêm cảm xúc và bối cảnh."
+    )
+    hook, manifestation, micro_action = _apply_background_lens(
+        plan,
+        hook=hook,
+        manifestation=manifestation,
+        micro_action=micro_action,
+    )
     return InterpretationFrame(
         hook=hook,
         thesis=(
             f"Đây là góc đọc từ một yếu tố trong ngày sinh: bạn thường vào nhịp theo kiểu "
             f"{meaning.style}. Điểm dễ vấp là {meaning.stress}; chưa đủ để kết luận về toàn bộ bạn."
         ),
-        manifestation=(
-            f"Nó có thể lộ ra {meaning.manifestation}. {mode_copy} "
-            "Nếu câu này không khớp trải nghiệm thật, cứ bỏ qua — dữ kiện hiện tại chỉ có một lớp."
-        ),
-        micro_action=(
-            f"Thử {practice}. {close} {reflections[reflection_slot]} "
-            "Muốn đọc thêm cảm xúc, quan hệ và bối cảnh sống, "
-            "bạn có thể bổ sung giờ sinh chính xác và nơi sinh khi thấy thoải mái."
-        ),
+        manifestation=manifestation,
+        micro_action=micro_action,
         evidence_factor_refs=(factor.id,),
         knowledge_refs=(
             f"sign:{sign}",
@@ -649,6 +730,10 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
                 f"{hook_slot}-{practice_slot}-{mode_slot}-{close_slot}-{reflection_slot}"
             ),
         ),
+        arena=semantic_arena(plan.background_lens),
+        mechanism_key=f"sun-sign:{sign}:{mode.value}",
+        scene_key=f"{semantic_arena(plan.background_lens).value}:{sign}",
+        action_key=f"{sign}:{practice_slot}",
     )
 
 
@@ -765,6 +850,7 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         modality_a=modality_a,
         context_phrase=context_phrase,
         context=context,
+        background_lens=plan.background_lens,
         pattern_sign=pattern_sign,
         editorial_mode=editorial_variant.mode,
         action_slot=editorial_variant.action_slot,
@@ -778,6 +864,10 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         micro_action=action,
         evidence_factor_refs=tuple(dict.fromkeys(evidence_refs)),
         knowledge_refs=tuple(dict.fromkeys(knowledge_refs)),
+        arena=semantic_arena(plan.background_lens),
+        mechanism_key=f"{hero.kind.value}:{hero.role.value}:{lens.value}",
+        scene_key=f"{semantic_arena(plan.background_lens).value}:{context_phrase}",
+        action_key=f"{lens.value}:{editorial_variant.action_slot}",
     )
 
 
@@ -792,6 +882,7 @@ def _lens_copy(
     modality_a: ModalityMeaning,
     context_phrase: str,
     context: tuple[DerivedFactor, HouseMeaning] | None,
+    background_lens: BackgroundLens | None,
     pattern_sign: str,
     editorial_mode: EditorialMode,
     action_slot: int,
@@ -801,7 +892,6 @@ def _lens_copy(
     # These objects come from the immutable interpretation catalog. Keeping this
     # assembly here makes the semantic frame auditable before any prose renderer.
     arena = context[1].arena if context else "tình huống này"
-    short_arena = _short_arena(context)
     if lens is InterpretiveLens.RELATIONSHIPS:
         hook = f"Trong quan hệ, một phần muốn {planet_a.drive}; phần kia muốn {planet_b.drive}."
         manifestation = (
@@ -825,7 +915,8 @@ def _lens_copy(
     elif lens is InterpretiveLens.REGULATION:
         hook = f"Lúc quá tải, nhu cầu {planet_a.drive} có thể va vào nhu cầu {planet_b.drive}."
         manifestation = (
-            f"Phản xạ bảo vệ có thể là {perspective_a.protection}; đồng thời phần kia "
+            f"Dễ thấy {context_phrase}. Phản xạ bảo vệ có thể là "
+            f"{perspective_a.protection}; đồng thời phần kia "
             f"{perspective_b.protection}. Với nhịp {element_a.rhythm}, bạn dễ {element_a.overload}."
         )
         action = (
@@ -865,17 +956,28 @@ def _lens_copy(
         return hook, manifestation, action
 
     mode_hook = {
-        EditorialMode.MECHANISM: f"Soi cơ chế trong {short_arena}:",
-        EditorialMode.FRICTION: f"Canh điểm trượt trong {short_arena}:",
-        EditorialMode.RESOURCE: f"Dùng lợi thế trong {short_arena}:",
-        EditorialMode.CONTRAST: f"Tách hai mặt trong {short_arena}:",
-        EditorialMode.EXPERIMENT: f"Thử nhịp khác trong {short_arena}:",
+        EditorialMode.MECHANISM: "Điều đang chạy bên dưới:",
+        EditorialMode.FRICTION: "Điểm dễ kẹt hôm nay:",
+        EditorialMode.RESOURCE: "Phần bạn có thể dùng:",
+        EditorialMode.CONTRAST: "Hai nhu cầu đang cùng lên tiếng:",
+        EditorialMode.EXPERIMENT: "Một cách khác để thử:",
     }[editorial_mode]
-    action_variants = (
-        action,
-        f"Một thử nghiệm nhỏ: {perspective_a.regulation}. Quan sát điều gì đổi, không ép kết quả.",
-        (f"“{perspective_a.growth_question}” Tìm một tình huống thật để trả lời."),
-    )
+    if background_lens is not None and background_lens is not BackgroundLens.AUTO:
+        contextual_action = LENS_ACTIONS[background_lens]
+        action_variants = (
+            f"Thử {contextual_action}. Ghi lại phản hồi thật thay vì đoán kết quả.",
+            f"Một thử nghiệm nhỏ: {contextual_action}. Chỉ quan sát điều gì đổi.",
+            f"Thử {contextual_action}. Sau đó trả lời: “{perspective_a.growth_question}”",
+        )
+    else:
+        action_variants = (
+            action,
+            (
+                f"Một thử nghiệm nhỏ: {perspective_a.regulation}. "
+                "Quan sát điều gì đổi, không ép kết quả."
+            ),
+            (f"“{perspective_a.growth_question}” Tìm một tình huống thật để trả lời."),
+        )
     reflection = (
         "Để ý phản xạ đầu tiên.",
         "Để ý chuyện gì xảy ra ngay sau đó.",
@@ -969,6 +1071,10 @@ def _jyotish_structural_frame(plan: ReadingPlan) -> InterpretationFrame:
         ),
         evidence_factor_refs=tuple(dict.fromkeys(evidence_refs)),
         knowledge_refs=("tradition:jyotish", "mode:structural"),
+        arena=SemanticArena.STRUCTURAL,
+        mechanism_key=f"jyotish:{hero.kind.value}",
+        scene_key="jyotish:evidence-disclosure",
+        action_key="jyotish:inspect-evidence",
     )
 
 

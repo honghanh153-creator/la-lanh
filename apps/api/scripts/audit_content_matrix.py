@@ -26,8 +26,16 @@ from app.domains.readings.interpretive_lenses import (
     EditorialMode,
     InterpretiveLens,
 )
-from app.domains.readings.knowledge import ASPECTS, HOUSES, PLANETS, SIGNS
-from app.domains.readings.models import INTERPRETATION_KNOWLEDGE_VERSION
+from app.domains.readings.knowledge import (
+    ASPECTS,
+    HOUSES,
+    LENS_ACTIONS,
+    LENS_HOOKS,
+    LENS_MANIFESTATIONS,
+    PLANETS,
+    SIGNS,
+)
+from app.domains.readings.models import INTERPRETATION_KNOWLEDGE_VERSION, BackgroundLens
 from app.domains.relationships.knowledge import (
     BOOK_SOURCES,
     EDITORIAL_CONCEPTS,
@@ -109,6 +117,42 @@ def validate_matrix() -> list[str]:
         failures.append("Daily Note zodiac/house/element launch coverage regressed")
     if len(MODALITIES) != 3 or len(HOUSE_MODES) != 3:
         failures.append("Daily Note modality or house-mode coverage regressed")
+
+    explicit_background_lenses = set(BackgroundLens) - {BackgroundLens.AUTO}
+    for name, context_mapping in {
+        "LENS_HOOKS": LENS_HOOKS,
+        "LENS_MANIFESTATIONS": LENS_MANIFESTATIONS,
+        "LENS_ACTIONS": LENS_ACTIONS,
+    }.items():
+        if set(context_mapping) != explicit_background_lenses:
+            failures.append(f"{name} does not cover every explicit Daily Note context")
+
+    forbidden_daily_fragments = {
+        "tín hiệu vũ trụ",
+        "vũ trụ thì thầm",
+        "rời màn hình vài phút",
+        "trực giác có điều muốn nói",
+        "góc rộng: chỉ là sắc độ nền",
+    }
+    daily_atoms = " ".join(
+        atom
+        for meaning in SIGNS.values()
+        for atom in (
+            meaning.style,
+            meaning.stress,
+            meaning.manifestation,
+            *meaning.practices,
+            *meaning.hooks,
+        )
+    )
+    if any(fragment in daily_atoms.casefold() for fragment in forbidden_daily_fragments):
+        failures.append("Daily Note catalog contains a retired generic or incoherent fragment")
+    if any(
+        len(set(meaning.practices)) != len(meaning.practices)
+        or len(set(meaning.hooks)) != len(meaning.hooks)
+        for meaning in SIGNS.values()
+    ):
+        failures.append("Daily Note sign catalog repeats a hook or action inside one sign")
 
     source_ids = {source.source_id for source in BOOK_SOURCES}
     if len(source_ids) != len(BOOK_SOURCES):

@@ -12,8 +12,9 @@ pnpm content:audit
 ```
 
 The command fails when a launch body, aspect, theme, context, source, concept, or relationship
-dimension loses coverage; when IDs drift; or when a measured catalog shrinks below the accepted
-baseline. It is also part of `pnpm check`.
+dimension loses coverage; when IDs drift; when a measured catalog shrinks below the accepted
+baseline; or when Daily Note reintroduces a retired generic fragment, duplicate sign atom, or an
+incomplete context-to-scene/action mapping. It is also part of `pnpm check`.
 
 Current measured coverage on 2026-09-27:
 
@@ -41,7 +42,9 @@ qualify as enrichment.
       changes.
 - [ ] Update `content-matrix-baseline.json` only after tests and human review pass; never lower a metric
       to make CI green.
-- [ ] Confirm evidence, anti-influence, editorial, and privacy gates still pass.
+- [ ] Confirm evidence, anti-influence, editorial, meaning, and privacy gates still pass. Meaning
+      Gate must reject prose that no longer matches its semantic blueprint, chosen context, evidence
+      refs, observable scene, or action contract.
 - [ ] Record what became more specific, which user scenario benefits, and which dimension remains
       missing.
 
@@ -57,6 +60,10 @@ not add low-quality prose merely to satisfy a deployment counter.
   consistently Vietnamese and protected by an automated regression test.
 - There was no single deploy-time command that checked content coverage. `pnpm content:audit` now
   provides that gate and is included in the full project check.
+- Daily Note no longer chooses a generic hook, scene and action independently. Every newly rendered
+  note carries one server-side semantic blueprint and must pass Meaning Gate before publication.
+- The reported Pisces fragments and the internal “chưa có thử nghiệm hành vi” message are retired
+  and protected by content and component tests.
 
 ### Remaining product gap
 

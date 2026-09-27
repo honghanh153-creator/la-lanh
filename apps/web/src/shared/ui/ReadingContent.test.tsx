@@ -34,6 +34,14 @@ describe("ReadingContent", () => {
     expect(screen.queryByRole("heading", { name: "Vì sao hôm nay thấy rõ hơn?" })).not.toBeInTheDocument();
   });
 
+  it("shows a recognition prompt instead of leaking a missing experiment state", () => {
+    render(<ReadingContent content={content} />);
+
+    expect(screen.getByRole("heading", { name: "Đối chiếu với hôm nay" })).toBeInTheDocument();
+    expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
+    expect(screen.queryByText(/chưa có thử nghiệm hành vi/i)).not.toBeInTheDocument();
+  });
+
   it("explains the current activation once when transit is present", () => {
     const withTransit = {
       ...content,

@@ -8,6 +8,7 @@ from app.domains.readings.models import (
     EVIDENCE_DISCLOSURE_TITLE,
     FULL_FRAMEWORK_DISCLOSURE,
     SHORT_DISCLAIMER,
+    BackgroundLens,
     CandidateEvaluation,
     ClaimSlotName,
     FactorSource,
@@ -17,12 +18,14 @@ from app.domains.readings.models import (
     PlanMode,
     ReadingCandidate,
     ReadingPlan,
+    SemanticArena,
 )
 from app.domains.readings.renderers import canonical_evidence_claim
 
 EVIDENCE_GATE_VERSION = "evidence-gate-vi-v1"
 ANTI_INFLUENCE_GATE_VERSION = "anti-influence-gate-vi-v1"
 EDITORIAL_GATE_VERSION = "editorial-gate-vi-v3"
+MEANING_GATE_VERSION = "meaning-gate-vi-v1"
 PRIVACY_GATE_VERSION = "privacy-gate-vi-v1"
 
 _BODY_TERMS = (
@@ -243,7 +246,10 @@ def anti_influence_gate(candidate: ReadingCandidate) -> GateReport:
         ),
         (
             GateFailureCode.ANTI_LEGAL_COMMAND,
-            (r"\b(?:hay|phai|nen)\b.{0,30}\b(?:ky hop dong|kien|khieu nai)\b",),
+            (
+                r"\b(?:hay|phai|nen)\b.{0,30}\b"
+                r"(?:ky hop dong|khoi kien|kien tung|kien (?:ai|nguoi)|khieu nai)\b",
+            ),
         ),
         (
             GateFailureCode.ANTI_FINANCIAL_COMMAND,
@@ -325,6 +331,83 @@ def _has_near_duplicate_clause(section: str) -> bool:
     return False
 
 
+def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
+    """Reject prose that drifted away from its compiled scene and evidence contract."""
+
+    blueprint = candidate.semantic_blueprint
+    if blueprint is None:
+        return _report(
+            GateName.MEANING,
+            MEANING_GATE_VERSION,
+            (GateFailureCode.MEANING_BLUEPRINT_REQUIRED,),
+        )
+
+    failures: list[GateFailureCode] = []
+    if (
+        candidate.hook,
+        candidate.thesis,
+        candidate.manifestation,
+        candidate.micro_action,
+    ) != (
+        blueprint.hook,
+        blueprint.thesis,
+        blueprint.manifestation,
+        blueprint.micro_action,
+    ):
+        failures.append(GateFailureCode.MEANING_BLUEPRINT_MISMATCH)
+
+    lens = plan.background_lens
+    if plan.tradition.value == "jyotish":
+        expected_arena = SemanticArena.STRUCTURAL
+    elif lens is None or lens is BackgroundLens.AUTO:
+        expected_arena = SemanticArena.GENERAL
+    else:
+        expected_arena = SemanticArena(lens.value)
+    if blueprint.arena is not expected_arena:
+        failures.append(GateFailureCode.MEANING_CONTEXT_MISMATCH)
+
+    context_markers = {
+        SemanticArena.RELATIONSHIPS: ("quan he", "nguoi kia", "tro chuyen", "than thiet"),
+        SemanticArena.COMMUNICATION: ("giao tiep", "cau", "noi", "nhan"),
+        SemanticArena.WORK: ("cong viec", "dau viec", "uu tien"),
+        SemanticArena.ENERGY: ("nang luong", "co the", "suc chua", "qua tai"),
+        SemanticArena.SELF_CARE: ("cham minh", "nghi ngoi", "cham co the"),
+    }
+    if expected_arena in context_markers:
+        scene_text = _fold(f"{candidate.hook} {candidate.manifestation}")
+        if not any(marker in scene_text for marker in context_markers[expected_arena]):
+            failures.append(GateFailureCode.MEANING_UNOBSERVABLE_SCENE)
+
+    action_text = _fold(candidate.micro_action)
+    observable_action_verbs = (
+        "thu ",
+        "viet ",
+        "chon ",
+        "noi ",
+        "hoi ",
+        "giam ",
+        "ghi ",
+        "dat ",
+        "bo sung ",
+        "mo ",
+        "xem ",
+        "tam ",
+        "tim ",
+    )
+    if not any(verb in action_text for verb in observable_action_verbs):
+        failures.append(GateFailureCode.MEANING_ACTION_MISMATCH)
+
+    factor_ids = {factor.id for factor in plan.factors}
+    if not set(blueprint.evidence_factor_refs).issubset(factor_ids):
+        failures.append(GateFailureCode.MEANING_UNSUPPORTED_FACTOR)
+    if plan.mode is not PlanMode.LIMITED and not set(plan.hero_factor_refs).intersection(
+        blueprint.evidence_factor_refs
+    ):
+        failures.append(GateFailureCode.MEANING_UNSUPPORTED_FACTOR)
+
+    return _report(GateName.MEANING, MEANING_GATE_VERSION, failures)
+
+
 def privacy_gate(candidate: ReadingCandidate) -> GateReport:
     text = _candidate_prose(candidate)
     folded = _fold(text)
@@ -350,12 +433,13 @@ def privacy_gate(candidate: ReadingCandidate) -> GateReport:
 
 
 def evaluate_candidate(plan: ReadingPlan, candidate: ReadingCandidate) -> CandidateEvaluation:
-    """Run the four local gates in their fixed publish order."""
+    """Run the five local gates in their fixed publish order."""
 
     reports = (
         evidence_gate(plan, candidate),
         anti_influence_gate(candidate),
         editorial_gate(candidate),
+        meaning_gate(plan, candidate),
         privacy_gate(candidate),
     )
     accepted = all(report.passed for report in reports)

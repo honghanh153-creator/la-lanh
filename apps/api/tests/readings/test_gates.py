@@ -11,6 +11,7 @@ from app.domains.readings.gates import (
     ANTI_INFLUENCE_GATE_VERSION,
     EDITORIAL_GATE_VERSION,
     EVIDENCE_GATE_VERSION,
+    MEANING_GATE_VERSION,
     PRIVACY_GATE_VERSION,
     evaluate_candidate,
 )
@@ -63,6 +64,7 @@ def test_gate_contract_is_ordered_versioned_and_fail_closed() -> None:
         EVIDENCE_GATE_VERSION,
         ANTI_INFLUENCE_GATE_VERSION,
         EDITORIAL_GATE_VERSION,
+        MEANING_GATE_VERSION,
         PRIVACY_GATE_VERSION,
     ]
     assert evaluation.accepted is True
@@ -153,6 +155,18 @@ def test_editorial_gate_rejects_repeated_sections() -> None:
 
     assert (
         GateFailureCode.EDITORIAL_REPETITION in evaluate_candidate(_plan(), repeated).failure_codes
+    )
+
+
+def test_meaning_gate_rejects_section_that_does_not_match_the_blueprint() -> None:
+    candidate = _candidate()
+    mismatched = candidate.model_copy(
+        update={"manifestation": "Trong công việc, bạn đang nhận thêm quá nhiều đầu việc."}
+    )
+
+    assert (
+        GateFailureCode.MEANING_BLUEPRINT_MISMATCH
+        in evaluate_candidate(_plan(), mismatched).failure_codes
     )
 
 

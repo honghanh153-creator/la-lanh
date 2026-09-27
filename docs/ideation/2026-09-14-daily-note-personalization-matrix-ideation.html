@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Ideation — Ma trận cá nhân hoá Daily Note</title>
+  <title>Ideation — Daily Note có nghĩa, cụ thể và nhất quán</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
   <style>
     :root{color-scheme:dark;--bg:#09051a;--panel:#171028;--glass:#211735d9;--ink:#fff8e9;--muted:#c8bbd6;--line:#4f3d68;--lime:#ddff32;--coral:#ff766d;--lav:#c99cff;--cyan:#75ddf2;--paper:#f5ecd9;--paper-ink:#24152e;--good:#9de3bd}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 85% 2%,#3d245a 0,transparent 28rem),radial-gradient(circle at 0 38%,#13294f 0,transparent 32rem),var(--bg);color:var(--ink);font:400 15px/1.68 "Be Vietnam Pro",system-ui,sans-serif}
-    .page{width:min(960px,calc(100% - 32px));margin:auto;padding:52px 0 80px}.hero,.panel,.idea{border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025));border-radius:26px}.hero{position:relative;overflow:hidden;padding:34px}.hero:after{content:"✦";position:absolute;right:36px;top:22px;color:var(--coral);font-size:5rem;opacity:.55}.eyebrow,.axis,.label{font-size:.75rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.eyebrow,.label{color:var(--lime)}h1{max-width:14ch;margin:.35rem 0 .8rem;font-size:clamp(2.2rem,7vw,4.5rem);line-height:1.02;letter-spacing:-.045em}h2{margin:3.1rem 0 1rem;font-size:1.55rem}h3{margin:.25rem 0 .7rem;font-size:1.32rem;line-height:1.26}.lede{max-width:70ch;color:#e6dced;font-size:1.04rem}.meta,.chips,.jump{display:flex;flex-wrap:wrap;gap:8px}.meta{margin-top:22px}.chip{padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);font-size:.78rem}.chip b{color:var(--ink)}nav{position:sticky;top:10px;z-index:4;display:flex;gap:7px;overflow:auto;margin:18px 0;padding:10px;border:1px solid var(--line);border-radius:18px;background:#0d081de8;backdrop-filter:blur(16px)}nav a,.jump a{white-space:nowrap;color:var(--ink);text-decoration:none;padding:7px 10px;border-radius:10px;font-weight:650;font-size:.83rem}nav a:hover,.jump a:hover{background:var(--panel);color:var(--lime)}section{scroll-margin-top:92px}.panel,.idea{padding:24px;margin:14px 0}.panel p,.panel li,.idea p{max-width:76ch}.axes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.axis-card{padding:17px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}.axis-card b{display:block;color:var(--lime);margin-bottom:4px}.jump{margin:0 0 18px}.jump a{border:1px solid var(--line)}.idea{position:relative;overflow:hidden}.idea.top{border-color:var(--lime);box-shadow:0 0 0 1px rgba(221,255,50,.17),0 22px 72px #0007}.rank{display:inline-grid;place-items:center;width:35px;height:35px;border-radius:50%;background:var(--lime);color:#150b22;font-weight:900}.axis{color:var(--lav);margin:.85rem 0 .2rem}.idea dl{display:grid;grid-template-columns:8.5rem 1fr;gap:9px 16px;margin:18px 0 0}.idea dt{font-weight:700;color:var(--muted)}.idea dd{margin:0}.confidence{background:var(--good);border:0;color:#10251a}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:22px 0 4px}.flow div{position:relative;min-height:112px;padding:14px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}.flow div+div:before{content:"→";position:absolute;left:-17px;top:40px;color:var(--coral);font-weight:900}.flow b{display:block;color:var(--lime);font-size:.8rem;margin-bottom:6px}.note-demo{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:20px}.paper{padding:22px;border-radius:6px 18px 10px 6px;background:var(--paper);color:var(--paper-ink);transform:rotate(-.35deg);box-shadow:0 18px 50px #0006}.paper .label{color:#7354a3}.paper h3{font-size:1.55rem}.glass{padding:18px;border:1px solid #6a5388;border-radius:20px;background:var(--glass)}.glass b{display:block;color:var(--lime);margin-bottom:8px}.signal{border-left:4px solid var(--coral);padding-left:12px}.source-list{display:grid;gap:8px}.source-list a{color:var(--cyan)}table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:18px;overflow:hidden}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--line)}th{color:var(--lime);font-size:.76rem;text-transform:uppercase;letter-spacing:.06em}footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.79rem}
+    .page{width:min(960px,calc(100% - 32px));margin:auto;padding:52px 0 80px}.hero,.panel,.idea{border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025));border-radius:26px}.hero{position:relative;overflow:hidden;padding:34px}.hero:after{content:"✦";position:absolute;right:36px;top:22px;color:var(--coral);font-size:5rem;opacity:.55}.eyebrow,.axis,.label{font-size:.75rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.eyebrow,.label{color:var(--lime)}h1{max-width:16ch;margin:.35rem 0 .8rem;font-size:clamp(2.2rem,7vw,4.5rem);line-height:1.02;letter-spacing:-.045em}h2{margin:3.1rem 0 1rem;font-size:1.55rem}h3{margin:.25rem 0 .7rem;font-size:1.32rem;line-height:1.26}.lede{max-width:70ch;color:#e6dced;font-size:1.04rem}.meta,.chips,.jump{display:flex;flex-wrap:wrap;gap:8px}.meta{margin-top:22px}.chip{padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);font-size:.78rem}.chip b{color:var(--ink)}nav{position:sticky;top:10px;z-index:4;display:flex;gap:7px;overflow:auto;margin:18px 0;padding:10px;border:1px solid var(--line);border-radius:18px;background:#0d081de8;backdrop-filter:blur(16px)}nav a,.jump a{white-space:nowrap;color:var(--ink);text-decoration:none;padding:7px 10px;border-radius:10px;font-weight:650;font-size:.83rem}nav a:hover,.jump a:hover{background:var(--panel);color:var(--lime)}section{scroll-margin-top:92px}.panel,.idea{padding:24px;margin:14px 0}.panel p,.panel li,.idea p{max-width:76ch}.axes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.axis-card{padding:17px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}.axis-card b{display:block;color:var(--lime);margin-bottom:4px}.jump{margin:0 0 18px}.jump a{border:1px solid var(--line)}.idea{position:relative;overflow:hidden}.idea.top{border-color:var(--lime);box-shadow:0 0 0 1px rgba(221,255,50,.17),0 22px 72px #0007}.rank{display:inline-grid;place-items:center;width:35px;height:35px;border-radius:50%;background:var(--lime);color:#150b22;font-weight:900}.axis{color:var(--lav);margin:.85rem 0 .2rem}.idea dl{display:grid;grid-template-columns:8.5rem 1fr;gap:9px 16px;margin:18px 0 0}.idea dt{font-weight:700;color:var(--muted)}.idea dd{margin:0}.confidence{background:var(--good);border:0;color:#10251a}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:22px 0 4px}.flow div{position:relative;min-height:112px;padding:14px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}.flow div+div:before{content:"→";position:absolute;left:-17px;top:40px;color:var(--coral);font-weight:900}.flow b{display:block;color:var(--lime);font-size:.8rem;margin-bottom:6px}.note-demo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}.paper{padding:22px;border-radius:6px 18px 10px 6px;background:var(--paper);color:var(--paper-ink);transform:rotate(-.35deg);box-shadow:0 18px 50px #0006}.paper .label{color:#7354a3}.paper h3{font-size:1.55rem}.glass{padding:18px;border:1px solid #6a5388;border-radius:20px;background:var(--glass)}.glass b{display:block;color:var(--lime);margin-bottom:8px}.signal{border-left:4px solid var(--coral);padding-left:12px}.bad{border-color:#8b4b58;background:#2b111a}.good{border-color:#8fab38;background:#16220f}.callout{padding:18px;border-left:4px solid var(--lime);border-radius:0 16px 16px 0;background:#171225}.source-list{display:grid;gap:8px}.source-list a{color:var(--cyan)}table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:18px;overflow:hidden}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--line)}th{color:var(--lime);font-size:.76rem;text-transform:uppercase;letter-spacing:.06em}footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.79rem}
     @media(max-width:720px){.page{width:min(100% - 20px,960px);padding-top:20px}.hero,.panel,.idea{padding:20px}.hero:after{font-size:3rem;right:16px}.flow,.note-demo{grid-template-columns:1fr}.flow div{min-height:auto}.flow div+div:before{display:none}.idea dl{grid-template-columns:1fr;gap:2px}.idea dd{margin-bottom:10px}table{display:block;overflow:auto}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media(prefers-reduced-transparency:reduce){nav,.glass{backdrop-filter:none;background:var(--panel)}}
   </style>
@@ -19,43 +19,110 @@
 <main class="page">
   <header class="hero">
     <div class="eyebrow">Lá Lành · Product knowledge ideation</div>
-    <h1>Daily Note cá nhân hơn, không cần đoán mò</h1>
-    <p class="lede">Mở rộng “tổ hợp” không phải bằng cách nhân thêm câu chữ. Hướng mạnh nhất vẫn là năm lớp Chart → Time → Context → Voice → Gate, nhưng bản rà soát 15/09 cho thấy ba mắt xích chưa thành sản phẩm: Context chưa có trend có căn cứ, CTA chưa tạo giá trị sau cú chạm, và Aura đã tính xong nhưng chưa tạo ra một khoảnh khắc nâng cấp người dùng nhìn thấy.</p>
+    <h1>Daily Note phải có nghĩa trước khi có nhiều phiên bản</h1>
+    <p class="lede">Bản rà soát 27/09 xác nhận vấn đề không nằm ở số lượng atom. Engine đang nối các mảnh đúng về kỹ thuật nhưng không buộc chúng cùng trả lời một câu hỏi, cùng diễn ra trong một cảnh đời, hay dẫn đến một hành động hợp lý. Hướng mới: khóa nghĩa trước, viết sau.</p>
     <div class="meta">
-      <span class="chip"><b>Date</b> 2026-09-15 · cập nhật từ bản 2026-09-14</span>
+      <span class="chip"><b>Date</b> 2026-09-27 · cập nhật từ bản 2026-09-14</span>
       <span class="chip"><b>Topic</b> daily-note-personalization-matrix</span>
       <span class="chip"><b>Focus</b> tổ hợp có ý nghĩa, cá nhân hoá và không lặp</span>
       <span class="chip"><b>Mode</b> repo-grounded</span>
-      <span class="chip"><b>Result</b> giữ 7 hướng nền · thêm 6 quyết định sửa sản phẩm / 50 ứng viên</span>
+      <span class="chip"><b>Result</b> 6 hướng semantic repair · giữ lại các hướng nền còn giá trị</span>
     </div>
   </header>
 
   <nav aria-label="Mục lục">
-    <a href="#grounding">Grounding</a><a href="#axes">Axes</a><a href="#ideas">7 hướng nền</a><a href="#correction">6 quyết định mới</a><a href="#cuts">Đã loại</a><a href="#sources">Nguồn</a>
+    <a href="#grounding">Grounding</a><a href="#axes">Axes</a><a href="#semantic-repair">Semantic repair</a><a href="#example">Ví dụ</a><a href="#ideas">Hướng nền</a><a href="#cuts">Đã loại</a><a href="#sources">Nguồn</a>
   </nav>
 
   <section id="grounding">
     <h2>Grounding Context</h2>
     <div class="panel">
-      <p><strong>Điểm xuất phát:</strong> engine hiện đã có chart factors, interpretive lens, editorial mode, manifestation, action và chu kỳ 630 ngày; test có thể chứng minh 365 output khác nhau. Nhưng “khác tuple” chưa đồng nghĩa “khác ý”. Một nhóm factor nổi bật nhỏ vẫn có thể quay lại dưới nhiều câu chữ và tất cả cùng kết thúc bằng lời khuyên chung như chậm lại, quan sát, nói rõ.</p>
-      <p><strong>Ranh giới cần giữ:</strong> natal là nền; transit chỉ là kích hoạt thời điểm; một note chỉ có một thesis; context không được biến thành evidence; feedback không được biến thành chẩn đoán hay lá phiếu xác nhận astrology. Daily Note phải đọc được trong 3–5 giây, chi tiết mở dần, app-first 390×844, Be Vietnam Pro duy nhất.</p>
-      <p><strong>Phát hiện chính:</strong> Astrodienst cũng không luôn chọn transit “mạnh nhất” cho từng ngày vì một ảnh hưởng dài có thể lặp nhiều tháng; họ phân bố các transit trên cả năm để giữ relevance lẫn variation. Đây là bằng chứng tốt cho việc thêm lớp temporal editor, nhưng Lá Lành còn cần semantic gate và user-declared context để đạt cảm giác cá nhân.</p>
+      <p><strong>Điểm xuất phát:</strong> engine đã có chart factors, lens, editorial mode, manifestation, action và chu kỳ hàng trăm ngày. Tuy nhiên date-only chọn hook và practice ở hai slot độc lập; full chart nối planet need, aspect, house/context và action bằng câu mẫu. Không có một object trung gian giữ “ý chính của note” và kiểm tra toàn bộ section có đang nói cùng một chuyện.</p>
+      <p><strong>Lỗi đã tái hiện:</strong> Pisces hook “Trực giác có điều muốn nói…” có thể ghép ngẫu nhiên với practice “rời màn hình”; work lens có thể bị ghép với House 8 về chia sẻ điều riêng/vay-mượn; UI lại báo “chưa có thử nghiệm” ngay dưới một micro-action. Test hiện chỉ chứng minh chuỗi khác nhau, độ phủ và lexical duplication — không chứng minh nghĩa, cảnh và hành động khớp nhau.</p>
+      <p><strong>Ranh giới cần giữ:</strong> chart facts phải đến từ engine; context chỉ chọn cách minh họa; natal là nền và transit chỉ giải thích thời điểm; một note chỉ có một luận điểm; không suy luận đời tư; không dùng cảm giác “trúng” làm bằng chứng astrology. External generation vẫn phải fail-closed và không được tự tính chart.</p>
+      <p><strong>Bằng chứng bên ngoài:</strong> nghiên cứu data-to-text NLG ủng hộ tách content selection/document planning khỏi prose realization. Nghiên cứu Barnum effect cho thấy lời mơ hồ vẫn dễ được người đọc nhận là “đúng”; vì vậy rating “trúng” là chưa đủ. Cần thêm discriminability: đổi dữ kiện chart liên quan thì nội dung phải đổi; đổi dữ kiện không liên quan thì luận điểm không được trôi.</p>
     </div>
   </section>
 
   <section id="axes">
     <h2>Topic Axes</h2>
     <div class="axes">
-      <div class="axis-card"><b>01 · Evidence</b>Độ sâu tổng hợp chart và xử lý dữ liệu giờ sinh không chắc chắn.</div>
-      <div class="axis-card"><b>02 · Time</b>Relevance theo ngày, nhịp transit và chống lặp ở cấp ý.</div>
-      <div class="axis-card"><b>03 · Agency</b>Bối cảnh và feedback do người dùng tự chọn, có consent và reset.</div>
-      <div class="axis-card"><b>04 · Language</b>Cảnh đời cụ thể, giọng nói gần gũi nhưng không gượng Gen Z.</div>
-      <div class="axis-card"><b>05 · Reveal</b>Hierarchy app, “vì sao hôm nay” và progressive disclosure.</div>
+      <div class="axis-card"><b>01 · Thesis</b>Chọn một luận điểm có căn cứ trước khi ghép câu.</div>
+      <div class="axis-card"><b>02 · Scene</b>Mọi section cùng sống trong một bối cảnh đời thường.</div>
+      <div class="axis-card"><b>03 · Action</b>Thử nghiệm phải giải quyết đúng cơ chế vừa nêu và quan sát được.</div>
+      <div class="axis-card"><b>04 · Specificity</b>Khác chart/khác ngày phải khác ở cấp ý, không chỉ khác từ.</div>
+      <div class="axis-card"><b>05 · Gate</b>Đánh giá coherence, concreteness, discriminability và usefulness.</div>
     </div>
   </section>
 
+  <section id="semantic-repair">
+    <h2>Ranked Ideas · Semantic repair</h2>
+    <div class="jump">
+      <a href="#repair-1">1 Scene Compiler</a><a href="#repair-2">2 Typed Matrix</a><a href="#repair-3">3 Meaning Gate</a><a href="#repair-4">4 Action Contract</a><a href="#repair-5">5 Editorial Corpus</a><a href="#repair-6">6 Feedback Loop</a>
+    </div>
+
+    <article class="idea top" id="repair-1">
+      <span class="rank">1</span>
+      <div class="axis">Thesis · Scene · umbrella direction</div>
+      <h3>Semantic Scene Compiler: khóa một tình huống trước, rồi mới viết</h3>
+      <p><strong>Description:</strong> Không cho renderer chọn hook, manifestation và action độc lập nữa. Trước prose phải có một blueprint có cấu trúc: <em>chart claim → tension/resource → một life arena → một observable scene → một useful move → evidence receipt</em>. Mọi câu trong note phải entail blueprint này; atom nào không cùng scene bị loại trước khi viết.</p>
+      <div class="flow" aria-label="Semantic scene compiler">
+        <div><b>FACT</b>Chart cho phép nói gì?</div><div><b>THESIS</b>Một ý đáng giữ là gì?</div><div><b>SCENE</b>Nó trông ra sao ngoài đời?</div><div><b>MOVE</b>Việc nhỏ nào kiểm chứng được?</div><div><b>VOICE</b>Nói gần gũi thế nào?</div>
+      </div>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> current code selects independent slots and post-overwrites context; <strong>external:</strong> Plan-then-Generate and Attribute-First systems improve control by planning content and support before realization.</dd><dt>Rationale</dt><dd>Sửa đúng gốc: content không còn là phép nối câu. Nó cũng tạo một nơi rõ ràng để kiểm tra consistency trước khi người dùng thấy prose.</dd><dt>Downsides</dt><dd>Phải thay contract trung gian và viết lại một phần catalog; không thể chỉ bổ sung vài template.</dd><dt>Confidence</dt><dd>97%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="repair-2">
+      <span class="rank">2</span><div class="axis">Thesis · Scene · Specificity</div>
+      <h3>Typed Knowledge Matrix: atom có điều kiện dùng, không phải kho câu</h3>
+      <p><strong>Description:</strong> Mỗi atom cần metadata về chức năng (claim, mechanism, scene, action), arena được phép, factor cần có, precision tối thiểu, emotional intensity, allowed pairings và exclusions. “House 8 / nguồn lực chung” không được trôi vào work scene trừ khi blueprint thật sự nói về tiền chung, quyền truy cập hoặc sự phụ thuộc trong công việc. Hook và action chỉ ghép khi chia sẻ cùng một scene key và mechanism key.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> catalog hiện có text fields nhưng thiếu compatibility key; user-selected context còn được áp sau synthesis. <strong>external:</strong> DITA typed topics là prior art cho content module có vai trò rõ và được lắp qua map.</dd><dt>Rationale</dt><dd>Mở rộng matrix theo chiều ý nghĩa thay vì theo số câu, giảm tổ hợp vô nghĩa và vẫn giữ được deterministic/auditable.</dd><dt>Downsides</dt><dd>Editorial effort lớn; taxonomy quá chi tiết có thể làm corpus khó bảo trì.</dd><dt>Confidence</dt><dd>95%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="repair-3">
+      <span class="rank">3</span><div class="axis">Gate · Specificity</div>
+      <h3>Meaning Gate: chặn đoạn “đúng từng câu nhưng sai cả bài”</h3>
+      <p><strong>Description:</strong> Gate mới không chỉ tìm từ cấm hoặc câu lặp. Nó kiểm tra năm câu hỏi: thesis có một ý rõ không; manifestation có cho thấy một hành vi quan sát được không; scene có nhất quán giữa các section không; action có tác động vào đúng mechanism không; output có phân biệt được với neighboring chart và note gần nhất không. Candidate fail thì chọn blueprint khác, không “vá” bằng disclaimer.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> current gates pass all quoted failures because they check evidence, safety, length and lexical duplication, not cross-section entailment. <strong>external:</strong> discourse coherence and groundedness are distinct evaluation dimensions; one metric cannot stand in for both.</dd><dt>Rationale</dt><dd>Biến yêu cầu “đọc phải có nghĩa” thành publish contract thay vì QA cảm tính sau deploy.</dd><dt>Downsides</dt><dd>Một semantic judge duy nhất dễ false-positive; cần deterministic invariants plus curated benchmark, không dựa hoàn toàn vào LLM score.</dd><dt>Confidence</dt><dd>94%</dd><dt>Complexity</dt><dd>Medium–High</dd></dl>
+    </article>
+
+    <article class="idea" id="repair-4">
+      <span class="rank">4</span><div class="axis">Action</div>
+      <h3>Observable Action Contract: việc thử có lúc, có cách, có điều để nhìn</h3>
+      <p><strong>Description:</strong> Mỗi action phải có bốn phần đóng: <em>khi nào thử, làm gì, quan sát gì, khi nào bỏ</em>. Ví dụ không còn “rời màn hình vài phút”; thay bằng “Nếu một tin nhắn làm bạn đoán ý quá lâu, viết riêng hai dòng: điều họ thật sự nói / điều bạn đang tự nối thêm. Chỉ trả lời dòng đầu; nếu tình huống không có tin nhắn hoặc không làm bạn lăn tăn, bỏ qua.” Date-only vẫn có thể có action nhưng không được giả là experiment chart-specific.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> UI hiện có micro-action nhưng backend chỉ tạo experiment cho FULL_SYNTHESIS, gây câu “chưa có thử nghiệm” mâu thuẫn. <strong>external:</strong> behavior-change guidance và implementation intentions nhấn mạnh tình huống, hành động và quan sát cụ thể.</dd><dt>Rationale</dt><dd>Người dùng hiểu CTA làm gì và có thể tự kiểm chứng, thay vì nhận một lời khuyên wellness chung chung.</dd><dt>Downsides</dt><dd>Không phải insight nào cũng nên có action; hệ thống phải cho phép trạng thái “chỉ để nhận ra” thay vì ép hành động.</dd><dt>Confidence</dt><dd>92%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="repair-5">
+      <span class="rank">5</span><div class="axis">Gate · editorial governance</div>
+      <h3>Golden Editorial Corpus: kiểm bằng người thật, không chỉ bằng coverage</h3>
+      <p><strong>Description:</strong> Xây một tập chart/date/context đại diện và neighboring pairs; mỗi output được chấm riêng theo rõ ý, cụ thể, hữu ích, chart-bound, coherence và giọng tự nhiên. Reviewer phải trả lời lại được bằng một câu: “note này đang nói điều gì?” Nếu hai reviewer trả lời khác nhau, output chưa đủ rõ để publish.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> existing 365-day tests prove unique tuples, not unique meanings; previous reviews already require human benchmark but it remains incomplete.</dd><dt>Rationale</dt><dd>Tạo tiêu chuẩn ổn định để content matrix lớn lên mà không lặp lại lỗi hiện tại.</dd><dt>Downsides</dt><dd>Tốn editorial time và cần quản lý disagreement; corpus phải version cùng knowledge engine.</dd><dt>Confidence</dt><dd>90%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="repair-6">
+      <span class="rank">6</span><div class="axis">Specificity · user agency</div>
+      <h3>Reason-coded Feedback: hỏi vì sao chưa trúng, không chỉ hỏi có trúng không</h3>
+      <p><strong>Description:</strong> Feedback bounded gồm “quá chung”, “sai bối cảnh”, “khó hiểu”, “không hữu ích”, “đúng nhưng tôi đã biết”. Dữ liệu chỉ rerank blueprint/scene đã duyệt sau consent; không tự tạo nhãn tính cách, không dùng free text và không sửa chart facts.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> current product treats resonance separately but lacks failure reasons; Barnum research shows “thấy đúng” alone is a weak quality signal.</dd><dt>Rationale</dt><dd>Cho biết matrix hỏng ở nghĩa, bối cảnh, cách nói hay usefulness — dữ liệu phù hợp hơn để cải thiện corpus.</dd><dt>Downsides</dt><dd>Không cứu được output trước mắt; cần volume và privacy/retention contract rõ.</dd><dt>Confidence</dt><dd>82%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+  </section>
+
+  <section id="example">
+    <h2>Ví dụ về khác biệt cần đạt</h2>
+    <div class="note-demo">
+      <div class="glass bad"><b>Hiện tại</b><p>“Trực giác có điều muốn nói; dữ kiện vẫn cần được mời vào phòng.” Sau đó chuyển sang playlist/căn phòng, rồi bảo rời màn hình. Ba hình ảnh không tạo thành một tình huống; người dùng không biết app muốn giúp mình nhận ra điều gì.</p></div>
+      <div class="glass good"><b>Hướng mới · minh họa</b><p>“Một tin nhắn ngắn có thể làm bạn tự nối thêm cả phần người kia chưa nói. Nếu đang lăn tăn, tách hai dòng: điều họ thật sự viết / điều bạn đang đoán. Chỉ phản hồi dòng đầu.” Một scene, một tension, một việc thử có thể quan sát.</p></div>
+    </div>
+    <div class="note-demo">
+      <div class="glass bad"><b>Hiện tại</b><p>“Ở công việc…” nhưng manifestation lại nhảy sang chia sẻ điều riêng, vay-mượn và ranh giới sâu. Đây là các atom hợp lệ đứng riêng, nhưng ghép chung thì không còn nghĩa.</p></div>
+      <div class="glass good"><b>Hướng mới · minh họa</b><p>“Bạn có thể nhận thêm việc để giữ không khí hợp tác, rồi khó chịu vì công sức của mình bị xem là mặc định. Trước khi nhận đầu việc tiếp theo, hỏi rõ deadline, quyền quyết định và cách ghi nhận đóng góp.” Cùng một arena từ đầu đến cuối.</p></div>
+    </div>
+    <p class="callout"><strong>Khuyến nghị:</strong> chọn combo 1 + 2 + 3 làm lõi. Số 4 là contract cho CTA; số 5 là điều kiện phát hành; số 6 là vòng học sau beta. Không nên tiếp tục “làm giàu matrix” bằng cách thêm câu trước khi ba lớp đầu tồn tại.</p>
+  </section>
+
   <section id="ideas">
-    <h2>Ranked Ideas</h2>
+    <h2>Các hướng nền vẫn còn giá trị</h2>
     <div class="jump">
       <a href="#idea-1">1 Signal Stack</a><a href="#idea-2">2 Semantic Setlist</a><a href="#idea-3">3 Two-Speed Story</a><a href="#idea-4">4 Context Dial</a><a href="#idea-5">5 Resonance</a><a href="#idea-6">6 Scene Grammar</a><a href="#idea-7">7 Stable Islands</a>
     </div>
@@ -272,6 +339,14 @@
     <table>
       <thead><tr><th>#</th><th>Ý tưởng đã cân nhắc</th><th>Lý do loại hoặc gộp</th></tr></thead>
       <tbody>
+        <tr><td>V2-1</td><td>Thêm nhiều sách/RAG nhưng giữ nguyên cách ghép</td><td>Nguồn nhiều hơn không sửa được việc hook, scene và action đang được chọn độc lập.</td></tr>
+        <tr><td>V2-2</td><td>Cho LLM tự viết toàn bộ từ chart</td><td>Dễ trôi evidence, bịa thêm chi tiết và khó audit; chỉ đáng cân nhắc sau khi có blueprint đóng và gate độc lập.</td></tr>
+        <tr><td>V2-3</td><td>Tăng slang Gen Z</td><td>Chỉ trang điểm bề mặt; câu vô nghĩa vẫn vô nghĩa và slang còn nhanh lỗi thời.</td></tr>
+        <tr><td>V2-4</td><td>Viết report dài hơn</td><td>Kéo dài sự mơ hồ, tăng reader load mà không tăng insight.</td></tr>
+        <tr><td>V2-5</td><td>Nhét mọi factor vào một note</td><td>Tạo noise và false depth; trái với one-thesis contract.</td></tr>
+        <tr><td>V2-6</td><td>Embedding-only genericity filter</td><td>Có thể đo gần nghĩa nhưng không chứng minh scene/action entail thesis hay chart claim đúng.</td></tr>
+        <tr><td>V2-7</td><td>Giữ context overwrite sau render</td><td>Chính cơ chế này làm hook/thesis và phần đời thường thuộc hai câu chuyện khác nhau.</td></tr>
+        <tr><td>V2-8</td><td>Thêm disclaimer để bù copy yếu</td><td>Disclaimer không biến lời mơ hồ thành hữu ích; chỉ làm UI nặng hơn.</td></tr>
         <tr><td>1</td><td>Reader-Owned Voice standalone</td><td>Hợp lệ nhưng gộp vào delivery layer của Signal Stack; tách riêng dễ làm vỡ editorial identity.</td></tr>
         <tr><td>2</td><td>One counter-reading + one question</td><td>Khá mạnh nhưng repo chưa có contract xác định factual boundary cho counter-reading; giữ làm nhánh nghiên cứu sau.</td></tr>
         <tr><td>3</td><td>A note that teaches its pattern</td><td>Có giá trị nhưng thiếu sequencing/curriculum basis; scope hiện tại là personalization, không phải khóa học.</td></tr>
@@ -335,12 +410,18 @@
   </section>
 
   <section id="sources">
-    <h2>Sources & References</h2>
+    <h2>Sources &amp; References</h2>
     <div class="panel source-list">
       <a href="../../docs/foundation/la-lanh-reading-knowledge-spec.md">Repo · Reading knowledge specification</a>
       <a href="../../docs/foundation/la-lanh-astro-engine-spec.md">Repo · Astro engine specification</a>
       <a href="../../docs/foundation/la-lanh-interpretation-corpus-methodology.md">Repo · Interpretation corpus methodology</a>
       <a href="../../docs/reviews/2026-09-12-note-content-usp-audit/README.md">Repo · Daily Note content and USP audit</a>
+      <a href="../../docs/reviews/2026-09-23-content-matrix-meaningfulness-fix.md">Repo · Content matrix meaningfulness fix</a>
+      <a href="https://aclanthology.org/2021.findings-emnlp.76/">ACL · Plan-then-Generate</a>
+      <a href="https://aclanthology.org/2024.acl-long.182/">ACL · Attribute First, then Generate</a>
+      <a href="https://pubmed.ncbi.nlm.nih.gov/18110193/">Forer · The fallacy of personal validation</a>
+      <a href="https://aclanthology.org/2022.naacl-main.187/">ACL · QAFactEval</a>
+      <a href="https://www.ncbi.nlm.nih.gov/books/NBK327617/">BCTTv1 · Observable behavior-change techniques</a>
       <a href="https://www.astro.com/faq/fq_fh_transits_e.htm">Astrodienst · How daily transits are selected and distributed</a>
       <a href="https://aclanthology.org/X98-1025/">ACL Anthology · Maximal Marginal Relevance</a>
       <a href="https://developer.apple.com/design/human-interface-guidelines/machine-learning">Apple HIG · Machine learning, explicit feedback and privacy</a>
@@ -355,7 +436,7 @@
     </div>
   </section>
 
-  <footer class="composition-signal">Composed 2026-09-15T14:45:00+07:00 by ce-ideate from the Lá Lành repository, the 2026-09-14 ideation baseline, three new evidence dossiers, external primary-source research, and the user’s product critique.</footer>
+  <footer class="composition-signal">Updated 2026-09-27T17:30:00+07:00 by ce-ideate from the Lá Lành repository, the 2026-09-14 baseline, current runtime tracing, prior product reviews, external primary research, and the user’s quoted content failures.</footer>
 </main>
 </body>
 </html>

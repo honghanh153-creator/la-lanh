@@ -113,9 +113,12 @@ function ExperimentSection({
   if (!experiment) {
     return (
       <section className="reading-content__action">
-        <h2>Thử một việc nhỏ</h2>
-        <p>{content.sections.micro_action}</p>
-        <p className="reading-content__experiment-note">Lớp đọc hiện tại chưa có thử nghiệm hành vi đi kèm.</p>
+        <p className="eyebrow">Một góc để kiểm chứng</p>
+        <h2>Đối chiếu với hôm nay</h2>
+        <p className="reading-content__experiment-action">{content.sections.micro_action}</p>
+        <p className="reading-content__experiment-note">
+          Nếu không khớp tình huống thật, bạn có thể bỏ qua.
+        </p>
       </section>
     );
   }

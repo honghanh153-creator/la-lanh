@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from app.domains.readings.knowledge import (
+    LENS_ACTIONS,
+    LENS_HOOKS,
+    LENS_MANIFESTATIONS,
     InterpretationFrame,
     body_label,
     full_frame,
+    semantic_arena,
     transit_copy,
     vibe_frame,
 )
@@ -20,9 +24,10 @@ from app.domains.readings.models import (
     PlanMode,
     ReadingCandidate,
     ReadingPlan,
+    SemanticBlueprint,
 )
 
-DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v4"
+DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v5"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",
@@ -56,40 +61,6 @@ _PHASE_LABELS = {
     "separating": "tách dần",
 }
 _MOTION_LABELS = {"direct": "thuận hành", "retrograde": "nghịch hành"}
-
-_CONTEXT_MANIFESTATIONS = {
-    BackgroundLens.RELATIONSHIPS: (
-        "Trong quan hệ, góc này dễ hiện ra khi một kỳ vọng chưa được nói rõ."
-    ),
-    BackgroundLens.COMMUNICATION: (
-        "Trong giao tiếp, góc này dễ hiện ra khi câu cần nói ngắn nhưng phần giải thích quá dài."
-    ),
-    BackgroundLens.WORK: (
-        "Trong công việc, góc này dễ hiện ra lúc bạn nhận thêm việc hoặc phải chốt ưu tiên."
-    ),
-    BackgroundLens.ENERGY: (
-        "Với năng lượng hôm nay, góc này dễ hiện ra khi đầu còn muốn chạy nhưng cơ thể đã chậm."
-    ),
-    BackgroundLens.SELF_CARE: (
-        "Trong việc chăm mình, góc này dễ hiện ra khi cả nghỉ ngơi cũng thành một mục tiêu."
-    ),
-}
-
-_CONTEXT_ACTIONS = {
-    BackgroundLens.RELATIONSHIPS: (
-        "Thử nói một nhu cầu dưới dạng đề nghị, rồi để người kia tự trả lời."
-    ),
-    BackgroundLens.COMMUNICATION: (
-        "Viết ba dòng: điều đã biết, điều đang cảm và điều muốn đề nghị."
-    ),
-    BackgroundLens.WORK: ("Chọn một ưu tiên có tiêu chuẩn hoàn thành rõ và để phần còn lại chờ."),
-    BackgroundLens.ENERGY: (
-        "Giảm một kích thích trong mười phút và xem sức chứa của cơ thể có đổi không."
-    ),
-    BackgroundLens.SELF_CARE: (
-        "Chọn một việc chăm mình đủ nhỏ để làm mà không cần biến nó thành thành tích."
-    ),
-}
 
 
 def _body(value: str) -> str:
@@ -235,13 +206,8 @@ class DeterministicVietnameseRenderer:
     version = DETERMINISTIC_RENDERER_VERSION
 
     def render(self, plan: ReadingPlan) -> ReadingCandidate:
-        content_plan = (
-            plan.model_copy(update={"background_lens": None})
-            if plan.background_lens is not None
-            else plan
-        )
         if plan.mode is PlanMode.VIBE_FALLBACK:
-            frame = vibe_frame(content_plan)
+            frame = vibe_frame(plan)
             hook, thesis, manifestation, micro_action = (
                 frame.hook,
                 frame.thesis,
@@ -249,20 +215,21 @@ class DeterministicVietnameseRenderer:
                 frame.micro_action,
             )
         elif plan.mode is PlanMode.LIMITED:
-            hook, thesis, manifestation, micro_action = self._limited_copy()
-            frame = None
-        else:
-            frame = full_frame(content_plan)
+            frame = self._limited_frame(plan)
             hook, thesis, manifestation, micro_action = (
                 frame.hook,
                 frame.thesis,
                 frame.manifestation,
                 frame.micro_action,
             )
-
-        if plan.background_lens is not None:
-            manifestation = _CONTEXT_MANIFESTATIONS[plan.background_lens]
-            micro_action = _CONTEXT_ACTIONS[plan.background_lens]
+        else:
+            frame = full_frame(plan)
+            hook, thesis, manifestation, micro_action = (
+                frame.hook,
+                frame.thesis,
+                frame.manifestation,
+                frame.micro_action,
+            )
 
         transit_factor = next(
             (factor for factor in plan.factors if factor.source is FactorSource.TRANSIT),
@@ -279,6 +246,17 @@ class DeterministicVietnameseRenderer:
             transit=transit,
             micro_action=micro_action,
             evidence=EvidenceDisclosure(claims=claims),
+            semantic_blueprint=SemanticBlueprint(
+                arena=frame.arena,
+                mechanism_key=frame.mechanism_key,
+                scene_key=frame.scene_key,
+                action_key=frame.action_key,
+                hook=hook,
+                thesis=thesis,
+                manifestation=manifestation,
+                micro_action=micro_action,
+                evidence_factor_refs=frame.evidence_factor_refs,
+            ),
         )
         if (
             transit_factor is not None
@@ -298,18 +276,38 @@ class DeterministicVietnameseRenderer:
         return candidate
 
     @staticmethod
-    def _limited_copy() -> tuple[str, str, str, str]:
-        return (
-            "Chưa cần đoán cho đầy trang.",
-            "Chưa đủ dữ liệu để Lá tạo một bản tổng hợp có căn cứ.",
-            (
-                "Giữ phần trống này trung thực sẽ hữu ích hơn một đoạn nghe có vẻ riêng nhưng lại "
-                "không bám vào lá số của bạn."
-            ),
-            (
-                "Bạn có thể bổ sung giờ sinh chính xác và nơi sinh khi sẵn sàng; Lá sẽ đọc lại từ "
-                "đầu với dữ liệu đó."
-            ),
+    def _limited_frame(plan: ReadingPlan) -> InterpretationFrame:
+        hook = "Chưa cần đoán cho đầy trang."
+        manifestation = (
+            "Giữ phần trống này trung thực sẽ hữu ích hơn một đoạn nghe có vẻ riêng nhưng lại "
+            "không bám vào lá số của bạn."
+        )
+        micro_action = (
+            "Bạn có thể bổ sung giờ sinh chính xác và nơi sinh khi sẵn sàng; Lá sẽ đọc lại từ "
+            "đầu với dữ liệu đó."
+        )
+        lens = plan.background_lens
+        if lens is not None and lens is not BackgroundLens.AUTO:
+            hook = f"{LENS_HOOKS[lens]}, Lá chưa cần đoán cho đầy trang."
+            manifestation = (
+                f"Bạn đang muốn soi điều dễ xảy ra {LENS_MANIFESTATIONS[lens]}. "
+                "Dữ kiện hiện tại chưa đủ để nối bối cảnh đó với một pattern riêng có căn cứ."
+            )
+            micro_action = (
+                f"Trong lúc chưa bổ sung giờ và nơi sinh, bạn có thể {LENS_ACTIONS[lens]}. "
+                "Khi dữ liệu đủ, Lá sẽ đọc lại từ đầu thay vì giữ kết luận tạm này."
+            )
+        return InterpretationFrame(
+            hook=hook,
+            thesis="Chưa đủ dữ liệu để Lá tạo một bản tổng hợp có căn cứ.",
+            manifestation=manifestation,
+            micro_action=micro_action,
+            evidence_factor_refs=(),
+            knowledge_refs=("mode:limited",),
+            arena=semantic_arena(lens),
+            mechanism_key="limited-data",
+            scene_key=f"{semantic_arena(lens).value}:insufficient-data",
+            action_key="complete-birth-data",
         )
 
     @staticmethod

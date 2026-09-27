@@ -398,6 +398,33 @@ class EvidenceDisclosure(BaseModel):
     framework_disclosure: str = FULL_FRAMEWORK_DISCLOSURE
 
 
+class SemanticArena(StrEnum):
+    GENERAL = "general"
+    RELATIONSHIPS = "relationships"
+    COMMUNICATION = "communication"
+    WORK = "work"
+    ENERGY = "energy"
+    SELF_CARE = "self_care"
+    STRUCTURAL = "structural"
+
+
+class SemanticBlueprint(BaseModel):
+    """Internal contract joining one interpretation, one scene, and one action."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    version: str = "semantic-blueprint/v1"
+    arena: SemanticArena
+    mechanism_key: str = Field(min_length=1, max_length=96)
+    scene_key: str = Field(min_length=1, max_length=96)
+    action_key: str = Field(min_length=1, max_length=96)
+    hook: str = Field(max_length=280)
+    thesis: str = Field(max_length=700)
+    manifestation: str = Field(max_length=700)
+    micro_action: str = Field(max_length=500)
+    evidence_factor_refs: tuple[str, ...] = Field(max_length=12)
+
+
 class ReadingCandidate(BaseModel):
     """Typed renderer output evaluated locally before it may be published."""
 
@@ -413,6 +440,7 @@ class ReadingCandidate(BaseModel):
     micro_action: str = Field(max_length=500)
     evidence: EvidenceDisclosure
     disclaimer: str = SHORT_DISCLAIMER
+    semantic_blueprint: "SemanticBlueprint | None" = None
 
     @property
     def natal_user_prose(self) -> str:
@@ -434,6 +462,7 @@ class GateName(StrEnum):
     EVIDENCE = "evidence"
     ANTI_INFLUENCE = "anti_influence"
     EDITORIAL = "editorial"
+    MEANING = "meaning"
     PRIVACY = "privacy"
 
 
@@ -463,6 +492,12 @@ class GateFailureCode(StrEnum):
     EDITORIAL_FORCED_SLANG = "editorial_forced_slang"
     EDITORIAL_REPETITION = "editorial_repetition"
     EDITORIAL_LENGTH = "editorial_length"
+    MEANING_BLUEPRINT_REQUIRED = "meaning_blueprint_required"
+    MEANING_BLUEPRINT_MISMATCH = "meaning_blueprint_mismatch"
+    MEANING_CONTEXT_MISMATCH = "meaning_context_mismatch"
+    MEANING_UNSUPPORTED_FACTOR = "meaning_unsupported_factor"
+    MEANING_UNOBSERVABLE_SCENE = "meaning_unobservable_scene"
+    MEANING_ACTION_MISMATCH = "meaning_action_mismatch"
     PRIVACY_PERSONAL_DATA = "privacy_personal_data"
 
 
@@ -778,12 +813,13 @@ class ReadingRevisionRecord(BaseModel):
             GateName.EVIDENCE,
             GateName.ANTI_INFLUENCE,
             GateName.EDITORIAL,
+            GateName.MEANING,
             GateName.PRIVACY,
         )
         if tuple(report.gate for report in self.evaluation.reports) != expected_gates or any(
             not report.passed for report in self.evaluation.reports
         ):
-            raise ValueError("accepted content must pass all four ordered safety gates")
+            raise ValueError("accepted content must pass all five ordered safety gates")
         expected_gate_policy = canonical_gate_policy_version(self.evaluation)
         if self.gate_policy_version != expected_gate_policy:
             raise ValueError("gate policy version must match the accepted evaluation")

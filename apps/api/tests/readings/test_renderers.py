@@ -82,7 +82,7 @@ def _plan(
 
 
 @pytest.mark.parametrize("purpose", tuple(ReadingPurpose))
-def test_deterministic_renderer_is_stable_and_passes_all_four_gates(
+def test_deterministic_renderer_is_stable_and_passes_all_five_gates(
     purpose: ReadingPurpose,
 ) -> None:
     plan = _plan(purpose=purpose)
@@ -106,6 +106,7 @@ def test_deterministic_renderer_is_stable_and_passes_all_four_gates(
         "evidence",
         "anti_influence",
         "editorial",
+        "meaning",
         "privacy",
     ]
 
@@ -241,15 +242,15 @@ def test_empty_limited_plan_returns_useful_copy_without_fabricated_evidence() ->
     assert evaluate_candidate(plan, candidate).accepted is True
 
 
-def test_background_lens_changes_only_to_an_allowlisted_manifestation() -> None:
+def test_background_lens_renders_one_coherent_allowlisted_scene() -> None:
     renderer = DeterministicVietnameseRenderer()
     plain = renderer.render(_plan())
     work = renderer.render(_plan(lens=BackgroundLens.WORK))
 
     assert work.manifestation != plain.manifestation
     assert work.micro_action != plain.micro_action
+    assert "công việc" in work.hook.lower()
     assert "công việc" in work.manifestation.lower()
-    assert work.hook == plain.hook
     assert work.thesis == plain.thesis
     assert work.transit == plain.transit
     assert work.evidence == plain.evidence
@@ -267,7 +268,7 @@ def test_background_lens_changes_only_to_an_allowlisted_manifestation() -> None:
     ],
 )
 @pytest.mark.parametrize("mode", ["date_only", "cusp", "limited", "full"])
-def test_every_reading_mode_projects_only_manifestation_and_action_by_lens(
+def test_every_reading_mode_keeps_evidence_while_rendering_one_contextual_scene(
     lens: BackgroundLens,
     mode: str,
 ) -> None:
@@ -315,8 +316,10 @@ def test_every_reading_mode_projects_only_manifestation_and_action_by_lens(
 
     assert contextual.manifestation != plain.manifestation
     assert contextual.micro_action != plain.micro_action
-    assert contextual.hook == plain.hook
-    assert contextual.thesis == plain.thesis
+    if mode != "full":
+        assert contextual.thesis == plain.thesis
+    assert contextual.semantic_blueprint is not None
+    assert contextual.semantic_blueprint.arena.value == lens.value
     assert contextual.transit == plain.transit
     assert contextual.evidence == plain.evidence
     assert contextual_plan.factors == plain_plan.factors
