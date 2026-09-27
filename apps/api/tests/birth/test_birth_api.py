@@ -215,3 +215,17 @@ def test_age_policy_rejects_under_18_and_over_120(
 
     assert response.status_code == 422
     assert response.json()["code"] == "BIRTH_DATE_OUT_OF_RANGE"
+
+
+def test_birthplace_api_lists_current_catalog_and_resolves_former_names(
+    birth_client: TestClient,
+) -> None:
+    current = birth_client.post("/v1/birth-places/search", json={"query": ""})
+    former = birth_client.post("/v1/birth-places/search", json={"query": "Bình Dương"})
+
+    assert current.status_code == 200
+    assert len(current.json()) == 34
+    assert all("tên trước 2025" not in item["display_name"] for item in current.json())
+    assert former.status_code == 200
+    assert former.json()[0]["place_id"] == "vn-former-binh-duong"
+    assert "nay thuộc TP Hồ Chí Minh" in former.json()[0]["display_name"]

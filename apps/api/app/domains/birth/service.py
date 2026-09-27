@@ -103,9 +103,10 @@ class BirthChartService:
         )
 
     def search_places(self, query: str) -> tuple[PlaceResult, ...]:
-        if len(query.strip()) < 2 or len(query) > 80:
+        normalized_query = query.strip()
+        if len(query) > 80 or (normalized_query and len(normalized_query) < 2):
             raise BirthSupplementInvalid
-        return self._places.search(query)
+        return self._places.search(normalized_query)
 
     async def add_supplement(
         self,
