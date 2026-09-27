@@ -1,0 +1,40 @@
+.tarot-mini-cards {
+  display: flex;
+  height: 1.35rem;
+  align-items: flex-end;
+  gap: 0.18rem;
+  letter-spacing: normal;
+}
+
+.tarot-mini-cards i {
+  display: block;
+  width: 0.72rem;
+  height: 1.15rem;
+  border: 1px solid #e1b0ff;
+  border-radius: 0.16rem;
+  background: rgb(225 176 255 / 8%);
+  transform: rotate(-4deg);
+}
+
+.tarot-mini-cards i:nth-child(2) {
+  transform: translateY(-0.14rem);
+}
+
+.tarot-mini-cards i:nth-child(3) {
+  transform: rotate(4deg);
+}
+
+.tarot-start-actions > p,
+.tarot-private {
+  max-width: 32rem;
+  align-items: flex-start;
+  color: #aaa0b8;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.tarot-start-actions > p svg,
+.tarot-private svg {
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+}

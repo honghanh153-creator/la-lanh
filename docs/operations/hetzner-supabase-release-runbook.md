@@ -127,12 +127,19 @@ Before choosing the release commit, complete the content release gate in
 
 ```sh
 pnpm content:audit
+pnpm tarot:audit
 pnpm experience:audit
 ```
 
 For a normal release, record the reviewed content improvement and its regression fixture. An urgent
 security or availability hotfix may use the documented waiver; do not add filler copy to force a
 content delta.
+
+For a release containing Lá Hỏi, also complete both spread sizes from `/tarot`, refresh the private
+session route, verify an unsafe question receives a reframe, delete the result, and follow one Daily
+Note and one owner-only Radar prompt into Tarot. Public/recipient Radar must not show the private
+Tarot bridge. Confirm the cleanup output includes `Tarot session(s)` and that no question or reading
+text appears in application/proxy logs.
 
 The release ID is the 12-character Git commit SHA. Commit and push the intended release to public
 `main` before transferring it to the server. Record the full SHA locally:

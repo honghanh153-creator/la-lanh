@@ -37,6 +37,7 @@ class GuestSessionService:
         *,
         consent_version: str,
         consent_purpose: str,
+        additional_consents: frozenset[tuple[str, str]] = frozenset(),
         ttl: timedelta = timedelta(days=30),
         replay_window: timedelta = timedelta(minutes=10),
     ) -> None:
@@ -45,6 +46,7 @@ class GuestSessionService:
         self._envelope = envelope
         self._consent_version = consent_version
         self._consent_purpose = consent_purpose
+        self._accepted_consents = additional_consents | {(consent_version, consent_purpose)}
         self._ttl = ttl
         self._replay_window = replay_window
 
@@ -192,7 +194,7 @@ class GuestSessionService:
         await self._repository.update_onboarding(guest_id, status)
 
     def _validate_consent(self, version: str, purpose: str) -> None:
-        if version != self._consent_version:
+        if not any(version == accepted_version for accepted_version, _ in self._accepted_consents):
             raise ConsentVersionInvalid
-        if purpose != self._consent_purpose:
+        if (version, purpose) not in self._accepted_consents:
             raise ConsentPurposeInvalid

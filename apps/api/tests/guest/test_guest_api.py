@@ -132,3 +132,20 @@ def test_unknown_consent_version_sets_no_cookie(guest_client: TestClient) -> Non
     assert response.status_code == 422
     assert response.json()["code"] == "CONSENT_VERSION_INVALID"
     assert guest_client.cookies.get("la_lanh_guest") is None
+
+
+def test_tarot_guest_uses_separate_reflection_consent_without_birth_data(
+    guest_client: TestClient,
+) -> None:
+    response = guest_client.post(
+        "/v1/guest-sessions",
+        json={
+            "consent_version": "tarot-reflection-v1",
+            "purpose": "tarot_reflection",
+            "idempotency_key": "tarot-guest-key-1234567890",
+        },
+    )
+
+    assert response.status_code == 200
+    assert guest_client.cookies.get("la_lanh_guest") is not None
+    assert response.json()["state"] == "active"

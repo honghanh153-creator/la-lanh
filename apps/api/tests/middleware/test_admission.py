@@ -113,3 +113,25 @@ def test_global_limit_rejects_a_new_peer_without_charging_its_bucket() -> None:
         assert (await middleware._admit(policy, "peer-c"))[0] is False
 
     asyncio.run(exercise())
+
+
+def test_tarot_creation_and_selection_have_separate_limits() -> None:
+    app = FastAPI()
+
+    @app.post("/v1/tarot/sessions")
+    async def create_tarot() -> dict[str, str]:
+        return {"status": "created"}
+
+    @app.put("/v1/tarot/sessions/{session_id}/selections")
+    async def select_card(session_id: str) -> dict[str, str]:
+        return {"session_id": session_id}
+
+    app.add_middleware(AdmissionControlMiddleware, window_seconds=60)
+    with TestClient(app) as client:
+        for _ in range(20):
+            assert client.post("/v1/tarot/sessions").status_code == 200
+        assert client.post("/v1/tarot/sessions").status_code == 429
+
+        for _ in range(90):
+            assert client.put("/v1/tarot/sessions/session-1/selections").status_code == 200
+        assert client.put("/v1/tarot/sessions/session-1/selections").status_code == 429

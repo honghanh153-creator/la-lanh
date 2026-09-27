@@ -38,6 +38,7 @@ import { AuraCutoverPage } from "../features/reveal/AuraCutoverPage";
 import { RevealPage } from "../features/reveal/RevealPage";
 import { SavedPage } from "../features/saved/SavedPage";
 import { WelcomePage } from "../features/welcome/WelcomePage";
+import { TarotPage } from "../features/tarot/TarotPage";
 import { AppShell } from "./AppShell";
 
 function RouteErrorPage() {
@@ -104,6 +105,8 @@ export const appRoutes: RouteObject[] = [
       { path: "saved", element: <SavedPage /> },
       { path: "profile", element: <ProfilePage /> },
       { path: "existing-user", element: <ExistingUserPage /> },
+      { path: "tarot", element: <TarotPage /> },
+      { path: "tarot/:sessionId", element: <TarotPage /> },
     ],
   },
   {

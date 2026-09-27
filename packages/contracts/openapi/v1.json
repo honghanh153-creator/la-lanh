@@ -3568,6 +3568,508 @@
         "title": "SupportedConfigResponse",
         "type": "object"
       },
+      "TarotCard": {
+        "properties": {
+          "arcana": {
+            "title": "Arcana",
+            "type": "string"
+          },
+          "core": {
+            "title": "Core",
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^(?:major-[a-z-]+|(?:wands|cups|swords|pentacles)-(?:ace|[2-9]|10|page|knight|queen|king))$",
+            "title": "Id",
+            "type": "string"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "resource": {
+            "title": "Resource",
+            "type": "string"
+          },
+          "source_concept_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Concept Ids",
+            "type": "array"
+          },
+          "suit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suit"
+          },
+          "tension": {
+            "title": "Tension",
+            "type": "string"
+          },
+          "title_en": {
+            "title": "Title En",
+            "type": "string"
+          },
+          "title_vi": {
+            "title": "Title Vi",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title_vi",
+          "title_en",
+          "arcana",
+          "core",
+          "tension",
+          "resource",
+          "source_concept_ids"
+        ],
+        "title": "TarotCard",
+        "type": "object"
+      },
+      "TarotContext": {
+        "enum": [
+          "general",
+          "relationships",
+          "work",
+          "communication",
+          "energy",
+          "self_care"
+        ],
+        "title": "TarotContext",
+        "type": "string"
+      },
+      "TarotOrigin": {
+        "enum": [
+          "direct",
+          "daily",
+          "radar"
+        ],
+        "title": "TarotOrigin",
+        "type": "string"
+      },
+      "TarotQuestionIntent": {
+        "enum": [
+          "clarity",
+          "boundary",
+          "next_step",
+          "communication",
+          "self_check"
+        ],
+        "title": "TarotQuestionIntent",
+        "type": "string"
+      },
+      "TarotReading": {
+        "properties": {
+          "closing_prompt": {
+            "title": "Closing Prompt",
+            "type": "string"
+          },
+          "context": {
+            "$ref": "#/components/schemas/TarotContext"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/TarotReadingPosition"
+            },
+            "title": "Positions",
+            "type": "array"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/TarotReadingProvenance"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "question_intent": {
+            "$ref": "#/components/schemas/TarotQuestionIntent"
+          },
+          "spread": {
+            "$ref": "#/components/schemas/TarotSpread"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "voice": {
+            "$ref": "#/components/schemas/TarotVoice"
+          }
+        },
+        "required": [
+          "headline",
+          "summary",
+          "question",
+          "question_intent",
+          "context",
+          "spread",
+          "voice",
+          "positions",
+          "closing_prompt",
+          "disclaimer",
+          "provenance"
+        ],
+        "title": "TarotReading",
+        "type": "object"
+      },
+      "TarotReadingPosition": {
+        "properties": {
+          "card": {
+            "$ref": "#/components/schemas/TarotCard"
+          },
+          "everyday_scene": {
+            "title": "Everyday Scene",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "meaning_here": {
+            "title": "Meaning Here",
+            "type": "string"
+          },
+          "reflection_question": {
+            "title": "Reflection Question",
+            "type": "string"
+          },
+          "small_action": {
+            "title": "Small Action",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "card",
+          "meaning_here",
+          "everyday_scene",
+          "reflection_question",
+          "small_action"
+        ],
+        "title": "TarotReadingPosition",
+        "type": "object"
+      },
+      "TarotReadingProvenance": {
+        "properties": {
+          "deck_version": {
+            "default": "tarot-78-v1",
+            "title": "Deck Version",
+            "type": "string"
+          },
+          "draw_actor": {
+            "default": "self",
+            "title": "Draw Actor",
+            "type": "string"
+          },
+          "draw_purpose": {
+            "default": "first_reading",
+            "title": "Draw Purpose",
+            "type": "string"
+          },
+          "gate_version": {
+            "default": "tarot-gates-v1",
+            "title": "Gate Version",
+            "type": "string"
+          },
+          "knowledge_version": {
+            "default": "tarot-knowledge-v1",
+            "title": "Knowledge Version",
+            "type": "string"
+          },
+          "methodology_version": {
+            "default": "tarot-methodology-v1",
+            "title": "Methodology Version",
+            "type": "string"
+          },
+          "question_rules_version": {
+            "default": "tarot-question-rules-v1",
+            "title": "Question Rules Version",
+            "type": "string"
+          },
+          "renderer_version": {
+            "default": "tarot-renderer-v1",
+            "title": "Renderer Version",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "tarot-reading/v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Ids",
+            "type": "array"
+          },
+          "spread_version": {
+            "default": "tarot-spreads-v1",
+            "title": "Spread Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_ids"
+        ],
+        "title": "TarotReadingProvenance",
+        "type": "object"
+      },
+      "TarotSelectedCard": {
+        "properties": {
+          "card": {
+            "$ref": "#/components/schemas/TarotCard"
+          },
+          "fan_index": {
+            "exclusiveMaximum": 78.0,
+            "minimum": 0.0,
+            "title": "Fan Index",
+            "type": "integer"
+          },
+          "position_key": {
+            "title": "Position Key",
+            "type": "string"
+          },
+          "position_label": {
+            "title": "Position Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fan_index",
+          "position_key",
+          "position_label",
+          "card"
+        ],
+        "title": "TarotSelectedCard",
+        "type": "object"
+      },
+      "TarotSelectionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "fan_index": {
+            "exclusiveMaximum": 78.0,
+            "minimum": 0.0,
+            "title": "Fan Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "fan_index",
+          "expected_version"
+        ],
+        "title": "TarotSelectionRequest",
+        "type": "object"
+      },
+      "TarotSessionState": {
+        "enum": [
+          "choosing",
+          "complete"
+        ],
+        "title": "TarotSessionState",
+        "type": "string"
+      },
+      "TarotSessionView": {
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/TarotContext"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "fan_size": {
+            "default": 78,
+            "title": "Fan Size",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/TarotOrigin"
+          },
+          "prompt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Id"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TarotReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required_cards": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Required Cards",
+            "type": "integer"
+          },
+          "selected_cards": {
+            "items": {
+              "$ref": "#/components/schemas/TarotSelectedCard"
+            },
+            "title": "Selected Cards",
+            "type": "array"
+          },
+          "spread": {
+            "$ref": "#/components/schemas/TarotSpread"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TarotSessionState"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          },
+          "voice": {
+            "$ref": "#/components/schemas/TarotVoice"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "state",
+          "context",
+          "spread",
+          "voice",
+          "origin",
+          "question",
+          "required_cards",
+          "selected_cards",
+          "created_at",
+          "updated_at",
+          "expires_at"
+        ],
+        "title": "TarotSessionView",
+        "type": "object"
+      },
+      "TarotSpread": {
+        "enum": [
+          "one_card",
+          "three_card"
+        ],
+        "title": "TarotSpread",
+        "type": "string"
+      },
+      "TarotStartRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/TarotContext"
+          },
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 22,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/TarotOrigin",
+            "default": "direct"
+          },
+          "prompt_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Id"
+          },
+          "question": {
+            "maxLength": 280,
+            "minLength": 8,
+            "title": "Question",
+            "type": "string"
+          },
+          "spread": {
+            "$ref": "#/components/schemas/TarotSpread"
+          }
+        },
+        "required": [
+          "context",
+          "question",
+          "spread",
+          "idempotency_key"
+        ],
+        "title": "TarotStartRequest",
+        "type": "object"
+      },
+      "TarotVoice": {
+        "enum": [
+          "straight_warm",
+          "gentle_specific",
+          "playful_grounded"
+        ],
+        "title": "TarotVoice",
+        "type": "string"
+      },
       "TimePrecision": {
         "enum": [
           "exact",
@@ -7269,6 +7771,227 @@
         "summary": "Get Share Artifact",
         "tags": [
           "share"
+        ]
+      }
+    },
+    "/v1/tarot/sessions": {
+      "post": {
+        "operationId": "start_tarot_session_v1_tarot_sessions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TarotStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TarotSessionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Tarot Session",
+        "tags": [
+          "tarot"
+        ]
+      }
+    },
+    "/v1/tarot/sessions/{session_id}": {
+      "delete": {
+        "operationId": "delete_tarot_session_v1_tarot_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Tarot Session",
+        "tags": [
+          "tarot"
+        ]
+      },
+      "get": {
+        "operationId": "get_tarot_session_v1_tarot_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TarotSessionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Tarot Session",
+        "tags": [
+          "tarot"
+        ]
+      }
+    },
+    "/v1/tarot/sessions/{session_id}/selections": {
+      "put": {
+        "operationId": "select_tarot_card_v1_tarot_sessions__session_id__selections_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TarotSelectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TarotSessionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Select Tarot Card",
+        "tags": [
+          "tarot"
         ]
       }
     }

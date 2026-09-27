@@ -192,6 +192,78 @@ export type RadarResult = {
   disclaimer: string;
 };
 
+export type TarotContext = "general" | "relationships" | "work" | "communication" | "energy" | "self_care";
+export type TarotSpread = "one_card" | "three_card";
+export type TarotCard = {
+  id: string;
+  title_vi: string;
+  title_en: string;
+  arcana: "major" | "minor";
+  suit?: string | null;
+  rank?: string | null;
+  core: string;
+  tension: string;
+  resource: string;
+  source_concept_ids: string[];
+};
+export type TarotReadingPosition = {
+  key: string;
+  label: string;
+  card: TarotCard;
+  meaning_here: string;
+  everyday_scene: string;
+  reflection_question: string;
+  small_action: string;
+};
+export type TarotReading = {
+  headline: string;
+  summary: string;
+  question: string;
+  question_intent: "clarity" | "boundary" | "next_step" | "communication" | "self_check";
+  context: TarotContext;
+  spread: TarotSpread;
+  voice: "straight_warm" | "gentle_specific" | "playful_grounded";
+  positions: TarotReadingPosition[];
+  closing_prompt: string;
+  disclaimer: string;
+  provenance: {
+    schema_version: string;
+    knowledge_version: string;
+    renderer_version: string;
+    gate_version: string;
+    deck_version: string;
+    spread_version: string;
+    question_rules_version: string;
+    methodology_version: string;
+    source_ids: string[];
+    draw_actor: "self";
+    draw_purpose: "first_reading";
+  };
+};
+export type TarotSession = {
+  id: string;
+  version: number;
+  state: "choosing" | "complete";
+  context: TarotContext;
+  spread: TarotSpread;
+  voice: TarotReading["voice"];
+  origin: "direct" | "daily" | "radar";
+  prompt_id?: string | null;
+  question: string;
+  fan_size: number;
+  required_cards: number;
+  selected_cards: Array<{
+    fan_index: number;
+    position_key: string;
+    position_label: string;
+    card: TarotCard;
+  }>;
+  reading?: TarotReading | null;
+  created_at: string;
+  updated_at: string;
+  expires_at: string;
+};
+
 export async function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
   return request<HealthResponse>("/health", { signal });
 }
@@ -201,6 +273,7 @@ export class ApiProblem extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    public readonly details: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -300,11 +373,13 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
       const problem = (await response.json().catch(() => null)) as {
         code?: string;
         title?: string;
+        [key: string]: unknown;
       } | null;
       throw new ApiProblem(
         response.status,
         problem?.code ?? "REQUEST_FAILED",
         problem?.title ?? `Request failed with status ${response.status}`,
+        problem ?? {},
       );
     }
     if (response.status === 204 || response.headers.get("content-length") === "0") {
@@ -378,6 +453,61 @@ export async function createGuest(idempotencyKey: string): Promise<GuestSession>
   });
   await acceptSessionEpoch(session);
   return session;
+}
+
+export async function createTarotGuest(idempotencyKey: string): Promise<GuestSession> {
+  const session = await request<GuestSession>("/guest-sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      consent_version: "tarot-reflection-v1",
+      purpose: "tarot_reflection",
+      idempotency_key: idempotencyKey,
+    }),
+  });
+  await acceptSessionEpoch(session);
+  return session;
+}
+
+export function startTarotSession(input: {
+  context: TarotContext;
+  question: string;
+  spread: TarotSpread;
+  origin: "direct" | "daily" | "radar";
+  prompt_id?: string | null;
+  idempotency_key: string;
+}): Promise<TarotSession> {
+  return request<TarotSession>("/tarot/sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify(input),
+  });
+}
+
+export function getTarotSession(sessionId: string, signal?: AbortSignal): Promise<TarotSession> {
+  return request<TarotSession>(`/tarot/sessions/${encodeURIComponent(sessionId)}`, { signal });
+}
+
+export function selectTarotCard(
+  sessionId: string,
+  fanIndex: number,
+  expectedVersion: number,
+): Promise<TarotSession> {
+  return request<TarotSession>(
+    `/tarot/sessions/${encodeURIComponent(sessionId)}/selections`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...csrfHeader() },
+      body: JSON.stringify({ fan_index: fanIndex, expected_version: expectedVersion }),
+    },
+  );
+}
+
+export function deleteTarotSession(sessionId: string): Promise<void> {
+  return request<void>(`/tarot/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+    headers: csrfHeader(),
+  });
 }
 
 export function getBirthProfile(signal?: AbortSignal): Promise<BirthReveal> {

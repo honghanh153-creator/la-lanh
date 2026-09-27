@@ -146,6 +146,17 @@ export function NoteDetailPage() {
             </article>
           )}
 
+          <section aria-labelledby="daily-tarot-title" className="note-tarot-bridge">
+            <p className="eyebrow">Lá Hỏi · tự bốc</p>
+            <h2 id="daily-tarot-title">Còn một chỗ muốn nhìn rõ hơn?</h2>
+            <p>Giữ nguyên chuyện đang nghĩ tới. Chọn một câu rồi tự rút lá để soi phần bạn thật sự làm được.</p>
+            <div>
+              <Link to="/tarot?origin=daily&context=general&prompt=daily-clarity">Chuyện này cần nhìn từ góc nào?</Link>
+              <Link to="/tarot?origin=daily&context=energy&prompt=daily-next-step">Mình cần bỏ bớt nhịp nào?</Link>
+              <Link to="/tarot?origin=daily&context=self_care&prompt=daily-self-check">Mình đang thật sự cần gì?</Link>
+            </div>
+          </section>
+
           <p className="sr-only" aria-live="polite" role="status">{message}</p>
           {message ? <p className="home-status" aria-hidden="true">{message}</p> : null}
           <footer className="note-detail-actions">

@@ -102,6 +102,19 @@ function RadarDossier({ sections }: { sections: RadarSection[] }) {
   </section>;
 }
 
+function RadarTarotBridge() {
+  return <section aria-labelledby="radar-tarot-title" className="radar-tarot-bridge">
+    <p className="eyebrow">Muốn nhìn phần của mình?</p>
+    <h2 id="radar-tarot-title">Radar đọc tương tác. Lá Hỏi giúp bạn chọn cách đi tiếp.</h2>
+    <p>Không bốc hộ người kia đang nghĩ gì. Chọn một câu gần đúng rồi tự rút lá.</p>
+    <div>
+      <Link to="/tarot?origin=radar&context=relationships&prompt=radar-ask-directly">Điều gì đáng hỏi thẳng?</Link>
+      <Link to="/tarot?origin=radar&context=relationships&prompt=radar-expectation">Mình đang kỳ vọng điều gì?</Link>
+      <Link to="/tarot?origin=radar&context=relationships&prompt=radar-boundary">Ranh giới nào nên nói rõ?</Link>
+    </div>
+  </section>;
+}
+
 export function RadarContinuePage() {
   const navigate = useNavigate();
   const [consented, setConsented] = useState(false);
@@ -154,7 +167,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
   const hasDossier = sections.some((section) => section.depth !== undefined);
 
   if (result.version !== "radar-result-v2" || !signature || !compatibilityMap.length || !sections.length) {
-    return <main className={`matching-page radar-result${ownerView ? " radar-result--owner" : ""}`}><header className="matching-header"><BrandMark /><span className="matching-signal"><Sparkle /> Radar đã bắt sóng</span></header><RadarFlowSteps current={3} /><section className="radar-result__hero"><p className="eyebrow">{result.recipient_label ? `Bạn × ${result.recipient_label}` : "Bản đọc hai người"}</p><h1>{result.headline}</h1><p>{result.summary}</p></section><section className="radar-dimensions">{result.dimensions.map((item, index) => <article key={item.key}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{item.signal}</small><h2>{item.label}</h2><p>{item.body}</p><details><summary>Vì sao Radar đọc như vậy?</summary><p>{item.evidence_ids.length ? `Dựa trên ${item.evidence_ids.length} contact giữa hai chart. Mở dữ liệu kỹ thuật chỉ để kiểm chứng, không dùng để phán người.` : "Lớp này chưa có đủ contact mạnh để kết luận."}</p></details></div></article>)}</section><p className="radar-disclaimer">{result.disclaimer}</p>{onWithdraw ? <button className="radar-withdraw" disabled={withdrawing} onClick={onWithdraw} type="button"><Trash /> {actionLabel}</button> : null}<RadarResultFooter mode={result.mode} ownerView={ownerView} /></main>;
+    return <main className={`matching-page radar-result${ownerView ? " radar-result--owner" : ""}`}><header className="matching-header"><BrandMark /><span className="matching-signal"><Sparkle /> Radar đã bắt sóng</span></header><RadarFlowSteps current={3} /><section className="radar-result__hero"><p className="eyebrow">{result.recipient_label ? `Bạn × ${result.recipient_label}` : "Bản đọc hai người"}</p><h1>{result.headline}</h1><p>{result.summary}</p></section><section className="radar-dimensions">{result.dimensions.map((item, index) => <article key={item.key}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{item.signal}</small><h2>{item.label}</h2><p>{item.body}</p><details><summary>Vì sao Radar đọc như vậy?</summary><p>{item.evidence_ids.length ? `Dựa trên ${item.evidence_ids.length} contact giữa hai chart. Mở dữ liệu kỹ thuật chỉ để kiểm chứng, không dùng để phán người.` : "Lớp này chưa có đủ contact mạnh để kết luận."}</p></details></div></article>)}</section>{ownerView ? <RadarTarotBridge /> : null}<p className="radar-disclaimer">{result.disclaimer}</p>{onWithdraw ? <button className="radar-withdraw" disabled={withdrawing} onClick={onWithdraw} type="button"><Trash /> {actionLabel}</button> : null}<RadarResultFooter mode={result.mode} ownerView={ownerView} /></main>;
   }
 
   return <main className={`matching-page radar-result radar-result--v2${ownerView ? " radar-result--owner" : ""}`}>
@@ -182,6 +195,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
 
     {hasDossier ? <RadarDossier sections={sections} /> : <RadarLegacyReading sections={sections} />}
 
+    {ownerView ? <RadarTarotBridge /> : null}
     <aside className="radar-disclaimer"><Sparkle /><p>{result.disclaimer}</p></aside>
     {onWithdraw ? <button className="radar-withdraw" disabled={withdrawing} onClick={onWithdraw} type="button"><Trash /> {actionLabel}</button> : null}
     <RadarResultFooter mode={result.mode} ownerView={ownerView} />

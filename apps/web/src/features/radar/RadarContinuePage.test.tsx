@@ -134,6 +134,11 @@ describe("RadarResultView", () => {
   it("renders pair signature, independent indicators and evidence disclosure", () => {
     render(<MemoryRouter><RadarResultView ownerView result={result} /></MemoryRouter>);
 
+    expect(screen.getByRole("link", { name: /Điều gì đáng hỏi thẳng/ })).toHaveAttribute(
+      "href",
+      "/tarot?origin=radar&context=relationships&prompt=radar-ask-directly",
+    );
+
     expect(screen.getByText("Bạn × Mèo")).toBeInTheDocument();
     expect(screen.getByText("Hút rõ · cấn cũng rõ")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Ba tín hiệu, đọc riêng từng cái." })).toBeInTheDocument();

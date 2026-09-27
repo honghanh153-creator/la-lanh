@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.responses import Response
 
 _INVITE_RESEND_PATH = re.compile(r"^/v1/la-chung/requests/[^/]+/resend$")
+_TAROT_SELECTION_PATH = re.compile(r"^/v1/tarot/sessions/[^/]+/selections$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +74,10 @@ def _policy(request: Request) -> AdmissionPolicy | None:
     path = request.url.path
     if request.method == "POST" and path == "/v1/guest-sessions":
         return AdmissionPolicy("guest-create", per_peer=10, global_limit=120)
+    if request.method == "POST" and path == "/v1/tarot/sessions":
+        return AdmissionPolicy("tarot-session-create", per_peer=20, global_limit=240)
+    if request.method == "PUT" and _TAROT_SELECTION_PATH.fullmatch(path):
+        return AdmissionPolicy("tarot-card-select", per_peer=90, global_limit=1200)
     if request.method == "POST" and path == "/v1/la-chung/requests":
         return AdmissionPolicy("la-chung-invite-create", per_peer=10, global_limit=120)
     if request.method == "POST" and _INVITE_RESEND_PATH.fullmatch(path):

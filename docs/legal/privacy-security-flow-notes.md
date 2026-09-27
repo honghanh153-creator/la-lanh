@@ -92,6 +92,28 @@ Radar hợp gu decisions for the 2026-09-20 active MVP:
 - B receives a short-lived HttpOnly receipt to withdraw. Withdrawal deletes result ciphertext and makes A's result unavailable.
 - Before public launch, add distributed idempotency, automated TTL purge, capability-path log redaction evidence, abuse report/block operations and native Universal/App Link QA.
 
+Lá Hỏi Tarot decisions for the 2026-09-27 launch slice:
+
+- Lá Hỏi is a private self-draw reflection feature, not fortune-telling, professional advice, or a
+  system for inferring another person's thoughts. Question gates reframe those uses before a deck is
+  created.
+- Direct Tarot use has its own just-in-time purpose `tarot_reflection` and consent version
+  `tarot-reflection-v1`; it does not assert birth-profile consent. The user sees retention and delete
+  terms before pressing `Xòe bài`.
+- Free-text question, ordered deck, selected positions, prompt identifier, and frozen reading are
+  encrypted together with record-bound AES-GCM. They are excluded from URL, analytics, request
+  logs, crash breadcrumbs, and public/share DTOs.
+- Daily Note and Radar entry links carry allowlisted identifiers only. Radar recipient/public views
+  do not receive the Tarot bridge and no other person's name, chart evidence, or report prose is
+  copied into a Tarot session.
+- Sessions are owner-bound to the current guest, `no-store`, CSRF/trusted-Origin protected on
+  mutation, idempotent on creation, version-checked on selection, deletable immediately, and expire
+  at 29 days 18 hours. The retention cleanup command physically deletes expired rows.
+- In-process admission limits cover guest creation, Tarot session creation, and card selection.
+  Distributed edge limiting and sensitive-path log verification remain production gates.
+- The launch engine is deterministic product content from an original 78-card matrix. It sends no
+  question or card selection to an external model or Tarot reader.
+
 Open gates before public release:
 
 - Legal review for Vietnam personal data impact assessment and any cross-border data transfer duties under Law 91/2025/QH15 and Decree 356/2025/NĐ-CP.
@@ -101,4 +123,4 @@ Open gates before public release:
 - Production hosting must prove CSP/security headers on HTML (not only JSON), redact capability URLs before edge/application logs and apply shared rate limits to public preview/submit/report routes and expensive chart computation.
 - Existing development chart/daily/saved/share rows must be migrated by a key-aware job or deleted before plaintext compatibility columns are removed; migration rollback is intentionally blocked while ciphertext would otherwise be discarded.
 - Data inventory, privacy policy, consent copy, iOS App Privacy/Privacy Manifest and Android Data Safety must all match final context/resonance runtime behavior and third-party SDK inventory.
-- Production must configure and verify the six-hour bounded experiment/resonance cleanup schedule; missing or stale cleanup is a release No-Go.
+- Production must configure and verify the six-hour bounded experiment/resonance/Tarot cleanup schedule; missing or stale cleanup is a release No-Go.

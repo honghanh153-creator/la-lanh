@@ -13,6 +13,7 @@ from app.api.v1.routes.radar import router as radar_router
 from app.api.v1.routes.saved_notes import router as saved_notes_router
 from app.api.v1.routes.share_artifacts import router as share_artifacts_router
 from app.api.v1.routes.system import router as system_router
+from app.api.v1.routes.tarot import router as tarot_router
 
 router = APIRouter()
 router.include_router(system_router, tags=["system"])
@@ -28,3 +29,4 @@ router.include_router(radar_public_router, tags=["radar-public"])
 router.include_router(daily_notes_router, tags=["daily-note"])
 router.include_router(saved_notes_router, tags=["saved-notes"])
 router.include_router(share_artifacts_router, tags=["share"])
+router.include_router(tarot_router, tags=["tarot"])

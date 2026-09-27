@@ -934,6 +934,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tarot/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Tarot Session */
+        post: operations["start_tarot_session_v1_tarot_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tarot/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Tarot Session */
+        get: operations["get_tarot_session_v1_tarot_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Tarot Session */
+        delete: operations["delete_tarot_session_v1_tarot_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tarot/sessions/{session_id}/selections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Select Tarot Card */
+        put: operations["select_tarot_card_v1_tarot_sessions__session_id__selections_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2388,6 +2440,224 @@ export interface components {
             /** Recommended */
             recommended: components["schemas"]["CalculationConfig"][];
         };
+        /** TarotCard */
+        TarotCard: {
+            /** Arcana */
+            arcana: string;
+            /** Core */
+            core: string;
+            /** Id */
+            id: string;
+            /** Rank */
+            rank?: string | null;
+            /** Resource */
+            resource: string;
+            /** Source Concept Ids */
+            source_concept_ids: string[];
+            /** Suit */
+            suit?: string | null;
+            /** Tension */
+            tension: string;
+            /** Title En */
+            title_en: string;
+            /** Title Vi */
+            title_vi: string;
+        };
+        /**
+         * TarotContext
+         * @enum {string}
+         */
+        TarotContext: "general" | "relationships" | "work" | "communication" | "energy" | "self_care";
+        /**
+         * TarotOrigin
+         * @enum {string}
+         */
+        TarotOrigin: "direct" | "daily" | "radar";
+        /**
+         * TarotQuestionIntent
+         * @enum {string}
+         */
+        TarotQuestionIntent: "clarity" | "boundary" | "next_step" | "communication" | "self_check";
+        /** TarotReading */
+        TarotReading: {
+            /** Closing Prompt */
+            closing_prompt: string;
+            context: components["schemas"]["TarotContext"];
+            /** Disclaimer */
+            disclaimer: string;
+            /** Headline */
+            headline: string;
+            /** Positions */
+            positions: components["schemas"]["TarotReadingPosition"][];
+            provenance: components["schemas"]["TarotReadingProvenance"];
+            /** Question */
+            question: string;
+            question_intent: components["schemas"]["TarotQuestionIntent"];
+            spread: components["schemas"]["TarotSpread"];
+            /** Summary */
+            summary: string;
+            voice: components["schemas"]["TarotVoice"];
+        };
+        /** TarotReadingPosition */
+        TarotReadingPosition: {
+            card: components["schemas"]["TarotCard"];
+            /** Everyday Scene */
+            everyday_scene: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Meaning Here */
+            meaning_here: string;
+            /** Reflection Question */
+            reflection_question: string;
+            /** Small Action */
+            small_action: string;
+        };
+        /** TarotReadingProvenance */
+        TarotReadingProvenance: {
+            /**
+             * Deck Version
+             * @default tarot-78-v1
+             */
+            deck_version: string;
+            /**
+             * Draw Actor
+             * @default self
+             */
+            draw_actor: string;
+            /**
+             * Draw Purpose
+             * @default first_reading
+             */
+            draw_purpose: string;
+            /**
+             * Gate Version
+             * @default tarot-gates-v1
+             */
+            gate_version: string;
+            /**
+             * Knowledge Version
+             * @default tarot-knowledge-v1
+             */
+            knowledge_version: string;
+            /**
+             * Methodology Version
+             * @default tarot-methodology-v1
+             */
+            methodology_version: string;
+            /**
+             * Question Rules Version
+             * @default tarot-question-rules-v1
+             */
+            question_rules_version: string;
+            /**
+             * Renderer Version
+             * @default tarot-renderer-v1
+             */
+            renderer_version: string;
+            /**
+             * Schema Version
+             * @default tarot-reading/v1
+             */
+            schema_version: string;
+            /** Source Ids */
+            source_ids: string[];
+            /**
+             * Spread Version
+             * @default tarot-spreads-v1
+             */
+            spread_version: string;
+        };
+        /** TarotSelectedCard */
+        TarotSelectedCard: {
+            card: components["schemas"]["TarotCard"];
+            /** Fan Index */
+            fan_index: number;
+            /** Position Key */
+            position_key: string;
+            /** Position Label */
+            position_label: string;
+        };
+        /** TarotSelectionRequest */
+        TarotSelectionRequest: {
+            /** Expected Version */
+            expected_version: number;
+            /** Fan Index */
+            fan_index: number;
+        };
+        /**
+         * TarotSessionState
+         * @enum {string}
+         */
+        TarotSessionState: "choosing" | "complete";
+        /** TarotSessionView */
+        TarotSessionView: {
+            context: components["schemas"]["TarotContext"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Fan Size
+             * @default 78
+             */
+            fan_size: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            origin: components["schemas"]["TarotOrigin"];
+            /** Prompt Id */
+            prompt_id?: string | null;
+            /** Question */
+            question: string;
+            reading?: components["schemas"]["TarotReading"] | null;
+            /** Required Cards */
+            required_cards: number;
+            /** Selected Cards */
+            selected_cards: components["schemas"]["TarotSelectedCard"][];
+            spread: components["schemas"]["TarotSpread"];
+            state: components["schemas"]["TarotSessionState"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+            voice: components["schemas"]["TarotVoice"];
+        };
+        /**
+         * TarotSpread
+         * @enum {string}
+         */
+        TarotSpread: "one_card" | "three_card";
+        /** TarotStartRequest */
+        TarotStartRequest: {
+            context: components["schemas"]["TarotContext"];
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** @default direct */
+            origin: components["schemas"]["TarotOrigin"];
+            /** Prompt Id */
+            prompt_id?: string | null;
+            /** Question */
+            question: string;
+            spread: components["schemas"]["TarotSpread"];
+        };
+        /**
+         * TarotVoice
+         * @enum {string}
+         */
+        TarotVoice: "straight_warm" | "gentle_specific" | "playful_grounded";
         /**
          * TimePrecision
          * @enum {string}
@@ -5160,6 +5430,140 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_tarot_session_v1_tarot_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TarotStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TarotSessionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tarot_session_v1_tarot_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TarotSessionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_tarot_session_v1_tarot_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    select_tarot_card_v1_tarot_sessions__session_id__selections_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TarotSelectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TarotSessionView"];
+                };
             };
             /** @description Validation Error */
             422: {

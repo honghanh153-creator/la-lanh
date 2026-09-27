@@ -176,6 +176,13 @@
 .radar-next-step .matching-primary, .radar-next-step .matching-secondary { min-height: 3rem; margin: 0; font-size: 0.72rem; }
 .radar-back-to-product { display: block; margin: 1rem auto 0; color: #cbb4ff; font-size: 0.73rem; font-weight: 750; text-align: center; text-underline-offset: 0.22rem; }
 .radar-result--owner { padding-bottom: 7.5rem; }
+.radar-tarot-bridge { display: grid; margin: 1.15rem 0 0; padding: 1.05rem; border: 1px solid rgb(223 255 66 / 28%); border-radius: 1.25rem; gap: 0.58rem; background: linear-gradient(145deg, rgb(223 255 66 / 8%), rgb(25 19 57 / 90%)); }
+.radar-tarot-bridge .eyebrow, .radar-tarot-bridge h2, .radar-tarot-bridge > p { margin: 0; }
+.radar-tarot-bridge h2 { max-width: 24ch; font-size: 1.2rem; line-height: 1.12; letter-spacing: -0.025em; }
+.radar-tarot-bridge > p:not(.eyebrow) { color: #bdb3d2; font-size: 0.75rem; line-height: 1.5; }
+.radar-tarot-bridge > div { display: grid; gap: 0.45rem; }
+.radar-tarot-bridge a { display: flex; min-height: 2.8rem; padding: 0.65rem 0.75rem; border: 1px solid rgb(185 150 255 / 24%); border-radius: 0.85rem; align-items: center; color: #f8f5ff; font-size: 0.73rem; font-weight: 760; text-decoration: none; background: rgb(255 255 255 / 5%); }
+.radar-tarot-bridge a::after { margin-left: auto; color: #dfff42; content: "→"; }
 @media (max-width: 480px) { .radar-map-grid { grid-template-columns: 1fr; }.radar-map-grid article { display: grid; grid-template-columns: 3.3rem 1fr; column-gap: 0.65rem; }.radar-map-grid h3 { grid-column: 2; grid-row: 1; align-self: center; margin: 0; }.radar-map-grid .radar-meter { grid-column: 1 / -1; }.radar-map-grid article > p { grid-column: 1 / -1; }.radar-dossier-index { grid-template-columns: 1fr 1fr; }.radar-dossier-perspectives { grid-template-columns: 1fr; } }
 @media (max-width: 420px) { .radar-next-step > div { grid-template-columns: 1fr; } }
 @media (min-width: 720px) { .radar-proof__grid { grid-template-columns: repeat(3, 1fr); }.radar-proof__grid article { grid-template-columns: 1fr; }.radar-proof__grid svg { grid-row: auto; }.radar-page { max-width: 52rem; margin: 0 auto; } }

@@ -37,6 +37,7 @@ from app.domains.saved.postgres import PostgresSavedNoteRepository
 from app.domains.saved.service import SavedNoteService
 from app.domains.share.postgres import PostgresShareArtifactRepository
 from app.domains.share.service import ShareArtifactService
+from app.domains.tarot.service import TarotSessionService
 from app.infrastructure.crypto import (
     AesGcmEnvelopeCipher,
     SecretHasher,
@@ -105,6 +106,7 @@ def create_app(
             envelope,
             consent_version=resolved_settings.consent_version,
             consent_purpose=resolved_settings.consent_purpose,
+            additional_consents=frozenset({("tarot-reflection-v1", "tarot_reflection")}),
             ttl=timedelta(days=resolved_settings.guest_ttl_days),
             replay_window=timedelta(minutes=resolved_settings.guest_replay_minutes),
         )
@@ -112,6 +114,9 @@ def create_app(
             database.sessions,
             credential_hasher,
             ttl=timedelta(days=resolved_settings.owner_ttl_days),
+        )
+        app.state.tarot_session_service = TarotSessionService(
+            database.sessions, envelope, credential_hasher
         )
         app.state.la_chung_service = LaChungService(
             database.sessions,
@@ -211,6 +216,7 @@ def create_app(
                 f"{version_prefix}/matching",
                 f"{version_prefix}/radar",
                 f"{version_prefix}/public/radar",
+                f"{version_prefix}/tarot",
             )
         ):
             response.headers["Cache-Control"] = "no-store, max-age=0"

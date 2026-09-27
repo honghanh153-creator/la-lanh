@@ -58,15 +58,18 @@ release.
 
 1. Migration job exits successfully before the new service revision receives traffic.
 2. `/v1/health` returns 200 and `/v1/ready` confirms database plus chart-engine readiness.
-3. `/radar` and direct SPA deep links load over HTTPS.
-4. Complete onboarding, birth input, reveal, Daily Note and private Radar in a fresh browser.
+3. `/radar`, `/tarot` and direct SPA deep links load over HTTPS.
+4. Complete onboarding, birth input, reveal, Daily Note, private Radar, and one-/three-card Tarot in
+   a fresh browser. Confirm the Daily/Radar prompt link opens the intended question without private
+   prose or names in the URL.
 5. Refresh every important deep link; no route may turn blank or return the SPA for an unknown API.
 6. Verify guest resume after refresh, CSRF rejection without the token, and deletion with the token.
 7. Verify Radar owner isolation, receipt scoping, share revocation, `no-store`, `noindex` and
    referrer policy using the deployed origin.
 8. Verify the request-log exclusion is enabled and that the scheduler identity can invoke only the
    two retention jobs.
-9. Run both cleanup jobs once and inspect only aggregate counts and success status.
+9. Run cleanup once and verify aggregate experiment, resonance, and Tarot counts without printing
+   payloads.
 10. Test rollback to the previous Cloud Run revision without rolling back the database schema.
 
 ## Closed-beta operating limits

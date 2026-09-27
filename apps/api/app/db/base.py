@@ -17,3 +17,4 @@ from app.domains.readings import tables as reading_tables  # noqa: E402,F401
 from app.domains.resonance import tables as resonance_tables  # noqa: E402,F401
 from app.domains.saved import tables as saved_tables  # noqa: E402,F401
 from app.domains.share import tables as share_tables  # noqa: E402,F401
+from app.domains.tarot import tables as tarot_tables  # noqa: E402,F401

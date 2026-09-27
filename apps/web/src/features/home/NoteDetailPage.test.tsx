@@ -41,6 +41,10 @@ describe("NoteDetailPage rich reading", () => {
     expect(await screen.findByRole("heading", { name: "Hook từ active revision" })).toBeInTheDocument();
     expect(screen.queryByText("Legacy title")).not.toBeInTheDocument();
     expect(screen.getByText("Căn cứ trong lá số").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByRole("link", { name: /Chuyện này cần nhìn từ góc nào/ })).toHaveAttribute(
+      "href",
+      "/tarot?origin=daily&context=general&prompt=daily-clarity",
+    );
   });
 
   it("lets a user open the full-chart update from the note they are reading", async () => {
