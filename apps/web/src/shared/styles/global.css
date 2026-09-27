@@ -790,7 +790,11 @@ a:focus-visible {
 }
 .place-results {
   display: grid;
+  max-height: 18rem;
+  padding-right: 0.15rem;
+  overflow-y: auto;
   gap: 0.45rem;
+  scrollbar-color: rgb(198 147 237 / 55%) transparent;
 }
 .place-results button {
   display: flex;

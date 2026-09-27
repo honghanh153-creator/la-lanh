@@ -45,7 +45,8 @@ class PlaceResultResponse(BaseModel):
 class PlaceSearchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    query: str = Field(min_length=2, max_length=80)
+    # Empty query intentionally returns the complete, current Vietnam catalog.
+    query: str = Field(default="", max_length=80)
 
 
 class BirthSupplementRequest(BaseModel):

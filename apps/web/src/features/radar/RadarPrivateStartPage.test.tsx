@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,6 +9,7 @@ import {
   getSession,
   listRadarInvites,
   OWNER_SESSION_EPOCH_KEY,
+  searchBirthPlaces,
   SESSION_EPOCH_KEY,
 } from "../../shared/api/client";
 import { RadarPrivateStartPage } from "./RadarPrivateStartPage";
@@ -47,6 +49,7 @@ describe("RadarPrivateStartPage", () => {
       resumed: true,
     });
     vi.mocked(listRadarInvites).mockResolvedValue([]);
+    vi.mocked(searchBirthPlaces).mockResolvedValue([]);
     scrollIntoView.mockReset();
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -87,6 +90,20 @@ describe("RadarPrivateStartPage", () => {
     );
 
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+  });
+
+  it("opens all 34 current birthplace units without calling an external geocoder", async () => {
+    const user = userEvent.setup();
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Xem đủ 34 tỉnh/thành" }));
+
+    await waitFor(() => expect(searchBirthPlaces).toHaveBeenCalledWith("", expect.any(AbortSignal)));
+    expect(screen.getByRole("button", { name: "Thu gọn danh mục" })).toBeVisible();
   });
 
   it("never renders cached Radar history while binding a different guest session", () => {

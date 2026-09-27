@@ -31,6 +31,7 @@ import {
   type WeeklyIntent,
 } from "../../shared/api/client";
 import { markMatchingIntroConverted } from "../../shared/storage/matchingIntroExposure";
+import { VIETNAM_ADMINISTRATIVE_UNITS } from "../../shared/data/vietnamAdministrativeUnits";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
@@ -50,12 +51,7 @@ const weeklyOptions: Array<[WeeklyIntent, string]> = [
   ["de_la_can", "Để Lá cân"],
 ];
 
-const regionOptions: Array<[string, string]> = [
-  ["ho-chi-minh", "TP. Hồ Chí Minh"],
-  ["ha-noi", "Hà Nội"],
-  ["da-nang", "Đà Nẵng"],
-  ["can-tho", "Cần Thơ"],
-];
+const regionOptions = VIETNAM_ADMINISTRATIVE_UNITS;
 
 type ActiveSheet = "profile" | "consent" | "verification" | null;
 

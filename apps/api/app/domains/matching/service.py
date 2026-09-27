@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 from uuid import UUID
 
 from app.domains.birth.service import BirthChartService
+from app.domains.geo.service import CURRENT_ADMIN_CODES
 from app.domains.matching.errors import (
     MatchingConsentInvalid,
     MatchingNotReady,
@@ -77,10 +78,12 @@ class MatchingService:
     ) -> MatchingProfile:
         normalized_name = display_name.strip()
         normalized_region = region_code.strip().lower()
+        allowed_regions = {place_id.removeprefix("vn-") for place_id in CURRENT_ADMIN_CODES}
         if (
             len(normalized_name) < 2
             or len(normalized_name) > 32
             or not normalized_region
+            or normalized_region not in allowed_regions
             or min_age < 18
             or max_age > 120
             or min_age > max_age

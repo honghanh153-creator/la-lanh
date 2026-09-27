@@ -38,6 +38,7 @@ export function BirthSupplementPage() {
   const [approxWindow, setApproxWindow] = useState<ApproxWindow>("morning");
   const [placeQuery, setPlaceQuery] = useState("");
   const [debouncedPlaceQuery, setDebouncedPlaceQuery] = useState("");
+  const [showAllPlaces, setShowAllPlaces] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [consented, setConsented] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,10 +52,12 @@ export function BirthSupplementPage() {
     return () => window.clearTimeout(timer);
   }, [placeQuery]);
 
+  const effectivePlaceQuery = debouncedPlaceQuery.length >= 2 ? debouncedPlaceQuery : "";
   const placesQuery = useQuery({
-    queryKey: ["birth-places", debouncedPlaceQuery],
-    queryFn: ({ signal }) => searchBirthPlaces(debouncedPlaceQuery, signal),
-    enabled: debouncedPlaceQuery.length >= 2 && selectedPlace?.display_name !== debouncedPlaceQuery,
+    queryKey: ["birth-places", showAllPlaces ? "all-current" : effectivePlaceQuery],
+    queryFn: ({ signal }) => searchBirthPlaces(showAllPlaces ? "" : effectivePlaceQuery, signal),
+    enabled: (showAllPlaces || effectivePlaceQuery.length >= 2)
+      && selectedPlace?.display_name !== debouncedPlaceQuery,
   });
 
   const submitMutation = useMutation({
@@ -218,30 +221,35 @@ export function BirthSupplementPage() {
                 onChange={(event) => {
                   setPlaceQuery(event.target.value);
                   setSelectedPlace(null);
+                  setShowAllPlaces(false);
                 }}
                 placeholder="Ví dụ: Hà Nội"
                 value={placeQuery}
               />
             </label>
-            <p className="privacy-plain">Tìm trong danh mục cục bộ của Lá Lành; không xin GPS và không gửi từ khóa cho dịch vụ bản đồ khác.</p>
+            <p className="privacy-plain">Danh mục 34 tỉnh/thành hiện hành từ 01/07/2025. Tên tỉnh cũ vẫn tìm được và sẽ ghi rõ nơi trực thuộc hiện nay.</p>
+            <button className="detail-link" onClick={() => setShowAllPlaces((value) => !value)} type="button">
+              {showAllPlaces ? "Thu gọn danh mục" : "Xem đủ 34 tỉnh/thành"}
+            </button>
             {placesQuery.data && placesQuery.data.length > 0 ? (
-              <div className="place-results">
+              <div aria-label="Danh sách nơi sinh" className="place-results">
                 {placesQuery.data.map((place) => (
                   <button
                     key={place.place_id}
                     onClick={() => {
                       setSelectedPlace(place);
                       setPlaceQuery(place.display_name);
+                      setShowAllPlaces(false);
                     }}
                     type="button"
                   >
                     <strong>{place.display_name}</strong>
-                    <span>{place.timezone_id}</span>
+                    <span>{place.confidence === "former-province-centroid" ? "Tên địa phương trước sắp xếp" : "Danh mục hiện hành · 01/07/2025"}</span>
                   </button>
                 ))}
               </div>
             ) : null}
-            {placeQuery.trim().length >= 2 && placesQuery.data?.length === 0 ? <p className="privacy-plain">{radarFlow ? "Chưa thấy nơi này trong 34 tỉnh/thành hiện hỗ trợ. Đừng chọn đại vì có thể làm lệch House." : "Không thấy nơi này. Thử tên thành phố/tỉnh gần nhất hoặc bỏ qua."}</p> : null}
+            {placeQuery.trim().length >= 2 && placesQuery.data?.length === 0 ? <p className="privacy-plain">{radarFlow ? "Chưa thấy nơi này. Thử cả tên tỉnh hiện hành hoặc tên trước sắp xếp; đừng chọn đại vì có thể làm lệch House." : "Không thấy nơi này. Thử cả tên tỉnh hiện hành hoặc tên trước sắp xếp."}</p> : null}
           </section>
           <button className="electric-button" disabled={!selectedPlace} onClick={() => setStep("review")} type="button">Dùng nơi đã chọn</button>
           {!radarFlow ? <button className="text-button" onClick={() => { setSelectedPlace(null); setStep("review"); }} type="button">Bỏ qua nơi sinh</button> : null}

@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addBirthSupplement,
   getDailyNote,
+  searchBirthPlaces,
   type DailyNote,
 } from "../../shared/api/client";
 import { clearCachedDailyNote } from "../../shared/storage/noteCache";
@@ -88,6 +89,25 @@ describe("BirthSupplementPage Aura handoff", () => {
 
     expect(await screen.findByTestId("location")).toHaveTextContent("/aura-cutover");
     expect(screen.queryByRole("heading", { name: "Một lớp Lá mới đã mở." })).not.toBeInTheDocument();
+  });
+
+  it("lets users browse the complete current Vietnam birthplace catalog", async () => {
+    const user = userEvent.setup();
+    vi.mocked(searchBirthPlaces).mockResolvedValue([]);
+
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter>
+        <BirthSupplementPage />
+      </MemoryRouter>
+    </QueryClientProvider>);
+
+    await user.click(screen.getByRole("button", { name: "Thêm để mở lớp mới" }));
+    await user.type(screen.getByRole("textbox"), "08:15");
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
+    await user.click(screen.getByRole("button", { name: "Xem đủ 34 tỉnh/thành" }));
+
+    expect(searchBirthPlaces).toHaveBeenCalledWith("", expect.any(AbortSignal));
+    expect(screen.getByRole("button", { name: "Thu gọn danh mục" })).toBeVisible();
   });
 });
 

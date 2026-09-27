@@ -64,6 +64,8 @@ flowchart TD
 | `birth_date` | ISO date | 18–120 years old | Never persisted by Radar |
 | `birth_time_local` | `HH:MM` | exact 24-hour time | Never persisted by Radar |
 | `place_id` | local allow-list ID | must resolve in local place index | Never persisted by Radar |
+
+Local place index dùng catalog `vn-admin-2025-07-01`: browse 34 tỉnh/thành hiện hành và nhận 29 tên tỉnh cũ cho dữ liệu nơi sinh lịch sử. Kết quả tên cũ phải hiện mapping mới; không gọi geocoder ngoài, không xin GPS và không lưu query.
 | `authorization_attested` | boolean | must be exactly `true` | Only attestation timestamp + version |
 | `consent_version` | fixed version | `radar-authorized-input-v1` | Stored for accountability |
 

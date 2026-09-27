@@ -1795,7 +1795,10 @@ export interface components {
         };
         /** PlaceSearchRequest */
         PlaceSearchRequest: {
-            /** Query */
+            /**
+             * Query
+             * @default
+             */
             query: string;
         };
         /**

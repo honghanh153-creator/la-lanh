@@ -47,6 +47,7 @@ export function RadarPrivateStartPage() {
   const [birthTime, setBirthTime] = useState("");
   const [placeQuery, setPlaceQuery] = useState("");
   const [debouncedPlaceQuery, setDebouncedPlaceQuery] = useState("");
+  const [showAllPlaces, setShowAllPlaces] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null);
   const [attested, setAttested] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -66,11 +67,12 @@ export function RadarPrivateStartPage() {
     retry: false,
   });
 
+  const effectivePlaceQuery = debouncedPlaceQuery.length >= 2 ? debouncedPlaceQuery : "";
   const places = useQuery({
-    queryKey: ["radar-places", owner.epoch, debouncedPlaceQuery],
-    queryFn: ({ signal }) => searchBirthPlaces(debouncedPlaceQuery, signal),
+    queryKey: ["radar-places", owner.epoch, showAllPlaces ? "all-current" : effectivePlaceQuery],
+    queryFn: ({ signal }) => searchBirthPlaces(showAllPlaces ? "" : effectivePlaceQuery, signal),
     enabled: owner.isReady
-      && debouncedPlaceQuery.length >= 2
+      && (showAllPlaces || effectivePlaceQuery.length >= 2)
       && selectedPlace?.display_name !== debouncedPlaceQuery,
     gcTime: 0,
   });
@@ -91,6 +93,7 @@ export function RadarPrivateStartPage() {
       setBirthTime("");
       setPlaceQuery("");
       setDebouncedPlaceQuery("");
+      setShowAllPlaces(false);
       setSelectedPlace(null);
       setAttested(false);
       setMessage(null);
@@ -182,9 +185,11 @@ export function RadarPrivateStartPage() {
         <label><span>Giờ sinh chính xác</span><input onChange={(event) => setBirthTime(event.target.value)} required type="time" value={birthTime} /></label>
       </div>
       {(birthDay || birthMonth || birthYear) && !birthDate ? <p className="radar-field-help">Nhập một ngày hợp lệ của người từ 18 tuổi trở lên.</p> : null}
-      <label><span>Thành phố / tỉnh nơi sinh</span><div className="radar-place-input"><MapPin /><input autoComplete="off" onChange={(event) => { setPlaceQuery(event.target.value); setSelectedPlace(null); }} placeholder="Gõ Hà Nội, Đắk Lắk…" required value={placeQuery} /></div></label>
-      {places.data?.length ? <div className="radar-place-results">{places.data.map((place) => <button key={place.place_id} onClick={() => { setSelectedPlace(place); setPlaceQuery(place.display_name); queryClient.removeQueries({ queryKey: ["radar-places"] }); }} type="button"><strong>{place.display_name}</strong><span>{place.timezone_id}</span></button>)}</div> : null}
-      {placeQuery.trim().length >= 2 && places.data?.length === 0 ? <p className="radar-field-help">Chưa thấy nơi này. Thử tên tỉnh/thành hiện tại, có hoặc không dấu.</p> : null}
+      <label><span>Thành phố / tỉnh nơi sinh</span><div className="radar-place-input"><MapPin /><input autoComplete="off" onChange={(event) => { setPlaceQuery(event.target.value); setSelectedPlace(null); setShowAllPlaces(false); }} placeholder="Gõ Hà Nội, Bình Dương…" required value={placeQuery} /></div></label>
+      <p className="radar-field-help">Dùng danh mục 34 tỉnh/thành hiện hành; vẫn nhận tên tỉnh trước sắp xếp.</p>
+      <button className="radar-place-catalog-toggle" onClick={() => setShowAllPlaces((value) => !value)} type="button">{showAllPlaces ? "Thu gọn danh mục" : "Xem đủ 34 tỉnh/thành"}</button>
+      {places.data?.length ? <div aria-label="Danh sách nơi sinh" className="radar-place-results">{places.data.map((place) => <button key={place.place_id} onClick={() => { setSelectedPlace(place); setPlaceQuery(place.display_name); setShowAllPlaces(false); queryClient.removeQueries({ queryKey: ["radar-places"] }); }} type="button"><strong>{place.display_name}</strong><span>{place.confidence === "former-province-centroid" ? "Tên địa phương trước sắp xếp" : "Danh mục hiện hành · 01/07/2025"}</span></button>)}</div> : null}
+      {placeQuery.trim().length >= 2 && places.data?.length === 0 ? <p className="radar-field-help">Chưa thấy nơi này. Thử cả tên tỉnh hiện hành hoặc tên trước sắp xếp.</p> : null}
 
       <div className="radar-consent-note radar-transient-note"><LockKey /><p><strong>Ngày, giờ và nơi sinh không được lưu.</strong><br />Server chỉ giữ chúng trong bộ nhớ để tính, rồi bỏ ngay. Lịch sử chỉ giữ kết quả rút gọn đã mã hóa trong 30 ngày.</p></div>
       <div className="radar-attestation"><input aria-label="Xác nhận đã được phép dùng thông tin sinh" checked={attested} id="radar-permission" onChange={(event) => setAttested(event.target.checked)} type="checkbox" /><label htmlFor="radar-permission"><strong>Tôi xác nhận người này đã cho phép tôi dùng thông tin sinh của họ để xem Radar.</strong><small>Nếu chưa được phép, đừng nhập hộ. Bạn có thể mời họ tự nhập ở lựa chọn phía dưới.</small></label></div>

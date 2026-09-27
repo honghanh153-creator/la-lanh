@@ -131,6 +131,7 @@ flowchart TD
 | Not found | Empty/error state | “Không thấy nơi này?” + thử tên gần nhất/manual city-level. |
 | Skip place | Text button | Cho phép bỏ qua; UI nói rõ sẽ chưa mở House/Rising. |
 | GPS | Not used | Không xin quyền vị trí thiết bị. |
+| Vietnam catalog | Local, versioned | Browse đủ 34 tỉnh/thành theo `vn-admin-2025-07-01`; search vẫn nhận 29 tên tỉnh cũ và ghi rõ mapping hiện hành. |
 
 #### Field behavior
 
@@ -227,6 +228,7 @@ flowchart TD
 - **AC06 — Unknown time:** Unknown vẫn cho tiếp tục/bỏ qua; không tạo House/Rising hoặc insight cần giờ thật.
 - **AC07 — Place search an toàn:** Search yêu cầu min 2 ký tự, trả result city-level, confirm địa danh trước khi lưu.
 - **AC08 — Không xin GPS:** Flow không xin quyền vị trí thiết bị trong MVP.
+- **AC08a — Danh mục Việt Nam đầy đủ:** User xem được đủ 34 tỉnh/thành hiện hành; có thể tìm tên có/không dấu và tên cấp tỉnh trước sắp xếp 2025 mà không bị đổi nhãn âm thầm.
 - **AC09 — Consent riêng:** Trước khi lưu dữ liệu bổ sung, user phải thấy purpose/storage/deletion copy và tick consent.
 - **AC10 — Consent denial:** Nếu user không consent hoặc back out, không persist dữ liệu bổ sung; profile cũ giữ nguyên.
 - **AC11 — Server geocode/timezone:** Timezone/DST/historical offset được xử lý server-side; client không quyết định tọa độ/timezone final.

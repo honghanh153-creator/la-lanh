@@ -2169,15 +2169,12 @@
         "additionalProperties": false,
         "properties": {
           "query": {
+            "default": "",
             "maxLength": 80,
-            "minLength": 2,
             "title": "Query",
             "type": "string"
           }
         },
-        "required": [
-          "query"
-        ],
         "title": "PlaceSearchRequest",
         "type": "object"
       },

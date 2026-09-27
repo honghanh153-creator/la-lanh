@@ -168,3 +168,28 @@ def test_matching_mutations_require_csrf_even_with_owner_cookie(tmp_path: Path) 
             },
         )
         assert rejected.status_code == 401
+
+
+def test_matching_profile_rejects_region_outside_current_vietnam_catalog(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        csrf = _guest_with_birth(client)
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf}
+        assert client.post("/v1/identity/claim", headers=headers).status_code == 200
+
+        rejected = client.put(
+            "/v1/matching/profile",
+            headers=headers,
+            json={
+                "display_name": "An",
+                "gender_identity": "nonbinary",
+                "intent": "open",
+                "gender_preference": "everyone",
+                "min_age": 24,
+                "max_age": 36,
+                "region_code": "old-province-or-injected-value",
+                "weekly_intent": "de_la_can",
+            },
+        )
+
+        assert rejected.status_code == 422
+        assert rejected.json()["code"] == "MATCHING_PROFILE_INVALID"
