@@ -7,14 +7,15 @@ status checklist is
 
 ## Known-good recovery anchor
 
-| Item | Value verified on 2026-09-26 |
+| Item | Value verified on 2026-09-27 |
 |---|---|
 | Product URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | VPS | `2.28.136.44` |
 | Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
 | Public source | `https://github.com/honghanh153-creator/la-lanh` |
-| Deployed release | commit/image tag `b9a70bb` / `la-lanh:b9a70bb` |
-| Image digest | `sha256:d632748d0fb867190dd4badb6dff3e68d3eb74062dd3439c830852007ea1f745` |
+| Deployed release | commit/image tag `a2c05ee` / `la-lanh:a2c05ee` |
+| Image digest | `sha256:33d629d37946a94eeef4eb0b1dc119f5fce120bf88baa8463e05dda0d81ddf24` |
+| Previous rollback image | `la-lanh:b9a70bb` |
 | Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
 | Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 
@@ -293,9 +294,9 @@ plan. Do not claim point-in-time recovery or automated backups unless the dashbo
 them. A restore rehearsal must happen in an isolated project/database and must account for deletions
 made after the restore point.
 
-The first deployed beta passed availability checks, but the cleanup timers, backup capability record,
-full synthetic data-writing E2E, and rollback drill remain open until the companion checklist says
-otherwise.
+The current beta passed availability checks and the full synthetic data-writing E2E on 2026-09-27.
+The cleanup timers, backup capability record, and rollback drill remain open until the companion
+checklist says otherwise.
 
 ## Phase 7 — release evidence and handoff
 
