@@ -195,6 +195,8 @@ The frontend never receives a Supabase database password, service-role key, or d
 
 ### Release
 
+- [ ] For the next release, pass `pnpm content:audit`, record a meaningful content improvement and
+      its regression fixture, or document an emergency security/availability waiver.
 - [x] Generate production cryptographic keys on the VPS.
 - [x] Run Alembic migrations to head.
 - [x] Start app privately and pass local readiness checks.

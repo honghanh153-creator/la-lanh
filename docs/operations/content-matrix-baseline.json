@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-09-27",
+  "metrics": {
+    "daily_planets": 14,
+    "daily_signs": 12,
+    "daily_houses": 12,
+    "daily_aspects": 6,
+    "daily_interpretive_lenses": 6,
+    "daily_editorial_modes": 5,
+    "daily_semantic_cycle_days": 630,
+    "relationship_sources": 10,
+    "relationship_concepts": 23,
+    "relationship_dimensions": 6,
+    "relationship_voice_profiles": 4,
+    "radar_themes": 8,
+    "radar_contexts": 4
+  }
+}

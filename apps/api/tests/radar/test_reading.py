@@ -9,7 +9,7 @@ from app.domains.astro.models import (
     RelationshipBundle,
     SynastryContact,
 )
-from app.domains.radar.reading import build_radar_reading
+from app.domains.radar.reading import BODY_LABELS, build_radar_reading
 
 
 def _bundle(second_birth: datetime) -> RelationshipBundle:
@@ -128,6 +128,17 @@ def _visible_strings(reading: dict[str, object]) -> list[str]:
             if isinstance(nested, dict):
                 values.extend(value for value in nested.values() if isinstance(value, str))
     return values
+
+
+def test_radar_uses_consistent_vietnamese_body_labels() -> None:
+    assert BODY_LABELS[BodyName.MERCURY] == "Sao Thủy"
+    assert BODY_LABELS[BodyName.VENUS] == "Sao Kim"
+    assert BODY_LABELS[BodyName.MARS] == "Sao Hỏa"
+    assert BODY_LABELS[BodyName.JUPITER] == "Sao Mộc"
+    assert BODY_LABELS[BodyName.SATURN] == "Sao Thổ"
+    assert BODY_LABELS[BodyName.URANUS] == "Thiên Vương"
+    assert BODY_LABELS[BodyName.NEPTUNE] == "Hải Vương"
+    assert BODY_LABELS[BodyName.PLUTO] == "Diêm Vương"
 
 
 def test_reading_exposes_pair_signature_three_independent_indices_and_receipts() -> None:

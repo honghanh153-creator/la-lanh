@@ -115,6 +115,17 @@ Do not run commands that print secret file contents.
 
 ## Phase 1 — choose and publish an immutable release
 
+Before choosing the release commit, complete the content release gate in
+`docs/operations/content-matrix-release-gate.md`:
+
+```sh
+pnpm content:audit
+```
+
+For a normal release, record the reviewed content improvement and its regression fixture. An urgent
+security or availability hotfix may use the documented waiver; do not add filler copy to force a
+content delta.
+
 The release ID is the 12-character Git commit SHA. Commit and push the intended release to public
 `main` before transferring it to the server. Record the full SHA locally:
 
