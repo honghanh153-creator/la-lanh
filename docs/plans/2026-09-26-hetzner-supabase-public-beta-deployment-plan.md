@@ -48,9 +48,9 @@ This is the recovery anchor for a future session. It contains no credentials.
 |---|---|
 | Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
-| Deployed application commit/tag | `7f4940d7c59f` / `la-lanh:7f4940d7c59f` |
-| Deployed image digest | `sha256:6afd9183d5c7de20fb6769a77580f9f387cbb21dbdceb8398d927307b4c5efb5` |
-| Previous rollback image | `la-lanh:0b3fecb65297` |
+| Deployed application commit/tag | `9076c1b1e629` / `la-lanh:9076c1b1e629` |
+| Deployed image digest | `sha256:2ebe3cf17a9f8b74b44ea6bc7ae77e911e39111b42ae8d56ee97e74e22292fdd` |
+| Previous rollback image | `la-lanh:b391e6610840` |
 | Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
 | Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
 | Database | Supavisor session pooler on port `5432`, TLS required |
@@ -72,6 +72,15 @@ shown. The first release candidate exposed an API/service validation mismatch (`
 the corrected release includes an API-level regression test so the defect cannot pass the release
 suite again. The content delta for this release is the explicit, plain-language administrative-name
 mapping; no unrelated astrology prose was added merely to satisfy the content gate.
+
+Release `9076c1b1e629` was deployed and verified on 2026-09-28 at 11:28 UTC. It replaces typed own
+birth time with the native time picker, adds an explicit `Không rõ giờ` path to private Radar, removes
+Moon/Rising/House and other time-dependent evidence from that reduced-precision reading, and opens a
+clear Natal value path only after exact time and place are available. Full repository checks passed:
+114 web tests, 353 API tests, OpenAPI/contracts, privacy/runtime guards, content/Tarot/Radar audits,
+production build and QA deep-link proxy smoke. Public synthetic acceptance then completed the exact
+birth/Natal path and unknown-time Radar path and deleted both the result and guest data. Migration
+head remained `20260927_0022`; public smoke passed at the URL above.
 
 ## Architecture
 

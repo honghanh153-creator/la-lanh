@@ -7,15 +7,15 @@ status checklist is
 
 ## Known-good recovery anchor
 
-| Item | Value verified on 2026-09-27 |
+| Item | Value verified on 2026-09-28 |
 |---|---|
 | Product URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | VPS | `2.28.136.44` |
 | Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
 | Public source | `https://github.com/honghanh153-creator/la-lanh` |
-| Deployed release | commit/image tag `7f4940d7c59f` / `la-lanh:7f4940d7c59f` |
-| Image digest | `sha256:6afd9183d5c7de20fb6769a77580f9f387cbb21dbdceb8398d927307b4c5efb5` |
-| Previous rollback image | `la-lanh:0b3fecb65297` |
+| Deployed release | commit/image tag `9076c1b1e629` / `la-lanh:9076c1b1e629` |
+| Image digest | `sha256:2ebe3cf17a9f8b74b44ea6bc7ae77e911e39111b42ae8d56ee97e74e22292fdd` |
+| Previous rollback image | `la-lanh:b391e6610840` |
 | Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
 | Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 
@@ -23,12 +23,13 @@ The database password and full connection URL exist only in `/opt/la-lanh/secret
 the VPS. Do not retrieve, print, log, or paste them into chat. A deployment should not need the
 password unless that file is missing or the database password was rotated.
 
-Release `7f4940d7c59f` was verified on 2026-09-27 with the full repository gate, public smoke,
-PostgreSQL TLS probe, Alembic head `20260927_0021`, private readiness, and live birthplace API
-acceptance: exactly 34 current province-level units, current-name lookup and clearly labelled former-
-province lookup. Release `281f831a95ab` is not a rollback candidate because production acceptance
-found its empty-query catalog browse path still returned `422`; the defect was fixed and captured by
-an API-level regression test before `7f4940d7c59f` replaced it.
+Release `9076c1b1e629` was verified on 2026-09-28 with the full repository gate, public smoke,
+PostgreSQL TLS probe, Alembic head `20260927_0022`, private readiness and a synthetic public browser
+journey. Acceptance covered the native own-birth time picker, exact time/place Natal unlock, Home
+Natal CTA, full Natal reading, Radar `Không rõ giờ` with `time_precision=unknown`, precision
+disclosure, Radar deletion and guest deletion. The content gate regression that previously rejected
+one full-chart Daily/Natal candidate on length is covered by the full API suite. The prior healthy
+release `b391e6610840` remains the immediate application rollback image.
 
 ## What “successful” means
 
