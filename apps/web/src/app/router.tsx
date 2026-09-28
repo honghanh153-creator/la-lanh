@@ -82,6 +82,7 @@ export const appRoutes: RouteObject[] = [
       { path: "aura-cutover", element: <AuraCutoverPage /> },
       { path: "reveal/aura", element: <AuraCutoverPage /> },
       { path: "insights", element: <InsightsPage /> },
+      { path: "natal", element: <InsightsPage /> },
       { path: "insights/settings", element: <CalculationSettingsPage /> },
       { path: "insights/current-sky", element: <CurrentSkyPage /> },
       { path: "insights/:claimId", element: <ReadingDetailPage /> },

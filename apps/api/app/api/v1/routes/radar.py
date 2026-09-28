@@ -3,7 +3,7 @@ from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Header, Request, Response
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
@@ -39,10 +39,19 @@ class RadarPrivateCheckRequest(BaseModel):
     context: Literal["crush", "friend", "partner", "someone"]
     voice: RelationshipVoice = RelationshipVoice.STRAIGHT_WARM
     birth_date: date
-    birth_time_local: str = Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    birth_time_mode: Literal["exact", "unknown"] = "exact"
+    birth_time_local: str | None = Field(default=None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
     place_id: str = Field(min_length=2, max_length=80)
     consent_version: str = Field(min_length=1, max_length=64)
     authorization_attested: bool
+
+    @model_validator(mode="after")
+    def validate_birth_time(self) -> "RadarPrivateCheckRequest":
+        if self.birth_time_mode == "exact" and self.birth_time_local is None:
+            raise ValueError("exact birth time requires birth_time_local")
+        if self.birth_time_mode == "unknown" and self.birth_time_local is not None:
+            raise ValueError("unknown birth time must not include birth_time_local")
+        return self
 
 
 class RadarInviteResponse(BaseModel):
@@ -163,6 +172,7 @@ async def create_private_check(
             context=body.context,
             voice=body.voice,
             birth_date=body.birth_date,
+            birth_time_mode=body.birth_time_mode,
             birth_time_local=body.birth_time_local,
             place_id=body.place_id,
             consent_version=body.consent_version,

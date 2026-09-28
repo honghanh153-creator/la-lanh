@@ -192,6 +192,7 @@ export function AuraCutoverPage() {
           )}
 
           <section className="aura-cutover-actions" aria-label="Chọn bản đọc hôm nay">
+            <Link className="natal-unlock-link" to="/natal"><Sparkle aria-hidden="true" /><span><strong>Bạn có muốn hiểu mình hơn?</strong><small>Mở bản Natal: pattern hay lặp lại, điều đang học và cách tự đối chiếu.</small></span></Link>
             {canActivate ? <button className="electric-button" disabled={activationMutation.isPending} onClick={activate} type="button">
               {activationMutation.isPending ? "Đang mở Aura…" : "Dùng Aura hôm nay"}
             </button> : null}

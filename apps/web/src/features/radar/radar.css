@@ -186,3 +186,38 @@
 @media (max-width: 480px) { .radar-map-grid { grid-template-columns: 1fr; }.radar-map-grid article { display: grid; grid-template-columns: 3.3rem 1fr; column-gap: 0.65rem; }.radar-map-grid h3 { grid-column: 2; grid-row: 1; align-self: center; margin: 0; }.radar-map-grid .radar-meter { grid-column: 1 / -1; }.radar-map-grid article > p { grid-column: 1 / -1; }.radar-dossier-index { grid-template-columns: 1fr 1fr; }.radar-dossier-perspectives { grid-template-columns: 1fr; } }
 @media (max-width: 420px) { .radar-next-step > div { grid-template-columns: 1fr; } }
 @media (min-width: 720px) { .radar-proof__grid { grid-template-columns: repeat(3, 1fr); }.radar-proof__grid article { grid-template-columns: 1fr; }.radar-proof__grid svg { grid-row: auto; }.radar-page { max-width: 52rem; margin: 0 auto; } }
+.radar-time-fieldset {
+  display: grid;
+  padding: 0;
+  border: 0;
+  gap: 0.65rem;
+}
+
+.radar-time-fieldset > legend {
+  margin-bottom: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.radar-time-fieldset .segmented-control {
+  width: 100%;
+}
+
+.radar-reading-precision {
+  display: flex;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--lilac) 35%, transparent);
+  border-radius: 0.85rem;
+  margin-top: 0.75rem;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--lilac) 8%, transparent);
+  line-height: 1.45;
+}
+
+.radar-reading-precision svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}

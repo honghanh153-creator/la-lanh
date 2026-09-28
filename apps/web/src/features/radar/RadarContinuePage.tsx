@@ -179,6 +179,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
       <h1>{signature.headline}</h1>
       <p>{signature.summary}</p>
       {result.metadata?.voice_label ? <small className="radar-reading-voice">Giọng đọc bạn chọn · {result.metadata.voice_label}</small> : null}
+      {result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
     </section>
 
     <section aria-labelledby="radar-map-title" className="radar-compatibility-map">

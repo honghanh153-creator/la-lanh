@@ -348,9 +348,10 @@ class BirthChartService:
         self,
         *,
         birth_date: date,
-        birth_time_local: str,
+        birth_time_local: str | None,
         place_id: str,
         config: CalculationConfig,
+        birth_time_mode: BirthTimeMode = BirthTimeMode.EXACT,
         now: datetime | None = None,
     ) -> NatalChart:
         """Calculate an exact chart without persisting any supplied birth input."""
@@ -359,7 +360,16 @@ class BirthChartService:
         oldest_allowed = _years_before(current.date(), 120)
         if birth_date < oldest_allowed or birth_date > youngest_allowed:
             raise BirthDateOutOfRange
-        local_time, precision = _resolve_time(BirthTimeMode.EXACT, birth_time_local, None)
+        if birth_time_mode not in {BirthTimeMode.EXACT, BirthTimeMode.UNKNOWN}:
+            raise BirthSupplementInvalid
+        local_time: time | None
+        precision: TimePrecision
+        if birth_time_mode is BirthTimeMode.UNKNOWN:
+            if birth_time_local is not None:
+                raise BirthSupplementInvalid
+            local_time, precision = time(hour=12), TimePrecision.UNKNOWN
+        else:
+            local_time, precision = _resolve_time(BirthTimeMode.EXACT, birth_time_local, None)
         place = self._places.get(place_id)
         if place is None or local_time is None:
             raise BirthSupplementInvalid
@@ -374,12 +384,28 @@ class BirthChartService:
             longitude=place.longitude,
             house_system=config.house_system,
         )
-        return (
+        chart = (
             await self._run_compute(
                 lambda value: self._engine.calculate_chart(value, config),
                 chart_input,
             )
         ).model_copy(update={"time_precision": precision})
+        if precision is TimePrecision.UNKNOWN:
+            stable_bodies = tuple(body for body in chart.bodies if body.body.value != "moon")
+            stable_aspects = tuple(
+                aspect
+                for aspect in chart.aspects
+                if "moon" not in {aspect.body_a.value, aspect.body_b.value}
+            )
+            chart = chart.model_copy(
+                update={
+                    "bodies": stable_bodies,
+                    "aspects": stable_aspects,
+                    "houses": None,
+                    "angles": None,
+                }
+            )
+        return chart
 
     async def remove_supplement(
         self, guest_id: UUID, *, remove_time: bool, remove_place: bool

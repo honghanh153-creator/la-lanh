@@ -287,6 +287,36 @@ def test_private_check_requires_permission_and_valid_adult_birth_input(tmp_path:
         )
 
 
+def test_private_check_without_birth_time_excludes_time_sensitive_layers(tmp_path: Path) -> None:
+    with _client(tmp_path / "radar-private-unknown-time.db") as owner:
+        csrf = _full_profile(owner, "radar-private-unknown-owner", "1994-03-12", "08:15")
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf}
+        assert owner.post("/v1/identity/claim", headers=headers).status_code == 200
+        response = owner.post(
+            "/v1/radar/private-checks",
+            headers=headers,
+            json={
+                "recipient_label": "Người chưa rõ giờ",
+                "context": "crush",
+                "birth_date": "1996-07-21",
+                "birth_time_mode": "unknown",
+                "birth_time_local": None,
+                "place_id": "vn-hanoi",
+                "consent_version": "radar-authorized-input-v1",
+                "authorization_attested": True,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["metadata"]["time_precision"] == "unknown"
+        assert "Không rõ giờ sinh" in payload["metadata"]["precision_note"]
+        evidence = [item for section in payload["sections"] for item in section.get("evidence", [])]
+        assert all(item["source"] != "house_overlay" for item in evidence)
+        assert all(item["body_b"] != "moon" for item in payload["strongest_contacts"])
+        _assert_no_raw_birth_data(payload)
+
+
 def test_owner_cannot_create_radar_without_exact_chart(tmp_path: Path) -> None:
     with _client(tmp_path / "radar-missing.db") as owner:
         guest = owner.post(

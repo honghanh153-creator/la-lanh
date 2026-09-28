@@ -3022,6 +3022,11 @@ body,
 .home-social-bento strong { display: block; }
 .home-social-bento small { color: var(--cyan); font-size: 0.65rem; }
 .home-social-bento strong { margin-top: 0.2rem; font-size: 0.75rem; line-height: 1.35; }
+.home-social-bento .home-natal-entry { grid-column: 1 / -1; min-height: 7rem; align-items: center; border-color: color-mix(in srgb, var(--signal) 48%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--signal) 11%, var(--glass)), var(--glass)); }
+.home-social-bento .home-natal-entry svg { color: var(--signal); }
+.home-social-bento .home-natal-entry small { color: var(--signal); }
+.home-social-bento .home-natal-entry strong { font-size: 1rem; }
+.home-social-bento .home-natal-entry em { display: block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.72rem; font-style: normal; line-height: 1.45; }
 
 .note-detail-page {
   width: 100%;

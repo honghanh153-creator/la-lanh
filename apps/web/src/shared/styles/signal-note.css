@@ -133,6 +133,12 @@
 
 .aura-cutover-actions { display: grid; gap: 0.65rem; margin: 1rem 0 0; }
 .aura-cutover-actions > * { width: 100%; justify-content: center; }
+.natal-unlock-link { display: flex; min-height: 5.5rem; padding: 0.9rem 1rem; border: 1px solid color-mix(in srgb, var(--signal) 54%, transparent); border-radius: 1rem; align-items: center; justify-content: flex-start !important; gap: 0.75rem; color: var(--text); background: linear-gradient(135deg, color-mix(in srgb, var(--signal) 12%, transparent), var(--glass)); text-decoration: none; }
+.natal-unlock-link > svg { flex: 0 0 auto; color: var(--signal); }
+.natal-unlock-link span,
+.natal-unlock-link strong,
+.natal-unlock-link small { display: block; }
+.natal-unlock-link small { margin-top: 0.2rem; color: var(--text-muted); line-height: 1.4; }
 .aura-cutover-message { margin: 0.2rem 0 0; color: #f8efb9; font-size: 0.78rem; line-height: 1.5; }
 .aura-cutover-state { display: grid; gap: 0.75rem; justify-items: start; color: var(--text); }
 .aura-cutover-state > svg { color: var(--signal-text); }

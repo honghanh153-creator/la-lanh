@@ -51,7 +51,7 @@ describe("BirthSupplementPage Aura handoff", () => {
     </QueryClientProvider>);
 
     await user.click(screen.getByRole("button", { name: "Thêm để mở lớp mới" }));
-    await user.type(screen.getByRole("textbox"), "08:15");
+    await user.type(screen.getByLabelText(/Giờ sinh/), "08:15");
     await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     await user.click(screen.getByRole("button", { name: "Bỏ qua nơi sinh" }));
     await user.click(screen.getByRole("checkbox"));
@@ -81,7 +81,7 @@ describe("BirthSupplementPage Aura handoff", () => {
     </QueryClientProvider>);
 
     await user.click(screen.getByRole("button", { name: "Thêm để mở lớp mới" }));
-    await user.type(screen.getByRole("textbox"), "08:15");
+    await user.type(screen.getByLabelText(/Giờ sinh/), "08:15");
     await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     await user.click(screen.getByRole("button", { name: "Bỏ qua nơi sinh" }));
     await user.click(screen.getByRole("checkbox"));
@@ -102,7 +102,7 @@ describe("BirthSupplementPage Aura handoff", () => {
     </QueryClientProvider>);
 
     await user.click(screen.getByRole("button", { name: "Thêm để mở lớp mới" }));
-    await user.type(screen.getByRole("textbox"), "08:15");
+    await user.type(screen.getByLabelText(/Giờ sinh/), "08:15");
     await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
     await user.click(screen.getByRole("button", { name: "Xem đủ 34 tỉnh/thành" }));
 

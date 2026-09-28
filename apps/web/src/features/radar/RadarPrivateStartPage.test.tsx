@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   claimOwner,
+  createPrivateRadarCheck,
   getSession,
   listRadarInvites,
   OWNER_SESSION_EPOCH_KEY,
@@ -80,6 +81,48 @@ describe("RadarPrivateStartPage", () => {
     expect(screen.getByRole("navigation", { name: "Tiến độ Radar" })).toBeInTheDocument();
     expect(screen.getByText("Thông tin").closest('[aria-current="step"]')).toBeInTheDocument();
     expect(document.querySelector("#radar-history")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Không rõ giờ" })).toBeInTheDocument();
+  });
+
+  it("submits a privacy-limited Radar check when the other birth time is unknown", async () => {
+    const user = userEvent.setup();
+    vi.mocked(searchBirthPlaces).mockResolvedValue([{
+      place_id: "vn-hanoi",
+      display_name: "Hà Nội",
+      timezone_id: "Asia/Ho_Chi_Minh",
+      country_code: "VN",
+      confidence: "current-province-centroid",
+    }]);
+    vi.mocked(createPrivateRadarCheck).mockResolvedValue({
+      version: "radar-result-v2",
+      headline: "Một kết nối",
+      summary: "Một bản đọc giới hạn.",
+      dimensions: [],
+      strongest_contacts: [],
+      disclaimer: "Không dùng lớp phụ thuộc giờ.",
+      request_id: "00000000-0000-4000-8000-000000000099",
+      mode: "private_check",
+    });
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "An");
+    await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
+    await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
+    await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
+    await user.click(screen.getByRole("button", { name: "Không rõ giờ" }));
+    await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
+    await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
+    await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
+    await user.click(screen.getByRole("button", { name: /Check kín ngay/ }));
+
+    await waitFor(() => expect(createPrivateRadarCheck).toHaveBeenCalledWith(expect.objectContaining({
+      birth_time_mode: "unknown",
+      birth_time_local: null,
+    })));
   });
 
   it("moves returning users to their Radar history from the result CTA", async () => {

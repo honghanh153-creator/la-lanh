@@ -24,7 +24,7 @@ Không được tự động chuyển từ mode này sang mode kia. CTA chính l
 | Route | Screen | Primary job | Data action |
 |---|---|---|---|
 | `/radar` | Intro / bước 1 | Nói rõ USP, “kín” là gì, giới hạn; bắt đầu mới hoặc mở lịch sử | Read-only |
-| `/radar/start` | Check kín / bước 2 | Nhập nickname/context + exact DOB/time/place + attestation; xem lại lịch sử | Tính transient; chỉ lưu result/label mã hóa |
+| `/radar/start` | Check kín / bước 2 | Nhập nickname/context + DOB/place, chọn giờ chính xác hoặc `Không rõ giờ`, rồi attestation; xem lại lịch sử | Tính transient; chỉ lưu result/label mã hóa |
 | `/radar/result/:id` | Kết quả riêng / bước 3 | Đọc, mở evidence, check người khác, xem lịch sử hoặc xóa kết quả | Owner-bound read/delete |
 | `/radar/invite` | Fallback invite | Tạo link khi A chưa có quyền nhập hộ | Capability 7 ngày |
 | `/radar/i/:token` | Public preview | B hiểu mục đích/quyền trước khi nhập | Safe capability continuation |
@@ -42,7 +42,7 @@ flowchart TD
   C --> D{"Chart A đủ ngày + giờ + nơi sinh?"}
   D -->|Không| E["Hoàn thiện chart A"] --> C
   D -->|Có| F["Nickname + loại quan hệ"]
-  F --> G["DOB + exact time + place của B"]
+  F --> G["DOB + place; exact time hoặc Không rõ giờ của B"]
   G --> H{"A xác nhận đã được B cho phép?"}
   H -->|Không| I["Không được submit"]
   I --> J["Fallback: mời B tự nhập"]
@@ -62,7 +62,8 @@ flowchart TD
 | `recipient_label` | text | trim/collapse; 1–40 chars; escaped on render | AES-GCM only |
 | `context` | enum | `crush`, `friend`, `partner`, `someone` | Plain enum |
 | `birth_date` | ISO date | 18–120 years old | Never persisted by Radar |
-| `birth_time_local` | `HH:MM` | exact 24-hour time | Never persisted by Radar |
+| `birth_time_mode` | enum | `exact` hoặc `unknown` | Chỉ dùng trong request; precision rút gọn được giữ trong result |
+| `birth_time_local` | nullable `HH:MM` | bắt buộc khi `exact`; phải null khi `unknown` | Never persisted by Radar |
 | `place_id` | local allow-list ID | must resolve in local place index | Never persisted by Radar |
 
 Local place index dùng catalog `vn-admin-2025-07-01`: browse 34 tỉnh/thành hiện hành và nhận 29 tên tỉnh cũ cho dữ liệu nơi sinh lịch sử. Kết quả tên cũ phải hiện mapping mới; không gọi geocoder ngoài, không xin GPS và không lưu query.
@@ -104,7 +105,7 @@ No contact upload, phone/email, GPS, current city, precise distance, IP fingerpr
 
 ## 8. Content and engine contract
 
-- Inputs: two exact Western Tropical natal charts with matching `CalculationConfig`.
+- Inputs: chart A exact và chart B Western Tropical cùng `CalculationConfig`. B có thể chọn `unknown`; engine dùng local noon làm mốc thiên văn nội bộ nhưng phải loại Moon của B, mọi aspect dính Moon của B, Rising, angles, houses và overlays phụ thuộc giờ khỏi evidence/result.
 - Calculation: Swiss Ephemeris → natal facts → synastry contacts → bidirectional house overlays → midpoint composite → evidence motifs → Pair Signature.
 - Synastry đọc cách hai chức năng của A/B kích hoạt nhau; overlay giữ rõ chiều A→B/B→A và chỉ dùng khi precision đủ; Composite chỉ mô tả pattern chung, không gán thành tính cách của một người.
 - Pair Signature mở đầu bằng một mâu thuẫn có nghĩa của đúng cặp, ví dụ dễ bắt sóng nhưng cũng dễ nóng lên. Không chọn một contact rồi bỏ các evidence trái chiều.

@@ -177,12 +177,12 @@ export function BirthSupplementPage() {
               <span>Giờ sinh</span>
               <input
                 autoComplete="off"
-                inputMode="numeric"
-                maxLength={5}
                 onChange={(event) => setBirthTime(event.target.value)}
-                placeholder="08:15"
+                step={60}
+                type="time"
                 value={birthTime}
               />
+              <small className="privacy-plain">Chạm để chọn giờ và phút — không cần tự gõ dấu “:”.</small>
             </label>
           ) : null}
           {mode === "approx_window" ? (
@@ -299,6 +299,7 @@ export function BirthSupplementPage() {
           </section> : null}
           {error ? <p className="inline-error" role="status">{error}</p> : null}
           <Link className="electric-button" to="/home">{readingGift ? "Về Home mở món quà" : "Xem note hôm nay"}</Link>
+          {submitMutation.data?.profile_level === 3 ? <Link className="outline-button" to="/natal"><Sparkle /> Bạn có muốn hiểu mình hơn?</Link> : null}
           <Link className="outline-button" to="/insights/current-sky"><MoonStars /> Mở Bầu trời hiện tại</Link>
         </div> : null}
       </div>

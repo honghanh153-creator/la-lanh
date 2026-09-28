@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.domains.astro import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, RelationshipBundle
 from app.domains.birth.errors import BirthDomainError
+from app.domains.birth.models import BirthTimeMode
 from app.domains.birth.service import BirthChartService
 from app.domains.radar.models import (
     RadarAcceptResult,
@@ -114,7 +115,8 @@ class RadarService:
         context: str,
         voice: RelationshipVoice,
         birth_date: date,
-        birth_time_local: str,
+        birth_time_mode: str,
+        birth_time_local: str | None,
         place_id: str,
         consent_version: str,
         authorization_attested: bool,
@@ -135,6 +137,7 @@ class RadarService:
         try:
             chart_b = await self._birth.calculate_transient_chart(
                 birth_date=birth_date,
+                birth_time_mode=BirthTimeMode(birth_time_mode),
                 birth_time_local=birth_time_local,
                 place_id=place_id,
                 config=config,
@@ -147,6 +150,18 @@ class RadarService:
             context=context,
             voice=voice,
         )
+        metadata = cast(dict[str, Any], projection.setdefault("metadata", {}))
+        metadata["time_precision"] = chart_b.time_precision.value
+        if chart_b.time_precision.value == "unknown":
+            metadata["precision_note"] = (
+                "Không rõ giờ sinh của người kia: Radar đã bỏ Moon của họ, Rising, House "
+                "và các lớp phụ thuộc giờ. Kết quả hiện tại ngắn hơn nhưng không giả vờ "
+                "chính xác."
+            )
+            projection["disclaimer"] = (
+                f"{projection['disclaimer']} Không rõ giờ sinh nên các tín hiệu phụ thuộc giờ "
+                "đã được loại khỏi bản đọc."
+            )
         current = now or datetime.now(UTC)
         request_id = uuid4()
         row = RadarRequestRow(

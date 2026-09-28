@@ -443,7 +443,7 @@ export function HomePage() {
       ) : null}
 
       <section className="home-social-bento" aria-label="Khám phá thêm">
-        <Link to="/insights"><Planet aria-hidden="true" /><span><small>Bản đồ Lá</small><strong>Đọc tổng hòa chart</strong></span></Link>
+        {(supplementQuery.data?.profile_level ?? 1) === 3 ? <Link className="home-natal-entry" to="/natal"><Planet aria-hidden="true" /><span><small>Bản đọc Natal · đã mở</small><strong>Bạn có muốn hiểu mình hơn?</strong><em>Vì sao một kiểu chuyện hay lặp lại — và bạn đang học điều gì từ chúng?</em></span></Link> : <Link to="/insights"><Planet aria-hidden="true" /><span><small>Bản đồ Lá</small><strong>Đọc tổng hòa chart</strong></span></Link>}
         <Link to="/la-chung"><Sparkle aria-hidden="true" /><span><small>Lá Chứng</small><strong>Nghe một người nhìn bạn</strong></span></Link>
       </section>
       <AppNav />

@@ -222,3 +222,11 @@
   .reading-skeleton,
   .insight-loading > div { animation: none; }
 }
+.insight-hero > small {
+  display: block;
+  max-width: 35rem;
+  margin-top: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}

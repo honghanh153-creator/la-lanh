@@ -46,9 +46,10 @@ export function InsightsPage() {
       </header>
 
       <section className="insight-hero">
-        <p className="eyebrow"><Sparkle aria-hidden="true" weight="fill" /> Bản đồ Lá</p>
-        <h1>Một người,<br />nhiều lớp sáng.</h1>
-        <p>Đọc tổng hòa trước, rồi mới mở từng dữ kiện kỹ thuật khi bạn muốn.</p>
+        <p className="eyebrow"><Sparkle aria-hidden="true" weight="fill" /> Bản đọc Natal</p>
+        <h1>Bạn có muốn<br />hiểu mình hơn?</h1>
+        <p>Vì sao một kiểu chuyện hay chạm đúng bạn? Pattern nào cứ quay lại, và bạn đang học cách phản ứng khác đi ở đâu?</p>
+        <small>Chart không gây ra sự kiện và không viết sẵn số phận. Bản đọc này nối các pattern để bạn đối chiếu với đời thật.</small>
       </section>
 
       <section aria-label="Chọn hệ đọc" className="signal-switch">
@@ -90,7 +91,7 @@ export function InsightsPage() {
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(richReading)}</p>
           <h2>{richReading.sections.hook}</h2>
           <p>{richReading.sections.thesis}</p>
-          <span>Đọc bản tổng hòa <ArrowRight aria-hidden="true" /></span>
+          <span>Mở bản đọc Natal đầy đủ <ArrowRight aria-hidden="true" /></span>
         </Link>
       ) : null}
 
@@ -99,7 +100,7 @@ export function InsightsPage() {
           <section className="insight-factors" aria-labelledby="factor-heading">
             <header>
               <p className="eyebrow">Các lớp kỹ thuật</p>
-              <h2 id="factor-heading">Muốn soi kỹ phần nào?</h2>
+              <h2 id="factor-heading">Điều gì đang tạo nên pattern của bạn?</h2>
             </header>
             <div className="insight-grid">
               {insight.data.reading.claims.map((claim, index) => (

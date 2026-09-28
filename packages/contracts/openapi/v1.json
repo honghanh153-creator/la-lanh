@@ -2519,8 +2519,24 @@
             "type": "string"
           },
           "birth_time_local": {
-            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
-            "title": "Birth Time Local",
+            "anyOf": [
+              {
+                "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Time Local"
+          },
+          "birth_time_mode": {
+            "default": "exact",
+            "enum": [
+              "exact",
+              "unknown"
+            ],
+            "title": "Birth Time Mode",
             "type": "string"
           },
           "consent_version": {
@@ -2560,7 +2576,6 @@
           "recipient_label",
           "context",
           "birth_date",
-          "birth_time_local",
           "place_id",
           "consent_version",
           "authorization_attested"

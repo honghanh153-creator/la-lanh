@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from asyncio import to_thread
 from datetime import UTC, date, datetime, time
 from hashlib import sha256
@@ -157,9 +158,21 @@ class ReadingApplicationService:
             )
             evaluation = evaluate_candidate(plan_record.plan, candidate)
         if not evaluation.accepted or evaluation.publishable_candidate is None:
+            gate_failures = {
+                report.gate.value: [code.value for code in report.failure_codes]
+                for report in evaluation.reports
+                if report.failure_codes
+            }
+            section_word_counts = [
+                len(re.findall(r"\b\w+\b", section)) for section in candidate.all_user_prose
+            ]
             logger.warning(
-                "Reading candidate rejected before persistence",
-                extra={"purpose": purpose.value, "mode": plan.mode.value},
+                "Reading candidate rejected before persistence: purpose=%s mode=%s "
+                "failures=%s section_word_counts=%s",
+                purpose.value,
+                plan.mode.value,
+                gate_failures,
+                section_word_counts,
             )
             raise ReadingContentRejected
 

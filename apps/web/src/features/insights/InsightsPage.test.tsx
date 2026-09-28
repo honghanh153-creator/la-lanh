@@ -34,6 +34,7 @@ describe("InsightsPage", () => {
       bodies: [], houses_available: false, time_precision: "unknown",
     });
     renderPage();
+    expect(screen.getByRole("heading", { name: "Bạn có muốn hiểu mình hơn?" })).toBeInTheDocument();
     expect(await screen.findByText("Cần giờ và nơi sinh để đọc đủ chart.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mở lớp sâu" })).toHaveAttribute("href", "/birth-time");
   });

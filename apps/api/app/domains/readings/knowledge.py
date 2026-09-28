@@ -530,7 +530,7 @@ def _orb_weight(orb: float) -> str:
         return "Góc khá sát nên chủ đề này thường dễ lộ rõ."
     if orb <= 3:
         return "Góc khá gần, đáng chú ý."
-    return "Góc khá rộng, nên chỉ xem là nét phụ và đối chiếu với trải nghiệm thật."
+    return "Góc rộng: chỉ xem là nét phụ; đối chiếu với trải nghiệm thật."
 
 
 def _contrast_copy(

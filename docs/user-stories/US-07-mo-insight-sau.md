@@ -6,7 +6,7 @@
 
 ## 1. User story
 
-Là người đã bổ sung dữ liệu sinh, tôi muốn mở một bản đọc tổng hòa từ toàn bộ natal chart và bầu trời hiện tại, đồng thời chuyển được giữa Western Tropical và Jyotish Sidereal, để hiểu các khuynh hướng nổi bật mà không bị biến thành một danh sách Sun/Moon/Venus/Mars rời rạc.
+Là người đã bổ sung giờ và nơi sinh chính xác, tôi muốn mở **Bản đọc Natal** tổng hòa từ toàn bộ natal chart và bầu trời hiện tại, đồng thời chuyển được giữa Western Tropical và Jyotish Sidereal, để hiểu vì sao một kiểu tình huống hay chạm đúng mình, pattern nào thường lặp lại và mình đang học cách phản ứng khác đi ở đâu — không bị biến thành một danh sách Sun/Moon/Venus/Mars rời rạc.
 
 ## 2. Mục tiêu và ranh giới
 
@@ -32,7 +32,7 @@ Bản đồ Lá; overview tổng hòa; domain detail; evidence/provenance; natal
 ## 3. Actor, điều kiện và đầu ra
 
 - **Actor:** guest hoặc account user có active chart snapshot từ US-02/06.
-- **Entry:** Home unlock card, Profile → Bản đồ Lá, provenance của Daily Note, hoặc deep-link nội bộ.
+- **Entry:** Home unlock card `Bạn có muốn hiểu mình hơn?`, màn hoàn tất giờ/nơi sinh, Profile → Bản đồ Lá, provenance của Daily Note, hoặc deep-link nội bộ `/natal`.
 - **Minimum:** Level 1 vẫn xem overview giới hạn và phần nào bị khóa; Level 3 exact mới mở đầy đủ angles/houses.
 - **Product success:** sau khi đọc overview, user diễn đạt được 1–2 khuynh hướng nổi bật, yếu tố nào làm Lá đọc như vậy và đâu là lớp “lúc này” thay vì natal. Interaction events chỉ là proxy, không được dùng thay cho comprehension test.
 - **Validation target:** trong moderated usability test trước release, ≥80% người tham gia trả lời đúng ba câu: “nét nổi bật là gì?”, “đó là natal hay transit?”, “bấm đâu để xem vì sao”; không cần hiểu thuật ngữ chiêm tinh.
@@ -67,14 +67,15 @@ flowchart TD
 
 | Thành phần | Loại | Nội dung/hành vi |
 |---|---|---|
-| Header | Native navigation | Back, “Bản đồ Lá”, Save/Share chỉ khi artifact an toàn đã có. |
+| Header | Native navigation | Back, “Bản đọc Natal”, Save/Share chỉ khi artifact an toàn đã có. |
+| Promise | Hero copy | `Bạn có muốn hiểu mình hơn?` + pattern/tình huống/bài học có thể đối chiếu; không nói chart gây ra sự kiện hay viết sẵn số phận. |
 | Hệ đọc | Segmented control | `Western` / `Jyotish`; 44px; giữ vị trí scroll/domain tương đương khi switch. |
 | Cách tính | Compact chip | `Khuyên dùng` hoặc tên custom; mở S34, không nhồi option ở overview. |
 | Aura | Hero signal | `Aura · <3–5 chữ>` do engine v2 trả về từ toàn chart; không client-side suy diễn. |
 | Tóm tắt | Opaque reading card | 2–3 câu synthesis, tối đa 420 ký tự, có nút “Vì sao Lá đọc vậy?”. |
 | Domain bento | 4–5 cards | `Bản chất`, `Cảm xúc`, `Kết nối`, `Động lực`, `Lúc này`; mỗi card có một headline + 1 evidence chip. |
 | Precision | Status row | `Đầy đủ`, `Gần đúng`, `Giới hạn`; tap để xem dữ liệu nào ảnh hưởng. |
-| Locked layer | Quiet card | Nói rõ thiếu giờ/nơi nào; `Bổ sung` sang US-06 và `Để sau`. |
+| Locked layer | Quiet card | Nếu chưa có giờ và nơi sinh exact, không render bản full; nói rõ thiếu gì, `Mở lớp sâu` sang US-06 và `Để sau`. |
 
 Không hiển thị cùng lúc cả 12 nhà và mọi aspect. Overview chỉ lấy 4–6 `ReadingClaim` có salience cao, không trùng ý, phủ tối thiểu ba domain nếu dữ liệu cho phép.
 

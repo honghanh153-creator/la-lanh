@@ -86,7 +86,8 @@ export type RadarPrivateCheckInput = {
   context: RadarInvite["context"];
   voice: RadarVoice;
   birth_date: string;
-  birth_time_local: string;
+  birth_time_mode: "exact" | "unknown";
+  birth_time_local: string | null;
   place_id: string;
   authorization_attested: boolean;
 };
@@ -188,6 +189,8 @@ export type RadarResult = {
     concept_ids: string[];
     voice: RadarVoice;
     voice_label: string;
+    time_precision?: "exact" | "unknown";
+    precision_note?: string;
   } | null;
   disclaimer: string;
 };

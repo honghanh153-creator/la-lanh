@@ -2027,7 +2027,13 @@ export interface components {
              */
             birth_date: string;
             /** Birth Time Local */
-            birth_time_local: string;
+            birth_time_local?: string | null;
+            /**
+             * Birth Time Mode
+             * @default exact
+             * @enum {string}
+             */
+            birth_time_mode: "exact" | "unknown";
             /** Consent Version */
             consent_version: string;
             /**
