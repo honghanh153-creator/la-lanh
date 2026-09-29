@@ -18,6 +18,9 @@ for unit in \
   install -m 0644 "${UNIT_DIR}/${unit}" "${SYSTEMD_DIR}/${unit}"
 done
 
+install -m 0755 "${SCRIPT_DIR}/run-retention-job.sh" \
+  /usr/local/sbin/la-lanh-retention-job
+
 systemctl daemon-reload
 systemctl enable --now la-lanh-guest-cleanup.timer la-lanh-expired-cleanup.timer
 systemctl start la-lanh-guest-cleanup.service la-lanh-expired-cleanup.service

@@ -325,8 +325,9 @@ systemctl list-timers --all 'la-lanh-*-cleanup.timer'
 ```
 
 The installer immediately runs both services once, then schedules guest cleanup at `00/06/12/18:25`
-and bounded-data cleanup at `00/06/12/18:40`, with a small randomized delay. The services execute in
-the already-running non-root app container and never print personal payloads.
+and bounded-data cleanup at `00/06/12/18:40`, with a small randomized delay. Each service resolves
+the immutable image tag from the healthy production container, starts a short-lived non-root app
+container through the standard secret-file entrypoint, and never prints personal payloads.
 
 Before inviting external testers, record the actual backup/restore capability of the active Supabase
 plan. Do not claim point-in-time recovery or automated backups unless the dashboard and plan confirm
