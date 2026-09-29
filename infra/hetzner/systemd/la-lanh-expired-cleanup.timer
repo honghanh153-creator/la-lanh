@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Lá Lành bounded-data cleanup every six hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:40:00
+Persistent=true
+RandomizedDelaySec=5min
+AccuracySec=1min
+Unit=la-lanh-expired-cleanup.service
+
+[Install]
+WantedBy=timers.target

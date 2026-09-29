@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Lá Lành expired guest cleanup every six hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:25:00
+Persistent=true
+RandomizedDelaySec=5min
+AccuracySec=1min
+Unit=la-lanh-guest-cleanup.service
+
+[Install]
+WantedBy=timers.target

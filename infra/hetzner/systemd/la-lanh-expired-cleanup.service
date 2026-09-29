@@ -1,0 +1,19 @@
+[Unit]
+Description=Lá Lành expired bounded-data cleanup
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/la-lanh/current
+Environment=APP_HOSTNAME=la-lanh.2-28-136-44.sslip.io
+Environment=LA_LANH_RELEASE_ID=retention-job
+Environment=LA_LANH_SECRETS_DIR=/opt/la-lanh/secrets
+ExecStart=/usr/bin/docker compose --project-name la-lanh -f /opt/la-lanh/current/infra/hetzner/compose.yaml exec -T app python -m scripts.cleanup_expired --batch-size 500
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+TimeoutStartSec=20min
+UMask=0077

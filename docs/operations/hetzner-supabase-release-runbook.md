@@ -316,6 +316,18 @@ docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app python -m sc
 docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app python -m scripts.cleanup_expired --batch-size 500
 ```
 
+Install or refresh the committed systemd timers after the active release pointer has been updated:
+
+```sh
+cd /opt/la-lanh/current
+infra/hetzner/install-retention-timers.sh
+systemctl list-timers --all 'la-lanh-*-cleanup.timer'
+```
+
+The installer immediately runs both services once, then schedules guest cleanup at `00/06/12/18:25`
+and bounded-data cleanup at `00/06/12/18:40`, with a small randomized delay. The services execute in
+the already-running non-root app container and never print personal payloads.
+
 Before inviting external testers, record the actual backup/restore capability of the active Supabase
 plan. Do not claim point-in-time recovery or automated backups unless the dashboard and plan confirm
 them. A restore rehearsal must happen in an isolated project/database and must account for deletions
