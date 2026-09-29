@@ -8,6 +8,7 @@ import type {
   ReadingContent as ReadingContentModel,
 } from "../api/client";
 import type { DailyExperimentStatus } from "../hooks/useDailyExperiment";
+import { ReadingDisclaimer } from "./ReadingDisclaimer";
 import { readingModeLabel } from "./readingLabels";
 
 type ReadingContentProps = {
@@ -63,7 +64,7 @@ export function ReadingContent({
         </header>
         {experiment}
         <Evidence content={content} />
-        <footer className="reading-content__disclaimer">Chart giữ nguyên · chỉ đổi góc đời thường.</footer>
+        <ReadingDisclaimer compact>{content.disclaimer}</ReadingDisclaimer>
       </article>
     );
   }
@@ -82,7 +83,7 @@ export function ReadingContent({
       </section>
       {experiment}
       <Evidence content={content} />
-      <footer className="reading-content__disclaimer">Một góc để tự soi, không phải chỉ dẫn cố định.</footer>
+      <ReadingDisclaimer>{content.disclaimer}</ReadingDisclaimer>
     </article>
   );
 }
@@ -121,9 +122,6 @@ function ExperimentSection({
         <p className="eyebrow">Một góc để kiểm chứng</p>
         <h2>Đối chiếu với hôm nay</h2>
         <p className="reading-content__experiment-action">{content.sections.micro_action}</p>
-        <p className="reading-content__experiment-note">
-          Nếu không khớp tình huống thật, bạn có thể bỏ qua.
-        </p>
       </section>
     );
   }

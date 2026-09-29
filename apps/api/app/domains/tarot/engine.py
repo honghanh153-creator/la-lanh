@@ -251,7 +251,7 @@ class TarotReadingEngine:
             summary=(
                 f"Câu hỏi của bạn đang chạm vào {lens.focus}. "
                 f"{title_card.title_vi} mở một góc để soi lại chuyện này "
-                "bằng dữ kiện đời thật, không chốt hộ bạn."
+                "bằng một tình huống và một bước có thể thử ngoài đời."
             ),
             question=assessment.normalized_question,
             question_intent=intent,
@@ -261,8 +261,8 @@ class TarotReadingEngine:
             voice=voice,
             positions=tuple(rendered),
             closing_prompt=(
-                "Đọc xong, giữ lại câu nào giúp bạn gọi đúng chuyện đang xảy ra; "
-                "phần không khớp có thể bỏ qua."
+                "Đọc xong, chọn một câu giúp bạn gọi đúng chuyện đang xảy ra "
+                "và đối chiếu nó với tình huống gần nhất."
             ),
             disclaimer=(
                 "Bài Tarot là một góc tự soi từ lá bạn đã chọn, không phải dự đoán "
@@ -479,6 +479,9 @@ class TarotReadingEngine:
             "position-discipline",
             "self-reflection",
             "non-determinism",
+            "story-coherence",
+            "plain-spoken-reading",
+            "present-focus",
             *(concept for card in cards for concept in card.source_concept_ids),
         }
         return source_ids_for_concepts(tuple(sorted(concepts)))

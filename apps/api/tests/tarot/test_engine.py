@@ -32,7 +32,12 @@ def test_one_card_reading_is_concrete_and_deterministic() -> None:
     assert "tin nhắn" in first.positions[0].everyday_scene.lower()
     assert first.positions[0].reflection_question.endswith("?")
     assert first.positions[0].small_action
-    assert first.provenance.knowledge_version == "tarot-knowledge-v1"
+    assert first.provenance.knowledge_version == "tarot-knowledge-v2"
+    assert {
+        "bunning-learning-tarot",
+        "cynova-kitchen-table-tarot",
+        "tishman-mindful-tarot",
+    } <= set(first.provenance.source_ids)
 
 
 def test_three_card_reading_uses_reflective_positions() -> None:

@@ -335,8 +335,8 @@ SIGNS: dict[str, SignMeaning] = {
         "mềm, giàu tưởng tượng và bắt bầu không khí rất nhanh",
         "hòa vào cảm giác chung rồi khó tìm lại phần của mình",
         (
-            "khi một tin nhắn đổi giọng hoặc căn phòng bỗng im, rồi bạn tự nối thêm "
-            "ý nghĩa trước khi biết chuyện gì thật sự xảy ra"
+            "khi một người trả lời ngắn hơn thường lệ và bạn bắt đầu nghĩ họ đang khó chịu "
+            "với mình dù chưa có thêm dữ kiện"
         ),
         (
             "tách điều đã xảy ra khỏi phần bạn đang tự nối thêm",
@@ -494,7 +494,7 @@ def _apply_background_lens(
         return hook, manifestation, micro_action
     contextual_hook = f"{LENS_HOOKS[lens]}, {hook[0].lower()}{hook[1:]}"
     contextual_manifestation = (
-        f"Cụ thể, pattern này dễ lộ ra {LENS_MANIFESTATIONS[lens]}. {manifestation}"
+        f"Bạn có thể nhận ra điều này {LENS_MANIFESTATIONS[lens]}. {manifestation}"
     )
     contextual_action = (
         f"Thử {LENS_ACTIONS[lens]}. Sau đó ghi lại điều gì thực sự xảy ra; "
@@ -690,18 +690,15 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
             f"{meaning.stress} là chỗ cần canh."
         ),
         EditorialMode.EXPERIMENT: (
-            "Đây là một giả thuyết để soi vào tình huống thật, không phải nhãn tính cách."
+            "Hôm nay hợp với một phép thử nhỏ: đổi phản xạ quen thành một bước có thể kiểm chứng."
         ),
     }[mode]
     close = (
         "Ghi lại điều gì thật sự đổi sau đó."
         if close_slot == 0
-        else "Nếu không thấy khác, bỏ thử nghiệm này và giữ lại dữ kiện thật."
+        else "Nếu không thấy khác, ghi lại đúng điều đã xảy ra và dừng ở đó."
     )
-    manifestation = (
-        f"Trong đời thường, pattern này có thể lộ ra {meaning.manifestation}. {mode_copy} "
-        "Không khớp việc thật thì bỏ qua."
-    )
+    manifestation = f"Một cảnh dễ nhận ra hôm nay là {meaning.manifestation}. {mode_copy}"
     micro_action = (
         f"Thử {practice}. {reflections[reflection_slot]} {close} "
         "Có giờ sinh chính xác và nơi sinh, Lá mới đọc thêm cảm xúc và bối cảnh."
@@ -782,6 +779,8 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     evidence_refs = [hero.id, *(item.id for item in placements)]
     knowledge_refs = [
         f"methodology:{METHODOLOGY_VERSION}",
+        "principle:whole-chart-priority",
+        "principle:developmental-reframe",
         f"planet:{body_a}",
         f"planet:{body_b}",
         f"lens:{lens.value}",

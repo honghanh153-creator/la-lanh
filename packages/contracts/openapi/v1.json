@@ -3819,7 +3819,7 @@
             "type": "string"
           },
           "knowledge_version": {
-            "default": "tarot-knowledge-v1",
+            "default": "tarot-knowledge-v2",
             "title": "Knowledge Version",
             "type": "string"
           },

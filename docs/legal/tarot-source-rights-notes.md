@@ -1,6 +1,6 @@
 # Tarot source and rights notes
 
-Checked 2026-09-27. This is a product/engineering record, not legal advice.
+Checked 2026-09-29. This is a product/engineering record, not legal advice.
 
 ## Safe-use rule
 
@@ -22,13 +22,17 @@ redistribution rights.
 | Evelin Bürger & Johannes Fiebig, *The Complete Book of Tarot Spreads* | https://www.hachettebookgroup.com/titles/evelin-burger/complete-book-of-tarot-spreads/9781454910794/ | position discipline; spread intent | text, named spreads, layouts, diagrams |
 | Deborah Lipp, *Tarot Interactions* | https://www.llewellyn.com/product.php?ean=9780738745206 | interaction; contrast; progression | text, pair meanings, examples, templates |
 | Benebell Wen, *Holistic Tarot* | https://www.northatlanticbooks.com/shop/holistic-tarot/ | non-determinism; ethical reflection | text, card entries, tables, cases, spreads |
+| Joan Bunning, *Learning the Tarot* | https://redwheelweiser.com/book/learning-the-tarot-9781578630486/ | story coherence; everyday-language principle | text, lessons, exercises, card entries, spreads |
+| Melissa Cynova, *Kitchen Table Tarot* | https://www.llewellyn.com/product.php?ean=9780738750774 | plain-spoken tone; practical context framing | text, anecdotes, exercises, card entries, spreads |
+| Lisa Freinkel Tishman, *Mindful Tarot* | https://www.llewellyn.com/product.php?ean=9780738758442 | present-focused reflection; reflective distance | text, meditations, exercises, card entries, spreads |
 
 ## Engineering enforcement
 
 - `BOOK_SOURCES` records source ID, concepts, official URL, allowed uses, and prohibited uses.
 - Runtime provenance lists only concept sources actually used by the reading.
-- `pnpm tarot:audit` verifies source uniqueness and that every source has explicit use boundaries.
+- `pnpm tarot:audit` verifies all eight sources are unique and have explicit use boundaries.
+- `pnpm content:review` generates synthetic Tarot readings for ten personas and blocks abstract,
+  duplicate, non-actionable, or disclaimer-like core copy without logging the questions or prose.
 - Source additions require a rights review, an original-content review, a knowledge version bump,
   fixtures, and release evidence. “Add a book” never means scrape or paste it into the repository.
 - Deck art is not included. The current UI uses original abstract card faces and typography.
-

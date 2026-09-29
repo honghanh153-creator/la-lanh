@@ -7,6 +7,7 @@ import { getBirthProfile, getDailyNote, updateOnboardingStatus } from "../../sha
 import { isDateOnlyCalculation, sunSignsFromCalculation } from "../../shared/astro/chart";
 import { signDetails } from "../../shared/astro/signs";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
+import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 
 const elementBySign = {
   aries: "Lửa · trực giác · khởi đầu", leo: "Lửa · biểu đạt · ấm áp", sagittarius: "Lửa · khám phá · tự do",
@@ -68,7 +69,9 @@ export function RevealPage() {
       <button className="signal-station__button" disabled={completing} onClick={() => void complete()} type="button">
         {completing ? "Đang mở Note…" : "Mở Note hôm nay"} <ArrowDown aria-hidden="true" />
       </button>
-      <p className="signal-station__disclaimer">Một góc để tự soi, không phải chỉ dẫn cố định.</p>
+      <ReadingDisclaimer compact>
+        Nội dung dùng để tự soi và đối chiếu; quyết định vẫn thuộc về bạn.
+      </ReadingDisclaimer>
     </>
   );
 

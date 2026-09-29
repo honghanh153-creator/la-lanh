@@ -52,5 +52,8 @@ describe("RevealPage", () => {
     expect(screen.getByText(/không đoán cung khi chưa có giờ sinh/)).toBeInTheDocument();
     expect(screen.getByText(/Mặt Trời ở ranh giới Song Ngư · Bạch Dương/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mở Note hôm nay" })).toBeEnabled();
+    expect(screen.getByRole("note", { name: "Lưu ý về bản đọc" })).toHaveTextContent(
+      /quyết định vẫn thuộc về bạn/i,
+    );
   });
 });

@@ -337,13 +337,6 @@
   line-height: 1.5;
 }
 
-.signal-station__disclaimer {
-  color: var(--station-muted);
-  font-size: 0.78rem;
-  line-height: 1.5;
-  text-align: center;
-}
-
 .signal-station--loading {
   grid-template-rows: auto auto 1fr;
 }

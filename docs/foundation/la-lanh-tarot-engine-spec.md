@@ -53,7 +53,7 @@ used in that reading.
 
 ## Knowledge sources
 
-Five books inform methodology at concept level only:
+Eight books inform methodology at concept level only:
 
 1. Rachel Pollack, *Seventy-Eight Degrees of Wisdom* — archetypal depth and symbolic tension.
 2. Mary K. Greer, *Tarot for Your Self* — self-reflection and reader agency.
@@ -61,6 +61,9 @@ Five books inform methodology at concept level only:
    and spread intent.
 4. Deborah Lipp, *Tarot Interactions* — interaction, contrast, and progression across cards.
 5. Benebell Wen, *Holistic Tarot* — non-deterministic ethics and personal-development framing.
+6. Joan Bunning, *Learning the Tarot* — story coherence and everyday meaning.
+7. Melissa Cynova, *Kitchen Table Tarot* — plain-spoken readings grounded in practical context.
+8. Lisa Freinkel Tishman, *Mindful Tarot* — present-focused reflection and distance from prediction.
 
 No book text, proprietary card entry, named spread, exercise, layout, table, case study, metaphor,
 or illustration is copied into runtime knowledge. All Vietnamese card atoms and output templates

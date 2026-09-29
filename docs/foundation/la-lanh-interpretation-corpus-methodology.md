@@ -1,9 +1,12 @@
 # Lá Lành — phương pháp xây knowledge corpus diễn giải Western
 
-Trạng thái: implemented foundation v4  
-Ngày rà soát: 2026-09-23  
-Methodology version: `western-synthesis-method-2026-09-v1`  
-Runtime knowledge version: `western-interpretation-matrix-v4`
+Trạng thái: implemented foundation v5
+
+Ngày rà soát: 2026-09-29
+
+Methodology version: `western-synthesis-method-2026-09-v2`
+
+Runtime knowledge version: `western-interpretation-matrix-v5`
 
 ## 1. Ranh giới nguồn
 
@@ -11,7 +14,7 @@ Runtime knowledge version: `western-interpretation-matrix-v4`
 
 Copy tiếng Việt trong runtime do sản phẩm tự biên tập, được version, test và review độc lập. Muốn dùng trích đoạn hay nội dung chi tiết từ bất kỳ sách nào phải có quyền sử dụng riêng.
 
-## 2. Năm sách nền cho engine hiện tại
+## 2. Tám sách nền cho engine hiện tại
 
 | Sách | Phần phương pháp được dùng | Dịch thành cấu trúc engine | Không được suy diễn |
 |---|---|---|---|
@@ -20,6 +23,9 @@ Copy tiếng Việt trong runtime do sản phẩm tự biên tập, được ver
 | Howard Sasportas — *The Twelve Houses* | Nhà là lĩnh vực trải nghiệm và nơi pattern biểu hiện; angular/succedent/cadent có chức năng khác nhau | `HOUSES`, `HOUSE_MODES`, manifestation theo vùng đời sống | Không đồng nhất nhà với cung; không đọc nhà khi giờ sinh chưa đủ chính xác |
 | Sue Tompkins — *Aspects in Astrology* | Aspect là quan hệ động giữa hai chức năng; cần xét loại góc, orb, applying/separating và toàn cấu hình | `ASPECTS`, aspect child refs, orb bands, natal phase nuance | Không gọi trine là “tốt”, square là “xấu”, hoặc bỏ qua hai hành tinh con |
 | Robert Hand — *Planets in Transit* | Transit là quá trình kích hoạt theo thời gian, cần đặt trên nền natal và theo dõi mức độ/phase | 70% natal + 30% transit, một contact nổi bật, `approaching/exact/separating` | Không dự báo sự kiện chắc chắn hoặc dùng một ngày để chỉ thị quyết định lớn |
+| Demetra George — *Astrology and the Authentic Self* | Phân biệt một biểu tượng có mặt với mức độ nó vận hành dễ hay khó trong chart cụ thể | `planet-condition-humility`: chỉ tăng độ chắc khi dữ kiện điều kiện hành tinh đủ | Không suy ra hiệu lực từ một vị trí đơn lẻ hoặc giả vờ dignity/sect đã được tính khi chưa có |
+| Frank Clifford — *Getting to the Heart of Your Chart* | Tìm chủ đề cốt lõi, ưu tiên tín hiệu quan trọng thay vì đọc chart như danh sách | `whole-chart-priority`: một thesis chính, tối đa một tín hiệu hỗ trợ | Không liệt kê cả chart hoặc để thuật ngữ thay cho câu trả lời đời thường |
+| Liz Greene — *Saturn* | Đọc giới hạn và ma sát như tiến trình phát triển, không như hình phạt | `developmental-reframe`: chuyển tension thành kỹ năng/câu hỏi có thể thực hành | Không gọi Saturn, square hay trải nghiệm khó là xấu, nghiệp phạt hoặc định mệnh |
 
 Nguồn công khai:
 
@@ -28,8 +34,11 @@ Nguồn công khai:
 - [Howard Sasportas — The Twelve Houses](https://books.google.com/books/about/The_Twelve_Houses.html?id=9b5evgAACAAJ)
 - [Sue Tompkins — Aspects in Astrology](https://www.innertraditions.com/books/aspects-in-astrology)
 - [Robert Hand — Planets in Transit](https://www.arhatmedia.com/blank-3)
+- [Demetra George — Astrology and the Authentic Self](https://redwheelweiser.com/book/astrology-and-the-authentic-self-9780892541492/)
+- [Frank Clifford — Getting to the Heart of Your Chart](https://frankclifford.co.uk/buybooks/)
+- [Liz Greene — Saturn](https://redwheelweiser.com/book/saturn-9781578637355/)
 
-## 3. Ma trận kiến thức v4
+## 3. Ma trận kiến thức v5
 
 ### 3.1 Lớp bằng chứng
 
@@ -98,3 +107,5 @@ Mỗi thay đổi atom phải:
 4. qua evidence, anti-influence, editorial, privacy gates; riêng editorial phải bắt lặp nội câu và shorthand nội bộ;
 5. benchmark near-neighbor chart để phát hiện copy kiểu ai đọc cũng thấy đúng;
 6. được chuyên gia chiêm tinh review trước khi gắn nhãn “expert-reviewed”.
+7. chạy `pnpm content:review`: agent offline phải kiểm 10 persona giả lập trên Daily và Tarot,
+   không cho disclaimer lọt vào nội dung chính, không cho copy đã loại bỏ quay lại và không log prose.

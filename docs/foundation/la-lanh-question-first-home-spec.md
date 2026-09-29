@@ -1,7 +1,7 @@
 # Lá Lành — Question-first Home
 
 Status: implemented slice for beta review  
-Updated: 2026-09-28
+Updated: 2026-09-29
 
 ## Product promise
 
@@ -19,20 +19,21 @@ Home giúp người dùng bắt đầu từ câu hỏi thật thay vì phải hi
 
 1. Brand, profile và lời chào ngắn.
 2. Câu hỏi `Bạn đang muốn hiểu điều gì?`.
-3. Tarot spotlight: `Có một chuyện cứ chạy trong đầu?` → `Hỏi Lá ngay`.
-4. Ba lối `Mình`, `Một người`, `Chuyện đang xảy ra`.
-5. `Tín hiệu hôm nay`: Daily Note hiện có, context, resonance, gift, mood, save/share và chart unlock.
+3. `Tín hiệu hôm nay`: Daily Note hiện có, context, resonance, gift, mood, share và chart unlock.
+4. Block `Khám phá thêm`, bắt đầu bằng Tarot spotlight: `Có một chuyện cứ chạy trong đầu?`.
+5. Ba lối `Mình`, `Một người`, `Chuyện đang xảy ra`.
 6. Bản đọc về mình đã mở, chỉ hiện khi hồ sơ sinh đã đủ lớp.
 7. Bottom navigation hiện tại.
 
-Tarot đứng trước ba lối trong cùng block để CTA không bị bottom navigation che trên viewport mobile đầu tiên. Home không có ô nhập tự do và không lưu lựa chọn lối đi. Mỗi lựa chọn là một link rõ đích đến, nên Back hoạt động theo lịch sử trình duyệt và analytics không cần nhận nội dung riêng tư.
+Daily Note đứng ngay sau câu hỏi để lời hứa hằng ngày không bị đẩy xuống dưới một block discovery cao. Tarot và ba lối nằm trong `Khám phá thêm`; Home không có ô nhập tự do và không lưu lựa chọn lối đi. Mỗi lựa chọn là một link rõ đích đến, nên Back hoạt động theo lịch sử trình duyệt và analytics không cần nhận nội dung riêng tư.
 
 ## Copy contract
 
 - Nhãn chính dùng ngôn ngữ đời thường trước thuật ngữ astrology.
 - Mỗi CTA nói rõ tap sẽ mở gì; tránh `Khám phá`, `Xem thêm` hoặc `Thử ngay` khi đứng một mình.
 - Không hứa biết mọi câu trả lời, dự đoán chắc chắn, đọc suy nghĩ hoặc đưa ra compatibility verdict.
-- Tarot luôn có một dòng giữ quyền tự quyết: `Một góc tự soi, không quyết định thay bạn.`
+- Disclaimer luôn nằm trong component `role="note"`, có nhãn `Lưu ý`, icon và nền/viền riêng;
+  không được nối vào manifestation, summary hoặc action như nội dung diễn giải.
 - Daily Note được gọi là `tín hiệu hôm nay`, không phải lời phán hoặc câu trả lời toàn diện.
 
 ## Lá Chứng retirement
@@ -70,7 +71,7 @@ Birth data, relationship data và Tarot question vẫn là dữ liệu cá nhân
 - Normal text đạt contrast tối thiểu 4.5:1; large text tối thiểu 3:1.
 - Focus ring nhìn thấy trên theme dark và light.
 - 320px không scroll ngang; 200% text zoom không che CTA.
-- DOM order khớp visual order: question router → Tarot → Daily.
+- DOM order khớp visual order: question heading → Daily Note → discovery/Tarot.
 
 ## Acceptance checklist
 

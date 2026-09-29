@@ -7,14 +7,43 @@ from hashlib import sha256
 
 from app.domains.readings.models import BackgroundLens
 
-METHODOLOGY_VERSION = "western-synthesis-method-2026-09-v1"
+METHODOLOGY_VERSION = "western-synthesis-method-2026-09-v2"
 METHODOLOGY_SOURCE_IDS = (
     "forrest-inner-sky",
     "arroyo-chart-interpretation-handbook",
     "sasportas-twelve-houses",
     "tompkins-aspects-in-astrology",
     "hand-planets-in-transit",
+    "george-authentic-self",
+    "clifford-heart-of-chart",
+    "greene-saturn",
 )
+
+
+@dataclass(frozen=True)
+class SynthesisPrinciple:
+    source_id: str
+    rule: str
+    guardrail: str
+
+
+SYNTHESIS_PRINCIPLES: dict[str, SynthesisPrinciple] = {
+    "planet-condition-humility": SynthesisPrinciple(
+        source_id="george-authentic-self",
+        rule="Chỉ diễn giải mức độ dễ hay khó vận hành khi dữ kiện về điều kiện hành tinh đủ rõ.",
+        guardrail="Không biến một vị trí đơn lẻ thành kết luận chắc chắn về con người.",
+    ),
+    "whole-chart-priority": SynthesisPrinciple(
+        source_id="clifford-heart-of-chart",
+        rule="Ưu tiên một chủ đề nổi bật và tối đa một tín hiệu hỗ trợ thay vì liệt kê toàn chart.",
+        guardrail="Mỗi đoạn phải trả lời một câu hỏi đời thường cụ thể.",
+    ),
+    "developmental-reframe": SynthesisPrinciple(
+        source_id="greene-saturn",
+        rule="Đọc điểm căng như một năng lực đang được học qua trải nghiệm và giới hạn.",
+        guardrail="Không gọi hành tinh, nhà hay góc là xấu, phạt, định mệnh hoặc điềm báo.",
+    ),
+}
 
 
 class InterpretiveLens(StrEnum):

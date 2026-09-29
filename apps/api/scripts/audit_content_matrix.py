@@ -21,6 +21,7 @@ from app.domains.readings.interpretive_lenses import (
     CURRENT_FORCES,
     ELEMENTS,
     HOUSE_MODES,
+    METHODOLOGY_SOURCE_IDS,
     MODALITIES,
     PLANET_PERSPECTIVES,
     EditorialMode,
@@ -36,12 +37,14 @@ from app.domains.readings.knowledge import (
     SIGNS,
 )
 from app.domains.readings.models import INTERPRETATION_KNOWLEDGE_VERSION, BackgroundLens
+from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS
 from app.domains.relationships.knowledge import (
     BOOK_SOURCES,
     EDITORIAL_CONCEPTS,
     RELATIONSHIP_KNOWLEDGE_VERSION,
     VOICE_PROFILES,
 )
+from app.domains.tarot.knowledge import BOOK_SOURCES as TAROT_BOOK_SOURCES
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_BASELINE = REPOSITORY_ROOT / "docs" / "operations" / "content-matrix-baseline.json"
@@ -66,12 +69,14 @@ def current_metrics() -> dict[str, int]:
         "daily_interpretive_lenses": len(InterpretiveLens),
         "daily_editorial_modes": len(EditorialMode),
         "daily_semantic_cycle_days": len(InterpretiveLens) * len(EditorialMode) * 3 * 7,
+        "daily_methodology_sources": len(METHODOLOGY_SOURCE_IDS),
         "relationship_sources": len(BOOK_SOURCES),
         "relationship_concepts": len(EDITORIAL_CONCEPTS),
         "relationship_dimensions": len(RelationshipDimension),
         "relationship_voice_profiles": len(VOICE_PROFILES),
         "radar_themes": len(SCENE_COPY),
         "radar_contexts": len(CONTEXT_CHECKS),
+        "tarot_sources": len(TAROT_BOOK_SOURCES),
     }
 
 
@@ -128,11 +133,10 @@ def validate_matrix() -> list[str]:
             failures.append(f"{name} does not cover every explicit Daily Note context")
 
     forbidden_daily_fragments = {
-        "tín hiệu vũ trụ",
-        "vũ trụ thì thầm",
         "rời màn hình vài phút",
         "trực giác có điều muốn nói",
         "góc rộng: chỉ là sắc độ nền",
+        *BANNED_CORE_FRAGMENTS,
     }
     daily_atoms = " ".join(
         atom

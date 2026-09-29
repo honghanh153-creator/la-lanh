@@ -11,14 +11,17 @@ def test_deck_contains_78_unique_original_cards() -> None:
     assert all(card.title_vi and card.core and card.tension and card.resource for card in cards)
 
 
-def test_source_registry_records_five_complementary_books_without_excerpts() -> None:
-    assert len(BOOK_SOURCES) == 5
+def test_source_registry_records_eight_complementary_books_without_excerpts() -> None:
+    assert len(BOOK_SOURCES) == 8
     assert {source.source_id for source in BOOK_SOURCES} == {
         "pollack-78-degrees",
         "greer-tarot-for-yourself",
         "burger-fiebig-spreads",
         "lipp-interactions",
         "wen-holistic-tarot",
+        "bunning-learning-tarot",
+        "cynova-kitchen-table-tarot",
+        "tishman-mindful-tarot",
     }
     assert all(source.allowed_uses and source.prohibited_uses for source in BOOK_SOURCES)
     assert all("excerpt" in source.prohibited_uses for source in BOOK_SOURCES)

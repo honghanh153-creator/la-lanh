@@ -32,6 +32,9 @@ describe("ReadingContent", () => {
   it("hides current activation for a natal-only reading", () => {
     render(<ReadingContent content={content} />);
     expect(screen.queryByRole("heading", { name: "Vì sao hôm nay thấy rõ hơn?" })).not.toBeInTheDocument();
+    expect(screen.getByRole("note", { name: "Lưu ý về bản đọc" })).toHaveTextContent(
+      content.disclaimer,
+    );
   });
 
   it("shows a recognition prompt instead of leaking a missing experiment state", () => {

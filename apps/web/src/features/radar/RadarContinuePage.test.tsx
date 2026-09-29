@@ -164,6 +164,9 @@ describe("RadarResultView", () => {
     fireEvent.click(document.querySelector("#radar-chapter-friction > summary")!);
     expect(document.querySelector("#radar-chapter-friction")).toHaveAttribute("open");
     expect(screen.queryByText(/xác suất thành công/i)).toBeInTheDocument();
+    expect(screen.getByRole("note", { name: "Lưu ý về bản đọc" })).toHaveTextContent(
+      result.disclaimer,
+    );
   });
 
   it("keeps rendering stored v2 results that do not have dossier fields", () => {

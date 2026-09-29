@@ -5,7 +5,8 @@ Every beta release must pass both automated checks and a short human review.
 
 ## Automated blocking checks
 
-Run `pnpm experience:audit` and `pnpm content:audit`. A release is blocked when Radar or Daily Note:
+Run `pnpm experience:audit`, `pnpm content:audit`, and `pnpm content:review`. A release is blocked
+when Radar, Daily Note, or Tarot:
 
 - produces no concrete next action;
 - publishes an action without inspectable chart evidence;
@@ -16,6 +17,8 @@ Run `pnpm experience:audit` and `pnpm content:audit`. A release is blocked when 
 - assembles a hook, real-life scene and action from different contexts;
 - shows an internal availability/status sentence instead of useful user copy;
 - asks the user to perform an action that cannot be observed or checked in ordinary life.
+- mixes disclaimer/caveat prose into the insight, scene, summary or suggested action;
+- repeats the same core reading across synthetic personas on one surface.
 
 `pnpm check` includes this command, so it cannot be skipped by the normal release path.
 
@@ -28,7 +31,8 @@ Review the first-run flow, Daily Note, Reading Detail, Radar form and Radar resu
 2. Does every heading add new information rather than restate the paragraph below it?
 3. Can the main result be scanned without opening technical evidence?
 4. Is every suggested action concrete, reversible and usable in ordinary life?
-5. Does the report explain uncertainty without turning the disclaimer into the main content?
+5. Is uncertainty collected in a visually distinct `Lưu ý` block instead of being smuggled into
+   the main content?
 6. Are selected, focus, error, loading and empty states visible without relying on color alone?
 7. Can the flow be completed with keyboard only, without horizontal scroll or clipped text?
 8. For Daily Note, can a reviewer answer in one sentence: “Chuyện gì đang xảy ra, nó xuất hiện ở

@@ -29,8 +29,8 @@ def audit() -> list[str]:
     cards = all_cards()
     if len(cards) != 78 or len({card.id for card in cards}) != 78:
         failures.append("Deck must contain exactly 78 unique cards")
-    if len(BOOK_SOURCES) != 5 or len({source.source_id for source in BOOK_SOURCES}) != 5:
-        failures.append("Tarot methodology must have exactly five unique launch sources")
+    if len(BOOK_SOURCES) != 8 or len({source.source_id for source in BOOK_SOURCES}) != 8:
+        failures.append("Tarot methodology must have exactly eight unique launch sources")
     if any(not source.allowed_uses or not source.prohibited_uses for source in BOOK_SOURCES):
         failures.append("Every source needs explicit allowed and prohibited use notes")
 

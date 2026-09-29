@@ -110,7 +110,7 @@ class TarotReadingProvenance(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     schema_version: str = "tarot-reading/v1"
-    knowledge_version: str = "tarot-knowledge-v1"
+    knowledge_version: str = "tarot-knowledge-v2"
     renderer_version: str = "tarot-renderer-v1"
     gate_version: str = "tarot-gates-v1"
     deck_version: str = "tarot-78-v1"

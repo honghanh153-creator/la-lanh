@@ -7,6 +7,7 @@ import {
   getPrivateReading,
 } from "../../shared/api/client";
 import { ReadingContent } from "../../shared/ui/ReadingContent";
+import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { parseAyanamsa, parseHouseSystem, parseTradition } from "./insightConfig";
 import "./insights.css";
 
@@ -102,7 +103,7 @@ function FocusedClaimContent({ claim, disclaimer }: { claim: FocusedClaim; discl
         <ul>{evidence.map((item) => <li key={item}>{item}</li>)}</ul>
         <p>Vị trí, nhà và góc chiếu được tính từ chart; phần diễn giải là một khung để tự đối chiếu.</p>
       </details>
-      <footer className="reading-content__disclaimer">{disclaimer}</footer>
+      <ReadingDisclaimer>{disclaimer}</ReadingDisclaimer>
     </article>
   );
 }

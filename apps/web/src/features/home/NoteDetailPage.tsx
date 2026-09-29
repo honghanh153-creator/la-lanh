@@ -18,6 +18,7 @@ import { saveNoteLocally } from "../../shared/storage/savedNoteCache";
 import "../../shared/styles/signal-note.css";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingContent } from "../../shared/ui/ReadingContent";
+import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 
 export function NoteDetailPage() {
@@ -142,7 +143,7 @@ export function NoteDetailPage() {
                 <h1>{note.title}</h1>
                 <p>{note.full_body}</p>
               </header>
-              <footer className="reading-content__disclaimer">Nội dung tham khảo; quyền quyết định vẫn ở bạn.</footer>
+              <ReadingDisclaimer>Nội dung tham khảo; quyền quyết định vẫn ở bạn.</ReadingDisclaimer>
             </article>
           )}
 

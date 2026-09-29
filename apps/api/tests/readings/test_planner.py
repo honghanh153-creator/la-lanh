@@ -20,6 +20,7 @@ from app.domains.astro.models import (
 )
 from app.domains.readings.models import (
     INTERPRETATION_KNOWLEDGE_VERSION,
+    WESTERN_INTERPRETATION_KNOWLEDGE_VERSION,
     BackgroundLens,
     FactorKind,
     FactorSource,
@@ -71,6 +72,8 @@ def test_exact_western_plan_is_immutable_canonical_and_full_synthesis() -> None:
     assert first.schema_version == "reading-plan/v1"
     assert first.rules_version == "factor-planner-v2"
     assert first.knowledge_version == INTERPRETATION_KNOWLEDGE_VERSION
+    assert first.knowledge_version == WESTERN_INTERPRETATION_KNOWLEDGE_VERSION
+    assert first.knowledge_version == "western-interpretation-matrix-v5"
     assert first.plan_hash == second.plan_hash
     assert first.mode is PlanMode.FULL_SYNTHESIS
     assert first.tradition is Tradition.WESTERN
@@ -84,6 +87,25 @@ def test_exact_western_plan_is_immutable_canonical_and_full_synthesis() -> None:
     assert len({factor.id for factor in first.factors}) == len(first.factors)
     with pytest.raises(ValidationError):
         first.purpose = ReadingPurpose.AURA  # type: ignore[misc]
+
+
+def test_historical_western_v4_plan_remains_readable_after_v5_release() -> None:
+    current = ReadingPlanner().plan(_chart(), purpose=ReadingPurpose.READING_DETAIL)
+    historical_payload = current.model_dump()
+    historical_payload["knowledge_version"] = "western-interpretation-matrix-v4"
+
+    historical = ReadingPlan.model_validate(historical_payload)
+
+    assert historical.knowledge_version == "western-interpretation-matrix-v4"
+
+
+def test_unknown_historical_western_version_is_rejected() -> None:
+    current = ReadingPlanner().plan(_chart(), purpose=ReadingPurpose.READING_DETAIL)
+    unsupported_payload = current.model_dump()
+    unsupported_payload["knowledge_version"] = "western-interpretation-matrix-v3"
+
+    with pytest.raises(ValidationError, match="knowledge version"):
+        ReadingPlan.model_validate(unsupported_payload)
 
 
 def test_full_synthesis_rejects_two_factors_from_the_same_subject() -> None:

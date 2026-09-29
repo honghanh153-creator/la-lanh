@@ -139,12 +139,20 @@ Before choosing the release commit, complete the content release gate in
 ```sh
 pnpm content:audit
 pnpm tarot:audit
+pnpm content:review
 pnpm experience:audit
 ```
 
 For a normal release, record the reviewed content improvement and its regression fixture. An urgent
 security or availability hotfix may use the documented waiver; do not add filler copy to force a
 content delta.
+
+`content:review` is blocking: it renders Daily and Tarot output for ten synthetic personas (twenty
+readings total), including date-only/full-chart Daily and one/three/five-card Tarot. It checks
+concrete scenes/actions, evidence validation, registered provenance, duplicates and disclaimer
+separation, and prints only persona/surface/rule metadata. Never replace these fixtures with
+production birth data, Tarot questions or reading prose. `infra/hetzner/deploy.sh` runs this reviewer
+again inside the newly built app image before any migration or public container replacement.
 
 For a release containing Lá Hỏi, also complete both spread sizes from `/tarot`, refresh the private
 session route, verify an unsafe question receives a reframe, delete the result, and follow one Daily

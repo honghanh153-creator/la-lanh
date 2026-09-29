@@ -14,6 +14,7 @@ import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateA
 import { readCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import "../../shared/styles/signal-note.css";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 
 const ACK_PREFIX = "la-lanh-aura-transition-ack-v1:";
 
@@ -212,7 +213,7 @@ function AuraPreview({ content }: { content: ReadingContent }) {
       <h2 id="aura-preview-title">{content.sections.hook}</h2>
       <p>{content.sections.thesis}</p>
       <div className="aura-preview__line"><strong>Ngoài đời có thể trông như…</strong><span>{content.sections.manifestation}</span></div>
-      <small>{content.disclaimer}</small>
+      <ReadingDisclaimer compact>{content.disclaimer}</ReadingDisclaimer>
     </section>
   );
 }

@@ -2545,7 +2545,7 @@ export interface components {
             gate_version: string;
             /**
              * Knowledge Version
-             * @default tarot-knowledge-v1
+             * @default tarot-knowledge-v2
              */
             knowledge_version: string;
             /**

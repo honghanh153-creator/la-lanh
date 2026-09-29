@@ -37,6 +37,7 @@ import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingContent } from "../../shared/ui/ReadingContent";
+import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
 import { SignalContextPicker } from "../../shared/ui/SignalContextPicker";
@@ -235,7 +236,7 @@ export function HomePage() {
       <main className="app-page home-page signal-note-home">
         <HomeHeader />
         <HomePreviewGreeting />
-        <HomeQuestionRouter />
+        <HomeQuestionHeading />
         <HomeDailyHeading />
         <section className="empty-state">
           <Planet size={52} />
@@ -251,6 +252,7 @@ export function HomePage() {
             ? <button className="electric-button" onClick={() => void noteQuery.refetch()} type="button">Thử lại</button>
             : <Link className="electric-button" to="/birth">Khai ngày sinh</Link>}
         </section>
+        <HomeDiscoveryRouter />
         <AppNav />
       </main>
     );
@@ -286,7 +288,7 @@ export function HomePage() {
         </p>
       ) : null}
 
-      <HomeQuestionRouter />
+      <HomeQuestionHeading />
       <HomeDailyHeading />
 
       {activeReading ? (
@@ -331,7 +333,9 @@ export function HomePage() {
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {modeLabel}</p>
           <h2>{note.title}</h2>
           <p>{note.body}</p>
-          <p className="reading-content__disclaimer">Một góc để tự soi, không phải chỉ dẫn cố định.</p>
+          <ReadingDisclaimer compact>
+            Nội dung dùng để tự soi và đối chiếu; quyết định vẫn thuộc về bạn.
+          </ReadingDisclaimer>
           <div className="signal-note-paper__footer">
             <MoodPicker
               mood={mood}
@@ -386,6 +390,8 @@ export function HomePage() {
           <Link to="/birth-time">Mở lớp sâu</Link>
         </aside>
       ) : null}
+
+      <HomeDiscoveryRouter />
 
       <AppNav />
     </main>
@@ -483,13 +489,24 @@ function HomePreviewGreeting() {
   );
 }
 
-function HomeQuestionRouter() {
+function HomeQuestionHeading() {
   return (
-    <section aria-labelledby="home-question-title" className="home-question-router">
+    <section aria-labelledby="home-question-title" className="home-question-prompt">
       <div className="home-question-router__heading">
         <p className="eyebrow">Bắt đầu từ điều bạn đang nghĩ</p>
         <h2 id="home-question-title">Bạn đang muốn hiểu điều gì?</h2>
         <p>Chọn đúng chuyện bạn đang cần soi.</p>
+      </div>
+    </section>
+  );
+}
+
+function HomeDiscoveryRouter() {
+  return (
+    <section aria-label="Khám phá thêm" className="home-question-router home-discovery-router">
+      <div className="home-discovery-router__heading">
+        <p className="eyebrow">Muốn soi thêm một chuyện?</p>
+        <h2>Chọn góc tiếp theo</h2>
       </div>
       <Link className="home-tarot-spotlight" to="/tarot">
         <span aria-hidden="true" className="home-tarot-spotlight__cards"><i /><i /><i>✦</i></span>
@@ -535,9 +552,10 @@ function HomeState({ text }: { text: string }) {
     <main className="app-page home-page signal-note-home">
       <HomeHeader />
       <HomePreviewGreeting />
-      <HomeQuestionRouter />
+      <HomeQuestionHeading />
       <HomeDailyHeading />
       <section className="entry-loading"><span className="entry-loading__orbit" /><p>{text}</p></section>
+      <HomeDiscoveryRouter />
       <AppNav />
     </main>
   );

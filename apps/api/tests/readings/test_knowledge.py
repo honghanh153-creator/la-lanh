@@ -18,6 +18,7 @@ from app.domains.readings.interpretive_lenses import (
     MODALITIES,
     PLANET_PERSPECTIVES,
     SIGN_STRUCTURE,
+    SYNTHESIS_PRINCIPLES,
     InterpretiveLens,
     resolve_daily_editorial_variant,
     resolve_interpretive_lens,
@@ -91,8 +92,11 @@ def test_interpretation_catalog_has_complete_launch_coverage() -> None:
     assert set(MODALITIES) == {"cardinal", "fixed", "mutable"}
     assert set(PLANETS) <= set(PLANET_PERSPECTIVES)
     assert set(PLANETS) <= set(CURRENT_FORCES)
-    assert METHODOLOGY_VERSION == "western-synthesis-method-2026-09-v1"
-    assert len(METHODOLOGY_SOURCE_IDS) == len(set(METHODOLOGY_SOURCE_IDS)) == 5
+    assert METHODOLOGY_VERSION == "western-synthesis-method-2026-09-v2"
+    assert len(METHODOLOGY_SOURCE_IDS) == len(set(METHODOLOGY_SOURCE_IDS)) == 8
+    assert {principle.source_id for principle in SYNTHESIS_PRINCIPLES.values()} <= set(
+        METHODOLOGY_SOURCE_IDS
+    )
 
 
 def test_daily_cycle_uses_every_interpretive_lens_without_changing_chart_facts() -> None:
@@ -193,9 +197,26 @@ def test_every_date_only_sign_produces_publishable_specific_copy() -> None:
 
         assert evaluate_candidate(plan, candidate).accepted is True
         assert "tín hiệu vũ trụ" not in candidate.model_dump_json().lower()
+        assert "pattern này" not in candidate.manifestation.casefold()
+        assert "giả thuyết để soi" not in candidate.manifestation.casefold()
+        assert "không khớp việc thật thì bỏ qua" not in candidate.manifestation.casefold()
         assert sign.value in candidate.evidence.claims[0].factor_ref
 
     assert len(hooks) == len(tuple(ZodiacSign))
+
+
+def test_date_only_pisces_scene_separates_observation_from_assumption() -> None:
+    plan = ReadingPlanner().plan(
+        _date_only(ZodiacSign.PISCES),
+        purpose=ReadingPurpose.DAILY_NOTE,
+        editorial_seed=date(2026, 9, 29).isoformat(),
+    )
+
+    candidate = DeterministicVietnameseRenderer().render(plan)
+
+    assert "trả lời ngắn hơn thường lệ" in candidate.manifestation
+    assert "dữ kiện" in candidate.manifestation
+    assert candidate.disclaimer not in candidate.manifestation
 
 
 def _factor(

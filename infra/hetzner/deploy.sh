@@ -41,6 +41,7 @@ fi
 cd "$REPO_ROOT"
 docker compose -f "$COMPOSE_FILE" config --quiet
 docker compose -f "$COMPOSE_FILE" build app
+docker compose -f "$COMPOSE_FILE" run --rm --no-deps app python -m scripts.review_content_release
 docker compose -f "$COMPOSE_FILE" run --rm --no-deps app alembic upgrade head
 docker compose -f "$COMPOSE_FILE" up -d --remove-orphans --wait app
 docker compose -f "$COMPOSE_FILE" up -d --remove-orphans --wait

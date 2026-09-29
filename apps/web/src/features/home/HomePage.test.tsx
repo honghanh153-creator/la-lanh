@@ -64,13 +64,15 @@ describe("HomePage rich reading", () => {
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     renderPage();
 
-    const questionRouter = await screen.findByRole("region", { name: "Bạn đang muốn hiểu điều gì?" });
+    const questionHeading = await screen.findByRole("region", { name: "Bạn đang muốn hiểu điều gì?" });
     const noteRegion = await screen.findByRole("region", { name: "Note hôm nay" });
+    const discoveryRegion = screen.getByRole("region", { name: "Khám phá thêm" });
 
-    expect(questionRouter.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(questionRouter).getByRole("link", { name: /^Mình Nhìn pattern/ })).toHaveAttribute("href", "/natal");
-    expect(within(questionRouter).getByRole("link", { name: /^Một người Check độ hợp gu/ })).toHaveAttribute("href", "/radar");
-    expect(within(questionRouter).getByRole("link", { name: /^Hôm nay/ })).toHaveAttribute("href", "/insights/current-sky?tradition=western");
+    expect(questionHeading.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(noteRegion.compareDocumentPosition(discoveryRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(discoveryRegion).getByRole("link", { name: /^Mình Nhìn pattern/ })).toHaveAttribute("href", "/natal");
+    expect(within(discoveryRegion).getByRole("link", { name: /^Một người Check độ hợp gu/ })).toHaveAttribute("href", "/radar");
+    expect(within(discoveryRegion).getByRole("link", { name: /^Hôm nay/ })).toHaveAttribute("href", "/insights/current-sky?tradition=western");
     expect(screen.getByRole("link", { name: /Có chuyện cứ chạy trong đầu/ })).toHaveAttribute("href", "/tarot");
     expect(screen.queryByText("Lá Chứng")).not.toBeInTheDocument();
     expect(within(noteRegion).getByRole("button", { name: "Trúng" })).toBeInTheDocument();
@@ -83,8 +85,12 @@ describe("HomePage rich reading", () => {
     vi.mocked(getDailyNote).mockRejectedValue(new Error("offline"));
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "Bạn đang muốn hiểu điều gì?" })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Note chưa về kịp." })).toBeInTheDocument();
+    const questionHeading = await screen.findByRole("heading", { name: "Bạn đang muốn hiểu điều gì?" });
+    const emptyHeading = await screen.findByRole("heading", { name: "Note chưa về kịp." });
+    const discoveryRegion = screen.getByRole("region", { name: "Khám phá thêm" });
+    expect(questionHeading.compareDocumentPosition(emptyHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(emptyHeading.compareDocumentPosition(discoveryRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(discoveryRegion).getByRole("link", { name: /Mình Nhìn pattern/ })).toHaveAttribute("href", "/natal");
     expect(screen.getByRole("link", { name: /Có chuyện cứ chạy trong đầu/ })).toHaveAttribute("href", "/tarot");
   });
 
@@ -94,9 +100,11 @@ describe("HomePage rich reading", () => {
     vi.mocked(getDailyNote).mockRejectedValue(new Error("offline"));
     renderPage();
 
-    const questionRouter = await screen.findByRole("region", { name: "Bạn đang muốn hiểu điều gì?" });
+    const questionHeading = await screen.findByRole("region", { name: "Bạn đang muốn hiểu điều gì?" });
     const noteRegion = await screen.findByRole("region", { name: "Note hôm nay" });
-    expect(questionRouter.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const discoveryRegion = screen.getByRole("region", { name: "Khám phá thêm" });
+    expect(questionHeading.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(noteRegion.compareDocumentPosition(discoveryRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(await screen.findByText("Đang xem đúng bản đã mở gần nhất trên máy")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
   });

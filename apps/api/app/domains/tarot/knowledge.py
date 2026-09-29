@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from app.domains.tarot.models import TarotBookSource, TarotCard
 
-KNOWLEDGE_VERSION = "tarot-knowledge-v1"
+KNOWLEDGE_VERSION = "tarot-knowledge-v2"
 DECK_VERSION = "tarot-78-v1"
 
 _CONCEPT_SOURCES: dict[str, tuple[str, ...]] = {
@@ -18,6 +18,12 @@ _CONCEPT_SOURCES: dict[str, tuple[str, ...]] = {
     "contrast-and-progression": ("lipp-interactions",),
     "non-determinism": ("wen-holistic-tarot",),
     "ethical-reflection": ("wen-holistic-tarot",),
+    "story-coherence": ("bunning-learning-tarot",),
+    "everyday-meaning": ("bunning-learning-tarot",),
+    "plain-spoken-reading": ("cynova-kitchen-table-tarot",),
+    "contextual-practicality": ("cynova-kitchen-table-tarot",),
+    "present-focus": ("tishman-mindful-tarot",),
+    "reflective-distance": ("tishman-mindful-tarot",),
 }
 
 BOOK_SOURCES: tuple[TarotBookSource, ...] = (
@@ -65,6 +71,33 @@ BOOK_SOURCES: tuple[TarotBookSource, ...] = (
         concept_ids=("non-determinism", "ethical-reflection"),
         allowed_uses=("non-deterministic ethics principle", "personal-development framing"),
         prohibited_uses=("excerpt", "table", "card entry", "case study", "spread"),
+    ),
+    TarotBookSource(
+        source_id="bunning-learning-tarot",
+        title="Learning the Tarot",
+        authors=("Joan Bunning",),
+        official_url="https://redwheelweiser.com/book/learning-the-tarot-9781578630486/",
+        concept_ids=("story-coherence", "everyday-meaning"),
+        allowed_uses=("story coherence as a synthesis method", "everyday-language principle"),
+        prohibited_uses=("excerpt", "lesson", "exercise", "card entry", "spread"),
+    ),
+    TarotBookSource(
+        source_id="cynova-kitchen-table-tarot",
+        title="Kitchen Table Tarot",
+        authors=("Melissa Cynova",),
+        official_url="https://www.llewellyn.com/product.php?ean=9780738750774",
+        concept_ids=("plain-spoken-reading", "contextual-practicality"),
+        allowed_uses=("plain-spoken tone principle", "practical context framing"),
+        prohibited_uses=("excerpt", "anecdote", "exercise", "card entry", "spread"),
+    ),
+    TarotBookSource(
+        source_id="tishman-mindful-tarot",
+        title="Mindful Tarot",
+        authors=("Lisa Freinkel Tishman",),
+        official_url="https://www.llewellyn.com/product.php?ean=9780738758442",
+        concept_ids=("present-focus", "reflective-distance"),
+        allowed_uses=("present-focused reflection principle", "reflective-distance method"),
+        prohibited_uses=("excerpt", "meditation", "exercise", "card entry", "spread"),
     ),
 )
 

@@ -200,5 +200,8 @@ describe("TarotPage", () => {
     expect(screen.getByText(/tin nhắn đến chậm/i)).toBeInTheDocument();
     expect(screen.getAllByText(/điều gì đáng hỏi thẳng/i)).toHaveLength(2);
     expect(screen.getByText(/viết một câu hỏi có thể trả lời thẳng/i)).toBeInTheDocument();
+    expect(screen.getByRole("note", { name: "Lưu ý về bản đọc" })).toHaveTextContent(
+      "Một góc tự soi, không phải dự đoán chắc chắn.",
+    );
   });
 });

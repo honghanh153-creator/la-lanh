@@ -10,7 +10,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domains.astro.models import EngineProvenance, TimePrecision, Tradition, TransitPhase
 
-WESTERN_INTERPRETATION_KNOWLEDGE_VERSION = "western-interpretation-matrix-v4"
+WESTERN_INTERPRETATION_KNOWLEDGE_VERSION = "western-interpretation-matrix-v5"
+SUPPORTED_WESTERN_INTERPRETATION_KNOWLEDGE_VERSIONS = frozenset(
+    {
+        "western-interpretation-matrix-v4",
+        WESTERN_INTERPRETATION_KNOWLEDGE_VERSION,
+    }
+)
 JYOTISH_INTERPRETATION_KNOWLEDGE_VERSION = "jyotish-structural-matrix-v1"
 INTERPRETATION_KNOWLEDGE_VERSION = WESTERN_INTERPRETATION_KNOWLEDGE_VERSION
 
@@ -246,12 +252,12 @@ class ReadingPlan(BaseModel):
             for factor in self.factors
         ):
             raise ValueError("Jyotish plans cannot contain Western aspect semantics")
-        expected_knowledge = (
-            WESTERN_INTERPRETATION_KNOWLEDGE_VERSION
+        supported_knowledge = (
+            SUPPORTED_WESTERN_INTERPRETATION_KNOWLEDGE_VERSIONS
             if self.tradition is Tradition.WESTERN
-            else JYOTISH_INTERPRETATION_KNOWLEDGE_VERSION
+            else frozenset({JYOTISH_INTERPRETATION_KNOWLEDGE_VERSION})
         )
-        if self.knowledge_version != expected_knowledge:
+        if self.knowledge_version not in supported_knowledge:
             raise ValueError("knowledge version must match the reading tradition")
         has_transit = any(factor.source is FactorSource.TRANSIT for factor in self.factors)
         if has_transit != (self.composition.transit_percent > 0):
