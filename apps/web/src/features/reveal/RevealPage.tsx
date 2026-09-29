@@ -66,7 +66,7 @@ export function RevealPage() {
     <>
       {completionError ? <p className="signal-station__error" role="alert">{completionError}</p> : null}
       <button className="signal-station__button" disabled={completing} onClick={() => void complete()} type="button">
-        {completing ? "Đang mở Note…" : "Lá hôm nay đang mở"} <ArrowDown aria-hidden="true" />
+        {completing ? "Đang mở Note…" : "Mở Note hôm nay"} <ArrowDown aria-hidden="true" />
       </button>
       <p className="signal-station__disclaimer">Một góc để tự soi, không phải chỉ dẫn cố định.</p>
     </>
@@ -75,7 +75,6 @@ export function RevealPage() {
   return (
     <SignalStationFrame act={2} actions={actions} loading={completing} titleId="reveal-title">
       <section className="signal-reveal-card">
-        <p className="signal-reveal-card__kicker">Đã tìm thấy Mặt Trời</p>
         <h1 id="reveal-title">Vibe · {vibeLabel}</h1>
         <p className="signal-reveal-card__pill">
           {isCusp

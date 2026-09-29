@@ -1,6 +1,7 @@
-import { ArrowBendUpRight, ThumbsDown, ThumbsUp, X } from "@phosphor-icons/react";
+import { ShareNetwork, ThumbsDown, ThumbsUp, X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 
 import type { ResonanceChoice } from "../api/client";
 
@@ -9,7 +10,6 @@ type ResonanceFeedbackProps = {
   selected: ResonanceChoice | null;
   pending: boolean;
   onSubmit: (choice: ResonanceChoice) => void;
-  onChangeAngle: () => void;
 };
 
 export function ResonanceFeedback({
@@ -17,7 +17,6 @@ export function ResonanceFeedback({
   selected,
   pending,
   onSubmit,
-  onChangeAngle,
 }: ResonanceFeedbackProps) {
   const [consentChoice, setConsentChoice] = useState<ResonanceChoice | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -113,43 +112,33 @@ export function ResonanceFeedback({
   ) : null;
 
   return (
-    <section aria-labelledby="resonance-title" className="resonance-feedback">
-      <div className="resonance-feedback__heading">
-        <div>
-          <p className="eyebrow">Bạn thấy sao?</p>
-          <h2 id="resonance-title">Góc này có chạm đúng không?</h2>
-        </div>
-        <span aria-hidden="true">01 tín hiệu</span>
-      </div>
-      <div className="resonance-feedback__actions">
+    <>
+      <div aria-label="Phản hồi và chia sẻ note" className="note-quick-actions" role="group">
         <button
+          aria-label="Trúng"
           aria-pressed={selected === "hit"}
           disabled={pending}
           onClick={(event) => choose("hit", event.currentTarget)}
+          title="Trúng"
           type="button"
         >
           <ThumbsUp aria-hidden="true" weight={selected === "hit" ? "fill" : "regular"} />
-          Trúng
         </button>
         <button
+          aria-label="Chưa trúng"
           aria-pressed={selected === "miss"}
           disabled={pending}
           onClick={(event) => choose("miss", event.currentTarget)}
+          title="Chưa trúng"
           type="button"
         >
           <ThumbsDown aria-hidden="true" weight={selected === "miss" ? "fill" : "regular"} />
-          Chưa trúng
         </button>
-        <button disabled={pending} onClick={onChangeAngle} type="button">
-          <ArrowBendUpRight aria-hidden="true" />
-          Đổi góc
-        </button>
+        <Link aria-label="Chia sẻ note" title="Chia sẻ note" to="/card">
+          <ShareNetwork aria-hidden="true" />
+        </Link>
       </div>
-      <p className="resonance-feedback__note">
-        Phản hồi chỉ nói về cách diễn đạt, không đánh giá bạn hay độ đúng của chiêm tinh.
-      </p>
-
       {consentDialog}
-    </section>
+    </>
   );
 }

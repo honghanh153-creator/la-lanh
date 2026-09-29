@@ -2500,6 +2500,7 @@ export interface components {
             question: string;
             question_intent: components["schemas"]["TarotQuestionIntent"];
             spread: components["schemas"]["TarotSpread"];
+            spread_map: components["schemas"]["TarotSpreadMap"];
             /** Summary */
             summary: string;
             voice: components["schemas"]["TarotVoice"];
@@ -2631,6 +2632,7 @@ export interface components {
             /** Selected Cards */
             selected_cards: components["schemas"]["TarotSelectedCard"][];
             spread: components["schemas"]["TarotSpread"];
+            spread_map: components["schemas"]["TarotSpreadMap"];
             state: components["schemas"]["TarotSessionState"];
             /**
              * Updated At
@@ -2645,7 +2647,12 @@ export interface components {
          * TarotSpread
          * @enum {string}
          */
-        TarotSpread: "one_card" | "three_card";
+        TarotSpread: "one_card" | "three_card" | "five_card";
+        /**
+         * TarotSpreadMap
+         * @enum {string}
+         */
+        TarotSpreadMap: "one_focus" | "three_unblock" | "five_clarity" | "five_loop" | "five_choice" | "five_conversation";
         /** TarotStartRequest */
         TarotStartRequest: {
             context: components["schemas"]["TarotContext"];
@@ -4095,6 +4102,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Unprocessable Content */
             422: {
                 headers: {
@@ -4125,6 +4139,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InviteResponse"];
                 };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4158,6 +4179,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InviteResponse"];
                 };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4563,6 +4591,13 @@ export interface operations {
                     "application/json": components["schemas"]["PublicInviteResponse"];
                 };
             };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -4632,6 +4667,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SubmitResponseResult"];
                 };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

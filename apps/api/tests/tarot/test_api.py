@@ -114,6 +114,29 @@ def test_three_card_session_rejects_competing_stale_selection(tarot_client: Test
     assert stale.json()["code"] == "TAROT_SESSION_CONFLICT"
 
 
+def test_five_card_session_freezes_map_and_completes_after_five_choices(
+    tarot_client: TestClient,
+) -> None:
+    headers = _guest_headers(tarot_client)
+    started = _start(tarot_client, headers, spread="five_card")
+
+    assert started["spread_map"] == "five_conversation"
+    assert started["required_cards"] == 5
+    current = started
+    for fan_index in range(5):
+        response = tarot_client.put(
+            f"/v1/tarot/sessions/{started['id']}/selections",
+            headers=headers,
+            json={"fan_index": fan_index, "expected_version": current["version"]},
+        )
+        assert response.status_code == 200
+        current = response.json()
+
+    assert current["state"] == "complete"
+    assert len(current["reading"]["positions"]) == 5
+    assert current["reading"]["spread_map"] == started["spread_map"]
+
+
 def test_question_gate_creates_no_session_and_returns_safe_reframe(
     tarot_client: TestClient,
 ) -> None:

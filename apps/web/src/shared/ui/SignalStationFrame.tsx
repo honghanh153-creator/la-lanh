@@ -13,8 +13,8 @@ type SignalStationFrameProps = {
 };
 
 const actLabels = {
-  0: "TRẠM BẮT SÓNG",
-  1: "TRẠM BẮT SÓNG",
+  0: "BẮT ĐẦU",
+  1: "NGÀY SINH",
   2: "LÁ ĐẦU TIÊN",
 } as const;
 
@@ -36,11 +36,11 @@ export function SignalStationFrame({
         <BrandMark />
       </header>
 
-      <div className="signal-progress" aria-label={`${actLabels[act]}, bước ${act} trên 2`}>
+      <div className="signal-progress" aria-label={`${actLabels[act]}, bước ${act + 1} trên 3`}>
         <span className="signal-progress__track" aria-hidden="true">
           <span className="signal-progress__fill" />
         </span>
-        <p>{actLabels[act]} · 0{act}/02</p>
+        <p>BƯỚC {act + 1}/3 · {actLabels[act]}</p>
       </div>
 
       <div className="signal-station__art" aria-hidden="true" />

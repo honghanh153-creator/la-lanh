@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createGuest } from "../../shared/api/client";
+import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 import { WelcomePage } from "./WelcomePage";
 
 vi.mock("../../shared/api/client", async (original) => {
@@ -38,16 +39,15 @@ describe("WelcomePage", () => {
     });
   });
 
-  it("shows concise consent as Trạm 00/02 without a carousel or login wall", () => {
+  it("shows one concise consent step without a carousel or login wall", () => {
     renderPage();
 
     expect(screen.getByLabelText("Lá Lành")).toBeInTheDocument();
-    expect(screen.getByText("TRẠM BẮT SÓNG · 00/02")).toBeInTheDocument();
+    expect(screen.getByText("BƯỚC 1/3 · BẮT ĐẦU")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Có một tín hiệu đã đi cùng bạn từ ngày bạn xuất hiện." })).toBeInTheDocument();
-    expect(screen.getByText(/Phiên khách tự hết hạn sau 30 ngày/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Đồng ý & bật tín hiệu" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Đồng ý & bắt đầu" })).toBeEnabled();
     expect(screen.getByRole("link", { name: "Xem bản mẫu" })).toHaveAttribute("href", "/demo");
-    expect(screen.getByRole("link", { name: "Xem chi tiết" })).toHaveAttribute("href", "/privacy");
+    expect(screen.getByRole("link", { name: "Quyền riêng tư" })).toHaveAttribute("href", "/privacy");
     expect(document.querySelector('a[href="/consent"]')).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Tiến độ giới thiệu")).not.toBeInTheDocument();
     expect(screen.queryByText("Mình đã có tài khoản")).not.toBeInTheDocument();
@@ -55,10 +55,14 @@ describe("WelcomePage", () => {
 
   it("creates a guest directly and moves to DOB with one affirmative action", async () => {
     const user = userEvent.setup();
+    sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, "radar-request-1");
+    sessionStorage.setItem("la-lanh-radar-owner-start", "1");
     renderPage();
-    await user.click(screen.getByRole("button", { name: "Đồng ý & bật tín hiệu" }));
+    await user.click(screen.getByRole("button", { name: "Đồng ý & bắt đầu" }));
 
     expect(createGuest).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY)).toBe("radar-request-1");
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("1");
     expect(await screen.findByRole("heading", { name: "Ngày sinh" })).toBeInTheDocument();
   });
 });

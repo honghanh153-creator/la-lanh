@@ -1,11 +1,11 @@
 # Lá Hỏi — Tarot engine specification
 
-Status: launch slice implemented on 2026-09-27. CMS and live-reader mode are out of scope.
+Status: question-first 1/3/5-card slice implemented on 2026-09-28. CMS and live-reader mode are out of scope.
 
 ## Product promise
 
-Lá Hỏi is a private self-draw reflection flow. The user brings one real question, chooses one or
-three face-down cards from a 78-card fan, and receives a concrete reading anchored to an everyday
+Lá Hỏi is a private self-draw reflection flow. The user brings one real question, chooses one,
+three, or five face-down cards from a 78-card fan, and receives a concrete reading anchored to an everyday
 scene, a reflection question, and one reversible action. It does not predict certainty or claim to
 read another person's mind.
 
@@ -23,6 +23,14 @@ birth data, or report evidence in the URL.
   This typed intent changes the rendered interpretation; it is not decorative metadata.
 - One-card spread: `Điều đáng nhìn lúc này`.
 - Three-card spread: `Điều đã rõ` → `Điều dễ bỏ sót` → `Một bước nhỏ có thể thử`.
+- Five-card mode chooses and freezes one map when the session starts:
+  - clarity: facts → assumption → need → agency → next check;
+  - loop: trigger → habitual response → immediate payoff → later cost → alternative;
+  - choice: non-negotiable need → option A gain/cost → option B gain/cost → real trade-off → criterion;
+  - conversation: facts → feeling → need → boundary → opening line.
+- The client recommends depth locally from the question shape. The question is not transmitted for
+  recommendation; the server validates the final question and freezes the spread map only after the
+  user presses `Xòe bài`.
 - Every position contains: card theme, contextual meaning, everyday scene, reflection question,
   and a small action with explicit permission to stop when it does not fit reality.
 - The launch voice is fixed to `playful_grounded`: current, direct, lightly playful, and never
@@ -33,7 +41,7 @@ birth data, or report evidence in the URL.
 The launch deck contains 22 Major Arcana and 56 Minor Arcana, upright only. Major Arcana have
 original, card-specific Vietnamese semantic atoms. Minor Arcana use a compositional matrix:
 
-`suit domain × rank motion × tension × resource × context lens × spread position × question intent`
+`suit domain × rank motion × tension × resource × context lens × spread map × position × question intent`
 
 This lets the engine vary by question and position without pretending random prose is
 personalization. Reversals, named historical spreads, deck imagery, AI prose generation, and live
@@ -77,7 +85,7 @@ are original product content. Detailed rights notes are in `docs/legal/tarot-sou
 
 ## Quality gates
 
-`pnpm tarot:audit` renders all 78 cards in all six contexts plus three-card samples. It fails on
+`pnpm tarot:audit` renders all 78 cards in all six contexts plus multi-card samples. It fails on
 missing deck/source coverage, forbidden mystical filler, empty or thin semantic blocks, missing
 provenance, and repeated three-card meanings/actions. It runs inside `pnpm check`.
 
@@ -92,4 +100,3 @@ question reframe, CSRF rejection, owner isolation, and expiry cleanup.
 - The current server-persisted shuffle is tamper-resistant against client redraws but is not a
   user-verifiable fairness proof. Add a commitment/reveal protocol only if product research shows
   that proof materially increases trust.
-

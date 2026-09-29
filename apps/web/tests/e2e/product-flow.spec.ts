@@ -92,6 +92,10 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
     if (route.request().method() === "GET") return route.fulfill({ status: 200, json: null });
     await route.fulfill({ status: 200, json: { id: "mood-test", daily_note_id: "note-test", mood: "Chill", checked_in_at: "2026-09-02T00:00:00Z" } });
   });
+  await page.route("**/v1/daily-note/resonance", async (route) => route.fulfill({ status: 200, json: {
+    consented: false, feedback_count: 0, last_choice: null,
+  } }));
+  await page.route("**/v1/daily-note/experiment", async (route) => route.fulfill({ status: 200, json: null }));
   await page.route("**/v1/saved-notes", async (route) => route.fulfill({ status: 200, json: [] }));
   await page.route("**/v1/daily-note/note-test/saved", async (route) => {
     savedRevisionId = (route.request().postDataJSON() as { revision_id?: string }).revision_id ?? null;
@@ -112,6 +116,15 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
     } });
   });
   await page.route("**/v1/birth-profile/supplement", async (route) => route.fulfill({ status: 404, json: { code: "BIRTH_PROFILE_NOT_FOUND" } }));
+  await page.route("**/v1/insights/overview**", async (route) => route.fulfill({ status: 200, json: {
+    status: "locked", required_fields: ["birth_time", "birth_place"], reading: null,
+    bodies: [], houses_available: false, time_precision: "unknown",
+  } }));
+  await page.route("**/v1/insights/current-sky**", async (route) => route.fulfill({ status: 200, json: {
+    observed_at: "2026-09-28T00:00:00Z", tradition: "western", config_hash: "sky-test",
+    bodies: [{ body: "sun", sign: "libra", longitude: 185, degree_in_sign: 5, retrograde: false }],
+    note: "Ảnh chụp bầu trời, không phải lời phán.",
+  } }));
 
   await page.goto("/welcome");
   await expect(page.getByText("TRẠM BẮT SÓNG · 00/02")).toBeVisible();
@@ -131,6 +144,29 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   await page.getByRole("button", { name: "Lá hôm nay đang mở" }).click();
 
   await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole("heading", { name: "Bạn đang muốn hiểu điều gì?" })).toBeVisible();
+  await expect(page.getByLabel("Note hôm nay")).toBeVisible();
+  expect(await page.getByLabel("Note hôm nay").evaluate((note, question) => (
+    Boolean(note.compareDocumentPosition(question as Node) & Node.DOCUMENT_POSITION_FOLLOWING)
+  ), await page.getByRole("region", { name: "Bạn đang muốn hiểu điều gì?" }).elementHandle())).toBe(true);
+
+  await page.getByRole("link", { name: /^Chuyện đang xảy ra/ }).click();
+  await expect(page).toHaveURL(/\/insights\/current-sky/);
+  await expect(page.getByText("Ảnh chụp bầu trời, không phải lời phán.")).toBeVisible();
+  await page.getByRole("link").first().click();
+  await expect(page).toHaveURL(/\/home$/);
+
+  await page.getByRole("link", { name: "Bản đồ" }).click();
+  await expect(page).toHaveURL(/\/insights$/);
+  await expect(page.getByRole("heading", { name: "Cần giờ và nơi sinh để đọc đủ chart." })).toBeVisible();
+  await page.getByRole("link", { name: "Về hôm nay" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+
+  await page.getByRole("link", { name: /Có một chuyện cứ chạy trong đầu/ }).click();
+  await expect(page).toHaveURL(/\/tarot$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByText("Lá Chứng")).toHaveCount(0);
   await expect(
     page.getByLabel("Note hôm nay").getByText("Vibe · Một lớp từ ngày sinh"),
   ).toBeVisible();

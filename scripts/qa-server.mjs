@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { createReadStream, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { chmodSync, createReadStream, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer, request as requestUpstream } from "node:http";
 import { homedir, tmpdir } from "node:os";
@@ -22,6 +23,41 @@ const MIME_TYPES = {
 
 export const DEFAULT_QA_API_PORT = 8010;
 export const DEFAULT_QA_WEB_PORT = 5180;
+
+export function prepareQaDatabase({
+  webPort,
+  env = process.env,
+  projectRoot = process.cwd(),
+  tempRoot = tmpdir(),
+} = {}) {
+  if (!Number.isInteger(webPort) || webPort < 1 || webPort > 65_535) {
+    throw new TypeError("webPort must be a valid port");
+  }
+  if (env.LA_LANH_QA_DATABASE_URL) {
+    return { databaseUrl: env.LA_LANH_QA_DATABASE_URL, cleanup: null, storagePath: null };
+  }
+  if (env.LA_LANH_QA_EPHEMERAL === "1") {
+    const directory = mkdtempSync(join(tempRoot, "la-lanh-qa-live-"));
+    return {
+      databaseUrl: `sqlite+aiosqlite:///${join(directory, "qa.db")}`,
+      cleanup: () => rmSync(directory, { recursive: true, force: true }),
+      storagePath: directory,
+    };
+  }
+
+  const projectKey = createHash("sha256").update(resolve(projectRoot)).digest("hex").slice(0, 12);
+  const directory = join(tempRoot, `la-lanh-qa-live-${projectKey}-${webPort}`);
+  if (env.LA_LANH_QA_RESET === "1") {
+    rmSync(directory, { recursive: true, force: true });
+  }
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  chmodSync(directory, 0o700);
+  return {
+    databaseUrl: `sqlite+aiosqlite:///${join(directory, "qa.db")}`,
+    cleanup: null,
+    storagePath: directory,
+  };
+}
 
 const SECURITY_HEADERS = {
   "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'",
@@ -181,13 +217,10 @@ async function startCli() {
   if (!existsSync(uv)) {
     throw new Error("Không tìm thấy uv tại ~/.local/bin/uv. Hãy cài dependencies của API trước.");
   }
-  const qaScratch = process.env.LA_LANH_QA_DATABASE_URL
-    ? null
-    : mkdtempSync(join(tmpdir(), "la-lanh-qa-live-"));
+  const qaDatabase = prepareQaDatabase({ projectRoot: root, webPort });
   const apiEnv = {
     ...process.env,
-    LA_LANH_DATABASE_URL: process.env.LA_LANH_QA_DATABASE_URL
-      ?? `sqlite+aiosqlite:///${join(qaScratch, "qa.db")}`,
+    LA_LANH_DATABASE_URL: qaDatabase.databaseUrl,
     LA_LANH_ENVIRONMENT: "development",
     LA_LANH_CORS_ORIGINS: process.env.LA_LANH_CORS_ORIGINS
       ?? JSON.stringify([webOrigin]),
@@ -205,7 +238,7 @@ async function startCli() {
 
   const stop = () => {
     if (api.exitCode === null) api.kill("SIGTERM");
-    if (qaScratch) rmSync(qaScratch, { recursive: true, force: true });
+    qaDatabase.cleanup?.();
   };
   process.once("SIGINT", () => { stop(); process.exit(0); });
   process.once("SIGTERM", () => { stop(); process.exit(0); });
@@ -215,6 +248,9 @@ async function startCli() {
     const server = createQaServer({ distDir, apiOrigin });
     server.on("close", stop);
     server.listen(webPort, "127.0.0.1", () => {
+      if (qaDatabase.storagePath && process.env.LA_LANH_QA_EPHEMERAL !== "1") {
+        console.log(`QA data cục bộ: ${qaDatabase.storagePath} (LA_LANH_QA_RESET=1 để xoá)`);
+      }
       console.log(`\nLá Lành QA đã sẵn sàng: http://127.0.0.1:${webPort}/welcome\n`);
     });
   } catch (error) {

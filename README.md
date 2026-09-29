@@ -42,8 +42,11 @@ Launcher sẽ build web, khởi động API + web trên máy và tự mở trìn
 - Kiểm tra readiness: http://127.0.0.1:5180/__qa/ready
 
 Môi trường QA chỉ bind vào `127.0.0.1`; máy khác trong mạng không thể truy cập. Dừng bằng `Ctrl+C` trong cửa sổ launcher.
-Mỗi lần chạy dùng một database QA tạm mới và dọn database đó khi dừng; dữ liệu development của bạn không bị đọc hoặc ghi.
-Nếu chủ động cần QA với database khác, chỉ `LA_LANH_QA_DATABASE_URL` mới được chấp nhận; biến database chung bị bỏ qua để tránh chạm nhầm dữ liệu thật.
+QA giữ một database local riêng theo project và port để phiên review không biến mất khi restart. Thư mục chỉ cho user hiện tại truy cập (`0700`), nằm trong thư mục tạm của hệ điều hành và không dùng chung với database development/production.
+
+- Cần một phiên sạch: chạy với `LA_LANH_QA_RESET=1`.
+- Cần database tự xoá khi dừng: chạy với `LA_LANH_QA_EPHEMERAL=1`.
+- Cần QA với database chỉ định: dùng `LA_LANH_QA_DATABASE_URL`; biến database chung vẫn bị bỏ qua để tránh chạm nhầm dữ liệu thật.
 
 Chạy full stack development (cần Docker/PostgreSQL):
 

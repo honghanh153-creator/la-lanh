@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ideation · Trend-window Astro/Tarot games</title>
+  <style>
+    :root{--bg:#07091d;--panel:#11142f;--panel2:#181a3b;--ink:#fbf8ee;--muted:#bbb5d2;--lime:#dbff34;--violet:#bd8eff;--coral:#ff756e;--mint:#72e4c4;--line:#35385f;--paper:#f5eddd;--paperInk:#17132d}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 88% 0,#2b1248 0,transparent 34%),radial-gradient(circle at 0 38%,rgba(219,255,52,.06),transparent 29%),var(--bg);color:var(--ink);font:15px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{width:min(980px,calc(100% - 30px));margin:auto;padding:46px 0 80px}.hero,.winner{padding:34px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(145deg,rgba(189,142,255,.13),rgba(219,255,52,.04))}.eyebrow,.rank{color:var(--lime);font-size:12px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}.hero h1{font-size:clamp(36px,7vw,66px);line-height:1;letter-spacing:-.05em;max-width:850px;margin:14px 0 18px}.hero p{font-size:18px;color:var(--muted);max-width:76ch}.meta,.flow,.badges{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.chip,.badge{border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--muted);font-size:12px}h2{font-size:28px;letter-spacing:-.03em;margin:54px 0 16px}h3{font-size:24px;line-height:1.17;margin:7px 0 12px}.lede,.idea p{max-width:77ch}.lede{color:var(--muted)}.signal-grid,.jump,.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.signal,.jump a,.mini{padding:14px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.025);color:var(--ink);text-decoration:none}.signal b,.mini b{display:block;color:var(--lime);margin-bottom:4px}.signal span,.mini span{color:var(--muted);font-size:13px}.jump a:hover{border-color:var(--lime)}.idea{margin:20px 0;padding:27px;border:1px solid var(--line);border-radius:24px;background:var(--panel)}.idea.top{border-color:rgba(219,255,52,.58);box-shadow:0 0 36px rgba(219,255,52,.07)}.idea dl{display:grid;grid-template-columns:120px 1fr;gap:8px 16px;margin:20px 0 0}.idea dt{color:var(--violet);font-weight:850}.idea dd{margin:0;color:#ddd8ea}.down{color:#ffb3ae}.diagram{margin:20px 0;padding:17px;border:1px solid var(--line);border-radius:18px;background:#0b0d26}.node{border:1px solid #565a89;border-radius:12px;padding:10px 12px;background:var(--panel2)}.node.hot{border-color:var(--lime);box-shadow:0 0 21px rgba(219,255,52,.12)}.node.safe{border-color:var(--mint)}.arrow{color:var(--coral)}.paper{background:var(--paper);color:var(--paperInk);border-radius:20px;padding:24px;margin:18px 0}.paper h4{font-size:19px;margin:0 0 10px}.paper li{margin:8px 0}.winner{margin-top:25px;border-color:rgba(219,255,52,.48)}.winner h2{margin:7px 0 10px}.bigline{font-size:clamp(24px,4vw,40px);line-height:1.1;font-weight:900;letter-spacing:-.04em;max-width:20ch}.why{border-left:3px solid var(--coral);padding:7px 16px;color:var(--muted);max-width:78ch}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:12px 9px}th{color:var(--lime);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.sources a{color:var(--violet)}footer{margin-top:54px;border-top:1px solid var(--line);padding-top:16px;color:#8983a5;font-size:12px}@media(max-width:640px){main{width:min(100% - 20px,980px);padding-top:18px}.hero,.winner,.idea{padding:20px}.idea dl{grid-template-columns:1fr;gap:2px}.idea dd{margin-bottom:10px}.arrow{display:none}table{font-size:13px}th,td{padding:9px 5px}}
+  </style>
+</head>
+<body><main>
+  <header class="hero">
+    <div class="eyebrow">Ideation · trend-window revision</div>
+    <h1>Game phải diễn ra ngay trong group chat, không phải nằm một mình trong app.</h1>
+    <p>Bản trước mới tạo referral loop hợp lý. Bản này đổi premise: Lá Lành cần một <strong>live social game 5–8 phút</strong>, nơi cả hội cùng đoán, react và lật “chart receipt”. Link mời không còn là marketing — nó chính là vé vào room đang chạy.</p>
+    <div class="meta"><span class="chip">Ngày 2026-09-28</span><span class="chip">Mode: repo-grounded</span><span class="chip">Focus: trend-window · live social play · campus</span></div>
+  </header>
+
+  <section>
+    <h2>Why now — cửa sổ trend đang mở</h2>
+    <div class="signal-grid">
+      <div class="signal"><b>Reali-Tea</b><span>TikTok 2026 ghi nhận dịch chuyển khỏi “delulu” sang chuyện thật, cảm xúc thật và lore thật.</span></div>
+      <div class="signal"><b>Co-creation</b><span>Reaction, meme và comment không còn là hậu kỳ; cộng đồng trở thành một phần của nội dung.</span></div>
+      <div class="signal"><b>Social play</b><span>Discord báo cáo social layer có thể tăng retention, session length và số ngày mở game trong nghiên cứu nội bộ 2026.</span></div>
+      <div class="signal"><b>Weird IRL</b><span>Các buổi tụ tập Gen Z có concept ngách tăng mạnh; thứ đáng share là khoảnh khắc đã tham gia, không phải banner quảng cáo.</span></div>
+      <div class="signal"><b>Student broadcaster</b><span>Case sinh viên Việt Nam hiệu quả khi online → offline → online, với QR, minigame và moment quay được.</span></div>
+    </div>
+    <p class="why"><strong>Kết luận:</strong> cơ hội không nằm ở “thêm một quiz astrology”. Nó nằm ở việc biến astrology thành <em>đạo cụ xã hội</em> cho một khoảnh khắc vui có thật giữa bạn bè. Nếu chỉ ra mắt quiz async, Lá Lành sẽ đi sau trend thay vì tạo format mới.</p>
+  </section>
+
+  <section>
+    <h2>Topic axes</h2>
+    <div class="signal-grid"><div class="signal">Live tension &amp; reveal</div><div class="signal">Group participation</div><div class="signal">Share artifact có lore</div><div class="signal">Astro/Tarot as evidence, not decoration</div><div class="signal">Campus-to-social distribution</div></div>
+  </section>
+
+  <section class="winner">
+    <div class="rank">TOP PICK · BUILD THE MOMENT</div>
+    <h2>Vũ Trụ Leak</h2>
+    <div class="bigline">Cả hội đoán bạn. Chart đưa receipt.</div>
+    <p>Một người mở room, kéo 3–8 bạn vào bằng link/QR. Mỗi vòng có một người lên “ghế nóng”; cả hội đoán họ sẽ phản ứng thế nào trong một tình huống rất đời. Sau countdown, app lật ba lớp: vote của hội, đáp án thật của người đó và một chart receipt ngắn giải thích pattern có thể đứng sau. Cuối room, một lá Tarot tạo plot twist và app xuất recap dọc để share.</p>
+    <div class="diagram"><div class="flow"><span class="node hot">Mở room</span><span class="arrow">→</span><span class="node safe">Bạn vào bằng link</span><span class="arrow">→</span><span class="node">Cả hội đoán</span><span class="arrow">→</span><span class="node hot">Vote + đáp án + chart receipt</span><span class="arrow">→</span><span class="node">Tarot plot twist</span><span class="arrow">→</span><span class="node">Leak Tape 9:16</span></div></div>
+    <div class="badges"><span class="badge">5–8 phút</span><span class="badge">3–8 người</span><span class="badge">Không cần tài khoản để join</span><span class="badge">Không có free-text ẩn danh</span></div>
+  </section>
+
+  <section>
+    <h2>Ranked ideas</h2>
+    <nav class="jump" aria-label="Đi tới ý tưởng"><a href="#i1">01 · Vũ Trụ Leak</a><a href="#i2">02 · Toà Vũ Trụ</a><a href="#i3">03 · 21:21 Cosmic Drop</a><a href="#i4">04 · Mercury Relay</a><a href="#i5">05 · Tarot Plot Twist</a><a href="#i6">06 · 12 Nhà After Dark</a></nav>
+
+    <article class="idea top" id="i1">
+      <div class="rank">01 · LIVE PARTY GAME</div><h3>Vũ Trụ Leak — Jackbox gặp birth chart</h3>
+      <p>Mỗi round dùng prompt đóng, đời thường và đủ gây tranh luận: “Deadline dí sát, bạn này sẽ biến mất để tự làm hay kéo cả nhóm họp ngay?”, “Bị seen, họ nhắn tiếp hay giả vờ quên?”. Người trên ghế nóng chọn đáp án bí mật; bạn bè vote trước khi app reveal. Chart receipt đóng vai “nhân chứng thứ ba”, không phán ai đúng.</p>
+      <div class="paper"><h4>Một reveal đủ để quay màn hình</h4><ol><li><strong>67% hội đoán:</strong> bạn sẽ im để tự xử.</li><li><strong>Đáp án thật:</strong> bạn sẽ hỏi thẳng — nhưng chỉ khi không khí đủ an toàn.</li><li><strong>Chart receipt:</strong> Mercury thiên về làm rõ; Moon lại cần một nhịp để hạ phòng thủ. Vậy nên bạn không né câu chuyện, bạn né đúng lúc đang quá tải.</li><li><strong>Reaction:</strong> “Biết ngay”, “Plot twist”, “Không tin”.</li></ol></div>
+      <p>Người chưa có chart vẫn chơi trọn vẹn bằng vote và đáp án thật. Chỉ chủ profile đã consent mới bật chart receipt; không hiển thị placement, ngày sinh hoặc evidence raw trong room. “Leak Tape” cuối game gồm các con số vui như <em>người bị đoán lệch nhất</em>, <em>người bắt vibe chuẩn nhất</em>, <em>plot twist của đêm</em> — không có toxic score.</p>
+      <dl><dt>Axis</dt><dd>Live tension · group participation · share artifact</dd><dt>Basis</dt><dd><strong>external:</strong> TikTok 2026 nhấn mạnh co-creation, reactions và “tea” thật; Discord công bố hiệu ứng tích cực của social layers; high-concept gatherings đang tăng. <strong>direct:</strong> Lá Lành đã có guest, invite token, chart engine, content gate, Tarot và share renderer.</dd><dt>Rationale</dt><dd>Không thể trải nghiệm đầy đủ khi chơi một mình, nên referral trở thành mechanic cốt lõi. Mỗi reveal vừa là trò vui vừa chứng minh USP: chart làm rõ khác biệt giữa người khác nhìn mình và mình thật sự vận hành thế nào.</dd><dt>Downsides</dt><dd class="down">Net-new realtime room và đồng bộ trạng thái. Content cần cực sắc; prompt dở sẽ biến game thành Kahoot tính cách. Phải khóa free-text để tránh bóc phốt.</dd><dt>Confidence</dt><dd>96%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="i2">
+      <div class="rank">02 · REAL-LIFE LORE</div><h3>Toà Vũ Trụ — đem một vụ nhỏ ra “xử”</h3>
+      <p>Host chọn một “vụ án” low-stakes từ template: seen rồi quên rep, đổi lịch phút chót, chia việc group project, rủ đi nhưng không chốt giờ. Bạn bè vào vai Moon, Mercury, Venus và Saturn để vote một góc nhìn; app lật evidence theo từng vai rồi chủ vụ tự chốt điều nào đúng với thực tế.</p>
+      <p>Không được nhập tên người bị nói đến, không phán ý định của người vắng mặt, không có kết luận ai đúng/sai. Phiên kết thúc bằng một câu có thể hỏi thật ngoài đời thay vì “bản án”.</p>
+      <dl><dt>Axis</dt><dd>Reali-Tea · co-creation · useful reflection</dd><dt>Basis</dt><dd><strong>external:</strong> trend 2026 ưu tiên real story, layered perspective và cộng đồng tham gia tạo meaning. <strong>reasoned:</strong> planet-role khiến astrology trở thành cấu trúc tranh luận dễ hiểu thay vì thuật ngữ.</dd><dt>Rationale</dt><dd>Có meme potential rất cao và bám đúng “tea”, nhưng vẫn đưa người chơi về dữ kiện thật.</dd><dt>Downsides</dt><dd class="down">Ranh giới với public shaming rất mỏng. Chỉ nên ship sau khi prompt moderation và report flow của Vũ Trụ Leak chứng minh được.</dd><dt>Confidence</dt><dd>89%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="i3">
+      <div class="rank">03 · SYNCHRONIZED DROP</div><h3>21:21 Cosmic Drop — một giờ hẹn cho cả campus</h3>
+      <p>Mỗi tối thứ Năm lúc 21:21, app drop một prompt và một “mảnh tín hiệu” khác nhau cho mỗi người. Trong 21 phút, ba người ghép mảnh bằng room code để mở một challenge/reveal chung. Sau 21 phút, drop đóng và chỉ còn recap. CLB có thể host bản campus bằng QR tại booth.</p>
+      <dl><dt>Axis</dt><dd>Urgency · ritual · campus density</dd><dt>Basis</dt><dd><strong>external:</strong> social play mạnh hơn khi có presence/join-now; themed gatherings tạo FOMO nhờ thời điểm và concept rõ. <strong>reasoned:</strong> appointment mechanic làm người dùng có lý do kéo bạn vào ngay, không “để mai”.</dd><dt>Rationale</dt><dd>Đây là ý có khả năng trở thành ritual riêng của Lá Lành và tạo launch event đáng nhớ.</dd><dt>Downsides</dt><dd class="down">Cold-start rất cao; nếu không đủ người online thì trải nghiệm chết. Chỉ nên dùng như event mode trên Vũ Trụ Leak, không làm product core độc lập.</dd><dt>Confidence</dt><dd>85%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="i4">
+      <div class="rank">04 · COMMUNICATION GAME</div><h3>Mercury Relay — tin nhắn đi một vòng sẽ biến thành gì?</h3>
+      <p>Một người chọn thông điệp từ prompt bank. Người tiếp theo chỉ thấy intent, chọn cách nói; người sau chỉ thấy câu vừa được truyền và đoán mood. Sau 4–6 lượt, app lật đường đi của thông điệp và dùng Mercury/Moon receipt để giải thích chỗ nào dễ lệch.</p>
+      <dl><dt>Axis</dt><dd>Party mechanic · astrology learning · communication</dd><dt>Basis</dt><dd><strong>reasoned:</strong> telephone game đã có loop vui tự nhiên; chart thêm giá trị đúng ở chỗ “tại sao cùng một câu được nghe khác nhau”.</dd><dt>Rationale</dt><dd>Game có learning value rõ và tránh chấm điểm tính cách.</dd><dt>Downsides</dt><dd class="down">Khó chơi async; cần mỗi người có mặt đủ lâu. Không được dùng free-text không kiểm soát ở MVP.</dd><dt>Confidence</dt><dd>83%</dd><dt>Complexity</dt><dd>Medium–High</dd></dl>
+    </article>
+
+    <article class="idea" id="i5">
+      <div class="rank">05 · CO-CREATED STORY</div><h3>Tarot Plot Twist — cả hội dựng một tập phim bằng bài</h3>
+      <p>Host chọn setup rất đời như “cả nhóm còn hai tiếng trước deadline”. Mỗi người bí mật bốc một lá và chọn một hành động từ ba phương án; app ghép thành bốn cảnh, reveal từng lá như plot twist rồi xuất trailer 9:16. Câu chuyện là hư cấu có yếu tố từ lựa chọn thật, không phải dự đoán.</p>
+      <dl><dt>Axis</dt><dd>Tarot · collaborative creation · video artifact</dd><dt>Basis</dt><dd><strong>direct:</strong> engine đã có 78 lá, spread và content gates. <strong>external:</strong> narrative-first puzzle và co-created media phù hợp với hành vi share hiện tại.</dd><dt>Rationale</dt><dd>Thị giác mạnh, dễ tạo series theo mùa thi, freshers week, tình bạn và crush.</dd><dt>Downsides</dt><dd class="down">Cá nhân hóa yếu hơn Vũ Trụ Leak; asset animation và copy matrix lớn.</dd><dt>Confidence</dt><dd>81%</dd><dt>Complexity</dt><dd>Medium–High</dd></dl>
+    </article>
+
+    <article class="idea" id="i6">
+      <div class="rank">06 · IRL CAMPUS EVENT</div><h3>12 Nhà After Dark — campus scavenger party</h3>
+      <p>Một event 60 phút: đội 3–5 người đi qua bốn QR station đại diện bốn góc đời sống, giải micro-game Astro/Tarot và gom symbol để mở “house” cuối. Mỗi station tạo một clip/reaction prompt; recap của đội được render ngay tại booth.</p>
+      <dl><dt>Axis</dt><dd>Online → offline → online</dd><dt>Basis</dt><dd><strong>external:</strong> student campaign tại Việt Nam có hiệu quả khi QR/minigame/check-in được thiết kế để trở thành social content; niche event concept là tín hiệu mạnh của 2026.</dd><dt>Rationale</dt><dd>Đây là activation khó sao chép và biến brand thành một trải nghiệm campus thật.</dd><dt>Downsides</dt><dd class="down">Vận hành nặng, cần partner/CLB và venue. Nên là launch stunt sau khi party room đã chạy ổn.</dd><dt>Confidence</dt><dd>77%</dd><dt>Complexity</dt><dd>Very high operations</dd></dl>
+    </article>
+  </section>
+
+  <section>
+    <h2>Top concept: điều khiến nó không phải “quiz đổi áo”</h2>
+    <div class="cards"><div class="mini"><b>Presence</b><span>Room đang chạy, countdown có thật; người được đoán đang ở đó để reveal.</span></div><div class="mini"><b>Three-way truth</b><span>Vote của nhóm ≠ đáp án thật ≠ chart receipt. Khoảng lệch mới là nội dung.</span></div><div class="mini"><b>Reaction surface</b><span>Reaction là một phần game và recap, không chỉ nút thả tim.</span></div><div class="mini"><b>Lore artifact</b><span>Share “chuyện vừa xảy ra trong hội” thay vì poster horoscope chung chung.</span></div><div class="mini"><b>Consent by presence</b><span>Chủ profile tự bật receipt trong room; không ai lén nhập chart người khác.</span></div></div>
+  </section>
+
+  <section>
+    <h2>Rejection summary — 20 cơ chế đã qua sàng lọc</h2>
+    <table><thead><tr><th>#</th><th>Ý tưởng</th><th>Kết luận</th></tr></thead><tbody>
+      <tr><td>1</td><td>Bắt đúng vibe async</td><td>Giữ làm fallback solo, nhưng không đủ mới: thiếu presence, reaction và group lore.</td></tr>
+      <tr><td>2</td><td>Bốc hộ một lá</td><td>Giữ như một round trong Tarot Plot Twist; đứng riêng chưa đủ tension.</td></tr>
+      <tr><td>3</td><td>Study Buddy streak</td><td>Retention idea, không tạo “phải thử ngay”; dễ gây nghĩa vụ.</td></tr>
+      <tr><td>4</td><td>Daily Astro Wordle</td><td>Khá tốt cho habit nhưng thị trường đã quen daily puzzle; referral yếu.</td></tr>
+      <tr><td>5</td><td>Blind Mirror 3 bạn</td><td>Insight hay nhưng lại là survey async; dễ tạo pressure mời đủ người.</td></tr>
+      <tr><td>6</td><td>Chart Roast tự do</td><td>Loại vì toxic, public shaming và content moderation không kiểm soát.</td></tr>
+      <tr><td>7</td><td>Cosmic Confession ẩn danh</td><td>Loại; bài học NGL cho thấy anonymous teen feedback có rủi ro nghiêm trọng.</td></tr>
+      <tr><td>8</td><td>Crush leaderboard</td><td>Loại; xếp hạng compatibility dễ dẫn tới bắt nạt và hiểu sai astrology.</td></tr>
+      <tr><td>9</td><td>Class compatibility map</td><td>Loại; lộ social graph và derived profile.</td></tr>
+      <tr><td>10</td><td>Teacher archetype dashboard</td><td>Loại; astrology không được dùng để phân loại học sinh.</td></tr>
+      <tr><td>11</td><td>Referral mở full natal</td><td>Loại; dark pattern và ép social để lấy giá trị core.</td></tr>
+      <tr><td>12</td><td>Quay số referral</td><td>Loại; spam, promotion/lottery risk và không chứng minh product value.</td></tr>
+      <tr><td>13</td><td>Public campus rank</td><td>Loại; tạo shame và competition rỗng.</td></tr>
+      <tr><td>14</td><td>Astro dating battle</td><td>Hoãn; trộn game với quyết định quan hệ và người chưa consent.</td></tr>
+      <tr><td>15</td><td>Cosmic blind-box trading</td><td>Hoãn; collectible tốt nhưng dễ trượt sang gacha, FOMO và vật phẩm không có nghĩa.</td></tr>
+      <tr><td>16</td><td>Astro BeReal clone</td><td>Loại; phụ thuộc camera/UGC moderation và không có moat riêng.</td></tr>
+      <tr><td>17</td><td>Find your cosmic twin</td><td>Hoãn; cần network density và có thể tiết lộ birth-profile ngoài ý muốn.</td></tr>
+      <tr><td>18</td><td>AI astrologer NPC</td><td>Loại ở giai đoạn này; user đã bác chatbot và safety surface quá rộng.</td></tr>
+      <tr><td>19</td><td>AR Major Arcana hunt</td><td>Gộp vào 12 Nhà event; AR riêng không tạo loop đủ mạnh so với chi phí.</td></tr>
+      <tr><td>20</td><td>Astro meme generator</td><td>Chỉ là output format; dùng làm Leak Tape, không phải game.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section>
+    <h2>Safety line không được vượt</h2>
+    <ul class="lede"><li>Ra mắt 18+ trước; không dùng “học sinh” làm growth target cho live social game liên quan relationship.</li><li>Không có free-text ẩn danh, contact upload, auto-invite hoặc public room discovery ở MVP.</li><li>Không đoán mental health, sexuality, trauma, cheating, crush identity, exam outcome hoặc “ai toxic”.</li><li>Chart receipt chỉ bật với profile của người đang có mặt và đã consent; room không lộ birth data/evidence raw.</li><li>Host có kick/end/revoke; người chơi có leave/report; room và reaction hết hạn ngắn.</li><li>Tarot finale là reflection/plot twist, không quyết định hộ nhóm và không đọc ý định người vắng mặt.</li></ul>
+  </section>
+
+  <section class="sources">
+    <h2>Selected grounding</h2>
+    <p><a href="https://ads.tiktok.com/business/en-GB/next">TikTok Next 2026</a> · <a href="https://ads.tiktok.com/business/library/TikTok_Next_2026_Trend_Report.pdf">TikTok trend report PDF</a> · <a href="https://discord.com/press-releases/introducing-new-tools-to-power-game-discovery-and-social-play">Discord social play 2026</a> · <a href="https://www.axios.com/local/washington-dc/2026/09/18/partiful-gen-z-banana-bald-parties-meridian-hill">High-concept gathering signal</a> · <a href="https://bsiawards.buzzmetrics.com/case-library/giai-the-thao-sinh-vien-toan-quoc-nam-2025---cup-tv360-2">Vietnam student O2O2O case</a></p>
+    <p><a href="https://www.ftc.gov/news-events/news/press-releases/2024/07/ftc-order-will-ban-ngl-labs-and-its-founders-offering-anonymous-messaging-apps-to-kids-under-18-and-halt">FTC v. NGL</a> · <a href="https://vanban.chinhphu.vn/?classid=1&amp;docid=214590&amp;orggroupid=1&amp;pageid=27160">Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15</a> · <a href="../foundation/la-lanh-tarot-engine-spec.md">Tarot engine spec</a> · <a href="2026-09-27-cms-tarot-product-expansion-ideation.html">Tarot expansion</a></p>
+  </section>
+
+  <footer>Composed 2026-09-28T19:22:03+07:00 by ce-ideate from the current Lá Lành repository, the previous referral-game ideation, and current 2026 trend/safety research.</footer>
+</main></body></html>

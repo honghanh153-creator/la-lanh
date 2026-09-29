@@ -1,7 +1,12 @@
 import pytest
 
 from app.domains.tarot.engine import TarotContentRejected, TarotReadingEngine
-from app.domains.tarot.models import TarotContext, TarotSpread, TarotVoice
+from app.domains.tarot.models import (
+    TarotContext,
+    TarotSpread,
+    TarotSpreadMap,
+    TarotVoice,
+)
 
 
 def test_one_card_reading_is_concrete_and_deterministic() -> None:
@@ -46,6 +51,27 @@ def test_three_card_reading_uses_reflective_positions() -> None:
     ]
     assert all(position.everyday_scene for position in reading.positions)
     assert "tương lai" not in reading.summary.lower()
+
+
+def test_five_card_choice_map_compares_both_directions_without_deciding() -> None:
+    reading = TarotReadingEngine().render(
+        card_ids=("major-star", "cups-5", "wands-ace", "major-hermit", "swords-2"),
+        spread=TarotSpread.FIVE_CARD,
+        context=TarotContext.RELATIONSHIPS,
+        question="Mình nên ở lại hay rời đi, và điều gì không nên đánh đổi?",
+        voice=TarotVoice.STRAIGHT_WARM,
+    )
+
+    assert reading.spread_map is TarotSpreadMap.FIVE_CHOICE
+    assert [position.key for position in reading.positions] == [
+        "need",
+        "option_a",
+        "option_b",
+        "tradeoff",
+        "criterion",
+    ]
+    assert "đáp án hoàn hảo" in reading.positions[1].meaning_here
+    assert "không phải dự đoán" in reading.disclaimer
 
 
 @pytest.mark.parametrize(

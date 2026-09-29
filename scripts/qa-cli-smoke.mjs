@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -49,6 +50,48 @@ try {
   const api = await fetch(`${origin}/v1/health`);
   assert.equal(api.status, 200);
   assert.equal((await api.json()).status, "ok");
+
+  const guestResponse = await fetch(`${origin}/v1/guest-sessions`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      origin,
+    },
+    body: JSON.stringify({
+      consent_version: "birth-profile-v1",
+      purpose: "birth_profile_basic",
+      idempotency_key: `qa-smoke-${randomUUID()}`,
+    }),
+  });
+  assert.equal(guestResponse.status, 200);
+  const guest = await guestResponse.json();
+  assert.equal(typeof guest.csrf_token, "string");
+  const cookies = guestResponse.headers.getSetCookie()
+    .map((header) => header.split(";", 1)[0])
+    .join("; ");
+  assert.match(cookies, /la_lanh_guest=/);
+
+  const birthResponse = await fetch(`${origin}/v1/birth-profile`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: cookies,
+      origin,
+      "x-csrf-token": guest.csrf_token,
+    },
+    body: JSON.stringify({ birth_date: "1990-03-15" }),
+  });
+  assert.equal(birthResponse.status, 200);
+  assert.equal((await birthResponse.json()).calculation_kind, "date_only_sun");
+
+  const noteResponse = await fetch(`${origin}/v1/daily-note`, {
+    headers: { cookie: cookies, origin },
+  });
+  assert.equal(noteResponse.status, 200);
+  const note = await noteResponse.json();
+  assert.equal(typeof note.title, "string");
+  assert.ok(note.title.length > 0);
+  assert.equal(typeof note.reading_projection?.active?.sections?.hook, "string");
 } finally {
   if (child.exitCode === null) {
     child.kill("SIGTERM");
@@ -57,4 +100,4 @@ try {
   await rm(scratch, { recursive: true, force: true });
 }
 
-console.log("QA CLI smoke passed: fresh schema, API, proxy and SPA deep-link are ready.");
+console.log("QA CLI smoke passed: schema, proxy, SPA deep-link and real guest → birth → daily-note flow are ready.");

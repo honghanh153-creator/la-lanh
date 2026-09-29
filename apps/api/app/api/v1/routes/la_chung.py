@@ -79,6 +79,10 @@ def _service(request: Request) -> LaChungService:
     return cast(LaChungService, request.app.state.la_chung_service)
 
 
+def _new_activity_retired(request: Request) -> bool:
+    return not bool(request.app.state.settings.la_chung_accepting_new_activity)
+
+
 async def _owner(request: Request) -> OwnerIdentity:
     settings = request.app.state.settings
     identity = cast(OwnerIdentityService, request.app.state.owner_identity_service)
@@ -121,12 +125,18 @@ def _invite_response(view, *, share_url: str | None = None) -> InviteResponse:  
     )
 
 
-@router.post("/la-chung/requests", response_model=InviteResponse, responses={401: {}, 422: {}})
+@router.post(
+    "/la-chung/requests",
+    response_model=InviteResponse,
+    responses={401: {}, 410: {}, 422: {}},
+)
 async def create_invite(
     body: InviteCreateRequest,
     request: Request,
     csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
 ) -> InviteResponse | Response:
+    if _new_activity_retired(request):
+        return Response(status_code=410)
     try:
         owner = await _owner_mutation(request, csrf_token)
         view, token = await _service(request).create(
@@ -155,12 +165,18 @@ async def list_invites(request: Request) -> tuple[InviteResponse, ...] | Respons
     )
 
 
-@router.post("/la-chung/requests/{request_id}/resend", response_model=InviteResponse)
+@router.post(
+    "/la-chung/requests/{request_id}/resend",
+    response_model=InviteResponse,
+    responses={410: {}},
+)
 async def resend_invite(
     request_id: UUID,
     request: Request,
     csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
 ) -> InviteResponse | Response:
+    if _new_activity_retired(request):
+        return Response(status_code=410)
     try:
         owner = await _owner_mutation(request, csrf_token)
         token = await _service(request).resend(owner.principal_id, request_id)
@@ -189,12 +205,18 @@ async def revoke_invite(
     return Response(status_code=204)
 
 
-@router.post("/la-chung/requests/{request_id}/replacement", response_model=InviteResponse)
+@router.post(
+    "/la-chung/requests/{request_id}/replacement",
+    response_model=InviteResponse,
+    responses={410: {}},
+)
 async def replace_invite(
     request_id: UUID,
     request: Request,
     csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
 ) -> InviteResponse | Response:
+    if _new_activity_retired(request):
+        return Response(status_code=410)
     try:
         owner = await _owner_mutation(request, csrf_token)
         view, token = await _service(request).replace(owner.principal_id, request_id)
@@ -254,11 +276,17 @@ async def delete_owner_result(
     return Response(status_code=204)
 
 
-@public_router.get("/public/la-chung/{token}", response_model=PublicInviteResponse)
+@public_router.get(
+    "/public/la-chung/{token}",
+    response_model=PublicInviteResponse,
+    responses={410: {}},
+)
 async def public_invite(
     token: str, request: Request, response: Response
 ) -> PublicInviteResponse | Response:
     _safe_public(response)
+    if _new_activity_retired(request):
+        return Response(status_code=410, headers=dict(response.headers))
     try:
         invite = await _service(request).preview(token)
     except LaChungError:
@@ -274,7 +302,11 @@ async def public_invite(
     )
 
 
-@public_router.post("/public/la-chung/{token}/responses", response_model=SubmitResponseResult)
+@public_router.post(
+    "/public/la-chung/{token}/responses",
+    response_model=SubmitResponseResult,
+    responses={410: {}},
+)
 async def submit_response(
     token: str,
     body: SubmitResponseRequest,
@@ -282,6 +314,8 @@ async def submit_response(
     response: Response,
 ) -> SubmitResponseResult | Response:
     _safe_public(response)
+    if _new_activity_retired(request):
+        return Response(status_code=410, headers=dict(response.headers))
     try:
         result = await _service(request).submit(
             token=token,

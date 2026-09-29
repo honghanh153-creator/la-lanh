@@ -196,7 +196,14 @@ export type RadarResult = {
 };
 
 export type TarotContext = "general" | "relationships" | "work" | "communication" | "energy" | "self_care";
-export type TarotSpread = "one_card" | "three_card";
+export type TarotSpread = "one_card" | "three_card" | "five_card";
+export type TarotSpreadMap =
+  | "one_focus"
+  | "three_unblock"
+  | "five_clarity"
+  | "five_loop"
+  | "five_choice"
+  | "five_conversation";
 export type TarotCard = {
   id: string;
   title_vi: string;
@@ -225,6 +232,7 @@ export type TarotReading = {
   question_intent: "clarity" | "boundary" | "next_step" | "communication" | "self_check";
   context: TarotContext;
   spread: TarotSpread;
+  spread_map: TarotSpreadMap;
   voice: "straight_warm" | "gentle_specific" | "playful_grounded";
   positions: TarotReadingPosition[];
   closing_prompt: string;
@@ -249,6 +257,7 @@ export type TarotSession = {
   state: "choosing" | "complete";
   context: TarotContext;
   spread: TarotSpread;
+  spread_map: TarotSpreadMap;
   voice: TarotReading["voice"];
   origin: "direct" | "daily" | "radar";
   prompt_id?: string | null;
@@ -280,6 +289,13 @@ export class ApiProblem extends Error {
   ) {
     super(message);
   }
+}
+
+export function isGuestSessionUnavailable(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const problem = error as { status?: unknown; code?: unknown };
+  return problem.status === 401
+    && (problem.code === "GUEST_SESSION_MISSING" || problem.code === "GUEST_EXPIRED");
 }
 
 export const SESSION_EPOCH_KEY = "la-lanh-session-epoch";

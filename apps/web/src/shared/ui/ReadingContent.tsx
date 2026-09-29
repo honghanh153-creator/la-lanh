@@ -1,5 +1,6 @@
 import { ArrowRight, ChartBar, Check, Sparkle } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 import type {
   DailyExperiment,
@@ -18,6 +19,7 @@ type ReadingContentProps = {
   onChoose?: () => void;
   onUndo?: () => void;
   onReflect?: (outcome: ExperimentOutcome) => void;
+  toolbar?: ReactNode;
 };
 
 const outcomeLabels: Record<ExperimentOutcome, string> = {
@@ -36,6 +38,7 @@ export function ReadingContent({
   onChoose,
   onUndo,
   onReflect,
+  toolbar,
 }: ReadingContentProps) {
   const experiment = (
     <ExperimentSection
@@ -53,6 +56,7 @@ export function ReadingContent({
     return (
       <article className="reading-content reading-content--compact">
         <header className="reading-content__intro">
+          {toolbar ? <div className="reading-content__toolbar">{toolbar}</div> : null}
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(content)}</p>
           <h2>{content.sections.hook}</h2>
           <p>{content.sections.manifestation}</p>
@@ -67,6 +71,7 @@ export function ReadingContent({
   return (
     <article className="reading-content">
       <header className="reading-content__intro">
+        {toolbar ? <div className="reading-content__toolbar">{toolbar}</div> : null}
         <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(content)}</p>
         <h1>{content.sections.hook}</h1>
         <p>{content.sections.thesis}</p>

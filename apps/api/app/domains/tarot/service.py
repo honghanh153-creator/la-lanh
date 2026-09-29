@@ -29,6 +29,7 @@ from app.domains.tarot.models import (
     TarotSessionState,
     TarotSessionView,
     TarotSpread,
+    TarotSpreadMap,
     TarotVoice,
 )
 from app.domains.tarot.tables import TarotSessionRow
@@ -71,6 +72,13 @@ class TarotSessionService:
         if not _IDEMPOTENCY_PATTERN.fullmatch(idempotency_key):
             raise TarotSelectionInvalid
         current = now or datetime.now(UTC)
+        if assessment.intent is None:
+            raise TarotSelectionInvalid
+        spread_map = self._engine.choose_spread_map(
+            spread,
+            assessment.intent,
+            assessment.normalized_question,
+        )
         idempotency_hash = self._hasher.digest("tarot-create", idempotency_key)
         request_hash = sha256(
             "\x00".join(
@@ -78,6 +86,7 @@ class TarotSessionService:
                     context.value,
                     assessment.normalized_question,
                     spread.value,
+                    spread_map.value,
                     origin.value,
                     prompt_id or "",
                 )
@@ -101,6 +110,7 @@ class TarotSessionService:
         payload = {
             "question": assessment.normalized_question,
             "question_intent": assessment.intent.value if assessment.intent else None,
+            "spread_map": spread_map.value,
             "question_rules_version": assessment.rules_version,
             "request_hash": request_hash,
             "prompt_id": prompt_id,
@@ -176,7 +186,8 @@ class TarotSessionService:
                 raise TarotSessionConflict
             selected_indices.append(fan_index)
             spread = TarotSpread(row.spread)
-            required = _required_cards(spread)
+            spread_map = self._spread_map(payload, spread)
+            required = _required_cards(spread_map)
             if len(selected_indices) > required:
                 raise TarotSessionConflict
             payload["selected_indices"] = selected_indices
@@ -187,6 +198,7 @@ class TarotSessionService:
                 reading = self._engine.render(
                     card_ids=card_ids,
                     spread=spread,
+                    spread_map=spread_map,
                     context=TarotContext(row.context),
                     question=self._question(payload),
                     voice=TarotVoice(row.voice),
@@ -232,14 +244,8 @@ class TarotSessionService:
 
     def _view(self, row: TarotSessionRow, payload: dict[str, Any]) -> TarotSessionView:
         spread = TarotSpread(row.spread)
-        positions = {
-            TarotSpread.ONE_CARD: (("focus", "Điều đáng nhìn lúc này"),),
-            TarotSpread.THREE_CARD: (
-                ("clear", "Điều đã rõ"),
-                ("missed", "Điều dễ bỏ sót"),
-                ("next", "Một bước nhỏ có thể thử"),
-            ),
-        }[spread]
+        spread_map = self._spread_map(payload, spread)
+        positions = self._engine.positions_for(spread_map)
         deck = self._deck(payload)
         selected = tuple(
             TarotSelectedCard(
@@ -258,11 +264,12 @@ class TarotSessionService:
             state=TarotSessionState(row.state),
             context=TarotContext(row.context),
             spread=spread,
+            spread_map=spread_map,
             voice=TarotVoice(row.voice),
             origin=TarotOrigin(row.origin),
             prompt_id=_optional_text(payload.get("prompt_id")),
             question=self._question(payload),
-            required_cards=_required_cards(spread),
+            required_cards=_required_cards(spread_map),
             selected_cards=selected,
             reading=reading,
             created_at=row.created_at,
@@ -316,13 +323,31 @@ class TarotSessionService:
             raise ValueError("invalid encrypted Tarot question intent")
         return TarotQuestionIntent(intent)
 
+    @staticmethod
+    def _spread_map(payload: dict[str, Any], spread: TarotSpread) -> TarotSpreadMap:
+        raw = payload.get("spread_map")
+        if isinstance(raw, str):
+            return TarotSpreadMap(raw)
+        return {
+            TarotSpread.ONE_CARD: TarotSpreadMap.ONE_FOCUS,
+            TarotSpread.THREE_CARD: TarotSpreadMap.THREE_UNBLOCK,
+            TarotSpread.FIVE_CARD: TarotSpreadMap.FIVE_CLARITY,
+        }[spread]
+
 
 def _payload_context(session_id: UUID) -> bytes:
     return f"tarot-session:{session_id}".encode()
 
 
-def _required_cards(spread: TarotSpread) -> int:
-    return 1 if spread is TarotSpread.ONE_CARD else 3
+def _required_cards(spread_map: TarotSpreadMap) -> int:
+    return {
+        TarotSpreadMap.ONE_FOCUS: 1,
+        TarotSpreadMap.THREE_UNBLOCK: 3,
+        TarotSpreadMap.FIVE_CLARITY: 5,
+        TarotSpreadMap.FIVE_LOOP: 5,
+        TarotSpreadMap.FIVE_CHOICE: 5,
+        TarotSpreadMap.FIVE_CONVERSATION: 5,
+    }[spread_map]
 
 
 def _optional_text(value: object) -> str | None:

@@ -51,6 +51,6 @@ describe("RevealPage", () => {
     expect(screen.getByRole("heading", { name: "Vibe · Giao mùa" })).toBeInTheDocument();
     expect(screen.getByText(/không đoán cung khi chưa có giờ sinh/)).toBeInTheDocument();
     expect(screen.getByText(/Mặt Trời ở ranh giới Song Ngư · Bạch Dương/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Lá hôm nay đang mở" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Mở Note hôm nay" })).toBeEnabled();
   });
 });

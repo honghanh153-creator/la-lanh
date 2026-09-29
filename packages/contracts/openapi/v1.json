@@ -3726,6 +3726,9 @@
           "spread": {
             "$ref": "#/components/schemas/TarotSpread"
           },
+          "spread_map": {
+            "$ref": "#/components/schemas/TarotSpreadMap"
+          },
           "summary": {
             "title": "Summary",
             "type": "string"
@@ -3741,6 +3744,7 @@
           "question_intent",
           "context",
           "spread",
+          "spread_map",
           "voice",
           "positions",
           "closing_prompt",
@@ -3971,7 +3975,7 @@
             ]
           },
           "required_cards": {
-            "maximum": 3.0,
+            "maximum": 5.0,
             "minimum": 1.0,
             "title": "Required Cards",
             "type": "integer"
@@ -3985,6 +3989,9 @@
           },
           "spread": {
             "$ref": "#/components/schemas/TarotSpread"
+          },
+          "spread_map": {
+            "$ref": "#/components/schemas/TarotSpreadMap"
           },
           "state": {
             "$ref": "#/components/schemas/TarotSessionState"
@@ -4009,6 +4016,7 @@
           "state",
           "context",
           "spread",
+          "spread_map",
           "voice",
           "origin",
           "question",
@@ -4024,9 +4032,22 @@
       "TarotSpread": {
         "enum": [
           "one_card",
-          "three_card"
+          "three_card",
+          "five_card"
         ],
         "title": "TarotSpread",
+        "type": "string"
+      },
+      "TarotSpreadMap": {
+        "enum": [
+          "one_focus",
+          "three_unblock",
+          "five_clarity",
+          "five_loop",
+          "five_choice",
+          "five_conversation"
+        ],
+        "title": "TarotSpreadMap",
         "type": "string"
       },
       "TarotStartRequest": {
@@ -5866,6 +5887,9 @@
           "401": {
             "description": "Unauthorized"
           },
+          "410": {
+            "description": "Gone"
+          },
           "422": {
             "description": "Unprocessable Content"
           }
@@ -5917,6 +5941,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "410": {
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -5976,6 +6003,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "410": {
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -6512,6 +6542,9 @@
             },
             "description": "Successful Response"
           },
+          "410": {
+            "description": "Gone"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -6613,6 +6646,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "410": {
+            "description": "Gone"
           },
           "422": {
             "content": {

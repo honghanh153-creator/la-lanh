@@ -22,9 +22,8 @@ import { CurrentSkyPage } from "../features/insights/CurrentSkyPage";
 import { InsightsPage } from "../features/insights/InsightsPage";
 import { ReadingDetailPage } from "../features/insights/ReadingDetailPage";
 import { InviteHistoryPage } from "../features/la-chung/InviteHistoryPage";
-import { InvitePreviewPage } from "../features/la-chung/InvitePreviewPage";
-import { InviteStartPage } from "../features/la-chung/InviteStartPage";
-import { PublicResponsePage } from "../features/la-chung/PublicResponsePage";
+import { ResponseManagementPage } from "../features/la-chung/ResponseManagementPage";
+import { RetiredFeaturePage } from "../features/la-chung/RetiredFeaturePage";
 import { ResultPage } from "../features/la-chung/ResultPage";
 import { PublicRadarPage } from "../features/radar/PublicRadarPage";
 import { RadarContinuePage } from "../features/radar/RadarContinuePage";
@@ -73,7 +72,7 @@ export const appRoutes: RouteObject[] = [
         path: "welcome",
         element: <WelcomePage />,
       },
-      { path: "consent", element: <ConsentPage /> },
+      { path: "consent", element: <WelcomePage /> },
       { path: "privacy", element: <ConsentPage /> },
       { path: "demo", element: <DemoPage /> },
       { path: "birth", element: <BirthDatePage /> },
@@ -86,10 +85,10 @@ export const appRoutes: RouteObject[] = [
       { path: "insights/settings", element: <CalculationSettingsPage /> },
       { path: "insights/current-sky", element: <CurrentSkyPage /> },
       { path: "insights/:claimId", element: <ReadingDetailPage /> },
-      { path: "la-chung", element: <InviteStartPage /> },
-      { path: "la-chung/preview", element: <InvitePreviewPage /> },
       { path: "la-chung/history", element: <InviteHistoryPage /> },
       { path: "la-chung/result/:requestId", element: <ResultPage /> },
+      { path: "la-chung/manage-response", element: <ResponseManagementPage /> },
+      { path: "la-chung/*", element: <RetiredFeaturePage /> },
       { path: "radar", element: <RadarLandingPage /> },
       { path: "radar/start", element: <RadarPrivateStartPage /> },
       { path: "radar/invite", element: <RadarStartPage /> },
@@ -112,7 +111,7 @@ export const appRoutes: RouteObject[] = [
   },
   {
     path: "/la-chung/i/:token",
-    element: <PublicResponsePage />,
+    element: <RetiredFeaturePage />,
     errorElement: <RouteErrorPage />,
   },
   {

@@ -17,6 +17,16 @@ class TarotContext(StrEnum):
 class TarotSpread(StrEnum):
     ONE_CARD = "one_card"
     THREE_CARD = "three_card"
+    FIVE_CARD = "five_card"
+
+
+class TarotSpreadMap(StrEnum):
+    ONE_FOCUS = "one_focus"
+    THREE_UNBLOCK = "three_unblock"
+    FIVE_CLARITY = "five_clarity"
+    FIVE_LOOP = "five_loop"
+    FIVE_CHOICE = "five_choice"
+    FIVE_CONVERSATION = "five_conversation"
 
 
 class TarotVoice(StrEnum):
@@ -121,6 +131,7 @@ class TarotReading(BaseModel):
     question_intent: TarotQuestionIntent
     context: TarotContext
     spread: TarotSpread
+    spread_map: TarotSpreadMap
     voice: TarotVoice
     positions: tuple[TarotReadingPosition, ...]
     closing_prompt: str
@@ -145,12 +156,13 @@ class TarotSessionView(BaseModel):
     state: TarotSessionState
     context: TarotContext
     spread: TarotSpread
+    spread_map: TarotSpreadMap
     voice: TarotVoice
     origin: TarotOrigin
     prompt_id: str | None = None
     question: str
     fan_size: int = 78
-    required_cards: int = Field(ge=1, le=3)
+    required_cards: int = Field(ge=1, le=5)
     selected_cards: tuple[TarotSelectedCard, ...]
     reading: TarotReading | None = None
     created_at: datetime

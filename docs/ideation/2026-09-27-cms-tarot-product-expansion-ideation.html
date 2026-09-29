@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation · CMS &amp; Tarot cho Lá Lành</title>
+  <style>
+    :root{--bg:#080a22;--panel:#11142f;--ink:#f8f4ea;--muted:#bcb6d4;--lime:#d9ff30;--violet:#bc8cff;--coral:#ff7d73;--line:#34375d;--paper:#f4eddf;--paper-ink:#151229}
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:radial-gradient(circle at 85% 0,#24103d 0,transparent 35%),var(--bg);color:var(--ink);font:15px/1.58 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    main{width:min(940px,calc(100% - 32px));margin:0 auto;padding:56px 0 80px}.eyebrow{color:var(--lime);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.hero{padding:34px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(145deg,rgba(188,140,255,.12),rgba(217,255,48,.04))}.hero h1{font-size:clamp(34px,7vw,64px);line-height:1.02;letter-spacing:-.045em;margin:14px 0 18px;max-width:760px}.hero p{max-width:72ch;color:var(--muted);font-size:18px}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.chip{border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--muted);font-size:12px}h2{font-size:27px;letter-spacing:-.025em;margin:52px 0 16px}h3{font-size:23px;line-height:1.2;margin:7px 0 12px}.lede{max-width:74ch;color:var(--muted)}.axes,.jump{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.axis,.jump a{padding:14px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.025);color:var(--ink);text-decoration:none}.jump a:hover{border-color:var(--lime)}.idea{margin:20px 0;padding:26px;border:1px solid var(--line);border-radius:24px;background:var(--panel)}.rank{color:var(--lime);font-weight:900;font-size:12px;letter-spacing:.14em}.idea p{max-width:76ch}.idea dl{display:grid;grid-template-columns:120px 1fr;gap:8px 16px;margin:20px 0 0}.idea dt{color:var(--violet);font-weight:800}.idea dd{margin:0;color:#ddd7ea}.down{color:#ffb1a9}.diagram{margin:20px 0;padding:16px;border:1px solid var(--line);border-radius:18px;background:#0b0d26}.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.node{border:1px solid #55598b;border-radius:12px;padding:10px 12px;background:#171a3b}.node.hot{border-color:var(--lime);box-shadow:0 0 22px rgba(217,255,48,.12)}.arrow{color:var(--coral)}.matrix{display:grid;grid-template-columns:120px 1fr 1fr;gap:8px}.cell{min-height:74px;border:1px solid var(--line);border-radius:12px;padding:10px;background:#151838}.head{color:var(--lime);font-weight:800}.side{color:var(--violet);font-weight:800}.paper{background:var(--paper);color:var(--paper-ink);border-radius:20px;padding:24px;margin:18px 0}.paper h4{font-size:19px;margin:0 0 10px}.paper li{margin:8px 0}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:12px 10px}th{color:var(--lime);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.source-list a{color:var(--violet)}footer{margin-top:54px;border-top:1px solid var(--line);padding-top:16px;color:#8882a5;font-size:12px}@media(max-width:640px){main{width:min(100% - 20px,940px);padding-top:20px}.hero,.idea{padding:20px}.idea dl{grid-template-columns:1fr;gap:2px}.idea dd{margin-bottom:10px}.matrix{grid-template-columns:82px 1fr 1fr;font-size:12px}.cell{padding:8px}.flow{align-items:stretch}.arrow{display:none}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div class="eyebrow">Ideation · Lá Lành</div>
+    <h1>CMS không chỉ để sửa chữ. Tarot không chỉ để “bốc cho vui”.</h1>
+    <p>Hướng mạnh nhất là biến CMS thành bộ điều khiển chất lượng nội dung, rồi dùng Tarot như một lớp đặt câu hỏi và soi lại tình huống sau Daily Note hoặc Radar. Astrology nói “dữ liệu chart đang gợi ý gì”; Tarot mở thêm “mình muốn nhìn chuyện này từ góc nào”. Hai lớp đứng cạnh nhau nhưng không giả làm cùng một loại bằng chứng.</p>
+    <div class="meta"><span class="chip">Ngày 2026-09-27</span><span class="chip">Mode: repo-grounded</span><span class="chip">Focus: CMS · Tarot · mở rộng sản phẩm</span></div>
+  </header>
+
+  <section>
+    <h2>Codebase context</h2>
+    <p class="lede">Lá Lành đã có nền tảng tốt để mở rộng: engine natal/transit/synastry/composite, Daily Note, Radar, voice profiles, save/share, immutable reading revisions và năm gate nội dung. Kho content hiện vẫn chủ yếu là catalog tĩnh trong code; chưa có CMS/admin runtime, Tarot domain, reader booking hay marketplace vận hành thật. Quyết định mới hơn cũng đã bác việc trộn Tarot vào onboarding birth chart và bác “phần trăm hợp nhau” như xác suất thành công.</p>
+    <p class="lede">Nghiên cứu sản phẩm hiện hành cho thấy self-draw hiệu quả khi người dùng chọn câu hỏi trước, draw được lưu nguyên vẹn và clarifier gắn vào đúng chỗ chưa rõ. Reader marketplace cần tách badge xác minh, hiển thị chi phí, giới hạn dependency, block/report và chia sẻ dữ liệu theo từng phần. Apple cũng xem fortune-telling là nhóm bão hòa; Lá Lành phải chứng minh khác biệt bằng sự kết hợp astrology có nguồn, reflection có cấu trúc và reader được kiểm soát.</p>
+  </section>
+
+  <section>
+    <h2>Topic axes</h2>
+    <div class="axes">
+      <div class="axis">CMS &amp; editorial operations</div><div class="axis">Self-draw Tarot</div><div class="axis">Reader marketplace</div><div class="axis">Product expansion flywheel</div><div class="axis">Safety, privacy &amp; business</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ranked ideas</h2>
+    <nav class="jump" aria-label="Đi tới ý tưởng"><a href="#i1">01 · Content Studio</a><a href="#i2">02 · Lá Hỏi</a><a href="#i3">03 · Ma trận 2×2</a><a href="#i4">04 · Rút làm rõ</a><a href="#i5">05 · Vòng đối chiếu</a><a href="#i6">06 · Lá Dẫn Live</a><a href="#i7">07 · Lá mang đi</a></nav>
+
+    <article class="idea" id="i1">
+      <div class="rank">01 · CMS / FOUNDATION</div><h3>Content Studio — “bộ biên tập có gate”, không phải WordPress</h3>
+      <p>CMS nên quản lý các mảnh nội dung có cấu trúc: premise, diễn giải, cảnh đời thường, câu hỏi, micro-action, disclaimer, nguồn, tradition, precision, context hợp lệ, điều cấm dùng và version. Editor xem trước đầu ra trên bộ chart/spread mẫu, đọc semantic diff, thấy blast radius, chạy gate và chỉ publish thành một release bất biến.</p>
+      <div class="diagram"><div class="flow"><span class="node">Draft atom</span><span class="arrow">→</span><span class="node">Chuyên môn review</span><span class="arrow">→</span><span class="node">Safety + privacy</span><span class="arrow">→</span><span class="node">Scenario preview</span><span class="arrow">→</span><span class="node hot">Release bất biến</span><span class="arrow">→</span><span class="node">Theo dõi &amp; rollback</span></div></div>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> reading platform đã có typed candidates, năm gate, immutable revisions và audit script; PRD yêu cầu human review trước publish. <strong>reasoned:</strong> rich-text CMS không thể ngăn các lỗi “đúng câu nhưng sai ý” từng xuất hiện trong content matrix.</dd><dt>Rationale</dt><dd>Đây là điều kiện để mở rộng Tarot, Daily và Radar mà không nhân ba lỗi nội dung. CMS cũng là nơi vận hành question bank, deck/spread và policy của reader.</dd><dt>Downsides</dt><dd class="down">Editor cần học cách viết theo semantic block; phải đầu tư simulator và workflow trước khi thấy hiệu ứng người dùng.</dd><dt>Confidence</dt><dd>96%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="i2">
+      <div class="rank">02 · TAROT / CORE</div><h3>Lá Hỏi — Tarot bắt đầu từ chuyện người dùng đang nghĩ</h3>
+      <p>Không đặt Tarot như một tab “xem bói” rời rạc. Sau Daily Note hoặc một chương Radar, app gợi ba câu hỏi theo đúng nội dung vừa đọc; người dùng chọn một câu, sửa nhẹ nếu muốn, chọn context rồi tự bốc. Kết quả luôn có ba lớp: ý nghĩa lá trong vị trí này, nối với câu hỏi, và một cách quan sát đời thật — không đoán tương lai hay ý định của người khác.</p>
+      <div class="paper"><h4>Ba câu hỏi gợi ý sau Daily Note</h4><ol><li>Trong chuyện này, mình đang nhìn đúng điều gì và đang tự suy diễn điều gì?</li><li>Hôm nay có tín hiệu nào đáng để ý trước khi mình phản ứng?</li><li>Một bước nhỏ nào giúp mình rõ hơn mà không ép bản thân?</li></ol><h4>Ba câu hỏi gợi ý sau Radar Hợp Gu</h4><ol><li>Giữa tụi mình, điều gì đáng hỏi thẳng thay vì tiếp tục đoán?</li><li>Mình đang mang kỳ vọng nào vào kết nối này?</li><li>Nếu thử tiến thêm một nhịp, ranh giới nào nên nói rõ trước?</li></ol></div>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> product plan đã định vị Tarot là reflection chứ không phán số phận. <strong>external:</strong> Labyrinthos đặt intention/question trước draw và hỗ trợ journaling. <strong>reasoned:</strong> dùng context đang có của Daily/Radar làm điểm khởi đầu tốt hơn một câu hỏi trống.</dd><dt>Rationale</dt><dd>Tận dụng tài sản hiện tại thay vì tạo một sản phẩm Tarot tách rời; mỗi reading trở thành cửa sang một câu hỏi cụ thể hơn.</dd><dt>Downsides</dt><dd class="down">Cần question bank đủ rộng; nếu prompt quá chung, Tarot chỉ lặp lại lỗi content cũ dưới bộ áo mới.</dd><dt>Confidence</dt><dd>94%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="i3">
+      <div class="rank">03 · IA / MENTAL MODEL</div><h3>Hai trục, bốn trường hợp — đừng nhét thành bốn nút ngang hàng</h3>
+      <p>Tách rõ hai quyết định: <strong>ai bốc</strong> và <strong>bốc để làm gì</strong>. Người dùng chọn `Tự bốc` hoặc `Reader bốc cùng` khi mở một session; `Rút lá làm rõ` chỉ xuất hiện sau khi đã có reading và phải gắn với một câu/position cụ thể.</p>
+      <div class="diagram"><div class="matrix"><div class="cell"></div><div class="cell head">Bốc đầu tiên</div><div class="cell head">Làm rõ</div><div class="cell side">Tự bốc</div><div class="cell">Ritual 60 giây<br>1 hoặc 3 lá</div><div class="cell">Chọn câu chưa rõ<br>rút tối đa 1 lá</div><div class="cell side">Reader</div><div class="cell">Live 1:1<br>reader bốc cùng</div><div class="cell">Reader thêm đúng 1 góc<br>không thay reading cũ</div></div></div>
+      <dl><dt>Basis</dt><dd><strong>external:</strong> clarification card được khuyến nghị gắn với một vị trí cụ thể và chỉ dùng khi thật sự cần; reader services có format live/booking riêng. <strong>reasoned:</strong> “self/reader” là actor, còn “first/clarify” là state — trộn hai trục sẽ làm flow khó học.</dd><dt>Rationale</dt><dd>Tạo IA sạch, dễ mở rộng về sau và giữ cho clarifier không trở thành nút “rút lại tới khi vừa ý”.</dd><dt>Downsides</dt><dd class="down">Reader clarification chỉ đáng làm sau khi marketplace và data-sharing controls đã ổn.</dd><dt>Confidence</dt><dd>97%</dd><dt>Complexity</dt><dd>Low concept / High full rollout</dd></dl>
+    </article>
+
+    <article class="idea" id="i4">
+      <div class="rank">04 · DEPTH / SAFETY</div><h3>Rút lá làm rõ — làm rõ câu nào, không “bốc thêm xem sao”</h3>
+      <p>Reading đầu tiên giữ nguyên. Người dùng chạm vào câu họ thấy mơ hồ, chọn một trong ba ý định (`muốn hiểu cơ chế`, `muốn nhìn phần mình`, `muốn biết nên hỏi gì ngoài đời`) rồi rút đúng một clarifier. Lá mới xuất hiện sát câu gốc, có nhãn “góc bổ sung”, không được phủ định hoặc thay thế lá trước.</p>
+      <dl><dt>Basis</dt><dd><strong>external:</strong> hướng dẫn clarification hiện hành cảnh báo rút thêm có thể làm reading rối hơn. <strong>direct:</strong> Lá Lành đã ưu tiên một thesis và một action nhỏ thay vì nhiều lời khuyên.</dd><dt>Rationale</dt><dd>Đúng với nhu cầu “diễn giải chưa đủ chi tiết” nhưng tránh dependency, answer-shopping và pay-per-card.</dd><dt>Downsides</dt><dd class="down">Giới hạn một lá có thể bị xem là ít; sản phẩm phải bù bằng diễn giải sâu và nút “để mai xem lại”.</dd><dt>Confidence</dt><dd>95%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="i5">
+      <div class="rank">05 · EXPANSION / COMPOUNDING</div><h3>Vòng đối chiếu — biến insight thành thứ có thể quay lại kiểm chứng</h3>
+      <p>Sau reading, user có thể giữ một việc nhỏ và quay lại đánh dấu `Hữu ích`, `Không khác`, `Chưa thử`, `Không hợp lúc này`. Cuối tuần, app gom Daily Note, mood, Tarot đã rút và kết quả thử nghiệm thành một recap ngắn có nguồn. Không infer tính cách, không tạo streak và không dùng cảm xúc để upsell.</p>
+      <div class="diagram"><div class="flow"><span class="node">Daily / Radar</span><span class="arrow">→</span><span class="node hot">Lá Hỏi</span><span class="arrow">→</span><span class="node">Một việc nhỏ</span><span class="arrow">→</span><span class="node">Đối chiếu thật</span><span class="arrow">→</span><span class="node">Recap tuần</span></div></div>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> app đã có mood, save, experiment và feedback enum; recap là cách tái sử dụng các asset này có giá trị nhất. <strong>reasoned:</strong> retention tốt hơn khi người dùng nhìn thấy lịch sử của chính mình, không phải vì app tạo thêm lời tiên đoán.</dd><dt>Rationale</dt><dd>Tạo giá trị tích lũy, giúp người dùng phân biệt điều nào “trúng vì có ích” với điều nào chỉ nghe hay.</dd><dt>Downsides</dt><dd class="down">Cần ngưỡng dữ liệu tối thiểu và ngôn ngữ rất khiêm tốn; recap thưa dữ kiện phải ngắn thay vì bịa cho đầy.</dd><dt>Confidence</dt><dd>91%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="i6">
+      <div class="rank">06 · MARKETPLACE / LATER</div><h3>Lá Dẫn Live — mở người thật sau khi self-draw đã chứng minh nhu cầu</h3>
+      <p>Khởi động bằng session live 1:1, adult-only, có thời lượng và tổng chi phí hiển thị liên tục. Reader chỉ nhận pseudonym, câu hỏi và từng mảnh context người dùng chủ động chia sẻ. Badge tách rõ `đã xác minh danh tính`, `đã review reading mẫu`, `đã học policy`, không dùng một huy hiệu “chuyên gia” mơ hồ.</p>
+      <dl><dt>Basis</dt><dd><strong>external:</strong> Keen/Purple Garden dùng nhiều lớp screening, booking và block/report; App Store/Play có khác biệt quan trọng giữa dịch vụ live 1:1 và digital/asynchronous content. <strong>direct:</strong> PRD đã có Lá Dẫn và booking nhưng chưa có runtime.</dd><dt>Rationale</dt><dd>Reader tạo premium value và nguồn cung nội dung thật; launch live trước giúp scope payment/store và fulfillment rõ hơn.</dd><dt>Downsides</dt><dd class="down">Đây là marketplace hai phía, cần KYC, lịch, payment, no-show/refund, moderation, dispute và support. Không nên ghép vào MVP self-draw.</dd><dt>Confidence</dt><dd>86%</dd><dt>Complexity</dt><dd>Very high</dd></dl>
+    </article>
+
+    <article class="idea" id="i7">
+      <div class="rank">07 · SHARE / ACQUISITION</div><h3>Lá mang đi — share câu hỏi và góc nhìn, không share dữ liệu riêng</h3>
+      <p>Tạo card 9:16 gồm câu hỏi đã làm mờ thông tin nhạy cảm, lá được rút, một câu reflection và tem nguồn `Tự bốc` hoặc `Reader bốc cùng`. Không có ngày sinh, chart evidence, tên người được hỏi tới hoặc compatibility verdict. Người nhận mở card mẫu trước khi app xin đăng nhập.</p>
+      <dl><dt>Basis</dt><dd><strong>direct:</strong> Lá Lành đã có save/share và acquisition từ card; <strong>reasoned:</strong> Tarot có hình ảnh và ritual tự nhiên phù hợp share hơn bảng dữ liệu chart, nhưng provenance phải đi cùng để không tăng authority giả.</dd><dt>Rationale</dt><dd>Tạo acquisition loop từ sản phẩm thực thay vì feed công khai; dùng lại renderer/link safety hiện có sau khi generalized khỏi Daily Note.</dd><dt>Downsides</dt><dd class="down">Card đẹp có thể khiến một reflection ngẫu nhiên trông như kết luận chắc chắn; cần wording và expiry phù hợp.</dd><dt>Confidence</dt><dd>88%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+  </section>
+
+  <section>
+    <h2>Rejection summary</h2>
+    <table><thead><tr><th>#</th><th>Ý tưởng đã cân nhắc</th><th>Lý do loại / hoãn</th></tr></thead><tbody>
+      <tr><td>1</td><td>CMS WYSIWYG tổng quát</td><td>Không kiểm soát provenance, semantic compatibility hay blast radius; lặp lại đúng lỗi content matrix hiện tại.</td></tr>
+      <tr><td>2</td><td>Tarot trong birth onboarding</td><td>Trộn mental model: birth chart được tính từ dữ liệu sinh, Tarot là draw ngẫu nhiên.</td></tr>
+      <tr><td>3</td><td>Chọn lá Tarot từ điểm hợp gu</td><td>Biến biểu tượng thành bằng chứng chart và ngầm hồi sinh compatibility verdict đã bị loại.</td></tr>
+      <tr><td>4</td><td>Rút lại không giới hạn / trả tiền theo lá</td><td>Khuyến khích answer-shopping và dependency; xung đột trực tiếp với anti-influence.</td></tr>
+      <tr><td>5</td><td>Chatbot Tarot tự do</td><td>Khó kiểm soát safety, privacy, drift và lời khuyên high-stakes; structured question tốt hơn ở giai đoạn này.</td></tr>
+      <tr><td>6</td><td>Asynchronous reader marketplace ngay từ đầu</td><td>Fulfillment, digital-goods payment, replay/transcript và store policy phức tạp hơn live 1:1.</td></tr>
+      <tr><td>7</td><td>Public Tarot feed</td><td>Moderation và social comparison lớn hơn giá trị cốt lõi; không tận dụng Daily/Radar bằng flow riêng tư.</td></tr>
+      <tr><td>8</td><td>Học tone/context từ hành vi</td><td>Covert profiling; Lá Lành đã chốt voice và context phải do người dùng chọn.</td></tr>
+      <tr><td>9</td><td>Import nguyên nội dung sách Tarot</td><td>Rủi ro bản quyền và tạo kho chữ không giải quyết được composition; chỉ lưu concept có provenance và quyền dùng.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="source-list">
+    <h2>Selected grounding</h2>
+    <p><a href="../foundation/la-lanh-reading-knowledge-spec.md">Reading Knowledge Spec</a> · <a href="../operations/content-matrix-release-gate.md">Content Matrix Release Gate</a> · <a href="../foundation/la-lanh-radar-hop-gu-spec.md">Radar Hợp Gu Spec</a> · <a href="../foundation/la-lanh-product-plan-v2.md">Product Plan v2</a> · <a href="2026-09-08-short-game-reveal-onboarding-ideation.html">Onboarding ideation</a></p>
+    <p><a href="https://labyrinthos.co/pages/app">Labyrinthos app</a> · <a href="https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/when-a-tarot-reading-makes-no-sense-how-to-interpret-a-confusing-tarot-reading?page=2">Clarification guidance</a> · <a href="https://help.keen.com/hc/en-us/articles/4413390476307-How-do-I-apply-to-be-an-Advisor">Keen screening</a> · <a href="https://www.purplegarden.co/how-we-verify-advisors">Purple Garden verification</a> · <a href="https://developer.apple.com/app-store/review/guidelines/">Apple review guidelines</a> · <a href="https://support.google.com/googleplay/android-developer/answer/10281818">Google 1:1 payment guidance</a></p>
+  </section>
+  <footer>Composed 2026-09-27T20:16:39+07:00 by ce-ideate from the current Lá Lành repository and official product/policy research.</footer>
+</main>
+</body>
+</html>

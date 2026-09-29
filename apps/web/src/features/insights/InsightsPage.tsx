@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import {
   getInsightOverview,
+  isGuestSessionUnavailable,
   type Tradition,
 } from "../../shared/api/client";
 import { AppNav } from "../../shared/ui/AppNav";
@@ -29,6 +30,7 @@ export function InsightsPage() {
     retry: false,
   });
   const richReading = insight.data?.reading_projection?.active;
+  const missingSession = isGuestSessionUnavailable(insight.error);
 
   function selectTradition(value: Tradition) {
     const next = new URLSearchParams(params);
@@ -68,7 +70,14 @@ export function InsightsPage() {
       </section>
 
       {insight.isLoading ? <InsightLoading /> : null}
-      {insight.isError ? (
+      {missingSession ? (
+        <section className="cosmic-state" role="alert">
+          <Planet size={36} />
+          <h2>Phiên đọc đã khép lại.</h2>
+          <p>Mở lại Trạm Bắt Sóng để nối đúng Bản đồ của bạn. Chưa cần tạo tài khoản.</p>
+          <Link className="electric-button" to="/welcome">Mở lại Trạm Bắt Sóng</Link>
+        </section>
+      ) : insight.isError ? (
         <section className="cosmic-state" role="alert">
           <Planet size={36} />
           <h2>Chart chưa về kịp.</h2>

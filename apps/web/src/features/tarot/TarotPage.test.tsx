@@ -33,6 +33,7 @@ const choosing: TarotSession = {
   state: "choosing",
   context: "relationships",
   spread: "one_card",
+  spread_map: "one_focus",
   voice: "playful_grounded",
   origin: "direct",
   question: "Giữa tụi mình, điều gì đáng hỏi thẳng thay vì tiếp tục đoán?",
@@ -64,13 +65,13 @@ describe("TarotPage", () => {
     sessionStorage.clear();
   });
 
-  it("starts from a real question and explains the private no-login ritual", () => {
+  it("starts question-first and keeps the draw disabled until the question is useful", () => {
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "Mang một chuyện thật vào. Tự chọn góc để nhìn lại." })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Xòe bài cho mình" })).toBeEnabled();
+    expect(screen.getByRole("heading", { name: "Bạn đang muốn gỡ chuyện gì?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Xòe 3 lá" })).toBeDisabled();
     expect(screen.getByText(/không cần đăng nhập/i)).toBeInTheDocument();
-    expect(screen.getByText(/không hỏi lá xem ai đang nghĩ gì/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mình chưa biết hỏi gì" })).toBeEnabled();
   });
 
   it("creates a Tarot-only guest and opens the committed fan", async () => {
@@ -87,7 +88,8 @@ describe("TarotPage", () => {
     vi.mocked(getTarotSession).mockResolvedValue(choosing);
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Xòe bài cho mình" }));
+    await user.type(screen.getByPlaceholderText("Ví dụ: Mình nên nói rõ hay chờ thêm?"), "Mình nên dừng lại?");
+    await user.click(screen.getByRole("button", { name: "Xòe 1 lá" }));
 
     expect(createTarotGuest).toHaveBeenCalledTimes(1);
     expect(startTarotSession).toHaveBeenCalledWith(expect.objectContaining({
@@ -97,6 +99,35 @@ describe("TarotPage", () => {
     }));
     expect(await screen.findByRole("heading", { name: "Chạm lá khiến bạn dừng mắt." })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Lá úp \d+ trên 78/ })).toHaveLength(78);
+  });
+
+  it("recommends a five-card map for a repeating pattern and sends that depth", async () => {
+    const user = userEvent.setup();
+    const question = "Vì sao mình cứ lặp lại chuyện này?";
+    const fiveCard: TarotSession = {
+      ...choosing,
+      question,
+      spread: "five_card",
+      spread_map: "five_loop",
+      required_cards: 5,
+    };
+    vi.mocked(getSession).mockResolvedValue({
+      state: "active",
+      onboarding_status: "completed",
+      expires_at: "2026-10-27T12:00:00Z",
+      resumed: true,
+      session_epoch: "existing-epoch",
+    });
+    vi.mocked(startTarotSession).mockResolvedValue(fiveCard);
+    vi.mocked(getTarotSession).mockResolvedValue(fiveCard);
+    renderPage();
+
+    await user.type(screen.getByPlaceholderText("Ví dụ: Mình nên nói rõ hay chờ thêm?"), question);
+    expect(screen.getByRole("heading", { name: "5 lá · Gỡ chuyện nhiều lớp" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Xòe 5 lá" }));
+
+    expect(startTarotSession).toHaveBeenCalledWith(expect.objectContaining({ spread: "five_card" }));
+    expect(await screen.findByText("0/5 lá")).toBeInTheDocument();
   });
 
   it("renders a concrete completed reading instead of a generic card meaning", async () => {
@@ -126,6 +157,7 @@ describe("TarotPage", () => {
         question_intent: "communication",
         context: "relationships",
         spread: "one_card",
+        spread_map: "one_focus",
         voice: "playful_grounded",
         positions: [{
           key: "focus",

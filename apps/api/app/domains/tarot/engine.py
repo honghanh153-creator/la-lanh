@@ -18,6 +18,7 @@ from app.domains.tarot.models import (
     TarotReadingPosition,
     TarotReadingProvenance,
     TarotSpread,
+    TarotSpreadMap,
     TarotVoice,
 )
 
@@ -72,14 +73,52 @@ _CONTEXTS: dict[TarotContext, _ContextLens] = {
     ),
 }
 
-_POSITIONS: dict[TarotSpread, tuple[tuple[str, str], ...]] = {
-    TarotSpread.ONE_CARD: (("focus", "Điều đáng nhìn lúc này"),),
-    TarotSpread.THREE_CARD: (
+_POSITIONS: dict[TarotSpreadMap, tuple[tuple[str, str], ...]] = {
+    TarotSpreadMap.ONE_FOCUS: (("focus", "Điều đáng nhìn lúc này"),),
+    TarotSpreadMap.THREE_UNBLOCK: (
         ("clear", "Điều đã rõ"),
         ("missed", "Điều dễ bỏ sót"),
         ("next", "Một bước nhỏ có thể thử"),
     ),
+    TarotSpreadMap.FIVE_CLARITY: (
+        ("facts", "Điều đã có dữ kiện"),
+        ("assumption", "Phần mình đang tự điền"),
+        ("need", "Nhu cầu thật phía dưới"),
+        ("agency", "Phần mình chọn được"),
+        ("next", "Một bước để kiểm chứng"),
+    ),
+    TarotSpreadMap.FIVE_LOOP: (
+        ("trigger", "Điều thường châm ngòi"),
+        ("habit", "Phản xạ quen thuộc"),
+        ("payoff", "Điều phản xạ này giúp ngay lúc đó"),
+        ("cost", "Cái giá về sau"),
+        ("alternative", "Một phản ứng khác để thử"),
+    ),
+    TarotSpreadMap.FIVE_CHOICE: (
+        ("need", "Điều mình không muốn đánh đổi"),
+        ("option_a", "Hướng A: điều được và cái giá"),
+        ("option_b", "Hướng B: điều được và cái giá"),
+        ("tradeoff", "Khác biệt thật sự giữa hai hướng"),
+        ("criterion", "Tiêu chí để tự chốt"),
+    ),
+    TarotSpreadMap.FIVE_CONVERSATION: (
+        ("facts", "Điều đã thật sự xảy ra"),
+        ("feeling", "Cảm xúc của mình"),
+        ("need", "Điều mình cần"),
+        ("boundary", "Ranh giới cần rõ"),
+        ("opening", "Cách mở lời"),
+    ),
 }
+
+_CHOICE_SHAPE = re.compile(
+    r"\b(?:giữa|hay là|nên chọn|lựa chọn|phương án|ở lại|rời đi)\b",
+    re.IGNORECASE,
+)
+_LOOP_SHAPE = re.compile(r"\b(?:lặp lại|lần nào cũng|cứ mỗi|vòng lặp|quen thuộc)\b", re.IGNORECASE)
+_CONVERSATION_SHAPE = re.compile(
+    r"\b(?:nói chuyện|mở lời|nhắn|trả lời|hỏi thẳng|xin lỗi|ranh giới)\b",
+    re.IGNORECASE,
+)
 
 _THIRD_PARTY = re.compile(
     r"\b(?:người ấy|họ|anh ấy|cô ấy|crush)\b.{0,28}\b(?:nghĩ|yêu|thích|muốn|định|có)\b",
@@ -107,6 +146,10 @@ _INTENT_FOCUS: dict[TarotQuestionIntent, str] = {
 
 
 class TarotReadingEngine:
+    @staticmethod
+    def positions_for(spread_map: TarotSpreadMap) -> tuple[tuple[str, str], ...]:
+        return _POSITIONS[spread_map]
+
     def assess_question(self, question: str, context: TarotContext) -> TarotQuestionAssessment:
         normalized = " ".join(question.strip().split())
         if len(normalized) < 8:
@@ -162,6 +205,7 @@ class TarotReadingEngine:
         *,
         card_ids: tuple[str, ...],
         spread: TarotSpread,
+        spread_map: TarotSpreadMap | None = None,
         context: TarotContext,
         question: str,
         voice: TarotVoice,
@@ -173,7 +217,10 @@ class TarotReadingEngine:
         intent = question_intent or assessment.intent
         if intent is None:
             raise TarotContentRejected("question intent is required")
-        positions = _POSITIONS[spread]
+        resolved_map = spread_map or self.choose_spread_map(
+            spread, intent, assessment.normalized_question
+        )
+        positions = _POSITIONS[resolved_map]
         if len(card_ids) != len(positions) or len(set(card_ids)) != len(card_ids):
             raise TarotContentRejected("card count must match spread and be unique")
         lens = _CONTEXTS[context]
@@ -210,6 +257,7 @@ class TarotReadingEngine:
             question_intent=intent,
             context=context,
             spread=spread,
+            spread_map=resolved_map,
             voice=voice,
             positions=tuple(rendered),
             closing_prompt=(
@@ -229,6 +277,27 @@ class TarotReadingEngine:
         return reading
 
     @staticmethod
+    def choose_spread_map(
+        spread: TarotSpread,
+        intent: TarotQuestionIntent,
+        question: str,
+    ) -> TarotSpreadMap:
+        if spread is TarotSpread.ONE_CARD:
+            return TarotSpreadMap.ONE_FOCUS
+        if spread is TarotSpread.THREE_CARD:
+            return TarotSpreadMap.THREE_UNBLOCK
+        if _CHOICE_SHAPE.search(question):
+            return TarotSpreadMap.FIVE_CHOICE
+        if _LOOP_SHAPE.search(question):
+            return TarotSpreadMap.FIVE_LOOP
+        if intent in {
+            TarotQuestionIntent.COMMUNICATION,
+            TarotQuestionIntent.BOUNDARY,
+        } or _CONVERSATION_SHAPE.search(question):
+            return TarotSpreadMap.FIVE_CONVERSATION
+        return TarotSpreadMap.FIVE_CLARITY
+
+    @staticmethod
     def _meaning(
         card: TarotCard,
         position_key: str,
@@ -236,7 +305,46 @@ class TarotReadingEngine:
         intent: TarotQuestionIntent,
         voice: TarotVoice,
     ) -> str:
-        if position_key == "missed":
+        if position_key in {"facts", "trigger"}:
+            text = (
+                f"Neo vào phần có thể quan sát: {card.core}. "
+                f"Đặt lá này cạnh một việc đã thật sự được nói hoặc làm trong {lens.focus}."
+            )
+        elif position_key in {"assumption", "habit"}:
+            text = (
+                f"Phần cần kiểm tra lại là {card.tension}. "
+                "Nó có thể là phản xạ quen hoặc phần bạn đang tự điền, chưa chắc là dữ kiện."
+            )
+        elif position_key in {"need", "feeling", "payoff"}:
+            text = (
+                f"Lớp phía dưới đang nghiêng về {card.resource}. "
+                "Gọi tên điều này giúp bạn hiểu nhu cầu của mình mà không biến nó "
+                "thành kết luận về người khác."
+            )
+        elif position_key in {
+            "agency",
+            "alternative",
+            "boundary",
+            "criterion",
+            "opening",
+            "tradeoff",
+        }:
+            text = (
+                f"Phần còn nằm trong tay bạn là {card.resource}. "
+                f"Dùng nó để {_INTENT_FOCUS[intent]} bằng một lựa chọn có thể nói hoặc làm rõ."
+            )
+        elif position_key == "cost":
+            text = (
+                f"Cái giá cần nhìn thẳng là {card.tension}. "
+                "Đừng dùng lá này để dọa mình; hãy dùng nó để biết điều gì cần "
+                "giới hạn hoặc chuẩn bị trước."
+            )
+        elif position_key in {"option_a", "option_b"}:
+            text = (
+                f"Hướng này có thể mở ra {card.resource}, đồng thời có cái giá là {card.tension}. "
+                "Đọc cả phần được lẫn phần phải trả, thay vì tìm một đáp án hoàn hảo."
+            )
+        elif position_key == "missed":
             text = (
                 f"Điểm dễ bỏ sót: {card.tension}. "
                 f"Hãy kiểm tra nó ở {lens.focus}, nhất là khi mục tiêu là {_INTENT_FOCUS[intent]}."
@@ -277,12 +385,12 @@ class TarotReadingEngine:
         relationship_tail = (
             " mà không đoán hộ người kia" if context is TarotContext.RELATIONSHIPS else ""
         )
-        if position_key in {"focus", "clear"}:
+        if position_key in {"focus", "clear", "facts", "trigger"}:
             return (
                 f"Nếu thử cách “{resource}”, chi tiết nào trong những gì đã thật sự xảy ra "
                 f"sẽ ủng hộ hoặc làm yếu đi cảm nhận hiện tại{relationship_tail}?"
             )
-        if position_key == "missed":
+        if position_key in {"missed", "assumption", "habit", "cost"}:
             return (
                 f"Khi nghĩ tới cách “{resource}”, nhu cầu hoặc giới hạn nào vẫn đang bị để ngoài "
                 f"cuộc nói chuyện vì bạn ngại câu trả lời{relationship_tail}?"
@@ -292,9 +400,9 @@ class TarotReadingEngine:
     @staticmethod
     def _action(resource: str, frame: str, voice: TarotVoice, position_key: str = "focus") -> str:
         prefix = "Thử nhé:" if voice is TarotVoice.PLAYFUL_GROUNDED else "Một việc nhỏ:"
-        if position_key in {"focus", "clear"}:
+        if position_key in {"focus", "clear", "facts", "trigger"}:
             action = f"viết hai dòng — điều đã xảy ra và phần mình đang đoán; sau đó {resource}"
-        elif position_key == "missed":
+        elif position_key in {"missed", "assumption", "habit", "cost"}:
             action = (
                 f"gọi tên một nhu cầu hoặc giới hạn chưa được nói; trước khi phản ứng, {resource}"
             )

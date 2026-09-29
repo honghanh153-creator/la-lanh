@@ -15,9 +15,55 @@ def _owner_client(tmp_path: Path) -> TestClient:
             database_url=f"sqlite+aiosqlite:///{tmp_path / 'la-chung.db'}",
             cors_origins=["http://127.0.0.1:5173"],
             guest_cookie_secure=False,
+            la_chung_accepting_new_activity=True,
         )
     )
     return TestClient(app, base_url="http://127.0.0.1:5173")
+
+
+def test_retired_surface_rejects_new_activity_but_keeps_withdraw_endpoint(tmp_path: Path) -> None:
+    app = create_app(
+        Settings(
+            environment="test",
+            database_url=f"sqlite+aiosqlite:///{tmp_path / 'la-chung-retired.db'}",
+            cors_origins=["http://127.0.0.1:5173"],
+            guest_cookie_secure=False,
+        )
+    )
+    with TestClient(app, base_url="http://127.0.0.1:5173") as client:
+        created = client.post(
+            "/v1/la-chung/requests",
+            json={
+                "recipient_label": "một người bạn",
+                "context": "friend",
+                "idempotency_key": "retired-create-123456789",
+            },
+        )
+        preview = client.get("/v1/public/la-chung/old-token")
+        submitted = client.post(
+            "/v1/public/la-chung/old-token/responses",
+            json={
+                "statement_ids": ["a", "b", "c"],
+                "identity_mode": "anonymous",
+                "display_alias": None,
+                "idempotency_key": "retired-submit-123456789",
+            },
+        )
+        resend = client.post("/v1/la-chung/requests/00000000-0000-4000-8000-000000000001/resend")
+        replacement = client.post(
+            "/v1/la-chung/requests/00000000-0000-4000-8000-000000000001/replacement"
+        )
+        withdrawal = client.post("/v1/public/la-chung/receipt/withdraw")
+
+    assert created.status_code == 410
+    assert preview.status_code == 410
+    assert preview.headers["cache-control"].startswith("no-store")
+    assert preview.headers["referrer-policy"] == "no-referrer"
+    assert preview.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+    assert submitted.status_code == 410
+    assert resend.status_code == 410
+    assert replacement.status_code == 410
+    assert withdrawal.status_code == 404
 
 
 def test_anonymous_recipient_flow_is_real_idempotent_and_withdrawable(tmp_path: Path) -> None:
@@ -139,6 +185,12 @@ def test_anonymous_recipient_flow_is_real_idempotent_and_withdrawable(tmp_path: 
         )
         assert hidden.status_code == 204
         assert owner.get(f"/v1/la-chung/results/{request_id}").status_code == 404
+
+        with sqlite3.connect(tmp_path / "la-chung.db") as connection:
+            connection.execute(
+                "UPDATE la_chung_requests SET expires_at = ? WHERE id = ?",
+                ((datetime.now(UTC) - timedelta(days=1)).isoformat(), request_id),
+            )
 
         withdrawn = recipient.post("/v1/public/la-chung/receipt/withdraw")
         assert withdrawn.status_code == 204

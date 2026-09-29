@@ -3014,19 +3014,15 @@ body,
 .home-status { margin: 0.6rem 0 0; color: var(--text-muted); font-size: 0.74rem; line-height: 1.45; text-align: center; }
 
 .home-page .unlock-note { margin-top: 0.75rem; }
-.home-social-bento { display: grid; margin-top: 0.75rem; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
-.home-social-bento a { display: flex; min-width: 0; min-height: 5.25rem; padding: 0.75rem; border: 1px solid var(--line); border-radius: 1rem; align-items: flex-start; gap: 0.55rem; color: var(--text); background: var(--glass); text-decoration: none; }
-.home-social-bento a > svg { flex: 0 0 auto; color: var(--lilac); }
-.home-social-bento span,
-.home-social-bento small,
-.home-social-bento strong { display: block; }
-.home-social-bento small { color: var(--cyan); font-size: 0.65rem; }
-.home-social-bento strong { margin-top: 0.2rem; font-size: 0.75rem; line-height: 1.35; }
-.home-social-bento .home-natal-entry { grid-column: 1 / -1; min-height: 7rem; align-items: center; border-color: color-mix(in srgb, var(--signal) 48%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--signal) 11%, var(--glass)), var(--glass)); }
-.home-social-bento .home-natal-entry svg { color: var(--signal); }
-.home-social-bento .home-natal-entry small { color: var(--signal); }
-.home-social-bento .home-natal-entry strong { font-size: 1rem; }
-.home-social-bento .home-natal-entry em { display: block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.72rem; font-style: normal; line-height: 1.45; }
+.home-natal-discovery { margin-top: 0.75rem; }
+.home-natal-discovery a { display: flex; min-width: 0; min-height: 7rem; padding: 0.75rem; border: 1px solid color-mix(in srgb, var(--signal) 48%, var(--line)); border-radius: 1rem; align-items: center; gap: 0.55rem; color: var(--text); background: linear-gradient(135deg, color-mix(in srgb, var(--signal) 11%, var(--glass)), var(--glass)); text-decoration: none; }
+.home-natal-discovery a > svg { flex: 0 0 auto; color: var(--signal); }
+.home-natal-discovery span,
+.home-natal-discovery small,
+.home-natal-discovery strong { display: block; }
+.home-natal-discovery small { color: var(--signal); font-size: 0.65rem; }
+.home-natal-discovery strong { margin-top: 0.2rem; font-size: 1rem; line-height: 1.35; }
+.home-natal-discovery em { display: block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.72rem; font-style: normal; line-height: 1.45; }
 
 .note-detail-page {
   width: 100%;
@@ -3092,7 +3088,6 @@ body,
   .daily-reading-card__paper small { margin-top: 0.55rem; }
   .home-page .mood-check { padding-right: 0.35rem; padding-left: 0.35rem; }
   .home-page .mood-chip span { width: 2.25rem; height: 2.25rem; }
-  .home-social-bento { grid-template-columns: 1fr; }
 }
 
 @media (min-width: 43.75rem) {
@@ -3104,5 +3099,5 @@ body,
   .daily-reading-card,
   .reading-gift,
   .home-page .mood-check,
-  .home-social-bento a { background: var(--glass-strong); backdrop-filter: none; }
+  .home-natal-discovery a { background: var(--glass-strong); backdrop-filter: none; }
 }

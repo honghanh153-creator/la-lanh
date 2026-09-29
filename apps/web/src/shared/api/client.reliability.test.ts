@@ -8,6 +8,7 @@ import {
   deleteGuest,
   getDailyNote,
   getHealth,
+  isGuestSessionUnavailable,
   OWNER_SESSION_EPOCH_KEY,
   ownerClaimNeedsRefresh,
   saveDailyNote,
@@ -37,6 +38,12 @@ describe("API client reliability", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("classifies both missing and expired guest credentials as recoverable sessions", () => {
+    expect(isGuestSessionUnavailable({ status: 401, code: "GUEST_SESSION_MISSING" })).toBe(true);
+    expect(isGuestSessionUnavailable({ status: 401, code: "GUEST_EXPIRED" })).toBe(true);
+    expect(isGuestSessionUnavailable({ status: 503, code: "READING_UNAVAILABLE" })).toBe(false);
   });
 
   it("uses the newly activated revision for subsequent save and share payloads", async () => {

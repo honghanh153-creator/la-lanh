@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation: Tarot hữu ích hơn với 1, 3 và 5 lá</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap">
+  <style>
+    :root { color-scheme: dark; --bg:#080a25; --surface:#141333; --surface2:#1d1940; --text:#fff8e9; --muted:#c7b8e5; --line:#51457d; --lime:#d9ff2f; --peach:#ff9b7a; --cyan:#72dbe8; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:radial-gradient(circle at 85% 5%, #39204f 0, transparent 28rem), var(--bg); color:var(--text); font:15px/1.65 "Be Vietnam Pro", system-ui, sans-serif; }
+    main { width:min(940px, calc(100% - 32px)); margin:auto; padding:48px 0 72px; }
+    header { border:1px solid var(--line); border-radius:24px; padding:32px; background:linear-gradient(145deg, rgba(29,25,64,.94), rgba(10,11,38,.92)); }
+    .eyebrow, .meta, .tag { text-transform:uppercase; letter-spacing:.11em; font-size:.75rem; }
+    .eyebrow { color:var(--lime); font-weight:700; }
+    h1 { font-size:clamp(2rem, 5vw, 3.4rem); line-height:1.1; max-width:16ch; margin:.5rem 0 1rem; }
+    h2 { margin-top:3.5rem; font-size:1.55rem; }
+    h3 { font-size:1.18rem; margin:.2rem 0 .7rem; }
+    p { max-width:72ch; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px 20px; color:var(--muted); }
+    .summary { font-size:1.06rem; color:#eee4ff; }
+    nav { display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 0; }
+    nav a, .jump a { color:var(--text); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:8px 12px; }
+    nav a:hover, .jump a:hover { border-color:var(--lime); color:var(--lime); }
+    .context, .axes { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+    .context article, .axis { padding:18px; background:rgba(20,19,51,.72); border:1px solid var(--line); border-radius:18px; }
+    .axis strong { display:block; color:var(--lime); margin-bottom:4px; }
+    .flow { margin:24px 0; padding:24px; border-radius:22px; background:#fff8e9; color:#0c0d2c; }
+    .flow-row { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:center; gap:10px; text-align:center; font-weight:700; }
+    .flow-step { padding:14px 10px; border:1px solid #c7bce0; border-radius:14px; }
+    .arrow { color:#64568f; font-size:1.4rem; }
+    .jump { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+    .idea { margin:16px 0; padding:24px; border:1px solid var(--line); border-radius:22px; background:rgba(20,19,51,.86); }
+    .rank { color:var(--lime); font-weight:800; }
+    .idea dl { display:grid; grid-template-columns:130px 1fr; gap:8px 16px; margin:18px 0 0; }
+    .idea dt { color:var(--muted); font-weight:600; }
+    .idea dd { margin:0; }
+    .spread { display:grid; grid-template-columns:repeat(auto-fit,minmax(185px,1fr)); gap:10px; margin:14px 0; }
+    .spread div { padding:14px; border-radius:14px; background:var(--surface2); border-left:3px solid var(--peach); }
+    .spread b { display:block; color:var(--text); }
+    .badge { display:inline-block; border-radius:999px; padding:5px 9px; background:rgba(217,255,47,.12); color:var(--lime); font-size:.78rem; font-weight:700; }
+    table { width:100%; border-collapse:collapse; background:rgba(20,19,51,.72); border-radius:16px; overflow:hidden; }
+    th, td { text-align:left; vertical-align:top; padding:13px; border-bottom:1px solid var(--line); }
+    th { color:var(--lime); }
+    a { color:var(--cyan); }
+    footer { margin-top:50px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:.8rem; }
+    @media (max-width:620px) { main{width:min(100% - 22px,940px);padding-top:18px} header{padding:22px}.flow-row{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}.idea dl{grid-template-columns:1fr}.idea dt{margin-top:6px} table{font-size:.84rem} }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Lá Lành · Product ideation</div>
+    <h1>Tarot hữu ích hơn với 1, 3 và 5 lá</h1>
+    <p class="summary">Đề xuất cốt lõi: để <strong>câu hỏi quyết định trải bài</strong>. Người dùng không cần hiểu kỹ thuật Tarot; Lá Lành đề xuất độ sâu, giải thích vì sao, và luôn cho phép đổi.</p>
+    <div class="meta"><span>Date: <time datetime="2026-09-28">2026-09-28</time></span><span>Topic: tarot-spread-depth-and-draw-ux</span><span>Mode: repo-grounded</span><span>Focus: redesign màn bốc và mở trải 5 lá</span></div>
+    <nav aria-label="Mục lục"><a href="#context">Bối cảnh</a><a href="#axes">Các trục</a><a href="#ideas">Ý tưởng xếp hạng</a><a href="#rejected">Đã loại</a><a href="#sources">Nguồn</a></nav>
+  </header>
+
+  <section id="context">
+    <h2>Codebase Context</h2>
+    <div class="context">
+      <article><h3>Màn hiện tại</h3><p>Sáu nhóm chủ đề, câu hỏi gợi ý, textarea và lựa chọn 1/3 lá cùng xuất hiện trong một trang dài. Người mới phải phân loại chuyện của mình trước khi nhận giá trị.</p></article>
+      <article><h3>Engine hiện tại</h3><p>Đã có <code>one_card</code>, <code>three_card</code>, 6 context và 5 question intent. Đây là nền tốt để đề xuất spread theo câu hỏi thay vì mở thêm một menu kỹ thuật.</p></article>
+      <article><h3>Ranh giới sản phẩm</h3><p>Không đọc suy nghĩ người khác, không phán chắc tương lai, không dùng Tarot thay quyết định. Phần đọc phải quay về dữ kiện, nhu cầu, ranh giới và việc người dùng có thể thử.</p></article>
+      <article><h3>Direction thị giác</h3><p>Cosmic Glass Signal, Be Vietnam Pro, một CTA acid lime, nền indigo và hệ glass tiết chế. Vấn đề cần giải là cấu trúc và nhịp tương tác, không chỉ thay skin.</p></article>
+    </div>
+    <div class="flow" aria-label="Luồng sản phẩm đề xuất">
+      <div class="flow-row"><div class="flow-step">Một câu hỏi thật</div><div class="arrow">→</div><div class="flow-step">Lá gợi ý 1 / 3 / 5 lá<br><small>kèm lý do</small></div><div class="arrow">→</div><div class="flow-step">Đọc xong có thể mở sâu<br><small>không rút lại từ đầu</small></div></div>
+    </div>
+  </section>
+
+  <section id="axes">
+    <h2>Topic Axes</h2>
+    <div class="axes">
+      <div class="axis"><strong>Câu hỏi → spread</strong>Người dùng có hiểu vì sao một độ sâu phù hợp?</div>
+      <div class="axis"><strong>Giá trị của 5 lá</strong>Năm vị trí có giải quyết một việc cụ thể hay chỉ kéo dài nội dung?</div>
+      <div class="axis"><strong>Nhịp bốc và reveal</strong>Có nhận giá trị sớm, đọc nổi trên mobile và mở sâu tự nhiên?</div>
+      <div class="axis"><strong>Agency &amp; safety</strong>Có tránh yes/no, mind-reading và lời khuyên mang tính quyết định?</div>
+      <div class="axis"><strong>Khả năng mở rộng</strong>Matrix có tăng chiều sâu mà không nổ số lượng template?</div>
+    </div>
+  </section>
+
+  <section id="ideas">
+    <h2>Ranked Ideas</h2>
+    <div class="jump"><a href="#idea-1">1. Câu hỏi dẫn đường</a><a href="#idea-2">2. Mở sâu dần</a><a href="#idea-3">3. Bản đồ 5 lá</a><a href="#idea-4">4. Hai hướng</a><a href="#idea-5">5. Cuộc nói chuyện</a><a href="#idea-6">6. Reframe mềm</a></div>
+
+    <article class="idea" id="idea-1">
+      <div class="rank">01 · Nền tảng</div><h3>Một câu trước, Lá đề xuất độ sâu</h3>
+      <p>Bỏ logic “chọn chủ đề → chọn câu gợi ý → chọn số lá”. Màn đầu tập trung vào một câu hỏi thật; hệ thống suy ra intent/context và đề xuất 1, 3 hoặc 5 lá kèm một lý do đời thường. Người dùng có thể đổi nhưng không phải tự học spread.</p>
+      <div class="spread"><div><b>1 lá · Chạm đúng điểm</b>Một điều cần nhìn ngay.</div><div><b>3 lá · Gỡ nút</b>Điều đang xảy ra → điểm dễ bỏ sót → bước thử.</div><div><b>5 lá · Mở bản đồ</b>Dành cho lựa chọn, vòng lặp hoặc cuộc nói chuyện khó.</div></div>
+      <dl><dt>Axis</dt><dd>Câu hỏi → spread; khả năng mở rộng.</dd><dt>Basis</dt><dd><strong>direct:</strong> form hiện tại có quá nhiều quyết định đồng cấp. <strong>external:</strong> câu hỏi nên quyết định spread; người mới thường phù hợp với ba lá hoặc ít hơn.</dd><dt>Rationale</dt><dd>Giảm tải nhận thức và dùng chính intent/context đang có làm năng lực định tuyến.</dd><dt>Downsides</dt><dd>Đề xuất sai sẽ tạo cảm giác “AI phán”. Cần nói rõ đây là gợi ý và giữ quyền đổi.</dd><dt>Confidence</dt><dd>92%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="idea-2">
+      <div class="rank">02 · Entry nhẹ nhất</div><h3>Rút 1, mở thành 3 hoặc 5 khi cần</h3>
+      <p>Người dùng có thể bắt đầu bằng một lá và nhận giá trị ngay. Sau phần đọc, CTA không phải “rút thêm” chung chung mà hỏi phần còn thiếu: “Chưa thấy nút thắt?”, “Đang cân hai hướng?”, “Cần chuẩn bị cách nói?”. Lá mới bổ sung các vị trí đã biết, không khởi động lại bài.</p>
+      <dl><dt>Axis</dt><dd>Nhịp bốc và reveal; giá trị của 5 lá.</dd><dt>Basis</dt><dd><strong>reasoned:</strong> giá trị sớm làm giảm cam kết ban đầu; progressive disclosure chỉ thêm độ sâu khi người dùng đã biết mình thiếu gì.</dd><dt>Rationale</dt><dd>Năm lá trở thành câu trả lời cho một khoảng trống cụ thể, không phải gói “nhiều hơn = chính xác hơn”.</dd><dt>Downsides</dt><dd>Dễ giống upsell hoặc khuyến khích rút đến khi vừa ý. Chỉ cho mở rộng một lần và giải thích mục đích của từng lá.</dd><dt>Confidence</dt><dd>89%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="idea-3">
+      <div class="rank">03 · Chiều sâu thực</div><h3>Ba bản đồ 5 lá, mỗi bản đồ có một công việc</h3>
+      <p>Không dùng một spread 5 lá cho mọi câu hỏi. Chỉ mở ba bản đồ dễ hiểu, dựa trên cấu trúc vấn đề. Người dùng xem trước năm vị trí trước khi bốc.</p>
+      <div class="spread"><div><b>Gỡ một vòng lặp</b>Tác nhân → phản xạ quen → cái được ngắn hạn → cái giá dài hạn → phản ứng thay thế.</div><div><b>Cân hai hướng</b>Nhu cầu thật → A mang lại gì → giá của A → B mang lại gì → giá của B / tiêu chí chốt.</div><div><b>Chuẩn bị nói chuyện</b>Dữ kiện → cảm xúc của mình → nhu cầu → ranh giới → câu mở đầu.</div></div>
+      <dl><dt>Axis</dt><dd>Giá trị của 5 lá; agency &amp; safety.</dd><dt>Basis</dt><dd><strong>external:</strong> mỗi vị trí phải phục vụ câu hỏi; năm lá phù hợp với vấn đề phức tạp nhưng có trọng tâm.</dd><dt>Rationale</dt><dd>Cho 5 lá lý do tồn tại rõ ràng, đồng thời tránh dự đoán và đọc tâm trí người khác.</dd><dt>Downsides</dt><dd>Quá nhiều bản đồ sẽ tái tạo choice overload. Giữ đúng ba bản đầu và định tuyến tự động.</dd><dt>Confidence</dt><dd>87%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="idea-4">
+      <div class="rank">04 · Use case sắc</div><h3>“Hai hướng, một tiêu chí” thay cho hỏi “nên chọn gì?”</h3>
+      <p>Người dùng đặt tên Hướng A và B, sau đó chọn điều mình không muốn đánh đổi. Bài không chọn hộ; nó soi trade-off và kết thúc bằng một phép thử có thể đảo ngược.</p>
+      <div class="spread"><div><b>5 vị trí</b>Điều mình muốn bảo vệ → cơ hội của A → cái giá của A → cơ hội của B → tiêu chí hoặc phép thử để tự chốt.</div></div>
+      <dl><dt>Axis</dt><dd>Agency &amp; safety; giá trị của 5 lá.</dd><dt>Basis</dt><dd><strong>external:</strong> spread quyết định nhiều lá có thể so sánh lựa chọn mà vẫn giữ trọng tâm; Tarot không nên biến thành đáp án yes/no.</dd><dt>Rationale</dt><dd>Đây là use case “phải cần 5 lá” rõ nhất và tạo đầu ra có thể dùng ngoài đời.</dd><dt>Downsides</dt><dd>Người dùng vẫn có thể gán A tốt/B xấu. Copy và synthesis phải nhấn trade-off, không chấm thắng thua.</dd><dt>Confidence</dt><dd>84%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+
+    <article class="idea" id="idea-5">
+      <div class="rank">05 · Outcome cụ thể</div><h3>“Nói sao cho thật” — Tarot như buổi tập trước</h3>
+      <p>Thay vì hỏi đối phương nghĩ gì, người dùng chọn mục tiêu: làm rõ, đặt ranh giới, xin hỗ trợ hoặc sửa hiểu lầm. Phần đọc kết thúc bằng một câu mở đầu có thể chỉnh sửa, sao chép hoặc bỏ qua.</p>
+      <dl><dt>Axis</dt><dd>Agency &amp; safety; nhịp bốc và reveal.</dd><dt>Basis</dt><dd><strong>direct:</strong> engine đã có context communication và intent communication/boundary. <strong>reasoned:</strong> một đầu ra hành động rõ sẽ hữu ích hơn diễn giải trừu tượng.</dd><dt>Rationale</dt><dd>Tạo giá trị đo được: người dùng biết mình muốn nói gì và cách mở lời.</dd><dt>Downsides</dt><dd>Câu gợi ý có thể công thức hoặc không an toàn trong quan hệ bạo lực. Cần nhánh safety riêng và không khuyến khích đối thoại trực tiếp trong tình huống nguy hiểm.</dd><dt>Confidence</dt><dd>80%</dd><dt>Complexity</dt><dd>High</dd></dl>
+    </article>
+
+    <article class="idea" id="idea-6">
+      <div class="rank">06 · Guardrail thành giá trị</div><h3>Sửa câu hỏi nhẹ nhàng, không lên lớp</h3>
+      <p>Khi gặp câu hỏi kiểu “người ấy có yêu mình không?” hoặc “mình có đậu không?”, Lá Lành giữ nguyên nỗi băn khoăn nhưng đề xuất cách hỏi nằm trong quyền quan sát và lựa chọn của người dùng. Chỉ một lời giải thích ngắn, không modal cảnh báo dài.</p>
+      <div class="spread"><div><b>Ví dụ</b>“Người ấy nghĩ gì?” → “Mình đang có dữ kiện gì, đang đoán gì, và có thể hỏi hoặc làm gì để rõ hơn?”</div></div>
+      <dl><dt>Axis</dt><dd>Agency &amp; safety; câu hỏi → spread.</dd><dt>Basis</dt><dd><strong>external:</strong> câu hỏi tốt quyết định chất lượng buổi đọc; flat yes/no và đọc tâm trí làm nghèo bối cảnh. <strong>direct:</strong> spec hiện tại đã cấm deterministic prediction.</dd><dt>Rationale</dt><dd>Không chỉ chặn rủi ro; nó cải thiện input nên cải thiện cả matrix diễn giải phía sau.</dd><dt>Downsides</dt><dd>Tone không khéo sẽ khiến người dùng thấy bị sửa. Bản viết lại phải editable và thừa nhận cảm xúc trước.</dd><dt>Confidence</dt><dd>86%</dd><dt>Complexity</dt><dd>Medium</dd></dl>
+    </article>
+  </section>
+
+  <section id="rejected">
+    <h2>Rejection Summary</h2>
+    <table><thead><tr><th>#</th><th>Ý tưởng đã cân nhắc</th><th>Lý do loại</th></tr></thead><tbody>
+      <tr><td>R1.</td><td>Thêm nút “5 lá” vào selector hiện tại</td><td>Chỉ tăng lựa chọn và độ dài; không làm rõ 5 lá giúp việc gì.</td></tr>
+      <tr><td>R2.</td><td>Một spread 5 lá dùng cho mọi câu hỏi</td><td>Dễ tạo nội dung chung chung và matrix phình theo tổ hợp vô nghĩa.</td></tr>
+      <tr><td>R3.</td><td>Đưa các spread truyền thống có tên riêng vào menu</td><td>Người mới phải học thuật ngữ; còn tăng rủi ro sao chép cấu trúc nguồn cụ thể.</td></tr>
+      <tr><td>R4.</td><td>Giữ sáu context card ở viewport đầu</td><td>Buộc người dùng phân loại trước khi nhận giá trị và làm màn hình dài, phẳng.</td></tr>
+      <tr><td>R5.</td><td>Trả lời yes/no bằng đa số lá thuận/ngược</td><td>Biến Tarot thành phán quyết, giảm agency và không giải thích được “vì sao”.</td></tr>
+      <tr><td>R6.</td><td>Cho rút clarifier không giới hạn</td><td>Khuyến khích rút tới khi gặp câu trả lời mong muốn; phá tính nhất quán của buổi đọc.</td></tr>
+      <tr><td>R7.</td><td>Mặc định 5 lá vì “xem kỹ hơn”</td><td>Nhiều lá không đồng nghĩa hữu ích hơn; tăng thời gian và tải đọc trên mobile.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="sources">
+    <h2>Sources &amp; References</h2>
+    <ul>
+      <li><a href="https://biddytarot.com/podcast/btp92-create-your-own-tarot-spreads/">Biddy Tarot — Create Your Own Tarot Spreads</a>: chia câu hỏi thành mini-question, chọn số lá theo độ phức tạp và giữ mỗi vị trí có mục đích.</li>
+      <li><a href="https://biddytarot.com/blog/ask-brigit-how-to-choose-the-best-tarot-spread-for-your-reading/">Biddy Tarot — How to Choose the Best Tarot Spread</a>: để câu hỏi dẫn spread và tránh làm phức tạp quá mức.</li>
+      <li><a href="https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/making-tough-choices-a-5-card-tarot-spread-for-decision-making">Labyrinthos — 5-card decision spread</a>: năm lá phù hợp với việc nhìn hai hướng và bối cảnh của lựa chọn.</li>
+      <li><a href="https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/how-to-phrase-effective-tarot-card-questions-and-get-the-most-from-your-tarot-reading">Labyrinthos — Phrasing effective Tarot questions</a>: cách đặt câu hỏi quyết định độ hữu ích của phần đọc.</li>
+      <li><a href="https://benebellwen.com/2017/07/07/on-tarot-reading-ethics-part-i/">Benebell Wen — On Tarot Reading Ethics</a>: tránh tuyên bố chắc chắn và giữ quyền tự quyết của người được đọc.</li>
+      <li><a href="../foundation/la-lanh-tarot-engine-spec.md">Lá Lành Tarot Engine Spec</a> và <a href="../legal/tarot-source-rights-notes.md">Tarot Source Rights Notes</a>.</li>
+    </ul>
+  </section>
+  <footer class="composition-signal">Composed 2026-09-28T00:00+07:00 by ce-ideate from the current Lá Lành repository, selected Cosmic Glass Signal direction, current Tarot UI, and cited external references.</footer>
+</main>
+</body>
+</html>

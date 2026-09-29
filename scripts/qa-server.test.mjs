@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,11 +9,44 @@ import {
   createQaServer,
   DEFAULT_QA_API_PORT,
   DEFAULT_QA_WEB_PORT,
+  prepareQaDatabase,
 } from "./qa-server.mjs";
 
 test("QA CLI defaults match the documented review URL", () => {
   assert.equal(DEFAULT_QA_API_PORT, 8010);
   assert.equal(DEFAULT_QA_WEB_PORT, 5180);
+});
+
+test("QA database survives restarts by port and can still run ephemerally", async (context) => {
+  const tempRoot = await mkdtemp(join(tmpdir(), "la-lanh-qa-database-test-"));
+  context.after(async () => {
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const projectRoot = join(tempRoot, "project-a");
+  const first = prepareQaDatabase({ webPort: 5202, env: {}, projectRoot, tempRoot });
+  const second = prepareQaDatabase({ webPort: 5202, env: {}, projectRoot, tempRoot });
+  assert.equal(first.databaseUrl, second.databaseUrl);
+  assert.equal(first.cleanup, null);
+  assert.ok(first.storagePath);
+  await access(first.storagePath);
+
+  const otherProject = prepareQaDatabase({
+    webPort: 5202,
+    env: {},
+    projectRoot: join(tempRoot, "project-b"),
+    tempRoot,
+  });
+  assert.notEqual(first.databaseUrl, otherProject.databaseUrl);
+
+  const ephemeral = prepareQaDatabase({
+    webPort: 5203,
+    env: { LA_LANH_QA_EPHEMERAL: "1" },
+    projectRoot,
+    tempRoot,
+  });
+  assert.equal(typeof ephemeral.cleanup, "function");
+  ephemeral.cleanup();
 });
 
 test("QA server serves SPA deep links and proxies API readiness", async (context) => {

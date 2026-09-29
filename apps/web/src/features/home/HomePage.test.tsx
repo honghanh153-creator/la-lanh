@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   activateReadingProjection,
   ApiProblem,
+  checkInMood,
   getBirthSupplement,
   getContextualReading,
   getCurrentMood,
@@ -17,7 +18,7 @@ import {
   type DailyNote,
   type ReadingProjection,
 } from "../../shared/api/client";
-import { clearCachedDailyNote } from "../../shared/storage/noteCache";
+import { clearCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { HomePage } from "./HomePage";
 
 vi.mock("../../shared/api/client", async (original) => {
@@ -25,6 +26,7 @@ vi.mock("../../shared/api/client", async (original) => {
   return {
     ...actual,
     activateReadingProjection: vi.fn(),
+    checkInMood: vi.fn(),
     getBirthSupplement: vi.fn(),
     getContextualReading: vi.fn(),
     getCurrentMood: vi.fn(),
@@ -56,6 +58,80 @@ describe("HomePage rich reading", () => {
       feedback_count: 0,
       last_choice: null,
     });
+  });
+
+  it("starts from the user's question and routes to every live capability", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+
+    const questionRouter = await screen.findByRole("region", { name: "Bạn đang muốn hiểu điều gì?" });
+    const noteRegion = await screen.findByRole("region", { name: "Note hôm nay" });
+
+    expect(questionRouter.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(questionRouter).getByRole("link", { name: /^Mình Nhìn pattern/ })).toHaveAttribute("href", "/natal");
+    expect(within(questionRouter).getByRole("link", { name: /^Một người Check độ hợp gu/ })).toHaveAttribute("href", "/radar");
+    expect(within(questionRouter).getByRole("link", { name: /^Hôm nay/ })).toHaveAttribute("href", "/insights/current-sky?tradition=western");
+    expect(screen.getByRole("link", { name: /Có chuyện cứ chạy trong đầu/ })).toHaveAttribute("href", "/tarot");
+    expect(screen.queryByText("Lá Chứng")).not.toBeInTheDocument();
+    expect(within(noteRegion).getByRole("button", { name: "Trúng" })).toBeInTheDocument();
+    expect(within(noteRegion).getByRole("button", { name: "Chưa trúng" })).toBeInTheDocument();
+    expect(within(noteRegion).getByRole("link", { name: "Chia sẻ note" })).toHaveAttribute("href", "/card");
+    expect(screen.queryByRole("button", { name: "Lưu lại" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the question-first routes available when the daily note fails", async () => {
+    vi.mocked(getDailyNote).mockRejectedValue(new Error("offline"));
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Bạn đang muốn hiểu điều gì?" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Note chưa về kịp." })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Có chuyện cứ chạy trong đầu/ })).toHaveAttribute("href", "/tarot");
+  });
+
+  it("keeps a cached reading visible when its background refresh fails", async () => {
+    const cached = noteWith(projection(vibe));
+    writeCachedDailyNote(cached);
+    vi.mocked(getDailyNote).mockRejectedValue(new Error("offline"));
+    renderPage();
+
+    const questionRouter = await screen.findByRole("region", { name: "Bạn đang muốn hiểu điều gì?" });
+    const noteRegion = await screen.findByRole("region", { name: "Note hôm nay" });
+    expect(questionRouter.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(await screen.findByText("Đang xem đúng bản đã mở gần nhất trên máy")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
+  });
+
+  it("keeps a cached note readable but exposes session recovery for live features", async () => {
+    writeCachedDailyNote(noteWith(projection(vibe)));
+    vi.mocked(getDailyNote).mockRejectedValue(
+      new ApiProblem(401, "GUEST_SESSION_MISSING", "Guest session is missing"),
+    );
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Mở lại Trạm để cập nhật Note và Bản đồ" })).toHaveAttribute("href", "/welcome");
+  });
+
+  it("explains how to reopen a missing guest session instead of calling it a network error", async () => {
+    vi.mocked(getDailyNote).mockRejectedValue(
+      new ApiProblem(401, "GUEST_SESSION_MISSING", "Guest session is missing"),
+    );
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Phiên riêng đã khép lại." })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mở lại Trạm Bắt Sóng" })).toHaveAttribute("href", "/welcome");
+    expect(screen.queryByText("Kiểm tra kết nối rồi thử lại.")).not.toBeInTheDocument();
+  });
+
+  it("recovers an expired guest session instead of misreporting a network error", async () => {
+    vi.mocked(getDailyNote).mockRejectedValue(
+      new ApiProblem(401, "GUEST_EXPIRED", "Guest session has expired"),
+    );
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Phiên riêng đã khép lại." })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mở lại Trạm Bắt Sóng" })).toHaveAttribute("href", "/welcome");
+    expect(screen.queryByText("Kiểm tra kết nối rồi thử lại.")).not.toBeInTheDocument();
   });
 
   it("shows Vibe and Aura as meaningfully different reading modes", async () => {
@@ -185,7 +261,7 @@ describe("HomePage rich reading", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Đã ghi nhận: trúng với bạn.");
   });
 
-  it("focuses the Context Dial for change-angle and waits for an explicit different choice", async () => {
+  it("keeps angle changes in the Context Dial and waits for an explicit different choice", async () => {
     const user = userEvent.setup();
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     vi.mocked(getContextualReading).mockResolvedValue(projection({
@@ -195,7 +271,7 @@ describe("HomePage rich reading", () => {
     }));
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Đổi góc" }));
+    await user.click(await screen.findByRole("button", { name: "Góc đang đọc Lá chọn" }));
     expect(screen.getByRole("dialog", { name: "Bạn muốn Note giúp nhìn rõ điều gì?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Đóng" })).toHaveFocus();
     expect(recordResonance).not.toHaveBeenCalled();
@@ -204,6 +280,26 @@ describe("HomePage rich reading", () => {
     await user.click(screen.getByRole("button", { name: "Một mối quan hệ" }));
     await waitFor(() => expect(getContextualReading).toHaveBeenCalledWith("relationships"));
     expect(recordResonance).not.toHaveBeenCalled();
+  });
+
+  it("keeps mood check-in behind one playful icon and saves the selected mood", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    vi.mocked(checkInMood).mockResolvedValue({
+      id: "00000000-0000-4000-8000-000000000099",
+      daily_note_id: baseNoteId,
+      mood: "Chill",
+      checked_in_at: "2026-09-28T00:00:00Z",
+    });
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    expect(screen.getByRole("dialog", { name: "Hôm nay bạn đang ở mood nào?" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Chill/ }));
+
+    await waitFor(() => expect(checkInMood).toHaveBeenCalledWith(baseNoteId, "Chill"));
+    expect(screen.queryByRole("dialog", { name: "Hôm nay bạn đang ở mood nào?" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Mood hôm nay: Chill" })).toBeInTheDocument();
   });
 });
 

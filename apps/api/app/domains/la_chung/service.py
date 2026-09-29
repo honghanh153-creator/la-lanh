@@ -314,11 +314,7 @@ class LaChungService:
             request = await session.get(
                 LaChungRequestRow, response.request_id, with_for_update=True
             )
-            if (
-                request is None
-                or RequestStatus(request.status) is not RequestStatus.COMPLETED
-                or request.expires_at <= current
-            ):
+            if request is None or RequestStatus(request.status) is not RequestStatus.COMPLETED:
                 raise LaChungUnavailable
             response.withdrawn_at = current
             response.receipt_ciphertext = None

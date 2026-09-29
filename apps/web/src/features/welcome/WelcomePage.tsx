@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createGuest } from "../../shared/api/client";
 import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
+import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 
 function idempotencyKey(): string {
   const existing = sessionStorage.getItem("la-lanh-guest-create-key");
@@ -28,8 +29,12 @@ export function WelcomePage() {
     setPending(true);
     setError(null);
     const key = idempotencyKey();
+    const radarPending = sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY);
+    const radarOwnerStart = sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
     try {
       await clearPersonalDataOnDevice();
+      if (radarPending) sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, radarPending);
+      if (radarOwnerStart) sessionStorage.setItem("la-lanh-radar-owner-start", "1");
       sessionStorage.setItem("la-lanh-guest-create-key", key);
       queryClient.clear();
       await createGuest(key);
@@ -45,13 +50,11 @@ export function WelcomePage() {
   const actions = (
     <>
       <button className="signal-station__button" disabled={pending} onClick={() => void begin()} type="button">
-        <span>{pending ? "Đang bật tín hiệu…" : "Đồng ý & bật tín hiệu"}</span>
+        <span>{pending ? "Đang bắt tín hiệu…" : "Đồng ý & bắt đầu"}</span>
         <ArrowRight aria-hidden="true" size={21} weight="bold" />
       </button>
       <Link className="signal-station__secondary" to="/demo">Xem bản mẫu</Link>
-      <p className="signal-station__privacy">
-        Dữ liệu dùng để tính Lá đầu tiên · <Link to="/privacy">Xem chi tiết</Link>
-      </p>
+      <p className="signal-station__privacy">Ngày sinh chỉ dùng để tính Lá đầu tiên · <Link to="/privacy">Quyền riêng tư</Link></p>
     </>
   );
 
@@ -59,9 +62,6 @@ export function WelcomePage() {
     <SignalStationFrame act={0} actions={actions} loading={pending} titleId="welcome-title">
       <h1 id="welcome-title">Có một tín hiệu đã đi cùng bạn từ ngày bạn xuất hiện.</h1>
       <p className="signal-station__lead">Chỉ cần ngày sinh. Chưa cần tài khoản.</p>
-      <p className="signal-station__privacy">
-        Phiên khách tự hết hạn sau 30 ngày không hoạt động. Bạn có thể từ chối, xem bản mẫu hoặc xóa dữ liệu bất cứ lúc nào.
-      </p>
       {routeState?.expired ? (
         <p className="signal-station__notice" role="status">Phiên trước đã hết hạn. Dữ liệu cũ không còn được hiển thị; bạn có thể bắt đầu một Lá mới.</p>
       ) : null}

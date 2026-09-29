@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     generation_lease_seconds: int = Field(default=120, ge=30, le=600)
     generation_max_attempts: int = Field(default=2, ge=1, le=3)
     generation_retry_delay_seconds: int = Field(default=60, ge=10, le=3600)
+    la_chung_accepting_new_activity: bool = False
     swisseph_license_mode: Literal["development", "agpl", "professional"] = "development"
 
     model_config = SettingsConfigDict(

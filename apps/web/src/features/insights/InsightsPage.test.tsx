@@ -26,7 +26,9 @@ function renderPage() {
 }
 
 describe("InsightsPage", () => {
-  beforeEach(() => vi.mocked(getInsightOverview).mockReset());
+  beforeEach(() => {
+    vi.mocked(getInsightOverview).mockReset();
+  });
 
   it("shows a privacy-safe precision gate", async () => {
     vi.mocked(getInsightOverview).mockResolvedValue({
@@ -75,5 +77,16 @@ describe("InsightsPage", () => {
     expect(screen.getByText("Aura · Tổng hòa lá số")).toBeInTheDocument();
     expect(await screen.findByText("Mạch suy nghĩ")).toBeInTheDocument();
     expect(screen.getByText("Vùng nở rộng")).toBeInTheDocument();
+  });
+
+  it("offers a recovery path when the private chart session is gone", async () => {
+    vi.mocked(getInsightOverview).mockRejectedValue(
+      { status: 401, code: "GUEST_SESSION_MISSING" },
+    );
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Phiên đọc đã khép lại." })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mở lại Trạm Bắt Sóng" })).toHaveAttribute("href", "/welcome");
+    expect(screen.queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
   });
 });
