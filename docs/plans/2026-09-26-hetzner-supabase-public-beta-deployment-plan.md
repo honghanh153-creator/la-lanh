@@ -1,7 +1,7 @@
 ---
 title: Hetzner + Supabase public beta deployment
 date: 2026-09-26
-status: deployed-with-operations-follow-ups
+status: production-closed-beta-with-operations-follow-ups
 deepened: 2026-09-26
 deployed: 2026-09-26
 ---
@@ -48,9 +48,9 @@ This is the recovery anchor for a future session. It contains no credentials.
 |---|---|
 | Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
-| Deployed application commit/tag | `9076c1b1e629` / `la-lanh:9076c1b1e629` |
-| Deployed image digest | `sha256:2ebe3cf17a9f8b74b44ea6bc7ae77e911e39111b42ae8d56ee97e74e22292fdd` |
-| Previous rollback image | `la-lanh:b391e6610840` |
+| Deployed application commit/tag | `6e0e064cfb4803eb64126e8af56647e36da7ddf2` / `la-lanh:6e0e064cfb48` |
+| Deployed image digest | `sha256:ecdeb64c0b60687ae91d2249b795a8e4e8dcbc730da4f4e511f0438ef0d5e05d` |
+| Previous rollback image | `la-lanh:9076c1b1e629` |
 | Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
 | Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
 | Database | Supavisor session pooler on port `5432`, TLS required |
@@ -81,6 +81,23 @@ clear Natal value path only after exact time and place are available. Full repos
 production build and QA deep-link proxy smoke. Public synthetic acceptance then completed the exact
 birth/Natal path and unknown-time Radar path and deleted both the result and guest data. Migration
 head remained `20260927_0022`; public smoke passed at the URL above.
+
+Release `6e0e064cfb48` was deployed on 2026-09-29 at 06:18 UTC as the production closed-beta release.
+It introduces the question-first Home hierarchy, moves the Daily Note directly below the intent
+selector, removes the obsolete Lá Chứng path, and ships the redesigned Tarot question/spread flow
+with one-, three-, and five-card readings. The corresponding source commit was published before
+serving and remains available in the public AGPL repository; operations-only follow-up commits
+`9396473` and `7d6241f` add the reproducible retention timers and secret-safe job runner.
+
+The full release gate passed: 135 web tests, 356 API tests, the 630-variant Daily content audit,
+Tarot audit (78 cards across six contexts plus multi-card samples), Radar audit, native Swiss
+Ephemeris build/checksums, production build, and QA proxy smoke. Database TLS and migration to head
+`20260927_0022` passed. Public smoke covered `/welcome`, `/birth`, `/reveal`, `/home`, `/tarot`, and
+`/privacy`. A fresh synthetic browser journey completed consent, birth reveal, Home, a five-card
+Tarot recommendation/reading and permanent deletion of both the Tarot result and guest profile.
+The controlled app restart passed, the prior image and manifest passed a rollback dry run, and both
+retention timers are active with successful first executions and aggregate count zero. The only
+build warning was a 717.24 kB JavaScript chunk, tracked as a P3 performance follow-up.
 
 ## Architecture
 
@@ -214,7 +231,7 @@ The frontend never receives a Supabase database password, service-role key, or d
 
 ### Release
 
-- [ ] For the next release, pass `pnpm content:audit`, record a meaningful content improvement and
+- [x] For release `6e0e064cfb48`, pass `pnpm content:audit`, record a meaningful content improvement and
       its regression fixture, or document an emergency security/availability waiver.
 - [x] Generate production cryptographic keys on the VPS.
 - [x] Run Alembic migrations to head.
@@ -223,10 +240,12 @@ The frontend never receives a Supabase database password, service-role key, or d
 - [x] Pass public smoke tests and browser acceptance for availability, deep links, privacy copy, and console health.
 - [x] Run both cleanup jobs once for release `0b3fecb65297` (0 expired guest sessions; 0 expired
       experiments/resonance rows).
-- [ ] Enable and verify recurring cleanup timers.
+- [x] Enable and verify recurring cleanup timers; first guest and bounded-data jobs completed
+      successfully on 2026-09-29 with aggregate count zero.
 - [ ] Confirm and record the Supabase backup/restore capability for the active plan.
 - [x] Run the full synthetic data-writing E2E journey in U7, including deletion/revocation checks.
-- [ ] Perform a controlled restart and rollback dry run against the current schema.
+- [x] Perform a controlled restart and rollback dry run against migration head `20260927_0022` and
+      previous image `la-lanh:9076c1b1e629`.
 - [x] Record image/version, URL, date, and unresolved launch risks.
 
 ## Rollback
@@ -254,8 +273,18 @@ The frontend never receives a Supabase database password, service-role key, or d
 - R9 is explicitly approved before external testers are invited.
 - The deployment and rollback can be repeated from the runbook without relying on this conversation.
 
-Until the remaining boxes are checked, describe this as a technically deployed closed beta, not a
-fully operations-complete production release.
+The product is live as a production closed beta. Until backup/restore capability is confirmed and
+the temporary hostname is replaced, do not describe it as an operations-complete broad public
+launch.
+
+## Current unresolved operations
+
+- Replace the temporary `sslip.io` hostname with an owned domain before broad acquisition.
+- Confirm the active Supabase plan's backup retention and complete an isolated restore rehearsal.
+- Investigate the pre-existing `cloud-init-hotplugd.service` failed unit; it is unrelated to the app
+  and currently tracked as P3.
+- Reduce or split the 717.24 kB frontend chunk before traffic grows; it is not an availability
+  blocker for the current closed cohort.
 
 ## Sources checked
 
