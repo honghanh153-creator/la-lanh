@@ -13,9 +13,9 @@ status checklist is
 | VPS | `2.28.136.44` |
 | Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
 | Public source | `https://github.com/honghanh153-creator/la-lanh` |
-| Deployed release | commit `6e0e064cfb4803eb64126e8af56647e36da7ddf2` / image `la-lanh:6e0e064cfb48` |
-| Image digest | `sha256:ecdeb64c0b60687ae91d2249b795a8e4e8dcbc730da4f4e511f0438ef0d5e05d` |
-| Previous rollback image | `la-lanh:9076c1b1e629` |
+| Deployed release | commit `ac96aa627aade967d4f1206406e276308afd2c13` / image `la-lanh:ac96aa627aad` |
+| Image digest | `sha256:54d20a77a29070c927f29a0a9eb9c572c4169cf3aed19050f0bc345f2204f02c` |
+| Previous rollback image | `la-lanh:6e0e064cfb48` |
 | Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
 | Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 
@@ -40,6 +40,12 @@ The app survived a controlled restart and `la-lanh:9076c1b1e629` passed the roll
 Retention timers installed by follow-up public commits `9396473` and `7d6241f` are active and their
 first runs succeeded without emitting personal payloads. The running application source remains
 the public historical commit `6e0e064cfb4803eb64126e8af56647e36da7ddf2`.
+
+Release `ac96aa627aad` was deployed on 2026-09-29 at 14:03 UTC. The production image itself passed
+the mandatory ten-persona reviewer (20 readings) before migration. Alembic remained at
+`20260927_0022`; app/Caddy health, private readiness, public smoke and browser checks for Welcome,
+Home and Tarot passed without console errors. Its corresponding source is the public commit
+`ac96aa627aade967d4f1206406e276308afd2c13`; `la-lanh:6e0e064cfb48` is the immediate rollback image.
 
 ## What “successful” means
 

@@ -48,9 +48,9 @@ This is the recovery anchor for a future session. It contains no credentials.
 |---|---|
 | Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
-| Deployed application commit/tag | `6e0e064cfb4803eb64126e8af56647e36da7ddf2` / `la-lanh:6e0e064cfb48` |
-| Deployed image digest | `sha256:ecdeb64c0b60687ae91d2249b795a8e4e8dcbc730da4f4e511f0438ef0d5e05d` |
-| Previous rollback image | `la-lanh:9076c1b1e629` |
+| Deployed application commit/tag | `ac96aa627aade967d4f1206406e276308afd2c13` / `la-lanh:ac96aa627aad` |
+| Deployed image digest | `sha256:54d20a77a29070c927f29a0a9eb9c572c4169cf3aed19050f0bc345f2204f02c` |
+| Previous rollback image | `la-lanh:6e0e064cfb48` |
 | Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
 | Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
 | Database | Supavisor session pooler on port `5432`, TLS required |
@@ -98,6 +98,15 @@ Tarot recommendation/reading and permanent deletion of both the Tarot result and
 The controlled app restart passed, the prior image and manifest passed a rollback dry run, and both
 retention timers are active with successful first executions and aggregate count zero. The only
 build warning was a 717.24 kB JavaScript chunk, tracked as a P3 performance follow-up.
+
+Release `ac96aa627aad` was deployed and verified on 2026-09-29 at 14:03 UTC. It moves Daily Note
+ahead of secondary discovery, replaces the reported abstract Daily prose at its source, renders
+disclaimers as accessible notices, expands Western/Tarot methodology to eight bounded sources each,
+and adds the offline ten-persona content reviewer. The reviewer passed 20/20 generated readings in
+the production image before migration; 135 web tests and 368 API tests passed before release.
+Alembic remained at `20260927_0022`, private readiness returned 200, public smoke passed health,
+readiness and SPA deep links, and browser acceptance loaded `/welcome`, `/home` and `/tarot` without
+console errors. The previous `la-lanh:6e0e064cfb48` image remains the immediate rollback anchor.
 
 ## Architecture
 
