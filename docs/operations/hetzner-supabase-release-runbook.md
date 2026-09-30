@@ -13,9 +13,9 @@ status checklist is
 | VPS | `2.28.136.44` |
 | Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
 | Public source | `https://github.com/honghanh153-creator/la-lanh` |
-| Deployed release | commit `db1dab4c77f3d24b2aa8c5da2c9bf312179a7c1b` / image `la-lanh:db1dab4c77f3` |
-| Image digest | `sha256:0fbd6cfc0138e178a45d7f202f769506f6b5ccfe628dceeb6335aa0a2ad0669f` |
-| Previous rollback image | `la-lanh:b6b65893f145` |
+| Deployed release | commit `3798652ed4a31f9099c2cd914868be304601abcc` / image `la-lanh:3798652ed4a3` |
+| Image digest | `sha256:4da87e5c5e9ca72926f1edbae8fc3037a313450a3434abd53460174afd34e948` |
+| Previous rollback image | `la-lanh:db1dab4c77f3` |
 | Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
 | Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 
@@ -55,6 +55,16 @@ tests, Daily/Tarot/Radar content audits, the ten-persona reviewer, database TLS,
 and Privacy. The public Studio API remains disabled (`404`) while bundled approved content continues
 to serve without CMS availability. Both retention jobs and timers passed. The previous healthy image
 `la-lanh:b6b65893f145` remains the immediate rollback anchor.
+
+Release `3798652ed4a3` was deployed and verified on 2026-09-30. It removes the generic Daily scene
+and the fabricated fallback experiment from date-only Vibe readings, reduces Home/detail/share-card
+headline scale, and keeps the disclaimer in its own accessible notice. The release passed 137 web
+tests, 396 API tests, Daily/Tarot/Radar content audits, the ten-persona reviewer, PostgreSQL TLS,
+Alembic head `20260930_0023`, private readiness, public HTTPS/deep-link smoke and live browser
+acceptance for Home, Daily Note and share card. The app container is healthy, Caddy is serving the
+release, and the correctly named `la-lanh-guest-cleanup.timer` and
+`la-lanh-expired-cleanup.timer` units are active. The previous healthy image
+`la-lanh:db1dab4c77f3` remains the immediate rollback anchor.
 
 ## What “successful” means
 

@@ -48,9 +48,9 @@ This is the recovery anchor for a future session. It contains no credentials.
 |---|---|
 | Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
-| Deployed application commit/tag | `db1dab4c77f3d24b2aa8c5da2c9bf312179a7c1b` / `la-lanh:db1dab4c77f3` |
-| Deployed image digest | `sha256:0fbd6cfc0138e178a45d7f202f769506f6b5ccfe628dceeb6335aa0a2ad0669f` |
-| Previous rollback image | `la-lanh:b6b65893f145` |
+| Deployed application commit/tag | `3798652ed4a31f9099c2cd914868be304601abcc` / `la-lanh:3798652ed4a3` |
+| Deployed image digest | `sha256:4da87e5c5e9ca72926f1edbae8fc3037a313450a3434abd53460174afd34e948` |
+| Previous rollback image | `la-lanh:db1dab4c77f3` |
 | Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
 | Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
 | Database | Supavisor session pooler on port `5432`, TLS required |
@@ -118,6 +118,16 @@ public Studio endpoint correctly returns `404`; core content continues from bund
 Both privacy-retention jobs completed with aggregate count zero and both six-hour timers are active.
 The previous healthy `la-lanh:b6b65893f145` image remains available for rollback. Supabase backup
 capability confirmation and an isolated restore rehearsal remain the only open operations items.
+
+Release `3798652ed4a3` was deployed and verified on 2026-09-30. It removes the reported meaningless
+Daily scene and fallback “Đối chiếu với hôm nay” block from date-only Vibe, tightens the typography
+on Home, Daily detail and share cards, and preserves a visually separate disclaimer. The full gate
+passed 137 web tests, 396 API tests, content/Tarot/Radar audits, the ten-persona reviewer, native
+engine checks, production build and QA proxy. Production then passed database TLS, Alembic head
+`20260930_0023`, private readiness, public HTTPS/deep-link smoke and browser acceptance on Home,
+Daily Note and share card. `la-lanh-app-1` is healthy on the release image; Caddy is up; the actual
+privacy timers `la-lanh-guest-cleanup.timer` and `la-lanh-expired-cleanup.timer` are active. The
+previous healthy `la-lanh:db1dab4c77f3` image remains available for rollback.
 
 ## Architecture
 
