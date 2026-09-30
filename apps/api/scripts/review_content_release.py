@@ -136,13 +136,21 @@ def build_synthetic_samples() -> tuple[ReviewSample, ...]:
                 sections=(
                     ("hook", tarot_reading.headline),
                     ("summary", tarot_reading.summary),
-                    (
-                        "scene",
-                        " ".join(position.everyday_scene for position in tarot_reading.positions),
+                    *tuple(
+                        (f"meaning_{position.key}", position.meaning_here)
+                        for position in tarot_reading.positions
                     ),
-                    (
-                        "action",
-                        " ".join(position.small_action for position in tarot_reading.positions),
+                    *tuple(
+                        (f"scene_{position.key}", position.everyday_scene)
+                        for position in tarot_reading.positions
+                    ),
+                    *tuple(
+                        (f"reflection_{position.key}", position.reflection_question)
+                        for position in tarot_reading.positions
+                    ),
+                    *tuple(
+                        (f"action_{position.key}", position.small_action)
+                        for position in tarot_reading.positions
                     ),
                     ("closing", tarot_reading.closing_prompt),
                 ),

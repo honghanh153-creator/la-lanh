@@ -217,7 +217,7 @@ def test_date_only_vibe_is_honestly_one_factor_and_asks_for_exact_time() -> None
     rendered = candidate.model_dump_json().lower()
 
     assert plan.mode is PlanMode.VIBE_FALLBACK
-    assert "một yếu tố" in candidate.thesis
+    assert "mới dùng ngày sinh" in candidate.thesis
     assert "giờ sinh chính xác" in candidate.micro_action
     assert all(term not in rendered for term in ("nhà 7", "rising", "ascendant"))
     assert evaluate_candidate(plan, candidate).accepted is True
@@ -353,7 +353,7 @@ def test_date_only_copy_uses_the_actual_sun_sign_and_daily_editorial_cycle() -> 
     second = renderer.render(second_plan)
 
     assert first != second
-    assert "một yếu tố" in first.thesis
+    assert "mới dùng ngày sinh" in first.thesis
     assert "tín hiệu vũ trụ" not in first.model_dump_json().lower()
     assert evaluate_candidate(first_plan, first).accepted is True
     assert evaluate_candidate(second_plan, second).accepted is True

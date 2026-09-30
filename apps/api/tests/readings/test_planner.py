@@ -73,7 +73,7 @@ def test_exact_western_plan_is_immutable_canonical_and_full_synthesis() -> None:
     assert first.rules_version == "factor-planner-v2"
     assert first.knowledge_version == INTERPRETATION_KNOWLEDGE_VERSION
     assert first.knowledge_version == WESTERN_INTERPRETATION_KNOWLEDGE_VERSION
-    assert first.knowledge_version == "western-interpretation-matrix-v5"
+    assert first.knowledge_version == "western-interpretation-matrix-v6"
     assert first.plan_hash == second.plan_hash
     assert first.mode is PlanMode.FULL_SYNTHESIS
     assert first.tradition is Tradition.WESTERN

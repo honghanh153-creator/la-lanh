@@ -1,12 +1,15 @@
 import asyncio
+import hmac
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.v1.router import router as v1_router
+from app.api.v1.routes.content_studio import router as content_studio_router
 from app.config import Settings, get_settings
 from app.db.session import Database
 from app.domains.astro import NatalChartEngine
@@ -14,6 +17,9 @@ from app.domains.astro.ffi.swisseph import SwissEphemerisError
 from app.domains.birth.postgres import PostgresBirthRepository
 from app.domains.birth.repository import BirthRepository
 from app.domains.birth.service import BirthChartService
+from app.domains.content.catalog import restore_bundled_daily_catalog
+from app.domains.content.postgres import PostgresContentRepository
+from app.domains.content.service import ContentStudioService
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.service import DailyNoteService
 from app.domains.experiments.postgres import PostgresExperimentRepository
@@ -74,6 +80,11 @@ def create_app(
         database = Database(str(resolved_settings.database_url))
         await database.initialize()
         app.state.database = database
+        content_release_service = ContentStudioService(PostgresContentRepository(database.sessions))
+        app.state.content_studio_service = (
+            content_release_service if resolved_settings.content_studio_enabled else None
+        )
+        await content_release_service.activate_published_catalog()
         engine: NatalChartEngine | None
         try:
             engine = NatalChartEngine()
@@ -189,6 +200,7 @@ def create_app(
         try:
             yield
         finally:
+            restore_bundled_daily_catalog()
             await database.dispose()
 
     application = FastAPI(
@@ -207,8 +219,65 @@ def create_app(
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        response = await call_next(request)
         version_prefix = f"/{resolved_settings.api_version}"
+        studio_prefix = f"{version_prefix}/studio"
+        if resolved_settings.content_studio_enabled and request.url.path.startswith(studio_prefix):
+            configured = resolved_settings.content_studio_api_token
+            supplied_header = request.headers.get("Authorization", "")
+            supplied = supplied_header.removeprefix("Bearer ")
+            if configured is None or not hmac.compare_digest(
+                configured.get_secret_value(), supplied
+            ):
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "type": "about:blank",
+                        "title": "Studio access denied",
+                        "status": 401,
+                        "code": "STUDIO_UNAUTHORIZED",
+                    },
+                    headers={"Cache-Control": "no-store, max-age=0"},
+                    media_type="application/problem+json",
+                )
+            if request.method in {"POST", "PUT", "PATCH"}:
+                raw_content_length = request.headers.get("Content-Length")
+                if raw_content_length is not None:
+                    try:
+                        declared_length = int(raw_content_length)
+                    except ValueError:
+                        declared_length = resolved_settings.content_studio_max_body_bytes + 1
+                    if declared_length > resolved_settings.content_studio_max_body_bytes:
+                        return JSONResponse(
+                            status_code=413,
+                            content={
+                                "type": "about:blank",
+                                "title": "Studio request is too large",
+                                "status": 413,
+                                "code": "STUDIO_BODY_TOO_LARGE",
+                            },
+                            headers={"Cache-Control": "no-store, max-age=0"},
+                            media_type="application/problem+json",
+                        )
+                chunks: list[bytes] = []
+                received = 0
+                async for chunk in request.stream():
+                    received += len(chunk)
+                    if received > resolved_settings.content_studio_max_body_bytes:
+                        return JSONResponse(
+                            status_code=413,
+                            content={
+                                "type": "about:blank",
+                                "title": "Studio request is too large",
+                                "status": 413,
+                                "code": "STUDIO_BODY_TOO_LARGE",
+                            },
+                            headers={"Cache-Control": "no-store, max-age=0"},
+                            media_type="application/problem+json",
+                        )
+                    chunks.append(chunk)
+                # Starlette's downstream request parser reuses this bounded cache.
+                request._body = b"".join(chunks)
+        response = await call_next(request)
         if request.url.path.startswith(
             (
                 f"{version_prefix}/daily-note",
@@ -217,6 +286,7 @@ def create_app(
                 f"{version_prefix}/radar",
                 f"{version_prefix}/public/radar",
                 f"{version_prefix}/tarot",
+                f"{version_prefix}/studio",
             )
         ):
             response.headers["Cache-Control"] = "no-store, max-age=0"
@@ -231,13 +301,21 @@ def create_app(
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=[
+            "Authorization",
             "Content-Type",
+            "Idempotency-Key",
             "X-CSRF-Token",
             "X-La-Lanh-Client",
             "X-Request-ID",
         ],
     )
     application.include_router(v1_router, prefix=f"/{resolved_settings.api_version}")
+    if resolved_settings.content_studio_enabled:
+        application.include_router(
+            content_studio_router,
+            prefix=f"/{resolved_settings.api_version}",
+            tags=["content-studio"],
+        )
     application.add_api_route(
         "/metrics",
         metrics_response,

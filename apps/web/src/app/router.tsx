@@ -38,6 +38,7 @@ import { RevealPage } from "../features/reveal/RevealPage";
 import { SavedPage } from "../features/saved/SavedPage";
 import { WelcomePage } from "../features/welcome/WelcomePage";
 import { TarotPage } from "../features/tarot/TarotPage";
+import { ContentStudioPage } from "../features/studio/ContentStudioPage";
 import { AppShell } from "./AppShell";
 
 function RouteErrorPage() {
@@ -108,6 +109,11 @@ export const appRoutes: RouteObject[] = [
       { path: "tarot", element: <TarotPage /> },
       { path: "tarot/:sessionId", element: <TarotPage /> },
     ],
+  },
+  {
+    path: "/studio",
+    element: <ContentStudioPage />,
+    errorElement: <RouteErrorPage />,
   },
   {
     path: "/la-chung/i/:token",

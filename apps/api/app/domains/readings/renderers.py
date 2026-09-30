@@ -9,6 +9,7 @@ from app.domains.readings.knowledge import (
     full_frame,
     semantic_arena,
     transit_copy,
+    use_runtime_catalog_snapshot,
     vibe_frame,
 )
 from app.domains.readings.models import (
@@ -27,7 +28,7 @@ from app.domains.readings.models import (
     SemanticBlueprint,
 )
 
-DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v5"
+DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v6"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",
@@ -206,6 +207,10 @@ class DeterministicVietnameseRenderer:
     version = DETERMINISTIC_RENDERER_VERSION
 
     def render(self, plan: ReadingPlan) -> ReadingCandidate:
+        with use_runtime_catalog_snapshot() as catalog:
+            return self._render_snapshot(plan, catalog.version)
+
+    def _render_snapshot(self, plan: ReadingPlan, catalog_version: str | None) -> ReadingCandidate:
         if plan.mode is PlanMode.VIBE_FALLBACK:
             frame = vibe_frame(plan)
             hook, thesis, manifestation, micro_action = (
@@ -237,8 +242,13 @@ class DeterministicVietnameseRenderer:
         )
         transit = transit_copy(transit_factor) if transit_factor is not None else None
         claims = self._evidence_claims(plan, transit_factor, frame)
+        renderer_version = (
+            f"{self.version}+content-{catalog_version}"
+            if catalog_version is not None
+            else self.version
+        )
         candidate = ReadingCandidate(
-            renderer_version=self.version,
+            renderer_version=renderer_version,
             plan_hash=plan.plan_hash,
             hook=hook,
             thesis=thesis,
@@ -291,7 +301,7 @@ class DeterministicVietnameseRenderer:
             hook = f"{LENS_HOOKS[lens]}, Lá chưa cần đoán cho đầy trang."
             manifestation = (
                 f"Bạn đang muốn soi điều dễ xảy ra {LENS_MANIFESTATIONS[lens]}. "
-                "Dữ kiện hiện tại chưa đủ để nối bối cảnh đó với một pattern riêng có căn cứ."
+                "Dữ kiện hiện tại chưa đủ để nối bối cảnh đó với một đặc điểm riêng có căn cứ."
             )
             micro_action = (
                 f"Trong lúc chưa bổ sung giờ và nơi sinh, bạn có thể {LENS_ACTIONS[lens]}. "

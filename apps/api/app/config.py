@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     generation_max_attempts: int = Field(default=2, ge=1, le=3)
     generation_retry_delay_seconds: int = Field(default=60, ge=10, le=3600)
     la_chung_accepting_new_activity: bool = False
+    content_studio_enabled: bool = False
+    content_studio_api_token: SecretStr | None = None
+    content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)
     swisseph_license_mode: Literal["development", "agpl", "professional"] = "development"
 
     model_config = SettingsConfigDict(
@@ -71,6 +74,16 @@ class Settings(BaseSettings):
                 raise ValueError("enabled generation requires an OpenAI API key")
             if not self.generation_governance_approved:
                 raise ValueError("enabled generation requires explicit governance approval")
+        if self.content_studio_enabled:
+            if self.content_studio_api_token is None:
+                raise ValueError("Content Studio requires an API token")
+            if len(self.content_studio_api_token.get_secret_value()) < 32:
+                raise ValueError("Content Studio API token must contain at least 32 characters")
+            if self.environment in {"staging", "production"}:
+                raise ValueError(
+                    "Content Studio beta auth is not approved outside local development; "
+                    "use the separate managed-identity deployment"
+                )
         if self.environment in {"staging", "production"}:
             if self.swisseph_license_mode == "development":
                 raise ValueError(

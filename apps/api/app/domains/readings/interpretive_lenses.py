@@ -115,14 +115,14 @@ PLANET_PERSPECTIVES: dict[str, PlanetPerspective] = {
     "sun": PlanetPerspective(
         "tự cầm lái để không thấy mình bị mờ đi",
         "muốn được nhìn nhận đúng với điều mình thật sự coi trọng",
-        "cần thấy phần việc mang dấu tay và ý nghĩa riêng",
+        "cần thấy phần đóng góp của mình rõ ràng và có ý nghĩa",
         "quay lại một lựa chọn mình có quyền quyết",
         "Việc nào là của bạn, và việc nào chỉ đang giúp bạn trông có vẻ ổn?",
     ),
     "moon": PlanetPerspective(
         "thu mình hoặc chăm người khác trước để giữ cảm giác an toàn",
         "cần đủ tin cậy rồi mới nói hết nhu cầu",
-        "làm tốt hơn khi nhịp làm việc không bắt cơ thể phải giả vờ ổn",
+        "làm tốt hơn khi khối lượng công việc không bắt cơ thể phải giả vờ ổn",
         "gọi tên cảm giác và nhu cầu thành hai câu riêng",
         "Bạn đang cần được hiểu, được yên, hay được giúp một việc cụ thể?",
     ),
@@ -142,7 +142,7 @@ PLANET_PERSPECTIVES: dict[str, PlanetPerspective] = {
     ),
     "mars": PlanetPerspective(
         "hành động ngay hoặc dựng ranh giới để không thấy mình bất lực",
-        "thể hiện mong muốn qua mức chủ động, va chạm và cách nói không",
+        "thể hiện mong muốn qua mức chủ động, cách phản ứng khi bất đồng và cách từ chối",
         "cần mục tiêu có lực cản vừa đủ và quyền tự bắt đầu",
         "tách cơn bực khỏi việc cần làm tiếp theo",
         "Bạn đang bảo vệ điều gì, và cách bảo vệ hiện tại có thật sự hiệu quả?",
@@ -234,12 +234,12 @@ CURRENT_FORCES: dict[str, str] = {
 ELEMENTS: dict[str, ElementMeaning] = {
     "fire": ElementMeaning(
         "cần động lực, ý nghĩa và quyền bắt đầu",
-        "phản ứng trước khi kiểm tra sức chứa hoặc tác động",
-        "đưa thêm dữ kiện và nhịp chậm vào quyết định",
+        "phản ứng trước khi kiểm tra mình còn đủ tỉnh táo hay không",
+        "đưa thêm dữ kiện và chờ vài phút trước khi quyết định",
     ),
     "earth": ElementMeaning(
         "cần thứ có thể chạm, đo hoặc làm thành bước cụ thể",
-        "giữ điều quen chỉ vì nó còn vận hành được",
+        "giữ điều quen chỉ vì nó vẫn chưa hỏng hẳn",
         "cho phép thử nghiệm trước khi mọi thứ hoàn hảo",
     ),
     "air": ElementMeaning(
@@ -262,7 +262,7 @@ MODALITIES: dict[str, ModalityMeaning] = {
         "mở quá nhiều cửa nhưng chưa ở lại đủ lâu",
     ),
     "fixed": ModalityMeaning(
-        "giữ nhịp và làm sâu",
+        "duy trì và làm sâu",
         "tạo độ bền khi đã tin vào điều mình làm",
         "giữ thế cũ lâu hơn mức còn có ích",
     ),
@@ -292,15 +292,15 @@ SIGN_STRUCTURE: dict[str, tuple[str, str]] = {
 
 HOUSE_MODES: dict[str, HouseModeMeaning] = {
     "angular": HouseModeMeaning(
-        "đưa cơ chế ra hành động và làm nó dễ thấy",
+        "đưa phản ứng bên trong thành hành động dễ thấy",
         "phản ứng quá nhanh vì mọi thứ có cảm giác đang xảy ra ngay bây giờ",
     ),
     "succedent": HouseModeMeaning(
-        "giữ, nuôi và biến cơ chế thành thứ có độ bền",
+        "giữ, nuôi và biến một cách làm thành thói quen bền",
         "bám vào cách cũ vì đã đầu tư nhiều vào nó",
     ),
     "cadent": HouseModeMeaning(
-        "quan sát, phân phối và đổi cách hiểu cơ chế",
+        "quan sát, chia nhỏ và đổi cách hiểu vấn đề",
         "ở trong khâu chuẩn bị hoặc diễn giải lâu hơn mức cần thiết",
     ),
 }

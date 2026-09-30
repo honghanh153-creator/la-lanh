@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
+from threading import Lock
 
 from app.domains.astro.models import Tradition
 from app.domains.readings.interpretive_lenses import (
@@ -97,7 +101,7 @@ PLANETS: dict[str, PlanetMeaning] = {
     "sun": PlanetMeaning(
         "được tự quyết và thấy việc mình làm có ý nghĩa",
         "cố chứng minh mình ổn bằng cách làm thêm",
-        "chọn một việc thật sự mang dấu tay của bạn và bỏ bớt một việc chỉ để ghi điểm",
+        "chọn một việc thể hiện rõ phần đóng góp của bạn và bỏ bớt việc chỉ để ghi điểm",
     ),
     "moon": PlanetMeaning(
         "được an toàn trước khi mở lòng",
@@ -131,7 +135,7 @@ PLANETS: dict[str, PlanetMeaning] = {
     ),
     "uranus": PlanetMeaning(
         "được đổi cách làm mà vẫn giữ quyền tự chủ",
-        "phá nhịp quá sớm chỉ để thoát cảm giác bị bó",
+        "đổi cách quá sớm chỉ để thoát cảm giác bị bó",
         "đổi đúng một biến nhỏ thay vì lật cả bàn",
     ),
     "neptune": PlanetMeaning(
@@ -147,7 +151,7 @@ PLANETS: dict[str, PlanetMeaning] = {
     "chiron": PlanetMeaning(
         "được đối xử tử tế với điểm còn nhạy",
         "dùng một lần hụt trước đây để kết luận về hiện tại",
-        "gọi đúng điều đang chạm vào mình trước khi phản ứng với người đối diện",
+        "gọi đúng điều đang làm mình khó chịu trước khi phản ứng với người đối diện",
     ),
     "true_node": PlanetMeaning(
         "được tập một cách phản ứng mới",
@@ -173,19 +177,19 @@ SIGNS: dict[str, SignMeaning] = {
         "đi trước cảm giác của chính mình",
         "khi một tin nhắn tới đúng lúc bạn đang bực hoặc một đầu việc bị chặn giữa đường",
         (
-            "đợi mười nhịp thở rồi mới trả lời",
+            "hít thở chậm mười lần rồi mới trả lời",
             "bắt đầu bằng bước nhỏ nhất",
             "hỏi xem việc này có thật sự gấp",
         ),
         (
             "Bạn có thể sắp trả lời nhanh hơn mức mình thật sự chắc.",
-            "Một việc đang khiến bạn muốn xử lý ngay cho xong.",
-            "Năng lượng khởi động có rồi; hướng đi mới là phần cần chọn.",
+            "Bạn có thể muốn trả lời ngay chỉ để hết cảm giác chờ đợi.",
+            "Bạn đã sẵn sàng bắt đầu; việc cần chọn là bắt đầu từ đâu.",
         ),
     ),
     "taurus": SignMeaning(
         "chậm, chắc và cần cảm giác đủ tin cậy",
-        "giữ nhịp quen lâu hơn mức nó còn dễ chịu",
+        "giữ cách quen lâu hơn mức nó còn dễ chịu",
         "khi lịch quen bị đổi, một cam kết cần sửa hoặc bạn phải quyết định có tiếp tục chờ",
         (
             "đổi một chi tiết, không đổi cả hệ",
@@ -216,7 +220,7 @@ SIGNS: dict[str, SignMeaning] = {
     "cancer": SignMeaning(
         "nhạy với bầu không khí và cần nơi đủ an toàn",
         "ôm luôn phần cảm xúc của người khác",
-        "khi ai đó xuống mood và bạn lập tức đổi lịch, đổi giọng hoặc nhận luôn phần chăm sóc",
+        "khi ai đó buồn và bạn lập tức đổi lịch, đổi giọng hoặc nhận luôn phần chăm sóc",
         (
             "hỏi phần nào thật sự là của mình",
             "nói nhu cầu trước khi chăm người khác",
@@ -236,7 +240,7 @@ SIGNS: dict[str, SignMeaning] = {
         (
             "Có điều bạn muốn được công nhận nhưng chưa muốn nói thẳng.",
             "Đừng để một phản hồi nhạt làm nhỏ đi thứ bạn đang thích.",
-            "Hôm nay hợp để cho một điều mình tự hào được lên tiếng.",
+            "Một điều bạn tự hào đang cần được nói ra.",
         ),
     ),
     "virgo": SignMeaning(
@@ -290,7 +294,7 @@ SIGNS: dict[str, SignMeaning] = {
             "quay lại hoàn tất một cuộc nói chuyện",
         ),
         (
-            "Một hướng mới rất hấp dẫn, nhưng chuyện cũ vẫn còn một dấu phẩy.",
+            "Bạn muốn bắt đầu chuyện mới dù chuyện cũ vẫn chưa được giải quyết.",
             "Bạn cần khoảng rộng; chưa chắc cần biến mất.",
             "Ý tưởng lớn sẽ đáng tin hơn sau một bước kiểm tra nhỏ.",
         ),
@@ -345,7 +349,8 @@ SIGNS: dict[str, SignMeaning] = {
         ),
         (
             "Một tin nhắn ngắn có thể kéo theo cả phần bạn tự nối thêm.",
-            "Bạn bắt mood rất nhanh; phần khó là biết cảm giác nào thực sự thuộc về mình.",
+            "Bạn nhận ra cảm xúc quanh mình rất nhanh; phần khó là biết cảm giác nào "
+            "thuộc về mình.",
             "Cảm giác đầu tiên đáng nghe, nhưng chưa cần biến thành kết luận.",
         ),
     ),
@@ -362,7 +367,7 @@ HOUSES: dict[int, HouseMeaning] = {
         "khi định giá công sức, mua sắm hoặc quyết định giữ lại điều gì",
     ),
     3: HouseMeaning(
-        "giao tiếp và nhịp học hằng ngày",
+        "giao tiếp và việc học hằng ngày",
         "khi nhắn một câu quan trọng, học điều mới hoặc xử lý quá nhiều thông tin",
     ),
     4: HouseMeaning(
@@ -374,7 +379,7 @@ HOUSES: dict[int, HouseMeaning] = {
     ),
     6: HouseMeaning(
         "công việc thường ngày và cách chăm cơ thể",
-        "khi lịch kín, việc vụn tăng hoặc cơ thể bắt đầu báo hết sức chứa",
+        "khi lịch kín, việc vụn tăng hoặc cơ thể bắt đầu mệt rõ",
     ),
     7: HouseMeaning(
         "quan hệ một-một và cách thương lượng",
@@ -428,12 +433,78 @@ ASPECTS: dict[str, AspectMeaning] = {
     ),
 }
 
-ELEMENT_PROCESS_COPY = {
-    "fire": "muốn bắt đầu hoặc hành động để biết điều gì thật sự có năng lượng",
-    "earth": "cần một dữ kiện hoặc bước cụ thể rồi mới yên tâm",
-    "air": "cần nói hoặc nghĩ thành lời để hiểu chuyện gì đang xảy ra",
-    "water": "cần đủ an toàn rồi mới nói rõ điều mình cảm",
-}
+
+@dataclass(frozen=True)
+class RuntimeKnowledgeCatalog:
+    planets: Mapping[str, PlanetMeaning]
+    signs: Mapping[str, SignMeaning]
+    houses: Mapping[int, HouseMeaning]
+    aspects: Mapping[str, AspectMeaning]
+    version: str | None = None
+    generation: int = 0
+
+
+_BUNDLED_RUNTIME_CATALOG = RuntimeKnowledgeCatalog(
+    planets=PLANETS,
+    signs=SIGNS,
+    houses=HOUSES,
+    aspects=ASPECTS,
+)
+_ACTIVE_RUNTIME_CATALOG = _BUNDLED_RUNTIME_CATALOG
+_RUNTIME_CATALOG_LOCK = Lock()
+_RENDER_CATALOG: ContextVar[RuntimeKnowledgeCatalog | None] = ContextVar(
+    "reading_runtime_catalog",
+    default=None,
+)
+
+
+def install_runtime_catalog(catalog: RuntimeKnowledgeCatalog) -> bool:
+    """Install only a newer catalog generation as one atomic process-local snapshot."""
+
+    global _ACTIVE_RUNTIME_CATALOG
+    with _RUNTIME_CATALOG_LOCK:
+        if catalog.generation < _ACTIVE_RUNTIME_CATALOG.generation:
+            return False
+        _ACTIVE_RUNTIME_CATALOG = catalog
+        return True
+
+
+def restore_bundled_runtime_catalog() -> None:
+    global _ACTIVE_RUNTIME_CATALOG
+    with _RUNTIME_CATALOG_LOCK:
+        _ACTIVE_RUNTIME_CATALOG = _BUNDLED_RUNTIME_CATALOG
+
+
+@contextmanager
+def use_runtime_catalog_snapshot() -> Iterator[RuntimeKnowledgeCatalog]:
+    bound_catalog = _RENDER_CATALOG.get()
+    if bound_catalog is not None:
+        yield bound_catalog
+        return
+
+    catalog = _ACTIVE_RUNTIME_CATALOG
+    token = _RENDER_CATALOG.set(catalog)
+    try:
+        yield catalog
+    finally:
+        _RENDER_CATALOG.reset(token)
+
+
+@contextmanager
+def use_specific_runtime_catalog(
+    catalog: RuntimeKnowledgeCatalog,
+) -> Iterator[RuntimeKnowledgeCatalog]:
+    """Bind a draft catalog to one validation context without publishing it."""
+
+    token = _RENDER_CATALOG.set(catalog)
+    try:
+        yield catalog
+    finally:
+        _RENDER_CATALOG.reset(token)
+
+
+def _catalog() -> RuntimeKnowledgeCatalog:
+    return _RENDER_CATALOG.get() or _ACTIVE_RUNTIME_CATALOG
 
 
 LENS_MANIFESTATIONS: dict[BackgroundLens, str] = {
@@ -452,7 +523,7 @@ LENS_HOOKS: dict[BackgroundLens, str] = {
     BackgroundLens.RELATIONSHIPS: "Trong một mối quan hệ đang khiến bạn để tâm",
     BackgroundLens.COMMUNICATION: "Trong cuộc nói chuyện bạn đang nghĩ tới",
     BackgroundLens.WORK: "Ở công việc hôm nay",
-    BackgroundLens.ENERGY: "Khi sức chứa đang xuống",
+    BackgroundLens.ENERGY: "Khi bạn đang mệt",
     BackgroundLens.SELF_CARE: "Trong cách bạn chăm mình hôm nay",
 }
 
@@ -468,7 +539,7 @@ LENS_ACTIONS: dict[BackgroundLens, str] = {
         "chọn một đầu việc, viết tiêu chuẩn hoàn thành của nó và để phần còn lại chờ"
     ),
     BackgroundLens.ENERGY: (
-        "giảm một kích thích trong mười phút rồi kiểm tra xem sức chứa có đổi không"
+        "tắt một nguồn gây nhiễu trong mười phút rồi kiểm tra xem bạn có bớt căng không"
     ),
     BackgroundLens.SELF_CARE: (
         "chọn một việc chăm mình đủ nhỏ để làm mà không cần biến nó thành thành tích"
@@ -497,8 +568,8 @@ def _apply_background_lens(
         f"Bạn có thể nhận ra điều này {LENS_MANIFESTATIONS[lens]}. {manifestation}"
     )
     contextual_action = (
-        f"Thử {LENS_ACTIONS[lens]}. Sau đó ghi lại điều gì thực sự xảy ra; "
-        "đừng dùng cảm giác ban đầu để chốt hộ kết quả."
+        f"Thử {LENS_ACTIONS[lens]}. Sau đó ghi lại câu trả lời thật, "
+        "thay vì kết luận từ cảm giác ban đầu."
     )
     return contextual_hook, contextual_manifestation, contextual_action
 
@@ -521,7 +592,7 @@ def _natal_phase_copy(phase: str | None) -> str:
     if phase == "applying":
         return "Hai phần này thường gọi nhau khá nhanh."
     if phase == "separating":
-        return "Bạn thường nhận ra cơ chế này rõ hơn sau khi nó đã xảy ra."
+        return "Bạn thường nhận ra phản ứng này rõ hơn sau khi nó đã xảy ra."
     return ""
 
 
@@ -533,31 +604,6 @@ def _orb_weight(orb: float) -> str:
     return "Góc rộng: chỉ xem là nét phụ; đối chiếu với trải nghiệm thật."
 
 
-def _contrast_copy(
-    *,
-    lens: InterpretiveLens,
-    body_a: str,
-    body_b: str,
-    planet_a: PlanetMeaning,
-    planet_b: PlanetMeaning,
-    element_a_key: str,
-    element_b_key: str,
-) -> str:
-    label_a = body_label(body_a)
-    label_b = body_label(body_b)
-    if planet_a.drive == planet_b.drive:
-        needs = f"Cả {label_a} và {label_b} cùng nhấn mạnh nhu cầu {planet_a.drive}."
-    else:
-        needs = f"{label_a} cần {planet_a.drive}; {label_b} cần {planet_b.drive}."
-
-    if lens not in {InterpretiveLens.RELATIONSHIPS, InterpretiveLens.REGULATION}:
-        return needs
-    if element_a_key != element_b_key:
-        return needs
-    process = f"Cả hai đều {ELEMENT_PROCESS_COPY[element_a_key]}."
-    return f"{needs} {process}"
-
-
 def _context_house(
     plan: ReadingPlan, body_refs: tuple[str, ...]
 ) -> tuple[DerivedFactor, HouseMeaning] | None:
@@ -567,14 +613,14 @@ def _context_house(
         if not set(factor.child_refs).intersection(body_refs):
             continue
         house = int(_parts(factor)[3])
-        return factor, HOUSES[house]
+        return factor, _catalog().houses[house]
     return None
 
 
 def _fallback_context(plan: ReadingPlan) -> str:
     if plan.background_lens is not None:
         return LENS_MANIFESTATIONS[plan.background_lens]
-    return "khi bạn phải phản hồi một việc quan trọng trong lúc sức chứa không còn nhiều"
+    return "khi bạn phải trả lời một việc quan trọng trong lúc đã khá mệt"
 
 
 def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
@@ -609,8 +655,8 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
             "Để ý điều gì khiến bạn muốn chốt vội.",
             "Để ý phản xạ đầu tiên, chưa cần tin nó ngay.",
             "Để ý lúc cơ thể biết trước phần lý trí.",
-            "Để ý điều bạn đang né gọi tên.",
-            "Để ý chuyện gì đổi khi chậm một nhịp.",
+            "Để ý câu nào bạn vẫn chưa nói thẳng.",
+            "Để ý chuyện gì đổi khi bạn đợi thêm vài phút.",
         )
         (
             hook_slot,
@@ -664,15 +710,16 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
             scene_key=f"{semantic_arena(plan.background_lens).value}:uncertain-sign",
             action_key=f"clarify-data:{action_slot}",
         )
-    sign = raw_signs[0] if raw_signs and raw_signs[0] in SIGNS else "pisces"
-    meaning = SIGNS[sign]
+    signs = _catalog().signs
+    sign = raw_signs[0] if raw_signs and raw_signs[0] in signs else "pisces"
+    meaning = signs[sign]
     modes = tuple(EditorialMode)
     reflections = (
         "Để ý phản xạ đầu tiên.",
         "Để ý chuyện gì xảy ra ngay sau đó.",
         "Để ý lúc cơ thể lên tiếng trước.",
-        "Để ý điều bạn đang né gọi tên.",
-        "Để ý điều đổi khi chậm một nhịp.",
+        "Để ý câu nào bạn vẫn chưa nói thẳng.",
+        "Để ý điều gì đổi khi bạn đợi thêm vài phút.",
     )
     hook_slot, practice_slot, mode_slot, close_slot, reflection_slot = daily_mixed_radix_slots(
         plan.editorial_seed,
@@ -682,7 +729,9 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
     practice = meaning.practices[practice_slot]
     mode = modes[mode_slot]
     mode_copy = {
-        EditorialMode.MECHANISM: f"Khi có áp lực, {meaning.stress} có thể là cách giữ nhịp quen.",
+        EditorialMode.MECHANISM: (
+            f"Khi có áp lực, bạn có thể {meaning.stress} như một phản ứng quen."
+        ),
         EditorialMode.FRICTION: f"Điểm dễ trượt hôm nay: {meaning.stress}.",
         EditorialMode.RESOURCE: f"Phần dùng được hôm nay là khả năng {meaning.style}.",
         EditorialMode.CONTRAST: (
@@ -690,7 +739,7 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
             f"{meaning.stress} là chỗ cần canh."
         ),
         EditorialMode.EXPERIMENT: (
-            "Hôm nay hợp với một phép thử nhỏ: đổi phản xạ quen thành một bước có thể kiểm chứng."
+            "Nếu chuyện này lặp lại hôm nay, hãy để ý việc bạn làm đầu tiên."
         ),
     }[mode]
     close = (
@@ -712,8 +761,9 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
     return InterpretationFrame(
         hook=hook,
         thesis=(
-            f"Đây là góc đọc từ một yếu tố trong ngày sinh: bạn thường vào nhịp theo kiểu "
-            f"{meaning.style}. Điểm dễ vấp là {meaning.stress}; chưa đủ để kết luận về toàn bộ bạn."
+            f"Note này mới dùng ngày sinh. Nó gợi ý rằng bạn thường {meaning.style}, "
+            f"và khi căng dễ {meaning.stress}. Có giờ và nơi sinh, Lá mới đọc thêm "
+            "cảm xúc và bối cảnh sống."
         ),
         manifestation=manifestation,
         micro_action=micro_action,
@@ -759,14 +809,15 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     secondary = placements[1] if len(placements) > 1 else primary
     body_a = primary.subjects[0]
     body_b = secondary.subjects[0]
-    planet_a = PLANETS.get(body_a, PLANETS["sun"])
-    planet_b = PLANETS.get(body_b, PLANETS["moon"])
+    catalog = _catalog()
+    planet_a = catalog.planets.get(body_a, catalog.planets["sun"])
+    planet_b = catalog.planets.get(body_b, catalog.planets["moon"])
     perspective_a = PLANET_PERSPECTIVES.get(body_a, PLANET_PERSPECTIVES["sun"])
     perspective_b = PLANET_PERSPECTIVES.get(body_b, PLANET_PERSPECTIVES["moon"])
     sign_a_key = _placement_sign(primary) or "pisces"
     sign_b_key = _placement_sign(secondary) or "pisces"
-    sign_a = SIGNS.get(sign_a_key, SIGNS["pisces"])
-    sign_b = SIGNS.get(sign_b_key, SIGNS["pisces"])
+    sign_a = catalog.signs.get(sign_a_key, catalog.signs["pisces"])
+    sign_b = catalog.signs.get(sign_b_key, catalog.signs["pisces"])
     element_a, modality_a, element_a_key, modality_a_key = sign_structure(sign_a_key)
     _element_b, _modality_b, element_b_key, modality_b_key = sign_structure(sign_b_key)
     editorial_variant = resolve_daily_editorial_variant(
@@ -788,15 +839,6 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         editorial_variant.signature,
     ]
 
-    contrast = _contrast_copy(
-        lens=lens,
-        body_a=body_a,
-        body_b=body_b,
-        planet_a=planet_a,
-        planet_b=planet_b,
-        element_a_key=element_a_key,
-        element_b_key=element_b_key,
-    )
     if lens in {InterpretiveLens.RELATIONSHIPS, InterpretiveLens.REGULATION}:
         knowledge_refs.extend((f"element:{element_a_key}", f"element:{element_b_key}"))
     elif lens in {InterpretiveLens.WORK, InterpretiveLens.GROWTH}:
@@ -806,10 +848,11 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         parts = _parts(hero)
         aspect_name = parts[3]
         orb = float(parts[6])
-        aspect = ASPECTS.get(aspect_name, ASPECTS["conjunction"])
+        aspect = catalog.aspects.get(aspect_name, catalog.aspects["conjunction"])
         aspect_core = (
-            f"{body_label(body_a)} và {body_label(body_b)} {aspect.bridge}. {contrast} "
-            f"Điểm dễ kẹt: {aspect.watch}. {_orb_weight(orb)}"
+            f"Bạn vừa muốn {planet_a.drive}, vừa muốn {planet_b.drive}. "
+            f"Hai mong muốn này {aspect.bridge}. Khi căng, bạn dễ {aspect.watch}. "
+            f"{_orb_weight(orb)}"
         )
         phase = _aspect_phase(hero)
         phase_copy = (
@@ -821,8 +864,9 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     else:
         phase_copy = ""
         aspect_core = (
-            f"Một phần vận hành {sign_a.style}; phần còn lại {sign_b.style}. "
-            f"Điểm cần canh là {planet_a.stress}, nhất là khi {planet_b.stress}."
+            f"Bạn vừa có xu hướng {sign_a.style}, vừa có xu hướng {sign_b.style}. "
+            f"Điểm cần để ý là lúc bạn {planet_a.stress}, nhất là khi bạn cũng "
+            f"{planet_b.stress}."
         )
 
     thesis = aspect_core
@@ -834,7 +878,7 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     if phase_copy:
         thesis = f"{thesis} {phase_copy}"
 
-    pattern_sign = (
+    default_reaction = (
         "cố giải quyết thật nhanh để khỏi phải giữ hai nhu cầu cùng lúc"
         if hero.role.value == "tension"
         else "làm theo điều vốn thuận tay mà quên kiểm tra nhu cầu còn lại"
@@ -850,7 +894,7 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         context_phrase=context_phrase,
         context=context,
         background_lens=plan.background_lens,
-        pattern_sign=pattern_sign,
+        default_reaction=default_reaction,
         editorial_mode=editorial_variant.mode,
         action_slot=editorial_variant.action_slot,
         reflection_slot=editorial_variant.reflection_slot,
@@ -882,7 +926,7 @@ def _lens_copy(
     context_phrase: str,
     context: tuple[DerivedFactor, HouseMeaning] | None,
     background_lens: BackgroundLens | None,
-    pattern_sign: str,
+    default_reaction: str,
     editorial_mode: EditorialMode,
     action_slot: int,
     reflection_slot: int,
@@ -892,20 +936,21 @@ def _lens_copy(
     # assembly here makes the semantic frame auditable before any prose renderer.
     arena = context[1].arena if context else "tình huống này"
     if lens is InterpretiveLens.RELATIONSHIPS:
-        hook = f"Trong quan hệ, một phần muốn {planet_a.drive}; phần kia muốn {planet_b.drive}."
+        hook = f"Trong quan hệ, bạn vừa muốn {planet_a.drive}, vừa muốn {planet_b.drive}."
         manifestation = (
-            f"Bạn có thể {perspective_a.relationships}, trong khi phần kia "
-            f"{perspective_b.relationships}. Dễ bắt gặp {context_phrase}, rồi {pattern_sign}."
+            f"Bạn thường {perspective_a.relationships}. Cùng lúc, bạn cũng "
+            f"{perspective_b.relationships}. Điều này thường xuất hiện {context_phrase}. "
+            f"Khi đó, bạn có thể {default_reaction}."
         )
         action = (
-            "Thử nói một nhu cầu của bạn dưới dạng đề nghị, rồi hỏi phần còn lại của người kia. "
+            "Thử nói một nhu cầu của bạn dưới dạng đề nghị, rồi hỏi người kia đang cần gì. "
             "Đừng dùng chart để đoán hộ câu trả lời của họ."
         )
     elif lens is InterpretiveLens.WORK:
-        hook = f"Ở công việc, bạn có thể vừa muốn {planet_a.drive}, vừa muốn {planet_b.drive}."
+        hook = f"Ở công việc, bạn muốn {planet_a.drive}. Bạn cũng muốn {planet_b.drive}."
         manifestation = (
-            f"Một bên {perspective_a.work}; bên kia {perspective_b.work}. "
-            f"Cơ chế này dễ hiện ra {context_phrase}, nhất là khi bạn {pattern_sign}."
+            f"Bạn {perspective_a.work}. Đồng thời, bạn {perspective_b.work}. "
+            f"Sự giằng co dễ thấy {context_phrase}. Khi đó, bạn có thể {default_reaction}."
         )
         action = (
             f"Chọn một ưu tiên có tiêu chuẩn hoàn thành rõ, rồi {planet_a.action}. "
@@ -915,18 +960,19 @@ def _lens_copy(
         hook = f"Lúc quá tải, nhu cầu {planet_a.drive} có thể va vào nhu cầu {planet_b.drive}."
         manifestation = (
             f"Dễ thấy {context_phrase}. Phản xạ bảo vệ có thể là "
-            f"{perspective_a.protection}; đồng thời phần kia "
-            f"{perspective_b.protection}. Với nhịp {element_a.rhythm}, bạn dễ {element_a.overload}."
+            f"{perspective_a.protection}. Bạn cũng có thể {perspective_b.protection}. "
+            f"Bạn {element_a.rhythm}. Khi quá tải, bạn dễ {element_a.overload}."
         )
         action = (
             f"Trước khi xử lý chuyện ở {context[1].arena if context else 'tình huống này'}, "
-            f"thử {perspective_a.regulation}. Chỉ cần xem sức chứa có đổi không."
+            f"thử {perspective_a.regulation}. Chỉ cần xem bạn có bớt căng không."
         )
     elif lens is InterpretiveLens.COMMUNICATION:
-        hook = f"Có lúc câu nói ra muốn {planet_a.drive}; điều chưa nói lại muốn {planet_b.drive}."
+        hook = f"Bạn muốn {planet_a.drive}, nhưng cũng muốn {planet_b.drive}."
         manifestation = (
-            f"Nó dễ lộ ra {context_phrase}. Bạn có thể {perspective_a.protection}, "
-            f"rồi {pattern_sign}; thế mạnh thật sự là {modality_a.strength}."
+            f"Điều này dễ thấy {context_phrase}. Bạn có thể {perspective_a.protection}. "
+            f"Sau đó, bạn có thể {default_reaction}. Điểm có ích là bạn biết "
+            f"{modality_a.strength}."
         )
         action = (
             f"Viết ba dòng: điều đã biết, điều đang cảm và điều muốn đề nghị; sau đó "
@@ -935,46 +981,46 @@ def _lens_copy(
     elif lens is InterpretiveLens.GROWTH:
         hook = (
             f"Bài tập không phải chọn giữa {planet_a.drive} và {planet_b.drive}; "
-            "là để hai phần cùng có tiếng."
+            "là nhìn thấy cả hai nhu cầu trước khi chọn."
         )
         manifestation = (
-            f"Trong vùng {arena}, bạn có thể {pattern_sign}. Điểm mắc: {modality_a.stuck_pattern}."
+            f"Trong {arena}, bạn có thể {default_reaction}. Điểm dễ mắc là "
+            f"{modality_a.stuck_pattern}."
         )
         action = (
             f"Mang theo câu hỏi này hôm nay: “{perspective_a.growth_question}” "
             "Không cần trả lời ngay; tìm một tình huống thật để kiểm tra."
         )
     else:
-        hook = f"Một phần muốn {planet_a.drive}; phần kia muốn {planet_b.drive}."
+        hook = f"Bạn vừa muốn {planet_a.drive}, vừa muốn {planet_b.drive}."
         manifestation = (
-            f"Nó thường lộ ra {context_phrase}. Bạn có thể {pattern_sign}; "
+            f"Điều này thường xảy ra {context_phrase}. Bạn có thể {default_reaction}; "
             f"bên dưới thường là phản xạ {perspective_a.protection}."
         )
         action = f"Thử thế này: {planet_a.action}. Chỉ quan sát phản ứng, không chấm điểm mình."
     if not dynamic:
         return hook, manifestation, action
 
-    mode_hook = {
-        EditorialMode.MECHANISM: "Điều đang chạy bên dưới:",
-        EditorialMode.FRICTION: "Điểm dễ kẹt hôm nay:",
-        EditorialMode.RESOURCE: "Phần bạn có thể dùng:",
-        EditorialMode.CONTRAST: "Hai nhu cầu đang cùng lên tiếng:",
-        EditorialMode.EXPERIMENT: "Một cách khác để thử:",
+    mode_copy = {
+        EditorialMode.MECHANISM: ("Xem phản ứng nào xuất hiện trước."),
+        EditorialMode.FRICTION: "Đừng gạt một nhu cầu sang bên.",
+        EditorialMode.RESOURCE: "Bạn có thể nhận ra cả hai nhu cầu.",
+        EditorialMode.CONTRAST: "Hai nhu cầu này không thay thế nhau.",
+        EditorialMode.EXPERIMENT: "Hãy kiểm tra trong một tình huống thật.",
     }[editorial_mode]
+    hook = f"{hook} {mode_copy}"
+
     if background_lens is not None and background_lens is not BackgroundLens.AUTO:
         contextual_action = LENS_ACTIONS[background_lens]
         action_variants = (
             f"Thử {contextual_action}. Ghi lại phản hồi thật thay vì đoán kết quả.",
-            f"Một thử nghiệm nhỏ: {contextual_action}. Chỉ quan sát điều gì đổi.",
+            f"Thử hôm nay: {contextual_action}. Chỉ ghi lại điều gì đổi.",
             f"Thử {contextual_action}. Sau đó trả lời: “{perspective_a.growth_question}”",
         )
     else:
         action_variants = (
             action,
-            (
-                f"Một thử nghiệm nhỏ: {perspective_a.regulation}. "
-                "Quan sát điều gì đổi, không ép kết quả."
-            ),
+            (f"Thử hôm nay: {perspective_a.regulation}. Quan sát điều gì đổi, không ép kết quả."),
             (f"“{perspective_a.growth_question}” Tìm một tình huống thật để trả lời."),
         )
     reflection = (
@@ -982,12 +1028,12 @@ def _lens_copy(
         "Để ý chuyện gì xảy ra ngay sau đó.",
         "Để ý lúc cơ thể lên tiếng trước lời nói.",
         "Để ý lúc bạn muốn sửa mình cho vừa tình huống.",
-        "Để ý điều đang bị né gọi tên.",
+        "Để ý câu nào bạn vẫn chưa nói thẳng.",
         "Để ý phần bạn đang gánh hộ.",
-        "Để ý điều đổi khi chậm một nhịp.",
+        "Để ý điều gì đổi khi bạn đợi thêm vài phút.",
     )[reflection_slot]
     return (
-        f"{mode_hook} {hook}",
+        hook,
         manifestation,
         f"{action_variants[action_slot]} {reflection}",
     )
@@ -1083,7 +1129,8 @@ def transit_copy(factor: DerivedFactor) -> str:
     aspect_name = parts[2]
     natal_body = parts[4]
     phase = parts[8]
-    aspect = ASPECTS.get(aspect_name, ASPECTS["conjunction"])
+    aspects = _catalog().aspects
+    aspect = aspects.get(aspect_name, aspects["conjunction"])
     phase_copy = {
         "approaching": "Mức độ đang tăng dần",
         "exact": "Mức độ đang rõ nhất ở hiện tại",

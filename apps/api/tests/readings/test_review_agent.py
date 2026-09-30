@@ -50,16 +50,23 @@ def test_release_review_covers_daily_and_tarot_for_all_ten_personas() -> None:
     assert all(sample.evidence_validated for sample in samples)
 
 
-def test_review_agent_rejects_retired_abstract_copy() -> None:
+@pytest.mark.parametrize(
+    "retired_phrase",
+    ("pattern này", "điều đang chạy bên dưới", "một cách khác để thử"),
+)
+def test_review_agent_rejects_retired_abstract_copy(retired_phrase: str) -> None:
     result = ContentReviewAgent().review(
-        (_sample(scene="Trong đời thường, pattern này có thể lộ ra theo một cách nào đó."),)
+        (
+            _sample(
+                scene=(
+                    f"Khi một người trả lời ngắn hơn thường lệ, {retired_phrase} có thể xuất hiện."
+                )
+            ),
+        )
     )
 
     assert result.passed is False
-    assert {finding.rule_id for finding in result.findings} >= {
-        "retired-or-abstract-copy",
-        "scene-not-observable",
-    }
+    assert "retired-or-abstract-copy" in {finding.rule_id for finding in result.findings}
 
 
 def test_review_agent_keeps_disclaimer_out_of_core_copy() -> None:
@@ -87,6 +94,66 @@ def test_review_agent_reports_metadata_without_source_prose() -> None:
     assert result.passed is False
     assert "duplicate-core-reading" in {finding.rule_id for finding in result.findings}
     assert all(not hasattr(finding, "prose") for finding in result.findings)
+
+
+def test_review_agent_rejects_opaque_or_translated_copy() -> None:
+    result = ContentReviewAgent().review(
+        (
+            _sample(
+                scene=(
+                    "Khi lịch đổi vào phút cuối, cơ chế này có thể khiến bạn "
+                    "giữ nhịp cũ thay vì hỏi lại ưu tiên."
+                )
+            ),
+        )
+    )
+
+    assert result.passed is False
+    assert "opaque-or-translated-copy" in {finding.rule_id for finding in result.findings}
+
+
+def test_review_agent_rejects_dense_or_repeated_sentences() -> None:
+    dense = (
+        "Khi một người trả lời ngắn hơn thường lệ, bạn có thể dừng lại, xem lại toàn bộ "
+        "cuộc trò chuyện, nhớ những lần trước, tự đoán thêm nguyên nhân và tiếp tục chờ "
+        "thay vì hỏi thẳng điều vừa thay đổi."
+    )
+    repeated = "Thử hỏi một câu rõ để kiểm tra. Thử hỏi một câu rõ để kiểm tra."
+    sample = replace(
+        _sample(),
+        sections=(("hook", "Nói câu chính trước."), ("scene", dense), ("action", repeated)),
+    )
+
+    result = ContentReviewAgent().review((sample,))
+
+    assert {finding.rule_id for finding in result.findings} >= {
+        "sentence-too-dense",
+        "repeated-sentence",
+    }
+
+
+def test_review_agent_accepts_each_tarot_position_as_its_own_scene_and_action() -> None:
+    tarot_sample = replace(
+        _sample(),
+        surface="tarot",
+        sections=(
+            ("headline", "Tách điều đã xảy ra khỏi điều bạn đang đoán."),
+            (
+                "scene_clear",
+                "Khi tin nhắn đến chậm, bạn có thể đọc lại đúng câu đã được gửi trước đó.",
+            ),
+            ("action_clear", "Viết một dòng về điều bạn đã biết chắc."),
+            (
+                "scene_next",
+                "Khi hai người nói chuyện tiếp, bạn có thể nghe xem câu trả lời có rõ hơn không.",
+            ),
+            ("action_next", "Hỏi một câu có thể được trả lời thẳng."),
+        ),
+    )
+
+    result = ContentReviewAgent().review((tarot_sample,))
+
+    assert result.passed is True
 
 
 def test_review_agent_rejects_missing_or_unvalidated_evidence() -> None:

@@ -30,6 +30,8 @@ qualify as enrichment.
 ## Mandatory checklist for every normal deployment
 
 - [ ] Run `pnpm content:audit` and attach the output to release evidence.
+- [ ] Run `pnpm content:review`. The core reviewer must pass without Content Studio or production
+      user data; it reviews Daily and Tarot output for 10 synthetic personas.
 - [ ] Run `pnpm experience:audit`, then complete the human mobile review in
       `docs/operations/user-experience-release-gate.md`.
 - [ ] Run the complete reading, relationship, and Radar test suites.

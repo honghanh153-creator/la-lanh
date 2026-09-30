@@ -10,10 +10,11 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domains.astro.models import EngineProvenance, TimePrecision, Tradition, TransitPhase
 
-WESTERN_INTERPRETATION_KNOWLEDGE_VERSION = "western-interpretation-matrix-v5"
+WESTERN_INTERPRETATION_KNOWLEDGE_VERSION = "western-interpretation-matrix-v6"
 SUPPORTED_WESTERN_INTERPRETATION_KNOWLEDGE_VERSIONS = frozenset(
     {
         "western-interpretation-matrix-v4",
+        "western-interpretation-matrix-v5",
         WESTERN_INTERPRETATION_KNOWLEDGE_VERSION,
     }
 )
@@ -689,7 +690,7 @@ def experiment_projection_for(revision_id: UUID, action: str) -> ExperimentProje
     return ExperimentProjection(
         action_key=canonical_experiment_action_key(revision_id, action),
         action=action,
-        observation="Để ý xem nhịp này có tạo ra một khác biệt nhỏ, cụ thể nào không.",
+        observation="Để ý xem việc này có tạo ra một khác biệt nhỏ, cụ thể nào không.",
         permission="Bạn có thể bỏ qua hoặc dừng bất cứ lúc nào; đây chỉ là một thử nghiệm.",
     )
 

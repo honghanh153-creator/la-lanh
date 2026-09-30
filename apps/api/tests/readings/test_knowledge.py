@@ -336,8 +336,10 @@ def test_same_element_aspect_names_both_needs_without_repeating_the_same_clause(
 
     thesis = full_frame(plan).thesis
 
-    assert "Mặt Trăng cần được an toàn trước khi mở lòng" in thesis
-    assert "Sao Kim cần biết mình được trân trọng theo cách nào" in thesis
+    assert "được an toàn trước khi mở lòng" in thesis
+    assert "biết mình được trân trọng theo cách nào" in thesis
+    assert "Mặt Trăng" not in thesis
+    assert "Sao Kim" not in thesis
     assert thesis.count("cần độ an toàn, kết nối và thời gian để cảm nhận") <= 1
     assert "nhu cầu nào đang cầm lái" not in thesis
     assert "sắc độ nền" not in thesis

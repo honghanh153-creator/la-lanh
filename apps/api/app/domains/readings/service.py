@@ -291,13 +291,13 @@ class InsightReadingService:
     def _manifestation(body: BodyName, sign: str) -> str:
         return (
             f"Trong đời thường, điều này có thể trông như việc bạn {SIGN_EVERYDAY[sign]}. "
-            f"Với {BODY_VI[body]}, hãy xem đây là một pattern để đối chiếu với trải nghiệm thật, "
+            f"Với {BODY_VI[body]}, hãy xem đây là một gợi ý để đối chiếu với trải nghiệm thật, "
             "không phải tính cách bị đóng dấu."
         )
 
     @staticmethod
     def _watch_for(chart: NatalChart, body: BodyName, sign: str) -> str:
-        text = f"Điểm dễ lệch nhịp là {SIGN_SHADOW[sign]}."
+        text = f"Khi căng, bạn dễ {SIGN_SHADOW[sign]}."
         related = sorted(
             (aspect for aspect in chart.aspects if body in {aspect.body_a, aspect.body_b}),
             key=lambda aspect: aspect.orb,

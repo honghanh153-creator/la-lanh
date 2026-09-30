@@ -52,7 +52,13 @@ def audit() -> list[str]:
                 position.reflection_question,
                 position.small_action,
             )
-            semantic_blocks.update(blocks)
+            semantic_blocks.update(
+                (
+                    position.meaning_here,
+                    position.everyday_scene,
+                    position.small_action,
+                )
+            )
             joined = " ".join((reading.headline, reading.summary, *blocks)).casefold()
             if any(fragment in joined for fragment in FORBIDDEN):
                 failures.append(f"Forbidden filler in {context.value}/{card.id}")

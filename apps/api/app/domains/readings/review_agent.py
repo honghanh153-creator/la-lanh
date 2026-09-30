@@ -14,6 +14,33 @@ BANNED_CORE_FRAGMENTS = (
     "tín hiệu vũ trụ",
     "vũ trụ thì thầm",
     "mọi thứ xảy ra đều có lý do",
+    "điều đang chạy bên dưới",
+    "một cách khác để thử",
+)
+OPAQUE_CORE_FRAGMENTS = (
+    "pattern",
+    "mood",
+    "vận hành",
+    "giữ nhịp",
+    "kéo ánh nhìn",
+    "mở một góc",
+    "đang chạm vào",
+    "lộ ra",
+    "vùng mờ",
+    "cơ chế này",
+    "đặt lại sức chứa",
+    "chuyển năng lượng",
+    "một bước có giới hạn",
+    "tiêu chí thật",
+    "nhịp gây nhiễu",
+    "nhịp có ích",
+    "mở vòng mới",
+    "điều đang bị né gọi tên",
+    "mang dấu tay",
+    "còn một dấu phẩy",
+    "chốt hộ kết quả",
+    "hai phần cùng có tiếng",
+    "phần còn lại của người kia",
 )
 DISCLAIMER_ONLY_FRAGMENTS = (
     "không phải nhãn",
@@ -26,6 +53,7 @@ DISCLAIMER_ONLY_FRAGMENTS = (
 SCENE_MARKERS = (
     "khi ",
     "lúc ",
+    "lần ",
     "tin nhắn",
     "cuộc trò chuyện",
     "lịch ",
@@ -34,6 +62,7 @@ SCENE_MARKERS = (
     "việc ",
 )
 ACTION_MARKERS = (
+    "làm ",
     "hỏi ",
     "viết ",
     "chọn ",
@@ -75,7 +104,7 @@ class ReviewResult:
 
 
 class ContentReviewAgent:
-    """Offline pre-publish reviewer; it never logs or returns source prose."""
+    """Core content reviewer; independent from Content Studio and personal data."""
 
     def review(self, samples: tuple[ReviewSample, ...]) -> ReviewResult:
         findings: list[ReviewFinding] = []
@@ -104,17 +133,54 @@ class ContentReviewAgent:
                     findings.append(
                         self._finding(sample, section_name, "disclaimer-inside-core-copy", "high")
                     )
+                if any(fragment in normalized for fragment in OPAQUE_CORE_FRAGMENTS):
+                    findings.append(
+                        self._finding(sample, section_name, "opaque-or-translated-copy", "high")
+                    )
+                sentences = self._sentences(normalized)
+                if len(sentences) != len(set(sentences)):
+                    findings.append(
+                        self._finding(sample, section_name, "repeated-sentence", "high")
+                    )
+                if any(len(sentence.split()) > 28 for sentence in sentences):
+                    findings.append(
+                        self._finding(sample, section_name, "sentence-too-dense", "high")
+                    )
 
-            scene = self._normalize(section_map.get("scene", ""))
-            action = self._normalize(section_map.get("action", ""))
-            if len(scene.split()) < 12 or not any(marker in scene for marker in SCENE_MARKERS):
-                findings.append(self._finding(sample, "scene", "scene-not-observable", "high"))
-            if len(action.split()) < 6 or not any(marker in action for marker in ACTION_MARKERS):
-                findings.append(self._finding(sample, "action", "action-not-testable", "high"))
+            scene_sections = tuple(
+                (name, self._normalize(value))
+                for name, value in section_map.items()
+                if name == "scene" or name.startswith("scene_")
+            )
+            action_sections = tuple(
+                (name, self._normalize(value))
+                for name, value in section_map.items()
+                if name == "action" or name.startswith("action_")
+            )
+            if not scene_sections:
+                findings.append(self._finding(sample, "scene", "scene-missing", "critical"))
+            for section_name, scene in scene_sections:
+                if len(scene.split()) < 12 or not any(marker in scene for marker in SCENE_MARKERS):
+                    findings.append(
+                        self._finding(sample, section_name, "scene-not-observable", "high")
+                    )
+            if not action_sections:
+                findings.append(self._finding(sample, "action", "action-missing", "critical"))
+            for section_name, action in action_sections:
+                has_action_marker = any(marker in action for marker in ACTION_MARKERS)
+                if len(action.split()) < 6 or not has_action_marker:
+                    findings.append(
+                        self._finding(sample, section_name, "action-not-testable", "high")
+                    )
 
             fingerprint = self._fingerprint(
                 tuple(
-                    (name, prose) for name, prose in sample.sections if name in {"scene", "action"}
+                    (name, prose)
+                    for name, prose in sample.sections
+                    if name == "scene"
+                    or name.startswith("scene_")
+                    or name == "action"
+                    or name.startswith("action_")
                 )
             )
             duplicate_key = (sample.surface, fingerprint)
@@ -148,6 +214,14 @@ class ContentReviewAgent:
     @staticmethod
     def _normalize(prose: str) -> str:
         return " ".join(prose.casefold().split())
+
+    @staticmethod
+    def _sentences(prose: str) -> tuple[str, ...]:
+        return tuple(
+            sentence.strip(" .!?…")
+            for sentence in re.split(r"(?<=[.!?…])[”\"']?\s+", prose)
+            if sentence.strip(" .!?…")
+        )
 
     @classmethod
     def _fingerprint(cls, sections: tuple[tuple[str, str], ...]) -> str:

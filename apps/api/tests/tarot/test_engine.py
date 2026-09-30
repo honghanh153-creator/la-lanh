@@ -1,5 +1,6 @@
 import pytest
 
+from app.domains.readings.review_agent import OPAQUE_CORE_FRAGMENTS
 from app.domains.tarot.engine import TarotContentRejected, TarotReadingEngine
 from app.domains.tarot.models import (
     TarotContext,
@@ -32,7 +33,7 @@ def test_one_card_reading_is_concrete_and_deterministic() -> None:
     assert "tin nhắn" in first.positions[0].everyday_scene.lower()
     assert first.positions[0].reflection_question.endswith("?")
     assert first.positions[0].small_action
-    assert first.provenance.knowledge_version == "tarot-knowledge-v2"
+    assert first.provenance.knowledge_version == "tarot-knowledge-v3"
     assert {
         "bunning-learning-tarot",
         "cynova-kitchen-table-tarot",
@@ -58,6 +59,48 @@ def test_three_card_reading_uses_reflective_positions() -> None:
     assert "tương lai" not in reading.summary.lower()
 
 
+@pytest.mark.parametrize(
+    ("spread", "card_ids"),
+    [
+        (TarotSpread.ONE_CARD, ("major-moon",)),
+        (TarotSpread.THREE_CARD, ("major-temperance", "major-tower", "major-star")),
+        (
+            TarotSpread.FIVE_CARD,
+            ("major-moon", "wands-king", "cups-2", "swords-8", "pentacles-4"),
+        ),
+    ],
+)
+def test_generated_reading_avoids_opaque_copy(
+    spread: TarotSpread, card_ids: tuple[str, ...]
+) -> None:
+    reading = TarotReadingEngine().render(
+        card_ids=card_ids,
+        spread=spread,
+        context=TarotContext.RELATIONSHIPS,
+        question="Mình cần nhìn rõ điều gì trước khi nói chuyện tiếp?",
+        voice=TarotVoice.STRAIGHT_WARM,
+    )
+    visible_copy = " ".join(
+        (
+            reading.headline,
+            reading.summary,
+            reading.closing_prompt,
+            *(
+                text
+                for position in reading.positions
+                for text in (
+                    position.meaning_here,
+                    position.everyday_scene,
+                    position.reflection_question,
+                    position.small_action,
+                )
+            ),
+        )
+    ).casefold()
+
+    assert not any(fragment in visible_copy for fragment in OPAQUE_CORE_FRAGMENTS)
+
+
 def test_five_card_choice_map_compares_both_directions_without_deciding() -> None:
     reading = TarotReadingEngine().render(
         card_ids=("major-star", "cups-5", "wands-ace", "major-hermit", "swords-2"),
@@ -75,7 +118,8 @@ def test_five_card_choice_map_compares_both_directions_without_deciding() -> Non
         "tradeoff",
         "criterion",
     ]
-    assert "đáp án hoàn hảo" in reading.positions[1].meaning_here
+    assert "Điểm có ích" in reading.positions[1].meaning_here
+    assert "Đổi lại" in reading.positions[1].meaning_here
     assert "không phải dự đoán" in reading.disclaimer
 
 

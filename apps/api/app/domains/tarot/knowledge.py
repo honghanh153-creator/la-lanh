@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from app.domains.tarot.models import TarotBookSource, TarotCard
 
-KNOWLEDGE_VERSION = "tarot-knowledge-v2"
+KNOWLEDGE_VERSION = "tarot-knowledge-v3"
 DECK_VERSION = "tarot-78-v1"
 
 _CONCEPT_SOURCES: dict[str, tuple[str, ...]] = {
@@ -187,7 +187,7 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "wheel-of-fortune",
         "Bánh Xe",
         "Wheel of Fortune",
-        "nhận ra nhịp đang đổi và phần mình có thể điều chỉnh",
+        "nhận ra tình hình đang đổi và phần mình có thể điều chỉnh",
         "chờ vận may làm hộ một quyết định",
         "đổi một biến nhỏ trong tầm tay",
     ),
@@ -211,7 +211,7 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "death",
         "Chuyển Mùa",
         "Death",
-        "thừa nhận một nhịp đã hết để chừa chỗ cho nhịp khác",
+        "thừa nhận một giai đoạn đã hết để chừa chỗ cho điều mới",
         "cắt quá nhanh vì không muốn chịu cảm giác chia tay",
         "kết thúc một phần cụ thể thay vì phủ nhận toàn bộ",
     ),
@@ -219,7 +219,7 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "temperance",
         "Tiết Chế",
         "Temperance",
-        "pha hai nhu cầu theo liều lượng có thể sống cùng",
+        "điều chỉnh hai nhu cầu để cả hai đều có chỗ",
         "cố làm vừa lòng mọi phía đến mức mất vị của mình",
         "điều chỉnh một mức độ thay vì chọn tất cả hoặc không gì",
     ),
@@ -237,7 +237,7 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "The Tower",
         "nhận ra cấu trúc nào đã không còn đứng vững",
         "phá hết chỉ vì một phần vừa nứt",
-        "giữ điều còn thật và sửa đúng chỗ đã lộ vấn đề",
+        "giữ phần vẫn còn ổn và sửa đúng chỗ đang có vấn đề",
     ),
     (
         "star",
@@ -245,14 +245,14 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "The Star",
         "khôi phục một niềm tin có bằng chứng nhỏ để bám vào",
         "dùng hy vọng để bỏ qua giới hạn hiện tại",
-        "chọn một dấu hiệu sống được và chăm nó đều",
+        "chọn một điều nhỏ đang tiến triển và tiếp tục chăm nó",
     ),
     (
         "moon",
         "Mặt Trăng",
         "The Moon",
         "đi chậm khi cảm giác, ký ức và dữ kiện đang lẫn vào nhau",
-        "để nỗi lo viết nốt phần thông tin còn thiếu",
+        "lấy nỗi lo để điền vào chỗ còn thiếu thông tin",
         "hoãn kết luận và kiểm tra một điều cụ thể",
     ),
     (
@@ -277,7 +277,7 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "The World",
         "nhận ra một vòng đã đủ đầy để khép lại",
         "níu thêm việc chỉ vì chưa quen với khoảng trống",
-        "đánh dấu điều đã xong trước khi mở vòng mới",
+        "đánh dấu điều đã xong trước khi bắt đầu việc mới",
     ),
 )
 
@@ -285,21 +285,21 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
 _SUITS: dict[str, tuple[str, str, str, str, str]] = {
     "wands": (
         "Gậy",
-        "động lực và quyền bắt đầu",
+        "một việc bạn muốn bắt đầu hoặc theo đuổi",
         "nôn nóng biến hứng thú thành cam kết",
         "một ý tưởng vừa làm bạn muốn đứng dậy làm ngay",
-        "chuyển năng lượng thành một bước có giới hạn",
+        "biến hứng thú thành một việc nhỏ có thể làm hôm nay",
     ),
     "cups": (
         "Cốc",
-        "cảm xúc và cách mình đón nhận kết nối",
+        "cảm xúc và cách bạn đón nhận sự gần gũi",
         "đọc cảm giác như một kết luận đã chắc",
-        "một khoảnh khắc làm mood đổi dù chưa ai nói hết câu",
+        "một câu trả lời ngắn làm cảm xúc đổi dù chưa ai nói hết ý",
         "gọi tên cảm xúc trước khi đoán nguyên nhân",
     ),
     "swords": (
         "Kiếm",
-        "suy nghĩ, ngôn ngữ và quyết định",
+        "suy nghĩ, lời nói và quyết định",
         "nghĩ thêm vòng nữa để tránh câu cần nói",
         "một tin nhắn được soạn rồi xóa hoặc một câu cứ chạy lại trong đầu",
         "viết câu chính ngắn hơn phần giải thích",
@@ -319,12 +319,12 @@ _RANKS: dict[str, tuple[str, str, str, str]] = {
     "2": (
         "Hai",
         "hai hướng cần được đặt cạnh nhau",
-        "đứng giữa quá lâu vì sợ mất một bên",
+        "đứng giữa quá lâu vì sợ mất một lựa chọn",
         "chọn tiêu chí để so thay vì đoán",
     ),
     "3": (
         "Ba",
-        "một nhịp cần người hoặc nguồn lực phối hợp",
+        "một việc cần thêm người hoặc nguồn lực phối hợp",
         "mong mọi người tự hiểu phần việc",
         "nói rõ ai cần làm gì tiếp",
     ),
@@ -350,13 +350,13 @@ _RANKS: dict[str, tuple[str, str, str, str]] = {
         "Bảy",
         "một bài kiểm tra về lựa chọn và kiên nhẫn",
         "giữ quá nhiều phương án để khỏi chịu trách nhiệm chọn",
-        "loại một phương án không qua tiêu chí thật",
+        "loại một phương án không đạt tiêu chí bạn đã chọn",
     ),
     "8": (
         "Tám",
-        "nhịp lặp đang tạo quán tính",
+        "một việc lặp lại đang thành thói quen",
         "bận liên tục nhưng không biết việc nào đang đưa mình đi đâu",
-        "giữ một nhịp có ích và bỏ một nhịp chỉ gây nhiễu",
+        "giữ việc có ích và bỏ một việc chỉ gây nhiễu",
     ),
     "9": (
         "Chín",
@@ -368,7 +368,7 @@ _RANKS: dict[str, tuple[str, str, str, str]] = {
         "Mười",
         "một chu kỳ đã đầy tải",
         "ôm nốt phần cuối vì nghĩ bỏ xuống là thất bại",
-        "kết thúc, chia bớt hoặc đặt lại sức chứa",
+        "kết thúc một việc hoặc chia bớt phần đang ôm",
     ),
     "page": (
         "Tiểu Đồng",
@@ -380,7 +380,7 @@ _RANKS: dict[str, tuple[str, str, str, str]] = {
         "Kỵ Sĩ",
         "động lực muốn đưa chuyện tiến lên",
         "để tốc độ đi trước độ rõ",
-        "chọn nhịp đủ nhanh nhưng còn kịp quan sát",
+        "đi đủ nhanh nhưng vẫn còn kịp quan sát",
     ),
     "queen": (
         "Nữ Hoàng",
@@ -390,7 +390,7 @@ _RANKS: dict[str, tuple[str, str, str, str]] = {
     ),
     "king": (
         "Nhà Vua",
-        "khả năng dẫn nhịp và chịu trách nhiệm",
+        "khả năng dẫn dắt và chịu trách nhiệm",
         "dùng quyền kiểm soát thay cho đối thoại",
         "đưa ra một quyết định có ranh giới và lý do",
     ),
@@ -423,7 +423,7 @@ def all_cards() -> tuple[TarotCard, ...]:
                     arcana="minor",
                     suit=suit,
                     rank=rank,
-                    core=f"{motion} trong vùng {domain}",
+                    core=f"{motion} khi xử lý {domain}",
                     tension=f"{rank_tension}; đồng thời dễ {suit_tension}",
                     resource=f"{rank_resource}, rồi {suit_resource}",
                     source_concept_ids=(
