@@ -7,15 +7,15 @@ status checklist is
 
 ## Known-good recovery anchor
 
-| Item | Value verified on 2026-09-29 |
+| Item | Value verified on 2026-09-30 |
 |---|---|
 | Product URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | VPS | `2.28.136.44` |
 | Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
 | Public source | `https://github.com/honghanh153-creator/la-lanh` |
-| Deployed release | commit `ac96aa627aade967d4f1206406e276308afd2c13` / image `la-lanh:ac96aa627aad` |
-| Image digest | `sha256:54d20a77a29070c927f29a0a9eb9c572c4169cf3aed19050f0bc345f2204f02c` |
-| Previous rollback image | `la-lanh:6e0e064cfb48` |
+| Deployed release | commit `db1dab4c77f3d24b2aa8c5da2c9bf312179a7c1b` / image `la-lanh:db1dab4c77f3` |
+| Image digest | `sha256:0fbd6cfc0138e178a45d7f202f769506f6b5ccfe628dceeb6335aa0a2ad0669f` |
+| Previous rollback image | `la-lanh:b6b65893f145` |
 | Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
 | Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 
@@ -46,6 +46,15 @@ the mandatory ten-persona reviewer (20 readings) before migration. Alembic remai
 `20260927_0022`; app/Caddy health, private readiness, public smoke and browser checks for Welcome,
 Home and Tarot passed without console errors. Its corresponding source is the public commit
 `ac96aa627aade967d4f1206406e276308afd2c13`; `la-lanh:6e0e064cfb48` is the immediate rollback image.
+
+Release `db1dab4c77f3` was deployed on 2026-09-30 at 07:25 UTC. It includes the independent content
+quality engine and optional Studio review surface from `b6b65893f145`, then removes the remaining
+user-facing abstract `pattern` language in `db1dab4c77f3`. The release passed 396 API tests, 136 web
+tests, Daily/Tarot/Radar content audits, the ten-persona reviewer, database TLS, Alembic head
+`20260930_0023`, private readiness, public HTTPS smoke, and browser checks for Welcome, Home, Tarot,
+and Privacy. The public Studio API remains disabled (`404`) while bundled approved content continues
+to serve without CMS availability. Both retention jobs and timers passed. The previous healthy image
+`la-lanh:b6b65893f145` remains the immediate rollback anchor.
 
 ## What “successful” means
 

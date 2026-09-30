@@ -48,9 +48,9 @@ This is the recovery anchor for a future session. It contains no credentials.
 |---|---|
 | Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
-| Deployed application commit/tag | `ac96aa627aade967d4f1206406e276308afd2c13` / `la-lanh:ac96aa627aad` |
-| Deployed image digest | `sha256:54d20a77a29070c927f29a0a9eb9c572c4169cf3aed19050f0bc345f2204f02c` |
-| Previous rollback image | `la-lanh:6e0e064cfb48` |
+| Deployed application commit/tag | `db1dab4c77f3d24b2aa8c5da2c9bf312179a7c1b` / `la-lanh:db1dab4c77f3` |
+| Deployed image digest | `sha256:0fbd6cfc0138e178a45d7f202f769506f6b5ccfe628dceeb6335aa0a2ad0669f` |
+| Previous rollback image | `la-lanh:b6b65893f145` |
 | Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
 | Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
 | Database | Supavisor session pooler on port `5432`, TLS required |
@@ -107,6 +107,17 @@ the production image before migration; 135 web tests and 368 API tests passed be
 Alembic remained at `20260927_0022`, private readiness returned 200, public smoke passed health,
 readiness and SPA deep links, and browser acceptance loaded `/welcome`, `/home` and `/tarot` without
 console errors. The previous `la-lanh:6e0e064cfb48` image remains the immediate rollback anchor.
+
+Release `db1dab4c77f3` was deployed and verified on 2026-09-30 at 07:25 UTC. It ships the independent
+content quality engine, the optional Studio review surface, migration `20260930_0023`, and the final
+plain-language pass that removes remaining user-facing `pattern` copy. Before release, 396 API tests,
+136 web tests, lint/type checks, Daily/Tarot/Radar audits, and the ten-persona reviewer passed. The
+production image then passed its content reviewer, PostgreSQL TLS probe, migration/readiness gates,
+public HTTPS smoke, and browser rendering for `/welcome`, `/home`, `/tarot`, and `/privacy`. The
+public Studio endpoint correctly returns `404`; core content continues from bundled approved data.
+Both privacy-retention jobs completed with aggregate count zero and both six-hour timers are active.
+The previous healthy `la-lanh:b6b65893f145` image remains available for rollback. Supabase backup
+capability confirmation and an isolated restore rehearsal remain the only open operations items.
 
 ## Architecture
 
