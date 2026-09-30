@@ -70,7 +70,7 @@ describe("HomePage rich reading", () => {
 
     expect(questionHeading.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(noteRegion.compareDocumentPosition(discoveryRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(discoveryRegion).getByRole("link", { name: /^Mình Nhìn pattern/ })).toHaveAttribute("href", "/natal");
+    expect(within(discoveryRegion).getByRole("link", { name: /^Mình Hiểu điều hay lặp lại/ })).toHaveAttribute("href", "/natal");
     expect(within(discoveryRegion).getByRole("link", { name: /^Một người Check độ hợp gu/ })).toHaveAttribute("href", "/radar");
     expect(within(discoveryRegion).getByRole("link", { name: /^Hôm nay/ })).toHaveAttribute("href", "/insights/current-sky?tradition=western");
     expect(screen.getByRole("link", { name: /Có chuyện cứ chạy trong đầu/ })).toHaveAttribute("href", "/tarot");
@@ -90,7 +90,7 @@ describe("HomePage rich reading", () => {
     const discoveryRegion = screen.getByRole("region", { name: "Khám phá thêm" });
     expect(questionHeading.compareDocumentPosition(emptyHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(emptyHeading.compareDocumentPosition(discoveryRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(discoveryRegion).getByRole("link", { name: /Mình Nhìn pattern/ })).toHaveAttribute("href", "/natal");
+    expect(within(discoveryRegion).getByRole("link", { name: /Mình Hiểu điều hay lặp lại/ })).toHaveAttribute("href", "/natal");
     expect(screen.getByRole("link", { name: /Có chuyện cứ chạy trong đầu/ })).toHaveAttribute("href", "/tarot");
   });
 

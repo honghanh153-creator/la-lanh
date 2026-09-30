@@ -69,7 +69,7 @@ SIGN_MODE = {
 
 SIGN_EVERYDAY = {
     "aries": "phản ứng khá nhanh, rồi mới quay lại xem cảm giác hoặc quyết định ấy cần gì thêm",
-    "taurus": "cần chạm vào điều cụ thể và giữ nhịp quen một lúc trước khi thật sự mở lòng",
+    "taurus": "cần chạm vào điều cụ thể và giữ cách quen một lúc trước khi thật sự mở lòng",
     "gemini": (
         "nói, viết hoặc đặt câu hỏi để hiểu điều đang diễn ra thay vì ngồi yên với một đáp án"
     ),

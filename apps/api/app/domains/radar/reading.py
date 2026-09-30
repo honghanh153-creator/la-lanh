@@ -382,7 +382,7 @@ def build_radar_reading(
                 _chapter_intro(tension, tension_support, mode="friction")
                 if active_tension
                 else (
-                    "Các tín hiệu hiện có chưa tạo thành một pattern lệch nhịp riêng. "
+                    "Các tín hiệu hiện có chưa cho thấy một điểm lệch riêng. "
                     "Đừng biến khoảng trống này thành kết luận rằng hai người sẽ luôn dễ dàng; "
                     "hãy nhìn cách cả hai xử lý lần hiểu nhầm thật đầu tiên."
                 )
@@ -633,7 +633,7 @@ def _low_signal_reading(
             "label": "Điểm hợp",
             "title": "Chưa có điểm hợp đủ riêng để gọi tên",
             "body": (
-                "Những tín hiệu còn lại quá chung để nói đây là pattern riêng của hai người. "
+                "Những tín hiệu còn lại quá chung để nói đây là nét riêng của hai người. "
                 "Radar dừng ở đây thay vì bù bằng một lời hợp gu nghe hay nhưng khó kiểm chứng."
             ),
             "topics": [],

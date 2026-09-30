@@ -555,10 +555,10 @@ def _chapter_for(
     transit_meaning = INTERPRETATION_PLANETS[contact.transit_body.value]
     natal_meaning = INTERPRETATION_PLANETS[contact.natal_body.value]
     aspect_meaning = INTERPRETATION_ASPECTS.get(contact.kind)
-    bridge = aspect_meaning.bridge if aspect_meaning else "đang cùng làm pattern này rõ hơn"
+    bridge = aspect_meaning.bridge if aspect_meaning else "đang cùng làm chủ đề này rõ hơn"
     scenario = CURRENT_LIFE_SCENARIOS[contact.natal_body]
     return SkyChapter(
-        title="Món quà: một pattern hôm nay",
+        title="Món quà: một điều đáng để ý hôm nay",
         summary=(
             f"Nhu cầu {natal_meaning.drive} đang gặp một lực muốn {transit_meaning.drive}; "
             f"hai nhịp {bridge}. Ngoài đời, thử để ý {scenario}."

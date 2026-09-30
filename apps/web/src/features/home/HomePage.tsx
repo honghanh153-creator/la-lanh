@@ -169,13 +169,13 @@ export function HomePage() {
       const previous = mood;
       setMood(value);
       setMoodSheetOpen(false);
-      setMessage("Đang giữ nhịp này cho bạn…");
+      setMessage("Đang lưu cảm xúc này cho bạn…");
       return { previous };
     },
     onSuccess: (payload) => {
       setMood(payload.mood);
       const feedback: Record<MoodValue, string> = {
-        "Rực": "Giữ nhịp sáng này, nhưng nhớ để dành một chút cho mình.",
+        "Rực": "Bạn đang nhiều năng lượng. Nhớ để dành một chút cho mình.",
         Chill: "Nhịp này đẹp đấy. Không cần đẩy mọi thứ đi nhanh hơn.",
         "Đuối": "Hôm nay bớt một việc cũng là chăm mình.",
         "Căng": "Thở chậm một nhịp trước khi trả lời điều quan trọng.",
@@ -520,7 +520,7 @@ function HomeDiscoveryRouter() {
       <div className="home-question-router__choices">
         <Link aria-describedby="home-question-self-hint" to="/natal">
           <UserCircle aria-hidden="true" weight="duotone" />
-          <span><strong>Mình</strong><small id="home-question-self-hint">Nhìn pattern của bạn</small></span>
+          <span><strong>Mình</strong><small id="home-question-self-hint">Hiểu điều hay lặp lại</small></span>
           <ArrowRight aria-hidden="true" />
         </Link>
         <Link aria-describedby="home-question-person-hint" to="/radar">

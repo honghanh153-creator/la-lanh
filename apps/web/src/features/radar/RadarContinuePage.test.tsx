@@ -96,7 +96,7 @@ const result: RadarResult = {
       perspectives: [
         { key: "you", label: "Bạn có thể tạo tín hiệu này", title: "Bạn chạm vùng riêng tư", body: "Người kia có thể cần thêm thời gian để gọi tên." },
         { key: "them", label: "Người kia có thể tạo tín hiệu này", title: "Họ chạm vùng vui và flirt", body: "Bạn có thể thấy tương tác này nổi bật hơn." },
-        { key: "shared", label: "Nhịp chung khi ở cạnh nhau", title: "Hai người dễ tạo một thế giới riêng", body: "Đây là pattern chung, không phải tính cách riêng." },
+        { key: "shared", label: "Nhịp chung khi ở cạnh nhau", title: "Hai người dễ tạo một thế giới riêng", body: "Đây là cách hai người tương tác, không phải tính cách riêng." },
       ],
       observation: { label: "Điều đáng đối chiếu", title: "Đừng đo hộ phía còn lại", body: "Hỏi trải nghiệm thật sẽ chính xác hơn suy từ chart." },
       evidence: [{

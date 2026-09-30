@@ -50,8 +50,8 @@ export function InsightsPage() {
       <section className="insight-hero">
         <p className="eyebrow"><Sparkle aria-hidden="true" weight="fill" /> Bản đọc Natal</p>
         <h1>Bạn có muốn<br />hiểu mình hơn?</h1>
-        <p>Vì sao một kiểu chuyện hay chạm đúng bạn? Pattern nào cứ quay lại, và bạn đang học cách phản ứng khác đi ở đâu?</p>
-        <small>Chart không gây ra sự kiện và không viết sẵn số phận. Bản đọc này nối các pattern để bạn đối chiếu với đời thật.</small>
+        <p>Vì sao một kiểu chuyện hay chạm đúng bạn? Điều gì cứ quay lại, và bạn đang học cách phản ứng khác đi ở đâu?</p>
+        <small>Chart không gây ra sự kiện và không viết sẵn số phận. Bản đọc nối các dữ kiện để bạn đối chiếu với đời thật.</small>
       </section>
 
       <section aria-label="Chọn hệ đọc" className="signal-switch">
@@ -109,7 +109,7 @@ export function InsightsPage() {
           <section className="insight-factors" aria-labelledby="factor-heading">
             <header>
               <p className="eyebrow">Các lớp kỹ thuật</p>
-              <h2 id="factor-heading">Điều gì đang tạo nên pattern của bạn?</h2>
+              <h2 id="factor-heading">Điều gì đang ảnh hưởng tới cách bạn phản ứng?</h2>
             </header>
             <div className="insight-grid">
               {insight.data.reading.claims.map((claim, index) => (
