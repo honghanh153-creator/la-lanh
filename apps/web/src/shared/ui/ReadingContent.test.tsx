@@ -37,12 +37,20 @@ describe("ReadingContent", () => {
     );
   });
 
-  it("shows a recognition prompt instead of leaking a missing experiment state", () => {
+  it("does not invent an action block when the reading has no experiment", () => {
     render(<ReadingContent content={content} />);
 
-    expect(screen.getByRole("heading", { name: "Đối chiếu với hôm nay" })).toBeInTheDocument();
-    expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
-    expect(screen.queryByText(/chưa có thử nghiệm hành vi/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Đối chiếu với hôm nay" })).not.toBeInTheDocument();
+    expect(screen.queryByText(content.sections.micro_action)).not.toBeInTheDocument();
+  });
+
+  it("keeps a date-only Vibe concise instead of showing speculative scenes", () => {
+    const vibe = { ...content, mode: "vibe_fallback" as const, precision: "unknown" as const };
+    render(<ReadingContent compact content={vibe} />);
+
+    expect(screen.getByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
+    expect(screen.queryByText(vibe.sections.manifestation)).not.toBeInTheDocument();
+    expect(screen.queryByText(vibe.sections.micro_action)).not.toBeInTheDocument();
   });
 
   it("explains the current activation once when transit is present", () => {

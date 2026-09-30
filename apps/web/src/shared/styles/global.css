@@ -3117,3 +3117,22 @@ body,
   .home-page .mood-check,
   .home-natal-discovery a { background: var(--glass-strong); backdrop-filter: none; }
 }
+
+/* Daily Note readability: keep the one-line Vibe shareable and scannable. */
+.note-detail-page .reading-content h1 {
+  max-width: 21ch;
+  font-size: clamp(1.55rem, 6.5vw, 2.1rem);
+  line-height: 1.16;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.share-card h1 {
+  max-width: 16ch;
+  font-size: clamp(1.9rem, 9vw, 2.45rem);
+  line-height: 1.08;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.share-card--minimal h1 { margin-top: 0.35rem; }

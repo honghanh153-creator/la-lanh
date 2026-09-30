@@ -200,6 +200,7 @@ describe("HomePage rich reading", () => {
       revision_id: "00000000-0000-4000-8000-000000000012",
       sections: {
         ...vibe.sections,
+        hook: "Công việc hôm nay cần một câu chốt.",
         manifestation: "Ở công việc, một khoảng dừng giúp bạn nhìn rõ việc cần ưu tiên.",
         micro_action: "Gạch một việc chưa cần làm hôm nay.",
       },
@@ -215,7 +216,8 @@ describe("HomePage rich reading", () => {
     await user.click(screen.getByRole("button", { name: "Việc cần chốt" }));
 
     await waitFor(() => expect(getContextualReading).toHaveBeenCalledWith("work"));
-    expect(await screen.findByText(workReading.sections.manifestation)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: workReading.sections.hook })).toBeInTheDocument();
+    expect(screen.queryByText(workReading.sections.manifestation)).not.toBeInTheDocument();
     expect(localStorage.getItem("la-lanh-signal-context-v1")).toBeNull();
     await user.click(screen.getByText("Vì sao hôm nay?"));
     expect(screen.getByText("Một dữ kiện đã duyệt")).toBeInTheDocument();
@@ -228,6 +230,7 @@ describe("HomePage rich reading", () => {
       revision_id: "00000000-0000-4000-8000-000000000014",
       sections: {
         ...vibe.sections,
+        hook: "Cơ thể đang xin bạn giảm một nhịp.",
         manifestation: "Cơ thể đang giảm tốc trước khi đầu óc chịu dừng.",
       },
     };
@@ -239,7 +242,8 @@ describe("HomePage rich reading", () => {
     await user.click(screen.getByRole("button", { name: "Nhịp cơ thể" }));
 
     await waitFor(() => expect(getContextualReading).toHaveBeenCalledWith("energy"));
-    expect(await screen.findByText(energyReading.sections.manifestation)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: energyReading.sections.hook })).toBeInTheDocument();
+    expect(screen.queryByText(energyReading.sections.manifestation)).not.toBeInTheDocument();
   });
 
   it("asks just in time before recording hit or miss and sends only bounded fields", async () => {

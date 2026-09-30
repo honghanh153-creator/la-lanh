@@ -210,9 +210,11 @@
 }
 
 .signal-note-greeting h1 {
-  max-width: 18rem;
+  max-width: none;
   margin-bottom: 0.65rem;
   color: #fff7e5;
+  font-size: clamp(1.9rem, 8vw, 2.2rem);
+  line-height: 1.08;
   text-wrap: balance;
 }
 
@@ -559,10 +561,10 @@
 }
 
 .signal-note-paper .reading-content__intro > h2 {
-  max-width: 20rem;
-  font-size: clamp(2rem, 9vw, 2.55rem);
+  max-width: 18ch;
+  font-size: clamp(1.55rem, 6.5vw, 2rem);
   letter-spacing: -0.045em;
-  line-height: 1.12;
+  line-height: 1.16;
   text-wrap: balance;
 }
 

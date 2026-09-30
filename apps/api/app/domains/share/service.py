@@ -46,7 +46,7 @@ class ShareArtifactService:
         is_vibe = reading is None or reading.mode is PlanMode.VIBE_FALLBACK
         safe_snapshot = SafeShareSnapshot(
             title=reading.sections.hook if reading is not None else note.title,
-            body=reading.sections.manifestation if reading is not None else note.body,
+            body=(reading.sections.manifestation if reading is not None and not is_vibe else ""),
             context_label=("Vibe · một lớp" if is_vibe else "Aura · bản đọc tổng hòa"),
             content_version=note.content_version,
             persona_mode="vibe" if is_vibe else "aura",

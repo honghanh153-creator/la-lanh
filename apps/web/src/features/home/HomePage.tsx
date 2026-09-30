@@ -276,7 +276,7 @@ export function HomePage() {
       <HomeHeader />
       <section className="home-greeting signal-note-greeting">
         <time dateTime={note.note_date}>{formatNoteDate(note.note_date)}</time>
-        <h1>{greetingForNow()}, bạn.</h1>
+        <h1>Chào bạn.</h1>
         <span className="transit-pill"><Sparkle aria-hidden="true" weight="fill" /> {modeLabel}</span>
       </section>
 
@@ -463,13 +463,6 @@ function formatNoteDate(value: string): string {
   }).format(date);
 }
 
-function greetingForNow(): string {
-  const hour = new Date().getHours();
-  if (hour < 11) return "Chào buổi sáng";
-  if (hour < 18) return "Chào buổi chiều";
-  return "Chào buổi tối";
-}
-
 function HomeHeader() {
   return (
     <header className="home-header">
@@ -483,7 +476,7 @@ function HomePreviewGreeting() {
   return (
     <section className="home-greeting signal-note-greeting">
       <time dateTime={new Date().toISOString().slice(0, 10)}>Hôm nay</time>
-      <h1>{greetingForNow()}, bạn.</h1>
+      <h1>Chào bạn.</h1>
       <span className="transit-pill"><Sparkle aria-hidden="true" weight="fill" /> Chọn điều bạn muốn hiểu</span>
     </section>
   );

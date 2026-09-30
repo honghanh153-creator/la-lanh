@@ -32,13 +32,13 @@ function shareCopy(note: DailyNote): { title: string; body: string; persona: str
   if (!reading) {
     return {
       title: note.title,
-      body: note.body,
+      body: "",
       persona: `${note.persona_mode === "aura" ? "Aura" : "Vibe"} · ${note.persona_label}`,
     };
   }
   return {
     title: reading.sections.hook,
-    body: reading.sections.manifestation,
+    body: reading.mode === "vibe_fallback" ? "" : reading.sections.manifestation,
     persona: `${reading.mode === "vibe_fallback" ? "Vibe" : "Aura"} · ${note.persona_label}`,
   };
 }
@@ -49,10 +49,13 @@ function cardSvg(note: DailyNote, format: ShareFormat): string {
   const height = format === "square_1_1" ? 1080 : 1920;
   const footerY = height - 112;
   const paperY = format === "square_1_1" ? 255 : 520;
-  const titleLines = svgLines(copy.title, 22).slice(0, 2);
+  const titleLines = svgLines(copy.title, 25).slice(0, 3);
   const bodyLines = svgLines(copy.body, 42).slice(0, 4);
-  const titleSvg = titleLines.map((line, index) => `<tspan x="170" dy="${index === 0 ? 0 : 105}">${escapeXml(line)}</tspan>`).join("");
+  const titleSvg = titleLines.map((line, index) => `<tspan x="170" dy="${index === 0 ? 0 : 86}">${escapeXml(line)}</tspan>`).join("");
   const bodySvg = bodyLines.map((line, index) => `<tspan x="175" dy="${index === 0 ? 0 : 58}">${escapeXml(line)}</tspan>`).join("");
+  const bodyBlock = copy.body
+    ? `<text x="175" y="${paperY + 500}" fill="#160620" font-family="Be Vietnam Pro, sans-serif" font-size="38">${bodySvg}</text>`
+    : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <rect width="${width}" height="${height}" rx="52" fill="#160620"/>
   <circle cx="880" cy="260" r="310" fill="#d8ff00"/><circle cx="820" cy="310" r="220" fill="#291135"/>
@@ -62,9 +65,9 @@ function cardSvg(note: DailyNote, format: ShareFormat): string {
   <rect x="95" y="${paperY}" width="890" height="560" rx="34" fill="#fff5df" transform="rotate(-3 95 ${paperY})"/>
   <circle cx="175" cy="${paperY + 76}" r="28" fill="#ff705f"/>
   <text x="185" y="${paperY + 170}" fill="#5a286d" font-family="Be Vietnam Pro, sans-serif" font-size="50" font-weight="700">một note đọc từ lá số của bạn</text>
-  <text x="170" y="${paperY + 285}" fill="#160620" font-family="Be Vietnam Pro, sans-serif" font-size="82" font-weight="900">${titleSvg}</text>
-  <path d="M175 ${paperY + 350} C360 ${paperY + 380} 575 ${paperY + 330} 845 ${paperY + 350}" stroke="#ff705f" stroke-width="12" stroke-linecap="round"/>
-  <text x="175" y="${paperY + 465}" fill="#160620" font-family="Be Vietnam Pro, sans-serif" font-size="42">${bodySvg}</text>
+  <text x="170" y="${paperY + 285}" fill="#160620" font-family="Be Vietnam Pro, sans-serif" font-size="68" font-weight="900">${titleSvg}</text>
+  <path d="M175 ${paperY + 400} C360 ${paperY + 425} 575 ${paperY + 380} 845 ${paperY + 400}" stroke="#ff705f" stroke-width="12" stroke-linecap="round"/>
+  ${bodyBlock}
   <text x="88" y="${footerY}" fill="#d8ff00" font-family="Be Vietnam Pro, sans-serif" font-size="34" font-weight="800">${escapeXml(copy.persona)} · la-lanh</text>
   </svg>`;
 }
@@ -194,11 +197,11 @@ export function CardPage() {
         <button aria-pressed={format === "square_1_1"} className={format === "square_1_1" ? "is-active" : ""} onClick={() => setFormat("square_1_1")} type="button">Square 1:1</button>
       </section>
       {note && copy ? (
-        <section className={format === "square_1_1" ? "share-card share-card--square" : "share-card"}>
+        <section className={`${format === "square_1_1" ? "share-card share-card--square" : "share-card"}${copy.body ? "" : " share-card--minimal"}`}>
           <span className="share-card__logo">LÁ LÀNH*</span>
           <p>{copy.persona}</p>
           <h1>{copy.title}</h1>
-          <blockquote>{copy.body}</blockquote>
+          {copy.body ? <blockquote>{copy.body}</blockquote> : null}
           <small>Đúng bản đang mở · không kèm dữ liệu sinh hay căn cứ riêng</small>
         </section>
       ) : (

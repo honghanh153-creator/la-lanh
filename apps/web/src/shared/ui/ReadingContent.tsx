@@ -41,6 +41,7 @@ export function ReadingContent({
   onReflect,
   toolbar,
 }: ReadingContentProps) {
+  const isVibeFallback = content.mode === "vibe_fallback";
   const experiment = (
     <ExperimentSection
       content={content}
@@ -60,7 +61,7 @@ export function ReadingContent({
           {toolbar ? <div className="reading-content__toolbar">{toolbar}</div> : null}
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(content)}</p>
           <h2>{content.sections.hook}</h2>
-          <p>{content.sections.manifestation}</p>
+          {!isVibeFallback ? <p>{content.sections.manifestation}</p> : null}
         </header>
         {experiment}
         <Evidence content={content} />
@@ -77,10 +78,12 @@ export function ReadingContent({
         <h1>{content.sections.hook}</h1>
         <p>{content.sections.thesis}</p>
       </header>
-      <section>
-        <h2>Ngoài đời có thể trông như…</h2>
-        <p>{content.sections.manifestation}</p>
-      </section>
+      {!isVibeFallback ? (
+        <section>
+          <h2>Ngoài đời có thể trông như…</h2>
+          <p>{content.sections.manifestation}</p>
+        </section>
+      ) : null}
       {experiment}
       <Evidence content={content} />
       <ReadingDisclaimer>{content.disclaimer}</ReadingDisclaimer>
@@ -117,13 +120,7 @@ function ExperimentSection({
   }, [currentExperiment?.id, currentExperiment?.version, experiment?.action_key]);
 
   if (!experiment) {
-    return (
-      <section className="reading-content__action">
-        <p className="eyebrow">Một góc để kiểm chứng</p>
-        <h2>Đối chiếu với hôm nay</h2>
-        <p className="reading-content__experiment-action">{content.sections.micro_action}</p>
-      </section>
-    );
+    return null;
   }
 
   const isReflected = currentMatches && currentExperiment?.state === "reflected";

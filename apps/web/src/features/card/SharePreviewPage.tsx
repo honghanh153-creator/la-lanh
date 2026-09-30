@@ -26,11 +26,11 @@ export function SharePreviewPage() {
       {query.isLoading ? (
         <section className="entry-loading"><span className="entry-loading__orbit" /><p>Đang mở note được gửi…</p></section>
       ) : artifact ? (
-        <section className={artifact.format === "square_1_1" ? "share-card share-card--square" : "share-card"}>
+        <section className={`${artifact.format === "square_1_1" ? "share-card share-card--square" : "share-card"}${body ? "" : " share-card--minimal"}`}>
           <span className="share-card__logo">LÁ LÀNH*</span>
           <p>{persona}</p>
           <h1>{title}</h1>
-          <blockquote>{body}</blockquote>
+          {body ? <blockquote>{body}</blockquote> : null}
           <small>Không chứa ngày/giờ/nơi sinh hay căn cứ riêng</small>
         </section>
       ) : (
