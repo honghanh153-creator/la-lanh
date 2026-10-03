@@ -52,7 +52,10 @@ from app.domains.readings.models import (
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.readings.repository import ReadingProjectionRepository
-from app.domains.readings.rewrite import compile_daily_rewrite_request
+from app.domains.readings.rewrite import (
+    compile_daily_rewrite_request,
+    compile_reading_rewrite_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -265,24 +268,33 @@ class ReadingApplicationService:
             or plan_record.plan.tradition is not Tradition.WESTERN
         ):
             return
-        if (
-            plan_record.plan.purpose is ReadingPurpose.DAILY_NOTE
-            and self._content_rewrite_service is not None
-        ):
+        if self._content_rewrite_service is not None:
             try:
-                await self._content_rewrite_service.enqueue(
+                request = (
                     compile_daily_rewrite_request(
                         plan_record,
                         projection,
                         baseline,
                         model_version=self._generation_model,
                         prompt_version="surface-rewrite-v1",
-                    ),
+                    )
+                    if plan_record.plan.purpose is ReadingPurpose.DAILY_NOTE
+                    else compile_reading_rewrite_request(
+                        plan_record,
+                        projection,
+                        baseline,
+                        model_version=self._generation_model,
+                        prompt_version="surface-rewrite-v1",
+                    )
+                )
+                await self._content_rewrite_service.enqueue(
+                    request,
                     now=created_at,
                 )
             except Exception:
                 logger.warning(
-                    "Optional Daily rewrite enqueue failed; deterministic content remains active"
+                    "Optional reading rewrite enqueue failed; deterministic content remains active",
+                    extra={"purpose": plan_record.plan.purpose.value},
                 )
             return
         generation_key = canonical_generation_key(

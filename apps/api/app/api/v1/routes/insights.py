@@ -2,6 +2,7 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import Annotated, Literal, cast
+from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import JSONResponse
@@ -83,6 +84,16 @@ def _reading_service(request: Request) -> ReadingApplicationService | None:
     return cast(
         ReadingApplicationService | None,
         getattr(request.app.state, "reading_application_service", None),
+    )
+
+
+async def _external_generation_authorized(request: Request, guest_id: UUID) -> bool:
+    settings = request.app.state.settings
+    authorization = getattr(request.app.state, "content_rewrite_authorization", None)
+    return bool(
+        settings.generation_enabled
+        and authorization is not None
+        and await authorization.authorized_guest(guest_id)
     )
 
 
@@ -180,6 +191,9 @@ async def insight_overview(
                 snapshot=snapshot,
                 chart=chart,
                 purpose=ReadingPurpose.READING_DETAIL,
+                external_generation_authorized=await _external_generation_authorized(
+                    request, guest.id
+                ),
             )
         except Exception:
             logger.exception(
@@ -238,6 +252,7 @@ async def private_reading(
             snapshot=snapshot,
             chart=chart,
             purpose=ReadingPurpose(purpose),
+            external_generation_authorized=await _external_generation_authorized(request, guest.id),
         )
     except Exception:
         logger.exception(

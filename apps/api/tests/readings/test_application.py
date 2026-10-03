@@ -452,6 +452,37 @@ async def test_authorized_daily_uses_generic_rewrite_queue_instead_of_legacy_que
 
 
 @pytest.mark.asyncio
+async def test_authorized_natal_uses_generic_rewrite_queue_instead_of_legacy_queue() -> None:
+    repository = MemoryReadingRepository()
+    rewrite_service = CapturingRewriteService()
+    engine = NatalChartEngine()
+    service = ReadingApplicationService(
+        repository,
+        engine,
+        generation_enabled=True,
+        generation_provider="openai",
+        generation_model="gpt-6-luna",
+        generation_prompt_version="chart-synthesis-v1",
+        content_rewrite_service=cast(ContentRewriteService, rewrite_service),
+    )
+    guest_id = UUID("20000000-0000-4000-8000-000000000213")
+    profile_id = UUID("30000000-0000-4000-8000-000000000213")
+
+    projection = await service.project(
+        guest_id=guest_id,
+        snapshot=_exact_snapshot(guest_id, profile_id, engine),
+        purpose=ReadingPurpose.READING_DETAIL,
+        requested_at=NOW,
+        external_generation_authorized=True,
+    )
+
+    assert projection.active.source is ReadingRevisionSource.DETERMINISTIC
+    assert repository.generation_attempts == []
+    assert len(rewrite_service.requests) == 1
+    assert rewrite_service.requests[0].key.surface.value == "natal"
+
+
+@pytest.mark.asyncio
 async def test_rejected_renderer_cannot_publish_a_revision_or_projection() -> None:
     class RejectingRenderer(DeterministicVietnameseRenderer):
         def render(self, plan):  # type: ignore[no-untyped-def]

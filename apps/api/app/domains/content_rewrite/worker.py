@@ -187,7 +187,7 @@ async def _run_standalone() -> None:
     from app.db.session import Database
     from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
     from app.domains.readings.postgres import PostgresReadingRepository
-    from app.domains.readings.rewrite import DailyRewriteProjector, DatabaseRewriteAuthorization
+    from app.domains.readings.rewrite import DatabaseRewriteAuthorization, ReadingRewriteProjector
     from app.infrastructure.crypto import AesGcmEnvelopeCipher, StaticDataKeyProvider, decode_key
     from app.infrastructure.generation import build_rewrite_generation_provider
 
@@ -206,7 +206,7 @@ async def _run_standalone() -> None:
         PostgresContentRewriteRepository(database.sessions, envelope),
         build_rewrite_generation_provider(settings),
         authorization,
-        DailyRewriteProjector(PostgresReadingRepository(database.sessions, envelope)),
+        ReadingRewriteProjector(PostgresReadingRepository(database.sessions, envelope)),
         lease_seconds=settings.generation_lease_seconds,
         retry_delay_seconds=settings.generation_retry_delay_seconds,
     )

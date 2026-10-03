@@ -62,12 +62,19 @@ class DailySafePayload(SafeModel):
     evidence: tuple[SafeEvidence, ...] = Field(min_length=1, max_length=12)
 
 
+class ReadingSourceSection(SafeModel):
+    section: Literal["hook", "thesis", "manifestation", "transit", "micro_action"]
+    meaning: str = Field(min_length=1, max_length=900)
+    source: Literal["natal", "transit", "mixed"]
+
+
 class ReadingSafePayload(SafeModel):
     purpose: str = Field(pattern=r"^[a-z][a-z0-9_]{1,39}$")
     precision: str = Field(pattern=r"^[a-z][a-z0-9_]{1,39}$")
     mode: str = Field(pattern=r"^[a-z][a-z0-9_]{1,39}$")
     background_lens: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{1,39}$")
     hero_labels: tuple[str, ...] = Field(min_length=1, max_length=8)
+    source_sections: tuple[ReadingSourceSection, ...] = Field(min_length=4, max_length=5)
     requirements: tuple[SafeRequirement, ...] = Field(min_length=1, max_length=8)
     evidence: tuple[SafeEvidence, ...] = Field(min_length=1, max_length=16)
 

@@ -23,6 +23,23 @@ _ARRAY_FIELDS = {
     "frictions",
 }
 
+_SURFACE_MAPPING_INSTRUCTIONS = {
+    RewriteSurface.REVEAL: (
+        "Map headline from source hook, synthesis from source thesis, section_intros from "
+        "source manifestation, and examples from source micro_action."
+    ),
+    RewriteSurface.NATAL: (
+        "Map headline from source hook, synthesis from source thesis, section_intros from "
+        "source manifestation, and examples from source micro_action. Keep the supplied "
+        "multi-factor meaning; never reduce it to one placement."
+    ),
+    RewriteSurface.TRANSIT_INSIGHT: (
+        "Map hook from source hook, explanation from source thesis, everyday_example from "
+        "source manifestation, and bounded_action from source micro_action. Keep natal and "
+        "current-transit meanings distinct."
+    ),
+}
+
 
 def surface_output_contract(surface: RewriteSurface) -> SurfaceOutputContract:
     spec = canonical_surface_registry().require(surface)
@@ -63,6 +80,7 @@ def surface_output_contract(surface: RewriteSurface) -> SurfaceOutputContract:
         "Rewrite only the requested Vietnamese prose fields from the closed safe brief. "
         "Use plain everyday Vietnamese. Preserve every supplied meaning and distinction. "
         "Do not infer identity, private facts, diagnoses, predictions, urgency, or decisions. "
+        f"{_SURFACE_MAPPING_INSTRUCTIONS.get(surface, '')} "
         "Return only JSON matching the schema."
     )
     return SurfaceOutputContract(
