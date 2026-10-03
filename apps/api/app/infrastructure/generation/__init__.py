@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from app.infrastructure.generation.base import (
     DisabledGenerationProvider,
+    DisabledRewriteGenerationProvider,
     GenerationDisabled,
     GenerationIncomplete,
     GenerationPermanent,
@@ -12,6 +13,9 @@ from app.infrastructure.generation.base import (
     GenerationResult,
     GenerationSuccess,
     GenerationTransient,
+    RewriteGenerationProvider,
+    RewriteGenerationResult,
+    RewriteGenerationSuccess,
 )
 
 if TYPE_CHECKING:
@@ -37,8 +41,28 @@ def build_generation_provider(settings: Settings) -> GenerationProvider:
     )
 
 
+def build_rewrite_generation_provider(settings: Settings) -> RewriteGenerationProvider:
+    if not settings.generation_enabled or settings.generation_provider == "disabled":
+        return DisabledRewriteGenerationProvider()
+
+    from app.infrastructure.generation.openai import (
+        OpenAIRewriteProvider,
+        OpenAISDKResponseTransport,
+    )
+
+    api_key = settings.generation_openai_api_key
+    if api_key is None:
+        return DisabledRewriteGenerationProvider()
+    return OpenAIRewriteProvider(
+        OpenAISDKResponseTransport(api_key=api_key.get_secret_value()),
+        model=settings.generation_openai_model,
+        timeout_seconds=settings.generation_timeout_seconds,
+    )
+
+
 __all__ = [
     "DisabledGenerationProvider",
+    "DisabledRewriteGenerationProvider",
     "GenerationDisabled",
     "GenerationIncomplete",
     "GenerationPermanent",
@@ -47,5 +71,9 @@ __all__ = [
     "GenerationResult",
     "GenerationSuccess",
     "GenerationTransient",
+    "RewriteGenerationProvider",
+    "RewriteGenerationResult",
+    "RewriteGenerationSuccess",
     "build_generation_provider",
+    "build_rewrite_generation_provider",
 ]

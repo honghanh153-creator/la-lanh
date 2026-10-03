@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
+from pydantic import JsonValue
+
+from app.domains.content_rewrite.models import RewriteArtifactKey, RewriteRequestEnvelope
 from app.domains.readings.models import ReadingCandidate, ReadingPlan
 
 
@@ -60,4 +63,35 @@ class GenerationProvider(Protocol):
 class DisabledGenerationProvider:
     async def generate(self, plan: ReadingPlan) -> GenerationResult:
         del plan
+        return GenerationDisabled()
+
+
+@dataclass(frozen=True, slots=True)
+class RewriteGenerationSuccess:
+    """Provider prose bound to the immutable server-owned artifact key."""
+
+    key: RewriteArtifactKey
+    output: dict[str, JsonValue]
+    kind: Literal["success"] = "success"
+
+
+type RewriteGenerationResult = (
+    RewriteGenerationSuccess
+    | GenerationRefusal
+    | GenerationIncomplete
+    | GenerationTransient
+    | GenerationPermanent
+    | GenerationDisabled
+)
+
+
+class RewriteGenerationProvider(Protocol):
+    async def generate_rewrite(
+        self, request: RewriteRequestEnvelope
+    ) -> RewriteGenerationResult: ...
+
+
+class DisabledRewriteGenerationProvider:
+    async def generate_rewrite(self, request: RewriteRequestEnvelope) -> RewriteGenerationResult:
+        del request
         return GenerationDisabled()

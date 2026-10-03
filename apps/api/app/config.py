@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEVELOPMENT_HASH_KEY = "bGEtbGFuaC1kZXYtaGFzaC1rZXktMzItYnl0ZXMhISE="
 DEVELOPMENT_ENCRYPTION_KEY = "bGEtbGFuaC1kZXYtZW5jcnlwdGlvbi1rZXktMzIhISE="
-PINNED_OPENAI_MODEL: Literal["gpt-5.4-mini-2026-03-17"] = "gpt-5.4-mini-2026-03-17"
+PINNED_OPENAI_MODEL: Literal["gpt-6-luna"] = "gpt-6-luna"
 
 
 class Settings(BaseSettings):
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     generation_provider: Literal["disabled", "openai"] = "disabled"
     generation_governance_approved: bool = False
     generation_openai_api_key: SecretStr | None = None
-    generation_openai_model: Literal["gpt-5.4-mini-2026-03-17"] = PINNED_OPENAI_MODEL
+    generation_openai_model: Literal["gpt-6-luna"] = PINNED_OPENAI_MODEL
     generation_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
     generation_lease_seconds: int = Field(default=120, ge=30, le=600)
     generation_max_attempts: int = Field(default=2, ge=1, le=3)

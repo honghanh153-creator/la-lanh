@@ -6,9 +6,15 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import ValidationError
 
-from app.config import Settings
+from app.config import PINNED_OPENAI_MODEL, Settings
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, Tradition
+from app.domains.content_rewrite.models import (
+    ArtifactOwnerKey,
+    RewriteArtifactKey,
+    RewriteRequestEnvelope,
+    RewriteSurface,
+)
 from app.domains.readings.models import ReadingPurpose
 from app.domains.readings.planner import ReadingPlanner
 from app.infrastructure.generation import build_generation_provider
@@ -20,14 +26,16 @@ from app.infrastructure.generation.base import (
     GenerationRefusal,
     GenerationSuccess,
     GenerationTransient,
+    RewriteGenerationSuccess,
 )
 from app.infrastructure.generation.openai import (
     AmbiguousTransportTimeout,
     OpenAIResponsesProvider,
+    OpenAIRewriteProvider,
     OpenAISDKResponseTransport,
 )
 
-MODEL = "gpt-5.4-mini-2026-03-17"
+MODEL = "gpt-6-luna"
 
 
 class FakeTransport:
@@ -113,6 +121,7 @@ async def test_one_shot_request_is_stateless_strict_minimized_and_allowlisted() 
     assert request["model"] == MODEL
     assert request["store"] is False
     assert request["stream"] is False
+    assert request["reasoning"] == {"effort": "none"}
     assert {"tools", "conversation", "previous_response_id", "background", "include"}.isdisjoint(
         request
     )
@@ -134,6 +143,131 @@ async def test_one_shot_request_is_stateless_strict_minimized_and_allowlisted() 
     assert '"orb"' not in serialized
     assert "factor_1" in serialized
     assert "mặt trời" in serialized
+    assert result.candidate.semantic_blueprint is not None
+
+
+def _rewrite_envelope() -> RewriteRequestEnvelope:
+    return RewriteRequestEnvelope(
+        key=RewriteArtifactKey(
+            surface=RewriteSurface.DAILY_HOME,
+            owner=ArtifactOwnerKey(namespace="readings", key="daily:anonymous"),
+            blueprint_hash="a" * 64,
+            model_version=MODEL,
+            prompt_version="surface-rewrite-v1",
+            schema_version="daily-rewrite/v1",
+            gate_version="daily-rewrite-gates/v1",
+        ),
+        authorization_receipt_id="consent-receipt",
+        safe_payload={
+            "context": "relationships",
+            "scene_key": "psychology:missing-context:relationships",
+            "action_key": "psychology:ask-one-clear-question",
+            "requirements": [
+                {
+                    "key": "daily.missing-context",
+                    "section": "manifestation",
+                    "markers": ["tin nhắn", "chưa rõ"],
+                    "min_matches": 1,
+                }
+            ],
+            "evidence": [
+                {
+                    "label": "factor_1",
+                    "source": "natal",
+                    "kind": "planet_placement",
+                    "domain": "communication",
+                    "role": "primary",
+                    "confidence": "high",
+                    "labels": [{"name": "body", "value": "Mặt Trời"}],
+                }
+            ],
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_surface_rewrite_request_uses_luna_stateless_schema_and_returns_only_prose() -> None:
+    response = {
+        "status": "completed",
+        "output": [
+            {
+                "type": "message",
+                "content": [
+                    {
+                        "type": "output_text",
+                        "text": json.dumps(
+                            {
+                                "title": "Đừng tự điền vào chỗ trống.",
+                                "scene": "Một tin nhắn ngắn làm bạn chưa rõ ý người kia.",
+                                "action": "Hỏi lại một câu rõ ràng trước khi kết luận.",
+                            }
+                        ),
+                    }
+                ],
+            }
+        ],
+    }
+    transport = FakeTransport(response)
+    provider = OpenAIRewriteProvider(transport, model=MODEL, timeout_seconds=8)
+    envelope = _rewrite_envelope()
+
+    result = await provider.generate_rewrite(envelope)
+
+    assert isinstance(result, RewriteGenerationSuccess)
+    assert result.key == envelope.key
+    assert set(result.output) == {"title", "scene", "action"}
+    request, timeout = transport.requests[0]
+    assert timeout == 8
+    assert request["model"] == PINNED_OPENAI_MODEL
+    assert request["store"] is False
+    assert request["reasoning"] == {"effort": "none"}
+    assert request["max_output_tokens"] <= 300
+    assert request["text"]["format"]["strict"] is True
+    assert request["text"]["format"]["schema"]["additionalProperties"] is False
+    serialized = json.dumps(request, ensure_ascii=False).lower()
+    assert envelope.authorization_receipt_id not in serialized
+    assert envelope.key.owner.key not in serialized
+    assert envelope.key.blueprint_hash not in serialized
+
+
+@pytest.mark.asyncio
+async def test_surface_rewrite_rejects_extra_output_and_unsafe_input_without_sending() -> None:
+    transport = FakeTransport(
+        {
+            "status": "completed",
+            "output": [
+                {
+                    "type": "message",
+                    "content": [
+                        {
+                            "type": "output_text",
+                            "text": json.dumps(
+                                {"title": "a", "scene": "b", "action": "c", "score": 99}
+                            ),
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    provider = OpenAIRewriteProvider(transport, model=MODEL, timeout_seconds=8)
+
+    invalid_output = await provider.generate_rewrite(_rewrite_envelope())
+    assert isinstance(invalid_output, GenerationPermanent)
+
+    unsafe = _rewrite_envelope().model_copy(
+        update={
+            "safe_payload": {
+                **_rewrite_envelope().safe_payload,
+                "birth_date": "1990-03-15",
+            }
+        }
+    )
+    before = len(transport.requests)
+    unsafe_result = await provider.generate_rewrite(unsafe)
+    assert isinstance(unsafe_result, GenerationPermanent)
+    assert unsafe_result.code == "unsafe_or_invalid_payload"
+    assert len(transport.requests) == before
 
 
 @pytest.mark.asyncio

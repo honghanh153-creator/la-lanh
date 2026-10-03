@@ -6,13 +6,13 @@ from typing import Any, Protocol, cast
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.domains.astro.models import Tradition
+from app.domains.content_rewrite.models import RewriteRequestEnvelope
 from app.domains.readings.models import (
     ClaimSlotName,
-    EvidenceDisclosure,
     ReadingCandidate,
     ReadingPlan,
 )
-from app.domains.readings.renderers import canonical_evidence_claim
+from app.domains.readings.renderers import DeterministicVietnameseRenderer, canonical_evidence_claim
 from app.infrastructure.generation.base import (
     GenerationDisabled,
     GenerationIncomplete,
@@ -21,10 +21,18 @@ from app.infrastructure.generation.base import (
     GenerationResult,
     GenerationSuccess,
     GenerationTransient,
+    RewriteGenerationResult,
+    RewriteGenerationSuccess,
+)
+from app.infrastructure.generation.privacy import PrivacyMinimiser, UnsafeRewritePayload
+from app.infrastructure.generation.schemas import (
+    surface_output_contract,
+    validate_surface_output,
 )
 
 OPENAI_RENDERER_VERSION = "openai-responses-v1"
 OPENAI_PROMPT_VERSION = "chart-synthesis-v1"
+OPENAI_REWRITE_PROMPT_VERSION = "surface-rewrite-v1"
 
 _OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -117,6 +125,49 @@ class OpenAIResponsesProvider:
         return _parse_response(response, plan)
 
 
+class OpenAIRewriteProvider:
+    """Stateless provider adapter for every registered rewrite surface."""
+
+    def __init__(
+        self,
+        transport: ResponseTransport,
+        *,
+        model: str,
+        timeout_seconds: float,
+        minimiser: PrivacyMinimiser | None = None,
+    ) -> None:
+        self._transport = transport
+        self._model = model
+        self._timeout_seconds = timeout_seconds
+        self._minimiser = minimiser or PrivacyMinimiser()
+
+    async def generate_rewrite(self, envelope: RewriteRequestEnvelope) -> RewriteGenerationResult:
+        try:
+            safe_payload = self._minimiser.minimise(
+                envelope.key.surface,
+                envelope.safe_payload,
+            )
+            request = _rewrite_request(self._model, envelope, safe_payload)
+        except (LookupError, UnsafeRewritePayload, ValueError):
+            return GenerationPermanent(code="unsafe_or_invalid_payload")
+
+        try:
+            response = await self._transport.create_response(
+                request,
+                timeout_seconds=self._timeout_seconds,
+            )
+        except (RequestNotSentError, RetryableTransportError):
+            return GenerationTransient(code="provider_unavailable", retry_safe=True)
+        except AmbiguousTransportTimeout:
+            return GenerationTransient(code="provider_timeout", retry_safe=False)
+        except PermanentTransportError:
+            return GenerationPermanent(code="provider_request_rejected")
+        except Exception:
+            return GenerationPermanent(code="provider_transport_failure")
+
+        return _parse_rewrite_response(response, envelope)
+
+
 class OpenAISDKResponseTransport:
     """Narrow SDK boundary; SDK retries are disabled so the DB worker is sole retry owner."""
 
@@ -159,6 +210,7 @@ def _request(model: str, plan: ReadingPlan) -> dict[str, Any]:
         "model": model,
         "store": False,
         "stream": False,
+        "reasoning": {"effort": "none"},
         "max_output_tokens": 1200,
         "input": [
             {"role": "developer", "content": _DEVELOPER_INSTRUCTIONS},
@@ -173,6 +225,36 @@ def _request(model: str, plan: ReadingPlan) -> dict[str, Any]:
                 "name": "reading_candidate_v1",
                 "strict": True,
                 "schema": _OUTPUT_SCHEMA,
+            }
+        },
+    }
+
+
+def _rewrite_request(
+    model: str,
+    envelope: RewriteRequestEnvelope,
+    safe_payload: dict[str, Any],
+) -> dict[str, Any]:
+    contract = surface_output_contract(envelope.key.surface)
+    return {
+        "model": model,
+        "store": False,
+        "stream": False,
+        "reasoning": {"effort": "none"},
+        "max_output_tokens": contract.max_output_tokens,
+        "input": [
+            {"role": "developer", "content": contract.developer_instruction},
+            {
+                "role": "user",
+                "content": json.dumps(safe_payload, ensure_ascii=False, separators=(",", ":")),
+            },
+        ],
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": f"{envelope.key.surface.value}_rewrite_v1",
+                "strict": True,
+                "schema": contract.schema,
             }
         },
     }
@@ -241,10 +323,7 @@ def _parse_response(response: dict[str, Any], plan: ReadingPlan) -> GenerationRe
     except ValidationError:
         return GenerationPermanent(code="provider_invalid_output")
 
-    ordered_factors = sorted(
-        plan.factors,
-        key=lambda factor: (factor.id not in plan.hero_factor_refs, factor.id),
-    )[:16]
+    baseline = DeterministicVietnameseRenderer().render(plan)
     candidate = ReadingCandidate(
         renderer_version=OPENAI_RENDERER_VERSION,
         plan_hash=plan.plan_hash,
@@ -253,8 +332,40 @@ def _parse_response(response: dict[str, Any], plan: ReadingPlan) -> GenerationRe
         manifestation=output.manifestation,
         transit=output.transit,
         micro_action=output.micro_action,
-        evidence=EvidenceDisclosure(
-            claims=tuple(canonical_evidence_claim(factor) for factor in ordered_factors)
-        ),
+        evidence=baseline.evidence,
+        semantic_blueprint=baseline.semantic_blueprint,
     )
     return GenerationSuccess(candidate=candidate)
+
+
+def _parse_rewrite_response(
+    response: dict[str, Any], envelope: RewriteRequestEnvelope
+) -> RewriteGenerationResult:
+    status = response.get("status")
+    if status == "incomplete":
+        return GenerationIncomplete()
+    if status != "completed":
+        return GenerationPermanent(code="provider_failed")
+
+    text_items: list[str] = []
+    for output in response.get("output", []):
+        if not isinstance(output, dict) or output.get("type") != "message":
+            return GenerationPermanent(code="provider_invalid_response")
+        for content in output.get("content", []):
+            if not isinstance(content, dict):
+                return GenerationPermanent(code="provider_invalid_response")
+            if content.get("type") == "refusal":
+                return GenerationRefusal()
+            if content.get("type") != "output_text" or not isinstance(content.get("text"), str):
+                return GenerationPermanent(code="provider_invalid_response")
+            text_items.append(content["text"])
+    if len(text_items) != 1:
+        return GenerationIncomplete(code="provider_missing_output")
+    try:
+        raw_output = json.loads(text_items[0])
+    except (TypeError, json.JSONDecodeError):
+        return GenerationPermanent(code="provider_invalid_output")
+    output = validate_surface_output(envelope.key.surface, raw_output)
+    if output is None:
+        return GenerationPermanent(code="provider_invalid_output")
+    return RewriteGenerationSuccess(key=envelope.key, output=output)
