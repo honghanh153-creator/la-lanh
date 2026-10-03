@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from enum import StrEnum
 from hashlib import sha256
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
@@ -35,6 +37,26 @@ class RewriteResultStatus(StrEnum):
     ACCEPTED = "accepted"
     REJECTED = "rejected"
     CANCELLED = "cancelled"
+
+
+class RewriteJobStatus(StrEnum):
+    PENDING = "pending"
+    LEASED = "leased"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class RewriteJobResult(StrEnum):
+    ACCEPTED = "accepted"
+    GATE_REJECTED = "gate_rejected"
+    AUTHORIZATION_REVOKED = "authorization_revoked"
+    REFUSAL = "refusal"
+    INCOMPLETE = "incomplete"
+    TRANSIENT = "transient"
+    AMBIGUOUS = "ambiguous"
+    PERMANENT = "permanent"
+    DISABLED = "disabled"
 
 
 class ArtifactOwnerKey(BaseModel):
@@ -93,6 +115,39 @@ class RewriteResultEnvelope(BaseModel):
         elif self.output is not None:
             raise ValueError("non-accepted rewrite results cannot carry publishable output")
         return self
+
+
+class RewriteJobRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: UUID
+    request: RewriteRequestEnvelope
+    status: RewriteJobStatus = RewriteJobStatus.PENDING
+    deletion_epoch: UUID
+    attempt_count: int = Field(default=0, ge=0, le=3)
+    max_attempts: int = Field(default=2, ge=1, le=3)
+    next_attempt_at: datetime
+    last_result: RewriteJobResult | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @model_validator(mode="after")
+    def validate_attempt_bounds(self) -> RewriteJobRecord:
+        if self.attempt_count > self.max_attempts:
+            raise ValueError("attempt count cannot exceed max attempts")
+        return self
+
+
+class LeasedRewriteJob(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: UUID
+    request: RewriteRequestEnvelope
+    deletion_epoch: UUID
+    lease_token: UUID
+    lease_expires_at: datetime
+    attempt_count: int = Field(ge=1, le=3)
+    max_attempts: int = Field(ge=1, le=3)
 
 
 class RewriteFieldSpec(BaseModel):

@@ -20,6 +20,7 @@ from app.domains.birth.service import BirthChartService
 from app.domains.content.catalog import restore_bundled_daily_catalog
 from app.domains.content.postgres import PostgresContentRepository
 from app.domains.content.service import ContentStudioService
+from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.service import DailyNoteService
 from app.domains.experiments.postgres import PostgresExperimentRepository
@@ -110,6 +111,10 @@ def create_app(
         )
         credential_hasher = SecretHasher(
             decode_key(resolved_settings.guest_hash_key.get_secret_value())
+        )
+        app.state.content_rewrite_repository = PostgresContentRewriteRepository(
+            database.sessions,
+            envelope,
         )
         app.state.guest_session_service = GuestSessionService(
             repository,
