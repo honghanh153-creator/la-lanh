@@ -280,6 +280,7 @@ class TarotRewriteProjector(RewriteProjector):
         output: dict[str, JsonValue],
         *,
         completed_at: datetime,
+        publish: bool = True,
     ) -> RewriteProjectionDecision:
         if request.key.surface is not RewriteSurface.TAROT:
             return RewriteProjectionDecision(accepted=False, failure_code="unsupported_surface")
@@ -319,10 +320,11 @@ class TarotRewriteProjector(RewriteProjector):
                 self._engine.validate(candidate)
             except TarotContentRejected:
                 return RewriteProjectionDecision(accepted=False, failure_code="tarot_gate_rejected")
-            payload["reading"] = candidate.model_dump(mode="json")
-            row.payload_ciphertext = self._encrypt(row.id, payload)
-            row.updated_at = max(row.updated_at, completed_at)
-            await database.flush([row])
+            if publish:
+                payload["reading"] = candidate.model_dump(mode="json")
+                row.payload_ciphertext = self._encrypt(row.id, payload)
+                row.updated_at = max(row.updated_at, completed_at)
+                await database.flush([row])
 
         receipt = sha256(
             f"{request.key.cache_key}\x00{session_id}\x00{TAROT_REWRITE_GATE_VERSION}".encode()

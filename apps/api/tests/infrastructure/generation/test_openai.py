@@ -192,6 +192,7 @@ def _rewrite_envelope() -> RewriteRequestEnvelope:
 async def test_surface_rewrite_request_uses_luna_stateless_schema_and_returns_only_prose() -> None:
     response = {
         "status": "completed",
+        "usage": {"input_tokens": 321, "output_tokens": 87},
         "output": [
             {
                 "type": "message",
@@ -219,6 +220,8 @@ async def test_surface_rewrite_request_uses_luna_stateless_schema_and_returns_on
     assert isinstance(result, RewriteGenerationSuccess)
     assert result.key == envelope.key
     assert set(result.output) == {"title", "scene", "action"}
+    assert result.input_tokens == 321
+    assert result.output_tokens == 87
     request, timeout = transport.requests[0]
     assert timeout == 8
     assert request["model"] == PINNED_OPENAI_MODEL
@@ -383,6 +386,49 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
             generation_provider="openai",
             generation_openai_api_key="secret",
         )
+
+    with pytest.raises(ValidationError, match="spend approval"):
+        Settings(
+            environment="test",
+            generation_enabled=True,
+            generation_provider="openai",
+            generation_governance_approved=True,
+            generation_openai_api_key="secret",
+        )
+
+    with pytest.raises(ValidationError, match="daily token budget"):
+        Settings(
+            environment="test",
+            generation_enabled=True,
+            generation_provider="openai",
+            generation_governance_approved=True,
+            generation_spend_approved=True,
+            generation_openai_api_key="secret",
+        )
+
+    with pytest.raises(ValidationError, match="surface rollout"):
+        Settings(
+            environment="test",
+            generation_enabled=True,
+            generation_provider="openai",
+            generation_governance_approved=True,
+            generation_spend_approved=True,
+            generation_daily_token_budget=10_000,
+            generation_openai_api_key="secret",
+        )
+
+    enabled = Settings(
+        environment="test",
+        generation_enabled=True,
+        generation_provider="openai",
+        generation_governance_approved=True,
+        generation_spend_approved=True,
+        generation_daily_token_budget=10_000,
+        generation_surface_rollout={"daily_home": "shadow"},
+        generation_openai_api_key="secret",
+    )
+    assert enabled.generation_surface_rollout == {"daily_home": "shadow"}
+    assert isinstance(build_generation_provider(enabled), DisabledGenerationProvider)
 
     with pytest.raises(ValidationError, match="lease"):
         Settings(

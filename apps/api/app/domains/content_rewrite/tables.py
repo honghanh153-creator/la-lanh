@@ -21,6 +21,10 @@ class ContentRewriteJobRow(Base):
             "attempt_count >= 0 AND max_attempts BETWEEN 1 AND 3 AND attempt_count <= max_attempts",
             name="ck_content_rewrite_jobs_attempt_bounds",
         ),
+        CheckConstraint(
+            "budget_reserved_tokens >= 0",
+            name="ck_content_rewrite_jobs_budget_reservation",
+        ),
         Index(
             "ix_content_rewrite_jobs_queue",
             "status",
@@ -62,5 +66,6 @@ class ContentRewriteJobRow(Base):
     last_result: Mapped[str | None] = mapped_column(String(32), nullable=True)
     input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    budget_reserved_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)

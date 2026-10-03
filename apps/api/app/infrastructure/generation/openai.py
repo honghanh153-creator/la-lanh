@@ -368,4 +368,24 @@ def _parse_rewrite_response(
     output = validate_surface_output(envelope.key.surface, raw_output)
     if output is None:
         return GenerationPermanent(code="provider_invalid_output")
-    return RewriteGenerationSuccess(key=envelope.key, output=output)
+    input_tokens, output_tokens = _usage_tokens(response)
+    return RewriteGenerationSuccess(
+        key=envelope.key,
+        output=output,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+    )
+
+
+def _usage_tokens(response: dict[str, Any]) -> tuple[int | None, int | None]:
+    """Extract aggregate usage only; never retain provider input or output text."""
+
+    usage = response.get("usage")
+    if not isinstance(usage, dict):
+        return None, None
+    input_tokens = usage.get("input_tokens")
+    output_tokens = usage.get("output_tokens")
+    return (
+        input_tokens if isinstance(input_tokens, int) and input_tokens >= 0 else None,
+        output_tokens if isinstance(output_tokens, int) and output_tokens >= 0 else None,
+    )

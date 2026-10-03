@@ -345,6 +345,7 @@ class DailyRewriteProjector(RewriteProjector):
         output: dict[str, JsonValue],
         *,
         completed_at: datetime,
+        publish: bool = True,
     ) -> RewriteProjectionDecision:
         try:
             guest_id, profile_id, plan_id, scope_key = _parse_owner(request.key.owner)
@@ -411,7 +412,8 @@ class DailyRewriteProjector(RewriteProjector):
                 created_at=completed_at,
             )
         )
-        await self._repository.publish_available(guest_id, profile_id, scope_key, revision.id)
+        if publish:
+            await self._repository.publish_available(guest_id, profile_id, scope_key, revision.id)
         receipt = sha256(
             f"{request.key.cache_key}\x00{revision.id}\x00{gate_policy}\x00{daily_report.version}".encode()
         ).hexdigest()
@@ -506,6 +508,7 @@ class LongFormReadingRewriteProjector(RewriteProjector):
         output: dict[str, JsonValue],
         *,
         completed_at: datetime,
+        publish: bool = True,
     ) -> RewriteProjectionDecision:
         try:
             surface, guest_id, profile_id, plan_id, scope_key = _parse_reading_owner(
@@ -568,7 +571,8 @@ class LongFormReadingRewriteProjector(RewriteProjector):
                 created_at=completed_at,
             )
         )
-        await self._repository.publish_available(guest_id, profile_id, scope_key, revision.id)
+        if publish:
+            await self._repository.publish_available(guest_id, profile_id, scope_key, revision.id)
         receipt = sha256(
             f"{request.key.cache_key}\x00{revision.id}\x00{gate_policy}".encode()
         ).hexdigest()
@@ -592,15 +596,18 @@ class ReadingRewriteProjector(RewriteProjector):
         output: dict[str, JsonValue],
         *,
         completed_at: datetime,
+        publish: bool = True,
     ) -> RewriteProjectionDecision:
         if request.key.surface is RewriteSurface.DAILY_HOME:
             return await self._daily.validate_and_project(
                 request,
                 output,
                 completed_at=completed_at,
+                publish=publish,
             )
         return await self._long_form.validate_and_project(
             request,
             output,
             completed_at=completed_at,
+            publish=publish,
         )

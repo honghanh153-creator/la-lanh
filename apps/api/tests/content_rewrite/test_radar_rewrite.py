@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
+
+from pydantic import JsonValue
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import ChartInput
@@ -94,7 +97,10 @@ def test_radar_rewrite_preserves_scores_evidence_and_domain_structure() -> None:
     compatibility = json.loads(json.dumps(baseline["compatibility_map"], ensure_ascii=False))
     evidence_ids = list(baseline["metadata"]["evidence_ids"])  # type: ignore[index]
 
-    candidate = rewrite_radar_projection(baseline, _valid_output(baseline))
+    candidate = rewrite_radar_projection(
+        baseline,
+        cast(dict[str, JsonValue], _valid_output(baseline)),
+    )
 
     assert candidate is not None
     assert candidate["compatibility_map"] == compatibility
@@ -107,8 +113,8 @@ def test_radar_rewrite_rejects_fate_probability_and_manipulation_copy() -> None:
     output = _valid_output(baseline)
     output["overview"] = "Hai người chắc chắn yêu nhau với tỷ lệ thành công 90%."
 
-    assert rewrite_radar_projection(baseline, output) is None
+    assert rewrite_radar_projection(baseline, cast(dict[str, JsonValue], output)) is None
 
     output = _valid_output(baseline)
     output["prompt"] = "Hãy thử lòng bằng cách theo dõi họ trong vài ngày."
-    assert rewrite_radar_projection(baseline, output) is None
+    assert rewrite_radar_projection(baseline, cast(dict[str, JsonValue], output)) is None

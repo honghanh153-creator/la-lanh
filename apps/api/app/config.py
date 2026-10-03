@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     generation_enabled: bool = False
     generation_provider: Literal["disabled", "openai"] = "disabled"
     generation_governance_approved: bool = False
+    generation_spend_approved: bool = False
+    generation_daily_token_budget: int = Field(default=0, ge=0, le=10_000_000)
+    generation_surface_rollout: dict[
+        str, Literal["off", "shadow", "editorial", "beta_10", "beta_50", "full"]
+    ] = Field(default_factory=dict)
     generation_openai_api_key: SecretStr | None = None
     generation_openai_model: Literal["gpt-6-luna"] = PINNED_OPENAI_MODEL
     generation_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
@@ -74,6 +79,32 @@ class Settings(BaseSettings):
                 raise ValueError("enabled generation requires an OpenAI API key")
             if not self.generation_governance_approved:
                 raise ValueError("enabled generation requires explicit governance approval")
+            if not self.generation_spend_approved:
+                raise ValueError("enabled generation requires explicit spend approval")
+            if self.generation_daily_token_budget < 1_000:
+                raise ValueError("enabled generation requires a positive daily token budget")
+            if not any(mode != "off" for mode in self.generation_surface_rollout.values()):
+                raise ValueError("enabled generation requires an explicit surface rollout")
+            allowed_surfaces = {
+                "daily_home",
+                "daily_detail",
+                "reveal",
+                "natal",
+                "planet_insight",
+                "house_insight",
+                "aspect_insight",
+                "transit_insight",
+                "radar",
+                "matching",
+                "tarot",
+                "share_card",
+                "recap",
+            }
+            unknown_surfaces = set(self.generation_surface_rollout) - allowed_surfaces
+            if unknown_surfaces:
+                raise ValueError(
+                    f"generation rollout contains unknown surfaces: {sorted(unknown_surfaces)}"
+                )
         if self.content_studio_enabled:
             if self.content_studio_api_token is None:
                 raise ValueError("Content Studio requires an API token")

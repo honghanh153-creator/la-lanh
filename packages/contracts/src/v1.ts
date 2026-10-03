@@ -883,6 +883,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/session/content-rewrite-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant Content Rewrite Consent */
+        post: operations["grant_content_rewrite_consent_v1_session_content_rewrite_consent_post"];
+        /** Revoke Content Rewrite Consent */
+        delete: operations["revoke_content_rewrite_consent_v1_session_content_rewrite_consent_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/session/onboarding-status": {
         parameters: {
             query?: never;
@@ -1237,6 +1255,13 @@ export interface components {
          * @enum {string}
          */
         ChartType: "date_only_natal" | "natal" | "daily_transit" | "transit_to_natal" | "synastry" | "composite_midpoint" | "davison_relationship" | "jyotish_navamsa" | "relationship_bundle" | "compatibility_facts";
+        /** ContentRewriteConsentRequest */
+        ContentRewriteConsentRequest: {
+            /** Consent Version */
+            consent_version: string;
+            /** @default personal */
+            scope: components["schemas"]["RewriteConsentScope"];
+        };
         /** ContextProjectionRequest */
         ContextProjectionRequest: {
             background_lens: components["schemas"]["BackgroundLens"];
@@ -2287,6 +2312,11 @@ export interface components {
             feedback_count: number;
             last_choice: components["schemas"]["ResonanceChoice"] | null;
         };
+        /**
+         * RewriteConsentScope
+         * @enum {string}
+         */
+        RewriteConsentScope: "personal" | "radar" | "matching";
         /** SafeShareSnapshotResponse */
         SafeShareSnapshotResponse: {
             /** Body */
@@ -5329,6 +5359,106 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    grant_content_rewrite_consent_v1_session_content_rewrite_consent_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentRewriteConsentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_content_rewrite_consent_v1_session_content_rewrite_consent_delete: {
+        parameters: {
+            query?: {
+                scope?: components["schemas"]["RewriteConsentScope"];
+            };
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

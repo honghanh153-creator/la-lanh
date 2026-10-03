@@ -15,6 +15,7 @@ from app.domains.content_rewrite.models import (
     RewriteSurface,
 )
 from app.domains.content_rewrite.repository import ContentRewriteRepository
+from app.domains.content_rewrite.rollout import RewriteRolloutMode, SurfaceRolloutPolicy
 from app.domains.content_rewrite.service import RewriteProjectionDecision
 from app.domains.content_rewrite.worker import ContentRewriteWorker
 from app.infrastructure.generation.base import (
@@ -60,6 +61,10 @@ class FakeRepository:
         self.current_lease: LeasedRewriteJob | None = lease
         self.events: list[str] = []
         self.failed_result: RewriteJobResult | None = None
+        self.success_usage: tuple[int | None, int | None] | None = None
+        self.failure_usage: tuple[int | None, int | None] | None = None
+        self.budget_allowed = True
+        self.reserved_tokens: int | None = None
 
     async def lease(self, **kwargs):  # type: ignore[no-untyped-def]
         del kwargs
@@ -79,13 +84,19 @@ class FakeRepository:
 
     async def fail(self, **kwargs):  # type: ignore[no-untyped-def]
         self.failed_result = kwargs["result"]
+        self.failure_usage = (kwargs.get("input_tokens"), kwargs.get("output_tokens"))
         self.events.append("fail")
         return True
 
     async def succeed(self, **kwargs):  # type: ignore[no-untyped-def]
-        del kwargs
+        self.success_usage = (kwargs["input_tokens"], kwargs["output_tokens"])
         self.events.append("succeed")
         return True
+
+    async def reserve_token_budget(self, **kwargs):  # type: ignore[no-untyped-def]
+        self.reserved_tokens = kwargs["requested_tokens"]
+        self.events.append("reserve")
+        return self.budget_allowed
 
 
 class Authorization:
@@ -118,10 +129,14 @@ class Projector:
     def __init__(self, accepted: bool = True) -> None:
         self.accepted = accepted
         self.calls = 0
+        self.last_publish: bool | None = None
 
-    async def validate_and_project(self, request, output, *, completed_at):  # type: ignore[no-untyped-def]
+    async def validate_and_project(  # type: ignore[no-untyped-def]
+        self, request, output, *, completed_at, publish=True
+    ):
         del request, output, completed_at
         self.calls += 1
+        self.last_publish = publish
         return RewriteProjectionDecision(
             accepted=self.accepted,
             gate_receipt_id="gate-receipt" if self.accepted else None,
@@ -160,6 +175,8 @@ async def test_worker_projects_then_marks_success() -> None:
         RewriteGenerationSuccess(
             key=lease.request.key,
             output={"title": "Rõ hơn", "scene": "Một cảnh", "action": "Một bước"},
+            input_tokens=250,
+            output_tokens=60,
         )
     )
     projector = Projector()
@@ -174,13 +191,21 @@ async def test_worker_projects_then_marks_success() -> None:
 
     assert projector.calls == 1
     assert repository.events == ["lease", "marked", "succeed"]
+    assert repository.success_usage == (250, 60)
 
 
 @pytest.mark.asyncio
 async def test_gate_rejection_keeps_owner_projection_unchanged() -> None:
     lease = _lease()
     repository = FakeRepository(lease)
-    provider = Provider(RewriteGenerationSuccess(key=lease.request.key, output={"title": "x"}))
+    provider = Provider(
+        RewriteGenerationSuccess(
+            key=lease.request.key,
+            output={"title": "x"},
+            input_tokens=120,
+            output_tokens=30,
+        )
+    )
 
     await ContentRewriteWorker(
         cast(ContentRewriteRepository, repository),
@@ -191,6 +216,7 @@ async def test_gate_rejection_keeps_owner_projection_unchanged() -> None:
     ).process_one()
 
     assert repository.failed_result is RewriteJobResult.GATE_REJECTED
+    assert repository.failure_usage == (120, 30)
     assert repository.events[-1] == "fail"
 
 
@@ -238,3 +264,54 @@ async def test_unexpected_exception_after_send_is_ambiguous_and_not_retried() ->
 
     assert repository.events == ["lease", "marked", "fail"]
     assert repository.failed_result is RewriteJobResult.AMBIGUOUS
+
+
+@pytest.mark.asyncio
+async def test_daily_token_budget_blocks_before_provider_send() -> None:
+    repository = FakeRepository(_lease())
+    repository.budget_allowed = False
+    provider = Provider(
+        RewriteGenerationSuccess(
+            key=_request().key,
+            output={"title": "x", "scene": "y", "action": "z"},
+        )
+    )
+
+    await ContentRewriteWorker(
+        cast(ContentRewriteRepository, repository),
+        cast(RewriteGenerationProvider, provider),
+        Authorization(True),
+        Projector(),
+        daily_token_budget=1_000,
+        clock=lambda: NOW,
+    ).process_one()
+
+    assert provider.calls == 0
+    assert repository.events == ["lease", "reserve", "fail"]
+    assert repository.failed_result is RewriteJobResult.BUDGET_BLOCKED
+
+
+@pytest.mark.asyncio
+async def test_shadow_mode_runs_gates_without_publishing() -> None:
+    lease = _lease()
+    repository = FakeRepository(lease)
+    provider = Provider(
+        RewriteGenerationSuccess(
+            key=lease.request.key,
+            output={"title": "Rõ hơn", "scene": "Một cảnh", "action": "Một bước"},
+        )
+    )
+    projector = Projector()
+
+    await ContentRewriteWorker(
+        cast(ContentRewriteRepository, repository),
+        cast(RewriteGenerationProvider, provider),
+        Authorization(True),
+        projector,
+        rollout=SurfaceRolloutPolicy({RewriteSurface.DAILY_HOME: RewriteRolloutMode.SHADOW}),
+        clock=lambda: NOW,
+    ).process_one()
+
+    assert projector.calls == 1
+    assert projector.last_publish is False
+    assert repository.events[-1] == "succeed"

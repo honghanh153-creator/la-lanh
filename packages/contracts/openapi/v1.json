@@ -646,6 +646,26 @@
         "title": "ChartType",
         "type": "string"
       },
+      "ContentRewriteConsentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/RewriteConsentScope",
+            "default": "personal"
+          }
+        },
+        "required": [
+          "consent_version"
+        ],
+        "title": "ContentRewriteConsentRequest",
+        "type": "object"
+      },
       "ContextProjectionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3183,6 +3203,15 @@
         ],
         "title": "ResonanceStatusResponse",
         "type": "object"
+      },
+      "RewriteConsentScope": {
+        "enum": [
+          "personal",
+          "radar",
+          "matching"
+        ],
+        "title": "RewriteConsentScope",
+        "type": "string"
       },
       "SafeShareSnapshotResponse": {
         "properties": {
@@ -7635,6 +7664,147 @@
           }
         },
         "summary": "Get Session",
+        "tags": [
+          "guest"
+        ]
+      }
+    },
+    "/v1/session/content-rewrite-consent": {
+      "delete": {
+        "operationId": "revoke_content_rewrite_consent_v1_session_content_rewrite_consent_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RewriteConsentScope",
+              "default": "personal"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Content Rewrite Consent",
+        "tags": [
+          "guest"
+        ]
+      },
+      "post": {
+        "operationId": "grant_content_rewrite_consent_v1_session_content_rewrite_consent_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentRewriteConsentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Grant Content Rewrite Consent",
         "tags": [
           "guest"
         ]

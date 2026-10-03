@@ -439,6 +439,7 @@ class RadarRewriteProjector(RewriteProjector):
         output: dict[str, JsonValue],
         *,
         completed_at: datetime,
+        publish: bool = True,
     ) -> RewriteProjectionDecision:
         if request.key.surface is not RewriteSurface.RADAR:
             return RewriteProjectionDecision(accepted=False, failure_code="unsupported_surface")
@@ -482,12 +483,13 @@ class RadarRewriteProjector(RewriteProjector):
             candidate = rewrite_radar_projection(baseline, output)
             if candidate is None:
                 return RewriteProjectionDecision(accepted=False, failure_code="radar_gate_rejected")
-            if "owner" in stored:
-                stored[perspective] = candidate
-            else:
-                stored = candidate
-            row.result_ciphertext = self._encrypt(row.id, stored)
-            await database.flush([row])
+            if publish:
+                if "owner" in stored:
+                    stored[perspective] = candidate
+                else:
+                    stored = candidate
+                row.result_ciphertext = self._encrypt(row.id, stored)
+                await database.flush([row])
 
         receipt = sha256(
             f"{request.key.cache_key}\x00{request_id}\x00{perspective}\x00{RADAR_REWRITE_GATE_VERSION}".encode()

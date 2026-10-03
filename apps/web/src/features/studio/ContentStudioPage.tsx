@@ -374,7 +374,15 @@ function RewriteReviewBoard({ workspace }: { workspace: ContentWorkspace }) {
           <p>Chưa có candidate runtime. App vẫn dùng nội dung deterministic đã duyệt.</p>
         ) : candidates.slice(0, 8).map((item) => (
           <article key={item.id}>
-            <div><strong>{item.surface}</strong><small>{item.model} · {item.prompt_version}</small></div>
+            <div>
+              <strong>{item.surface}</strong>
+              <small>
+                {item.model} · {item.prompt_version}
+                {item.input_tokens != null && item.output_tokens != null
+                  ? ` · ${item.input_tokens + item.output_tokens} tokens`
+                  : ""}
+              </small>
+            </div>
             <span className={`is-${item.status}`}>{item.last_result ?? item.status}</span>
           </article>
         ))}

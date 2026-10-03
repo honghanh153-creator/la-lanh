@@ -14,6 +14,7 @@ from app.domains.content_rewrite.models import (
 )
 from app.domains.content_rewrite.registry import SurfaceRegistry, canonical_surface_registry
 from app.domains.content_rewrite.repository import ContentRewriteRepository
+from app.domains.content_rewrite.rollout import SurfaceRolloutPolicy
 from app.infrastructure.generation.privacy import PrivacyMinimiser
 
 
@@ -36,6 +37,7 @@ class RewriteProjector(Protocol):
         output: dict[str, JsonValue],
         *,
         completed_at: datetime,
+        publish: bool = True,
     ) -> RewriteProjectionDecision: ...
 
 
@@ -49,6 +51,7 @@ class RewriteProjectorRouter(RewriteProjector):
         output: dict[str, JsonValue],
         *,
         completed_at: datetime,
+        publish: bool = True,
     ) -> RewriteProjectionDecision:
         projector = self._projectors.get(request.key.surface)
         if projector is None:
@@ -60,6 +63,7 @@ class RewriteProjectorRouter(RewriteProjector):
             request,
             output,
             completed_at=completed_at,
+            publish=publish,
         )
 
 
@@ -71,12 +75,14 @@ class ContentRewriteService:
         *,
         registry: SurfaceRegistry | None = None,
         minimiser: PrivacyMinimiser | None = None,
+        rollout: SurfaceRolloutPolicy | None = None,
         max_attempts: int = 2,
     ) -> None:
         self._repository = repository
         self._authorization = authorization
         self._registry = registry or canonical_surface_registry()
         self._minimiser = minimiser or PrivacyMinimiser()
+        self._rollout = rollout or SurfaceRolloutPolicy.full_for_all()
         self._max_attempts = max_attempts
 
     async def enqueue(
@@ -86,6 +92,8 @@ class ContentRewriteService:
         now: datetime | None = None,
     ) -> tuple[RewriteJobRecord, bool]:
         self._registry.validate_request(request)
+        if not self._rollout.should_generate(request.key.surface):
+            raise PermissionError("rewrite surface rollout is off")
         if not await self._authorization.is_authorized(request):
             raise PermissionError("external rewrite authorization is not active")
         safe_payload = self._minimiser.minimise(request.key.surface, request.safe_payload)

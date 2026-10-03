@@ -57,6 +57,7 @@ class RewriteJobResult(StrEnum):
     AMBIGUOUS = "ambiguous"
     PERMANENT = "permanent"
     DISABLED = "disabled"
+    BUDGET_BLOCKED = "budget_blocked"
 
 
 class ArtifactOwnerKey(BaseModel):

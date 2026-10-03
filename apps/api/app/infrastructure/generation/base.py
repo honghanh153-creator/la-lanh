@@ -72,6 +72,8 @@ class RewriteGenerationSuccess:
 
     key: RewriteArtifactKey
     output: dict[str, JsonValue]
+    input_tokens: int | None = None
+    output_tokens: int | None = None
     kind: Literal["success"] = "success"
 
 

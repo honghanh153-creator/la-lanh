@@ -22,6 +22,7 @@ from app.domains.content.postgres import PostgresContentRepository
 from app.domains.content.service import ContentStudioService
 from app.domains.content_rewrite.authorization import DatabaseRewriteAuthorization
 from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
+from app.domains.content_rewrite.rollout import SurfaceRolloutPolicy
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.service import DailyNoteService
@@ -125,9 +126,13 @@ def create_app(
         await content_release_service.activate_published_catalog()
         content_rewrite_authorization = DatabaseRewriteAuthorization(database.sessions)
         app.state.content_rewrite_authorization = content_rewrite_authorization
+        content_rewrite_rollout = SurfaceRolloutPolicy.from_settings(
+            resolved_settings.generation_surface_rollout
+        )
         content_rewrite_service = ContentRewriteService(
             content_rewrite_repository,
             content_rewrite_authorization,
+            rollout=content_rewrite_rollout,
             max_attempts=resolved_settings.generation_max_attempts,
         )
         app.state.content_rewrite_service = content_rewrite_service

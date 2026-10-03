@@ -6,7 +6,7 @@ from hashlib import sha256
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import and_, delete, select, update
+from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -96,6 +96,11 @@ class PostgresContentRewriteRepository:
                     lease_token=None,
                     lease_expires_at=None,
                     request_started_at=None,
+                    input_tokens=func.coalesce(
+                        ContentRewriteJobRow.input_tokens,
+                        func.nullif(ContentRewriteJobRow.budget_reserved_tokens, 0),
+                    ),
+                    budget_reserved_tokens=0,
                     updated_at=now,
                 )
             )
@@ -113,6 +118,25 @@ class PostgresContentRewriteRepository:
                     lease_expires_at=None,
                     request_started_at=None,
                     next_attempt_at=now,
+                    budget_reserved_tokens=0,
+                    updated_at=now,
+                )
+            )
+            await session.execute(
+                update(ContentRewriteJobRow)
+                .where(
+                    ContentRewriteJobRow.status == RewriteJobStatus.LEASED.value,
+                    ContentRewriteJobRow.lease_expires_at <= now,
+                    ContentRewriteJobRow.request_started_at.is_(None),
+                    ContentRewriteJobRow.attempt_count >= ContentRewriteJobRow.max_attempts,
+                )
+                .values(
+                    status=RewriteJobStatus.FAILED.value,
+                    last_result=RewriteJobResult.TRANSIENT.value,
+                    lease_token=None,
+                    lease_expires_at=None,
+                    request_started_at=None,
+                    budget_reserved_tokens=0,
                     updated_at=now,
                 )
             )
@@ -135,6 +159,7 @@ class PostgresContentRewriteRepository:
             row.lease_token = lease_token
             row.lease_expires_at = lease_expires_at
             row.request_started_at = None
+            row.budget_reserved_tokens = 0
             row.attempt_count += 1
             row.updated_at = now
             await session.flush([row])
@@ -186,6 +211,7 @@ class PostgresContentRewriteRepository:
                     lease_expires_at=None,
                     request_started_at=None,
                     next_attempt_at=next_attempt_at,
+                    budget_reserved_tokens=0,
                     updated_at=updated_at,
                 )
             )
@@ -199,8 +225,26 @@ class PostgresContentRewriteRepository:
         deletion_epoch: UUID,
         result: RewriteJobResult,
         updated_at: datetime,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
     ) -> bool:
         async with self._sessions() as session, session.begin():
+            usage_values: dict[str, object]
+            usage_values = {
+                "input_tokens": (
+                    input_tokens
+                    if input_tokens is not None
+                    else func.coalesce(
+                        ContentRewriteJobRow.input_tokens,
+                        func.nullif(ContentRewriteJobRow.budget_reserved_tokens, 0),
+                    )
+                ),
+                "output_tokens": (
+                    output_tokens
+                    if output_tokens is not None
+                    else ContentRewriteJobRow.output_tokens
+                ),
+            }
             updated = await session.execute(
                 update(ContentRewriteJobRow)
                 .where(self._lease_match(job_id, lease_token, deletion_epoch))
@@ -215,7 +259,9 @@ class PostgresContentRewriteRepository:
                     lease_expires_at=None,
                     request_started_at=None,
                     provider_output_ciphertext=None,
+                    budget_reserved_tokens=0,
                     updated_at=updated_at,
+                    **usage_values,
                 )
             )
             return cast(CursorResult[Any], updated).rowcount == 1
@@ -226,6 +272,8 @@ class PostgresContentRewriteRepository:
         lease: LeasedRewriteJob,
         gate_receipt_id: str,
         output_fingerprint: str,
+        input_tokens: int | None,
+        output_tokens: int | None,
         completed_at: datetime,
     ) -> bool:
         async with self._sessions() as session, session.begin():
@@ -241,6 +289,9 @@ class PostgresContentRewriteRepository:
                     provider_output_ciphertext=None,
                     output_fingerprint=output_fingerprint,
                     gate_receipt_id=gate_receipt_id,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    budget_reserved_tokens=0,
                     updated_at=completed_at,
                 )
             )
@@ -298,6 +349,69 @@ class PostgresContentRewriteRepository:
             for row in rows
         )
 
+    async def tokens_used_since(self, since: datetime) -> int:
+        async with self._sessions() as session:
+            value = await session.scalar(
+                select(
+                    func.coalesce(
+                        func.sum(
+                            func.coalesce(ContentRewriteJobRow.input_tokens, 0)
+                            + func.coalesce(ContentRewriteJobRow.output_tokens, 0)
+                        ),
+                        0,
+                    )
+                ).where(ContentRewriteJobRow.updated_at >= since)
+            )
+        return int(value or 0)
+
+    async def reserve_token_budget(
+        self,
+        *,
+        job_id: UUID,
+        lease_token: UUID,
+        deletion_epoch: UUID,
+        since: datetime,
+        requested_tokens: int,
+        daily_limit: int,
+        updated_at: datetime,
+    ) -> bool:
+        if requested_tokens <= 0 or daily_limit <= 0:
+            return False
+        async with self._sessions() as session, session.begin():
+            rows = tuple(
+                await session.scalars(
+                    select(ContentRewriteJobRow)
+                    .where(ContentRewriteJobRow.updated_at >= since)
+                    .with_for_update()
+                )
+            )
+            current = next(
+                (
+                    row
+                    for row in rows
+                    if row.id == job_id
+                    and row.status == RewriteJobStatus.LEASED.value
+                    and row.lease_token == lease_token
+                    and row.deletion_epoch == deletion_epoch
+                    and row.request_started_at is None
+                ),
+                None,
+            )
+            if current is None:
+                return False
+            spent = sum((row.input_tokens or 0) + (row.output_tokens or 0) for row in rows)
+            reserved = sum(
+                row.budget_reserved_tokens
+                for row in rows
+                if row.id != job_id and row.status == RewriteJobStatus.LEASED.value
+            )
+            if spent + reserved + requested_tokens > daily_limit:
+                return False
+            current.budget_reserved_tokens = requested_tokens
+            current.updated_at = updated_at
+            await session.flush([current])
+            return True
+
     def _row(self, record: RewriteJobRecord) -> ContentRewriteJobRow:
         request_ciphertext = self._envelope.encrypt(
             record.request.model_dump_json().encode(),
@@ -326,6 +440,7 @@ class PostgresContentRewriteRepository:
             max_attempts=record.max_attempts,
             next_attempt_at=record.next_attempt_at,
             last_result=record.last_result.value if record.last_result else None,
+            budget_reserved_tokens=0,
             created_at=record.created_at,
             updated_at=record.updated_at,
         )

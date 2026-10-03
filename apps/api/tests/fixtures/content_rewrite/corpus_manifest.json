@@ -1,0 +1,20 @@
+{
+  "version": "rewrite-corpus-2026-10-03-v1",
+  "synthetic_only": true,
+  "total_cases": 670,
+  "segments": [
+    {"surface": "daily_home", "count": 75},
+    {"surface": "daily_detail", "count": 75},
+    {"surface": "reveal", "count": 55},
+    {"surface": "natal", "count": 55},
+    {"surface": "planet_insight", "count": 30},
+    {"surface": "house_insight", "count": 30},
+    {"surface": "aspect_insight", "count": 30},
+    {"surface": "transit_insight", "count": 20},
+    {"surface": "radar", "count": 80},
+    {"surface": "matching", "count": 40},
+    {"surface": "tarot", "count": 120},
+    {"surface": "share_card", "count": 30},
+    {"surface": "recap", "count": 30}
+  ]
+}

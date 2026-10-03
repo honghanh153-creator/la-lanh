@@ -23,22 +23,11 @@ if TYPE_CHECKING:
 
 
 def build_generation_provider(settings: Settings) -> GenerationProvider:
-    if not settings.generation_enabled or settings.generation_provider == "disabled":
-        return DisabledGenerationProvider()
-
-    from app.infrastructure.generation.openai import (
-        OpenAIResponsesProvider,
-        OpenAISDKResponseTransport,
-    )
-
-    api_key = settings.generation_openai_api_key
-    if api_key is None:  # Settings validation protects this fail-closed boundary too.
-        return DisabledGenerationProvider()
-    return OpenAIResponsesProvider(
-        OpenAISDKResponseTransport(api_key=api_key.get_secret_value()),
-        model=settings.generation_openai_model,
-        timeout_seconds=settings.generation_timeout_seconds,
-    )
+    # The legacy Reading worker has no atomic shared-budget reservation. New work is
+    # exclusively routed through the content-rewrite ledger, so this boundary stays
+    # network-disabled even when the new rewrite rollout is enabled.
+    del settings
+    return DisabledGenerationProvider()
 
 
 def build_rewrite_generation_provider(settings: Settings) -> RewriteGenerationProvider:

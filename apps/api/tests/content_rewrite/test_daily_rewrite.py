@@ -246,3 +246,29 @@ async def test_daily_projector_keeps_blueprint_and_publishes_as_available_only()
     assert candidate.semantic_blueprint == baseline.semantic_blueprint
     assert candidate.evidence == baseline.evidence
     assert candidate.hook == _good_output()["title"]
+
+
+@pytest.mark.asyncio
+async def test_daily_shadow_validates_and_saves_candidate_without_exposing_it() -> None:
+    plan_record, projection, active = _records()
+    repository = MemoryRepository(plan_record, projection, active)
+    baseline = DeterministicVietnameseRenderer().render(plan_record.plan)
+    request = compile_daily_rewrite_request(
+        plan_record,
+        projection,
+        baseline,
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v1",
+    )
+
+    decision = await DailyRewriteProjector(repository).validate_and_project(
+        request,
+        _good_output(),
+        completed_at=NOW,
+        publish=False,
+    )
+
+    assert decision.accepted
+    assert repository.projection.active_revision_id == active.id
+    assert repository.projection.available_revision_id is None
+    assert len(repository.revisions) == 2
