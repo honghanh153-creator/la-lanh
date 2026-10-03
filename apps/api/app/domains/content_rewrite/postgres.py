@@ -28,6 +28,12 @@ def owner_fingerprint(owner: ArtifactOwnerKey) -> str:
     return sha256(f"{owner.namespace}\x00{owner.key}".encode()).hexdigest()
 
 
+def authorization_fingerprint(authorization_receipt_id: str) -> str:
+    return sha256(
+        f"content-rewrite-authorization\x00{authorization_receipt_id}".encode()
+    ).hexdigest()
+
+
 def output_fingerprint(output: dict[str, object]) -> str:
     canonical = json.dumps(output, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return sha256(canonical.encode()).hexdigest()
@@ -248,6 +254,16 @@ class PostgresContentRewriteRepository:
             )
             return cast(CursorResult[Any], result).rowcount
 
+    async def cancel_and_purge_authorization(self, authorization_receipt_id: str) -> int:
+        async with self._sessions() as session, session.begin():
+            result = await session.execute(
+                delete(ContentRewriteJobRow).where(
+                    ContentRewriteJobRow.authorization_fingerprint
+                    == authorization_fingerprint(authorization_receipt_id)
+                )
+            )
+            return cast(CursorResult[Any], result).rowcount
+
     def _row(self, record: RewriteJobRecord) -> ContentRewriteJobRow:
         request_ciphertext = self._envelope.encrypt(
             record.request.model_dump_json().encode(),
@@ -260,6 +276,9 @@ class PostgresContentRewriteRepository:
             surface=key.surface.value,
             owner_namespace=key.owner.namespace,
             owner_fingerprint=owner_fingerprint(key.owner),
+            authorization_fingerprint=authorization_fingerprint(
+                record.request.authorization_receipt_id
+            ),
             candidate_variant=key.candidate_variant,
             provider="openai",
             model=key.model_version,

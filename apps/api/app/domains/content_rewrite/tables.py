@@ -28,6 +28,11 @@ class ContentRewriteJobRow(Base):
             "lease_expires_at",
         ),
         Index("ix_content_rewrite_jobs_owner", "owner_fingerprint", "created_at"),
+        Index(
+            "ix_content_rewrite_jobs_authorization",
+            "authorization_fingerprint",
+            "created_at",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -35,6 +40,7 @@ class ContentRewriteJobRow(Base):
     surface: Mapped[str] = mapped_column(String(32), nullable=False)
     owner_namespace: Mapped[str] = mapped_column(String(40), nullable=False)
     owner_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    authorization_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     candidate_variant: Mapped[str] = mapped_column(String(64), nullable=False)
     provider: Mapped[str] = mapped_column(String(32), nullable=False)
     model: Mapped[str] = mapped_column(String(80), nullable=False)

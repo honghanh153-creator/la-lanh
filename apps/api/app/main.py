@@ -21,6 +21,7 @@ from app.domains.content.catalog import restore_bundled_daily_catalog
 from app.domains.content.postgres import PostgresContentRepository
 from app.domains.content.service import ContentStudioService
 from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
+from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.service import DailyNoteService
 from app.domains.experiments.postgres import PostgresExperimentRepository
@@ -38,6 +39,7 @@ from app.domains.radar.service import RadarService
 from app.domains.readings.application import ReadingApplicationService
 from app.domains.readings.postgres import PostgresReadingRepository
 from app.domains.readings.repository import ReadingRepository
+from app.domains.readings.rewrite import DatabaseRewriteAuthorization
 from app.domains.resonance.postgres import PostgresResonanceRepository
 from app.domains.resonance.service import ResonanceService
 from app.domains.saved.postgres import PostgresSavedNoteRepository
@@ -112,10 +114,19 @@ def create_app(
         credential_hasher = SecretHasher(
             decode_key(resolved_settings.guest_hash_key.get_secret_value())
         )
-        app.state.content_rewrite_repository = PostgresContentRewriteRepository(
+        content_rewrite_repository = PostgresContentRewriteRepository(
             database.sessions,
             envelope,
         )
+        app.state.content_rewrite_repository = content_rewrite_repository
+        content_rewrite_authorization = DatabaseRewriteAuthorization(database.sessions)
+        app.state.content_rewrite_authorization = content_rewrite_authorization
+        content_rewrite_service = ContentRewriteService(
+            content_rewrite_repository,
+            content_rewrite_authorization,
+            max_attempts=resolved_settings.generation_max_attempts,
+        )
+        app.state.content_rewrite_service = content_rewrite_service
         app.state.guest_session_service = GuestSessionService(
             repository,
             credential_hasher,
@@ -201,6 +212,7 @@ def create_app(
                     generation_model=resolved_settings.generation_openai_model,
                     generation_prompt_version=OPENAI_PROMPT_VERSION,
                     generation_max_attempts=resolved_settings.generation_max_attempts,
+                    content_rewrite_service=content_rewrite_service,
                 )
         try:
             yield

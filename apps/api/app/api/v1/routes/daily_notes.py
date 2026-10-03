@@ -290,6 +290,10 @@ async def get_daily_note(
             guest_id=guest.id,
             snapshot=snapshot,
             purpose=ReadingPurpose.DAILY_NOTE,
+            external_generation_authorized=(
+                settings.generation_enabled
+                and await request.app.state.content_rewrite_authorization.authorized_guest(guest.id)
+            ),
         )
     except Exception:
         logger.exception(
@@ -329,6 +333,10 @@ async def project_daily_note_context(
             snapshot=snapshot,
             purpose=ReadingPurpose.DAILY_NOTE,
             background_lens=body.background_lens,
+            external_generation_authorized=(
+                settings.generation_enabled
+                and await request.app.state.content_rewrite_authorization.authorized_guest(guest.id)
+            ),
         )
     except ReadingApplicationError:
         logger.exception(

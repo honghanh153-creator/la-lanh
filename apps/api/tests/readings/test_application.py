@@ -1,5 +1,6 @@
 from dataclasses import replace
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -15,6 +16,8 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 from app.domains.birth.models import BirthSnapshotRecord
+from app.domains.content_rewrite.models import RewriteRequestEnvelope
+from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.readings.application import (
     ReadingActivationConflict,
     ReadingApplicationService,
@@ -30,6 +33,7 @@ from app.domains.readings.models import (
     ReadingProjectionRecord,
     ReadingPurpose,
     ReadingRevisionRecord,
+    ReadingRevisionSource,
     canonical_lens_variant,
 )
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
@@ -168,6 +172,21 @@ class MemoryReadingRepository:
     ) -> tuple[GenerationAttemptRecord, bool]:
         self.generation_attempts.append(record)
         return record, False
+
+
+class CapturingRewriteService:
+    def __init__(self) -> None:
+        self.requests: list[RewriteRequestEnvelope] = []
+
+    async def enqueue(
+        self,
+        request: RewriteRequestEnvelope,
+        *,
+        now: datetime | None = None,
+    ) -> tuple[object, bool]:
+        del now
+        self.requests.append(request)
+        return object(), False
 
 
 def _date_only_snapshot(guest_id: UUID, profile_id: UUID) -> BirthSnapshotRecord:
@@ -400,6 +419,36 @@ async def test_external_generation_requires_explicit_purpose_authorization() -> 
         external_generation_authorized=True,
     )
     assert len(repository.generation_attempts) == 1
+
+
+@pytest.mark.asyncio
+async def test_authorized_daily_uses_generic_rewrite_queue_instead_of_legacy_queue() -> None:
+    repository = MemoryReadingRepository()
+    rewrite_service = CapturingRewriteService()
+    service = ReadingApplicationService(
+        repository,
+        NatalChartEngine(),
+        generation_enabled=True,
+        generation_provider="openai",
+        generation_model="gpt-6-luna",
+        generation_prompt_version="chart-synthesis-v1",
+        content_rewrite_service=cast(ContentRewriteService, rewrite_service),
+    )
+    guest_id = UUID("20000000-0000-4000-8000-000000000113")
+    profile_id = UUID("30000000-0000-4000-8000-000000000113")
+
+    projection = await service.project(
+        guest_id=guest_id,
+        snapshot=_date_only_snapshot(guest_id, profile_id),
+        purpose=ReadingPurpose.DAILY_NOTE,
+        requested_at=NOW,
+        external_generation_authorized=True,
+    )
+
+    assert projection.active.source is ReadingRevisionSource.DETERMINISTIC
+    assert repository.generation_attempts == []
+    assert len(rewrite_service.requests) == 1
+    assert rewrite_service.requests[0].key.surface.value == "daily_home"
 
 
 @pytest.mark.asyncio

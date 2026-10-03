@@ -17,6 +17,7 @@ from app.domains.astro.models import (
     TransitToNatalSnapshot,
 )
 from app.domains.birth.models import BirthSnapshotRecord
+from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     AuraTransitionProjection,
@@ -30,6 +31,7 @@ from app.domains.readings.models import (
     GenerationAttemptRecord,
     PlanMode,
     ProfileReadiness,
+    ReadingCandidate,
     ReadingContentProjection,
     ReadingEvidenceProjection,
     ReadingPlanRecord,
@@ -50,6 +52,7 @@ from app.domains.readings.models import (
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.readings.repository import ReadingProjectionRepository
+from app.domains.readings.rewrite import compile_daily_rewrite_request
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +90,7 @@ class ReadingApplicationService:
         generation_model: str = "disabled",
         generation_prompt_version: str = "disabled",
         generation_max_attempts: int = 2,
+        content_rewrite_service: ContentRewriteService | None = None,
     ) -> None:
         self._repository = repository
         self._engine = engine
@@ -97,6 +101,7 @@ class ReadingApplicationService:
         self._generation_model = generation_model
         self._generation_prompt_version = generation_prompt_version
         self._generation_max_attempts = generation_max_attempts
+        self._content_rewrite_service = content_rewrite_service
 
     async def project(
         self,
@@ -239,6 +244,7 @@ class ReadingApplicationService:
         await self._optional_enqueue(
             plan_record,
             projection,
+            candidate,
             current,
             external_generation_authorized=external_generation_authorized,
         )
@@ -248,6 +254,7 @@ class ReadingApplicationService:
         self,
         plan_record: ReadingPlanRecord,
         projection: ReadingProjectionRecord,
+        baseline: ReadingCandidate,
         created_at: datetime,
         *,
         external_generation_authorized: bool,
@@ -257,6 +264,26 @@ class ReadingApplicationService:
             or not external_generation_authorized
             or plan_record.plan.tradition is not Tradition.WESTERN
         ):
+            return
+        if (
+            plan_record.plan.purpose is ReadingPurpose.DAILY_NOTE
+            and self._content_rewrite_service is not None
+        ):
+            try:
+                await self._content_rewrite_service.enqueue(
+                    compile_daily_rewrite_request(
+                        plan_record,
+                        projection,
+                        baseline,
+                        model_version=self._generation_model,
+                        prompt_version="surface-rewrite-v1",
+                    ),
+                    now=created_at,
+                )
+            except Exception:
+                logger.warning(
+                    "Optional Daily rewrite enqueue failed; deterministic content remains active"
+                )
             return
         generation_key = canonical_generation_key(
             plan_key=plan_record.plan_key,

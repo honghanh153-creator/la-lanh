@@ -149,3 +149,48 @@ def test_tarot_guest_uses_separate_reflection_consent_without_birth_data(
     assert response.status_code == 200
     assert guest_client.cookies.get("la_lanh_guest") is not None
     assert response.json()["state"] == "active"
+
+
+def test_content_rewrite_consent_is_explicit_csrf_protected_and_revocable(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    app = create_app(
+        Settings(
+            environment="test",
+            database_url=f"sqlite+aiosqlite:///{tmp_path / 'rewrite-consent.db'}",
+            cors_origins=["http://127.0.0.1:5173"],
+            guest_cookie_name="la_lanh_guest",
+            guest_cookie_secure=False,
+        )
+    )
+    with TestClient(app, base_url="http://127.0.0.1:5173") as client:
+        created = client.post(
+            "/v1/guest-sessions",
+            json={
+                "consent_version": "birth-profile-v1",
+                "purpose": "birth_profile_basic",
+                "idempotency_key": "rewrite-consent-key-1234567890",
+            },
+        ).json()
+        headers = {
+            "Origin": "http://127.0.0.1:5173",
+            "X-CSRF-Token": created["csrf_token"],
+        }
+
+        assert (
+            client.post(
+                "/v1/session/content-rewrite-consent",
+                json={"consent_version": "external-content-rewrite-v1"},
+            ).status_code
+            == 403
+        )
+        granted = client.post(
+            "/v1/session/content-rewrite-consent",
+            json={"consent_version": "external-content-rewrite-v1"},
+            headers=headers,
+        )
+        assert granted.status_code == 204
+
+        revoked = client.delete(
+            "/v1/session/content-rewrite-consent",
+            headers=headers,
+        )
+        assert revoked.status_code == 204

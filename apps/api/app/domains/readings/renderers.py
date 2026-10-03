@@ -133,11 +133,21 @@ def _semantic_requirements(frame: InterpretationFrame) -> tuple[SemanticRequirem
         issue_key = scene_parts[1]
         markers = _DAILY_ISSUE_MARKERS.get(issue_key)
         if markers is not None:
+            manifestation = frame.manifestation.casefold()
+            present_markers = tuple(marker for marker in markers if marker in manifestation)
+            if not present_markers:
+                present_markers = tuple(
+                    marker
+                    for marker in _ARENA_REQUIREMENT_MARKERS[frame.arena]
+                    if marker in manifestation
+                )
+            if not present_markers:
+                present_markers = (frame.manifestation.split()[0].casefold(),)
             return (
                 SemanticRequirement(
                     key=f"daily.{issue_key}",
                     section=SemanticSection.MANIFESTATION,
-                    markers=markers,
+                    markers=present_markers[:12],
                 ),
             )
     concepts = tuple(

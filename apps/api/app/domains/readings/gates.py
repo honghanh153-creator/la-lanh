@@ -205,6 +205,7 @@ def _remove_negated_phrases(text: str) -> str:
 
 
 def anti_influence_gate(candidate: ReadingCandidate) -> GateReport:
+    original_text = unicodedata.normalize("NFC", _candidate_prose(candidate)).casefold()
     text = _remove_negated_phrases(_without_safe_examples(_candidate_prose(candidate)))
     rules: tuple[tuple[GateFailureCode, tuple[str, ...]], ...] = (
         (
@@ -242,10 +243,6 @@ def anti_influence_gate(candidate: ReadingCandidate) -> GateReport:
             (r"\bban (?:bi|mac)\b.{0,35}\b(?:tram cam|roi loan|benh)\b", r"\bchan doan ban\b"),
         ),
         (
-            GateFailureCode.ANTI_MEDICAL_COMMAND,
-            (r"\b(?:hay|phai|nen|dung|ngung|uong|tang|giam)\b.{0,30}\b(?:thuoc|lieu dieu tri)\b",),
-        ),
-        (
             GateFailureCode.ANTI_LEGAL_COMMAND,
             (
                 r"\b(?:hay|phai|nen)\b.{0,30}\b"
@@ -274,6 +271,12 @@ def anti_influence_gate(candidate: ReadingCandidate) -> GateReport:
     failures = [
         code for code, patterns in rules if any(re.search(pattern, text) for pattern in patterns)
     ]
+    if re.search(
+        r"\b(?:hãy|phải|nên|đừng|ngừng|uống|tăng|giảm)\b.{0,30}\b"
+        r"(?:thuốc|liều điều trị)\b",
+        original_text,
+    ):
+        failures.append(GateFailureCode.ANTI_MEDICAL_COMMAND)
     return _report(GateName.ANTI_INFLUENCE, ANTI_INFLUENCE_GATE_VERSION, failures)
 
 

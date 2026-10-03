@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.models import GuestSessionRecord, OnboardingStatus
 from app.domains.guest.service import GuestSessionService
+from app.domains.readings.rewrite import content_rewrite_receipt_id
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
 router = APIRouter()
@@ -39,6 +40,12 @@ class OnboardingStatusRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: OnboardingStatus
+
+
+class ContentRewriteConsentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    consent_version: str = Field(min_length=1, max_length=64)
 
 
 def _service(request: Request) -> GuestSessionService:
@@ -193,3 +200,54 @@ async def update_onboarding_status(
     except GuestDomainError as error:
         return _problem(error)
     return _payload(guest, session_epoch=_service(request).session_epoch(guest))
+
+
+@router.post(
+    "/session/content-rewrite-consent",
+    status_code=204,
+    responses={401: {"model": ProblemResponse}, 403: {"model": ProblemResponse}},
+)
+async def grant_content_rewrite_consent(
+    body: ContentRewriteConsentRequest,
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    settings = request.app.state.settings
+    token = request.cookies.get(settings.guest_cookie_name)
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        guest = await _service(request).verify_csrf(token, csrf_token)
+        await _service(request).accept_content_rewrite_consent(
+            guest.id,
+            version=body.consent_version,
+        )
+    except GuestDomainError as error:
+        return _problem(error)
+    response.status_code = 204
+    return response
+
+
+@router.delete(
+    "/session/content-rewrite-consent",
+    status_code=204,
+    responses={401: {"model": ProblemResponse}, 403: {"model": ProblemResponse}},
+)
+async def revoke_content_rewrite_consent(
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    settings = request.app.state.settings
+    token = request.cookies.get(settings.guest_cookie_name)
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        guest = await _service(request).verify_csrf(token, csrf_token)
+        await _service(request).revoke_content_rewrite_consent(guest.id)
+        await request.app.state.content_rewrite_repository.cancel_and_purge_authorization(
+            content_rewrite_receipt_id(guest.id)
+        )
+    except GuestDomainError as error:
+        return _problem(error)
+    response.status_code = 204
+    return response

@@ -180,3 +180,45 @@ def _terminal_result(
     if isinstance(result, GenerationDisabled):
         return RewriteJobResult.DISABLED
     return RewriteJobResult.PERMANENT
+
+
+async def _run_standalone() -> None:
+    from app.config import get_settings
+    from app.db.session import Database
+    from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
+    from app.domains.readings.postgres import PostgresReadingRepository
+    from app.domains.readings.rewrite import DailyRewriteProjector, DatabaseRewriteAuthorization
+    from app.infrastructure.crypto import AesGcmEnvelopeCipher, StaticDataKeyProvider, decode_key
+    from app.infrastructure.generation import build_rewrite_generation_provider
+
+    settings = get_settings()
+    if not settings.generation_enabled:
+        return
+    database = Database(str(settings.database_url))
+    await database.initialize()
+    envelope = AesGcmEnvelopeCipher(
+        StaticDataKeyProvider(
+            decode_key(settings.guest_encryption_key.get_secret_value(), expected_bytes=32)
+        )
+    )
+    authorization = DatabaseRewriteAuthorization(database.sessions)
+    worker = ContentRewriteWorker(
+        PostgresContentRewriteRepository(database.sessions, envelope),
+        build_rewrite_generation_provider(settings),
+        authorization,
+        DailyRewriteProjector(PostgresReadingRepository(database.sessions, envelope)),
+        lease_seconds=settings.generation_lease_seconds,
+        retry_delay_seconds=settings.generation_retry_delay_seconds,
+    )
+    try:
+        await worker.run_forever()
+    finally:
+        await database.dispose()
+
+
+def main() -> None:
+    asyncio.run(_run_standalone())
+
+
+if __name__ == "__main__":
+    main()

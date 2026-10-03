@@ -190,6 +190,29 @@ class GuestSessionService:
             guest_id, "reading_resonance", now or datetime.now(UTC)
         )
 
+    async def accept_content_rewrite_consent(
+        self, guest_id: UUID, *, version: str, now: datetime | None = None
+    ) -> None:
+        if version != "external-content-rewrite-v1":
+            raise ConsentVersionInvalid
+        await self._repository.save_consent(
+            ConsentRecord(
+                guest_id=guest_id,
+                version=version,
+                purpose="external_content_rewrite",
+                accepted_at=now or datetime.now(UTC),
+            )
+        )
+
+    async def revoke_content_rewrite_consent(
+        self, guest_id: UUID, *, now: datetime | None = None
+    ) -> None:
+        await self._repository.revoke_consent(
+            guest_id,
+            "external_content_rewrite",
+            now or datetime.now(UTC),
+        )
+
     async def set_onboarding_status(self, guest_id: UUID, status: OnboardingStatus) -> None:
         await self._repository.update_onboarding(guest_id, status)
 

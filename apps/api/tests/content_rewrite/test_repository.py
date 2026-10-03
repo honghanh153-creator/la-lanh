@@ -158,6 +158,18 @@ async def test_owner_purge_is_idempotent_and_invalidates_stale_lease(storage) ->
 
 
 @pytest.mark.asyncio
+async def test_authorization_revocation_purges_every_linked_job(storage) -> None:  # type: ignore[no-untyped-def]
+    _database, repository = storage
+    first = _record(owner_key="daily:owner-1")
+    second = _record(owner_key="daily:owner-2")
+    await repository.enqueue(first)
+    await repository.enqueue(second)
+
+    assert await repository.cancel_and_purge_authorization("consent-receipt") == 2
+    assert await repository.cancel_and_purge_authorization("consent-receipt") == 0
+
+
+@pytest.mark.asyncio
 async def test_service_checks_authorization_before_enqueue(storage) -> None:  # type: ignore[no-untyped-def]
     database, repository = storage
 

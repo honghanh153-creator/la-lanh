@@ -101,6 +101,13 @@ class PostgresReadingRepository:
                 return stored, True
             return _plan_record(row, self._envelope), False
 
+    async def get_plan(
+        self, guest_id: UUID, profile_id: UUID, plan_id: UUID
+    ) -> ReadingPlanRecord | None:
+        async with self._sessions() as session:
+            row = await _find_plan(session, guest_id, profile_id, plan_id)
+            return _plan_record(row, self._envelope) if row is not None else None
+
     async def save_or_replay_revision(
         self, record: ReadingRevisionRecord
     ) -> tuple[ReadingRevisionRecord, bool]:
