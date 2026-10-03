@@ -43,6 +43,16 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "Each reading must name its supplied card_title and explain what that card means in that "
         "specific position. Use synthesis to answer the fixed focus_sentence without predicting."
     ),
+    RewriteSurface.RADAR: (
+        "Map overview from source overview, strengths from source strength, frictions from source "
+        "friction, asymmetry from source asymmetry, and prompt from source prompt. Keep every "
+        "score, direction, uncertainty and evidence boundary unchanged. Do not add compatibility "
+        "percentages, fate claims, surveillance, manipulation, or tests of another person."
+    ),
+    RewriteSurface.MATCHING: (
+        "Use only the supplied anonymous relationship dimensions. Do not identify the candidate, "
+        "change ranking, invent compatibility percentages, or imply that a match will succeed."
+    ),
 }
 
 

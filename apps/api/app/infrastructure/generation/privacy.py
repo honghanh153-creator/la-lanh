@@ -115,8 +115,16 @@ class RelationshipDimension(SafeModel):
     meaning_keys: tuple[str, ...] = Field(min_length=1, max_length=8)
 
 
+class RelationshipSourceSection(SafeModel):
+    key: Literal["overview", "strength", "friction", "asymmetry", "prompt"]
+    meaning: str = Field(min_length=1, max_length=1_200)
+
+
 class RelationshipSafePayload(SafeModel):
+    context: Literal["crush", "friend", "partner", "someone", "matching"]
+    low_signal: bool = False
     dimensions: tuple[RelationshipDimension, ...] = Field(min_length=1, max_length=8)
+    source_sections: tuple[RelationshipSourceSection, ...] = Field(min_length=5, max_length=5)
     evidence: tuple[SafeEvidence, ...] = Field(min_length=1, max_length=16)
 
 

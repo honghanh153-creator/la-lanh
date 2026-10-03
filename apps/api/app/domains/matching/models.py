@@ -147,3 +147,19 @@ class SlateResult(BaseModel):
     weekly_intent: WeeklyIntent
     algorithm_version: str = "vong-la-slate-v1"
     excluded_by_hard_filter: int = Field(ge=0)
+
+
+class MatchingCardCopy(BaseModel):
+    """Generated prose layered over one deterministic, privacy-filtered slate card."""
+
+    model_config = ConfigDict(frozen=True)
+
+    candidate_id: UUID
+    energy_slot: EnergySlot
+    card_summary: str
+    strengths: tuple[str, ...] = Field(min_length=1, max_length=3)
+    frictions: tuple[str, ...] = Field(min_length=1, max_length=3)
+    icebreaker: str
+    evidence_ids: tuple[str, ...] = Field(min_length=1, max_length=3)
+    relationship_method_version: str
+    renderer_version: str = "gpt-6-luna-matching-v1"

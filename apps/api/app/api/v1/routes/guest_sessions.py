@@ -3,7 +3,11 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Cookie, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domains.content_rewrite.authorization import content_rewrite_receipt_id
+from app.domains.content_rewrite.authorization import (
+    RewriteConsentScope,
+    consent_definition,
+    content_rewrite_receipt_id,
+)
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.models import GuestSessionRecord, OnboardingStatus
 from app.domains.guest.service import GuestSessionService
@@ -46,6 +50,7 @@ class ContentRewriteConsentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     consent_version: str = Field(min_length=1, max_length=64)
+    scope: RewriteConsentScope = RewriteConsentScope.PERSONAL
 
 
 def _service(request: Request) -> GuestSessionService:
@@ -218,9 +223,11 @@ async def grant_content_rewrite_consent(
     try:
         require_trusted_origin(request, trusted_origins(request))
         guest = await _service(request).verify_csrf(token, csrf_token)
+        definition = consent_definition(body.scope)
         await _service(request).accept_content_rewrite_consent(
             guest.id,
             version=body.consent_version,
+            purpose=definition.purpose,
         )
     except GuestDomainError as error:
         return _problem(error)
@@ -236,6 +243,7 @@ async def grant_content_rewrite_consent(
 async def revoke_content_rewrite_consent(
     request: Request,
     response: Response,
+    scope: RewriteConsentScope = RewriteConsentScope.PERSONAL,
     csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
 ) -> Response:
     settings = request.app.state.settings
@@ -243,9 +251,13 @@ async def revoke_content_rewrite_consent(
     try:
         require_trusted_origin(request, trusted_origins(request))
         guest = await _service(request).verify_csrf(token, csrf_token)
-        await _service(request).revoke_content_rewrite_consent(guest.id)
+        definition = consent_definition(scope)
+        await _service(request).revoke_content_rewrite_consent(
+            guest.id,
+            purpose=definition.purpose,
+        )
         await request.app.state.content_rewrite_repository.cancel_and_purge_authorization(
-            content_rewrite_receipt_id(guest.id)
+            content_rewrite_receipt_id(guest.id, scope=scope)
         )
     except GuestDomainError as error:
         return _problem(error)

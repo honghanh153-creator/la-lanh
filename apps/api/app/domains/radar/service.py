@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import secrets
 from datetime import UTC, date, datetime, timedelta
@@ -13,6 +14,7 @@ from app.domains.astro.models import CalculationConfig, RelationshipBundle
 from app.domains.birth.errors import BirthDomainError
 from app.domains.birth.models import BirthTimeMode
 from app.domains.birth.service import BirthChartService
+from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.radar.models import (
     RadarAcceptResult,
     RadarInviteView,
@@ -21,6 +23,11 @@ from app.domains.radar.models import (
     RadarStatus,
 )
 from app.domains.radar.reading import build_radar_reading
+from app.domains.radar.rewrite import (
+    RadarPerspective,
+    compile_radar_rewrite_request,
+    radar_rewrite_owner,
+)
 from app.domains.radar.tables import RadarRequestRow
 from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
@@ -32,6 +39,7 @@ AUTHORIZED_INPUT_VERSION = "radar-authorized-input-v1"
 INVITE_TTL = timedelta(days=7)
 PRIVATE_RESULT_TTL = timedelta(days=30)
 RECEIPT_TTL = timedelta(days=7)
+logger = logging.getLogger(__name__)
 
 
 class RadarError(RuntimeError):
@@ -58,12 +66,21 @@ class RadarService:
         envelope: EnvelopeCipher,
         birth: BirthChartService,
         engine: NatalChartEngine,
+        *,
+        generation_enabled: bool = False,
+        generation_model: str = "disabled",
+        generation_prompt_version: str = "surface-rewrite-v1",
+        content_rewrite_service: ContentRewriteService | None = None,
     ) -> None:
         self._sessions = sessions
         self._hasher = hasher
         self._envelope = envelope
         self._birth = birth
         self._engine = engine
+        self._generation_enabled = generation_enabled
+        self._generation_model = generation_model
+        self._generation_prompt_version = generation_prompt_version
+        self._content_rewrite_service = content_rewrite_service
 
     async def create(
         self,
@@ -190,6 +207,13 @@ class RadarService:
         async with self._sessions() as session, session.begin():
             session.add(row)
             await session.flush()
+        await self._enqueue_rewrite(
+            guest_id=owner_guest_id,
+            request_id=request_id,
+            perspective="owner",
+            projection=projection,
+            context=context,
+        )
         return {
             "request_id": str(request_id),
             "recipient_label": label,
@@ -303,7 +327,24 @@ class RadarService:
             row.expires_at = current + PRIVATE_RESULT_TTL
             row.token_ciphertext = None
             await session.flush()
-            return RadarAcceptResult(row.id, receipt, recipient_projection)
+            result = RadarAcceptResult(row.id, receipt, recipient_projection)
+            owner_guest_id = row.owner_guest_id
+            context = row.context
+        await self._enqueue_rewrite(
+            guest_id=owner_guest_id,
+            request_id=result.request_id,
+            perspective="owner",
+            projection=owner_projection,
+            context=context,
+        )
+        await self._enqueue_rewrite(
+            guest_id=recipient_guest_id,
+            request_id=result.request_id,
+            perspective="recipient",
+            projection=recipient_projection,
+            context=context,
+        )
+        return result
 
     async def result(self, principal_id: UUID, request_id: UUID) -> dict[str, Any]:
         async with self._sessions() as session:
@@ -364,15 +405,22 @@ class RadarService:
             return result
 
     async def delete(self, principal_id: UUID, request_id: UUID) -> None:
+        owner_guest_id: UUID
+        recipient_guest_id: UUID | None
         async with self._sessions() as session, session.begin():
             row = await session.get(RadarRequestRow, request_id, with_for_update=True)
             if row is None or row.principal_id != principal_id:
                 raise RadarUnavailable
+            owner_guest_id = row.owner_guest_id
+            recipient_guest_id = row.recipient_guest_id
             await session.delete(row)
+        await self._cancel_rewrites(request_id, owner_guest_id, recipient_guest_id)
 
     async def withdraw(self, receipt: str, *, expected_request_id: UUID) -> None:
         current = datetime.now(UTC)
         digest = self._hasher.digest("radar-receipt", receipt)
+        owner_guest_id: UUID
+        recipient_guest_id: UUID | None
         async with self._sessions() as session, session.begin():
             row = await session.scalar(
                 select(RadarRequestRow)
@@ -387,10 +435,60 @@ class RadarService:
                 or row.id != expected_request_id
             ):
                 raise RadarUnavailable
+            owner_guest_id = row.owner_guest_id
+            recipient_guest_id = row.recipient_guest_id
             row.status = RadarStatus.WITHDRAWN.value
             row.withdrawn_at = current
             row.result_ciphertext = None
             row.receipt_ciphertext = None
+        await self._cancel_rewrites(expected_request_id, owner_guest_id, recipient_guest_id)
+
+    async def _enqueue_rewrite(
+        self,
+        *,
+        guest_id: UUID,
+        request_id: UUID,
+        perspective: RadarPerspective,
+        projection: dict[str, Any],
+        context: str,
+    ) -> None:
+        if not self._generation_enabled or self._content_rewrite_service is None:
+            return
+        request = compile_radar_rewrite_request(
+            guest_id,
+            request_id,
+            perspective,
+            cast(dict[str, object], projection),
+            context=context,
+            model_version=self._generation_model,
+            prompt_version=self._generation_prompt_version,
+        )
+        if request is None:
+            return
+        try:
+            await self._content_rewrite_service.enqueue(request)
+        except (PermissionError, ValueError):
+            logger.info(
+                "Radar rewrite skipped because scoped authorization or safe evidence is unavailable"
+            )
+        except Exception as error:
+            logger.warning("optional Radar rewrite enqueue failed: %s", type(error).__name__)
+
+    async def _cancel_rewrites(
+        self,
+        request_id: UUID,
+        owner_guest_id: UUID,
+        recipient_guest_id: UUID | None,
+    ) -> None:
+        if self._content_rewrite_service is None:
+            return
+        await self._content_rewrite_service.cancel_owner(
+            radar_rewrite_owner(owner_guest_id, request_id, "owner")
+        )
+        if recipient_guest_id is not None:
+            await self._content_rewrite_service.cancel_owner(
+                radar_rewrite_owner(recipient_guest_id, request_id, "recipient")
+            )
 
     async def _pending_by_token(self, token: str) -> RadarRequestRow:
         if CAPABILITY_PATTERN.fullmatch(token) is None:

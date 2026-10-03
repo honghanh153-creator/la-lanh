@@ -189,6 +189,7 @@ async def _run_standalone() -> None:
     from app.domains.content_rewrite.models import RewriteSurface
     from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
     from app.domains.content_rewrite.service import RewriteProjectorRouter
+    from app.domains.radar.rewrite import RadarRewriteProjector
     from app.domains.readings.postgres import PostgresReadingRepository
     from app.domains.readings.rewrite import ReadingRewriteProjector
     from app.domains.tarot.rewrite import TarotRewriteProjector
@@ -215,6 +216,7 @@ async def _run_standalone() -> None:
             RewriteSurface.REVEAL: reading_projector,
             RewriteSurface.NATAL: reading_projector,
             RewriteSurface.TRANSIT_INSIGHT: reading_projector,
+            RewriteSurface.RADAR: RadarRewriteProjector(database.sessions, envelope),
             RewriteSurface.TAROT: TarotRewriteProjector(database.sessions, envelope),
         }
     )

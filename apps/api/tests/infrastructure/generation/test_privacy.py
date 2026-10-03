@@ -104,6 +104,8 @@ def test_tarot_question_with_direct_identifier_skips_external_generation(questio
 
 def test_radar_payload_accepts_only_derived_dimensions_and_anonymous_evidence() -> None:
     payload = {
+        "context": "crush",
+        "low_signal": False,
         "dimensions": [
             {
                 "dimension": "coordination",
@@ -111,6 +113,13 @@ def test_radar_payload_accepts_only_derived_dimensions_and_anonymous_evidence() 
                 "direction": "mixed",
                 "meaning_keys": ["different_response_speed"],
             }
+        ],
+        "source_sections": [
+            {"key": "overview", "meaning": "Hai người dễ chú ý đến nhau."},
+            {"key": "strength", "meaning": "Cách nói chuyện có thể vào nhịp nhanh."},
+            {"key": "friction", "meaning": "Tốc độ phản hồi khác nhau dễ gây hiểu nhầm."},
+            {"key": "asymmetry", "meaning": "Hai phía có thể cảm nhận khác nhau."},
+            {"key": "prompt", "meaning": "Hỏi rõ một câu thay vì đoán ý."},
         ],
         "evidence": [
             {

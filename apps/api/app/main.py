@@ -181,6 +181,9 @@ def create_app(
                 envelope,
                 app.state.birth_chart_service,
                 engine,
+                generation_enabled=resolved_settings.generation_enabled,
+                generation_model=resolved_settings.generation_openai_model,
+                content_rewrite_service=content_rewrite_service,
             )
             if app.state.birth_chart_service is not None and engine is not None
             else None

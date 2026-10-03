@@ -189,6 +189,32 @@ def test_content_rewrite_consent_is_explicit_csrf_protected_and_revocable(tmp_pa
         )
         assert granted.status_code == 204
 
+        radar_granted = client.post(
+            "/v1/session/content-rewrite-consent",
+            json={
+                "consent_version": "external-radar-rewrite-v1",
+                "scope": "radar",
+            },
+            headers=headers,
+        )
+        assert radar_granted.status_code == 204
+
+        mismatched_scope = client.post(
+            "/v1/session/content-rewrite-consent",
+            json={
+                "consent_version": "external-content-rewrite-v1",
+                "scope": "radar",
+            },
+            headers=headers,
+        )
+        assert mismatched_scope.status_code == 422
+
+        radar_revoked = client.delete(
+            "/v1/session/content-rewrite-consent?scope=radar",
+            headers=headers,
+        )
+        assert radar_revoked.status_code == 204
+
         revoked = client.delete(
             "/v1/session/content-rewrite-consent",
             headers=headers,

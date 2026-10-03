@@ -191,25 +191,45 @@ class GuestSessionService:
         )
 
     async def accept_content_rewrite_consent(
-        self, guest_id: UUID, *, version: str, now: datetime | None = None
+        self,
+        guest_id: UUID,
+        *,
+        version: str,
+        purpose: str = "external_content_rewrite",
+        now: datetime | None = None,
     ) -> None:
-        if version != "external-content-rewrite-v1":
+        allowed = {
+            ("external-content-rewrite-v1", "external_content_rewrite"),
+            ("external-radar-rewrite-v1", "external_radar_rewrite"),
+            ("external-matching-rewrite-v1", "external_matching_rewrite"),
+        }
+        if (version, purpose) not in allowed:
             raise ConsentVersionInvalid
         await self._repository.save_consent(
             ConsentRecord(
                 guest_id=guest_id,
                 version=version,
-                purpose="external_content_rewrite",
+                purpose=purpose,
                 accepted_at=now or datetime.now(UTC),
             )
         )
 
     async def revoke_content_rewrite_consent(
-        self, guest_id: UUID, *, now: datetime | None = None
+        self,
+        guest_id: UUID,
+        *,
+        purpose: str = "external_content_rewrite",
+        now: datetime | None = None,
     ) -> None:
+        if purpose not in {
+            "external_content_rewrite",
+            "external_radar_rewrite",
+            "external_matching_rewrite",
+        }:
+            raise ConsentPurposeInvalid
         await self._repository.revoke_consent(
             guest_id,
-            "external_content_rewrite",
+            purpose,
             now or datetime.now(UTC),
         )
 
