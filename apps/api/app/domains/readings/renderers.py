@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.domains.readings.daily_psychology import apply_daily_psychology
 from app.domains.readings.knowledge import (
     LENS_ACTIONS,
     LENS_HOOKS,
@@ -25,10 +26,13 @@ from app.domains.readings.models import (
     PlanMode,
     ReadingCandidate,
     ReadingPlan,
+    SemanticArena,
     SemanticBlueprint,
+    SemanticRequirement,
+    SemanticSection,
 )
 
-DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v6"
+DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v7"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",
@@ -62,6 +66,102 @@ _PHASE_LABELS = {
     "separating": "tách dần",
 }
 _MOTION_LABELS = {"direct": "thuận hành", "retrograde": "nghịch hành"}
+
+_DAILY_ISSUE_MARKERS: dict[str, tuple[str, ...]] = {
+    "missing-context": (
+        "tin nhắn",
+        "câu trả lời",
+        "chưa rõ",
+        "thông tin",
+        "suy đoán",
+        "mơ hồ",
+        "đoán",
+        "dữ kiện",
+        "câu chữ",
+        "dấu hiệu",
+    ),
+    "too-many-open-loops": ("đầu việc", "thông báo", "bận", "danh sách", "đổi việc"),
+    "changed-plan": ("kế hoạch", "lịch", "đổi giờ", "thay đổi", "sát giờ"),
+    "comparison-loop": ("so sánh", "người khác", "tiến độ", "thành tích", "tụt lại"),
+    "automatic-caretaking": ("chăm sóc", "giúp", "đủ sức", "trách nhiệm", "người khác"),
+    "decision-fatigue": ("lựa chọn", "phân vân", "chọn", "quyết định", "mệt"),
+    "perfect-before-start": ("hoàn hảo", "bắt đầu", "chuẩn bị", "sửa", "chưa đủ"),
+    "group-pressure": (
+        "mọi người",
+        "nhóm",
+        "đồng ý",
+        "ý kiến",
+        "theo số đông",
+        "tiếng nói",
+        "dữ kiện",
+        "bằng chứng",
+        "bạn bè",
+        "phương án",
+    ),
+    "avoid-small-conflict": ("khó chịu", "bất đồng", "nói", "im lặng", "xung đột"),
+    "defend-old-choice": ("lựa chọn", "quyết định", "đổi ý", "dữ kiện", "bảo vệ"),
+}
+
+_ARENA_REQUIREMENT_MARKERS: dict[SemanticArena, tuple[str, ...]] = {
+    SemanticArena.GENERAL: ("việc", "chuyện", "điều", "phản xạ", "tình huống"),
+    SemanticArena.RELATIONSHIPS: ("quan hệ", "người kia", "hai người", "thân thiết"),
+    SemanticArena.COMMUNICATION: ("nói", "câu", "nhắn", "trò chuyện", "giao tiếp"),
+    SemanticArena.WORK: ("công việc", "đầu việc", "ưu tiên", "làm", "tiến độ"),
+    SemanticArena.ENERGY: ("cơ thể", "mệt", "năng lượng", "quá tải", "sức"),
+    SemanticArena.SELF_CARE: ("nghỉ", "cơ thể", "chăm mình", "sức", "nhịp"),
+    SemanticArena.STRUCTURAL: ("cấu trúc", "nhịp", "phản ứng", "tình huống"),
+}
+
+_SEMANTIC_CONCEPT_MARKERS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("data", ("dữ liệu", "dữ kiện", "giờ sinh", "nơi sinh", "chưa xác định")),
+    ("safety", ("an toàn", "yên tâm", "hạ cảnh giác", "được bảo vệ")),
+    ("recognition", ("trân trọng", "ghi nhận", "được thấy", "đóng góp")),
+    ("control", ("quyền chủ động", "kiểm soát", "giữ chặt", "thế yếu")),
+    ("tension", ("ma sát", "căng", "nén", "kéo và đẩy", "khó bị bỏ qua")),
+    ("communication", ("nói rõ", "tự hiểu", "câu", "tin nhắn", "trò chuyện")),
+    ("boundaries", ("ranh giới", "giới hạn", "không vượt qua", "khoảng riêng")),
+    ("choice", ("lựa chọn", "quyết định", "chọn", "đổi hướng")),
+    ("change", ("thay đổi", "đổi cách", "cách làm", "phản ứng mới")),
+    ("energy", ("cơ thể", "mệt", "quá tải", "sức", "năng lượng")),
+    ("care", ("chăm sóc", "giúp", "dịu", "tử tế", "nhu cầu")),
+)
+
+
+def _semantic_requirements(frame: InterpretationFrame) -> tuple[SemanticRequirement, ...]:
+    scene_parts = frame.scene_key.split(":")
+    if len(scene_parts) >= 2 and scene_parts[0] == "psychology":
+        issue_key = scene_parts[1]
+        markers = _DAILY_ISSUE_MARKERS.get(issue_key)
+        if markers is not None:
+            return (
+                SemanticRequirement(
+                    key=f"daily.{issue_key}",
+                    section=SemanticSection.MANIFESTATION,
+                    markers=markers,
+                ),
+            )
+    concepts = tuple(
+        SemanticRequirement(
+            key=f"concept.{section.value}.{key}",
+            section=section,
+            markers=markers,
+        )
+        for section, text in (
+            (SemanticSection.THESIS, frame.thesis.casefold()),
+            (SemanticSection.MANIFESTATION, frame.manifestation.casefold()),
+            (SemanticSection.MICRO_ACTION, frame.micro_action.casefold()),
+        )
+        for key, markers in _SEMANTIC_CONCEPT_MARKERS
+        if any(marker in text for marker in markers)
+    )
+    if concepts:
+        return concepts[:6]
+    return (
+        SemanticRequirement(
+            key=f"arena.{frame.arena.value}",
+            markers=_ARENA_REQUIREMENT_MARKERS[frame.arena],
+        ),
+    )
 
 
 def _body(value: str) -> str:
@@ -236,6 +336,14 @@ class DeterministicVietnameseRenderer:
                 frame.micro_action,
             )
 
+        frame = apply_daily_psychology(plan, frame)
+        hook, thesis, manifestation, micro_action = (
+            frame.hook,
+            frame.thesis,
+            frame.manifestation,
+            frame.micro_action,
+        )
+
         transit_factor = next(
             (factor for factor in plan.factors if factor.source is FactorSource.TRANSIT),
             None,
@@ -266,6 +374,7 @@ class DeterministicVietnameseRenderer:
                 manifestation=manifestation,
                 micro_action=micro_action,
                 evidence_factor_refs=frame.evidence_factor_refs,
+                requirements=_semantic_requirements(frame),
             ),
         )
         if (

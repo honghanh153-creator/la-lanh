@@ -165,7 +165,7 @@ def test_meaning_gate_rejects_section_that_does_not_match_the_blueprint() -> Non
     )
 
     assert (
-        GateFailureCode.MEANING_BLUEPRINT_MISMATCH
+        GateFailureCode.MEANING_REQUIRED_CONCEPT
         in evaluate_candidate(_plan(), mismatched).failure_codes
     )
 
@@ -248,3 +248,23 @@ def test_candidate_schema_forbids_untrusted_extra_fields() -> None:
 
     with pytest.raises(ValueError):
         ReadingCandidate.model_validate(payload)
+
+
+def test_daily_meaning_gate_rejects_advice_inside_scene() -> None:
+    plan = _plan().model_copy(update={"purpose": ReadingPurpose.DAILY_NOTE})
+    candidate = DeterministicVietnameseRenderer().render(plan)
+    assert candidate.semantic_blueprint is not None
+    changed_scene = "Hãy nhắn lại ngay để hỏi điều đang xảy ra."
+    tampered = candidate.model_copy(
+        update={
+            "manifestation": changed_scene,
+            "semantic_blueprint": candidate.semantic_blueprint.model_copy(
+                update={"manifestation": changed_scene}
+            ),
+        }
+    )
+
+    assert (
+        GateFailureCode.MEANING_SCENE_CONTAINS_ADVICE
+        in evaluate_candidate(plan, tampered).failure_codes
+    )

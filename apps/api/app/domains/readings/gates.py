@@ -19,6 +19,7 @@ from app.domains.readings.models import (
     ReadingCandidate,
     ReadingPlan,
     SemanticArena,
+    SemanticSection,
 )
 from app.domains.readings.renderers import canonical_evidence_claim
 
@@ -343,18 +344,20 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
         )
 
     failures: list[GateFailureCode] = []
-    if (
-        candidate.hook,
-        candidate.thesis,
-        candidate.manifestation,
-        candidate.micro_action,
-    ) != (
-        blueprint.hook,
-        blueprint.thesis,
-        blueprint.manifestation,
-        blueprint.micro_action,
-    ):
-        failures.append(GateFailureCode.MEANING_BLUEPRINT_MISMATCH)
+    for requirement in blueprint.requirements:
+        section_text = {
+            SemanticSection.ALL: _candidate_prose(candidate),
+            SemanticSection.HOOK: candidate.hook,
+            SemanticSection.THESIS: candidate.thesis,
+            SemanticSection.MANIFESTATION: candidate.manifestation,
+            SemanticSection.MICRO_ACTION: candidate.micro_action,
+            SemanticSection.TRANSIT: candidate.transit or "",
+        }[requirement.section]
+        folded_section = _fold(section_text)
+        matches = sum(_fold(marker) in folded_section for marker in requirement.markers)
+        if matches < requirement.min_matches:
+            failures.append(GateFailureCode.MEANING_REQUIRED_CONCEPT)
+            break
 
     lens = plan.background_lens
     if plan.tradition.value == "jyotish":
@@ -365,6 +368,24 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
         expected_arena = SemanticArena(lens.value)
     if blueprint.arena is not expected_arena:
         failures.append(GateFailureCode.MEANING_CONTEXT_MISMATCH)
+
+    if plan.purpose.value == "daily_note" and plan.tradition.value == "western":
+        scene_text = _fold(f"{candidate.hook} {candidate.manifestation}")
+        advice_patterns = (
+            r"(?:^|[.!?]\s+)(?:hay|thu|nen|dung)\s+",
+            r"\bban (?:hay|nen|can phai)\b",
+        )
+        if any(re.search(pattern, scene_text) for pattern in advice_patterns):
+            failures.append(GateFailureCode.MEANING_SCENE_CONTAINS_ADVICE)
+        scene_parts = blueprint.scene_key.split(":")
+        action_parts = blueprint.action_key.split(":")
+        if (
+            len(scene_parts) < 3
+            or len(action_parts) < 3
+            or scene_parts[:2] != action_parts[:2]
+            or scene_parts[0] != "psychology"
+        ):
+            failures.append(GateFailureCode.MEANING_DAILY_MATRIX_MISMATCH)
 
     context_markers = {
         SemanticArena.RELATIONSHIPS: ("quan he", "nguoi kia", "tro chuyen", "than thiet"),
@@ -393,6 +414,15 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
         "xem ",
         "tam ",
         "tim ",
+        "kiem tra ",
+        "nhan ",
+        "cho ",
+        "giu ",
+        "roi ",
+        "an ",
+        "xin ",
+        "sua ",
+        "tu hoi",
     )
     if not any(verb in action_text for verb in observable_action_verbs):
         failures.append(GateFailureCode.MEANING_ACTION_MISMATCH)

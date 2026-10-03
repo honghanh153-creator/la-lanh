@@ -10,11 +10,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domains.astro.models import EngineProvenance, TimePrecision, Tradition, TransitPhase
 
-WESTERN_INTERPRETATION_KNOWLEDGE_VERSION = "western-interpretation-matrix-v6"
+WESTERN_INTERPRETATION_KNOWLEDGE_VERSION = "western-interpretation-matrix-v7"
 SUPPORTED_WESTERN_INTERPRETATION_KNOWLEDGE_VERSIONS = frozenset(
     {
         "western-interpretation-matrix-v4",
         "western-interpretation-matrix-v5",
+        "western-interpretation-matrix-v6",
         WESTERN_INTERPRETATION_KNOWLEDGE_VERSION,
     }
 )
@@ -415,6 +416,37 @@ class SemanticArena(StrEnum):
     STRUCTURAL = "structural"
 
 
+class SemanticSection(StrEnum):
+    ALL = "all"
+    HOOK = "hook"
+    THESIS = "thesis"
+    MANIFESTATION = "manifestation"
+    MICRO_ACTION = "micro_action"
+    TRANSIT = "transit"
+
+
+class SemanticRequirement(BaseModel):
+    """One server-owned concept that rewritten prose must still express."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    key: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]{0,95}$")
+    section: SemanticSection = SemanticSection.ALL
+    markers: tuple[str, ...] = Field(min_length=1, max_length=12)
+    min_matches: int = Field(default=1, ge=1, le=4)
+
+    @model_validator(mode="after")
+    def validate_markers(self) -> "SemanticRequirement":
+        normalized = tuple(marker.strip().casefold() for marker in self.markers)
+        if any(len(marker) < 2 for marker in normalized):
+            raise ValueError("semantic requirement markers must be meaningful")
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("semantic requirement markers must be unique")
+        if self.min_matches > len(normalized):
+            raise ValueError("semantic requirement min_matches exceeds marker count")
+        return self
+
+
 class SemanticBlueprint(BaseModel):
     """Internal contract joining one interpretation, one scene, and one action."""
 
@@ -430,6 +462,7 @@ class SemanticBlueprint(BaseModel):
     manifestation: str = Field(max_length=700)
     micro_action: str = Field(max_length=500)
     evidence_factor_refs: tuple[str, ...] = Field(max_length=12)
+    requirements: tuple[SemanticRequirement, ...] = Field(min_length=1, max_length=8)
 
 
 class ReadingCandidate(BaseModel):
@@ -501,10 +534,13 @@ class GateFailureCode(StrEnum):
     EDITORIAL_LENGTH = "editorial_length"
     MEANING_BLUEPRINT_REQUIRED = "meaning_blueprint_required"
     MEANING_BLUEPRINT_MISMATCH = "meaning_blueprint_mismatch"
+    MEANING_REQUIRED_CONCEPT = "meaning_required_concept"
     MEANING_CONTEXT_MISMATCH = "meaning_context_mismatch"
     MEANING_UNSUPPORTED_FACTOR = "meaning_unsupported_factor"
     MEANING_UNOBSERVABLE_SCENE = "meaning_unobservable_scene"
     MEANING_ACTION_MISMATCH = "meaning_action_mismatch"
+    MEANING_SCENE_CONTAINS_ADVICE = "meaning_scene_contains_advice"
+    MEANING_DAILY_MATRIX_MISMATCH = "meaning_daily_matrix_mismatch"
     PRIVACY_PERSONAL_DATA = "privacy_personal_data"
 
 
