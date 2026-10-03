@@ -191,3 +191,21 @@ async def test_service_checks_authorization_before_enqueue(storage) -> None:  # 
     )
     assert replayed is False
     assert stored.request.safe_payload["scene_key"] == "psychology:missing-context:relationships"
+
+
+@pytest.mark.asyncio
+async def test_review_queue_exposes_metadata_without_owner_or_payload(storage) -> None:  # type: ignore[no-untyped-def]
+    _database, repository = storage
+    record = _record(owner_key="daily:private-owner")
+    await repository.enqueue(record)
+
+    items = await repository.list_review_records()
+
+    assert len(items) == 1
+    item = items[0]
+    assert item.id == record.id
+    assert item.surface is RewriteSurface.DAILY_HOME
+    serialized = item.model_dump_json()
+    assert "private-owner" not in serialized
+    assert "scene_meaning" not in serialized
+    assert "consent-receipt" not in serialized

@@ -23,6 +23,34 @@ export type ContentRevision = {
   created_at: string;
 };
 
+export type RewriteCandidateSummary = {
+  id: string;
+  surface: string;
+  status: string;
+  last_result: string | null;
+  candidate_variant: string;
+  provider: string;
+  model: string;
+  prompt_version: string;
+  schema_version: string;
+  gate_version: string;
+  gate_receipt_id: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  attempt_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RewriteSurfaceManifest = {
+  surface: string;
+  fields: string[];
+  schema_version: string;
+  gate_version: string;
+  forbidden_claims: string[];
+  privacy_manifest: string;
+};
+
 export type ContentWorkspace = {
   source: "published" | "bundled-baseline";
   channel: {
@@ -43,6 +71,8 @@ export type ContentWorkspace = {
     reason: string;
     created_at: string;
   }>;
+  rewrite_candidates?: RewriteCandidateSummary[];
+  rewrite_surfaces?: RewriteSurfaceManifest[];
 };
 
 export class StudioApiError extends Error {

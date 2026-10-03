@@ -150,6 +150,29 @@ class LeasedRewriteJob(BaseModel):
     max_attempts: int = Field(ge=1, le=3)
 
 
+class RewriteReviewRecord(BaseModel):
+    """Reviewer-safe queue metadata; contains no owner or request payload values."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: UUID
+    surface: RewriteSurface
+    status: RewriteJobStatus
+    last_result: RewriteJobResult | None = None
+    candidate_variant: str
+    provider: str
+    model: str
+    prompt_version: str
+    schema_version: str
+    gate_version: str
+    gate_receipt_id: str | None = None
+    input_tokens: int | None = Field(default=None, ge=0)
+    output_tokens: int | None = Field(default=None, ge=0)
+    attempt_count: int = Field(ge=0, le=3)
+    created_at: datetime
+    updated_at: datetime
+
+
 class RewriteFieldSpec(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 

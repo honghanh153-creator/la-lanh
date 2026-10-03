@@ -18,6 +18,8 @@ from app.domains.content.models import (
 from app.domains.content.postgres import PostgresContentRepository
 from app.domains.content.review import validate_daily_release
 from app.domains.content.validation import validate_daily_catalog
+from app.domains.content_rewrite.registry import canonical_surface_registry
+from app.domains.content_rewrite.repository import ContentRewriteRepository
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +31,13 @@ class ContentDraftRejected(ValueError):
 
 
 class ContentStudioService:
-    def __init__(self, repository: PostgresContentRepository) -> None:
+    def __init__(
+        self,
+        repository: PostgresContentRepository,
+        rewrite_repository: ContentRewriteRepository | None = None,
+    ) -> None:
         self._repository = repository
+        self._rewrite_repository = rewrite_repository
 
     async def workspace(self) -> dict[str, Any]:
         channel = await self._repository.get_channel()
@@ -40,6 +47,23 @@ class ContentStudioService:
             else None
         )
         payload = active.payload if active is not None else bundled_daily_catalog()
+        registry = canonical_surface_registry()
+        rewrite_candidates = (
+            await self._rewrite_repository.list_review_records()
+            if self._rewrite_repository is not None
+            else ()
+        )
+        rewrite_surfaces = [
+            {
+                "surface": surface.value,
+                "fields": list(registry.require(surface).rewritable_fields),
+                "schema_version": registry.require(surface).schema_version,
+                "gate_version": registry.require(surface).gate_version,
+                "forbidden_claims": list(registry.require(surface).forbidden_claims),
+                "privacy_manifest": "field names only; request and output values stay encrypted",
+            }
+            for surface in sorted(registry.surfaces, key=lambda item: item.value)
+        ]
         return {
             "channel": channel,
             "active_revision": active,
@@ -47,6 +71,8 @@ class ContentStudioService:
             "summary": catalog_summary(payload),
             "revisions": await self._repository.list_revisions(),
             "events": await self._repository.list_events(),
+            "rewrite_candidates": rewrite_candidates,
+            "rewrite_surfaces": rewrite_surfaces,
             "source": "published" if active is not None else "bundled-baseline",
         }
 

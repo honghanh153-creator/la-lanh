@@ -213,6 +213,8 @@ export function ContentStudioPage() {
         </button>
       </header>
 
+      <RewriteReviewBoard workspace={workspace} />
+
       <section className="studio-workspace">
         <aside className="studio-nav" aria-label="Nhóm content matrix">
           <input
@@ -344,6 +346,40 @@ export function ContentStudioPage() {
         </aside>
       </section>
     </main>
+  );
+}
+
+function RewriteReviewBoard({ workspace }: { workspace: ContentWorkspace }) {
+  const candidates = workspace.rewrite_candidates ?? [];
+  const surfaces = workspace.rewrite_surfaces ?? [];
+  const pending = candidates.filter((item) => item.status === "pending" || item.status === "leased");
+  const rejected = candidates.filter((item) => item.last_result === "gate_rejected");
+  return (
+    <section className="studio-rewrite-board" aria-labelledby="studio-rewrite-title">
+      <div>
+        <p className="studio-kicker">LUNA REWRITE · READ ONLY</p>
+        <h2 id="studio-rewrite-title">Hàng chờ nội dung cá nhân hóa</h2>
+        <p>
+          Studio chỉ hiện trạng thái, phiên bản và tên field. Dữ liệu người dùng, brief và output
+          vẫn được mã hóa; không có nút gọi model từ màn này.
+        </p>
+      </div>
+      <div className="studio-rewrite-stats">
+        <span><strong>{surfaces.length}</strong> surface</span>
+        <span><strong>{pending.length}</strong> đang chờ</span>
+        <span><strong>{rejected.length}</strong> gate chặn</span>
+      </div>
+      <div className="studio-rewrite-list">
+        {candidates.length === 0 ? (
+          <p>Chưa có candidate runtime. App vẫn dùng nội dung deterministic đã duyệt.</p>
+        ) : candidates.slice(0, 8).map((item) => (
+          <article key={item.id}>
+            <div><strong>{item.surface}</strong><small>{item.model} · {item.prompt_version}</small></div>
+            <span className={`is-${item.status}`}>{item.last_result ?? item.status}</span>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -9,6 +9,7 @@ from app.domains.content_rewrite.models import (
     LeasedRewriteJob,
     RewriteJobRecord,
     RewriteJobResult,
+    RewriteReviewRecord,
 )
 
 
@@ -59,3 +60,5 @@ class ContentRewriteRepository(Protocol):
     async def cancel_and_purge_owner(self, owner: ArtifactOwnerKey) -> int: ...
 
     async def cancel_and_purge_authorization(self, authorization_receipt_id: str) -> int: ...
+
+    async def list_review_records(self, *, limit: int = 100) -> tuple[RewriteReviewRecord, ...]: ...

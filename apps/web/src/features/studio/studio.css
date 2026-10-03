@@ -159,6 +159,75 @@
   border-right: 1px solid rgb(198 147 237 / 22%);
 }
 
+.studio-rewrite-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(18rem, 0.8fr);
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgb(198 147 237 / 24%);
+  border-radius: 1rem;
+  background: rgb(12 8 30 / 78%);
+}
+
+.studio-rewrite-board h2,
+.studio-rewrite-board p {
+  margin: 0.25rem 0;
+}
+
+.studio-rewrite-board p,
+.studio-rewrite-list small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.studio-rewrite-stats {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.studio-rewrite-stats span {
+  display: grid;
+  min-width: 5.3rem;
+  padding: 0.65rem;
+  border-radius: 0.8rem;
+  background: rgb(198 147 237 / 12%);
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.studio-rewrite-stats strong {
+  color: var(--cream);
+  font-size: 1.1rem;
+}
+
+.studio-rewrite-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.studio-rewrite-list article {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.7rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.studio-rewrite-list article div {
+  display: grid;
+}
+
+.studio-rewrite-list article > span {
+  color: var(--lime);
+  font-size: 0.68rem;
+}
+
 .studio-tabs,
 .studio-entry-list {
   display: grid;
@@ -334,6 +403,10 @@
 }
 
 @media (max-width: 70rem) {
+  .studio-rewrite-board {
+    grid-template-columns: 1fr;
+  }
+
   .studio-workspace {
     grid-template-columns: 14rem 1fr;
   }

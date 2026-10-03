@@ -19,6 +19,8 @@ from app.domains.content_rewrite.models import (
     RewriteJobResult,
     RewriteJobStatus,
     RewriteRequestEnvelope,
+    RewriteReviewRecord,
+    RewriteSurface,
 )
 from app.domains.content_rewrite.tables import ContentRewriteJobRow
 from app.infrastructure.crypto import EnvelopeCipher
@@ -263,6 +265,38 @@ class PostgresContentRewriteRepository:
                 )
             )
             return cast(CursorResult[Any], result).rowcount
+
+    async def list_review_records(self, *, limit: int = 100) -> tuple[RewriteReviewRecord, ...]:
+        bounded_limit = min(max(limit, 1), 200)
+        async with self._sessions() as session:
+            rows = tuple(
+                await session.scalars(
+                    select(ContentRewriteJobRow)
+                    .order_by(ContentRewriteJobRow.created_at.desc())
+                    .limit(bounded_limit)
+                )
+            )
+        return tuple(
+            RewriteReviewRecord(
+                id=row.id,
+                surface=RewriteSurface(row.surface),
+                status=RewriteJobStatus(row.status),
+                last_result=RewriteJobResult(row.last_result) if row.last_result else None,
+                candidate_variant=row.candidate_variant,
+                provider=row.provider,
+                model=row.model,
+                prompt_version=row.prompt_version,
+                schema_version=row.schema_version,
+                gate_version=row.gate_version,
+                gate_receipt_id=row.gate_receipt_id,
+                input_tokens=row.input_tokens,
+                output_tokens=row.output_tokens,
+                attempt_count=row.attempt_count,
+                created_at=row.created_at,
+                updated_at=row.updated_at,
+            )
+            for row in rows
+        )
 
     def _row(self, record: RewriteJobRecord) -> ContentRewriteJobRow:
         request_ciphertext = self._envelope.encrypt(

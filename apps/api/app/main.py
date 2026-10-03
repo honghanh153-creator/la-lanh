@@ -83,11 +83,7 @@ def create_app(
         database = Database(str(resolved_settings.database_url))
         await database.initialize()
         app.state.database = database
-        content_release_service = ContentStudioService(PostgresContentRepository(database.sessions))
-        app.state.content_studio_service = (
-            content_release_service if resolved_settings.content_studio_enabled else None
-        )
-        await content_release_service.activate_published_catalog()
+        content_repository = PostgresContentRepository(database.sessions)
         engine: NatalChartEngine | None
         try:
             engine = NatalChartEngine()
@@ -119,6 +115,14 @@ def create_app(
             envelope,
         )
         app.state.content_rewrite_repository = content_rewrite_repository
+        content_release_service = ContentStudioService(
+            content_repository,
+            content_rewrite_repository,
+        )
+        app.state.content_studio_service = (
+            content_release_service if resolved_settings.content_studio_enabled else None
+        )
+        await content_release_service.activate_published_catalog()
         content_rewrite_authorization = DatabaseRewriteAuthorization(database.sessions)
         app.state.content_rewrite_authorization = content_rewrite_authorization
         content_rewrite_service = ContentRewriteService(
