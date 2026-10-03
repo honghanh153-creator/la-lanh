@@ -53,6 +53,14 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "Use only the supplied anonymous relationship dimensions. Do not identify the candidate, "
         "change ranking, invent compatibility percentages, or imply that a match will succeed."
     ),
+    RewriteSurface.SHARE_CARD: (
+        "Rewrite only the supplied approved public headline and summary. Do not reveal hidden "
+        "evidence, private context, birth data, names, identifiers, or unpublished source prose."
+    ),
+    RewriteSurface.RECAP: (
+        "Summarize only the supplied recorded activity summaries. Do not invent an action, mood, "
+        "relationship event, result, or streak that is absent from the brief."
+    ),
 }
 
 

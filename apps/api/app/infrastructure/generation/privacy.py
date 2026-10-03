@@ -129,8 +129,11 @@ class RelationshipSafePayload(SafeModel):
 
 
 class ShareSafePayload(SafeModel):
+    source_headline: str = Field(min_length=1, max_length=280)
+    source_summary: str = Field(min_length=1, max_length=900)
     approved_claim_keys: tuple[str, ...] = Field(min_length=1, max_length=12)
     activity_keys: tuple[str, ...] = Field(default=(), max_length=12)
+    activity_summaries: tuple[str, ...] = Field(default=(), max_length=12)
 
 
 _PAYLOAD_MODELS: dict[RewriteSurface, type[SafeModel]] = {

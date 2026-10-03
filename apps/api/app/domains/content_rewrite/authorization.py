@@ -88,6 +88,8 @@ def guest_id_from_rewrite_owner(owner: ArtifactOwnerKey) -> UUID:
         return UUID(parts[1])
     if owner.namespace == "matching" and len(parts) == 4 and parts[0] == "matching":
         return UUID(parts[1])
+    if owner.namespace == "share" and len(parts) == 4 and parts[0] in {"share", "recap"}:
+        return UUID(parts[1])
     raise ValueError("rewrite owner does not expose an authorized guest")
 
 
