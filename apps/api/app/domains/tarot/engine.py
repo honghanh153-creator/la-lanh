@@ -291,8 +291,12 @@ class TarotReadingEngine:
                 source_ids=self._reading_sources(tuple(position.card for position in rendered)),
             ),
         )
-        self._gate(reading)
+        self.validate(reading)
         return reading
+
+    @staticmethod
+    def validate(reading: TarotReading) -> None:
+        TarotReadingEngine._gate(reading)
 
     @staticmethod
     def choose_spread_map(

@@ -7,9 +7,8 @@ from typing import Protocol, cast
 from uuid import UUID, uuid4
 
 from pydantic import JsonValue
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.content_rewrite.authorization import content_rewrite_receipt_id
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
 from app.domains.content_rewrite.models import (
     ArtifactOwnerKey,
@@ -18,12 +17,7 @@ from app.domains.content_rewrite.models import (
     RewriteSurface,
 )
 from app.domains.content_rewrite.registry import canonical_surface_registry
-from app.domains.content_rewrite.service import (
-    RewriteAuthorizationChecker,
-    RewriteProjectionDecision,
-    RewriteProjector,
-)
-from app.domains.guest.tables import ConsentRow
+from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     ClaimSlotName,
@@ -39,8 +33,6 @@ from app.domains.readings.models import (
 )
 from app.domains.readings.renderers import DeterministicVietnameseRenderer, canonical_evidence_claim
 
-CONTENT_REWRITE_CONSENT_VERSION = "external-content-rewrite-v1"
-CONTENT_REWRITE_CONSENT_PURPOSE = "external_content_rewrite"
 DAILY_REWRITE_RENDERER_VERSION = "gpt-6-luna-daily-v1"
 READING_REWRITE_RENDERER_VERSION = "gpt-6-luna-reading-v1"
 
@@ -75,12 +67,6 @@ class DailyRewriteRepository(Protocol):
         scope_key: str,
         revision_id: UUID,
     ) -> ReadingProjectionRecord: ...
-
-
-def content_rewrite_receipt_id(guest_id: UUID) -> str:
-    return sha256(
-        f"{CONTENT_REWRITE_CONSENT_VERSION}\x00{CONTENT_REWRITE_CONSENT_PURPOSE}\x00{guest_id}".encode()
-    ).hexdigest()
 
 
 def _owner_key(guest_id: UUID, profile_id: UUID, plan_id: UUID, scope_key: str) -> ArtifactOwnerKey:
@@ -342,37 +328,6 @@ def compile_reading_rewrite_request(
         authorization_receipt_id=content_rewrite_receipt_id(plan_record.guest_id),
         safe_payload=safe_payload,
     )
-
-
-class DatabaseRewriteAuthorization(RewriteAuthorizationChecker):
-    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
-        self._sessions = sessions
-
-    async def authorized_guest(self, guest_id: UUID) -> bool:
-        async with self._sessions() as session:
-            consent = await session.scalar(
-                select(ConsentRow).where(
-                    ConsentRow.guest_id == guest_id,
-                    ConsentRow.version == CONTENT_REWRITE_CONSENT_VERSION,
-                    ConsentRow.purpose == CONTENT_REWRITE_CONSENT_PURPOSE,
-                    ConsentRow.revoked_at.is_(None),
-                )
-            )
-            return consent is not None
-
-    async def is_authorized(self, request: RewriteRequestEnvelope) -> bool:
-        try:
-            if request.key.owner.key.startswith("daily|"):
-                guest_id, _profile_id, _plan_id, _scope_key = _parse_owner(request.key.owner)
-            else:
-                _surface, guest_id, _profile_id, _plan_id, _scope_key = _parse_reading_owner(
-                    request.key.owner
-                )
-        except ValueError:
-            return False
-        if request.authorization_receipt_id != content_rewrite_receipt_id(guest_id):
-            return False
-        return await self.authorized_guest(guest_id)
 
 
 class DailyRewriteProjector(RewriteProjector):

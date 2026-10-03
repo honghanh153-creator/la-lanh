@@ -185,9 +185,13 @@ def _terminal_result(
 async def _run_standalone() -> None:
     from app.config import get_settings
     from app.db.session import Database
+    from app.domains.content_rewrite.authorization import DatabaseRewriteAuthorization
+    from app.domains.content_rewrite.models import RewriteSurface
     from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
+    from app.domains.content_rewrite.service import RewriteProjectorRouter
     from app.domains.readings.postgres import PostgresReadingRepository
-    from app.domains.readings.rewrite import DatabaseRewriteAuthorization, ReadingRewriteProjector
+    from app.domains.readings.rewrite import ReadingRewriteProjector
+    from app.domains.tarot.rewrite import TarotRewriteProjector
     from app.infrastructure.crypto import AesGcmEnvelopeCipher, StaticDataKeyProvider, decode_key
     from app.infrastructure.generation import build_rewrite_generation_provider
 
@@ -202,11 +206,23 @@ async def _run_standalone() -> None:
         )
     )
     authorization = DatabaseRewriteAuthorization(database.sessions)
+    reading_projector = ReadingRewriteProjector(
+        PostgresReadingRepository(database.sessions, envelope)
+    )
+    projector = RewriteProjectorRouter(
+        {
+            RewriteSurface.DAILY_HOME: reading_projector,
+            RewriteSurface.REVEAL: reading_projector,
+            RewriteSurface.NATAL: reading_projector,
+            RewriteSurface.TRANSIT_INSIGHT: reading_projector,
+            RewriteSurface.TAROT: TarotRewriteProjector(database.sessions, envelope),
+        }
+    )
     worker = ContentRewriteWorker(
         PostgresContentRewriteRepository(database.sessions, envelope),
         build_rewrite_generation_provider(settings),
         authorization,
-        ReadingRewriteProjector(PostgresReadingRepository(database.sessions, envelope)),
+        projector,
         lease_seconds=settings.generation_lease_seconds,
         retry_delay_seconds=settings.generation_retry_delay_seconds,
     )

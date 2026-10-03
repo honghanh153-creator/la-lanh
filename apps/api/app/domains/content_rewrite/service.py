@@ -7,8 +7,10 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from app.domains.content_rewrite.models import (
+    ArtifactOwnerKey,
     RewriteJobRecord,
     RewriteRequestEnvelope,
+    RewriteSurface,
 )
 from app.domains.content_rewrite.registry import SurfaceRegistry, canonical_surface_registry
 from app.domains.content_rewrite.repository import ContentRewriteRepository
@@ -35,6 +37,30 @@ class RewriteProjector(Protocol):
         *,
         completed_at: datetime,
     ) -> RewriteProjectionDecision: ...
+
+
+class RewriteProjectorRouter(RewriteProjector):
+    def __init__(self, projectors: dict[RewriteSurface, RewriteProjector]) -> None:
+        self._projectors = dict(projectors)
+
+    async def validate_and_project(
+        self,
+        request: RewriteRequestEnvelope,
+        output: dict[str, JsonValue],
+        *,
+        completed_at: datetime,
+    ) -> RewriteProjectionDecision:
+        projector = self._projectors.get(request.key.surface)
+        if projector is None:
+            return RewriteProjectionDecision(
+                accepted=False,
+                failure_code="unsupported_surface",
+            )
+        return await projector.validate_and_project(
+            request,
+            output,
+            completed_at=completed_at,
+        )
 
 
 class ContentRewriteService:
@@ -75,3 +101,6 @@ class ContentRewriteService:
             updated_at=created_at,
         )
         return await self._repository.enqueue(record)
+
+    async def cancel_owner(self, owner: ArtifactOwnerKey) -> int:
+        return await self._repository.cancel_and_purge_owner(owner)

@@ -20,6 +20,7 @@ from app.domains.birth.service import BirthChartService
 from app.domains.content.catalog import restore_bundled_daily_catalog
 from app.domains.content.postgres import PostgresContentRepository
 from app.domains.content.service import ContentStudioService
+from app.domains.content_rewrite.authorization import DatabaseRewriteAuthorization
 from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.daily.postgres import PostgresDailyNoteRepository
@@ -39,7 +40,6 @@ from app.domains.radar.service import RadarService
 from app.domains.readings.application import ReadingApplicationService
 from app.domains.readings.postgres import PostgresReadingRepository
 from app.domains.readings.repository import ReadingRepository
-from app.domains.readings.rewrite import DatabaseRewriteAuthorization
 from app.domains.resonance.postgres import PostgresResonanceRepository
 from app.domains.resonance.service import ResonanceService
 from app.domains.saved.postgres import PostgresSavedNoteRepository
@@ -143,7 +143,12 @@ def create_app(
             ttl=timedelta(days=resolved_settings.owner_ttl_days),
         )
         app.state.tarot_session_service = TarotSessionService(
-            database.sessions, envelope, credential_hasher
+            database.sessions,
+            envelope,
+            credential_hasher,
+            generation_enabled=resolved_settings.generation_enabled,
+            generation_model=resolved_settings.generation_openai_model,
+            content_rewrite_service=content_rewrite_service,
         )
         app.state.la_chung_service = LaChungService(
             database.sessions,

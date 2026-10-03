@@ -3,10 +3,10 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Cookie, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.domains.content_rewrite.authorization import content_rewrite_receipt_id
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.models import GuestSessionRecord, OnboardingStatus
 from app.domains.guest.service import GuestSessionService
-from app.domains.readings.rewrite import content_rewrite_receipt_id
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
 router = APIRouter()

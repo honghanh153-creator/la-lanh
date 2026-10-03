@@ -47,6 +47,16 @@ def _guests(request: Request) -> GuestSessionService:
     return cast(GuestSessionService, request.app.state.guest_session_service)
 
 
+async def _external_generation_authorized(request: Request, guest_id: UUID) -> bool:
+    settings = request.app.state.settings
+    authorization = getattr(request.app.state, "content_rewrite_authorization", None)
+    return bool(
+        settings.generation_enabled
+        and authorization is not None
+        and await authorization.authorized_guest(guest_id)
+    )
+
+
 def _problem(error: TarotDomainError | GuestDomainError) -> JSONResponse:
     body: dict[str, object] = {
         "type": "about:blank",
@@ -123,6 +133,7 @@ async def select_tarot_card(
             session_id=session_id,
             fan_index=body.fan_index,
             expected_version=body.expected_version,
+            external_generation_authorized=await _external_generation_authorized(request, guest.id),
         )
     except (TarotDomainError, GuestDomainError) as error:
         return _problem(error)

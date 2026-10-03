@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.config import Settings
+from app.domains.tarot.models import TarotSessionView
+from app.domains.tarot.rewrite import TarotRewriteProjector, compile_tarot_rewrite_request
 from app.domains.tarot.tables import TarotSessionRow
 from app.main import create_app
 
@@ -204,3 +206,63 @@ def test_expired_tarot_sessions_are_physically_purged(tarot_client: TestClient) 
 
     assert tarot_client.portal is not None
     assert tarot_client.portal.call(expire_and_purge) == (1, 0)
+
+
+def test_tarot_rewrite_projects_through_encrypted_session_without_changing_cards(
+    tarot_client: TestClient,
+) -> None:
+    headers = _guest_headers(tarot_client)
+    started = _start(tarot_client, headers)
+    selected = tarot_client.put(
+        f"/v1/tarot/sessions/{started['id']}/selections",
+        headers=headers,
+        json={"fan_index": 7, "expected_version": started["version"]},
+    )
+    assert selected.status_code == 200
+    baseline = TarotSessionView.model_validate(selected.json())
+    baseline_reading = baseline.reading
+    assert baseline_reading is not None
+    app = cast(Any, tarot_client.app)
+
+    async def project() -> bool:
+        async with app.state.database.sessions() as database:
+            row = (await database.scalars(select(TarotSessionRow))).one()
+            owner_id = row.guest_id
+        request = compile_tarot_rewrite_request(
+            owner_id,
+            baseline,
+            model_version="gpt-6-luna",
+            prompt_version="surface-rewrite-v1",
+        )
+        assert request is not None
+        position = baseline_reading.positions[0]
+        decision = await TarotRewriteProjector(
+            app.state.database.sessions,
+            app.state.tarot_session_service._envelope,
+        ).validate_and_project(
+            request,
+            {
+                "headline": "Một lá, một điều cần nhìn rõ.",
+                "position_readings": [
+                    {
+                        "position_key": position.key,
+                        "reading": f"{position.card.title_vi}: {position.meaning_here}",
+                    }
+                ],
+                "synthesis": baseline_reading.summary,
+                "closing_question": "Bạn muốn kiểm tra điều nào bằng chuyện thật?",
+            },
+            completed_at=datetime.now(UTC),
+        )
+        return decision.accepted
+
+    assert tarot_client.portal is not None
+    assert tarot_client.portal.call(project) is True
+    refreshed = tarot_client.get(f"/v1/tarot/sessions/{started['id']}")
+    assert refreshed.status_code == 200
+    result = TarotSessionView.model_validate(refreshed.json())
+    assert result.reading is not None
+    assert result.reading.provenance.renderer_version == "gpt-6-luna-tarot-v1"
+    assert [item.card.id for item in result.reading.positions] == [
+        item.card.id for item in baseline_reading.positions
+    ]

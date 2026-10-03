@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -12,6 +13,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.tarot.engine import TarotReadingEngine
 from app.domains.tarot.errors import (
     TarotQuestionRejected,
@@ -32,10 +34,12 @@ from app.domains.tarot.models import (
     TarotSpreadMap,
     TarotVoice,
 )
+from app.domains.tarot.rewrite import compile_tarot_rewrite_request, tarot_rewrite_owner
 from app.domains.tarot.tables import TarotSessionRow
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
 
 _IDEMPOTENCY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{22,200}$")
+logger = logging.getLogger(__name__)
 
 
 class TarotSessionService:
@@ -47,11 +51,20 @@ class TarotSessionService:
         envelope: EnvelopeCipher,
         hasher: SecretHasher,
         engine: TarotReadingEngine | None = None,
+        *,
+        generation_enabled: bool = False,
+        generation_model: str = "disabled",
+        generation_prompt_version: str = "surface-rewrite-v1",
+        content_rewrite_service: ContentRewriteService | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
         self._hasher = hasher
         self._engine = engine or TarotReadingEngine()
+        self._generation_enabled = generation_enabled
+        self._generation_model = generation_model
+        self._generation_prompt_version = generation_prompt_version
+        self._content_rewrite_service = content_rewrite_service
 
     async def start(
         self,
@@ -161,11 +174,13 @@ class TarotSessionService:
         session_id: UUID,
         fan_index: int,
         expected_version: int,
+        external_generation_authorized: bool = False,
         now: datetime | None = None,
     ) -> TarotSessionView:
         if not 0 <= fan_index < 78:
             raise TarotSelectionInvalid
         current = now or datetime.now(UTC)
+        rewrite_request = None
         async with self._sessions() as database, database.begin():
             row = await database.scalar(
                 select(TarotSessionRow)
@@ -208,9 +223,33 @@ class TarotSessionService:
                 row.state = TarotSessionState.COMPLETE.value
             row.payload_ciphertext = self._encrypt(row.id, payload)
             await database.flush([row])
-            return self._view(row, payload)
+            view = self._view(row, payload)
+            if (
+                row.state == TarotSessionState.COMPLETE.value
+                and self._generation_enabled
+                and external_generation_authorized
+                and self._content_rewrite_service is not None
+            ):
+                rewrite_request = compile_tarot_rewrite_request(
+                    guest_id,
+                    view,
+                    model_version=self._generation_model,
+                    prompt_version=self._generation_prompt_version,
+                )
+        if rewrite_request is not None and self._content_rewrite_service is not None:
+            try:
+                await self._content_rewrite_service.enqueue(rewrite_request, now=current)
+            except Exception:
+                logger.warning(
+                    "Optional Tarot rewrite enqueue failed; deterministic reading remains active"
+                )
+        return view
 
     async def delete(self, guest_id: UUID, session_id: UUID) -> None:
+        if self._content_rewrite_service is not None:
+            await self._content_rewrite_service.cancel_owner(
+                tarot_rewrite_owner(guest_id, session_id)
+            )
         async with self._sessions() as database, database.begin():
             result = await database.execute(
                 delete(TarotSessionRow).where(

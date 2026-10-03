@@ -38,6 +38,11 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "source manifestation, and bounded_action from source micro_action. Keep natal and "
         "current-transit meanings distinct."
     ),
+    RewriteSurface.TAROT: (
+        "Write exactly one position_reading for each supplied position_key, in the same order. "
+        "Each reading must name its supplied card_title and explain what that card means in that "
+        "specific position. Use synthesis to answer the fixed focus_sentence without predicting."
+    ),
 }
 
 

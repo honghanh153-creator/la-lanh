@@ -90,9 +90,15 @@ class TarotFocusKey(StrEnum):
 
 class TarotPosition(SafeModel):
     position_key: str = Field(pattern=r"^[a-z][a-z0-9_]{1,39}$")
-    card_key: str = Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")
+    position_label: str = Field(min_length=1, max_length=100)
+    card_key: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
+    card_title: str = Field(min_length=1, max_length=100)
     orientation: Literal["upright", "reversed"]
     meaning_keys: tuple[str, ...] = Field(min_length=1, max_length=8)
+    meaning_here: str = Field(min_length=1, max_length=900)
+    everyday_scene: str = Field(min_length=1, max_length=900)
+    reflection_question: str = Field(min_length=1, max_length=500)
+    small_action: str = Field(min_length=1, max_length=500)
 
 
 class TarotSafePayload(SafeModel):
@@ -189,9 +195,15 @@ def reduce_tarot_question(
         positions=(
             TarotPosition(
                 position_key="placeholder",
+                position_label="Vị trí đang chờ bốc",
                 card_key="pending_draw",
+                card_title="Lá đang chờ bốc",
                 orientation="upright",
                 meaning_keys=("pending_draw",),
+                meaning_here="Nội dung được tạo sau khi người dùng tự chọn lá.",
+                everyday_scene="Tình huống cụ thể được giữ ở máy chủ.",
+                reflection_question="Điều gì cần được nhìn rõ hơn?",
+                small_action="Chọn lá trước khi đọc.",
             ),
         ),
     )
