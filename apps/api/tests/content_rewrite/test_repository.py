@@ -49,6 +49,9 @@ def _request(*, owner_key: str = "daily:anonymous") -> RewriteRequestEnvelope:
             "context": "relationships",
             "scene_key": "psychology:missing-context:relationships",
             "action_key": "psychology:ask-one-clear-question",
+            "title_meaning": "Chưa rõ thì chưa cần kết luận.",
+            "scene_meaning": "Một tin nhắn ngắn khiến ý của người kia chưa rõ.",
+            "action_meaning": "Hỏi lại một câu rõ ràng trước khi kết luận.",
             "requirements": [
                 {
                     "key": "daily.missing-context",

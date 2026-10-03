@@ -80,7 +80,21 @@ def _words(value: str) -> int:
     return len(_WORD.findall(unicodedata.normalize("NFC", value)))
 
 
-def evaluate_daily_rewrite(output: Mapping[str, object]) -> DailyRewriteGateReport:
+def _theme_ids(text: str) -> frozenset[int]:
+    folded = _fold(text)
+    return frozenset(
+        index
+        for index, group in enumerate(_THEME_GROUPS)
+        if any(_fold(term) in folded for term in group)
+    )
+
+
+def evaluate_daily_rewrite(
+    output: Mapping[str, object],
+    *,
+    source_scene: str | None = None,
+    source_action: str | None = None,
+) -> DailyRewriteGateReport:
     failures: list[str] = []
     title = output.get("title")
     scene = output.get("scene")
@@ -115,5 +129,17 @@ def evaluate_daily_rewrite(output: Mapping[str, object]) -> DailyRewriteGateRepo
         for group in _THEME_GROUPS
     ):
         failures.append("daily_scene_action_disconnected")
+    if (
+        source_scene is not None
+        and _theme_ids(source_scene)
+        and not (_theme_ids(source_scene) & _theme_ids(scene_text))
+    ):
+        failures.append("daily_scene_meaning_drift")
+    if (
+        source_action is not None
+        and _theme_ids(source_action)
+        and not (_theme_ids(source_action) & _theme_ids(action_text))
+    ):
+        failures.append("daily_action_meaning_drift")
     unique = tuple(dict.fromkeys(failures))
     return DailyRewriteGateReport(passed=not unique, failure_codes=unique)

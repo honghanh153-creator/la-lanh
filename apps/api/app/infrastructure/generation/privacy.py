@@ -55,6 +55,9 @@ class DailySafePayload(SafeModel):
     context: Literal["general", "relationships", "communication", "work", "energy"]
     scene_key: str = Field(pattern=r"^[a-z][a-z0-9:._-]{1,95}$")
     action_key: str = Field(pattern=r"^[a-z][a-z0-9:._-]{1,95}$")
+    title_meaning: str = Field(min_length=1, max_length=280)
+    scene_meaning: str = Field(min_length=1, max_length=700)
+    action_meaning: str = Field(min_length=1, max_length=500)
     requirements: tuple[SafeRequirement, ...] = Field(min_length=1, max_length=8)
     evidence: tuple[SafeEvidence, ...] = Field(min_length=1, max_length=12)
 

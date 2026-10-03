@@ -127,6 +127,18 @@ def test_daily_gate_requires_plain_connected_scene_and_action() -> None:
     assert "daily_scene_action_disconnected" in report.failure_codes
 
 
+def test_daily_gate_rejects_copy_that_drifts_from_source_meaning() -> None:
+    report = evaluate_daily_rewrite(
+        _good_output(),
+        source_scene="Khi một tin nhắn ngắn khiến ý của người kia chưa rõ.",
+        source_action="Hỏi lại một câu rõ ràng trước khi kết luận.",
+    )
+
+    assert not report.passed
+    assert "daily_scene_meaning_drift" in report.failure_codes
+    assert "daily_action_meaning_drift" in report.failure_codes
+
+
 def test_daily_compiler_sends_only_derived_safe_brief() -> None:
     plan_record, projection, _revision = _records()
     baseline = DeterministicVietnameseRenderer().render(plan_record.plan)
@@ -145,6 +157,9 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
         "context",
         "scene_key",
         "action_key",
+        "title_meaning",
+        "scene_meaning",
+        "action_meaning",
         "requirements",
         "evidence",
     }

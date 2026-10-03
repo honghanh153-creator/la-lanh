@@ -173,6 +173,9 @@ def compile_daily_rewrite_request(
             "context": context,
             "scene_key": blueprint.scene_key,
             "action_key": blueprint.action_key,
+            "title_meaning": blueprint.hook,
+            "scene_meaning": blueprint.manifestation,
+            "action_meaning": blueprint.micro_action,
             "requirements": [
                 requirement.model_dump(mode="json") for requirement in blueprint.requirements
             ],
@@ -238,15 +241,19 @@ class DailyRewriteProjector(RewriteProjector):
         )
         if active is None or active.plan_id != plan_id:
             return RewriteProjectionDecision(accepted=False, failure_code="stale_domain_version")
-        daily_report = evaluate_daily_rewrite(output)
+        baseline = self._renderer.render(plan_record.plan)
+        if baseline.semantic_blueprint is None:
+            return RewriteProjectionDecision(accepted=False, failure_code="missing_blueprint")
+        daily_report = evaluate_daily_rewrite(
+            output,
+            source_scene=baseline.semantic_blueprint.manifestation,
+            source_action=baseline.semantic_blueprint.micro_action,
+        )
         if not daily_report.passed:
             return RewriteProjectionDecision(
                 accepted=False,
                 failure_code=daily_report.failure_codes[0],
             )
-        baseline = self._renderer.render(plan_record.plan)
-        if baseline.semantic_blueprint is None:
-            return RewriteProjectionDecision(accepted=False, failure_code="missing_blueprint")
         candidate = baseline.model_copy(
             update={
                 "renderer_version": DAILY_REWRITE_RENDERER_VERSION,

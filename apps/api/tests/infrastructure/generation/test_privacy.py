@@ -17,6 +17,9 @@ def _daily_payload() -> dict[str, object]:
         "context": "relationships",
         "scene_key": "psychology:missing-context:relationships",
         "action_key": "psychology:ask-one-clear-question",
+        "title_meaning": "Chưa rõ thì chưa cần kết luận.",
+        "scene_meaning": "Một tin nhắn ngắn khiến ý của người kia chưa rõ.",
+        "action_meaning": "Hỏi lại một câu rõ ràng trước khi kết luận.",
         "requirements": [
             {
                 "key": "daily.missing-context",
@@ -60,7 +63,16 @@ def test_minimiser_rejects_raw_identity_and_birth_fields(key: str, value: str) -
 def test_minimiser_emits_only_surface_allowlist() -> None:
     safe = PrivacyMinimiser().minimise(RewriteSurface.DAILY_HOME, _daily_payload())
 
-    assert set(safe) == {"context", "scene_key", "action_key", "requirements", "evidence"}
+    assert set(safe) == {
+        "context",
+        "scene_key",
+        "action_key",
+        "title_meaning",
+        "scene_meaning",
+        "action_meaning",
+        "requirements",
+        "evidence",
+    }
     serialized = json.dumps(safe, ensure_ascii=False).lower()
     assert "profile_id" not in serialized
     assert "birth" not in serialized
