@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, Index, Integer, String, Text, Uuid
+from sqlalchemy import BigInteger, CheckConstraint, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -24,6 +24,10 @@ class ContentRewriteJobRow(Base):
         CheckConstraint(
             "budget_reserved_tokens >= 0",
             name="ck_content_rewrite_jobs_budget_reservation",
+        ),
+        CheckConstraint(
+            "budget_reserved_cost_nanos >= 0",
+            name="ck_content_rewrite_jobs_cost_reservation",
         ),
         Index(
             "ix_content_rewrite_jobs_queue",
@@ -67,5 +71,8 @@ class ContentRewriteJobRow(Base):
     input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     budget_reserved_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cost_nanos: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    budget_reserved_cost_nanos: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    pricing_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)

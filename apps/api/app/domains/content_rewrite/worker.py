@@ -23,6 +23,11 @@ from app.infrastructure.generation.base import (
     RewriteGenerationProvider,
     RewriteGenerationSuccess,
 )
+from app.infrastructure.generation.pricing import (
+    GPT_6_LUNA_STANDARD_2026_10_04,
+    GenerationPricing,
+    cents_to_nanos,
+)
 from app.infrastructure.generation.schemas import surface_output_contract
 
 logger = logging.getLogger(__name__)
@@ -39,6 +44,8 @@ class ContentRewriteWorker:
         lease_seconds: int = 120,
         retry_delay_seconds: int = 60,
         daily_token_budget: int | None = None,
+        daily_cost_budget_cents: int | None = None,
+        pricing: GenerationPricing = GPT_6_LUNA_STANDARD_2026_10_04,
         rollout: SurfaceRolloutPolicy | None = None,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
@@ -49,6 +56,8 @@ class ContentRewriteWorker:
         self._lease_seconds = lease_seconds
         self._retry_delay_seconds = retry_delay_seconds
         self._daily_token_budget = daily_token_budget
+        self._daily_cost_budget_cents = daily_cost_budget_cents
+        self._pricing = pricing
         self._rollout = rollout or SurfaceRolloutPolicy.full_for_all()
         self._clock = clock or (lambda: datetime.now(UTC))
 
@@ -112,27 +121,40 @@ class ContentRewriteWorker:
         return True
 
     async def _reserve_budget(self, lease: LeasedRewriteJob) -> bool:
-        if self._daily_token_budget is None:
+        if self._daily_token_budget is None and self._daily_cost_budget_cents is None:
             return True
+        if self._daily_token_budget is None or self._daily_cost_budget_cents is None:
+            return False
         now = self._clock()
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        payload_bytes = len(
-            json.dumps(
-                lease.request.safe_payload,
-                ensure_ascii=False,
-                separators=(",", ":"),
-            ).encode()
+        contract = surface_output_contract(lease.request.key.surface)
+        input_reserve = (
+            len(
+                json.dumps(
+                    lease.request.safe_payload,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                ).encode()
+            )
+            + len(contract.developer_instruction.encode())
+            + len(json.dumps(contract.schema, separators=(",", ":")).encode())
+            + 512
         )
-        reserve = (
-            payload_bytes + surface_output_contract(lease.request.key.surface).max_output_tokens
+        output_reserve = contract.max_output_tokens
+        requested_cost_nanos = self._pricing.cost_nanos(
+            input_tokens=input_reserve,
+            output_tokens=output_reserve,
         )
-        return await self._repository.reserve_token_budget(
+        return await self._repository.reserve_budget(
             job_id=lease.id,
             lease_token=lease.lease_token,
             deletion_epoch=lease.deletion_epoch,
             since=day_start,
-            requested_tokens=reserve,
-            daily_limit=self._daily_token_budget,
+            requested_tokens=input_reserve + output_reserve,
+            daily_token_limit=self._daily_token_budget,
+            requested_cost_nanos=requested_cost_nanos,
+            daily_cost_limit_nanos=cents_to_nanos(self._daily_cost_budget_cents),
+            pricing_version=self._pricing.version,
             updated_at=now,
         )
 
@@ -149,6 +171,7 @@ class ContentRewriteWorker:
                 completed_at,
                 input_tokens=result.input_tokens,
                 output_tokens=result.output_tokens,
+                cost_nanos=self._exact_cost(result.input_tokens, result.output_tokens),
             )
             return
         decision = await self._projector.validate_and_project(
@@ -164,6 +187,7 @@ class ContentRewriteWorker:
                 completed_at,
                 input_tokens=result.input_tokens,
                 output_tokens=result.output_tokens,
+                cost_nanos=self._exact_cost(result.input_tokens, result.output_tokens),
             )
             return
         canonical = json.dumps(
@@ -178,6 +202,7 @@ class ContentRewriteWorker:
             output_fingerprint=sha256(canonical.encode()).hexdigest(),
             input_tokens=result.input_tokens,
             output_tokens=result.output_tokens,
+            cost_nanos=self._exact_cost(result.input_tokens, result.output_tokens),
             completed_at=completed_at,
         )
 
@@ -211,6 +236,7 @@ class ContentRewriteWorker:
         *,
         input_tokens: int | None = None,
         output_tokens: int | None = None,
+        cost_nanos: int | None = None,
     ) -> None:
         await self._repository.fail(
             job_id=lease.id,
@@ -218,6 +244,15 @@ class ContentRewriteWorker:
             deletion_epoch=lease.deletion_epoch,
             result=result,
             updated_at=completed_at or self._clock(),
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_nanos=cost_nanos,
+        )
+
+    def _exact_cost(self, input_tokens: int | None, output_tokens: int | None) -> int | None:
+        if input_tokens is None or output_tokens is None:
+            return None
+        return self._pricing.cost_nanos(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
         )
@@ -298,6 +333,7 @@ async def _run_standalone() -> None:
         lease_seconds=settings.generation_lease_seconds,
         retry_delay_seconds=settings.generation_retry_delay_seconds,
         daily_token_budget=settings.generation_daily_token_budget,
+        daily_cost_budget_cents=settings.generation_daily_budget_cents,
         rollout=SurfaceRolloutPolicy.from_settings(settings.generation_surface_rollout),
     )
     try:

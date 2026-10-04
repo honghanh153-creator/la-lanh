@@ -48,6 +48,7 @@ class ContentRewriteRepository(Protocol):
         updated_at: datetime,
         input_tokens: int | None = None,
         output_tokens: int | None = None,
+        cost_nanos: int | None = None,
     ) -> bool: ...
 
     async def succeed(
@@ -58,6 +59,7 @@ class ContentRewriteRepository(Protocol):
         output_fingerprint: str,
         input_tokens: int | None,
         output_tokens: int | None,
+        cost_nanos: int | None,
         completed_at: datetime,
     ) -> bool: ...
 
@@ -69,7 +71,9 @@ class ContentRewriteRepository(Protocol):
 
     async def tokens_used_since(self, since: datetime) -> int: ...
 
-    async def reserve_token_budget(
+    async def cost_used_since(self, since: datetime) -> int: ...
+
+    async def reserve_budget(
         self,
         *,
         job_id: UUID,
@@ -77,6 +81,9 @@ class ContentRewriteRepository(Protocol):
         deletion_epoch: UUID,
         since: datetime,
         requested_tokens: int,
-        daily_limit: int,
+        daily_token_limit: int,
+        requested_cost_nanos: int,
+        daily_cost_limit_nanos: int,
+        pricing_version: str,
         updated_at: datetime,
     ) -> bool: ...

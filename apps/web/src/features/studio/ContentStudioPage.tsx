@@ -381,6 +381,9 @@ function RewriteReviewBoard({ workspace }: { workspace: ContentWorkspace }) {
                 {item.input_tokens != null && item.output_tokens != null
                   ? ` · ${item.input_tokens + item.output_tokens} tokens`
                   : ""}
+                {item.cost_nanos != null
+                  ? ` · $${(item.cost_nanos / 1_000_000_000).toFixed(6)}`
+                  : ""}
               </small>
             </div>
             <span className={`is-${item.status}`}>{item.last_result ?? item.status}</span>

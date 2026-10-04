@@ -48,6 +48,8 @@ const WORKSPACE = {
       gate_receipt_id: null,
       input_tokens: 321,
       output_tokens: 87,
+      cost_nanos: 75_600,
+      pricing_version: "gpt-6-luna-standard-2026-10-04",
       attempt_count: 0,
       created_at: "2026-10-03T00:00:00Z",
       updated_at: "2026-10-03T00:00:00Z",
@@ -85,7 +87,9 @@ it("keeps the token in the tab flow and opens the review workspace", async () =>
   expect(screen.getByRole("heading", { name: "Đọc riêng mảnh này" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Hàng chờ nội dung cá nhân hóa" })).toBeInTheDocument();
   expect(screen.getByText("daily_home")).toBeInTheDocument();
-  expect(screen.getByText("gpt-6-luna · daily-v1 · 408 tokens")).toBeInTheDocument();
+  expect(
+    screen.getByText("gpt-6-luna · daily-v1 · 408 tokens · $0.000076"),
+  ).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /gọi model/i })).not.toBeInTheDocument();
   expect(screen.queryByText(/private-owner/i)).not.toBeInTheDocument();
   expect(fetchSpy).toHaveBeenCalledWith(

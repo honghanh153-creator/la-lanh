@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     generation_governance_approved: bool = False
     generation_spend_approved: bool = False
     generation_daily_token_budget: int = Field(default=0, ge=0, le=10_000_000)
+    generation_daily_budget_cents: int = Field(default=0, ge=0, le=100)
     generation_surface_rollout: dict[
         str, Literal["off", "shadow", "editorial", "beta_10", "beta_50", "full"]
     ] = Field(default_factory=dict)
@@ -83,6 +84,8 @@ class Settings(BaseSettings):
                 raise ValueError("enabled generation requires explicit spend approval")
             if self.generation_daily_token_budget < 1_000:
                 raise ValueError("enabled generation requires a positive daily token budget")
+            if self.generation_daily_budget_cents < 1:
+                raise ValueError("enabled generation requires a positive daily USD budget")
             if not any(mode != "off" for mode in self.generation_surface_rollout.values()):
                 raise ValueError("enabled generation requires an explicit surface rollout")
             allowed_surfaces = {

@@ -100,7 +100,12 @@ class PostgresContentRewriteRepository:
                         ContentRewriteJobRow.input_tokens,
                         func.nullif(ContentRewriteJobRow.budget_reserved_tokens, 0),
                     ),
+                    cost_nanos=func.coalesce(
+                        ContentRewriteJobRow.cost_nanos,
+                        func.nullif(ContentRewriteJobRow.budget_reserved_cost_nanos, 0),
+                    ),
                     budget_reserved_tokens=0,
+                    budget_reserved_cost_nanos=0,
                     updated_at=now,
                 )
             )
@@ -119,6 +124,8 @@ class PostgresContentRewriteRepository:
                     request_started_at=None,
                     next_attempt_at=now,
                     budget_reserved_tokens=0,
+                    budget_reserved_cost_nanos=0,
+                    pricing_version=None,
                     updated_at=now,
                 )
             )
@@ -137,6 +144,8 @@ class PostgresContentRewriteRepository:
                     lease_expires_at=None,
                     request_started_at=None,
                     budget_reserved_tokens=0,
+                    budget_reserved_cost_nanos=0,
+                    pricing_version=None,
                     updated_at=now,
                 )
             )
@@ -160,6 +169,8 @@ class PostgresContentRewriteRepository:
             row.lease_expires_at = lease_expires_at
             row.request_started_at = None
             row.budget_reserved_tokens = 0
+            row.budget_reserved_cost_nanos = 0
+            row.pricing_version = None
             row.attempt_count += 1
             row.updated_at = now
             await session.flush([row])
@@ -212,6 +223,8 @@ class PostgresContentRewriteRepository:
                     request_started_at=None,
                     next_attempt_at=next_attempt_at,
                     budget_reserved_tokens=0,
+                    budget_reserved_cost_nanos=0,
+                    pricing_version=None,
                     updated_at=updated_at,
                 )
             )
@@ -227,6 +240,7 @@ class PostgresContentRewriteRepository:
         updated_at: datetime,
         input_tokens: int | None = None,
         output_tokens: int | None = None,
+        cost_nanos: int | None = None,
     ) -> bool:
         async with self._sessions() as session, session.begin():
             usage_values: dict[str, object]
@@ -244,6 +258,14 @@ class PostgresContentRewriteRepository:
                     if output_tokens is not None
                     else ContentRewriteJobRow.output_tokens
                 ),
+                "cost_nanos": (
+                    cost_nanos
+                    if cost_nanos is not None
+                    else func.coalesce(
+                        ContentRewriteJobRow.cost_nanos,
+                        func.nullif(ContentRewriteJobRow.budget_reserved_cost_nanos, 0),
+                    )
+                ),
             }
             updated = await session.execute(
                 update(ContentRewriteJobRow)
@@ -260,6 +282,7 @@ class PostgresContentRewriteRepository:
                     request_started_at=None,
                     provider_output_ciphertext=None,
                     budget_reserved_tokens=0,
+                    budget_reserved_cost_nanos=0,
                     updated_at=updated_at,
                     **usage_values,
                 )
@@ -274,6 +297,7 @@ class PostgresContentRewriteRepository:
         output_fingerprint: str,
         input_tokens: int | None,
         output_tokens: int | None,
+        cost_nanos: int | None,
         completed_at: datetime,
     ) -> bool:
         async with self._sessions() as session, session.begin():
@@ -289,9 +313,29 @@ class PostgresContentRewriteRepository:
                     provider_output_ciphertext=None,
                     output_fingerprint=output_fingerprint,
                     gate_receipt_id=gate_receipt_id,
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
+                    input_tokens=(
+                        input_tokens
+                        if input_tokens is not None
+                        else func.coalesce(
+                            ContentRewriteJobRow.input_tokens,
+                            func.nullif(ContentRewriteJobRow.budget_reserved_tokens, 0),
+                        )
+                    ),
+                    output_tokens=(
+                        output_tokens
+                        if output_tokens is not None
+                        else ContentRewriteJobRow.output_tokens
+                    ),
+                    cost_nanos=(
+                        cost_nanos
+                        if cost_nanos is not None
+                        else func.coalesce(
+                            ContentRewriteJobRow.cost_nanos,
+                            func.nullif(ContentRewriteJobRow.budget_reserved_cost_nanos, 0),
+                        )
+                    ),
                     budget_reserved_tokens=0,
+                    budget_reserved_cost_nanos=0,
                     updated_at=completed_at,
                 )
             )
@@ -342,6 +386,8 @@ class PostgresContentRewriteRepository:
                 gate_receipt_id=row.gate_receipt_id,
                 input_tokens=row.input_tokens,
                 output_tokens=row.output_tokens,
+                cost_nanos=row.cost_nanos,
+                pricing_version=row.pricing_version,
                 attempt_count=row.attempt_count,
                 created_at=row.created_at,
                 updated_at=row.updated_at,
@@ -364,7 +410,16 @@ class PostgresContentRewriteRepository:
             )
         return int(value or 0)
 
-    async def reserve_token_budget(
+    async def cost_used_since(self, since: datetime) -> int:
+        async with self._sessions() as session:
+            value = await session.scalar(
+                select(func.coalesce(func.sum(ContentRewriteJobRow.cost_nanos), 0)).where(
+                    ContentRewriteJobRow.updated_at >= since
+                )
+            )
+        return int(value or 0)
+
+    async def reserve_budget(
         self,
         *,
         job_id: UUID,
@@ -372,10 +427,19 @@ class PostgresContentRewriteRepository:
         deletion_epoch: UUID,
         since: datetime,
         requested_tokens: int,
-        daily_limit: int,
+        daily_token_limit: int,
+        requested_cost_nanos: int,
+        daily_cost_limit_nanos: int,
+        pricing_version: str,
         updated_at: datetime,
     ) -> bool:
-        if requested_tokens <= 0 or daily_limit <= 0:
+        if (
+            requested_tokens <= 0
+            or daily_token_limit <= 0
+            or requested_cost_nanos <= 0
+            or daily_cost_limit_nanos <= 0
+            or not pricing_version
+        ):
             return False
         async with self._sessions() as session, session.begin():
             rows = tuple(
@@ -405,9 +469,19 @@ class PostgresContentRewriteRepository:
                 for row in rows
                 if row.id != job_id and row.status == RewriteJobStatus.LEASED.value
             )
-            if spent + reserved + requested_tokens > daily_limit:
+            cost_spent = sum(row.cost_nanos or 0 for row in rows)
+            cost_reserved = sum(
+                row.budget_reserved_cost_nanos
+                for row in rows
+                if row.id != job_id and row.status == RewriteJobStatus.LEASED.value
+            )
+            if spent + reserved + requested_tokens > daily_token_limit:
+                return False
+            if cost_spent + cost_reserved + requested_cost_nanos > daily_cost_limit_nanos:
                 return False
             current.budget_reserved_tokens = requested_tokens
+            current.budget_reserved_cost_nanos = requested_cost_nanos
+            current.pricing_version = pricing_version
             current.updated_at = updated_at
             await session.flush([current])
             return True
@@ -441,6 +515,7 @@ class PostgresContentRewriteRepository:
             next_attempt_at=record.next_attempt_at,
             last_result=record.last_result.value if record.last_result else None,
             budget_reserved_tokens=0,
+            budget_reserved_cost_nanos=0,
             created_at=record.created_at,
             updated_at=record.updated_at,
         )

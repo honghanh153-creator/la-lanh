@@ -414,6 +414,18 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
             generation_governance_approved=True,
             generation_spend_approved=True,
             generation_daily_token_budget=10_000,
+            generation_daily_budget_cents=100,
+            generation_openai_api_key="secret",
+        )
+
+    with pytest.raises(ValidationError, match="daily USD budget"):
+        Settings(
+            environment="test",
+            generation_enabled=True,
+            generation_provider="openai",
+            generation_governance_approved=True,
+            generation_spend_approved=True,
+            generation_daily_token_budget=10_000,
             generation_openai_api_key="secret",
         )
 
@@ -424,11 +436,15 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
         generation_governance_approved=True,
         generation_spend_approved=True,
         generation_daily_token_budget=10_000,
+        generation_daily_budget_cents=100,
         generation_surface_rollout={"daily_home": "shadow"},
         generation_openai_api_key="secret",
     )
     assert enabled.generation_surface_rollout == {"daily_home": "shadow"}
     assert isinstance(build_generation_provider(enabled), DisabledGenerationProvider)
+
+    with pytest.raises(ValidationError, match="less than or equal to 100"):
+        Settings(generation_daily_budget_cents=101)
 
     with pytest.raises(ValidationError, match="lease"):
         Settings(

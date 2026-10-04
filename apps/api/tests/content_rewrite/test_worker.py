@@ -63,8 +63,11 @@ class FakeRepository:
         self.failed_result: RewriteJobResult | None = None
         self.success_usage: tuple[int | None, int | None] | None = None
         self.failure_usage: tuple[int | None, int | None] | None = None
+        self.success_cost_nanos: int | None = None
+        self.failure_cost_nanos: int | None = None
         self.budget_allowed = True
         self.reserved_tokens: int | None = None
+        self.reserved_cost_nanos: int | None = None
 
     async def lease(self, **kwargs):  # type: ignore[no-untyped-def]
         del kwargs
@@ -85,16 +88,19 @@ class FakeRepository:
     async def fail(self, **kwargs):  # type: ignore[no-untyped-def]
         self.failed_result = kwargs["result"]
         self.failure_usage = (kwargs.get("input_tokens"), kwargs.get("output_tokens"))
+        self.failure_cost_nanos = kwargs.get("cost_nanos")
         self.events.append("fail")
         return True
 
     async def succeed(self, **kwargs):  # type: ignore[no-untyped-def]
         self.success_usage = (kwargs["input_tokens"], kwargs["output_tokens"])
+        self.success_cost_nanos = kwargs["cost_nanos"]
         self.events.append("succeed")
         return True
 
-    async def reserve_token_budget(self, **kwargs):  # type: ignore[no-untyped-def]
+    async def reserve_budget(self, **kwargs):  # type: ignore[no-untyped-def]
         self.reserved_tokens = kwargs["requested_tokens"]
+        self.reserved_cost_nanos = kwargs["requested_cost_nanos"]
         self.events.append("reserve")
         return self.budget_allowed
 
@@ -192,6 +198,7 @@ async def test_worker_projects_then_marks_success() -> None:
     assert projector.calls == 1
     assert repository.events == ["lease", "marked", "succeed"]
     assert repository.success_usage == (250, 60)
+    assert repository.success_cost_nanos == 55_000
 
 
 @pytest.mark.asyncio
@@ -217,6 +224,7 @@ async def test_gate_rejection_keeps_owner_projection_unchanged() -> None:
 
     assert repository.failed_result is RewriteJobResult.GATE_REJECTED
     assert repository.failure_usage == (120, 30)
+    assert repository.failure_cost_nanos == 27_000
     assert repository.events[-1] == "fail"
 
 
@@ -283,6 +291,7 @@ async def test_daily_token_budget_blocks_before_provider_send() -> None:
         Authorization(True),
         Projector(),
         daily_token_budget=1_000,
+        daily_cost_budget_cents=100,
         clock=lambda: NOW,
     ).process_one()
 

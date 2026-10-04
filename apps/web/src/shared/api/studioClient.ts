@@ -37,6 +37,8 @@ export type RewriteCandidateSummary = {
   gate_receipt_id: string | null;
   input_tokens: number | null;
   output_tokens: number | null;
+  cost_nanos: number | null;
+  pricing_version: string | null;
   attempt_count: number;
   created_at: string;
   updated_at: string;

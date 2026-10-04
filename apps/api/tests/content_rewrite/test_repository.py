@@ -127,13 +127,16 @@ async def test_lease_is_single_and_expired_sent_job_becomes_ambiguous(storage) -
     lease = await repository.lease(now=NOW, lease_for_seconds=30)
     assert lease is not None
     assert await repository.lease(now=NOW, lease_for_seconds=30) is None
-    assert await repository.reserve_token_budget(
+    assert await repository.reserve_budget(
         job_id=lease.id,
         lease_token=lease.lease_token,
         deletion_epoch=lease.deletion_epoch,
         since=NOW.replace(hour=0, minute=0, second=0, microsecond=0),
         requested_tokens=700,
-        daily_limit=1_000,
+        daily_token_limit=1_000,
+        requested_cost_nanos=700_000,
+        daily_cost_limit_nanos=1_000_000,
+        pricing_version="test-price-v1",
         updated_at=NOW,
     )
     assert await repository.mark_request_started(
@@ -150,7 +153,9 @@ async def test_lease_is_single_and_expired_sent_job_becomes_ambiguous(storage) -
         assert row.status == RewriteJobStatus.FAILED.value
         assert row.last_result == RewriteJobResult.AMBIGUOUS.value
         assert row.input_tokens == 700
+        assert row.cost_nanos == 700_000
         assert row.budget_reserved_tokens == 0
+        assert row.budget_reserved_cost_nanos == 0
 
 
 @pytest.mark.asyncio
@@ -169,6 +174,7 @@ async def test_owner_purge_is_idempotent_and_invalidates_stale_lease(storage) ->
         output_fingerprint="f" * 64,
         input_tokens=100,
         output_tokens=20,
+        cost_nanos=20_000,
         completed_at=NOW,
     )
 
@@ -204,13 +210,16 @@ async def test_success_persists_aggregate_usage_without_payload(storage) -> None
         output_fingerprint="f" * 64,
         input_tokens=321,
         output_tokens=87,
+        cost_nanos=75_600,
         completed_at=NOW,
     )
 
     assert await repository.tokens_used_since(NOW - timedelta(minutes=1)) == 408
+    assert await repository.cost_used_since(NOW - timedelta(minutes=1)) == 75_600
     item = (await repository.list_review_records())[0]
     assert item.input_tokens == 321
     assert item.output_tokens == 87
+    assert item.cost_nanos == 75_600
 
 
 @pytest.mark.asyncio
@@ -231,22 +240,28 @@ async def test_budget_reservation_counts_in_flight_jobs_and_releases_on_success(
     second_lease = await repository.lease(now=NOW, lease_for_seconds=30)
     assert first_lease is not None
     assert second_lease is not None
-    assert await repository.reserve_token_budget(
+    assert await repository.reserve_budget(
         job_id=first_lease.id,
         lease_token=first_lease.lease_token,
         deletion_epoch=first_lease.deletion_epoch,
         since=NOW.replace(hour=0, minute=0, second=0, microsecond=0),
         requested_tokens=700,
-        daily_limit=1_000,
+        daily_token_limit=1_000,
+        requested_cost_nanos=700_000,
+        daily_cost_limit_nanos=1_000_000,
+        pricing_version="test-price-v1",
         updated_at=NOW,
     )
-    assert not await repository.reserve_token_budget(
+    assert not await repository.reserve_budget(
         job_id=second_lease.id,
         lease_token=second_lease.lease_token,
         deletion_epoch=second_lease.deletion_epoch,
         since=NOW.replace(hour=0, minute=0, second=0, microsecond=0),
         requested_tokens=400,
-        daily_limit=1_000,
+        daily_token_limit=1_000,
+        requested_cost_nanos=400_000,
+        daily_cost_limit_nanos=1_000_000,
+        pricing_version="test-price-v1",
         updated_at=NOW,
     )
 
@@ -256,15 +271,19 @@ async def test_budget_reservation_counts_in_flight_jobs_and_releases_on_success(
         output_fingerprint="f" * 64,
         input_tokens=500,
         output_tokens=100,
+        cost_nanos=600_000,
         completed_at=NOW,
     )
-    assert await repository.reserve_token_budget(
+    assert await repository.reserve_budget(
         job_id=second_lease.id,
         lease_token=second_lease.lease_token,
         deletion_epoch=second_lease.deletion_epoch,
         since=NOW.replace(hour=0, minute=0, second=0, microsecond=0),
         requested_tokens=400,
-        daily_limit=1_000,
+        daily_token_limit=1_000,
+        requested_cost_nanos=400_000,
+        daily_cost_limit_nanos=1_000_000,
+        pricing_version="test-price-v1",
         updated_at=NOW,
     )
 
@@ -275,13 +294,16 @@ async def test_ambiguous_sent_request_consumes_its_conservative_reservation(stor
     await repository.enqueue(_record())
     lease = await repository.lease(now=NOW, lease_for_seconds=30)
     assert lease is not None
-    assert await repository.reserve_token_budget(
+    assert await repository.reserve_budget(
         job_id=lease.id,
         lease_token=lease.lease_token,
         deletion_epoch=lease.deletion_epoch,
         since=NOW.replace(hour=0, minute=0, second=0, microsecond=0),
         requested_tokens=700,
-        daily_limit=1_000,
+        daily_token_limit=1_000,
+        requested_cost_nanos=700_000,
+        daily_cost_limit_nanos=1_000_000,
+        pricing_version="test-price-v1",
         updated_at=NOW,
     )
     assert await repository.mark_request_started(
@@ -299,6 +321,7 @@ async def test_ambiguous_sent_request_consumes_its_conservative_reservation(stor
     )
 
     assert await repository.tokens_used_since(NOW - timedelta(minutes=1)) == 700
+    assert await repository.cost_used_since(NOW - timedelta(minutes=1)) == 700_000
 
 
 @pytest.mark.asyncio

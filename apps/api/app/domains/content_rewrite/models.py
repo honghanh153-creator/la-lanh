@@ -169,6 +169,8 @@ class RewriteReviewRecord(BaseModel):
     gate_receipt_id: str | None = None
     input_tokens: int | None = Field(default=None, ge=0)
     output_tokens: int | None = Field(default=None, ge=0)
+    cost_nanos: int | None = Field(default=None, ge=0)
+    pricing_version: str | None = Field(default=None, max_length=80)
     attempt_count: int = Field(ge=0, le=3)
     created_at: datetime
     updated_at: datetime
