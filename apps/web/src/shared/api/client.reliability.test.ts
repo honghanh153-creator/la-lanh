@@ -46,6 +46,14 @@ describe("API client reliability", () => {
     expect(isGuestSessionUnavailable({ status: 503, code: "READING_UNAVAILABLE" })).toBe(false);
   });
 
+  it("sends the selected context with its explicit share revision", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(jsonResponse({ id: "share" }));
+    await createShareArtifact("note", "story_9_16", "revision", "work");
+    expect(fetchMock.mock.calls[0][1]?.body).toBe(JSON.stringify({
+      format: "story_9_16", revision_id: "revision", background_lens: "work",
+    }));
+  });
+
   it("uses the newly activated revision for subsequent save and share payloads", async () => {
     const oldRevisionId = "00000000-0000-4000-8000-000000000010";
     const newRevisionId = "00000000-0000-4000-8000-000000000011";

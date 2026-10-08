@@ -87,16 +87,34 @@ if (!/X-La-Lanh-Client["']:\s*["']capacitor-v1/.test(clientSource)) {
   findings.push("Native API calls must carry the explicit Capacitor client marker.");
 }
 
-for (const publicSource of [
-  "apps/api/app/domains/share/models.py",
-  "apps/api/app/api/v1/routes/share_artifacts.py",
-]) {
-  const source = readFileSync(join(root, publicSource), "utf8");
-  for (const field of ["action_key", "background_lens", "outcome", "experiment_id"]) {
-    if (new RegExp(`^\\s*${field}\\s*:`, "m").test(source)) {
-      findings.push(`Public share contract contains experiment field ${field}: ${publicSource}`);
+// Inspect response schemas, not private POST input or server function arguments.
+// A context may select the owned revision; it must never appear in the public snapshot.
+const contract = JSON.parse(readFileSync(join(root, "packages/contracts/openapi/v1.json"), "utf8"));
+const schemas = contract.components.schemas;
+const inspected = new Set();
+function inspectShareSchema(schema, name) {
+  if (!schema || typeof schema !== "object") return;
+  if (schema.$ref) {
+    const reference = schema.$ref.split("/").at(-1);
+    if (!inspected.has(reference)) {
+      inspected.add(reference);
+      inspectShareSchema(schemas[reference], reference);
     }
   }
+  for (const [field, property] of Object.entries(schema.properties ?? {})) {
+    if ([...sensitiveFields, "action_key", "background_lens", "outcome", "experiment_id"].includes(field)) {
+      findings.push(`Public share response contains private field ${field}: ${name}`);
+    }
+    inspectShareSchema(property, name);
+  }
+  for (const branch of [...(schema.allOf ?? []), ...(schema.anyOf ?? []), ...(schema.oneOf ?? [])]) {
+    inspectShareSchema(branch, name);
+  }
+  if (schema.items) inspectShareSchema(schema.items, name);
+}
+for (const name of ["SafeShareSnapshotResponse", "PublicShareArtifactResponse", "ShareArtifactResponse"]) {
+  if (!schemas[name]) findings.push(`Missing public share response schema: ${name}`);
+  else inspectShareSchema(schemas[name], name);
 }
 
 if (findings.length > 0) {

@@ -343,6 +343,18 @@ tree while containers or rollback evidence depend on it.
 
 ## Phase 5 — public smoke and browser acceptance
 
+After read-only HTTPS smoke, run the committed core-flow acceptance script with an explicit
+synthetic-only write acknowledgement. It creates a new cookie jar (never reads a user's session),
+tests date-only/Aura/charts, context-bound share/revoke, Tarot 1/3/5 and Radar exact/unknown,
+then deletes only its own guest and records. It does not call a paid model when generation is off.
+Failure is No-Go; fix the cause, rerun and record the evidence, not just the landing-page status.
+
+```sh
+LA_LANH_SMOKE_WRITE_CONSENT=synthetic-only node scripts/qa-public-smoke.mjs https://la-lanh.2-28-136-44.sslip.io
+```
+
+Do not print cookies, CSRF tokens, DB URL, private result IDs or share capabilities during QA.
+
 Run from either the VPS release directory or a trusted local checkout:
 
 ```sh

@@ -731,6 +731,7 @@ export function createShareArtifact(
   dailyNoteId: string,
   format: ShareFormat = "story_9_16",
   revisionId: string | null = currentDailyRevisionId(),
+  context: SignalContext = "auto",
 ): Promise<ShareArtifact> {
   return request<ShareArtifact>(`/daily-note/${dailyNoteId}/share-artifacts`, {
     method: "POST",
@@ -738,7 +739,7 @@ export function createShareArtifact(
       "Content-Type": "application/json",
       ...csrfHeader(),
     },
-    body: JSON.stringify({ format, revision_id: revisionId }),
+    body: JSON.stringify({ format, revision_id: revisionId, ...(context !== "auto" ? { background_lens: context } : {}) }),
   });
 }
 

@@ -2368,6 +2368,8 @@ export interface components {
         };
         /** ShareArtifactRequest */
         ShareArtifactRequest: {
+            /** @default auto */
+            background_lens: components["schemas"]["BackgroundLens"];
             /** @default story_9_16 */
             format: components["schemas"]["ShareFormat"];
             /** Revision Id */

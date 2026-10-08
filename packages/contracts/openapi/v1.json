@@ -3337,6 +3337,10 @@
       "ShareArtifactRequest": {
         "additionalProperties": false,
         "properties": {
+          "background_lens": {
+            "$ref": "#/components/schemas/BackgroundLens",
+            "default": "auto"
+          },
           "format": {
             "$ref": "#/components/schemas/ShareFormat",
             "default": "story_9_16"

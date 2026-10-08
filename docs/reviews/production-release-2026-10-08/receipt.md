@@ -19,3 +19,5 @@ Tarot repetition follow-ups; ~748kB JS bundle warning; chưa có kiểm chứng 
 ## Deploy / public verification
 
 Chưa triển khai khi tạo receipt. Chỉ đổi sang PASS sau khi image/schema/public smoke và browser live được kiểm chứng.
+
+Lượt đầu `328c48e8906f`: image healthy, schema `20261008_0028`, HTTPS/header smoke pass. Public synthetic E2E phát hiện tạo safe link từ góc Work trả 404: POST chỉ gửi revision, backend project lại góc auto. Đã sửa input context enum trong POST và project cùng lens; mặc định auto giữ backward compatibility. Public snapshot vẫn không có field lens hoặc dữ liệu sinh. Gate privacy nay rà đúng response schemas thay vì nhầm private request/function argument là response. Test hồi quy kiểm đúng bản đọc, lens không khớp bị 404, enum sai bị 422, revoke làm link cũ 404. Full check sau sửa: 192 web + 520 backend pass.

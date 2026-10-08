@@ -57,7 +57,7 @@ export function CardPage() {
   const createMutation = useMutation({
     mutationFn: () => {
       if (!noteQuery.data) throw new Error("Missing daily note");
-      return createShareArtifact(noteQuery.data.id, format, noteQuery.data.reading_projection?.active.revision_id ?? null);
+      return createShareArtifact(noteQuery.data.id, format, noteQuery.data.reading_projection?.active.revision_id ?? null, context);
     },
     onSuccess: (payload) => {
       setArtifact(payload);

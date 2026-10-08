@@ -129,6 +129,43 @@ def test_context_projection_requires_origin_csrf_and_closed_enum_body() -> None:
         client.__exit__(None, None, None)
 
 
+def test_context_share_freezes_the_selected_reading_and_rejects_mismatched_revision() -> None:
+    client, headers = _date_only_client()
+    try:
+        note = client.get("/v1/daily-note").json()
+        work = client.post(
+            "/v1/daily-note/context", json={"background_lens": "work"}, headers=headers
+        ).json()
+        endpoint = f"/v1/daily-note/{note['id']}/share-artifacts"
+        request = {"revision_id": work["active"]["revision_id"], "background_lens": "work"}
+        artifact = client.post(endpoint, json=request, headers=headers)
+        assert artifact.status_code == 200
+        payload = artifact.json()
+        assert payload["safe_snapshot"]["title"] == work["active"]["sections"]["hook"]
+        assert (
+            client.post(
+                endpoint, json={**request, "background_lens": "auto"}, headers=headers
+            ).status_code
+            == 404
+        )
+        assert (
+            client.post(
+                endpoint, json={**request, "background_lens": "invalid"}, headers=headers
+            ).status_code
+            == 422
+        )
+        preview = client.get(f"/v1/share-artifacts/{payload['token']}")
+        assert preview.status_code == 200
+        assert "1990-01-01" not in preview.text
+        assert (
+            client.delete(f"/v1/share-artifacts/{payload['id']}", headers=headers).status_code
+            == 204
+        )
+        assert client.get(f"/v1/share-artifacts/{payload['token']}").status_code == 404
+    finally:
+        client.__exit__(None, None, None)
+
+
 def test_daily_response_refreshes_from_vibe_to_aura_without_birth_pii() -> None:
     app = create_app(
         Settings(

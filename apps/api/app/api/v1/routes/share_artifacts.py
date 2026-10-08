@@ -13,7 +13,7 @@ from app.domains.daily.service import DailyNoteService
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.readings.application import ReadingApplicationError, ReadingApplicationService
-from app.domains.readings.models import ReadingContentProjection, ReadingPurpose
+from app.domains.readings.models import BackgroundLens, ReadingContentProjection, ReadingPurpose
 from app.domains.share.errors import (
     ShareArtifactUnavailable,
     ShareDomainError,
@@ -32,6 +32,7 @@ class ShareArtifactRequest(BaseModel):
 
     format: ShareFormat = ShareFormat.STORY_9_16
     revision_id: UUID | None = None
+    background_lens: BackgroundLens = BackgroundLens.AUTO
 
 
 class SafeShareSnapshotResponse(BaseModel):
@@ -94,6 +95,7 @@ async def _active_daily_reading(
     guest_id: UUID,
     daily_note_id: UUID,
     expected_revision_id: UUID | None,
+    background_lens: BackgroundLens,
 ) -> tuple[UUID | None, ReadingContentProjection | None]:
     reading_service = cast(
         ReadingApplicationService | None,
@@ -120,6 +122,7 @@ async def _active_daily_reading(
             snapshot=snapshot,
             purpose=ReadingPurpose.DAILY_NOTE,
             requested_at=requested_at,
+            background_lens=None if background_lens is BackgroundLens.AUTO else background_lens,
         )
     except BirthDomainError:
         raise
@@ -152,6 +155,7 @@ async def create_share_artifact(
             guest_id=guest.id,
             daily_note_id=daily_note_id,
             expected_revision_id=body.revision_id,
+            background_lens=body.background_lens,
         )
         artifact, share_token = await _share_service(request).create(
             guest_id=guest.id,
