@@ -32,7 +32,8 @@ async function request(path, { method = "GET", body, expected = 200, anonymous =
   }
   // Never print response bodies, credentials, private IDs or capability URLs.
   assert.equal(response.status, expected, `Unexpected HTTP status for ${method} API operation`);
-  const data = response.status === 204 ? null : await response.json();
+  const content = await response.text();
+  const data = content ? JSON.parse(content) : null;
   return { data, response };
 }
 
@@ -129,7 +130,7 @@ try {
     assert.equal(radar.mode, "private_check");
     assert.equal(radar.sections.length, 4);
     assert.ok(!JSON.stringify(radar).includes("1996-07-21"));
-    await request(`/v1/radar/results/${radar.request_id}`, { anonymous: true, expected: 401 });
+    await request(`/v1/radar/results/${radar.request_id}`, { anonymous: true, expected: 404 });
     await request(`/v1/radar/results/${radar.request_id}`, { method: "DELETE", expected: 204 });
     completed.push(`Radar ${mode} birth time → private report → QA cleanup`);
   }

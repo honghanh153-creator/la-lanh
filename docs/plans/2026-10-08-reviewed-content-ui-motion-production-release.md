@@ -47,6 +47,6 @@ Giữ owner session/CSRF, TLS, secret files, no-access-log, capability no-store/
 
 - [x] Đã xác nhận production image cũ `la-lanh:3798652ed4a3`, source tương ứng, timers active, disk còn 27GB; SSH key hoạt động.
 - [x] Gates và review: 191 web + 519 API tests, full `pnpm check`, native guard; 10 synthetic persona/30 bản đọc, không critical/high; 36 Tarot medium follow-up còn mở. Browser Home 360/390px không tràn ngang, context Work ở detail/share khớp, 4 decoration pause được. Supabase guard đã áp dụng lên 29 bảng hiện có, kiểm chứng isolation pass.
-- [ ] Source public và archive.
-- [ ] Image/build/readiness + deploy.
-- [ ] Public browser/smoke + release receipt.
+- [x] Source public và archive: production commit `a7fadf7e4511` on public main before serving; local/VPS SHA-256 match.
+- [x] Image/build/readiness + deploy: `la-lanh:a7fadf7e4511`, schema `20261008_0028`, app/Caddy healthy, TLS and database isolation pass, generation/worker false.
+- [x] Public browser/smoke + release receipt: core synthetic E2E all pass and QA data deleted; live Home/Welcome/Note/birth optional verified at 390px. Fixed context-sharing 404 caught during first live pass. Latest full gates: 192 web + 520 API tests. See `docs/reviews/production-release-2026-10-08/receipt.md`.

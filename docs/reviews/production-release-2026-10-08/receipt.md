@@ -18,6 +18,27 @@ Tarot repetition follow-ups; ~748kB JS bundle warning; chưa có kiểm chứng 
 
 ## Deploy / public verification
 
-Chưa triển khai khi tạo receipt. Chỉ đổi sang PASS sau khi image/schema/public smoke và browser live được kiểm chứng.
+PASS — final runtime commit `a7fadf7e45113e9a2be5cc9e2e7f7785bde56049`, published on main before serving.
+
+| Evidence | Verified result |
+|---|---|
+| Container image / digest | `la-lanh:a7fadf7e4511` / `sha256:b2842068c3982ad8b7024b97a2f6ecc9a01fa796a59d8fde854580ce50398c1d` |
+| Archive checksum, local/VPS | `c58763255ea75d94badb19d17aa825d43684ea5a25e8ec00c2bf062c1e1bf0ce` |
+| Schema | `20261008_0028` |
+| Active source | `/opt/la-lanh/releases/a7fadf7e4511/source` |
+| Health | app and Caddy healthy; public health/readiness + deep links pass |
+| Privacy | DB isolation gate pass; `anon` and `authenticated` denied SQL zero-row queries (`42501`); no data retrieved |
+| Headers | HTTPS trusted certificate; HSTS, no-referrer, noindex, no-store verified |
+| Operations | guest-cleanup + expired-cleanup timers active; old images preserved; no DB downgrade |
+| Spending | `generation_enabled=False`, `worker_enabled=False`; no paid provider calls or billing changes |
+| Rollback | immediate `la-lanh:328c48e8906f`; pre-release `la-lanh:3798652ed4a3` |
+
+Public E2E, fresh synthetic session: date-only birth → Note; Work projection → safe share with matching title → public preview without DOB → revoke/404; time/place supplement → profile level 3/Aura → activate full-synthesis; Western/Jyotish overview, Natal/Aura reading and current sky; Tarot 1/3/5 completion and anonymous denial; Radar exact and unknown time, four-section report, anonymous 404 and deletion. All QA-owned guest data deleted in `finally`; cascade covers principal/Radar records. No real user's profile was edited or deleted.
+
+Browser live: Home and Note contain direct copy; Welcome 1/3 with looping motion, pause freezes all decoration; optional Birth 2/3 supports unknown/known hour-minute controls with separate unchecked consent. Width 390px: no page overflow. Home final JS is `index-DBLYtUBv.js`; four Home animations pause/resume. Save `live-home-final-390.png`, `live-welcome-390.png`, `live-note-390.png`, `live-birth-optional-390.png`; local 360px evidence also retained. Browser first-run form was not submitted against the user's existing profile; synthetic submission was tested through public API instead.
+
+The QA harness was corrected after release for Radar's intended empty 404 denial, not 401/JSON. The final harness exited 0 after all nine checks. These script/receipt corrections are source follow-up only; running application code remains the immutable commit above. Future operators must use latest main for the local acceptance harness.
+
+The previously open Supabase permissions were confirmed and closed; this pass does not establish whether any historical unauthorized access occurred. Do not claim an incident review or a full security certification.
 
 Lượt đầu `328c48e8906f`: image healthy, schema `20261008_0028`, HTTPS/header smoke pass. Public synthetic E2E phát hiện tạo safe link từ góc Work trả 404: POST chỉ gửi revision, backend project lại góc auto. Đã sửa input context enum trong POST và project cùng lens; mặc định auto giữ backward compatibility. Public snapshot vẫn không có field lens hoặc dữ liệu sinh. Gate privacy nay rà đúng response schemas thay vì nhầm private request/function argument là response. Test hồi quy kiểm đúng bản đọc, lens không khớp bị 404, enum sai bị 422, revoke làm link cũ 404. Full check sau sửa: 192 web + 520 backend pass.

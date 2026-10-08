@@ -7,15 +7,15 @@ status checklist is
 
 ## Known-good recovery anchor
 
-| Item | Value verified on 2026-09-30 |
+| Item | Value verified on 2026-10-08 |
 |---|---|
 | Product URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | VPS | `2.28.136.44` |
 | Local SSH key | `~/.ssh/la_lanh_hetzner_ed25519` |
 | Public source | `https://github.com/honghanh153-creator/la-lanh` |
-| Deployed release | commit `3798652ed4a31f9099c2cd914868be304601abcc` / image `la-lanh:3798652ed4a3` |
-| Image digest | `sha256:4da87e5c5e9ca72926f1edbae8fc3037a313450a3434abd53460174afd34e948` |
-| Previous rollback image | `la-lanh:db1dab4c77f3` |
+| Deployed release | commit `a7fadf7e45113e9a2be5cc9e2e7f7785bde56049` / image `la-lanh:a7fadf7e4511` |
+| Image digest | `sha256:b2842068c3982ad8b7024b97a2f6ecc9a01fa796a59d8fde854580ce50398c1d` |
+| Previous rollback image | `la-lanh:328c48e8906f`; pre-release anchor `la-lanh:3798652ed4a3` |
 | Supabase | project `rlowapjpwsamjftpggen`, Frankfurt, session pooler `:5432` |
 | Reverse proxy | Caddy `2.10.2`, Let's Encrypt certificate |
 
@@ -67,6 +67,18 @@ release, and the correctly named `la-lanh-guest-cleanup.timer` and
 `la-lanh:db1dab4c77f3` remains the immediate rollback anchor.
 
 ## What “successful” means
+
+Release `a7fadf7e4511` was deployed and verified on 2026-10-08. It includes direct Daily content,
+context-bound share, Ultraviolet Paper UI/planet texture, optional onboarding birth details and
+looping motion with pause. Full check: 192 web + 520 API tests; reviewer: ten synthetic personas,
+30 readings, no critical/high, 36 medium Tarot repetition follow-ups. Live synthetic acceptance
+passed guest/date-only Note, Work share/revoke, exact-time Aura activation, Western/Jyotish/Natal/Sky,
+Tarot 1/3/5 and Radar exact/unknown, plus private result denial and deletion of all QA-owned data.
+Database head is `20261008_0028`; RLS/client-grant isolation passes. Both browser roles were denied
+zero-row queries to private tables. Current pointer is `/opt/la-lanh/releases/a7fadf7e4511/source`;
+both cleanup timers are active. Generation and worker remain false. Browser live 390px Home,
+Note, Welcome/pause and optional birth form passed with no page overflow. See
+`docs/reviews/production-release-2026-10-08/receipt.md` for scope and limitations.
 
 A release is successful only when all of these are true:
 
@@ -343,7 +355,8 @@ tree while containers or rollback evidence depend on it.
 
 ## Phase 5 — public smoke and browser acceptance
 
-After read-only HTTPS smoke, run the committed core-flow acceptance script with an explicit
+From a trusted **local checkout of the latest main**, with Node 24, run the core-flow acceptance
+script after read-only HTTPS smoke, with an explicit
 synthetic-only write acknowledgement. It creates a new cookie jar (never reads a user's session),
 tests date-only/Aura/charts, context-bound share/revoke, Tarot 1/3/5 and Radar exact/unknown,
 then deletes only its own guest and records. It does not call a paid model when generation is off.

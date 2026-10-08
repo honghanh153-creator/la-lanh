@@ -48,12 +48,21 @@ This is the recovery anchor for a future session. It contains no credentials.
 |---|---|
 | Public URL | `https://la-lanh.2-28-136-44.sslip.io/welcome` |
 | Source repository | `https://github.com/honghanh153-creator/la-lanh` (public) |
-| Deployed application commit/tag | `3798652ed4a31f9099c2cd914868be304601abcc` / `la-lanh:3798652ed4a3` |
-| Deployed image digest | `sha256:4da87e5c5e9ca72926f1edbae8fc3037a313450a3434abd53460174afd34e948` |
-| Previous rollback image | `la-lanh:db1dab4c77f3` |
+| Deployed application commit/tag | `a7fadf7e45113e9a2be5cc9e2e7f7785bde56049` / `la-lanh:a7fadf7e4511` |
+| Deployed image digest | `sha256:b2842068c3982ad8b7024b97a2f6ecc9a01fa796a59d8fde854580ce50398c1d` |
+| Previous rollback image | `la-lanh:328c48e8906f`; pre-release anchor `la-lanh:3798652ed4a3` |
 | Supabase project | `rlowapjpwsamjftpggen`, Frankfurt |
 | Reverse proxy | Caddy `2.10.2` with a valid Let's Encrypt certificate |
 | Database | Supavisor session pooler on port `5432`, TLS required |
+
+Verified on 2026-10-08: release `a7fadf7e4511`, schema `20261008_0028`, current pointer matches
+the release source, healthy app/Caddy, generation/worker disabled, retention timers active.
+Full check passed 192 web + 520 backend tests. Public synthetic core-flow acceptance includes
+context-correct share/revoke, Western/Jyotish/Aura/Natal/Sky, Tarot 1/3/5 and Radar exact/unknown;
+test data deleted. Supabase backend tables now have RLS and no browser-role grants; the deploy
+privacy gate blocks regressions. Production browser proof and remaining limitations are in
+`docs/reviews/production-release-2026-10-08/receipt.md`. Ten personas are synthetic, not humans;
+36 medium Tarot repetition findings remain follow-ups, not an assertion of perfect content.
 
 Verified again on 2026-09-27 at 08:00 UTC for release `0b3fecb65297`: public health/readiness, SPA
 deep links, HTTPS redirect and certificate, security/privacy headers, `/welcome`, and `/privacy`.
