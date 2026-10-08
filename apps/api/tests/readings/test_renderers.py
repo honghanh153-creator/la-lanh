@@ -22,6 +22,7 @@ from app.domains.readings.models import (
     BackgroundLens,
     CompositionTarget,
     FactorSource,
+    GateFailureCode,
     PlanMode,
     ReadingPlan,
     ReadingPurpose,
@@ -93,7 +94,7 @@ def test_deterministic_renderer_is_stable_and_passes_all_five_gates(
     evaluation = evaluate_candidate(plan, first)
 
     assert first == second
-    assert first.renderer_version == DETERMINISTIC_RENDERER_VERSION
+    assert first.renderer_version.startswith(DETERMINISTIC_RENDERER_VERSION)
     assert first.plan_hash == plan.plan_hash
     assert first.hook and first.thesis and first.manifestation and first.micro_action
     assert first.transit is None
@@ -217,8 +218,11 @@ def test_date_only_vibe_is_honestly_one_factor_and_asks_for_exact_time() -> None
     rendered = candidate.model_dump_json().lower()
 
     assert plan.mode is PlanMode.VIBE_FALLBACK
-    assert "mới dùng ngày sinh" in candidate.thesis
-    assert "giờ sinh chính xác" in candidate.micro_action
+    # Precision belongs to evidence/UI disclosure, not a paragraph appended to the explanation.
+    assert len(candidate.evidence.claims) == 1
+    assert "chỉ từ ngày sinh" in candidate.evidence.claims[0].display_text
+    assert candidate.semantic_blueprint is not None
+    assert candidate.semantic_blueprint.scene_key.startswith("psychology:")
     assert all(term not in rendered for term in ("nhà 7", "rising", "ascendant"))
     assert evaluate_candidate(plan, candidate).accepted is True
 
@@ -315,9 +319,15 @@ def test_every_reading_mode_keeps_evidence_while_rendering_one_contextual_scene(
     contextual = renderer.render(contextual_plan)
 
     assert contextual.manifestation != plain.manifestation
-    assert contextual.micro_action != plain.micro_action
-    if mode != "full":
-        assert contextual.thesis == plain.thesis
+    # Context may select the same sensible action. Changing its words is not personalization.
+    assert contextual.micro_action
+    # Daily explanation follows the selected situation, not an unrelated natal paragraph.
+    assert contextual.semantic_blueprint is not None
+    assert contextual.semantic_blueprint.daily_meaning is not None
+    assert contextual.thesis == (
+        f"{contextual.semantic_blueprint.daily_meaning.core_meaning} "
+        f"{contextual.semantic_blueprint.daily_meaning.reader_takeaway}"
+    )
     assert contextual.semantic_blueprint is not None
     assert contextual.semantic_blueprint.arena.value == lens.value
     assert contextual.transit == plain.transit
@@ -353,7 +363,7 @@ def test_date_only_copy_uses_the_actual_sun_sign_and_daily_editorial_cycle() -> 
     second = renderer.render(second_plan)
 
     assert first != second
-    assert "mới dùng ngày sinh" in first.thesis
+    assert "chỉ từ ngày sinh" in first.evidence.claims[0].display_text
     assert "tín hiệu vũ trụ" not in first.model_dump_json().lower()
     assert evaluate_candidate(first_plan, first).accepted is True
     assert evaluate_candidate(second_plan, second).accepted is True
@@ -367,10 +377,9 @@ def test_full_copy_is_specific_to_selected_planet_house_aspect_and_orb() -> None
 
     assert "có một nhịp kéo và đẩy đáng để để ý" not in prose
     assert "tín hiệu phụ" not in prose
-    assert any(
-        phrase in prose
-        for phrase in ("giao tiếp", "quan hệ", "công việc", "đời sống riêng", "ranh giới")
-    )
+    assert candidate.semantic_blueprint is not None
+    assert candidate.semantic_blueprint.scene_key.startswith("psychology:")
+    assert candidate.evidence.claims
     assert len(candidate.evidence.claims) >= 2
     assert evaluate_candidate(plan, candidate).accepted is True
 
@@ -423,12 +432,25 @@ def test_jyotish_planner_ignores_western_style_transit_contacts() -> None:
     assert DeterministicVietnameseRenderer().render(plan).transit is None
 
 
-def test_transit_copy_explains_activation_and_phase_in_everyday_language() -> None:
+def test_daily_transit_copy_explains_chart_phase_without_inventing_a_life_event() -> None:
     plan = _plan(purpose=ReadingPurpose.DAILY_NOTE, transit=True)
 
     candidate = DeterministicVietnameseRenderer().render(plan)
 
     assert candidate.transit is not None
     assert "tín hiệu" not in candidate.transit.lower()
-    assert any(word in candidate.transit.lower() for word in ("đang rõ", "đang tăng", "đang hạ"))
+    transit_factor = next(
+        factor for factor in plan.factors if factor.source is FactorSource.TRANSIT
+    )
+    assert canonical_evidence_claim(transit_factor).display_text in candidate.transit
+    assert "Hai vị trí đang" in candidate.transit
+    assert any(word in candidate.transit for word in ("tiến gần", "ở sát", "đi xa"))
+    assert plan.composition.accepts(candidate.natal_user_prose, candidate.transit)
     assert evaluate_candidate(plan, candidate).accepted is True
+    incorrect_phase = candidate.model_copy(
+        update={"transit": candidate.transit.replace("pha tiến gần", "pha tách dần")}
+    )
+    assert (
+        GateFailureCode.EVIDENCE_ASTRO_LABEL
+        in evaluate_candidate(plan, incorrect_phase).failure_codes
+    )

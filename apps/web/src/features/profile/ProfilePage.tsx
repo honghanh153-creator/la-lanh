@@ -1,4 +1,4 @@
-import { Moon, MoonStars, ShieldCheck, Sparkle, Sun, Trash } from "@phosphor-icons/react";
+import { BookmarkSimple, Moon, MoonStars, ShieldCheck, Sparkle, Sun, Trash } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -57,6 +57,7 @@ export function ProfilePage() {
       queryClient.removeQueries({ queryKey: ["daily-note"] });
       await queryClient.invalidateQueries({ queryKey: ["birth-supplement"] });
       await queryClient.invalidateQueries({ queryKey: ["birth-profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["insight-overview"] });
     },
     onError: () => setError("Chưa xóa được dữ liệu bổ sung. Thử lại sau nhé."),
   });
@@ -94,7 +95,7 @@ export function ProfilePage() {
             <span className="theme-setting__icon" aria-hidden="true">{theme === "dark" ? <Moon /> : <Sun />}</span>
             <div>
               <strong>Chế độ tối</strong>
-              <p>{theme === "dark" ? "Cosmic Glass · đêm sâu, điểm sáng rõ" : "Cosmic Glass · sương sáng, dễ đọc"}</p>
+              <p>{theme === "dark" ? "Nền tối, chữ sáng" : "Nền kem, chữ tím đậm"}</p>
             </div>
             <button
               aria-checked={theme === "dark"}
@@ -115,6 +116,7 @@ export function ProfilePage() {
           <h2 id="privacy-settings">Chiếc Lá của bạn</h2>
         </div>
         <div className="settings-list">
+        <Link className="settings-link" to="/saved"><span><BookmarkSimple aria-hidden="true" /></span><div><strong>Note đã lưu</strong><p>Mở lại đúng bản bạn đã giữ.</p></div></Link>
         <article><ShieldCheck /><div><strong>Dữ liệu sinh đã mã hóa</strong><p>Không nằm trong cookie, URL hoặc local storage.</p></div></article>
         <Link className="settings-link" to="/birth-time"><span><MoonStars aria-hidden="true" /></span><div><strong>{supplement && supplement.profile_level > 1 ? "Sửa lớp dữ liệu sinh" : "Mở thêm lớp cá nhân"}</strong><p>{supplement && supplement.profile_level > 1 ? `${supplement.time_precision === "approximate" ? "Giờ gần đúng" : "Đã có giờ sinh"}${supplement.place_display_name ? ` · ${supplement.place_display_name}` : " · chưa có nơi sinh"}` : "Thêm giờ/nơi sinh khi bạn muốn Moon, House và note sâu hơn."}</p></div></Link>
         {supplement?.birth_time_mode !== "unknown" ? <button className="danger-row" onClick={() => {

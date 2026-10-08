@@ -58,7 +58,7 @@ def canonical_surface_registry() -> SurfaceRegistry:
             surface=RewriteSurface.DAILY_HOME,
             fallback_owner="readings",
             schema_version="daily-rewrite/v1",
-            gate_version="daily-rewrite-gates/v1",
+            gate_version="daily-rewrite-gates/v2",
             fields=_fields("title", "scene", "action"),
             word_budget=70,
             forbidden_claims=("prediction", "diagnosis", "decision_instruction"),

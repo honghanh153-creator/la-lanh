@@ -31,7 +31,11 @@ def build_generation_provider(settings: Settings) -> GenerationProvider:
 
 
 def build_rewrite_generation_provider(settings: Settings) -> RewriteGenerationProvider:
-    if not settings.generation_enabled or settings.generation_provider == "disabled":
+    if (
+        not settings.generation_enabled
+        or not settings.generation_worker_enabled
+        or settings.generation_provider == "disabled"
+    ):
         return DisabledRewriteGenerationProvider()
 
     from app.infrastructure.generation.openai import (

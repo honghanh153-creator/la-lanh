@@ -84,7 +84,7 @@ def test_release_gate_rejects_duplicate_synthetic_readings() -> None:
     assert "duplicate-matrix-entry" in {finding.rule_id for finding in result.findings}
 
 
-def test_release_gate_renders_the_draft_catalog(
+def test_release_gate_reviews_the_final_daily_surface(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     payload = deepcopy(bundled_daily_catalog())
@@ -110,5 +110,8 @@ def test_release_gate_renders_the_draft_catalog(
     result = validate_daily_release(payload)
 
     assert result.passed is True
-    hooks = [dict(sample.sections)["hook"] for sample in observed]
-    assert any(marker.casefold() in hook.casefold() for hook in hooks)
+    assert len(observed) == 10
+    assert all(sample.surface == "daily" for sample in observed)
+    assert all(
+        marker.casefold() not in dict(sample.sections)["hook"].casefold() for sample in observed
+    )

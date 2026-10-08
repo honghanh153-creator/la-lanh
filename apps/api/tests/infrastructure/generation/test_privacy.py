@@ -90,6 +90,36 @@ def test_tarot_question_is_locally_classified_without_forwarding_free_text() -> 
     assert "người ấy" not in safe.focus_sentence.casefold()
 
 
+def test_daily_meaning_brief_is_editorial_and_cannot_smuggle_private_context() -> None:
+    brief: dict[str, object] = {
+        "core_meaning": "Tin nhắn chưa rõ nên mình còn đoán ý.",
+        "reader_takeaway": "Hỏi lại đúng chỗ chưa rõ.",
+        "scene_status": "illustrative",
+        "scene_anchors": ["tin nhắn"],
+        "action_anchors": ["hỏi"],
+    }
+    payload = _daily_payload() | {"meaning_brief": brief}
+    safe = PrivacyMinimiser().minimise(RewriteSurface.DAILY_HOME, payload)
+    assert safe["meaning_brief"] == brief
+    question_brief = brief | {"observation_question": "Sau khi hỏi lại, bạn đã hiểu tin nhắn chưa?"}
+    assert (
+        PrivacyMinimiser().minimise(
+            RewriteSurface.DAILY_HOME, payload | {"meaning_brief": question_brief}
+        )["meaning_brief"]
+        == question_brief
+    )
+    for invalid in (
+        brief | {"birth_date": "1990-03-15"},
+        brief | {"core_meaning": "Nhắn an@example.com để hỏi."},
+        brief | {"scene_status": "observed"},
+        brief | {"observation_question": "Bạn đã nhắn an@example.com chưa?"},
+    ):
+        with pytest.raises(UnsafeRewritePayload):
+            PrivacyMinimiser().minimise(
+                RewriteSurface.DAILY_HOME, payload | {"meaning_brief": invalid}
+            )
+
+
 @pytest.mark.parametrize(
     "question",
     [

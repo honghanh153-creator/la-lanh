@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from app.domains.readings.daily_psychology import apply_daily_psychology
+from app.domains.readings.daily_psychology import (
+    DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT,
+    apply_daily_psychology,
+)
 from app.domains.readings.knowledge import (
     LENS_ACTIONS,
     LENS_HOOKS,
@@ -32,7 +35,7 @@ from app.domains.readings.models import (
     SemanticSection,
 )
 
-DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v7"
+DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v10"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",
@@ -128,6 +131,20 @@ _SEMANTIC_CONCEPT_MARKERS: tuple[tuple[str, tuple[str, ...]], ...] = (
 
 
 def _semantic_requirements(frame: InterpretationFrame) -> tuple[SemanticRequirement, ...]:
+    if frame.daily_meaning is not None:
+        issue_key = frame.scene_key.split(":")[1]
+        return (
+            SemanticRequirement(
+                key=f"daily.{issue_key}.scene",
+                section=SemanticSection.MANIFESTATION,
+                markers=frame.daily_meaning.scene_anchors,
+            ),
+            SemanticRequirement(
+                key=f"daily.{issue_key}.action",
+                section=SemanticSection.MICRO_ACTION,
+                markers=frame.daily_meaning.action_anchors,
+            ),
+        )
     scene_parts = frame.scene_key.split(":")
     if len(scene_parts) >= 2 and scene_parts[0] == "psychology":
         issue_key = scene_parts[1]
@@ -359,11 +376,25 @@ class DeterministicVietnameseRenderer:
             None,
         )
         transit = transit_copy(transit_factor) if transit_factor is not None else None
+        if transit_factor is not None and frame.daily_meaning is not None:
+            phase_explanation = {
+                "approaching": ("Hai vị trí đang tiến gần góc này hơn trong lần tính hiện tại."),
+                "exact": ("Hai vị trí đang ở sát góc này trong lần tính hiện tại."),
+                "separating": ("Hai vị trí đang đi xa góc này sau lần đi qua gần nhất."),
+            }.get(transit_factor.phase.value if transit_factor.phase else "", "")
+            transit = (
+                f"{canonical_evidence_claim(transit_factor).display_text}. {phase_explanation}"
+            ).strip()
         claims = self._evidence_claims(plan, transit_factor, frame)
-        renderer_version = (
-            f"{self.version}+content-{catalog_version}"
-            if catalog_version is not None
+        base_version = (
+            f"{self.version}+daily-{DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT}"
+            if frame.daily_meaning is not None
             else self.version
+        )
+        renderer_version = (
+            f"{base_version}+content-{catalog_version}"
+            if catalog_version is not None
+            else base_version
         )
         candidate = ReadingCandidate(
             renderer_version=renderer_version,
@@ -385,6 +416,7 @@ class DeterministicVietnameseRenderer:
                 micro_action=micro_action,
                 evidence_factor_refs=frame.evidence_factor_refs,
                 requirements=_semantic_requirements(frame),
+                daily_meaning=frame.daily_meaning,
             ),
         )
         if (

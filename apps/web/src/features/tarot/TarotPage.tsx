@@ -2,7 +2,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Briefcase,
-  CardsThree,
   CheckCircle,
   Eye,
   HeartStraight,
@@ -297,7 +296,7 @@ export function TarotPage() {
                 style={{ transform: `translateY(${Math.abs(38.5 - index) * 0.45}px) rotate(${(index - 38.5) * 0.18}deg)` }}
                 type="button"
               >
-                <span>✦</span><small>{index + 1}</small>
+                <Sparkle aria-hidden="true" weight="fill" /><small>{index + 1}</small>
               </button>
             ))}
           </div>
@@ -357,7 +356,7 @@ export function TarotPage() {
             <h2 id="tarot-spread-title">{recommendation.title}</h2>
             <p>{recommendation.reason}</p>
           </div>
-          <CardsThree aria-hidden="true" className="tarot-recommendation__icon" weight="duotone" />
+          <img alt="" className="tarot-recommendation__icon" src="/assets/ultraviolet/tarot.webp" />
           <div className="tarot-depth" role="group" aria-label="Đổi độ sâu">
             <span>Đổi độ sâu</span>
             {SPREAD_OPTIONS.map((option) => (
@@ -406,5 +405,5 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
   const reading = session.reading;
   if (!reading) return null;
   const depthLabel = session.required_cards === 1 ? "Một lá · một điểm chạm" : session.required_cards === 3 ? "Ba lá · ba lớp nhìn" : "Năm lá · một bản đồ rõ hơn";
-  return <TarotFrame step="Bài của bạn"><section className="tarot-result-hero"><p className="tarot-kicker">{depthLabel}</p><h1>{reading.headline}</h1><p>{reading.summary}</p><div className="tarot-question-ticket"><span>Câu bạn đã hỏi</span><strong>{reading.question}</strong></div></section><section className="tarot-reading">{reading.positions.map((position, index) => <article className="tarot-reading-card" key={position.key}><div className="tarot-face" aria-label={`Lá ${position.card.title_vi}`}><span>0{index + 1}</span><strong>{position.card.title_vi}</strong><small>{position.card.title_en}</small><i>✦</i></div><div className="tarot-reading-copy"><p className="tarot-position">{position.label}</p><h2>{position.card.core}</h2><p>{position.meaning_here}</p><div className="tarot-scene"><Eye aria-hidden="true" /><div><strong>Ngoài đời có thể trông như…</strong><p>{position.everyday_scene}</p></div></div><blockquote>{position.reflection_question}</blockquote><div className="tarot-action"><Sparkle aria-hidden="true" /><div><strong>Đem ra đời thật</strong><p>{position.small_action}</p></div></div></div></article>)}</section><section className="tarot-closing"><p>{reading.closing_prompt}</p><ReadingDisclaimer compact>{reading.disclaimer}</ReadingDisclaimer><span>Engine {reading.provenance.knowledge_version} · bộ {reading.provenance.deck_version}</span></section><footer className="tarot-result-actions">{confirmDelete ? <div className="tarot-delete-confirm" role="alert"><strong>Xóa là mất hẳn bài này.</strong><p>Không có nút hoàn tác và link cũ sẽ không mở lại.</p><div><button disabled={deleting} onClick={onDelete} type="button"><Trash aria-hidden="true" />{deleting ? "Đang xóa…" : "Xóa hẳn"}</button><button onClick={onKeep} type="button">Giữ lại</button></div></div> : <><Link className="tarot-primary" to="/tarot"><Sparkle aria-hidden="true" />Hỏi một chuyện khác</Link><button className="tarot-delete" onClick={onDelete} type="button"><Trash aria-hidden="true" /> Xóa bài này</button></>}</footer></TarotFrame>;
+  return <TarotFrame step="Bài của bạn"><section className="tarot-result-hero"><p className="tarot-kicker">{depthLabel}</p><h1>{reading.headline}</h1><p>{reading.summary}</p><div className="tarot-question-ticket"><span>Câu bạn đã hỏi</span><strong>{reading.question}</strong></div></section><section className="tarot-reading">{reading.positions.map((position, index) => <article className="tarot-reading-card" key={position.key}><div className="tarot-face" aria-label={`Lá ${position.card.title_vi}`}><span>0{index + 1}</span><strong>{position.card.title_vi}</strong><small>{position.card.title_en}</small><Sparkle className="tarot-face__symbol" aria-hidden="true" weight="fill" /></div><div className="tarot-reading-copy"><p className="tarot-position">{position.label}</p><h2>{position.card.core}</h2><p>{position.meaning_here}</p><div className="tarot-scene"><Eye aria-hidden="true" /><div><strong>Ngoài đời có thể trông như…</strong><p>{position.everyday_scene}</p></div></div><blockquote>{position.reflection_question}</blockquote><div className="tarot-action"><Sparkle aria-hidden="true" /><div><strong>Đem ra đời thật</strong><p>{position.small_action}</p></div></div></div></article>)}</section><section className="tarot-closing"><p>{reading.closing_prompt}</p><ReadingDisclaimer compact>{reading.disclaimer}</ReadingDisclaimer><span>Engine {reading.provenance.knowledge_version} · bộ {reading.provenance.deck_version}</span></section><footer className="tarot-result-actions">{confirmDelete ? <div className="tarot-delete-confirm" role="alert"><strong>Xóa là mất hẳn bài này.</strong><p>Không có nút hoàn tác và link cũ sẽ không mở lại.</p><div><button disabled={deleting} onClick={onDelete} type="button"><Trash aria-hidden="true" />{deleting ? "Đang xóa…" : "Xóa hẳn"}</button><button onClick={onKeep} type="button">Giữ lại</button></div></div> : <><Link className="tarot-primary" to="/tarot"><Sparkle aria-hidden="true" />Hỏi một chuyện khác</Link><button className="tarot-delete" onClick={onDelete} type="button"><Trash aria-hidden="true" /> Xóa bài này</button></>}</footer></TarotFrame>;
 }

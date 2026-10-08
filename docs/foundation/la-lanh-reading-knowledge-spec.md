@@ -1,7 +1,7 @@
-# Lá Lành Reading Knowledge Engine — đặc tả v4
+# Lá Lành Reading Knowledge Engine — đặc tả v5
 
 Trạng thái: implemented foundation, cần user benchmark trước public release  
-Ngày rà soát: 2026-09-23  
+Ngày rà soát: 2026-10-02
 Phạm vi: Daily Note và Reading Detail; Western trước, Jyotish fail-closed
 
 ## 1. Value proposition
@@ -99,6 +99,16 @@ Transit chỉ được dùng khi natal chart có giờ chính xác, config/tradi
 
 `Sun sign + local_date editorial seed → hook + style + stress + practice`.
 
+### Daily scene/advice contract
+
+Daily Note v5 dùng thêm matrix `daily-psychology-scene-advice-v1`, được mô tả đầy đủ tại
+`docs/foundation/daily-psychology-scene-advice-engine.md`.
+
+- `hook + manifestation` chỉ mô tả một cảnh, dấu hiệu hoặc hành động có thể quan sát; không chứa lời khuyên.
+- `micro_action` là lời nhắc riêng, có động từ, phạm vi nhỏ và cùng issue key với cảnh.
+- Mười sách tâm lý học là nguồn phương pháp biên tập, không phải corpus để sao chép và không phải bằng chứng khoa học cho chiêm tinh.
+- Home không hiển thị evidence hoặc nhãn “đọc từ ngày sinh”; Reading Detail vẫn giữ evidence và disclaimer.
+
 ### Daily novelty contract
 
 “Note mới” phải khác ở cấp ý, không phải chỉ đổi vài từ. Daily renderer dùng lịch biên tập mixed-radix gồm `hero factor × interpretive lens × editorial mode × micro-action × reflection cue`; với date-only, tổ hợp tương đương là `hook × practice × editorial mode × closing × reflection cue`. Cùng một ngày địa phương luôn replay đúng một bản, còn 365 ngày liên tiếp phải có 365 tổ hợp prose khác nhau và đều qua bốn quality gates.
@@ -148,6 +158,9 @@ Editorial gate chặn lặp section, văn sáo và “tín hiệu vũ trụ”. 
 manifestation và action cùng xuất phát từ một semantic blueprint, đúng context người dùng chọn,
 đúng factor refs và có cảnh/hành động quan sát được. Privacy gate chặn DOB, giờ/nơi/tọa độ, email,
 token và UUID trong prose.
+
+Meaning gate v5 còn chặn lời khuyên lọt vào scene và chặn scene/advice khác `issue_key` trong Daily
+Note. Content-review agent chạy lại cùng nguyên tắc trên 10 synthetic personas trước release.
 
 Editorial gate v3 còn chặn hai lỗi từng lọt qua QA:
 

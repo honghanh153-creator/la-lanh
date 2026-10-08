@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getInsightOverview } from "../../shared/api/client";
+import { getInsightOverview, getBirthSupplement } from "../../shared/api/client";
 import { InsightsPage } from "./InsightsPage";
 
 const claimDetail = {
@@ -17,7 +17,7 @@ const claimDetail = {
 
 vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
-  return { ...actual, getInsightOverview: vi.fn() };
+  return { ...actual, getInsightOverview: vi.fn(), getBirthSupplement: vi.fn() };
 });
 
 function renderPage() {
@@ -28,6 +28,7 @@ function renderPage() {
 describe("InsightsPage", () => {
   beforeEach(() => {
     vi.mocked(getInsightOverview).mockReset();
+    vi.mocked(getBirthSupplement).mockResolvedValue({ profile_id: "test", profile_level: 1, birth_time_mode: "unknown", time_precision: "unknown", place_display_name: null, timezone_id: null, approx_window: null });
   });
 
   it("shows a privacy-safe precision gate", async () => {
@@ -37,8 +38,7 @@ describe("InsightsPage", () => {
     });
     renderPage();
     expect(screen.getByRole("heading", { name: "Bạn có muốn hiểu mình hơn?" })).toBeInTheDocument();
-    expect(await screen.findByText("Cần giờ và nơi sinh để đọc đủ chart.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Mở lớp sâu" })).toHaveAttribute("href", "/birth-time");
+    expect(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh" })).toHaveAttribute("href", "/birth-time");
   });
 
   it("renders the returned synthesis instead of hard-coded Sun/Moon", async () => {
@@ -77,6 +77,15 @@ describe("InsightsPage", () => {
     expect(screen.getByText("Aura · Tổng hòa lá số")).toBeInTheDocument();
     expect(await screen.findByText("Mạch suy nghĩ")).toBeInTheDocument();
     expect(screen.getByText("Vùng nở rộng")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Thêm.*sinh/ })).not.toBeInTheDocument();
+  });
+
+  it("asks only for the missing place, not an already supplied birth time", async () => {
+    vi.mocked(getInsightOverview).mockResolvedValue({ status: "locked", required_fields: ["birth_place"], reading: null, bodies: [], houses_available: false, time_precision: "exact" });
+    vi.mocked(getBirthSupplement).mockResolvedValue({ profile_id: "test", profile_level: 2, birth_time_mode: "exact", time_precision: "exact", place_display_name: null, timezone_id: null, approx_window: null });
+    renderPage();
+    expect(await screen.findByRole("link", { name: "Thêm nơi sinh" })).toHaveAttribute("href", "/birth-time");
+    expect(screen.queryByRole("link", { name: "Thêm giờ sinh" })).not.toBeInTheDocument();
   });
 
   it("offers a recovery path when the private chart session is gone", async () => {

@@ -7,8 +7,11 @@ import userEvent from "@testing-library/user-event";
 
 import {
   activateReadingProjection,
+  chooseDailyExperiment,
   ApiProblem,
   getDailyNote,
+  getContextualReading,
+  getCurrentDailyExperiment,
   listSavedNotes,
   type DailyNote,
   type ReadingProjection,
@@ -21,7 +24,10 @@ vi.mock("../../shared/api/client", async (original) => {
   return {
     ...actual,
     activateReadingProjection: vi.fn(),
+    chooseDailyExperiment: vi.fn(),
+    getCurrentDailyExperiment: vi.fn(),
     getDailyNote: vi.fn(),
+    getContextualReading: vi.fn(),
     listSavedNotes: vi.fn(),
   };
 });
@@ -31,6 +37,7 @@ describe("NoteDetailPage rich reading", () => {
     vi.clearAllMocks();
     clearCachedDailyNote();
     vi.mocked(listSavedNotes).mockResolvedValue([]);
+    vi.mocked(getCurrentDailyExperiment).mockResolvedValue(null);
   });
 
   it("uses the same active projection as Home instead of legacy note prose", async () => {
@@ -45,6 +52,52 @@ describe("NoteDetailPage rich reading", () => {
       "href",
       "/tarot?origin=daily&context=general&prompt=daily-clarity",
     );
+  });
+
+  it("keeps the selected Home context instead of displaying the auto reading", async () => {
+    const selected: ReadingProjection = {
+      ...note.reading_projection,
+      active: {
+        ...note.reading_projection.active,
+        experiment: {
+          action_key: "c".repeat(64),
+          action: "Chọn một việc làm trước.",
+          observation: "Bạn đã chọn được việc nào để làm trước chưa?",
+          permission: "Không hợp thì bỏ qua.",
+        },
+        sections: {
+          ...note.reading_projection.active.sections,
+          hook: "Bạn bận cả buổi, việc vẫn chưa xong.",
+          thesis: "Chuyển việc liên tục khiến nhiều việc cùng dang dở.",
+        },
+      },
+    };
+    vi.mocked(getDailyNote).mockResolvedValue(note);
+    vi.mocked(getContextualReading).mockResolvedValue(selected);
+    vi.mocked(chooseDailyExperiment).mockRejectedValue(new ApiProblem(503, "UNAVAILABLE", "Test rejection"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/note/today?context=work"]}><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    expect(await screen.findByRole("heading", { name: selected.active.sections.hook })).toBeInTheDocument();
+    expect(getContextualReading).toHaveBeenCalledWith("work", expect.any(AbortSignal));
+    expect(screen.queryByRole("heading", { name: note.reading_projection.active.sections.hook })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Chia sẻ" })).toHaveAttribute("href", "/card?context=work");
+    await userEvent.click(screen.getByRole("button", { name: /Giữ để thử hôm nay/ }));
+    await waitFor(() => expect(chooseDailyExperiment).toHaveBeenCalledWith(note.id, expect.objectContaining({
+      background_lens: "work",
+      revision_id: selected.active.revision_id,
+      action_key: selected.active.experiment?.action_key,
+    })));
+  });
+
+  it("does not display the cached auto note when the selected context cannot be fetched", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(note);
+    vi.mocked(getContextualReading).mockRejectedValue(new ApiProblem(503, "UNAVAILABLE", "Test rejection"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(["daily-note"], note);
+    render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/note/today?context=work"]}><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+    expect(await screen.findByRole("heading", { name: "Chưa mở được note." })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: note.reading_projection.active.sections.hook })).not.toBeInTheDocument();
   });
 
   it("lets a user open the full-chart update from the note they are reading", async () => {

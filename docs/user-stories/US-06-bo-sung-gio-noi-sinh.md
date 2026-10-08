@@ -1,5 +1,9 @@
 # US-06 — Bổ sung giờ sinh và nơi sinh
 
+## Cập nhật 07/10/2026 — có thể thêm ngay khi bắt đầu
+
+[Contract mới, flow, field validation, AC và privacy](../plans/2026-10-07-optional-birth-details-planet-surface.md) là chuẩn ưu tiên cho onboarding và CTA bổ sung. Có hai entry: phần tùy chọn ngay dưới ngày sinh trong US-02; hoặc chủ động bổ sung sau ở Khám phá/Mình/Home. Không ép thêm màn onboarding. Consent bổ sung vẫn riêng; thu gọn giữ draft nhưng **Bỏ qua giờ & nơi sinh** xóa draft và consent. CTA dựa trên server state thực, không dựa riêng `profile_level`: đã có giờ thì chỉ mời thêm nơi; đầy đủ thì không có lời mời thu thêm. Giờ gần đúng được gọi “Làm rõ giờ sinh”, không gọi là chưa điền. Engine/accuracy và quyền xóa bên dưới vẫn giữ nguyên.
+
 ## 1. User story
 
 Là người đã thấy giá trị ban đầu từ Lá Khai Sinh/Note hôm nay, tôi muốn bổ sung giờ sinh và nơi sinh đúng lúc, với giải thích rõ lợi ích và quyền dữ liệu, để mở các lớp insight sâu hơn mà vẫn có thể để sau nếu chưa sẵn sàng.
@@ -8,7 +12,7 @@ Là người đã thấy giá trị ban đầu từ Lá Khai Sinh/Note hôm nay,
 
 ### Mục tiêu
 
-- Thu thập giờ sinh/nơi sinh như một bước mở khóa tự nhiên sau khi user đã nhận được giá trị, không biến onboarding thành form dài.
+- Cho phép thu thập giờ sinh/nơi sinh ngay từ đầu trong một disclosure tùy chọn hoặc bổ sung đúng ngữ cảnh sau; không biến onboarding thành form dài.
 - Giải thích rõ “vì sao cần thêm dữ liệu này” trước khi hỏi: giờ sinh giúp tăng độ chính xác; nơi sinh giúp tính múi giờ, Rising/House.
 - Hỗ trợ thực tế người dùng không nhớ chính xác giờ sinh: exact, khoảng gần đúng, hoặc không biết.
 - Bảo vệ privacy mặc định: có consent riêng cho dữ liệu bổ sung; không đưa giờ/nơi sinh vào analytics, URL, localStorage thô, share card hoặc public link.
@@ -30,7 +34,7 @@ Contextual prompt; snooze; time input exact/approx/unknown; birthplace search; c
 ## 3. Actor, điều kiện và dữ liệu đầu ra
 
 - **Actor:** guest hoặc account user đã hoàn tất US-02 và có Basic Birth Profile.
-- **Tiền điều kiện:** user đã thấy ít nhất một giá trị ban đầu: Reveal Lá Khai Sinh, Daily Note, hoặc chủ động tap “Mở khóa lớp sâu hơn”.
+- **Tiền điều kiện:** có guest consent/ngày sinh hợp lệ để lưu; entry từ US-02 là tự nguyện trước Reveal, hoặc sau khi đã thấy value và chủ động mở phần bổ sung.
 - **Trigger hợp lệ:** card “Còn một note chưa mở” trên Home, Profile, sau 3-day streak, trước khi vào US-07, hoặc trước một flow cần độ chính xác cao hơn như Lá Ghép/Vòng Lá.
 - **Success state:** birth profile được cập nhật bằng precision rõ ràng; chart recompute tạo snapshot mới; user thấy màn “lớp đã mở” hoặc được dẫn sang US-07.
 - **Non-success state hợp lệ:** user chọn “Để sau”; prompt bị snooze tối thiểu 3 ngày và Daily Note không bị chặn.
@@ -96,7 +100,7 @@ flowchart TD
 
 #### UX rules
 
-- Prompt chỉ xuất hiện sau khi user đã nhận được value ban đầu.
+- Prompt tự động chỉ xuất hiện sau value ban đầu; disclosure US-02 được hiển thị thu gọn từ đầu để người biết thông tin tự chọn thêm.
 - Không dùng FOMO ép buộc kiểu “không thêm thì app vô dụng”.
 - “Để sau” phải luôn rõ, cùng cấp nhìn thấy được.
 - Nếu prompt xuất hiện tại một gate của US-07, copy nói thẳng lớp nào đang thiếu dữ liệu.

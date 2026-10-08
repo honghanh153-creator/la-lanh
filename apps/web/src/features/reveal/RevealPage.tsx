@@ -46,16 +46,17 @@ export function RevealPage() {
   const signs = sunSignsFromCalculation(calculation);
   const primary = signDetails[signs[0]];
   const isDateOnly = isDateOnlyCalculation(calculation);
+  const hasExactChart = "time_precision" in calculation && calculation.time_precision === "exact";
   const isCusp = isDateOnly && signs.length > 1;
   const vibeLabel = isCusp ? "Giao mùa" : (noteQuery.data?.persona_label ?? primary.label);
 
-  const complete = async () => {
+  const complete = async (destination = "/home") => {
     if (completing) return;
     setCompleting(true);
     setCompletionError(null);
     try {
       await updateOnboardingStatus("completed");
-      void navigate("/home", { replace: true });
+      void navigate(destination, { replace: true });
     } catch {
       setCompletionError("Chưa mở được Note hôm nay. Tín hiệu của bạn vẫn được giữ để thử lại.");
     } finally {
@@ -69,6 +70,7 @@ export function RevealPage() {
       <button className="signal-station__button" disabled={completing} onClick={() => void complete()} type="button">
         {completing ? "Đang mở Note…" : "Mở Note hôm nay"} <ArrowDown aria-hidden="true" />
       </button>
+      {hasExactChart ? <button className="signal-station__secondary" disabled={completing} onClick={() => void complete("/natal")} type="button">Đọc tổng quan về mình</button> : null}
       <ReadingDisclaimer compact>
         Nội dung dùng để tự soi và đối chiếu; quyết định vẫn thuộc về bạn.
       </ReadingDisclaimer>
@@ -78,7 +80,7 @@ export function RevealPage() {
   return (
     <SignalStationFrame act={2} actions={actions} loading={completing} titleId="reveal-title">
       <section className="signal-reveal-card">
-        <h1 id="reveal-title">Vibe · {vibeLabel}</h1>
+        <h1 id="reveal-title">{noteQuery.data?.persona_mode === "aura" ? "Aura" : "Vibe"} · {vibeLabel}</h1>
         <p className="signal-reveal-card__pill">
           {isCusp
             ? `Mặt Trời ở ranh giới ${signs.map((sign) => signDetails[sign].label).join(" · ")}`
@@ -88,7 +90,7 @@ export function RevealPage() {
           {isCusp ? "Ngày này chạm đúng ranh giới. Lá không đoán cung khi chưa có giờ sinh." : primary.note}
         </p>
         <p className="signal-reveal-card__source">
-          Đọc từ ngày sinh · chưa dùng giờ/nơi sinh · Swiss Ephemeris {calculation.provenance.version}
+          {isDateOnly ? "Bản tóm tắt từ ngày sinh · chưa đủ dữ liệu để đọc toàn bộ lá số" : hasExactChart ? "Đã thêm giờ & nơi sinh · bản đọc tổng quan đã mở" : "Đã thêm giờ gần đúng · những phần cần giờ chính xác vẫn có giới hạn"}
         </p>
         {noteQuery.isError ? <p className="signal-station__notice" role="status">Vibe đang dùng lớp Mặt Trời đã tính; Note hôm nay sẽ tải lại ở Home.</p> : null}
       </section>

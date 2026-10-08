@@ -730,6 +730,7 @@ export async function unsaveDailyNote(
 export function createShareArtifact(
   dailyNoteId: string,
   format: ShareFormat = "story_9_16",
+  revisionId: string | null = currentDailyRevisionId(),
 ): Promise<ShareArtifact> {
   return request<ShareArtifact>(`/daily-note/${dailyNoteId}/share-artifacts`, {
     method: "POST",
@@ -737,7 +738,7 @@ export function createShareArtifact(
       "Content-Type": "application/json",
       ...csrfHeader(),
     },
-    body: JSON.stringify({ format, revision_id: currentDailyRevisionId() }),
+    body: JSON.stringify({ format, revision_id: revisionId }),
   });
 }
 

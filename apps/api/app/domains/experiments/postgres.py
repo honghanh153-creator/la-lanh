@@ -257,7 +257,9 @@ class PostgresExperimentRepository:
         candidate = revision.evaluation.publishable_candidate
         if candidate is None:
             raise ExperimentTargetNotFound
-        projection = experiment_projection_for(revision.id, candidate.micro_action)
+        projection = experiment_projection_for(
+            revision.id, candidate.micro_action, blueprint=candidate.semantic_blueprint
+        )
         if projection.action_key != draft.action_key:
             raise ExperimentTargetNotFound
         return projection
@@ -275,7 +277,9 @@ class PostgresExperimentRepository:
         candidate = revision.evaluation.publishable_candidate
         if candidate is None:
             raise ExperimentTargetNotFound
-        projection = experiment_projection_for(revision.id, candidate.micro_action)
+        projection = experiment_projection_for(
+            revision.id, candidate.micro_action, blueprint=candidate.semantic_blueprint
+        )
         lens, action_key, outcome = self._payload(row)
         if action_key != projection.action_key:
             raise ValueError("stored experiment action does not match its accepted revision")

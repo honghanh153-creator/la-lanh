@@ -1,8 +1,10 @@
+import { Asterisk } from "@phosphor-icons/react";
+
 export function BrandMark() {
   return (
     <div className="brand-mark" aria-label="Lá Lành">
       <span>Lá Lành</span>
-      <sup aria-hidden="true">*</sup>
+      <sup aria-hidden="true"><Asterisk weight="bold" /></sup>
     </div>
   );
 }

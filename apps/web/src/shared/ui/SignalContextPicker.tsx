@@ -20,6 +20,7 @@ const contexts = [
 ] as const;
 
 type SignalContextPickerProps = {
+  appearance?: "row" | "moon";
   error?: string | null;
   onOpenChange: (open: boolean) => void;
   onSelect: (context: SignalContext) => void;
@@ -29,6 +30,7 @@ type SignalContextPickerProps = {
 };
 
 export function SignalContextPicker({
+  appearance = "row",
   error,
   onOpenChange,
   onSelect,
@@ -40,13 +42,12 @@ export function SignalContextPicker({
   const ActiveIcon = active.Icon;
 
   return <>
-    <section aria-label="Góc đang đọc" className="signal-context-control">
-      <button aria-haspopup="dialog" className="signal-context-trigger" onClick={() => onOpenChange(true)} type="button">
-        <span><ActiveIcon aria-hidden="true" weight="fill" /></span>
-        <span><small>Góc đang đọc</small><strong>{active.compactLabel}</strong></span>
-        <span aria-hidden="true">Đổi góc →</span>
+    <section aria-label="Góc đang đọc" className={appearance === "moon" ? "home-note-context" : "signal-context-control"}>
+      <button aria-label={`Góc đang đọc ${active.compactLabel}`} aria-haspopup="dialog" className={appearance === "moon" ? "home-note-moon" : "signal-context-trigger"} onClick={() => onOpenChange(true)} title="Đổi góc đọc Note" type="button">
+        {appearance === "moon" ? <><img alt="" src="/assets/ultraviolet/moon.webp" /><span className="sr-only">Đổi góc đọc</span></> : <><span><ActiveIcon aria-hidden="true" weight="fill" /></span>
+          <span><small>Góc đang đọc</small><strong>{active.compactLabel}</strong></span>
+          <span aria-hidden="true">Đổi góc →</span></>}
       </button>
-      <p>Chart giữ nguyên · chỉ đổi góc đời thường của Note.</p>
     </section>
 
     <AppSheet

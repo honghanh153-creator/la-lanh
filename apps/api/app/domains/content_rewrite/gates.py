@@ -6,11 +6,14 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domains.readings.models import DailyMeaningBrief
+from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS, OPAQUE_CORE_FRAGMENTS
+
 
 class DailyRewriteGateReport(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    version: str = "daily-home-rewrite-gates/v1"
+    version: str = "daily-home-rewrite-gates/v2"
     passed: bool
     failure_codes: tuple[str, ...] = ()
 
@@ -47,6 +50,10 @@ _ACTION_VERBS = (
     "bỏ",
     "ghi",
     "xác nhận",
+    "gửi",
+    "xin",
+    "giảm",
+    "đọc",
 )
 _SCENE_MARKERS = (
     "khi ",
@@ -94,6 +101,7 @@ def evaluate_daily_rewrite(
     *,
     source_scene: str | None = None,
     source_action: str | None = None,
+    meaning_brief: DailyMeaningBrief | None = None,
 ) -> DailyRewriteGateReport:
     failures: list[str] = []
     title = output.get("title")
@@ -112,31 +120,54 @@ def evaluate_daily_rewrite(
         failures.append("daily_action_budget")
     if sum(_words(value) for value in (title_text, scene_text, action_text)) > 70:
         failures.append("daily_total_budget")
+    if any(
+        _words(sentence) > 28 for sentence in re.split(r"[.!?]+", scene_text) if sentence.strip()
+    ):
+        failures.append("daily_dense_sentence")
     folded = _fold(" ".join((title_text, scene_text, action_text)))
     if any(_fold(term) in folded for term in _ASTRO_TERMS):
         failures.append("daily_astro_term")
-    if any(_fold(term) in folded for term in _OPAQUE_FILLER):
+    if any(
+        _fold(term) in folded
+        for term in (*_OPAQUE_FILLER, *BANNED_CORE_FRAGMENTS, *OPAQUE_CORE_FRAGMENTS)
+    ):
         failures.append("daily_opaque_filler")
     scene_folded = _fold(scene_text)
     action_folded = _fold(action_text)
+    if re.search(r"(?:^|[.!?]\s+)(?:hay|thu|nen|dung)\s", scene_folded):
+        failures.append("daily_advice_in_scene")
+    if any(term in scene_folded for term in ("chac chan", "nhat dinh", "se luon", "luon luon")):
+        failures.append("daily_unwarranted_certainty")
+    if meaning_brief is not None:
+        if not any(_fold(term) in scene_folded for term in meaning_brief.scene_anchors):
+            failures.append("daily_scene_brief_drift")
+        if not any(_fold(term) in action_folded for term in meaning_brief.action_anchors):
+            failures.append("daily_action_brief_drift")
+    if any(
+        _fold(term) in scene_folded
+        for term in ("đã gật", "đã đồng ý", "đã nhận lời", "đã nhận việc")
+    ) and any(_fold(term) in action_folded for term in ("trước khi đồng ý", "trước khi nhận")):
+        failures.append("daily_action_timing_conflict")
     if not any(_fold(marker) in scene_folded for marker in _SCENE_MARKERS):
         failures.append("daily_unobservable_scene")
     if not any(action_folded.startswith(_fold(verb)) for verb in _ACTION_VERBS):
         failures.append("daily_action_verb")
-    if not any(
+    if meaning_brief is None and not any(
         any(_fold(term) in scene_folded for term in group)
         and any(_fold(term) in action_folded for term in group)
         for group in _THEME_GROUPS
     ):
         failures.append("daily_scene_action_disconnected")
     if (
-        source_scene is not None
+        meaning_brief is None
+        and source_scene is not None
         and _theme_ids(source_scene)
         and not (_theme_ids(source_scene) & _theme_ids(scene_text))
     ):
         failures.append("daily_scene_meaning_drift")
     if (
-        source_action is not None
+        meaning_brief is None
+        and source_action is not None
         and _theme_ids(source_action)
         and not (_theme_ids(source_action) & _theme_ids(action_text))
     ):

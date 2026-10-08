@@ -4,10 +4,12 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import {
   getInsightOverview,
+  getBirthSupplement,
   isGuestSessionUnavailable,
   type Tradition,
 } from "../../shared/api/client";
 import { AppNav } from "../../shared/ui/AppNav";
+import { birthCompletionPrompt } from "../../shared/astro/birthReadiness";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { readingModeLabel } from "../../shared/ui/readingLabels";
 import { parseAyanamsa, parseHouseSystem, parseTradition } from "./insightConfig";
@@ -30,6 +32,8 @@ export function InsightsPage() {
     retry: false,
   });
   const richReading = insight.data?.reading_projection?.active;
+  const supplement = useQuery({ queryKey: ["birth-supplement"], queryFn: ({ signal }) => getBirthSupplement(signal), retry: false });
+  const completionPrompt = birthCompletionPrompt(supplement.data);
   const missingSession = isGuestSessionUnavailable(insight.error);
 
   function selectTradition(value: Tradition) {
@@ -88,10 +92,9 @@ export function InsightsPage() {
       {insight.data?.status === "locked" ? (
         <section className="cosmic-state cosmic-state--locked">
           <Clock size={36} />
-          <p className="eyebrow">Còn một lớp chưa mở</p>
-          <h2>Cần giờ và nơi sinh để đọc đủ chart.</h2>
-          <p>Lá Lành chỉ dùng dữ liệu này để tính chart. Bạn có thể xóa lại trong Mình.</p>
-          <Link className="electric-button" to="/birth-time">Mở lớp sâu</Link>
+          <p className="eyebrow">Bản đọc tổng quan</p>
+          <h2>{completionPrompt ? "Hiểu mình rõ hơn, từ lá số của bạn." : "Đang kiểm tra thông tin bản đọc."}</h2>
+          {completionPrompt ? <><p>{completionPrompt.body}</p><small>Dữ liệu bổ sung dùng để tính lá số và cá nhân hóa bản đọc. Bạn có thể xóa trong Mình.</small><Link className="electric-button" to="/birth-time">{completionPrompt.cta}</Link></> : supplement.isPending ? <p role="status">Đang kiểm tra giờ và nơi sinh đã lưu…</p> : <><p>Chưa mở được bản đọc. Không cần điền lại khi thông tin đã đủ.</p><button className="electric-button" type="button" onClick={() => { void supplement.refetch(); void insight.refetch(); }}>Thử tải lại bản đọc</button></>}
         </section>
       ) : null}
 
@@ -115,7 +118,7 @@ export function InsightsPage() {
               {insight.data.reading.claims.map((claim, index) => (
                 <Link className="insight-tile" key={claim.id} to={`/insights/${claim.id}?${configQuery}`}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
-                  <div><p>{claim.domain}</p><h3>{claim.title}</h3><strong>{claim.summary}</strong></div>
+                  <div><h3>{claim.title}</h3><strong>{claim.summary}</strong></div>
                   <ArrowRight aria-hidden="true" />
                 </Link>
               ))}

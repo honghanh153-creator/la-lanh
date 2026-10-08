@@ -24,7 +24,7 @@ export function CalculationSettingsPage() {
     setParams(next);
   };
   return <main className="flow-page settings-page insight-settings">
-    <header className="cosmic-header"><Link className="icon-button" to={`/insights?tradition=${tradition}`}><ArrowLeft /></Link><span className="eyebrow">Cách tính</span><SlidersHorizontal /></header>
+    <header className="cosmic-header"><Link aria-label="Quay lại Bản đồ của mình" className="icon-button" to={`/insights?tradition=${tradition}`}><ArrowLeft /></Link><span className="eyebrow">Cách tính</span><SlidersHorizontal /></header>
     <section className="insight-hero"><h1>Biết chart được tính thế nào.</h1><p>Hai hệ đọc không phải hai nhãn cho cùng dữ liệu. Đổi hệ sẽ tính lại toàn bộ vị trí.</p></section>
     <fieldset className="calculation-group">
       <legend>Hệ nhà</legend>

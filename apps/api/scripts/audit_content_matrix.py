@@ -17,6 +17,14 @@ from app.domains.radar.reading import (
     CONTEXT_CHECKS,
     SCENE_COPY,
 )
+from app.domains.readings.daily_psychology import (
+    DAILY_ISSUES,
+    PSYCHOLOGY_SOURCES,
+    issue_source_ids,
+)
+from app.domains.readings.daily_psychology import (
+    source_ids as psychology_source_ids,
+)
 from app.domains.readings.interpretive_lenses import (
     CURRENT_FORCES,
     ELEMENTS,
@@ -70,6 +78,8 @@ def current_metrics() -> dict[str, int]:
         "daily_editorial_modes": len(EditorialMode),
         "daily_semantic_cycle_days": len(InterpretiveLens) * len(EditorialMode) * 3 * 7,
         "daily_methodology_sources": len(METHODOLOGY_SOURCE_IDS),
+        "daily_psychology_sources": len(PSYCHOLOGY_SOURCES),
+        "daily_psychology_issue_families": len(DAILY_ISSUES),
         "relationship_sources": len(BOOK_SOURCES),
         "relationship_concepts": len(EDITORIAL_CONCEPTS),
         "relationship_dimensions": len(RelationshipDimension),
@@ -122,6 +132,20 @@ def validate_matrix() -> list[str]:
         failures.append("Daily Note zodiac/house/element launch coverage regressed")
     if len(MODALITIES) != 3 or len(HOUSE_MODES) != 3:
         failures.append("Daily Note modality or house-mode coverage regressed")
+    if len(psychology_source_ids()) != len(PSYCHOLOGY_SOURCES):
+        failures.append("Daily psychology source IDs are not unique")
+    if issue_source_ids() != psychology_source_ids():
+        failures.append("Daily psychology sources and executable issue families are out of sync")
+    required_psychology_arenas = {
+        "relationships",
+        "communication",
+        "work",
+        "energy",
+        "self_care",
+    }
+    covered_psychology_arenas = {arena.value for issue in DAILY_ISSUES for arena in issue.arenas}
+    if not required_psychology_arenas.issubset(covered_psychology_arenas):
+        failures.append("Daily psychology issue families do not cover every Home context")
 
     explicit_background_lenses = set(BackgroundLens) - {BackgroundLens.AUTO}
     for name, context_mapping in {
@@ -149,7 +173,21 @@ def validate_matrix() -> list[str]:
             *meaning.hooks,
         )
     )
-    if any(fragment in daily_atoms.casefold() for fragment in forbidden_daily_fragments):
+    psychology_atoms = " ".join(
+        atom
+        for issue in DAILY_ISSUES
+        for atom in (
+            *issue.headlines,
+            *issue.scenes,
+            issue.meaning,
+            issue.takeaway,
+            *issue.advice,
+        )
+    )
+    if any(
+        fragment in f"{daily_atoms} {psychology_atoms}".casefold()
+        for fragment in forbidden_daily_fragments
+    ):
         failures.append("Daily Note catalog contains a retired generic or incoherent fragment")
     if any(
         len(set(meaning.practices)) != len(meaning.practices)

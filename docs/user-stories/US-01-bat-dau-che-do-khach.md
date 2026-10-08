@@ -1,5 +1,7 @@
 # US-01 — Bắt đầu bằng chế độ khách
 
+**Cập nhật 07/10/2026:** guest vẫn chỉ cần ngày sinh và consent cơ bản. US-02 cho mở thêm giờ/nơi sinh tùy chọn, với consent riêng; không login wall hay thêm màn bắt buộc. Xem [contract onboarding mới](../plans/2026-10-07-optional-birth-details-planet-surface.md). Welcome không cần hỏi giờ/nơi sinh hay thêm slide mới.
+
 ## 1. User story
 
 Là người mới, tôi muốn hiểu ngắn gọn Lá Lành làm gì và dùng thử trải nghiệm cá nhân hóa mà chưa phải đăng nhập, để chỉ tạo tài khoản sau khi sản phẩm đã cho tôi thấy giá trị.

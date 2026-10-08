@@ -19,6 +19,7 @@ import {
   type ReadingProjection,
 } from "../../shared/api/client";
 import { clearCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
+import ultravioletStyles from "../../shared/styles/ultraviolet.css?raw";
 import { HomePage } from "./HomePage";
 
 vi.mock("../../shared/api/client", async (original) => {
@@ -60,38 +61,69 @@ describe("HomePage rich reading", () => {
     });
   });
 
-  it("starts from the user's question and routes to every live capability", async () => {
+  it("disables Home motion under reduced-motion and keeps the pause rule scoped to decoration", () => {
+    const reducedMotion = ultravioletStyles.slice(ultravioletStyles.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reducedMotion).toContain("animation: none !important");
+    expect(reducedMotion).toContain(".home-motion-toggle { display: none; }");
+    expect(ultravioletStyles).toContain('.home-page[data-home-motion="paused"] :is(.home-note-moon img, .home-advice-star, .home-explore-routes__choices a:first-child img, .home-explore-routes__choices a:last-child img) { animation-play-state: paused; }');
+  });
+
+  it("pauses and resumes decorative motion without replacing the note or disabling its actions", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+    const user = userEvent.setup();
+    const headline = await screen.findByRole("heading", { name: vibe.sections.hook });
+    const home = screen.getByRole("main");
+    expect(home).toHaveAttribute("data-home-motion", "running");
+
+    await user.click(screen.getByRole("button", { name: "Tạm dừng chuyển động" }));
+    expect(home).toHaveAttribute("data-home-motion", "paused");
+    expect(headline).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Đọc thêm" })).toHaveAttribute("href", "/note/today");
+    expect(screen.getByRole("button", { name: "Trúng" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Góc đang đọc Lá chọn" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Bật chuyển động" }));
+    expect(home).toHaveAttribute("data-home-motion", "running");
+    expect(vi.mocked(getDailyNote)).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts with a clear product promise, proves value with today's note, then routes to every live capability", async () => {
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     renderPage();
 
-    const questionHeading = await screen.findByRole("region", { name: "Bạn đang muốn hiểu điều gì?" });
+    const valueHeading = await screen.findByRole("heading", { name: "Hôm nay có gì đáng để ý?" });
     const noteRegion = await screen.findByRole("region", { name: "Note hôm nay" });
     const discoveryRegion = screen.getByRole("region", { name: "Khám phá thêm" });
 
-    expect(questionHeading.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(valueHeading.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(noteRegion.compareDocumentPosition(discoveryRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(discoveryRegion).getByRole("link", { name: /^Mình Hiểu điều hay lặp lại/ })).toHaveAttribute("href", "/natal");
-    expect(within(discoveryRegion).getByRole("link", { name: /^Một người Check độ hợp gu/ })).toHaveAttribute("href", "/radar");
-    expect(within(discoveryRegion).getByRole("link", { name: /^Hôm nay/ })).toHaveAttribute("href", "/insights/current-sky?tradition=western");
-    expect(screen.getByRole("link", { name: /Có chuyện cứ chạy trong đầu/ })).toHaveAttribute("href", "/tarot");
+    expect(within(discoveryRegion).getByRole("link", { name: "Mình & người ấy" })).toHaveAttribute("href", "/radar");
+    expect(within(discoveryRegion).getByRole("link", { name: "Rút Tarot" })).toHaveAttribute("href", "/tarot");
+    expect(screen.getByRole("link", { name: "Khám phá" })).toHaveAttribute("href", "/insights");
+    expect(screen.queryByRole("button", { name: "Giữ việc này để thử" })).not.toBeInTheDocument();
     expect(screen.queryByText("Lá Chứng")).not.toBeInTheDocument();
     expect(within(noteRegion).getByRole("button", { name: "Trúng" })).toBeInTheDocument();
     expect(within(noteRegion).getByRole("button", { name: "Chưa trúng" })).toBeInTheDocument();
     expect(within(noteRegion).getByRole("link", { name: "Chia sẻ note" })).toHaveAttribute("href", "/card");
     expect(screen.queryByRole("button", { name: "Lưu lại" })).not.toBeInTheDocument();
+    expect(within(noteRegion).getByText("Hôm nay của bạn")).toBeInTheDocument();
+    expect(within(noteRegion).getByRole("complementary", { name: "Việc có thể thử hôm nay" })).toBeInTheDocument();
+    expect(within(noteRegion).queryByText("Vì sao dành cho bạn?")).not.toBeInTheDocument();
+    expect(within(noteRegion).queryByText(/Đọc từ (dữ liệu ngày sinh|lá số đầy đủ)/)).not.toBeInTheDocument();
   });
 
-  it("keeps the question-first routes available when the daily note fails", async () => {
+  it("keeps the value promise and routes available when the daily note fails", async () => {
     vi.mocked(getDailyNote).mockRejectedValue(new Error("offline"));
     renderPage();
 
-    const questionHeading = await screen.findByRole("heading", { name: "Bạn đang muốn hiểu điều gì?" });
+    const valueHeading = await screen.findByRole("heading", { name: "Hôm nay có gì đáng để ý?" });
     const emptyHeading = await screen.findByRole("heading", { name: "Note chưa về kịp." });
     const discoveryRegion = screen.getByRole("region", { name: "Khám phá thêm" });
-    expect(questionHeading.compareDocumentPosition(emptyHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(valueHeading.compareDocumentPosition(emptyHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(emptyHeading.compareDocumentPosition(discoveryRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(discoveryRegion).getByRole("link", { name: /Mình Hiểu điều hay lặp lại/ })).toHaveAttribute("href", "/natal");
-    expect(screen.getByRole("link", { name: /Có chuyện cứ chạy trong đầu/ })).toHaveAttribute("href", "/tarot");
+    expect(screen.getByRole("link", { name: "Khám phá" })).toHaveAttribute("href", "/insights");
+    expect(within(discoveryRegion).getByRole("link", { name: /Rút Tarot/ })).toHaveAttribute("href", "/tarot");
   });
 
   it("keeps a cached reading visible when its background refresh fails", async () => {
@@ -100,13 +132,13 @@ describe("HomePage rich reading", () => {
     vi.mocked(getDailyNote).mockRejectedValue(new Error("offline"));
     renderPage();
 
-    const questionHeading = await screen.findByRole("region", { name: "Bạn đang muốn hiểu điều gì?" });
+    const valueHeading = await screen.findByRole("heading", { name: "Hôm nay có gì đáng để ý?" });
     const noteRegion = await screen.findByRole("region", { name: "Note hôm nay" });
     const discoveryRegion = screen.getByRole("region", { name: "Khám phá thêm" });
-    expect(questionHeading.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(valueHeading.compareDocumentPosition(noteRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(noteRegion.compareDocumentPosition(discoveryRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(await screen.findByText("Đang xem đúng bản đã mở gần nhất trên máy")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
   });
 
   it("keeps a cached note readable but exposes session recovery for live features", async () => {
@@ -142,18 +174,18 @@ describe("HomePage rich reading", () => {
     expect(screen.queryByText("Kiểm tra kết nối rồi thử lại.")).not.toBeInTheDocument();
   });
 
-  it("shows Vibe and Aura as meaningfully different reading modes", async () => {
+  it("keeps Vibe and Aura copy distinct without exposing chart provenance on Home", async () => {
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     const first = renderPage();
-    expect((await screen.findAllByText("Vibe · Một lớp từ ngày sinh")).length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
+    expect(screen.queryByText("Đọc từ dữ liệu ngày sinh của bạn")).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
     first.unmount();
     clearCachedDailyNote();
 
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(aura)));
     renderPage();
-    expect((await screen.findAllByText("Aura · Tổng hòa lá số")).length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: aura.sections.hook })).toBeInTheDocument();
+    expect(screen.queryByText("Đọc từ lá số đầy đủ của bạn")).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: aura.sections.hook })).toBeInTheDocument();
   });
 
   it("keeps a full-chart gift closed until explicit activation", async () => {
@@ -211,16 +243,17 @@ describe("HomePage rich reading", () => {
 
     const noteRegion = await screen.findByRole("region", { name: "Note hôm nay" });
     const contextRegion = screen.getByRole("region", { name: "Góc đang đọc" });
-    expect(noteRegion.compareDocumentPosition(contextRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(noteRegion).toContainElement(contextRegion);
     await user.click(screen.getByRole("button", { name: "Góc đang đọc Lá chọn" }));
     await user.click(screen.getByRole("button", { name: "Việc cần chốt" }));
 
     await waitFor(() => expect(getContextualReading).toHaveBeenCalledWith("work"));
     expect(await screen.findByRole("heading", { name: workReading.sections.hook })).toBeInTheDocument();
-    expect(screen.queryByText(workReading.sections.manifestation)).not.toBeInTheDocument();
+    expect(screen.getByText(workReading.sections.manifestation)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Đọc thêm/ })).toHaveAttribute("href", "/note/today?context=work");
+    expect(screen.getByRole("link", { name: "Chia sẻ note" })).toHaveAttribute("href", "/card?context=work");
     expect(localStorage.getItem("la-lanh-signal-context-v1")).toBeNull();
-    await user.click(screen.getByText("Vì sao hôm nay?"));
-    expect(screen.getByText("Một dữ kiện đã duyệt")).toBeInTheDocument();
+    expect(screen.queryByText("Vì sao dành cho bạn?")).not.toBeInTheDocument();
   });
 
   it("keeps energy and self-care available without crowding the first scan", async () => {
@@ -243,7 +276,7 @@ describe("HomePage rich reading", () => {
 
     await waitFor(() => expect(getContextualReading).toHaveBeenCalledWith("energy"));
     expect(await screen.findByRole("heading", { name: energyReading.sections.hook })).toBeInTheDocument();
-    expect(screen.queryByText(energyReading.sections.manifestation)).not.toBeInTheDocument();
+    expect(screen.getByText(energyReading.sections.manifestation)).toBeInTheDocument();
   });
 
   it("asks just in time before recording hit or miss and sends only bounded fields", async () => {

@@ -10,6 +10,10 @@ import { RadarFlowSteps } from "./RadarFlowSteps";
 import { radarVoiceLabel, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
 
 export function PublicRadarPage() {
+  return <div className="app-shell ultraviolet-app"><PublicRadarContent /></div>;
+}
+
+function PublicRadarContent() {
   const navigate = useNavigate();
   const token = useParams().token ?? "";
   const query = useQuery({ queryKey: ["public-radar", token], queryFn: ({ signal }) => getPublicRadarInvite(token, signal), retry: false });

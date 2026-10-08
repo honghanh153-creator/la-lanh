@@ -1,76 +1,18 @@
 import { ArrowLeft, DownloadSimple, LinkBreak, LinkSimple, ShareNetwork } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   createShareArtifact,
-  getDailyNote,
   revokeShareArtifact,
   type DailyNote,
   type ShareArtifact,
   type ShareFormat,
 } from "../../shared/api/client";
+import { dailyContextQueryKey, getDailyNoteForContext, parseDailyContext } from "../../shared/astro/dailyContext";
 import { BrandMark } from "../../shared/ui/BrandMark";
-
-function escapeXml(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
-function svgLines(value: string, maxChars: number): string[] {
-  const words = value.split(/\s+/);
-  return words.reduce<string[]>((lines, word) => {
-    const last = lines.at(-1);
-    if (!last || `${last} ${word}`.length > maxChars) lines.push(word);
-    else lines[lines.length - 1] = `${last} ${word}`;
-    return lines;
-  }, []);
-}
-
-function shareCopy(note: DailyNote): { title: string; body: string; persona: string } {
-  const reading = note.reading_projection?.active;
-  if (!reading) {
-    return {
-      title: note.title,
-      body: "",
-      persona: `${note.persona_mode === "aura" ? "Aura" : "Vibe"} · ${note.persona_label}`,
-    };
-  }
-  return {
-    title: reading.sections.hook,
-    body: reading.mode === "vibe_fallback" ? "" : reading.sections.manifestation,
-    persona: `${reading.mode === "vibe_fallback" ? "Vibe" : "Aura"} · ${note.persona_label}`,
-  };
-}
-
-function cardSvg(note: DailyNote, format: ShareFormat): string {
-  const copy = shareCopy(note);
-  const width = format === "square_1_1" ? 1080 : 1080;
-  const height = format === "square_1_1" ? 1080 : 1920;
-  const footerY = height - 112;
-  const paperY = format === "square_1_1" ? 255 : 520;
-  const titleLines = svgLines(copy.title, 25).slice(0, 3);
-  const bodyLines = svgLines(copy.body, 42).slice(0, 4);
-  const titleSvg = titleLines.map((line, index) => `<tspan x="170" dy="${index === 0 ? 0 : 86}">${escapeXml(line)}</tspan>`).join("");
-  const bodySvg = bodyLines.map((line, index) => `<tspan x="175" dy="${index === 0 ? 0 : 58}">${escapeXml(line)}</tspan>`).join("");
-  const bodyBlock = copy.body
-    ? `<text x="175" y="${paperY + 500}" fill="#160620" font-family="Be Vietnam Pro, sans-serif" font-size="38">${bodySvg}</text>`
-    : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <rect width="${width}" height="${height}" rx="52" fill="#160620"/>
-  <circle cx="880" cy="260" r="310" fill="#d8ff00"/><circle cx="820" cy="310" r="220" fill="#291135"/>
-  <path d="M735 120 C640 230 705 390 1080 520" fill="none" stroke="#ff705f" stroke-width="7"/>
-  <rect x="86" y="80" width="338" height="108" rx="8" fill="#d8ff00" transform="rotate(-3 86 80)"/>
-  <text x="122" y="153" fill="#160620" font-family="Be Vietnam Pro, sans-serif" font-size="72" font-weight="900">Lá Lành*</text>
-  <rect x="95" y="${paperY}" width="890" height="560" rx="34" fill="#fff5df" transform="rotate(-3 95 ${paperY})"/>
-  <circle cx="175" cy="${paperY + 76}" r="28" fill="#ff705f"/>
-  <text x="185" y="${paperY + 170}" fill="#5a286d" font-family="Be Vietnam Pro, sans-serif" font-size="50" font-weight="700">một note đọc từ lá số của bạn</text>
-  <text x="170" y="${paperY + 285}" fill="#160620" font-family="Be Vietnam Pro, sans-serif" font-size="68" font-weight="900">${titleSvg}</text>
-  <path d="M175 ${paperY + 400} C360 ${paperY + 425} 575 ${paperY + 380} 845 ${paperY + 400}" stroke="#ff705f" stroke-width="12" stroke-linecap="round"/>
-  ${bodyBlock}
-  <text x="88" y="${footerY}" fill="#d8ff00" font-family="Be Vietnam Pro, sans-serif" font-size="34" font-weight="800">${escapeXml(copy.persona)} · la-lanh</text>
-  </svg>`;
-}
+import { cardSvg, shareCopy } from "./noteCardSvg";
 
 function svgFile(note: DailyNote, format: ShareFormat): File {
   return new File([cardSvg(note, format)], `la-lanh-note-${format}.svg`, { type: "image/svg+xml" });
@@ -106,14 +48,16 @@ function shareUrl(artifact: ShareArtifact): string | null {
 
 export function CardPage() {
   const navigate = useNavigate();
-  const noteQuery = useQuery({ queryKey: ["daily-note"], queryFn: ({ signal }) => getDailyNote(signal) });
+  const [searchParams] = useSearchParams();
+  const context = parseDailyContext(searchParams.get("context"));
+  const noteQuery = useQuery({ queryKey: dailyContextQueryKey(context), queryFn: ({ signal }) => getDailyNoteForContext(context, signal) });
   const [format, setFormat] = useState<ShareFormat>("story_9_16");
   const [artifact, setArtifact] = useState<ShareArtifact | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const createMutation = useMutation({
     mutationFn: () => {
       if (!noteQuery.data) throw new Error("Missing daily note");
-      return createShareArtifact(noteQuery.data.id, format);
+      return createShareArtifact(noteQuery.data.id, format, noteQuery.data.reading_projection?.active.revision_id ?? null);
     },
     onSuccess: (payload) => {
       setArtifact(payload);

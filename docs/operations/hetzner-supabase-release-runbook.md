@@ -90,7 +90,8 @@ A release is successful only when all of these are true:
   deletions made after the restore point first.
 - Use only synthetic identities for production acceptance. Delete the generated test data and revoke
   test capabilities afterward.
-- AI generation remains disabled until its separate governance gate is approved.
+- AI generation remains disabled unless the separate Luna governance gate, current owner spend
+  approval, synthetic paid probe and least-privilege worker checklist all pass.
 
 ## Server and network contract
 
@@ -105,9 +106,10 @@ Browser -> HTTPS :443 -> Caddy -> app:8080 on private Compose network
 /opt/la-lanh/secrets/        root-managed runtime secret files
 ```
 
-Required secret files are `database_url`, `guest_hash_key`, and `guest_encryption_key`. The secrets
-directory is mode `0700`. Each file is mode `0600`, owned by runtime UID/GID `65532:65532`, so the
-non-root app process can read the Compose-mounted secret.
+Required baseline secret files are `database_url`, `guest_hash_key`, and `guest_encryption_key`.
+When generation is enabled, `openai_api_key` is additionally required and is mounted only into the
+isolated rewrite worker. The secrets directory is mode `0700`. Each file is mode `0600`, owned by
+runtime UID/GID `65532:65532`, so the non-root process can read the Compose-mounted secret.
 
 Network policy:
 
@@ -225,7 +227,7 @@ Review the file without changing the established contract:
 
 - exact origin: `https://la-lanh.2-28-136-44.sslip.io`;
 - secure guest cookies enabled;
-- generation disabled;
+- generation disabled unless the Luna shadow checklist is the explicit purpose of this release;
 - required web distribution enabled;
 - Swiss Ephemeris license mode `agpl`.
 
@@ -256,26 +258,47 @@ chmod 0600 /opt/la-lanh/secrets/database_url /opt/la-lanh/secrets/guest_hash_key
 chown 65532:65532 /opt/la-lanh/secrets/database_url /opt/la-lanh/secrets/guest_hash_key /opt/la-lanh/secrets/guest_encryption_key
 ```
 
+For an approved Luna shadow release, write the OpenAI key through an interactive hidden-input step;
+never paste it into chat or pass it as a shell argument. Then apply and verify permissions without
+printing the value:
+
+```sh
+chmod 0600 /opt/la-lanh/secrets/openai_api_key
+chown 65532:65532 /opt/la-lanh/secrets/openai_api_key
+test -s /opt/la-lanh/secrets/openai_api_key
+```
+
 ## Phase 3 — build, probe, migrate, and start privately
 
-From the new release directory on the VPS:
+From the new release directory on the VPS, use the committed deployment script as the single source
+of truth. It validates secrets and licensing, selects the `generation` profile only when explicitly
+enabled, builds the image once, reruns the content review, migrates, and waits for health:
 
 ```sh
 cd /opt/la-lanh/releases/<RELEASE_ID>/source
 export APP_HOSTNAME=la-lanh.2-28-136-44.sslip.io
 export LA_LANH_RELEASE_ID=<RELEASE_ID>
 export LA_LANH_SECRETS_DIR=/opt/la-lanh/secrets
-docker compose -f infra/hetzner/compose.yaml config --quiet
-docker compose -f infra/hetzner/compose.yaml build app
-docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app python -m scripts.check_database_tls
-docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app alembic upgrade head
+infra/hetzner/deploy.sh
 docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app alembic current
-docker compose -f infra/hetzner/compose.yaml up -d --remove-orphans --wait app
 docker compose -f infra/hetzner/compose.yaml ps
 ```
 
+When generation is enabled, `ps` must show `rewrite-worker` healthy with no public port. Confirm the
+API container does not mount `/run/secrets/openai_api_key`, and the worker mounts neither the guest
+hash key nor any public port; do not use `docker inspect` formats that print environment values.
+
 The TLS probe intentionally checks the configured TLS policy plus a real query. `pg_stat_ssl` may not
 give useful results through Supavisor and is not the release gate.
+
+Since 2026-10-08, migration `20261008_0028` also isolates backend tables from Supabase Data API:
+RLS enabled, `PUBLIC`/`anon`/`authenticated` table grants revoked, and current migration-owner
+default table grants revoked. `deploy.sh` runs `scripts.check_database_privacy` after migration
+and **before** replacing the app. Any public table missing RLS or retaining client grants is No-Go.
+Keep the existing backend DB role for this release; a lower-privilege backend role is a separate
+migration with retention and deployment rehearsal. Never restore browser grants during rollback.
+This changes access control, not rows, credentials or keys. The guard needs rerunning if tables
+are later created by a different migration owner. See [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
 Verify readiness from inside the private app container:
 
@@ -432,7 +455,7 @@ compatibility is uncertain, stop traffic and diagnose rather than guessing or do
 
 ```sh
 docker compose -f /opt/la-lanh/current/infra/hetzner/compose.yaml ps
-docker compose -f /opt/la-lanh/current/infra/hetzner/compose.yaml logs --since 15m app caddy
+docker compose -f /opt/la-lanh/current/infra/hetzner/compose.yaml logs --since 15m app rewrite-worker caddy
 curl --fail https://la-lanh.2-28-136-44.sslip.io/v1/ready
 systemctl --failed
 ufw status verbose

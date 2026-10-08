@@ -135,6 +135,28 @@ describe("RadarPrivateStartPage", () => {
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
   });
 
+  it("requires both hour and minute for an exact-time check", async () => {
+    const user = userEvent.setup();
+    vi.mocked(searchBirthPlaces).mockResolvedValue([{
+      place_id: "vn-hanoi", display_name: "Hà Nội", timezone_id: "Asia/Ho_Chi_Minh",
+      country_code: "VN", confidence: "current-province-centroid",
+    }]);
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
+    </QueryClientProvider>);
+    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "QA");
+    await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
+    await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
+    await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
+    await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
+    await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
+    await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
+    await user.selectOptions(screen.getByLabelText("Giờ (0–23)"), "07");
+    expect(screen.getByRole("button", { name: /Check kín ngay/ })).toBeDisabled();
+    await user.selectOptions(screen.getByLabelText("Phút (0–59)"), "30");
+    expect(screen.getByRole("button", { name: /Check kín ngay/ })).toBeEnabled();
+  });
+
   it("opens all 34 current birthplace units without calling an external geocoder", async () => {
     const user = userEvent.setup();
     render(

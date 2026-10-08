@@ -189,7 +189,9 @@ def compile_daily_rewrite_request(
             model_version=model_version,
             prompt_version=prompt_version,
             schema_version="daily-rewrite/v1",
-            gate_version="daily-rewrite-gates/v1",
+            gate_version=canonical_surface_registry()
+            .require(RewriteSurface.DAILY_HOME)
+            .gate_version,
         ),
         authorization_receipt_id=content_rewrite_receipt_id(plan_record.guest_id),
         safe_payload={
@@ -199,6 +201,9 @@ def compile_daily_rewrite_request(
             "title_meaning": blueprint.hook,
             "scene_meaning": blueprint.manifestation,
             "action_meaning": blueprint.micro_action,
+            "meaning_brief": (
+                blueprint.daily_meaning.model_dump(mode="json") if blueprint.daily_meaning else None
+            ),
             "requirements": [
                 requirement.model_dump(mode="json") for requirement in blueprint.requirements
             ],
@@ -369,6 +374,7 @@ class DailyRewriteProjector(RewriteProjector):
             output,
             source_scene=baseline.semantic_blueprint.manifestation,
             source_action=baseline.semantic_blueprint.micro_action,
+            meaning_brief=baseline.semantic_blueprint.daily_meaning,
         )
         if not daily_report.passed:
             return RewriteProjectionDecision(

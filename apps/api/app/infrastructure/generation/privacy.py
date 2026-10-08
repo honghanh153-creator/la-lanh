@@ -9,6 +9,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from app.domains.content_rewrite.models import RewriteSurface
+from app.domains.readings.models import DailyMeaningBrief
 
 
 class UnsafeRewritePayload(ValueError):
@@ -58,6 +59,7 @@ class DailySafePayload(SafeModel):
     title_meaning: str = Field(min_length=1, max_length=280)
     scene_meaning: str = Field(min_length=1, max_length=700)
     action_meaning: str = Field(min_length=1, max_length=500)
+    meaning_brief: DailyMeaningBrief | None = None
     requirements: tuple[SafeRequirement, ...] = Field(min_length=1, max_length=8)
     evidence: tuple[SafeEvidence, ...] = Field(min_length=1, max_length=12)
 

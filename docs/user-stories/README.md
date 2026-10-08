@@ -6,7 +6,7 @@ Bộ tài liệu này tách flow tổng thành 19 user story độc lập theo *
 
 Nguồn chuẩn: `la-lanh-prd.md`, `la-lanh-srs.md`, `la-lanh-product-plan-v2.md` và `la-lanh-astro-engine-spec.md` (source of truth Astro Engine v2/US-07+).
 
-Direction chuẩn cho US-01–US-06 là **02 — Cosmic Glass Signal**. Dark là expression gần reference nhất; light dùng cùng hierarchy/component trên nền mist-lilac. Glass chỉ phân tách control, disclosure và navigation; reading surface đủ đục để đọc nhanh. Native app là release target và release gate; web/PWA là reference/companion, không phải bằng chứng thay thế cho native readiness.
+Direction UI hiện hành từ 06/10/2026 là **Ultraviolet Paper** theo ảnh Home người dùng chọn: nền kem, card trọng tâm tím, lime cho CTA, một font Be Vietnam Pro. Xem [screen inventory và contract trình bày](../design-directions/ultraviolet-paper-2026-10-06/README.md). Cosmic Glass Signal trong các bản story trước là reference lịch sử, không phải yêu cầu ghi đè hướng mới. Thay đổi này không thay AC dữ liệu/chart/consent. Native app vẫn là release target và release gate; web/PWA là reference/companion, không phải bằng chứng thay thế cho native readiness.
 
 Từ vựng compact thống nhất: profile chỉ có ngày sinh hiển thị `Vibe · <3–5 chữ>`; NatalChart sâu hợp lệ hiển thị `Aura · <3–5 chữ>`. Prompt cảm xúc luôn là **“Hôm nay bạn thấy sao?”** để “Vibe” chỉ có một nghĩa. `Aura v2` là nhãn biên tập deterministic từ nhiều factor ổn định của toàn chart, không còn đồng nghĩa với dominant element. Sun/Moon/Rising/House, hành tinh, aspect/drishti, transit, chart depth và precision là dữ kiện và phải còn trong provenance/detail.
 

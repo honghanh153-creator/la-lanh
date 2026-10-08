@@ -65,7 +65,7 @@ def test_date_only_sun_uses_approved_vibe_labels(sign: ZodiacSign, label: str) -
     assert note.context_label.startswith("Mặt Trời ")
     assert note.fallback_used is False
     assert note.fallback_reason is None
-    assert 80 <= len(note.full_body.split()) <= 140
+    assert 45 <= len(note.full_body.split()) <= 80
 
 
 def test_weighted_personal_plan_outweighs_raw_outer_planet_counts() -> None:
@@ -224,7 +224,7 @@ def test_ambiguous_date_only_result_uses_reviewed_neutral_vibe() -> None:
     assert note.context_label == "Chưa chốt được cung Mặt Trời"
     assert note.fallback_used is True
     assert note.fallback_reason is FallbackReason.AMBIGUOUS_SUN
-    assert 80 <= len(note.full_body.split()) <= 140
+    assert 45 <= len(note.full_body.split()) <= 80
 
 
 def _natal_chart(

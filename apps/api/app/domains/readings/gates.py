@@ -4,6 +4,7 @@ import re
 import unicodedata
 from collections.abc import Iterable
 
+from app.domains.content_rewrite.gates import evaluate_daily_rewrite
 from app.domains.readings.models import (
     EVIDENCE_DISCLOSURE_TITLE,
     FULL_FRAMEWORK_DISCLOSURE,
@@ -23,10 +24,10 @@ from app.domains.readings.models import (
 )
 from app.domains.readings.renderers import canonical_evidence_claim
 
-EVIDENCE_GATE_VERSION = "evidence-gate-vi-v1"
+EVIDENCE_GATE_VERSION = "evidence-gate-vi-v2"
 ANTI_INFLUENCE_GATE_VERSION = "anti-influence-gate-vi-v1"
 EDITORIAL_GATE_VERSION = "editorial-gate-vi-v3"
-MEANING_GATE_VERSION = "meaning-gate-vi-v1"
+MEANING_GATE_VERSION = "meaning-gate-vi-v2"
 PRIVACY_GATE_VERSION = "privacy-gate-vi-v1"
 
 _BODY_TERMS = (
@@ -165,7 +166,13 @@ def evidence_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
     if any(house not in allowed_houses for house in house_mentions):
         failures.append(GateFailureCode.EVIDENCE_ASTRO_LABEL)
     phase_mentions = re.findall(r"\bpha\s+(tien gan|chinh xac|tach dan)\b", folded_prose)
-    if any(phase not in allowed_values for phase in phase_mentions):
+    allowed_phases = {
+        _fold(slot.value)
+        for claim in canonical_claim_by_id.values()
+        for slot in claim.slots
+        if slot.name is ClaimSlotName.PHASE
+    }
+    if any(phase not in allowed_phases for phase in phase_mentions):
         failures.append(GateFailureCode.EVIDENCE_ASTRO_LABEL)
     if re.search(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b", prose):
         failures.append(GateFailureCode.EVIDENCE_UNSUPPORTED_TIMING)
@@ -373,6 +380,17 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
         failures.append(GateFailureCode.MEANING_CONTEXT_MISMATCH)
 
     if plan.purpose.value == "daily_note" and plan.tradition.value == "western":
+        if blueprint.daily_meaning is not None:
+            direct_report = evaluate_daily_rewrite(
+                {
+                    "title": candidate.hook,
+                    "scene": candidate.manifestation,
+                    "action": candidate.micro_action,
+                },
+                meaning_brief=blueprint.daily_meaning,
+            )
+            if not direct_report.passed:
+                failures.append(GateFailureCode.MEANING_DAILY_DIRECT_CONTRACT)
         scene_text = _fold(f"{candidate.hook} {candidate.manifestation}")
         advice_patterns = (
             r"(?:^|[.!?]\s+)(?:hay|thu|nen|dung)\s+",

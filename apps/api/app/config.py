@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     guest_hash_key: SecretStr = SecretStr(DEVELOPMENT_HASH_KEY)
     guest_encryption_key: SecretStr = SecretStr(DEVELOPMENT_ENCRYPTION_KEY)
     generation_enabled: bool = False
+    generation_worker_enabled: bool = False
     generation_provider: Literal["disabled", "openai"] = "disabled"
     generation_governance_approved: bool = False
     generation_spend_approved: bool = False
@@ -76,16 +77,8 @@ class Settings(BaseSettings):
         if self.generation_enabled:
             if self.generation_provider != "openai":
                 raise ValueError("enabled generation requires the pinned OpenAI provider")
-            if self.generation_openai_api_key is None:
-                raise ValueError("enabled generation requires an OpenAI API key")
             if not self.generation_governance_approved:
                 raise ValueError("enabled generation requires explicit governance approval")
-            if not self.generation_spend_approved:
-                raise ValueError("enabled generation requires explicit spend approval")
-            if self.generation_daily_token_budget < 1_000:
-                raise ValueError("enabled generation requires a positive daily token budget")
-            if self.generation_daily_budget_cents < 1:
-                raise ValueError("enabled generation requires a positive daily USD budget")
             if not any(mode != "off" for mode in self.generation_surface_rollout.values()):
                 raise ValueError("enabled generation requires an explicit surface rollout")
             allowed_surfaces = {
@@ -108,6 +101,17 @@ class Settings(BaseSettings):
                 raise ValueError(
                     f"generation rollout contains unknown surfaces: {sorted(unknown_surfaces)}"
                 )
+        if self.generation_worker_enabled:
+            if not self.generation_enabled:
+                raise ValueError("generation worker requires generation to be enabled")
+            if self.generation_openai_api_key is None:
+                raise ValueError("enabled generation worker requires an OpenAI API key")
+            if not self.generation_spend_approved:
+                raise ValueError("enabled generation worker requires explicit spend approval")
+            if self.generation_daily_token_budget < 1_000:
+                raise ValueError("enabled generation worker requires a positive daily token budget")
+            if self.generation_daily_budget_cents < 1:
+                raise ValueError("enabled generation worker requires a positive daily USD budget")
         if self.content_studio_enabled:
             if self.content_studio_api_token is None:
                 raise ValueError("Content Studio requires an API token")
@@ -130,7 +134,10 @@ class Settings(BaseSettings):
                 raise ValueError("secure guest cookies are mandatory outside local development")
             if any(origin.scheme != "https" for origin in self.cors_origins):
                 raise ValueError("all trusted origins must use HTTPS outside local development")
-            if self.guest_hash_key.get_secret_value() == DEVELOPMENT_HASH_KEY:
+            if (
+                not self.generation_worker_enabled
+                and self.guest_hash_key.get_secret_value() == DEVELOPMENT_HASH_KEY
+            ):
                 raise ValueError("a managed guest hash key is required outside local development")
             if self.guest_encryption_key.get_secret_value() == DEVELOPMENT_ENCRYPTION_KEY:
                 raise ValueError(

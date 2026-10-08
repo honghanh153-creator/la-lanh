@@ -5,14 +5,12 @@ import { AppNav } from "../../shared/ui/AppNav";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import "../matching/matching.css";
 import "./radar.css";
-import { RadarFlowSteps } from "./RadarFlowSteps";
 
 export function RadarLandingPage() {
-  return <main className="app-page matching-page radar-page">
+  return <main className="app-page matching-page radar-page radar-landing-page">
     <header className="matching-header"><BrandMark /><span className="matching-signal"><HeartStraight weight="fill" /> Radar hợp gu</span></header>
-    <RadarFlowSteps current={1} />
     <section className="matching-landing__hero radar-hero">
-      <div aria-hidden="true" className="radar-orbit"><span /><i><Waveform weight="duotone" /></i><b /></div>
+      <img alt="" className="radar-hero-art" src="/assets/ultraviolet/pair.webp" />
       <p className="eyebrow">Có một người làm bạn hơi tò mò?</p>
       <h1>Check thử hai bạn bắt sóng ở đâu.</h1>
       <p className="matching-landing__hero-detail">Không chỉ “hợp cung” hay không. Radar đọc hai chart để tìm chỗ dễ nói chuyện, dễ rung động và cả chỗ hay cấn—mà không cần nhắn hay báo cho người ấy.</p>

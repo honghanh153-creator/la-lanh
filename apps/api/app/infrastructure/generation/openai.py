@@ -31,8 +31,8 @@ from app.infrastructure.generation.schemas import (
 )
 
 OPENAI_RENDERER_VERSION = "openai-responses-v1"
-OPENAI_PROMPT_VERSION = "chart-synthesis-v1"
-OPENAI_REWRITE_PROMPT_VERSION = "surface-rewrite-v1"
+OPENAI_PROMPT_VERSION = "chart-synthesis-v2"
+OPENAI_REWRITE_PROMPT_VERSION = "surface-rewrite-v3"
 
 _OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -49,6 +49,10 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
 
 _DEVELOPER_INSTRUCTIONS = (
     "Write one reflective Vietnamese chart synthesis using only the supplied closed facts. "
+    "Use plain Vietnamese that a student can understand on the first read. Sound like a smart "
+    "close friend in their twenties: warm, direct, lightly playful, and serious with vulnerable "
+    "subjects. Do not use poetic metaphors, pseudo-profound paradoxes, translated therapy jargon, "
+    "or forced slang. Prefer a clear subject, verb, and ordinary observable situation. "
     "Do not add astrology facts, dates, identities, diagnoses, predictions, professional advice, "
     "or urgent/decisive instructions. Keep transit null unless one supplied fact is transit."
 )

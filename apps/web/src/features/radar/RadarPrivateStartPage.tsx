@@ -14,6 +14,7 @@ import {
   type RadarVoice,
 } from "../../shared/api/client";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { BirthTimeInput } from "../../shared/ui/BirthTimeInput";
 import "../matching/matching.css";
 import "./radar.css";
 import { RadarFlowSteps } from "./RadarFlowSteps";
@@ -110,7 +111,7 @@ export function RadarPrivateStartPage() {
   const complete = useMemo(() => Boolean(
     label.trim()
     && birthDate
-    && (birthTimeMode === "unknown" || birthTime)
+    && (birthTimeMode === "unknown" || /^([01]\d|2[0-3]):[0-5]\d$/.test(birthTime))
     && selectedPlace
     && attested,
   ), [attested, birthDate, birthTime, birthTimeMode, label, selectedPlace]);
@@ -184,15 +185,12 @@ export function RadarPrivateStartPage() {
       <div className="radar-form-heading"><span>01</span><div><strong>Người bạn muốn check</strong><p>Thông tin này không được gửi cho người ấy.</p></div></div>
       <label><span>Tên gọi để bạn dễ nhớ</span><input autoComplete="off" maxLength={40} onChange={(event) => setLabel(event.target.value)} placeholder="Ví dụ: An, Mèo, người hay seen…" required value={label} /></label>
       <fieldset><legend>Hai bạn đang là…</legend><div className="radar-contexts">{RADAR_CONTEXT_OPTIONS.map(([value, text]) => <button aria-pressed={context === value} className={context === value ? "is-selected" : ""} key={value} onClick={() => setContext(value)} type="button">{text}</button>)}</div></fieldset>
-      <fieldset><legend>Bạn muốn Radar nói kiểu nào?</legend><div className="radar-voices">{RADAR_VOICE_OPTIONS.map(([value, title, description]) => <button aria-pressed={voice === value} className={voice === value ? "is-selected" : ""} key={value} onClick={() => setVoice(value)} type="button"><strong>{title}</strong><small>{description}</small></button>)}</div></fieldset>
+      <details className="radar-voice-disclosure"><summary>Giọng đọc · {RADAR_VOICE_OPTIONS.find(([value]) => value === voice)?.[1]}</summary><fieldset><legend>Bạn muốn Radar nói kiểu nào?</legend><div className="radar-voices">{RADAR_VOICE_OPTIONS.map(([value, title, description]) => <button aria-pressed={voice === value} className={voice === value ? "is-selected" : ""} key={value} onClick={() => setVoice(value)} type="button"><strong>{title}</strong><small>{description}</small></button>)}</div></fieldset></details>
 
       <div className="radar-form-heading"><span>02</span><div><strong>Thông tin sinh của họ</strong><p>Có giờ chính xác sẽ mở Moon, Rising và House. Không rõ giờ vẫn check được, nhưng Radar sẽ tự bỏ các lớp dễ đoán sai.</p></div></div>
       <div className="radar-birth-grid">
         <fieldset className="radar-date-fieldset"><legend>Ngày sinh</legend><div className="radar-date-fields"><label><span>Ngày</span><input aria-label="Ngày sinh — ngày" inputMode="numeric" maxLength={2} onChange={(event) => setBirthDay(event.target.value.replace(/\D/g, ""))} placeholder="DD" required value={birthDay} /></label><i>/</i><label><span>Tháng</span><input aria-label="Ngày sinh — tháng" inputMode="numeric" maxLength={2} onChange={(event) => setBirthMonth(event.target.value.replace(/\D/g, ""))} placeholder="MM" required value={birthMonth} /></label><i>/</i><label><span>Năm</span><input aria-label="Ngày sinh — năm" inputMode="numeric" maxLength={4} onChange={(event) => setBirthYear(event.target.value.replace(/\D/g, ""))} placeholder="YYYY" required value={birthYear} /></label></div></fieldset>
-        <fieldset className="radar-time-fieldset"><legend>Giờ sinh</legend><div className="segmented-control">
-          <button aria-pressed={birthTimeMode === "exact"} className={birthTimeMode === "exact" ? "is-active" : ""} onClick={() => setBirthTimeMode("exact")} type="button">Biết giờ</button>
-          <button aria-pressed={birthTimeMode === "unknown"} className={birthTimeMode === "unknown" ? "is-active" : ""} onClick={() => { setBirthTimeMode("unknown"); setBirthTime(""); }} type="button">Không rõ giờ</button>
-        </div>{birthTimeMode === "exact" ? <label><span>Chọn giờ và phút</span><input onChange={(event) => setBirthTime(event.target.value)} required step={60} type="time" value={birthTime} /></label> : <p className="radar-field-help">Radar sẽ không dùng Moon, Rising, House hoặc các kết luận phụ thuộc giờ sinh của người này.</p>}</fieldset>
+        <fieldset className="radar-time-fieldset"><legend>Giờ sinh</legend><BirthTimeInput mode={birthTimeMode} onModeChange={(mode) => { if (mode !== "approx_window") setBirthTimeMode(mode); if (mode === "unknown") setBirthTime(""); }} time={birthTime} onTimeChange={setBirthTime} modes={["exact", "unknown"]} unknownLabel="Không rõ giờ" unknownHelp="Radar sẽ không dùng Moon, Rising, House hoặc các kết luận phụ thuộc giờ sinh của người này." /></fieldset>
       </div>
       {(birthDay || birthMonth || birthYear) && !birthDate ? <p className="radar-field-help">Nhập một ngày hợp lệ của người từ 18 tuổi trở lên.</p> : null}
       <label><span>Thành phố / tỉnh nơi sinh</span><div className="radar-place-input"><MapPin /><input autoComplete="off" onChange={(event) => { setPlaceQuery(event.target.value); setSelectedPlace(null); setShowAllPlaces(false); }} placeholder="Gõ Hà Nội, Bình Dương…" required value={placeQuery} /></div></label>

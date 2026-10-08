@@ -48,14 +48,14 @@ function RouteErrorPage() {
     : "Lá Lành đang cần một nhịp nghỉ.";
 
   return (
-    <main className="route-error">
+    <div className="app-shell ultraviolet-app"><main className="app-page route-error">
       <p className="eyebrow">Có một nốt lặng</p>
       <h1>{title}</h1>
       <p>Quay về điểm bắt đầu và thử lại nhé.</p>
       <Link className="primary-link" to="/">
         Về trang chào
       </Link>
-    </main>
+    </main></div>
   );
 }
 
@@ -117,7 +117,7 @@ export const appRoutes: RouteObject[] = [
   },
   {
     path: "/la-chung/i/:token",
-    element: <RetiredFeaturePage />,
+    element: <div className="app-shell ultraviolet-app"><RetiredFeaturePage /></div>,
     errorElement: <RouteErrorPage />,
   },
   {

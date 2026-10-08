@@ -24,6 +24,7 @@ from app.domains.readings.interpretive_lenses import (
 from app.domains.readings.models import (
     INTERPRETATION_KNOWLEDGE_VERSION,
     BackgroundLens,
+    DailyMeaningBrief,
     DerivedFactor,
     FactorKind,
     ReadingPlan,
@@ -95,6 +96,7 @@ class InterpretationFrame:
     mechanism_key: str = "general"
     scene_key: str = "general"
     action_key: str = "observe"
+    daily_meaning: DailyMeaningBrief | None = None
 
 
 PLANETS: dict[str, PlanetMeaning] = {
@@ -119,7 +121,7 @@ PLANETS: dict[str, PlanetMeaning] = {
         "nói thẳng một điều khiến bạn thấy được trân trọng, dưới dạng đề nghị",
     ),
     "mars": PlanetMeaning(
-        "được hành động thẳng và giữ ranh giới",
+        "nói rõ điều mình muốn và việc mình không nhận",
         "bật chế độ xử lý trước khi biết mình đang bực điều gì",
         "chọn một bước bắt đầu và một giới hạn bạn sẽ không vượt qua hôm nay",
     ),
@@ -168,6 +170,23 @@ PLANETS: dict[str, PlanetMeaning] = {
         "quay về phản xạ cũ chỉ vì nó dễ đoán",
         "giữ phần kỹ năng còn hữu ích và thử bỏ một phản xạ đã quá hạn",
     ),
+}
+
+PLANET_HOOK_NEEDS: dict[str, str] = {
+    "sun": "được là chính mình",
+    "moon": "cảm thấy an toàn",
+    "mercury": "hiểu và nói cho rõ",
+    "venus": "biết mình được trân trọng",
+    "mars": "nói rõ điều mình không đồng ý",
+    "jupiter": "được thử điều rộng hơn",
+    "saturn": "có cấu trúc đủ chắc",
+    "uranus": "được đổi cách làm",
+    "neptune": "có chỗ cho tưởng tượng",
+    "pluto": "giữ quyền chủ động",
+    "chiron": "được dịu với điểm còn nhạy",
+    "true_node": "được tập phản ứng mới",
+    "mean_node": "được tập phản ứng mới",
+    "south_node": "dùng điều quen thuộc mà không mắc kẹt",
 }
 
 
@@ -414,12 +433,12 @@ ASPECTS: dict[str, AspectMeaning] = {
         "phản ứng theo cảm giác đầu tiên trước khi gọi tên mình đang cần gì",
     ),
     "opposition": AspectMeaning(
-        "kéo sự chú ý về hai phía khác nhau",
-        "đẩy một phía sang người khác rồi chỉ giữ phía còn lại",
+        "kéo sự chú ý sang hai hướng khác nhau",
+        "chỉ chăm một nhu cầu rồi chờ người khác tự hiểu nhu cầu còn lại",
     ),
     "square": AspectMeaning(
-        "tạo ma sát khiến cả hai khó bị bỏ qua",
-        "giải quyết một nhu cầu bằng cách nén nhu cầu còn lại",
+        "có thể xuất hiện cùng lúc, khiến bạn khó chọn việc cần giải quyết trước",
+        "gạt một nhu cầu sang bên để xử lý nhu cầu còn lại",
     ),
     "trine": AspectMeaning(
         "hỗ trợ nhau khá tự nhiên", "dùng điều vốn thuận tay mà quên kiểm tra thực tế"
@@ -590,18 +609,97 @@ def _aspect_phase(factor: DerivedFactor) -> str | None:
 
 def _natal_phase_copy(phase: str | None) -> str:
     if phase == "applying":
-        return "Hai phần này thường gọi nhau khá nhanh."
+        return "Phản ứng có thể xuất hiện trước khi bạn kịp gọi tên từng nhu cầu."
     if phase == "separating":
-        return "Bạn thường nhận ra phản ứng này rõ hơn sau khi nó đã xảy ra."
+        return "Bạn có thể nhận ra phản ứng này rõ hơn sau khi chuyện đã qua."
     return ""
 
 
-def _orb_weight(orb: float) -> str:
-    if orb <= 1:
-        return "Góc khá sát nên chủ đề này thường dễ lộ rõ."
-    if orb <= 3:
-        return "Góc khá gần, đáng chú ý."
-    return "Góc rộng: chỉ xem là nét phụ; đối chiếu với trải nghiệm thật."
+EVERYDAY_NEEDS: dict[str, str] = {
+    "sun": "tự chọn cách làm, thay vì chỉ làm theo ý người khác",
+    "moon": "được nghe hết câu khi nói chuyện buồn, thay vì bị bảo là nghĩ nhiều",
+    "mercury": "hỏi cho rõ điều chưa hiểu, thay vì tự đoán qua một tin nhắn",
+    "venus": "thấy sự quan tâm qua việc nhớ lời hẹn hoặc dành thời gian cho nhau",
+    "mars": "nói thẳng điều không đồng ý và từ chối việc mình không muốn nhận",
+    "jupiter": "thử một việc mới dù chưa biết mình có làm tốt hay không",
+    "saturn": "biết thời hạn và trách nhiệm cụ thể trước khi nhận lời",
+    "uranus": "đổi cách làm khi cách cũ khiến mình thấy bị bó buộc",
+    "neptune": "có thời gian nghe nhạc, tưởng tượng hoặc nghỉ khỏi những việc phải giải quyết",
+    "pluto": "hỏi đến cùng chuyện chưa rõ, thay vì chấp nhận câu trả lời cho qua",
+    "chiron": "kể một chuyện từng làm mình buồn mà không bị chê hay so sánh",
+    "true_node": "thử phản hồi khác với cách mình vẫn làm",
+    "mean_node": "thử phản hồi khác với cách mình vẫn làm",
+    "south_node": "dùng cách làm quen thuộc vì đã biết mình làm được",
+}
+
+MARS_MOON_SCENES: dict[str, str] = {
+    "square": (
+        "Khi ai đó làm bạn khó chịu, bạn có thể muốn nói thẳng ngay. "
+        "Nhưng bạn cũng lo cuộc nói chuyện sẽ căng hơn, nên lại giữ trong lòng. "
+        "Điều khó ở đây là nói rõ điều mình không đồng ý mà hai người vẫn nghe được nhau."
+    ),
+    "opposition": (
+        "Trong một cuộc nói chuyện khó, có lúc bạn muốn nói cho rõ ngay; "
+        "lúc khác lại muốn im cho yên. "
+        "Chọn im có thể để chuyện cũ tiếp tục làm bạn khó chịu. "
+        "Nói khi đang bực lại dễ khiến người kia chỉ nghe thấy sự giận dữ."
+    ),
+    "conjunction": (
+        "Khi ai đó làm bạn buồn hoặc bực, bạn có thể phản hồi ngay bằng lời nói hay hành động. "
+        "Sau đó bạn mới nhận ra mình muốn được lắng nghe, chứ không chỉ muốn giải quyết cho xong."
+    ),
+    "trine": (
+        "Khi không đồng ý một chuyện, bạn có thể khá dễ nhận ra mình đang bực vì điều gì. "
+        "Nhờ vậy, bạn dễ nói rõ chuyện cần đổi mà không phải vòng vo. "
+        "Người kia vẫn có thể cần thêm thời gian để trả lời."
+    ),
+    "sextile": (
+        "Trong một cuộc nói chuyện khó, nói rõ điều làm mình buồn "
+        "có thể giúp bạn bớt phản ứng vội. "
+        "Bạn có cơ hội biến câu trách móc thành một đề nghị cụ thể. "
+        "Điều này cần bạn chủ động nói, không phải chờ người kia tự hiểu."
+    ),
+    "quincunx": (
+        "Bạn có thể nói là chuyện đã xong, nhưng vẫn thấy bực hoặc buồn khi nhớ lại. "
+        "Cách xử lý nhanh chưa chắc đã giải quyết điều khiến bạn khó chịu. "
+        "Vì thế, đôi khi bạn cần quay lại cuộc nói chuyện thay vì coi việc im đi là đã ổn."
+    ),
+}
+
+
+def _everyday_aspect(body_a: str, body_b: str, aspect: str) -> str:
+    if {body_a, body_b} == {"mars", "moon"}:
+        return MARS_MOON_SCENES.get(aspect, MARS_MOON_SCENES["conjunction"])
+    first = EVERYDAY_NEEDS.get(body_a, EVERYDAY_NEEDS["sun"])
+    second = EVERYDAY_NEEDS.get(body_b, EVERYDAY_NEEDS["moon"])
+    if first == second:
+        return (
+            f"Bạn có thể muốn {first}. "
+            "Cùng một chuyện có thể khiến bạn suy nghĩ lại trước khi trả lời."
+        )
+    bridge = {
+        "square": (
+            "Khi phải quyết định ngay, bạn có thể chọn một việc "
+            "rồi thấy việc còn lại chưa được giải quyết."
+        ),
+        "opposition": (
+            "Có lúc bạn ưu tiên việc đầu, có lúc lại đổi ý vì việc còn lại cũng quan trọng."
+        ),
+        "conjunction": (
+            "Hai việc này thường xuất hiện trong cùng một tình huống, "
+            "nên bạn dễ phản hồi ngay trước khi nghĩ kỹ."
+        ),
+        "trine": (
+            "Bạn có thể khá dễ làm cả hai việc mà không thấy phải bỏ một việc để giữ việc kia."
+        ),
+        "sextile": (
+            "Bạn có thể làm cả hai việc nếu nói rõ mình muốn gì, thay vì chờ người khác đoán."
+        ),
+        "quincunx": (
+            "Một cách xử lý có thể hợp với việc đầu nhưng chưa giải quyết được việc còn lại."
+        ),
+    }.get(aspect, "Một câu trả lời nhanh chưa chắc giải quyết được điều bạn thật sự muốn.")
+    return f"Bạn có thể muốn {first}. Đồng thời, bạn cũng muốn {second}. {bridge}"
 
 
 def _context_house(
@@ -814,6 +912,8 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     planet_b = catalog.planets.get(body_b, catalog.planets["moon"])
     perspective_a = PLANET_PERSPECTIVES.get(body_a, PLANET_PERSPECTIVES["sun"])
     perspective_b = PLANET_PERSPECTIVES.get(body_b, PLANET_PERSPECTIVES["moon"])
+    hook_need_a = PLANET_HOOK_NEEDS.get(body_a, planet_a.drive)
+    hook_need_b = PLANET_HOOK_NEEDS.get(body_b, planet_b.drive)
     sign_a_key = _placement_sign(primary) or "pisces"
     sign_b_key = _placement_sign(secondary) or "pisces"
     sign_a = catalog.signs.get(sign_a_key, catalog.signs["pisces"])
@@ -847,13 +947,8 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     if hero.kind is FactorKind.NATAL_ASPECT:
         parts = _parts(hero)
         aspect_name = parts[3]
-        orb = float(parts[6])
-        aspect = catalog.aspects.get(aspect_name, catalog.aspects["conjunction"])
-        aspect_core = (
-            f"Bạn vừa muốn {planet_a.drive}, vừa muốn {planet_b.drive}. "
-            f"Hai mong muốn này {aspect.bridge}. Khi căng, bạn dễ {aspect.watch}. "
-            f"{_orb_weight(orb)}"
-        )
+        # Orb still selects/ranks chart evidence, not a claim about real-world certainty.
+        aspect_core = _everyday_aspect(body_a, body_b, aspect_name)
         phase = _aspect_phase(hero)
         phase_copy = (
             _natal_phase_copy(phase)
@@ -883,10 +978,13 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         if hero.role.value == "tension"
         else "làm theo điều vốn thuận tay mà quên kiểm tra nhu cầu còn lại"
     )
+    dynamic = plan.purpose is ReadingPurpose.DAILY_NOTE
     hook, manifestation, action = _lens_copy(
         lens=lens,
         planet_a=planet_a,
         planet_b=planet_b,
+        hook_need_a=hook_need_a,
+        hook_need_b=hook_need_b,
         perspective_a=perspective_a,
         perspective_b=perspective_b,
         element_a=element_a,
@@ -898,7 +996,7 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         editorial_mode=editorial_variant.mode,
         action_slot=editorial_variant.action_slot,
         reflection_slot=editorial_variant.reflection_slot,
-        dynamic=plan.purpose is ReadingPurpose.DAILY_NOTE,
+        dynamic=dynamic,
     )
     return InterpretationFrame(
         hook=hook,
@@ -919,6 +1017,8 @@ def _lens_copy(
     lens: InterpretiveLens,
     planet_a: PlanetMeaning,
     planet_b: PlanetMeaning,
+    hook_need_a: str,
+    hook_need_b: str,
     perspective_a: PlanetPerspective,
     perspective_b: PlanetPerspective,
     element_a: ElementMeaning,
@@ -936,7 +1036,7 @@ def _lens_copy(
     # assembly here makes the semantic frame auditable before any prose renderer.
     arena = context[1].arena if context else "tình huống này"
     if lens is InterpretiveLens.RELATIONSHIPS:
-        hook = f"Trong quan hệ, bạn vừa muốn {planet_a.drive}, vừa muốn {planet_b.drive}."
+        hook = f"Trong quan hệ, bạn vừa muốn {hook_need_a}, vừa muốn {hook_need_b}."
         manifestation = (
             f"Bạn thường {perspective_a.relationships}. Cùng lúc, bạn cũng "
             f"{perspective_b.relationships}. Điều này thường xuất hiện {context_phrase}. "
@@ -947,7 +1047,7 @@ def _lens_copy(
             "Đừng dùng chart để đoán hộ câu trả lời của họ."
         )
     elif lens is InterpretiveLens.WORK:
-        hook = f"Ở công việc, bạn muốn {planet_a.drive}. Bạn cũng muốn {planet_b.drive}."
+        hook = f"Ở công việc, bạn muốn {hook_need_a}. Bạn cũng muốn {hook_need_b}."
         manifestation = (
             f"Bạn {perspective_a.work}. Đồng thời, bạn {perspective_b.work}. "
             f"Sự giằng co dễ thấy {context_phrase}. Khi đó, bạn có thể {default_reaction}."
@@ -957,7 +1057,7 @@ def _lens_copy(
             "Xem đây là thử nghiệm cho hôm nay, không phải công thức nghề nghiệp."
         )
     elif lens is InterpretiveLens.REGULATION:
-        hook = f"Lúc quá tải, nhu cầu {planet_a.drive} có thể va vào nhu cầu {planet_b.drive}."
+        hook = f"Lúc quá tải, nhu cầu {hook_need_a} có thể va vào nhu cầu {hook_need_b}."
         manifestation = (
             f"Dễ thấy {context_phrase}. Phản xạ bảo vệ có thể là "
             f"{perspective_a.protection}. Bạn cũng có thể {perspective_b.protection}. "
@@ -968,19 +1068,19 @@ def _lens_copy(
             f"thử {perspective_a.regulation}. Chỉ cần xem bạn có bớt căng không."
         )
     elif lens is InterpretiveLens.COMMUNICATION:
-        hook = f"Bạn muốn {planet_a.drive}, nhưng cũng muốn {planet_b.drive}."
+        hook = f"Bạn muốn {hook_need_a}, nhưng cũng muốn {hook_need_b}."
         manifestation = (
             f"Điều này dễ thấy {context_phrase}. Bạn có thể {perspective_a.protection}. "
             f"Sau đó, bạn có thể {default_reaction}. Điểm có ích là bạn biết "
             f"{modality_a.strength}."
         )
         action = (
-            f"Viết ba dòng: điều đã biết, điều đang cảm và điều muốn đề nghị; sau đó "
-            f"{element_a.missing_move}."
+            "Viết ba dòng: điều đã biết, điều đang cảm và điều muốn đề nghị. "
+            f"Sau đó, {element_a.missing_move}."
         )
     elif lens is InterpretiveLens.GROWTH:
         hook = (
-            f"Bài tập không phải chọn giữa {planet_a.drive} và {planet_b.drive}; "
+            f"Bài tập không phải chọn giữa {hook_need_a} và {hook_need_b}; "
             "là nhìn thấy cả hai nhu cầu trước khi chọn."
         )
         manifestation = (
@@ -992,7 +1092,7 @@ def _lens_copy(
             "Không cần trả lời ngay; tìm một tình huống thật để kiểm tra."
         )
     else:
-        hook = f"Bạn vừa muốn {planet_a.drive}, vừa muốn {planet_b.drive}."
+        hook = f"Điểm khó không phải chọn một bên: bạn cần cả {hook_need_a} lẫn {hook_need_b}."
         manifestation = (
             f"Điều này thường xảy ra {context_phrase}. Bạn có thể {default_reaction}; "
             f"bên dưới thường là phản xạ {perspective_a.protection}."

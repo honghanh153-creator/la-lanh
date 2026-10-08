@@ -10,6 +10,7 @@ type ResonanceFeedbackProps = {
   selected: ResonanceChoice | null;
   pending: boolean;
   onSubmit: (choice: ResonanceChoice) => void;
+  sharePath?: string;
 };
 
 export function ResonanceFeedback({
@@ -17,6 +18,7 @@ export function ResonanceFeedback({
   selected,
   pending,
   onSubmit,
+  sharePath = "/card",
 }: ResonanceFeedbackProps) {
   const [consentChoice, setConsentChoice] = useState<ResonanceChoice | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -134,7 +136,7 @@ export function ResonanceFeedback({
         >
           <ThumbsDown aria-hidden="true" weight={selected === "miss" ? "fill" : "regular"} />
         </button>
-        <Link aria-label="Chia sẻ note" title="Chia sẻ note" to="/card">
+        <Link aria-label="Chia sẻ note" title="Chia sẻ note" to={sharePath}>
           <ShareNetwork aria-hidden="true" />
         </Link>
       </div>

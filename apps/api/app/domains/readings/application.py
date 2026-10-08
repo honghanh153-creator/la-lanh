@@ -52,6 +52,7 @@ from app.domains.readings.models import (
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.readings.repository import ReadingProjectionRepository
+from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS
 from app.domains.readings.rewrite import (
     compile_daily_rewrite_request,
     compile_reading_rewrite_request,
@@ -61,7 +62,7 @@ logger = logging.getLogger(__name__)
 
 MVP_TIMEZONE = "Asia/Ho_Chi_Minh"
 DAILY_OBSERVED_HOUR_UTC = 12
-DETERMINISTIC_CONTENT_VERSION = "deterministic-reading-v3"
+DETERMINISTIC_CONTENT_VERSION = "deterministic-reading-v4"
 _TRANSIT_PURPOSES = {
     ReadingPurpose.DAILY_NOTE,
     ReadingPurpose.PERSONALIZED_SKY,
@@ -92,6 +93,7 @@ class ReadingApplicationService:
         generation_provider: str = "disabled",
         generation_model: str = "disabled",
         generation_prompt_version: str = "disabled",
+        rewrite_prompt_version: str = "surface-rewrite-v3",
         generation_max_attempts: int = 2,
         content_rewrite_service: ContentRewriteService | None = None,
     ) -> None:
@@ -103,6 +105,7 @@ class ReadingApplicationService:
         self._generation_provider = generation_provider
         self._generation_model = generation_model
         self._generation_prompt_version = generation_prompt_version
+        self._rewrite_prompt_version = rewrite_prompt_version
         self._generation_max_attempts = generation_max_attempts
         self._content_rewrite_service = content_rewrite_service
 
@@ -244,6 +247,29 @@ class ReadingApplicationService:
             projection.scope_key,
             revision.id,
         )
+        if projection.active_revision_id != revision.id:
+            active_record = (
+                await self._repository.get_revision(
+                    guest_id,
+                    snapshot.profile_id,
+                    projection.active_revision_id,
+                )
+                if projection.active_revision_id is not None
+                else None
+            )
+            if active_record is not None and _requires_forced_copy_repair(
+                active_record,
+                revision,
+            ):
+                repaired = await self._repository.activate_available(
+                    guest_id,
+                    snapshot.profile_id,
+                    projection.scope_key,
+                    expected_revision_id=revision.id,
+                    updated_at=current,
+                )
+                if repaired is not None:
+                    projection = repaired
         await self._optional_enqueue(
             plan_record,
             projection,
@@ -276,7 +302,7 @@ class ReadingApplicationService:
                         projection,
                         baseline,
                         model_version=self._generation_model,
-                        prompt_version="surface-rewrite-v1",
+                        prompt_version=self._rewrite_prompt_version,
                     )
                     if plan_record.plan.purpose is ReadingPurpose.DAILY_NOTE
                     else compile_reading_rewrite_request(
@@ -284,7 +310,7 @@ class ReadingApplicationService:
                         projection,
                         baseline,
                         model_version=self._generation_model,
-                        prompt_version="surface-rewrite-v1",
+                        prompt_version=self._rewrite_prompt_version,
                     )
                 )
                 await self._content_rewrite_service.enqueue(
@@ -476,6 +502,40 @@ class ReadingApplicationService:
         )
 
 
+def _requires_forced_copy_repair(
+    active: ReadingRevisionRecord,
+    replacement: ReadingRevisionRecord,
+) -> bool:
+    if (
+        active.source is not ReadingRevisionSource.DETERMINISTIC
+        or replacement.source is not ReadingRevisionSource.DETERMINISTIC
+        or active.plan_id != replacement.plan_id
+    ):
+        return False
+    candidate = active.evaluation.publishable_candidate
+    if candidate is None:
+        return True
+    replacement_candidate = replacement.evaluation.publishable_candidate
+    if (
+        replacement_candidate is not None
+        and replacement_candidate.semantic_blueprint is not None
+        and replacement_candidate.semantic_blueprint.daily_meaning is not None
+        and candidate.semantic_blueprint != replacement_candidate.semantic_blueprint
+    ):
+        return True
+    folded = " ".join(
+        part.casefold()
+        for part in (
+            candidate.hook,
+            candidate.thesis,
+            candidate.manifestation,
+            candidate.transit or "",
+            candidate.micro_action,
+        )
+    )
+    return any(fragment in folded for fragment in BANNED_CORE_FRAGMENTS)
+
+
 def _content_projection(
     revision: ReadingRevisionRecord,
     projection: ReadingProjectionRecord,
@@ -486,7 +546,11 @@ def _content_projection(
     mode, precision = _public_mode_and_precision(candidate.evidence.claims)
     experiment = None
     if mode is PlanMode.FULL_SYNTHESIS and precision is TimePrecision.EXACT:
-        experiment = experiment_projection_for(revision.id, candidate.micro_action)
+        experiment = experiment_projection_for(
+            revision.id,
+            candidate.micro_action,
+            blueprint=candidate.semantic_blueprint,
+        )
     return ReadingContentProjection(
         revision_id=revision.id,
         source=revision.source,

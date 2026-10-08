@@ -35,16 +35,17 @@ def test_review_agent_accepts_concrete_private_sample() -> None:
     assert result.findings == ()
 
 
-def test_release_review_covers_daily_and_tarot_for_all_ten_personas() -> None:
+def test_release_review_covers_daily_natal_and_tarot_for_all_ten_personas() -> None:
     samples = build_synthetic_samples()
 
-    assert len(samples) == PERSONA_COUNT * 2 == 20
+    assert len(samples) == PERSONA_COUNT * 3 == 30
     assert {sample.persona_id for sample in samples} == {
         f"persona-{index:02d}" for index in range(1, PERSONA_COUNT + 1)
     }
     for persona_id in {sample.persona_id for sample in samples}:
         assert {sample.surface for sample in samples if sample.persona_id == persona_id} == {
             "daily",
+            "natal",
             "tarot",
         }
     assert all(sample.evidence_validated for sample in samples)
@@ -52,7 +53,14 @@ def test_release_review_covers_daily_and_tarot_for_all_ten_personas() -> None:
 
 @pytest.mark.parametrize(
     "retired_phrase",
-    ("pattern này", "điều đang chạy bên dưới", "một cách khác để thử"),
+    (
+        "pattern này",
+        "điều đang chạy bên dưới",
+        "một cách khác để thử",
+        "một việc chưa hoàn hảo có thể nằm yên",
+        "giành phần ưu tiên",
+        "mối liên hệ này rõ và dễ nhận ra ngoài đời",
+    ),
 )
 def test_review_agent_rejects_retired_abstract_copy(retired_phrase: str) -> None:
     result = ContentReviewAgent().review(
@@ -132,6 +140,28 @@ def test_review_agent_rejects_dense_or_repeated_sentences() -> None:
     }
 
 
+def test_review_agent_rejects_sentence_repeated_across_headline_and_body() -> None:
+    repeated = "Bạn muốn được lắng nghe trước khi phải giải thích thêm."
+    sample = replace(
+        _sample(),
+        surface="natal",
+        sections=(
+            ("hook", repeated),
+            ("thesis", f"{repeated} Hai nhu cầu này đang kéo bạn về hai phía."),
+            (
+                "scene",
+                "Khi một người trả lời ngắn hơn thường lệ, bạn có thể dừng lại "
+                "trước khi đoán ý họ.",
+            ),
+            ("action", "Hỏi một câu rõ để kiểm tra điều đang xảy ra."),
+        ),
+    )
+
+    result = ContentReviewAgent().review((sample,))
+
+    assert "repeated-sentence-across-sections" in {finding.rule_id for finding in result.findings}
+
+
 def test_review_agent_accepts_each_tarot_position_as_its_own_scene_and_action() -> None:
     tarot_sample = replace(
         _sample(),
@@ -169,6 +199,20 @@ def test_review_agent_rejects_missing_or_unvalidated_evidence() -> None:
         "missing-provenance",
         "evidence-not-validated",
     }
+
+
+def test_review_agent_rejects_advice_that_leaks_into_scene() -> None:
+    result = ContentReviewAgent().review(
+        (
+            _sample(
+                scene=(
+                    "Khi một người trả lời ngắn hơn thường lệ, hãy hỏi ngay xem họ đang nghĩ gì."
+                )
+            ),
+        )
+    )
+
+    assert "advice-inside-scene" in {finding.rule_id for finding in result.findings}
 
 
 @pytest.mark.parametrize(

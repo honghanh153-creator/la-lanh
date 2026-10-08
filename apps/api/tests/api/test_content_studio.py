@@ -9,6 +9,10 @@ from pydantic import ValidationError
 from app.config import Settings
 from app.domains.astro.models import DateOnlySunResult, EngineProvenance, ZodiacSign
 from app.domains.content.models import canonical_payload_hash
+from app.domains.readings.daily_psychology import (
+    DAILY_ISSUES,
+    DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT,
+)
 from app.domains.readings.models import ReadingPurpose
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
@@ -153,9 +157,13 @@ def test_publish_changes_new_rendering_and_preserves_release_identity(tmp_path: 
         candidate = DeterministicVietnameseRenderer().render(plan)
 
         assert candidate.renderer_version == (
-            f"deterministic-vi-v6+content-{canonical_payload_hash(payload)[:12]}"
+            f"{DeterministicVietnameseRenderer.version}"
+            f"+daily-{DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT}"
+            f"+content-{canonical_payload_hash(payload)[:12]}"
         )
-        assert "tự nối thêm ý nghĩa" in candidate.hook
+        assert candidate.hook in {
+            headline for issue in DAILY_ISSUES for headline in issue.headlines
+        }
 
 
 def test_failed_draft_cannot_advance_the_active_channel(tmp_path: Path) -> None:
@@ -287,5 +295,10 @@ def test_startup_restores_the_persisted_active_catalog(tmp_path: Path) -> None:
         )
         candidate = DeterministicVietnameseRenderer().render(plan)
 
-        assert "Sau restart" in candidate.hook
-        assert candidate.renderer_version == f"deterministic-vi-v6+content-{payload_hash[:12]}"
+        assert candidate.hook in {
+            headline for issue in DAILY_ISSUES for headline in issue.headlines
+        }
+        assert candidate.renderer_version == (
+            f"{DeterministicVietnameseRenderer.version}"
+            f"+daily-{DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT}+content-{payload_hash[:12]}"
+        )

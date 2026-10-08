@@ -13,6 +13,7 @@ services:
       LA_LANH_DATABASE_URL_FILE: /run/secrets/database_url
       LA_LANH_GUEST_HASH_KEY_FILE: /run/secrets/guest_hash_key
       LA_LANH_GUEST_ENCRYPTION_KEY_FILE: /run/secrets/guest_encryption_key
+      LA_LANH_GENERATION_WORKER_ENABLED: "false"
     entrypoint: ["/usr/local/bin/la-lanh-entrypoint"]
     secrets:
       - database_url
@@ -34,6 +35,53 @@ services:
       timeout: 5s
       retries: 8
       start_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  rewrite-worker:
+    profiles:
+      - generation
+    image: la-lanh:${LA_LANH_RELEASE_ID:?Set LA_LANH_RELEASE_ID to an immutable release id}
+    restart: unless-stopped
+    env_file:
+      - app.env
+    environment:
+      LA_LANH_DATABASE_URL_FILE: /run/secrets/database_url
+      LA_LANH_GUEST_ENCRYPTION_KEY_FILE: /run/secrets/guest_encryption_key
+      LA_LANH_GENERATION_OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
+      LA_LANH_GENERATION_WORKER_ENABLED: "true"
+    entrypoint: ["/usr/local/bin/la-lanh-entrypoint"]
+    command: ["python", "-m", "app.domains.content_rewrite.worker"]
+    depends_on:
+      app:
+        condition: service_healthy
+    secrets:
+      - database_url
+      - guest_encryption_key
+      - openai_api_key
+    volumes:
+      - ./entrypoint.sh:/usr/local/bin/la-lanh-entrypoint:ro
+    healthcheck:
+      test:
+        - CMD
+        - /usr/local/bin/la-lanh-entrypoint
+        - python
+        - -m
+        - scripts.check_rewrite_worker
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
@@ -82,6 +130,8 @@ secrets:
     file: ${LA_LANH_SECRETS_DIR:-/opt/la-lanh/secrets}/guest_hash_key
   guest_encryption_key:
     file: ${LA_LANH_SECRETS_DIR:-/opt/la-lanh/secrets}/guest_encryption_key
+  openai_api_key:
+    file: ${LA_LANH_SECRETS_DIR:-/opt/la-lanh/secrets}/openai_api_key
 
 volumes:
   caddy-data:

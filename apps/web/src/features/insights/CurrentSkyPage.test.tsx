@@ -44,6 +44,27 @@ describe("CurrentSkyPage", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "/home");
   });
 
+  it("explains current sky in Vietnamese instead of exposing raw engine labels", async () => {
+    vi.mocked(getCurrentSky).mockResolvedValue({
+      observed_at: "2026-09-28T00:00:00Z",
+      tradition: "western",
+      config_hash: "hash",
+      bodies: [{
+        body: "venus",
+        sign: "scorpio",
+        degree_in_sign: 8.4,
+        retrograde: true,
+      }],
+      note: "Dữ liệu chung.",
+    });
+    renderPage();
+
+    expect(await screen.findByText("Sao Kim")).toBeVisible();
+    expect(screen.getByText("Bọ Cạp")).toBeVisible();
+    expect(screen.getByText(/nghịch hành/)).toBeVisible();
+    expect(screen.queryByText("venus")).not.toBeInTheDocument();
+  });
+
   it("shows a retryable error instead of an endless loading state", async () => {
     const user = userEvent.setup();
     vi.mocked(getCurrentSky)

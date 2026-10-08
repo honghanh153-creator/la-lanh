@@ -3,6 +3,7 @@ import unicodedata
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from hashlib import sha256
+from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -447,6 +448,19 @@ class SemanticRequirement(BaseModel):
         return self
 
 
+class DailyMeaningBrief(BaseModel):
+    """Editorial meaning, not an observed event or new personal-data context."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    core_meaning: str = Field(min_length=1, max_length=300)
+    reader_takeaway: str = Field(min_length=1, max_length=300)
+    scene_status: Literal["illustrative"] = "illustrative"
+    scene_anchors: tuple[str, ...] = Field(min_length=1, max_length=8)
+    action_anchors: tuple[str, ...] = Field(min_length=1, max_length=8)
+    observation_question: str | None = Field(default=None, min_length=1, max_length=200)
+
+
 class SemanticBlueprint(BaseModel):
     """Internal contract joining one interpretation, one scene, and one action."""
 
@@ -463,6 +477,7 @@ class SemanticBlueprint(BaseModel):
     micro_action: str = Field(max_length=500)
     evidence_factor_refs: tuple[str, ...] = Field(max_length=12)
     requirements: tuple[SemanticRequirement, ...] = Field(min_length=1, max_length=8)
+    daily_meaning: DailyMeaningBrief | None = None
 
 
 class ReadingCandidate(BaseModel):
@@ -541,6 +556,7 @@ class GateFailureCode(StrEnum):
     MEANING_ACTION_MISMATCH = "meaning_action_mismatch"
     MEANING_SCENE_CONTAINS_ADVICE = "meaning_scene_contains_advice"
     MEANING_DAILY_MATRIX_MISMATCH = "meaning_daily_matrix_mismatch"
+    MEANING_DAILY_DIRECT_CONTRACT = "meaning_daily_direct_contract"
     PRIVACY_PERSONAL_DATA = "privacy_personal_data"
 
 
@@ -722,12 +738,21 @@ def canonical_experiment_action_key(revision_id: UUID, action: str) -> str:
     return sha256(f"action-experiment-v1\x1f{revision_id}\x1f{action}".encode()).hexdigest()
 
 
-def experiment_projection_for(revision_id: UUID, action: str) -> ExperimentProjection:
+def experiment_projection_for(
+    revision_id: UUID, action: str, *, blueprint: SemanticBlueprint | None = None
+) -> ExperimentProjection:
+    meaning = blueprint.daily_meaning if blueprint is not None else None
+    observation_question = meaning.observation_question if meaning is not None else None
     return ExperimentProjection(
         action_key=canonical_experiment_action_key(revision_id, action),
         action=action,
-        observation="Để ý xem việc này có tạo ra một khác biệt nhỏ, cụ thể nào không.",
-        permission="Bạn có thể bỏ qua hoặc dừng bất cứ lúc nào; đây chỉ là một thử nghiệm.",
+        observation=observation_question
+        or "Để ý xem việc này có tạo ra một khác biệt nhỏ, cụ thể nào không.",
+        permission=(
+            "Không hợp với tình huống của bạn thì bỏ qua."
+            if observation_question
+            else "Bạn có thể bỏ qua hoặc dừng bất cứ lúc nào; đây chỉ là một thử nghiệm."
+        ),
     )
 
 

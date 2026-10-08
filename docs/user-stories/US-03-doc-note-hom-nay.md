@@ -6,7 +6,24 @@ Là người dùng đã mở Lá Khai Sinh cơ bản, tôi muốn vào app và t
 
 ## 2. Mục tiêu và ranh giới
 
-### Mục tiêu
+### Cập nhật content đã chốt 2026-10-07
+
+Giọng direct là mặc định cho Daily Home. Title mô tả một việc cụ thể; scene minh họa việc đó, không phải sự kiện app biết đã xảy ra; advice riêng là một hành động hợp cảnh và hợp thời điểm. Xem `docs/foundation/daily-psychology-scene-advice-engine.md` cho contract runtime.
+
+Home có ngân sách title 3–11 từ, scene 8–40 từ, advice 4–24 từ, tổng tối đa 70 từ; scene không quá 28 từ mỗi câu. Không áp ngân sách này cho toàn bộ Note Detail. Các định mức Home cũ dưới đây không được dùng để kéo dài bản direct.
+
+Matrix đang có 10 tình huống và 480 bộ câu general, không có 480 kết luận tâm lý độc lập. Cùng lens/ngày/chart replay ổn định; chart/context chọn biến thể biên tập chứ không chứng minh chuyện đó xảy ra vì một hành tinh. Không buộc mọi field đổi khi chuyển lens nếu vẫn là cùng một hành động phù hợp.
+
+### Chuyển động Home — 2026-10-08
+
+- Giữ nguyên Ultraviolet Paper, thứ tự nội dung, cỡ chữ và vùng bấm. Chỉ hình minh họa chuyển động lặp: hành tinh đi vòng nhỏ, sao đổi độ sáng nhẹ, bộ bài nghiêng chậm.
+- Note xuất hiện bằng fade 360ms một lần. Chữ, thanh điều hướng và vùng bấm đứng yên; không dùng chuyển động để báo tính cách, độ hợp hay dữ liệu mới.
+- Nút tạm dừng/bật cạnh hồ sơ điều khiển toàn bộ vòng lặp Home. Trạng thái chỉ ở bộ nhớ màn hình, không lưu dữ liệu hoặc gửi sự kiện ra ngoài.
+- `prefers-reduced-motion: reduce` tắt hiệu ứng và ẩn nút chuyển động. Note vẫn đọc được ngay; không chờ animation mới cho thao tác.
+- AC: vòng lặp tiếp tục qua chu kỳ đầu; tạm dừng giữ đúng vị trí; bật lại tiếp tục; headline không xê dịch; đổi góc/mood/đọc thêm vẫn dùng được; không tràn ngang trên mobile.
+- Tham chiếu: [WCAG 2.2 — Pause, Stop, Hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html), [MDN — prefers-reduced-motion](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion).
+
+### Mục tiêu nội dung
 
 - Biến Home thành màn daily value chính, không phải dashboard khô.
 - Hiển thị Daily Note nhanh, scan được trong 3–5 giây đầu.
@@ -17,7 +34,7 @@ Là người dùng đã mở Lá Khai Sinh cơ bản, tôi muốn vào app và t
 
 ### USP mà US-03 phải chứng minh
 
-**Mỗi ngày, Lá Lành biến lá số thật và bầu trời hiện tại thành một tình huống rất đời: vì sao nó dễ xảy ra với bạn, nó thường lộ ra ở đâu, và một thử nghiệm nhỏ để tự kiểm chứng.**
+**Mỗi ngày, người dùng đọc được một tình huống đời thường dễ hiểu và một việc nhỏ có thể thử. Bản đọc chiêm tinh và nguồn chart được giải thích riêng; không dùng câu tâm lý như bằng chứng rằng hành tinh gây ra hành vi.**
 
 Sản phẩm không bán một câu “vũ trụ nhắn bạn”. Giá trị phải truy ngược được theo chuỗi `chart fact → tổ hợp diễn giải → biểu hiện đời thường → micro-action → căn cứ trong lá số`.
 

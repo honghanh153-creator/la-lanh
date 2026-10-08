@@ -4,9 +4,9 @@ export const THEME_STORAGE_KEY = "la-lanh-theme-v1";
 
 export function readThemePreference(): ThemePreference {
   try {
-    return localStorage.getItem(THEME_STORAGE_KEY) === "light" ? "light" : "dark";
+    return localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 
@@ -15,7 +15,7 @@ export function applyThemePreference(theme: ThemePreference): void {
   document.documentElement.style.colorScheme = theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute(
     "content",
-    theme === "dark" ? "#080b24" : "#f3eff9",
+    theme === "dark" ? "#191426" : "#f7f4eb",
   );
 }
 

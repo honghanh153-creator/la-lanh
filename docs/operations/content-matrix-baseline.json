@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "recorded_on": "2026-09-29",
+  "recorded_on": "2026-10-02",
   "metrics": {
     "daily_planets": 14,
     "daily_signs": 12,
@@ -10,6 +10,8 @@
     "daily_editorial_modes": 5,
     "daily_semantic_cycle_days": 630,
     "daily_methodology_sources": 8,
+    "daily_psychology_sources": 10,
+    "daily_psychology_issue_families": 10,
     "relationship_sources": 10,
     "relationship_concepts": 23,
     "relationship_dimensions": 6,

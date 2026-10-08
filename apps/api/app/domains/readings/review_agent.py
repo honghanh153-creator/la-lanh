@@ -16,6 +16,15 @@ BANNED_CORE_FRAGMENTS = (
     "mọi thứ xảy ra đều có lý do",
     "điều đang chạy bên dưới",
     "một cách khác để thử",
+    "một việc chưa hoàn hảo có thể nằm yên",
+    "được hành động thẳng",
+    "nhu cầu này dễ cùng bật lên",
+    "giành phần ưu tiên",
+    "mối liên hệ này rõ và dễ nhận ra ngoài đời",
+    "ý kiến đông người dễ nghe giống ý kiến đúng",
+    "sự tự tin của người nói có thể đang được nghe như bằng chứng",
+    "cảm giác thuộc về nhóm đang đứng cạnh",
+    "làm xong, xem tình hình có dễ hơn không",
 )
 OPAQUE_CORE_FRAGMENTS = (
     "pattern",
@@ -73,13 +82,21 @@ ACTION_MARKERS = (
     "bỏ bớt",
     "kiểm tra",
     "thử ",
+    "nhắn ",
+    "chờ ",
+    "giữ ",
+    "rời ",
+    "ẩn ",
+    "xin ",
+    "sửa ",
+    "tự hỏi",
 )
 
 
 @dataclass(frozen=True)
 class ReviewSample:
     persona_id: str
-    surface: Literal["daily", "tarot"]
+    surface: Literal["daily", "natal", "tarot"]
     sections: tuple[tuple[str, str], ...]
     disclaimer: str
     provenance_ids: tuple[str, ...]
@@ -111,6 +128,7 @@ class ContentReviewAgent:
         fingerprints: dict[tuple[str, str], str] = {}
 
         for sample in samples:
+            sentence_sections: dict[str, str] = {}
             if not sample.evidence_validated:
                 findings.append(
                     self._finding(sample, "provenance", "evidence-not-validated", "critical")
@@ -142,6 +160,18 @@ class ContentReviewAgent:
                     findings.append(
                         self._finding(sample, section_name, "repeated-sentence", "high")
                     )
+                for sentence in sentences:
+                    previous_section = sentence_sections.get(sentence)
+                    if previous_section is not None and previous_section != section_name:
+                        findings.append(
+                            self._finding(
+                                sample,
+                                section_name,
+                                "repeated-sentence-across-sections",
+                                "medium" if sample.surface == "tarot" else "high",
+                            )
+                        )
+                    sentence_sections.setdefault(sentence, section_name)
                 if any(len(sentence.split()) > 28 for sentence in sentences):
                     findings.append(
                         self._finding(sample, section_name, "sentence-too-dense", "high")
@@ -163,6 +193,13 @@ class ContentReviewAgent:
                 if len(scene.split()) < 12 or not any(marker in scene for marker in SCENE_MARKERS):
                     findings.append(
                         self._finding(sample, section_name, "scene-not-observable", "high")
+                    )
+                if sample.surface == "daily" and (
+                    re.search(r"(?:^|[.!?,;]\s+)(?:hãy|thử|đừng)\s+", scene)
+                    or re.search(r"(?:^|[.!?]\s+)nên\s+|\bbạn nên\s+", scene)
+                ):
+                    findings.append(
+                        self._finding(sample, section_name, "advice-inside-scene", "high")
                     )
             if not action_sections:
                 findings.append(self._finding(sample, "action", "action-missing", "critical"))

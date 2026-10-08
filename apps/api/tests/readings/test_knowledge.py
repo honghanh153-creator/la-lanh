@@ -184,7 +184,7 @@ def test_full_daily_note_has_365_publishable_non_repeating_days() -> None:
 
 def test_every_date_only_sign_produces_publishable_specific_copy() -> None:
     renderer = DeterministicVietnameseRenderer()
-    hooks: set[str] = set()
+    cards: set[tuple[str, str]] = set()
 
     for sign in ZodiacSign:
         plan = ReadingPlanner().plan(
@@ -193,7 +193,7 @@ def test_every_date_only_sign_produces_publishable_specific_copy() -> None:
             editorial_seed=date(2026, 9, 12).isoformat(),
         )
         candidate = renderer.render(plan)
-        hooks.add(candidate.hook)
+        cards.add((candidate.hook, candidate.manifestation))
 
         assert evaluate_candidate(plan, candidate).accepted is True
         assert "tín hiệu vũ trụ" not in candidate.model_dump_json().lower()
@@ -202,7 +202,7 @@ def test_every_date_only_sign_produces_publishable_specific_copy() -> None:
         assert "không khớp việc thật thì bỏ qua" not in candidate.manifestation.casefold()
         assert sign.value in candidate.evidence.claims[0].factor_ref
 
-    assert len(hooks) == len(tuple(ZodiacSign))
+    assert len(cards) == len(tuple(ZodiacSign))
 
 
 def test_date_only_pisces_scene_separates_observation_from_assumption() -> None:
@@ -214,8 +214,9 @@ def test_date_only_pisces_scene_separates_observation_from_assumption() -> None:
 
     candidate = DeterministicVietnameseRenderer().render(plan)
 
-    assert "trả lời ngắn hơn thường lệ" in candidate.manifestation
-    assert "dữ kiện" in candidate.manifestation
+    assert candidate.manifestation.startswith("Khi ")
+    assert candidate.semantic_blueprint is not None
+    assert candidate.semantic_blueprint.scene_key.startswith("psychology:")
     assert candidate.disclaimer not in candidate.manifestation
 
 
@@ -319,6 +320,14 @@ def test_matrix_changes_visible_copy_for_planets_houses_and_aspects() -> None:
     assert full_frame(_controlled_full_plan(aspect="trine")).thesis != base.thesis
 
 
+def test_natal_synthesis_does_not_repeat_headline_or_expose_aspect_shorthand() -> None:
+    frame = full_frame(_controlled_full_plan(orb=2.5))
+
+    assert not frame.thesis.startswith(frame.hook)
+    assert "góc " not in frame.thesis.casefold()
+    assert "hai phần" not in frame.thesis.casefold()
+
+
 def test_same_element_aspect_names_both_needs_without_repeating_the_same_clause() -> None:
     plan = _controlled_full_plan(
         body_a="moon",
@@ -336,14 +345,15 @@ def test_same_element_aspect_names_both_needs_without_repeating_the_same_clause(
 
     thesis = full_frame(plan).thesis
 
-    assert "được an toàn trước khi mở lòng" in thesis
-    assert "biết mình được trân trọng theo cách nào" in thesis
+    assert "nghe hết câu" in thesis
+    assert "nhớ lời hẹn" in thesis
     assert "Mặt Trăng" not in thesis
     assert "Sao Kim" not in thesis
     assert thesis.count("cần độ an toàn, kết nối và thời gian để cảm nhận") <= 1
     assert "nhu cầu nào đang cầm lái" not in thesis
     assert "sắc độ nền" not in thesis
-    assert "chỉ xem là nét phụ" in thesis
+    assert "nét nhẹ hơn" not in thesis
+    assert "góc " not in thesis.casefold()
 
 
 @pytest.mark.parametrize("aspect", tuple(ASPECTS))
@@ -403,13 +413,24 @@ def test_every_interpretive_lens_produces_a_distinct_publishable_projection() ->
     assert len({candidate.hook for candidate in candidates.values()}) == len(InterpretiveLens)
 
 
-def test_orb_changes_visible_weight_while_degree_stays_in_evidence_only() -> None:
+def test_orb_and_degree_stay_in_evidence_not_claims_of_real_world_certainty() -> None:
     degree_copy = {
         full_frame(_controlled_full_plan(degree=value)).thesis for value in (9.999, 10.0, 20.0)
     }
     orb_copy = {full_frame(_controlled_full_plan(orb=value)).thesis for value in (1.0, 3.0, 3.001)}
     assert len(degree_copy) == 1
-    assert len(orb_copy) == 3
+    assert len(orb_copy) == 1
+
+
+@pytest.mark.parametrize("aspect", tuple(ASPECTS))
+def test_mars_moon_explanation_uses_observable_scenes_in_both_directions(aspect: str) -> None:
+    forward = full_frame(_controlled_full_plan(body_a="mars", body_b="moon", aspect=aspect))
+    reverse = full_frame(_controlled_full_plan(body_a="moon", body_b="mars", aspect=aspect))
+    assert forward.thesis == reverse.thesis
+    assert "nói" in forward.thesis
+    assert "giành phần ưu tiên" not in forward.thesis
+    assert "Mối liên hệ này rõ" not in forward.thesis
+    assert len(forward.thesis.split()) <= 85
 
 
 def test_transit_phase_changes_only_the_current_activation_language() -> None:
@@ -473,7 +494,9 @@ def test_ambiguous_date_only_result_does_not_pick_one_candidate_as_fact() -> Non
     prose = " ".join(candidate.all_user_prose).lower()
 
     assert evaluate_candidate(plan, candidate).accepted is True
-    assert "chưa thể biết chắc" in candidate.thesis
+    assert any(
+        slot.value == "candidates" for claim in candidate.evidence.claims for slot in claim.slots
+    )
     assert "song ngư" not in prose
     assert "bạch dương" not in prose
     assert "moon" not in prose

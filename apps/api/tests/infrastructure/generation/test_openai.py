@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import ValidationError
 
-from app.config import PINNED_OPENAI_MODEL, Settings
+from app.config import DEVELOPMENT_HASH_KEY, PINNED_OPENAI_MODEL, Settings
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, Tradition
 from app.domains.content_rewrite.models import (
@@ -17,9 +17,13 @@ from app.domains.content_rewrite.models import (
 )
 from app.domains.readings.models import ReadingPurpose
 from app.domains.readings.planner import ReadingPlanner
-from app.infrastructure.generation import build_generation_provider
+from app.infrastructure.generation import (
+    build_generation_provider,
+    build_rewrite_generation_provider,
+)
 from app.infrastructure.generation.base import (
     DisabledGenerationProvider,
+    DisabledRewriteGenerationProvider,
     GenerationDisabled,
     GenerationIncomplete,
     GenerationPermanent,
@@ -234,6 +238,12 @@ async def test_surface_rewrite_request_uses_luna_stateless_schema_and_returns_on
     assert envelope.authorization_receipt_id not in serialized
     assert envelope.key.owner.key not in serialized
     assert envelope.key.blueprint_hash not in serialized
+    assert "understand on the first read" in serialized
+    assert "smart close friend" in serialized
+    assert "pseudo-profound" in serialized
+    assert "bạn gật đầu, nhưng vẫn chưa hiểu hết" in serialized
+    assert "meaning_brief.core_meaning" in serialized
+    assert "not an observed fact" in serialized
 
 
 @pytest.mark.asyncio
@@ -384,54 +394,70 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
             environment="test",
             generation_enabled=True,
             generation_provider="openai",
-            generation_openai_api_key="secret",
+        )
+
+    enqueue_only = Settings(
+        environment="test",
+        generation_enabled=True,
+        generation_provider="openai",
+        generation_governance_approved=True,
+        generation_surface_rollout={"daily_home": "shadow"},
+    )
+    assert isinstance(
+        build_rewrite_generation_provider(enqueue_only),
+        DisabledRewriteGenerationProvider,
+    )
+
+    with pytest.raises(ValidationError, match="OpenAI API key"):
+        Settings(
+            environment="test",
+            generation_enabled=True,
+            generation_worker_enabled=True,
+            generation_provider="openai",
+            generation_governance_approved=True,
+            generation_surface_rollout={"daily_home": "shadow"},
         )
 
     with pytest.raises(ValidationError, match="spend approval"):
         Settings(
             environment="test",
             generation_enabled=True,
+            generation_worker_enabled=True,
             generation_provider="openai",
             generation_governance_approved=True,
             generation_openai_api_key="secret",
+            generation_surface_rollout={"daily_home": "shadow"},
         )
 
     with pytest.raises(ValidationError, match="daily token budget"):
         Settings(
             environment="test",
             generation_enabled=True,
+            generation_worker_enabled=True,
             generation_provider="openai",
             generation_governance_approved=True,
             generation_spend_approved=True,
             generation_openai_api_key="secret",
-        )
-
-    with pytest.raises(ValidationError, match="surface rollout"):
-        Settings(
-            environment="test",
-            generation_enabled=True,
-            generation_provider="openai",
-            generation_governance_approved=True,
-            generation_spend_approved=True,
-            generation_daily_token_budget=10_000,
-            generation_daily_budget_cents=100,
-            generation_openai_api_key="secret",
+            generation_surface_rollout={"daily_home": "shadow"},
         )
 
     with pytest.raises(ValidationError, match="daily USD budget"):
         Settings(
             environment="test",
             generation_enabled=True,
+            generation_worker_enabled=True,
             generation_provider="openai",
             generation_governance_approved=True,
             generation_spend_approved=True,
             generation_daily_token_budget=10_000,
             generation_openai_api_key="secret",
+            generation_surface_rollout={"daily_home": "shadow"},
         )
 
     enabled = Settings(
         environment="test",
         generation_enabled=True,
+        generation_worker_enabled=True,
         generation_provider="openai",
         generation_governance_approved=True,
         generation_spend_approved=True,
@@ -442,6 +468,39 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
     )
     assert enabled.generation_surface_rollout == {"daily_home": "shadow"}
     assert isinstance(build_generation_provider(enabled), DisabledGenerationProvider)
+    assert isinstance(build_rewrite_generation_provider(enabled), OpenAIRewriteProvider)
+
+    with pytest.raises(ValidationError, match="requires generation to be enabled"):
+        Settings(
+            environment="test",
+            generation_worker_enabled=True,
+            generation_provider="openai",
+            generation_governance_approved=True,
+            generation_spend_approved=True,
+            generation_daily_token_budget=10_000,
+            generation_daily_budget_cents=100,
+            generation_openai_api_key="secret",
+            generation_surface_rollout={"daily_home": "shadow"},
+        )
+
+    production_worker = Settings(
+        environment="production",
+        database_url="postgresql+asyncpg://worker:secret@example.test/app?ssl=require",
+        cors_origins=["https://example.test"],
+        guest_cookie_secure=True,
+        guest_encryption_key="production-encryption-key",
+        swisseph_license_mode="agpl",
+        generation_enabled=True,
+        generation_worker_enabled=True,
+        generation_provider="openai",
+        generation_governance_approved=True,
+        generation_spend_approved=True,
+        generation_daily_token_budget=10_000,
+        generation_daily_budget_cents=100,
+        generation_openai_api_key="secret",
+        generation_surface_rollout={"daily_home": "shadow"},
+    )
+    assert production_worker.guest_hash_key.get_secret_value() == DEVELOPMENT_HASH_KEY
 
     with pytest.raises(ValidationError, match="less than or equal to 100"):
         Settings(generation_daily_budget_cents=101)

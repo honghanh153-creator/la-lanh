@@ -21,6 +21,7 @@ export function WelcomePage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const routeState = location.state as { expired?: boolean; offline?: boolean } | null;
+  const restart = new URLSearchParams(location.search).get("restart") === "1";
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,8 +30,10 @@ export function WelcomePage() {
     setPending(true);
     setError(null);
     const key = idempotencyKey();
-    const radarPending = sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY);
-    const radarOwnerStart = sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
+    // Explicit replay starts the ordinary onboarding, not a stale Radar draft.
+    // Visiting the page alone never clears a session; consent is still required.
+    const radarPending = restart ? null : sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY);
+    const radarOwnerStart = !restart && sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
     try {
       await clearPersonalDataOnDevice();
       if (radarPending) sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, radarPending);

@@ -13,11 +13,11 @@ vi.mock("../../shared/api/client", async (original) => {
   return { ...actual, createGuest: vi.fn() };
 });
 
-function renderPage() {
+function renderPage(entry = "/welcome") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/welcome"]}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/birth" element={<h1>Ngày sinh</h1>} />
@@ -29,6 +29,7 @@ function renderPage() {
 
 describe("WelcomePage", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     sessionStorage.clear();
     vi.mocked(createGuest).mockResolvedValue({
       state: "active",
@@ -64,5 +65,18 @@ describe("WelcomePage", () => {
     expect(sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY)).toBe("radar-request-1");
     expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("1");
     expect(await screen.findByRole("heading", { name: "Ngày sinh" })).toBeInTheDocument();
+  });
+
+  it("replays normal onboarding without resuming an old Radar intent, only after consent", async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, "old-radar-draft");
+    sessionStorage.setItem("la-lanh-radar-owner-start", "1");
+    renderPage("/welcome?restart=1");
+    expect(sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY)).toBe("old-radar-draft");
+    expect(createGuest).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Đồng ý & bắt đầu" }));
+    expect(await screen.findByRole("heading", { name: "Ngày sinh" })).toBeInTheDocument();
+    expect(sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY)).toBeNull();
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBeNull();
   });
 });

@@ -11,6 +11,7 @@ import { AppProviders } from "./app/AppProviders";
 import { createAppRouter } from "./app/router";
 import { applyThemePreference, readThemePreference } from "./shared/theme/theme";
 import "./shared/styles/global.css";
+import "./shared/styles/ultraviolet.css";
 
 applyThemePreference(readThemePreference());
 

@@ -1,5 +1,9 @@
 # US-02 — Khai ngày sinh và mở Lá Khai Sinh
 
+## Cập nhật 07/10/2026 — thông tin bổ sung ngay từ đầu
+
+Contract mới: [Giờ/nơi sinh tùy chọn + bề mặt hành tinh](../plans/2026-10-07-optional-birth-details-planet-surface.md). Ngày sinh vẫn là dữ liệu bắt buộc duy nhất. Ngay dưới ngày sinh có disclosure **Thêm giờ & nơi sinh**, mặc định đóng; bỏ qua không gửi supplement. Giờ chính xác dùng 2 select giờ/phút; consent bổ sung riêng, không tick sẵn. Save DOB → supplement nếu được cho phép → refetch profile/Note → Reveal. Nếu đã có chart chính xác, Reveal có nút **Đọc tổng quan về mình**; không nói “chưa dùng giờ/nơi sinh”. Retry không tạo lại DOB hoặc supplement đã thành công. Các yêu cầu bên dưới chỉ áp dụng cho nhánh date-only nếu mâu thuẫn với contract mới.
+
 ## 1. User story
 
 Là người dùng mới ở chế độ khách, tôi muốn nhập ngày sinh và nhận ngay Lá Khai Sinh cơ bản, để có khoảnh khắc “app hiểu mình” trước khi phải đăng nhập hoặc khai giờ/nơi sinh.
@@ -22,7 +26,7 @@ Ngày sinh; age gate; validation calendar; submit/retry; compute; loading; Astro
 ### Ngoài phạm vi
 
 - Tên/nickname: không hỏi trong onboarding. UI dùng “Bạn”; show-name chỉ hiện nếu profile đã có tên từ nơi khác.
-- Giờ/nơi sinh, Moon/Rising/House: US-06/07.
+- Thu thập giờ/nơi sinh tùy chọn từ cùng form phối hợp US-06; cách tính precision và đọc Moon/Rising/House thuộc US-06/07.
 - Daily Note: US-03.
 - Saved collection cho Daily Note: US-05.
 - Chỉnh ngày sinh sau onboarding và xóa dữ liệu: profile/data-management story.
@@ -73,6 +77,7 @@ flowchart TD
 | Headline | H1 | “Bạn đến với thế giới vào ngày nào?” |
 | Explanation | Body | “Chỉ ngày sinh thôi. Giờ và nơi sinh có thể để sau.” |
 | Birth date | Composite field | Ba sub-field `DD / MM / YYYY`; chi tiết bên dưới. |
+| Optional detail | Disclosure | “Thêm giờ & nơi sinh” · “Không bắt buộc · để hiểu mình rõ hơn”. Mở để nhập bằng picker và chọn địa danh; bỏ qua xóa draft bổ sung, không ảnh hưởng ngày sinh. |
 | Privacy note | Inline info | “Ngày sinh không xuất hiện trên nội dung bạn chia sẻ.” |
 | Submit | Primary button | “Đọc bầu trời của mình”; sticky bottom; loading sau submit. |
 

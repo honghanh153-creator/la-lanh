@@ -516,6 +516,107 @@ async def test_rejected_renderer_cannot_publish_a_revision_or_projection() -> No
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "retired",
+    [
+        "Một việc chưa hoàn hảo có thể nằm yên lâu hơn một việc còn thiếu.",
+        "Hai nhu cầu này dễ cùng bật lên và giành phần ưu tiên.",
+        "Ý kiến đông người dễ nghe giống ý kiến đúng.",
+    ],
+)
+async def test_retired_copy_is_repaired_without_asking_the_user_to_activate_it(
+    retired: str,
+) -> None:
+    class LegacyRenderer(DeterministicVietnameseRenderer):
+        version = "deterministic-vi-legacy"
+
+        def render(self, plan):  # type: ignore[no-untyped-def]
+            candidate = super().render(plan)
+            assert candidate.semantic_blueprint is not None
+            return candidate.model_copy(
+                update={
+                    "hook": retired,
+                    "renderer_version": self.version,
+                    "semantic_blueprint": candidate.semantic_blueprint.model_copy(
+                        update={"hook": retired, "daily_meaning": None}
+                    ),
+                }
+            )
+
+    repository = MemoryReadingRepository()
+    guest_id = UUID("20000000-0000-4000-8000-000000000114")
+    profile_id = UUID("30000000-0000-4000-8000-000000000114")
+    snapshot = _date_only_snapshot(guest_id, profile_id)
+    legacy = ReadingApplicationService(
+        repository,
+        NatalChartEngine(),
+        renderer=LegacyRenderer(),
+    )
+
+    first = await legacy.project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.DAILY_NOTE,
+        requested_at=NOW,
+    )
+    repaired = await ReadingApplicationService(repository, NatalChartEngine()).project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.DAILY_NOTE,
+        requested_at=NOW,
+    )
+
+    assert first.active.sections.hook == retired
+    assert repaired.active.revision_id != first.active.revision_id
+    assert repaired.active.sections.hook != retired
+    assert first.active.sections.hook == retired  # Historical snapshot remains unchanged.
+    assert repaired.available_update is None
+
+
+@pytest.mark.asyncio
+async def test_daily_without_a_meaning_brief_repairs_only_the_active_projection() -> None:
+    class LegacyRenderer(DeterministicVietnameseRenderer):
+        version = "deterministic-vi-v9"
+
+        def render(self, plan):  # type: ignore[no-untyped-def]
+            candidate = super().render(plan)
+            assert candidate.semantic_blueprint is not None
+            return candidate.model_copy(
+                update={
+                    "renderer_version": self.version,
+                    "semantic_blueprint": candidate.semantic_blueprint.model_copy(
+                        update={"daily_meaning": None}
+                    ),
+                }
+            )
+
+    repository = MemoryReadingRepository()
+    guest_id = UUID("20000000-0000-4000-8000-000000000115")
+    profile_id = UUID("30000000-0000-4000-8000-000000000115")
+    snapshot = _date_only_snapshot(guest_id, profile_id)
+    first = await ReadingApplicationService(
+        repository, NatalChartEngine(), renderer=LegacyRenderer()
+    ).project(
+        guest_id=guest_id, snapshot=snapshot, purpose=ReadingPurpose.DAILY_NOTE, requested_at=NOW
+    )
+    service = ReadingApplicationService(repository, NatalChartEngine())
+    repaired = await service.project(
+        guest_id=guest_id, snapshot=snapshot, purpose=ReadingPurpose.DAILY_NOTE, requested_at=NOW
+    )
+    replay = await service.project(
+        guest_id=guest_id, snapshot=snapshot, purpose=ReadingPurpose.DAILY_NOTE, requested_at=NOW
+    )
+    assert repaired.active.revision_id != first.active.revision_id
+    assert replay.active.revision_id == repaired.active.revision_id
+    assert repaired.available_update is None
+    historical = await repository.get_revision(guest_id, profile_id, first.active.revision_id)
+    assert historical is not None
+    old_candidate = historical.evaluation.publishable_candidate
+    assert old_candidate is not None and old_candidate.semantic_blueprint is not None
+    assert old_candidate.semantic_blueprint.daily_meaning is None
+
+
+@pytest.mark.asyncio
 async def test_exact_supplement_waits_as_full_gift_until_explicit_activation() -> None:
     repository = MemoryReadingRepository()
     engine = NatalChartEngine()
@@ -557,6 +658,17 @@ async def test_exact_supplement_waits_as_full_gift_until_explicit_activation() -
     assert len(experiment.action_key) == 64
     assert experiment.observation
     assert experiment.permission
+    full_revision = repository.revisions[
+        (guest_id, profile_id, upgraded.available_update.revision_id)
+    ]
+    full_candidate = full_revision.evaluation.publishable_candidate
+    assert full_candidate is not None and full_candidate.semantic_blueprint is not None
+    assert full_candidate.semantic_blueprint.daily_meaning is not None
+    assert experiment.observation == (
+        full_candidate.semantic_blueprint.daily_meaning.observation_question
+    )
+    assert "một khác biệt nhỏ" not in experiment.observation
+    assert experiment.permission == "Không hợp với tình huống của bạn thì bỏ qua."
 
     assert upgraded.aura_transition.transition_id is not None
     with pytest.raises(ReadingActivationConflict):

@@ -302,7 +302,7 @@ async def _run_standalone() -> None:
     from app.infrastructure.generation import build_rewrite_generation_provider
 
     settings = get_settings()
-    if not settings.generation_enabled:
+    if not settings.generation_worker_enabled:
         return
     database = Database(str(settings.database_url))
     await database.initialize()

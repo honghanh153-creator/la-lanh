@@ -184,7 +184,7 @@ def test_daily_response_refreshes_from_vibe_to_aura_without_birth_pii() -> None:
         assert payload["persona_mode"] == "aura"
         assert payload["source_level"] == "natal_chart"
         assert payload["persona_version"] == "persona-v2"
-        assert payload["content_version"] == "daily-note-v3"
+        assert payload["content_version"] == "daily-note-v4"
         assert payload["fallback_used"] is False
         assert payload["fallback_reason"] is None
         assert payload["awakening"] is not None

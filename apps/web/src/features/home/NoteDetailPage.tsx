@@ -1,13 +1,18 @@
 import { ArrowLeft, BookmarkSimple, Check, PaperPlaneTilt } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
-  getDailyNote,
   listSavedNotes,
   saveDailyNote,
 } from "../../shared/api/client";
+import {
+  dailyContextPath,
+  dailyContextQueryKey,
+  getDailyNoteForContext,
+  parseDailyContext,
+} from "../../shared/astro/dailyContext";
 import {
   readCachedDailyNote,
   writeCachedDailyNote,
@@ -23,19 +28,21 @@ import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 
 export function NoteDetailPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const context = parseDailyContext(searchParams.get("context"));
   const queryClient = useQueryClient();
   const cachedAtStart = useMemo(() => readCachedDailyNote(), []);
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const query = useQuery({
-    queryKey: ["daily-note"],
+    queryKey: dailyContextQueryKey(context),
     queryFn: async ({ signal }) => {
-      const freshNote = await getDailyNote(signal);
-      writeCachedDailyNote(freshNote);
+      const freshNote = await getDailyNoteForContext(context, signal);
+      if (context === "auto") writeCachedDailyNote(freshNote);
       return freshNote;
     },
-    initialData: cachedAtStart?.note,
-    initialDataUpdatedAt: cachedAtStart ? 0 : undefined,
+    initialData: context === "auto" ? cachedAtStart?.note : undefined,
+    initialDataUpdatedAt: context === "auto" && cachedAtStart ? 0 : undefined,
   });
   const note = query.data;
   const activeReading = note?.reading_projection?.active;
@@ -49,7 +56,7 @@ export function NoteDetailPage() {
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!note) throw new Error("Missing daily note");
-      return saveDailyNote(note.id);
+      return saveDailyNote(note.id, activeReading?.revision_id ?? null);
     },
     onSuccess: async () => {
       if (note) saveNoteLocally(note);
@@ -81,7 +88,7 @@ export function NoteDetailPage() {
     dailyExperiment.choose({
       daily_note_id: note.id,
       revision_id: activeReading.revision_id,
-      background_lens: "auto",
+      background_lens: context,
       action_key: activeReading.experiment.action_key,
       consent_version: "action-experiment-v1",
       expected_experiment_id: expectedHeld?.id ?? null,
@@ -161,7 +168,7 @@ export function NoteDetailPage() {
           <p className="sr-only" aria-live="polite" role="status">{message}</p>
           {message ? <p className="home-status" aria-hidden="true">{message}</p> : null}
           <footer className="note-detail-actions">
-            <Link className="electric-button" to="/card"><PaperPlaneTilt aria-hidden="true" /> Chia sẻ</Link>
+            <Link className="electric-button" to={dailyContextPath("/card", context)}><PaperPlaneTilt aria-hidden="true" /> Chia sẻ</Link>
             <button className="outline-button" disabled={isSaved || saveMutation.isPending} onClick={() => saveMutation.mutate()} type="button">
               {isSaved ? <Check aria-hidden="true" /> : <BookmarkSimple aria-hidden="true" />}
               {isSaved ? "Đã lưu" : "Lưu note"}

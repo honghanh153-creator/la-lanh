@@ -1,14 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+import json
+from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 
 from app.domains.astro.models import Tradition
 from app.domains.readings.interpretive_lenses import daily_mixed_radix_slots
 from app.domains.readings.knowledge import InterpretationFrame, semantic_arena
-from app.domains.readings.models import ReadingPlan, ReadingPurpose, SemanticArena
+from app.domains.readings.models import (
+    DailyMeaningBrief,
+    ReadingPlan,
+    ReadingPurpose,
+    SemanticArena,
+)
 
-DAILY_PSYCHOLOGY_MATRIX_VERSION = "daily-psychology-scene-advice-v2"
+DAILY_PSYCHOLOGY_MATRIX_VERSION = "daily-direct-meaning-v4"
 
 
 @dataclass(frozen=True)
@@ -96,13 +102,19 @@ PSYCHOLOGY_SOURCES: tuple[PsychologySource, ...] = (
 
 @dataclass(frozen=True)
 class DailyIssuePattern:
+    """One situation; wording variants must preserve its meaning and matched action."""
+
     key: str
     arenas: tuple[SemanticArena, ...]
-    headlines: tuple[str, str, str]
+    headlines: tuple[str, str, str, str]
     scenes: tuple[str, str, str]
-    observations: tuple[str, str, str]
     advice: tuple[str, str, str, str]
+    meaning: str
+    takeaway: str
+    scene_anchors: tuple[str, ...]
+    action_anchors: tuple[str, ...]
     source_ids: tuple[str, ...]
+    observation_question: str
 
 
 DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
@@ -110,297 +122,358 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
         "missing-context",
         (SemanticArena.RELATIONSHIPS, SemanticArena.COMMUNICATION, SemanticArena.WORK),
         (
-            "Một chi tiết nhỏ dễ bị đầu óc viết tiếp thành cả câu chuyện.",
-            "Khoảng trống thông tin hôm nay dễ được lấp bằng suy đoán.",
-            "Một câu trả lời chưa rõ có thể chiếm nhiều chỗ hơn chính sự việc.",
+            "Bạn đọc lại tin nhắn vì chưa hiểu ý.",
+            "Tin nhắn ngắn, bạn lại nghĩ thêm nhiều chuyện.",
+            "Bạn đang đoán ý từ một tin nhắn.",
+            "Một tin nhắn chưa rõ làm bạn nghĩ mãi.",
         ),
         (
-            "khi một tin nhắn ngắn hơn thường lệ xuất hiện, bạn dễ đọc lại nó nhiều lần",
-            "khi câu trả lời đến muộn, bạn dễ tự nối thêm lý do trước khi người kia nói rõ",
-            "khi một yêu cầu còn mơ hồ, bạn dễ bắt tay làm theo cách mình đoán là đúng",
+            (
+                "Khi nhận một tin nhắn ngắn, bạn có thể đọc lại nhiều lần vì chưa hiểu người "
+                "kia muốn nói gì."
+            ),
+            (
+                "Khi tin nhắn chỉ có vài chữ, bạn có thể tự nghĩ thêm lý do dù người kia chưa "
+                "giải thích."
+            ),
+            "Khi đọc một tin nhắn chưa rõ ý, bạn có thể mất nhiều thời gian đoán hơn là hỏi lại.",
         ),
         (
-            "Điều đã xảy ra chỉ là một dấu hiệu; phần còn lại vẫn chưa có dữ kiện.",
-            "Bạn có thể phản ứng với phần mình tự điền thêm nhiều hơn với câu chữ thật.",
-            "Việc chờ thêm thông tin có thể khó chịu hơn chính câu trả lời.",
+            "Hỏi lại phần chưa rõ: Bạn muốn nói gì ở chỗ này?",
+            "Nhắn một câu hỏi về đúng chỗ bạn chưa hiểu.",
+            "Viết câu hỏi của bạn rồi hỏi lại người gửi tin nhắn.",
+            "Đọc lại tin nhắn một lần, rồi hỏi phần còn chưa rõ.",
         ),
-        (
-            "Nhắn một câu hỏi thẳng vào chỗ bạn chưa hiểu.",
-            "Viết hai dòng: một dòng là điều bạn biết, một dòng là điều bạn đang đoán.",
-            "Chờ mười phút rồi mới quyết định có nhắn thêm hay không.",
-            "Đọc lại đúng tin nhắn. Đừng tự đoán người kia đang nghĩ gì.",
-        ),
-        (
-            "kahneman-thinking-fast-slow",
-            "harris-happiness-trap",
-            "rosenberg-nonviolent-communication",
-        ),
+        "Tin nhắn chưa đủ rõ; cách mình hiểu có thể khác điều người gửi muốn nói.",
+        "Chưa hiểu một tin nhắn không có nghĩa là người kia đang khó chịu.",
+        ("tin nhắn", "nhắn"),
+        ("chưa rõ", "chưa hiểu", "tin nhắn", "người gửi"),
+        ("ross-nisbett-person-situation", "harris-happiness-trap"),
+        "Sau khi hỏi lại, bạn đã biết người kia muốn nói gì chưa?",
     ),
     DailyIssuePattern(
         "too-many-open-loops",
         (SemanticArena.WORK, SemanticArena.ENERGY, SemanticArena.SELF_CARE),
         (
-            "Nhiều việc nhỏ dễ cùng đòi làm trước.",
-            "Một ngày bận có thể bắt đầu bằng quá nhiều việc đều mang nhãn gấp.",
-            "Đầu óc dễ giữ tất cả cửa sổ mở cùng lúc.",
-        ),
-        (
-            "khi ba đầu việc cùng báo đến, bạn dễ chuyển qua lại mà chưa khép việc nào",
-            "khi lịch có một khoảng trống, bạn dễ lấp ngay bằng việc tiếp theo",
-            "khi cơ thể đã mệt, bạn vẫn dễ mở thêm một việc chỉ để thấy mình đang tiến lên",
-        ),
-        (
-            "Mỗi lần đổi việc tạo cảm giác đang bận, nhưng phần quan trọng vẫn đứng yên.",
-            "Việc nhỏ và việc quan trọng có thể đang dùng cùng một mức chú ý.",
-            "Mệt dễ bị hiểu nhầm thành thiếu cố gắng, nên danh sách tiếp tục dài ra.",
-        ),
-        (
-            "Chọn một việc làm trong hai mươi phút. Tạm cất các việc còn lại.",
-            "Viết ra ba việc rồi khoanh việc cần xong trước.",
-            "Chọn giờ dừng trước khi bắt đầu.",
-            "Tắt một loại thông báo cho đến khi xong việc đang làm.",
-        ),
-        ("csikszentmihalyi-flow", "goleman-emotional-intelligence"),
-    ),
-    DailyIssuePattern(
-        "changed-plan",
-        (SemanticArena.WORK, SemanticArena.ENERGY, SemanticArena.SELF_CARE),
-        (
-            "Một thay đổi nhỏ trong lịch dễ kéo theo phản ứng lớn hơn dự kiến.",
-            "Kế hoạch đổi phút chót có thể làm cả ngày mất điểm tựa.",
-            "Điều gây khó chịu có thể là cách thay đổi xảy ra, không chỉ là việc bị đổi.",
-        ),
-        (
-            "khi một cuộc hẹn hoặc đầu việc đổi giờ, bạn dễ cố giữ nguyên mọi phần còn lại",
-            "khi người khác đổi kế hoạch sát giờ, cơ thể dễ căng trước khi bạn kịp trả lời",
-            "khi lịch bị chen ngang, bạn dễ coi cả ngày như đã hỏng",
-        ),
-        (
-            "Một thay đổi đang bị tính như nhiều thay đổi cùng lúc.",
-            "Cảm giác mất quyền chủ động có thể lớn hơn phần việc thật sự phải sửa.",
-            "Bạn có thể đang bảo vệ kế hoạch cũ vì nó từng tạo cảm giác ổn định.",
-        ),
-        (
-            "Chỉ đổi phần bắt buộc phải đổi. Những phần khác cứ giữ nguyên.",
-            "Hỏi lại giờ mới và ai cần làm gì.",
-            "Dành hai phút viết lại kế hoạch ngắn nhất có thể.",
-            "Nói rõ lần sau bạn cần được báo sớm hơn.",
-        ),
-        ("ross-nisbett-person-situation", "goleman-emotional-intelligence"),
-    ),
-    DailyIssuePattern(
-        "comparison-loop",
-        (SemanticArena.WORK, SemanticArena.RELATIONSHIPS, SemanticArena.SELF_CARE),
-        (
-            "Một thành tích của người khác dễ làm việc của bạn bỗng trông nhỏ lại.",
-            "So sánh có thể xuất hiện trước khi bạn nhớ hai người đang ở hai chặng khác nhau.",
-            "Một con số đẹp trên màn hình dễ đổi cách bạn nhìn ngày của mình.",
+            "Bạn bắt đầu nhiều việc, chưa xong việc nào.",
+            "Bạn đổi việc liên tục, việc cũ vẫn còn.",
+            "Việc đang làm dở lại bị bỏ sang bên.",
+            "Bạn bận cả buổi, việc vẫn chưa xong.",
         ),
         (
             (
-                "khi thấy người khác khoe kết quả, bạn dễ xem lại tiến độ của mình "
-                "bằng tiêu chuẩn của họ"
+                "Khi đang làm một việc, bạn có thể chuyển sang việc khác vừa được nhắc. Việc "
+                "trước vẫn chưa xong."
             ),
-            "khi một người được khen, bạn dễ nhớ ngay phần mình còn thiếu",
-            "khi lướt qua một cập nhật đẹp, bạn dễ quên những phần không được đăng lên",
+            (
+                "Khi nhiều việc đến cùng lúc, bạn có thể làm mỗi việc một chút rồi quên mình "
+                "đang dở ở đâu."
+            ),
+            (
+                "Khi danh sách việc dài ra, bạn có thể đổi việc liên tục mà chưa hoàn thành "
+                "được việc nào."
+            ),
         ),
         (
-            "Một khoảnh khắc của người khác đang được đặt cạnh toàn bộ quá trình của bạn.",
-            "Sự chú ý chuyển từ việc đang làm sang vị trí của mình trong mắt người khác.",
-            "Cảm giác tụt lại có thể đến trước khi bạn kiểm tra mục tiêu ban đầu.",
+            "Chọn một việc để làm trong 20 phút, chưa chuyển sang việc khác.",
+            "Viết các việc còn dở, rồi chọn một việc làm trước.",
+            "Chọn việc cần xong trước. Để các việc khác sang một danh sách riêng.",
+            "Đặt 20 phút cho một việc. Hết giờ mới xem việc tiếp theo.",
+        ),
+        "Chuyển việc liên tục khiến nhiều việc cùng dang dở, dù mình đã dành thời gian làm.",
+        "Bận nhiều không đồng nghĩa với hoàn thành nhiều.",
+        ("việc", "dở"),
+        ("chọn", "một việc", "20 phút"),
+        ("csikszentmihalyi-flow", "kahneman-thinking-fast-slow"),
+        "Bạn đã chọn được việc làm trước và biết việc nào để sau chưa?",
+    ),
+    DailyIssuePattern(
+        "changed-plan",
+        (SemanticArena.RELATIONSHIPS, SemanticArena.WORK, SemanticArena.COMMUNICATION),
+        (
+            "Một cuộc hẹn đổi giờ làm bạn phải sắp lại.",
+            "Lịch đã xếp xong, giờ hẹn lại đổi.",
+            "Bạn đang phải xếp lại một cuộc hẹn.",
+            "Giờ hẹn đổi, kế hoạch của bạn cũng đổi.",
         ),
         (
-            "Chọn một việc hôm nay mà bạn tự làm được, không cần so với ai.",
-            "Rời màn hình năm phút rồi quay lại việc của mình.",
-            "Ghi ra một việc bạn đã làm xong hôm nay.",
-            "Ẩn bài đăng khiến bạn liên tục so sánh trong hôm nay.",
+            (
+                "Khi một cuộc hẹn đổi giờ sát lúc gặp, bạn có thể phải bỏ hoặc dời việc đã "
+                "xếp trước đó."
+            ),
+            (
+                "Khi người kia báo đổi giờ hẹn, bạn có thể thấy khó chịu vì lịch của mình "
+                "phải sắp lại."
+            ),
+            (
+                "Khi giờ hẹn thay đổi vào phút cuối, bạn có thể chưa biết nên giữ hay dời "
+                "những việc còn lại."
+            ),
         ),
-        ("cialdini-influence", "dweck-mindset"),
+        (
+            "Xác nhận giờ hẹn mới trước khi đổi những việc khác.",
+            "Hỏi giờ hẹn mới đã chắc chưa, rồi mới sắp lại lịch.",
+            "Nhắn giờ bạn còn có thể gặp, để hai bên chốt lại.",
+            "Nói rõ giờ nào không tiện và đề nghị một giờ hẹn khác.",
+        ),
+        "Giờ hẹn thay đổi ảnh hưởng đến lịch của mình, không chỉ đến cuộc hẹn.",
+        "Có thể nói rõ giờ nào còn phù hợp thay vì tự đổi hết lịch.",
+        ("hẹn", "lịch"),
+        ("giờ", "lịch", "hẹn"),
+        ("goleman-emotional-intelligence", "rosenberg-nonviolent-communication"),
+        "Hai bên đã thống nhất giờ mới mà bạn sắp xếp được chưa?",
+    ),
+    DailyIssuePattern(
+        "comparison-loop",
+        (SemanticArena.WORK, SemanticArena.SELF_CARE, SemanticArena.ENERGY),
+        (
+            "Thấy người khác làm tốt, bạn chê việc mình.",
+            "Bạn so việc của mình với thành quả người khác.",
+            "Xem thành quả người khác, bạn lại thấy mình chậm.",
+            "Việc mình vừa làm bỗng thấy chưa đủ tốt.",
+        ),
+        (
+            (
+                "Khi thấy người khác khoe kết quả, bạn có thể thấy việc mình vừa làm không "
+                "còn đáng kể."
+            ),
+            "Khi xem thành quả của người khác, bạn có thể quên mất phần việc mình đã làm xong.",
+            (
+                "Khi thấy người khác được khen, bạn có thể so lại tiến độ của mình rồi thấy "
+                "mình chậm hơn."
+            ),
+        ),
+        (
+            "Ghi một việc mình đã làm xong trước khi xem tiếp.",
+            "Viết phần việc của mình đã tiến triển so với hôm trước.",
+            "Chọn một việc của mình để làm xong trước khi xem tiếp.",
+            "Đặt bài đăng sang bên và ghi việc tiếp theo của mình.",
+        ),
+        "Nhìn thành quả của người khác có thể khiến mình bỏ qua tiến triển của chính mình.",
+        "So với việc mình làm trước đó giúp nhìn rõ tiến triển hơn một bài đăng của người khác.",
+        ("người khác", "thành quả", "kết quả"),
+        ("mình", "của mình"),
+        ("dweck-mindset", "neff-self-compassion"),
+        "Bạn đang nhìn việc của mình hay chỉ nhìn kết quả người khác?",
     ),
     DailyIssuePattern(
         "automatic-caretaking",
         (SemanticArena.RELATIONSHIPS, SemanticArena.ENERGY, SemanticArena.SELF_CARE),
         (
-            "Cảm xúc của người khác dễ trở thành việc bạn phải xử lý.",
-            "Một người xuống mood có thể làm lịch của bạn đổi theo.",
-            "Phản xạ chăm người khác dễ chạy trước câu hỏi bạn còn sức hay không.",
+            "Bạn nhận lời giúp trước khi xem mình còn sức.",
+            "Bạn đang mệt, vẫn nhận thêm việc giúp người khác.",
+            "Muốn giúp người khác, bạn quên lịch của mình.",
+            "Bạn giúp thêm một việc dù đã khá mệt.",
         ),
         (
-            "khi ai đó buồn, bạn dễ đổi lịch, đổi giọng hoặc nhận luôn phần chăm sóc",
-            "khi người kia im hơn thường lệ, bạn dễ đặt nhu cầu của mình sang một bên",
-            "khi không khí căng lên, bạn dễ nhận trách nhiệm làm mọi người dễ chịu lại",
+            (
+                "Khi ai đó nhờ giúp, bạn có thể nhận lời ngay dù hôm nay mình đã mệt và còn "
+                "việc riêng."
+            ),
+            (
+                "Khi người kia cần bạn, bạn có thể gác việc riêng để giúp rồi mới nhận ra "
+                "mình không còn sức."
+            ),
+            (
+                "Khi được nhờ thêm một việc, bạn có thể đồng ý trước rồi mới xem lịch của "
+                "mình còn chỗ không."
+            ),
         ),
         (
-            "Sự quan tâm đang đi cùng một phần trách nhiệm chưa chắc thuộc về bạn.",
-            "Bạn có thể giúp rất nhanh nhưng chỉ nhận ra mình mệt sau đó.",
-            "Nhu cầu của bạn dễ biến mất khỏi cuộc trò chuyện dù chưa hề được giải quyết.",
+            "Nói rõ bạn giúp được phần nào và trong bao lâu.",
+            "Kiểm tra lịch, rồi nói rõ phần mình còn giúp được.",
+            "Nói bạn chưa giúp ngay được và hẹn lúc khác nếu đang mệt.",
+            "Chọn phần bạn đủ sức giúp, chưa nhận hết việc.",
         ),
-        (
-            "Hỏi thẳng: bạn muốn mình nghe, giúp, hay chỉ ngồi cạnh?",
-            "Nói trước bạn có thể dành bao nhiêu thời gian.",
-            "Tự hỏi: mình còn đủ sức để giúp việc này không?",
-            "Giữ lại ít nhất một việc của mình, đừng hủy cả lịch.",
-        ),
+        "Muốn giúp không có nghĩa là mình có thời gian và sức để nhận hết.",
+        "Có thể giúp một phần và nói rõ giới hạn của mình.",
+        ("giúp", "nhờ", "cần bạn"),
+        ("giúp", "nhận", "lịch"),
         ("goleman-emotional-intelligence", "neff-self-compassion"),
+        "Phần bạn nhận giúp có vừa với thời gian và sức mình không?",
     ),
     DailyIssuePattern(
         "decision-fatigue",
         (SemanticArena.WORK, SemanticArena.ENERGY, SemanticArena.SELF_CARE),
         (
-            "Một lựa chọn nhỏ có thể thấy nặng vì đã có quá nhiều lựa chọn trước đó.",
-            "Cuối ngày, việc đơn giản cũng dễ bị nghĩ thành một bài toán lớn.",
-            "Mệt có thể đội lốt phân vân.",
+            "Bạn chọn mãi vẫn chưa biết chọn cái nào.",
+            "Càng xem nhiều lựa chọn, bạn càng khó chọn.",
+            "Bạn đang mệt mà vẫn cố chọn cho đúng.",
+            "Một lựa chọn nhỏ cũng làm bạn nghĩ lâu.",
         ),
         (
             (
-                "khi phải chọn thêm một việc, bạn dễ mở nhiều phương án nhưng không muốn "
-                "chốt phương án nào"
+                "Khi đã mệt mà vẫn phải chọn giữa nhiều phương án, bạn có thể xem đi xem lại "
+                "nhưng chưa chốt được."
             ),
+            "Khi danh sách lựa chọn quá dài, bạn có thể tìm thêm thông tin dù đã khá mệt.",
             (
-                "khi cơ thể xuống pin, bạn dễ tiếp tục tìm lựa chọn tốt nhất cho một việc "
-                "không quá quan trọng"
+                "Khi phải chọn vào lúc mệt, bạn có thể mất nhiều thời gian cho một quyết định "
+                "vốn không lớn."
             ),
-            "khi danh sách đã dài, bạn dễ trì hoãn cả quyết định nhỏ như trả lời hay đặt lịch",
         ),
         (
-            "Năng lượng dùng để cân nhắc có thể đã nhiều hơn giá trị khác biệt giữa các phương án.",
-            "Bạn đang cố giảm mọi rủi ro trong lúc khả năng chú ý đã giảm.",
-            "Việc chưa chốt tiếp tục chiếm chỗ dù bản thân nó không lớn.",
+            "Giảm còn hai lựa chọn phù hợp nhất rồi so một điểm quan trọng.",
+            "Chọn một tiêu chí quan trọng và bỏ các phương án không đáp ứng.",
+            "Đặt giờ xem lại lựa chọn sau khi nghỉ nếu chưa cần chốt ngay.",
+            "Viết điều bạn cần nhất, rồi chọn phương án đáp ứng điều đó.",
         ),
-        (
-            "Chỉ giữ hai lựa chọn rồi chọn một.",
-            "Việc nào chưa gấp, hẹn giờ mai mới quyết.",
-            "Chọn cách dễ đổi lại nhất và thử nhỏ trước.",
-            "Chọn một điều quan trọng nhất. Bỏ qua phần phụ lần này.",
-        ),
-        ("kahneman-thinking-fast-slow", "csikszentmihalyi-flow"),
+        "Mệt và quá nhiều lựa chọn có thể làm việc chọn mất thêm thời gian.",
+        "Ít lựa chọn hơn hoặc nghỉ trước khi chọn có thể giúp mình so sánh rõ hơn.",
+        ("chọn", "phương án", "quyết định"),
+        ("chọn", "phương án", "tiêu chí"),
+        ("kahneman-thinking-fast-slow", "harris-happiness-trap"),
+        "Bạn đã biết điều gì quan trọng nhất với lựa chọn này chưa?",
     ),
     DailyIssuePattern(
         "perfect-before-start",
-        (SemanticArena.WORK, SemanticArena.COMMUNICATION, SemanticArena.SELF_CARE),
+        (SemanticArena.WORK, SemanticArena.COMMUNICATION),
         (
-            "Chuẩn bị kỹ dễ biến thành cách chưa phải bắt đầu.",
-            "Một việc chưa hoàn hảo có thể nằm yên lâu hơn một việc còn thiếu.",
-            "Sợ làm chưa đẹp dễ xuất hiện dưới dạng cần thêm một vòng chỉnh sửa.",
+            "Bạn định gửi rồi, nhưng lại sửa thêm.",
+            "Bạn có thể sửa mãi một việc đã đủ dùng.",
+            "Bản nháp xong rồi, bạn vẫn chưa gửi.",
+            "Bạn sửa thêm vài chữ rồi lại chưa gửi.",
         ),
         (
-            "khi sắp gửi một bài hoặc tin nhắn, bạn dễ sửa thêm dù ý chính đã rõ",
-            "khi bắt đầu việc mới, bạn dễ tìm thêm tài liệu trước khi làm bản đầu tiên",
-            "khi thấy một lỗi nhỏ, bạn dễ quay lại làm lại cả phần đã đủ dùng",
+            "Khi bản nháp đã đủ ý, bạn có thể vẫn sửa vài chữ vì lo người khác đánh giá.",
+            "Khi định gửi một bản nháp, bạn có thể đọc lại rồi sửa thêm dù nội dung đã đủ.",
+            (
+                "Khi đã làm xong bản nháp, bạn có thể tiếp tục chỉnh câu chữ và chưa gửi cho "
+                "người cần xem."
+            ),
         ),
         (
-            "Tiêu chuẩn đang tăng nhanh hơn chất lượng thật sự cần có.",
-            "Bạn có thể đang bảo vệ mình khỏi cảm giác bị đánh giá bằng cách chưa đưa gì ra ngoài.",
-            "Phần chuẩn bị tạo cảm giác an toàn nhưng chưa tạo phản hồi mới.",
+            "Gửi bản nháp và nói rõ phần nào còn cần góp ý.",
+            "Chọn một chỗ cần góp ý, rồi gửi bản nháp để hỏi.",
+            "Đặt giờ gửi bản nháp. Trước đó chỉ sửa lỗi làm người đọc hiểu sai.",
+            "Gửi bản nháp cho người cần xem và hỏi một câu cụ thể.",
         ),
-        (
-            "Gửi bản nháp và ghi rõ phần còn thiếu.",
-            "Làm bản đầu trong mười lăm phút. Chưa cần sửa câu chữ.",
-            "Chọn mức đủ dùng cho lần này rồi dừng.",
-            "Nhờ một người trả lời đúng một câu hỏi.",
-        ),
-        ("dweck-mindset", "neff-self-compassion"),
+        "Bản nháp đã đủ để người khác đọc, nhưng mình trì hoãn gửi vì còn lo bị đánh giá.",
+        "Có thể gửi để nhận góp ý mà chưa cần chỉnh mọi câu thật hoàn hảo.",
+        ("bản nháp", "sửa", "gửi"),
+        ("gửi", "góp ý"),
+        ("dweck-mindset", "csikszentmihalyi-flow"),
+        "Bạn đã gửi bản nháp hoặc hẹn được giờ gửi chưa?",
     ),
     DailyIssuePattern(
         "group-pressure",
-        (SemanticArena.RELATIONSHIPS, SemanticArena.COMMUNICATION, SemanticArena.WORK),
+        (SemanticArena.COMMUNICATION, SemanticArena.WORK, SemanticArena.RELATIONSHIPS),
         (
-            "Ý kiến đông người dễ nghe giống ý kiến đúng.",
-            "Một cái gật đầu nhanh có thể đến trước suy nghĩ thật của bạn.",
-            "Không khí đồng thuận dễ làm phần còn lăn tăn im đi.",
+            "Bạn gật đầu, nhưng vẫn chưa hiểu hết.",
+            "Cả nhóm chốt rồi, bạn vẫn muốn hỏi thêm.",
+            "Bạn đồng ý theo dù còn một chỗ chưa rõ.",
+            "Mọi người đồng ý, bạn vẫn chưa hiểu vì sao.",
         ),
         (
-            "khi cả nhóm đồng ý nhanh, bạn dễ gật theo dù vẫn còn một câu hỏi",
-            "khi một người có tiếng nói mạnh chốt ý, bạn dễ bỏ qua dữ kiện mình vừa nhận ra",
-            "khi bạn bè cùng chọn một hướng, bạn dễ thấy phương án khác kém hợp lý hơn trước",
+            "Khi cả nhóm chốt rất nhanh, bạn có thể đồng ý theo dù vẫn còn một chỗ muốn hỏi lại.",
+            "Khi cả nhóm đã đồng ý, bạn có thể ngại hỏi lại phần mình chưa hiểu.",
+            (
+                "Khi cả nhóm chuyển sang việc tiếp theo, bạn có thể đã gật đầu dù chưa hiểu "
+                "rõ điều vừa chốt."
+            ),
         ),
         (
-            "Cảm giác thuộc về nhóm đang đứng cạnh chất lượng thật của lựa chọn.",
-            "Sự tự tin của người nói có thể đang được nghe như bằng chứng.",
-            "Điều chưa rõ vẫn còn đó dù căn phòng đã chuyển sang chuyện khác.",
+            "Hỏi ngay chỗ đó: Mình chưa rõ phần này, giải thích thêm được không?",
+            "Nói phần bạn chưa hiểu để cả nhóm giải thích lại.",
+            "Hỏi cả nhóm vì sao chọn cách đó nếu bạn còn chưa rõ.",
+            "Xin cả nhóm giải thích lại đúng chỗ bạn còn chưa rõ.",
         ),
-        (
-            "Nói câu bạn còn chưa rõ trước khi đồng ý.",
-            "Xin một phút xem lại rồi mới trả lời.",
-            "Viết lựa chọn của bạn trước khi nghe cả nhóm.",
-            "Hỏi cả nhóm đang dựa vào điều gì để chốt.",
-        ),
+        "Mọi người đồng ý rất nhanh nhưng mình vẫn chưa hiểu đủ để đồng ý.",
+        "Cả nhóm đã chốt không có nghĩa là câu hỏi của mình đã được giải đáp.",
+        ("nhóm", "mọi người"),
+        ("nhóm", "giải thích", "chưa hiểu"),
         ("cialdini-influence", "ross-nisbett-person-situation"),
+        "Bạn đã hiểu chỗ mình vừa hỏi lại chưa?",
     ),
     DailyIssuePattern(
         "avoid-small-conflict",
         (SemanticArena.RELATIONSHIPS, SemanticArena.COMMUNICATION, SemanticArena.WORK),
         (
-            "Một điều khó nói dễ được đổi thành thêm nhiều việc phải làm.",
-            "Giữ hòa khí hôm nay có thể khiến một nhu cầu biến mất khỏi câu chuyện.",
-            "Một câu đồng ý nhanh dễ để lại phần khó chịu đến sau.",
+            "Bạn chưa đồng ý, nhưng vẫn nói là được.",
+            "Bạn nói được rồi mới thấy không muốn làm.",
+            "Bạn nhận lời dù việc đó không tiện.",
+            "Bạn muốn từ chối, nhưng lại nhận lời.",
         ),
         (
-            "khi được nhờ thêm việc, bạn dễ nhận lời trước rồi mới tính mình còn sức hay không",
-            "khi người kia hiểu khác ý, bạn dễ im để cuộc trò chuyện kết thúc êm",
-            "khi cần từ chối, bạn dễ giải thích rất dài để tránh một câu không ngắn gọn",
+            (
+                "Khi được nhờ một việc không tiện, bạn có thể nói được cho nhanh rồi mới thấy "
+                "mình không muốn nhận."
+            ),
+            "Khi người kia nhờ thêm việc, bạn có thể nhận lời vì ngại từ chối dù lịch mình đã đầy.",
+            "Khi chưa muốn nhận một việc, bạn có thể vẫn đồng ý để cuộc nói chuyện kết thúc nhanh.",
         ),
         (
-            "Sự yên ổn trước mắt đang được đổi bằng một cuộc nói chuyện khó hơn về sau.",
-            "Người kia có thể không biết có vấn đề vì bạn chưa để lại dấu hiệu nào.",
-            "Phần bực dễ quay lại ở một việc nhỏ khác không liên quan.",
+            "Nói rõ bạn không nhận được việc đó, không cần giải thích quá dài.",
+            "Nhắn lại bạn chưa nhận được việc này để người kia sắp xếp.",
+            "Nói rõ phần bạn có thể nhận nếu chỉ làm được một phần.",
+            "Nói lại giờ nào mình có thể làm được việc đã nhận.",
         ),
-        (
-            "Nói câu trả lời trước, rồi giải thích bằng một câu.",
-            "Nếu không làm hết được, đề nghị một phần bạn có thể làm.",
-            "Viết câu bạn muốn nói trong hai dòng. Đọc lại rồi gửi.",
-            "Hỏi hai bên đang hiểu khác nhau ở chỗ nào.",
-        ),
+        "Mình nói đồng ý để tránh từ chối, dù việc đó không phù hợp với thời gian hoặc mong muốn.",
+        "Người kia khó biết mình không tiện nếu mình chỉ nói đồng ý.",
+        ("nhờ", "nhận", "việc"),
+        ("nhận", "làm được", "không tiện"),
         ("rosenberg-nonviolent-communication", "goleman-emotional-intelligence"),
+        "Người kia đã biết rõ phần bạn có thể và không thể nhận chưa?",
     ),
     DailyIssuePattern(
         "defend-old-choice",
         (SemanticArena.WORK, SemanticArena.COMMUNICATION, SemanticArena.RELATIONSHIPS),
         (
-            "Dữ kiện mới dễ bị xem nhẹ khi bạn đã bỏ nhiều công vào lựa chọn cũ.",
-            "Một quyết định từng hợp lý có thể đang được bảo vệ lâu hơn chính lý do ban đầu.",
-            "Càng giải thích một lựa chọn, việc đổi ý càng dễ thấy như thua cuộc.",
-        ),
-        (
-            "khi ai đó chỉ ra một điểm chưa ổn, bạn dễ kể lại vì sao mình đã chọn như vậy",
-            (
-                "khi kế hoạch không cho kết quả như mong đợi, bạn dễ thêm công sức trước "
-                "khi xem lại hướng đi"
-            ),
-            "khi cuộc trò chuyện có dữ kiện mới, bạn dễ tìm phần bảo vệ kết luận cũ trước",
+            "Cách cũ chưa hiệu quả, bạn vẫn làm tiếp.",
+            "Bạn đã làm nhiều nhưng kết quả chưa khá hơn.",
+            "Bạn làm thêm dù cách đó chưa có kết quả.",
+            "Bạn chưa muốn đổi cách đã làm lâu.",
         ),
         (
             (
-                "Việc bảo vệ công sức đã bỏ ra có thể che mất câu hỏi phương án còn hiệu quả "
-                "hay không."
+                "Khi một cách làm chưa cho kết quả, bạn có thể tiếp tục làm thêm vì đã bỏ "
+                "nhiều công vào đó."
             ),
-            "Đổi ý đang bị hiểu như phủ nhận toàn bộ lựa chọn trước đây.",
-            "Một lời giải thích hợp lý vẫn có thể đi cùng một quyết định cần sửa.",
+            (
+                "Khi kết quả chưa khá hơn, bạn có thể làm tiếp theo cách cũ trước khi xem có "
+                "cần đổi không."
+            ),
+            (
+                "Khi đã dành nhiều thời gian cho một cách làm, bạn có thể thấy khó đổi dù kết "
+                "quả vẫn chưa tốt."
+            ),
         ),
         (
-            "Viết một lý do để giữ và một lý do để đổi.",
-            "Tự hỏi: nếu hôm nay mới bắt đầu, mình còn chọn cách này không?",
-            "Sửa một phần nhỏ trước, chưa cần bỏ hết.",
-            "Nói điều gì đã đổi, thay vì cố chứng minh ai đúng.",
+            "Kiểm tra kết quả gần nhất trước khi bỏ thêm công.",
+            "Viết kết quả bạn cần, rồi so với kết quả cách cũ đang cho.",
+            "Chọn một phần nhỏ để thử cách khác và so kết quả.",
+            "Hỏi điều gì cần thay đổi để cách làm này có kết quả.",
         ),
+        "Công sức đã bỏ ra có thể khiến mình giữ một cách làm chưa hiệu quả.",
+        "Việc đã làm nhiều và việc đang có hiệu quả là hai điều khác nhau.",
+        ("kết quả", "cách", "làm"),
+        ("kết quả", "cách", "thay đổi"),
         ("tavris-aronson-mistakes-were-made", "dweck-mindset"),
+        "Bạn đã biết cách làm hiện tại có hiệu quả ở chỗ nào chưa?",
     ),
 )
 
 
-_ARENA_LEADS = {
-    SemanticArena.RELATIONSHIPS: "Trong một mối quan hệ bạn đang để tâm,",
-    SemanticArena.COMMUNICATION: "Trong một cuộc nói chuyện hoặc đoạn chat hôm nay,",
-    SemanticArena.WORK: "Ở công việc hoặc chuyện học hôm nay,",
-    SemanticArena.ENERGY: "Khi cơ thể bắt đầu quá tải hôm nay,",
-    SemanticArena.SELF_CARE: "Trong lúc chăm mình hoặc nghỉ ngơi hôm nay,",
-}
+DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
+    json.dumps(
+        {
+            "version": DAILY_PSYCHOLOGY_MATRIX_VERSION,
+            "situations": [asdict(issue) for issue in DAILY_ISSUES],
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+).hexdigest()[:8]
 
-_REFLECTIONS = (
-    "Chỉ thử một lần hôm nay là đủ.",
-    "Làm xong, xem tình hình có dễ hơn không.",
-    "Nếu không giúp ích, bạn không cần làm tiếp.",
-)
+
+_ARENA_LEADS = {
+    SemanticArena.RELATIONSHIPS: "Với người kia,",
+    SemanticArena.COMMUNICATION: "Trong cuộc nói chuyện,",
+    SemanticArena.WORK: "Ở công việc hoặc chuyện học,",
+    SemanticArena.ENERGY: "Với cơ thể đang mệt,",
+    SemanticArena.SELF_CARE: "Trong giờ nghỉ ngơi,",
+}
 
 _SIGN_ORDER = (
     "aries",
@@ -433,11 +506,9 @@ def apply_daily_psychology(
         if arena is SemanticArena.GENERAL
         else tuple(issue for issue in DAILY_ISSUES if arena in issue.arenas)
     )
-    issue_slot, headline_slot, scene_slot, observation_slot, advice_slot, reflection_slot = (
-        daily_mixed_radix_slots(
-            plan.editorial_seed,
-            (len(pool), 3, 3, 3, 4, len(_REFLECTIONS)),
-        )
+    issue_slot, headline_slot, scene_slot, advice_slot = daily_mixed_radix_slots(
+        plan.editorial_seed,
+        (len(pool), 4, 3, 4),
     )
     chart_signature = "|".join(factor.id for factor in plan.factors) or plan.mode.value
     date_only_sign = next(
@@ -449,26 +520,26 @@ def apply_daily_psychology(
         None,
     )
     chart_shift = (
-        _SIGN_ORDER.index(date_only_sign)
+        _SIGN_ORDER.index(date_only_sign) * 37
         if date_only_sign in _SIGN_ORDER
         else int.from_bytes(sha256(chart_signature.encode()).digest()[:4], "big")
     )
     issue_slot = (issue_slot + chart_shift) % len(pool)
-    headline_slot = (headline_slot + chart_shift // len(pool)) % 3
+    headline_slot = (headline_slot + chart_shift // len(pool)) % 4
+    scene_slot = (scene_slot + chart_shift // (len(pool) * 4)) % 3
+    advice_slot = (advice_slot + chart_shift // (len(pool) * 12)) % 4
     issue = pool[issue_slot]
     lead = _ARENA_LEADS.get(arena)
-    scene = issue.scenes[scene_slot]
+    manifestation = issue.scenes[scene_slot]
     if lead is not None:
-        scene = f"{lead} {scene[0].lower()}{scene[1:]}"
-    else:
-        scene = f"Hôm nay, {scene}"
-    manifestation = f"{scene}. {issue.observations[observation_slot]}"
-    action = f"{issue.advice[advice_slot]} {_REFLECTIONS[reflection_slot]}"
+        manifestation = f"{lead} {manifestation[0].lower()}{manifestation[1:]}"
+    action = issue.advice[advice_slot]
     source_refs = tuple(f"psychology-source:{source_id}" for source_id in issue.source_ids)
 
     return replace(
         frame,
         hook=issue.headlines[headline_slot],
+        thesis=f"{issue.meaning} {issue.takeaway}",
         manifestation=manifestation,
         micro_action=action,
         knowledge_refs=(
@@ -477,8 +548,16 @@ def apply_daily_psychology(
             *source_refs,
         ),
         arena=arena,
-        scene_key=(f"psychology:{issue.key}:scene-{scene_slot}:observation-{observation_slot}"),
-        action_key=f"psychology:{issue.key}:advice-{advice_slot}:reflection-{reflection_slot}",
+        mechanism_key=f"psychology:{issue.key}",
+        scene_key=f"psychology:{issue.key}:scene-{scene_slot}",
+        action_key=f"psychology:{issue.key}:advice-{advice_slot}",
+        daily_meaning=DailyMeaningBrief(
+            core_meaning=issue.meaning,
+            reader_takeaway=issue.takeaway,
+            scene_anchors=issue.scene_anchors,
+            action_anchors=issue.action_anchors,
+            observation_question=issue.observation_question,
+        ),
     )
 
 

@@ -34,7 +34,7 @@ from app.domains.daily.repository import DailyNoteRepository
 from app.domains.readings.knowledge import ASPECTS as INTERPRETATION_ASPECTS
 from app.domains.readings.knowledge import PLANETS as INTERPRETATION_PLANETS
 
-CONTENT_VERSION = "daily-note-v3"
+CONTENT_VERSION = "daily-note-v4"
 PERSONA_VERSION = "persona-v2"
 AURA_SCORING_VERSION = "aura-element-modality-v1"
 SKY_CHAPTER_RANKING_VERSION = "sky-chapter-salience-v1"
@@ -181,34 +181,57 @@ SIGN_COPY = dict(
         ZodiacSign,
         (
             (
-                "Đừng lao quá nhanh.",
-                "Hôm nay cứ để lửa sáng, nhưng đừng bắt mình cháy thay mọi thứ.",
-            ),
-            ("Chậm lại cũng là tiến.", "Một điều mềm và chắc sẽ ở lại lâu hơn một quyết định vội."),
-            (
-                "Nói ít hơn một nhịp.",
-                "Có vài câu chỉ thật sự hay khi mình để chúng nghỉ trong đầu trước.",
+                "Đang hăng cũng đừng nhận hết việc.",
+                "Có năng lượng là tốt. Nhưng trước khi gật đầu thêm, "
+                "xem lịch của bạn còn chỗ không.",
             ),
             (
-                "Giữ tim, đừng gồng.",
-                "Nếu hôm nay nhạy cảm hơn bình thường, đó không phải lỗi của bạn.",
+                "Lịch đổi một chút chưa phải tận thế.",
+                "Nếu kế hoạch lệch nhẹ, sửa phần cần sửa trước. Chưa cần làm lại cả ngày.",
             ),
             (
-                "Sáng nhưng không cần diễn.",
-                "Bạn không cần chứng minh ánh sáng của mình với người đang nhắm mắt.",
+                "Đầu có ba câu thì chọn một câu chính.",
+                "Nếu đang nghĩ nhiều hướng, nói điều quan trọng nhất trước. "
+                "Phần còn lại để sau cũng được.",
             ),
-            ("Đủ tốt là đủ đi tiếp.", "Một chi tiết lệch không có nghĩa cả ngày này hỏng."),
             (
-                "Đừng hòa mình tới biến mất.",
-                "Êm đẹp không đáng nếu bạn phải giấu hết điều mình muốn.",
+                "Bạn không cần chăm mood của cả phòng.",
+                "Ai đó buồn không có nghĩa bạn phải đổi hết lịch để làm họ vui lại.",
             ),
-            ("Không cần mở hết bí mật.", "Giữ lại một phần cho mình cũng là một cách tự bảo vệ."),
-            ("Đi xa, nhưng nhớ thân mình.", "Tự do không phải lúc nào cũng cần một cú nhảy lớn."),
-            ("Đừng biến mình thành deadline.", "Bạn được phép nghỉ trước khi mọi thứ hoàn hảo."),
-            ("Khác biệt cũng cần được ôm.", "Ý tưởng lạ hôm nay có thể là lối thoát ngày mai."),
             (
-                "Mơ, nhưng giữ một sợi dây.",
-                "Cảm xúc có thể đi trước, còn bạn vẫn có quyền chọn nhịp.",
+                "Được chú ý vui đấy, nhưng không cần gồng.",
+                "Làm tốt phần của mình là đủ. "
+                "Bạn không cần biến mọi khoảnh khắc thành màn trình diễn.",
+            ),
+            (
+                "Một lỗi nhỏ chưa làm hỏng cả việc.",
+                "Sửa đúng chỗ đang sai rồi đi tiếp. Đừng vì một chi tiết mà làm lại từ đầu.",
+            ),
+            (
+                "Đồng ý cho êm chưa chắc làm bạn nhẹ.",
+                "Nếu bạn vẫn còn lăn tăn, nói một câu thật trước khi gật đầu theo mọi người.",
+            ),
+            (
+                "Không cần kể hết mới gọi là thân.",
+                "Bạn có thể nói phần mình thấy an toàn trước. Phần còn lại để đúng lúc rồi kể.",
+            ),
+            (
+                "Muốn đổi gió thì thử nhỏ trước.",
+                "Chưa cần lật cả bàn. Đổi một việc nhỏ sẽ cho bạn biết mình thật sự cần gì.",
+            ),
+            (
+                "Xong một việc quan trọng hơn ôm cả danh sách.",
+                "Chọn việc cần hoàn thành nhất hôm nay. "
+                "Các việc khác không tự nhiên thành khẩn cấp đâu.",
+            ),
+            (
+                "Ý tưởng lạ cứ ghi lại, chưa cần bảo vệ ngay.",
+                "Cho ý tưởng một bản nháp trước khi đem nó ra tranh luận với cả thế giới.",
+            ),
+            (
+                "Cảm xúc đang lớn không có nghĩa chuyện cũng lớn.",
+                "Chờ thêm một dữ kiện thật trước khi kết luận. "
+                "Đầu mình đôi khi biên kịch hơi sung.",
             ),
         ),
         strict=True,
@@ -216,30 +239,29 @@ SIGN_COPY = dict(
 )
 
 FULL_BODY_TEMPLATE = (
-    "{compact} Hôm nay, bạn có thể bắt đầu bằng một khoảng dừng nhỏ trước điều đang kéo mình "
-    "đi quá nhanh. Chọn một việc thật sự cần thiết, làm nó với nhịp vừa đủ, rồi để phần còn lại "
-    "được chờ. Nếu cảm xúc đổi hướng, hãy quan sát thay vì vội gọi tên hay phán xét. Một cuộc trò "
-    "chuyện chân thành, một cốc nước hoặc vài phút rời màn hình đều có thể giúp bạn trở về với "
-    "mình. Note này chỉ là lời gợi ý để soi ngày hôm nay; quyết định cuối cùng vẫn thuộc về bạn."
+    "{compact} Trước khi phản ứng, kiểm tra xem chuyện gì đã thật sự xảy ra và phần nào chỉ là "
+    "điều bạn đang đoán. Chọn một việc quan trọng để xử lý trước. Phần còn lại có thể chờ."
 )
 
 AURA_COPY = {
     Element.FIRE: (
-        "Sáng, nhưng đừng tự đốt mình.",
-        "Bạn có lực để khởi động, còn phần sâu hơn trong bạn cần một nhịp an toàn "
-        "trước khi lao tới.",
+        "Có lực thì dùng đúng chỗ.",
+        "Bạn dễ bắt đầu rất nhanh. Trước khi nhận thêm việc, kiểm tra xem mình còn đủ sức không.",
     ),
     Element.EARTH: (
-        "Vững không có nghĩa là đứng yên.",
-        "Bạn muốn điều có thể chạm và giữ, nhưng một phần khác đang xin phép được đổi nhịp.",
+        "Kế hoạch chắc vẫn có thể đổi.",
+        "Bạn thích biết mình đang dựa vào đâu. "
+        "Hôm nay, đổi một bước nhỏ có thể dễ hơn giữ cả kế hoạch cũ.",
     ),
     Element.AIR: (
-        "Đầu đã hiểu, tim chưa chắc.",
-        "Bạn nhìn thấy nhiều hướng rất nhanh; hôm nay hãy để cảm xúc chọn điều đáng giữ lại.",
+        "Nghĩ nhiều hướng thì chốt một câu trước.",
+        "Bạn thấy nhiều khả năng rất nhanh. "
+        "Chọn điều quan trọng nhất để nói, đừng mở thêm năm tab trong đầu.",
     ),
     Element.WATER: (
-        "Cảm được nhiều, nói vừa đủ.",
-        "Cảm giác có thể tới trước lời giải thích; đừng ép mình gọi tên mọi điều ngay lập tức.",
+        "Cảm xúc đến trước, kết luận để sau.",
+        "Bạn có thể nhận ra không khí đổi rất sớm. "
+        "Chờ thêm dữ kiện trước khi tự giải thích cả câu chuyện.",
     ),
 }
 

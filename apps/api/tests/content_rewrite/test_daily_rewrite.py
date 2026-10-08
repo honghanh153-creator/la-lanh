@@ -11,6 +11,8 @@ from app.domains.astro.models import DateOnlySunResult, EngineProvenance, Zodiac
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
+    DailyMeaningBrief,
+    ReadingCandidate,
     ReadingPlanRecord,
     ReadingProjectionRecord,
     ReadingPurpose,
@@ -105,7 +107,13 @@ def _records() -> tuple[ReadingPlanRecord, ReadingProjectionRecord, ReadingRevis
     return plan_record, projection, revision
 
 
-def _good_output() -> dict[str, JsonValue]:
+def _good_output(baseline: ReadingCandidate | None = None) -> dict[str, JsonValue]:
+    if baseline is not None:
+        return {
+            "title": baseline.hook,
+            "scene": baseline.manifestation,
+            "action": baseline.micro_action,
+        }
     return {
         "title": "Tiến độ của người khác không phải thước đo.",
         "scene": "Khi thấy người khác khoe kết quả, bạn so sánh tiến độ của mình với họ.",
@@ -160,6 +168,7 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
         "title_meaning",
         "scene_meaning",
         "action_meaning",
+        "meaning_brief",
         "requirements",
         "evidence",
     }
@@ -167,6 +176,87 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
     assert "latitude" not in serialized
     assert "longitude" not in serialized
     assert str(plan_record.guest_id) not in serialized
+    assert baseline.semantic_blueprint is not None
+    assert baseline.semantic_blueprint.daily_meaning is not None
+    assert request.safe_payload["meaning_brief"] == (
+        baseline.semantic_blueprint.daily_meaning.model_dump(mode="json")
+    )
+    assert request.key.gate_version == "daily-rewrite-gates/v2"
+
+
+def test_daily_gate_rejects_the_exact_opaque_card_reported_by_the_user() -> None:
+    report = evaluate_daily_rewrite(
+        {
+            "title": "Ý kiến đông người dễ nghe giống ý kiến đúng.",
+            "scene": (
+                "Hôm nay, khi cả nhóm đồng ý nhanh, bạn dễ gật theo dù vẫn còn một câu hỏi. "
+                "Sự tự tin của người nói có thể đang được nghe như bằng chứng."
+            ),
+            "action": (
+                "Nói câu bạn còn chưa rõ trước khi đồng ý. Làm xong, xem tình hình có dễ hơn không."
+            ),
+        }
+    )
+    assert not report.passed
+    assert "daily_opaque_filler" in report.failure_codes
+
+
+def test_daily_action_does_not_ask_to_act_before_a_choice_already_made() -> None:
+    report = evaluate_daily_rewrite(
+        {
+            "title": "Bạn gật đầu, nhưng vẫn chưa hiểu hết.",
+            "scene": (
+                "Khi cả nhóm chuyển sang việc tiếp theo, bạn có thể đã gật đầu "
+                "dù chưa hiểu rõ điều vừa chốt."
+            ),
+            "action": "Hỏi cả nhóm vì sao chọn cách đó trước khi đồng ý.",
+        }
+    )
+    assert "daily_action_timing_conflict" in report.failure_codes
+
+
+def test_daily_brief_rejects_wrong_advice_even_when_both_scenes_mention_a_question() -> None:
+    brief = DailyMeaningBrief(
+        core_meaning="Cả nhóm chốt nhưng mình vẫn còn phần chưa hiểu.",
+        reader_takeaway="Có thể hỏi lại phần chưa hiểu.",
+        scene_anchors=("nhóm",),
+        action_anchors=("giải thích", "nhóm", "chưa hiểu"),
+    )
+    good = {
+        "title": "Bạn gật đầu, nhưng vẫn chưa hiểu hết.",
+        "scene": (
+            "Khi cả nhóm chốt rất nhanh, bạn có thể đồng ý theo dù vẫn còn một chỗ muốn hỏi lại."
+        ),
+        "action": "Hỏi ngay chỗ đó: Mình chưa rõ phần này, giải thích thêm được không?",
+    }
+    assert evaluate_daily_rewrite(good, meaning_brief=brief).passed
+    wrong_action = good | {"action": "Hỏi người gửi tin nhắn xem họ muốn nói gì."}
+    report = evaluate_daily_rewrite(wrong_action, meaning_brief=brief)
+    assert "daily_action_brief_drift" in report.failure_codes
+    wrong_scene = good | {
+        "scene": "Khi nhận một tin nhắn ngắn, bạn có thể chưa hiểu người gửi muốn nói gì."
+    }
+    assert (
+        "daily_scene_brief_drift"
+        in evaluate_daily_rewrite(wrong_scene, meaning_brief=brief).failure_codes
+    )
+
+
+@pytest.mark.parametrize(
+    ("scene", "failure"),
+    [
+        ("Hãy hỏi cả nhóm trước khi chốt lựa chọn của mình.", "daily_advice_in_scene"),
+        (
+            "Khi cả nhóm chốt, bạn chắc chắn sẽ đồng ý theo dù chưa hiểu.",
+            "daily_unwarranted_certainty",
+        ),
+    ],
+)
+def test_daily_scene_does_not_become_advice_or_a_certain_prediction(
+    scene: str, failure: str
+) -> None:
+    report = evaluate_daily_rewrite(_good_output() | {"scene": scene})
+    assert failure in report.failure_codes
 
 
 class MemoryRepository:
@@ -233,7 +323,7 @@ async def test_daily_projector_keeps_blueprint_and_publishes_as_available_only()
 
     decision = await DailyRewriteProjector(repository).validate_and_project(
         request,
-        _good_output(),
+        _good_output(baseline),
         completed_at=NOW,
     )
 
@@ -245,7 +335,7 @@ async def test_daily_projector_keeps_blueprint_and_publishes_as_available_only()
     assert candidate is not None
     assert candidate.semantic_blueprint == baseline.semantic_blueprint
     assert candidate.evidence == baseline.evidence
-    assert candidate.hook == _good_output()["title"]
+    assert candidate.hook == _good_output(baseline)["title"]
 
 
 @pytest.mark.asyncio
@@ -263,7 +353,7 @@ async def test_daily_shadow_validates_and_saves_candidate_without_exposing_it() 
 
     decision = await DailyRewriteProjector(repository).validate_and_project(
         request,
-        _good_output(),
+        _good_output(baseline),
         completed_at=NOW,
         publish=False,
     )

@@ -19,8 +19,10 @@ read_secret() {
 }
 
 read_secret LA_LANH_DATABASE_URL
-read_secret LA_LANH_GUEST_HASH_KEY
+[ -z "${LA_LANH_GUEST_HASH_KEY_FILE:-}" ] || read_secret LA_LANH_GUEST_HASH_KEY
 read_secret LA_LANH_GUEST_ENCRYPTION_KEY
+[ -z "${LA_LANH_GENERATION_OPENAI_API_KEY_FILE:-}" ] || \
+  read_secret LA_LANH_GENERATION_OPENAI_API_KEY
 
 if [ "$#" -gt 0 ]; then
   exec "$@"

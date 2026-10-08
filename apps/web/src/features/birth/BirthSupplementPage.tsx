@@ -14,15 +14,9 @@ import {
 } from "../../shared/api/client";
 import { clearCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { BirthTimeInput } from "../../shared/ui/BirthTimeInput";
+import { birthTimeWindows as windows } from "../../shared/ui/birthTimeOptions";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
-
-const windows: { label: string; value: ApproxWindow; hint: string }[] = [
-  { label: "Sáng", value: "morning", hint: "khoảng 06–10h" },
-  { label: "Trưa", value: "noon", hint: "khoảng 10–14h" },
-  { label: "Chiều", value: "afternoon", hint: "khoảng 14–18h" },
-  { label: "Tối", value: "evening", hint: "khoảng 18–22h" },
-  { label: "Đêm", value: "night", hint: "sau 22h" },
-];
 
 function validTime(value: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -116,7 +110,7 @@ export function BirthSupplementPage() {
       return;
     }
     if (mode === "exact" && !validTime(birthTime)) {
-      setError("Giờ sinh cần theo dạng 24h, ví dụ 08:15 hoặc 21:40.");
+      setError("Chọn đủ giờ và phút nhé.");
       return;
     }
     if (radarFlow && (mode !== "exact" || !selectedPlace)) {
@@ -167,44 +161,12 @@ export function BirthSupplementPage() {
         {step === "time" ? <>
         <section className="choice-panel" aria-label="Bạn nhớ giờ sinh thế nào">
           <p><Clock size={18} /> Bạn nhớ giờ sinh thế nào?</p>
-          <div className="segmented-control">
-            <button className={mode === "exact" ? "is-active" : ""} onClick={() => setMode("exact")} type="button">Biết giờ</button>
-            {!radarFlow ? <button className={mode === "approx_window" ? "is-active" : ""} onClick={() => setMode("approx_window")} type="button">Nhớ khoảng</button> : null}
-            {!radarFlow ? <button className={mode === "unknown" ? "is-active" : ""} onClick={() => setMode("unknown")} type="button">Chưa biết</button> : null}
-          </div>
-          {mode === "exact" ? (
-            <label>
-              <span>Giờ sinh</span>
-              <input
-                autoComplete="off"
-                onChange={(event) => setBirthTime(event.target.value)}
-                step={60}
-                type="time"
-                value={birthTime}
-              />
-              <small className="privacy-plain">Chạm để chọn giờ và phút — không cần tự gõ dấu “:”.</small>
-            </label>
-          ) : null}
-          {mode === "approx_window" ? (
-            <div className="window-grid">
-              {windows.map((item) => (
-                <button
-                  className={approxWindow === item.value ? "is-active" : ""}
-                  key={item.value}
-                  onClick={() => setApproxWindow(item.value)}
-                  type="button"
-                >
-                  <strong>{item.label}</strong>
-                  <span>{item.hint}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
+          <BirthTimeInput mode={mode} onModeChange={setMode} time={birthTime} onTimeChange={setBirthTime} window={approxWindow} onWindowChange={setApproxWindow} modes={radarFlow ? ["exact"] : undefined} />
         </section>
         {error ? <p className="inline-error" role="alert">{error}</p> : null}
         <button className="electric-button" onClick={() => {
           if (mode === "exact" && !validTime(birthTime)) {
-            setError("Giờ sinh cần theo dạng 24h, ví dụ 08:15 hoặc 21:40.");
+            setError("Chọn đủ giờ và phút nhé.");
             return;
           }
           setError(null);

@@ -111,6 +111,20 @@ describe("API client reliability", () => {
     }]);
   });
 
+  it("shares the explicit displayed revision even when another request changed the active pointer", async () => {
+    const displayedRevision = "00000000-0000-4000-8000-000000000020";
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(jsonResponse({
+        reading_projection: { scope_key: "a".repeat(64), active: { revision_id: "another-revision" } },
+      }))
+      .mockResolvedValueOnce(jsonResponse({ id: "share-a" }));
+    await getDailyNote();
+    await createShareArtifact("note-a", "square_1_1", displayedRevision);
+    const body = fetchMock.mock.calls[1]?.[1]?.body;
+    if (typeof body !== "string") throw new Error("Expected share request JSON");
+    expect(JSON.parse(body)).toEqual({ format: "square_1_1", revision_id: displayedRevision });
+  });
+
   it("composes caller cancellation with the request deadline", async () => {
     vi.useFakeTimers();
     const caller = new AbortController();

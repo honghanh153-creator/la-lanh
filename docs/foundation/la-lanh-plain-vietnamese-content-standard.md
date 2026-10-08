@@ -6,6 +6,20 @@ Người chưa biết chiêm tinh hoặc Tarot phải hiểu được bài đọ
 chạy tốt từ knowledge bundle trong sản phẩm; Content Studio chỉ là công cụ biên tập tùy chọn, không
 phải điều kiện để engine tạo ra nội dung có chất lượng.
 
+## Giọng direct đã chốt ngày 2026-10-07
+
+Viết như nói với một người bạn: có chủ thể, nói rõ việc gì đang diễn ra, không bắt người đọc giải mã ẩn dụ. Không cố chèn slang hoặc câu đùa. Ví dụ chuẩn:
+
+> Bạn gật đầu, nhưng vẫn chưa hiểu hết.
+>
+> Khi cả nhóm chốt rất nhanh, bạn có thể đồng ý theo dù vẫn còn một chỗ muốn hỏi lại.
+>
+> Hỏi ngay chỗ đó: Mình chưa rõ phần này, giải thích thêm được không?
+
+Loại các câu như "Ý kiến đông người dễ nghe giống ý kiến đúng" và "Sự tự tin của người nói có thể đang được nghe như bằng chứng". Ý muốn diễn đạt phải được viết rõ trong meaning brief của backend, không chỉ đưa câu khó hiểu cho Luna sửa từ.
+
+Daily Home không ghép quan sát và reflection độc lập. Mọi headline, scene và advice của một issue phải nói cùng một tình huống. Advice phải làm được tại thời điểm của scene, không yêu cầu quay lại trước một việc đã xảy ra.
+
 ## Thứ tự bắt buộc của một bài đọc
 
 1. **Trả lời thẳng:** nói điều đáng chú ý nhất bằng một câu ngắn.
@@ -15,6 +29,13 @@ phải điều kiện để engine tạo ra nội dung có chất lượng.
 5. **Disclaimer riêng:** đặt ngoài nội dung chính, có kiểu hiển thị khác; không chen giữa phần giải
    nghĩa.
 
+Riêng Home Daily Note rút gọn còn hai lớp: “Cảnh dễ gặp hôm nay” và “Hôm nay thử thế này”.
+Scene không được chứa lời khuyên. Evidence, lý do chiêm tinh và disclaimer sâu chỉ xuất hiện khi người
+dùng chủ động mở Note Detail.
+
+Full body của lớp fallback một lớp ưu tiên 45–80 từ. Bản đọc Aura nhiều yếu tố có thể dài hơn,
+nhưng không kéo dài câu chỉ để tạo cảm giác “đọc sâu”.
+
 ## Tiêu chuẩn câu chữ
 
 - Ưu tiên từ quen thuộc, câu chủ động và một ý chính trong mỗi câu.
@@ -23,6 +44,7 @@ phải điều kiện để engine tạo ra nội dung có chất lượng.
   ngắn, hoặc bạn nhận thêm một đầu việc.
 - Mỗi gợi ý phải có động từ và việc cụ thể, ví dụ: hỏi lại, viết ra, chọn, đặt lịch, bỏ bớt hoặc kiểm
   tra.
+- Không dùng “hãy”, “thử”, “nên”, “đừng” trong scene. Các từ này chỉ được xuất hiện trong advice.
 - “Mở lòng”, “được trân trọng” và “ranh giới” được dùng khi câu nói rõ người, việc và hoàn cảnh.
 - “Mood” chỉ được dùng trong microcopy vui; không dùng để giải thích kết luận.
 

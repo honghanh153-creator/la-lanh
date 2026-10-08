@@ -12,8 +12,7 @@ describe("RadarLandingPage", () => {
     expect(screen.getByText(/chỉ nhập thông tin sinh khi đã được người ấy cho phép/)).toBeInTheDocument();
     expect(screen.getByText(/Không gửi link, không tạo hồ sơ/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Check kín một người" })).toHaveAttribute("href", "/radar/start");
-    expect(screen.getByRole("navigation", { name: "Tiến độ Radar" })).toBeInTheDocument();
-    expect(screen.getByText("Bắt đầu").closest('[aria-current="step"]')).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Tiến độ Radar" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Xem kết quả đã có" })).toHaveAttribute("href", "/radar/start#radar-history");
     expect(screen.queryByText(/năm lá úp/i)).not.toBeInTheDocument();
   });

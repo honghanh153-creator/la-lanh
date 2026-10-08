@@ -3,6 +3,10 @@
 This gate applies to every Lá Lành deployment. Its purpose is to make the product more specific and
 useful over time without rewarding filler, unsafe certainty, or untraceable astrology copy.
 
+Daily Note additionally uses `daily-psychology-scene-advice-v1`. Every release must prove that its
+scene is descriptive rather than advisory, its advice is bounded and compatible with the scene, all
+psychology source IDs are registered, and the 365-day deterministic suite remains collision-free.
+
 ## Current baseline
 
 The machine-readable floor is `docs/operations/content-matrix-baseline.json`. Run:
@@ -96,6 +100,10 @@ Each new dimension needs a versioned method, input eligibility rule, evidence ma
 failure/degradation behavior, and near-neighbor benchmark. Jyotish interpretation, diagnostic labels,
 compatibility verdicts, and inferred consent remain disabled until their separate expert and safety
 gates are met.
+
+Psychology dimensions are editorial lenses only. They cannot introduce diagnoses, therapy claims,
+sensitive-trait inference, certain predictions, or new personal-data collection. Copyrighted source
+text is never stored in the matrix; all user-facing Vietnamese copy must be original.
 
 ## Verification basis
 

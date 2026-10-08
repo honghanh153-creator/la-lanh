@@ -1,13 +1,15 @@
 import {
   ArrowRight,
-  HeartStraight,
+  CaretDown,
+  Pause,
   Planet,
+  Play,
   Smiley,
   Sparkle,
-  UserCircle,
+  User,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import {
@@ -25,7 +27,8 @@ import {
   type SignalContext,
 } from "../../shared/api/client";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
-import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
+import { birthCompletionPrompt } from "../../shared/astro/birthReadiness";
+import { dailyContextPath } from "../../shared/astro/dailyContext";
 import {
   dismissReadingUpdate,
   isReadingUpdateDismissed,
@@ -36,8 +39,6 @@ import "../../shared/styles/signal-note.css";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
-import { ReadingContent } from "../../shared/ui/ReadingContent";
-import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
 import { SignalContextPicker } from "../../shared/ui/SignalContextPicker";
@@ -67,6 +68,7 @@ export function HomePage() {
   const [contextualNote, setContextualNote] = useState<DailyNote | undefined>();
   const [context, setContext] = useState<SignalContext>("auto");
   const [contextSheetOpen, setContextSheetOpen] = useState(false);
+  const [motionPaused, setMotionPaused] = useState(false);
   const note = contextualNote ?? baseNote;
   const activeReading = note?.reading_projection?.active;
   const availableUpdate = note?.reading_projection?.available_update;
@@ -98,9 +100,8 @@ export function HomePage() {
     && !isReadingUpdateDismissed(note.reading_projection.scope_key, availableUpdate.revision_id)
   );
   const snoozedUntil = Number(localStorage.getItem("la-lanh-birth-supplement-snooze-until") ?? 0);
-  const showUnlock = (!activeReading || activeReading.mode !== "full_synthesis")
-    && (supplementQuery.data?.profile_level ?? 1) < 2
-    && snoozedUntil <= Date.now();
+  const completionPrompt = birthCompletionPrompt(supplementQuery.data);
+  const showUnlock = Boolean(completionPrompt) && snoozedUntil <= Date.now();
 
   const contextMutation = useMutation({
     mutationFn: async (nextContext: SignalContext) => {
@@ -153,13 +154,6 @@ export function HomePage() {
     onError: () => setMessage("Phản hồi chưa gửi được. Không có lựa chọn nào được lưu trên máy."),
   });
 
-  const dailyExperiment = useDailyExperiment({
-    enabled: Boolean(note?.id),
-    onChosen: () => setMessage("Đã giữ một việc nhỏ để thử hôm nay. Bạn có thể dừng bất cứ lúc nào."),
-    onUndone: () => setMessage("Đã bỏ giữ việc nhỏ. Không có streak hay đánh dấu hoàn thành nào được tạo."),
-    onReflected: () => setMessage("Đã lưu phần nhìn lại riêng cho thử nghiệm này."),
-  });
-
   const moodMutation = useMutation({
     mutationFn: (value: MoodValue) => {
       if (!note) throw new Error("Missing daily note");
@@ -194,21 +188,6 @@ export function HomePage() {
     onError: () => setMessage("Món quà chưa mở được. Giữ nguyên bản hiện tại và thử lại nhé."),
   });
 
-  const chooseExperiment = () => {
-    if (!note || !activeReading?.experiment) return;
-    const held = dailyExperiment.experiment;
-    const expectedHeld = held && held.action_key !== activeReading.experiment.action_key ? held : null;
-    dailyExperiment.choose({
-      daily_note_id: note.id,
-      revision_id: activeReading.revision_id,
-      background_lens: context,
-      action_key: activeReading.experiment.action_key,
-      consent_version: "action-experiment-v1",
-      expected_experiment_id: expectedHeld?.id ?? null,
-      expected_version: expectedHeld?.version ?? null,
-    });
-  };
-
   useEffect(() => {
     if (moodQuery.data?.mood) setMood(moodQuery.data.mood);
   }, [moodQuery.data]);
@@ -235,9 +214,7 @@ export function HomePage() {
     return (
       <main className="app-page home-page signal-note-home">
         <HomeHeader />
-        <HomePreviewGreeting />
-        <HomeQuestionHeading />
-        <HomeDailyHeading />
+        <HomeValueHero />
         <section className="empty-state">
           <Planet size={52} />
           <h1>{missingSession ? "Phiên riêng đã khép lại." : noteQuery.isError ? "Note chưa về kịp." : "Chưa có Lá để nhắc bạn."}</h1>
@@ -252,18 +229,28 @@ export function HomePage() {
             ? <button className="electric-button" onClick={() => void noteQuery.refetch()} type="button">Thử lại</button>
             : <Link className="electric-button" to="/birth">Khai ngày sinh</Link>}
         </section>
-        <HomeDiscoveryRouter />
+        <HomeExploreRoutes />
         <AppNav />
       </main>
     );
   }
 
-  const modeLabel = activeReading
-    ? activeReading.mode === "full_synthesis" ? "Aura · Tổng hòa lá số" : "Vibe · Một lớp từ ngày sinh"
-    : note.persona_mode === "aura" ? "Aura · Tổng hòa lá số" : "Vibe · Một lớp từ ngày sinh";
   const pendingContext = contextMutation.isPending ? contextMutation.variables : null;
+  const noteDecoration = <SignalContextPicker
+    appearance="moon"
+    error={contextMutation.isError ? "Chưa đổi được góc. Note hiện tại vẫn được giữ nguyên; bạn có thể thử lại." : null}
+    onOpenChange={(open) => {
+      if (open) contextMutation.reset();
+      setContextSheetOpen(open);
+    }}
+    onSelect={handleContextSelect}
+    open={contextSheetOpen}
+    pending={pendingContext}
+    selected={context}
+  />;
   const quickActions = (
     <ResonanceFeedback
+      sharePath={dailyContextPath("/card", context)}
       consented={resonanceQuery.data?.consented ?? false}
       onSubmit={(choice) => resonanceMutation.mutate(choice)}
       pending={resonanceMutation.isPending}
@@ -272,13 +259,21 @@ export function HomePage() {
   );
 
   return (
-    <main className="app-page home-page signal-note-home">
-      <HomeHeader />
-      <section className="home-greeting signal-note-greeting">
-        <time dateTime={note.note_date}>{formatNoteDate(note.note_date)}</time>
-        <h1>Chào bạn.</h1>
-        <span className="transit-pill"><Sparkle aria-hidden="true" weight="fill" /> {modeLabel}</span>
-      </section>
+    <main className="app-page home-page signal-note-home" data-home-motion={motionPaused ? "paused" : "running"}>
+      <HomeHeader motionControl={
+        <button
+          aria-label={motionPaused ? "Bật chuyển động" : "Tạm dừng chuyển động"}
+          className="home-motion-toggle"
+          onClick={() => setMotionPaused((paused) => !paused)}
+          title={motionPaused ? "Bật chuyển động" : "Tạm dừng chuyển động"}
+          type="button"
+        >
+          {motionPaused ? <Play aria-hidden="true" size={19} /> : <Pause aria-hidden="true" size={19} />}
+        </button>
+      } />
+      <HomeValueHero date={note.note_date}>
+        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => moodMutation.mutate(value)} open={moodSheetOpen} pending={moodMutation.isPending} />
+      </HomeValueHero>
 
       {noteQuery.isError ? (
         <p className="cache-status" role="status">
@@ -288,78 +283,26 @@ export function HomePage() {
         </p>
       ) : null}
 
-      <HomeQuestionHeading />
-      <HomeDailyHeading />
-
       {activeReading ? (
-        <section aria-label="Note hôm nay" className="signal-note-paper">
-          <ReadingContent
-            compact
-            content={activeReading}
-            currentExperiment={dailyExperiment.experiment}
-            experimentError={dailyExperiment.errorMessage}
-            experimentStatus={dailyExperiment.status}
-            onChoose={chooseExperiment}
-            onReflect={(outcome) => {
-              const held = dailyExperiment.experiment;
-              if (!held) return;
-              dailyExperiment.reflect({
-                experiment_id: held.id,
-                expected_version: held.version,
-                outcome,
-              });
-            }}
-            onUndo={() => {
-              const held = dailyExperiment.experiment;
-              if (!held) return;
-              dailyExperiment.undo({ experiment_id: held.id, expected_version: held.version });
-            }}
-            toolbar={quickActions}
-          />
-          <div className="signal-note-paper__footer">
-            <MoodPicker
-              mood={mood}
-              onOpenChange={setMoodSheetOpen}
-              onSelect={(value) => moodMutation.mutate(value)}
-              open={moodSheetOpen}
-              pending={moodMutation.isPending}
-            />
-            <Link className="signal-note-paper__detail" to="/note/today">Đọc note đầy đủ</Link>
-          </div>
-        </section>
+        <HomeDailySignal
+          activeReading={activeReading}
+          detailPath={dailyContextPath("/note/today", context)}
+          decoration={noteDecoration}
+          toolbar={quickActions}
+        />
       ) : (
-        <section aria-label="Note hôm nay" className="signal-note-paper signal-note-paper--legacy">
-          {quickActions}
-          <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {modeLabel}</p>
-          <h2>{note.title}</h2>
-          <p>{note.body}</p>
-          <ReadingDisclaimer compact>
-            Nội dung dùng để tự soi và đối chiếu; quyết định vẫn thuộc về bạn.
-          </ReadingDisclaimer>
-          <div className="signal-note-paper__footer">
-            <MoodPicker
-              mood={mood}
-              onOpenChange={setMoodSheetOpen}
-              onSelect={(value) => moodMutation.mutate(value)}
-              open={moodSheetOpen}
-              pending={moodMutation.isPending}
-            />
-            <Link className="signal-note-paper__detail" to="/note/today">Đọc note đầy đủ</Link>
-          </div>
+        <section aria-label="Note hôm nay" className="home-daily-signal home-daily-signal--legacy">
+          <article className="home-daily-signal__paper">
+            {noteDecoration}
+            <p className="home-daily-signal__eyebrow">Hôm nay của bạn</p>
+            <h2>{note.title}</h2>
+            <p>{note.body}</p>
+            <footer className="home-note-footer"><Link to={dailyContextPath("/note/today", context)}>Đọc thêm <ArrowRight aria-hidden="true" /></Link>{quickActions}</footer>
+          </article>
         </section>
       )}
 
-      <SignalContextPicker
-        error={contextMutation.isError ? "Chưa đổi được góc. Note hiện tại vẫn được giữ nguyên; bạn có thể thử lại." : null}
-        onOpenChange={(open) => {
-          if (open) contextMutation.reset();
-          setContextSheetOpen(open);
-        }}
-        onSelect={handleContextSelect}
-        open={contextSheetOpen}
-        pending={pendingContext}
-        selected={context}
-      />
+      <HomeExploreRoutes />
 
       {showGift && availableUpdate && note.reading_projection ? (
         <ReadingUpdateGift
@@ -383,15 +326,13 @@ export function HomePage() {
       <p className="sr-only" aria-live="polite" role="status">{message}</p>
       {message ? <p className="home-status" aria-hidden="true">{message}</p> : null}
 
-      {showUnlock ? (
+      {showUnlock && completionPrompt ? (
         <aside className="unlock-note">
           <Planet aria-hidden="true" />
-          <div><strong>Còn một lớp chưa mở</strong><p>Thêm giờ và nơi sinh để chuyển từ Vibe sang bản đọc Aura.</p></div>
-          <Link to="/birth-time">Mở lớp sâu</Link>
+          <div><strong>Muốn hiểu mình rõ hơn?</strong><p>{completionPrompt.body}</p></div>
+          <Link to="/birth-time">{completionPrompt.cta}</Link>
         </aside>
       ) : null}
-
-      <HomeDiscoveryRouter />
 
       <AppNav />
     </main>
@@ -423,8 +364,9 @@ function MoodPicker({
         onClick={() => onOpenChange(true)}
         type="button"
       >
-        <span aria-hidden="true">{selected?.emoji ?? <Smiley weight="duotone" />}</span>
-        <strong>{selected?.value ?? "Mood hôm nay?"}</strong>
+        <span aria-hidden="true"><Smiley weight="regular" size={28} /></span>
+        <strong className="sr-only">{selected?.value ?? "Mood hôm nay?"}</strong>
+        <CaretDown aria-hidden="true" size={16} />
       </button>
       <AppSheet
         closeDisabled={pending}
@@ -456,86 +398,83 @@ function MoodPicker({
 function formatNoteDate(value: string): string {
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(year, month - 1, day, 12);
-  return new Intl.DateTimeFormat("vi-VN", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-  }).format(date);
+  const weekday = new Intl.DateTimeFormat("vi-VN", { weekday: "long" }).format(date);
+  return `${weekday}, ${String(day).padStart(2, "0")}.${String(month).padStart(2, "0")}`;
 }
 
-function HomeHeader() {
+function HomeHeader({ motionControl }: { motionControl?: ReactNode }) {
   return (
     <header className="home-header">
       <BrandMark />
-      <Link aria-label="Trang cá nhân" className="profile-orb" to="/profile"><UserCircle aria-hidden="true" size={25} /></Link>
+      <div className="home-header__actions">
+        {motionControl}
+        <Link aria-label="Trang cá nhân" className="profile-orb" to="/profile"><User aria-hidden="true" size={28} /></Link>
+      </div>
     </header>
   );
 }
 
-function HomePreviewGreeting() {
+function HomeValueHero({ date, children }: { date?: string; children?: ReactNode }) {
+  const displayDate = date ?? new Date().toISOString().slice(0, 10);
   return (
-    <section className="home-greeting signal-note-greeting">
-      <time dateTime={new Date().toISOString().slice(0, 10)}>Hôm nay</time>
-      <h1>Chào bạn.</h1>
-      <span className="transit-pill"><Sparkle aria-hidden="true" weight="fill" /> Chọn điều bạn muốn hiểu</span>
+    <section className="home-value-hero">
+      <time dateTime={displayDate}>{date ? formatNoteDate(date) : "Hôm nay"}</time>
+      <h1 className="sr-only">Hôm nay có gì đáng để ý?</h1>
+      {children}
     </section>
   );
 }
 
-function HomeQuestionHeading() {
+function HomeDailySignal({
+  activeReading,
+  detailPath,
+  decoration,
+  toolbar,
+}: {
+  activeReading: NonNullable<DailyNote["reading_projection"]>["active"];
+  detailPath: string;
+  decoration: ReactNode;
+  toolbar: ReactNode;
+}) {
+  if (!activeReading) return null;
+  const experiment = activeReading.experiment;
+  const body = activeReading.sections.manifestation || activeReading.sections.thesis;
+  const action = experiment?.action || activeReading.sections.micro_action;
+
   return (
-    <section aria-labelledby="home-question-title" className="home-question-prompt">
-      <div className="home-question-router__heading">
-        <p className="eyebrow">Bắt đầu từ điều bạn đang nghĩ</p>
-        <h2 id="home-question-title">Bạn đang muốn hiểu điều gì?</h2>
-        <p>Chọn đúng chuyện bạn đang cần soi.</p>
-      </div>
+    <section aria-label="Note hôm nay" className="home-daily-signal">
+      <article className="home-daily-signal__paper">
+        {decoration}
+        <p className="home-daily-signal__eyebrow">Hôm nay của bạn</p>
+        <h2>{activeReading.sections.hook}</h2>
+        {body ? <p className="home-daily-signal__body">{body}</p> : null}
+        {action ? (
+          <aside aria-label="Việc có thể thử hôm nay" className="home-daily-signal__advice">
+            <Sparkle aria-hidden="true" className="home-advice-star" weight="fill" />
+            <span>Thử một việc nhỏ</span>
+            <p>{action}</p>
+          </aside>
+        ) : null}
+        <footer className="home-note-footer"><Link to={detailPath}>Đọc thêm<ArrowRight aria-hidden="true" /></Link>{toolbar}</footer>
+      </article>
     </section>
   );
 }
 
-function HomeDiscoveryRouter() {
+function HomeExploreRoutes() {
   return (
-    <section aria-label="Khám phá thêm" className="home-question-router home-discovery-router">
-      <div className="home-discovery-router__heading">
-        <p className="eyebrow">Muốn soi thêm một chuyện?</p>
-        <h2>Chọn góc tiếp theo</h2>
-      </div>
-      <Link className="home-tarot-spotlight" to="/tarot">
-        <span aria-hidden="true" className="home-tarot-spotlight__cards"><i /><i /><i>✦</i></span>
-        <span className="home-tarot-spotlight__copy">
-          <small>Lá Hỏi · Tarot</small>
-          <strong>Có chuyện cứ chạy trong đầu?</strong>
-          <em>Đặt câu hỏi, chọn lá, nhìn rõ bước tiếp theo.</em>
-        </span>
-        <span className="home-tarot-spotlight__action">Hỏi Lá <ArrowRight aria-hidden="true" /></span>
-      </Link>
-      <div className="home-question-router__choices">
-        <Link aria-describedby="home-question-self-hint" to="/natal">
-          <UserCircle aria-hidden="true" weight="duotone" />
-          <span><strong>Mình</strong><small id="home-question-self-hint">Hiểu điều hay lặp lại</small></span>
-          <ArrowRight aria-hidden="true" />
+    <section aria-label="Khám phá thêm" className="home-explore-routes">
+      <h2>Muốn hỏi chuyện khác?</h2>
+      <div className="home-explore-routes__choices">
+        <Link to="/tarot">
+          <img alt="" src="/assets/ultraviolet/tarot.webp" />
+          <span><strong>Rút Tarot</strong><ArrowRight aria-hidden="true" /></span>
         </Link>
-        <Link aria-describedby="home-question-person-hint" to="/radar">
-          <HeartStraight aria-hidden="true" weight="duotone" />
-          <span><strong>Một người</strong><small id="home-question-person-hint">Check độ hợp gu</small></span>
-          <ArrowRight aria-hidden="true" />
-        </Link>
-        <Link aria-describedby="home-question-world-hint" state={{ from: "home" }} to="/insights/current-sky?tradition=western">
-          <Planet aria-hidden="true" weight="duotone" />
-          <span><strong>Hôm nay</strong><small id="home-question-world-hint">Xem bối cảnh đang tác động</small></span>
-          <ArrowRight aria-hidden="true" />
+        <Link to="/radar">
+          <img alt="" src="/assets/ultraviolet/pair.webp" />
+          <span><strong>Mình & người ấy</strong><ArrowRight aria-hidden="true" /></span>
         </Link>
       </div>
-    </section>
-  );
-}
-
-function HomeDailyHeading() {
-  return (
-    <section className="home-daily-heading" aria-labelledby="home-daily-title">
-      <p className="eyebrow">Tín hiệu hôm nay</p>
-      <h2 id="home-daily-title">Còn đây là một góc dành riêng cho hôm nay.</h2>
     </section>
   );
 }
@@ -544,11 +483,9 @@ function HomeState({ text }: { text: string }) {
   return (
     <main className="app-page home-page signal-note-home">
       <HomeHeader />
-      <HomePreviewGreeting />
-      <HomeQuestionHeading />
-      <HomeDailyHeading />
+      <HomeValueHero />
       <section className="entry-loading"><span className="entry-loading__orbit" /><p>{text}</p></section>
-      <HomeDiscoveryRouter />
+      <HomeExploreRoutes />
       <AppNav />
     </main>
   );

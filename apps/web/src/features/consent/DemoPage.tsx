@@ -16,7 +16,7 @@ export function DemoPage() {
       </section>
       <footer className="flow-actions">
         <button className="electric-button" onClick={() => void navigate("/consent")} type="button">Tạo Lá của riêng mình <ArrowRight /></button>
-        <button className="text-button" onClick={() => void navigate("/consent")} type="button">Xem lại quyền riêng tư</button>
+        <button className="text-button" onClick={() => void navigate("/privacy")} type="button">Xem lại quyền riêng tư</button>
         <button className="text-button" onClick={() => void navigate("/welcome")} type="button">Thoát bản xem thử</button>
       </footer>
     </main>

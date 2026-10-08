@@ -24,6 +24,31 @@ _ARRAY_FIELDS = {
 }
 
 _SURFACE_MAPPING_INSTRUCTIONS = {
+    RewriteSurface.DAILY_HOME: (
+        "Map title from title_meaning, scene from scene_meaning, and action from "
+        "action_meaning. Scene must describe one ordinary observable moment. Action must "
+        "start with a familiar Vietnamese action verb and stay connected to that moment. "
+        "Honor the supplied requirement markers without mentioning astrology. Keep the title "
+        "between 3 and 11 Vietnamese words, scene 8-40 words, action 4-24 words, total at most 70. "
+        "Use meaning_brief.core_meaning to understand the situation and reader_takeaway to "
+        "preserve its point. The scene is illustrative, NOT an observed fact about this user. "
+        "Use conditional wording in the scene; do not claim it happened or will happen. "
+        "Keep title, scene, action on the SAME situation. Do not add a new role, conflict, motive, "
+        "or advice absent from the brief. Never turn reader_takeaway into another paragraph of "
+        "abstract explanation. No advice in title or scene. No filler after action. "
+        "Write direct everyday Vietnamese with a subject and a visible action. "
+        "Never use a paradox, abstract comparison, or poetic metaphor. "
+        "Example meaning: agreeing with the group while still having an unanswered question. "
+        "title: 'Bạn gật đầu, nhưng vẫn chưa hiểu hết.' "
+        "scene: 'Khi cả nhóm chốt rất nhanh, bạn có thể đồng ý theo dù vẫn còn một chỗ "
+        "muốn hỏi lại.' "
+        "action: 'Hỏi ngay chỗ đó: Mình chưa rõ phần này, giải thích thêm được không?' "
+        "Different meaning: editing an adequate draft instead of sending it for feedback. "
+        "title: 'Bạn định gửi rồi, nhưng lại sửa thêm.' "
+        "scene: 'Khi bản nháp đã đủ ý, bạn có thể vẫn sửa vài chữ vì lo người khác đánh giá.' "
+        "action: 'Gửi bản nháp và nói rõ phần nào còn cần góp ý.' "
+        "Examples teach style, not facts or sentences to copy into unrelated situations."
+    ),
     RewriteSurface.REVEAL: (
         "Map headline from source hook, synthesis from source thesis, section_intros from "
         "source manifestation, and examples from source micro_action."
@@ -101,7 +126,12 @@ def surface_output_contract(surface: RewriteSurface) -> SurfaceOutputContract:
     tokens = min(1_800, max(220, spec.word_budget * 3))
     instruction = (
         "Rewrite only the requested Vietnamese prose fields from the closed safe brief. "
-        "Use plain everyday Vietnamese. Preserve every supplied meaning and distinction. "
+        "Use plain everyday Vietnamese that a Vietnamese student can understand on the first "
+        "read. Sound like a smart close friend in their twenties: warm, direct, lightly playful, "
+        "and serious when the subject is vulnerable. At most one lightly playful phrase per "
+        "response; never force memes, slang, catchphrases, poetic metaphors, pseudo-profound "
+        "paradoxes, or therapy jargon. Prefer a clear subject, verb, and observable situation. "
+        "Preserve every supplied meaning and distinction. "
         "Do not infer identity, private facts, diagnoses, predictions, urgency, or decisions. "
         f"{_SURFACE_MAPPING_INSTRUCTIONS.get(surface, '')} "
         "Return only JSON matching the schema."

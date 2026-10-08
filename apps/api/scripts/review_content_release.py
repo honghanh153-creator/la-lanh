@@ -114,6 +114,30 @@ def build_synthetic_samples() -> tuple[ReviewSample, ...]:
             )
         )
 
+        natal_plan = planner.plan(
+            _full_chart(index),
+            purpose=ReadingPurpose.READING_DETAIL,
+            background_lens=_LENSES[index % len(_LENSES)],
+            editorial_seed=(date(2026, 9, 29) + timedelta(days=index)).isoformat(),
+        )
+        natal_candidate = renderer.render(natal_plan)
+        natal_evaluation = evaluate_candidate(natal_plan, natal_candidate)
+        samples.append(
+            ReviewSample(
+                persona_id=persona_id,
+                surface="natal",
+                sections=(
+                    ("hook", natal_candidate.hook),
+                    ("thesis", natal_candidate.thesis),
+                    ("scene", natal_candidate.manifestation),
+                    ("action", natal_candidate.micro_action),
+                ),
+                disclaimer=natal_candidate.disclaimer,
+                provenance_ids=tuple(claim.factor_ref for claim in natal_candidate.evidence.claims),
+                evidence_validated=natal_evaluation.accepted,
+            )
+        )
+
         spread = _SPREADS[index % len(_SPREADS)]
         card_count = _SPREAD_CARD_COUNTS[spread]
         card_ids = tuple(
@@ -167,14 +191,14 @@ def main() -> None:
     result = ContentReviewAgent().review(samples)
     if result.persona_count != PERSONA_COUNT:
         raise SystemExit(f"Content review needs {PERSONA_COUNT} synthetic personas")
-    if result.sample_count != PERSONA_COUNT * 2:
-        raise SystemExit("Content review needs Daily and Tarot for every synthetic persona")
+    if result.sample_count != PERSONA_COUNT * 3:
+        raise SystemExit("Content review needs Daily, Natal and Tarot for every synthetic persona")
     surfaces_by_persona = {
         persona_id: {sample.surface for sample in samples if sample.persona_id == persona_id}
         for persona_id in {sample.persona_id for sample in samples}
     }
-    if any(surfaces != {"daily", "tarot"} for surfaces in surfaces_by_persona.values()):
-        raise SystemExit("Every synthetic persona must be reviewed on Daily and Tarot")
+    if any(surfaces != {"daily", "natal", "tarot"} for surfaces in surfaces_by_persona.values()):
+        raise SystemExit("Every synthetic persona must be reviewed on Daily, Natal and Tarot")
     if not result.passed:
         print("Content review failed (source prose is intentionally omitted):")
         for finding in result.findings:
@@ -183,9 +207,11 @@ def main() -> None:
                 f"[{finding.persona_id}/{finding.surface}/{finding.section}]"
             )
         raise SystemExit(1)
+    medium_count = sum(finding.severity == "medium" for finding in result.findings)
     print(
         f"Content review passed: {result.persona_count} synthetic personas, "
-        f"{result.sample_count} generated readings, no critical/high findings."
+        f"{result.sample_count} generated readings, no critical/high findings, "
+        f"{medium_count} medium follow-ups."
     )
 
 

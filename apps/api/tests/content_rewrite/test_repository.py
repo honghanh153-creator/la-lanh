@@ -42,7 +42,7 @@ def _request(*, owner_key: str = "daily:anonymous") -> RewriteRequestEnvelope:
             model_version="gpt-6-luna",
             prompt_version="surface-rewrite-v1",
             schema_version="daily-rewrite/v1",
-            gate_version="daily-rewrite-gates/v1",
+            gate_version="daily-rewrite-gates/v2",
         ),
         authorization_receipt_id="consent-receipt",
         safe_payload={

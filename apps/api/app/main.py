@@ -54,7 +54,10 @@ from app.infrastructure.crypto import (
     StaticDataKeyProvider,
     decode_key,
 )
-from app.infrastructure.generation.openai import OPENAI_PROMPT_VERSION
+from app.infrastructure.generation.openai import (
+    OPENAI_PROMPT_VERSION,
+    OPENAI_REWRITE_PROMPT_VERSION,
+)
 from app.middleware.admission import AdmissionControlMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.observability.metrics import MetricsMiddleware, metrics_response
@@ -157,6 +160,7 @@ def create_app(
             credential_hasher,
             generation_enabled=resolved_settings.generation_enabled,
             generation_model=resolved_settings.generation_openai_model,
+            generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
             content_rewrite_service=content_rewrite_service,
         )
         app.state.la_chung_service = LaChungService(
@@ -192,6 +196,7 @@ def create_app(
                 engine,
                 generation_enabled=resolved_settings.generation_enabled,
                 generation_model=resolved_settings.generation_openai_model,
+                generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
                 content_rewrite_service=content_rewrite_service,
             )
             if app.state.birth_chart_service is not None and engine is not None
@@ -228,6 +233,7 @@ def create_app(
                     generation_provider=resolved_settings.generation_provider,
                     generation_model=resolved_settings.generation_openai_model,
                     generation_prompt_version=OPENAI_PROMPT_VERSION,
+                    rewrite_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
                     generation_max_attempts=resolved_settings.generation_max_attempts,
                     content_rewrite_service=content_rewrite_service,
                 )
