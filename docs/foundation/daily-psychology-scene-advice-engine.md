@@ -95,7 +95,8 @@ Ví dụ áp lực nhóm: câu hỏi "Bạn đã hiểu chỗ mình vừa hỏi 
 
 Audit 11.10.2026 cho thấy đoạn chính ghép bốn câu từ bốn bảng, không có chủ ngữ, lặp ý cảnh/hành động và nhét giới hạn vào giữa bài. Từ `daily-direct-meaning-v7` và `daily-semantic-eligibility-v4`:
 
-- `thesis` gồm đúng hai câu có chủ ngữ: câu xu hướng riêng của bạn (`placement`/`pair` meaning, đều bắt đầu bằng "Bạn …") rồi `issue.takeaway` (cũng có chủ ngữ). `issue.meaning` chỉ còn trong `core_meaning` của brief, không hiển thị.
+- `thesis` gồm đúng hai câu có chủ ngữ, mỗi phần một vai: câu 1 là xu hướng riêng của bạn (`placement`/`pair` meaning, bắt đầu bằng "Bạn …", không khuyên); câu 2 (`issue.takeaway`) là điều mới rút ra, không khuyên; chỉ `micro_action` nói việc làm. `tests/readings/test_daily_thesis_roles.py` từ chối từ khuyên ("có thể", "hãy", "bạn nên"…) ngoài action và cụm nội dung lặp giữa các phần (trừ chủ đề của cảnh); toàn bộ tổ hợp ở `docs/reviews/2026-10-11-b1a-daily-thesis-combos.md`. `issue.meaning` chỉ còn trong `core_meaning` của brief.
+- Cà khịa với note v7: câu chọc (`jab`) thay cho takeaway, thành "câu chọc + xu hướng", để không nói một ý hai lần. Note v6 đã lưu giữ cách ghép cũ.
 - Giới hạn không nằm trong đoạn chính. Cảnh minh họa được đánh dấu bằng tiêu đề "Ngoài đời có thể trông như…" và `scene_status`. Date-only được ghi rõ ở claim "(chỉ từ ngày sinh)". Trang chỉ còn một hộp Lưu ý; framework disclosure nằm trong phần "Vì sao hôm nay?" đóng sẵn.
 - Ngữ cảnh mở câu cảnh ("Trong công việc hoặc chuyện học, khi …"), không còn câu cụt "Ví dụ …". Ghi chú đã lưu ở v6 vẫn được nhận diện cho giọng Cà khịa (`LEGACY_ARENA_LEADS`, khớp `issue.meaning`).
 - Note Detail luôn có "Thử một việc nhỏ": có thử nghiệm giữ được khi exact, chỉ hiện câu hành động khi date-only hoặc giờ không chính xác. "Vì sao hôm nay?" chỉ là một nhãn; link ở Home mở thẳng panel.

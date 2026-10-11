@@ -95,6 +95,11 @@ PLACEMENT_MEANINGS = {
 }
 
 
+# Context-specific tendencies chosen inside eligible_daily_situations().
+CAPACITY_AT_WORK_MEANING = "Bạn muốn giúp trong việc cần làm, nhưng lịch nhận việc có giới hạn."
+REPAIR_REPLY_MEANING = "Bạn dễ nhận ra mình vừa trả lời hơi nhanh, sau khi câu đã gửi đi."
+
+
 @dataclass(frozen=True)
 class PairRule:
     bodies: frozenset[str]
@@ -112,7 +117,7 @@ PAIR_RULES = (
         "group-pressure",
         "specific-feedback",
         "Bạn muốn hiểu cho rõ, nhưng cũng muốn giữ hòa khí khi mọi người đã chốt ý.",
-        "Bạn hợp với kiểu hỏi đúng phần cần góp ý, vừa hiểu rõ vừa giữ được trao đổi.",
+        "Bạn trao đổi tự tin hơn khi biết rõ mình đang được hỏi về phần nào.",
         "specific-feedback",
         "Bạn vừa cần hiểu rõ, vừa cần được người kia hiểu đúng.",
     ),
@@ -121,42 +126,42 @@ PAIR_RULES = (
         "perfect-before-start",
         "specific-feedback",
         "Bạn muốn nói cho thật đúng, nên dễ sửa mãi dù đã đủ ý.",
-        "Bạn làm tốt khi dùng phần đã chuẩn bị để hỏi đúng chỗ cần góp ý.",
+        "Bạn thường chuẩn bị kỹ trước khi đưa việc của mình cho người khác xem.",
     ),
     PairRule(
         frozenset({"mercury", "neptune"}),
         "missing-context",
         "specific-feedback",
         "Bạn muốn hiểu cho rõ, nhưng dễ tự đoán để lấp chỗ thông tin còn thiếu.",
-        "Bạn làm rõ ý tưởng tốt hơn khi viết thành bản nháp cho người khác đọc.",
+        "Bạn có nhiều ý tưởng, nhưng chúng dễ còn mơ hồ với người nghe.",
     ),
     PairRule(
         frozenset({"venus", "saturn"}),
         "capacity-before-agreement",
         "specific-feedback",
         "Bạn muốn giữ lời với người khác, trong khi thời gian nhận việc có giới hạn.",
-        "Bạn hợp tác dễ hơn khi nói rõ phần cần người khác góp ý.",
+        "Bạn coi trọng hợp tác và muốn phần việc của mỗi người thật rõ ràng.",
     ),
     PairRule(
         frozenset({"moon", "mars"}),
         "quick-reply",
         "name-the-need",
         "Bạn dễ phản ứng ngay, trước khi kịp gọi tên cảm giác của mình.",
-        "Bạn làm tiếp dễ hơn khi đã nói rõ điều mình cần.",
+        "Bạn có nhiều năng lượng để làm, nhưng dễ quên hỏi mình đang cần gì.",
     ),
     PairRule(
         frozenset({"sun", "saturn"}),
         "comparison-loop",
         "specific-feedback",
         "Bạn muốn làm tốt, nên dễ tự chê khi nhìn kết quả của người khác.",
-        "Bạn tiến bộ rõ hơn khi xin góp ý theo một tiêu chuẩn cụ thể.",
+        "Bạn đặt tiêu chuẩn cao cho việc mình làm và muốn biết mình đang ở đâu.",
     ),
     PairRule(
         frozenset({"venus", "mars"}),
         "avoid-small-conflict",
         "name-the-need",
         "Bạn muốn giữ hòa khí, dù vẫn có việc bạn không muốn nhận.",
-        "Bạn dễ được hiểu hơn khi nói thẳng mong muốn của mình.",
+        "Bạn biết mình muốn gì, nhưng không phải lúc nào cũng nói ra.",
     ),
 )
 
@@ -240,7 +245,7 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
                 context = HOUSE_ARENAS[house_number]
                 if key == "automatic-caretaking" and house_number in {6, 10}:
                     key = "capacity-before-agreement"
-                    meaning = "Bạn muốn giúp trong việc cần làm, nhưng lịch nhận việc có giới hạn."
+                    meaning = CAPACITY_AT_WORK_MEANING
         situations.append(
             SupportedSituation(
                 key,
@@ -301,7 +306,7 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
         phase = factor.phase.value if factor.phase else _natal_phase(factor)
         if tense and key == "quick-reply" and phase == "separating":
             key = "repair-reply"
-            meaning = "Bạn dễ thấy mình vừa trả lời hơi nhanh, và vẫn kịp nói lại cho rõ."
+            meaning = REPAIR_REPLY_MEANING
         # A transit is secondary to a selected natal interaction, and must be
         # connected to the known natal actor. No calendar/event claim is made.
         priority = 2 if transit else (3 if factor.id in heroes else 1)

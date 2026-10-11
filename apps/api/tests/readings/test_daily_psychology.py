@@ -653,8 +653,10 @@ def test_thesis_is_two_subject_sentences_that_do_not_repeat_the_card() -> None:
         card = renderer.render(plan)
         sentences = _SENTENCE.split(card.thesis)
         assert len(sentences) == 2, card.thesis
+        # Sentence 1 is about the reader; sentence 2 may name another subject
+        # ("Người đọc …") but never opens subjectless with advice or a caveat.
+        assert sentences[0].startswith(("Bạn ", "Lá ")), sentences[0]
         for sentence in sentences:
-            assert "bạn" in sentence.casefold() or sentence.startswith("Lá "), sentence
             assert not sentence.startswith(("Có thể", "Nên", "Cảnh", "Chỉ là")), sentence
             for other in (card.hook, card.manifestation, card.micro_action):
                 assert sentence not in other, (sentence, other)

@@ -643,6 +643,10 @@ def roast_daily_sections(sections: DailySections) -> DailySections:
 
     thesis = sections.thesis
     if _thesis_matches(issue, thesis):
+        if thesis.endswith(f" {issue.takeaway}"):
+            # The jab is Roast's insight sentence; keeping the direct takeaway
+            # after it would say the same thing twice.
+            thesis = thesis[: -len(issue.takeaway) - 1]
         if not gentle:
             for direct, roast in _PLACEMENT_ROAST.items():
                 if thesis.startswith(f"{direct} "):

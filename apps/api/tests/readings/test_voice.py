@@ -111,6 +111,10 @@ def test_roast_lines_avoid_banned_words_and_stay_readable() -> None:
         assert not re.search(r"người kia (?:đang )?(?:nghĩ|giận|ghét|thích|muốn)", line), line
 
 
+def _takeaway(issue_key: str) -> str:
+    return next(issue.takeaway for issue in DAILY_ISSUES if issue.key == issue_key)
+
+
 def _sections_for(
     issue_key: str, *, arena: SemanticArena | None, legacy: bool = False
 ) -> DailySections:
@@ -138,7 +142,12 @@ def test_roast_keeps_issue_scene_and_exact_action(issue: DailyIssuePattern, lega
 
     assert roast.hook == dict(voice.headlines)[direct.hook]
     assert roast.thesis.startswith(f"{voice.jab} ")
-    assert (issue.meaning if legacy else issue.takeaway) in roast.thesis
+    if legacy:
+        assert issue.meaning in roast.thesis
+    else:
+        # Jab + tendency: the jab replaces the direct takeaway instead of repeating it.
+        assert issue.takeaway not in roast.thesis
+        assert len(re.split(r"(?<=[.!?])\s+", roast.thesis)) == 2
     assert roast.manifestation.startswith(direct.manifestation)
     assert roast.micro_action.endswith(direct.micro_action)
     assert roast.micro_action == f"{voice.action_frame} {direct.micro_action}"
@@ -157,7 +166,8 @@ def test_energy_and_self_care_examples_only_get_gentle_teasing(
         assert roast.micro_action == f"{voice.gentle_action_frame} {direct.micro_action}"
         assert not any(sharp in roast.thesis or sharp in roast.micro_action for sharp in SHARP_ONLY)
         # The direct placement sentence is kept rather than its sharper roast.
-        assert direct.thesis in roast.thesis
+        kept = direct.thesis if legacy else direct.thesis.removesuffix(f" {_takeaway(key)}")
+        assert kept in roast.thesis
 
 
 def test_unmatched_ai_or_natal_text_passes_through_unchanged() -> None:
