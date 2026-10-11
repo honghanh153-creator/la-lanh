@@ -28,7 +28,7 @@ export function noteArtSpec(input: { title: string; body?: string | null; person
     kicker: "Note hôm nay",
     hook: input.title,
     support: input.body || null,
-    badge: [tag, element ? elementNames[element] : null].filter(Boolean).join(" · ") || "Lá Lành",
+    badge: tag ?? (element ? elementNames[element] : null) ?? "Lá Lành",
     tag: null,
     element,
     sign: null,

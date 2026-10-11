@@ -57,6 +57,13 @@ Cách chạy:
   được gửi đi viết lại bằng AI, nên không có thêm nội dung nào ra provider.
 - Gate: `ContentReviewAgent`, Tarot quality gate, `pnpm tarot:audit` (mọi voice) và
   `pnpm content:review` (thêm một lượt Roast) đều phải qua; test giữ danh sách từ cấm.
+- Trên app, giọng này tên là **"Cà khịa"** trong Mình → "Giọng của Lá"; giao diện giống hệt Direct,
+  chỉ câu chữ đổi.
+- **Duyệt câu chữ:** chủ sản phẩm đã duyệt bộ câu Roast hiện tại (Daily, Tarot, lời của Lá) ngày
+  2026-10-11 để đưa cho người dùng thật. Câu mới hoặc sửa nghĩa phải duyệt lại.
+
+Nhãn persona trên app và thẻ chia sẻ giữ dạng **"Vibe · X"** (quyết định 2026-10-11; không đổi thành
+"Chất X").
 
 ## Thứ tự bắt buộc của một bài đọc
 

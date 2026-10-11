@@ -16,11 +16,11 @@ describe("note card export", () => {
     for (const color of ["#4b278f", "#fff9e9", "#dfff4f"]) expect(story).toContain(color);
   });
 
-  it("uses a plain persona tag and element sticker instead of Vibe/Aura jargon", () => {
+  it("labels the persona as Vibe · X (owner decision 2026-10-11)", () => {
     const text = visibleText(cardSvg(note, "story_9_16"));
-    expect(text).toContain("Chất Mộng · Nước");
-    expect(text).not.toMatch(/Vibe|Aura/);
-    expect(shareCopy(note).tag).toBe("Chất Mộng");
+    expect(text).toContain("Vibe · Mộng");
+    expect(text).not.toMatch(/Chất|Aura/);
+    expect(shareCopy(note).tag).toBe("Vibe · Mộng");
   });
 
   it("keeps the end of a long title instead of cutting it", () => {
@@ -73,7 +73,7 @@ describe("birth card export", () => {
       const text = visibleText(buildShareArtSvg(spec, format));
       expect(text).toContain("Mặt Trời Song Tử · Khí");
       expect(text).toContain("Không kèm ngày / giờ / nơi sinh");
-      expect(text).not.toMatch(/Vibe|Aura|GÓC NHÌN|NGUỒN ĐỌC|ĐIỂM DỄ MỆT/i);
+      expect(text).not.toMatch(/Chất|GÓC NHÌN|NGUỒN ĐỌC|ĐIỂM DỄ MỆT/i);
     }
   });
 

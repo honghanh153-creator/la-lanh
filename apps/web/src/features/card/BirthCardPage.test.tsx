@@ -41,12 +41,12 @@ describe("BirthCardPage", () => {
     const image = await screen.findByRole("img", { name: /Mặt Trời Song Tử · Khí/ });
     fireEvent.load(image);
     expect(screen.getByRole("heading", { name: "Lá Khai Sinh · Mặt Trời Song Tử" })).toBeInTheDocument();
-    expect(image.getAttribute("alt")).toContain("Chất Lanh");
+    expect(image.getAttribute("alt")).toContain("Vibe · Lanh");
     expect(screen.getByRole("button", { name: /Tải PNG/ })).toBeEnabled();
 
     const svg = decodeURIComponent(image.getAttribute("src") ?? "");
     for (const output of [container.innerHTML, svg]) {
-      for (const secret of ["1996", "06-01", profile.profile_id, profile.snapshot_id, "Vibe"]) expect(output).not.toContain(secret);
+      for (const secret of ["1996", "06-01", profile.profile_id, profile.snapshot_id, "Chất"]) expect(output).not.toContain(secret);
     }
   });
 });

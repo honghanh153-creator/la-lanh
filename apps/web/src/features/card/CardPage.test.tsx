@@ -73,8 +73,8 @@ describe("CardPage", () => {
     expect(screen.getByRole("button", { name: /Chia sẻ card/ })).toBeDisabled();
     resolveNote(note);
     const image = await screen.findByRole("img", { name: /Một note để chia sẻ/ });
-    expect(image.getAttribute("alt")).toContain("Chất Mộng · Nước");
-    expect(image.getAttribute("alt")).not.toMatch(/Vibe|Aura/);
+    expect(image.getAttribute("alt")).toContain("Vibe · Mộng");
+    expect(image.getAttribute("alt")).not.toMatch(/Chất|Aura/);
     expect(image.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
     fireEvent.load(image);
     expect(screen.queryByText("Lá đang vẽ thẻ của bạn…")).not.toBeInTheDocument();
