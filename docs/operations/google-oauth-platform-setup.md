@@ -12,7 +12,7 @@ The owner approved creation of three Google OAuth clients in `la-lanh-beta`, in 
 | --- | --- | --- | --- |
 | iOS | Bundle ID `vn.lalanh.app` | Created: `La Lanh Beta iOS`, client ID `555956289550-hsmuonquh192vj5cupi4hbtehlf9q8uk.apps.googleusercontent.com` | Native Google login not implemented/verified |
 | Android | Application ID `vn.lalanh.app` | Created: `La Lanh Beta Android`, client ID `555956289550-1hkkbr74d0kt2k4nmtkdf7e9toq2dcq3.apps.googleusercontent.com` | Signed APK and native Google login not verified |
-| Web | Origin `https://la-lanh.2-28-136-44.sslip.io` | Created: `La Lanh Beta Web`, client ID `555956289550-i9kaoo214kaf11gs21j6janoup18uetp.apps.googleusercontent.com`; Supabase Google provider saved and enabled | App redirect configuration, deployment and two-account live acceptance pending |
+| Web | Origin `https://la-lanh.2-28-136-44.sslip.io` | Created: `La Lanh Beta Web`, client ID `555956289550-i9kaoo214kaf11gs21j6janoup18uetp.apps.googleusercontent.com`; Supabase Google provider saved and enabled | Local live login against real Supabase/Google passed on 2026-10-11 ([receipt](../reviews/2026-10-11-web-google-oauth-local-e2e.md)); public-origin redirect configuration, deployment and two-account acceptance pending |
 
 iOS creation was verified by the Google success dialog and the Clients table. App Store ID and Team ID were left empty because they are optional and no verified values are available. Firebase App Check and the AI-agent option were not enabled. Google explicitly reports OAuth access is restricted to configured test users.
 
@@ -69,9 +69,11 @@ Client creation alone cannot close this gap. Use platform Google sign-in/identit
 - [ ] Replace the test secret exposed in tool output before production activation; use direct user credential entry and verify exchange before retiring old credentials.
 - [x] Verify Google audience/test users and minimal identity scopes.
 - [ ] Implement/verify native identity bridge and callbacks on iOS/Android.
-- [ ] Test login, cancel, logout/relogin, app restart, expired/replayed callback, and wrong-device/wrong-owner rejection.
+- [x] Web, local API + real Supabase: login, provider deny, logout/relogin with explicit restore, replayed/forged code, wrong-device and wrong-state rejection ([receipt](../reviews/2026-10-11-web-google-oauth-local-e2e.md)).
+- [ ] Same checks on the deployed public origin and on iOS/Android.
 - [ ] Test two Google accounts on isolated devices/browser contexts; no cross-profile reading/history/session data.
-- [ ] Verify guest data survives linking to the intended account, and account deletion/provider cleanup follows policy.
+- [x] Web local: guest data survives first link to the intended account; re-login restores without merging.
+- [ ] Account deletion with real provider erasure follows policy.
 - [ ] Complete release runbook requirements and deploy verified code/configuration before declaring production ready.
 
 No application deployment or paid AI requests have been performed by this OAuth setup so far. Existing staged/uncommitted changes are preserved.
