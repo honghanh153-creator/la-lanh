@@ -42,7 +42,7 @@ Hai workspace là clone độc lập, không phải managed worktree. Công cụ
 - `bash scripts/collaboration-sync.sh --check` fetch bản chung và liệt kê commit mới.
 - `--apply` chỉ merge vào branch agent sạch, dừng khi conflict, không push/deploy.
 
-Không có bot gọi Claude/OpenAI, webhook tự khởi chạy agent, GitHub Actions mới hay lịch chạy nền. Không tự merge PR hoặc gửi thông tin người dùng sang dịch vụ AI. Hai agent thực hiện các bước này trong session được người dùng giao việc. Muốn tự chạy agent nền cần duyệt thêm công cụ, phạm vi và chi phí, không được suy ra từ setup này.
+Không có bot gọi Claude/OpenAI, webhook tự khởi chạy agent, GitHub Actions mới hay lịch chạy nền. Không có bot tự merge PR hoặc gửi thông tin người dùng sang dịch vụ AI. Hai agent thực hiện các bước này trong session được người dùng giao việc. Muốn tự chạy agent nền cần duyệt thêm công cụ, phạm vi và chi phí, không được suy ra từ setup này.
 
 ## Bắt đầu một task
 
@@ -66,6 +66,40 @@ gh issue comment ISSUE_NUMBER --repo honghanh153-creator/la-lanh --body-file /pa
 Bàn giao cần có agent, task, branch, commit, file thay đổi, quyết định, test đã chạy, security/privacy/chi phí, phần còn thiếu và bước tiếp theo. Agent kế tiếp phải tiếp tục được mà không cần xem chat cũ.
 
 Chỉ stage file của mình rồi commit/test/push branch agent. PR có base `collab/integration`, body dùng template. Không tạo PR rỗng. Reviewer đọc diff trên head hiện tại, không chỉ đọc lời báo test. Hai PR cần được merge lần lượt sau review, ưu tiên merge commit để giữ ancestry. Khi PR task đã đóng, task tiếp theo bắt đầu từ integration mới, không force-reset branch còn code chưa bàn giao.
+
+## Review và quyền merge vào integration
+
+Owner quyết định ngày 11.10.2026: agent thực hiện được merge PR task của mình vào `collab/integration` khi đủ cả ba điều kiện sau. `main`, release và deploy vẫn chỉ owner quyết.
+
+1. Reviewer đã đăng comment bắt đầu bằng `Review verdict: APPROVE @ <SHA đầy đủ>`, và SHA đó trùng `headRefOid` hiện tại của PR. Push thêm commit thì verdict cũ hết hiệu lực, phải xin review lại.
+2. Test và audit ghi trong PR chạy trên đúng SHA đó và đều đạt.
+3. Không còn comment `Review verdict: REQUEST_CHANGES` nào mới hơn mà chưa được trả lời.
+
+Mẫu verdict (comment PR, ghi tên agent vì hai agent dùng chung một tài khoản GitHub, nên nút Approve của GitHub không dùng được):
+
+```text
+Review verdict: APPROVE | REQUEST_CHANGES @ <full head SHA>
+Reviewer: Codex | Claude
+Đã đọc: <file/khu vực>, đã chạy: <lệnh + kết quả>
+Phát hiện: P0/P1/P2 (file:line, lý do)
+```
+
+P0/P1 luôn là `REQUEST_CHANGES`. Inbox chỉ hiện comment và review đã gửi; comment gắn dòng code phải đọc bằng `gh api repos/honghanh153-creator/la-lanh/pulls/NUMBER/comments`. Kiểm tra trước khi merge:
+
+```sh
+gh pr view NUMBER --repo honghanh153-creator/la-lanh --json headRefOid,comments,reviews
+gh pr merge NUMBER --repo honghanh153-creator/la-lanh --merge --match-head-commit <SHA đã APPROVE>
+```
+
+`--match-head-commit` làm merge thất bại nếu head đã đổi sau review. Không dùng `--admin`, `--auto` hay squash.
+
+## Repo đang public
+
+Issue, PR, comment và branch đều ai cũng đọc được. Chỉ đăng metadata kỹ thuật, câu mẫu tổng hợp và kết quả test. Không đăng secret, `.env`, câu hỏi Tarot thật, ngày/giờ/nơi sinh thật, ảnh chụp tài khoản hay log có định danh.
+
+## Báo cho bên kia
+
+Không có bot tự đánh thức agent. Sau khi mở PR hoặc đăng verdict, owner nhắn agent kia một dòng (ví dụ "review PR #N"). Agent nhận việc chạy inbox, đọc đủ PR, và trả lời trên GitHub chứ không chỉ trong chat.
 
 ## Nhận cập nhật và xử lý conflict
 

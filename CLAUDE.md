@@ -7,4 +7,5 @@ Run `node scripts/collaboration-inbox.mjs` at the start/resume of a task.
 You may implement any module. Coordinate overlapping edits in the task Issue.
 Update the task Issue with a handoff before stopping. Another agent must be able
 to continue using the task's branch, commit and test receipt, without this chat.
+Merge into collab/integration only with a matching `Review verdict: APPROVE @ <SHA>`.
 These instructions are guidance, not a technical permission boundary.
