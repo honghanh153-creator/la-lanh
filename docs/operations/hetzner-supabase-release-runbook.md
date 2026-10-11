@@ -5,6 +5,14 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
+## Current production — 2026-10-11
+
+Release `a6e11bfd149b` is live with Alembic head `20261011_0036`, Google login off and verified
+database TLS. Staging runs separately at `https://staging.la-lanh.2-28-136-44.sslip.io` from
+`/opt/la-lanh/staging/source`. Receipt, incident and rollback notes:
+[production-release-2026-10-11](../reviews/production-release-2026-10-11/receipt.md). The
+"pending candidate" sections below are historical context for this release.
+
 ## Radar/privacy follow-up, 2026-10-11
 
 Read [remediation and remaining release gates](../plans/2026-10-11-radar-privacy-remediation.md).
