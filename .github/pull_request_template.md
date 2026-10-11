@@ -20,5 +20,10 @@ Lệnh đã chạy, kết quả và AC chưa hoàn tất:
 
 Commit, quyết định, phần còn thiếu, bước tiếp theo:
 
+## Review
+
+Reviewer đăng comment `Review verdict: APPROVE | REQUEST_CHANGES @ <SHA>`.
+Người làm chỉ merge khi SHA đó trùng head (`gh pr merge --merge --match-head-commit`).
+
 PR task vào `collab/integration`. PR tổng vào `main` chỉ sau release review.
-Không tự merge/deploy. Không dán secret hoặc dữ liệu người dùng.
+Không merge vào main, không deploy. Không dán secret hoặc dữ liệu người dùng.
