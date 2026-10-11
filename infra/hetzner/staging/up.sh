@@ -30,6 +30,15 @@ chmod 0600 "$HERE/app.env"
 
 cd "$HERE"
 docker compose -f compose.staging.yaml up -d --wait db
+# Migrations revoke browser access from Supabase's Data API roles; create them
+# so a plain PostgreSQL matches production's grant model.
+docker compose -f compose.staging.yaml exec -T db psql -q -U lalanh -d lalanh -v ON_ERROR_STOP=1 -c "
+  DO \$\$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF;
+  END \$\$;"
 docker compose -f compose.staging.yaml run --rm --no-deps app alembic upgrade head
+docker compose -f compose.staging.yaml run --rm --no-deps app python -m scripts.check_database_privacy
 docker compose -f compose.staging.yaml up -d --wait app
 echo "Staging ${LA_LANH_RELEASE_ID} is running behind https://${STAGING_HOSTNAME}"
