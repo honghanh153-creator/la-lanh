@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lá Lành · Codex + Claude</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #24163e; background: #faf8f1; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 40px 24px 64px; }
+    main { max-width: 1040px; margin: auto; }
+    .eyebrow { color: #655286; font-size: 13px; font-weight: 700; letter-spacing: .09em; }
+    h1 { font-size: clamp(28px, 5vw, 44px); letter-spacing: -.04em; margin: 14px 0; }
+    .intro { max-width: 780px; line-height: 1.6; color: #655b70; }
+    .status { border: 1px solid #ddd0b6; background: #fff7e6; border-radius: 12px; padding: 14px 18px; font-size: 14px; line-height: 1.6; margin: 24px 0; }
+    .lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: #fff; border: 1px solid #ded7e8; border-radius: 18px; padding: 24px; }
+    .card h2 { margin: 0 0 8px; font-size: 22px; }
+    .card p { color: #655b70; line-height: 1.5; margin: 10px 0; }
+    code { font-family: ui-monospace, monospace; font-size: 13px; overflow-wrap: anywhere; }
+    .step { border-top: 1px solid #eee9f3; padding-top: 14px; margin-top: 16px; }
+    .connector { text-align: center; color: #786192; padding: 16px; line-height: 1.5; font-size: 14px; }
+    .integration { background: #512e8f; color: #fffbee; border-radius: 18px; padding: 24px; text-align: center; }
+    .integration h2 { margin: 0 0 12px; }
+    .integration p { margin: 12px auto 0; max-width: 680px; line-height: 1.5; color: #eee4fd; }
+    .integration .pill { display: inline-block; border: 1px solid #aa8bd8; border-radius: 24px; padding: 10px 14px; }
+    .sync { border: 1px solid #dcd1ed; border-radius: 14px; background: #efebf8; padding: 18px 22px; text-align: center; line-height: 1.6; }
+    .release { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 18px 0 32px; }
+    .release div { border: 1px solid #ded7e8; border-radius: 14px; padding: 18px; background: #fff; line-height: 1.5; }
+    .release span { display: block; font-size: 13px; color: #706279; margin-top: 8px; }
+    .example { border-left: 4px solid #7549b7; padding: 0 0 0 20px; line-height: 1.8; }
+    .example h2 { font-size: 21px; }
+    a { color: #542a99; text-underline-offset: 3px; }
+    footer { margin-top: 32px; color: #706279; font-size: 13px; line-height: 1.7; }
+    @media(max-width:620px) { body { padding: 24px 16px; } .lanes, .release { grid-template-columns: 1fr; } .card { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">LÁ LÀNH / CỘNG TÁC CODE</div>
+    <h1>Task chung. Đổi vai theo việc.</h1>
+    <p class="intro">Không chia Codex làm backend, Claude làm UI. Cả hai đều được làm xuyên module. Mỗi task có một người thực hiện và một người review, cùng đọc quyết định và bàn giao trên GitHub.</p>
+    <div class="status"><strong>Nơi giao tiếp:</strong> GitHub Issue của task ghi mục tiêu, ai đang làm, file đang sửa, quyết định và bàn giao. Agent đọc inbox ở đầu session và khi tiếp tục. Đây không phải bot tự chạy agent nền hay tự merge code.</div>
+    <section class="lanes" aria-label="Hai workspace agent">
+      <article class="card">
+        <h2>Codex</h2><code>agent/codex/bootstrap</code>
+        <p>Clone riêng: la-lanh-codex. Có thể thực hiện hoặc review bất kỳ task nào.</p>
+        <div class="step">Sửa → test → commit → push</div>
+        <p>Đọc task trước khi sửa. Báo file đang chạm. Ghi bàn giao để Claude tiếp tục được.</p>
+      </article>
+      <article class="card">
+        <h2>Claude</h2><code>agent/claude/bootstrap</code>
+        <p>Clone riêng: la-lanh-claude. Có thể thực hiện hoặc review bất kỳ task nào.</p>
+        <div class="step">Sửa → test → commit → push</div>
+        <p>Đọc task trước khi sửa. Nếu đụng cùng file, thống nhất thứ tự hoặc bàn giao.</p>
+      </article>
+    </section>
+    <div class="connector">↓ Review code, test, security và privacy<br>Merge từng PR con, không merge tự động</div>
+    <section class="integration">
+      <h2>Branch chung</h2>
+      <code class="pill">collab/integration</code>
+      <p>PR task vào branch này. PR tổng gom thay đổi vào main. PR #1 đã merge, không dùng PR cũ làm nơi điều phối. Code chưa commit trên máy không đi vào PR.</p>
+    </section>
+    <div class="connector">↖ Code đã review quay lại hai workspace ↗</div>
+    <section class="sync">Mỗi lần bắt đầu hoặc tiếp tục:<br><code>node scripts/collaboration-inbox.mjs</code><br>Đọc Issue, PR và bàn giao mới. Checkout sạch thì chạy sync <code>--check</code>, review commit rồi <code>--apply</code>.<br>Ghi bàn giao trước khi dừng. Conflict thì review, không tự đè file.</section>
+    <section class="release" aria-label="Đường ra bản phát hành">
+      <div><strong>PR tổng → main</strong><span>Gom thay đổi đã review. Không có nghĩa production đã đổi.</span></div>
+      <div><strong>Kiểm tra bản tổng</strong><span>Full luồng, content/UI, session, OAuth, privacy và budget.</span></div>
+      <div><strong>Duyệt release → deploy</strong><span>Một bên điều phối. Theo runbook, backup và rollback.</span></div>
+    </section>
+    <section class="example">
+      <h2>Ví dụ: làm Tarot dễ hiểu hơn</h2>
+      <p>1. Issue ghi người dùng không hiểu bài, tiêu chí đạt và phạm vi.<br>2. Claude nhận thực hiện, có thể sửa cả engine, API và UI.<br>3. Codex review nội dung, privacy và test; góp ý trong Issue/PR.<br>4. Claude sửa phản hồi rồi gửi bàn giao. Review xong mới merge.<br>5. Task tiếp theo có thể đổi vai. Hai bên sync để nhận code đã duyệt.</p>
+      <p>Không cần hai bên cùng sửa một folder, cũng không cần copy file qua lại.</p>
+    </section>
+    <footer>
+      <a href="codex-claude-collaboration.md">Hướng dẫn đầy đủ, prompt giao Claude và checklist</a> ·
+      <a href="https://github.com/honghanh153-creator/la-lanh/issues/2">Hub phối hợp Codex / Claude</a><br>
+      Không copy secrets, dữ liệu người dùng hoặc database thật sang agent. Không có watcher, auto-merge hay tác vụ gọi AI trả phí trong bộ hướng dẫn này.<br>
+      Nguồn: <a href="https://git-scm.com/docs/git-worktree">Git worktree</a> · <a href="https://git-scm.com/docs/git-merge">Git merge</a> · <a href="https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-base-branch-of-a-pull-request">GitHub PR base</a>.
+    </footer>
+  </main>
+</body>
+</html>
