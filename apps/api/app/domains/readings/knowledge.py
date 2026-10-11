@@ -667,7 +667,24 @@ MARS_MOON_SCENES: dict[str, str] = {
 }
 
 
-def _everyday_aspect(body_a: str, body_b: str, aspect: str) -> str:
+def _everyday_aspect(
+    body_a: str, body_b: str, aspect: str, lens: InterpretiveLens | None = None
+) -> str:
+    if lens is InterpretiveLens.WORK and {body_a, body_b} == {"moon", "venus"}:
+        if aspect in {"square", "opposition", "quincunx"}:
+            return (
+                "Khi nhận góp ý, bạn có thể vừa muốn nghe cách "
+                "sửa, vừa muốn công sức của mình được ghi nhận. "
+                "Nếu người góp ý chỉ nói chỗ chưa tốt, bạn "
+                "dễ thấy họ đang chê cả việc mình đã làm. "
+                "Hai chuyện cần được nói riêng: phần nào cần sửa và phần nào đã làm tốt."
+            )
+        return (
+            "Khi nhận góp ý, bạn có thể khá dễ trao đổi về "
+            "cách sửa nếu công sức của mình cũng được ghi nhận. "
+            "Sự hỗ trợ này giúp cuộc trao đổi bớt giống một lần bị chấm điểm. "
+            "Dù vậy, lời khen chưa thay được hướng dẫn cụ thể cho phần cần sửa."
+        )
     if {body_a, body_b} == {"mars", "moon"}:
         return MARS_MOON_SCENES.get(aspect, MARS_MOON_SCENES["conjunction"])
     first = EVERYDAY_NEEDS.get(body_a, EVERYDAY_NEEDS["sun"])
@@ -948,7 +965,7 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         parts = _parts(hero)
         aspect_name = parts[3]
         # Orb still selects/ranks chart evidence, not a claim about real-world certainty.
-        aspect_core = _everyday_aspect(body_a, body_b, aspect_name)
+        aspect_core = _everyday_aspect(body_a, body_b, aspect_name, lens)
         phase = _aspect_phase(hero)
         phase_copy = (
             _natal_phase_copy(phase)
@@ -957,6 +974,7 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         )
         knowledge_refs.extend((f"aspect:{aspect_name}", f"aspect-phase:{phase or 'unknown'}"))
     else:
+        aspect_name = None
         phase_copy = ""
         aspect_core = (
             f"Bạn vừa có xu hướng {sign_a.style}, vừa có xu hướng {sign_b.style}. "
@@ -997,6 +1015,7 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         action_slot=editorial_variant.action_slot,
         reflection_slot=editorial_variant.reflection_slot,
         dynamic=dynamic,
+        aspect_name=aspect_name,
     )
     return InterpretationFrame(
         hook=hook,
@@ -1031,6 +1050,7 @@ def _lens_copy(
     action_slot: int,
     reflection_slot: int,
     dynamic: bool,
+    aspect_name: str | None,
 ) -> tuple[str, str, str]:
     # These objects come from the immutable interpretation catalog. Keeping this
     # assembly here makes the semantic frame auditable before any prose renderer.
@@ -1050,7 +1070,7 @@ def _lens_copy(
         hook = f"Ở công việc, bạn muốn {hook_need_a}. Bạn cũng muốn {hook_need_b}."
         manifestation = (
             f"Bạn {perspective_a.work}. Đồng thời, bạn {perspective_b.work}. "
-            f"Sự giằng co dễ thấy {context_phrase}. Khi đó, bạn có thể {default_reaction}."
+            f"Điều này dễ thấy {context_phrase}. Khi đó, bạn có thể {default_reaction}."
         )
         action = (
             f"Chọn một ưu tiên có tiêu chuẩn hoàn thành rõ, rồi {planet_a.action}. "
@@ -1098,6 +1118,19 @@ def _lens_copy(
             f"bên dưới thường là phản xạ {perspective_a.protection}."
         )
         action = f"Thử thế này: {planet_a.action}. Chỉ quan sát phản ứng, không chấm điểm mình."
+    if aspect_name in {"trine", "sextile"}:
+        prefix = {
+            InterpretiveLens.RELATIONSHIPS: "Trong quan hệ, bạn",
+            InterpretiveLens.WORK: "Ở công việc, bạn",
+            InterpretiveLens.REGULATION: "Lúc quá tải, bạn",
+            InterpretiveLens.COMMUNICATION: "Khi nói chuyện, bạn",
+            InterpretiveLens.GROWTH: "Khi thử cách làm mới, bạn",
+        }.get(lens, "Bạn")
+        initiative = " khi bạn chủ động" if aspect_name == "sextile" else ""
+        hook = (
+            f"{prefix} có thể {hook_need_a} mà vẫn {hook_need_b}. "
+            f"Hai nhu cầu này hỗ trợ nhau{initiative}."
+        )
     if not dynamic:
         return hook, manifestation, action
 
@@ -1177,14 +1210,15 @@ def _jyotish_structural_frame(plan: ReadingPlan) -> InterpretationFrame:
 
     if hero.kind is FactorKind.GRAHA_DRISHTI:
         parts = _parts(hero)
-        body_a, body_b, houses_apart, kind = parts[2], parts[3], parts[5], parts[6]
+        body_a, body_b, houses_apart = parts[2], parts[3], parts[5]
         hook = (
             "Hai điểm đang liên hệ trực tiếp trong bản đồ Jyotish: "
             f"{body_label(body_a)} và {body_label(body_b)}."
         )
         thesis = (
-            f"Engine ghi nhận drishti loại {kind}, cách nhau {houses_apart} nhà. "
-            "Bản này giữ ở mức mô tả cấu trúc thay vì gán một kết luận tính cách chưa được duyệt."
+            f"Hai vị trí cách nhau {houses_apart} nhà, theo cách tính của chiêm tinh Ấn Độ. "
+            "Đây là thông tin vị trí đã tính, chưa phải "
+            "diễn giải về tính cách hay chuyện sẽ xảy ra."
         )
     elif hero.kind is FactorKind.NAKSHATRA:
         name_ref = next(
@@ -1192,27 +1226,25 @@ def _jyotish_structural_frame(plan: ReadingPlan) -> InterpretationFrame:
             "jyotish:nakshatra:name:chưa xác định",
         )
         nakshatra = name_ref.removeprefix("jyotish:nakshatra:name:")
-        hook = f"Bản đồ Jyotish đang đặt trọng tâm vào Nakshatra {nakshatra}."
+        hook = f"Mặt Trăng nằm trong vùng {nakshatra} của lá số Ấn Độ."
         thesis = (
-            "Vị trí đã được tính theo cấu hình sidereal/ayanamsa bạn chọn. "
-            "Lá chưa biến tên này thành một phán quyết khi corpus Jyotish riêng "
-            "chưa qua chuyên gia."
+            "Vị trí đã tính theo hệ chiêm tinh Ấn Độ bạn chọn. "
+            "Vùng này chia nhỏ cung để xác định vị trí Mặt Trăng. "
+            "Phần giải nghĩa riêng cho hệ này chưa sẵn sàng."
         )
     else:
-        hook = "Bản đồ Jyotish đã tính xong; phần diễn giải sâu đang được giữ thận trọng."
+        hook = "Lá số Ấn Độ đã tính xong; phần giải nghĩa sâu chưa sẵn sàng."
         thesis = (
-            "Lá chỉ hiển thị dữ kiện đủ căn cứ trong lần đọc này, thay vì mượn copy Western "
-            "để lấp chỗ trống."
+            "Bạn có thể xem vị trí hành tinh và nhà đã tính. "
+            "Lá không dùng diễn giải phương Tây cho hệ chiêm tinh Ấn Độ."
         )
 
     return InterpretationFrame(
         hook=hook,
         thesis=thesis,
-        manifestation=(
-            "Bạn có thể mở phần căn cứ để xem đúng factor nào đang được dùng trong hệ Jyotish."
-        ),
+        manifestation=("Mở phần căn cứ để xem vị trí và liên hệ giữa các hành tinh đã tính."),
         micro_action=(
-            "Tạm xem đây là bản đọc cấu trúc; đừng dùng nó để chốt một quyết định quan trọng."
+            "Xem lại giờ, nơi sinh và cách tính đã chọn trước khi so sánh với lá số khác."
         ),
         evidence_factor_refs=tuple(dict.fromkeys(evidence_refs)),
         knowledge_refs=("tradition:jyotish", "mode:structural"),

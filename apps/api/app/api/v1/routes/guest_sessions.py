@@ -1,4 +1,4 @@
-from typing import Annotated, cast
+from typing import Annotated, Literal, cast
 
 from fastapi import APIRouter, Cookie, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,6 +12,7 @@ from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.models import GuestSessionRecord, OnboardingStatus
 from app.domains.guest.service import GuestSessionService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
+from app.infrastructure.session_cookies import set_profile_cookies
 
 router = APIRouter()
 
@@ -22,6 +23,7 @@ class GuestCreateRequest(BaseModel):
     consent_version: str = Field(min_length=1, max_length=64)
     purpose: str = Field(min_length=1, max_length=64)
     idempotency_key: str = Field(min_length=22, max_length=200)
+    history_consent_version: Literal["history-retention-v1"] | None = None
 
 
 class GuestSessionResponse(BaseModel):
@@ -51,6 +53,37 @@ class ContentRewriteConsentRequest(BaseModel):
 
     consent_version: str = Field(min_length=1, max_length=64)
     scope: RewriteConsentScope = RewriteConsentScope.PERSONAL
+
+
+class BasicBirthConsentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    consent_version: Literal["birth-profile-v1"]
+
+
+@router.post("/session/birth-profile-consent", status_code=204)
+async def accept_basic_birth_consent(
+    body: BasicBirthConsentRequest,
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        guest = await _service(request).verify_csrf(
+            request.cookies.get(request.app.state.settings.guest_cookie_name),
+            csrf_token,
+        )
+        await _service(request).accept_basic_birth_consent(guest.id)
+    except GuestDomainError as error:
+        return _problem(error)
+    response.status_code = 204
+    return response
+
+
+class ContentRewriteConsentStatus(BaseModel):
+    consented: bool
+    enabled: bool
+    pilot_eligible: bool
 
 
 def _service(request: Request) -> GuestSessionService:
@@ -101,9 +134,26 @@ async def create_guest_session(
             consent_version=body.consent_version,
             purpose=body.purpose,
             idempotency_key=body.idempotency_key,
+            history_consent_version=body.history_consent_version,
         )
     except GuestDomainError as error:
         return _problem(error)
+    previous_guest = None
+    try:
+        previous_guest = await _service(request).resume(
+            request.cookies.get(settings.guest_cookie_name)
+        )
+    except GuestDomainError:
+        pass
+    if previous_guest is None or previous_guest.id != result.guest.id:
+        response.delete_cookie(
+            settings.owner_cookie_name, path="/v1", domain=settings.cookie_domain
+        )
+    if previous_guest is not None and previous_guest.id != result.guest.id:
+        # A first-time invite visitor needs their just-opened capability through
+        # consent/onboarding. A known guest switch must not retain old receipts.
+        response.delete_cookie("la_lanh_radar_invite", path="/v1/public/radar")
+        response.delete_cookie("la_lanh_radar_receipt", path="/v1/public/radar/receipt")
     response.set_cookie(
         key=settings.guest_cookie_name,
         value=result.token,
@@ -149,19 +199,43 @@ async def get_session(
     try:
         guest = await _service(request).resume(token)
     except GuestDomainError as error:
-        response = _problem(error)
-        response.delete_cookie(settings.guest_cookie_name, path="/", domain=settings.cookie_domain)
-        response.delete_cookie(
-            settings.guest_csrf_cookie_name, path="/", domain=settings.cookie_domain
-        )
-        return response
+        # Even deletion headers from an old missing/expired request can erase a
+        # newer restored identity. Status is read-only at the cookie boundary.
+        return _problem(error)
+    return _payload(guest, session_epoch=_service(request).session_epoch(guest))
+
+
+@router.post(
+    "/session/renew",
+    response_model=GuestSessionResponse,
+    responses={401: {"model": ProblemResponse}, 403: {"model": ProblemResponse}},
+)
+async def renew_session(
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> dict[str, object] | Response:
+    settings = request.app.state.settings
+    token = request.cookies.get(settings.guest_cookie_name)
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        guest = await _service(request).verify_csrf(token, csrf_token)
+    except GuestDomainError as error:
+        return _problem(error)
+    if token is None or csrf_token is None:
+        raise RuntimeError("verified session missing credentials")
+    set_profile_cookies(response, settings, token, csrf_token)
     return _payload(guest, session_epoch=_service(request).session_epoch(guest))
 
 
 @router.delete(
     "/guest-session",
     status_code=204,
-    responses={401: {"model": ProblemResponse}, 403: {"model": ProblemResponse}},
+    responses={
+        401: {"model": ProblemResponse},
+        403: {"model": ProblemResponse},
+        503: {"model": ProblemResponse},
+    },
 )
 async def delete_guest_session(
     request: Request,
@@ -233,6 +307,35 @@ async def grant_content_rewrite_consent(
         return _problem(error)
     response.status_code = 204
     return response
+
+
+@router.get(
+    "/session/content-rewrite-consent",
+    response_model=ContentRewriteConsentStatus,
+    responses={401: {"model": ProblemResponse}},
+)
+async def get_content_rewrite_consent(request: Request) -> dict[str, bool] | Response:
+    settings = request.app.state.settings
+    try:
+        guest = await _service(request).resume(request.cookies.get(settings.guest_cookie_name))
+    except GuestDomainError as error:
+        return _problem(error)
+    authorization = request.app.state.content_rewrite_authorization
+    personal_surfaces = {"daily_home", "reveal", "natal", "transit_insight", "tarot"}
+    accepting_testers = (
+        settings.generation_enabled
+        and settings.generation_spend_approved
+        and settings.generation_pilot_user_limit > 0
+        and any(
+            surface in personal_surfaces and mode in {"beta_10", "beta_50", "full"}
+            for surface, mode in settings.generation_surface_rollout.items()
+        )
+    )
+    return {
+        "consented": await authorization.authorized_guest(guest.id),
+        "enabled": accepting_testers,
+        "pilot_eligible": await authorization.pilot_eligible(guest.id),
+    }
 
 
 @router.delete(

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, Index, String, Uuid
+from sqlalchemy import ForeignKey, Index, String, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -23,3 +23,6 @@ class MoodCheckInRow(Base):
     )
     mood: Mapped[str] = mapped_column(String(32), nullable=False)
     checked_in_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        UtcDateTime(), nullable=False, server_default=text("CURRENT_TIMESTAMP")
+    )

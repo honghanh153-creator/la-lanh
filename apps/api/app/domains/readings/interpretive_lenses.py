@@ -250,7 +250,7 @@ ELEMENTS: dict[str, ElementMeaning] = {
     "water": ElementMeaning(
         "cần độ an toàn, kết nối và thời gian để cảm nhận",
         "hấp thụ bầu không khí rồi coi nó là trách nhiệm của mình",
-        "đặt một ranh giới có hình dạng và một dữ kiện có thể kiểm tra",
+        "nói rõ việc mình chưa thể nhận, rồi hỏi lại điều mình chưa biết",
     ),
 }
 

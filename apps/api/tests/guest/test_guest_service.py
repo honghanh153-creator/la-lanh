@@ -43,6 +43,7 @@ class MemoryGuestRepository:
             )
             self.creations[material.idempotency_hash] = stored
             self.guests[material.guest.token_hash] = stored
+            self.consents[(material.consent.guest_id, material.consent.purpose)] = material.consent
             return stored
 
     async def find_by_token_hash(
@@ -79,6 +80,10 @@ class MemoryGuestRepository:
 
     async def save_consent(self, consent: ConsentRecord) -> None:
         self.consents[(consent.guest_id, consent.purpose)] = consent
+
+    async def has_consent(self, guest_id: UUID, version: str, purpose: str) -> bool:
+        record = self.consents.get((guest_id, purpose))
+        return record is not None and record.version == version
 
     async def revoke_consent(self, guest_id: UUID, purpose: str, revoked_at: datetime) -> None:
         del revoked_at
@@ -178,6 +183,43 @@ async def test_expired_guest_cannot_resume(service: GuestSessionService) -> None
     )
     with pytest.raises(GuestExpired):
         await service.resume(created.token, now=now + timedelta(days=31))
+
+
+@pytest.mark.asyncio
+async def test_rejected_csrf_does_not_extend_guest_lifetime(
+    service: GuestSessionService, repository: MemoryGuestRepository
+) -> None:
+    from app.domains.guest.errors import CsrfRejected
+
+    now = datetime(2026, 8, 30, 12, tzinfo=UTC)
+    created = await service.create(
+        consent_version="birth-profile-v1",
+        purpose="birth_profile_basic",
+        idempotency_key="guest-create-key-1234567890",
+        now=now,
+    )
+    with pytest.raises(CsrfRejected):
+        await service.verify_csrf(created.token, "wrong", now=now + timedelta(days=29))
+    assert repository.guests[created.guest.token_hash].guest.expires_at == created.guest.expires_at
+    with pytest.raises(GuestExpired):
+        await service.resume(created.token, now=now + timedelta(days=31))
+
+
+@pytest.mark.asyncio
+async def test_returning_guest_retains_profile_after_original_expiry(
+    service: GuestSessionService,
+) -> None:
+    now = datetime(2026, 8, 30, 12, tzinfo=UTC)
+    created = await service.create(
+        consent_version="birth-profile-v1",
+        purpose="birth_profile_basic",
+        idempotency_key="guest-create-key-1234567890",
+        now=now,
+    )
+    await service.verify_csrf(created.token, created.csrf_token, now=now + timedelta(days=29))
+    returned = await service.resume(created.token, now=now + timedelta(days=31))
+    assert returned.id == created.guest.id
+    assert returned.expires_at == now + timedelta(days=61)
 
 
 @pytest.mark.asyncio

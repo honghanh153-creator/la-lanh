@@ -33,10 +33,12 @@ describe("retired Lá Chứng routes", () => {
   });
 
   it("keeps the owner data-management route available", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("[]", {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }));
+    vi.spyOn(globalThis, "fetch").mockImplementation((url) => Promise.resolve(new Response(
+      (typeof url === "string" ? url : url instanceof URL ? url.href : url.url).endsWith("/session") ? JSON.stringify({
+        state: "active", session_epoch: "synthetic-owner", onboarding_status: "completed",
+        expires_at: "2026-11-09T00:00:00Z",
+      }) : "[]", { status: 200, headers: { "Content-Type": "application/json" } },
+    )));
     renderRouter("/la-chung/history");
 
     expect(await screen.findByRole("heading", { name: "Quản lý những gì đã có." })).toBeInTheDocument();

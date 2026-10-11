@@ -1,5 +1,7 @@
+import re
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import AnyHttpUrl, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -38,6 +40,13 @@ class Settings(BaseSettings):
     guest_replay_minutes: int = Field(default=10, ge=1, le=10)
     guest_hash_key: SecretStr = SecretStr(DEVELOPMENT_HASH_KEY)
     guest_encryption_key: SecretStr = SecretStr(DEVELOPMENT_ENCRYPTION_KEY)
+    auth_enabled: bool = False
+    auth_delivery_approved: bool = False
+    auth_google_enabled: bool = False
+    auth_google_callback_url: str | None = None
+    auth_supabase_url: str | None = None
+    auth_supabase_publishable_key: SecretStr | None = None
+    auth_supabase_admin_key: SecretStr | None = None
     generation_enabled: bool = False
     generation_worker_enabled: bool = False
     generation_provider: Literal["disabled", "openai"] = "disabled"
@@ -45,10 +54,13 @@ class Settings(BaseSettings):
     generation_spend_approved: bool = False
     generation_daily_token_budget: int = Field(default=0, ge=0, le=10_000_000)
     generation_daily_budget_cents: int = Field(default=0, ge=0, le=100)
+    generation_monthly_budget_cents: int = Field(default=0, ge=0, le=100)
+    generation_pilot_user_limit: int = Field(default=0, ge=0, le=20)
     generation_surface_rollout: dict[
         str, Literal["off", "shadow", "editorial", "beta_10", "beta_50", "full"]
     ] = Field(default_factory=dict)
     generation_openai_api_key: SecretStr | None = None
+    generation_openai_project_id: str | None = Field(default=None, pattern=r"^proj_[A-Za-z0-9]+$")
     generation_openai_model: Literal["gpt-6-luna"] = PINNED_OPENAI_MODEL
     generation_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)
     generation_lease_seconds: int = Field(default=120, ge=30, le=600)
@@ -70,6 +82,51 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_security_settings(self) -> "Settings":
+        if self.auth_supabase_admin_key is not None and not re.fullmatch(
+            r"sb_secret_[A-Za-z0-9_-]{20,256}",
+            self.auth_supabase_admin_key.get_secret_value(),
+        ):
+            raise ValueError("account erasure requires a server-only Supabase secret key")
+        if (
+            self.auth_enabled
+            and self.environment in {"staging", "production"}
+            and self.auth_supabase_admin_key is None
+        ):
+            raise ValueError("public login requires provider identity erasure credentials")
+        if self.auth_supabase_url is not None:
+            if not re.fullmatch(r"https://[a-z0-9]{20}\.supabase\.co/?", self.auth_supabase_url):
+                raise ValueError("auth requires a fixed HTTPS Supabase project origin")
+            self.auth_supabase_url = self.auth_supabase_url.rstrip("/")
+        if self.auth_supabase_publishable_key is not None and not re.fullmatch(
+            r"sb_publishable_[A-Za-z0-9_-]{20,256}",
+            self.auth_supabase_publishable_key.get_secret_value(),
+        ):
+            raise ValueError("auth accepts only a Supabase publishable key, never service_role")
+        if self.auth_google_enabled:
+            callback = urlsplit(self.auth_google_callback_url or "")
+            origin = f"{callback.scheme}://{callback.netloc}"
+            if (
+                callback.path != "/auth/callback"
+                or callback.query
+                or callback.fragment
+                or callback.username
+                or callback.password
+                or origin not in {str(value).rstrip("/") for value in self.cors_origins}
+                or callback.scheme not in {"http", "https"}
+                or (self.environment in {"staging", "production"} and callback.scheme != "https")
+            ):
+                raise ValueError(
+                    "Google callback requires the exact trusted origin and /auth/callback path"
+                )
+        if self.auth_enabled and (
+            not (self.auth_delivery_approved or self.auth_google_enabled)
+            or self.auth_supabase_url is None
+            or self.auth_supabase_publishable_key is None
+        ):
+            raise ValueError(
+                "enabled auth requires delivery approval or "
+                "Google approval, project and publishable key"
+            )
         if self.guest_csrf_cookie_name != "la_lanh_csrf":
             raise ValueError("guest CSRF cookie name is fixed by the app client contract")
         if self.generation_lease_seconds <= self.generation_timeout_seconds:
@@ -112,6 +169,14 @@ class Settings(BaseSettings):
                 raise ValueError("enabled generation worker requires a positive daily token budget")
             if self.generation_daily_budget_cents < 1:
                 raise ValueError("enabled generation worker requires a positive daily USD budget")
+            if self.generation_monthly_budget_cents < 1:
+                raise ValueError("enabled generation worker requires a positive monthly USD budget")
+            if self.generation_pilot_user_limit < 1:
+                raise ValueError("enabled generation worker requires a bounded pilot user limit")
+            if self.generation_openai_project_id is None:
+                raise ValueError("enabled generation worker requires an explicit OpenAI project")
+            if not self.database_url.startswith("postgresql+asyncpg://"):
+                raise ValueError("paid generation worker requires PostgreSQL lifecycle locks")
         if self.content_studio_enabled:
             if self.content_studio_api_token is None:
                 raise ValueError("Content Studio requires an API token")
@@ -134,10 +199,7 @@ class Settings(BaseSettings):
                 raise ValueError("secure guest cookies are mandatory outside local development")
             if any(origin.scheme != "https" for origin in self.cors_origins):
                 raise ValueError("all trusted origins must use HTTPS outside local development")
-            if (
-                not self.generation_worker_enabled
-                and self.guest_hash_key.get_secret_value() == DEVELOPMENT_HASH_KEY
-            ):
+            if self.guest_hash_key.get_secret_value() == DEVELOPMENT_HASH_KEY:
                 raise ValueError("a managed guest hash key is required outside local development")
             if self.guest_encryption_key.get_secret_value() == DEVELOPMENT_ENCRYPTION_KEY:
                 raise ValueError(

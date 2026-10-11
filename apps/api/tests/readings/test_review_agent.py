@@ -35,6 +35,32 @@ def test_review_agent_accepts_concrete_private_sample() -> None:
     assert result.findings == ()
 
 
+@pytest.mark.parametrize(
+    "action",
+    (
+        "Đề nghị một ngày gặp vừa với lịch của cả hai.",
+        "Tắt một thông báo không cần trả lời ngay trong khoảng nghỉ đã chọn.",
+        "Thống nhất một cách liên lạc mà cả hai thấy thoải mái.",
+        "Báo rằng bạn sẽ trả lời sau giờ nghỉ, không vừa nghỉ vừa canh tin nhắn.",
+    ),
+)
+def test_reviewer_recognises_concrete_vietnamese_actions(action: str) -> None:
+    sample = _sample()
+    sections = tuple((key, action if key == "action" else prose) for key, prose in sample.sections)
+    assert ContentReviewAgent().review((replace(sample, sections=sections),)).passed
+
+
+def test_reviewer_still_rejects_non_actionable_vague_advice() -> None:
+    sample = _sample()
+    sections = tuple(
+        (key, "Mọi chuyện rồi sẽ tốt hơn theo một cách nào đó." if key == "action" else prose)
+        for key, prose in sample.sections
+    )
+    result = ContentReviewAgent().review((replace(sample, sections=sections),))
+    assert not result.passed
+    assert any(f.rule_id == "action-not-testable" for f in result.findings)
+
+
 def test_release_review_covers_daily_natal_and_tarot_for_all_ten_personas() -> None:
     samples = build_synthetic_samples()
 

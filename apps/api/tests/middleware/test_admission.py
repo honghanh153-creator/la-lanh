@@ -6,6 +6,29 @@ from fastapi.testclient import TestClient
 from app.middleware.admission import AdmissionControlMiddleware, AdmissionPolicy
 
 
+def test_radar_create_families_are_bounded_without_blocking_erasure() -> None:
+    app = FastAPI()
+
+    @app.post("/v1/radar/requests")
+    @app.post("/v1/radar/private-checks")
+    @app.post("/v1/radar/requests/{request_id}/revoke")
+    @app.delete("/v1/radar/results/{request_id}")
+    async def operation(request_id: str = "new") -> dict[str, str]:
+        return {"request_id": request_id}
+
+    app.add_middleware(AdmissionControlMiddleware, window_seconds=60)
+    with TestClient(app) as client:
+        for _ in range(5):
+            assert client.post("/v1/radar/requests").status_code == 200
+            assert client.post("/v1/radar/private-checks").status_code == 200
+        for path in ("requests", "private-checks"):
+            limited = client.post("/v1/radar/" + path)
+            assert limited.status_code == 429
+            assert limited.json()["code"] == "ADMISSION_LIMITED"
+        assert client.post("/v1/radar/requests/old/revoke").status_code == 200
+        assert client.delete("/v1/radar/results/old").status_code == 200
+
+
 def test_guest_creation_is_bounded_before_the_endpoint_runs() -> None:
     app = FastAPI()
     calls = 0

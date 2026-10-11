@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from datetime import datetime
 from typing import cast
 from uuid import UUID
 
@@ -20,9 +21,13 @@ class MemoryBirthRepository:
 
     async def save_or_replay(self, record: BirthSnapshotRecord) -> tuple[BirthSnapshotRecord, bool]:
         existing = self.by_input.get((record.guest_id, record.input_hash))
-        if existing is not None:
-            return existing, True
         current = self.current.get(record.guest_id)
+        if current is not None and current.birth_date_ciphertext == record.birth_date_ciphertext:
+            return current, True
+        if existing is not None:
+            self.current[record.guest_id] = existing
+            self.supplements.pop(record.guest_id, None)
+            return existing, True
         if current is not None:
             record = BirthSnapshotRecord(
                 id=record.id,
@@ -34,6 +39,7 @@ class MemoryBirthRepository:
                 created_at=record.created_at,
             )
         self.current[record.guest_id] = record
+        self.supplements.pop(record.guest_id, None)
         self.by_input[(record.guest_id, record.input_hash)] = record
         return record, False
 
@@ -50,6 +56,9 @@ class MemoryBirthRepository:
         guest_id: UUID,
         snapshot: BirthSnapshotRecord | None,
         supplement: BirthSupplement,
+        *,
+        expected_snapshot_id: UUID,
+        expected_updated_at: datetime | None,
     ) -> BirthSnapshotRecord | None:
         if snapshot is not None:
             self.current[guest_id] = snapshot

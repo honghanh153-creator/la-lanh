@@ -47,7 +47,9 @@ def build_rewrite_generation_provider(settings: Settings) -> RewriteGenerationPr
     if api_key is None:
         return DisabledRewriteGenerationProvider()
     return OpenAIRewriteProvider(
-        OpenAISDKResponseTransport(api_key=api_key.get_secret_value()),
+        OpenAISDKResponseTransport(
+            api_key=api_key.get_secret_value(), project=settings.generation_openai_project_id
+        ),
         model=settings.generation_openai_model,
         timeout_seconds=settings.generation_timeout_seconds,
     )

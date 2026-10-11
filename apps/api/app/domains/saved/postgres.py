@@ -7,7 +7,12 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.accounts.postgres import account_transaction, lock_owner
+from app.domains.daily.tables import DailyNoteRow
+from app.domains.history.postgres import unavailable_daily
 from app.domains.readings.models import ReadingContentProjection
+from app.domains.readings.tables import ReadingRevisionRow
+from app.domains.saved.errors import SavedRevisionUnavailable
 from app.domains.saved.models import SavedNoteRecord
 from app.domains.saved.tables import SavedNoteRow
 from app.infrastructure.crypto import EnvelopeCipher
@@ -23,7 +28,8 @@ class PostgresSavedNoteRepository:
         self._envelope = envelope
 
     async def save(self, record: SavedNoteRecord) -> SavedNoteRecord:
-        async with self._sessions() as session, session.begin():
+        async with account_transaction(self._sessions) as session:
+            await lock_owner(session, record.guest_id)
             existing = await session.scalar(
                 select(SavedNoteRow).where(
                     SavedNoteRow.guest_id == record.guest_id,
@@ -32,6 +38,25 @@ class PostgresSavedNoteRepository:
             )
             if existing is not None:
                 return _record(existing, self._envelope)
+            source = await session.scalar(
+                select(DailyNoteRow.id).where(
+                    DailyNoteRow.id == record.daily_note_id,
+                    DailyNoteRow.guest_id == record.guest_id,
+                    ~unavailable_daily(record.saved_at),
+                )
+            )
+            if source is None:
+                raise SavedRevisionUnavailable
+            if record.revision_id is not None:
+                revision = await session.scalar(
+                    select(ReadingRevisionRow.id).where(
+                        ReadingRevisionRow.id == record.revision_id,
+                        ReadingRevisionRow.guest_id == record.guest_id,
+                        ReadingRevisionRow.profile_id == record.profile_id,
+                    )
+                )
+                if revision is None:
+                    raise SavedRevisionUnavailable
             try:
                 async with session.begin_nested():
                     row = SavedNoteRow(

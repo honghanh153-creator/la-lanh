@@ -4,17 +4,30 @@ import json
 from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 
-from app.domains.astro.models import Tradition
+from app.domains.astro.models import TimePrecision, Tradition
+from app.domains.readings.daily_personalization import (
+    BODY_DOMAINS,
+    HOUSE_ARENAS,
+    PAIR_RULES,
+    PERSONALIZATION_VERSION,
+    PLACEMENT_ISSUES,
+    PLACEMENT_MEANINGS,
+    SIGN_ELEMENTS,
+    SUN_ISSUES,
+    SupportedSituation,
+    eligible_daily_situations,
+)
 from app.domains.readings.interpretive_lenses import daily_mixed_radix_slots
 from app.domains.readings.knowledge import InterpretationFrame, semantic_arena
 from app.domains.readings.models import (
     DailyMeaningBrief,
+    FactorKind,
     ReadingPlan,
     ReadingPurpose,
     SemanticArena,
 )
 
-DAILY_PSYCHOLOGY_MATRIX_VERSION = "daily-direct-meaning-v4"
+DAILY_PSYCHOLOGY_MATRIX_VERSION = "daily-direct-meaning-v6"
 
 
 @dataclass(frozen=True)
@@ -106,15 +119,16 @@ class DailyIssuePattern:
 
     key: str
     arenas: tuple[SemanticArena, ...]
-    headlines: tuple[str, str, str, str]
-    scenes: tuple[str, str, str]
-    advice: tuple[str, str, str, str]
+    headlines: tuple[str, ...]
+    scenes: tuple[str, ...]
+    advice: tuple[str, ...]
     meaning: str
     takeaway: str
     scene_anchors: tuple[str, ...]
     action_anchors: tuple[str, ...]
     source_ids: tuple[str, ...]
     observation_question: str
+    relationship_advice: tuple[str, ...] = ()
 
 
 DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
@@ -454,11 +468,562 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
 )
 
 
+def _supported_issue(
+    key: str,
+    arenas: tuple[SemanticArena, ...],
+    title: str,
+    scene: str,
+    action: str,
+    meaning: str,
+    takeaway: str,
+    scene_anchors: tuple[str, ...],
+    action_anchors: tuple[str, ...],
+    question: str,
+) -> DailyIssuePattern:
+    return DailyIssuePattern(
+        key,
+        arenas,
+        (title,) * 4,
+        (scene,) * 3,
+        (action,) * 4,
+        meaning,
+        takeaway,
+        scene_anchors,
+        action_anchors,
+        ("rosenberg-nonviolent-communication", "goleman-emotional-intelligence"),
+        question,
+    )
+
+
+DAILY_ISSUES += (
+    _supported_issue(
+        "capacity-before-agreement",
+        (
+            SemanticArena.WORK,
+            SemanticArena.RELATIONSHIPS,
+            SemanticArena.ENERGY,
+            SemanticArena.SELF_CARE,
+            SemanticArena.COMMUNICATION,
+        ),
+        "Bạn muốn giúp, nhưng chưa biết làm lúc nào.",
+        "Khi có người nhờ thêm việc, bạn có thể muốn nhận dù chưa biết lịch còn chỗ nào.",
+        "Kiểm tra lịch rồi nói rõ phần bạn làm được và thời gian cần.",
+        "Muốn nhận việc và có thời gian làm việc đó là hai điều khác nhau.",
+        "Có thể nói rõ thời gian mình cần thay vì nhận hết ngay.",
+        ("nhờ", "lịch"),
+        ("lịch", "thời gian"),
+        "Bạn đã tìm được thời gian cho phần việc mình nhận chưa?",
+    ),
+    _supported_issue(
+        "quick-reply",
+        (SemanticArena.COMMUNICATION, SemanticArena.RELATIONSHIPS, SemanticArena.WORK),
+        "Bạn định trả lời khi chưa đọc hết.",
+        "Khi một tin nhắn làm bạn khó chịu, bạn có thể gõ câu trả lời ngay dù chưa đọc hết.",
+        "Đọc hết tin nhắn rồi viết câu trả lời về đúng điều người kia hỏi.",
+        "Phản ứng nhanh có thể đi trước việc hiểu đầy đủ tin nhắn.",
+        "Có thể đọc hết rồi trả lời đúng câu hỏi, chưa cần gửi câu đầu tiên.",
+        ("tin nhắn", "chưa đọc hết"),
+        ("đọc hết", "câu trả lời"),
+        "Câu trả lời của bạn đã đúng điều người kia hỏi chưa?",
+    ),
+    _supported_issue(
+        "repair-reply",
+        (SemanticArena.COMMUNICATION, SemanticArena.RELATIONSHIPS, SemanticArena.WORK),
+        "Bạn gửi rồi mới thấy câu mình hơi gắt.",
+        "Khi đọc lại tin nhắn vừa gửi, bạn có thể thấy cách mình trả lời gắt hơn điều muốn nói.",
+        "Nhắn lại ý bạn muốn nói bằng một câu rõ, không trách người kia.",
+        "Sau một câu trả lời vội, có thể sửa cách nói thay vì tiếp tục tranh cãi.",
+        "Có thể làm rõ ý vừa nói mà không đoán người kia đang nghĩ gì.",
+        ("vừa gửi", "đã gửi", "đọc lại"),
+        ("nhắn lại", "nói lại", "muốn nói"),
+        "Bạn đã nói lại đúng ý mình muốn người kia hiểu chưa?",
+    ),
+    _supported_issue(
+        "specific-feedback",
+        (SemanticArena.WORK, SemanticArena.COMMUNICATION, SemanticArena.RELATIONSHIPS),
+        "Bạn có bản nháp, nhưng câu hỏi còn chung.",
+        "Khi gửi bản nháp để xin góp ý, bạn có thể chỉ hỏi ổn chưa mà chưa nói phần cần xem.",
+        "Chọn một phần trong bản nháp và hỏi người đọc góp ý đúng phần đó.",
+        "Bản nháp giúp trao đổi rõ hơn khi câu hỏi chỉ đúng phần cần góp ý.",
+        "Có thể xin góp ý cụ thể, không cần chờ người đọc đoán mình cần gì.",
+        ("bản nháp", "góp ý"),
+        ("một phần", "đúng phần", "phần còn", "góp ý riêng"),
+        "Bạn đã nhận được góp ý cho đúng phần mình cần chưa?",
+    ),
+    _supported_issue(
+        "name-the-need",
+        (
+            SemanticArena.RELATIONSHIPS,
+            SemanticArena.COMMUNICATION,
+            SemanticArena.ENERGY,
+            SemanticArena.SELF_CARE,
+        ),
+        "Bạn muốn được giúp nhưng chưa nói cần gì.",
+        "Khi thấy quá tải, bạn có thể nói mình mệt nhưng chưa nói việc nào cần người kia giúp.",
+        "Nói một việc cụ thể bạn cần giúp và hỏi người kia có làm được không.",
+        "Nói mình mệt chưa cho người kia biết việc cụ thể mình cần giúp.",
+        "Có thể đưa một đề nghị rõ mà không coi người kia phải tự hiểu.",
+        ("quá tải", "giúp"),
+        ("cụ thể", "cần giúp", "nhờ giúp"),
+        "Người kia đã biết bạn cần giúp việc cụ thể nào chưa?",
+    ),
+)
+
+
+# Six headlines, eight hypothetical illustrations and eight compatible actions
+# give 384 day cards WITHIN each supported meaning, including the neutral fallback.
+# All actions remain possible in every illustration of their own issue.
+_DAILY_VARIATIONS = {
+    "missing-context": (
+        ("Bạn chưa rõ người kia đang hỏi điều gì.", "Bạn đọc được câu chữ, chưa hiểu yêu cầu."),
+        (
+            "Khi một tin nhắn chỉ ghi được thôi, bạn có thể chưa biết người kia đồng ý phần nào.",
+            "Khi tin nhắn nói để sau nhé, bạn có thể đoán lý do mà chưa hỏi rõ.",
+            "Khi nhóm gửi một tin nhắn cụt, bạn có thể chưa biết câu đó trả lời ai.",
+            "Khi tin nhắn nhắc làm như cũ, bạn có thể chưa rõ người gửi đang nói cách nào.",
+            "Khi nhận tin nhắn thiếu phần giải thích, bạn có thể hiểu theo một ý khác người gửi.",
+        ),
+        (
+            "Hỏi người gửi tin nhắn xem câu đó đang nói về phần nào.",
+            "Viết lại ý bạn hiểu từ tin nhắn và hỏi người gửi có đúng không.",
+            "Chọn một chữ chưa rõ trong tin nhắn rồi hỏi người gửi giải thích.",
+            "Nói điều bạn còn chưa hiểu, chưa thêm lý do thay người gửi.",
+        ),
+    ),
+    "too-many-open-loops": (
+        ("Việc mới đến, bạn bỏ dở việc đang làm.", "Bạn mở thêm việc khi việc cũ chưa xong."),
+        (
+            "Khi đang viết một đoạn, bạn có thể mở thêm tài liệu rồi để đoạn đó còn dở.",
+            "Khi đang dọn một chỗ, bạn có thể chuyển sang việc khác dù chỗ đầu chưa xong.",
+            "Khi đang đọc tài liệu, bạn có thể mở việc mới từ một thông báo vừa đến.",
+            "Khi thấy một ý tưởng mới, bạn có thể bắt đầu ngay dù việc đang làm còn dở.",
+            "Khi đang hoàn thành một danh sách, bạn có thể thêm việc mới trước khi xong việc cũ.",
+        ),
+        (
+            "Chọn một việc còn dở và viết điều cần làm để kết thúc nó.",
+            "Chọn một việc đang làm để hoàn thành rồi đóng các mục không dùng.",
+            "Ghi việc mới ra giấy rồi chọn một việc cũ để làm xong.",
+            "Chọn một việc có thể xong trong mười phút và làm riêng việc đó.",
+        ),
+    ),
+    "changed-plan": (
+        ("Giờ hẹn mới chưa rõ, lịch bạn đã đổi.", "Bạn phải chọn lại giờ cho cuộc hẹn."),
+        (
+            "Khi cuộc hẹn bị dời sang buổi khác, bạn có thể phải xếp lại việc đã dành giờ làm.",
+            "Khi giờ hẹn mới trùng một việc khác, bạn có thể chưa biết nên giữ lịch nào.",
+            "Khi người kia đổi giờ nhưng chưa chốt, bạn có thể sửa lịch của mình quá sớm.",
+            "Khi cuộc hẹn bắt đầu muộn hơn dự tính, bạn có thể không còn đủ giờ cho việc sau.",
+            "Khi được đề nghị đổi ngày hẹn, bạn có thể quên kiểm tra việc mình đã xếp.",
+        ),
+        (
+            "Kiểm tra một việc đã xếp trước khi xác nhận giờ hẹn mới.",
+            "Viết hai giờ bạn còn trống rồi đề nghị người kia chọn một giờ.",
+            "Nói giờ bạn cần kết thúc cuộc hẹn để giữ việc tiếp theo.",
+            "Hỏi lại ngày và giờ hẹn trước khi ghi vào lịch.",
+        ),
+    ),
+    "comparison-loop": (
+        ("Bạn quên phần đã xong khi xem người khác.", "Một lời khen người khác khiến bạn tự chê."),
+        (
+            "Khi xem người khác hoàn thành sớm, bạn có thể quên phần khó mình vừa giải quyết.",
+            "Khi thấy kết quả đẹp của người khác, bạn có thể chê bản nháp mình đang làm.",
+            "Khi nghe người khác được khen, bạn có thể bỏ qua một việc mình vừa làm xong.",
+            "Khi nhìn danh sách thành quả của người khác, bạn có thể chỉ đếm việc mình còn thiếu.",
+            "Khi xem tiến độ người khác, bạn có thể thấy phần mình đã làm không còn đáng kể.",
+        ),
+        (
+            "Ghi một chỗ việc của mình đã tốt hơn bản trước.",
+            "Chọn một phần mình đã hoàn thành và ghi kết quả của phần đó.",
+            "Đặt kết quả người khác sang bên rồi viết bước tiếp theo của mình.",
+            "Viết một điều mình đã học được từ việc vừa làm.",
+        ),
+    ),
+    "automatic-caretaking": (
+        ("Bạn giúp người khác rồi thiếu giờ cho mình.", "Bạn nhận giúp khi phần mình vẫn còn dở."),
+        (
+            "Khi có người nhờ xem hộ một việc, bạn có thể nhận ngay dù việc riêng vẫn còn dở.",
+            "Khi người kia nhờ thêm một phần, bạn có thể nhận hết dù đã dành giờ nghỉ.",
+            "Khi được nhờ làm thay, bạn có thể bỏ việc của mình sang bên dù đang khá mệt.",
+            "Khi người kia cần bạn hỗ trợ, bạn có thể kéo dài giờ giúp dù việc riêng chưa xong.",
+            "Khi ai đó nhờ thêm lần nữa, bạn có thể nhận lời dù thời gian còn lại không nhiều.",
+        ),
+        (
+            "Viết phần mình còn đủ sức giúp và nói rõ phần chưa nhận được.",
+            "Chọn một phần nhỏ để giúp, rồi giữ giờ nghỉ đã định.",
+            "Kiểm tra việc riêng còn dở và nói giờ mình có thể giúp.",
+            "Nói giới hạn thời gian mình dành để giúp, chưa nhận thêm phần khác.",
+        ),
+    ),
+    "decision-fatigue": (
+        ("Bạn đã mệt, danh sách lựa chọn còn dài.", "Bạn tìm thêm phương án khi chưa chọn xong."),
+        (
+            "Khi đã mệt mà còn so nhiều phương án, bạn có thể đọc lại cùng một thông tin.",
+            "Khi cần chọn một việc nhỏ lúc mệt, bạn có thể mở thêm lựa chọn thay vì chốt.",
+            "Khi các phương án gần giống nhau, bạn có thể so mãi dù sức mình đã giảm.",
+            "Khi phải chọn vào cuối buổi, bạn có thể xem thêm phương án dù đã biết điều cần nhất.",
+            "Khi danh sách phương án cứ dài thêm, bạn có thể chưa chọn được dù đã khá mệt.",
+        ),
+        (
+            "Chọn hai phương án đáp ứng điều cần nhất rồi dừng tìm thêm.",
+            "Ghi một tiêu chí bắt buộc và so các phương án theo tiêu chí đó.",
+            "Đặt giờ nghỉ trước khi xem lại lựa chọn chưa cần chốt.",
+            "Bỏ các phương án không phù hợp rồi so hai lựa chọn còn lại.",
+        ),
+    ),
+    "perfect-before-start": (
+        ("Bạn đã đủ ý, vẫn chờ thêm để gửi.", "Bạn chỉnh bản nháp thay vì xin góp ý."),
+        (
+            "Khi bản nháp đã có đủ phần chính, bạn có thể sửa cách mở đầu rồi chưa gửi.",
+            "Khi người cần xem đang chờ bản nháp, bạn có thể chỉnh thêm dù ý đã rõ.",
+            "Khi bản nháp chỉ còn vài chỗ nhỏ, bạn có thể sửa mãi vì lo người đọc chê.",
+            "Khi định gửi bản nháp để hỏi, bạn có thể đổi vài chữ rồi lại để đó.",
+            "Khi bản nháp đã đủ để trao đổi, bạn có thể chờ chỉnh đẹp hơn rồi mới gửi.",
+        ),
+        (
+            "Gửi bản nháp với một câu hỏi về phần bạn chưa chắc.",
+            "Viết giờ gửi bản nháp và giữ đúng giờ đó.",
+            "Gửi phần đã đủ ý để người đọc góp ý, đánh dấu phần còn thiếu.",
+            "Chọn người cần xem rồi gửi bản nháp, chưa chỉnh thêm cách trình bày.",
+        ),
+    ),
+    "group-pressure": (
+        ("Nhóm đã chốt, câu hỏi của bạn còn đó.", "Bạn theo ý nhóm khi chưa rõ một phần."),
+        (
+            "Khi nhóm chọn một cách làm rất nhanh, bạn có thể nói được dù chưa hiểu một bước.",
+            "Khi nhóm chuyển sang phần mới, bạn có thể vẫn chưa rõ điều vừa được thống nhất.",
+            "Khi mọi người đều gật đầu, bạn có thể ngại hỏi lại phần mình nghe chưa rõ.",
+            "Khi nhóm chốt việc qua chat, bạn có thể đồng ý dù còn muốn hỏi ai làm phần nào.",
+            "Khi nhóm đã chọn xong, bạn có thể giữ lại câu hỏi vì thấy mọi người đều hiểu.",
+        ),
+        (
+            "Chọn một phần chưa hiểu và xin nhóm giải thích lại phần đó.",
+            "Nhắn câu hỏi còn lại vào nhóm để mọi người trả lời rõ.",
+            "Nói lại ý mình hiểu và hỏi nhóm xem có đúng không.",
+            "Hỏi nhóm bước đầu tiên cần làm nếu phần vừa chốt còn chưa rõ.",
+        ),
+    ),
+    "avoid-small-conflict": (
+        ("Bạn nhận việc để khỏi phải nói không.", "Bạn muốn nói không, câu trả lời lại khác."),
+        (
+            "Khi được nhờ làm thêm một phần, bạn có thể nhận lời dù phần đó không tiện.",
+            "Khi người kia chờ câu trả lời, bạn có thể nói được dù không muốn nhận việc.",
+            "Khi việc được nhờ trùng giờ nghỉ, bạn có thể vẫn nhận vì ngại nói không.",
+            "Khi chưa muốn nhận việc, bạn có thể nói để mình làm rồi mới nghĩ lại.",
+            "Khi được nhờ thêm lần nữa, bạn có thể nhận việc chỉ để khỏi phải từ chối.",
+        ),
+        (
+            "Nói lại việc mình không nhận được để người kia tìm cách khác.",
+            "Viết rõ phần việc không tiện rồi nhắn lại người đã nhờ.",
+            "Nói một giới hạn cụ thể cho việc mình đã nhận.",
+            "Nhắn lại phần bạn nhận được và phần cần người kia tự sắp xếp.",
+        ),
+    ),
+    "defend-old-choice": (
+        ("Bạn giữ cách cũ vì đã bỏ nhiều công.", "Kết quả chưa tốt, bạn vẫn ngại đổi cách."),
+        (
+            "Khi cách cũ vẫn cho kết quả thấp, bạn có thể làm thêm vì không muốn bỏ công đã dành.",
+            "Khi đã thử một cách nhiều lần, bạn có thể ngại đổi dù kết quả chưa tốt.",
+            "Khi sửa thêm theo cách cũ, bạn có thể chưa kiểm tra phần nào thật sự có kết quả.",
+            "Khi kết quả không đổi sau vài lần làm, bạn có thể tiếp tục vì cách đó đã quen.",
+            "Khi được gợi ý cách khác, bạn có thể giữ cách cũ dù kết quả vẫn chưa khá hơn.",
+        ),
+        (
+            "Chọn một kết quả cần cải thiện và thử đổi một bước nhỏ.",
+            "Viết phần cách cũ có kết quả, rồi chọn phần cần thử khác.",
+            "Kiểm tra một lần làm gần nhất trước khi tiếp tục cách cũ.",
+            "Ghi kết quả của một lần thử cách khác rồi so với cách cũ.",
+        ),
+    ),
+    "capacity-before-agreement": (
+        (
+            "Bạn muốn nhận việc, lịch chưa có chỗ.",
+            "Bạn chưa biết dành giờ nào để giúp.",
+            "Bạn muốn giúp thêm dù giờ trống còn ít.",
+            "Bạn nhận thêm việc khi chưa xem lịch.",
+            "Việc được nhờ chưa có giờ trong lịch bạn.",
+        ),
+        (
+            "Khi người kia nhờ xem hộ một việc, bạn có thể muốn giúp dù chưa kiểm tra giờ trống.",
+            "Khi có thêm việc được nhờ, bạn có thể định nhận mà chưa biết sẽ làm vào lúc nào.",
+            "Khi được nhờ thêm một phần, bạn có thể quên so thời gian cần với giờ mình còn trống.",
+            "Khi người kia cần bạn giúp, bạn có thể muốn nhận dù lịch đã có nhiều việc.",
+            "Khi một việc được nhờ cần làm lâu, bạn có thể định nhận trước khi xem lịch.",
+            "Khi có người nhờ giúp, bạn có thể chưa biết lịch còn giờ nào trống.",
+            "Khi được nhờ hỗ trợ, bạn có thể chỉ nghĩ đến việc giúp mà chưa tính giờ để làm.",
+        ),
+        (
+            "Viết thời gian cần cho việc được nhờ rồi so với lịch còn trống.",
+            "Chọn một phần làm được trong thời gian trống và nói rõ phần đó.",
+            "Kiểm tra lịch rồi nói giờ sớm nhất bạn có thể giúp.",
+            "Ghi thời gian bắt đầu và dừng trước khi nhận phần việc giúp.",
+            "Nói mình cần xem lịch rồi mới trả lời phần có thể giúp.",
+            "Chọn một khoảng thời gian trống và hỏi việc cần giúp có vừa khoảng đó không.",
+            "Nói rõ bạn cần bao nhiêu thời gian để làm phần được nhờ.",
+        ),
+    ),
+    "quick-reply": (
+        (
+            "Bạn gõ câu trả lời khi tin nhắn còn dài.",
+            "Bạn định gửi trước khi hiểu hết câu hỏi.",
+            "Bạn muốn trả lời ngay một tin nhắn khó chịu.",
+            "Bạn đọc nửa tin nhắn rồi bắt đầu đáp.",
+            "Bạn chưa đọc hết, câu trả lời đã có.",
+        ),
+        (
+            "Khi một tin nhắn hỏi nhiều ý, bạn có thể gõ câu trả lời ngay từ ý đầu.",
+            "Khi tin nhắn mở đầu khó nghe, bạn có thể muốn trả lời trước khi đọc phần còn lại.",
+            "Khi đang bực vì một câu trong tin nhắn, bạn có thể gõ ngay dù còn đoạn chưa đọc.",
+            "Khi tin nhắn có phần giải thích ở cuối, bạn có thể đã soạn câu trả lời từ đầu.",
+            "Khi thấy một chữ làm mình khó chịu, bạn có thể chuẩn bị đáp mà chưa đọc hết tin nhắn.",
+            "Khi tin nhắn dài hơn dự tính, bạn có thể trả lời ý đầu rồi bỏ sót câu hỏi sau.",
+            "Khi tin nhắn có thêm phần giải thích, bạn có thể đang gõ câu trả lời cho phần trước.",
+        ),
+        (
+            "Đọc hết tin nhắn và ghi câu hỏi chính trước khi soạn câu trả lời.",
+            "Đọc hết phần giải thích rồi viết lại câu trả lời chưa gửi.",
+            "Viết câu trả lời ở bản nháp, đọc hết tin nhắn rồi mới gửi.",
+            "Đọc hết tin nhắn rồi hỏi lại một chỗ chưa rõ trước khi trả lời.",
+            "Chọn câu hỏi cần trả lời sau khi đọc hết tin nhắn.",
+            "Đọc hết tin nhắn rồi bỏ câu trả lời không liên quan đến điều được hỏi.",
+            "Ghi một ý muốn trả lời, đọc hết tin nhắn rồi kiểm tra lại ý đó.",
+        ),
+    ),
+    "repair-reply": (
+        (
+            "Bạn đọc lại câu đã gửi và muốn sửa.",
+            "Ý bạn muốn nói khác câu vừa gửi.",
+            "Câu trả lời đã gửi nghe gắt hơn dự tính.",
+            "Bạn muốn nói lại ý trong tin đã gửi.",
+            "Tin nhắn vừa gửi chưa đúng cách bạn muốn nói.",
+        ),
+        (
+            (
+                "Khi đọc lại câu vừa gửi, bạn có thể thấy mình trách người kia "
+                "nhiều hơn điều muốn hỏi."
+            ),
+            "Khi xem tin nhắn đã gửi, bạn có thể thấy câu trả lời ngắn nghe gắt hơn ý định.",
+            "Khi đọc lại đoạn chat, bạn có thể muốn nói rõ hơn điều mình vừa trả lời.",
+            "Khi xem câu vừa gửi lúc bực, bạn có thể thấy ý chính chưa được nói rõ.",
+            (
+                "Khi đọc lại tin nhắn sau lúc vội, bạn có thể thấy cách trả lời "
+                "chưa đúng điều muốn nói."
+            ),
+            "Khi nhìn câu trả lời đã gửi, bạn có thể nhận ra mình cần hỏi thay vì trách.",
+            "Khi đọc lại tin nhắn của mình, bạn có thể thấy một câu làm ý muốn nói bị lệch.",
+        ),
+        (
+            "Nhắn lại một câu làm rõ điều bạn muốn hỏi, không đoán ý người kia.",
+            "Viết ý muốn nói bằng một câu rồi nhắn lại để làm rõ.",
+            "Nói lại phần mình muốn hỏi thay cho câu trách vừa gửi.",
+            "Nhắn lại rằng cách nói vừa rồi hơi gắt, rồi ghi rõ ý muốn nói.",
+            "Chọn một câu chưa đúng ý và nhắn lại cách nói rõ hơn.",
+            "Nói lại điều mình cần trao đổi, chưa thêm lời trách người kia.",
+            "Nhắn lại câu hỏi chính để người kia biết bạn muốn nói gì.",
+        ),
+    ),
+    "specific-feedback": (
+        (
+            "Bạn xin góp ý mà chưa chỉ phần cần xem.",
+            "Câu hỏi về bản nháp chưa đủ cụ thể.",
+            "Bạn gửi bản nháp nhưng chưa nói cần góp ý gì.",
+            "Người đọc chưa biết phần nào bạn muốn hỏi.",
+            "Bạn hỏi ổn chưa thay vì hỏi đúng phần.",
+        ),
+        (
+            "Khi gửi bản nháp có nhiều phần, bạn có thể xin góp ý mà chưa chỉ phần muốn hỏi.",
+            "Khi cần góp ý cho đoạn mở đầu, bạn có thể gửi cả bản nháp rồi chỉ hỏi ổn chưa.",
+            "Khi nhờ người kia xem bản nháp, bạn có thể chưa nói mình cần góp ý về ý hay câu chữ.",
+            "Khi gửi bản nháp lần đầu, bạn có thể quên ghi câu hỏi về phần còn chưa rõ.",
+            "Khi muốn người đọc xem một đoạn, bạn có thể gửi bản nháp mà chưa đánh dấu đoạn đó.",
+            "Khi cần biết bản nháp có dễ hiểu không, bạn có thể chỉ hỏi người đọc thấy thế nào.",
+            "Khi nhờ góp ý bản nháp, bạn có thể chưa nói chỗ nào mình đang phân vân.",
+        ),
+        (
+            "Ghi dấu một phần trong bản nháp và hỏi phần đó có dễ hiểu không.",
+            "Viết một câu hỏi về đúng phần cần góp ý rồi gửi cùng bản nháp.",
+            "Chọn một phần trong bản nháp và hỏi người đọc hiểu ý gì từ phần đó.",
+            "Nói rõ mình cần góp ý về ý hay câu chữ ở một phần của bản nháp.",
+            "Ghi một chỗ cần người đọc xem kỹ rồi xin góp ý riêng chỗ đó.",
+            "Hỏi người đọc góp ý một phần trước, chưa yêu cầu xem hết bản nháp.",
+            "Chọn phần còn phân vân và hỏi một câu cụ thể về phần đó.",
+        ),
+    ),
+    "name-the-need": (
+        (
+            "Bạn nói mệt, chưa nói muốn được giúp gì.",
+            "Bạn cần giúp một việc nhưng nói chưa rõ.",
+            "Bạn muốn người kia hiểu điều mình cần giúp.",
+            "Bạn than việc nhiều mà chưa nhờ việc cụ thể.",
+            "Bạn chưa nói việc nào cần người kia giúp.",
+        ),
+        (
+            "Khi việc dồn lại, bạn có thể nói mình quá tải mà chưa nhờ ai giúp một phần cụ thể.",
+            "Khi cần người kia giúp, bạn có thể chỉ nói mệt quá mà chưa nói cần làm việc gì.",
+            "Khi thấy mình không làm xuể, bạn có thể kể các việc mà chưa đề nghị giúp phần nào.",
+            "Khi muốn bớt một việc, bạn có thể nói mình bận mà chưa nhờ người kia làm giúp.",
+            "Khi đang quá tải, bạn có thể muốn được giúp nhưng chưa chọn việc để nhờ.",
+            "Khi có nhiều việc còn dở, bạn có thể than mệt mà chưa nói việc nào cần giúp.",
+            "Khi người kia hỏi có cần giúp không, bạn có thể chưa nói được một việc cụ thể.",
+        ),
+        (
+            "Chọn một việc cần giúp và nói rõ phần mình muốn người kia làm.",
+            "Viết một đề nghị cụ thể cho việc cần giúp, rồi hỏi người kia.",
+            "Nói việc cần giúp và thời gian cần xong, rồi hỏi người kia có tiện không.",
+            "Chọn một phần có thể nhờ giúp thay vì kể lại toàn bộ việc đang dở.",
+            "Hỏi người kia có giúp một việc cụ thể được không, chưa coi đó là điều bắt buộc.",
+            "Nói rõ mình cần giúp việc nào, không yêu cầu người kia tự đoán.",
+            "Ghi một việc cụ thể cần giúp rồi nói đề nghị bằng một câu.",
+        ),
+    ),
+}
+
+
+_RELATIONSHIP_ACTIONS = {
+    "missing-context": (
+        "Nói với người kia cách mình hiểu tin nhắn rồi hỏi có đúng không.",
+        "Hỏi người kia câu trong tin nhắn đang trả lời phần nào của cuộc nói chuyện.",
+        "Nhắn người kia một câu hỏi về chỗ chưa rõ, chưa đoán lý do họ viết vậy.",
+        "Hỏi lại ý người kia trong tin nhắn rồi nói phần mình cần hiểu thêm.",
+        "Chọn một chỗ chưa hiểu trong tin nhắn và hỏi người kia giải thích lại.",
+        "Nói với người kia mình chưa rõ yêu cầu nào trong tin nhắn.",
+        "Nhắn lại ý mình hiểu từ tin nhắn và xin người kia sửa phần chưa đúng.",
+        "Hỏi người kia cần mình trả lời điều gì ở chỗ tin nhắn chưa rõ.",
+    ),
+    "changed-plan": (
+        "Hỏi người kia giờ hẹn mới và nói giờ nào mình còn gặp được.",
+        "Nói với người kia giờ mình cần kết thúc cuộc hẹn rồi cùng chốt lại.",
+        "Nói hai giờ hẹn mình còn trống rồi hỏi người kia chọn giờ nào.",
+        "Nhắn người kia phần lịch mình không đổi được rồi hỏi giờ hẹn khác.",
+        "Hỏi lại giờ hẹn người kia đã chắc chưa trước khi hai bên đổi lịch.",
+        "Nói giờ hẹn mới ảnh hưởng việc nào của mình và đề nghị một giờ phù hợp.",
+        "Chọn một giờ cả hai còn gặp được rồi xác nhận lại cuộc hẹn.",
+        "Hỏi người kia cuộc hẹn cần bao lâu để hai bên xếp giờ phù hợp.",
+    ),
+    "automatic-caretaking": (
+        "Hỏi người kia phần nào cần bạn giúp, rồi nhận phần vừa sức.",
+        "Nói với người kia mình giúp được đến giờ nào và hỏi phần nào cần trước.",
+        "Hỏi người kia một phần cần giúp nhất rồi nói phần mình còn đủ sức làm.",
+        "Nói với người kia việc riêng mình còn dở rồi cùng chọn phần giúp được.",
+        "Hỏi người kia có thể tự làm phần nào, rồi nhận một phần còn lại.",
+        "Nói mình cần giữ giờ nghỉ và hỏi người kia có thể nhận giúp lúc khác không.",
+        "Chọn một phần giúp vừa sức rồi hỏi người kia phần đó có phù hợp không.",
+        "Nhắn người kia phần mình chưa giúp được và phần có thể cùng làm.",
+    ),
+    "group-pressure": (
+        "Nói với nhóm phần mình chưa hiểu và hỏi ai có thể giải thích lại.",
+        "Hỏi nhóm điều vừa chốt có đúng ý mình hiểu không, rồi nêu chỗ còn chưa rõ.",
+        "Nhắn nhóm một câu hỏi còn lại và xin giải thích trước khi làm tiếp.",
+        "Hỏi nhóm vì sao chọn cách đó rồi nói phần mình còn chưa hiểu.",
+        "Xin một người trong nhóm giải thích lại chỗ mình chưa rõ.",
+        "Nói với nhóm mình đã đồng ý nhưng còn cần hiểu một bước.",
+        "Hỏi nhóm ai làm phần mình chưa rõ để trao đổi đúng người.",
+        "Nói lại ý mình hiểu và nhờ nhóm kiểm tra một chỗ còn chưa chắc.",
+    ),
+    "avoid-small-conflict": (
+        "Nói với người kia phần mình không nhận được và hỏi họ có cách sắp xếp khác không.",
+        "Nhắn người kia việc mình nhận được và việc cần họ tìm người khác.",
+        "Nói lại với người kia mình không tiện nhận việc đó, chưa hứa thêm phần khác.",
+        "Hỏi người kia có thể đổi phần việc đã nhờ không rồi nói giới hạn mình nhận được.",
+        "Nói với người kia giờ nào mình làm được việc đã nhận để cùng sắp lại.",
+        "Nhắn rõ phần mình không muốn nhận để người kia không phải đoán.",
+        "Nói với người kia phần việc mình đã nhận cần thu lại ở mức nào.",
+        "Nói một giới hạn cho việc đã nhận và hỏi người kia có sắp xếp được không.",
+    ),
+    "defend-old-choice": (
+        "Hỏi người cùng làm cách cũ đang cho kết quả gì rồi cùng chọn một bước thử khác.",
+        "Nói với người kia kết quả mình cần và hỏi cách cũ có đáp ứng không.",
+        "Chọn một phần thử cách khác và hỏi người cùng làm sẽ so kết quả thế nào.",
+        "Hỏi người kia phần nào của cách cũ còn hiệu quả trước khi cùng bỏ thêm công.",
+        "Nói kết quả chưa tốt của cách cũ rồi đề nghị hai bên đổi một bước nhỏ.",
+        "Viết kết quả cách cũ đang cho và hỏi người kia có cách kiểm tra khác không.",
+        "Hỏi người cùng làm một thay đổi có thể thử mà chưa bỏ hết cách cũ.",
+        "Nói phần công đã bỏ ra và phần kết quả cần sửa để hai bên cùng xem lại.",
+    ),
+    "capacity-before-agreement": (
+        "Nói với người kia thời gian bạn cần và hỏi họ cần xong lúc nào.",
+        "Hỏi người kia thời gian cần cho việc đó rồi cùng so với lịch bạn còn trống.",
+        "Nói thời gian bạn có thể bắt đầu và hỏi người kia có chờ được không.",
+        "Chọn phần vừa thời gian mình có và hỏi người kia phần đó có giúp được không.",
+        "Nói với người kia mình cần xem lịch rồi mới chốt thời gian giúp.",
+        "Hỏi người kia phần nào cần trước rồi nói thời gian mình dành được.",
+        "Nói thời gian mình cần dừng và hỏi người kia có chia việc theo đó được không.",
+        "Nhắn người kia thời gian còn trống và hỏi việc cần giúp có vừa khoảng đó không.",
+    ),
+    "quick-reply": (
+        "Đọc hết tin nhắn rồi hỏi người kia có đúng điều mình vừa hiểu không.",
+        "Đọc hết phần giải thích rồi nói với người kia câu hỏi mình cần làm rõ.",
+        "Viết câu trả lời chưa gửi rồi đọc hết tin nhắn để kiểm tra ý người kia.",
+        "Đọc hết tin nhắn rồi hỏi người kia chỗ làm mình khó chịu đang có ý gì.",
+        "Đọc hết tin nhắn rồi trả lời câu người kia hỏi, chưa đoán lý do họ hỏi.",
+        "Hỏi người kia một chỗ chưa hiểu sau khi đọc hết tin nhắn.",
+        "Đọc hết tin nhắn rồi viết một câu trả lời rõ về điều mình muốn trao đổi.",
+        "Đọc hết tin nhắn rồi xác nhận điều người kia cần trước khi gửi câu trả lời.",
+    ),
+    "repair-reply": (
+        "Nhắn lại ý mình muốn nói và hỏi người kia câu vừa gửi có chỗ nào chưa rõ.",
+        "Nói lại câu hỏi chính và hỏi người kia có hiểu đúng ý mình muốn nói không.",
+        "Nhắn lại rằng câu vừa rồi hơi gắt rồi nói rõ điều mình muốn trao đổi.",
+        "Nói lại phần mình muốn hỏi và để người kia trả lời đúng phần đó.",
+        "Nhắn lại cách nói rõ hơn rồi hỏi người kia có cần mình giải thích thêm không.",
+        "Nói ý mình muốn nói bằng một câu và hỏi người kia hiểu câu đó thế nào.",
+        "Nhắn lại điều mình cần trao đổi, chưa thêm lời trách về ý người kia.",
+        "Nói lại ý chính rồi hỏi người kia câu nào trong tin vừa gửi còn chưa rõ.",
+    ),
+    "specific-feedback": (
+        "Hỏi người kia hiểu ý gì từ một phần bản nháp, rồi nghe họ góp ý phần đó.",
+        "Nói với người kia một phần cần góp ý và hỏi họ có tiện xem không.",
+        "Chọn một phần bản nháp rồi hỏi người kia muốn mình làm rõ chỗ nào.",
+        "Hỏi người kia một câu về phần còn phân vân, chưa yêu cầu họ đoán mình cần gì.",
+        "Chọn một phần cần góp ý và hỏi người kia có hiểu cách mình trình bày không.",
+        "Ghi dấu một phần bản nháp rồi nhờ người kia nói ý họ hiểu từ phần đó.",
+        "Hỏi người kia góp ý một phần cụ thể và nói mình sẽ xem lại phần ấy.",
+        "Nói với người kia điều muốn hỏi ở một phần bản nháp rồi xin góp ý.",
+    ),
+    "name-the-need": (
+        "Nói một việc cụ thể mình cần giúp và hỏi người kia có tiện nhận phần đó không.",
+        "Hỏi người kia có giúp được một phần cụ thể không, rồi nói phần mình tự làm.",
+        "Nói việc cần giúp và hỏi người kia cần thêm thông tin gì để nhận việc đó.",
+        "Chọn một việc cần giúp rồi hỏi người kia có đủ giờ cho việc ấy không.",
+        "Nói một đề nghị cụ thể và nghe người kia trả lời phần họ giúp được.",
+        "Hỏi người kia có thể giúp việc cụ thể nào trong phần mình đang cần.",
+        "Nói rõ việc cần giúp rồi hỏi người kia muốn cùng làm hay làm riêng một phần.",
+        "Ghi một việc cụ thể cần giúp rồi trao đổi với người kia về giờ làm.",
+    ),
+}
+
+
+def _expand_daily_issue(issue: DailyIssuePattern) -> DailyIssuePattern:
+    titles, scenes, actions = _DAILY_VARIATIONS[issue.key]
+    expanded = replace(
+        issue,
+        headlines=tuple(dict.fromkeys((*issue.headlines, *titles))),
+        scenes=tuple(dict.fromkeys((*issue.scenes, *scenes))),
+        advice=tuple(dict.fromkeys((*issue.advice, *actions))),
+        relationship_advice=_RELATIONSHIP_ACTIONS.get(issue.key, ()),
+    )
+    if (len(expanded.headlines), len(expanded.scenes), len(expanded.advice)) != (6, 8, 8):
+        raise ValueError(f"Daily issue {issue.key} requires 384 distinct bounded variants")
+    if SemanticArena.RELATIONSHIPS in issue.arenas and len(set(expanded.relationship_advice)) != 8:
+        raise ValueError(f"Daily issue {issue.key} requires eight matched relationship actions")
+    return expanded
+
+
+DAILY_ISSUES = tuple(_expand_daily_issue(issue) for issue in DAILY_ISSUES)
+
+
 DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
     json.dumps(
         {
             "version": DAILY_PSYCHOLOGY_MATRIX_VERSION,
             "situations": [asdict(issue) for issue in DAILY_ISSUES],
+            "personalization": PERSONALIZATION_VERSION,
+            "placements": PLACEMENT_ISSUES,
+            "placement_meanings": PLACEMENT_MEANINGS,
+            "sign_elements": SIGN_ELEMENTS,
+            "sun_issues": SUN_ISSUES,
+            "body_domains": BODY_DOMAINS,
+            "house_arenas": HOUSE_ARENAS,
+            "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
         },
         ensure_ascii=False,
         sort_keys=True,
@@ -468,27 +1033,12 @@ DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
 
 
 _ARENA_LEADS = {
-    SemanticArena.RELATIONSHIPS: "Với người kia,",
-    SemanticArena.COMMUNICATION: "Trong cuộc nói chuyện,",
-    SemanticArena.WORK: "Ở công việc hoặc chuyện học,",
-    SemanticArena.ENERGY: "Với cơ thể đang mệt,",
-    SemanticArena.SELF_CARE: "Trong giờ nghỉ ngơi,",
+    SemanticArena.RELATIONSHIPS: "Ví dụ với người kia.",
+    SemanticArena.COMMUNICATION: "Ví dụ trong cuộc nói chuyện.",
+    SemanticArena.WORK: "Ví dụ trong công việc hoặc chuyện học.",
+    SemanticArena.ENERGY: "Ví dụ khi chăm cơ thể.",
+    SemanticArena.SELF_CARE: "Ví dụ trong giờ nghỉ ngơi.",
 }
-
-_SIGN_ORDER = (
-    "aries",
-    "taurus",
-    "gemini",
-    "cancer",
-    "leo",
-    "virgo",
-    "libra",
-    "scorpio",
-    "sagittarius",
-    "capricorn",
-    "aquarius",
-    "pisces",
-)
 
 
 def apply_daily_psychology(
@@ -501,59 +1051,101 @@ def apply_daily_psychology(
         return frame
 
     arena = semantic_arena(plan.background_lens)
-    pool = (
-        DAILY_ISSUES
-        if arena is SemanticArena.GENERAL
-        else tuple(issue for issue in DAILY_ISSUES if arena in issue.arenas)
+    issues = {issue.key: issue for issue in DAILY_ISSUES}
+    eligible = tuple(
+        situation
+        for situation in eligible_daily_situations(plan)
+        if arena is SemanticArena.GENERAL or arena in issues[situation.issue_key].arenas
     )
-    issue_slot, headline_slot, scene_slot, advice_slot = daily_mixed_radix_slots(
+    if eligible:
+        # A known house refines context, not personality. User's explicit lens wins.
+        def rank(situation: SupportedSituation) -> tuple[int, int, int, int]:
+            return (*situation.rank, int(situation.arena is arena))
+
+        best_rank = max(rank(situation) for situation in eligible)
+        pool = sorted(
+            (situation for situation in eligible if rank(situation) == best_rank),
+            key=lambda situation: (situation.issue_key, situation.rule_key),
+        )
+    else:
+        pool = []
+    (issue_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (max(1, len(pool)),))
+    # Eligibility ties must not consume the day counter: two factors supporting
+    # the same issue would otherwise repeat its card on consecutive days.
+    headline_slot, scene_slot, advice_slot = daily_mixed_radix_slots(
         plan.editorial_seed,
-        (len(pool), 4, 3, 4),
+        (6, 8, 8),
     )
-    chart_signature = "|".join(factor.id for factor in plan.factors) or plan.mode.value
-    date_only_sign = next(
-        (
-            factor.id.rsplit(":", 1)[1]
-            for factor in plan.factors
-            if factor.id.startswith("date_only:sun:vibe:certain:")
-        ),
-        None,
+    selected = pool[issue_slot] if pool else None
+    issue = issues[selected.issue_key if selected else "capacity-before-agreement"]
+    scene_arena = (
+        arena
+        if arena is not SemanticArena.GENERAL
+        else (selected.arena if selected and selected.arena in issue.arenas else arena)
     )
-    chart_shift = (
-        _SIGN_ORDER.index(date_only_sign) * 37
-        if date_only_sign in _SIGN_ORDER
-        else int.from_bytes(sha256(chart_signature.encode()).digest()[:4], "big")
-    )
-    issue_slot = (issue_slot + chart_shift) % len(pool)
-    headline_slot = (headline_slot + chart_shift // len(pool)) % 4
-    scene_slot = (scene_slot + chart_shift // (len(pool) * 4)) % 3
-    advice_slot = (advice_slot + chart_shift // (len(pool) * 12)) % 4
-    issue = pool[issue_slot]
-    lead = _ARENA_LEADS.get(arena)
+    lead = _ARENA_LEADS.get(scene_arena)
     manifestation = issue.scenes[scene_slot]
     if lead is not None:
-        manifestation = f"{lead} {manifestation[0].lower()}{manifestation[1:]}"
-    action = issue.advice[advice_slot]
+        manifestation = f"{lead} {manifestation}"
+    actions = issue.relationship_advice if arena is SemanticArena.RELATIONSHIPS else issue.advice
+    action = actions[advice_slot]
     source_refs = tuple(f"psychology-source:{source_id}" for source_id in issue.source_ids)
+    core_meaning = (
+        f"{selected.meaning} {issue.meaning}"
+        if selected
+        else "Dữ kiện chưa đủ cho xu hướng riêng ở góc này. " + issue.meaning
+    )
+    limitation = (
+        "Chỉ là góc đọc tổng quát, chưa có dữ kiện giờ sinh."
+        if any(factor.kind is FactorKind.DATE_ONLY_VIBE for factor in plan.factors)
+        else "Cảnh là ví dụ, không phải sự việc được dự báo."
+    )
+    takeaway = f"{issue.takeaway} {limitation}"
+    allowed_refs = {
+        factor.id
+        for factor in plan.factors
+        if plan.precision is TimePrecision.EXACT
+        or factor.kind not in {FactorKind.HOUSE_PLACEMENT, FactorKind.ANGLE}
+    }
+    selected_refs = tuple(
+        dict.fromkeys(
+            ref
+            for ref in (
+                *(selected.factor_refs if selected else ()),
+                *plan.hero_factor_refs,
+                *frame.evidence_factor_refs,
+            )
+            if ref in allowed_refs
+        )
+    )[:12]
+    # Disclosure order is canonical, not editorial priority. A changed lens may
+    # change true supporting facts, but never merely reorder the same facts.
+    evidence_refs = (
+        *tuple(ref for ref in plan.hero_factor_refs if ref in selected_refs),
+        *tuple(sorted(set(selected_refs) - set(plan.hero_factor_refs))),
+    )
 
     return replace(
         frame,
         hook=issue.headlines[headline_slot],
-        thesis=f"{issue.meaning} {issue.takeaway}",
+        thesis=f"{core_meaning} {takeaway}",
         manifestation=manifestation,
         micro_action=action,
         knowledge_refs=(
             *frame.knowledge_refs,
             f"psychology-matrix:{DAILY_PSYCHOLOGY_MATRIX_VERSION}",
+            f"personalization:{PERSONALIZATION_VERSION}",
+            f"daily-rule:{selected.rule_key if selected else 'insufficient-context'}",
             *source_refs,
         ),
         arena=arena,
+        evidence_factor_refs=evidence_refs,
         mechanism_key=f"psychology:{issue.key}",
         scene_key=f"psychology:{issue.key}:scene-{scene_slot}",
-        action_key=f"psychology:{issue.key}:advice-{advice_slot}",
+        action_key=f"psychology:{issue.key}:{arena.value}-advice-{advice_slot}",
         daily_meaning=DailyMeaningBrief(
-            core_meaning=issue.meaning,
-            reader_takeaway=issue.takeaway,
+            core_meaning=core_meaning,
+            reader_takeaway=takeaway,
             scene_anchors=issue.scene_anchors,
             action_anchors=issue.action_anchors,
             observation_question=issue.observation_question,

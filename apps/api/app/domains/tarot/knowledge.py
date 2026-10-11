@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from app.domains.tarot.minor_readings import MINOR_READINGS
 from app.domains.tarot.models import TarotBookSource, TarotCard
 
-KNOWLEDGE_VERSION = "tarot-knowledge-v3"
+KNOWLEDGE_VERSION = "tarot-knowledge-v4"
 DECK_VERSION = "tarot-78-v1"
 
 _CONCEPT_SOURCES: dict[str, tuple[str, ...]] = {
@@ -115,15 +116,15 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "magician",
         "Pháp Sư",
         "The Magician",
-        "gom thứ đang có thành một hành động có chủ đích",
+        "dùng kỹ năng và những thứ bạn đã có để bắt đầu làm",
         "cố kiểm soát hình ảnh thay vì làm việc thật",
-        "chọn đúng một công cụ và dùng nó đến nơi",
+        "chọn một việc bạn đã biết cách làm và bắt đầu từ đó",
     ),
     (
         "high-priestess",
         "Nữ Tư Tế",
         "The High Priestess",
-        "nghe phần mình đã nhận ra nhưng chưa gọi thành lời",
+        "để ý cảm giác của mình nhưng vẫn cần kiểm tra thông tin",
         "coi linh cảm là bằng chứng đã đủ",
         "tách điều cảm thấy khỏi điều đã kiểm chứng",
     ),
@@ -131,15 +132,15 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "empress",
         "Hoàng Hậu",
         "The Empress",
-        "nuôi điều có khả năng lớn lên bằng sự chăm sóc đều",
+        "dành thời gian chăm sóc một người, một việc hoặc chính mình",
         "cho quá nhiều rồi âm thầm mong được hiểu",
-        "đặt nhu cầu của mình vào cùng danh sách cần chăm",
+        "ghi thêm một việc bạn cần cho mình vào lịch hôm nay",
     ),
     (
         "emperor",
         "Hoàng Đế",
         "The Emperor",
-        "tạo cấu trúc và ranh giới đủ rõ để yên tâm",
+        "cần có kế hoạch và giới hạn rõ trước khi làm tiếp",
         "siết mọi thứ vì sợ mất thế chủ động",
         "nói một giới hạn cụ thể và lý do thực tế",
     ),
@@ -147,40 +148,40 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "hierophant",
         "Người Giữ Nếp",
         "The Hierophant",
-        "xem lại quy tắc mình đang tin và nơi nó đến từ",
+        "xem lại điều mình làm theo vì gia đình, trường học hoặc thói quen",
         "làm đúng khuôn dù khuôn không còn hợp",
-        "giữ phần có ích và hỏi lại phần chỉ vì thói quen",
+        "hỏi vì sao cần làm theo một quy tắc bạn chưa hiểu",
     ),
     (
         "lovers",
         "Người Tình",
         "The Lovers",
-        "chọn điều đồng thuận với giá trị chứ không chỉ với cảm xúc tức thời",
-        "để độ hút thay cho một cuộc nói chuyện rõ ràng",
-        "gọi tên điều mình thật sự đang chọn",
+        "cần chọn điều phù hợp với mình, kể cả khi rất thích một người",
+        "nghĩ thích nhau là đủ mà chưa nói rõ hai người muốn gì",
+        "nói rõ một điều quan trọng với bạn trong mối quan hệ này",
     ),
     (
         "chariot",
         "Cỗ Xe",
         "The Chariot",
-        "đưa hai lực kéo khác nhau về cùng một hướng",
+        "cần quyết định mình muốn đi tới đâu trước khi cố làm nhanh hơn",
         "tăng tốc để khỏi phải xử lý mâu thuẫn bên trong",
-        "chốt hướng trước khi thêm tốc độ",
+        "viết mục tiêu của việc đang làm trong một câu",
     ),
     (
         "strength",
         "Sức Mạnh",
         "Strength",
-        "dùng sự vững vàng thay vì ép buộc",
+        "giữ bình tĩnh và nói rõ điều mình muốn, thay vì cố ép người khác",
         "gồng lên để không ai thấy mình đang quá tải",
-        "giảm lực nhưng giữ ranh giới",
+        "nói bình tĩnh một việc bạn không thể nhận thêm",
     ),
     (
         "hermit",
         "Ẩn Sĩ",
         "The Hermit",
-        "lùi khỏi tiếng ồn để nghe câu trả lời của chính mình",
-        "cô lập quá lâu rồi gọi đó là bình yên",
+        "dành một khoảng riêng để nghĩ rõ mình muốn gì",
+        "tránh nói chuyện quá lâu vì chưa biết mở lời thế nào",
         "xin một khoảng riêng có thời hạn và quay lại đối thoại",
     ),
     (
@@ -189,7 +190,7 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "Wheel of Fortune",
         "nhận ra tình hình đang đổi và phần mình có thể điều chỉnh",
         "chờ vận may làm hộ một quyết định",
-        "đổi một biến nhỏ trong tầm tay",
+        "chọn một việc có thể đổi khi kế hoạch không còn như trước",
     ),
     (
         "justice",
@@ -205,13 +206,13 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "The Hanged Man",
         "đổi góc nhìn trước khi tiếp tục dùng cách cũ",
         "trì hoãn vô hạn rồi gọi đó là chờ đúng lúc",
-        "tạm dừng có mốc kết thúc và câu hỏi cần trả lời",
+        "đặt giờ quay lại xử lý việc bạn đang tạm hoãn",
     ),
     (
         "death",
         "Chuyển Mùa",
         "Death",
-        "thừa nhận một giai đoạn đã hết để chừa chỗ cho điều mới",
+        "cần chấp nhận một việc đã kết thúc để bắt đầu việc khác",
         "cắt quá nhanh vì không muốn chịu cảm giác chia tay",
         "kết thúc một phần cụ thể thay vì phủ nhận toàn bộ",
     ),
@@ -219,33 +220,33 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "temperance",
         "Tiết Chế",
         "Temperance",
-        "điều chỉnh hai nhu cầu để cả hai đều có chỗ",
-        "cố làm vừa lòng mọi phía đến mức mất vị của mình",
-        "điều chỉnh một mức độ thay vì chọn tất cả hoặc không gì",
+        "tìm cách vừa làm việc cần làm, vừa không bỏ qua nhu cầu của mình",
+        "cố làm vừa lòng mọi người rồi không nói điều mình cần",
+        "chọn phần bạn có thể làm thay vì nhận hết hoặc bỏ hết",
     ),
     (
         "devil",
         "Sợi Ràng",
         "The Devil",
-        "nhìn thẳng điều đang giữ mình bằng ham muốn, sợ hãi hoặc thói quen",
-        "gọi sự lệ thuộc là không còn lựa chọn",
-        "tìm một mắt xích có thể tháo mà không tự phạt mình",
+        "nhận ra một thói quen khiến mình khó dừng dù không còn thấy vui",
+        "nghĩ mình không có lựa chọn nên tiếp tục một việc không còn muốn",
+        "chọn một thói quen bạn muốn giảm và thử bớt một lần hôm nay",
     ),
     (
         "tower",
         "Tòa Tháp",
         "The Tower",
-        "nhận ra cấu trúc nào đã không còn đứng vững",
-        "phá hết chỉ vì một phần vừa nứt",
+        "cần xem lại một kế hoạch khi có điều mới làm nó không còn phù hợp",
+        "bỏ cả kế hoạch chỉ vì một việc không diễn ra như mong đợi",
         "giữ phần vẫn còn ổn và sửa đúng chỗ đang có vấn đề",
     ),
     (
         "star",
         "Ngôi Sao",
         "The Star",
-        "khôi phục một niềm tin có bằng chứng nhỏ để bám vào",
+        "lấy lại hy vọng từ một việc nhỏ đang tiến triển tốt",
         "dùng hy vọng để bỏ qua giới hạn hiện tại",
-        "chọn một điều nhỏ đang tiến triển và tiếp tục chăm nó",
+        "ghi lại một việc đã tốt hơn và tiếp tục làm điều giúp nó tốt lên",
     ),
     (
         "moon",
@@ -259,7 +260,7 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "sun",
         "Mặt Trời",
         "The Sun",
-        "đưa điều đang có sức sống ra chỗ sáng rõ",
+        "nhìn nhận điều đang tốt và chia sẻ niềm vui mà không phải giả vờ",
         "đòi mình phải vui để chứng minh mọi thứ ổn",
         "ghi nhận điều tốt mà không xóa phần còn khó",
     ),
@@ -267,15 +268,15 @@ _MAJOR: tuple[tuple[str, str, str, str, str, str], ...] = (
         "judgement",
         "Tiếng Gọi",
         "Judgement",
-        "nhìn lại đủ thật để chọn cách đáp lại khác đi",
+        "nhìn lại một chuyện cũ để biết lần tới mình muốn làm khác điều gì",
         "biến một lỗi cũ thành bản án lâu dài",
-        "rút một bài học cụ thể rồi trả phần còn lại về quá khứ",
+        "viết một điều bạn đã học và một việc muốn làm khác lần tới",
     ),
     (
         "world",
         "Thế Giới",
         "The World",
-        "nhận ra một vòng đã đủ đầy để khép lại",
+        "nhận ra một việc đã hoàn thành và cho phép mình dừng sửa",
         "níu thêm việc chỉ vì chưa quen với khoảng trống",
         "đánh dấu điều đã xong trước khi bắt đầu việc mới",
     ),
@@ -413,8 +414,11 @@ def all_cards() -> tuple[TarotCard, ...]:
         for slug, title_vi, title_en, core, tension, resource in _MAJOR
     )
     minors: list[TarotCard] = []
-    for suit, (suit_vi, domain, suit_tension, _scene, suit_resource) in _SUITS.items():
-        for rank, (rank_vi, motion, rank_tension, rank_resource) in _RANKS.items():
+    for suit, suit_data in _SUITS.items():
+        suit_vi = suit_data[0]
+        for rank, rank_data in _RANKS.items():
+            rank_vi = rank_data[0]
+            core, tension, resource = MINOR_READINGS[f"{suit}-{rank}"]
             minors.append(
                 TarotCard(
                     id=f"{suit}-{rank}",
@@ -423,9 +427,9 @@ def all_cards() -> tuple[TarotCard, ...]:
                     arcana="minor",
                     suit=suit,
                     rank=rank,
-                    core=f"{motion} khi xử lý {domain}",
-                    tension=f"{rank_tension}; đồng thời dễ {suit_tension}",
-                    resource=f"{rank_resource}, rồi {suit_resource}",
+                    core=core,
+                    tension=tension,
+                    resource=resource,
                     source_concept_ids=(
                         "symbolic-tension",
                         "card-interaction",

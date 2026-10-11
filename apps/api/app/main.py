@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -12,6 +13,9 @@ from app.api.v1.router import router as v1_router
 from app.api.v1.routes.content_studio import router as content_studio_router
 from app.config import Settings, get_settings
 from app.db.session import Database
+from app.domains.accounts.erasure import SupabaseIdentityEraser
+from app.domains.accounts.provider import SupabaseOtpProvider
+from app.domains.accounts.service import AccountService
 from app.domains.astro import NatalChartEngine
 from app.domains.astro.ffi.swisseph import SwissEphemerisError
 from app.domains.birth.postgres import PostgresBirthRepository
@@ -31,6 +35,8 @@ from app.domains.experiments.service import ExperimentService
 from app.domains.guest.postgres import PostgresGuestRepository
 from app.domains.guest.repository import GuestRepository
 from app.domains.guest.service import GuestSessionService
+from app.domains.history.postgres import PostgresHistoryRepository
+from app.domains.history.service import HistoryService
 from app.domains.identity.service import OwnerIdentityService
 from app.domains.la_chung.service import LaChungService
 from app.domains.matching.postgres import PostgresMatchingRepository
@@ -59,6 +65,7 @@ from app.infrastructure.generation.openai import (
     OPENAI_REWRITE_PROMPT_VERSION,
 )
 from app.middleware.admission import AdmissionControlMiddleware
+from app.middleware.body_limit import BodyLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.observability.metrics import MetricsMiddleware, metrics_response
 
@@ -79,6 +86,7 @@ def create_app(
     guest_repository: GuestRepository | None = None,
     birth_repository: BirthRepository | None = None,
     reading_repository: ReadingRepository | None = None,
+    auth_transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
 
@@ -102,7 +110,10 @@ def create_app(
             return await _runtime_ready(database, engine)
 
         app.state.readiness_probe = readiness_probe
-        repository = guest_repository or PostgresGuestRepository(database.sessions)
+        repository = guest_repository or PostgresGuestRepository(
+            database.sessions,
+            identity_eraser=SupabaseIdentityEraser(resolved_settings, transport=auth_transport),
+        )
         envelope = AesGcmEnvelopeCipher(
             StaticDataKeyProvider(
                 decode_key(
@@ -113,6 +124,16 @@ def create_app(
         )
         credential_hasher = SecretHasher(
             decode_key(resolved_settings.guest_hash_key.get_secret_value())
+        )
+        app.state.account_service = AccountService(
+            database.sessions,
+            credential_hasher,
+            envelope,
+            SupabaseOtpProvider(resolved_settings, transport=auth_transport),
+            resolved_settings,
+        )
+        app.state.history_service = HistoryService(
+            PostgresHistoryRepository(database.sessions, envelope), credential_hasher
         )
         content_rewrite_repository = PostgresContentRewriteRepository(
             database.sessions,
@@ -127,7 +148,9 @@ def create_app(
             content_release_service if resolved_settings.content_studio_enabled else None
         )
         await content_release_service.activate_published_catalog()
-        content_rewrite_authorization = DatabaseRewriteAuthorization(database.sessions)
+        content_rewrite_authorization = DatabaseRewriteAuthorization(
+            database.sessions, pilot_user_limit=resolved_settings.generation_pilot_user_limit
+        )
         app.state.content_rewrite_authorization = content_rewrite_authorization
         content_rewrite_rollout = SurfaceRolloutPolicy.from_settings(
             resolved_settings.generation_surface_rollout
@@ -318,21 +341,12 @@ def create_app(
                 # Starlette's downstream request parser reuses this bounded cache.
                 request._body = b"".join(chunks)
         response = await call_next(request)
-        if request.url.path.startswith(
-            (
-                f"{version_prefix}/daily-note",
-                f"{version_prefix}/reading-projections",
-                f"{version_prefix}/matching",
-                f"{version_prefix}/radar",
-                f"{version_prefix}/public/radar",
-                f"{version_prefix}/tarot",
-                f"{version_prefix}/studio",
-            )
-        ):
+        if request.url.path.startswith(f"{version_prefix}/"):
             response.headers["Cache-Control"] = "no-store, max-age=0"
         return response
 
     application.add_middleware(CorrelationIdMiddleware)
+    application.add_middleware(BodyLimitMiddleware)
     application.add_middleware(MetricsMiddleware)
     application.add_middleware(AdmissionControlMiddleware)
     application.add_middleware(

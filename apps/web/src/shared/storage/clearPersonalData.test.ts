@@ -14,6 +14,7 @@ import {
 } from "./matchingIntroExposure";
 import { readCachedDailyNote, writeCachedDailyNote } from "./noteCache";
 import { enqueueSavedNoteMutation } from "./savedNoteMutationQueue";
+import { testLocks } from "../session/testLocks";
 
 describe("personal-data cleanup lifecycle", () => {
   const deleteCache = vi.fn<(cacheName: string) => Promise<boolean>>();
@@ -22,6 +23,7 @@ describe("personal-data cleanup lifecycle", () => {
     localStorage.clear();
     sessionStorage.clear();
     vi.restoreAllMocks();
+    vi.stubGlobal("navigator", Object.create(navigator, { locks: { value: testLocks(), configurable: true } }));
     deleteCache.mockReset().mockResolvedValue(true);
     Object.defineProperty(window, "caches", {
       configurable: true,
@@ -36,6 +38,7 @@ describe("personal-data cleanup lifecycle", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     Reflect.deleteProperty(window, "caches");
   });
 

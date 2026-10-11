@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation · Tarot dễ hiểu ngay từ lần đầu</title>
+  <style>
+    :root{--ink:#f8f3e8;--muted:#bdb4d1;--night:#090a21;--panel:#151435;--panel2:#201a47;--lime:#dfff31;--violet:#bd91ff;--coral:#ff8d77;--paper:#fff8e9;--paperink:#1a1230;--line:rgba(205,174,255,.25);--good:#bff58d;--warn:#ffd095}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 82% 4%,rgba(255,130,95,.18),transparent 28rem),radial-gradient(circle at 12% 23%,rgba(151,94,255,.16),transparent 25rem),linear-gradient(180deg,#08091f,#100b27 48%,#070719);color:var(--ink);font-family:"Be Vietnam Pro",Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}.wrap{width:min(960px,calc(100% - 32px));margin:auto;padding:44px 0 80px}.eyebrow{margin:0 0 12px;color:var(--lime);font-size:.76rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.hero{padding:34px;border:1px solid var(--line);border-radius:30px;background:linear-gradient(145deg,rgba(34,30,76,.92),rgba(12,13,43,.92));box-shadow:0 30px 80px rgba(0,0,0,.25)}h1{max-width:780px;margin:0;font-size:clamp(2.2rem,6vw,4.6rem);letter-spacing:-.055em;line-height:1.02}.lede{max-width:72ch;margin:22px 0 0;color:#dbd2e7;font-size:1.08rem}.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}.meta span,.chip{display:inline-flex;padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:#cfc3e6;background:rgba(7,8,31,.42);font-size:.72rem;font-weight:800}.nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 36px}.nav a{color:#d7c6ed;text-decoration:none;font-size:.78rem}.nav a:hover{color:var(--lime)}section{margin-top:54px}h2{margin:0 0 12px;font-size:clamp(1.55rem,3vw,2.3rem);letter-spacing:-.03em}h3{margin:0;font-size:1.25rem;letter-spacing:-.02em}p{max-width:74ch}.callout{padding:22px;border:1px solid rgba(223,255,49,.34);border-radius:20px;background:rgba(223,255,49,.07)}.callout strong{color:var(--lime)}.diagnosis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}.diagnosis article{padding:18px;border:1px solid var(--line);border-radius:18px;background:rgba(21,20,53,.76)}.diagnosis span{color:var(--coral);font-size:.7rem;font-weight:900;letter-spacing:.12em}.diagnosis p{margin:7px 0 0;color:#c7bdd8;font-size:.9rem}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:22px 0}.flow div{padding:14px 10px;border:1px solid var(--line);border-radius:14px;text-align:center;background:rgba(22,19,57,.82);font-size:.78rem;font-weight:800}.flow .bad{border-color:rgba(255,141,119,.5);color:#ffd1c8}.flow .good{border-color:rgba(223,255,49,.55);color:var(--lime)}.options{display:grid;gap:20px;margin-top:22px}.option{overflow:hidden;border:1px solid var(--line);border-radius:26px;background:linear-gradient(155deg,rgba(31,27,71,.93),rgba(15,14,47,.94));box-shadow:0 24px 52px rgba(0,0,0,.18)}.option>header{display:grid;padding:24px;grid-template-columns:auto 1fr auto;gap:16px;align-items:start}.rank{display:grid;width:42px;height:42px;border:1px solid var(--lime);border-radius:50%;place-items:center;color:var(--lime);font-weight:900}.option header p{margin:6px 0 0;color:var(--muted)}.score{padding:7px 10px;border-radius:999px;color:#16152d;background:var(--lime);font-size:.7rem;font-weight:900;white-space:nowrap}.option-body{display:grid;padding:0 24px 24px;grid-template-columns:1.1fr .9fr;gap:18px}.plain,.demo{padding:18px;border-radius:18px}.plain{border:1px solid var(--line);background:rgba(7,8,31,.35)}.plain h4,.demo h4{margin:0 0 10px;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase}.plain h4{color:var(--violet)}.plain ul{margin:0;padding-left:20px;color:#d0c6dc}.plain li+li{margin-top:7px}.demo{background:var(--paper);color:var(--paperink)}.demo h4{color:#66447e}.demo .answer{margin:0;font-size:1.2rem;font-weight:900;line-height:1.35}.demo .sub{margin:10px 0 0;color:#51465c;font-size:.88rem}.demo .action{margin:14px 0 0;padding:12px;border-radius:12px;background:#eaf8a3;font-size:.83rem}.trade{margin:16px 0 0;color:#bdb1ca;font-size:.8rem}.option details{margin:0 24px 24px;padding:0;border-top:1px solid var(--line)}summary{padding:16px 0;color:#cdb4f0;cursor:pointer;font-size:.82rem;font-weight:900}.compare{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:rgba(19,17,53,.85)}th,td{padding:14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:.82rem}th{color:var(--lime);background:rgba(223,255,49,.06)}tr:last-child td{border-bottom:0}.support-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.support-grid article{padding:22px;border:1px solid var(--line);border-radius:20px;background:rgba(20,18,54,.78)}.support-grid p{color:#c6bbd6}.test{display:grid;gap:8px;margin-top:14px}.test div{padding:11px 13px;border-radius:12px;color:#1a1230;background:#f9f2e4;font-size:.82rem;font-weight:800}.reject{display:grid;gap:8px}.reject article{display:grid;padding:14px 16px;border:1px solid var(--line);border-radius:14px;grid-template-columns:58px 1fr;gap:10px;background:rgba(17,15,46,.7)}.reject strong{color:var(--coral)}.reject p{margin:0;color:#c6bbd6;font-size:.82rem}.sources a{color:#d4b7ff}.composition-signal{margin-top:54px;padding-top:18px;border-top:1px solid var(--line);color:#9187a8;font-size:.72rem}@media(max-width:720px){.wrap{width:min(100% - 22px,960px);padding-top:18px}.hero{padding:24px 20px;border-radius:22px}.diagnosis,.option-body,.support-grid{grid-template-columns:1fr}.option>header{grid-template-columns:auto 1fr}.score{grid-column:2;justify-self:start}.flow{grid-template-columns:1fr}.option-body{padding:0 16px 16px}.option>header{padding:20px 16px}.option details{margin:0 16px 16px}th,td{padding:10px;font-size:.75rem}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Lá Lành · Content architecture ideation</p>
+    <h1>Đừng bắt người dùng học Tarot để hiểu câu trả lời.</h1>
+    <p class="lede">Vấn đề không còn là một vài câu “chưa hay”. Engine hiện kể cách nó đang diễn giải, nhưng chưa trả lời trực tiếp câu hỏi. Ba hướng dưới đây thay đổi hợp đồng đầu ra để một người chưa biết Tarot vẫn hiểu trong 10 giây.</p>
+    <div class="meta"><span>Date · 2026-09-29</span><span>Topic · tarot-reading-comprehension</span><span>Mode · repo-grounded</span><span>Focus · novice-first content</span></div>
+  </header>
+
+  <nav class="nav" aria-label="Mục lục"><a href="#grounding">Chẩn đoán</a><a href="#options">Ba option</a><a href="#comparison">So sánh</a><a href="#system">Hai phần bắt buộc</a><a href="#rejected">Đã loại</a></nav>
+
+  <section id="grounding">
+    <p class="eyebrow">Grounding context</p>
+    <h2>Hai screenshot, cùng một lỗi hệ thống</h2>
+    <div class="callout"><strong>Gate hiện tại kiểm “đúng cấu trúc”; người dùng cần “đúng ý”.</strong> Tarot mở bằng tên lá và ẩn dụ. Astrology chèn nhãn biên tập và thuật ngữ cơ chế. Cả hai đều có nhiều chữ, nhưng không có một câu buộc phải trả lời: “Điều này liên quan gì đến chuyện mình vừa hỏi?”</div>
+    <div class="diagnosis">
+      <article><span>01 · KHÔNG TRẢ LỜI</span><p>“Sợi Ràng vừa kéo…” mô tả hiệu ứng của lá, không nói kết luận hữu ích cho câu hỏi.</p></article>
+      <article><span>02 · NGƯỜI DÙNG PHẢI TỰ GHÉP</span><p>Mỗi lá có core, meaning, scene, reflection và action. Ba lá thành nhiều mini-essay, không thành một câu chuyện.</p></article>
+      <article><span>03 · NHÃN NỘI BỘ LỘ RA UI</span><p>“Một cách khác để thử”, “hai nhu cầu cùng lên tiếng” là logic của renderer, không phải ngôn ngữ người dùng.</p></article>
+      <article><span>04 · CƠ CHẾ ĐỨNG TRƯỚC Ý NGHĨA</span><p>Mặt Trăng, Sao Kim, góc chiếu và tên lá xuất hiện trước khi người dùng biết chuyện đời thường đang được nói tới.</p></article>
+      <article><span>05 · TYPOGRAPHY KHUẾCH ĐẠI LỖI</span><p>Headline quá lớn và đoạn ALL CAPS biến nội dung khó hiểu thành thứ áp đảo hơn, không rõ hơn.</p></article>
+      <article><span>06 · REVIEWER CHƯA ĐO COMPREHENSION</span><p>Gate bắt từ cấm, độ dài, scene/action và duplicate; chưa đo question coverage, novice recall hay semantic usefulness.</p></article>
+    </div>
+    <div class="flow" aria-label="Dòng đọc hiện tại và dòng đọc đề xuất"><div class="bad">Tên lá</div><div class="bad">Ẩn dụ</div><div class="bad">Nhiều block</div><div class="bad">Tự ghép nghĩa</div><div class="bad">Mới thấy action</div><div class="good">Trả lời</div><div class="good">Dấu hiệu đời thật</div><div class="good">Một việc thử</div><div class="good">Mở sâu nếu muốn</div><div class="good">Biểu tượng + nguồn</div></div>
+  </section>
+
+  <section id="options">
+    <p class="eyebrow">Ranked directions</p>
+    <h2>Ba option thực sự khác nhau</h2>
+    <div class="options">
+      <article class="option" id="idea-1">
+        <header><span class="rank">01</span><div><h3>Answer-first · Câu trả lời trước, Tarot sau</h3><p>Deterministic, ít rủi ro, sửa đúng pain hiện tại.</p></div><span class="score">Khuyên chọn ngay</span></header>
+        <div class="option-body">
+          <div class="plain"><h4>Hợp đồng đầu ra</h4><ul><li>Mở bằng 1–2 câu trả lời trực tiếp câu người dùng hỏi.</li><li>Cả trải bài chỉ có một “điểm chính” và một bước nhỏ.</li><li>Mỗi vị trí chỉ còn một câu; tên lá và biểu tượng nằm dưới “Vì sao bài gợi vậy?”.</li><li>Disclaimer có UI riêng, không chen vào đoạn chính.</li><li>Hero tối đa hai dòng; không có đoạn prose ALL CAPS.</li></ul><p class="trade"><strong>Trade-off:</strong> bớt thần bí; cần chấp nhận tên lá không còn là headline. Đây là phương án nhanh và an toàn nhất.</p></div>
+          <div class="demo"><h4>Ảnh hiện tại, viết lại</h4><p class="answer">Bạn đang muốn biết nên nói rõ hay chờ thêm. Bài nghiêng về nói rõ một phần nhỏ đã có dữ kiện, thay vì tiếp tục đoán phản ứng của người kia.</p><p class="sub"><strong>Điều đáng kiểm tra:</strong> bạn đang ở lại với sự im lặng vì còn muốn chờ, hay vì sợ câu trả lời?</p><p class="action"><strong>Thử một việc:</strong> hỏi một câu ngắn có thể trả lời thẳng, rồi nhìn vào phản hồi thật.</p></div>
+        </div>
+        <details><summary>Cơ sở và điều kiện thành công</summary><p><strong>Direct basis:</strong> engine hiện lấy lá đầu làm headline và summary; UI đặt headline/summary trước chính câu hỏi, rồi render mọi semantic block của từng lá. Các spread map đã có vị trí đời thường đủ rõ để tổng hợp. <strong>External basis:</strong> progressive disclosure khuyên đưa phần quan trọng nhất lên trước và giấu chi tiết chuyên sâu tới khi người dùng yêu cầu. <strong>Điều kiện:</strong> đầu ra phải đi qua question-coverage gate và không được kết luận ý định người khác.</p></details>
+      </article>
+
+      <article class="option" id="idea-2">
+        <header><span class="rank">02</span><div><h3>Evidence-first · Đã biết / Có thể / Cần kiểm tra</h3><p>Rõ ranh giới giữa sự việc và diễn giải; phù hợp nhất với trust & safety.</p></div><span class="score">An toàn nhất</span></header>
+        <div class="option-body">
+          <div class="plain"><h4>Hợp đồng đầu ra</h4><ul><li><strong>Đã biết:</strong> chỉ nhắc điều người dùng đã nhập hoặc có thể quan sát.</li><li><strong>Có thể:</strong> Tarot/astrology đưa một giả thuyết, không giả làm sự thật.</li><li><strong>Cần kiểm tra:</strong> một dấu hiệu hoặc câu hỏi giúp phân biệt.</li><li>Nếu có hai khả năng, cho đúng hai khả năng và một dấu hiệu phân biệt.</li><li>Tên lá và chart evidence là căn cứ phía sau.</li></ul><p class="trade"><strong>Trade-off:</strong> rất rõ nhưng dễ hơi “lâm sàng”; cần voice Gen Z ấm để không giống biên bản điều tra.</p></div>
+          <div class="demo"><h4>Cùng nội dung, cấu trúc lại</h4><p class="answer"><strong>Đã biết:</strong> có một chuyện hai người chưa nói thẳng.</p><p class="sub"><strong>Có thể:</strong> bạn đang xem sự im lặng như dấu hiệu họ không trân trọng mình—nhưng bài không xác nhận điều đó.</p><p class="action"><strong>Cần kiểm tra:</strong> hỏi rõ hai người muốn tiếp tục kết nối theo cách nào.</p></div>
+        </div>
+        <details><summary>Cơ sở và điều kiện thành công</summary><p><strong>Direct basis:</strong> spread 5 lá hiện đã có các primitive “dữ kiện / phần tự điền / bước kiểm chứng”, nhưng các spread khác chưa dùng chung ngữ pháp này. <strong>Reasoned basis:</strong> khi người dùng thấy rõ đâu là dữ kiện và đâu là giả thuyết, disclaimer không phải gánh việc “rút lại authority” của đoạn chính. <strong>Điều kiện:</strong> không gọi một scene do engine sinh ra là dữ kiện.</p></details>
+      </article>
+
+      <article class="option" id="idea-3">
+        <header><span class="rank">03</span><div><h3>Hybrid editor · Engine tính, agent biên tập, gate quyết định</h3><p>Chất lượng lời văn linh hoạt nhất, nhưng cần kiến trúc kiểm soát chặt.</p></div><span class="score">Dài hạn tốt nhất</span></header>
+        <div class="option-body">
+          <div class="plain"><h4>Hợp đồng đầu ra</h4><ul><li>Engine deterministic tạo facts: câu hỏi, intent, spread roles, meanings, giới hạn và action an toàn.</li><li>Editorial agent chỉ được viết lại các facts đó thành tiếng Việt đời thường theo JSON schema cố định.</li><li>Reviewer thứ hai kiểm bám câu hỏi, không thêm claim, dễ hiểu, khác biệt giữa các lá và sentence budget.</li><li>Fail bất kỳ gate nào thì trả về deterministic fallback của Option 01.</li><li>Không dùng lịch sử tự do, không chatbot, không log raw question ngoài mục đích session.</li></ul><p class="trade"><strong>Trade-off:</strong> chi phí, latency, tính không ổn định và công vận hành eval cao hơn. Không nên là bước đầu tiên khi contract nội dung chưa được sửa.</p></div>
+          <div class="demo"><h4>Output mục tiêu</h4><p class="answer">Bạn không thiếu thêm “dấu hiệu”; bạn thiếu một phản hồi đủ rõ để biết mình đang đứng ở đâu.</p><p class="sub">Ba lá cùng chỉ vào một chuyện: bạn đã nhận ra điểm mắc, nhưng vẫn đang dùng im lặng để tự điền câu trả lời của người kia.</p><p class="action"><strong>Bước nhỏ:</strong> nói một điều bạn muốn biết, không thử lòng và không hỏi vòng.</p></div>
+        </div>
+        <details><summary>Cơ sở và điều kiện thành công</summary><p><strong>Direct basis:</strong> repo đã có semantic atoms, provenance, question gate và offline reviewer; thiếu một composition contract và semantic evaluator. <strong>Reasoned basis:</strong> agent biên tập giải quyết độ tự nhiên, còn facts/gates giữ tính đúng và an toàn. <strong>Điều kiện:</strong> schema đóng, claim allowlist, no-new-facts check, deterministic fallback và eval set trước production.</p></details>
+      </article>
+    </div>
+  </section>
+
+  <section id="comparison">
+    <p class="eyebrow">Decision table</p>
+    <h2>Chọn theo mục tiêu</h2>
+    <table class="compare">
+      <thead><tr><th>Option</th><th>Người mới hiểu</th><th>Tự nhiên</th><th>An toàn</th><th>Effort</th><th>Phù hợp lúc này</th></tr></thead>
+      <tbody><tr><td>01 · Answer-first</td><td>Rất cao</td><td>Cao</td><td>Cao</td><td>Vừa</td><td><strong>Nên làm ngay</strong></td></tr><tr><td>02 · Evidence-first</td><td>Cao</td><td>Trung bình</td><td>Rất cao</td><td>Vừa</td><td>Dùng làm grammar nền</td></tr><tr><td>03 · Hybrid editor</td><td>Rất cao nếu eval tốt</td><td>Rất cao</td><td>Phụ thuộc gate</td><td>Cao</td><td>Giai đoạn 2</td></tr></tbody>
+    </table>
+    <div class="callout" style="margin-top:18px"><strong>Đề xuất:</strong> chọn <strong>Option 01 làm UI/output</strong>, mượn grammar “đã biết / có thể / cần kiểm tra” của <strong>Option 02</strong> ở tầng engine, rồi chỉ thêm <strong>Option 03</strong> sau khi bộ eval chứng minh deterministic version đã rõ. Đây không phải trộn ba giao diện; là một lộ trình nâng cấp.</div>
+  </section>
+
+  <section id="system">
+    <p class="eyebrow">Required regardless of option</p>
+    <h2>Hai phần bắt buộc để lỗi không quay lại</h2>
+    <div class="support-grid">
+      <article id="idea-4"><span class="chip">04 · SYNTHESIS</span><h3>Một câu hỏi → một bài đọc</h3><p>Ba hoặc năm lá phải tạo một synthesis chung. Chi tiết từng lá là “biên nhận” giải thích vì sao có kết luận, không phải nhiều bài văn để người dùng tự ghép.</p><div class="test"><div>Hero: tối đa 35 từ</div><div>Toàn bài: đúng 1 action chính</div><div>Mỗi lá: tối đa 1 câu ở lớp đầu</div></div></article>
+      <article id="idea-5"><span class="chip">05 · RELEASE GATE</span><h3>Comprehension Gate</h3><p>Review agent cần kiểm semantics, không chỉ marker. Một release chỉ pass nếu người mới có thể hiểu mà không cần biết Tarot hay astrology.</p><div class="test"><div>“Bài đang trả lời câu hỏi nào?”</div><div>“Đâu là diễn giải, không phải sự thật?”</div><div>“Việc duy nhất có thể thử là gì?”</div><div>“Câu này có thể dùng cho 20 câu hỏi khác không?”</div></div></article>
+    </div>
+  </section>
+
+  <section id="rejected">
+    <p class="eyebrow">Rejection summary</p>
+    <h2>Những cách nghe hợp lý nhưng không chữa đúng bệnh</h2>
+    <div class="reject"><article><strong>R1</strong><p>Thêm glossary/tooltips: giúp hiểu thuật ngữ nhưng headline vẫn không trả lời câu hỏi.</p></article><article><strong>R2</strong><p>Viết thêm nhiều biến thể “hay hơn”: tiếp tục vá copy trên cùng một contract sai.</p></article><article><strong>R3</strong><p>Chatbot Tarot tự do: tăng drift, privacy và risk; người dùng đã không cần chatbot.</p></article><article><strong>R4</strong><p>Hỏi thêm background: tăng friction và dữ liệu nhạy cảm, chưa chắc sửa được composition.</p></article><article><strong>R5</strong><p>Trộn Tarot + astrology mặc định: hai loại bằng chứng va vào nhau và tạo authority giả.</p></article><article><strong>R6</strong><p>Chỉ thu nhỏ font: giảm độ áp đảo nhưng nội dung vô nghĩa vẫn vô nghĩa.</p></article></div>
+  </section>
+
+  <section class="sources">
+    <p class="eyebrow">Sources & references</p>
+    <h2>Cơ sở đã đối chiếu</h2>
+    <p><a href="https://www.nngroup.com/articles/progressive-disclosure/">Nielsen Norman Group · Progressive Disclosure</a> — đưa phần quan trọng nhất lên trước, chi tiết chuyên sâu sau yêu cầu; <a href="https://www.nngroup.com/articles/vanguard-mobile-app/">Prioritizing User Needs</a> — phục vụ top task ngay khi mở và dùng hierarchy/chunking cho người mới; <a href="https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/">GOV.UK writing standards</a> — content rõ và hữu ích bắt đầu từ user need.</p>
+    <p>Repo grounding: <code>apps/api/app/domains/tarot/engine.py</code>, <code>apps/api/app/domains/tarot/knowledge.py</code>, <code>apps/api/app/domains/readings/knowledge.py</code>, <code>apps/api/app/domains/readings/review_agent.py</code>, <code>apps/web/src/features/tarot/TarotPage.tsx</code>.</p>
+  </section>
+
+  <footer class="composition-signal">Composed 2026-09-29T00:00+07:00 by ce-ideate from the current Lá Lành repository, the two user-supplied screenshots, four parallel ideation frames, and cited UX/content-design references.</footer>
+</main>
+</body>
+</html>

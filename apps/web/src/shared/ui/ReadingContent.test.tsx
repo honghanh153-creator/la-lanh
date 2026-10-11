@@ -29,6 +29,11 @@ const content = {
 } satisfies ReadingContentModel;
 
 describe("ReadingContent", () => {
+  it("labels natal evidence as natal rather than a claim about today", () => {
+    render(<ReadingContent content={{ ...content, purpose: "reading_detail" }} />);
+    expect(screen.getByText("Bản đọc này dựa vào đâu?")).toBeVisible();
+    expect(screen.queryByText("Vì sao hôm nay?")).not.toBeInTheDocument();
+  });
   it("hides current activation for a natal-only reading", () => {
     render(<ReadingContent content={content} />);
     expect(screen.queryByRole("heading", { name: "Vì sao hôm nay thấy rõ hơn?" })).not.toBeInTheDocument();

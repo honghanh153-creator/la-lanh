@@ -19,6 +19,7 @@ from app.domains.birth.models import (
     BirthReveal,
     BirthSnapshotRecord,
     BirthSupplement,
+    BirthSupplementEdit,
     BirthSupplementResult,
     BirthSupplementState,
     BirthTimeMode,
@@ -64,7 +65,8 @@ class BirthChartService:
         input_hash = self._hasher.digest("birth-input", canonical_input)
         replay = await self._repository.find_by_input_hash(guest_id, input_hash)
         if replay is not None:
-            return self._reveal(replay, resumed=True)
+            stored, resumed = await self._repository.save_or_replay(replay)
+            return self._reveal(stored, resumed=resumed)
         result = await self._run_compute(self._engine.calculate_date_only_sun, birth_date)
         encrypted_date = self._envelope.encrypt(
             birth_date.isoformat().encode(),
@@ -100,6 +102,7 @@ class BirthChartService:
             result=stored.result,
             created_at=stored.created_at,
             resumed=True,
+            profile_revision=stored.profile_revision,
         )
 
     def search_places(self, query: str) -> tuple[PlaceResult, ...]:
@@ -206,6 +209,8 @@ class BirthChartService:
                 birth_place_ciphertext=encrypted_place,
                 consent_version=consent_version,
             ),
+            expected_snapshot_id=stored.id,
+            expected_updated_at=stored.profile_revision,
         )
         if saved is not None:
             snapshot_id = saved.id
@@ -247,6 +252,7 @@ class BirthChartService:
             result=stored.result,
             created_at=stored.created_at,
             resumed=resumed,
+            profile_revision=stored.profile_revision,
         )
 
     async def supplement_state(self, guest_id: UUID) -> BirthSupplementState:
@@ -281,6 +287,32 @@ class BirthChartService:
             place_display_name=place_display_name,
             timezone_id=timezone_id,
         )
+
+    async def supplement_edit(self, guest_id: UUID) -> BirthSupplementEdit:
+        """Private edit form only; general state/projections never contain raw time."""
+        stored = await self._repository.find_supplement(guest_id)
+        if stored is None:
+            raise BirthProfileNotFound
+        mode = BirthTimeMode.UNKNOWN
+        local_time = None
+        window = None
+        place = None
+        if stored.birth_time_ciphertext:
+            raw = self._envelope.decrypt(
+                stored.birth_time_ciphertext, context=f"birth-time:{guest_id}".encode()
+            ).decode()
+            mode_value, value = raw.split(":", maxsplit=1)
+            mode = BirthTimeMode(mode_value)
+            if mode is BirthTimeMode.EXACT:
+                local_time = value
+            elif mode is BirthTimeMode.APPROX_WINDOW:
+                window = ApproxWindow(value)
+        if stored.birth_place_ciphertext:
+            raw = self._envelope.decrypt(
+                stored.birth_place_ciphertext, context=f"birth-place:{guest_id}".encode()
+            ).decode()
+            place = self._places.get(raw.split("|", maxsplit=1)[0])
+        return BirthSupplementEdit(mode, local_time, window, place)
 
     async def chart_for_config(
         self,

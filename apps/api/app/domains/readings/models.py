@@ -756,10 +756,13 @@ def experiment_projection_for(
     )
 
 
-def canonical_reading_plan_key(plan: ReadingPlan) -> str:
-    """Identity for the factual plan only; renderer/provider metadata is excluded."""
+def canonical_reading_plan_key(plan: ReadingPlan, *, chart_snapshot_id: UUID | None = None) -> str:
+    """Immutable plan identity, optionally bound to its persisted chart source."""
 
-    return sha256(plan.model_dump_json(exclude_none=False).encode()).hexdigest()
+    factual_key = sha256(plan.model_dump_json(exclude_none=False).encode()).hexdigest()
+    if chart_snapshot_id is None:
+        return factual_key
+    return sha256(f"reading-source-v1\x1f{chart_snapshot_id}\x1f{factual_key}".encode()).hexdigest()
 
 
 def canonical_reading_revision_key(
@@ -841,13 +844,18 @@ class ReadingPlanRecord(BaseModel):
     guest_id: UUID
     profile_id: UUID
     chart_snapshot_id: UUID | None = None
+    source_revision: datetime | None = Field(default=None, exclude=True)
     plan_key: str = Field(min_length=64, max_length=64)
     plan: ReadingPlan
     created_at: datetime
 
     @model_validator(mode="after")
     def validate_identity(self) -> "ReadingPlanRecord":
-        if self.plan_key != canonical_reading_plan_key(self.plan):
+        # Historical rows use the factual-only identity and remain readable.
+        if self.plan_key not in {
+            canonical_reading_plan_key(self.plan),
+            canonical_reading_plan_key(self.plan, chart_snapshot_id=self.chart_snapshot_id),
+        }:
             raise ValueError("plan_key does not match the canonical plan payload")
         _validate_aware(self.created_at, "created_at")
         return self

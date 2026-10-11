@@ -38,4 +38,12 @@ describe("ConsentPage privacy details", () => {
     expect(screen.getByText(/máy chủ Hetzner tại Đức/i)).toBeInTheDocument();
     expect(screen.getByText(/Supabase tại Frankfurt, Đức/i)).toBeInTheDocument();
   });
+
+  it("discloses provider profile processing, actual Radar storage and unverified backup erasure", () => {
+    renderPrivacyPage();
+    expect(screen.getByText(/Google và Supabase xử lý mã định danh, email/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nhóm quan hệ và giọng đọc là các trường vận hành không mã hoá riêng/i)).toBeInTheDocument();
+    expect(screen.getByText(/chưa xác minh đầy đủ thời hạn xoá trong backup/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "honghanh153@gmail.com" })).toHaveAttribute("href", "mailto:honghanh153@gmail.com");
+  });
 });

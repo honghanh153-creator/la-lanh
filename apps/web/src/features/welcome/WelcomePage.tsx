@@ -1,12 +1,14 @@
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight, Pause, Play } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { createGuest } from "../../shared/api/client";
-import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
-import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
+import { acceptBasicBirthConsent, enableHistoryRetention, createGuest, getSession, isGuestSessionUnavailable } from "../../shared/api/client";
+import { BrandMark } from "../../shared/ui/BrandMark";
+import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
+import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
+import "./welcome-intro.css";
 
 function idempotencyKey(): string {
   const existing = sessionStorage.getItem("la-lanh-guest-create-key");
@@ -20,13 +22,24 @@ export function WelcomePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const routeState = location.state as { expired?: boolean; offline?: boolean } | null;
+  const motion = useOnboardingMotion();
+  const routeState = location.state as { expired?: boolean; offline?: boolean; sessionChanged?: boolean } | null;
   const restart = new URLSearchParams(location.search).get("restart") === "1";
   const [pending, setPending] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const activeOperation = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    activeOperation.current?.abort();
+    activeOperation.current = null;
+  }, []);
 
   const begin = async () => {
-    if (pending) return;
+    if (activeOperation.current) return;
+    const operation = new AbortController();
+    activeOperation.current = operation;
+    const isCurrent = () => activeOperation.current === operation && !operation.signal.aborted;
     setPending(true);
     setError(null);
     const key = idempotencyKey();
@@ -35,43 +48,96 @@ export function WelcomePage() {
     const radarPending = restart ? null : sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY);
     const radarOwnerStart = !restart && sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
     try {
-      await clearPersonalDataOnDevice();
+      {
+        try {
+          await getSession(operation.signal);
+          if (!isCurrent()) return;
+          await acceptBasicBirthConsent();
+          if (!isCurrent()) return;
+          await enableHistoryRetention();
+          if (!isCurrent()) return;
+          sessionStorage.removeItem(SESSION_RESTART_REQUIRED_KEY);
+          void navigate("/", { replace: true });
+          return;
+        } catch (failure) {
+          if (!isCurrent()) return;
+          if (!isGuestSessionUnavailable(failure)) throw failure;
+        }
+      }
+      // The successful creation adopts a new epoch and clears old local caches.
+      // Do not discard them before an offline request has succeeded.
+      setCreating(true);
+      await createGuest(key, operation.signal);
+      if (!isCurrent()) return;
+      queryClient.clear();
+      if (restart) {
+        sessionStorage.removeItem(RADAR_PENDING_REQUEST_KEY);
+        sessionStorage.removeItem("la-lanh-radar-owner-start");
+      }
       if (radarPending) sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, radarPending);
       if (radarOwnerStart) sessionStorage.setItem("la-lanh-radar-owner-start", "1");
-      sessionStorage.setItem("la-lanh-guest-create-key", key);
-      queryClient.clear();
-      await createGuest(key);
       sessionStorage.removeItem("la-lanh-guest-create-key");
       void navigate("/birth", { replace: true });
     } catch {
+      if (!isCurrent()) return;
+      sessionStorage.setItem("la-lanh-guest-create-key", key);
       setError("Chưa bật được tín hiệu. Kiểm tra kết nối rồi thử lại nhé.");
     } finally {
-      setPending(false);
+      if (isCurrent()) {
+        activeOperation.current = null;
+        setPending(false);
+        setCreating(false);
+      }
     }
   };
 
-  const actions = (
-    <>
-      <button className="signal-station__button" disabled={pending} onClick={() => void begin()} type="button">
-        <span>{pending ? "Đang bắt tín hiệu…" : "Đồng ý & bắt đầu"}</span>
-        <ArrowRight aria-hidden="true" size={21} weight="bold" />
-      </button>
-      <Link className="signal-station__secondary" to="/demo">Xem bản mẫu</Link>
-      <p className="signal-station__privacy">Ngày sinh chỉ dùng để tính Lá đầu tiên · <Link to="/privacy">Quyền riêng tư</Link></p>
-    </>
-  );
-
   return (
-    <SignalStationFrame act={0} actions={actions} loading={pending} titleId="welcome-title">
-      <h1 id="welcome-title">Có một tín hiệu đã đi cùng bạn từ ngày bạn xuất hiện.</h1>
-      <p className="signal-station__lead">Chỉ cần ngày sinh. Chưa cần tài khoản.</p>
+    <main className="welcome-intro" aria-labelledby="welcome-title" aria-busy={pending || undefined} data-motion-paused={motion.paused}>
+      <header className="welcome-intro__header">
+        <BrandMark />
+        <button
+          type="button"
+          className="welcome-intro__motion"
+          aria-label={motion.paused ? "Tiếp tục chuyển động" : "Tạm dừng chuyển động"}
+          onClick={motion.toggle}
+        >
+          {motion.paused ? <Play size={22} weight="fill" aria-hidden="true" /> : <Pause size={22} weight="fill" aria-hidden="true" />}
+        </button>
+      </header>
+      <div className="welcome-intro__hero" aria-hidden="true">
+        <img className="welcome-intro__moon" src="/assets/welcome/moon.webp" alt="" width="640" height="640" fetchPriority="high" />
+        <img className="welcome-intro__orbit welcome-intro__orbit--back" src="/assets/welcome/orbit.webp" alt="" width="900" height="600" />
+        <img className="welcome-intro__card" src="/assets/welcome/card.webp" alt="" width="640" height="960" fetchPriority="high" />
+        <img className="welcome-intro__orbit welcome-intro__orbit--front" src="/assets/welcome/orbit.webp" alt="" width="900" height="600" />
+      </div>
+      <section className="welcome-intro__copy" aria-labelledby="welcome-title">
+        <h1 id="welcome-title"><span>Hiểu mình hơn.</span>{" "}<span>Bớt đoán mò.</span></h1>
+        <p>Đọc lá số để hiểu mình, rút Tarot cho chuyện đang vướng, hoặc xem mình và người ấy hợp nhau ở đâu.</p>
+      </section>
       {routeState?.expired ? (
-        <p className="signal-station__notice" role="status">Phiên trước đã hết hạn. Dữ liệu cũ không còn được hiển thị; bạn có thể bắt đầu một Lá mới.</p>
+        <p className="welcome-intro__notice" role="status">Phiên trên máy này đã hết hạn. Nếu đã liên kết tài khoản, đăng nhập lại để mở hồ sơ; chưa cần nhập lại ngày sinh.</p>
+      ) : null}
+      {routeState?.sessionChanged ? (
+        <p className="welcome-intro__notice" role="status">Phiên trên trình duyệt này đã đổi. Lá đã ẩn nội dung cũ. Bấm bắt đầu để tiếp tục hồ sơ hiện có trên máy này; nếu dùng chung máy, hãy dùng cửa sổ riêng.</p>
       ) : null}
       {routeState?.offline ? (
-        <p className="signal-station__notice" role="status">Bạn đang offline. Bản mẫu vẫn xem được mà không cần tạo phiên khách.</p>
+        <p className="welcome-intro__notice" role="status">Bạn đang offline. Hồ sơ trên máy này vẫn được giữ. Có mạng rồi thử lại nhé.</p>
       ) : null}
-      {error ? <p className="signal-station__error" role="alert">{error}</p> : null}
-    </SignalStationFrame>
+      {error ? <p className="welcome-intro__notice welcome-intro__notice--error" role="alert">{error}</p> : null}
+      <footer className="welcome-intro__actions">
+        <button className="welcome-intro__primary" disabled={pending} onClick={() => void begin()} type="button">
+          <span>{pending ? "Đang bắt đầu…" : "Đồng ý & bắt đầu"}</span>
+          <ArrowRight aria-hidden="true" size={24} weight="bold" />
+        </button>
+        <Link className="welcome-intro__secondary" to="/existing-user?returnTo=/home"
+          aria-disabled={creating || undefined} tabIndex={creating ? -1 : undefined}
+          onClick={(event) => { if (creating) event.preventDefault(); }}>Đăng nhập</Link>
+        <div className="welcome-intro__privacy">
+          <p>Chỉ cần ngày sinh · Chưa cần tài khoản</p>
+          <p>Khách: 30 ngày không hoạt động. Lịch sử tự động tối đa 30 ngày; note đã lưu giữ cùng hồ sơ.</p>
+          <p>Dữ liệu riêng tư · <Link to="/privacy">Xem chi tiết</Link></p>
+        </div>
+      </footer>
+    </main>
   );
 }

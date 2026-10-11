@@ -3,6 +3,11 @@ class GuestDomainError(Exception):
     status_code = 400
 
 
+class AccountErasurePending(GuestDomainError):
+    code = "ACCOUNT_ERASURE_PENDING"
+    status_code = 503
+
+
 class ConsentVersionInvalid(GuestDomainError):
     code = "CONSENT_VERSION_INVALID"
     status_code = 422
@@ -11,6 +16,11 @@ class ConsentVersionInvalid(GuestDomainError):
 class ConsentPurposeInvalid(GuestDomainError):
     code = "CONSENT_PURPOSE_INVALID"
     status_code = 422
+
+
+class BirthConsentRequired(GuestDomainError):
+    code = "BIRTH_CONSENT_REQUIRED"
+    status_code = 403
 
 
 class IdempotencyKeyInvalid(GuestDomainError):

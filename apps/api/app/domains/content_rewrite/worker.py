@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
 
 from app.domains.content_rewrite.models import (
@@ -45,6 +45,7 @@ class ContentRewriteWorker:
         retry_delay_seconds: int = 60,
         daily_token_budget: int | None = None,
         daily_cost_budget_cents: int | None = None,
+        monthly_cost_budget_cents: int | None = None,
         pricing: GenerationPricing = GPT_6_LUNA_STANDARD_2026_10_04,
         rollout: SurfaceRolloutPolicy | None = None,
         clock: Callable[[], datetime] | None = None,
@@ -57,6 +58,7 @@ class ContentRewriteWorker:
         self._retry_delay_seconds = retry_delay_seconds
         self._daily_token_budget = daily_token_budget
         self._daily_cost_budget_cents = daily_cost_budget_cents
+        self._monthly_cost_budget_cents = monthly_cost_budget_cents
         self._pricing = pricing
         self._rollout = rollout or SurfaceRolloutPolicy.full_for_all()
         self._clock = clock or (lambda: datetime.now(UTC))
@@ -86,7 +88,8 @@ class ContentRewriteWorker:
                 updated_at=self._clock(),
             )
             return True
-        if not await self._reserve_budget(lease):
+        reserved_at = self._clock().astimezone(UTC)
+        if not await self._reserve_budget(lease, reserved_at):
             await self._repository.fail(
                 job_id=lease.id,
                 lease_token=lease.lease_token,
@@ -95,37 +98,82 @@ class ContentRewriteWorker:
                 updated_at=self._clock(),
             )
             return True
-        marked = await self._repository.mark_request_started(
-            job_id=lease.id,
-            lease_token=lease.lease_token,
-            deletion_epoch=lease.deletion_epoch,
-            started_at=self._clock(),
-        )
-        if not marked:
-            return True
+        await self._execute(lease, reserved_at.date())
+        return True
+
+    async def _execute(self, lease: LeasedRewriteJob, reserved_day: date) -> None:
+        if self._clock().astimezone(UTC).date() != reserved_day:
+            await self._fail(lease, RewriteJobResult.BUDGET_BLOCKED)
+            return
+        remaining = (lease.lease_expires_at - self._clock()).total_seconds()
+        if remaining <= 0:
+            await self._fail(lease, RewriteJobResult.AMBIGUOUS)
+            return
+        async with self._repository.execution_guard(lease) as authorized:
+            if not authorized:
+                await self._fail(lease, RewriteJobResult.AUTHORIZATION_REVOKED)
+                return
+            marked = await self._repository.mark_request_started(
+                job_id=lease.id,
+                lease_token=lease.lease_token,
+                deletion_epoch=lease.deletion_epoch,
+                started_at=self._clock(),
+            )
+            if not marked:
+                return
 
         try:
-            result = await self._provider.generate_rewrite(lease.request)
+            await self._send_and_publish(lease, reserved_day)
+        except Exception:
+            # Provider I/O has ended; a failed publication must not prolong erasure.
+            await self._repository.finish_send(job_id=lease.id, lease_token=lease.lease_token)
+            raise
+        else:
+            await self._repository.finish_send(job_id=lease.id, lease_token=lease.lease_token)
+        # Cancellation/process loss bypasses both branches; the durable fence expires boundedly.
+
+    async def _send_and_publish(self, lease: LeasedRewriteJob, reserved_day: date) -> None:
+
+        # Acquiring locks or writing the send marker can cross UTC midnight.
+        # Do not send against yesterday's debit. Keep that debit and never retry.
+        if self._clock().astimezone(UTC).date() != reserved_day:
+            await self._fail(lease, RewriteJobResult.BUDGET_BLOCKED)
+            return
+
+        try:
+            # No owner or projector transaction is held while awaiting the provider.
+            remaining = (lease.lease_expires_at - self._clock()).total_seconds()
+            if remaining <= 0:
+                await self._fail(lease, RewriteJobResult.AMBIGUOUS)
+                return
+            timeout = min(60.0, remaining)
+            async with asyncio.timeout(timeout):
+                result = await self._provider.generate_rewrite(lease.request)
         except Exception as error:
             logger.error("rewrite provider failed after send marker: %s", type(error).__name__)
             await self._fail(lease, RewriteJobResult.AMBIGUOUS)
-            return True
+            return
 
-        completed_at = self._clock()
-        if isinstance(result, RewriteGenerationSuccess):
-            await self._accept(lease, result, completed_at)
-        elif isinstance(result, GenerationTransient):
-            await self._handle_transient(lease, result, completed_at)
-        else:
-            await self._fail(lease, _terminal_result(result), completed_at)
-        return True
+        async with self._repository.execution_guard(lease) as authorized:
+            completed_at = self._clock()
+            if not authorized:
+                await self._fail(lease, RewriteJobResult.AUTHORIZATION_REVOKED, completed_at)
+            elif isinstance(result, RewriteGenerationSuccess):
+                await self._accept(lease, result, completed_at)
+            elif isinstance(result, GenerationTransient):
+                await self._handle_transient(lease, result, completed_at)
+            else:
+                await self._fail(lease, _terminal_result(result), completed_at)
 
-    async def _reserve_budget(self, lease: LeasedRewriteJob) -> bool:
-        if self._daily_token_budget is None and self._daily_cost_budget_cents is None:
+    async def _reserve_budget(self, lease: LeasedRewriteJob, now: datetime) -> bool:
+        if (
+            self._daily_token_budget is None
+            and self._daily_cost_budget_cents is None
+            and self._monthly_cost_budget_cents is None
+        ):
             return True
         if self._daily_token_budget is None or self._daily_cost_budget_cents is None:
             return False
-        now = self._clock()
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         contract = surface_output_contract(lease.request.key.surface)
         input_reserve = (
@@ -156,6 +204,11 @@ class ContentRewriteWorker:
             daily_cost_limit_nanos=cents_to_nanos(self._daily_cost_budget_cents),
             pricing_version=self._pricing.version,
             updated_at=now,
+            monthly_cost_limit_nanos=(
+                cents_to_nanos(self._monthly_cost_budget_cents)
+                if self._monthly_cost_budget_cents is not None
+                else None
+            ),
         )
 
     async def _accept(
@@ -164,6 +217,12 @@ class ContentRewriteWorker:
         result: RewriteGenerationSuccess,
         completed_at: datetime,
     ) -> None:
+        if self._clock() >= lease.lease_expires_at:
+            await self._fail(lease, RewriteJobResult.AMBIGUOUS, self._clock())
+            return
+        if not await self._authorization.is_authorized(lease.request):
+            await self._fail(lease, RewriteJobResult.AUTHORIZATION_REVOKED, completed_at)
+            return
         if result.key != lease.request.key:
             await self._fail(
                 lease,
@@ -196,15 +255,18 @@ class ContentRewriteWorker:
             sort_keys=True,
             separators=(",", ":"),
         )
-        await self._repository.succeed(
+        finalized = await self._repository.succeed(
             lease=lease,
             gate_receipt_id=decision.gate_receipt_id,
             output_fingerprint=sha256(canonical.encode()).hexdigest(),
             input_tokens=result.input_tokens,
             output_tokens=result.output_tokens,
             cost_nanos=self._exact_cost(result.input_tokens, result.output_tokens),
-            completed_at=completed_at,
+            completed_at=self._clock(),
         )
+        if not finalized:
+            # Roll back all borrowed projector writes instead of exposing an unowned result.
+            raise RuntimeError("rewrite lease was lost before atomic publication")
 
     async def _handle_transient(
         self,
@@ -311,7 +373,9 @@ async def _run_standalone() -> None:
             decode_key(settings.guest_encryption_key.get_secret_value(), expected_bytes=32)
         )
     )
-    authorization = DatabaseRewriteAuthorization(database.sessions)
+    authorization = DatabaseRewriteAuthorization(
+        database.sessions, pilot_user_limit=settings.generation_pilot_user_limit
+    )
     reading_projector = ReadingRewriteProjector(
         PostgresReadingRepository(database.sessions, envelope)
     )
@@ -334,6 +398,7 @@ async def _run_standalone() -> None:
         retry_delay_seconds=settings.generation_retry_delay_seconds,
         daily_token_budget=settings.generation_daily_token_budget,
         daily_cost_budget_cents=settings.generation_daily_budget_cents,
+        monthly_cost_budget_cents=settings.generation_monthly_budget_cents,
         rollout=SurfaceRolloutPolicy.from_settings(settings.generation_surface_rollout),
     )
     try:

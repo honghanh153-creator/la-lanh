@@ -12,6 +12,7 @@ from pydantic import JsonValue
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.db.rewrite_scope import rewrite_session
 from app.domains.content_rewrite.authorization import (
     RewriteConsentScope,
     content_rewrite_receipt_id,
@@ -448,7 +449,7 @@ class RadarRewriteProjector(RewriteProjector):
         except ValueError:
             return RewriteProjectionDecision(accepted=False, failure_code="invalid_owner")
 
-        async with self._sessions() as database, database.begin():
+        async with rewrite_session(self._sessions, transaction=True) as database:
             row = await database.scalar(
                 select(RadarRequestRow).where(RadarRequestRow.id == request_id).with_for_update()
             )

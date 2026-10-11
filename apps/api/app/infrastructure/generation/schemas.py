@@ -64,9 +64,27 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "current-transit meanings distinct."
     ),
     RewriteSurface.TAROT: (
+        "Use meaning_brief.topic, goals and local_summary as the interpretation, not "
+        "a request to invent one. A goal code was classified locally; never infer another "
+        "life event, identity or motive. If the only goal is general, stay at that level. "
+        "Only explain cross-card links listed in meaning_brief.links. No invented pair "
+        "for a one-card draw. A position about feelings or needs is not an action plan. "
+        "Write as a friend explaining the cards, not a definition, slogan or therapy worksheet. "
+        "Good style for the supplied relationship meanings only: "
+        "'Nói điều khiến bạn buồn. Đừng chờ họ tự hiểu.' "
+        "Bad: 'Sợi Ràng kéo kết nối ra khỏi vùng mờ.' "
+        "Bad: 'Khả năng dẫn dắt và chịu trách nhiệm khi xử lý cảm xúc.' "
+        "Never say what another person definitely thinks, feels or will do. "
+        "Do not copy these examples if they do not match the supplied interpretation. "
         "Write exactly one position_reading for each supplied position_key, in the same order. "
         "Each reading must name its supplied card_title and explain what that card means in that "
-        "specific position. Use synthesis to answer the fixed focus_sentence without predicting."
+        "specific position. Use synthesis to answer the fixed focus_sentence without predicting. "
+        "Synthesis must include every supplied card_title once, not only the first card. "
+        "Write a short overview before the detailed positions. Use direct ordinary Vietnamese. "
+        "Explain a card as something the reader can notice or say, not as a chain of abstract "
+        "nouns. Do not repeat the explanation in the example or invent a fact about the user "
+        "or anyone else. Keep disclaimers out of these editable fields; the app shows one "
+        "separate notice. Keep the headline under 18 Vietnamese words and synthesis under 180."
     ),
     RewriteSurface.RADAR: (
         "Map overview from source overview, strengths from source strength, frictions from source "

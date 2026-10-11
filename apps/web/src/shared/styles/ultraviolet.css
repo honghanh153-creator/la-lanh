@@ -436,6 +436,26 @@
 :root .ultraviolet-app :is(.tarot-scene, .tarot-action) { padding: 0.75rem 0; border-radius: 0; border-top: 1px solid var(--uv-line); background: transparent; }
 :root .ultraviolet-app .tarot-closing { color: var(--uv-muted); background: transparent; border: 0; }
 
+/* Report first; card details stay available without a wall of oversized headings. */
+:root .ultraviolet-app .tarot-report h1 { margin: 0.5rem 0 1rem; font-size: 1.5rem; line-height: 1.3; letter-spacing: -0.02em; }
+:root .ultraviolet-app .tarot-report h2 { margin: 0 0 0.75rem; font-size: 1.125rem; line-height: 1.5; color: var(--uv-text); }
+:root .ultraviolet-app .tarot-report > p:not(.tarot-kicker) { color: var(--uv-text); font-size: 1rem; line-height: 1.7; }
+:root .ultraviolet-app .tarot-chapters-title { margin: 0.5rem 0 0; font-size: 1rem; font-weight: 600; color: var(--uv-muted); }
+:root .ultraviolet-app .tarot-reading:has(.tarot-chapter) { gap: 0.75rem; }
+:root .ultraviolet-app .tarot-chapter { border-radius: 1.25rem; }
+:root .ultraviolet-app .tarot-chapter-heading { display: flex; min-height: 5rem; padding: 1rem; gap: 0.75rem; align-items: center; cursor: pointer; list-style: none; }
+:root .ultraviolet-app .tarot-chapter-heading::-webkit-details-marker { display: none; }
+:root .ultraviolet-app .tarot-chapter-heading:focus-visible { outline: 3px solid var(--uv-accent); outline-offset: -4px; border-radius: 1.25rem; }
+:root .ultraviolet-app .tarot-chapter-number { display: grid; width: 2rem; height: 2rem; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--uv-violet); color: var(--uv-cream); font-size: 0.75rem; }
+:root .ultraviolet-app .tarot-chapter-labels { display: grid; gap: 0.25rem; min-width: 0; }
+:root .ultraviolet-app .tarot-chapter-labels strong { font-size: 1rem; color: var(--uv-text); }
+:root .ultraviolet-app .tarot-chapter-labels :is(span, small) { color: var(--uv-muted); font-size: 0.8125rem; line-height: 1.5; }
+:root .ultraviolet-app .tarot-chapter-chevron { margin-left: auto; color: var(--uv-accent); font-size: 1.5rem; }
+:root .ultraviolet-app .tarot-chapter[open] .tarot-chapter-chevron { transform: rotate(180deg); }
+:root .ultraviolet-app .tarot-chapter .tarot-reading-copy { padding-top: 0; font-size: 1rem; }
+:root .ultraviolet-app .tarot-chapter .tarot-reading-copy :is(p, blockquote) { font-size: 1rem; line-height: 1.7; }
+:root .ultraviolet-app .tarot-chapter .tarot-reading-copy strong { font-size: 0.875rem; }
+
 /* Radar: concise introduction, unboxed report chapters and readable scores. */
 :root .ultraviolet-app .matching-signal { color: var(--uv-accent); letter-spacing: 0; text-transform: none; }
 :root .ultraviolet-app .radar-flow-steps { margin: 1rem 0; }

@@ -9,6 +9,7 @@ import {
   replaceCachedReadingProjection,
   writeCachedDailyNote,
 } from "../storage/noteCache";
+import { chartDataRevision } from "../storage/clearChartDerivedData";
 
 type ActivationTarget = {
   scopeKey: string;
@@ -31,10 +32,13 @@ export function useReadingUpdateActivation({
       activateReadingProjection(scopeKey, revisionId)
     ),
     onMutate: async () => {
+      const revision = chartDataRevision(queryClient);
       // Stop an older GET from restoring the pre-activation projection.
       await queryClient.cancelQueries({ queryKey: ["daily-note"], exact: true });
+      return { revision };
     },
-    onSuccess: (projection, target) => {
+    onSuccess: (projection, target, context) => {
+      if (context.revision !== chartDataRevision(queryClient)) return;
       if (projection.scope_key !== target.scopeKey) {
         onError(new Error("Activation scope changed"));
         return;
@@ -49,7 +53,8 @@ export function useReadingUpdateActivation({
       });
       onSuccess();
     },
-    onError: async (error) => {
+    onError: async (error, _target, context) => {
+      if (!context || context.revision !== chartDataRevision(queryClient)) return;
       if (error instanceof ApiProblem && error.status === 409) {
         await queryClient.invalidateQueries({
           queryKey: ["daily-note"],

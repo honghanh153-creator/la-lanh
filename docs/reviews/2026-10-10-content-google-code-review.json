@@ -1,0 +1,431 @@
+{
+  "status": "complete",
+  "verdict": "Not ready",
+  "scope": {
+    "base": "99a3079a383a4cb529c1331a596bc47f75b5f07f",
+    "branch": "feat/luna-content-rewrite-runtime",
+    "head_sha": "99a3079a383a4cb529c1331a596bc47f75b5f07f",
+    "pr_url": null,
+    "files_changed": 257,
+    "mode": "standalone",
+    "reviewed_tree": "HEAD plus tracked and untracked WIP, including post-review inline fixes"
+  },
+  "intent": "Complete ordinary Vietnamese Astro/Tarot content and optional server-PKCE Google IAM; welcome has two entry actions and resumes a valid browser profile. Review the consolidated tracked/untracked release bundle without paid calls, deployment, commit, push or project edits; preserve the USD 1/month application ceiling.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "security",
+    "adversarial",
+    "testing",
+    "project-standards",
+    "maintainability",
+    "reliability",
+    "api-contract",
+    "data-migration",
+    "julik-frontend-races",
+    "performance"
+  ],
+  "findings": [
+    {
+      "#": 7,
+      "autofix_class": "manual",
+      "confidence": 75,
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/guest/postgres.py:110 --             owned = await owned_credential(session, token_hash, now)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/accounts/postgres.py:75 --     guest = await lock_owner(session, guest_id)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/accounts/postgres.py:43 --             .with_for_update()",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/authorization.py:152 --                 select(GuestSessionRow).where(GuestSessionRow.id == subject_id).with_for_update()",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/postgres.py:80-81 --         async with self._sessions() as session, session.begin(): /             authority = await lock_rewrite_authority(session, lease.request, guest_id)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/worker.py:101,105 --         async with self._repository.execution_guard(lease) as authorized: /             await self._execute(lease, reserved_at.date())",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/worker.py:137-139 --             timeout = min(60.0, remaining) /             async with asyncio.timeout(timeout): /                 result = await self._provider.generate_rewrite(lease.request)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/config.py:64 --     generation_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/shared/api/client.ts:403 -- const REQUEST_TIMEOUT_MS = 15_000;",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx:43,58 --         const session = await getSession(controller.signal); /           setVerification((current) => ({ ...current, path: pathname, status: \"offline\" }));",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/accounts/test_postgres.py:122-179 intentionally verifies that a private reader waits on owner locking and rejects a subsequently committed device revocation; preserve this security contract when changing the rewrite fence.",
+        "/Users/phamhanh/Documents/New project/la-lanh/docs/operations/luna-rewrite-release-runbook.md:281 documents lifecycle waits during the conservative pilot and identifies a durable cancellation/drain protocol as its replacement; the additional foreground-session wait is established by the current credential call path.",
+        "PostgreSQL row-lock behavior checked against [PostgreSQL 18 explicit-locking documentation](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-ROWS): conflicting SELECT FOR UPDATE operations wait for transaction completion. The latency consequence is inferred from this rule and the inspected call path, not measured in production.",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/api/v1/routes/guest_sessions.py:199 -- guest = await _service(request).resume(token)"
+      ],
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/guest/postgres.py",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/guest/postgres.py:110 --             owned = await owned_credential(session, token_hash, now)",
+      "independent_reviewers": [
+        "performance"
+      ],
+      "line": 110,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "performance"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Adapt the existing started-generation drain pattern to rewrite jobs: commit a durable in-flight marker under short owner/consent/parent locks, perform the provider await outside those locks, then reacquire and revalidate authority and lease for atomic projection/finalization. Withdrawal and erasure must cancel unsent work and drain admitted sends before acknowledging, including crash/expired-lease handling. Preserve the current credential revocation barrier; do not simply remove owned_credential locking. Add an isolated PostgreSQL fake-provider regression showing /session and private-page reads complete while generation is paused, alongside the existing revoke/erase/fence regressions.",
+      "title": "Background rewrites block foreground session checks",
+      "why_it_matters": "With the optional rewrite pilot enabled, navigating to a private page or returning to its tab can stall behind that owner's background provider request, even with only one beta user. Credential lookup now always takes the guest row's FOR UPDATE lock, while execution_guard holds that same row through the provider await; an allowed call lasting more than 15 seconds exceeds the browser request timeout and SessionBoundary then hides the page with an offline warning despite a working connection. Waiting for an admitted send during erasure or withdrawal is intentional, but making ordinary session checks wait for it undermines the deterministic-content fallback. Separating the durable send/drain fence from foreground credential authorization removes this dependency without dropping the revocation and erasure guarantees.",
+      "validation_status": "confirmed",
+      "protected_subject": "concurrency",
+      "validation_reason": "Inspected current WIP still holds the same owner FOR UPDATE lock through provider I/O and foreground /session authorization. An enabled, admitted rewrite with more than 15 seconds of remaining provider wait can time out the browser and show an offline page. Production incidence and end-to-end latency were not measured; disabled flags prevent activation, not the defect."
+    }
+  ],
+  "requirements_completeness": {
+    "plan_path": "/Users/phamhanh/Documents/New project/la-lanh/docs/plans/2026-10-10-content-google-release-completion.md",
+    "plan_source": "explicit",
+    "requirements": [
+      {
+        "id": "R1",
+        "status": "met",
+        "requirement": "Welcome exactly two entry CTAs; valid existing device profile resumes even with restart=1; no demo or another-profile entry.",
+        "evidence": [
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:37-78,124-133"
+        ],
+        "note": "Current source preserves valid-session resume even on restart=1 and exactly two entry actions; offline failure does not create a replacement."
+      },
+      {
+        "id": "R2",
+        "status": "met",
+        "requirement": "Google via Supabase server PKCE, one-use code/state and initiating credential binding; explicit restore not merge; flags off until real provider/privacy activation gates pass.",
+        "note": "Implementation and offline checks are recorded in the release receipt. Live Google configuration, provider erasure and real two-account/device acceptance remain intentional activation gates, not claimed completed work."
+      },
+      {
+        "id": "R3",
+        "status": "met",
+        "requirement": "Direct ordinary Vietnamese Astro/Tarot: correct card meaning, context and role before rewrite; summary first; no invented private feelings or certain future.",
+        "note": "Deterministic meaning/context/role renderer and bounded rewrite gates are implemented. Exact Tarot overflow repair is validated; paid outputs and real-user comprehension remain unverified. Subsequent composer/privacy version alignment repair is now present, but its scoped/full regression receipt remains pending."
+      },
+      {
+        "id": "R4",
+        "status": "partially addressed",
+        "requirement": "Review all tracked/untracked release bundle; content, owner isolation, IAM, privacy, migrations, costs and browser UX; synthetic tests not real-user evidence.",
+        "note": "Full 257-path WIP inventory and eleven sampled review lenses are complete. Focused results and local browser observations are recorded, but the latest whole quality-gate rerun is pending and production acceptance is not certified."
+      }
+    ],
+    "implementation_units": [
+      {
+        "id": "U1",
+        "status": "met",
+        "unit": "Welcome and Google optional IAM",
+        "note": "Local implementation present; public auth deliberately remains gated."
+      },
+      {
+        "id": "U2",
+        "status": "met",
+        "unit": "Content deterministic renderer and bounded Luna rewrite/gates",
+        "note": "Local renderer/rewrite guard implementation present; confirmed #7 blocks paid-path activation."
+      },
+      {
+        "id": "U3",
+        "status": "partially addressed",
+        "unit": "Consolidated release review, local regression and browser verification, deploy/rollback checklist",
+        "note": "Review and deploy/rollback checklist exist; final whole local-gate result and exact-image/deployed-role/backup smoke evidence remain outstanding."
+      }
+    ],
+    "unrequested_behavior_rules": [],
+    "reverse_check": "Compared the explicit plan, reviewed diff and current repair paths. No additional unrequested behavior rule identified within sampled coverage; existing history/restore semantics are part of the broader owner-approved WIP.",
+    "missing_implementation_units": [],
+    "acceptance_incomplete": true
+  },
+  "actionable_findings": [
+    {
+      "#": 7,
+      "autofix_class": "manual",
+      "confidence": 75,
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/guest/postgres.py:110 --             owned = await owned_credential(session, token_hash, now)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/accounts/postgres.py:75 --     guest = await lock_owner(session, guest_id)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/accounts/postgres.py:43 --             .with_for_update()",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/authorization.py:152 --                 select(GuestSessionRow).where(GuestSessionRow.id == subject_id).with_for_update()",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/postgres.py:80-81 --         async with self._sessions() as session, session.begin(): /             authority = await lock_rewrite_authority(session, lease.request, guest_id)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/worker.py:101,105 --         async with self._repository.execution_guard(lease) as authorized: /             await self._execute(lease, reserved_at.date())",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/worker.py:137-139 --             timeout = min(60.0, remaining) /             async with asyncio.timeout(timeout): /                 result = await self._provider.generate_rewrite(lease.request)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/config.py:64 --     generation_timeout_seconds: float = Field(default=20.0, ge=1.0, le=60.0)",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/shared/api/client.ts:403 -- const REQUEST_TIMEOUT_MS = 15_000;",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx:43,58 --         const session = await getSession(controller.signal); /           setVerification((current) => ({ ...current, path: pathname, status: \"offline\" }));",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/accounts/test_postgres.py:122-179 intentionally verifies that a private reader waits on owner locking and rejects a subsequently committed device revocation; preserve this security contract when changing the rewrite fence.",
+        "/Users/phamhanh/Documents/New project/la-lanh/docs/operations/luna-rewrite-release-runbook.md:281 documents lifecycle waits during the conservative pilot and identifies a durable cancellation/drain protocol as its replacement; the additional foreground-session wait is established by the current credential call path.",
+        "PostgreSQL row-lock behavior checked against [PostgreSQL 18 explicit-locking documentation](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-ROWS): conflicting SELECT FOR UPDATE operations wait for transaction completion. The latency consequence is inferred from this rule and the inspected call path, not measured in production.",
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/api/v1/routes/guest_sessions.py:199 -- guest = await _service(request).resume(token)"
+      ],
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/guest/postgres.py",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/guest/postgres.py:110 --             owned = await owned_credential(session, token_hash, now)",
+      "independent_reviewers": [
+        "performance"
+      ],
+      "line": 110,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "performance"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Adapt the existing started-generation drain pattern to rewrite jobs: commit a durable in-flight marker under short owner/consent/parent locks, perform the provider await outside those locks, then reacquire and revalidate authority and lease for atomic projection/finalization. Withdrawal and erasure must cancel unsent work and drain admitted sends before acknowledging, including crash/expired-lease handling. Preserve the current credential revocation barrier; do not simply remove owned_credential locking. Add an isolated PostgreSQL fake-provider regression showing /session and private-page reads complete while generation is paused, alongside the existing revoke/erase/fence regressions.",
+      "title": "Background rewrites block foreground session checks",
+      "why_it_matters": "With the optional rewrite pilot enabled, navigating to a private page or returning to its tab can stall behind that owner's background provider request, even with only one beta user. Credential lookup now always takes the guest row's FOR UPDATE lock, while execution_guard holds that same row through the provider await; an allowed call lasting more than 15 seconds exceeds the browser request timeout and SessionBoundary then hides the page with an offline warning despite a working connection. Waiting for an admitted send during erasure or withdrawal is intentional, but making ordinary session checks wait for it undermines the deterministic-content fallback. Separating the durable send/drain fence from foreground credential authorization removes this dependency without dropping the revocation and erasure guarantees.",
+      "validation_status": "confirmed",
+      "protected_subject": "concurrency",
+      "validation_reason": "Inspected current WIP still holds the same owner FOR UPDATE lock through provider I/O and foreground /session authorization. An enabled, admitted rewrite with more than 15 seconds of remaining provider wait can time out the browser and show an offline page. Production incidence and end-to-end latency were not measured; disabled flags prevent activation, not the defect."
+    }
+  ],
+  "triage_groups": [],
+  "pre_existing_findings": [],
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [
+    "Public Google is No-Go until provider configuration, identity-erasure integration and real two-account/two-device acceptance pass; keep auth flags disabled.",
+    "Paid rewrite is No-Go while #7 remains: replace the long owner-lock provider fence with a durable in-flight/drain protocol and verify responsive /session reads without weakening revocation or erasure.",
+    "Before any guest/local-content deployment, finish the current whole quality gate, freeze the exact tracked/untracked release manifest, and verify image/source, populated migrations 0031-0033 under the production role, RLS/grants, backups and private/public smoke checks.",
+    "Schedule and verify bounded cleanup/backlog recovery. Roll back by stopping admissions/workers and using a compatible old image; preserve additive schema and erasure/revocation records, and do not restore deleted personal data.",
+    "No deployment, commit, push, paid calls or billing changes were performed by this report leaf."
+  ],
+  "residual_risks": [
+    "Public Google activation still requires observed provider configuration, provider identity/email erasure and two-account/two-device restore/cancel/expiry/replay/revocation acceptance. Application cascades alone do not prove Supabase identity erasure; public auth must remain disabled until the explicit gate passes.",
+    "Deployed PostgreSQL migration/role/grant/RLS/TLS and backup/rollback checks, cleanup cadence/backlog and key continuity remain release-owned evidence gaps. Local definitions, offline SQL and synthetic fixtures do not certify deployed behavior.",
+    "Native SSO, platform storage/privacy declarations and real-device/browser behavior were not independently verified by this round. This is not platform or legal compliance certification.",
+    "Actual paid rewrite outputs and first-read Vietnamese comprehension remain unobserved acceptance gates. Synthetic semantic/corpus results do not establish real-user comprehension; this run permits no paid calls."
+  ],
+  "testing_gaps": [
+    "Post-review Tarot privacy version repair is implemented but unverified: obtain the scoped v1/v2 acceptance and unknown-version/extra-field rejection receipt, then the latest full-gate result. Earlier Tarot 33-pass evidence predates this repair.",
+    "Latest whole quality-gate rerun is pending. The experiment regression now permits an empty observer-created query container but still requires undefined data, zero data updates, no nonundefined updated-data event, no invalidation and no callback; no implementation guard was weakened.",
+    "Populated legacy-data upgrade/backfill and rollback with the actual deployed backend role, TLS/grants/RLS and backup policy remain release-owned verification. Isolated PostgreSQL results are not production evidence.",
+    "An isolated PostgreSQL paused-provider regression must show foreground /session/private reads remain responsive after fixing #7 while existing revocation, erasure and atomic-publication tests continue to pass.",
+    "Live provider identity erasure, real Google/device/BFCache acceptance, paid rewrite wording and real-user comprehension remain unverified."
+  ],
+  "coverage": {
+    "depth": "full",
+    "mode": "agent report-only",
+    "apply_local": false,
+    "inventory_files": 257,
+    "inspection": "Complete tracked/untracked inventory; sampled source inspection, not certification of every editorial row, generated contract, binary or legal obligation.",
+    "cross_model": "Cross-model paid review was not started due to the user's cost restriction. Native adversarial review completed.",
+    "peer_outcome": "not-run",
+    "reviewer_justifications": {
+      "security": "Identity, ownership, privacy and token boundaries.",
+      "adversarial": "Native challenge of high-risk IAM, erasure and spend claims; no paid peer.",
+      "reliability": "Crash recovery, cleanup and provider-send fences.",
+      "api-contract": "Session, restore, content and optional-provider startup contracts.",
+      "data-migration": "Retention schema, legacy writes and rollback compatibility.",
+      "julik-frontend-races": "Session changes, late mutation callbacks and departed navigation.",
+      "performance": "Owner-lock contention across background provider I/O and foreground reads."
+    },
+    "standards": {
+      "criteria": [
+        "Root AGENTS.md documentation/security/privacy gates"
+      ],
+      "fallback_named": true
+    },
+    "compound_packs": {
+      "roots": [],
+      "errors": [],
+      "warnings": []
+    },
+    "original_candidates": 10,
+    "semantic_duplicates_merged": 1,
+    "primary_before_validation": 9,
+    "primary_after_validation": 1,
+    "suppressed_by_confidence": {},
+    "suppressed_count": 0,
+    "mode_aware_demotions": 0,
+    "first_evidence_backfilled": 10,
+    "first_evidence_additional_backfilled": 0,
+    "quote_gate_demotions": 0,
+    "malformed_findings": 0,
+    "malformed_returns": 0,
+    "settled_preference_suppressions": 0,
+    "failed_reviewers": [],
+    "bound_exceeded": [],
+    "validation": {
+      "outcome": "verdicts",
+      "batch_count": 1,
+      "selected": 9,
+      "confirmed": 1,
+      "rejected": 8,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0,
+      "shortcut_basis": "No verified cross-model corroboration; same-model persona agreement grants no shortcut.",
+      "verdicts_landed": true,
+      "bound_exceeded": false,
+      "fixed_after_review": 8,
+      "original_false_positives": 0,
+      "protected_subject_reclassifications": [],
+      "protected_classification": "Independently classified before reading verdicts. Protected rejections accepted only after checking current refuting source. Validator shorthand paths for session/storage/AppShell/routes were resolved to their actual repository paths.",
+      "ledger": [
+        {
+          "#": 1,
+          "status": "rejected",
+          "protected_subject": "data-loss",
+          "disposition": "fixed_after_original_review",
+          "original_false_positive": false,
+          "reason": "Current cleanup selects GuestSessionRow.state == GuestState.DELETING.value regardless of expiry and excludes provider-started attempts before ordered owner locking.",
+          "refuting_source": [
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/guest/postgres.py:193-206"
+          ],
+          "citation_checked": true
+        },
+        {
+          "#": 2,
+          "status": "rejected",
+          "protected_subject": "public-contract",
+          "disposition": "fixed_after_original_review",
+          "original_false_positive": false,
+          "reason": "Current migration retains nullable=False, server_default=sa.text(\"CURRENT_TIMESTAMP\"); metadata matches, refuting the missing-default precondition for old writers.",
+          "refuting_source": [
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/api/migrations/versions/20261010_0032_history_retention.py:37-38",
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/mood/tables.py:26-27"
+          ],
+          "citation_checked": true
+        },
+        {
+          "#": 3,
+          "status": "rejected",
+          "protected_subject": "authorization-authentication",
+          "disposition": "fixed_after_original_review",
+          "original_false_positive": false,
+          "reason": "Explicit resume now removes SESSION_RESTART_REQUIRED_KEY only after session verification and both consents succeed; welcome unmounts the private boundary.",
+          "refuting_source": [
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:52-59",
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/consent/ConsentPage.tsx:34-39",
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/AppShell.tsx:7-18,30"
+          ],
+          "citation_checked": true
+        },
+        {
+          "#": 4,
+          "status": "rejected",
+          "protected_subject": "authorization-authentication",
+          "disposition": "fixed_after_original_review",
+          "original_false_positive": false,
+          "reason": "Mutation guards now compare chart revision, session generation and owner epoch captured before awaits; clearPersonalData invalidates requests and increments generation, preventing stale rollback/success writes.",
+          "refuting_source": [
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/shared/hooks/useDailyExperiment.ts:61-70,101-114,124-148",
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/shared/storage/clearPersonalData.ts:30",
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/shared/session/sessionIdentity.ts:24-30"
+          ],
+          "citation_checked": true
+        },
+        {
+          "#": 5,
+          "status": "rejected",
+          "protected_subject": null,
+          "disposition": "fixed_after_original_review",
+          "original_false_positive": false,
+          "reason": "The disabled-auth template comments out optional Supabase URL/key assignments instead of supplying invalid empty strings.",
+          "refuting_source": [
+            "/Users/phamhanh/Documents/New project/la-lanh/infra/hetzner/app.env.example:8-14"
+          ],
+          "citation_checked": true
+        },
+        {
+          "#": 6,
+          "status": "rejected",
+          "protected_subject": null,
+          "disposition": "fixed_after_original_review",
+          "original_false_positive": false,
+          "reason": "The real test clock now uses calendar.monthrange for monthly boundaries, including February, leap February and April.",
+          "refuting_source": [
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/content_rewrite/test_postgres_concurrency.py:45-67"
+          ],
+          "citation_checked": true
+        },
+        {
+          "#": 7,
+          "status": "confirmed",
+          "protected_subject": "concurrency",
+          "disposition": "open_current_tree",
+          "reason": "Inspected current WIP still holds the same owner FOR UPDATE lock through provider I/O and foreground /session authorization. An enabled, admitted rewrite with more than 15 seconds of remaining provider wait can time out the browser and show an offline page. Production incidence and end-to-end latency were not measured; disabled flags prevent activation, not the defect.",
+          "incidence_measured": false
+        },
+        {
+          "#": 8,
+          "status": "rejected",
+          "protected_subject": "public-contract",
+          "disposition": "fixed_after_original_review",
+          "original_false_positive": false,
+          "reason": "All mandatory card summaries are preserved; optional links and at most one goal are appended only within 180 words, refuting the supplied multi-goal overflow.",
+          "refuting_source": [
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/engine.py:327-351"
+          ],
+          "citation_checked": true
+        },
+        {
+          "#": 9,
+          "status": "rejected",
+          "protected_subject": "concurrency",
+          "disposition": "fixed_after_original_review",
+          "original_false_positive": false,
+          "reason": "Welcome aborts and relinquishes its operation on unmount and checks operation ownership after awaits before follow-on work or navigation.",
+          "refuting_source": [
+            "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:32-41,52-84"
+          ],
+          "citation_checked": true
+        }
+      ],
+      "verdicts_artifact": "/tmp/compound-engineering-501/ce-code-review/20261010-native-consolidated/validator-verdicts.json"
+    },
+    "verification": {
+      "report_leaf": "Read-only current-source and artifact inspection; no tests, browser interactions, provider calls or project mutations.",
+      "isolated_postgres": {
+        "status": "parent-reported passed",
+        "passed": 57,
+        "database_cases": 53,
+        "calendar_cases": 4,
+        "source": "/Users/phamhanh/Documents/New project/la-lanh/docs/reviews/2026-10-10-content-google-consolidated-release-review.md"
+      },
+      "focused_tarot": {
+        "status": "parent-reported passed",
+        "passed": 33,
+        "note": "Earlier 33-pass result predates the latest privacy version repair; it does not verify that repair."
+      },
+      "whole_quality_gate": {
+        "status": "pending",
+        "note": "Latest rerun includes both the experiment privacy assertion correction and Tarot meaning-brief v1/v2 closed-allowlist repair; no whole-check green claim."
+      },
+      "browser": "Parent receipt records local synthetic onboarding/Home and three-/five-card Tarot flows; not independently repeated by this leaf.",
+      "acceptance": "No live Google, provider erasure, paid output, production migration/role/backup or real-user comprehension certification.",
+      "primary_documentation": "PostgreSQL 18 row-lock semantics checked read-only; this does not verify the deployed engine/configuration."
+    },
+    "advisory_reconciliation": [
+      "Removed stale SessionBoundary missing-poll-test claim: current SessionBoundary.test.tsx:41-67 covers cookie-only change, hiding, mismatch cache clearing and timer teardown; full rerun remains pending.",
+      "Different-owner absent-ledger race test exists at content_rewrite/test_postgres_concurrency.py:299; its former absence is not retained as a current testing gap.",
+      "Eight original defects repaired after review are current-tree rejections, not spurious original findings. This report leaf applied none of those repairs.",
+      "All prior multi-finding triage groups were pruned after rejection; only #7 remains, so grouping:auto produces no decorative singleton."
+    ],
+    "degraded_p0_p1": [],
+    "limitations": [
+      "Synthetic tests are not real-user evidence.",
+      "Same-model reviewers do not provide cross-model independence.",
+      "WIP is not an immutable release commit; freeze exact image/source before deployment.",
+      "The application USD 1/month cap does not control stolen-key use outside the application."
+    ],
+    "post_review_fixes": [
+      {
+        "id": "post-review-tarot-meaning-brief-version",
+        "status": "implemented_verification_pending",
+        "discovered_by": "Parent whole quality gate after the original review",
+        "original_defect": "Composer emitted tarot-meaning-brief-v2 while the privacy schema accepted only v1, rejecting the new payload.",
+        "repair": "Closed version allowlist now accepts exactly tarot-meaning-brief-v1 and tarot-meaning-brief-v2; composer continues emitting v2 and legacy queued v1 payloads remain accepted.",
+        "privacy_boundary": "SafeModel still forbids extra fields. No broader privacy fields are admitted by this version-only repair.",
+        "source_checked": [
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/infrastructure/generation/privacy.py:19-20,128-142",
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/meaning_brief.py:11,291-304"
+        ],
+        "regression": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/content_rewrite/test_tarot_rewrite.py:201-219",
+        "required_receipt": "Scoped regression accepts both v1 and v2, rejects unknown versions and raw_question, and the latest whole quality gate completes successfully.",
+        "scoped_test_status": "pending",
+        "whole_quality_gate_status": "pending",
+        "test_receipt": null,
+        "independently_executed": false,
+        "original_validator_batch_member": false
+      }
+    ]
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/20261010-native-consolidated",
+  "run_id": "20261010-native-consolidated",
+  "verdict_reason": "Not ready for the consolidated production release: the latest whole quality gate is still pending, public Google lacks provider-erasure/live account-device acceptance, and confirmed P2 #7 blocks paid rewrite activation. Eight earlier defects are repaired. A flags-off guest/local-content candidate may be considered only after exact-image, migration-role, backup and smoke gates pass.",
+  "fix_order": [
+    "Finish the current whole quality-gate rerun.",
+    "Resolve #7 before paid rewrite activation, preserving authorization and erasure fences.",
+    "Complete live auth/erasure and applicable production release gates before enabling or deploying."
+  ]
+}

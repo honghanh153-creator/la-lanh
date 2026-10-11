@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from app.config import get_settings
 from app.db.session import Database
+from app.domains.accounts.erasure import SupabaseIdentityEraser
 from app.domains.guest.postgres import PostgresGuestRepository
 
 
@@ -12,7 +13,9 @@ async def _cleanup(batch_size: int) -> int:
     database = Database(str(settings.database_url))
     await database.initialize()
     try:
-        repository = PostgresGuestRepository(database.sessions)
+        repository = PostgresGuestRepository(
+            database.sessions, identity_eraser=SupabaseIdentityEraser(settings)
+        )
         return await repository.purge_expired(datetime.now(UTC), batch_size)
     finally:
         await database.dispose()

@@ -48,3 +48,23 @@ def test_jyotish_reading_uses_jyotish_vocabulary_and_provenance() -> None:
     assert reading.tradition is Tradition.JYOTISH
     assert reading.provenance.ayanamsa == "lahiri"
     assert any("Nakshatra" in claim.title for claim in reading.claims)
+    visible = " ".join(
+        " ".join(
+            (
+                claim.summary,
+                claim.hook,
+                claim.meaning,
+                claim.manifestation,
+                claim.watch_for,
+                claim.micro_action,
+            )
+        )
+        for claim in reading.claims
+    )
+    assert "bạn dễ" not in visible and "Bạn sáng rõ" not in visible
+    assert "tam hợp" not in visible and "góc vuông" not in visible
+    assert "đã tính" in visible
+    assert all(
+        not any(ref.startswith("natal:aspect:") for ref in claim.factor_refs)
+        for claim in reading.claims
+    )

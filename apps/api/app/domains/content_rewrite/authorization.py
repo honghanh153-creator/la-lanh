@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
 from uuid import UUID
@@ -14,7 +15,9 @@ from app.domains.content_rewrite.models import (
     RewriteSurface,
 )
 from app.domains.content_rewrite.service import RewriteAuthorizationChecker
-from app.domains.guest.tables import ConsentRow
+from app.domains.guest.models import GuestState
+from app.domains.guest.tables import ConsentRow, GuestSessionRow
+from app.domains.radar.tables import RadarRequestRow
 
 CONTENT_REWRITE_CONSENT_VERSION = "external-content-rewrite-v1"
 CONTENT_REWRITE_CONSENT_PURPOSE = "external_content_rewrite"
@@ -93,9 +96,120 @@ def guest_id_from_rewrite_owner(owner: ArtifactOwnerKey) -> UUID:
     raise ValueError("rewrite owner does not expose an authorized guest")
 
 
+async def rewrite_subjects(
+    session: AsyncSession, request: RewriteRequestEnvelope, guest_id: UUID
+) -> tuple[UUID, ...] | None:
+    if request.key.surface is not RewriteSurface.RADAR:
+        return None if request.key.owner.namespace == "radar" else (guest_id,)
+    parts = request.key.owner.key.split("|")
+    if request.key.owner.namespace != "radar" or len(parts) != 4:
+        return None
+    try:
+        radar_id = UUID(parts[2])
+    except ValueError:
+        return None
+    radar = await session.scalar(
+        select(RadarRequestRow)
+        .where(RadarRequestRow.id == radar_id)
+        .execution_options(populate_existing=True)
+    )
+    if (
+        radar is None
+        or radar.mode != "consented_invite"
+        or radar.status != "completed"
+        or radar.withdrawn_at is not None
+        or radar.revoked_at is not None
+        or radar.expires_at <= datetime.now(UTC)
+        or radar.recipient_guest_id is None
+        or radar.recipient_guest_id == radar.owner_guest_id
+        or parts[3] not in {"owner", "recipient"}
+        or guest_id != (radar.owner_guest_id if parts[3] == "owner" else radar.recipient_guest_id)
+    ):
+        return None
+    return tuple(sorted((radar.owner_guest_id, radar.recipient_guest_id), key=lambda id: id.int))
+
+
+@dataclass(frozen=True, slots=True)
+class LockedRewriteAuthority:
+    accepted_at: datetime
+    expires_at: datetime
+
+
+async def lock_rewrite_authority(
+    session: AsyncSession, request: RewriteRequestEnvelope, guest_id: UUID
+) -> LockedRewriteAuthority | None:
+    """Lock all data subjects before consent, parent and job locks."""
+    subjects = await rewrite_subjects(session, request, guest_id)
+    if subjects is None:
+        return None
+    scope = consent_scope_for_surface(request.key.surface)
+    if request.authorization_receipt_id != content_rewrite_receipt_id(guest_id, scope=scope):
+        return None
+    guests = []
+    for subject_id in subjects:
+        guests.append(
+            await session.scalar(
+                select(GuestSessionRow).where(GuestSessionRow.id == subject_id).with_for_update()
+            )
+        )
+    definition = consent_definition(scope)
+    accepted = []
+    for subject_id in subjects:
+        consent = await session.scalar(
+            select(ConsentRow)
+            .where(
+                ConsentRow.guest_id == subject_id,
+                ConsentRow.purpose == definition.purpose,
+                ConsentRow.version == definition.version,
+                ConsentRow.revoked_at.is_(None),
+            )
+            .with_for_update()
+        )
+        if consent is None:
+            return None
+        accepted.append(consent.accepted_at)
+    now = datetime.now(UTC)
+    if any(
+        guest is None or guest.state != GuestState.ACTIVE.value or guest.expires_at <= now
+        for guest in guests
+    ):
+        return None
+    if await rewrite_subjects(session, request, guest_id) != subjects:
+        return None
+    return LockedRewriteAuthority(
+        accepted_at=max(accepted),
+        expires_at=min(guest.expires_at for guest in guests if guest is not None),
+    )
+
+
 class DatabaseRewriteAuthorization(RewriteAuthorizationChecker):
-    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self, sessions: async_sessionmaker[AsyncSession], *, pilot_user_limit: int = 0
+    ) -> None:
         self._sessions = sessions
+        self._pilot_user_limit = pilot_user_limit
+
+    async def pilot_eligible(self, guest_id: UUID) -> bool:
+        if not self._pilot_user_limit:
+            return True
+        definition = consent_definition(RewriteConsentScope.PERSONAL)
+        async with self._sessions() as session:
+            participants = tuple(
+                await session.scalars(
+                    select(ConsentRow.guest_id)
+                    .join(GuestSessionRow, GuestSessionRow.id == ConsentRow.guest_id)
+                    .where(
+                        ConsentRow.version == definition.version,
+                        ConsentRow.purpose == definition.purpose,
+                        ConsentRow.revoked_at.is_(None),
+                        GuestSessionRow.expires_at > datetime.now(UTC),
+                        GuestSessionRow.state == GuestState.ACTIVE.value,
+                    )
+                    .order_by(ConsentRow.accepted_at, ConsentRow.guest_id)
+                    .limit(self._pilot_user_limit)
+                )
+            )
+        return guest_id in participants or len(participants) < self._pilot_user_limit
 
     async def authorized_guest(
         self,
@@ -106,11 +220,17 @@ class DatabaseRewriteAuthorization(RewriteAuthorizationChecker):
         definition = consent_definition(scope)
         async with self._sessions() as session:
             consent = await session.scalar(
-                select(ConsentRow).where(
+                select(ConsentRow)
+                .where(
                     ConsentRow.guest_id == guest_id,
                     ConsentRow.version == definition.version,
                     ConsentRow.purpose == definition.purpose,
                     ConsentRow.revoked_at.is_(None),
+                )
+                .join(GuestSessionRow, GuestSessionRow.id == ConsentRow.guest_id)
+                .where(
+                    GuestSessionRow.expires_at > datetime.now(UTC),
+                    GuestSessionRow.state == GuestState.ACTIVE.value,
                 )
             )
             return consent is not None
@@ -126,4 +246,11 @@ class DatabaseRewriteAuthorization(RewriteAuthorizationChecker):
             scope=scope,
         ):
             return False
-        return await self.authorized_guest(guest_id, scope=scope)
+        async with self._sessions() as session:
+            subjects = await rewrite_subjects(session, request, guest_id)
+        if subjects is None:
+            return False
+        for subject_id in subjects:
+            if not await self.authorized_guest(subject_id, scope=scope):
+                return False
+        return await self.pilot_eligible(guest_id)

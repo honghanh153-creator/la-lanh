@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  acceptBasicBirthConsent,
   createBirthProfile,
   addBirthSupplement,
   searchBirthPlaces,
@@ -22,6 +23,7 @@ vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
   return {
     ...actual,
+    acceptBasicBirthConsent: vi.fn(),
     createBirthProfile: vi.fn(),
     addBirthSupplement: vi.fn(),
     searchBirthPlaces: vi.fn(),
@@ -102,6 +104,7 @@ describe("BirthDatePage", () => {
       resumed: true,
       session_epoch: "epoch-test",
     });
+    vi.mocked(acceptBasicBirthConsent).mockResolvedValue(undefined);
     vi.mocked(createBirthProfile).mockResolvedValue(birthReveal);
     vi.mocked(getDailyNote).mockResolvedValue(dailyNote);
   });

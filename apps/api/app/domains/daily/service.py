@@ -31,6 +31,7 @@ from app.domains.daily.models import (
     SourceLevel,
 )
 from app.domains.daily.repository import DailyNoteRepository
+from app.domains.history.errors import HistoryUnavailable
 from app.domains.readings.knowledge import ASPECTS as INTERPRETATION_ASPECTS
 from app.domains.readings.knowledge import PLANETS as INTERPRETATION_PLANETS
 
@@ -369,7 +370,7 @@ class DailyNoteService:
     async def find_owned(self, guest_id: UUID, note_id: UUID) -> DailyNoteRecord:
         note = await self._repository.find(guest_id, note_id)
         if note is None:
-            raise BirthProfileNotFound
+            raise HistoryUnavailable
         return note
 
     async def current_birth_snapshot(self, guest_id: UUID) -> BirthSnapshotRecord:
@@ -379,6 +380,13 @@ class DailyNoteService:
         if birth is None:
             raise BirthProfileNotFound
         return birth
+
+    async def assert_current_birth_source(self, expected: BirthSnapshotRecord) -> None:
+        from app.domains.birth.errors import BirthProfileChanged
+
+        current = await self.current_birth_snapshot(expected.guest_id)
+        if (current.id, current.profile_revision) != (expected.id, expected.profile_revision):
+            raise BirthProfileChanged
 
 
 def _snapshot_for(result: DateOnlySunResult | NatalChart) -> DailyNoteSnapshot:

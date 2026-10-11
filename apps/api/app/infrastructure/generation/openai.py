@@ -6,7 +6,7 @@ from typing import Any, Protocol, cast
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.domains.astro.models import Tradition
-from app.domains.content_rewrite.models import RewriteRequestEnvelope
+from app.domains.content_rewrite.models import RewriteRequestEnvelope, RewriteSurface
 from app.domains.readings.models import (
     ClaimSlotName,
     ReadingCandidate,
@@ -151,6 +151,11 @@ class OpenAIRewriteProvider:
                 envelope.key.surface,
                 envelope.safe_payload,
             )
+            if envelope.key.surface is RewriteSurface.TAROT and not safe_payload.get(
+                "meaning_brief"
+            ):
+                # Old queued payloads cannot use the new prompt without its meaning context.
+                return GenerationPermanent(code="tarot_meaning_brief_required")
             request = _rewrite_request(self._model, envelope, safe_payload)
         except (LookupError, UnsafeRewritePayload, ValueError):
             return GenerationPermanent(code="unsafe_or_invalid_payload")
@@ -175,10 +180,10 @@ class OpenAIRewriteProvider:
 class OpenAISDKResponseTransport:
     """Narrow SDK boundary; SDK retries are disabled so the DB worker is sole retry owner."""
 
-    def __init__(self, *, api_key: str) -> None:
+    def __init__(self, *, api_key: str, project: str | None = None) -> None:
         from openai import AsyncOpenAI
 
-        self._client = AsyncOpenAI(api_key=api_key, max_retries=0)
+        self._client = AsyncOpenAI(api_key=api_key, project=project, max_retries=0)
 
     async def create_response(
         self, request: dict[str, Any], *, timeout_seconds: float
@@ -213,6 +218,7 @@ def _request(model: str, plan: ReadingPlan) -> dict[str, Any]:
     return {
         "model": model,
         "store": False,
+        "service_tier": "default",
         "stream": False,
         "reasoning": {"effort": "none"},
         "max_output_tokens": 1200,
@@ -243,6 +249,7 @@ def _rewrite_request(
     return {
         "model": model,
         "store": False,
+        "service_tier": "default",
         "stream": False,
         "reasoning": {"effort": "none"},
         "max_output_tokens": contract.max_output_tokens,

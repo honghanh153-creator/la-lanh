@@ -2,19 +2,26 @@ import json
 import logging
 import re
 import secrets
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.orm import load_only
 
 from app.domains.astro import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, RelationshipBundle
 from app.domains.birth.errors import BirthDomainError
 from app.domains.birth.models import BirthTimeMode
 from app.domains.birth.service import BirthChartService
+from app.domains.birth.tables import BirthProfileRow
+from app.domains.content_rewrite.send_fence import drain_sends, pending_sends
 from app.domains.content_rewrite.service import ContentRewriteService
+from app.domains.guest.tables import GuestSessionRow
+from app.domains.identity.tables import PrincipalRow
 from app.domains.radar.models import (
     RadarAcceptResult,
     RadarInviteView,
@@ -39,6 +46,10 @@ AUTHORIZED_INPUT_VERSION = "radar-authorized-input-v1"
 INVITE_TTL = timedelta(days=7)
 PRIVATE_RESULT_TTL = timedelta(days=30)
 RECEIPT_TTL = timedelta(days=7)
+MAX_RETAINED_REQUESTS = 100
+PAGE_SIZE = 20
+MAX_PAGE_SIZE = 50
+IDEMPOTENCY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{16,128}$")
 logger = logging.getLogger(__name__)
 
 
@@ -55,6 +66,14 @@ class RadarInvalid(RadarError):
 
 
 class RadarChartRequired(RadarError):
+    pass
+
+
+class RadarLimitReached(RadarError):
+    pass
+
+
+class RadarConflict(RadarError):
     pass
 
 
@@ -90,6 +109,7 @@ class RadarService:
         recipient_label: str,
         context: str,
         voice: RelationshipVoice,
+        idempotency_key: str | None = None,
         now: datetime | None = None,
     ) -> tuple[RadarInviteView, str]:
         label = " ".join(recipient_label.split())
@@ -97,7 +117,14 @@ class RadarService:
             raise RadarInvalid
         if await self._chart(owner_guest_id) is None:
             raise RadarChartRequired
+        source = await self._birth.current(owner_guest_id)
         current = now or datetime.now(UTC)
+        idem, request_hash = self._request_digests(
+            principal_id,
+            idempotency_key,
+            RadarMode.CONSENTED_INVITE,
+            [label, context, voice.value, str(source.snapshot_id), str(source.profile_revision)],
+        )
         request_id = uuid4()
         token = secrets.token_urlsafe(32)
         row = RadarRequestRow(
@@ -117,8 +144,17 @@ class RadarService:
             ),
             created_at=current,
             expires_at=current + INVITE_TTL,
+            idempotency_hash=idem,
+            request_hash=request_hash,
         )
-        async with self._sessions() as session, session.begin():
+        async with self._creation_transaction(principal_id, owner_guest_id, current) as session:
+            existing = await self._replay(session, idem, request_hash, current)
+            if existing is not None:
+                return self._view(existing, current), self._invite_token(existing)
+            await self._capacity(session, principal_id)
+            await self._lock_chart_sources(
+                session, {owner_guest_id: (source.snapshot_id, source.profile_revision)}
+            )
             session.add(row)
             await session.flush()
         return self._view(row, current), token
@@ -137,6 +173,7 @@ class RadarService:
         place_id: str,
         consent_version: str,
         authorization_attested: bool,
+        idempotency_key: str | None = None,
         now: datetime | None = None,
     ) -> dict[str, Any]:
         label = " ".join(recipient_label.split())
@@ -148,6 +185,30 @@ class RadarService:
         ):
             raise RadarInvalid
         config = CalculationConfig.western_recommended()
+        source = await self._birth.current(owner_guest_id)
+        current = now or datetime.now(UTC)
+        idem, request_hash = self._request_digests(
+            principal_id,
+            idempotency_key,
+            RadarMode.PRIVATE_CHECK,
+            [
+                label,
+                context,
+                voice.value,
+                birth_date.isoformat(),
+                birth_time_mode,
+                birth_time_local,
+                place_id,
+                consent_version,
+                str(source.snapshot_id),
+                str(source.profile_revision),
+            ],
+        )
+        async with self._creation_transaction(principal_id, owner_guest_id, current) as session:
+            existing = await self._replay(session, idem, request_hash, current)
+            if existing is not None:
+                return self._private_replay(existing)
+            await self._capacity(session, principal_id)
         chart_a = await self._chart(owner_guest_id)
         if chart_a is None:
             raise RadarChartRequired
@@ -179,7 +240,6 @@ class RadarService:
                 f"{projection['disclaimer']} Không rõ giờ sinh nên các tín hiệu phụ thuộc giờ "
                 "đã được loại khỏi bản đọc."
             )
-        current = now or datetime.now(UTC)
         request_id = uuid4()
         row = RadarRequestRow(
             id=request_id,
@@ -203,8 +263,17 @@ class RadarService:
             created_at=current,
             expires_at=current + PRIVATE_RESULT_TTL,
             completed_at=current,
+            idempotency_hash=idem,
+            request_hash=request_hash,
         )
-        async with self._sessions() as session, session.begin():
+        async with self._creation_transaction(principal_id, owner_guest_id, current) as session:
+            existing = await self._replay(session, idem, request_hash, current)
+            if existing is not None:
+                return self._private_replay(existing)
+            await self._capacity(session, principal_id)
+            await self._lock_chart_sources(
+                session, {owner_guest_id: (source.snapshot_id, source.profile_revision)}
+            )
             session.add(row)
             await session.flush()
         await self._enqueue_rewrite(
@@ -221,17 +290,189 @@ class RadarService:
             **projection,
         }
 
-    async def list_owned(self, principal_id: UUID) -> tuple[RadarInviteView, ...]:
+    async def list_owned(
+        self,
+        principal_id: UUID,
+        *,
+        before: UUID | None = None,
+        mode: RadarMode | None = None,
+        limit: int = PAGE_SIZE,
+    ) -> tuple[RadarInviteView, ...]:
+        if not 1 <= limit <= MAX_PAGE_SIZE:
+            raise RadarInvalid
         current = datetime.now(UTC)
         async with self._sessions() as session:
+            query = select(RadarRequestRow).where(RadarRequestRow.principal_id == principal_id)
+            if mode is not None:
+                query = query.where(RadarRequestRow.mode == mode.value)
+            if before is not None:
+                cursor = (
+                    await session.execute(
+                        select(RadarRequestRow.created_at, RadarRequestRow.id).where(
+                            RadarRequestRow.id == before,
+                            RadarRequestRow.principal_id == principal_id,
+                            *([RadarRequestRow.mode == mode.value] if mode is not None else []),
+                        )
+                    )
+                ).one_or_none()
+                if cursor is None:
+                    raise RadarUnavailable
+                query = query.where(
+                    or_(
+                        RadarRequestRow.created_at < cursor.created_at,
+                        and_(
+                            RadarRequestRow.created_at == cursor.created_at,
+                            RadarRequestRow.id < cursor.id,
+                        ),
+                    )
+                )
             rows = tuple(
                 await session.scalars(
-                    select(RadarRequestRow)
-                    .where(RadarRequestRow.principal_id == principal_id)
-                    .order_by(RadarRequestRow.created_at.desc())
+                    query.options(
+                        load_only(
+                            RadarRequestRow.id,
+                            RadarRequestRow.recipient_label_ciphertext,
+                            RadarRequestRow.context,
+                            RadarRequestRow.voice,
+                            RadarRequestRow.mode,
+                            RadarRequestRow.status,
+                            RadarRequestRow.created_at,
+                            RadarRequestRow.expires_at,
+                        )
+                    )
+                    .order_by(RadarRequestRow.created_at.desc(), RadarRequestRow.id.desc())
+                    .limit(limit)
                 )
             )
         return tuple(self._view(row, current) for row in rows)
+
+    async def share_invite(
+        self, principal_id: UUID, request_id: UUID
+    ) -> tuple[RadarInviteView, str]:
+        current = datetime.now(UTC)
+        async with self._sessions() as session:
+            row = await session.scalar(
+                select(RadarRequestRow).where(
+                    RadarRequestRow.id == request_id,
+                    RadarRequestRow.principal_id == principal_id,
+                )
+            )
+            if row is None or self._effective_status(row, current) is not RadarStatus.PENDING:
+                raise RadarUnavailable
+            return self._view(row, current), self._invite_token(row)
+
+    def _invite_token(self, row: RadarRequestRow) -> str:
+        if row.token_ciphertext is None:
+            raise RadarUnavailable
+        return self._envelope.decrypt(
+            row.token_ciphertext, context=f"radar-capability:{row.id}".encode()
+        ).decode()
+
+    def _request_digests(
+        self,
+        principal: UUID,
+        key: str | None,
+        mode: RadarMode,
+        values: list[object],
+    ) -> tuple[bytes | None, bytes | None]:
+        if key is None:
+            return None, None
+        if IDEMPOTENCY_PATTERN.fullmatch(key) is None:
+            raise RadarInvalid
+        idem = self._hasher.digest("radar-create", f"{principal}:{mode.value}:{key}")
+        fingerprint = self._hasher.digest(
+            "radar-input",
+            json.dumps([str(principal), key, mode.value, *values], ensure_ascii=False),
+        )
+        return idem, fingerprint
+
+    @asynccontextmanager
+    async def _creation_transaction(
+        self,
+        principal_id: UUID,
+        guest_id: UUID,
+        now: datetime,
+    ) -> AsyncIterator[AsyncSession]:
+        async with self._sessions() as session, session.begin():
+            await session.connection(execution_options={"sqlite_write": True})
+            guest = await session.scalar(
+                select(GuestSessionRow)
+                .where(
+                    GuestSessionRow.id == guest_id,
+                )
+                .with_for_update()
+            )
+            principal = await session.scalar(
+                select(PrincipalRow)
+                .where(
+                    PrincipalRow.id == principal_id,
+                    PrincipalRow.source_guest_id == guest_id,
+                )
+                .with_for_update()
+            )
+            if (
+                guest is None
+                or principal is None
+                or guest.state != "active"
+                or guest.expires_at <= now
+                or guest.expires_at <= datetime.now(UTC)
+            ):
+                raise RadarUnavailable
+            yield session
+
+    @staticmethod
+    async def _capacity(session: AsyncSession, principal: UUID) -> None:
+        retained = list(
+            await session.scalars(
+                select(RadarRequestRow.id)
+                .where(
+                    RadarRequestRow.principal_id == principal,
+                )
+                .limit(MAX_RETAINED_REQUESTS)
+            )
+        )
+        if len(retained) >= MAX_RETAINED_REQUESTS:
+            raise RadarLimitReached
+
+    async def _replay(
+        self,
+        session: AsyncSession,
+        idem: bytes | None,
+        fingerprint: bytes | None,
+        now: datetime,
+    ) -> RadarRequestRow | None:
+        if idem is None:
+            return None
+        row = await session.scalar(
+            select(RadarRequestRow).where(
+                RadarRequestRow.idempotency_hash == idem,
+            )
+        )
+        if row is None:
+            return None
+        if row.request_hash != fingerprint:
+            raise RadarConflict
+        if self._effective_status(row, now) not in {RadarStatus.PENDING, RadarStatus.COMPLETED}:
+            raise RadarUnavailable
+        if row.mode == RadarMode.CONSENTED_INVITE.value and row.status != RadarStatus.PENDING.value:
+            raise RadarUnavailable
+        return row
+
+    def _private_replay(self, row: RadarRequestRow) -> dict[str, Any]:
+        if row.result_ciphertext is None:
+            raise RadarUnavailable
+        payload = json.loads(
+            self._envelope.decrypt(
+                row.result_ciphertext,
+                context=f"radar-result:{row.id}".encode(),
+            )
+        )
+        return {
+            "request_id": str(row.id),
+            "recipient_label": self._label(row),
+            "mode": RadarMode.PRIVATE_CHECK.value,
+            **payload,
+        }
 
     async def share_token(self, principal_id: UUID, request_id: UUID) -> str:
         async with self._sessions() as session:
@@ -278,12 +519,18 @@ class RadarService:
     ) -> RadarAcceptResult:
         if consent_version != CONSENT_VERSION:
             raise RadarInvalid
+        pending = await self._pending_by_token(token)
+        sources = {}
+        for guest_id in (pending.owner_guest_id, recipient_guest_id):
+            source = await self._birth.current(guest_id)
+            sources[guest_id] = (source.snapshot_id, source.profile_revision)
         chart_b = await self._chart(recipient_guest_id)
         if chart_b is None:
             raise RadarChartRequired
         digest = self._hasher.digest("radar-capability", token)
         current = datetime.now(UTC)
         async with self._sessions() as session, session.begin():
+            await self._lock_chart_sources(session, sources)
             row = await session.scalar(
                 select(RadarRequestRow)
                 .where(RadarRequestRow.token_hash == digest)
@@ -413,8 +660,12 @@ class RadarService:
                 raise RadarUnavailable
             owner_guest_id = row.owner_guest_id
             recipient_guest_id = row.recipient_guest_id
+            sends = await pending_sends(
+                session, (owner_guest_id,) + ((recipient_guest_id,) if recipient_guest_id else ())
+            )
             await session.delete(row)
         await self._cancel_rewrites(request_id, owner_guest_id, recipient_guest_id)
+        await drain_sends(self._sessions, sends)
 
     async def withdraw(self, receipt: str, *, expected_request_id: UUID) -> None:
         current = datetime.now(UTC)
@@ -437,11 +688,15 @@ class RadarService:
                 raise RadarUnavailable
             owner_guest_id = row.owner_guest_id
             recipient_guest_id = row.recipient_guest_id
+            sends = await pending_sends(
+                session, (owner_guest_id,) + ((recipient_guest_id,) if recipient_guest_id else ())
+            )
             row.status = RadarStatus.WITHDRAWN.value
             row.withdrawn_at = current
             row.result_ciphertext = None
             row.receipt_ciphertext = None
         await self._cancel_rewrites(expected_request_id, owner_guest_id, recipient_guest_id)
+        await drain_sends(self._sessions, sends)
 
     async def _enqueue_rewrite(
         self,
@@ -505,6 +760,34 @@ class RadarService:
 
     async def _chart(self, guest_id: UUID):  # type: ignore[no-untyped-def]
         return await self._birth.chart_for_config(guest_id, CalculationConfig.western_recommended())
+
+    @staticmethod
+    async def _lock_chart_sources(
+        session: AsyncSession, sources: dict[UUID, tuple[UUID, datetime | None]]
+    ) -> None:
+        guests = []
+        for guest_id in sorted(sources, key=lambda id: id.int):
+            guests.append(
+                await session.scalar(
+                    select(GuestSessionRow).where(GuestSessionRow.id == guest_id).with_for_update()
+                )
+            )
+        now = datetime.now(UTC)
+        if any(
+            guest is None or guest.state != "active" or guest.expires_at <= now for guest in guests
+        ):
+            raise RadarUnavailable
+        for guest_id, (snapshot_id, revision) in sources.items():
+            profile = await session.scalar(
+                select(BirthProfileRow).where(
+                    BirthProfileRow.guest_id == guest_id,
+                    BirthProfileRow.current_snapshot_id == snapshot_id,
+                    BirthProfileRow.updated_at == revision,
+                    BirthProfileRow.profile_level == 3,
+                )
+            )
+            if profile is None:
+                raise RadarChartRequired
 
     def _label(self, row: RadarRequestRow) -> str:
         return self._envelope.decrypt(

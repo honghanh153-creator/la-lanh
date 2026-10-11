@@ -1,6 +1,106 @@
 {
   "components": {
     "schemas": {
+      "AccountSession": {
+        "properties": {
+          "csrf_token": {
+            "title": "Csrf Token",
+            "type": "string"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "onboarding_status": {
+            "title": "Onboarding Status",
+            "type": "string"
+          },
+          "resumed": {
+            "title": "Resumed",
+            "type": "boolean"
+          },
+          "session_epoch": {
+            "title": "Session Epoch",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "onboarding_status",
+          "expires_at",
+          "csrf_token",
+          "session_epoch",
+          "resumed"
+        ],
+        "title": "AccountSession",
+        "type": "object"
+      },
+      "AccountStatus": {
+        "properties": {
+          "account_inactivity_days": {
+            "default": 365,
+            "title": "Account Inactivity Days",
+            "type": "integer"
+          },
+          "google_login_enabled": {
+            "default": false,
+            "title": "Google Login Enabled",
+            "type": "boolean"
+          },
+          "guest_inactivity_days": {
+            "title": "Guest Inactivity Days",
+            "type": "integer"
+          },
+          "history_days": {
+            "default": 30,
+            "title": "History Days",
+            "type": "integer"
+          },
+          "login_enabled": {
+            "title": "Login Enabled",
+            "type": "boolean"
+          },
+          "masked_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Email"
+          },
+          "profile_expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Expires At"
+          },
+          "signed_in": {
+            "title": "Signed In",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "login_enabled",
+          "signed_in",
+          "masked_email",
+          "profile_expires_at",
+          "guest_inactivity_days"
+        ],
+        "title": "AccountStatus",
+        "type": "object"
+      },
       "AcknowledgeAuraTransitionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -217,6 +317,21 @@
         "title": "BackgroundLens",
         "type": "string"
       },
+      "BasicBirthConsentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "const": "birth-profile-v1",
+            "title": "Consent Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "consent_version"
+        ],
+        "title": "BasicBirthConsentRequest",
+        "type": "object"
+      },
       "BirthDateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -288,6 +403,52 @@
           "resumed"
         ],
         "title": "BirthRevealResponse",
+        "type": "object"
+      },
+      "BirthSupplementEditResponse": {
+        "properties": {
+          "approx_window": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApproxWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "birth_time_local": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Time Local"
+          },
+          "birth_time_mode": {
+            "$ref": "#/components/schemas/BirthTimeMode"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaceResultResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "birth_time_mode",
+          "birth_time_local",
+          "approx_window",
+          "place"
+        ],
+        "title": "BirthSupplementEditResponse",
         "type": "object"
       },
       "BirthSupplementRemoveRequest": {
@@ -646,6 +807,64 @@
         "title": "ChartType",
         "type": "string"
       },
+      "CodeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_storage_consent": {
+            "anyOf": [
+              {
+                "const": "account-storage-v1",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Storage Consent"
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "CodeRequest",
+        "type": "object"
+      },
+      "CodeResponse": {
+        "properties": {
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "login_csrf_token": {
+            "title": "Login Csrf Token",
+            "type": "string"
+          },
+          "resend_after_seconds": {
+            "default": 60,
+            "title": "Resend After Seconds",
+            "type": "integer"
+          },
+          "status": {
+            "const": "code_sent",
+            "default": "code_sent",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "login_csrf_token",
+          "expires_at"
+        ],
+        "title": "CodeResponse",
+        "type": "object"
+      },
       "ContentRewriteConsentRequest": {
         "additionalProperties": false,
         "properties": {
@@ -664,6 +883,29 @@
           "consent_version"
         ],
         "title": "ContentRewriteConsentRequest",
+        "type": "object"
+      },
+      "ContentRewriteConsentStatus": {
+        "properties": {
+          "consented": {
+            "title": "Consented",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "pilot_eligible": {
+            "title": "Pilot Eligible",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "consented",
+          "enabled",
+          "pilot_eligible"
+        ],
+        "title": "ContentRewriteConsentStatus",
         "type": "object"
       },
       "ContextProjectionRequest": {
@@ -872,6 +1114,43 @@
           "provenance"
         ],
         "title": "DateOnlySunResult",
+        "type": "object"
+      },
+      "DeviceResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current": {
+            "title": "Current",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_active_at": {
+            "format": "date-time",
+            "title": "Last Active At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "current",
+          "created_at",
+          "last_active_at",
+          "expires_at"
+        ],
+        "title": "DeviceResponse",
         "type": "object"
       },
       "EngineProvenance": {
@@ -1211,6 +1490,56 @@
         "title": "GenderPreference",
         "type": "string"
       },
+      "GoogleRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_storage_consent": {
+            "const": "account-storage-v1",
+            "title": "Account Storage Consent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_storage_consent"
+        ],
+        "title": "GoogleRequest",
+        "type": "object"
+      },
+      "GoogleResponse": {
+        "properties": {
+          "authorize_url": {
+            "title": "Authorize Url",
+            "type": "string"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorize_url",
+          "expires_at"
+        ],
+        "title": "GoogleResponse",
+        "type": "object"
+      },
+      "GoogleVerifyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 2048,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_.~-]+$",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "GoogleVerifyRequest",
+        "type": "object"
+      },
       "GrahaDrishti": {
         "properties": {
           "from_body": {
@@ -1247,6 +1576,18 @@
             "minLength": 1,
             "title": "Consent Version",
             "type": "string"
+          },
+          "history_consent_version": {
+            "anyOf": [
+              {
+                "const": "history-retention-v1",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Consent Version"
           },
           "idempotency_key": {
             "maxLength": 200,
@@ -1353,6 +1694,59 @@
           "schema_version"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "HistoryRetentionConsent": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "const": "history-retention-v1",
+            "title": "Consent Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "consent_version"
+        ],
+        "title": "HistoryRetentionConsent",
+        "type": "object"
+      },
+      "HistoryRetentionStatus": {
+        "properties": {
+          "activated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "history_days": {
+            "const": 30,
+            "default": 30,
+            "title": "History Days",
+            "type": "integer"
+          },
+          "saved_notes_kept": {
+            "const": true,
+            "default": true,
+            "title": "Saved Notes Kept",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "activated_at"
+        ],
+        "title": "HistoryRetentionStatus",
         "type": "object"
       },
       "HousePosition": {
@@ -1610,6 +2004,57 @@
           "expires_at"
         ],
         "title": "InviteResponse",
+        "type": "object"
+      },
+      "LoginResponse": {
+        "properties": {
+          "masked_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Email"
+          },
+          "profile_expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Expires At"
+          },
+          "session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountSession"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "signed_in",
+              "restore_required",
+              "onboarding_required",
+              "consent_required"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "LoginResponse",
         "type": "object"
       },
       "MatchingConsentInput": {
@@ -3204,6 +3649,21 @@
         "title": "ResonanceStatusResponse",
         "type": "object"
       },
+      "RestoreRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "const": true,
+            "title": "Confirm",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "RestoreRequest",
+        "type": "object"
+      },
       "RewriteConsentScope": {
         "enum": [
           "personal",
@@ -4215,6 +4675,23 @@
         "title": "VerificationStatus",
         "type": "string"
       },
+      "VerifyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 6,
+            "minLength": 6,
+            "pattern": "^[0-9]{6}$",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "VerifyRequest",
+        "type": "object"
+      },
       "WeeklyIntent": {
         "enum": [
           "de_noi_chuyen",
@@ -4260,6 +4737,2585 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/account": {
+      "get": {
+        "operationId": "status_v1_account_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/devices": {
+      "get": {
+        "operationId": "devices_v1_account_devices_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceResponse"
+                  },
+                  "title": "Response Devices V1 Account Devices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Devices",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/devices/revoke-others": {
+      "post": {
+        "operationId": "revoke_others_v1_account_devices_revoke_others_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Revoke Others",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/devices/{device_id}/revoke": {
+      "post": {
+        "operationId": "revoke_device_v1_account_devices__device_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Revoke Device",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/login/cancel": {
+      "post": {
+        "operationId": "cancel_v1_account_login_cancel_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Cancel",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/login/code": {
+      "post": {
+        "operationId": "code_v1_account_login_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Code",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/login/google": {
+      "post": {
+        "operationId": "google_start_v1_account_login_google_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Google Start",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/login/google/verify": {
+      "post": {
+        "operationId": "google_verify_v1_account_login_google_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Google Verify",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/login/restore": {
+      "post": {
+        "operationId": "restore_v1_account_login_restore_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Restore",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/login/verify": {
+      "post": {
+        "operationId": "verify_v1_account_login_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Verify",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/v1/account/logout": {
+      "post": {
+        "operationId": "logout_v1_account_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Private account operation failed"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "account"
+        ]
+      }
+    },
     "/v1/birth-places/search": {
       "post": {
         "operationId": "search_birth_places_v1_birth_places_search_post",
@@ -4556,6 +7612,9 @@
           "403": {
             "description": "Forbidden"
           },
+          "409": {
+            "description": "Conflict"
+          },
           "422": {
             "description": "Unprocessable Content"
           },
@@ -4564,6 +7623,33 @@
           }
         },
         "summary": "Add Birth Supplement",
+        "tags": [
+          "birth-chart"
+        ]
+      }
+    },
+    "/v1/birth-profile/supplement/edit": {
+      "get": {
+        "operationId": "get_birth_supplement_edit_v1_birth_profile_supplement_edit_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthSupplementEditResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "Get Birth Supplement Edit",
         "tags": [
           "birth-chart"
         ]
@@ -4606,6 +7692,9 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
           },
           "422": {
             "content": {
@@ -5453,6 +8542,16 @@
               }
             },
             "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         },
         "summary": "Delete Guest Session",
@@ -5722,6 +8821,9 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
           },
           "422": {
             "content": {
@@ -7038,6 +10140,23 @@
               ],
               "title": "X-Csrf-Token"
             }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -7061,6 +10180,47 @@
             },
             "description": "Successful Response"
           },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "RADAR_LIMIT_REACHED",
+                        "RADAR_IDEMPOTENCY_CONFLICT",
+                        "RADAR_CHART_REQUIRED",
+                        "ADMISSION_LIMITED"
+                      ],
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "RadarProblem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Chart required or conflicting retry"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -7070,6 +10230,47 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "RADAR_LIMIT_REACHED",
+                        "RADAR_IDEMPOTENCY_CONFLICT",
+                        "RADAR_CHART_REQUIRED",
+                        "ADMISSION_LIMITED"
+                      ],
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "RadarProblem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Radar capacity reached or admission rate limited"
           }
         },
         "summary": "Create Private Check",
@@ -7081,6 +10282,53 @@
     "/v1/radar/requests": {
       "get": {
         "operationId": "list_requests_v1_radar_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RadarMode"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -7095,6 +10343,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Requests",
@@ -7120,6 +10378,23 @@
               ],
               "title": "X-Csrf-Token"
             }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -7143,6 +10418,47 @@
             },
             "description": "Successful Response"
           },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "RADAR_LIMIT_REACHED",
+                        "RADAR_IDEMPOTENCY_CONFLICT",
+                        "RADAR_CHART_REQUIRED",
+                        "ADMISSION_LIMITED"
+                      ],
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "RadarProblem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Chart required or conflicting retry"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -7152,6 +10468,47 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "RADAR_LIMIT_REACHED",
+                        "RADAR_IDEMPOTENCY_CONFLICT",
+                        "RADAR_CHART_REQUIRED",
+                        "ADMISSION_LIMITED"
+                      ],
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "RadarProblem",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Radar capacity reached or admission rate limited"
           }
         },
         "summary": "Create Request",
@@ -7673,6 +11030,58 @@
         ]
       }
     },
+    "/v1/session/birth-profile-consent": {
+      "post": {
+        "operationId": "accept_basic_birth_consent_v1_session_birth_profile_consent_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BasicBirthConsentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Basic Birth Consent",
+        "tags": [
+          "guest"
+        ]
+      }
+    },
     "/v1/session/content-rewrite-consent": {
       "delete": {
         "operationId": "revoke_content_rewrite_consent_v1_session_content_rewrite_consent_delete",
@@ -7739,6 +11148,35 @@
           }
         },
         "summary": "Revoke Content Rewrite Consent",
+        "tags": [
+          "guest"
+        ]
+      },
+      "get": {
+        "operationId": "get_content_rewrite_consent_v1_session_content_rewrite_consent_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentRewriteConsentStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "summary": "Get Content Rewrite Consent",
         "tags": [
           "guest"
         ]
@@ -7811,6 +11249,126 @@
         "summary": "Grant Content Rewrite Consent",
         "tags": [
           "guest"
+        ]
+      }
+    },
+    "/v1/session/history": {
+      "delete": {
+        "operationId": "clear_history_v1_session_history_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear History",
+        "tags": [
+          "history"
+        ]
+      }
+    },
+    "/v1/session/history-retention": {
+      "get": {
+        "operationId": "get_history_retention_v1_session_history_retention_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryRetentionStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get History Retention",
+        "tags": [
+          "history"
+        ]
+      },
+      "post": {
+        "operationId": "activate_history_retention_v1_session_history_retention_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryRetentionConsent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryRetentionStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activate History Retention",
+        "tags": [
+          "history"
         ]
       }
     },
@@ -7888,6 +11446,75 @@
           }
         },
         "summary": "Update Onboarding Status",
+        "tags": [
+          "guest"
+        ]
+      }
+    },
+    "/v1/session/renew": {
+      "post": {
+        "operationId": "renew_session_v1_session_renew_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Renew Session",
         "tags": [
           "guest"
         ]

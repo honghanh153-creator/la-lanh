@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation: Làm lại Home Lá Lành</title>
+  <style>
+    :root {
+      --bg: #080a22;
+      --panel: #111333;
+      --panel-2: #18183f;
+      --paper: #fff8e8;
+      --ink: #14112e;
+      --text: #f8f3e8;
+      --muted: #c2bad8;
+      --line: #35335d;
+      --lime: #d9ff28;
+      --violet: #bd8dff;
+      --coral: #ff806e;
+      --good: #9ce6bd;
+      --warn: #ffd37a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 78% 4%, rgba(255,128,110,.16), transparent 22rem),
+        radial-gradient(circle at 15% 15%, rgba(189,141,255,.12), transparent 25rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+    }
+    a { color: var(--lime); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; }
+    .shell { width: min(940px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 72px; }
+    .brand { display: inline-flex; align-items: center; border: 1px solid var(--lime); border-radius: 12px; padding: 7px 12px; color: var(--lime); font-weight: 850; letter-spacing: -.03em; }
+    header { padding: 26px 0 38px; }
+    .eyebrow { color: var(--lime); font-size: .75rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 14px 0 14px; max-width: 16ch; font-size: clamp(2.4rem, 8vw, 5.1rem); line-height: .98; letter-spacing: -.065em; }
+    .lede { max-width: 68ch; margin: 0; color: var(--muted); font-size: 1.08rem; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .chip { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; color: var(--muted); background: rgba(255,255,255,.025); font-size: .8rem; }
+    .verdict { margin-top: 28px; border: 1px solid rgba(217,255,40,.4); background: rgba(217,255,40,.08); border-radius: 18px; padding: 20px; }
+    .verdict strong { color: var(--lime); }
+    section { margin-top: 58px; }
+    h2 { margin: 0 0 14px; font-size: clamp(1.55rem, 4vw, 2.3rem); line-height: 1.08; letter-spacing: -.04em; }
+    h3 { margin: 0; font-size: 1.35rem; line-height: 1.18; letter-spacing: -.03em; }
+    p { max-width: 72ch; }
+    .context-grid, .axes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .context-card, .axis { border: 1px solid var(--line); background: rgba(255,255,255,.025); border-radius: 16px; padding: 17px; }
+    .context-card strong, .axis strong { display: block; margin-bottom: 5px; }
+    .context-card p, .axis p { margin: 0; color: var(--muted); font-size: .92rem; }
+    .shape { border: 1px solid var(--line); border-radius: 20px; padding: 18px; background: rgba(17,19,51,.8); overflow-x: auto; }
+    svg { width: 100%; min-width: 650px; height: auto; display: block; }
+    .jump-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 24px; }
+    .jump-list a { border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; color: var(--text); text-decoration: none; font-size: .82rem; }
+    .jump-list a:hover { border-color: var(--lime); color: var(--lime); }
+    .idea { margin: 18px 0; padding: 24px; border-radius: 20px; background: var(--paper); color: var(--ink); }
+    .idea-head { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+    .rank { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--ink); color: var(--lime); font-weight: 900; }
+    .axis-label { margin-top: 5px; color: #5d5377; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .idea p { max-width: 75ch; }
+    .idea dl { display: grid; grid-template-columns: 105px 1fr; gap: 8px 14px; margin: 18px 0 0; }
+    .idea dt { color: #665c79; font-size: .78rem; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
+    .idea dd { margin: 0; }
+    .metrics { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .metric { border-radius: 999px; background: #ece3cf; padding: 6px 10px; font-size: .78rem; font-weight: 800; }
+    .top-pick { box-shadow: 0 0 0 2px var(--lime), 0 16px 50px rgba(217,255,40,.13); }
+    .callout { border-radius: 16px; padding: 16px 18px; background: rgba(189,141,255,.11); border: 1px solid rgba(189,141,255,.38); }
+    table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); background: var(--panel); }
+    th, td { text-align: left; vertical-align: top; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+    th { color: var(--lime); font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; }
+    td { color: var(--muted); font-size: .9rem; }
+    td:first-child { color: var(--text); font-weight: 750; }
+    .refs li { margin: 8px 0; color: var(--muted); }
+    footer { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--line); color: #928aa8; font-size: .78rem; }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 22px, 940px); padding-top: 22px; }
+      .context-grid, .axes { grid-template-columns: 1fr; }
+      .idea { padding: 19px; }
+      .idea dl { grid-template-columns: 1fr; gap: 3px; }
+      .idea dd { margin-bottom: 9px; }
+      th, td { padding: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="brand">Lá Lành*</div>
+    <header>
+      <div class="eyebrow">Ideation · Home rebuild</div>
+      <h1>Home phải là một câu trả lời, không phải một kho tính năng.</h1>
+      <p class="lede">Bản này không tìm cách “sắp card đẹp hơn”. Nó tìm một mô hình sản phẩm mà người mới hiểu được trong 5–10 giây, người quay lại nhận được giá trị hôm nay ngay lập tức, và mọi capability còn lại có vị trí rõ ràng.</p>
+      <div class="meta" aria-label="Thông tin tài liệu">
+        <span class="chip">Ngày: <time datetime="2026-09-30">2026-09-30</time></span>
+        <span class="chip">Topic: home-rebuild</span>
+        <span class="chip">Mode: repo-grounded</span>
+        <span class="chip">Focus: hiểu nhanh · scan nhanh · một bước tiếp theo</span>
+      </div>
+      <div class="verdict"><strong>Kết luận cốt lõi:</strong> Home hiện kỳ quặc vì đang trộn ba “đối tượng cần hiểu” với một “cách làm rõ”, đồng thời render mọi trạng thái như các khối ngang hàng. Hướng mạnh nhất là: lời hứa rõ → Daily chứng minh → một hành động → ba hướng hiểu; Tarot trở thành lớp làm rõ, không phải feature card thứ tư.</div>
+    </header>
+
+    <section id="grounding">
+      <div class="eyebrow">Grounding context</div>
+      <h2>Vấn đề là mô hình, không phải copy.</h2>
+      <div class="context-grid">
+        <article class="context-card"><strong>Câu hỏi bị mồ côi</strong><p>“Bạn đang muốn hiểu điều gì?” nằm trước Note, còn các lựa chọn thật nằm sau toàn bộ stack. Người dùng thấy một câu hỏi nhưng không thấy cách trả lời.</p></article>
+        <article class="context-card"><strong>“Hôm nay” bị dùng ba lần</strong><p>Daily Note, Current Sky và Mood cùng tranh một khái niệm. Trong khi Daily đã kết hợp natal với bối cảnh hiện tại.</p></article>
+        <article class="context-card"><strong>Taxonomy không cùng cấp</strong><p>Mình, tình huống và một người là đối tượng cần hiểu. Tarot là phương pháp làm rõ. Đặt chúng thành bốn card ngang hàng làm mental model vỡ.</p></article>
+        <article class="context-card"><strong>Mọi thứ đều được render</strong><p>Note, feedback, mood, context, gift, unlock, Tarot và ba destination cùng xuất hiện. Mỗi thứ có lý riêng; tổng thể không còn ưu tiên.</p></article>
+        <article class="context-card"><strong>Đã có công cụ để bớt đi</strong><p>Sheet, disclosure, detail route và state Vibe/Aura/cache/experiment đã tồn tại. Không cần thêm hệ thống mới để làm Home gọn.</p></article>
+        <article class="context-card"><strong>External signal hội tụ</strong><p>The Pattern, CHANI, Oura, Duolingo và Finch đều nghiêng về một giá trị kịp thời, một bước tiếp theo, còn thư viện sâu nằm sau.</p></article>
+      </div>
+    </section>
+
+    <section id="shape">
+      <div class="eyebrow">Structural contrast</div>
+      <h2>Từ “xếp tất cả” sang “kể một câu chuyện”.</h2>
+      <div class="shape">
+        <svg viewBox="0 0 900 330" role="img" aria-labelledby="diagram-title diagram-desc">
+          <title id="diagram-title">So sánh Home hiện tại và hướng đề xuất</title>
+          <desc id="diagram-desc">Home hiện tại là nhiều module cạnh tranh. Hướng đề xuất là lời hứa, Daily proof, một hành động, sau đó mới mở ba hướng hiểu và Tarot clarification.</desc>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#d9ff28"/></marker>
+          </defs>
+          <text x="20" y="28" fill="#ff806e" font-size="16" font-weight="800">HIỆN TẠI · module ngang hàng</text>
+          <g fill="#18183f" stroke="#514d78">
+            <rect x="20" y="48" width="160" height="54" rx="14"/><rect x="20" y="112" width="160" height="54" rx="14"/><rect x="20" y="176" width="160" height="54" rx="14"/><rect x="20" y="240" width="160" height="54" rx="14"/>
+            <rect x="194" y="48" width="160" height="54" rx="14"/><rect x="194" y="112" width="160" height="54" rx="14"/><rect x="194" y="176" width="160" height="54" rx="14"/><rect x="194" y="240" width="160" height="54" rx="14"/>
+          </g>
+          <g fill="#f8f3e8" font-size="13" text-anchor="middle"><text x="100" y="80">Question heading</text><text x="100" y="144">Daily Note</text><text x="100" y="208">Mood / feedback</text><text x="100" y="272">Context</text><text x="274" y="80">Aura gift</text><text x="274" y="144">Unlock</text><text x="274" y="208">Tarot</text><text x="274" y="272">3 routes</text></g>
+          <path d="M382 170 H470" stroke="#d9ff28" stroke-width="3" marker-end="url(#arrow)"/>
+          <text x="445" y="151" fill="#d9ff28" font-size="13" text-anchor="middle">subtract</text>
+          <text x="500" y="28" fill="#d9ff28" font-size="16" font-weight="800">ĐỀ XUẤT · một dòng chảy</text>
+          <g stroke="#68638c">
+            <rect x="500" y="48" width="360" height="48" rx="14" fill="#18183f"/>
+            <rect x="500" y="112" width="360" height="76" rx="18" fill="#fff8e8"/>
+            <rect x="500" y="204" width="360" height="48" rx="14" fill="#d9ff28"/>
+            <rect x="500" y="268" width="110" height="42" rx="12" fill="#18183f"/><rect x="625" y="268" width="110" height="42" rx="12" fill="#18183f"/><rect x="750" y="268" width="110" height="42" rx="12" fill="#18183f"/>
+          </g>
+          <text x="680" y="78" fill="#f8f3e8" font-size="14" text-anchor="middle">Lá Lành giúp gì</text>
+          <text x="680" y="145" fill="#14112e" font-size="17" font-weight="800" text-anchor="middle">Giá trị dành riêng cho hôm nay</text><text x="680" y="169" fill="#5d5377" font-size="12" text-anchor="middle">một insight · một thử nghiệm</text>
+          <text x="680" y="234" fill="#14112e" font-size="14" font-weight="900" text-anchor="middle">Một bước tiếp theo</text>
+          <text x="555" y="294" fill="#f8f3e8" font-size="13" text-anchor="middle">Mình</text><text x="680" y="294" fill="#f8f3e8" font-size="13" text-anchor="middle">Chuyện này</text><text x="805" y="294" fill="#f8f3e8" font-size="13" text-anchor="middle">Một người</text>
+        </svg>
+      </div>
+    </section>
+
+    <section id="axes">
+      <div class="eyebrow">Topic axes</div>
+      <h2>Năm mặt phải cùng đúng.</h2>
+      <div class="axes">
+        <div class="axis"><strong>01 · Lời hứa</strong><p>Người mới nói lại được app dùng để làm gì sau 5–10 giây.</p></div>
+        <div class="axis"><strong>02 · Giá trị hôm nay</strong><p>Một insight đủ riêng, đủ scan và có ích ngay.</p></div>
+        <div class="axis"><strong>03 · Chọn điều muốn hiểu</strong><p>Đi theo nhu cầu đời thường, không theo tên tính năng.</p></div>
+        <div class="axis"><strong>04 · Mở dần</strong><p>Chỉ một cấp nổi bật; chi tiết, evidence và controls có chỗ riêng.</p></div>
+        <div class="axis"><strong>05 · Thích nghi trạng thái</strong><p>Vibe/Aura, cache, update và unlock không làm Home phình ra.</p></div>
+      </div>
+    </section>
+
+    <section id="ranked-ideas">
+      <div class="eyebrow">Ranked ideas · 6 survivors / 24 candidates</div>
+      <h2>Các hướng còn đứng vững sau phản biện.</h2>
+      <nav class="jump-list" aria-label="Đi tới ý tưởng">
+        <a href="#idea-1">1. Một câu trả lời</a><a href="#idea-2">2. Ba chủ thể</a><a href="#idea-3">3. Một “hôm nay”</a><a href="#idea-4">4. Ba tầng</a><a href="#idea-5">5. Một ô giá trị</a><a href="#idea-6">6. Auto context</a>
+      </nav>
+
+      <article class="idea top-pick" id="idea-1">
+        <div class="idea-head"><span class="rank">1</span><div><h3>Home Một Câu Trả Lời</h3><div class="axis-label">Lời hứa sản phẩm</div></div></div>
+        <p>Home mở bằng một lời hứa ngắn, đời thường và ổn định; ngay sau đó Daily Note chứng minh lời hứa bằng dữ liệu thật của người dùng. Không còn chuỗi “Chào bạn → Vibe/Aura → bạn muốn hiểu gì → còn đây là…” buộc người dùng tự ghép nghĩa.</p>
+        <dl><dt>Basis</dt><dd><strong>direct:</strong> US-03 định nghĩa Lá Lành biến lá số thật và bối cảnh hôm nay thành một tình huống đời thường và một thử nghiệm nhỏ; Home hiện chỉ mở bằng lời chào và nhãn nội bộ.</dd><dt>Rationale</dt><dd>Người mới hiểu sản phẩm bằng giá trị đã xảy ra trên chính màn hình, không bằng brochure hay danh mục feature.</dd><dt>Downsides</dt><dd>Lời hứa phải ngắn mà vẫn phân biệt được với horoscope chung. Nếu Daily content yếu, “proof-first” sẽ phơi lỗi content nhanh hơn.</dd></dl>
+        <div class="metrics"><span class="metric">Confidence · 93%</span><span class="metric">Complexity · Medium</span><span class="metric">Top pick</span></div>
+      </article>
+
+      <article class="idea" id="idea-2">
+        <div class="idea-head"><span class="rank">2</span><div><h3>Ba điều cần hiểu; Tarot là cách làm rõ</h3><div class="axis-label">Cách chọn điều muốn hiểu</div></div></div>
+        <p>Home chỉ có ba chủ thể: <strong>Mình</strong>, <strong>Chuyện đang xảy ra</strong>, <strong>Một người</strong>. Tarot không còn đứng ngang hàng như chủ thể thứ tư; nó là “Hỏi Lá để nhìn thêm một góc” sau hoặc bên cạnh mỗi hướng.</p>
+        <dl><dt>Basis</dt><dd><strong>direct:</strong> Question-first spec đã mô tả đúng ba đối tượng này và xác định Tarot là một cách tự soi theo câu hỏi, không thay đổi chart hay quyết định thay người dùng.</dd><dt>Rationale</dt><dd>Sửa ontology là điểm giải quyết cảm giác “kỳ quặc”: người dùng chọn thứ muốn hiểu trước, rồi mới chọn cách hiểu.</dd><dt>Downsides</dt><dd>Cần giữ Tarot đủ dễ thấy để không bị hiểu là đã bỏ tính năng. Nhãn ba chủ thể phải test với Gen Z Việt Nam.</dd></dl>
+        <div class="metrics"><span class="metric">Confidence · 92%</span><span class="metric">Complexity · Medium</span></div>
+      </article>
+
+      <article class="idea" id="idea-3">
+        <div class="idea-head"><span class="rank">3</span><div><h3>“Hôm nay” chỉ có một nghĩa</h3><div class="axis-label">Một giá trị chính dành cho hôm nay</div></div></div>
+        <p>Daily Note là câu trả lời cá nhân hóa duy nhất cho “hôm nay”. Current Sky chuyển thành lớp <strong>Vì sao hôm nay?</strong> hoặc “Bối cảnh chung”; Mood chỉ xuất hiện sau khi người dùng đã nhận giá trị chính.</p>
+        <dl><dt>Basis</dt><dd><strong>direct:</strong> Daily đã kết hợp natal và bầu trời hiện tại, trong khi Home hiện lặp “Tín hiệu hôm nay”, route “Hôm nay”, “Mood hôm nay” và “Vì sao hôm nay?”.</dd><dt>Rationale</dt><dd>Người dùng không còn phải phân biệt nhiều surface dùng cùng một từ, và Daily bớt giống một fortune cookie rời căn cứ.</dd><dt>Downsides</dt><dd>Không được trình bày Current Sky chung như nguyên nhân cá nhân hóa. Cần giữ ranh giới giữa evidence cá nhân và bối cảnh chung.</dd></dl>
+        <div class="metrics"><span class="metric">Confidence · 90%</span><span class="metric">Complexity · Medium</span></div>
+      </article>
+
+      <article class="idea" id="idea-4">
+        <div class="idea-head"><span class="rank">4</span><div><h3>Ba tầng, không chắp vá</h3><div class="axis-label">Mức độ chi tiết và nhịp mở dần</div></div></div>
+        <p>Đặt complexity budget cho Home: <strong>Tầng 0</strong> là lời hứa + Daily + một hành động; <strong>Tầng 1</strong> là sheet cho mood, đổi góc và lựa chọn phụ; <strong>Tầng 2</strong> là route chi tiết cho evidence, share và unlock. Feature mới không được tự tạo một block ngang hàng.</p>
+        <dl><dt>Basis</dt><dd><strong>direct:</strong> Hệ thống đã có AppSheet, collapsed evidence và route <code>/note/today</code>; audit và live beta đều cho thấy các module hiện cạnh tranh ngang hàng.</dd><dt>Rationale</dt><dd>Đây là luật ngăn Home tái chắp vá sau lần redesign, không chỉ là bố cục đẹp trong một release.</dd><dt>Downsides</dt><dd>Cần kỷ luật sản phẩm: mỗi capability phải chấp nhận vị trí phụ khi không phải nhiệm vụ chính. Một số analytics cũ theo module sẽ phải diễn giải lại.</dd></dl>
+        <div class="metrics"><span class="metric">Confidence · 94%</span><span class="metric">Complexity · Medium</span></div>
+      </article>
+
+      <article class="idea" id="idea-5">
+        <div class="idea-head"><span class="rank">5</span><div><h3>Một ô giá trị theo trạng thái</h3><div class="axis-label">Home theo Vibe/Aura và trạng thái</div></div></div>
+        <p>Home không render mọi thứ có thể. Nó chọn đúng một primary object từ state hiện có: Daily Note, cached Note, bản Aura mới chờ mở, unlock cần hoàn tất hoặc phục hồi phiên. Gift và unlock gắn vào object chính thay vì trở thành card độc lập.</p>
+        <dl><dt>Basis</dt><dd><strong>direct:</strong> Home đã biết note/cache, update, profile level, unlock và session state. Vấn đề là tất cả đang được xếp tiếp nhau.</dd><dt>Rationale</dt><dd>Home thích nghi có ý nghĩa mà không cần chatbot, recommendation engine hay lưu thêm intent nhạy cảm.</dd><dt>Downsides</dt><dd>Đây là hướng phức tạp nhất: phải định nghĩa priority table và QA đầy đủ cho fallback/offline/error. Không nên suy ra “lần đầu/quay lại” nếu state hiện tại không chứng minh được.</dd></dl>
+        <div class="metrics"><span class="metric">Confidence · 86%</span><span class="metric">Complexity · High</span></div>
+      </article>
+
+      <article class="idea" id="idea-6">
+        <div class="idea-head"><span class="rank">6</span><div><h3>Tự chọn góc; chỉ sửa khi lệch</h3><div class="axis-label">Cách chọn điều muốn hiểu</div></div></div>
+        <p>Góc đọc mặc định là <code>auto</code>. Context picker không còn là một module thường trực; chỉ khi người dùng chọn “Chưa trúng” hoặc “Đổi góc”, sheet hiện có mới mở để sửa ngữ cảnh.</p>
+        <dl><dt>Basis</dt><dd><strong>direct:</strong> Auto đã là mặc định; context chỉ đổi ví dụ đời thường, không làm tăng độ tin cậy. “Chưa trúng” là một trigger tự nhiên đã có.</dd><dt>Rationale</dt><dd>Xóa một control khỏi luồng chính mà vẫn giữ quyền sửa, giúp Daily đọc như sản phẩm chứ không như form cấu hình.</dd><dt>Downsides</dt><dd>Không nên lưu override thành preference dài hạn nếu chưa có consent riêng. Cần đảm bảo “Đổi góc” vẫn dễ tìm khi nội dung thực sự lệch.</dd></dl>
+        <div class="metrics"><span class="metric">Confidence · 84%</span><span class="metric">Complexity · Low</span></div>
+      </article>
+
+      <div class="callout"><strong>Điểm đáng chú ý:</strong> sáu survivor không phải sáu Home khác nhau. Chúng là một stack quyết định. Ý số 1 là concept dẫn đường; số 2–6 là các nguyên tắc giữ concept đó không bị biến lại thành một cột feature.</div>
+    </section>
+
+    <section id="rejections">
+      <div class="eyebrow">Rejection summary</div>
+      <h2>Những hướng đã bị loại hoặc nhập vào hướng mạnh hơn.</h2>
+      <table>
+        <thead><tr><th>Ý tưởng</th><th>Lý do</th></tr></thead>
+        <tbody>
+          <tr><td>Công thức astro làm hero</td><td>Đúng cơ chế nhưng dễ biến first viewport thành phần giải thích. Nhập phần tốt nhất vào ý 1.</td></tr>
+          <tr><td>Daily đổi tên thành ba nhịp</td><td>Cấu trúc gần như đã tồn tại; riêng nó không sửa IA toàn Home.</td></tr>
+          <tr><td>Daily episode theo unread state</td><td>Chưa có unread state đáng tin; trùng với one-value-slot.</td></tr>
+          <tr><td>Intent registry dùng toàn app</td><td>Giá trị kỹ thuật có thật nhưng vượt khỏi phạm vi ideation Home.</td></tr>
+          <tr><td>Router dạng hoàn thành câu</td><td>Một cách render của ý 2, không phải hướng độc lập; còn cần kiểm tra accessibility.</td></tr>
+          <tr><td>Home riêng cho first/returning</td><td>State hiện tại không đủ xác định người dùng quay lại một cách đáng tin.</td></tr>
+          <tr><td>Một CTA theo mọi state</td><td>Là acceptance rule của ý 4/5, không đủ khác biệt để giữ riêng.</td></tr>
+          <tr><td>Đúng một lần cuộn</td><td>Hữu ích như budget layout nhưng phụ thuộc viewport và cỡ chữ; nhập vào ý 4.</td></tr>
+          <tr><td>Home chuyển trạng thái tại chỗ</td><td>Thiếu read/skip state; có rủi ro làm mất orientation và navigation ổn định.</td></tr>
+          <tr><td>Chỉ hiện Tarot sau khi miss</td><td>Có thể chôn một core capability; chỉ giữ framing Tarot là lens trong ý 2.</td></tr>
+          <tr><td>Vibe/Aura chỉ đổi copy precision</td><td>Copy đúng nhưng không sửa IA; đưa thành rule trong ý 5.</td></tr>
+          <tr><td>Aura càng sâu Home càng ngắn</td><td>Nguyên tắc tốt nhưng là constraint con của ý 5.</td></tr>
+          <tr><td>Content phát CTA liên feature</td><td><strong>Refuted:</strong> metadata hiện tại không hỗ trợ contract Natal/Sky/Tarot này.</td></tr>
+          <tr><td>First viewport không CTA lớn</td><td>Đã là constraint hiện có; nhập vào complexity budget.</td></tr>
+          <tr><td>Nhật ký reflection dài hạn</td><td><strong>Refuted:</strong> mở rộng sensitive storage, retention, account và deletion ngoài phạm vi.</td></tr>
+          <tr><td>Lời hứa áp toàn navigation</td><td>Phần Home hợp lý; thay toàn sản phẩm là scope overrun.</td></tr>
+          <tr><td>Proof-first và bỏ intro cho returning</td><td>Trùng ý 1 và vẫn phụ thuộc first/returning state chưa có.</td></tr>
+          <tr><td>Phải accept/skip experiment mới được khám phá</td><td><strong>Refuted:</strong> biến thử nghiệm tự nguyện thành gate và trái non-directive UX.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="references">
+      <div class="eyebrow">Sources & references</div>
+      <h2>Bằng chứng chính đã dùng.</h2>
+      <ul class="refs">
+        <li><a href="https://github.com/honghanh153-creator/la-lanh/blob/main/apps/web/src/features/home/HomePage.tsx">Current Home implementation</a></li>
+        <li><a href="https://github.com/honghanh153-creator/la-lanh/blob/main/docs/foundation/la-lanh-question-first-home-spec.md">Question-first Home spec</a></li>
+        <li><a href="https://github.com/honghanh153-creator/la-lanh/blob/main/docs/user-stories/US-03-doc-note-hom-nay.md">US-03 Daily Note</a></li>
+        <li><a href="https://github.com/honghanh153-creator/la-lanh/blob/main/docs/decisions/2026-09-07-chart-synthesis-ux-first-decisions.md">Chart synthesis UX decisions</a></li>
+        <li><a href="https://www.thepattern.com/app-features">The Pattern · app features</a></li>
+        <li><a href="https://chaninicholas.zendesk.com/hc/en-us/articles/8711720295187-A-Tour-of-the-CHANI-App">CHANI · app tour</a></li>
+        <li><a href="https://ouraring.com/blog/new-oura-app-experience/">Oura · redesigned Today experience</a></li>
+        <li><a href="https://blog.duolingo.com/new-duolingo-home-screen-design/">Duolingo · guided home path</a></li>
+        <li><a href="https://developer.apple.com/design/human-interface-guidelines/disclosure-controls">Apple · progressive disclosure</a></li>
+        <li><a href="https://developer.android.com/design/ui/mobile/guides/layout-and-content/layout-and-nav-patterns">Android · layout and navigation patterns</a></li>
+      </ul>
+    </section>
+
+    <footer class="composition-signal">Composed 2026-09-30T19:40:11+07:00 by <code>ce-ideate</code> from the current Lá Lành repository, live beta Home, five evidence axes and independent basis verification.</footer>
+  </main>
+</body>
+</html>

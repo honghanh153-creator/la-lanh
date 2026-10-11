@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -16,7 +17,13 @@ class BirthRepository(Protocol):
     ) -> BirthSnapshotRecord | None: ...
 
     async def save_supplement(
-        self, guest_id: UUID, snapshot: BirthSnapshotRecord | None, supplement: BirthSupplement
+        self,
+        guest_id: UUID,
+        snapshot: BirthSnapshotRecord | None,
+        supplement: BirthSupplement,
+        *,
+        expected_snapshot_id: UUID,
+        expected_updated_at: datetime | None,
     ) -> BirthSnapshotRecord | None: ...
 
     async def find_supplement(self, guest_id: UUID) -> BirthSupplementStored | None: ...

@@ -1,6 +1,6 @@
 # Lá Lành — store privacy data map
 
-Last reviewed: 2026-09-26. This is an engineering disclosure map, not legal advice. Final answers must be reconciled against the signed release binary, production data flow, every SDK and the store console wording at submission time.
+Last reviewed: 2026-10-09 (local engineering delta). This is an engineering disclosure map, not legal advice. Final answers must be reconciled against the signed release binary, production data flow, every SDK and the store console wording at submission time.
 
 ## Runtime posture
 
@@ -9,10 +9,28 @@ Last reviewed: 2026-09-26. This is an engineering disclosure map, not legal advi
 - Tracking/advertising: none implemented.
 - Analytics: none implemented for reading text, chart factors or personal fields.
 - External content provider: production off by default. If enabled after governance, it receives only an allowlisted derived ReadingPlan; never raw birth values, coordinates, identity/session/chart IDs or free text.
-- Planned web beta processor: Google Cloud using Cloud Run, Cloud SQL, Secret Manager, Artifact Registry, Cloud Scheduler and Cloud Logging. The default `asia-southeast1` region is Singapore, so Vietnamese-user data follows a cross-border route. Do not invite external testers until the applicable Law 91/2025/QH15 and Decree 356/2025/NĐ-CP review is evidenced and the user-facing privacy notice names the processor, destination, purposes and retention.
+- Current web beta processors: Hetzner VPS in Germany and Supabase in Frankfurt, Germany, as named in the beta privacy notice and deployment register. Google Cloud is not the deployed route. External rewrite activation adds OpenAI as a separate processor; review the applicable Law 91/2025/QH15 and Decree 356/2025/NĐ-CP obligations, DPA, processing destinations and retention before sending derived user content.
 - Transport: production native build requires an absolute HTTPS API URL. Android cleartext and mixed content are disabled.
 - Native session: authentication credential stays in a production `Secure` + `HttpOnly` API-domain cookie; only the separate CSRF token is persisted in app-local storage. Native requests carry a marker for origin handling, but still require the CSRF token and cookie.
 - Deletion: in-app guest deletion removes first-party server records, exact saved/share revisions and device personal caches; generated attempts are tied to the same deletion epoch/cascade.
+
+### Session-isolation engineering delta — local, 2026-10-09
+
+- Private in-memory fallback is tagged with the current guest epoch, local request generation and
+  CSRF-cookie change marker. These tags verify cache freshness, not authentication. The server
+  still verifies HttpOnly credentials and requires owner/source-guest agreement on owner routes.
+- A browser-local random cross-tab notice contains no epoch, birth field, reading, token or user ID.
+  It is a trigger to recheck the server, not an accepted identity. It remains local; no telemetry or
+  new third-party processor is added. Native cookie/storage behavior needs separate device testing.
+- On a known session change, private caches, queues and in-progress drafts are cleared and pending
+  responses cancelled/fenced. This does not delete the previous person's server profile or revoke
+  their independent sessions. Rechecking offline hides private content rather than displaying it
+  without verified ownership. The UI warns before a deliberate new guest start.
+- Daily meaning selection reuses existing derived chart factors. No new birth, mood, free text,
+  background, location or relationship fields are collected. Static synthetic collision evaluation
+  is offline; other users' private readings are not scanned to enforce unique prose.
+- These local fixes are not a production deployment, native release approval or complete legal
+  compliance assessment. The signed release/runtime remains the disclosure authority.
 
 ## Apple Privacy Manifest / App Privacy mapping
 
@@ -48,11 +66,11 @@ Use the following as the draft answer source, then map to the current Play Conso
 
 ## Radar hợp gu release delta
 
-- Active scope is a private, known-person 1:1 Radar. Pool/discovery, 5 hidden cards, matching profile, mutual, chat and recap (US-14–18) are deferred and must not be declared as active runtime collection.
-- Primary `private_check` lets A enter B's birth data only after attesting that B allowed this use. Raw B DOB/time/place is processed in request memory and must not be persisted, logged, cached, analyzed or turned into a profile. Only encrypted nickname/result and attestation timestamp/version remain for up to 30 days.
+- Intended public scope is a private, known-person 1:1 Radar. Pool/discovery, 5 hidden cards, mutual, chat and recap (US-14–18) are deferred. Legacy matching routes are still mounted; do not claim their collection is impossible until they are disabled or separately assessed at deployment.
+- Primary `private_check` lets A enter B's birth data only after attesting that B allowed this use. Raw B DOB/time/place is processed in request memory and must not be persisted as raw inputs, logged, cached or turned into a profile. Retained fields include encrypted nickname/result, attestation timestamp/version, coarse context/voice and keyed retry metadata, for up to 30 days of result access. Scheduled physical deletion and backup expiry are separate lifecycle checks.
 - Secondary `radar-pair-v1` invite is purpose-specific and separate from birth-profile consent. B supplies B's own profile and may withdraw the pair result.
 - No current location, GPS, coarse discovery region, contacts import or numeric distance is collected for Radar.
-- The API stores an encrypted nickname/context and encrypted minimized relationship result. `radar-result-v2` includes Pair Signature, three independent interaction indicators, scenario copy, technical evidence receipts and provenance versions; these are derived personal data even though raw birth inputs are absent. Capability and receipt tokens are hashed for lookup and protected by no-store/no-referrer/no-index public delivery.
+- The API application-encrypts nickname and minimized relationship result. Coarse relationship context and voice are plaintext operational fields within the protected database. Nullable keyed HMAC retry/input digests are derived personal metadata, retained only with the Radar row, not anonymous data. Raw third-party DOB/time/place is not stored as a profile. `radar-result-v2` includes Pair Signature, three independent interaction indicators, scenario copy, technical evidence receipts and provenance versions. These remain derived personal data. Capability and receipt tokens are hashed for lookup and protected by no-store/no-referrer/no-index public delivery.
 - Both store disclosures must still include birth date/time and user-selected birthplace because server-side natal calculation receives them, including transient third-party input in private mode, even though Radar never shares those raw values.
 - Pair results are derived personal data and should be disclosed as linked product-personalization/app-functionality data, not tracking.
 
@@ -70,6 +88,17 @@ Google’s “shared” definition and service-provider exceptions must be check
 
 ## External generation disclosure gate
 
+The 2026-10-08 local pilot implementation adds explicit `external-content-rewrite-v1` personal
+opt-in under `Mình`, default off. The disclosure names OpenAI, derived semantic summaries, no raw
+birth/location/identity values or free-form Tarot questions, `store:false`, possible abuse-monitoring
+retention up to 30 days or legal exceptions, and the limits of withdrawal. This does not authorize
+Radar/Matching or another person's information. A UI choice is not evidence that the provider's
+DPA/cross-border requirements have been completed. Production generation is still disabled.
+
+The new monthly reservation record has UTC month and conservative nanodollar debit only. It has no
+owner identifiers or foreign keys. Preserve this anonymous aggregate after personal deletion to
+prevent budget reset. This is not analytics, tracking, or retention of the deleted reading.
+
 Provider generation may only move from `off` to `shadow` or user-visible exposure when all of these are evidenced:
 
 - provider/DPA, subprocessors, inference region and cross-border route reviewed;
@@ -81,7 +110,32 @@ Provider generation may only move from `off` to `shadow` or user-visible exposur
 
 Native release additionally requires the API host to be configured as the cookie domain. `__Host-` cookie names must not be combined with a `Domain` attribute; if the app later moves session credentials to Keychain/Keystore, this map and both store disclosures must be regenerated from the signed binary.
 
+## Tarot meaning brief delta — local work, 2026-10-09
+
+Tarot rewriting adds an allowlisted, locally authored meaning brief: selected topic,
+intent, recognised goal codes, contextual summary and explicitly supported card links.
+This is **derived personal content**, not anonymous data merely because names are absent.
+It requires the separate external-rewrite opt-in. Raw questions, names, birth values,
+coordinates and account/session identifiers remain excluded from provider input.
+
+The provider boundary rejects a missing brief before transport. A failed local reading
+gate keeps the selected cards but does not enqueue generation. A rejected rewrite keeps
+the local reading; it does not trigger another paid attempt. Existing saved revisions
+are not silently rewritten. `store:false` is not Zero Data Retention.
+
+These are source-level controls, not proof of live deployment, legal compliance or
+completed processor/cross-border arrangements. Text gates are heuristic, not a guarantee
+that every generated sentence preserves meaning. Paid sample review remains a release gate.
+
 ## Official sources
+
+### Rewrite erasure implementation, 2026-10-08
+
+Migration 0030 links encrypted rewrite jobs to the authorizing guest and supported Reading, Tarot or Radar parent. Deleting either a guest or the parent removes the queued payload through database foreign-key cascades. Radar jobs for both perspectives share the same parent linkage. External-rewrite consent withdrawal invalidates the matching queued jobs in the consent transaction. Removing birth precision cancels pending Reading rewrites and erases affected Radar reports for both participants; unrelated birthless Tarot work remains available. A new Radar report requires recalculation with the remaining information.
+
+The scheduled guest cleanup also removes unlocked rewrite envelopes older than 24 hours in bounded batches, including abandoned expired leases, while skipping active leased work. Anonymous conservative daily/monthly debit totals persist independently of personal-data erasure. They do not retain guest IDs, questions, chart facts or generated text. Admitted provider work can delay withdrawal acknowledgement until it finishes or times out. Already transmitted data remains subject to the provider's retention policy; do not promise immediate provider-side erasure.
+
+These are source-level changes, not evidence of deployed configuration, completed store declarations or legal compliance. Check the live migration, retention schedule and provider arrangements before enabling paid rewriting. Vietnam's [Law 91/2025/QH15](https://congbao.chinhphu.vn/van-ban/luat-so-91-2025-qh15-45578.htm) is effective from 2026-01-01; this review checked official publication metadata, not a full legal assessment.
 
 - Apple, App Privacy Details: https://developer.apple.com/app-store/app-privacy-details/
 - Apple, Privacy manifest files: https://developer.apple.com/documentation/bundleresources/privacy-manifest-files
@@ -92,3 +146,13 @@ Native release additionally requires the API host to be configured as the cookie
 - Google Play, incidental dating or matchmaking: https://support.google.com/googleplay/android-developer/answer/16838200
 - Capacitor v8 configuration/cookies/http/security: https://capacitorjs.com/docs/config, https://capacitorjs.com/docs/apis/cookies, https://capacitorjs.com/docs/apis/http, https://capacitorjs.com/docs/guides/security
 - OpenAI API data controls: https://developers.openai.com/api/docs/guides/your-data
+
+## Account/history delta — 2026-10-10, not a store submission
+
+**Google SSO update:** UI uses Google via Supabase PKCE, not phone/email entry. Supabase/Google process the login identity, including basic profile name/photo under the default profile scope. The app stores a verified subject UUID and masked email, not a profile photo. The encrypted short-lived PKCE verifier is consumed before code exchange. Code/state exist only transiently in callback memory after URL scrubbing; Supabase access/refresh and Google provider tokens never reach browser storage or become app authorization. No Gmail, contacts or birthday access is needed. Configure only openid/email/profile and verify the actual live consent screen before activation; source code alone does not prove provider settings. Login does not enable external AI consent. Flags stay off until provider identity erasure and live acceptance are complete. See [Google IAM](../architecture/account-iam-and-retention.md).
+
+The local implementation adds optional managed email identity (Supabase subject UUID + masked email), independent hashed device credentials, encrypted short-lived email challenges and keyed quota digests. Provider access/refresh tokens, OTP, raw device secrets and device fingerprinting are not persisted as application content. New private account/history tables enable RLS and revoke public/browser-role grants; the server uses explicit ownership predicates.
+
+Clocks and opt-ins: anonymous profile 30 days inactivity; linked account profile 365 days inactivity with `account-storage-v1`; device access 30 days inactivity; automatic history max 30 days from creation with `history-retention-v1`. The first-link screen discloses account storage and history together and records both acceptances. Do not describe this as two independent switches in that flow. Legacy history remains opt-in with a full 30-day grace. Current chart/readings and explicitly saved notes follow profile lifetime. Access expiry/logout is not erasure. Restore never copies unrelated guest consent. Physical cleanup, backup expiry and provider-side copies have different lifecycles; no immediate erasure of every copy is certified.
+
+Linked-account erasure first commits a DELETING state that denies all device access, then drains already admitted external sends, hard-deletes the verified identity in Supabase Auth, and finally cascades local app data. A missing admin credential or provider failure returns a private pending error, not a success acknowledgement. Scheduled cleanup retries the same DELETING identity. Disabling new sign-in must not remove the erasure credential. Live provider deletion, database role/cleanup/backup verification and native store disclosures remain release gates; optional Auth delivery is off. This is not a production deletion or legal/store certification. See [Account IAM contract](../architecture/account-iam-and-retention.md).

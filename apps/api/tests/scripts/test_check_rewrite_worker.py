@@ -22,6 +22,7 @@ async def test_worker_healthcheck_probes_database_without_calling_provider(
 ) -> None:
     settings = Settings(
         environment="test",
+        database_url="postgresql+asyncpg://worker:secret@example.test/app",
         generation_enabled=True,
         generation_worker_enabled=True,
         generation_provider="openai",
@@ -29,6 +30,9 @@ async def test_worker_healthcheck_probes_database_without_calling_provider(
         generation_spend_approved=True,
         generation_daily_token_budget=10_000,
         generation_daily_budget_cents=100,
+        generation_monthly_budget_cents=100,
+        generation_pilot_user_limit=20,
+        generation_openai_project_id="proj_testpilot",
         generation_surface_rollout={"daily_home": "shadow"},
         generation_openai_api_key="test-key",
     )

@@ -7,7 +7,6 @@ import {
   ApiProblem,
   createPrivateRadarCheck,
   deleteRadarResult,
-  listRadarInvites,
   searchBirthPlaces,
   type PlaceResult,
   type RadarInvite,
@@ -20,6 +19,7 @@ import "./radar.css";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { RADAR_CONTEXT_OPTIONS, RADAR_VOICE_OPTIONS } from "./radarOptions";
 import { RADAR_HISTORY_QUERY_KEY, useRadarOwnerBinding } from "./useRadarOwnerBinding";
+import { useRadarCreateKey, useRadarHistory } from "./useRadarHistory";
 
 function adultBirthDate(day: string, month: string, year: string): string | null {
   if (!/^\d{1,2}$/.test(day) || !/^\d{1,2}$/.test(month) || !/^\d{4}$/.test(year)) return null;
@@ -62,12 +62,8 @@ export function RadarPrivateStartPage() {
   }, [placeQuery]);
 
   const owner = useRadarOwnerBinding();
-  const history = useQuery({
-    queryKey: [...RADAR_HISTORY_QUERY_KEY, owner.epoch],
-    queryFn: ({ signal }) => listRadarInvites(signal),
-    enabled: owner.isReady,
-    retry: false,
-  });
+  const history = useRadarHistory(owner.epoch, owner.isReady, "private_check");
+  const retryKey = useRadarCreateKey(owner.epoch);
 
   const effectivePlaceQuery = debouncedPlaceQuery.length >= 2 ? debouncedPlaceQuery : "";
   const places = useQuery({
@@ -117,7 +113,8 @@ export function RadarPrivateStartPage() {
   ), [attested, birthDate, birthTime, birthTimeMode, label, selectedPlace]);
 
   const create = useMutation({
-    mutationFn: () => createPrivateRadarCheck({
+    mutationFn: () => {
+      const input = {
       recipient_label: label.trim(),
       context,
       voice,
@@ -126,13 +123,21 @@ export function RadarPrivateStartPage() {
       birth_time_local: birthTimeMode === "exact" ? birthTime : null,
       place_id: selectedPlace?.place_id ?? "",
       authorization_attested: attested,
-    }),
+      };
+      return createPrivateRadarCheck(input, retryKey.forDraft(input));
+    },
     onSuccess: (result) => {
+      retryKey.reset();
       void queryClient.invalidateQueries({ queryKey: RADAR_HISTORY_QUERY_KEY, refetchType: "none" });
       void navigate(`/radar/result/${result.request_id}`, { replace: true });
     },
     onError: (error) => {
-      if (error instanceof ApiProblem && error.status === 409) {
+      if (error instanceof ApiProblem && error.status === 429) {
+        setMessage(error.code === "RADAR_LIMIT_REACHED" ? "Bạn đã giữ 100 lần Radar. Xoá một kết quả cũ để check thêm nhé." : "Bạn đang check hơi nhanh. Chờ một phút rồi thử lại nhé.");
+      } else if (error instanceof ApiProblem && error.code === "RADAR_IDEMPOTENCY_CONFLICT") {
+        retryKey.reset();
+        setMessage("Thông tin hoặc chart đã đổi. Kiểm tra lại rồi bấm check nhé.");
+      } else if (error instanceof ApiProblem && error.status === 409) {
         setMessage("Chart của bạn còn thiếu giờ hoặc nơi sinh. Thêm một lần rồi quay lại đây nhé.");
       } else {
         setMessage("Chưa bắt được Radar. Kiểm tra ngày, giờ và nơi sinh rồi thử lại nhé.");
@@ -154,10 +159,7 @@ export function RadarPrivateStartPage() {
     if (complete) create.mutate();
   };
   const startOwnerProfile = () => sessionStorage.setItem("la-lanh-radar-owner-start", "1");
-  const privateHistory = useMemo(
-    () => history.data?.filter((item) => item.mode === "private_check") ?? [],
-    [history.data],
-  );
+  const privateHistory = history.items;
   useEffect(() => {
     if (location.hash !== "#radar-history") {
       scrolledToHistory.current = false;
@@ -206,8 +208,10 @@ export function RadarPrivateStartPage() {
     </form> : null}
     {owner.isPending && !owner.isError ? <section aria-live="polite" className="radar-owner-refresh"><Sparkle className="matching-pulse" /><p>Đang nối Radar với phiên chart hiện tại…</p></section> : null}
     {message && !owner.isError ? <p className="matching-message" role="alert">{message}</p> : null}
-    {create.isError && create.error instanceof ApiProblem && create.error.status === 409 ? <Link className="matching-secondary" onClick={startOwnerProfile} to="/birth-time">Thêm giờ & nơi sinh của mình</Link> : null}
+    {create.isError && create.error instanceof ApiProblem && create.error.status === 409 && create.error.code !== "RADAR_IDEMPOTENCY_CONFLICT" ? <Link className="matching-secondary" onClick={startOwnerProfile} to="/birth-time">Thêm giờ & nơi sinh của mình</Link> : null}
 
     {ownerReady ? <section className="radar-history" id="radar-history"><p className="eyebrow">Những lần check gần đây</p>{privateHistory.length ? privateHistory.map((item) => <article key={item.id}><span className={`radar-status is-${item.status}`}>{item.status === "completed" ? <Check /> : <HeartStraight />}</span><div><strong>{item.recipient_label}</strong><p>{item.status === "completed" ? "Kết quả được giữ tối đa 30 ngày" : "Kết quả đã hết hạn"}</p></div>{item.status === "completed" ? <Link to={`/radar/result/${item.id}`}>Mở</Link> : null}<button aria-label={`Xóa kết quả ${item.recipient_label}`} onClick={() => remove.mutate(item.id)} type="button"><Trash /></button></article>) : <p className="radar-history__empty">Chưa có bản đọc nào. Kết quả đầu tiên sẽ nằm ở đây để bạn mở lại.</p>}</section> : null}
+    {ownerReady && history.hasNextPage ? <button className="matching-secondary" disabled={history.isFetchingNextPage} onClick={() => void history.fetchNextPage()} type="button">{history.isFetchingNextPage ? "Đang tải…" : "Xem thêm kết quả"}</button> : null}
+    {ownerReady && history.isError ? <p role="alert">Chưa tải được lịch sử. <button onClick={() => void history.refetch()} type="button">Thử lại</button></p> : null}
   </main>;
 }

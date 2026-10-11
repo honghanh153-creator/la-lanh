@@ -80,7 +80,7 @@ export function ReadingContent({
       </header>
       {!isVibeFallback ? (
         <section>
-          <h2>Ngoài đời có thể trông như…</h2>
+          <h2>{content.tradition === "jyotish" ? "Thông tin đã tính" : "Ngoài đời có thể trông như…"}</h2>
           <p>{content.sections.manifestation}</p>
         </section>
       ) : null}
@@ -217,9 +217,10 @@ function ExperimentSection({
 }
 
 function Evidence({ content }: { content: ReadingContentModel }) {
+  const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
   return (
     <details className="reading-evidence">
-      <summary><ChartBar aria-hidden="true" /><span>Vì sao hôm nay?</span></summary>
+      <summary><ChartBar aria-hidden="true" /><span>{isDaily ? "Vì sao hôm nay?" : "Bản đọc này dựa vào đâu?"}</span></summary>
       {content.sections.transit ? (
         <div className="reading-content__transit">
           <h2>Vì sao hôm nay thấy rõ hơn?</h2>

@@ -1,6 +1,8 @@
+import ssl
 from typing import Any
 
 from sqlalchemy import event, text
+from sqlalchemy.engine import Connection, make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -9,7 +11,24 @@ from sqlalchemy.ext.asyncio import (
 )
 
 
+def verified_engine_options(database_url: str) -> dict[str, Any]:
+    """Verify PostgreSQL identity for every API, worker and migration connection."""
+    url = make_url(database_url)
+    if url.drivername != "postgresql+asyncpg":
+        return {"url": url}
+    cafile = url.query.get("sslrootcert")
+    if isinstance(cafile, tuple):
+        raise ValueError("database URL must specify at most one trusted CA file")
+    context = ssl.create_default_context(cafile=cafile)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    return {
+        "url": url.difference_update_query(["ssl", "sslmode", "sslrootcert"]),
+        "connect_args": {"ssl": context},
+    }
+
+
 def _enable_sqlite_foreign_keys(dbapi_connection: Any, _connection_record: Any) -> None:
+    dbapi_connection.isolation_level = None
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute("PRAGMA foreign_keys=ON")
@@ -17,16 +36,23 @@ def _enable_sqlite_foreign_keys(dbapi_connection: Any, _connection_record: Any) 
         cursor.close()
 
 
+def _begin_sqlite_transaction(connection: Connection) -> None:
+    connection.exec_driver_sql(
+        "BEGIN IMMEDIATE" if connection.get_execution_options().get("sqlite_write") else "BEGIN"
+    )
+
+
 class Database:
     def __init__(self, database_url: str) -> None:
         self.is_local_sqlite = database_url.startswith("sqlite+")
         self.engine: AsyncEngine = create_async_engine(
-            database_url,
+            **verified_engine_options(database_url),
             pool_pre_ping=True,
             pool_recycle=300,
         )
         if self.is_local_sqlite:
             event.listen(self.engine.sync_engine, "connect", _enable_sqlite_foreign_keys)
+            event.listen(self.engine.sync_engine, "begin", _begin_sqlite_transaction)
         self.sessions = async_sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
     async def initialize(self) -> None:

@@ -212,6 +212,12 @@ def test_real_local_persistence_runs_us03_to_us06_product_loop(tmp_path) -> None
         assert active_after_removal["mode"] == "vibe_fallback"
         assert active_after_removal["revision_id"] != revision_b
 
+        with sqlite3.connect(database_path) as raw:
+            stale_owner = raw.execute(
+                "SELECT guest_id, profile_id, id FROM reading_plans LIMIT 1"
+            ).fetchone()
+        assert stale_owner is not None
+
         removed_place = client.request(
             "DELETE",
             "/v1/birth-profile/supplement",
@@ -226,10 +232,7 @@ def test_real_local_persistence_runs_us03_to_us06_product_loop(tmp_path) -> None
         assert client.cookies.get("la_lanh_owner") is not None
 
         with sqlite3.connect(database_path) as raw:
-            stale_owner = raw.execute(
-                "SELECT guest_id, profile_id, id FROM reading_plans LIMIT 1"
-            ).fetchone()
-        assert stale_owner is not None
+            assert raw.execute("SELECT COUNT(*) FROM reading_plans").fetchone()[0] == 0
 
         deleted = client.delete("/v1/guest-session", headers=headers)
         assert deleted.status_code == 204

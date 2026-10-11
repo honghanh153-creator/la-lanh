@@ -9,6 +9,10 @@ psychology source IDs are registered, and the 365-day deterministic suite remain
 
 ## Current baseline
 
+Local candidate, 2026-10-10: deterministic reading renderer v12; Tarot renderer v6, deterministic gate v4 and Luna rewrite gate v4. Tarot now preserves each card's authored meaning before applying the question's recognised goal. Reflection/action/summary are reviewed together; an imperative vocabulary must admit valid concrete actions without weakening unsafe-inference rules. Rewrite synthesis must retain meaning terms from every selected card; unsupported mind-reading/manipulation fails closed to local content. Word overlap and regex are heuristic checks, **not semantic certification**. Jyotish uses calculated positions and reviewed structural copy, not borrowed Western claims. Deep Vedic interpretations remain unavailable rather than fabricated. Five-card summaries budget optional context after all five meanings, so a multi-goal question cannot overflow the gate and leave an otherwise complete draw unreadable.
+
+This candidate adds work-specific Moon/Venus interpretation, eight goal/action contexts and positive/negative rewrite fixtures. Existing 78-card/context banks remain; no claim that new full books were ingested. Local breadth audit: 8,424 contextual + 11,232 recognised-goal spreads. Ten synthetic personas/30 readings have no critical/high/medium findings in this sample; these are generated fixtures, **not ten human testers**. Paid Luna output and human comprehension remain independent release gates. Historical saved/shared content stays frozen.
+
 The machine-readable floor is `docs/operations/content-matrix-baseline.json`. Run:
 
 ```sh
@@ -30,6 +34,33 @@ Current measured coverage on 2026-09-27:
 
 Counts are a regression floor, not a quality score. Adding synonyms or generic sentences does not
 qualify as enrichment.
+
+## Semantic personalization regression — 2026-10-09
+
+Local Daily `daily-direct-meaning-v6` selects evidence-eligible meanings before rotating wording.
+This update is not a deployment receipt. Each next release must check:
+
+- [ ] Same-Sun/full-chart near neighbors: alter a relevant planet/sign, pair/aspect, phase or
+      known linked house and verify the intended observable behavior/action changes, not only
+      the headline. Preserve evidence refs and unknown-time exclusions.
+- [ ] Negative controls: changing owner IDs, unrelated factor order/IDs, hashes or orb formatting
+      must not invent a personality distinction. No identifier-based uniqueness lottery.
+- [ ] Keep the 365-day stability/novelty tests and lens-specific action tests. Variants within an
+      eligible meaning are finite; do not report them as independent insights.
+- [ ] Review at least 20 synthetic profiles and record exact-card, core-meaning and behavior-family
+      collisions separately. The local same-season baseline is 14 cards / 12 meanings / 9 behavior
+      families across 20 profiles. These counts are diagnostic, not a population target or a reason
+      to force unsupported alternatives. Name repeated meanings and the next justified rule gap.
+- [ ] Confirm both deterministic fallback and minimized rewrite brief express the same meaning.
+      Label model tests as mock/offline unless a real paid evaluation was authorized and executed.
+- [ ] Read samples as an end user: what happened in the illustrative scene, what distinction is
+      being explained, and what the small action actually does. Automated gates do not prove that
+      Vietnamese readers understood the output.
+- [ ] Historical saved/shared revisions stay frozen. Never scan other users' private prose or use
+      paid regeneration loops to make someone's card look unique.
+
+See `docs/foundation/daily-psychology-scene-advice-engine.md` and
+`docs/reviews/2026-10-09-daily-semantic-personalization-content-receipt.md` for rules and samples.
 
 ## Mandatory checklist for every normal deployment
 

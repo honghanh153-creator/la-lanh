@@ -1,11 +1,45 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, CheckConstraint, Index, Integer, String, Text, Uuid
+from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 from app.db.types import UtcDateTime
+
+
+class ContentRewriteSpendMonthRow(Base):
+    __tablename__ = "content_rewrite_spend_months"
+    __table_args__ = (
+        CheckConstraint("reserved_cost_nanos >= 0", name="ck_rewrite_month_nonnegative"),
+    )
+
+    month: Mapped[str] = mapped_column(String(7), primary_key=True)
+    reserved_cost_nanos: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+
+
+class RewriteSendFenceRow(Base):
+    """Short-lived disclosure fence; survives source/job cascades until send drains."""
+
+    __tablename__ = "rewrite_send_fences"
+    __table_args__ = (Index("ix_rewrite_send_subject_expiry", "subject_id", "expires_at"),)
+
+    job_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    lease_token: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    subject_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    expires_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+
+
+class ContentRewriteSpendDayRow(Base):
+    __tablename__ = "content_rewrite_spend_days"
+    __table_args__ = (
+        CheckConstraint("reserved_cost_nanos >= 0", name="ck_rewrite_day_nonnegative_cost"),
+        CheckConstraint("reserved_tokens >= 0", name="ck_rewrite_day_nonnegative_tokens"),
+    )
+
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)
+    reserved_cost_nanos: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    reserved_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
 
 
 class ContentRewriteJobRow(Base):
@@ -44,6 +78,18 @@ class ContentRewriteJobRow(Base):
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    owner_guest_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("guest_sessions.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    reading_plan_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("reading_plans.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    tarot_session_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("tarot_sessions.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    radar_request_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("radar_requests.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     generation_key: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     surface: Mapped[str] = mapped_column(String(32), nullable=False)
     owner_namespace: Mapped[str] = mapped_column(String(40), nullable=False)

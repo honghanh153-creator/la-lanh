@@ -1,8 +1,8 @@
 # Daily Psychology Scene & Advice Engine
 
 Trạng thái: implemented, giọng direct
-Phiên bản runtime: `daily-direct-meaning-v4`
-Ngày rà soát: 2026-10-07
+Phiên bản runtime: `daily-direct-meaning-v6`; selection: `daily-semantic-eligibility-v3`
+Ngày rà soát: 2026-10-09 (đã kiểm thử local, chưa deploy beta)
 
 ## 1. Mục tiêu sản phẩm
 
@@ -37,15 +37,15 @@ Runtime chỉ lưu metadata, nguyên tắc biên tập và copy tiếng Việt d
 Mỗi `DailyIssuePattern` có:
 
 - `arenas`: quan hệ, giao tiếp, công việc/học tập, năng lượng hoặc chăm mình;
-- bốn headline mô tả cùng một tình huống, không dùng động từ khuyên;
-- ba cách viết cùng cảnh có chủ thể và dấu hiệu quan sát được;
-- bốn hành động hợp với mọi cách viết của cảnh đó;
+- sáu headline mô tả cùng một tình huống, không dùng động từ khuyên;
+- tám cảnh minh họa có chủ thể và dấu hiệu quan sát được;
+- tám hành động nhỏ hợp với các cảnh trong cùng họ vấn đề;
 - `meaning` và `takeaway` nói rõ ý muốn diễn đạt; bài "Đọc thêm" dùng chúng để giải thích đúng tình huống trên Home, không lấy một đoạn natal nói về vấn đề khác;
 - `observation_question` hỏi một kết quả cụ thể sau hành động, không dùng câu chung chung về "một khác biệt nhỏ";
 - `scene_anchors` và `action_anchors` giúp gate bắt việc đổi sang vấn đề khác;
 - source IDs để audit phương pháp, không hiển thị như factual claim.
 
-V1 có các họ vấn đề: thiếu ngữ cảnh, quá nhiều việc mở, đổi kế hoạch, so sánh, tự động chăm người khác, mệt vì phải chọn, chờ hoàn hảo, áp lực đồng thuận, né va chạm nhỏ và bảo vệ lựa chọn cũ.
+V6 có 15 họ vấn đề: mười họ cũ và năm họ mới — kiểm tra thời gian trước khi nhận việc, trả lời quá nhanh, sửa lời đã gửi, hỏi góp ý cụ thể, nói rõ điều cần giúp. Biến thể hành động cho lens quan hệ hỏi cả nhu cầu/thời gian của người kia; không chỉ thêm tiền tố vào câu auto.
 
 ## 4. Selection và chống lặp
 
@@ -58,10 +58,14 @@ chart factors + context opt-in + local date
 ```
 
 - Cùng chart, context và ngày địa phương luôn replay cùng output.
-- 10 tình huống × 4 headline × 3 scene × 4 advice có 480 bộ câu trong lens general. Test 365 ngày không trùng bộ ba `hook + scene + advice`. Đây là biến thể câu chữ, không phải 480 insight độc lập. Lens hẹp có ít tình huống hơn và có thể lặp sớm hơn.
-- Chart signature xoay các slot trong catalog; nó không tạo câu tâm lý mới và không đọc raw DOB. Không khẳng định mỗi người có vấn đề khác nhau chỉ vì chart khác.
-- Khi hai lens chọn cùng tình huống, hành động có thể giống nhau. Không đổi advice chỉ để trông cá nhân hóa.
+- Chọn ý nghĩa trước: vai trò hero/primary, hành tinh + domain + sign, cặp hành tinh đã có rule, góc/độ mạnh/pha và nhà có dữ kiện chính xác. Chỉ dùng nhà/angle khi precision exact; lens người dùng chọn có ưu tiên so với bối cảnh từ nhà.
+- Các rule đủ điều kiện được xếp hạng; ngày chỉ xoay giữa những rule đồng hạng và biến thể trong cùng ý nghĩa. Hash chart, ID người dùng, thứ tự factor và cách format orb không chọn tính cách.
+- Mỗi họ có 6 × 8 × 8 = 384 bộ `hook + scene + advice`. Test giữ 365 ngày khác nhau cho date-only, ambiguous, full chart và các lens được kiểm tra. Đây không phải 384 phát hiện khác nhau hoặc cam kết không lặp vô hạn; chu kỳ biến thể trong họ hữu hạn.
+- Cặp Moon/Mars applying và separating có thể dùng ví dụ “định trả lời” và “sửa lời đã gửi” với hành động khác nhau. Pha là góc biên tập cho ví dụ, không chứng minh có tin nhắn/va chạm thật.
+- Không đủ rule thì dùng ví dụ trung tính, không đoán hoàn cảnh. Date-only có giới hạn chỉ đọc tổng quát từ Sun. Hai chart có cùng dữ kiện được biết có thể nhận cùng ý nghĩa/câu chữ; không ép khác bằng chi tiết cá nhân bịa ra.
 - Không lưu lịch sử note để chống lặp.
+
+Cohort local 20 chart tổng hợp cùng mùa Sun: 14 card, 12 ý nghĩa, 9 họ hành vi; còn các nhóm trùng cần mở rộng rule có căn cứ. Đây không phải tỷ lệ trùng của toàn bộ người dùng. Xem `docs/reviews/2026-10-09-daily-semantic-personalization-content-receipt.md` cho mẫu và counterfactual tests.
 
 ## 5. Content contract
 
@@ -93,7 +97,7 @@ Renderer version chứa fingerprint của catalog Daily. Cache key thay đổi k
 
 Home truyền góc đang chọn vào đường dẫn "Đọc thêm" và preview chia sẻ. Chỉ chấp nhận năm context đã biết; giá trị lạ trở về `auto`, không chuyển tiếp dữ liệu tùy ý trong URL. Context có query key riêng và không lấy note auto làm fallback khi context đó chưa tải được. Nút giữ thử nghiệm gửi đúng lens và revision đang thấy. Lưu và tạo share artifact cũng dùng revision hiện trên màn hình thay vì dựa vào request khác vừa chạy.
 
-Daily compiler hash toàn bộ blueprint và chuyển brief qua `DailySafePayload`/`PrivacyMinimiser`. Prompt `surface-rewrite-v3` dùng hai mẫu direct để dạy cách viết, không ép lặp nguyên câu cho tình huống khác. Luna chỉ đổi cách diễn đạt của title/scene/action đã chọn.
+Daily compiler hash toàn bộ blueprint và chuyển brief qua `DailySafePayload`/`PrivacyMinimiser`. Prompt `surface-rewrite-v3` dùng hai mẫu direct để dạy cách viết, không ép lặp nguyên câu cho tình huống khác. Brief mang cả xu hướng, nhu cầu cạnh tranh, cảnh quan sát được, hành động và giới hạn. Luna chỉ viết lại ý nghĩa đã chọn; không tự đổi vấn đề, suy ra lịch sử cá nhân hoặc cố tạo độc nhất. Compiler từ chối baseline chưa qua gate và house/angle evidence không đủ precision. Đợt này kiểm thử compiler bằng fixture, không gọi Luna trả phí.
 
 Gate `daily-home-rewrite-gates/v2` kiểm tra độ dài, câu khó hiểu đã biết, anchor cảnh/hành động, lời khuyên chen vào scene và mâu thuẫn thời điểm. `meaning-gate-vi-v2` gọi cùng gate này trước khi xuất bản fallback, không chỉ sau khi Luna viết. Quy tắc tự động không thay thế việc đọc và hiểu của người thật.
 

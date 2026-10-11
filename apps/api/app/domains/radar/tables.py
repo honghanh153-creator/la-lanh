@@ -14,6 +14,7 @@ class RadarRequestRow(Base):
         Index("ix_radar_capability_hash", "token_hash", unique=True),
         Index("ix_radar_owner_created", "principal_id", "created_at"),
         Index("ix_radar_receipt_hash", "receipt_hash", unique=True),
+        Index("ix_radar_idempotency_hash", "idempotency_hash", unique=True),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -36,6 +37,8 @@ class RadarRequestRow(Base):
     token_hash: Mapped[bytes | None] = mapped_column(LargeBinary(32))
     token_ciphertext: Mapped[str | None] = mapped_column(Text)
     result_ciphertext: Mapped[str | None] = mapped_column(Text)
+    idempotency_hash: Mapped[bytes | None] = mapped_column(LargeBinary(32))
+    request_hash: Mapped[bytes | None] = mapped_column(LargeBinary(32))
     receipt_hash: Mapped[bytes | None] = mapped_column(LargeBinary(32))
     receipt_ciphertext: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)

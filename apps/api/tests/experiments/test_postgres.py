@@ -11,6 +11,7 @@ from app.db.session import Database
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import ChartInput, TimePrecision
 from app.domains.birth.models import BirthSnapshotRecord
+from app.domains.birth.postgres import PostgresBirthRepository
 from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
 from app.domains.daily.tables import DailyNoteRow
 from app.domains.experiments.models import (
@@ -152,12 +153,16 @@ async def _create_target(
             )
         )
 
+    current_snapshot = await PostgresBirthRepository(database.sessions, envelope).find_current(
+        guest_id
+    )
+    assert current_snapshot is not None
     reading = await ReadingApplicationService(
         PostgresReadingRepository(database.sessions, envelope),
         engine,
     ).project(
         guest_id=guest_id,
-        snapshot=snapshot,
+        snapshot=current_snapshot,
         purpose=ReadingPurpose.DAILY_NOTE,
         requested_at=NOW,
         background_lens=BackgroundLens.WORK,

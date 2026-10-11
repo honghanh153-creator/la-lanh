@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -18,10 +19,149 @@ from app.domains.content_rewrite.models import (
 )
 from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
 from app.domains.content_rewrite.service import ContentRewriteService
-from app.domains.content_rewrite.tables import ContentRewriteJobRow
+from app.domains.content_rewrite.tables import ContentRewriteJobRow, ContentRewriteSpendMonthRow
 from app.infrastructure.crypto import AesGcmEnvelopeCipher, StaticDataKeyProvider
 
 NOW = datetime(2026, 10, 3, 12, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_monthly_cap_survives_owner_purge_and_utc_day_rollover(storage) -> None:  # type: ignore[no-untyped-def]
+    database, repository = storage
+    first = _record(owner_key="daily:first")
+    await repository.enqueue(first)
+    lease = await repository.lease(now=NOW, lease_for_seconds=30)
+    assert lease is not None
+    parameters = dict(
+        since=NOW.replace(hour=0, minute=0, second=0, microsecond=0),
+        requested_tokens=700,
+        daily_token_limit=10_000,
+        requested_cost_nanos=700_000,
+        daily_cost_limit_nanos=1_000_000,
+        monthly_cost_limit_nanos=1_000_000,
+        pricing_version="test-price-v1",
+        updated_at=NOW,
+    )
+    assert await repository.reserve_budget(
+        job_id=lease.id,
+        lease_token=lease.lease_token,
+        deletion_epoch=lease.deletion_epoch,
+        **parameters,
+    )
+    await repository.cancel_and_purge_owner(first.request.key.owner)
+    async with database.sessions() as session:
+        month = await session.get(ContentRewriteSpendMonthRow, "2026-10")
+        assert month is not None and month.reserved_cost_nanos == 700_000
+    await repository.enqueue(_record(owner_key="daily:second"))
+    tomorrow = NOW + timedelta(days=1)
+    lease = await repository.lease(now=tomorrow, lease_for_seconds=30)
+    assert lease is not None
+    parameters.update(since=tomorrow.replace(hour=0), updated_at=tomorrow)
+    assert not await repository.reserve_budget(
+        job_id=lease.id,
+        lease_token=lease.lease_token,
+        deletion_epoch=lease.deletion_epoch,
+        **parameters,
+    )
+    parameters.update(updated_at=NOW.replace(month=11))
+    assert await repository.reserve_budget(
+        job_id=lease.id,
+        lease_token=lease.lease_token,
+        deletion_epoch=lease.deletion_epoch,
+        **parameters,
+    )
+
+
+@pytest.mark.asyncio
+async def test_failed_or_duplicate_reservation_cannot_refill_monthly_cap(storage) -> None:  # type: ignore[no-untyped-def]
+    database, repository = storage
+    await repository.enqueue(_record())
+    lease = await repository.lease(now=NOW, lease_for_seconds=30)
+    assert lease is not None
+    parameters = dict(
+        job_id=lease.id,
+        lease_token=lease.lease_token,
+        deletion_epoch=lease.deletion_epoch,
+        since=NOW.replace(hour=0),
+        requested_tokens=700,
+        daily_token_limit=10_000,
+        requested_cost_nanos=700_000,
+        daily_cost_limit_nanos=1_000_000,
+        monthly_cost_limit_nanos=1_000_000,
+        pricing_version="test",
+        updated_at=NOW,
+    )
+    assert await repository.reserve_budget(**parameters)
+    assert not await repository.reserve_budget(**parameters)
+    async with database.sessions() as session:
+        month = await session.get(ContentRewriteSpendMonthRow, "2026-10")
+        assert month is not None and month.reserved_cost_nanos == 700_000
+
+
+async def test_daily_cap_survives_deleting_completed_or_inflight_jobs(storage) -> None:  # type: ignore[no-untyped-def]
+    _, repository = storage
+    first = _record(owner_key="daily:first")
+    await repository.enqueue(first)
+    lease = await repository.lease(now=NOW, lease_for_seconds=30)
+    assert lease is not None
+    parameters = dict(
+        since=NOW.replace(hour=0),
+        requested_tokens=700,
+        daily_token_limit=1000,
+        requested_cost_nanos=700_000,
+        daily_cost_limit_nanos=1_000_000,
+        pricing_version="test",
+        updated_at=NOW,
+    )
+    assert await repository.reserve_budget(
+        job_id=lease.id,
+        lease_token=lease.lease_token,
+        deletion_epoch=lease.deletion_epoch,
+        **parameters,
+    )
+    await repository.cancel_and_purge_owner(first.request.key.owner)
+    await repository.enqueue(_record(owner_key="daily:second"))
+    second = await repository.lease(now=NOW, lease_for_seconds=30)
+    assert second is not None
+    assert not await repository.reserve_budget(
+        job_id=second.id,
+        lease_token=second.lease_token,
+        deletion_epoch=second.deletion_epoch,
+        **parameters,
+    )
+
+
+@pytest.mark.asyncio
+async def test_concurrent_month_reservations_cannot_exceed_cap(storage) -> None:  # type: ignore[no-untyped-def]
+    database, repository = storage
+    leases = []
+    for index in range(3):
+        await repository.enqueue(_record(owner_key=f"daily:{index}"))
+        lease = await repository.lease(now=NOW, lease_for_seconds=30)
+        assert lease is not None
+        leases.append(lease)
+    results = await asyncio.gather(
+        *(
+            repository.reserve_budget(
+                job_id=lease.id,
+                lease_token=lease.lease_token,
+                deletion_epoch=lease.deletion_epoch,
+                since=NOW.replace(hour=0),
+                requested_tokens=700,
+                daily_token_limit=10_000,
+                requested_cost_nanos=700_000,
+                daily_cost_limit_nanos=10_000_000,
+                monthly_cost_limit_nanos=1_000_000,
+                pricing_version="test",
+                updated_at=NOW,
+            )
+            for lease in leases
+        )
+    )
+    assert results.count(True) == 1
+    async with database.sessions() as session:
+        month = await session.get(ContentRewriteSpendMonthRow, "2026-10")
+        assert month is not None and month.reserved_cost_nanos == 700_000
 
 
 class Authorization:
@@ -223,7 +363,7 @@ async def test_success_persists_aggregate_usage_without_payload(storage) -> None
 
 
 @pytest.mark.asyncio
-async def test_budget_reservation_counts_in_flight_jobs_and_releases_on_success(storage) -> None:  # type: ignore[no-untyped-def]
+async def test_budget_reservation_is_nonrefundable_after_success(storage) -> None:  # type: ignore[no-untyped-def]
     _database, repository = storage
     await repository.enqueue(_record(owner_key="daily:owner-1"))
     second = _record(owner_key="daily:owner-2")
@@ -274,7 +414,7 @@ async def test_budget_reservation_counts_in_flight_jobs_and_releases_on_success(
         cost_nanos=600_000,
         completed_at=NOW,
     )
-    assert await repository.reserve_budget(
+    assert not await repository.reserve_budget(
         job_id=second_lease.id,
         lease_token=second_lease.lease_token,
         deletion_epoch=second_lease.deletion_epoch,

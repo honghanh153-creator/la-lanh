@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
@@ -14,6 +15,7 @@ from app.domains.content_rewrite.models import (
 
 
 class ContentRewriteRepository(Protocol):
+    def execution_guard(self, lease: LeasedRewriteJob) -> AbstractAsyncContextManager[bool]: ...
     async def enqueue(self, record: RewriteJobRecord) -> tuple[RewriteJobRecord, bool]: ...
 
     async def lease(self, *, now: datetime, lease_for_seconds: int) -> LeasedRewriteJob | None: ...
@@ -26,6 +28,8 @@ class ContentRewriteRepository(Protocol):
         deletion_epoch: UUID,
         started_at: datetime,
     ) -> bool: ...
+
+    async def finish_send(self, *, job_id: UUID, lease_token: UUID) -> None: ...
 
     async def retry(
         self,
@@ -86,4 +90,5 @@ class ContentRewriteRepository(Protocol):
         daily_cost_limit_nanos: int,
         pricing_version: str,
         updated_at: datetime,
+        monthly_cost_limit_nanos: int | None = None,
     ) -> bool: ...

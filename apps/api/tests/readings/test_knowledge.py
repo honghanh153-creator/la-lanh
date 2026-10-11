@@ -320,12 +320,58 @@ def test_matrix_changes_visible_copy_for_planets_houses_and_aspects() -> None:
     assert full_frame(_controlled_full_plan(aspect="trine")).thesis != base.thesis
 
 
+def test_work_lens_keeps_moon_venus_meaning_in_the_workplace_not_personal_appointments() -> None:
+    frame = full_frame(
+        _controlled_full_plan(body_a="moon", body_b="venus", aspect="square").model_copy(
+            update={"background_lens": BackgroundLens.WORK}
+        )
+    )
+    assert "góp ý" in frame.thesis
+    assert "công sức" in frame.thesis
+    assert "lời hẹn" not in frame.thesis
+    assert "nói chuyện buồn" not in frame.thesis
+
+
 def test_natal_synthesis_does_not_repeat_headline_or_expose_aspect_shorthand() -> None:
     frame = full_frame(_controlled_full_plan(orb=2.5))
 
     assert not frame.thesis.startswith(frame.hook)
     assert "góc " not in frame.thesis.casefold()
     assert "hai phần" not in frame.thesis.casefold()
+
+
+@pytest.mark.parametrize("aspect", ("trine", "sextile"))
+def test_supportive_natal_aspect_does_not_get_a_conflict_headline(aspect: str) -> None:
+    frame = full_frame(_controlled_full_plan(aspect=aspect))
+
+    assert "hỗ trợ" in frame.hook
+    assert "Điểm khó" not in frame.hook
+    assert "va vào" not in frame.hook
+    assert "Sự giằng co" not in frame.manifestation
+
+
+@pytest.mark.parametrize("aspect", ("square", "opposition"))
+def test_tense_natal_aspect_keeps_distinct_needs_without_implying_easy_support(aspect: str) -> None:
+    frame = full_frame(_controlled_full_plan(aspect=aspect))
+
+    assert "khó" in frame.hook
+    assert "hỗ trợ nhau" not in frame.hook
+
+
+def test_supportive_natal_headline_preserves_the_selected_lens() -> None:
+    hooks = {
+        full_frame(
+            _controlled_full_plan(aspect="trine").model_copy(update={"background_lens": lens})
+        ).hook
+        for lens in (None, BackgroundLens.WORK, BackgroundLens.RELATIONSHIPS, BackgroundLens.ENERGY)
+    }
+
+    assert len(hooks) == 4
+
+
+def test_sextile_headline_preserves_the_need_for_initiative() -> None:
+    assert "chủ động" in full_frame(_controlled_full_plan(aspect="sextile")).hook
+    assert "chủ động" not in full_frame(_controlled_full_plan(aspect="trine")).hook
 
 
 def test_same_element_aspect_names_both_needs_without_repeating_the_same_clause() -> None:

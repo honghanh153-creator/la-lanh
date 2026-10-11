@@ -62,6 +62,29 @@ class FakeSDKResponse:
         return {}
 
 
+async def test_legacy_tarot_without_context_brief_is_not_sent_to_provider() -> None:
+    from uuid import UUID
+
+    from app.domains.tarot.rewrite import compile_tarot_rewrite_request
+    from tests.content_rewrite.test_tarot_rewrite import _session
+
+    envelope = compile_tarot_rewrite_request(
+        UUID("20000000-0000-4000-8000-000000000701"),
+        _session(),
+        model_version=MODEL,
+        prompt_version="surface-rewrite-v3",
+    )
+    assert envelope is not None
+    payload = dict(envelope.safe_payload)
+    del payload["meaning_brief"]
+    envelope = envelope.model_copy(update={"safe_payload": payload})
+    transport = FakeTransport({})
+    provider = OpenAIRewriteProvider(transport, model=MODEL, timeout_seconds=20)
+    result = await provider.generate_rewrite(envelope)
+    assert isinstance(result, GenerationPermanent)
+    assert transport.requests == []
+
+
 def _plan(*, tradition: Tradition = Tradition.WESTERN):  # type: ignore[no-untyped-def]
     engine = NatalChartEngine()
     chart = engine.calculate_chart(
@@ -361,7 +384,7 @@ async def test_generated_jyotish_fails_closed_without_transport_call() -> None:
 
 @pytest.mark.asyncio
 async def test_pinned_sdk_transport_disables_sdk_retries_and_forwards_timeout() -> None:
-    transport = OpenAISDKResponseTransport(api_key="test-key")
+    transport = OpenAISDKResponseTransport(api_key="test-key", project="proj_testpilot")
     fake_create = AsyncMock(return_value=FakeSDKResponse())
     transport._client.responses.create = fake_create  # type: ignore[method-assign]
 
@@ -371,6 +394,7 @@ async def test_pinned_sdk_transport_disables_sdk_retries_and_forwards_timeout() 
     )
 
     assert transport._client.max_retries == 0
+    assert transport._client.project == "proj_testpilot"
     call = fake_create.await_args
     assert call is not None
     assert call.kwargs["timeout"] == 4.5
@@ -456,6 +480,7 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
 
     enabled = Settings(
         environment="test",
+        database_url="postgresql+asyncpg://worker:secret@example.test/app",
         generation_enabled=True,
         generation_worker_enabled=True,
         generation_provider="openai",
@@ -463,6 +488,9 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
         generation_spend_approved=True,
         generation_daily_token_budget=10_000,
         generation_daily_budget_cents=100,
+        generation_monthly_budget_cents=100,
+        generation_pilot_user_limit=20,
+        generation_openai_project_id="proj_testpilot",
         generation_surface_rollout={"daily_home": "shadow"},
         generation_openai_api_key="secret",
     )
@@ -489,6 +517,7 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
         cors_origins=["https://example.test"],
         guest_cookie_secure=True,
         guest_encryption_key="production-encryption-key",
+        guest_hash_key="production-hash-key",
         swisseph_license_mode="agpl",
         generation_enabled=True,
         generation_worker_enabled=True,
@@ -497,13 +526,31 @@ def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:
         generation_spend_approved=True,
         generation_daily_token_budget=10_000,
         generation_daily_budget_cents=100,
+        generation_monthly_budget_cents=100,
+        generation_pilot_user_limit=20,
+        generation_openai_project_id="proj_testpilot",
         generation_openai_api_key="secret",
         generation_surface_rollout={"daily_home": "shadow"},
     )
-    assert production_worker.guest_hash_key.get_secret_value() == DEVELOPMENT_HASH_KEY
+    assert production_worker.guest_hash_key.get_secret_value() != DEVELOPMENT_HASH_KEY
+    with pytest.raises(ValidationError, match="managed guest hash key"):
+        Settings(**{**production_worker.model_dump(), "guest_hash_key": DEVELOPMENT_HASH_KEY})
+    with pytest.raises(ValidationError, match="PostgreSQL lifecycle locks"):
+        Settings(**{**enabled.model_dump(), "database_url": "sqlite+aiosqlite:///test.db"})
 
     with pytest.raises(ValidationError, match="less than or equal to 100"):
         Settings(generation_daily_budget_cents=101)
+
+    with pytest.raises(ValidationError, match="monthly USD budget"):
+        Settings(**{**enabled.model_dump(), "generation_monthly_budget_cents": 0})
+    with pytest.raises(ValidationError, match="pilot user limit"):
+        Settings(**{**enabled.model_dump(), "generation_pilot_user_limit": 0})
+    with pytest.raises(ValidationError, match="explicit OpenAI project"):
+        Settings(**{**enabled.model_dump(), "generation_openai_project_id": None})
+    with pytest.raises(ValidationError, match="less than or equal to 100"):
+        Settings(generation_monthly_budget_cents=101)
+    with pytest.raises(ValidationError, match="less than or equal to 20"):
+        Settings(generation_pilot_user_limit=21)
 
     with pytest.raises(ValidationError, match="lease"):
         Settings(

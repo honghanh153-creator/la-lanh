@@ -1,0 +1,4 @@
+{
+  "status": "failed",
+  "reason": "The host exposes no supported subagent launch/collection capability for the required reviewers, merge leaf, validator and report leaf, so full review is incomplete; failure receipt: /Users/phamhanh/Documents/New project/la-lanh/docs/reviews/2026-10-10-content-google-code-review-20261010-193955-8c527109-failed.json; run artifacts: /tmp/compound-engineering-501/ce-code-review/20261010-193955-8c527109."
+}

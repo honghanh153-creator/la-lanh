@@ -36,6 +36,7 @@ describe("RadarPrivateStartPage", () => {
     sessionStorage.clear();
     sessionStorage.setItem(SESSION_EPOCH_KEY, "session-a");
     sessionStorage.setItem(OWNER_SESSION_EPOCH_KEY, "session-a");
+    sessionStorage.setItem("la-lanh-owner-session-until-v1", "2100-01-01T00:00:00Z");
     vi.mocked(getSession).mockResolvedValue({
       csrf_token: "csrf",
       expires_at: "2026-10-01T00:00:00Z",
@@ -122,7 +123,7 @@ describe("RadarPrivateStartPage", () => {
     await waitFor(() => expect(createPrivateRadarCheck).toHaveBeenCalledWith(expect.objectContaining({
       birth_time_mode: "unknown",
       birth_time_local: null,
-    })));
+    }), expect.any(String)));
   });
 
   it("moves returning users to their Radar history from the result CTA", async () => {

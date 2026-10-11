@@ -7,12 +7,20 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import JsonValue
 
-from app.domains.astro.models import DateOnlySunResult, EngineProvenance, ZodiacSign
+from app.domains.astro.engine import NatalChartEngine
+from app.domains.astro.models import (
+    CalculationConfig,
+    ChartInput,
+    DateOnlySunResult,
+    EngineProvenance,
+    ZodiacSign,
+)
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     DailyMeaningBrief,
     ReadingCandidate,
+    ReadingPlan,
     ReadingPlanRecord,
     ReadingProjectionRecord,
     ReadingPurpose,
@@ -33,10 +41,12 @@ from app.domains.readings.rewrite import (
 NOW = datetime(2026, 10, 3, 12, tzinfo=UTC)
 
 
-def _records() -> tuple[ReadingPlanRecord, ReadingProjectionRecord, ReadingRevisionRecord]:
+def _records(
+    plan: ReadingPlan | None = None,
+) -> tuple[ReadingPlanRecord, ReadingProjectionRecord, ReadingRevisionRecord]:
     guest_id = UUID("20000000-0000-4000-8000-000000000101")
     profile_id = UUID("30000000-0000-4000-8000-000000000101")
-    plan = ReadingPlanner().plan(
+    plan = plan or ReadingPlanner().plan(
         DateOnlySunResult(
             status="certain",
             sign=ZodiacSign.PISCES,
@@ -182,6 +192,76 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
         baseline.semantic_blueprint.daily_meaning.model_dump(mode="json")
     )
     assert request.key.gate_version == "daily-rewrite-gates/v2"
+
+
+def test_daily_compiler_carries_supported_full_chart_meaning_through_privacy_allowlist() -> None:
+    from app.domains.content_rewrite.models import RewriteSurface
+    from app.infrastructure.generation.privacy import PrivacyMinimiser
+
+    chart = NatalChartEngine().calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(1980, 3, 10, 0, 15, tzinfo=UTC),
+            latitude=21.0278,
+            longitude=105.8342,
+        ),
+        CalculationConfig.western_recommended(),
+    )
+    plan = ReadingPlanner().plan(
+        chart, purpose=ReadingPurpose.DAILY_NOTE, editorial_seed="2026-10-09"
+    )
+    record, projection, _ = _records(plan)
+    baseline = DeterministicVietnameseRenderer().render(plan)
+    request = compile_daily_rewrite_request(
+        record, projection, baseline, model_version="offline", prompt_version="test"
+    )
+    assert baseline.semantic_blueprint is not None
+    brief = baseline.semantic_blueprint.daily_meaning
+    assert brief is not None and brief.scene_status == "illustrative"
+    assert request.safe_payload["meaning_brief"] == brief.model_dump(mode="json")
+    safe = PrivacyMinimiser().minimise(RewriteSurface.DAILY_HOME, request.safe_payload)
+    assert safe["meaning_brief"] == request.safe_payload["meaning_brief"]
+    serialized = json.dumps(safe, ensure_ascii=False)
+    assert "1980" not in serialized and "21.0278" not in serialized
+    assert all(factor.id not in serialized for factor in plan.factors)
+    assert evaluate_daily_rewrite(_good_output(baseline), meaning_brief=brief).passed
+
+
+def test_daily_compiler_rejects_unaccepted_fallback_before_rewrite() -> None:
+    record, projection, _ = _records()
+    baseline = DeterministicVietnameseRenderer().render(record.plan)
+    with pytest.raises(ValueError, match="gate-accepted baseline"):
+        compile_daily_rewrite_request(
+            record,
+            projection,
+            baseline.model_copy(update={"plan_hash": "wrong-plan"}),
+            model_version="offline",
+            prompt_version="test",
+        )
+
+
+def test_daily_compiler_hashes_meaning_and_preserves_its_allowed_distinction() -> None:
+    requests = []
+    for sign in (ZodiacSign.CANCER, ZodiacSign.GEMINI):
+        plan = ReadingPlanner().plan(
+            DateOnlySunResult(
+                status="certain",
+                sign=sign,
+                candidates=(sign,),
+                provenance=EngineProvenance(version="test", profile="test"),
+            ),
+            purpose=ReadingPurpose.DAILY_NOTE,
+            editorial_seed="2026-10-09",
+        )
+        record, projection, _ = _records(plan)
+        baseline = DeterministicVietnameseRenderer().render(plan)
+        requests.append(
+            compile_daily_rewrite_request(
+                record, projection, baseline, model_version="offline", prompt_version="test"
+            )
+        )
+    assert requests[0].key.blueprint_hash != requests[1].key.blueprint_hash
+    assert requests[0].safe_payload["action_meaning"] != requests[1].safe_payload["action_meaning"]
+    assert requests[0].safe_payload["meaning_brief"] != requests[1].safe_payload["meaning_brief"]
 
 
 def test_daily_gate_rejects_the_exact_opaque_card_reported_by_the_user() -> None:

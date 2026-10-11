@@ -1,0 +1,963 @@
+{
+  "status": "complete",
+  "verdict": "Not ready",
+  "scope": {
+    "mode": "local-aligned",
+    "base": "99a3079a383a4cb529c1331a596bc47f75b5f07f",
+    "branch": "feat/luna-content-rewrite-runtime",
+    "head_sha": "99a3079a383a4cb529c1331a596bc47f75b5f07f",
+    "pr_url": null,
+    "files_changed": 273
+  },
+  "intent": "Finish full Astro/Tarot content and optional Google IAM/guest retention/security/cost WIP for one production deployment. All WIP offered, consent/owner isolation and USD1/month preserved; no real provider/production clearance implied by local tests.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "project-standards",
+    "testing",
+    "maintainability",
+    "security",
+    "performance",
+    "api-contract",
+    "data-migration",
+    "reliability",
+    "adversarial",
+    "julik-frontend-races"
+  ],
+  "findings": [
+    {
+      "#": 1,
+      "title": "Disable account login in the secret-isolated rewrite worker",
+      "severity": "P1",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/config.py",
+      "line": 95,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Disable all three account-auth flags in rewrite-worker.environment. Keep the admin key API-only and retain API erasure validation. Test worker and health-check settings against combined production auth/generation configuration using synthetic secrets.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/config.py:95 --             raise ValueError(\"public login requires provider identity erasure credentials\")",
+      "why_it_matters": "With Google login and generation enabled together, the worker inherits auth flags but lacks the API-only admin key. Settings validation stops both the worker and its health check before jobs run.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/config.py:95 --             raise ValueError(\"public login requires provider identity erasure credentials\")"
+      ],
+      "reviewers": [
+        "adversarial",
+        "correctness",
+        "reliability",
+        "security"
+      ],
+      "independent_reviewers": [
+        "adversarial",
+        "correctness",
+        "reliability",
+        "security"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": null
+    },
+    {
+      "#": 4,
+      "title": "Prevent late private responses from undoing account restore",
+      "severity": "P1",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/middleware/session_renewal.py",
+      "line": 56,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Stop renewing credentials on arbitrary private/status responses. Serialize renewal and identity-changing requests across tabs through response consumption. Preserve unrelated guest A. Regress delayed A responses after B restore and assert both cookies remain B's.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/middleware/session_renewal.py:56 -- set_profile_cookies(response, settings, token, csrf)",
+      "why_it_matters": "A delayed guest-A response can overwrite restored account-B cookies because A remains valid. Client epoch checks run after the browser applies Set-Cookie and cannot prevent the reversal.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/middleware/session_renewal.py:56 -- set_profile_cookies(response, settings, token, csrf)"
+      ],
+      "reviewers": [
+        "adversarial",
+        "julik-frontend-races"
+      ],
+      "independent_reviewers": [
+        "adversarial",
+        "julik-frontend-races"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 5,
+      "title": "Include the auth overlay in scheduled retention jobs",
+      "severity": "P1",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/infra/hetzner/deploy.sh",
+      "line": 56,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Share approved auth/erasure overlay selection with run-retention-job.sh, including credentials needed for linked-account retries when login is off. Reinstall the timer executable and test both cleanup modules with synthetic secrets. Keep credentials API/cleanup-only.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/infra/hetzner/deploy.sh:56 --   COMPOSE_ARGS+=(-f \"${SCRIPT_DIR}/compose.auth.yaml\")",
+      "why_it_matters": "With login enabled, installed retention timers use base Compose without the admin-key overlay. Settings fails before history cleanup or pending linked-account erasure retries run.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/infra/hetzner/deploy.sh:56 --   COMPOSE_ARGS+=(-f \"${SCRIPT_DIR}/compose.auth.yaml\")"
+      ],
+      "reviewers": [
+        "adversarial",
+        "correctness",
+        "reliability"
+      ],
+      "independent_reviewers": [
+        "adversarial",
+        "correctness",
+        "reliability"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": null
+    },
+    {
+      "#": 6,
+      "title": "Declare account problem responses in the generated contract",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/api/v1/routes/accounts.py",
+      "line": 58,
+      "confidence": 100,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Declare ProblemResponse and application/problem+json for account errors, replacing the generated 422 declaration. Document applicable domain-error statuses, regenerate contracts and compare runtime bodies/media types with OpenAPI.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/api/v1/routes/accounts.py:58 --                 response = _problem(AccountError(\"ACCOUNT_INPUT_INVALID\", 422))",
+      "why_it_matters": "Invalid login input returns 422 application/problem+json with ACCOUNT_INPUT_INVALID, while OpenAPI advertises application/json HTTPValidationError. Typed clients also lack declared authentication, challenge and availability errors.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/api/v1/routes/accounts.py:58 --                 response = _problem(AccountError(\"ACCOUNT_INPUT_INVALID\", 422))"
+      ],
+      "reviewers": [
+        "api-contract"
+      ],
+      "independent_reviewers": [
+        "api-contract"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "public-contract"
+    },
+    {
+      "#": 7,
+      "title": "Stopped workers leave expired leases blocking history erasure",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py",
+      "line": 162,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Determine rewrite busy state from unexpired durable send fences under the owner lock. Preserve the complete provider-window allowance. Test worker crash and flags-off cleanup resuming after fence expiry without restarting the worker.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py:161 -- ContentRewriteJobRow.status == \"leased\",; /Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py:162 -- ContentRewriteJobRow.request_started_at.is_not(None),",
+      "why_it_matters": "A crashed worker's leased send-marked job blocks history erasure after its disclosure fence expires. With worker polling stopped, manual clearing and scheduled retention depend on separate recovery that can take 24 hours.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py:161 -- ContentRewriteJobRow.status == \"leased\",; /Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py:162 -- ContentRewriteJobRow.request_started_at.is_not(None),"
+      ],
+      "reviewers": [
+        "adversarial"
+      ],
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 8,
+      "title": "Align privacy map with linked-account erasure",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/docs/legal/store-privacy-data-map.md",
+      "line": 158,
+      "confidence": 100,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Document DELETING, disclosure drain, Supabase hard deletion and local cascade in order, with retry behavior. Align IAM and in-app disclosures. Keep real-provider acceptance gated; do not claim production deletion or legal/store certification.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/docs/legal/store-privacy-data-map.md:158 -- Local erasure cascades account linkage/devices and app data, but does **not** delete identity/email in Supabase Auth. Provider erasure, SMTP/delivery, live database role/cleanup/backup verification and native store disclosures remain release gates; optional Auth delivery is off. Do not present this as completed production account deletion or a legal/store certification. See [Account IAM contract](../architecture/account-iam-and-retention.md).",
+      "why_it_matters": "The privacy map says erasure leaves the Supabase identity intact. Runtime instead requires provider hard deletion before local acknowledgement and retains DELETING linkage on missing credentials or provider failure.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/docs/legal/store-privacy-data-map.md:158 -- Local erasure cascades account linkage/devices and app data, but does **not** delete identity/email in Supabase Auth. Provider erasure, SMTP/delivery, live database role/cleanup/backup verification and native store disclosures remain release gates; optional Auth delivery is off. Do not present this as completed production account deletion or a legal/store certification. See [Account IAM contract](../architecture/account-iam-and-retention.md)."
+      ],
+      "reviewers": [
+        "project-standards"
+      ],
+      "independent_reviewers": [
+        "project-standards"
+      ],
+      "validation_status": "confirmed",
+      "validation_reason": "For linked-account erasure, the newly added privacy-map paragraph at store-privacy-data-map.md:158 incorrectly says Supabase identity is not deleted, whereas main.py:116 wires the hard-delete adapter in accounts/erasure.py:30-38 and guest/postgres.py:161-193 requires DELETING, send drain and provider acknowledgement before local cascade, directly contradicting the implemented sequence and AGENTS.md:11 even though live-provider acceptance remains unmeasured and gated.",
+      "protected_subject": null
+    },
+    {
+      "#": 9,
+      "title": "Scope Tarot deletion drains to the deleted reading",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/service.py",
+      "line": 262,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Capture only fences for the target tarot_session_id and owner before deletion, preserving the owner lock and post-commit drain. Keep subject-wide capture for profile erasure. Test unrelated sends do not delay reading deletion while its own admitted sends still drain.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/service.py:262 --             sends = await pending_sends(database, (guest_id,))",
+      "why_it_matters": "Deleting one Tarot reading drains every rewrite for its owner, including unrelated work. The reading is already deleted when an unrelated provider call can exceed the browser's 15-second timeout; retry then returns not found. Live duration incidence was not measured.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/service.py:262 --             sends = await pending_sends(database, (guest_id,))"
+      ],
+      "reviewers": [
+        "performance"
+      ],
+      "independent_reviewers": [
+        "performance"
+      ],
+      "validation_status": "confirmed",
+      "validation_reason": "When an unrelated admitted rewrite belongs to the same owner, the new tarot/service.py:262 subject-wide capture and :271 drain delay acknowledgement after the selected reading is deleted, reproduced in memory with an unrelated active fence keeping deletion pending until released, and the permitted 20-60-second provider window exceeds client.ts:403's 15-second DELETE timeout without an override at :658-662, although live duration incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 10,
+      "title": "Synchronize erasure proof on committed revocation",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/content_rewrite/test_postgres_concurrency.py",
+      "line": 154,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Replace the sleep with a bounded wait until find_by_token_hash returns None while provider release stays unset. Then assert erasure remains pending and retain completion, no-resend and spend assertions.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/content_rewrite/test_postgres_concurrency.py:154 --         await asyncio.sleep(0.1)",
+      "why_it_matters": "The erasure test sleeps 100 ms without observing committed revocation. A slow run can leave credentials active while the pending-task assertion passes merely because erasure has not started. PostgreSQL slow-run incidence was not measured.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/content_rewrite/test_postgres_concurrency.py:154 --         await asyncio.sleep(0.1)"
+      ],
+      "reviewers": [
+        "testing"
+      ],
+      "independent_reviewers": [
+        "testing"
+      ],
+      "validation_status": "confirmed",
+      "validation_reason": "If erasure has not acquired the owner lock within 100 ms, the newly added test_postgres_concurrency.py:148-160 can pass its pending-task assertion yet read an active credential because guest/postgres.py:118-125 and accounts/postgres.py:60-76 synchronize only after competing operations reach the owner lock, so the fixed sleep does not establish committed revocation and slower-run incidence was not measured on PostgreSQL.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 11,
+      "title": "Cover privacy-boundary background and BFCache lifecycle",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx",
+      "line": 65,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Test background hiding and persisted pageshow/BFCache revalidation. Keep content hidden until the same owner is verified; changed owners must clear queries and redirect. Verify unmount prevents late rendering/navigation.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx:65 --     const visibility = () => { if (document.visibilityState === \"visible\") resume(); else hide(); };",
+      "why_it_matters": "The boundary has separate visibilitychange, pagehide and pageshow privacy paths, but existing tests never exercise them. These protections could regress with tests green; this is a coverage gap, not an observed runtime privacy failure.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx:65 --     const visibility = () => { if (document.visibilityState === \"visible\") resume(); else hide(); };"
+      ],
+      "reviewers": [
+        "testing"
+      ],
+      "independent_reviewers": [
+        "testing"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 12,
+      "title": "Cancel guest adoption when leaving Welcome",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx",
+      "line": 68,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Thread AbortSignal through guest creation and adoption, checking it before device cleanup and epoch commit, including after imports. Prevent overlapping Google entry while cookie-issuing creation is unsettled. Regress departure using the real client with only fetch mocked.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:68 -- await createGuest(key); /Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:69 -- if (!isCurrent()) return; apps/web/src/shared/api/client.ts:606 -- await acceptSessionEpoch(session);",
+      "why_it_matters": "Leaving Welcome aborts its controller but not createGuest. Late real-client adoption can delete the next screen's drafts/creation keys and abort or misbind an overlapping Google request before the component checks isCurrent. Existing mocks bypass these effects.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:68 -- await createGuest(key); /Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:69 -- if (!isCurrent()) return; apps/web/src/shared/api/client.ts:606 -- await acceptSessionEpoch(session);"
+      ],
+      "reviewers": [
+        "julik-frontend-races"
+      ],
+      "independent_reviewers": [
+        "julik-frontend-races"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "authorization-authentication"
+    }
+  ],
+  "actionable_findings": [
+    {
+      "#": 1,
+      "title": "Disable account login in the secret-isolated rewrite worker",
+      "severity": "P1",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/config.py",
+      "line": 95,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Disable all three account-auth flags in rewrite-worker.environment. Keep the admin key API-only and retain API erasure validation. Test worker and health-check settings against combined production auth/generation configuration using synthetic secrets.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/config.py:95 --             raise ValueError(\"public login requires provider identity erasure credentials\")",
+      "why_it_matters": "With Google login and generation enabled together, the worker inherits auth flags but lacks the API-only admin key. Settings validation stops both the worker and its health check before jobs run.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/config.py:95 --             raise ValueError(\"public login requires provider identity erasure credentials\")"
+      ],
+      "reviewers": [
+        "adversarial",
+        "correctness",
+        "reliability",
+        "security"
+      ],
+      "independent_reviewers": [
+        "adversarial",
+        "correctness",
+        "reliability",
+        "security"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": null
+    },
+    {
+      "#": 4,
+      "title": "Prevent late private responses from undoing account restore",
+      "severity": "P1",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/middleware/session_renewal.py",
+      "line": 56,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Stop renewing credentials on arbitrary private/status responses. Serialize renewal and identity-changing requests across tabs through response consumption. Preserve unrelated guest A. Regress delayed A responses after B restore and assert both cookies remain B's.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/middleware/session_renewal.py:56 -- set_profile_cookies(response, settings, token, csrf)",
+      "why_it_matters": "A delayed guest-A response can overwrite restored account-B cookies because A remains valid. Client epoch checks run after the browser applies Set-Cookie and cannot prevent the reversal.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/middleware/session_renewal.py:56 -- set_profile_cookies(response, settings, token, csrf)"
+      ],
+      "reviewers": [
+        "adversarial",
+        "julik-frontend-races"
+      ],
+      "independent_reviewers": [
+        "adversarial",
+        "julik-frontend-races"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 5,
+      "title": "Include the auth overlay in scheduled retention jobs",
+      "severity": "P1",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/infra/hetzner/deploy.sh",
+      "line": 56,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Share approved auth/erasure overlay selection with run-retention-job.sh, including credentials needed for linked-account retries when login is off. Reinstall the timer executable and test both cleanup modules with synthetic secrets. Keep credentials API/cleanup-only.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/infra/hetzner/deploy.sh:56 --   COMPOSE_ARGS+=(-f \"${SCRIPT_DIR}/compose.auth.yaml\")",
+      "why_it_matters": "With login enabled, installed retention timers use base Compose without the admin-key overlay. Settings fails before history cleanup or pending linked-account erasure retries run.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/infra/hetzner/deploy.sh:56 --   COMPOSE_ARGS+=(-f \"${SCRIPT_DIR}/compose.auth.yaml\")"
+      ],
+      "reviewers": [
+        "adversarial",
+        "correctness",
+        "reliability"
+      ],
+      "independent_reviewers": [
+        "adversarial",
+        "correctness",
+        "reliability"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": null
+    },
+    {
+      "#": 6,
+      "title": "Declare account problem responses in the generated contract",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/api/v1/routes/accounts.py",
+      "line": 58,
+      "confidence": 100,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Declare ProblemResponse and application/problem+json for account errors, replacing the generated 422 declaration. Document applicable domain-error statuses, regenerate contracts and compare runtime bodies/media types with OpenAPI.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/api/v1/routes/accounts.py:58 --                 response = _problem(AccountError(\"ACCOUNT_INPUT_INVALID\", 422))",
+      "why_it_matters": "Invalid login input returns 422 application/problem+json with ACCOUNT_INPUT_INVALID, while OpenAPI advertises application/json HTTPValidationError. Typed clients also lack declared authentication, challenge and availability errors.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/api/v1/routes/accounts.py:58 --                 response = _problem(AccountError(\"ACCOUNT_INPUT_INVALID\", 422))"
+      ],
+      "reviewers": [
+        "api-contract"
+      ],
+      "independent_reviewers": [
+        "api-contract"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "public-contract"
+    },
+    {
+      "#": 7,
+      "title": "Stopped workers leave expired leases blocking history erasure",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py",
+      "line": 162,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Determine rewrite busy state from unexpired durable send fences under the owner lock. Preserve the complete provider-window allowance. Test worker crash and flags-off cleanup resuming after fence expiry without restarting the worker.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py:161 -- ContentRewriteJobRow.status == \"leased\",; /Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py:162 -- ContentRewriteJobRow.request_started_at.is_not(None),",
+      "why_it_matters": "A crashed worker's leased send-marked job blocks history erasure after its disclosure fence expires. With worker polling stopped, manual clearing and scheduled retention depend on separate recovery that can take 24 hours.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py:161 -- ContentRewriteJobRow.status == \"leased\",; /Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py:162 -- ContentRewriteJobRow.request_started_at.is_not(None),"
+      ],
+      "reviewers": [
+        "adversarial"
+      ],
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 8,
+      "title": "Align privacy map with linked-account erasure",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/docs/legal/store-privacy-data-map.md",
+      "line": 158,
+      "confidence": 100,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Document DELETING, disclosure drain, Supabase hard deletion and local cascade in order, with retry behavior. Align IAM and in-app disclosures. Keep real-provider acceptance gated; do not claim production deletion or legal/store certification.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/docs/legal/store-privacy-data-map.md:158 -- Local erasure cascades account linkage/devices and app data, but does **not** delete identity/email in Supabase Auth. Provider erasure, SMTP/delivery, live database role/cleanup/backup verification and native store disclosures remain release gates; optional Auth delivery is off. Do not present this as completed production account deletion or a legal/store certification. See [Account IAM contract](../architecture/account-iam-and-retention.md).",
+      "why_it_matters": "The privacy map says erasure leaves the Supabase identity intact. Runtime instead requires provider hard deletion before local acknowledgement and retains DELETING linkage on missing credentials or provider failure.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/docs/legal/store-privacy-data-map.md:158 -- Local erasure cascades account linkage/devices and app data, but does **not** delete identity/email in Supabase Auth. Provider erasure, SMTP/delivery, live database role/cleanup/backup verification and native store disclosures remain release gates; optional Auth delivery is off. Do not present this as completed production account deletion or a legal/store certification. See [Account IAM contract](../architecture/account-iam-and-retention.md)."
+      ],
+      "reviewers": [
+        "project-standards"
+      ],
+      "independent_reviewers": [
+        "project-standards"
+      ],
+      "validation_status": "confirmed",
+      "validation_reason": "For linked-account erasure, the newly added privacy-map paragraph at store-privacy-data-map.md:158 incorrectly says Supabase identity is not deleted, whereas main.py:116 wires the hard-delete adapter in accounts/erasure.py:30-38 and guest/postgres.py:161-193 requires DELETING, send drain and provider acknowledgement before local cascade, directly contradicting the implemented sequence and AGENTS.md:11 even though live-provider acceptance remains unmeasured and gated.",
+      "protected_subject": null
+    },
+    {
+      "#": 9,
+      "title": "Scope Tarot deletion drains to the deleted reading",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/service.py",
+      "line": 262,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Capture only fences for the target tarot_session_id and owner before deletion, preserving the owner lock and post-commit drain. Keep subject-wide capture for profile erasure. Test unrelated sends do not delay reading deletion while its own admitted sends still drain.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/service.py:262 --             sends = await pending_sends(database, (guest_id,))",
+      "why_it_matters": "Deleting one Tarot reading drains every rewrite for its owner, including unrelated work. The reading is already deleted when an unrelated provider call can exceed the browser's 15-second timeout; retry then returns not found. Live duration incidence was not measured.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/service.py:262 --             sends = await pending_sends(database, (guest_id,))"
+      ],
+      "reviewers": [
+        "performance"
+      ],
+      "independent_reviewers": [
+        "performance"
+      ],
+      "validation_status": "confirmed",
+      "validation_reason": "When an unrelated admitted rewrite belongs to the same owner, the new tarot/service.py:262 subject-wide capture and :271 drain delay acknowledgement after the selected reading is deleted, reproduced in memory with an unrelated active fence keeping deletion pending until released, and the permitted 20-60-second provider window exceeds client.ts:403's 15-second DELETE timeout without an override at :658-662, although live duration incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 10,
+      "title": "Synchronize erasure proof on committed revocation",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/content_rewrite/test_postgres_concurrency.py",
+      "line": 154,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Replace the sleep with a bounded wait until find_by_token_hash returns None while provider release stays unset. Then assert erasure remains pending and retain completion, no-resend and spend assertions.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/content_rewrite/test_postgres_concurrency.py:154 --         await asyncio.sleep(0.1)",
+      "why_it_matters": "The erasure test sleeps 100 ms without observing committed revocation. A slow run can leave credentials active while the pending-task assertion passes merely because erasure has not started. PostgreSQL slow-run incidence was not measured.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/api/tests/content_rewrite/test_postgres_concurrency.py:154 --         await asyncio.sleep(0.1)"
+      ],
+      "reviewers": [
+        "testing"
+      ],
+      "independent_reviewers": [
+        "testing"
+      ],
+      "validation_status": "confirmed",
+      "validation_reason": "If erasure has not acquired the owner lock within 100 ms, the newly added test_postgres_concurrency.py:148-160 can pass its pending-task assertion yet read an active credential because guest/postgres.py:118-125 and accounts/postgres.py:60-76 synchronize only after competing operations reach the owner lock, so the fixed sleep does not establish committed revocation and slower-run incidence was not measured on PostgreSQL.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 11,
+      "title": "Cover privacy-boundary background and BFCache lifecycle",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx",
+      "line": 65,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Test background hiding and persisted pageshow/BFCache revalidation. Keep content hidden until the same owner is verified; changed owners must clear queries and redirect. Verify unmount prevents late rendering/navigation.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx:65 --     const visibility = () => { if (document.visibilityState === \"visible\") resume(); else hide(); };",
+      "why_it_matters": "The boundary has separate visibilitychange, pagehide and pageshow privacy paths, but existing tests never exercise them. These protections could regress with tests green; this is a coverage gap, not an observed runtime privacy failure.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx:65 --     const visibility = () => { if (document.visibilityState === \"visible\") resume(); else hide(); };"
+      ],
+      "reviewers": [
+        "testing"
+      ],
+      "independent_reviewers": [
+        "testing"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 12,
+      "title": "Cancel guest adoption when leaving Welcome",
+      "severity": "P2",
+      "file": "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx",
+      "line": 68,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Thread AbortSignal through guest creation and adoption, checking it before device cleanup and epoch commit, including after imports. Prevent overlapping Google entry while cookie-issuing creation is unsettled. Regress departure using the real client with only fetch mocked.",
+      "first_evidence": "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:68 -- await createGuest(key); /Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:69 -- if (!isCurrent()) return; apps/web/src/shared/api/client.ts:606 -- await acceptSessionEpoch(session);",
+      "why_it_matters": "Leaving Welcome aborts its controller but not createGuest. Late real-client adoption can delete the next screen's drafts/creation keys and abort or misbind an overlapping Google request before the component checks isCurrent. Existing mocks bypass these effects.",
+      "evidence": [
+        "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:68 -- await createGuest(key); /Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx:69 -- if (!isCurrent()) return; apps/web/src/shared/api/client.ts:606 -- await acceptSessionEpoch(session);"
+      ],
+      "reviewers": [
+        "julik-frontend-races"
+      ],
+      "independent_reviewers": [
+        "julik-frontend-races"
+      ],
+      "validation_status": "confirmed",
+      "protected_subject": "authorization-authentication"
+    }
+  ],
+  "triage_groups": [
+    {
+      "title": "Auth activation without widening secret access",
+      "findings": [
+        1,
+        5
+      ],
+      "context": "The worker and scheduled cleanup inherit the API's auth flags but need different secret access.",
+      "preferred_resolution": "Apply-queue: correct worker IAM overrides (#1), then mirror approved app overlays in the installed retention runner (#5); verify both against the shared production configuration.",
+      "why": "One role-aware configuration review covers both failures, but each needs a distinct fix."
+    },
+    {
+      "title": "Session transitions and departing screens",
+      "findings": [
+        4,
+        11,
+        12
+      ],
+      "context": "Cookie renewal ordering and uncancelled guest adoption can undermine deliberate identity changes; boundary lifecycle tests leave returning-page paths uncovered.",
+      "preferred_resolution": "Apply-queue: settle cookie/transition serialization (#4), thread cancellation through guest creation and adoption (#12), then cover page visibility/BFCache ownership rechecks (#11).",
+      "why": "Response ordering is not solved by an epoch check after Set-Cookie; lifecycle tests should exercise the final transition contract."
+    },
+    {
+      "title": "Bounded erasure and evidence of its completion",
+      "findings": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "context": "History busy checks, Tarot drain scope, privacy disclosures and a release-test synchronization seam all concern erasure acknowledgement.",
+      "preferred_resolution": "Apply-queue: align history busy state with live durable fences (#7), limit reading deletion to its own sends (#9), observe committed revocation in the release test (#10), and align privacy wording with actual linked-identity erasure (#8).",
+      "why": "Preserve live disclosure barriers and nonrefundable debit history while removing stale or unrelated waits; no item authorizes premature erasure."
+    }
+  ],
+  "pre_existing_findings": [],
+  "requirements_completeness": {
+    "plan_path": "/Users/phamhanh/Documents/New project/la-lanh/docs/plans/2026-10-10-content-google-release-completion.md",
+    "plan_source": "explicit",
+    "requirements": [
+      {
+        "id": "R1",
+        "requirement": "Exactly two welcome actions, guest resume and Google login; no demo/profile switch.",
+        "status": "partially addressed",
+        "findings": [
+          12
+        ],
+        "evidence": [
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/features/welcome/WelcomePage.tsx"
+        ],
+        "note": "Two-action entry and guest resume appear in the diff; departing creation remains unsafe."
+      },
+      {
+        "id": "R2",
+        "requirement": "Server-PKCE fixed callback single exchange, initiating credential, explicit account consent, no auto-merge/AI consent.",
+        "status": "partially addressed",
+        "findings": [
+          4,
+          6,
+          11,
+          12
+        ],
+        "evidence": [
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/accounts/service.py",
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/web/src/app/SessionBoundary.tsx"
+        ],
+        "note": "Server PKCE/consent/restore work appears; cookie ordering, adoption and boundary regression coverage need fixes. Real Google acceptance is not established."
+      },
+      {
+        "id": "R3",
+        "requirement": "Guest30 inactivity, account365, device30, separate30-day opt-in history with legacy grace.",
+        "status": "partially addressed",
+        "findings": [
+          5,
+          7
+        ],
+        "evidence": [
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/history/postgres.py",
+          "/Users/phamhanh/Documents/New project/la-lanh/docs/architecture/account-iam-and-retention.md"
+        ],
+        "note": "Retention clocks, opt-in and legacy grace appear; installed timers and stale rewrite busy state undermine cleanup."
+      },
+      {
+        "id": "R4",
+        "requirement": "Direct meaningful Astro/Tarot, summary first, evidence/meaning/negation/safety gates, optional independent CMS.",
+        "status": "met",
+        "evidence": [
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/readings/daily_psychology.py",
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/context_readings.py",
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content/validation.py"
+        ],
+        "note": "Content and local semantic-gate work appear. This does not certify exhaustive editorial coverage, paid output or real-reader comprehension. File-size claims #2/#3 were rejected."
+      },
+      {
+        "id": "R5",
+        "requirement": "Short admission/publication transactions, durable disclosure drain, responsive foreground, no resend/refund.",
+        "status": "partially addressed",
+        "findings": [
+          7,
+          9,
+          10
+        ],
+        "evidence": [
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/content_rewrite/send_fence.py",
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/tarot/service.py"
+        ],
+        "note": "Durable fences/short transactions appear; stale busy state, unrelated drains and test synchronization remain defects. Preserve no-resend/nonrefundable debits."
+      },
+      {
+        "id": "R6",
+        "requirement": "Provider hard erase before local acknowledgement, DELETING retries, backend-only admin key.",
+        "status": "partially addressed",
+        "findings": [
+          1,
+          5,
+          8
+        ],
+        "evidence": [
+          "/Users/phamhanh/Documents/New project/la-lanh/apps/api/app/domains/guest/postgres.py",
+          "/Users/phamhanh/Documents/New project/la-lanh/infra/hetzner/compose.auth.yaml"
+        ],
+        "note": "Provider-before-local erasure and DELETING retries appear; role configuration and privacy wording need fixes. Actual provider erasure remains unaccepted."
+      },
+      {
+        "id": "R7",
+        "requirement": "Full WIP review/test, exact image/schema/source/grants/backup/public smoke before release.",
+        "status": "partially addressed",
+        "note": "273-path inventory and local checks are recorded; reviewer coverage is sampled. Exact candidate image/source/schema, production-role grants, backup restore and public smoke remain release-owned and unperformed here."
+      },
+      {
+        "id": "R8",
+        "requirement": "Live two-account/device Google and paid/editorial acceptance before activation; existing key USD1/month.",
+        "status": "partially addressed",
+        "note": "Flags-off gates and existing-key USD1/month limit remain explicit. Credentials, real two-account/device Google acceptance, paid-output/failure acceptance and real-reader comprehension remain unverified; no paid/live calls were authorized."
+      }
+    ],
+    "implementation_units": [
+      {
+        "id": "U1",
+        "unit": "Entry/Google IAM and retention",
+        "status": "partially addressed",
+        "findings": [
+          1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          11,
+          12
+        ],
+        "note": "Implementation appears; confirmed defects and real-provider activation gates remain."
+      },
+      {
+        "id": "U2",
+        "unit": "Astro/Tarot content completion and bounded Luna rewrite",
+        "status": "partially addressed",
+        "findings": [
+          7,
+          9,
+          10
+        ],
+        "note": "Content and bounded rewrite implementation appear; drainage/test fixes and paid/editorial acceptance remain."
+      },
+      {
+        "id": "U3",
+        "unit": "Full bundle review and production deploy/rollback",
+        "status": "partially addressed",
+        "note": "Review and deploy/rollback preparation appear. Production deployment and acceptance are not complete."
+      }
+    ],
+    "unaddressed_requirements": [],
+    "unrequested_behavior_rules": [],
+    "reverse_check": "Checked the plan itself and sampled reviewed diff/source against extracted requirements. No additional unrequested user-visible behavior rule was identified; this is not exhaustive clearance.",
+    "intentional_deferred_gates": "Real-provider and production acceptance are explicitly deferred until credentials and verification exist. They are release/activation blockers, not new unvalidated code findings."
+  },
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "Real Google redirect/PKCE, two-account/two-device and concurrent-tab restore, cancellation/replay and provider hard-erasure acceptance remain unverified because real configuration/credentials are unavailable. Keep public Google off; offline fixtures do not establish activation readiness.",
+    "Existing-key installation, paid-output/provider-failure acceptance and real-reader Vietnamese comprehension remain activation gates. No paid provider calls, key creation, recharge or budget increase occurred; preserve USD 1/month and independent external-rewrite consent.",
+    "Production-role migrations through 0035, grants/RLS/TLS, installed cleanup/retry timers, backup restoration and exact-image/source/public smoke were not exercised by these reviewers. Keep source/schema/image correspondence and rollback evidence release-owned.",
+    "0030 intentionally deletes legacy rewrite jobs after preserving visible debit aggregates. Drain workers, disable enqueue and retain a restricted backup before upgrade; rollback must preserve the migrated schema, spend history and revocations, not undo anonymous debits.",
+    "HistoryService accesses repository-private session/busy/erase details while public guest-ID operations exercise a parallel orchestration seam (apps/api/app/domains/history/service.py:26). Consolidating persistence dispatch has a concrete maintenance benefit, but no present authorization failure or user-facing defect was established; this is report-only, not a primary blocker."
+  ],
+  "testing_gaps": [
+    "SessionBoundary.tsx:51-56 and :102: add GUEST_EXPIRED/SESSION_CHANGED and offline-then-Retry cases proving private-data clearing, correct welcome route state and hidden content until successful verification. This supplements the primary visibility/pagehide/pageshow umbrella finding #11 rather than duplicating it.",
+    "Add a populated 0030 upgrade regression for actual/reserved daily cost and token aggregates, including NULL usage and UTC-boundary rows, then verify queue deletion leaves daily/monthly debits intact. Current populated PostgreSQL legacy backfill coverage exercises 0029, not this 0030 transform.",
+    "Add a populated pre-0032 mood upgrade regression proving created_at backfills from checked_in_at without implicitly activating legacy history. DDL assertions and post-upgrade previous-writer compatibility do not establish existing-row backfill correctness."
+  ],
+  "coverage": {
+    "depth": "full",
+    "notes": [
+      "273 offered WIP paths, sampled review; no paid/live provider or production writes.",
+      "Initial full.diff tool export truncated; replaced directly with git --output before wave2, wave1 inspected relevant omissions via aligned local diffs.",
+      "Local checks1217API290web; latest focused224passed54skip and real guardedPG58passed head0035; not live acceptance.",
+      "Production remains a7fadf7e4511/schema0028, auth/generation off; OpenAI/admin secret files absent, Google config unconfirmed.",
+      "No paid external cross-model review started under user cost constraint; local adversarial fallback is not cross-model corroboration.",
+      "Exactly 11 current selected reviewer returns were used. Removed historical returns were not loaded into synthesis or counted as corroboration.",
+      "Merge inspection was read-only and checked cited source, surrounding guards, callers, actual deployment/timer wiring and changed-path provenance. No project files, application state, deployment or providers were mutated.",
+      "Reviewer coverage is sampled, not an exhaustive whole-inventory clearance. Initial truncated-diff limitations remain in the source receipts; dispatch reports a replacement full.diff before wave2, and merge inspected aligned local source rather than relying on omitted hunks.",
+      "18 mechanically valid candidates reconciled to 13 distinct claims; 5 redundant candidate instances were eliminated. The adversarial composite startup/timer claim was folded into the two narrower findings because their code fixes differ; it is not a third finding.",
+      "First-evidence backfilled: 0; quote-gate demotions: 0; malformed findings: 0; malformed returns: 0; confidence suppressions: 0. Every retained primary has hydrated impact and evidence.",
+      "Same-model reviewer agreement is attribution, not cross-family corroboration: no confidence promotion and no validator shortcut. Helper-produced independent_reviewers preserves independently dispatched contexts, not proof of a different serving family.",
+      "No preference-only settled-decision conflict was found. Retained defects preserve flags-off activation, no profile switch/no merge, direct Vietnamese and unchanged cost/secret constraints.",
+      "One advisory maintainability concern remains report-only. After validation, 10 primary findings remain: 3 P1 and 7 P2; rejected #2 and #3 were removed without renumbering or preserving their claims in soft buckets.",
+      "All 12 selected findings received one valid verdict within the 900-second bound: 10 confirmed, 2 rejected, 0 unresolved/malformed/failed, 0 shortcut-skipped. There was no validation infrastructure failure.",
+      "Protected-subject classification follows the alleged failure, not auth/privacy keywords. Startup configuration failures #1/#5 and descriptive privacy-map mismatch #8 retain null; #4/#11/#12 concern authorization-authentication, #6 public-contract, and #7/#9/#10 concurrency. No protected rejection or protected-subject reclassification occurred.",
+      "Report-only finish: no agents launched, source edits, deployments, external provider/reviewer calls, key creation or budget changes. Stage 5c skipped because apply_local=false.",
+      "Review status complete means the report and required validation are complete; release verdict Not ready grants no production or provider acceptance.",
+      "Confirmed findings retain severity, confidence and downstream-resolver routing. Unmeasured acceptance/incidence reasons for #8/#9/#10 are attached to the findings; exact batch reasons are in coverage.validator.verdicts.",
+      "Production state in this receipt is the dispatch-reported snapshot, not a new production inspection or acceptance result. No detached peer job directory is present in this run."
+    ],
+    "reviewers": [
+      "correctness",
+      "project-standards",
+      "testing",
+      "maintainability",
+      "security",
+      "performance",
+      "api-contract",
+      "data-migration",
+      "reliability",
+      "adversarial",
+      "julik-frontend-races"
+    ],
+    "reviewer_returns": 11,
+    "raw_candidates": 18,
+    "mechanical_candidates": 18,
+    "semantic_duplicates_removed": 5,
+    "semantic_claims_before_soft_buckets": 13,
+    "primary_findings": 10,
+    "severity_counts": {
+      "P0": 0,
+      "P1": 3,
+      "P2": 7,
+      "P3": 0
+    },
+    "pre_existing_count": 0,
+    "mode_aware_demotions": 1,
+    "suppressed_by_confidence": {},
+    "suppressed_count": 0,
+    "malformed_findings": 0,
+    "malformed_returns": 0,
+    "first_evidence_backfilled": 0,
+    "quote_gate_demotions": 0,
+    "settlement_suppressed": 0,
+    "settlement_evaluated": true,
+    "settlement_source": "explicit",
+    "failed_reviewers": [],
+    "bound_exceeded": [],
+    "peer": {
+      "selected": false,
+      "target": null,
+      "route": null,
+      "preference_source": "user",
+      "outcome": "in-process-fallback",
+      "artifact": null,
+      "coverage": "No paid external cross-model review started under user cost constraint; local adversarial fallback is not cross-model corroboration."
+    },
+    "validator": {
+      "status": "complete",
+      "shortcut_skipped": 0,
+      "skip_evidence_basis": "No adversarial-<provider> artifact with independence_verified:true exists; all current reviewers are in-process.",
+      "selected_count": 12,
+      "batch_count": 1,
+      "normal_cap": 8,
+      "required_count_over_normal_cap": 4,
+      "confirmed": 10,
+      "rejected": 2,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "outcome": "verdicts",
+      "validated": 12,
+      "wait_bound_seconds": 900,
+      "bound_exceeded": false,
+      "verdicts_landed": true,
+      "verdicts": [
+        {
+          "#": 1,
+          "status": "confirmed",
+          "protected_subject": null,
+          "reason": "With approved production login and generation enabled together, compose.yaml:56-63 passes shared auth flags to the worker while compose.auth.yaml:4-8 mounts the admin secret only in app, and an isolated Python 3.13.13 Settings probe reproduced the new config.py:90-95 validation failure and successful validation with worker auth flags disabled, affecting both worker.py:367 and check_rewrite_worker.py:14 before provider access."
+        },
+        {
+          "#": 2,
+          "status": "rejected",
+          "protected_subject": null,
+          "reason": "Although the diff grows daily_psychology.py to 1,161 lines, inspection of the authored banks at :576 and :881 and expansion, fingerprinting and selection at :994-1161 establishes no correctness defect or violated project requirement, and the reviewer's 1,000-line threshold is an unsupported organizational preference rather than an AGENTS.md contract."
+        },
+        {
+          "#": 3,
+          "status": "rejected",
+          "protected_subject": null,
+          "reason": "The new 1,957-line context_readings.py contains cohesive four-field authored rows with straightforward aggregation at :1942-1957 and per-context/card coverage in test_context_readings.py:24-74, so its size alone proves neither incorrect behavior nor a violated project contract and splitting the banks is an organizational preference."
+        },
+        {
+          "#": 4,
+          "status": "confirmed",
+          "protected_subject": "authorization-authentication",
+          "reason": "When an A private response finishes after restoring B, the newly added session_renewal.py:45-56 reflects still-valid A request credentials while accounts/service.py:462-466 preserves A, and an in-memory SQLite reproduction using real guest/account services and middleware restored B then observed the late response overwrite both cookies with A despite client.ts:504-508 checking identity only after response headers arrive."
+        },
+        {
+          "#": 5,
+          "status": "confirmed",
+          "protected_subject": null,
+          "reason": "When production login is enabled, the installed timer runner invokes only base Compose at run-retention-job.sh:33-34 unlike deploy.sh:53-56, so both cleanup entrypoints load Settings without the app-only admin-secret overlay, and an independent synthetic production cleanup Settings probe failed at the newly introduced config.py:95 guard but validated when only the synthetic admin credential was added."
+        },
+        {
+          "#": 6,
+          "status": "confirmed",
+          "protected_subject": "public-contract",
+          "reason": "For invalid login verification input, the new accounts.py:57-58 and :211-221 return a problem response without declaring it in OpenAPI, and a no-database FastAPI 0.141.1 ASGI probe with trusted Origin and code 'x' observed 422 application/problem+json with ACCOUNT_INPUT_INVALID while both generated OpenAPI and packages/contracts/openapi/v1.json:5040-5042 advertise application/json HTTPValidationError."
+        },
+        {
+          "#": 7,
+          "status": "confirmed",
+          "protected_subject": "concurrency",
+          "reason": "After a worker dies following its send marker and polling stops, the newly added history/postgres.py:161-162 blocks on leased status without checking fence or lease expiry while guest/postgres.py:270 delays non-worker job recovery until 24-hour payload age, and a SQLite 3.50.4 in-memory probe with an expired lease, no live fence and opted-in 40-day-old history reproduced HistoryBusy, zero purged roots and one remaining root."
+        },
+        {
+          "#": 8,
+          "status": "confirmed",
+          "protected_subject": null,
+          "reason": "For linked-account erasure, the newly added privacy-map paragraph at store-privacy-data-map.md:158 incorrectly says Supabase identity is not deleted, whereas main.py:116 wires the hard-delete adapter in accounts/erasure.py:30-38 and guest/postgres.py:161-193 requires DELETING, send drain and provider acknowledgement before local cascade, directly contradicting the implemented sequence and AGENTS.md:11 even though live-provider acceptance remains unmeasured and gated."
+        },
+        {
+          "#": 9,
+          "status": "confirmed",
+          "protected_subject": "concurrency",
+          "reason": "When an unrelated admitted rewrite belongs to the same owner, the new tarot/service.py:262 subject-wide capture and :271 drain delay acknowledgement after the selected reading is deleted, reproduced in memory with an unrelated active fence keeping deletion pending until released, and the permitted 20-60-second provider window exceeds client.ts:403's 15-second DELETE timeout without an override at :658-662, although live duration incidence was not measured."
+        },
+        {
+          "#": 10,
+          "status": "confirmed",
+          "protected_subject": "concurrency",
+          "reason": "If erasure has not acquired the owner lock within 100 ms, the newly added test_postgres_concurrency.py:148-160 can pass its pending-task assertion yet read an active credential because guest/postgres.py:118-125 and accounts/postgres.py:60-76 synchronize only after competing operations reach the owner lock, so the fixed sleep does not establish committed revocation and slower-run incidence was not measured on PostgreSQL."
+        },
+        {
+          "#": 11,
+          "status": "confirmed",
+          "protected_subject": "authorization-authentication",
+          "reason": "For backgrounding or BFCache restoration, newly added SessionBoundary.tsx:65 and :75-77 contain distinct privacy-hide and revalidation event wiring, but inspection of the complete SessionBoundary.test.tsx:1-135 and a test-source search found no visibilitychange, pagehide or pageshow exercise, confirming the claimed regression-coverage gap without asserting an observed runtime privacy failure."
+        },
+        {
+          "#": 12,
+          "status": "confirmed",
+          "protected_subject": "authorization-authentication",
+          "reason": "Leaving through WelcomePage.tsx:129 during creation aborts the component controller but not createGuest at :68, and an in-memory esbuild/jsdom probe of the real client with only fetch replaced reproduced late guest adoption, erasure of the new screen's creation key and Radar draft, and abortion of an overlapping Google request through the newly added client.ts:563-572 cleanup before the component's :69 guard."
+        }
+      ],
+      "reclassified_protected_subjects": [],
+      "degraded_blockers": []
+    },
+    "compound_packs": {
+      "roots": [],
+      "errors": [],
+      "warnings": []
+    },
+    "local_apply": {
+      "authorized": false,
+      "performed": false,
+      "reason": "apply_local=false; mode:agent is report-only"
+    }
+  },
+  "verdict_reason": "Three confirmed P1 defects remain, including an account-restore cookie reversal that violates the project security gate. Required release and activation evidence is incomplete. Fix the actionable queue and verify it before release; keep auth/generation off until separate real-provider and production gates pass.",
+  "fix_order": [
+    4,
+    12,
+    11,
+    1,
+    5,
+    7,
+    9,
+    10,
+    6,
+    8
+  ],
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/20261010-2010-production",
+  "run_id": "20261010-2010-production"
+}

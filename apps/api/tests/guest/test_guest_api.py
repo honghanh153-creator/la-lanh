@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -10,11 +11,11 @@ from tests.guest.test_guest_service import MemoryGuestRepository
 
 
 @pytest.fixture
-def guest_client() -> Iterator[TestClient]:
+def guest_client(tmp_path: Path) -> Iterator[TestClient]:
     app = create_app(
         Settings(
             environment="test",
-            database_url="postgresql+asyncpg://la_lanh:test@127.0.0.1:5432/la_lanh_test",
+            database_url=f"sqlite+aiosqlite:///{tmp_path / 'guest-api.db'}",
             cors_origins=["http://127.0.0.1:5173"],
             guest_cookie_name="la_lanh_guest",
             guest_cookie_secure=False,
@@ -68,6 +69,63 @@ def test_guest_resumes_from_cookie(guest_client: TestClient) -> None:
     assert response.json()["state"] == "active"
     assert response.json()["session_epoch"] == created["session_epoch"]
     assert len(str(response.json()["session_epoch"])) == 64
+
+
+def test_private_and_missing_status_responses_never_write_identity_cookies(
+    guest_client: TestClient,
+) -> None:
+    create_guest(guest_client)
+    for path in ("/v1/session", "/v1/session/content-rewrite-consent", "/v1/account"):
+        response = guest_client.get(path)
+        assert response.status_code == 200
+        assert response.headers.get_list("set-cookie") == []
+    guest_client.cookies.clear()
+    response = guest_client.get("/v1/session")
+    assert response.status_code == 401
+    assert response.headers.get_list("set-cookie") == []
+
+
+def test_session_renewal_extends_both_cookies_without_changing_identity(
+    guest_client: TestClient,
+) -> None:
+    created = create_guest(guest_client)
+    token = guest_client.cookies.get("la_lanh_guest")
+    csrf = guest_client.cookies.get("la_lanh_csrf")
+    response = guest_client.post(
+        "/v1/session/renew",
+        headers={"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": str(csrf)},
+    )
+    cookies = response.headers.get_list("set-cookie")
+    assert len(cookies) == 2
+    assert all("Max-Age=2592000" in value for value in cookies)
+    assert guest_client.cookies.get("la_lanh_guest") == token
+    assert guest_client.cookies.get("la_lanh_csrf") == csrf
+    assert response.json()["session_epoch"] == created["session_epoch"]
+
+
+def test_failed_private_request_does_not_refresh_cookies(guest_client: TestClient) -> None:
+    create_guest(guest_client)
+    response = guest_client.delete("/v1/guest-session")
+    assert response.status_code == 403
+    assert response.headers.get_list("set-cookie") == []
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {},
+        {"Origin": "https://evil.example"},
+        {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": "wrong"},
+    ],
+)
+def test_explicit_renewal_requires_origin_and_current_csrf(
+    guest_client: TestClient,
+    headers: dict[str, str],
+) -> None:
+    create_guest(guest_client)
+    response = guest_client.post("/v1/session/renew", headers=headers)
+    assert response.status_code == 403
+    assert response.headers.get_list("set-cookie") == []
 
 
 def test_delete_requires_origin_and_csrf_then_clears_guest(guest_client: TestClient) -> None:
@@ -162,6 +220,7 @@ def test_content_rewrite_consent_is_explicit_csrf_protected_and_revocable(tmp_pa
         )
     )
     with TestClient(app, base_url="http://127.0.0.1:5173") as client:
+        assert client.get("/v1/session/content-rewrite-consent").status_code == 401
         created = client.post(
             "/v1/guest-sessions",
             json={
@@ -174,6 +233,10 @@ def test_content_rewrite_consent_is_explicit_csrf_protected_and_revocable(tmp_pa
             "Origin": "http://127.0.0.1:5173",
             "X-CSRF-Token": created["csrf_token"],
         }
+
+        initial = client.get("/v1/session/content-rewrite-consent")
+        assert initial.status_code == 200
+        assert initial.json() == {"consented": False, "enabled": False, "pilot_eligible": True}
 
         assert (
             client.post(
@@ -188,6 +251,7 @@ def test_content_rewrite_consent_is_explicit_csrf_protected_and_revocable(tmp_pa
             headers=headers,
         )
         assert granted.status_code == 204
+        assert client.get("/v1/session/content-rewrite-consent").json()["consented"] is True
 
         radar_granted = client.post(
             "/v1/session/content-rewrite-consent",
@@ -214,9 +278,11 @@ def test_content_rewrite_consent_is_explicit_csrf_protected_and_revocable(tmp_pa
             headers=headers,
         )
         assert radar_revoked.status_code == 204
+        assert client.get("/v1/session/content-rewrite-consent").json()["consented"] is True
 
         revoked = client.delete(
             "/v1/session/content-rewrite-consent",
             headers=headers,
         )
         assert revoked.status_code == 204
+        assert client.get("/v1/session/content-rewrite-consent").json()["consented"] is False

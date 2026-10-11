@@ -8,6 +8,7 @@ import { clearCachedDailyNote } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
 import { clearSavedNoteMutationQueue } from "./savedNoteMutationQueue";
 import { RADAR_PENDING_REQUEST_KEY } from "../../features/radar/radarOptions";
+import { invalidateSessionRequests, SESSION_RESTART_REQUIRED_KEY } from "../session/sessionIdentity";
 
 export const PERSONAL_DATA_CLEARED_EVENT = "la-lanh-personal-data-cleared";
 
@@ -26,6 +27,7 @@ const PERSONAL_LOCAL_KEY_PREFIXES = [
 const PERSONAL_CACHE_NAMES: readonly string[] = [];
 
 export async function clearPersonalDataOnDevice(): Promise<void> {
+  invalidateSessionRequests();
   const failures: unknown[] = [];
   const attempt = (operation: () => void) => {
     try {
@@ -58,9 +60,13 @@ export async function clearPersonalDataOnDevice(): Promise<void> {
   attempt(() => sessionStorage.removeItem("la-lanh-guest-create-key"));
   attempt(() => sessionStorage.removeItem(SESSION_EPOCH_KEY));
   attempt(() => sessionStorage.removeItem(OWNER_SESSION_EPOCH_KEY));
+  attempt(() => sessionStorage.removeItem("la-lanh-owner-session-until-v1"));
+  attempt(() => sessionStorage.removeItem(SESSION_RESTART_REQUIRED_KEY));
   attempt(() => sessionStorage.removeItem("la-lanh-radar-pending"));
   attempt(() => sessionStorage.removeItem(RADAR_PENDING_REQUEST_KEY));
   attempt(() => sessionStorage.removeItem("la-lanh-radar-owner-start"));
+  attempt(() => sessionStorage.removeItem("la-lanh-tarot-start"));
+  attempt(() => sessionStorage.removeItem("la-lanh-tarot-guest-key"));
 
   if ("caches" in window) {
     const results = await Promise.allSettled(

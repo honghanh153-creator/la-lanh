@@ -79,6 +79,13 @@ class BirthSupplementStateResponse(BaseModel):
     timezone_id: str | None
 
 
+class BirthSupplementEditResponse(BaseModel):
+    birth_time_mode: BirthTimeMode
+    birth_time_local: str | None
+    approx_window: ApproxWindow | None
+    place: PlaceResultResponse | None
+
+
 class BirthSupplementRemoveRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -151,6 +158,7 @@ async def create_birth_profile(
     try:
         require_trusted_origin(request, trusted_origins(request))
         guest = await _guest_service(request).verify_csrf(token, csrf_token)
+        await _guest_service(request).require_basic_birth_consent(guest.id)
         reveal = await _birth_service(request).create_date_only(
             guest_id=guest.id,
             birth_date=body.birth_date,
@@ -209,7 +217,7 @@ async def search_birth_places(
 @router.post(
     "/birth-profile/supplement",
     response_model=BirthSupplementResponse,
-    responses={401: {}, 403: {}, 422: {}, 503: {}},
+    responses={401: {}, 403: {}, 409: {}, 422: {}, 503: {}},
 )
 async def add_birth_supplement(
     body: BirthSupplementRequest,
@@ -259,6 +267,39 @@ async def get_birth_supplement(request: Request) -> BirthSupplementStateResponse
     except (BirthDomainError, GuestDomainError) as error:
         return _problem(error)
     return _supplement_response(state)
+
+
+@router.get(
+    "/birth-profile/supplement/edit",
+    response_model=BirthSupplementEditResponse,
+    responses={401: {}, 404: {}},
+)
+async def get_birth_supplement_edit(
+    request: Request, response: Response
+) -> BirthSupplementEditResponse | Response:
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    try:
+        guest = await _guest_service(request).resume(
+            request.cookies.get(request.app.state.settings.guest_cookie_name)
+        )
+        editor = await _birth_service(request).supplement_edit(guest.id)
+    except (BirthDomainError, GuestDomainError) as error:
+        return _problem(error)
+    place = editor.place
+    return BirthSupplementEditResponse(
+        birth_time_mode=editor.birth_time_mode,
+        birth_time_local=editor.birth_time_local,
+        approx_window=editor.approx_window,
+        place=PlaceResultResponse(
+            place_id=place.place_id,
+            display_name=place.display_name,
+            country_code=place.country_code,
+            timezone_id=place.timezone_id,
+            confidence=place.confidence,
+        )
+        if place
+        else None,
+    )
 
 
 @router.delete(

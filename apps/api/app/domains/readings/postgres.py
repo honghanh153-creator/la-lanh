@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
 
@@ -8,10 +8,17 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.db.rewrite_scope import rewrite_session
 from app.domains.astro.models import TimePrecision, Tradition
+from app.domains.birth.errors import BirthProfileChanged
 from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
 from app.domains.guest.models import GuestState
 from app.domains.guest.tables import GuestSessionRow
+from app.domains.history.postgres import (
+    PRODUCT_TIMEZONE,
+    expired_history,
+    require_available_projection,
+)
 from app.domains.readings.models import (
     CandidateEvaluation,
     GenerationAttemptRecord,
@@ -58,8 +65,21 @@ class PostgresReadingRepository:
         self, record: ReadingPlanRecord
     ) -> tuple[ReadingPlanRecord, bool]:
         async with self._sessions() as session, session.begin():
+            await session.scalar(
+                select(GuestSessionRow)
+                .where(GuestSessionRow.id == record.guest_id)
+                .with_for_update()
+            )
             await _require_profile(session, record.guest_id, record.profile_id)
             if record.chart_snapshot_id is not None:
+                current_revision = await session.scalar(
+                    select(BirthProfileRow.updated_at).where(
+                        BirthProfileRow.id == record.profile_id,
+                        BirthProfileRow.guest_id == record.guest_id,
+                    )
+                )
+                if current_revision != record.source_revision:
+                    raise BirthProfileChanged
                 await _require_snapshot(
                     session,
                     record.guest_id,
@@ -104,14 +124,14 @@ class PostgresReadingRepository:
     async def get_plan(
         self, guest_id: UUID, profile_id: UUID, plan_id: UUID
     ) -> ReadingPlanRecord | None:
-        async with self._sessions() as session:
+        async with rewrite_session(self._sessions) as session:
             row = await _find_plan(session, guest_id, profile_id, plan_id)
             return _plan_record(row, self._envelope) if row is not None else None
 
     async def save_or_replay_revision(
         self, record: ReadingRevisionRecord
     ) -> tuple[ReadingRevisionRecord, bool]:
-        async with self._sessions() as session, session.begin():
+        async with rewrite_session(self._sessions, transaction=True) as session:
             plan_row = await _find_plan(session, record.guest_id, record.profile_id, record.plan_id)
             if plan_row is None:
                 raise ReadingOwnershipError("reading plan does not belong to this profile")
@@ -144,8 +164,40 @@ class PostgresReadingRepository:
     async def get_revision(
         self, guest_id: UUID, profile_id: UUID, revision_id: UUID
     ) -> ReadingRevisionRecord | None:
-        async with self._sessions() as session:
+        async with rewrite_session(self._sessions) as session:
             row = await _find_revision(session, guest_id, profile_id, revision_id)
+            if row is not None:
+                plan = await _find_plan(session, guest_id, profile_id, row.plan_id)
+                if plan is not None and _plan_record(plan, self._envelope).plan.purpose == (
+                    ReadingPurpose.DAILY_NOTE
+                ):
+                    now = datetime.now(UTC)
+                    expired = await session.scalar(
+                        select(ReadingPlanRow.id).where(
+                            ReadingPlanRow.id == plan.id,
+                            expired_history(
+                                ReadingPlanRow.guest_id, ReadingPlanRow.created_at, now
+                            ),
+                        )
+                    )
+                    current = await session.scalar(
+                        select(ReadingProjectionRow.id)
+                        .where(
+                            ReadingProjectionRow.guest_id == guest_id,
+                            or_(
+                                ReadingProjectionRow.purpose != "daily_note",
+                                ReadingProjectionRow.local_date
+                                >= now.astimezone(PRODUCT_TIMEZONE).date(),
+                            ),
+                            or_(
+                                ReadingProjectionRow.active_revision_id == revision_id,
+                                ReadingProjectionRow.available_revision_id == revision_id,
+                            ),
+                        )
+                        .limit(1)
+                    )
+                    if expired is not None and current is None:
+                        return None
             return _revision_record(row, self._envelope) if row is not None else None
 
     async def get_or_create_projection(
@@ -159,6 +211,7 @@ class PostgresReadingRepository:
                 session, record.guest_id, record.profile_id, record.scope_key
             )
             if existing is not None:
+                await require_available_projection(session, existing)
                 stored = _projection_record(existing)
                 _assert_same_projection_scope(stored, record)
                 return stored, True
@@ -199,8 +252,10 @@ class PostgresReadingRepository:
     async def get_projection(
         self, guest_id: UUID, profile_id: UUID, scope_key: str
     ) -> ReadingProjectionRecord | None:
-        async with self._sessions() as session:
+        async with rewrite_session(self._sessions) as session:
             row = await _find_projection(session, guest_id, profile_id, scope_key)
+            if row is not None:
+                await require_available_projection(session, row)
             return _projection_record(row) if row is not None else None
 
     async def publish_available(
@@ -210,12 +265,29 @@ class PostgresReadingRepository:
         scope_key: str,
         revision_id: UUID,
     ) -> ReadingProjectionRecord:
-        async with self._sessions() as session, session.begin():
+        async with rewrite_session(self._sessions, transaction=True) as session:
+            # Birth edits take the same guest lock before clearing live pointers.
+            await session.scalar(
+                select(GuestSessionRow).where(GuestSessionRow.id == guest_id).with_for_update()
+            )
             projection = await _find_projection(session, guest_id, profile_id, scope_key)
+            if projection is not None:
+                await require_available_projection(session, projection)
             revision = await _find_revision(session, guest_id, profile_id, revision_id)
             if projection is None or revision is None:
                 raise ReadingOwnershipError("projection and revision must share the owner scope")
             await self._validate_revision_for_projection(session, projection, revision)
+            plan_row = await _find_plan(session, guest_id, profile_id, revision.plan_id)
+            profile = await session.scalar(_profile_for_activation_query(guest_id, profile_id))
+            if (
+                plan_row is None
+                or profile is None
+                or (
+                    plan_row.chart_snapshot_id is not None
+                    and profile.current_snapshot_id != plan_row.chart_snapshot_id
+                )
+            ):
+                raise BirthProfileChanged
 
             if projection.active_revision_id is None:
                 if revision.source != ReadingRevisionSource.DETERMINISTIC.value:
@@ -272,7 +344,13 @@ class PostgresReadingRepository:
         expected_chart_snapshot_id: UUID | None = None,
     ) -> ReadingProjectionRecord | None:
         async with self._sessions() as session, session.begin():
+            await session.connection(execution_options={"sqlite_write": True})
+            await session.scalar(
+                select(GuestSessionRow).where(GuestSessionRow.id == guest_id).with_for_update()
+            )
             projection = await _find_projection(session, guest_id, profile_id, scope_key)
+            if projection is not None:
+                await require_available_projection(session, projection)
             if projection is None or projection.available_revision_id != expected_revision_id:
                 return None
             revision = await _find_revision(session, guest_id, profile_id, expected_revision_id)
@@ -788,14 +866,16 @@ async def _require_snapshot(
     session: AsyncSession, guest_id: UUID, profile_id: UUID, snapshot_id: UUID
 ) -> None:
     snapshot = await session.scalar(
-        select(ChartSnapshotRow.id).where(
+        select(ChartSnapshotRow.id)
+        .join(BirthProfileRow, BirthProfileRow.current_snapshot_id == ChartSnapshotRow.id)
+        .where(
             ChartSnapshotRow.id == snapshot_id,
             ChartSnapshotRow.guest_id == guest_id,
             ChartSnapshotRow.profile_id == profile_id,
         )
     )
     if snapshot is None:
-        raise ReadingOwnershipError("chart snapshot does not belong to this profile")
+        raise ReadingOwnershipError("chart snapshot is not current for this profile")
 
 
 async def _find_plan_by_key(

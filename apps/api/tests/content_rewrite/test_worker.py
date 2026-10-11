@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -57,6 +58,11 @@ def _lease(*, attempt_count: int = 1, max_attempts: int = 2) -> LeasedRewriteJob
 
 
 class FakeRepository:
+    @asynccontextmanager
+    async def execution_guard(self, lease):  # type: ignore[no-untyped-def]
+        del lease
+        yield True
+
     def __init__(self, lease: LeasedRewriteJob) -> None:
         self.current_lease: LeasedRewriteJob | None = lease
         self.events: list[str] = []
@@ -75,10 +81,13 @@ class FakeRepository:
         self.events.append("lease")
         return lease
 
-    async def mark_request_started(self, **kwargs):  # type: ignore[no-untyped-def]
+    async def mark_request_started(self, **kwargs: object) -> bool:
         del kwargs
         self.events.append("marked")
         return True
+
+    async def finish_send(self, *, job_id: UUID, lease_token: UUID) -> None:
+        pass
 
     async def retry(self, **kwargs):  # type: ignore[no-untyped-def]
         self.failed_result = kwargs["result"]
@@ -112,6 +121,45 @@ class Authorization:
     async def is_authorized(self, request: RewriteRequestEnvelope) -> bool:
         del request
         return self.allowed
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("boundary", ["day", "month"])
+@pytest.mark.parametrize("delay_at", ["guard", "send_marker"])
+async def test_reserved_period_cannot_send_in_a_new_period(boundary: str, delay_at: str) -> None:
+    now = [datetime(2026, 10, 31 if boundary == "month" else 3, 23, 59, 59, tzinfo=UTC)]
+    lease = _lease().model_copy(update={"lease_expires_at": now[0] + timedelta(minutes=2)})
+
+    class DelayedRepository(FakeRepository):
+        @asynccontextmanager
+        async def execution_guard(self, lease):  # type: ignore[no-untyped-def]
+            del lease
+            if delay_at == "guard":
+                now[0] += timedelta(seconds=2)
+            yield True
+
+        async def mark_request_started(self, **kwargs):  # type: ignore[no-untyped-def]
+            result = await super().mark_request_started(**kwargs)
+            if delay_at == "send_marker":
+                now[0] += timedelta(seconds=2)
+            return result
+
+    repository = DelayedRepository(lease)
+    provider = Provider(RewriteGenerationSuccess(key=lease.request.key, output={}))
+    await ContentRewriteWorker(
+        cast(ContentRewriteRepository, repository),
+        cast(RewriteGenerationProvider, provider),
+        Authorization(True),
+        Projector(),
+        daily_token_budget=100_000,
+        daily_cost_budget_cents=100,
+        monthly_cost_budget_cents=100,
+        clock=lambda: now[0],
+    ).process_one()
+    assert provider.calls == 0
+    assert repository.failed_result is RewriteJobResult.BUDGET_BLOCKED
+    assert repository.reserved_cost_nanos is not None  # No refund or retry.
+    assert "retry" not in repository.events
 
 
 class Provider:

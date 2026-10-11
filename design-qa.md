@@ -1,6 +1,6 @@
 # Design QA — lịch sử và kết quả hiện hành
 
-Kết quả hiện hành là phần **Ultraviolet fidelity — 07/10/2026** ở cuối tài liệu. Các pass trước đó không còn là bằng chứng cho giao diện hiện tại.
+Kết quả hiện hành cho welcome là phần **Welcome option 1 — 09/10/2026** ở cuối tài liệu. Các màn còn lại giữ phạm vi của những review trước; pass welcome không phải pass toàn bộ sản phẩm.
 
 ## Home option 1 — lưu lịch sử
 
@@ -161,3 +161,55 @@ final result: passed for evidenced onboarding-motion scope.
 - [Current AC, proof clip, screenshots, official W3C sources, doc/security/privacy review and limits](docs/reviews/optional-birth-planet-2026-10-07/onboarding-motion-v2/README.md). Native hardware, OS reduce-motion emulation, FPS/battery and production release remain unverified. Existing bundle-size warning remains.
 
 final result: passed for evidenced motion v2 and date-only guest E2E scope.
+
+## Welcome option 1 — 09/10/2026
+
+Scope: replacement `/welcome` only. This does not certify the full security/content plan or production release.
+
+### Compared artifacts and normalization
+
+- Owner selected displayed option 1, “Lật lá đầu tiên”, with slightly richer animation. Selected source: `docs/design-directions/welcome-flip-2026-10-09/selected.png`; revised animation-intent still: `docs/design-directions/welcome-flip-2026-10-09/motion-keyframe.png`.
+- Source 853 × 1844, normalized to 390 × 844 CSS px. Browser screenshot `docs/reviews/security-content-2026-10-09/welcome-mobile.jpg` is 390 × 844 at density 1. Light theme, welcome, decorative hero paused for capture; the still source and runtime necessarily have different animation poses.
+- Source and implementation actually opened together in `docs/reviews/security-content-2026-10-09/welcome-comparison-final.png` (left source, right implementation).
+- Focused regions captured and compared in `welcome-hero-comparison.png` and `welcome-copy-actions-comparison.png` in the same evidence directory. Small labels, wrapping and tap controls inspected in the copy/actions comparison, not inferred from code.
+- Additional actual captures: `welcome-small.jpg` at 320 × 568 (full content scrolls), `welcome-desktop.jpg` at 1280 × 900, and `welcome-dark.jpg` at 390 × 844.
+
+### Findings and iteration history
+
+1. [P2 fixed] Initial 390 × 844 page was 865 px tall. Initial evidence: `welcome-mobile-initial.jpg`. Tightened actions/privacy spacing without shrinking their touch targets. Final page measures 844 px tall and 390 px wide, with both CTAs and privacy footer available.
+2. [P2 fixed] First composite `welcome-comparison.png` exposed a card too narrow and copy about 25 px too high. Increased card scale and adjusted hero height; final title starts at y≈470 and primary CTA at y≈667, close to the selected source. Recaptured and compared in `welcome-comparison-final.png`.
+3. [P2 prevented] Wide/short screens could make the illustration overlap the copy. Hero now has bounded width and shrinks as a unit at short/narrow breakpoints. Actual 320 px and 1280 px captures show no art/text overlap or horizontal overflow. At 320 × 568 natural vertical scrolling is intentional.
+
+### Required fidelity surfaces
+
+- Fonts/typography: one existing Be Vietnam Pro family. Two-line direct headline, approximately 40 px at 390 px; body 15.5 px, actions 16 px and compact footer 12 px. No uppercase paragraphs, cropping or truncated copy.
+- Spacing/layout: preserves logo/pause → large hero → direct value statement → affirmative CTA → demo → privacy. No carousel, extra onboarding screen or forced animation delay. Responsive app column retained on desktop.
+- Colors/tokens: existing cream, ultraviolet and lime tokens. Dark theme uses existing Profile preference and remains readable. Lime is an action fill, not small text on cream.
+- Asset quality: three individually generated transparent raster assets, optimized WebP; actual card texture, cratered moon and luminous orbit, not CSS/SVG substitutes. No visible rectangular backgrounds in either theme. Front/back orbit uses the same image so it moves continuously through the composition.
+- Copy/content: selected headline, description, CTA and footer reproduced. Offline/expired/error content retained separately. No invented visitor reading before input.
+
+### Interactions and safety verified
+
+- Card, moon and orbit transforms change on separate infinite 8/12/9-second loops. Heading and primary CTA have no animation. Pause sets every layer's animation-play-state to paused; resume re-enables them. Shared pause persists into birth and reveal.
+- Actual local synthetic flow: welcome → birth (15/03/1995) → reveal → Home with a loaded daily note. Demo and privacy links also opened successfully.
+- Six welcome tests and all 208 frontend tests pass. Lint, TypeScript and production build pass. Two updated assertions were observed failing against the old welcome before implementation. Retry still reuses the idempotency key; ordinary Radar continuation and explicit restart remain covered.
+- Browser error/warning log returned no entries during this scoped flow.
+- Reduced-motion CSS reviewed: hero animation disabled and motion control hidden. OS-level reduced-motion, native device FPS/battery and assistive-technology testing remain unexercised; no claim of full WCAG certification.
+- Documentation, security and privacy check: no new input, telemetry, SDK, external image request, provider API call or billing change. Viewing/pausing does not create a guest; consent remains on the affirmative CTA. Existing basic/optional birth purposes and AI consent stay separate.
+- Official motion references checked: [W3C pause/stop/hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html), [MDN reduced motion](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion).
+
+### Follow-up polish and limits
+
+- P3: independently generated card/moon artwork and moving perspective are not pixel-identical to the static mock. The background omits scattered decorative stars and floor shadow; card glints/orbit supply the extra motion without additional clutter.
+- Existing approximately 754 kB bundle warning remains. Welcome assets total 384,992 bytes. No paid application API request or production deploy was made.
+- Remaining security-scan coverage, content/voice work and final shipping review are tracked separately in `docs/reviews/2026-10-09-security-content-work-handoff.md`.
+
+### Implementation checklist
+
+- Selected reference resolved and saved before implementation.
+- Revised still shown before build; actual layered motion implemented afterward.
+- Real browser mobile/desktop and light/dark captures reviewed.
+- Primary flow, pause, demo and privacy tested.
+- Previous P2 findings fixed and final comparison reopened.
+
+final result: passed

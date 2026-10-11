@@ -13,8 +13,11 @@ from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.content_rewrite.send_fence import drain_sends, pending_sends
 from app.domains.content_rewrite.service import ContentRewriteService
-from app.domains.tarot.engine import TarotReadingEngine
+from app.domains.content_rewrite.tables import ContentRewriteJobRow
+from app.domains.guest.tables import GuestSessionRow
+from app.domains.tarot.engine import TarotContentRejected, TarotReadingEngine
 from app.domains.tarot.errors import (
     TarotQuestionRejected,
     TarotSelectionInvalid,
@@ -34,7 +37,7 @@ from app.domains.tarot.models import (
     TarotSpreadMap,
     TarotVoice,
 )
-from app.domains.tarot.rewrite import compile_tarot_rewrite_request, tarot_rewrite_owner
+from app.domains.tarot.rewrite import compile_tarot_rewrite_request
 from app.domains.tarot.tables import TarotSessionRow
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
 
@@ -210,22 +213,29 @@ class TarotSessionService:
             row.updated_at = current
             if len(selected_indices) == required:
                 card_ids = tuple(self._deck(payload)[index] for index in selected_indices)
-                reading = self._engine.render(
-                    card_ids=card_ids,
-                    spread=spread,
-                    spread_map=spread_map,
-                    context=TarotContext(row.context),
-                    question=self._question(payload),
-                    voice=TarotVoice(row.voice),
-                    question_intent=self._question_intent(payload),
-                )
-                payload["reading"] = reading.model_dump(mode="json")
+                try:
+                    reading = self._engine.render(
+                        card_ids=card_ids,
+                        spread=spread,
+                        spread_map=spread_map,
+                        context=TarotContext(row.context),
+                        question=self._question(payload),
+                        voice=TarotVoice(row.voice),
+                        question_intent=self._question_intent(payload),
+                    )
+                except TarotContentRejected:
+                    # Preserve the draw, never publish the rejected draft or retry AI.
+                    logger.warning("tarot_local_content_rejected")
+                    payload["reading"] = None
+                else:
+                    payload["reading"] = reading.model_dump(mode="json")
                 row.state = TarotSessionState.COMPLETE.value
             row.payload_ciphertext = self._encrypt(row.id, payload)
             await database.flush([row])
             view = self._view(row, payload)
             if (
                 row.state == TarotSessionState.COMPLETE.value
+                and view.reading is not None
                 and self._generation_enabled
                 and external_generation_authorized
                 and self._content_rewrite_service is not None
@@ -246,11 +256,19 @@ class TarotSessionService:
         return view
 
     async def delete(self, guest_id: UUID, session_id: UUID) -> None:
-        if self._content_rewrite_service is not None:
-            await self._content_rewrite_service.cancel_owner(
-                tarot_rewrite_owner(guest_id, session_id)
-            )
         async with self._sessions() as database, database.begin():
+            await database.scalar(
+                select(GuestSessionRow).where(GuestSessionRow.id == guest_id).with_for_update()
+            )
+            jobs = tuple(
+                await database.scalars(
+                    select(ContentRewriteJobRow.id).where(
+                        ContentRewriteJobRow.owner_guest_id == guest_id,
+                        ContentRewriteJobRow.tarot_session_id == session_id,
+                    )
+                )
+            )
+            sends = await pending_sends(database, (guest_id,), job_ids=jobs)
             result = await database.execute(
                 delete(TarotSessionRow).where(
                     TarotSessionRow.id == session_id,
@@ -259,6 +277,7 @@ class TarotSessionService:
             )
             if cast(CursorResult[Any], result).rowcount != 1:
                 raise TarotSessionNotFound
+        await drain_sends(self._sessions, sends)
 
     async def cleanup(self, *, batch_size: int = 500, now: datetime | None = None) -> int:
         if not 1 <= batch_size <= 1000:

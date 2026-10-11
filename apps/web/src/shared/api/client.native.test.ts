@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createBirthProfile, createGuest } from "./client";
+import { testLocks } from "../session/testLocks";
 
 const nativeBridge = {
   isNativePlatform: () => true,
@@ -23,7 +24,9 @@ describe("native API session bridge", () => {
       value: nativeBridge,
     });
     vi.restoreAllMocks();
+    vi.stubGlobal("navigator", Object.create(navigator, { locks: { value: testLocks(), configurable: true } }));
   });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("marks native requests and retains only the non-auth CSRF token on device", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -54,7 +57,7 @@ describe("native API session bridge", () => {
         sun_sign: "cancer",
         tradition: "western",
       }),
-    );
+    ).mockResolvedValueOnce(jsonResponse({ state: "active" }));
 
     await createBirthProfile("2000-07-01");
 

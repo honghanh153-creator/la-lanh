@@ -1,6 +1,12 @@
 import type { components, paths } from "@la-lanh/contracts";
 
 import { runtimeConfig } from "../config/runtime";
+import { coordinateSession, sessionCoordinationAvailable } from "../session/sessionCoordinator";
+import {
+  announceSessionChange, currentSessionEpoch, OWNER_SESSION_EPOCH_KEY, SESSION_EPOCH_KEY,
+  rememberVerifiedSession, sessionCookieMarker, sessionGeneration, trackSessionRequest,
+  verifiedCookieHasChanged,
+} from "../session/sessionIdentity";
 import { readCachedDailyNote } from "../storage/noteCache";
 import {
   clearSavedNoteMutationQueue,
@@ -28,6 +34,103 @@ export type ResonanceStatus = {
   feedback_count: number;
   last_choice: ResonanceChoice | null;
 };
+export type ContentRewriteStatus = components["schemas"]["ContentRewriteConsentStatus"];
+export type AccountStatus = components["schemas"]["AccountStatus"];
+export type AccountCodeResponse = components["schemas"]["CodeResponse"];
+export type AccountLoginResult = components["schemas"]["LoginResponse"];
+export type HistoryRetention = components["schemas"]["HistoryRetentionStatus"];
+
+export function getAccountStatus(signal?: AbortSignal): Promise<AccountStatus> {
+  return request("/account", { signal });
+}
+
+export function acceptBasicBirthConsent(): Promise<void> {
+  return request("/session/birth-profile-consent", {
+    method: "POST", headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ consent_version: "birth-profile-v1" }),
+  });
+}
+
+export function requestAccountCode(email: string, signal?: AbortSignal): Promise<AccountCodeResponse> {
+  return request("/account/login/code", {
+    method: "POST", signal,
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ email, account_storage_consent: "account-storage-v1" }),
+  });
+}
+
+export function requestGoogleLogin(signal?: AbortSignal): Promise<components["schemas"]["GoogleResponse"]> {
+  return request("/account/login/google", {
+    method: "POST", signal, headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ account_storage_consent: "account-storage-v1" }),
+  });
+}
+
+async function accountTransition(path: "/account/login/verify" | "/account/login/restore" | "/account/login/google/verify", nonce: string, body: object, signal?: AbortSignal): Promise<AccountLoginResult> {
+  return request<AccountLoginResult>(path, {
+    method: "POST", signal, sessionTransition: true,
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": nonce },
+    body: JSON.stringify(body),
+  }, async (result) => {
+    if (result.status === "signed_in") {
+      if (!result.session) throw new ApiProblem(502, "ACCOUNT_RESPONSE_INVALID", "Chưa xác nhận được phiên đăng nhập.");
+      await acceptSessionEpoch(result.session, true, signal);
+    }
+  });
+}
+
+export function verifyAccountCode(code: string, nonce: string, signal?: AbortSignal): Promise<AccountLoginResult> {
+  return accountTransition("/account/login/verify", nonce, { code }, signal);
+}
+
+export function restoreAccount(nonce: string, signal?: AbortSignal): Promise<AccountLoginResult> {
+  return accountTransition("/account/login/restore", nonce, { confirm: true }, signal);
+}
+
+export function verifyGoogleLogin(code: string, state: string): Promise<AccountLoginResult> {
+  return accountTransition("/account/login/google/verify", state, { code });
+}
+
+export function cancelAccountLogin(nonce: string, signal?: AbortSignal): Promise<void> {
+  return request("/account/login/cancel", { method: "POST", signal, headers: { "X-CSRF-Token": nonce } });
+}
+
+export async function logoutAccount(signal?: AbortSignal): Promise<void> {
+  await request("/account/logout", { method: "POST", signal, sessionTransition: true, headers: csrfHeader() }, async () => {
+    const { clearPersonalDataOnDevice } = await import("../storage/clearPersonalData");
+    signal?.throwIfAborted();
+    await clearPersonalDataOnDevice();
+    signal?.throwIfAborted();
+    announceSessionChange();
+  });
+}
+
+export function getHistoryRetention(signal?: AbortSignal): Promise<HistoryRetention> {
+  return request("/session/history-retention", { signal });
+}
+
+export function enableHistoryRetention(): Promise<HistoryRetention> {
+  return request("/session/history-retention", {
+    method: "POST", headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ consent_version: "history-retention-v1" }),
+  });
+}
+
+export function clearReadingHistory(): Promise<void> {
+  return request("/session/history", { method: "DELETE", headers: csrfHeader() });
+}
+
+export function getContentRewriteStatus(signal?: AbortSignal): Promise<ContentRewriteStatus> {
+  return request("/session/content-rewrite-consent", { signal });
+}
+
+export function setContentRewriteConsent(enabled: boolean): Promise<void> {
+  return request("/session/content-rewrite-consent", enabled ? {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify({ consent_version: "external-content-rewrite-v1", scope: "personal" }),
+  } : { method: "DELETE", headers: csrfHeader() });
+}
 export type MoodValue = components["schemas"]["MoodValue"];
 export type MoodCheckIn = components["schemas"]["MoodResponse"];
 export type SavedNote = components["schemas"]["SavedNoteResponse"] & {
@@ -43,6 +146,7 @@ export type BirthTimeMode = components["schemas"]["BirthTimeMode"];
 export type ApproxWindow = components["schemas"]["ApproxWindow"];
 export type BirthSupplement = components["schemas"]["BirthSupplementResponse"];
 export type BirthSupplementState = components["schemas"]["BirthSupplementStateResponse"];
+export type BirthSupplementEdit = components["schemas"]["BirthSupplementEditResponse"];
 export type PublicShareArtifact = components["schemas"]["PublicShareArtifactResponse"];
 export type OnboardingStatus = components["schemas"]["OnboardingStatus"];
 export type InsightOverview = components["schemas"]["InsightOverviewResponse"];
@@ -298,15 +402,14 @@ export function isGuestSessionUnavailable(error: unknown): boolean {
     && (problem.code === "GUEST_SESSION_MISSING" || problem.code === "GUEST_EXPIRED");
 }
 
-export const SESSION_EPOCH_KEY = "la-lanh-session-epoch";
-export const OWNER_SESSION_EPOCH_KEY = "la-lanh-owner-session-epoch";
+export { currentSessionEpoch, OWNER_SESSION_EPOCH_KEY, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
 const NATIVE_CSRF_KEY = "la-lanh-native-csrf-v1";
 const REQUEST_TIMEOUT_MS = 15_000;
 const DELETE_GUEST_TIMEOUT_MS = 75_000;
 let activeDailyReading: { scopeKey: string; revisionId: string } | null = null;
 let ownerClaimInFlight: { sessionEpoch: string | null; promise: Promise<OwnerClaim> } | null = null;
 
-type RequestOptions = RequestInit & { timeoutMs?: number };
+type RequestOptions = RequestInit & { timeoutMs?: number; sessionTransition?: boolean };
 
 class ApiTimeoutError extends Error {
   readonly name = "TimeoutError";
@@ -335,10 +438,6 @@ function readCookie(name: string): string | null {
   return value ? decodeURIComponent(value.slice(prefix.length)) : null;
 }
 
-export function currentSessionEpoch(): string | null {
-  return sessionStorage.getItem(SESSION_EPOCH_KEY);
-}
-
 function currentDailyRevisionId(): string | null {
   const cachedProjection = readCachedDailyNote()?.note.reading_projection;
   if (cachedProjection) {
@@ -351,6 +450,7 @@ function currentDailyRevisionId(): string | null {
 
 export function clearActiveDailyReading(): void {
   activeDailyReading = null;
+  ownerClaimInFlight = null;
 }
 
 function isConnectivityFailure(error: unknown): boolean {
@@ -365,10 +465,81 @@ function csrfHeader(): Record<string, string> {
   return csrfToken ? { "X-CSRF-Token": csrfToken } : {};
 }
 
-async function request<T>(path: string, init?: RequestOptions): Promise<T> {
-  const { timeoutMs = REQUEST_TIMEOUT_MS, ...fetchInit } = init ?? {};
+function identityOperation(path: string): boolean {
+  return path === "/guest-sessions" || path === "/guest-session"
+    || path.startsWith("/account/login/") || path === "/account/logout"
+    || (path.startsWith("/account/devices/") && path.endsWith("/revoke"));
+}
+
+function cookieCapable(path: string, method = "GET"): boolean {
+  if (identityOperation(path) || path === "/session/renew" || path === "/identity/claim") return true;
+  // Capability cookies share the browser jar with profile transitions too.
+  if (path.startsWith("/public/radar/")) {
+    return method === "GET" ? !["/public/radar/current", "/public/radar/receipt"].includes(path)
+      : ["/public/radar/current/accept", "/public/radar/current/decline", "/public/radar/receipt/withdraw"].includes(path);
+  }
+  return method === "POST" && path.startsWith("/public/la-chung/")
+    && (path.endsWith("/responses") || path.endsWith("/receipt/withdraw"));
+}
+
+async function request<T>(path: string, init?: RequestOptions, consume?: (result: T) => Promise<void>): Promise<T> {
+  const epoch = currentSessionEpoch();
+  const generation = sessionGeneration();
+  const marker = sessionCookieMarker();
+  const readOnlyWithoutLocks = !identityOperation(path) && (!init?.method || init.method === "GET")
+    && !cookieCapable(path, init?.method) && !csrfHeader()["X-CSRF-Token"];
+  return coordinateSession(identityOperation(path) ? "exclusive" : "shared", init?.signal, async () => {
+    if (epoch !== currentSessionEpoch() || generation !== sessionGeneration()
+      || (path !== "/session" && marker !== sessionCookieMarker())) {
+      throw new ApiProblem(401, "SESSION_CHANGED", "Phiên trên trình duyệt đã đổi.");
+    }
+    const result = await requestLocked<T>(path, init);
+    // SessionBoundary and feature entry checks renew browser expiry while the
+    // cookie fence is held. Do not turn an acknowledged mutation into a failure
+    // or hang by chaining an unrelated cookie refresh after every operation.
+    if (sessionCoordinationAvailable() && path === "/session" && csrfHeader()["X-CSRF-Token"]) {
+      await requestLocked<GuestSession>("/session/renew", { method: "POST", signal: init?.signal, headers: csrfHeader() });
+    }
+    init?.signal?.throwIfAborted();
+    await consume?.(result);
+    return result;
+  }, readOnlyWithoutLocks);
+}
+
+async function requestLocked<T>(path: string, init?: RequestOptions): Promise<T> {
+  if (path !== "/session" && path !== "/session/renew" && path !== "/guest-sessions" && path !== "/guest-session" && verifiedCookieHasChanged()) {
+    throw new ApiProblem(401, "SESSION_CHANGED", "Phiên trên trình duyệt đã đổi.");
+  }
+  const { timeoutMs = REQUEST_TIMEOUT_MS, sessionTransition = false, ...fetchInit } = init ?? {};
+  const mustDrain = cookieCapable(path, fetchInit.method);
+  const transition = sessionTransition && fetchInit.method === "POST"
+    && ["/account/login/verify", "/account/login/restore", "/account/login/google/verify", "/account/logout"].includes(path);
   const controller = new AbortController();
+  const generation = sessionGeneration();
+  const epoch = currentSessionEpoch();
+  const cookieMarker = sessionCookieMarker();
+  const untrack = trackSessionRequest(controller);
+  const assertSessionUnchanged = (successfulTransition = false) => {
+    if (controller.signal.aborted || generation !== sessionGeneration() || epoch !== currentSessionEpoch()) {
+      throw new DOMException("Session changed or request cancelled", "AbortError");
+    }
+    if (!successfulTransition && path !== "/guest-sessions" && path !== "/guest-session" && cookieMarker !== sessionCookieMarker()) {
+      throw new ApiProblem(401, "SESSION_CHANGED", "Phiên trên trình duyệt đã đổi.");
+    }
+  };
   let didTimeout = false;
+  const consumeTransport = <R,>(transport: Promise<R>): Promise<R> => {
+    if (mustDrain) return transport;
+    return new Promise<R>((resolve, reject) => {
+      const aborted = () => {
+        const reason: unknown = controller.signal.reason;
+        reject(reason instanceof Error ? reason : new DOMException("Request cancelled", "AbortError"));
+      };
+      if (controller.signal.aborted) { aborted(); return; }
+      controller.signal.addEventListener("abort", aborted, { once: true });
+      transport.then(resolve, reject).finally(() => controller.signal.removeEventListener("abort", aborted));
+    });
+  };
   const abortFromCaller = () => controller.abort(fetchInit.signal?.reason);
   if (fetchInit.signal?.aborted) abortFromCaller();
   else fetchInit.signal?.addEventListener("abort", abortFromCaller, { once: true });
@@ -378,22 +549,26 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   }, timeoutMs);
 
   try {
-    const response = await fetch(`${runtimeConfig.VITE_API_BASE_URL}${path}`, {
+    controller.signal.throwIfAborted();
+    const response = await consumeTransport(fetch(`${runtimeConfig.VITE_API_BASE_URL}${path}`, {
       ...fetchInit,
-      signal: controller.signal,
+      // Only cookie writers drain after cancellation/timeout. Ordinary reads
+      // stay abortable and bounded, so a hung read cannot hold off restore.
+      signal: mustDrain ? new AbortController().signal : controller.signal,
       credentials: "include",
       headers: {
         Accept: "application/json",
         ...nativeClientHeader(),
         ...fetchInit.headers,
       },
-    });
+    }));
     if (!response.ok) {
-      const problem = (await response.json().catch(() => null)) as {
+      const problem = (await consumeTransport(response.json().catch(() => null))) as {
         code?: string;
         title?: string;
         [key: string]: unknown;
       } | null;
+      assertSessionUnchanged();
       throw new ApiProblem(
         response.status,
         problem?.code ?? "REQUEST_FAILED",
@@ -402,49 +577,71 @@ async function request<T>(path: string, init?: RequestOptions): Promise<T> {
       );
     }
     if (response.status === 204 || response.headers.get("content-length") === "0") {
+      await consumeTransport(response.text());
+      assertSessionUnchanged(transition && response.ok);
       return undefined as T;
     }
-    return await response.json() as T;
+    const result = await consumeTransport(response.json()) as T;
+    assertSessionUnchanged(transition && response.ok);
+    return result;
   } catch (error) {
     if (didTimeout) throw new ApiTimeoutError(timeoutMs);
     throw error;
   } finally {
+    untrack();
     window.clearTimeout(timeoutId);
     fetchInit.signal?.removeEventListener("abort", abortFromCaller);
   }
 }
 
-async function applySavedIntent(intent: SavedNoteMutationIntent): Promise<void> {
+async function applySavedIntent(intent: SavedNoteMutationIntent, held = false): Promise<void> {
+  const send = held ? requestLocked : request;
   if (intent.intent === "save") {
-    await request<SavedNote>(`/daily-note/${intent.daily_note_id}/saved`, {
+    await send<SavedNote>(`/daily-note/${intent.daily_note_id}/saved`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...csrfHeader() },
       body: JSON.stringify({ revision_id: intent.revision_id }),
     });
     return;
   }
-  await request<void>(`/daily-note/${intent.daily_note_id}/saved`, {
+  await send<void>(`/daily-note/${intent.daily_note_id}/saved`, {
     method: "DELETE",
     headers: csrfHeader(),
   });
 }
 
-async function acceptSessionEpoch(session: GuestSession): Promise<void> {
+async function acceptSessionEpoch(session: GuestSession, forceReset = false, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  const generation = sessionGeneration();
   const epoch = "session_epoch" in session && typeof session.session_epoch === "string"
     ? session.session_epoch
     : null;
   if (!epoch) return;
+  const previousEpoch = currentSessionEpoch();
+  if (previousEpoch !== epoch || forceReset) {
+    const { clearPersonalDataOnDevice } = await import("../storage/clearPersonalData");
+    signal?.throwIfAborted();
+    if (generation !== sessionGeneration() || previousEpoch !== currentSessionEpoch()) {
+      throw new DOMException("Session changed", "AbortError");
+    }
+    await clearPersonalDataOnDevice();
+    signal?.throwIfAborted();
+    ownerClaimInFlight = null;
+  }
   if (isNativeApp() && typeof session.csrf_token === "string") {
     localStorage.setItem(NATIVE_CSRF_KEY, session.csrf_token);
   }
   sessionStorage.setItem(SESSION_EPOCH_KEY, epoch);
-  await flushSavedNoteMutations(epoch, applySavedIntent);
+  rememberVerifiedSession(epoch);
+  if (previousEpoch !== epoch || forceReset) announceSessionChange();
+  await flushSavedNoteMutations(epoch, (intent) => {
+    signal?.throwIfAborted();
+    return applySavedIntent(intent, true);
+  });
 }
 
 export async function getSession(signal?: AbortSignal): Promise<GuestSession> {
-  const session = await request<GuestSession>("/session", { signal });
-  await acceptSessionEpoch(session);
-  return session;
+  return request<GuestSession>("/session", { signal }, (session) => acceptSessionEpoch(session, false, signal));
 }
 
 export function updateOnboardingStatus(
@@ -460,22 +657,21 @@ export function updateOnboardingStatus(
   });
 }
 
-export async function createGuest(idempotencyKey: string): Promise<GuestSession> {
-  const session = await request<GuestSession>("/guest-sessions", {
-    method: "POST",
+export async function createGuest(idempotencyKey: string, signal?: AbortSignal): Promise<GuestSession> {
+  return request<GuestSession>("/guest-sessions", {
+    method: "POST", signal,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       consent_version: "birth-profile-v1",
       purpose: "birth_profile_basic",
+      history_consent_version: "history-retention-v1",
       idempotency_key: idempotencyKey,
     }),
-  });
-  await acceptSessionEpoch(session);
-  return session;
+  }, (session) => acceptSessionEpoch(session, false, signal));
 }
 
 export async function createTarotGuest(idempotencyKey: string): Promise<GuestSession> {
-  const session = await request<GuestSession>("/guest-sessions", {
+  return request<GuestSession>("/guest-sessions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -483,9 +679,7 @@ export async function createTarotGuest(idempotencyKey: string): Promise<GuestSes
       purpose: "tarot_reflection",
       idempotency_key: idempotencyKey,
     }),
-  });
-  await acceptSessionEpoch(session);
-  return session;
+  }, (session) => acceptSessionEpoch(session));
 }
 
 export function startTarotSession(input: {
@@ -786,6 +980,10 @@ export function getBirthSupplement(signal?: AbortSignal): Promise<BirthSupplemen
   return request<BirthSupplementState>("/birth-profile/supplement", { signal });
 }
 
+export function getBirthSupplementEdit(signal?: AbortSignal): Promise<BirthSupplementEdit> {
+  return request<BirthSupplementEdit>("/birth-profile/supplement/edit", { signal });
+}
+
 export function removeBirthSupplement(input: {
   remove_time?: boolean;
   remove_place?: boolean;
@@ -805,12 +1003,14 @@ export async function deleteGuest(): Promise<void> {
     method: "DELETE",
     headers: csrfHeader(),
     timeoutMs: DELETE_GUEST_TIMEOUT_MS,
+  }, () => {
+    sessionStorage.removeItem(SESSION_EPOCH_KEY);
+    sessionStorage.removeItem(OWNER_SESSION_EPOCH_KEY);
+    localStorage.removeItem(NATIVE_CSRF_KEY);
+    clearSavedNoteMutationQueue();
+    clearActiveDailyReading();
+    return Promise.resolve();
   });
-  sessionStorage.removeItem(SESSION_EPOCH_KEY);
-  sessionStorage.removeItem(OWNER_SESSION_EPOCH_KEY);
-  localStorage.removeItem(NATIVE_CSRF_KEY);
-  clearSavedNoteMutationQueue();
-  clearActiveDailyReading();
 }
 
 export function getInsightOverview(
@@ -912,7 +1112,11 @@ export function acknowledgeAuraTransition(
 
 export function ownerClaimNeedsRefresh(): boolean {
   const sessionEpoch = currentSessionEpoch();
-  return sessionEpoch !== null && sessionStorage.getItem(OWNER_SESSION_EPOCH_KEY) !== sessionEpoch;
+  const expiry = Date.parse(sessionStorage.getItem("la-lanh-owner-session-until-v1") ?? "");
+  return sessionEpoch !== null && (
+    sessionStorage.getItem(OWNER_SESSION_EPOCH_KEY) !== sessionEpoch
+    || !Number.isFinite(expiry) || expiry <= Date.now() + 60_000
+  );
 }
 
 export async function claimOwner(): Promise<OwnerClaim> {
@@ -926,6 +1130,7 @@ export async function claimOwner(): Promise<OwnerClaim> {
   }).then((owner) => {
     if (sessionEpoch && currentSessionEpoch() === sessionEpoch) {
       sessionStorage.setItem(OWNER_SESSION_EPOCH_KEY, sessionEpoch);
+      sessionStorage.setItem("la-lanh-owner-session-until-v1", owner.expires_at);
     }
     return owner;
   }).finally(() => {
@@ -983,24 +1188,27 @@ export function createRadarInvite(input: {
   recipient_label: string;
   context: RadarInvite["context"];
   voice: RadarVoice;
-}): Promise<RadarInvite> {
+}, idempotencyKey?: string): Promise<RadarInvite> {
   return request<RadarInvite>("/radar/requests", {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    headers: { "Content-Type": "application/json", ...csrfHeader(), ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}) },
     body: JSON.stringify(input),
   });
 }
 
-export function createPrivateRadarCheck(input: RadarPrivateCheckInput): Promise<RadarResult> {
+export function createPrivateRadarCheck(input: RadarPrivateCheckInput, idempotencyKey?: string): Promise<RadarResult> {
   return request<RadarResult>("/radar/private-checks", {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    headers: { "Content-Type": "application/json", ...csrfHeader(), ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}) },
     body: JSON.stringify({ ...input, consent_version: "radar-authorized-input-v1" }),
   });
 }
 
-export function listRadarInvites(signal?: AbortSignal): Promise<RadarInvite[]> {
-  return request<RadarInvite[]>("/radar/requests", { signal });
+export function listRadarInvites(signal?: AbortSignal, before?: string, mode?: RadarInvite["mode"]): Promise<RadarInvite[]> {
+  const query = new URLSearchParams({ limit: "20" });
+  if (before) query.set("before", before);
+  if (mode) query.set("mode", mode);
+  return request<RadarInvite[]>(`/radar/requests?${query.toString()}`, { signal });
 }
 
 export function getRadarShareLink(requestId: string): Promise<RadarInvite> {

@@ -4,6 +4,7 @@ from enum import StrEnum
 from uuid import UUID
 
 from app.domains.astro.models import DateOnlySunResult, NatalChart
+from app.domains.geo.models import PlaceResult
 
 ChartResult = DateOnlySunResult | NatalChart
 
@@ -31,6 +32,7 @@ class BirthSnapshotRecord:
     birth_date_ciphertext: str
     result: ChartResult
     created_at: datetime
+    profile_revision: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +43,7 @@ class BirthReveal:
     result: ChartResult
     created_at: datetime
     resumed: bool
+    profile_revision: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,6 +74,7 @@ class BirthSupplementStored:
     birth_place_ciphertext: str | None
     time_precision: str
     supplement_consent_version: str | None
+    updated_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,3 +86,11 @@ class BirthSupplementState:
     approx_window: ApproxWindow | None
     place_display_name: str | None
     timezone_id: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class BirthSupplementEdit:
+    birth_time_mode: BirthTimeMode
+    birth_time_local: str | None
+    approx_window: ApproxWindow | None
+    place: PlaceResult | None

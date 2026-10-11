@@ -6,6 +6,7 @@ from hashlib import sha256
 from uuid import UUID
 
 from app.domains.guest.errors import (
+    BirthConsentRequired,
     ConsentPurposeInvalid,
     ConsentVersionInvalid,
     GuestExpired,
@@ -56,10 +57,13 @@ class GuestSessionService:
         consent_version: str,
         purpose: str,
         idempotency_key: str,
+        history_consent_version: str | None = None,
         now: datetime | None = None,
     ) -> CreationResult:
         current = now or datetime.now(UTC)
         self._validate_consent(consent_version, purpose)
+        if history_consent_version not in (None, "history-retention-v1"):
+            raise ConsentVersionInvalid
         if not _IDEMPOTENCY_PATTERN.fullmatch(idempotency_key):
             raise IdempotencyKeyInvalid
 
@@ -78,7 +82,10 @@ class GuestSessionService:
             last_active_at=current,
             expires_at=current + self._ttl,
         )
-        request_hash = sha256(f"{consent_version}\x00{purpose}".encode()).digest()
+        request_material = f"{consent_version}\x00{purpose}"
+        if history_consent_version is not None:
+            request_material += f"\x00history:{history_consent_version}"
+        request_hash = sha256(request_material.encode()).digest()
         replay_expires_at = current + self._replay_window
         credential_envelope = self._envelope.encrypt(
             json.dumps({"token": token, "csrf_token": csrf_token}).encode(),
@@ -97,6 +104,7 @@ class GuestSessionService:
                 request_hash=request_hash,
                 credential_envelope=credential_envelope,
                 replay_expires_at=replay_expires_at,
+                history_consent_version=history_consent_version,
             )
         )
         if not secrets.compare_digest(stored.request_hash, request_hash):
@@ -112,14 +120,16 @@ class GuestSessionService:
             resumed=stored.guest.id != guest.id,
         )
 
-    async def resume(self, token: str | None, *, now: datetime | None = None) -> GuestSessionRecord:
+    async def resume(
+        self, token: str | None, *, now: datetime | None = None, touch: bool = True
+    ) -> GuestSessionRecord:
         if not token:
             raise GuestSessionMissing
         current = now or datetime.now(UTC)
         stored = await self._repository.find_by_token_hash(
             self._hasher.digest("guest-credential", token),
             current,
-            touch_until=current + self._ttl,
+            touch_until=current + self._ttl if touch else None,
         )
         if stored is None or not stored.guest.is_active(current):
             raise GuestExpired
@@ -143,17 +153,33 @@ class GuestSessionService:
     async def verify_csrf(
         self, token: str | None, csrf_token: str | None, *, now: datetime | None = None
     ) -> GuestSessionRecord:
-        guest = await self.resume(token, now=now)
+        guest = await self.resume(token, now=now, touch=False)
         if not csrf_token or not self._hasher.verify("guest-csrf", csrf_token, guest.csrf_hash):
             from app.domains.guest.errors import CsrfRejected
 
             raise CsrfRejected
-        return guest
+        return await self.resume(token, now=now)
 
     async def cleanup(self, *, batch_size: int, now: datetime | None = None) -> int:
         if batch_size < 1 or batch_size > 1000:
             raise ValueError("batch_size must be between 1 and 1000")
         return await self._repository.purge_expired(now or datetime.now(UTC), batch_size)
+
+    async def require_basic_birth_consent(self, guest_id: UUID) -> None:
+        if not await self._repository.has_consent(
+            guest_id, self._consent_version, self._consent_purpose
+        ):
+            raise BirthConsentRequired
+
+    async def accept_basic_birth_consent(self, guest_id: UUID) -> None:
+        await self._repository.save_consent(
+            ConsentRecord(
+                guest_id=guest_id,
+                version=self._consent_version,
+                purpose=self._consent_purpose,
+                accepted_at=datetime.now(UTC),
+            )
+        )
 
     async def accept_deep_birth_consent(
         self, guest_id: UUID, *, version: str, now: datetime | None = None

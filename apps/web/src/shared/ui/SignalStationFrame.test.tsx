@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -38,9 +39,15 @@ describe("SignalStationFrame", () => {
   });
 
   it("keeps pause active after navigating between onboarding steps", async () => {
+    sessionStorage.clear();
+    vi.spyOn(globalThis, "fetch").mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      state: "active", onboarding_status: "birth_pending", session_epoch: "synthetic-motion",
+      expires_at: "2026-11-09T00:00:00Z",
+    }), { status: 200 })));
     vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
     const user = userEvent.setup();
     render(
+      <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={["/welcome"]}>
         <Routes>
           <Route element={<AppShell />}>
@@ -59,13 +66,15 @@ describe("SignalStationFrame", () => {
             } />
           </Route>
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
+      </QueryClientProvider>,
     );
     await user.click(screen.getByRole("button", { name: "Tạm dừng chuyển động" }));
     await user.click(screen.getByRole("link", { name: "Tiếp tục" }));
+    expect(await screen.findByRole("heading", { name: "Ngày sinh" })).toBeVisible();
     expect(screen.getByRole("main")).toHaveAttribute("data-motion-paused", "true");
     await user.click(screen.getByRole("link", { name: "Mở lá" }));
-    expect(screen.getByRole("heading", { name: "Lá đầu tiên" })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Lá đầu tiên" })).toBeVisible();
     expect(screen.getByRole("main")).toHaveAttribute("data-motion-paused", "true");
     await user.click(screen.getByRole("button", { name: "Tiếp tục chuyển động" }));
     expect(screen.getByRole("main")).toHaveAttribute("data-motion-paused", "false");

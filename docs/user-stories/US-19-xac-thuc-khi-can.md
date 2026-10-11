@@ -105,3 +105,17 @@ Chỉ xuất hiện khi account cũ có dữ liệu khác guest.
 - Không có auto-submit sau auth; không mất guest data khi auth lỗi/hủy.
 - AC01–AC10 pass trên staging.
 
+## Implementation delta — 2026-10-10
+
+Đợt hiện tại triển khai **Google SSO tuỳ chọn**, không phải toàn bộ US-19 ở trên. Thay thế UI phone/email OTP và merge review ở các iteration cũ bằng Google + explicit restore **không merge**. API OTP cũ còn để tương thích, delivery tắt. Phone OTP, matching hard gate, union/merge lịch sử và return draft cho tất cả social flows vẫn chưa triển khai. Không được đánh dấu US-19 hoàn thành toàn bộ.
+
+- CTA mềm ở welcome/reveal/Mình; guest dùng core feature không cần login.
+- Tài khoản mới liên kết cùng data owner đang mở. Tài khoản có sẵn cần xác nhận khôi phục, không auto-merge/ghi đè DOB hoặc chép consent AI của khách khác.
+- Logout chỉ thu hồi thiết bị hiện tại; hồ sơ account giữ 365 ngày không hoạt động với đồng ý riêng. Device credential giữ 30 ngày không hoạt động. Lịch sử có clock riêng, không reset khi đăng nhập.
+- Backend có self-only list/revoke device/revoke others; account thường không có quyền operator/Content Studio. Client không gửi subject/role/owner ID để cấp quyền.
+- Hủy hoặc offline không xoá guest. Google code/state chỉ ở memory sau khi URL được scrub; PKCE verifier mã hoá ở BE, callback origin/path cố định, expire/consume một lần và quota DB. Return path allowlist, không dùng redirect do người ngoài cấp.
+- Google thật vẫn **tắt** trước gate provider config/identity erasure, migration 0033/role/cleanup và live QA. SMTP không bắt buộc cho Google.
+
+AC delta: guest đã có ngày sinh liên kết lần đầu vẫn giữ chart; account đã có owner cần xác nhận mở lại, không nhận DOB/consent của guest thứ hai; state sai/cookie khác/cancel/replay/provider failure không thay owner; logout không xoá account; UI chỉ Google và không có bản mẫu/làm hồ sơ khác. Callback retry phải mở form consent mới, không reuse proof cũ.
+
+Contract và gate: [Account IAM](../architecture/account-iam-and-retention.md). Plan: [Optional login](../plans/2026-10-10-1310-fix-optional-login-and-data-continuity-plan.md).

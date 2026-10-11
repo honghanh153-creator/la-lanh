@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
-COMPOSE_FILE="${SCRIPT_DIR}/compose.yaml"
+source "${SCRIPT_DIR}/compose-files.sh"
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -16,23 +16,6 @@ require_file() {
   local path="$1"
   [[ -r "$path" ]] || {
     echo "Missing readable file: $path" >&2
-    exit 1
-  }
-}
-
-require_secret_file() {
-  local path="$1"
-  require_file "$path"
-  [[ -s "$path" ]] || {
-    echo "Secret file is empty: $path" >&2
-    exit 1
-  }
-  [[ "$(stat -c '%a' "$path")" == "600" ]] || {
-    echo "Secret file must use mode 0600: $path" >&2
-    exit 1
-  }
-  [[ "$(stat -c '%u:%g' "$path")" == "65532:65532" ]] || {
-    echo "Secret file must be owned by 65532:65532: $path" >&2
     exit 1
   }
 }
@@ -50,6 +33,7 @@ require_file "${SCRIPT_DIR}/app.env"
 require_secret_file "${LA_LANH_SECRETS_DIR}/database_url"
 require_secret_file "${LA_LANH_SECRETS_DIR}/guest_hash_key"
 require_secret_file "${LA_LANH_SECRETS_DIR}/guest_encryption_key"
+select_compose_files "$SCRIPT_DIR"
 
 if grep -Eq '^LA_LANH_SWISSEPH_LICENSE_MODE=development$' "${SCRIPT_DIR}/app.env"; then
   echo "Deployment blocked: approve AGPL or professional Swiss Ephemeris posture first." >&2
@@ -57,10 +41,10 @@ if grep -Eq '^LA_LANH_SWISSEPH_LICENSE_MODE=development$' "${SCRIPT_DIR}/app.env
 fi
 
 cd "$REPO_ROOT"
-docker compose -f "$COMPOSE_FILE" config --quiet
-docker compose -f "$COMPOSE_FILE" build app
+docker compose "${COMPOSE_ARGS[@]}" config --quiet
+docker compose "${COMPOSE_ARGS[@]}" build app
 generation_enabled="$(
-  docker compose -f "$COMPOSE_FILE" run --rm --no-deps -T app \
+  docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps -T app \
     python -c 'from app.config import Settings; print(str(Settings().generation_enabled).lower())'
 )"
 case "$generation_enabled" in
@@ -76,12 +60,18 @@ case "$generation_enabled" in
     exit 2
     ;;
 esac
-docker compose -f "$COMPOSE_FILE" config --quiet
-docker compose -f "$COMPOSE_FILE" run --rm --no-deps app python -m scripts.check_database_tls
-docker compose -f "$COMPOSE_FILE" run --rm --no-deps app python -m scripts.review_content_release
-docker compose -f "$COMPOSE_FILE" run --rm --no-deps app alembic upgrade head
-docker compose -f "$COMPOSE_FILE" run --rm --no-deps app python -m scripts.check_database_privacy
-docker compose -f "$COMPOSE_FILE" up -d --remove-orphans --wait app
-docker compose -f "$COMPOSE_FILE" up -d --remove-orphans --wait
+docker compose "${COMPOSE_ARGS[@]}" config --quiet
+docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps app python -m scripts.check_database_tls
+docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps app python -m scripts.review_content_release
+docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps app alembic upgrade head
+docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps app python -m scripts.check_database_privacy
+docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans --wait app
+docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans --wait
+
+# Refresh the installed runner on every release, rather than leaving an old
+# base-compose-only copy behind when Auth configuration changes.
+if [[ "${EUID}" -eq 0 ]] && command -v systemctl >/dev/null; then
+  install -m 0755 "${SCRIPT_DIR}/run-retention-job.sh" /usr/local/sbin/la-lanh-retention-job
+fi
 
 echo "Release ${LA_LANH_RELEASE_ID} is running for https://${APP_HOSTNAME}"

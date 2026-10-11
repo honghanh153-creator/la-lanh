@@ -12,6 +12,7 @@ from app.domains.identity.service import OwnerIdentityService, OwnerSessionUnava
 from app.domains.la_chung.models import IdentityMode, RequestStatus
 from app.domains.la_chung.service import LaChungError, LaChungService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
+from app.infrastructure.owner_session import resume_owner_for_guest
 
 router = APIRouter()
 public_router = APIRouter()
@@ -84,9 +85,8 @@ def _new_activity_retired(request: Request) -> bool:
 
 
 async def _owner(request: Request) -> OwnerIdentity:
-    settings = request.app.state.settings
     identity = cast(OwnerIdentityService, request.app.state.owner_identity_service)
-    return await identity.resume(request.cookies.get(settings.owner_cookie_name))
+    return await resume_owner_for_guest(request, identity)
 
 
 async def _owner_mutation(request: Request, csrf_token: str | None) -> OwnerIdentity:

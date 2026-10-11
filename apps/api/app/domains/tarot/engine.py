@@ -3,13 +3,19 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from app.domains.readings.review_agent import OPAQUE_CORE_FRAGMENTS
+from app.domains.readings.review_agent import (
+    OPAQUE_CORE_FRAGMENTS,
+    ContentReviewAgent,
+    ReviewSample,
+)
+from app.domains.tarot.context_readings import CONTEXT_READINGS, CONTEXT_SCENES
+from app.domains.tarot.examples import example_for
 from app.domains.tarot.knowledge import (
     KNOWLEDGE_VERSION,
     card_by_id,
-    minor_scene,
     source_ids_for_concepts,
 )
+from app.domains.tarot.meaning_brief import card_links, goal_action, question_goals
 from app.domains.tarot.models import (
     TarotCard,
     TarotContext,
@@ -22,57 +28,37 @@ from app.domains.tarot.models import (
     TarotSpreadMap,
     TarotVoice,
 )
+from app.domains.tarot.quality import prose_is_safe
+from app.domains.tarot.relationship_readings import RELATIONSHIP_READINGS
 
 
 class TarotContentRejected(ValueError):
     pass
 
 
+TAROT_RENDERER_VERSION = "tarot-renderer-v6"
+
+
 @dataclass(frozen=True)
-class _ContextLens:
-    focus: str
-    scene: str
-    action_frame: str
+class _CardMeaning:
+    core: str
+    tension: str
+    resource: str
 
+    @classmethod
+    def for_context(cls, card: TarotCard, context: TarotContext) -> _CardMeaning:
+        if context is TarotContext.RELATIONSHIPS:
+            try:
+                return cls(*RELATIONSHIP_READINGS[card.id])
+            except KeyError as exc:
+                raise TarotContentRejected("missing relationship meaning") from exc
+        if context.value in CONTEXT_READINGS:
+            try:
+                return cls(*CONTEXT_READINGS[context.value][card.id])
+            except KeyError as exc:
+                raise TarotContentRejected("missing contextual meaning") from exc
+        return cls(card.core, card.tension, card.resource)
 
-_CONTEXTS: dict[TarotContext, _ContextLens] = {
-    TarotContext.GENERAL: _ContextLens(
-        "điều đang chiếm nhiều chú ý nhất nhưng chưa được gọi đúng tên",
-        "lúc bạn mở điện thoại, đổi lịch hoặc chuẩn bị trả lời một việc "
-        "và nhận ra mình đang chần chừ",
-        "chọn một tình huống thật trong 24 giờ tới để đối chiếu",
-    ),
-    TarotContext.RELATIONSHIPS: _ContextLens(
-        "phần mình có thể nói rõ thay vì đoán hộ người kia",
-        "khi một tin nhắn đến chậm, một câu trả lời ngắn hơn thường lệ "
-        "hoặc hai người né đúng chủ đề cần nói",
-        "đổi một phép thử ngầm thành một câu hỏi có thể trả lời thẳng",
-    ),
-    TarotContext.WORK: _ContextLens(
-        "điều đang lấy công sức nhưng chưa có tiêu chí hoàn thành rõ",
-        "khi lịch họp dày lên, việc mới được đẩy sang "
-        "hoặc bạn sắp nhận thêm phần không ai đứng tên",
-        "chốt một ưu tiên, một người chịu trách nhiệm hoặc một mốc dừng",
-    ),
-    TarotContext.COMMUNICATION: _ContextLens(
-        "câu chính cần được nói trước phần giải thích",
-        "khi bạn soạn rồi xóa một tin nhắn, nói vòng để giữ hòa khí "
-        "hoặc nghe một câu theo hai nghĩa khác nhau",
-        "viết câu chính trong một dòng rồi mới thêm bối cảnh",
-    ),
-    TarotContext.ENERGY: _ContextLens(
-        "việc nào đang tiêu hao nhiều hơn giá trị nó trả lại",
-        "khi cơ thể đã mệt nhưng đầu vẫn mở thêm việc, "
-        "hoặc bạn thấy bực với một yêu cầu vốn rất nhỏ",
-        "bỏ bớt một việc gây nhiễu trước khi thêm giải pháp",
-    ),
-    TarotContext.SELF_CARE: _ContextLens(
-        "nhu cầu thật nằm dưới phản xạ phải tỏ ra ổn",
-        "khi bạn trì hoãn ăn, ngủ, nghỉ hoặc một cuộc hẹn với chính mình "
-        "vì nghĩ phải xong hết mới được dừng",
-        "đặt một việc chăm mình vào lịch như một cam kết thật",
-    ),
-}
 
 _POSITIONS: dict[TarotSpreadMap, tuple[tuple[str, str], ...]] = {
     TarotSpreadMap.ONE_FOCUS: (("focus", "Điều đáng nhìn lúc này"),),
@@ -135,15 +121,10 @@ _ABSTRACT_FILLER = (
     "mọi thứ xảy ra đều có lý do",
     "hãy tin vào hành trình",
     "năng lượng đang dịch chuyển",
+    "khả năng dẫn dắt và chịu trách nhiệm khi xử lý",
+    "một việc cần thêm người hoặc nguồn lực phối hợp",
+    "sự điều chỉnh để dòng trao đổi cân hơn",
 )
-
-_INTENT_FOCUS: dict[TarotQuestionIntent, str] = {
-    TarotQuestionIntent.CLARITY: "phân biệt điều đã biết với phần đang tự điền vào",
-    TarotQuestionIntent.BOUNDARY: "nhìn chỗ cần một giới hạn rõ mà không biến nó thành trừng phạt",
-    TarotQuestionIntent.NEXT_STEP: "thu nhỏ quyết định thành một bước còn có thể quan sát và đổi ý",
-    TarotQuestionIntent.COMMUNICATION: "đưa câu cần nói ra trước lớp giải thích và suy đoán",
-    TarotQuestionIntent.SELF_CHECK: "gọi đúng cảm xúc, nhu cầu và phần trách nhiệm thuộc về mình",
-}
 
 _INTENT_HEADLINES: dict[TarotQuestionIntent, str] = {
     TarotQuestionIntent.CLARITY: "Trước hết, tách điều đã xảy ra khỏi điều bạn đang đoán.",
@@ -245,17 +226,30 @@ class TarotReadingEngine:
         positions = _POSITIONS[resolved_map]
         if len(card_ids) != len(positions) or len(set(card_ids)) != len(card_ids):
             raise TarotContentRejected("card count must match spread and be unique")
-        lens = _CONTEXTS[context]
         rendered: list[TarotReadingPosition] = []
+        meanings: list[_CardMeaning] = []
+        goals = question_goals(assessment.normalized_question, context)
         for index, ((key, label), card_id) in enumerate(zip(positions, card_ids, strict=True)):
             try:
                 card = card_by_id(card_id)
             except KeyError as exc:
                 raise TarotContentRejected("unknown card") from exc
-            meaning = self._meaning(card, key, lens, intent, voice)
-            scene = self._scene(card, lens, index)
-            reflection = self._reflection(key, context)
-            action = self._action(card.resource, lens.action_frame, voice, key)
+            contextual_meaning = _CardMeaning.for_context(card, context)
+            goal = goals[index % len(goals)]
+            purposeful_action = goal_action(goal, key)
+            meanings.append(contextual_meaning)
+            meaning = self._meaning(contextual_meaning, key, voice)
+            scene = (
+                CONTEXT_SCENES[context.value][card.id]
+                if context.value in CONTEXT_SCENES
+                else example_for(card.id, context.value)
+            )
+            reflection = (
+                goal.reflection
+                if goal.key != "general" and index == 0
+                else self._reflection(key, context, intent)
+            )
+            action = purposeful_action or self._action(contextual_meaning.resource, voice)
             rendered.append(
                 TarotReadingPosition(
                     key=key,
@@ -267,10 +261,11 @@ class TarotReadingEngine:
                     small_action=action,
                 )
             )
-        title_card = rendered[0].card
         reading = TarotReading(
             headline=_INTENT_HEADLINES[intent],
-            summary=self._summary(title_card),
+            summary=self._summary(
+                tuple(rendered), tuple(meanings), context, assessment.normalized_question
+            ),
             question=assessment.normalized_question,
             question_intent=intent,
             context=context,
@@ -288,6 +283,8 @@ class TarotReadingEngine:
             ),
             provenance=TarotReadingProvenance(
                 knowledge_version=KNOWLEDGE_VERSION,
+                renderer_version=TAROT_RENDERER_VERSION,
+                gate_version="tarot-gates-v4",
                 source_ids=self._reading_sources(tuple(position.card for position in rendered)),
             ),
         )
@@ -320,29 +317,49 @@ class TarotReadingEngine:
         return TarotSpreadMap.FIVE_CLARITY
 
     @staticmethod
-    def _summary(card: TarotCard) -> str:
-        tension, secondary = _tension_parts(card.tension)
-        text = (
-            f"Lá đầu tiên là {card.title_vi}. Ý chính của lá: {card.core}. "
-            f"Điểm cần kiểm tra là bạn có đang {tension} hay không."
+    def _summary(
+        positions: tuple[TarotReadingPosition, ...],
+        meanings: tuple[_CardMeaning, ...],
+        context: TarotContext,
+        question: str,
+    ) -> str:
+        goals = tuple(goal for goal in question_goals(question, context) if goal.key != "general")
+        per_card = " ".join(
+            f"{position.card.title_vi}: "
+            + (
+                f"{_sentence_start(meaning.core if goals else _resource_step(meaning.resource))}."
+                if position.key in {"next", "agency", "alternative", "boundary", "opening"}
+                else f"Dễ vướng ở việc {_tension_parts(meaning.tension)[0]}."
+                if position.key in {"missed", "assumption", "habit", "cost"}
+                else f"{_sentence_start(meaning.core)}."
+            )
+            for position, meaning in zip(positions, meanings, strict=True)
         )
-        if secondary is not None:
-            text += f" Bạn cũng có thể {secondary}."
-        return text
+        # Keep every selected card. Optional links/goals must fit as whole
+        # sentences; a long accepted question must not lose its entire reading.
+        summary_parts = [per_card]
+        for link in card_links(positions, context):
+            meaning = str(link["meaning"])
+            if len(" ".join([*summary_parts, meaning]).split()) <= 180:
+                summary_parts.append(meaning)
+        goal_copy: list[str] = []
+        # The summary answers one main thread. Secondary goals remain available
+        # in the position/context brief, not a stack of generic advice up front.
+        for goal in goals[:1]:
+            if len(" ".join([*goal_copy, goal.meaning, *summary_parts]).split()) <= 180:
+                goal_copy.append(goal.meaning)
+        return " ".join([*goal_copy, *summary_parts])
 
     @staticmethod
     def _meaning(
-        card: TarotCard,
+        card: _CardMeaning,
         position_key: str,
-        lens: _ContextLens,
-        intent: TarotQuestionIntent,
         voice: TarotVoice,
     ) -> str:
         tension, secondary_tension = _tension_parts(card.tension)
         secondary_copy = (
             f" Bạn cũng có thể {secondary_tension}." if secondary_tension is not None else ""
         )
-        resource = _resource_step(card.resource)
         if position_key in {"facts", "trigger"}:
             text = (
                 f"Ý nghĩa của lá ở vị trí này: {card.core}. Chỉ giữ điều đã thật sự "
@@ -354,10 +371,7 @@ class TarotReadingEngine:
                 "Đây chưa phải sự thật cho tới khi có dữ kiện."
             )
         elif position_key in {"need", "feeling", "payoff"}:
-            text = (
-                f"Một cách đáp lại phù hợp hơn là {resource}. "
-                "Vị trí này nói về nhu cầu của bạn, không đoán suy nghĩ người khác."
-            )
+            text = f"Điều cần nhận ra ở đây: {card.core}. Chỗ dễ vướng: {tension}."
         elif position_key in {
             "agency",
             "alternative",
@@ -365,8 +379,9 @@ class TarotReadingEngine:
             "criterion",
             "opening",
             "tradeoff",
+            "next",
         }:
-            text = f"Điều bạn làm được lúc này: {resource}. Mục tiêu là {_INTENT_FOCUS[intent]}."
+            text = f"Ý chính: {card.core}. Chỗ dễ vướng: {tension}.{secondary_copy}"
         elif position_key == "cost":
             text = (
                 f"Nếu cứ tiếp tục như cũ, bạn dễ {tension}.{secondary_copy} "
@@ -382,8 +397,6 @@ class TarotReadingEngine:
                 f"Bạn dễ bỏ sót việc mình đang {tension}.{secondary_copy} "
                 "Kiểm tra điều này trong chuyện thật trước khi kết luận."
             )
-        elif position_key == "next":
-            text = f"Bước tiếp theo: {resource}. Làm một lần rồi xem kết quả trước khi đi tiếp."
         else:
             text = (
                 f"Ý chính của lá: {card.core}. "
@@ -394,36 +407,29 @@ class TarotReadingEngine:
         return text
 
     @staticmethod
-    def _scene(card: TarotCard, lens: _ContextLens, index: int) -> str:
-        card_scene = minor_scene(card)
-        tension, secondary_tension = _tension_parts(card.tension)
-        secondary_copy = (
-            f" Bạn cũng có thể {secondary_tension}." if secondary_tension is not None else ""
-        )
-        if index == 0:
-            scene = f"Tình huống để kiểm tra: {lens.scene}."
-            if card_scene is not None and card_scene != lens.scene:
-                scene += f" Một chi tiết khác: {card_scene}."
-            return scene
-        variants = (
-            (
-                f"Dấu hiệu cụ thể là khi bạn {tension}.{secondary_copy} "
-                "Hãy tìm một lần việc này đã thật sự xảy ra."
-            ),
-            (
-                f"Nhớ lại lần gần nhất bạn {tension}.{secondary_copy} "
-                "Sau đó xem điều gì xảy ra tiếp theo."
-            ),
-            f"Trong một việc gần đây, kiểm tra xem bạn có {tension} không.{secondary_copy}",
-            (
-                f"Nếu không nhớ được lần nào gần đây mình {tension}, "
-                f"lá này có thể không hợp tình huống.{secondary_copy}"
-            ),
-        )
-        return variants[(index - 1) % len(variants)]
-
-    @staticmethod
-    def _reflection(position_key: str, context: TarotContext) -> str:
+    def _reflection(position_key: str, context: TarotContext, intent: TarotQuestionIntent) -> str:
+        # Ask about the spread role, not a motive inferred from a broad intent.
+        questions = {
+            "trigger": "Lúc nào bạn bắt đầu phản ứng như vậy, và chuyện gì vừa xảy ra?",
+            "habit": "Ngay sau chuyện đó, bạn thường làm gì mà chưa kịp nghĩ?",
+            "payoff": "Cách phản ứng này giúp bạn giải quyết điều gì ngay lúc đó?",
+            "cost": "Sau đó, việc gì vẫn chưa được giải quyết hoặc làm bạn mệt thêm?",
+            "alternative": "Nếu gặp lại chuyện đó, bạn có thể thử phản ứng khác ở bước nào?",
+            "feeling": "Bạn thấy buồn, bực, lo hay nhẹ nhõm khi nhớ lại chuyện này?",
+            "need": "Bạn muốn điều gì được nói rõ hoặc thay đổi trong chuyện này?",
+            "agency": "Trong chuyện này, phần nào bạn có thể tự quyết mà không cần họ đồng ý?",
+            "boundary": "Bạn chưa thể nhận lời việc gì, và có thể nói giới hạn đó thế nào?",
+            "opening": "Bạn sẽ mở lời bằng câu nào để người nghe biết đúng chuyện đang bàn?",
+            "option_a": "Nếu chọn hướng A, bạn được gì và cần chuẩn bị cho điều gì?",
+            "option_b": "Nếu chọn hướng B, bạn được gì và cần chuẩn bị cho điều gì?",
+            "tradeoff": "Hai hướng khác nhau ở điều gì bạn thật sự coi trọng?",
+            "criterion": "Bạn sẽ dùng tiêu chí nào để chọn, thay vì đổi ý theo người vừa nói?",
+            "next": "Bạn có thể làm việc nhỏ nào trước, rồi xem phản hồi thực tế ra sao?",
+        }
+        if position_key in questions:
+            return questions[position_key]
+        if intent is TarotQuestionIntent.COMMUNICATION and position_key in {"focus", "clear"}:
+            return "Bạn muốn nói câu nào trước, và cần người nghe hiểu đúng điều gì?"
         relationship_tail = (
             " mà không đoán hộ người kia" if context is TarotContext.RELATIONSHIPS else ""
         )
@@ -441,31 +447,41 @@ class TarotReadingEngine:
         return "Việc nhỏ nào nằm hoàn toàn trong quyền quyết định của bạn?"
 
     @staticmethod
-    def _action(resource: str, frame: str, voice: TarotVoice, position_key: str = "focus") -> str:
+    def _action(resource: str, voice: TarotVoice) -> str:
         prefix = "Thử nhé:" if voice is TarotVoice.PLAYFUL_GROUNDED else "Một việc nhỏ:"
         resource = _resource_step(resource)
-        if position_key in {"focus", "clear", "facts", "trigger"}:
-            action = f"viết hai dòng: điều đã xảy ra và điều mình đang đoán. Sau đó {resource}"
-        elif position_key in {"missed", "assumption", "habit", "cost"}:
-            action = (
-                "chọn một điều đang đoán và tìm cách hỏi hoặc kiểm tra trực tiếp. "
-                f"Tiếp theo, {resource}"
-            )
-        elif position_key in {"option_a", "option_b", "tradeoff", "criterion"}:
-            action = f"viết một điều được và một điều phải đánh đổi. Sau đó {resource}"
-        elif position_key in {"need", "feeling", "payoff"}:
-            action = f"viết một câu bắt đầu bằng “Mình cần…”. Tiếp theo, {resource}"
-        elif position_key == "next":
-            action = (
-                f"làm đúng một việc trong hôm nay. {_sentence_start(resource)}. "
-                "Chờ phản hồi thật rồi mới đi tiếp"
-            )
-        else:
-            action = f"{frame}. Tiếp theo, {resource}"
-        return f"{prefix} {action}."
+        # The card's authored resource is already an actionable sentence. Do not
+        # attach a worksheet task or context-wide instruction to every card.
+        return f"{prefix} {_sentence_start(resource)}."
 
     @staticmethod
     def _gate(reading: TarotReading) -> None:
+        if not prose_is_safe(reading):
+            raise TarotContentRejected("unsupported or unsafe prose claim")
+        expected_positions = _POSITIONS[reading.spread_map]
+        expected_count = {
+            TarotSpread.ONE_CARD: 1,
+            TarotSpread.THREE_CARD: 3,
+            TarotSpread.FIVE_CARD: 5,
+        }[reading.spread]
+        if (
+            len(reading.positions) != expected_count
+            or tuple((position.key, position.label) for position in reading.positions)
+            != expected_positions
+            or len({position.card.id for position in reading.positions}) != len(reading.positions)
+        ):
+            raise TarotContentRejected("reading does not match its selected spread")
+        for position in reading.positions:
+            try:
+                known_card = card_by_id(position.card.id)
+            except KeyError as exc:
+                raise TarotContentRejected("reading contains an unknown card") from exc
+            if position.card != known_card:
+                raise TarotContentRejected("reading changes the selected card facts")
+        if len(reading.headline.split()) > 18 or len(reading.summary.split()) > 180:
+            raise TarotContentRejected("reading headline or summary exceeds scan budget")
+        if any(position.card.title_vi not in reading.summary for position in reading.positions):
+            raise TarotContentRejected("summary omits a selected card")
         text = " ".join(
             [reading.headline, reading.summary, reading.closing_prompt, reading.disclaimer]
             + [
@@ -494,6 +510,31 @@ class TarotReadingEngine:
             )
         ):
             raise TarotContentRejected("reading contains an empty semantic block")
+        sections = [("headline", reading.headline), ("summary", reading.summary)]
+        sections.append(("closing", reading.closing_prompt))
+        for index, position in enumerate(reading.positions):
+            sections.extend(
+                (
+                    (f"meaning_{index}", position.meaning_here),
+                    (f"scene_{index}", position.everyday_scene),
+                    (f"reflection_{index}", position.reflection_question),
+                    (f"action_{index}", position.small_action),
+                )
+            )
+        result = ContentReviewAgent().review(
+            (
+                ReviewSample(
+                    persona_id="tarot-runtime",
+                    surface="tarot",
+                    sections=tuple(sections),
+                    disclaimer=reading.disclaimer,
+                    provenance_ids=reading.provenance.source_ids,
+                    evidence_validated=True,
+                ),
+            )
+        )
+        if not result.passed:
+            raise TarotContentRejected("reading failed plain-language content review")
 
     @staticmethod
     def _classify_intent(question: str, context: TarotContext) -> TarotQuestionIntent:

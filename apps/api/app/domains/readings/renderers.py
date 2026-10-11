@@ -35,7 +35,7 @@ from app.domains.readings.models import (
     SemanticSection,
 )
 
-DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v10"
+DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v12"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",

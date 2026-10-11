@@ -3,8 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { addBirthSupplement, ApiProblem, createBirthProfile, getBirthProfile, getDailyNote, getSession, updateOnboardingStatus } from "../../shared/api/client";
-import { clearCachedDailyNote } from "../../shared/storage/noteCache";
+import { acceptBasicBirthConsent, addBirthSupplement, ApiProblem, createBirthProfile, getBirthProfile, getDailyNote, getSession, updateOnboardingStatus } from "../../shared/api/client";
+import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 import { OptionalBirthDetails } from "./OptionalBirthDetails";
@@ -84,7 +84,9 @@ export function BirthDatePage() {
     let stage: "date" | "supplement" | "note" = "date";
     try {
       if (!profileCreated) {
+        await acceptBasicBirthConsent();
         const profile = await createBirthProfile(birthDate);
+        await clearChartDerivedData(queryClient);
         queryClient.setQueryData(["birth-profile"], profile);
         setProfileCreated(true);
       }
@@ -97,9 +99,7 @@ export function BirthDatePage() {
           place_id: details.place?.place_id ?? null,
         });
         setSupplementSaved(true);
-        clearCachedDailyNote();
-        await queryClient.invalidateQueries({ queryKey: ["birth-supplement"] });
-        await queryClient.invalidateQueries({ queryKey: ["insight-overview"] });
+        await clearChartDerivedData(queryClient);
       }
       stage = "note";
       // The supplementary calculation may have replaced the date-only snapshot.
@@ -173,6 +173,7 @@ export function BirthDatePage() {
           </label>
         </fieldset>
         <p className="signal-station__privacy">Ngày sinh không xuất hiện khi chia sẻ.</p>
+        <p className="signal-station__privacy">Bấm Khớp tín hiệu là đồng ý dùng ngày sinh để tính lá số và note. Không tự bật AI viết lại.</p>
         <OptionalBirthDetails value={details} onChange={(value) => { setDetails(value); setError(null); }} disabled={pending || supplementSaved} error={error && birthDetailsError(details) === error ? error : null} />
         {profileCreated && !pending ? <small>Ngày sinh đã lưu. Thử lại sẽ không tạo hồ sơ mới.</small> : null}
         {pending ? <p className="signal-station__notice" role="status">{hasBirthDetails(details) ? "Đang lưu thông tin bạn cho phép và tính lại lá số…" : "Đang tìm Mặt Trời và viết Vibe đầu tiên…"}</p> : null}

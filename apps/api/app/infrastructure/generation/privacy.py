@@ -103,11 +103,51 @@ class TarotPosition(SafeModel):
     small_action: str = Field(min_length=1, max_length=500)
 
 
+class TarotGoal(SafeModel):
+    key: Literal[
+        "general",
+        "apology",
+        "meeting",
+        "shared_care",
+        "task_handoff",
+        "recognition",
+        "workload",
+        "rest",
+        "disagreement",
+    ]
+    meaning: str = Field(min_length=1, max_length=280)
+
+
+class TarotLink(SafeModel):
+    key: Literal["express_then_ask", "hope_and_disappointment", "care_and_reciprocity"]
+    kind: Literal["ordered_interpretation"]
+    source_positions: tuple[str, ...] = Field(min_length=2, max_length=2)
+    meaning: str = Field(min_length=1, max_length=400)
+
+
+class TarotMeaningBrief(SafeModel):
+    version: Literal["tarot-meaning-brief-v1", "tarot-meaning-brief-v2"]
+    topic: Literal["general", "relationships", "work", "communication", "energy", "self_care"]
+    intent: Literal["clarity", "boundary", "next_step", "communication", "self_check"]
+    goals: tuple[TarotGoal, ...] = Field(min_length=1, max_length=8)
+    local_summary: str = Field(min_length=1, max_length=2400)
+    links: tuple[TarotLink, ...] = Field(max_length=3)
+    limits: tuple[
+        Literal[
+            "Examples are hypothetical, not observed events.",
+            "Cards cannot establish another person's thoughts or predict events.",
+            "No facts beyond the supplied card meanings and locally recognised goals.",
+        ],
+        ...,
+    ] = Field(min_length=3, max_length=3)
+
+
 class TarotSafePayload(SafeModel):
     category: Literal["relationship", "work", "self", "general"]
     focus_key: TarotFocusKey
     focus_sentence: str = Field(min_length=1, max_length=160)
     positions: tuple[TarotPosition, ...] = Field(min_length=1, max_length=5)
+    meaning_brief: TarotMeaningBrief | None = None
 
 
 class RelationshipDimension(SafeModel):

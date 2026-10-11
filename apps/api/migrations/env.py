@@ -4,11 +4,12 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.config import get_settings
 from app.db.alembic import escape_alembic_url
 from app.db.base import Base
+from app.db.session import verified_engine_options
 
 config = context.config
 if config.config_file_name is not None:
@@ -40,9 +41,8 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_async_engine(
+        **verified_engine_options(str(get_settings().database_url)),
         poolclass=pool.NullPool,
     )
     async with connectable.connect() as connection:

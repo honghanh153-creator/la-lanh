@@ -10,6 +10,8 @@ import {
   type DailyExperiment,
   type ExperimentOutcome,
 } from "../api/client";
+import { currentSessionEpoch, sessionGeneration } from "../session/sessionIdentity";
+import { chartDataRevision } from "../storage/clearChartDerivedData";
 
 export const dailyExperimentQueryKey = ["daily-experiment"] as const;
 
@@ -56,6 +58,16 @@ export function useDailyExperiment({
   onError,
 }: UseDailyExperimentOptions = {}) {
   const queryClient = useQueryClient();
+  const captureMutationContext = () => ({
+    revision: chartDataRevision(queryClient),
+    generation: sessionGeneration(),
+    ownerEpoch: currentSessionEpoch(),
+  });
+  const isCurrentMutation = (context: ReturnType<typeof captureMutationContext>) => (
+    context.revision === chartDataRevision(queryClient)
+    && context.generation === sessionGeneration()
+    && context.ownerEpoch === currentSessionEpoch()
+  );
   const query = useQuery({
     queryKey: dailyExperimentQueryKey,
     queryFn: ({ signal }) => getCurrentDailyExperiment(signal),
@@ -65,16 +77,19 @@ export function useDailyExperiment({
   });
 
   const chooseMutation = useMutation({
+    onMutate: captureMutationContext,
     mutationFn: (input: DailyExperimentChoice) => {
       if (!input) throw new Error("Missing experiment choice");
       const { daily_note_id: dailyNoteId, ...body } = input;
       return chooseDailyExperiment(dailyNoteId, body);
     },
-    onSuccess: (experiment) => {
+    onSuccess: (experiment, _input, context) => {
+      if (!isCurrentMutation(context)) return;
       queryClient.setQueryData(dailyExperimentQueryKey, experiment);
       onChosen?.();
     },
-    onError: (error) => {
+    onError: (error, _input, context) => {
+      if (!context || !isCurrentMutation(context)) return;
       void queryClient.invalidateQueries({ queryKey: dailyExperimentQueryKey });
       onError?.(error);
     },
@@ -83,14 +98,19 @@ export function useDailyExperiment({
   const undoMutation = useMutation({
     mutationFn: undoDailyExperiment,
     onMutate: async () => {
+      const context = captureMutationContext();
       await queryClient.cancelQueries({ queryKey: dailyExperimentQueryKey });
+      if (!isCurrentMutation(context)) return context;
       const previous = queryClient.getQueryData<DailyExperiment | null>(dailyExperimentQueryKey);
       queryClient.setQueryData(dailyExperimentQueryKey, null);
-      return { previous };
+      return { previous, ...context };
     },
-    onSuccess: () => onUndone?.(),
+    onSuccess: (_data, _input, context) => {
+      if (isCurrentMutation(context)) onUndone?.();
+    },
     onError: (error, _input, context) => {
-      if (context?.previous !== undefined) {
+      if (!context || !isCurrentMutation(context)) return;
+      if ("previous" in context && context.previous !== undefined) {
         queryClient.setQueryData(dailyExperimentQueryKey, context.previous);
       }
       void queryClient.invalidateQueries({ queryKey: dailyExperimentQueryKey });
@@ -101,7 +121,9 @@ export function useDailyExperiment({
   const reflectMutation = useMutation({
     mutationFn: reflectDailyExperiment,
     onMutate: async (input) => {
+      const context = captureMutationContext();
       await queryClient.cancelQueries({ queryKey: dailyExperimentQueryKey });
+      if (!isCurrentMutation(context)) return context;
       const previous = queryClient.getQueryData<DailyExperiment | null>(dailyExperimentQueryKey);
       if (previous && previous.id === input.experiment_id) {
         queryClient.setQueryData<DailyExperiment>(dailyExperimentQueryKey, {
@@ -113,14 +135,16 @@ export function useDailyExperiment({
           updated_at: new Date().toISOString(),
         });
       }
-      return { previous };
+      return { previous, ...context };
     },
-    onSuccess: (experiment) => {
+    onSuccess: (experiment, _input, context) => {
+      if (!isCurrentMutation(context)) return;
       queryClient.setQueryData(dailyExperimentQueryKey, experiment);
       onReflected?.();
     },
     onError: (error, _input, context) => {
-      if (context?.previous !== undefined) {
+      if (!context || !isCurrentMutation(context)) return;
+      if ("previous" in context && context.previous !== undefined) {
         queryClient.setQueryData(dailyExperimentQueryKey, context.previous);
       }
       void queryClient.invalidateQueries({ queryKey: dailyExperimentQueryKey });

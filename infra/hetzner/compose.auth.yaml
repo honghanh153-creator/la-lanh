@@ -1,0 +1,12 @@
+# Only enable after real Google acceptance. The provider admin credential never
+# mounts in the content worker and is never a frontend environment variable.
+services:
+  app:
+    environment:
+      LA_LANH_AUTH_SUPABASE_ADMIN_KEY_FILE: /run/secrets/supabase_admin_key
+    secrets:
+      - supabase_admin_key
+
+secrets:
+  supabase_admin_key:
+    file: ${LA_LANH_SECRETS_DIR:-/opt/la-lanh/secrets}/supabase_admin_key

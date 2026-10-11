@@ -12,6 +12,7 @@ from pydantic import JsonValue
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.db.rewrite_scope import rewrite_session
 from app.domains.content_rewrite.authorization import content_rewrite_receipt_id
 from app.domains.content_rewrite.models import (
     ArtifactOwnerKey,
@@ -21,7 +22,12 @@ from app.domains.content_rewrite.models import (
 )
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
-from app.domains.tarot.engine import TarotContentRejected, TarotReadingEngine
+from app.domains.tarot.engine import (
+    TAROT_RENDERER_VERSION,
+    TarotContentRejected,
+    TarotReadingEngine,
+)
+from app.domains.tarot.meaning_brief import meaning_brief_for
 from app.domains.tarot.models import (
     TarotContext,
     TarotReading,
@@ -33,8 +39,8 @@ from app.domains.tarot.tables import TarotSessionRow
 from app.infrastructure.crypto import EnvelopeCipher
 from app.infrastructure.generation.privacy import reduce_tarot_question
 
-TAROT_REWRITE_RENDERER_VERSION = "gpt-6-luna-tarot-v1"
-TAROT_REWRITE_GATE_VERSION = "tarot-rewrite-gates/v1"
+TAROT_REWRITE_RENDERER_VERSION = "gpt-6-luna-tarot-v4"
+TAROT_REWRITE_GATE_VERSION = canonical_surface_registry().require(RewriteSurface.TAROT).gate_version
 
 _STOP_WORDS = {
     "bạn",
@@ -82,6 +88,7 @@ def _blueprint_payload(reading: TarotReading) -> dict[str, JsonValue]:
         "spread": reading.spread.value,
         "spread_map": reading.spread_map.value,
         "voice": reading.voice.value,
+        "meaning_brief": cast(JsonValue, meaning_brief_for(reading)),
         "positions": cast(
             JsonValue,
             [
@@ -157,6 +164,7 @@ def compile_tarot_rewrite_request(
             "category": reduced.category,
             "focus_key": reduced.focus_key.value,
             "focus_sentence": reduced.focus_sentence,
+            "meaning_brief": cast(JsonValue, meaning_brief_for(reading)),
             "positions": cast(JsonValue, positions),
         },
     )
@@ -169,12 +177,38 @@ def _fold(value: str) -> str:
     )
 
 
+_FOLDED_STOP_WORDS = frozenset(_fold(word) for word in _STOP_WORDS)
+
+
 def _meaning_tokens(value: str) -> set[str]:
     return {
         token
         for token in re.findall(r"[^\W_]+", _fold(value))
-        if len(token) >= 4 and token not in _STOP_WORDS
+        if len(token) >= 4 and token not in _FOLDED_STOP_WORDS
     }
+
+
+_NEGATION = re.compile(r"\b(?:khong can|khong nen|khong muon|chang can|dung|bo qua)\b")
+
+
+def _negates_source_claim(source: str, rewritten: str) -> bool:
+    """Conservative polarity tripwire, not a semantic-entailment proof.
+
+    Reject a new negated clause sharing anchors with a source assertion. Preserve
+    existing cautionary negations. Uncertain paraphrases fall back to the local reading.
+    """
+    source_clauses = [clause for clause in re.split(r"[.!?;:]", source) if clause.strip()]
+    positive = [_meaning_tokens(c) for c in source_clauses if not _NEGATION.search(_fold(c))]
+    negative = [_meaning_tokens(c) for c in source_clauses if _NEGATION.search(_fold(c))]
+    for clause in re.split(r"[.!?;:]", rewritten):
+        if not _NEGATION.search(_fold(clause)):
+            continue
+        tokens = _meaning_tokens(clause)
+        if any(len(tokens & anchors) >= 2 for anchors in positive) and not any(
+            len(tokens & anchors) >= 2 for anchors in negative
+        ):
+            return True
+    return False
 
 
 def rewrite_tarot_reading(
@@ -202,6 +236,7 @@ def rewrite_tarot_reading(
     expected = {position.key: position for position in baseline.positions}
     rewritten: list[TarotReadingPosition] = []
     fingerprints: set[str] = set()
+    synthesis_terms = _meaning_tokens(synthesis)
     for raw in raw_positions:
         if not isinstance(raw, dict) or set(raw) != {"position_key", "reading"}:
             return None
@@ -212,17 +247,12 @@ def rewrite_tarot_reading(
         source = expected.pop(key, None)
         if source is None or _fold(source.card.title_vi) not in _fold(prose):
             return None
-        source_terms = _meaning_tokens(
-            " ".join(
-                (
-                    source.card.core,
-                    source.card.tension,
-                    source.card.resource,
-                    source.meaning_here,
-                )
-            )
-        )
+        source_terms = _meaning_tokens(source.meaning_here)
         if len(source_terms & _meaning_tokens(prose)) < 2:
+            return None
+        if _negates_source_claim(source.meaning_here, prose):
+            return None
+        if len(source_terms & synthesis_terms) < 2:
             return None
         fingerprint = re.sub(r"\W+", " ", _fold(prose)).strip()
         if fingerprint in fingerprints:
@@ -247,7 +277,12 @@ def rewrite_tarot_reading(
     )
     if word_count > 800:
         return None
-    return baseline.model_copy(
+    source_prose = " ".join(
+        (baseline.summary, *(position.meaning_here for position in baseline.positions))
+    )
+    if any(_negates_source_claim(source_prose, field) for field in (headline, synthesis, closing)):
+        return None
+    candidate = baseline.model_copy(
         update={
             "headline": headline.strip(),
             "summary": synthesis.strip(),
@@ -261,6 +296,11 @@ def rewrite_tarot_reading(
             ),
         }
     )
+    try:
+        TarotReadingEngine.validate(candidate)
+    except TarotContentRejected:
+        return None
+    return candidate
 
 
 class TarotRewriteProjector(RewriteProjector):
@@ -289,7 +329,7 @@ class TarotRewriteProjector(RewriteProjector):
         except ValueError:
             return RewriteProjectionDecision(accepted=False, failure_code="invalid_owner")
 
-        async with self._sessions() as database, database.begin():
+        async with rewrite_session(self._sessions, transaction=True) as database:
             row = await database.scalar(
                 select(TarotSessionRow)
                 .where(
@@ -298,14 +338,18 @@ class TarotRewriteProjector(RewriteProjector):
                 )
                 .with_for_update()
             )
-            if row is None or row.state != TarotSessionState.COMPLETE.value:
+            if (
+                row is None
+                or row.state != TarotSessionState.COMPLETE.value
+                or row.expires_at <= completed_at
+            ):
                 return RewriteProjectionDecision(accepted=False, failure_code="stale_owner")
             payload = self._decrypt(row)
             raw_reading = payload.get("reading")
             if raw_reading is None:
                 return RewriteProjectionDecision(accepted=False, failure_code="stale_owner")
             baseline = TarotReading.model_validate(raw_reading)
-            if baseline.provenance.renderer_version != "tarot-renderer-v1":
+            if baseline.provenance.renderer_version != TAROT_RENDERER_VERSION:
                 return RewriteProjectionDecision(
                     accepted=False, failure_code="stale_domain_version"
                 )

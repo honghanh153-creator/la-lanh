@@ -5,6 +5,33 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
+## Radar/privacy follow-up, 2026-10-11
+
+Read [remediation and remaining release gates](../plans/2026-10-11-radar-privacy-remediation.md).
+The narrow Supabase migration `pin_existing_content_guard_search_paths` was applied and verified;
+both guard functions are SECURITY INVOKER with `search_path=pg_catalog`, and Advisor has no WARN.
+This did not migrate application data or advance the live Alembic head from 0028. Local 0035 can
+repeat this configuration safely. The candidate now requires 0036 nullable Radar retry digests
+before its API runs. Do not stamp or skip 0029–0036.
+
+The current deploy.sh does not itself prove a protected backup/restore rehearsal. Do not run it
+until that release gate has evidence. A local or isolated PostgreSQL test is not a production
+backup, processor-erasure or real-Google-account proof.
+
+## Pending consolidated candidate — 2026-10-10
+
+**Not deployed.** Read [content + Google release review](../reviews/2026-10-10-content-google-consolidated-release-review.md) and [execution plan](../plans/2026-10-10-content-google-release-completion.md) before using this playbook. Include tracked **and untracked** IAM/history/content/contracts/migrations in the release manifest; do not ship only the CMS or frontend.
+
+- Back up with the approved retention policy, record actual running image/Alembic head/flags, and rehearse the exact image + least-privileged role before deployment. No secret connection URL in artifacts.
+- Apply the candidate chain through `20261011_0036` before the new API starts: 0029/0030 preserve spend and isolate rewrite authority, 0031/0032 add IAM/history, 0033 adds Google PKCE, 0034 adds send fences, 0035 fixes trigger search paths and 0036 adds Radar retry digests. Verify RLS and revoked browser grants on every new private table. Local disposable-PG proof is not production-role proof.
+- Public Google must stay off until OAuth callbacks/allowlist, provider identity erasure and two-account/two-device acceptance are complete. Keep email delivery off unless separately approved. Google does not require SMTP. Never “unblock” release by relaxing consent/owner fences.
+- Confirm cleanup timers at least every six hours, busy-send/backlog handling, backup retention, account/device/history clocks and key continuity. Existing encrypted data requires the same keys.
+- Run full code/content/experience guards **in the built image**, then HTTPS guest onboarding → note → time/place/natal → Tarot → Radar → profile/retention. Check guest A/B isolation, cancel/retry, cache/no-store, reduced motion and mobile layout.
+- Rollback: first stop new admissions/rewriter and disable auth/generation exposure; use the verified compatible previous application image. Keep migrated schema and revoked-device state; do not downgrade/drop 0029–0036 or restore erased credentials/data to “repair” a rollback.
+- Only enable paid rewrite with existing key/consent, USD 1/month cap and actual approved cost/provider gates. Do not infer authorization for charges from a passed local mock test.
+
+Do not replace the historical recovery anchor below with this candidate until an actual deployment receipt exists.
+
 ## Known-good recovery anchor
 
 | Item | Value verified on 2026-10-08 |
@@ -130,6 +157,29 @@ Network policy:
 - TCP 8080 and PostgreSQL ports are never opened publicly.
 
 ## Phase 0 — resume and preflight
+
+### Required session/privacy regression before the next beta release
+
+Local remediation dated 2026-10-09 is **not deployed** by this checklist update. Its evidence is
+`docs/reviews/2026-10-09-session-personalization-fix-receipt.md`. Before changing the live pointer:
+
+- [ ] Run web `sessionIsolation.test.ts` and `SessionBoundary.test.tsx`, then the full web suite.
+- [ ] Run API `tests/guest/test_session_isolation.py`, Radar invitation/ownership, matching and
+      Lá Chứng suites, then the full API suite. New guest B with owner A must return 401 on private
+      owner GETs; separate cookie jars must deny foreign note read/write in both directions.
+- [ ] Browser: A Home → create B in another tab → A hides private content and warns. A Back/direct
+      `/home` must not silently display B. Verify a same-session return and offline verification.
+- [ ] Verify delayed responses and queued private writes cannot re-enter after a guest change.
+      Fresh invitation onboarding must still retain its explicitly opened public capability;
+      an idempotent same-guest retry must retain its owner binding.
+- [ ] Review privacy copy and native cookie/storage behavior separately. Web evidence does not
+      certify iOS/Android isolation or an exhaustive security scan.
+- [ ] Pair this with the semantic-personalization gate below; different prose is never evidence
+      of correct ownership, and identical prose alone is never proof of data leakage.
+- [ ] Record source commit, executed tests, skipped environment checks, rollback image and live
+      verification. Do not ship a dirty working directory as an unreviewed combined patch.
+- [ ] Keep generation/worker disabled unless the separate paid governance gate is authorized
+      and passes. This patch does not grant permission for paid evaluations or alter spending caps.
 
 Run locally from `/Users/phamhanh/Documents/New project/la-lanh`:
 
@@ -292,13 +342,58 @@ export APP_HOSTNAME=la-lanh.2-28-136-44.sslip.io
 export LA_LANH_RELEASE_ID=<RELEASE_ID>
 export LA_LANH_SECRETS_DIR=/opt/la-lanh/secrets
 infra/hetzner/deploy.sh
-docker compose -f infra/hetzner/compose.yaml run --rm --no-deps app alembic current
-docker compose -f infra/hetzner/compose.yaml ps
+source infra/hetzner/compose-files.sh
+select_compose_files "$PWD/infra/hetzner"
+docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps app alembic current
+docker compose "${COMPOSE_ARGS[@]}" ps
 ```
 
 When generation is enabled, `ps` must show `rewrite-worker` healthy with no public port. Confirm the
-API container does not mount `/run/secrets/openai_api_key`, and the worker mounts neither the guest
-hash key nor any public port; do not use `docker inspect` formats that print environment values.
+API container does not mount `/run/secrets/openai_api_key`. The worker has the guest hash/encryption
+keys needed by source-authority checks, but has no public port and no Supabase admin key. Do not
+use `docker inspect` formats that print environment values.
+
+### Google activation and provider identity erasure (10 October 2026)
+
+- Backend auth defaults off. Public auth cannot start without an independently mounted
+  `supabase_admin_key` (`sb_secret_…`), mode 0600, owner 65532:65532. Never put it in `app.env`,
+  the browser, Git, or the content worker. Deploy and retention use the same `compose-files.sh`
+  selector. It mounts the app-only admin overlay whenever the protected credential exists,
+  even after disabling new sign-in, so pending identity erasure still works. Enabled Auth without
+  that credential blocks startup. The worker explicitly overrides all three Auth flags to false.
+  Use the selector in manual compose commands too. Every root deployment refreshes the installed
+  retention runner; after changing the active source pointer, verify both cleanup jobs again.
+- Google Web OAuth Client Secret stays only in Supabase's Google provider configuration. App
+  callback: `https://la-lanh.2-28-136-44.sslip.io/auth/callback`. Google provider callback:
+  `https://rlowapjpwsamjftpggen.supabase.co/auth/v1/callback`.
+- Verify two real identities, two devices, explicit restore, cancellation, replay and account
+  deletion before enabling login. An offline Google response is not this acceptance test.
+- Account erasure commits DELETING, invalidates app access, drains admitted disclosures, then
+  hard-deletes the verified provider subject. Local account/device cascades occur only after
+  provider 200/204 or idempotent 404. Failure returns a generic pending error, preserves the
+  linked subject for cleanup retry, and must not be reported as completed erasure. Cleanup
+  also performs this sequence for expired linked accounts. It does not delete the Google account.
+- Monitor DELETING backlog separately; do not silently accept a nonzero backlog. Provider-owned
+  Storage objects can prevent deletion and need a separate reviewed lifecycle before adding uploads.
+- Candidate schema head is `20261010_0035`, not the current live head: 0034 adds RLS-protected pseudonymous send fences without
+  cascading FKs; 0035 pins append-only trigger search paths. Check real migration role and old-image
+  compatibility. Do not downgrade them during rollback.
+- Provider I/O no longer holds owner-row locks. Admission and publication use separate short
+  authority transactions, with captured durable sends drained before erasure/withdrawal ACK.
+  A killed worker retains its nonrefundable budget reservation and bounded send fence; do not
+  retry an ambiguous request to make content appear sooner.
+
+- Ordinary status/private responses do not write profile cookies, including expired status errors.
+  The browser renews through explicit CSRF-protected `/session/renew`. Web Locks order cookie
+  writers with login/restore/logout through body consumption and local adoption. Canceled cookie
+  transports drain before admitting a new identity. A transport that never settles keeps the
+  fence; do not remove it to force a login. Webviews/browsers without Web Locks remain an unverified
+  release target, not a claim of native acceptance. Fresh visibility/BFCache checks hide private
+  content until the same owner is verified again.
+- History cleanup uses live disclosure-fence expiry, not an indefinitely leased crashed rewrite.
+  Deleting one Tarot result captures only that result's owned rewrite jobs, never unrelated sends.
+- Existing app ceiling remains USD 1/month. No OpenAI file currently exists on the inspected VPS;
+  configure the previously authorized key through protected input, not a new key or a budget increase.
 
 The TLS probe intentionally checks the configured TLS policy plus a real query. `pg_stat_ssl` may not
 give useful results through Supavisor and is not the release gate.
@@ -443,6 +538,22 @@ Append or update the “Known-good deployed release” table in the deployment p
 - current and previous image tags;
 - unresolved checklist items and exact next action.
 
+## Optional-account release gate — 2026-10-10 local change only
+
+The owner has authorized the consolidated production release. This checklist does not certify
+that deployment happened. Use [Account IAM and retention](../architecture/account-iam-and-retention.md)
+and the [current follow-up receipt](../reviews/2026-10-10-production-followup-fixes.md), not a previous frontend-only smoke result.
+
+- [ ] Back up and rehearse migrations from live `20261008_0028` through candidate `20261010_0035`; verify account/device/challenge/quota/history-policy/send-fence tables are not readable by PUBLIC/anon/authenticated. Verify preserved spend ledgers, Google PKCE columns, the legacy mood writer timestamp default and the actual backend role, not only a test superuser.
+- [ ] Preserve existing owner IDs; after first link, old anonymous/replay/legacy-owner credentials must fail. Restore existing account needs explicit confirmation and cannot copy another guest's consent/history.
+- [ ] Test two accounts and two devices through core APIs, cross-account device ID, wrong CSRF/Origin, current-device logout/revoke, revoke others, expiry, erase/restore races and ordinary-account denial at Content Studio.
+- [ ] Confirm guest/browser 30-day inactivity renewal, account 365-day inactivity disclosure, separate creation-based history TTL, legacy opt-in/grace and preservation of current chart/current note/Saved.
+- [ ] Confirm backend history-clear ACK and retry for active provider marker; cancellation/offline must not remove data. Drain all cleanup batches; fail/alert on remaining backlog. Check six-hour timers and backup expiry.
+- [ ] Run the actual owner-lock revocation barrier: a private reader blocked behind a revoker must reject after revocation commits. Test unsent pending/retry/leased history cancellation and visible busy backlog before enabling account retention; see `docs/reviews/2026-10-10-optional-account-iam-verification.md`. Do not rely only on sequential logout tests.
+- [ ] Finish managed-provider identity/email erasure and user-facing disclosure before public login. Local profile delete alone does not satisfy provider erasure.
+- [ ] For Google: configure provider credentials, exact callback allowlist and anti-abuse; test real Google sign-in and provider deletion. Google does not require SMTP. Keep email OTP delivery off unless separately approved and tested. Physical native storage remains a separate release gate. This work does not purchase email service or enable paid generation.
+- [ ] Keep `LA_LANH_AUTH_ENABLED=false` and `LA_LANH_AUTH_DELIVERY_APPROVED=false` until all gates are verified. A disabled-provider UI is not production-login acceptance.
+
 Use this handoff template for the next session:
 
 ```text
@@ -494,7 +605,7 @@ Redact or avoid any URL containing a share/capability token before saving diagno
    can break parsing. Alembic also needs encoded percent signs escaped for its configuration layer.
 2. **Secret permission failures:** parent directory is `0700`; files are `0600` and owned by
    `65532:65532`.
-3. **Wrong Supabase mode:** use the IPv4 Supavisor **session** pooler on `5432` with `ssl=require`,
+3. **Wrong Supabase mode:** use the IPv4 Supavisor **session** pooler on `5432` with verified TLS,
    not transaction mode or a browser-side key.
 4. **Misleading TLS introspection:** Supavisor may hide `pg_stat_ssl`; use the shipped TLS probe and
    successful query.

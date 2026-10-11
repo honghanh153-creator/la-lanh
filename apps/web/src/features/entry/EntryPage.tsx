@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
-import { ApiProblem, getBirthProfile, getSession } from "../../shared/api/client";
+import { ApiProblem, currentSessionEpoch, getBirthProfile, getSession, isGuestSessionUnavailable } from "../../shared/api/client";
+import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 
@@ -12,9 +13,20 @@ export function EntryPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const expectedEpoch = currentSessionEpoch();
     void (async () => {
       try {
+        if (sessionStorage.getItem(SESSION_RESTART_REQUIRED_KEY) === "1") {
+          void navigate("/welcome?restart=1", { replace: true, state: { sessionChanged: true } });
+          return;
+        }
         const session = await getSession(controller.signal);
+        if (expectedEpoch && expectedEpoch !== session.session_epoch) {
+          queryClient.clear();
+          sessionStorage.setItem(SESSION_RESTART_REQUIRED_KEY, "1");
+          void navigate("/welcome?restart=1", { replace: true, state: { sessionChanged: true } });
+          return;
+        }
         try {
           await getBirthProfile(controller.signal);
           void navigate(session.onboarding_status === "completed" ? "/home" : "/reveal", { replace: true });
@@ -25,15 +37,18 @@ export function EntryPage() {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          if (error instanceof ApiProblem && error.code === "GUEST_EXPIRED") {
+          const changed = error instanceof ApiProblem && error.code === "SESSION_CHANGED";
+          if (isGuestSessionUnavailable(error) || changed) {
             await clearPersonalDataOnDevice();
             queryClient.clear();
           }
+          if (changed) sessionStorage.setItem(SESSION_RESTART_REQUIRED_KEY, "1");
           void navigate("/welcome", {
             replace: true,
             state: {
               offline: !(error instanceof ApiProblem),
               expired: error instanceof ApiProblem && error.code === "GUEST_EXPIRED",
+              sessionChanged: changed,
             },
           });
         }

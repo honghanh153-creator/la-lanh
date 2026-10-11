@@ -11,11 +11,12 @@ import {
   UserCircle,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
   ApiProblem,
+  currentSessionEpoch,
   createTarotGuest,
   deleteTarotSession,
   getSession,
@@ -26,8 +27,10 @@ import {
   type TarotSession,
   type TarotSpread,
 } from "../../shared/api/client";
+import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
+import { TarotRevealCeremony } from "./TarotRevealCeremony";
 import "./tarot.css";
 import "./tarot-polish.css";
 
@@ -100,32 +103,31 @@ const SPREAD_OPTIONS: Array<{
   { key: "five_card", label: "5 lá", short: "đào sâu" },
 ];
 
-function recommendSpread(question: string): {
-  spread: TarotSpread;
-  title: string;
-  reason: string;
-} {
+const SPREAD_COPY: Record<TarotSpread, { title: string; reason: string }> = {
+  one_card: {
+    title: "1 lá · Chạm đúng điểm",
+    reason: "Một góc đủ rõ để bạn đối chiếu ngay với chuyện đang xảy ra.",
+  },
+  three_card: {
+    title: "3 lá · Nhìn rõ trước khi hành động",
+    reason: "Đủ để thấy điều đã rõ, điểm dễ bỏ sót và một bước có thể thử.",
+  },
+  five_card: {
+    title: "5 lá · Gỡ chuyện nhiều lớp",
+    reason: "Tách dữ kiện, nhu cầu, điểm cấn, phần bạn chọn được và một bước để thử.",
+  },
+};
+
+function recommendSpread(question: string): TarotSpread {
   const normalized = question.trim().toLocaleLowerCase("vi");
   const needsFive = /(?:giữa|hay là|nên chọn|lựa chọn|ở lại|rời đi|lặp lại|lần nào cũng|cứ mỗi|nói chuyện khó|ranh giới)/i.test(normalized);
   if (needsFive) {
-    return {
-      spread: "five_card",
-      title: "5 lá · Gỡ chuyện nhiều lớp",
-      reason: "Tách dữ kiện, nhu cầu, điểm cấn, phần bạn chọn được và một bước để thử.",
-    };
+    return "five_card";
   }
   if (normalized.length >= 8 && normalized.length <= 22) {
-    return {
-      spread: "one_card",
-      title: "1 lá · Chạm đúng điểm",
-      reason: "Một góc đủ rõ để bạn đối chiếu ngay với chuyện đang xảy ra.",
-    };
+    return "one_card";
   }
-  return {
-    spread: "three_card",
-    title: "3 lá · Nhìn rõ trước khi hành động",
-    reason: "Đủ để thấy điều đã rõ, điểm dễ bỏ sót và một bước có thể thử.",
-  };
+  return "three_card";
 }
 
 function startKey(signature: string): string {
@@ -145,9 +147,15 @@ function startKey(signature: string): string {
 }
 
 async function ensureTarotGuest(): Promise<void> {
+  const expectedEpoch = currentSessionEpoch();
   try {
-    await getSession();
+    const session = await getSession();
+    if (expectedEpoch && expectedEpoch !== session.session_epoch) {
+      sessionStorage.setItem(SESSION_RESTART_REQUIRED_KEY, "1");
+      throw new ApiProblem(401, "SESSION_CHANGED", "Phiên trên trình duyệt đã đổi.");
+    }
   } catch (error) {
+    if (error instanceof ApiProblem && error.code === "SESSION_CHANGED") throw error;
     if (!(error instanceof ApiProblem) || error.status !== 401) throw error;
     const key = sessionStorage.getItem("la-lanh-tarot-guest-key") ?? crypto.randomUUID();
     sessionStorage.setItem("la-lanh-tarot-guest-key", key);
@@ -177,9 +185,13 @@ export function TarotPage() {
   const [question, setQuestion] = useState(initialQuestion);
   const recommendation = useMemo(() => recommendSpread(question), [question]);
   const [spreadOverride, setSpreadOverride] = useState<TarotSpread | null>(null);
-  const spread = spreadOverride ?? recommendation.spread;
+  const spread = spreadOverride ?? recommendation;
+  const selectedSpreadCopy = SPREAD_COPY[spread];
   const [showStarters, setShowStarters] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [revealSessionId, setRevealSessionId] = useState<string | null>(null);
+  const finishReveal = useCallback(() => setRevealSessionId(null), []);
+  useEffect(() => () => finishReveal(), [sessionId, finishReveal]);
   const [reframe, setReframe] = useState<{ explanation: string; question: string } | null>(null);
 
   const sessionQuery = useQuery({
@@ -210,6 +222,10 @@ export function TarotPage() {
       void navigate(`/tarot/${created.id}`, { replace: true });
     },
     onError: (error) => {
+      if (error instanceof ApiProblem && error.code === "SESSION_CHANGED") {
+        void navigate("/welcome?restart=1", { replace: true, state: { sessionChanged: true } });
+        return;
+      }
       if (error instanceof ApiProblem && error.code === "TAROT_QUESTION_REFRAME_REQUIRED") {
         const suggested = error.details.suggested_reframe;
         const explanation = error.details.explanation;
@@ -224,7 +240,10 @@ export function TarotPage() {
     mutationFn: ({ active, index }: { active: TarotSession; index: number }) => (
       selectTarotCard(active.id, index, active.version)
     ),
-    onSuccess: (updated) => {
+    onSuccess: (updated, { active }) => {
+      if (active.state === "choosing" && updated.state === "complete" && updated.reading) {
+        setRevealSessionId(updated.id);
+      }
       queryClient.setQueryData(["tarot-session", updated.id], updated);
     },
     onError: () => {
@@ -252,7 +271,31 @@ export function TarotPage() {
   if (sessionId && sessionQuery.isError) {
     return <TarotFrame step="Phiên riêng tư"><section className="tarot-state"><h1>Không mở lại được lần bốc này.</h1><p>Phiên có thể đã hết hạn, đã được xóa hoặc thuộc một trình duyệt khác.</p><Link className="tarot-primary" to="/tarot">Bắt đầu lần mới</Link></section></TarotFrame>;
   }
+  if (session?.state === "complete" && !session.reading) {
+    return <TarotFrame step="Bộ lá đã chọn">
+      <section className="tarot-state" role="status">
+        <h1>Chưa mở được phần diễn giải.</h1>
+        <p>Bộ lá của bạn không thay đổi.</p>
+        <ul>{session.selected_cards.map((selected) => <li key={selected.card.id}>
+          {selected.position_label}: {selected.card.title_vi}
+        </li>)}</ul>
+        <Link className="tarot-primary" to="/home">Về hôm nay</Link>
+        <button className="tarot-secondary" disabled={remove.isPending} onClick={() => {
+          if (confirmDelete) remove.mutate(session);
+          else setConfirmDelete(true);
+        }} type="button">{confirmDelete ? "Xác nhận xóa" : "Xóa lần bốc này"}</button>
+        {confirmDelete ? <button onClick={() => setConfirmDelete(false)} type="button">Giữ lại</button> : null}
+        {remove.isError ? <p role="alert">Chưa xóa được. Bạn có thể thử lại.</p> : null}
+      </section>
+    </TarotFrame>;
+  }
   if (session?.state === "complete" && session.reading) {
+    if (revealSessionId === session.id) {
+      return <TarotFrame step="Đang mở bài"><TarotRevealCeremony
+        cards={session.selected_cards}
+        onComplete={finishReveal}
+      /></TarotFrame>;
+    }
     return <TarotResult
       confirmDelete={confirmDelete}
       deleting={remove.isPending}
@@ -352,9 +395,9 @@ export function TarotPage() {
 
         <section className="tarot-recommendation" aria-labelledby="tarot-spread-title">
           <div className="tarot-recommendation__copy">
-            <span><Sparkle aria-hidden="true" weight="fill" /> Lá gợi ý</span>
-            <h2 id="tarot-spread-title">{recommendation.title}</h2>
-            <p>{recommendation.reason}</p>
+            <span><Sparkle aria-hidden="true" weight="fill" /> {spreadOverride ? "Bạn đã chọn" : "Lá gợi ý"}</span>
+            <h2 id="tarot-spread-title">{selectedSpreadCopy.title}</h2>
+            <p>{selectedSpreadCopy.reason}</p>
           </div>
           <img alt="" className="tarot-recommendation__icon" src="/assets/ultraviolet/tarot.webp" />
           <div className="tarot-depth" role="group" aria-label="Đổi độ sâu">
@@ -402,8 +445,77 @@ function TarotFrame({ children, step }: { children: React.ReactNode; step: strin
 }
 
 function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { session: TarotSession; confirmDelete: boolean; deleting: boolean; onDelete: () => void; onKeep: () => void }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { heading.current?.focus(); }, []);
   const reading = session.reading;
   if (!reading) return null;
-  const depthLabel = session.required_cards === 1 ? "Một lá · một điểm chạm" : session.required_cards === 3 ? "Ba lá · ba lớp nhìn" : "Năm lá · một bản đồ rõ hơn";
-  return <TarotFrame step="Bài của bạn"><section className="tarot-result-hero"><p className="tarot-kicker">{depthLabel}</p><h1>{reading.headline}</h1><p>{reading.summary}</p><div className="tarot-question-ticket"><span>Câu bạn đã hỏi</span><strong>{reading.question}</strong></div></section><section className="tarot-reading">{reading.positions.map((position, index) => <article className="tarot-reading-card" key={position.key}><div className="tarot-face" aria-label={`Lá ${position.card.title_vi}`}><span>0{index + 1}</span><strong>{position.card.title_vi}</strong><small>{position.card.title_en}</small><Sparkle className="tarot-face__symbol" aria-hidden="true" weight="fill" /></div><div className="tarot-reading-copy"><p className="tarot-position">{position.label}</p><h2>{position.card.core}</h2><p>{position.meaning_here}</p><div className="tarot-scene"><Eye aria-hidden="true" /><div><strong>Ngoài đời có thể trông như…</strong><p>{position.everyday_scene}</p></div></div><blockquote>{position.reflection_question}</blockquote><div className="tarot-action"><Sparkle aria-hidden="true" /><div><strong>Đem ra đời thật</strong><p>{position.small_action}</p></div></div></div></article>)}</section><section className="tarot-closing"><p>{reading.closing_prompt}</p><ReadingDisclaimer compact>{reading.disclaimer}</ReadingDisclaimer><span>Engine {reading.provenance.knowledge_version} · bộ {reading.provenance.deck_version}</span></section><footer className="tarot-result-actions">{confirmDelete ? <div className="tarot-delete-confirm" role="alert"><strong>Xóa là mất hẳn bài này.</strong><p>Không có nút hoàn tác và link cũ sẽ không mở lại.</p><div><button disabled={deleting} onClick={onDelete} type="button"><Trash aria-hidden="true" />{deleting ? "Đang xóa…" : "Xóa hẳn"}</button><button onClick={onKeep} type="button">Giữ lại</button></div></div> : <><Link className="tarot-primary" to="/tarot"><Sparkle aria-hidden="true" />Hỏi một chuyện khác</Link><button className="tarot-delete" onClick={onDelete} type="button"><Trash aria-hidden="true" /> Xóa bài này</button></>}</footer></TarotFrame>;
+  const depthLabel = `Trải ${session.required_cards} lá`;
+  return (
+    <TarotFrame step="Bài của bạn">
+      <section className="tarot-result-hero tarot-report" aria-labelledby="tarot-report-title">
+        <div className="tarot-question-ticket">
+          <span>Câu bạn đã hỏi</span>
+          <strong>{reading.question}</strong>
+        </div>
+        <p className="tarot-kicker">{depthLabel}</p>
+        <h1 id="tarot-report-title" ref={heading} tabIndex={-1}>Tóm tắt bài của bạn</h1>
+        <h2>{reading.headline}</h2>
+        <p>{reading.summary}</p>
+      </section>
+
+      <section className="tarot-reading" aria-labelledby="tarot-chapters-title">
+        <h2 id="tarot-chapters-title" className="tarot-chapters-title">Mở từng lá để đọc thêm</h2>
+        {reading.positions.map((position, index) => (
+          <details className="tarot-reading-card tarot-chapter" key={position.key}>
+            <summary className="tarot-chapter-heading">
+              <span className="tarot-chapter-number" aria-hidden="true">0{index + 1}</span>
+              <span className="tarot-chapter-labels">
+                <strong>{position.card.title_vi}</strong>
+                <span>{position.label}</span>
+                <small>{position.card.title_en}</small>
+              </span>
+              <span className="tarot-chapter-chevron" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="tarot-reading-copy">
+              <p>{position.meaning_here}</p>
+              <div className="tarot-scene">
+                <Eye aria-hidden="true" />
+                <div><strong>Ví dụ để đối chiếu</strong><p>{position.everyday_scene}</p></div>
+              </div>
+              <blockquote>{position.reflection_question}</blockquote>
+              <div className="tarot-action">
+                <Sparkle aria-hidden="true" />
+                <div><strong>Một việc bạn có thể thử</strong><p>{position.small_action}</p></div>
+              </div>
+            </div>
+          </details>
+        ))}
+      </section>
+
+      <section className="tarot-closing">
+        <p>{reading.closing_prompt}</p>
+        <ReadingDisclaimer compact>{reading.disclaimer}</ReadingDisclaimer>
+        <span>Engine {reading.provenance.knowledge_version} · bộ {reading.provenance.deck_version}</span>
+      </section>
+      <footer className="tarot-result-actions">
+        {confirmDelete ? (
+          <div className="tarot-delete-confirm" role="alert">
+            <strong>Xóa là mất hẳn bài này.</strong>
+            <p>Không có nút hoàn tác và link cũ sẽ không mở lại.</p>
+            <div>
+              <button disabled={deleting} onClick={onDelete} type="button">
+                <Trash aria-hidden="true" />{deleting ? "Đang xóa…" : "Xóa hẳn"}
+              </button>
+              <button onClick={onKeep} type="button">Giữ lại</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <Link className="tarot-primary" to="/tarot"><Sparkle aria-hidden="true" />Hỏi một chuyện khác</Link>
+            <button className="tarot-delete" onClick={onDelete} type="button"><Trash aria-hidden="true" /> Xóa bài này</button>
+          </>
+        )}
+      </footer>
+    </TarotFrame>
+  );
 }

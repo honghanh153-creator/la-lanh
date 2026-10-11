@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import {
   addBirthSupplement,
+  getBirthSupplementEdit,
   getDailyNote,
   searchBirthPlaces,
   type ApproxWindow,
@@ -12,7 +13,8 @@ import {
   type PlaceResult,
   type DailyNote,
 } from "../../shared/api/client";
-import { clearCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
+import { writeCachedDailyNote } from "../../shared/storage/noteCache";
+import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { BirthTimeInput } from "../../shared/ui/BirthTimeInput";
 import { birthTimeWindows as windows } from "../../shared/ui/birthTimeOptions";
@@ -41,6 +43,25 @@ export function BirthSupplementPage() {
   const radarOwnerStart = sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
   const radarFlow = radarPending || radarOwnerStart;
 
+  const editorQuery = useQuery({
+    queryKey: ["birth-supplement-edit"],
+    queryFn: ({ signal }) => getBirthSupplementEdit(signal),
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+  });
+
+  const openEditor = () => {
+    const saved = editorQuery.data;
+    if (!saved) return;
+    setMode(saved.birth_time_mode === "unknown" ? "exact" : saved.birth_time_mode);
+    setBirthTime(saved.birth_time_local ?? "");
+    setApproxWindow(saved.approx_window ?? "morning");
+    setSelectedPlace(saved.place);
+    setPlaceQuery(saved.place?.display_name ?? "");
+    setStep("time");
+  };
+
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedPlaceQuery(placeQuery.trim()), 300);
     return () => window.clearTimeout(timer);
@@ -68,8 +89,7 @@ export function BirthSupplementPage() {
           String(Date.now() + 3 * 24 * 60 * 60 * 1000),
         );
       }
-      clearCachedDailyNote();
-      await queryClient.invalidateQueries({ queryKey: ["birth-supplement"] });
+      await clearChartDerivedData(queryClient);
       if (radarFlow && payload.profile_level === 3) {
         if (radarOwnerStart) sessionStorage.removeItem("la-lanh-radar-owner-start");
         await navigate(radarPending ? "/radar/continue" : "/radar/start", { replace: true });
@@ -153,7 +173,8 @@ export function BirthSupplementPage() {
         {step === "prompt" ? <section className="choice-panel unlock-prompt">
           <p><MoonStars size={18} /> Bạn sẽ nhận được gì?</p>
           <ul><li>Moon và nhịp cảm xúc rõ hơn.</li><li>Rising/House khi có đủ giờ và nơi sinh.</li></ul>
-          <button className="electric-button" onClick={() => setStep("time")} type="button">Thêm để mở lớp mới</button>
+          <button className="electric-button" disabled={!editorQuery.data} onClick={openEditor} type="button">Thêm để mở lớp mới</button>
+          {editorQuery.isError ? <p className="inline-error" role="alert">Chưa tải được thông tin đã lưu. <button className="detail-link" onClick={() => void editorQuery.refetch()} type="button">Thử lại</button></p> : null}
           <button className="text-button" onClick={snooze} type="button">Để sau</button>
           <button className="detail-link" onClick={() => setLearnMore((value) => !value)} type="button">Dữ liệu này được dùng thế nào?</button>
           {learnMore ? <p className="privacy-plain">Lá Lành gửi dữ liệu lên server để tính chart, mã hóa khi lưu, không đưa vào card/link share và không xin GPS.</p> : null}
@@ -161,7 +182,7 @@ export function BirthSupplementPage() {
         {step === "time" ? <>
         <section className="choice-panel" aria-label="Bạn nhớ giờ sinh thế nào">
           <p><Clock size={18} /> Bạn nhớ giờ sinh thế nào?</p>
-          <BirthTimeInput mode={mode} onModeChange={setMode} time={birthTime} onTimeChange={setBirthTime} window={approxWindow} onWindowChange={setApproxWindow} modes={radarFlow ? ["exact"] : undefined} />
+          <BirthTimeInput mode={mode} onModeChange={(value) => { setMode(value); setConsented(false); }} time={birthTime} onTimeChange={(value) => { setBirthTime(value); setConsented(false); }} window={approxWindow} onWindowChange={(value) => { setApproxWindow(value); setConsented(false); }} modes={radarFlow ? ["exact"] : undefined} />
         </section>
         {error ? <p className="inline-error" role="alert">{error}</p> : null}
         <button className="electric-button" onClick={() => {
@@ -183,6 +204,7 @@ export function BirthSupplementPage() {
                 onChange={(event) => {
                   setPlaceQuery(event.target.value);
                   setSelectedPlace(null);
+                  setConsented(false);
                   setShowAllPlaces(false);
                 }}
                 placeholder="Ví dụ: Hà Nội"
@@ -200,6 +222,7 @@ export function BirthSupplementPage() {
                     key={place.place_id}
                     onClick={() => {
                       setSelectedPlace(place);
+                      setConsented(false);
                       setPlaceQuery(place.display_name);
                       setShowAllPlaces(false);
                     }}
@@ -214,7 +237,7 @@ export function BirthSupplementPage() {
             {placeQuery.trim().length >= 2 && placesQuery.data?.length === 0 ? <p className="privacy-plain">{radarFlow ? "Chưa thấy nơi này. Thử cả tên tỉnh hiện hành hoặc tên trước sắp xếp; đừng chọn đại vì có thể làm lệch House." : "Không thấy nơi này. Thử cả tên tỉnh hiện hành hoặc tên trước sắp xếp."}</p> : null}
           </section>
           <button className="electric-button" disabled={!selectedPlace} onClick={() => setStep("review")} type="button">Dùng nơi đã chọn</button>
-          {!radarFlow ? <button className="text-button" onClick={() => { setSelectedPlace(null); setStep("review"); }} type="button">Bỏ qua nơi sinh</button> : null}
+          {!radarFlow ? <button className="text-button" onClick={() => { setSelectedPlace(null); setConsented(false); setStep("review"); }} type="button">Bỏ qua nơi sinh</button> : null}
         </> : null}
         {step === "review" ? <>
         <section className="choice-panel review-card">

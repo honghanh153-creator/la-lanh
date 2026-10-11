@@ -27,6 +27,7 @@ import {
   type SignalContext,
 } from "../../shared/api/client";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
+import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
 import { birthCompletionPrompt } from "../../shared/astro/birthReadiness";
 import { dailyContextPath } from "../../shared/astro/dailyContext";
 import {
@@ -65,11 +66,13 @@ export function HomePage() {
     initialDataUpdatedAt: cachedAtStart ? 0 : undefined,
   });
   const baseNote = noteQuery.data;
-  const [contextualNote, setContextualNote] = useState<DailyNote | undefined>();
-  const [context, setContext] = useState<SignalContext>("auto");
+  const [contextualNote, setContextualNote] = useState<{ note: DailyNote; revision: number }>();
+  const [contextChoice, setContextChoice] = useState<{ value: SignalContext; revision: number }>({ value: "auto", revision: chartDataRevision(queryClient) });
+  const currentRevision = chartDataRevision(queryClient);
+  const context = contextChoice.revision === currentRevision ? contextChoice.value : "auto";
   const [contextSheetOpen, setContextSheetOpen] = useState(false);
   const [motionPaused, setMotionPaused] = useState(false);
-  const note = contextualNote ?? baseNote;
+  const note = contextualNote?.revision === currentRevision ? contextualNote.note : baseNote;
   const activeReading = note?.reading_projection?.active;
   const availableUpdate = note?.reading_projection?.available_update;
   const moodQuery = useQuery({
@@ -104,6 +107,7 @@ export function HomePage() {
   const showUnlock = Boolean(completionPrompt) && snoozedUntil <= Date.now();
 
   const contextMutation = useMutation({
+    onMutate: () => ({ revision: chartDataRevision(queryClient) }),
     mutationFn: async (nextContext: SignalContext) => {
       if (nextContext === "auto") {
         if (!baseNote) throw new Error("Missing daily note");
@@ -115,19 +119,21 @@ export function HomePage() {
       const projection = await getContextualReading(nextContext);
       return { ...baseNote, reading_projection: projection };
     },
-    onSuccess: (nextNote, nextContext) => {
+    onSuccess: (nextNote, nextContext, requestContext) => {
+      if (requestContext.revision !== chartDataRevision(queryClient)) return;
       if (nextContext !== "auto") {
         queryClient.setQueryData(["daily-note-context", nextContext], nextNote);
-        setContextualNote(nextNote);
+        setContextualNote({ note: nextNote, revision: requestContext.revision });
       } else {
         setContextualNote(undefined);
       }
-      setContext(nextContext);
+      setContextChoice({ value: nextContext, revision: requestContext.revision });
       setContextSheetOpen(false);
       setResonance(null);
       setMessage(nextContext === "auto" ? "Đã trở về góc tự động." : "Đã đổi góc nhìn cho note này.");
     },
-    onError: () => {
+    onError: (_error, _input, requestContext) => {
+      if (!requestContext || requestContext.revision !== chartDataRevision(queryClient)) return;
       setMessage("Chưa bắt được góc mới. Note đang thấy vẫn được giữ nguyên, không có nội dung mới nào được nhận.");
     },
   });

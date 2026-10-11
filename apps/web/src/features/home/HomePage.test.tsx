@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +19,7 @@ import {
   type ReadingProjection,
 } from "../../shared/api/client";
 import { clearCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
+import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import ultravioletStyles from "../../shared/styles/ultraviolet.css?raw";
 import { HomePage } from "./HomePage";
 
@@ -40,7 +41,7 @@ vi.mock("../../shared/api/client", async (original) => {
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}><MemoryRouter><HomePage /></MemoryRouter></QueryClientProvider>);
+  return { client, ...render(<QueryClientProvider client={client}><MemoryRouter><HomePage /></MemoryRouter></QueryClientProvider>) };
 }
 
 const vibe = content("00000000-0000-4000-8000-000000000010", "vibe_fallback", "Chậm lại một nhịp.");
@@ -59,6 +60,27 @@ describe("HomePage rich reading", () => {
       feedback_count: 0,
       last_choice: null,
     });
+  });
+
+  it.each([false, true])("drops a contextual reading after precision withdrawal (pending=%s)", async (pending) => {
+    const user = userEvent.setup();
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    let complete!: (value: ReadingProjection) => void;
+    const oldWork = { ...aura, sections: { ...aura.sections, hook: "Private old contextual reading" } };
+    const delayed = new Promise<ReadingProjection>((resolve) => { complete = resolve; });
+    vi.mocked(getContextualReading).mockReturnValue(pending ? delayed : Promise.resolve(projection(oldWork)));
+    const { client } = renderPage();
+    await user.click(await screen.findByRole("button", { name: "Góc đang đọc Lá chọn" }));
+    await user.click(screen.getByRole("button", { name: "Việc cần chốt" }));
+    await waitFor(() => expect(getContextualReading).toHaveBeenCalledTimes(1));
+    if (!pending) await screen.findByRole("heading", { name: oldWork.sections.hook });
+    const dateOnly = { ...vibe, sections: { ...vibe.sections, hook: "Current date-only reading" } };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(dateOnly)));
+    await act(async () => { await clearChartDerivedData(client); });
+    if (pending) await act(async () => { complete(projection(oldWork)); await delayed; });
+    expect(await screen.findByRole("heading", { name: dateOnly.sections.hook })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: oldWork.sections.hook })).not.toBeInTheDocument();
+    expect(client.getQueryData(["daily-note-context", "work"])).toBeUndefined();
   });
 
   it("disables Home motion under reduced-motion and keeps the pause rule scoped to decoration", () => {

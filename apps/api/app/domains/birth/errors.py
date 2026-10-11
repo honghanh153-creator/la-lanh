@@ -13,6 +13,11 @@ class BirthProfileNotFound(BirthDomainError):
     status_code = 404
 
 
+class BirthProfileChanged(BirthDomainError):
+    code = "BIRTH_PROFILE_CHANGED"
+    status_code = 409
+
+
 class ChartEngineUnavailable(BirthDomainError):
     code = "CHART_ENGINE_UNAVAILABLE"
     status_code = 503

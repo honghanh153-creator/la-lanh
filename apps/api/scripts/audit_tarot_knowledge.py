@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from collections import Counter
 
-from app.domains.tarot.engine import TarotReadingEngine
+from app.domains.tarot.engine import TarotContentRejected, TarotReadingEngine
 from app.domains.tarot.knowledge import BOOK_SOURCES, all_cards
-from app.domains.tarot.models import TarotContext, TarotSpread, TarotVoice
+from app.domains.tarot.models import TarotContext, TarotSpread, TarotSpreadMap, TarotVoice
 
 QUESTION_BY_CONTEXT = {
     TarotContext.GENERAL: "Chuyện này cần được nhìn từ góc nào trước?",
@@ -22,6 +22,17 @@ FORBIDDEN = {
     "hãy tin vào hành trình",
     "năng lượng đang dịch chuyển",
 }
+
+GOAL_QUESTIONS = (
+    (TarotContext.RELATIONSHIPS, "Mình nên nói gì để xin lỗi sau khi lỡ hẹn?"),
+    (TarotContext.RELATIONSHIPS, "Mình nên nói gì để thống nhất lịch gặp?"),
+    (TarotContext.RELATIONSHIPS, "Mình nên nói gì để cả hai cùng quan tâm nhau?"),
+    (TarotContext.WORK, "Mình nên nói gì để chia việc và bàn giao rõ hơn?"),
+    (TarotContext.WORK, "Mình nên nói gì để công sức được ghi nhận?"),
+    (TarotContext.WORK, "Mình cần nói rõ điều gì trước khi nhận thêm việc?"),
+    (TarotContext.ENERGY, "Mình nên nghỉ thế nào khi đang mệt?"),
+    (TarotContext.COMMUNICATION, "Mình nên nói gì khi hai bên bất đồng?"),
+)
 
 
 def audit() -> list[str]:
@@ -83,6 +94,50 @@ def audit() -> list[str]:
     repeated = [block for block, count in semantic_blocks.items() if count > len(cards)]
     if repeated:
         failures.append("A complete semantic block repeats across more than one full deck")
+    # Rotate every card through every position, context and existing voice.
+    # This is deterministic synthetic coverage, not a human comprehension study.
+    for spread_map in TarotSpreadMap:
+        count = len(engine.positions_for(spread_map))
+        selected_spread = {
+            1: TarotSpread.ONE_CARD,
+            3: TarotSpread.THREE_CARD,
+            5: TarotSpread.FIVE_CARD,
+        }[count]
+        for context in TarotContext:
+            for voice in TarotVoice:
+                for offset in range(len(cards)):
+                    card_ids = tuple(
+                        cards[(offset + index) % len(cards)].id for index in range(count)
+                    )
+                    try:
+                        engine.render(
+                            card_ids=card_ids,
+                            spread=selected_spread,
+                            spread_map=spread_map,
+                            context=context,
+                            question=QUESTION_BY_CONTEXT[context],
+                            voice=voice,
+                        )
+                    except TarotContentRejected as exc:
+                        failures.append(
+                            f"{spread_map.value}/{context.value}/{voice.value}/{offset}: {exc}"
+                        )
+        for context, question in GOAL_QUESTIONS:
+            for voice in TarotVoice:
+                for offset in range(len(cards)):
+                    try:
+                        engine.render(
+                            card_ids=tuple(
+                                cards[(offset + index) % len(cards)].id for index in range(count)
+                            ),
+                            spread=selected_spread,
+                            spread_map=spread_map,
+                            context=context,
+                            question=question,
+                            voice=voice,
+                        )
+                    except TarotContentRejected as exc:
+                        failures.append(f"goal/{question}/{spread_map.value}/{offset}: {exc}")
     return failures
 
 
@@ -90,7 +145,10 @@ def main() -> None:
     failures = audit()
     if failures:
         raise SystemExit("Tarot knowledge audit failed:\n- " + "\n- ".join(failures[:30]))
-    print("Tarot knowledge audit passed: 78 cards x 6 contexts + three-card samples.")
+    print(
+        "Tarot knowledge audit passed: 8424 contextual + 11232 recognised-goal synthetic spreads, "
+        "plus deck checks. Not a human comprehension study."
+    )
 
 
 if __name__ == "__main__":

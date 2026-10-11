@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   addBirthSupplement,
+  getBirthSupplementEdit,
   getDailyNote,
   searchBirthPlaces,
   type DailyNote,
@@ -18,6 +19,7 @@ vi.mock("../../shared/api/client", async (original) => {
   return {
     ...actual,
     addBirthSupplement: vi.fn(),
+    getBirthSupplementEdit: vi.fn(),
     getDailyNote: vi.fn(),
     searchBirthPlaces: vi.fn(),
   };
@@ -28,6 +30,45 @@ describe("BirthSupplementPage Aura handoff", () => {
     vi.clearAllMocks();
     localStorage.clear();
     clearCachedDailyNote();
+    vi.mocked(getBirthSupplementEdit).mockResolvedValue({
+      birth_time_mode: "unknown", birth_time_local: null, approx_window: null, place: null,
+    });
+  });
+
+  it("restores approximate time and birthplace when editing, without saving on open", async () => {
+    vi.mocked(getBirthSupplementEdit).mockResolvedValue({
+      birth_time_mode: "approx_window", birth_time_local: null, approx_window: "evening",
+      place: { place_id: "vn-hue", display_name: "Huế, Việt Nam", country_code: "VN", timezone_id: "Asia/Ho_Chi_Minh", confidence: "province-centroid" },
+    });
+    const user = userEvent.setup();
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter><BirthSupplementPage /></MemoryRouter>
+    </QueryClientProvider>);
+    await user.click(await screen.findByRole("button", { name: "Thêm để mở lớp mới" }));
+    expect(screen.getByRole("button", { name: "Nhớ khoảng" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Tối 18–22h" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
+    expect(screen.getByLabelText("Thành phố / tỉnh")).toHaveValue("Huế, Việt Nam");
+    expect(screen.getByRole("button", { name: "Dùng nơi đã chọn" })).toBeEnabled();
+    expect(addBirthSupplement).not.toHaveBeenCalled();
+  });
+
+  it("requires fresh precision consent after the reviewed birth time changes", async () => {
+    const user = userEvent.setup();
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter><BirthSupplementPage /></MemoryRouter>
+    </QueryClientProvider>);
+    await user.click(await screen.findByRole("button", { name: "Thêm để mở lớp mới" }));
+    await user.click(screen.getByRole("button", { name: "Nhớ khoảng" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
+    await user.click(screen.getByRole("button", { name: "Bỏ qua nơi sinh" }));
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Sửa thông tin" }));
+    await user.click(screen.getByRole("button", { name: "Tối 18–22h" }));
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
+    await user.click(screen.getByRole("button", { name: "Bỏ qua nơi sinh" }));
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Mở lớp Moon / House" })).toBeDisabled();
   });
 
   it("routes an exact full-synthesis result directly to Aura Cutover", async () => {

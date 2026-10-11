@@ -141,7 +141,8 @@ class ReadingApplicationService:
                 guest_id=guest_id,
                 profile_id=snapshot.profile_id,
                 chart_snapshot_id=snapshot.id,
-                plan_key=canonical_reading_plan_key(plan),
+                source_revision=snapshot.profile_revision,
+                plan_key=canonical_reading_plan_key(plan, chart_snapshot_id=snapshot.id),
                 plan=plan,
                 created_at=current,
             )

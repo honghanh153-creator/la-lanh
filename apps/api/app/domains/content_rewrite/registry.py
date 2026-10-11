@@ -129,7 +129,7 @@ def canonical_surface_registry() -> SurfaceRegistry:
             surface=RewriteSurface.TAROT,
             fallback_owner="tarot",
             schema_version="tarot-rewrite/v1",
-            gate_version="tarot-rewrite-gates/v1",
+            gate_version="tarot-rewrite-gates/v4",
             fields=_fields("headline", "position_readings", "synthesis", "closing_question"),
             word_budget=800,
             forbidden_claims=("prediction", "professional_advice", "urgency"),

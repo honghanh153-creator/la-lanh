@@ -1,10 +1,14 @@
 import type { DailyNote, ReadingProjection } from "../api/client";
+import { currentSessionEpoch, sessionCookieMarker, sessionGeneration } from "../session/sessionIdentity";
 
 const NOTE_CACHE_TTL_MS = 36 * 60 * 60 * 1000;
 
 type CachedNote = {
   note: DailyNote;
   expires_at: string;
+  sessionEpoch: string | null;
+  generation: number;
+  cookieMarker: string | null;
 };
 
 // Daily notes may include private transit-to-natal interpretations. Keep the
@@ -20,6 +24,12 @@ export type ReadingCacheIdentity = {
 
 export function readCachedDailyNote(identity?: ReadingCacheIdentity): CachedNote | null {
   if (!memoryCache) return null;
+  if (memoryCache.sessionEpoch !== currentSessionEpoch() || memoryCache.generation !== sessionGeneration()
+    || memoryCache.cookieMarker !== sessionCookieMarker()) {
+    memoryCache = null;
+    dismissedReadingUpdates.clear();
+    return null;
+  }
   if (new Date(memoryCache.expires_at).getTime() <= Date.now()) {
     memoryCache = null;
     return null;
@@ -38,11 +48,14 @@ export function writeCachedDailyNote(note: DailyNote): void {
   memoryCache = {
     note,
     expires_at: new Date(Date.now() + NOTE_CACHE_TTL_MS).toISOString(),
+    sessionEpoch: currentSessionEpoch(),
+    generation: sessionGeneration(),
+    cookieMarker: sessionCookieMarker(),
   };
 }
 
 export function replaceCachedReadingProjection(projection: ReadingProjection): boolean {
-  if (!memoryCache || memoryCache.note.reading_projection?.scope_key !== projection.scope_key) {
+  if (!readCachedDailyNote() || !memoryCache || memoryCache.note.reading_projection?.scope_key !== projection.scope_key) {
     return false;
   }
   memoryCache = {

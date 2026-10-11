@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domains.astro.models import TransitPhase
-from app.domains.birth.errors import BirthDomainError
+from app.domains.birth.errors import BirthDomainError, BirthProfileChanged
 from app.domains.daily.models import (
     FallbackReason,
     PersonaLabel,
@@ -266,7 +266,7 @@ def _no_store(response: Response) -> None:
     response.headers["Cache-Control"] = "no-store, max-age=0"
 
 
-@router.get("/daily-note", response_model=DailyNoteResponse, responses={401: {}, 404: {}})
+@router.get("/daily-note", response_model=DailyNoteResponse, responses={401: {}, 404: {}, 409: {}})
 async def get_daily_note(
     request: Request,
     response: Response,
@@ -277,7 +277,11 @@ async def get_daily_note(
     token = request.cookies.get(settings.guest_cookie_name, guest_token)
     try:
         guest = await _guest_service(request).resume(token)
+        snapshot = await _daily_service(request).current_birth_snapshot(guest.id)
         note = await _daily_service(request).today(guest.id)
+        if note.chart_snapshot_id != snapshot.id:
+            raise BirthProfileChanged
+        await _daily_service(request).assert_current_birth_source(snapshot)
     except (BirthDomainError, GuestDomainError) as error:
         return _problem(error)
     payload = DailyNoteResponse.model_validate(note)
@@ -285,7 +289,6 @@ async def get_daily_note(
     if reading_service is None:
         return payload
     try:
-        snapshot = await _daily_service(request).current_birth_snapshot(guest.id)
         projection = await reading_service.project(
             guest_id=guest.id,
             snapshot=snapshot,
@@ -295,12 +298,18 @@ async def get_daily_note(
                 and await request.app.state.content_rewrite_authorization.authorized_guest(guest.id)
             ),
         )
+    except BirthDomainError as error:
+        return _problem(error)
     except Exception:
         logger.exception(
             "Private Daily reading projection failed; returning legacy note",
             extra={"surface": "daily_note"},
         )
-        return payload
+        projection = None
+    try:
+        await _daily_service(request).assert_current_birth_source(snapshot)
+    except BirthDomainError as error:
+        return _problem(error)
     return payload.model_copy(update={"reading_projection": projection})
 
 
@@ -328,7 +337,7 @@ async def project_daily_note_context(
     if reading_service is None:
         return _reading_problem(503, "READING_UNAVAILABLE")
     try:
-        return await reading_service.project(
+        projection = await reading_service.project(
             guest_id=guest.id,
             snapshot=snapshot,
             purpose=ReadingPurpose.DAILY_NOTE,
@@ -338,6 +347,10 @@ async def project_daily_note_context(
                 and await request.app.state.content_rewrite_authorization.authorized_guest(guest.id)
             ),
         )
+        await _daily_service(request).assert_current_birth_source(snapshot)
+        return projection
+    except BirthDomainError as error:
+        return _problem(error)
     except ReadingApplicationError:
         logger.exception(
             "Private contextual Daily reading projection failed",
@@ -378,6 +391,8 @@ async def activate_reading_projection(
             expected_revision_id=body.expected_revision_id,
             expected_chart_snapshot_id=snapshot.id,
         )
+    except BirthDomainError as error:
+        return _problem(error)
     except ReadingActivationConflict:
         return _reading_problem(409, "READING_UPDATE_CONFLICT")
     except ReadingApplicationError:
@@ -419,6 +434,8 @@ async def acknowledge_aura_transition(
             scope_key=scope_key,
             transition_id=body.transition_id,
         )
+    except BirthDomainError as error:
+        return _problem(error)
     except ReadingActivationConflict:
         return _reading_problem(409, "AURA_TRANSITION_CONFLICT")
     except ReadingApplicationError:

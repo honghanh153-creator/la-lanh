@@ -28,7 +28,7 @@ unset database_password
 install -d -m 0700 "$SECRETS_DIR"
 umask 077
 printf '%s\n' \
-  "postgresql+asyncpg://postgres.${PROJECT_REF}:${encoded_password}@${POOLER_HOST}:5432/postgres?ssl=require" \
+  "postgresql+asyncpg://postgres.${PROJECT_REF}:${encoded_password}@${POOLER_HOST}:5432/postgres?ssl=verify-full" \
   > "${SECRETS_DIR}/database_url"
 unset encoded_password
 chmod 0600 "${SECRETS_DIR}/database_url"

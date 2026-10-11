@@ -8,7 +8,11 @@ from sqlalchemy import select
 
 from app.config import Settings
 from app.domains.tarot.models import TarotSessionView
-from app.domains.tarot.rewrite import TarotRewriteProjector, compile_tarot_rewrite_request
+from app.domains.tarot.rewrite import (
+    TAROT_REWRITE_RENDERER_VERSION,
+    TarotRewriteProjector,
+    compile_tarot_rewrite_request,
+)
 from app.domains.tarot.tables import TarotSessionRow
 from app.main import create_app
 
@@ -97,6 +101,51 @@ def test_guest_can_draw_resume_and_delete_without_login(tarot_client: TestClient
     assert tarot_client.get(f"/v1/tarot/sessions/{started['id']}").status_code == 404
 
 
+def test_rejected_local_reading_keeps_locked_cards_without_redraw_or_generation(
+    tarot_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.domains.tarot.engine import TarotContentRejected, TarotReadingEngine
+
+    calls = []
+
+    def reject(*args: Any, **kwargs: Any) -> None:
+        calls.append(True)
+        raise TarotContentRejected("synthetic gate rejection")
+
+    monkeypatch.setattr(TarotReadingEngine, "render", reject)
+    headers = _guest_headers(tarot_client)
+    started = _start(tarot_client, headers)
+    path = f"/v1/tarot/sessions/{started['id']}"
+    selected = tarot_client.put(
+        f"{path}/selections",
+        headers=headers,
+        json={"fan_index": 17, "expected_version": started["version"]},
+    )
+    assert selected.status_code == 200
+    result = selected.json()
+    assert result["state"] == "complete" and result["reading"] is None
+    assert len(result["selected_cards"]) == 1
+    assert tarot_client.get(path).json() == result
+    assert (
+        tarot_client.put(
+            f"{path}/selections",
+            headers=headers,
+            json={"fan_index": 17, "expected_version": 1},
+        ).json()
+        == result
+    )
+    assert (
+        tarot_client.put(
+            f"{path}/selections",
+            headers=headers,
+            json={"fan_index": 18, "expected_version": result["version"]},
+        ).status_code
+        == 409
+    )
+    assert len(calls) == 1
+
+
 def test_three_card_session_rejects_competing_stale_selection(tarot_client: TestClient) -> None:
     headers = _guest_headers(tarot_client)
     started = _start(tarot_client, headers, spread="three_card")
@@ -137,6 +186,49 @@ def test_five_card_session_freezes_map_and_completes_after_five_choices(
     assert current["state"] == "complete"
     assert len(current["reading"]["positions"]) == 5
     assert current["reading"]["spread_map"] == started["spread_map"]
+
+
+def test_multi_goal_five_card_result_is_readable_on_completion_and_resume(
+    tarot_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import secrets
+
+    selected_ids = ["swords-10", "pentacles-page", "pentacles-king", "cups-queen", "swords-king"]
+
+    def fixed_shuffle(_random: Any, deck: list[str]) -> None:
+        deck[:] = selected_ids + [identity for identity in deck if identity not in selected_ids]
+
+    monkeypatch.setattr(secrets.SystemRandom, "shuffle", fixed_shuffle)
+    headers = _guest_headers(tarot_client)
+    started = tarot_client.post(
+        "/v1/tarot/sessions",
+        headers=headers,
+        json={
+            "context": "communication",
+            "question": (
+                "Mình nên nói gì để xin lỗi vì bất đồng về chia việc, công sức và lịch gặp?"
+            ),
+            "spread": "five_card",
+            "origin": "direct",
+            "idempotency_key": "tarot-multi-goal-1234567890",
+        },
+    )
+    assert started.status_code == 201
+    current = started.json()
+    path = f"/v1/tarot/sessions/{current['id']}"
+    for index in range(5):
+        response = tarot_client.put(
+            f"{path}/selections",
+            headers=headers,
+            json={"fan_index": index, "expected_version": current["version"]},
+        )
+        assert response.status_code == 200
+        current = response.json()
+    assert current["state"] == "complete" and current["reading"] is not None
+    assert [item["card"]["id"] for item in current["reading"]["positions"]] == selected_ids
+    assert len(current["reading"]["summary"].split()) <= 180
+    assert tarot_client.get(path).json() == current
 
 
 def test_question_gate_creates_no_session_and_returns_safe_reframe(
@@ -262,7 +354,7 @@ def test_tarot_rewrite_projects_through_encrypted_session_without_changing_cards
     assert refreshed.status_code == 200
     result = TarotSessionView.model_validate(refreshed.json())
     assert result.reading is not None
-    assert result.reading.provenance.renderer_version == "gpt-6-luna-tarot-v1"
+    assert result.reading.provenance.renderer_version == TAROT_REWRITE_RENDERER_VERSION
     assert [item.card.id for item in result.reading.positions] == [
         item.card.id for item in baseline_reading.positions
     ]

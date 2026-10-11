@@ -57,6 +57,7 @@ class CreationMaterial:
     request_hash: bytes
     credential_envelope: str
     replay_expires_at: datetime
+    history_consent_version: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

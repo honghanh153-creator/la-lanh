@@ -338,3 +338,24 @@ flowchart TD
 - Request/URL/history/log/analytics/cache/public artifact không chứa DOB hoặc guest credential; private responses dùng `no-store`, owner/CSRF/trusted-Origin controls pass.
 - Production web assets được sync vào cả hai Capacitor shell và journey guest được smoke trên iOS Simulator lẫn Android. Thiếu native toolchain là release No-Go.
 - US-03 controls `Reset feedback`, `Tắt phản hồi` và whole-guest delete hoàn tất theo contract; adaptive ranking và free-text feedback không thuộc release này.
+
+## Continuity delta — 2026-10-10
+
+Mở lại welcome/consent không xoá một guest đang còn hạn. Chỉ tạo owner mới khi phiên thực sự thiếu/hết hạn; lỗi mạng không phải bằng chứng hết hạn. **Không cung cấp action tạo hồ sơ khác trong bản này.** Cookie và thời hạn server của khách cùng gia hạn sau private use hợp lệ; người dùng không phải nhập lại DOB mỗi ngày. Không nhận hoạt động từ worker/public link làm gia hạn.
+
+Khách giữ hồ sơ 30 ngày **không hoạt động**. Lịch sử tự động có consent riêng và hạn tối đa 30 ngày **từ lúc tạo**; chart/current reading/Saved giữ cùng hồ sơ. Người dùng cũ có opt-in và grace đầy đủ, không âm thầm bị dọn theo chính sách mới.
+
+Khách chỉ đã đồng ý Tarot không được ghi DOB cho tới receipt `birth_profile_basic`. Màn DOB ghi purpose này sau submit có notice; không đổi owner hay tự bật consent AI. Login Google là tuỳ chọn và chưa bật provider thật trong bản local này. Xem [contract IAM/retention](../architecture/account-iam-and-retention.md).
+
+## Entry contract hiện hành — 2026-10-10
+
+Thay thế copy/AC demo, decline, 00/02 và chọn hồ sơ khác trong các iteration cũ ở trên. Welcome hiện là trang giới thiệu animation, bước 1/3; DOB 2/3; reveal 3/3. Chỉ hai CTA vào app:
+
+| CTA | Có phiên hợp lệ | Chưa có phiên hợp lệ |
+|---|---|---|
+| Đồng ý & bắt đầu | Resume đúng owner và bước dở/Home; không tạo khách mới, kể cả `restart=1` | Consent cơ bản + tạo guest idempotent → DOB |
+| Đăng nhập | Google tuỳ chọn; thất bại/hủy giữ hồ sơ trên máy | Consent tài khoản + bắt đầu Google; thành công dùng guest đã consent để onboarding |
+
+Không có “Xem bản mẫu”, “Tạo hồ sơ khác” hoặc xoá để thử lại. Privacy và pause animation là utility, không phải CTA vào app.
+
+AC hiện hành: thiếu cookie/hết hạn mới có thể tạo guest; offline không reset; callback Google không đổi owner trước xác minh; account cũ phải xác nhận restore; hủy giữ owner; hai nút có label và focus rõ; Reduce Motion không chặn CTA. DoD local có test welcome/Google/replay/restore và browser journey; Google thật/native vẫn là gate riêng, không dùng mock để đánh dấu hoàn thành.

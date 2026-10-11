@@ -22,6 +22,7 @@ from app.domains.matching.models import (
 )
 from app.domains.matching.service import MatchingService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
+from app.infrastructure.owner_session import resume_owner_for_guest
 
 router = APIRouter(prefix="/matching")
 
@@ -94,8 +95,7 @@ def _matching(request: Request) -> MatchingService:
 
 
 async def _owner(request: Request) -> OwnerIdentity:
-    settings = request.app.state.settings
-    return await _identity(request).resume(request.cookies.get(settings.owner_cookie_name))
+    return await resume_owner_for_guest(request, _identity(request))
 
 
 async def _owner_mutation(request: Request, csrf_token: str | None) -> OwnerIdentity:

@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 
 from pydantic import JsonValue
 
+from app.domains.astro.models import TimePrecision
 from app.domains.content_rewrite.authorization import content_rewrite_receipt_id
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
 from app.domains.content_rewrite.models import (
@@ -21,6 +22,7 @@ from app.domains.content_rewrite.service import RewriteProjectionDecision, Rewri
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     ClaimSlotName,
+    FactorKind,
     ReadingCandidate,
     ReadingPlanRecord,
     ReadingProjectionRecord,
@@ -127,6 +129,8 @@ def compile_daily_rewrite_request(
     blueprint = baseline.semantic_blueprint
     if blueprint is None or plan_record.plan.purpose is not ReadingPurpose.DAILY_NOTE:
         raise ValueError("Daily rewrite requires a deterministic Daily semantic blueprint")
+    if not evaluate_candidate(plan_record.plan, baseline).accepted:
+        raise ValueError("Daily rewrite requires a gate-accepted baseline")
     context = {
         SemanticArena.RELATIONSHIPS: "relationships",
         SemanticArena.COMMUNICATION: "communication",
@@ -140,6 +144,11 @@ def compile_daily_rewrite_request(
         factor = factors.get(factor_ref)
         if factor is None:
             continue
+        if plan_record.plan.precision is not TimePrecision.EXACT and factor.kind in {
+            FactorKind.HOUSE_PLACEMENT,
+            FactorKind.ANGLE,
+        }:
+            raise ValueError("Daily rewrite cannot use houses or angles without exact precision")
         claim = canonical_evidence_claim(factor)
         labels: list[dict[str, JsonValue]] = []
         for slot in claim.slots:

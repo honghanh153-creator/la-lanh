@@ -2,7 +2,8 @@ from datetime import date, datetime
 from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Header, Request, Response
+from fastapi import APIRouter, Cookie, Header, Query, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domains.guest.errors import GuestDomainError
@@ -13,17 +14,68 @@ from app.domains.radar.models import RadarInviteView, RadarMode, RadarStatus
 from app.domains.radar.service import (
     CONSENT_VERSION,
     RadarChartRequired,
+    RadarConflict,
     RadarError,
     RadarInvalid,
+    RadarLimitReached,
     RadarService,
 )
 from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
+from app.infrastructure.owner_session import resume_owner_for_guest
 
 router = APIRouter()
 public_router = APIRouter()
 RADAR_COOKIE = "la_lanh_radar_invite"
 RADAR_RECEIPT_COOKIE = "la_lanh_radar_receipt"
+
+
+class RadarProblem(BaseModel):
+    type: str = "about:blank"
+    title: str
+    status: int
+    code: Literal[
+        "RADAR_LIMIT_REACHED",
+        "RADAR_IDEMPOTENCY_CONFLICT",
+        "RADAR_CHART_REQUIRED",
+        "ADMISSION_LIMITED",
+    ]
+
+
+RADAR_CREATE_ERRORS: dict[int | str, dict[str, Any]] = {
+    status: {
+        "description": description,
+        "content": {"application/problem+json": {"schema": RadarProblem.model_json_schema()}},
+    }
+    for status, description in (
+        (429, "Radar capacity reached or admission rate limited"),
+        (409, "Chart required or conflicting retry"),
+    )
+}
+
+
+def _creation_problem(
+    error: RadarLimitReached | RadarConflict | RadarChartRequired,
+) -> JSONResponse:
+    limited = isinstance(error, RadarLimitReached)
+    status = 429 if limited else 409
+    problem = RadarProblem(
+        title="Radar storage limit reached" if limited else "Radar chart or retry unavailable",
+        status=status,
+        code=(
+            "RADAR_LIMIT_REACHED"
+            if limited
+            else "RADAR_CHART_REQUIRED"
+            if isinstance(error, RadarChartRequired)
+            else "RADAR_IDEMPOTENCY_CONFLICT"
+        ),
+    )
+    return JSONResponse(
+        status_code=status,
+        content=problem.model_dump(),
+        headers={"Cache-Control": "no-store"},
+        media_type="application/problem+json",
+    )
 
 
 class RadarCreateRequest(BaseModel):
@@ -117,8 +169,7 @@ def _guests(request: Request) -> GuestSessionService:
 
 async def _owner(request: Request) -> OwnerIdentity:
     identity = cast(OwnerIdentityService, request.app.state.owner_identity_service)
-    settings = request.app.state.settings
-    return await identity.resume(request.cookies.get(settings.owner_cookie_name))
+    return await resume_owner_for_guest(request, identity)
 
 
 async def _owner_mutation(request: Request, csrf_token: str | None) -> OwnerIdentity:
@@ -157,11 +208,14 @@ def _invite(view: RadarInviteView, share_url: str | None = None) -> RadarInviteR
     )
 
 
-@router.post("/radar/private-checks", response_model=RadarResultResponse)
+@router.post(
+    "/radar/private-checks", response_model=RadarResultResponse, responses=RADAR_CREATE_ERRORS
+)
 async def create_private_check(
     body: RadarPrivateCheckRequest,
     request: Request,
     csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", max_length=128)] = None,
 ) -> RadarResultResponse | Response:
     try:
         owner = await _owner_mutation(request, csrf_token)
@@ -177,23 +231,27 @@ async def create_private_check(
             place_id=body.place_id,
             consent_version=body.consent_version,
             authorization_attested=body.authorization_attested,
+            idempotency_key=idempotency_key,
         )
     except OwnerSessionUnavailable:
         return Response(status_code=401)
     except GuestDomainError:
         return Response(status_code=403)
-    except RadarChartRequired:
-        return Response(status_code=409)
+    except RadarChartRequired as error:
+        return _creation_problem(error)
+    except (RadarLimitReached, RadarConflict) as error:
+        return _creation_problem(error)
     except RadarError:
         return Response(status_code=422)
     return RadarResultResponse.model_validate(result)
 
 
-@router.post("/radar/requests", response_model=RadarInviteResponse)
+@router.post("/radar/requests", response_model=RadarInviteResponse, responses=RADAR_CREATE_ERRORS)
 async def create_request(
     body: RadarCreateRequest,
     request: Request,
     csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", max_length=128)] = None,
 ) -> RadarInviteResponse | Response:
     try:
         owner = await _owner_mutation(request, csrf_token)
@@ -203,25 +261,41 @@ async def create_request(
             recipient_label=body.recipient_label,
             context=body.context,
             voice=body.voice,
+            idempotency_key=idempotency_key,
         )
     except OwnerSessionUnavailable:
         return Response(status_code=401)
     except GuestDomainError:
         return Response(status_code=403)
-    except RadarChartRequired:
-        return Response(status_code=409)
+    except RadarChartRequired as error:
+        return _creation_problem(error)
+    except (RadarLimitReached, RadarConflict) as error:
+        return _creation_problem(error)
     except RadarError:
         return Response(status_code=422)
     return _invite(view, f"/radar/i/{token}")
 
 
 @router.get("/radar/requests", response_model=tuple[RadarInviteResponse, ...])
-async def list_requests(request: Request) -> tuple[RadarInviteResponse, ...] | Response:
+async def list_requests(
+    request: Request,
+    before: UUID | None = None,
+    mode: RadarMode | None = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> tuple[RadarInviteResponse, ...] | Response:
     try:
         owner = await _owner(request)
+        views = await _service(request).list_owned(
+            owner.principal_id,
+            before=before,
+            mode=mode,
+            limit=limit,
+        )
     except OwnerSessionUnavailable:
         return Response(status_code=401)
-    return tuple(_invite(view) for view in await _service(request).list_owned(owner.principal_id))
+    except RadarError:
+        return Response(status_code=404)
+    return tuple(_invite(view) for view in views)
 
 
 @router.post("/radar/requests/{request_id}/share", response_model=RadarInviteResponse)
@@ -232,13 +306,8 @@ async def share_request(
 ) -> RadarInviteResponse | Response:
     try:
         owner = await _owner_mutation(request, csrf_token)
-        token = await _service(request).share_token(owner.principal_id, request_id)
-        view = next(
-            item
-            for item in await _service(request).list_owned(owner.principal_id)
-            if item.id == request_id
-        )
-    except (OwnerSessionUnavailable, GuestDomainError, RadarError, StopIteration):
+        view, token = await _service(request).share_invite(owner.principal_id, request_id)
+    except (OwnerSessionUnavailable, GuestDomainError, RadarError):
         return Response(status_code=404)
     return _invite(view, f"/radar/i/{token}")
 

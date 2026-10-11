@@ -36,7 +36,7 @@ export function RadarLandingPage() {
       <ol>
         <li><span>1</span><div><strong>Bạn nhập thông tin đã được cho phép</strong><p>Ngày, giờ và nơi sinh chỉ dùng trong lúc tính; không được lưu thành hồ sơ.</p></div></li>
         <li><span>2</span><div><strong>Radar đọc hai chart</strong><p>Tìm điểm chạm về giao tiếp, cảm xúc, sức hút, nhịp hành động và chỗ dễ lệch sóng.</p></div></li>
-        <li><span>3</span><div><strong>Bạn nhận bản đọc riêng</strong><p>Không phần trăm hợp nhau, không “định mệnh”; chỉ có tín hiệu cụ thể để tự kiểm chứng ngoài đời.</p></div></li>
+        <li><span>3</span><div><strong>Bạn nhận bản đọc riêng</strong><p>Ba chỉ báo giúp nhìn điểm hợp và điểm dễ cấn. Đây không phải xác suất thành đôi; hãy đối chiếu với cách hai bạn thật sự tương tác.</p></div></li>
       </ol>
     </section>
 

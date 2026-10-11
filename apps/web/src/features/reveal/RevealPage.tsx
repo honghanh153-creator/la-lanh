@@ -1,7 +1,7 @@
 import { ArrowDown } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { getBirthProfile, getDailyNote, updateOnboardingStatus } from "../../shared/api/client";
 import { isDateOnlyCalculation, sunSignsFromCalculation } from "../../shared/astro/chart";
@@ -71,6 +71,7 @@ export function RevealPage() {
         {completing ? "Đang mở Note…" : "Mở Note hôm nay"} <ArrowDown aria-hidden="true" />
       </button>
       {hasExactChart ? <button className="signal-station__secondary" disabled={completing} onClick={() => void complete("/natal")} type="button">Đọc tổng quan về mình</button> : null}
+      <Link className="signal-station__secondary" to="/existing-user?returnTo=/reveal">Giữ hồ sơ khi đổi máy · đăng nhập tuỳ chọn</Link>
       <ReadingDisclaimer compact>
         Nội dung dùng để tự soi và đối chiếu; quyết định vẫn thuộc về bạn.
       </ReadingDisclaimer>

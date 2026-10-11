@@ -1,6 +1,18 @@
+import ssl
+
 from sqlalchemy import text
 
-from app.db.session import Database
+from app.db.session import Database, verified_engine_options
+
+
+def test_postgres_cannot_downgrade_server_identity_verification() -> None:
+    for query in ("", "?ssl=require", "?ssl=disable", "?sslmode=prefer"):
+        options = verified_engine_options(f"postgresql+asyncpg://test@db.example/test{query}")
+        context = options["connect_args"]["ssl"]
+        assert context.verify_mode == ssl.CERT_REQUIRED
+        assert context.check_hostname is True
+        assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
+        assert "ssl" not in options["url"].query
 
 
 async def test_sqlite_enforces_foreign_keys(tmp_path) -> None:  # type: ignore[no-untyped-def]

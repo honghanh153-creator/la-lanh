@@ -148,6 +148,11 @@ export function CardPage() {
           {copy.body ? <blockquote>{copy.body}</blockquote> : null}
           <small>Đúng bản đang mở · không kèm dữ liệu sinh hay căn cứ riêng</small>
         </section>
+      ) : noteQuery.isError ? (
+        <section className="empty-state">
+          <p role="alert">Chưa tải được note để tạo card.</p>
+          <button className="outline-button" disabled={noteQuery.isFetching} onClick={() => void noteQuery.refetch()} type="button">Thử lại</button>
+        </section>
       ) : (
         <section className="entry-loading"><span className="entry-loading__orbit" /><p>Đang dựng card…</p></section>
       )}
@@ -156,6 +161,10 @@ export function CardPage() {
         <button className="electric-button" disabled={!note} onClick={() => void share()} type="button"><ShareNetwork /> Chia sẻ card</button>
         <button className="outline-button" disabled={!note} onClick={() => createMutation.mutate()} type="button"><LinkSimple /> Tạo safe link</button>
         {artifact ? <button className="outline-button" onClick={() => void copyLink()} type="button"><LinkSimple /> Copy link</button> : null}
+        {artifact && shareUrl(artifact) ? <label>
+          <span>Link chia sẻ</span>
+          <input aria-label="Link chia sẻ" onFocus={(event) => event.currentTarget.select()} readOnly value={shareUrl(artifact) ?? ""} />
+        </label> : null}
         {artifact ? <button className="outline-button" disabled={revokeMutation.isPending} onClick={() => revokeMutation.mutate()} type="button"><LinkBreak /> Thu hồi link</button> : null}
         <button className="outline-button" disabled={!note} onClick={() => void download()} type="button"><DownloadSimple /> Tải ảnh PNG</button>
       </footer>

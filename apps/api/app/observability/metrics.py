@@ -17,14 +17,19 @@ HTTP_REQUEST_DURATION = Histogram(
     ("method", "route"),
 )
 
+_HTTP_METHODS = frozenset(
+    {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "TRACE", "CONNECT"}
+)
+
+
+def _method_label(method: str) -> str:
+    return method if method in _HTTP_METHODS else "OTHER"
+
 
 def _route_template(request: Request) -> str:
     resolved_route = request.scope.get("route")
     if resolved_route is not None:
         route_path = str(getattr(resolved_route, "path", "unmatched"))
-        request_path = request.url.path
-        if route_path != "/" and request_path.endswith(route_path):
-            return request_path
         return route_path
     for route in request.app.routes:
         match, _ = route.matches(request.scope)
@@ -47,8 +52,9 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             return response
         finally:
             route = _route_template(request)
-            HTTP_REQUESTS.labels(request.method, route, str(status_code)).inc()
-            HTTP_REQUEST_DURATION.labels(request.method, route).observe(perf_counter() - started_at)
+            method = _method_label(request.method)
+            HTTP_REQUESTS.labels(method, route, str(status_code)).inc()
+            HTTP_REQUEST_DURATION.labels(method, route).observe(perf_counter() - started_at)
 
 
 def metrics_response() -> Response:

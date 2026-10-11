@@ -17,7 +17,7 @@ from app.domains.astro.models import (
     Tradition,
     ZodiacSign,
 )
-from app.domains.birth.errors import BirthDomainError, ChartEngineUnavailable
+from app.domains.birth.errors import BirthDomainError, BirthProfileChanged, ChartEngineUnavailable
 from app.domains.birth.service import BirthChartService
 from app.domains.daily.service import DailyNoteService
 from app.domains.guest.errors import GuestDomainError
@@ -158,7 +158,7 @@ async def supported_configs() -> SupportedConfigResponse:
 @router.get(
     "/insights/overview",
     response_model=InsightOverviewResponse,
-    responses={401: {}, 404: {}, 503: {}},
+    responses={401: {}, 404: {}, 409: {}, 503: {}},
 )
 async def insight_overview(
     request: Request,
@@ -172,7 +172,14 @@ async def insight_overview(
     try:
         guest = await _guest_service(request).resume(token)
         config = _calculation_config(tradition, ayanamsa, node_mode, house_system)
+        snapshot = await _daily_service(request).current_birth_snapshot(guest.id)
         chart = await _birth_service(request).chart_for_config(guest.id, config)
+        current_snapshot = await _daily_service(request).current_birth_snapshot(guest.id)
+        if (current_snapshot.id, current_snapshot.profile_revision) != (
+            snapshot.id,
+            snapshot.profile_revision,
+        ):
+            raise BirthProfileChanged
     except (BirthDomainError, GuestDomainError) as error:
         return _problem(error)
     if chart is None:
@@ -185,7 +192,6 @@ async def insight_overview(
     reading_service = _reading_service(request)
     if reading_service is not None:
         try:
-            snapshot = await _daily_service(request).current_birth_snapshot(guest.id)
             projection = await reading_service.project(
                 guest_id=guest.id,
                 snapshot=snapshot,
@@ -195,6 +201,9 @@ async def insight_overview(
                     request, guest.id
                 ),
             )
+            await _daily_service(request).assert_current_birth_source(snapshot)
+        except BirthDomainError as error:
+            return _problem(error)
         except Exception:
             logger.exception(
                 "Private insight projection failed",
@@ -237,8 +246,14 @@ async def private_reading(
     try:
         guest = await _guest_service(request).resume(token)
         config = _calculation_config(tradition, ayanamsa, node_mode, house_system)
-        chart = await _birth_service(request).chart_for_config(guest.id, config)
         snapshot = await _daily_service(request).current_birth_snapshot(guest.id)
+        chart = await _birth_service(request).chart_for_config(guest.id, config)
+        current_snapshot = await _daily_service(request).current_birth_snapshot(guest.id)
+        if (current_snapshot.id, current_snapshot.profile_revision) != (
+            snapshot.id,
+            snapshot.profile_revision,
+        ):
+            raise BirthProfileChanged
     except (BirthDomainError, GuestDomainError) as error:
         return _problem(error)
     if chart is None:
@@ -247,13 +262,17 @@ async def private_reading(
     if reading_service is None:
         return _reading_problem(503, "READING_UNAVAILABLE")
     try:
-        return await reading_service.project(
+        projection = await reading_service.project(
             guest_id=guest.id,
             snapshot=snapshot,
             chart=chart,
             purpose=ReadingPurpose(purpose),
             external_generation_authorized=await _external_generation_authorized(request, guest.id),
         )
+        await _daily_service(request).assert_current_birth_source(snapshot)
+        return projection
+    except BirthDomainError as error:
+        return _problem(error)
     except Exception:
         logger.exception(
             "Private insight reading failed",

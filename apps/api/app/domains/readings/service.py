@@ -172,7 +172,11 @@ class InsightReadingService:
         )
 
     def overview(self, chart: NatalChart, *, observed_at: datetime) -> InsightReading:
-        claims = list(self._planet_claims(chart))
+        claims = list(
+            self._jyotish_claims(chart)
+            if chart.config.tradition is Tradition.JYOTISH
+            else self._planet_claims(chart)
+        )
         if chart.config.tradition is Tradition.JYOTISH and chart.nakshatras:
             moon = next(item for item in chart.nakshatras if item.body is BodyName.MOON)
             claims.insert(
@@ -182,30 +186,22 @@ class InsightReadingService:
                     domain=ReadingDomain.EMOTIONS,
                     title=f"Nakshatra {moon.name}",
                     summary=(
-                        f"Nhịp cảm xúc được đọc qua {moon.name}, pada {moon.pada}; "
-                        "đây là một lớp diễn giải của hệ Jyotish."
+                        f"Mặt Trăng nằm trong vùng {moon.name}, phần {moon.pada} trong bốn phần."
                     ),
                     hook=f"Mặt Trăng của bạn đi qua vùng {moon.name}, pada {moon.pada}.",
                     meaning=(
-                        "Trong Jyotish, nakshatra chia hoàng đạo sidereal thành những vùng nhỏ hơn "
-                        "cung. Ở đây, nó bổ sung độ nét cho cách Moon được đọc, không thay thế "
-                        "toàn bộ chart."
+                        "Trong chiêm tinh Ấn Độ, mỗi cung còn được chia thành các vùng nhỏ hơn. "
+                        "Vị trí này đã tính từ ngày, giờ và nơi "
+                        "sinh. Phần giải nghĩa riêng chưa sẵn sàng."
                     ),
                     manifestation=(
-                        "Hãy đọc lớp này cạnh Moon sign, nhà và drishti đang có. Một chi tiết khớp "
-                        "trải nghiệm thật đáng giữ hơn một mô tả nghe hay nhưng không có điểm "
-                        "đối chiếu."
+                        f"Mặt Trăng nằm ở phần {moon.pada} của vùng {moon.name}. "
+                        "Đây là thông tin vị trí, không phải mô tả cảm xúc của bạn."
                     ),
                     watch_for=(
-                        "Đừng trộn kết luận tropical và sidereal thành một câu duy nhất; đây là "
-                        "hai "
-                        "hệ quy chiếu độc lập."
+                        "Hai hệ chiêm tinh có thể cho vị trí khác nhau vì dùng mốc tính khác nhau."
                     ),
-                    micro_action=(
-                        "Chọn một phản ứng cảm xúc gần đây và ghi lại điều đã xảy ra, điều bạn "
-                        "cảm thấy "
-                        "và điều bạn cần — rồi mới đối chiếu lớp nakshatra này."
-                    ),
+                    micro_action=("Xem lại giờ và nơi sinh trước khi so sánh với lá số khác."),
                     evidence=(f"Mặt Trăng ở Nakshatra {moon.name}", f"Pada {moon.pada}"),
                     factor_refs=(f"moon:nakshatra:{moon.index}:pada:{moon.pada}",),
                     confidence="high",
@@ -218,6 +214,42 @@ class InsightReadingService:
             claims=tuple(claims[:6]),
             provenance=chart.provenance,
         )
+
+    @staticmethod
+    def _jyotish_claims(chart: NatalChart) -> tuple[ReadingClaim, ...]:
+        claims: list[ReadingClaim] = []
+        for body, label in BODY_VI.items():
+            try:
+                position = chart.body(body)
+            except KeyError:
+                continue
+            house = InsightReadingService._house_for_longitude(chart, position.longitude)
+            house_text = f", nhà {house}" if house is not None else ""
+            placement = f"{label} ở {SIGN_VI[position.sign.value]}{house_text}"
+            claims.append(
+                ReadingClaim(
+                    id=f"{body.value}-sign",
+                    domain=ReadingDomain.CORE,
+                    title=placement,
+                    summary=f"{placement}. Vị trí đã tính theo hệ chiêm tinh Ấn Độ.",
+                    hook=f"{placement}.",
+                    meaning=(
+                        "Lá số này dùng mốc tính của chiêm tinh Ấn Độ. "
+                        "Phần giải nghĩa riêng cho hệ này chưa sẵn sàng."
+                    ),
+                    manifestation=f"Vị trí đã tính: {placement.lower()}.",
+                    watch_for=(
+                        "Vị trí có thể khác lá số phương Tây vì hai hệ dùng mốc tính khác nhau."
+                    ),
+                    micro_action=(
+                        "Xem lại giờ, nơi sinh và cách tính đã chọn trước khi so sánh lá số."
+                    ),
+                    evidence=(placement,),
+                    factor_refs=(f"jyotish:{body.value}:sign:{position.sign.value}",),
+                    confidence="high",
+                )
+            )
+        return tuple(claims)
 
     def _planet_claims(self, chart: NatalChart) -> tuple[ReadingClaim, ...]:
         definitions = (
@@ -242,7 +274,7 @@ class InsightReadingService:
                     summary=self._summary(chart, body, position.sign.value),
                     hook=self._hook(body, position.sign.value),
                     meaning=self._meaning(chart, body, position.longitude, position.sign.value),
-                    manifestation=self._manifestation(body, position.sign.value),
+                    manifestation=self._manifestation(position.sign.value),
                     watch_for=self._watch_for(chart, body, position.sign.value),
                     micro_action=BODY_ACTION[body],
                     evidence=self._evidence_labels(
@@ -288,12 +320,8 @@ class InsightReadingService:
         return text
 
     @staticmethod
-    def _manifestation(body: BodyName, sign: str) -> str:
-        return (
-            f"Trong đời thường, điều này có thể trông như việc bạn {SIGN_EVERYDAY[sign]}. "
-            f"Với {BODY_VI[body]}, hãy xem đây là một gợi ý để đối chiếu với trải nghiệm thật, "
-            "không phải tính cách bị đóng dấu."
-        )
+    def _manifestation(sign: str) -> str:
+        return f"Trong đời thường, bạn có thể {SIGN_EVERYDAY[sign]}."
 
     @staticmethod
     def _watch_for(chart: NatalChart, body: BodyName, sign: str) -> str:

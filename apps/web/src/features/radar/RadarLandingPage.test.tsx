@@ -15,5 +15,7 @@ describe("RadarLandingPage", () => {
     expect(screen.queryByRole("navigation", { name: "Tiến độ Radar" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Xem kết quả đã có" })).toHaveAttribute("href", "/radar/start#radar-history");
     expect(screen.queryByText(/năm lá úp/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Ba chỉ báo giúp nhìn điểm hợp và điểm dễ cấn/)).toBeVisible();
+    expect(screen.queryByText(/Không phần trăm hợp nhau/)).not.toBeInTheDocument();
   });
 });

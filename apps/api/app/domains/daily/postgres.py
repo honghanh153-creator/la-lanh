@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
@@ -6,6 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.birth.errors import BirthProfileChanged
+from app.domains.birth.tables import BirthProfileRow
 from app.domains.daily.models import (
     DailyNoteRecord,
     FallbackReason,
@@ -14,6 +17,9 @@ from app.domains.daily.models import (
     SourceLevel,
 )
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.guest.tables import GuestSessionRow
+from app.domains.history.errors import HistoryUnavailable
+from app.domains.history.postgres import unavailable_daily
 from app.infrastructure.crypto import EnvelopeCipher
 
 
@@ -28,6 +34,21 @@ class PostgresDailyNoteRepository:
 
     async def get_or_create(self, record: DailyNoteRecord) -> DailyNoteRecord:
         async with self._sessions() as session, session.begin():
+            if session.get_bind().dialect.name == "sqlite":
+                await session.connection(execution_options={"sqlite_write": True})
+            await session.scalar(
+                select(GuestSessionRow)
+                .where(GuestSessionRow.id == record.guest_id)
+                .with_for_update()
+            )
+            if record.chart_snapshot_id is not None:
+                current_source = await session.scalar(
+                    select(BirthProfileRow.current_snapshot_id).where(
+                        BirthProfileRow.guest_id == record.guest_id
+                    )
+                )
+                if current_source != record.chart_snapshot_id:
+                    raise BirthProfileChanged
             existing = await session.scalar(
                 select(DailyNoteRow).where(
                     DailyNoteRow.guest_id == record.guest_id,
@@ -35,6 +56,15 @@ class PostgresDailyNoteRepository:
                 )
             )
             if existing is not None:
+                if (
+                    await session.scalar(
+                        select(DailyNoteRow.id).where(
+                            DailyNoteRow.id == existing.id, unavailable_daily(datetime.now(UTC))
+                        )
+                    )
+                    is not None
+                ):
+                    raise HistoryUnavailable
                 _refresh(existing, record, self._envelope)
                 return _record(existing, self._envelope)
             try:
@@ -86,6 +116,7 @@ class PostgresDailyNoteRepository:
                 select(DailyNoteRow).where(
                     DailyNoteRow.guest_id == guest_id,
                     DailyNoteRow.id == note_id,
+                    ~unavailable_daily(datetime.now(UTC)),
                 )
             )
             return _record(row, self._envelope) if row is not None else None

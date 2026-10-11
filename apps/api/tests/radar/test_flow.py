@@ -2,6 +2,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.config import Settings
@@ -190,6 +192,104 @@ def test_private_radar_requires_both_people_and_supports_withdrawal(tmp_path: Pa
         assert withdrawn.status_code == 204
         assert recipient.get("/v1/public/radar/receipt").status_code == 404
         assert owner.get(f"/v1/radar/results/{request_id}").status_code == 404
+
+
+@pytest.mark.parametrize("withdraw_subject", ["owner", "recipient"])
+def test_inflight_invite_accept_cannot_save_after_precision_erasure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, withdraw_subject: str
+) -> None:
+    database = tmp_path / "radar-accept-race.db"
+    with _client(database) as owner:
+        csrf = _full_profile(owner, "radar-accept-owner-123456789", "1994-03-12", "08:15")
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf}
+        assert owner.post("/v1/identity/claim", headers=headers).status_code == 200
+        created = owner.post(
+            "/v1/radar/requests",
+            headers=headers,
+            json={"recipient_label": "Mèo", "context": "crush"},
+        )
+        assert created.status_code == 200
+        request_id = created.json()["id"]
+        token = created.json()["share_url"].rsplit("/", 1)[-1]
+        recipient = TestClient(owner.app, base_url=ORIGIN)
+        assert recipient.get(f"/v1/public/radar/{token}").status_code == 200
+        recipient_csrf = _full_profile(
+            recipient, "radar-accept-recipient-12345", "1996-07-21", "19:40"
+        )
+        service = cast(FastAPI, owner.app).state.radar_service
+        birth = cast(FastAPI, owner.app).state.birth_chart_service
+        chart_for_guest = service._chart
+        pending_for_token = service._pending_by_token
+
+        async def erase_after_chart(guest_id):  # type: ignore[no-untyped-def]
+            chart = await chart_for_guest(guest_id)
+            target = guest_id
+            if withdraw_subject == "owner":
+                target = (await pending_for_token(token)).owner_guest_id
+            await birth.remove_supplement(target, remove_time=True, remove_place=True)
+            return chart
+
+        monkeypatch.setattr(service, "_chart", erase_after_chart)
+        result = recipient.post(
+            "/v1/public/radar/current/accept",
+            headers={"Origin": ORIGIN, "X-CSRF-Token": recipient_csrf},
+            json={"request_id": request_id, "consent_version": "radar-pair-v1"},
+        )
+        assert result.status_code == 409
+        assert owner.get(f"/v1/radar/results/{request_id}").status_code == 404
+        with sqlite3.connect(database) as connection:
+            assert (
+                connection.execute(
+                    "SELECT COUNT(*) FROM radar_requests WHERE result_ciphertext IS NOT NULL"
+                ).fetchone()[0]
+                == 0
+            )
+
+
+def test_inflight_private_radar_cannot_recreate_result_after_birth_erasure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = tmp_path / "radar-erasure-race.db"
+    with _client(database) as owner:
+        csrf = _full_profile(owner, "radar-erasure-race-123456789", "1994-03-12", "08:15")
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf}
+        assert owner.post("/v1/identity/claim", headers=headers).status_code == 200
+        birth = cast(FastAPI, owner.app).state.birth_chart_service
+        calculate_transient = birth.calculate_transient_chart
+        service = cast(FastAPI, owner.app).state.radar_service
+        owner_id = None
+        owner_chart = service._chart
+
+        async def capture_owner(guest_id):  # type: ignore[no-untyped-def]
+            nonlocal owner_id
+            owner_id = guest_id
+            return await owner_chart(guest_id)
+
+        async def erase_while_computing(**kwargs):  # type: ignore[no-untyped-def]
+            chart = await calculate_transient(**kwargs)
+            assert owner_id is not None
+            await birth.remove_supplement(owner_id, remove_time=True, remove_place=True)
+            return chart
+
+        monkeypatch.setattr(service, "_chart", capture_owner)
+        monkeypatch.setattr(birth, "calculate_transient_chart", erase_while_computing)
+        response = owner.post(
+            "/v1/radar/private-checks",
+            headers=headers,
+            json={
+                "recipient_label": "Mèo",
+                "context": "crush",
+                "birth_date": "1996-07-21",
+                "birth_time_local": "19:40",
+                "place_id": "vn-hanoi",
+                "consent_version": "radar-authorized-input-v1",
+                "authorization_attested": True,
+            },
+        )
+        assert response.status_code == 409
+        with sqlite3.connect(database) as connection:
+            assert connection.execute("SELECT COUNT(*) FROM radar_requests").fetchone()[0] == 0
 
 
 def test_private_check_computes_without_persisting_other_person_birth_input(

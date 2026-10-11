@@ -57,9 +57,13 @@ services:
       - app.env
     environment:
       LA_LANH_DATABASE_URL_FILE: /run/secrets/database_url
+      LA_LANH_GUEST_HASH_KEY_FILE: /run/secrets/guest_hash_key
       LA_LANH_GUEST_ENCRYPTION_KEY_FILE: /run/secrets/guest_encryption_key
       LA_LANH_GENERATION_OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
       LA_LANH_GENERATION_WORKER_ENABLED: "true"
+      LA_LANH_AUTH_ENABLED: "false"
+      LA_LANH_AUTH_GOOGLE_ENABLED: "false"
+      LA_LANH_AUTH_DELIVERY_APPROVED: "false"
     entrypoint: ["/usr/local/bin/la-lanh-entrypoint"]
     command: ["python", "-m", "app.domains.content_rewrite.worker"]
     depends_on:
@@ -67,6 +71,7 @@ services:
         condition: service_healthy
     secrets:
       - database_url
+      - guest_hash_key
       - guest_encryption_key
       - openai_api_key
     volumes:
