@@ -11,10 +11,19 @@ services:
       POSTGRES_DB: lalanh
       POSTGRES_USER: lalanh
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/tls/server.crt
+      - -c
+      - ssl_key_file=/tls/server.key
     secrets:
       - db_password
     volumes:
       - staging-db:/var/lib/postgresql/data
+      - ${LA_LANH_STAGING_SECRETS_DIR:-/opt/la-lanh/staging/secrets}/tls:/tls:ro
     networks:
       - internal
     healthcheck:
@@ -38,6 +47,7 @@ services:
       - database_url
       - guest_hash_key
       - guest_encryption_key
+      - db_ca.pem
     volumes:
       - ../entrypoint.sh:/usr/local/bin/la-lanh-entrypoint:ro
     depends_on:
@@ -89,6 +99,8 @@ secrets:
     file: ${LA_LANH_STAGING_SECRETS_DIR:-/opt/la-lanh/staging/secrets}/guest_hash_key
   guest_encryption_key:
     file: ${LA_LANH_STAGING_SECRETS_DIR:-/opt/la-lanh/staging/secrets}/guest_encryption_key
+  db_ca.pem:
+    file: ${LA_LANH_STAGING_SECRETS_DIR:-/opt/la-lanh/staging/secrets}/db_ca.pem
 
 volumes:
   staging-db:

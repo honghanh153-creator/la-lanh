@@ -28,9 +28,15 @@ cleanup() {
 trap cleanup EXIT
 
 password="$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')"
+tls_dir="$(mktemp -d)"
+"$(dirname "$0")/make-db-tls.sh" "$tls_dir" "$NAME"
 docker network create --internal "$NET" >/dev/null
 docker run -d --name "$NAME" --network "$NET" --tmpfs /var/lib/postgresql/data \
-  -e POSTGRES_PASSWORD="$password" -e POSTGRES_DB=rehearsal "$PG_IMAGE" >/dev/null
+  -v "${tls_dir}:/tls:ro" \
+  -e POSTGRES_PASSWORD="$password" -e POSTGRES_DB=rehearsal "$PG_IMAGE" \
+  -c ssl=on -c ssl_cert_file=/tls/server.crt -c ssl_key_file=/tls/server.key >/dev/null
+sleep 2
+docker ps --filter "name=^${NAME}$" --format '{{.Names}}' | grep -q . || { docker logs "$NAME" >&2; exit 1; }
 for _ in $(seq 1 60); do
   docker exec "$NAME" pg_isready -U postgres -d rehearsal >/dev/null 2>&1 && break
   sleep 1
@@ -45,11 +51,12 @@ echo "Head before: $(docker exec "$NAME" psql -tA -U postgres -d rehearsal -c 's
 
 secret_dir="$(mktemp -d)"
 chmod 0700 "$secret_dir"
-printf 'postgresql+asyncpg://postgres:%s@%s:5432/rehearsal' "$password" "$NAME" > "${secret_dir}/database_url"
+printf 'postgresql+asyncpg://postgres:%s@%s:5432/rehearsal?sslrootcert=/run/secrets/db_ca.pem' "$password" "$NAME" > "${secret_dir}/database_url"
 cp "${SECRETS_DIR}/guest_hash_key" "${SECRETS_DIR}/guest_encryption_key" "$secret_dir/"
+cp "${tls_dir}/ca.pem" "${secret_dir}/db_ca.pem"
 chown -R 65532:65532 "$secret_dir"
 chmod 0600 "$secret_dir"/*
-trap 'rm -rf "$secret_dir"; cleanup' EXIT
+trap 'rm -rf "$secret_dir" "$tls_dir"; cleanup' EXIT
 
 run_app() {
   docker run --rm --network "$NET" --env-file "$(dirname "$0")/app.env" \

@@ -17,10 +17,12 @@ new_secret guest_encryption_key
 if [[ ! -s "$SECRETS/db_password" ]]; then
   head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' > "$SECRETS/db_password"
 fi
-printf 'postgresql+asyncpg://lalanh:%s@db:5432/lalanh' "$(cat "$SECRETS/db_password")" > "$SECRETS/database_url"
-chown 65532:65532 "$SECRETS"/guest_hash_key "$SECRETS"/guest_encryption_key "$SECRETS"/database_url
+[[ -s "$SECRETS/tls/server.crt" ]] || "$HERE/../make-db-tls.sh" "$SECRETS/tls" db
+cp "$SECRETS/tls/ca.pem" "$SECRETS/db_ca.pem"
+printf 'postgresql+asyncpg://lalanh:%s@db:5432/lalanh?sslrootcert=/run/secrets/db_ca.pem' "$(cat "$SECRETS/db_password")" > "$SECRETS/database_url"
+chown 65532:65532 "$SECRETS"/guest_hash_key "$SECRETS"/guest_encryption_key "$SECRETS"/database_url "$SECRETS"/db_ca.pem
 chown 70:70 "$SECRETS/db_password"   # postgres user in the alpine image
-chmod 0600 "$SECRETS"/*
+chmod 0600 "$SECRETS"/guest_hash_key "$SECRETS"/guest_encryption_key "$SECRETS"/database_url "$SECRETS"/db_ca.pem "$SECRETS"/db_password
 
 sed -e "s#https://la-lanh.2-28-136-44.sslip.io#https://${STAGING_HOSTNAME}#" "$HERE/../app.env" > "$HERE/app.env"
 grep -q '^LA_LANH_AUTH_ENABLED=true' "$HERE/app.env" && { echo "Staging keeps auth disabled" >&2; exit 2; }

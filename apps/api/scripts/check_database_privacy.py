@@ -6,9 +6,14 @@ import os
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.db.session import verified_engine_options
+
 
 async def check_database_privacy() -> None:
-    engine = create_async_engine(os.environ["LA_LANH_DATABASE_URL"], pool_pre_ping=True)
+    # Same verified-TLS connection path as the API, worker and migrations.
+    engine = create_async_engine(
+        **verified_engine_options(os.environ["LA_LANH_DATABASE_URL"]), pool_pre_ping=True
+    )
     try:
         async with engine.connect() as connection:
             violations = await connection.scalar(
