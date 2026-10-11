@@ -21,6 +21,10 @@ def verified_engine_options(database_url: str) -> dict[str, Any]:
         raise ValueError("database URL must specify at most one trusted CA file")
     context = ssl.create_default_context(cafile=cafile)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
+    # Python 3.13 adds RFC 5280 "strict" checks by default. Supabase's own root CA
+    # ("Supabase Root 2021 CA") omits the keyUsage extension and fails them. Chain
+    # validation against the pinned CA, hostname checking and CERT_REQUIRED stay on.
+    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
     return {
         "url": url.difference_update_query(["ssl", "sslmode", "sslrootcert"]),
         "connect_args": {"ssl": context},

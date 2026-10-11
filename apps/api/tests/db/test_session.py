@@ -12,6 +12,9 @@ def test_postgres_cannot_downgrade_server_identity_verification() -> None:
         assert context.verify_mode == ssl.CERT_REQUIRED
         assert context.check_hostname is True
         assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
+        # Supabase's root CA lacks keyUsage; only the RFC 5280 strict profile is relaxed.
+        assert not context.verify_flags & ssl.VERIFY_X509_STRICT
+        assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
         assert "ssl" not in options["url"].query
 
 
