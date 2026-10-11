@@ -29,6 +29,8 @@ infra/hetzner/sites/*.caddy
 *.pfx
 *.mobileprovision
 *.pem
+# Public CA certificates only (no private keys) for verified database TLS.
+!infra/hetzner/certs/*.pem
 *.key
 
 # JavaScript dependencies and outputs
