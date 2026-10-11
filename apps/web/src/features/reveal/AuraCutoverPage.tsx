@@ -15,6 +15,7 @@ import { readCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/
 import "../../shared/styles/signal-note.css";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
+import { LaLoading } from "../../shared/ui/la/LaLoading";
 
 const ACK_PREFIX = "la-lanh-aura-transition-ack-v1:";
 
@@ -142,7 +143,7 @@ export function AuraCutoverPage() {
         <span className="flow-header__step">Aura · lớp mới</span>
       </header>
 
-      {query.isPending && !note ? <section className="aura-cutover-state" aria-live="polite"><span className="entry-loading__orbit" /><p>Đang mở receipt Aura…</p></section> : null}
+      {query.isPending && !note ? <LaLoading delayMs={0} text="Lá đang mở receipt Aura…" /> : null}
 
       {query.isError && note ? <p className="cache-status" role="status">Đang xem receipt đã mở gần nhất trên máy. Bạn vẫn có thể chọn rõ ràng.</p> : null}
 

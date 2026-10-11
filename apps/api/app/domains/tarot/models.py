@@ -33,6 +33,7 @@ class TarotVoice(StrEnum):
     STRAIGHT_WARM = "straight_warm"
     GENTLE_SPECIFIC = "gentle_specific"
     PLAYFUL_GROUNDED = "playful_grounded"
+    ROAST = "roast"
 
 
 class TarotQuestionIntent(StrEnum):

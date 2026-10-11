@@ -95,7 +95,7 @@ describe("Google account", () => {
 
   it("denied or incomplete callback never calls a provider and leaves an exit", async () => {
     renderPage("/auth/callback?error=access_denied&state=" + state);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Hồ sơ khách vẫn được giữ");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Hồ sơ hiện tại trên máy này vẫn được giữ");
     expect(verifyGoogleLogin).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Tiếp tục không đăng nhập" })).toBeEnabled();
   });

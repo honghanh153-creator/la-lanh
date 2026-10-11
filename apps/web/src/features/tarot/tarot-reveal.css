@@ -38,35 +38,29 @@
 .tarot-reveal .tarot-reveal__eyebrow { margin: 0; color: #dfff42; font-size: 0.75rem; font-weight: 700; }
 .tarot-reveal h1 { margin: 0; color: #fff9e9; font-size: 1.4rem; line-height: 1.4; text-align: center; }
 .tarot-reveal h1:focus { outline: none; }
-.tarot-reveal__cards { display: flex; width: 100%; max-width: 24rem; margin: 2rem 0 1rem; justify-content: center; gap: 0.6rem; }
+.tarot-reveal__cards { display: flex; width: 100%; max-width: 24rem; margin: 2rem 0 1rem; justify-content: center; gap: 0.75rem; }
 .tarot-reveal__cards[data-count="5"] { flex-wrap: wrap; }
-.tarot-reveal__card { flex: 0 0 calc((100% - 1.2rem) / 3); max-width: 7.25rem; aspect-ratio: 2 / 3; perspective: 700px; }
+.tarot-reveal__card { flex: 0 0 calc((100% - 1.2rem) / 3); max-width: 7.25rem; aspect-ratio: 3 / 5; perspective: 800px; }
+.tarot-reveal__cards[data-count="5"] .tarot-reveal__card { max-width: 6.25rem; }
 .tarot-reveal__turn { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: tarot-reveal-turn 1.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .tarot-reveal__back, .tarot-reveal__front {
   position: absolute;
   inset: 0;
-  display: grid;
-  padding: 0.6rem;
-  border: 1px solid #d6baff;
   border-radius: 0.85rem;
-  align-content: center;
-  justify-items: center;
-  gap: 0.5rem;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  box-shadow: 0 0.5rem 1.5rem #10032350;
-  text-align: center;
+  box-shadow: 0 0.6rem 1.6rem #10032366;
 }
-.tarot-reveal__back { color: #dfff42; background: #4c2b82 url('/assets/ultraviolet/violet-planet-v2.webp') center / cover; }
-.tarot-reveal__back svg { width: 2.5rem; height: 2.5rem; }
-.tarot-reveal__front { transform: rotateY(180deg); color: #301554; background: radial-gradient(circle at 50% 15%, #ffffff, #fff9e9 75%); }
-.tarot-reveal__front svg { color: #7242b3; width: 1.7rem; height: 1.7rem; }
-.tarot-reveal__front span { color: #714a91; font-size: 0.65rem; }
-.tarot-reveal__front strong { font-size: 0.8rem; line-height: 1.4; overflow-wrap: anywhere; }
+.tarot-reveal__back .tarot-art, .tarot-reveal__front .tarot-art { width: 100%; height: 100%; }
+.tarot-reveal__front { transform: rotateY(180deg); box-shadow: 0 0 0 1px #ffd36e66, 0 0 1.6rem #dfff4f40, 0 0.6rem 1.6rem #10032366; }
 .tarot-reveal .tarot-reveal__caption { margin: 0; color: #e4d5f4; font-size: 0.8rem; text-align: center; }
 .tarot-reveal__skip { min-height: 2.75rem; margin-top: 0.5rem; padding: 0.5rem 1rem; border: 1px solid #e4d5f488; border-radius: 999px; color: #fff9e9; background: #281343; font: inherit; font-size: 0.875rem; }
 .tarot-reveal__skip:focus-visible { outline: 3px solid #dfff42; outline-offset: 4px; }
-@keyframes tarot-reveal-turn { from { transform: translateY(1.5rem) rotateY(0); } to { transform: translateY(0) rotateY(180deg); } }
+@keyframes tarot-reveal-turn {
+  0% { transform: translateY(1.5rem) rotateY(0) scale(0.94); }
+  45% { transform: translateY(-0.6rem) rotateY(0) scale(1.04); }
+  100% { transform: translateY(0) rotateY(180deg) scale(1); }
+}
 @keyframes tarot-reveal-bloom { 0% { opacity: 0; transform: scale(0.6); } 65% { opacity: 1; transform: scale(1.08); } 100% { opacity: 0.7; transform: scale(1); } }
 @keyframes tarot-reveal-orbit { from { opacity: 0; transform: rotate(-35deg) scale(0.85); } to { opacity: 1; transform: rotate(-12deg) scale(1.05); } }
 @media (prefers-reduced-motion: reduce) {

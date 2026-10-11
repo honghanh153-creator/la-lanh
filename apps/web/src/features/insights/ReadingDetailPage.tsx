@@ -10,6 +10,7 @@ import { ReadingContent } from "../../shared/ui/ReadingContent";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { parseAyanamsa, parseHouseSystem, parseTradition } from "./insightConfig";
 import "./insights.css";
+import { LaLoading } from "../../shared/ui/la/LaLoading";
 
 export function ReadingDetailPage() {
   const { claimId = "synthesis" } = useParams();
@@ -47,8 +48,8 @@ export function ReadingDetailPage() {
       </header>
 
       {focusedClaim ? <p className="reading-context">Bạn mở từ: {focusedClaim.title}</p> : null}
-      {claimId === "synthesis" && readingQuery.isLoading ? <section className="reading-skeleton" aria-label="Đang mở bản đọc" /> : null}
-      {claimId !== "synthesis" && overviewQuery.isLoading ? <section className="reading-skeleton" aria-label="Đang mở bản đọc" /> : null}
+      {claimId === "synthesis" && readingQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" /> : null}
+      {claimId !== "synthesis" && overviewQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" /> : null}
       {claimId === "synthesis" && readingQuery.data ? <ReadingContent content={readingQuery.data.active} /> : null}
       {focusedClaim && overviewQuery.data?.reading ? (
         <FocusedClaimContent claim={focusedClaim} disclaimer={overviewQuery.data.reading.disclaimer} />

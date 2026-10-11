@@ -14,6 +14,9 @@ export const PERSONAL_DATA_CLEARED_EVENT = "la-lanh-personal-data-cleared";
 
 const PERSONAL_LOCAL_KEYS = [
   "la-lanh-pending-mood-v1",
+  "la-lanh-daily-ritual-v1",
+  "la-lanh-night-nudge-dismissed-v1",
+  "la-lanh-companion-growth-v1",
   "la-lanh-birth-supplement-snooze-until",
   "la-lanh-native-csrf-v1",
 ] as const;

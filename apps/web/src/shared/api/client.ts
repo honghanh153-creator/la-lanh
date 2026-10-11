@@ -1,6 +1,7 @@
 import type { components, paths } from "@la-lanh/contracts";
 
 import { runtimeConfig } from "../config/runtime";
+import type { AppVibe } from "../vibe/vibe";
 import { coordinateSession, sessionCoordinationAvailable } from "../session/sessionCoordinator";
 import {
   announceSessionChange, currentSessionEpoch, OWNER_SESSION_EPOCH_KEY, SESSION_EPOCH_KEY,
@@ -337,7 +338,7 @@ export type TarotReading = {
   context: TarotContext;
   spread: TarotSpread;
   spread_map: TarotSpreadMap;
-  voice: "straight_warm" | "gentle_specific" | "playful_grounded";
+  voice: "straight_warm" | "gentle_specific" | "playful_grounded" | "roast";
   positions: TarotReadingPosition[];
   closing_prompt: string;
   disclaimer: string;
@@ -689,11 +690,15 @@ export function startTarotSession(input: {
   origin: "direct" | "daily" | "radar";
   prompt_id?: string | null;
   idempotency_key: string;
+  voice?: AppVibe;
 }): Promise<TarotSession> {
+  const { voice, ...body } = input;
+  // Roast is opt-in; direct omits the field so the server keeps its default voice.
+  // The server may still store the default voice for sensitive questions.
   return request<TarotSession>("/tarot/sessions", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...csrfHeader() },
-    body: JSON.stringify(input),
+    body: JSON.stringify(voice === "roast" ? { ...body, voice: "roast" } : body),
   });
 }
 
@@ -738,8 +743,10 @@ export function createBirthProfile(birthDate: string): Promise<BirthReveal> {
   });
 }
 
-export async function getDailyNote(signal?: AbortSignal): Promise<DailyNote> {
-  const note = await request<DailyNote>("/daily-note", { signal });
+export async function getDailyNote(signal?: AbortSignal, voice?: AppVibe): Promise<DailyNote> {
+  // Voice is read-time wording only; the stored and shared reading stays direct.
+  const path = voice === "roast" ? "/daily-note?voice=roast" : "/daily-note";
+  const note = await request<DailyNote>(path, { signal });
   activeDailyReading = note.reading_projection
     ? {
         scopeKey: note.reading_projection.scope_key,
@@ -752,6 +759,7 @@ export async function getDailyNote(signal?: AbortSignal): Promise<DailyNote> {
 export async function getContextualReading(
   backgroundLens: Exclude<SignalContext, "auto">,
   signal?: AbortSignal,
+  voice?: AppVibe,
 ): Promise<ReadingProjection> {
   const projection = await request<ReadingProjection>("/daily-note/context", {
     method: "POST",
@@ -760,7 +768,11 @@ export async function getContextualReading(
       "Content-Type": "application/json",
       ...csrfHeader(),
     },
-    body: JSON.stringify({ background_lens: backgroundLens }),
+    body: JSON.stringify(
+      voice === "roast"
+        ? { background_lens: backgroundLens, voice: "roast" }
+        : { background_lens: backgroundLens },
+    ),
   });
   activeDailyReading = {
     scopeKey: projection.scope_key,

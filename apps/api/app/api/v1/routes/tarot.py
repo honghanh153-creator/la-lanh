@@ -1,4 +1,4 @@
-from typing import Annotated, cast
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Header, Request, Response
@@ -30,6 +30,7 @@ class TarotStartRequest(BaseModel):
     origin: TarotOrigin = TarotOrigin.DIRECT
     prompt_id: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9-]{1,63}$")
     idempotency_key: str = Field(min_length=22, max_length=200)
+    voice: Literal["default", "roast"] = "default"
 
 
 class TarotSelectionRequest(BaseModel):
@@ -101,7 +102,7 @@ async def start_tarot_session(
             context=body.context,
             question=body.question,
             spread=body.spread,
-            voice=TarotVoice.PLAYFUL_GROUNDED,
+            voice=TarotVoice.ROAST if body.voice == "roast" else TarotVoice.PLAYFUL_GROUNDED,
             origin=body.origin,
             idempotency_key=body.idempotency_key,
             prompt_id=body.prompt_id,

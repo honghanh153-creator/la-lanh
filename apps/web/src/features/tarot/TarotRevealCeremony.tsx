@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 import type { TarotSession } from "../../shared/api/client";
 import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
+import { TarotCardArt, TarotCardBack } from "./TarotCardArt";
 import "./tarot-reveal.css";
 
 export function TarotRevealCeremony({ cards, onComplete }: {
@@ -43,14 +44,12 @@ export function TarotRevealCeremony({ cards, onComplete }: {
     <div className="tarot-reveal__orbit" aria-hidden="true"><Sparkle weight="fill" /></div>
     <p className="tarot-reveal__eyebrow">Đã chọn đủ {cards.length} lá</p>
     <h1 id="tarot-reveal-title" ref={heading} tabIndex={-1}>Bài của bạn đang mở</h1>
-    <div className="tarot-reveal__cards" data-count={cards.length} aria-label="Những lá bạn đã chọn">
+    <div className="tarot-reveal__cards" data-count={cards.length} aria-label="Những lá bạn đã chọn" role="group">
       {cards.map((selected, index) => <div className="tarot-reveal__card" key={selected.position_key}>
         <div className="tarot-reveal__turn" style={{ animationDelay: `${180 + index * 180}ms` }}>
-          <div className="tarot-reveal__back" aria-hidden="true"><Sparkle weight="fill" /></div>
+          <div className="tarot-reveal__back" aria-hidden="true"><TarotCardBack /></div>
           <div className="tarot-reveal__front">
-            <Sparkle aria-hidden="true" weight="fill" />
-            <span>0{index + 1}</span>
-            <strong>{selected.card.title_vi}</strong>
+            <TarotCardArt card={selected.card} />
           </div>
         </div>
       </div>)}

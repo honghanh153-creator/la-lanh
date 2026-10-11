@@ -11,7 +11,7 @@ import {
 import { BrandMark } from "../../shared/ui/BrandMark";
 import "./account.css";
 
-const SAFE_RETURNS = new Set(["/home", "/profile", "/saved", "/radar", "/tarot"]);
+const SAFE_RETURNS = new Set(["/home", "/profile", "/saved", "/radar", "/tarot", "/reveal"]);
 
 function loginError(error: unknown): string {
   if (!(error instanceof ApiProblem)) return "Chưa kết nối được. Hồ sơ trên máy này vẫn được giữ.";
@@ -60,7 +60,7 @@ export function ExistingUserPage() {
     // Strip OAuth code/state/error before any user action or outbound link.
     // Proof stays only in component memory; refreshing requires a new login.
     window.history.replaceState(window.history.state, "", location.pathname);
-    if (callback.denied) { setError("Bạn chưa hoàn tất đăng nhập Google. Hồ sơ khách vẫn được giữ."); return; }
+    if (callback.denied) { setError("Bạn chưa hoàn tất đăng nhập Google. Hồ sơ hiện tại trên máy này vẫn được giữ."); return; }
     if (!callback.code || !callback.state || !/^[A-Za-z0-9_-]{43}$/.test(callback.state)) {
       setError("Thiếu xác nhận Google. Đăng nhập lại để tiếp tục nhé."); return;
     }

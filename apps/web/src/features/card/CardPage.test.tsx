@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -11,6 +11,12 @@ vi.mock("../../shared/api/client", async (original) => ({
   ...await original<typeof import("../../shared/api/client")>(),
   getDailyNote: vi.fn(),
   createShareArtifact: vi.fn(),
+}));
+// jsdom cannot fetch bundled fonts or rasterize; render with the system-font fallback.
+vi.mock("./shareFonts", () => ({ cachedShareFontCss: () => "", loadShareFontCss: () => Promise.resolve("") }));
+vi.mock("./shareRaster", async (original) => ({
+  ...await original<typeof import("./shareRaster")>(),
+  rasterizeSvg: vi.fn(() => Promise.resolve(new Blob(["png"], { type: "image/png" }))),
 }));
 
 const note: DailyNote = {
@@ -57,5 +63,23 @@ describe("CardPage", () => {
     expect(await screen.findByRole("textbox", { name: "Link chia sẻ" })).toHaveValue(
       new URL(artifact.public_path!, window.location.origin).toString(),
     );
+  });
+
+  it("shows a branded skeleton while loading, then an accessible preview image", async () => {
+    let resolveNote: (value: DailyNote) => void = () => undefined;
+    vi.mocked(getDailyNote).mockReturnValueOnce(new Promise((resolve) => { resolveNote = resolve; }));
+    renderPage();
+    expect(screen.getByRole("status")).toHaveTextContent("Lá đang vẽ thẻ của bạn…");
+    expect(screen.getByRole("button", { name: /Chia sẻ card/ })).toBeDisabled();
+    resolveNote(note);
+    const image = await screen.findByRole("img", { name: /Một note để chia sẻ/ });
+    expect(image.getAttribute("alt")).toContain("Chất Mộng · Nước");
+    expect(image.getAttribute("alt")).not.toMatch(/Vibe|Aura/);
+    expect(image.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
+    fireEvent.load(image);
+    expect(screen.queryByText("Lá đang vẽ thẻ của bạn…")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: note.title })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Chia sẻ card/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Tải ảnh PNG/ })).toBeEnabled();
   });
 });

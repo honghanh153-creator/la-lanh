@@ -913,6 +913,10 @@
         "properties": {
           "background_lens": {
             "$ref": "#/components/schemas/BackgroundLens"
+          },
+          "voice": {
+            "$ref": "#/components/schemas/ReadingVoice",
+            "default": "direct"
           }
         },
         "required": [
@@ -3486,6 +3490,14 @@
         "title": "ReadingSectionsProjection",
         "type": "object"
       },
+      "ReadingVoice": {
+        "enum": [
+          "direct",
+          "roast"
+        ],
+        "title": "ReadingVoice",
+        "type": "string"
+      },
       "RelationshipVoice": {
         "description": "Explicit delivery preference; never inferred from chart or behaviour.",
         "enum": [
@@ -4579,6 +4591,15 @@
           },
           "spread": {
             "$ref": "#/components/schemas/TarotSpread"
+          },
+          "voice": {
+            "default": "default",
+            "enum": [
+              "default",
+              "roast"
+            ],
+            "title": "Voice",
+            "type": "string"
           }
         },
         "required": [
@@ -4594,7 +4615,8 @@
         "enum": [
           "straight_warm",
           "gentle_specific",
-          "playful_grounded"
+          "playful_grounded",
+          "roast"
         ],
         "title": "TarotVoice",
         "type": "string"
@@ -7659,6 +7681,15 @@
       "get": {
         "operationId": "get_daily_note_v1_daily_note_get",
         "parameters": [
+          {
+            "in": "query",
+            "name": "voice",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ReadingVoice",
+              "default": "direct"
+            }
+          },
           {
             "in": "cookie",
             "name": "la_lanh_guest",

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 
 import type { ResonanceChoice } from "../api/client";
+import { tapFeedback } from "./la/haptics";
 
 type ResonanceFeedbackProps = {
   consented: boolean;
@@ -36,6 +37,7 @@ export function ResonanceFeedback({
   }, [consentChoice]);
 
   const choose = (choice: ResonanceChoice, trigger: HTMLButtonElement) => {
+    tapFeedback();
     if (consented) onSubmit(choice);
     else {
       choiceButtonRef.current = trigger;

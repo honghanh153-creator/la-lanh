@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Annotated, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Header, Request, Response
+from fastapi import APIRouter, Cookie, Header, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,6 +29,11 @@ from app.domains.readings.application import (
     ReadingApplicationService,
 )
 from app.domains.readings.models import BackgroundLens, ReadingProjection, ReadingPurpose
+from app.domains.readings.voice import (
+    ReadingVoice,
+    apply_projection_voice,
+    roast_legacy_text,
+)
 from app.domains.resonance.errors import ResonanceDomainError
 from app.domains.resonance.models import ResonanceChoice
 from app.domains.resonance.service import ResonanceService
@@ -103,6 +108,7 @@ class ContextProjectionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     background_lens: BackgroundLens
+    voice: ReadingVoice = ReadingVoice.DIRECT
 
 
 class MoodRequest(BaseModel):
@@ -262,6 +268,15 @@ def _reading_problem(status: int, code: str) -> JSONResponse:
     )
 
 
+def _voiced_note(payload: DailyNoteResponse, voice: ReadingVoice) -> DailyNoteResponse:
+    # Read-time presentation only: stored notes, shares and saved snapshots stay direct.
+    if voice is ReadingVoice.DIRECT:
+        return payload
+    return payload.model_copy(
+        update={"title": roast_legacy_text(payload.title), "body": roast_legacy_text(payload.body)}
+    )
+
+
 def _no_store(response: Response) -> None:
     response.headers["Cache-Control"] = "no-store, max-age=0"
 
@@ -271,6 +286,7 @@ async def get_daily_note(
     request: Request,
     response: Response,
     guest_token: Annotated[str | None, Cookie(alias="la_lanh_guest")] = None,
+    voice: Annotated[ReadingVoice, Query()] = ReadingVoice.DIRECT,
 ) -> DailyNoteResponse | Response:
     _no_store(response)
     settings = request.app.state.settings
@@ -284,7 +300,7 @@ async def get_daily_note(
         await _daily_service(request).assert_current_birth_source(snapshot)
     except (BirthDomainError, GuestDomainError) as error:
         return _problem(error)
-    payload = DailyNoteResponse.model_validate(note)
+    payload = _voiced_note(DailyNoteResponse.model_validate(note), voice)
     reading_service = _reading_service(request)
     if reading_service is None:
         return payload
@@ -310,6 +326,8 @@ async def get_daily_note(
         await _daily_service(request).assert_current_birth_source(snapshot)
     except BirthDomainError as error:
         return _problem(error)
+    if projection is not None:
+        projection = apply_projection_voice(projection, voice)
     return payload.model_copy(update={"reading_projection": projection})
 
 
@@ -348,7 +366,7 @@ async def project_daily_note_context(
             ),
         )
         await _daily_service(request).assert_current_birth_source(snapshot)
-        return projection
+        return apply_projection_voice(projection, body.voice)
     except BirthDomainError as error:
         return _problem(error)
     except ReadingApplicationError:

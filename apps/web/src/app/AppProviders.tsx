@@ -4,6 +4,7 @@ import type { RouterProviderProps } from "react-router-dom";
 import { RouterProvider } from "react-router-dom";
 
 import { ThemeProvider } from "../shared/theme/ThemeProvider";
+import { VibeProvider } from "../shared/vibe/VibeProvider";
 import { PERSONAL_DATA_CLEARED_EVENT } from "../shared/storage/clearPersonalData";
 
 type AppProvidersProps = Pick<RouterProviderProps, "router">;
@@ -30,9 +31,11 @@ export function AppProviders({ router }: AppProvidersProps) {
 
   return (
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
+      <VibeProvider>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </VibeProvider>
     </ThemeProvider>
   );
 }

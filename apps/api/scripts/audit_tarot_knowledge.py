@@ -145,9 +145,13 @@ def main() -> None:
     failures = audit()
     if failures:
         raise SystemExit("Tarot knowledge audit failed:\n- " + "\n- ".join(failures[:30]))
+    per_voice = len(TarotSpreadMap) * len(all_cards())
+    contextual = per_voice * len(TarotContext) * len(TarotVoice)
+    goals = per_voice * len(GOAL_QUESTIONS) * len(TarotVoice)
     print(
-        "Tarot knowledge audit passed: 8424 contextual + 11232 recognised-goal synthetic spreads, "
-        "plus deck checks. Not a human comprehension study."
+        f"Tarot knowledge audit passed: {contextual} contextual + {goals} recognised-goal "
+        f"synthetic spreads across {len(TarotVoice)} voices (including roast), plus deck checks. "
+        "Not a human comprehension study."
     )
 
 

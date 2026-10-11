@@ -10,10 +10,13 @@ import "@fontsource/be-vietnam-pro/900.css";
 import { AppProviders } from "./app/AppProviders";
 import { createAppRouter } from "./app/router";
 import { applyThemePreference, readThemePreference } from "./shared/theme/theme";
+import { applyVibe, readVibe } from "./shared/vibe/vibe";
 import "./shared/styles/global.css";
 import "./shared/styles/ultraviolet.css";
+import "./shared/styles/vitality.css";
 
 applyThemePreference(readThemePreference());
+applyVibe(readVibe());
 
 const root = document.getElementById("root");
 

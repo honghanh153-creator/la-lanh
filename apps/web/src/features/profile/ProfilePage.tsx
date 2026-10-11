@@ -1,4 +1,4 @@
-import { BookmarkSimple, Moon, MoonStars, ShieldCheck, Sparkle, Sun, Trash } from "@phosphor-icons/react";
+import { BookmarkSimple, GearSix, LockSimple, Moon, MoonStars, ShareNetwork, ShieldCheck, Sun, Trash } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -22,6 +22,9 @@ import {
 } from "../../shared/api/client";
 import { primarySunSign } from "../../shared/astro/chart";
 import { signDetails } from "../../shared/astro/signs";
+import { ELEMENT_LABEL, identityFromCalculation, SIGN_ELEMENT } from "../../shared/astro/identity";
+import { VibeSegmented } from "../../shared/vibe/VibePicker";
+import "./profile-identity.css";
 import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import "../../shared/styles/signal-note.css";
@@ -103,12 +106,9 @@ export function ProfilePage() {
       : "Chưa xác nhận được việc xoá lịch sử. Kiểm tra kết nối rồi thử lại; hồ sơ vẫn được giữ."),
   });
   const sign = query.data ? primarySunSign(query.data.calculation) : null;
+  const identity = identityFromCalculation(query.data?.calculation);
+  const element = sign ? SIGN_ELEMENT[sign] : null;
   const supplement = supplementQuery.data;
-  const sourceSummary = noteQuery.data?.persona_mode === "aura"
-    ? "Nguồn: tổng hòa nhiều hành tinh, nhà và góc chiếu. "
-    : sign
-      ? `Nguồn: Mặt Trời ${signDetails[sign].label}. `
-      : "";
   const removeSupplement = useMutation({
     mutationFn: (kind: "time" | "place") => removeBirthSupplement({
       remove_time: kind === "time",
@@ -149,23 +149,24 @@ export function ProfilePage() {
   return (
     <main className="app-page profile-page">
       <header className="section-header"><BrandMark /><h1>Mình</h1></header>
-      <section className="profile-card"><span><Sparkle aria-hidden="true" weight="duotone" /></span><div><p className="eyebrow">Hồ sơ đang mở trên thiết bị này</p><h2>{noteQuery.data ? `${noteQuery.data.persona_mode === "aura" ? "Aura" : "Vibe"} · ${noteQuery.data.persona_label}` : "Lá Khai Sinh"}</h2><p>{sourceSummary}{accountQuery.data?.signed_in ? "Đã liên kết tài khoản · hồ sơ giữ tới 365 ngày không sử dụng." : "Hồ sơ khách giữ 30 ngày không hoạt động; dùng lại sẽ gia hạn."}</p></div></section>
-      <section className="settings-section" aria-labelledby="account-settings">
-        <h2 id="account-settings">Giữ hồ sơ khi đổi máy</h2>
-        {accountQuery.data?.signed_in ? <><p>Đã đăng nhập · {accountQuery.data.masked_email}</p><p>Đăng xuất chỉ đóng phiên trên máy này. Các máy khác và hồ sơ vẫn được giữ.</p><button className="text-button" disabled={logoutMutation.isPending} onClick={() => { setError(null); logoutMutation.mutate(); }} type="button">{logoutMutation.isPending ? "Đang đăng xuất…" : "Đăng xuất trên máy này"}</button></> : <><p>Đăng nhập Google là tuỳ chọn. Liên kết một lần để mở lại đúng hồ sơ khi đổi máy hoặc xoá cookie.</p><Link className="settings-link" to="/existing-user?returnTo=/profile">Đăng nhập để giữ hồ sơ</Link>{accountQuery.data && !accountQuery.data.google_login_enabled ? <p>Đăng nhập Google chưa bật trên bản này; chế độ khách vẫn dùng bình thường.</p> : null}</>}
+      <section aria-labelledby="profile-identity-title" className="profile-identity">
+        <p className="eyebrow">Lá Khai Sinh của bạn</p>
+        <h2 id="profile-identity-title">{sign ? <><span aria-hidden="true" className="profile-identity__glyph">{signDetails[sign].symbol}</span>{signDetails[sign].label}</> : "Lá Khai Sinh"}</h2>
+        <p className="profile-identity__tags">
+          {[element ? `Nguyên tố ${ELEMENT_LABEL[element]}` : null, noteQuery.data ? `${noteQuery.data.persona_mode === "aura" ? "Aura" : "Vibe"} ${noteQuery.data.persona_label}` : null].filter(Boolean).join(" · ")}
+        </p>
+        <ul aria-label="Bộ ba của bạn" className="profile-identity__trio">
+          {identity.map((slot) => slot.sign
+            ? <li key={slot.key}><small>{slot.label}</small><strong>{signDetails[slot.sign].label}</strong></li>
+            : <li className="is-locked" key={slot.key}><Link to="/birth-time"><small>{slot.label}</small><strong><LockSimple aria-hidden="true" /> Lá ẩn</strong></Link></li>)}
+        </ul>
+        <Link className="profile-identity__share" to="/birth-card"><ShareNetwork aria-hidden="true" /> Tạo thẻ chia sẻ</Link>
       </section>
-      <section className="settings-section" aria-labelledby="history-settings">
-        <h2 id="history-settings">Lịch sử, không phải hồ sơ</h2>
-        <p>{historyQuery.isPending ? "Đang kiểm tra thời hạn…" : historyQuery.isError ? "Chưa đọc được thời hạn. Chưa có dữ liệu nào bị xoá từ thao tác này." : historyQuery.data.enabled ? "Lịch sử tự động tối đa 30 ngày từ lúc tạo; mở lại không kéo dài thời hạn." : "Hồ sơ này chưa bật thời hạn mới. Lịch sử cũ không bị rút ngắn khi chưa đồng ý."}</p>
-        <p>Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ theo thời hạn của hồ sơ.</p>
-        {historyQuery.data && !historyQuery.data.enabled ? <button className="text-button" onClick={() => { setError(null); setConfirmingRetention(true); }} type="button">Bật lịch sử 30 ngày</button> : null}
-        <button className="text-button" onClick={() => { setError(null); setConfirmingHistory(true); }} type="button">Xoá lịch sử đã xem</button>
-      </section>
+      <nav aria-label="Lối tắt" className="settings-list profile-shortcuts">
+        <Link className="settings-link" to="/saved"><span><BookmarkSimple aria-hidden="true" /></span><div><strong>Note đã lưu</strong><p>Mở lại đúng bản bạn đã giữ.</p></div></Link>
+      </nav>
       <section aria-labelledby="appearance-settings" className="settings-section">
-        <div className="settings-section__heading">
-          <p className="eyebrow">Cài đặt</p>
-          <h2 id="appearance-settings">Giao diện</h2>
-        </div>
+        <h2 id="appearance-settings">Giao diện & giọng đọc</h2>
         <div className="settings-list">
           <div className="theme-setting">
             <span className="theme-setting__icon" aria-hidden="true">{theme === "dark" ? <Moon /> : <Sun />}</span>
@@ -185,6 +186,21 @@ export function ProfilePage() {
             </button>
           </div>
         </div>
+        <VibeSegmented />
+      </section>
+      <section className="settings-section" aria-labelledby="account-settings">
+        <h2 id="account-settings">Giữ hồ sơ khi đổi máy</h2>
+        <p>{accountQuery.data?.signed_in ? "Hồ sơ đã liên kết tài khoản, giữ tới 365 ngày không sử dụng." : "Hồ sơ khách giữ 30 ngày không hoạt động; dùng lại sẽ gia hạn."}</p>
+        {accountQuery.isPending ? <p role="status">Đang kiểm tra đăng nhập…</p> : accountQuery.data?.signed_in ? <><p>Đã đăng nhập · {accountQuery.data.masked_email}</p><p>Đăng xuất chỉ đóng phiên trên máy này. Các máy khác và hồ sơ vẫn được giữ.</p><button className="text-button" disabled={logoutMutation.isPending} onClick={() => { setError(null); logoutMutation.mutate(); }} type="button">{logoutMutation.isPending ? "Đang đăng xuất…" : "Đăng xuất trên máy này"}</button></> : <><p>Đăng nhập Google là tuỳ chọn. Liên kết một lần để mở lại đúng hồ sơ khi đổi máy hoặc xoá cookie.</p><Link className="settings-link" to="/existing-user?returnTo=/profile">Đăng nhập để giữ hồ sơ</Link>{accountQuery.data && !accountQuery.data.google_login_enabled ? <p>Đăng nhập Google chưa bật trên bản này; chế độ khách vẫn dùng bình thường.</p> : null}</>}
+      </section>
+      <details className="profile-more">
+      <summary><GearSix aria-hidden="true" /> Dữ liệu & quyền riêng tư</summary>
+      <section className="settings-section" aria-labelledby="history-settings">
+        <h2 id="history-settings">Lịch sử, không phải hồ sơ</h2>
+        <p>{historyQuery.isPending ? "Đang kiểm tra thời hạn…" : historyQuery.isError ? "Chưa đọc được thời hạn. Chưa có dữ liệu nào bị xoá từ thao tác này." : historyQuery.data.enabled ? "Lịch sử tự động tối đa 30 ngày từ lúc tạo; mở lại không kéo dài thời hạn." : "Hồ sơ này chưa bật thời hạn mới. Lịch sử cũ không bị rút ngắn khi chưa đồng ý."}</p>
+        <p>Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ theo thời hạn của hồ sơ.</p>
+        {historyQuery.data && !historyQuery.data.enabled ? <button className="text-button" onClick={() => { setError(null); setConfirmingRetention(true); }} type="button">Bật lịch sử 30 ngày</button> : null}
+        <button className="text-button" onClick={() => { setError(null); setConfirmingHistory(true); }} type="button">Xoá lịch sử đã xem</button>
       </section>
       <section aria-labelledby="privacy-settings" className="settings-section">
         <div className="settings-section__heading">
@@ -192,7 +208,6 @@ export function ProfilePage() {
           <h2 id="privacy-settings">Chiếc Lá của bạn</h2>
         </div>
         <div className="settings-list">
-        <Link className="settings-link" to="/saved"><span><BookmarkSimple aria-hidden="true" /></span><div><strong>Note đã lưu</strong><p>Mở lại đúng bản bạn đã giữ.</p></div></Link>
         <article><ShieldCheck /><div><strong>Dữ liệu sinh đã mã hóa</strong><p>Không nằm trong cookie, URL hoặc local storage.</p></div></article>
         <Link className="settings-link" to="/birth-time"><span><MoonStars aria-hidden="true" /></span><div><strong>{supplement && supplement.profile_level > 1 ? "Sửa lớp dữ liệu sinh" : "Mở thêm lớp cá nhân"}</strong><p>{supplement && supplement.profile_level > 1 ? `${supplement.time_precision === "approximate" ? "Giờ gần đúng" : "Đã có giờ sinh"}${supplement.place_display_name ? ` · ${supplement.place_display_name}` : " · chưa có nơi sinh"}` : "Thêm giờ/nơi sinh khi bạn muốn Moon, House và note sâu hơn."}</p></div></Link>
         {supplement && supplement.birth_time_mode !== "unknown" ? <button className="danger-row" onClick={() => {
@@ -245,6 +260,7 @@ export function ProfilePage() {
           </div>
         </div>
       </section>
+      </details>
       {rewriteQuery.data?.enabled ? <section className="settings-section" aria-labelledby="ai-writing-settings">
         <h2 id="ai-writing-settings">AI viết lại cho dễ đọc</h2>
         <p>Nhóm test có tối đa 20 phiên đã đồng ý. AI chỉ viết lại những mục đang thử nghiệm, không đổi dữ kiện chart hay lá Tarot.</p>

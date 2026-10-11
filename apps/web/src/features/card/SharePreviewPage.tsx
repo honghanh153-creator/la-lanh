@@ -1,9 +1,14 @@
 import { Sparkle } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { getShareArtifact } from "../../shared/api/client";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { noteArtSpec } from "./noteCardSvg";
+import { shareArtAlt } from "./shareArt";
+import { ShareArtPreview } from "./ShareArtPreview";
+import { useShareArt } from "./useShareArt";
 
 export function SharePreviewPage() {
   const { token = "" } = useParams();
@@ -14,25 +19,25 @@ export function SharePreviewPage() {
   });
 
   const artifact = query.data;
-  const title = artifact?.safe_snapshot.title ?? "";
-  const body = artifact?.safe_snapshot.body ?? "";
-  const persona = artifact
-    ? `${artifact.safe_snapshot.persona_mode === "aura" ? "Aura" : "Vibe"} · ${artifact.safe_snapshot.persona_label}`
-    : "";
+  const format = artifact?.format ?? "story_9_16";
+  const snapshot = artifact?.safe_snapshot;
+  // Only the sanitized snapshot fields are rendered; the token never enters the image or alt text.
+  const spec = useMemo(
+    () => (snapshot ? noteArtSpec({ title: snapshot.title, body: snapshot.body, personaLabel: snapshot.persona_label }) : null),
+    [snapshot],
+  );
+  const art = useShareArt(spec, format);
 
   return (
     <main className="flow-page card-page">
       <header className="flow-header"><BrandMark /><span className="reveal-source"><Sparkle weight="fill" /> Safe share</span></header>
       {query.isLoading ? (
-        <section className="entry-loading"><span className="entry-loading__orbit" /><p>Đang mở note được gửi…</p></section>
-      ) : artifact ? (
-        <section className={`${artifact.format === "square_1_1" ? "share-card share-card--square" : "share-card"}${body ? "" : " share-card--minimal"}`}>
-          <span className="share-card__logo">LÁ LÀNH*</span>
-          <p>{persona}</p>
-          <h1>{title}</h1>
-          {body ? <blockquote>{body}</blockquote> : null}
-          <small>Không chứa ngày/giờ/nơi sinh hay căn cứ riêng</small>
-        </section>
+        <ShareArtPreview alt="" format={format} loadingText="Đang mở note được gửi…" svg={null} />
+      ) : artifact && spec ? (
+        <>
+          <ShareArtPreview alt={shareArtAlt(spec, format)} format={format} heading={artifact.safe_snapshot.title} svg={art.svg} />
+          <p className="share-art-privacy">Không chứa ngày / giờ / nơi sinh hay căn cứ riêng</p>
+        </>
       ) : (
         <section className="empty-state">
           <Sparkle size={52} />

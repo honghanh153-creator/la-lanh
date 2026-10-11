@@ -1632,6 +1632,8 @@ export interface components {
         /** ContextProjectionRequest */
         ContextProjectionRequest: {
             background_lens: components["schemas"]["BackgroundLens"];
+            /** @default direct */
+            voice: components["schemas"]["ReadingVoice"];
         };
         /** CurrentSkyResponse */
         CurrentSkyResponse: {
@@ -2708,6 +2710,11 @@ export interface components {
             transit?: string | null;
         };
         /**
+         * ReadingVoice
+         * @enum {string}
+         */
+        ReadingVoice: "direct" | "roast";
+        /**
          * RelationshipVoice
          * @description Explicit delivery preference; never inferred from chart or behaviour.
          * @enum {string}
@@ -3159,12 +3166,18 @@ export interface components {
             /** Question */
             question: string;
             spread: components["schemas"]["TarotSpread"];
+            /**
+             * Voice
+             * @default default
+             * @enum {string}
+             */
+            voice: "default" | "roast";
         };
         /**
          * TarotVoice
          * @enum {string}
          */
-        TarotVoice: "straight_warm" | "gentle_specific" | "playful_grounded";
+        TarotVoice: "straight_warm" | "gentle_specific" | "playful_grounded" | "roast";
         /**
          * TimePrecision
          * @enum {string}
@@ -5190,7 +5203,9 @@ export interface operations {
     };
     get_daily_note_v1_daily_note_get: {
         parameters: {
-            query?: never;
+            query?: {
+                voice?: components["schemas"]["ReadingVoice"];
+            };
             header?: never;
             path?: never;
             cookie?: {

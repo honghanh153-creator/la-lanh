@@ -79,19 +79,19 @@ BODY_DOMAINS = {
     "pluto": ReadingDomain.DRIVE,
 }
 PLACEMENT_MEANINGS = {
-    "quick-reply": "Góc đọc là muốn trả lời nhanh hơn thời gian cần để hiểu rõ.",
-    "defend-old-choice": "Góc đọc là muốn giữ cách quen dù cần kiểm tra kết quả mới.",
-    "group-pressure": "Góc đọc là muốn hòa cùng mọi người dù còn cần hiểu rõ.",
-    "automatic-caretaking": "Góc đọc là muốn giúp người khác dù sức mình có giới hạn.",
-    "decision-fatigue": "Góc đọc là cần đủ sức và rõ tiêu chí trước khi chọn.",
-    "missing-context": "Góc đọc là muốn hiểu người kia nhưng thông tin còn thiếu.",
-    "perfect-before-start": "Góc đọc là muốn làm cho đúng nhưng vẫn cần nhận góp ý.",
-    "too-many-open-loops": "Góc đọc là muốn thử thêm việc dù việc trước còn dở.",
-    "avoid-small-conflict": "Góc đọc là muốn giữ hòa khí dù có điều mình không muốn nhận.",
-    "changed-plan": "Góc đọc là muốn đổi cách làm nhưng vẫn cần thống nhất lịch.",
-    "specific-feedback": "Góc đọc là muốn được hiểu đúng qua phản hồi cụ thể.",
-    "name-the-need": "Góc đọc là muốn giữ điều riêng nhưng vẫn cần nói rõ nhu cầu.",
-    "capacity-before-agreement": "Góc đọc là muốn giữ trách nhiệm nhưng thời gian có giới hạn.",
+    "quick-reply": "Bạn dễ muốn trả lời nhanh hơn thời gian cần để hiểu rõ.",
+    "defend-old-choice": "Bạn dễ muốn giữ cách quen dù cần kiểm tra kết quả mới.",
+    "group-pressure": "Bạn dễ muốn hòa cùng mọi người dù còn cần hiểu rõ.",
+    "automatic-caretaking": "Bạn dễ muốn giúp người khác dù sức mình có giới hạn.",
+    "decision-fatigue": "Bạn cần đủ sức và rõ tiêu chí trước khi chọn.",
+    "missing-context": "Bạn dễ muốn hiểu người kia nhưng thông tin còn thiếu.",
+    "perfect-before-start": "Bạn dễ muốn làm cho đúng nhưng vẫn cần nhận góp ý.",
+    "too-many-open-loops": "Bạn dễ muốn thử thêm việc dù việc trước còn dở.",
+    "avoid-small-conflict": "Bạn dễ muốn giữ hòa khí dù có điều mình không muốn nhận.",
+    "changed-plan": "Bạn dễ muốn đổi cách làm nhưng vẫn cần thống nhất lịch.",
+    "specific-feedback": "Bạn dễ muốn được hiểu đúng qua phản hồi cụ thể.",
+    "name-the-need": "Bạn dễ muốn giữ điều riêng nhưng vẫn cần nói rõ nhu cầu.",
+    "capacity-before-agreement": "Bạn dễ muốn giữ trách nhiệm nhưng thời gian có giới hạn.",
 }
 
 
@@ -114,7 +114,7 @@ PAIR_RULES = (
         "Muốn hiểu cho rõ nhưng cũng muốn giữ hòa khí khi mọi người chốt ý.",
         "Có thể hỏi phần cần góp ý để vừa hiểu rõ vừa trao đổi với người kia.",
         "specific-feedback",
-        "Góc đọc kết hợp nhu cầu hiểu rõ với nhu cầu được người kia hiểu đúng.",
+        "Ở đây có cả nhu cầu hiểu rõ lẫn nhu cầu được người kia hiểu đúng.",
     ),
     PairRule(
         frozenset({"mercury", "saturn"}),
@@ -301,7 +301,7 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
         phase = factor.phase.value if factor.phase else _natal_phase(factor)
         if tense and key == "quick-reply" and phase == "separating":
             key = "repair-reply"
-            meaning = "Góc đọc là xem lại cách trả lời thay vì tiếp tục phản ứng ngay."
+            meaning = "Nên xem lại cách trả lời thay vì tiếp tục phản ứng ngay."
         # A transit is secondary to a selected natal interaction, and must be
         # connected to the known natal actor. No calendar/event claim is made.
         priority = 2 if transit else (3 if factor.id in heroes else 1)

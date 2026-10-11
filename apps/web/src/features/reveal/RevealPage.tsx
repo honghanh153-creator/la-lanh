@@ -8,6 +8,8 @@ import { isDateOnlyCalculation, sunSignsFromCalculation } from "../../shared/ast
 import { signDetails } from "../../shared/astro/signs";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
+import { LaSpirit } from "../../shared/ui/la/LaSpirit";
+import "./reveal-vitality.css";
 
 const elementBySign = {
   aries: "Lửa · trực giác · khởi đầu", leo: "Lửa · biểu đạt · ấm áp", sagittarius: "Lửa · khám phá · tự do",
@@ -25,8 +27,8 @@ export function RevealPage() {
 
   if (query.isLoading || noteQuery.isLoading) return (
     <SignalStationFrame act={2} className="signal-station--loading" loading titleId="reveal-loading-title">
-      <span className="signal-station__pulse" aria-hidden="true" />
-      <h1 id="reveal-loading-title">Đang mở Vibe đầu tiên…</h1>
+      <LaSpirit className="reveal-loading-la" mood="think" size={80} />
+      <h1 id="reveal-loading-title">Lá đang tìm lá đầu tiên của bạn…</h1>
       <p className="signal-station__lead">Một lần tải cho Mặt Trời và note của bạn.</p>
     </SignalStationFrame>
   );
@@ -81,6 +83,9 @@ export function RevealPage() {
   return (
     <SignalStationFrame act={2} actions={actions} loading={completing} titleId="reveal-title">
       <section className="signal-reveal-card">
+        <div aria-hidden="true" className="reveal-emblem">
+          {(isCusp ? signs : signs.slice(0, 1)).map((sign) => <span key={sign}>{signDetails[sign].symbol}</span>)}
+        </div>
         <h1 id="reveal-title">{noteQuery.data?.persona_mode === "aura" ? "Aura" : "Vibe"} · {vibeLabel}</h1>
         <p className="signal-reveal-card__pill">
           {isCusp

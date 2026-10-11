@@ -1,0 +1,23 @@
+.vibe-segmented { display: grid; gap: 8px; margin-top: 16px; }
+.vibe-segmented__label { margin: 0; color: var(--uv-text, #15132c); font-size: 0.9375rem; font-weight: 700; }
+.vibe-segmented__track {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--uv-tint, #ede6f7);
+}
+.vibe-segmented__track button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--uv-text, #15132c);
+  background: transparent;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.vibe-segmented__track button[aria-checked="true"] { color: var(--uv-cream, #fff9e9); background: var(--uv-violet, #4c2e8e); }
+.vibe-segmented__track button:focus-visible { outline: 3px solid var(--uv-accent, #54249b); outline-offset: 2px; }
+.vibe-segmented__sample { margin: 0; color: var(--uv-muted, #625c73); font-size: 0.875rem; line-height: 1.5; }

@@ -8,6 +8,7 @@ import { BrandMark } from "../../shared/ui/BrandMark";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
+import { useVibe } from "../../shared/vibe/useVibe";
 import "./welcome-intro.css";
 
 function idempotencyKey(): string {
@@ -23,6 +24,7 @@ export function WelcomePage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const motion = useOnboardingMotion();
+  const { vibe } = useVibe();
   const routeState = location.state as { expired?: boolean; offline?: boolean; sessionChanged?: boolean } | null;
   const restart = new URLSearchParams(location.search).get("restart") === "1";
   const [pending, setPending] = useState(false);
@@ -111,8 +113,12 @@ export function WelcomePage() {
         <img className="welcome-intro__orbit welcome-intro__orbit--front" src="/assets/welcome/orbit.webp" alt="" width="900" height="600" />
       </div>
       <section className="welcome-intro__copy" aria-labelledby="welcome-title">
-        <h1 id="welcome-title"><span>Hiểu mình hơn.</span>{" "}<span>Bớt đoán mò.</span></h1>
-        <p>Đọc lá số để hiểu mình, rút Tarot cho chuyện đang vướng, hoặc xem mình và người ấy hợp nhau ở đâu.</p>
+        {vibe === "roast"
+          ? <h1 id="welcome-title"><span>Bớt overthinking.</span>{" "}<span>Để Lá soi giùm.</span></h1>
+          : <h1 id="welcome-title"><span>Hiểu mình hơn.</span>{" "}<span>Bớt đoán mò.</span></h1>}
+        <p>{vibe === "roast"
+          ? "Lá số để biết mình hay tự làm khó mình chỗ nào, Tarot cho chuyện đang rối, và check xem bạn với người ấy lệch sóng ở đâu."
+          : "Đọc lá số để hiểu mình, rút Tarot cho chuyện đang vướng, hoặc xem mình và người ấy hợp nhau ở đâu."}</p>
       </section>
       {routeState?.expired ? (
         <p className="welcome-intro__notice" role="status">Phiên trên máy này đã hết hạn. Nếu đã liên kết tài khoản, đăng nhập lại để mở hồ sơ; chưa cần nhập lại ngày sinh.</p>

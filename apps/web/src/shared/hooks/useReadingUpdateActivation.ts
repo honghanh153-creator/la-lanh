@@ -51,6 +51,8 @@ export function useReadingUpdateActivation({
         if (!replaceCachedReadingProjection(projection)) writeCachedDailyNote(next);
         return next;
       });
+      // Roast wording is derived from the same projection; refetch it too.
+      void queryClient.invalidateQueries({ queryKey: ["daily-note", "roast"] });
       onSuccess();
     },
     onError: async (error, _target, context) => {

@@ -1,0 +1,99 @@
+.clab {
+  --clab-ink: #15132c;
+  --clab-violet: #4b278f;
+  --clab-lime: #dfff4f;
+  --clab-cream: #f7f4eb;
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+  background: var(--clab-cream);
+  color: var(--clab-ink);
+  font-family: "Be Vietnam Pro", system-ui, sans-serif;
+}
+.clab[data-vibe="roast"] { --clab-violet: #6a2bb0; }
+.clab__head { max-width: 960px; margin: 0 auto 16px; }
+.clab__eyebrow { margin: 0; color: var(--clab-violet); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.clab__head h1 { margin: 4px 0 6px; font-size: clamp(24px, 5vw, 34px); line-height: 1.15; }
+.clab__head p { margin: 0; line-height: 1.5; }
+
+.clab__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px 18px;
+  max-width: 960px;
+  margin: 0 auto 20px;
+  padding: 16px;
+  border-radius: 20px;
+  background: #fffdf6;
+  box-shadow: 0 1px 0 rgba(75, 39, 143, .08), 0 8px 24px rgba(75, 39, 143, .08);
+}
+.clab__field { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.clab__field--wide { grid-column: 1 / -1; }
+.clab__field label, .clab__field legend, .clab__label { font-size: 14px; font-weight: 700; }
+.clab__labelrow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.clab__field output { color: var(--clab-violet); font-weight: 600; }
+.clab__field input[type="range"] { width: 100%; accent-color: var(--clab-violet); }
+.clab__field select {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgba(75, 39, 143, .3);
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+}
+.clab__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.clab__chips button, .clab__choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid rgba(75, 39, 143, .25);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--clab-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.clab__chips button[aria-pressed="true"], .clab__choice:has(input:checked) {
+  border-color: var(--clab-violet);
+  background: var(--clab-violet);
+  color: #fff9e9;
+}
+.clab__choice input { accent-color: var(--clab-lime); }
+.clab__toggles { align-content: start; }
+.clab__toggles .clab__choice { justify-self: start; }
+.clab code { padding: 4px 8px; border-radius: 8px; background: #efe9fb; font-size: 13px; }
+
+.clab__stage {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.clab__card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 16px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fffdf6 0%, #f1ebff 100%);
+  box-shadow: 0 8px 28px rgba(75, 39, 143, .1);
+}
+.clab__card h2 { justify-self: stretch; margin: 0; font-size: 18px; display: flex; justify-content: space-between; gap: 8px; }
+.clab__card small { color: var(--clab-violet); font-size: 13px; font-weight: 600; }
+.clab__figure { display: grid; gap: 10px; justify-items: center; width: 100%; }
+.clab__art { display: grid; place-items: center; min-height: 300px; }
+.clab__spoken { margin: 0; max-width: 34em; font-size: 13px; line-height: 1.5; color: #3b3560; }
+.clab__spoken span { font-weight: 700; color: var(--clab-violet); }
+.clab__rule { max-width: 960px; margin: 16px auto; font-size: 14px; color: #3b3560; }
+
+.clab__grid { display: grid; gap: 24px; max-width: 960px; margin: 24px auto 0; }
+.clab__matrix { overflow-x: auto; padding: 12px; border-radius: 20px; background: #fffdf6; }
+.clab__matrix h2 { margin: 0 0 8px; font-size: 16px; }
+.clab__matrix table { border-collapse: collapse; }
+.clab__matrix th { padding: 4px 6px; font-size: 12px; text-align: center; white-space: nowrap; }
+.clab__matrix td { padding: 4px; text-align: center; }

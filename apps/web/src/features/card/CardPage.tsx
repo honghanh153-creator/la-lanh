@@ -1,45 +1,20 @@
 import { ArrowLeft, DownloadSimple, LinkBreak, LinkSimple, ShareNetwork } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   createShareArtifact,
   revokeShareArtifact,
-  type DailyNote,
   type ShareArtifact,
   type ShareFormat,
 } from "../../shared/api/client";
 import { dailyContextQueryKey, getDailyNoteForContext, parseDailyContext } from "../../shared/astro/dailyContext";
 import { BrandMark } from "../../shared/ui/BrandMark";
-import { cardSvg, shareCopy } from "./noteCardSvg";
-
-function svgFile(note: DailyNote, format: ShareFormat): File {
-  return new File([cardSvg(note, format)], `la-lanh-note-${format}.svg`, { type: "image/svg+xml" });
-}
-
-async function pngFile(note: DailyNote, format: ShareFormat): Promise<File> {
-  const svg = svgFile(note, format);
-  const sourceUrl = URL.createObjectURL(svg);
-  try {
-    const image = new Image();
-    image.decoding = "async";
-    image.src = sourceUrl;
-    await image.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = format === "square_1_1" ? 1080 : 1080;
-    canvas.height = format === "square_1_1" ? 1080 : 1920;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Canvas is not available");
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PNG render failed")), "image/png", 0.92);
-    });
-    return new File([blob], `la-lanh-note-${format}.png`, { type: "image/png" });
-  } finally {
-    URL.revokeObjectURL(sourceUrl);
-  }
-}
+import { noteSpecFromNote, shareCopy } from "./noteCardSvg";
+import { shareArtAlt } from "./shareArt";
+import { ShareArtPreview } from "./ShareArtPreview";
+import { useShareArt } from "./useShareArt";
 
 function shareUrl(artifact: ShareArtifact): string | null {
   if (!artifact.public_path) return null;
@@ -81,11 +56,14 @@ export function CardPage() {
 
   const note = noteQuery.data;
   const copy = note ? shareCopy(note) : null;
+  const spec = useMemo(() => (note ? noteSpecFromNote(note) : null), [note]);
+  const art = useShareArt(spec, format);
+  const fileName = `la-lanh-note-${format}.png`;
 
   const download = async () => {
-    if (!note) return;
+    if (!art.ready) return;
     try {
-      const file = await pngFile(note, format);
+      const file = await art.pngFile(fileName);
       const url = URL.createObjectURL(file);
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -99,9 +77,9 @@ export function CardPage() {
   };
 
   const share = async () => {
-    if (!note) return;
+    if (!note || !art.ready) return;
     try {
-      const file = await pngFile(note, format);
+      const file = await art.pngFile(fileName);
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: `Lá Lành · ${shareCopy(note).title}` });
         setMessage("Card đã sẵn sàng bay đi.");
@@ -140,25 +118,22 @@ export function CardPage() {
         <button aria-pressed={format === "story_9_16"} className={format === "story_9_16" ? "is-active" : ""} onClick={() => setFormat("story_9_16")} type="button">Story 9:16</button>
         <button aria-pressed={format === "square_1_1"} className={format === "square_1_1" ? "is-active" : ""} onClick={() => setFormat("square_1_1")} type="button">Square 1:1</button>
       </section>
-      {note && copy ? (
-        <section className={`${format === "square_1_1" ? "share-card share-card--square" : "share-card"}${copy.body ? "" : " share-card--minimal"}`}>
-          <span className="share-card__logo">LÁ LÀNH*</span>
-          <p>{copy.persona}</p>
-          <h1>{copy.title}</h1>
-          {copy.body ? <blockquote>{copy.body}</blockquote> : null}
-          <small>Đúng bản đang mở · không kèm dữ liệu sinh hay căn cứ riêng</small>
-        </section>
+      {note && copy && spec ? (
+        <>
+          <ShareArtPreview alt={shareArtAlt(spec, format)} format={format} heading={copy.title} svg={art.svg} />
+          <p className="share-art-privacy">Đúng bản đang mở · không kèm ngày / giờ / nơi sinh hay căn cứ riêng</p>
+        </>
       ) : noteQuery.isError ? (
         <section className="empty-state">
           <p role="alert">Chưa tải được note để tạo card.</p>
           <button className="outline-button" disabled={noteQuery.isFetching} onClick={() => void noteQuery.refetch()} type="button">Thử lại</button>
         </section>
       ) : (
-        <section className="entry-loading"><span className="entry-loading__orbit" /><p>Đang dựng card…</p></section>
+        <ShareArtPreview alt="" format={format} svg={null} />
       )}
       {message ? <p className="success-message" role="status">{message}</p> : null}
       <footer className="flow-actions">
-        <button className="electric-button" disabled={!note} onClick={() => void share()} type="button"><ShareNetwork /> Chia sẻ card</button>
+        <button className="electric-button" disabled={!art.ready} onClick={() => void share()} type="button"><ShareNetwork /> Chia sẻ card</button>
         <button className="outline-button" disabled={!note} onClick={() => createMutation.mutate()} type="button"><LinkSimple /> Tạo safe link</button>
         {artifact ? <button className="outline-button" onClick={() => void copyLink()} type="button"><LinkSimple /> Copy link</button> : null}
         {artifact && shareUrl(artifact) ? <label>
@@ -166,7 +141,7 @@ export function CardPage() {
           <input aria-label="Link chia sẻ" onFocus={(event) => event.currentTarget.select()} readOnly value={shareUrl(artifact) ?? ""} />
         </label> : null}
         {artifact ? <button className="outline-button" disabled={revokeMutation.isPending} onClick={() => revokeMutation.mutate()} type="button"><LinkBreak /> Thu hồi link</button> : null}
-        <button className="outline-button" disabled={!note} onClick={() => void download()} type="button"><DownloadSimple /> Tải ảnh PNG</button>
+        <button className="outline-button" disabled={!art.ready} onClick={() => void download()} type="button"><DownloadSimple /> Tải ảnh PNG</button>
       </footer>
     </main>
   );

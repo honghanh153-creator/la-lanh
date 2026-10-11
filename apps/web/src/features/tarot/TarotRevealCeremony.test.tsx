@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TarotSession } from "../../shared/api/client";
@@ -26,6 +26,10 @@ describe("TarotRevealCeremony", () => {
     expect(screen.getByRole("heading", { name: "Bài của bạn đang mở" })).toHaveFocus();
     const titles = screen.getAllByText(/Lá thử/).map((element) => element.textContent);
     expect(titles).toEqual(cards.slice(0, count).map((item) => item.card.title_vi));
+    const faces = screen.getByRole("group", { name: "Những lá bạn đã chọn" });
+    expect(within(faces).getAllByRole("img").map((image) => image.getAttribute("aria-label")))
+      .toEqual(cards.slice(0, count).map((item) => item.card.title_vi));
+    expect(faces.querySelectorAll(".tarot-reveal__back svg[aria-hidden='true']")).toHaveLength(count);
     await act(() => vi.advanceTimersByTime(2799));
     expect(done).not.toHaveBeenCalled();
     await act(() => vi.advanceTimersByTime(1));

@@ -16,6 +16,7 @@ from app.domains.readings.models import BackgroundLens, ReadingPurpose
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.readings.review_agent import ContentReviewAgent, ReviewSample
+from app.domains.readings.voice import DailySections, roast_daily_sections
 from app.domains.tarot.engine import TarotReadingEngine
 from app.domains.tarot.knowledge import BOOK_SOURCES, all_cards
 from app.domains.tarot.models import TarotContext, TarotSpread, TarotVoice
@@ -81,7 +82,8 @@ def _full_chart(index: int) -> NatalChart:
     )
 
 
-def build_synthetic_samples() -> tuple[ReviewSample, ...]:
+def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
+    """Direct samples by default; ``roast`` reviews the approved read-time roast voice."""
     planner = ReadingPlanner()
     renderer = DeterministicVietnameseRenderer()
     tarot = TarotReadingEngine()
@@ -99,14 +101,20 @@ def build_synthetic_samples() -> tuple[ReviewSample, ...]:
         )
         candidate = renderer.render(plan)
         evaluation = evaluate_candidate(plan, candidate)
+        daily = DailySections(
+            candidate.hook, candidate.thesis, candidate.manifestation, candidate.micro_action
+        )
+        if roast:
+            daily = roast_daily_sections(daily)
         samples.append(
             ReviewSample(
                 persona_id=persona_id,
                 surface="daily",
                 sections=(
-                    ("hook", candidate.hook),
-                    ("scene", candidate.manifestation),
-                    ("action", candidate.micro_action),
+                    ("hook", daily.hook),
+                    *((("thesis", daily.thesis),) if roast else ()),
+                    ("scene", daily.manifestation),
+                    ("action", daily.micro_action),
                 ),
                 disclaimer=candidate.disclaimer,
                 provenance_ids=tuple(claim.factor_ref for claim in candidate.evidence.claims),
@@ -148,7 +156,7 @@ def build_synthetic_samples() -> tuple[ReviewSample, ...]:
             spread=spread,
             context=_CONTEXTS[index],
             question=_QUESTIONS[index],
-            voice=TarotVoice.STRAIGHT_WARM,
+            voice=TarotVoice.ROAST if roast else TarotVoice.STRAIGHT_WARM,
         )
         source_ids = set(tarot_reading.provenance.source_ids)
         registered_source_ids = {source.source_id for source in BOOK_SOURCES}
@@ -187,7 +195,11 @@ def build_synthetic_samples() -> tuple[ReviewSample, ...]:
 
 
 def main() -> None:
-    samples = build_synthetic_samples()
+    _review(build_synthetic_samples(), label="Content review")
+    _review(build_synthetic_samples(roast=True), label="Roast voice review")
+
+
+def _review(samples: tuple[ReviewSample, ...], *, label: str) -> None:
     result = ContentReviewAgent().review(samples)
     if result.persona_count != PERSONA_COUNT:
         raise SystemExit(f"Content review needs {PERSONA_COUNT} synthetic personas")
@@ -200,7 +212,7 @@ def main() -> None:
     if any(surfaces != {"daily", "natal", "tarot"} for surfaces in surfaces_by_persona.values()):
         raise SystemExit("Every synthetic persona must be reviewed on Daily, Natal and Tarot")
     if not result.passed:
-        print("Content review failed (source prose is intentionally omitted):")
+        print(f"{label} failed (source prose is intentionally omitted):")
         for finding in result.findings:
             print(
                 f"- {finding.severity}: {finding.rule_id} "
@@ -209,7 +221,7 @@ def main() -> None:
         raise SystemExit(1)
     medium_count = sum(finding.severity == "medium" for finding in result.findings)
     print(
-        f"Content review passed: {result.persona_count} synthetic personas, "
+        f"{label} passed: {result.persona_count} synthetic personas, "
         f"{result.sample_count} generated readings, no critical/high findings, "
         f"{medium_count} medium follow-ups."
     )

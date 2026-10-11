@@ -7,6 +7,8 @@ import {
   SESSION_CHANGE_NOTICE_KEY, SESSION_RESTART_REQUIRED_KEY,
 } from "../shared/session/sessionIdentity";
 import { clearPersonalDataOnDevice, PERSONAL_DATA_CLEARED_EVENT } from "../shared/storage/clearPersonalData";
+import { LaLoading } from "../shared/ui/la/LaLoading";
+import { useVibe } from "../shared/vibe/useVibe";
 
 type Verification = { path: string; status: "checking" | "ready" | "offline"; mounted: boolean };
 
@@ -18,6 +20,7 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
   const [verification, setVerification] = useState<Verification>({ path: "", status: "checking", mounted: false });
   const verified = useRef<{ epoch: string; cookie: string | null } | null>(null);
   const privateContent = useRef<HTMLDivElement>(null);
+  const { vibe } = useVibe();
 
   useEffect(() => {
     let active = true;
@@ -120,9 +123,12 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
 
   const ready = verification.path === pathname && verification.status === "ready";
   return <>
-    {!ready ? <main className="app-page" aria-live="polite">
-      <p>{verification.status === "offline" ? "Chưa kiểm tra được phiên của bạn. Nội dung riêng tư đang được ẩn." : "Đang kiểm tra phiên của bạn…"}</p>
-      {verification.status === "offline" ? <><button className="primary-link" type="button" onClick={() => setRetry((value) => value + 1)}>Thử lại</button><Link to="/welcome">Về trang đầu</Link></> : null}
+    {!ready ? <main className="app-page session-check">
+      {verification.status === "offline"
+        ? <LaLoading delayMs={0} key="offline" text="Lá chưa bắt được sóng. Nội dung riêng tư đang được ẩn cho an toàn.">
+          <button className="primary-link" type="button" onClick={() => setRetry((value) => value + 1)}>Thử lại</button><Link to="/welcome">Về trang đầu</Link>
+        </LaLoading>
+        : <LaLoading delayMs={220} key="checking" text={vibe === "roast" ? "Đợi xíu, Lá đang soi đúng hồ sơ của bạn…" : "Lá đang mở đúng hồ sơ của bạn…"} />}
     </main> : null}
     <div ref={privateContent} hidden={!ready}>{verification.path === pathname && verification.mounted ? children : null}</div>
   </>;

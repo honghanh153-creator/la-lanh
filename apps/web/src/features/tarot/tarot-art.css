@@ -1,0 +1,15 @@
+/* Procedural Tarot card art (TarotCardArt / TarotCardBack). */
+.tarot-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 5;
+  overflow: visible;
+  border-radius: 8.3% / 5%;
+  font-family: var(--font-app, "Be Vietnam Pro", system-ui, sans-serif);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tarot-art text { font-family: inherit; }
+.tarot-art__foil { display: none; }

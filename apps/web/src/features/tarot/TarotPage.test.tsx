@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiProblem,
@@ -88,10 +88,10 @@ describe("TarotPage", () => {
   it("describes the selected depth rather than the original recommendation", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(screen.getByRole("button", { name: "5 lá đào sâu" }));
+    await user.click(screen.getByRole("button", { name: "5 lá, đào sâu" }));
     expect(screen.getByRole("heading", { name: "5 lá · Gỡ chuyện nhiều lớp" })).toBeVisible();
     expect(screen.queryByRole("heading", { name: "3 lá · Nhìn rõ trước khi hành động" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "1 lá nhanh" }));
+    await user.click(screen.getByRole("button", { name: "1 lá, nhanh" }));
     expect(screen.getByRole("heading", { name: "1 lá · Chạm đúng điểm" })).toBeVisible();
   });
 
@@ -241,6 +241,11 @@ describe("TarotPage", () => {
     expect(screen.queryByRole("heading", { name: "lùi khỏi tiếng ồn để nghe câu trả lời của chính mình" })).not.toBeInTheDocument();
     const chapter = chapters.querySelector("details");
     expect(chapter).not.toHaveAttribute("open");
+    expect(chapter?.querySelector(".tarot-chapter-thumb svg[data-art='major:hermit']")).toBeInTheDocument();
+    expect(within(overview).getByRole("list", { name: "Các lá bạn đã rút" })).toBeInTheDocument();
+    await user.click(within(overview).getByRole("button", { name: /^01\. Ẩn Sĩ, Điều đáng nhìn lúc này/ }));
+    expect(chapter).toHaveAttribute("open");
+    chapter?.removeAttribute("open");
     await user.click(within(chapters).getByText("Ẩn Sĩ"));
     expect(chapter).toHaveAttribute("open");
     expect(screen.getByText(/tin nhắn đến chậm/i)).toBeInTheDocument();
@@ -316,5 +321,111 @@ describe("TarotPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Lá đã chọn vẫn được giữ");
     expect(screen.getByRole("group", { name: "78 lá bài úp" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Bài của bạn đang mở" })).not.toBeInTheDocument();
+  });
+});
+
+describe("TarotPage accessibility and card art", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+  });
+
+  it("names topic and depth buttons and explains why the draw is disabled", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const topics = screen.getByRole("group", { name: "Chủ đề câu hỏi" });
+    const names = within(topics).getAllByRole("button").map((button) => button.getAttribute("aria-label"));
+    expect(names).toEqual(["Một chuyện", "Quan hệ", "Công việc", "Giao tiếp", "Năng lượng", "Bản thân"]);
+    expect(within(topics).getByRole("button", { name: "Một chuyện" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(within(topics).getByRole("button", { name: "Quan hệ" }));
+    expect(within(topics).getByRole("button", { name: "Quan hệ" })).toHaveAttribute("aria-pressed", "true");
+    const depth = screen.getByRole("group", { name: "Đổi độ sâu" });
+    expect(within(depth).getAllByRole("button").map((button) => button.getAttribute("aria-label")))
+      .toEqual(["1 lá, nhanh", "3 lá, vừa đủ", "5 lá, đào sâu"]);
+
+    const draw = screen.getByRole("button", { name: "Xòe 3 lá" });
+    expect(draw).toBeDisabled();
+    expect(draw).toHaveAccessibleDescription(/Nhập câu hỏi từ 8 ký tự/);
+    await user.type(screen.getByRole("textbox", { name: /Câu hỏi của bạn/ }), "Mình nên nói rõ hay chờ thêm?");
+    expect(screen.getByRole("button", { name: /^Xòe \d lá$/ })).toBeEnabled();
+    expect(screen.queryByText(/Nhập câu hỏi từ 8 ký tự/)).not.toBeInTheDocument();
+  });
+
+  it("fans card backs without visible numbers while keeping accessible names", async () => {
+    vi.mocked(getTarotSession).mockResolvedValue({
+      ...choosing,
+      required_cards: 3,
+      selected_cards: [{ fan_index: 4, position_key: "seen", position_label: "Điều đã rõ", card: {
+        id: "cups-7", title_vi: "Bảy Cốc", title_en: "Seven of Cups", arcana: "minor", suit: "cups", rank: "7",
+        core: "x", tension: "y", resource: "z", source_concept_ids: [],
+      } }],
+    });
+    renderPage(`/tarot/${choosing.id}`);
+    const fan = await screen.findByRole("group", { name: "78 lá bài úp" });
+    const cards = within(fan).getAllByRole("button");
+    expect(cards).toHaveLength(78);
+    expect(fan.textContent).toBe("");
+    expect(within(fan).getByRole("button", { name: "Lá úp 3 trên 78" })).toBeEnabled();
+    const picked = within(fan).getByRole("button", { name: "Lá úp 5 trên 78" });
+    expect(picked).toBeDisabled();
+    expect(picked).toHaveAttribute("aria-pressed", "true");
+    const slots = screen.getByLabelText("Các vị trí đã chọn");
+    expect(slots.querySelector("svg[data-art='minor:cups:7']")).toHaveAttribute("aria-hidden", "true");
+    expect(within(slots).getByText("Bảy Cốc")).toBeInTheDocument();
+    expect(within(slots).getAllByText("Chưa chọn")).toHaveLength(2);
+  });
+
+  function stubLayout() {
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(58);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(
+      { x: 0, y: 0, left: 10, top: 300, width: 58, height: 96, right: 68, bottom: 396, toJSON: () => ({}) },
+    );
+    const animate = vi.fn(() => ({ finished: new Promise<never>(() => undefined), cancel: vi.fn() }));
+    (HTMLElement.prototype as unknown as { animate: typeof animate }).animate = animate;
+    return animate;
+  }
+
+  const sevenOfCups: TarotSession["selected_cards"][number] = {
+    fan_index: 0, position_key: "seen", position_label: "Điều đã rõ", card: {
+      id: "cups-7", title_vi: "Bảy Cốc", title_en: "Seven of Cups", arcana: "minor", suit: "cups", rank: "7",
+      core: "x", tension: "y", resource: "z", source_concept_ids: [],
+    },
+  };
+
+  it("lifts and flips an intermediate pick into its slot when motion is allowed", async () => {
+    const animate = stubLayout();
+    const user = userEvent.setup();
+    const active: TarotSession = { ...choosing, spread: "three_card", required_cards: 3 };
+    vi.mocked(getTarotSession).mockResolvedValue(active);
+    vi.mocked(selectTarotCard).mockResolvedValue({ ...active, version: 2, selected_cards: [sevenOfCups] });
+    renderPage(`/tarot/${active.id}`);
+    await user.click(await screen.findByRole("button", { name: "Lá úp 1 trên 78" }));
+    expect(await within(screen.getByLabelText("Các vị trí đã chọn")).findByText("Bảy Cốc")).toBeInTheDocument();
+    expect(document.querySelector(".tarot-pick-flight svg[data-art='minor:cups:7']")).toBeInTheDocument();
+    expect(animate).toHaveBeenCalled();
+    expect(document.querySelector("[data-slot-art='0']")).toHaveClass("is-arriving");
+    expect(screen.getByText("Đã lật Bảy Cốc cho Điều đã rõ.")).toBeInTheDocument();
+  });
+
+  it("skips the pick animation for system reduced motion", async () => {
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const animate = stubLayout();
+    const user = userEvent.setup();
+    const active: TarotSession = { ...choosing, spread: "three_card", required_cards: 3 };
+    vi.mocked(getTarotSession).mockResolvedValue(active);
+    vi.mocked(selectTarotCard).mockResolvedValue({ ...active, version: 2, selected_cards: [sevenOfCups] });
+    renderPage(`/tarot/${active.id}`);
+    expect(await screen.findByLabelText("Bộ bài đang xòe")).toHaveAttribute("data-tarot-motion", "off");
+    await user.click(screen.getByRole("button", { name: "Lá úp 1 trên 78" }));
+    expect(await within(screen.getByLabelText("Các vị trí đã chọn")).findByText("Bảy Cốc")).toBeInTheDocument();
+    expect(document.querySelector(".tarot-pick-flight")).not.toBeInTheDocument();
+    expect(animate).not.toHaveBeenCalled();
+    expect(document.querySelector("[data-slot-art='0']")).not.toHaveClass("is-arriving");
+    expect(selectTarotCard).toHaveBeenCalledExactlyOnceWith(active.id, 0, active.version);
   });
 });

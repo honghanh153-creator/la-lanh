@@ -39,6 +39,7 @@ from app.domains.tarot.models import (
 )
 from app.domains.tarot.rewrite import compile_tarot_rewrite_request
 from app.domains.tarot.tables import TarotSessionRow
+from app.domains.tarot.voice import effective_voice
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
 
 _IDEMPOTENCY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{22,200}$")
@@ -95,6 +96,9 @@ class TarotSessionService:
             assessment.intent,
             assessment.normalized_question,
         )
+        # Store the effective voice: sensitive questions fall back to the default voice.
+        requested_voice = voice
+        voice = effective_voice(voice, assessment.normalized_question)
         idempotency_hash = self._hasher.digest("tarot-create", idempotency_key)
         request_hash = sha256(
             "\x00".join(
@@ -105,6 +109,8 @@ class TarotSessionService:
                     spread_map.value,
                     origin.value,
                     prompt_id or "",
+                    # Default-voice hashes stay byte-identical to existing sessions.
+                    *(("voice=roast",) if requested_voice is TarotVoice.ROAST else ()),
                 )
             ).encode()
         ).hexdigest()

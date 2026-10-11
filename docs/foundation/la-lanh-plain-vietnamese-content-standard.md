@@ -20,6 +20,44 @@ Loại các câu như "Ý kiến đông người dễ nghe giống ý kiến đ�
 
 Daily Home không ghép quan sát và reflection độc lập. Mọi headline, scene và advice của một issue phải nói cùng một tình huống. Advice phải làm được tại thời điểm của scene, không yêu cầu quay lại trước một việc đã xảy ra.
 
+## Giọng Roast đã chốt ngày 2026-10-11
+
+Chủ sản phẩm duyệt một giọng tùy chọn thứ hai: **Roast** — cà khịa thân thiện, chọc đúng chỗ nhưng
+vẫn có lối ra. Direct vẫn là mặc định; thiếu lựa chọn thì luôn dùng direct. Quyết định này thay cho
+ghi chú "chưa chọn giọng A/B/C" trong plan U6, chỉ cho riêng giọng này.
+
+Quy tắc:
+
+- Chọc vào **hành vi đang được mô tả** trong bài, không bao giờ chọc vào danh tính, ngoại hình, giới,
+  gia đình, hoàn cảnh tiền bạc, trí thông minh hoặc sức khỏe tinh thần của người đọc.
+- Không chửi thề, miệt thị, nội dung tình dục, định mệnh, dự đoán chắc chắn về sự việc, hoặc nói thay
+  suy nghĩ riêng của người khác.
+- Cùng nghĩa với direct: cùng issue/scene, cùng lá bài, thứ tự và vị trí, cùng hành động cụ thể. Chỉ
+  được thêm một câu mở hoặc khung vui trước/sau; evidence, disclaimer và provenance giữ nguyên.
+- Mỗi câu chọc phải đi cùng một việc làm được (micro action hoặc small action của bài).
+- Gen Z nhẹ, đọc được với người 18–25: "thám tử tin nhắn", "đọc lần thứ năm rồi đó nha", "thôi nào",
+  "não đang mở 12 tab". Hạn chế tiếng Anh; "plot twist", "rep" chỉ dùng lẻ tẻ.
+- Tự giảm độ chọc: ví dụ thuộc góc cơ thể/nghỉ ngơi (Daily) hoặc ngữ cảnh năng lượng/chăm mình (Tarot)
+  chỉ dùng câu trêu nhẹ. Câu hỏi Tarot về sức khỏe, an toàn, khủng hoảng, pháp lý/tiền bạc, tự hại
+  hoặc mất mát dùng direct hoàn toàn, và session lưu giọng thực tế đã dùng.
+
+Ví dụ cùng một tình huống:
+
+> Direct: Bạn đọc lại tin nhắn vì chưa hiểu ý.
+>
+> Roast: Đọc tin nhắn lần thứ năm rồi đó nha, ý vẫn chưa ra. … Đóng hồ sơ thám tử lại nào. Hỏi lại
+> phần chưa rõ: Bạn muốn nói gì ở chỗ này?
+
+Cách chạy:
+
+- Daily: lớp đọc `apps/api/app/domains/readings/voice.py` khớp đúng chữ của ma trận direct đã duyệt
+  (90 headline, 15 issue, 13 placement meaning). Bản lưu, share và saved snapshot luôn là direct;
+  chữ không khớp (bản AI viết lại, natal, legacy) giữ nguyên direct.
+- Tarot: `TarotVoice.ROAST` render cục bộ từ `apps/api/app/domains/tarot/voice.py`. Bài Roast không
+  được gửi đi viết lại bằng AI, nên không có thêm nội dung nào ra provider.
+- Gate: `ContentReviewAgent`, Tarot quality gate, `pnpm tarot:audit` (mọi voice) và
+  `pnpm content:review` (thêm một lượt Roast) đều phải qua; test giữ danh sách từ cấm.
+
 ## Thứ tự bắt buộc của một bài đọc
 
 1. **Trả lời thẳng:** nói điều đáng chú ý nhất bằng một câu ngắn.

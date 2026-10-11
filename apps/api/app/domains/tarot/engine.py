@@ -30,6 +30,13 @@ from app.domains.tarot.models import (
 )
 from app.domains.tarot.quality import prose_is_safe
 from app.domains.tarot.relationship_readings import RELATIONSHIP_READINGS
+from app.domains.tarot.voice import (
+    SUMMARY_OPENERS,
+    action_frame,
+    effective_voice,
+    meaning_tail,
+    roast_headline,
+)
 
 
 class TarotContentRejected(ValueError):
@@ -220,6 +227,9 @@ class TarotReadingEngine:
         intent = question_intent or assessment.intent
         if intent is None:
             raise TarotContentRejected("question intent is required")
+        # Sensitive questions never get the roast frame, whatever was requested.
+        voice = effective_voice(voice, assessment.normalized_question)
+        roast = voice is TarotVoice.ROAST
         resolved_map = spread_map or self.choose_spread_map(
             spread, intent, assessment.normalized_question
         )
@@ -229,6 +239,7 @@ class TarotReadingEngine:
         rendered: list[TarotReadingPosition] = []
         meanings: list[_CardMeaning] = []
         goals = question_goals(assessment.normalized_question, context)
+        used_tails: set[str] = set()
         for index, ((key, label), card_id) in enumerate(zip(positions, card_ids, strict=True)):
             try:
                 card = card_by_id(card_id)
@@ -239,6 +250,11 @@ class TarotReadingEngine:
             purposeful_action = goal_action(goal, key)
             meanings.append(contextual_meaning)
             meaning = self._meaning(contextual_meaning, key, voice)
+            tail = meaning_tail(key, context) if roast else None
+            if tail is not None and tail not in used_tails:
+                # One playful tail per reading; a repeated tail would read as filler.
+                used_tails.add(tail)
+                meaning = f"{meaning} {tail}"
             scene = (
                 CONTEXT_SCENES[context.value][card.id]
                 if context.value in CONTEXT_SCENES
@@ -249,7 +265,14 @@ class TarotReadingEngine:
                 if goal.key != "general" and index == 0
                 else self._reflection(key, context, intent)
             )
-            action = purposeful_action or self._action(contextual_meaning.resource, voice)
+            if roast:
+                # Same instruction as the default voice; only the playful lead-in differs.
+                step = purposeful_action or (
+                    f"{_sentence_start(_resource_step(contextual_meaning.resource))}."
+                )
+                action = f"{action_frame(index, context)} {step}"
+            else:
+                action = purposeful_action or self._action(contextual_meaning.resource, voice)
             rendered.append(
                 TarotReadingPosition(
                     key=key,
@@ -261,11 +284,17 @@ class TarotReadingEngine:
                     small_action=action,
                 )
             )
+        summary = self._summary(
+            tuple(rendered), tuple(meanings), context, assessment.normalized_question
+        )
+        if roast:
+            opener = SUMMARY_OPENERS[context]
+            # The opener is optional framing; it never displaces a selected card.
+            if len(f"{opener} {summary}".split()) <= 180:
+                summary = f"{opener} {summary}"
         reading = TarotReading(
-            headline=_INTENT_HEADLINES[intent],
-            summary=self._summary(
-                tuple(rendered), tuple(meanings), context, assessment.normalized_question
-            ),
+            headline=roast_headline(intent, context) if roast else _INTENT_HEADLINES[intent],
+            summary=summary,
             question=assessment.normalized_question,
             question_intent=intent,
             context=context,

@@ -127,6 +127,16 @@ These are source-level controls, not proof of live deployment, legal compliance 
 completed processor/cross-border arrangements. Text gates are heuristic, not a guarantee
 that every generated sentence preserves meaning. Paid sample review remains a release gate.
 
+## Reading voice delta — local work, 2026-10-11
+
+The app vibe (`direct` or `roast`) is a device-local presentation preference. Daily sends it per
+request as `GET /v1/daily-note?voice=roast` or the `voice` body field of
+`POST /v1/daily-note/context`; the API applies it at read time and does not store, log or share it.
+Stored revisions, share artifacts and saved snapshots stay direct. Tarot stores the effective voice
+in the existing coarse `voice` column of the encrypted session row; sensitive questions store the
+default voice. Roast Tarot readings are never enqueued for provider rewrite, so no new field or prose
+reaches a third party. No new personal-data category is collected.
+
 ## Official sources
 
 ### Rewrite erasure implementation, 2026-10-08

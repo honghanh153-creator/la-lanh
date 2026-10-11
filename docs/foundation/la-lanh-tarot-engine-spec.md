@@ -35,6 +35,12 @@ birth data, or report evidence in the URL.
   and a small action with explicit permission to stop when it does not fit reality.
 - The launch voice is fixed to `playful_grounded`: current, direct, lightly playful, and never
   mystical filler. Voice selection is deliberately not another onboarding step.
+- 2026-10-11 owner decision: `POST /v1/tarot/sessions` accepts optional `voice: "default" | "roast"`
+  (default `"default"` → `playful_grounded`). `roast` frames the headline, summary, meaning and
+  small action without changing cards, positions, scenes, reflections or action steps. Energy and
+  self-care readings get gentle frames; sensitive questions (health, safety, crisis, grief, legal or
+  money trouble) store and render `playful_grounded`. Roast readings are not queued for AI rewrite.
+  See `docs/foundation/la-lanh-plain-vietnamese-content-standard.md`.
 
 ## Deck and synthesis
 

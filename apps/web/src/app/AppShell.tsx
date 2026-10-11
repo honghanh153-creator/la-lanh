@@ -5,7 +5,7 @@ import { OnboardingMotionContext } from "../shared/ui/onboardingMotion";
 import { SessionBoundary } from "./SessionBoundary";
 
 const PUBLIC_PATHS = new Set([
-  "/", "/welcome", "/consent", "/privacy", "/demo", "/radar", "/vong-la",
+  "/", "/welcome", "/consent", "/privacy", "/demo", "/companion-lab", "/radar", "/vong-la",
   "/tarot", "/existing-user", "/auth/callback",
 ]);
 
@@ -22,7 +22,7 @@ export function AppShell() {
   }, [pathname]);
 
   return (
-    <div className="app-shell ultraviolet-app">
+    <div className="app-shell ultraviolet-app" data-motion={motionPaused ? "paused" : "running"}>
       <OnboardingMotionContext.Provider value={{
         paused: motionPaused,
         toggle: () => setMotionPaused((value) => !value),

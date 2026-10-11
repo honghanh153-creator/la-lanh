@@ -25,6 +25,8 @@ import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingContent } from "../../shared/ui/ReadingContent";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
+import { LaLoading } from "../../shared/ui/la/LaLoading";
+import { useVibe } from "../../shared/vibe/useVibe";
 
 export function NoteDetailPage() {
   const navigate = useNavigate();
@@ -34,15 +36,17 @@ export function NoteDetailPage() {
   const cachedAtStart = useMemo(() => readCachedDailyNote(), []);
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const { vibe } = useVibe();
+  const direct = vibe === "direct";
   const query = useQuery({
-    queryKey: dailyContextQueryKey(context),
+    queryKey: dailyContextQueryKey(context, vibe),
     queryFn: async ({ signal }) => {
-      const freshNote = await getDailyNoteForContext(context, signal);
-      if (context === "auto") writeCachedDailyNote(freshNote);
+      const freshNote = await getDailyNoteForContext(context, signal, vibe);
+      if (context === "auto" && direct) writeCachedDailyNote(freshNote);
       return freshNote;
     },
-    initialData: context === "auto" ? cachedAtStart?.note : undefined,
-    initialDataUpdatedAt: context === "auto" && cachedAtStart ? 0 : undefined,
+    initialData: context === "auto" && direct ? cachedAtStart?.note : undefined,
+    initialDataUpdatedAt: context === "auto" && direct && cachedAtStart ? 0 : undefined,
   });
   const note = query.data;
   const activeReading = note?.reading_projection?.active;
@@ -104,7 +108,7 @@ export function NoteDetailPage() {
         <span className="flow-header__step">Note hôm nay</span>
       </header>
 
-      {query.isLoading ? <section className="reading-skeleton" aria-label="Đang mở bản đọc" /> : null}
+      {query.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" /> : null}
       {note ? (
         <>
           {query.isError ? <p className="cache-status" role="status">Đang xem đúng bản đã mở gần nhất trên máy</p> : null}

@@ -1,0 +1,150 @@
+/* Share card preview + branded skeleton. Scoped to .share-art so shared styles stay untouched. */
+.share-art {
+  --share-art-violet: #4b278f;
+  --share-art-deep: #2a1457;
+  --share-art-cream: #fff9e9;
+  --share-art-lime: #dfff4f;
+  position: relative;
+  display: grid;
+  width: min(100%, calc(62svh * 9 / 16));
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  aspect-ratio: 9 / 16;
+  background: linear-gradient(170deg, var(--share-art-deep), var(--share-art-violet) 52%, #1f0e40);
+  box-shadow: 0 1.25rem 2.5rem rgb(43 18 87 / 28%);
+}
+
+.share-art--square {
+  width: min(100%, 26rem, 56svh);
+  aspect-ratio: 1;
+}
+
+.share-art > * {
+  grid-area: 1 / 1;
+}
+
+.share-art__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 240ms ease-out;
+}
+
+.share-art__image.is-loaded {
+  opacity: 1;
+}
+
+.share-art__skeleton {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  padding: 7% 8%;
+  align-content: space-between;
+}
+
+.share-art__skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 249 233 / 16%) 45%, rgb(223 255 79 / 14%) 52%, transparent 66%);
+  content: "";
+  transform: translateX(-100%);
+  animation: share-art-shimmer 1.4s ease-in-out infinite;
+}
+
+.share-art__bones {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+}
+
+.share-art__skeleton--story .share-art__bones {
+  justify-items: center;
+}
+
+.share-art__bone {
+  display: block;
+  border-radius: 999px;
+  background: rgb(255 249 233 / 16%);
+}
+
+.share-art__bone--brand {
+  justify-self: start;
+  width: 32%;
+  height: 0.9rem;
+}
+
+.share-art__bone--disc {
+  width: 46%;
+  margin-block: 1rem 0.4rem;
+  aspect-ratio: 1;
+  background:
+    radial-gradient(circle at 35% 30%, rgb(255 249 233 / 35%), transparent 60%),
+    conic-gradient(from 210deg, rgb(201 182 255 / 45%), rgb(223 255 79 / 40%), rgb(255 194 168 / 40%), rgb(201 182 255 / 45%));
+}
+
+.share-art__skeleton--square .share-art__bone--disc {
+  width: 30%;
+  margin-block: 0.5rem 0;
+}
+
+.share-art__bone--badge {
+  width: 58%;
+  height: 1.6rem;
+  background: rgb(223 255 79 / 42%);
+  transform: rotate(-3deg);
+}
+
+.share-art__bone--line {
+  justify-self: stretch;
+  height: 1.4rem;
+  margin-top: 0.4rem;
+}
+
+.share-art__bone--short {
+  justify-self: start;
+  width: 70%;
+}
+
+.share-art__bone--note {
+  justify-self: stretch;
+  height: 3.4rem;
+  margin-top: 0.4rem;
+  border-radius: 1rem;
+  background: rgb(255 249 233 / 22%);
+}
+
+.share-art__loading {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: var(--share-art-cream);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+@keyframes share-art-shimmer {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-art__skeleton::after {
+    animation: none;
+    transform: none;
+    opacity: 0.4;
+  }
+
+  .share-art__image {
+    transition: none;
+  }
+}
+
+.share-art-privacy {
+  margin: 0;
+  color: inherit;
+  font-size: 0.8125rem;
+  text-align: center;
+}

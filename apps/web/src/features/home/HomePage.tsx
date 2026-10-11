@@ -29,7 +29,7 @@ import {
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
 import { birthCompletionPrompt } from "../../shared/astro/birthReadiness";
-import { dailyContextPath } from "../../shared/astro/dailyContext";
+import { dailyContextPath, dailyContextQueryKey } from "../../shared/astro/dailyContext";
 import {
   dismissReadingUpdate,
   isReadingUpdateDismissed,
@@ -43,6 +43,29 @@ import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
 import { SignalContextPicker } from "../../shared/ui/SignalContextPicker";
+import { LaLoading } from "../../shared/ui/la/LaLoading";
+import { laMoodReaction } from "../../shared/ui/la/laVoice";
+import { moonPhase } from "../../shared/ui/la/moonPhase";
+import { useVibe } from "../../shared/vibe/useVibe";
+import { tapFeedback } from "../../shared/ui/la/haptics";
+import { NightNudge, WeekRecap } from "./HomeRituals";
+import "./home-vitality.css";
+
+const RITUAL_KEY = "la-lanh-daily-ritual-v1";
+
+/** True once per note date: the first open of the day plays the unfold ritual. */
+function useDailyRitual(noteDate: string | undefined): boolean {
+  const [ritual] = useState(() => {
+    if (!noteDate) return false;
+    try { return localStorage.getItem(RITUAL_KEY) !== noteDate; } catch { return false; }
+  });
+  useEffect(() => {
+    if (!noteDate) return;
+    // Stores only the calendar date of the note, never note content or mood.
+    try { localStorage.setItem(RITUAL_KEY, noteDate); } catch { /* Storage may be unavailable. */ }
+  }, [noteDate]);
+  return ritual;
+}
 
 const moods: readonly { value: MoodValue; emoji: string; hint: string }[] = [
   { value: "Rực", emoji: "🤩", hint: "Nhiều năng lượng, muốn bật mode hết mình" },
@@ -55,15 +78,18 @@ const moods: readonly { value: MoodValue; emoji: string; hint: string }[] = [
 export function HomePage() {
   const queryClient = useQueryClient();
   const cachedAtStart = useMemo(() => readCachedDailyNote(), []);
+  const { vibe } = useVibe();
+  const direct = vibe === "direct";
   const noteQuery = useQuery({
-    queryKey: ["daily-note"],
+    queryKey: dailyContextQueryKey("auto", vibe),
     queryFn: async ({ signal }) => {
-      const freshNote = await getDailyNote(signal);
-      writeCachedDailyNote(freshNote);
+      const freshNote = direct ? await getDailyNote(signal) : await getDailyNote(signal, vibe);
+      // The offline cache keeps the direct wording only.
+      if (direct) writeCachedDailyNote(freshNote);
       return freshNote;
     },
-    initialData: cachedAtStart?.note,
-    initialDataUpdatedAt: cachedAtStart ? 0 : undefined,
+    initialData: direct ? cachedAtStart?.note : undefined,
+    initialDataUpdatedAt: direct && cachedAtStart ? 0 : undefined,
   });
   const baseNote = noteQuery.data;
   const [contextualNote, setContextualNote] = useState<{ note: DailyNote; revision: number }>();
@@ -92,6 +118,8 @@ export function HomePage() {
     retry: false,
   });
   const [mood, setMood] = useState<MoodValue | null>(null);
+  const moonLabel = useMemo(() => moonPhase().label, []);
+  const ritual = useDailyRitual(note?.note_date);
   const [moodSheetOpen, setMoodSheetOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [resonance, setResonance] = useState<ResonanceChoice | null>(null);
@@ -113,16 +141,18 @@ export function HomePage() {
         if (!baseNote) throw new Error("Missing daily note");
         return baseNote;
       }
-      const cached = queryClient.getQueryData<DailyNote>(["daily-note-context", nextContext]);
+      const cached = queryClient.getQueryData<DailyNote>(dailyContextQueryKey(nextContext, vibe));
       if (cached) return cached;
       if (!baseNote) throw new Error("Missing daily note");
-      const projection = await getContextualReading(nextContext);
+      const projection = direct
+        ? await getContextualReading(nextContext)
+        : await getContextualReading(nextContext, undefined, vibe);
       return { ...baseNote, reading_projection: projection };
     },
     onSuccess: (nextNote, nextContext, requestContext) => {
       if (requestContext.revision !== chartDataRevision(queryClient)) return;
       if (nextContext !== "auto") {
-        queryClient.setQueryData(["daily-note-context", nextContext], nextNote);
+        queryClient.setQueryData(dailyContextQueryKey(nextContext, vibe), nextNote);
         setContextualNote({ note: nextNote, revision: requestContext.revision });
       } else {
         setContextualNote(undefined);
@@ -174,14 +204,7 @@ export function HomePage() {
     },
     onSuccess: (payload) => {
       setMood(payload.mood);
-      const feedback: Record<MoodValue, string> = {
-        "Rực": "Bạn đang nhiều năng lượng. Nhớ để dành một chút cho mình.",
-        Chill: "Nhịp này đẹp đấy. Không cần đẩy mọi thứ đi nhanh hơn.",
-        "Đuối": "Hôm nay bớt một việc cũng là chăm mình.",
-        "Căng": "Thở chậm một nhịp trước khi trả lời điều quan trọng.",
-        "Lạc trôi": "Chưa cần hiểu hết. Chỉ cần tìm một điểm để quay về.",
-      };
-      setMessage(feedback[payload.mood]);
+      setMessage(laMoodReaction(payload.mood, vibe));
     },
     onError: (_error, value) => {
       localStorage.setItem("la-lanh-pending-mood-v1", JSON.stringify({ note_id: note?.id, mood: value }));
@@ -213,7 +236,7 @@ export function HomePage() {
     }
   }, [note]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (noteQuery.isLoading) return <HomeState text="Đang mở note hôm nay…" />;
+  if (noteQuery.isLoading) return <HomeState text="Lá đang mở note hôm nay…" />;
   const missingSession = isGuestSessionUnavailable(noteQuery.error);
 
   if (!note) {
@@ -265,7 +288,7 @@ export function HomePage() {
   );
 
   return (
-    <main className="app-page home-page signal-note-home" data-home-motion={motionPaused ? "paused" : "running"}>
+    <main className="app-page home-page signal-note-home" data-home-motion={motionPaused ? "paused" : "running"} data-ritual={ritual ? "today" : undefined}>
       <HomeHeader motionControl={
         <button
           aria-label={motionPaused ? "Bật chuyển động" : "Tạm dừng chuyển động"}
@@ -277,8 +300,8 @@ export function HomePage() {
           {motionPaused ? <Play aria-hidden="true" size={19} /> : <Pause aria-hidden="true" size={19} />}
         </button>
       } />
-      <HomeValueHero date={note.note_date}>
-        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => moodMutation.mutate(value)} open={moodSheetOpen} pending={moodMutation.isPending} />
+      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? dailyContextPath("/note/today", context) : undefined}>
+        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate(value); }} open={moodSheetOpen} pending={moodMutation.isPending} />
       </HomeValueHero>
 
       {noteQuery.isError ? (
@@ -310,6 +333,10 @@ export function HomePage() {
 
       <HomeExploreRoutes />
 
+      <NightNudge />
+
+      <WeekRecap />
+
       {showGift && availableUpdate && note.reading_projection ? (
         <ReadingUpdateGift
           activeMode={activeReading?.mode}
@@ -335,7 +362,7 @@ export function HomePage() {
       {showUnlock && completionPrompt ? (
         <aside className="unlock-note">
           <Planet aria-hidden="true" />
-          <div><strong>Muốn hiểu mình rõ hơn?</strong><p>{completionPrompt.body}</p></div>
+          <div><strong>Còn lá ẩn chờ bạn mở</strong><p>{completionPrompt.body}</p></div>
           <Link to="/birth-time">{completionPrompt.cta}</Link>
         </aside>
       ) : null}
@@ -370,7 +397,7 @@ function MoodPicker({
         onClick={() => onOpenChange(true)}
         type="button"
       >
-        <span aria-hidden="true"><Smiley weight="regular" size={28} /></span>
+        <span aria-hidden="true">{selected ? <span className="mood-quick-trigger__emoji">{selected.emoji}</span> : <Smiley weight="regular" size={28} />}</span>
         <strong className="sr-only">{selected?.value ?? "Mood hôm nay?"}</strong>
         <CaretDown aria-hidden="true" size={16} />
       </button>
@@ -420,11 +447,15 @@ function HomeHeader({ motionControl }: { motionControl?: ReactNode }) {
   );
 }
 
-function HomeValueHero({ date, children }: { date?: string; children?: ReactNode }) {
+function HomeValueHero({ date, moon, whyPath, children }: { date?: string; moon?: string; whyPath?: string; children?: ReactNode }) {
   const displayDate = date ?? new Date().toISOString().slice(0, 10);
   return (
     <section className="home-value-hero">
-      <time dateTime={displayDate}>{date ? formatNoteDate(date) : "Hôm nay"}</time>
+      <div className="home-value-hero__meta">
+        <time dateTime={displayDate}>{date ? formatNoteDate(date) : "Hôm nay"}</time>
+        {moon ? <span className="home-value-hero__moon">{moon}</span> : null}
+        {whyPath ? <Link className="home-value-hero__why" to={whyPath}>Vì sao hôm nay?</Link> : null}
+      </div>
       <h1 className="sr-only">Hôm nay có gì đáng để ý?</h1>
       {children}
     </section>
@@ -490,7 +521,7 @@ function HomeState({ text }: { text: string }) {
     <main className="app-page home-page signal-note-home">
       <HomeHeader />
       <HomeValueHero />
-      <section className="entry-loading"><span className="entry-loading__orbit" /><p>{text}</p></section>
+      <LaLoading text={text} delayMs={0} />
       <HomeExploreRoutes />
       <AppNav />
     </main>

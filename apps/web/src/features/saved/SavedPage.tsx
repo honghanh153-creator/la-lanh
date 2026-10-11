@@ -7,6 +7,7 @@ import { listSavedNotes, unsaveDailyNote, type SavedNote } from "../../shared/ap
 import { readLocalSavedNotes, unsaveNoteLocally } from "../../shared/storage/savedNoteCache";
 import { AppNav } from "../../shared/ui/AppNav";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { LaLoading } from "../../shared/ui/la/LaLoading";
 
 function noteText(saved: SavedNote, key: "title" | "body" | "context_label" | "persona_mode" | "persona_label"): string {
   const value = saved.note_snapshot[key];
@@ -66,7 +67,7 @@ export function SavedPage() {
       <header className="section-header"><BrandMark /><h1>Đã lưu</h1></header>
       {message ? <p className="success-message" role="status">{message} {undoTimer.current !== null ? <button className="text-link" onClick={undoRemove} type="button">Hoàn tác</button> : null}</p> : null}
       {savedQuery.isLoading ? (
-        <section className="entry-loading"><span className="entry-loading__orbit" /><p>Đang lật lại những note đã giữ…</p></section>
+        <LaLoading delayMs={0} text="Lá đang lật lại những note bạn đã giữ…" />
       ) : notes.length > 0 || localNotes.length > 0 ? (
         <section className="saved-list" aria-label="Những note đã lưu">
           {notes.map((saved) => (

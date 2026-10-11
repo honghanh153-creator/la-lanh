@@ -34,6 +34,7 @@ from app.domains.tarot.models import (
     TarotReadingPosition,
     TarotSessionState,
     TarotSessionView,
+    TarotVoice,
 )
 from app.domains.tarot.tables import TarotSessionRow
 from app.infrastructure.crypto import EnvelopeCipher
@@ -129,6 +130,9 @@ def compile_tarot_rewrite_request(
 ) -> RewriteRequestEnvelope | None:
     reading = session.reading
     if session.state is not TarotSessionState.COMPLETE or reading is None:
+        return None
+    if reading.voice is TarotVoice.ROAST:
+        # The reviewed local roast stays as is; no new prose or voice reaches a provider.
         return None
     reduced = reduce_tarot_question(reading.question, category=_category(reading.context))
     if reduced is None:

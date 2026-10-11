@@ -14,6 +14,7 @@ import { BirthCardPage } from "../features/card/BirthCardPage";
 import { SharePreviewPage } from "../features/card/SharePreviewPage";
 import { ConsentPage } from "../features/consent/ConsentPage";
 import { DemoPage } from "../features/consent/DemoPage";
+import { CompanionLabPage } from "../features/companion-lab/CompanionLabPage";
 import { EntryPage } from "../features/entry/EntryPage";
 import { HomePage } from "../features/home/HomePage";
 import { NoteDetailPage } from "../features/home/NoteDetailPage";
@@ -76,6 +77,8 @@ export const appRoutes: RouteObject[] = [
       { path: "consent", element: <WelcomePage /> },
       { path: "privacy", element: <ConsentPage /> },
       { path: "demo", element: <DemoPage /> },
+      // QA-only comparison of companion options; reads/writes no personal data.
+      { path: "companion-lab", element: <CompanionLabPage /> },
       { path: "birth", element: <BirthDatePage /> },
       { path: "birth-time", element: <BirthSupplementPage /> },
       { path: "reveal", element: <RevealPage /> },
