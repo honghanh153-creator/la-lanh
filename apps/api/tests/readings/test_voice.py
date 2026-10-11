@@ -7,7 +7,13 @@ import pytest
 
 from app.domains.astro.models import TimePrecision, Tradition, ZodiacSign
 from app.domains.readings.daily_personalization import PLACEMENT_MEANINGS
-from app.domains.readings.daily_psychology import _ARENA_LEADS, DAILY_ISSUES, DailyIssuePattern
+from app.domains.readings.daily_psychology import (
+    _ARENA_LEADS,
+    DAILY_ISSUES,
+    LEGACY_ARENA_LEADS,
+    DailyIssuePattern,
+    lead_scene,
+)
 from app.domains.readings.models import (
     BackgroundLens,
     PlanMode,
@@ -105,37 +111,46 @@ def test_roast_lines_avoid_banned_words_and_stay_readable() -> None:
         assert not re.search(r"người kia (?:đang )?(?:nghĩ|giận|ghét|thích|muốn)", line), line
 
 
-def _sections_for(issue_key: str, *, arena: SemanticArena | None) -> DailySections:
+def _sections_for(
+    issue_key: str, *, arena: SemanticArena | None, legacy: bool = False
+) -> DailySections:
     issue = next(issue for issue in DAILY_ISSUES if issue.key == issue_key)
-    lead = _ARENA_LEADS.get(arena) if arena is not None else None
-    scene = issue.scenes[0] if lead is None else f"{lead} {issue.scenes[0]}"
-    return DailySections(
-        issue.headlines[0],
-        f"{PLACEMENT_MEANINGS.get(issue_key, 'Dữ kiện chưa đủ.')} {issue.meaning} {issue.takeaway}",
-        scene,
-        issue.advice[0],
-    )
+    placement = PLACEMENT_MEANINGS.get(issue_key, "Dữ kiện chưa đủ.")
+    if legacy:
+        # Saved v6 notes: fragment lead, four-sentence thesis carrying the meaning.
+        lead = LEGACY_ARENA_LEADS.get(arena) if arena is not None else None
+        scene = issue.scenes[0] if lead is None else f"{lead} {issue.scenes[0]}"
+        thesis = f"{placement} {issue.meaning} Một câu rút ra cũ. Cảnh là ví dụ."
+    else:
+        lead = _ARENA_LEADS.get(arena) if arena is not None else None
+        scene = issue.scenes[0] if lead is None else lead_scene(lead, issue.scenes[0])
+        thesis = f"{placement} {issue.takeaway}"
+    return DailySections(issue.headlines[0], thesis, scene, issue.advice[0])
 
 
+@pytest.mark.parametrize("legacy", [False, True], ids=["current", "saved-v6"])
 @pytest.mark.parametrize("issue", DAILY_ISSUES, ids=lambda issue: issue.key)
-def test_roast_keeps_issue_scene_and_exact_action(issue: DailyIssuePattern) -> None:
+def test_roast_keeps_issue_scene_and_exact_action(issue: DailyIssuePattern, legacy: bool) -> None:
     key = issue.key
-    direct = _sections_for(key, arena=SemanticArena.WORK)
+    direct = _sections_for(key, arena=SemanticArena.WORK, legacy=legacy)
     roast = roast_daily_sections(direct)
     voice = ROAST_ISSUES[key]
 
     assert roast.hook == dict(voice.headlines)[direct.hook]
     assert roast.thesis.startswith(f"{voice.jab} ")
-    assert issue.meaning in roast.thesis
+    assert (issue.meaning if legacy else issue.takeaway) in roast.thesis
     assert roast.manifestation.startswith(direct.manifestation)
     assert roast.micro_action.endswith(direct.micro_action)
     assert roast.micro_action == f"{voice.action_frame} {direct.micro_action}"
 
 
+@pytest.mark.parametrize("legacy", [False, True], ids=["current", "saved-v6"])
 @pytest.mark.parametrize("arena", [SemanticArena.ENERGY, SemanticArena.SELF_CARE])
-def test_energy_and_self_care_examples_only_get_gentle_teasing(arena: SemanticArena) -> None:
+def test_energy_and_self_care_examples_only_get_gentle_teasing(
+    arena: SemanticArena, legacy: bool
+) -> None:
     for key, voice in ROAST_ISSUES.items():
-        direct = _sections_for(key, arena=arena)
+        direct = _sections_for(key, arena=arena, legacy=legacy)
         roast = roast_daily_sections(direct)
 
         assert roast.thesis.startswith(f"{voice.gentle_jab} ")

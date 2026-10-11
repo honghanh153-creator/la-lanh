@@ -20,7 +20,9 @@ from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_MATRIX_VERSION,
     PSYCHOLOGY_SOURCES,
     issue_source_ids,
+    lead_scene,
     source_ids,
+    split_scene_lead,
 )
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
@@ -86,10 +88,10 @@ def test_daily_matrix_replays_same_day_and_keeps_scene_separate_from_advice() ->
     assert first.semantic_blueprint.action_key.startswith("psychology:")
     assert first.semantic_blueprint.daily_meaning is not None
     assert first.semantic_blueprint.daily_meaning.observation_question is not None
-    assert first.thesis == (
-        f"{first.semantic_blueprint.daily_meaning.core_meaning} "
-        f"{first.semantic_blueprint.daily_meaning.reader_takeaway}"
-    )
+    meaning = first.semantic_blueprint.daily_meaning
+    assert first.thesis.endswith(f" {meaning.reader_takeaway}")
+    personal = first.thesis.removesuffix(f" {meaning.reader_takeaway}")
+    assert meaning.core_meaning.startswith(f"{personal} ")
     assert not re.search(
         r"(?:^|[.!?]\s+)(?:hãy|thử|nên|đừng)\s+",
         f"{first.hook} {first.manifestation}",
@@ -175,7 +177,7 @@ def test_every_authored_daily_combination_passes_the_direct_home_gate() -> None:
             )
             for title, scene, action in product(issue.headlines, issue.scenes, actions):
                 lead = _ARENA_LEADS.get(arena)
-                manifestation = f"{lead} {scene}" if lead else scene
+                manifestation = lead_scene(lead, scene) if lead else scene
                 report = evaluate_daily_rewrite(
                     {"title": title, "scene": manifestation, "action": action}, meaning_brief=brief
                 )
@@ -451,7 +453,9 @@ def test_same_known_date_only_facts_legitimately_share_a_card_and_explain_limits
     assert _meaning(first) == _meaning(second)
     card = _card(first)
     assert card.semantic_blueprint is not None and card.semantic_blueprint.daily_meaning is not None
-    assert "góc đọc tổng quát" in card.semantic_blueprint.daily_meaning.reader_takeaway
+    # The date-only limit is disclosed by the evidence, not repeated in the main text.
+    assert any("chỉ từ ngày sinh" in claim.display_text for claim in card.evidence.claims)
+    assert "giờ sinh" not in card.thesis
 
 
 def test_unknown_sign_uses_explicitly_unpersonalized_hypothetical_scene() -> None:
@@ -466,7 +470,7 @@ def test_unknown_sign_uses_explicitly_unpersonalized_hypothetical_scene() -> Non
         editorial_seed="2026-10-09",
     )
     assert not eligible_daily_situations(plan)
-    assert "Dữ kiện chưa đủ" in _meaning(plan)[0]
+    assert "chưa đủ dữ kiện" in _meaning(plan)[0]
     assert "nhà" not in " ".join(_card(plan).all_user_prose).lower()
 
 
@@ -617,3 +621,46 @@ def test_equal_eligible_factors_do_not_consume_daily_novelty_slots() -> None:
         meanings.add(card.semantic_blueprint.daily_meaning.core_meaning)
     assert len(cards) == 365
     assert len(meanings) == 1
+
+
+_SENTENCE = re.compile(r"(?<=[.!?])\s+")
+
+
+def test_thesis_is_two_subject_sentences_that_do_not_repeat_the_card() -> None:
+    """Owner audit 11.10.2026: the main paragraph was four glued, subjectless sentences."""
+    planner = ReadingPlanner()
+    renderer = DeterministicVietnameseRenderer()
+    engine = NatalChartEngine()
+    charts = [_date_only()] + [
+        engine.calculate_chart(
+            ChartInput(
+                utc_datetime=datetime(1985 + i, (i % 12) + 1, 3 + i, (i * 5) % 24, 10, tzinfo=UTC),
+                latitude=10.8 + i * 0.3,
+                longitude=106.6 - i * 0.2,
+            ),
+            CalculationConfig.western_recommended(),
+        )
+        for i in range(8)
+    ]
+    for chart, lens, offset in product(charts, BackgroundLens, range(0, 60, 7)):
+        day = date(2026, 10, 1) + timedelta(days=offset)
+        plan = planner.plan(
+            chart,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            background_lens=lens,
+            editorial_seed=day.isoformat(),
+        )
+        card = renderer.render(plan)
+        sentences = _SENTENCE.split(card.thesis)
+        assert len(sentences) == 2, card.thesis
+        for sentence in sentences:
+            assert "bạn" in sentence.casefold() or sentence.startswith("Lá "), sentence
+            assert not sentence.startswith(("Có thể", "Nên", "Cảnh", "Chỉ là")), sentence
+            for other in (card.hook, card.manifestation, card.micro_action):
+                assert sentence not in other, (sentence, other)
+        assert "dự báo" not in card.thesis and "giờ sinh" not in card.thesis
+        # The context lead opens the scene sentence instead of being a fragment.
+        assert not card.manifestation.startswith("Ví dụ")
+        arena, scene = split_scene_lead(card.manifestation)
+        if arena is not None:
+            assert lead_scene(_ARENA_LEADS[arena], scene) == card.manifestation

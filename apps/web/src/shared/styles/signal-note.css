@@ -157,6 +157,7 @@
 .reading-content__experiment-cues { display: grid; gap: 0.45rem; padding: 0.8rem; border-left: 3px solid #5a7510; border-radius: 0.5rem; color: #514461; background: rgb(110 82 148 / 8%); }
 .reading-content__experiment-cues p { margin: 0; font-size: 0.78rem; line-height: 1.5; }
 .reading-content__experiment-cues strong { color: #332445; }
+.reading-content__experiment-cues .reading-content__permission { color: #6a5d78; }
 .reading-content__experiment-note { color: #6b6076; font-size: 0.76rem; line-height: 1.5; }
 .reading-content__experiment-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
 .reading-content__experiment-actions .text-button { min-height: 2.75rem; padding: 0.45rem 0; }
@@ -669,21 +670,8 @@
   border-left: 3px solid #5fcaca;
   border-radius: 0.65rem;
   margin: 0 0 0.85rem;
-  background: #edf9f7;
-}
-
-.reading-evidence .reading-content__transit h2,
-.reading-evidence .reading-content__transit p {
-  margin: 0;
-}
-
-.reading-evidence .reading-content__transit h2 {
-  margin-bottom: 0.35rem;
-  font-size: 0.76rem;
-}
-
-.reading-evidence .reading-content__transit p {
   color: #40394d;
+  background: #edf9f7;
   font-size: 0.78rem;
   line-height: 1.5;
 }

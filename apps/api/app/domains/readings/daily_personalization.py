@@ -20,7 +20,7 @@ from app.domains.readings.models import (
     SemanticArena,
 )
 
-PERSONALIZATION_VERSION = "daily-semantic-eligibility-v3"
+PERSONALIZATION_VERSION = "daily-semantic-eligibility-v4"
 
 # Sun-only angles follow the existing sign catalog's distinct stresses, not a
 # numeric offset into unrelated situations. They remain general editorial lenses.
@@ -111,52 +111,52 @@ PAIR_RULES = (
         frozenset({"mercury", "venus"}),
         "group-pressure",
         "specific-feedback",
-        "Muốn hiểu cho rõ nhưng cũng muốn giữ hòa khí khi mọi người chốt ý.",
-        "Có thể hỏi phần cần góp ý để vừa hiểu rõ vừa trao đổi với người kia.",
+        "Bạn muốn hiểu cho rõ, nhưng cũng muốn giữ hòa khí khi mọi người đã chốt ý.",
+        "Bạn hợp với kiểu hỏi đúng phần cần góp ý, vừa hiểu rõ vừa giữ được trao đổi.",
         "specific-feedback",
-        "Ở đây có cả nhu cầu hiểu rõ lẫn nhu cầu được người kia hiểu đúng.",
+        "Bạn vừa cần hiểu rõ, vừa cần được người kia hiểu đúng.",
     ),
     PairRule(
         frozenset({"mercury", "saturn"}),
         "perfect-before-start",
         "specific-feedback",
-        "Muốn nói cho đúng có thể kéo dài việc sửa dù đã đủ ý.",
-        "Có thể dùng phần đã chuẩn bị để hỏi đúng chỗ cần góp ý.",
+        "Bạn muốn nói cho thật đúng, nên dễ sửa mãi dù đã đủ ý.",
+        "Bạn làm tốt khi dùng phần đã chuẩn bị để hỏi đúng chỗ cần góp ý.",
     ),
     PairRule(
         frozenset({"mercury", "neptune"}),
         "missing-context",
         "specific-feedback",
-        "Muốn hiểu cho rõ nhưng điều mình đoán có thể lấp chỗ thông tin còn thiếu.",
-        "Có thể đưa ý tưởng thành bản nháp để hỏi phần người đọc chưa hiểu.",
+        "Bạn muốn hiểu cho rõ, nhưng dễ tự đoán để lấp chỗ thông tin còn thiếu.",
+        "Bạn làm rõ ý tưởng tốt hơn khi viết thành bản nháp cho người khác đọc.",
     ),
     PairRule(
         frozenset({"venus", "saturn"}),
         "capacity-before-agreement",
         "specific-feedback",
-        "Muốn giữ lời với người khác nhưng thời gian nhận việc có giới hạn.",
-        "Có thể nói rõ phần cần người khác góp ý để hợp tác dễ hơn.",
+        "Bạn muốn giữ lời với người khác, trong khi thời gian nhận việc có giới hạn.",
+        "Bạn hợp tác dễ hơn khi nói rõ phần cần người khác góp ý.",
     ),
     PairRule(
         frozenset({"moon", "mars"}),
         "quick-reply",
         "name-the-need",
-        "Muốn phản ứng ngay trong khi cảm giác của mình còn cần được gọi tên.",
-        "Có thể nói rõ điều mình cần rồi mới chọn việc làm tiếp.",
+        "Bạn dễ phản ứng ngay, trước khi kịp gọi tên cảm giác của mình.",
+        "Bạn làm tiếp dễ hơn khi đã nói rõ điều mình cần.",
     ),
     PairRule(
         frozenset({"sun", "saturn"}),
         "comparison-loop",
         "specific-feedback",
-        "Muốn làm tốt có thể thành tự chê khi nhìn kết quả của người khác.",
-        "Có thể dùng tiêu chuẩn rõ để xin góp ý cho việc mình đã làm.",
+        "Bạn muốn làm tốt, nên dễ tự chê khi nhìn kết quả của người khác.",
+        "Bạn tiến bộ rõ hơn khi xin góp ý theo một tiêu chuẩn cụ thể.",
     ),
     PairRule(
         frozenset({"venus", "mars"}),
         "avoid-small-conflict",
         "name-the-need",
-        "Muốn giữ hòa khí nhưng vẫn có việc mình không muốn nhận.",
-        "Có thể nói rõ mong muốn thay vì để người kia tự đoán.",
+        "Bạn muốn giữ hòa khí, dù vẫn có việc bạn không muốn nhận.",
+        "Bạn dễ được hiểu hơn khi nói thẳng mong muốn của mình.",
     ),
 )
 
@@ -240,7 +240,7 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
                 context = HOUSE_ARENAS[house_number]
                 if key == "automatic-caretaking" and house_number in {6, 10}:
                     key = "capacity-before-agreement"
-                    meaning = "Muốn giúp trong việc cần làm nhưng lịch nhận việc có giới hạn."
+                    meaning = "Bạn muốn giúp trong việc cần làm, nhưng lịch nhận việc có giới hạn."
         situations.append(
             SupportedSituation(
                 key,
@@ -301,7 +301,7 @@ def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ..
         phase = factor.phase.value if factor.phase else _natal_phase(factor)
         if tense and key == "quick-reply" and phase == "separating":
             key = "repair-reply"
-            meaning = "Nên xem lại cách trả lời thay vì tiếp tục phản ứng ngay."
+            meaning = "Bạn dễ thấy mình vừa trả lời hơi nhanh, và vẫn kịp nói lại cho rõ."
         # A transit is secondary to a selected natal interaction, and must be
         # connected to the known natal actor. No calendar/event claim is made.
         priority = 2 if transit else (3 if factor.id in heroes else 1)

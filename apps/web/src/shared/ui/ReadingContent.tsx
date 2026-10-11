@@ -9,7 +9,7 @@ import type {
 } from "../api/client";
 import type { DailyExperimentStatus } from "../hooks/useDailyExperiment";
 import { ReadingDisclaimer } from "./ReadingDisclaimer";
-import { readingModeLabel } from "./readingLabels";
+import { readingModeLabel, WHY_TODAY_ID } from "./readingLabels";
 
 type ReadingContentProps = {
   content: ReadingContentModel;
@@ -22,6 +22,8 @@ type ReadingContentProps = {
   onReflect?: (outcome: ExperimentOutcome) => void;
   toolbar?: ReactNode;
 };
+
+const ACTION_HEADING = "Thử một việc nhỏ";
 
 const outcomeLabels: Record<ExperimentOutcome, string> = {
   not_tried: "Chưa thử",
@@ -44,6 +46,7 @@ export function ReadingContent({
   const isVibeFallback = content.mode === "vibe_fallback";
   const experiment = (
     <ExperimentSection
+      compact={compact}
       content={content}
       currentExperiment={currentExperiment}
       error={experimentError}
@@ -92,6 +95,7 @@ export function ReadingContent({
 }
 
 function ExperimentSection({
+  compact,
   content,
   currentExperiment,
   error,
@@ -100,6 +104,7 @@ function ExperimentSection({
   onUndo,
   status,
 }: {
+  compact: boolean;
   content: ReadingContentModel;
   currentExperiment: DailyExperiment | null;
   error: string | null;
@@ -120,7 +125,16 @@ function ExperimentSection({
   }, [currentExperiment?.id, currentExperiment?.version, experiment?.action_key]);
 
   if (!experiment) {
-    return null;
+    const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
+    // Home already shows this action; the detail page must not drop it just
+    // because a non-exact reading has no holdable experiment.
+    if (compact || !isDaily || !content.sections.micro_action) return null;
+    return (
+      <section className="reading-content__action" aria-labelledby="reading-action-title">
+        <h2 id="reading-action-title">{ACTION_HEADING}</h2>
+        <p className="reading-content__experiment-action">{content.sections.micro_action}</p>
+      </section>
+    );
   }
 
   const isReflected = currentMatches && currentExperiment?.state === "reflected";
@@ -134,12 +148,11 @@ function ExperimentSection({
 
   return (
     <section className="reading-content__action" aria-labelledby={`experiment-${experiment.action_key}`}>
-      <p className="eyebrow">Một thử nghiệm nhỏ</p>
-      <h2 id={`experiment-${experiment.action_key}`}>Thử rồi tự kiểm chứng</h2>
+      <h2 id={`experiment-${experiment.action_key}`}>{ACTION_HEADING}</h2>
       <p className="reading-content__experiment-action">{experiment.action}</p>
       <div className="reading-content__experiment-cues">
         <p><strong>Để ý:</strong> {experiment.observation}</p>
-        <p><strong>Quyền của bạn:</strong> {experiment.permission}</p>
+        <p className="reading-content__permission">{experiment.permission}</p>
       </div>
 
       {isReflected ? (
@@ -155,7 +168,7 @@ function ExperimentSection({
           <p className="reading-content__experiment-action">{currentExperiment.action}</p>
           <div className="reading-content__experiment-cues">
             <p><strong>Để ý:</strong> {currentExperiment.observation}</p>
-            <p><strong>Quyền của bạn:</strong> {currentExperiment.permission}</p>
+            <p className="reading-content__permission">{currentExperiment.permission}</p>
           </div>
           {currentExperiment.state === "chosen" ? (
             <button className="text-button" disabled={busy} onClick={onUndo} type="button">
@@ -218,14 +231,12 @@ function ExperimentSection({
 
 function Evidence({ content }: { content: ReadingContentModel }) {
   const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
+  const openFromLink = isDaily && typeof window !== "undefined" && window.location.hash === `#${WHY_TODAY_ID}`;
   return (
-    <details className="reading-evidence">
+    <details className="reading-evidence" id={isDaily ? WHY_TODAY_ID : undefined} open={openFromLink || undefined}>
       <summary><ChartBar aria-hidden="true" /><span>{isDaily ? "Vì sao hôm nay?" : "Bản đọc này dựa vào đâu?"}</span></summary>
       {content.sections.transit ? (
-        <div className="reading-content__transit">
-          <h2>Vì sao hôm nay thấy rõ hơn?</h2>
-          <p>{content.sections.transit}</p>
-        </div>
+        <p className="reading-content__transit">{content.sections.transit}</p>
       ) : null}
       <strong>{content.evidence.title}</strong>
       <ul>

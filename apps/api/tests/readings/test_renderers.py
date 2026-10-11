@@ -324,10 +324,11 @@ def test_every_reading_mode_keeps_evidence_while_rendering_one_contextual_scene(
     # Daily explanation follows the selected situation, not an unrelated natal paragraph.
     assert contextual.semantic_blueprint is not None
     assert contextual.semantic_blueprint.daily_meaning is not None
-    assert contextual.thesis == (
-        f"{contextual.semantic_blueprint.daily_meaning.core_meaning} "
-        f"{contextual.semantic_blueprint.daily_meaning.reader_takeaway}"
-    )
+    meaning = contextual.semantic_blueprint.daily_meaning
+    # Reader sees two sentences: the personal tendency, then the takeaway.
+    assert contextual.thesis.endswith(f" {meaning.reader_takeaway}")
+    personal = contextual.thesis.removesuffix(f" {meaning.reader_takeaway}")
+    assert meaning.core_meaning.startswith(f"{personal} ")
     assert contextual.semantic_blueprint is not None
     assert contextual.semantic_blueprint.arena.value == lens.value
     assert contextual.transit == plain.transit
