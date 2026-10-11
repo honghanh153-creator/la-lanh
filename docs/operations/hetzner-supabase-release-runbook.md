@@ -297,6 +297,21 @@ Review the file without changing the established contract:
 
 ## Phase 2 — secrets and database readiness
 
+**Verified database TLS (from release `3e89cba6c052`+, 2026-10-11).** The app verifies PostgreSQL
+identity on every connection. Supabase's pooler chains to the private "Supabase Root 2021 CA", which
+is committed at `infra/hetzner/certs/supabase-root-2021-ca.pem` (see that folder's README for source
+and fingerprint) and mounted at `/etc/la-lanh/database-ca.pem`. The server-only `database_url` must
+carry `sslrootcert=/etc/la-lanh/database-ca.pem`; add it in place without printing the URL. Keep the
+previous file as `database_url.pre-ca` (0600) while a pre-`3e89cba6c052` image is the rollback
+target: those images pass unknown query parameters to asyncpg and fail with this URL, so a rollback
+must restore `database_url.pre-ca` first.
+
+Backups: `infra/hetzner/backup-database.sh` (root-only custom dump of `public`, checksum, 14-day
+retention, `sslmode=verify-full`). Rehearse every schema change with
+`infra/hetzner/rehearse-migration.sh` (restores the newest backup into a disposable TLS-enabled
+PostgreSQL, runs the release image's migrations, privacy check and readiness, then destroys it).
+Staging: `infra/hetzner/staging/up.sh` (own empty database and keys; auth/generation off).
+
 Normally, keep the existing secret files. Recreate the database URL only after a password rotation or
 if the file is missing. From an interactive VPS terminal:
 

@@ -21,6 +21,7 @@ services:
       - guest_encryption_key
     volumes:
       - ./entrypoint.sh:/usr/local/bin/la-lanh-entrypoint:ro
+      - ./certs/supabase-root-2021-ca.pem:/etc/la-lanh/database-ca.pem:ro
     expose:
       - "8080"
     healthcheck:
@@ -76,6 +77,7 @@ services:
       - openai_api_key
     volumes:
       - ./entrypoint.sh:/usr/local/bin/la-lanh-entrypoint:ro
+      - ./certs/supabase-root-2021-ca.pem:/etc/la-lanh/database-ca.pem:ro
     healthcheck:
       test:
         - CMD

@@ -16,10 +16,16 @@ umask 077
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 out="${BACKUP_DIR}/la-lanh-${stamp}.dump"
 
+CA_FILE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/certs/supabase-root-2021-ca.pem"
+[[ -s "$CA_FILE" ]] || { echo "Missing database CA: $CA_FILE" >&2; exit 2; }
+
+# Same verified identity as the app: trust only the Supabase root, check the host.
 docker run --rm --network host \
   -v "${SECRETS_DIR}/database_url:/run/secrets/database_url:ro" \
+  -v "${CA_FILE}:/etc/la-lanh/database-ca.pem:ro" \
   "$PG_IMAGE" sh -ec '
-    url="$(sed -e "s#^postgresql+asyncpg://#postgresql://#" -e "s#\([?&]\)ssl=#\1sslmode=#" /run/secrets/database_url)"
+    url="$(sed -e "s#^postgresql+asyncpg://#postgresql://#" -e "s#\([?&]\)ssl=[^&]*#\1sslmode=verify-full#" /run/secrets/database_url)"
+    case "$url" in *sslrootcert=*) ;; *\?*) url="${url}&sslrootcert=/etc/la-lanh/database-ca.pem" ;; *) url="${url}?sslrootcert=/etc/la-lanh/database-ca.pem" ;; esac
     exec pg_dump --format=custom --no-owner --schema=public --dbname="$url"
   ' > "${out}.partial"
 
