@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Rehearse a release migration on a disposable copy of the latest backup.
+#
+# Restores the newest dump into a throwaway PostgreSQL container on a private
+# Docker network (with the Supabase browser roles present so grants restore),
+# runs the release image's `alembic upgrade head`, the privacy isolation check
+# and a private readiness probe, then destroys the container and its data.
+# Nothing touches the production database. Credentials stay inside containers.
+set -euo pipefail
+
+: "${LA_LANH_RELEASE_ID:?Set LA_LANH_RELEASE_ID to the release image tag}"
+BACKUP_DIR="${LA_LANH_BACKUP_DIR:-/opt/la-lanh/backups}"
+SECRETS_DIR="${LA_LANH_SECRETS_DIR:-/opt/la-lanh/secrets}"
+PG_IMAGE="${LA_LANH_PG_IMAGE:-postgres:17-alpine}"
+IMAGE="la-lanh:${LA_LANH_RELEASE_ID}"
+NAME="la-lanh-rehearsal-$$"
+NET="${NAME}-net"
+
+dump="$(ls -1t "${BACKUP_DIR}"/la-lanh-*.dump 2>/dev/null | head -n1)"
+[[ -n "$dump" ]] || { echo "No backup found in ${BACKUP_DIR}" >&2; exit 2; }
+sha256sum --check --status "${dump}.sha256" || { echo "Backup checksum mismatch" >&2; exit 2; }
+docker image inspect "$IMAGE" >/dev/null
+
+cleanup() {
+  docker rm -f "$NAME" "${NAME}-app" >/dev/null 2>&1 || true
+  docker network rm "$NET" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+password="$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')"
+docker network create --internal "$NET" >/dev/null
+docker run -d --name "$NAME" --network "$NET" --tmpfs /var/lib/postgresql/data \
+  -e POSTGRES_PASSWORD="$password" -e POSTGRES_DB=rehearsal "$PG_IMAGE" >/dev/null
+for _ in $(seq 1 60); do
+  docker exec "$NAME" pg_isready -U postgres -d rehearsal >/dev/null 2>&1 && break
+  sleep 1
+done
+
+docker exec "$NAME" psql -q -U postgres -d rehearsal -v ON_ERROR_STOP=1 -c "
+  CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;"
+docker exec -i "$NAME" pg_restore -U postgres -d rehearsal --no-owner < "$dump" || \
+  echo "pg_restore reported non-fatal warnings (missing Supabase-only objects are expected)"
+echo "Restored rows: guest_sessions=$(docker exec "$NAME" psql -tA -U postgres -d rehearsal -c 'select count(*) from guest_sessions')"
+echo "Head before: $(docker exec "$NAME" psql -tA -U postgres -d rehearsal -c 'select version_num from alembic_version')"
+
+secret_dir="$(mktemp -d)"
+chmod 0700 "$secret_dir"
+printf 'postgresql+asyncpg://postgres:%s@%s:5432/rehearsal' "$password" "$NAME" > "${secret_dir}/database_url"
+cp "${SECRETS_DIR}/guest_hash_key" "${SECRETS_DIR}/guest_encryption_key" "$secret_dir/"
+chown -R 65532:65532 "$secret_dir"
+chmod 0600 "$secret_dir"/*
+trap 'rm -rf "$secret_dir"; cleanup' EXIT
+
+run_app() {
+  docker run --rm --network "$NET" --env-file "$(dirname "$0")/app.env" \
+    -e LA_LANH_DATABASE_URL_FILE=/run/secrets/database_url \
+    -e LA_LANH_GUEST_HASH_KEY_FILE=/run/secrets/guest_hash_key \
+    -e LA_LANH_GUEST_ENCRYPTION_KEY_FILE=/run/secrets/guest_encryption_key \
+    -e LA_LANH_AUTH_ENABLED=false -e LA_LANH_GENERATION_ENABLED=false \
+    -v "${secret_dir}:/run/secrets:ro" \
+    -v "$(dirname "$0")/entrypoint.sh:/usr/local/bin/la-lanh-entrypoint:ro" \
+    --entrypoint /usr/local/bin/la-lanh-entrypoint "$IMAGE" "$@"
+}
+
+run_app alembic upgrade head
+echo "Head after: $(docker exec "$NAME" psql -tA -U postgres -d rehearsal -c 'select version_num from alembic_version')"
+run_app python -m scripts.check_database_privacy
+echo "Rows after: guest_sessions=$(docker exec "$NAME" psql -tA -U postgres -d rehearsal -c 'select count(*) from guest_sessions')"
+
+docker run -d --name "${NAME}-app" --network "$NET" --env-file "$(dirname "$0")/app.env" \
+  -e LA_LANH_DATABASE_URL_FILE=/run/secrets/database_url \
+  -e LA_LANH_GUEST_HASH_KEY_FILE=/run/secrets/guest_hash_key \
+  -e LA_LANH_GUEST_ENCRYPTION_KEY_FILE=/run/secrets/guest_encryption_key \
+  -e LA_LANH_AUTH_ENABLED=false -e LA_LANH_GENERATION_ENABLED=false \
+  -v "${secret_dir}:/run/secrets:ro" \
+  -v "$(dirname "$0")/entrypoint.sh:/usr/local/bin/la-lanh-entrypoint:ro" \
+  --entrypoint /usr/local/bin/la-lanh-entrypoint "$IMAGE" >/dev/null
+for _ in $(seq 1 60); do
+  if docker exec "${NAME}-app" python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8080/v1/ready',timeout=4).read().decode())" 2>/dev/null; then
+    echo "Rehearsal readiness OK"
+    exit 0
+  fi
+  sleep 2
+done
+echo "Rehearsal app never became ready" >&2
+docker logs --tail 40 "${NAME}-app" >&2
+exit 1

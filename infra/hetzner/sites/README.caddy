@@ -1,0 +1,2 @@
+# Optional extra Caddy sites (e.g. staging.caddy) are imported from here.
+# Server-only files; this placeholder keeps the import glob non-empty.

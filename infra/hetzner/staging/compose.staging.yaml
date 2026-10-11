@@ -1,0 +1,94 @@
+# Public staging stack for owner testing. Own empty PostgreSQL, own keys, no
+# production data. Joins the production Compose network only so the shared
+# Caddy can reach it as `staging-app`. Auth and generation stay disabled.
+name: la-lanh-staging
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lalanh
+      POSTGRES_USER: lalanh
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - staging-db:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lalanh -d lalanh"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: la-lanh:${LA_LANH_RELEASE_ID:?Set LA_LANH_RELEASE_ID}
+    restart: unless-stopped
+    env_file:
+      - app.env
+    environment:
+      LA_LANH_DATABASE_URL_FILE: /run/secrets/database_url
+      LA_LANH_GUEST_HASH_KEY_FILE: /run/secrets/guest_hash_key
+      LA_LANH_GUEST_ENCRYPTION_KEY_FILE: /run/secrets/guest_encryption_key
+      LA_LANH_GENERATION_WORKER_ENABLED: "false"
+    entrypoint: ["/usr/local/bin/la-lanh-entrypoint"]
+    secrets:
+      - database_url
+      - guest_hash_key
+      - guest_encryption_key
+    volumes:
+      - ../entrypoint.sh:/usr/local/bin/la-lanh-entrypoint:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      internal: {}
+      edge:
+        aliases:
+          - staging-app
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8080/v1/ready', timeout=4).read()
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  internal:
+    internal: true
+  edge:
+    external: true
+    name: la-lanh_default
+
+secrets:
+  db_password:
+    file: ${LA_LANH_STAGING_SECRETS_DIR:-/opt/la-lanh/staging/secrets}/db_password
+  database_url:
+    file: ${LA_LANH_STAGING_SECRETS_DIR:-/opt/la-lanh/staging/secrets}/database_url
+  guest_hash_key:
+    file: ${LA_LANH_STAGING_SECRETS_DIR:-/opt/la-lanh/staging/secrets}/guest_hash_key
+  guest_encryption_key:
+    file: ${LA_LANH_STAGING_SECRETS_DIR:-/opt/la-lanh/staging/secrets}/guest_encryption_key
+
+volumes:
+  staging-db:

@@ -15,6 +15,9 @@ Thumbs.db
 .env.*
 !.env.example
 infra/hetzner/app.env
+infra/hetzner/staging/app.env
+infra/hetzner/sites/*.caddy
+!infra/hetzner/sites/README.caddy
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
