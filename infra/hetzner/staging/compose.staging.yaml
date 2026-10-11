@@ -32,7 +32,10 @@ services:
       timeout: 5s
       retries: 10
 
-  app:
+  # Never name this service "app": on the shared production network the
+  # service name is a DNS alias, and Caddy would load-balance production
+  # traffic between both stacks.
+  staging-app:
     image: la-lanh:${LA_LANH_RELEASE_ID:?Set LA_LANH_RELEASE_ID}
     restart: unless-stopped
     env_file:
@@ -55,9 +58,7 @@ services:
         condition: service_healthy
     networks:
       internal: {}
-      edge:
-        aliases:
-          - staging-app
+      edge: {}
     healthcheck:
       test:
         - CMD

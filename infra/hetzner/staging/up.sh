@@ -38,7 +38,15 @@ docker compose -f compose.staging.yaml exec -T db psql -q -U lalanh -d lalanh -v
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF;
   END \$\$;"
-docker compose -f compose.staging.yaml run --rm --no-deps app alembic upgrade head
-docker compose -f compose.staging.yaml run --rm --no-deps app python -m scripts.check_database_privacy
-docker compose -f compose.staging.yaml up -d --wait app
+docker compose -f compose.staging.yaml run --rm --no-deps staging-app alembic upgrade head
+docker compose -f compose.staging.yaml run --rm --no-deps staging-app python -m scripts.check_database_privacy
+docker compose -f compose.staging.yaml up -d --wait staging-app
+# Guard: from Caddy's point of view, "app" must resolve to exactly one
+# container (production). Anything else would split production traffic.
+app_ips="$(docker exec la-lanh-caddy-1 nslookup app 127.0.0.11 2>/dev/null | awk '/^Name:/{n=1;next} n&&/^Address/{c++} END{print c+0}')"
+if [[ "$app_ips" != "1" ]]; then
+  echo "Production alias 'app' resolves to ${app_ips} containers; disconnecting staging" >&2
+  docker network disconnect la-lanh_default la-lanh-staging-staging-app-1 || true
+  exit 2
+fi
 echo "Staging ${LA_LANH_RELEASE_ID} is running behind https://${STAGING_HOSTNAME}"
