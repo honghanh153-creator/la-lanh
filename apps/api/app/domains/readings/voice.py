@@ -21,7 +21,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from app.domains.readings.daily_personalization import PLACEMENT_MEANINGS
-from app.domains.readings.daily_psychology import _ARENA_LEADS, DAILY_ISSUES
+from app.domains.readings.daily_psychology import (
+    DAILY_ISSUES,
+    DailyIssuePattern,
+    split_scene_lead,
+)
 from app.domains.readings.models import (
     ReadingContentProjection,
     ReadingProjection,
@@ -579,10 +583,7 @@ _ACTION_ISSUE: dict[str, str] = {
 _PLACEMENT_ROAST: dict[str, str] = {
     PLACEMENT_MEANINGS[key]: roast for key, roast in ROAST_PLACEMENT_MEANINGS.items()
 }
-_GENTLE_LEADS = frozenset(
-    _ARENA_LEADS[arena] for arena in (SemanticArena.ENERGY, SemanticArena.SELF_CARE)
-)
-_LEADS = tuple(_ARENA_LEADS.values())
+_GENTLE_ARENAS = frozenset({SemanticArena.ENERGY, SemanticArena.SELF_CARE})
 
 
 def _validate_catalog() -> None:
@@ -609,11 +610,9 @@ class DailySections:
     micro_action: str
 
 
-def _split_lead(manifestation: str) -> tuple[str | None, str]:
-    for lead in _LEADS:
-        if manifestation.startswith(f"{lead} "):
-            return lead, manifestation[len(lead) + 1 :]
-    return None, manifestation
+def _thesis_matches(issue: DailyIssuePattern, thesis: str) -> bool:
+    # Current theses end with the takeaway; saved v6 theses carry the meaning.
+    return f" {issue.takeaway} " in f" {thesis} " or f" {issue.meaning} " in f" {thesis} "
 
 
 def _resolve_issue(sections: DailySections) -> str | None:
@@ -622,7 +621,7 @@ def _resolve_issue(sections: DailySections) -> str | None:
     if sections.micro_action in _ACTION_ISSUE:
         return _ACTION_ISSUE[sections.micro_action]
     return next(
-        (issue.key for issue in DAILY_ISSUES if f" {issue.meaning} " in f" {sections.thesis} "),
+        (issue.key for issue in DAILY_ISSUES if _thesis_matches(issue, sections.thesis)),
         None,
     )
 
@@ -635,19 +634,24 @@ def roast_daily_sections(sections: DailySections) -> DailySections:
         return sections
     issue = _ISSUES[key]
     voice = ROAST_ISSUES[key]
-    lead, scene = _split_lead(sections.manifestation)
-    gentle = lead in _GENTLE_LEADS
+    arena, scene = split_scene_lead(sections.manifestation)
+    gentle = arena in _GENTLE_ARENAS
 
     hook = _HEADLINE_ROAST.get(sections.hook, sections.hook)
     if _HEADLINE_ISSUE.get(sections.hook, key) != key:
         hook = sections.hook
 
     thesis = sections.thesis
-    if f" {issue.meaning} " in f" {thesis} ":
+    if _thesis_matches(issue, thesis):
+        if thesis.endswith(f" {issue.takeaway}"):
+            # The jab is Roast's insight sentence; keeping the direct takeaway
+            # after it would say the same thing twice.
+            thesis = thesis[: -len(issue.takeaway) - 1]
         if not gentle:
             for direct, roast in _PLACEMENT_ROAST.items():
-                if thesis.startswith(f"{direct} "):
-                    thesis = f"{roast} {thesis[len(direct) + 1 :]}"
+                # v7: the tendency is the whole remaining thesis; v6: it opens it.
+                if thesis == direct or thesis.startswith(f"{direct} "):
+                    thesis = f"{roast}{thesis[len(direct) :]}"
                     break
         thesis = f"{voice.gentle_jab if gentle else voice.jab} {thesis}"
 

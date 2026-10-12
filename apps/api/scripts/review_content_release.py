@@ -112,7 +112,7 @@ def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
                 surface="daily",
                 sections=(
                     ("hook", daily.hook),
-                    *((("thesis", daily.thesis),) if roast else ()),
+                    ("thesis", daily.thesis),
                     ("scene", daily.manifestation),
                     ("action", daily.micro_action),
                 ),

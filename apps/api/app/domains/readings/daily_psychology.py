@@ -7,11 +7,13 @@ from hashlib import sha256
 from app.domains.astro.models import TimePrecision, Tradition
 from app.domains.readings.daily_personalization import (
     BODY_DOMAINS,
+    CAPACITY_AT_WORK_MEANING,
     HOUSE_ARENAS,
     PAIR_RULES,
     PERSONALIZATION_VERSION,
     PLACEMENT_ISSUES,
     PLACEMENT_MEANINGS,
+    REPAIR_REPLY_MEANING,
     SIGN_ELEMENTS,
     SUN_ISSUES,
     SupportedSituation,
@@ -27,7 +29,7 @@ from app.domains.readings.models import (
     SemanticArena,
 )
 
-DAILY_PSYCHOLOGY_MATRIX_VERSION = "daily-direct-meaning-v6"
+DAILY_PSYCHOLOGY_MATRIX_VERSION = "daily-direct-meaning-v7"
 
 
 @dataclass(frozen=True)
@@ -159,7 +161,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Đọc lại tin nhắn một lần, rồi hỏi phần còn chưa rõ.",
         ),
         "Tin nhắn chưa đủ rõ; cách mình hiểu có thể khác điều người gửi muốn nói.",
-        "Chưa hiểu một tin nhắn không có nghĩa là người kia đang khó chịu.",
+        "Tin nhắn ngắn không có nghĩa là người kia đang khó chịu với bạn.",
         ("tin nhắn", "nhắn"),
         ("chưa rõ", "chưa hiểu", "tin nhắn", "người gửi"),
         ("ross-nisbett-person-situation", "harris-happiness-trap"),
@@ -195,7 +197,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Đặt 20 phút cho một việc. Hết giờ mới xem việc tiếp theo.",
         ),
         "Chuyển việc liên tục khiến nhiều việc cùng dang dở, dù mình đã dành thời gian làm.",
-        "Bận nhiều không đồng nghĩa với hoàn thành nhiều.",
+        "Mỗi lần chuyển việc, bạn mất thêm thời gian để nhớ lại mình đang làm tới đâu.",
         ("việc", "dở"),
         ("chọn", "một việc", "20 phút"),
         ("csikszentmihalyi-flow", "kahneman-thinking-fast-slow"),
@@ -231,7 +233,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Nói rõ giờ nào không tiện và đề nghị một giờ hẹn khác.",
         ),
         "Giờ hẹn thay đổi ảnh hưởng đến lịch của mình, không chỉ đến cuộc hẹn.",
-        "Có thể nói rõ giờ nào còn phù hợp thay vì tự đổi hết lịch.",
+        "Một lịch hẹn bị đổi thường kéo theo cả ngày của bạn, không chỉ một buổi gặp.",
         ("hẹn", "lịch"),
         ("giờ", "lịch", "hẹn"),
         ("goleman-emotional-intelligence", "rosenberg-nonviolent-communication"),
@@ -264,7 +266,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Đặt bài đăng sang bên và ghi việc tiếp theo của mình.",
         ),
         "Nhìn thành quả của người khác có thể khiến mình bỏ qua tiến triển của chính mình.",
-        "So với việc mình làm trước đó giúp nhìn rõ tiến triển hơn một bài đăng của người khác.",
+        "Thứ người khác đăng lên thường là khoảnh khắc đẹp nhất, không phải cả quá trình.",
         ("người khác", "thành quả", "kết quả"),
         ("mình", "của mình"),
         ("dweck-mindset", "neff-self-compassion"),
@@ -300,7 +302,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Chọn phần bạn đủ sức giúp, chưa nhận hết việc.",
         ),
         "Muốn giúp không có nghĩa là mình có thời gian và sức để nhận hết.",
-        "Có thể giúp một phần và nói rõ giới hạn của mình.",
+        "Giúp quá sức thường khiến việc của chính bạn bị dồn lại sau.",
         ("giúp", "nhờ", "cần bạn"),
         ("giúp", "nhận", "lịch"),
         ("goleman-emotional-intelligence", "neff-self-compassion"),
@@ -333,7 +335,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Viết điều bạn cần nhất, rồi chọn phương án đáp ứng điều đó.",
         ),
         "Mệt và quá nhiều lựa chọn có thể làm việc chọn mất thêm thời gian.",
-        "Ít lựa chọn hơn hoặc nghỉ trước khi chọn có thể giúp mình so sánh rõ hơn.",
+        "Khó chọn lúc mệt không có nghĩa là bạn thiếu quyết đoán.",
         ("chọn", "phương án", "quyết định"),
         ("chọn", "phương án", "tiêu chí"),
         ("kahneman-thinking-fast-slow", "harris-happiness-trap"),
@@ -363,7 +365,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Gửi bản nháp cho người cần xem và hỏi một câu cụ thể.",
         ),
         "Bản nháp đã đủ để người khác đọc, nhưng mình trì hoãn gửi vì còn lo bị đánh giá.",
-        "Có thể gửi để nhận góp ý mà chưa cần chỉnh mọi câu thật hoàn hảo.",
+        "Người đọc cần một bản nháp, không cần một bản hoàn hảo.",
         ("bản nháp", "sửa", "gửi"),
         ("gửi", "góp ý"),
         ("dweck-mindset", "csikszentmihalyi-flow"),
@@ -393,7 +395,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Xin cả nhóm giải thích lại đúng chỗ bạn còn chưa rõ.",
         ),
         "Mọi người đồng ý rất nhanh nhưng mình vẫn chưa hiểu đủ để đồng ý.",
-        "Cả nhóm đã chốt không có nghĩa là câu hỏi của mình đã được giải đáp.",
+        "Chỗ chưa hiểu hôm nay thường quay lại thành việc phải làm lại sau.",
         ("nhóm", "mọi người"),
         ("nhóm", "giải thích", "chưa hiểu"),
         ("cialdini-influence", "ross-nisbett-person-situation"),
@@ -423,7 +425,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Nói lại giờ nào mình có thể làm được việc đã nhận.",
         ),
         "Mình nói đồng ý để tránh từ chối, dù việc đó không phù hợp với thời gian hoặc mong muốn.",
-        "Người kia khó biết mình không tiện nếu mình chỉ nói đồng ý.",
+        "Một câu đồng ý cho xong dễ làm người kia hiểu sai điều bạn muốn.",
         ("nhờ", "nhận", "việc"),
         ("nhận", "làm được", "không tiện"),
         ("rosenberg-nonviolent-communication", "goleman-emotional-intelligence"),
@@ -459,7 +461,7 @@ DAILY_ISSUES: tuple[DailyIssuePattern, ...] = (
             "Hỏi điều gì cần thay đổi để cách làm này có kết quả.",
         ),
         "Công sức đã bỏ ra có thể khiến mình giữ một cách làm chưa hiệu quả.",
-        "Việc đã làm nhiều và việc đang có hiệu quả là hai điều khác nhau.",
+        "Đã tốn nhiều công sức không phải lý do để giữ một cách chưa ổn.",
         ("kết quả", "cách", "làm"),
         ("kết quả", "cách", "thay đổi"),
         ("tavris-aronson-mistakes-were-made", "dweck-mindset"),
@@ -509,7 +511,7 @@ DAILY_ISSUES += (
         "Khi có người nhờ thêm việc, bạn có thể muốn nhận dù chưa biết lịch còn chỗ nào.",
         "Kiểm tra lịch rồi nói rõ phần bạn làm được và thời gian cần.",
         "Muốn nhận việc và có thời gian làm việc đó là hai điều khác nhau.",
-        "Có thể nói rõ thời gian mình cần thay vì nhận hết ngay.",
+        "Nhận thêm khi lịch đã kín thường khiến việc nào cũng bị làm vội.",
         ("nhờ", "lịch"),
         ("lịch", "thời gian"),
         "Bạn đã tìm được thời gian cho phần việc mình nhận chưa?",
@@ -521,7 +523,7 @@ DAILY_ISSUES += (
         "Khi một tin nhắn làm bạn khó chịu, bạn có thể gõ câu trả lời ngay dù chưa đọc hết.",
         "Đọc hết tin nhắn rồi viết câu trả lời về đúng điều người kia hỏi.",
         "Phản ứng nhanh có thể đi trước việc hiểu đầy đủ tin nhắn.",
-        "Có thể đọc hết rồi trả lời đúng câu hỏi, chưa cần gửi câu đầu tiên.",
+        "Câu bật ra đầu tiên chưa chắc là điều bạn thật sự muốn nói.",
         ("tin nhắn", "chưa đọc hết"),
         ("đọc hết", "câu trả lời"),
         "Câu trả lời của bạn đã đúng điều người kia hỏi chưa?",
@@ -533,7 +535,7 @@ DAILY_ISSUES += (
         "Khi đọc lại tin nhắn vừa gửi, bạn có thể thấy cách mình trả lời gắt hơn điều muốn nói.",
         "Nhắn lại ý bạn muốn nói bằng một câu rõ, không trách người kia.",
         "Sau một câu trả lời vội, có thể sửa cách nói thay vì tiếp tục tranh cãi.",
-        "Có thể làm rõ ý vừa nói mà không đoán người kia đang nghĩ gì.",
+        "Lỡ nói gắt một câu không có nghĩa là cả cuộc trò chuyện đã hỏng.",
         ("vừa gửi", "đã gửi", "đọc lại"),
         ("nhắn lại", "nói lại", "muốn nói"),
         "Bạn đã nói lại đúng ý mình muốn người kia hiểu chưa?",
@@ -545,7 +547,7 @@ DAILY_ISSUES += (
         "Khi gửi bản nháp để xin góp ý, bạn có thể chỉ hỏi ổn chưa mà chưa nói phần cần xem.",
         "Chọn một phần trong bản nháp và hỏi người đọc góp ý đúng phần đó.",
         "Bản nháp giúp trao đổi rõ hơn khi câu hỏi chỉ đúng phần cần góp ý.",
-        "Có thể xin góp ý cụ thể, không cần chờ người đọc đoán mình cần gì.",
+        "Người đọc thường góp ý theo điều họ thấy, không theo điều bạn đang lo.",
         ("bản nháp", "góp ý"),
         ("một phần", "đúng phần", "phần còn", "góp ý riêng"),
         "Bạn đã nhận được góp ý cho đúng phần mình cần chưa?",
@@ -562,7 +564,7 @@ DAILY_ISSUES += (
         "Khi thấy quá tải, bạn có thể nói mình mệt nhưng chưa nói việc nào cần người kia giúp.",
         "Nói một việc cụ thể bạn cần giúp và hỏi người kia có làm được không.",
         "Nói mình mệt chưa cho người kia biết việc cụ thể mình cần giúp.",
-        "Có thể đưa một đề nghị rõ mà không coi người kia phải tự hiểu.",
+        "Lời than mệt thường chỉ nhận lại lời an ủi, chưa phải sự giúp đỡ.",
         ("quá tải", "giúp"),
         ("cụ thể", "cần giúp", "nhờ giúp"),
         "Người kia đã biết bạn cần giúp việc cụ thể nào chưa?",
@@ -1024,6 +1026,7 @@ DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
             "body_domains": BODY_DOMAINS,
             "house_arenas": HOUSE_ARENAS,
             "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
+            "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
         },
         ensure_ascii=False,
         sort_keys=True,
@@ -1032,13 +1035,42 @@ DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
 ).hexdigest()[:8]
 
 
+NO_PERSONAL_MEANING = "Lá chưa đủ dữ kiện để nói riêng về bạn ở góc này."
+
+# A lead opens the scene sentence ("Với người kia, khi …") so the context reads
+# as one sentence, not a fragment. Every scene starts with "Khi".
 _ARENA_LEADS = {
+    SemanticArena.RELATIONSHIPS: "Với người kia,",
+    SemanticArena.COMMUNICATION: "Trong một cuộc nói chuyện,",
+    SemanticArena.WORK: "Trong công việc hoặc chuyện học,",
+    SemanticArena.ENERGY: "Về năng lượng của cơ thể,",
+    SemanticArena.SELF_CARE: "Trong giờ nghỉ ngơi,",
+}
+# v6 notes stored a separate fragment before the scene; saved notes keep it.
+LEGACY_ARENA_LEADS = {
     SemanticArena.RELATIONSHIPS: "Ví dụ với người kia.",
     SemanticArena.COMMUNICATION: "Ví dụ trong cuộc nói chuyện.",
     SemanticArena.WORK: "Ví dụ trong công việc hoặc chuyện học.",
     SemanticArena.ENERGY: "Ví dụ khi chăm cơ thể.",
     SemanticArena.SELF_CARE: "Ví dụ trong giờ nghỉ ngơi.",
 }
+
+
+def lead_scene(lead: str, scene: str) -> str:
+    return f"{lead} {scene[:1].lower()}{scene[1:]}"
+
+
+def split_scene_lead(manifestation: str) -> tuple[SemanticArena | None, str]:
+    """Return the scene's arena lead and the direct scene text, current or legacy."""
+
+    for arena, lead in _ARENA_LEADS.items():
+        if manifestation.startswith(f"{lead} "):
+            rest = manifestation[len(lead) + 1 :]
+            return arena, f"{rest[:1].upper()}{rest[1:]}"
+    for arena, lead in LEGACY_ARENA_LEADS.items():
+        if manifestation.startswith(f"{lead} "):
+            return arena, manifestation[len(lead) + 1 :]
+    return None, manifestation
 
 
 def apply_daily_psychology(
@@ -1086,21 +1118,17 @@ def apply_daily_psychology(
     lead = _ARENA_LEADS.get(scene_arena)
     manifestation = issue.scenes[scene_slot]
     if lead is not None:
-        manifestation = f"{lead} {manifestation}"
+        manifestation = lead_scene(lead, manifestation)
     actions = issue.relationship_advice if arena is SemanticArena.RELATIONSHIPS else issue.advice
     action = actions[advice_slot]
     source_refs = tuple(f"psychology-source:{source_id}" for source_id in issue.source_ids)
-    core_meaning = (
-        f"{selected.meaning} {issue.meaning}"
-        if selected
-        else "Dữ kiện chưa đủ cho xu hướng riêng ở góc này. " + issue.meaning
-    )
-    limitation = (
-        "Chỉ là góc đọc tổng quát, chưa có dữ kiện giờ sinh."
-        if any(factor.kind is FactorKind.DATE_ONLY_VIBE for factor in plan.factors)
-        else "Cảnh là ví dụ, không phải sự việc được dự báo."
-    )
-    takeaway = f"{issue.takeaway} {limitation}"
+    personal_meaning = selected.meaning if selected else NO_PERSONAL_MEANING
+    # The rewrite brief keeps the situation's meaning; the reader sees two
+    # sentences: what tends to happen for you, then what you can take from it.
+    # Limits (example scene, date-only reading) live in the evidence and the one
+    # page disclaimer, never inside the main text.
+    core_meaning = f"{personal_meaning} {issue.meaning}"
+    takeaway = issue.takeaway
     allowed_refs = {
         factor.id
         for factor in plan.factors
@@ -1128,7 +1156,7 @@ def apply_daily_psychology(
     return replace(
         frame,
         hook=issue.headlines[headline_slot],
-        thesis=f"{core_meaning} {takeaway}",
+        thesis=f"{personal_meaning} {takeaway}",
         manifestation=manifestation,
         micro_action=action,
         knowledge_refs=(

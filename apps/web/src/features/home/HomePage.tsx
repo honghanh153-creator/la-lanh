@@ -41,6 +41,7 @@ import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
+import { WHY_TODAY_ID } from "../../shared/ui/readingLabels";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
 import { SignalContextPicker } from "../../shared/ui/SignalContextPicker";
 import { LaLoading } from "../../shared/ui/la/LaLoading";
@@ -300,7 +301,7 @@ export function HomePage() {
           {motionPaused ? <Play aria-hidden="true" size={19} /> : <Pause aria-hidden="true" size={19} />}
         </button>
       } />
-      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? dailyContextPath("/note/today", context) : undefined}>
+      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? `${dailyContextPath("/note/today", context)}#${WHY_TODAY_ID}` : undefined}>
         <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate(value); }} open={moodSheetOpen} pending={moodMutation.isPending} />
       </HomeValueHero>
 

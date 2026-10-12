@@ -36,16 +36,23 @@ describe("ReadingContent", () => {
   });
   it("hides current activation for a natal-only reading", () => {
     render(<ReadingContent content={content} />);
-    expect(screen.queryByRole("heading", { name: "Vì sao hôm nay thấy rõ hơn?" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Nhịp hiện tại đang tăng dần; quan sát điều gì lặp lại.")).not.toBeInTheDocument();
     expect(screen.getByRole("note", { name: "Lưu ý về bản đọc" })).toHaveTextContent(
       content.disclaimer,
     );
   });
 
-  it("does not invent an action block when the reading has no experiment", () => {
-    render(<ReadingContent content={content} />);
+  it("still shows the Daily action without a hold button when there is no experiment", () => {
+    render(<ReadingContent content={{ ...content, mode: "limited", precision: "unknown" }} />);
 
-    expect(screen.queryByRole("heading", { name: "Đối chiếu với hôm nay" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Thử một việc nhỏ" })).toBeInTheDocument();
+    expect(screen.getByText(content.sections.micro_action)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Giữ để thử hôm nay" })).not.toBeInTheDocument();
+  });
+
+  it("does not add a Daily action to a natal reading", () => {
+    render(<ReadingContent content={{ ...content, purpose: "reading_detail" }} />);
+
     expect(screen.queryByText(content.sections.micro_action)).not.toBeInTheDocument();
   });
 
@@ -68,8 +75,17 @@ describe("ReadingContent", () => {
     } satisfies ReadingContentModel;
     render(<ReadingContent content={withTransit} />);
 
-    expect(screen.getByRole("heading", { name: "Vì sao hôm nay thấy rõ hơn?" })).toBeInTheDocument();
+    // One label: the summary. No second heading repeating the same question.
+    expect(screen.getAllByText(/Vì sao hôm nay/)).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: /Vì sao hôm nay/ })).not.toBeInTheDocument();
     expect(screen.getByText(withTransit.sections.transit)).toBeInTheDocument();
+  });
+
+  it("opens the why-today panel when Home links to it", () => {
+    window.history.replaceState(null, "", "/note/today#vi-sao-hom-nay");
+    const { container } = render(<ReadingContent content={content} />);
+    expect(container.querySelector("details#vi-sao-hom-nay")).toHaveAttribute("open");
+    window.history.replaceState(null, "", "/");
   });
 
   it("renders server-owned action cues and requires explicit replace confirmation", async () => {
