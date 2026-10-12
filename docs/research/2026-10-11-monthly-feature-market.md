@@ -1,31 +1,38 @@
 # Market research: "Tháng này có gì mới" (monthly feature) — 2026-10-11
 
 Read-only web research. No source code changed. No sign-in, purchase or installer download.
-Companion doc (repo feasibility, data retention, engine gaps):
+Not legal advice. Companion doc (repo feasibility, data model, retention, engine gaps):
 `docs/research/2026-10-11-monthly-feature-feasibility.md`.
+
+Revision 2026-10-12: addresses review of PR #9 (guest storage and recap window, legal sources,
+Rule 3 dates, source critique). The v1/v2 direction below is still an **unconfirmed
+recommendation**. The owner must pick a direction and create a user story with AC and DoD before
+anything is built.
 
 ---
 
 ## Tóm tắt tiếng Việt
 
-**Thị trường làm gì với "tháng":**
-- Hầu hết app chiêm tinh lớn **không có màn "tháng này" riêng**. Co–Star chỉ có note ngày và bán "Your Year Ahead". CHANI có bài đọc theo tuần, và bản 2026 có "month-by-month" cùng lịch "key dates" (trăng mới/tròn, nghịch hành, nhật/nguyệt thực). The Pattern dùng **timeline chu kỳ cá nhân** (bắt đầu, đỉnh, kết thúc). TimePassages và Astro Future có **danh sách mốc quan trọng** và thanh kéo thời gian. Moonly, Stardust và Labyrinthos xoay quanh **chu kỳ trăng**: nghi thức trăng mới/tròn, spread theo pha trăng, vòng pha trăng. Sanctuary và Nebula bán tử vi ngày/tuần/tháng/năm **theo 12 cung**, dạng chung chung.
-- Ở Việt Nam, khung "tháng" mặc định là **Lịch Vạn Niên**: lưới tháng âm/dương, rằm/mùng một, **ngày tốt/xấu, giờ hoàng đạo**. Lá Lành phải tránh đúng mô thức này, vì nó là dự đoán định mệnh.
+**Thị trường làm gì với "tháng"** (mẫu khoảng 11 app đã tra, không phải toàn thị trường):
+- Trong mẫu này, phần lớn app chiêm tinh lớn **không có màn "tháng này" riêng**. Co–Star chỉ có note ngày và bán "Your Year Ahead". CHANI có bài đọc theo tuần, và bản 2026 có "month-by-month" cùng lịch "key dates" (trăng mới/tròn, nghịch hành, nhật/nguyệt thực). The Pattern dùng **timeline chu kỳ cá nhân**. TimePassages và Astro Future có **danh sách mốc quan trọng**. Moonly, Stardust và Labyrinthos xoay quanh **chu kỳ trăng**. Sanctuary và Nebula bán tử vi ngày/tuần/tháng/năm **theo 12 cung**.
+- Ở Việt Nam, khung "tháng" mặc định là **Lịch Vạn Niên**: lưới tháng âm/dương, rằm/mùng một, **ngày tốt/xấu, giờ hoàng đạo**. Lá Lành phải tránh đúng mô thức này.
 
-**Bằng chứng giữ chân người dùng:** Không có số liệu công khai đáng tin nào so sánh nội dung tháng với nội dung ngày. Ba điều có bằng chứng:
-- "Fresh start effect" (Dai, Milkman & Riis 2014): đầu tuần và đầu tháng làm tăng hành vi hướng mục tiêu.
-- Recap cá nhân có thể chia sẻ được (Spotify Wrapped 2025: hơn 200 triệu người dùng trong 24 giờ, hơn 500 triệu lượt chia sẻ).
+**Bằng chứng:** Không có số liệu công khai đáng tin nào so sánh nội dung tháng với nội dung ngày.
+- "Fresh start effect" (Dai, Milkman & Riis 2014) đo các mốc thời gian như đầu tuần/tháng/năm, học kỳ, sinh nhật, ngày lễ. Bài **không** nghiên cứu trăng mới. "Trăng mới là một mốc làm mới" chỉ là **giả thuyết cần thử**.
+- Spotify Wrapped 2025 là case về **chia sẻ**: hơn 200 triệu người xem ít nhất một story trong 24 giờ; hơn 500 triệu lượt chia sẻ, tính cả ảnh chụp màn hình và tải về. Lượt chia sẻ không phải số người riêng biệt, và nguồn không có số liệu giữ chân hay ROI.
 - Recap kiểu "fun facts" khó duy trì (Gentler Streak đã bỏ).
 
-Người dùng phàn nàn nhiều nhất về **paywall, push dày và upsell, nội dung lặp hoặc chung chung**. Có phàn nàn về giọng tiêu cực (Co–Star) và nỗi sợ "Mercury nghịch hành", nhưng chủ yếu xuất hiện trong báo chí văn hoá.
+**Dữ liệu và recap (đã đối chiếu code):** Máy chủ giữ note ngày, mood, thí nghiệm hành động và tarot theo từng hồ sơ (`guest_id`, kể cả khách). Dữ liệu này bị xóa vật lý khi đã đủ 29 ngày 18 giờ, ở lần dọn đầu tiên sau đó (job chạy mỗi 6 giờ). Lời hứa là "tối đa 30 ngày", **không phải "giữ đủ 30 ngày"**. Thiết bị chỉ giữ cache trong bộ nhớ 36 giờ và vài marker đồng bộ, **không có kho lịch sử**. Vì vậy "tính trên thiết bị" chưa phải khả năng sẵn có. Có hai lựa chọn thật: (1) endpoint tổng hợp theo hồ sơ, đọc từ dữ liệu còn được phép giữ; (2) xây kho local mới, có thời hạn, xóa, đăng xuất và tách theo hồ sơ. Recap phải ghi rõ khoảng ngày thật có dữ liệu, ngày thiếu và ngày bắt đầu opt-in. Không coi ngày thiếu là "không hoạt động" hay mood bằng 0. Không âm thầm kéo dài thời hạn lưu.
 
-**Pháp lý (nguồn chính thức):**
-- Luật BVDLCN 91/2025/QH15 và Nghị định 356/2025/NĐ-CP có hiệu lực từ 01/01/2026. **Nghị định 13/2023 đã bị thay thế.**
-- Recap dùng mood hoặc nhật ký có thể chạm danh mục **dữ liệu nhạy cảm** ("đời sống riêng tư", "tình trạng sức khỏe"). Vì vậy cần đồng ý **riêng theo từng mục đích**, và im lặng không được tính là đồng ý (Điều 9).
-- Luật Quảng cáo Điều 8 cấm quảng cáo gây nhầm lẫn về công dụng (khoản 9) và trái thuần phong mỹ tục (khoản 3).
-- Apple 4.3(b) coi "fortune telling" là danh mục bão hoà, nên app phải khác biệt thật.
+**Pháp lý** (đã đọc trang scan của PDF ký chính thức và toàn văn trên CSDL quốc gia; tách rõ điều luật và suy luận):
+- Luật 91/2025/QH15 Điều 9: đồng ý phải tự nguyện, biết rõ, thể hiện rõ ràng, kiểm chứng được, **theo từng mục đích**, không ép đồng ý mục đích khác; im lặng không phải đồng ý. Điều này không cấm một màn hình hỏi nhiều mục đích nếu từng lựa chọn độc lập. Điều 10: quyền rút lại đồng ý.
+- Nghị định 356/2025 Điều 4 khoản 1: dữ liệu nhạy cảm gồm đời sống riêng tư (điểm c), tình trạng sức khỏe (điểm d) và **dữ liệu theo dõi hành vi, hoạt động sử dụng dịch vụ trên không gian mạng (điểm l)**. Recap về việc dùng app nhiều khả năng thuộc nhóm (l), dù mood có được coi là sức khỏe hay không. Tổng hợp còn gắn với hồ sơ thì **không phải dữ liệu ẩn danh**.
+- Luật Quảng cáo (VBHN 88/VBHN-VPQH, đã gồm Luật 75/2025) Điều 8: khoản 3 nay là "trái với truyền thống lịch sử, văn hóa, đạo đức xã hội"; khoản 9 cấm quảng cáo sai hoặc gây nhầm lẫn về công dụng; khoản 11 cấm "nhất/duy nhất" khi không có chứng minh. Nghị định 87/2026/NĐ-CP (hiệu lực 15/05/2026) **thay Nghị định 38/2021** về xử phạt văn hóa và quảng cáo.
+- "Miễn phí" hay "tự soi" **không** làm sản phẩm an toàn về pháp lý. Bộ luật Hình sự Điều 320 là vấn đề riêng. Các điểm cần luật sư được đánh dấu ở mục 4.
 
-**Khuyến nghị:** Làm **C (nhịp trăng: đặt 1 ý định nhỏ lúc trăng mới, nhìn lại lúc trăng tròn)** làm xương sống v1. Kèm theo đó là **A-lite**: một dải "mốc trời tháng này" tối đa 4 mốc, chỉ mô tả "bầu trời đang ra sao" và nối vào lá số, không có "ngày tốt/xấu", không có "nên làm X". **B (recap tháng của chính bạn)** để sang v2, bật bằng đồng ý riêng và ưu tiên tính trên thiết bị.
+**Mốc thời gian (Quy tắc 3):** Giữ **ngày xảy ra hiện tượng bầu trời** (có nguồn tính, múi giờ, độ chính xác). Không gọi đó là ngày tốt/xấu, hạn chót cho việc đời thường, hay dự báo cảm xúc lên/xuống. Chủ sản phẩm phải sửa Quy tắc 3 và ví dụ trong product plan trước khi triển khai.
+
+**Khuyến nghị (chưa chốt):** v1 bắt đầu từ **mốc bầu trời chung, không cần ngày sinh**: tối đa 4 mốc, chỉ mô tả, theo quy tắc chọn cố định. Thêm **nhịp trăng** (ý định nhỏ lúc trăng mới, nhìn lại lúc trăng tròn). Lớp cá nhân chỉ dựng từ dữ liệu thật; chỉ giờ sinh EXACT mới có nhà. v2 là **recap "Tháng của bạn"**: đồng ý recap riêng, đồng ý chia sẻ riêng, xem trước và sửa trước khi chia sẻ, mặc định không chia sẻ. Đo "có ích, dễ hiểu, không bị hiểu là dự báo" trước, rồi mới đo tỷ lệ quay lại.
 
 ---
 
@@ -61,7 +68,7 @@ Legend: ✅ confirmed by the source cited · ◐ partial or adjacent · — not 
 7. **Vietnamese month grid.** Lịch Vạn Niên shows a month grid of lunar and solar dates with rằm and mùng một markers. Its day detail covers hoàng đạo / hắc đạo days, giờ hoàng đạo, good and bad stars, and suitable days for weddings, openings and moving. Lịch Như Ý adds 12 con giáp, 12 cung hoàng đạo and numerology. This **good/bad-day grid is the default Vietnamese mental model for "this month"**, and it is precisely the deterministic pattern Lá Lành must not reproduce.
 8. **Deterministic timing language in Western apps too.** Moonly advertises "personal green-light windows" for big decisions. Its personal astrologer answers whether to cut your hair or go on a date on a given day. The Lá Lành product plan v2 contains the same anti-pattern ("thời điểm tốt để nộp đơn", Rule 3 "deadline"). The feasibility doc flags it for rewrite.
 
-**Takeaway:** No leading app combines (a) the collective sky of the month, (b) where it touches *your* chart, and (c) your own month, in one non-predictive surface. CHANI comes closest but is paywalled ($11.99/mo) and leans on "manifestation" and ritual language. There is white space for a plain-language, agency-first month view.
+**Takeaway (sample only):** None of the 11 apps checked combines (a) the collective sky of the month, (b) where it touches *your* chart, and (c) your own month, in one non-predictive surface. CHANI comes closest but is paywalled ($11.99/mo) and leans on "manifestation" and ritual language. This is a sample of well-known apps from store listings and reviews, not a market-wide survey. It suggests a possible opening for a plain-language, agency-first month view; it does not prove a market gap.
 
 ### Sources (Q1)
 - CHANI App Store listing (features, 2026 update, reviews): https://apps.apple.com/us/app/-/id1532791252
@@ -97,7 +104,7 @@ No primary, public retention data compares monthly with daily content for astrol
 - "30–40% DAU" for astrology apps: Apptunix, a vendor blog. https://www.apptunix.com/blog/how-to-develop-an-astrology-app-like-co-star/
 
 ### What is defensible
-- **Temporal landmarks motivate fresh starts.** Dai, Milkman & Riis (2014, *Management Science* 60(10)) found that searches for "diet", gym visits and goal commitments rise after temporal landmarks, including the start of a week or month. This is the strongest evidence for a beginning-of-month or new-moon intention moment. https://faculty.wharton.upenn.edu/wp-content/uploads/2014/06/Dai_Fresh_Start_2014_Mgmt_Sci.pdf
+- **Temporal landmarks motivate fresh starts.** Dai, Milkman & Riis (2014, *Management Science* 60(10), doi:10.1287/mnsc.2014.1901) ran three archival field studies. Google searches for "diet", gym visits and goal commitments all rose after temporal landmarks: the start of a new week, month, year or semester, a birthday, or a holiday. The paper does not study lunar phases. The full text has no mention of the Moon (checked by text search of the author-hosted PDF). It supports a **beginning-of-month** moment. That a **new moon** works as a fresh-start landmark, or raises retention in an astrology app, is a hypothesis to test, not a finding. https://faculty.wharton.upenn.edu/wp-content/uploads/2014/06/Dai_Fresh_Start_2014_Mgmt_Sci.pdf
 - **Weekly cadence anchors habit in a paid astrology app.** CHANI reviewers describe a Sunday routine around the weekly reading (App Store reviews, above). That is anecdotal but consistent.
 - **Monthly self-data reports are an established journaling pattern.**
   - Daylio sends a monthly report notification with charts and "Most Influential Activities".
@@ -135,9 +142,10 @@ No primary, public retention data compares monthly with daily content for astrol
 ## 3. Gen Z shareability: monthly / periodic recap formats
 
 What the evidence supports:
-- **Spotify Wrapped scale.**
-  - Wrapped 2025 had more than 200M engaged users in its first 24 hours (it took 62 hours in 2024).
-  - It had more than 500M shares, up 41%, counting in-app shares, screenshots and downloads.
+- **Spotify Wrapped is a sharing case, not retention evidence.**
+  - Wrapped 2025 had more than 200M "engaged users" in its first 24 hours (it took 62 hours in 2024). An engaged user is someone who viewed at least one Wrapped story.
+  - It had more than 500M shares, up 41%. That count includes native in-app shares plus screenshots and downloads. It counts share events, not distinct people who shared, and there is no breakdown by channel.
+  - The source reports no retention, churn, subscription or revenue effect. Nothing here estimates the return or ROI of a recap for a small beta.
   - 2025 formats leaned on **comparison and identity labels**: "listening age", listener category and a multiplayer "Wrapped Party".
   - Source: https://techcrunch.com/2025/12/04/spotify-says-wrapped-2025-is-its-biggest-yet-with-200m-users-in-its-first-day
 - **Why recaps get shared** (marketing analysis, not peer-reviewed):
@@ -153,7 +161,7 @@ What the evidence supports:
 Design principles for Lá Lành month cards (synthesis):
 1. **One identity-ish line, not a score.** For example, "Tháng 10 của bạn: tháng chọn ít mà chắc". Avoid counts that shame, such as "bạn mở app 3/31 ngày".
 2. **Screenshot-native 9:16 card**, with one sentence that still makes sense to someone without the app.
-3. **Sky content shares safely; self content shares only by explicit choice.** The default share card should contain only the month's sky line and the user's chosen theme. It should never include mood, notes or birth data. This matches the existing US-18 AC06 rule ("default ẩn danh … không lộ số liệu nhạy cảm").
+3. **Sky content is the safest share; self content shares only by explicit choice.** Nothing is shared by default. The user previews and can edit the card before sharing. A card should never include mood, notes, intention text or birth data. A "theme only" line can still reveal private life, so it also needs preview. Copy must say that screenshots and downloaded images cannot be revoked. US-18 (DEFERRED since 2026-09-20, pool recap) is a reference for tone and privacy principles only. Its AC are not AC for a monthly feature.
 4. **Comparison as play, not ranking.** "Bạn và bạn thân cùng tháng trăng mới ở nhà 5" is fine. "Ai may mắn hơn" is not.
 5. **Low production cost per month.** This is the Gentler Streak lesson: the template must be generated from data and a reviewed content matrix, not hand-written monthly.
 6. **Public share links follow AGENTS.md**: no-index, no cache, tokens out of logs and referrers, and revocable.
@@ -163,28 +171,116 @@ Design principles for Lá Lành month cards (synthesis):
 ## 4. Ethical and regulatory angles (official sources first)
 
 ### Vietnam
-- **Personal data.** Law 91/2025/QH15 on Personal Data Protection is effective 2026-01-01.
-  - Official metadata: https://congbao.chinhphu.vn/van-ban/luat-so-91-2025-qh15-45578.htm
-  - Implementing Decree 356/2025/NĐ-CP was issued 2025-12-31 and is effective 2026-01-01: https://vanban.chinhphu.vn/?docid=216387&pageid=27160 (signed PDF: https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf)
-  - **Decree 13/2023/NĐ-CP, named in the brief, has been replaced by Decree 356/2025** (per PwC Vietnam and EY legal alerts: https://www.pwc.com/vn/vn/publications/2026/20260128-new-rules-personal-data-protection.pdf and https://www.ey.com/vi_vn/technical/tax/tax-and-law-updates/nghi-dinh-so-356-2025-nd-cp-quy-dinh-chi-tiet-mot-so-dieu-va-bien-phap-thi-hanh-luat-bao-ve-du-lieu-ca-nhan). Do not design against Decree 13.
-  - Law 91 Art. 2(3): sensitive personal data is data "gắn liền với quyền riêng tư của cá nhân", with the list set by the Government.
-  - The Decree 356 Art. 4 list, per secondary summaries of the full text, includes "thông tin về đời sống riêng tư, bí mật cá nhân" and "tình trạng sức khỏe". Health is no longer limited to medical records. Mood logs, journal text and relationship notes in a monthly recap therefore plausibly fall into sensitive categories. **Counsel must confirm against the signed text.** The official PDF is a scanned image and could not be text-extracted in this pass.
-  - Law 91 Art. 9 sets the consent conditions:
-    - consent must be per purpose ("đối với từng mục đích");
-    - it must not be bundled with other purposes;
-    - it must be "rõ ràng, cụ thể" and recordable;
-    - "Sự im lặng hoặc không phản hồi không được coi là sự đồng ý".
-    - Withdrawal is covered in Art. 10. Article text was read via https://hethongphapluat.com/luat-bao-ve-du-lieu-ca-nhan-2025/dieu-9; verify against the official gazette text.
-  - **Implication:** A recap that aggregates mood or notes needs its own opt-in, separate from the daily note. It needs a stated retention period, deletion that also removes the aggregate, and no default-on share. The repo's 29 d 18 h raw-input purge (see the feasibility doc) means a calendar-month recap needs either a consented derived aggregate or on-device computation.
-- **Advertising.** Law on Advertising 16/2012/QH13 Art. 8 bans:
-  - (3) content contrary to "thuần phong mỹ tục Việt Nam";
-  - (6) content infringing freedom of belief;
-  - (9) content that is untrue or "gây nhầm lẫn" about a product's or service's "công dụng";
-  - (11) "nhất / duy nhất / tốt nhất" claims without proof.
-  - Text read from an official provincial copy: https://tthc.hue.gov.vn/Upload/LEGALS/Luat%20Quang%20cao.doc
-  - Law 75/2025/QH15 amends the advertising law from 2026-01-01; check the amended text before launch marketing. https://luatvietnam.vn/thuong-mai/luat-quang-cao-sua-doi-2025-so-75-2025-qh15-404208-d1.html (secondary)
-  - **No clause found that names astrology or horoscopes.** The practical risk is marketing a monthly feature as predictive or accurate ("dự báo chính xác tháng của bạn"), which would be a misleading claim about the service's utility.
-- **Superstition.** Criminal Code Art. 320 (practising superstition: "bói toán, đồng bóng") applies only after a prior administrative sanction or conviction. Decree 38/2021/NĐ-CP sanctions organising superstitious activity. Official full text was not retrieved in this pass; the sources are legal-press summaries such as https://lsvn.vn/hanh-nghe-me-tin-di-doan-va-cac-che-tai-xu-ly-a174659.html. A reflection product with no fees for "readings", no claims about events and no remedies or rituals sold to avert misfortune is far from this line. A "good/bad days" calendar or paid "giải hạn" content would move toward it. **Counsel review recommended. This is not legal advice.**
+
+**How the sources were read.** The signed PDFs of Law 91/2025/QH15, Decree 356/2025/NĐ-CP and the
+consolidated Advertising Law VBHN 88/VBHN-VPQH are image scans with no text layer. The relevant pages
+were rendered to images and read visually. No OCR was run, so quotations below were transcribed by
+hand and should be re-checked against the PDF before reuse in user-facing copy. Decree 87/2026/NĐ-CP
+was read as full text on the national legal database (vbpl.vn). Each item separates **Text** (what the
+article says) from **Inference** (what this research concludes for the product). Inferences are not
+legal conclusions. Items marked **[counsel]** need legal review. Not legal advice.
+
+**Personal data: Law 91/2025/QH15** (signed PDF:
+https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/7/91qh.signed.pdf; effective 2026-01-01; official
+metadata: https://congbao.chinhphu.vn/van-ban/luat-so-91-2025-qh15-45578.htm).
+- **Text, Art. 2(11) (p. 2):** de-identification (*khử nhận dạng*) means changing or deleting
+  information to create new data that cannot identify, or help identify, a specific person.
+- **Text, Art. 3(2)–(3) (p. 2):** collect and process only within a specific, clear scope and purpose.
+  Keep data for a period appropriate to the processing purpose, unless the law says otherwise.
+- **Text, Art. 9 (p. 6):**
+  - (2) Consent is valid only if it is voluntary and the person knows the data type and purpose, the
+    controller, and their rights and obligations.
+  - (3) Consent is expressed clearly and specifically, in a form that can be printed or copied in
+    writing, including electronic or verifiable formats.
+  - (4)(a) Consent is given for each purpose (*"đối với từng mục đích"*).
+  - (4)(b) It must not be conditioned on mandatory consent to purposes other than the agreed content.
+  - (4)(c) It lasts until the person changes it or the law provides otherwise.
+  - (4)(d) *"Sự im lặng hoặc không phản hồi không được coi là sự đồng ý."*
+- **Text, Art. 10 (pp. 6–7):** the person may withdraw consent or ask to restrict processing. The
+  request is made in writing, including electronic or verifiable form. The controller must act on it
+  within the time set by law. Withdrawal does not apply to processing done before the request (10(4)).
+- **Text, Art. 11 (p. 7):** consent comes before collection unless the law provides otherwise (11(1)).
+  Non-state organisations may analyse and aggregate personal data only from sources they are permitted
+  to process (11(3)).
+- **Inference:**
+  - A monthly recap is a new processing purpose (aggregating a person's use of the app into a
+    summary). It needs its own opt-in, separate from the daily note, mood and share consents.
+  - Art. 9(4) requires a separate choice per purpose. It does not forbid one screen that lists several
+    purposes, as long as each has an independent control and refusing one does not block the others.
+  - Withdrawal must stop new aggregation. Because Art. 3(3) ties retention to purpose, any stored
+    recap or derived aggregate should be deleted when the recap consent is withdrawn, the source data's
+    basis lapses, or the profile is deleted. **[counsel]** on whether Art. 10(4) permits keeping
+    already-produced recaps.
+  - A recap theme, mood distribution or count of experiments is **derived personal data** while it is
+    linked to an owner ID. It is not de-identified under Art. 2(11), and it is not "anonymous".
+
+**Personal data: Decree 356/2025/NĐ-CP** (signed PDF:
+https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf; listing:
+https://vanban.chinhphu.vn/?docid=216387&pageid=27160). It replaces Decree 13/2023/NĐ-CP as the
+implementing decree (per PwC Vietnam and EY alerts:
+https://www.pwc.com/vn/vn/publications/2026/20260128-new-rules-personal-data-protection.pdf and
+https://www.ey.com/vi_vn/technical/tax/tax-and-law-updates/nghi-dinh-so-356-2025-nd-cp-quy-dinh-chi-tiet-mot-so-dieu-va-bien-phap-thi-hanh-luat-bao-ve-du-lieu-ca-nhan).
+The repeal clause itself was not read in this pass.
+- **Text, Art. 3 (p. 2):** basic personal data includes date of birth (3(2)) and place of birth (3(4)).
+- **Text, Art. 4(1) (pp. 2–3):** sensitive personal data includes, among others:
+  - (c) information about private life, personal secrets and family secrets;
+  - (d) health status;
+  - (h) location determined through location services;
+  - (l) *"Dữ liệu theo dõi hành vi, hoạt động sử dụng dịch vụ viễn thông, mạng xã hội, dịch vụ truyền
+    thông trực tuyến và các dịch vụ khác trên không gian mạng"*.
+- **Text, Art. 4(2) (p. 3):** when processing sensitive data, organisations must set access-permission
+  rules, processing procedures and security measures.
+- **Inference:**
+  - A recap of opens, notes saved, experiments tried and tarot draws is plausibly **behaviour/service-use
+    tracking data under point (l)**. This holds regardless of whether mood counts as health data. The
+    repo already treats service-usage tracking as sensitive in the companion-growth module.
+  - A five-value mood enum is not by itself diagnostic health data. Whether it falls under (c) or (d)
+    depends on the actual content and purpose. **[counsel]**
+  - Product analytics events for the monthly surface are also usage tracking. Keep them content-free
+    and minimal, and declare them.
+  - Art. 4(2) means owner-scoped access, a written processing procedure and security controls for any
+    recap path, not only consent.
+
+**Advertising: consolidated Advertising Law, VBHN 88/VBHN-VPQH** (PDF:
+https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/8/88-vbhn-vpqh.pdf). It reflects the amendments by
+Law 75/2025/QH15, effective 2026-01-01.
+- **Text, Art. 8 (p. 6):**
+  - (3), amended by Law 75/2025 Art. 1(4)(a): advertising *"trái với truyền thống lịch sử, văn hóa,
+    đạo đức xã hội"*. This replaces the older "thuần phong mỹ tục" wording.
+  - (6): advertising that is discriminatory or infringes freedom of belief and religion.
+  - (9): advertising that is untrue or misleading (*"không đúng hoặc gây nhầm lẫn"*) about, among
+    other things, the quality, *công dụng* (utility) or manner of service of a product or service.
+  - (10), amended by Law 75/2025 Art. 1(4)(b): comparison with others' products without lawful proof.
+  - (11): "nhất", "duy nhất", "tốt nhất", "số một" or similar without lawful proof.
+- **Inference:** No clause names astrology or horoscopes. The practical risk is marketing the monthly
+  feature as predictive or accurate (for example "dự báo chính xác tháng của bạn"). That would be an
+  untrue or misleading claim about the service's utility under (9), and a superlative under (11).
+  Marketing copy needs evidence for every claim. **[counsel]** before launch marketing.
+
+**Administrative sanctions: Decree 87/2026/NĐ-CP** on sanctions in culture and advertising (full text:
+https://vbpl.vn/van-ban/chi-tiet/nghi-dinh-so-87-2026-nd-cp-quy-dinh-xu-phat-vi-pham-hanh-chinh-trong-linh-vuc-van-hoa-va-quang-cao--187899).
+Issued 2026-03-27, effective 2026-05-15.
+- **Text, Art. 93(2)(a):** it repeals Decree 38/2021/NĐ-CP. Planning must not rely on Decree 38/2021
+  or on summaries of it.
+- **Text, Art. 50 (advertising prohibited acts):**
+  - (2)(a): fine of 10–20 million VND for unproven "nhất / duy nhất / tốt nhất / số một" claims;
+  - (4)(d): fine of 40–60 million VND for advertising contrary to historical tradition, culture and
+    social ethics;
+  - (5)(c): fine of 80–100 million VND for untrue or misleading advertising about, among other things,
+    a product's or service's *công dụng*.
+- **Text, Art. 20 (festival organisation):** sanctions taking part in superstitious activity at a
+  festival (20(4)(b)) and organising superstitious activity (20(8)(b)). These are in the festival
+  context.
+- **Not checked:** the article that sets fine levels for individuals versus organisations; other
+  sanction decrees (for example on security and social order) that may cover superstitious practice
+  outside festivals. **[counsel]**
+
+**Criminal law: Criminal Code Art. 320** (practising superstition) is a separate criminal-law
+question. It is not part of privacy or advertising compliance. Its official current text was not
+retrieved in this pass. This research draws no safety conclusion from the product being free or
+framed as "tự soi" (self-reflection). A free price or a disclaimer is not a licence for predictive
+content. The controls that matter are product controls: no event prediction, no good/bad-day
+calendars, and no paid remedies or "giải hạn". **[counsel]**
 
 ### Platforms
 - **Apple App Review 4.3(b)** names "fortune telling" among saturated categories. New submissions must "offer a meaningfully different or improved experience". A non-predictive, self-reflection monthly feature supports that differentiation; a generic monthly horoscope weakens it.
@@ -193,92 +289,143 @@ Design principles for Lá Lành month cards (synthesis):
 
 ### Ethical design rules derived for the monthly surface
 1. Describe the sky, not the user's fate. "Trăng tròn ngày X rơi vào vùng [nhà/cung] — vùng này nói về …" is acceptable. "Ngày X là ngày tốt để …" or "tránh ký hợp đồng" is not.
-2. Retrograde and eclipse lines carry no warning, no "cẩn thận", and no blame attribution. This follows the repo reading-knowledge-spec rule that retrograde yields no psychological conclusion by itself.
+2. Retrograde and eclipse lines carry no warning, no "cẩn thận", and no blame attribution. This follows the repo reading-knowledge-spec rule that retrograde yields no psychological conclusion by itself. Do not infer good or bad times for communication or relationships from a station or retrograde.
 3. No good/bad-day colouring on any calendar, which rules out the Lịch Vạn Niên pattern.
 4. No "missed days" counts, streaks or "bạn đã bỏ lỡ"; an empty month is a neutral state.
 5. Disclaimer and provenance on every sky claim, per the existing content gate.
+
+### Proposed date contract (replaces the "Rule 3 deadline" framing)
+An **astronomical event date** is different from an **action deadline**.
+- **Keep:** the date (and, where precise enough, the time) a sky event happens. Examples: a lunation,
+  a station, an ingress, or the computed start and end of a transit window. Each date carries its
+  provenance (engine and version), timezone (ICT, stated) and precision (minute or day). See the
+  feasibility doc for the receipt.
+- **Never:** call a date good or bad; turn it into a deadline for life matters ("trước 13/11 hãy nộp
+  đơn / tỏ tình"); say how long a life situation will last ("kéo dài đến tháng 8"); or predict that
+  emotions will rise or fall around it. No urgency CTAs tied to sky dates.
+- **Gate:** the owner must update Rule 3 (`docs/foundation/la-lanh-product-plan-v2.md:268-274`) and
+  the "thời điểm tốt để nộp đơn" example (`:224`) before implementation. A UI disclaimer does not
+  replace changing the rule.
 
 ---
 
 ## 5. Three concept options for "Tháng này có gì mới"
 
-Shared constraints: guest-first; Sun-only users must get value; plain direct Vietnamese; one situation plus one small action; no predictions; no guilt or streaks; server-side Swiss Ephemeris.
+Shared constraints: guest-first; useful with no birth data at all; plain direct Vietnamese; one situation plus one small action; no predictions; no guilt or streaks; server-side Swiss Ephemeris.
 
-### A. "Bầu trời tháng này": a sky calendar of 3–4 key dates, tied to the user's chart
-- **UI:** A horizontal **calendar strip** for the month showing only the 3–4 key markers: new moon, full moon, at most one ingress or station, and an eclipse if there is one. Tapping a marker opens a **key-date card** with:
-  - what is happening in the sky (one line);
-  - where it touches you, as a house for users with a birth time and as the Sun-sign relationship for date-only users;
-  - one situation plus one small action, phrased as an invitation.
-- **Value:** Fresh, objectively true content every month. It differentiates from 12-sign generic text and uses the existing Swiss Ephemeris and astro spec. It works for guests at the collective level and gives a reason to add a birth time ("thêm giờ sinh để biết mốc này rơi vào vùng nào của bạn").
+### A. "Bầu trời tháng này": a sky strip of at most 4 key dates
+- **UI:** A horizontal **strip** for the month showing at most 4 markers, chosen by a fixed rule (below). Tapping a marker opens a **key-date card** with:
+  - what is happening in the sky (one line, with date and timezone);
+  - optionally, where it touches the user, **only from data the user actually has** (see overlays);
+  - one situation plus one small action, phrased as an invitation and never as timing advice.
+- **Layer 1, no birth data (default):** the same sky events for everyone. This is the base of v1 and needs no personal data.
+- **Overlays, only from real data:**
+  - EXACT birth time: the lunation's natal house, as Sky Chapter does today (`TimePrecision.EXACT` only).
+  - Date only: sign-level relations to natal bodies whose positions the date fixes. No houses. No "whole sign from the Sun" or other substitute houses.
+  - No overlay is shown as more precise than its input.
+- **Marker selection rule (deterministic, same for every user):**
+  1. Every lunation whose ICT date falls in the month. Months with two new moons or two full moons show both. Copy is written per lunation, never for "the" new moon of the month.
+  2. An eclipse is a lunation, so it replaces that marker instead of adding one. Eclipses are deferred from v1 until the solver is verified (feasibility doc).
+  3. If slots remain: at most one station of Mercury, Venus or Mars, in that priority order, earliest first.
+  4. If slots remain: the Sun's ingress.
+  5. Outer-planet stations and other ingresses are not shown in v1.
+  The personal overlay never changes which markers are chosen.
+- **Caching:** only the non-personal monthly event list may go in a shared cache, keyed by month and engine version. Overlays are computed per owner on request, never shared-cached, and returned with `Cache-Control: no-store`.
+- **Value:** Fresh, objectively true content every month that works for guests with no birth data. It differentiates from 12-sign generic text and gives an honest reason to add a birth time.
 - **Risks:**
-  - It is the closest of the three to predictive framing. The PRD Rule 3 "deadline" and "thời điểm tốt để nộp đơn" wording must be rewritten first.
+  - It is the closest of the three to predictive framing. The date contract above must be adopted first.
   - Retrograde and eclipse content can drift into fear.
   - Vietnamese users may read any dated calendar as "ngày tốt/xấu".
-  - Sun-only personalisation is thin (whole-sign-from-Sun or element only).
-  - It needs an event solver plus a reviewed content matrix (events × houses/signs × direct/Roast).
-- **Effort:** Medium–high. Needs an event solver with bracketed root finding, a content matrix, the review gate and fixtures. See the feasibility doc for the engine gaps.
+  - It needs an event solver plus a reviewed content matrix (events × signs, and × houses for EXACT, × direct/Roast).
+- **Effort:** Medium. Needs an event solver with bracketed root finding and fixtures, a content matrix and the review gate. See the feasibility doc.
 
 ### B. "Tháng của bạn": a recap of the user's own notes, experiments and moods, plus one theme
-- **UI:** A month-end **story recap of 3–5 cards**:
+- **UI:** A **story recap of 3–5 cards**:
+  - the covered range, stated first: for example "29 ngày, từ 14/10 đến 11/11; có dữ liệu 9 ngày; bạn bật recap từ 20/10";
   - notes saved;
   - small actions tried, with the user's own "có ích / không" taps;
-  - a mood distribution, only if mood logging was consented;
+  - a mood distribution, only if mood logging and recap were both consented;
   - one theme sentence, chosen from a reviewed bank by evidence and not generated freely;
-  - a final shareable **month card** that by default shows only the theme line.
-- **Value:** The highest personal relevance, with zero prediction risk because it is the user's own data. It is the Wrapped-style share format Gen Z already uses, and it closes the loop on the daily note's "one small action".
+  - an optional **month card** for sharing, off by default (see share rules).
+- **Data model (verified in code; details in the feasibility doc):**
+  - Server-side, per owner (`guest_id`, guests included): daily notes, mood check-ins, action experiments and tarot sessions. Each is physically purged once it is 29 d 18 h old, at the next cleanup run (every 6 hours), so within 30 days. Saved notes stay with the profile.
+  - On the device (web and the Capacitor app, which share the web code): only a 36-hour in-memory note cache and small sync markers. There is **no device-side history**, so "on-device-first" is not an existing capability.
+- **Two real options for v2:**
+  1. **Owner-scoped aggregate endpoint.** It reads only rows that are still allowed to be kept and computes at request time. Nothing new is persisted, and the response is `no-store`. The window is bounded by retention: at most today plus the previous 28 local (ICT) dates. That is 29 dates, which stays inside the 29 d 18 h point after which rows may already be gone. Keeping an aggregate beyond that window is a separate, new derived dataset with its own consent, retention, deletion and export.
+  2. **New local store.** It needs a retention limit, a delete control, clearing on logout and on profile or guest change, partitioning by profile on shared devices, exclusion from device backups, and its own privacy copy. "Local" does not mean "no privacy risk".
+- **Rules for either option:**
+  - Show the actual covered range, missing days and the opt-in start date.
+  - Never treat missing data as zero activity or zero mood.
+  - Never silently extend any retention window (TTL) to fill a calendar month. A calendar-month label ("Tháng 10") is not possible from current retention; use a rolling label with the real dates.
+- **Consent and sharing:**
+  - Recap consent is separate from share consent. The recap consent states which data the recap uses.
+  - Withdrawing recap consent stops aggregation and deletes any stored recap artifact.
+  - Sharing: default off, preview and edit before sharing, theme-only by default, never mood, notes or intention text. Copy says screenshots and downloads cannot be revoked. Share links follow AGENTS.md: no-index, no-store, tokens out of logs and referrers, revocable.
+- **Value:** High personal relevance with no prediction risk, because it is the user's own data. It closes the loop on the daily note's "one small action".
 - **Risks:**
-  - Mood, journal and relationship data are likely **sensitive** under Decree 356. That requires separate opt-in, retention and deletion design, and updates to store declarations.
-  - The raw-input purge at about 30 days blocks the naive build.
-  - Low-activity months produce thin or empty recaps that read as judgement ("bạn chỉ mở app 2 lần").
+  - Usage and mood aggregates are likely **sensitive** under Decree 356 Art. 4(1)(l), and possibly (c)/(d).
+  - Low-activity months produce thin recaps that read as judgement ("bạn chỉ mở app 2 lần").
   - "Wrapped anxiety" works against the no-guilt rule.
-  - Share cards risk leaking private content.
-  - Guests on the web have only local data.
-- **Effort:** Medium. Needs an aggregation job or on-device computation, a consent flow, a retention policy, share-card rendering and privacy review. It is lower if v1 computes everything **on device** from data the user still holds and stores nothing new server-side.
+  - Share cards risk leaking private content, even theme-only.
+- **Effort:** Medium. Needs the aggregate endpoint or a new local store, a consent flow, coverage copy, share-card rendering and privacy review, plus store-declaration updates.
 
 ### C. "Nhịp trăng": a new-moon intention and a full-moon look-back
 - **UI:**
-  - At the **new moon**, a card offers "Tháng này bạn muốn để ý một điều nhỏ nào?" with 3 suggested small intentions, derived from the lunation's sign or house and the user's chart. The user can also write their own, kept local by default.
-  - About two weeks later, at the **full moon**, a one-tap look-back asks "Điều đó thế nào rồi?": "có / chưa / đổi ý". It never says "thất bại". One reflection line follows.
+  - At each **new moon**, a card offers "Bạn muốn để ý một điều nhỏ nào cho nửa tháng tới?" with 3 suggested small intentions from the lunation's sign (and house for EXACT charts). Picking a suggestion is the default; free text is optional.
+  - At the next **full moon**, a one-tap look-back asks "Điều đó thế nào rồi?": "có / chưa / đổi ý". It never says "thất bại". One reflection line follows.
   - An optional single tarot card can be drawn as a *prompt*, not a forecast.
   - A small moon-phase ring sits on Home.
 - **Value:**
-  - It maps directly onto the fresh-start effect at a natural landmark.
+  - It offers a calm, user-authored moment at a recurring landmark. Whether a new moon works as a fresh-start landmark is a **hypothesis to test**. Dai et al. (2014) studied calendar and personal landmarks, not lunar phases.
   - It gives two calm touchpoints a month without push volume.
-  - It is intrinsically non-predictive because the user authors the intention, and it extends the daily "one small action" to a two-week horizon.
+  - It is non-predictive because the user authors the intention. It extends the daily "one small action" to a two-week horizon.
   - It works for every user (lunations are collective; personalisation is optional).
-  - Its content matrix is small (2 lunations × 12 signs/houses).
+  - Its content matrix is small (2 lunation types × 12 signs, plus houses for EXACT).
+- **Intention text rules:**
+  - It is scoped to the profile that wrote it.
+  - It has a stated retention: it expires after the look-back, or after one lunation cycle at most.
+  - It has delete and withdraw controls.
+  - It is cleared on logout or profile/guest change on a shared device.
+  - It is never sent to the external rewrite provider, never used for matching or ranking, and never put in analytics.
+  - Prompts do not invite writing about third parties by name.
 - **Risks:**
   - "Ritual" or "manifest" vocabulary can read as magical thinking or superstition. Use "để ý / thử" language, never "thu hút / hiện thực hoá".
   - A missed look-back must not nag. Allow one reminder at most, and let it expire silently.
-  - User-written intention text is personal content, so keep it local or apply explicit retention.
-  - Lunations are only about 29.5 days apart, so some calendar months contain two new or two full moons. Copy should not depend on "the" new moon of the month.
-- **Effort:** Low–medium. Needs lunation times (trivial with Swiss Ephemeris), a small reviewed matrix, two cards and a local store.
+  - Some calendar months contain two new or two full moons. The cycle is per lunation, not per month.
+- **Effort:** Low–medium. Needs lunation times (straightforward with Swiss Ephemeris), a small reviewed matrix, two cards and an intention store that follows the rules above.
 
 ### Comparison
 
-| | A Sky calendar | B Own-month recap | C Moon rhythm |
+| | A Sky strip | B Own-month recap | C Moon rhythm |
 |---|---|---|---|
-| Prediction risk | **High** (needs copy rewrite) | None | Low |
-| Privacy risk | Low (birth data already held) | **High** (sensitive aggregates) | Low–medium (intention text) |
-| Works for Sun-only / guests | Partially | Partially (local data) | **Yes** |
-| Shareability | Medium (sky line) | **High** (Wrapped format) | Medium (intention card) |
-| Monthly content cost | High | Low (template) | Low |
-| Engineering effort | Medium–high | Medium | **Low–medium** |
+| Prediction risk | **High** without the date contract | None | Low |
+| Privacy risk | None for layer 1; overlays use birth data already held | **High** (sensitive usage and mood aggregates) | Low–medium (intention text) |
+| Works with no birth data / guests | **Yes** (layer 1) | Yes, from server-side owner data within retention | **Yes** |
+| Shareability | Medium (sky line) | High, but sharing is opt-in only | Medium (intention card) |
+| Monthly content cost | Medium | Low (template) | Low |
+| Engineering effort | Medium | Medium | **Low–medium** |
 | Guilt / streak risk | Low | **Medium–high** | Medium (look-back) |
 
-### Recommendation
-1. **v1: ship C as the spine, with an "A-lite" strip.** The monthly surface is the moon rhythm: new-moon intention and full-moon look-back. Add a 3–4-marker sky strip that only *describes* events and links each one to the chart at the level the user has data for.
+### Recommendation (unconfirmed; owner decides)
+1. **v1: shared sky events first, plus the moon rhythm.** Start with A's layer 1: at most 4 descriptive markers chosen by the fixed rule, with no birth data needed. Add C's new-moon intention and full-moon look-back. Add personal overlays only from real data (houses only for EXACT).
    - No good/bad colouring, no "nên / tránh", no retrograde warnings.
-   - Gate it on the no-prediction rewrite of PRD Rule 3 and the product plan's "thời điểm tốt" examples.
-2. **v2: add B as an opt-in, on-device-first "Tháng của bạn".**
-   - Default to a theme-only share card.
-   - Ask for separate, purpose-specific consent before any mood or note aggregate is kept server-side.
-   - Write a new user story with AC and DoD that mirror US-18 AC04–AC06 for privacy and tone.
+   - Gate it on the owner adopting the date contract (Rule 3 and the product-plan examples).
+2. **v2: B as an opt-in "Tháng của bạn".** Prefer option 1 (owner-scoped, read-time aggregate within retention) unless the owner chooses to build and govern a new local store.
+   - Recap consent and share consent are separate. Sharing is off by default, with preview and edit.
+   - New user story with AC and DoD. US-18 is DEFERRED and is a reference for principles only.
 3. **Do not ship** a 12-sign monthly horoscope, a good/bad-day calendar, push campaigns around retrogrades or eclipses, or any paywall teaser on this surface.
 
+### How to measure (usefulness before return rate)
+- **First, usefulness and understanding.** Ask an optional one-tap question on the card:
+  - "Thẻ này có giúp bạn hiểu tháng này không?"
+  - "Bạn có hiểu đây là mô tả bầu trời, không phải dự đoán không?"
+  Also collect voluntary feedback, and review with a small group of users. Ship further only if users find it useful and do not read it as a forecast.
+- **Only then, return behaviour.** Count `month_strip_opened`, `intention_set`, `lookback_answered` and `month_card_shared` against the daily-note baseline. Return rate is not a success criterion on its own.
+- Events carry no content (no intention text, mood, notes or birth data). Usage events are themselves behaviour-tracking data under Decree 356 Art. 4(1)(l), so they need minimisation, a retention limit and declaration.
+
 ### Open items / AC-DoD status
-- No user story, AC or DoD exists yet for any monthly feature; it needs a new US with AC.
-- Decree 356 sensitive-data list: confirm from the signed text with counsel. The OCR-only PDF was not machine-readable here.
-- Advertising Law as amended by Law 75/2025: re-check marketing copy before launch.
-- Criminal Code Art. 320 and Decree 38/2021: official text not retrieved; secondary summaries only.
-- Retention data: no primary data exists. Instrument `month_strip_opened`, `intention_set`, `lookback_answered` and `month_card_shared`, with no content in events, and measure against the daily note baseline.
+- No user story, AC or DoD exists for any monthly feature. The owner must pick a direction and create the US with AC and DoD before build.
+- The owner must update Rule 3 and the product-plan examples (date contract above).
+- **[counsel]** Decree 356 classification of mood and usage aggregates; whether recaps may outlive withdrawal; Decree 87/2026 fine-level rules and other sanction decrees; Criminal Code Art. 320 (official text not retrieved).
+- Quotations from the scanned PDFs were transcribed by hand from rendered page images (no OCR). Re-check them before reuse.
+- Retention evidence: there is no primary data. Do not use Wrapped or the fresh-start paper as retention or ROI estimates.
