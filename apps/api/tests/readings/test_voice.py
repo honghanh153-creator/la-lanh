@@ -291,3 +291,12 @@ def test_scene_tags_never_add_advice_inside_the_scene() -> None:
     for voice in ROAST_ISSUES.values():
         tag = voice.scene_tag.casefold()
         assert not any(_contains_word(tag, word) for word in ("hãy", "thử", "nên", "đừng")), tag
+
+
+@pytest.mark.parametrize("legacy", [False, True], ids=["current", "saved-v6"])
+def test_sharp_roast_swaps_the_placement_tendency_for_its_approved_roast(legacy: bool) -> None:
+    for key, roast_meaning in ROAST_PLACEMENT_MEANINGS.items():
+        direct = _sections_for(key, arena=SemanticArena.WORK, legacy=legacy)
+        roast = roast_daily_sections(direct)
+        assert roast_meaning in roast.thesis, (key, roast.thesis)
+        assert PLACEMENT_MEANINGS[key] not in roast.thesis, (key, roast.thesis)

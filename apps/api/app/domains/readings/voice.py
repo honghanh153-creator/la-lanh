@@ -649,8 +649,9 @@ def roast_daily_sections(sections: DailySections) -> DailySections:
             thesis = thesis[: -len(issue.takeaway) - 1]
         if not gentle:
             for direct, roast in _PLACEMENT_ROAST.items():
-                if thesis.startswith(f"{direct} "):
-                    thesis = f"{roast} {thesis[len(direct) + 1 :]}"
+                # v7: the tendency is the whole remaining thesis; v6: it opens it.
+                if thesis == direct or thesis.startswith(f"{direct} "):
+                    thesis = f"{roast}{thesis[len(direct) :]}"
                     break
         thesis = f"{voice.gentle_jab if gentle else voice.jab} {thesis}"
 

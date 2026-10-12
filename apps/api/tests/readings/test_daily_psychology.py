@@ -666,3 +666,18 @@ def test_thesis_is_two_subject_sentences_that_do_not_repeat_the_card() -> None:
         arena, scene = split_scene_lead(card.manifestation)
         if arena is not None:
             assert lead_scene(_ARENA_LEADS[arena], scene) == card.manifestation
+
+
+def test_moon_cancer_sun_pisces_caretaking_says_two_different_things() -> None:
+    """Codex second review of #8: both sentences said 'wants to help, limited capacity'.
+
+    The takeaway's information role is recorded in test_daily_thesis_roles.TAKEAWAY_ROLES.
+    """
+    card = _card(
+        _semantic_plan(_placement("moon", "cancer", primary=True), _placement("sun", "pisces"))
+    )
+    tendency, takeaway = _SENTENCE.split(card.thesis)
+    issue = next(issue for issue in DAILY_ISSUES if issue.key == "automatic-caretaking")
+    assert tendency.startswith("Bạn dễ muốn giúp")
+    assert takeaway == issue.takeaway
+    assert "muốn giúp" not in takeaway and "dồn lại" in takeaway
