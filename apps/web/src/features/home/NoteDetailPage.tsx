@@ -108,7 +108,7 @@ export function NoteDetailPage() {
         {note ? <Link aria-label="Chia sẻ" className="icon-button uv-topbar__icon uv-topbar__icon--action" to={dailyContextPath("/card", context)}><ShareNetwork aria-hidden="true" /></Link> : <span aria-hidden="true" className="uv-topbar__spacer" />}
       </header>
 
-      {query.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" /> : null}
+      {query.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
       {note ? (
         <>
           {query.isError ? <p className="cache-status" role="status">Đang xem đúng bản đã mở gần nhất trên máy</p> : null}

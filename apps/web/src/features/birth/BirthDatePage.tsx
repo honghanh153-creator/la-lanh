@@ -52,6 +52,8 @@ export function BirthDatePage() {
   const [details, setDetails] = useState<OptionalBirthInput>({ ...emptyBirthDetails });
   const [supplementSaved, setSupplementSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Date validation errors sit under the date fields; submit errors stay above the primary action.
+  const [errorAtField, setErrorAtField] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,18 +71,21 @@ export function BirthDatePage() {
     const birthDate = validDate(day, month, year);
     if (!birthDate) {
       setError("Ngày này chưa đúng. Kiểm tra lại ngày, tháng và năm nhé.");
+      setErrorAtField(true);
       dayInput.current?.focus();
       return;
     }
     if (isUnder18(birthDate)) {
       setError("Lá Lành hiện dành cho người từ 18 tuổi.");
+      setErrorAtField(true);
       yearInput.current?.focus();
       return;
     }
     const detailError = supplementSaved ? null : birthDetailsError(details);
-    if (detailError) { setError(detailError); return; }
+    if (detailError) { setError(detailError); setErrorAtField(false); return; }
     setPending(true);
     setError(null);
+    setErrorAtField(false);
     let stage: "date" | "supplement" | "note" = "date";
     try {
       if (!profileCreated) {
@@ -128,6 +133,7 @@ export function BirthDatePage() {
       );
     } catch {
       const hasProfile = queryClient.getQueryData(["birth-profile"]) !== undefined;
+      setErrorAtField(false);
       setError(stage === "supplement"
         ? "Ngày sinh đã lưu, nhưng giờ/nơi sinh chưa lưu được. Thử lại hoặc bỏ qua phần bổ sung nhé."
         : hasProfile
@@ -159,25 +165,26 @@ export function BirthDatePage() {
           <legend className="sr-only">Ngày sinh</legend>
           <label className="signal-date-field">
             <span>Ngày</span>
-            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={2} onChange={(event) => setDay(event.target.value.replace(/\D/g, ""))} placeholder="DD" ref={dayInput} value={day} />
+            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error && errorAtField)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={2} onChange={(event) => setDay(event.target.value.replace(/\D/g, ""))} placeholder="DD" ref={dayInput} value={day} />
           </label>
           <span className="signal-date-divider" aria-hidden="true">/</span>
           <label className="signal-date-field">
             <span>Tháng</span>
-            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={2} onChange={(event) => setMonth(event.target.value.replace(/\D/g, ""))} placeholder="MM" value={month} />
+            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error && errorAtField)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={2} onChange={(event) => setMonth(event.target.value.replace(/\D/g, ""))} placeholder="MM" value={month} />
           </label>
           <span className="signal-date-divider" aria-hidden="true">/</span>
           <label className="signal-date-field">
             <span>Năm</span>
-            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={4} onChange={(event) => setYear(event.target.value.replace(/\D/g, ""))} placeholder="YYYY" ref={yearInput} value={year} />
+            <input aria-describedby={error ? "birth-error" : undefined} aria-invalid={Boolean(error && errorAtField)} autoComplete="off" className="signal-date-input" inputMode="numeric" maxLength={4} onChange={(event) => setYear(event.target.value.replace(/\D/g, ""))} placeholder="YYYY" ref={yearInput} value={year} />
           </label>
         </fieldset>
+        {error && errorAtField ? <p className="signal-date-error" id="birth-error" role="alert">{error}</p> : null}
         <p className="signal-station__privacy">Ngày sinh không xuất hiện khi chia sẻ.</p>
         <p className="signal-station__privacy">Bấm Khớp tín hiệu là đồng ý dùng ngày sinh để tính lá số và note. Không tự bật AI viết lại.</p>
         <OptionalBirthDetails value={details} onChange={(value) => { setDetails(value); setError(null); }} disabled={pending || supplementSaved} error={error && birthDetailsError(details) === error ? error : null} />
         {profileCreated && !pending ? <small>Ngày sinh đã lưu. Thử lại sẽ không tạo hồ sơ mới.</small> : null}
         {pending ? <p className="signal-station__notice" role="status">{hasBirthDetails(details) ? "Đang lưu thông tin bạn cho phép và tính lại lá số…" : "Đang tìm Mặt Trời và viết Vibe đầu tiên…"}</p> : null}
-        {error ? <p className="signal-station__error" id="birth-error" role="alert">{error}</p> : null}
+        {error && !errorAtField ? <p className="signal-station__error" id="birth-error" role="alert">{error}</p> : null}
       </form>
     </SignalStationFrame>
   );

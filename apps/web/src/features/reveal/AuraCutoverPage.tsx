@@ -143,7 +143,7 @@ export function AuraCutoverPage() {
         <span aria-hidden="true" className="uv-topbar__spacer" />
       </header>
 
-      {query.isPending && !note ? <LaLoading delayMs={0} text="Lá đang mở receipt Aura…" /> : null}
+      {query.isPending && !note ? <LaLoading delayMs={0} text="Lá đang mở receipt Aura…" variant="reading" /> : null}
 
       {query.isError && note ? <p className="cache-status" role="status">Đang xem receipt đã mở gần nhất trên máy. Bạn vẫn có thể chọn rõ ràng.</p> : null}
 

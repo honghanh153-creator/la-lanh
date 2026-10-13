@@ -12,6 +12,7 @@ import {
   type RadarInvite,
   type RadarVoice,
 } from "../../shared/api/client";
+import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import "../matching/matching.css";
 import "./radar.css";
@@ -29,6 +30,7 @@ export function RadarStartPage() {
   const [voice, setVoice] = useState<RadarVoice>("straight_warm");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [eraseTarget, setEraseTarget] = useState<RadarInvite | null>(null);
   const activeOwnerEpoch = useRef<string | null>(null);
   const shareRequestSequence = useRef(0);
   const scrolledToHistory = useRef(false);
@@ -153,9 +155,16 @@ export function RadarStartPage() {
     {create.isError && create.error instanceof ApiProblem && create.error.status === 409 && create.error.code !== "RADAR_IDEMPOTENCY_CONFLICT" ? <Link className="matching-secondary" to="/birth-time">Thêm giờ & nơi sinh của mình</Link> : null}
     {shareUrl && owner.isReady ? <section className="radar-share" aria-live="polite"><Sparkle weight="fill" /><div><strong>Link riêng đã sẵn sàng</strong><p>Hết hạn sau 7 ngày. Bạn có thể thu hồi trước khi người kia bật Radar.</p></div><button onClick={() => void copy(shareUrl)} type="button"><Copy /> Copy link</button></section> : null}
 
-    {owner.isReady ? <section className="radar-history" id="radar-history"><p className="eyebrow">Đang chờ & đã mở</p>{inviteHistory.length ? inviteHistory.map((invite) => <article key={invite.id}><span className={`radar-status is-${invite.status}`}>{invite.status === "completed" ? <Check /> : <HeartStraight />}</span><div><strong>{invite.recipient_label}</strong><p>{statusText(invite.status)}</p></div>{invite.status === "pending" ? <><button aria-label={`Copy link cho ${invite.recipient_label}`} onClick={() => void revealLink(invite)} type="button"><Copy /></button><button aria-label={`Thu hồi link cho ${invite.recipient_label}`} onClick={() => revoke.mutate(invite.id)} type="button"><Trash /></button></> : <>{invite.status === "completed" ? <Link to={`/radar/result/${invite.id}`}>Mở</Link> : null}<button aria-label={`Xoá lần Radar với ${invite.recipient_label}`} disabled={erase.isPending} onClick={() => { if (window.confirm("Xoá lần Radar này? Kết quả của cả hai và link sẽ không còn mở được.")) erase.mutate(invite.id); }} type="button"><Trash /></button></>}</article>) : query.isPending ? <p role="status">Đang tải lời mời…</p> : !query.isError ? <p className="radar-history__empty">Chưa có lời mời nào. Link đầu tiên sẽ nằm ở đây để bạn theo dõi.</p> : null}</section> : null}
+    {owner.isReady ? <section className="radar-history" id="radar-history"><p className="eyebrow">Đang chờ & đã mở</p>{inviteHistory.length ? inviteHistory.map((invite) => <article key={invite.id}><span className={`radar-status is-${invite.status}`}>{invite.status === "completed" ? <Check /> : <HeartStraight />}</span><div><strong>{invite.recipient_label}</strong><p>{statusText(invite.status)}</p></div>{invite.status === "pending" ? <><button aria-label={`Copy link cho ${invite.recipient_label}`} onClick={() => void revealLink(invite)} type="button"><Copy /></button><button aria-label={`Thu hồi link cho ${invite.recipient_label}`} onClick={() => revoke.mutate(invite.id)} type="button"><Trash /></button></> : <>{invite.status === "completed" ? <Link to={`/radar/result/${invite.id}`}>Mở</Link> : null}<button aria-label={`Xoá lần Radar với ${invite.recipient_label}`} disabled={erase.isPending} onClick={() => setEraseTarget(invite)} type="button"><Trash /></button></>}</article>) : query.isPending ? <p role="status">Đang tải lời mời…</p> : !query.isError ? <p className="radar-history__empty">Chưa có lời mời nào. Link đầu tiên sẽ nằm ở đây để bạn theo dõi.</p> : null}</section> : null}
     {owner.isReady && query.hasNextPage ? <button className="matching-secondary" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()} type="button">{query.isFetchingNextPage ? "Đang tải…" : "Xem thêm lời mời"}</button> : null}
     {owner.isReady && query.isError ? <p role="alert">Chưa tải được lịch sử. <button onClick={() => void query.refetch()} type="button">Thử lại</button></p> : null}
+  <AppSheet closeDisabled={erase.isPending} onClose={() => setEraseTarget(null)} open={eraseTarget !== null} title={`Xoá lần Radar với ${eraseTarget?.recipient_label ?? "người này"}?`}>
+      <p className="uv-confirm__body">Kết quả của cả hai và link sẽ không còn mở được. Việc này không hoàn tác được.</p>
+      <div className="uv-confirm__actions">
+        <button className="outline-button" disabled={erase.isPending} onClick={() => setEraseTarget(null)} type="button">Giữ lại</button>
+        <button className="uv-danger-button" disabled={erase.isPending} onClick={() => { if (eraseTarget) erase.mutate(eraseTarget.id); setEraseTarget(null); }} type="button">Xoá</button>
+      </div>
+    </AppSheet>
   </main>;
 }
 

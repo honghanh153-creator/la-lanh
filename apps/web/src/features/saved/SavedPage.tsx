@@ -66,7 +66,7 @@ export function SavedPage() {
       <header className="section-header uv-tab-header"><h1>Đã lưu</h1></header>
       {message ? <p className="success-message" role="status">{message} {undoTimer.current !== null ? <button className="text-link" onClick={undoRemove} type="button">Hoàn tác</button> : null}</p> : null}
       {savedQuery.isLoading ? (
-        <LaLoading delayMs={0} text="Lá đang lật lại những note bạn đã giữ…" />
+        <LaLoading delayMs={0} text="Lá đang lật lại những note bạn đã giữ…" variant="list" />
       ) : notes.length > 0 || localNotes.length > 0 ? (
         <section className="saved-list" aria-label="Những note đã lưu">
           {notes.map((saved) => (
