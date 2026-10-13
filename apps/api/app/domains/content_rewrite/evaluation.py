@@ -126,11 +126,70 @@ def load_records(path: Path) -> tuple[EvaluationRecord, ...]:
     return tuple(EvaluationRecord.model_validate(row) for row in rows)
 
 
+class PilotSampleSelection(BaseModel):
+    """A declared, versioned subset of one surface's corpus cases for a pilot review."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    version: str = Field(min_length=1, max_length=80)
+    corpus_version: str = Field(min_length=1, max_length=80)
+    surface: RewriteSurface
+    synthetic_only: bool
+    case_ids: tuple[str, ...] = Field(min_length=20, max_length=1_000)
+
+    @model_validator(mode="after")
+    def validate_cases(self) -> PilotSampleSelection:
+        if not self.synthetic_only:
+            raise ValueError("pilot samples must contain synthetic data only")
+        if len(set(self.case_ids)) != len(self.case_ids):
+            raise ValueError("pilot sample case ids must be unique")
+        if any(not case_id.startswith(f"{self.surface.value}-") for case_id in self.case_ids):
+            raise ValueError("pilot sample case ids must belong to its surface")
+        return self
+
+
+def load_selection(path: Path) -> PilotSampleSelection:
+    return PilotSampleSelection.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def evaluate_pilot_sample(
+    manifest: FixedCorpusManifest,
+    selection: PilotSampleSelection,
+    records: tuple[EvaluationRecord, ...],
+) -> ReleaseEvaluation:
+    """Same thresholds as the release gate, applied to one declared sample only.
+
+    This is a pilot gate for a single surface. It never replaces ``evaluate_release``
+    over the complete corpus, and its result must be reported as a sample.
+    """
+
+    findings: list[str] = []
+    if selection.corpus_version != manifest.version:
+        findings.append("selection_corpus_version_mismatch")
+    if not set(selection.case_ids) <= set(manifest.case_ids):
+        findings.append("selection_outside_corpus")
+    sample = FixedCorpusManifest(
+        version=f"{manifest.version}+{selection.version}",
+        synthetic_only=True,
+        total_cases=len(selection.case_ids),
+        segments=(CorpusSegment(surface=selection.surface, count=len(selection.case_ids)),),
+    )
+    result = evaluate_release(sample, records, expected_case_ids=frozenset(selection.case_ids))
+    return result.model_copy(
+        update={
+            "passed": result.passed and not findings,
+            "findings": tuple(dict.fromkeys((*findings, *result.findings))),
+        }
+    )
+
+
 def evaluate_release(
     manifest: FixedCorpusManifest,
     records: tuple[EvaluationRecord, ...],
+    *,
+    expected_case_ids: frozenset[str] | None = None,
 ) -> ReleaseEvaluation:
-    expected = set(manifest.case_ids)
+    expected = set(expected_case_ids if expected_case_ids is not None else manifest.case_ids)
     actual = {record.case_id for record in records}
     findings: list[str] = []
     if len(actual) != len(records):

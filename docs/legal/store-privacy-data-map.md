@@ -95,6 +95,15 @@ retention up to 30 days or legal exceptions, and the limits of withdrawal. This 
 Radar/Matching or another person's information. A UI choice is not evidence that the provider's
 DPA/cross-border requirements have been completed. Production generation is still disabled.
 
+2026-10-13 copy correction (Issue #7, local only): the opt-in and onboarding text now also name
+the anonymous astrology labels that are sent (planet, sign, house, aspect), say that Tarot sends a
+pre-classified topic instead of the question text, name OpenAI as a US company processing outside
+Vietnam, and say that withdrawal cancels queued requests while already shown AI versions stay like
+other readings. Still missing before activation: an App Privacy / Data Safety row for OpenAI as a
+processor, DPA acceptance and a cross-border transfer impact assessment (Law 91/2025/QH15 Art. 20,
+Decree 356/2025/NĐ-CP), and a decision whether to bump `external-content-rewrite-v1` if anyone
+consented under the previous wording.
+
 The new monthly reservation record has UTC month and conservative nanodollar debit only. It has no
 owner identifiers or foreign keys. Preserve this anonymous aggregate after personal deletion to
 prevent budget reset. This is not analytics, tracking, or retention of the deleted reading.

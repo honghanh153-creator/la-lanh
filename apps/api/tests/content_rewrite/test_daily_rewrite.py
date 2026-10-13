@@ -16,8 +16,10 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
+from app.domains.readings.daily_psychology import current_scene_lead, split_scene_lead
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
+    BackgroundLens,
     DailyMeaningBrief,
     ReadingCandidate,
     ReadingPlan,
@@ -191,7 +193,7 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
     assert request.safe_payload["meaning_brief"] == (
         baseline.semantic_blueprint.daily_meaning.model_dump(mode="json")
     )
-    assert request.key.gate_version == "daily-rewrite-gates/v2"
+    assert request.key.gate_version == "daily-rewrite-gates/v3"
 
 
 def test_daily_compiler_carries_supported_full_chart_meaning_through_privacy_allowlist() -> None:
@@ -442,3 +444,109 @@ async def test_daily_shadow_validates_and_saves_candidate_without_exposing_it() 
     assert repository.projection.active_revision_id == active.id
     assert repository.projection.available_revision_id is None
     assert len(repository.revisions) == 2
+
+
+def _lens_baseline(lens: BackgroundLens) -> ReadingCandidate:
+    plan = ReadingPlanner().plan(
+        NatalChartEngine().calculate_chart(
+            ChartInput(
+                utc_datetime=datetime(1992, 5, 14, 3, 30, tzinfo=UTC),
+                latitude=16.0544,
+                longitude=108.2022,
+            ),
+            CalculationConfig.western_recommended(),
+        ),
+        purpose=ReadingPurpose.DAILY_NOTE,
+        background_lens=lens,
+        editorial_seed="2026-10-13",
+    )
+    baseline = DeterministicVietnameseRenderer().render(plan)
+    assert evaluate_candidate(plan, baseline).accepted
+    return baseline
+
+
+def _v7_report(baseline: ReadingCandidate, output: dict[str, JsonValue]) -> tuple[str, ...]:
+    blueprint = baseline.semantic_blueprint
+    assert blueprint is not None
+    return evaluate_daily_rewrite(
+        output,
+        source_scene=blueprint.manifestation,
+        source_action=blueprint.micro_action,
+        meaning_brief=blueprint.daily_meaning,
+    ).failure_codes
+
+
+@pytest.mark.parametrize(
+    "lens", [lens for lens in BackgroundLens if lens is not BackgroundLens.AUTO]
+)
+def test_v7_baseline_passes_its_own_rewrite_gate_with_the_context_clause(
+    lens: BackgroundLens,
+) -> None:
+    baseline = _lens_baseline(lens)
+    lead = current_scene_lead(baseline.manifestation)
+    assert lead is not None and lead.endswith(",")
+    assert _v7_report(baseline, _good_output(baseline)) == ()
+
+
+def test_v7_rewrite_must_keep_the_scene_context_clause() -> None:
+    baseline = _lens_baseline(BackgroundLens.RELATIONSHIPS)
+    lead = current_scene_lead(baseline.manifestation)
+    assert lead == "Với người kia,"
+    _, scene = split_scene_lead(baseline.manifestation)
+
+    dropped = _good_output(baseline) | {"scene": scene}
+    assert "daily_scene_context_lost" in _v7_report(baseline, dropped)
+
+    fragment = _good_output(baseline) | {"scene": f"Ví dụ với người kia. {scene}"}
+    codes = _v7_report(baseline, fragment)
+    assert "daily_scene_fragment" in codes
+    assert "daily_scene_context_lost" in codes
+
+
+def test_v7_rewrite_must_not_repeat_the_takeaway_already_on_the_card() -> None:
+    baseline = _lens_baseline(BackgroundLens.WORK)
+    assert baseline.semantic_blueprint is not None
+    brief = baseline.semantic_blueprint.daily_meaning
+    assert brief is not None
+    assert brief.reader_takeaway in baseline.thesis
+    repeated = _good_output(baseline) | {"title": brief.reader_takeaway}
+    assert "daily_takeaway_repeated" in _v7_report(baseline, repeated)
+
+
+@pytest.mark.asyncio
+async def test_daily_projector_never_lets_a_rewrite_touch_the_two_sentence_thesis() -> None:
+    plan_record, projection, active = _records()
+    repository = MemoryRepository(plan_record, projection, active)
+    baseline = DeterministicVietnameseRenderer().render(plan_record.plan)
+    request = compile_daily_rewrite_request(
+        plan_record,
+        projection,
+        baseline,
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v4",
+    )
+    assert "thesis" not in request.safe_payload
+
+    decision = await DailyRewriteProjector(repository).validate_and_project(
+        request, _good_output(baseline), completed_at=NOW
+    )
+
+    assert decision.accepted
+    assert repository.projection.available_revision_id is not None
+    generated = repository.revisions[repository.projection.available_revision_id]
+    candidate = generated.evaluation.publishable_candidate
+    assert candidate is not None
+    assert candidate.thesis == baseline.thesis
+
+
+def test_daily_prompt_teaches_the_v7_card_shape() -> None:
+    from app.domains.content_rewrite.models import RewriteSurface
+    from app.infrastructure.generation.openai import OPENAI_REWRITE_PROMPT_VERSION
+    from app.infrastructure.generation.schemas import surface_output_contract
+
+    instruction = surface_output_contract(RewriteSurface.DAILY_HOME).developer_instruction
+    assert OPENAI_REWRITE_PROMPT_VERSION == "surface-rewrite-v4"
+    assert "start the scene with exactly that clause" in instruction
+    assert "never write a separate fragment such as 'Ví dụ …'" in instruction
+    assert "never repeat it" in instruction
+    assert "limitation" not in instruction

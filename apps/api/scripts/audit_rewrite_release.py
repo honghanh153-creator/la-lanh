@@ -3,7 +3,13 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from app.domains.content_rewrite.evaluation import evaluate_release, load_manifest, load_records
+from app.domains.content_rewrite.evaluation import (
+    evaluate_pilot_sample,
+    evaluate_release,
+    load_manifest,
+    load_records,
+    load_selection,
+)
 from app.domains.content_rewrite.registry import canonical_surface_registry
 
 DEFAULT_MANIFEST = (
@@ -16,6 +22,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--results", type=Path)
     parser.add_argument("--manifest-only", action="store_true")
+    parser.add_argument(
+        "--selection",
+        type=Path,
+        help="Pilot sample (from scripts.daily_rewrite_pilot_eval select); not a full release.",
+    )
     return parser
 
 
@@ -38,7 +49,17 @@ def main() -> None:
         return
     if args.results is None:
         raise SystemExit("--results is required unless --manifest-only is used")
-    result = evaluate_release(manifest, load_records(args.results))
+    records = load_records(args.results)
+    if args.selection is not None:
+        selection = load_selection(args.selection)
+        result = evaluate_pilot_sample(manifest, selection, records)
+        label = (
+            f"pilot sample {selection.version} ({len(selection.case_ids)} "
+            f"{selection.surface.value} cases; not the full {len(manifest.case_ids)}-case release)"
+        )
+    else:
+        result = evaluate_release(manifest, records)
+        label = f"corpus {result.corpus_version}"
     for surface in result.surfaces:
         print(
             f"{surface.surface.value}: cases={surface.case_count}, "
@@ -48,8 +69,8 @@ def main() -> None:
             f"gate_failures={surface.gate_failures}, passed={surface.passed}"
         )
     if not result.passed:
-        raise SystemExit(f"Rewrite release blocked: {', '.join(result.findings)}")
-    print(f"Rewrite release passed for corpus {result.corpus_version}.")
+        raise SystemExit(f"Rewrite release blocked for {label}: {', '.join(result.findings)}")
+    print(f"Rewrite release passed for {label}.")
 
 
 if __name__ == "__main__":

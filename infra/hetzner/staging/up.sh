@@ -24,8 +24,34 @@ chown 65532:65532 "$SECRETS"/guest_hash_key "$SECRETS"/guest_encryption_key "$SE
 chown 70:70 "$SECRETS/db_password"   # postgres user in the alpine image
 chmod 0600 "$SECRETS"/guest_hash_key "$SECRETS"/guest_encryption_key "$SECRETS"/database_url "$SECRETS"/db_ca.pem "$SECRETS"/db_password
 
-sed -e "s#https://la-lanh.2-28-136-44.sslip.io#https://${STAGING_HOSTNAME}#" "$HERE/../app.env" > "$HERE/app.env"
+# Production generation settings never leak into staging: they are stripped and
+# staging's own values come only from staging/generation.env when explicitly on.
+sed -e "s#https://la-lanh.2-28-136-44.sslip.io#https://${STAGING_HOSTNAME}#" "$HERE/../app.env" \
+  | { grep -v '^LA_LANH_GENERATION_' || true; } > "$HERE/app.env"
 grep -q '^LA_LANH_AUTH_ENABLED=true' "$HERE/app.env" && { echo "Staging keeps auth disabled" >&2; exit 2; }
+case "${STAGING_GENERATION:-off}" in
+  off)
+    echo "LA_LANH_GENERATION_ENABLED=false" >> "$HERE/app.env"
+    unset COMPOSE_PROFILES || true
+    ;;
+  on)
+    GEN_ENV="$HERE/generation.env"
+    [[ -s "$GEN_ENV" ]] || { echo "STAGING_GENERATION=on needs $GEN_ENV" >&2; exit 2; }
+    # Only plain LA_LANH_GENERATION_* settings; never the key, never the worker switch.
+    if grep -Ev '^(LA_LANH_GENERATION_[A-Z0-9_]+=.*|#.*|)$' "$GEN_ENV" >/dev/null \
+      || grep -Eq '^LA_LANH_GENERATION_(OPENAI_API_KEY|OPENAI_API_KEY_FILE|WORKER_ENABLED)=' "$GEN_ENV"; then
+      echo "$GEN_ENV may only hold LA_LANH_GENERATION_* settings without key or worker switch" >&2
+      exit 2
+    fi
+    KEY="$SECRETS/openai_api_key"
+    [[ -s "$KEY" && ! -L "$KEY" ]] || { echo "Missing staging provider key file $KEY" >&2; exit 2; }
+    [[ "$(stat -c '%u:%a' "$KEY")" == "65532:600" ]] \
+      || { echo "$KEY must be owned by 65532 with mode 0600" >&2; exit 2; }
+    cat "$GEN_ENV" >> "$HERE/app.env"
+    export COMPOSE_PROFILES=generation
+    ;;
+  *) echo "STAGING_GENERATION must be on or off" >&2; exit 2 ;;
+esac
 chmod 0600 "$HERE/app.env"
 
 cd "$HERE"
@@ -41,6 +67,19 @@ docker compose -f compose.staging.yaml exec -T db psql -q -U lalanh -d lalanh -v
 docker compose -f compose.staging.yaml run --rm --no-deps staging-app alembic upgrade head
 docker compose -f compose.staging.yaml run --rm --no-deps staging-app python -m scripts.check_database_privacy
 docker compose -f compose.staging.yaml up -d --wait staging-app
+if [[ "${COMPOSE_PROFILES:-}" == "generation" ]]; then
+  docker compose -f compose.staging.yaml up -d --wait staging-rewrite-worker
+  # The provider key must exist only inside the worker.
+  if docker compose -f compose.staging.yaml exec -T staging-app \
+    python -c "import os, sys; sys.exit(0 if os.path.exists('/run/secrets/openai_api_key') else 1)"; then
+    echo "staging-app must not mount the provider key; stopping the worker" >&2
+    docker compose -f compose.staging.yaml stop staging-rewrite-worker
+    exit 2
+  fi
+else
+  # Kill switch: a worker left over from an earlier opt-in is removed.
+  docker compose -f compose.staging.yaml --profile generation rm -sf staging-rewrite-worker >/dev/null 2>&1 || true
+fi
 # Guard: from Caddy's point of view, "app" must resolve to exactly one
 # container (production). Anything else would split production traffic.
 app_ips="$(docker exec la-lanh-caddy-1 nslookup app 127.0.0.11 2>/dev/null | awk '/^Name:/{n=1;next} n&&/^Address/{c++} END{print c+0}')"

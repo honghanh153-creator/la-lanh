@@ -84,7 +84,7 @@ def _synthetic_request() -> RewriteRequestEnvelope:
             model_version=MODEL,
             prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
             schema_version="daily-rewrite/v1",
-            gate_version="daily-rewrite-gates/v2",
+            gate_version="daily-rewrite-gates/v3",
             candidate_variant="paid-probe",
         ),
         authorization_receipt_id="synthetic-probe-no-user-data",

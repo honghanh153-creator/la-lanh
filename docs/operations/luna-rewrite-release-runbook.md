@@ -1,5 +1,16 @@
 # Luna rewrite release runbook
 
+## Daily v7 contract update, 2026-10-13 — local only
+
+Daily now uses the v7 card (two-sentence thesis, scene opened by a context clause). The rewrite
+chain is `surface-rewrite-v4` → `daily-rewrite-gates/v3` (report `daily-home-rewrite-gates/v3`).
+Both bumps change the rewrite cache key, so nothing generated under v3/v2 is reused. Luna still
+rewrites only title/scene/action; the projector keeps the deterministic thesis. The rewrite gate
+additionally rejects a dropped context clause, a reintroduced "Ví dụ …" fragment and a verbatim
+repeat of the takeaway. Roast ("Cà khịa") readers never see a half-roasted Luna card: the roast is
+served from the deterministic baseline of the same plan, or the Luna text stays fully direct.
+No paid call was made for this update.
+
 ## Local security/content update, 2026-10-09 — not deployed
 
 - Current Tarot chain: `tarot-renderer-v4` → `tarot-meaning-brief-v1` → `gpt-6-luna-tarot-v3` → `tarot-rewrite-gates/v3`. Only new readings use the new local renderer; no bulk legacy rewrite or additional paid evaluation is authorised here.
@@ -10,6 +21,119 @@
 - Reject legacy Tarot jobs without a meaning brief before transport; don't replay or migrate them into new paid jobs automatically. Rejected AI keeps its valid local baseline. Rejected first local rendering locks the drawn cards but exposes no draft and creates no rewrite job.
 - Keep generation/worker disabled for local browser QA. Run all six topic banks through `tarot:audit`, read a separate synthetic sample corpus, and obtain real reader acceptance. Passing schemas, keyword checks or a ten-persona simulation is not evidence that ten real users understood the product.
 - Remaining release gates: completed review receipt, approved content sample acceptance, live deployment verification, native-specific verification if publishing the app, and disposition of retained security findings. The failed deep scan is not a certificate of system-wide security.
+
+## Pilot daily_home config (proposed, not applied)
+
+Owner decision 2026-10-13 (Issue #7, "Kế hoạch release beta"): Luna only for the Home Daily note
+(`daily_home`), at most 20 sessions that opted in themselves, provider project cap USD 1/month,
+app-side reservation cap 90 cents/month in total. Staging first, then production. Nothing below
+is applied; no secret appears here. `tests/scripts/test_pilot_config_doc.py` loads both blocks
+into the real `Settings` validators with fake secret files, so a value that the code would reject
+fails CI.
+
+How the code reads these values:
+
+- `LA_LANH_GENERATION_SURFACE_ROLLOUT` must name `daily_home` only. The personal opt-in in `Mình`
+  is offered only when a personal surface is in a user-visible mode (`beta_10`, `beta_50` or
+  `full`; `guest_sessions.py`). `shadow`/`editorial` hide the opt-in, so with no consenting
+  session nothing is ever enqueued: shadow is not a useful pilot step for personal content.
+  `beta_10` publishes only ~10% of artifacts, so 20 testers would rarely see Luna. Use `full`.
+  Even then a Luna note is only an *available update*; the tester activates it explicitly.
+- Unlisted surfaces stay `off`, so `reveal`/`natal`/`transit_insight`/`tarot` are not enqueued
+  even though the same personal consent receipt covers them. Do not add them without a new
+  owner decision and copy review.
+- One Daily job reserves ~5.3k–6.2k tokens and 0.061–0.070 cents before the provider call
+  (conservative UTF-8 byte count of the brief + prompt + schema + 512, output cap 220; measured on
+  synthetic v7 cards 2026-10-13). Observed real cost is ~0.01 cent per job.
+  `DAILY_BUDGET_CENTS=3` therefore admits ~42 jobs/UTC day; `DAILY_TOKEN_BUDGET=300000` (~48 jobs)
+  keeps the cent cap binding. The older `100000` example would stop at ~16 jobs/day, fewer than
+  20 testers. Each context lens is its own job, so heavy lens switching drains the day sooner.
+- Each database keeps its own monthly ledger. Staging and production use the same key and
+  provider project, so their monthly caps must add up to at most 90: staging 10 + production 80.
+  Use production 90 only if staging generation stays off for that whole UTC month.
+- `PILOT_USER_LIMIT=20` counts active opted-in sessions, not people.
+- Worker-only settings (`LA_LANH_GENERATION_WORKER_ENABLED`, the key file path) are set by
+  Compose inside the worker and never belong in `app.env`/`generation.env`.
+
+Staging (`infra/hetzner/staging/generation.env`, git-ignored, used only with
+`STAGING_GENERATION=on ./up.sh`; key at `/opt/la-lanh/staging/secrets/openai_api_key`, owner
+65532, mode 0600, mounted only into `staging-rewrite-worker`):
+
+```text pilot-staging
+LA_LANH_GENERATION_ENABLED=true
+LA_LANH_GENERATION_PROVIDER=openai
+LA_LANH_GENERATION_GOVERNANCE_APPROVED=true
+LA_LANH_GENERATION_SPEND_APPROVED=true
+LA_LANH_GENERATION_SURFACE_ROLLOUT={"daily_home":"full"}
+LA_LANH_GENERATION_MONTHLY_BUDGET_CENTS=10
+LA_LANH_GENERATION_DAILY_BUDGET_CENTS=3
+LA_LANH_GENERATION_DAILY_TOKEN_BUDGET=300000
+LA_LANH_GENERATION_PILOT_USER_LIMIT=3
+LA_LANH_GENERATION_OPENAI_PROJECT_ID=proj_eiNVxorNxWcueLgvBnYOU16T
+```
+
+Production (`infra/hetzner/app.env` on the VPS; `deploy.sh` then starts `rewrite-worker` through
+the `generation` profile and requires `/opt/la-lanh/secrets/openai_api_key`):
+
+```text pilot-production
+LA_LANH_GENERATION_ENABLED=true
+LA_LANH_GENERATION_PROVIDER=openai
+LA_LANH_GENERATION_GOVERNANCE_APPROVED=true
+LA_LANH_GENERATION_SPEND_APPROVED=true
+LA_LANH_GENERATION_SURFACE_ROLLOUT={"daily_home":"full"}
+LA_LANH_GENERATION_MONTHLY_BUDGET_CENTS=80
+LA_LANH_GENERATION_DAILY_BUDGET_CENTS=3
+LA_LANH_GENERATION_DAILY_TOKEN_BUDGET=300000
+LA_LANH_GENERATION_PILOT_USER_LIMIT=20
+LA_LANH_GENERATION_OPENAI_PROJECT_ID=proj_eiNVxorNxWcueLgvBnYOU16T
+```
+
+`SPEND_APPROVED=true` and `GOVERNANCE_APPROVED=true` may only be written by the operator after the
+owner's explicit approval of this spend and of the privacy items below; leaving either `false`
+keeps the worker from starting (`Settings` validation). Kill switch: set
+`LA_LANH_GENERATION_ENABLED=false` (production: redeploy; staging: rerun `up.sh` with
+`STAGING_GENERATION=off`, which also removes the staging worker). Deterministic notes stay as the
+fallback.
+
+Still blocking activation (not done here): owner approval of spend and governance, DPA
+acceptance and cross-border transfer impact assessment (Law 91/2025/QH15, Decree 356/2025/NĐ-CP),
+privacy copy update, human scoring of the ~40-case `daily_home` sample, secret copy to the VPS,
+live worker health check and one supervised end-to-end run on staging.
+
+## daily_home pilot evaluation (~40 human-scored cases)
+
+`scripts/daily_rewrite_pilot_eval.py` (`pnpm rewrite:pilot -- <command>`). Everything is
+synthetic: the versioned catalog `apps/api/scripts/fixtures/daily_home_pilot_cases.json`
+(`daily-home-cases-v1`) maps the corpus's 75 `daily_home-NNNN` ids to generated charts/dates
+(63 exact with transits, 12 date-only); no real person is described.
+
+1. `select --out selection.json` picks 40 cases (`daily-home-pilot-sample-v1`) covering all 15
+   Daily issues (≥2 each), all six lenses, every scene context, both chart kinds, and roast
+   cards for relationships/communication/work plus the gentle energy/self-care frame. Offline.
+2. `generate --selection selection.json --out cases.jsonl --dry-run` renders each baseline,
+   compiles the exact `daily_home` request (`surface-rewrite-v4`, `daily-rewrite-gates/v3`),
+   runs the provider privacy allowlist and prints the worst-case ledger reservation
+   (≈ USD 0.028 for the 40 cases). Zero network calls (tested with sockets disabled).
+3. Paid step, later and only after the owner approves it: inside the staging worker container,
+   which already holds the validated worker Settings and the mounted key, e.g.
+   `docker compose -f compose.staging.yaml --profile generation run --rm --no-deps -v /opt/la-lanh/staging/eval:/eval staging-rewrite-worker python -m scripts.daily_rewrite_pilot_eval generate --selection /eval/selection.json --out /eval/cases.jsonl --paid --confirm-max-usd 0.03`.
+   It refuses unless worker Settings validate, generation/governance/spend approval are true,
+   `daily_home` is in the rollout, the database is PostgreSQL, and `--confirm-max-usd` (≤ 0.90)
+   covers the worst case. Before every send it debits the same anonymous day/month ledger as the
+   worker (`reserve_standalone_budget`); a refused reservation stops the run and marks the rest
+   `budget_blocked`. The proposed staging day cap of 3 cents covers one 40-case run only on a
+   day without other staging jobs. Output is gated by the production `DailyRewriteProjector`
+   (`publish=False`); nothing is published. The key is never read or printed by the script.
+   `cases.jsonl` is written mode 0600 and holds only synthetic prose; delete it after review.
+4. `html --cases cases.jsonl --out review.html` writes a self-contained page (no network, CSP,
+   noindex). A/B order is blinded per case. The reviewer scores six 1–5 dimensions for both
+   versions and marks Đạt/Không đạt, then exports `rewrite-results.json` (strict
+   `EvaluationRecord` array; a human "Không đạt" becomes `gate_passed=false` with
+   `human_rejected`) plus review notes.
+5. `pnpm rewrite:release -- --results rewrite-results.json --selection selection.json` applies
+   the unchanged release thresholds (comprehension ≥ 90%, relevance ≥ 85%, duplicate frames
+   < 5%, zero gate failures, candidate mean > baseline mean) to the declared sample. This is a
+   **pilot sample gate**, reported as such; it does not replace the full 670-case release gate.
 
 ## Paid pilot update, 2026-10-08
 
