@@ -271,8 +271,8 @@ export function ProfilePage() {
         <p className="profile-status">{rewriteQuery.data.consented ? "Đã đồng ý · kết quả chỉ hiện khi qua kiểm tra. Khi hết ngân sách, vẫn có bản đọc thường." : "Mặc định tắt. Chưa có đồng ý thì không gửi nội dung sang OpenAI."}</p>
       </section> : null}
       <AppSheet open={confirmingAI} title="Đồng ý để OpenAI sửa lời văn?" closeDisabled={rewriteMutation.isPending} onClose={() => setConfirmingAI(false)}>
-        <p>Lá Lành gửi bản tóm tắt ý nghĩa chart hoặc Tarot sang OpenAI, không gửi tên, ngày/giờ/nơi sinh hay tọa độ. Nội dung suy ra vẫn có thể là thông tin cá nhân. Câu hỏi tự do và dữ liệu riêng của người khác không nằm trong quyền đồng ý này.</p>
-        <p>Yêu cầu không lưu lịch sử trả lời, nhưng OpenAI có thể giữ dữ liệu kiểm soát lạm dụng tới 30 ngày hoặc lâu hơn khi pháp luật yêu cầu. Bạn có thể tắt bất cứ lúc nào trong Mình; tắt sẽ dừng các yêu cầu tiếp theo, không thu hồi được dữ liệu đã gửi.</p>
+        <p>Với mục đang thử nghiệm, Lá Lành gửi sang OpenAI (công ty Hoa Kỳ, xử lý ngoài Việt Nam) bản tóm tắt ý nghĩa và nhãn chiêm tinh liên quan (hành tinh, cung, nhà, góc chiếu), hoặc ý nghĩa các lá Tarot. Không gửi tên, ngày/giờ/nơi sinh hay tọa độ. Nội dung suy ra vẫn có thể là thông tin cá nhân. Với Tarot, không gửi nguyên văn câu hỏi, chỉ gửi nhóm chủ đề đã phân loại sẵn. Dữ liệu riêng của người khác không nằm trong quyền đồng ý này.</p>
+        <p>Yêu cầu không lưu lịch sử trả lời, nhưng OpenAI có thể giữ dữ liệu kiểm soát lạm dụng tới 30 ngày hoặc lâu hơn khi pháp luật yêu cầu. Bạn có thể tắt bất cứ lúc nào trong Mình; tắt sẽ huỷ các yêu cầu chưa gửi và dừng các yêu cầu sau, không thu hồi được dữ liệu đã gửi. Bản AI đã hiện trước đó vẫn được giữ như các bản đọc khác.</p>
         <button className="primary-button" disabled={rewriteMutation.isPending} onClick={() => rewriteMutation.mutate(true)} type="button">Đồng ý và thử</button>
         <button className="text-button" disabled={rewriteMutation.isPending} onClick={() => setConfirmingAI(false)} type="button">Dùng bản thường</button>
       </AppSheet>
