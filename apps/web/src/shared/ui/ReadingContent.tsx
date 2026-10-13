@@ -231,18 +231,23 @@ function ExperimentSection({
 
 function Evidence({ content }: { content: ReadingContentModel }) {
   const isDaily = content.purpose === "daily_note" || content.purpose === "personalized_sky";
+  const transit = content.sections.transit;
   const openFromLink = isDaily && typeof window !== "undefined" && window.location.hash === `#${WHY_TODAY_ID}`;
+  // "Vì sao hôm nay?" is only promised when today's sky truly explains the note.
+  const summary = !isDaily ? "Bản đọc này dựa vào đâu?" : transit ? "Vì sao hôm nay?" : "Note này dựa vào đâu?";
   return (
     <details className="reading-evidence" id={isDaily ? WHY_TODAY_ID : undefined} open={openFromLink || undefined}>
-      <summary><ChartBar aria-hidden="true" /><span>{isDaily ? "Vì sao hôm nay?" : "Bản đọc này dựa vào đâu?"}</span></summary>
-      {content.sections.transit ? (
-        <p className="reading-content__transit">{content.sections.transit}</p>
-      ) : null}
-      <strong>{content.evidence.title}</strong>
-      <ul>
-        {content.evidence.claims.map((claim) => <li key={claim}>{claim}</li>)}
-      </ul>
-      <p>{content.evidence.framework_disclosure}</p>
+      <summary><ChartBar aria-hidden="true" /><span>{summary}</span></summary>
+      {transit ? <p className="reading-content__transit">{transit}</p> : null}
+      {isDaily && !transit ? <p className="reading-content__basis">Note này dựa trên lá số gốc của bạn.</p> : null}
+      <details className="reading-evidence__technical">
+        <summary>Chi tiết lá số</summary>
+        <strong>{content.evidence.title}</strong>
+        <ul>
+          {content.evidence.claims.map((claim) => <li key={claim}>{claim}</li>)}
+        </ul>
+        <p>{content.evidence.framework_disclosure}</p>
+      </details>
     </details>
   );
 }

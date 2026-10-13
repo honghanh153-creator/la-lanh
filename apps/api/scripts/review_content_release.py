@@ -12,7 +12,7 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 from app.domains.readings.gates import evaluate_candidate
-from app.domains.readings.models import BackgroundLens, ReadingPurpose
+from app.domains.readings.models import BackgroundLens, ReadingPlan, ReadingPurpose
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.readings.review_agent import ContentReviewAgent, ReviewSample
@@ -82,10 +82,50 @@ def _full_chart(index: int) -> NatalChart:
     )
 
 
+def _daily_review_plan(
+    planner: ReadingPlanner,
+    engine: NatalChartEngine,
+    chart: NatalChart | DateOnlySunResult,
+    lens: BackgroundLens,
+    start: date,
+    index: int,
+) -> ReadingPlan:
+    """Exact charts are reviewed on their first day (within 30) that has a real
+    "Vì sao hôm nay?" reason, so that sentence is read too; others on the base day."""
+
+    base = start + timedelta(days=index)
+    if not isinstance(chart, NatalChart):
+        return planner.plan(
+            chart,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            background_lens=lens,
+            editorial_seed=base.isoformat(),
+        )
+    first: ReadingPlan | None = None
+    for offset in range(30):
+        day = base + timedelta(days=offset)
+        plan = planner.plan(
+            chart,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            transits=engine.calculate_transit_to_natal(
+                chart, datetime(day.year, day.month, day.day, 5, tzinfo=UTC)
+            ),
+            background_lens=lens,
+            editorial_seed=day.isoformat(),
+        )
+        first = first or plan
+        if plan.daily_selection is not None and plan.daily_selection.transit_ref is not None:
+            return plan
+    if first is None:  # pragma: no cover - range(30) always yields a plan
+        raise RuntimeError("no Daily review plan")
+    return first
+
+
 def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
     """Direct samples by default; ``roast`` reviews the approved read-time roast voice."""
     planner = ReadingPlanner()
     renderer = DeterministicVietnameseRenderer()
+    engine = NatalChartEngine()
     tarot = TarotReadingEngine()
     cards = all_cards()
     samples: list[ReviewSample] = []
@@ -93,11 +133,8 @@ def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
     for index, sign in enumerate(tuple(ZodiacSign)[:PERSONA_COUNT]):
         persona_id = f"persona-{index + 1:02d}"
         chart = _date_only(sign) if index % 2 == 0 else _full_chart(index)
-        plan = planner.plan(
-            chart,
-            purpose=ReadingPurpose.DAILY_NOTE,
-            background_lens=_LENSES[index % len(_LENSES)],
-            editorial_seed=(date(2026, 9, 29) + timedelta(days=index)).isoformat(),
+        plan = _daily_review_plan(
+            planner, engine, chart, _LENSES[index % len(_LENSES)], date(2026, 9, 29), index
         )
         candidate = renderer.render(plan)
         evaluation = evaluate_candidate(plan, candidate)
@@ -115,6 +152,7 @@ def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
                     ("thesis", daily.thesis),
                     ("scene", daily.manifestation),
                     ("action", daily.micro_action),
+                    *((("why_today", candidate.transit),) if candidate.transit else ()),
                 ),
                 disclaimer=candidate.disclaimer,
                 provenance_ids=tuple(claim.factor_ref for claim in candidate.evidence.claims),

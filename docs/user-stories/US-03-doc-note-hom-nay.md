@@ -201,6 +201,7 @@ flowchart TD
 - **AC05 — Provenance:** Note lưu/transmit kèm `content_version`, `source_level`, `transit_version` hoặc fallback marker.
 - **AC06 — Scanability:** Note compact ở mobile 390px đọc được phần lời nhắc chính + body + mood entry mà không phải đoán CTA.
 - **AC07 — Detail:** Tap note mở S15 với full note và disclosure “vì sao note này” bằng ngôn ngữ dễ hiểu.
+  - *Cập nhật B1b, 13.10.2026 (Issue #5):* Chỉ gọi là “Vì sao hôm nay?” khi một transit thật sự giải thích tình huống. Transit được hiện khi pair rule đã duyệt của chính nó tạo ra tình huống, hoặc ra cùng `issue_key` trên placement mà tình huống dựa vào. Khi đó panel có đúng một câu lời thường, theo mẫu đóng, không có orb, độ, pha hay nhà. Ngày khác panel tên “Note này dựa vào đâu?” và ghi “Note này dựa trên lá số gốc của bạn.” Chi tiết kỹ thuật (claim canonical, framework disclosure) gập trong “Chi tiết lá số”. Home chỉ hiện link “Vì sao hôm nay?” khi có lý do đó.
 - **AC08 — Offline cache:** Given offline và có cache hôm nay, then hiển thị cache; given cache cũ, then hiện nhãn ngày cũ; given không cache, then có empty/retry.
 - **AC09 — Fallback:** Nếu generation/fetch lỗi, Home không trống; fallback đã duyệt hiển thị và được gắn `fallback_used=true`.
 - **AC10 — Idempotent view:** Reload/back/foreground trong cùng ngày không tạo nhiều `DailyNoteView` chính.

@@ -17,11 +17,13 @@ from app.domains.astro.models import (
     TransitToNatalContact,
     TransitToNatalSnapshot,
 )
+from app.domains.readings.daily_psychology import select_daily_situation
 from app.domains.readings.models import (
     JYOTISH_INTERPRETATION_KNOWLEDGE_VERSION,
     WESTERN_INTERPRETATION_KNOWLEDGE_VERSION,
     BackgroundLens,
     CompositionTarget,
+    DailySelection,
     DerivedFactor,
     FactorConfidence,
     FactorKind,
@@ -35,6 +37,8 @@ from app.domains.readings.models import (
 )
 
 PLANNER_RULES_VERSION = "factor-planner-v2"
+# Daily notes whose situation and transit are chosen together before persistence.
+DAILY_PLANNER_RULES_VERSION = "factor-planner-v3"
 TRANSIT_SALIENCE_THRESHOLD = 0.45
 
 _PERSONAL_BODIES = {
@@ -163,6 +167,16 @@ class ReadingPlanner:
 
         candidates = self._natal_candidates(chart, purpose)
         selected, hero_refs = self._select_natal(candidates, purpose, editorial_seed)
+        if purpose is ReadingPurpose.DAILY_NOTE and chart.config.tradition is Tradition.WESTERN:
+            return self._daily_plan(
+                chart,
+                transits,
+                candidates,
+                selected,
+                hero_refs,
+                background_lens=background_lens,
+                editorial_seed=editorial_seed,
+            )
         transit_factor = self._select_transit(chart, transits, purpose, candidates)
         if transit_factor is not None:
             selected = self._include_transit_dependency(selected, candidates, transit_factor)
@@ -183,6 +197,61 @@ class ReadingPlanner:
             background_lens=background_lens,
             editorial_seed=editorial_seed,
         )
+
+    def _daily_plan(
+        self,
+        chart: NatalChart,
+        transits: TransitToNatalSnapshot | None,
+        candidates: tuple[DerivedFactor, ...],
+        natal: list[DerivedFactor],
+        hero_refs: tuple[str, ...],
+        *,
+        background_lens: BackgroundLens | None,
+        editorial_seed: str | None,
+    ) -> ReadingPlan:
+        """Choose the Daily situation, then attach only a transit that explains it.
+
+        Everything is decided here, before hashing and persistence; the renderer
+        replays ``daily_selection`` and never selects again.
+        """
+
+        mode = PlanMode.FULL_SYNTHESIS if hero_refs else PlanMode.LIMITED
+
+        def build(
+            factors: list[DerivedFactor],
+            *,
+            has_transit: bool,
+            selection: DailySelection | None = None,
+        ) -> ReadingPlan:
+            return self._build_plan(
+                tradition=chart.config.tradition,
+                config_hash=chart.config_hash,
+                purpose=ReadingPurpose.DAILY_NOTE,
+                precision=chart.time_precision,
+                mode=mode,
+                factors=tuple(self._assign_roles(factors, hero_refs)),
+                hero_factor_refs=hero_refs,
+                composition=self._composition(has_transit=has_transit),
+                background_lens=background_lens,
+                editorial_seed=editorial_seed,
+                daily_selection=selection,
+            )
+
+        def with_transit(transit: DerivedFactor) -> list[DerivedFactor]:
+            factors = self._include_transit_dependency(list(natal), candidates, transit)
+            return [*factors, transit]
+
+        natal_plan = build(list(natal), has_transit=False)
+        # Every salient contact is considered; nothing is cut before relevance.
+        transit_plans = tuple(
+            (transit, build(with_transit(transit), has_transit=True))
+            for transit in self._transit_pool(
+                chart, transits, ReadingPurpose.DAILY_NOTE, candidates
+            )
+        )
+        selection, transit = select_daily_situation(natal_plan, transit_plans)
+        factors = with_transit(transit) if transit is not None else list(natal)
+        return build(factors, has_transit=transit is not None, selection=selection)
 
     def _date_only_plan(
         self,
@@ -584,6 +653,29 @@ class ReadingPlanner:
         ]
         return min(eligible, key=lambda item: (-item.salience, item.id), default=None)
 
+    def _transit_pool(
+        self,
+        chart: NatalChart,
+        transits: TransitToNatalSnapshot | None,
+        purpose: ReadingPurpose,
+        natal_candidates: tuple[DerivedFactor, ...],
+    ) -> tuple[DerivedFactor, ...]:
+        """All salient contacts, in a stable order independent of input order."""
+
+        if transits is None or purpose not in _TRANSIT_PURPOSES:
+            return ()
+        placement_ids = {
+            factor.subjects[0]: factor.id
+            for factor in natal_candidates
+            if factor.kind is FactorKind.PLANET_PLACEMENT
+        }
+        eligible = {
+            factor.id: factor
+            for contact in transits.contacts
+            if (factor := self._transit_factor(chart, contact, placement_ids)) is not None
+        }
+        return tuple(sorted(eligible.values(), key=lambda item: (-item.salience, item.id)))
+
     def _transit_factor(
         self,
         chart: NatalChart,
@@ -747,7 +839,11 @@ class ReadingPlanner:
         composition: CompositionTarget,
         background_lens: BackgroundLens | None,
         editorial_seed: str | None,
+        daily_selection: DailySelection | None = None,
     ) -> ReadingPlan:
+        rules_version = (
+            DAILY_PLANNER_RULES_VERSION if daily_selection is not None else PLANNER_RULES_VERSION
+        )
         knowledge_version = (
             WESTERN_INTERPRETATION_KNOWLEDGE_VERSION
             if tradition is Tradition.WESTERN
@@ -755,7 +851,7 @@ class ReadingPlanner:
         )
         payload = {
             "schema_version": "reading-plan/v1",
-            "rules_version": PLANNER_RULES_VERSION,
+            "rules_version": rules_version,
             "knowledge_version": knowledge_version,
             "tradition": tradition.value,
             "config_hash": config_hash,
@@ -770,9 +866,11 @@ class ReadingPlanner:
             "allowed_language": _PLAN_ALLOWED_LANGUAGE,
             "forbidden_language": _PLAN_FORBIDDEN_LANGUAGE,
         }
+        if daily_selection is not None:
+            payload["daily_selection"] = daily_selection.model_dump(mode="json")
         canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return ReadingPlan(
-            rules_version=PLANNER_RULES_VERSION,
+            rules_version=rules_version,
             knowledge_version=knowledge_version,
             plan_hash=sha256(canonical.encode()).hexdigest()[:32],
             tradition=tradition,
@@ -787,6 +885,7 @@ class ReadingPlanner:
             editorial_seed=editorial_seed,
             allowed_language=_PLAN_ALLOWED_LANGUAGE,
             forbidden_language=_PLAN_FORBIDDEN_LANGUAGE,
+            daily_selection=daily_selection,
         )
 
     @staticmethod

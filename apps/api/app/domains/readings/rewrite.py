@@ -19,6 +19,7 @@ from app.domains.content_rewrite.models import (
 )
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
+from app.domains.readings.daily_psychology import StaleDailySelection
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     ClaimSlotName,
@@ -376,7 +377,11 @@ class DailyRewriteProjector(RewriteProjector):
         )
         if active is None or active.plan_id != plan_id:
             return RewriteProjectionDecision(accepted=False, failure_code="stale_domain_version")
-        baseline = self._renderer.render(plan_record.plan)
+        try:
+            baseline = self._renderer.render(plan_record.plan)
+        except StaleDailySelection:
+            # Rules changed since the plan was stored: keep the deterministic note.
+            return RewriteProjectionDecision(accepted=False, failure_code="stale_domain_version")
         if baseline.semantic_blueprint is None:
             return RewriteProjectionDecision(accepted=False, failure_code="missing_blueprint")
         daily_report = evaluate_daily_rewrite(
@@ -549,7 +554,10 @@ class LongFormReadingRewriteProjector(RewriteProjector):
         if active is None or active.plan_id != plan_id:
             return RewriteProjectionDecision(accepted=False, failure_code="stale_domain_version")
 
-        baseline = self._renderer.render(plan_record.plan)
+        try:
+            baseline = self._renderer.render(plan_record.plan)
+        except StaleDailySelection:
+            return RewriteProjectionDecision(accepted=False, failure_code="stale_domain_version")
         if baseline.semantic_blueprint is None:
             return RewriteProjectionDecision(accepted=False, failure_code="missing_blueprint")
         candidate = _reading_candidate_from_output(surface, baseline, output)

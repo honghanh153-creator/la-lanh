@@ -81,6 +81,22 @@ describe("ReadingContent", () => {
     expect(screen.getByText(withTransit.sections.transit)).toBeInTheDocument();
   });
 
+  it("does not promise a reason for today when the note is natal-only", () => {
+    render(<ReadingContent content={content} />);
+    expect(screen.queryByText("Vì sao hôm nay?")).not.toBeInTheDocument();
+    expect(screen.getByText("Note này dựa vào đâu?")).toBeVisible();
+    expect(screen.getByText("Note này dựa trên lá số gốc của bạn.")).toBeInTheDocument();
+  });
+
+  it("folds technical evidence under its own label", () => {
+    const { container } = render(<ReadingContent content={content} />);
+    const technical = container.querySelector("details.reading-evidence__technical");
+    expect(technical).not.toBeNull();
+    expect(technical).not.toHaveAttribute("open");
+    expect(technical).toHaveTextContent("Chi tiết lá số");
+    expect(technical).toHaveTextContent(content.evidence.claims[0]);
+  });
+
   it("opens the why-today panel when Home links to it", () => {
     window.history.replaceState(null, "", "/note/today#vi-sao-hom-nay");
     const { container } = render(<ReadingContent content={content} />);

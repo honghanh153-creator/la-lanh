@@ -204,6 +204,36 @@ class CompositionTarget(BaseModel):
         return not feasible and transit_words == 0
 
 
+class DailyTransitRole(StrEnum):
+    """How the attached transit relates to the frozen Daily situation."""
+
+    DRIVES = "drives"  # the situation comes from this transit's own pair rule
+    SUPPORTS = "supports"  # a natal situation whose same-issue pair rule this transit also fires
+    NONE = "none"
+
+
+class DailySelection(BaseModel):
+    """Daily situation chosen once, before the plan is hashed and persisted.
+
+    Renderers replay this choice instead of selecting again, so the situation
+    and the transit offered as its reason can never drift apart.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    issue_key: str = Field(min_length=1, max_length=64)
+    rule_key: str = Field(min_length=1, max_length=128)
+    support_refs: tuple[str, ...] = Field(max_length=6)
+    transit_ref: str | None = Field(default=None, min_length=1, max_length=256)
+    transit_role: DailyTransitRole = DailyTransitRole.NONE
+
+    @model_validator(mode="after")
+    def validate_role(self) -> "DailySelection":
+        if (self.transit_ref is None) != (self.transit_role is DailyTransitRole.NONE):
+            raise ValueError("a daily transit needs a role, and only a transit has one")
+        return self
+
+
 class ReadingPlan(BaseModel):
     """Canonical factor selection passed to deterministic or optional renderers."""
 
@@ -229,10 +259,23 @@ class ReadingPlan(BaseModel):
     editorial_seed: str | None = Field(default=None, min_length=1, max_length=64)
     allowed_language: tuple[str, ...]
     forbidden_language: tuple[str, ...]
+    # Absent on plans stored before B1b; canonical keys omit it when None.
+    daily_selection: DailySelection | None = None
 
     @model_validator(mode="after")
     def validate_plan(self) -> "ReadingPlan":
         factor_by_id = {factor.id: factor for factor in self.factors}
+        selection = self.daily_selection
+        if selection is not None:
+            transit_ids = {
+                factor.id for factor in self.factors if factor.source is FactorSource.TRANSIT
+            }
+            if self.purpose is not ReadingPurpose.DAILY_NOTE:
+                raise ValueError("only a Daily note carries a frozen daily selection")
+            if any(ref not in factor_by_id for ref in selection.support_refs):
+                raise ValueError("daily selection support must come from plan factors")
+            if transit_ids != ({selection.transit_ref} if selection.transit_ref else set()):
+                raise ValueError("a selected Daily plan holds exactly its chosen transit")
         if len(factor_by_id) != len(self.factors):
             raise ValueError("factor ids must be unique")
         if any(factor.tradition is not self.tradition for factor in self.factors):
@@ -531,6 +574,7 @@ class GateFailureCode(StrEnum):
     EVIDENCE_ASTRO_LABEL = "evidence_astro_label"
     EVIDENCE_UNSUPPORTED_TIMING = "evidence_unsupported_timing"
     EVIDENCE_COMPOSITION = "evidence_composition"
+    EVIDENCE_DAILY_TRANSIT_LINK = "evidence_daily_transit_link"
     ANTI_ABSOLUTE_CERTAINTY = "anti_absolute_certainty"
     ANTI_FATE = "anti_fate"
     ANTI_DEPENDENCY = "anti_dependency"
@@ -759,7 +803,12 @@ def experiment_projection_for(
 def canonical_reading_plan_key(plan: ReadingPlan, *, chart_snapshot_id: UUID | None = None) -> str:
     """Immutable plan identity, optionally bound to its persisted chart source."""
 
-    factual_key = sha256(plan.model_dump_json(exclude_none=False).encode()).hexdigest()
+    # Plans stored before B1b have no daily_selection; omitting the None field
+    # keeps their identity unchanged when they are loaded and re-keyed.
+    excluded = {"daily_selection"} if plan.daily_selection is None else None
+    factual_key = sha256(
+        plan.model_dump_json(exclude_none=False, exclude=excluded).encode()
+    ).hexdigest()
     if chart_snapshot_id is None:
         return factual_key
     return sha256(f"reading-source-v1\x1f{chart_snapshot_id}\x1f{factual_key}".encode()).hexdigest()

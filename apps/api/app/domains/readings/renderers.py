@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT,
     apply_daily_psychology,
+    render_why_today,
 )
 from app.domains.readings.knowledge import (
     LENS_ACTIONS,
@@ -376,7 +377,11 @@ class DeterministicVietnameseRenderer:
             None,
         )
         transit = transit_copy(transit_factor) if transit_factor is not None else None
-        if transit_factor is not None and frame.daily_meaning is not None:
+        if plan.daily_selection is not None:
+            # B1b: one plain sentence tied to the frozen situation; the canonical
+            # claim (orb, phase) stays in the evidence list only.
+            transit = render_why_today(plan)
+        elif transit_factor is not None and frame.daily_meaning is not None:
             phase_explanation = {
                 "approaching": ("Hai vị trí đang tiến gần góc này hơn trong lần tính hiện tại."),
                 "exact": ("Hai vị trí đang ở sát góc này trong lần tính hiện tại."),
@@ -420,7 +425,8 @@ class DeterministicVietnameseRenderer:
             ),
         )
         if (
-            transit_factor is not None
+            plan.daily_selection is None
+            and transit_factor is not None
             and transit is not None
             and not plan.composition.accepts(candidate.natal_user_prose, transit)
         ):

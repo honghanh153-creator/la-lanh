@@ -5,6 +5,8 @@ import unicodedata
 from collections.abc import Iterable
 
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
+from app.domains.readings.daily_personalization import eligible_daily_situations
+from app.domains.readings.daily_psychology import render_why_today
 from app.domains.readings.models import (
     EVIDENCE_DISCLOSURE_TITLE,
     FULL_FRAMEWORK_DISCLOSURE,
@@ -12,6 +14,7 @@ from app.domains.readings.models import (
     BackgroundLens,
     CandidateEvaluation,
     ClaimSlotName,
+    DailyTransitRole,
     FactorSource,
     GateFailureCode,
     GateName,
@@ -122,10 +125,14 @@ def evidence_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
     if candidate.transit is not None:
         if not candidate.transit.strip() or len(transit_factors) != 1 or len(claimed_transits) != 1:
             failures.append(GateFailureCode.EVIDENCE_UNEXPECTED_TRANSIT)
-        elif not plan.composition.accepts(candidate.natal_user_prose, candidate.transit):
+        elif plan.daily_selection is None and not plan.composition.accepts(
+            candidate.natal_user_prose, candidate.transit
+        ):
             failures.append(GateFailureCode.EVIDENCE_COMPOSITION)
     elif claimed_transits:
         failures.append(GateFailureCode.EVIDENCE_UNEXPECTED_TRANSIT)
+    if plan.daily_selection is not None and not _daily_transit_linked(plan, candidate):
+        failures.append(GateFailureCode.EVIDENCE_DAILY_TRANSIT_LINK)
 
     prose = _candidate_prose(candidate)
     folded_prose = _fold(prose)
@@ -211,9 +218,21 @@ def _remove_negated_phrases(text: str) -> str:
     return text
 
 
+# "ngày" (day) and "ngay" (right now) fold to the same ASCII. Tag the accented
+# day word before folding so "làm ngày dài ra" is not urgency, while "làm ngay"
+# and unaccented evasions such as "lam ngay" still are.
+_DAY_WORD = re.compile(r"ngày", re.IGNORECASE)
+
+
+def _mark_day_word(text: str) -> str:
+    return _DAY_WORD.sub(lambda match: f"{match.group(0)}d", unicodedata.normalize("NFC", text))
+
+
 def anti_influence_gate(candidate: ReadingCandidate) -> GateReport:
     original_text = unicodedata.normalize("NFC", _candidate_prose(candidate)).casefold()
-    text = _remove_negated_phrases(_without_safe_examples(_candidate_prose(candidate)))
+    text = _remove_negated_phrases(
+        _without_safe_examples(_mark_day_word(_candidate_prose(candidate)))
+    )
     rules: tuple[tuple[GateFailureCode, tuple[str, ...]], ...] = (
         (
             GateFailureCode.ANTI_ABSOLUTE_CERTAINTY,
@@ -498,4 +517,41 @@ def evaluate_candidate(plan: ReadingPlan, candidate: ReadingCandidate) -> Candid
         accepted=accepted,
         reports=reports,
         publishable_candidate=candidate if accepted else None,
+    )
+
+
+_WHY_TODAY_MAX_WORDS = 35
+
+
+def _daily_transit_linked(plan: ReadingPlan, candidate: ReadingCandidate) -> bool:
+    """A Daily reason must be the closed sentence for the frozen situation.
+
+    Canonical claim equality proves the transit is real; this proves it is the
+    transit selected for this situation and, when it only supports a natal
+    situation, that its own pair rule yields the same issue on a placement the
+    situation rests on.
+    """
+
+    selection = plan.daily_selection
+    if selection is None:
+        return True
+    expected = render_why_today(plan)
+    if candidate.transit != expected:
+        return False
+    if expected is None:
+        return selection.transit_role is DailyTransitRole.NONE
+    if len(expected.split()) > _WHY_TODAY_MAX_WORDS:
+        return False
+    transit = next(factor for factor in plan.factors if factor.id == selection.transit_ref)
+    situations = eligible_daily_situations(plan)
+    if selection.transit_role is DailyTransitRole.DRIVES:
+        return any(
+            transit.id in situation.factor_refs
+            and situation.issue_key == selection.issue_key
+            and situation.rule_key == selection.rule_key
+            for situation in situations
+        )
+    return bool(set(transit.child_refs) & set(selection.support_refs)) and any(
+        transit.id in situation.factor_refs and situation.issue_key == selection.issue_key
+        for situation in situations
     )

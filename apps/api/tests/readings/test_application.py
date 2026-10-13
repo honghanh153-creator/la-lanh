@@ -646,10 +646,13 @@ async def test_exact_supplement_waits_as_full_gift_until_explicit_activation() -
     assert upgraded.aura_transition.transition_id is not None
     assert len(upgraded.aura_transition.transition_id) == 64
     assert upgraded.aura_transition.acknowledged is False
+    # B1b: today's sky is an unlocked layer only when a transit truly explains
+    # the note; on other days the exact note is natal-only.
+    has_reason = upgraded.available_update.content.sections.transit is not None
     assert upgraded.aura_transition.unlock_layers == (
         AuraUnlockLayer.MULTI_FACTOR,
         AuraUnlockLayer.HOUSE_ARENA,
-        AuraUnlockLayer.CURRENT_SKY,
+        *((AuraUnlockLayer.CURRENT_SKY,) if has_reason else ()),
     )
     assert upgraded.active.experiment is None
     assert upgraded.available_update.content.experiment is not None
