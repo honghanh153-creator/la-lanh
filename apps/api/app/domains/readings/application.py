@@ -94,7 +94,7 @@ class ReadingApplicationService:
         generation_provider: str = "disabled",
         generation_model: str = "disabled",
         generation_prompt_version: str = "disabled",
-        rewrite_prompt_version: str = "surface-rewrite-v3",
+        rewrite_prompt_version: str = "surface-rewrite-v4",
         generation_max_attempts: int = 2,
         content_rewrite_service: ContentRewriteService | None = None,
     ) -> None:

@@ -1,5 +1,16 @@
 # Luna rewrite release runbook
 
+## Daily v7 contract update, 2026-10-13 — local only
+
+Daily now uses the v7 card (two-sentence thesis, scene opened by a context clause). The rewrite
+chain is `surface-rewrite-v4` → `daily-rewrite-gates/v3` (report `daily-home-rewrite-gates/v3`).
+Both bumps change the rewrite cache key, so nothing generated under v3/v2 is reused. Luna still
+rewrites only title/scene/action; the projector keeps the deterministic thesis. The rewrite gate
+additionally rejects a dropped context clause, a reintroduced "Ví dụ …" fragment and a verbatim
+repeat of the takeaway. Roast ("Cà khịa") readers never see a half-roasted Luna card: the roast is
+served from the deterministic baseline of the same plan, or the Luna text stays fully direct.
+No paid call was made for this update.
+
 ## Local security/content update, 2026-10-09 — not deployed
 
 - Current Tarot chain: `tarot-renderer-v4` → `tarot-meaning-brief-v1` → `gpt-6-luna-tarot-v3` → `tarot-rewrite-gates/v3`. Only new readings use the new local renderer; no bulk legacy rewrite or additional paid evaluation is authorised here.
