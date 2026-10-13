@@ -8,6 +8,7 @@ import { isDateOnlyCalculation, sunSignsFromCalculation } from "../../shared/ast
 import { signDetails } from "../../shared/astro/signs";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
+import { NightSky } from "../../shared/ui/NightSky";
 import { LaSpirit } from "../../shared/ui/la/LaSpirit";
 import "./reveal-vitality.css";
 
@@ -83,6 +84,7 @@ export function RevealPage() {
   return (
     <SignalStationFrame act={2} actions={actions} loading={completing} titleId="reveal-title">
       <section className="signal-reveal-card">
+        <NightSky moon planet stars={4} />
         <div aria-hidden="true" className="reveal-emblem">
           {(isCusp ? signs : signs.slice(0, 1)).map((sign) => <span key={sign}>{signDetails[sign].symbol}</span>)}
         </div>

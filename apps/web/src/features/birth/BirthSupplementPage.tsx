@@ -15,7 +15,7 @@ import {
 } from "../../shared/api/client";
 import { writeCachedDailyNote } from "../../shared/storage/noteCache";
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
-import { BrandMark } from "../../shared/ui/BrandMark";
+import { NightSky } from "../../shared/ui/NightSky";
 import { BirthTimeInput } from "../../shared/ui/BirthTimeInput";
 import { birthTimeWindows as windows } from "../../shared/ui/birthTimeOptions";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
@@ -157,11 +157,12 @@ export function BirthSupplementPage() {
   const readingGift = awakenedNote?.reading_projection?.available_update;
 
   return (
-    <main className="flow-page birth-supplement-page">
-      <header className="flow-header">
-        <button aria-label="Quay lại" className="icon-button" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button>
-        <BrandMark />
-        <span className="flow-header__step">02 / 02</span>
+    <main className={`flow-page birth-supplement-page birth-supplement-page--${step}${step === "success" ? " uv-night-scene" : ""}`}>
+      {step === "success" ? <NightSky moon planet orbits /> : null}
+      <header className="flow-header uv-topbar">
+        <button aria-label="Quay lại" className="icon-button uv-topbar__icon" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button>
+        <span className="flow-header__step uv-topbar__title">{step === "prompt" ? "Mở thêm lớp" : "02 / 02"}</span>
+        <span aria-hidden="true" className="uv-topbar__spacer" />
       </header>
       <section className="birth-intro">
         <span className="birth-intro__planet" aria-hidden="true"><MoonStars weight="duotone" /></span>

@@ -211,15 +211,23 @@
   box-shadow: var(--uv-shadow-night), inset 0 1px 0 rgb(255 255 255 / 14%);
 }
 :root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card)::before { display: none; }
-:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(.electric-button, .matching-primary, .tarot-primary, .signal-station__button) {
+:root .ultraviolet-app :is(.uv-night, .uv-night-scene, .signal-station--loading, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(.electric-button, .matching-primary, .tarot-primary, .signal-station__button) {
   color: var(--uv-ink); background: var(--uv-leaf); box-shadow: 0 12px 24px -14px rgb(0 0 0 / 60%);
 }
-:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(.outline-button, .matching-secondary, .signal-station__secondary) {
+:root .ultraviolet-app :is(.uv-night, .uv-night-scene, .signal-station--loading, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(.outline-button, .matching-secondary, .signal-station__secondary) {
   border-color: rgb(255 255 255 / 30%); color: #ffffff; background: rgb(255 255 255 / 6%);
 }
-:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(a:not(.electric-button, .outline-button), .text-button) { color: #ffffff; }
-:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) .eyebrow { color: var(--uv-night-muted); }
-:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :focus-visible { outline-color: #ffffff; }
+:root .ultraviolet-app :is(.uv-night, .uv-night-scene, .signal-station--loading, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(a:not(.electric-button, .outline-button), .text-button) { color: #ffffff; }
+:root .ultraviolet-app :is(.uv-night, .uv-night-scene, .signal-station--loading, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) .eyebrow { color: var(--uv-night-muted); }
+:root .ultraviolet-app :is(.uv-night, .uv-night-scene, .signal-station--loading, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :focus-visible { outline-color: #ffffff; }
+/* Full-screen night scenes (Welcome, Entry, Tarot draw/loading, Radar pending,
+ * Birth success, Offline): the same sky, edge to edge. */
+:root .ultraviolet-app :is(.uv-night-scene, .signal-station.signal-station--loading) { position: relative; isolation: isolate; overflow: hidden; color: #ffffff; background: var(--uv-night-gradient); }
+:root .ultraviolet-app :is(.uv-night-scene, .signal-station--loading) :is(h1, h2, h3, strong) { color: #ffffff; }
+:root .ultraviolet-app :is(.uv-night-scene, .signal-station--loading) :is(p, li, small, .signal-station__lead) { color: var(--uv-night-text); }
+:root .ultraviolet-app :is(.uv-night-scene, .signal-station--loading) .brand-mark { color: #ffffff; }
+:root .ultraviolet-app :is(.uv-night-scene, .signal-station--loading) .brand-mark sup { color: #b9a8f5; }
+:root .ultraviolet-app :is(.uv-night-scene, .signal-station--loading) :is(.signal-motion-toggle, .icon-button) { border: 0; border-top: 1px solid rgb(255 255 255 / 18%); color: #ffffff; background: rgb(255 255 255 / 8%); box-shadow: none; backdrop-filter: blur(10px); }
 /* Frosted panel inside a night card ("Thử một việc nhỏ", actions). */
 :root .ultraviolet-app .uv-glass { border-top: 1px solid rgb(255 255 255 / 18%); border-radius: var(--uv-radius-glass) var(--uv-radius-glass) var(--uv-radius-night) var(--uv-radius-night); background: rgb(255 255 255 / 8%); box-shadow: inset 0 18px 30px -24px rgb(255 255 255 / 35%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 /* Light card, tile and list row. */
@@ -823,6 +831,164 @@
 :root .app-sheet .signal-context-sheet__error { padding: 0.75rem 1rem; border: 1px solid var(--uv-danger-line); border-radius: 16px; color: var(--uv-danger); background: var(--uv-danger-bg); }
 :root .signal-consent { border-color: var(--uv-line); color: var(--uv-text); background: var(--uv-surface); }
 :root .signal-consent :is(h2, p) { color: var(--uv-text); }
+/* Onboarding and consent on Tím đêm dịu (Birth, Entry, Reveal, Privacy, Demo). */
+:root .ultraviolet-app .signal-station { min-height: 100svh; padding: 0.875rem 1.25rem 1.75rem; gap: 1rem; }
+:root .ultraviolet-app .signal-station__header { display: flex; min-height: 3.25rem; align-items: center; justify-content: space-between; }
+:root .ultraviolet-app .signal-station .brand-mark { font-size: 1.625rem; }
+:root .ultraviolet-app .signal-progress { display: flex; align-items: center; gap: 0.625rem; }
+:root .ultraviolet-app .signal-progress__track { position: relative; width: 6.5rem; height: 6px; overflow: hidden; border-radius: 3px; background: var(--uv-action-line); }
+:root .ultraviolet-app .signal-progress__fill { position: absolute; inset: 0; border-radius: 3px; background: var(--uv-primary-bg); }
+:root .ultraviolet-app .signal-progress p { margin: 0; color: var(--uv-muted); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0; }
+:root .ultraviolet-app .signal-station--act-1 .signal-station__art { position: absolute; top: 0.875rem; right: 4.75rem; width: 3.25rem; height: 3.25rem; min-height: 0; margin: 0; }
+:root .ultraviolet-app .signal-station--act-1, :root .ultraviolet-app .signal-station--act-2 { position: relative; }
+:root .ultraviolet-app .signal-station--act-2 .signal-station__art { display: none; }
+:root .ultraviolet-app .signal-station__content h1 { max-width: 20ch; margin: 0.75rem 0 0; color: var(--uv-text); font-size: 1.6875rem; line-height: 1.22; letter-spacing: -0.01em; }
+:root .ultraviolet-app .signal-station__lead { margin: 0.625rem 0 0; color: var(--uv-muted); font-size: 0.9375rem; line-height: 1.5; }
+:root .ultraviolet-app .signal-date-form { margin-top: 1.5rem; }
+:root .ultraviolet-app .signal-date-fields { display: grid; padding: 0; border: 0; margin: 0; grid-template-columns: 1fr 1fr 1.35fr; gap: 0.625rem; }
+:root .ultraviolet-app .signal-date-divider { display: none; }
+:root .ultraviolet-app .signal-date-field { display: flex; min-width: 0; flex-direction: column; gap: 0.375rem; }
+:root .ultraviolet-app .signal-date-field > span { color: var(--uv-muted); font-size: 0.8125rem; font-weight: 600; }
+:root .ultraviolet-app :is(.signal-date-input, .signal-date-fields input, .radar-date-fields input) { width: 100%; height: 3.5rem; min-height: 3.5rem; padding: 0 0.875rem; box-sizing: border-box; border: 1px solid var(--uv-control-line); border-radius: 16px; color: var(--uv-text); background: var(--uv-surface); font-size: 1.125rem; font-weight: 600; text-align: left; letter-spacing: 0; }
+:root .ultraviolet-app :is(.signal-date-input, .signal-date-fields input):focus { border-color: var(--uv-accent); box-shadow: 0 0 0 1px var(--uv-accent), 0 0 0 4px var(--uv-tint); }
+:root .ultraviolet-app :is(.signal-date-input, .signal-date-fields input)[aria-invalid="true"] { border: 2px solid var(--uv-danger); box-shadow: none; }
+:root .ultraviolet-app :is(.signal-station__privacy, .signal-date-privacy) { display: flex; margin: 0.875rem 0 0; gap: 0.625rem; color: var(--uv-muted); font-size: 0.8125rem; line-height: 1.5; }
+:root .ultraviolet-app .signal-station__privacy::before { content: ""; width: 1rem; height: 1rem; flex: none; margin-top: 0.125rem; background: var(--uv-muted); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / contain no-repeat; }
+:root .ultraviolet-app .signal-station__privacy + .signal-station__privacy { margin-top: 0.375rem; }
+:root .ultraviolet-app .signal-station__error { margin-top: 1rem; }
+:root .ultraviolet-app .signal-station__notice { display: flex; margin-top: 1rem; align-items: center; gap: 0.625rem; color: var(--uv-text); font-size: 0.9375rem; }
+:root .ultraviolet-app .signal-station__actions { display: grid; margin: auto 0 0; padding-top: 1rem; gap: 0.5rem; }
+:root .ultraviolet-app .signal-station__actions .signal-station__button { width: 100%; min-height: 3.375rem; font-size: 1rem; }
+:root .ultraviolet-app .signal-station__actions :is(.signal-station__back, .signal-station__secondary.text-link) { display: flex; min-height: 2.75rem; padding: 0; border: 0; align-items: center; justify-content: center; gap: 0.375rem; color: var(--uv-accent); background: transparent; box-shadow: none; font-size: 0.9375rem; font-weight: 600; }
+:root .ultraviolet-app .signal-station__actions .signal-station__back svg { width: 1rem; height: 1rem; }
+:root .ultraviolet-app .signal-station__actions .reading-disclaimer { margin-top: 0.5rem; }
+/* Optional birth details inside Birth: a light card with a plain trigger. */
+:root .ultraviolet-app .birth-optional { padding: 0; border: 1px solid var(--uv-line); border-radius: 20px; margin-top: 1.25rem; background: var(--uv-surface); box-shadow: var(--uv-shadow-1); }
+:root .ultraviolet-app .birth-optional__trigger { min-height: 4rem; border-radius: 20px; color: var(--uv-text); }
+:root .ultraviolet-app .birth-optional__trigger > svg:first-child { width: 2.25rem; height: 2.25rem; flex: none; padding: 0.5rem; box-sizing: border-box; border-radius: var(--uv-radius-icon); color: var(--uv-accent); background: var(--uv-tint); }
+:root .ultraviolet-app .birth-optional__trigger strong { color: var(--uv-text); }
+:root .ultraviolet-app .birth-optional__consent { border-radius: 14px; background: var(--uv-tint); }
+/* Entry: night scene with a pulsing ring around the planet. */
+:root .ultraviolet-app .signal-station--loading { justify-content: flex-start; }
+:root .ultraviolet-app .signal-station--loading .signal-progress { display: none; }
+:root .ultraviolet-app .signal-station--loading .signal-station__art { position: relative; display: block; width: 10rem; height: 10rem; min-height: 10rem; margin: auto; align-self: center; border-radius: 50%; box-shadow: 0 0 60px rgb(150 120 255 / 40%); }
+:root .ultraviolet-app .signal-station--loading .signal-station__art::after { content: ""; position: absolute; inset: -3.125rem; border: 1px dashed rgb(255 255 255 / 18%); border-radius: 50%; }
+:root .ultraviolet-app .signal-station--loading .signal-station__orbit svg { color: var(--uv-moon); }
+:root .ultraviolet-app .signal-station--loading .signal-station__content { position: relative; text-align: center; }
+:root .ultraviolet-app .signal-station--loading .signal-station__content h1 { max-width: none; margin: 0.75rem 0 0; color: #ffffff; font-size: 1.625rem; line-height: 1.25; }
+:root .ultraviolet-app .signal-station--loading .signal-station__lead { color: var(--uv-night-text); }
+:root .ultraviolet-app .signal-station--loading .signal-station__pulse { position: absolute; top: -13.5rem; left: 50%; width: 11.25rem; height: 11.25rem; margin-left: -5.625rem; border: 1.5px solid rgb(205 231 127 / 50%); border-radius: 50%; background: none; }
+/* Reveal: one night card with the sign, Lá's line below. */
+:root .ultraviolet-app .signal-station .signal-reveal-card { display: flex; min-height: 22rem; margin-top: 1.5rem; padding: 1.625rem 1.375rem 1.5rem; flex-direction: column; align-items: flex-start; text-align: left; }
+:root .ultraviolet-app .signal-reveal-card .reveal-emblem { justify-content: flex-start; margin: 0 0 auto; }
+:root .ultraviolet-app .signal-reveal-card .reveal-emblem span { width: 3.5rem; height: 3.5rem; border: 0; border-top: 1px solid rgb(255 255 255 / 18%); color: var(--uv-leaf); background: rgb(255 255 255 / 8%); font-size: 1.75rem; }
+:root .ultraviolet-app .signal-reveal-card h1 { max-width: min(250px, calc(100% - 56px)); margin: 1.5rem 0 0; color: #ffffff; font-size: 1.75rem; line-height: 1.22; text-shadow: 0 2px 18px rgb(20 12 50 / 45%); }
+:root .ultraviolet-app .signal-reveal-card .signal-reveal-card__pill { display: inline-flex; min-height: 2.125rem; margin: 0.875rem 0 0; padding: 0 0.875rem; border: 0; border-top: 1px solid rgb(255 255 255 / 18%); border-radius: 17px; align-items: center; color: #ffffff; background: rgb(255 255 255 / 8%); font-size: 0.875rem; font-weight: 700; }
+:root .ultraviolet-app .signal-reveal-card .signal-reveal-card__line { margin: 0.875rem 0 0; color: var(--uv-night-text); font-size: 1rem; line-height: 1.5; }
+:root .ultraviolet-app .signal-reveal-card .signal-reveal-card__source { margin: 0.75rem 0 0; color: var(--uv-night-muted); font-size: 0.8125rem; line-height: 1.5; }
+:root .ultraviolet-app .reveal-loading-la { align-self: center; }
+/* Privacy / consent: icon rows in one card, details as an accordion list. */
+:root .ultraviolet-app .consent-page .consent-note { padding: 0; border: 0; margin-top: 0.875rem; color: var(--uv-text); background: transparent; box-shadow: none; }
+:root .ultraviolet-app .consent-page .consent-note h1 { margin: 0.625rem 0 0; font-size: 1.6875rem; line-height: 1.22; }
+:root .ultraviolet-app .consent-page .consent-list { display: block; margin-top: 1.25rem; padding: 0; overflow: hidden; border: 1px solid var(--uv-line); border-radius: 20px; background: var(--uv-surface); box-shadow: var(--uv-shadow-1); }
+:root .ultraviolet-app .consent-page .consent-list article { display: flex; padding: 0.875rem 1rem; border: 0; border-bottom: 1px solid var(--uv-row-line); border-radius: 0; gap: 0.75rem; background: transparent; }
+:root .ultraviolet-app .consent-page .consent-list article:last-child { border-bottom: 0; }
+:root .ultraviolet-app .consent-page .consent-list article > svg { width: 2.25rem; height: 2.25rem; flex: none; padding: 0.5rem; box-sizing: border-box; border-radius: var(--uv-radius-icon); color: var(--uv-accent); background: var(--uv-tint); }
+:root .ultraviolet-app .consent-page .consent-list strong { display: block; color: var(--uv-text); font-size: 0.9375rem; }
+:root .ultraviolet-app .consent-page .consent-list p { margin: 0.125rem 0 0; color: var(--uv-muted); font-size: 0.875rem; line-height: 1.45; }
+:root .ultraviolet-app .consent-detail-title { margin: 1.5rem 0 0; color: var(--uv-muted); font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+:root .ultraviolet-app .consent-details { margin-top: 0.625rem; overflow: hidden; border: 1px solid var(--uv-line); border-radius: 20px; background: var(--uv-surface); box-shadow: var(--uv-shadow-1); }
+:root .ultraviolet-app .consent-detail { border-bottom: 1px solid var(--uv-row-line); }
+:root .ultraviolet-app .consent-detail:last-child { border-bottom: 0; }
+:root .ultraviolet-app .consent-detail > summary { display: flex; min-height: 3.25rem; padding: 0 1rem; align-items: center; gap: 0.75rem; color: var(--uv-text); font-size: 0.9375rem; font-weight: 600; cursor: pointer; list-style: none; }
+:root .ultraviolet-app .consent-detail > summary::-webkit-details-marker { display: none; }
+:root .ultraviolet-app .consent-detail > summary::after { content: ""; width: 1rem; height: 1rem; flex: none; margin-left: auto; background: var(--uv-muted); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; }
+:root .ultraviolet-app .consent-detail[open] > summary::after { transform: rotate(180deg); }
+:root .ultraviolet-app .consent-detail > p { margin: 0; padding: 0 1rem 1rem; color: var(--uv-muted); font-size: 0.875rem; line-height: 1.55; }
+:root .ultraviolet-app .consent-page .privacy-plain { margin: 1.125rem 0 0; color: var(--uv-text); font-size: 0.875rem; }
+:root .ultraviolet-app .consent-page .privacy-plain + .privacy-plain { color: var(--uv-muted); font-size: 0.75rem; }
+:root .ultraviolet-app :is(.flow-actions) { display: grid; margin-top: 1.5rem; gap: 0.5rem; }
+:root .ultraviolet-app .flow-actions :is(.detail-link, .text-button) { display: flex; min-height: 2.75rem; align-items: center; justify-content: center; border: 0; background: transparent; }
+/* Demo: one night card, an honest "xem thử" pill in the top bar. */
+:root .ultraviolet-app .demo-page .uv-topbar .demo-badge { justify-self: center; display: inline-flex; min-height: 2rem; padding: 0 0.875rem; border: 0; border-radius: 16px; align-items: center; color: var(--uv-action); background: var(--uv-tint); font-size: 0.8125rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root .ultraviolet-app .demo-page .uv-topbar { grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem; }
+:root .ultraviolet-app .demo-page .demo-note { margin-top: 4rem; padding: 1.625rem 1.375rem 1.75rem; }
+:root .ultraviolet-app .demo-page .demo-note h1 { margin: 0.875rem 0 0; color: #ffffff; font-size: 2.125rem; line-height: 1.15; letter-spacing: -0.02em; }
+:root .ultraviolet-app .demo-page .demo-note p:not(.eyebrow) { margin: 0.75rem 0 0; color: var(--uv-night-text); }
+
+/* Shared flow pages: eyebrow kickers, card panels, choice lists. */
+:root .ultraviolet-app .accent-kicker.eyebrow { display: block; margin: 0; color: var(--uv-accent); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+:root .ultraviolet-app .flow-page .uv-topbar { margin-bottom: 0.25rem; }
+:root .ultraviolet-app .choice-panel { padding: 1.125rem; }
+:root .ultraviolet-app .choice-panel > p:first-child { display: flex; margin: 0; align-items: center; gap: 0.5rem; color: var(--uv-text); font-size: 0.9375rem; font-weight: 700; }
+:root .ultraviolet-app .choice-panel > p:first-child svg { color: var(--uv-accent); }
+/* Birth time & place (BirthTimePrompt … BirthReview). */
+:root .ultraviolet-app .birth-intro { display: block; padding: 0.875rem 0 0; text-align: left; }
+:root .ultraviolet-app .birth-intro__planet { display: grid; width: 3rem; height: 3rem; margin: 0 0 1rem; place-items: center; border-radius: 16px; color: var(--uv-accent); background: var(--uv-tint); box-shadow: none; transform: none; }
+:root .ultraviolet-app .birth-intro__planet svg { width: 1.5rem; height: 1.5rem; }
+:root .ultraviolet-app .birth-intro h1 { margin: 0.625rem 0 0; color: var(--uv-text); font-size: 1.6875rem; line-height: 1.22; }
+:root .ultraviolet-app .birth-intro > p:not(.eyebrow) { margin: 0.625rem 0 0; color: var(--uv-muted); font-size: 0.9375rem; line-height: 1.5; }
+:root .ultraviolet-app .supplement-form { display: grid; margin-top: 1.375rem; gap: 0.75rem; }
+:root .ultraviolet-app .supplement-form > :is(.text-button, .detail-link) { display: flex; min-height: 2.75rem; align-items: center; justify-content: center; border: 0; background: transparent; }
+:root .ultraviolet-app .unlock-prompt { display: grid; gap: 0.625rem; }
+:root .ultraviolet-app .unlock-prompt ul { display: grid; margin: 0.25rem 0 0.5rem; padding: 0; gap: 0.625rem; list-style: none; }
+:root .ultraviolet-app :is(.unlock-prompt, .aura-receipt) li { display: flex; align-items: flex-start; gap: 0.625rem; color: var(--uv-text); font-size: 0.9375rem; line-height: 1.45; }
+:root .ultraviolet-app .unlock-prompt li::before { content: ""; width: 1.125rem; height: 1.125rem; flex: none; margin-top: 0.125rem; border-radius: 50%; background: var(--uv-leaf-ink); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat; }
+:root .ultraviolet-app .unlock-prompt :is(.text-button, .detail-link) { display: flex; min-height: 2.75rem; align-items: center; justify-content: center; border: 0; background: transparent; }
+:root .ultraviolet-app .choice-panel label { display: grid; margin-top: 0.75rem; gap: 0.375rem; }
+:root .ultraviolet-app .choice-panel label > span { color: var(--uv-muted); font-size: 0.8125rem; font-weight: 600; }
+:root .ultraviolet-app :is(.place-results, .radar-place-results) { margin-top: 0.75rem; overflow: hidden auto; border: 1px solid var(--uv-line); border-radius: 18px; background: var(--uv-surface); }
+:root .ultraviolet-app :is(.place-results, .radar-place-results) button { min-height: 3.5rem; padding: 0.625rem 1rem; border: 0; border-bottom: 1px solid var(--uv-row-line); border-radius: 0; background: transparent; }
+:root .ultraviolet-app :is(.place-results, .radar-place-results) button:last-child { border-bottom: 0; }
+:root .ultraviolet-app .review-card p { display: flex; margin: 0; padding: 0.75rem 0; border-bottom: 1px solid var(--uv-row-line); align-items: center; gap: 0.625rem; color: var(--uv-text); font-weight: 400; }
+:root .ultraviolet-app .review-card p:first-child { padding-top: 0; }
+:root .ultraviolet-app .review-card p svg { color: var(--uv-accent); }
+:root .ultraviolet-app .review-card .detail-link { display: flex; min-height: 2.75rem; padding: 0; border: 0; align-items: center; background: transparent; }
+:root .ultraviolet-app .privacy-consent { padding: 1.125rem; }
+:root .ultraviolet-app .privacy-consent__title { display: flex; margin: 0; align-items: center; gap: 0.5rem; color: var(--uv-text); font-weight: 700; }
+:root .ultraviolet-app .privacy-consent ul { display: grid; margin: 0.75rem 0 0; padding: 0; gap: 0.5rem; list-style: none; }
+:root .ultraviolet-app .privacy-consent li { display: flex; gap: 0.625rem; color: var(--uv-muted); font-size: 0.875rem; line-height: 1.45; }
+:root .ultraviolet-app .privacy-consent li svg { flex: none; margin-top: 0.15rem; color: var(--uv-accent); }
+:root .ultraviolet-app .consent-check { display: flex; margin-top: 0.875rem; padding: 0.875rem; border-radius: 14px; align-items: flex-start; gap: 0.75rem; background: var(--uv-tint); }
+:root .ultraviolet-app .consent-check input { width: 22px; height: 22px; flex: none; margin: 1px 0 0; accent-color: var(--uv-primary-bg); }
+:root .ultraviolet-app .consent-check span { color: var(--uv-text); font-size: 0.875rem; line-height: 1.5; }
+/* Birth success: a full night scene, the gift in glass. */
+:root .ultraviolet-app .birth-supplement-page--success .birth-intro__planet { color: #ffffff; background: rgb(255 255 255 / 10%); }
+:root .ultraviolet-app .birth-supplement-page--success .birth-intro h1 { color: #ffffff; }
+:root .ultraviolet-app .birth-supplement-page--success .birth-intro > p:not(.eyebrow) { color: var(--uv-night-text); }
+:root .ultraviolet-app .birth-supplement-page--success .uv-topbar__title { color: #ffffff; }
+:root .ultraviolet-app .birth-supplement-page--success .uv-topbar .uv-topbar__icon { color: #ffffff; }
+:root .ultraviolet-app .birth-supplement-page--success .awakening-reveal { display: grid; gap: 0.75rem; }
+:root .ultraviolet-app .birth-supplement-page--success :is(.unlock-success, .sky-gift) { border: 0; border-top: 1px solid rgb(255 255 255 / 18%); border-radius: var(--uv-radius-glass); color: #ffffff; background: rgb(255 255 255 / 8%); box-shadow: none; backdrop-filter: blur(10px); }
+:root .ultraviolet-app .birth-supplement-page--success :is(.unlock-success, .sky-gift) :is(h2, h3, strong) { color: #ffffff; }
+:root .ultraviolet-app .birth-supplement-page--success :is(.unlock-success, .sky-gift) :is(p, small, span) { color: var(--uv-night-text); }
+:root .ultraviolet-app .birth-supplement-page--success .eyebrow { color: var(--uv-night-muted); }
+:root .ultraviolet-app .birth-supplement-page--success .aura-awakening__orb { display: grid; width: 3rem; height: 3rem; place-items: center; border-radius: 50%; color: var(--uv-ink); background: var(--uv-moon); }
+:root .ultraviolet-app .birth-supplement-page--success .awakening-factors span { display: inline-flex; margin: 0.25rem 0.375rem 0 0; padding: 0.25rem 0.75rem; border-radius: 999px; background: rgb(255 255 255 / 10%); font-size: 0.8125rem; }
+/* Aura cutover (AuraCutover / AuraError). */
+:root .ultraviolet-app .aura-cutover-hero { padding: 0.875rem 0 0.5rem; }
+:root .ultraviolet-app .aura-cutover-hero__orb { display: grid; width: 3rem; height: 3rem; margin-bottom: 1rem; place-items: center; border-radius: 16px; color: var(--uv-accent); background: var(--uv-tint); box-shadow: none; transform: none; }
+:root .ultraviolet-app .aura-cutover-hero h1 { margin: 0.625rem 0 0; font-size: 1.6875rem; line-height: 1.22; }
+:root .ultraviolet-app .aura-receipt { margin-top: 1rem; }
+:root .ultraviolet-app .aura-receipt h2 { margin: 0.375rem 0 0; font-size: 1.0625rem; }
+:root .ultraviolet-app .aura-receipt ul { display: grid; margin: 0.75rem 0; padding: 0; gap: 0.5rem; list-style: none; }
+:root .ultraviolet-app .aura-receipt li svg { flex: none; margin-top: 0.15rem; color: var(--uv-leaf-ink); }
+:root .ultraviolet-app .aura-receipt .eyebrow { display: flex; align-items: center; gap: 0.375rem; }
+:root .ultraviolet-app .choice-panel.aura-preview { margin-top: 1rem; padding: 1.5rem 1.375rem; }
+:root .ultraviolet-app .choice-panel.aura-preview h2 { max-width: min(250px, calc(100% - 56px)); margin: 0.75rem 0 0; color: #ffffff; font-size: 1.5rem; line-height: 1.25; }
+:root .ultraviolet-app .choice-panel.aura-preview > p:not(.eyebrow) { color: var(--uv-night-text); }
+:root .ultraviolet-app .choice-panel.aura-preview .aura-preview__line { display: grid; margin: 1rem 0; padding: 0.875rem 1rem; border-top: 1px solid rgb(255 255 255 / 18%); border-radius: 18px; gap: 0.25rem; background: rgb(255 255 255 / 8%); }
+:root .ultraviolet-app .choice-panel.aura-preview .aura-preview__line strong { color: var(--uv-night-muted); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; }
+:root .ultraviolet-app .choice-panel.aura-preview .aura-preview__line span { color: #ffffff; }
+:root .ultraviolet-app .choice-panel.aura-cutover-state.uv-night { margin-top: 1.125rem; padding: 1.5rem 1.375rem; }
+:root .ultraviolet-app .choice-panel.aura-cutover-state.uv-night h1 { max-width: min(250px, calc(100% - 56px)); margin: 0.75rem 0 0; color: #ffffff; font-size: 1.625rem; }
+:root .ultraviolet-app .choice-panel.aura-cutover-state.uv-night p:not(.eyebrow) { color: var(--uv-night-text); }
+:root .ultraviolet-app .choice-panel.aura-cutover-state.uv-night .electric-button { display: inline-flex; margin-top: 1.125rem; }
+:root .ultraviolet-app .aura-cutover-actions { display: grid; margin-top: 1.25rem; gap: 0.625rem; }
+:root .ultraviolet-app .natal-unlock-link { display: flex; padding: 0.875rem 1rem; border: 1px solid var(--uv-line); border-radius: var(--uv-radius-tile); align-items: center; gap: 0.75rem; color: var(--uv-text); background: var(--uv-surface); box-shadow: var(--uv-shadow-1); text-decoration: none; }
+:root .ultraviolet-app .natal-unlock-link > svg { width: 2.25rem; height: 2.25rem; flex: none; padding: 0.5rem; box-sizing: border-box; border-radius: var(--uv-radius-icon); color: var(--uv-accent); background: var(--uv-tint); }
+:root .ultraviolet-app .natal-unlock-link small { display: block; margin-top: 0.125rem; color: var(--uv-muted); font-size: 0.8125rem; }
+
 @media (max-width: 360px) {
   :root .ultraviolet-app :is(.app-page, .flow-page, .tarot-page, .matching-page, .signal-station) { padding-inline: 1rem; }
   :root .ultraviolet-app .app-nav__item > span { white-space: nowrap; }

@@ -13,7 +13,7 @@ import {
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { readCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import "../../shared/styles/signal-note.css";
-import { BrandMark } from "../../shared/ui/BrandMark";
+import { NightSky } from "../../shared/ui/NightSky";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { LaLoading } from "../../shared/ui/la/LaLoading";
 
@@ -137,10 +137,10 @@ export function AuraCutoverPage() {
 
   return (
     <main className="flow-page aura-cutover-page">
-      <header className="flow-header">
-        <button aria-label="Quay lại" className="icon-button" onClick={() => void navigate(-1)} type="button"><ArrowLeft aria-hidden="true" /></button>
-        <BrandMark />
-        <span className="flow-header__step">Aura · lớp mới</span>
+      <header className="flow-header uv-topbar">
+        <button aria-label="Quay lại" className="icon-button uv-topbar__icon" onClick={() => void navigate(-1)} type="button"><ArrowLeft aria-hidden="true" /></button>
+        <span className="flow-header__step uv-topbar__title">Aura · lớp mới</span>
+        <span aria-hidden="true" className="uv-topbar__spacer" />
       </header>
 
       {query.isPending && !note ? <LaLoading delayMs={0} text="Lá đang mở receipt Aura…" /> : null}
@@ -148,8 +148,9 @@ export function AuraCutoverPage() {
       {query.isError && note ? <p className="cache-status" role="status">Đang xem receipt đã mở gần nhất trên máy. Bạn vẫn có thể chọn rõ ràng.</p> : null}
 
       {!query.isPending && !note ? (
-        <section className="choice-panel aura-cutover-state" role="alert">
-          <Sparkle aria-hidden="true" size={28} />
+        <section className="choice-panel aura-cutover-state uv-night" role="alert">
+          <NightSky dim moon nebula={false} stars={3} />
+          <p className="eyebrow">Aura</p>
           <h1 ref={focusHeadingOnMount} tabIndex={-1}>Receipt Aura chưa về kịp.</h1>
           <p>Không có lớp mới nào được tự động đổi. Thử tải lại hoặc quay về Note hiện tại.</p>
           <button className="electric-button" onClick={() => void query.refetch()} type="button">Thử lại</button>
@@ -209,7 +210,8 @@ export function AuraCutoverPage() {
 
 function AuraPreview({ content }: { content: ReadingContent }) {
   return (
-    <section className="choice-panel aura-preview" aria-labelledby="aura-preview-title">
+    <section className="choice-panel aura-preview uv-night" aria-labelledby="aura-preview-title">
+      <NightSky moon planet stars={4} />
       <p className="eyebrow">Preview Note Aura</p>
       <h2 id="aura-preview-title">{content.sections.hook}</h2>
       <p>{content.sections.thesis}</p>
