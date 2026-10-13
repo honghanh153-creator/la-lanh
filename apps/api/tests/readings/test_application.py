@@ -75,6 +75,19 @@ class MemoryReadingRepository:
     ) -> ReadingRevisionRecord | None:
         return self.revisions.get((guest_id, profile_id, revision_id))
 
+    async def get_plan(
+        self, guest_id: UUID, profile_id: UUID, plan_id: UUID
+    ) -> ReadingPlanRecord | None:
+        return next(
+            (
+                record
+                for record in self.plans.values()
+                if (record.guest_id, record.profile_id, record.id)
+                == (guest_id, profile_id, plan_id)
+            ),
+            None,
+        )
+
     async def get_or_create_projection(
         self, record: ReadingProjectionRecord
     ) -> tuple[ReadingProjectionRecord, bool]:
@@ -107,6 +120,13 @@ class MemoryReadingRepository:
                 update={"active_revision_id": revision_id, "available_revision_id": None}
             )
         elif projection.active_revision_id == revision_id:
+            updated = projection
+        elif (
+            self.revisions[(guest_id, profile_id, projection.active_revision_id)].source
+            is ReadingRevisionSource.GENERATED
+            and revision.source is ReadingRevisionSource.DETERMINISTIC
+        ):
+            # Mirrors PostgreSQL: an activated generated reading is never downgraded.
             updated = projection
         else:
             updated = projection.model_copy(update={"available_revision_id": revision_id})
