@@ -1,4 +1,4 @@
-import { ArrowLeft, BookmarkSimple, Check, PaperPlaneTilt } from "@phosphor-icons/react";
+import { ArrowLeft, BookmarkSimple, Check, ShareNetwork } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -21,7 +21,7 @@ import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateA
 import { useDailyExperiment } from "../../shared/hooks/useDailyExperiment";
 import { saveNoteLocally } from "../../shared/storage/savedNoteCache";
 import "../../shared/styles/signal-note.css";
-import { BrandMark } from "../../shared/ui/BrandMark";
+import { NightSky } from "../../shared/ui/NightSky";
 import { ReadingContent } from "../../shared/ui/ReadingContent";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
@@ -102,10 +102,10 @@ export function NoteDetailPage() {
 
   return (
     <main className="flow-page note-detail-page">
-      <header className="flow-header">
-        <button aria-label="Quay lại" className="icon-button" onClick={() => void navigate(-1)} type="button"><ArrowLeft aria-hidden="true" /></button>
-        <BrandMark />
-        <span className="flow-header__step">Note hôm nay</span>
+      <header className="flow-header uv-topbar">
+        <button aria-label="Quay lại" className="icon-button uv-topbar__icon" onClick={() => void navigate(-1)} type="button"><ArrowLeft aria-hidden="true" /></button>
+        <span className="flow-header__step uv-topbar__title">Note hôm nay</span>
+        {note ? <Link aria-label="Chia sẻ" className="icon-button uv-topbar__icon uv-topbar__icon--action" to={dailyContextPath("/card", context)}><ShareNetwork aria-hidden="true" /></Link> : <span aria-hidden="true" className="uv-topbar__spacer" />}
       </header>
 
       {query.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" /> : null}
@@ -150,6 +150,7 @@ export function NoteDetailPage() {
           /> : (
             <article className="reading-content reading-content--legacy">
               <header className="reading-content__intro">
+                <NightSky moon planet stars={4} />
                 <p className="reading-mode">Vibe · Bản tương thích</p>
                 <h1>{note.title}</h1>
                 <p>{note.full_body}</p>
@@ -171,9 +172,8 @@ export function NoteDetailPage() {
 
           <p className="sr-only" aria-live="polite" role="status">{message}</p>
           {message ? <p className="home-status" aria-hidden="true">{message}</p> : null}
-          <footer className="note-detail-actions">
-            <Link className="electric-button" to={dailyContextPath("/card", context)}><PaperPlaneTilt aria-hidden="true" /> Chia sẻ</Link>
-            <button className="outline-button" disabled={isSaved || saveMutation.isPending} onClick={() => saveMutation.mutate()} type="button">
+          <footer className="note-detail-actions uv-sticky-action">
+            <button className="electric-button" disabled={isSaved || saveMutation.isPending} onClick={() => saveMutation.mutate()} type="button">
               {isSaved ? <Check aria-hidden="true" /> : <BookmarkSimple aria-hidden="true" />}
               {isSaved ? "Đã lưu" : "Lưu note"}
             </button>
@@ -182,7 +182,11 @@ export function NoteDetailPage() {
         </>
       ) : null}
       {!query.isLoading && !note ? (
-        <section className="empty-state"><h1>Chưa mở được note.</h1><button className="electric-button" onClick={() => void query.refetch()} type="button">Thử lại</button></section>
+        <section className="empty-state uv-empty" role="alert">
+          <div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div>
+          <h1>Chưa mở được note.</h1>
+          <button className="electric-button" onClick={() => void query.refetch()} type="button">Thử lại</button>
+        </section>
       ) : null}
     </main>
   );

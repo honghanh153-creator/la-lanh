@@ -8,6 +8,7 @@ import type {
   ReadingContent as ReadingContentModel,
 } from "../api/client";
 import type { DailyExperimentStatus } from "../hooks/useDailyExperiment";
+import { NightSky } from "./NightSky";
 import { ReadingDisclaimer } from "./ReadingDisclaimer";
 import { readingModeLabel, WHY_TODAY_ID } from "./readingLabels";
 
@@ -61,6 +62,7 @@ export function ReadingContent({
     return (
       <article className="reading-content reading-content--compact">
         <header className="reading-content__intro">
+          <NightSky moon planet stars={4} />
           {toolbar ? <div className="reading-content__toolbar">{toolbar}</div> : null}
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(content)}</p>
           <h2>{content.sections.hook}</h2>
@@ -76,6 +78,7 @@ export function ReadingContent({
   return (
     <article className="reading-content">
       <header className="reading-content__intro">
+          <NightSky moon planet stars={4} />
         {toolbar ? <div className="reading-content__toolbar">{toolbar}</div> : null}
         <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(content)}</p>
         <h1>{content.sections.hook}</h1>

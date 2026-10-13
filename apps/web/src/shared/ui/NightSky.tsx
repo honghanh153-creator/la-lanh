@@ -3,6 +3,8 @@ import "./night-sky.css";
 type NightSkyProps = {
   /** Moon half outside the top-right corner, with a soft glow. */
   moon?: boolean;
+  /** Only the moon glow, for cards whose moon is an interactive control. */
+  glow?: boolean;
   /** Textured planet with a ring, low in the bottom-left corner. */
   planet?: boolean;
   /** Number of twinkling stars (0–6). */
@@ -34,6 +36,7 @@ const SPARKLE_PATH = "M12 2c.6 4.8 2.5 7.6 8 10c-5.5 2.4-7.4 5.2-8 10c-.6-4.8-2.
  */
 export function NightSky({
   moon = false,
+  glow = false,
   planet = false,
   stars = 6,
   nebula = true,
@@ -80,10 +83,8 @@ export function NightSky({
           </svg>
         </span>
       ) : null}
-      {moon ? <>
-        <span className="night-sky__moon-glow" />
-        <img alt="" className="night-sky__moon" src="/assets/ultraviolet/moon.webp" />
-      </> : null}
+      {moon || glow ? <span className="night-sky__moon-glow" /> : null}
+      {moon ? <img alt="" className="night-sky__moon" src="/assets/ultraviolet/moon.webp" /> : null}
     </div>
   );
 }

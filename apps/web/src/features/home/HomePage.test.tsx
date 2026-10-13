@@ -101,7 +101,7 @@ describe("HomePage rich reading", () => {
     await user.click(screen.getByRole("button", { name: "Tạm dừng chuyển động" }));
     expect(home).toHaveAttribute("data-home-motion", "paused");
     expect(headline).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Đọc thêm" })).toHaveAttribute("href", "/note/today");
+    expect(screen.getByRole("link", { name: "Đọc đầy đủ" })).toHaveAttribute("href", "/note/today");
     expect(screen.getByRole("button", { name: "Trúng" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Góc đang đọc Lá chọn" })).toBeEnabled();
 
@@ -227,6 +227,29 @@ describe("HomePage rich reading", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Bản đọc mới đã mở");
   });
 
+  it("uses Lá's bubble as one notice slot: the gift outranks the birth-time reminder", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe, aura)));
+    vi.mocked(getBirthSupplement).mockResolvedValue({ birth_time_mode: "unknown", time_precision: null, place_display_name: null, timezone_id: null } as never);
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Note này có một bản đủ lớp" })).toBeInTheDocument();
+    expect(screen.queryByText("Còn lá ẩn chờ bạn mở")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Để bản mới lại sau" }));
+    expect(screen.queryByRole("heading", { name: "Note này có một bản đủ lớp" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /Thêm giờ & nơi sinh/ })).toHaveAttribute("href", "/birth-time");
+    await userEvent.click(screen.getByRole("button", { name: "Để 3 ngày sau" }));
+    expect(screen.queryByRole("link", { name: /Thêm giờ & nơi sinh/ })).not.toBeInTheDocument();
+    expect(Number(localStorage.getItem("la-lanh-birth-supplement-snooze-until"))).toBeGreaterThan(Date.now());
+  });
+
+  it("shows Lá's own line when no notice needs the bubble, and lets the user hide it", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+    await screen.findByRole("heading", { name: vibe.sections.hook });
+    const hide = screen.getByRole("button", { name: "Ẩn câu của Lá" });
+    await userEvent.click(hide);
+    expect(screen.queryByRole("button", { name: "Ẩn câu của Lá" })).not.toBeInTheDocument();
+  });
+
   it("refetches the daily note after an activation conflict so a stale gift disappears", async () => {
     const user = userEvent.setup();
     const withGift = noteWith(projection(vibe, aura));
@@ -272,7 +295,7 @@ describe("HomePage rich reading", () => {
     await waitFor(() => expect(getContextualReading).toHaveBeenCalledWith("work"));
     expect(await screen.findByRole("heading", { name: workReading.sections.hook })).toBeInTheDocument();
     expect(screen.getByText(workReading.sections.manifestation)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Đọc thêm/ })).toHaveAttribute("href", "/note/today?context=work");
+    expect(screen.getByRole("link", { name: /Đọc đầy đủ/ })).toHaveAttribute("href", "/note/today?context=work");
     expect(screen.getByRole("link", { name: "Chia sẻ note" })).toHaveAttribute("href", "/card?context=work");
     expect(localStorage.getItem("la-lanh-signal-context-v1")).toBeNull();
     expect(screen.queryByText("Vì sao dành cho bạn?")).not.toBeInTheDocument();
