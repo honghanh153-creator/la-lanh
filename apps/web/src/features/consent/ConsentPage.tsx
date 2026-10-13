@@ -5,7 +5,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { acceptBasicBirthConsent, enableHistoryRetention, createGuest, getSession, isGuestSessionUnavailable } from "../../shared/api/client";
 import { OPENAI_ABUSE_RETENTION_NOTICE } from "../../shared/config/externalRewriteDisclosure";
-import { BrandMark } from "../../shared/ui/BrandMark";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 
