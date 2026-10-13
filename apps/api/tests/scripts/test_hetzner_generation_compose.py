@@ -140,3 +140,58 @@ def test_deploy_and_cleanup_use_same_admin_secret_selection(tmp_path: Path) -> N
     for script in ("deploy.sh", "run-retention-job.sh"):
         assert "select_compose_files" in (infra / script).read_text()
     assert "/usr/local/sbin/la-lanh-retention-job" in (infra / "deploy.sh").read_text()
+
+
+def test_staging_worker_mirrors_production_and_is_the_only_key_holder() -> None:
+    compose = (REPO_ROOT / "infra/hetzner/staging/compose.staging.yaml").read_text()
+    app = _service_section(compose, "staging-app", "staging-rewrite-worker")
+    worker = compose.split("  staging-rewrite-worker:\n", 1)[1].split("\nnetworks:\n", 1)[0]
+
+    assert "openai_api_key" not in app
+    assert 'LA_LANH_GENERATION_WORKER_ENABLED: "false"' in app
+    assert "profiles:\n      - generation" in worker
+    assert "LA_LANH_GENERATION_OPENAI_API_KEY_FILE: /run/secrets/openai_api_key" in worker
+    assert 'LA_LANH_GENERATION_WORKER_ENABLED: "true"' in worker
+    assert "- openai_api_key" in worker
+    assert "scripts.check_rewrite_worker" in worker
+    # Own egress only: never on the shared production network, never named like prod.
+    assert "edge" not in worker
+    assert "worker-egress: {}" in worker
+    assert "\n  rewrite-worker:\n" not in compose
+    assert "\n  app:\n" not in compose
+    production = _service_section(
+        (REPO_ROOT / "infra/hetzner/compose.yaml").read_text(), "rewrite-worker", "caddy"
+    )
+    for line in (
+        "read_only: true",
+        "no-new-privileges:true",
+        "- ALL",
+        'LA_LANH_AUTH_ENABLED: "false"',
+        'command: ["python", "-m", "app.domains.content_rewrite.worker"]',
+    ):
+        assert line in production and line in worker
+
+
+def test_staging_up_defaults_generation_off_and_never_inherits_production_values(
+    tmp_path: Path,
+) -> None:
+    up = (REPO_ROOT / "infra/hetzner/staging/up.sh").read_text()
+    assert "${STAGING_GENERATION:-off}" in up
+    assert "grep -v '^LA_LANH_GENERATION_'" in up
+    assert 'echo "LA_LANH_GENERATION_ENABLED=false" >> "$HERE/app.env"' in up
+    assert "OPENAI_API_KEY|OPENAI_API_KEY_FILE|WORKER_ENABLED" in up
+    assert "rm -sf staging-rewrite-worker" in up
+    # Exercise the same filter the script uses on a synthetic production env.
+    source = tmp_path / "app.env"
+    source.write_text(
+        "LA_LANH_ENVIRONMENT=production\n"
+        "LA_LANH_GENERATION_ENABLED=true\n"
+        'LA_LANH_GENERATION_SURFACE_ROLLOUT={"daily_home":"full"}\n'
+    )
+    result = subprocess.run(  # noqa: S603
+        ["/bin/bash", "-c", "{ grep -v '^LA_LANH_GENERATION_' \"$1\" || true; }", "_", str(source)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert result.stdout == "LA_LANH_ENVIRONMENT=production\n"

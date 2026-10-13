@@ -22,6 +22,84 @@ No paid call was made for this update.
 - Keep generation/worker disabled for local browser QA. Run all six topic banks through `tarot:audit`, read a separate synthetic sample corpus, and obtain real reader acceptance. Passing schemas, keyword checks or a ten-persona simulation is not evidence that ten real users understood the product.
 - Remaining release gates: completed review receipt, approved content sample acceptance, live deployment verification, native-specific verification if publishing the app, and disposition of retained security findings. The failed deep scan is not a certificate of system-wide security.
 
+## Pilot daily_home config (proposed, not applied)
+
+Owner decision 2026-10-13 (Issue #7, "Kế hoạch release beta"): Luna only for the Home Daily note
+(`daily_home`), at most 20 sessions that opted in themselves, provider project cap USD 1/month,
+app-side reservation cap 90 cents/month in total. Staging first, then production. Nothing below
+is applied; no secret appears here. `tests/scripts/test_pilot_config_doc.py` loads both blocks
+into the real `Settings` validators with fake secret files, so a value that the code would reject
+fails CI.
+
+How the code reads these values:
+
+- `LA_LANH_GENERATION_SURFACE_ROLLOUT` must name `daily_home` only. The personal opt-in in `Mình`
+  is offered only when a personal surface is in a user-visible mode (`beta_10`, `beta_50` or
+  `full`; `guest_sessions.py`). `shadow`/`editorial` hide the opt-in, so with no consenting
+  session nothing is ever enqueued: shadow is not a useful pilot step for personal content.
+  `beta_10` publishes only ~10% of artifacts, so 20 testers would rarely see Luna. Use `full`.
+  Even then a Luna note is only an *available update*; the tester activates it explicitly.
+- Unlisted surfaces stay `off`, so `reveal`/`natal`/`transit_insight`/`tarot` are not enqueued
+  even though the same personal consent receipt covers them. Do not add them without a new
+  owner decision and copy review.
+- One Daily job reserves ~5.3k–6.2k tokens and 0.061–0.070 cents before the provider call
+  (conservative UTF-8 byte count of the brief + prompt + schema + 512, output cap 220; measured on
+  synthetic v7 cards 2026-10-13). Observed real cost is ~0.01 cent per job.
+  `DAILY_BUDGET_CENTS=3` therefore admits ~42 jobs/UTC day; `DAILY_TOKEN_BUDGET=300000` (~48 jobs)
+  keeps the cent cap binding. The older `100000` example would stop at ~16 jobs/day, fewer than
+  20 testers. Each context lens is its own job, so heavy lens switching drains the day sooner.
+- Each database keeps its own monthly ledger. Staging and production use the same key and
+  provider project, so their monthly caps must add up to at most 90: staging 10 + production 80.
+  Use production 90 only if staging generation stays off for that whole UTC month.
+- `PILOT_USER_LIMIT=20` counts active opted-in sessions, not people.
+- Worker-only settings (`LA_LANH_GENERATION_WORKER_ENABLED`, the key file path) are set by
+  Compose inside the worker and never belong in `app.env`/`generation.env`.
+
+Staging (`infra/hetzner/staging/generation.env`, git-ignored, used only with
+`STAGING_GENERATION=on ./up.sh`; key at `/opt/la-lanh/staging/secrets/openai_api_key`, owner
+65532, mode 0600, mounted only into `staging-rewrite-worker`):
+
+```text pilot-staging
+LA_LANH_GENERATION_ENABLED=true
+LA_LANH_GENERATION_PROVIDER=openai
+LA_LANH_GENERATION_GOVERNANCE_APPROVED=true
+LA_LANH_GENERATION_SPEND_APPROVED=true
+LA_LANH_GENERATION_SURFACE_ROLLOUT={"daily_home":"full"}
+LA_LANH_GENERATION_MONTHLY_BUDGET_CENTS=10
+LA_LANH_GENERATION_DAILY_BUDGET_CENTS=3
+LA_LANH_GENERATION_DAILY_TOKEN_BUDGET=300000
+LA_LANH_GENERATION_PILOT_USER_LIMIT=3
+LA_LANH_GENERATION_OPENAI_PROJECT_ID=proj_eiNVxorNxWcueLgvBnYOU16T
+```
+
+Production (`infra/hetzner/app.env` on the VPS; `deploy.sh` then starts `rewrite-worker` through
+the `generation` profile and requires `/opt/la-lanh/secrets/openai_api_key`):
+
+```text pilot-production
+LA_LANH_GENERATION_ENABLED=true
+LA_LANH_GENERATION_PROVIDER=openai
+LA_LANH_GENERATION_GOVERNANCE_APPROVED=true
+LA_LANH_GENERATION_SPEND_APPROVED=true
+LA_LANH_GENERATION_SURFACE_ROLLOUT={"daily_home":"full"}
+LA_LANH_GENERATION_MONTHLY_BUDGET_CENTS=80
+LA_LANH_GENERATION_DAILY_BUDGET_CENTS=3
+LA_LANH_GENERATION_DAILY_TOKEN_BUDGET=300000
+LA_LANH_GENERATION_PILOT_USER_LIMIT=20
+LA_LANH_GENERATION_OPENAI_PROJECT_ID=proj_eiNVxorNxWcueLgvBnYOU16T
+```
+
+`SPEND_APPROVED=true` and `GOVERNANCE_APPROVED=true` may only be written by the operator after the
+owner's explicit approval of this spend and of the privacy items below; leaving either `false`
+keeps the worker from starting (`Settings` validation). Kill switch: set
+`LA_LANH_GENERATION_ENABLED=false` (production: redeploy; staging: rerun `up.sh` with
+`STAGING_GENERATION=off`, which also removes the staging worker). Deterministic notes stay as the
+fallback.
+
+Still blocking activation (not done here): owner approval of spend and governance, DPA
+acceptance and cross-border transfer impact assessment (Law 91/2025/QH15, Decree 356/2025/NĐ-CP),
+privacy copy update, human scoring of the ~40-case `daily_home` sample, secret copy to the VPS,
+live worker health check and one supervised end-to-end run on staging.
+
 ## Paid pilot update, 2026-10-08
 
 This section supersedes the older **USD 1/day** examples below for the current pilot. The requested
