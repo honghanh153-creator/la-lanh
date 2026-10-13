@@ -1,5 +1,28 @@
 # Luna rewrite release runbook
 
+## Lá's companion line, 2026-10-13 — local only
+
+`daily_home` now has a fourth field, `companion`: the line Lá (the sprout companion) says next to
+the card. Chain: `surface-rewrite-v5` → schema `daily-rewrite/v2` → `daily-rewrite-gates/v4`
+(report `daily-home-rewrite-gates/v4`); every bump changes the cache key, so nothing generated
+under v4 is reused.
+
+- Luna receives only `companion_meaning`, the editorial brief from the content matrix
+  (`apps/api/app/domains/readings/companion.py`), never the authored sentence.
+- The gate checks 4–14 words, no astrology terms or filler, no claim to know the reader, no fate
+  wording, no statement of what another person thinks or wants, no certainty, and no repeat of the
+  title or action. The Meaning Gate runs the same rules on the authored line of every
+  deterministic card. The full-year test confirms every authored line passes.
+- Deterministic cards do not store a line. The read model adds the authored direct or roast line
+  from the catalog. Roast readers of a Luna card get the voiced deterministic baseline with its
+  roast line, never a mix. Lá's line alone never swaps a Luna card for the baseline.
+- Budget: the 40-case pilot's worst-case reservation is **USD 0.029799**, under the 3-cent staging
+  day, with about 0.7% margin. A longer prompt or brief must be re-checked with
+  `pnpm rewrite:pilot generate --dry-run` before it ships.
+- Human scoring of the pilot sample now also covers "Lời của Lá"; the review page shows it.
+
+No paid call was made for this update.
+
 ## Daily v7 contract update, 2026-10-13 — local only
 
 Daily now uses the v7 card (two-sentence thesis, scene opened by a context clause). The rewrite

@@ -112,6 +112,12 @@ or reasonably necessary to protect OpenAI services or any third party from harm.
 not remove this retention; only an approved Zero Data Retention arrangement would. A shared constant
 and test keep the two surfaces identical.
 
+2026-10-13 companion field (local only): the `daily_home` payload also carries
+`companion_meaning`, a fixed editorial brief from the content matrix chosen by the Daily issue key.
+It is the same for every reader with that issue. It holds no personal data and nothing typed by
+the user, and it does not change the consent scope above. Luna's returned `companion` line is
+stored with the generated revision and deleted with it.
+
 The new monthly reservation record has UTC month and conservative nanodollar debit only. It has no
 owner identifiers or foreign keys. Preserve this anonymous aggregate after personal deletion to
 prevent budget reset. This is not analytics, tracking, or retention of the deleted reading.

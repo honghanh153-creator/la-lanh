@@ -38,6 +38,7 @@ def _rewrite_output(baseline: ReadingCandidate) -> dict[str, JsonValue]:
         "title": "Bạn nhận lời trước, rồi mới thấy khó.",
         "scene": f"{scene} trước đã.",
         "action": f"Ghi lại điều này: {action[:1].lower()}{action[1:]}",
+        "companion": "Làm thử một bước nhỏ hôm nay thôi nhé.",
     }
 
 

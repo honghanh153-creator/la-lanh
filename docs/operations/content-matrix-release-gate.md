@@ -64,7 +64,10 @@ See `docs/foundation/daily-psychology-scene-advice-engine.md` and
 
 ## Mandatory checklist for every normal deployment
 
-- [ ] Run `pnpm content:audit` and attach the output to release evidence.
+- [ ] Run `pnpm content:audit` and attach the output to release evidence. It also validates Lá's
+      lines (`readings/companion.py`): every Daily issue covered in both voices, word budgets and
+      forbidden claims. After changing a line run `pnpm content:companion` and get owner approval
+      for new or re-meant roast lines.
 - [ ] Run `pnpm content:review`. The core reviewer must pass without Content Studio or production
       user data; it reviews Daily and Tarot output for 10 synthetic personas.
 - [ ] Run `pnpm experience:audit`, then complete the human mobile review in

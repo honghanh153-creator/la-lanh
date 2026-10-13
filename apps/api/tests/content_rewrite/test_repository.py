@@ -181,8 +181,8 @@ def _request(*, owner_key: str = "daily:anonymous") -> RewriteRequestEnvelope:
             blueprint_hash="a" * 64,
             model_version="gpt-6-luna",
             prompt_version="surface-rewrite-v1",
-            schema_version="daily-rewrite/v1",
-            gate_version="daily-rewrite-gates/v3",
+            schema_version="daily-rewrite/v2",
+            gate_version="daily-rewrite-gates/v4",
         ),
         authorization_receipt_id="consent-receipt",
         safe_payload={
@@ -192,6 +192,7 @@ def _request(*, owner_key: str = "daily:anonymous") -> RewriteRequestEnvelope:
             "title_meaning": "Chưa rõ thì chưa cần kết luận.",
             "scene_meaning": "Một tin nhắn ngắn khiến ý của người kia chưa rõ.",
             "action_meaning": "Hỏi lại một câu rõ ràng trước khi kết luận.",
+            "companion_meaning": "Nhắc người đọc hỏi lại phần chưa rõ thay vì tự đoán ý tin nhắn.",
             "requirements": [
                 {
                     "key": "daily.missing-context",

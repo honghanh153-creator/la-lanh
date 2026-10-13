@@ -41,7 +41,6 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "or advice absent from the brief. The app already shows reader_takeaway next to "
         "your text: never repeat it, and never turn it into another paragraph of abstract "
         "explanation. No advice in title or scene. No filler after action. "
-        "Write direct everyday Vietnamese with a subject and a visible action. "
         "Never use a paradox, abstract comparison, or poetic metaphor. "
         "Example meaning: agreeing with the group while still having an unanswered question. "
         "title: 'Bạn gật đầu, nhưng vẫn chưa hiểu hết.' "
@@ -52,7 +51,10 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "title: 'Bạn định gửi rồi, nhưng lại sửa thêm.' "
         "scene: 'Khi bản nháp đã đủ ý, bạn có thể vẫn sửa vài chữ vì lo người khác đánh giá.' "
         "action: 'Gửi bản nháp và nói rõ phần nào còn cần góp ý.' "
-        "Examples teach style, not facts or sentences to copy into unrelated situations."
+        "Examples teach style, not facts or sentences to copy into unrelated situations. "
+        "companion: one line by Lá (sprout friend) from companion_meaning, 4-14 words, "
+        "nudging the reader to try the action today; one light tease max; no repeating "
+        "title/action, astrology, predictions or anyone's thoughts."
     ),
     RewriteSurface.REVEAL: (
         "Map headline from source hook, synthesis from source thesis, section_intros from "
@@ -138,6 +140,9 @@ def surface_output_contract(surface: RewriteSurface) -> SurfaceOutputContract:
                 "maxItems": 8,
                 "items": {"type": "string", "maxLength": 700},
             }
+        elif field == "companion":
+            # Stored on the candidate with the same bound.
+            properties[field] = {"type": "string", "maxLength": 200}
         else:
             properties[field] = {"type": "string", "maxLength": 900}
     schema = {

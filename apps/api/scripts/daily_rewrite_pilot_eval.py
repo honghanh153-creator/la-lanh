@@ -51,6 +51,7 @@ from app.domains.astro.models import (
 from app.domains.content_rewrite.evaluation import PilotSampleSelection
 from app.domains.content_rewrite.models import RewriteRequestEnvelope, RewriteSurface
 from app.domains.content_rewrite.worker import reservation_estimate
+from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_psychology import DAILY_ISSUES, split_scene_lead
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
@@ -605,6 +606,13 @@ async def gate_output(
     return False, [decision.failure_code or "daily_rewrite_rejected"]
 
 
+def authored_companion(baseline: ReadingCandidate) -> str:
+    """Lá's authored line for this card (content matrix), the reviewer's baseline."""
+
+    blueprint = baseline.semantic_blueprint
+    return companion_issue_entry(blueprint.mechanism_key if blueprint else None).line.direct
+
+
 def case_row(
     prepared: PreparedCase,
     *,
@@ -627,6 +635,7 @@ def case_row(
             "thesis": baseline.thesis,
             "manifestation": baseline.manifestation,
             "micro_action": baseline.micro_action,
+            "companion": authored_companion(baseline),
         },
         "generated": generated,
         "gate": gate,
@@ -707,7 +716,7 @@ async def generate_paid(
                     input_tokens=result.input_tokens, output_tokens=result.output_tokens
                 ),
             }
-        output = {key: result.output[key] for key in ("title", "scene", "action")}
+        output = {key: result.output[key] for key in ("title", "scene", "action", "companion")}
         rows.append(
             case_row(
                 item,
@@ -877,6 +886,7 @@ def review_page(rows: Sequence[dict[str, Any]]) -> str:
                 "thesis": baseline["thesis"],
                 "manifestation": generated["scene"],
                 "micro_action": generated["action"],
+                "companion": generated["companion"],
             }
             if generated
             else None

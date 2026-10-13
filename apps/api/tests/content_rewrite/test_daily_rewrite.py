@@ -16,6 +16,7 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
+from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_psychology import current_scene_lead, split_scene_lead
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
@@ -119,17 +120,27 @@ def _records(
     return plan_record, projection, revision
 
 
+_COMPANION = "Làm thử một bước nhỏ hôm nay thôi nhé."
+
+
+def _authored_companion(baseline: ReadingCandidate) -> str:
+    blueprint = baseline.semantic_blueprint
+    return companion_issue_entry(blueprint.mechanism_key if blueprint else None).line.direct
+
+
 def _good_output(baseline: ReadingCandidate | None = None) -> dict[str, JsonValue]:
     if baseline is not None:
         return {
             "title": baseline.hook,
             "scene": baseline.manifestation,
             "action": baseline.micro_action,
+            "companion": _authored_companion(baseline),
         }
     return {
         "title": "Tiến độ của người khác không phải thước đo.",
         "scene": "Khi thấy người khác khoe kết quả, bạn so sánh tiến độ của mình với họ.",
         "action": "Chọn một việc của mình để làm xong trước khi xem tiếp.",
+        "companion": _COMPANION,
     }
 
 
@@ -170,6 +181,7 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
         model_version="gpt-6-luna",
         prompt_version="surface-rewrite-v1",
     )
+    assert baseline.semantic_blueprint is not None
 
     serialized = json.dumps(request.safe_payload, ensure_ascii=False).lower()
     assert request.key.surface.value == "daily_home"
@@ -180,10 +192,16 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
         "title_meaning",
         "scene_meaning",
         "action_meaning",
+        "companion_meaning",
         "meaning_brief",
         "requirements",
         "evidence",
     }
+    # Lá's brief is editorial meaning from the catalog, never the authored sentence.
+    entry = companion_issue_entry(baseline.semantic_blueprint.mechanism_key)
+    assert request.safe_payload["companion_meaning"] == entry.meaning
+    assert entry.line.direct not in serialized and entry.line.roast not in serialized
+    assert request.key.schema_version == "daily-rewrite/v2"
     assert "1990" not in serialized
     assert "latitude" not in serialized
     assert "longitude" not in serialized
@@ -193,7 +211,7 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
     assert request.safe_payload["meaning_brief"] == (
         baseline.semantic_blueprint.daily_meaning.model_dump(mode="json")
     )
-    assert request.key.gate_version == "daily-rewrite-gates/v3"
+    assert request.key.gate_version == "daily-rewrite-gates/v4"
 
 
 def test_daily_compiler_carries_supported_full_chart_meaning_through_privacy_allowlist() -> None:
@@ -277,6 +295,7 @@ def test_daily_gate_rejects_the_exact_opaque_card_reported_by_the_user() -> None
             "action": (
                 "Nói câu bạn còn chưa rõ trước khi đồng ý. Làm xong, xem tình hình có dễ hơn không."
             ),
+            "companion": _COMPANION,
         }
     )
     assert not report.passed
@@ -292,6 +311,7 @@ def test_daily_action_does_not_ask_to_act_before_a_choice_already_made() -> None
                 "dù chưa hiểu rõ điều vừa chốt."
             ),
             "action": "Hỏi cả nhóm vì sao chọn cách đó trước khi đồng ý.",
+            "companion": _COMPANION,
         }
     )
     assert "daily_action_timing_conflict" in report.failure_codes
@@ -310,6 +330,7 @@ def test_daily_brief_rejects_wrong_advice_even_when_both_scenes_mention_a_questi
             "Khi cả nhóm chốt rất nhanh, bạn có thể đồng ý theo dù vẫn còn một chỗ muốn hỏi lại."
         ),
         "action": "Hỏi ngay chỗ đó: Mình chưa rõ phần này, giải thích thêm được không?",
+        "companion": _COMPANION,
     }
     assert evaluate_daily_rewrite(good, meaning_brief=brief).passed
     wrong_action = good | {"action": "Hỏi người gửi tin nhắn xem họ muốn nói gì."}
@@ -545,8 +566,32 @@ def test_daily_prompt_teaches_the_v7_card_shape() -> None:
     from app.infrastructure.generation.schemas import surface_output_contract
 
     instruction = surface_output_contract(RewriteSurface.DAILY_HOME).developer_instruction
-    assert OPENAI_REWRITE_PROMPT_VERSION == "surface-rewrite-v4"
+    assert OPENAI_REWRITE_PROMPT_VERSION == "surface-rewrite-v5"
     assert "start the scene with exactly that clause" in instruction
+    # v5: Lá's companion line, written from companion_meaning in the shared voice.
+    assert "companion: one line by Lá (sprout friend)" in instruction
+    assert "anyone's thoughts" in instruction
     assert "never write a separate fragment such as 'Ví dụ …'" in instruction
     assert "never repeat it" in instruction
     assert "limitation" not in instruction
+
+
+@pytest.mark.parametrize(
+    ("companion", "failure"),
+    [
+        ("Ừ.", "daily_companion_budget"),
+        ("Mặt Trăng đang đỡ bạn, thử một bước nhỏ nhé.", "daily_companion_astro_term"),
+        ("Lá biết bạn sẽ làm được mà, thử đi.", "daily_companion_mind_reading"),
+        ("Người kia muốn bạn hỏi trước, nhắn đi nào.", "daily_companion_mind_reading"),
+        ("Làm đi, chắc chắn sẽ ổn thôi mà.", "daily_companion_certainty"),
+        ("Chọn một việc của mình để làm xong trước khi xem tiếp.", "daily_companion_repeats_card"),
+    ],
+)
+def test_daily_companion_line_keeps_las_rules(companion: str, failure: str) -> None:
+    report = evaluate_daily_rewrite(_good_output() | {"companion": companion})
+    assert failure in report.failure_codes
+
+
+def test_daily_companion_line_is_required_and_projected_with_the_card() -> None:
+    missing = {key: value for key, value in _good_output().items() if key != "companion"}
+    assert evaluate_daily_rewrite(missing).failure_codes == ("daily_required_fields",)

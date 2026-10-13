@@ -62,6 +62,25 @@ Cách chạy:
 - **Duyệt câu chữ:** chủ sản phẩm đã duyệt bộ câu Roast hiện tại (Daily, Tarot, lời của Lá) ngày
   2026-10-11 để đưa cho người dùng thật. Câu mới hoặc sửa nghĩa phải duyệt lại.
 
+## Lời của Lá
+
+Lá là linh vật mầm cây trên app. Lá chào, chờ và phản hồi. Lá không đổi nghĩa bài đọc, không đoán
+tương lai, không nói mình biết hết về người đọc và không nói thay người khác.
+
+- **Nguồn:** content matrix `apps/api/app/domains/readings/companion.py`. Web đọc câu tĩnh qua
+  file sinh `apps/web/src/shared/ui/la/laCatalog.generated.ts`. Sửa câu xong thì chạy
+  `pnpm content:companion`; test sẽ báo nếu hai bên lệch nhau.
+- **Câu cạnh note hôm nay:** mỗi vấn đề Daily có một câu Thẳng (tối đa 14 chữ) và một câu Cà khịa
+  (tối đa 16 chữ), kèm một dòng ý nghĩa. Câu nhắc người đọc thử việc nhỏ trong thẻ, không lặp lại
+  tiêu đề hay hành động.
+- **Cà khịa:** tối đa một câu chọc vào hành vi trong bài đọc, không chọc vào con người, luôn có lối ra.
+- **Luna:** chỉ nhận dòng ý nghĩa, không nhận câu viết sẵn. Gate dùng chung luật với câu viết sẵn.
+  Người đọc chọn Cà khịa luôn thấy bản viết sẵn của cả thẻ, không bao giờ thấy nửa thẻ Luna, nửa thẻ
+  Cà khịa.
+- **Chờ duyệt (2026-10-13):** 15 cặp câu theo vấn đề và cặp câu dự phòng là câu mới. Ba câu Cà khịa
+  cũ được sửa vì chạm chuẩn này: lời chào buổi trưa ("xem số phận"), lời chào buổi chiều ("Lá biết
+  hết á") và một câu chờ ("Vũ trụ đang gõ"). Chủ sản phẩm cần duyệt trước khi đưa cho người dùng thật.
+
 Nhãn persona trên app và thẻ chia sẻ giữ dạng **"Vibe · X"** (quyết định 2026-10-11; không đổi thành
 "Chất X").
 

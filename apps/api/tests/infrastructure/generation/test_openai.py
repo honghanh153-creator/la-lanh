@@ -181,8 +181,8 @@ def _rewrite_envelope() -> RewriteRequestEnvelope:
             blueprint_hash="a" * 64,
             model_version=MODEL,
             prompt_version="surface-rewrite-v1",
-            schema_version="daily-rewrite/v1",
-            gate_version="daily-rewrite-gates/v1",
+            schema_version="daily-rewrite/v2",
+            gate_version="daily-rewrite-gates/v4",
         ),
         authorization_receipt_id="consent-receipt",
         safe_payload={
@@ -192,6 +192,7 @@ def _rewrite_envelope() -> RewriteRequestEnvelope:
             "title_meaning": "Chưa rõ thì chưa cần kết luận.",
             "scene_meaning": "Một tin nhắn ngắn khiến ý của người kia chưa rõ.",
             "action_meaning": "Hỏi lại một câu rõ ràng trước khi kết luận.",
+            "companion_meaning": "Nhắc người đọc hỏi lại phần chưa rõ thay vì tự đoán ý tin nhắn.",
             "requirements": [
                 {
                     "key": "daily.missing-context",
@@ -231,6 +232,7 @@ async def test_surface_rewrite_request_uses_luna_stateless_schema_and_returns_on
                                 "title": "Đừng tự điền vào chỗ trống.",
                                 "scene": "Một tin nhắn ngắn làm bạn chưa rõ ý người kia.",
                                 "action": "Hỏi lại một câu rõ ràng trước khi kết luận.",
+                                "companion": "Hỏi một câu thôi, đỡ hơn đoán cả buổi.",
                             }
                         ),
                     }
@@ -246,7 +248,7 @@ async def test_surface_rewrite_request_uses_luna_stateless_schema_and_returns_on
 
     assert isinstance(result, RewriteGenerationSuccess)
     assert result.key == envelope.key
-    assert set(result.output) == {"title", "scene", "action"}
+    assert set(result.output) == {"title", "scene", "action", "companion"}
     assert result.input_tokens == 321
     assert result.output_tokens == 87
     request, timeout = transport.requests[0]

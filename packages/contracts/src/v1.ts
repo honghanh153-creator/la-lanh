@@ -2698,6 +2698,8 @@ export interface components {
          * @description User-visible prose only; internal planning and gate state never crosses the API.
          */
         ReadingSectionsProjection: {
+            /** Companion */
+            companion?: string | null;
             /** Hook */
             hook: string;
             /** Manifestation */

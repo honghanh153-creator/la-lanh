@@ -539,6 +539,9 @@ class ReadingCandidate(BaseModel):
     evidence: EvidenceDisclosure
     disclaimer: str = SHORT_DISCLAIMER
     semantic_blueprint: "SemanticBlueprint | None" = None
+    # Lá's line after a Luna-written Daily card. Deterministic cards leave it empty and
+    # take the authored line from the companion catalog at read time.
+    companion: str | None = Field(default=None, max_length=200)
 
     @property
     def natal_user_prose(self) -> str:
@@ -731,6 +734,8 @@ class ReadingSectionsProjection(BaseModel):
     manifestation: str
     transit: str | None = None
     micro_action: str
+    # What Lá says next to a Daily card (null for other purposes).
+    companion: str | None = None
 
 
 class ReadingEvidenceProjection(BaseModel):
