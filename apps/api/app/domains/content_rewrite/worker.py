@@ -10,6 +10,7 @@ from hashlib import sha256
 from app.domains.content_rewrite.models import (
     LeasedRewriteJob,
     RewriteJobResult,
+    RewriteRequestEnvelope,
 )
 from app.domains.content_rewrite.repository import ContentRewriteRepository
 from app.domains.content_rewrite.rollout import SurfaceRolloutPolicy
@@ -31,6 +32,35 @@ from app.infrastructure.generation.pricing import (
 from app.infrastructure.generation.schemas import surface_output_contract
 
 logger = logging.getLogger(__name__)
+
+
+def reservation_estimate(
+    request: RewriteRequestEnvelope,
+    pricing: GenerationPricing = GPT_6_LUNA_STANDARD_2026_10_04,
+) -> tuple[int, int]:
+    """Conservative (tokens, cost nanos) debited before any provider boundary.
+
+    UTF-8 bytes are a deliberate upper bound for prompt tokens; output is the
+    surface's hard ``max_output_tokens``. Shared by the worker and any standalone
+    paid evaluation so both draw on one ledger with one sizing rule.
+    """
+
+    contract = surface_output_contract(request.key.surface)
+    input_reserve = (
+        len(
+            json.dumps(
+                request.safe_payload,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ).encode()
+        )
+        + len(contract.developer_instruction.encode())
+        + len(json.dumps(contract.schema, separators=(",", ":")).encode())
+        + 512
+    )
+    output_reserve = contract.max_output_tokens
+    cost_nanos = pricing.cost_nanos(input_tokens=input_reserve, output_tokens=output_reserve)
+    return input_reserve + output_reserve, cost_nanos
 
 
 class ContentRewriteWorker:
@@ -175,30 +205,13 @@ class ContentRewriteWorker:
         if self._daily_token_budget is None or self._daily_cost_budget_cents is None:
             return False
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        contract = surface_output_contract(lease.request.key.surface)
-        input_reserve = (
-            len(
-                json.dumps(
-                    lease.request.safe_payload,
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                ).encode()
-            )
-            + len(contract.developer_instruction.encode())
-            + len(json.dumps(contract.schema, separators=(",", ":")).encode())
-            + 512
-        )
-        output_reserve = contract.max_output_tokens
-        requested_cost_nanos = self._pricing.cost_nanos(
-            input_tokens=input_reserve,
-            output_tokens=output_reserve,
-        )
+        requested_tokens, requested_cost_nanos = reservation_estimate(lease.request, self._pricing)
         return await self._repository.reserve_budget(
             job_id=lease.id,
             lease_token=lease.lease_token,
             deletion_epoch=lease.deletion_epoch,
             since=day_start,
-            requested_tokens=input_reserve + output_reserve,
+            requested_tokens=requested_tokens,
             daily_token_limit=self._daily_token_budget,
             requested_cost_nanos=requested_cost_nanos,
             daily_cost_limit_nanos=cents_to_nanos(self._daily_cost_budget_cents),

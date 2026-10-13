@@ -100,6 +100,41 @@ acceptance and cross-border transfer impact assessment (Law 91/2025/QH15, Decree
 privacy copy update, human scoring of the ~40-case `daily_home` sample, secret copy to the VPS,
 live worker health check and one supervised end-to-end run on staging.
 
+## daily_home pilot evaluation (~40 human-scored cases)
+
+`scripts/daily_rewrite_pilot_eval.py` (`pnpm rewrite:pilot -- <command>`). Everything is
+synthetic: the versioned catalog `apps/api/scripts/fixtures/daily_home_pilot_cases.json`
+(`daily-home-cases-v1`) maps the corpus's 75 `daily_home-NNNN` ids to generated charts/dates
+(63 exact with transits, 12 date-only); no real person is described.
+
+1. `select --out selection.json` picks 40 cases (`daily-home-pilot-sample-v1`) covering all 15
+   Daily issues (≥2 each), all six lenses, every scene context, both chart kinds, and roast
+   cards for relationships/communication/work plus the gentle energy/self-care frame. Offline.
+2. `generate --selection selection.json --out cases.jsonl --dry-run` renders each baseline,
+   compiles the exact `daily_home` request (`surface-rewrite-v4`, `daily-rewrite-gates/v3`),
+   runs the provider privacy allowlist and prints the worst-case ledger reservation
+   (≈ USD 0.028 for the 40 cases). Zero network calls (tested with sockets disabled).
+3. Paid step, later and only after the owner approves it: inside the staging worker container,
+   which already holds the validated worker Settings and the mounted key, e.g.
+   `docker compose -f compose.staging.yaml --profile generation run --rm --no-deps -v /opt/la-lanh/staging/eval:/eval staging-rewrite-worker python -m scripts.daily_rewrite_pilot_eval generate --selection /eval/selection.json --out /eval/cases.jsonl --paid --confirm-max-usd 0.03`.
+   It refuses unless worker Settings validate, generation/governance/spend approval are true,
+   `daily_home` is in the rollout, the database is PostgreSQL, and `--confirm-max-usd` (≤ 0.90)
+   covers the worst case. Before every send it debits the same anonymous day/month ledger as the
+   worker (`reserve_standalone_budget`); a refused reservation stops the run and marks the rest
+   `budget_blocked`. The proposed staging day cap of 3 cents covers one 40-case run only on a
+   day without other staging jobs. Output is gated by the production `DailyRewriteProjector`
+   (`publish=False`); nothing is published. The key is never read or printed by the script.
+   `cases.jsonl` is written mode 0600 and holds only synthetic prose; delete it after review.
+4. `html --cases cases.jsonl --out review.html` writes a self-contained page (no network, CSP,
+   noindex). A/B order is blinded per case. The reviewer scores six 1–5 dimensions for both
+   versions and marks Đạt/Không đạt, then exports `rewrite-results.json` (strict
+   `EvaluationRecord` array; a human "Không đạt" becomes `gate_passed=false` with
+   `human_rejected`) plus review notes.
+5. `pnpm rewrite:release -- --results rewrite-results.json --selection selection.json` applies
+   the unchanged release thresholds (comprehension ≥ 90%, relevance ≥ 85%, duplicate frames
+   < 5%, zero gate failures, candidate mean > baseline mean) to the declared sample. This is a
+   **pilot sample gate**, reported as such; it does not replace the full 670-case release gate.
+
 ## Paid pilot update, 2026-10-08
 
 This section supersedes the older **USD 1/day** examples below for the current pilot. The requested

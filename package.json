@@ -43,6 +43,7 @@
     "experience:audit": "uv run --directory apps/api python -m scripts.audit_radar_experience",
     "rewrite:corpus": "uv run --directory apps/api python -m scripts.audit_rewrite_release --manifest-only",
     "rewrite:release": "uv run --directory apps/api python -m scripts.audit_rewrite_release",
+    "rewrite:pilot": "uv run --directory apps/api python -m scripts.daily_rewrite_pilot_eval",
     "db:up": "docker compose -f infra/compose/compose.yaml up -d --wait postgres",
     "db:down": "docker compose -f infra/compose/compose.yaml down",
     "db:logs": "docker compose -f infra/compose/compose.yaml logs -f postgres"

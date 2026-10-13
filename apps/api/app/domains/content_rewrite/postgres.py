@@ -659,58 +659,60 @@ class PostgresContentRewriteRepository:
             )
             if current is None:
                 return False
-            monthly = None
-            if monthly_cost_limit_nanos is not None:
-                month = updated_at.astimezone(UTC).strftime("%Y-%m")
-                insert = (
-                    pg_insert if session.get_bind().dialect.name == "postgresql" else sqlite_insert
-                )
-                await session.execute(
-                    insert(ContentRewriteSpendMonthRow)
-                    .values(month=month, reserved_cost_nanos=0)
-                    .on_conflict_do_nothing(index_elements=["month"])
-                )
-                monthly = await session.scalar(
-                    select(ContentRewriteSpendMonthRow)
-                    .where(ContentRewriteSpendMonthRow.month == month)
-                    .with_for_update()
-                )
-                if monthly is None:
-                    return False
-            day = updated_at.astimezone(UTC).strftime("%Y-%m-%d")
-            insert = pg_insert if session.get_bind().dialect.name == "postgresql" else sqlite_insert
-            await session.execute(
-                insert(ContentRewriteSpendDayRow)
-                .values(day=day, reserved_cost_nanos=0, reserved_tokens=0)
-                .on_conflict_do_nothing(index_elements=["day"])
-            )
-            daily = await session.scalar(
-                select(ContentRewriteSpendDayRow)
-                .where(ContentRewriteSpendDayRow.day == day)
-                .with_for_update()
-            )
-            if daily is None:
+            if not await _debit_spend_ledger(
+                session,
+                requested_tokens=requested_tokens,
+                daily_token_limit=daily_token_limit,
+                requested_cost_nanos=requested_cost_nanos,
+                daily_cost_limit_nanos=daily_cost_limit_nanos,
+                monthly_cost_limit_nanos=monthly_cost_limit_nanos,
+                updated_at=updated_at,
+            ):
                 return False
-            if daily.reserved_tokens + requested_tokens > daily_token_limit:
-                return False
-            if daily.reserved_cost_nanos + requested_cost_nanos > daily_cost_limit_nanos:
-                return False
-            if monthly is not None and monthly_cost_limit_nanos is not None:
-                if monthly.reserved_cost_nanos + requested_cost_nanos > monthly_cost_limit_nanos:
-                    return False
-                # Non-refundable worst-case debit: no owner identifiers, no deletion reset.
-                monthly.reserved_cost_nanos += requested_cost_nanos
-                await session.flush([monthly])
-            # Anonymous, non-refundable debits survive deletion, cancellation and retries.
-            daily.reserved_tokens += requested_tokens
-            daily.reserved_cost_nanos += requested_cost_nanos
-            await session.flush([daily])
             current.budget_reserved_tokens = requested_tokens
             current.budget_reserved_cost_nanos = requested_cost_nanos
             current.pricing_version = pricing_version
             current.updated_at = updated_at
             await session.flush([current])
             return True
+
+    async def reserve_standalone_budget(
+        self,
+        *,
+        requested_tokens: int,
+        daily_token_limit: int,
+        requested_cost_nanos: int,
+        daily_cost_limit_nanos: int,
+        monthly_cost_limit_nanos: int,
+        updated_at: datetime,
+    ) -> bool:
+        """Debit the shared anonymous day/month ledger for out-of-queue synthetic work.
+
+        Same limits, locks and non-refundable semantics as ``reserve_budget``, but no
+        job row exists: used only by operator-run synthetic evaluations so their spend
+        counts against the same caps as the worker. A monthly limit is mandatory.
+        """
+
+        if (
+            requested_tokens <= 0
+            or daily_token_limit <= 0
+            or requested_cost_nanos <= 0
+            or daily_cost_limit_nanos <= 0
+            or monthly_cost_limit_nanos <= 0
+        ):
+            return False
+        async with self._sessions() as session, session.begin():
+            if session.get_bind().dialect.name == "sqlite":
+                await session.connection(execution_options={"sqlite_write": True})
+            return await _debit_spend_ledger(
+                session,
+                requested_tokens=requested_tokens,
+                daily_token_limit=daily_token_limit,
+                requested_cost_nanos=requested_cost_nanos,
+                daily_cost_limit_nanos=daily_cost_limit_nanos,
+                monthly_cost_limit_nanos=monthly_cost_limit_nanos,
+                updated_at=updated_at,
+            )
 
     def _row(self, record: RewriteJobRecord) -> ContentRewriteJobRow:
         request_ciphertext = self._envelope.encrypt(
@@ -799,3 +801,62 @@ class PostgresContentRewriteRepository:
     def _assert_same_request(stored: RewriteJobRecord, incoming: RewriteJobRecord) -> None:
         if stored.request != incoming.request or stored.max_attempts != incoming.max_attempts:
             raise ValueError("generation key collision with different rewrite request")
+
+
+async def _debit_spend_ledger(
+    session: AsyncSession,
+    *,
+    requested_tokens: int,
+    daily_token_limit: int,
+    requested_cost_nanos: int,
+    daily_cost_limit_nanos: int,
+    monthly_cost_limit_nanos: int | None,
+    updated_at: datetime,
+) -> bool:
+    """Lock and debit the anonymous month then day rows; False leaves both untouched."""
+
+    monthly = None
+    if monthly_cost_limit_nanos is not None:
+        month = updated_at.astimezone(UTC).strftime("%Y-%m")
+        insert = pg_insert if session.get_bind().dialect.name == "postgresql" else sqlite_insert
+        await session.execute(
+            insert(ContentRewriteSpendMonthRow)
+            .values(month=month, reserved_cost_nanos=0)
+            .on_conflict_do_nothing(index_elements=["month"])
+        )
+        monthly = await session.scalar(
+            select(ContentRewriteSpendMonthRow)
+            .where(ContentRewriteSpendMonthRow.month == month)
+            .with_for_update()
+        )
+        if monthly is None:
+            return False
+    day = updated_at.astimezone(UTC).strftime("%Y-%m-%d")
+    insert = pg_insert if session.get_bind().dialect.name == "postgresql" else sqlite_insert
+    await session.execute(
+        insert(ContentRewriteSpendDayRow)
+        .values(day=day, reserved_cost_nanos=0, reserved_tokens=0)
+        .on_conflict_do_nothing(index_elements=["day"])
+    )
+    daily = await session.scalar(
+        select(ContentRewriteSpendDayRow)
+        .where(ContentRewriteSpendDayRow.day == day)
+        .with_for_update()
+    )
+    if daily is None:
+        return False
+    if daily.reserved_tokens + requested_tokens > daily_token_limit:
+        return False
+    if daily.reserved_cost_nanos + requested_cost_nanos > daily_cost_limit_nanos:
+        return False
+    if monthly is not None and monthly_cost_limit_nanos is not None:
+        if monthly.reserved_cost_nanos + requested_cost_nanos > monthly_cost_limit_nanos:
+            return False
+        # Non-refundable worst-case debit: no owner identifiers, no deletion reset.
+        monthly.reserved_cost_nanos += requested_cost_nanos
+        await session.flush([monthly])
+    # Anonymous, non-refundable debits survive deletion, cancellation and retries.
+    daily.reserved_tokens += requested_tokens
+    daily.reserved_cost_nanos += requested_cost_nanos
+    await session.flush([daily])
+    return True
