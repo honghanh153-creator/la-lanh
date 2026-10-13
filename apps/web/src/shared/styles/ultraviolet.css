@@ -1,27 +1,101 @@
-/* Selected 2026-10-06 reference: warm paper, one violet focus, lime accents.
- * Scoped to the customer app; Content Studio remains a separate workspace. */
+/* Design system "Tím đêm dịu" (owner-approved 2026-10-13, option A).
+ * Light reading surfaces, one night-violet card per reading screen, leaf at
+ * most once per screen. Scoped to the customer app; Content Studio remains a
+ * separate workspace. Contrast pairs are pre-computed (body text ≥ 4.5:1). */
+:root,
 :root[data-theme="light"] {
-  --uv-page: #f7f4eb;
-  --uv-surface: #fffcf5;
-  --uv-text: #15132c;
-  --uv-muted: #625c73;
-  --uv-line: #d5cedf;
-  --uv-tint: #ede6f7;
-  --uv-accent: #54249b;
+  --uv-page: #f5f2f8;
+  --uv-surface: #ffffff;
+  --uv-text: #1f1838;
+  --uv-muted: #6b6482;
+  --uv-line: #ece6f3;
+  --uv-tint: #eee9fb;
+  --uv-accent: #6750b8;
+  /* Secondary actions, outlines of controls, raised segment track. */
+  --uv-action: #4a3a8c;
+  --uv-action-line: #dcd3ee;
+  --uv-control-line: #e6e0ef;
+  --uv-track: #ece6f3;
+  --uv-row-line: #f0ebf6;
+  --uv-glass-surface: rgb(255 255 255 / 85%);
+  --uv-nav-surface: rgb(255 255 255 / 92%);
+  --uv-primary-bg: #3f3478;
+  --uv-primary-text: #ffffff;
+  --uv-leaf-tint: #eaf4cf;
+  --uv-leaf-line: #d8e8b0;
+  --uv-leaf-ink: #4e6b1a;
+  --uv-note-bg: #fff6e6;
+  --uv-note-line: #ebd9b4;
+  --uv-note-ink: #6b4e12;
+  --uv-danger: #8b332b;
+  --uv-danger-bg: #fff0e8;
+  --uv-danger-line: #f0cfc4;
+  --uv-danger-body: #5e4740;
+  --uv-skeleton: #ece6f3;
+  --uv-skeleton-hi: #f7f3fb;
+  --uv-shadow-1: 0 10px 24px -16px rgb(63 52 120 / 40%);
+  --uv-shadow-2: 0 14px 34px -14px rgb(63 52 120 / 38%);
+  --uv-shadow-control: 0 8px 18px -12px rgb(63 52 120 / 45%);
+  --uv-shadow-night: 0 26px 44px -24px rgb(36 27 79 / 75%);
+  --uv-night-gradient: radial-gradient(120% 90% at 86% 0%, #6153ae 0%, #3f3478 46%, #221a4c 100%);
+  --uv-night-border: 0 solid transparent;
+  --uv-page-glow: radial-gradient(70% 34% at 100% 0%, rgb(183 156 255 / 26%), rgb(183 156 255 / 0%) 70%), radial-gradient(60% 30% at 0% 62%, rgb(201 232 127 / 14%), rgb(201 232 127 / 0%) 70%);
 }
 :root[data-theme="dark"] {
-  --uv-page: #191426;
-  --uv-surface: #241c36;
-  --uv-text: #f7f2e6;
-  --uv-muted: #c7bed4;
-  --uv-line: #59476d;
-  --uv-tint: #302244;
-  --uv-accent: #c9aeff;
+  --uv-page: #14102a;
+  --uv-surface: #201a3d;
+  --uv-text: #f3efff;
+  --uv-muted: #b6add3;
+  --uv-line: #332a5a;
+  --uv-tint: #3a2f6e;
+  --uv-accent: #c9b8ff;
+  --uv-action: #c9b8ff;
+  --uv-action-line: #4a3f7e;
+  --uv-control-line: #332a5a;
+  --uv-track: #2a2250;
+  --uv-row-line: #2c2452;
+  --uv-glass-surface: #201a3d;
+  --uv-nav-surface: rgb(32 26 61 / 92%);
+  --uv-primary-bg: #5a4bb0;
+  --uv-primary-text: #ffffff;
+  --uv-leaf-tint: #2f3a1e;
+  --uv-leaf-line: #46552a;
+  --uv-leaf-ink: #cde77f;
+  --uv-note-bg: #2e2638;
+  --uv-note-line: #4e4236;
+  --uv-note-ink: #f1e3c2;
+  --uv-danger: #ffb4a6;
+  --uv-danger-bg: #3a1f2a;
+  --uv-danger-line: #5e3340;
+  --uv-danger-body: #f0d6d0;
+  --uv-skeleton: #2a2250;
+  --uv-skeleton-hi: #3a3068;
+  --uv-shadow-1: 0 12px 26px -16px rgb(0 0 0 / 70%);
+  --uv-shadow-2: 0 14px 34px -14px rgb(0 0 0 / 70%);
+  --uv-shadow-control: 0 12px 26px -16px rgb(0 0 0 / 70%);
+  --uv-shadow-night: 0 26px 44px -24px rgb(0 0 0 / 80%);
+  --uv-night-gradient: radial-gradient(120% 90% at 86% 0%, #6a5bbe 0%, #43388a 46%, #241c55 100%);
+  --uv-night-border: 1px solid rgb(255 255 255 / 8%);
+  --uv-page-glow: radial-gradient(70% 34% at 100% 0%, rgb(140 95 216 / 28%), rgb(140 95 216 / 0%) 70%), radial-gradient(60% 30% at 0% 70%, rgb(111 143 224 / 12%), rgb(111 143 224 / 0%) 70%);
 }
 :root {
-  --uv-violet: #4c2e8e;
-  --uv-lime: #dfff4f;
-  --uv-cream: #fff9e9;
+  /* Night scene (same in both themes; the dark theme lifts the card gradient). */
+  --uv-night: #3f3478;
+  --uv-night-deep: #221a4c;
+  --uv-night-light: #6153ae;
+  --uv-night-text: #e2dcf5;
+  --uv-night-muted: #cfc7f0;
+  --uv-leaf: #cde77f;
+  --uv-ink: #1f1838;
+  --uv-moon: #f1e9d6;
+  --uv-radius-icon: 12px;
+  --uv-radius-tile: 18px;
+  --uv-radius-glass: 22px;
+  --uv-radius-night: 28px;
+  /* Legacy names kept so older feature rules inherit the new palette. */
+  --uv-violet: var(--uv-night);
+  --uv-lime: var(--uv-leaf);
+  --uv-cream: #ffffff;
   --uv-planet-surface: url('/assets/ultraviolet/violet-planet-v2.webp');
   background: var(--uv-page);
 }
@@ -36,9 +110,9 @@
   --paper: var(--uv-surface);
   --glass: var(--uv-surface);
   --glass-strong: var(--uv-surface);
-  --signal: var(--uv-lime);
-  --signal-text: #341b62;
-  --lime: var(--uv-lime);
+  --signal: var(--uv-leaf);
+  --signal-text: var(--uv-ink);
+  --lime: var(--uv-leaf);
   --cyan: var(--uv-accent);
   --lilac: var(--uv-accent);
   --peach: var(--uv-accent);
@@ -56,65 +130,136 @@
   --station-cream: var(--uv-text);
   --station-muted: var(--uv-muted);
   min-height: 100svh;
-  padding: 2rem 1.25rem 7rem;
+  padding: 1.375rem 1.25rem 7.5rem;
   color: var(--uv-text);
-  background: var(--uv-page);
+  background: var(--uv-page-glow), var(--uv-page);
   font-family: var(--font-app);
 }
 :root .ultraviolet-app :is(.home-page, .matching-page, .aura-cutover-page, .tarot-page, .signal-station)::before,
 :root .ultraviolet-app :is(.signal-station, .tarot-page)::after { display: none; }
 :root .ultraviolet-app :is(h1, h2, h3) { text-wrap: pretty; overflow-wrap: break-word; font-family: var(--font-app); }
-:root .ultraviolet-app h1 { max-width: none; font-size: 1.875rem; font-weight: 800; line-height: 1.22; letter-spacing: -0.04em; }
-:root .ultraviolet-app h2 { font-size: 1.2rem; font-weight: 700; line-height: 1.35; letter-spacing: -0.025em; }
-:root .ultraviolet-app h3 { font-size: 1rem; line-height: 1.4; }
-:root .ultraviolet-app :is(p, label, input, textarea, select) { font-size: 1rem; line-height: 1.6; }
+:root .ultraviolet-app h1 { max-width: none; font-size: 1.6875rem; font-weight: 800; line-height: 1.22; letter-spacing: -0.01em; }
+:root .ultraviolet-app h2 { font-size: 1.3125rem; font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; }
+:root .ultraviolet-app h3 { font-size: 1.0625rem; font-weight: 600; line-height: 1.4; }
+:root .ultraviolet-app :is(p, label, input, textarea, select) { font-size: 0.9375rem; line-height: 1.5; }
 :root .ultraviolet-app p { font-weight: 400; text-transform: none; letter-spacing: normal; }
-:root .ultraviolet-app :is(small, .privacy-plain, .radar-field-help) { font-size: 0.8125rem; line-height: 1.55; }
-:root .ultraviolet-app .eyebrow { color: var(--uv-accent); font-size: 0.6875rem; letter-spacing: 0.075em; }
+:root .ultraviolet-app :is(small, .privacy-plain, .radar-field-help) { font-size: 0.8125rem; line-height: 1.5; }
+:root .ultraviolet-app .eyebrow { color: var(--uv-accent); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+:root .ultraviolet-app a { color: var(--uv-accent); }
+
+/* Inputs: 52px, 14px radius; focus = 2px accent + soft tint ring. */
 :root .ultraviolet-app :is(input, select, textarea) {
-  min-width: 0; border: 1px solid var(--uv-line); border-radius: 0.85rem;
+  min-width: 0; border: 1px solid var(--uv-control-line); border-radius: 14px;
   color: var(--uv-text); background: var(--uv-surface); box-shadow: none; font-family: inherit;
 }
-:root .ultraviolet-app :is(input, select, textarea)::placeholder { color: var(--uv-muted); opacity: 1; }
-:root .ultraviolet-app :is(button, a, input, select, textarea):focus-visible { outline: 3px solid var(--uv-accent); outline-offset: 3px; }
-:root .ultraviolet-app :is(input, select, textarea):focus { border-color: var(--uv-accent); }
+:root .ultraviolet-app :is(input:not([type="checkbox"], [type="radio"], [type="range"]), select) { min-height: 3.25rem; padding-inline: 0.875rem; font-size: 1.0625rem; font-weight: 600; }
+:root .ultraviolet-app textarea { padding: 0.875rem; font-size: 1rem; font-weight: 400; }
+:root .ultraviolet-app :is(input, select, textarea)::placeholder { color: var(--uv-muted); font-weight: 400; opacity: 1; }
+:root .ultraviolet-app :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--uv-accent); outline-offset: 3px; }
+:root .ultraviolet-app :is(input, select, textarea):focus { border-color: var(--uv-accent); box-shadow: 0 0 0 1px var(--uv-accent), 0 0 0 4px var(--uv-tint); }
+:root .ultraviolet-app :is(input, select, textarea):focus-visible { outline: none; }
+:root .ultraviolet-app :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--uv-danger); box-shadow: 0 0 0 1px var(--uv-danger); }
+:root .ultraviolet-app :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--uv-accent); }
 :root .ultraviolet-app :is(button, a)[aria-disabled="true"],
 :root .ultraviolet-app button:disabled { opacity: 0.55; cursor: not-allowed; }
+:root .ultraviolet-app button[aria-busy="true"]:disabled { opacity: 0.92; cursor: progress; }
 
-/* Shared chrome and actions. Lime is a fill, never body text on cream. */
+/* Shared chrome and actions. */
 :root .ultraviolet-app .brand-mark {
   padding: 0; border: 0; border-radius: 0; margin: 0; color: var(--uv-text);
-  background: transparent; box-shadow: none; transform: none; font-size: 1.75rem; line-height: 1.15;
+  background: transparent; box-shadow: none; transform: none; font-size: 1.875rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15;
 }
 :root .ultraviolet-app .brand-mark::after { display: none; }
 :root .ultraviolet-app .brand-mark sup { color: var(--uv-accent); }
 :root .ultraviolet-app .brand-mark sup svg { width: 1rem; height: 1rem; }
-:root .ultraviolet-app .home-page { background-image: url('/assets/ultraviolet/header-orbit.webp'); background-repeat: no-repeat; background-position: right 1.5rem; background-size: 15rem auto; }
-:root .ultraviolet-app :is(.home-header, .flow-header, .cosmic-header, .section-header, .matching-header, .tarot-header) { min-height: 2.75rem; padding: 0; gap: 0.65rem; }
-:root .ultraviolet-app :is(.icon-button, .radar-back, .tarot-header > button) {
-  display: grid; width: 2.75rem; height: 2.75rem; padding: 0; border: 1px solid var(--uv-line);
-  border-radius: 50%; place-items: center; color: var(--uv-accent); background: transparent; box-shadow: none;
+:root .ultraviolet-app .home-page { background: url('/assets/ultraviolet/header-orbit.webp') right -40px top -6px / 230px auto no-repeat, var(--uv-page-glow), var(--uv-page); }
+:root .ultraviolet-app :is(.home-header, .flow-header, .cosmic-header, .section-header, .matching-header, .tarot-header) { min-height: 3.25rem; padding: 0; gap: 0.65rem; }
+:root .ultraviolet-app :is(.icon-button, .radar-back, .tarot-header > button, .home-motion-toggle, .signal-motion-toggle) {
+  display: grid; width: 3rem; height: 3rem; padding: 0; border: 1px solid var(--uv-control-line);
+  border-radius: 50%; place-items: center; color: var(--uv-action); background: var(--uv-glass-surface); box-shadow: var(--uv-shadow-control); cursor: pointer;
 }
-:root .ultraviolet-app .profile-orb { width: 2.75rem; height: 2.75rem; color: #47258c; background: var(--uv-lime); box-shadow: none; }
+:root .ultraviolet-app :is(.icon-button, .radar-back, .tarot-header > button) svg { width: 1.25rem; height: 1.25rem; }
+:root .ultraviolet-app .profile-orb { display: grid; width: 3rem; height: 3rem; border: 1px solid var(--uv-leaf-line); border-radius: 50%; place-items: center; color: var(--uv-text); background: var(--uv-leaf-tint); box-shadow: 0 8px 18px -12px rgb(78 107 26 / 50%); }
+:root[data-theme="dark"] .ultraviolet-app .profile-orb { border-color: var(--uv-line); background: var(--uv-surface); box-shadow: var(--uv-shadow-control); }
+:root .ultraviolet-app .profile-orb svg { width: 1.375rem; height: 1.375rem; }
+
+/* Primary on light = night violet pill; secondary = white + soft violet line. */
 :root .ultraviolet-app :is(.electric-button, .matching-primary, .tarot-primary, .signal-station__button, .reading-content__experiment-button) {
-  display: flex; min-height: 3rem; padding: 0.75rem 1rem; border: 0; border-radius: 1rem;
-  align-items: center; justify-content: center; gap: 0.55rem; color: #321960; background: var(--uv-lime);
-  box-shadow: none; font-size: 0.9375rem; font-weight: 700; line-height: 1.4; text-decoration: none; transform: none;
+  display: flex; min-height: 3.25rem; padding: 0.75rem 1.5rem; border: 0; border-radius: 999px;
+  align-items: center; justify-content: center; gap: 0.6rem; color: var(--uv-primary-text); background: var(--uv-primary-bg);
+  box-shadow: 0 12px 24px -14px rgb(36 27 79 / 80%); font-size: 0.9375rem; font-weight: 700; line-height: 1.35; text-align: center; text-decoration: none; transform: none;
 }
+:root .ultraviolet-app :is(.electric-button, .matching-primary, .tarot-primary, .signal-station__button, .reading-content__experiment-button) svg { width: 1.125rem; height: 1.125rem; flex: none; }
 :root .ultraviolet-app :is(.outline-button, .matching-secondary, .signal-station__secondary) {
-  min-height: 3rem; border: 1px solid var(--uv-line); border-radius: 1rem; color: var(--uv-accent);
-  background: transparent; box-shadow: none; font-size: 0.9375rem;
+  display: flex; min-height: 3.25rem; padding: 0.75rem 1.375rem; border: 1px solid var(--uv-action-line); border-radius: 999px;
+  align-items: center; justify-content: center; gap: 0.5rem; color: var(--uv-action); background: var(--uv-surface);
+  box-shadow: none; font-size: 0.9375rem; font-weight: 600; text-decoration: none;
 }
-:root .ultraviolet-app :is(.text-button, .text-link, .detail-link, .signal-station__back, .signal-station__privacy-link) { color: var(--uv-accent); font-size: 0.875rem; }
+:root .ultraviolet-app :is(.text-button, .text-link, .detail-link, .signal-station__back, .signal-station__privacy-link) { min-height: 2.75rem; color: var(--uv-accent); font-size: 0.9375rem; font-weight: 600; }
+:root .ultraviolet-app :is(.danger-button, .danger-text) { color: var(--uv-danger); }
+
+/* Night surfaces: the one dark card per reading screen and full-screen ritual
+ * scenes. Primary there is the leaf pill (the screen's single leaf use). */
+:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: var(--uv-night-border);
+  border-radius: var(--uv-radius-night);
+  color: #ffffff;
+  background: var(--uv-night-gradient);
+  box-shadow: var(--uv-shadow-night), inset 0 1px 0 rgb(255 255 255 / 14%);
+}
+:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card)::before { display: none; }
+:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(.electric-button, .matching-primary, .tarot-primary, .signal-station__button) {
+  color: var(--uv-ink); background: var(--uv-leaf); box-shadow: 0 12px 24px -14px rgb(0 0 0 / 60%);
+}
+:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(.outline-button, .matching-secondary, .signal-station__secondary) {
+  border-color: rgb(255 255 255 / 30%); color: #ffffff; background: rgb(255 255 255 / 6%);
+}
+:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :is(a:not(.electric-button, .outline-button), .text-button) { color: #ffffff; }
+:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) .eyebrow { color: var(--uv-night-muted); }
+:root .ultraviolet-app :is(.uv-night, .home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) :focus-visible { outline-color: #ffffff; }
+/* Frosted panel inside a night card ("Thử một việc nhỏ", actions). */
+:root .ultraviolet-app .uv-glass { border-top: 1px solid rgb(255 255 255 / 18%); border-radius: var(--uv-radius-glass) var(--uv-radius-glass) var(--uv-radius-night) var(--uv-radius-night); background: rgb(255 255 255 / 8%); box-shadow: inset 0 18px 30px -24px rgb(255 255 255 / 35%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+/* Light card, tile and list row. */
+:root .ultraviolet-app .uv-card { border: 1px solid var(--uv-line); border-radius: 20px; color: var(--uv-text); background: var(--uv-surface); box-shadow: var(--uv-shadow-1); }
+
+/* Bottom navigation: a floating pill on the four tab screens. */
 :root .ultraviolet-app .app-nav {
-  position: fixed; z-index: 20; bottom: 0; left: 50%; width: min(100%, 35rem); padding: 0.7rem 0.75rem max(0.75rem, env(safe-area-inset-bottom));
-  border: 0; border-top: 1px solid var(--uv-line); border-radius: 0; background: var(--uv-page); transform: translateX(-50%); box-shadow: none; backdrop-filter: none;
+  position: fixed; z-index: 20; right: auto; bottom: max(0.875rem, env(safe-area-inset-bottom)); left: 50%; display: grid; width: min(calc(100% - 1.75rem), 33.25rem); min-height: 4.375rem; padding: 0;
+  border: 1px solid var(--uv-line); border-radius: 26px; grid-template-columns: repeat(4, 1fr); align-items: center;
+  background: var(--uv-nav-surface); transform: translateX(-50%); box-shadow: var(--uv-shadow-2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
-:root .ultraviolet-app .app-nav__item { position: relative; min-height: 3.75rem; padding: 0.25rem 0 0.6rem; color: var(--uv-muted); font-size: 0.875rem; }
-:root .ultraviolet-app .app-nav__item svg { width: 1.9rem; height: 1.9rem; }
-:root .ultraviolet-app .app-nav__item--active { color: var(--uv-accent); background: none; }
-:root .ultraviolet-app .app-nav__item--active::before { display: none; }
-:root .ultraviolet-app .app-nav__item--active::after { content: ''; position: absolute; left: calc(50% - 0.2rem); bottom: 0; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: var(--uv-lime); opacity: 1; }
+:root .ultraviolet-app .app-nav__item { position: relative; display: flex; min-height: 3.75rem; padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--uv-muted); font-size: 0.75rem; font-weight: 500; text-decoration: none; }
+:root .ultraviolet-app .app-nav__item svg { display: block; width: 1.375rem; height: 1.375rem; margin: 5px 11px; }
+:root .ultraviolet-app .app-nav__item--active { color: var(--uv-action); background: none; font-weight: 700; }
+:root .ultraviolet-app .app-nav__item--active svg { width: 1.25rem; height: 1.25rem; margin: 0; padding: 6px 12px; box-sizing: content-box; border-radius: 16px; color: var(--uv-accent); background: var(--uv-tint); }
+:root .ultraviolet-app .app-nav__item--active::before,
+:root .ultraviolet-app .app-nav__item--active::after { display: none; }
+
+/* Notes, errors and status lines (DS-Components / DS-States). */
+:root .ultraviolet-app :is(.reading-disclaimer, .uv-note) { display: flex; gap: 0.75rem; padding: 0.875rem 1rem; border: 1px solid var(--uv-note-line); border-radius: var(--uv-radius-tile); color: var(--uv-note-ink); background: var(--uv-note-bg); box-shadow: none; }
+:root .ultraviolet-app :is(.reading-disclaimer, .uv-note) > svg { width: 1.25rem; height: 1.25rem; flex: none; margin-top: 0.1rem; color: var(--uv-note-ink); }
+:root .ultraviolet-app :is(.reading-disclaimer, .uv-note) :is(p, strong, span) { display: inline; margin: 0; color: var(--uv-note-ink); font-size: 0.875rem; line-height: 1.5; }
+:root .ultraviolet-app .reading-disclaimer strong { font-weight: 700; }
+:root .ultraviolet-app :is(.signal-station__error, .inline-error, .tarot-error, .matching-message:not([role="status"]), .uv-error) {
+  display: block; padding: 1rem 1.125rem 1rem 2.75rem; border: 1px solid var(--uv-danger-line); border-radius: 20px; color: var(--uv-danger-body); background: var(--uv-danger-bg) no-repeat 1rem 1.05rem / 1.125rem 1.125rem; font-size: 0.875rem; line-height: 1.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b332b' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E");
+}
+:root .ultraviolet-app :is(.signal-station__error, .inline-error, .tarot-error, .matching-message:not([role="status"]), .uv-error) :is(strong, b) { color: var(--uv-danger); }
+:root .ultraviolet-app :is(.field-error, .signal-date-error, .uv-field-error) { display: flex; gap: 0.5rem; margin: 0.375rem 0 0; color: var(--uv-danger); font-size: 0.875rem; line-height: 1.45; }
+:root .ultraviolet-app :is(.home-status, .cache-status) { color: var(--uv-muted); font-size: 0.8125rem; }
+:root .ultraviolet-app .uv-spinner { display: inline-block; width: 1.125rem; height: 1.125rem; flex: none; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: uv-spin 0.9s linear infinite; }
+:root .ultraviolet-app .uv-skeleton { display: block; border-radius: 8px; background: linear-gradient(90deg, var(--uv-skeleton) 0%, var(--uv-skeleton-hi) 50%, var(--uv-skeleton) 100%) 0 0 / 200% 100%; animation: uv-shimmer 1.4s ease-in-out infinite; }
+:root .ultraviolet-app .uv-night .uv-skeleton,
+:root .ultraviolet-app .uv-skeleton--night { background-image: linear-gradient(90deg, rgb(255 255 255 / 10%) 0%, rgb(255 255 255 / 22%) 50%, rgb(255 255 255 / 10%) 100%); }
+@keyframes uv-spin { to { transform: rotate(360deg); } }
+@keyframes uv-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* Full-screen empty state for broken, expired or withdrawn links. */
+:root .ultraviolet-app .uv-empty-art { display: grid; width: 6rem; height: 6rem; margin: 0 auto 1.25rem; border-radius: var(--uv-radius-night); place-items: center; background: var(--uv-track); }
+:root .ultraviolet-app .uv-empty-art img { width: 4.75rem; height: 4.75rem; filter: grayscale(0.7); opacity: 0.6; }
 
 /* Home: one note and two illustrated ways forward. */
 :root .ultraviolet-app .home-value-hero { display: flex; min-height: 2.75rem; padding: 0; margin: 1.125rem 0 0.75rem; align-items: center; justify-content: space-between; }
@@ -125,7 +270,7 @@
 :root .ultraviolet-app .home-daily-signal { margin: 0; }
 :root .ultraviolet-app .home-daily-signal__paper {
   position: relative; min-height: 23.625rem; padding: 1.65rem 1.5rem 1.25rem; border: 0; border-radius: 1.5rem;
-  margin: 0; color: var(--uv-cream); background: var(--uv-violet) var(--uv-planet-surface) center / cover; box-shadow: 0 0.8rem 1.8rem rgb(47 26 72 / 11%); transform: none;
+  margin: 0; color: var(--uv-cream); transform: none;
 }
 :root .ultraviolet-app .home-daily-signal__paper::before,
 :root .ultraviolet-app .home-daily-signal__paper::after { display: none; }
@@ -306,23 +451,37 @@
 :root .ultraviolet-app .birth-optional__summary { padding: 0 1rem 0.75rem; }
 :root .ultraviolet-app .unlock-note { display: grid; grid-template-columns: 1.5rem 1fr; gap: 0.5rem 0.7rem; }
 :root .ultraviolet-app .unlock-note > a { grid-column: 2; min-height: 2.75rem; display: flex; align-items: center; color: var(--uv-accent); font-weight: 700; }
-:root .ultraviolet-app .signal-reveal-card { padding: 1.75rem; border: 0; border-radius: 1.5rem; color: var(--uv-cream); background: var(--uv-violet) var(--uv-planet-surface) center / cover; box-shadow: 0 0.8rem 1.8rem rgb(47 26 72 / 11%); }
+:root .ultraviolet-app .signal-reveal-card { padding: 1.75rem; color: var(--uv-cream); }
 :root .ultraviolet-app .signal-reveal-card :is(h1, p, small) { color: var(--uv-cream); }
 :root .ultraviolet-app .signal-reveal-card .eyebrow { color: var(--uv-lime); }
-:root .ultraviolet-app :is(.signal-station__error, .inline-error, .tarot-error, .matching-message) { padding: 0.75rem; border: 1px solid #b76d62; border-radius: 0.75rem; color: #8b332b; background: #fff0e8; font-size: 0.875rem; }
 
 /* Forms, consent and profile use simple groups, not stacked glossy cards. */
-:root .ultraviolet-app :is(.choice-panel, .paper-panel, .privacy-consent, .settings-list, .profile-card, .resonance-settings__card, .consent-list, .radar-create, .radar-public__card, .radar-consent-note, .radar-attestation, .radar-no-permission) { border-color: var(--uv-line); border-radius: 1rem; color: var(--uv-text); background: var(--uv-surface); box-shadow: none; backdrop-filter: none; }
-:root .ultraviolet-app .demo-note { padding: 1.5rem; border: 0; border-radius: 1.5rem; color: var(--uv-cream); background: var(--uv-violet) var(--uv-planet-surface) center / cover; }
+:root .ultraviolet-app :is(.choice-panel, .paper-panel, .privacy-consent, .settings-list, .profile-card, .resonance-settings__card, .consent-list, .radar-create, .radar-public__card, .radar-consent-note, .radar-attestation, .radar-no-permission) { border-color: var(--uv-line); border-radius: 20px; color: var(--uv-text); background: var(--uv-surface); box-shadow: var(--uv-shadow-1); backdrop-filter: none; }
+:root .ultraviolet-app .demo-note { padding: 1.5rem; color: var(--uv-cream); }
 :root .ultraviolet-app .demo-note :is(h1, p) { color: var(--uv-cream); text-decoration: none; }
 :root .ultraviolet-app .demo-note .accent-kicker { display: block; margin-top: 1rem; color: var(--uv-lime); }
 :root .ultraviolet-app .demo-badge { position: static; display: inline-flex; padding: 0.4rem 0.6rem; border: 1px solid rgb(255 249 233 / 45%); color: var(--uv-cream); background: transparent; font-size: 0.75rem; }
 :root .ultraviolet-app :is(.intro-block, .choice-panel, .privacy-consent, .settings-list, .profile-card, .resonance-settings__card, .consent-list, .radar-create, .radar-public__card, .radar-consent-note, .radar-attestation, .radar-no-permission, .aura-preview, .aura-receipt) :is(h1, h2, h3, strong, label) { color: var(--uv-text); }
 :root .ultraviolet-app :is(.intro-block, .choice-panel, .privacy-consent, .settings-list, .profile-card, .resonance-settings__card, .consent-list, .radar-create, .radar-public__card, .radar-consent-note, .radar-attestation, .radar-no-permission, .aura-preview, .aura-receipt) :is(p, small, span) { color: var(--uv-muted); }
-:root .ultraviolet-app :is(.segmented-control, .signal-switch, .format-toggle) { padding: 0.25rem; border: 1px solid var(--uv-line); border-radius: 1rem; background: var(--uv-tint); box-shadow: none; }
-:root .ultraviolet-app :is(.segmented-control, .signal-switch, .format-toggle) button { min-height: 2.75rem; border: 0; border-radius: 0.75rem; color: var(--uv-muted); background: transparent; }
-:root .ultraviolet-app :is(.segmented-control, .signal-switch, .format-toggle) button.is-active { color: var(--uv-cream); background: var(--uv-violet); box-shadow: none; }
-:root .ultraviolet-app :is(.signal-switch, .segmented-control) button.is-active :is(strong, small) { color: var(--uv-cream); }
+/* Segmented control: the selected segment is a raised white tile, not a colour swap. */
+:root .ultraviolet-app :is(.segmented-control, .signal-switch, .format-toggle, .birth-time-input__modes) { padding: 4px; border: 0; border-radius: 16px; background: var(--uv-track); box-shadow: none; }
+:root .ultraviolet-app :is(.segmented-control, .signal-switch, .format-toggle, .birth-time-input__modes) button { min-height: 2.75rem; border: 0; border-radius: 12px; color: var(--uv-muted); background: transparent; box-shadow: none; font-weight: 500; }
+:root .ultraviolet-app :is(.segmented-control, .signal-switch, .format-toggle, .birth-time-input__modes) button:is(.is-active, [aria-pressed="true"], [aria-checked="true"], [aria-selected="true"]) { color: var(--uv-text); background: var(--uv-surface); box-shadow: 0 4px 10px -6px rgb(63 52 120 / 50%); font-weight: 700; }
+:root .ultraviolet-app :is(.signal-switch, .segmented-control) button.is-active :is(strong, small) { color: var(--uv-text); }
+:root[data-theme="dark"] .ultraviolet-app :is(.segmented-control, .signal-switch, .format-toggle, .birth-time-input__modes) button:is(.is-active, [aria-pressed="true"], [aria-checked="true"], [aria-selected="true"]) { background: var(--uv-tint); }
+
+/* Chips and option tiles: selected = tint + accent border + a check mark. */
+:root .ultraviolet-app :is(.tarot-context-chips button, .radar-contexts button, .radar-voices button, .calculation-group button, .birth-time-input .window-grid button, .time-window-grid button) { position: relative; border: 1px solid var(--uv-control-line); color: var(--uv-text); background: var(--uv-surface); box-shadow: none; }
+:root .ultraviolet-app :is(.tarot-context-chips button, .radar-contexts button, .radar-voices button, .calculation-group button, .birth-time-input .window-grid button, .time-window-grid button):is(.is-active, .is-selected, [aria-pressed="true"], [aria-checked="true"]) { border-color: var(--uv-accent); color: var(--uv-action); background: var(--uv-tint); box-shadow: inset 0 0 0 0.5px var(--uv-accent); font-weight: 600; }
+:root .ultraviolet-app :is(.tarot-context-chips button, .radar-contexts button, .radar-voices button, .calculation-group button, .birth-time-input .window-grid button, .time-window-grid button):is(.is-active, .is-selected, [aria-pressed="true"], [aria-checked="true"]) :is(strong, small, span) { color: var(--uv-action); }
+:root .ultraviolet-app .tarot-context-chips button:is(.is-active, [aria-pressed="true"])::before,
+:root .ultraviolet-app :is(.radar-contexts button, .radar-voices button, .calculation-group button, .birth-time-input .window-grid button, .time-window-grid button):is(.is-active, .is-selected, [aria-pressed="true"], [aria-checked="true"])::after {
+  content: ""; display: inline-block; width: 1rem; height: 1rem; flex: none; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+:root .ultraviolet-app .tarot-context-chips button:is(.is-active, [aria-pressed="true"])::before { margin-right: 0.375rem; vertical-align: -0.15em; }
+:root .ultraviolet-app :is(.radar-contexts button, .radar-voices button, .calculation-group button, .birth-time-input .window-grid button, .time-window-grid button):is(.is-active, .is-selected, [aria-pressed="true"], [aria-checked="true"])::after { position: absolute; top: 0.5rem; right: 0.5rem; }
 :root .ultraviolet-app :is(.time-window-grid button, .place-results button, .radar-place-results button) { min-height: 2.75rem; border-color: var(--uv-line); color: var(--uv-text); background: var(--uv-surface); }
 :root .ultraviolet-app :is(.place-results, .radar-place-results) { max-height: 16rem; overflow-y: auto; }
 :root .ultraviolet-app :is(.place-results, .radar-place-results) button { display: flex; width: 100%; height: auto; min-height: 3.5rem; padding: 0.75rem; flex-direction: column; align-items: flex-start; gap: 0.25rem; text-align: left; }
@@ -337,7 +496,6 @@
 :root .ultraviolet-app .birth-time-input__modes button { flex: 1; min-width: 0; padding: 0.65rem 0.25rem; font-size: 0.8125rem; font-weight: 800; white-space: nowrap; }
 :root .ultraviolet-app .birth-time-input .window-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 1rem; }
 :root .ultraviolet-app .birth-time-input .window-grid button { min-height: 3rem; border: 1px solid var(--uv-line); border-radius: 0.75rem; color: var(--uv-text); background: var(--uv-surface); }
-:root .ultraviolet-app .birth-time-input .window-grid button.is-active { color: var(--uv-cream); background: var(--uv-violet); }
 :root .ultraviolet-app .birth-time-input .window-grid :is(strong, span) { display: block; color: inherit; font-size: 0.8125rem; }
 :root .ultraviolet-app .birth-time-input__help { margin: 0.75rem 0 0; color: var(--uv-muted); font-size: 0.8125rem; }
 :root .ultraviolet-app .birth-time-picker label > span { font-size: 0.8125rem; font-weight: 800; text-transform: uppercase; }
@@ -346,7 +504,7 @@
 :root .ultraviolet-app .choice-panel > p { text-transform: none; letter-spacing: normal; font-weight: 600; }
 :root .ultraviolet-app .choice-panel p.privacy-plain { font-weight: 400; }
 :root .ultraviolet-app .tarot-start-actions > p { color: var(--uv-muted); font-size: 0.8125rem; }
-:root .ultraviolet-app .profile-card { padding: 1.5rem; margin-top: 1.75rem; background: var(--uv-violet) var(--uv-planet-surface) center / cover; border: 0; box-shadow: 0 0.8rem 1.8rem rgb(47 26 72 / 11%); }
+:root .ultraviolet-app .profile-card { padding: 1.5rem; margin-top: 1.75rem; border: 0; }
 :root .ultraviolet-app .profile-card :is(h2, p, small, strong) { color: var(--uv-cream); }
 :root .ultraviolet-app .profile-card > div > span { color: var(--uv-cream); }
 :root .ultraviolet-app .settings-list { border: 0; border-radius: 0; background: transparent; }
@@ -368,7 +526,7 @@
 /* Readings: violet summary, calm paper for long-form text. */
 :root .ultraviolet-app .insight-hero { padding: 1.5rem 0 0.5rem; }
 :root .ultraviolet-app .insight-hero > :is(p, small) { color: var(--uv-muted); }
-:root .ultraviolet-app .insight-synthesis { padding: 1.5rem; border: 0; border-radius: 1.5rem; color: var(--uv-cream); background: var(--uv-violet) var(--uv-planet-surface) center / cover; box-shadow: 0 0.8rem 1.8rem rgb(47 26 72 / 11%); }
+:root .ultraviolet-app .insight-synthesis { padding: 1.5rem; color: var(--uv-cream); }
 :root .ultraviolet-app .insight-synthesis :is(h2, p) { color: var(--uv-cream); }
 :root .ultraviolet-app .insight-synthesis > span { color: var(--uv-lime); }
 :root .ultraviolet-app .insight-grid { gap: 0; }
@@ -376,9 +534,8 @@
 :root .ultraviolet-app .sky-signal { background: var(--uv-tint); box-shadow: none; }
 :root .ultraviolet-app :is(.cosmic-state, .calculation-group, .sky-grid article) { border-color: var(--uv-line); color: var(--uv-text); background: var(--uv-surface); box-shadow: none; }
 :root .ultraviolet-app .calculation-group button { color: var(--uv-text); background: var(--uv-surface); border-color: var(--uv-line); }
-:root .ultraviolet-app .calculation-group button.is-active { color: var(--uv-cream); background: var(--uv-violet); }
 :root .ultraviolet-app .reading-content { overflow: hidden; border: 0; border-radius: 1.4rem; background: var(--uv-surface); box-shadow: none; }
-:root .ultraviolet-app .reading-content__intro { padding: 1.5rem; color: var(--uv-cream); background: var(--uv-violet) var(--uv-planet-surface) center / cover; }
+:root .ultraviolet-app .reading-content__intro { padding: 1.5rem; color: var(--uv-cream); }
 :root .ultraviolet-app .reading-content__intro :is(h1, h2, p, small) { color: var(--uv-cream); }
 :root .ultraviolet-app .reading-content__intro h1 { font-size: 1.65rem; line-height: 1.28; }
 :root .ultraviolet-app .reading-content > section { padding: 1.25rem; border-color: var(--uv-line); color: var(--uv-text); background: transparent; }
@@ -386,8 +543,6 @@
 :root .ultraviolet-app .reading-content > section h2 { font-size: 1rem; text-transform: none; }
 :root .ultraviolet-app .reading-evidence { border-color: var(--uv-line); color: var(--uv-muted); }
 :root .ultraviolet-app .reading-evidence :is(summary, p, li) { color: var(--uv-muted); }
-:root .ultraviolet-app .reading-disclaimer { border: 0; border-radius: 0.8rem; color: var(--uv-muted); background: var(--uv-tint); }
-:root .ultraviolet-app .reading-disclaimer :is(strong, p, svg) { color: var(--uv-muted); font-size: 0.75rem; }
 :root .ultraviolet-app .note-tarot-bridge { border-color: var(--uv-line); background: var(--uv-tint); }
 :root .ultraviolet-app .note-tarot-bridge :is(h2, p, a) { color: var(--uv-text); }
 
@@ -400,8 +555,7 @@
 :root .ultraviolet-app .tarot-question-field textarea { min-height: 7rem; padding: 1rem; color: var(--uv-text); background: var(--uv-surface); }
 :root .ultraviolet-app .tarot-question-field small { color: var(--uv-muted); }
 :root .ultraviolet-app .tarot-context-chips button { min-height: 2.75rem; border-color: var(--uv-line); color: var(--uv-muted); background: transparent; box-shadow: none; }
-:root .ultraviolet-app .tarot-context-chips button.is-active { border-color: var(--uv-violet); color: var(--uv-cream); background: var(--uv-violet); }
-:root .ultraviolet-app .tarot-recommendation { padding: 1.25rem; border: 0; border-radius: 1.5rem; margin-top: 1.25rem; color: var(--uv-cream); background: var(--uv-violet) var(--uv-planet-surface) center / cover; box-shadow: 0 0.8rem 1.8rem rgb(47 26 72 / 11%); }
+:root .ultraviolet-app .tarot-recommendation { padding: 1.25rem; margin-top: 1.25rem; color: var(--uv-cream); }
 :root .ultraviolet-app .tarot-recommendation__copy :is(span, h2, p) { color: var(--uv-cream); }
 :root .ultraviolet-app .tarot-recommendation__copy h2 { font-size: 1.05rem; }
 :root .ultraviolet-app .tarot-recommendation__icon { width: 5.5rem; height: 5.5rem; object-fit: contain; }
@@ -422,11 +576,11 @@
 :root .ultraviolet-app .tarot-slot span { color: var(--uv-muted); }
 :root .ultraviolet-app .tarot-slot--filled strong { color: var(--uv-accent); }
 :root .ultraviolet-app .tarot-fan-wrap > p { color: var(--uv-muted); }
-:root .ultraviolet-app .tarot-card-back { color: var(--uv-lime); background: var(--uv-violet) var(--uv-planet-surface) center / cover; border-color: #bba3d9; box-shadow: 0 0.25rem 0.7rem rgb(45 20 70 / 15%); }
+:root .ultraviolet-app .tarot-card-back { color: var(--uv-night-muted); background: var(--uv-night-gradient); border-color: #8f80d6; box-shadow: 0 0.25rem 0.7rem rgb(45 20 70 / 15%); }
 :root .ultraviolet-app .tarot-card-back > svg { width: 1rem; height: 1rem; }
 :root .ultraviolet-app .tarot-reading { gap: 1.5rem; }
 :root .ultraviolet-app .tarot-reading-card { border-color: var(--uv-line); background: var(--uv-surface); color: var(--uv-text); box-shadow: none; }
-:root .ultraviolet-app .tarot-face { min-height: 8rem; background: var(--uv-violet) var(--uv-planet-surface) center / cover; }
+:root .ultraviolet-app .tarot-face { min-height: 8rem; background: var(--uv-night-gradient); }
 :root .ultraviolet-app .tarot-face__symbol { position: absolute; right: 1.25rem; bottom: 1.25rem; width: 2rem; height: 2rem; color: var(--uv-lime); }
 :root .ultraviolet-app .tarot-face::before,
 :root .ultraviolet-app .tarot-face::after { display: none; }
@@ -471,7 +625,7 @@
 :root .ultraviolet-app :is(.radar-hero, .matching-hero) { padding: 1.25rem 0; }
 :root .ultraviolet-app :is(.radar-hero, .matching-hero) h1 { max-width: none; font-size: 1.75rem; line-height: 1.25; }
 :root .ultraviolet-app :is(.radar-hero, .matching-hero) > p:not(.eyebrow) { color: var(--uv-muted); }
-:root .ultraviolet-app .radar-landing-page .radar-hero { position: relative; padding: 1.5rem; margin-top: 1.75rem; border-radius: 1.5rem; background: var(--uv-violet) var(--uv-planet-surface) center / cover; box-shadow: 0 0.8rem 1.8rem rgb(47 26 72 / 11%); }
+:root .ultraviolet-app .radar-landing-page .radar-hero { position: relative; padding: 1.5rem; margin-top: 1.75rem; }
 :root .ultraviolet-app .radar-hero-art { display: block; width: 11rem; height: 7.75rem; margin: 0 auto 0.5rem; object-fit: contain; }
 :root .ultraviolet-app .radar-landing-page .radar-hero :is(h1, p, small, .radar-history-link) { color: var(--uv-cream); }
 :root .ultraviolet-app .radar-landing-page .radar-hero .eyebrow { color: var(--uv-lime); font-size: 0.75rem; letter-spacing: normal; }
@@ -483,8 +637,6 @@
 :root .ultraviolet-app :is(.radar-privacy, .radar-proof, .radar-how) { border-color: var(--uv-line); background: transparent; box-shadow: none; }
 :root .ultraviolet-app .radar-create { padding: 1rem; }
 :root .ultraviolet-app :is(.radar-contexts, .radar-voices) button { border-color: var(--uv-line); color: var(--uv-text); background: var(--uv-surface); box-shadow: none; }
-:root .ultraviolet-app :is(.radar-contexts, .radar-voices) button.is-selected { border-color: var(--uv-violet); color: var(--uv-cream); background: var(--uv-violet); }
-:root .ultraviolet-app :is(.radar-contexts, .radar-voices) button.is-selected :is(strong, small) { color: var(--uv-cream); }
 :root .ultraviolet-app .radar-private-form fieldset { border: 0; padding: 0; margin: 0.75rem 0; }
 :root .ultraviolet-app .radar-private-form legend { color: var(--uv-muted); font-size: 0.8125rem; }
 :root .ultraviolet-app .radar-create legend { color: var(--uv-muted); font-size: 0.8125rem; }
@@ -493,7 +645,7 @@
 :root .ultraviolet-app .radar-birth-grid { grid-template-columns: 1fr; }
 :root .ultraviolet-app :is(.radar-field-help, .radar-place-catalog-toggle, .radar-history__empty, .radar-history p, .radar-owner-refresh) { color: var(--uv-muted); }
 :root .ultraviolet-app .radar-form-heading > span { color: var(--uv-accent); border-color: var(--uv-line); }
-:root .ultraviolet-app .radar-result--v2 .radar-signature { padding: 1.5rem; border-radius: 1.5rem; margin: 1rem 0; color: var(--uv-cream); background: var(--uv-violet) var(--uv-planet-surface) center / cover; }
+:root .ultraviolet-app .radar-result--v2 .radar-signature { padding: 1.5rem; margin: 1rem 0; color: var(--uv-cream); }
 :root .ultraviolet-app .radar-result--v2 .radar-signature::before { display: none; }
 :root .ultraviolet-app .radar-result--v2 .radar-signature h1 { max-width: none; font-size: 1.6rem; line-height: 1.28; }
 :root .ultraviolet-app .radar-signature :is(p, h1) { color: var(--uv-cream); }
@@ -542,34 +694,8 @@
 /* Saved and share surfaces keep preview proportions but use this palette. */
 :root .ultraviolet-app .saved-note { padding: 1rem; border: 0; border-bottom: 1px solid var(--uv-line); border-radius: 0; background: transparent; }
 :root .ultraviolet-app .saved-note :is(h2, p) { color: var(--uv-text); }
-:root .ultraviolet-app .share-card { display: flex; min-height: 28rem; padding: 1.5rem; flex-direction: column; gap: 1rem; color: var(--uv-cream); background: var(--uv-violet) var(--uv-planet-surface) center / cover; box-shadow: none; border: 0; transform: none; }
+:root .ultraviolet-app .share-card { display: flex; min-height: 28rem; padding: 1.5rem; flex-direction: column; gap: 1rem; color: var(--uv-cream); box-shadow: none; border: 0; transform: none; }
 
-/* Keep the selected violet's hue. Terrain contributes visible surface luminance,
- * instead of soft-light tinting the entire card blue and much darker. */
-:root .ultraviolet-app :is(.home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .tarot-card-back, .tarot-face, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card) {
-  position: relative;
-  isolation: isolate;
-  background: var(--uv-violet);
-  box-shadow: inset 0 1px 0 rgb(255 249 233 / 20%), inset 0 -1px 0 rgb(26 10 51 / 20%), 0 0.2rem 0.4rem rgb(47 26 72 / 8%), 0 1rem 2rem rgb(47 26 72 / 13%);
-}
-:root .ultraviolet-app :is(.home-daily-signal__paper, .signal-reveal-card, .demo-note, .profile-card, .insight-synthesis, .reading-content__intro, .tarot-recommendation, .tarot-card-back, .tarot-face, .radar-landing-page .radar-hero, .radar-result--v2 .radar-signature, .share-card)::before {
-  content: "";
-  display: block;
-  position: absolute;
-  inset: 0;
-  width: auto;
-  height: auto;
-  margin: 0;
-  border: 0;
-  border-radius: inherit;
-  background: var(--uv-planet-surface) center / cover;
-  box-shadow: none;
-  transform: none;
-  opacity: 0.5;
-  mix-blend-mode: luminosity;
-  pointer-events: none;
-  z-index: -1;
-}
 :root .ultraviolet-app .share-card--square { min-height: 20rem; }
 :root .ultraviolet-app .share-card::after { display: none; }
 :root .ultraviolet-app .share-card :is(h1, p, strong, small, span) { color: var(--uv-cream); }
@@ -580,14 +706,20 @@
 :root .ultraviolet-app .share-card__logo { align-self: flex-start; padding: 0; color: var(--uv-lime); background: transparent; border: 0; transform: none; }
 
 /* Portaled bottom sheets belong to the same system and preserve focus trapping. */
-:root .app-sheet { border-color: var(--uv-line); color: var(--uv-text); background: var(--uv-surface); font-family: var(--font-app); box-shadow: none; }
+:root .app-sheet { border: 1px solid var(--uv-line); border-bottom: 0; border-radius: var(--uv-radius-night) var(--uv-radius-night) 0 0; color: var(--uv-text); background: var(--uv-surface); font-family: var(--font-app); box-shadow: var(--uv-shadow-2); }
+:root .app-sheet-backdrop { background: rgb(31 24 56 / 42%); }
+:root .app-sheet__handle { background: var(--uv-action-line); }
+:root .app-sheet__header h2 { color: var(--uv-text); font-size: 1.3125rem; font-weight: 800; line-height: 1.3; letter-spacing: -0.01em; }
 :root .app-sheet :is(h2, p, strong) { color: var(--uv-text); }
 :root .app-sheet :is(small, .eyebrow) { color: var(--uv-muted); }
-:root .app-sheet__close { color: var(--uv-accent); background: var(--uv-tint); border-color: var(--uv-line); }
-:root .app-sheet :is(.signal-context-sheet__option, .mood-sheet__options button) { min-height: 3.5rem; border-color: var(--uv-line); color: var(--uv-text); background: var(--uv-surface); box-shadow: none; }
-:root .app-sheet .signal-context-sheet__option.is-selected { border-color: var(--uv-accent); background: var(--uv-tint); }
-:root .app-sheet .signal-context-sheet__option > span:first-child { color: var(--uv-accent); background: var(--uv-tint); }
-:root .app-sheet .signal-context-sheet__option.is-selected > span:first-child { color: #321960; background: var(--uv-lime); }
+:root .app-sheet .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+:root .app-sheet__close { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid var(--uv-control-line); border-radius: 50%; color: var(--uv-text); background: var(--uv-surface); }
+:root .app-sheet__close:focus-visible, :root .app-sheet :is(button, a):focus-visible { outline: 2px solid var(--uv-accent); outline-offset: 3px; }
+:root .app-sheet :is(.signal-context-sheet__option, .mood-sheet__options button) { position: relative; min-height: 3.5rem; border: 1px solid var(--uv-line); border-radius: var(--uv-radius-tile); color: var(--uv-text); background: var(--uv-surface); box-shadow: none; }
+:root .app-sheet :is(.signal-context-sheet__option.is-selected, .mood-sheet__options button[aria-pressed="true"]) { border-color: var(--uv-accent); background: var(--uv-tint); box-shadow: inset 0 0 0 0.5px var(--uv-accent); }
+:root .app-sheet .signal-context-sheet__option > span:first-child { border-radius: var(--uv-radius-icon); color: var(--uv-accent); background: var(--uv-tint); }
+:root .app-sheet .signal-context-sheet__option.is-selected > span:first-child { color: #ffffff; background: var(--uv-primary-bg); }
+:root .app-sheet .signal-context-sheet__error { padding: 0.75rem 1rem; border: 1px solid var(--uv-danger-line); border-radius: 16px; color: var(--uv-danger); background: var(--uv-danger-bg); }
 :root .signal-consent { border-color: var(--uv-line); color: var(--uv-text); background: var(--uv-surface); }
 :root .signal-consent :is(h2, p) { color: var(--uv-text); }
 @media (max-width: 360px) {

@@ -5,6 +5,7 @@ type ReadingDisclaimerProps = {
   compact?: boolean;
 };
 
+/** The design system's "Lưu ý" note: warm note colours, info icon, bold lead-in. */
 export function ReadingDisclaimer({ children, compact = false }: ReadingDisclaimerProps) {
   return (
     <aside
@@ -13,10 +14,7 @@ export function ReadingDisclaimer({ children, compact = false }: ReadingDisclaim
       role="note"
     >
       <Info aria-hidden="true" weight="fill" />
-      <div>
-        <strong>Lưu ý</strong>
-        <p>{children}</p>
-      </div>
+      <p><strong>Lưu ý.</strong> {children}</p>
     </aside>
   );
 }

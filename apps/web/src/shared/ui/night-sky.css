@@ -1,0 +1,107 @@
+/* Night sky: decorative layers painted between a night card's gradient and
+   its content. The card must create a stacking context (isolation: isolate);
+   the sky sits at z-index -1 so in-flow text and controls stay on top. */
+.night-sky {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.night-sky > * { position: absolute; }
+.night-sky__nebula {
+  border-radius: 50%;
+  animation: night-sky-drift 16s ease-in-out infinite alternate;
+}
+.night-sky__nebula--1 { top: 30px; left: -50px; width: 200px; height: 150px; background: #8c5fd8; opacity: 0.42; filter: blur(30px); }
+.night-sky__nebula--2 { top: 150px; right: 30px; width: 170px; height: 120px; background: #c77ddb; opacity: 0.2; filter: blur(32px); animation-delay: -6s; }
+.night-sky__nebula--3 { bottom: -40px; left: 37%; width: 220px; height: 130px; background: #6f8fe0; opacity: 0.16; filter: blur(34px); animation-delay: -11s; }
+.night-sky__orbits { inset: 0; width: 100%; height: 100%; }
+.night-sky__star {
+  border-radius: 2px;
+  background: #ffffff;
+  animation: night-sky-twinkle 3.6s ease-in-out infinite;
+}
+.night-sky__star:nth-of-type(3n) { background: #e9e2ff; }
+.night-sky__sparkle {
+  top: 178px;
+  left: 85%;
+  width: 12px;
+  height: 12px;
+  fill: #f4eeff;
+  opacity: 0.8;
+  transform-origin: 50% 50%;
+  animation: home-star-glimmer 5.5s ease-in-out infinite;
+}
+.night-sky__shoot {
+  top: 64px;
+  left: 43%;
+  width: 84px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #ffffff, rgb(255 255 255 / 0%));
+  opacity: 0;
+  animation: night-sky-shoot 9s ease-in 1.5s infinite;
+}
+.night-sky__planet { bottom: -112px; left: -150px; width: 420px; height: 240px; }
+.night-sky__ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.night-sky__planet-body {
+  position: absolute;
+  top: 0;
+  left: 60px;
+  width: 240px;
+  height: 240px;
+  overflow: hidden;
+  border-radius: 50%;
+  opacity: 0.78;
+  box-shadow: 0 0 46px rgb(150 120 255 / 28%);
+}
+.night-sky__planet-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 70% 26%, rgb(236 226 255 / 32%) 0%, rgb(236 226 255 / 0%) 34%, rgb(26 18 60 / 50%) 70%, rgb(14 9 36 / 90%) 100%);
+  box-shadow: inset 6px -4px 14px rgb(214 200 255 / 22%);
+}
+.night-sky__planet-skin {
+  position: absolute;
+  inset: -30%;
+  background: url('/assets/ultraviolet/violet-planet-v2.webp') center / cover;
+  animation: night-sky-spin 90s linear infinite;
+}
+.night-sky__moon-glow {
+  top: -88px;
+  right: -60px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(246 238 220 / 42%) 0%, rgb(246 238 220 / 12%) 40%, rgb(246 238 220 / 0%) 70%);
+  animation: night-sky-glow 6s ease-in-out infinite;
+}
+.night-sky__moon {
+  top: -72px;
+  right: -44px;
+  width: 146px;
+  height: 146px;
+  animation: home-moon-orbit 10s ease-in-out infinite;
+}
+.night-sky--dim .night-sky__moon { filter: grayscale(0.8) brightness(0.8); opacity: 0.55; animation: none; }
+.night-sky--dim .night-sky__moon-glow { display: none; }
+
+@keyframes night-sky-twinkle { 0%, 100% { opacity: 0.25; transform: scale(0.7); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes night-sky-drift { from { transform: translate(-10px, 6px) scale(1); } to { transform: translate(14px, -8px) scale(1.12); } }
+@keyframes night-sky-spin { to { transform: rotate(360deg); } }
+@keyframes night-sky-glow { 0%, 100% { opacity: 0.75; transform: scale(0.94); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes night-sky-shoot {
+  0% { opacity: 0; transform: translate(0, 0) rotate(-24deg); }
+  3% { opacity: 1; }
+  11%, 100% { opacity: 0; transform: translate(-150px, 67px) rotate(-24deg); }
+}
+@keyframes night-sky-breathe { 0%, 100% { transform: translateY(0) scale(1, 1); } 50% { transform: translateY(-3px) scale(1.018, 0.985); } }
+
+:is([data-home-motion="paused"], [data-motion="paused"], [data-motion-paused="true"]) :is(.night-sky *, .night-sky *::after) { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .night-sky *, .night-sky *::after { animation: none !important; }
+}

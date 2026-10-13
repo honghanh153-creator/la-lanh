@@ -15,7 +15,7 @@ export function applyThemePreference(theme: ThemePreference): void {
   document.documentElement.style.colorScheme = theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute(
     "content",
-    theme === "dark" ? "#191426" : "#f7f4eb",
+    theme === "dark" ? "#14102a" : "#f5f2f8",
   );
 }
 
