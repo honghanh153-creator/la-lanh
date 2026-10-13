@@ -1290,3 +1290,21 @@
 @media (prefers-reduced-transparency: reduce) {
   .home-explore-routes { background: #17173c; backdrop-filter: none; }
 }
+
+.reading-evidence .reading-content__basis {
+  margin: 0 0 0.85rem;
+  color: #40394d;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.reading-evidence__technical {
+  margin-top: 0.4rem;
+}
+
+.reading-evidence__technical > summary {
+  cursor: pointer;
+  color: #5b4e6b;
+  font-size: 0.75rem;
+  font-weight: 600;
+}

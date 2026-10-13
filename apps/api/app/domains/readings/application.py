@@ -150,7 +150,37 @@ class ReadingApplicationService:
 
         candidate = self._renderer.render(plan_record.plan)
         evaluation = evaluate_candidate(plan_record.plan, candidate)
-        if not evaluation.accepted and candidate.transit is not None:
+        if (
+            not evaluation.accepted
+            and candidate.transit is not None
+            and plan_record.plan.daily_selection is not None
+        ):
+            # B1b: never keep wording whose reason was removed. Re-plan from the
+            # natal chart alone; a supported natal situation stays the same, a
+            # transit-driven one is replaced. The fallback plan gets its own key.
+            logger.info("Daily transit rejected; falling back to a natal-only plan")
+            plan = self._planner.plan(
+                source_chart,
+                purpose=purpose,
+                transits=None,
+                editorial_seed=editorial_seed,
+                background_lens=background_lens,
+            )
+            plan_record, _ = await self._repository.save_or_replay_plan(
+                ReadingPlanRecord(
+                    id=uuid4(),
+                    guest_id=guest_id,
+                    profile_id=snapshot.profile_id,
+                    chart_snapshot_id=snapshot.id,
+                    source_revision=snapshot.profile_revision,
+                    plan_key=canonical_reading_plan_key(plan, chart_snapshot_id=snapshot.id),
+                    plan=plan,
+                    created_at=current,
+                )
+            )
+            candidate = self._renderer.render(plan_record.plan)
+            evaluation = evaluate_candidate(plan_record.plan, candidate)
+        elif not evaluation.accepted and candidate.transit is not None:
             transit_ids = {
                 factor.id
                 for factor in plan_record.plan.factors

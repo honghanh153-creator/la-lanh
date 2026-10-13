@@ -596,7 +596,8 @@ def test_browser_synthetic_full_pair_and_house_change_visible_scene_and_action()
     assert set(b.hero_factor_refs) <= set(second.semantic_blueprint.evidence_factor_refs)
     assert "natal:venus:house:9" in second.semantic_blueprint.evidence_factor_refs
     # The visible learning/work illustration depends on a supported exact house.
-    unknown = b.model_copy(update={"precision": TimePrecision.UNKNOWN})
+    # A hand-edited precision bypasses the planner, so replay the pre-B1b path.
+    unknown = b.model_copy(update={"precision": TimePrecision.UNKNOWN, "daily_selection": None})
     unknown_card = _card(unknown)
     assert "chuyện học" not in unknown_card.manifestation
     assert unknown_card.semantic_blueprint is not None

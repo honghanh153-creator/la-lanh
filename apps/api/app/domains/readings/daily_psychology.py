@@ -20,9 +20,12 @@ from app.domains.readings.daily_personalization import (
     eligible_daily_situations,
 )
 from app.domains.readings.interpretive_lenses import daily_mixed_radix_slots
-from app.domains.readings.knowledge import InterpretationFrame, semantic_arena
+from app.domains.readings.knowledge import InterpretationFrame, body_label, semantic_arena
 from app.domains.readings.models import (
     DailyMeaningBrief,
+    DailySelection,
+    DailyTransitRole,
+    DerivedFactor,
     FactorKind,
     ReadingPlan,
     ReadingPurpose,
@@ -1012,6 +1015,53 @@ def _expand_daily_issue(issue: DailyIssuePattern) -> DailyIssuePattern:
 
 DAILY_ISSUES = tuple(_expand_daily_issue(issue) for issue in DAILY_ISSUES)
 
+# Plain-language name of each situation's mechanism, used only when a transit
+# legitimately explains today's note (B1b). At most 12 words, no advice.
+WHY_TODAY_GISTS: dict[str, str] = {
+    "missing-context": "chuyện bạn đoán ý khi thông tin còn thiếu",
+    "too-many-open-loops": "chuyện bạn mở thêm việc khi việc cũ còn dở",
+    "changed-plan": "chuyện bạn xoay lại lịch khi kế hoạch đổi",
+    "comparison-loop": "chuyện bạn tự so mình với người khác",
+    "automatic-caretaking": "chuyện bạn nhận giúp người khác trước khi tính sức mình",
+    "decision-fatigue": "chuyện bạn khó chọn khi đang mệt",
+    "perfect-before-start": "chuyện bạn sửa mãi trước khi dám gửi",
+    "group-pressure": "chuyện bạn gật theo nhóm khi chưa hiểu hết",
+    "avoid-small-conflict": "chuyện bạn nói đồng ý để khỏi phải từ chối",
+    "defend-old-choice": "chuyện bạn giữ cách cũ vì đã bỏ nhiều công",
+    "capacity-before-agreement": "chuyện bạn nhận lời khi lịch đã kín",
+    "quick-reply": "chuyện bạn trả lời trước khi kịp hiểu rõ",
+    "repair-reply": "chuyện bạn trả lời vội rồi mới thấy gắt",
+    "specific-feedback": "chuyện bạn muốn nhận góp ý thật cụ thể",
+    "name-the-need": "chuyện bạn nói ra điều mình thật sự cần",
+}
+if set(WHY_TODAY_GISTS) != {issue.key for issue in DAILY_ISSUES}:
+    raise ValueError("Every Daily issue needs exactly one why-today gist")
+
+# The aspect is described by what it does, never as a forecast or a mood level.
+_WHY_TODAY_VERBS = {
+    "conjunction": "đang đi sát",
+    "sextile": "đang hỗ trợ",
+    "trine": "đang hỗ trợ",
+    "square": "đang tạo góc căng với",
+    "opposition": "đang tạo góc căng với",
+}
+
+
+def render_why_today(plan: ReadingPlan) -> str | None:
+    """One closed-template sentence linking today's transit to the frozen situation."""
+
+    selection = plan.daily_selection
+    if selection is None or selection.transit_ref is None:
+        return None
+    transit = next(factor for factor in plan.factors if factor.id == selection.transit_ref)
+    transit_body, natal_body = transit.subjects
+    aspect = transit.id.split(":")[2]
+    return (
+        f"Hôm nay {body_label(transit_body)} {_WHY_TODAY_VERBS[aspect]} "
+        f"{body_label(natal_body)} của bạn, phần trong lá số gắn với "
+        f"{WHY_TODAY_GISTS[selection.issue_key]}."
+    )
+
 
 DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
     json.dumps(
@@ -1026,6 +1076,7 @@ DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
             "body_domains": BODY_DOMAINS,
             "house_arenas": HOUSE_ARENAS,
             "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
+            "why_today": WHY_TODAY_GISTS,
             "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
         },
         ensure_ascii=False,
@@ -1073,6 +1124,113 @@ def split_scene_lead(manifestation: str) -> tuple[SemanticArena | None, str]:
     return None, manifestation
 
 
+class StaleDailySelection(ValueError):
+    """A stored Daily plan's frozen situation no longer exists under current rules."""
+
+
+INSUFFICIENT_CONTEXT_RULE = "insufficient-context"
+FALLBACK_ISSUE_KEY = "capacity-before-agreement"
+
+
+def _situation_pool(
+    plan: ReadingPlan, situations: tuple[SupportedSituation, ...]
+) -> list[SupportedSituation]:
+    arena = semantic_arena(plan.background_lens)
+    issues = {issue.key: issue for issue in DAILY_ISSUES}
+    eligible = tuple(
+        situation
+        for situation in situations
+        if arena is SemanticArena.GENERAL or arena in issues[situation.issue_key].arenas
+    )
+    if not eligible:
+        return []
+
+    # A known house refines context, not personality. User's explicit lens wins.
+    def rank(situation: SupportedSituation) -> tuple[int, int, int, int]:
+        return (*situation.rank, int(situation.arena is arena))
+
+    best_rank = max(rank(situation) for situation in eligible)
+    return sorted(
+        (situation for situation in eligible if rank(situation) == best_rank),
+        key=lambda situation: (situation.issue_key, situation.rule_key),
+    )
+
+
+def _pick(plan: ReadingPlan, pool: list[SupportedSituation]) -> SupportedSituation | None:
+    (issue_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (max(1, len(pool)),))
+    return pool[issue_slot] if pool else None
+
+
+def select_daily_situation(
+    natal_plan: ReadingPlan,
+    transit_plans: tuple[tuple[DerivedFactor, ReadingPlan], ...],
+) -> tuple[DailySelection, DerivedFactor | None]:
+    """Choose today's situation once, then the only transit allowed to explain it.
+
+    ``transit_plans`` pairs every salient transit with the natal plan plus that
+    transit (and its natal dependency). A transit *drives* a situation its own
+    pair rule creates; it *supports* a natal situation only when its pair rule
+    yields the same issue and it touches a placement the situation rests on.
+    Sharing a planet alone is never enough (Codex review of the B1b plan).
+    """
+
+    driven: list[tuple[SupportedSituation, DerivedFactor]] = [
+        (situation, transit)
+        for transit, plan in transit_plans
+        for situation in eligible_daily_situations(plan)
+        if transit.id in situation.factor_refs
+    ]
+    pool = _situation_pool(
+        natal_plan,
+        (*eligible_daily_situations(natal_plan), *(situation for situation, _ in driven)),
+    )
+    picked = _pick(natal_plan, pool)
+    if picked is None:
+        return DailySelection(
+            issue_key=FALLBACK_ISSUE_KEY, rule_key=INSUFFICIENT_CONTEXT_RULE, support_refs=()
+        ), None
+    driver = next((transit for situation, transit in driven if situation is picked), None)
+    transit: DerivedFactor | None
+    if driver is not None:
+        role, transit = DailyTransitRole.DRIVES, driver
+    else:
+        supporters = [
+            transit
+            for situation, transit in driven
+            if situation.issue_key == picked.issue_key
+            and set(transit.child_refs) & set(picked.factor_refs)
+        ]
+        transit = min(supporters, key=lambda item: (-item.salience, item.id), default=None)
+        role = DailyTransitRole.SUPPORTS if transit is not None else DailyTransitRole.NONE
+    return DailySelection(
+        issue_key=picked.issue_key,
+        rule_key=picked.rule_key,
+        support_refs=picked.factor_refs,
+        transit_ref=transit.id if transit is not None else None,
+        transit_role=role,
+    ), transit
+
+
+def _frozen_situation(plan: ReadingPlan) -> SupportedSituation | None:
+    selection = plan.daily_selection
+    if selection is None or selection.rule_key == INSUFFICIENT_CONTEXT_RULE:
+        return None
+    match = next(
+        (
+            situation
+            for situation in eligible_daily_situations(plan)
+            if situation.rule_key == selection.rule_key
+            and situation.issue_key == selection.issue_key
+            and situation.factor_refs == selection.support_refs
+        ),
+        None,
+    )
+    if match is None:
+        # Never quietly render a different situation from the one persisted.
+        raise StaleDailySelection("frozen daily selection no longer matches the plan")
+    return match
+
+
 def apply_daily_psychology(
     plan: ReadingPlan,
     frame: InterpretationFrame,
@@ -1084,24 +1242,13 @@ def apply_daily_psychology(
 
     arena = semantic_arena(plan.background_lens)
     issues = {issue.key: issue for issue in DAILY_ISSUES}
-    eligible = tuple(
-        situation
-        for situation in eligible_daily_situations(plan)
-        if arena is SemanticArena.GENERAL or arena in issues[situation.issue_key].arenas
-    )
-    if eligible:
-        # A known house refines context, not personality. User's explicit lens wins.
-        def rank(situation: SupportedSituation) -> tuple[int, int, int, int]:
-            return (*situation.rank, int(situation.arena is arena))
-
-        best_rank = max(rank(situation) for situation in eligible)
-        pool = sorted(
-            (situation for situation in eligible if rank(situation) == best_rank),
-            key=lambda situation: (situation.issue_key, situation.rule_key),
-        )
+    if plan.daily_selection is not None:
+        frozen = _frozen_situation(plan)
+        pool = [frozen] if frozen is not None else []
+        issue_slot = 0
     else:
-        pool = []
-    (issue_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (max(1, len(pool)),))
+        pool = _situation_pool(plan, eligible_daily_situations(plan))
+        (issue_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (max(1, len(pool)),))
     # Eligibility ties must not consume the day counter: two factors supporting
     # the same issue would otherwise repeat its card on consecutive days.
     headline_slot, scene_slot, advice_slot = daily_mixed_radix_slots(
@@ -1109,7 +1256,7 @@ def apply_daily_psychology(
         (6, 8, 8),
     )
     selected = pool[issue_slot] if pool else None
-    issue = issues[selected.issue_key if selected else "capacity-before-agreement"]
+    issue = issues[selected.issue_key if selected else FALLBACK_ISSUE_KEY]
     scene_arena = (
         arena
         if arena is not SemanticArena.GENERAL
@@ -1163,7 +1310,7 @@ def apply_daily_psychology(
             *frame.knowledge_refs,
             f"psychology-matrix:{DAILY_PSYCHOLOGY_MATRIX_VERSION}",
             f"personalization:{PERSONALIZATION_VERSION}",
-            f"daily-rule:{selected.rule_key if selected else 'insufficient-context'}",
+            f"daily-rule:{selected.rule_key if selected else INSUFFICIENT_CONTEXT_RULE}",
             *source_refs,
         ),
         arena=arena,

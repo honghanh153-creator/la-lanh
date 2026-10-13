@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 
 import pytest
@@ -21,6 +22,7 @@ from app.domains.readings.models import (
     JYOTISH_INTERPRETATION_KNOWLEDGE_VERSION,
     BackgroundLens,
     CompositionTarget,
+    DailyTransitRole,
     FactorSource,
     GateFailureCode,
     PlanMode,
@@ -433,25 +435,75 @@ def test_jyotish_planner_ignores_western_style_transit_contacts() -> None:
     assert DeterministicVietnameseRenderer().render(plan).transit is None
 
 
-def test_daily_transit_copy_explains_chart_phase_without_inventing_a_life_event() -> None:
-    plan = _plan(purpose=ReadingPurpose.DAILY_NOTE, transit=True)
+def _daily_plan_with_contact(
+    transit_body: BodyName, natal_body: BodyName, kind: str, angle: float
+) -> ReadingPlan:
+    chart = _chart()
+    transits = TransitToNatalSnapshot(
+        observed_at=OBSERVED_AT,
+        contacts=(
+            TransitToNatalContact(
+                transit_body=transit_body,
+                natal_body=natal_body,
+                kind=kind,
+                exact_angle=angle,
+                orb=0.1,
+                phase=TransitPhase.APPROACHING,
+            ),
+        ),
+        orb_policy_version="transit-orbs-v1",
+        provenance=chart.provenance,
+        config=chart.config,
+        config_hash=chart.config_hash,
+    )
+    return ReadingPlanner().plan(chart, purpose=ReadingPurpose.DAILY_NOTE, transits=transits)
+
+
+def test_daily_transit_without_an_approved_mechanism_is_not_offered_as_a_reason() -> None:
+    """B1b: Pluto has no pair rule, so it can never explain a Daily situation."""
+    plan = _plan(purpose=ReadingPurpose.DAILY_NOTE, transit=True)  # Pluto conjunct Sun
 
     candidate = DeterministicVietnameseRenderer().render(plan)
 
-    assert candidate.transit is not None
-    assert "tín hiệu" not in candidate.transit.lower()
-    transit_factor = next(
-        factor for factor in plan.factors if factor.source is FactorSource.TRANSIT
-    )
-    assert canonical_evidence_claim(transit_factor).display_text in candidate.transit
-    assert "Hai vị trí đang" in candidate.transit
-    assert any(word in candidate.transit for word in ("tiến gần", "ở sát", "đi xa"))
-    assert plan.composition.accepts(candidate.natal_user_prose, candidate.transit)
+    assert plan.daily_selection is not None
+    assert plan.daily_selection.transit_role is DailyTransitRole.NONE
+    assert not any(factor.source is FactorSource.TRANSIT for factor in plan.factors)
+    assert candidate.transit is None
     assert evaluate_candidate(plan, candidate).accepted is True
-    incorrect_phase = candidate.model_copy(
-        update={"transit": candidate.transit.replace("pha tiến gần", "pha tách dần")}
+
+
+def test_daily_transit_reason_is_one_plain_sentence_for_its_own_situation() -> None:
+    plan = _daily_plan_with_contact(BodyName.MARS, BodyName.MOON, "square", 90.0)
+    candidate = DeterministicVietnameseRenderer().render(plan)
+
+    assert plan.daily_selection is not None
+    assert plan.daily_selection.transit_role is DailyTransitRole.DRIVES
+    assert candidate.transit == (
+        "Hôm nay Sao Hỏa đang tạo góc căng với Mặt Trăng của bạn, phần trong lá số "
+        "gắn với chuyện bạn trả lời trước khi kịp hiểu rõ."
+    )
+    assert not re.search(r"orb|°|\bpha\b|Nhà \d", candidate.transit)
+    transit_factor = next(f for f in plan.factors if f.source is FactorSource.TRANSIT)
+    # Technical detail stays checkable in the evidence list.
+    assert canonical_evidence_claim(transit_factor) in candidate.evidence.claims
+    assert evaluate_candidate(plan, candidate).accepted is True
+    reworded = candidate.model_copy(
+        update={"transit": candidate.transit.replace("trả lời trước", "nói trước")}
     )
     assert (
-        GateFailureCode.EVIDENCE_ASTRO_LABEL
-        in evaluate_candidate(plan, incorrect_phase).failure_codes
+        GateFailureCode.EVIDENCE_DAILY_TRANSIT_LINK
+        in evaluate_candidate(plan, reworded).failure_codes
     )
+
+
+def test_stored_v2_daily_plan_keeps_its_legacy_transit_rendering() -> None:
+    """Plans persisted before B1b have no daily_selection and replay unchanged."""
+    current = _daily_plan_with_contact(BodyName.MARS, BodyName.MOON, "square", 90.0)
+    legacy = current.model_copy(update={"daily_selection": None})
+
+    candidate = DeterministicVietnameseRenderer().render(legacy)
+
+    assert candidate.transit is not None
+    assert "Hai vị trí đang" in candidate.transit
+    assert any(word in candidate.transit for word in ("tiến gần", "ở sát", "đi xa"))
+    assert evaluate_candidate(legacy, candidate).accepted is True

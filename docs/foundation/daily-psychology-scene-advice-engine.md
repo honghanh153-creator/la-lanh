@@ -91,6 +91,23 @@ Advice đạt chuẩn khi:
 
 Ví dụ áp lực nhóm: câu hỏi "Bạn đã hiểu chỗ mình vừa hỏi lại chưa?" được dùng thống nhất khi hiển thị thử nghiệm, khi người dùng giữ thử nghiệm và khi tải lại. Backend lấy từ revision đã chấp nhận; client không được gửi lại lời khuyên hoặc câu hỏi tùy ý.
 
+### "Vì sao hôm nay?" đúng lý do (B1b, 13.10.2026, Issue #5)
+
+Trước B1b, planner chọn transit nổi bật nhất toàn lá số **trước** khi chọn tình huống. Kết quả là chỉ 18/337 transit hiển thị nằm trong evidence của tình huống, và Diêm Vương chiếm 28%. Từ `factor-planner-v3`:
+
+- **Một lần chọn, đóng băng trước khi lưu.** Với DAILY_NOTE Western, planner dựng plan natal và một plan cho mỗi transit đạt ngưỡng (không cắt top N). `select_daily_situation` chọn tình huống với cùng rank và slot ngày như trước, trên tập gồm tình huống natal và tình huống do transit tạo. Lựa chọn được ghi vào `ReadingPlan.daily_selection` (`issue_key`, `rule_key`, `support_refs`, `transit_ref`, `transit_role`), rồi mới tính hash và lưu. Renderer phát lại đúng lựa chọn này, không chọn lại; nếu luật đã đổi, nó báo `StaleDailySelection`, không bao giờ render tình huống khác.
+- **"Liên quan" theo cơ chế đã duyệt:**
+  - `drives`: tình huống do chính pair rule của transit tạo ra;
+  - `supports`: tình huống natal, và transit vừa ra cùng `issue_key` qua `PAIR_RULES`, vừa chạm placement trong `support_refs`.
+
+  Cùng hành tinh thôi thì không đủ. Thiên thể không có pair rule (Diêm Vương, Thiên Vương, Mộc Tinh, Node, Chiron) không bao giờ được dùng làm lý do.
+- **Câu lý do:** `render_why_today` sinh đúng một câu mẫu đóng: "Hôm nay {transit} {đang đi sát | đang hỗ trợ | đang tạo góc căng với} {natal} của bạn, phần trong lá số gắn với {WHY_TODAY_GISTS[issue]}." Câu không nói pha hay "tăng/giảm", nên không bị đọc thành dự báo cảm xúc. Gate `evidence_daily_transit_link` đòi câu trùng chính xác với lựa chọn và kiểm lại cơ chế; tối đa 35 chữ, không có số chữ tối thiểu. Claim canonical vẫn so bằng equality.
+- **Tỉ lệ 70/30:** không áp dụng cho plan có `daily_selection`, bỏ câu độn "Hai vị trí đang…". Các purpose khác giữ `CompositionTarget`.
+- **Dự phòng:** nếu gate từ chối bản có transit, `application.project` dựng lại plan chỉ từ natal, với key mới. Tình huống `supports` giữ nguyên, tình huống `drives` được chọn lại. Hệ thống không còn bỏ câu transit khỏi plan cũ.
+- **Plan cũ:** plan đã lưu trước B1b không có `daily_selection`, giữ key (trường None bị loại khỏi canonical key) và giữ cách render cũ. Snapshot đã lưu hoặc chia sẻ không bị dựng lại.
+- **Đo lường:** `pnpm content:why-today` mô phỏng 20 lá số tổng hợp × 60 ngày, chấm bằng oracle độc lập. Lần chạy 13.10.2026: có lý do ở 277/1.200 note (23,1%), trong đó 272 `drives` và 5 `supports`; oracle xác nhận 277/277 đúng cơ chế. Thiên thể: Sao Hỏa 97, Sao Kim 73, Sao Thổ 40, Sao Thủy 36, Mặt Trăng 20, Hải Vương 11. Chuỗi ngày dài nhất lặp cùng một transit là 21 ngày (transit chậm). Đây không phải nghiên cứu đọc hiểu với người thật.
+- **Anti-urgency:** đánh dấu từ "ngày" trước khi bỏ dấu, nên "làm ngày" không bị bắt nhầm, còn "làm ngay" và "lam ngay" vẫn bị bắt.
+
 ### Cấu trúc hiển thị v7 (11.10.2026, Issue #5 / B1a)
 
 Audit 11.10.2026 cho thấy đoạn chính ghép bốn câu từ bốn bảng, không có chủ ngữ, lặp ý cảnh/hành động và nhét giới hạn vào giữa bài. Từ `daily-direct-meaning-v7` và `daily-semantic-eligibility-v4`:
