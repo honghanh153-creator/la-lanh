@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy"
+ content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:">
+<title>Chấm Luna daily_home</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1b18;--muted:#6b665d;--line:#ddd7cc;--card:#fff;--accent:#5b3fd1;--bad:#b3261e;--ok:#1e7a3c}
+@media (prefers-color-scheme:dark){:root{--bg:#141311;--fg:#eeeae2;--muted:#a59f94;--line:#3a3731;--card:#1d1b18;--accent:#a996ff;--bad:#ff8a80;--ok:#7bd88f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:16px}h1{font-size:1.4rem;margin:.2rem 0}
+.meta,.hint{color:var(--muted);font-size:.85rem}.case{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:760px){.pair{grid-template-columns:1fr}}
+.version{border:1px solid var(--line);border-radius:10px;padding:12px}.version h3{margin:0 0 .4rem;font-size:1rem}
+.version p{margin:.35rem 0}.label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.85rem}td{padding:3px 2px;border-top:1px solid var(--line)}
+td:first-child{width:46%}label.score{margin-right:6px;white-space:nowrap}
+.verdict{margin-top:8px;display:flex;gap:12px;flex-wrap:wrap}.reveal{margin-top:10px;font-size:.85rem}
+.bad{color:var(--bad)}.ok{color:var(--ok)}button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.bar{position:sticky;top:0;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;z-index:1}
+textarea{width:100%;min-height:3em;font:inherit;background:transparent;color:inherit;border:1px solid var(--line);border-radius:8px;padding:6px}
+</style>
+</head>
+<body>
+<main>
+<h1>Chấm bản deterministic và bản Luna (daily_home)</h1>
+<p class="hint">Dữ liệu tổng hợp, không có người dùng thật. Mỗi case có hai bản A/B theo thứ tự
+ngẫu nhiên cố định; bạn không biết bản nào là Luna cho tới khi bấm “Hiện đáp án”. Chấm 1–5 cho
+cả hai bản, đánh dấu Đạt/Không đạt, rồi xuất kết quả. Bản Cà khịa luôn lấy từ bản deterministic,
+không cần chấm ở đây.</p>
+<div class="bar"><span id="progress"></span><button id="export" type="button">Xuất kết quả JSON</button>
+<span id="status" class="meta" role="status"></span></div>
+<div id="cases"></div>
+</main>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(() => {
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const DIMS = __DIMS__;
+const KEY = 'luna-review:' + DATA.fingerprint;
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { state = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+const el = (tag, attrs = {}, text) => { const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text !== undefined) n.textContent = text; return n; };
+const sides = (c) => c.luna_first ? ['luna', 'baseline'] : ['baseline', 'luna'];
+const card = (c, who) => who === 'baseline' ? c.baseline_card : c.luna_card;
+function renderVersion(c, who, label) {
+  const box = el('div', {class: 'version'}); box.append(el('h3', {}, 'Bản ' + label));
+  const k = card(c, who);
+  if (!k) { box.append(el('p', {class: 'bad'}, 'Chưa có bản Luna (dry-run hoặc lỗi tạo).')); return box; }
+  for (const [name, text] of [['Tiêu đề', k.hook], ['Đoạn chính', k.thesis], ['Ngoài đời có thể trông như…', k.manifestation], ['Thử một việc nhỏ', k.micro_action], ['Lời của Lá', k.companion]]) {
+    box.append(el('div', {class: 'label'}, name)); box.append(el('p', {}, text)); }
+  const t = el('table'); const s = (state[c.case_id] ||= {}); const scores = (s[who] ||= {});
+  for (const [dim, title] of DIMS) { const tr = el('tr'); tr.append(el('td', {}, title)); const td = el('td');
+    for (let v = 1; v <= 5; v++) { const id = c.case_id + who + dim + v; const lab = el('label', {class: 'score', for: id});
+      const input = el('input', {type: 'radio', name: c.case_id + who + dim, id, value: String(v)});
+      if (scores[dim] === v) input.checked = true;
+      input.addEventListener('change', () => { scores[dim] = v; save(); progress(); });
+      lab.append(input, document.createTextNode(' ' + v)); td.append(lab); }
+    tr.append(td); t.append(tr); }
+  box.append(t);
+  const verdict = el('div', {class: 'verdict'});
+  for (const [v, text] of [['pass', 'Đạt'], ['fail', 'Không đạt']]) { const id = c.case_id + who + v;
+    const lab = el('label', {for: id}); const input = el('input', {type: 'radio', name: c.case_id + who + 'verdict', id, value: v});
+    if (s[who + '_verdict'] === v) input.checked = true;
+    input.addEventListener('change', () => { s[who + '_verdict'] = v; save(); progress(); });
+    lab.append(input, document.createTextNode(' ' + text)); verdict.append(lab); }
+  box.append(verdict); return box;
+}
+function renderCase(c) {
+  const box = el('section', {class: 'case', id: c.case_id});
+  box.append(el('h2', {}, c.case_id));
+  box.append(el('p', {class: 'meta'}, 'Vấn đề: ' + c.issue + ' · góc: ' + c.lens + ' · ngữ cảnh cảnh: ' + c.arena + ' · ' + c.kind));
+  const pair = el('div', {class: 'pair'}); const [a, b] = sides(c);
+  pair.append(renderVersion(c, a, 'A'), renderVersion(c, b, 'B')); box.append(pair);
+  const note = el('textarea', {'aria-label': 'Ghi chú cho ' + c.case_id, placeholder: 'Ghi chú (không bắt buộc)'});
+  note.value = (state[c.case_id] || {}).note || ''; note.addEventListener('input', () => { (state[c.case_id] ||= {}).note = note.value; save(); });
+  box.append(note);
+  const reveal = el('details', {class: 'reveal'}); reveal.append(el('summary', {}, 'Hiện đáp án và gate tự động'));
+  const g = c.gate; reveal.append(el('p', {}, 'Luna là bản ' + (c.luna_first ? 'A' : 'B') + '. Gate: ' +
+    (g ? (g.passed ? 'đạt' : 'không đạt (' + g.failure_codes.join(', ') + ')') : 'chưa chạy')));
+  box.append(reveal); return box;
+}
+function complete(c) { const s = state[c.case_id] || {};
+  return c.luna_card && ['baseline', 'luna'].every((w) => DIMS.every(([d]) => (s[w] || {})[d]) && s[w + '_verdict']); }
+function progress() { const done = DATA.cases.filter(complete).length;
+  document.getElementById('progress').textContent = done + '/' + DATA.cases.length + ' case đã chấm xong'; }
+function download(name, value) { const blob = new Blob([JSON.stringify(value, null, 2)], {type: 'application/json'});
+  const a = el('a', {href: URL.createObjectURL(blob), download: name}); document.body.append(a); a.click(); a.remove(); }
+document.getElementById('export').addEventListener('click', () => {
+  const missing = DATA.cases.filter((c) => !complete(c)).map((c) => c.case_id);
+  const status = document.getElementById('status');
+  if (missing.length) { status.textContent = 'Chưa xuất: còn ' + missing.length + ' case chưa đủ (ví dụ ' + missing.slice(0, 3).join(', ') + ').'; return; }
+  const records = DATA.cases.map((c) => { const s = state[c.case_id];
+    const codes = [...(c.gate ? c.gate.failure_codes : ['gate_not_run'])];
+    if (s.luna_verdict === 'fail') codes.push('human_rejected');
+    const passed = !!(c.gate && c.gate.passed) && s.luna_verdict === 'pass';
+    return {case_id: c.case_id, surface: c.surface, baseline: s.baseline, candidate: s.luna,
+      gate_passed: passed, failure_codes: passed ? [] : codes, frame_fingerprint: c.frame_fingerprint}; });
+  download('rewrite-results.json', records);
+  download('rewrite-review-notes.json', DATA.cases.map((c) => ({case_id: c.case_id,
+    baseline_verdict: state[c.case_id].baseline_verdict, luna_verdict: state[c.case_id].luna_verdict,
+    note: state[c.case_id].note || ''})));
+  status.textContent = 'Đã xuất ' + records.length + ' bản ghi EvaluationRecord.';
+});
+const root = document.getElementById('cases'); DATA.cases.forEach((c) => root.append(renderCase(c))); progress();
+})();
+</script>
+</body>
+</html>

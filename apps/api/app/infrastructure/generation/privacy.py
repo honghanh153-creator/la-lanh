@@ -59,6 +59,8 @@ class DailySafePayload(SafeModel):
     title_meaning: str = Field(min_length=1, max_length=280)
     scene_meaning: str = Field(min_length=1, max_length=700)
     action_meaning: str = Field(min_length=1, max_length=500)
+    # Editorial brief for Lá's line (companion catalog), never the authored sentence.
+    companion_meaning: str = Field(min_length=1, max_length=200)
     meaning_brief: DailyMeaningBrief | None = None
     requirements: tuple[SafeRequirement, ...] = Field(min_length=1, max_length=8)
     evidence: tuple[SafeEvidence, ...] = Field(min_length=1, max_length=12)

@@ -6,6 +6,8 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domains.readings.companion import DIRECT_MAX_WORDS as COMPANION_REWRITE_MAX_WORDS
+from app.domains.readings.daily_psychology import current_scene_lead
 from app.domains.readings.models import DailyMeaningBrief
 from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS, OPAQUE_CORE_FRAGMENTS
 
@@ -13,7 +15,7 @@ from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS, OPAQUE_CORE
 class DailyRewriteGateReport(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    version: str = "daily-home-rewrite-gates/v2"
+    version: str = "daily-home-rewrite-gates/v4"
     passed: bool
     failure_codes: tuple[str, ...] = ()
 
@@ -96,6 +98,43 @@ def _theme_ids(text: str) -> frozenset[int]:
     )
 
 
+# Lá never claims to know the reader, fate, or another person's mind (companion catalog).
+_COMPANION_MIND_READING = (
+    "lá biết",
+    "số phận",
+    "định mệnh",
+    "người kia nghĩ",
+    "người kia muốn",
+    "họ đang nghĩ",
+    "họ muốn",
+)
+
+
+def _companion_failures(companion: str, title: str, action: str) -> list[str]:
+    failures: list[str] = []
+    if not 4 <= _words(companion) <= COMPANION_REWRITE_MAX_WORDS:
+        failures.append("daily_companion_budget")
+    folded = _fold(companion)
+    if any(_fold(term) in folded for term in _ASTRO_TERMS):
+        failures.append("daily_companion_astro_term")
+    if any(
+        _fold(term) in folded
+        for term in (*_OPAQUE_FILLER, *BANNED_CORE_FRAGMENTS, *OPAQUE_CORE_FRAGMENTS)
+    ):
+        failures.append("daily_companion_opaque_filler")
+    if any(_fold(term) in folded for term in _COMPANION_MIND_READING):
+        failures.append("daily_companion_mind_reading")
+    if any(term in folded for term in ("chac chan", "nhat dinh", "se luon")):
+        failures.append("daily_companion_certainty")
+    # The bubble nudges; it must not restate the card next to it.
+    stripped = folded.rstrip(" .!?")
+    if stripped and (stripped in _fold(action) or stripped in _fold(title)):
+        failures.append("daily_companion_repeats_card")
+    if _fold(action).rstrip(" .!?") in folded:
+        failures.append("daily_companion_repeats_card")
+    return failures
+
+
 def evaluate_daily_rewrite(
     output: Mapping[str, object],
     *,
@@ -107,11 +146,15 @@ def evaluate_daily_rewrite(
     title = output.get("title")
     scene = output.get("scene")
     action = output.get("action")
-    if not all(isinstance(value, str) and value.strip() for value in (title, scene, action)):
+    companion = output.get("companion")
+    if not all(
+        isinstance(value, str) and value.strip() for value in (title, scene, action, companion)
+    ):
         return DailyRewriteGateReport(passed=False, failure_codes=("daily_required_fields",))
     title_text = str(title).strip()
     scene_text = str(scene).strip()
     action_text = str(action).strip()
+    companion_text = str(companion).strip()
     if not 3 <= _words(title_text) <= 11:
         failures.append("daily_title_budget")
     if not 8 <= _words(scene_text) <= 40:
@@ -120,6 +163,7 @@ def evaluate_daily_rewrite(
         failures.append("daily_action_budget")
     if sum(_words(value) for value in (title_text, scene_text, action_text)) > 70:
         failures.append("daily_total_budget")
+    failures.extend(_companion_failures(companion_text, title_text, action_text))
     if any(
         _words(sentence) > 28 for sentence in re.split(r"[.!?]+", scene_text) if sentence.strip()
     ):
@@ -172,5 +216,22 @@ def evaluate_daily_rewrite(
         and not (_theme_ids(source_action) & _theme_ids(action_text))
     ):
         failures.append("daily_action_meaning_drift")
+    if source_scene is not None:
+        # v7 opens the scene with one context clause ("Với người kia, khi …"). A rewrite
+        # keeps it verbatim: dropping it loses the reader's chosen context, and the old
+        # standalone fragment ("Ví dụ với người kia.") must not come back.
+        lead = current_scene_lead(source_scene)
+        if lead is not None and not scene_text.startswith(f"{lead} "):
+            failures.append("daily_scene_context_lost")
+        if re.search(r"(?:^|[.!?]\s+)vi du\b", scene_folded):
+            failures.append("daily_scene_fragment")
+        if meaning_brief is not None:
+            # The thesis on the same card already ends with the takeaway; repeating it
+            # in the title, scene or action says one idea twice.
+            takeaway = _fold(meaning_brief.reader_takeaway).rstrip(" .!?")
+            if takeaway and any(
+                takeaway in _fold(value) for value in (title_text, scene_text, action_text)
+            ):
+                failures.append("daily_takeaway_repeated")
     unique = tuple(dict.fromkeys(failures))
     return DailyRewriteGateReport(passed=not unique, failure_codes=unique)

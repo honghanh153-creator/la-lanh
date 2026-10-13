@@ -1,0 +1,758 @@
+{
+ "version": "daily-home-cases-v1",
+ "corpus_version": "rewrite-corpus-2026-10-03-v1",
+ "surface": "daily_home",
+ "synthetic_only": true,
+ "cases": [
+  {
+   "case_id": "daily_home-0001",
+   "kind": "exact",
+   "birth_utc": "1982-06-12T13:17:00Z",
+   "latitude": 12.2,
+   "longitude": 107.5,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-10-04"
+  },
+  {
+   "case_id": "daily_home-0002",
+   "kind": "exact",
+   "birth_utc": "1982-06-12T13:17:00Z",
+   "latitude": 12.2,
+   "longitude": 107.5,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-10-13"
+  },
+  {
+   "case_id": "daily_home-0003",
+   "kind": "exact",
+   "birth_utc": "1989-11-23T02:34:00Z",
+   "latitude": 15.9,
+   "longitude": 105.8,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-10-07"
+  },
+  {
+   "case_id": "daily_home-0004",
+   "kind": "exact",
+   "birth_utc": "1989-11-23T02:34:00Z",
+   "latitude": 15.9,
+   "longitude": 105.8,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-10-16"
+  },
+  {
+   "case_id": "daily_home-0005",
+   "kind": "exact",
+   "birth_utc": "1996-04-07T15:51:00Z",
+   "latitude": 19.6,
+   "longitude": 104.1,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-10-10"
+  },
+  {
+   "case_id": "daily_home-0006",
+   "kind": "exact",
+   "birth_utc": "1996-04-07T15:51:00Z",
+   "latitude": 19.6,
+   "longitude": 104.1,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-10-19"
+  },
+  {
+   "case_id": "daily_home-0007",
+   "kind": "exact",
+   "birth_utc": "2003-09-18T04:08:00Z",
+   "latitude": 9.3,
+   "longitude": 102.4,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-10-13"
+  },
+  {
+   "case_id": "daily_home-0008",
+   "kind": "exact",
+   "birth_utc": "2003-09-18T04:08:00Z",
+   "latitude": 9.3,
+   "longitude": 102.4,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-10-22"
+  },
+  {
+   "case_id": "daily_home-0009",
+   "kind": "exact",
+   "birth_utc": "1975-02-02T17:25:00Z",
+   "latitude": 13.0,
+   "longitude": 107.7,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-10-16"
+  },
+  {
+   "case_id": "daily_home-0010",
+   "kind": "exact",
+   "birth_utc": "1975-02-02T17:25:00Z",
+   "latitude": 13.0,
+   "longitude": 107.7,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-10-25"
+  },
+  {
+   "case_id": "daily_home-0011",
+   "kind": "exact",
+   "birth_utc": "1982-07-13T06:42:00Z",
+   "latitude": 16.7,
+   "longitude": 106.0,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-10-19"
+  },
+  {
+   "case_id": "daily_home-0012",
+   "kind": "exact",
+   "birth_utc": "1982-07-13T06:42:00Z",
+   "latitude": 16.7,
+   "longitude": 106.0,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-10-28"
+  },
+  {
+   "case_id": "daily_home-0013",
+   "kind": "exact",
+   "birth_utc": "1989-12-24T19:59:00Z",
+   "latitude": 20.4,
+   "longitude": 104.3,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-10-22"
+  },
+  {
+   "case_id": "daily_home-0014",
+   "kind": "exact",
+   "birth_utc": "1989-12-24T19:59:00Z",
+   "latitude": 20.4,
+   "longitude": 104.3,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-10-31"
+  },
+  {
+   "case_id": "daily_home-0015",
+   "kind": "exact",
+   "birth_utc": "1996-05-08T08:16:00Z",
+   "latitude": 10.1,
+   "longitude": 102.6,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-10-25"
+  },
+  {
+   "case_id": "daily_home-0016",
+   "kind": "exact",
+   "birth_utc": "1996-05-08T08:16:00Z",
+   "latitude": 10.1,
+   "longitude": 102.6,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-11-03"
+  },
+  {
+   "case_id": "daily_home-0017",
+   "kind": "exact",
+   "birth_utc": "2003-10-19T21:33:00Z",
+   "latitude": 13.8,
+   "longitude": 107.9,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-10-28"
+  },
+  {
+   "case_id": "daily_home-0018",
+   "kind": "exact",
+   "birth_utc": "2003-10-19T21:33:00Z",
+   "latitude": 13.8,
+   "longitude": 107.9,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-11-06"
+  },
+  {
+   "case_id": "daily_home-0019",
+   "kind": "exact",
+   "birth_utc": "1975-03-03T10:50:00Z",
+   "latitude": 17.5,
+   "longitude": 106.2,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-10-31"
+  },
+  {
+   "case_id": "daily_home-0020",
+   "kind": "exact",
+   "birth_utc": "1975-03-03T10:50:00Z",
+   "latitude": 17.5,
+   "longitude": 106.2,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-11-09"
+  },
+  {
+   "case_id": "daily_home-0021",
+   "kind": "exact",
+   "birth_utc": "1982-08-14T23:07:00Z",
+   "latitude": 21.2,
+   "longitude": 104.5,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-11-03"
+  },
+  {
+   "case_id": "daily_home-0022",
+   "kind": "exact",
+   "birth_utc": "1989-01-25T12:24:00Z",
+   "latitude": 10.9,
+   "longitude": 102.8,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-11-06"
+  },
+  {
+   "case_id": "daily_home-0023",
+   "kind": "exact",
+   "birth_utc": "1989-01-25T12:24:00Z",
+   "latitude": 10.9,
+   "longitude": 102.8,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-11-15"
+  },
+  {
+   "case_id": "daily_home-0024",
+   "kind": "exact",
+   "birth_utc": "1996-06-09T01:41:00Z",
+   "latitude": 14.6,
+   "longitude": 108.1,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-11-09"
+  },
+  {
+   "case_id": "daily_home-0025",
+   "kind": "exact",
+   "birth_utc": "1996-06-09T01:41:00Z",
+   "latitude": 14.6,
+   "longitude": 108.1,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-11-18"
+  },
+  {
+   "case_id": "daily_home-0026",
+   "kind": "exact",
+   "birth_utc": "2003-11-20T14:58:00Z",
+   "latitude": 18.3,
+   "longitude": 106.4,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-11-21"
+  },
+  {
+   "case_id": "daily_home-0027",
+   "kind": "exact",
+   "birth_utc": "1975-04-04T03:15:00Z",
+   "latitude": 22.0,
+   "longitude": 104.7,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-11-15"
+  },
+  {
+   "case_id": "daily_home-0028",
+   "kind": "exact",
+   "birth_utc": "1975-04-04T03:15:00Z",
+   "latitude": 22.0,
+   "longitude": 104.7,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-11-24"
+  },
+  {
+   "case_id": "daily_home-0029",
+   "kind": "exact",
+   "birth_utc": "1982-09-15T16:32:00Z",
+   "latitude": 11.7,
+   "longitude": 103.0,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-11-18"
+  },
+  {
+   "case_id": "daily_home-0030",
+   "kind": "exact",
+   "birth_utc": "1982-09-15T16:32:00Z",
+   "latitude": 11.7,
+   "longitude": 103.0,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-11-27"
+  },
+  {
+   "case_id": "daily_home-0031",
+   "kind": "exact",
+   "birth_utc": "1989-02-26T05:49:00Z",
+   "latitude": 15.4,
+   "longitude": 108.3,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-11-21"
+  },
+  {
+   "case_id": "daily_home-0032",
+   "kind": "exact",
+   "birth_utc": "1996-07-10T18:06:00Z",
+   "latitude": 19.1,
+   "longitude": 106.6,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-11-24"
+  },
+  {
+   "case_id": "daily_home-0033",
+   "kind": "exact",
+   "birth_utc": "1989-03-27T22:14:00Z",
+   "latitude": 19.9,
+   "longitude": 106.8,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-10-06"
+  },
+  {
+   "case_id": "daily_home-0034",
+   "kind": "exact",
+   "birth_utc": "2003-01-22T00:48:00Z",
+   "latitude": 13.3,
+   "longitude": 103.4,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-10-21"
+  },
+  {
+   "case_id": "daily_home-0035",
+   "kind": "exact",
+   "birth_utc": "1982-12-18T19:47:00Z",
+   "latitude": 11.2,
+   "longitude": 105.5,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-11-02"
+  },
+  {
+   "case_id": "daily_home-0036",
+   "kind": "exact",
+   "birth_utc": "1989-05-02T08:04:00Z",
+   "latitude": 14.9,
+   "longitude": 103.8,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-11-05"
+  },
+  {
+   "case_id": "daily_home-0037",
+   "kind": "exact",
+   "birth_utc": "1975-08-08T23:55:00Z",
+   "latitude": 12.0,
+   "longitude": 105.7,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-11-23"
+  },
+  {
+   "case_id": "daily_home-0038",
+   "kind": "exact",
+   "birth_utc": "1982-02-20T05:37:00Z",
+   "latitude": 20.2,
+   "longitude": 102.5,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-10-11"
+  },
+  {
+   "case_id": "daily_home-0039",
+   "kind": "exact",
+   "birth_utc": "1996-12-15T07:11:00Z",
+   "latitude": 13.6,
+   "longitude": 106.1,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-10-17"
+  },
+  {
+   "case_id": "daily_home-0040",
+   "kind": "exact",
+   "birth_utc": "2003-07-01T06:18:00Z",
+   "latitude": 12.3,
+   "longitude": 108.4,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-11-10"
+  },
+  {
+   "case_id": "daily_home-0041",
+   "kind": "exact",
+   "birth_utc": "2003-07-01T06:18:00Z",
+   "latitude": 12.3,
+   "longitude": 108.4,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-11-19"
+  },
+  {
+   "case_id": "daily_home-0042",
+   "kind": "exact",
+   "birth_utc": "1975-12-12T19:35:00Z",
+   "latitude": 16.0,
+   "longitude": 106.7,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-11-13"
+  },
+  {
+   "case_id": "daily_home-0043",
+   "kind": "exact",
+   "birth_utc": "1989-10-07T21:09:00Z",
+   "latitude": 9.4,
+   "longitude": 103.3,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-11-28"
+  },
+  {
+   "case_id": "daily_home-0044",
+   "kind": "exact",
+   "birth_utc": "1982-10-01T21:57:00Z",
+   "latitude": 14.2,
+   "longitude": 104.5,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-11-30"
+  },
+  {
+   "case_id": "daily_home-0045",
+   "kind": "exact",
+   "birth_utc": "1996-11-26T02:46:00Z",
+   "latitude": 21.1,
+   "longitude": 103.6,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-11-20"
+  },
+  {
+   "case_id": "daily_home-0046",
+   "kind": "exact",
+   "birth_utc": "1982-06-12T13:17:00Z",
+   "latitude": 12.2,
+   "longitude": 107.5,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-10-04"
+  },
+  {
+   "case_id": "daily_home-0047",
+   "kind": "exact",
+   "birth_utc": "1982-06-12T13:17:00Z",
+   "latitude": 12.2,
+   "longitude": 107.5,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-10-13"
+  },
+  {
+   "case_id": "daily_home-0048",
+   "kind": "exact",
+   "birth_utc": "1989-11-23T02:34:00Z",
+   "latitude": 15.9,
+   "longitude": 105.8,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-10-07"
+  },
+  {
+   "case_id": "daily_home-0049",
+   "kind": "exact",
+   "birth_utc": "1989-11-23T02:34:00Z",
+   "latitude": 15.9,
+   "longitude": 105.8,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-10-16"
+  },
+  {
+   "case_id": "daily_home-0050",
+   "kind": "exact",
+   "birth_utc": "1996-04-07T15:51:00Z",
+   "latitude": 19.6,
+   "longitude": 104.1,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-10-10"
+  },
+  {
+   "case_id": "daily_home-0051",
+   "kind": "exact",
+   "birth_utc": "1996-04-07T15:51:00Z",
+   "latitude": 19.6,
+   "longitude": 104.1,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-10-19"
+  },
+  {
+   "case_id": "daily_home-0052",
+   "kind": "exact",
+   "birth_utc": "2003-09-18T04:08:00Z",
+   "latitude": 9.3,
+   "longitude": 102.4,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-10-13"
+  },
+  {
+   "case_id": "daily_home-0053",
+   "kind": "exact",
+   "birth_utc": "2003-09-18T04:08:00Z",
+   "latitude": 9.3,
+   "longitude": 102.4,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-10-22"
+  },
+  {
+   "case_id": "daily_home-0054",
+   "kind": "exact",
+   "birth_utc": "1975-02-02T17:25:00Z",
+   "latitude": 13.0,
+   "longitude": 107.7,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-10-16"
+  },
+  {
+   "case_id": "daily_home-0055",
+   "kind": "exact",
+   "birth_utc": "1975-02-02T17:25:00Z",
+   "latitude": 13.0,
+   "longitude": 107.7,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-10-25"
+  },
+  {
+   "case_id": "daily_home-0056",
+   "kind": "exact",
+   "birth_utc": "1982-07-13T06:42:00Z",
+   "latitude": 16.7,
+   "longitude": 106.0,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-10-19"
+  },
+  {
+   "case_id": "daily_home-0057",
+   "kind": "exact",
+   "birth_utc": "1982-07-13T06:42:00Z",
+   "latitude": 16.7,
+   "longitude": 106.0,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-10-28"
+  },
+  {
+   "case_id": "daily_home-0058",
+   "kind": "exact",
+   "birth_utc": "1989-12-24T19:59:00Z",
+   "latitude": 20.4,
+   "longitude": 104.3,
+   "sign": null,
+   "lens": "relationships",
+   "note_date": "2026-10-31"
+  },
+  {
+   "case_id": "daily_home-0059",
+   "kind": "exact",
+   "birth_utc": "1996-05-08T08:16:00Z",
+   "latitude": 10.1,
+   "longitude": 102.6,
+   "sign": null,
+   "lens": "work",
+   "note_date": "2026-10-25"
+  },
+  {
+   "case_id": "daily_home-0060",
+   "kind": "exact",
+   "birth_utc": "1996-05-08T08:16:00Z",
+   "latitude": 10.1,
+   "longitude": 102.6,
+   "sign": null,
+   "lens": "self_care",
+   "note_date": "2026-11-03"
+  },
+  {
+   "case_id": "daily_home-0061",
+   "kind": "exact",
+   "birth_utc": "2003-10-19T21:33:00Z",
+   "latitude": 13.8,
+   "longitude": 107.9,
+   "sign": null,
+   "lens": "auto",
+   "note_date": "2026-10-28"
+  },
+  {
+   "case_id": "daily_home-0062",
+   "kind": "exact",
+   "birth_utc": "2003-10-19T21:33:00Z",
+   "latitude": 13.8,
+   "longitude": 107.9,
+   "sign": null,
+   "lens": "communication",
+   "note_date": "2026-11-06"
+  },
+  {
+   "case_id": "daily_home-0063",
+   "kind": "exact",
+   "birth_utc": "1975-03-03T10:50:00Z",
+   "latitude": 17.5,
+   "longitude": 106.2,
+   "sign": null,
+   "lens": "energy",
+   "note_date": "2026-10-31"
+  },
+  {
+   "case_id": "daily_home-0064",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "aries",
+   "lens": "auto",
+   "note_date": "2026-10-01"
+  },
+  {
+   "case_id": "daily_home-0065",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "taurus",
+   "lens": "relationships",
+   "note_date": "2026-10-06"
+  },
+  {
+   "case_id": "daily_home-0066",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "gemini",
+   "lens": "communication",
+   "note_date": "2026-10-11"
+  },
+  {
+   "case_id": "daily_home-0067",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "cancer",
+   "lens": "work",
+   "note_date": "2026-10-16"
+  },
+  {
+   "case_id": "daily_home-0068",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "leo",
+   "lens": "energy",
+   "note_date": "2026-10-21"
+  },
+  {
+   "case_id": "daily_home-0069",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "virgo",
+   "lens": "self_care",
+   "note_date": "2026-10-26"
+  },
+  {
+   "case_id": "daily_home-0070",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "libra",
+   "lens": "auto",
+   "note_date": "2026-10-31"
+  },
+  {
+   "case_id": "daily_home-0071",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "scorpio",
+   "lens": "relationships",
+   "note_date": "2026-11-05"
+  },
+  {
+   "case_id": "daily_home-0072",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "sagittarius",
+   "lens": "communication",
+   "note_date": "2026-11-10"
+  },
+  {
+   "case_id": "daily_home-0073",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "capricorn",
+   "lens": "work",
+   "note_date": "2026-11-15"
+  },
+  {
+   "case_id": "daily_home-0074",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "aquarius",
+   "lens": "energy",
+   "note_date": "2026-11-20"
+  },
+  {
+   "case_id": "daily_home-0075",
+   "kind": "date_only",
+   "birth_utc": null,
+   "latitude": null,
+   "longitude": null,
+   "sign": "pisces",
+   "lens": "self_care",
+   "note_date": "2026-11-25"
+  }
+ ]
+}

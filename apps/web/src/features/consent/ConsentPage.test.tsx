@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
+import { OPENAI_ABUSE_RETENTION_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 import { ConsentPage } from "./ConsentPage";
 
 describe("ConsentPage privacy details", () => {
@@ -29,6 +30,15 @@ describe("ConsentPage privacy details", () => {
       "https://github.com/honghanh153-creator/la-lanh/blob/main/LICENSE",
     );
     expect(screen.getByText(/được cung cấp không kèm bảo hành/i)).toBeInTheDocument();
+  });
+
+  it("states the full OpenAI abuse-monitoring retention exceptions", () => {
+    renderPrivacyPage();
+
+    const notice = screen.getByText((_, element) => element?.tagName === "P" && (element.textContent ?? "").includes(OPENAI_ABUSE_RETENTION_NOTICE));
+    expect(notice).toHaveTextContent("tối đa 30 ngày");
+    expect(notice).toHaveTextContent("khi pháp luật yêu cầu");
+    expect(notice).toHaveTextContent("bảo vệ dịch vụ hay bên thứ ba khỏi tổn hại");
   });
 
   it("names the beta processors and hosting regions", () => {

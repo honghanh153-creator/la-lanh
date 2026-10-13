@@ -17,6 +17,7 @@ from app.domains.radar.reading import (
     CONTEXT_CHECKS,
     SCENE_COPY,
 )
+from app.domains.readings.companion import companion_metrics, validate_companion_catalog
 from app.domains.readings.daily_psychology import (
     DAILY_ISSUES,
     PSYCHOLOGY_SOURCES,
@@ -87,11 +88,14 @@ def current_metrics() -> dict[str, int]:
         "radar_themes": len(SCENE_COPY),
         "radar_contexts": len(CONTEXT_CHECKS),
         "tarot_sources": len(TAROT_BOOK_SOURCES),
+        **companion_metrics(),
     }
 
 
 def validate_matrix() -> list[str]:
     failures: list[str] = []
+    # Lời của Lá: coverage of every Daily issue, both voices, word budgets, forbidden claims.
+    failures.extend(validate_companion_catalog())
     expected_bodies = set(BodyName)
     body_maps = {
         "BODY_LABELS": BODY_LABELS,

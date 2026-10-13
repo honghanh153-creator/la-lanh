@@ -26,7 +26,11 @@ _ARRAY_FIELDS = {
 _SURFACE_MAPPING_INSTRUCTIONS = {
     RewriteSurface.DAILY_HOME: (
         "Map title from title_meaning, scene from scene_meaning, and action from "
-        "action_meaning. Scene must describe one ordinary observable moment. Action must "
+        "action_meaning. Scene must describe one ordinary observable moment. If "
+        "scene_meaning opens with a context clause ending in a comma before 'khi' (for "
+        "example 'Với người kia,' or 'Trong công việc hoặc chuyện học,'), start the scene "
+        "with exactly that clause and continue the same sentence; never write a separate "
+        "fragment such as 'Ví dụ …'. Action must "
         "start with a familiar Vietnamese action verb and stay connected to that moment. "
         "Honor the supplied requirement markers without mentioning astrology. Keep the title "
         "between 3 and 11 Vietnamese words, scene 8-40 words, action 4-24 words, total at most 70. "
@@ -34,9 +38,9 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "preserve its point. The scene is illustrative, NOT an observed fact about this user. "
         "Use conditional wording in the scene; do not claim it happened or will happen. "
         "Keep title, scene, action on the SAME situation. Do not add a new role, conflict, motive, "
-        "or advice absent from the brief. Never turn reader_takeaway into another paragraph of "
-        "abstract explanation. No advice in title or scene. No filler after action. "
-        "Write direct everyday Vietnamese with a subject and a visible action. "
+        "or advice absent from the brief. The app already shows reader_takeaway next to "
+        "your text: never repeat it, and never turn it into another paragraph of abstract "
+        "explanation. No advice in title or scene. No filler after action. "
         "Never use a paradox, abstract comparison, or poetic metaphor. "
         "Example meaning: agreeing with the group while still having an unanswered question. "
         "title: 'Bạn gật đầu, nhưng vẫn chưa hiểu hết.' "
@@ -47,7 +51,10 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "title: 'Bạn định gửi rồi, nhưng lại sửa thêm.' "
         "scene: 'Khi bản nháp đã đủ ý, bạn có thể vẫn sửa vài chữ vì lo người khác đánh giá.' "
         "action: 'Gửi bản nháp và nói rõ phần nào còn cần góp ý.' "
-        "Examples teach style, not facts or sentences to copy into unrelated situations."
+        "Examples teach style, not facts or sentences to copy into unrelated situations. "
+        "companion: one line by Lá (sprout friend) from companion_meaning, 4-14 words, "
+        "nudging the reader to try the action today; one light tease max; no repeating "
+        "title/action, astrology, predictions or anyone's thoughts."
     ),
     RewriteSurface.REVEAL: (
         "Map headline from source hook, synthesis from source thesis, section_intros from "
@@ -133,6 +140,9 @@ def surface_output_contract(surface: RewriteSurface) -> SurfaceOutputContract:
                 "maxItems": 8,
                 "items": {"type": "string", "maxLength": 700},
             }
+        elif field == "companion":
+            # Stored on the candidate with the same bound.
+            properties[field] = {"type": "string", "maxLength": 200}
         else:
             properties[field] = {"type": "string", "maxLength": 900}
     schema = {

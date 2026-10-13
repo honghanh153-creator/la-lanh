@@ -20,6 +20,7 @@ def _daily_payload() -> dict[str, object]:
         "title_meaning": "Chưa rõ thì chưa cần kết luận.",
         "scene_meaning": "Một tin nhắn ngắn khiến ý của người kia chưa rõ.",
         "action_meaning": "Hỏi lại một câu rõ ràng trước khi kết luận.",
+        "companion_meaning": "Nhắc người đọc hỏi lại phần chưa rõ thay vì tự đoán ý tin nhắn.",
         "requirements": [
             {
                 "key": "daily.missing-context",
@@ -70,6 +71,7 @@ def test_minimiser_emits_only_surface_allowlist() -> None:
         "title_meaning",
         "scene_meaning",
         "action_meaning",
+        "companion_meaning",
         "requirements",
         "evidence",
     }

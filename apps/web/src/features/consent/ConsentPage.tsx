@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { acceptBasicBirthConsent, enableHistoryRetention, createGuest, getSession, isGuestSessionUnavailable } from "../../shared/api/client";
+import { OPENAI_ABUSE_RETENTION_NOTICE } from "../../shared/config/externalRewriteDisclosure";
+import { BrandMark } from "../../shared/ui/BrandMark";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 
@@ -83,7 +85,7 @@ export function ConsentPage() {
             <details className="consent-detail"><summary>Khôi phục và xoá tài khoản</summary><p>Khách không có cách khôi phục nếu mất cookie hoặc dữ liệu máy. Với tài khoản đã liên kết, xoá hồ sơ thu hồi các phiên và yêu cầu xoá danh tính Supabase trước khi báo hoàn tất. Nếu nhà cung cấp lỗi, hồ sơ bị khoá và hệ thống thử lại; không khôi phục bằng đăng nhập lại. Tài khoản Google không bị xoá. Hủy đăng nhập không đồng nghĩa xoá danh tính nhà cung cấp.</p></details>
             <details className="consent-detail"><summary>Cách bảo vệ</summary><p>Thông tin sinh được mã hóa trong ứng dụng trước khi lưu và không đặt trong URL, cookie hay link chia sẻ. Kết nối tới hệ thống dùng HTTPS/TLS.</p></details>
             <details className="consent-detail"><summary>Dữ liệu beta đi đâu?</summary><p>Khi bạn đồng ý, dữ liệu được truyền từ Việt Nam để xử lý trên máy chủ Hetzner tại Đức và lưu trong cơ sở dữ liệu Supabase tại Frankfurt, Đức. Lá Lành chỉ dùng dữ liệu để vận hành tính năng, không bán hoặc dùng cho quảng cáo.</p></details>
-            <details className="consent-detail"><summary>AI viết lại là lựa chọn riêng</summary><p>Đồng ý dữ liệu sinh không bật AI. Khi có nhóm test AI, bạn có thể đồng ý riêng trong Mình để gửi bản tóm tắt ý nghĩa sang OpenAI. Không gửi tên, ngày/giờ/nơi sinh, tọa độ hay câu hỏi tự do. Thông tin suy ra vẫn có thể là dữ liệu cá nhân. OpenAI có thể giữ dữ liệu kiểm soát lạm dụng tới 30 ngày, hoặc lâu hơn khi pháp luật yêu cầu. Tắt sẽ dừng các yêu cầu tiếp theo, không thu hồi được dữ liệu đã gửi.</p></details>
+            <details className="consent-detail"><summary>AI viết lại là lựa chọn riêng</summary><p>Đồng ý dữ liệu sinh không bật AI. Khi có nhóm test AI, bạn có thể đồng ý riêng trong Mình để gửi bản tóm tắt ý nghĩa và nhãn chiêm tinh liên quan sang OpenAI (công ty Hoa Kỳ, xử lý ngoài Việt Nam). Không gửi tên, ngày/giờ/nơi sinh, tọa độ hay nguyên văn câu hỏi tự do. Thông tin suy ra vẫn có thể là dữ liệu cá nhân. {OPENAI_ABUSE_RETENTION_NOTICE} Tắt sẽ dừng các yêu cầu tiếp theo, không thu hồi được dữ liệu đã gửi.</p></details>
             <details className="consent-detail"><summary>Độ tuổi & phiên bản</summary><p>Lá Lành hiện dành cho người từ 18 tuổi. Chính sách áp dụng: birth-profile-v1.</p></details>
             <details className="consent-detail"><summary>Liên hệ về dữ liệu</summary><p>Gửi yêu cầu về quyền riêng tư tới <a href="mailto:honghanh153@gmail.com">honghanh153@gmail.com</a>. Không gửi mật khẩu, mã đăng nhập hay API key trong email.</p></details>
           </div>

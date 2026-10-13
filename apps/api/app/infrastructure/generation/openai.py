@@ -32,7 +32,7 @@ from app.infrastructure.generation.schemas import (
 
 OPENAI_RENDERER_VERSION = "openai-responses-v1"
 OPENAI_PROMPT_VERSION = "chart-synthesis-v2"
-OPENAI_REWRITE_PROMPT_VERSION = "surface-rewrite-v3"
+OPENAI_REWRITE_PROMPT_VERSION = "surface-rewrite-v5"
 
 _OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",

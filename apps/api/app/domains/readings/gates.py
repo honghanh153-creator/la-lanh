@@ -5,6 +5,7 @@ import unicodedata
 from collections.abc import Iterable
 
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
+from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_personalization import eligible_daily_situations
 from app.domains.readings.daily_psychology import render_why_today
 from app.domains.readings.models import (
@@ -405,6 +406,9 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
                     "title": candidate.hook,
                     "scene": candidate.manifestation,
                     "action": candidate.micro_action,
+                    # The authored line must pass the same companion rules as Luna's.
+                    "companion": candidate.companion
+                    or companion_issue_entry(blueprint.mechanism_key).line.direct,
                 },
                 meaning_brief=blueprint.daily_meaning,
             )

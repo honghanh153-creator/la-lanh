@@ -1,11 +1,20 @@
 import type { MoodValue } from "../../api/client";
 import type { AppVibe } from "../../vibe/vibe";
+import {
+  LA_GREETINGS,
+  LA_LOADING,
+  LA_MOOD_NUDGE as CATALOG_MOOD_NUDGE,
+  LA_MOOD_REACTIONS as CATALOG_MOOD_REACTIONS,
+  LA_NOTE_FALLBACK,
+} from "./laCatalog.generated";
 import { moonPhase, type MoonPhase } from "./moonPhase";
 
 // Lá's framing microcopy. It greets, waits and reacts; it never changes the
 // meaning of a reading, predicts events, or speaks for another person.
 // Voices: "direct" (plain, warm Vietnamese) and "roast" (owner-approved
 // 2026-10-11: teasing the situation, never the person, always with a way out).
+// The words live in the API content matrix (apps/api/app/domains/readings/companion.py)
+// and reach this file through laCatalog.generated.ts; change them there.
 
 export type DayPart = "morning" | "noon" | "afternoon" | "evening" | "late";
 
@@ -18,63 +27,33 @@ export function dayPart(at: Date = new Date()): DayPart {
   return "late";
 }
 
-const ROAST_GREETINGS: Record<DayPart, string> = {
-  morning: "Dậy rồi đó hả? Note hôm nay Lá để sẵn, đọc trước khi lướt TikTok nha.",
-  noon: "Giữa trưa rồi, ăn chưa mà đã mở app xem số phận? Đùa thôi, xem note đi.",
-  afternoon: "Chiều rồi mà vẫn chưa xong việc buổi sáng hả? Lá biết hết á.",
-  evening: "Tối rồi. Ngồi xuống, kể Lá nghe hôm nay ai làm bạn cạn pin.",
-  late: "Khuya vậy còn thức? Đọc nhanh rồi cất điện thoại, mai còn làm người.",
-};
-
-const GREETINGS: Record<DayPart, string> = {
-  morning: "Chào buổi sáng. Lá để sẵn note hôm nay cho bạn rồi.",
-  noon: "Giữa ngày rồi. Ghé Lá một chút nhé.",
-  afternoon: "Chiều rồi. Xem nhanh điều đáng để ý hôm nay?",
-  evening: "Tối rồi. Ngồi xuống với Lá một nhịp.",
-  late: "Khuya rồi đó. Đọc nhẹ thôi rồi đi ngủ nhé.",
-};
-
 export type LaGreeting = { line: string; moon: MoonPhase; part: DayPart };
 
 export function laGreeting(at: Date = new Date(), vibe: AppVibe = "direct"): LaGreeting {
   const part = dayPart(at);
-  return { line: (vibe === "roast" ? ROAST_GREETINGS : GREETINGS)[part], moon: moonPhase(at), part };
+  return { line: LA_GREETINGS[vibe][part], moon: moonPhase(at), part };
 }
 
-export const LA_LOADING_LINES = [
-  "Lá đang dò sóng…",
-  "Lá đang lật trang lá số…",
-  "Lá đang gom ánh sao…",
-] as const;
-
-export const LA_ROAST_LOADING_LINES = [
-  "Đợi xíu, Lá đang soi bạn…",
-  "Vũ trụ đang gõ… đừng giục.",
-  "Lá đang lục lại hồ sơ drama của bạn…",
-] as const;
+export const LA_LOADING_LINES: readonly string[] = LA_LOADING.direct;
+export const LA_ROAST_LOADING_LINES: readonly string[] = LA_LOADING.roast;
 
 export function laLoadingLines(vibe: AppVibe): readonly string[] {
   return vibe === "roast" ? LA_ROAST_LOADING_LINES : LA_LOADING_LINES;
 }
 
-export const LA_MOOD_REACTIONS: Record<MoodValue, string> = {
-  "Rực": "Bạn đang nhiều năng lượng. Nhớ để dành một chút cho mình.",
-  Chill: "Nhịp này đẹp đấy. Không cần đẩy mọi thứ đi nhanh hơn.",
-  "Đuối": "Hôm nay bớt một việc cũng là chăm mình.",
-  "Căng": "Thở chậm một nhịp trước khi trả lời điều quan trọng.",
-  "Lạc trôi": "Chưa cần hiểu hết. Chỉ cần tìm một điểm để quay về.",
-};
-
-export const LA_ROAST_MOOD_REACTIONS: Record<MoodValue, string> = {
-  "Rực": "Năng lượng max ghê. Nhớ chừa pin cho tối nay, đừng đốt hết lúc 10 giờ sáng.",
-  Chill: "Chill quá ha. Giữ nhịp này, đừng để group chat kéo bạn vào drama.",
-  "Đuối": "Pin 3% mà còn gồng. Bớt một việc đi, thế giới không sập đâu.",
-  "Căng": "Vai đang gồng tới tai rồi kìa. Thở ra một hơi rồi hẵng rep tin nhắn.",
-  "Lạc trôi": "Đang trôi giữa vũ trụ hả? Neo lại một việc nhỏ trước đã.",
-};
+export const LA_MOOD_REACTIONS: Record<MoodValue, string> = CATALOG_MOOD_REACTIONS.direct;
+export const LA_ROAST_MOOD_REACTIONS: Record<MoodValue, string> = CATALOG_MOOD_REACTIONS.roast;
 
 export function laMoodReaction(mood: MoodValue, vibe: AppVibe): string {
   return (vibe === "roast" ? LA_ROAST_MOOD_REACTIONS : LA_MOOD_REACTIONS)[mood];
 }
 
-export const LA_MOOD_NUDGE = "Hôm nay bạn đang ở mood nào? Chạm để kể Lá nghe.";
+export const LA_MOOD_NUDGE: string = CATALOG_MOOD_NUDGE;
+
+/**
+ * What Lá says next to today's card. The API already voices and (for Luna cards) writes
+ * `sections.companion`; the catalog fallback only covers legacy notes without it.
+ */
+export function laNoteLine(companion: string | null | undefined, vibe: AppVibe): string {
+  return companion?.trim() ? companion : LA_NOTE_FALLBACK[vibe];
+}

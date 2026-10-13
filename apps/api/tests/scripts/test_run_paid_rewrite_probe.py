@@ -102,6 +102,7 @@ async def test_paid_probe_reports_only_gate_usage_cost_and_retention_metadata() 
         "title": "Chưa rõ thì chưa cần kết luận.",
         "scene": "Khi một tin nhắn ngắn khiến ý của người kia chưa rõ.",
         "action": "Hỏi lại một câu rõ ràng trước khi kết luận.",
+        "companion": "Hỏi một câu thôi, đỡ hơn đoán cả buổi.",
     }
 
     report = await _run(

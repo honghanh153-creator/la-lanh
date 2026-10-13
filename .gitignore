@@ -84,3 +84,4 @@ vendor/swisseph/build/
 prototype/node_modules/
 prototype/dist/
 prototype/.DS_Store
+infra/hetzner/staging/generation.env

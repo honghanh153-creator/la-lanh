@@ -29,11 +29,7 @@ from app.domains.readings.application import (
     ReadingApplicationService,
 )
 from app.domains.readings.models import BackgroundLens, ReadingProjection, ReadingPurpose
-from app.domains.readings.voice import (
-    ReadingVoice,
-    apply_projection_voice,
-    roast_legacy_text,
-)
+from app.domains.readings.voice import ReadingVoice, roast_legacy_text
 from app.domains.resonance.errors import ResonanceDomainError
 from app.domains.resonance.models import ResonanceChoice
 from app.domains.resonance.service import ResonanceService
@@ -313,6 +309,7 @@ async def get_daily_note(
                 settings.generation_enabled
                 and await request.app.state.content_rewrite_authorization.authorized_guest(guest.id)
             ),
+            voice=voice,
         )
     except BirthDomainError as error:
         return _problem(error)
@@ -326,8 +323,6 @@ async def get_daily_note(
         await _daily_service(request).assert_current_birth_source(snapshot)
     except BirthDomainError as error:
         return _problem(error)
-    if projection is not None:
-        projection = apply_projection_voice(projection, voice)
     return payload.model_copy(update={"reading_projection": projection})
 
 
@@ -364,9 +359,10 @@ async def project_daily_note_context(
                 settings.generation_enabled
                 and await request.app.state.content_rewrite_authorization.authorized_guest(guest.id)
             ),
+            voice=body.voice,
         )
         await _daily_service(request).assert_current_birth_source(snapshot)
-        return apply_projection_voice(projection, body.voice)
+        return projection
     except BirthDomainError as error:
         return _problem(error)
     except ReadingApplicationError:

@@ -57,10 +57,11 @@ def canonical_surface_registry() -> SurfaceRegistry:
         RewriteSurfaceSpec(
             surface=RewriteSurface.DAILY_HOME,
             fallback_owner="readings",
-            schema_version="daily-rewrite/v1",
-            gate_version="daily-rewrite-gates/v2",
-            fields=_fields("title", "scene", "action"),
-            word_budget=70,
+            schema_version="daily-rewrite/v2",
+            gate_version="daily-rewrite-gates/v4",
+            # companion = Lá's line next to the card (content matrix: readings/companion.py).
+            fields=_fields("title", "scene", "action", "companion"),
+            word_budget=84,
             forbidden_claims=("prediction", "diagnosis", "decision_instruction"),
         ),
         RewriteSurfaceSpec(
