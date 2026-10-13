@@ -329,7 +329,8 @@
 /* Lá's row: sprout + one bubble, which doubles as the single "Lá nhắc" slot. */
 :root .ultraviolet-app .home-la-row { display: flex; margin-top: 0.875rem; align-items: center; gap: 0.625rem; }
 :root .ultraviolet-app .home-la-row__sprout { width: 118px; height: 98px; flex: none; margin-left: -6px; object-fit: contain; transform-origin: 50% 92%; }
-:root:not([data-theme="dark"]) .ultraviolet-app .home-la-row__sprout { mix-blend-mode: multiply; }
+:root .ultraviolet-app .home-la-row__sprout { filter: drop-shadow(0 10px 8px rgba(31, 24, 56, 0.16)); }
+:root[data-theme="dark"] .ultraviolet-app .home-la-row__sprout { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.45)); }
 :root .ultraviolet-app .home-la-row__bubble { position: relative; min-width: 0; flex: 1; padding: 0.75rem 2.5rem 0.75rem 1rem; border: 1px solid var(--uv-line); border-radius: 20px; color: var(--uv-text); background: var(--uv-surface); box-shadow: var(--uv-shadow-1); }
 :root .ultraviolet-app .home-la-row__bubble--notice { padding: 0.75rem 2.5rem 0.375rem 1rem; }
 :root .ultraviolet-app .home-la-row__line { margin: 0; color: var(--uv-text); font-size: 0.875rem; line-height: 1.45; }
@@ -1264,7 +1265,8 @@
 :root .ultraviolet-app .saved-page > .success-message .text-link { min-height: 2.5rem; padding: 0 0.75rem; border: 0; color: var(--uv-leaf); background: transparent; font-weight: 700; }
 :root[data-theme="dark"] .ultraviolet-app .saved-page > .success-message { background: #2c2452; }
 :root .ultraviolet-app .saved-empty__sprout { width: 140px; height: 116px; margin: 0 auto 1rem; object-fit: contain; }
-:root:not([data-theme="dark"]) .ultraviolet-app .saved-empty__sprout { mix-blend-mode: multiply; }
+:root .ultraviolet-app .saved-empty__sprout { filter: drop-shadow(0 10px 8px rgba(31, 24, 56, 0.16)); }
+:root[data-theme="dark"] .ultraviolet-app .saved-empty__sprout { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.45)); }
 :root .ultraviolet-app .saved-empty h2 { margin: 0; font-size: 1.3125rem; }
 /* Share card: story/square toggle, the art, one primary + secondaries. */
 :root .ultraviolet-app .card-page .format-toggle { display: grid; margin-top: 0.75rem; grid-template-columns: 1fr 1fr; }

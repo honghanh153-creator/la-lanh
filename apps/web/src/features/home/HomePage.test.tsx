@@ -135,6 +135,14 @@ describe("HomePage rich reading", () => {
     expect(within(noteRegion).queryByText(/Đọc từ (dữ liệu ngày sinh|lá số đầy đủ)/)).not.toBeInTheDocument();
   });
 
+  it("lets Lá say the card's own line from the content matrix", async () => {
+    const withLine = { ...vibe, sections: { ...vibe.sections, companion: "Hỏi lại một câu thôi, đỡ hơn đoán cả buổi." } };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLine)));
+    renderPage();
+
+    expect(await screen.findByText("Hỏi lại một câu thôi, đỡ hơn đoán cả buổi.")).toBeInTheDocument();
+  });
+
   it("keeps the value promise and routes available when the daily note fails", async () => {
     vi.mocked(getDailyNote).mockRejectedValue(new Error("offline"));
     renderPage();

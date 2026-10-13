@@ -53,7 +53,8 @@
 .la-loading.is-visible { opacity: 1; }
 .la-loading--page { min-height: 52vh; align-content: center; justify-items: center; padding: 32px 16px; text-align: center; }
 .la-loading__sprout { width: 118px; height: 98px; object-fit: contain; transform-origin: 50% 92%; animation: la-breathe 4.2s ease-in-out infinite; }
-:root:not([data-theme="dark"]) .la-loading__sprout { mix-blend-mode: multiply; }
+:root .la-loading__sprout { filter: drop-shadow(0 10px 8px rgba(31, 24, 56, 0.16)); }
+:root[data-theme="dark"] .la-loading__sprout { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.45)); }
 .la-loading__line { display: flex; margin: 0; align-items: center; gap: 10px; color: var(--uv-text, #1f1838); font-size: 15px; font-weight: 500; }
 .la-loading--page .la-loading__line { justify-content: center; font-weight: 600; }
 .la-loading__skeleton { display: grid; gap: 12px; }

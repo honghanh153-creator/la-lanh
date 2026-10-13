@@ -349,7 +349,7 @@ export function HomePage() {
         </section>
       )}
 
-      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe }).text} onDismissLine={() => setLineDismissed(true)}>
+      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion }).text} onDismissLine={() => setLineDismissed(true)}>
         {showGift && availableUpdate && note.reading_projection ? (
           <ReadingUpdateGift
             activeMode={activeReading?.mode}

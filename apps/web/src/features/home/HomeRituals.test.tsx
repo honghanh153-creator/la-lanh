@@ -74,6 +74,10 @@ describe("homeCompanionLine", () => {
     expect(homeCompanionLine({ now: morning, vibe: "roast" }).text).not.toBe(homeCompanionLine({ now: morning }).text);
     expect(homeCompanionLine({ state: "loading" }).text).toBe(HOME_LOADING_LINE);
     expect(homeCompanionLine({ state: "error" }).text).toBe(HOME_ERROR_LINE);
+    // Today's card brings its own (already voiced) line from the content matrix.
+    expect(homeCompanionLine({ now: morning, companion: "Hỏi lại một câu thôi, đỡ hơn đoán cả buổi." }).text)
+      .toBe("Hỏi lại một câu thôi, đỡ hơn đoán cả buổi.");
+    expect(homeCompanionLine({ now: morning, companion: "  " }).text).toContain("buổi sáng");
   });
 });
 
