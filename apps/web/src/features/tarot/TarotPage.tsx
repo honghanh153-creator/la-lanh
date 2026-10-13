@@ -30,6 +30,7 @@ import {
 } from "../../shared/api/client";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { NightSky } from "../../shared/ui/NightSky";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { TarotCardArt, TarotCardBack } from "./TarotCardArt";
 import { TarotPickFlight } from "./TarotPickFlight";
@@ -286,7 +287,7 @@ export function TarotPage() {
   );
 
   if (sessionId && sessionQuery.isLoading) {
-    return <TarotFrame step="Đang mở lại"><section className="tarot-loading" aria-label="Đang mở lại phiên Tarot"><span /></section></TarotFrame>;
+    return <TarotFrame scene step="Đang mở lại"><section className="tarot-loading" aria-label="Đang mở lại phiên Tarot"><span /></section></TarotFrame>;
   }
   if (sessionId && sessionQuery.isError) {
     return <TarotFrame step="Phiên riêng tư"><section className="tarot-state"><h1>Không mở lại được lần bốc này.</h1><p>Phiên có thể đã hết hạn, đã được xóa hoặc thuộc một trình duyệt khác.</p><Link className="tarot-primary" to="/tarot">Bắt đầu lần mới</Link></section></TarotFrame>;
@@ -311,7 +312,7 @@ export function TarotPage() {
   }
   if (session?.state === "complete" && session.reading) {
     if (revealSessionId === session.id) {
-      return <TarotFrame step="Đang mở bài"><TarotRevealCeremony
+      return <TarotFrame scene step="Đang mở bài"><TarotRevealCeremony
         cards={session.selected_cards}
         onComplete={finishReveal}
       /></TarotFrame>;
@@ -332,7 +333,7 @@ export function TarotPage() {
     const pendingIndex = select.isPending ? select.variables?.index ?? null : null;
     const activeFlight = flight && flight.slotIndex < session.selected_cards.length ? flight : null;
     return (
-      <TarotFrame step={`${session.selected_cards.length}/${session.required_cards} lá`}>
+      <TarotFrame scene step={`${session.selected_cards.length}/${session.required_cards} lá`}>
         <section className="tarot-draw-intro">
           <p className="tarot-kicker">Bộ bài đã được khóa cho lần này</p>
           <h1>Chạm lá khiến bạn dừng mắt.</h1>
@@ -485,9 +486,9 @@ export function TarotPage() {
   );
 }
 
-function TarotFrame({ children, step }: { children: React.ReactNode; step: string }) {
+function TarotFrame({ children, step, scene = false }: { children: React.ReactNode; step: string; scene?: boolean }) {
   const navigate = useNavigate();
-  return <main className="tarot-page"><header className="tarot-header"><button aria-label="Quay lại" onClick={() => void navigate(-1)} type="button"><ArrowLeft aria-hidden="true" /></button><div className="tarot-header__title"><strong>Tarot</strong><span><LockKey aria-hidden="true" /> Riêng tư</span></div><BrandMark /><span className="sr-only">{step}</span></header>{children}</main>;
+  return <main className={scene ? "tarot-page tarot-page--scene uv-night-scene" : "tarot-page"}>{scene ? <NightSky orbits planet /> : null}<header className="tarot-header"><button aria-label="Quay lại" onClick={() => void navigate(-1)} type="button"><ArrowLeft aria-hidden="true" /></button><div className="tarot-header__title"><strong>Tarot</strong><span><LockKey aria-hidden="true" /> Riêng tư</span></div><BrandMark /><span className="sr-only">{step}</span></header>{children}</main>;
 }
 
 function TarotFan({ fanSize, selected, pendingIndex, busy, onPick }: {
@@ -555,7 +556,8 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
   };
   return (
     <TarotFrame step="Bài của bạn">
-      <section className="tarot-result-hero tarot-report" aria-labelledby="tarot-report-title">
+      <section className="tarot-result-hero tarot-report uv-night" aria-labelledby="tarot-report-title">
+        <NightSky stars={5} />
         <div className="tarot-question-ticket">
           <span>Câu bạn đã hỏi</span>
           <strong>{reading.question}</strong>
