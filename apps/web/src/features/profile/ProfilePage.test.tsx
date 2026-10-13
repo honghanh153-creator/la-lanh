@@ -19,6 +19,7 @@ import {
   logoutAccount,
 } from "../../shared/api/client";
 import { ProfilePage } from "./ProfilePage";
+import { OPENAI_ABUSE_RETENTION_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 
 vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
@@ -130,6 +131,9 @@ describe("ProfilePage resonance privacy controls", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent("không gửi nguyên văn câu hỏi");
     expect(screen.getByRole("dialog")).toHaveTextContent("xử lý ngoài Việt Nam");
     expect(screen.getByRole("dialog")).toHaveTextContent("huỷ các yêu cầu chưa gửi");
+    // Full OpenAI exception set, shared with the onboarding privacy page.
+    expect(screen.getByRole("dialog")).toHaveTextContent(OPENAI_ABUSE_RETENTION_NOTICE);
+    expect(screen.getByRole("dialog")).toHaveTextContent("bảo vệ dịch vụ hay bên thứ ba khỏi tổn hại");
     expect(setContentRewriteConsent).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Đồng ý và thử" }));
     await waitFor(() => expect(setContentRewriteConsent).toHaveBeenCalledWith(true));

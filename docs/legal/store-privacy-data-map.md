@@ -91,7 +91,8 @@ Google’s “shared” definition and service-provider exceptions must be check
 The 2026-10-08 local pilot implementation adds explicit `external-content-rewrite-v1` personal
 opt-in under `Mình`, default off. The disclosure names OpenAI, derived semantic summaries, no raw
 birth/location/identity values or free-form Tarot questions, `store:false`, possible abuse-monitoring
-retention up to 30 days or legal exceptions, and the limits of withdrawal. This does not authorize
+retention (normally up to 30 days; longer when required by law or reasonably necessary to protect
+the service or a third party from harm), and the limits of withdrawal. This does not authorize
 Radar/Matching or another person's information. A UI choice is not evidence that the provider's
 DPA/cross-border requirements have been completed. Production generation is still disabled.
 
@@ -103,6 +104,13 @@ other readings. Still missing before activation: an App Privacy / Data Safety ro
 processor, DPA acceptance and a cross-border transfer impact assessment (Law 91/2025/QH15 Art. 20,
 Decree 356/2025/NĐ-CP), and a decision whether to bump `external-content-rewrite-v1` if anyone
 consented under the previous wording.
+
+2026-10-13 retention wording (PR #11 review): both surfaces now state the full OpenAI exception
+set for abuse-monitoring logs, checked against OpenAI "Your data" (Data retention controls for
+abuse monitoring) on 2026-10-13: retained up to 30 days unless longer retention is required by law
+or reasonably necessary to protect OpenAI services or any third party from harm. `store:false` does
+not remove this retention; only an approved Zero Data Retention arrangement would. A shared constant
+and test keep the two surfaces identical.
 
 The new monthly reservation record has UTC month and conservative nanodollar debit only. It has no
 owner identifiers or foreign keys. Preserve this anonymous aggregate after personal deletion to
