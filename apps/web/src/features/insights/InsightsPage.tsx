@@ -11,6 +11,7 @@ import {
 import { AppNav } from "../../shared/ui/AppNav";
 import { birthCompletionPrompt } from "../../shared/astro/birthReadiness";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { NightSky } from "../../shared/ui/NightSky";
 import { readingModeLabel } from "../../shared/ui/readingLabels";
 import { parseAyanamsa, parseHouseSystem, parseTradition } from "./insightConfig";
 import "./insights.css";
@@ -100,6 +101,7 @@ export function InsightsPage() {
 
       {richReading ? (
         <Link className="insight-synthesis" to={`/insights/synthesis?${configQuery}`}>
+          <NightSky planet stars={4} />
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(richReading)}</p>
           <h2>{richReading.sections.hook}</h2>
           <p>{richReading.sections.thesis}</p>
@@ -142,5 +144,5 @@ export function InsightsPage() {
 }
 
 function InsightLoading() {
-  return <section className="insight-loading" aria-label="Đang tính Bản đồ Lá"><div /><div /><div /></section>;
+  return <section className="insight-loading" aria-busy="true" aria-label="Đang tính Bản đồ Lá"><div className="uv-skeleton uv-skeleton--night" /><div className="uv-skeleton" /><div className="uv-skeleton" /></section>;
 }

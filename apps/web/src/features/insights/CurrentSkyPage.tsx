@@ -2,6 +2,7 @@ import { ArrowLeft, Clock, Sparkle } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
+import { NightSky } from "../../shared/ui/NightSky";
 import { getCurrentSky, isGuestSessionUnavailable, type Tradition } from "../../shared/api/client";
 import "./insights.css";
 
@@ -45,7 +46,7 @@ export function CurrentSkyPage() {
     : `/insights?tradition=${tradition}`;
   return <main className="flow-page current-sky-page">
     <header className="cosmic-header"><Link aria-label="Quay lại" className="icon-button" to={backTo}><ArrowLeft /></Link><span className="eyebrow">Bầu trời hiện tại</span><Sparkle /></header>
-    <section className="insight-hero"><h1>Bầu trời hôm nay đang ở đâu?</h1><p>Mỗi ô cho biết một hành tinh đang ở cung nào. Đây là dữ liệu chung; ý nghĩa với riêng bạn chỉ có khi đối chiếu cùng lá số cá nhân.</p></section>
+    <section className="insight-hero uv-night"><NightSky moon stars={4} /><h1>Bầu trời hôm nay đang ở đâu?</h1><p>Mỗi ô cho biết một hành tinh đang ở cung nào. Đây là dữ liệu chung; ý nghĩa với riêng bạn chỉ có khi đối chiếu cùng lá số cá nhân.</p></section>
     {query.data ? <>
       <p className="sky-time"><Clock /> {new Date(query.data.observed_at).toLocaleString("vi-VN")}</p>
       <section className="sky-grid">{query.data.bodies.map((body) => <article key={body.body}><span>{BODY_LABELS[body.body] ?? body.body}</span><strong>{SIGN_LABELS[body.sign] ?? body.sign}</strong><small>{body.degree_in_sign.toFixed(1)}° {body.retrograde ? "· nghịch hành" : ""}</small></article>)}</section>
