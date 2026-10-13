@@ -4,7 +4,10 @@ The stored revision always holds the direct wording. A voice only changes how
 the same meaning is presented to its owner at read time:
 
 * matching is by exact direct text, so stored notes need no migration;
-* anything not authored here (AI rewrites, natal readings, legacy copy) stays direct;
+* anything not authored here (natal readings, legacy copy) stays direct;
+* a generated (Luna) revision is never voiced piecemeal: the roast voice is served
+  from the deterministic baseline of the same plan, or the generated text stays
+  fully direct when that baseline is unavailable (see ``voice_from_baseline``);
 * issue, scene facts, action instruction, evidence, disclaimer and provenance are
   never rewritten — the roast voice only adds a frame around them;
 * energy and self-care examples get the gentle frame, never the sharper jab.
@@ -28,8 +31,8 @@ from app.domains.readings.daily_psychology import (
 )
 from app.domains.readings.models import (
     ReadingContentProjection,
-    ReadingProjection,
     ReadingPurpose,
+    ReadingRevisionSource,
     SemanticArena,
 )
 
@@ -676,7 +679,13 @@ def roast_legacy_text(value: str) -> str:
 def apply_content_voice(
     content: ReadingContentProjection, voice: ReadingVoice
 ) -> ReadingContentProjection:
-    if voice is ReadingVoice.DIRECT or content.purpose is not ReadingPurpose.DAILY_NOTE:
+    if (
+        voice is ReadingVoice.DIRECT
+        or content.purpose is not ReadingPurpose.DAILY_NOTE
+        or content.source is not ReadingRevisionSource.DETERMINISTIC
+    ):
+        # Roast matches exact deterministic wording. A generated rewrite only keeps
+        # some of it (e.g. the thesis), so voicing it would half-roast the card.
         return content
     current = content.sections
     roasted = roast_daily_sections(
@@ -705,17 +714,42 @@ def apply_content_voice(
     )
 
 
-def apply_projection_voice(projection: ReadingProjection, voice: ReadingVoice) -> ReadingProjection:
-    """Presentation-only voice for the owner's private projection; nothing is persisted."""
+def voice_from_baseline(
+    content: ReadingContentProjection,
+    baseline: ReadingContentProjection | None,
+    voice: ReadingVoice,
+) -> ReadingContentProjection:
+    """Voice a generated card through its deterministic baseline, never piecemeal.
 
-    if voice is ReadingVoice.DIRECT:
-        return projection
-    update = projection.available_update
-    if update is not None:
-        update = update.model_copy(update={"content": apply_content_voice(update.content, voice)})
-    return projection.model_copy(
+    ``baseline`` must be the caller-verified deterministic revision of the same
+    owner and plan. The returned card keeps the generated revision's identity
+    (revision id, evidence, experiment key), so activation, experiments, saves and
+    resonance stay bound to what is active; only the displayed wording comes from
+    the voiced baseline. Without a usable baseline the generated text is returned
+    unchanged in the direct voice.
+    """
+
+    if voice is ReadingVoice.DIRECT or content.source is ReadingRevisionSource.DETERMINISTIC:
+        return apply_content_voice(content, voice)
+    if (
+        baseline is None
+        or baseline.source is not ReadingRevisionSource.DETERMINISTIC
+        or baseline.purpose is not content.purpose
+    ):
+        return content
+    voiced = apply_content_voice(baseline, voice)
+    if voiced is baseline:
+        # The baseline has no authored voice either; keep the generated card whole.
+        return content
+    experiment = content.experiment
+    if experiment is not None:
+        # The key stays bound to the active revision's stored action; the label
+        # follows the displayed (voiced baseline) action, as for deterministic roast.
+        experiment = experiment.model_copy(update={"action": voiced.sections.micro_action})
+    return content.model_copy(
         update={
-            "active": apply_content_voice(projection.active, voice),
-            "available_update": update,
+            "source": ReadingRevisionSource.DETERMINISTIC,
+            "sections": voiced.sections,
+            "experiment": experiment,
         }
     )

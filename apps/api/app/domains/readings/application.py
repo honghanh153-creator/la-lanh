@@ -57,6 +57,7 @@ from app.domains.readings.rewrite import (
     compile_daily_rewrite_request,
     compile_reading_rewrite_request,
 )
+from app.domains.readings.voice import ReadingVoice, voice_from_baseline
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ class ReadingApplicationService:
         generation_provider: str = "disabled",
         generation_model: str = "disabled",
         generation_prompt_version: str = "disabled",
-        rewrite_prompt_version: str = "surface-rewrite-v3",
+        rewrite_prompt_version: str = "surface-rewrite-v4",
         generation_max_attempts: int = 2,
         content_rewrite_service: ContentRewriteService | None = None,
     ) -> None:
@@ -119,7 +120,10 @@ class ReadingApplicationService:
         requested_at: datetime | None = None,
         external_generation_authorized: bool = False,
         background_lens: BackgroundLens | None = None,
+        voice: ReadingVoice = ReadingVoice.DIRECT,
     ) -> ReadingProjection:
+        """Owner projection; ``voice`` is read-time presentation and is never persisted."""
+
         if snapshot.guest_id != guest_id:
             raise ReadingActivationConflict
         source_chart = chart or snapshot.result
@@ -308,7 +312,13 @@ class ReadingApplicationService:
             current,
             external_generation_authorized=external_generation_authorized,
         )
-        return await self._hydrate(guest_id, snapshot.profile_id, projection)
+        return await self._hydrate(
+            guest_id,
+            snapshot.profile_id,
+            projection,
+            voice=voice,
+            deterministic_baseline=revision,
+        )
 
     async def _optional_enqueue(
         self,
@@ -474,6 +484,9 @@ class ReadingApplicationService:
         guest_id: UUID,
         profile_id: UUID,
         projection: ReadingProjectionRecord,
+        *,
+        voice: ReadingVoice = ReadingVoice.DIRECT,
+        deterministic_baseline: ReadingRevisionRecord | None = None,
     ) -> ReadingProjection:
         if projection.active_revision_id is None:
             raise ReadingApplicationError("reading projection has no active revision")
@@ -482,7 +495,7 @@ class ReadingApplicationService:
         )
         if active_record is None:
             raise ReadingApplicationError("active reading revision is unavailable")
-        active = _content_projection(active_record, projection)
+        active = _voiced_content(active_record, projection, voice, deterministic_baseline)
 
         available_update = None
         available_record = None
@@ -492,7 +505,7 @@ class ReadingApplicationService:
             )
             if available_record is None:
                 raise ReadingApplicationError("available reading revision is unavailable")
-            available = _content_projection(available_record, projection)
+            available = _voiced_content(available_record, projection, voice, deterministic_baseline)
             available_update = AvailableReadingUpdate(
                 revision_id=available.revision_id,
                 content=available,
@@ -605,6 +618,30 @@ def _content_projection(
         created_at=revision.created_at,
         experiment=experiment,
     )
+
+
+def _voiced_content(
+    revision: ReadingRevisionRecord,
+    projection: ReadingProjectionRecord,
+    voice: ReadingVoice,
+    deterministic_baseline: ReadingRevisionRecord | None,
+) -> ReadingContentProjection:
+    """Apply a read-time voice without ever mixing generated and voiced wording."""
+
+    content = _content_projection(revision, projection)
+    if voice is ReadingVoice.DIRECT:
+        return content
+    baseline = None
+    if (
+        revision.source is ReadingRevisionSource.GENERATED
+        and deterministic_baseline is not None
+        and deterministic_baseline.source is ReadingRevisionSource.DETERMINISTIC
+        and deterministic_baseline.guest_id == revision.guest_id
+        and deterministic_baseline.profile_id == revision.profile_id
+        and deterministic_baseline.plan_id == revision.plan_id
+    ):
+        baseline = _content_projection(deterministic_baseline, projection)
+    return voice_from_baseline(content, baseline, voice)
 
 
 def _aura_transition_id(scope_key: str, revision_id: UUID) -> str:

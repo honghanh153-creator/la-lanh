@@ -1111,6 +1111,15 @@ def lead_scene(lead: str, scene: str) -> str:
     return f"{lead} {scene[:1].lower()}{scene[1:]}"
 
 
+def current_scene_lead(manifestation: str) -> str | None:
+    """The v7 context clause opening a scene ("Với người kia,"), if any."""
+
+    return next(
+        (lead for lead in _ARENA_LEADS.values() if manifestation.startswith(f"{lead} ")),
+        None,
+    )
+
+
 def split_scene_lead(manifestation: str) -> tuple[SemanticArena | None, str]:
     """Return the scene's arena lead and the direct scene text, current or legacy."""
 

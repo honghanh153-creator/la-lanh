@@ -6,6 +6,7 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domains.readings.daily_psychology import current_scene_lead
 from app.domains.readings.models import DailyMeaningBrief
 from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS, OPAQUE_CORE_FRAGMENTS
 
@@ -13,7 +14,7 @@ from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS, OPAQUE_CORE
 class DailyRewriteGateReport(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    version: str = "daily-home-rewrite-gates/v2"
+    version: str = "daily-home-rewrite-gates/v3"
     passed: bool
     failure_codes: tuple[str, ...] = ()
 
@@ -172,5 +173,22 @@ def evaluate_daily_rewrite(
         and not (_theme_ids(source_action) & _theme_ids(action_text))
     ):
         failures.append("daily_action_meaning_drift")
+    if source_scene is not None:
+        # v7 opens the scene with one context clause ("Với người kia, khi …"). A rewrite
+        # keeps it verbatim: dropping it loses the reader's chosen context, and the old
+        # standalone fragment ("Ví dụ với người kia.") must not come back.
+        lead = current_scene_lead(source_scene)
+        if lead is not None and not scene_text.startswith(f"{lead} "):
+            failures.append("daily_scene_context_lost")
+        if re.search(r"(?:^|[.!?]\s+)vi du\b", scene_folded):
+            failures.append("daily_scene_fragment")
+        if meaning_brief is not None:
+            # The thesis on the same card already ends with the takeaway; repeating it
+            # in the title, scene or action says one idea twice.
+            takeaway = _fold(meaning_brief.reader_takeaway).rstrip(" .!?")
+            if takeaway and any(
+                takeaway in _fold(value) for value in (title_text, scene_text, action_text)
+            ):
+                failures.append("daily_takeaway_repeated")
     unique = tuple(dict.fromkeys(failures))
     return DailyRewriteGateReport(passed=not unique, failure_codes=unique)
