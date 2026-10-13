@@ -11,6 +11,7 @@ import "../matching/matching.css";
 import "./radar.css";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { radarVoiceLabel, RADAR_CONTEXT_OPTIONS, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
+import { NightSky } from "../../shared/ui/NightSky";
 
 type RadarSection = NonNullable<RadarResult["sections"]>[number];
 
@@ -131,10 +132,10 @@ export function RadarContinuePage() {
       void navigate("/radar/receipt", { replace: true });
     },
   });
-  if (!expectedRequestId) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card"><h1>Mở lại đúng link mời nhé.</h1><p>Radar không tự đoán bạn đang đồng ý cho kết nối nào.</p><Link className="matching-primary" to="/radar">Về Radar</Link></section></main>;
+  if (!expectedRequestId) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card uv-empty"><div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div><h1>Mở lại đúng link mời nhé.</h1><p>Radar không tự đoán bạn đang đồng ý cho kết nối nào.</p><Link className="matching-primary" to="/radar">Về Radar</Link></section></main>;
   if (invite.isLoading) return <main className="matching-page matching-page--loading"><Sparkle className="matching-pulse" /><p>Đang kiểm tra đúng lời mời…</p></main>;
-  if (!invite.data) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card"><h1>Không tìm thấy lời mời đang chờ.</h1><p>Link có thể đã hết hạn, bị thu hồi hoặc được mở ở tab khác.</p><Link className="matching-primary" to="/radar">Về Radar</Link></section></main>;
-  if (invite.data.request_id !== expectedRequestId) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card"><h1>Đây là một lời mời khác.</h1><p>Đóng tab này và mở lại đúng link để tránh đồng ý nhầm người.</p><Link className="matching-primary" to="/radar">Về Radar</Link></section></main>;
+  if (!invite.data) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card uv-empty"><div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div><h1>Không tìm thấy lời mời đang chờ.</h1><p>Link có thể đã hết hạn, bị thu hồi hoặc được mở ở tab khác.</p><Link className="matching-primary" to="/radar">Về Radar</Link></section></main>;
+  if (invite.data.request_id !== expectedRequestId) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card uv-empty"><div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div><h1>Đây là một lời mời khác.</h1><p>Đóng tab này và mở lại đúng link để tránh đồng ý nhầm người.</p><Link className="matching-primary" to="/radar">Về Radar</Link></section></main>;
   const missingSession = session.error instanceof ApiProblem && session.error.status === 401;
   const chartMissing = accept.error instanceof ApiProblem && accept.error.status === 409;
   const acceptMismatch = accept.error instanceof ApiProblem && accept.error.status === 422;
@@ -175,6 +176,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
     <header className="matching-header"><BrandMark /><span className="matching-signal"><Sparkle /> Radar đã bắt sóng</span></header>
     <RadarFlowSteps current={3} />
     <section className="radar-result__hero radar-signature">
+      <NightSky moon planet stars={4} />
       <p className="eyebrow">{result.recipient_label ? `Bạn × ${result.recipient_label}` : "Bản đọc hai người"}</p>
       <span className="radar-signature__kicker">{signature.kicker}</span>
       <h1>{signature.headline}</h1>
