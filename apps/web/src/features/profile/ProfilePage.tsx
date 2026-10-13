@@ -31,7 +31,7 @@ import "../../shared/styles/signal-note.css";
 import { useTheme } from "../../shared/theme/useTheme";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
-import { BrandMark } from "../../shared/ui/BrandMark";
+import { NightSky } from "../../shared/ui/NightSky";
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -148,8 +148,9 @@ export function ProfilePage() {
 
   return (
     <main className="app-page profile-page">
-      <header className="section-header"><BrandMark /><h1>Mình</h1></header>
-      <section aria-labelledby="profile-identity-title" className="profile-identity">
+      <header className="section-header uv-tab-header"><h1>Mình</h1></header>
+      <section aria-labelledby="profile-identity-title" className="profile-identity uv-night">
+        <NightSky moon stars={4} />
         <p className="eyebrow">Lá Khai Sinh của bạn</p>
         <h2 id="profile-identity-title">{sign ? <><span aria-hidden="true" className="profile-identity__glyph">{signDetails[sign].symbol}</span>{signDetails[sign].label}</> : "Lá Khai Sinh"}</h2>
         <p className="profile-identity__tags">
@@ -172,7 +173,7 @@ export function ProfilePage() {
             <span className="theme-setting__icon" aria-hidden="true">{theme === "dark" ? <Moon /> : <Sun />}</span>
             <div>
               <strong>Chế độ tối</strong>
-              <p>{theme === "dark" ? "Nền tối, chữ sáng" : "Nền kem, chữ tím đậm"}</p>
+              <p>{theme === "dark" ? "Nền tối, chữ sáng" : "Nền sáng, chữ tím đậm"}</p>
             </div>
             <button
               aria-checked={theme === "dark"}

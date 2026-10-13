@@ -1,0 +1,17 @@
+/* Offline fallback (Offline.dc.html): a full-screen night scene. */
+:root { color: #ffffff; background: #221a4c; font-family: "Be Vietnam Pro", system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { min-height: 100svh; margin: 0; background: radial-gradient(120% 90% at 86% 0%, #6153ae 0%, #3f3478 46%, #221a4c 100%); }
+main { position: relative; display: flex; width: min(100%, 35rem); min-height: 100svh; margin: 0 auto; padding: max(1.375rem, env(safe-area-inset-top)) 1.25rem max(1.75rem, env(safe-area-inset-bottom)); flex-direction: column; overflow: hidden; }
+.brand { font-size: 1.625rem; font-weight: 800; letter-spacing: -0.02em; }
+.brand span { color: #b9a8f5; }
+.art { display: grid; flex: 1; place-items: center; }
+.art img { width: 10rem; height: 10rem; filter: grayscale(0.7); opacity: 0.6; }
+section h1 { margin: 0; font-size: 1.625rem; line-height: 1.25; }
+section p { margin: 0.625rem 0 0; color: #e2dcf5; font-size: 0.9375rem; line-height: 1.5; }
+.retry { display: flex; min-height: 3.375rem; margin-top: 1.5rem; border-radius: 999px; align-items: center; justify-content: center; color: #1f1838; background: #cde77f; font-size: 1rem; font-weight: 700; text-decoration: none; }
+.retry:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+.star { position: absolute; width: 3px; height: 3px; border-radius: 2px; background: #ffffff; opacity: 0.7; }
+.star--1 { top: 5.5rem; left: 22%; }
+.star--2 { top: 9rem; right: 18%; width: 2px; height: 2px; }
+.star--3 { top: 16rem; left: 12%; width: 2px; height: 2px; }

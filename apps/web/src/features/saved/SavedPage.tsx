@@ -1,4 +1,4 @@
-import { BookmarkSimple, Trash } from "@phosphor-icons/react";
+import { Trash } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -6,7 +6,6 @@ import { Link } from "react-router-dom";
 import { listSavedNotes, unsaveDailyNote, type SavedNote } from "../../shared/api/client";
 import { readLocalSavedNotes, unsaveNoteLocally } from "../../shared/storage/savedNoteCache";
 import { AppNav } from "../../shared/ui/AppNav";
-import { BrandMark } from "../../shared/ui/BrandMark";
 import { LaLoading } from "../../shared/ui/la/LaLoading";
 
 function noteText(saved: SavedNote, key: "title" | "body" | "context_label" | "persona_mode" | "persona_label"): string {
@@ -64,7 +63,7 @@ export function SavedPage() {
 
   return (
     <main className="app-page saved-page">
-      <header className="section-header"><BrandMark /><h1>Đã lưu</h1></header>
+      <header className="section-header uv-tab-header"><h1>Đã lưu</h1></header>
       {message ? <p className="success-message" role="status">{message} {undoTimer.current !== null ? <button className="text-link" onClick={undoRemove} type="button">Hoàn tác</button> : null}</p> : null}
       {savedQuery.isLoading ? (
         <LaLoading delayMs={0} text="Lá đang lật lại những note bạn đã giữ…" />
@@ -124,8 +123,8 @@ export function SavedPage() {
           ))}
         </section>
       ) : (
-        <section className="empty-state">
-          <BookmarkSimple size={52} />
+        <section className="empty-state uv-empty saved-empty">
+          <img alt="" className="saved-empty__sprout" src="/assets/ultraviolet/sprout-3d.png" />
           <h2>Chưa có note nào nằm lại.</h2>
           <p>Khi một lời nhắc chạm đúng lúc, lưu nó ở đây.</p>
           <Link className="electric-button" to="/home">Về note hôm nay</Link>

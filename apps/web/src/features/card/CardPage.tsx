@@ -10,7 +10,6 @@ import {
   type ShareFormat,
 } from "../../shared/api/client";
 import { dailyContextQueryKey, getDailyNoteForContext, parseDailyContext } from "../../shared/astro/dailyContext";
-import { BrandMark } from "../../shared/ui/BrandMark";
 import { noteSpecFromNote, shareCopy } from "./noteCardSvg";
 import { shareArtAlt } from "./shareArt";
 import { ShareArtPreview } from "./ShareArtPreview";
@@ -109,10 +108,10 @@ export function CardPage() {
 
   return (
     <main className="flow-page card-page">
-      <header className="flow-header">
-        <button aria-label="Quay lại" className="icon-button" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button>
-        <BrandMark />
-        <span />
+      <header className="flow-header uv-topbar">
+        <button aria-label="Quay lại" className="icon-button uv-topbar__icon" onClick={() => void navigate(-1)} type="button"><ArrowLeft /></button>
+        <span className="uv-topbar__title">Chia sẻ card</span>
+        <span aria-hidden="true" className="uv-topbar__spacer" />
       </header>
       <section className="format-toggle" aria-label="Định dạng card">
         <button aria-pressed={format === "story_9_16"} className={format === "story_9_16" ? "is-active" : ""} onClick={() => setFormat("story_9_16")} type="button">Story 9:16</button>
