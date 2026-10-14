@@ -22,6 +22,7 @@ from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     BackgroundLens,
     DailyMeaningBrief,
+    GateFailureCode,
     ReadingCandidate,
     ReadingPlan,
     ReadingPlanRecord,
@@ -595,3 +596,104 @@ def test_daily_companion_line_keeps_las_rules(companion: str, failure: str) -> N
 def test_daily_companion_line_is_required_and_projected_with_the_card() -> None:
     missing = {key: value for key, value in _good_output().items() if key != "companion"}
     assert evaluate_daily_rewrite(missing).failure_codes == ("daily_required_fields",)
+
+
+def _companion_case() -> tuple[ReadingCandidate, str]:
+    plan_record, _projection, _active = _records()
+    baseline = DeterministicVietnameseRenderer().render(plan_record.plan)
+    assert baseline.semantic_blueprint is not None
+    anchor = companion_issue_entry(baseline.semantic_blueprint.mechanism_key).anchors[0]
+    return baseline, anchor
+
+
+@pytest.mark.parametrize(
+    ("template", "gate_code"),
+    [
+        ("{a} xong thì nên tăng thuốc ngay hôm nay nhé.", GateFailureCode.ANTI_MEDICAL_COMMAND),
+        ("{a} ngay trước khi quá muộn, kẻo mất hết nhé.", GateFailureCode.ANTI_URGENCY),
+        ("Chỉ Lá hiểu bạn thôi, {a} một mình là được.", GateFailureCode.ANTI_DEPENDENCY),
+        ("{a} xong nhắn Lá qua ban@example.com nhé.", GateFailureCode.PRIVACY_PERSONAL_DATA),
+    ],
+)
+def test_shared_gates_see_the_companion_line(template: str, gate_code: GateFailureCode) -> None:
+    plan_record, _projection, _active = _records()
+    baseline, anchor = _companion_case()
+    unsafe = baseline.model_copy(update={"companion": template.format(a=anchor.capitalize())})
+    evaluation = evaluate_candidate(plan_record.plan, unsafe)
+    assert not evaluation.accepted
+    assert gate_code in evaluation.failure_codes
+    # The same card with a faithful line still passes every shared gate.
+    assert evaluate_candidate(
+        plan_record.plan, baseline.model_copy(update={"companion": _authored_companion(baseline)})
+    ).accepted
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "template",
+    [
+        "{a} xong thì nên tăng thuốc ngay hôm nay nhé.",
+        "{a} ngay trước khi quá muộn, kẻo mất hết nhé.",
+        "Chỉ Lá hiểu bạn thôi, {a} một mình là được.",
+        "{a} xong nhắn Lá qua ban@example.com nhé.",
+        "Đừng {a} nữa, cứ để vậy cho nhẹ đầu nhé.",
+    ],
+)
+async def test_projector_rejects_unsafe_or_contrary_companion_without_saving(template: str) -> None:
+    plan_record, projection, active = _records()
+    repository = MemoryRepository(plan_record, projection, active)
+    baseline, anchor = _companion_case()
+    request = compile_daily_rewrite_request(
+        plan_record,
+        projection,
+        baseline,
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v5",
+    )
+    before = dict(repository.revisions)
+    output = _good_output(baseline) | {"companion": template.format(a=anchor).capitalize()}
+
+    decision = await DailyRewriteProjector(repository).validate_and_project(
+        request, output, completed_at=NOW
+    )
+
+    assert not decision.accepted
+    assert repository.revisions == before
+    assert repository.projection.available_revision_id is None
+
+
+@pytest.mark.asyncio
+async def test_projector_accepts_a_faithful_companion_paraphrase() -> None:
+    plan_record, projection, active = _records()
+    repository = MemoryRepository(plan_record, projection, active)
+    baseline, _anchor = _companion_case()
+    request = compile_daily_rewrite_request(
+        plan_record,
+        projection,
+        baseline,
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v5",
+    )
+    authored = _authored_companion(baseline)
+    output = _good_output(baseline) | {"companion": f"Nè, {authored[:1].lower()}{authored[1:]}"}
+
+    decision = await DailyRewriteProjector(repository).validate_and_project(
+        request, output, completed_at=NOW
+    )
+
+    assert decision.accepted, decision.failure_code
+    assert repository.projection.available_revision_id is not None
+
+
+def test_companion_gate_rejects_a_line_that_reverses_its_card() -> None:
+    entry = companion_issue_entry("psychology:missing-context")
+    output = _good_output() | {"companion": "Đừng hỏi lại, cứ đoán ý tin nhắn rồi trả lời."}
+    report = evaluate_daily_rewrite(output, companion_brief=entry)
+    assert "daily_companion_contradicts_card" in report.failure_codes
+    off_brief = _good_output() | {"companion": "Uống một ly nước rồi đi ngủ sớm nhé."}
+    assert (
+        "daily_companion_off_brief"
+        in evaluate_daily_rewrite(off_brief, companion_brief=entry).failure_codes
+    )
+    paraphrase = _good_output() | {"companion": "Hỏi thẳng một chữ đi, đoán làm gì cho mệt."}
+    assert evaluate_daily_rewrite(paraphrase, companion_brief=entry).passed

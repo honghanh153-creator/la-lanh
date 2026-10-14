@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from pydantic import BaseModel, ConfigDict
 
 from app.domains.readings.companion import DIRECT_MAX_WORDS as COMPANION_REWRITE_MAX_WORDS
+from app.domains.readings.companion import CompanionIssueLine, nudge_failures
 from app.domains.readings.daily_psychology import current_scene_lead
 from app.domains.readings.models import DailyMeaningBrief
 from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS, OPAQUE_CORE_FRAGMENTS
@@ -141,6 +142,7 @@ def evaluate_daily_rewrite(
     source_scene: str | None = None,
     source_action: str | None = None,
     meaning_brief: DailyMeaningBrief | None = None,
+    companion_brief: CompanionIssueLine | None = None,
 ) -> DailyRewriteGateReport:
     failures: list[str] = []
     title = output.get("title")
@@ -164,6 +166,13 @@ def evaluate_daily_rewrite(
     if sum(_words(value) for value in (title_text, scene_text, action_text)) > 70:
         failures.append("daily_total_budget")
     failures.extend(_companion_failures(companion_text, title_text, action_text))
+    if companion_brief is not None:
+        # The line must carry the approved nudge for this card and never push against it.
+        problems = nudge_failures(companion_text, companion_brief)
+        if "missing_nudge" in problems:
+            failures.append("daily_companion_off_brief")
+        if "negated_nudge" in problems or "contrary_nudge" in problems:
+            failures.append("daily_companion_contradicts_card")
     if any(
         _words(sentence) > 28 for sentence in re.split(r"[.!?]+", scene_text) if sentence.strip()
     ):

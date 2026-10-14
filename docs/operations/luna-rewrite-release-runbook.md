@@ -20,6 +20,24 @@ under v4 is reused.
   day, with about 0.7% margin. A longer prompt or brief must be re-checked with
   `pnpm rewrite:pilot generate --dry-run` before it ships.
 - Human scoring of the pilot sample now also covers "Lời của Lá"; the review page shows it.
+- **Shared gates:** Lá's line goes through every shared Reading gate: evidence labels,
+  anti-influence (medical/urgency/dependency/isolation…), editorial, meaning and privacy. This
+  applies both to Luna's line and to the authored line of every deterministic card. On top of
+  that, the rewrite gate requires the issue's nudge anchor and rejects a negated anchor or a
+  contrary phrasing, so a line cannot reverse its card.
+- **Rollback floor:**
+  - A candidate without a line serializes exactly as `reading-candidate/v1` (the field is omitted
+    when empty). Readers from before this change, e.g. `collab/integration` @ `3d3107a`, still
+    open every deterministic revision.
+  - A Luna candidate that carries a line is `reading-candidate/v2`, and a pre-companion reader
+    rejects it (`extra="forbid"`).
+  - Therefore, once an environment has stored any v2 revision, its rollback target must keep a
+    reader with `companion`. Roll back other parts only, and never delete user revisions to get
+    past the error.
+  - Staging and production have generation off, so no v2 revision exists there today. Record the
+    first v2 write in the release log before enabling the pilot.
+  - Evidence: `tests/readings/test_candidate_compat.py`, plus a probe that opened both
+    serializations with the real `3d3107a` reader (v1 OK, v2 rejected on `companion`).
 
 No paid call was made for this update.
 

@@ -37,6 +37,7 @@ from app.domains.readings.models import (
 )
 from app.domains.readings.renderers import DeterministicVietnameseRenderer, canonical_evidence_claim
 
+GENERATED_COMPANION_SCHEMA_VERSION = "reading-candidate/v2"
 DAILY_REWRITE_RENDERER_VERSION = "gpt-6-luna-daily-v1"
 READING_REWRITE_RENDERER_VERSION = "gpt-6-luna-reading-v1"
 
@@ -390,6 +391,7 @@ class DailyRewriteProjector(RewriteProjector):
             source_scene=baseline.semantic_blueprint.manifestation,
             source_action=baseline.semantic_blueprint.micro_action,
             meaning_brief=baseline.semantic_blueprint.daily_meaning,
+            companion_brief=companion_issue_entry(baseline.semantic_blueprint.mechanism_key),
         )
         if not daily_report.passed:
             return RewriteProjectionDecision(
@@ -403,6 +405,8 @@ class DailyRewriteProjector(RewriteProjector):
                 "manifestation": str(output["scene"]),
                 "micro_action": str(output["action"]),
                 "companion": str(output["companion"]),
+                # Carrying Lá's line makes this a v2 candidate (rollback floor in the runbook).
+                "schema_version": GENERATED_COMPANION_SCHEMA_VERSION,
             }
         )
         evaluation = evaluate_candidate(plan_record.plan, candidate)

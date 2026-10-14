@@ -107,7 +107,9 @@ async def test_luna_line_is_kept_in_direct_and_roast_uses_the_whole_baseline() -
     _repository, service, deterministic, generated = await _generated_active()
     assert generated.active.source is ReadingRevisionSource.GENERATED
     # Direct: the generated card shows Luna's own line.
-    assert generated.active.sections.companion == "Làm thử một bước nhỏ hôm nay thôi nhé."
+    assert generated.active.sections.companion is not None
+    assert generated.active.sections.companion.startswith("Nè, ")
+    assert generated.active.sections.companion != deterministic.active.sections.companion
 
     roast = await service.project(
         guest_id=GUEST_ID,
@@ -121,3 +123,20 @@ async def test_luna_line_is_kept_in_direct_and_roast_uses_the_whole_baseline() -
         deterministic.active.sections.companion or ""
     )
     assert roast.active.sections.companion != generated.active.sections.companion
+
+
+def test_every_authored_line_passes_the_shared_safety_gates() -> None:
+    from app.domains.readings.gates import anti_influence_gate, editorial_gate, privacy_gate
+    from app.domains.readings.planner import ReadingPlanner
+    from app.domains.readings.renderers import DeterministicVietnameseRenderer
+    from tests.readings.test_daily_psychology import _date_only
+
+    plan = ReadingPlanner().plan(
+        _date_only(), purpose=ReadingPurpose.DAILY_NOTE, editorial_seed="2026-10-14"
+    )
+    baseline = DeterministicVietnameseRenderer().render(plan)
+    for line in _every_line():
+        candidate = baseline.model_copy(update={"companion": line})
+        for gate in (anti_influence_gate, editorial_gate, privacy_gate):
+            report = gate(candidate)
+            assert report.passed, (line, report.failure_codes)
