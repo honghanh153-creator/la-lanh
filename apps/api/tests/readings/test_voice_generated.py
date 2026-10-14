@@ -9,6 +9,7 @@ from pydantic import JsonValue
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.readings.application import ReadingApplicationService
+from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.models import (
     ReadingCandidate,
     ReadingProjection,
@@ -29,6 +30,14 @@ GUEST_ID = UUID("20000000-0000-4000-8000-000000000501")
 PROFILE_ID = UUID("30000000-0000-4000-8000-000000000501")
 
 
+def luna_companion(baseline: ReadingCandidate) -> str:
+    """A Luna-style paraphrase that keeps the card's nudge (differs from the authored line)."""
+
+    blueprint = baseline.semantic_blueprint
+    authored = companion_issue_entry(blueprint.mechanism_key if blueprint else None).line.direct
+    return f"Nè, {authored[:1].lower()}{authored[1:]}"
+
+
 def _rewrite_output(baseline: ReadingCandidate) -> dict[str, JsonValue]:
     """A gate-passing Luna-style rewrite whose title/scene/action differ from the baseline."""
 
@@ -38,7 +47,7 @@ def _rewrite_output(baseline: ReadingCandidate) -> dict[str, JsonValue]:
         "title": "Bạn nhận lời trước, rồi mới thấy khó.",
         "scene": f"{scene} trước đã.",
         "action": f"Ghi lại điều này: {action[:1].lower()}{action[1:]}",
-        "companion": "Làm thử một bước nhỏ hôm nay thôi nhé.",
+        "companion": luna_companion(baseline),
     }
 
 

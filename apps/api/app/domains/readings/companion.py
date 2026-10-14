@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from app.domains.mood.models import MoodValue
 from app.domains.readings.daily_psychology import DAILY_ISSUES
@@ -42,10 +42,17 @@ class CompanionLine:
 
 @dataclass(frozen=True)
 class CompanionIssueLine:
-    """What Lá says right after a Daily card about one issue."""
+    """What Lá says right after a Daily card about one issue.
+
+    ``anchors`` are the words that carry the nudge (one must appear, never negated) and
+    ``contrary`` the phrasings that would push the opposite way; the rewrite gate applies
+    both to Luna's line and to the authored one, so a line cannot contradict its card.
+    """
 
     meaning: str
     line: CompanionLine
+    anchors: tuple[str, ...] = ()
+    contrary: tuple[str, ...] = ()
 
 
 DAY_PARTS = ("morning", "noon", "afternoon", "evening", "late")
@@ -158,6 +165,28 @@ COMPANION_ISSUE_LINES: dict[str, CompanionIssueLine] = {
     ),
 }
 
+_NUDGES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "missing-context": (("hỏi",), ("cứ đoán", "tự đoán", "đoán luôn")),
+    "too-many-open-loops": (("một việc", "xong"), ("mở thêm việc", "làm hết một lúc")),
+    "changed-plan": (("chốt", "giờ mới", "xác nhận"), ("đổi hết", "xếp lại ngay")),
+    "comparison-loop": (("đã xong", "đã làm", "của mình"), ("so với người ta",)),
+    "automatic-caretaking": (("nói", "sức"), ("nhận hết", "ôm hết")),
+    "decision-fatigue": (("bớt", "gạch", "lựa chọn"), ("thêm lựa chọn", "xem hết")),
+    "perfect-before-start": (("gửi",), ("sửa thêm", "sửa cho xong")),
+    "group-pressure": (("hỏi",), ("cứ gật", "gật cho xong")),
+    "avoid-small-conflict": (("từ chối", "nói thật", "nói rõ", "không nhận"), ("cứ nhận",)),
+    "defend-old-choice": (("kết quả", "kiểm tra"), ("cứ làm tiếp", "làm tiếp cách cũ")),
+    "capacity-before-agreement": (("lịch",), ("cứ nhận", "nhận luôn")),
+    "quick-reply": (("đọc",), ("trả lời ngay", "rep luôn")),
+    "repair-reply": (("nói lại", "nhắn lại", "sửa"), ("cãi tiếp", "im luôn")),
+    "specific-feedback": (("hỏi", "một chỗ", "một phần", "cụ thể"), ("hỏi chung chung",)),
+    "name-the-need": (("nói rõ", "cần giúp", "cần gì"), ("than tiếp", "giữ trong lòng")),
+}
+COMPANION_ISSUE_LINES = {
+    key: replace(entry, anchors=_NUDGES[key][0], contrary=_NUDGES[key][1])
+    for key, entry in COMPANION_ISSUE_LINES.items()
+}
+
 # Shown when a Daily card has no authored issue (legacy or unmatched wording).
 COMPANION_FALLBACK = CompanionIssueLine(
     "Thử việc nhỏ trong note thay vì chỉ đọc xong rồi thôi.",
@@ -165,6 +194,8 @@ COMPANION_FALLBACK = CompanionIssueLine(
         "Đọc xong rồi thì thử một việc nhỏ nhé.",
         "Đọc xong nhớ thử. Đừng chỉ gật đầu cho đẹp.",
     ),
+    anchors=("thử",),
+    contrary=("bỏ qua việc", "khỏi làm"),
 )
 
 COMPANION_GREETINGS: dict[str, CompanionLine] = {
@@ -267,6 +298,41 @@ def _all_lines() -> tuple[tuple[str, str, int], ...]:
     return tuple(rows)
 
 
+_NEGATORS = ("đừng", "không", "khỏi", "chẳng", "chớ")
+
+
+def _tokens(value: str) -> list[str]:
+    return [token.casefold() for token in _WORD.findall(unicodedata.normalize("NFC", value))]
+
+
+def nudge_failures(text: str, entry: CompanionIssueLine) -> list[str]:
+    """Why ``text`` does not carry ``entry``'s nudge (empty when it does).
+
+    Matching keeps Vietnamese diacritics on purpose: folded "dung" would confuse "đừng"
+    (don't) with "đúng" (right).
+    """
+
+    tokens = _tokens(text)
+    joined = " ".join(tokens)
+    failures: list[str] = []
+    found = False
+    for anchor in entry.anchors:
+        anchor_tokens = _tokens(anchor)
+        width = len(anchor_tokens)
+        for index in range(len(tokens) - width + 1):
+            if tokens[index : index + width] != anchor_tokens:
+                continue
+            found = True
+            before = tokens[max(0, index - 2) : index]
+            if anchor_tokens[0] not in _NEGATORS and any(word in _NEGATORS for word in before):
+                failures.append("negated_nudge")
+    if not found:
+        failures.append("missing_nudge")
+    if any(" ".join(_tokens(phrase)) in joined for phrase in entry.contrary):
+        failures.append("contrary_nudge")
+    return list(dict.fromkeys(failures))
+
+
 def validate_companion_catalog() -> list[str]:
     failures: list[str] = []
     issue_keys = {issue.key for issue in DAILY_ISSUES}
@@ -299,6 +365,10 @@ def validate_companion_catalog() -> list[str]:
             failures.append(f"{key} roast must differ from direct")
         if not entry.meaning.strip():
             failures.append(f"{key} needs a meaning brief for Luna")
+        if not entry.anchors:
+            failures.append(f"{key} needs nudge anchors")
+        for problem in nudge_failures(entry.line.direct, entry):
+            failures.append(f"{key}.direct {problem}")
     return failures
 
 
