@@ -38,6 +38,7 @@ import {
   writeCachedDailyNote,
 } from "../../shared/storage/noteCache";
 import "../../shared/styles/signal-note.css";
+import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
@@ -102,7 +103,10 @@ export function HomePage() {
   const currentRevision = chartDataRevision(queryClient);
   const context = contextChoice.revision === currentRevision ? contextChoice.value : "auto";
   const [contextSheetOpen, setContextSheetOpen] = useState(false);
-  const [motionPaused, setMotionPaused] = useState(false);
+  // One pause state for the whole app: a pause set during onboarding carries into Home,
+  // and resuming here resumes the app shell's decoration too.
+  const motion = useOnboardingMotion();
+  const motionPaused = motion.paused;
   const note = contextualNote?.revision === currentRevision ? contextualNote.note : baseNote;
   const activeReading = note?.reading_projection?.active;
   const availableUpdate = note?.reading_projection?.available_update;
@@ -306,7 +310,7 @@ export function HomePage() {
         <button
           aria-label={motionPaused ? "Bật chuyển động" : "Tạm dừng chuyển động"}
           className="home-motion-toggle"
-          onClick={() => setMotionPaused((paused) => !paused)}
+          onClick={motion.toggle}
           title={motionPaused ? "Bật chuyển động" : "Tạm dừng chuyển động"}
           type="button"
         >

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -99,7 +99,8 @@ describe("BirthSupplementPage Aura handoff", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Mở lớp Moon / House" }));
 
-    expect(await screen.findByTestId("location")).toHaveTextContent("/aura-cutover");
+    // The probe exists from the first render; wait for the route, not the element.
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/aura-cutover"));
   });
 
   it("hands an exact supplement to Aura Cutover when the follow-up note fetch fails", async () => {
@@ -130,7 +131,8 @@ describe("BirthSupplementPage Aura handoff", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Mở lớp Moon / House" }));
 
-    expect(await screen.findByTestId("location")).toHaveTextContent("/aura-cutover");
+    // The probe exists from the first render; wait for the route, not the element.
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/aura-cutover"));
     expect(screen.queryByRole("heading", { name: "Một lớp Lá mới đã mở." })).not.toBeInTheDocument();
   });
 

@@ -8,6 +8,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { usePrivatePortalTarget } from "./privatePortal";
+
 type AppSheetProps = {
   children: ReactNode;
   closeDisabled?: boolean;
@@ -35,6 +37,7 @@ export function AppSheet({
   title,
 }: AppSheetProps) {
   const titleId = useId();
+  const portalTarget = usePrivatePortalTarget();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
@@ -118,6 +121,6 @@ export function AppSheet({
         <div className="app-sheet__body">{children}</div>
       </dialog>
     </div>,
-    document.body,
+    portalTarget,
   );
 }

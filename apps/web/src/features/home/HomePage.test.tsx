@@ -1,8 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState, type ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { OnboardingMotionContext } from "../../shared/ui/onboardingMotion";
 
 import {
   activateReadingProjection,
@@ -108,6 +111,25 @@ describe("HomePage rich reading", () => {
     await user.click(screen.getByRole("button", { name: "Bật chuyển động" }));
     expect(home).toHaveAttribute("data-home-motion", "running");
     expect(vi.mocked(getDailyNote)).toHaveBeenCalledTimes(1);
+  });
+
+  it("carries a pause set during onboarding into Home and resumes the whole app from there", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    const user = userEvent.setup();
+    function SharedMotion({ children }: { children: ReactNode }) {
+      const [paused, setPaused] = useState(true); // paused on Welcome before reaching Home
+      return <div data-testid="shell" data-motion={paused ? "paused" : "running"}>
+        <OnboardingMotionContext.Provider value={{ paused, toggle: () => setPaused((value) => !value) }}>{children}</OnboardingMotionContext.Provider>
+      </div>;
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter><SharedMotion><HomePage /></SharedMotion></MemoryRouter></QueryClientProvider>);
+
+    await screen.findByRole("heading", { name: vibe.sections.hook });
+    expect(screen.getByRole("main")).toHaveAttribute("data-home-motion", "paused");
+    await user.click(screen.getByRole("button", { name: "Bật chuyển động" }));
+    expect(screen.getByRole("main")).toHaveAttribute("data-home-motion", "running");
+    expect(screen.getByTestId("shell")).toHaveAttribute("data-motion", "running");
   });
 
   it("starts with a clear product promise, proves value with today's note, then routes to every live capability", async () => {

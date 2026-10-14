@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 
 import type { ResonanceChoice } from "../api/client";
+import { usePrivatePortalTarget } from "./privatePortal";
 import { tapFeedback } from "./la/haptics";
 
 type ResonanceFeedbackProps = {
@@ -22,6 +23,7 @@ export function ResonanceFeedback({
   sharePath = "/card",
 }: ResonanceFeedbackProps) {
   const [consentChoice, setConsentChoice] = useState<ResonanceChoice | null>(null);
+  const portalTarget = usePrivatePortalTarget();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const choiceButtonRef = useRef<HTMLButtonElement>(null);
   const wasOpenRef = useRef(false);
@@ -112,7 +114,7 @@ export function ResonanceFeedback({
         </div>
       </dialog>
     </div>,
-    document.body,
+    portalTarget,
   ) : null;
 
   return (

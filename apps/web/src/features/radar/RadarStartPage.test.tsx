@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -60,5 +60,28 @@ describe("RadarStartPage delete confirmation", () => {
     await user.click(screen.getByRole("button", { name: "Xoá lần Radar với Mèo" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Xoá" }));
     await waitFor(() => expect(deleteRadarResult).toHaveBeenCalledWith("invite-1", expect.anything()));
+  });
+
+  it("closes the sheet and never shows A's name once the session owner changes", async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter><RadarStartPage /></MemoryRouter></QueryClientProvider>);
+
+    await user.click(await screen.findByRole("button", { name: "Xoá lần Radar với Mèo" }));
+    expect(screen.getByRole("dialog", { name: "Xoá lần Radar với Mèo?" })).toBeInTheDocument();
+
+    // Another tab signed in as B: the stored epoch and the server session both change.
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "session-b");
+    sessionStorage.setItem(OWNER_SESSION_EPOCH_KEY, "session-b");
+    vi.mocked(listRadarInvites).mockResolvedValue([]);
+    vi.mocked(getSession).mockResolvedValue({
+      csrf_token: "csrf", expires_at: "2026-10-01T00:00:00Z", onboarding_status: "complete",
+      resumed: true, session_epoch: "session-b", state: "active",
+    });
+    await act(async () => { await client.invalidateQueries({ queryKey: ["radar-owner-session"] }); });
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.queryByText(/Mèo/)).not.toBeInTheDocument();
+    expect(deleteRadarResult).not.toHaveBeenCalled();
   });
 });
