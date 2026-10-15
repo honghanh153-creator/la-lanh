@@ -166,7 +166,7 @@ COMPANION_ISSUE_LINES: dict[str, CompanionIssueLine] = {
 }
 
 _NUDGES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
-    "missing-context": (("hỏi",), ("cứ đoán", "tự đoán", "đoán luôn")),
+    "missing-context": (("hỏi",), ("đoán",)),
     "too-many-open-loops": (("một việc", "xong"), ("mở thêm việc", "làm hết một lúc")),
     "changed-plan": (("chốt", "giờ mới", "xác nhận"), ("đổi hết", "xếp lại ngay")),
     "comparison-loop": (("đã xong", "đã làm", "của mình"), ("so với người ta",)),
@@ -298,38 +298,105 @@ def _all_lines() -> tuple[tuple[str, str, int], ...]:
     return tuple(rows)
 
 
-_NEGATORS = ("đừng", "không", "khỏi", "chẳng", "chớ")
+_NEGATORS = ("đừng", "không", "khỏi", "chẳng", "chả", "chớ", "miễn", "bỏ qua", "chưa cần")
+# "X thay vì / hơn là Y": whatever follows the marker is the rejected alternative. A bare
+# "hơn" only sets aside a contrary phrase ("đỡ hơn đoán"); before an anchor it is usually a
+# plain comparative ("nhẹ hơn khi bớt lựa chọn").
+_INSTEAD_OF = ("thay vì", "hơn là", "còn hơn")
+_INSTEAD_OF_CONTRARY = (*_INSTEAD_OF, "hơn")
+# Predicates that wave an action away ("hỏi lại chỉ mất thời gian", "đoán làm gì cho mệt").
+_DISMISSALS = (
+    "mất thời gian",
+    "phí thời gian",
+    "mất công",
+    "phí công",
+    "vô ích",
+    "vô nghĩa",
+    "thừa",
+    "không cần",
+    "chẳng cần",
+    "chả cần",
+    "khỏi cần",
+    "làm gì",
+    "không đáng",
+    "rườm rà",
+    "cho mệt",
+)
+# Negation never carries across a clause marker ("Không rõ thì hỏi lại", "Đừng đoán mà hỏi");
+# a dismissal covers the whole punctuation segment ("Hỏi lại thì phí công lắm").
+_SEGMENT_BREAK = re.compile(r"[,.;:!?…\n]+")
+_CLAUSE_BREAK = re.compile(r"\b(?:mà|nhưng|rồi|thì|hãy)\b", re.IGNORECASE)
 
 
 def _tokens(value: str) -> list[str]:
     return [token.casefold() for token in _WORD.findall(unicodedata.normalize("NFC", value))]
 
 
+def _clauses(text: str) -> list[tuple[list[str], list[str]]]:
+    """(clause tokens, enclosing segment tokens) for every clause of ``text``."""
+
+    clauses: list[tuple[list[str], list[str]]] = []
+    for segment in _SEGMENT_BREAK.split(unicodedata.normalize("NFC", text)):
+        segment_tokens = _tokens(segment)
+        for part in _CLAUSE_BREAK.split(segment):
+            if tokens := _tokens(part):
+                clauses.append((tokens, segment_tokens))
+    return clauses
+
+
+def _find(tokens: list[str], phrase: str) -> list[int]:
+    target = _tokens(phrase)
+    width = len(target)
+    return [i for i in range(len(tokens) - width + 1) if tokens[i : i + width] == target]
+
+
+def _rejected(
+    clause: list[str], segment: list[str], index: int, phrase: str, *, contrary: bool = False
+) -> bool:
+    """True when ``phrase`` at ``clause[index]`` is negated, set aside or waved away."""
+
+    instead_of = _INSTEAD_OF_CONTRARY if contrary else _INSTEAD_OF
+    if _tokens(phrase)[0] in _NEGATORS:  # the anchor is itself a refusal ("không nhận")
+        before_markers: tuple[str, ...] = instead_of
+    else:
+        before_markers = (*_NEGATORS, *instead_of)
+    before = clause[:index]
+    if any(_find(before, marker) for marker in before_markers):
+        return True
+    for dismissal in _DISMISSALS:
+        for start in _find(segment, dismissal):
+            # "không mất thời gian" / "chẳng thừa" flip the dismissal back.
+            negated = start > 0 and segment[start - 1] in ("không", "chẳng", "chả")
+            if not negated or dismissal.startswith(("không", "chẳng", "chả", "khỏi")):
+                return True
+    return False
+
+
 def nudge_failures(text: str, entry: CompanionIssueLine) -> list[str]:
     """Why ``text`` does not carry ``entry``'s nudge (empty when it does).
 
-    Matching keeps Vietnamese diacritics on purpose: folded "dung" would confuse "đừng"
-    (don't) with "đúng" (right).
+    Works clause by clause: an anchor counts only when no negation or "thay vì/hơn là" in
+    its clause and no dismissive predicate in its sentence segment rejects it; a contrary
+    phrase counts whenever its clause endorses it. Matching keeps Vietnamese diacritics on
+    purpose: folded "dung" would confuse "đừng" (don't) with "đúng" (right).
     """
 
-    tokens = _tokens(text)
-    joined = " ".join(tokens)
     failures: list[str] = []
     found = False
-    for anchor in entry.anchors:
-        anchor_tokens = _tokens(anchor)
-        width = len(anchor_tokens)
-        for index in range(len(tokens) - width + 1):
-            if tokens[index : index + width] != anchor_tokens:
-                continue
-            found = True
-            before = tokens[max(0, index - 2) : index]
-            if anchor_tokens[0] not in _NEGATORS and any(word in _NEGATORS for word in before):
-                failures.append("negated_nudge")
+    for clause, segment in _clauses(text):
+        for anchor in entry.anchors:
+            for index in _find(clause, anchor):
+                found = True
+                if _rejected(clause, segment, index, anchor):
+                    failures.append("negated_nudge")
+        for phrase in entry.contrary:
+            if any(
+                not _rejected(clause, segment, index, phrase, contrary=True)
+                for index in _find(clause, phrase)
+            ):
+                failures.append("contrary_nudge")
     if not found:
         failures.append("missing_nudge")
-    if any(" ".join(_tokens(phrase)) in joined for phrase in entry.contrary):
-        failures.append("contrary_nudge")
     return list(dict.fromkeys(failures))
 
 

@@ -23,8 +23,13 @@ under v4 is reused.
 - **Shared gates:** Lá's line goes through every shared Reading gate: evidence labels,
   anti-influence (medical/urgency/dependency/isolation…), editorial, meaning and privacy. This
   applies both to Luna's line and to the authored line of every deterministic card. On top of
-  that, the rewrite gate requires the issue's nudge anchor and rejects a negated anchor or a
-  contrary phrasing, so a line cannot reverse its card.
+  that, the rewrite gate requires the issue's nudge anchor and reads the line clause by clause
+  (`nudge_failures`): an anchor is rejected when its clause negates it anywhere before it
+  ("Không cần phải hỏi lại"), sets it aside ("thay vì / hơn là / còn hơn hỏi") or its sentence
+  segment waves it away ("Hỏi lại chỉ mất thời gian"); a contrary phrase ("đoán" for
+  missing-context) fails whenever its clause endorses it. The check is lexical and errs towards
+  rejecting (a rejected line falls back to the authored one); it does not replace human scoring
+  of meaning.
 - **Rollback floor:**
   - A candidate without a line serializes exactly as `reading-candidate/v1` (the field is omitted
     when empty). Readers from before this change, e.g. `collab/integration` @ `3d3107a`, still

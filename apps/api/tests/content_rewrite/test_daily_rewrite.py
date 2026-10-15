@@ -697,3 +697,79 @@ def test_companion_gate_rejects_a_line_that_reverses_its_card() -> None:
     )
     paraphrase = _good_output() | {"companion": "Hỏi thẳng một chữ đi, đoán làm gì cho mệt."}
     assert evaluate_daily_rewrite(paraphrase, companion_brief=entry).passed
+
+
+def _missing_context_records() -> tuple[
+    ReadingPlanRecord, ReadingProjectionRecord, ReadingRevisionRecord
+]:
+    plan = ReadingPlanner().plan(
+        DateOnlySunResult(
+            status="certain",
+            sign=ZodiacSign.PISCES,
+            candidates=(ZodiacSign.PISCES,),
+            provenance=EngineProvenance(version="test", profile="test"),
+        ),
+        purpose=ReadingPurpose.DAILY_NOTE,
+        editorial_seed="2026-01-12",
+    )
+    records = _records(plan)
+    baseline = DeterministicVietnameseRenderer().render(plan)
+    assert baseline.semantic_blueprint is not None
+    assert baseline.semantic_blueprint.mechanism_key == "psychology:missing-context"
+    return records
+
+
+async def _project_companion(
+    companion: str,
+) -> tuple[bool, MemoryRepository, dict[UUID, ReadingRevisionRecord]]:
+    plan_record, projection, active = _missing_context_records()
+    repository = MemoryRepository(plan_record, projection, active)
+    baseline = DeterministicVietnameseRenderer().render(plan_record.plan)
+    request = compile_daily_rewrite_request(
+        plan_record,
+        projection,
+        baseline,
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v5",
+    )
+    before = dict(repository.revisions)
+    decision = await DailyRewriteProjector(repository).validate_and_project(
+        request, _good_output(baseline) | {"companion": companion}, completed_at=NOW
+    )
+    return decision.accepted, repository, before
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "companion",
+    [
+        # Codex review @ 803b98a: the anchor is there but the clause rejects it.
+        "Không cần phải hỏi lại, đoán ý tin nhắn rồi trả lời nhé.",
+        "Hỏi lại chỉ mất thời gian, đoán ý tin nhắn rồi trả lời nhé.",
+        "Đừng hỏi lại, cứ đoán ý tin nhắn rồi trả lời.",
+        "Hỏi lại thì phí công lắm, trả lời luôn đi.",
+        "Đoán còn hơn hỏi, trả lời luôn cho nhanh.",
+        "Đoán nhanh hơn hỏi nhiều, trả lời luôn nhé.",
+    ],
+)
+async def test_projector_rejects_a_companion_that_waves_the_action_away(companion: str) -> None:
+    accepted, repository, before = await _project_companion(companion)
+    assert not accepted
+    assert repository.revisions == before
+    assert repository.projection.available_revision_id is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "companion",
+    [
+        "Đừng đoán mà hỏi lại cho chắc nhé.",
+        "Không rõ thì hỏi lại một câu nhé.",
+        "Hỏi lại thay vì tự đoán, nhẹ đầu hơn nhiều.",
+        "Hỏi lại không mất thời gian đâu, thử đi.",
+    ],
+)
+async def test_projector_keeps_a_companion_that_carries_the_action(companion: str) -> None:
+    accepted, repository, _before = await _project_companion(companion)
+    assert accepted
+    assert repository.projection.available_revision_id is not None

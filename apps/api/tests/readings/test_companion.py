@@ -15,6 +15,7 @@ from app.domains.readings.companion import (
     COMPANION_MOOD_NUDGE,
     COMPANION_MOOD_REACTIONS,
     companion_issue_entry,
+    nudge_failures,
     roast_companion_line,
     validate_companion_catalog,
 )
@@ -140,3 +141,36 @@ def test_every_authored_line_passes_the_shared_safety_gates() -> None:
         for gate in (anti_influence_gate, editorial_gate, privacy_gate):
             report = gate(candidate)
             assert report.passed, (line, report.failure_codes)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Không cần phải hỏi lại, đoán ý tin nhắn rồi trả lời nhé.", {"negated_nudge"}),
+        ("Hỏi lại chỉ mất thời gian, trả lời luôn nhé.", {"negated_nudge"}),
+        ("Hỏi lại thì phí công lắm.", {"negated_nudge"}),
+        ("Đoán còn hơn hỏi.", {"negated_nudge"}),
+        # Contrary on its own: the anchor is affirmed but the line also endorses guessing.
+        ("Hỏi một câu, xong cứ đoán phần còn lại.", {"contrary_nudge"}),
+        ("Đoán nhanh hơn hỏi nhiều.", {"contrary_nudge"}),
+        ("Uống nước rồi nghỉ sớm nhé.", {"missing_nudge"}),
+        # Faithful lines: negation, "thay vì" and dismissals aimed at the contrary action.
+        ("Đừng đoán mà hỏi lại cho chắc.", set()),
+        ("Không rõ thì hỏi lại một câu nhé.", set()),
+        ("Hỏi lại thay vì tự đoán, nhẹ đầu hơn.", set()),
+        ("Hỏi thẳng một chữ đi, đoán làm gì cho mệt.", set()),
+        ("Hỏi lại một câu thôi, đỡ hơn đoán cả buổi.", set()),
+        ("Hỏi lại không mất thời gian đâu, thử đi.", set()),
+    ],
+)
+def test_nudge_checker_reads_each_clause(text: str, expected: set[str]) -> None:
+    entry = companion_issue_entry("psychology:missing-context")
+    assert expected <= set(nudge_failures(text, entry))
+    if not expected:
+        assert nudge_failures(text, entry) == []
+
+
+def test_a_refusal_anchor_is_not_treated_as_negated() -> None:
+    entry = companion_issue_entry("psychology:avoid-small-conflict")
+    assert nudge_failures("Việc nào không nhận được thì nói thật nhé.", entry) == []
+    assert "negated_nudge" in nudge_failures("Từ chối chỉ mất thời gian, cứ nhận đi.", entry)
