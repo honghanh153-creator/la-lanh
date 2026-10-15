@@ -8,7 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { usePrivatePortalTarget } from "./privatePortal";
+import { usePrivatePortalTarget, useRestoreDialogFocus } from "./privatePortal";
 
 type AppSheetProps = {
   children: ReactNode;
@@ -39,6 +39,7 @@ export function AppSheet({
   const titleId = useId();
   const portalTarget = usePrivatePortalTarget();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
 
@@ -66,6 +67,8 @@ export function AppSheet({
   useEffect(() => () => {
     if (wasOpenRef.current) returnFocusRef.current?.focus();
   }, []);
+
+  useRestoreDialogFocus(open, dialogRef, closeButtonRef);
 
   if (!open) return null;
 
@@ -102,6 +105,7 @@ export function AppSheet({
         className="app-sheet"
         onKeyDown={handleKeyDown}
         open
+        ref={dialogRef}
       >
         <div aria-hidden="true" className="app-sheet__handle" />
         <button
