@@ -1,4 +1,4 @@
-# Cá nhân hoá và đa dạng nội dung: Tarot (B2), Astro (B3), Hợp gu (B4)
+# Cá nhân hoá và đa dạng nội dung (bản triệt để): Tarot (B2), Astro (B3), Hợp gu (B4)
 
 Kế hoạch 16/10/2026. Người thực hiện: Claude. Người review: Codex. Owner yêu cầu: "mở rộng mức độ cá
 nhân, đa dạng của cả tarot, astro, và phần hợp gu". Nguồn: Issue #6, audit 11/10
@@ -11,6 +11,18 @@ chặng 2 và người dùng tự bật, checklist tâm lý vào chuẩn nội d
 10, phần tâm lý người dùng ở mục 11, đối chiếu user flow ở mục 12. Bản phân tích trình bày cho owner (có
 bảng chấm điểm) được giữ riêng; nội dung quyết định đã chép đầy đủ vào file này.
 
+**Owner chốt bản triệt để (16/10/2026, sau review lần 2):** plan nền chỉ xoay một kho câu hữu hạn. Câu cũ
+quay lại sau khoảng 6–8 ngày, và hai người khác nhau nhờ salt chứ chưa phải vì bài hiểu họ. Owner chọn
+thêm **ba tầng nền tảng** (mục 14):
+
+1. **Ngữ pháp nội dung:** câu ghép từ các ô đã duyệt, có allowlist dựng lúc build.
+2. **AI lúc soạn:** sinh thêm biến thể ở bước biên tập, không gửi dữ liệu người dùng, không gọi lúc chạy.
+3. **Tín hiệu để bài nói về chính người đọc:** lịch cá nhân từ lá số, mạch nhiều ngày, "điều bạn đang
+   quan tâm" do người dùng tự chọn, và dùng lá số sâu hơn.
+
+Các phần đã review (§2 seed và chu kỳ theo trục, đóng băng, T2, R2, chặng 2–3, riêng tư) giữ nguyên làm
+nền. Mục 14 thay tầng nội dung bên dưới chúng.
+
 ## 0. Định nghĩa đo được
 
 Hai chữ "cá nhân" và "đa dạng" được quy thành chỉ số. Mỗi chỉ số là một floor trong
@@ -22,6 +34,9 @@ Hai chữ "cá nhân" và "đa dạng" được quy thành chỉ số. Mỗi ch�
 | **Đa dạng theo thời gian** | Một người dùng lâu không gặp lại cùng câu sớm | Số tình huống khác nhau trong 30/60 ngày; khoảng cách ngắn nhất giữa hai lần lặp của cảnh/hành động/tiêu đề |
 | **Đa dạng trong một bài** | Các phần của một bản đọc không lặp ý nhau | Trùng ý giữa các mục (đã có cho Daily, mở rộng cho Tarot/Radar) |
 | **Đúng và an toàn** | Đa dạng không được đổi nghĩa, dự đoán hay đoán ý người khác | Các gate hiện có + gate mới theo từng mảng |
+| **Chân trời lặp câu** (bản triệt để) | Bao lâu một người gặp lại đúng một câu tiêu đề/cảnh/việc nhỏ | Số ngày ngắn nhất giữa hai lần cùng một câu, theo profile |
+| **Yếu tố riêng mỗi bài** (bản triệt để) | Bài nhắc bao nhiêu điều chỉ của người này | Đếm: transit của mình, chương lịch cá nhân, mạch hôm trước, mối quan tâm đã chọn |
+| **Phủ allowlist** (bản triệt để) | Câu chạy thật có được gate trước không | Tỷ lệ câu runtime nằm trong allowlist đã gate ở build (phải 100%) |
 
 Đo trên dữ liệu tổng hợp: 50 profile (cả có giờ và chỉ ngày) × 60 ngày; ngân hàng câu hỏi Tarot
 khoảng 290 câu; 50 cặp Radar. Không dùng dữ liệu người dùng thật.
@@ -242,14 +257,25 @@ Giữ nguyên 8 tiêu chí của Issue #6. Thiết kế:
 
 **Thứ tự đã chốt (bậc thang, 3 chặng):**
 
-- **Chặng 1 (S1, không dữ liệu mới, không chi phí AI):**
-  1. P0 → P1.
-  2. **B3-1a, phần A1:** salt + hoán vị theo người, top-K luân phiên. Bước nhỏ, tác động rộng; làm ngay
-     sau P1, song song với B2-1.
-  3. **B2-1…4:** Tarot T2.
-  4. **B3-1b + B3-2, phần còn lại của A2:** pool cho người chỉ có ngày sinh, cân lại transit, khung "Vì
-     sao hôm nay?", 5 tình huống mới, hành động theo lens.
-  5. **B4-1…2:** Hợp gu R2.
+- **Chặng 1 (S1 + bản triệt để; không gọi AI lúc chạy).** Thứ tự mảng giữ đúng quyết định 5: Tarot →
+  Astro → Hợp gu. Hạ tầng ngữ pháp đi trước vì cả ba mảng cùng dùng.
+  1. **P0** (docs, mở rộng): US-20, AC cho B3/B4, **spec ngữ pháp** (định dạng khung/ô/tag, cách liệt kê
+     tổ hợp và gate, ngưỡng mục 14.6), danh sách tình huống mới, danh sách "điều bạn đang quan tâm",
+     nhà cung cấp cho AI lúc soạn.
+  2. **P1:** đo baseline, gồm các chỉ số mới ở mục 0.
+  3. **B3-1a (A1):** salt + chu kỳ theo trục + top-K. Đây là nền chọn giá trị cho các ô ngữ pháp.
+  4. **G0:** composer + allowlist dựng lúc build (hạ tầng chung). Chưa đổi nội dung hiển thị; kiểm trên
+     một khung mẫu.
+  5. **B2 (Tarot T2) trên ngữ pháp:** khung vai, lý do hướng nghiêng, liên từ tóm tắt. Đây là mảng thí
+     điểm đầu tiên của ngữ pháp.
+  6. **G1 (Astro trên ngữ pháp) + phần còn lại của A2:** thí điểm 2 tình huống, owner đọc 14 ngày mẫu,
+     rồi mở rộng đủ 20 tình huống (gồm 5 mới). Pool cho người chỉ có ngày sinh, cân lại transit.
+  7. **G2:** lịch cá nhân từ lá số và mạch nhiều ngày cho note ngày.
+  8. **B4 (Hợp gu R2) trên ngữ pháp:** câu theo contact, câu về nhịp hai người.
+  9. **E (AI lúc soạn):** chạy theo đợt cho từng mảng sau khi khung ổn định. Mỗi đợt owner duyệt chi phí
+     trước khi gọi API trả phí.
+  10. **F ("điều bạn đang quan tâm"):** chỉ sau khi rà luật (có thể làm sớm, trước chặng 2) và có copy
+      consent, data map, khai báo store.
 - **Chặng 2 (S3 nhẹ, người dùng tự bật):** chỉ sau khi rà Luật 91/2025 + NĐ 356/2025 từ nguồn chính thức
   và có copy consent mới.
   - B3-3 (A3): mood và phản hồi.
@@ -273,11 +299,13 @@ Giữ nguyên 8 tiêu chí của Issue #6. Thiết kế:
 
 | Mảng | Nội dung |
 |---|---|
-| Tarot | ≤ 468 nhãn lean; khoảng 3 khung × 8 vai × 4 giọng; 1–2 cảnh thêm cho các lá rút nhiều |
-| Astro | 5 tình huống × (6 + 8 + 8) câu; hành động theo lens |
-| Hợp gu | khoảng 64–96 cảnh; câu theo contact hay gặp; khung 4 giọng |
+| Tarot | ≤ 468 nhãn lean; khung vai và ô theo ngữ pháp × 4 giọng; ô ví dụ đời thường |
+| Astro | Khung và ô cho 20 tình huống (gồm 5 mới); ô theo lens, mối quan tâm và nhịp của chương; khung cho từng loại sự kiện lịch cá nhân |
+| Hợp gu | Khung cảnh × ngữ cảnh; ô theo cặp hành tinh × họ góc chiếu; ô nhịp nguyên tố; khung 4 giọng |
 
-Tất cả đi qua gate và Excel duyệt.
+Owner duyệt **giá trị ô** và **mẫu ghép** (khoảng 30 tổ hợp mỗi khung, chọn tất định và gồm cả tổ hợp
+biên) qua Excel, không duyệt từng tổ hợp. Mọi tổ hợp chạy thật đều đã qua gate tự động ở build (mục
+14.2).
 
 ## 7. Quality gates (AGENTS.md)
 
@@ -297,6 +325,23 @@ Tất cả đi qua gate và Excel duyệt.
   - Payload Luna chỉ có nhãn đóng.
   - Cập nhật `store-privacy-data-map.md`, privacy copy trong app, Apple/Google declarations.
   - Kiểm lại luật Việt Nam hiện hành trước B3-3.
+- **Bản triệt để:**
+  - **Allowlist:** mọi tổ hợp của ngữ pháp được liệt kê và chạy qua gate meaning, anti-influence,
+    editorial, nudge checker và các mục kiểm máy được của checklist tâm lý **ở build/CI**. Runtime chỉ chọn
+    trong allowlist theo `catalog_version`. Không gian quá lớn thì chia khung; không gate theo mẫu ở runtime.
+  - **AI lúc soạn:**
+    - Brief chỉ là nội dung biên tập (nghĩa, anchor, ví dụ đã duyệt), **không có dữ liệu người dùng**.
+    - Output qua khử trùng, gate, review của agent và owner duyệt theo mẫu.
+    - Catalog ghi provenance: model, phiên bản prompt, ngày, người duyệt.
+    - Mỗi đợt gọi API trả phí cần owner duyệt trước, kèm ước tính chi phí.
+    - Kiểm điều khoản nhà cung cấp về quyền dùng output làm nội dung.
+  - **Lịch cá nhân và mạch:** tính tất định từ lá số và lịch thiên văn, không lưu lịch sử. Bản đã tạo vẫn
+    đóng băng như §2.
+  - **"Điều bạn đang quan tâm":**
+    - Dữ liệu cá nhân mới do người dùng tự đặt; mặc định chưa chọn; đổi hoặc xoá trong Mình.
+    - Tránh nhãn nhạy cảm (sức khoẻ, tình trạng hôn nhân cụ thể).
+    - Chỉ dùng để chọn tag cảnh và đối tượng. Không gửi Luna, không suy luận thêm, không log.
+    - Xoá cùng hồ sơ. Cập nhật data map, privacy copy, khai báo Apple/Google. Rà luật trước khi bật.
 
 ## 8. Quyết định của owner (16/10/2026)
 
@@ -309,12 +354,18 @@ Tất cả đi qua gate và Excel duyệt.
 | 5 | Thứ tự | Tarot → Astro → Hợp gu, A1 chen sớm |
 | 6 | Mood, phản hồi, nhật ký | Chặng 2, mặc định tắt, người dùng tự bật; nối Tarot với note hôm nay cũng ở chặng 2 |
 | 7 | Checklist tâm lý | Đưa vào chuẩn nội dung (`la-lanh-plain-vietnamese-content-standard.md`), áp cho mọi câu mới |
+| 8 | Kiến trúc nội dung | **Bản triệt để** (mục 14): ngữ pháp nội dung + AI lúc soạn + tín hiệu cá nhân. Giữ các phần đã review làm nền. Thứ tự mảng theo quyết định 5 giữ nguyên; hạ tầng ngữ pháp (G0) đi trước |
 
 **P0 chưa hoàn tất:** US-20 (Tarot), AC cho B3/B4, fixture tổng hợp và các ngưỡng đo cụ thể phải có
 trước khi bắt đầu B2/B3/B4. Approval của kế hoạch này không phải approval code hay release.
 
-Còn chờ owner ở P0: chọn 5 tình huống Astro mới từ danh sách đề xuất, và duyệt câu Cà khịa của từng đợt
-qua file Excel.
+Còn chờ owner ở P0:
+
+- chọn 5 tình huống Astro mới;
+- chốt danh sách "điều bạn đang quan tâm";
+- chọn nhà cung cấp cho AI lúc soạn;
+- xác nhận các ngưỡng ở mục 14.6;
+- duyệt giá trị ô và mẫu ghép của từng đợt (gồm Cà khịa) qua file Excel.
 
 ## 9. Không thuộc phạm vi
 
@@ -336,6 +387,12 @@ hành, rủi ro nội dung, khả năng đo.
 | Astro | A1: xoay vòng riêng (salt, hoán vị, top-K) | **A2**: A1 + pool cho người chỉ có ngày sinh, transit có chỗ đứng, 5 tình huống mới, hành động theo lens | A3: A2 + mood/phản hồi opt-in (chặng 2) |
 | Tarot | T1: sửa cấu trúc (vai, tóm tắt liền, dọn chữ thừa) | **T2**: T1 + hiểu câu hỏi, hướng nghiêng 3 mức, khung câu và ví dụ đa dạng | T3: T2 + gợi ý cách hỏi, đào sâu một lá, nhật ký opt-in (chặng 2) |
 | Hợp gu | R1: cảnh × ngữ cảnh, giọng đổi cả câu | **R2**: R1 + câu theo góc chiếu giữa hai chart và cân bằng nguyên tố, ngữ cảnh đổi cả "hợp"/"ma sát" | R3: R2 + thẻ câu hỏi và góc nhìn hai phía (chặng 2); nhắc lại (chặng 3) |
+
+| Kiến trúc nội dung | Ý chính | Kết quả với người dùng hằng ngày |
+|---|---|---|
+| Kho câu viết sẵn (plan nền) | 6/8/8 câu mỗi tình huống, xoay theo chu kỳ | Gặp lại đúng câu cũ sau khoảng 6–8 ngày |
+| **Ngữ pháp + AI lúc soạn + tín hiệu (chọn)** | Câu ghép từ ô đã duyệt, ô được nhân lên bằng AI ở bước biên tập, chọn theo lá số, lịch, mạch và mối quan tâm | Mục tiêu: không gặp lại cùng câu trong ≥ 90 ngày; bài nhắc ≥ 3 yếu tố riêng |
+| Luna viết lúc chạy (chặng 3) | Mô hình viết cho từng người | Câu tự nhiên nhất nhưng vướng riêng tư, chi phí, governance; không sửa được tín hiệu nghèo |
 
 Lý do không chọn S2 trước: làm mượt câu trên nội dung đang lặp chỉ che triệu chứng. Lý do không chọn T1:
 không giải quyết kỳ vọng chính, là được trả lời đúng câu hỏi. Lý do R2 thay R1: R1 vẫn để hai cặp cùng
@@ -443,3 +500,137 @@ Hướng chung rút ra, ở mức giả thuyết: nội dung nên trao lại c�
 - Pháp lý, cần đối chiếu bản gốc trên Cổng Pháp luật quốc gia trước chặng 2:
   - Luật 91/2025/QH15 (hiệu lực 01/01/2026): https://thuvienphapluat.vn/van-ban/bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx
   - NĐ 356/2025/NĐ-CP: https://thuvienphapluat.vn/van-ban/Quyen-dan-su/Nghi-dinh-356-2025-ND-CP-huong-dan-Luat-Bao-ve-du-lieu-ca-nhan-687428.aspx
+
+## 14. Bản triệt để: ba tầng thay đổi nền tảng
+
+### 14.1 Vì sao cần
+
+Plan nền (§2–§5) chọn câu từ một kho viết sẵn nhỏ. Kể cả khi xoay vòng tốt, một tình huống ổn định vẫn
+cho người dùng hằng ngày gặp lại đúng câu sau khoảng 6–8 ngày. Hai người khác nhau vì salt, chưa phải vì
+bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và **tín hiệu dùng để chọn câu**.
+
+### 14.2 Tầng 1: Ngữ pháp nội dung
+
+- **Khung và ô:** mỗi phần của bài là một khung gồm nhiều ô; mỗi ô có danh sách giá trị đã duyệt. Ví dụ
+  việc nhỏ của tình huống `missing-context` có dạng `[tình huống kích hoạt] [động từ] [đối tượng]`:
+  - tình huống kích hoạt: "Khi mở tin nhắn tiếp theo,", "Trước khi trả lời,", "Lúc đọc lại đoạn chat,", …
+  - động từ: "hỏi lại", "hỏi thẳng", …
+  - đối tượng: "một chữ chưa rõ", "đúng chỗ bạn đang đoán", …
+
+  Cảnh có dạng `[người] [kênh] [khoảnh khắc] [dấu hiệu quan sát được]`. Tiêu đề là khung kèm danh từ của
+  tình huống.
+- **Metadata của mỗi giá trị:**
+  - khoá nghĩa (phải khớp anchor của tình huống) và giọng (direct/roast);
+  - tag theo lens, mối quan tâm và nhịp của chương;
+  - độ dài;
+  - ràng buộc đi cùng hoặc loại trừ (ví dụ kênh "tin nhắn" chỉ đi với giao tiếp);
+  - đặc điểm ngữ pháp tiếng Việt (loại từ, trợ từ cuối câu).
+- **Composer:**
+  - Mỗi ô là một "trục" của §2, nên giá trị chọn theo chu kỳ riêng từng ô, tất định theo seed của người dùng.
+  - Lọc theo ràng buộc và tag, ghép câu, chuẩn hoá dấu câu.
+  - Cam kết cứng của §2 áp cho từng ô.
+- **Allowlist dựng lúc build:**
+  - Không gian ghép của mỗi khung hữu hạn, nên CI liệt kê **mọi** tổ hợp, chạy gate, rồi lưu allowlist
+    theo `catalog_version`.
+  - Runtime chỉ chọn trong allowlist, nên không có câu nào chưa qua gate tới tay người dùng.
+  - Khung có không gian quá lớn thì tách nhỏ.
+- **Cà khịa:** giá trị ô có bản Cà khịa riêng; ghép Cà khịa là khung riêng, ít ô hơn. Quy tắc "không nửa
+  thẻ" giữ nguyên.
+- **Duyệt:** owner duyệt giá trị ô và mẫu ghép, không duyệt từng tổ hợp (§6).
+- **Quy mô mục tiêu,** đo thật ở G1: mỗi tình huống khoảng 240 việc nhỏ hợp lệ, 120 cảnh, 30 tiêu đề.
+- **Rủi ro câu ghép kém tự nhiên:** giữ khung ngắn, ít ô; gate độ dài; owner đọc 14 ngày mẫu trước khi mở
+  rộng.
+
+### 14.3 Tầng 2: AI lúc soạn
+
+- **Quy trình:**
+  1. Brief biên tập của khung: nghĩa, anchor, contrary, giọng, giá trị đã duyệt.
+  2. Mô hình sinh giá trị ô ứng viên.
+  3. Khử trùng (trùng chữ, gần nghĩa).
+  4. Gate tự động.
+  5. Review của agent.
+  6. Owner duyệt theo mẫu.
+  7. Vào catalog, có provenance.
+- **Không dữ liệu người dùng, không gọi lúc chạy.** Chi phí là một lần cho mỗi đợt; mỗi đợt owner duyệt
+  trước.
+- Duyệt và lưu qua Content Studio (`apps/api/app/domains/content/`) nếu phù hợp; nếu không thì dùng
+  catalog trong repo cộng file Excel.
+- Mục tiêu: 5–10 lần số giá trị mỗi ô so với bản viết tay.
+
+### 14.4 Tầng 3: Tín hiệu để bài nói về chính người đọc
+
+- **Lịch cá nhân từ lá số** (tất định, không dữ liệu mới):
+  - Các sự kiện: sinh nhật (Mặt Trời trở về), Sao Mộc và Sao Thổ trở về, transit chậm vào orb với hành tinh
+    cá nhân, Sao Thuỷ nghịch hành chạm Sao Thuỷ natal, …
+  - Mỗi sự kiện là một **chương**, có tình huống và khung riêng.
+  - Người chỉ có ngày sinh dùng các sự kiện tính được từ Mặt Trời và ngày sinh.
+- **Mạch nhiều ngày:**
+  - Engine đã có `TransitPhase` (đang tới gần / chính xác / tách dần).
+  - Một chương N ngày chia ba nhịp **nhận ra → thử → nhìn lại**. Ô "nhịp" chọn theo ngày thứ mấy của
+    chương, ví dụ "Ngày 2 của đợt Sao Hoả chạm Mặt Trời của bạn".
+  - Tính lại được từ lịch thiên văn, không cần lưu lịch sử.
+  - Nhiều chương trùng nhau thì ưu tiên theo độ chặt orb và mức cá nhân; tối đa một chương nổi trên Home.
+- **"Điều bạn đang quan tâm":**
+  - Người dùng tự chọn một mục từ danh sách khoảng 8. Đề xuất: học tập, công việc mới, tình cảm, gia đình,
+    bạn bè, chăm mình, tiền bạc, một thay đổi lớn. Owner chốt ở P0.
+  - Đổi cảnh và đối tượng của bài. Ràng buộc riêng tư ở §7.
+- **Lá số sâu hơn:** thêm luật về cặp, nhà, góc chiếu và orb vào chấm điểm tình huống và "Vì sao hôm nay?".
+  Giữ evidence binding.
+- **Người chỉ có ngày sinh: dùng gần đủ lá số, không chỉ Mặt Trời.**
+  - Hiện `calculate_date_only_sun` (`astro/engine.py:583`) chỉ tính Mặt Trời. Cách tính đã trung thực: quét
+    cả khoảng một ngày dân sự có thể rơi vào (UTC+14 tới UTC−12), không tự đặt giờ.
+  - Áp cùng cách đó cho các hành tinh khác. Trên khoảng khoảng 50 giờ, Sao Thuỷ, Sao Kim và Sao Hoả chỉ dao
+    động vài độ, các hành tinh chậm gần như cố định. Cung của từng hành tinh và các góc chiếu có biên độ đủ
+    rộng vẫn dùng được.
+  - Hành tinh **đổi cung trong khoảng đó** được ghi dạng "candidates" như Mặt Trời hiện nay, và không dùng
+    để kết luận.
+  - **Không dùng** Mặt Trăng (dao động khoảng 27°), cung mọc, nhà và các kết luận phụ thuộc giờ. Ghi rõ
+    trên bài là bản đọc từ ngày sinh.
+  - Kết quả: transit tới Sao Thuỷ, Sao Kim, Sao Hoả, Sao Mộc, Sao Thổ của chính người đó, và các chương lịch
+    cá nhân, đều có cho người không rõ giờ sinh. Biên sai số phải nằm trong evidence, có test cho các ngày
+    hành tinh đổi cung.
+
+### 14.5 Áp cho Tarot và Hợp gu
+
+- **Tarot:**
+  - Khung vai, lý do hướng nghiêng và liên từ tóm tắt viết bằng ngữ pháp; ô liên hệ theo dạng câu hỏi.
+  - Mối quan tâm (nếu đã chọn) chỉ chọn ví dụ đời thường phù hợp. Không trích câu hỏi.
+  - Biến thể chọn một lần lúc rút rồi đóng băng.
+- **Hợp gu:**
+  - Câu theo contact được ghép từ cặp hành tinh × họ góc chiếu × ngữ cảnh × giọng.
+  - Câu về nhịp hai người lấy từ cân bằng nguyên tố và tính chất của hai chart.
+  - Không lưu thêm dữ liệu của người kia.
+
+### 14.6 Tiêu chí "triệt để"
+
+Đề xuất, owner xác nhận ở P0. Đo trên dữ liệu tổng hợp ở P1/G1, rồi đặt thành floor.
+
+| Chỉ số | Plan nền | Bản triệt để |
+|---|---|---|
+| Gặp lại đúng một câu (tiêu đề/cảnh/việc nhỏ), cùng người | khoảng 6–8 ngày | ≥ 90 ngày với ≥ 95% profile |
+| Hai người cùng cung, cùng ngày, note giống hệt | khác do may rủi | < 1% |
+| Yếu tố riêng mỗi note | 1–2 | ≥ 3 (có giờ sinh), ≥ 2 (chỉ ngày sinh) |
+| Ngày trong một chương có nhắc mạch | 0 | đo ở G2, floor đặt sau |
+| Câu runtime nằm trong allowlist đã gate | không áp dụng | 100% |
+
+### 14.6b Yêu cầu nâng cao đề xuất (owner hỏi 16/10, xác nhận ở P0)
+
+| Nhóm | Yêu cầu | Lý do |
+|---|---|---|
+| **Người không rõ giờ sinh** | Cùng chân trời lặp câu ≥ 90 ngày như người có giờ sinh; ≥ 3 yếu tố riêng mỗi note (transit tới hành tinh của mình, chương lịch, mạch hôm trước, mối quan tâm) | Nhóm này có thể chiếm phần lớn người mới. Hiện họ chỉ có một tình huống cả năm |
+| **Lỗi nội dung** | 0 câu runtime ngoài allowlist; 0 cụm bị cấm trên toàn bộ không gian ghép; mỗi lỗi người dùng hoặc review báo thì thêm test hồi quy **và** quét lại toàn bộ allowlist, không chỉ sửa một câu | Ngăn một lỗi xuất hiện lại ở tổ hợp khác |
+| **Lặp giữa các màn** | Trong cùng một ngày, lời của Lá, note, Tarot và Hợp gu không dùng lại cùng một câu hay cùng một việc nhỏ | Người dùng đọc nhiều màn liền nhau sẽ thấy lặp dù từng màn đều đa dạng |
+| **Lặp trong một bài** | Giữ quy tắc trùng ý hiện có cho Daily; mở rộng cho Tarot (giữa các vai) và Hợp gu (giữa các mục) | Đa dạng theo ngày không có nghĩa là một bài không tự lặp |
+| **Trung thực** | Không bịa dữ liệu để đạt đa dạng: không đoán giờ sinh, không dùng Mặt Trăng hay cung mọc khi không có giờ | Đa dạng phải đến từ dữ liệu thật |
+
+**Giới hạn phải ghi rõ:** hai người **cùng ngày sinh và cùng không rõ giờ** có lá số gần như giống hệt. Với
+họ, khác biệt chỉ đến từ mối quan tâm đã chọn, salt và ngày mở app. Không được tuyên bố là "vì lá số
+khác".
+
+### 14.7 Đánh đổi
+
+- Khối lượng lớn hơn rõ (composer, allowlist, khung, duyệt mẫu), nên chặng 1 dài hơn plan nền.
+- Câu ghép có thể kém tự nhiên. Đối phó bằng khung ngắn, đọc 14 ngày mẫu, gate.
+- Ưu tiên giữa các chương phức tạp, cần audit riêng.
+- "Điều bạn đang quan tâm" là dữ liệu mới, phải rà luật trước khi bật.
+- AI lúc soạn tốn chi phí một lần cho mỗi đợt và cần owner duyệt; chất lượng phụ thuộc khâu duyệt mẫu.
