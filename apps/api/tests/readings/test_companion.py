@@ -157,6 +157,11 @@ def test_every_authored_line_passes_the_shared_safety_gates() -> None:
         ("Hỏi lại nhé, không chờ trả lời cứ đoán luôn.", {"contrary_nudge"}),
         ("Hỏi lại nhé, cứ đoán cho nhanh khỏi mất thời gian.", {"contrary_nudge"}),
         ("Hỏi lại đi, chẳng ai trách nếu bạn cứ đoán.", {"contrary_nudge"}),
+        ("Hỏi lại đi, cứ đoán cũng không mất công.", {"contrary_nudge"}),
+        ("Hỏi lại nhé, cứ đoán không mất thời gian đâu.", {"contrary_nudge"}),
+        ("Hỏi lại nhé, thôi cứ đoán luôn cho nhanh.", {"contrary_nudge"}),
+        ("Hỏi lại nhé, không gì hơn đoán.", {"contrary_nudge"}),
+        ("Hỏi lại đi, đoán chẳng vô ích đâu.", {"contrary_nudge"}),
         ("Uống nước rồi nghỉ sớm nhé.", {"missing_nudge"}),
         # Faithful lines: negation, "thay vì" and dismissals aimed at the contrary action.
         ("Đừng đoán mà hỏi lại cho chắc.", set()),
@@ -180,3 +185,34 @@ def test_a_refusal_anchor_is_not_treated_as_negated() -> None:
     entry = companion_issue_entry("psychology:avoid-small-conflict")
     assert nudge_failures("Việc nào không nhận được thì nói thật nhé.", entry) == []
     assert "negated_nudge" in nudge_failures("Từ chối chỉ mất thời gian, cứ nhận đi.", entry)
+
+
+# Frames that keep endorsing the contrary action although a negation or dismissal is nearby.
+_ENDORSING_FRAMES = (
+    "{a} nhé, thôi {c} luôn cho nhanh.",
+    "{a} đi, {c} cũng không mất công.",
+    "{a} nhé, {c} không mất thời gian đâu.",
+    "{a} nhé, {c} có làm gì đâu.",
+    "{a} nhé, không gì hơn {c}.",
+    "{a} đi, chẳng ai trách nếu bạn {c}.",
+    "{a} nhé, không chờ ai {c} luôn.",
+)
+
+
+@pytest.mark.parametrize("key", sorted(COMPANION_ISSUE_LINES))
+@pytest.mark.parametrize("frame", _ENDORSING_FRAMES)
+def test_every_issue_rejects_an_endorsed_contrary(key: str, frame: str) -> None:
+    entry = COMPANION_ISSUE_LINES[key]
+    anchor = entry.anchors[0].capitalize()
+    for contrary in entry.contrary:
+        text = frame.format(a=anchor, c=contrary)
+        assert "contrary_nudge" in nudge_failures(text, entry), text
+
+
+@pytest.mark.parametrize("key", sorted(COMPANION_ISSUE_LINES))
+def test_every_issue_lets_a_line_refuse_the_contrary(key: str) -> None:
+    entry = COMPANION_ISSUE_LINES[key]
+    anchor = entry.anchors[0].capitalize()
+    for contrary in entry.contrary:
+        text = f"{anchor} nhé, đừng {contrary}."
+        assert "contrary_nudge" not in nudge_failures(text, entry), text

@@ -371,12 +371,12 @@ def _rejected(clause: list[str], segment: list[str], index: int, phrase: str) ->
 
 
 # A contrary action is set aside only by a marker aimed at it: right before it, past these
-# adverbs ("đừng cứ đoán", "thay vì tự đoán", "đỡ hơn đoán")...
+# adverbs ("đừng cứ đoán", "thay vì tự đoán", "đỡ hơn đoán"). "thôi" is not one: "thôi cứ
+# đoán" urges the action.
 _CONTRARY_GOVERNORS = (
     *_NEGATORS,
     *_INSTEAD_OF,
     "hơn",
-    "thôi",
     "không cần",
     "chẳng cần",
     "chả cần",
@@ -386,8 +386,9 @@ _CONTRARY_GOVERNORS = (
     "đừng nên",
 )
 _ACTION_ADVERBS = ("cứ", "tự", "có", "phải", "ngồi", "đi")
-# ...or by a dismissal right after it ("đoán làm gì cho mệt"), at most two object words away,
-# none of them pushing the action ("cứ đoán cho nhanh khỏi mất thời gian" stays contrary).
+# ...or by a dismissal right after it ("đoán làm gì cho mệt"), at most two words away. The gap
+# must not push the action or negate the dismissal ("cứ đoán cho nhanh khỏi mất thời gian",
+# "cứ đoán không mất công", "đoán có làm gì đâu" all stay contrary).
 _CONTRARY_DISMISSALS = (
     "làm gì",
     "làm chi",
@@ -400,15 +401,28 @@ _CONTRARY_DISMISSALS = (
     "cho mệt",
     "không đáng",
 )
-_PUSHING = ("cho", "nhanh", "luôn", "đi", "khỏi", "đỡ", "để", "nhé", "ngay")
+_DISMISSAL_BLOCKERS = (
+    *_NEGATORS,
+    "chưa",
+    "có",
+    "cho",
+    "nhanh",
+    "luôn",
+    "đi",
+    "đỡ",
+    "để",
+    "nhé",
+    "ngay",
+)
 _DISMISSAL_REACH = 2
 
 
 def _contrary_set_aside(clause: list[str], index: int, phrase: str) -> bool:
     """True only when a negation or dismissal targets the contrary ``phrase`` itself.
 
-    A negation of some other action ("không chờ trả lời, cứ đoán") does not count; when the
-    scope is unclear the phrase stays contrary and the line is rejected.
+    A negation of some other action ("không chờ trả lời, cứ đoán"), a double negation
+    ("không phải không đoán", "không gì hơn đoán") or a negated dismissal does not count;
+    when the scope is unclear the phrase stays contrary and the line is rejected.
     """
 
     start = index
@@ -417,12 +431,17 @@ def _contrary_set_aside(clause: list[str], index: int, phrase: str) -> bool:
     for marker in _CONTRARY_GOVERNORS:
         width = len(_tokens(marker))
         if start >= width and clause[start - width : start] == _tokens(marker):
-            return True
+            # Any negation before the governor makes the scope a double negation or unclear.
+            return not any(_find(clause[: start - width], negator) for negator in _NEGATORS)
     end = index + len(_tokens(phrase))
     for dismissal in _CONTRARY_DISMISSALS:
         for at in _find(clause, dismissal):
+            if not 0 <= at - end <= _DISMISSAL_REACH:
+                continue
             gap = clause[end:at]
-            if 0 <= at - end <= _DISMISSAL_REACH and not any(word in _PUSHING for word in gap):
+            after = clause[at + len(_tokens(dismissal)) :]
+            blocked = any(_find(gap, word) for word in _DISMISSAL_BLOCKERS)
+            if not blocked and "đâu" not in after:
                 return True
     return False
 

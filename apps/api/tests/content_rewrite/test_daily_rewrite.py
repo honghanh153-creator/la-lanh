@@ -755,6 +755,12 @@ async def _project_companion(
         "Hỏi lại nhé, không chờ trả lời cứ đoán luôn.",
         "Hỏi lại nhé, cứ đoán cho nhanh khỏi mất thời gian.",
         "Hỏi lại đi, chẳng ai trách nếu bạn cứ đoán.",
+        # Codex review @ 8113dc3: a negated dismissal or "thôi cứ" still urges guessing.
+        "Hỏi lại đi, cứ đoán cũng không mất công.",
+        "Hỏi lại nhé, cứ đoán không mất thời gian đâu.",
+        "Hỏi lại nhé, thôi cứ đoán luôn cho nhanh.",
+        "Hỏi lại nhé, cứ đoán có làm gì đâu.",
+        "Hỏi lại nhé, không phải không đoán.",
     ],
 )
 async def test_projector_rejects_a_companion_that_waves_the_action_away(companion: str) -> None:
@@ -774,6 +780,7 @@ async def test_projector_rejects_a_companion_that_waves_the_action_away(companio
         "Hỏi lại không mất thời gian đâu, thử đi.",
         "Đừng cứ đoán, hỏi lại một câu nhé.",
         "Hỏi thẳng một chữ đi, đoán làm gì cho mệt.",
+        "Không cần đoán, hỏi lại một câu là rõ.",
     ],
 )
 async def test_projector_keeps_a_companion_that_carries_the_action(companion: str) -> None:
