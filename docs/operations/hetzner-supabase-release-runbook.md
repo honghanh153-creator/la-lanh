@@ -5,16 +5,22 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-10-16
+## Current production — 2026-10-16 (hotfix)
 
-Release `b474cafbc434` is live (Lá's companion line + "Tím đêm dịu" UI), Alembic head
-`20261011_0036`, generation/Google login off. Staging runs the same image digest. Receipt, parity
-table and findings: [production-release-2026-10-16](../reviews/production-release-2026-10-16/receipt.md).
-Immediate rollback image: `la-lanh:a6e11bfd149b` (same schema and secrets). Run
-`rehearse-migration.sh` by absolute path. Staging: refresh `/opt/la-lanh/staging/source/infra` from
-the release, then `STAGING_GENERATION=off ./up.sh`, and recreate staging after `deploy.sh` so both
-run the deployed image digest.
+Release `836222282dfc` is live (#15 readable destructive button, #16 owner-bound Radar delete sheet
+on top of `b474cafbc434`). Alembic `20261011_0036`, generation/Google login off, staging on the same
+image digest. Receipt: [receipt-836222282dfc](../reviews/production-release-2026-10-16/receipt-836222282dfc.md).
+Immediate rollback image: `la-lanh:b474cafbc434`.
 
+Every release: copy **both** server-only files from the current release into the new one before
+`deploy.sh`: `infra/hetzner/app.env` and `infra/hetzner/sites/staging.caddy`. Caddy mounts `sites/`
+from the active release, so a missing `staging.caddy` breaks staging TLS when `deploy.sh`
+recreates Caddy. Caddy's admin API is off, so a config change needs `docker restart la-lanh-caddy-1`.
+Run `rehearse-migration.sh` by absolute path. After `deploy.sh`, recreate staging
+(`STAGING_GENERATION=off ./up.sh`) so both run the deployed digest.
+
+Earlier on 16/10: release `b474cafbc434`,
+[receipt](../reviews/production-release-2026-10-16/receipt.md).
 Previous: release `a6e11bfd149b` (2026-10-11),
 [receipt](../reviews/production-release-2026-10-11/receipt.md).
 
@@ -296,6 +302,8 @@ example on the first release:
 ```sh
 cp /opt/la-lanh/current/infra/hetzner/app.env /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/app.env
 chmod 0600 /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/app.env
+# Server-only staging site: Caddy mounts sites/ from the active release.
+cp /opt/la-lanh/current/infra/hetzner/sites/staging.caddy /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/sites/staging.caddy
 ```
 
 Review the file without changing the established contract:
