@@ -112,6 +112,41 @@ nhưng không kéo dài câu chỉ để tạo cảm giác “đọc sâu”.
 - “Mở lòng”, “được trân trọng” và “ranh giới” được dùng khi câu nói rõ người, việc và hoàn cảnh.
 - “Mood” chỉ được dùng trong microcopy vui; không dùng để giải thích kết luận.
 
+## Checklist tâm lý (owner chốt 2026-10-16)
+
+Áp cho nội dung mới hoặc sửa của note ngày, Tarot, Hợp gu và lời của Lá, cả hai giọng. Checklist này
+**bổ sung** các mục ở trên, không thay chúng: thứ tự bắt buộc của bài đọc, "scene không chứa lời khuyên",
+và quy tắc lời của Lá "không lặp lại tiêu đề hay hành động" vẫn giữ nguyên. Lý do, nguồn và giới hạn
+bằng chứng nằm ở `docs/plans/2026-10-16-personalisation-variety-plan.md` mục 11.
+
+**Cho cả bài đọc:**
+
+- Có căn cứ riêng (lá số, vai của lá, góc chiếu, câu hỏi), không phải câu ai đọc cũng thấy đúng.
+- Không quyết thay, không dự đoán, không đoán ý người khác; gợi quay về nhu cầu và cách mở lời của
+  người dùng.
+- Tối đa một ý tiêu cực trong cả bài, luôn kèm lối ra. Ngưỡng "một" là lựa chọn sản phẩm.
+- Bài kết ở phần đề nghị một việc (advice), không kết bằng cảnh báo.
+
+**Cho từng phần:**
+
+| Phần | Quy tắc |
+|---|---|
+| Tiêu đề (headline) | Một câu ngắn nói điều đáng chú ý nhất; không chứa lời khuyên |
+| Cảnh (scene) | Tình huống quan sát được; không chứa lời khuyên, không "hãy/thử/nên/đừng" (như mục trên) |
+| Đề nghị (advice) | Một việc nhỏ làm được hôm nay, có động từ và tình huống kích hoạt kiểu "khi…". Động từ hành động trực tiếp của giọng direct vẫn được dùng, ví dụ "Hỏi ngay chỗ đó" |
+| Lời của Lá (companion) | 4–14 chữ, nhắc thử việc nhỏ trong thẻ nhưng không lặp lại hành động; không phải lời khuyên thứ hai |
+
+**"Không ra lệnh"** nghĩa là không ép buộc và không quyết thay: không "bạn phải", "nhất định", "nếu
+không thì…", không gắn hậu quả hay định mệnh. Đây không phải lệnh cấm câu mệnh lệnh nhẹ trong advice.
+
+**Cà khịa:** trêu tình huống, không trêu người, vẫn giữ lối ra.
+
+**Ban đêm:** sau 21:00 chỉ thu gọn cách trình bày. Không render lại hay đổi nội dung của bản đã tạo, lưu,
+chia sẻ hoặc đang trong phiên theo giờ mở.
+
+Các mục máy kiểm được (căn cứ, ép buộc, số ý tiêu cực, độ dài, advice có trigger) sẽ dần vào gate theo
+từng PR của kế hoạch. Các mục còn lại kiểm khi review và khi owner duyệt file Excel.
+
 ## Cụm từ không dùng trong nội dung chính
 
 - pattern, vận hành, giữ nhịp, vùng mờ, cơ chế này;
