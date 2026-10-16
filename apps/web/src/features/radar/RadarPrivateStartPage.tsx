@@ -16,6 +16,8 @@ import { BrandMark } from "../../shared/ui/BrandMark";
 import { BirthTimeInput } from "../../shared/ui/BirthTimeInput";
 import "../matching/matching.css";
 import "./radar.css";
+import { RadarEraseSheet } from "./RadarEraseSheet";
+import { useRadarEraseTarget } from "./useRadarEraseTarget";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { RADAR_CONTEXT_OPTIONS, RADAR_VOICE_OPTIONS } from "./radarOptions";
 import { RADAR_HISTORY_QUERY_KEY, useRadarOwnerBinding } from "./useRadarOwnerBinding";
@@ -63,6 +65,7 @@ export function RadarPrivateStartPage() {
 
   const owner = useRadarOwnerBinding();
   const history = useRadarHistory(owner.epoch, owner.isReady, "private_check");
+  const erase = useRadarEraseTarget(owner);
   const retryKey = useRadarCreateKey(owner.epoch);
 
   const effectivePlaceQuery = debouncedPlaceQuery.length >= 2 ? debouncedPlaceQuery : "";
@@ -210,8 +213,9 @@ export function RadarPrivateStartPage() {
     {message && !owner.isError ? <p className="matching-message" role="alert">{message}</p> : null}
     {create.isError && create.error instanceof ApiProblem && create.error.status === 409 && create.error.code !== "RADAR_IDEMPOTENCY_CONFLICT" ? <Link className="matching-secondary" onClick={startOwnerProfile} to="/birth-time">Thêm giờ & nơi sinh của mình</Link> : null}
 
-    {ownerReady ? <section className="radar-history" id="radar-history"><p className="eyebrow">Những lần check gần đây</p>{privateHistory.length ? privateHistory.map((item) => <article key={item.id}><span className={`radar-status is-${item.status}`}>{item.status === "completed" ? <Check /> : <HeartStraight />}</span><div><strong>{item.recipient_label}</strong><p>{item.status === "completed" ? "Kết quả được giữ tối đa 30 ngày" : "Kết quả đã hết hạn"}</p></div>{item.status === "completed" ? <Link to={`/radar/result/${item.id}`}>Mở</Link> : null}<button aria-label={`Xóa kết quả ${item.recipient_label}`} onClick={() => remove.mutate(item.id)} type="button"><Trash /></button></article>) : <p className="radar-history__empty">Chưa có bản đọc nào. Kết quả đầu tiên sẽ nằm ở đây để bạn mở lại.</p>}</section> : null}
+    {ownerReady ? <section className="radar-history" id="radar-history"><p className="eyebrow">Những lần check gần đây</p>{privateHistory.length ? privateHistory.map((item) => <article key={item.id}><span className={`radar-status is-${item.status}`}>{item.status === "completed" ? <Check /> : <HeartStraight />}</span><div><strong>{item.recipient_label}</strong><p>{item.status === "completed" ? "Kết quả được giữ tối đa 30 ngày" : "Kết quả đã hết hạn"}</p></div>{item.status === "completed" ? <Link to={`/radar/result/${item.id}`}>Mở</Link> : null}<button aria-label={`Xóa kết quả ${item.recipient_label}`} disabled={remove.isPending} onClick={() => erase.request(item.id, item.recipient_label)} type="button"><Trash /></button></article>) : <p className="radar-history__empty">Chưa có bản đọc nào. Kết quả đầu tiên sẽ nằm ở đây để bạn mở lại.</p>}</section> : null}
     {ownerReady && history.hasNextPage ? <button className="matching-secondary" disabled={history.isFetchingNextPage} onClick={() => void history.fetchNextPage()} type="button">{history.isFetchingNextPage ? "Đang tải…" : "Xem thêm kết quả"}</button> : null}
     {ownerReady && history.isError ? <p role="alert">Chưa tải được lịch sử. <button onClick={() => void history.refetch()} type="button">Thử lại</button></p> : null}
+    <RadarEraseSheet body="Bản đọc này sẽ không còn mở được, kể cả từ lịch sử. Việc này không hoàn tác được." erase={erase} onConfirm={(id) => remove.mutate(id)} pending={remove.isPending} title={(name) => `Xoá kết quả với ${name}?`} />
   </main>;
 }
