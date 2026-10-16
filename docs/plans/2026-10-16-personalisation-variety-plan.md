@@ -40,6 +40,7 @@ Hai chữ "cá nhân" và "đa dạng" được quy thành chỉ số. Mỗi ch�
 
 Đo trên dữ liệu tổng hợp: 50 profile (cả có giờ và chỉ ngày) × 60 ngày; ngân hàng câu hỏi Tarot
 khoảng 290 câu; 50 cặp Radar. Không dùng dữ liệu người dùng thật.
+Các chỉ số của bản triệt để dùng cửa sổ 200 ngày, chia nhóm và điều kiện khả thi ở §14.6.
 
 ## 1. Hiện trạng đã đo
 
@@ -259,9 +260,14 @@ Giữ nguyên 8 tiêu chí của Issue #6. Thiết kế:
 
 - **Chặng 1 (S1 + bản triệt để; không gọi AI lúc chạy).** Thứ tự mảng giữ đúng quyết định 5: Tarot →
   Astro → Hợp gu. Hạ tầng ngữ pháp đi trước vì cả ba mảng cùng dùng.
-  1. **P0** (docs, mở rộng): US-20, AC cho B3/B4, **spec ngữ pháp** (định dạng khung/ô/tag, cách liệt kê
-     tổ hợp và gate, ngưỡng mục 14.6), danh sách tình huống mới, danh sách "điều bạn đang quan tâm",
-     nhà cung cấp cho AI lúc soạn.
+  1. **P0** (docs, mở rộng): US-20, AC cho B3/B4, danh sách tình huống mới, danh sách "điều bạn đang
+     quan tâm", nhà cung cấp cho AI lúc soạn, và các spec:
+     - **Spec ngữ pháp:** khung, ô, tag, bucket; ô bắt buộc đổi; thuật toán lịch hợp lệ và giới hạn bước;
+       giới hạn tổ hợp và tài nguyên CI; manifest; luật từ chối build (§14.2).
+     - **Spec sự kiện G2:** miền longitude, orb dạng khoảng, pha chắc, ID lượt, cửa sổ chắc và cửa sổ có
+       thể, ngày theo múi giờ của note, `event_spec_version` (§14.4).
+     - **Spec đo:** cửa sổ 200 ngày, chuẩn hoá câu, nhóm, fixture, ngưỡng và cách đếm yếu tố riêng (§14.6).
+     - **AC lặp giữa các màn** (§14.6b).
   2. **P1:** đo baseline, gồm các chỉ số mới ở mục 0.
   3. **B3-1a (A1):** salt + chu kỳ theo trục + top-K. Đây là nền chọn giá trị cho các ô ngữ pháp.
   4. **G0:** composer + allowlist dựng lúc build (hạ tầng chung). Chưa đổi nội dung hiển thị; kiểm trên
@@ -525,19 +531,56 @@ bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và 
   - độ dài;
   - ràng buộc đi cùng hoặc loại trừ (ví dụ kênh "tin nhắn" chỉ đi với giao tiếp);
   - đặc điểm ngữ pháp tiếng Việt (loại từ, trợ từ cuối câu).
-- **Composer:**
-  - Mỗi ô là một "trục" của §2, nên giá trị chọn theo chu kỳ riêng từng ô, tất định theo seed của người dùng.
-  - Lọc theo ràng buộc và tag, ghép câu, chuẩn hoá dấu câu.
-  - Cam kết cứng của §2 áp cho từng ô.
-- **Allowlist dựng lúc build:**
-  - Không gian ghép của mỗi khung hữu hạn, nên CI liệt kê **mọi** tổ hợp, chạy gate, rồi lưu allowlist
-    theo `catalog_version`.
-  - Runtime chỉ chọn trong allowlist, nên không có câu nào chưa qua gate tới tay người dùng.
-  - Khung có không gian quá lớn thì tách nhỏ.
+- **Chọn trong allowlist bằng lịch hợp lệ dựng lúc build.** Chu kỳ độc lập của §2 vẫn dùng cho kho
+  không có ràng buộc. Với tầng ngữ pháp, chạy chu kỳ từng ô rồi lọc **không** giữ được cam kết. Phản ví
+  dụ: allowlist `{(0,0,0), (0,1,1), (1,0,1)}` không có hai tổ hợp nào khác nhau ở mọi ô. Vì vậy:
+  - **Ô bắt buộc đổi và ô được lặp:** mỗi khung khai báo ô nào bắt buộc đổi giữa hai ngày liên tiếp (ví
+    dụ tình huống kích hoạt, động từ, đối tượng của việc nhỏ) và ô nào được phép lặp (ví dụ danh từ của
+    tình huống).
+  - **Bucket:** mỗi tổ hợp tag/context đủ điều kiện (lens × mối quan tâm × nhịp chương) là một bucket.
+    Số bucket mỗi khung có giới hạn khai báo trong spec.
+  - **Lịch:** với mỗi khung × bucket, build dựng **lịch hợp lệ**, tức một chu trình đi qua các tổ hợp
+    trong allowlist sao cho hai tổ hợp kề nhau, kể cả cặp cuối → đầu, khác nhau ở mọi ô bắt buộc đổi.
+    Thuật toán tìm kiếm tất định, có giới hạn bước.
+  - Build dựng tối đa M lịch khác nhau cho mỗi khung × bucket. Seed của người dùng (§2) chọn lịch và điểm
+    bắt đầu; `day_index` (hoặc vị trí trong phiên) chọn vị trí trên lịch.
+  - **Cam kết của tầng ngữ pháp** (thay cho "mỗi giá trị đúng một lần mỗi chu kỳ" của §2):
+    - **(a)** Hai ngày liên tiếp khác nhau ở mọi ô bắt buộc đổi, kể cả ở biên lịch.
+    - **(b)** Cùng một câu ghép không lặp trong L ngày, với L là độ dài lịch.
+    - **(c)** Mỗi giá trị ô xuất hiện ít nhất một lần trong mỗi lịch.
+    - Khoảng cách tối thiểu giữa hai lần dùng cùng một **giá trị ô** không được bảo đảm, trừ khi khung khai
+      báo thêm ràng buộc khoảng cách và build chứng minh được.
+  - **Phép thử sơ bộ** (stdlib, tìm DFS tất định): một khung 6 × 5 × 8 với khoảng 15% tổ hợp bị loại cho
+    allowlist 198 tổ hợp, dựng được lịch khép vòng dài 189, đạt (a) và (b). Một giá trị ô có thể quay lại
+    sau 2 ngày trong câu khác. Phản ví dụ ở trên thì không dựng được lịch, nên build từ chối đúng như mong
+    muốn.
+  - **Không khả thi thì build thất bại (CI đỏ).** Ngoại lệ duy nhất là khung khai báo rõ một ngoại lệ đã
+    review (ví dụ hạ một ô từ "bắt buộc đổi" thành "được lặp"), ghi trong manifest. Không chọn ngẫu nhiên,
+    không thử lại vô hạn, không âm thầm phá cam kết lúc chạy.
+- **Allowlist và manifest:**
+  - CI liệt kê **mọi** tổ hợp của từng khung, chạy gate meaning, anti-influence, editorial, nudge checker và
+    các mục kiểm máy được của checklist tâm lý, rồi khử trùng câu sau chuẩn hoá.
+  - Giới hạn số tổ hợp mỗi khung và tài nguyên CI ghi trong spec P0; vượt giới hạn thì build thất bại, phải
+    tách khung.
+  - Manifest gắn `catalog_version`, `composer_version`, `gate_version` và hash của allowlist cùng các lịch.
+  - Runtime chỉ phục vụ khung có manifest hợp lệ. Manifest hỏng hoặc thiếu thì dùng kho nền (plan nền §2),
+    không ghép tự do.
+  - "100% trong allowlist" chỉ chứng minh độ phủ của kiểm tra máy, **không** chứng minh câu tự nhiên hay
+    đúng nghĩa. Owner vẫn đọc mẫu.
+- **Gate toàn bài:**
+  - Mỗi khung đã qua gate riêng, nhưng tương thích giữa các khung trong một bài (trùng ý, số ý tiêu cực)
+    được kiểm lúc ghép bài bằng gate hiện có (`evaluate_candidate`).
+  - Nếu không đạt, lùi tất định sang vị trí kế tiếp trên lịch của khung vi phạm, tối đa 3 lần. Vẫn không đạt
+    thì dùng kho nền.
+  - Mọi lựa chọn xong **trước** khi tính `plan_hash` và lưu (§2).
+- **Đổi giọng:** mỗi tổ hợp direct có ánh xạ Cà khịa theo mã tổ hợp, và bản Cà khịa cũng phải nằm trong
+  allowlist. Build kiểm đủ ánh xạ, thiếu thì thất bại. Đổi giọng chỉ tra ánh xạ, không chạy lại lịch.
 - **Cà khịa:** giá trị ô có bản Cà khịa riêng; ghép Cà khịa là khung riêng, ít ô hơn. Quy tắc "không nửa
   thẻ" giữ nguyên.
 - **Duyệt:** owner duyệt giá trị ô và mẫu ghép, không duyệt từng tổ hợp (§6).
-- **Quy mô mục tiêu,** đo thật ở G1: mỗi tình huống khoảng 240 việc nhỏ hợp lệ, 120 cảnh, 30 tiêu đề.
+- **Quy mô mục tiêu,** đo thật ở G1: mỗi tình huống khoảng 240 việc nhỏ hợp lệ, 120 cảnh, và **≥ 90
+  tổ hợp tiêu đề** (con số 30 trước đây không đủ cho mục tiêu 90 ngày khi pool chỉ có một tình huống, xem
+  §14.6).
 - **Rủi ro câu ghép kém tự nhiên:** giữ khung ngắn, ít ô; gate độ dài; owner đọc 14 ngày mẫu trước khi mở
   rộng.
 
@@ -576,19 +619,43 @@ bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và 
   - Đổi cảnh và đối tượng của bài. Ràng buộc riêng tư ở §7.
 - **Lá số sâu hơn:** thêm luật về cặp, nhà, góc chiếu và orb vào chấm điểm tình huống và "Vì sao hôm nay?".
   Giữ evidence binding.
-- **Người chỉ có ngày sinh: dùng gần đủ lá số, không chỉ Mặt Trời.**
-  - Hiện `calculate_date_only_sun` (`astro/engine.py:583`) chỉ tính Mặt Trời. Cách tính đã trung thực: quét
-    cả khoảng một ngày dân sự có thể rơi vào (UTC+14 tới UTC−12), không tự đặt giờ.
-  - Áp cùng cách đó cho các hành tinh khác. Trên khoảng khoảng 50 giờ, Sao Thuỷ, Sao Kim và Sao Hoả chỉ dao
-    động vài độ, các hành tinh chậm gần như cố định. Cung của từng hành tinh và các góc chiếu có biên độ đủ
-    rộng vẫn dùng được.
-  - Hành tinh **đổi cung trong khoảng đó** được ghi dạng "candidates" như Mặt Trời hiện nay, và không dùng
-    để kết luận.
-  - **Không dùng** Mặt Trăng (dao động khoảng 27°), cung mọc, nhà và các kết luận phụ thuộc giờ. Ghi rõ
-    trên bài là bản đọc từ ngày sinh.
-  - Kết quả: transit tới Sao Thuỷ, Sao Kim, Sao Hoả, Sao Mộc, Sao Thổ của chính người đó, và các chương lịch
-    cá nhân, đều có cho người không rõ giờ sinh. Biên sai số phải nằm trong evidence, có test cho các ngày
-    hành tinh đổi cung.
+- **Người chỉ có ngày sinh: dùng gần đủ lá số, nhưng mang theo miền bất định tới tận câu chữ.**
+  - Hiện `calculate_date_only_sun` (`astro/engine.py:583-606`) chỉ trả tập cung của Mặt Trời từ các mẫu
+    cách 6 giờ trên khoảng ngày dân sự (UTC+14 tới UTC−12, khoảng 50 giờ). Nó không trả miền longitude, orb
+    hay pha.
+  - **Cùng cung chưa đủ.** Probe của Codex (dữ liệu tổng hợp 1990-03-15) cho Sao Thuỷ 349,16° và 353,14°
+    ở hai đầu khoảng sinh, vẫn cùng cung Song Ngư. Transit lúc 2026-02-21 12:00 UTC cho orb 1,56° và 2,42°,
+    cả hai trong ngưỡng, nhưng `_transit_phase` trả **separating** cho một đầu và **approaching** cho đầu
+    kia. Chọn một longitude đại diện sẽ nói sai pha với một giờ sinh vẫn hợp lệ.
+  - **Contract mới (spec ở P0, làm ở G2):**
+    1. **Miền longitude:** với mỗi hành tinh trừ Mặt Trăng, tính khoảng `[λmin, λmax]` trên toàn khoảng sinh.
+       Gồm hai đầu khoảng, mọi điểm đứng (tốc độ đổi dấu) bên trong, và xử lý vòng 0°/360°. Dung sai và cách
+       phát hiện điểm đổi cung/điểm cực trị phải nêu rõ, không phụ thuộc mẫu cách 6 giờ.
+    2. **Orb:** orb của transit với natal là một khoảng. **Chắc chắn trong orb** khi orb lớn nhất ≤ ngưỡng.
+       **Có thể** khi chỉ orb nhỏ nhất ≤ ngưỡng.
+    3. **Pha:** chỉ phát biểu khi pha giống nhau trên toàn miền (cả hai đầu và các điểm cực trị bên trong).
+       Không thì không nói pha.
+    4. **Chương** = một lượt đi qua (pass) có ID ổn định: (hành tinh transit, điểm natal, góc chiếu, thứ tự
+       lượt theo thời gian). Có nhiều lượt khi nghịch hành.
+       - **Cửa sổ chắc:** trong orb với mọi điểm của miền.
+       - **Cửa sổ có thể:** trong orb với ít nhất một điểm.
+       - Biên tìm bằng tìm nghiệm trên ephemeris, có dung sai.
+       - Ngày tính theo ngày dân sự ở múi giờ của note. Spec có phiên bản `event_spec_version`.
+    5. **Chữ hiển thị:**
+       - "Ngày N của đợt…" chỉ dùng khi đang trong cửa sổ chắc, và N đếm từ biên chắc.
+       - Đang ở cửa sổ có thể thì nói "đợt này" không kèm số ngày, hoặc bỏ chi tiết.
+       - Không bịa "Ngày 2".
+  - **Vẫn không dùng** Mặt Trăng, cung mọc, nhà và các kết luận phụ thuộc giờ. Bài ghi rõ là bản đọc từ
+    ngày sinh.
+  - **Test bắt buộc:** cùng cung nhưng khác orb/pha (như ví dụ trên); ngày đổi cung; vòng 0°/360°; điểm
+    đứng nằm trong khoảng sinh; nhiều lượt do nghịch hành.
+- **`TransitPhase` hiện tại** là phân loại tại một thời điểm (exact khi orb ≤ 0,2°, so với vị trí sau một
+  giờ, `engine.py:609-619`). Nó không có khoảng sự kiện hay số ngày của chương, nên G2 phải thêm phần tìm
+  biên và lượt cho cả người có giờ sinh. Tính lại được từ ephemeris, không lưu lịch sử, vẫn đóng băng trước
+  `plan_hash` như §2.
+- **Nhịp "nhìn lại"** chỉ mời người đọc tự soi. Không khẳng định họ đã đọc hay đã làm gì hôm trước.
+- Hình học thiên văn là căn cứ để chọn nội dung, **không** phải bằng chứng rằng hành tinh gây ra trải nghiệm
+  của người dùng.
 
 ### 14.5 Áp cho Tarot và Hợp gu
 
@@ -601,27 +668,70 @@ bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và 
   - Câu về nhịp hai người lấy từ cân bằng nguyên tố và tính chất của hai chart.
   - Không lưu thêm dữ liệu của người kia.
 
-### 14.6 Tiêu chí "triệt để"
+### 14.6 Tiêu chí "triệt để" và cách đo
 
-Đề xuất, owner xác nhận ở P0. Đo trên dữ liệu tổng hợp ở P1/G1, rồi đặt thành floor.
+Đề xuất; owner chốt ngưỡng ở P0. Đo trên dữ liệu tổng hợp ở P1/G1, rồi đặt thành floor.
 
-| Chỉ số | Plan nền | Bản triệt để |
+**Thiết kế phép đo:**
+
+- **Cửa sổ quan sát:** **200 ngày** mỗi profile, dài hơn ngưỡng 90 ngày và đủ đi qua biên lịch ít nhất
+  hai lần với lịch dài 90–180. Không dùng cửa sổ 60 ngày của plan nền cho chỉ số này.
+- **So câu:** so sau chuẩn hoá (NFC, chữ thường, bỏ khoảng trắng thừa và dấu câu cuối). Đo riêng từng phần
+  (tiêu đề, cảnh, việc nhỏ, lời của Lá) và riêng từng giọng.
+- **Chỉ số chính:** với mỗi profile và mỗi phần, lấy khoảng cách ngắn nhất (theo ngày) giữa hai lần xuất
+  hiện của cùng một câu. Profile **đạt** khi khoảng cách này ≥ 90 ngày hoặc không lặp trong 200 ngày.
+- **Mẫu số 95%:** tính riêng trong từng **nhóm**, không gộp:
+
+  | Trục chia nhóm | Giá trị |
+  |---|---|
+  | Giờ sinh | biết / không biết |
+  | Mối quan tâm | đã chọn / chưa chọn |
+  | Pool tình huống | 1 / 2–3 / ≥ 4 |
+  | Chương | có chương chắc / không |
+
+  Mỗi nhóm ≥ 50 profile tổng hợp; fixture phải có pool một phần tử, tag hẹp và không có chương nào chắc.
+- **Điều kiện khả thi** (build kiểm, không để tới lúc đo mới biết): với pool một phần tử, một phần có L
+  câu khả dụng thì khoảng cách tối đa là L ngày.
+  - Mỗi phần trên mỗi khung × bucket phải có **lịch dài ≥ 90** (tức ≥ 90 câu khác nhau sau chuẩn hoá).
+  - Riêng tiêu đề, G1 phải thiết kế khung đủ ô cho ≥ 90 tổ hợp mỗi tình huống, thay cho con số 30 ở §14.2.
+  - Bucket nào không đạt thì đánh dấu **"mục tiêu có điều kiện"**, và báo tỷ lệ không đạt riêng. Không làm
+    loãng căn cứ (evidence) để đạt đa dạng.
+- **Yếu tố riêng: đếm theo nguồn tín hiệu độc lập và chắc, mỗi nguồn tối đa một lần:**
+
+  | Nguồn | Tính khi |
+  |---|---|
+  | Transit cá nhân | Một transit **chắc trong orb** tới điểm natal của chính người đó. Chương và nhịp của **cùng** transit này không tính thêm |
+  | Sự kiện lịch cá nhân khác | Một sự kiện thiên văn **khác** với transit trên, ví dụ sinh nhật hay chu kỳ trở về |
+  | Cấu hình natal riêng | Luật cặp hoặc nhà dùng trong bài |
+  | Mối quan tâm đã chọn | Thực sự được dùng để chọn nội dung trong bài |
+
+  Salt **không** bao giờ được tính.
+- **Ngưỡng yếu tố riêng theo nhóm:**
+  - Đề xuất: có giờ sinh + đã chọn mối quan tâm ≥ 3; có giờ sinh, chưa chọn ≥ 2; chỉ ngày sinh + đã chọn
+    ≥ 2; chỉ ngày sinh, chưa chọn ≥ 1.
+  - Plan trước ghi "≥ 2 cho người chỉ có ngày sinh" ở bảng dưới và đề xuất ngang bằng "≥ 3" ở §14.6b. Owner
+    chốt một ngưỡng ở P0. Nhóm ít dữ kiện chắc được phép ít yếu tố hơn và bài nói thật, **không dựng thêm
+    để đủ số**.
+- **Ablation:** giữ nguyên salt, đổi từng tín hiệu (giờ sinh, mối quan tâm, ngày), đo tỷ lệ nội dung đổi.
+  Phép này tách phần cá nhân hoá có ý nghĩa khỏi phần khác chữ do ngẫu nhiên.
+
+| Chỉ số | Plan nền | Bản triệt để (đề xuất) |
 |---|---|---|
-| Gặp lại đúng một câu (tiêu đề/cảnh/việc nhỏ), cùng người | khoảng 6–8 ngày | ≥ 90 ngày với ≥ 95% profile |
-| Hai người cùng cung, cùng ngày, note giống hệt | khác do may rủi | < 1% |
-| Yếu tố riêng mỗi note | 1–2 | ≥ 3 (có giờ sinh), ≥ 2 (chỉ ngày sinh) |
-| Ngày trong một chương có nhắc mạch | 0 | đo ở G2, floor đặt sau |
-| Câu runtime nằm trong allowlist đã gate | không áp dụng | 100% |
+| Khoảng cách lặp cùng một câu, theo phần, cùng người | khoảng 6–8 ngày | ≥ 90 ngày với ≥ 95% profile **trong mỗi nhóm khả thi**; nhóm có điều kiện báo riêng |
+| Hai người cùng cung, cùng ngày, note giống hệt | khác do may rủi | < 1% (trừ cặp cùng ngày sinh và cùng thiếu giờ, báo riêng) |
+| Yếu tố riêng mỗi note | 1–2 | theo ngưỡng nhóm ở trên |
+| Ngày trong cửa sổ chắc của một chương có nhắc mạch | 0 | đo ở G2, floor đặt sau |
+| Câu runtime nằm trong allowlist đã gate | không áp dụng | 100% (độ phủ kiểm máy, không phải độ tự nhiên) |
 
 ### 14.6b Yêu cầu nâng cao đề xuất (owner hỏi 16/10, xác nhận ở P0)
 
-| Nhóm | Yêu cầu | Lý do |
+| Nhóm | Yêu cầu | Ghi chú |
 |---|---|---|
-| **Người không rõ giờ sinh** | Cùng chân trời lặp câu ≥ 90 ngày như người có giờ sinh; ≥ 3 yếu tố riêng mỗi note (transit tới hành tinh của mình, chương lịch, mạch hôm trước, mối quan tâm) | Nhóm này có thể chiếm phần lớn người mới. Hiện họ chỉ có một tình huống cả năm |
-| **Lỗi nội dung** | 0 câu runtime ngoài allowlist; 0 cụm bị cấm trên toàn bộ không gian ghép; mỗi lỗi người dùng hoặc review báo thì thêm test hồi quy **và** quét lại toàn bộ allowlist, không chỉ sửa một câu | Ngăn một lỗi xuất hiện lại ở tổ hợp khác |
-| **Lặp giữa các màn** | Trong cùng một ngày, lời của Lá, note, Tarot và Hợp gu không dùng lại cùng một câu hay cùng một việc nhỏ | Người dùng đọc nhiều màn liền nhau sẽ thấy lặp dù từng màn đều đa dạng |
-| **Lặp trong một bài** | Giữ quy tắc trùng ý hiện có cho Daily; mở rộng cho Tarot (giữa các vai) và Hợp gu (giữa các mục) | Đa dạng theo ngày không có nghĩa là một bài không tự lặp |
-| **Trung thực** | Không bịa dữ liệu để đạt đa dạng: không đoán giờ sinh, không dùng Mặt Trăng hay cung mọc khi không có giờ | Đa dạng phải đến từ dữ liệu thật |
+| **Người không rõ giờ sinh** | Cùng mục tiêu khoảng cách lặp ≥ 90 ngày như người có giờ (khả thi nhờ điều kiện lịch ở §14.6). Yếu tố riêng theo ngưỡng nhóm | Ngang bằng về **lặp** thì làm được. Ngang bằng về **số yếu tố** thì không bảo đảm trung thực khi chưa chọn mối quan tâm |
+| **Lỗi nội dung** | 0 câu runtime ngoài allowlist; 0 cụm bị cấm trên toàn không gian ghép; mỗi lỗi được báo thì thêm test hồi quy **và** quét lại toàn bộ allowlist | Không chỉ sửa một câu |
+| **Lặp giữa các màn** (cần AC ở P0 trước khi coi là bảo đảm) | Phạm vi đề xuất: ngày dân sự theo múi giờ của note; lời của Lá + note ngày + mọi phiên Tarot và kết quả Hợp gu tạo trong ngày đó. So theo **mã hành động** (mức nghĩa) và câu sau chuẩn hoá | Cơ chế tất định: mỗi màn lấy hành động từ một **namespace riêng** (Daily, Tarot, Hợp gu), nên không cần lịch sử và không phụ thuộc thứ tự mở màn. Đổi giọng không tính là mới. Snapshot đã đóng băng của ngày trước không xét và không bị sửa. Đây là đề xuất, chưa phải bảo đảm đã đo |
+| **Lặp trong một bài** | Giữ quy tắc trùng ý của Daily; mở rộng cho Tarot (giữa các vai) và Hợp gu (giữa các mục) | Kiểm bằng gate toàn bài (§14.2) |
+| **Trung thực** | Không bịa dữ liệu để đạt đa dạng: không đoán giờ sinh, không dùng Mặt Trăng hay cung mọc khi thiếu giờ, không nói pha hoặc ngày của chương khi miền bất định chưa cho phép (§14.4) | Đa dạng phải đến từ dữ liệu thật |
 
 **Giới hạn phải ghi rõ:** hai người **cùng ngày sinh và cùng không rõ giờ** có lá số gần như giống hệt. Với
 họ, khác biệt chỉ đến từ mối quan tâm đã chọn, salt và ngày mở app. Không được tuyên bố là "vì lá số
