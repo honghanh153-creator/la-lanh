@@ -262,7 +262,8 @@ Giữ nguyên 8 tiêu chí của Issue #6. Thiết kế:
   Astro → Hợp gu. Hạ tầng ngữ pháp đi trước vì cả ba mảng cùng dùng.
   1. **P0** (docs, mở rộng): US-20, AC cho B3/B4, danh sách tình huống mới, danh sách "điều bạn đang
      quan tâm", nhà cung cấp cho AI lúc soạn, và các spec:
-     - **Spec ngữ pháp:** khung, ô, tag, bucket; ô bắt buộc đổi; thuật toán lịch hợp lệ và giới hạn bước;
+     - **Spec ngữ pháp:** khung, ô, tag; ô bắt buộc đổi và ô theo bucket; lịch chủ, vị trí thống nhất, tách
+       từ vựng và phân vai giữa khung, trạng thái ngoại lệ; thuật toán lịch hợp lệ và giới hạn bước;
        giới hạn tổ hợp và tài nguyên CI; manifest; luật từ chối build (§14.2).
      - **Spec sự kiện G2:** miền longitude, orb dạng khoảng, pha chắc, ID lượt, cửa sổ chắc và cửa sổ có
        thể, ngày theo múi giờ của note, `event_spec_version` (§14.4).
@@ -537,23 +538,59 @@ bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và 
   - **Ô bắt buộc đổi và ô được lặp:** mỗi khung khai báo ô nào bắt buộc đổi giữa hai ngày liên tiếp (ví
     dụ tình huống kích hoạt, động từ, đối tượng của việc nhỏ) và ô nào được phép lặp (ví dụ danh từ của
     tình huống).
-  - **Bucket:** mỗi tổ hợp tag/context đủ điều kiện (lens × mối quan tâm × nhịp chương) là một bucket.
-    Số bucket mỗi khung có giới hạn khai báo trong spec.
-  - **Lịch:** với mỗi khung × bucket, build dựng **lịch hợp lệ**, tức một chu trình đi qua các tổ hợp
-    trong allowlist sao cho hai tổ hợp kề nhau, kể cả cặp cuối → đầu, khác nhau ở mọi ô bắt buộc đổi.
-    Thuật toán tìm kiếm tất định, có giới hạn bước.
-  - Build dựng tối đa M lịch khác nhau cho mỗi khung × bucket. Seed của người dùng (§2) chọn lịch và điểm
-    bắt đầu; `day_index` (hoặc vị trí trong phiên) chọn vị trí trên lịch.
-  - **Cam kết của tầng ngữ pháp** (thay cho "mỗi giá trị đúng một lần mỗi chu kỳ" của §2):
-    - **(a)** Hai ngày liên tiếp khác nhau ở mọi ô bắt buộc đổi, kể cả ở biên lịch.
-    - **(b)** Cùng một câu ghép không lặp trong L ngày, với L là độ dài lịch.
-    - **(c)** Mỗi giá trị ô xuất hiện ít nhất một lần trong mỗi lịch.
-    - Khoảng cách tối thiểu giữa hai lần dùng cùng một **giá trị ô** không được bảo đảm, trừ khi khung khai
-      báo thêm ràng buộc khoảng cách và build chứng minh được.
-  - **Phép thử sơ bộ** (stdlib, tìm DFS tất định): một khung 6 × 5 × 8 với khoảng 15% tổ hợp bị loại cho
-    allowlist 198 tổ hợp, dựng được lịch khép vòng dài 189, đạt (a) và (b). Một giá trị ô có thể quay lại
-    sau 2 ngày trong câu khác. Phản ví dụ ở trên thì không dựng được lịch, nên build từ chối đúng như mong
-    muốn.
+  - **Ô theo bucket:** mỗi tổ hợp tag/context đủ điều kiện (lens × mối quan tâm × nhịp chương) là một
+    bucket. Bucket **chỉ** được điền các ô khai báo là "ô theo bucket" (ví dụ cụm danh từ cụ thể hợp với
+    mối quan tâm). Các ô bắt buộc đổi **không phụ thuộc bucket**. Số bucket mỗi khung có giới hạn trong spec.
+  - **Lịch chủ:** với mỗi khung, build dựng **một lịch chủ** trên tổ hợp của các ô bắt buộc đổi (không phụ
+    thuộc bucket):
+    - Lịch là một chu trình khép kín dài L, hai phần tử kề nhau (kể cả cuối → đầu) khác nhau ở mọi ô bắt
+      buộc đổi.
+    - Mỗi tổ hợp chủ chỉ xuất hiện một lần trong lịch. L ≥ 90 theo điều kiện khả thi ở §14.6.
+    - Mọi bucket dùng **chung** lịch chủ và chỉ điền thêm ô theo bucket. Đổi bucket giữa hai ngày vì vậy
+      không làm đổi lịch.
+  - **Vị trí thống nhất:** vị trí của ngày là `p = (day_index + offset) mod L`.
+    - Mọi khung trong một bài dùng cùng `p` và cùng L (khung có nhiều tổ hợp hơn chỉ dùng L tổ hợp mỗi
+      biến thể lịch).
+    - Seed của người dùng (§2) chọn một trong M biến thể lịch chủ đã chứng minh, cùng với `offset`.
+    - Tarot dùng vị trí theo phiên, chọn một lần lúc rút.
+    - **Không có bước chọn lại lúc chạy:** bỏ hẳn cơ chế "lùi tối đa 3 vị trí" của bản trước. Ngày sau
+      luôn đi tới phần tử kế tiếp trên cùng lịch chủ, nên cam kết của lịch là cam kết của output thật.
+  - **Quy tắc giữa các khung phải nằm trong cấu trúc, không tìm kiếm lúc chạy.** Cách đo stdlib cho thấy
+    dựng lịch riêng từng khung rồi tìm độ lệch ghép **không** tìm được ghép hợp lệ khi quy tắc giữa khung
+    dày. Vì vậy:
+    - Quy tắc trùng ý giữa khung thành **tách từ vựng**. Ví dụ tiêu đề và cảnh không dùng động từ hành
+      động của việc nhỏ, đúng với chuẩn "tiêu đề và cảnh không chứa lời khuyên". Build kiểm tách từ vựng
+      giữa các khung của một bài.
+    - Ngân sách ý tiêu cực thành **phân vai**: chỉ một khung được chứa giá trị mang ý tiêu cực (ví dụ ô "dễ
+      bỏ qua"), nên cả bài không thể vượt ngưỡng.
+    - Quy tắc nào không đưa được vào cấu trúc thì build dựng lịch ghép chung cho các khung đó và kiểm đủ
+      L ngày. Không dựng được thì build thất bại.
+  - **Cam kết trên output thật được phục vụ** (thay cho "mỗi giá trị đúng một lần mỗi chu kỳ" của §2):
+    - **(a)** Hai lần phục vụ liên tiếp của cùng khung, cả hai **không** ở trạng thái ngoại lệ, khác nhau ở
+      mọi ô bắt buộc đổi. Áp cả khi đổi bucket và ở biên lịch.
+    - **(b)** Cùng một câu ghép không được phục vụ lại trong L ngày, vì tổ hợp chủ là duy nhất trong mỗi L
+      ngày.
+    - **(c)** Mỗi giá trị của ô bắt buộc đổi xuất hiện ít nhất một lần trong mỗi lịch chủ.
+    - Ô theo bucket **được phép trùng** khi đổi bucket, và không tính vào (a). Khoảng cách giữa hai lần dùng
+      cùng một giá trị ô không được bảo đảm, trừ khi khung khai báo thêm ràng buộc và build chứng minh được.
+  - **Trạng thái ngoại lệ** (đo được, không báo như vẫn có bảo đảm):
+    - Gate toàn bài lúc chạy chỉ còn là lưới an toàn; theo cấu trúc trên nó không được phép từ chối. Nếu
+      vẫn từ chối, hoặc manifest hỏng, thì ngày đó phục vụ kho nền (plan nền §2).
+    - Provenance của bản đọc ghi `variety_exception` (lý do và phiên bản, không có dữ liệu cá nhân). Có
+      counter tổng hợp theo khung và phiên bản.
+    - Ngày sau quay lại vị trí danh nghĩa `p`, không dịch vị trí.
+    - Cặp ngày có ngoại lệ bị loại khỏi (a) và (b) và **báo riêng** số lượt cùng tỷ lệ ngoại lệ. Mục tiêu
+      trong đo tổng hợp: 0 ngoại lệ do gate.
+  - **Phép thử sơ bộ** (stdlib, dữ liệu tổng hợp, không chạy sản phẩm):
+    - Phản ví dụ ở trên không dựng được lịch nên build từ chối.
+    - Một khung 6 × 5 × 8 bỏ khoảng 15% tổ hợp (198 tổ hợp) dựng được lịch khép vòng 189.
+    - **Phản ví dụ của Codex** (gate từ chối ngày D, lùi sang vị trí 1, ngày D+1 lặp lại) tái hiện được với
+      cơ chế lùi, nên cơ chế lùi đã bị bỏ.
+    - Cách "lịch riêng từng khung + tìm độ lệch ghép" và "bucket dựng lịch riêng" đều thất bại trong mô
+      phỏng: không tìm được ghép, và có 7 vi phạm (a) khi đổi bucket.
+    - **Lịch chủ** (6 × 5 × 4, L = 90), bucket đổi ngẫu nhiên mỗi ngày, 400 ngày, 3 ngày ép lỗi lúc chạy:
+      output phục vụ có **0** vi phạm (a), **0** câu lặp trong L ngày; 3 ngày ngoại lệ đều được đánh dấu.
+    - Đây là bằng chứng hướng thiết kế, không phải chứng nhận triển khai.
   - **Không khả thi thì build thất bại (CI đỏ).** Ngoại lệ duy nhất là khung khai báo rõ một ngoại lệ đã
     review (ví dụ hạ một ô từ "bắt buộc đổi" thành "được lặp"), ghi trong manifest. Không chọn ngẫu nhiên,
     không thử lại vô hạn, không âm thầm phá cam kết lúc chạy.
@@ -567,12 +604,20 @@ bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và 
     không ghép tự do.
   - "100% trong allowlist" chỉ chứng minh độ phủ của kiểm tra máy, **không** chứng minh câu tự nhiên hay
     đúng nghĩa. Owner vẫn đọc mẫu.
-- **Gate toàn bài:**
-  - Mỗi khung đã qua gate riêng, nhưng tương thích giữa các khung trong một bài (trùng ý, số ý tiêu cực)
-    được kiểm lúc ghép bài bằng gate hiện có (`evaluate_candidate`).
-  - Nếu không đạt, lùi tất định sang vị trí kế tiếp trên lịch của khung vi phạm, tối đa 3 lần. Vẫn không đạt
-    thì dùng kho nền.
-  - Mọi lựa chọn xong **trước** khi tính `plan_hash` và lưu (§2).
+- **Gate toàn bài:** chạy `evaluate_candidate` như lưới an toàn trên bài đã ghép. Không có bước chọn lại;
+  nếu gate từ chối thì vào trạng thái ngoại lệ ở trên. Mọi lựa chọn xong **trước** khi tính `plan_hash` và
+  lưu (§2).
+- **AC cho các đường chọn** (P0 viết, G0/G1 kiểm). Mọi chỉ số §14.6 tính trên **output cuối cùng được phục
+  vụ**, không tính trên lịch build:
+  1. Ngày D: ép gate toàn bài từ chối (như phản ví dụ). Kỳ vọng: D là ngoại lệ (kho nền, có cờ); D+1 ở vị
+     trí danh nghĩa; không có câu nào phục vụ hai lần trong L ngày.
+  2. Đổi bucket giữa hai ngày ở mọi vị trí `p` của lịch, với mọi cặp bucket có thể kề nhau trong fixture.
+     Kỳ vọng: (a) và (b) giữ.
+  3. Biên lịch: ngày ở vị trí L−1 rồi 0.
+  4. Build có cấu hình vi phạm tách từ vựng hoặc ngân sách tiêu cực: CI phải đỏ.
+  5. Manifest hỏng hoặc thiếu: phục vụ kho nền, có cờ ngoại lệ và counter.
+  6. Đổi giọng, replay sau cache miss hoặc restart, chia sẻ: cùng mã tổ hợp, không chạy lại lịch.
+  7. Báo cáo gồm số lượt và tỷ lệ ngoại lệ, tỷ lệ vi phạm (a)/(b) trên output thật, theo nhóm của §14.6.
 - **Đổi giọng:** mỗi tổ hợp direct có ánh xạ Cà khịa theo mã tổ hợp, và bản Cà khịa cũng phải nằm trong
   allowlist. Build kiểm đủ ánh xạ, thiếu thì thất bại. Đổi giọng chỉ tra ánh xạ, không chạy lại lịch.
 - **Cà khịa:** giá trị ô có bản Cà khịa riêng; ghép Cà khịa là khung riêng, ít ô hơn. Quy tắc "không nửa
@@ -674,8 +719,13 @@ bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và 
 
 **Thiết kế phép đo:**
 
-- **Cửa sổ quan sát:** **200 ngày** mỗi profile, dài hơn ngưỡng 90 ngày và đủ đi qua biên lịch ít nhất
-  hai lần với lịch dài 90–180. Không dùng cửa sổ 60 ngày của plan nền cho chỉ số này.
+- **Cửa sổ quan sát:** **200 ngày** mỗi profile, dài hơn ngưỡng 90 ngày. Không dùng cửa sổ 60 ngày của
+  plan nền cho chỉ số này.
+  - 200 ngày **không** luôn đi qua biên lịch hai lần. Ví dụ lịch 180 ngày, offset 0 chỉ wrap một lần ở
+    ngày 180.
+  - Vì vậy mọi cạnh biên (L−1 → 0) được kiểm ở build trên từng lịch.
+  - Fixture đo trải `offset` sao cho mỗi profile có ít nhất một lần wrap trong cửa sổ, và tổng thể phủ mọi
+    vị trí wrap.
 - **So câu:** so sau chuẩn hoá (NFC, chữ thường, bỏ khoảng trắng thừa và dấu câu cuối). Đo riêng từng phần
   (tiêu đề, cảnh, việc nhỏ, lời của Lá) và riêng từng giọng.
 - **Chỉ số chính:** với mỗi profile và mỗi phần, lấy khoảng cách ngắn nhất (theo ngày) giữa hai lần xuất
@@ -692,7 +742,8 @@ bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và 
   Mỗi nhóm ≥ 50 profile tổng hợp; fixture phải có pool một phần tử, tag hẹp và không có chương nào chắc.
 - **Điều kiện khả thi** (build kiểm, không để tới lúc đo mới biết): với pool một phần tử, một phần có L
   câu khả dụng thì khoảng cách tối đa là L ngày.
-  - Mỗi phần trên mỗi khung × bucket phải có **lịch dài ≥ 90** (tức ≥ 90 câu khác nhau sau chuẩn hoá).
+  - Mỗi khung phải có **lịch chủ dài ≥ 90**, tức ≥ 90 tổ hợp chủ khác nhau. Câu ghép khác nhau sau
+    chuẩn hoá được build kiểm khi khử trùng; ô theo bucket không được dùng để đủ số.
   - Riêng tiêu đề, G1 phải thiết kế khung đủ ô cho ≥ 90 tổ hợp mỗi tình huống, thay cho con số 30 ở §14.2.
   - Bucket nào không đạt thì đánh dấu **"mục tiêu có điều kiện"**, và báo tỷ lệ không đạt riêng. Không làm
     loãng căn cứ (evidence) để đạt đa dạng.
