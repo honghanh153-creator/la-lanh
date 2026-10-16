@@ -153,6 +153,10 @@ def test_every_authored_line_passes_the_shared_safety_gates() -> None:
         # Contrary on its own: the anchor is affirmed but the line also endorses guessing.
         ("Hỏi một câu, xong cứ đoán phần còn lại.", {"contrary_nudge"}),
         ("Đoán nhanh hơn hỏi nhiều.", {"contrary_nudge"}),
+        # The negation / dismissal targets another action, so guessing stays endorsed.
+        ("Hỏi lại nhé, không chờ trả lời cứ đoán luôn.", {"contrary_nudge"}),
+        ("Hỏi lại nhé, cứ đoán cho nhanh khỏi mất thời gian.", {"contrary_nudge"}),
+        ("Hỏi lại đi, chẳng ai trách nếu bạn cứ đoán.", {"contrary_nudge"}),
         ("Uống nước rồi nghỉ sớm nhé.", {"missing_nudge"}),
         # Faithful lines: negation, "thay vì" and dismissals aimed at the contrary action.
         ("Đừng đoán mà hỏi lại cho chắc.", set()),
@@ -161,6 +165,8 @@ def test_every_authored_line_passes_the_shared_safety_gates() -> None:
         ("Hỏi thẳng một chữ đi, đoán làm gì cho mệt.", set()),
         ("Hỏi lại một câu thôi, đỡ hơn đoán cả buổi.", set()),
         ("Hỏi lại không mất thời gian đâu, thử đi.", set()),
+        ("Đừng cứ đoán, hỏi lại một câu nhé.", set()),
+        ("Khỏi đoán, hỏi lại cho rõ nhé.", set()),
     ],
 )
 def test_nudge_checker_reads_each_clause(text: str, expected: set[str]) -> None:

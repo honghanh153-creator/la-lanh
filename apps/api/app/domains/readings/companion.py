@@ -299,11 +299,8 @@ def _all_lines() -> tuple[tuple[str, str, int], ...]:
 
 
 _NEGATORS = ("đừng", "không", "khỏi", "chẳng", "chả", "chớ", "miễn", "bỏ qua", "chưa cần")
-# "X thay vì / hơn là Y": whatever follows the marker is the rejected alternative. A bare
-# "hơn" only sets aside a contrary phrase ("đỡ hơn đoán"); before an anchor it is usually a
-# plain comparative ("nhẹ hơn khi bớt lựa chọn").
+# "X thay vì / hơn là Y": whatever follows the marker is the rejected alternative.
 _INSTEAD_OF = ("thay vì", "hơn là", "còn hơn")
-_INSTEAD_OF_CONTRARY = (*_INSTEAD_OF, "hơn")
 # Predicates that wave an action away ("hỏi lại chỉ mất thời gian", "đoán làm gì cho mệt").
 _DISMISSALS = (
     "mất thời gian",
@@ -350,16 +347,17 @@ def _find(tokens: list[str], phrase: str) -> list[int]:
     return [i for i in range(len(tokens) - width + 1) if tokens[i : i + width] == target]
 
 
-def _rejected(
-    clause: list[str], segment: list[str], index: int, phrase: str, *, contrary: bool = False
-) -> bool:
-    """True when ``phrase`` at ``clause[index]`` is negated, set aside or waved away."""
+def _rejected(clause: list[str], segment: list[str], index: int, phrase: str) -> bool:
+    """True when the anchor ``phrase`` at ``clause[index]`` is negated, set aside or waved away.
 
-    instead_of = _INSTEAD_OF_CONTRARY if contrary else _INSTEAD_OF
+    Deliberately broad: any negation earlier in the clause or any dismissal in the segment
+    rejects the anchor. A wrongly rejected line only falls back to the authored one.
+    """
+
     if _tokens(phrase)[0] in _NEGATORS:  # the anchor is itself a refusal ("không nhận")
-        before_markers: tuple[str, ...] = instead_of
+        before_markers: tuple[str, ...] = _INSTEAD_OF
     else:
-        before_markers = (*_NEGATORS, *instead_of)
+        before_markers = (*_NEGATORS, *_INSTEAD_OF)
     before = clause[:index]
     if any(_find(before, marker) for marker in before_markers):
         return True
@@ -372,12 +370,70 @@ def _rejected(
     return False
 
 
+# A contrary action is set aside only by a marker aimed at it: right before it, past these
+# adverbs ("đừng cứ đoán", "thay vì tự đoán", "đỡ hơn đoán")...
+_CONTRARY_GOVERNORS = (
+    *_NEGATORS,
+    *_INSTEAD_OF,
+    "hơn",
+    "thôi",
+    "không cần",
+    "chẳng cần",
+    "chả cần",
+    "khỏi cần",
+    "không nên",
+    "chẳng nên",
+    "đừng nên",
+)
+_ACTION_ADVERBS = ("cứ", "tự", "có", "phải", "ngồi", "đi")
+# ...or by a dismissal right after it ("đoán làm gì cho mệt"), at most two object words away,
+# none of them pushing the action ("cứ đoán cho nhanh khỏi mất thời gian" stays contrary).
+_CONTRARY_DISMISSALS = (
+    "làm gì",
+    "làm chi",
+    "để làm gì",
+    "vô ích",
+    "mất thời gian",
+    "phí thời gian",
+    "mất công",
+    "phí công",
+    "cho mệt",
+    "không đáng",
+)
+_PUSHING = ("cho", "nhanh", "luôn", "đi", "khỏi", "đỡ", "để", "nhé", "ngay")
+_DISMISSAL_REACH = 2
+
+
+def _contrary_set_aside(clause: list[str], index: int, phrase: str) -> bool:
+    """True only when a negation or dismissal targets the contrary ``phrase`` itself.
+
+    A negation of some other action ("không chờ trả lời, cứ đoán") does not count; when the
+    scope is unclear the phrase stays contrary and the line is rejected.
+    """
+
+    start = index
+    while start > 0 and clause[start - 1] in _ACTION_ADVERBS:
+        start -= 1
+    for marker in _CONTRARY_GOVERNORS:
+        width = len(_tokens(marker))
+        if start >= width and clause[start - width : start] == _tokens(marker):
+            return True
+    end = index + len(_tokens(phrase))
+    for dismissal in _CONTRARY_DISMISSALS:
+        for at in _find(clause, dismissal):
+            gap = clause[end:at]
+            if 0 <= at - end <= _DISMISSAL_REACH and not any(word in _PUSHING for word in gap):
+                return True
+    return False
+
+
 def nudge_failures(text: str, entry: CompanionIssueLine) -> list[str]:
     """Why ``text`` does not carry ``entry``'s nudge (empty when it does).
 
     Works clause by clause: an anchor counts only when no negation or "thay vì/hơn là" in
     its clause and no dismissive predicate in its sentence segment rejects it; a contrary
-    phrase counts whenever its clause endorses it. Matching keeps Vietnamese diacritics on
+    phrase counts unless a negation or dismissal aimed at that very action sets it aside
+    (scope unclear means contrary). Matching keeps Vietnamese diacritics on
     purpose: folded "dung" would confuse "đừng" (don't) with "đúng" (right).
     """
 
@@ -391,8 +447,7 @@ def nudge_failures(text: str, entry: CompanionIssueLine) -> list[str]:
                     failures.append("negated_nudge")
         for phrase in entry.contrary:
             if any(
-                not _rejected(clause, segment, index, phrase, contrary=True)
-                for index in _find(clause, phrase)
+                not _contrary_set_aside(clause, index, phrase) for index in _find(clause, phrase)
             ):
                 failures.append("contrary_nudge")
     if not found:
