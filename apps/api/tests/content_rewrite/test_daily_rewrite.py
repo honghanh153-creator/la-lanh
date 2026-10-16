@@ -750,6 +750,11 @@ async def _project_companion(
         "Hỏi lại thì phí công lắm, trả lời luôn đi.",
         "Đoán còn hơn hỏi, trả lời luôn cho nhanh.",
         "Đoán nhanh hơn hỏi nhiều, trả lời luôn nhé.",
+        # Codex review @ fcdb44d: a negation or dismissal aimed at something else must not
+        # excuse an endorsed contrary action.
+        "Hỏi lại nhé, không chờ trả lời cứ đoán luôn.",
+        "Hỏi lại nhé, cứ đoán cho nhanh khỏi mất thời gian.",
+        "Hỏi lại đi, chẳng ai trách nếu bạn cứ đoán.",
     ],
 )
 async def test_projector_rejects_a_companion_that_waves_the_action_away(companion: str) -> None:
@@ -767,6 +772,8 @@ async def test_projector_rejects_a_companion_that_waves_the_action_away(companio
         "Không rõ thì hỏi lại một câu nhé.",
         "Hỏi lại thay vì tự đoán, nhẹ đầu hơn nhiều.",
         "Hỏi lại không mất thời gian đâu, thử đi.",
+        "Đừng cứ đoán, hỏi lại một câu nhé.",
+        "Hỏi thẳng một chữ đi, đoán làm gì cho mệt.",
     ],
 )
 async def test_projector_keeps_a_companion_that_carries_the_action(companion: str) -> None:

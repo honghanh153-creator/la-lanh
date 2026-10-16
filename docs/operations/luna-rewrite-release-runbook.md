@@ -27,7 +27,9 @@ under v4 is reused.
   (`nudge_failures`): an anchor is rejected when its clause negates it anywhere before it
   ("Không cần phải hỏi lại"), sets it aside ("thay vì / hơn là / còn hơn hỏi") or its sentence
   segment waves it away ("Hỏi lại chỉ mất thời gian"); a contrary phrase ("đoán" for
-  missing-context) fails whenever its clause endorses it. The check is lexical and errs towards
+  missing-context) fails unless a negation or dismissal aimed at that very action sets it
+  aside ("đừng cứ đoán", "thay vì tự đoán", "đoán làm gì cho mệt"). A negation of some other
+  action ("không chờ trả lời, cứ đoán") does not excuse it; unclear scope means contrary. The check is lexical and errs towards
   rejecting (a rejected line falls back to the authored one); it does not replace human scoring
   of meaning.
 - **Rollback floor:**
