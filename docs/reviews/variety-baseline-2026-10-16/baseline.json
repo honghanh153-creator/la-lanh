@@ -1,0 +1,224 @@
+{
+ "generated_for": "P1 variety baseline (current engine, synthetic data only)",
+ "fixtures": {
+  "profiles": {
+   "version": "variety-profiles-v1",
+   "seed": "la-lanh-variety-fixtures-v1",
+   "synthetic": true,
+   "sha256": "be5f447263b49f0d41a18154e526d6a46da14847884ef6759501199fa63b1782",
+   "note": "Focus is null for everyone: the focus feature (F) does not exist yet."
+  },
+  "radar_pairs": {
+   "version": "variety-radar-pairs-v1",
+   "seed": "la-lanh-variety-fixtures-v1",
+   "synthetic": true,
+   "sha256": "0c11130f909254541ef5903f1f35812651f5d9dc8ff3b1bc7f3a2a5cc05e829a"
+  },
+  "tarot_bank": "tarot-question-bank-v1"
+ },
+ "daily": {
+  "window_days": 200,
+  "start": "2026-10-01",
+  "observed_at": "local_date 12:00 UTC (projection)",
+  "voice": "direct (roast maps one-to-one onto the same baseline today)",
+  "M1_repeat_gap_pass_rate_ge_90d": {
+   "date_only|pool=1|focus=none": {
+    "profiles": 300,
+    "sample": "ok",
+    "headline": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 6.0,
+     "never_repeats": 0
+    },
+    "scene": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    },
+    "advice": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    },
+    "why_today": "not applicable (part never shown in this stratum)",
+    "companion": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    }
+   },
+   "date_only|pool=2-3|focus=none": {
+    "profiles": 0,
+    "sample": "insufficient"
+   },
+   "date_only|pool=>=4|focus=none": {
+    "profiles": 0,
+    "sample": "insufficient"
+   },
+   "time_known|pool=1|focus=none": {
+    "profiles": 0,
+    "sample": "insufficient"
+   },
+   "time_known|pool=2-3|focus=none": {
+    "profiles": 0,
+    "sample": "insufficient"
+   },
+   "time_known|pool=>=4|focus=none": {
+    "profiles": 900,
+    "sample": "ok",
+    "headline": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 6.0,
+     "never_repeats": 0
+    },
+    "scene": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    },
+    "advice": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    },
+    "why_today": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    },
+    "companion": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    }
+   }
+  },
+  "M2_consecutive_day_identical_rate": {
+   "date_only|pool=1|focus=none": {
+    "headline": 0.0,
+    "scene": 0.8342,
+    "advice": 0.9799,
+    "why_today": null,
+    "companion": 1.0
+   },
+   "date_only|pool=2-3|focus=none": {},
+   "date_only|pool=>=4|focus=none": {},
+   "time_known|pool=1|focus=none": {},
+   "time_known|pool=2-3|focus=none": {},
+   "time_known|pool=>=4|focus=none": {
+    "headline": 0.0,
+    "scene": 0.2032,
+    "advice": 0.3039,
+    "why_today": 0.5636,
+    "companion": 0.3094
+   }
+  },
+  "M4_identical_notes": {
+   "time_known": {
+    "identical_pairs": 404517,
+    "pairs": 6722000,
+    "rate": 0.0602
+   },
+   "date_only": {
+    "identical_pairs": 656600,
+    "pairs": 656600,
+    "rate": 1.0
+   },
+   "same_birthdate_date_only_pairs": {
+    "identical_days": 4000,
+    "days": 4000,
+    "rate": 1.0
+   }
+  },
+  "M5_personal_factors": {
+   "date_only|pool=1|focus=none": {
+    "mean": 0.0,
+    "p10": 0,
+    "distribution": {
+     "0": 60000
+    }
+   },
+   "date_only|pool=2-3|focus=none": {},
+   "date_only|pool=>=4|focus=none": {},
+   "time_known|pool=1|focus=none": {},
+   "time_known|pool=2-3|focus=none": {},
+   "time_known|pool=>=4|focus=none": {
+    "mean": 0.432,
+    "p10": 0,
+    "distribution": {
+     "1": 77695,
+     "0": 102305
+    }
+   }
+  },
+  "M7_ablation": {
+   "remove_birth_time_changes_note": 0.8799,
+   "next_day_changes_note": 1.0,
+   "note": "salt does not exist yet; ablation compares real signals only"
+  },
+  "M3_M6_M8": "not applicable yet (no grammar layer or chapters before G0/G2)",
+  "renderer_versions": [
+   "deterministic-vi-v12+daily-c0d51e63"
+  ]
+ },
+ "tarot": {
+  "questions": 247,
+  "readings": 988,
+  "content_rejections": 0,
+  "T1_form_accuracy": "not applicable yet (the engine has no question form; US-20 adds it)",
+  "T2_headline_duplicates": {
+   "playful_grounded|one_focus": {
+    "readings": 247,
+    "distinct": 5,
+    "duplicate_rate": 0.9798
+   },
+   "playful_grounded|three_unblock": {
+    "readings": 247,
+    "distinct": 5,
+    "duplicate_rate": 0.9798
+   },
+   "roast|one_focus": {
+    "readings": 247,
+    "distinct": 9,
+    "duplicate_rate": 0.9636
+   },
+   "roast|three_unblock": {
+    "readings": 247,
+    "distinct": 9,
+    "duplicate_rate": 0.9636
+   }
+  },
+  "T3_generic_markers_positions": {
+   "meaning:Ý chính của lá": 988,
+   "action:Thử nhé:": 872,
+   "scene:Ví dụ:": 1976
+  },
+  "T4_same_card_role_different_text": {
+   "pairs": 21060,
+   "different": 0,
+   "rate": 0.0
+  },
+  "knowledge_versions": [
+   "tarot-knowledge-v4"
+  ]
+ },
+ "radar": {
+  "pairs": 50,
+  "readings": 800,
+  "R1_unique_sentences_per_reading": {
+   "mean": 3.16,
+   "p10": 1,
+   "note": "baseline proxy: sentences not shared with any other pair (contact sentences are tagged only after R2)"
+  },
+  "R2_context_change_fit_friction": 0.0,
+  "R2_voice_change_all_sections": 0.0877,
+  "R3_cross_pair_overlap": 0.9077,
+  "low_signal_pairs": 0,
+  "unknown_time_method": "partner at local noon, Moon/houses/angles removed (current BirthService behaviour)",
+  "versions": {
+   "knowledge_version": "relationship-corpus-v2-2026-09-17",
+   "renderer_version": "radar-living-dossier-v1",
+   "gate_version": "conditional-reflection-v3"
+  }
+ }
+}
