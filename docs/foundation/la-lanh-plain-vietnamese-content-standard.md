@@ -112,6 +112,22 @@ nhưng không kéo dài câu chỉ để tạo cảm giác “đọc sâu”.
 - “Mở lòng”, “được trân trọng” và “ranh giới” được dùng khi câu nói rõ người, việc và hoàn cảnh.
 - “Mood” chỉ được dùng trong microcopy vui; không dùng để giải thích kết luận.
 
+## Checklist tâm lý cho mỗi câu mới (owner chốt 2026-10-16)
+
+Áp cho mọi câu mới hoặc câu sửa của note ngày, Tarot, Hợp gu và lời của Lá, cả hai giọng. Lý do và
+nguồn nằm ở `docs/plans/2026-10-16-personalisation-variety-plan.md` mục 11.
+
+- Có căn cứ riêng (lá số, vai của lá, góc chiếu, câu hỏi) thay vì câu ai đọc cũng thấy đúng.
+- Trao lựa chọn, không ra lệnh; không quyết thay, không dự đoán.
+- Kết bằng một việc nhỏ làm được hôm nay, có tình huống kích hoạt kiểu "khi…".
+- Tối đa một ý tiêu cực mỗi bài, luôn kèm lối ra.
+- Không đoán ý người khác; gợi quay về nhu cầu và cách mở lời của người dùng.
+- Đọc được trong một hơi trên điện thoại; nội dung hiện sau 21:00 ngắn hơn nữa.
+- Bản Cà khịa trêu tình huống, không trêu người, vẫn giữ lối ra.
+
+Các mục máy kiểm được (căn cứ, mệnh lệnh, số ý tiêu cực, độ dài) sẽ dần đưa vào gate theo từng PR của
+kế hoạch; các mục còn lại kiểm khi review và khi owner duyệt file Excel.
+
 ## Cụm từ không dùng trong nội dung chính
 
 - pattern, vận hành, giữ nhịp, vùng mờ, cơ chế này;

@@ -5,6 +5,12 @@ nhân, đa dạng của cả tarot, astro, và phần hợp gu". Nguồn: Issue 
 (`docs/research/2026-10-11-content-engine-audit.md`), review Tarot 08/10, code tại `main` 8362222
 (số dòng bên dưới lấy từ commit đó).
 
+**Owner đã chốt (16/10/2026):** chọn đúng các đề xuất ở mục 8: chiến lược bậc thang S1 → S3 → S2,
+Astro A2 (làm phần A1 sớm), Tarot T2, Hợp gu R2, thứ tự Tarot → Astro → Hợp gu, tín hiệu cá nhân để
+chặng 2 và người dùng tự bật, checklist tâm lý vào chuẩn nội dung. Các phương án đã cân nhắc nằm ở mục
+10, phần tâm lý người dùng ở mục 11, đối chiếu user flow ở mục 12. Bản phân tích trình bày cho owner (có
+bảng chấm điểm) được giữ riêng; nội dung quyết định đã chép đầy đủ vào file này.
+
 ## 0. Định nghĩa đo được
 
 Hai chữ "cá nhân" và "đa dạng" được quy thành chỉ số. Mỗi chỉ số là một floor trong
@@ -189,8 +195,24 @@ Giữ nguyên 8 tiêu chí của Issue #6. Thiết kế:
 | **B4-1…2** | Hợp gu: cảnh × ngữ cảnh, câu theo contact và nguyên tố → giọng đổi cả câu, kế hoạch biên tập |
 | Release | Theo từng mảng, đúng runbook. Mỗi đợt có file Excel để owner duyệt nội dung mới |
 
-**Đề xuất thứ tự:** P0 → P1 → B2 (đang có issue, phạm vi rõ) → B3-1 (lợi nhanh nhất: hết lặp 6/48 ngày,
-hết một tình huống cả năm) → B4 → B3-2 → B3-3.
+**Thứ tự đã chốt (bậc thang, 3 chặng):**
+
+- **Chặng 1 (S1, không dữ liệu mới, không chi phí AI):**
+  1. P0 → P1.
+  2. **B3-1a, phần A1:** salt + hoán vị theo người, top-K luân phiên. Bước nhỏ, tác động rộng; làm ngay
+     sau P1, song song với B2-1.
+  3. **B2-1…4:** Tarot T2.
+  4. **B3-1b + B3-2, phần còn lại của A2:** pool cho người chỉ có ngày sinh, cân lại transit, khung "Vì
+     sao hôm nay?", 5 tình huống mới, hành động theo lens.
+  5. **B4-1…2:** Hợp gu R2.
+- **Chặng 2 (S3 nhẹ, người dùng tự bật):** chỉ sau khi rà Luật 91/2025 + NĐ 356/2025 từ nguồn chính thức
+  và có copy consent mới.
+  - B3-3 (A3): mood và phản hồi.
+  - Gợi ý cách hỏi Tarot: phần đầu của T3, mở rộng câu gợi hỏi lại hiện có thành gợi ý theo chủ đề.
+  - Thẻ câu hỏi Hợp gu: phần đầu của R3.
+  - Nối Tarot với tình huống note hôm nay.
+- **Chặng 3 (S2):** bật Luna cho note và Tarot; nhật ký Tarot; nhắc lại Hợp gu. Chỉ làm khi đủ điều kiện
+  của Issue #7 (chấm mẫu, DPA, governance, khai báo).
 
 **Khối lượng nội dung cần viết:**
 
@@ -221,17 +243,125 @@ Tất cả đi qua gate và Excel duyệt.
   - Cập nhật `store-privacy-data-map.md`, privacy copy trong app, Apple/Google declarations.
   - Kiểm lại luật Việt Nam hiện hành trước B3-3.
 
-## 8. Owner cần quyết
+## 8. Quyết định của owner (16/10/2026)
 
-1. **Tarot, mức hướng nghiêng:** chỉ 3 mức (thử / cân nhắc thêm / chưa rõ), không có "nghiêng về chưa
-   nên"? Đề xuất: **3 mức**.
-2. **Tarot, tên lá tiếng Anh:** bỏ khỏi copy, chỉ giữ trong chi tiết thu gọn? Đề xuất: **có**.
-3. **Tarot, nối với note hôm nay** (opt-in): làm trong B2 hay để sau? Đề xuất: **để sau B3-1**.
-4. **Astro, dùng mood và phản hồi để chỉnh note** (opt-in, mặc định tắt): đồng ý hướng này? Cần thêm
-   copy consent mới.
-5. **Astro, 5 tình huống mới:** owner chọn từ danh sách đề xuất ở P0.
-6. **Thứ tự** như mục 6, hay ưu tiên mảng khác?
+| # | Câu hỏi | Đã chọn |
+|---|---|---|
+| 1 | Chiến lược chung | Bậc thang: S1 nội dung tất định mở rộng → S3 học từ phản hồi (opt-in) → S2 Luna |
+| 2 | Astro | **A2** (A1 làm sớm như bước riêng) |
+| 3 | Tarot | **T2**: 3 mức hướng nghiêng (thử / cân nhắc thêm / chưa rõ), không có mức "chưa nên"; bỏ tên lá tiếng Anh khỏi nội dung, chỉ giữ trong chi tiết thu gọn; câu "khi nào" đổi thành "điều cần sẵn sàng trước" |
+| 4 | Hợp gu | **R2** |
+| 5 | Thứ tự | Tarot → Astro → Hợp gu, A1 chen sớm |
+| 6 | Mood, phản hồi, nhật ký | Chặng 2, mặc định tắt, người dùng tự bật; nối Tarot với note hôm nay cũng ở chặng 2 |
+| 7 | Checklist tâm lý | Đưa vào chuẩn nội dung (`la-lanh-plain-vietnamese-content-standard.md`), áp cho mọi câu mới |
+
+Còn chờ owner ở P0: chọn 5 tình huống Astro mới từ danh sách đề xuất, và duyệt câu Cà khịa của từng đợt
+qua file Excel.
 
 ## 9. Không thuộc phạm vi
 
 Bật Luna, lá ngược chiều, trải bài mới, đổi cách bốc lá, Lá Chung, thông báo đẩy, ghép đôi người lạ.
+
+## 10. Phương án đã cân nhắc
+
+Chấm 1–5 trên: giá trị cho người dùng, tốc độ ra mắt, khối lượng nội dung, riêng tư/pháp lý, chi phí vận
+hành, rủi ro nội dung, khả năng đo.
+
+| Chiến lược | Ý chính | Điểm mạnh | Điểm yếu |
+|---|---|---|---|
+| **S1 · Nội dung tất định mở rộng** (chọn, chặng 1) | Viết thêm nội dung đã duyệt, chọn theo người + ngày + câu hỏi | Không dữ liệu mới, chi phí gần 0, đo được | Khối lượng viết và duyệt lớn |
+| S2 · Khung tất định + Luna | Engine giữ nghĩa, Luna làm mượt câu | Câu tự nhiên | Chờ chấm mẫu, DPA, consent; không sửa được cấu trúc |
+| S3 · Học từ người dùng (opt-in) | Mood và phản hồi chỉnh lựa chọn | Cảm giác "app hiểu mình" rõ nhất | Dữ liệu suy ra về cảm xúc; rủi ro chỉ thấy điều mình thích |
+
+| Mảng | Phương án 1 | Phương án 2 (chọn) | Phương án 3 |
+|---|---|---|---|
+| Astro | A1: xoay vòng riêng (salt, hoán vị, top-K) | **A2**: A1 + pool cho người chỉ có ngày sinh, transit có chỗ đứng, 5 tình huống mới, hành động theo lens | A3: A2 + mood/phản hồi opt-in (chặng 2) |
+| Tarot | T1: sửa cấu trúc (vai, tóm tắt liền, dọn chữ thừa) | **T2**: T1 + hiểu câu hỏi, hướng nghiêng 3 mức, khung câu và ví dụ đa dạng | T3: T2 + gợi ý cách hỏi, đào sâu một lá, nhật ký (chặng 2–3) |
+| Hợp gu | R1: cảnh × ngữ cảnh, giọng đổi cả câu | **R2**: R1 + câu theo góc chiếu giữa hai chart và cân bằng nguyên tố, ngữ cảnh đổi cả "hợp"/"ma sát" | R3: R2 + thẻ câu hỏi để nói chuyện, góc nhìn hai phía, nhắc lại (chặng 2–3) |
+
+Lý do không chọn S2 trước: làm mượt câu trên nội dung đang lặp chỉ che triệu chứng. Lý do không chọn T1:
+không giải quyết kỳ vọng chính, là được trả lời đúng câu hỏi. Lý do R2 thay R1: R1 vẫn để hai cặp cùng
+chủ đề nhận bài gần giống nhau.
+
+## 11. Tâm lý người dùng
+
+### Năm tâm thế khi mở app
+
+| Tâm thế | Thường gặp ở | Cần | Tránh |
+|---|---|---|---|
+| Nghi thức nhỏ cho mình | Note buổi sáng | Ngắn, ấm, mỗi ngày một chút mới | Lặp, dài, giáo huấn |
+| Bất an trước quyết định | Tarot "có nên… không" | Hướng nghiêng có lý do, cảm giác mình nắm quyền | Phán, mơ hồ, bị dẫn dắt |
+| Bận tâm về một người | Hợp gu, Tarot về crush, thường về đêm | Quay về điều mình muốn và cách mở lời | Đoán ý người khác, nuôi suy nghĩ lặp |
+| Hiểu mình | Reveal, lá số | Cụ thể, có căn cứ | Câu ai đọc cũng đúng (Barnum) |
+| Kết nối | Chia sẻ thẻ, Hợp gu | Thẻ khác bạn bè, an toàn khi chia sẻ | Lộ thông tin riêng |
+
+Mối quan tâm tới chiêm tinh tăng theo mức bất an (Padgett & Jorgenson, 1982), và chiêm tinh được dùng để
+khẳng định bản thân và đối phó với khủng hoảng (Lillqvist & Lindeman, 1998; đọc qua tóm tắt thứ cấp,
+mẫu nhỏ). Một nghiên cứu định tính nhỏ cho thấy người dùng Tarot coi lá bài như tấm gương tự soi (Hofer,
+2009). Vì vậy nội dung phải trao lại cảm giác tự chủ, không nuôi sự phụ thuộc.
+
+### Nguyên lý → quy tắc nội dung
+
+| Nguyên lý | Bằng chứng | Quy tắc |
+|---|---|---|
+| Tự chủ, năng lực, gắn kết | Ryan & Deci (2000) | Đưa lựa chọn; việc nhỏ làm được trong ngày; Lá là bạn đồng hành, không phải thầy |
+| Phản kháng khi bị ra lệnh | Altendorf và cộng sự (2019); kết quả lặp lại chưa đồng nhất | Không mệnh lệnh; Tarot chỉ "nghiêng về" |
+| Kế hoạch "khi… thì…" | Gollwitzer & Sheeran (2006), d ≈ 0,65 | Việc nhỏ kèm tình huống kích hoạt |
+| Đỉnh và kết | Fredrickson & Kahneman (1993); phân tích gộp 2022 | Đỉnh là câu "à ra vậy"; kết bằng việc nhỏ tích cực, không kết bằng cảnh báo |
+| Hiệu ứng Barnum | Forer (1949) | Mỗi câu gắn với căn cứ riêng; không khen chung chung |
+| Thiên lệch tiêu cực | Baumeister và cộng sự (2001) | Tối đa một ý tiêu cực mỗi bài, luôn kèm lối ra |
+| Bất định và kiểm soát | Padgett & Jorgenson (1982) | "Điều bạn quyết được hôm nay"; không định mệnh, không ép quay lại |
+| Suy nghĩ lặp về đêm | Thực hành chung; app đã có nhắc nền tối sau 21:00 | Sau 21:00 câu ngắn hơn; hỏi Tarot lại cùng câu trong 24 giờ thì mở lại bài cũ |
+
+### Persona kiểm thiết kế (tổng hợp, không phải người dùng thật)
+
+- **Minh Anh, chỉ nhập ngày sinh, mở app 30 giây mỗi sáng:**
+  - Hiện tại: một tình huống cả năm, dễ bỏ app sau khoảng 2 tuần.
+  - A2 giải quyết bằng pool theo transit tới Mặt Trời và việc nhỏ có tình huống kích hoạt.
+- **Huy, phân vân nhận việc, mở Tarot lúc 23:00:**
+  - Hiện tại: tiêu đề cố định, không có hướng nghiêng.
+  - T2 trả lời bằng "cân nhắc thêm trước khi nhận lời" kèm lý do. Hỏi lại cùng câu thì mở lại bài cũ.
+- **Linh, crush chưa trả lời:**
+  - Hiện tại: Hợp gu ra cảnh cố định. Tarot từ chối câu đoán ý người kia và đưa một câu hỏi lại chung,
+    giống nhau cho mọi trường hợp (`engine.py:187-195`).
+  - R2 + T2 nói về nhịp của hai người. Chặng 2 thêm thẻ câu hỏi để mở lời.
+- **Thảo, nhập đủ giờ và nơi sinh, hay bấm trúng/chưa trúng:**
+  - Hiện tại: phản hồi không làm thay đổi gì.
+  - Chặng 1: Lá ghi nhận phản hồi bằng lời. Chặng 2 (tự bật): A3 chỉnh tình huống, có giải thích và nút
+    đặt lại.
+
+## 12. Đối chiếu user flow
+
+| Flow | Route | Điểm nghẽn hiện tại | Giải bằng |
+|---|---|---|---|
+| Lần đầu | `/welcome → /birth → /reveal → /home` | Người chỉ có ngày sinh gặp một tình huống cả năm | A1, A2; nhắc nhẹ thêm giờ sinh sau 7 ngày (đã có slot "Lá nhắc") |
+| Vòng hằng ngày | `/home → /note/today`, mood, trúng/chưa trúng, `/saved`, `/card` | Mood và phản hồi là ngõ cụt | Chặng 1: Lá ghi nhận bằng lời; chặng 2: A3 opt-in |
+| Tarot | `/tarot → /tarot/:sessionId` | Ô nhập không hướng dẫn cách hỏi; kết quả không trả lời câu hỏi | T2; chặng 2: gợi ý cách hỏi theo chủ đề |
+| Hợp gu | `/radar → /radar/start` hoặc `/radar/invite` → `/radar/result/:id` | Chọn ngữ cảnh và giọng gần như không đổi kết quả; bài dừng ở thẻ kiểm chứng | R2; chặng 2: thẻ câu hỏi |
+
+## 13. Tham chiếu
+
+- Sản phẩm, theo mô tả của chính hãng trên trang App Store, chưa kiểm chứng độc lập:
+  - Co–Star: note ngày từ lá số và transit, https://apps.apple.com/app/id1264782561
+  - CHANI: transit cá nhân là tính năng trả phí, https://apps.apple.com/us/app/-/id1532791252
+  - The Pattern: "Bonds" gắn nhãn kiểu Soulmate/Challenging; Lá Lành tránh nhãn phán xét này,
+    https://apps.apple.com/us/app/-/id1071085727
+- Labyrinthos, câu có/không trong Tarot: đổi thành câu quyết định, trải yếu tố ủng hộ/cản,
+  https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/how-to-answer-yes-no-questions-with-tarot-4-yes-or-no-tarot-spreads
+- Gottman Love Maps (mẫu thẻ câu hỏi cho cặp): https://www.gottman.com/app/love-maps-app/
+- NN/g, Personalization vs Customization: https://www.nngroup.com/videos/personalization-customization/
+- Google PAIR, Feedback + Control: https://pair.withgoogle.com/chapter/People%20+%20AI%20Guidebook%20-%20Feedback%20+%20Control.pdf
+- Kaminskas & Bridge, đa dạng, độ mới và độ phủ trong gợi ý:
+  https://research.ucc.ie/en/publications/diversity-serendipity-novelty-and-coverage-a-survey-and-empirical/
+- Tâm lý học:
+  - Forer 1949 / hiệu ứng Barnum: https://www.ebsco.com/research-starters/psychology/barnum-effect
+  - Padgett & Jorgenson 1982: https://opus4.kobv.de/opus4-Fromm/frontdoor/index/index/year/2024/docId/37972
+  - Hofer 2009: https://dspace.library.uvic.ca/handle/1828/1553
+  - Ryan & Deci 2000 (APA): https://apa.org/research-practice/conduct-research/self-determination-theory
+  - Altendorf 2019: https://pure.uva.nl/ws/files/33032229/Published_article_Altendorf_et_al_2019_.pdf
+  - Implementation intentions: https://www.frontiersin.org/journals/human-neuroscience/articles/10.3389/fnhum.2015.00395/pdf
+  - Fredrickson & Kahneman 1993: https://bear.warrington.ufl.edu/brenner/mar7588/Papers/fredr-kahneman-jpsp1993.pdf
+  - Baumeister 2001: https://fbaum.unc.edu/teaching/articles/Baumeister_2001.pdf
+- Pháp lý, cần đối chiếu bản gốc trên Cổng Pháp luật quốc gia trước chặng 2:
+  - Luật 91/2025/QH15 (hiệu lực 01/01/2026): https://thuvienphapluat.vn/van-ban/bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx
+  - NĐ 356/2025/NĐ-CP: https://thuvienphapluat.vn/van-ban/Quyen-dan-su/Nghi-dinh-356-2025-ND-CP-huong-dan-Luat-Bao-ve-du-lieu-ca-nhan-687428.aspx
