@@ -3,11 +3,18 @@ import unicodedata
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from hashlib import sha256
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from app.domains.astro.models import EngineProvenance, TimePrecision, Tradition, TransitPhase
 
@@ -539,6 +546,20 @@ class ReadingCandidate(BaseModel):
     evidence: EvidenceDisclosure
     disclaimer: str = SHORT_DISCLAIMER
     semantic_blueprint: "SemanticBlueprint | None" = None
+    # Lá's line after a Luna-written Daily card. Deterministic cards leave it empty and
+    # take the authored line from the companion catalog at read time.
+    companion: str | None = Field(default=None, max_length=200)
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_companion(self, handler: SerializerFunctionWrapHandler) -> Any:
+        # Rollback floor: a card without Lá's line serializes exactly like
+        # reading-candidate/v1, so readers from before the field (extra="forbid")
+        # still open every deterministic revision. Only Luna cards that carry a line
+        # use reading-candidate/v2; see docs/operations/luna-rewrite-release-runbook.md.
+        data = handler(self)
+        if isinstance(data, dict) and data.get("companion") is None:
+            data.pop("companion", None)
+        return data
 
     @property
     def natal_user_prose(self) -> str:
@@ -731,6 +752,8 @@ class ReadingSectionsProjection(BaseModel):
     manifestation: str
     transit: str | None = None
     micro_action: str
+    # What Lá says next to a Daily card (null for other purposes).
+    companion: str | None = None
 
 
 class ReadingEvidenceProjection(BaseModel):

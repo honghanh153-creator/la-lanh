@@ -55,6 +55,7 @@ def _synthetic_request() -> RewriteRequestEnvelope:
         "title_meaning": "Chưa rõ thì chưa cần kết luận.",
         "scene_meaning": "Khi một tin nhắn ngắn khiến ý của người kia chưa rõ.",
         "action_meaning": "Hỏi lại một câu rõ ràng trước khi kết luận.",
+        "companion_meaning": "Nhắc người đọc hỏi lại phần chưa rõ thay vì tự đoán ý tin nhắn.",
         "requirements": [
             {
                 "key": "daily.missing-context",
@@ -83,8 +84,8 @@ def _synthetic_request() -> RewriteRequestEnvelope:
             blueprint_hash=sha256(canonical.encode()).hexdigest(),
             model_version=MODEL,
             prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
-            schema_version="daily-rewrite/v1",
-            gate_version="daily-rewrite-gates/v3",
+            schema_version="daily-rewrite/v2",
+            gate_version="daily-rewrite-gates/v4",
             candidate_variant="paid-probe",
         ),
         authorization_receipt_id="synthetic-probe-no-user-data",

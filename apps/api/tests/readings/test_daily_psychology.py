@@ -13,6 +13,7 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
+from app.domains.readings.companion import COMPANION_ISSUE_LINES, companion_issue_entry
 from app.domains.readings.daily_personalization import eligible_daily_situations
 from app.domains.readings.daily_psychology import (
     _ARENA_LEADS,
@@ -179,7 +180,13 @@ def test_every_authored_daily_combination_passes_the_direct_home_gate() -> None:
                 lead = _ARENA_LEADS.get(arena)
                 manifestation = lead_scene(lead, scene) if lead else scene
                 report = evaluate_daily_rewrite(
-                    {"title": title, "scene": manifestation, "action": action}, meaning_brief=brief
+                    {
+                        "title": title,
+                        "scene": manifestation,
+                        "action": action,
+                        "companion": COMPANION_ISSUE_LINES[issue.key].line.direct,
+                    },
+                    meaning_brief=brief,
                 )
                 assert report.passed, (issue.key, arena, title, scene, action, report.failure_codes)
 
@@ -217,6 +224,9 @@ def test_direct_daily_style_survives_a_year_in_every_selected_context() -> None:
                     "title": candidate.hook,
                     "scene": candidate.manifestation,
                     "action": candidate.micro_action,
+                    "companion": companion_issue_entry(
+                        candidate.semantic_blueprint.mechanism_key
+                    ).line.direct,
                 },
                 meaning_brief=brief,
             )

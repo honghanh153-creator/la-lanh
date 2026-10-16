@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "recorded_on": "2026-10-02",
+  "recorded_on": "2026-10-13",
   "metrics": {
     "daily_planets": 14,
     "daily_signs": 12,
@@ -18,6 +18,9 @@
     "relationship_voice_profiles": 4,
     "radar_themes": 8,
     "radar_contexts": 4,
-    "tarot_sources": 8
+    "tarot_sources": 8,
+    "companion_issue_lines": 15,
+    "companion_mood_reactions": 5,
+    "companion_greetings": 5
   }
 }

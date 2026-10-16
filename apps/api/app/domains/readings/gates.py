@@ -5,6 +5,7 @@ import unicodedata
 from collections.abc import Iterable
 
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
+from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_personalization import eligible_daily_situations
 from app.domains.readings.daily_psychology import render_why_today
 from app.domains.readings.models import (
@@ -84,8 +85,30 @@ def _report(gate: GateName, version: str, failures: Iterable[GateFailureCode]) -
     return GateReport(gate=gate, version=version, passed=not unique, failure_codes=unique)
 
 
+def _companion_for_gates(candidate: ReadingCandidate) -> str | None:
+    """Lá's line as the reader will see it: Luna's, or the authored line of a Daily card.
+
+    Every shared gate (evidence labels, anti-influence, editorial, meaning, privacy) must see
+    it, so a companion line can never carry what the card itself is not allowed to say.
+    """
+
+    if candidate.companion:
+        return candidate.companion
+    blueprint = candidate.semantic_blueprint
+    if blueprint is None or blueprint.daily_meaning is None:
+        return None
+    return companion_issue_entry(blueprint.mechanism_key).line.direct
+
+
+def _gate_sections(candidate: ReadingCandidate) -> tuple[str, ...]:
+    companion = _companion_for_gates(candidate)
+    if companion is None:
+        return candidate.all_user_prose
+    return (*candidate.all_user_prose, companion)
+
+
 def _candidate_prose(candidate: ReadingCandidate) -> str:
-    return "\n".join(candidate.all_user_prose)
+    return "\n".join(_gate_sections(candidate))
 
 
 def evidence_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
@@ -307,7 +330,7 @@ def anti_influence_gate(candidate: ReadingCandidate) -> GateReport:
 
 
 def editorial_gate(candidate: ReadingCandidate) -> GateReport:
-    sections = tuple(_fold(section) for section in candidate.all_user_prose if section.strip())
+    sections = tuple(_fold(section) for section in _gate_sections(candidate) if section.strip())
     failures: list[GateFailureCode] = []
     joined = "\n".join(sections)
     searchable_joined = re.sub(r"\W+", " ", joined)
@@ -405,8 +428,12 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
                     "title": candidate.hook,
                     "scene": candidate.manifestation,
                     "action": candidate.micro_action,
+                    # The authored line must pass the same companion rules as Luna's.
+                    "companion": candidate.companion
+                    or companion_issue_entry(blueprint.mechanism_key).line.direct,
                 },
                 meaning_brief=blueprint.daily_meaning,
+                companion_brief=companion_issue_entry(blueprint.mechanism_key),
             )
             if not direct_report.passed:
                 failures.append(GateFailureCode.MEANING_DAILY_DIRECT_CONTRACT)

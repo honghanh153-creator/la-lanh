@@ -16,11 +16,13 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
+from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_psychology import current_scene_lead, split_scene_lead
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     BackgroundLens,
     DailyMeaningBrief,
+    GateFailureCode,
     ReadingCandidate,
     ReadingPlan,
     ReadingPlanRecord,
@@ -119,17 +121,27 @@ def _records(
     return plan_record, projection, revision
 
 
+_COMPANION = "Làm thử một bước nhỏ hôm nay thôi nhé."
+
+
+def _authored_companion(baseline: ReadingCandidate) -> str:
+    blueprint = baseline.semantic_blueprint
+    return companion_issue_entry(blueprint.mechanism_key if blueprint else None).line.direct
+
+
 def _good_output(baseline: ReadingCandidate | None = None) -> dict[str, JsonValue]:
     if baseline is not None:
         return {
             "title": baseline.hook,
             "scene": baseline.manifestation,
             "action": baseline.micro_action,
+            "companion": _authored_companion(baseline),
         }
     return {
         "title": "Tiến độ của người khác không phải thước đo.",
         "scene": "Khi thấy người khác khoe kết quả, bạn so sánh tiến độ của mình với họ.",
         "action": "Chọn một việc của mình để làm xong trước khi xem tiếp.",
+        "companion": _COMPANION,
     }
 
 
@@ -170,6 +182,7 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
         model_version="gpt-6-luna",
         prompt_version="surface-rewrite-v1",
     )
+    assert baseline.semantic_blueprint is not None
 
     serialized = json.dumps(request.safe_payload, ensure_ascii=False).lower()
     assert request.key.surface.value == "daily_home"
@@ -180,10 +193,16 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
         "title_meaning",
         "scene_meaning",
         "action_meaning",
+        "companion_meaning",
         "meaning_brief",
         "requirements",
         "evidence",
     }
+    # Lá's brief is editorial meaning from the catalog, never the authored sentence.
+    entry = companion_issue_entry(baseline.semantic_blueprint.mechanism_key)
+    assert request.safe_payload["companion_meaning"] == entry.meaning
+    assert entry.line.direct not in serialized and entry.line.roast not in serialized
+    assert request.key.schema_version == "daily-rewrite/v2"
     assert "1990" not in serialized
     assert "latitude" not in serialized
     assert "longitude" not in serialized
@@ -193,7 +212,7 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
     assert request.safe_payload["meaning_brief"] == (
         baseline.semantic_blueprint.daily_meaning.model_dump(mode="json")
     )
-    assert request.key.gate_version == "daily-rewrite-gates/v3"
+    assert request.key.gate_version == "daily-rewrite-gates/v4"
 
 
 def test_daily_compiler_carries_supported_full_chart_meaning_through_privacy_allowlist() -> None:
@@ -277,6 +296,7 @@ def test_daily_gate_rejects_the_exact_opaque_card_reported_by_the_user() -> None
             "action": (
                 "Nói câu bạn còn chưa rõ trước khi đồng ý. Làm xong, xem tình hình có dễ hơn không."
             ),
+            "companion": _COMPANION,
         }
     )
     assert not report.passed
@@ -292,6 +312,7 @@ def test_daily_action_does_not_ask_to_act_before_a_choice_already_made() -> None
                 "dù chưa hiểu rõ điều vừa chốt."
             ),
             "action": "Hỏi cả nhóm vì sao chọn cách đó trước khi đồng ý.",
+            "companion": _COMPANION,
         }
     )
     assert "daily_action_timing_conflict" in report.failure_codes
@@ -310,6 +331,7 @@ def test_daily_brief_rejects_wrong_advice_even_when_both_scenes_mention_a_questi
             "Khi cả nhóm chốt rất nhanh, bạn có thể đồng ý theo dù vẫn còn một chỗ muốn hỏi lại."
         ),
         "action": "Hỏi ngay chỗ đó: Mình chưa rõ phần này, giải thích thêm được không?",
+        "companion": _COMPANION,
     }
     assert evaluate_daily_rewrite(good, meaning_brief=brief).passed
     wrong_action = good | {"action": "Hỏi người gửi tin nhắn xem họ muốn nói gì."}
@@ -545,8 +567,223 @@ def test_daily_prompt_teaches_the_v7_card_shape() -> None:
     from app.infrastructure.generation.schemas import surface_output_contract
 
     instruction = surface_output_contract(RewriteSurface.DAILY_HOME).developer_instruction
-    assert OPENAI_REWRITE_PROMPT_VERSION == "surface-rewrite-v4"
+    assert OPENAI_REWRITE_PROMPT_VERSION == "surface-rewrite-v5"
     assert "start the scene with exactly that clause" in instruction
+    # v5: Lá's companion line, written from companion_meaning in the shared voice.
+    assert "companion: one line by Lá (sprout friend)" in instruction
+    assert "anyone's thoughts" in instruction
     assert "never write a separate fragment such as 'Ví dụ …'" in instruction
     assert "never repeat it" in instruction
     assert "limitation" not in instruction
+
+
+@pytest.mark.parametrize(
+    ("companion", "failure"),
+    [
+        ("Ừ.", "daily_companion_budget"),
+        ("Mặt Trăng đang đỡ bạn, thử một bước nhỏ nhé.", "daily_companion_astro_term"),
+        ("Lá biết bạn sẽ làm được mà, thử đi.", "daily_companion_mind_reading"),
+        ("Người kia muốn bạn hỏi trước, nhắn đi nào.", "daily_companion_mind_reading"),
+        ("Làm đi, chắc chắn sẽ ổn thôi mà.", "daily_companion_certainty"),
+        ("Chọn một việc của mình để làm xong trước khi xem tiếp.", "daily_companion_repeats_card"),
+    ],
+)
+def test_daily_companion_line_keeps_las_rules(companion: str, failure: str) -> None:
+    report = evaluate_daily_rewrite(_good_output() | {"companion": companion})
+    assert failure in report.failure_codes
+
+
+def test_daily_companion_line_is_required_and_projected_with_the_card() -> None:
+    missing = {key: value for key, value in _good_output().items() if key != "companion"}
+    assert evaluate_daily_rewrite(missing).failure_codes == ("daily_required_fields",)
+
+
+def _companion_case() -> tuple[ReadingCandidate, str]:
+    plan_record, _projection, _active = _records()
+    baseline = DeterministicVietnameseRenderer().render(plan_record.plan)
+    assert baseline.semantic_blueprint is not None
+    anchor = companion_issue_entry(baseline.semantic_blueprint.mechanism_key).anchors[0]
+    return baseline, anchor
+
+
+@pytest.mark.parametrize(
+    ("template", "gate_code"),
+    [
+        ("{a} xong thì nên tăng thuốc ngay hôm nay nhé.", GateFailureCode.ANTI_MEDICAL_COMMAND),
+        ("{a} ngay trước khi quá muộn, kẻo mất hết nhé.", GateFailureCode.ANTI_URGENCY),
+        ("Chỉ Lá hiểu bạn thôi, {a} một mình là được.", GateFailureCode.ANTI_DEPENDENCY),
+        ("{a} xong nhắn Lá qua ban@example.com nhé.", GateFailureCode.PRIVACY_PERSONAL_DATA),
+    ],
+)
+def test_shared_gates_see_the_companion_line(template: str, gate_code: GateFailureCode) -> None:
+    plan_record, _projection, _active = _records()
+    baseline, anchor = _companion_case()
+    unsafe = baseline.model_copy(update={"companion": template.format(a=anchor.capitalize())})
+    evaluation = evaluate_candidate(plan_record.plan, unsafe)
+    assert not evaluation.accepted
+    assert gate_code in evaluation.failure_codes
+    # The same card with a faithful line still passes every shared gate.
+    assert evaluate_candidate(
+        plan_record.plan, baseline.model_copy(update={"companion": _authored_companion(baseline)})
+    ).accepted
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "template",
+    [
+        "{a} xong thì nên tăng thuốc ngay hôm nay nhé.",
+        "{a} ngay trước khi quá muộn, kẻo mất hết nhé.",
+        "Chỉ Lá hiểu bạn thôi, {a} một mình là được.",
+        "{a} xong nhắn Lá qua ban@example.com nhé.",
+        "Đừng {a} nữa, cứ để vậy cho nhẹ đầu nhé.",
+    ],
+)
+async def test_projector_rejects_unsafe_or_contrary_companion_without_saving(template: str) -> None:
+    plan_record, projection, active = _records()
+    repository = MemoryRepository(plan_record, projection, active)
+    baseline, anchor = _companion_case()
+    request = compile_daily_rewrite_request(
+        plan_record,
+        projection,
+        baseline,
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v5",
+    )
+    before = dict(repository.revisions)
+    output = _good_output(baseline) | {"companion": template.format(a=anchor).capitalize()}
+
+    decision = await DailyRewriteProjector(repository).validate_and_project(
+        request, output, completed_at=NOW
+    )
+
+    assert not decision.accepted
+    assert repository.revisions == before
+    assert repository.projection.available_revision_id is None
+
+
+@pytest.mark.asyncio
+async def test_projector_accepts_a_faithful_companion_paraphrase() -> None:
+    plan_record, projection, active = _records()
+    repository = MemoryRepository(plan_record, projection, active)
+    baseline, _anchor = _companion_case()
+    request = compile_daily_rewrite_request(
+        plan_record,
+        projection,
+        baseline,
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v5",
+    )
+    authored = _authored_companion(baseline)
+    output = _good_output(baseline) | {"companion": f"Nè, {authored[:1].lower()}{authored[1:]}"}
+
+    decision = await DailyRewriteProjector(repository).validate_and_project(
+        request, output, completed_at=NOW
+    )
+
+    assert decision.accepted, decision.failure_code
+    assert repository.projection.available_revision_id is not None
+
+
+def test_companion_gate_rejects_a_line_that_reverses_its_card() -> None:
+    entry = companion_issue_entry("psychology:missing-context")
+    output = _good_output() | {"companion": "Đừng hỏi lại, cứ đoán ý tin nhắn rồi trả lời."}
+    report = evaluate_daily_rewrite(output, companion_brief=entry)
+    assert "daily_companion_contradicts_card" in report.failure_codes
+    off_brief = _good_output() | {"companion": "Uống một ly nước rồi đi ngủ sớm nhé."}
+    assert (
+        "daily_companion_off_brief"
+        in evaluate_daily_rewrite(off_brief, companion_brief=entry).failure_codes
+    )
+    paraphrase = _good_output() | {"companion": "Hỏi thẳng một chữ đi, đoán làm gì cho mệt."}
+    assert evaluate_daily_rewrite(paraphrase, companion_brief=entry).passed
+
+
+def _missing_context_records() -> tuple[
+    ReadingPlanRecord, ReadingProjectionRecord, ReadingRevisionRecord
+]:
+    plan = ReadingPlanner().plan(
+        DateOnlySunResult(
+            status="certain",
+            sign=ZodiacSign.PISCES,
+            candidates=(ZodiacSign.PISCES,),
+            provenance=EngineProvenance(version="test", profile="test"),
+        ),
+        purpose=ReadingPurpose.DAILY_NOTE,
+        editorial_seed="2026-01-12",
+    )
+    records = _records(plan)
+    baseline = DeterministicVietnameseRenderer().render(plan)
+    assert baseline.semantic_blueprint is not None
+    assert baseline.semantic_blueprint.mechanism_key == "psychology:missing-context"
+    return records
+
+
+async def _project_companion(
+    companion: str,
+) -> tuple[bool, MemoryRepository, dict[UUID, ReadingRevisionRecord]]:
+    plan_record, projection, active = _missing_context_records()
+    repository = MemoryRepository(plan_record, projection, active)
+    baseline = DeterministicVietnameseRenderer().render(plan_record.plan)
+    request = compile_daily_rewrite_request(
+        plan_record,
+        projection,
+        baseline,
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v5",
+    )
+    before = dict(repository.revisions)
+    decision = await DailyRewriteProjector(repository).validate_and_project(
+        request, _good_output(baseline) | {"companion": companion}, completed_at=NOW
+    )
+    return decision.accepted, repository, before
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "companion",
+    [
+        # Codex review @ 803b98a: the anchor is there but the clause rejects it.
+        "Không cần phải hỏi lại, đoán ý tin nhắn rồi trả lời nhé.",
+        "Hỏi lại chỉ mất thời gian, đoán ý tin nhắn rồi trả lời nhé.",
+        "Đừng hỏi lại, cứ đoán ý tin nhắn rồi trả lời.",
+        "Hỏi lại thì phí công lắm, trả lời luôn đi.",
+        "Đoán còn hơn hỏi, trả lời luôn cho nhanh.",
+        "Đoán nhanh hơn hỏi nhiều, trả lời luôn nhé.",
+        # Codex review @ fcdb44d: a negation or dismissal aimed at something else must not
+        # excuse an endorsed contrary action.
+        "Hỏi lại nhé, không chờ trả lời cứ đoán luôn.",
+        "Hỏi lại nhé, cứ đoán cho nhanh khỏi mất thời gian.",
+        "Hỏi lại đi, chẳng ai trách nếu bạn cứ đoán.",
+        # Codex review @ 8113dc3: a negated dismissal or "thôi cứ" still urges guessing.
+        "Hỏi lại đi, cứ đoán cũng không mất công.",
+        "Hỏi lại nhé, cứ đoán không mất thời gian đâu.",
+        "Hỏi lại nhé, thôi cứ đoán luôn cho nhanh.",
+        "Hỏi lại nhé, cứ đoán có làm gì đâu.",
+        "Hỏi lại nhé, không phải không đoán.",
+    ],
+)
+async def test_projector_rejects_a_companion_that_waves_the_action_away(companion: str) -> None:
+    accepted, repository, before = await _project_companion(companion)
+    assert not accepted
+    assert repository.revisions == before
+    assert repository.projection.available_revision_id is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "companion",
+    [
+        "Đừng đoán mà hỏi lại cho chắc nhé.",
+        "Không rõ thì hỏi lại một câu nhé.",
+        "Hỏi lại thay vì tự đoán, nhẹ đầu hơn nhiều.",
+        "Hỏi lại không mất thời gian đâu, thử đi.",
+        "Đừng cứ đoán, hỏi lại một câu nhé.",
+        "Hỏi thẳng một chữ đi, đoán làm gì cho mệt.",
+        "Không cần đoán, hỏi lại một câu là rõ.",
+    ],
+)
+async def test_projector_keeps_a_companion_that_carries_the_action(companion: str) -> None:
+    accepted, repository, _before = await _project_companion(companion)
+    assert accepted
+    assert repository.projection.available_revision_id is not None

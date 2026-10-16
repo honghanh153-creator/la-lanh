@@ -19,6 +19,7 @@ from app.domains.content_rewrite.models import (
 )
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
+from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_psychology import StaleDailySelection
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
@@ -36,6 +37,7 @@ from app.domains.readings.models import (
 )
 from app.domains.readings.renderers import DeterministicVietnameseRenderer, canonical_evidence_claim
 
+GENERATED_COMPANION_SCHEMA_VERSION = "reading-candidate/v2"
 DAILY_REWRITE_RENDERER_VERSION = "gpt-6-luna-daily-v1"
 READING_REWRITE_RENDERER_VERSION = "gpt-6-luna-reading-v1"
 
@@ -186,6 +188,7 @@ def compile_daily_rewrite_request(
         sort_keys=True,
         separators=(",", ":"),
     )
+    daily_spec = canonical_surface_registry().require(RewriteSurface.DAILY_HOME)
     return RewriteRequestEnvelope(
         key=RewriteArtifactKey(
             surface=RewriteSurface.DAILY_HOME,
@@ -198,10 +201,8 @@ def compile_daily_rewrite_request(
             blueprint_hash=sha256(blueprint_json.encode()).hexdigest(),
             model_version=model_version,
             prompt_version=prompt_version,
-            schema_version="daily-rewrite/v1",
-            gate_version=canonical_surface_registry()
-            .require(RewriteSurface.DAILY_HOME)
-            .gate_version,
+            schema_version=daily_spec.schema_version,
+            gate_version=daily_spec.gate_version,
         ),
         authorization_receipt_id=content_rewrite_receipt_id(plan_record.guest_id),
         safe_payload={
@@ -211,6 +212,7 @@ def compile_daily_rewrite_request(
             "title_meaning": blueprint.hook,
             "scene_meaning": blueprint.manifestation,
             "action_meaning": blueprint.micro_action,
+            "companion_meaning": companion_issue_entry(blueprint.mechanism_key).meaning,
             "meaning_brief": (
                 blueprint.daily_meaning.model_dump(mode="json") if blueprint.daily_meaning else None
             ),
@@ -389,6 +391,7 @@ class DailyRewriteProjector(RewriteProjector):
             source_scene=baseline.semantic_blueprint.manifestation,
             source_action=baseline.semantic_blueprint.micro_action,
             meaning_brief=baseline.semantic_blueprint.daily_meaning,
+            companion_brief=companion_issue_entry(baseline.semantic_blueprint.mechanism_key),
         )
         if not daily_report.passed:
             return RewriteProjectionDecision(
@@ -401,6 +404,9 @@ class DailyRewriteProjector(RewriteProjector):
                 "hook": str(output["title"]),
                 "manifestation": str(output["scene"]),
                 "micro_action": str(output["action"]),
+                "companion": str(output["companion"]),
+                # Carrying Lá's line makes this a v2 candidate (rollback floor in the runbook).
+                "schema_version": GENERATED_COMPANION_SCHEMA_VERSION,
             }
         )
         evaluation = evaluate_candidate(plan_record.plan, candidate)

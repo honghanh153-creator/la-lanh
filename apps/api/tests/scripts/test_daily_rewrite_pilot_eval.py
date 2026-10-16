@@ -90,8 +90,8 @@ def test_dry_run_makes_zero_network_calls_and_checks_the_privacy_allowlist(
     assert [row["case_id"] for row in rows] == list(selection.case_ids)
     assert all(row["generated"] is None and row["gate"] is None for row in rows)
     assert oct(out.stat().st_mode & 0o777) == "0o600"
-    assert {row["versions"]["prompt"] for row in rows} == {"surface-rewrite-v4"}
-    assert {row["versions"]["gate"] for row in rows} == {"daily-rewrite-gates/v3"}
+    assert {row["versions"]["prompt"] for row in rows} == {"surface-rewrite-v5"}
+    assert {row["versions"]["gate"] for row in rows} == {"daily-rewrite-gates/v4"}
     worst_case = sum(row["reserved"]["cost_nanos"] for row in rows)
     assert 0 < worst_case < 3 * 10_000_000  # fits the proposed 3-cent staging day
 
@@ -158,6 +158,7 @@ def _identity(item: pilot.PreparedCase) -> dict[str, JsonValue]:
         "title": item.baseline.hook,
         "scene": item.baseline.manifestation,
         "action": item.baseline.micro_action,
+        "companion": pilot.authored_companion(item.baseline),
     }
 
 

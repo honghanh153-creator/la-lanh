@@ -1,5 +1,56 @@
 # Luna rewrite release runbook
 
+## Lá's companion line, 2026-10-13 — local only
+
+`daily_home` now has a fourth field, `companion`: the line Lá (the sprout companion) says next to
+the card. Chain: `surface-rewrite-v5` → schema `daily-rewrite/v2` → `daily-rewrite-gates/v4`
+(report `daily-home-rewrite-gates/v4`); every bump changes the cache key, so nothing generated
+under v4 is reused.
+
+- Luna receives only `companion_meaning`, the editorial brief from the content matrix
+  (`apps/api/app/domains/readings/companion.py`), never the authored sentence.
+- The gate checks 4–14 words, no astrology terms or filler, no claim to know the reader, no fate
+  wording, no statement of what another person thinks or wants, no certainty, and no repeat of the
+  title or action. The Meaning Gate runs the same rules on the authored line of every
+  deterministic card. The full-year test confirms every authored line passes.
+- Deterministic cards do not store a line. The read model adds the authored direct or roast line
+  from the catalog. Roast readers of a Luna card get the voiced deterministic baseline with its
+  roast line, never a mix. Lá's line alone never swaps a Luna card for the baseline.
+- Budget: the 40-case pilot's worst-case reservation is **USD 0.029799**, under the 3-cent staging
+  day, with about 0.7% margin. A longer prompt or brief must be re-checked with
+  `pnpm rewrite:pilot generate --dry-run` before it ships.
+- Human scoring of the pilot sample now also covers "Lời của Lá"; the review page shows it.
+- **Shared gates:** Lá's line goes through every shared Reading gate: evidence labels,
+  anti-influence (medical/urgency/dependency/isolation…), editorial, meaning and privacy. This
+  applies both to Luna's line and to the authored line of every deterministic card. On top of
+  that, the rewrite gate requires the issue's nudge anchor and reads the line clause by clause
+  (`nudge_failures`): an anchor is rejected when its clause negates it anywhere before it
+  ("Không cần phải hỏi lại"), sets it aside ("thay vì / hơn là / còn hơn hỏi") or its sentence
+  segment waves it away ("Hỏi lại chỉ mất thời gian"); a contrary phrase ("đoán" for
+  missing-context) fails unless a negation or dismissal aimed at that very action sets it
+  aside ("đừng cứ đoán", "thay vì tự đoán", "đoán làm gì cho mệt"). A negation of some other
+  action ("không chờ trả lời, cứ đoán"), a double negation ("không phải không đoán"), a
+  negated dismissal ("cứ đoán không mất công", "có làm gì đâu") or "thôi cứ đoán" does not
+  excuse it; unclear scope means contrary. `test_every_issue_rejects_an_endorsed_contrary`
+  runs these frames against all 15 issues. The check is lexical and errs towards
+  rejecting (a rejected line falls back to the authored one); it does not replace human scoring
+  of meaning.
+- **Rollback floor:**
+  - A candidate without a line serializes exactly as `reading-candidate/v1` (the field is omitted
+    when empty). Readers from before this change, e.g. `collab/integration` @ `3d3107a`, still
+    open every deterministic revision.
+  - A Luna candidate that carries a line is `reading-candidate/v2`, and a pre-companion reader
+    rejects it (`extra="forbid"`).
+  - Therefore, once an environment has stored any v2 revision, its rollback target must keep a
+    reader with `companion`. Roll back other parts only, and never delete user revisions to get
+    past the error.
+  - Staging and production have generation off, so no v2 revision exists there today. Record the
+    first v2 write in the release log before enabling the pilot.
+  - Evidence: `tests/readings/test_candidate_compat.py`, plus a probe that opened both
+    serializations with the real `3d3107a` reader (v1 OK, v2 rejected on `companion`).
+
+No paid call was made for this update.
+
 ## Daily v7 contract update, 2026-10-13 — local only
 
 Daily now uses the v7 card (two-sentence thesis, scene opened by a context clause). The rewrite

@@ -18,6 +18,7 @@ from app.domains.astro.models import (
 )
 from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.content_rewrite.service import ContentRewriteService
+from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     AuraTransitionProjection,
@@ -94,7 +95,7 @@ class ReadingApplicationService:
         generation_provider: str = "disabled",
         generation_model: str = "disabled",
         generation_prompt_version: str = "disabled",
-        rewrite_prompt_version: str = "surface-rewrite-v4",
+        rewrite_prompt_version: str = "surface-rewrite-v5",
         generation_max_attempts: int = 2,
         content_rewrite_service: ContentRewriteService | None = None,
     ) -> None:
@@ -580,6 +581,17 @@ def _requires_forced_copy_repair(
     return any(fragment in folded for fragment in BANNED_CORE_FRAGMENTS)
 
 
+def _companion_line(candidate: ReadingCandidate, purpose: ReadingPurpose) -> str | None:
+    """Lá's line for a Daily card: Luna's line when generated, else the authored one."""
+
+    if purpose is not ReadingPurpose.DAILY_NOTE:
+        return None
+    if candidate.companion:
+        return candidate.companion
+    blueprint = candidate.semantic_blueprint
+    return companion_issue_entry(blueprint.mechanism_key if blueprint else None).line.direct
+
+
 def _content_projection(
     revision: ReadingRevisionRecord,
     projection: ReadingProjectionRecord,
@@ -608,6 +620,7 @@ def _content_projection(
             manifestation=candidate.manifestation,
             transit=candidate.transit,
             micro_action=candidate.micro_action,
+            companion=_companion_line(candidate, projection.purpose),
         ),
         evidence=ReadingEvidenceProjection(
             title=candidate.evidence.title,

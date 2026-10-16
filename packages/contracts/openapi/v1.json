@@ -3453,6 +3453,17 @@
         "additionalProperties": false,
         "description": "User-visible prose only; internal planning and gate state never crosses the API.",
         "properties": {
+          "companion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companion"
+          },
           "hook": {
             "title": "Hook",
             "type": "string"

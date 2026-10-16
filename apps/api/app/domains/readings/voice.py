@@ -23,6 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from app.domains.readings.companion import roast_companion_line
 from app.domains.readings.daily_personalization import PLACEMENT_MEANINGS
 from app.domains.readings.daily_psychology import (
     DAILY_ISSUES,
@@ -691,8 +692,12 @@ def apply_content_voice(
     roasted = roast_daily_sections(
         DailySections(current.hook, current.thesis, current.manifestation, current.micro_action)
     )
-    if roasted == DailySections(
-        current.hook, current.thesis, current.manifestation, current.micro_action
+    # Lá's line voices with the card: only an authored direct line has a roast pair.
+    companion = roast_companion_line(current.companion) if current.companion is not None else None
+    if (
+        roasted
+        == DailySections(current.hook, current.thesis, current.manifestation, current.micro_action)
+        and companion == current.companion
     ):
         return content
     experiment = content.experiment
@@ -707,6 +712,7 @@ def apply_content_voice(
                     "thesis": roasted.thesis,
                     "manifestation": roasted.manifestation,
                     "micro_action": roasted.micro_action,
+                    "companion": companion,
                 }
             ),
             "experiment": experiment,
@@ -738,8 +744,13 @@ def voice_from_baseline(
     ):
         return content
     voiced = apply_content_voice(baseline, voice)
-    if voiced is baseline:
-        # The baseline has no authored voice either; keep the generated card whole.
+    card_voiced = (
+        voiced.sections.model_copy(update={"companion": baseline.sections.companion})
+        != baseline.sections
+    )
+    if not card_voiced:
+        # The baseline card has no authored voice either; keep the generated card whole.
+        # Lá's line alone never swaps Luna's card for the deterministic one.
         return content
     experiment = content.experiment
     if experiment is not None:

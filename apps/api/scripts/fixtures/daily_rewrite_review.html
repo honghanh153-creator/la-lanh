@@ -53,7 +53,7 @@ function renderVersion(c, who, label) {
   const box = el('div', {class: 'version'}); box.append(el('h3', {}, 'Bản ' + label));
   const k = card(c, who);
   if (!k) { box.append(el('p', {class: 'bad'}, 'Chưa có bản Luna (dry-run hoặc lỗi tạo).')); return box; }
-  for (const [name, text] of [['Tiêu đề', k.hook], ['Đoạn chính', k.thesis], ['Ngoài đời có thể trông như…', k.manifestation], ['Thử một việc nhỏ', k.micro_action]]) {
+  for (const [name, text] of [['Tiêu đề', k.hook], ['Đoạn chính', k.thesis], ['Ngoài đời có thể trông như…', k.manifestation], ['Thử một việc nhỏ', k.micro_action], ['Lời của Lá', k.companion]]) {
     box.append(el('div', {class: 'label'}, name)); box.append(el('p', {}, text)); }
   const t = el('table'); const s = (state[c.case_id] ||= {}); const scores = (s[who] ||= {});
   for (const [dim, title] of DIMS) { const tr = el('tr'); tr.append(el('td', {}, title)); const td = el('td');
