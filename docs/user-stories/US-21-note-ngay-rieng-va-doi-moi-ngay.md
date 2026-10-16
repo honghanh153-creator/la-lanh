@@ -33,7 +33,8 @@ cho phép.
   tiếp.
 - **Replay:** mở lại cùng `(owner_scope, note_date, catalog_version, manifest)` trả **đúng** bản đã tạo,
   kể cả sau cache miss, restart hay đổi giọng. Đổi giọng chỉ tra ánh xạ Cà khịa theo mã tổ hợp.
-- **Ngoại lệ:** bản đọc có `variety_exception` (gate an toàn từ chối hoặc manifest hỏng) phục vụ kho nền.
+- **Ngoại lệ:** bản đọc có `variety_exception` (gate an toàn từ chối hoặc manifest hỏng/thiếu) phục vụ kho nền
+  ở đúng phiên bản đã duyệt trong `fallback-approval.json`.
   Cặp ngày có ngoại lệ bị **loại khỏi** cam kết (a)/(b) và **báo riêng**, không bao giờ tính là đạt.
 
 ## Acceptance Criteria
@@ -58,13 +59,18 @@ cho phép.
 - **AC07:** Không còn "một tình huống cố định theo cung cả năm". Pool có 4–6 tình huống, lấy từ cung,
   nguyên tố, tính chất và **transit chắc chắn** tới các hành tinh có miền xác định
   (`la-lanh-personal-sky-events-spec.md`).
-- **AC08:** Không dùng Mặt Trăng, cung mọc, nhà. Pha transit và "Ngày N của đợt" chỉ hiện khi bất biến
-  trên miền ngày sinh. Bài ghi rõ là bản đọc từ ngày sinh.
+- **AC08:** Không dùng Mặt Trăng, cung mọc, nhà. Bài ghi rõ là bản đọc từ ngày sinh.
+  - Câu nói về **pha** chỉ hiện khi pha chắc trên miền ngày sinh (`phase_allowed`).
+  - "Ngày N" theo AC09.
+  - Mọi phép tính dùng `observed_at` của projection (`local_date` 12:00 UTC), không dùng giờ request.
 
 ### Lịch cá nhân và mạch
 
-- **AC09:** Một chương = một lượt có ID ổn định. "Ngày N" chỉ dùng trong cửa sổ chắc. Nhịp "nhìn lại" chỉ
-  mời tự soi, không khẳng định người đọc đã làm gì.
+- **AC09:** Một chương = một lượt có ID ổn định.
+  - "Ngày N" chỉ hiện khi `day_allowed = (t_s ≤ observed_at ≤ t_e)` trên cửa sổ chắc (so timestamp).
+    `N = local_date(observed_at) − local_date(t_s) + 1` theo `MVP_TIMEZONE`.
+  - Không phụ thuộc pha. Pha chắc chỉ quyết định câu nói về pha (AC08).
+  - Nhịp "nhìn lại" chỉ mời tự soi, không khẳng định người đọc đã làm gì.
 - **AC10:** Tối đa một chương nổi trên Home. Ưu tiên theo độ chặt orb và mức cá nhân.
 
 ### Kho nội dung

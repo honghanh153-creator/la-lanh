@@ -36,10 +36,13 @@ tôi chọn (crush, bạn, người yêu, …), với giọng tôi chọn. Bài 
   replay trả đúng bản đã tạo. Bản đã lưu giữ nguyên tới hết hạn 30 ngày.
 - **AC06:** Không lưu thêm dữ liệu của người kia. Chart của họ vẫn tính xong rồi bỏ; nhãn và kết quả vẫn
   được mã hoá.
-- **AC07:** Người kia không rõ giờ sinh: không dùng Mặt Trăng, cung mọc, nhà của họ. Contact chỉ dùng khi
-  orb chắc trên miền ngày sinh (`la-lanh-personal-sky-events-spec.md`).
-- **AC08:** Khung, allowlist, lịch chủ và manifest theo `la-lanh-content-grammar-spec.md`. Trên output cuối
-  cùng: 0 câu ngoài allowlist; ngoại lệ báo riêng.
+- **AC07:** Người kia, hoặc cả hai, không rõ giờ sinh: không dùng Mặt Trăng, cung mọc, nhà của người đó.
+  Contact natal–natal chỉ dùng khi chắc trong orb trên **tích hai miền** ngày sinh, với ngưỡng và phiên bản
+  của bảng **synastry**, không phải ngưỡng transit (`la-lanh-personal-sky-events-spec.md` §9).
+- **AC08:** Khung, allowlist, lịch chủ và manifest theo `la-lanh-content-grammar-spec.md`.
+  - Trên output cuối cùng: M8a (phủ allowlist ngữ pháp) = 100% trên output không ngoại lệ.
+  - M8b (mọi output từ nguồn đã duyệt, kể cả kho nền theo `fallback-approval.json`) = 100%.
+  - Ngoại lệ báo riêng theo lý do.
 - **AC09:** `scripts/audit_radar_experience.py` mở rộng lên 50 cặp (có giờ và không rõ giờ) và báo các chỉ
   số AC01–AC03. `pnpm check` đạt.
 - **AC10:** Cà khịa cho câu mới; owner duyệt qua file Excel.

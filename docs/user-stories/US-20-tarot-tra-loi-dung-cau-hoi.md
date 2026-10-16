@@ -71,8 +71,20 @@ hỏi vào bài đọc.**
     kèm một dòng giải thích vì sao không đoán thời điểm.
   - "Chắc chắn", "có quay lại", "sẽ xảy ra" vẫn bị từ chối.
 - **AC06:** `QuestionFrame` chỉ nằm trong payload AES-GCM của phiên, không log, không gửi tới provider.
-  Payload Luna chỉ thêm `stance` và nhãn `action` đóng. Có test chặn mọi chuỗi con của câu hỏi gốc trong
-  payload, kể cả trong meaning, scene, action và brief lồng nhau.
+  Ranh giới không đổi: **câu hỏi gốc và mọi văn bản tự do dẫn xuất từ nó không bao giờ đi vào payload
+  provider**. Cách kiểm dựa trên **nguồn gốc dữ liệu**, không lọc substring:
+  - **Schema:** payload Luna dùng model `extra="forbid"`. Mỗi trường chuỗi chỉ là (i) một nhãn enum đóng
+    (`stance`, `action`, focus key) hoặc (ii) nội dung có mã từ catalog hoặc allowlist đã duyệt (meaning,
+    scene, action, brief, mang id và provenance). Reducer không có đường nào ghép chuỗi từ input của người
+    dùng.
+  - **Kiểm nguồn gốc:** test duyệt mọi trường lồng nhau. Mỗi chuỗi phải tra được về một nhãn enum hoặc một
+    mã catalog/allowlist; chuỗi nào không tra được thì test thất bại.
+  - **Canary riêng tư:** câu hỏi tổng hợp chứa token canary không có trong catalog (ví dụ `zqcanary7tim`)
+    và một cụm riêng tư tổng hợp (ví dụ "chị Lan ở phòng 302"). Chạy qua toàn đường meaning, scene, action,
+    brief và payload. Kỳ vọng: không trường nào chứa canary hay cụm riêng tư, kể cả từng phần ≥ 2 từ liền
+    nhau của cụm đó.
+  - Trùng từ ngẫu nhiên giữa câu hỏi và giá trị catalog (ví dụ "hỏi lại" vừa trong câu hỏi vừa trong nhãn
+    `hoi_lai`) **được phép**, vì giá trị đó có nguồn gốc là catalog chứ không phải input.
 
 ### Bài đọc
 

@@ -23,9 +23,21 @@ Ephemeris (`swe_calc_ut`, vị trí và tốc độ), https://www.astro.com/swis
   dùng cung để kết luận.
 - Dung sai: miền phải chứa vị trí thật với sai số ≤ 0,01°. Có test so với lấy mẫu dày mỗi 10 phút.
 
+## 2b. Mốc thời gian quan sát (`observed_at`)
+
+- **Note ngày:** dùng đúng `observed_at` của projection hiện hành. `_scope_time` lấy `local_date` theo
+  `MVP_TIMEZONE`, rồi đặt `observed_at = local_date 12:00 UTC` (`DAILY_OBSERVED_HOUR_UTC = 12`,
+  `readings/application.py:65-66,686-700`). Mốc này **không** phải thời điểm request. Hai request lúc
+  01:00 UTC và 13:00 UTC cùng `local_date` cho cùng `observed_at`.
+- Mọi phép tính của G2 cho note ngày (orb, pha, ưu tiên chương, kiểm cửa sổ, đếm ngày) dùng `observed_at`
+  này.
+- Đổi chính sách mốc là thay đổi riêng: bump `event_spec_version` và `catalog_version`, có AC riêng. Không
+  đổi ngầm.
+- **Hợp gu:** natal–natal (§9), không có `observed_at` transit.
+
 ## 3. Orb dạng khoảng
 
-- Với transit T (vị trí tại thời điểm xem), điểm natal có miền `[λmin, λmax]` và góc chiếu A có ngưỡng orb
+- Với transit T (vị trí tại `observed_at`), điểm natal có miền `[λmin, λmax]` và góc chiếu A có ngưỡng orb
   θ (ngưỡng hiện hành của engine):
   - `orb_min` và `orb_max` = cực tiểu và cực đại của |khoảng cách góc tới A| khi λ chạy trên miền.
   - **Chắc trong orb:** `orb_max ≤ θ`. **Có thể:** `orb_min ≤ θ < orb_max`. **Ngoài:** `orb_min > θ`.
@@ -39,8 +51,12 @@ Ephemeris (`swe_calc_ut`, vị trí và tốc độ), https://www.astro.com/swis
   Nếu không thì `phase = None`, và bài **không** nói pha.
 - **Ví dụ bắt buộc thành test** (probe của Codex, dữ liệu tổng hợp 1990-03-15): Sao Thuỷ natal
   349,157941°…353,138133°, cùng cung Song Ngư. Transit lúc 2026-02-21 12:00 UTC cho orb 1,558642° và
-  2,421549°, pha separating và approaching. Kỳ vọng: `phase = None`, orb ở mức "chắc trong orb" (cả hai ≤
-  2,5°), không có "Ngày N".
+  2,421549°, pha separating và approaching. Kỳ vọng:
+  - `phase = None`, nên bài **không** có câu nói về pha;
+  - orb ở mức "chắc trong orb" (cả hai ≤ 2,5°);
+  - `observed_at` nằm trong cửa sổ chắc, nên **được** hiện "Ngày N" (đếm từ `t_s`, §5).
+
+  Chắc về orb không đồng nghĩa với chắc về pha. Hai điều kiện độc lập.
 
 ## 5. Chương (lượt đi qua)
 
@@ -50,10 +66,15 @@ Ephemeris (`swe_calc_ut`, vị trí và tốc độ), https://www.astro.com/swis
   thời gian `orb_min ≤ θ`. Cửa sổ chắc luôn nằm trong cửa sổ có thể.
 - **Tìm biên:** bước ≤ 6 giờ (không quá khoảng thời gian thay đổi orb 0,5° theo tốc độ hiện tại), chia đôi
   tới dung sai 1 phút. Phát hiện điểm đứng của T trong cửa sổ.
-- **Ngày của chương:** theo ngày dân sự ở `MVP_TIMEZONE`. `N = local_date − local_date(t_s) + 1`, chỉ dùng
-  khi ngày hiện tại nằm trong cửa sổ chắc.
-- **Nhịp:** chia cửa sổ chắc thành ba đoạn bằng nhau: nhận ra → thử → nhìn lại. Ngoài cửa sổ chắc nhưng
-  trong cửa sổ có thể thì không có nhịp và không có số ngày; chữ hiển thị là "đợt này" hoặc bỏ chi tiết.
+- **Predicate duy nhất cho "Ngày N"** (dùng chung cho spec, US-21 AC08/AC09 và test):
+  `day_allowed = (t_s ≤ observed_at ≤ t_e)`, so **timestamp với timestamp**.
+  - Khi đúng: `N = local_date(observed_at) − local_date(t_s) + 1`, cả hai ngày lấy theo `MVP_TIMEZONE`.
+  - Không phụ thuộc pha.
+- **Predicate cho câu nói về pha:** `phase_allowed = (phase ≠ None)` (pha chắc, §4). Độc lập với
+  `day_allowed`.
+- **Nhịp:** chia `[t_s, t_e]` thành ba đoạn thời gian bằng nhau: nhận ra → thử → nhìn lại. Nhịp lấy theo
+  đoạn chứa `observed_at`; chỉ có khi `day_allowed`. Ngoài cửa sổ chắc nhưng trong cửa sổ có thể thì không
+  có nhịp và không có số ngày; chữ hiển thị là "đợt này" hoặc bỏ chi tiết.
 - **Ưu tiên khi nhiều chương:** orb chắc nhỏ hơn trước, rồi điểm natal cá nhân (Mặt Trời, Sao Thuỷ, Sao
   Kim, Sao Hoả), rồi hành tinh transit chậm hơn. Tối đa một chương nổi trên Home.
 - Tất cả tính lại được từ ephemeris, **không lưu lịch sử**. Bản đọc đã tạo đóng băng trước `plan_hash`.
@@ -81,6 +102,18 @@ Ephemeris (`swe_calc_ut`, vị trí và tốc độ), https://www.astro.com/swis
 3. Vòng 0°/360°.
 4. Điểm đứng nằm trong I.
 5. Nhiều lượt do nghịch hành: `pass_id` khác nhau, số ngày đếm lại từ đầu mỗi lượt.
-6. Ranh giới ngày ở `MVP_TIMEZONE`.
+6. Ranh giới ngày ở `MVP_TIMEZONE`; `observed_at` không đổi theo giờ request (01:00 và 13:00 UTC cùng
+   `local_date`).
+9. `day_allowed` đúng nhưng `phase = None` (ví dụ ở §4): có "Ngày N", không có câu nói về pha.
 7. So miền với lấy mẫu dày mỗi 10 phút (≤ 0,01°).
 8. Tất định: cùng đầu vào và `event_spec_version` cho cùng `pass_id`, cửa sổ và số ngày.
+
+## 9. Hợp gu: natal–natal
+
+- Khi một hoặc cả hai người chỉ có ngày sinh, mỗi điểm natal có miền theo §2. Orb của contact là khoảng
+  trên **tích hai miền**: `orb_min`/`orb_max` khi cả hai longitude chạy trên miền của mình.
+- Ngưỡng orb và phiên bản lấy từ bảng **synastry** của engine (`calculate_synastry`), **không** dùng ngưỡng
+  transit.
+- Contact chỉ dùng khi chắc trong orb (`orb_max ≤ θ_synastry`). Synastry không có pha, chương hay
+  `observed_at`.
+- Không dùng Mặt Trăng, cung mọc hay nhà của người không rõ giờ.

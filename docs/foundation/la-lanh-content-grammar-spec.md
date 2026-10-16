@@ -99,7 +99,8 @@ Ngoại lệ duy nhất là ngoại lệ đã review, khai báo trong manifest (
 - Lựa chọn hoàn tất **trước** `plan_hash` và persist. Provenance ghi `catalog_version`, biến thể lịch, `p`,
   bucket, `variant_key_version`.
 - **Ngoại lệ:** khi gate an toàn từ chối hoặc manifest hỏng/thiếu:
-  - phục vụ kho nền, ghi `variety_exception = {reason, catalog_version}` (không có dữ liệu cá nhân);
+  - phục vụ kho nền ở đúng phiên bản trong `docs/operations/fallback-approval.json` (nguồn phê duyệt độc lập,
+    `la-lanh-variety-measurement-spec.md` §4b), ghi `variety_exception = {reason, catalog_version}` (không có dữ liệu cá nhân);
   - tăng counter tổng hợp theo khung và phiên bản;
   - ngày sau dùng `p` danh nghĩa.
 
@@ -122,11 +123,12 @@ Ngoại lệ duy nhất là ngoại lệ đã review, khai báo trong manifest (
 
 | # | Tình huống | Kỳ vọng |
 |---|---|---|
-| G-AC1 | Ép gate từ chối ngày D (phản ví dụ của Codex) | D là ngoại lệ, có cờ; D+1 ở `p` danh nghĩa; không câu nào phục vụ hai lần trong L ngày (không tính cặp ngoại lệ) |
+| G-AC1 | Ép gate từ chối ngày D (phản ví dụ của Codex) | D là ngoại lệ, có cờ; D+1 ở `p` danh nghĩa; không câu nào phục vụ hai lần trong L ngày (không tính cặp ngoại lệ). M8a: D không vào mẫu số. M8b: D vào mẫu số và đạt nhờ kho nền đã duyệt |
 | G-AC2 | Đổi bucket giữa D và D+1, ở mọi `p` và mọi cặp bucket có thể kề nhau trong fixture | (a) và (b) giữ |
 | G-AC3 | D ở `p = L−1`, D+1 ở `p = 0` | (a) giữ |
 | G-AC4 | Cấu hình vi phạm tách từ vựng, phân vai, thiếu Cà khịa, vượt giới hạn, hoặc lịch không khả thi | CI đỏ |
-| G-AC5 | Manifest hỏng hoặc thiếu | Kho nền, có cờ và counter; không ghép tự do |
+| G-AC5 | (a) Manifest thiếu; (b) manifest hỏng hoặc sai hash | Kho nền, có cờ (`manifest_missing` hoặc `manifest_corrupt`) và counter; không ghép tự do. M8a: mẫu số 0, báo "không áp dụng". M8b = 100% nhờ kho nền đúng `fallback-approval.json` |
+| G-AC5c | Kho nền sai hash so với `fallback-approval.json` | Build hoặc khởi động thất bại (fail closed), không phục vụ |
 | G-AC6 | Đổi giọng; replay sau cache miss hoặc restart; chia sẻ | Cùng mã tổ hợp, không chạy lại lịch |
 | G-AC7 | Báo cáo | Chỉ số tính trên output cuối; có số lượt và tỷ lệ ngoại lệ, tỷ lệ vi phạm (a)/(b), theo nhóm |
 | G-AC8 | Direct và Roast | (a)/(b)/(c) đúng cho cả hai giọng |

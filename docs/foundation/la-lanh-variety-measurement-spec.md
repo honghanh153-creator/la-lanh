@@ -14,12 +14,23 @@ vụ** (sau khi chọn, sau ngoại lệ và kho nền), không tính trên lị
 | **Cặp Hợp gu** | 50 cặp (có giờ và không rõ giờ) × 4 ngữ cảnh × 4 giọng | `apps/api/tests/fixtures/variety/radar-pairs-v1.json` |
 | **Offset** | Trải `offset` sao cho mỗi profile có ít nhất một lần qua biên lịch trong cửa sổ, và tổng thể phủ mọi vị trí biên | sinh trong script đo |
 
-**Kiểm fixture Tarot (16/10, engine tại main 836222282dfc):**
+**Kiểm fixture Tarot với engine hiện tại** (16/10, `TarotReadingEngine.assess_question` tại main
+836222282dfc; `apps/api` của PR này giống hệt). Mục có `context: null` dùng `general`. Lệnh tái hiện:
+`cd apps/api && PYTHONPATH=. uv run python ../../docs/fixtures/validate_tarot_question_bank.py`.
 
-- 273/273 câu không phải "khi nào" được chấp nhận như kỳ vọng.
-- 24/24 câu đoán ý người khác, đòi chắc chắn, rủi ro cao bị từ chối.
-- 48 câu "khi nào" hiện bị từ chối; US-20 AC05 đổi hành vi này.
-- 6/8 câu mơ hồ hiện được chấp nhận; đây là lỗ hổng, US-20 AC04 xử lý.
+| Nhóm | Mẫu số | Kết quả với engine hiện tại |
+|---|---|---|
+| Câu thường, không phải "khi nào" | 240 | 240 chấp nhận |
+| Ca dễ nhầm, không phải "khi nào" (`edge.1–5,7,8`) | 7 | 7 chấp nhận |
+| "Khi nào" trong nhóm thường | 48 | 48 bị từ chối |
+| "Khi nào" kể cả `edge.6` | 49 | 49 bị từ chối (US-20 AC05 đổi hành vi này) |
+| Từ chối: đoán ý người khác, đòi chắc chắn, rủi ro cao | 24 | 24 bị từ chối |
+| Câu mơ hồ (`too_vague`) | 8 | 6 chấp nhận, 2 bị từ chối (lỗ hổng, US-20 AC04) |
+| Toàn fixture | 328 | 253 chấp nhận, 75 bị từ chối |
+
+Đây là hành vi **hiện tại**. Giá trị `expected` trong fixture là mục tiêu T2, nên không được sửa expected
+để baseline hiện tại trông như đạt. *Đính chính:* bản nháp trước ghi "273/273 câu không phải 'khi nào'
+được chấp nhận". Thật ra 273 là tổng số mục khớp kỳ vọng hiện tại (240 + 7 chấp nhận, 24 + 2 từ chối).
 
 ## 2. Cửa sổ và chuẩn hoá
 
@@ -44,9 +55,54 @@ Giờ sinh (biết / không biết) × mối quan tâm (đã chọn / chưa) × 
 | M5 | Yếu tố riêng | Đếm theo §5, trung bình và phân vị 10 | Theo nhóm (owner chốt) |
 | M6 | Chương | Tỷ lệ ngày nằm trong cửa sổ chắc của một chương; tỷ lệ ngày nói "Ngày N" ngoài cửa sổ chắc | Tỷ lệ thứ hai = 0 |
 | M7 | Ablation | Giữ salt, đổi từng tín hiệu (giờ sinh, mối quan tâm, ngày); tỷ lệ phần nội dung đổi | Báo cáo; không có ngưỡng ở P0 |
-| M8 | Phủ allowlist | Câu phục vụ nằm trong allowlist của manifest | 100% |
+| M8a | Phủ allowlist ngữ pháp | Mẫu số: output ngữ pháp **không** ngoại lệ. Tử số: output có mã tổ hợp thuộc allowlist của manifest hợp lệ đang dùng | 100% |
+| M8b | Mọi output đến từ nguồn đã duyệt | Mẫu số: **mọi** output được phục vụ, gồm cả ngoại lệ và kho nền. Tử số: output thuộc allowlist ngữ pháp hợp lệ, **hoặc** do kho nền ở đúng phiên bản đã duyệt tạo ra (§4b) | 100%. Báo riêng số output kho nền theo lý do |
 | T1–T4 | Tarot | Đúng dạng câu (≥ 95%), tiêu đề trùng < 10%, câu chung chung = 0, cùng lá × vai khác câu với ≥ 80% cặp câu hỏi | theo US-20 |
 | R1–R3 | Hợp gu | ≥ 2 câu contact mỗi bài, đổi ngữ cảnh hoặc giọng thì ≥ 50% câu đổi, trùng câu giữa cặp < 30% | theo US-22 |
+
+### 4b. Kho nền và nguồn phê duyệt độc lập
+
+- **Kho nền** là renderer tất định hiện hành (plan nền §2): các bảng của `daily_psychology`, catalog lời của
+  Lá, tri thức Tarot và Hợp gu, ở phiên bản đang live.
+- **Nguồn phê duyệt độc lập:** file `docs/operations/fallback-approval.json`, tạo ở G0, độc lập với manifest
+  ngữ pháp. File gồm:
+  - `renderer_version` của từng mảng;
+  - hash nội dung của từng bảng nguồn;
+  - phiên bản gate;
+  - bằng chứng duyệt: content audit, `review_content_release` (direct và roast), receipt owner duyệt, ví dụ
+    workbook 16/10 và release `836222282dfc`.
+- CI kiểm hash hiện tại khớp file này. Không khớp thì build đỏ.
+- **Runtime:** output kho nền ghi provenance `renderer_version` và hash bảng nguồn. M8b chỉ tính output kho
+  nền khi provenance khớp `fallback-approval.json`.
+- Cờ `variety_exception` **không** phải bằng chứng nội dung an toàn. Nếu kho nền cũng không hợp lệ thì
+  không phục vụ được (fail closed ở build hoặc khởi động), giống cổng content review hiện có của
+  `deploy.sh`.
+- **Kỳ vọng M8 trong các AC:**
+
+  | Tình huống | M8a | M8b | Ghi nhận |
+  |---|---|---|---|
+  | Ép gate từ chối ngày D (G-AC1) | D không vào mẫu số | D vào mẫu số, đạt nhờ kho nền đã duyệt | `variety_exception.reason = gate_rejected`, counter +1 |
+  | Manifest **thiếu** (G-AC5a) | không có output ngữ pháp, mẫu số = 0 (báo "không áp dụng") | 100% từ kho nền đã duyệt | reason = `manifest_missing` cho mọi ngày bị ảnh hưởng |
+  | Manifest **hỏng hoặc sai hash** (G-AC5b) | như trên | như trên | reason = `manifest_corrupt` |
+  | Kho nền sai hash so với `fallback-approval.json` | không áp dụng | build hoặc khởi động thất bại, không phục vụ | không có output |
+
+### 4c. Công thức tất định cho chỉ số Tarot và Hợp gu
+
+Mọi phép đo dùng seed cố định trong fixture, nên hai bên chạy lại cho cùng mẫu số.
+
+- **T1, đúng dạng câu:** số mục có `form` khác null mà dạng phân loại đúng, chia cho số mục đó. Mẫu số hiện
+  là 289 (288 câu thường + `edge.6`). Mục từ chối và các ca dễ nhầm khác có `form` null, không tính.
+- **T2, tiêu đề trùng:** chạy mọi mục chấp nhận × mọi map hợp lệ × 4 giọng với seed phiên cố định.
+  `1 − (số tiêu đề khác nhau sau chuẩn hoá / số bài)`, tính riêng theo giọng.
+- **T3, câu chung chung:** đếm câu khớp danh sách mẫu chung (nhánh `else` cũ, các tiền tố đã bỏ) trên toàn bộ bài
+  của T2. Phải bằng 0.
+- **T4, cùng lá × vai khác câu:** với mỗi (lá, vai, chủ đề), ghép từng cặp câu hỏi khác nhau trong cùng chủ
+  đề từ fixture, ép cùng lá ở cùng vai. Tỷ lệ cặp có câu khác nhau sau chuẩn hoá.
+- **R1:** số câu contact mỗi bài, trên 50 cặp × 4 ngữ cảnh × 4 giọng. Cặp không đủ contact chắc được báo
+  riêng, không dựng thêm câu.
+- **R2:** cùng cặp, đổi ngữ cảnh hoặc giọng. Tỷ lệ câu của mục "hợp" và "ma sát" khác nhau sau chuẩn hoá.
+- **R3, trùng giữa cặp:** với mỗi (ngữ cảnh, giọng), tỷ lệ câu của một cặp cũng xuất hiện ở ít nhất một cặp
+  khác, lấy trung bình trên các cặp.
 
 **Bucket không khả thi** (lịch chủ < 90) là "mục tiêu có điều kiện": báo tỷ lệ không đạt riêng và không
 tính vào ngưỡng M1. Không làm loãng căn cứ để đạt đa dạng.

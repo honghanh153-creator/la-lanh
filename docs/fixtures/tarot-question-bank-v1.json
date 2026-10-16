@@ -3315,10 +3315,16 @@
   }
  ],
  "validation_2026_10_16": {
-  "engine": "main 836222282dfc, TarotReadingEngine.assess_question",
-  "accepted_non_timing_ok": "273/273",
-  "timing_rejected_today": 48,
-  "reject_third_party_certainty_high_stakes_ok": "24/24",
-  "too_vague_accepted_today": "6/8 (gap, B2 AC)"
+  "engine": "TarotReadingEngine.assess_question at main 836222282dfc (apps/api identical at this PR's base); current behaviour, not the T2 target",
+  "command": "cd apps/api && PYTHONPATH=. uv run python ../../docs/fixtures/validate_tarot_question_bank.py",
+  "context_for_null": "general",
+  "regular_non_timing_accepted": "240/240",
+  "edge_non_timing_accepted": "7/7",
+  "timing_rejected_regular": "48/48",
+  "timing_rejected_including_edge_6": "49/49",
+  "reject_third_party_certainty_high_stakes_rejected": "24/24",
+  "too_vague_accepted": "6/8 (gap, US-20 AC04)",
+  "all_items": "253 accepted, 75 rejected, 328 total",
+  "correction": "An earlier draft said '273/273 non-timing accepted'; 273 was the count of all items matching their current-engine expectation (240 + 7 accepted, 24 + 2 rejected). Corrected after Codex review on PR #19."
  }
 }
