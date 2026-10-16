@@ -363,8 +363,17 @@ biên) qua Excel, không duyệt từng tổ hợp. Mọi tổ hợp chạy th�
 | 7 | Checklist tâm lý | Đưa vào chuẩn nội dung (`la-lanh-plain-vietnamese-content-standard.md`), áp cho mọi câu mới |
 | 8 | Kiến trúc nội dung | **Bản triệt để** (mục 14): ngữ pháp nội dung + AI lúc soạn + tín hiệu cá nhân. Giữ các phần đã review làm nền. Thứ tự mảng theo quyết định 5 giữ nguyên; hạ tầng ngữ pháp (G0) đi trước |
 
-**P0 chưa hoàn tất:** US-20 (Tarot), AC cho B3/B4, fixture tổng hợp và các ngưỡng đo cụ thể phải có
-trước khi bắt đầu B2/B3/B4. Approval của kế hoạch này không phải approval code hay release.
+**P0 (bản nháp đã viết, chờ review và owner chốt):**
+
+- US-20 (Tarot), US-21 (note ngày), US-22 (Hợp gu)
+- `docs/foundation/la-lanh-content-grammar-spec.md` (ngữ pháp, lịch chủ, build, manifest, ngoại lệ, G-AC1…9)
+- `docs/foundation/la-lanh-personal-sky-events-spec.md` (G2)
+- `docs/foundation/la-lanh-variety-measurement-spec.md` (đo và fixture)
+- `docs/fixtures/tarot-question-bank-v1.json`
+- `docs/plans/2026-10-16-p0-owner-decisions.md` (các điểm owner cần chốt)
+
+Bước triển khai nào phụ thuộc mục chưa chốt thì chưa bắt đầu. Approval của kế hoạch này không phải
+approval code hay release.
 
 Còn chờ owner ở P0:
 
