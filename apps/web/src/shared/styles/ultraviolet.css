@@ -196,7 +196,11 @@
   box-shadow: none; font-size: 0.9375rem; font-weight: 600; text-decoration: none;
 }
 :root .ultraviolet-app :is(.text-button, .text-link, .detail-link, .signal-station__back, .signal-station__privacy-link) { min-height: 2.75rem; color: var(--uv-accent); font-size: 0.9375rem; font-weight: 600; }
-:root .ultraviolet-app :is(.danger-button, .danger-text) { color: var(--uv-danger); }
+:root .ultraviolet-app .danger-text { color: var(--uv-danger); }
+/* Destructive confirm: a filled pill on the danger token, never danger text on the legacy red. */
+:root .ultraviolet-app .danger-button { border: 0; border-radius: 999px; color: #ffffff; background: var(--uv-danger); }
+:root[data-theme="dark"] .ultraviolet-app .danger-button { color: #2a0f12; }
+:root .ultraviolet-app .danger-button:disabled { opacity: 0.6; cursor: wait; }
 
 /* Night surfaces: the one dark card per reading screen and full-screen ritual
  * scenes. Primary there is the leaf pill (the screen's single leaf use). */

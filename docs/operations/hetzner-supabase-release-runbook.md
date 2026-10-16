@@ -5,13 +5,18 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-10-11
+## Current production — 2026-10-16
 
-Release `a6e11bfd149b` is live with Alembic head `20261011_0036`, Google login off and verified
-database TLS. Staging runs separately at `https://staging.la-lanh.2-28-136-44.sslip.io` from
-`/opt/la-lanh/staging/source`. Receipt, incident and rollback notes:
-[production-release-2026-10-11](../reviews/production-release-2026-10-11/receipt.md). The
-"pending candidate" sections below are historical context for this release.
+Release `b474cafbc434` is live (Lá's companion line + "Tím đêm dịu" UI), Alembic head
+`20261011_0036`, generation/Google login off. Staging runs the same image digest. Receipt, parity
+table and findings: [production-release-2026-10-16](../reviews/production-release-2026-10-16/receipt.md).
+Immediate rollback image: `la-lanh:a6e11bfd149b` (same schema and secrets). Run
+`rehearse-migration.sh` by absolute path. Staging: refresh `/opt/la-lanh/staging/source/infra` from
+the release, then `STAGING_GENERATION=off ./up.sh`, and recreate staging after `deploy.sh` so both
+run the deployed image digest.
+
+Previous: release `a6e11bfd149b` (2026-10-11),
+[receipt](../reviews/production-release-2026-10-11/receipt.md).
 
 ## Radar/privacy follow-up, 2026-10-11
 
