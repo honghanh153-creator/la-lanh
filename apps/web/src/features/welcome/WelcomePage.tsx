@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { acceptBasicBirthConsent, enableHistoryRetention, createGuest, getSession, isGuestSessionUnavailable } from "../../shared/api/client";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { NightSky } from "../../shared/ui/NightSky";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
@@ -94,7 +95,7 @@ export function WelcomePage() {
   };
 
   return (
-    <main className="welcome-intro" aria-labelledby="welcome-title" aria-busy={pending || undefined} data-motion-paused={motion.paused}>
+    <main className="welcome-intro uv-night-scene" aria-labelledby="welcome-title" aria-busy={pending || undefined} data-motion-paused={motion.paused}>
       <header className="welcome-intro__header">
         <BrandMark />
         <button
@@ -106,11 +107,10 @@ export function WelcomePage() {
           {motion.paused ? <Play size={22} weight="fill" aria-hidden="true" /> : <Pause size={22} weight="fill" aria-hidden="true" />}
         </button>
       </header>
+      <NightSky orbits planet />
       <div className="welcome-intro__hero" aria-hidden="true">
-        <img className="welcome-intro__moon" src="/assets/welcome/moon.webp" alt="" width="640" height="640" fetchPriority="high" />
-        <img className="welcome-intro__orbit welcome-intro__orbit--back" src="/assets/welcome/orbit.webp" alt="" width="900" height="600" />
-        <img className="welcome-intro__card" src="/assets/welcome/card.webp" alt="" width="640" height="960" fetchPriority="high" />
-        <img className="welcome-intro__orbit welcome-intro__orbit--front" src="/assets/welcome/orbit.webp" alt="" width="900" height="600" />
+        <span className="welcome-intro__glow" />
+        <img className="welcome-intro__moon" src="/assets/ultraviolet/moon.webp" alt="" width="250" height="250" fetchPriority="high" />
       </div>
       <section className="welcome-intro__copy" aria-labelledby="welcome-title">
         {vibe === "roast"

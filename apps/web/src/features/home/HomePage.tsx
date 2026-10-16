@@ -1,12 +1,13 @@
 import {
+  ArrowClockwise,
   ArrowRight,
-  CaretDown,
+  CaretRight,
   Pause,
-  Planet,
   Play,
   Smiley,
   Sparkle,
   User,
+  X,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -37,6 +38,7 @@ import {
   writeCachedDailyNote,
 } from "../../shared/storage/noteCache";
 import "../../shared/styles/signal-note.css";
+import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { BrandMark } from "../../shared/ui/BrandMark";
@@ -44,15 +46,18 @@ import { ReadingUpdateGift } from "../../shared/ui/ReadingUpdateGift";
 import { WHY_TODAY_ID } from "../../shared/ui/readingLabels";
 import { ResonanceFeedback } from "../../shared/ui/ResonanceFeedback";
 import { SignalContextPicker } from "../../shared/ui/SignalContextPicker";
-import { LaLoading } from "../../shared/ui/la/LaLoading";
 import { laMoodReaction } from "../../shared/ui/la/laVoice";
 import { moonPhase } from "../../shared/ui/la/moonPhase";
 import { useVibe } from "../../shared/vibe/useVibe";
 import { tapFeedback } from "../../shared/ui/la/haptics";
-import { NightNudge, WeekRecap } from "./HomeRituals";
+import { NightSky } from "../../shared/ui/NightSky";
+import { homeCompanionLine, type HomeCompanionState } from "./companionLine";
+import { NightNudgeNotice, WeekRecapNotice } from "./HomeRituals";
+import { useNightNudge, useWeekRecap } from "./homeRitualState";
 import "./home-vitality.css";
 
 const RITUAL_KEY = "la-lanh-daily-ritual-v1";
+const UNLOCK_SNOOZE_KEY = "la-lanh-birth-supplement-snooze-until";
 
 /** True once per note date: the first open of the day plays the unfold ritual. */
 function useDailyRitual(noteDate: string | undefined): boolean {
@@ -98,7 +103,10 @@ export function HomePage() {
   const currentRevision = chartDataRevision(queryClient);
   const context = contextChoice.revision === currentRevision ? contextChoice.value : "auto";
   const [contextSheetOpen, setContextSheetOpen] = useState(false);
-  const [motionPaused, setMotionPaused] = useState(false);
+  // One pause state for the whole app: a pause set during onboarding carries into Home,
+  // and resuming here resumes the app shell's decoration too.
+  const motion = useOnboardingMotion();
+  const motionPaused = motion.paused;
   const note = contextualNote?.revision === currentRevision ? contextualNote.note : baseNote;
   const activeReading = note?.reading_projection?.active;
   const availableUpdate = note?.reading_projection?.available_update;
@@ -125,13 +133,18 @@ export function HomePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [resonance, setResonance] = useState<ResonanceChoice | null>(null);
   const [, refreshGift] = useState(0);
+  const [, refreshUnlock] = useState(0);
+  const [recapDismissed, setRecapDismissed] = useState(false);
+  const [lineDismissed, setLineDismissed] = useState(false);
+  const nightNudge = useNightNudge();
+  const recapCount = useWeekRecap();
   const showGift = Boolean(
     context === "auto"
     && note?.reading_projection
     && availableUpdate
     && !isReadingUpdateDismissed(note.reading_projection.scope_key, availableUpdate.revision_id)
   );
-  const snoozedUntil = Number(localStorage.getItem("la-lanh-birth-supplement-snooze-until") ?? 0);
+  const snoozedUntil = Number(localStorage.getItem(UNLOCK_SNOOZE_KEY) ?? 0);
   const completionPrompt = birthCompletionPrompt(supplementQuery.data);
   const showUnlock = Boolean(completionPrompt) && snoozedUntil <= Date.now();
 
@@ -237,18 +250,20 @@ export function HomePage() {
     }
   }, [note]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (noteQuery.isLoading) return <HomeState text="Lá đang mở note hôm nay…" />;
+  if (noteQuery.isLoading) return <HomeLoading />;
   const missingSession = isGuestSessionUnavailable(noteQuery.error);
 
   if (!note) {
+    const heading = missingSession ? "Phiên riêng đã khép lại." : noteQuery.isError ? "Note chưa về kịp." : "Chưa có Lá để nhắc bạn.";
     return (
-      <main className="app-page home-page signal-note-home">
+      <main className="app-page home-page signal-note-home" data-home-motion="running">
         <HomeHeader />
-        <HomeValueHero />
-        <section className="empty-state">
-          <Planet size={52} />
-          <h1>{missingSession ? "Phiên riêng đã khép lại." : noteQuery.isError ? "Note chưa về kịp." : "Chưa có Lá để nhắc bạn."}</h1>
-          <p>{missingSession
+        <HomeValueHero moon={moonLabel} />
+        <section className="home-daily-signal__paper home-note-state" role={noteQuery.isError || missingSession ? "alert" : undefined}>
+          <NightSky dim moon nebula={false} stars={3} />
+          <p className="home-daily-signal__eyebrow">Hôm nay của bạn</p>
+          <h1>{heading}</h1>
+          <p className="home-daily-signal__body">{missingSession
             ? "Mở lại Trạm Bắt Sóng để nối đúng note và Bản đồ của bạn. Chưa cần tài khoản."
             : noteQuery.isError
               ? "Kiểm tra kết nối rồi thử lại."
@@ -256,9 +271,10 @@ export function HomePage() {
           {missingSession
             ? <Link className="electric-button" to="/welcome">Mở lại Trạm Bắt Sóng</Link>
             : noteQuery.isError
-            ? <button className="electric-button" onClick={() => void noteQuery.refetch()} type="button">Thử lại</button>
+            ? <button className="electric-button" onClick={() => void noteQuery.refetch()} type="button"><ArrowClockwise aria-hidden="true" weight="bold" />Thử lại</button>
             : <Link className="electric-button" to="/birth">Khai ngày sinh</Link>}
         </section>
+        <HomeCompanion line={homeCompanionLine({ state: noteQuery.isError ? "error" : "idle", vibe }).text} />
         <HomeExploreRoutes />
         <AppNav />
       </main>
@@ -294,7 +310,7 @@ export function HomePage() {
         <button
           aria-label={motionPaused ? "Bật chuyển động" : "Tạm dừng chuyển động"}
           className="home-motion-toggle"
-          onClick={() => setMotionPaused((paused) => !paused)}
+          onClick={motion.toggle}
           title={motionPaused ? "Bật chuyển động" : "Tạm dừng chuyển động"}
           type="button"
         >
@@ -323,50 +339,65 @@ export function HomePage() {
       ) : (
         <section aria-label="Note hôm nay" className="home-daily-signal home-daily-signal--legacy">
           <article className="home-daily-signal__paper">
+            <NightSky glow orbits planet />
             {noteDecoration}
-            <p className="home-daily-signal__eyebrow">Hôm nay của bạn</p>
-            <h2>{note.title}</h2>
-            <p>{note.body}</p>
-            <footer className="home-note-footer"><Link to={dailyContextPath("/note/today", context)}>Đọc thêm <ArrowRight aria-hidden="true" /></Link>{quickActions}</footer>
+            <div className="home-daily-signal__copy">
+              <p className="home-daily-signal__eyebrow">Hôm nay của bạn</p>
+              <h2>{note.title}</h2>
+              <p className="home-daily-signal__body">{note.body}</p>
+            </div>
+            <div className="home-daily-signal__glass uv-glass">
+              <footer className="home-note-footer"><Link to={dailyContextPath("/note/today", context)}>Đọc đầy đủ<ArrowRight aria-hidden="true" weight="bold" /></Link>{quickActions}</footer>
+            </div>
           </article>
         </section>
       )}
 
+      <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion }).text} onDismissLine={() => setLineDismissed(true)}>
+        {showGift && availableUpdate && note.reading_projection ? (
+          <ReadingUpdateGift
+            activeMode={activeReading?.mode}
+            onActivate={() => {
+              if (!note.reading_projection || !availableUpdate) return;
+              activationMutation.mutate({
+                scopeKey: note.reading_projection.scope_key,
+                revisionId: availableUpdate.revision_id,
+              });
+            }}
+            onDismiss={() => {
+              dismissReadingUpdate(note.reading_projection!.scope_key, availableUpdate.revision_id);
+              refreshGift((value) => value + 1);
+            }}
+            pending={activationMutation.isPending}
+            update={availableUpdate}
+          />
+        ) : showUnlock && completionPrompt ? (
+          <aside aria-label="Còn lá ẩn chờ bạn mở" className="home-la-notice unlock-note">
+            <strong className="home-la-notice__eyebrow">Còn lá ẩn chờ bạn mở</strong>
+            <p className="home-la-notice__title">{completionPrompt.body}</p>
+            <Link className="home-la-notice__cta" to="/birth-time">{completionPrompt.cta}<ArrowRight aria-hidden="true" /></Link>
+            <button
+              aria-label="Để 3 ngày sau"
+              className="home-la-notice__close"
+              onClick={() => {
+                // Same timestamp-only snooze the birth-time page already writes.
+                try { localStorage.setItem(UNLOCK_SNOOZE_KEY, String(Date.now() + 3 * 24 * 60 * 60 * 1000)); } catch { /* Storage may be unavailable. */ }
+                refreshUnlock((value) => value + 1);
+              }}
+              type="button"
+            ><X aria-hidden="true" /></button>
+          </aside>
+        ) : recapCount && !recapDismissed ? (
+          <WeekRecapNotice count={recapCount} onDismiss={() => setRecapDismissed(true)} />
+        ) : nightNudge ? (
+          <NightNudgeNotice {...nightNudge} />
+        ) : null}
+      </HomeCompanion>
+
       <HomeExploreRoutes />
-
-      <NightNudge />
-
-      <WeekRecap />
-
-      {showGift && availableUpdate && note.reading_projection ? (
-        <ReadingUpdateGift
-          activeMode={activeReading?.mode}
-          onActivate={() => {
-            if (!note.reading_projection || !availableUpdate) return;
-            activationMutation.mutate({
-              scopeKey: note.reading_projection.scope_key,
-              revisionId: availableUpdate.revision_id,
-            });
-          }}
-          onDismiss={() => {
-            dismissReadingUpdate(note.reading_projection!.scope_key, availableUpdate.revision_id);
-            refreshGift((value) => value + 1);
-          }}
-          pending={activationMutation.isPending}
-          update={availableUpdate}
-        />
-      ) : null}
 
       <p className="sr-only" aria-live="polite" role="status">{message}</p>
       {message ? <p className="home-status" aria-hidden="true">{message}</p> : null}
-
-      {showUnlock && completionPrompt ? (
-        <aside className="unlock-note">
-          <Planet aria-hidden="true" />
-          <div><strong>Còn lá ẩn chờ bạn mở</strong><p>{completionPrompt.body}</p></div>
-          <Link to="/birth-time">{completionPrompt.cta}</Link>
-        </aside>
-      ) : null}
 
       <AppNav />
     </main>
@@ -398,9 +429,8 @@ function MoodPicker({
         onClick={() => onOpenChange(true)}
         type="button"
       >
-        <span aria-hidden="true">{selected ? <span className="mood-quick-trigger__emoji">{selected.emoji}</span> : <Smiley weight="regular" size={28} />}</span>
-        <strong className="sr-only">{selected?.value ?? "Mood hôm nay?"}</strong>
-        <CaretDown aria-hidden="true" size={16} />
+        <span aria-hidden="true">{selected ? <span className="mood-quick-trigger__emoji">{selected.emoji}</span> : <Smiley weight="regular" size={22} />}</span>
+        <span aria-hidden="true" className="mood-quick-trigger__label">{selected?.value ?? "Chọn mood"}</span>
       </button>
       <AppSheet
         closeDisabled={pending}
@@ -442,7 +472,7 @@ function HomeHeader({ motionControl }: { motionControl?: ReactNode }) {
       <BrandMark />
       <div className="home-header__actions">
         {motionControl}
-        <Link aria-label="Trang cá nhân" className="profile-orb" to="/profile"><User aria-hidden="true" size={28} /></Link>
+        <Link aria-label="Trang cá nhân" className="profile-orb" to="/profile"><User aria-hidden="true" size={22} /></Link>
       </div>
     </header>
   );
@@ -452,10 +482,13 @@ function HomeValueHero({ date, moon, whyPath, children }: { date?: string; moon?
   const displayDate = date ?? new Date().toISOString().slice(0, 10);
   return (
     <section className="home-value-hero">
-      <div className="home-value-hero__meta">
-        <time dateTime={displayDate}>{date ? formatNoteDate(date) : "Hôm nay"}</time>
-        {moon ? <span className="home-value-hero__moon">{moon}</span> : null}
-        {whyPath ? <Link className="home-value-hero__why" to={whyPath}>Vì sao hôm nay?</Link> : null}
+      <div className="home-value-hero__lead">
+        <img alt="" className="home-value-hero__moon-art" src="/assets/ultraviolet/moon.webp" />
+        <div className="home-value-hero__meta">
+          <time dateTime={displayDate}>{date ? formatNoteDate(date) : "Hôm nay"}</time>
+          {moon ? <span className="home-value-hero__moon">{moon}</span> : null}
+          {whyPath ? <Link className="home-value-hero__why" to={whyPath}>Vì sao hôm nay?</Link> : null}
+        </div>
       </div>
       <h1 className="sr-only">Hôm nay có gì đáng để ý?</h1>
       {children}
@@ -482,18 +515,23 @@ function HomeDailySignal({
   return (
     <section aria-label="Note hôm nay" className="home-daily-signal">
       <article className="home-daily-signal__paper">
+        <NightSky glow orbits planet />
         {decoration}
-        <p className="home-daily-signal__eyebrow">Hôm nay của bạn</p>
-        <h2>{activeReading.sections.hook}</h2>
-        {body ? <p className="home-daily-signal__body">{body}</p> : null}
-        {action ? (
-          <aside aria-label="Việc có thể thử hôm nay" className="home-daily-signal__advice">
-            <Sparkle aria-hidden="true" className="home-advice-star" weight="fill" />
-            <span>Thử một việc nhỏ</span>
-            <p>{action}</p>
-          </aside>
-        ) : null}
-        <footer className="home-note-footer"><Link to={detailPath}>Đọc thêm<ArrowRight aria-hidden="true" /></Link>{toolbar}</footer>
+        <div className="home-daily-signal__copy">
+          <p className="home-daily-signal__eyebrow">Hôm nay của bạn</p>
+          <h2>{activeReading.sections.hook}</h2>
+          {body ? <p className="home-daily-signal__body">{body}</p> : null}
+        </div>
+        <div className="home-daily-signal__glass uv-glass">
+          {action ? (
+            <aside aria-label="Việc có thể thử hôm nay" className="home-daily-signal__advice">
+              <Sparkle aria-hidden="true" className="home-advice-star" weight="fill" />
+              <span>Thử một việc nhỏ</span>
+              <p>{action}</p>
+            </aside>
+          ) : null}
+          <footer className="home-note-footer"><Link to={detailPath}>Đọc đầy đủ<ArrowRight aria-hidden="true" weight="bold" /></Link>{toolbar}</footer>
+        </div>
       </article>
     </section>
   );
@@ -506,23 +544,68 @@ function HomeExploreRoutes() {
       <div className="home-explore-routes__choices">
         <Link to="/tarot">
           <img alt="" src="/assets/ultraviolet/tarot.webp" />
-          <span><strong>Rút Tarot</strong><ArrowRight aria-hidden="true" /></span>
+          <strong>Rút Tarot</strong>
+          <CaretRight aria-hidden="true" weight="bold" />
         </Link>
         <Link to="/radar">
           <img alt="" src="/assets/ultraviolet/pair.webp" />
-          <span><strong>Mình & người ấy</strong><ArrowRight aria-hidden="true" /></span>
+          <strong>Mình & người ấy</strong>
+          <CaretRight aria-hidden="true" weight="bold" />
         </Link>
       </div>
     </section>
   );
 }
 
-function HomeState({ text }: { text: string }) {
+/** Lá's row: the sprout and one speech bubble, which is also the single "Lá nhắc" slot. */
+function HomeCompanion({
+  children,
+  line,
+  onDismissLine,
+  status = false,
+}: {
+  children?: ReactNode;
+  line: string | null;
+  onDismissLine?: () => void;
+  status?: boolean;
+}) {
+  const notice = Boolean(children);
+  if (!notice && !line) return null;
   return (
-    <main className="app-page home-page signal-note-home">
+    <div className="home-la-row">
+      <img alt="" className="home-la-row__sprout" src="/assets/ultraviolet/sprout-3d.png" />
+      <div className={notice ? "home-la-row__bubble home-la-row__bubble--notice" : "home-la-row__bubble"}>
+        {notice ? children : <>
+          <p className="home-la-row__line" role={status ? "status" : undefined}>{line}</p>
+          {onDismissLine ? <button aria-label="Ẩn câu của Lá" className="home-la-notice__close" onClick={onDismissLine} type="button"><X aria-hidden="true" /></button> : null}
+        </>}
+      </div>
+    </div>
+  );
+}
+
+function HomeLoading() {
+  const { vibe } = useVibe();
+  const state: HomeCompanionState = "loading";
+  return (
+    <main className="app-page home-page signal-note-home" data-home-motion="running">
       <HomeHeader />
-      <HomeValueHero />
-      <LaLoading text={text} delayMs={0} />
+      <HomeValueHero moon={moonPhase().label} />
+      <section aria-busy="true" aria-label="Đang mở tín hiệu hôm nay" className="home-daily-signal__paper home-note-skeleton">
+        <NightSky moon nebula={false} stars={0} />
+        <span className="uv-skeleton uv-skeleton--night" style={{ width: 130, height: 11 }} />
+        <span className="uv-skeleton uv-skeleton--night" style={{ width: "min(230px, 80%)", height: 24, marginTop: 20 }} />
+        <span className="uv-skeleton uv-skeleton--night" style={{ width: "min(200px, 70%)", height: 24, marginTop: 10 }} />
+        <span className="uv-skeleton uv-skeleton--night" style={{ width: 120, height: 24, marginTop: 10 }} />
+        <span className="uv-skeleton uv-skeleton--night" style={{ width: "min(280px, 95%)", height: 13, marginTop: 20 }} />
+        <span className="uv-skeleton uv-skeleton--night" style={{ width: "min(220px, 78%)", height: 13, marginTop: 9 }} />
+        <span className="home-note-skeleton__panel">
+          <span className="uv-skeleton uv-skeleton--night" style={{ width: 120, height: 10 }} />
+          <span className="uv-skeleton uv-skeleton--night" style={{ width: "min(240px, 90%)", height: 12, marginTop: 14 }} />
+          <span className="uv-skeleton uv-skeleton--night" style={{ width: "min(180px, 70%)", height: 12, marginTop: 9 }} />
+        </span>
+      </section>
+      <HomeCompanion line={homeCompanionLine({ state, vibe }).text} status />
       <HomeExploreRoutes />
       <AppNav />
     </main>

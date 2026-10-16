@@ -65,3 +65,29 @@ describe("WeekRecap", () => {
     expect(listSavedNotes).not.toHaveBeenCalled();
   });
 });
+
+describe("homeCompanionLine", () => {
+  it("reuses Lá's day-part greeting when idle and keeps loading/error lines short", async () => {
+    const { homeCompanionLine, HOME_LOADING_LINE, HOME_ERROR_LINE } = await import("./companionLine");
+    const morning = new Date(2026, 9, 12, 7);
+    expect(homeCompanionLine({ now: morning }).text).toContain("buổi sáng");
+    expect(homeCompanionLine({ now: morning, vibe: "roast" }).text).not.toBe(homeCompanionLine({ now: morning }).text);
+    expect(homeCompanionLine({ state: "loading" }).text).toBe(HOME_LOADING_LINE);
+    expect(homeCompanionLine({ state: "error" }).text).toBe(HOME_ERROR_LINE);
+    // Today's card brings its own (already voiced) line from the content matrix.
+    expect(homeCompanionLine({ now: morning, companion: "Hỏi lại một câu thôi, đỡ hơn đoán cả buổi." }).text)
+      .toBe("Hỏi lại một câu thôi, đỡ hơn đoán cả buổi.");
+    expect(homeCompanionLine({ now: morning, companion: "  " }).text).toContain("buổi sáng");
+  });
+});
+
+describe("WeekRecapNotice", () => {
+  it("offers a dismissal only when Home passes one", async () => {
+    const { WeekRecapNotice } = await import("./HomeRituals");
+    const onDismiss = vi.fn();
+    wrap(<WeekRecapNotice count={3} onDismiss={onDismiss} />);
+    expect(screen.getByRole("heading", { name: "Tuần này bạn giữ lại 3 note." })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Để sau" }));
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+});

@@ -1,8 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState, type ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { OnboardingMotionContext } from "../../shared/ui/onboardingMotion";
 
 import {
   activateReadingProjection,
@@ -101,13 +104,32 @@ describe("HomePage rich reading", () => {
     await user.click(screen.getByRole("button", { name: "Tạm dừng chuyển động" }));
     expect(home).toHaveAttribute("data-home-motion", "paused");
     expect(headline).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Đọc thêm" })).toHaveAttribute("href", "/note/today");
+    expect(screen.getByRole("link", { name: "Đọc đầy đủ" })).toHaveAttribute("href", "/note/today");
     expect(screen.getByRole("button", { name: "Trúng" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Góc đang đọc Lá chọn" })).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: "Bật chuyển động" }));
     expect(home).toHaveAttribute("data-home-motion", "running");
     expect(vi.mocked(getDailyNote)).toHaveBeenCalledTimes(1);
+  });
+
+  it("carries a pause set during onboarding into Home and resumes the whole app from there", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    const user = userEvent.setup();
+    function SharedMotion({ children }: { children: ReactNode }) {
+      const [paused, setPaused] = useState(true); // paused on Welcome before reaching Home
+      return <div data-testid="shell" data-motion={paused ? "paused" : "running"}>
+        <OnboardingMotionContext.Provider value={{ paused, toggle: () => setPaused((value) => !value) }}>{children}</OnboardingMotionContext.Provider>
+      </div>;
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter><SharedMotion><HomePage /></SharedMotion></MemoryRouter></QueryClientProvider>);
+
+    await screen.findByRole("heading", { name: vibe.sections.hook });
+    expect(screen.getByRole("main")).toHaveAttribute("data-home-motion", "paused");
+    await user.click(screen.getByRole("button", { name: "Bật chuyển động" }));
+    expect(screen.getByRole("main")).toHaveAttribute("data-home-motion", "running");
+    expect(screen.getByTestId("shell")).toHaveAttribute("data-motion", "running");
   });
 
   it("starts with a clear product promise, proves value with today's note, then routes to every live capability", async () => {
@@ -133,6 +155,14 @@ describe("HomePage rich reading", () => {
     expect(within(noteRegion).getByRole("complementary", { name: "Việc có thể thử hôm nay" })).toBeInTheDocument();
     expect(within(noteRegion).queryByText("Vì sao dành cho bạn?")).not.toBeInTheDocument();
     expect(within(noteRegion).queryByText(/Đọc từ (dữ liệu ngày sinh|lá số đầy đủ)/)).not.toBeInTheDocument();
+  });
+
+  it("lets Lá say the card's own line from the content matrix", async () => {
+    const withLine = { ...vibe, sections: { ...vibe.sections, companion: "Hỏi lại một câu thôi, đỡ hơn đoán cả buổi." } };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(withLine)));
+    renderPage();
+
+    expect(await screen.findByText("Hỏi lại một câu thôi, đỡ hơn đoán cả buổi.")).toBeInTheDocument();
   });
 
   it("keeps the value promise and routes available when the daily note fails", async () => {
@@ -227,6 +257,29 @@ describe("HomePage rich reading", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Bản đọc mới đã mở");
   });
 
+  it("uses Lá's bubble as one notice slot: the gift outranks the birth-time reminder", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe, aura)));
+    vi.mocked(getBirthSupplement).mockResolvedValue({ birth_time_mode: "unknown", time_precision: null, place_display_name: null, timezone_id: null } as never);
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Note này có một bản đủ lớp" })).toBeInTheDocument();
+    expect(screen.queryByText("Còn lá ẩn chờ bạn mở")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Để bản mới lại sau" }));
+    expect(screen.queryByRole("heading", { name: "Note này có một bản đủ lớp" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /Thêm giờ & nơi sinh/ })).toHaveAttribute("href", "/birth-time");
+    await userEvent.click(screen.getByRole("button", { name: "Để 3 ngày sau" }));
+    expect(screen.queryByRole("link", { name: /Thêm giờ & nơi sinh/ })).not.toBeInTheDocument();
+    expect(Number(localStorage.getItem("la-lanh-birth-supplement-snooze-until"))).toBeGreaterThan(Date.now());
+  });
+
+  it("shows Lá's own line when no notice needs the bubble, and lets the user hide it", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    renderPage();
+    await screen.findByRole("heading", { name: vibe.sections.hook });
+    const hide = screen.getByRole("button", { name: "Ẩn câu của Lá" });
+    await userEvent.click(hide);
+    expect(screen.queryByRole("button", { name: "Ẩn câu của Lá" })).not.toBeInTheDocument();
+  });
+
   it("refetches the daily note after an activation conflict so a stale gift disappears", async () => {
     const user = userEvent.setup();
     const withGift = noteWith(projection(vibe, aura));
@@ -272,7 +325,7 @@ describe("HomePage rich reading", () => {
     await waitFor(() => expect(getContextualReading).toHaveBeenCalledWith("work"));
     expect(await screen.findByRole("heading", { name: workReading.sections.hook })).toBeInTheDocument();
     expect(screen.getByText(workReading.sections.manifestation)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Đọc thêm/ })).toHaveAttribute("href", "/note/today?context=work");
+    expect(screen.getByRole("link", { name: /Đọc đầy đủ/ })).toHaveAttribute("href", "/note/today?context=work");
     expect(screen.getByRole("link", { name: "Chia sẻ note" })).toHaveAttribute("href", "/card?context=work");
     expect(localStorage.getItem("la-lanh-signal-context-v1")).toBeNull();
     expect(screen.queryByText("Vì sao dành cho bạn?")).not.toBeInTheDocument();

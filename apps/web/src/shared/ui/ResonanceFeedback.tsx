@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 
 import type { ResonanceChoice } from "../api/client";
+import { usePrivatePortalTarget, useRestoreDialogFocus } from "./privatePortal";
 import { tapFeedback } from "./la/haptics";
 
 type ResonanceFeedbackProps = {
@@ -22,9 +23,11 @@ export function ResonanceFeedback({
   sharePath = "/card",
 }: ResonanceFeedbackProps) {
   const [consentChoice, setConsentChoice] = useState<ResonanceChoice | null>(null);
+  const portalTarget = usePrivatePortalTarget();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const choiceButtonRef = useRef<HTMLButtonElement>(null);
   const wasOpenRef = useRef(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     if (consentChoice) {
@@ -35,6 +38,8 @@ export function ResonanceFeedback({
       choiceButtonRef.current?.focus();
     }
   }, [consentChoice]);
+
+  useRestoreDialogFocus(consentChoice !== null, dialogRef, closeButtonRef);
 
   const choose = (choice: ResonanceChoice, trigger: HTMLButtonElement) => {
     tapFeedback();
@@ -72,6 +77,7 @@ export function ResonanceFeedback({
           }
         }}
         open
+        ref={dialogRef}
       >
         <button
           aria-label="Đóng"
@@ -112,7 +118,7 @@ export function ResonanceFeedback({
         </div>
       </dialog>
     </div>,
-    document.body,
+    portalTarget,
   ) : null;
 
   return (

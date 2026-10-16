@@ -25,7 +25,7 @@ function PublicRadarContent() {
     },
   });
   if (query.isLoading) return <main className="matching-page matching-page--loading"><Sparkle className="matching-pulse" /><p>Đang bắt link Radar…</p></main>;
-  if (!query.data) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card"><h1>Link này không còn hoạt động.</h1><p>Có thể link đã hết hạn, bị thu hồi hoặc đã được dùng.</p><Link className="matching-primary" to="/radar">Tìm hiểu Radar Hợp Gu</Link></section></main>;
+  if (!query.data) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card uv-empty"><div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div><h1>Link này không còn hoạt động.</h1><p>Có thể link đã hết hạn, bị thu hồi hoặc đã được dùng.</p><Link className="matching-primary" to="/radar">Tìm hiểu Radar Hợp Gu</Link></section></main>;
   const invite = query.data;
   const continueFlow = () => sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, invite.request_id);
   return <main className="matching-page radar-public">

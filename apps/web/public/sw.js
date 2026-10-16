@@ -1,10 +1,12 @@
 /* global caches, fetch, self, URL */
 
-const CACHE_NAME = "la-lanh-app-shell-v4";
+const CACHE_NAME = "la-lanh-app-shell-v5";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/offline.html",
+  "/offline.css",
+  "/assets/ultraviolet/moon.webp",
   "/manifest.webmanifest",
   "/app-icon.svg",
   "/assets/note/warm-bento-note.jpg",

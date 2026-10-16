@@ -48,8 +48,8 @@ export function ReadingDetailPage() {
       </header>
 
       {focusedClaim ? <p className="reading-context">Bạn mở từ: {focusedClaim.title}</p> : null}
-      {claimId === "synthesis" && readingQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" /> : null}
-      {claimId !== "synthesis" && overviewQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" /> : null}
+      {claimId === "synthesis" && readingQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
+      {claimId !== "synthesis" && overviewQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
       {claimId === "synthesis" && readingQuery.data ? <ReadingContent content={readingQuery.data.active} /> : null}
       {focusedClaim && overviewQuery.data?.reading ? (
         <FocusedClaimContent claim={focusedClaim} disclaimer={overviewQuery.data.reading.disclaimer} />

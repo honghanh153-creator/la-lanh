@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiProblem, getSession, isGuestSessionUnavailable } from "../shared/api/client";
 import {
@@ -8,6 +8,7 @@ import {
 } from "../shared/session/sessionIdentity";
 import { clearPersonalDataOnDevice, PERSONAL_DATA_CLEARED_EVENT } from "../shared/storage/clearPersonalData";
 import { LaLoading } from "../shared/ui/la/LaLoading";
+import { PrivatePortalContext } from "../shared/ui/privatePortal";
 import { useVibe } from "../shared/vibe/useVibe";
 
 type Verification = { path: string; status: "checking" | "ready" | "offline"; mounted: boolean };
@@ -20,6 +21,7 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
   const [verification, setVerification] = useState<Verification>({ path: "", status: "checking", mounted: false });
   const verified = useRef<{ epoch: string; cookie: string | null } | null>(null);
   const privateContent = useRef<HTMLDivElement>(null);
+  const [portalRoot, setPortalRoot] = useState<HTMLDivElement | null>(null);
   const { vibe } = useVibe();
 
   useEffect(() => {
@@ -122,6 +124,7 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
   }, [pathname, navigate, queryClient, retry]);
 
   const ready = verification.path === pathname && verification.status === "ready";
+  const privatePortal = useMemo(() => ({ target: portalRoot, visible: ready }), [portalRoot, ready]);
   return <>
     {!ready ? <main className="app-page session-check">
       {verification.status === "offline"
@@ -130,6 +133,12 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
         </LaLoading>
         : <LaLoading delayMs={220} key="checking" text={vibe === "roast" ? "Đợi xíu, Lá đang soi đúng hồ sơ của bạn…" : "Lá đang mở đúng hồ sơ của bạn…"} />}
     </main> : null}
-    <div ref={privateContent} hidden={!ready}>{verification.path === pathname && verification.mounted ? children : null}</div>
+    <div ref={privateContent} hidden={!ready}>
+      <PrivatePortalContext.Provider value={privatePortal}>
+        {verification.path === pathname && verification.mounted ? children : null}
+      </PrivatePortalContext.Provider>
+      {/* Sheets portal here, inside the hidden region, never to document.body. */}
+      <div className="private-portal-root" ref={setPortalRoot} />
+    </div>
   </>;
 }

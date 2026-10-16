@@ -8,7 +8,6 @@ import {
   getSession, isGuestSessionUnavailable, requestGoogleLogin, restoreAccount, verifyGoogleLogin,
   type AccountLoginResult,
 } from "../../shared/api/client";
-import { BrandMark } from "../../shared/ui/BrandMark";
 import "./account.css";
 
 const SAFE_RETURNS = new Set(["/home", "/profile", "/saved", "/radar", "/tarot", "/reveal"]);
@@ -104,9 +103,10 @@ export function ExistingUserPage() {
   }
 
   return <main className="flow-page account-page" aria-busy={pending || undefined}>
-    <header className="flow-header"><button aria-label="Quay lại" className="icon-button" disabled={pending} onClick={() => void cancel()} type="button"><ArrowLeft /></button><BrandMark /><span /></header>
+    <header className="flow-header uv-topbar"><button aria-label="Quay lại" className="icon-button uv-topbar__icon" disabled={pending} onClick={() => void cancel()} type="button"><ArrowLeft /></button><span /><span aria-hidden="true" className="uv-topbar__spacer" /></header>
     <section className="account-card" aria-labelledby="account-title">
-      <p className="accent-kicker">Đăng nhập tuỳ chọn</p>
+      <img alt="" className="account-card__art" src="/assets/ultraviolet/pair.webp" />
+      <p className="accent-kicker eyebrow">Đăng nhập tuỳ chọn</p>
       <h1 id="account-title">Đổi máy, vẫn là hồ sơ của bạn.</h1>
       <p>Đăng nhập bằng Google để mở lại hồ sơ. Không đăng nhập vẫn dùng được trên máy này.</p>
       {pending ? <p role="status">Đang xác nhận với Google…</p> : null}

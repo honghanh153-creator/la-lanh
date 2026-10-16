@@ -1,115 +1,81 @@
+/* Welcome: a full-screen night scene (Welcome.dc.html). Colours come from the
+   shared night-scene rules in ultraviolet.css. */
 :root .ultraviolet-app .welcome-intro {
   display: flex;
   min-height: 100svh;
-  padding: max(2.5rem, env(safe-area-inset-top)) 1.25rem max(1rem, env(safe-area-inset-bottom));
+  padding: max(1.375rem, env(safe-area-inset-top)) 1.25rem max(1.75rem, env(safe-area-inset-bottom));
   flex-direction: column;
-  color: var(--uv-text);
-  background: var(--uv-page);
   font-family: var(--font-app);
 }
-
-.welcome-intro__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-:root .ultraviolet-app .welcome-intro__header .brand-mark { font-size: 1.75rem; }
+.welcome-intro__header { display: flex; align-items: center; justify-content: space-between; }
+:root .ultraviolet-app .welcome-intro__header .brand-mark { font-size: 1.625rem; }
 .welcome-intro__motion {
   display: grid;
   width: 2.75rem;
   height: 2.75rem;
   padding: 0;
   border: 0;
+  border-top: 1px solid rgb(255 255 255 / 18%);
   border-radius: 50%;
   place-items: center;
-  color: var(--uv-text);
-  background: var(--uv-tint);
+  color: #ffffff;
+  background: rgb(255 255 255 / 8%);
+  backdrop-filter: blur(10px);
 }
-
 .welcome-intro__hero {
   position: relative;
-  width: min(100%, 42svh, 23rem);
-  height: clamp(16rem, 42svh, 23rem);
-  margin: 0.75rem 0 1.25rem;
-  align-self: center;
-  isolation: isolate;
-  perspective: 50rem;
-  contain: layout;
+  display: grid;
+  min-height: clamp(13rem, 36svh, 18rem);
+  flex: 1;
+  place-items: center;
   pointer-events: none;
 }
-
-.welcome-intro__hero img { position: absolute; height: auto; object-fit: contain; }
-.welcome-intro__moon { top: 1%; right: 0; width: 53%; transform: rotate(-10deg); }
-.welcome-intro__card { z-index: 2; top: 0; left: 12%; width: 74%; transform: rotate(-5deg); }
-.welcome-intro__orbit { z-index: 1; top: 15%; left: 0; width: 100%; opacity: 0.7; }
-.welcome-intro__orbit--front { z-index: 3; clip-path: inset(48% 0 0); }
-
-:root .ultraviolet-app .welcome-intro__copy h1 {
-  margin: 0;
-  font-size: clamp(2rem, 10.3vw, 2.625rem);
-  font-weight: 800;
-  line-height: 1.13;
-  letter-spacing: -0.045em;
+.welcome-intro__glow {
+  position: absolute;
+  width: min(300px, 80vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(246 238 220 / 38%) 0%, rgb(246 238 220 / 10%) 42%, rgb(246 238 220 / 0%) 70%);
 }
+.welcome-intro__moon { position: relative; width: min(250px, 64vw, 32svh); height: auto; }
 .welcome-intro__copy h1 span { display: block; }
-:root .ultraviolet-app .welcome-intro__copy > p {
-  margin: 1rem 0 0;
-  color: var(--uv-muted);
-  font-size: 0.96875rem;
-  line-height: 1.55;
-}
-.welcome-intro__actions { display: grid; margin-top: auto; padding-top: 1rem; gap: 0.5rem; }
-.welcome-intro__primary, .welcome-intro__secondary {
+:root .ultraviolet-app .welcome-intro__copy h1 { margin: 0; color: #ffffff; font-size: 2rem; font-weight: 800; line-height: 1.18; letter-spacing: -0.02em; }
+:root .ultraviolet-app .welcome-intro__copy > p { margin: 0.75rem 0 0; color: var(--uv-night-text); font-size: 1rem; line-height: 1.5; }
+.welcome-intro__actions { display: grid; margin-top: 1.125rem; gap: 0.625rem; }
+:root .ultraviolet-app :is(.welcome-intro__primary, .welcome-intro__secondary) {
   display: flex;
-  min-height: 3.125rem;
-  padding: 0.75rem 1rem;
+  min-height: 3.375rem;
+  padding: 0.75rem 1.25rem;
   border: 0;
-  border-radius: 1.125rem;
+  border-radius: 999px;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   font-family: inherit;
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.4;
   text-decoration: none;
 }
-.welcome-intro__primary { color: #15132c; background: var(--uv-lime); }
-.welcome-intro__secondary { min-height: 2.75rem; padding-block: 0.6rem; border: 1px solid var(--uv-line); color: var(--uv-accent); background: transparent; }
-.welcome-intro__privacy { margin-top: 0.5rem; text-align: center; }
-:root .ultraviolet-app .welcome-intro__privacy p { margin: 0; color: var(--uv-muted); font-size: 0.75rem; line-height: 1.6; }
-.welcome-intro__privacy a { display: inline-flex; min-height: 2.75rem; margin-block: -0.625rem; align-items: center; vertical-align: middle; color: var(--uv-muted); text-underline-offset: 0.2rem; }
-:root .ultraviolet-app .welcome-intro__notice { margin: 1rem 0 0; color: var(--uv-muted); font-size: 0.875rem; }
-:root .ultraviolet-app .welcome-intro__notice--error { color: var(--uv-text); padding: 0.75rem; border: 1px solid #b76d62; border-radius: 0.75rem; }
-
-@keyframes welcome-card-reveal {
-  0%, 100% { transform: translate3d(0, 0, 0) rotateY(-14deg) rotateZ(-5deg); }
-  25% { transform: translate3d(5px, -10px, 12px) rotateY(13deg) rotateZ(-1deg); }
-  55% { transform: translate3d(-4px, -4px, 0) rotateY(-9deg) rotateZ(-7deg); }
-  78% { transform: translate3d(2px, -12px, 10px) rotateY(8deg) rotateZ(-3deg); }
-}
-@keyframes welcome-moon-drift {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(-10deg); }
-  50% { transform: translate3d(-9px, 10px, 0) rotate(9deg); }
-}
-@keyframes welcome-orbit-sweep {
-  0%, 100% { transform: rotate(-7deg) scale(0.95); opacity: 0.62; }
-  45% { transform: rotate(8deg) scale(1.04); opacity: 0.92; }
-  70% { transform: rotate(1deg) scale(1); opacity: 0.78; }
-}
+:root .ultraviolet-app .welcome-intro__primary { color: var(--uv-ink); background: var(--uv-leaf); box-shadow: 0 12px 30px -12px rgb(205 231 127 / 55%); }
+:root .ultraviolet-app .welcome-intro__primary svg { width: 1.25rem; height: 1.25rem; }
+:root .ultraviolet-app .welcome-intro__secondary { min-height: 3rem; border: 1px solid rgb(255 255 255 / 28%); color: #ffffff; background: rgb(255 255 255 / 6%); font-size: 0.9375rem; font-weight: 600; }
+.welcome-intro__privacy { margin-top: 0.25rem; text-align: center; }
+:root .ultraviolet-app .welcome-intro__privacy p { margin: 0; color: var(--uv-night-muted); font-size: 0.75rem; line-height: 1.5; }
+:root .ultraviolet-app .welcome-intro__privacy a { display: inline-flex; min-height: 2.75rem; margin-block: -0.625rem; align-items: center; vertical-align: middle; color: #ffffff; text-underline-offset: 0.2rem; }
+:root .ultraviolet-app .welcome-intro__notice { position: relative; margin: 1rem 0 0; padding: 0.75rem 1rem; border-radius: 16px; color: var(--uv-night-text); background: rgb(255 255 255 / 8%); font-size: 0.875rem; }
+:root .ultraviolet-app .welcome-intro__notice--error { border: 1px solid var(--uv-danger-line); color: var(--uv-danger-body); background: var(--uv-danger-bg); }
 
 @media (prefers-reduced-motion: no-preference) {
-  .welcome-intro__card { animation: welcome-card-reveal 8s ease-in-out infinite; }
-  .welcome-intro__moon { animation: welcome-moon-drift 12s ease-in-out infinite; }
-  .welcome-intro__orbit { animation: welcome-orbit-sweep 9s ease-in-out infinite; }
-  .welcome-intro[data-motion-paused="true"] .welcome-intro__hero img { animation-play-state: paused; }
+  .welcome-intro__moon { animation: home-moon-orbit 10s ease-in-out infinite; }
+  .welcome-intro__glow { animation: night-sky-glow 6s ease-in-out infinite; }
+  .welcome-intro[data-motion-paused="true"] :is(.welcome-intro__moon, .welcome-intro__glow, .night-sky *) { animation-play-state: paused; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .welcome-intro__hero img { animation: none !important; }
+  .welcome-intro__hero * { animation: none !important; }
   .welcome-intro__motion { display: none; }
 }
-@media (max-width: 360px), (max-height: 730px) {
-  :root .ultraviolet-app .welcome-intro { padding-top: max(1.25rem, env(safe-area-inset-top)); }
-  .welcome-intro__hero { width: min(100%, 15rem); height: 15rem; margin-bottom: 1rem; }
+@media (max-width: 360px), (max-height: 700px) {
+  :root .ultraviolet-app .welcome-intro__copy h1 { font-size: 1.75rem; }
+  .welcome-intro__hero { min-height: 11rem; }
 }

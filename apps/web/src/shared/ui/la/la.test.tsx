@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 
 import { dayPart, laGreeting } from "./laVoice";
 import { LaLoading } from "./LaLoading";
@@ -56,5 +57,20 @@ describe("Lá components", () => {
   it("draws no lit area at new moon", () => {
     const { container } = render(<MoonGlyph phase={moonPhase(new Date("2026-10-10T16:00:00Z"))} />);
     expect(container.querySelector("path")).toBeNull();
+  });
+});
+
+describe("LaLoading reassurance", () => {
+  it("adds one calm line after eight seconds without replacing the status text", () => {
+    vi.useFakeTimers();
+    try {
+      render(<LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" />);
+      expect(screen.queryByText("Vẫn đang mở, bạn chờ thêm chút nhé.")).not.toBeInTheDocument();
+      act(() => { vi.advanceTimersByTime(8000); });
+      expect(screen.getByRole("status")).toHaveTextContent("Lá đang mở bản đọc…");
+      expect(screen.getByText("Vẫn đang mở, bạn chờ thêm chút nhé.")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

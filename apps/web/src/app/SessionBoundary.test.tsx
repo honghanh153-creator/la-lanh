@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SESSION_EPOCH_KEY, SESSION_CHANGE_NOTICE_KEY, SESSION_RESTART_REQUIRED_KEY } from "../shared/session/sessionIdentity";
 import { SessionBoundary } from "./SessionBoundary";
+import { AppSheet } from "../shared/ui/AppSheet";
 import { testLocks, testRequestUrl } from "../shared/session/testLocks";
 
 function response(epoch: string) {
@@ -230,4 +232,61 @@ it("unmount ignores late responses and lifecycle events without navigation or ad
   expect(router.state.location.pathname).toBe("/home");
   expect(sessionStorage.getItem(SESSION_EPOCH_KEY)).toBe("epoch-a");
   expect(screen.queryByText("Private reading")).not.toBeInTheDocument();
+});
+
+it("hides an open private sheet together with the route while the session is re-verified", async () => {
+  sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
+  let releaseSecondCheck: (value: Response) => void = () => {};
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(response("epoch-a"))
+    .mockImplementationOnce(() => new Promise<Response>((resolve) => { releaseSecondCheck = resolve; }));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createMemoryRouter([
+    { path: "/home", element: <SessionBoundary><AppSheet onClose={() => {}} open title="Xoá lần Radar với Mèo?"><p>Tên riêng của A</p></AppSheet></SessionBoundary> },
+    { path: "/welcome", element: <p>Start safely</p> },
+  ], { initialEntries: ["/home"] });
+  render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>);
+
+  expect(await screen.findByText("Tên riêng của A")).toBeVisible();
+  act(() => { window.dispatchEvent(new Event("focus")); });
+  // Deferred verification: the sheet portals inside the private region, so it hides too.
+  expect(screen.getByText("Tên riêng của A")).not.toBeVisible();
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  await act(async () => { releaseSecondCheck(response("epoch-a")); await Promise.resolve(); });
+  await waitFor(() => expect(screen.getByText("Tên riêng của A")).toBeVisible());
+});
+
+function ToggleSheet() {
+  const [open, setOpen] = useState(true);
+  return <AppSheet onClose={() => setOpen(false)} open={open} title="Xoá lần Radar với Mèo?">
+    <button type="button">Giữ lại</button>
+  </AppSheet>;
+}
+
+it("gives focus back to the open sheet when the same owner is verified again", async () => {
+  sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
+  let releaseSecondCheck: (value: Response) => void = () => {};
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(response("epoch-a"))
+    .mockImplementationOnce(() => new Promise<Response>((resolve) => { releaseSecondCheck = resolve; }));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createMemoryRouter([
+    { path: "/home", element: <SessionBoundary><ToggleSheet /></SessionBoundary> },
+    { path: "/welcome", element: <p>Start safely</p> },
+  ], { initialEntries: ["/home"] });
+  render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>);
+
+  const keep = await screen.findByRole("button", { name: "Giữ lại" });
+  act(() => { keep.focus(); });
+  act(() => { window.dispatchEvent(new Event("focus")); });
+  expect(keep).not.toBeVisible();
+  // A browser drops focus to <body> when an ancestor is hidden; nothing private gets it back yet.
+  act(() => { keep.blur(); });
+  expect(document.activeElement).toBe(document.body);
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  expect(document.activeElement).toBe(document.body);
+
+  await act(async () => { releaseSecondCheck(response("epoch-a")); await Promise.resolve(); });
+  await waitFor(() => expect(keep).toBeVisible());
+  expect(document.activeElement).toBe(keep);
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

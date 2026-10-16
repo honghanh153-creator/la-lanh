@@ -39,8 +39,8 @@ export function SharePreviewPage() {
           <p className="share-art-privacy">Không chứa ngày / giờ / nơi sinh hay căn cứ riêng</p>
         </>
       ) : (
-        <section className="empty-state">
-          <Sparkle size={52} />
+        <section className="empty-state uv-empty" role="alert">
+          <div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div>
           <h1>Note này đã bay mất.</h1>
           <p>Link có thể hết hạn hoặc không còn tồn tại.</p>
         </section>
