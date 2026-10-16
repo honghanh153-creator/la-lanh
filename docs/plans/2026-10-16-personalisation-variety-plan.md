@@ -47,7 +47,8 @@ khoảng 290 câu; 50 cặp Radar. Không dùng dữ liệu người dùng thậ
 ### Tarot
 
 - **Không trả lời câu hỏi:**
-  - Intent là so khớp chuỗi con theo thứ tự cho 5 intent; mọi câu có chữ "hỏi" rơi vào giao tiếp.
+  - Intent là so khớp chuỗi con theo thứ tự cho 5 intent. Ranh giới được xét trước giao tiếp
+    (`engine.py:571-574`), nên câu có chữ "hỏi" mà không chạm từ khoá ranh giới sẽ rơi vào giao tiếp.
   - Không nhận ra câu hỏi có/không.
   - Tiêu đề cố định theo intent (`engine.py:136-142,568-581`).
 - **Nghĩa không theo vị trí:**
@@ -77,13 +78,57 @@ khoảng 290 câu; 50 cặp Radar. Không dùng dữ liệu người dùng thậ
 
 1. **Đa dạng không đổi nghĩa.** Biến thể nằm trong cùng một "ý" đã được duyệt: cùng tình huống, cùng
    hành động gốc. Gate meaning và anti-influence chạy trên mọi biến thể.
-2. **Salt riêng từng người, tất định, không cần lưu thêm.** Biến thể chọn theo
-   `HMAC(khoá server, owner_scope + bề mặt + ngày/phiên)`, rồi hoán vị theo người: cùng người + cùng
-   ngày thì luôn ra cùng thẻ (cache, chia sẻ, đổi giọng vẫn ổn định), nhưng hai người khác nhau thì
-   khác nhau. Không tạo bảng lịch sử mới.
-3. **Chống lặp bằng hoán vị, không bằng bộ nhớ.** Mỗi người có một hoán vị riêng của (tiêu đề × cảnh ×
-   hành động), nên trong một chu kỳ không lặp và mọi trục đổi mỗi ngày. Không còn kiểu đổi theo hệ cơ số
-   (6/48 ngày).
+2. **Salt riêng từng người, tất định, không cần lưu thêm.**
+   - **Seed ổn định, không chứa ngày:** `seed = HMAC(K[v], owner_scope ‖ surface ‖ catalog_version)`.
+     `K[v]` là khoá server có phiên bản, chỉ dùng cho việc chọn biến thể, không phải khoá mã hoá dữ liệu.
+   - **Ngày hoặc phiên chỉ chọn vị trí trong chu kỳ:**
+     - Daily dùng số ngày lịch (theo múi giờ của note) tính từ một mốc cố định.
+     - Tarot dùng thứ tự vai trong phiên và mã phiên. Biến thể Tarot được chọn **một lần lúc rút**,
+       ghi vào payload phiên và không chọn lại.
+   - Không tạo bảng lịch sử mới.
+   - **Trùng giữa hai người là có thể,** vì kho hữu hạn. Không cam kết "mọi cặp người đều khác"; đo bằng
+     tỷ lệ va chạm (mục 0).
+3. **Chống lặp: cam kết cụ thể và cách bảo đảm.** Một hoán vị chung của cả bộ (tiêu đề × cảnh × hành
+   động) **không** bảo đảm từng trục đổi mỗi ngày. Ví dụ hai bộ kề nhau `(0,0,0)` và `(1,0,0)` vẫn cùng
+   cảnh và cùng hành động. Vì vậy thiết kế dùng **chu kỳ riêng cho từng trục**:
+   - **Cách làm:**
+     - Mỗi trục (tiêu đề 6, cảnh 8, hành động 8) có một hoán vị riêng, sinh từ `seed ‖ axis ‖ cycle_no`.
+     - Vị trí trong ngày = `day_index mod n_axis`. `cycle_no = day_index div n_axis` nên mỗi chu kỳ được
+       xáo lại.
+     - **Ràng buộc biên:** phần tử đầu của chu kỳ mới phải khác phần tử cuối chu kỳ trước. Nếu trùng thì
+       hoán đổi phần tử đầu với phần tử thứ hai, một phép tất định.
+   - **Cam kết cứng, có AC:** trong cùng một tình huống, hai ngày lịch liên tiếp luôn khác nhau ở **mọi
+     trục**, kể cả ở biên chu kỳ. Mỗi tiêu đề xuất hiện đúng một lần trong mỗi 6 ngày, mỗi cảnh và mỗi hành
+     động đúng một lần trong mỗi 8 ngày của chu kỳ trục đó.
+   - **Không cam kết bộ đầy đủ không lặp.** Chu kỳ theo trục được xáo lại, nên bộ đầy đủ (tiêu đề, cảnh,
+     hành động) vẫn có thể trùng một ngày đã gặp.
+     - **Mô phỏng sơ bộ** (50 seed tổng hợp, chạy bằng stdlib ngoài engine, trường hợp xấu nhất là tình
+       huống đứng yên mỗi ngày): **6,7%** số ngày trùng bộ đã gặp trong 30 ngày trước, **13,6%** trong 60
+       ngày. Không ngày nào trùng trục với ngày trước.
+     - **So với hiện tại:** 0% trùng bộ trong 384 ngày, nhưng cảnh đứng yên 6 ngày và hành động 48 ngày.
+     - **Đánh đổi có chủ đích:** ưu tiên mỗi trục đổi mỗi ngày.
+     - P1 đo lại trên engine thật với top-K thật (K > 1 làm trùng bộ hiếm hơn) và đặt floor cho tỷ lệ trùng
+       bộ trong 30/60 ngày.
+     - Nếu owner muốn thấp hơn: thêm bước tránh trùng bộ (đổi hành động sang phần tử khác trong cùng chu
+       kỳ) với điều kiện không phá cam kết cứng. AC kèm theo phải chứng minh cả hai điều kiện.
+   - **Tình huống (top-K):**
+     - Mỗi ngày xếp hạng pool đủ điều kiện của chính ngày đó, rồi chọn theo `day_index mod K` trên danh
+       sách đã sắp xếp ổn định (thứ tự theo điểm, hoà thì theo mã tình huống).
+     - Pool đổi theo transit thì tình huống có thể lặp. Guard: không quá 2 ngày liền cùng tình huống khi
+       pool có ít nhất 2 phần tử.
+     - Pool chỉ có 1 phần tử thì tình huống đứng yên, các trục vẫn xoay.
+     - Chỉ số trục dùng `day_index` chứ không đếm số lần tình huống đã xuất hiện, nên không cần lưu lịch
+       sử. Đánh đổi: một tình huống quay lại sau đúng 6 ngày có thể gặp lại cùng tiêu đề.
+   - **Đóng băng và replay:**
+     - Biến thể được chọn khi tạo bản đọc của ngày hoặc phiên, **trước khi** tính `plan_hash` và lưu
+       revision.
+     - Bản đã lưu ghi `variant_key_version` và `catalog_version`.
+     - AC:
+       - (a) Cache miss hoặc khởi động lại server cho ra đúng bản cũ.
+       - (b) Đổi giọng chỉ đổi giọng của biến thể đã chọn (ánh xạ Cà khịa), không chọn lại.
+       - (c) Thẻ đã chia sẻ hay lưu giữ nguyên snapshot.
+       - (d) Đổi khoá (`K[v+1]`) chỉ áp cho ngày hoặc phiên mới; không render lại bản đã lưu.
+     - Mọi thay đổi catalog cũng bump phiên bản.
 4. **Tín hiệu người dùng tự cung cấp chỉ dùng khi họ bật**, có công tắc, giải thích và nút xoá; mặc định
    tắt. Ngoại lệ: tín hiệu thuộc đúng mục đích của chính màn đó (câu hỏi Tarot, ngữ cảnh Radar, lens của
    note) được dùng như hiện nay.
@@ -211,8 +256,18 @@ Giữ nguyên 8 tiêu chí của Issue #6. Thiết kế:
   - Gợi ý cách hỏi Tarot: phần đầu của T3, mở rộng câu gợi hỏi lại hiện có thành gợi ý theo chủ đề.
   - Thẻ câu hỏi Hợp gu: phần đầu của R3.
   - Nối Tarot với tình huống note hôm nay.
-- **Chặng 3 (S2):** bật Luna cho note và Tarot; nhật ký Tarot; nhắc lại Hợp gu. Chỉ làm khi đủ điều kiện
-  của Issue #7 (chấm mẫu, DPA, governance, khai báo).
+  - **Nhật ký Tarot (theo §8, mặc định tắt):**
+    - Người dùng tự bật; chỉ ghi các bài người dùng chủ động lưu vào nhật ký, kèm ghi chú tự do nếu có.
+    - **Dữ liệu và consent:** ghi chú tự do là dữ liệu cá nhân mới, có thể nhạy cảm. Nhật ký được đưa vào
+      inventory dữ liệu, copy consent riêng, `store-privacy-data-map.md`, privacy copy trong app và khai
+      báo Apple/Google.
+    - **Lưu giữ và xoá:** mã hoá cùng cơ chế payload phiên, không log, thời hạn lưu do owner chốt ở AC
+      (mặc định đề xuất theo hồ sơ, xoá khi tắt nhật ký hoặc xoá hồ sơ). Có xem, xuất và xoá từng mục hoặc
+      toàn bộ.
+    - **Không** tự đi vào Luna, xếp hạng hay phân tích mẫu. "Your Mirror" kiểu tìm mẫu lặp lại là một
+      quyết định riêng, cần consent riêng nếu làm.
+- **Chặng 3 (S2):** bật Luna cho note và Tarot; nhắc lại Hợp gu (cần cơ chế thông báo và consent riêng).
+  Chỉ làm khi đủ điều kiện của Issue #7 (chấm mẫu, DPA, governance, khai báo).
 
 **Khối lượng nội dung cần viết:**
 
@@ -255,6 +310,9 @@ Tất cả đi qua gate và Excel duyệt.
 | 6 | Mood, phản hồi, nhật ký | Chặng 2, mặc định tắt, người dùng tự bật; nối Tarot với note hôm nay cũng ở chặng 2 |
 | 7 | Checklist tâm lý | Đưa vào chuẩn nội dung (`la-lanh-plain-vietnamese-content-standard.md`), áp cho mọi câu mới |
 
+**P0 chưa hoàn tất:** US-20 (Tarot), AC cho B3/B4, fixture tổng hợp và các ngưỡng đo cụ thể phải có
+trước khi bắt đầu B2/B3/B4. Approval của kế hoạch này không phải approval code hay release.
+
 Còn chờ owner ở P0: chọn 5 tình huống Astro mới từ danh sách đề xuất, và duyệt câu Cà khịa của từng đợt
 qua file Excel.
 
@@ -276,8 +334,8 @@ hành, rủi ro nội dung, khả năng đo.
 | Mảng | Phương án 1 | Phương án 2 (chọn) | Phương án 3 |
 |---|---|---|---|
 | Astro | A1: xoay vòng riêng (salt, hoán vị, top-K) | **A2**: A1 + pool cho người chỉ có ngày sinh, transit có chỗ đứng, 5 tình huống mới, hành động theo lens | A3: A2 + mood/phản hồi opt-in (chặng 2) |
-| Tarot | T1: sửa cấu trúc (vai, tóm tắt liền, dọn chữ thừa) | **T2**: T1 + hiểu câu hỏi, hướng nghiêng 3 mức, khung câu và ví dụ đa dạng | T3: T2 + gợi ý cách hỏi, đào sâu một lá, nhật ký (chặng 2–3) |
-| Hợp gu | R1: cảnh × ngữ cảnh, giọng đổi cả câu | **R2**: R1 + câu theo góc chiếu giữa hai chart và cân bằng nguyên tố, ngữ cảnh đổi cả "hợp"/"ma sát" | R3: R2 + thẻ câu hỏi để nói chuyện, góc nhìn hai phía, nhắc lại (chặng 2–3) |
+| Tarot | T1: sửa cấu trúc (vai, tóm tắt liền, dọn chữ thừa) | **T2**: T1 + hiểu câu hỏi, hướng nghiêng 3 mức, khung câu và ví dụ đa dạng | T3: T2 + gợi ý cách hỏi, đào sâu một lá, nhật ký opt-in (chặng 2) |
+| Hợp gu | R1: cảnh × ngữ cảnh, giọng đổi cả câu | **R2**: R1 + câu theo góc chiếu giữa hai chart và cân bằng nguyên tố, ngữ cảnh đổi cả "hợp"/"ma sát" | R3: R2 + thẻ câu hỏi và góc nhìn hai phía (chặng 2); nhắc lại (chặng 3) |
 
 Lý do không chọn S2 trước: làm mượt câu trên nội dung đang lặp chỉ che triệu chứng. Lý do không chọn T1:
 không giải quyết kỳ vọng chính, là được trả lời đúng câu hỏi. Lý do R2 thay R1: R1 vẫn để hai cặp cùng
@@ -295,10 +353,19 @@ chủ đề nhận bài gần giống nhau.
 | Hiểu mình | Reveal, lá số | Cụ thể, có căn cứ | Câu ai đọc cũng đúng (Barnum) |
 | Kết nối | Chia sẻ thẻ, Hợp gu | Thẻ khác bạn bè, an toàn khi chia sẻ | Lộ thông tin riêng |
 
-Mối quan tâm tới chiêm tinh tăng theo mức bất an (Padgett & Jorgenson, 1982), và chiêm tinh được dùng để
-khẳng định bản thân và đối phó với khủng hoảng (Lillqvist & Lindeman, 1998; đọc qua tóm tắt thứ cấp,
-mẫu nhỏ). Một nghiên cứu định tính nhỏ cho thấy người dùng Tarot coi lá bài như tấm gương tự soi (Hofer,
-2009). Vì vậy nội dung phải trao lại cảm giác tự chủ, không nuôi sự phụ thuộc.
+**Phạm vi bằng chứng:**
+
+- **Padgett & Jorgenson (1982):** nghiên cứu lưu trữ, tìm thấy tương quan ở mức xã hội và lịch sử giữa
+  chỉ số khó khăn kinh tế và số bài viết về chiêm tinh, mê tín ở Đức 1918–1940. Nghiên cứu không đo sự bất
+  an của từng người.
+- **Lillqvist & Lindeman (1998):** đọc qua tóm tắt thứ cấp, mẫu nhỏ. Các nguồn tóm tắt mô tả kết quả
+  về khủng hoảng không thống nhất.
+- **Hofer (2009):** luận văn định tính phỏng vấn bốn phụ nữ dùng Tarot thường xuyên. Không chứng minh
+  cải thiện sức khoẻ hay chất lượng quyết định.
+- **Không nguồn nào ở đây là bằng chứng hiệu quả cho Lá Lành.** Việc áp các nguồn này vào persona và tâm
+  thế bên dưới là **giả thuyết sản phẩm**, cần kiểm bằng tín hiệu tổng hợp sau khi ra mắt.
+
+Hướng chung rút ra, ở mức giả thuyết: nội dung nên trao lại cảm giác tự chủ, không nuôi sự phụ thuộc.
 
 ### Nguyên lý → quy tắc nội dung
 
@@ -306,21 +373,32 @@ mẫu nhỏ). Một nghiên cứu định tính nhỏ cho thấy người dùng 
 |---|---|---|
 | Tự chủ, năng lực, gắn kết | Ryan & Deci (2000) | Đưa lựa chọn; việc nhỏ làm được trong ngày; Lá là bạn đồng hành, không phải thầy |
 | Phản kháng khi bị ra lệnh | Altendorf và cộng sự (2019); kết quả lặp lại chưa đồng nhất | Không mệnh lệnh; Tarot chỉ "nghiêng về" |
-| Kế hoạch "khi… thì…" | Gollwitzer & Sheeran (2006), d ≈ 0,65 | Việc nhỏ kèm tình huống kích hoạt |
-| Đỉnh và kết | Fredrickson & Kahneman (1993); phân tích gộp 2022 | Đỉnh là câu "à ra vậy"; kết bằng việc nhỏ tích cực, không kết bằng cảnh báo |
+| Kế hoạch "khi… thì…" | Gollwitzer & Sheeran (2006), d ≈ 0,65 trong phân tích gộp; không phải effect size cho app | Phần advice có tình huống kích hoạt |
+| Đỉnh và kết | Fredrickson & Kahneman (1993); phân tích gộp 2022 (bối cảnh lý thuyết) | Đỉnh là câu "à ra vậy"; bài kết ở phần advice, không kết bằng cảnh báo |
 | Hiệu ứng Barnum | Forer (1949) | Mỗi câu gắn với căn cứ riêng; không khen chung chung |
-| Thiên lệch tiêu cực | Baumeister và cộng sự (2001) | Tối đa một ý tiêu cực mỗi bài, luôn kèm lối ra |
-| Bất định và kiểm soát | Padgett & Jorgenson (1982) | "Điều bạn quyết được hôm nay"; không định mệnh, không ép quay lại |
-| Suy nghĩ lặp về đêm | Thực hành chung; app đã có nhắc nền tối sau 21:00 | Sau 21:00 câu ngắn hơn; hỏi Tarot lại cùng câu trong 24 giờ thì mở lại bài cũ |
+| Thiên lệch tiêu cực | Baumeister và cộng sự (2001) (bối cảnh lý thuyết) | Tối đa một ý tiêu cực mỗi bài, luôn kèm lối ra. Ngưỡng "một" là lựa chọn sản phẩm, không do nghiên cứu xác định |
+| Bất định và kiểm soát | Padgett & Jorgenson (1982), tương quan mức xã hội; áp cho người dùng là giả thuyết | "Điều bạn quyết được hôm nay"; không định mệnh, không ép quay lại |
+| Suy nghĩ lặp về đêm | Giả thuyết sản phẩm; app đã có nhắc nền tối sau 21:00 | Sau 21:00 chỉ đổi **cách trình bày** (thu gọn mục phụ mặc định), không đổi nội dung bản đọc (mục 11, "Quy tắc ban đêm") |
+
+### Quy tắc ban đêm (không đổi nội dung đã đóng băng)
+
+- **Phương án chọn:** chỉ rút gọn **cách trình bày** sau 21:00 theo giờ thiết bị, ví dụ thu gọn mặc định
+  các mục phụ của Note Detail và câu dài của Lá. Nội dung bản đọc không đổi theo giờ mở. Bản đã tạo, lưu,
+  chia sẻ hoặc đang trong phiên hiển thị cùng một nội dung bất kể mở lúc nào.
+- **Không làm:** render lại hay chọn biến thể khác theo giờ mở. Nếu sau này muốn biến thể "ban đêm" thì
+  phải chọn **lúc tạo** rồi đóng băng như mọi biến thể khác. Việc đó cần quyết riêng.
+- **Ý tưởng Tarot "hỏi lại cùng câu trong 24 giờ thì mở lại bài cũ":** để P0 quyết, vì cần so câu hỏi.
+  Nếu làm thì so bằng hash có khoá trên câu đã chuẩn hoá, nằm trong payload phiên đã mã hoá, không thêm
+  bảng mới và không gửi ra ngoài.
 
 ### Persona kiểm thiết kế (tổng hợp, không phải người dùng thật)
 
 - **Minh Anh, chỉ nhập ngày sinh, mở app 30 giây mỗi sáng:**
-  - Hiện tại: một tình huống cả năm, dễ bỏ app sau khoảng 2 tuần.
+  - Hiện tại: một tình huống cả năm. Giả thuyết cần đo: người dùng nhóm này bỏ app sớm hơn.
   - A2 giải quyết bằng pool theo transit tới Mặt Trời và việc nhỏ có tình huống kích hoạt.
 - **Huy, phân vân nhận việc, mở Tarot lúc 23:00:**
   - Hiện tại: tiêu đề cố định, không có hướng nghiêng.
-  - T2 trả lời bằng "cân nhắc thêm trước khi nhận lời" kèm lý do. Hỏi lại cùng câu thì mở lại bài cũ.
+  - T2 trả lời bằng "cân nhắc thêm trước khi nhận lời" kèm lý do. Việc mở lại bài cũ khi hỏi lại cùng câu là ý tưởng cần quyết ở P0 (xem quy tắc ban đêm).
 - **Linh, crush chưa trả lời:**
   - Hiện tại: Hợp gu ra cảnh cố định. Tarot từ chối câu đoán ý người kia và đưa một câu hỏi lại chung,
     giống nhau cho mọi trường hợp (`engine.py:187-195`).
