@@ -29,7 +29,10 @@ under v4 is reused.
   segment waves it away ("Hỏi lại chỉ mất thời gian"); a contrary phrase ("đoán" for
   missing-context) fails unless a negation or dismissal aimed at that very action sets it
   aside ("đừng cứ đoán", "thay vì tự đoán", "đoán làm gì cho mệt"). A negation of some other
-  action ("không chờ trả lời, cứ đoán") does not excuse it; unclear scope means contrary. The check is lexical and errs towards
+  action ("không chờ trả lời, cứ đoán"), a double negation ("không phải không đoán"), a
+  negated dismissal ("cứ đoán không mất công", "có làm gì đâu") or "thôi cứ đoán" does not
+  excuse it; unclear scope means contrary. `test_every_issue_rejects_an_endorsed_contrary`
+  runs these frames against all 15 issues. The check is lexical and errs towards
   rejecting (a rejected line falls back to the authored one); it does not replace human scoring
   of meaning.
 - **Rollback floor:**
