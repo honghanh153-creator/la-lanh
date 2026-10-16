@@ -9,7 +9,7 @@ unedited, so every line is approved as written.
 | Item | Value |
 |---|---|
 | URL | https://la-lanh.2-28-136-44.sslip.io |
-| Release / source | `b474cafbc434` = public `main` (fast-forward of `collab/integration`, PR #3) |
+| Release / source | `b474cafbc434` = public `main`, fast-forward push of `collab/integration` (no merge commit; tree identical to the Codex-approved `6cd7113`) |
 | Scope | PRs #4, #8, #10, #11, #12 (Lá's companion line), #13 ("Tím đêm dịu" UI), each with Codex APPROVE at its merged SHA |
 | Image | `la-lanh:b474cafbc434`, `sha256:10ba22405c47…`, saved at `/opt/la-lanh/releases/la-lanh-image-b474cafbc434.tar` |
 | Database | Alembic `20261011_0036` (unchanged, no migration in this release) |
