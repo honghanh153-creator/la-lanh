@@ -21,6 +21,16 @@ birth data, or report evidence in the URL.
   legal, or financial decision questions.
 - Question intent is classified into clarity, boundary, next step, communication, or self-check.
   This typed intent changes the rendered interpretation; it is not decorative metadata.
+- B2-1 (`tarot-question-rules-v2`, `docs/plans/2026-10-17-b2-1-tarot-question-frame-task.md`):
+  - Intake order: too short or vague (under 3 words, or no question word and no verb) → high stakes →
+    another person's mind → certainty.
+  - "Khi nào / bao giờ" about one's own action is accepted and answered as what to have ready first,
+    with one line saying no date is predicted. Timing about an event or another person is still
+    refused as certainty.
+  - Each accepted question gets a `QuestionFrame` of closed labels: form, scored topic, and an optional
+    action from the 30-label table. It is computed once at intake and stored in the encrypted session
+    payload, then replayed at render. It is never logged, returned by the API or sent to a provider.
+  - Sessions started before B2-1 have no frame and render as before.
 - One-card spread: `Điều đáng nhìn lúc này`.
 - Three-card spread: `Điều đã rõ` → `Điều dễ bỏ sót` → `Một bước nhỏ có thể thử`.
 - Five-card mode chooses and freezes one map when the session starts:

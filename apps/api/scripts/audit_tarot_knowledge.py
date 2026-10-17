@@ -1,10 +1,23 @@
 from __future__ import annotations
 
+import json
 from collections import Counter
+from pathlib import Path
+from typing import Any
 
+from app.domains.tarot import question_frame
 from app.domains.tarot.engine import TarotContentRejected, TarotReadingEngine
 from app.domains.tarot.knowledge import BOOK_SOURCES, all_cards
-from app.domains.tarot.models import TarotContext, TarotSpread, TarotSpreadMap, TarotVoice
+from app.domains.tarot.models import (
+    TarotContext,
+    TarotQuestionForm,
+    TarotSpread,
+    TarotSpreadMap,
+    TarotVoice,
+)
+
+QUESTION_BANK = Path(__file__).resolve().parents[3] / "docs/fixtures/tarot-question-bank-v1.json"
+FORM_ACCURACY_FLOOR = 0.95  # US-20 AC01
 
 QUESTION_BY_CONTEXT = {
     TarotContext.GENERAL: "Chuyện này cần được nhìn từ góc nào trước?",
@@ -141,8 +154,66 @@ def audit() -> list[str]:
     return failures
 
 
+def audit_question_bank() -> tuple[list[str], dict[str, Any]]:
+    """B2-1 question understanding on the synthetic bank (US-20 AC01-AC05)."""
+
+    engine = TarotReadingEngine()
+    items: list[dict[str, Any]] = json.loads(QUESTION_BANK.read_text())["items"]
+    failures: list[str] = []
+    labelled = [item for item in items if item.get("form")]
+    wrong = [
+        item["id"]
+        for item in labelled
+        if question_frame.classify_form(item["question"]).value != item["form"]
+    ]
+    accuracy = 1 - len(wrong) / len(labelled)
+    if accuracy < FORM_ACCURACY_FLOOR:
+        failures.append(f"form accuracy {accuracy:.4f} < {FORM_ACCURACY_FLOOR}: {wrong[:10]}")
+    actions: Counter[str] = Counter()
+    for item in items:
+        context = TarotContext(item["context"]) if item.get("context") else TarotContext.GENERAL
+        assessment = engine.assess_question(item["question"], context)
+        if assessment.accepted is not item["expected"]["accepted"]:
+            failures.append(f"{item['id']}: accepted={assessment.accepted}")
+            continue
+        if not assessment.accepted:
+            if not assessment.suggested_reframe:
+                failures.append(f"{item['id']}: rejection without a reframe")
+            continue
+        frame = assessment.frame
+        if frame is None:
+            failures.append(f"{item['id']}: accepted without a frame")
+            continue
+        actions[frame.action.value if frame.action else "none"] += 1
+        expected_topic = item["expected"].get("topic")
+        if expected_topic and frame.topic.value != expected_topic:
+            failures.append(f"{item['id']}: topic {frame.topic.value} != {expected_topic}")
+        if frame.form is TarotQuestionForm.TIMING:
+            reading = engine.render(
+                card_ids=(all_cards()[0].id,),
+                spread=TarotSpread.ONE_CARD,
+                context=context,
+                question=item["question"],
+                voice=TarotVoice.STRAIGHT_WARM,
+                question_intent=assessment.intent,
+                frame=frame,
+            )
+            if not reading.summary.startswith(question_frame.READINESS_NOTE):
+                failures.append(f"{item['id']}: timing question without the readiness note")
+    metrics = {
+        "labelled": len(labelled),
+        "form_accuracy": round(accuracy, 4),
+        "actions_matched": sum(n for k, n in actions.items() if k != "none"),
+        "actions_none": actions["none"],
+        "action_labels_used": len([k for k in actions if k != "none"]),
+    }
+    return failures, metrics
+
+
 def main() -> None:
     failures = audit()
+    bank_failures, bank = audit_question_bank()
+    failures += bank_failures
     if failures:
         raise SystemExit("Tarot knowledge audit failed:\n- " + "\n- ".join(failures[:30]))
     per_voice = len(TarotSpreadMap) * len(all_cards())
@@ -152,6 +223,11 @@ def main() -> None:
         f"Tarot knowledge audit passed: {contextual} contextual + {goals} recognised-goal "
         f"synthetic spreads across {len(TarotVoice)} voices (including roast), plus deck checks. "
         "Not a human comprehension study."
+    )
+    print(
+        f"Question bank (B2-1): form accuracy {bank['form_accuracy']} on {bank['labelled']} "
+        f"labelled; closed action label on {bank['actions_matched']} accepted questions, none on "
+        f"{bank['actions_none']} ({bank['action_labels_used']} of 30 labels used)."
     )
 
 

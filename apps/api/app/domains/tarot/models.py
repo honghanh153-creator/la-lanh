@@ -44,6 +44,65 @@ class TarotQuestionIntent(StrEnum):
     SELF_CHECK = "self_check"
 
 
+QUESTION_RULES_VERSION = "tarot-question-rules-v2"
+QUESTION_FRAME_VERSION = "tarot-question-frame-v1"
+
+
+class TarotQuestionForm(StrEnum):
+    YES_NO = "yes_no"
+    CHOICE = "choice"
+    HOW = "how"
+    WHY = "why"
+    TIMING = "timing"  # answered as "what to have ready first" (AC05)
+    OPEN = "open"
+
+
+class TarotAction(StrEnum):
+    """Closed action labels (US-20, owner decision A6)."""
+
+    NHAN_LOI = "nhan_loi"
+    TU_CHOI = "tu_choi"
+    NOI_RA = "noi_ra"
+    NHAN_LAI = "nhan_lai"
+    HOI_LAI = "hoi_lai"
+    CHO_THEM = "cho_them"
+    BAT_DAU = "bat_dau"
+    DUNG_LAI = "dung_lai"
+    DOI_VIEC = "doi_viec"
+    XIN_GOP_Y = "xin_gop_y"
+    NGHI_NGOI = "nghi_ngoi"
+    GUI_DI = "gui_di"
+    XIN_LOI = "xin_loi"
+    HEN_GAP = "hen_gap"
+    CHIA_SE = "chia_se"
+    DAT_RANH_GIOI = "dat_ranh_gioi"
+    KET_THUC = "ket_thuc"
+    THU_LAI = "thu_lai"
+    HOC_THEM = "hoc_them"
+    TAP_TRUNG = "tap_trung"
+    SAP_XEP_LAI = "sap_xep_lai"
+    NHO_GIUP = "nho_giup"
+    GOP_Y = "gop_y"
+    DE_XUAT = "de_xuat"
+    DON_DEP = "don_dep"
+    RA_NGOAI = "ra_ngoai"
+    O_NHA = "o_nha"
+    DOI_THOI_QUEN = "doi_thoi_quen"
+    TU_THUONG = "tu_thuong"
+    VIET_RA = "viet_ra"
+
+
+class QuestionFrame(BaseModel):
+    """Closed labels only; never a span of the user's text (US-20 AC06)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    version: str = QUESTION_FRAME_VERSION
+    form: TarotQuestionForm
+    topic: TarotContext
+    action: TarotAction | None = None
+
+
 class TarotSessionState(StrEnum):
     CHOOSING = "choosing"
     COMPLETE = "complete"
@@ -90,7 +149,8 @@ class TarotQuestionAssessment(BaseModel):
     accepted: bool
     normalized_question: str
     intent: TarotQuestionIntent | None = None
-    rules_version: str = "tarot-question-rules-v1"
+    frame: QuestionFrame | None = None  # accepted questions only; never part of an API body
+    rules_version: str = QUESTION_RULES_VERSION
     explanation: str | None = None
     suggested_reframe: str | None = None
 
