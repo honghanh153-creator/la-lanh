@@ -177,6 +177,13 @@ def test_ac05_own_timing_is_answered_as_readiness_in_every_voice() -> None:
 @pytest.mark.parametrize(
     "question",
     [
+        "Khi nào họ nên nhắn lại cho mình?",  # another person's action, despite "nên"
+        "Khi nào sếp nên tăng lương cho mình?",
+        "Bao giờ dự án nên hoàn thành để mình nghỉ?",  # an event with a first-person purpose
+        "Dự án nên xong khi nào để mình nghỉ?",
+        "Khi nào em ấy nhắn lại?",
+        "Khi nào mình sẽ giàu?",  # an outcome, not an action
+        "Khi nào mình được tăng lương?",
         "Khi nào mình có người yêu?",  # an event, not one's own action
         "Khi nào là lúc người ấy nhắn lại?",
         "Bao giờ người ấy nhắn lại?",  # another person
@@ -188,6 +195,46 @@ def test_ac05_own_timing_is_answered_as_readiness_in_every_voice() -> None:
 )
 def test_ac05_predictions_stay_rejected(question: str) -> None:
     assert _assess(question).explanation.startswith(OUTCOME_EXPLANATION["reject_certainty"])
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Khi nào mình nhắn lại cho bạn ấy?",  # own action without "nên"
+        "Bao giờ tôi bắt đầu học?",
+        "Khi nào mình có thể bắt đầu học vẽ?",
+        "Mình nên nghỉ việc khi nào?",  # timing phrase at the end
+        "Khi nào là lúc phù hợp để mình nói rõ điều mình cần?",
+        "Bao giờ thì nên bắt đầu tìm cơ hội mới?",
+    ],
+)
+def test_p2_2_own_actions_are_reframed_with_or_without_nen(question: str) -> None:
+    assessment = _assess(question)
+    assert assessment.accepted, question
+    assert assessment.frame.form is TarotQuestionForm.TIMING
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Mình không xin lỗi, có nên đợi thêm không?",
+        "Mình không cần phải xin lỗi, có nên đợi thêm không?",
+        "Mình không muốn phải xin lỗi, có nên đợi thêm không?",
+    ],
+)
+def test_p2_3_a_negated_action_is_never_frozen(question: str) -> None:
+    frame = _assess(question, TarotContext.RELATIONSHIPS).frame
+    assert frame == QuestionFrame(
+        form=TarotQuestionForm.YES_NO,
+        topic=TarotContext.RELATIONSHIPS,
+        action=TarotAction.CHO_THEM,
+    )
+
+
+def test_p2_3_negation_stays_in_its_clause() -> None:
+    assert qf.match_action("Mình không biết có nên xin lỗi không?") is TarotAction.XIN_LOI
+    assert qf.match_action("Mình chưa nghỉ, có nên dọn nhà không?") is TarotAction.DON_DEP
+    assert qf.match_action("Có nên không nhắn lại nữa không?") is None  # unclear: no guess
 
 
 # ---------------------------------------------------------------- frame labels
@@ -323,17 +370,28 @@ def test_frame_is_replayed_not_recomputed_when_rendering(
     assert view.reading.summary.startswith(qf.READINESS_NOTE)
 
 
-def test_sessions_started_before_b2_1_render_as_before(client: TestClient) -> None:
+V1_ONLY = ("Lúc nào mình có người yêu?", "Bao lâu nữa dự án này xong?")
+
+
+@pytest.mark.parametrize("question", V1_ONLY)
+def test_p2_1_sessions_started_before_b2_1_keep_the_v1_boundary(
+    client: TestClient, question: str
+) -> None:
+    """Accepted by tarot-question-rules-v1, refused by v2: an in-progress v1 draw must still
+    end with a reading, rendered under v1."""
+
+    assert _assess(question).accepted is False  # v2 intake
     headers = _headers(client)
-    question = "Mình nên nhìn rõ điều gì trước khi nhắn lại?"
-    started = _start(client, headers, question, "relationships")
+    started = _start(client, headers, "Mình nên nhìn rõ điều gì trước khi nhắn lại?", "general")
     _, payload = _payload(client)
     legacy = {k: v for k, v in payload.items() if k != "question_frame"}
-    legacy["question_rules_version"] = "tarot-question-rules-v1"
+    legacy.update(question=question, question_rules_version="tarot-question-rules-v1")
     _rewrite_payload(client, legacy)
 
     view = _select(client, headers, started)
+    assert view.state.value == "complete"
     assert view.reading is not None
+    assert view.reading.provenance.question_rules_version == "tarot-question-rules-v1"
     expected = ENGINE.render(
         card_ids=tuple(position.card.id for position in view.reading.positions),
         spread=view.spread,
@@ -344,7 +402,64 @@ def test_sessions_started_before_b2_1_render_as_before(client: TestClient) -> No
         question_intent=view.reading.question_intent,
     )
     assert view.reading == expected
-    assert view.reading.provenance.question_rules_version == "tarot-question-rules-v1"
+    assert view.reading.headline != qf.readiness_headline(view.voice)  # no v2 reframe
+
+
+def test_p2_1_the_v1_boundary_is_the_released_rule() -> None:
+    """Questions v1 refused stay refused for legacy renders; only v2 intake changed."""
+
+    cards = (all_cards()[0].id,)
+
+    def legacy_render(question: str) -> bool:
+        try:
+            ENGINE.render(
+                card_ids=cards,
+                spread=TarotSpread.ONE_CARD,
+                context=TarotContext.GENERAL,
+                question=question,
+                voice=TarotVoice.STRAIGHT_WARM,
+            )
+        except Exception:
+            return False
+        return True
+
+    assert all(legacy_render(question) for question in V1_ONLY)
+    for refused_by_v1 in ("Khi nào mình nên nghỉ việc?", "Người yêu cũ có quay lại không?"):
+        assert legacy_render(refused_by_v1) is False
+
+
+def test_p2_service_freezes_owner_timing_and_affirmed_actions(client: TestClient) -> None:
+    headers = _headers(client)
+    refused = client.post(
+        "/v1/tarot/sessions",
+        headers=headers,
+        json={
+            "context": "relationships",
+            "question": "Khi nào họ nên nhắn lại cho mình?",
+            "spread": "one_card",
+            "origin": "direct",
+            "idempotency_key": "tarot-frame-refused-1234567890",
+        },
+    )
+    assert refused.status_code == 422
+
+    started = _start(
+        client, headers, "Mình không cần phải xin lỗi, có nên đợi thêm không?", "relationships"
+    )
+    _, payload = _payload(client)
+    assert payload["question_frame"]["action"] == "cho_them"
+    view = _select(client, headers, started)
+    assert view.reading is not None
+
+
+def test_p2_service_accepts_own_timing_without_nen(client: TestClient) -> None:
+    headers = _headers(client)
+    started = _start(client, headers, "Khi nào mình nhắn lại cho bạn ấy?", "relationships")
+    _, payload = _payload(client)
+    assert payload["question_frame"]["form"] == "timing"
+    view = _select(client, headers, started)
+    assert view.reading is not None
+    assert view.reading.summary.startswith(qf.READINESS_NOTE)
 
 
 def test_ac06_canary_never_reaches_brief_payload_or_logs(

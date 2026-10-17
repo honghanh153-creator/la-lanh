@@ -78,12 +78,93 @@ def classify_form(question: str) -> TarotQuestionForm:
     return TarotQuestionForm.OPEN
 
 
+_FIRST_PERSON = ("mình", "tôi", "em", "tớ", "tui")
+_THIRD_PERSON_MARKERS = ("ấy", "kia", "đó", "ta")  # "em ấy", "mình kia" name someone else
+# Words that may sit between the timing phrase and the clause's subject:
+# "Khi nào [thì] [là] [lúc] [phù hợp] [để] mình ...".
+_TIMING_FILLERS = (
+    "thì",
+    "là",
+    "lúc",
+    "thời điểm",
+    "phù hợp",
+    "thích hợp",
+    "hợp lý",
+    "tốt nhất",
+    "đúng",
+    "để",
+    "nhất",
+)
+_TIMING_PHRASE = re.compile(r"(?<!\w)(?:" + "|".join(re.escape(p) for p in _TIMING) + r")(?!\w)")
+
+
+def _tokens(text: str) -> list[str]:
+    return re.findall(r"\w+", text)
+
+
+# Modals between the subject and the action ("mình [nên|có thể|cần] nhắn ...").
+_MODALS = ("có thể", "có nên", "nên", "cần", "phải", "định", "muốn", "nên thử")
+# A predicate that is an outcome or event, not an action the reader takes: "mình có người
+# yêu", "mình sẽ ...", "mình được nhận", "mình hết buồn".
+_OUTCOME_PREDICATES = ("có", "sẽ", "được", "bị", "hết", "khỏi", "trúng", "đậu", "thành công")
+
+
+def _skip(tokens: list[str], phrases: tuple[str, ...]) -> list[str]:
+    changed = True
+    while changed and tokens:
+        changed = False
+        for phrase in sorted(phrases, key=lambda p: -len(p.split())):
+            parts = phrase.split()
+            if tokens[: len(parts)] == parts:
+                tokens = tokens[len(parts) :]
+                changed = True
+                break
+    return tokens
+
+
+def _own_action(tokens: list[str]) -> bool:
+    """The clause is the reader doing something: a first-person subject (or the implied reader
+    of "nên ...") followed by an action rather than an outcome."""
+
+    if not tokens:
+        return False
+    if tokens[0] in _FIRST_PERSON:
+        if len(tokens) > 1 and tokens[1] in _THIRD_PERSON_MARKERS:
+            return False  # "em ấy", "mình kia": someone else
+        rest = tokens[1:]
+    elif tokens[0] == "nên" or tokens[:2] == ["có", "nên"]:
+        rest = tokens  # "Bao giờ thì nên ...", "Có nên ... lúc nào?": the reader is advised
+    else:
+        return False
+    predicate = _skip(rest, _MODALS)
+    if not predicate:
+        return rest != predicate  # "Mình nên ... khi nào?" ends right after the modal
+    return not any(
+        predicate[: len(outcome.split())] == outcome.split() for outcome in _OUTCOME_PREDICATES
+    )
+
+
 def asks_own_timing(question: str) -> bool:
-    """A timing question about one's own action ("khi nào mình nên ...") can be reframed;
-    one about an event or another person ("khi nào ... có người yêu") is a prediction."""
+    """A timing question about one's own action can be reframed as readiness (AC05); one about
+    an event or another person is a prediction and is refused.
+
+    Ownership is read in the timing clause itself: the subject right after the timing phrase
+    ("Khi nào mình nhắn lại ...", "Khi nào là lúc phù hợp để mình ...") or, when the phrase ends
+    the sentence, the subject that opens it ("Mình nên nghỉ việc khi nào?"). A first-person word
+    elsewhere ("Bao giờ dự án nên hoàn thành để mình nghỉ?") does not make the timed event the
+    reader's own.
+    """
 
     text = fold(question)
-    return _has(text, "nên") or re.search(r"(?<!\w)để (?:mình|tôi|em|tớ)(?!\w)", text) is not None
+    match = _TIMING_PHRASE.search(text)
+    if match is None:
+        return False
+    before = _tokens(text[: match.start()])
+    if before:
+        # "Mình nên nghỉ việc khi nào?" / "Dự án nên xong khi nào để mình nghỉ?": the sentence
+        # opens with the clause being timed; what follows the phrase is subordinate.
+        return _own_action(before)
+    return _own_action(_skip(_tokens(text[match.end() :]), _TIMING_FILLERS))
 
 
 # ---------------------------------------------------------------- topic (AC02)
@@ -224,18 +305,36 @@ _ACTION_SIGNALS: tuple[tuple[TarotAction, tuple[str, ...]], ...] = (
     (TarotAction.CHO_THEM, ("chờ", "đợi", "bình tĩnh", "thêm thời gian")),
     (TarotAction.BAT_DAU, ("bắt đầu", "thử", "đăng ký")),
 )
-_NEGATED = re.compile(r"(?:không|chưa)\s+(?:muốn|cần|định)\s+$")
+# A signal is negated when its own clause puts a negator right before it, optionally through
+# auxiliaries: "không xin lỗi", "không cần phải xin lỗi", "chưa muốn phải nghỉ". "Không biết
+# có nên xin lỗi" is not a negation of the action ("biết" is not an auxiliary).
+_NEGATORS = r"(?:không|chưa|chẳng|chả|đừng|khỏi|thôi)"
+_AUXILIARIES = r"(?:muốn|cần|phải|định|nên|có|thể|được|dám|hề|còn|cố|bao giờ|tính)"
+_NEGATED = re.compile(rf"(?<!\w){_NEGATORS}(?:\s+{_AUXILIARIES})*\s+$")
+_CLAUSE_BREAK = re.compile(r"[,;.!?…]|(?<!\w)(?:nhưng|mà|hay|hoặc|rồi|thì)(?!\w)")
+
+
+def _negated(text: str, start: int) -> bool:
+    """Is the signal starting at ``start`` negated inside its own clause?"""
+
+    breaks = [m.end() for m in _CLAUSE_BREAK.finditer(text, 0, start)]
+    clause = text[breaks[-1] if breaks else 0 : start]
+    return _NEGATED.search(clause) is not None
 
 
 def match_action(question: str) -> TarotAction | None:
-    """The best-supported closed label: the longest matching signal wins, then table order."""
+    """The best-supported closed label among affirmed actions.
+
+    Negated matches are removed first, then the longest signal wins, then table order; with no
+    affirmed match the label is ``None`` rather than a guess.
+    """
 
     text = fold(question)
     best: tuple[int, int, TarotAction] | None = None
     for order, (label, signals) in enumerate(_ACTION_SIGNALS):
         for signal in signals:
             for match in re.finditer(rf"(?<!\w){re.escape(signal)}(?!\w)", text):
-                if _NEGATED.search(text[: match.start()]):
+                if _negated(text, match.start()):
                     continue
                 candidate = (len(signal), -order, label)
                 if best is None or candidate[:2] > best[:2]:

@@ -125,6 +125,12 @@ _THIRD_PARTY = re.compile(
 # "Khi nào / bao giờ" about one's own action is reframed as readiness (US-20 AC05, B2-1);
 # a timing question about an event or another person is still a prediction (see assess).
 _CERTAINTY = re.compile(r"\b(?:chắc chắn|có quay lại|sẽ xảy ra)\b", re.IGNORECASE)
+# The certainty rule of tarot-question-rules-v1, kept verbatim so a session accepted under v1
+# renders under v1 (US-20 AC17). Do not edit: it defines what earlier sessions were promised.
+_CERTAINTY_V1 = re.compile(
+    r"\b(?:chắc chắn|bao giờ|khi nào|có quay lại|sẽ xảy ra)\b", re.IGNORECASE
+)
+_LEGACY_RULES_VERSION = "tarot-question-rules-v1"
 _HIGH_STAKES = re.compile(
     r"\b(?:bệnh|thuốc|mang thai|tự tử|kiện|pháp lý|đầu tư|cổ phiếu|vay tiền|chẩn đoán)\b",
     re.IGNORECASE,
@@ -192,9 +198,14 @@ class TarotReadingEngine:
             rules_version=QUESTION_RULES_VERSION,
         )
 
-    def _boundary_rejection(self, normalized: str) -> TarotQuestionAssessment | None:
-        """Safety boundary shared by intake and rendering; vagueness is an intake-only rule so
-        a session accepted under earlier rules still renders."""
+    def _boundary_rejection(
+        self, normalized: str, rules_version: str = QUESTION_RULES_VERSION
+    ) -> TarotQuestionAssessment | None:
+        """Safety boundary of ``rules_version``, shared by intake and rendering.
+
+        Vagueness is an intake-only rule. Rendering applies the rules the session was accepted
+        under, so a v1 session (no stored frame) is never refused by a rule added later.
+        """
 
         if _HIGH_STAKES.search(normalized):
             return TarotQuestionAssessment(
@@ -219,10 +230,14 @@ class TarotReadingEngine:
                 ),
                 suggested_reframe="Trong kết nối này, phần mình cần nhìn rõ hoặc hỏi thẳng là gì?",
             )
-        if _CERTAINTY.search(normalized) or (
-            question_frame.classify_form(normalized) is TarotQuestionForm.TIMING
-            and not question_frame.asks_own_timing(normalized)
-        ):
+        if rules_version == _LEGACY_RULES_VERSION:
+            refused = _CERTAINTY_V1.search(normalized) is not None
+        else:
+            refused = _CERTAINTY.search(normalized) is not None or (
+                question_frame.classify_form(normalized) is TarotQuestionForm.TIMING
+                and not question_frame.asks_own_timing(normalized)
+            )
+        if refused:
             return TarotQuestionAssessment(
                 accepted=False,
                 normalized_question=normalized,
@@ -251,7 +266,8 @@ class TarotReadingEngine:
         started before B2-1, which render exactly as before); it is never recomputed here."""
 
         normalized = " ".join(question.strip().split())
-        if len(normalized) < 8 or self._boundary_rejection(normalized) is not None:
+        rules = QUESTION_RULES_VERSION if frame is not None else _LEGACY_RULES_VERSION
+        if len(normalized) < 8 or self._boundary_rejection(normalized, rules) is not None:
             raise TarotContentRejected("question must pass reflection boundary")
         intent = question_intent or self._classify_intent(normalized, context)
         assessment = TarotQuestionAssessment(
@@ -349,9 +365,7 @@ class TarotReadingEngine:
                 knowledge_version=KNOWLEDGE_VERSION,
                 renderer_version=TAROT_RENDERER_VERSION,
                 gate_version="tarot-gates-v4",
-                question_rules_version=(
-                    QUESTION_RULES_VERSION if frame is not None else "tarot-question-rules-v1"
-                ),
+                question_rules_version=rules,
                 source_ids=self._reading_sources(tuple(position.card for position in rendered)),
             ),
         )
