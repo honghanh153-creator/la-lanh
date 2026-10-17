@@ -24,6 +24,7 @@ from app.domains.grammar.composer import (
     build_allowlist,
     dedupe_key,
     parse_code,
+    value_identity,
 )
 from app.domains.grammar.gate import GATE_VERSION, sentence_failures
 from app.domains.grammar.models import (
@@ -114,7 +115,7 @@ def _structure_reasons(catalog: SurfaceCatalog, frames: dict[str, Frame]) -> lis
             if slot.kind is SlotKind.MUST_CHANGE:
                 # Adjacency is proved on ids, so two ids must never display the same text:
                 # otherwise "every must-change slot changes" holds on ids but not on output.
-                shown = [dedupe_key(value.text) for value in slot.values]
+                shown = [value_identity(value.text) for value in slot.values]
                 if len(shown) != len(set(shown)):
                     reasons.append(
                         f"{frame.frame_id}.{name}: must-change values repeat the same text "
@@ -173,7 +174,7 @@ def _article_reasons(
             if sum(frame.negative_role for frame in group) > 1:
                 reasons.append(f"{article.article_id}/{voice}: more than one negative_role frame")
             action_terms = {
-                dedupe_key(value.text)
+                value_identity(value.text)
                 for frame in group
                 for slot in frame.slots.values()
                 for value in slot.all_values()

@@ -579,3 +579,55 @@ def test_p2_5_inconsistent_manifest_dimensions_are_corrupt(tmp_path: Path, corru
     assert runtime.status is GrammarStatus.MANIFEST_CORRUPT
     with pytest.raises(LookupError):
         runtime.select(DIRECT, variant=0, position=0, bucket="lens=_default")
+
+
+def _internal_space_frame(frame_id: str, a1_text: str) -> dict[str, Any]:
+    """Codex's P2-1 follow-up: two triggers, 18 verbs, 6 objects, 108 masters at L=90/M=4.
+
+    ``a0`` may use b0-b8 and ``a1`` b9-b17, so whole-sentence de-duplication cannot hide
+    two trigger values that render to the same text.
+    """
+
+    constraints = [
+        {"if": {"a": ["a0"]}, "require": {"b": [f"b{i}" for i in range(9)]}},
+        {"if": {"a": ["a1"]}, "require": {"b": [f"b{i}" for i in range(9, 18)]}},
+    ]
+    return _frame(
+        frame_id,
+        meaning_key="test-issue",
+        slots={
+            "a": {
+                "kind": "must_change",
+                "values": [
+                    {"id": "a0", "text": "Đọc lại tin nhắn, trước khi trả lời,"},
+                    {"id": "a1", "text": a1_text},
+                ],
+            },
+            "b": {
+                "kind": "must_change",
+                "values": [{"id": f"b{i}", "text": f"hỏi lại lần {i}"} for i in range(18)],
+            },
+            "c": {
+                "kind": "must_change",
+                "values": [{"id": f"c{j}", "text": f"về chỗ thứ {j}"} for j in range(6)],
+            },
+        },
+        constraints=constraints,
+    )
+
+
+def test_p2_1_values_that_render_the_same_are_refused(tmp_path: Path) -> None:
+    spaced = "Đọc lại tin nhắn , trước khi trả lời,"  # renders exactly like a0
+    clean = "Mở lại tin nhắn, rồi mới trả lời,"
+
+    control = _internal_space_frame("t.space", clean)
+    build = build_surface(_catalog(tmp_path / "ok", [control, _roast_of(control)], **_MINIMA))
+    assert len(json.loads(build.outputs["schedules.json"])["t.space"]) == 4
+
+    direct = _internal_space_frame("t.space", spaced)
+    reasons = _refused(_catalog(tmp_path / "direct", [direct, _roast_of(direct)], **_MINIMA))
+    assert any("t.space.a: must-change values repeat" in r for r in reasons)
+
+    roast = _roast_of(_internal_space_frame("t.space", spaced))
+    reasons = _refused(_catalog(tmp_path / "roast", [control, roast], **_MINIMA))
+    assert any("t.space.roast.a: must-change values repeat" in r for r in reasons)

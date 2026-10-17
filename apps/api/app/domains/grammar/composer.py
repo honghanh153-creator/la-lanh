@@ -38,6 +38,13 @@ def dedupe_key(text: str) -> str:
     return _TRAILING.sub("", folded)
 
 
+def value_identity(text: str) -> str:
+    """Identity of a slot value as it will be displayed: the composer's rendering rules first
+    (e.g. no space before punctuation), then the measurement identity."""
+
+    return dedupe_key(normalize(text))
+
+
 def code_of(frame: Frame, choice: dict[str, str], slots: tuple[str, ...] | None = None) -> str:
     return "|".join(f"{slot}={choice[slot]}" for slot in (slots or tuple(frame.slots)))
 

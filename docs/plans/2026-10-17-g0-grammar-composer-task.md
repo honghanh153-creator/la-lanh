@@ -124,7 +124,7 @@
 
 | P2 | Sửa | Regression (fail trên `ab34eae`, pass bây giờ) |
 |---|---|---|
-| 1. Id khác nhưng chữ trùng làm ô bắt buộc đổi không đổi trên output | Build từ chối giá trị trùng chữ sau chuẩn hoá trong ô bắt buộc đổi, cả hai giọng | `test_p2_1_must_change_ids_with_the_same_text_are_refused`: khung chéo L = 90, M = 4, cả direct và Cà khịa |
+| 1. Id khác nhưng chữ trùng làm ô bắt buộc đổi không đổi trên output | Build từ chối giá trị trùng chữ **như sẽ hiển thị**: chuẩn hoá ghép câu của composer trước (ví dụ bỏ khoảng trắng trước dấu phẩy), rồi đến chuẩn đo (`value_identity`). Áp cho cả hai giọng; chuẩn đo câu giữ nguyên | `test_p2_1_must_change_ids_with_the_same_text_are_refused`: khung chéo L = 90, M = 4, direct và Cà khịa. `test_p2_1_values_that_render_the_same_are_refused`: "tin nhắn," / "tin nhắn ," với 108 tổ hợp chủ, direct và Cà khịa, kèm đối chứng sạch dựng được (sửa thêm theo review @ `602e727`) |
 | 2. Khử trùng giữ dấu câu cuối | Khoá khử trùng = chuẩn hoá của spec đo; `COMPOSER_VERSION` lên `grammar-composer-v2` | `test_p2_2_sentence_identity_follows_the_measurement_normalisation`: 45 cặp `.`/`!`, direct và Cà khịa; `test_p2_2_a_sentence_never_moves_to_another_master_across_buckets` |
 | 3. Graph láng giềng bậc hai dựng trước budget | Quét lười, mọi phép kiểm kề nhau đều tính vào budget | `test_p2_3_schedule_search_does_no_unbudgeted_quadratic_work`: 10×10×5 với `max_steps=1` gọi ≤ 2 phép kiểm; 11⁵ = 161 051 tổ hợp chủ vẫn dựng được trong 10 000 bước |
 | 4. M dựng được khác M trong manifest | Từ chối nếu số biến thể ≠ M; `select` từ chối biến thể ngoài khoảng | `test_p2_4_published_variant_count_matches_the_manifest` (gồm chọn mọi biến thể đã công bố) |
