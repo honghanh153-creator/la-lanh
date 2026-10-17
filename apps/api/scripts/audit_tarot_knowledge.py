@@ -74,13 +74,13 @@ def audit() -> list[str]:
                 position.meaning_here,
                 position.everyday_scene,
                 position.reflection_question,
-                position.small_action,
+                position.small_action or "",
             )
             semantic_blocks.update(
                 (
                     position.meaning_here,
                     position.everyday_scene,
-                    position.small_action,
+                    position.small_action or "",
                 )
             )
             joined = " ".join((reading.headline, reading.summary, *blocks)).casefold()
@@ -107,8 +107,13 @@ def audit() -> list[str]:
     repeated = [block for block, count in semantic_blocks.items() if count > len(cards)]
     if repeated:
         failures.append("A complete semantic block repeats across more than one full deck")
-    # Rotate every card through every position, context and existing voice.
+    # Rotate every card through every position, context and existing voice, on both renderer
+    # paths: legacy sessions (no QuestionFrame) and framed sessions read by role (B2-2).
     # This is deterministic synthetic coverage, not a human comprehension study.
+    frames = {
+        question: engine.assess_question(question, context).frame
+        for context, question in (*QUESTION_BY_CONTEXT.items(), *GOAL_QUESTIONS)
+    }
     for spread_map in TarotSpreadMap:
         count = len(engine.positions_for(spread_map))
         selected_spread = {
@@ -122,35 +127,46 @@ def audit() -> list[str]:
                     card_ids = tuple(
                         cards[(offset + index) % len(cards)].id for index in range(count)
                     )
-                    try:
-                        engine.render(
-                            card_ids=card_ids,
-                            spread=selected_spread,
-                            spread_map=spread_map,
-                            context=context,
-                            question=QUESTION_BY_CONTEXT[context],
-                            voice=voice,
-                        )
-                    except TarotContentRejected as exc:
-                        failures.append(
-                            f"{spread_map.value}/{context.value}/{voice.value}/{offset}: {exc}"
-                        )
+                    question = QUESTION_BY_CONTEXT[context]
+                    for frame in (None, frames[question]):
+                        try:
+                            engine.render(
+                                card_ids=card_ids,
+                                spread=selected_spread,
+                                spread_map=spread_map,
+                                context=context,
+                                question=question,
+                                voice=voice,
+                                frame=frame,
+                            )
+                        except TarotContentRejected as exc:
+                            path = "role" if frame else "legacy"
+                            failures.append(
+                                f"{path}/{spread_map.value}/{context.value}/{voice.value}/"
+                                f"{offset}: {exc}"
+                            )
         for context, question in GOAL_QUESTIONS:
             for voice in TarotVoice:
                 for offset in range(len(cards)):
-                    try:
-                        engine.render(
-                            card_ids=tuple(
-                                cards[(offset + index) % len(cards)].id for index in range(count)
-                            ),
-                            spread=selected_spread,
-                            spread_map=spread_map,
-                            context=context,
-                            question=question,
-                            voice=voice,
-                        )
-                    except TarotContentRejected as exc:
-                        failures.append(f"goal/{question}/{spread_map.value}/{offset}: {exc}")
+                    for frame in (None, frames[question]):
+                        try:
+                            engine.render(
+                                card_ids=tuple(
+                                    cards[(offset + index) % len(cards)].id
+                                    for index in range(count)
+                                ),
+                                spread=selected_spread,
+                                spread_map=spread_map,
+                                context=context,
+                                question=question,
+                                voice=voice,
+                                frame=frame,
+                            )
+                        except TarotContentRejected as exc:
+                            path = "role" if frame else "legacy"
+                            failures.append(
+                                f"{path}/goal/{question}/{spread_map.value}/{offset}: {exc}"
+                            )
     return failures
 
 
@@ -221,7 +237,8 @@ def main() -> None:
     goals = per_voice * len(GOAL_QUESTIONS) * len(TarotVoice)
     print(
         f"Tarot knowledge audit passed: {contextual} contextual + {goals} recognised-goal "
-        f"synthetic spreads across {len(TarotVoice)} voices (including roast), plus deck checks. "
+        f"synthetic spreads across {len(TarotVoice)} voices (including roast), each on the legacy "
+        "and the role (B2-2) renderer, plus deck checks. "
         "Not a human comprehension study."
     )
     print(

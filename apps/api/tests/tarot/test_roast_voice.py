@@ -95,7 +95,7 @@ def test_roast_keeps_cards_positions_scenes_and_action_steps(
             assert voiced.everyday_scene == direct.everyday_scene
             assert voiced.reflection_question == direct.reflection_question
             assert voiced.meaning_here.startswith(direct.meaning_here)
-            assert voiced.small_action.endswith(_step(direct.small_action))
+            assert (voiced.small_action or "").endswith(_step(direct.small_action or ""))
         # Gates (safety, spread, card facts, summary coverage, plain-language review) ran
         # inside render; re-check the shared safety gate explicitly.
         assert prose_is_safe(roast)
@@ -107,7 +107,7 @@ def test_energy_and_self_care_tarot_only_get_gentle_frames(context: TarotContext
     sharp = (*ROAST_HEADLINES.values(), *ROAST_MEANING_TAILS.values(), *ROAST_ACTION_FRAMES)
     text = " ".join(
         [roast.headline, roast.summary]
-        + [value for p in roast.positions for value in (p.meaning_here, p.small_action)]
+        + [value for p in roast.positions for value in (p.meaning_here, p.small_action or "")]
     )
 
     assert roast.headline in GENTLE_HEADLINES.values()

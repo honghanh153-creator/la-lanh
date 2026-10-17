@@ -3022,7 +3022,7 @@ export interface components {
             /** Reflection Question */
             reflection_question: string;
             /** Small Action */
-            small_action: string;
+            small_action?: string | null;
         };
         /** TarotReadingProvenance */
         TarotReadingProvenance: {

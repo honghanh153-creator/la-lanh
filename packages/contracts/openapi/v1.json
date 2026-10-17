@@ -4296,8 +4296,15 @@
             "type": "string"
           },
           "small_action": {
-            "title": "Small Action",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Small Action"
           }
         },
         "required": [
@@ -4306,8 +4313,7 @@
           "card",
           "meaning_here",
           "everyday_scene",
-          "reflection_question",
-          "small_action"
+          "reflection_question"
         ],
         "title": "TarotReadingPosition",
         "type": "object"
