@@ -252,10 +252,18 @@ def _mark_day_word(text: str) -> str:
 
 
 def anti_influence_gate(candidate: ReadingCandidate) -> GateReport:
-    original_text = unicodedata.normalize("NFC", _candidate_prose(candidate)).casefold()
-    text = _remove_negated_phrases(
-        _without_safe_examples(_mark_day_word(_candidate_prose(candidate)))
+    return _report(
+        GateName.ANTI_INFLUENCE,
+        ANTI_INFLUENCE_GATE_VERSION,
+        anti_influence_failures(_candidate_prose(candidate)),
     )
+
+
+def anti_influence_failures(prose: str) -> list[GateFailureCode]:
+    """Text-level anti-influence rules, shared by candidates and grammar sentences."""
+
+    original_text = unicodedata.normalize("NFC", prose).casefold()
+    text = _remove_negated_phrases(_without_safe_examples(_mark_day_word(prose)))
     rules: tuple[tuple[GateFailureCode, tuple[str, ...]], ...] = (
         (
             GateFailureCode.ANTI_ABSOLUTE_CERTAINTY,
@@ -326,11 +334,21 @@ def anti_influence_gate(candidate: ReadingCandidate) -> GateReport:
         original_text,
     ):
         failures.append(GateFailureCode.ANTI_MEDICAL_COMMAND)
-    return _report(GateName.ANTI_INFLUENCE, ANTI_INFLUENCE_GATE_VERSION, failures)
+    return failures
 
 
 def editorial_gate(candidate: ReadingCandidate) -> GateReport:
-    sections = tuple(_fold(section) for section in _gate_sections(candidate) if section.strip())
+    return _report(
+        GateName.EDITORIAL,
+        EDITORIAL_GATE_VERSION,
+        editorial_failures(_gate_sections(candidate)),
+    )
+
+
+def editorial_failures(raw_sections: Iterable[str]) -> list[GateFailureCode]:
+    """Text-level editorial rules, shared by candidates and grammar sentences."""
+
+    sections = tuple(_fold(section) for section in raw_sections if section.strip())
     failures: list[GateFailureCode] = []
     joined = "\n".join(sections)
     searchable_joined = re.sub(r"\W+", " ", joined)
@@ -364,7 +382,7 @@ def editorial_gate(candidate: ReadingCandidate) -> GateReport:
     word_counts = tuple(len(re.findall(r"\b\w+\b", section)) for section in sections)
     if any(count > 85 for count in word_counts) or sum(word_counts) > 240:
         failures.append(GateFailureCode.EDITORIAL_LENGTH)
-    return _report(GateName.EDITORIAL, EDITORIAL_GATE_VERSION, failures)
+    return failures
 
 
 def _has_near_duplicate_clause(section: str) -> bool:
@@ -437,12 +455,7 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
             )
             if not direct_report.passed:
                 failures.append(GateFailureCode.MEANING_DAILY_DIRECT_CONTRACT)
-        scene_text = _fold(f"{candidate.hook} {candidate.manifestation}")
-        advice_patterns = (
-            r"(?:^|[.!?]\s+)(?:hay|thu|nen|dung)\s+",
-            r"\bban (?:hay|nen|can phai)\b",
-        )
-        if any(re.search(pattern, scene_text) for pattern in advice_patterns):
+        if scene_contains_advice(f"{candidate.hook} {candidate.manifestation}"):
             failures.append(GateFailureCode.MEANING_SCENE_CONTAINS_ADVICE)
         scene_parts = blueprint.scene_key.split(":")
         action_parts = blueprint.action_key.split(":")
@@ -466,7 +479,35 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
         if not any(marker in scene_text for marker in context_markers[expected_arena]):
             failures.append(GateFailureCode.MEANING_UNOBSERVABLE_SCENE)
 
-    action_text = _fold(candidate.micro_action)
+    if not has_observable_action(candidate.micro_action):
+        failures.append(GateFailureCode.MEANING_ACTION_MISMATCH)
+
+    factor_ids = {factor.id for factor in plan.factors}
+    if not set(blueprint.evidence_factor_refs).issubset(factor_ids):
+        failures.append(GateFailureCode.MEANING_UNSUPPORTED_FACTOR)
+    if plan.mode is not PlanMode.LIMITED and not set(plan.hero_factor_refs).intersection(
+        blueprint.evidence_factor_refs
+    ):
+        failures.append(GateFailureCode.MEANING_UNSUPPORTED_FACTOR)
+
+    return _report(GateName.MEANING, MEANING_GATE_VERSION, failures)
+
+
+_SCENE_ADVICE_PATTERNS = (
+    r"(?:^|[.!?]\s+)(?:hay|thu|nen|dung)\s+",
+    r"\bban (?:hay|nen|can phai)\b",
+)
+
+
+def scene_contains_advice(text: str) -> bool:
+    """A title or scene must describe, never advise."""
+
+    folded = _fold(text)
+    return any(re.search(pattern, folded) for pattern in _SCENE_ADVICE_PATTERNS)
+
+
+def has_observable_action(text: str) -> bool:
+    action_text = _fold(text)
     observable_action_verbs = (
         "thu ",
         "viet ",
@@ -491,22 +532,20 @@ def meaning_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
         "sua ",
         "tu hoi",
     )
-    if not any(verb in action_text for verb in observable_action_verbs):
-        failures.append(GateFailureCode.MEANING_ACTION_MISMATCH)
-
-    factor_ids = {factor.id for factor in plan.factors}
-    if not set(blueprint.evidence_factor_refs).issubset(factor_ids):
-        failures.append(GateFailureCode.MEANING_UNSUPPORTED_FACTOR)
-    if plan.mode is not PlanMode.LIMITED and not set(plan.hero_factor_refs).intersection(
-        blueprint.evidence_factor_refs
-    ):
-        failures.append(GateFailureCode.MEANING_UNSUPPORTED_FACTOR)
-
-    return _report(GateName.MEANING, MEANING_GATE_VERSION, failures)
+    return any(verb in action_text for verb in observable_action_verbs)
 
 
 def privacy_gate(candidate: ReadingCandidate) -> GateReport:
-    text = _candidate_prose(candidate)
+    if privacy_failures(_candidate_prose(candidate)):
+        return _report(
+            GateName.PRIVACY,
+            PRIVACY_GATE_VERSION,
+            (GateFailureCode.PRIVACY_PERSONAL_DATA,),
+        )
+    return _report(GateName.PRIVACY, PRIVACY_GATE_VERSION, ())
+
+
+def privacy_failures(text: str) -> list[GateFailureCode]:
     folded = _fold(text)
     patterns = (
         r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
@@ -521,12 +560,8 @@ def privacy_gate(candidate: ReadingCandidate) -> GateReport:
     if re.search(patterns[0], text, flags=re.IGNORECASE) or any(
         re.search(pattern, folded) for pattern in patterns[1:]
     ):
-        return _report(
-            GateName.PRIVACY,
-            PRIVACY_GATE_VERSION,
-            (GateFailureCode.PRIVACY_PERSONAL_DATA,),
-        )
-    return _report(GateName.PRIVACY, PRIVACY_GATE_VERSION, ())
+        return [GateFailureCode.PRIVACY_PERSONAL_DATA]
+    return []
 
 
 def evaluate_candidate(plan: ReadingPlan, candidate: ReadingCandidate) -> CandidateEvaluation:

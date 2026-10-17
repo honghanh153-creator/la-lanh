@@ -24,6 +24,16 @@ sửa theo.
 Mỗi khung là một mục YAML hoặc JSON trong `apps/api/app/domains/<surface>/grammar/`. Vị trí chính xác chốt
 ở G0.
 
+**Chốt ở G0** (`docs/plans/2026-10-17-g0-grammar-composer-task.md`):
+
+- Dùng JSON.
+- Mỗi surface có `apps/api/app/domains/<domain>/grammar/catalog.json` cùng `frames/<frame_id>.json`. Daily
+  dùng `readings/grammar/`. Build ghi `grammar/build/{allowlist,schedules,manifest}.json`.
+- Giá trị có `id` ổn định. `constraints` tham chiếu theo id, không theo chữ như ví dụ dưới đây.
+- Khung Cà khịa khai báo `roast_of`, giữ đúng tên ô và id giá trị của khung direct. Ánh xạ là đồng nhất
+  theo mã tổ hợp.
+- Ô `repeatable` ở G0 chỉ có một giá trị.
+
 ```yaml
 frame_id: daily.missing-context.advice
 surface: daily            # daily | tarot | radar | companion

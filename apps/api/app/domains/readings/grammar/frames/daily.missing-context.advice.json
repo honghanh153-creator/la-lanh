@@ -1,0 +1,195 @@
+{
+ "frame_id": "daily.missing-context.advice",
+ "surface": "daily",
+ "part": "advice",
+ "voice": "direct",
+ "template": "{trigger} {verb} {object}{tail}.",
+ "slots": {
+  "trigger": {
+   "kind": "must_change",
+   "values": [
+    {
+     "id": "t-truoc-tra-loi",
+     "text": "Trước khi trả lời,"
+    },
+    {
+     "id": "t-mo-tin",
+     "text": "Khi mở tin nhắn tiếp theo,"
+    },
+    {
+     "id": "t-doc-lai",
+     "text": "Lúc đọc lại đoạn chat,"
+    },
+    {
+     "id": "t-truoc-doan",
+     "text": "Trước khi đoán ý người kia,"
+    },
+    {
+     "id": "t-thay-suy-dien",
+     "text": "Khi thấy mình bắt đầu suy diễn,"
+    },
+    {
+     "id": "t-truoc-gui",
+     "text": "Trước khi gửi câu tiếp theo,"
+    }
+   ]
+  },
+  "verb": {
+   "kind": "must_change",
+   "values": [
+    {
+     "id": "v-hoi-lai",
+     "text": "hỏi lại"
+    },
+    {
+     "id": "v-hoi-thang",
+     "text": "hỏi thẳng về"
+    },
+    {
+     "id": "v-nhan-hoi",
+     "text": "nhắn hỏi"
+    },
+    {
+     "id": "v-xin-noi-ro",
+     "text": "xin người gửi nói rõ"
+    },
+    {
+     "id": "v-ghi-ra",
+     "text": "ghi ra"
+    }
+   ]
+  },
+  "object": {
+   "kind": "must_change",
+   "values": [
+    {
+     "id": "o-chu-chua-hieu",
+     "text": "một chữ bạn chưa hiểu"
+    },
+    {
+     "id": "o-cho-chua-ro",
+     "text": "chỗ bạn còn chưa rõ"
+    },
+    {
+     "id": "o-y-chinh",
+     "text": "ý chính của tin nhắn"
+    },
+    {
+     "id": "o-dieu-can",
+     "text": "điều người gửi thật sự cần"
+    }
+   ]
+  },
+  "tail": {
+   "kind": "bucket",
+   "by": "lens",
+   "buckets": {
+    "_default": [
+     {
+      "id": "tail-none",
+      "text": ""
+     },
+     {
+      "id": "tail-truoc-da",
+      "text": " trước đã"
+     }
+    ],
+    "work": [
+     {
+      "id": "tail-lam-tiep",
+      "text": " trước khi làm tiếp"
+     },
+     {
+      "id": "tail-viec-dang-lam",
+      "text": " trong việc đang làm"
+     }
+    ],
+    "relationships": [
+     {
+      "id": "tail-hieu-lam",
+      "text": " để khỏi hiểu lầm người kia"
+     },
+     {
+      "id": "tail-phan-ung",
+      "text": " trước khi phản ứng"
+     }
+    ]
+   }
+  }
+ },
+ "constraints": [
+  {
+   "if": {
+    "verb": [
+     "v-hoi-thang"
+    ]
+   },
+   "forbid": {
+    "trigger": [
+     "t-doc-lai"
+    ]
+   }
+  },
+  {
+   "if": {
+    "verb": [
+     "v-xin-noi-ro"
+    ]
+   },
+   "forbid": {
+    "object": [
+     "o-dieu-can"
+    ]
+   }
+  },
+  {
+   "if": {
+    "trigger": [
+     "t-mo-tin"
+    ]
+   },
+   "forbid": {
+    "object": [
+     "o-y-chinh"
+    ]
+   }
+  },
+  {
+   "if": {
+    "verb": [
+     "v-xin-noi-ro"
+    ]
+   },
+   "forbid": {
+    "object": [
+     "o-cho-chua-ro"
+    ]
+   }
+  },
+  {
+   "if": {
+    "trigger": [
+     "t-truoc-tra-loi",
+     "t-truoc-doan",
+     "t-truoc-gui"
+    ]
+   },
+   "forbid": {
+    "tail": [
+     "tail-lam-tiep",
+     "tail-phan-ung"
+    ]
+   }
+  }
+ ],
+ "meaning_key": "missing-context",
+ "negative_role": false,
+ "vocab_class": "action",
+ "provenance": {
+  "source": "authored",
+  "model": null,
+  "prompt_version": null,
+  "reviewed_by": null,
+  "date": "2026-10-17"
+ }
+}
