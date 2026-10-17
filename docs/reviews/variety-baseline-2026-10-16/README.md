@@ -36,7 +36,9 @@ Tạo lại từ head của PR; `baseline.json` và `baseline-tables.md` sinh t�
 sổ. Nhóm của hồ sơ là **bucket xuất hiện nhiều nhất** trong các ngày; hoà thì lấy bucket nhỏ hơn. Người chỉ
 có ngày sinh không đi qua `_pick` (issue cố định theo cung), nên pool = 1.
 
-Phân bố ngày-hồ sơ có giờ sinh: pool 1 ở **204 119** ngày, 2–3 ở **35 880** ngày, ≥ 4 ở **1** ngày.
+Phân bố ngày-hồ sơ của **toàn bộ hồ sơ** (1 200 hồ sơ × 200 ngày = 240 000 ngày, gồm 60 000 ngày của người
+chỉ có ngày sinh, luôn pool 1): pool 1 ở **204 119** ngày, 2–3 ở **35 880** ngày, ≥ 4 ở **1** ngày. Riêng
+người có giờ sinh: pool 1 ở **144 119 / 180 000** ngày (**80,1%**).
 
 ### Note ngày
 
@@ -102,7 +104,7 @@ Câu được trích từ đúng phần web hiển thị (`RadarContinuePage`): 
 
 ## Phát hiện cần ghi
 
-1. **Pool đủ điều kiện gần như luôn hẹp.** 85% ngày-hồ sơ có giờ sinh chỉ có **1** tình huống để chọn, và
+1. **Pool đủ điều kiện gần như luôn hẹp.** 80,1% ngày-hồ sơ có giờ sinh chỉ có **1** tình huống để chọn, và
    chỉ 1 ngày có ≥ 4. Bản đầu kết luận ngược lại vì đếm các issue đã thắng. Hệ quả cho G1:
    - đa dạng không thể chỉ đến từ luân phiên tình huống (top-K hiếm khi > 1); lịch chủ theo khung trong một
      tình huống là đòn bẩy chính;

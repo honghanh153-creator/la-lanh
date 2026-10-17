@@ -4,20 +4,26 @@ Synthetic fixtures only, no network, no provider, no database. Implements the me
 docs/foundation/la-lanh-variety-measurement-spec.md that apply before G0/G2; the others are
 reported as "not applicable yet". Writes JSON + Markdown to docs/reviews/variety-baseline-<date>/.
 
-    uv run python -m scripts.variety_baseline
+    uv run python -m scripts.variety_baseline            # P1 baseline (rotation off)
+    uv run python -m scripts.variety_baseline --variety  # B3-1a after-report (Daily only)
+
+``--variety`` turns on the per-person rotation with a synthetic selection key and writes
+to docs/reviews/variety-a1-2026-10-17/, leaving the P1 baseline files untouched.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import random
 import re
 import statistics
 import unicodedata
+import uuid
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from datetime import UTC, date, datetime, time, timedelta
-from itertools import combinations
+from itertools import combinations, pairwise
 from math import comb
 from pathlib import Path
 from typing import Any
@@ -28,8 +34,20 @@ from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, 
 from app.domains.radar.reading import _motifs, build_radar_reading
 from app.domains.readings import daily_psychology
 from app.domains.readings.companion import COMPANION_FALLBACK, companion_issue_entry
+from app.domains.readings.daily_psychology import DAILY_PSYCHOLOGY_MATRIX_VERSION
+from app.domains.readings.daily_rotation import (
+    VARIETY_KEY_VERSION,
+    daily_variety_seed,
+    day_index,
+    derive_variety_key,
+)
 from app.domains.readings.gates import evaluate_candidate
-from app.domains.readings.models import DailyTransitRole, ReadingCandidate, ReadingPurpose
+from app.domains.readings.models import (
+    DailyTransitRole,
+    DailyVariety,
+    ReadingCandidate,
+    ReadingPurpose,
+)
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.relationships.models import RelationshipVoice
@@ -46,6 +64,9 @@ HORIZON = 90
 TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 PARTS = ("headline", "scene", "advice", "why_today", "companion")
 RADAR_CONTEXTS = ("crush", "friend", "partner", "someone")
+# Synthetic selection key for the after-report; never a server secret.
+SYNTHETIC_VARIETY_KEY = derive_variety_key(b"la-lanh-variety-baseline-synthetic-key")
+OWNER_NAMESPACE = uuid.UUID("6f2b3c1e-6a77-4d0e-9a51-0c5f2b8d4e10")
 _SENTENCE = re.compile(r"(?<=[.!?…])\s+")
 _TRAILING = re.compile(r"[\s.!?…,;:]+$")
 
@@ -125,7 +146,8 @@ def rate(numerator: int, denominator: int) -> float | None:
 
 
 class DailyLab:
-    def __init__(self) -> None:
+    def __init__(self, *, variety: bool = False) -> None:
+        self.variety = variety
         self.engine = NatalChartEngine()
         self.planner = ReadingPlanner()
         self.renderer = DeterministicVietnameseRenderer()
@@ -158,9 +180,14 @@ class DailyLab:
             sign = (
                 source.sign.value if source.sign else "|".join(c.value for c in source.candidates)
             )
-        out = []
+        out: list[dict[str, Any]] = []
         recorded: list[int] = []
         original_pick = daily_psychology._pick
+        seed = daily_variety_seed(
+            SYNTHETIC_VARIETY_KEY,
+            uuid.uuid5(OWNER_NAMESPACE, profile["id"]),
+            DAILY_PSYCHOLOGY_MATRIX_VERSION,
+        )
 
         def recording_pick(plan: Any, pool: list[Any]) -> Any:
             recorded.append(len({situation.issue_key for situation in pool}))
@@ -175,11 +202,24 @@ class DailyLab:
                     self.engine.calculate_transit_to_natal(source, observed_at) if exact else None
                 )
                 recorded.clear()
+                variety = (
+                    DailyVariety(
+                        key_version=VARIETY_KEY_VERSION,
+                        catalog_version=DAILY_PSYCHOLOGY_MATRIX_VERSION,
+                        seed=seed,
+                        day_index=day_index(local_date),
+                        # Served issues of D-1 and D-2, as the application reads them.
+                        recent_issue_keys=tuple(n["issue"] for n in out[-1:-3:-1]),
+                    )
+                    if self.variety
+                    else None
+                )
                 plan = self.planner.plan(
                     source,
                     purpose=ReadingPurpose.DAILY_NOTE,
                     transits=transits,
                     editorial_seed=local_date.isoformat(),
+                    daily_variety=variety,
                 )
                 candidate = self.renderer.render(plan)
                 if transits is not None and not evaluate_candidate(plan, candidate).accepted:
@@ -188,10 +228,12 @@ class DailyLab:
                         source,
                         purpose=ReadingPurpose.DAILY_NOTE,
                         editorial_seed=local_date.isoformat(),
+                        daily_variety=variety,
                     )
                     candidate = self.renderer.render(plan)
                 note = self._note(plan, candidate)
-                # Date-only plans have a fixed sign issue and never call _pick: pool of one.
+                # Exact plans call _pick while planning, other plans while rendering;
+                # a plan that never reaches it has a pool of one.
                 note["pool"] = recorded[-1] if recorded else 1
                 out.append(note)
         finally:
@@ -220,6 +262,7 @@ class DailyLab:
             "situation": selection.issue_key
             if selection
             else (blueprint.mechanism_key if blueprint else None),
+            "issue": blueprint.mechanism_key.removeprefix("psychology:") if blueprint else "",
             "factors": factors,
         }
 
@@ -325,10 +368,15 @@ def daily_report(lab: DailyLab, fixtures: dict[str, Any]) -> dict[str, Any]:
     for profile in profiles:
         if not profile["time_known"]:
             continue
-        twin_key = profile["birth_date"]
+        # Ablation keeps the salt: with rotation on, the twin is the same owner.
+        twin_key = profile["birth_date"] + (f"|{profile['id']}" if lab.variety else "")
         if twin_key not in cache:
             cache[twin_key], _ = lab.notes(
-                {"id": "twin", "time_known": False, "birth_date": twin_key}
+                {
+                    "id": profile["id"] if lab.variety else "twin",
+                    "time_known": False,
+                    "birth_date": profile["birth_date"],
+                }
             )
         for x, y in zip(notes[profile["id"]], cache[twin_key], strict=True):
             changed += note_key(x) != note_key(y)
@@ -343,9 +391,13 @@ def daily_report(lab: DailyLab, fixtures: dict[str, Any]) -> dict[str, Any]:
     m7 = {
         "remove_birth_time_changes_note": rate(changed, total),
         "next_day_changes_note": rate(day_changed, day_pairs),
-        "note": "salt does not exist yet; ablation compares real signals only",
+        "note": (
+            "salt on; ablation keeps the owner's salt and changes one real signal"
+            if lab.variety
+            else "salt does not exist yet; ablation compares real signals only"
+        ),
     }
-    return {
+    report: dict[str, Any] = {
         "window_days": DAYS,
         "start": START.isoformat(),
         "observed_at": "local_date 12:00 UTC (projection)",
@@ -362,6 +414,47 @@ def daily_report(lab: DailyLab, fixtures: dict[str, Any]) -> dict[str, Any]:
         "M7_ablation": m7,
         "M3_M6_M8": "not applicable yet (no grammar layer or chapters before G0/G2)",
         "renderer_versions": sorted(lab.renderer_versions),
+    }
+    if lab.variety:
+        report["A1_rotation"] = rotation_report(profiles, notes)
+    return report
+
+
+def rotation_report(
+    profiles: Sequence[dict[str, Any]], notes: dict[str, list[dict[str, Any]]]
+) -> dict[str, Any]:
+    """B3-1a checks on the served notes (plan §2.3, US-21 AC02/AC05)."""
+
+    axis_same = Counter[str]()
+    same_situation_pairs = consecutive = runs_over_two = 0
+    combo_repeat = {30: 0, 60: 0}
+    for profile in profiles:
+        series = notes[profile["id"]]
+        for a, b in pairwise(series):
+            consecutive += 1
+            if a["issue"] == b["issue"]:
+                same_situation_pairs += 1
+                for part in ("headline", "scene", "advice"):
+                    axis_same[part] += a[part] == b[part]
+        for i in range(2, len(series)):
+            window = series[i - 2 : i + 1]
+            if len({n["issue"] for n in window}) == 1 and min(n["pool"] for n in window) >= 2:
+                runs_over_two += 1
+        for day, note in enumerate(series):
+            for horizon in combo_repeat:
+                if any(
+                    note_key(prev) == note_key(note) for prev in series[max(0, day - horizon) : day]
+                ):
+                    combo_repeat[horizon] += 1
+    days = sum(len(notes[p["id"]]) for p in profiles)
+    return {
+        "consecutive_pairs": consecutive,
+        "same_situation_consecutive_pairs": same_situation_pairs,
+        "same_situation_axis_repeats": dict(axis_same),
+        "three_day_same_situation_runs_with_pool_ge_2": runs_over_two,
+        "full_combo_seen_in_previous_30d_rate": rate(combo_repeat[30], days),
+        "full_combo_seen_in_previous_60d_rate": rate(combo_repeat[60], days),
+        "pool_rule": "pool = top-K (K=3) distinct issues of the day after ranking",
     }
 
 
@@ -735,9 +828,37 @@ def markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def variety_markdown(report: dict[str, Any]) -> str:
+    """Daily-only tables for the B3-1a after-report (Tarot and Radar are unchanged by A1)."""
+
+    full = markdown({**report, "tarot": "unchanged by A1", "radar": "unchanged by A1"})
+    head, _, _ = full.partition("\n## Tarot")
+    return (
+        head.replace("# Variety baseline: generated tables", "# B3-1a after-report: tables")
+        + "\n## A1 rotation\n\n```json\n"
+        + json.dumps(report["daily"]["A1_rotation"], ensure_ascii=False, indent=1)
+        + "\n```\n"
+    )
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--variety", action="store_true")
+    args = parser.parse_args()
     profiles = json.loads((FIXTURES / "profiles-v1.json").read_text())
     pairs = json.loads((FIXTURES / "radar-pairs-v1.json").read_text())
+    if args.variety:
+        after: dict[str, Any] = {
+            "generated_for": "B3-1a after-report (rotation on, synthetic key and data only)",
+            "fixtures": {"profiles": profiles["meta"]},
+            "daily": daily_report(DailyLab(variety=True), profiles),
+        }
+        out = ROOT / "docs" / "reviews" / "variety-a1-2026-10-17"
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "after.json").write_text(json.dumps(after, ensure_ascii=False, indent=1) + "\n")
+        (out / "after-tables.md").write_text(variety_markdown(after))
+        print(json.dumps(after["daily"]["A1_rotation"], ensure_ascii=False))
+        return
     report = {
         "generated_for": "P1 variety baseline (current engine, synthetic data only)",
         "fixtures": {

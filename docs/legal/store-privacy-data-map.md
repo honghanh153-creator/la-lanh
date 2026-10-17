@@ -189,3 +189,12 @@ The local implementation adds optional managed email identity (Supabase subject 
 Clocks and opt-ins: anonymous profile 30 days inactivity; linked account profile 365 days inactivity with `account-storage-v1`; device access 30 days inactivity; automatic history max 30 days from creation with `history-retention-v1`. The first-link screen discloses account storage and history together and records both acceptances. Do not describe this as two independent switches in that flow. Legacy history remains opt-in with a full 30-day grace. Current chart/readings and explicitly saved notes follow profile lifetime. Access expiry/logout is not erasure. Restore never copies unrelated guest consent. Physical cleanup, backup expiry and provider-side copies have different lifecycles; no immediate erasure of every copy is certified.
 
 Linked-account erasure first commits a DELETING state that denies all device access, then drains already admitted external sends, hard-deletes the verified identity in Supabase Auth, and finally cascades local app data. A missing admin credential or provider failure returns a private pending error, not a success acknowledgement. Scheduled cleanup retries the same DELETING identity. Disabling new sign-in must not remove the erasure credential. Live provider deletion, database role/cleanup/backup verification and native store disclosures remain release gates; optional Auth delivery is off. This is not a production deletion or legal/store certification. See [Account IAM contract](../architecture/account-iam-and-retention.md).
+
+## Daily rotation delta — B3-1a, 2026-10-17
+
+Daily plans may carry `daily_variety`: a 128-bit HMAC of the profile ID under a selection-only key derived
+from the server hash key, the note's calendar-day index, the catalog version, and the closed issue keys
+served on the two previous days. It is derived data stored only inside the already-encrypted reading plan,
+deleted with the profile, never logged, never returned by the API and never sent to a provider (allowlisted
+payloads; covered by a test). No new data type, purpose, recipient or store declaration. The feature is off
+until `LA_LANH_DAILY_VARIETY_FROM` is set.

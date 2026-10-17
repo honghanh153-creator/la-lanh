@@ -50,7 +50,8 @@
     "db:logs": "docker compose -f infra/compose/compose.yaml logs -f postgres",
     "content:why-today": "uv run --directory apps/api python -m scripts.audit_daily_why_today",
     "variety:fixtures": "uv run --directory apps/api python -m scripts.variety_fixtures --check",
-    "variety:baseline": "uv run --directory apps/api python -m scripts.variety_baseline"
+    "variety:baseline": "uv run --directory apps/api python -m scripts.variety_baseline",
+    "variety:a1": "uv run --directory apps/api python -m scripts.variety_baseline --variety"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

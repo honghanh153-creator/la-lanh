@@ -19,6 +19,7 @@ from app.domains.readings.daily_personalization import (
     SupportedSituation,
     eligible_daily_situations,
 )
+from app.domains.readings.daily_rotation import DAILY_TOP_K, axis_slot, top_k_slot
 from app.domains.readings.interpretive_lenses import daily_mixed_radix_slots
 from app.domains.readings.knowledge import InterpretationFrame, body_label, semantic_arena
 from app.domains.readings.models import (
@@ -1158,6 +1159,22 @@ def _situation_pool(
     def rank(situation: SupportedSituation) -> tuple[int, int, int, int]:
         return (*situation.rank, int(situation.arena is arena))
 
+    if plan.daily_variety is not None:
+        # B3-1a top-K: the strongest situation of each issue, ranked by score then
+        # key, so two rules of one issue never count as two different situations.
+        ordered = sorted(
+            eligible,
+            key=lambda situation: (
+                tuple(-part for part in rank(situation)),
+                situation.issue_key,
+                situation.rule_key,
+            ),
+        )
+        best_per_issue: dict[str, SupportedSituation] = {}
+        for situation in ordered:
+            best_per_issue.setdefault(situation.issue_key, situation)
+        return list(best_per_issue.values())[:DAILY_TOP_K]
+
     best_rank = max(rank(situation) for situation in eligible)
     return sorted(
         (situation for situation in eligible if rank(situation) == best_rank),
@@ -1166,8 +1183,18 @@ def _situation_pool(
 
 
 def _pick(plan: ReadingPlan, pool: list[SupportedSituation]) -> SupportedSituation | None:
-    (issue_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (max(1, len(pool)),))
-    return pool[issue_slot] if pool else None
+    if not pool:
+        return None
+    variety = plan.daily_variety
+    if variety is None:
+        (issue_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (len(pool),))
+        return pool[issue_slot]
+    slot = top_k_slot(variety.day_index, len(pool))
+    recent = variety.recent_issue_keys
+    if len(pool) >= 2 and len(recent) == 2 and recent[0] == recent[1] == pool[slot].issue_key:
+        # AC05: never a third calendar day in a row on the same served situation.
+        slot = (slot + 1) % len(pool)
+    return pool[slot]
 
 
 def select_daily_situation(
@@ -1252,20 +1279,29 @@ def apply_daily_psychology(
     arena = semantic_arena(plan.background_lens)
     issues = {issue.key: issue for issue in DAILY_ISSUES}
     if plan.daily_selection is not None:
-        frozen = _frozen_situation(plan)
-        pool = [frozen] if frozen is not None else []
-        issue_slot = 0
+        selected = _frozen_situation(plan)
     else:
-        pool = _situation_pool(plan, eligible_daily_situations(plan))
-        (issue_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (max(1, len(pool)),))
-    # Eligibility ties must not consume the day counter: two factors supporting
-    # the same issue would otherwise repeat its card on consecutive days.
-    headline_slot, scene_slot, advice_slot = daily_mixed_radix_slots(
-        plan.editorial_seed,
-        (6, 8, 8),
-    )
-    selected = pool[issue_slot] if pool else None
+        selected = _pick(plan, _situation_pool(plan, eligible_daily_situations(plan)))
     issue = issues[selected.issue_key if selected else FALLBACK_ISSUE_KEY]
+    actions = issue.relationship_advice if arena is SemanticArena.RELATIONSHIPS else issue.advice
+    variety = plan.daily_variety
+    if variety is None:
+        # Eligibility ties must not consume the day counter: two factors supporting
+        # the same issue would otherwise repeat its card on consecutive days.
+        headline_slot, scene_slot, advice_slot = daily_mixed_radix_slots(
+            plan.editorial_seed,
+            (6, 8, 8),
+        )
+    else:
+        # B3-1a: one cycle per axis, so consecutive days differ on every axis.
+        headline_slot, scene_slot, advice_slot = (
+            axis_slot(variety.seed, axis, size, variety.day_index)
+            for axis, size in (
+                ("headline", len(issue.headlines)),
+                ("scene", len(issue.scenes)),
+                ("action", len(actions)),
+            )
+        )
     scene_arena = (
         arena
         if arena is not SemanticArena.GENERAL
@@ -1275,7 +1311,6 @@ def apply_daily_psychology(
     manifestation = issue.scenes[scene_slot]
     if lead is not None:
         manifestation = lead_scene(lead, manifestation)
-    actions = issue.relationship_advice if arena is SemanticArena.RELATIONSHIPS else issue.advice
     action = actions[advice_slot]
     source_refs = tuple(f"psychology-source:{source_id}" for source_id in issue.source_ids)
     personal_meaning = selected.meaning if selected else NO_PERSONAL_MEANING

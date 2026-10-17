@@ -13,6 +13,15 @@ Last reviewed: 2026-09-07. Owner: product engineering. Product posture: determin
 
 Generated Jyotish remains disabled regardless of the matrix until a separate expert corpus and sign-off exist.
 
+## Daily rotation (B3-1a)
+
+`LA_LANH_DAILY_VARIETY_FROM` (unset = off) is the first Daily note date that uses the per-person rotation
+(`docs/plans/2026-10-17-b3-1a-daily-rotation-task.md`). Prefer a day **after** the deploy day, then restart
+the API. A note already opened for the current scope is replayed as served (also when the date is today), and
+a new key or late history only affects new days. Rollback: unset it and restart; new days return to the
+date-only rotation and stored notes keep their frozen plans, but a note reopened on the rollback day may show
+an `available_update`.
+
 ## Pre-release Go/No-Go
 
 Release is **No-Go** until every applicable row has evidence:

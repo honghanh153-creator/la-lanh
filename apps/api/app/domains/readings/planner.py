@@ -24,6 +24,7 @@ from app.domains.readings.models import (
     BackgroundLens,
     CompositionTarget,
     DailySelection,
+    DailyVariety,
     DerivedFactor,
     FactorConfidence,
     FactorKind,
@@ -154,16 +155,23 @@ class ReadingPlanner:
         transits: TransitToNatalSnapshot | None = None,
         background_lens: BackgroundLens | None = None,
         editorial_seed: str | None = None,
+        daily_variety: DailyVariety | None = None,
     ) -> ReadingPlan:
         if background_lens is BackgroundLens.AUTO:
             background_lens = None
+        if daily_variety is not None and purpose is not ReadingPurpose.DAILY_NOTE:
+            raise ValueError("only a Daily note takes a daily rotation")
         if isinstance(chart, DateOnlySunResult):
             if transits is not None:
                 raise ValueError("date-only Vibe does not accept transit contacts")
-            return self._date_only_plan(chart, purpose, background_lens, editorial_seed)
+            return self._date_only_plan(
+                chart, purpose, background_lens, editorial_seed, daily_variety
+            )
         self._validate_transits(chart, transits)
         if chart.time_precision is not TimePrecision.EXACT:
-            return self._limited_plan(chart, purpose, background_lens, editorial_seed)
+            return self._limited_plan(
+                chart, purpose, background_lens, editorial_seed, daily_variety
+            )
 
         candidates = self._natal_candidates(chart, purpose)
         selected, hero_refs = self._select_natal(candidates, purpose, editorial_seed)
@@ -176,6 +184,7 @@ class ReadingPlanner:
                 hero_refs,
                 background_lens=background_lens,
                 editorial_seed=editorial_seed,
+                daily_variety=daily_variety,
             )
         transit_factor = self._select_transit(chart, transits, purpose, candidates)
         if transit_factor is not None:
@@ -208,6 +217,7 @@ class ReadingPlanner:
         *,
         background_lens: BackgroundLens | None,
         editorial_seed: str | None,
+        daily_variety: DailyVariety | None = None,
     ) -> ReadingPlan:
         """Choose the Daily situation, then attach only a transit that explains it.
 
@@ -235,6 +245,7 @@ class ReadingPlanner:
                 background_lens=background_lens,
                 editorial_seed=editorial_seed,
                 daily_selection=selection,
+                daily_variety=daily_variety,
             )
 
         def with_transit(transit: DerivedFactor) -> list[DerivedFactor]:
@@ -259,6 +270,7 @@ class ReadingPlanner:
         purpose: ReadingPurpose,
         background_lens: BackgroundLens | None,
         editorial_seed: str | None,
+        daily_variety: DailyVariety | None = None,
     ) -> ReadingPlan:
         status_value = (
             result.sign.value
@@ -295,6 +307,7 @@ class ReadingPlanner:
             composition=self._composition(has_transit=False),
             background_lens=background_lens,
             editorial_seed=editorial_seed,
+            daily_variety=daily_variety,
         )
 
     def _limited_plan(
@@ -303,6 +316,7 @@ class ReadingPlanner:
         purpose: ReadingPurpose,
         background_lens: BackgroundLens | None,
         editorial_seed: str | None,
+        daily_variety: DailyVariety | None = None,
     ) -> ReadingPlan:
         # Current NatalChart carries midpoint facts for approximate inputs but no
         # interval stability proof. Those facts are therefore ineligible.
@@ -317,6 +331,7 @@ class ReadingPlanner:
             composition=self._composition(has_transit=False),
             background_lens=background_lens,
             editorial_seed=editorial_seed,
+            daily_variety=daily_variety,
         )
 
     def _natal_candidates(
@@ -840,6 +855,7 @@ class ReadingPlanner:
         background_lens: BackgroundLens | None,
         editorial_seed: str | None,
         daily_selection: DailySelection | None = None,
+        daily_variety: DailyVariety | None = None,
     ) -> ReadingPlan:
         rules_version = (
             DAILY_PLANNER_RULES_VERSION if daily_selection is not None else PLANNER_RULES_VERSION
@@ -868,6 +884,8 @@ class ReadingPlanner:
         }
         if daily_selection is not None:
             payload["daily_selection"] = daily_selection.model_dump(mode="json")
+        if daily_variety is not None:
+            payload["daily_variety"] = daily_variety.model_dump(mode="json")
         canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return ReadingPlan(
             rules_version=rules_version,
@@ -886,6 +904,7 @@ class ReadingPlanner:
             allowed_language=_PLAN_ALLOWED_LANGUAGE,
             forbidden_language=_PLAN_FORBIDDEN_LANGUAGE,
             daily_selection=daily_selection,
+            daily_variety=daily_variety,
         )
 
     @staticmethod

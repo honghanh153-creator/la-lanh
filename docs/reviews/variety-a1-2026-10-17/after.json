@@ -1,0 +1,215 @@
+{
+ "generated_for": "B3-1a after-report (rotation on, synthetic key and data only)",
+ "fixtures": {
+  "profiles": {
+   "version": "variety-profiles-v1",
+   "seed": "la-lanh-variety-fixtures-v1",
+   "synthetic": true,
+   "sha256": "be5f447263b49f0d41a18154e526d6a46da14847884ef6759501199fa63b1782",
+   "note": "Focus is null for everyone: the focus feature (F) does not exist yet."
+  }
+ },
+ "daily": {
+  "window_days": 200,
+  "start": "2026-10-01",
+  "observed_at": "local_date 12:00 UTC (projection)",
+  "voice": "direct (roast maps one-to-one onto the same baseline today)",
+  "pool_rule": "pool = distinct issues the planner could pick from that day (input of _pick); profile stratum = modal daily bucket, ties to the smaller bucket",
+  "daily_pool_bucket_days": {
+   "2-3": 156210,
+   "1": 83790
+  },
+  "M1_repeat_gap_pass_rate_ge_90d": {
+   "date_only|pool=1|focus=none": {
+    "profiles": 300,
+    "sample": "ok",
+    "headline": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 2.0,
+     "never_repeats": 0
+    },
+    "scene": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 2.0,
+     "never_repeats": 0
+    },
+    "advice": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 2.0,
+     "never_repeats": 0
+    },
+    "why_today": "not applicable (part never shown in this stratum)",
+    "companion": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    }
+   },
+   "date_only|pool=2-3|focus=none": {
+    "profiles": 0,
+    "sample": "insufficient"
+   },
+   "date_only|pool=>=4|focus=none": {
+    "profiles": 0,
+    "sample": "insufficient"
+   },
+   "time_known|pool=1|focus=none": {
+    "profiles": 20,
+    "sample": "insufficient",
+    "headline": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 2.0,
+     "never_repeats": 0
+    },
+    "scene": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 2.5,
+     "never_repeats": 0
+    },
+    "advice": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 2.0,
+     "never_repeats": 0
+    },
+    "why_today": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    },
+    "companion": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    }
+   },
+   "time_known|pool=2-3|focus=none": {
+    "profiles": 880,
+    "sample": "ok",
+    "headline": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 2.0,
+     "never_repeats": 0
+    },
+    "scene": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 3.0,
+     "never_repeats": 0
+    },
+    "advice": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 2.0,
+     "never_repeats": 0
+    },
+    "why_today": {
+     "pass_rate": 0.0136,
+     "median_min_gap_days": 1,
+     "never_repeats": 7
+    },
+    "companion": {
+     "pass_rate": 0.0,
+     "median_min_gap_days": 1.0,
+     "never_repeats": 0
+    }
+   },
+   "time_known|pool=>=4|focus=none": {
+    "profiles": 0,
+    "sample": "insufficient"
+   }
+  },
+  "M2_consecutive_day_identical_rate": {
+   "date_only|pool=1|focus=none": {
+    "headline": 0.0,
+    "scene": 0.0,
+    "advice": 0.0,
+    "why_today": null,
+    "companion": 1.0
+   },
+   "date_only|pool=2-3|focus=none": {},
+   "date_only|pool=>=4|focus=none": {},
+   "time_known|pool=1|focus=none": {
+    "headline": 0.0,
+    "scene": 0.0,
+    "advice": 0.0,
+    "why_today": 0.1206,
+    "companion": 0.3013
+   },
+   "time_known|pool=2-3|focus=none": {
+    "headline": 0.0,
+    "scene": 0.0,
+    "advice": 0.0,
+    "why_today": 0.1653,
+    "companion": 0.1443
+   },
+   "time_known|pool=>=4|focus=none": {}
+  },
+  "M4_identical_notes": {
+   "time_known": {
+    "identical_pairs": 1187,
+    "pairs": 6722000,
+    "rate": 0.0002
+   },
+   "date_only": {
+    "identical_pairs": 1654,
+    "pairs": 656600,
+    "rate": 0.0025
+   },
+   "same_birthdate_date_only_pairs": {
+    "identical_days": 9,
+    "days": 4000,
+    "rate": 0.0022
+   }
+  },
+  "M5_personal_factors": {
+   "date_only|pool=1|focus=none": {
+    "mean": 0.0,
+    "p10": 0,
+    "distribution": {
+     "0": 60000
+    }
+   },
+   "date_only|pool=2-3|focus=none": {},
+   "date_only|pool=>=4|focus=none": {},
+   "time_known|pool=1|focus=none": {
+    "mean": 0.81,
+    "p10": 0,
+    "distribution": {
+     "0": 846,
+     "1": 3068,
+     "2": 86
+    }
+   },
+   "time_known|pool=2-3|focus=none": {
+    "mean": 0.685,
+    "p10": 0,
+    "distribution": {
+     "2": 4468,
+     "0": 59843,
+     "1": 111689
+    }
+   },
+   "time_known|pool=>=4|focus=none": {}
+  },
+  "M7_ablation": {
+   "remove_birth_time_changes_note": 0.908,
+   "next_day_changes_note": 1.0,
+   "note": "salt on; ablation keeps the owner's salt and changes one real signal"
+  },
+  "M3_M6_M8": "not applicable yet (no grammar layer or chapters before G0/G2)",
+  "renderer_versions": [
+   "deterministic-vi-v12+daily-c0d51e63"
+  ],
+  "A1_rotation": {
+   "consecutive_pairs": 238800,
+   "same_situation_consecutive_pairs": 86167,
+   "same_situation_axis_repeats": {
+    "headline": 0,
+    "scene": 0,
+    "advice": 0
+   },
+   "three_day_same_situation_runs_with_pool_ge_2": 0,
+   "full_combo_seen_in_previous_30d_rate": 0.0253,
+   "full_combo_seen_in_previous_60d_rate": 0.0494,
+   "pool_rule": "pool = top-K (K=3) distinct issues of the day after ranking"
+  }
+ }
+}
