@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from enum import StrEnum
 
 from app.domains.tarot.models import (
     QUESTION_FRAME_VERSION,
@@ -28,6 +29,7 @@ __all__ = [
     "QuestionFrame",
     "TarotAction",
     "TarotQuestionForm",
+    "TimingOwner",
     "asks_own_timing",
     "classify_form",
     "frame_question",
@@ -35,6 +37,7 @@ __all__ = [
     "match_action",
     "readiness_headline",
     "score_topic",
+    "timing_owner",
 ]
 
 
@@ -102,11 +105,127 @@ def _tokens(text: str) -> list[str]:
     return re.findall(r"\w+", text)
 
 
-# Modals between the subject and the action ("mình [nên|có thể|cần] nhắn ...").
-_MODALS = ("có thể", "có nên", "nên", "cần", "phải", "định", "muốn", "nên thử")
+# Modals and manner words between the subject and the action ("mình [nên|có thể] nhắn ...").
+_MODALS = (
+    "có thể",
+    "có nên",
+    "nên",
+    "cần",
+    "phải",
+    "định",
+    "muốn",
+    "nên thử",
+    "thử",
+    "chủ động",
+    "thật sự",
+    "bắt buộc",
+)
+_MODALS_SHORTEST_FIRST = tuple(sorted(_MODALS, key=lambda m: len(m.split())))
 # A predicate that is an outcome or event, not an action the reader takes: "mình có người
-# yêu", "mình sẽ ...", "mình được nhận", "mình hết buồn".
+# yêu", "mình sẽ ...", "mình được nhận", "mình hết buồn". These are predictions.
 _OUTCOME_PREDICATES = ("có", "sẽ", "được", "bị", "hết", "khỏi", "trúng", "đậu", "thành công")
+# The own-action exception needs a positively identified action; a predicate outside this list
+# ("Khi nào mình giàu?", "Khi nào mình nên?") is unresolved and asks for clarification.
+_ACTION_VERBS = (
+    "nhắn",
+    "nói",
+    "hỏi",
+    "trả lời",
+    "gọi",
+    "gửi",
+    "viết",
+    "ghi",
+    "kể",
+    "chia sẻ",
+    "mở lời",
+    "xin",
+    "đề xuất",
+    "đề nghị",
+    "góp ý",
+    "từ chối",
+    "nhận",
+    "đồng ý",
+    "hẹn",
+    "gặp",
+    "rủ",
+    "mời",
+    "bắt đầu",
+    "dừng",
+    "ngừng",
+    "nghỉ",
+    "ngủ",
+    "đi",
+    "về",
+    "ở lại",
+    "chuyển",
+    "đổi",
+    "tìm",
+    "học",
+    "tập",
+    "luyện",
+    "làm",
+    "thử",
+    "dọn",
+    "sắp xếp",
+    "đặt",
+    "lên kế hoạch",
+    "chuẩn bị",
+    "dành",
+    "đăng ký",
+    "nộp",
+    "ứng tuyển",
+    "tắt",
+    "giảm",
+    "bỏ",
+    "buông",
+    "tha thứ",
+    "xin lỗi",
+    "cảm ơn",
+    "kết thúc",
+    "chia tay",
+    "quay lại",
+    "liên lạc",
+    "thăm",
+    "chăm",
+    "đọc",
+    "nghe",
+    "mua",
+    "bán",
+    "dời",
+    "hoãn",
+    "đặt lịch",
+    "chốt",
+    "quyết định",
+    "chọn",
+    "giữ",
+    "nhờ",
+    "giúp",
+    "tặng",
+    "thưởng",
+    "khen",
+    "đi chơi",
+    "ra ngoài",
+    "nấu",
+    "tập trung",
+    "thử lại",
+    "làm lại",
+    "bớt",
+    "tự thưởng",
+    "tự khen",
+    "tạm ngừng",
+    "tạm dừng",
+    "tạm nghỉ",
+)
+# Reporting prefixes that only introduce the question: "Mình muốn biết khi nào ...",
+# "Cho mình hỏi bao giờ ...". The timed clause is then the one after the timing phrase.
+_REPORTING_VERBS = ("biết", "hỏi", "thắc mắc", "tự hỏi", "phân vân", "băn khoăn", "xem")
+_REPORTING_TAIL = ("là", "rằng", "xem", "thử", "giúp", "với")
+
+
+class TimingOwner(StrEnum):
+    OWN = "own"  # the reader's own action: reframed as readiness
+    OTHER = "other"  # another person, an event or an outcome: a prediction, refused
+    UNCLEAR = "unclear"  # no identified subject or action: ask for clarification
 
 
 def _skip(tokens: list[str], phrases: tuple[str, ...]) -> list[str]:
@@ -122,49 +241,72 @@ def _skip(tokens: list[str], phrases: tuple[str, ...]) -> list[str]:
     return tokens
 
 
-def _own_action(tokens: list[str]) -> bool:
-    """The clause is the reader doing something: a first-person subject (or the implied reader
-    of "nên ...") followed by an action rather than an outcome."""
+def _starts_with(tokens: list[str], phrases: tuple[str, ...]) -> bool:
+    return any(tokens[: len(p.split())] == p.split() for p in phrases)
+
+
+def _clause_owner(tokens: list[str]) -> TimingOwner:
+    """Owner of one clause: subject first, then a positively identified predicate."""
 
     if not tokens:
-        return False
+        return TimingOwner.UNCLEAR
     if tokens[0] in _FIRST_PERSON:
         if len(tokens) > 1 and tokens[1] in _THIRD_PERSON_MARKERS:
-            return False  # "em ấy", "mình kia": someone else
+            return TimingOwner.OTHER  # "em ấy", "mình kia": someone else
         rest = tokens[1:]
     elif tokens[0] == "nên" or tokens[:2] == ["có", "nên"]:
-        rest = tokens  # "Bao giờ thì nên ...", "Có nên ... lúc nào?": the reader is advised
+        rest = tokens  # "Bao giờ thì nên ...": the reader is the one advised
     else:
-        return False
-    predicate = _skip(rest, _MODALS)
-    if not predicate:
-        return rest != predicate  # "Mình nên ... khi nào?" ends right after the modal
-    return not any(
-        predicate[: len(outcome.split())] == outcome.split() for outcome in _OUTCOME_PREDICATES
-    )
+        return TimingOwner.OTHER  # "họ", "sếp", "dự án", ...
+    predicate = rest
+    while predicate:
+        # An action is recognised before a modal is stripped, so "thử lại" stays an action.
+        if _starts_with(predicate, _ACTION_VERBS):
+            return TimingOwner.OWN
+        if _starts_with(predicate, _OUTCOME_PREDICATES) and not _starts_with(
+            predicate, ("có thể", "có nên")
+        ):
+            return TimingOwner.OTHER
+        modal = next((m for m in _MODALS_SHORTEST_FIRST if _starts_with(predicate, (m,))), None)
+        if modal is None:
+            break
+        predicate = predicate[len(modal.split()) :]  # one modal at a time, shortest first
+    return TimingOwner.UNCLEAR  # empty ("Khi nào mình nên?") or unresolved ("... mình giàu?")
 
 
-def asks_own_timing(question: str) -> bool:
-    """A timing question about one's own action can be reframed as readiness (AC05); one about
-    an event or another person is a prediction and is refused.
+def _is_reporting_prefix(tokens: list[str]) -> bool:
+    """``tokens`` (before the timing phrase) only introduce the question."""
 
-    Ownership is read in the timing clause itself: the subject right after the timing phrase
-    ("Khi nào mình nhắn lại ...", "Khi nào là lúc phù hợp để mình ...") or, when the phrase ends
-    the sentence, the subject that opens it ("Mình nên nghỉ việc khi nào?"). A first-person word
-    elsewhere ("Bao giờ dự án nên hoàn thành để mình nghỉ?") does not make the timed event the
-    reader's own.
+    tail = list(tokens)
+    while tail and tail[-1] in _REPORTING_TAIL:
+        tail.pop()
+    return any(tail[-len(v.split()) :] == v.split() for v in _REPORTING_VERBS if tail)
+
+
+def timing_owner(question: str) -> TimingOwner:
+    """Who acts in the clause being timed, for the readiness reframe (US-20 AC05).
+
+    - Timing phrase first ("Khi nào mình nhắn lại ...", "Khi nào là lúc phù hợp để mình ..."):
+      the clause right after it.
+    - After a reporting prefix ("Mình muốn biết khi nào họ ...", "Cho mình hỏi khi nào mình
+      ..."): also the clause after the phrase; the prefix asks, it is not timed.
+    - Otherwise ("Mình nên nghỉ việc khi nào?", "Dự án nên xong khi nào để mình nghỉ?"): the
+      clause that opens the sentence; what follows the phrase is subordinate.
     """
 
     text = fold(question)
     match = _TIMING_PHRASE.search(text)
     if match is None:
-        return False
+        return TimingOwner.UNCLEAR
     before = _tokens(text[: match.start()])
-    if before:
-        # "Mình nên nghỉ việc khi nào?" / "Dự án nên xong khi nào để mình nghỉ?": the sentence
-        # opens with the clause being timed; what follows the phrase is subordinate.
-        return _own_action(before)
-    return _own_action(_skip(_tokens(text[match.end() :]), _TIMING_FILLERS))
+    after = _skip(_tokens(text[match.end() :]), _TIMING_FILLERS)
+    if not before or (after and _is_reporting_prefix(before)):
+        return _clause_owner(after)
+    return _clause_owner(before)
+
+
+def asks_own_timing(question: str) -> bool:
+    return timing_owner(question) is TimingOwner.OWN
 
 
 # ---------------------------------------------------------------- topic (AC02)

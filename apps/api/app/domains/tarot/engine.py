@@ -178,15 +178,7 @@ class TarotReadingEngine:
 
         normalized = " ".join(question.strip().split())
         if len(normalized) < 8 or question_frame.is_vague(normalized):
-            return TarotQuestionAssessment(
-                accepted=False,
-                normalized_question=normalized,
-                rules_version=QUESTION_RULES_VERSION,
-                explanation=(
-                    "Câu hỏi cần thêm một tình huống cụ thể để bài đọc không thành lời chung chung."
-                ),
-                suggested_reframe="Trong chuyện này, mình cần nhìn rõ điều gì trước?",
-            )
+            return self._clarify(normalized)
         boundary = self._boundary_rejection(normalized)
         if boundary is not None:
             return boundary
@@ -233,10 +225,14 @@ class TarotReadingEngine:
         if rules_version == _LEGACY_RULES_VERSION:
             refused = _CERTAINTY_V1.search(normalized) is not None
         else:
-            refused = _CERTAINTY.search(normalized) is not None or (
-                question_frame.classify_form(normalized) is TarotQuestionForm.TIMING
-                and not question_frame.asks_own_timing(normalized)
-            )
+            refused = _CERTAINTY.search(normalized) is not None
+            if not refused and question_frame.classify_form(normalized) is TarotQuestionForm.TIMING:
+                owner = question_frame.timing_owner(normalized)
+                if owner is question_frame.TimingOwner.UNCLEAR:
+                    # No identified own action ("Khi nào mình nên?", "Khi nào mình giàu?"):
+                    # ask what the reader wants to do instead of guessing either way.
+                    return self._clarify(normalized)
+                refused = owner is question_frame.TimingOwner.OTHER
         if refused:
             return TarotQuestionAssessment(
                 accepted=False,
@@ -249,6 +245,18 @@ class TarotReadingEngine:
                 suggested_reframe="Mình nên quan sát điều gì trước khi quyết định bước tiếp theo?",
             )
         return None
+
+    @staticmethod
+    def _clarify(normalized: str) -> TarotQuestionAssessment:
+        return TarotQuestionAssessment(
+            accepted=False,
+            normalized_question=normalized,
+            rules_version=QUESTION_RULES_VERSION,
+            explanation=(
+                "Câu hỏi cần thêm một tình huống cụ thể để bài đọc không thành lời chung chung."
+            ),
+            suggested_reframe="Trong chuyện này, mình cần nhìn rõ điều gì trước?",
+        )
 
     def render(
         self,

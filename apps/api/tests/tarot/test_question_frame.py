@@ -215,6 +215,43 @@ def test_p2_2_own_actions_are_reframed_with_or_without_nen(question: str) -> Non
 
 
 @pytest.mark.parametrize(
+    ("question", "outcome"),
+    [
+        # A reporting prefix only asks; the timed clause follows the timing phrase.
+        ("Mình muốn biết khi nào họ nên nhắn lại cho mình?", "reject_certainty"),
+        ("Mình muốn hỏi bao giờ dự án hoàn thành để mình nghỉ?", "reject_certainty"),
+        # No identified own action: ask for clarification, never accept by default.
+        ("Khi nào mình nên?", "clarify"),
+        ("Mình nên khi nào?", "clarify"),
+        ("Khi nào mình có thể?", "clarify"),
+        ("Khi nào mình giàu?", "clarify"),
+        ("Khi nào mình may mắn?", "clarify"),
+    ],
+)
+def test_p2_timing_needs_the_readers_identified_action(question: str, outcome: str) -> None:
+    assessment = _assess(question)
+    assert assessment.accepted is False, question
+    assert assessment.explanation.startswith(OUTCOME_EXPLANATION[outcome]), question
+    assert assessment.suggested_reframe
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Cho mình hỏi khi nào mình nên nhắn lại?",
+        "Mình muốn biết khi nào mình nên nghỉ việc?",
+        "Mình nên nghỉ việc khi nào?",  # trailing timing phrase, own action
+        "Mình nên hỏi sếp khi nào?",
+        "Bao giờ mình nên thử lại kế hoạch đã bỏ dở?",
+    ],
+)
+def test_p2_timing_own_actions_after_prefixes_or_before_the_phrase(question: str) -> None:
+    assessment = _assess(question)
+    assert assessment.accepted, question
+    assert assessment.frame.form is TarotQuestionForm.TIMING
+
+
+@pytest.mark.parametrize(
     "question",
     [
         "Mình không xin lỗi, có nên đợi thêm không?",
@@ -450,6 +487,37 @@ def test_p2_service_freezes_owner_timing_and_affirmed_actions(client: TestClient
     assert payload["question_frame"]["action"] == "cho_them"
     view = _select(client, headers, started)
     assert view.reading is not None
+
+
+def test_p2_service_timing_prefixes_and_unresolved_predicates(client: TestClient) -> None:
+    headers = _headers(client)
+    for index, question in enumerate(
+        (
+            "Mình muốn biết khi nào họ nên nhắn lại cho mình?",
+            "Mình muốn hỏi bao giờ dự án hoàn thành để mình nghỉ?",
+            "Khi nào mình giàu?",
+        )
+    ):
+        response = client.post(
+            "/v1/tarot/sessions",
+            headers=headers,
+            json={
+                "context": "general",
+                "question": question,
+                "spread": "one_card",
+                "origin": "direct",
+                "idempotency_key": f"tarot-frame-timing-{index}-1234567890",
+            },
+        )
+        assert response.status_code == 422, question
+        assert response.json()["suggested_reframe"]
+
+    started = _start(client, headers, "Cho mình hỏi khi nào mình nên nhắn lại?", "relationships")
+    _, payload = _payload(client)
+    assert payload["question_frame"]["form"] == "timing"
+    view = _select(client, headers, started)
+    assert view.reading is not None
+    assert view.reading.summary.startswith(qf.READINESS_NOTE)
 
 
 def test_p2_service_accepts_own_timing_without_nen(client: TestClient) -> None:

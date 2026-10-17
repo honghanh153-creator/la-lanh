@@ -31,10 +31,16 @@
      - Câu hỏi thời điểm về **việc của chính mình** được nhận và trả lời theo hướng điều cần sẵn sàng
        trước. Chủ thể được xác định **trong chính mệnh đề được hỏi giờ**, không tìm "nên" hay "để mình" ở
        bất kỳ đâu trong câu:
-       - cụm thời gian mở đầu câu: lấy chủ thể ngay sau nó (bỏ qua "thì / là lúc phù hợp để");
-       - cụm thời gian ở giữa hoặc cuối câu: lấy chủ thể ở đầu câu;
-       - chủ thể phải là ngôi thứ nhất (hoặc người đọc ngầm định trước "nên"), và vị ngữ phải là một hành
-         động, không phải kết quả ("có", "sẽ", "được", "bị", …).
+       - cụm thời gian mở đầu câu: lấy mệnh đề ngay sau nó (bỏ qua "thì / là lúc phù hợp để");
+       - sau **tiền tố dẫn câu** ("Mình muốn biết…", "Cho mình hỏi…"): cũng lấy mệnh đề sau cụm thời
+         gian, vì tiền tố chỉ để hỏi, không phải việc được hỏi giờ;
+       - các trường hợp khác (cụm thời gian ở giữa hoặc cuối câu): lấy mệnh đề mở đầu câu;
+       - chủ thể phải là ngôi thứ nhất (hoặc người đọc ngầm định trước "nên");
+       - vị ngữ phải **nhận diện được là một hành động**, kiểm trước khi gỡ từng modal.
+       - Kết quả có ba loại:
+         - người khác, sự kiện hay kết quả ("có", "sẽ", "được", …): từ chối như dự đoán;
+         - **thiếu hoặc chưa xác định được hành động** ("Khi nào mình nên?", "Khi nào mình giàu?"): yêu
+           cầu làm rõ, không mặc định nhận.
      - Câu hỏi thời điểm về sự kiện hoặc người khác ("Khi nào mình có người yêu?", "Bao giờ người ấy nhắn
        lại?") vẫn bị từ chối như đòi chắc chắn.
      - "chắc chắn", "có quay lại", "sẽ xảy ra" vẫn bị từ chối.
@@ -121,6 +127,15 @@
 
 Trên ngân hàng câu hỏi chỉ một nhãn đổi: "Điều gì mình **chưa nói ra** …" từ `noi_ra` thành `None`. Câu này
 hỏi về điều chưa nói, không phải một hành động được khẳng định.
+
+## Sửa theo review Codex @ `ad4c7e4` (2 P2 timing)
+
+| P2 | Sửa | Regression (fail trên `ad4c7e4`, pass bây giờ) |
+|---|---|---|
+| 1. Tiền tố "Mình muốn biết/hỏi…", "Cho mình hỏi…" bị coi là mệnh đề được hỏi giờ | Nhận diện tiền tố dẫn câu (động từ báo cáo ở cuối tiền tố, kèm "là/rằng/xem…"), rồi lấy mệnh đề sau cụm thời gian. Cụm thời gian ở cuối câu ("Mình nên hỏi sếp khi nào?") vẫn lấy mệnh đề đầu câu | `test_p2_timing_needs_the_readers_identified_action` (2 ca tiền tố → từ chối); `test_p2_timing_own_actions_after_prefixes_or_before_the_phrase` ("Cho mình hỏi khi nào mình nên nhắn lại?" → nhận; đối chứng thời gian cuối câu) |
+| 2. Vị ngữ không có trong danh sách kết quả thì mặc định được nhận | Phải nhận diện được động từ hành động; thiếu hoặc chưa rõ → `TimingOwner.UNCLEAR` → yêu cầu làm rõ | 5 ca: thiếu hoặc chỉ có modal ("Khi nào mình nên?", "Mình nên khi nào?", "Khi nào mình có thể?"), trạng thái chưa xác định ("Khi nào mình giàu?", "… may mắn?"); `test_p2_service_timing_prefixes_and_unresolved_predicates` qua API (422 có gợi ý hỏi lại; 201 kèm frame timing) |
+
+Ngân hàng câu hỏi: 49/49 câu `timing` vẫn được nhận, dạng câu 289/289.
 
 ## Bảo mật và riêng tư
 
