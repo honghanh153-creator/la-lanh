@@ -19,7 +19,10 @@ from app.domains.astro.models import (
 from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.readings.companion import companion_issue_entry
-from app.domains.readings.daily_psychology import DAILY_PSYCHOLOGY_MATRIX_VERSION
+from app.domains.readings.daily_psychology import (
+    DAILY_PSYCHOLOGY_MATRIX_VERSION,
+    StaleDailySelection,
+)
 from app.domains.readings.daily_rotation import (
     VARIETY_KEY_VERSION,
     daily_variety_seed,
@@ -31,6 +34,7 @@ from app.domains.readings.models import (
     AuraUnlockLayer,
     AvailableReadingUpdate,
     BackgroundLens,
+    CandidateEvaluation,
     ClaimTemplateId,
     DailyVariety,
     EvidenceClaim,
@@ -142,36 +146,37 @@ class ReadingApplicationService:
         source_chart = chart or snapshot.result
         current = _aware_utc(requested_at or datetime.now(UTC))
         local_date, observed_at = _scope_time(purpose, snapshot.created_at, current)
-        transits = await self._optional_transits(source_chart, purpose, observed_at)
         editorial_seed = local_date.isoformat() if purpose is ReadingPurpose.DAILY_NOTE else None
         rotation = self._rotation_applies(purpose, local_date)
         scope_key = _scope_key(source_chart, purpose, local_date, observed_at, background_lens)
-        found, daily_variety = (
-            await self._frozen_daily_variety(guest_id, snapshot, scope_key)
-            if rotation
-            else (False, None)
+        frozen = await self._frozen_daily_plan(guest_id, snapshot, scope_key) if rotation else None
+        replayed = (
+            await self._replay_revision(guest_id, snapshot, frozen, current)
+            if frozen is not None
+            else None
         )
-        if rotation and not found:
-            daily_variety = await self._daily_variety(
-                guest_id, snapshot.profile_id, source_chart, local_date, background_lens
-            )
-
-        async def build(
-            variety: DailyVariety | None,
-        ) -> tuple[ReadingPlan, ReadingPlanRecord, ReadingCandidate, ReadingRevisionRecord]:
-            return await self._deterministic_revision(
+        if replayed is not None:
+            plan, plan_record, candidate, revision = replayed
+        else:
+            if frozen is not None:
+                daily_variety = frozen.plan.daily_variety
+            elif rotation:
+                daily_variety = await self._daily_variety(
+                    guest_id, snapshot.profile_id, source_chart, local_date, background_lens
+                )
+            else:
+                daily_variety = None
+            plan, plan_record, candidate, revision = await self._deterministic_revision(
                 guest_id=guest_id,
                 snapshot=snapshot,
                 source_chart=source_chart,
                 purpose=purpose,
-                transits=transits,
+                transits=await self._optional_transits(source_chart, purpose, observed_at),
                 editorial_seed=editorial_seed,
                 background_lens=background_lens,
-                daily_variety=variety,
+                daily_variety=daily_variety,
                 current=current,
             )
-
-        plan, plan_record, candidate, revision = await build(daily_variety)
         lens_variant = canonical_lens_variant(plan.background_lens)
 
         projection, _ = await self._repository.get_or_create_projection(
@@ -191,17 +196,23 @@ class ReadingApplicationService:
                 updated_at=current,
             )
         )
-        if rotation and not found:
-            # First writer wins: a fresh rotation only activates an empty projection. A
-            # concurrent request that activated first fixes the day's DailyVariety, and
-            # this request replays that choice instead of offering a same-day update.
+        if rotation and frozen is None:
+            # First writer wins: a fresh reading only activates an empty projection. When a
+            # concurrent request activated first, this request replays the winner's whole
+            # accepted plan (not just its rotation inputs), so a different transit result
+            # or a natal-only fallback here never becomes a same-day update.
             projection = await self._repository.activate_first(
                 guest_id, snapshot.profile_id, projection.scope_key, revision.id
             )
             if projection.active_revision_id != revision.id:
-                found, winner = await self._frozen_daily_variety(guest_id, snapshot, scope_key)
-                if found:
-                    plan, plan_record, candidate, revision = await build(winner)
+                winner = await self._frozen_daily_plan(guest_id, snapshot, scope_key)
+                won = (
+                    await self._replay_revision(guest_id, snapshot, winner, current)
+                    if winner is not None
+                    else None
+                )
+                if won is not None:
+                    plan, plan_record, candidate, revision = won
         projection = await self._repository.publish_available(
             guest_id,
             snapshot.profile_id,
@@ -353,6 +364,45 @@ class ReadingApplicationService:
             )
             raise ReadingContentRejected
 
+        revision = await self._store_revision(
+            guest_id, snapshot, plan_record, candidate, evaluation, current
+        )
+        return plan, plan_record, candidate, revision
+
+    async def _replay_revision(
+        self,
+        guest_id: UUID,
+        snapshot: BirthSnapshotRecord,
+        plan_record: ReadingPlanRecord,
+        current: datetime,
+    ) -> tuple[ReadingPlan, ReadingPlanRecord, ReadingCandidate, ReadingRevisionRecord] | None:
+        """Re-render an accepted plan exactly as stored: its selection, factors and transit.
+
+        Nothing is recomputed from this request's engine results. ``None`` when the stored
+        plan no longer renders or passes the gates under current rules.
+        """
+
+        try:
+            candidate = self._renderer.render(plan_record.plan)
+        except StaleDailySelection:
+            return None
+        evaluation = evaluate_candidate(plan_record.plan, candidate)
+        if not evaluation.accepted or evaluation.publishable_candidate is None:
+            return None
+        revision = await self._store_revision(
+            guest_id, snapshot, plan_record, candidate, evaluation, current
+        )
+        return plan_record.plan, plan_record, candidate, revision
+
+    async def _store_revision(
+        self,
+        guest_id: UUID,
+        snapshot: BirthSnapshotRecord,
+        plan_record: ReadingPlanRecord,
+        candidate: ReadingCandidate,
+        evaluation: CandidateEvaluation,
+        current: datetime,
+    ) -> ReadingRevisionRecord:
         source = ReadingRevisionSource.DETERMINISTIC
         gate_policy_version = canonical_gate_policy_version(evaluation)
         revision, _ = await self._repository.save_or_replay_revision(
@@ -380,7 +430,7 @@ class ReadingApplicationService:
                 created_at=current,
             )
         )
-        return plan, plan_record, candidate, revision
+        return revision
 
     def _rotation_applies(self, purpose: ReadingPurpose, local_date: date) -> bool:
         return (
@@ -390,21 +440,22 @@ class ReadingApplicationService:
             and local_date >= self._daily_variety_from
         )
 
-    async def _frozen_daily_variety(
+    async def _frozen_daily_plan(
         self, guest_id: UUID, snapshot: BirthSnapshotRecord, scope_key: str
-    ) -> tuple[bool, DailyVariety | None]:
-        """The rotation already served for this exact scope, if it must be replayed (AC04).
+    ) -> ReadingPlanRecord | None:
+        """The accepted plan already served for this exact scope, if it must be replayed (AC04).
 
-        Returns ``(True, variety)`` when today's active reading for the same chart snapshot
-        exists: its stored ``DailyVariety`` (or ``None`` for a note served before the rotation
-        started) is reused as is, so key material, late D-1 history or a restart never change
-        an opened note. A changed chart snapshot or catalog version is an intentional update
-        and returns ``(False, None)`` so a fresh rotation is chosen.
+        Today's active reading for the same chart snapshot is replayed whole: its
+        ``DailyVariety`` (or none, for a note served before the rotation started), its
+        ``DailySelection`` and its chosen factors and transit. Key material, late D-1 history,
+        a restart, a transient transit failure or a racing request never change an opened
+        note. A changed chart snapshot or catalog version is an intentional update and
+        returns ``None`` so a fresh plan is chosen.
         """
 
         projection = await self._repository.get_projection(guest_id, snapshot.profile_id, scope_key)
         if projection is None or projection.active_revision_id is None:
-            return False, None
+            return None
         revision = await self._repository.get_revision(
             guest_id, snapshot.profile_id, projection.active_revision_id
         )
@@ -414,11 +465,11 @@ class ReadingApplicationService:
             else None
         )
         if plan_record is None or plan_record.chart_snapshot_id != snapshot.id:
-            return False, None
+            return None
         variety = plan_record.plan.daily_variety
         if variety is not None and variety.catalog_version != DAILY_PSYCHOLOGY_MATRIX_VERSION:
-            return False, None
-        return True, variety
+            return None
+        return plan_record
 
     async def _daily_variety(
         self,

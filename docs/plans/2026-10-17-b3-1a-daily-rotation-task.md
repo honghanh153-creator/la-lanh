@@ -35,19 +35,22 @@
      cha `8e05e01`).
    - **Replay theo scope (sửa P2 của Codex):** trước khi chọn, đọc reading đang active của đúng scope
      hôm nay (owner, profile, ngày, cấu hình lá số, lens).
-     - Nếu cùng snapshot lá số và cùng `catalog_version`, dùng lại nguyên `DailyVariety` đã lưu (seed,
-       `day_index`, `recent_issue_keys`).
-     - Nếu note hôm nay đã phục vụ trước khi bật xoay vòng (plan không có `DailyVariety`), giữ nguyên như
-       vậy.
-     - Lịch sử D−1/D−2 chỉ đọc khi ngày đó chưa có reading. Vì thế D−1 hoàn tất muộn, đổi key material
-       hay restart đều không đổi note đã mở.
+     - Nếu cùng snapshot lá số và cùng `catalog_version`, replay **toàn bộ plan đã chấp nhận**: render lại
+       đúng plan đã lưu, gồm `DailyVariety`, `DailySelection`, các factor và transit đã chọn. Không tính lại
+       transit hay lịch sử từ request hiện tại. Renderer không đổi thì trả đúng revision cũ.
+     - Note hôm nay đã phục vụ trước khi bật xoay vòng (plan không có `DailyVariety`) cũng được replay
+       nguyên như vậy.
+     - Transit và lịch sử D−1/D−2 chỉ tính khi ngày đó chưa có reading. Vì thế D−1 hoàn tất muộn, đổi key
+       material, restart, hay engine transit lỗi rồi phục hồi trong ngày đều không đổi note đã mở.
+     - Nếu plan đã lưu không còn render hoặc qua gate với rule hiện tại, dựng lại với `DailyVariety` đã lưu
+       như đường cũ.
      - Đổi snapshot lá số hoặc `catalog_version` vẫn là cập nhật có chủ đích: chọn mới và hiện
        `available_update` như trước.
    - **First writer wins:** reading đầu tiên của ngày được kích hoạt bằng `activate_first`.
      - Hàm này chỉ kích hoạt khi projection còn trống, chạy dưới cùng khoá guest với `publish_available`,
        và không bao giờ ghi `available_update`.
-     - Request thua cuộc đọc `DailyVariety` của bên thắng, dựng lại đúng plan đó (replay theo khoá) và trả
-       nội dung của bên thắng.
+     - Request thua cuộc replay toàn bộ plan đã thắng (không dựng lại bằng transit hay fallback natal của
+       chính nó) và trả nội dung của bên thắng, không tạo `available_update`.
      - Plan và revision bên thua đã lưu thì nằm lại trong kho, không được trỏ tới, xoá cùng hồ sơ.
    - Repository thêm `get_plan` vào protocol (Postgres đã có sẵn) và `activate_first`.
 6. **Bật theo ngày:** `LA_LANH_DAILY_VARIETY_FROM` (mặc định không đặt, tức tắt).
@@ -73,7 +76,7 @@
 | AC01 seed không chứa ngày | Xong cho 3 trục và top-K. "Vị trí p dùng chung mọi khung" thuộc G0 | `test_seed_has_no_date_and_separates_owner_catalog_and_key_version` |
 | AC02 mọi ô đổi giữa hai ngày liền | Xong cho 3 trục hiện có, kể cả biên chu kỳ | `test_every_axis_changes_every_day_including_cycle_boundaries`, test render ngày-only và có giờ, báo cáo sau A1 |
 | AC03 không lặp câu trong L ngày | Chưa: cần lịch chủ (G0/G1) | — |
-| AC04 replay | Xong: restart, cache miss, mở lại trong ngày, D−1 hoàn tất muộn, đổi key material, hai request tạo đồng thời đều trả đúng revision đầu tiên; plan cũ không đổi; FROM đặt sau khi note hôm nay đã mở (kể cả bằng hôm nay) không đổi hôm nay; đổi catalog/lá số vẫn là update có chủ đích | `test_rotation_replays_the_same_revision_after_restart`, `test_late_previous_day_never_changes_an_opened_note`, `test_new_key_material_after_restart_only_applies_to_new_days`, `test_concurrent_first_readings_keep_the_first_writer`, `test_start_date_set_after_today_was_opened_keeps_today`, `test_catalog_or_chart_change_is_still_an_intentional_update`, `test_activate_first_only_fills_an_empty_projection`, `test_legacy_plans_keep_their_identity` |
+| AC04 replay | Xong: restart, cache miss, mở lại trong ngày, D−1 hoàn tất muộn, đổi key material, hai request tạo đồng thời đều trả đúng revision đầu tiên; plan cũ không đổi; FROM đặt sau khi note hôm nay đã mở (kể cả bằng hôm nay) không đổi hôm nay; đổi catalog/lá số vẫn là update có chủ đích | `test_rotation_replays_the_same_revision_after_restart`, `test_late_previous_day_never_changes_an_opened_note`, `test_new_key_material_after_restart_only_applies_to_new_days`, `test_concurrent_first_readings_keep_the_first_writer`, `test_natal_fallback_loser_replays_the_transit_winner`, `test_note_opened_during_a_transit_outage_replays_after_recovery`, `test_start_date_set_after_today_was_opened_keeps_today`, `test_catalog_or_chart_change_is_still_an_intentional_update`, `test_activate_first_only_fills_an_empty_projection`, `test_legacy_plans_keep_their_identity` |
 | AC05 top-K và guard | Xong | `test_top_k_*`, `test_guard_reads_served_days_and_stops_at_the_first_unserved_day`, `test_exact_note_with_transits_changes_every_axis_and_respects_the_guard` |
 | AC06 ngoại lệ | Chưa: cần manifest (G0) | — |
 | AC14 đo trên output được phục vụ | Một phần: harness đo output render cuối cùng, gồm fallback natal khi gate từ chối | `docs/reviews/variety-a1-2026-10-17/` |

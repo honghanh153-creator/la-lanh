@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from itertools import pairwise
+from typing import Any
 from uuid import UUID
 
 import pytest
@@ -567,3 +568,78 @@ async def test_catalog_or_chart_change_is_still_an_intentional_update(
     changed = await _open(service, edited, START, hour=15)
     assert changed.active.revision_id == opened.active.revision_id
     assert changed.available_update is not None
+
+
+class _FlakyTransitEngine(NatalChartEngine):
+    """Transit calculation fails while ``failing`` is set (the service falls back to natal)."""
+
+    failing = False
+
+    def calculate_transit_to_natal(self, *args: Any, **kwargs: Any) -> Any:
+        if self.failing:
+            raise RuntimeError("synthetic transient transit failure")
+        return super().calculate_transit_to_natal(*args, **kwargs)
+
+
+# A day on which this synthetic chart's situation is driven by a transit, so the
+# natal-only fallback and the transit plan differ.
+TRANSIT_DAY = date(2026, 10, 22)
+
+
+def _transit_refs(plan: ReadingPlan) -> set[str]:
+    return {factor.id for factor in plan.factors if factor.source.value == "transit"}
+
+
+async def test_natal_fallback_loser_replays_the_transit_winner() -> None:
+    repository = _GatedRepository()
+    engine = _FlakyTransitEngine()
+    snapshot = _exact_snapshot(GUEST, OWNER_A, engine)
+    service = ReadingApplicationService(
+        repository, engine, daily_variety_key=KEY, daily_variety_from=START
+    )
+    probe = await _open(_service(MemoryReadingRepository(), START), snapshot, TRANSIT_DAY)
+    repository.held_scope = probe.scope_key
+
+    engine.failing = True  # request A falls back to a natal-only plan, then stalls
+    slow = asyncio.create_task(_open(service, snapshot, TRANSIT_DAY))
+    await repository.entered.wait()
+    engine.failing = False  # request B computes transits and activates first
+    fast = await _open(service, snapshot, TRANSIT_DAY, hour=3)
+    repository.release.set()
+    late = await slow
+    healthy = await _open(service, snapshot, TRANSIT_DAY, hour=15)
+
+    plans = _plans_for(repository, TRANSIT_DAY)
+    assert len(plans) == 2
+    assert {bool(_transit_refs(plan)) for plan in plans} == {True, False}
+    for projection in (late, healthy):
+        assert projection.active.revision_id == fast.active.revision_id
+        assert projection.active.sections == fast.active.sections
+        assert projection.available_update is None
+
+
+async def test_note_opened_during_a_transit_outage_replays_after_recovery() -> None:
+    repository = MemoryReadingRepository()
+    engine = _FlakyTransitEngine()
+    snapshot = _exact_snapshot(GUEST, OWNER_A, engine)
+    service = ReadingApplicationService(
+        repository, engine, daily_variety_key=KEY, daily_variety_from=START
+    )
+
+    engine.failing = True
+    outage = await _open(service, snapshot, TRANSIT_DAY)
+    engine.failing = False
+    recovered = await _open(service, snapshot, TRANSIT_DAY, hour=15)
+    tomorrow = await _open(service, snapshot, TRANSIT_DAY + timedelta(days=1))
+
+    (today_plan,) = _plans_for(repository, TRANSIT_DAY)
+    assert _transit_refs(today_plan) == set()
+    healthy = await _open(_service(MemoryReadingRepository(), START), snapshot, TRANSIT_DAY)
+    assert healthy.active.sections != outage.active.sections  # recovery alone would differ
+    assert recovered.active.revision_id == outage.active.revision_id
+    assert recovered.active.sections == outage.active.sections
+    assert recovered.available_update is None
+    # The engine is healthy again for a new day.
+    (tomorrow_plan,) = _plans_for(repository, TRANSIT_DAY + timedelta(days=1))
+    assert tomorrow.active.revision_id != outage.active.revision_id
+    assert tomorrow_plan.daily_variety is not None
