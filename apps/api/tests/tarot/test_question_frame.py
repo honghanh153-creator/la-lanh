@@ -251,6 +251,64 @@ def test_p2_timing_own_actions_after_prefixes_or_before_the_phrase(question: str
     assert assessment.frame.form is TarotQuestionForm.TIMING
 
 
+# Codex census (#23 @ 3eb4191): 8 introductory forms x 3 timed subjects + 2 trailing controls.
+_CENSUS_PREFIXES = (
+    "",
+    "Mình muốn hỏi ",
+    "Mình muốn biết ",
+    "Cho mình hỏi ",
+    "Mình muốn hỏi bạn ",
+    "Mình muốn hỏi bạn rằng ",
+    "Mình muốn hỏi sếp xem ",
+    "Cho mình hỏi bạn ",
+)
+_CENSUS_CLAUSES = (
+    ("khi nào mình nên nhắn lại?", qf.TimingOwner.OWN),
+    ("khi nào họ nên nhắn lại cho mình?", qf.TimingOwner.OTHER),
+    ("bao giờ dự án hoàn thành để mình nghỉ?", qf.TimingOwner.OTHER),
+)
+
+
+@pytest.mark.parametrize("prefix", _CENSUS_PREFIXES)
+@pytest.mark.parametrize(("clause", "expected"), _CENSUS_CLAUSES)
+def test_p2_timing_census_binds_the_timed_clause(
+    prefix: str, clause: str, expected: qf.TimingOwner
+) -> None:
+    question = (prefix + clause) if prefix else clause[:1].upper() + clause[1:]
+    assert qf.timing_owner(question) is expected
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("Mình nên hỏi sếp khi nào?", qf.TimingOwner.OWN),  # trailing time modifier
+        ("Mình nên nghỉ việc khi nào?", qf.TimingOwner.OWN),
+        ("Mình nên hỏi sếp khi nào nhỉ?", qf.TimingOwner.OWN),  # final particle
+        ("Mình nên nhắn lại khi nào để kịp?", qf.TimingOwner.OWN),  # subordinate clause
+        ("Dự án nên xong khi nào để mình nghỉ?", qf.TimingOwner.OTHER),
+        # Unsupported clause relation: never inferred as the reader's own action.
+        ("Tuần này khi nào mình nên nghỉ?", qf.TimingOwner.UNCLEAR),
+        ("Mình đang làm dự án khi nào họ nên nhắn lại?", qf.TimingOwner.OTHER),
+    ],
+)
+def test_p2_timing_only_owns_an_established_clause_relation(
+    question: str, expected: qf.TimingOwner
+) -> None:
+    assert qf.timing_owner(question) is expected
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Mình muốn hỏi bạn khi nào họ nên nhắn lại cho mình?",
+        "Mình muốn hỏi bạn rằng khi nào họ nên nhắn lại cho mình?",
+        "Mình muốn hỏi sếp xem bao giờ dự án hoàn thành để mình nghỉ?",
+    ],
+)
+def test_p2_prefix_with_a_recipient_does_not_own_the_timed_action(question: str) -> None:
+    assert _assess(question).explanation.startswith(OUTCOME_EXPLANATION["reject_certainty"])
+
+
 @pytest.mark.parametrize(
     "question",
     [
@@ -496,6 +554,9 @@ def test_p2_service_timing_prefixes_and_unresolved_predicates(client: TestClient
             "Mình muốn biết khi nào họ nên nhắn lại cho mình?",
             "Mình muốn hỏi bao giờ dự án hoàn thành để mình nghỉ?",
             "Khi nào mình giàu?",
+            "Mình muốn hỏi bạn khi nào họ nên nhắn lại cho mình?",
+            "Mình muốn hỏi sếp xem bao giờ dự án hoàn thành để mình nghỉ?",
+            "Tuần này khi nào mình nên nghỉ?",
         )
     ):
         response = client.post(
@@ -512,7 +573,9 @@ def test_p2_service_timing_prefixes_and_unresolved_predicates(client: TestClient
         assert response.status_code == 422, question
         assert response.json()["suggested_reframe"]
 
-    started = _start(client, headers, "Cho mình hỏi khi nào mình nên nhắn lại?", "relationships")
+    started = _start(
+        client, headers, "Cho mình hỏi bạn khi nào mình nên nhắn lại?", "relationships"
+    )
     _, payload = _payload(client)
     assert payload["question_frame"]["form"] == "timing"
     view = _select(client, headers, started)

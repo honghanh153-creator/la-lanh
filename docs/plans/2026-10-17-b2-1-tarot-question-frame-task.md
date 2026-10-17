@@ -31,10 +31,16 @@
      - Câu hỏi thời điểm về **việc của chính mình** được nhận và trả lời theo hướng điều cần sẵn sàng
        trước. Chủ thể được xác định **trong chính mệnh đề được hỏi giờ**, không tìm "nên" hay "để mình" ở
        bất kỳ đâu trong câu:
-       - cụm thời gian mở đầu câu: lấy mệnh đề ngay sau nó (bỏ qua "thì / là lúc phù hợp để");
-       - sau **tiền tố dẫn câu** ("Mình muốn biết…", "Cho mình hỏi…"): cũng lấy mệnh đề sau cụm thời
-         gian, vì tiền tố chỉ để hỏi, không phải việc được hỏi giờ;
-       - các trường hợp khác (cụm thời gian ở giữa hoặc cuối câu): lấy mệnh đề mở đầu câu;
+       - **Chỉ trả OWN khi xác định được quan hệ giữa mệnh đề và cụm thời gian:**
+         - cụm thời gian mở đầu câu: lấy mệnh đề ngay sau nó (bỏ qua "thì / là lúc phù hợp để");
+         - cụm thời gian ở cuối câu (có thể kèm trợ từ "nhỉ/vậy…"): đó là trạng ngữ của mệnh đề đầu câu
+           ("Mình nên hỏi sếp khi nào?");
+         - sau một **tiền tố dẫn câu** nhận diện theo cả cấu trúc (từ của người nói, một động từ báo cáo,
+           người nhận tuỳ chọn tối đa hai chữ, đuôi "là/rằng/xem…", ví dụ "Mình muốn hỏi sếp xem …"):
+           lấy mệnh đề sau cụm thời gian;
+         - sau cụm thời gian là liên từ phụ ("để", "thì", "trước khi"…): lấy mệnh đề đầu câu;
+         - **mọi cấu trúc khác: UNCLEAR → yêu cầu làm rõ.** Không bao giờ suy ra việc của người đọc. Nếu
+           mệnh đề sau cụm thời gian rõ ràng là của người khác thì vẫn từ chối như dự đoán.
        - chủ thể phải là ngôi thứ nhất (hoặc người đọc ngầm định trước "nên");
        - vị ngữ phải **nhận diện được là một hành động**, kiểm trước khi gỡ từng modal.
        - Kết quả có ba loại:
@@ -136,6 +142,20 @@ hỏi về điều chưa nói, không phải một hành động được khẳn
 | 2. Vị ngữ không có trong danh sách kết quả thì mặc định được nhận | Phải nhận diện được động từ hành động; thiếu hoặc chưa rõ → `TimingOwner.UNCLEAR` → yêu cầu làm rõ | 5 ca: thiếu hoặc chỉ có modal ("Khi nào mình nên?", "Mình nên khi nào?", "Khi nào mình có thể?"), trạng thái chưa xác định ("Khi nào mình giàu?", "… may mắn?"); `test_p2_service_timing_prefixes_and_unresolved_predicates` qua API (422 có gợi ý hỏi lại; 201 kèm frame timing) |
 
 Ngân hàng câu hỏi: 49/49 câu `timing` vẫn được nhận, dạng câu 289/289.
+
+## Sửa theo review Codex @ `3eb4191` (P2 gắn mệnh đề)
+
+- **Bỏ giả định:** "không khớp đuôi tiền tố báo cáo thì mệnh đề đầu câu là việc được hỏi giờ". Thay bằng các
+  quan hệ được xác định dương (ở trên); cấu trúc khác trả UNCLEAR.
+- **Census 26 ca của Codex** (8 tiền tố × 3 chủ thể + 2 đối chứng cuối câu):
+  - trước khi sửa: exit 1 (6 ca OWN sai, 1 ca OTHER sai);
+  - sau khi sửa: **0 lỗi, exit 0**.
+  - Ma trận này nằm trong `test_p2_timing_census_binds_the_timed_clause`.
+- **Regression:**
+  - `test_p2_prefix_with_a_recipient_does_not_own_the_timed_action` (engine, 3 câu có người nhận);
+  - `test_p2_timing_only_owns_an_established_clause_relation`;
+  - `test_p2_service_timing_prefixes_and_unresolved_predicates` (API: 422 với tiền tố có người nhận và
+    cấu trúc chưa hỗ trợ; 201 với "Cho mình hỏi bạn khi nào mình nên nhắn lại?").
 
 ## Bảo mật và riêng tư
 

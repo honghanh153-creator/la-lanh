@@ -217,9 +217,33 @@ _ACTION_VERBS = (
     "tạm nghỉ",
 )
 # Reporting prefixes that only introduce the question: "Mình muốn biết khi nào ...",
-# "Cho mình hỏi bao giờ ...". The timed clause is then the one after the timing phrase.
-_REPORTING_VERBS = ("biết", "hỏi", "thắc mắc", "tự hỏi", "phân vân", "băn khoăn", "xem")
-_REPORTING_TAIL = ("là", "rằng", "xem", "thử", "giúp", "với")
+# "Cho mình hỏi bạn khi nào ...", "Mình muốn hỏi sếp xem bao giờ ...". Recognised by their
+# whole shape: [speaker words] reporting verb [addressee] [tail]. The timed clause is then the
+# one after the timing phrase.
+_REPORTING_VERBS = ("biết", "hỏi", "thắc mắc", "tự hỏi", "phân vân", "băn khoăn")
+_REPORTING_LEAD = (*_FIRST_PERSON, "cho", "xin", "muốn", "cần", "đang", "rất", "chỉ", "được")
+_ADDRESSEES = (
+    "bạn",
+    "sếp",
+    "chị",
+    "anh",
+    "em",
+    "cô",
+    "thầy",
+    "mẹ",
+    "bố",
+    "ba",
+    "lá",
+    "cậu",
+    "mọi người",
+    "mn",
+    "ad",
+)
+_REPORTING_TAIL = ("là", "rằng", "xem", "thử", "giúp", "với", "nhé", "ạ")
+# A subordinate clause after a trailing timing phrase: "Mình nên nhắn lại khi nào để kịp?".
+_SUBORDINATORS = ("để", "cho kịp", "thì", "mà", "trước khi", "sau khi", "nếu", "khi")
+# Sentence-final particles: "Mình nên hỏi sếp khi nào nhỉ?" still ends with the timing phrase.
+_FINAL_PARTICLES = ("nhỉ", "vậy", "thế", "ạ", "nhé", "đây", "ta", "nha", "hả", "hở")
 
 
 class TimingOwner(StrEnum):
@@ -275,12 +299,30 @@ def _clause_owner(tokens: list[str]) -> TimingOwner:
 
 
 def _is_reporting_prefix(tokens: list[str]) -> bool:
-    """``tokens`` (before the timing phrase) only introduce the question."""
+    """``tokens`` (before the timing phrase) are exactly an introductory question: speaker
+    words, one reporting verb, an optional addressee (at most two words), optional tail."""
 
-    tail = list(tokens)
-    while tail and tail[-1] in _REPORTING_TAIL:
-        tail.pop()
-    return any(tail[-len(v.split()) :] == v.split() for v in _REPORTING_VERBS if tail)
+    rest = list(tokens)
+    while rest and rest[-1] in _REPORTING_TAIL:
+        rest.pop()
+    for verb in sorted(_REPORTING_VERBS, key=lambda v: -len(v.split())):
+        parts = verb.split()
+        for start in range(len(rest) - len(parts) + 1):
+            if rest[start : start + len(parts)] != parts:
+                continue
+            lead, addressee = rest[:start], rest[start + len(parts) :]
+            if all(word in _REPORTING_LEAD for word in lead) and (
+                not addressee or " ".join(addressee) in _ADDRESSEES
+            ):
+                return True
+    return False
+
+
+def _strip_final_particles(tokens: list[str]) -> list[str]:
+    rest = list(tokens)
+    while rest and rest[-1] in _FINAL_PARTICLES:
+        rest.pop()
+    return rest
 
 
 def timing_owner(question: str) -> TimingOwner:
@@ -299,10 +341,19 @@ def timing_owner(question: str) -> TimingOwner:
     if match is None:
         return TimingOwner.UNCLEAR
     before = _tokens(text[: match.start()])
-    after = _skip(_tokens(text[match.end() :]), _TIMING_FILLERS)
-    if not before or (after and _is_reporting_prefix(before)):
-        return _clause_owner(after)
-    return _clause_owner(before)
+    after_raw = _strip_final_particles(_tokens(text[match.end() :]))
+    after = _skip(after_raw, _TIMING_FILLERS)
+    if not before:
+        return _clause_owner(after)  # "Khi nào mình ...": the clause after the phrase
+    if not after_raw:
+        return _clause_owner(before)  # "Mình nên hỏi sếp khi nào?": a trailing time modifier
+    if _is_reporting_prefix(before):
+        return _clause_owner(after)  # "Mình muốn hỏi bạn khi nào họ ...": a timed complement
+    if _starts_with(after_raw, _SUBORDINATORS):
+        return _clause_owner(before)  # "Mình nên nhắn lại khi nào để kịp?"
+    # Any other shape: the relation between the clauses is not established, so never infer
+    # the reader's own action. An explicit other subject after the phrase is still refused.
+    return TimingOwner.OTHER if _clause_owner(after) is TimingOwner.OTHER else TimingOwner.UNCLEAR
 
 
 def asks_own_timing(question: str) -> bool:
