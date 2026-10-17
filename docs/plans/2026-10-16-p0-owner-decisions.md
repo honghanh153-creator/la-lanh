@@ -8,8 +8,14 @@ Tài liệu đi kèm:
   `la-lanh-variety-measurement-spec.md`;
 - `docs/fixtures/tarot-question-bank-v1.json`.
 
-Mỗi mục ghi đề xuất của Claude. Owner chọn hoặc sửa. Chưa chốt thì bước triển khai tương ứng chưa được
-bắt đầu.
+**Owner chốt ngày 16/10/2026: "chốt theo đề xuất"** cho A1–A12.
+
+- A8 chọn 5 tình huống được đánh dấu **Chọn** ở mục B.
+- A10 chốt hướng (Claude API hoặc OpenAI, sau khi kiểm điều khoản dùng output). Nhà cung cấp cụ thể và
+  chi phí từng đợt vẫn do owner duyệt khi bắt đầu E.
+- A9 vẫn chặn F cho tới khi rà luật, cập nhật consent, data map và khai báo store.
+
+Các giá trị trong bảng dưới đây là giá trị đã chốt.
 
 ## A. Cần chốt trước bước triển khai tương ứng
 

@@ -48,7 +48,9 @@
     "db:up": "docker compose -f infra/compose/compose.yaml up -d --wait postgres",
     "db:down": "docker compose -f infra/compose/compose.yaml down",
     "db:logs": "docker compose -f infra/compose/compose.yaml logs -f postgres",
-    "content:why-today": "uv run --directory apps/api python -m scripts.audit_daily_why_today"
+    "content:why-today": "uv run --directory apps/api python -m scripts.audit_daily_why_today",
+    "variety:fixtures": "uv run --directory apps/api python -m scripts.variety_fixtures --check",
+    "variety:baseline": "uv run --directory apps/api python -m scripts.variety_baseline"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
