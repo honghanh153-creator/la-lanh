@@ -1,5 +1,7 @@
 """B3-1a / A1: per-person Daily rotation (US-21 AC01, AC02, AC04, AC05)."""
 
+import asyncio
+from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from itertools import pairwise
 from uuid import UUID
@@ -30,6 +32,8 @@ from app.domains.readings.daily_rotation import (
 from app.domains.readings.models import (
     DailyVariety,
     ReadingPlan,
+    ReadingProjection,
+    ReadingProjectionRecord,
     ReadingPurpose,
     canonical_reading_plan_key,
 )
@@ -414,3 +418,152 @@ def test_rotation_seed_never_reaches_a_provider_payload() -> None:
     assert plan.daily_variety.seed not in payload
     assert "daily_variety" not in payload
     assert "capacity-before-agreement" not in payload
+
+
+# ------------------------------------------------------------------ same-day replay (Codex P2)
+
+
+def _plans_for(repository: MemoryReadingRepository, day: date) -> list[ReadingPlan]:
+    return [
+        record.plan
+        for record in repository.plans.values()
+        if record.plan.daily_variety is not None
+        and record.plan.daily_variety.day_index == day_index(day)
+    ]
+
+
+async def _open(
+    service: ReadingApplicationService, snapshot: object, day: date, hour: int = 2
+) -> ReadingProjection:
+    return await service.project(
+        guest_id=GUEST,
+        snapshot=snapshot,  # type: ignore[arg-type]
+        purpose=ReadingPurpose.DAILY_NOTE,
+        requested_at=datetime.combine(day, time(hour), UTC),
+    )
+
+
+async def test_late_previous_day_never_changes_an_opened_note() -> None:
+    repository = MemoryReadingRepository()
+    snapshot = _exact_snapshot(GUEST, OWNER_A, NatalChartEngine())
+    service = _service(repository, START)
+    d2, d1, d0 = START, START + timedelta(days=1), START + timedelta(days=2)
+
+    await _open(service, snapshot, d2)
+    first = await _open(service, snapshot, d0)  # D-1 still in flight: history is empty
+    await _open(service, snapshot, d1)  # D-1 completes after D was first opened
+    reopened = await _open(service, snapshot, d0, hour=15)
+
+    assert reopened.active.revision_id == first.active.revision_id
+    assert reopened.active.sections == first.active.sections
+    assert reopened.available_update is None
+    plans = _plans_for(repository, d0)
+    assert len(plans) == 1
+    assert plans[0].daily_variety is not None and plans[0].daily_variety.recent_issue_keys == ()
+
+
+async def test_new_key_material_after_restart_only_applies_to_new_days() -> None:
+    repository = MemoryReadingRepository()
+    snapshot = _exact_snapshot(GUEST, OWNER_A, NatalChartEngine())
+    other_key = derive_variety_key(b"another-test-only-secret")
+
+    first = await _open(_service(repository, START), snapshot, START)
+    restarted = ReadingApplicationService(
+        repository, NatalChartEngine(), daily_variety_key=other_key, daily_variety_from=START
+    )
+    same_day = await _open(restarted, snapshot, START, hour=15)
+    await _open(restarted, snapshot, START + timedelta(days=1))
+
+    assert same_day.active.revision_id == first.active.revision_id
+    assert same_day.available_update is None
+    assert len(_plans_for(repository, START)) == 1
+    (tomorrow,) = _plans_for(repository, START + timedelta(days=1))
+    assert tomorrow.daily_variety is not None
+    assert tomorrow.daily_variety.seed == daily_variety_seed(
+        other_key, OWNER_A, DAILY_PSYCHOLOGY_MATRIX_VERSION
+    )
+
+
+class _GatedRepository(MemoryReadingRepository):
+    """Holds the first request for one scope inside get_or_create_projection."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.held_scope: str | None = None
+        self.entered = asyncio.Event()
+        self.release = asyncio.Event()
+
+    async def get_or_create_projection(
+        self, record: ReadingProjectionRecord
+    ) -> tuple[ReadingProjectionRecord, bool]:
+        if record.scope_key == self.held_scope:
+            self.held_scope = None
+            self.entered.set()
+            await self.release.wait()
+        return await super().get_or_create_projection(record)
+
+
+async def test_concurrent_first_readings_keep_the_first_writer() -> None:
+    repository = _GatedRepository()
+    snapshot = _exact_snapshot(GUEST, OWNER_A, NatalChartEngine())
+    service = _service(repository, START)
+    d2, d1, d0 = START, START + timedelta(days=1), START + timedelta(days=2)
+    await _open(service, snapshot, d2)
+    first_of_d0 = await _open(_service(MemoryReadingRepository(), START), snapshot, d0)
+    repository.held_scope = first_of_d0.scope_key
+
+    # Request A reads an empty history, then stalls before touching the projection.
+    slow = asyncio.create_task(_open(service, snapshot, d0))
+    await repository.entered.wait()
+    # Meanwhile D-1 completes and request B creates and activates D with a full history.
+    await _open(service, snapshot, d1)
+    fast = await _open(service, snapshot, d0, hour=3)
+    repository.release.set()
+    late = await slow
+
+    assert len(_plans_for(repository, d0)) == 2  # both requests chose before either stored
+    assert late.active.revision_id == fast.active.revision_id
+    assert late.active.sections == fast.active.sections
+    assert late.available_update is None
+    again = await _open(service, snapshot, d0, hour=15)
+    assert again.active.revision_id == fast.active.revision_id
+    assert again.available_update is None
+
+
+async def test_start_date_set_after_today_was_opened_keeps_today() -> None:
+    repository = MemoryReadingRepository()
+    snapshot = _exact_snapshot(GUEST, OWNER_A, NatalChartEngine())
+    legacy = ReadingApplicationService(repository, NatalChartEngine())
+
+    opened = await _open(legacy, snapshot, START)
+    for start in (START + timedelta(days=1), START):  # FROM = tomorrow, then even FROM = today
+        again = await _open(_service(repository, start), snapshot, START, hour=15)
+        assert again.active.revision_id == opened.active.revision_id
+        assert again.available_update is None
+    assert _plans_for(repository, START) == []
+
+
+async def test_catalog_or_chart_change_is_still_an_intentional_update(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import app.domains.readings.application as application
+
+    repository = MemoryReadingRepository()
+    engine = NatalChartEngine()
+    snapshot = _exact_snapshot(GUEST, OWNER_A, engine)
+    service = _service(repository, START)
+    opened = await _open(service, snapshot, START)
+
+    monkeypatch.setattr(application, "DAILY_PSYCHOLOGY_MATRIX_VERSION", "catalog-next")
+    bumped = await _open(service, snapshot, START, hour=15)
+    assert bumped.active.revision_id == opened.active.revision_id
+    assert bumped.available_update is not None
+    monkeypatch.undo()
+
+    repository = MemoryReadingRepository()
+    service = _service(repository, START)
+    opened = await _open(service, snapshot, START)
+    edited = replace(snapshot, id=UUID("10000000-0000-4000-8000-0000000000ed"))
+    changed = await _open(service, edited, START, hour=15)
+    assert changed.active.revision_id == opened.active.revision_id
+    assert changed.available_update is not None

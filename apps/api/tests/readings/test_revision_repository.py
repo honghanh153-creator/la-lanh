@@ -460,3 +460,25 @@ async def test_guest_deletion_cascades_all_reading_storage(storage) -> None:  # 
             counts_list.append(int(count or 0))
         counts = tuple(counts_list)
     assert counts == (0, 0, 0)
+
+
+async def test_activate_first_only_fills_an_empty_projection(storage) -> None:  # type: ignore[no-untyped-def]
+    database, repository = storage
+    guest_id, profile_id = await _owner(database)
+    plan = _plan_record(guest_id, profile_id)
+    await repository.save_or_replay_plan(plan)
+    first, _ = await repository.save_or_replay_revision(_revision_record(plan))
+    second, _ = await repository.save_or_replay_revision(
+        _revision_record(plan, content_version="daily-note-v2")
+    )
+    projection, _ = await repository.get_or_create_projection(
+        _projection_record(guest_id, profile_id)
+    )
+
+    won = await repository.activate_first(guest_id, profile_id, projection.scope_key, first.id)
+    lost = await repository.activate_first(guest_id, profile_id, projection.scope_key, second.id)
+
+    assert won.active_revision_id == first.id
+    # The loser never becomes an available update: the first writer's choice stands.
+    assert lost.active_revision_id == first.id
+    assert lost.available_revision_id is None
