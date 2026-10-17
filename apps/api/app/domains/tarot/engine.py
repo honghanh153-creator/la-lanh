@@ -8,6 +8,7 @@ from app.domains.readings.review_agent import (
     ContentReviewAgent,
     ReviewSample,
 )
+from app.domains.tarot import question_frame
 from app.domains.tarot.context_readings import CONTEXT_READINGS, CONTEXT_SCENES
 from app.domains.tarot.examples import example_for
 from app.domains.tarot.knowledge import (
@@ -17,9 +18,12 @@ from app.domains.tarot.knowledge import (
 )
 from app.domains.tarot.meaning_brief import card_links, goal_action, question_goals
 from app.domains.tarot.models import (
+    QUESTION_RULES_VERSION,
+    QuestionFrame,
     TarotCard,
     TarotContext,
     TarotQuestionAssessment,
+    TarotQuestionForm,
     TarotQuestionIntent,
     TarotReading,
     TarotReadingPosition,
@@ -118,7 +122,9 @@ _THIRD_PARTY = re.compile(
     r"\b(?:người ấy|họ|anh ấy|cô ấy|crush)\b.{0,28}\b(?:nghĩ|yêu|thích|muốn|định|có)\b",
     re.IGNORECASE,
 )
-_CERTAINTY = re.compile(r"\b(?:chắc chắn|bao giờ|khi nào|có quay lại|sẽ xảy ra)\b", re.IGNORECASE)
+# "Khi nào / bao giờ" about one's own action is reframed as readiness (US-20 AC05, B2-1);
+# a timing question about an event or another person is still a prediction (see assess).
+_CERTAINTY = re.compile(r"\b(?:chắc chắn|có quay lại|sẽ xảy ra)\b", re.IGNORECASE)
 _HIGH_STAKES = re.compile(
     r"\b(?:bệnh|thuốc|mang thai|tự tử|kiện|pháp lý|đầu tư|cổ phiếu|vay tiền|chẩn đoán)\b",
     re.IGNORECASE,
@@ -161,16 +167,35 @@ class TarotReadingEngine:
         return _POSITIONS[spread_map]
 
     def assess_question(self, question: str, context: TarotContext) -> TarotQuestionAssessment:
+        """Intake rules, in order: too short or vague -> high stakes -> another person's mind
+        -> certainty (US-20 AC03). Accepted questions get their ``QuestionFrame`` once here."""
+
         normalized = " ".join(question.strip().split())
-        if len(normalized) < 8:
+        if len(normalized) < 8 or question_frame.is_vague(normalized):
             return TarotQuestionAssessment(
                 accepted=False,
                 normalized_question=normalized,
+                rules_version=QUESTION_RULES_VERSION,
                 explanation=(
                     "Câu hỏi cần thêm một tình huống cụ thể để bài đọc không thành lời chung chung."
                 ),
                 suggested_reframe="Trong chuyện này, mình cần nhìn rõ điều gì trước?",
             )
+        boundary = self._boundary_rejection(normalized)
+        if boundary is not None:
+            return boundary
+        return TarotQuestionAssessment(
+            accepted=True,
+            normalized_question=normalized,
+            intent=self._classify_intent(normalized, context),
+            frame=question_frame.frame_question(normalized, context),
+            rules_version=QUESTION_RULES_VERSION,
+        )
+
+    def _boundary_rejection(self, normalized: str) -> TarotQuestionAssessment | None:
+        """Safety boundary shared by intake and rendering; vagueness is an intake-only rule so
+        a session accepted under earlier rules still renders."""
+
         if _HIGH_STAKES.search(normalized):
             return TarotQuestionAssessment(
                 accepted=False,
@@ -194,21 +219,21 @@ class TarotReadingEngine:
                 ),
                 suggested_reframe="Trong kết nối này, phần mình cần nhìn rõ hoặc hỏi thẳng là gì?",
             )
-        if _CERTAINTY.search(normalized):
+        if _CERTAINTY.search(normalized) or (
+            question_frame.classify_form(normalized) is TarotQuestionForm.TIMING
+            and not question_frame.asks_own_timing(normalized)
+        ):
             return TarotQuestionAssessment(
                 accepted=False,
                 normalized_question=normalized,
+                rules_version=QUESTION_RULES_VERSION,
                 explanation=(
                     "Câu hỏi đang tìm một kết luận chắc chắn; bài sẽ hữu ích hơn "
                     "khi neo vào điều bạn có thể quan sát."
                 ),
                 suggested_reframe="Mình nên quan sát điều gì trước khi quyết định bước tiếp theo?",
             )
-        return TarotQuestionAssessment(
-            accepted=True,
-            normalized_question=normalized,
-            intent=self._classify_intent(normalized, context),
-        )
+        return None
 
     def render(
         self,
@@ -220,13 +245,18 @@ class TarotReadingEngine:
         question: str,
         voice: TarotVoice,
         question_intent: TarotQuestionIntent | None = None,
+        frame: QuestionFrame | None = None,
     ) -> TarotReading:
-        assessment = self.assess_question(question, context)
-        if not assessment.accepted:
+        """Render once. ``frame`` is the session's stored QuestionFrame (None for sessions
+        started before B2-1, which render exactly as before); it is never recomputed here."""
+
+        normalized = " ".join(question.strip().split())
+        if len(normalized) < 8 or self._boundary_rejection(normalized) is not None:
             raise TarotContentRejected("question must pass reflection boundary")
-        intent = question_intent or assessment.intent
-        if intent is None:
-            raise TarotContentRejected("question intent is required")
+        intent = question_intent or self._classify_intent(normalized, context)
+        assessment = TarotQuestionAssessment(
+            accepted=True, normalized_question=normalized, intent=intent, frame=frame
+        )
         # Sensitive questions never get the roast frame, whatever was requested.
         voice = effective_voice(voice, assessment.normalized_question)
         roast = voice is TarotVoice.ROAST
@@ -292,8 +322,13 @@ class TarotReadingEngine:
             # The opener is optional framing; it never displaces a selected card.
             if len(f"{opener} {summary}".split()) <= 180:
                 summary = f"{opener} {summary}"
+        headline = roast_headline(intent, context) if roast else _INTENT_HEADLINES[intent]
+        if frame is not None and frame.form is TarotQuestionForm.TIMING:
+            # AC05: answer "when" as what to have ready first, and say why there is no date.
+            headline = question_frame.readiness_headline(voice)
+            summary = f"{question_frame.READINESS_NOTE} {summary}"
         reading = TarotReading(
-            headline=roast_headline(intent, context) if roast else _INTENT_HEADLINES[intent],
+            headline=headline,
             summary=summary,
             question=assessment.normalized_question,
             question_intent=intent,
@@ -314,6 +349,9 @@ class TarotReadingEngine:
                 knowledge_version=KNOWLEDGE_VERSION,
                 renderer_version=TAROT_RENDERER_VERSION,
                 gate_version="tarot-gates-v4",
+                question_rules_version=(
+                    QUESTION_RULES_VERSION if frame is not None else "tarot-question-rules-v1"
+                ),
                 source_ids=self._reading_sources(tuple(position.card for position in rendered)),
             ),
         )

@@ -26,6 +26,7 @@ from app.domains.tarot.errors import (
 )
 from app.domains.tarot.knowledge import all_cards, card_by_id
 from app.domains.tarot.models import (
+    QuestionFrame,
     TarotContext,
     TarotOrigin,
     TarotQuestionIntent,
@@ -134,6 +135,10 @@ class TarotSessionService:
             "question_intent": assessment.intent.value if assessment.intent else None,
             "spread_map": spread_map.value,
             "question_rules_version": assessment.rules_version,
+            # B2-1: closed labels decided once at intake and replayed when rendering.
+            "question_frame": (
+                assessment.frame.model_dump(mode="json") if assessment.frame else None
+            ),
             "request_hash": request_hash,
             "prompt_id": prompt_id,
             "deck_order": deck_order,
@@ -228,6 +233,7 @@ class TarotSessionService:
                         question=self._question(payload),
                         voice=TarotVoice(row.voice),
                         question_intent=self._question_intent(payload),
+                        frame=self._question_frame(payload),
                     )
                 except TarotContentRejected:
                     # Preserve the draw, never publish the rejected draft or retry AI.
@@ -386,6 +392,15 @@ class TarotSessionService:
         if not isinstance(intent, str):
             raise ValueError("invalid encrypted Tarot question intent")
         return TarotQuestionIntent(intent)
+
+    @staticmethod
+    def _question_frame(payload: dict[str, Any]) -> QuestionFrame | None:
+        """The frame stored at intake; absent for sessions started before B2-1 (AC17)."""
+
+        raw = payload.get("question_frame")
+        if raw is None:
+            return None
+        return QuestionFrame.model_validate(raw)
 
     @staticmethod
     def _spread_map(payload: dict[str, Any], spread: TarotSpread) -> TarotSpreadMap:

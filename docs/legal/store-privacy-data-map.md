@@ -198,3 +198,11 @@ served on the two previous days. It is derived data stored only inside the alrea
 deleted with the profile, never logged, never returned by the API and never sent to a provider (allowlisted
 payloads; covered by a test). No new data type, purpose, recipient or store declaration. The feature is off
 until `LA_LANH_DAILY_VARIETY_FROM` is set.
+
+## Tarot question frame delta — B2-1, 2026-10-17
+
+Accepted Tarot questions get a `QuestionFrame`: closed labels for the question form, a scored topic
+and an optional action label from a fixed 30-label table. It is derived from the question, stored only
+inside the session's existing AES-GCM payload, and expires or is deleted with the session (at most 29 days
+18 hours). It is never logged, never returned by the API and never sent to a provider; the Luna payload is
+unchanged. There is no new data type, recipient or store declaration.
