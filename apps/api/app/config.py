@@ -1,4 +1,5 @@
 import re
+from datetime import date
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlsplit
@@ -71,6 +72,10 @@ class Settings(BaseSettings):
     content_studio_api_token: SecretStr | None = None
     content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)
     swisseph_license_mode: Literal["development", "agpl", "professional"] = "development"
+    # B3-1a: first Daily note date (Asia/Ho_Chi_Minh) that uses the per-person rotation.
+    # Unset keeps the date-only rotation. Set it to a day after the release so notes
+    # already opened today never change (US-21 AC04).
+    daily_variety_from: date | None = Field(default=None, ge=date(2026, 1, 1))
 
     model_config = SettingsConfigDict(
         env_file=("../../.env", ".env"),

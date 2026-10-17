@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from asyncio import to_thread
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
@@ -19,6 +19,12 @@ from app.domains.astro.models import (
 from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.readings.companion import companion_issue_entry
+from app.domains.readings.daily_psychology import DAILY_PSYCHOLOGY_MATRIX_VERSION
+from app.domains.readings.daily_rotation import (
+    VARIETY_KEY_VERSION,
+    daily_variety_seed,
+    day_index,
+)
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     AuraTransitionProjection,
@@ -26,6 +32,7 @@ from app.domains.readings.models import (
     AvailableReadingUpdate,
     BackgroundLens,
     ClaimTemplateId,
+    DailyVariety,
     EvidenceClaim,
     EvidenceDisclosure,
     FactorSource,
@@ -98,6 +105,8 @@ class ReadingApplicationService:
         rewrite_prompt_version: str = "surface-rewrite-v5",
         generation_max_attempts: int = 2,
         content_rewrite_service: ContentRewriteService | None = None,
+        daily_variety_key: bytes | None = None,
+        daily_variety_from: date | None = None,
     ) -> None:
         self._repository = repository
         self._engine = engine
@@ -110,6 +119,8 @@ class ReadingApplicationService:
         self._rewrite_prompt_version = rewrite_prompt_version
         self._generation_max_attempts = generation_max_attempts
         self._content_rewrite_service = content_rewrite_service
+        self._daily_variety_key = daily_variety_key
+        self._daily_variety_from = daily_variety_from
 
     async def project(
         self,
@@ -132,12 +143,16 @@ class ReadingApplicationService:
         local_date, observed_at = _scope_time(purpose, snapshot.created_at, current)
         transits = await self._optional_transits(source_chart, purpose, observed_at)
         editorial_seed = local_date.isoformat() if purpose is ReadingPurpose.DAILY_NOTE else None
+        daily_variety = await self._daily_variety(
+            guest_id, snapshot.profile_id, source_chart, purpose, local_date, background_lens
+        )
         plan = self._planner.plan(
             source_chart,
             purpose=purpose,
             transits=transits,
             editorial_seed=editorial_seed,
             background_lens=background_lens,
+            daily_variety=daily_variety,
         )
         lens_variant = canonical_lens_variant(plan.background_lens)
         plan_record, _ = await self._repository.save_or_replay_plan(
@@ -170,6 +185,7 @@ class ReadingApplicationService:
                 transits=None,
                 editorial_seed=editorial_seed,
                 background_lens=background_lens,
+                daily_variety=daily_variety,
             )
             plan_record, _ = await self._repository.save_or_replay_plan(
                 ReadingPlanRecord(
@@ -320,6 +336,81 @@ class ReadingApplicationService:
             voice=voice,
             deterministic_baseline=revision,
         )
+
+    async def _daily_variety(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        purpose: ReadingPurpose,
+        local_date: date,
+        background_lens: BackgroundLens | None,
+    ) -> DailyVariety | None:
+        """B3-1a rotation inputs, chosen before the plan is hashed (US-21 AC01, AC04, AC05)."""
+
+        if (
+            purpose is not ReadingPurpose.DAILY_NOTE
+            or self._daily_variety_key is None
+            or self._daily_variety_from is None
+            or local_date < self._daily_variety_from
+        ):
+            return None
+        return DailyVariety(
+            key_version=VARIETY_KEY_VERSION,
+            catalog_version=DAILY_PSYCHOLOGY_MATRIX_VERSION,
+            seed=daily_variety_seed(
+                self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
+            ),
+            day_index=day_index(local_date),
+            recent_issue_keys=await self._served_daily_issues(
+                guest_id, profile_id, chart, local_date, background_lens
+            ),
+        )
+
+    async def _served_daily_issues(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        local_date: date,
+        background_lens: BackgroundLens | None,
+    ) -> tuple[str, ...]:
+        """Issue keys this owner was actually served on D-1 then D-2, from stored projections.
+
+        Reads existing rows only (no history table). Stops at the first day without a served
+        note: the top-K guard is about consecutive calendar days the reader saw.
+        """
+
+        if isinstance(chart, DateOnlySunResult):
+            tradition, config_hash = chart.provenance.tradition, chart.provenance.config_hash
+        else:
+            tradition, config_hash = chart.config.tradition, chart.config_hash
+        issues: list[str] = []
+        for days_back in (1, 2):
+            day = local_date - timedelta(days=days_back)
+            scope_key = canonical_projection_scope_key(
+                purpose=ReadingPurpose.DAILY_NOTE,
+                tradition=tradition,
+                config_hash=config_hash,
+                local_date=day,
+                timezone_name=MVP_TIMEZONE,
+                observed_at=datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC),
+                lens_variant=canonical_lens_variant(background_lens),
+            )
+            projection = await self._repository.get_projection(guest_id, profile_id, scope_key)
+            revision = (
+                await self._repository.get_revision(
+                    guest_id, profile_id, projection.active_revision_id
+                )
+                if projection is not None and projection.active_revision_id is not None
+                else None
+            )
+            candidate = revision.evaluation.publishable_candidate if revision else None
+            blueprint = candidate.semantic_blueprint if candidate else None
+            if blueprint is None or not blueprint.mechanism_key.startswith("psychology:"):
+                break
+            issues.append(blueprint.mechanism_key.removeprefix("psychology:"))
+        return tuple(issues)
 
     async def _optional_enqueue(
         self,
