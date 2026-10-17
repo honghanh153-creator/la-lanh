@@ -1,0 +1,82 @@
+{
+ "L": 90,
+ "M": 4,
+ "articles": [
+  {
+   "article_id": "daily.missing-context",
+   "frames": [
+    "daily.missing-context.advice"
+   ]
+  }
+ ],
+ "catalog_sha256": "1e83ba81c425695baad27c0f0d220a26b7ccd2668571f1995a1e66a62f908b1b",
+ "catalog_version": "daily-grammar-g0-sample-v1",
+ "composer_version": "grammar-composer-v1",
+ "files": {
+  "allowlist.json": "450b78ebc9a19407b994b25106690378fbbd0b46503b83ac78f162b260d76be1",
+  "schedules.json": "6d44deb0b9da4b243871499c68f78d4c4fd525a48a7191322be18f5b172fd18a"
+ },
+ "frames": {
+  "daily.missing-context.advice": {
+   "allowlist_sha256": "55b8385ccb1f3028daf65a8c9f9efdafc6b74f3bbdca6db868d1d5ef78586114",
+   "allowlisted": 486,
+   "buckets": [
+    "lens=_default",
+    "lens=relationships",
+    "lens=work"
+   ],
+   "constraint_dropped": 234,
+   "duplicate_dropped": 0,
+   "enumerated": 720,
+   "gate_dropped": {},
+   "masters_eligible": 99,
+   "part": "advice",
+   "roast_of": null,
+   "variants": [
+    {
+     "sha256": "794d09373bddf9748d1f1bf68c0fead29a9f584af43f89fb304bd83592feee0f",
+     "steps": 90
+    },
+    {
+     "sha256": "4c9a90f1a4933aaeeaa3ebfef1073df776d467e5a691004f1aa4fb69d95ed6d5",
+     "steps": 90
+    },
+    {
+     "sha256": "1344c6df36a5fd5936f15c8816716f88eab777bd26c40d27bc9a57871a1f8407",
+     "steps": 90
+    },
+    {
+     "sha256": "2ed97880c0991328093dadf0e8081410d1b0a6d2d2bd6d80d07ae0afe2417292",
+     "steps": 90
+    }
+   ],
+   "voice": "direct"
+  },
+  "daily.missing-context.advice.roast": {
+   "allowlist_sha256": "ee7265749837e5047938d350be59d3d61420d60ae0dde370e0c3f584ace9369d",
+   "allowlisted": 486,
+   "buckets": [
+    "lens=_default",
+    "lens=relationships",
+    "lens=work"
+   ],
+   "constraint_dropped": 234,
+   "duplicate_dropped": 0,
+   "enumerated": 720,
+   "gate_dropped": {},
+   "part": "advice",
+   "roast_of": "daily.missing-context.advice",
+   "voice": "roast"
+  }
+ },
+ "gate_version": "grammar-sentence-gate-v1+anti-influence-gate-vi-v1+editorial-gate-vi-v3+meaning-gate-vi-v2+privacy-gate-vi-v1",
+ "limits": {
+  "max_buckets": 48,
+  "max_combinations_per_bucket": 200000,
+  "max_search_steps": 2000000
+ },
+ "reviewed_exceptions": {},
+ "serving": false,
+ "spec_version": "content-grammar-spec/v1",
+ "surface": "daily"
+}

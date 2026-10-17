@@ -1,0 +1,17 @@
+{
+ "surface": "daily",
+ "catalog_version": "daily-grammar-g0-sample-v1",
+ "schedule_length": 90,
+ "min_schedule_length": 90,
+ "variants": 4,
+ "min_variants": 4,
+ "articles": [
+  {
+   "article_id": "daily.missing-context",
+   "frames": [
+    "daily.missing-context.advice"
+   ]
+  }
+ ],
+ "serving": false
+}
