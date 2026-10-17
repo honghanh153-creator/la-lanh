@@ -221,6 +221,7 @@ def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
                     *tuple(
                         (f"action_{position.key}", position.small_action)
                         for position in tarot_reading.positions
+                        if position.small_action
                     ),
                     ("closing", tarot_reading.closing_prompt),
                 ),

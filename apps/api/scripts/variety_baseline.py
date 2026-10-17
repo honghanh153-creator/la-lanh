@@ -529,7 +529,8 @@ def tarot_report() -> dict[str, Any]:
                     markers["meaning:Ý chính của lá"] += position.meaning_here.startswith(
                         "Ý chính của lá"
                     )
-                    markers["action:Thử nhé:"] += position.small_action.startswith("Thử nhé:")
+                    action = position.small_action or ""
+                    markers["action:Thử nhé:"] += action.startswith("Thử nhé:")
                     markers["scene:Ví dụ:"] += position.everyday_scene.startswith("Ví dụ:")
     t2 = {
         voice: {

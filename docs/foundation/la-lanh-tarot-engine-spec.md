@@ -43,6 +43,15 @@ birth data, or report evidence in the URL.
   user presses `Xòe bài`.
 - Every position contains: card theme, contextual meaning, everyday scene, reflection question,
   and a small action with explicit permission to stop when it does not fit reality.
+- B2-2 (`docs/plans/2026-10-17-b2-2-tarot-roles-task.md`), for sessions with a stored
+  `QuestionFrame`:
+  - Each position reads by its role: core, tension, option or resource.
+  - Only the step role (focus, next, alternative, criterion, opening) carries the small action;
+    other positions return `small_action: null`.
+  - Readings drop the "Ý chính của lá" / "Thử nhé:" / "Ví dụ:" prefixes.
+  - The Tarot review has no minimum word count.
+  - The `role_fit` and `no_decision_or_prediction` gates apply (`tarot-gates-v5`).
+  - Earlier sessions render with the legacy renderer.
 - The launch voice is fixed to `playful_grounded`: current, direct, lightly playful, and never
   mystical filler. Voice selection is deliberately not another onboarding step.
 - 2026-10-11 owner decision: `POST /v1/tarot/sessions` accepts optional `voice: "default" | "roast"`

@@ -328,7 +328,8 @@ export type TarotReadingPosition = {
   meaning_here: string;
   everyday_scene: string;
   reflection_question: string;
-  small_action: string;
+  /** Since B2-2 only step roles carry an action; legacy readings always have one. */
+  small_action?: string | null;
 };
 export type TarotReading = {
   headline: string;

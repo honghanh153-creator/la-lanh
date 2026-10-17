@@ -62,7 +62,7 @@ def test_recognised_goal_never_replaces_card_meaning_with_generic_goal_advice() 
         voice=TarotVoice.STRAIGHT_WARM,
     )
     assert "bình tĩnh" in reading.positions[0].meaning_here
-    assert "xin lỗi" in reading.positions[0].small_action
+    assert "xin lỗi" in (reading.positions[0].small_action or "")
     assert (
         "Nhà Vua Cốc" in reading.summary
         and "Ba Gậy" in reading.summary
@@ -134,7 +134,7 @@ def test_relationship_reading_does_not_turn_a_conversation_into_a_work_opportuni
         voice=TarotVoice.STRAIGHT_WARM,
     )
     assert "thời gian gặp nhau" in relationship.positions[0].meaning_here
-    assert "người kia" in relationship.positions[2].small_action
+    assert "người kia" in (relationship.positions[2].small_action or "")
     assert relationship.positions[0].meaning_here != work.positions[0].meaning_here
     assert tuple(position.card for position in relationship.positions) == tuple(
         position.card for position in work.positions
@@ -254,7 +254,7 @@ def test_generated_reading_avoids_opaque_copy(
                     position.meaning_here,
                     position.everyday_scene,
                     position.reflection_question,
-                    position.small_action,
+                    position.small_action or "",
                 )
             ),
         )
