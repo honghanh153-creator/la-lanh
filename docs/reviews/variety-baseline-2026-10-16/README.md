@@ -10,7 +10,7 @@ Ngưỡng theo `docs/plans/2026-10-16-p0-owner-decisions.md` (owner chốt theo 
 ```sh
 cd apps/api
 uv run python -m scripts.variety_fixtures --check   # fixture không đổi
-uv run python -m scripts.variety_baseline           # khoảng 6 phút, ghi baseline.json + baseline-tables.md
+uv run python -m scripts.variety_baseline           # khoảng 13 phút, ghi baseline.json + baseline-tables.md
 PYTHONPATH=. uv run python ../../docs/fixtures/validate_tarot_question_bank.py
 ```
 
@@ -26,59 +26,94 @@ Cà khịa hiện ánh xạ một-một lên cùng bài nên cho cùng kết qu�
 
 ## Kết quả chính
 
+Bản này thay bản đầu (88cd432) sau review của Codex, sửa 4 phép đo: pool, M5, R2/R3, ma trận Tarot.
+Tạo lại từ head của PR; `baseline.json` và `baseline-tables.md` sinh từ cùng lần chạy (khoảng 13 phút).
+
+### Cách phân nhóm theo pool
+
+**Pool** của một ngày là số issue khác nhau mà planner **có thể** chọn hôm đó: đầu vào của
+`daily_psychology._pick`, ghi lại mà không đổi lựa chọn. Đây không phải các issue đã thắng trong cả cửa
+sổ. Nhóm của hồ sơ là **bucket xuất hiện nhiều nhất** trong các ngày; hoà thì lấy bucket nhỏ hơn. Người chỉ
+có ngày sinh không đi qua `_pick` (issue cố định theo cung), nên pool = 1.
+
+Phân bố ngày-hồ sơ có giờ sinh: pool 1 ở **204 119** ngày, 2–3 ở **35 880** ngày, ≥ 4 ở **1** ngày.
+
 ### Note ngày
 
-| Nhóm | Hồ sơ | Tiêu đề | Cảnh | Việc nhỏ | Vì sao hôm nay? | Lời của Lá |
+| Nhóm | Hồ sơ | Tiêu đề | Cảnh trùng hôm trước | Việc nhỏ trùng hôm trước | "Vì sao hôm nay?" trùng hôm trước | Lời của Lá trùng hôm trước |
 |---|---|---|---|---|---|---|
-| Chỉ ngày sinh, pool 1 | 300 | lặp sau 6 ngày; 0% đạt ≥ 90 ngày | **83%** ngày trùng hôm trước | **98%** trùng hôm trước | không áp dụng | **100%** trùng hôm trước |
-| Có giờ sinh, pool ≥ 4 | 900 | lặp sau 6 ngày; 0% đạt | 20% trùng hôm trước | 30% | 56% | 31% |
-| Có giờ sinh, pool 1 hoặc 2–3; chỉ ngày sinh, pool 2–3 hoặc ≥ 4 | 0 | thiếu mẫu | | | | |
+| Chỉ ngày sinh, pool 1 | 300 | lặp sau 6 ngày | **83%** | **98%** | không áp dụng | **100%** |
+| Có giờ sinh, pool 1 | 865 | lặp sau 6 ngày | 21% | 31% | 57% | 31% |
+| Có giờ sinh, pool 2–3 | 35 (**thiếu mẫu**) | lặp sau 6 ngày | 12% | 19% | 50% | 20% |
+| Có giờ sinh, pool ≥ 4; chỉ ngày sinh, pool 2–3 hoặc ≥ 4 | 0 | thiếu mẫu | | | | |
 
-- **M1** (khoảng lặp ≥ 90 ngày): **0%** ở mọi phần và mọi nhóm đo được. Mục tiêu đã chốt là ≥ 95%.
-- **M4** (note giống hệt giữa hai người cùng cung, cùng ngày): có giờ sinh **6,0%**; chỉ ngày sinh **100%**;
-  cặp cùng ngày sinh **100%** số ngày. Mục tiêu đã chốt là < 1% (cặp cùng ngày sinh báo riêng).
-- **M5** (yếu tố riêng mỗi note): chỉ ngày sinh **0**; có giờ sinh trung bình **0,43**, phân vị 10 là 0.
-  Mục tiêu đã chốt là ≥ 1 cho nhóm chỉ ngày sinh chưa chọn mối quan tâm, và ≥ 2 cho nhóm có giờ chưa chọn.
-- **M7:** bỏ giờ sinh thì 88% note đổi; sang ngày mới thì 100% note đổi ở ít nhất một phần.
-- M3, M6, M8 chưa áp dụng (cần G0/G2).
+- **M1** (khoảng lặp ≥ 90 ngày): **0%** ở mọi phần và mọi nhóm đo được. Mục tiêu ≥ 95%.
+- **M4** (note giống hệt, cùng cung, cùng ngày): có giờ sinh **6,0%**; chỉ ngày sinh **100%**; cặp cùng ngày
+  sinh **100%**. Mục tiêu < 1%.
+- **M5** (yếu tố riêng, đếm theo spec §5: transit cá nhân và cấu hình natal là hai cờ độc lập; cặp + nhà tính
+  một lần; không tính placement đơn hay salt):
 
-### Tarot (247 câu hỏi hiện được chấp nhận, không gồm "khi nào"; 988 bài)
+  | Nhóm | Trung bình | Phân vị 10 | Phân bố |
+  |---|---|---|---|
+  | Chỉ ngày sinh | 0 | 0 | 0 nguồn: 60 000 note |
+  | Có giờ sinh, pool 1 | 0,96 | 1 | 2 nguồn: 9 045; 1 nguồn: 147 456; 0 nguồn: 16 499 |
+  | Có giờ sinh, pool 2–3 | 0,75 | 0 | |
 
-- **T2** (tiêu đề trùng): giọng mặc định chỉ có **5** tiêu đề khác nhau trên 247 câu, trùng **98%**. Cà khịa
-  có 9 tiêu đề, trùng 96%. Mục tiêu US-20 là < 10%.
-- **T3** (dấu hiệu câu chung chung trên 1976 vị trí):
-  - "Ý chính của lá:" ở 988 vị trí (50%);
-  - "Thử nhé:" ở 872/988 vị trí của giọng mặc định;
-  - "Ví dụ:" ở **1976/1976** cảnh.
+  Mục tiêu: ≥ 1 (chỉ ngày sinh, chưa chọn mối quan tâm) và ≥ 2 (có giờ, chưa chọn).
+- **M7:** bỏ giờ sinh thì 88% note đổi; sang ngày mới thì 100% note đổi ít nhất một phần.
+- M3, M6, M8: chưa áp dụng (cần G0/G2).
 
-  Mục tiêu là 0.
-- **T4** (cùng lá × vị trí, câu hỏi khác nhau): **0%** khác câu trên 21 060 cặp. Mục tiêu US-20 là ≥ 80%.
-- **T1:** chưa áp dụng, vì engine chưa có dạng câu. Fixture: 253 chấp nhận / 75 từ chối (xem
-  `docs/fixtures`).
+### Tarot (247 câu hỏi được chấp nhận hiện tại, không gồm "khi nào"; đủ 6 map × 4 giọng = 5 928 bài)
+
+- **T2** (tiêu đề trùng, gộp theo giọng):
+
+  | Giọng | Bài | Số tiêu đề khác nhau | Tỷ lệ trùng |
+  |---|---|---|---|
+  | straight_warm | 1 482 | 5 | **99,66%** |
+  | gentle_specific | 1 482 | 5 | **99,66%** |
+  | playful_grounded | 1 482 | 5 | **99,66%** |
+  | roast | 1 482 | 9 | **99,39%** |
+
+  Mục tiêu < 10%.
+- **T3** (trên 23 712 vị trí):
+  - "Ví dụ:" ở **23 712/23 712** cảnh (100%);
+  - "Ý chính của lá:" ở 1 976 vị trí (8,3%, rơi vào các vai không có nhánh riêng);
+  - "Thử nhé:" ở 5 232 vị trí (giọng mặc định).
+
+  Mục tiêu 0.
+- **T4** (cùng lá × vai × chủ đề, mọi cặp câu hỏi khác nhau; 24 vai × 78 lá × 6 chủ đề; giọng mặc định):
+  **0%** khác câu trên **9 292 608** cặp. Mục tiêu ≥ 80%.
+- **T1:** chưa áp dụng, vì engine chưa có dạng câu.
 
 ### Hợp gu (50 cặp × 4 ngữ cảnh × 4 giọng = 800 bài)
 
-- **R2:** đổi ngữ cảnh thì mục "hợp" và "ma sát" đổi **0%** câu. Đổi giọng thì đổi **8,8%** câu. Mục tiêu
-  ≥ 50%.
-- **R3:** **91%** câu của một cặp cũng có ở cặp khác. Mục tiêu < 30%.
-- **R1** (đại diện tạm: câu không trùng cặp nào khác): trung bình 3,16 câu mỗi bài, phân vị 10 là 1.
+Câu được trích từ đúng phần web hiển thị (`RadarContinuePage`): tiêu đề, tóm tắt, chữ ký cặp, ý nghĩa bản
+đồ; trong mỗi mục có tiêu đề, thân, highlight, scene, perspectives, observation.
+
+- **R2** (chỉ câu ở mục "hợp" và "ma sát", mỗi chỉ số 1 200 phép so):
+  - đổi ngữ cảnh: **0%** câu đổi;
+  - đổi giọng: **0%** câu đổi.
+
+  Mục tiêu ≥ 50%.
+- **Chẩn đoán** (không phải R2): đổi giọng trên toàn bài thì đổi 5,1% câu, chủ yếu ở mục kiểm chứng.
+- **R3:** **91,3%** câu của một cặp cũng có ở cặp khác. Mục tiêu < 30%.
+- **R1** (đại diện tạm: câu không trùng cặp nào khác): trung bình 5,16 câu mỗi bài, phân vị 10 là 2.
 - 0 cặp ít tín hiệu.
 
 ## Phát hiện cần ghi
 
-1. **Người chỉ có ngày sinh:** mọi người cùng cung nhận cùng một note mỗi ngày. Lời của Lá không đổi suốt
-   200 ngày. Đây là ưu tiên cao nhất của G1.
-2. **Không hồ sơ có giờ nào rơi vào pool 1 hay 2–3** trong 200 ngày. Các fixture pool hẹp mà spec yêu cầu
-   phải **dựng có chủ đích** ở G1 (ép pool), không lấy mẫu được.
-3. **Hợp gu với người kia không rõ giờ:** chart được tính tại 12:00 giờ địa phương rồi bỏ Mặt Trăng, nhà
-   và các góc (`BirthService.calculate_transient_chart`). Contact của hành tinh nhanh gần ngưỡng orb vì vậy
-   có thể sai. Spec G2 §9 thay bằng orb trên tích hai miền ngày sinh. Đây là phát hiện để xử lý ở B4/G2,
-   không sửa trong P1.
-4. Tiêu đề Daily đổi mỗi ngày nhưng lặp sau đúng 6 ngày ở mọi nhóm, do chọn theo `ordinal % 6`.
+1. **Pool đủ điều kiện gần như luôn hẹp.** 85% ngày-hồ sơ có giờ sinh chỉ có **1** tình huống để chọn, và
+   chỉ 1 ngày có ≥ 4. Bản đầu kết luận ngược lại vì đếm các issue đã thắng. Hệ quả cho G1:
+   - đa dạng không thể chỉ đến từ luân phiên tình huống (top-K hiếm khi > 1); lịch chủ theo khung trong một
+     tình huống là đòn bẩy chính;
+   - fixture cho pool ≥ 4 phải **dựng có chủ đích**, không lấy mẫu được.
+2. **Người chỉ có ngày sinh:** mọi người cùng cung nhận cùng một note; lời của Lá không đổi suốt 200 ngày.
+3. **Hợp gu:** ngữ cảnh và giọng không đổi câu nào ở mục "hợp" và "ma sát". Người kia không rõ giờ được tính
+   tại 12:00 giờ địa phương rồi bỏ Mặt Trăng, nhà và các góc; xử lý ở B4/G2 (spec G2 §9).
+4. **Tarot:** 4 giọng chung 5 tiêu đề (Cà khịa có 9). Nghĩa của lá không phụ thuộc câu hỏi.
 
 ## Mức sàn
 
-Theo quyết định owner (A1–A3), mức sàn là **mục tiêu**, không phải hiện trạng. Baseline này ghi điểm xuất
+Theo quyết định owner (A1–A3), mức sàn là **mục tiêu**, không phải hiện trạng. Baseline này là điểm xuất
 phát. Mức sàn **chưa** được đưa vào `content-matrix-baseline.json`, vì engine hiện tại sẽ không đạt và CI
-sẽ đỏ. Mức sàn được đưa vào theo từng bước khi mảng tương ứng đạt (B2 cho Tarot, G1 cho Daily, B4 cho Hợp
-gu).
+sẽ đỏ. Mỗi mảng sẽ đưa mức sàn vào khi đạt (B2 cho Tarot, G1 cho Daily, B4 cho Hợp gu).

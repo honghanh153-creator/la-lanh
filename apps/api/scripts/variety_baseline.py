@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, TimePrecision
 from app.domains.radar.reading import _motifs, build_radar_reading
+from app.domains.readings import daily_psychology
 from app.domains.readings.companion import COMPANION_FALLBACK, companion_issue_entry
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import DailyTransitRole, ReadingCandidate, ReadingPurpose
@@ -84,6 +85,34 @@ def note_key(note: dict[str, Any]) -> tuple[str, str, str]:
     return (note["headline"], note["scene"], note["advice"])
 
 
+NATAL_CONFIG_KINDS = frozenset({"natal_aspect", "house_placement"})
+
+
+def personal_sources(transit_used: bool, support_kinds: Iterable[str]) -> int:
+    """Independent personal sources actually used by one note (spec §5), each counted once.
+
+    Source 1: a personal transit used by the note. Source 3: a natal pair aspect or a house
+    placement among the evidence the situation rests on (pair + house of the same note count
+    once). Single sign placements, salt and factors that exist but are unused never count.
+    Sources 2 (calendar) and 4 (focus) do not exist in the current engine.
+    """
+
+    return int(transit_used) + int(bool(NATAL_CONFIG_KINDS & set(support_kinds)))
+
+
+def pool_stratum(daily_pool_sizes: Sequence[int]) -> str:
+    """Stratum of a profile whose eligible pool changes by day: the modal daily bucket.
+
+    The pool is what the planner could pick from on that day (distinct issues passed to
+    ``_pick``), not the issues that happened to win over the window. Ties go to the smaller
+    bucket, so a small rotating pool is never reported as a large one.
+    """
+
+    order = ("1", "2-3", ">=4")
+    counts = Counter(pool_bucket(size) for size in daily_pool_sizes)
+    return max(order, key=lambda bucket: (counts[bucket], -order.index(bucket)))
+
+
 def pool_bucket(distinct_situations: int) -> str:
     return "1" if distinct_situations <= 1 else "2-3" if distinct_situations <= 3 else ">=4"
 
@@ -130,25 +159,43 @@ class DailyLab:
                 source.sign.value if source.sign else "|".join(c.value for c in source.candidates)
             )
         out = []
-        for offset in range(DAYS):
-            local_date = START + timedelta(days=offset)
-            observed_at = datetime.combine(local_date, time(12), UTC)  # projection observed_at
-            transits = (
-                self.engine.calculate_transit_to_natal(source, observed_at) if exact else None
-            )
-            plan = self.planner.plan(
-                source,
-                purpose=ReadingPurpose.DAILY_NOTE,
-                transits=transits,
-                editorial_seed=local_date.isoformat(),
-            )
-            candidate = self.renderer.render(plan)
-            if transits is not None and not evaluate_candidate(plan, candidate).accepted:
+        recorded: list[int] = []
+        original_pick = daily_psychology._pick
+
+        def recording_pick(plan: Any, pool: list[Any]) -> Any:
+            recorded.append(len({situation.issue_key for situation in pool}))
+            return original_pick(plan, pool)
+
+        daily_psychology._pick = recording_pick  # observe the pool, never change the choice
+        try:
+            for offset in range(DAYS):
+                local_date = START + timedelta(days=offset)
+                observed_at = datetime.combine(local_date, time(12), UTC)  # projection observed_at
+                transits = (
+                    self.engine.calculate_transit_to_natal(source, observed_at) if exact else None
+                )
+                recorded.clear()
                 plan = self.planner.plan(
-                    source, purpose=ReadingPurpose.DAILY_NOTE, editorial_seed=local_date.isoformat()
+                    source,
+                    purpose=ReadingPurpose.DAILY_NOTE,
+                    transits=transits,
+                    editorial_seed=local_date.isoformat(),
                 )
                 candidate = self.renderer.render(plan)
-            out.append(self._note(plan, candidate))
+                if transits is not None and not evaluate_candidate(plan, candidate).accepted:
+                    recorded.clear()
+                    plan = self.planner.plan(
+                        source,
+                        purpose=ReadingPurpose.DAILY_NOTE,
+                        editorial_seed=local_date.isoformat(),
+                    )
+                    candidate = self.renderer.render(plan)
+                note = self._note(plan, candidate)
+                # Date-only plans have a fixed sign issue and never call _pick: pool of one.
+                note["pool"] = recorded[-1] if recorded else 1
+                out.append(note)
+        finally:
+            daily_psychology._pick = original_pick
         return out, sign
 
     def _note(self, plan: Any, candidate: ReadingCandidate) -> dict[str, Any]:
@@ -159,10 +206,11 @@ class DailyLab:
         selection = plan.daily_selection
         factors = 0
         if selection is not None:
-            if selection.transit_role is not DailyTransitRole.NONE:
-                factors += 1  # source 1: a certain personal transit
-            elif selection.rule_key.startswith("pair-") or "house" in selection.rule_key:
-                factors += 1  # source 3: a natal pair or house rule
+            kinds = {factor.id: str(factor.kind.value) for factor in plan.factors}
+            factors = personal_sources(
+                selection.transit_role is not DailyTransitRole.NONE,
+                (kinds.get(ref, "") for ref in selection.support_refs),
+            )
         return {
             "headline": normalize(candidate.hook),
             "scene": normalize(candidate.manifestation),
@@ -187,10 +235,12 @@ def daily_report(lab: DailyLab, fixtures: dict[str, Any]) -> dict[str, Any]:
         for t in ("time_known", "date_only")
         for pool in ("1", "2-3", ">=4")
     }
+    daily_pools: Counter[str] = Counter()
     for profile in profiles:
-        situations = {n["situation"] for n in notes[profile["id"]]}
+        sizes = [n["pool"] for n in notes[profile["id"]]]
+        daily_pools.update(pool_bucket(size) for size in sizes)
         time_key = "time_known" if profile["time_known"] else "date_only"
-        strata[f"{time_key}|pool={pool_bucket(len(situations))}|focus=none"].append(profile["id"])
+        strata[f"{time_key}|pool={pool_stratum(sizes)}|focus=none"].append(profile["id"])
 
     m1: dict[str, Any] = {}
     m2: dict[str, Any] = {}
@@ -300,6 +350,11 @@ def daily_report(lab: DailyLab, fixtures: dict[str, Any]) -> dict[str, Any]:
         "start": START.isoformat(),
         "observed_at": "local_date 12:00 UTC (projection)",
         "voice": "direct (roast maps one-to-one onto the same baseline today)",
+        "pool_rule": (
+            "pool = distinct issues the planner could pick from that day (input of _pick); "
+            "profile stratum = modal daily bucket, ties to the smaller bucket"
+        ),
+        "daily_pool_bucket_days": dict(daily_pools),
         "M1_repeat_gap_pass_rate_ge_90d": m1,
         "M2_consecutive_day_identical_rate": m2,
         "M4_identical_notes": m4,
@@ -311,6 +366,31 @@ def daily_report(lab: DailyLab, fixtures: dict[str, Any]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------- Tarot
+
+_SPREAD_FOR_COUNT = {1: TarotSpread.ONE_CARD, 3: TarotSpread.THREE_CARD, 5: TarotSpread.FIVE_CARD}
+
+
+def tarot_matrix(engine: TarotReadingEngine) -> list[tuple[TarotSpreadMap, TarotSpread, int]]:
+    """Every spread map the engine offers, with its spread size (spec §4c: all valid maps)."""
+
+    out = []
+    for spread_map in TarotSpreadMap:
+        count = len(engine.positions_for(spread_map))
+        out.append((spread_map, _SPREAD_FOR_COUNT[count], count))
+    return out
+
+
+def duplicate_rate(values: Sequence[str]) -> float | None:
+    return rate(len(values) - len(set(values)), len(values))
+
+
+def different_pairs(texts_by_question: dict[str, str]) -> tuple[int, int]:
+    """(pairs with different text, all pairs) among distinct questions for one card/role/topic."""
+
+    counts = Counter(texts_by_question.values())
+    n = len(texts_by_question)
+    total = comb(n, 2)
+    return total - sum(comb(k, 2) for k in counts.values()), total
 
 
 def tarot_report() -> dict[str, Any]:
@@ -325,20 +405,17 @@ def tarot_report() -> dict[str, Any]:
         and item["context"]
         and engine.assess_question(item["question"], TarotContext(item["context"])).accepted
     ]
-    spreads = (
-        (TarotSpread.ONE_CARD, TarotSpreadMap.ONE_FOCUS, 1),
-        (TarotSpread.THREE_CARD, TarotSpreadMap.THREE_UNBLOCK, 3),
-    )
+    matrix = tarot_matrix(engine)
+    voices = list(TarotVoice)
     headlines: dict[str, list[str]] = defaultdict(list)
     markers: Counter[str] = Counter()
-    readings = 0
-    rejected = 0
+    positions = readings = rejected = 0
     versions: set[str] = set()
     for item in accepted:
-        rng = random.Random(f"tarot-{item['id']}")  # noqa: S311 - synthetic sampling, not security
-        for spread, spread_map, count in spreads:
+        rng = random.Random(f"tarot-{item['id']}")  # noqa: S311 - synthetic sampling
+        for spread_map, spread, count in matrix:
             ids = tuple(card.id for card in rng.sample(cards, count))
-            for voice in (TarotVoice.PLAYFUL_GROUNDED, TarotVoice.ROAST):
+            for voice in voices:
                 try:
                     reading = engine.render(
                         card_ids=ids,
@@ -353,54 +430,70 @@ def tarot_report() -> dict[str, Any]:
                     continue
                 readings += 1
                 versions.add(reading.provenance.knowledge_version)
-                headlines[f"{voice.value}|{spread_map.value}"].append(normalize(reading.headline))
+                headlines[voice.value].append(normalize(reading.headline))  # T2: per voice
                 for position in reading.positions:
+                    positions += 1
                     markers["meaning:Ý chính của lá"] += position.meaning_here.startswith(
                         "Ý chính của lá"
                     )
                     markers["action:Thử nhé:"] += position.small_action.startswith("Thử nhé:")
                     markers["scene:Ví dụ:"] += position.everyday_scene.startswith("Ví dụ:")
     t2 = {
-        key: {
+        voice: {
             "readings": len(values),
             "distinct": len(set(values)),
-            "duplicate_rate": rate(len(values) - len(set(values)), len(values)),
+            "duplicate_rate": duplicate_rate(values),
         }
-        for key, values in sorted(headlines.items())
+        for voice, values in sorted(headlines.items())
     }
-    # T4: same card in the same role, different questions of the same topic.
-    t4_same = t4_pairs = 0
-    by_context: dict[str, list[str]] = defaultdict(list)
+    # T4: same card, same role (map position), same topic, every pair of distinct questions.
+    by_topic: dict[str, list[str]] = defaultdict(list)
     for item in accepted:
-        by_context[item["context"]].append(item["question"])
-    for context, questions in by_context.items():
-        sample = questions[:10]
-        for card in cards:
-            texts = []
-            for question in sample:
-                reading = engine.render(
-                    card_ids=(card.id,),
-                    spread=TarotSpread.ONE_CARD,
-                    spread_map=TarotSpreadMap.ONE_FOCUS,
-                    context=TarotContext(context),
-                    question=question,
-                    voice=TarotVoice.PLAYFUL_GROUNDED,
-                )
-                texts.append(normalize(reading.positions[0].meaning_here))
-            for a, b in combinations(texts, 2):
-                t4_pairs += 1
-                t4_same += a == b
+        by_topic[item["context"]].append(item["question"])
+    # Rotating the deck gives every (card, role) exactly once per question and map, and
+    # one render records every role of that map at once.
+    texts: dict[tuple[str, int, str, str], dict[str, str]] = defaultdict(dict)
+    for spread_map, spread, count in matrix:
+        for topic, questions in by_topic.items():
+            for question in questions:
+                for start_index in range(len(cards)):
+                    ids = tuple(cards[(start_index + j) % len(cards)].id for j in range(count))
+                    reading = engine.render(
+                        card_ids=ids,
+                        spread=spread,
+                        spread_map=spread_map,
+                        context=TarotContext(topic),
+                        question=question,
+                        voice=TarotVoice.PLAYFUL_GROUNDED,
+                    )
+                    for role_index, card_id in enumerate(ids):
+                        key = (spread_map.value, role_index, topic, card_id)
+                        texts[key][question] = normalize(reading.positions[role_index].meaning_here)
+    t4_diff = t4_total = 0
+    for by_question in texts.values():
+        diff, total = different_pairs(by_question)
+        t4_diff += diff
+        t4_total += total
+    roles = sum(count for _, _, count in matrix)
     return {
         "questions": len(accepted),
-        "readings": readings,
-        "content_rejections": rejected,
+        "matrix": {
+            "maps": [m.value for m, _, _ in matrix],
+            "voices": [v.value for v in voices],
+            "readings": readings,
+            "content_rejections": rejected,
+        },
         "T1_form_accuracy": "not applicable yet (the engine has no question form; US-20 adds it)",
-        "T2_headline_duplicates": t2,
-        "T3_generic_markers_positions": dict(markers),
-        "T4_same_card_role_different_text": {
-            "pairs": t4_pairs,
-            "different": t4_pairs - t4_same,
-            "rate": rate(t4_pairs - t4_same, t4_pairs),
+        "T2_headline_duplicates_by_voice": t2,
+        "T3_generic_markers": {"positions": positions, **dict(markers)},
+        "T4_same_card_role_topic_different_text": {
+            "roles": roles,
+            "cards": len(cards),
+            "topics": len(by_topic),
+            "question_pairs": t4_total,
+            "different": t4_diff,
+            "rate": rate(t4_diff, t4_total),
+            "voice": "playful_grounded (default)",
         },
         "knowledge_versions": sorted(versions),
     }
@@ -438,16 +531,45 @@ def _radar_chart(engine: NatalChartEngine, person: dict[str, Any]) -> NatalChart
     )
 
 
-def _radar_sentences(reading: dict[str, Any], sections: tuple[str, ...] | None = None) -> list[str]:
+def radar_visible_texts(
+    reading: dict[str, Any], sections: tuple[str, ...] | None = None
+) -> list[str]:
+    """Readable prose the web renders (RadarContinuePage), optionally limited to some sections.
+
+    Top level (only for the whole reading): headline, summary, pair signature headline and
+    summary, compatibility meanings. Per section: title, body, and title/body of highlights,
+    scene, perspectives and observation. Labels, kickers and collapsed evidence are excluded.
+    """
+
     texts: list[str] = []
     if sections is None:
-        texts += [reading["headline"], reading["summary"]]
-    for section in reading["sections"]:
+        signature = reading.get("pair_signature") or {}
+        texts += [reading.get("headline", ""), reading.get("summary", "")]
+        texts += [signature.get("headline", ""), signature.get("summary", "")]
+        texts += [item.get("meaning", "") for item in reading.get("compatibility_map") or []]
+    for section in reading.get("sections") or []:
         if sections is not None and section.get("key") not in sections:
             continue
         texts += [section.get("title") or "", section.get("body") or ""]
-        texts += [h.get("body", "") for h in section.get("highlights", [])]
-    return [normalize(s) for t in texts for s in _SENTENCE.split(t) if s.strip()]
+        nested = [*(section.get("highlights") or []), *(section.get("perspectives") or [])]
+        nested += [block for block in (section.get("scene"), section.get("observation")) if block]
+        for block in nested:
+            texts += [block.get("title") or "", block.get("body") or ""]
+    return [text for text in texts if text]
+
+
+def radar_sentences(reading: dict[str, Any], sections: tuple[str, ...] | None = None) -> list[str]:
+    return [
+        normalize(sentence)
+        for text in radar_visible_texts(reading, sections)
+        for sentence in _SENTENCE.split(text)
+        if sentence.strip()
+    ]
+
+
+def changed_share(before: Sequence[str], after: Sequence[str]) -> float:
+    base = set(before)
+    return len(base - set(after)) / len(base) if base else 0.0
 
 
 def radar_report(fixtures: dict[str, Any]) -> dict[str, Any]:
@@ -465,49 +587,58 @@ def radar_report(fixtures: dict[str, Any]) -> dict[str, Any]:
                     bundle, context=context, voice=voice
                 )
     pair_ids = [p["id"] for p in fixtures["pairs"]]
+    voice_keys = [v.value for v in RelationshipVoice]
+    fit_friction = ("fit", "friction")
     unique_counts: list[int] = []
     overlap_rates: list[float] = []
     for context in RADAR_CONTEXTS:
-        for voice in RelationshipVoice:
+        for voice_key in voice_keys:
             per_pair = {
-                pid: set(_radar_sentences(readings[(pid, context, voice.value)]))
-                for pid in pair_ids
+                pid: set(radar_sentences(readings[(pid, context, voice_key)])) for pid in pair_ids
             }
             for pid, sentences in per_pair.items():
-                others = set().union(*(s for other, s in per_pair.items() if other != pid))
+                others: set[str] = set().union(
+                    *(other_set for other, other_set in per_pair.items() if other != pid)
+                )
                 shared = len(sentences & others)
                 unique_counts.append(len(sentences) - shared)
                 overlap_rates.append(shared / len(sentences) if sentences else 0.0)
-    fit_friction = ("fit", "friction")
-
-    def changed_share(a: list[str], b: list[str]) -> float:
-        base = set(a)
-        return len(base - set(b)) / len(base) if base else 0.0
-
     context_change = [
         changed_share(
-            _radar_sentences(
-                readings[(pid, c1, RelationshipVoice.STRAIGHT_WARM.value)], fit_friction
-            ),
-            _radar_sentences(
-                readings[(pid, c2, RelationshipVoice.STRAIGHT_WARM.value)], fit_friction
-            ),
+            radar_sentences(readings[(pid, c1, voice_key)], fit_friction),
+            radar_sentences(readings[(pid, c2, voice_key)], fit_friction),
         )
         for pid in pair_ids
+        for voice_key in voice_keys
         for c1, c2 in combinations(RADAR_CONTEXTS, 2)
     ]
     voice_change = [
         changed_share(
-            _radar_sentences(readings[(pid, "crush", v1.value)]),
-            _radar_sentences(readings[(pid, "crush", v2.value)]),
+            radar_sentences(readings[(pid, context, v1)], fit_friction),
+            radar_sentences(readings[(pid, context, v2)], fit_friction),
         )
         for pid in pair_ids
-        for v1, v2 in combinations(list(RelationshipVoice), 2)
+        for context in RADAR_CONTEXTS
+        for v1, v2 in combinations(voice_keys, 2)
+    ]
+    voice_change_full = [
+        changed_share(
+            radar_sentences(readings[(pid, context, v1)]),
+            radar_sentences(readings[(pid, context, v2)]),
+        )
+        for pid in pair_ids
+        for context in RADAR_CONTEXTS
+        for v1, v2 in combinations(voice_keys, 2)
     ]
     any_reading = next(iter(readings.values()))
     return {
         "pairs": len(pair_ids),
         "readings": len(readings),
+        "sentence_source": (
+            "visible prose per RadarContinuePage: headline, summary, pair signature, "
+            "compatibility meanings; section title/body and highlights, scene, perspectives, "
+            "observation title/body"
+        ),
         "R1_unique_sentences_per_reading": {
             "mean": round(statistics.fmean(unique_counts), 2),
             "p10": sorted(unique_counts)[len(unique_counts) // 10],
@@ -516,8 +647,18 @@ def radar_report(fixtures: dict[str, Any]) -> dict[str, Any]:
                 "(contact sentences are tagged only after R2)"
             ),
         },
-        "R2_context_change_fit_friction": round(statistics.fmean(context_change), 4),
-        "R2_voice_change_all_sections": round(statistics.fmean(voice_change), 4),
+        "R2_context_change_fit_friction": {
+            "comparisons": len(context_change),
+            "mean_changed_share": round(statistics.fmean(context_change), 4),
+        },
+        "R2_voice_change_fit_friction": {
+            "comparisons": len(voice_change),
+            "mean_changed_share": round(statistics.fmean(voice_change), 4),
+        },
+        "diagnostic_voice_change_full_reading": {
+            "comparisons": len(voice_change_full),
+            "mean_changed_share": round(statistics.fmean(voice_change_full), 4),
+        },
         "R3_cross_pair_overlap": round(statistics.fmean(overlap_rates), 4),
         "low_signal_pairs": low_signal,
         "unknown_time_method": (
