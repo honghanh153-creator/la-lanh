@@ -241,7 +241,9 @@ _ADDRESSEES = (
 )
 _REPORTING_TAIL = ("là", "rằng", "xem", "thử", "giúp", "với", "nhé", "ạ")
 # A subordinate clause after a trailing timing phrase: "Mình nên nhắn lại khi nào để kịp?".
-_SUBORDINATORS = ("để", "cho kịp", "thì", "mà", "trước khi", "sau khi", "nếu", "khi")
+# Only true subordinators: "thì" (and similar bridges) is a timing filler that can precede the
+# timed subject itself ("... khi nào thì họ nên ..."), so it never proves subordination.
+_SUBORDINATORS = ("để", "cho kịp", "trước khi", "sau khi", "nếu")
 # Sentence-final particles: "Mình nên hỏi sếp khi nào nhỉ?" still ends with the timing phrase.
 _FINAL_PARTICLES = ("nhỉ", "vậy", "thế", "ạ", "nhé", "đây", "ta", "nha", "hả", "hở")
 
@@ -318,6 +320,14 @@ def _is_reporting_prefix(tokens: list[str]) -> bool:
     return False
 
 
+def _mentions_reporting(tokens: list[str]) -> bool:
+    return any(
+        tokens[i : i + len(v.split())] == v.split()
+        for v in _REPORTING_VERBS
+        for i in range(len(tokens))
+    )
+
+
 def _strip_final_particles(tokens: list[str]) -> list[str]:
     rest = list(tokens)
     while rest and rest[-1] in _FINAL_PARTICLES:
@@ -350,6 +360,10 @@ def timing_owner(question: str) -> TimingOwner:
     if _is_reporting_prefix(before):
         return _clause_owner(after)  # "Mình muốn hỏi bạn khi nào họ ...": a timed complement
     if _starts_with(after_raw, _SUBORDINATORS):
+        if _mentions_reporting(before):
+            # "Mình muốn hỏi thêm khi nào để ...": the opening clause may be an introduction,
+            # so which clause is timed is not established.
+            return TimingOwner.UNCLEAR
         return _clause_owner(before)  # "Mình nên nhắn lại khi nào để kịp?"
     # Any other shape: the relation between the clauses is not established, so never infer
     # the reader's own action. An explicit other subject after the phrase is still refused.

@@ -309,6 +309,69 @@ def test_p2_prefix_with_a_recipient_does_not_own_the_timed_action(question: str)
     assert _assess(question).explanation.startswith(OUTCOME_EXPLANATION["reject_certainty"])
 
 
+# Codex relation census (#23 @ 84dfc83): 6 prefixes x 3 timed subjects x with/without "thì".
+_RELATION_PREFIXES = (
+    "",
+    "Mình muốn hỏi ",
+    "Mình muốn hỏi bạn ",
+    "Mình muốn hỏi sếp xem ",
+    "Mình muốn hỏi thêm ",
+    "Mình muốn hỏi bạn ấy ",
+)
+_RELATION_ACTORS = (
+    ("khi nào", "mình nên nhắn lại?", True),
+    ("khi nào", "họ nên nhắn lại cho mình?", False),
+    ("bao giờ", "dự án hoàn thành để mình nghỉ?", False),
+)
+
+
+@pytest.mark.parametrize("prefix", _RELATION_PREFIXES)
+@pytest.mark.parametrize(("time", "clause", "own_allowed"), _RELATION_ACTORS)
+@pytest.mark.parametrize("bridge", [" ", " thì "])
+def test_p2_thi_bridge_never_makes_the_opening_action_timed(
+    prefix: str, time: str, clause: str, own_allowed: bool, bridge: str
+) -> None:
+    question = prefix + time + bridge + clause
+    question = question[:1].upper() + question[1:]
+    owner = qf.timing_owner(question)
+    if not own_allowed:
+        assert owner is not qf.TimingOwner.OWN, question
+    elif not prefix or ("bạn ấy" not in prefix and "thêm" not in prefix):
+        assert owner is qf.TimingOwner.OWN, question  # supported introductions keep OWN
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Mình nên hỏi sếp khi nào?",
+        "Mình nên nghỉ việc khi nào nhỉ?",
+        "Mình nên nhắn lại khi nào để kịp?",  # a true subordinator after the phrase
+        "Khi nào thì mình nên nghỉ việc?",  # "thì" before the reader's own clause
+    ],
+)
+def test_p2_real_trailing_and_subordinate_controls_stay_own(question: str) -> None:
+    assert qf.timing_owner(question) is qf.TimingOwner.OWN
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Mình muốn hỏi thêm khi nào thì họ nên nhắn lại cho mình?",
+        "Mình muốn hỏi thêm bao giờ thì dự án hoàn thành để mình nghỉ?",
+        "Mình muốn hỏi thêm khi nào họ nên nhắn lại cho mình?",
+    ],
+)
+def test_p2_thi_after_an_unsupported_introduction_is_refused(question: str) -> None:
+    assessment = _assess(question)
+    assert assessment.accepted is False
+    assert assessment.suggested_reframe
+
+
+def test_p2_subordinator_after_a_possible_introduction_is_unclear() -> None:
+    assert qf.timing_owner("Mình nên hỏi sếp khi nào để kịp?") is qf.TimingOwner.UNCLEAR
+    assert _assess("Mình nên hỏi sếp khi nào để kịp?").explanation.startswith(CLARIFY)
+
+
 @pytest.mark.parametrize(
     "question",
     [
@@ -557,6 +620,8 @@ def test_p2_service_timing_prefixes_and_unresolved_predicates(client: TestClient
             "Mình muốn hỏi bạn khi nào họ nên nhắn lại cho mình?",
             "Mình muốn hỏi sếp xem bao giờ dự án hoàn thành để mình nghỉ?",
             "Tuần này khi nào mình nên nghỉ?",
+            "Mình muốn hỏi thêm khi nào thì họ nên nhắn lại cho mình?",
+            "Mình muốn hỏi thêm bao giờ thì dự án hoàn thành để mình nghỉ?",
         )
     ):
         response = client.post(

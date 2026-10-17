@@ -38,7 +38,10 @@
          - sau một **tiền tố dẫn câu** nhận diện theo cả cấu trúc (từ của người nói, một động từ báo cáo,
            người nhận tuỳ chọn tối đa hai chữ, đuôi "là/rằng/xem…", ví dụ "Mình muốn hỏi sếp xem …"):
            lấy mệnh đề sau cụm thời gian;
-         - sau cụm thời gian là liên từ phụ ("để", "thì", "trước khi"…): lấy mệnh đề đầu câu;
+         - sau cụm thời gian là **liên từ phụ thật** ("để", "trước khi", "sau khi", "nếu"), và mệnh đề
+           đầu câu không thể là lời dẫn (không chứa động từ báo cáo): lấy mệnh đề đầu câu. Nếu mệnh đề đầu
+           câu có thể là lời dẫn thì UNCLEAR. "thì" là filler trước chủ thể, không bao giờ là bằng chứng
+           của mệnh đề phụ;
          - **mọi cấu trúc khác: UNCLEAR → yêu cầu làm rõ.** Không bao giờ suy ra việc của người đọc. Nếu
            mệnh đề sau cụm thời gian rõ ràng là của người khác thì vẫn từ chối như dự đoán.
        - chủ thể phải là ngôi thứ nhất (hoặc người đọc ngầm định trước "nên");
@@ -156,6 +159,24 @@ Ngân hàng câu hỏi: 49/49 câu `timing` vẫn được nhận, dạng câu 2
   - `test_p2_timing_only_owns_an_established_clause_relation`;
   - `test_p2_service_timing_prefixes_and_unresolved_predicates` (API: 422 với tiền tố có người nhận và
     cấu trúc chưa hỗ trợ; 201 với "Cho mình hỏi bạn khi nào mình nên nhắn lại?").
+
+## Sửa theo review Codex @ `84dfc83` (P2 cầu nối "thì")
+
+- **Lỗi:** "thì" vừa là filler thời gian, vừa nằm trong danh sách liên từ phụ. Vì vậy "Mình muốn hỏi thêm khi
+  nào **thì** họ nên nhắn lại cho mình?" đi vào nhánh liên từ phụ và bị coi là việc của người đọc (OWN).
+- **Sửa cơ chế:**
+  - chỉ giữ liên từ phụ thật ("để", "trước khi", "sau khi", "nếu", "cho kịp");
+  - nhánh liên từ phụ chỉ áp khi mệnh đề đầu câu không chứa động từ báo cáo, ngược lại thì UNCLEAR;
+  - mọi cấu trúc khác vẫn rơi về OTHER/UNCLEAR.
+  - Không mở rộng danh sách tiền tố hay người nhận.
+- **Census 39 ca của Codex** (6 tiền tố × 3 chủ thể × có/không "thì" + 3 đối chứng): trước khi sửa exit 1
+  (4 OWN sai), sau khi sửa **0 lỗi, exit 0**. Census 26 ca vẫn exit 0.
+- **Regression:**
+  - `test_p2_thi_bridge_never_makes_the_opening_action_timed` (ma trận 36 ca);
+  - `test_p2_real_trailing_and_subordinate_controls_stay_own`;
+  - `test_p2_thi_after_an_unsupported_introduction_is_refused`;
+  - `test_p2_subordinator_after_a_possible_introduction_is_unclear`;
+  - API trong `test_p2_service_timing_prefixes_and_unresolved_predicates`: hai câu "thì" của Codex trả 422.
 
 ## Bảo mật và riêng tư
 
