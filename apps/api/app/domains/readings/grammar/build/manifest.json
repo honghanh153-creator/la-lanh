@@ -11,10 +11,10 @@
  ],
  "catalog_sha256": "1e83ba81c425695baad27c0f0d220a26b7ccd2668571f1995a1e66a62f908b1b",
  "catalog_version": "daily-grammar-g0-sample-v1",
- "composer_version": "grammar-composer-v1",
+ "composer_version": "grammar-composer-v2",
  "files": {
   "allowlist.json": "450b78ebc9a19407b994b25106690378fbbd0b46503b83ac78f162b260d76be1",
-  "schedules.json": "6d44deb0b9da4b243871499c68f78d4c4fd525a48a7191322be18f5b172fd18a"
+  "schedules.json": "a6a170c0c5bd718d99d2207c05b7ed519619abf303927a9e2ecf18c011a08657"
  },
  "frames": {
   "daily.missing-context.advice": {
@@ -34,20 +34,20 @@
    "roast_of": null,
    "variants": [
     {
-     "sha256": "794d09373bddf9748d1f1bf68c0fead29a9f584af43f89fb304bd83592feee0f",
-     "steps": 90
+     "sha256": "801f9ba2a202f8bc54fd1ca5bcf7e52d48a2b669af53b37b49b2ef35dd8152f2",
+     "steps": 185
     },
     {
-     "sha256": "4c9a90f1a4933aaeeaa3ebfef1073df776d467e5a691004f1aa4fb69d95ed6d5",
-     "steps": 90
+     "sha256": "90cc018355ba045b373de1a9d3d9567f72ba7aaa3b4cb12b2950e6f0a8b47a2b",
+     "steps": 195
     },
     {
-     "sha256": "1344c6df36a5fd5936f15c8816716f88eab777bd26c40d27bc9a57871a1f8407",
-     "steps": 90
+     "sha256": "2a1cf08d9a91cc0cb86e6cf68cda16b9cbb2d8cd56dcb28bdc0531e28e15afce",
+     "steps": 175
     },
     {
-     "sha256": "2ed97880c0991328093dadf0e8081410d1b0a6d2d2bd6d80d07ae0afe2417292",
-     "steps": 90
+     "sha256": "4bf29e097b554405a6a7e539695e13cde42d98afd01f45a164151959c93be481",
+     "steps": 169
     }
    ],
    "voice": "direct"

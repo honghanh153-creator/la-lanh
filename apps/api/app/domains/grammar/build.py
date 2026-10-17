@@ -111,6 +111,15 @@ def _structure_reasons(catalog: SurfaceCatalog, frames: dict[str, Frame]) -> lis
         if frame.surface is not catalog.surface:
             reasons.append(f"{frame.frame_id}: surface {frame.surface} != {catalog.surface}")
         for name, slot in frame.slots.items():
+            if slot.kind is SlotKind.MUST_CHANGE:
+                # Adjacency is proved on ids, so two ids must never display the same text:
+                # otherwise "every must-change slot changes" holds on ids but not on output.
+                shown = [dedupe_key(value.text) for value in slot.values]
+                if len(shown) != len(set(shown)):
+                    reasons.append(
+                        f"{frame.frame_id}.{name}: must-change values repeat the same text "
+                        "after normalisation"
+                    )
             if slot.kind is SlotKind.REPEATABLE and len(slot.values) > 1:
                 reasons.append(
                     f"{frame.frame_id}.{name}: a repeatable slot takes one value in G0 "
@@ -299,10 +308,12 @@ def build_surface(directory: Path) -> GrammarBuild:
                 for m in result.order
             ]
             variant_meta.append({"sha256": digest(canonical_json(codes)), "steps": result.steps})
-        if len(variants) < catalog.min_variants:
+        if len(variants) != catalog.variants:
+            # The manifest advertises M, and the runtime selects variant = seed mod M, so every
+            # frame must publish exactly M variants.
             reasons.append(
                 f"{frame_id}: built {len(variants)} schedule variants with L="
-                f"{catalog.schedule_length}, need {catalog.min_variants} (infeasible)"
+                f"{catalog.schedule_length}, need M={catalog.variants} (infeasible)"
             )
         schedules[frame_id] = [
             ["|".join(f"{s}={v}" for s, v in zip(frame.must_change, m, strict=True)) for m in order]

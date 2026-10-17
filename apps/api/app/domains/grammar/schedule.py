@@ -38,31 +38,26 @@ def build_schedule(
     variant: int,
     max_steps: int,
 ) -> ScheduleResult:
+    """Bounded search. A step is one adjacency test or one placed master (owner A4 budget).
+
+    No neighbour graph is built: candidates are scanned lazily in the variant's hash order, so
+    the work done before giving up is bounded by ``max_steps`` whatever the domain size (which
+    the combination cap already bounds for the hash ordering).
+    """
+
     nodes = sorted(set(masters), key=lambda master: _rank(frame_id, variant, master))
     if length < 2 or len(nodes) < length:
         return ScheduleResult(None, 0)
-    neighbours = {node: [other for other in nodes if adjacent(node, other)] for node in nodes}
+    steps = 0
     start = nodes[0]
     path: list[Master] = [start]
+    cursors = [0]  # resume point of the candidate scan at each depth
     visited = {start}
     counts = [dict.fromkeys(values, 0) for values in required_values]
-    for slot, value in enumerate(start):
-        counts[slot][value] = counts[slot].get(value, 0) + 1
-    steps = 1
 
-    def options(node: Master) -> list[Master]:
-        remaining = length - len(path)
-        candidates = [n for n in neighbours[node] if n not in visited]
-        if remaining == 1:
-            candidates = [n for n in candidates if adjacent(n, start)]
-        # Warnsdorff: fewest onward moves first; the variant hash breaks ties.
-        return sorted(
-            candidates,
-            key=lambda n: (
-                sum(1 for m in neighbours[n] if m not in visited),
-                _rank(frame_id, variant, n),
-            ),
-        )
+    def place(master: Master, delta: int) -> None:
+        for slot, value in enumerate(master):
+            counts[slot][value] = counts[slot].get(value, 0) + delta
 
     def coverage_possible() -> bool:
         remaining = length - len(path)
@@ -71,39 +66,43 @@ def build_schedule(
             for slot_counts in counts
         )
 
-    stack = [iter(options(start))]
-    while stack:
+    place(start, 1)
+    while path:
         if len(path) == length:
-            if adjacent(path[-1], start) and all(
-                all(count > 0 for count in slot_counts.values()) for slot_counts in counts
-            ):
+            if all(all(c > 0 for c in slot_counts.values()) for slot_counts in counts):
                 return ScheduleResult(tuple(path), steps)
             nxt = None
         else:
-            nxt = next(stack[-1], None)
+            nxt = None
+            current, index = path[-1], cursors[-1]
+            closing = len(path) == length - 1
+            while index < len(nodes):
+                candidate = nodes[index]
+                index += 1
+                if candidate in visited:
+                    continue
+                steps += 1 + int(closing)
+                if steps > max_steps:
+                    return ScheduleResult(None, steps)
+                if adjacent(current, candidate) and (not closing or adjacent(candidate, start)):
+                    nxt = candidate
+                    break
+            cursors[-1] = index
         if nxt is None:
-            stack.pop()
             last = path.pop()
+            cursors.pop()
             visited.discard(last)
-            for slot, value in enumerate(last):
-                counts[slot][value] -= 1
-            if not path:
-                break
+            place(last, -1)
             continue
-        steps += 1
-        if steps > max_steps:
-            return ScheduleResult(None, steps)
         path.append(nxt)
         visited.add(nxt)
-        for slot, value in enumerate(nxt):
-            counts[slot][value] = counts[slot].get(value, 0) + 1
+        place(nxt, 1)
         if not coverage_possible():
             path.pop()
             visited.discard(nxt)
-            for slot, value in enumerate(nxt):
-                counts[slot][value] -= 1
+            place(nxt, -1)
             continue
-        stack.append(iter(options(nxt)) if len(path) < length else iter(()))
+        cursors.append(0)
     return ScheduleResult(None, steps)
 
 

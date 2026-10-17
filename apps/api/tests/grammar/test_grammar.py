@@ -6,6 +6,7 @@ docs/plans/2026-10-17-g0-grammar-composer-task.md.
 
 from __future__ import annotations
 
+import itertools
 import json
 import shutil
 import subprocess
@@ -369,3 +370,212 @@ def test_fallback_approval_matches_the_live_tables(monkeypatch: pytest.MonkeyPat
     edited.pop(next(iter(edited)))
     monkeypatch.setattr(companion, "COMPANION_ISSUE_LINES", edited)
     assert fallback_approval.current() != approved["approved"]
+
+
+# ---------------------------------------------------------------- Codex P2 regressions (PR #22)
+
+
+def _diagonal(
+    frame_id: str, a_texts: list[str], b_texts: list[str], template: str = "{a} {b}"
+) -> dict[str, Any]:
+    """Masters (a_i, b_i) only: id constraints require matching indices."""
+
+    n = len(a_texts)
+    return _frame(
+        frame_id,
+        meaning_key="test-issue",  # not a Daily issue: no anchor rule, only the generic gates
+        template=template,
+        slots={
+            "a": {
+                "kind": "must_change",
+                "values": [{"id": f"a{i}", "text": a_texts[i]} for i in range(n)],
+            },
+            "b": {
+                "kind": "must_change",
+                "values": [{"id": f"b{i}", "text": b_texts[i]} for i in range(n)],
+            },
+        },
+        constraints=[{"if": {"a": [f"a{i}"]}, "require": {"b": [f"b{i}"]}} for i in range(n)],
+    )
+
+
+_MINIMA = {"schedule_length": 90, "min_schedule_length": 90, "variants": 4, "min_variants": 4}
+
+
+def test_p2_1_must_change_ids_with_the_same_text_are_refused(tmp_path: Path) -> None:
+    same = ["Trước khi trả lời,"] * 90
+    actions = [f"hỏi lại câu số {i} cho rõ." for i in range(90)]
+    direct = _diagonal("t.sametext", same, actions)
+    reasons = _refused(_catalog(tmp_path / "direct", [direct, _roast_of(direct)], **_MINIMA))
+    assert any("t.sametext.a: must-change values repeat" in r for r in reasons)
+
+    distinct = [f"Lúc {i} giờ," for i in range(90)]
+    clean = _diagonal("t.roastsame", distinct, actions)
+    roast = _roast_of(_diagonal("t.roastsame", same, actions))
+    reasons = _refused(_catalog(tmp_path / "roast", [clean, roast], **_MINIMA))
+    assert any("t.roastsame.roast.a: must-change values repeat" in r for r in reasons)
+
+
+def test_p2_2_sentence_identity_follows_the_measurement_normalisation(tmp_path: Path) -> None:
+    from app.domains.grammar.composer import build_allowlist, dedupe_key
+    from scripts.variety_baseline import normalize as measured
+
+    for text in ("Hỏi lại chỗ chưa rõ.", "hỏi  lại chỗ chưa rõ!", "Hỏi lại chỗ chưa rõ …", "A, b;"):
+        assert dedupe_key(text) == measured(text)
+
+    # 45 sentence pairs that differ only by "." / "!", with every slot text distinct.
+    a_texts, b_texts = [], []
+    for k in range(45):
+        a_texts += [f"Lúc {k} giờ, hỏi lại", f"Lúc {k} giờ,"]
+        b_texts += [f"chỗ chưa rõ {k}.", f"hỏi lại chỗ chưa rõ {k}!"]
+    direct = _diagonal("t.punct", a_texts, b_texts)
+    frame = Frame.model_validate(direct)
+    allowlist = build_allowlist(frame, 200_000, {})
+    texts = list(allowlist.entries["_all"].values())
+    assert len(texts) == 45 and len({measured(t) for t in texts}) == 45
+    assert allowlist.duplicate_dropped == 45
+    reasons = _refused(_catalog(tmp_path / "direct", [direct, _roast_of(direct)], **_MINIMA))
+    assert any("infeasible" in r for r in reasons)
+
+    # The same collision only in the Roast voice is a missing Roast mapping.
+    plain = _diagonal("t.rpunct", [f"Lúc {k} giờ, ghi" for k in range(90)], b_texts)
+    roast = _roast_of(_diagonal("t.rpunct", a_texts, b_texts))
+    roast["template"] = "{a} {b}"
+    reasons = _refused(_catalog(tmp_path / "roast", [plain, roast], **_MINIMA))
+    assert any("lack a Roast mapping" in r for r in reasons)
+
+
+def test_p2_2_a_sentence_never_moves_to_another_master_across_buckets() -> None:
+    from app.domains.grammar.composer import build_allowlist
+
+    frame = Frame.model_validate(
+        _frame(
+            "t.bucketpunct",
+            meaning_key="test-issue",
+            template="{a} {b}{tail}",
+            slots={
+                "a": {"kind": "must_change", "values": _v("a0:Lúc đó, hỏi lại", "a1:Lúc đó,")},
+                "b": {
+                    "kind": "must_change",
+                    "values": _v("b0:chỗ chưa rõ", "b1:hỏi lại chỗ chưa rõ"),
+                },
+                "tail": {
+                    "kind": "bucket",
+                    "by": "lens",
+                    "buckets": {"_default": _v("t0:."), "work": _v("t1:!")},
+                },
+            },
+            # Each bucket keeps one of the two masters, so they only meet across buckets.
+            constraints=[
+                {"if": {"a": ["a1"]}, "forbid": {"tail": ["t0"]}},
+                {"if": {"a": ["a0"]}, "forbid": {"tail": ["t1"]}},
+            ],
+        )
+    )
+    allowlist = build_allowlist(frame, 200_000, {})
+    by_identity: dict[str, set[str]] = {}
+    for codes in allowlist.entries.values():
+        for code, text in codes.items():
+            master = code.split("|tail=")[0]
+            by_identity.setdefault(text.rstrip(".!").casefold(), set()).add(master)
+    # "Lúc đó, hỏi lại chỗ chưa rõ." (a0,b0) in one bucket would collide with
+    # "Lúc đó, hỏi lại chỗ chưa rõ!" (a1,b1) in the other: one master keeps the sentence.
+    assert all(len(masters) == 1 for masters in by_identity.values())
+    assert allowlist.duplicate_dropped >= 1
+
+
+def test_p2_3_schedule_search_does_no_unbudgeted_quadratic_work(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.domains.grammar import schedule
+
+    calls = 0
+    real = schedule.adjacent
+
+    def counting(left: tuple[str, ...], right: tuple[str, ...]) -> bool:
+        nonlocal calls
+        calls += 1
+        return real(left, right)
+
+    monkeypatch.setattr(schedule, "adjacent", counting)
+    small = [(f"x{a}", f"y{b}", f"z{c}") for a in range(10) for b in range(10) for c in range(5)]
+    required = [
+        {f"x{i}" for i in range(10)},
+        {f"y{i}" for i in range(10)},
+        {f"z{i}" for i in range(5)},
+    ]
+    result = schedule.build_schedule(
+        small, length=90, required_values=required, frame_id="t", variant=0, max_steps=1
+    )
+    assert result.order is None and calls <= 2
+
+    calls = 0
+    axes = [[f"{axis}{i}" for i in range(11)] for axis in "vwxyz"]
+    large = list(itertools.product(*axes))
+    assert len(large) == 161_051  # within the 200 000 combination cap
+    result = schedule.build_schedule(
+        large,
+        length=90,
+        required_values=[set(axis) for axis in axes],
+        frame_id="t",
+        variant=0,
+        max_steps=10_000,
+    )
+    assert calls <= 10_002
+    assert result.order is not None  # dense domains still build within the budget
+
+
+def test_p2_4_published_variant_count_matches_the_manifest(tmp_path: Path) -> None:
+    direct = _frame("t.variants")
+    reasons = _refused(_catalog(tmp_path, [direct, _roast_of(direct)], variants=5, min_variants=4))
+    assert any("need M=5" in r for r in reasons)
+
+    runtime = load_grammar(SAMPLE)
+    assert runtime.manifest is not None
+    for variant in range(runtime.manifest["M"]):
+        assert runtime.select(DIRECT, variant=variant, position=0, bucket="lens=_default").text
+    with pytest.raises(LookupError):
+        runtime.select(DIRECT, variant=runtime.manifest["M"], position=0, bucket="lens=_default")
+
+
+def _rewrite(build: Path, name: str, data: Any) -> None:
+    from app.domains.grammar.build import canonical_json, digest
+
+    text = canonical_json(data)
+    (build / name).write_text(text)
+    if name != "manifest.json":
+        manifest = json.loads((build / "manifest.json").read_text())
+        manifest["files"][name] = digest(text)
+        (build / "manifest.json").write_text(canonical_json(manifest))
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    ["zero_dimensions", "string_length", "dropped_variant", "short_order", "missing_frame"],
+)
+def test_p2_5_inconsistent_manifest_dimensions_are_corrupt(tmp_path: Path, corruption: str) -> None:
+    copy = tmp_path / "grammar"
+    shutil.copytree(SAMPLE, copy)
+    build = copy / "build"
+    manifest = json.loads((build / "manifest.json").read_text())
+    schedules = json.loads((build / "schedules.json").read_text())
+    if corruption == "zero_dimensions":
+        manifest.update(L=0, M=0)
+        _rewrite(build, "manifest.json", manifest)
+    elif corruption == "string_length":
+        manifest["L"] = "90"
+        _rewrite(build, "manifest.json", manifest)
+    elif corruption == "dropped_variant":
+        schedules[DIRECT] = schedules[DIRECT][:3]
+        _rewrite(build, "schedules.json", schedules)
+    elif corruption == "short_order":
+        schedules[DIRECT][0] = schedules[DIRECT][0][:89]
+        _rewrite(build, "schedules.json", schedules)
+    else:
+        manifest["frames"].pop(ROAST)
+        _rewrite(build, "manifest.json", manifest)
+
+    runtime = load_grammar(copy)
+    assert runtime.status is GrammarStatus.MANIFEST_CORRUPT
+    with pytest.raises(LookupError):
+        runtime.select(DIRECT, variant=0, position=0, bucket="lens=_default")

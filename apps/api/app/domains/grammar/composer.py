@@ -11,9 +11,12 @@ from dataclasses import dataclass, field
 from app.domains.grammar.gate import sentence_failures
 from app.domains.grammar.models import DEFAULT_BUCKET, Frame, SlotKind, Value
 
-COMPOSER_VERSION = "grammar-composer-v1"
+COMPOSER_VERSION = "grammar-composer-v2"
 NO_BUCKET = "_all"
 _SPACE_BEFORE_PUNCT = re.compile(r"\s+([,.!?;:…])")
+# Measurement spec §2 (same rule as scripts/variety_baseline.normalize): sentences that differ
+# only in case, spacing or terminal punctuation are the same sentence for commitment (b).
+_TRAILING = re.compile(r"[\s.!?…,;:]+$")
 
 
 class CombinationLimitExceeded(ValueError):
@@ -29,7 +32,10 @@ def normalize(text: str) -> str:
 
 
 def dedupe_key(text: str) -> str:
-    return normalize(text).casefold()
+    """Identity of a sentence or value: NFC, casefold, single spaces, no terminal punctuation."""
+
+    folded = " ".join(unicodedata.normalize("NFC", text).casefold().split())
+    return _TRAILING.sub("", folded)
 
 
 def code_of(frame: Frame, choice: dict[str, str], slots: tuple[str, ...] | None = None) -> str:

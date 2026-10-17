@@ -13,10 +13,16 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from app.domains.grammar.build import BUILD_DIR, catalog_sha256, digest
-from app.domains.grammar.composer import COMPOSER_VERSION, parse_code
+from app.domains.grammar.build import (
+    BUILD_DIR,
+    GrammarBuildError,
+    catalog_sha256,
+    digest,
+    load_catalog,
+)
+from app.domains.grammar.composer import COMPOSER_VERSION, buckets_of, master_of, parse_code
 from app.domains.grammar.gate import GATE_VERSION
-from app.domains.grammar.models import SPEC_VERSION, Voice
+from app.domains.grammar.models import SPEC_VERSION, Frame, SurfaceCatalog, Voice
 
 
 class GrammarStatus(StrEnum):
@@ -54,6 +60,8 @@ class GrammarRuntime:
 
         if self.status is not GrammarStatus.OK or not self.schedules or not self.allowlist:
             raise LookupError(f"grammar unavailable: {self.status}")
+        if not 0 <= variant < len(self.schedules[frame_id]):
+            raise LookupError(f"variant {variant} is not published for {frame_id}")
         order = self.schedules[frame_id][variant]
         master = order[position % len(order)]
         expected = parse_code(master)
@@ -97,6 +105,56 @@ def schedule_position(seed: str, day_index: int, length: int, variants: int) -> 
     return variant, (day_index + offset) % length
 
 
+def _consistent(
+    manifest: dict[str, Any],
+    catalog: SurfaceCatalog,
+    frames: dict[str, Frame],
+    allowlist: dict[str, dict[str, dict[str, str]]],
+    schedules: dict[str, list[list[str]]],
+) -> bool:
+    """Manifest dimensions and frame coverage agree with the catalog and the loaded files."""
+
+    length, variants = manifest["L"], manifest["M"]
+    if (
+        manifest["surface"] != catalog.surface.value
+        or manifest["catalog_version"] != catalog.catalog_version
+        or type(length) is not int
+        or type(variants) is not int
+        or length != catalog.schedule_length
+        or variants != catalog.variants
+        or length < 2
+        or variants < 1
+        or set(manifest["frames"]) != set(frames)
+        or set(allowlist) != set(frames)
+    ):
+        return False
+    direct = {f for f, frame in frames.items() if frame.voice is Voice.DIRECT}
+    if set(schedules) != direct:
+        return False
+    for frame_id, frame in frames.items():
+        source = frames[frame.roast_of] if frame.roast_of else frame
+        if set(allowlist[frame_id]) != set(buckets_of(source)):
+            return False
+        if frame_id not in direct:
+            continue
+        orders = schedules[frame_id]
+        if len(orders) != variants or len(manifest["frames"][frame_id]["variants"]) != variants:
+            return False
+        masters_per_bucket = [
+            {master_of(frame, parse_code(code)) for code in codes}
+            for codes in allowlist[frame_id].values()
+        ]
+        for order in orders:
+            if len(order) != length or len(set(order)) != length:
+                return False
+            for master in order:
+                if tuple(parse_code(master)) != frame.must_change:
+                    return False
+                if any(master not in masters for masters in masters_per_bucket):
+                    return False
+    return True
+
+
 def load_grammar(directory: Path) -> GrammarRuntime:
     build = directory / BUILD_DIR
     manifest_path = build / "manifest.json"
@@ -114,11 +172,13 @@ def load_grammar(directory: Path) -> GrammarRuntime:
         )
         if not valid:
             return GrammarRuntime(GrammarStatus.MANIFEST_CORRUPT)
+        allowlist = json.loads(texts["allowlist.json"])
+        schedules = json.loads(texts["schedules.json"])
+        catalog, frames = load_catalog(directory)
+        if not _consistent(manifest, catalog, frames, allowlist, schedules):
+            return GrammarRuntime(GrammarStatus.MANIFEST_CORRUPT)
         return GrammarRuntime(
-            GrammarStatus.OK,
-            manifest=manifest,
-            allowlist=json.loads(texts["allowlist.json"]),
-            schedules=json.loads(texts["schedules.json"]),
+            GrammarStatus.OK, manifest=manifest, allowlist=allowlist, schedules=schedules
         )
-    except (OSError, KeyError, TypeError, ValueError):
+    except (OSError, KeyError, TypeError, ValueError, AttributeError, GrammarBuildError):
         return GrammarRuntime(GrammarStatus.MANIFEST_CORRUPT)

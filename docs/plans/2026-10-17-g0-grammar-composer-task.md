@@ -28,7 +28,8 @@
    - liệt kê mọi tổ hợp của từng khung × bucket và áp constraint;
    - ghép, rồi chuẩn hoá: NFC, khoảng trắng, dấu câu, viết hoa đầu câu;
    - gate từng câu;
-   - khử trùng:
+   - khử trùng theo **đúng chuẩn hoá của spec đo §2** (`scripts/variety_baseline.normalize`): NFC,
+     casefold, gộp khoảng trắng, bỏ dấu câu cuối. Hai câu chỉ khác `.`/`!` là một câu:
      - một câu chỉ thuộc một tổ hợp chủ, nên cam kết (b) giữ cả khi đổi bucket;
      - một câu chỉ xuất hiện một lần trong mỗi bucket;
      - một câu chỉ thuộc một khung trong cùng surface và giọng.
@@ -41,14 +42,20 @@
 
    `evaluate_candidate` vẫn là lưới an toàn lúc chạy, theo spec §5.
 4. **Lịch chủ** (`schedule.py`), theo spec §3 bước 6:
-   - DFS tất định có giới hạn bước, thứ tự Warnsdorff, hoà thì phân xử bằng hash theo biến thể;
+   - DFS tất định có giới hạn bước. Ứng viên quét lười theo thứ tự hash của biến thể; **không dựng graph láng
+     giềng**. Một bước là một phép kiểm kề nhau hoặc một tổ hợp được đặt vào lịch, nên công việc trước khi bỏ
+     cuộc luôn ≤ budget A4 (2 000 000), kể cả với miền lớn (161 051 tổ hợp chủ trong test);
+   - kề nhau và độ phủ chứng minh trên id, còn build bảo đảm id khác nhau thì **chữ hiển thị cũng khác nhau**
+     sau chuẩn hoá (xem mục 5);
    - chu trình khép kín dài L, hai phần tử kề nhau (kể cả cuối → đầu) khác nhau ở mọi ô bắt buộc đổi;
    - mỗi tổ hợp chủ dùng một lần, mỗi giá trị ô bắt buộc đổi có mặt ít nhất một lần;
    - tổ hợp chủ chỉ vào lịch khi có trong allowlist của **mọi** bucket;
-   - dựng M biến thể khác nhau, không tính hai bản chỉ xoay vòng của nhau.
+   - dựng **đúng M** biến thể khác nhau (không tính bản chỉ xoay vòng). Manifest ghi M, và runtime chọn
+     `variant = seed mod M`, nên dựng thiếu thì build từ chối.
 5. **Build và luật từ chối** (`build.py`). CI đỏ khi:
    - L nhỏ hơn mức tối thiểu (90, owner A2) hoặc M nhỏ hơn mức tối thiểu (4, owner A4);
-   - không dựng được lịch;
+   - không dựng được lịch, hoặc dựng được ít hơn M biến thể;
+   - hai giá trị của một ô bắt buộc đổi có chữ trùng nhau sau chuẩn hoá, ở giọng direct hoặc Cà khịa;
    - vượt giới hạn A4 (200 000 tổ hợp mỗi khung × bucket, 48 bucket, 2 000 000 bước);
    - thiếu khung Cà khịa, Cà khịa không khớp ô/id, hoặc có tổ hợp direct không có bản Cà khịa trong allowlist;
    - vi phạm tách từ vựng: khung headline/scene chứa giá trị hoặc từ vựng `action` của cùng bài;
@@ -64,7 +71,13 @@
 
    Build ghi vào `grammar/build/` và được commit. `pnpm grammar:check` từ chối khi có lệch.
 7. **Runtime đọc-only** (`runtime.py`), **chưa nối vào bài nào**:
-   - `load_grammar` trả `ok`, `manifest_missing` hoặc `manifest_corrupt`;
+   - `load_grammar` trả `ok`, `manifest_missing` hoặc `manifest_corrupt`. Trước khi trả `ok`, nó kiểm:
+     - phiên bản và hash;
+     - **schema và kích thước** của manifest: L, M (số nguyên, khớp catalog), độ phủ khung;
+     - với mỗi khung direct, đúng M lịch, mỗi lịch dài L, không trùng, mã đúng ô;
+     - mỗi tổ hợp chủ có trong mọi bucket.
+
+     Không ghép câu nào trong lúc kiểm. Lệch bất kỳ điểm nào đều là `manifest_corrupt`;
    - `select` chọn câu ở vị trí `(biến thể, p, bucket)`;
    - `roast` tra cùng mã tổ hợp, không chạy lại lịch;
    - `schedule_position` tính `p = (day_index + offset) mod L` từ seed.
@@ -78,7 +91,8 @@
    - Ô: trigger 6, động từ 5, đối tượng 4 (đều bắt buộc đổi), đuôi theo lens (`_default`, `work`,
      `relationships`).
    - 5 constraint, có ví dụ "hỏi thẳng" của spec, cùng các cặp lặp từ.
-   - Kết quả: 99 tổ hợp chủ đủ điều kiện, 486 câu mỗi giọng, 4 biến thể L = 90, build khoảng 0,2 giây.
+   - Kết quả: 99 tổ hợp chủ đủ điều kiện, 486 câu mỗi giọng, 4 biến thể L = 90 (169–195 bước), build khoảng
+     0,2 giây.
    - `serving: false`: không phục vụ, không đổi nội dung hiển thị.
 
 **Không làm:**
@@ -105,6 +119,16 @@
 | G-AC7 báo cáo | G1 | — |
 | G-AC8 direct và Roast | Xong cho (a)/(b)/(c) trên khung mẫu | như G-AC2 |
 | G-AC9 phản ví dụ allowlist | Xong | `test_codex_counterexample_allowlist_is_refused` |
+
+## Sửa theo review Codex @ `ab34eae` (5 P2)
+
+| P2 | Sửa | Regression (fail trên `ab34eae`, pass bây giờ) |
+|---|---|---|
+| 1. Id khác nhưng chữ trùng làm ô bắt buộc đổi không đổi trên output | Build từ chối giá trị trùng chữ sau chuẩn hoá trong ô bắt buộc đổi, cả hai giọng | `test_p2_1_must_change_ids_with_the_same_text_are_refused`: khung chéo L = 90, M = 4, cả direct và Cà khịa |
+| 2. Khử trùng giữ dấu câu cuối | Khoá khử trùng = chuẩn hoá của spec đo; `COMPOSER_VERSION` lên `grammar-composer-v2` | `test_p2_2_sentence_identity_follows_the_measurement_normalisation`: 45 cặp `.`/`!`, direct và Cà khịa; `test_p2_2_a_sentence_never_moves_to_another_master_across_buckets` |
+| 3. Graph láng giềng bậc hai dựng trước budget | Quét lười, mọi phép kiểm kề nhau đều tính vào budget | `test_p2_3_schedule_search_does_no_unbudgeted_quadratic_work`: 10×10×5 với `max_steps=1` gọi ≤ 2 phép kiểm; 11⁵ = 161 051 tổ hợp chủ vẫn dựng được trong 10 000 bước |
+| 4. M dựng được khác M trong manifest | Từ chối nếu số biến thể ≠ M; `select` từ chối biến thể ngoài khoảng | `test_p2_4_published_variant_count_matches_the_manifest` (gồm chọn mọi biến thể đã công bố) |
+| 5. Manifest có L/M hỏng vẫn `ok` | Kiểm schema, kích thước và độ phủ trước khi trả `ok` | `test_p2_5_inconsistent_manifest_dimensions_are_corrupt` (5 ca; fail khi tắt bước kiểm kích thước) |
 
 ## Bảo mật và riêng tư
 
