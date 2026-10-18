@@ -25,14 +25,19 @@ the owner approved (`docs/reviews/production-release-2026-10-16/receipt.md`; it 
 `fallback-approval.json`). Rerunnable proof, from `apps/api`:
 
 ```
-mkdir -p /tmp/release836
-for m in meaning_brief voice examples; do git show 836222282dfc:apps/api/app/domains/tarot/$m.py > /tmp/release836/old_$m.py; done
-PYTHONPATH=. uv run python ../../docs/reviews/tarot-legacy-copy-pin/compare_release.py /tmp
+uv run python -m scripts.compare_tarot_release_copy            # exports 836222282dfc with git show
+uv run python -m scripts.compare_tarot_release_copy --release <hash> | --historical-dir <dir>
 ```
 
-Result on 2026-10-18: every voice and examples table identical; `meaning_brief._GOALS`, `_DEFAULT_GOAL`,
-`_GOAL_ACTIONS`, `_LINKS` identical; `goal_action` identical over 9 goals × 21 positions; `BRIEF_LIMITS` present
-verbatim in the release source. `ALL IDENTICAL`.
+The tool exports `relationship_readings`, `examples`, `voice` and `meaning_brief` from the release, and each
+historical module resolves its Tarot sibling imports to the historical files (so `examples` uses the release's
+`RELATIONSHIP_EXAMPLES`, not the current one). It exits 1 on any mismatch. Hardened after Codex's P3 notes on
+#29 (`f60412c`): the first helper compared the current relationship table with itself and exited 0 on
+mismatch; both have negative controls in `tests/grammar/test_compare_tarot_release_copy.py`.
+
+Result on 2026-10-18: relationship_readings, examples and voice tables identical; `meaning_brief._GOALS`,
+`_DEFAULT_GOAL`, `_GOAL_ACTIONS`, `_LINKS` identical; `goal_action` identical over 9 goals × 21 positions;
+`BRIEF_LIMITS` present verbatim in the release source. `ALL IDENTICAL`, exit 0.
 
 ## Regressions
 
