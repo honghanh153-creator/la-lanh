@@ -266,3 +266,176 @@ def test_service_exposes_stance_and_keeps_it_out_of_the_provider_payload() -> No
         )
         assert request is not None
         assert "stance" not in json.dumps(request.model_dump(mode="json"))
+
+
+# ---------------------------------------------------------------- Codex P2 regressions (#25)
+
+LONG_TIMING = "Khi nào mình nên chọn ở lại để nhận thêm việc?"
+LONG_CASES = (
+    (
+        TarotContext.SELF_CARE,
+        (
+            "pentacles-7",
+            "pentacles-king",
+            "major-high-priestess",
+            "major-hanged-man",
+            "major-hierophant",
+        ),
+    ),
+    (
+        TarotContext.ENERGY,
+        ("swords-page", "cups-2", "major-high-priestess", "wands-king", "major-fool"),
+    ),
+)
+
+
+@pytest.mark.parametrize(("context", "cards"), LONG_CASES)
+@pytest.mark.parametrize("voice", list(TarotVoice))
+def test_p2_1_long_cards_plus_readiness_fit_the_budget(
+    context: TarotContext, cards: tuple[str, ...], voice: TarotVoice
+) -> None:
+    from app.domains.tarot import question_frame
+    from app.domains.tarot.engine import _position_views
+
+    assessment = ENGINE.assess_question(LONG_TIMING, context)
+    reading = ENGINE.render(
+        card_ids=cards,
+        spread=TarotSpread.FIVE_CARD,
+        context=context,
+        question=LONG_TIMING,
+        voice=voice,
+        question_intent=assessment.intent,
+        frame=assessment.frame,
+    )
+    assert reading.spread_map is TarotSpreadMap.FIVE_CHOICE
+    assert reading.summary.startswith(question_frame.READINESS_NOTE)
+    assert len(reading.summary.split()) <= 180
+    assert stance.summary_links(reading.summary, _position_views(reading.positions, context))
+
+
+THREE_WAY = (
+    "Mình nên chọn ở nhà nghỉ hay ra ngoài đi dạo hay học thêm?",
+    "Giữa ở nhà nghỉ và ra ngoài đi dạo và học thêm, mình nên chọn hướng nào?",
+)
+
+
+@pytest.mark.parametrize("question", THREE_WAY)
+def test_p2_2_three_alternatives_never_become_an_a_b_lean(question: str) -> None:
+    assert stance.split_choice(question) is None
+    cards = ("major-sun", "major-tower", "major-star", "major-justice", "cups-ace")
+    reading = _render(question, cards, TarotSpreadMap.FIVE_CHOICE, context=TarotContext.ENERGY)
+    assert reading.stance is not None
+    assert reading.stance.level is TarotStanceLevel.CLARIFY_CHOICE
+    assert stance.split_choice(CHOICE) == (TarotAction.O_NHA, TarotAction.RA_NGOAI)  # control
+
+
+def test_p2_3_a_conflicting_reason_is_rejected_even_with_its_citation() -> None:
+    reading = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK)
+    assert reading.stance is not None and reading.stance.level is TarotStanceLevel.LEAN_TRY
+    first = reading.stance.reasons[0]
+    tampered = first.model_copy(
+        update={"text": f"{first.text} Các lá gợi ý cân nhắc thêm trước khi xin lỗi."}
+    )
+    with pytest.raises(TarotContentRejected, match="does not match the cards"):
+        ENGINE.validate(_with_stance(reading, reasons=(tampered, *reading.stance.reasons[1:])))
+    with pytest.raises(TarotContentRejected, match="different stance"):
+        ENGINE.validate(
+            reading.model_copy(
+                update={"closing_prompt": "Các lá gợi ý cân nhắc thêm trước khi xin lỗi?"}
+            )
+        )
+
+
+def test_p2_3_rewrite_with_a_contrary_closing_is_refused() -> None:
+    from app.domains.tarot.rewrite import rewrite_tarot_reading
+
+    reading = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK)
+
+    def output(closing: str) -> dict[str, Any]:
+        return {
+            "headline": reading.headline,
+            "synthesis": reading.summary,
+            "closing_question": closing,
+            "position_readings": [
+                {"position_key": p.key, "reading": f"{p.card.title_vi}: {p.meaning_here}"}
+                for p in reading.positions
+            ],
+        }
+
+    assert rewrite_tarot_reading(reading, output("Bạn muốn thử điều nào trước?")) is not None
+    refused = rewrite_tarot_reading(
+        reading, output("Các lá gợi ý cân nhắc thêm trước khi xin lỗi?")
+    )
+    assert refused is None
+
+
+def test_p2_service_long_draw_and_three_way_choice_complete_with_a_reading() -> None:
+    from fastapi.testclient import TestClient
+
+    from app.config import Settings
+    from app.domains.tarot.models import TarotSessionView
+    from app.main import create_app
+    from tests.tarot.test_question_frame import _payload, _rewrite_payload
+
+    app = create_app(
+        Settings(
+            environment="test",
+            database_url="sqlite+aiosqlite:///:memory:",
+            cors_origins=["http://127.0.0.1:5173"],
+            guest_cookie_name="la_lanh_guest",
+            guest_cookie_secure=False,
+        )
+    )
+    cases = (
+        (LONG_TIMING, "self_care", LONG_CASES[0][1], None),
+        (
+            THREE_WAY[0],
+            "energy",
+            ("major-sun", "major-tower", "major-star", "major-justice", "cups-ace"),
+            "clarify_choice",
+        ),
+    )
+    for index, (question, context, cards, level) in enumerate(cases):
+        with TestClient(app, base_url="http://127.0.0.1:5173") as client:
+            guest = client.post(
+                "/v1/guest-sessions",
+                json={
+                    "consent_version": "tarot-reflection-v1",
+                    "purpose": "tarot_reflection",
+                    "idempotency_key": f"tarot-stance-p2-guest-{index}-1234567890",
+                },
+            )
+            headers = {
+                "Origin": "http://127.0.0.1:5173",
+                "X-CSRF-Token": guest.json()["csrf_token"],
+            }
+            started = client.post(
+                "/v1/tarot/sessions",
+                headers=headers,
+                json={
+                    "context": context,
+                    "question": question,
+                    "spread": "five_card",
+                    "origin": "direct",
+                    "idempotency_key": f"tarot-stance-p2-start-{index}-1234567890",
+                },
+            ).json()
+            # Synthetic deck: put the chosen cards first so fan indices 0-4 draw them.
+            _, payload = _payload(client)
+            deck = list(cards) + [card for card in payload["deck_order"] if card not in cards]
+            _rewrite_payload(client, {**payload, "deck_order": deck})
+            view = None
+            for pick in range(5):
+                response = client.put(
+                    f"/v1/tarot/sessions/{started['id']}/selections",
+                    headers=headers,
+                    json={"fan_index": pick, "expected_version": started["version"] + pick},
+                )
+                assert response.status_code == 200, response.text
+                view = TarotSessionView.model_validate(response.json())
+            assert view is not None and view.state.value == "complete"
+            assert view.reading is not None, question
+            assert [p.card.id for p in view.reading.positions] == list(cards)
+            if level:
+                assert view.reading.stance is not None
+                assert view.reading.stance.level.value == level

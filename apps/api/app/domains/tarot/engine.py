@@ -786,23 +786,21 @@ class TarotReadingEngine:
 
     @staticmethod
     def _stance_consistent(reading: TarotReading, views: list[stance.PositionView]) -> None:
-        """Gate stance_consistent (US-20 AC09): the stored lean is what the cards give, the
-        headline says it (default voices), and no prose states another level."""
+        """Gate stance_consistent (US-20 AC09): the stored stance, its conclusion and every
+        reason are what the cards give; the headline states it (default voices); and no
+        authored prose - headline, summary, closing, position readings - states another level.
+        Reviewed card fields and example scenes quoted in the reading are not scanned."""
 
         current = reading.stance
         others = set(stance.MARKERS.values())
         if current is not None:
-            expected = stance.recompute(current, views)
-            if (expected.level, expected.action) != (current.level, current.action):
-                raise TarotContentRejected("stance does not match the cards")
-            if expected.conclusion != current.conclusion:
+            if stance.recompute(current, views) != current:
                 raise TarotContentRejected("stance does not match the cards")
             marker = stance.MARKERS[current.level]
             others.discard(marker)
             if reading.voice is not TarotVoice.ROAST and marker not in reading.headline.lower():
                 raise TarotContentRejected("headline does not state the stance")
-        prose = f"{reading.headline} {reading.summary}".lower()
-        if any(other in prose for other in others):
+        if any(other in _authored_by_engine(reading) for other in others):
             raise TarotContentRejected("prose states a different stance")
 
     @staticmethod

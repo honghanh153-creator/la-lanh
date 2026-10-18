@@ -299,8 +299,76 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
     return failures, metrics
 
 
+LONG_QUESTIONS = (
+    "Khi nào mình nên chọn ở lại để nhận thêm việc?",  # timing: the readiness line is reserved
+    "Mình có nên nhận thêm việc ở chỗ làm không?",  # yes/no: a stance and its reasons
+)
+
+
+def audit_worst_length() -> tuple[list[str], int]:
+    """Longest unique-card draws per map x context x voice must still fit every budget (B2-3).
+
+    For each position, the unused card whose role field is longest in that context is drawn
+    (option roles count core + tension), then the reading is rendered for a timing and a
+    yes/no question. Any rejection (budget, density, links) fails the audit.
+    """
+
+    from app.domains.tarot import roles as tarot_roles
+    from app.domains.tarot.engine import _CardMeaning, _resource_step, _tension_parts
+
+    engine = TarotReadingEngine()
+    cards = all_cards()
+    failures: list[str] = []
+    rendered = 0
+    spread = {1: TarotSpread.ONE_CARD, 3: TarotSpread.THREE_CARD, 5: TarotSpread.FIVE_CARD}
+
+    def length(card_id: str, key: str, context: TarotContext) -> int:
+        meaning = _CardMeaning.for_context(next(c for c in cards if c.id == card_id), context)
+        field = tarot_roles.ROLES[key].field
+        core, tension = meaning.core, _tension_parts(meaning.tension)[0]
+        resource = _resource_step(meaning.resource)
+        text = {
+            tarot_roles.RoleField.CORE: core,
+            tarot_roles.RoleField.TENSION: tension,
+            tarot_roles.RoleField.RESOURCE: resource,
+            tarot_roles.RoleField.OPTION: f"{core} {tension}",
+        }[field]
+        return len(text.split())
+
+    for spread_map in TarotSpreadMap:
+        keys = [key for key, _ in engine.positions_for(spread_map)]
+        for context in TarotContext:
+            used: list[str] = []
+            for key in keys:
+                candidates = [c.id for c in cards if c.id not in used]
+                pick = max(candidates, key=lambda c: (length(c, key, context), c))
+                used.append(pick)
+            for question in LONG_QUESTIONS:
+                assessment = engine.assess_question(question, context)
+                for voice in TarotVoice:
+                    rendered += 1
+                    try:
+                        engine.render(
+                            card_ids=tuple(used),
+                            spread=spread[len(keys)],
+                            spread_map=spread_map,
+                            context=context,
+                            question=question,
+                            voice=voice,
+                            question_intent=assessment.intent,
+                            frame=assessment.frame,
+                        )
+                    except TarotContentRejected as exc:
+                        failures.append(
+                            f"worst-length/{spread_map.value}/{context.value}/{voice.value}: {exc}"
+                        )
+    return failures, rendered
+
+
 def main() -> None:
     failures = audit()
+    worst_failures, worst_count = audit_worst_length()
+    failures += worst_failures
     stance_failures, stance_metrics = audit_stance_and_headlines()
     failures += stance_failures
     bank_failures, bank = audit_question_bank()
@@ -321,6 +389,7 @@ def main() -> None:
         f"labelled; closed action label on {bank['actions_matched']} accepted questions, none on "
         f"{bank['actions_none']} ({bank['action_labels_used']} of 30 labels used)."
     )
+    print(f"Worst-length draws (B2-3): {worst_count} renders within every budget.")
     print(
         f"Stance and headlines (B2-3): {stance_metrics['readings']} framed readings; headline "
         f"duplicate rate {stance_metrics['headline_duplicate_rate']}; stance levels "

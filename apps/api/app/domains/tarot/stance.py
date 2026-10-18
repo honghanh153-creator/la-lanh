@@ -8,7 +8,7 @@ the fallback approval scope then (docs/plans/2026-10-18-b2-3-tarot-stance-task.m
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -242,6 +242,22 @@ def anchor(view: PositionView) -> str:
     return view.core
 
 
+SUMMARY_BUDGET = 180  # words; the engine's scan budget
+
+
+def _compact_sentence(view: PositionView) -> str:
+    """Shortest frame that still carries the role's anchor (used when the full one won't fit)."""
+
+    role = ROLES[view.key]
+    if view.key == "focus" or role.field is RoleField.CORE:
+        return f"{view.title}: {view.core}"
+    if role.field is RoleField.TENSION:
+        return f"{view.title}: dễ {view.tension}"
+    if role.field is RoleField.OPTION:
+        return f"{view.title}: được {view.core}. Đổi lại dễ {view.tension}"
+    return f"{view.title}: {view.resource}"
+
+
 def _role_sentence(view: PositionView) -> str:
     role = ROLES[view.key]
     if view.key == "focus" or role.field in {RoleField.CORE}:
@@ -263,9 +279,20 @@ def linked_summary(
 
     ``reserve`` words stay free for text added in front later (the B2-1 readiness line)."""
 
+    core = _joined(views, _role_sentence)
+    if len(core.split()) + reserve > SUMMARY_BUDGET:
+        # Bounded fallback: every anchor and link stays, only the frame words shrink. With the
+        # longest card fields (core 19, tension 16, resource 17 words), three-word titles and
+        # conjunctions, five roles take at most 156 words, leaving 24 for the readiness line.
+        core = _joined(views, _compact_sentence)
+    extra = [line for line in lead if len(f"{line} {core}".split()) + reserve <= SUMMARY_BUDGET]
+    return " ".join([*extra[:1], core])
+
+
+def _joined(views: Sequence[PositionView], frame: Callable[[PositionView], str]) -> str:
     sentences: list[str] = []
     for index, view in enumerate(views):
-        body = _role_sentence(view)
+        body = frame(view)
         if index == 0:
             sentences.append(f"{body[:1].upper()}{body[1:]}.")
             continue
@@ -273,9 +300,7 @@ def linked_summary(
         kind: RoleField | str = "step" if role.step else role.field
         conjunction = CONJUNCTIONS[kind][index % 2]
         sentences.append(f"{conjunction} {body}.")
-    core = " ".join(sentences)
-    extra = [line for line in lead if len(f"{line} {core}".split()) + reserve <= 180]
-    return " ".join([*extra[:1], core])
+    return " ".join(sentences)
 
 
 def summary_links(summary: str, views: Sequence[PositionView]) -> bool:
@@ -289,18 +314,30 @@ def summary_links(summary: str, views: Sequence[PositionView]) -> bool:
     return links >= len(views) - 1
 
 
+_ALTERNATIVE_SEPARATORS = re.compile(r"(?<!\w)(?:hay|hoặc|hay là)(?!\w)")
+
+
 def split_choice(question: str) -> tuple[TarotAction, TarotAction] | None:
-    """A/B as two different closed action labels, or None when they cannot be told apart."""
+    """A/B as two different closed action labels, only for an unambiguous two-option shape.
+
+    "Nên A hay B?" with exactly one "hay"/"hoặc", or "Giữa A và B, ..." with exactly one "và"
+    inside the "giữa" clause. A third alternative ("A hay B hay C", "giữa A và B và C") is not
+    an A/B question: the reading then shows what to clarify before choosing (US-20 AC08).
+    """
 
     text = question_frame.fold(question)
-    match = re.search(r"(?<!\w)giữa (.+?) và (.+?)(?:,|\?|$)", text)
-    if match:
-        left, right = match.group(1), match.group(2)
-    elif " hay " in text:
-        left, _, right = text.partition(" hay ")
-        right = re.split(r"[,?]", right, maxsplit=1)[0]
+    between = re.search(r"(?<!\w)giữa (.+?)(?:,|\?|$)", text)
+    if between:
+        parts = re.split(r"(?<!\w)và(?!\w)", between.group(1))
+        if len(parts) != 2 or _ALTERNATIVE_SEPARATORS.search(text):
+            return None
+        left, right = parts
     else:
-        return None
+        clause = re.split(r"[,?]", text, maxsplit=1)[0]
+        parts = _ALTERNATIVE_SEPARATORS.split(clause)
+        if len(parts) != 2 or len(_ALTERNATIVE_SEPARATORS.findall(text)) != 1:
+            return None
+        left, right = parts
     a, b = question_frame.match_action(left), question_frame.match_action(right)
     if a is None or b is None or a == b:
         return None
