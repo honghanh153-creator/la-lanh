@@ -209,12 +209,15 @@ class TarotReadingProvenance(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     schema_version: str = "tarot-reading/v1"
-    knowledge_version: str = "tarot-knowledge-v2"
-    renderer_version: str = "tarot-renderer-v1"
-    gate_version: str = "tarot-gates-v1"
+    # US-20 AC18: no stale defaults. The engine writes these four on every reading (v4/v6/v4 and
+    # rules v1 for sessions without a frame, v5/v7/v5 and rules v2 for framed ones), and every
+    # stored reading since Tarot shipped (b391e66) carries them through model_dump.
+    knowledge_version: str
+    renderer_version: str
+    gate_version: str
     deck_version: str = "tarot-78-v1"
     spread_version: str = "tarot-spreads-v1"
-    question_rules_version: str = "tarot-question-rules-v1"
+    question_rules_version: str
     methodology_version: str = "tarot-methodology-v1"
     source_ids: tuple[str, ...]
     draw_actor: str = "self"

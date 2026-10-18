@@ -31,3 +31,19 @@ class TarotSessionRow(Base):
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+
+
+class TarotVariantCursorRow(Base):
+    """Per-guest session position for variant selection (US-20 AC15, B2-4a).
+
+    Allocated in the transaction that creates a session and only ever increases: deleting a
+    reading or retention cleanup never rewinds it. It holds no reading data and is removed with
+    the guest (cascade).
+    """
+
+    __tablename__ = "tarot_variant_cursors"
+
+    guest_id: Mapped[UUID] = mapped_column(
+        ForeignKey("guest_sessions.id", ondelete="CASCADE"), primary_key=True
+    )
+    next_position: Mapped[int] = mapped_column(Integer, nullable=False)

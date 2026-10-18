@@ -180,6 +180,17 @@ CONCLUSIONS: dict[TarotStanceLevel, str] = {
         "Trải bài này chưa so được hai hướng; hãy xem điều cần rõ trước khi chọn."
     ),
 }
+# Roast conclusions carry the same marker as the direct ones (AC19).
+ROAST_CONCLUSIONS: dict[TarotStanceLevel, str] = {
+    TarotStanceLevel.LEAN_TRY: (
+        "Các lá bật đèn xanh nhẹ: nghiêng về thử {action}, chưa phải lệnh đâu."
+    ),
+    TarotStanceLevel.CONSIDER: "Khoan đạp ga: cân nhắc thêm trước khi {action} nha.",
+    TarotStanceLevel.UNCLEAR: "Chưa rõ: các lá kéo về hai phía, hội đồng chưa thống nhất.",
+    TarotStanceLevel.CLARIFY_CHOICE: (
+        "Trải này chưa so được hai hướng; xem điều cần rõ trước khi chọn đã nha."
+    ),
+}
 MARKERS: dict[TarotStanceLevel, str] = {
     TarotStanceLevel.LEAN_TRY: "nghiêng về thử",
     TarotStanceLevel.CONSIDER: "cân nhắc thêm trước khi",
@@ -196,18 +207,96 @@ TOPIC_PHRASES: dict[TarotContext, str] = {
     TarotContext.SELF_CARE: "việc chăm mình",
 }
 # Headline = form + lean (or action/topic) + focal card (+ the pitfall card when there is one).
-HEADLINES: dict[str, str] = {
-    TarotStanceLevel.LEAN_TRY.value: "{focal}: các lá nghiêng về thử {action}.",
-    TarotStanceLevel.CONSIDER.value: "{focal}: cân nhắc thêm trước khi {action}.",
-    TarotStanceLevel.UNCLEAR.value: "{focal}: chuyện {action} còn kéo về hai phía.",
-    TarotStanceLevel.CLARIFY_CHOICE.value: "{pair}: điều cần rõ trước khi chọn.",
-    TarotQuestionForm.TIMING.value: "{focal}: điều cần sẵn sàng trước khi {action}.",
-    TarotQuestionForm.HOW.value: "{pair}: một cách bắt đầu {target}.",
-    TarotQuestionForm.WHY.value: "{pair}: một lý do đáng soi trong {topic}.",
-    TarotQuestionForm.OPEN.value: "{pair}: điều đáng nhìn rõ trong {topic}.",
+# Three frames per key, picked once per session (AC15). Frame i of ROAST_HEADLINES is the Roast
+# version of frame i ("headline.<key>.<i>", AC19). Stance headlines keep their level's marker;
+# timing headlines all say "sẵn sàng" (AC05). Worst case (3-word titles, a 7-word pair, a 6-word
+# action, a 3-word topic) stays within the 18-word headline budget; tests check every frame.
+HEADLINES: dict[str, tuple[str, str, str]] = {
+    TarotStanceLevel.LEAN_TRY.value: (
+        "{focal}: các lá nghiêng về thử {action}.",
+        "Với {focal}, các lá nghiêng về thử {action}.",
+        "{focal} gợi ý: nghiêng về thử {action}.",
+    ),
+    TarotStanceLevel.CONSIDER.value: (
+        "{focal}: cân nhắc thêm trước khi {action}.",
+        "Với {focal}, nên cân nhắc thêm trước khi {action}.",
+        "{focal} nhắc: cân nhắc thêm trước khi {action}.",
+    ),
+    TarotStanceLevel.UNCLEAR.value: (
+        "{focal}: chuyện {action} còn kéo về hai phía.",
+        "Với {focal}, chuyện {action} đang kéo về hai phía.",
+        "{focal} cho thấy chuyện {action} còn kéo về hai phía.",
+    ),
+    TarotStanceLevel.CLARIFY_CHOICE.value: (
+        "{pair}: điều cần rõ trước khi chọn.",
+        "Với {pair}, xem điều cần rõ trước khi chọn.",
+        "{pair} chỉ ra điều cần rõ trước khi chọn.",
+    ),
+    TarotQuestionForm.TIMING.value: (
+        "{focal}: điều cần sẵn sàng trước khi {action}.",
+        "Với {focal}, sẵn sàng điều này trước khi {action}.",
+        "{focal} chỉ ra điều cần sẵn sàng trước khi {action}.",
+    ),
+    TarotQuestionForm.HOW.value: (
+        "{pair}: một cách bắt đầu {target}.",
+        "Với {pair}, một cách bắt đầu {target}.",
+        "{pair} gợi ý cách bắt đầu {target}.",
+    ),
+    TarotQuestionForm.WHY.value: (
+        "{pair}: một lý do đáng soi trong {topic}.",
+        "Với {pair}, soi một lý do trong {topic}.",
+        "{pair} gợi một lý do đáng nhìn trong {topic}.",
+    ),
+    TarotQuestionForm.OPEN.value: (
+        "{pair}: điều đáng nhìn rõ trong {topic}.",
+        "Với {pair}, nhìn rõ một điều trong {topic}.",
+        "{pair} soi một điều đáng nhìn trong {topic}.",
+    ),
+}
+ROAST_HEADLINES: dict[str, tuple[str, str, str]] = {
+    TarotStanceLevel.LEAN_TRY.value: (
+        "{focal} bật đèn xanh nhẹ: nghiêng về thử {action}.",
+        "{focal} nháy mắt: nghiêng về thử {action}.",
+        "Theo {focal}, nghiêng về thử {action}, nhẹ nhàng thôi.",
+    ),
+    TarotStanceLevel.CONSIDER.value: (
+        "{focal} kéo phanh tay: cân nhắc thêm trước khi {action}.",
+        "Khoan đạp ga, {focal} bảo cân nhắc thêm trước khi {action}.",
+        "{focal}: cân nhắc thêm trước khi {action}, đừng vội nha.",
+    ),
+    TarotStanceLevel.UNCLEAR.value: (
+        "{focal} đang giằng co: chuyện {action} kéo về hai phía.",
+        "{focal} chia phe: chuyện {action} kéo về hai phía.",
+        "Chuyện {action} kéo về hai phía, {focal} chưa chịu chốt.",
+    ),
+    TarotStanceLevel.CLARIFY_CHOICE.value: (
+        "{pair}: khoan chọn vội, xem điều cần rõ trước khi chọn.",
+        "Chưa so kèo được, {pair} chỉ điều cần rõ trước khi chọn.",
+        "{pair}: điều cần rõ trước khi chọn, rồi hẵng tính.",
+    ),
+    TarotQuestionForm.TIMING.value: (
+        "{focal}: khỏi xem lịch, sẵn sàng điều này trước khi {action}.",
+        "{focal} bảo: lo phần sẵn sàng trước khi {action}.",
+        "Khỏi đồng hồ, {focal} gợi ý sẵn sàng trước khi {action}.",
+    ),
+    TarotQuestionForm.HOW.value: (
+        "{pair}: khỏi lý thuyết, bắt đầu {target}.",
+        "Cẩm nang từ {pair}: bắt đầu {target}.",
+        "{pair} chỉ đường: bắt đầu {target}.",
+    ),
+    TarotQuestionForm.WHY.value: (
+        "{pair}: thám tử soi lý do trong {topic}.",
+        "Truy tới gốc: {pair} chỉ một lý do trong {topic}.",
+        "{pair} lật một lý do trong {topic}.",
+    ),
+    TarotQuestionForm.OPEN.value: (
+        "{pair}: điều đáng soi kỹ trong {topic}, khỏi vòng vo.",
+        "Nói gọn: {pair} soi một điều trong {topic}.",
+        "{pair} chỉ ra chỗ đáng nhìn trong {topic}.",
+    ),
 }
 
-# Conjunctions by the role being joined (AC10).
+# Conjunctions by the role being joined (AC10); Roast pairs share the codes (AC19).
 CONJUNCTIONS: dict[RoleField | str, tuple[str, str]] = {
     RoleField.TENSION: ("Nhưng", "Có điều,"),
     "step": ("Vì vậy,", "Từ đó,"),
@@ -215,7 +304,16 @@ CONJUNCTIONS: dict[RoleField | str, tuple[str, str]] = {
     RoleField.CORE: ("Bên cạnh đó,", "Thêm nữa,"),
     RoleField.OPTION: ("Bên cạnh đó,", "Thêm nữa,"),
 }
-ALL_CONJUNCTIONS = frozenset(c for pair in CONJUNCTIONS.values() for c in pair)
+ROAST_CONJUNCTIONS: dict[RoleField | str, tuple[str, str]] = {
+    RoleField.TENSION: ("Nhưng khoan,", "Có điều nè,"),
+    "step": ("Thế nên,", "Từ đó mà,"),
+    RoleField.RESOURCE: ("Thế nên,", "Từ đó mà,"),
+    RoleField.CORE: ("Thêm nữa nè,", "Chưa hết,"),
+    RoleField.OPTION: ("Thêm nữa nè,", "Chưa hết,"),
+}
+ALL_CONJUNCTIONS = frozenset(
+    c for table in (CONJUNCTIONS, ROAST_CONJUNCTIONS) for pair in table.values() for c in pair
+)
 
 
 @dataclass(frozen=True)
@@ -273,23 +371,33 @@ def _role_sentence(view: PositionView) -> str:
 
 
 def linked_summary(
-    views: Sequence[PositionView], lead: Sequence[str] = (), reserve: int = 0
+    views: Sequence[PositionView],
+    lead: Sequence[str] = (),
+    reserve: int = 0,
+    *,
+    roast: bool = False,
 ) -> str:
     """One sentence per role in spread order, joined by role-appropriate conjunctions.
 
     ``reserve`` words stay free for text added in front later (the B2-1 readiness line)."""
 
-    core = _joined(views, _role_sentence)
+    conjunctions = ROAST_CONJUNCTIONS if roast else CONJUNCTIONS
+    core = _joined(views, _role_sentence, conjunctions)
     if len(core.split()) + reserve > SUMMARY_BUDGET:
         # Bounded fallback: every anchor and link stays, only the frame words shrink. With the
         # longest card fields (core 19, tension 16, resource 17 words), three-word titles and
-        # conjunctions, five roles take at most 156 words, leaving 24 for the readiness line.
-        core = _joined(views, _compact_sentence)
+        # conjunctions, five roles take at most 156 words (160 with the Roast links, one word
+        # longer each), leaving 20 for the readiness line, which is exactly 20 words.
+        core = _joined(views, _compact_sentence, conjunctions)
     extra = [line for line in lead if len(f"{line} {core}".split()) + reserve <= SUMMARY_BUDGET]
     return " ".join([*extra[:1], core])
 
 
-def _joined(views: Sequence[PositionView], frame: Callable[[PositionView], str]) -> str:
+def _joined(
+    views: Sequence[PositionView],
+    frame: Callable[[PositionView], str],
+    conjunctions: dict[RoleField | str, tuple[str, str]],
+) -> str:
     sentences: list[str] = []
     for index, view in enumerate(views):
         body = frame(view)
@@ -298,7 +406,7 @@ def _joined(views: Sequence[PositionView], frame: Callable[[PositionView], str])
             continue
         role = ROLES[view.key]
         kind: RoleField | str = "step" if role.step else role.field
-        conjunction = CONJUNCTIONS[kind][index % 2]
+        conjunction = conjunctions[kind][index % 2]
         sentences.append(f"{conjunction} {body}.")
     return " ".join(sentences)
 
@@ -371,18 +479,27 @@ def stance_for(
     question: str,
     topic: TarotContext,
     views: Sequence[PositionView],
+    *,
+    roast: bool = False,
 ) -> TarotStance | None:
-    """Lean for yes/no questions and separable choices (AC08, AC09); None for other forms."""
+    """Lean for yes/no questions and separable choices (AC08, AC09); None for other forms.
+
+    ``roast`` picks the Roast conclusion (AC19); level, action, options and reasons are the same.
+    """
 
     if form is TarotQuestionForm.YES_NO:
-        return yes_no_stance(action, topic, views)
+        return yes_no_stance(action, topic, views, roast=roast)
     if form is TarotQuestionForm.CHOICE:
-        return choice_stance(split_choice(question), topic, views)
+        return choice_stance(split_choice(question), topic, views, roast=roast)
     return None
 
 
 def yes_no_stance(
-    action: TarotAction | None, topic: TarotContext, views: Sequence[PositionView]
+    action: TarotAction | None,
+    topic: TarotContext,
+    views: Sequence[PositionView],
+    *,
+    roast: bool = False,
 ) -> TarotStance:
     contributions = [
         (role_weight(view.key) * _VALUE[lean_of(view.card_id, topic)], view) for view in views
@@ -413,7 +530,7 @@ def yes_no_stance(
         topic=topic,
         level=level,
         action=action,
-        conclusion=CONCLUSIONS[level].format(action=phrase),
+        conclusion=(ROAST_CONCLUSIONS if roast else CONCLUSIONS)[level].format(action=phrase),
         reasons=tuple(_reason(view) for _, view in picked[:2]),
     )
 
@@ -422,7 +539,10 @@ def choice_stance(
     options: tuple[TarotAction, TarotAction] | None,
     topic: TarotContext,
     views: Sequence[PositionView],
+    *,
+    roast: bool = False,
 ) -> TarotStance:
+    conclusions = ROAST_CONCLUSIONS if roast else CONCLUSIONS
     by_key = {view.key: view for view in views}
     a_view, b_view = by_key.get("option_a"), by_key.get("option_b")
     if options is None or a_view is None or b_view is None:
@@ -433,7 +553,7 @@ def choice_stance(
             topic=topic,
             level=TarotStanceLevel.CLARIFY_CHOICE,
             options=options,
-            conclusion=CONCLUSIONS[TarotStanceLevel.CLARIFY_CHOICE],
+            conclusion=conclusions[TarotStanceLevel.CLARIFY_CHOICE],
             reasons=(_reason(step),),
         )
     a_value = _VALUE[lean_of(a_view.card_id, topic)]
@@ -450,17 +570,19 @@ def choice_stance(
         level=level,
         action=chosen,
         options=options,
-        conclusion=CONCLUSIONS[level].format(action=ACTION_PHRASES[chosen] if chosen else ""),
+        conclusion=conclusions[level].format(action=ACTION_PHRASES[chosen] if chosen else ""),
         reasons=(_reason(a_view), _reason(b_view)),
     )
 
 
-def recompute(stance: TarotStance, views: Sequence[PositionView]) -> TarotStance:
+def recompute(
+    stance: TarotStance, views: Sequence[PositionView], *, roast: bool = False
+) -> TarotStance:
     """The stance the cards give for this stance's kind, action and options (stance_consistent)."""
 
     if stance.kind is TarotStanceKind.YES_NO:
-        return yes_no_stance(stance.action, stance.topic, views)
-    return choice_stance(stance.options, stance.topic, views)
+        return yes_no_stance(stance.action, stance.topic, views, roast=roast)
+    return choice_stance(stance.options, stance.topic, views, roast=roast)
 
 
 def dynamic_headline(
@@ -470,8 +592,12 @@ def dynamic_headline(
     topic: TarotContext,
     focal: PositionView,
     second: PositionView | None,
+    *,
+    variant: int = 0,
+    roast: bool = False,
 ) -> str:
-    """Headline from form + lean (or action/topic) + the focal card (AC11).
+    """Headline from form + lean (or action/topic) + the focal card (AC11), in frame
+    ``variant`` of the voice register (AC15, AC19).
 
     ``second`` (the pitfall card, else another card) joins how/why/open/clarify headlines, so two
     readings share a headline only when they share both cards, the form and the topic.
@@ -480,7 +606,9 @@ def dynamic_headline(
     chosen = stance.action if stance is not None else action
     phrase = ACTION_PHRASES[chosen] if chosen else GENERIC_ACTION
     key = stance.level.value if stance is not None else form.value
-    template = HEADLINES.get(key, HEADLINES[TarotQuestionForm.OPEN.value])
+    table = ROAST_HEADLINES if roast else HEADLINES
+    frames = table.get(key, table[TarotQuestionForm.OPEN.value])
+    template = frames[variant % len(frames)]
     pair = f"{focal.title} và {second.title}" if second is not None else focal.title
     target = phrase if chosen else f"cho {TOPIC_PHRASES[topic]}"
     return template.format(

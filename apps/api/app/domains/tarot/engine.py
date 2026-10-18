@@ -8,7 +8,11 @@ from app.domains.readings.review_agent import (
     ContentReviewAgent,
     ReviewSample,
 )
+
+# Modules, not names: upper-case names imported here would join the pinned fallback tables.
 from app.domains.tarot import question_frame, roles, stance
+from app.domains.tarot import variants as tarot_variants
+from app.domains.tarot import voice as tarot_voice
 from app.domains.tarot.context_readings import CONTEXT_READINGS, CONTEXT_SCENES
 from app.domains.tarot.examples import example_for
 from app.domains.tarot.knowledge import (
@@ -47,9 +51,26 @@ class TarotContentRejected(ValueError):
     pass
 
 
+# The legacy renderer, still used by sessions without a stored QuestionFrame (US-20 AC17). The
+# fallback approval pins this name; framed readings record FRAMED_RENDERER_VERSION instead.
 TAROT_RENDERER_VERSION = "tarot-renderer-v6"
-# B2-2: role_fit and no_decision_or_prediction join the gates for framed (B2-1+) readings.
+LEGACY_RENDERER_VERSION = TAROT_RENDERER_VERSION
+LEGACY_GATE_VERSION = "tarot-gates-v4"
+LEGACY_KNOWLEDGE_VERSION = KNOWLEDGE_VERSION
+# B2-4 (US-20 AC18): framed (B2-1+) readings. Renderer v7 = roles, stance, summary, per-session
+# variants and Roast frames; knowledge v5 = the card knowledge plus lean labels and role frames;
+# gates v5 = role_fit, no_decision_or_prediction, summary_links_cards and stance_consistent.
+FRAMED_RENDERER_VERSION = "tarot-renderer-v7"
 TAROT_GATE_VERSION = "tarot-gates-v5"
+FRAMED_KNOWLEDGE_VERSION = "tarot-knowledge-v5"
+
+
+def current_renderer_version(question_rules_version: str) -> str:
+    """The renderer a reading under these question rules gets today (stale-baseline check)."""
+
+    if question_rules_version == QUESTION_RULES_VERSION:
+        return FRAMED_RENDERER_VERSION
+    return LEGACY_RENDERER_VERSION
 
 
 @dataclass(frozen=True)
@@ -317,9 +338,12 @@ class TarotReadingEngine:
         voice: TarotVoice,
         question_intent: TarotQuestionIntent | None = None,
         frame: QuestionFrame | None = None,
+        variants: tarot_variants.TarotVariants | None = None,
     ) -> TarotReading:
         """Render once. ``frame`` is the session's stored QuestionFrame (None for sessions
-        started before B2-1, which render exactly as before); it is never recomputed here."""
+        started before B2-1, which render exactly as before); it is never recomputed here.
+        ``variants`` are the indices stored when the session started (AC15); framed sessions
+        without them use index 0 everywhere. Legacy sessions ignore them."""
 
         normalized = " ".join(question.strip().split())
         rules = QUESTION_RULES_VERSION if frame is not None else _LEGACY_RULES_VERSION
@@ -332,6 +356,10 @@ class TarotReadingEngine:
         # Sensitive questions never get the roast frame, whatever was requested.
         voice = effective_voice(voice, assessment.normalized_question)
         roast = voice is TarotVoice.ROAST
+        # Roast frames for roles, stance, links and headlines (AC19). In energy and self-care
+        # Roast is the gentle register (voice.py), which keeps the direct frames.
+        roast_copy = roast and context not in tarot_voice.GENTLE_CONTEXTS
+        chosen = variants or tarot_variants.DEFAULT_VARIANTS
         resolved_map = spread_map or self.choose_spread_map(
             spread, intent, assessment.normalized_question
         )
@@ -369,6 +397,9 @@ class TarotReadingEngine:
                             else self._reflection(key, context, intent)
                         ),
                         used_tails=used_tails,
+                        frame_index=chosen.frame(key),
+                        lead=roles.lead_for(frame.form, chosen.lead, index),
+                        roast_copy=roast_copy,
                     )
                 )
                 continue
@@ -417,10 +448,15 @@ class TarotReadingEngine:
             # B2-3: lean, a summary that links the roles, and a dynamic headline (AC08-AC11).
             views = _position_views(tuple(rendered), context)
             reading_stance = stance.stance_for(
-                frame.form, frame.action, assessment.normalized_question, frame.topic, views
+                frame.form,
+                frame.action,
+                assessment.normalized_question,
+                frame.topic,
+                views,
+                roast=roast_copy,
             )
             lead = tuple(goal.meaning for goal in goals if goal.key != "general")
-            summary = stance.linked_summary(views, lead, reserve)
+            summary = stance.linked_summary(views, lead, reserve, roast=roast_copy)
         else:
             summary = self._summary(
                 tuple(rendered), tuple(meanings), context, assessment.normalized_question
@@ -435,9 +471,9 @@ class TarotReadingEngine:
             # AC05: answer "when" as what to have ready first, and say why there is no date.
             headline = question_frame.readiness_headline(voice)
             summary = f"{question_frame.READINESS_NOTE} {summary}"
-        if frame is not None and not roast:
-            # AC11: a headline from form + lean (or action/topic) + the focal card. The Roast
-            # headline stays until its own frames exist (AC19, B2-4).
+        if frame is not None:
+            # AC11: a headline from form + lean (or action/topic) + the focal card, in the
+            # session's headline frame (AC15) and the Roast register when it applies (AC19).
             focal = next((view for view in views if roles.ROLES[view.key].step), views[-1])
             others = [view for view in views if view is not focal]
             second = next(
@@ -445,7 +481,14 @@ class TarotReadingEngine:
                 others[0] if others else None,
             )
             headline = stance.dynamic_headline(
-                frame.form, reading_stance, frame.action, frame.topic, focal, second
+                frame.form,
+                reading_stance,
+                frame.action,
+                frame.topic,
+                focal,
+                second,
+                variant=chosen.headline,
+                roast=roast_copy,
             )
         reading = TarotReading(
             headline=headline,
@@ -467,10 +510,14 @@ class TarotReadingEngine:
                 "chắc chắn hay lời thay cho quyết định của bạn."
             ),
             provenance=TarotReadingProvenance(
-                knowledge_version=KNOWLEDGE_VERSION,
-                renderer_version=TAROT_RENDERER_VERSION,
-                # Legacy sessions keep their v4 provenance byte for byte (AC17).
-                gate_version=TAROT_GATE_VERSION if frame is not None else "tarot-gates-v4",
+                # Legacy sessions keep their v4/v6/v4 provenance byte for byte (AC17, AC18).
+                knowledge_version=(
+                    FRAMED_KNOWLEDGE_VERSION if frame is not None else LEGACY_KNOWLEDGE_VERSION
+                ),
+                renderer_version=(
+                    FRAMED_RENDERER_VERSION if frame is not None else LEGACY_RENDERER_VERSION
+                ),
+                gate_version=TAROT_GATE_VERSION if frame is not None else LEGACY_GATE_VERSION,
                 question_rules_version=rules,
                 source_ids=self._reading_sources(tuple(position.card for position in rendered)),
             ),
@@ -491,17 +538,29 @@ class TarotReadingEngine:
         goal_step: str | None,
         reflection: str,
         used_tails: set[str],
+        frame_index: int = 0,
+        lead: str | None = None,
+        roast_copy: bool = False,
     ) -> TarotReadingPosition:
-        """One position read by its role (US-20 AC07, AC12): the role's card field and frame,
-        a scene without a duplicate "Ví dụ:" label, and an action only on a step role."""
+        """One position read by its role (US-20 AC07, AC12): the role's card field in the
+        session's frame after the question form's lead (AC15, AC16, AC19), a scene without a
+        duplicate "Ví dụ:" label, and an action only on a step role."""
 
         tension, _ = _tension_parts(meaning.tension)
         text = roles.meaning_for(
-            key, core=meaning.core, tension=tension, resource=_resource_step(meaning.resource)
+            key,
+            core=meaning.core,
+            tension=tension,
+            resource=_resource_step(meaning.resource),
+            frame=frame_index,
+            roast=roast_copy,
+            lead=lead,
         )
         if voice is TarotVoice.GENTLE_SPECIFIC:
             text += " Chưa cần kết luận ngay; hãy kiểm tra bằng chuyện thật trước."
-        if voice is TarotVoice.ROAST:
+        if voice is TarotVoice.ROAST and not roast_copy:
+            # Gentle-register Roast (energy, self-care) keeps its tails on the direct frames;
+            # Roast frames carry the voice themselves, so a tail would only add filler (B2-4).
             tail = meaning_tail(key, context)
             if tail not in used_tails:
                 used_tails.add(tail)  # one playful tail per reading
@@ -794,11 +853,16 @@ class TarotReadingEngine:
         current = reading.stance
         others = set(stance.MARKERS.values())
         if current is not None:
-            if stance.recompute(current, views) != current:
+            roast_copy = (
+                reading.voice is TarotVoice.ROAST
+                and reading.context not in tarot_voice.GENTLE_CONTEXTS
+            )
+            if stance.recompute(current, views, roast=roast_copy) != current:
                 raise TarotContentRejected("stance does not match the cards")
             marker = stance.MARKERS[current.level]
             others.discard(marker)
-            if reading.voice is not TarotVoice.ROAST and marker not in reading.headline.lower():
+            # Since B2-4 every voice's headline states the stance (AC19).
+            if marker not in reading.headline.lower():
                 raise TarotContentRejected("headline does not state the stance")
         if any(other in _authored_by_engine(reading) for other in others):
             raise TarotContentRejected("prose states a different stance")

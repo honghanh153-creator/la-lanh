@@ -3048,30 +3048,18 @@ export interface components {
              * @default first_reading
              */
             draw_purpose: string;
-            /**
-             * Gate Version
-             * @default tarot-gates-v1
-             */
+            /** Gate Version */
             gate_version: string;
-            /**
-             * Knowledge Version
-             * @default tarot-knowledge-v2
-             */
+            /** Knowledge Version */
             knowledge_version: string;
             /**
              * Methodology Version
              * @default tarot-methodology-v1
              */
             methodology_version: string;
-            /**
-             * Question Rules Version
-             * @default tarot-question-rules-v1
-             */
+            /** Question Rules Version */
             question_rules_version: string;
-            /**
-             * Renderer Version
-             * @default tarot-renderer-v1
-             */
+            /** Renderer Version */
             renderer_version: string;
             /**
              * Schema Version
