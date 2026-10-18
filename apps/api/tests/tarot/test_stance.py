@@ -1,0 +1,268 @@
+"""B2-3: lean, linked summary and dynamic headline (US-20 AC08-AC11).
+
+Task: docs/plans/2026-10-18-b2-3-tarot-stance-task.md.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+import pytest
+
+from app.domains.tarot import stance
+from app.domains.tarot.engine import _POSITIONS, TarotContentRejected, TarotReadingEngine
+from app.domains.tarot.knowledge import all_cards
+from app.domains.tarot.models import (
+    TarotAction,
+    TarotContext,
+    TarotReading,
+    TarotSpread,
+    TarotSpreadMap,
+    TarotStanceKind,
+    TarotStanceLevel,
+    TarotVoice,
+)
+
+ENGINE = TarotReadingEngine()
+SPREAD = {1: TarotSpread.ONE_CARD, 3: TarotSpread.THREE_CARD, 5: TarotSpread.FIVE_CARD}
+YES_NO = "Mình có nên xin lỗi bạn thân trước không?"
+CHOICE = "Nên ở nhà nghỉ hay ra ngoài đi dạo cho đổi gió?"
+OPEN = ("major-sun", "major-star", "cups-ace", "pentacles-ace", "wands-ace")
+HOLD = ("major-tower", "swords-9", "swords-10", "swords-8", "cups-5")
+TWO = ("major-justice", "major-temperance", "major-wheel-of-fortune")
+
+
+def _render(
+    question: str,
+    cards: tuple[str, ...],
+    spread_map: TarotSpreadMap,
+    *,
+    context: TarotContext = TarotContext.RELATIONSHIPS,
+    voice: TarotVoice = TarotVoice.STRAIGHT_WARM,
+) -> TarotReading:
+    assessment = ENGINE.assess_question(question, context)
+    assert assessment.accepted, question
+    return ENGINE.render(
+        card_ids=cards,
+        spread=SPREAD[len(cards)],
+        spread_map=spread_map,
+        context=context,
+        question=question,
+        voice=voice,
+        question_intent=assessment.intent,
+        frame=assessment.frame,
+    )
+
+
+# ---------------------------------------------------------------- AC09 labels and weights
+
+
+def test_ac09_every_card_has_a_lean_within_the_label_budget() -> None:
+    ids = {card.id for card in all_cards()}
+    assert set(stance.LEAN_DEFAULTS) == ids
+    assert {card for card, _ in stance.LEAN_OVERRIDES} <= ids
+    assert len(stance.LEAN_DEFAULTS) + len(stance.LEAN_OVERRIDES) <= 468
+    assert stance.lean_of("major-lovers", TarotContext.RELATIONSHIPS) is stance.Lean.OPEN
+    assert stance.lean_of("major-lovers", TarotContext.WORK) is stance.Lean.TWO_SIDED
+    assert (stance.role_weight("next"), stance.role_weight("clear")) == (2.0, 1.0)
+    assert stance.role_weight("missed") == 0.5
+
+
+# ---------------------------------------------------------------- AC08 levels
+
+
+@pytest.mark.parametrize(
+    ("cards", "level"),
+    [
+        (OPEN[:3], TarotStanceLevel.LEAN_TRY),
+        (HOLD[:3], TarotStanceLevel.CONSIDER),
+        ((OPEN[0], HOLD[0], TWO[0]), TarotStanceLevel.UNCLEAR),  # 1 - 0.5 + 0 = 0.5
+    ],
+)
+def test_ac08_three_levels_with_reasons_from_roles_and_cards(
+    cards: tuple[str, ...], level: TarotStanceLevel
+) -> None:
+    reading = _render(YES_NO, cards, TarotSpreadMap.THREE_UNBLOCK)
+    assert reading.stance is not None
+    assert reading.stance.kind is TarotStanceKind.YES_NO
+    assert reading.stance.level is level
+    assert reading.stance.action is TarotAction.XIN_LOI
+    assert 1 <= len(reading.stance.reasons) <= 2
+    labels = {p.key: p for p in reading.positions}
+    for reason in reading.stance.reasons:
+        position = labels[reason.position_key]
+        assert reason.card_id == position.card.id
+        assert reason.text.startswith(f"{position.label}: {position.card.title_vi}")
+    assert "chưa nên" not in reading.stance.conclusion
+    if level is TarotStanceLevel.LEAN_TRY:
+        assert reading.stance.conclusion == "Các lá nghiêng về thử xin lỗi."
+
+
+def test_ac08_choice_compares_only_with_two_option_roles() -> None:
+    assert stance.split_choice(CHOICE) == (TarotAction.O_NHA, TarotAction.RA_NGOAI)
+    five = (OPEN[0], HOLD[0], OPEN[1], TWO[0], OPEN[2])  # need, option_a, option_b, ...
+    reading = _render(CHOICE, five, TarotSpreadMap.FIVE_CHOICE, context=TarotContext.ENERGY)
+    assert reading.stance is not None
+    assert reading.stance.level is TarotStanceLevel.LEAN_TRY
+    assert reading.stance.action is TarotAction.RA_NGOAI  # option_b is open, option_a holds
+    assert [r.position_key for r in reading.stance.reasons] == ["option_a", "option_b"]
+
+    equal = (OPEN[0], OPEN[1], OPEN[2], TWO[0], HOLD[0])
+    tie = _render(CHOICE, equal, TarotSpreadMap.FIVE_CHOICE, context=TarotContext.ENERGY)
+    assert tie.stance is not None and tie.stance.level is TarotStanceLevel.UNCLEAR
+
+    three = _render(CHOICE, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK, context=TarotContext.ENERGY)
+    assert three.stance is not None and three.stance.level is TarotStanceLevel.CLARIFY_CHOICE
+    vague = "Mình nên chọn lớp buổi sáng hay lớp buổi tối?"
+    assert stance.split_choice(vague) is None
+    unsplit = _render(vague, five, TarotSpreadMap.FIVE_CHOICE, context=TarotContext.WORK)
+    assert unsplit.stance is not None
+    assert unsplit.stance.level is TarotStanceLevel.CLARIFY_CHOICE
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Làm thế nào để mình chia việc rõ hơn với nhóm?",
+        "Vì sao mình hay ngại mở lời trước?",
+        "Điều gì mình cần nhìn rõ trong mối quan hệ này?",
+        "Khi nào mình nên nghỉ việc?",
+    ],
+)
+def test_ac08_other_forms_have_no_stance_and_omit_the_key(question: str) -> None:
+    reading = _render(question, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK)
+    assert reading.stance is None
+    assert "stance" not in reading.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------- AC10 linked summary
+
+
+@pytest.mark.parametrize("spread_map", list(TarotSpreadMap))
+def test_ac10_summary_mentions_every_role_with_n_minus_1_links(spread_map: TarotSpreadMap) -> None:
+    cards = tuple(c.id for c in all_cards())[3 : 3 + len(_POSITIONS[spread_map])]
+    reading = _render(YES_NO, cards, spread_map)
+    from app.domains.tarot.engine import _position_views
+
+    views = _position_views(reading.positions, reading.context)
+    assert stance.summary_links(reading.summary, views)
+    for view in views:
+        assert stance.anchor(view) in reading.summary
+
+
+def test_ac10_gate_rejects_a_summary_that_drops_a_role_or_its_links() -> None:
+    from app.domains.tarot.engine import _position_views
+
+    reading = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK)
+    unlinked = reading.summary
+    for conjunction in stance.ALL_CONJUNCTIONS:
+        unlinked = unlinked.replace(f"{conjunction} ", "")
+    with pytest.raises(TarotContentRejected, match="link every role"):
+        ENGINE.validate(reading.model_copy(update={"summary": unlinked}))
+    missing = stance.anchor(_position_views(reading.positions, reading.context)[1])
+    dropped = reading.summary.replace(missing, "một ý khác")
+    with pytest.raises(TarotContentRejected, match="link every role"):
+        ENGINE.validate(reading.model_copy(update={"summary": dropped}))
+
+
+# ---------------------------------------------------------------- AC09 stance_consistent
+
+
+def _with_stance(reading: TarotReading, **changes: Any) -> TarotReading:
+    assert reading.stance is not None
+    return reading.model_copy(update={"stance": reading.stance.model_copy(update=changes)})
+
+
+def test_ac09_stance_consistent_rejects_tampered_lean_or_prose() -> None:
+    reading = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK)
+    ENGINE.validate(reading)
+    with pytest.raises(TarotContentRejected, match="does not match the cards"):
+        ENGINE.validate(_with_stance(reading, level=TarotStanceLevel.CONSIDER))
+    with pytest.raises(TarotContentRejected, match="headline does not state"):
+        focal = reading.positions[2].card.title_vi
+        ENGINE.validate(reading.model_copy(update={"headline": f"{focal}: một hướng khác."}))
+    with pytest.raises(TarotContentRejected, match="different stance"):
+        ENGINE.validate(
+            reading.model_copy(update={"summary": f"{reading.summary} Chưa rõ: kéo về hai phía."})
+        )
+
+
+# ---------------------------------------------------------------- AC11 headline
+
+
+def test_ac11_headline_carries_form_lean_and_focal_card() -> None:
+    lean = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK)
+    focal = lean.positions[2].card.title_vi  # the step role
+    assert lean.headline == f"{focal}: các lá nghiêng về thử xin lỗi."
+    how = _render(
+        "Làm thế nào để mình chia việc rõ hơn với nhóm?",
+        OPEN[:3],
+        TarotSpreadMap.THREE_UNBLOCK,
+        context=TarotContext.WORK,
+    )
+    assert how.headline.startswith(
+        f"{how.positions[2].card.title_vi} và {how.positions[1].card.title_vi}"
+    )
+    assert all(len(r.headline.split()) <= 18 for r in (lean, how))
+    roast = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK, voice=TarotVoice.ROAST)
+    assert not roast.headline.startswith(focal)  # Roast headline frames arrive in B2-4
+
+
+# ---------------------------------------------------------------- service, API and payload
+
+
+def test_service_exposes_stance_and_keeps_it_out_of_the_provider_payload() -> None:
+    from fastapi.testclient import TestClient
+
+    from app.config import Settings
+    from app.domains.tarot.models import TarotSessionView
+    from app.domains.tarot.rewrite import compile_tarot_rewrite_request
+    from app.main import create_app
+    from tests.tarot.test_question_frame import _payload
+
+    app = create_app(
+        Settings(
+            environment="test",
+            database_url="sqlite+aiosqlite:///:memory:",
+            cors_origins=["http://127.0.0.1:5173"],
+            guest_cookie_name="la_lanh_guest",
+            guest_cookie_secure=False,
+        )
+    )
+    with TestClient(app, base_url="http://127.0.0.1:5173") as client:
+        guest = client.post(
+            "/v1/guest-sessions",
+            json={
+                "consent_version": "tarot-reflection-v1",
+                "purpose": "tarot_reflection",
+                "idempotency_key": "tarot-stance-guest-1234567890",
+            },
+        )
+        headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": guest.json()["csrf_token"]}
+        started = client.post(
+            "/v1/tarot/sessions",
+            headers=headers,
+            json={
+                "context": "relationships",
+                "question": YES_NO,
+                "spread": "one_card",
+                "origin": "direct",
+                "idempotency_key": "tarot-stance-start-1234567890",
+            },
+        ).json()
+        response = client.put(
+            f"/v1/tarot/sessions/{started['id']}/selections",
+            headers=headers,
+            json={"fan_index": 9, "expected_version": started["version"]},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["reading"]["stance"]["kind"] == "yes_no"
+        view = TarotSessionView.model_validate(body)
+        guest_id, _ = _payload(client)
+        request = compile_tarot_rewrite_request(
+            guest_id, view, model_version="gpt-6-luna", prompt_version="surface-rewrite-v1"
+        )
+        assert request is not None
+        assert "stance" not in json.dumps(request.model_dump(mode="json"))

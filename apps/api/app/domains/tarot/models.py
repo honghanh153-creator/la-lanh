@@ -168,6 +168,43 @@ class TarotReadingPosition(BaseModel):
     small_action: str | None = None
 
 
+class TarotStanceKind(StrEnum):
+    YES_NO = "yes_no"
+    CHOICE = "choice"
+
+
+class TarotStanceLevel(StrEnum):
+    """Three levels of lean (no "lean to not doing it"), plus the choice fallback (US-20 AC08)."""
+
+    LEAN_TRY = "lean_try"
+    CONSIDER = "consider"
+    UNCLEAR = "unclear"
+    CLARIFY_CHOICE = "clarify_choice"
+
+
+class TarotStanceReason(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    position_key: str = Field(pattern=r"^[a-z][a-z0-9_]{1,39}$")
+    card_id: str = Field(min_length=1, max_length=64)
+    text: str = Field(min_length=1, max_length=400)
+
+
+class TarotStance(BaseModel):
+    """Lean computed from card labels and role weights (US-20 AC08/AC09, B2-3)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    version: str = "tarot-stance-v1"
+    kind: TarotStanceKind
+    level: TarotStanceLevel
+    topic: TarotContext = TarotContext.GENERAL
+    action: TarotAction | None = None
+    options: tuple[TarotAction, TarotAction] | None = None
+    conclusion: str = Field(min_length=1, max_length=300)
+    reasons: tuple[TarotStanceReason, ...] = Field(default=(), max_length=2)
+
+
 class TarotReadingProvenance(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -196,6 +233,9 @@ class TarotReading(BaseModel):
     spread_map: TarotSpreadMap
     voice: TarotVoice
     positions: tuple[TarotReadingPosition, ...]
+    # B2-3: lean for yes/no and choice questions of framed sessions. Readings without one
+    # omit the key, so they serialize exactly as before B2-3 (stored and API bytes, AC17).
+    stance: TarotStance | None = Field(default=None, exclude_if=lambda value: value is None)
     closing_prompt: str
     disclaimer: str
     provenance: TarotReadingProvenance

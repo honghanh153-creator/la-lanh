@@ -48,7 +48,8 @@
    - Có test golden cho 36 bài đọc, khớp hash tính trên head đã duyệt `9c28725`.
    - Bài đọc v6 đã lưu (mọi vị trí có việc nhỏ) vẫn validate và hiển thị.
 5. **Contract:** `small_action` thành `string | null` (tuỳ chọn) trong OpenAPI, contracts TS và client web.
-   - Payload Luna (vẫn tắt) gửi `null` cho vị trí không có việc nhỏ.
+   - API trả `small_action: null`. Payload gửi provider (Luna vẫn tắt) **bỏ hẳn key null** qua privacy
+     minimiser (`exclude_none`).
    - Không thêm trường; canary câu hỏi vẫn không lọt vào payload.
 6. **Audit:** `pnpm tarot:audit` chạy cả hai đường render (cũ và theo vai) trên 11 232 + 14 976 trải bài
    tổng hợp × 4 giọng. Cả hai đều đạt.
@@ -73,7 +74,7 @@
 
 ## Nội dung mới cần owner duyệt
 
-1. **21 khung câu theo vai** trong `tarot/roles.py` (`ROLES`). Ví dụ:
+1. **20 khung câu theo vai** trong `tarot/roles.py` (`ROLES`). Ví dụ:
    - "Lá này cho thấy {core}."
    - "Điều dễ trượt qua: có thể bạn đang {tension}."
    - "Điều cần tính tới khi bước tiếp: {core}."

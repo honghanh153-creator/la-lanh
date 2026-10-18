@@ -8,7 +8,7 @@ from app.domains.readings.review_agent import (
     ContentReviewAgent,
     ReviewSample,
 )
-from app.domains.tarot import question_frame, roles
+from app.domains.tarot import question_frame, roles, stance
 from app.domains.tarot.context_readings import CONTEXT_READINGS, CONTEXT_SCENES
 from app.domains.tarot.examples import example_for
 from app.domains.tarot.knowledge import (
@@ -137,6 +137,26 @@ _HIGH_STAKES = re.compile(
     r"\b(?:bệnh|thuốc|mang thai|tự tử|kiện|pháp lý|đầu tư|cổ phiếu|vay tiền|chẩn đoán)\b",
     re.IGNORECASE,
 )
+
+
+def _position_views(
+    positions: tuple[TarotReadingPosition, ...], context: TarotContext
+) -> list[stance.PositionView]:
+    views = []
+    for position in positions:
+        meaning = _CardMeaning.for_context(position.card, context)
+        views.append(
+            stance.PositionView(
+                key=position.key,
+                label=position.label,
+                card_id=position.card.id,
+                title=position.card.title_vi,
+                core=meaning.core,
+                tension=_tension_parts(meaning.tension)[0],
+                resource=_resource_step(meaning.resource),
+            )
+        )
+    return views
 
 
 def _authored_by_engine(reading: TarotReading) -> str:
@@ -387,19 +407,46 @@ class TarotReadingEngine:
                     small_action=action,
                 )
             )
-        summary = self._summary(
-            tuple(rendered), tuple(meanings), context, assessment.normalized_question
+        reading_stance = None
+        reserve = (
+            len(question_frame.READINESS_NOTE.split())
+            if frame is not None and frame.form is TarotQuestionForm.TIMING
+            else 0
         )
+        if frame is not None:
+            # B2-3: lean, a summary that links the roles, and a dynamic headline (AC08-AC11).
+            views = _position_views(tuple(rendered), context)
+            reading_stance = stance.stance_for(
+                frame.form, frame.action, assessment.normalized_question, frame.topic, views
+            )
+            lead = tuple(goal.meaning for goal in goals if goal.key != "general")
+            summary = stance.linked_summary(views, lead, reserve)
+        else:
+            summary = self._summary(
+                tuple(rendered), tuple(meanings), context, assessment.normalized_question
+            )
         if roast:
             opener = SUMMARY_OPENERS[context]
             # The opener is optional framing; it never displaces a selected card.
-            if len(f"{opener} {summary}".split()) <= 180:
+            if len(f"{opener} {summary}".split()) + reserve <= 180:
                 summary = f"{opener} {summary}"
         headline = roast_headline(intent, context) if roast else _INTENT_HEADLINES[intent]
         if frame is not None and frame.form is TarotQuestionForm.TIMING:
             # AC05: answer "when" as what to have ready first, and say why there is no date.
             headline = question_frame.readiness_headline(voice)
             summary = f"{question_frame.READINESS_NOTE} {summary}"
+        if frame is not None and not roast:
+            # AC11: a headline from form + lean (or action/topic) + the focal card. The Roast
+            # headline stays until its own frames exist (AC19, B2-4).
+            focal = next((view for view in views if roles.ROLES[view.key].step), views[-1])
+            others = [view for view in views if view is not focal]
+            second = next(
+                (v for v in others if roles.ROLES[v.key].field is roles.RoleField.TENSION),
+                others[0] if others else None,
+            )
+            headline = stance.dynamic_headline(
+                frame.form, reading_stance, frame.action, frame.topic, focal, second
+            )
         reading = TarotReading(
             headline=headline,
             summary=summary,
@@ -410,6 +457,7 @@ class TarotReadingEngine:
             spread_map=resolved_map,
             voice=voice,
             positions=tuple(rendered),
+            stance=reading_stance,
             closing_prompt=(
                 "Đừng cố nhớ hết cả bài. Chọn một điều đúng với chuyện thật và một việc "
                 "bạn có thể làm trong 24 giờ tới."
@@ -666,9 +714,15 @@ class TarotReadingEngine:
                 raise TarotContentRejected("reading changes the selected card facts")
         if len(reading.headline.split()) > 18 or len(reading.summary.split()) > 180:
             raise TarotContentRejected("reading headline or summary exceeds scan budget")
-        if any(position.card.title_vi not in reading.summary for position in reading.positions):
-            raise TarotContentRejected("summary omits a selected card")
         framed = reading.provenance.question_rules_version == QUESTION_RULES_VERSION
+        if framed:
+            views = _position_views(reading.positions, reading.context)
+            # Gate summary_links_cards replaces "names every card" (US-20 AC10).
+            if not stance.summary_links(reading.summary, views):
+                raise TarotContentRejected("summary does not link every role")
+            TarotReadingEngine._stance_consistent(reading, views)
+        elif any(position.card.title_vi not in reading.summary for position in reading.positions):
+            raise TarotContentRejected("summary omits a selected card")
         text = " ".join(
             [reading.headline, reading.summary, reading.closing_prompt, reading.disclaimer]
             + [
@@ -729,6 +783,27 @@ class TarotReadingEngine:
         )
         if not result.passed:
             raise TarotContentRejected("reading failed plain-language content review")
+
+    @staticmethod
+    def _stance_consistent(reading: TarotReading, views: list[stance.PositionView]) -> None:
+        """Gate stance_consistent (US-20 AC09): the stored lean is what the cards give, the
+        headline says it (default voices), and no prose states another level."""
+
+        current = reading.stance
+        others = set(stance.MARKERS.values())
+        if current is not None:
+            expected = stance.recompute(current, views)
+            if (expected.level, expected.action) != (current.level, current.action):
+                raise TarotContentRejected("stance does not match the cards")
+            if expected.conclusion != current.conclusion:
+                raise TarotContentRejected("stance does not match the cards")
+            marker = stance.MARKERS[current.level]
+            others.discard(marker)
+            if reading.voice is not TarotVoice.ROAST and marker not in reading.headline.lower():
+                raise TarotContentRejected("headline does not state the stance")
+        prose = f"{reading.headline} {reading.summary}".lower()
+        if any(other in prose for other in others):
+            raise TarotContentRejected("prose states a different stance")
 
     @staticmethod
     def _role_fit(reading: TarotReading) -> None:
