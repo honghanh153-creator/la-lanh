@@ -212,7 +212,12 @@ unchanged. There is no new data type, recipient or store declaration.
 Each new Tarot session stores a `variants` record inside its existing AES-GCM payload: small integers that
 pick the role frames, the lead offset and the headline frame. They are chosen once when the session starts
 from an HMAC of the guest ID under the selection-only key derived from the server hash key (the same key
-family as `daily_variety`) and the guest's session count at that moment. The seed itself is not stored. The
-record carries no text, says nothing about the person, expires or is deleted with the session (at most 29 days
-18 hours), is never logged, never returned by the API and never sent to a provider. No new data type,
-purpose, recipient or store declaration.
+family as `daily_variety`) and the guest's session position. The seed itself is not stored. The record carries
+no text, says nothing about the person, expires or is deleted with the session (at most 29 days 18 hours), is
+never logged, never returned by the API and never sent to a provider.
+
+The position comes from `tarot_variant_cursors`: one integer per guest (how many Tarot sessions the guest has
+started), allocated in the transaction that creates a session so it never repeats after a reading is deleted
+or expires. It holds no reading data, has row-level security enabled with no client grants, is never returned
+or logged, and is deleted with the guest (foreign-key cascade; guest expiry and erasure remove it). No new
+data type, purpose, recipient or store declaration.

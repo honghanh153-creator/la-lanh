@@ -9,7 +9,9 @@ from hashlib import sha256
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -39,7 +41,7 @@ from app.domains.tarot.models import (
     TarotVoice,
 )
 from app.domains.tarot.rewrite import compile_tarot_rewrite_request
-from app.domains.tarot.tables import TarotSessionRow
+from app.domains.tarot.tables import TarotSessionRow, TarotVariantCursorRow
 from app.domains.tarot.variants import choose_variants, stored_variants
 from app.domains.tarot.voice import effective_voice
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
@@ -131,13 +133,6 @@ class TarotSessionService:
                 if payload.get("request_hash") != request_hash:
                     raise TarotSessionConflict
                 return self._view(existing, payload)
-            # AC15: the session's position is the guest's session ordinal at creation. Two
-            # concurrent starts may share it (and so their variants); correctness is unaffected.
-            ordinal = await database.scalar(
-                select(func.count())
-                .select_from(TarotSessionRow)
-                .where(TarotSessionRow.guest_id == guest_id)
-            )
         session_id = uuid4()
         deck_order = [card.id for card in all_cards()]
         secrets.SystemRandom().shuffle(deck_order)
@@ -153,14 +148,8 @@ class TarotSessionService:
             "request_hash": request_hash,
             "prompt_id": prompt_id,
             "deck_order": deck_order,
-            # B2-4: variant indices chosen once with the shuffle and replayed at render (AC15).
-            # Framed sessions render with them; a session without a frame ignores them.
-            "variants": choose_variants(
-                self._variety_key,
-                guest_id,
-                int(ordinal or 0),
-                tuple(key for key, _ in self._engine.positions_for(spread_map)),
-            ).model_dump(mode="json"),
+            # B2-4: "variants" (AC15) is added below, in the transaction that allocates the
+            # guest's session position.
             "selected_indices": [],
             "reading": None,
         }
@@ -174,12 +163,25 @@ class TarotSessionService:
             voice=voice.value,
             origin=origin.value,
             idempotency_hash=idempotency_hash,
-            payload_ciphertext=self._encrypt(session_id, payload),
+            payload_ciphertext="",
             created_at=current,
             updated_at=current,
             expires_at=current + self.RETENTION_WINDOW,
         )
         async with self._sessions() as database, database.begin():
+            # AC15: the position comes from the guest's monotonic cursor, allocated in the
+            # transaction that creates the session. If the insert fails (for example a racing
+            # replay of the same idempotency key), the allocation rolls back with it.
+            position = await _allocate_position(database, guest_id)
+            # Variant indices chosen once with the shuffle and replayed at render. Framed
+            # sessions render with them; a session without a frame ignores them.
+            payload["variants"] = choose_variants(
+                self._variety_key,
+                guest_id,
+                position,
+                tuple(key for key, _ in self._engine.positions_for(spread_map)),
+            ).model_dump(mode="json")
+            row.payload_ciphertext = self._encrypt(session_id, payload)
             database.add(row)
             await database.flush([row])
         return self._view(row, payload)
@@ -432,6 +434,32 @@ class TarotSessionService:
             TarotSpread.THREE_CARD: TarotSpreadMap.THREE_UNBLOCK,
             TarotSpread.FIVE_CARD: TarotSpreadMap.FIVE_CLARITY,
         }[spread]
+
+
+async def _allocate_position(database: AsyncSession, guest_id: UUID) -> int:
+    """Take the guest's next session position (0, 1, 2, ...) with one atomic upsert.
+
+    The row lock taken by the upsert serialises concurrent starts of one guest, so every
+    committed session gets its own position. Deleting readings never rewinds the cursor.
+    """
+
+    dialect = database.get_bind().dialect.name
+    if dialect == "postgresql":
+        insert = postgresql_insert(TarotVariantCursorRow)
+    elif dialect == "sqlite":
+        insert = sqlite_insert(TarotVariantCursorRow)  # type: ignore[assignment]
+    else:  # pragma: no cover - supported runtime databases are PostgreSQL and SQLite.
+        raise RuntimeError(f"unsupported database dialect {dialect}")
+    statement = (
+        insert.values(guest_id=guest_id, next_position=1)
+        .on_conflict_do_update(
+            index_elements=[TarotVariantCursorRow.guest_id],
+            set_={"next_position": TarotVariantCursorRow.next_position + 1},
+        )
+        .returning(TarotVariantCursorRow.next_position)
+    )
+    allocated = (await database.execute(statement)).scalar_one()
+    return int(allocated) - 1
 
 
 def _payload_context(session_id: UUID) -> bytes:

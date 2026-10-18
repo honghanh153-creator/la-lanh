@@ -5,6 +5,7 @@ US-20 AC15, AC16, AC17, AC18, AC19. Task: docs/plans/2026-10-18-b2-4-tarot-varie
 
 from __future__ import annotations
 
+import asyncio
 import itertools
 import json
 import string
@@ -15,7 +16,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.db.session import Database
 from app.domains.guest.tables import GuestSessionRow
@@ -50,7 +51,7 @@ from app.domains.tarot.models import (
     TarotVoice,
 )
 from app.domains.tarot.service import TarotSessionService
-from app.domains.tarot.tables import TarotSessionRow
+from app.domains.tarot.tables import TarotSessionRow, TarotVariantCursorRow
 from app.domains.tarot.variants import (
     DEFAULT_VARIANTS,
     HEADLINE_VARIANTS,
@@ -138,10 +139,65 @@ def test_ac15_stored_record_holds_indices_only_and_fails_loudly_when_malformed()
     record = choose_variants(KEY, uuid4(), 0, ("focus",)).model_dump(mode="json")
     assert set(record) == {"version", "key_version", "lead", "headline", "frames", "scenes"}
     assert stored_variants({"variants": record}) == TarotVariants.model_validate(record)
-    assert stored_variants({}) == DEFAULT_VARIANTS  # framed session started before B2-4
-    for broken in ({**record, "lead": 9}, {**record, "frames": {"focus": 3}}, {"seed": "x"}):
-        with pytest.raises(ValidationError):
-            stored_variants({"variants": broken})
+    # Only an absent key is the pre-B2-4 case; a full default record (no key, empty maps) replays.
+    assert stored_variants({}) == DEFAULT_VARIANTS
+    default = json.loads(json.dumps(DEFAULT_VARIANTS.model_dump(mode="json")))
+    assert default["frames"] == {} and default["scenes"] == {}
+    assert stored_variants({"variants": default}) == DEFAULT_VARIANTS
+
+
+@pytest.mark.parametrize(
+    "broken",
+    [
+        None,  # present null is not absence
+        {},  # present but empty: would invent an all-zero draw
+        {"seed": "x"},
+        {"version": "unknown-version"},
+        "lead=1",
+        [0, 1],
+    ],
+)
+def test_ac15_present_malformed_records_fail_instead_of_defaulting(broken: Any) -> None:
+    with pytest.raises(ValidationError):
+        stored_variants({"variants": broken})
+
+
+_RECORD = TarotVariants(key_version=1, lead=1, headline=2, frames={"clear": 1}, scenes={"clear": 0})
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"version": "tarot-variants-v2"},
+        {"version": None},
+        {"lead": True},  # bool would coerce to index 1
+        {"lead": "1"},
+        {"lead": 1.0},
+        {"lead": 9},
+        {"headline": None},
+        {"key_version": -1},
+        {"frames": {"clear": True}},
+        {"frames": {"clear": "1"}},
+        {"frames": {"clear": 3}},
+        {"frames": None},
+        {"scenes": {"clear": 1}},
+        {"extra": 0},
+    ],
+)
+def test_ac15_stored_record_is_strict_about_every_field(change: dict[str, Any]) -> None:
+    record = {**_RECORD.model_dump(mode="json"), **change}
+    with pytest.raises(ValidationError):
+        stored_variants({"variants": record})
+
+
+@pytest.mark.parametrize(
+    "field", ["version", "key_version", "lead", "headline", "frames", "scenes"]
+)
+def test_ac15_stored_record_needs_all_six_fields(field: str) -> None:
+    record = _RECORD.model_dump(mode="json")
+    del record[field]
+    with pytest.raises(ValidationError):
+        stored_variants({"variants": record})
 
 
 # ---------------------------------------------------------------- AC15 through the service
@@ -261,6 +317,77 @@ async def test_ac15_consecutive_sessions_of_a_guest_get_different_variants(
         )
     for before, after in itertools.pairwise(records):
         assert before.headline != after.headline and before.lead != after.lead
+
+
+async def _cursor(db: Database, guest: UUID) -> int | None:
+    async with db.sessions() as session:
+        row = await session.get(TarotVariantCursorRow, guest)
+        return None if row is None else row.next_position
+
+
+async def test_ac15_deleting_a_reading_or_cleanup_never_rewinds_the_position(
+    database: Database,
+) -> None:
+    guest = await _guest(database)
+    service = _service(database, KEY)
+    keys = ("clear", "missed", "next")
+    a = await _complete(service, guest, await _start(service, guest, idempotency="cursor-a" * 4))
+    b = await _complete(service, guest, await _start(service, guest, idempotency="cursor-b" * 4))
+    await service.delete(guest, a.id)
+    c = await _complete(service, guest, await _start(service, guest, idempotency="cursor-c" * 4))
+    variants = {
+        name: (await _payload(database, service, view.id))["variants"]
+        for name, view in (("b", b), ("c", c))
+    }
+    assert variants["b"] == choose_variants(KEY, guest, 1, keys).model_dump(mode="json")
+    assert variants["c"] == choose_variants(KEY, guest, 2, keys).model_dump(mode="json")
+    assert variants["b"] != variants["c"]
+    assert b.reading is not None and c.reading is not None and b.reading != c.reading
+    assert await _cursor(database, guest) == 3
+    # Retention cleanup removes rows, not the cursor.
+    later = datetime.now(UTC) + TarotSessionService.RETENTION_WINDOW + timedelta(minutes=1)
+    assert await service.cleanup(now=later) == 2
+    d = await _start(service, guest, idempotency="cursor-d" * 4)
+    assert (await _payload(database, service, d.id))["variants"] == choose_variants(
+        KEY, guest, 3, keys
+    ).model_dump(mode="json")
+    assert await _cursor(database, guest) == 4
+
+
+async def test_ac15_replay_allocates_nothing_and_the_cursor_goes_with_the_guest(
+    database: Database,
+) -> None:
+    guest = await _guest(database)
+    service = _service(database, KEY)
+    first = await _start(service, guest)
+    replay = await _start(service, guest)  # same idempotency key and request
+    assert replay.id == first.id and await _cursor(database, guest) == 1
+    async with database.sessions() as session, session.begin():
+        await session.execute(delete(GuestSessionRow).where(GuestSessionRow.id == guest))
+    assert await _cursor(database, guest) is None
+
+
+async def test_ac15_concurrent_starts_get_distinct_positions(database: Database) -> None:
+    guest = await _guest(database)
+    service = _service(database, KEY)
+    views = await asyncio.gather(
+        *(_start(service, guest, idempotency=f"cursor-race-{index:020d}") for index in range(4))
+    )
+    records = sorted(
+        [
+            json.dumps((await _payload(database, service, view.id))["variants"], sort_keys=True)
+            for view in views
+        ]
+    )
+    keys = ("clear", "missed", "next")
+    expected = sorted(
+        json.dumps(
+            choose_variants(KEY, guest, position, keys).model_dump(mode="json"), sort_keys=True
+        )
+        for position in range(4)
+    )
+    assert records == expected and len(set(records)) == 4
+    assert await _cursor(database, guest) == 4
 
 
 async def test_ac15_without_a_key_or_a_record_every_index_is_zero(database: Database) -> None:

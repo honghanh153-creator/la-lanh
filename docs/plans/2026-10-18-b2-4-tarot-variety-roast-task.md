@@ -35,16 +35,22 @@ B2-4a chỉ dựng trục chọn cảnh, nên khi có cảnh mới chỉ cần t
   - `scenes[position_key]`: chỉ số cảnh (hiện luôn là 0 vì mỗi lá × chủ đề mới có 1 cảnh).
 - Seed: `HMAC(K[1], guest_id ‖ "tarot" ‖ TAROT_VARIANT_CATALOG_VERSION)`. `K[v]` là khoá chọn biến thể đã có
   từ B3-1a (`derive_variety_key`, dẫn xuất từ `guest_hash_key`, chỉ dùng để chọn, không mã hoá gì).
-- Vị trí: số phiên Tarot của guest đang có tại lúc tạo. Giá trị trục lấy bằng `axis_slot` của B3-1a, nên **hai
-  phiên liên tiếp luôn khác nhau** ở mọi trục có ≥ 2 giá trị.
+- Vị trí: cursor tăng bền vững theo guest (bảng `tarot_variant_cursors`, sửa theo review Codex P2-1). Cursor
+  được cấp bằng một upsert nguyên tử trong **cùng transaction tạo phiên**: xoá bài đọc hay cleanup không làm lùi
+  cursor; replay idempotency không cấp vị trí; nếu tạo phiên thất bại thì cấp phát rollback theo. Cursor bị xoá
+  cùng guest (FK cascade). Giá trị trục lấy bằng `axis_slot` của B3-1a, nên **hai phiên liên tiếp luôn khác
+  nhau** ở mọi trục có ≥ 2 giá trị.
 - Ghi vào payload AES-GCM của phiên: `{"version", "key_version", "lead", "headline", "frames", "scenes"}`.
   Chỉ lưu chỉ số đã chọn, không lưu seed. Render chỉ đọc bản ghi này, không tính lại, nên đổi khoá, đổi
   catalog hay restart đều không làm đổi bản đã rút.
 - Bản đọc vẫn render một lần ở lá cuối và được lưu. Tarot không có đường đổi giọng sau khi bắt đầu (giọng chốt
   lúc tạo phiên), nên "đổi giọng" trong AC15 không có đường chạy; ghi nhận ở đây.
-- Phiên có frame nhưng chưa có biến thể (chưa phát hành, chỉ có ở môi trường dev): mọi chỉ số = 0.
-- Service không có khoá (test cũ, môi trường không cấu hình): mọi chỉ số = 0.
-- Chạy đồng thời hai lần tạo phiên có thể trùng vị trí, nên trùng biến thể. Không ảnh hưởng tính đúng.
+- Chỉ khi **thiếu hẳn key** `variants` (phiên có frame bắt đầu trước B2-4, chỉ có ở dev) mới dùng chỉ số 0. Bản
+  ghi hiện diện phải giải mã chặt (sửa theo review Codex P2-2): đủ sáu trường, đúng version, số nguyên strict
+  (không bool, chuỗi số hay float), không trường lạ; `null`, `{}` hay thiếu trường đều báo lỗi thay vì tự bịa
+  chỉ số. Bản ghi DEFAULT đầy đủ (frames/scenes rỗng) vẫn replay được.
+- Service không có khoá (test cũ, môi trường không cấu hình): mọi chỉ số = 0 (vẫn ghi bản ghi đầy đủ).
+- Hai lần tạo phiên đồng thời được upsert xếp hàng trên cùng dòng cursor, nên mỗi phiên có vị trí riêng.
 
 ### 2. Câu riêng cho từng câu hỏi (AC16)
 
@@ -155,11 +161,12 @@ rồi làm mới `fallback-approval.json`.
 
 ## Bảo mật và riêng tư
 
-- Không endpoint, bảng hay trường API mới. Contract chỉ bỏ default cũ của 4 trường provenance (kiểu TS vốn đã
+- Không endpoint hay trường API mới. Contract chỉ bỏ default cũ của 4 trường provenance (kiểu TS vốn đã
   bắt buộc).
 - Bản ghi `variants` chỉ là số nguyên trong payload AES-GCM, không chứa chữ, không chứa seed, không log, không
   trả qua API, không gửi provider; hết hạn/xoá cùng phiên. Seed dùng khoá chọn biến thể đã có (B3-1a), dẫn xuất
   tách miền từ `guest_hash_key`, không mã hoá hay xác thực gì.
-- Số phiên của guest chỉ dùng tạm để chọn vị trí, không lưu.
+- Bảng mới `tarot_variant_cursors` (migration `20261018_0037`): một số nguyên mỗi guest, bật RLS, thu hồi quyền
+  client, không trả API, không log, xoá cùng guest. Data map đã cập nhật.
 - Payload Luna không đổi (Luna vẫn tắt; Cà khịa không được gửi rewrite). Data map đã thêm mục delta B2-4a.
 - Không có dữ liệu cá nhân mới, nên không cần rà lại luật; kế thừa kết luận của B3-1a cho khoá chọn biến thể.

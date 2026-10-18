@@ -64,8 +64,12 @@ birth data, or report evidence in the URL.
 - B2-4a (`docs/plans/2026-10-18-b2-4-tarot-variety-roast-task.md`), framed sessions only:
   - Each role has three frames per voice register; the headline has three frames per key. A
     session picks its frames, its lead offset and its headline frame once, when it starts, from
-    `HMAC(K[1], guest ‖ "tarot" ‖ tarot-variant-catalog-v1)` and the guest's session ordinal. Only
-    the indices are stored, in the encrypted payload; rendering replays them.
+    `HMAC(K[1], guest ‖ "tarot" ‖ tarot-variant-catalog-v1)` and the guest's session position,
+    taken from a monotonic per-guest cursor (`tarot_variant_cursors`) in the transaction that
+    creates the session; deleting or expiring readings never rewinds it. Only the indices are
+    stored, in the encrypted payload; rendering replays them. Only an absent record falls back to
+    index 0; a present record must decode strictly (all six fields, supported version, strict
+    integers) or the render fails.
   - Every position starts with a lead chosen by the question form (5 per form, none repeated in a
     reading), so two questions over the same card and role read differently (T4).
   - Roast has its own role frames, headlines, stance conclusions and summary conjunctions, mapped
