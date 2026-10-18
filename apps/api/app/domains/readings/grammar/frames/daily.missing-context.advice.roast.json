@@ -1,0 +1,196 @@
+{
+ "frame_id": "daily.missing-context.advice.roast",
+ "surface": "daily",
+ "part": "advice",
+ "voice": "roast",
+ "roast_of": "daily.missing-context.advice",
+ "template": "{trigger} {verb} {object}{tail} nha.",
+ "slots": {
+  "trigger": {
+   "kind": "must_change",
+   "values": [
+    {
+     "id": "t-truoc-tra-loi",
+     "text": "Chưa vội trả lời đâu,"
+    },
+    {
+     "id": "t-mo-tin",
+     "text": "Mở tin nhắn ra rồi thì"
+    },
+    {
+     "id": "t-doc-lai",
+     "text": "Đọc tới lần thứ năm rồi thì"
+    },
+    {
+     "id": "t-truoc-doan",
+     "text": "Thám tử ơi, trước khi phá án,"
+    },
+    {
+     "id": "t-thay-suy-dien",
+     "text": "Thấy não mở thêm tab là"
+    },
+    {
+     "id": "t-truoc-gui",
+     "text": "Trước khi gửi thêm một câu nữa,"
+    }
+   ]
+  },
+  "verb": {
+   "kind": "must_change",
+   "values": [
+    {
+     "id": "v-hoi-lai",
+     "text": "hỏi lại"
+    },
+    {
+     "id": "v-hoi-thang",
+     "text": "hỏi thẳng luôn về"
+    },
+    {
+     "id": "v-nhan-hoi",
+     "text": "nhắn một câu hỏi về"
+    },
+    {
+     "id": "v-xin-noi-ro",
+     "text": "xin người gửi giải thích"
+    },
+    {
+     "id": "v-ghi-ra",
+     "text": "ghi ra giấy"
+    }
+   ]
+  },
+  "object": {
+   "kind": "must_change",
+   "values": [
+    {
+     "id": "o-chu-chua-hieu",
+     "text": "cái chữ bạn chưa hiểu"
+    },
+    {
+     "id": "o-cho-chua-ro",
+     "text": "đúng khúc còn chưa rõ"
+    },
+    {
+     "id": "o-y-chinh",
+     "text": "ý chính của tin nhắn"
+    },
+    {
+     "id": "o-dieu-can",
+     "text": "điều người gửi thật sự cần"
+    }
+   ]
+  },
+  "tail": {
+   "kind": "bucket",
+   "by": "lens",
+   "buckets": {
+    "_default": [
+     {
+      "id": "tail-none",
+      "text": ""
+     },
+     {
+      "id": "tail-truoc-da",
+      "text": " cho nhanh án"
+     }
+    ],
+    "work": [
+     {
+      "id": "tail-lam-tiep",
+      "text": " rồi hẵng làm tiếp"
+     },
+     {
+      "id": "tail-viec-dang-lam",
+      "text": " cho đỡ làm lại"
+     }
+    ],
+    "relationships": [
+     {
+      "id": "tail-hieu-lam",
+      "text": " cho khỏi đoán sai người kia"
+     },
+     {
+      "id": "tail-phan-ung",
+      "text": " trước khi dỗi"
+     }
+    ]
+   }
+  }
+ },
+ "constraints": [
+  {
+   "if": {
+    "verb": [
+     "v-hoi-thang"
+    ]
+   },
+   "forbid": {
+    "trigger": [
+     "t-doc-lai"
+    ]
+   }
+  },
+  {
+   "if": {
+    "verb": [
+     "v-xin-noi-ro"
+    ]
+   },
+   "forbid": {
+    "object": [
+     "o-dieu-can"
+    ]
+   }
+  },
+  {
+   "if": {
+    "trigger": [
+     "t-mo-tin"
+    ]
+   },
+   "forbid": {
+    "object": [
+     "o-y-chinh"
+    ]
+   }
+  },
+  {
+   "if": {
+    "verb": [
+     "v-xin-noi-ro"
+    ]
+   },
+   "forbid": {
+    "object": [
+     "o-cho-chua-ro"
+    ]
+   }
+  },
+  {
+   "if": {
+    "trigger": [
+     "t-truoc-tra-loi",
+     "t-truoc-doan",
+     "t-truoc-gui"
+    ]
+   },
+   "forbid": {
+    "tail": [
+     "tail-lam-tiep",
+     "tail-phan-ung"
+    ]
+   }
+  }
+ ],
+ "meaning_key": "missing-context",
+ "negative_role": false,
+ "vocab_class": "action",
+ "provenance": {
+  "source": "authored",
+  "model": null,
+  "prompt_version": null,
+  "reviewed_by": null,
+  "date": "2026-10-17"
+ }
+}
