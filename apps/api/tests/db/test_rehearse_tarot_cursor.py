@@ -265,3 +265,58 @@ def test_backend_role_helper_refuses_unsafe_passwords(tmp_path: Path, password: 
     assert result.returncode != 0
     assert not (tmp_path / "argv.log").exists()  # docker never ran
     assert password not in result.stderr
+
+
+async def test_rehearsal_rejects_records_without_position_axes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex #31 @ 685a376: frames/scenes stored empty made "differs on every axis" vacuous."""
+
+    from app.domains.tarot import service as tarot_service
+    from app.domains.tarot.variants import choose_variants as original
+
+    def no_positions(key, owner, position, position_keys, **kwargs):  # type: ignore[no-untyped-def]
+        return original(key, owner, position, (), **kwargs)
+
+    monkeypatch.setattr(tarot_service, "choose_variants", no_positions)
+    with pytest.raises(rehearse_tarot_cursor.RehearsalFailed, match="cover-the-positions"):
+        await rehearse_tarot_cursor.rehearse(await _empty_database(tmp_path))
+
+
+async def test_rehearsal_rejects_stored_records_the_reader_would_refuse(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex #31 @ 685a376: a record without version/key_version passed a defaulting decoder."""
+
+    from app.domains.tarot.service import TarotSessionService
+
+    original = TarotSessionService._encrypt
+
+    def missing_metadata(self, session_id, payload):  # type: ignore[no-untyped-def]
+        record = {
+            k: v for k, v in payload["variants"].items() if k not in {"version", "key_version"}
+        }
+        return original(self, session_id, {**payload, "variants": record})
+
+    monkeypatch.setattr(TarotSessionService, "_encrypt", missing_metadata)
+    with pytest.raises(rehearse_tarot_cursor.RehearsalFailed, match="stored-variants-invalid"):
+        await rehearse_tarot_cursor.rehearse(await _empty_database(tmp_path))
+
+
+async def test_rehearsal_rejects_sessions_without_a_variants_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.domains.tarot.service import TarotSessionService
+
+    original = TarotSessionService._encrypt
+
+    def no_record(self, session_id, payload):  # type: ignore[no-untyped-def]
+        return original(self, session_id, {k: v for k, v in payload.items() if k != "variants"})
+
+    monkeypatch.setattr(TarotSessionService, "_encrypt", no_record)
+    with pytest.raises(rehearse_tarot_cursor.RehearsalFailed, match="stored-variants-missing"):
+        await rehearse_tarot_cursor.rehearse(await _empty_database(tmp_path))
+
+
+def test_expected_keys_come_from_the_spread_map() -> None:
+    assert rehearse_tarot_cursor.expected_position_keys() == ("clear", "missed", "next")

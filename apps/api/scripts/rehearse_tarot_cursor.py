@@ -9,8 +9,10 @@ Checks (runbook "Tarot B2 (US-20)"):
 1. the connection role is not a superuser (PostgreSQL only);
 2. ``tarot_variant_cursors`` has RLS enabled and no browser-role privileges (PostgreSQL only);
 3. two concurrent session starts of one guest get distinct positions through the real upsert,
-   and the variant records the two sessions actually stored (decrypted here, never printed) are
-   the ones for positions 0 and 1 and differ on every axis;
+   and the variant records the two sessions actually stored (decrypted with the strict persisted
+   decoder, never printed) are present, cover exactly the positions of the synthetic session's
+   spread map (derived independently), equal the records for positions 0 and 1 and differ on
+   every axis;
 4. deleting a reading keeps the cursor; retention cleanup, drained in bounded batches until the
    synthetic sessions are gone (a restored copy may hold many older expired sessions), keeps it;
    deleting the guest removes it.
@@ -24,19 +26,22 @@ Prints ``tarot-cursor-rehearsal-ok`` and exits 0, or prints a failure code and e
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from pydantic import ValidationError
 from sqlalchemy import delete, select, text
 
 from app.db.session import Database
 from app.domains.guest.tables import GuestSessionRow
+from app.domains.tarot.engine import TarotReadingEngine
 from app.domains.tarot.models import TarotContext, TarotOrigin, TarotSpread, TarotVoice
 from app.domains.tarot.service import TarotSessionService
 from app.domains.tarot.tables import TarotSessionRow, TarotVariantCursorRow
-from app.domains.tarot.variants import TarotVariants, choose_variants
+from app.domains.tarot.variants import TarotVariants, choose_variants, stored_variants
 from app.infrastructure.crypto import AesGcmEnvelopeCipher, SecretHasher, StaticDataKeyProvider
 
 QUESTION = "Mình cần nói rõ điều gì trước khi nhận thêm việc?"
@@ -87,12 +92,44 @@ async def _cursor(db: Database, guest: UUID) -> int | None:
         return None if row is None else row.next_position
 
 
-async def _stored(db: Database, service: TarotSessionService, session_id: UUID) -> TarotVariants:
+def expected_position_keys() -> tuple[str, ...]:
+    """The synthetic session's positions, derived from the question and spread exactly as the
+    service chooses its map, never from the record under test."""
+
+    engine = TarotReadingEngine()
+    assessment = engine.assess_question(QUESTION, TarotContext.WORK)
+    if assessment.intent is None:
+        raise RehearsalFailed("synthetic-question-rejected")
+    spread_map = engine.choose_spread_map(
+        TarotSpread.THREE_CARD, assessment.intent, assessment.normalized_question
+    )
+    return tuple(key for key, _ in engine.positions_for(spread_map))
+
+
+def _canonical(variants: TarotVariants) -> str:
+    return json.dumps(variants.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+
+
+async def _stored(
+    db: Database, service: TarotSessionService, session_id: UUID, keys: tuple[str, ...]
+) -> TarotVariants:
+    """The record decoded exactly as rendering reads it (strict persisted decoder), which must
+    be present and cover exactly the session's positions."""
+
     async with db.sessions() as session:
         row = await session.get(TarotSessionRow, session_id)
         if row is None:
             raise RehearsalFailed("synthetic-session-missing")
-        return TarotVariants.model_validate(service._decrypt(row)["variants"])
+        payload = service._decrypt(row)
+    if "variants" not in payload:
+        raise RehearsalFailed("stored-variants-missing")
+    try:
+        variants = stored_variants(payload)
+    except ValidationError:
+        raise RehearsalFailed("stored-variants-invalid") from None
+    if set(variants.frames) != set(keys) or set(variants.scenes) != set(keys):
+        raise RehearsalFailed("stored-variants-do-not-cover-the-positions")
+    return variants
 
 
 async def _present(db: Database, session_ids: set[UUID]) -> bool:
@@ -103,11 +140,12 @@ async def _present(db: Database, session_ids: set[UUID]) -> bool:
         return found is not None
 
 
-def _differ_on_every_axis(left: TarotVariants, right: TarotVariants) -> bool:
+def _differ_on_every_axis(left: TarotVariants, right: TarotVariants, keys: tuple[str, ...]) -> bool:
     return (
-        left.lead != right.lead
+        bool(keys)
+        and left.lead != right.lead
         and left.headline != right.headline
-        and all(left.frame(key) != right.frame(key) for key in left.frames)
+        and all(left.frames[key] != right.frames[key] for key in keys)
     )
 
 
@@ -152,24 +190,24 @@ async def exercise_cursor(db: Database) -> None:
     try:
         first, second = await asyncio.gather(start("a"), start("b"))
         _require(await _cursor(db, guest) == 2, "concurrent-starts-did-not-both-allocate")
-        stored = [await _stored(db, service, session_id) for session_id in (first, second)]
-        keys = tuple(stored[0].frames)
-        expected = [
-            choose_variants(variety_key, guest, position, keys).model_dump(mode="json")
-            for position in (0, 1)
-        ]
-        actual = [variants.model_dump(mode="json") for variants in stored]
+        keys = expected_position_keys()
+        stored = [await _stored(db, service, session_id, keys) for session_id in (first, second)]
+        expected = sorted(
+            _canonical(choose_variants(variety_key, guest, position, keys)) for position in (0, 1)
+        )
         _require(
-            sorted(map(str, actual)) == sorted(map(str, expected)),
+            sorted(_canonical(variants) for variants in stored) == expected,
             "concurrent-sessions-did-not-store-positions-0-and-1",
         )
-        _require(_differ_on_every_axis(*stored), "concurrent-sessions-share-variants")
+        _require(
+            _differ_on_every_axis(stored[0], stored[1], keys), "concurrent-sessions-share-variants"
+        )
         await service.delete(guest, first)
         third = await start("c")
         _require(await _cursor(db, guest) == 3, "deletion-rewound-the-cursor")
         _require(
-            (await _stored(db, service, third)).model_dump(mode="json")
-            == choose_variants(variety_key, guest, 2, keys).model_dump(mode="json"),
+            _canonical(await _stored(db, service, third, keys))
+            == _canonical(choose_variants(variety_key, guest, 2, keys)),
             "session-after-deletion-did-not-store-position-2",
         )
         later = now + TarotSessionService.RETENTION_WINDOW + timedelta(days=1)
