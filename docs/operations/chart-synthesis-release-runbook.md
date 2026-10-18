@@ -35,6 +35,11 @@ Release of the framed Tarot renderer (B2-1 to B2-4b) is **No-Go** until:
   PUBLIC/anon/authenticated; the backend role can run the cursor upsert with `RETURNING`; concurrent session
   starts of one guest get distinct positions; deleting a reading and retention cleanup keep the cursor;
   deleting the guest removes it.
+  Procedure: on the server, `LA_LANH_RELEASE_ID=<tag> /opt/la-lanh/releases/<tag>/source/infra/hetzner/rehearse-migration.sh`
+  (absolute path). Since 2026-10-18 the script restores the newest backup as a NOSUPERUSER backend role that
+  owns the public tables (like the Supabase pooler role), connects the app as that role, and runs
+  `scripts.rehearse_tarot_cursor` after `check_database_privacy`; evidence is `database-privacy-isolation-ok`,
+  `tarot-cursor-rehearsal-ok` and `Rehearsal readiness OK`.
 - Luna stays off unless separately approved; Roast readings are never queued.
 
 ## Pre-release Go/No-Go

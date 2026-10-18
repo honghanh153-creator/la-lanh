@@ -322,7 +322,8 @@ must restore `database_url.pre-ca` first.
 Backups: `infra/hetzner/backup-database.sh` (root-only custom dump of `public`, checksum, 14-day
 retention, `sslmode=verify-full`). Rehearse every schema change with
 `infra/hetzner/rehearse-migration.sh` (restores the newest backup into a disposable TLS-enabled
-PostgreSQL, runs the release image's migrations, privacy check and readiness, then destroys it).
+PostgreSQL, runs the release image's migrations, privacy check, Tarot cursor rehearsal and readiness as a
+least-privileged NOSUPERUSER backend role that owns the restored tables, then destroys it; since 2026-10-18).
 Staging: `infra/hetzner/staging/up.sh` (own empty database and keys; auth/generation off).
 
 Normally, keep the existing secret files. Recreate the database URL only after a password rotation or
