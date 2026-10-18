@@ -72,7 +72,7 @@ Brief v3 = mục 1. `MEANING_BRIEF_VERSION` của brief v2 không đổi cho phi
 |---|---|---|
 | AC06 | Xong (schema, kiểm nguồn gốc, canary) | `tests/tarot/test_provenance.py`; `tarot:audit`: 5 340 payload giọng thẳng, mọi chuỗi đều tra được |
 | AC18 (brief v3) | Xong | `test_ac06_framed_payload_is_brief_v3_with_a_source_per_position`; job v1/v2 vẫn qua schema |
-| AC14 | Phần máy: xong. Phần đọc: chờ owner | `tests/tarot/test_checklist.py`; `tarot:audit`; sheet "Checklist AC14" |
+| AC14 | Xong: phần máy + owner duyệt 12 bài mẫu (18/10) | `tests/tarot/test_checklist.py`; `tarot:audit`; `docs/reviews/2026-10-18-b2-tarot-owner-approval.md` |
 
 ## Kết quả audit cần owner quyết
 
