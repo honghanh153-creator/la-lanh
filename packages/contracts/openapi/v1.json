@@ -4383,12 +4383,10 @@
             "type": "string"
           },
           "gate_version": {
-            "default": "tarot-gates-v1",
             "title": "Gate Version",
             "type": "string"
           },
           "knowledge_version": {
-            "default": "tarot-knowledge-v2",
             "title": "Knowledge Version",
             "type": "string"
           },
@@ -4398,12 +4396,10 @@
             "type": "string"
           },
           "question_rules_version": {
-            "default": "tarot-question-rules-v1",
             "title": "Question Rules Version",
             "type": "string"
           },
           "renderer_version": {
-            "default": "tarot-renderer-v1",
             "title": "Renderer Version",
             "type": "string"
           },
@@ -4426,6 +4422,10 @@
           }
         },
         "required": [
+          "knowledge_version",
+          "renderer_version",
+          "gate_version",
+          "question_rules_version",
           "source_ids"
         ],
         "title": "TarotReadingProvenance",

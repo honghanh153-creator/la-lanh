@@ -23,9 +23,9 @@ from app.domains.content_rewrite.models import (
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
 from app.domains.tarot.engine import (
-    TAROT_RENDERER_VERSION,
     TarotContentRejected,
     TarotReadingEngine,
+    current_renderer_version,
 )
 from app.domains.tarot.meaning_brief import meaning_brief_for
 from app.domains.tarot.models import (
@@ -353,7 +353,9 @@ class TarotRewriteProjector(RewriteProjector):
             if raw_reading is None:
                 return RewriteProjectionDecision(accepted=False, failure_code="stale_owner")
             baseline = TarotReading.model_validate(raw_reading)
-            if baseline.provenance.renderer_version != TAROT_RENDERER_VERSION:
+            # v7 for framed readings, v6 for sessions without a frame (US-20 AC18).
+            expected = current_renderer_version(baseline.provenance.question_rules_version)
+            if baseline.provenance.renderer_version != expected:
                 return RewriteProjectionDecision(
                     accepted=False, failure_code="stale_domain_version"
                 )

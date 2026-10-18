@@ -9,7 +9,7 @@ from hashlib import sha256
 from typing import Any, cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -40,6 +40,7 @@ from app.domains.tarot.models import (
 )
 from app.domains.tarot.rewrite import compile_tarot_rewrite_request
 from app.domains.tarot.tables import TarotSessionRow
+from app.domains.tarot.variants import choose_variants, stored_variants
 from app.domains.tarot.voice import effective_voice
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
 
@@ -61,6 +62,7 @@ class TarotSessionService:
         generation_model: str = "disabled",
         generation_prompt_version: str = "surface-rewrite-v1",
         content_rewrite_service: ContentRewriteService | None = None,
+        variety_key: bytes | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
@@ -70,6 +72,8 @@ class TarotSessionService:
         self._generation_model = generation_model
         self._generation_prompt_version = generation_prompt_version
         self._content_rewrite_service = content_rewrite_service
+        # Selection-only key K[v] (B3-1a); None keeps index 0 for every variant.
+        self._variety_key = variety_key
 
     async def start(
         self,
@@ -127,6 +131,13 @@ class TarotSessionService:
                 if payload.get("request_hash") != request_hash:
                     raise TarotSessionConflict
                 return self._view(existing, payload)
+            # AC15: the session's position is the guest's session ordinal at creation. Two
+            # concurrent starts may share it (and so their variants); correctness is unaffected.
+            ordinal = await database.scalar(
+                select(func.count())
+                .select_from(TarotSessionRow)
+                .where(TarotSessionRow.guest_id == guest_id)
+            )
         session_id = uuid4()
         deck_order = [card.id for card in all_cards()]
         secrets.SystemRandom().shuffle(deck_order)
@@ -142,6 +153,14 @@ class TarotSessionService:
             "request_hash": request_hash,
             "prompt_id": prompt_id,
             "deck_order": deck_order,
+            # B2-4: variant indices chosen once with the shuffle and replayed at render (AC15).
+            # Framed sessions render with them; a session without a frame ignores them.
+            "variants": choose_variants(
+                self._variety_key,
+                guest_id,
+                int(ordinal or 0),
+                tuple(key for key, _ in self._engine.positions_for(spread_map)),
+            ).model_dump(mode="json"),
             "selected_indices": [],
             "reading": None,
         }
@@ -234,6 +253,7 @@ class TarotSessionService:
                         voice=TarotVoice(row.voice),
                         question_intent=self._question_intent(payload),
                         frame=self._question_frame(payload),
+                        variants=stored_variants(payload),
                     )
                 except TarotContentRejected:
                     # Preserve the draw, never publish the rejected draft or retry AI.

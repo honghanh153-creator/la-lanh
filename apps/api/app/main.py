@@ -186,6 +186,9 @@ def create_app(
             generation_model=resolved_settings.generation_openai_model,
             generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
             content_rewrite_service=content_rewrite_service,
+            variety_key=derive_variety_key(
+                resolved_settings.guest_hash_key.get_secret_value().encode()
+            ),
         )
         app.state.la_chung_service = LaChungService(
             database.sessions,

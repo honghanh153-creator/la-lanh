@@ -207,8 +207,9 @@ def test_ac11_headline_carries_form_lean_and_focal_card() -> None:
         f"{how.positions[2].card.title_vi} và {how.positions[1].card.title_vi}"
     )
     assert all(len(r.headline.split()) <= 18 for r in (lean, how))
+    # B2-4 (AC19): Roast has its own headline frames, still with the focal card and the marker.
     roast = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK, voice=TarotVoice.ROAST)
-    assert not roast.headline.startswith(focal)  # Roast headline frames arrive in B2-4
+    assert roast.headline == f"{focal} bật đèn xanh nhẹ: nghiêng về thử xin lỗi."
 
 
 # ---------------------------------------------------------------- service, API and payload

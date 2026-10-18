@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
-from collections import Counter
+import re
+import unicodedata
+import uuid
+from collections import Counter, defaultdict
+from math import comb
 from pathlib import Path
 from typing import Any
 
@@ -227,24 +231,42 @@ def audit_question_bank() -> tuple[list[str], dict[str, Any]]:
 
 
 HEADLINE_DUPLICATE_CEILING = 0.10  # US-20 AC11
-_DIRECT_VOICES = (TarotVoice.STRAIGHT_WARM, TarotVoice.GENTLE_SPECIFIC, TarotVoice.PLAYFUL_GROUNDED)
+T4_FLOOR = 0.80  # US-20 AC16, measurement spec §4c
+# Synthetic selection key and owner namespace: audit sessions are not real guests.
+AUDIT_VARIETY_KEY = b"tarot-audit-synthetic-variety-key"
+AUDIT_OWNERS = uuid.UUID("6f1c0b4e-7a1d-4c55-9e35-0b2d5c7a9e11")
+_TRAILING = re.compile(r"[\s.!?…,;:]+$")
+
+
+def _normalize(text: str) -> str:
+    """Measurement spec §4c normalisation (same as scripts/variety_baseline.normalize)."""
+
+    folded = " ".join(unicodedata.normalize("NFC", text).casefold().split())
+    return _TRAILING.sub("", folded)
+
+
+def _audit_owner(item_id: str) -> uuid.UUID:
+    return uuid.uuid5(AUDIT_OWNERS, item_id)
 
 
 def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
-    """B2-3 on the bank: stance distribution, headline duplicates (< 10%), no generic copy.
+    """B2-3/B2-4 on the bank (US-20 AC20): stance distribution, headline duplicates per voice
+    (< 10%), no generic copy.
 
-    Every accepted bank question x every spread map x the three direct voices, with cards drawn
-    from a seed fixed per question (the Roast headline is B2-4).
+    Every accepted bank question x every spread map x all four voices, with cards drawn from a
+    seed fixed per question and the variants a synthetic guest's first session would get. Roast
+    on a sensitive question renders in the default voice and is counted there.
     """
 
     import random
 
     from app.domains.tarot import roles as tarot_roles
+    from app.domains.tarot.variants import choose_variants
 
     engine = TarotReadingEngine()
     items: list[dict[str, Any]] = json.loads(QUESTION_BANK.read_text())["items"]
     cards = [card.id for card in all_cards()]
-    headlines: dict[TarotVoice, list[str]] = {voice: [] for voice in _DIRECT_VOICES}
+    headlines: dict[TarotVoice, list[str]] = {voice: [] for voice in TarotVoice}
     levels: Counter[str] = Counter()
     generic = 0
     failures: list[str] = []
@@ -258,7 +280,13 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
             count = len(engine.positions_for(spread_map))
             ids = tuple(rng.sample(cards, count))
             spread = {1: TarotSpread.ONE_CARD, 3: TarotSpread.THREE_CARD, 5: TarotSpread.FIVE_CARD}
-            for voice in _DIRECT_VOICES:
+            variants = choose_variants(
+                AUDIT_VARIETY_KEY,
+                _audit_owner(item["id"]),
+                0,
+                tuple(key for key, _ in engine.positions_for(spread_map)),
+            )
+            for voice in TarotVoice:
                 try:
                     reading = engine.render(
                         card_ids=ids,
@@ -269,12 +297,15 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
                         voice=voice,
                         question_intent=assessment.intent,
                         frame=assessment.frame,
+                        variants=variants,
                     )
                 except TarotContentRejected as exc:
                     failures.append(f"stance/{item['id']}/{spread_map.value}/{voice.value}: {exc}")
                     continue
-                # Measurement spec §4c T2: normalised, per voice.
-                headlines[voice].append(" ".join(reading.headline.casefold().split()).rstrip(".!?"))
+                # Measurement spec §4c T2: normalised, per (effective) voice.
+                headlines[reading.voice].append(
+                    " ".join(reading.headline.casefold().split()).rstrip(".!?")
+                )
                 levels[reading.stance.level.value if reading.stance else "none"] += 1
                 prose = " ".join(
                     [reading.headline, reading.summary]
@@ -299,6 +330,127 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
     return failures, metrics
 
 
+def audit_t4() -> tuple[list[str], dict[str, Any]]:
+    """T4 (US-20 AC16, measurement spec §4c): same card x role x topic, every pair of different
+    bank questions in the topic, share of pairs whose role sentence differs after normalising.
+
+    Every accepted bank question x every map x every position x all 78 cards, in the default
+    voice (playful_grounded, as P1). Three ways to assign session variants:
+
+    * ``per_session``: each question is the first session of its own synthetic guest (gate);
+    * ``question_only``: every variant index 0, so only the question changes the text (gate,
+      proves the text follows the question and not only the salt);
+    * ``same_guest``: one synthetic guest asks the topic's questions in a row (information).
+
+    The sentence comes from ``roles.meaning_for``, the function the renderer uses; a sample of
+    full renders must match it exactly.
+    """
+
+    from app.domains.tarot import roles as tarot_roles
+    from app.domains.tarot.engine import _CardMeaning, _resource_step, _tension_parts
+    from app.domains.tarot.variants import DEFAULT_VARIANTS, TarotVariants, choose_variants
+
+    engine = TarotReadingEngine()
+    items: list[dict[str, Any]] = json.loads(QUESTION_BANK.read_text())["items"]
+    cards = all_cards()
+    by_topic: dict[TarotContext, dict[str, Any]] = defaultdict(dict)
+    item_ids: dict[str, str] = {}
+    for item in items:
+        if not item["expected"]["accepted"]:
+            continue
+        context = TarotContext(item["context"])
+        assessment = engine.assess_question(item["question"], context)
+        if assessment.accepted and assessment.frame is not None:
+            by_topic[context][item["question"]] = assessment.frame
+            item_ids[item["question"]] = item["id"]
+    fields = {
+        (card.id, context): (
+            meaning.core,
+            _tension_parts(meaning.tension)[0],
+            _resource_step(meaning.resource),
+        )
+        for card in cards
+        for context in TarotContext
+        for meaning in (_CardMeaning.for_context(card, context),)
+    }
+    same_guest = uuid.uuid5(AUDIT_OWNERS, "same-guest")
+
+    def variants_for(mode: str, question: str, index: int, keys: tuple[str, ...]) -> TarotVariants:
+        if mode == "question_only":
+            return DEFAULT_VARIANTS
+        if mode == "same_guest":
+            return choose_variants(AUDIT_VARIETY_KEY, same_guest, index, keys)
+        return choose_variants(AUDIT_VARIETY_KEY, _audit_owner(item_ids[question]), 0, keys)
+
+    def sentence(
+        key: str, index: int, card_id: str, topic: TarotContext, frame: Any, chosen: TarotVariants
+    ) -> str:
+        core, tension, resource = fields[(card_id, topic)]
+        return tarot_roles.meaning_for(
+            key,
+            core=core,
+            tension=tension,
+            resource=resource,
+            frame=chosen.frame(key),
+            lead=tarot_roles.lead_for(frame.form, chosen.lead, index),
+        )
+
+    failures: list[str] = []
+    # Sample check: the measured sentence is the rendered one.
+    spread = {1: TarotSpread.ONE_CARD, 3: TarotSpread.THREE_CARD, 5: TarotSpread.FIVE_CARD}
+    for topic, questions in by_topic.items():
+        question, frame = next(iter(questions.items()))
+        for spread_map in TarotSpreadMap:
+            keys = tuple(key for key, _ in engine.positions_for(spread_map))
+            chosen = variants_for("per_session", question, 0, keys)
+            ids = tuple(card.id for card in cards[: len(keys)])
+            reading = engine.render(
+                card_ids=ids,
+                spread=spread[len(keys)],
+                spread_map=spread_map,
+                context=topic,
+                question=question,
+                voice=TarotVoice.PLAYFUL_GROUNDED,
+                frame=frame,
+                variants=chosen,
+            )
+            for index, (key, card_id) in enumerate(zip(keys, ids, strict=True)):
+                if reading.positions[index].meaning_here != sentence(
+                    key, index, card_id, topic, frame, chosen
+                ):
+                    failures.append(f"t4/sample/{topic.value}/{spread_map.value}/{key}")
+
+    metrics: dict[str, Any] = {}
+    for mode in ("per_session", "question_only", "same_guest"):
+        total = same = 0
+        for spread_map in TarotSpreadMap:
+            keys = tuple(key for key, _ in engine.positions_for(spread_map))
+            for topic, questions in by_topic.items():
+                by_question = {
+                    question: variants_for(mode, question, order, keys)
+                    for order, question in enumerate(questions)
+                }
+                n = len(questions)
+                for index, key in enumerate(keys):
+                    for card in cards:
+                        counts = Counter(
+                            _normalize(sentence(key, index, card.id, topic, frame, by_question[q]))
+                            for q, frame in questions.items()
+                        )
+                        total += comb(n, 2)
+                        same += sum(comb(k, 2) for k in counts.values())
+        metrics[mode] = {
+            "question_pairs": total,
+            "different": total - same,
+            "rate": round((total - same) / total, 4) if total else 0.0,
+        }
+    for mode in ("per_session", "question_only"):
+        if metrics[mode]["rate"] < T4_FLOOR:
+            failures.append(f"T4 {mode} {metrics[mode]['rate']} < {T4_FLOOR}")
+    metrics["questions"] = sum(len(q) for q in by_topic.values())
+    return failures, metrics
+
+
 LONG_QUESTIONS = (
     "Khi nào mình nên chọn ở lại để nhận thêm việc?",  # timing: the readiness line is reserved
     "Mình có nên nhận thêm việc ở chỗ làm không?",  # yes/no: a stance and its reasons
@@ -315,6 +467,7 @@ def audit_worst_length() -> tuple[list[str], int]:
 
     from app.domains.tarot import roles as tarot_roles
     from app.domains.tarot.engine import _CardMeaning, _resource_step, _tension_parts
+    from app.domains.tarot.variants import TarotVariants
 
     engine = TarotReadingEngine()
     cards = all_cards()
@@ -346,22 +499,33 @@ def audit_worst_length() -> tuple[list[str], int]:
             for question in LONG_QUESTIONS:
                 assessment = engine.assess_question(question, context)
                 for voice in TarotVoice:
-                    rendered += 1
-                    try:
-                        engine.render(
-                            card_ids=tuple(used),
-                            spread=spread[len(keys)],
-                            spread_map=spread_map,
-                            context=context,
-                            question=question,
-                            voice=voice,
-                            question_intent=assessment.intent,
-                            frame=assessment.frame,
+                    # B2-4: every frame, lead and headline index (frames are density-checked
+                    # exhaustively in tests/tarot/test_variants.py).
+                    for index in range(tarot_roles.FRAME_VARIANTS):
+                        variants = TarotVariants(
+                            key_version=1,
+                            lead=index,
+                            headline=index,
+                            frames=dict.fromkeys(keys, index),
                         )
-                    except TarotContentRejected as exc:
-                        failures.append(
-                            f"worst-length/{spread_map.value}/{context.value}/{voice.value}: {exc}"
-                        )
+                        rendered += 1
+                        try:
+                            engine.render(
+                                card_ids=tuple(used),
+                                spread=spread[len(keys)],
+                                spread_map=spread_map,
+                                context=context,
+                                question=question,
+                                voice=voice,
+                                question_intent=assessment.intent,
+                                frame=assessment.frame,
+                                variants=variants,
+                            )
+                        except TarotContentRejected as exc:
+                            failures.append(
+                                f"worst-length/{spread_map.value}/{context.value}/"
+                                f"{voice.value}/{index}: {exc}"
+                            )
     return failures, rendered
 
 
@@ -371,6 +535,8 @@ def main() -> None:
     failures += worst_failures
     stance_failures, stance_metrics = audit_stance_and_headlines()
     failures += stance_failures
+    t4_failures, t4 = audit_t4()
+    failures += t4_failures
     bank_failures, bank = audit_question_bank()
     failures += bank_failures
     if failures:
@@ -389,11 +555,18 @@ def main() -> None:
         f"labelled; closed action label on {bank['actions_matched']} accepted questions, none on "
         f"{bank['actions_none']} ({bank['action_labels_used']} of 30 labels used)."
     )
-    print(f"Worst-length draws (B2-3): {worst_count} renders within every budget.")
+    print(f"Worst-length draws (B2-3/B2-4): {worst_count} renders within every budget.")
     print(
-        f"Stance and headlines (B2-3): {stance_metrics['readings']} framed readings; headline "
+        f"Stance and headlines (B2-3/B2-4): {stance_metrics['readings']} framed readings "
+        f"(bank x {len(TarotSpreadMap)} maps x {len(TarotVoice)} voices); headline "
         f"duplicate rate {stance_metrics['headline_duplicate_rate']}; stance levels "
         f"{stance_metrics['stance_levels']}; generic filler {stance_metrics['generic']}."
+    )
+    print(
+        f"T4 same card x role x topic (B2-4, floor {T4_FLOOR}): per session "
+        f"{t4['per_session']['rate']} of {t4['per_session']['question_pairs']} pairs; question "
+        f"only {t4['question_only']['rate']}; same guest in a row {t4['same_guest']['rate']} "
+        f"({t4['questions']} bank questions)."
     )
 
 
