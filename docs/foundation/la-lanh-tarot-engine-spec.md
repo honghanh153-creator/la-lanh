@@ -77,6 +77,13 @@ birth data, or report evidence in the URL.
     gentle opener and tails. Sensitive questions still render the default voice.
   - Framed readings record `tarot-renderer-v7`, `tarot-knowledge-v5`, `tarot-gates-v5`; sessions
     without a frame keep v6 / v4 / v4 byte for byte. Provenance version fields have no defaults.
+- B2-4b (`docs/plans/2026-10-18-b2-4b-tarot-provenance-task.md`), framed sessions only:
+  - The Luna payload uses meaning brief v3: closed labels (topic, intent, spread map, goal codes, stance
+    kind/level/action/options) and, on every position, the catalog codes its texts resolve from. The
+    reducer builds the texts from those codes and refuses any payload with a string it cannot trace.
+    Stance conclusions and reasons stay local. Sessions without a frame keep brief v2.
+  - `tarot/checklist.py` holds the machine items of the psychology checklist (headline without advice,
+    no coercion, the reading and its summary end on the step); `tarot:audit` gates them.
 - The launch voice is fixed to `playful_grounded`: current, direct, lightly playful, and never
   mystical filler. Voice selection is deliberately not another onboarding step.
 - 2026-10-11 owner decision: `POST /v1/tarot/sessions` accepts optional `voice: "default" | "roast"`
@@ -147,7 +154,9 @@ provenance, and repeated three-card meanings/actions. It runs inside `pnpm check
 Since B2-4 it also runs the whole question bank × every map × all four voices with per-session
 variants (stance distribution, headline duplicates per voice < 10%, generic copy = 0), the T4
 measure (same card × role × topic across question pairs: ≥ 80% per session and ≥ 80% from the
-question alone), and worst-length draws for every frame, lead and headline index.
+question alone), and worst-length draws for every frame, lead and headline index. Since B2-4b it also
+traces every direct-voice provider payload to closed labels and catalog codes (AC06) and gates the machine
+items of the psychology checklist, reporting the rest for the owner (AC14).
 
 Required release checks also include API contract generation, backend unit/API tests, frontend
 type/lint/tests, mobile viewport visual inspection, keyboard selection, refresh/resume, delete,

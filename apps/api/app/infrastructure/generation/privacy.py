@@ -6,10 +6,11 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, model_validator
 
 from app.domains.content_rewrite.models import RewriteSurface
 from app.domains.readings.models import DailyMeaningBrief
+from app.domains.tarot.models import TarotAction, TarotStanceKind, TarotStanceLevel
 
 
 class UnsafeRewritePayload(ValueError):
@@ -92,6 +93,18 @@ class TarotFocusKey(StrEnum):
     REPEATING_PATTERN = "repeating_pattern"
 
 
+class TarotPositionSource(SafeModel):
+    """Catalog codes of a framed position's texts (tarot/provenance.py resolves them)."""
+
+    frame: str = Field(pattern=r"^[a-z_]{2,20}\.[0-2]$")
+    lead: str | None = Field(
+        default=None, pattern=r"^(?:yes_no|choice|how|why|timing|open)\.[0-4]$"
+    )
+    gentle: bool
+    reflection: str = Field(pattern=r"^(?:role|goal\.[a-z_]{2,20})$")
+    action: str | None = Field(default=None, pattern=r"^(?:card|goal\.[a-z_]{2,20})$")
+
+
 class TarotPosition(SafeModel):
     position_key: str = Field(pattern=r"^[a-z][a-z0-9_]{1,39}$")
     position_label: str = Field(min_length=1, max_length=100)
@@ -104,6 +117,8 @@ class TarotPosition(SafeModel):
     reflection_question: str = Field(min_length=1, max_length=500)
     # Only step roles carry an action since B2-2; other positions send null.
     small_action: str | None = Field(default=None, min_length=1, max_length=500)
+    # Brief v3 (framed readings, US-20 AC06): the catalog codes every text above resolves from.
+    source: TarotPositionSource | None = None
 
 
 class TarotGoal(SafeModel):
@@ -128,8 +143,21 @@ class TarotLink(SafeModel):
     meaning: str = Field(min_length=1, max_length=400)
 
 
+class TarotStanceLabels(SafeModel):
+    """Closed lean labels only; the conclusion and reasons stay local."""
+
+    kind: TarotStanceKind
+    level: TarotStanceLevel
+    action: TarotAction | None = None
+    options: tuple[TarotAction, TarotAction] | None = None
+
+
+class TarotSummarySource(SafeModel):
+    readiness: bool
+
+
 class TarotMeaningBrief(SafeModel):
-    version: Literal["tarot-meaning-brief-v1", "tarot-meaning-brief-v2"]
+    version: Literal["tarot-meaning-brief-v1", "tarot-meaning-brief-v2", "tarot-meaning-brief-v3"]
     topic: Literal["general", "relationships", "work", "communication", "energy", "self_care"]
     intent: Literal["clarity", "boundary", "next_step", "communication", "self_check"]
     goals: tuple[TarotGoal, ...] = Field(min_length=1, max_length=8)
@@ -143,6 +171,33 @@ class TarotMeaningBrief(SafeModel):
         ],
         ...,
     ] = Field(min_length=3, max_length=3)
+    # v3 only (framed readings, US-20 AC06): closed labels and the summary's resolution input.
+    spread_map: (
+        Literal[
+            "one_focus",
+            "three_unblock",
+            "five_clarity",
+            "five_loop",
+            "five_choice",
+            "five_conversation",
+        ]
+        | None
+    ) = None
+    summary_source: TarotSummarySource | None = None
+    stance: TarotStanceLabels | None = None
+
+    @model_validator(mode="after")
+    def _v3_fields_belong_to_v3(self) -> TarotMeaningBrief:
+        v3 = self.version == "tarot-meaning-brief-v3"
+        if v3 and (self.spread_map is None or self.summary_source is None):
+            raise ValueError("brief v3 needs spread_map and summary_source")
+        if not v3 and (
+            self.spread_map is not None
+            or self.summary_source is not None
+            or self.stance is not None
+        ):
+            raise ValueError("only brief v3 carries spread_map, summary_source or stance")
+        return self
 
 
 class TarotSafePayload(SafeModel):
@@ -151,6 +206,13 @@ class TarotSafePayload(SafeModel):
     focus_sentence: str = Field(min_length=1, max_length=160)
     positions: tuple[TarotPosition, ...] = Field(min_length=1, max_length=5)
     meaning_brief: TarotMeaningBrief | None = None
+
+    @model_validator(mode="after")
+    def _sources_follow_the_brief(self) -> TarotSafePayload:
+        v3 = self.meaning_brief is not None and self.meaning_brief.version.endswith("-v3")
+        if any((position.source is not None) != v3 for position in self.positions):
+            raise ValueError("every v3 position carries its catalog source, and only v3 ones")
+        return self
 
 
 class RelationshipDimension(SafeModel):
@@ -220,6 +282,11 @@ _FOCUS_SENTENCES: dict[TarotFocusKey, str] = {
     TarotFocusKey.CHOICE: "Điều gì đáng cân nhắc trước khi chọn?",
     TarotFocusKey.NEXT_STEP: "Bước nhỏ nào có thể làm rõ tình hình?",
     TarotFocusKey.REPEATING_PATTERN: "Điều gì đang lặp lại trong tình huống này?",
+}
+
+# Public read-only view for the Tarot provenance tracer.
+TAROT_FOCUS_SENTENCES: Mapping[str, str] = {
+    key.value: text for key, text in _FOCUS_SENTENCES.items()
 }
 
 _FOCUS_KEYWORDS: tuple[tuple[TarotFocusKey, tuple[str, ...]], ...] = (

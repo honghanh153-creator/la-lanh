@@ -8,7 +8,7 @@ from __future__ import annotations
 import itertools
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -268,7 +268,14 @@ def test_service_exposes_stance_and_keeps_it_out_of_the_provider_payload() -> No
             guest_id, view, model_version="gpt-6-luna", prompt_version="surface-rewrite-v1"
         )
         assert request is not None
-        assert "stance" not in json.dumps(request.model_dump(mode="json"))
+        # B2-4b (AC06): brief v3 carries the closed stance labels only; the conclusion and the
+        # reasons (authored prose about the cards) stay local.
+        labels = cast(Any, request.safe_payload["meaning_brief"])["stance"]
+        assert set(labels) == {"kind", "level", "action", "options"}
+        outbound = json.dumps(request.model_dump(mode="json"), ensure_ascii=False)
+        assert view.reading is not None and view.reading.stance is not None
+        assert view.reading.stance.conclusion not in outbound
+        assert all(reason.text not in outbound for reason in view.reading.stance.reasons)
 
 
 # ---------------------------------------------------------------- Codex P2 regressions (#25)

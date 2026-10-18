@@ -334,6 +334,8 @@ LEADS: dict[TarotQuestionForm, tuple[str, str, str, str, str]] = {
     ),
 }
 LEAD_MAX_WORDS = 4
+# Sentence the gentle_specific voice adds after a role reading.
+GENTLE_CHECK = "Chưa cần kết luận ngay; hãy kiểm tra bằng chuyện thật trước."
 
 
 def frame_code(position_key: str, index: int) -> str:

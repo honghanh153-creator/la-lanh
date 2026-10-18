@@ -89,6 +89,17 @@ _DEFAULT_GOAL = QuestionGoal(
 )
 
 
+def goal_by_key(key: str) -> QuestionGoal:
+    """A closed goal by its catalog key (provenance resolver, US-20 AC06)."""
+
+    if key == _DEFAULT_GOAL.key:
+        return _DEFAULT_GOAL
+    return next(goal for goal in _GOALS if goal.key == key)
+
+
+GOAL_KEYS = frozenset({_DEFAULT_GOAL.key, *(goal.key for goal in _GOALS)})
+
+
 def question_goals(question: str, context: TarotContext) -> tuple[QuestionGoal, ...]:
     text = " ".join(question.casefold().split())
     # Only closed authored values are returned, never matched text, names or identities.
@@ -275,7 +286,12 @@ def card_links(
     positions: tuple[TarotReadingPosition, ...],
     context: TarotContext,
 ) -> list[dict[str, JsonValue]]:
-    available = {(position.card.id, position.key) for position in positions}
+    return links_for({(position.card.id, position.key) for position in positions}, context)
+
+
+def links_for(available: set[tuple[str, str]], context: TarotContext) -> list[dict[str, JsonValue]]:
+    """Authored links whose (card, position) pairs are all present in this draw."""
+
     return [
         {
             "key": link.key,
@@ -288,7 +304,16 @@ def card_links(
     ]
 
 
+BRIEF_LIMITS = (
+    "Examples are hypothetical, not observed events.",
+    "Cards cannot establish another person's thoughts or predict events.",
+    "No facts beyond the supplied card meanings and locally recognised goals.",
+)
+
+
 def meaning_brief_for(reading: TarotReading) -> dict[str, JsonValue]:
+    """Brief v2: sessions without a QuestionFrame (framed readings use provenance.framed_brief)."""
+
     goals = question_goals(reading.question, reading.context)
     return {
         "version": MEANING_BRIEF_VERSION,
@@ -297,9 +322,5 @@ def meaning_brief_for(reading: TarotReading) -> dict[str, JsonValue]:
         "goals": cast(JsonValue, [{"key": goal.key, "meaning": goal.meaning} for goal in goals]),
         "local_summary": reading.summary,
         "links": cast(JsonValue, card_links(reading.positions, reading.context)),
-        "limits": [
-            "Examples are hypothetical, not observed events.",
-            "Cards cannot establish another person's thoughts or predict events.",
-            "No facts beyond the supplied card meanings and locally recognised goals.",
-        ],
+        "limits": list(BRIEF_LIMITS),
     }
