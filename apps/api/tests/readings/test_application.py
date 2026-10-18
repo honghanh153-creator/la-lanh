@@ -133,6 +133,19 @@ class MemoryReadingRepository:
         self.projections[key] = updated
         return updated
 
+    async def activate_first(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        scope_key: str,
+        revision_id: UUID,
+    ) -> ReadingProjectionRecord:
+        key = (guest_id, profile_id, scope_key)
+        projection = self.projections[key]
+        if projection.active_revision_id is not None:
+            return projection
+        return await self.publish_available(guest_id, profile_id, scope_key, revision_id)
+
     async def activate_available(
         self,
         guest_id: UUID,

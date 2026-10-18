@@ -265,6 +265,28 @@ class PostgresReadingRepository:
         scope_key: str,
         revision_id: UUID,
     ) -> ReadingProjectionRecord:
+        return await self._publish(guest_id, profile_id, scope_key, revision_id, first_only=False)
+
+    async def activate_first(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        scope_key: str,
+        revision_id: UUID,
+    ) -> ReadingProjectionRecord:
+        """Activate only an empty projection; never advertise an update (first writer wins)."""
+
+        return await self._publish(guest_id, profile_id, scope_key, revision_id, first_only=True)
+
+    async def _publish(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        scope_key: str,
+        revision_id: UUID,
+        *,
+        first_only: bool,
+    ) -> ReadingProjectionRecord:
         async with rewrite_session(self._sessions, transaction=True) as session:
             # Birth edits take the same guest lock before clearing live pointers.
             await session.scalar(
@@ -313,6 +335,9 @@ class PostgresReadingRepository:
                     return _projection_record(refreshed)
                 await session.refresh(projection)
 
+            if first_only:
+                # Another request activated this scope first; its choice is the day's.
+                return _projection_record(projection)
             if projection.active_revision_id != revision.id:
                 active_revision = await _find_revision(
                     session,

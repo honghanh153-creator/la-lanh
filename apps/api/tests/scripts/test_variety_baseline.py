@@ -3,7 +3,13 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from scripts.variety_baseline import identical_pair_rate, min_repeat_gap, normalize, pool_bucket
+from scripts.variety_baseline import (
+    identical_pair_rate,
+    min_repeat_gap,
+    normalize,
+    pool_bucket,
+    rotation_report,
+)
 from scripts.variety_fixtures import OUT, build, render
 
 
@@ -106,3 +112,24 @@ def test_tarot_report_measures_every_voice() -> None:
     source = inspect.getsource(variety_baseline.tarot_report)
     assert "voices = list(TarotVoice)" in source
     assert "headlines[voice.value]" in source  # T2 aggregates by voice, not by map
+
+
+def _n(issue: str, h: str, s: str, a: str, pool: int = 2) -> dict[str, Any]:
+    return {"issue": issue, "headline": h, "scene": s, "advice": a, "pool": pool}
+
+
+def test_rotation_report_counts_axis_repeats_runs_and_combo_reuse() -> None:
+    series = [
+        _n("x", "h1", "s1", "a1"),
+        _n("x", "h1", "s2", "a2"),  # same situation, headline repeated
+        _n("x", "h2", "s3", "a3"),  # third day in a row with a pool of two
+        _n("y", "h1", "s1", "a1"),
+        _n("x", "h1", "s1", "a1", pool=1),  # full combo seen 4 days earlier
+    ]
+    report = rotation_report([{"id": "p"}], {"p": series})
+
+    assert report["consecutive_pairs"] == 4
+    assert report["same_situation_consecutive_pairs"] == 2
+    assert report["same_situation_axis_repeats"] == {"headline": 1, "scene": 0, "advice": 0}
+    assert report["three_day_same_situation_runs_with_pool_ge_2"] == 1
+    assert report["full_combo_seen_in_previous_30d_rate"] == round(2 / 5, 4)

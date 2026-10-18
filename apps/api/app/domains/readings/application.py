@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from asyncio import to_thread
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
@@ -19,13 +19,24 @@ from app.domains.astro.models import (
 from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.readings.companion import companion_issue_entry
+from app.domains.readings.daily_psychology import (
+    DAILY_PSYCHOLOGY_MATRIX_VERSION,
+    StaleDailySelection,
+)
+from app.domains.readings.daily_rotation import (
+    VARIETY_KEY_VERSION,
+    daily_variety_seed,
+    day_index,
+)
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     AuraTransitionProjection,
     AuraUnlockLayer,
     AvailableReadingUpdate,
     BackgroundLens,
+    CandidateEvaluation,
     ClaimTemplateId,
+    DailyVariety,
     EvidenceClaim,
     EvidenceDisclosure,
     FactorSource,
@@ -35,6 +46,7 @@ from app.domains.readings.models import (
     ReadingCandidate,
     ReadingContentProjection,
     ReadingEvidenceProjection,
+    ReadingPlan,
     ReadingPlanRecord,
     ReadingProjection,
     ReadingProjectionRecord,
@@ -98,6 +110,8 @@ class ReadingApplicationService:
         rewrite_prompt_version: str = "surface-rewrite-v5",
         generation_max_attempts: int = 2,
         content_rewrite_service: ContentRewriteService | None = None,
+        daily_variety_key: bytes | None = None,
+        daily_variety_from: date | None = None,
     ) -> None:
         self._repository = repository
         self._engine = engine
@@ -110,6 +124,8 @@ class ReadingApplicationService:
         self._rewrite_prompt_version = rewrite_prompt_version
         self._generation_max_attempts = generation_max_attempts
         self._content_rewrite_service = content_rewrite_service
+        self._daily_variety_key = daily_variety_key
+        self._daily_variety_from = daily_variety_from
 
     async def project(
         self,
@@ -130,16 +146,140 @@ class ReadingApplicationService:
         source_chart = chart or snapshot.result
         current = _aware_utc(requested_at or datetime.now(UTC))
         local_date, observed_at = _scope_time(purpose, snapshot.created_at, current)
-        transits = await self._optional_transits(source_chart, purpose, observed_at)
         editorial_seed = local_date.isoformat() if purpose is ReadingPurpose.DAILY_NOTE else None
+        rotation = self._rotation_applies(purpose, local_date)
+        scope_key = _scope_key(source_chart, purpose, local_date, observed_at, background_lens)
+        frozen = await self._frozen_daily_plan(guest_id, snapshot, scope_key) if rotation else None
+        replayed = (
+            await self._replay_revision(guest_id, snapshot, frozen, current)
+            if frozen is not None
+            else None
+        )
+        if replayed is not None:
+            plan, plan_record, candidate, revision = replayed
+        else:
+            if frozen is not None:
+                daily_variety = frozen.plan.daily_variety
+            elif rotation:
+                daily_variety = await self._daily_variety(
+                    guest_id, snapshot.profile_id, source_chart, local_date, background_lens
+                )
+            else:
+                daily_variety = None
+            plan, plan_record, candidate, revision = await self._deterministic_revision(
+                guest_id=guest_id,
+                snapshot=snapshot,
+                source_chart=source_chart,
+                purpose=purpose,
+                transits=await self._optional_transits(source_chart, purpose, observed_at),
+                editorial_seed=editorial_seed,
+                background_lens=background_lens,
+                daily_variety=daily_variety,
+                current=current,
+            )
+        lens_variant = canonical_lens_variant(plan.background_lens)
+
+        projection, _ = await self._repository.get_or_create_projection(
+            ReadingProjectionRecord(
+                id=uuid4(),
+                guest_id=guest_id,
+                profile_id=snapshot.profile_id,
+                scope_key=scope_key,
+                purpose=purpose,
+                tradition=plan.tradition,
+                config_hash=plan.config_hash,
+                lens_variant=lens_variant,
+                local_date=local_date,
+                timezone_name=MVP_TIMEZONE,
+                observed_at=observed_at,
+                created_at=current,
+                updated_at=current,
+            )
+        )
+        if rotation and frozen is None:
+            # First writer wins: a fresh reading only activates an empty projection. When a
+            # concurrent request activated first, this request replays the winner's whole
+            # accepted plan (not just its rotation inputs), so a different transit result
+            # or a natal-only fallback here never becomes a same-day update.
+            projection = await self._repository.activate_first(
+                guest_id, snapshot.profile_id, projection.scope_key, revision.id
+            )
+            if projection.active_revision_id != revision.id:
+                winner = await self._frozen_daily_plan(guest_id, snapshot, scope_key)
+                won = (
+                    await self._replay_revision(guest_id, snapshot, winner, current)
+                    if winner is not None
+                    else None
+                )
+                if won is not None:
+                    plan, plan_record, candidate, revision = won
+        projection = await self._repository.publish_available(
+            guest_id,
+            snapshot.profile_id,
+            projection.scope_key,
+            revision.id,
+        )
+        if projection.active_revision_id != revision.id:
+            active_record = (
+                await self._repository.get_revision(
+                    guest_id,
+                    snapshot.profile_id,
+                    projection.active_revision_id,
+                )
+                if projection.active_revision_id is not None
+                else None
+            )
+            if active_record is not None and _requires_forced_copy_repair(
+                active_record,
+                revision,
+            ):
+                repaired = await self._repository.activate_available(
+                    guest_id,
+                    snapshot.profile_id,
+                    projection.scope_key,
+                    expected_revision_id=revision.id,
+                    updated_at=current,
+                )
+                if repaired is not None:
+                    projection = repaired
+        await self._optional_enqueue(
+            plan_record,
+            projection,
+            candidate,
+            current,
+            external_generation_authorized=external_generation_authorized,
+        )
+        return await self._hydrate(
+            guest_id,
+            snapshot.profile_id,
+            projection,
+            voice=voice,
+            deterministic_baseline=revision,
+        )
+
+    async def _deterministic_revision(
+        self,
+        *,
+        guest_id: UUID,
+        snapshot: BirthSnapshotRecord,
+        source_chart: DateOnlySunResult | NatalChart,
+        purpose: ReadingPurpose,
+        transits: TransitToNatalSnapshot | None,
+        editorial_seed: str | None,
+        background_lens: BackgroundLens | None,
+        daily_variety: DailyVariety | None,
+        current: datetime,
+    ) -> tuple[ReadingPlan, ReadingPlanRecord, ReadingCandidate, ReadingRevisionRecord]:
+        """Plan, render, gate and store one deterministic revision (replays by key)."""
+
         plan = self._planner.plan(
             source_chart,
             purpose=purpose,
             transits=transits,
             editorial_seed=editorial_seed,
             background_lens=background_lens,
+            daily_variety=daily_variety,
         )
-        lens_variant = canonical_lens_variant(plan.background_lens)
         plan_record, _ = await self._repository.save_or_replay_plan(
             ReadingPlanRecord(
                 id=uuid4(),
@@ -170,6 +310,7 @@ class ReadingApplicationService:
                 transits=None,
                 editorial_seed=editorial_seed,
                 background_lens=background_lens,
+                daily_variety=daily_variety,
             )
             plan_record, _ = await self._repository.save_or_replay_plan(
                 ReadingPlanRecord(
@@ -223,6 +364,45 @@ class ReadingApplicationService:
             )
             raise ReadingContentRejected
 
+        revision = await self._store_revision(
+            guest_id, snapshot, plan_record, candidate, evaluation, current
+        )
+        return plan, plan_record, candidate, revision
+
+    async def _replay_revision(
+        self,
+        guest_id: UUID,
+        snapshot: BirthSnapshotRecord,
+        plan_record: ReadingPlanRecord,
+        current: datetime,
+    ) -> tuple[ReadingPlan, ReadingPlanRecord, ReadingCandidate, ReadingRevisionRecord] | None:
+        """Re-render an accepted plan exactly as stored: its selection, factors and transit.
+
+        Nothing is recomputed from this request's engine results. ``None`` when the stored
+        plan no longer renders or passes the gates under current rules.
+        """
+
+        try:
+            candidate = self._renderer.render(plan_record.plan)
+        except StaleDailySelection:
+            return None
+        evaluation = evaluate_candidate(plan_record.plan, candidate)
+        if not evaluation.accepted or evaluation.publishable_candidate is None:
+            return None
+        revision = await self._store_revision(
+            guest_id, snapshot, plan_record, candidate, evaluation, current
+        )
+        return plan_record.plan, plan_record, candidate, revision
+
+    async def _store_revision(
+        self,
+        guest_id: UUID,
+        snapshot: BirthSnapshotRecord,
+        plan_record: ReadingPlanRecord,
+        candidate: ReadingCandidate,
+        evaluation: CandidateEvaluation,
+        current: datetime,
+    ) -> ReadingRevisionRecord:
         source = ReadingRevisionSource.DETERMINISTIC
         gate_policy_version = canonical_gate_policy_version(evaluation)
         revision, _ = await self._repository.save_or_replay_revision(
@@ -250,76 +430,109 @@ class ReadingApplicationService:
                 created_at=current,
             )
         )
+        return revision
 
-        scope_key = canonical_projection_scope_key(
-            purpose=purpose,
-            tradition=plan.tradition,
-            config_hash=plan.config_hash,
-            local_date=local_date,
-            timezone_name=MVP_TIMEZONE,
-            observed_at=observed_at,
-            lens_variant=lens_variant,
+    def _rotation_applies(self, purpose: ReadingPurpose, local_date: date) -> bool:
+        return (
+            purpose is ReadingPurpose.DAILY_NOTE
+            and self._daily_variety_key is not None
+            and self._daily_variety_from is not None
+            and local_date >= self._daily_variety_from
         )
-        projection, _ = await self._repository.get_or_create_projection(
-            ReadingProjectionRecord(
-                id=uuid4(),
-                guest_id=guest_id,
-                profile_id=snapshot.profile_id,
-                scope_key=scope_key,
-                purpose=purpose,
-                tradition=plan.tradition,
-                config_hash=plan.config_hash,
-                lens_variant=lens_variant,
-                local_date=local_date,
-                timezone_name=MVP_TIMEZONE,
-                observed_at=observed_at,
-                created_at=current,
-                updated_at=current,
+
+    async def _frozen_daily_plan(
+        self, guest_id: UUID, snapshot: BirthSnapshotRecord, scope_key: str
+    ) -> ReadingPlanRecord | None:
+        """The accepted plan already served for this exact scope, if it must be replayed (AC04).
+
+        Today's active reading for the same chart snapshot is replayed whole: its
+        ``DailyVariety`` (or none, for a note served before the rotation started), its
+        ``DailySelection`` and its chosen factors and transit. Key material, late D-1 history,
+        a restart, a transient transit failure or a racing request never change an opened
+        note. A changed chart snapshot or catalog version is an intentional update and
+        returns ``None`` so a fresh plan is chosen.
+        """
+
+        projection = await self._repository.get_projection(guest_id, snapshot.profile_id, scope_key)
+        if projection is None or projection.active_revision_id is None:
+            return None
+        revision = await self._repository.get_revision(
+            guest_id, snapshot.profile_id, projection.active_revision_id
+        )
+        plan_record = (
+            await self._repository.get_plan(guest_id, snapshot.profile_id, revision.plan_id)
+            if revision is not None
+            else None
+        )
+        if plan_record is None or plan_record.chart_snapshot_id != snapshot.id:
+            return None
+        variety = plan_record.plan.daily_variety
+        if variety is not None and variety.catalog_version != DAILY_PSYCHOLOGY_MATRIX_VERSION:
+            return None
+        return plan_record
+
+    async def _daily_variety(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        local_date: date,
+        background_lens: BackgroundLens | None,
+    ) -> DailyVariety:
+        """Fresh B3-1a rotation inputs for a day without a served reading (AC01, AC05)."""
+
+        if self._daily_variety_key is None:  # pragma: no cover - guarded by _rotation_applies
+            raise RuntimeError("daily rotation needs a selection key")
+        return DailyVariety(
+            key_version=VARIETY_KEY_VERSION,
+            catalog_version=DAILY_PSYCHOLOGY_MATRIX_VERSION,
+            seed=daily_variety_seed(
+                self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
+            ),
+            day_index=day_index(local_date),
+            recent_issue_keys=await self._served_daily_issues(
+                guest_id, profile_id, chart, local_date, background_lens
+            ),
+        )
+
+    async def _served_daily_issues(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        local_date: date,
+        background_lens: BackgroundLens | None,
+    ) -> tuple[str, ...]:
+        """Issue keys this owner was actually served on D-1 then D-2, from stored projections.
+
+        Reads existing rows only (no history table). Stops at the first day without a served
+        note: the top-K guard is about consecutive calendar days the reader saw.
+        """
+
+        issues: list[str] = []
+        for days_back in (1, 2):
+            day = local_date - timedelta(days=days_back)
+            scope_key = _scope_key(
+                chart,
+                ReadingPurpose.DAILY_NOTE,
+                day,
+                datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC),
+                background_lens,
             )
-        )
-        projection = await self._repository.publish_available(
-            guest_id,
-            snapshot.profile_id,
-            projection.scope_key,
-            revision.id,
-        )
-        if projection.active_revision_id != revision.id:
-            active_record = (
+            projection = await self._repository.get_projection(guest_id, profile_id, scope_key)
+            revision = (
                 await self._repository.get_revision(
-                    guest_id,
-                    snapshot.profile_id,
-                    projection.active_revision_id,
+                    guest_id, profile_id, projection.active_revision_id
                 )
-                if projection.active_revision_id is not None
+                if projection is not None and projection.active_revision_id is not None
                 else None
             )
-            if active_record is not None and _requires_forced_copy_repair(
-                active_record,
-                revision,
-            ):
-                repaired = await self._repository.activate_available(
-                    guest_id,
-                    snapshot.profile_id,
-                    projection.scope_key,
-                    expected_revision_id=revision.id,
-                    updated_at=current,
-                )
-                if repaired is not None:
-                    projection = repaired
-        await self._optional_enqueue(
-            plan_record,
-            projection,
-            candidate,
-            current,
-            external_generation_authorized=external_generation_authorized,
-        )
-        return await self._hydrate(
-            guest_id,
-            snapshot.profile_id,
-            projection,
-            voice=voice,
-            deterministic_baseline=revision,
-        )
+            candidate = revision.evaluation.publishable_candidate if revision else None
+            blueprint = candidate.semantic_blueprint if candidate else None
+            if blueprint is None or not blueprint.mechanism_key.startswith("psychology:"):
+                break
+            issues.append(blueprint.mechanism_key.removeprefix("psychology:"))
+        return tuple(issues)
 
     async def _optional_enqueue(
         self,
@@ -683,6 +896,30 @@ def _public_mode_and_precision(
     if not claims:
         return PlanMode.LIMITED, TimePrecision.APPROXIMATE
     return PlanMode.FULL_SYNTHESIS, TimePrecision.EXACT
+
+
+def _scope_key(
+    chart: DateOnlySunResult | NatalChart,
+    purpose: ReadingPurpose,
+    local_date: date,
+    observed_at: datetime,
+    background_lens: BackgroundLens | None,
+) -> str:
+    """Projection scope from the chart's own identity, the same values the plan carries."""
+
+    if isinstance(chart, DateOnlySunResult):
+        tradition, config_hash = chart.provenance.tradition, chart.provenance.config_hash
+    else:
+        tradition, config_hash = chart.config.tradition, chart.config_hash
+    return canonical_projection_scope_key(
+        purpose=purpose,
+        tradition=tradition,
+        config_hash=config_hash,
+        local_date=local_date,
+        timezone_name=MVP_TIMEZONE,
+        observed_at=observed_at,
+        lens_variant=canonical_lens_variant(background_lens),
+    )
 
 
 def _scope_time(
