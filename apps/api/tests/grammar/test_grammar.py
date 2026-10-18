@@ -364,7 +364,7 @@ def test_fallback_approval_matches_the_live_tables(monkeypatch: pytest.MonkeyPat
 
     approved = json.loads(fallback_approval.APPROVAL.read_text())
     assert approved["approved"] == fallback_approval.current()
-    assert approved["approved_release"] == "836222282dfc"
+    assert approved["approved_release"] == "4111f03cee3c"  # production release 2026-10-18
 
     edited = dict(companion.COMPANION_ISSUE_LINES)
     edited.pop(next(iter(edited)))

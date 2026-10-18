@@ -1,0 +1,64 @@
+# Production release 4111f03cee3c — 18/10/2026
+
+Owner approval (chat, 18/10/2026): "okie golive nhé", then, after choosing "rehearsal first, then
+go-live", "okie chạy d3 và go live đi". Content approval for Tarot B2:
+`docs/reviews/2026-10-18-b2-tarot-owner-approval.md`.
+
+## What is live
+
+| Item | Value |
+|---|---|
+| URL | https://la-lanh.2-28-136-44.sslip.io |
+| Release / source | `4111f03cee3c` = public `main`, fast-forward of `collab/integration` after merging PRs #20 → #31, each with Codex APPROVE matching its head (merged with `--match-head-commit`). Tree identical to the last approved head `59dfd805e66e` |
+| Scope | P1 variety baseline (#20, audit only), B3-1a Daily rotation (#21, **off**: `LA_LANH_DAILY_VARIETY_FROM` unset), G0 grammar composer (#22, not served), Tarot B2-1 → B2-4b (#23 → #27), owner approval + fallback pin (#28, #29, #30), least-privileged rehearsal (#31) |
+| Image | `la-lanh:4111f03cee3c`, digest `sha256:3194d73b9762…`, saved at `/opt/la-lanh/releases/la-lanh-image-4111f03cee3c.tar` |
+| Database | Alembic `20261011_0036` → `20261018_0037` (adds `tarot_variant_cursors`) |
+| Flags | generation/worker off, auth/Google off, Swiss Ephemeris `agpl`, Daily rotation off |
+| Rollback | `la-lanh:836222282dfc` (present). Migration 0037 only adds a table and its downgrade is a no-op, so the previous image runs against the new schema |
+| Staging | same image digest, own DB migrated to 0037, generation off |
+
+## Evidence
+
+- Gate on `59dfd805e66e` (tree identical to `4111f03cee3c`): `pnpm check` exit 0 — 452 web tests, 2109 API
+  passed / 56 skipped, contracts, runtime/privacy guards, grammar and fallback approval current, content
+  audits, `tarot:audit` (T4 per session 98.99% / question only 84.98%, 5,340 provider payloads traced,
+  psychology checklist on 7,104 readings), QA CLI smoke. Legacy Tarot golden unchanged.
+- Backup `la-lanh-20261018T155045Z.dump` (732K, checksum OK), read-only `pg_dump` of `public`.
+- **D3 rehearsal** (runbook "Tarot B2 (US-20)") with the release image, newest backup restored into a
+  disposable TLS PostgreSQL on an internal Docker network, app connected as the NOSUPERUSER/NOBYPASSRLS
+  backend role that owns the restored tables:
+  - `Head before: 20261011_0036` → `Head after: 20261018_0037`; `guest_sessions` 27 → 27;
+  - `database-privacy-isolation-ok`, `tarot-cursor-rehearsal-ok`, `Rehearsal readiness OK`, exit 0;
+  - container and network removed;
+  - `pg_restore` ignored 7 errors, all expected: `CREATE SCHEMA public` (already present, owned by the
+    backend role) and six `ALTER DEFAULT PRIVILEGES` for the Supabase-only `postgres` / `supabase_admin`
+    roles. No table or data errors (dump: 38 tables, 38 table-data entries). Run twice with the same result.
+- `deploy.sh`: database TLS OK; content review in the image passed (direct and Roast, 10 personas × 30
+  readings, no critical/high/medium); migration 0036 → 0037; `database-privacy-isolation-ok`; app and
+  Caddy healthy; `alembic current` = `20261018_0037 (head)`.
+- Smoke: `infra/hetzner/smoke.sh` passed on production and staging. `qa-public-smoke.mjs` (synthetic only,
+  from `main` = `4111f03cee3c`) passed: date-only note, share/revoke, Aura and charts, Tarot 1/3/5, Radar
+  exact/unknown, and deleted its own guest.
+- Browser acceptance, production, synthetic question ("Mình có nên nhận thêm việc ở chỗ làm không?",
+  work, 3 cards): framed reading with the dynamic headline, the "Hướng nghiêng" block with reasons, a
+  linked summary and a question-form lead in the role sentence; a refresh shows the same reading; "Xóa bài
+  này" → "Xóa hẳn" deletes it and the old link shows "Không mở lại được lần bốc này"; a third-party question
+  ("Anh ấy có quay lại với mình không?") gets the reframe and creates no session. The Tarot-only guest
+  cookie of this check holds no session and expires with the 30-day inactivity cleanup.
+
+## Found during release
+
+1. **Staging lost its Caddy site after the production deploy.** `infra/hetzner/sites/staging.caddy` is a
+   server-local file (not in git). The new release directory did not have it, so the recreated production
+   Caddy no longer served `staging.la-lanh…` (TLS internal error); production was unaffected. Fixed by
+   copying the file from the previous release directory and restarting the Caddy container (a few seconds
+   of production restart, same image and config); both smokes pass afterwards. The runbook now says to copy
+   it before `deploy.sh`; automating it is a follow-up.
+2. A typo in the full SHA while uploading the source produced an empty archive on the first try; the
+   upload was redone from the `collab/integration` ref. No effect on the release.
+
+## Not covered
+
+Real devices/iOS/Android, real-user comprehension, Luna generation (off; prompt update for the brief v3
+provenance labels is required before any activation), Google login (off), the B3-1a Daily rotation start
+date (owner decision).
