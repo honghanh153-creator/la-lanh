@@ -372,6 +372,30 @@ def test_fallback_approval_matches_the_live_tables(monkeypatch: pytest.MonkeyPat
     assert fallback_approval.current() != approved["approved"]
 
 
+def test_fallback_approval_pins_the_framed_tarot_renderer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Owner approval 2026-10-18 (docs/reviews/2026-10-18-b2-tarot-owner-approval.md): the B2
+    copy modules and versions are pinned, so an unapproved edit fails grammar:check."""
+
+    from app.domains.tarot import roles, stance
+    from scripts import fallback_approval
+
+    tarot = fallback_approval.current()["tarot"]
+    assert tarot["framed_renderer_version"] == "tarot-renderer-v7"
+    assert tarot["framed_knowledge_version"] == "tarot-knowledge-v5"
+    assert tarot["gate_version"] == "tarot-gates-v5"
+    for module in ("question_frame", "roles", "stance", "variants"):
+        assert any(key.startswith(f"app.domains.tarot.{module}.") for key in tarot["tables"])
+    approved = json.loads(fallback_approval.APPROVAL.read_text())["approved"]
+    for table, edit in (
+        ("ROAST_HEADLINES", {**stance.ROAST_HEADLINES, "open": ("a", "b", "c")}),
+        ("LEADS", {**roles.LEADS, next(iter(roles.LEADS)): ("a", "b", "c", "d", "e")}),
+    ):
+        owner = stance if table == "ROAST_HEADLINES" else roles
+        with monkeypatch.context() as patched:
+            patched.setattr(owner, table, edit)
+            assert fallback_approval.current() != approved, table
+
+
 # ---------------------------------------------------------------- Codex P2 regressions (PR #22)
 
 

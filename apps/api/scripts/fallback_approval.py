@@ -30,6 +30,10 @@ from app.domains.readings.application import DETERMINISTIC_CONTENT_VERSION
 from app.domains.readings.renderers import DETERMINISTIC_RENDERER_VERSION
 from app.domains.tarot import engine as tarot_engine
 from app.domains.tarot import knowledge as tarot_knowledge
+from app.domains.tarot import question_frame as tarot_question_frame
+from app.domains.tarot import roles as tarot_roles
+from app.domains.tarot import stance as tarot_stance
+from app.domains.tarot import variants as tarot_variants
 
 ROOT = Path(__file__).resolve().parents[3]
 APPROVAL = ROOT / "docs" / "operations" / "fallback-approval.json"
@@ -95,9 +99,22 @@ def current() -> dict[str, Any]:
             "renderer_version": tarot_engine.TAROT_RENDERER_VERSION,
             "knowledge_version": tarot_knowledge.KNOWLEDGE_VERSION,
             "deck_version": tarot_knowledge.DECK_VERSION,
+            # Framed readings (US-20 B2-1..B2-4b), owner approval 2026-10-18.
+            "framed_renderer_version": tarot_engine.FRAMED_RENDERER_VERSION,
+            "framed_knowledge_version": tarot_engine.FRAMED_KNOWLEDGE_VERSION,
+            "gate_version": tarot_engine.TAROT_GATE_VERSION,
+            "question_rules_version": tarot_question_frame.QUESTION_RULES_VERSION,
+            "role_copy_version": tarot_roles.ROLE_COPY_VERSION,
+            "stance_version": tarot_stance.STANCE_VERSION,
+            "variants_version": tarot_variants.TAROT_VARIANTS_VERSION,
+            "variant_catalog_version": tarot_variants.TAROT_VARIANT_CATALOG_VERSION,
             "tables": {
                 **module_tables(tarot_knowledge),
                 **module_tables(tarot_engine),
+                **module_tables(tarot_question_frame),
+                **module_tables(tarot_roles),
+                **module_tables(tarot_stance),
+                **module_tables(tarot_variants),
                 "app.domains.tarot.knowledge.all_cards()": sha256(cards.encode()).hexdigest(),
             },
         },

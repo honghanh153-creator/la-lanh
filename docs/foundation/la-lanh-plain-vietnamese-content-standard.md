@@ -125,6 +125,9 @@ bằng chứng nằm ở `docs/plans/2026-10-16-personalisation-variety-plan.md`
 - Không quyết thay, không dự đoán, không đoán ý người khác; gợi quay về nhu cầu và cách mở lời của
   người dùng.
 - Tối đa một ý tiêu cực trong cả bài, luôn kèm lối ra. Ngưỡng "một" là lựa chọn sản phẩm.
+  Ngoại lệ Tarot (owner chốt 2026-10-18, `docs/reviews/2026-10-18-b2-tarot-owner-approval.md`): trải 5 lá
+  "vòng lặp" có 2 ý (phản xạ quen, cái giá) và "lựa chọn" có 3 ý (giá của mỗi hướng, điểm cần cân) do cấu trúc
+  map; bài vẫn kết ở bước tiếp làm được.
 - Bài kết ở phần đề nghị một việc (advice), không kết bằng cảnh báo.
 
 **Cho từng phần:**
