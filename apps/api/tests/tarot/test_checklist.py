@@ -114,3 +114,34 @@ def test_ac14_negated_force_is_still_allowed() -> None:
     )
     TarotReadingEngine.validate(reading)
     assert checklist.check(reading).gated_ok
+
+
+# ------------------------------------------------------------- Codex P2 regression (#27 @ f7b0798)
+
+RETRY = "Làm thế nào để mình thử lại việc này?"  # HOW + thu_lai: "{pair}" is one title on 1 card
+
+
+@pytest.mark.parametrize("voice", list(TarotVoice))
+@pytest.mark.parametrize("seed", range(3))
+def test_ac14_one_card_how_headline_with_an_action_is_an_approved_frame(
+    voice: TarotVoice, seed: int
+) -> None:
+    reading = _reading(RETRY, TarotSpreadMap.ONE_FOCUS, voice=voice, seed=seed)
+    TarotReadingEngine.validate(reading)
+    title = reading.positions[0].card.title_vi
+    assert title in reading.headline and " và " not in reading.headline
+    assert "thử lại" in reading.headline
+    result = checklist.check(reading)
+    assert not result.headline_advice and result.gated_ok, reading.headline
+
+
+@pytest.mark.parametrize("voice", list(TarotVoice))
+def test_ac14_multi_card_how_headline_still_matches_and_bare_imperative_fails(
+    voice: TarotVoice,
+) -> None:
+    reading = _reading(RETRY, TarotSpreadMap.THREE_UNBLOCK, voice=voice)
+    assert " và " in reading.headline
+    assert checklist.check(reading).gated_ok, reading.headline
+    title = reading.positions[0].card.title_vi
+    for bare in (f"{title}: thử lại đi.", f"{title} và {title}: thử lại đi."):
+        assert checklist.headline_gives_advice(bare), bare

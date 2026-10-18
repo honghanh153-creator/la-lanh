@@ -62,6 +62,10 @@ Brief v3 = mục 1. `MEANING_BRIEF_VERSION` của brief v2 không đổi cho phi
      chủ đề đã duyệt); chữ của chính khung được kiểm riêng bằng `template_gives_advice`. Tiêu đề khác quét đầy
      đủ, nên "<lá>: thử lại đi." bị bắt; "…trước khi thử lại" và marker hướng nghiêng vẫn hợp lệ.
 
+3. **P2 (review @ `f7b0798`):** `{pair}` trong khung tiêu đề nhận **một hoặc hai** tên lá thật, khớp
+   `stance.dynamic_headline` (trải 1 lá chỉ có lá trọng tâm). Regression: "Làm thế nào để mình thử lại việc này?" trên
+   1 lá × 4 giọng × 3 biến thể; đối chứng nhiều lá và chặn "thử lại đi" vẫn giữ.
+
 ## Ánh xạ AC
 
 | AC | Trạng thái | Bằng chứng |

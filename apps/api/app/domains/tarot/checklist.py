@@ -58,14 +58,16 @@ def _alternation(values: list[str]) -> str:
 
 def _template_patterns() -> tuple[re.Pattern[str], ...]:
     """Each approved headline frame as a full-match pattern: real card titles for {focal} and
-    {pair}, approved action phrases for {action}, approved topic phrases for {topic}."""
+    {pair} (one or two titles, as the renderer writes it), approved action phrases for
+    {action}, approved topic phrases for {topic}."""
 
     titles = _alternation([card.title_vi for card in all_cards()])
     actions = _alternation([*stance.ACTION_PHRASES.values(), stance.GENERIC_ACTION])
     topics = _alternation(list(stance.TOPIC_PHRASES.values()))
     slots = {
         "{focal}": f"(?:{titles})",
-        "{pair}": f"(?:{titles}) và (?:{titles})",
+        # stance.dynamic_headline: "A và B", or only the focal title when there is no second card.
+        "{pair}": f"(?:{titles})(?: và (?:{titles}))?",
         "{action}": f"(?:{actions})",
         "{topic}": f"(?:{topics})",
         "{target}": f"(?:{actions}|cho (?:{topics}))",
