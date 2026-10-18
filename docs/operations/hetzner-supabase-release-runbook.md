@@ -10,9 +10,12 @@ status checklist is
 Release `4111f03cee3c` is live (Tarot B2: question frame, roles, stance, variants, Roast frames,
 provenance-coded brief; B3-1a Daily rotation shipped **off**), Alembic head `20261018_0037`,
 generation/Google login off. Staging runs the same image digest. Receipt and findings:
-[production-release-2026-10-18](../reviews/production-release-2026-10-18/receipt.md). Immediate rollback
-image: `la-lanh:836222282dfc` (migration 0037 only adds a table). Run `rehearse-migration.sh` by absolute
-path; it runs as the least-privileged backend role. **Before `deploy.sh`, copy the server-local
+[production-release-2026-10-18](../reviews/production-release-2026-10-18/receipt.md). **No verified
+rollback anchor for B2 data:** `la-lanh:836222282dfc` starts on schema 0037 but cannot reopen framed Tarot
+readings stored since go-live (`small_action: null` fails its required-string model); see the receipt's
+"Rollback limit". Prefer a forward fix; an image is a safe rollback only after its reader accepts the B2
+reading shape and a disposable-copy probe reopens a reading created by `4111f03cee3c`. Never delete or
+rewrite guest readings to suit an old image. Run `rehearse-migration.sh` by absolute path; it runs as the least-privileged backend role. **Before `deploy.sh`, copy the server-local
 `infra/hetzner/sites/staging.caddy` from the previous release directory into the new one**, otherwise the
 recreated production Caddy drops the staging site. Staging: refresh `/opt/la-lanh/staging/source/infra`
 from the release, then `STAGING_GENERATION=off ./up.sh`, and recreate staging after `deploy.sh` so both run

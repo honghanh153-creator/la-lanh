@@ -14,7 +14,7 @@ go-live", "okie chạy d3 và go live đi". Content approval for Tarot B2:
 | Image | `la-lanh:4111f03cee3c`, digest `sha256:3194d73b9762…`, saved at `/opt/la-lanh/releases/la-lanh-image-4111f03cee3c.tar` |
 | Database | Alembic `20261011_0036` → `20261018_0037` (adds `tarot_variant_cursors`) |
 | Flags | generation/worker off, auth/Google off, Swiss Ephemeris `agpl`, Daily rotation off |
-| Rollback | `la-lanh:836222282dfc` (present). Migration 0037 only adds a table and its downgrade is a no-op, so the previous image runs against the new schema |
+| Rollback | **No verified rollback anchor for B2 data yet** (see "Rollback limit" below). `la-lanh:836222282dfc` is present and starts against schema 0037, but it cannot reopen framed Tarot readings stored since go-live |
 | Staging | same image digest, own DB migrated to 0037, generation off |
 
 ## Evidence
@@ -45,6 +45,28 @@ go-live", "okie chạy d3 và go live đi". Content approval for Tarot B2:
   này" → "Xóa hẳn" deletes it and the old link shows "Không mở lại được lần bốc này"; a third-party question
   ("Anh ấy có quay lại với mình không?") gets the reframe and creates no session. The Tarot-only guest
   cookie of this check holds no session and expires with the 30-day inactivity cleanup.
+
+## Rollback limit
+
+Schema compatibility is not data compatibility. Migration 0037 only adds `tarot_variant_cursors` and its
+downgrade is a no-op, so `la-lanh:836222282dfc` starts against the new schema. But framed (B2) readings store
+`small_action: null` on positions that are not the step role, while `TarotReadingPosition.small_action` is a
+required `str` in the 836222282dfc model. Its `TarotSessionService._view` validates the stored reading, so
+reopening a B2 reading created after go-live raises a validation error (server error) under that image.
+Reproduced with synthetic data by Codex on PR #32 and locally: a framed THREE_UNBLOCK reading is rejected
+at `positions.0.small_action` and `positions.1.small_action` (`string_type`), while a legacy (frameless)
+reading of the same cards validates.
+
+Therefore:
+
+- `la-lanh:836222282dfc` is **not** a safe rollback image for this release. Using it in an emergency means
+  accepting that B2 readings created since go-live fail to reopen until production rolls forward again; the
+  stored data is not changed by the old image.
+- Stored guest readings are not deleted or rewritten to make an old image work.
+- An image counts as a safe rollback anchor only after (a) its reader accepts the B2 reading shape (at least
+  an optional `small_action`; the extra `stance` key is ignored by the older model) and (b) a probe on a
+  disposable copy reopens a reading created by `4111f03cee3c`. Preparing such an image or any runtime change
+  is a separate, owner-authorised task. Until then, the recovery path is a forward fix.
 
 ## Found during release
 
