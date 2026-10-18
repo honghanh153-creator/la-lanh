@@ -65,6 +65,14 @@ TAROT_GATE_VERSION = "tarot-gates-v5"
 FRAMED_KNOWLEDGE_VERSION = "tarot-knowledge-v5"
 
 
+def card_scene(card_id: str, context: TarotContext) -> str:
+    """The reviewed example scene for a card in a topic (one per card x topic today)."""
+
+    if context.value in CONTEXT_SCENES:
+        return CONTEXT_SCENES[context.value][card_id]
+    return example_for(card_id, context.value)
+
+
 def current_renderer_version(question_rules_version: str) -> str:
     """The renderer a reading under these question rules gets today (stale-baseline check)."""
 
@@ -557,7 +565,7 @@ class TarotReadingEngine:
             lead=lead,
         )
         if voice is TarotVoice.GENTLE_SPECIFIC:
-            text += " Chưa cần kết luận ngay; hãy kiểm tra bằng chuyện thật trước."
+            text = f"{text} {roles.GENTLE_CHECK}"
         if voice is TarotVoice.ROAST and not roast_copy:
             # Gentle-register Roast (energy, self-care) keeps its tails on the direct frames;
             # Roast frames carry the voice themselves, so a tail would only add filler (B2-4).
@@ -565,11 +573,7 @@ class TarotReadingEngine:
             if tail not in used_tails:
                 used_tails.add(tail)  # one playful tail per reading
                 text = f"{text} {tail}"
-        scene = (
-            CONTEXT_SCENES[context.value][card.id]
-            if context.value in CONTEXT_SCENES
-            else example_for(card.id, context.value)
-        )
+        scene = card_scene(card.id, context)
         action: str | None = None
         if key in roles.STEP_ROLES:
             step = goal_step or roles.action_for(meaning.resource)

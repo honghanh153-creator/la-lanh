@@ -221,3 +221,12 @@ started), allocated in the transaction that creates a session so it never repeat
 or expires. It holds no reading data, has row-level security enabled with no client grants, is never returned
 or logged, and is deleted with the guest (foreign-key cascade; guest expiry and erasure remove it). No new
 data type, purpose, recipient or store declaration.
+
+## Tarot provider payload delta — B2-4b, 2026-10-18
+
+Luna (the optional AI rewrite) stays off. If it is enabled later, the payload for a framed Tarot reading uses
+meaning brief v3: besides the texts it already carried, it sends catalog codes for every text (role frame, lead,
+scene, reflection, action) and the closed lean labels (kind, level, action label, option labels). Every string is
+rebuilt from those codes and checked before a request is built; a string that traces to no closed label or
+catalog code blocks the request. The question, the QuestionFrame, the variant record and the variant cursor are
+never sent; lean conclusions and reasons stay local. No new data type, recipient or store declaration.

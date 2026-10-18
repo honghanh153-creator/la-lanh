@@ -251,7 +251,9 @@ def _audit_owner(item_id: str) -> uuid.UUID:
 
 def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
     """B2-3/B2-4 on the bank (US-20 AC20): stance distribution, headline duplicates per voice
-    (< 10%), no generic copy.
+    (< 10%), no generic copy. B2-4b adds, on the same readings, the provenance trace of every
+    provider payload (US-20 AC06, direct voices; Roast is never sent) and the machine items of
+    the psychology checklist (US-20 AC14).
 
     Every accepted bank question x every spread map x all four voices, with cards drawn from a
     seed fixed per question and the variants a synthetic guest's first session would get. Roast
@@ -260,11 +262,18 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
 
     import random
 
+    from app.domains.content_rewrite.models import RewriteSurface
+    from app.domains.tarot import checklist, provenance
     from app.domains.tarot import roles as tarot_roles
+    from app.domains.tarot.meaning_brief import BRIEF_LIMITS
     from app.domains.tarot.variants import choose_variants
+    from app.infrastructure.generation.privacy import TAROT_FOCUS_SENTENCES, PrivacyMinimiser
 
     engine = TarotReadingEngine()
     items: list[dict[str, Any]] = json.loads(QUESTION_BANK.read_text())["items"]
+    traced = 0
+    negative_by_map: dict[str, Counter[int]] = defaultdict(Counter)
+    scenes_with_advice = triggers = steps = 0
     cards = [card.id for card in all_cards()]
     headlines: dict[TarotVoice, list[str]] = {voice: [] for voice in TarotVoice}
     levels: Counter[str] = Counter()
@@ -312,6 +321,43 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
                     + [p.meaning_here + " " + (p.small_action or "") for p in reading.positions]
                 ).casefold()
                 generic += any(prefix in prose for prefix in tarot_roles.RETIRED_PREFIXES)
+                label = f"{item['id']}/{spread_map.value}/{voice.value}"
+                result = checklist.check(reading)
+                if not result.gated_ok:
+                    failures.append(f"checklist/{label}: {result}")
+                negative_by_map[spread_map.value][result.negative_ideas] += 1
+                scenes_with_advice += result.scenes_with_advice_words
+                triggers += result.step_action_has_trigger
+                steps += 1
+                if reading.voice is TarotVoice.ROAST:
+                    continue
+                brief = provenance.framed_brief(reading)
+                positions = provenance.framed_positions(reading)
+                if brief is None or positions is None:
+                    failures.append(f"provenance/{label}: no catalog resolution")
+                    continue
+                payload = {
+                    "category": "general",
+                    "focus_key": "clarity",
+                    "focus_sentence": TAROT_FOCUS_SENTENCES["clarity"],
+                    "meaning_brief": brief,
+                    "positions": positions,
+                }
+                # The normalized form is what the queue and the provider adapter emit.
+                normalized = PrivacyMinimiser().minimise(RewriteSurface.TAROT, payload)
+                untraced = [
+                    path
+                    for candidate in (payload, normalized)
+                    for path in provenance.untraced_paths(
+                        candidate,
+                        focus_sentences=TAROT_FOCUS_SENTENCES,
+                        limits=frozenset(BRIEF_LIMITS),
+                    )
+                ]
+                if untraced:
+                    failures.append(f"provenance/{label}: untraced {untraced[:3]}")
+                    continue
+                traced += 1
     rates = {
         voice.value: round(1 - len(set(values)) / len(values), 4) if values else 0.0
         for voice, values in headlines.items()
@@ -326,6 +372,12 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
         "headline_duplicate_rate": rates,
         "stance_levels": dict(sorted(levels.items())),
         "generic": generic,
+        "provenance_traced": traced,
+        "negative_ideas_by_map": {
+            name: dict(sorted(counts.items())) for name, counts in sorted(negative_by_map.items())
+        },
+        "scenes_with_advice_words": scenes_with_advice,
+        "step_actions_with_trigger": f"{triggers}/{steps}",
     }
     return failures, metrics
 
@@ -561,6 +613,18 @@ def main() -> None:
         f"(bank x {len(TarotSpreadMap)} maps x {len(TarotVoice)} voices); headline "
         f"duplicate rate {stance_metrics['headline_duplicate_rate']}; stance levels "
         f"{stance_metrics['stance_levels']}; generic filler {stance_metrics['generic']}."
+    )
+    print(
+        f"Provenance (B2-4b, AC06): {stance_metrics['provenance_traced']} direct-voice provider "
+        "payloads, built and minimised forms, every string traced to a closed label or a catalog "
+        "code."
+    )
+    print(
+        "Psychology checklist (B2-4b, AC14): gated items pass on every reading (headline gives "
+        "no advice, no coercion, ends on the step, summary ends on the step). For the owner: "
+        f"pitfall/cost ideas per map {stance_metrics['negative_ideas_by_map']}; scene slots with "
+        f"advice words {stance_metrics['scenes_with_advice_words']}; step actions with a 'khi' "
+        f"trigger {stance_metrics['step_actions_with_trigger']}."
     )
     print(
         f"T4 same card x role x topic (B2-4, floor {T4_FLOOR}): per session "

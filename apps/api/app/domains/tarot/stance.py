@@ -209,7 +209,9 @@ TOPIC_PHRASES: dict[TarotContext, str] = {
 # Headline = form + lean (or action/topic) + focal card (+ the pitfall card when there is one).
 # Three frames per key, picked once per session (AC15). Frame i of ROAST_HEADLINES is the Roast
 # version of frame i ("headline.<key>.<i>", AC19). Stance headlines keep their level's marker;
-# timing headlines all say "sẵn sàng" (AC05). Worst case (3-word titles, a 7-word pair, a 6-word
+# timing headlines all say "sẵn sàng" (AC05). No headline gives advice (content standard
+# psychology checklist, US-20 AC14): the stance marker states the lean, nothing tells the reader
+# what to do. Worst case (3-word titles, a 7-word pair, a 6-word
 # action, a 3-word topic) stays within the 18-word headline budget; tests check every frame.
 HEADLINES: dict[str, tuple[str, str, str]] = {
     TarotStanceLevel.LEAN_TRY.value: (
@@ -219,7 +221,7 @@ HEADLINES: dict[str, tuple[str, str, str]] = {
     ),
     TarotStanceLevel.CONSIDER.value: (
         "{focal}: cân nhắc thêm trước khi {action}.",
-        "Với {focal}, nên cân nhắc thêm trước khi {action}.",
+        "{focal} cho thấy: cân nhắc thêm trước khi {action}.",
         "{focal} nhắc: cân nhắc thêm trước khi {action}.",
     ),
     TarotStanceLevel.UNCLEAR.value: (
@@ -229,7 +231,7 @@ HEADLINES: dict[str, tuple[str, str, str]] = {
     ),
     TarotStanceLevel.CLARIFY_CHOICE.value: (
         "{pair}: điều cần rõ trước khi chọn.",
-        "Với {pair}, xem điều cần rõ trước khi chọn.",
+        "Với {pair}, có điều cần rõ trước khi chọn.",
         "{pair} chỉ ra điều cần rõ trước khi chọn.",
     ),
     TarotQuestionForm.TIMING.value: (
@@ -261,8 +263,8 @@ ROAST_HEADLINES: dict[str, tuple[str, str, str]] = {
     ),
     TarotStanceLevel.CONSIDER.value: (
         "{focal} kéo phanh tay: cân nhắc thêm trước khi {action}.",
-        "Khoan đạp ga, {focal} bảo cân nhắc thêm trước khi {action}.",
-        "{focal}: cân nhắc thêm trước khi {action}, đừng vội nha.",
+        "{focal} bật đèn vàng: cân nhắc thêm trước khi {action}.",
+        "{focal} giơ biển chậm lại: cân nhắc thêm trước khi {action}.",
     ),
     TarotStanceLevel.UNCLEAR.value: (
         "{focal} đang giằng co: chuyện {action} kéo về hai phía.",
@@ -270,9 +272,9 @@ ROAST_HEADLINES: dict[str, tuple[str, str, str]] = {
         "Chuyện {action} kéo về hai phía, {focal} chưa chịu chốt.",
     ),
     TarotStanceLevel.CLARIFY_CHOICE.value: (
-        "{pair}: khoan chọn vội, xem điều cần rõ trước khi chọn.",
+        "{pair} còn giằng co: có điều cần rõ trước khi chọn.",
         "Chưa so kèo được, {pair} chỉ điều cần rõ trước khi chọn.",
-        "{pair}: điều cần rõ trước khi chọn, rồi hẵng tính.",
+        "{pair}: điều cần rõ trước khi chọn nằm ở đây.",
     ),
     TarotQuestionForm.TIMING.value: (
         "{focal}: khỏi xem lịch, sẵn sàng điều này trước khi {action}.",
