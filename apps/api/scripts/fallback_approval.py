@@ -29,11 +29,14 @@ from app.domains.readings import companion, daily_psychology, gates, voice
 from app.domains.readings.application import DETERMINISTIC_CONTENT_VERSION
 from app.domains.readings.renderers import DETERMINISTIC_RENDERER_VERSION
 from app.domains.tarot import engine as tarot_engine
+from app.domains.tarot import examples as tarot_examples
 from app.domains.tarot import knowledge as tarot_knowledge
+from app.domains.tarot import meaning_brief as tarot_meaning_brief
 from app.domains.tarot import question_frame as tarot_question_frame
 from app.domains.tarot import roles as tarot_roles
 from app.domains.tarot import stance as tarot_stance
 from app.domains.tarot import variants as tarot_variants
+from app.domains.tarot import voice as tarot_voice
 
 ROOT = Path(__file__).resolve().parents[3]
 APPROVAL = ROOT / "docs" / "operations" / "fallback-approval.json"
@@ -115,6 +118,12 @@ def current() -> dict[str, Any]:
                 **module_tables(tarot_roles),
                 **module_tables(tarot_stance),
                 **module_tables(tarot_variants),
+                # Older copy the framed and legacy renderers reuse (goal reflections/actions,
+                # links, brief limits, Roast/gentle frames and tails, example scenes). Pinned
+                # 2026-10-18; byte-identical to production release 836222282dfc.
+                **module_tables(tarot_meaning_brief),
+                **module_tables(tarot_voice),
+                **module_tables(tarot_examples),
                 "app.domains.tarot.knowledge.all_cards()": sha256(cards.encode()).hexdigest(),
             },
         },

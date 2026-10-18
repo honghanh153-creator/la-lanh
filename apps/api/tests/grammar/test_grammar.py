@@ -396,6 +396,112 @@ def test_fallback_approval_pins_the_framed_tarot_renderer(monkeypatch: pytest.Mo
             assert fallback_approval.current() != approved, table
 
 
+_LEGACY_TAROT_TABLES = (
+    ("meaning_brief", "_GOALS"),
+    ("meaning_brief", "_DEFAULT_GOAL"),
+    ("meaning_brief", "_GOAL_ACTIONS"),
+    ("meaning_brief", "_GOAL_FEELING_ACTION"),
+    ("meaning_brief", "_GOAL_NEED_ACTIONS"),
+    ("meaning_brief", "_GOAL_AGENCY_ACTIONS"),
+    ("meaning_brief", "_GOAL_BOUNDARY_ACTIONS"),
+    ("meaning_brief", "_STAGE_TWO_POSITIONS"),
+    ("meaning_brief", "_LINKS"),
+    ("meaning_brief", "BRIEF_LIMITS"),
+    ("voice", "ROAST_HEADLINES"),
+    ("voice", "GENTLE_HEADLINES"),
+    ("voice", "ROAST_MEANING_TAILS"),
+    ("voice", "GENTLE_MEANING_TAILS"),
+    ("voice", "ROAST_ACTION_FRAMES"),
+    ("voice", "GENTLE_ACTION_FRAMES"),
+    ("voice", "_MEANING_GROUPS"),
+    ("examples", "CARD_EXAMPLES"),
+    ("examples", "CONTEXT_EXAMPLES"),
+)
+
+
+def _mutated(value: Any) -> Any:
+    """A minimal edit of a pinned value: one changed string, wherever it sits."""
+
+    import dataclasses
+
+    if isinstance(value, str):
+        return value + " (sửa)"
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return dataclasses.replace(value, meaning=value.meaning + " (sửa)")  # type: ignore[attr-defined]
+    if isinstance(value, dict):
+        key = next(iter(value))
+        return {**value, key: _mutated(value[key])}
+    if isinstance(value, frozenset):
+        return value | {"sửa"}
+    if isinstance(value, tuple):
+        return (_mutated(value[0]), *value[1:])
+    raise AssertionError(f"no mutation for {type(value)}")
+
+
+@pytest.mark.parametrize(("module_name", "table"), _LEGACY_TAROT_TABLES)
+def test_fallback_approval_pins_reused_legacy_tarot_copy(
+    module_name: str, table: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex #28 follow-up: older copy the Tarot renderers reuse is fingerprinted; any edit to
+    it breaks the approval (docs/reviews/2026-10-18-tarot-legacy-copy-pin.md)."""
+
+    import importlib
+
+    from scripts import fallback_approval
+
+    owner = importlib.import_module(f"app.domains.tarot.{module_name}")
+    approved = json.loads(fallback_approval.APPROVAL.read_text())["approved"]
+    assert fallback_approval.current() == approved
+    monkeypatch.setattr(owner, table, _mutated(getattr(owner, table)))
+    assert fallback_approval.current() != approved
+
+
+def test_a_goal_action_edit_changes_the_reading_and_the_approval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Codex's example: editing _GOAL_ACTIONS changed a framed reading's small action while the
+    approval stayed identical. Now both change."""
+
+    from app.domains.tarot import meaning_brief
+    from app.domains.tarot.models import TarotSpreadMap
+    from scripts import fallback_approval
+    from tests.tarot.test_provenance import _reading
+
+    question = "Mình nên nói gì để chia việc và bàn giao rõ hơn?"
+    before = _reading(question, TarotSpreadMap.THREE_UNBLOCK).positions[-1].small_action
+    approved = json.loads(fallback_approval.APPROVAL.read_text())["approved"]
+    actions = dict(meaning_brief._GOAL_ACTIONS)
+    first, second, third = actions["task_handoff"]
+    actions["task_handoff"] = (first, second, f"{third} (sửa)")
+    monkeypatch.setattr(meaning_brief, "_GOAL_ACTIONS", actions)
+    after = _reading(question, TarotSpreadMap.THREE_UNBLOCK).positions[-1].small_action
+    assert before != after
+    assert fallback_approval.current() != approved
+
+
+def test_goal_action_output_is_unchanged_by_the_table_move() -> None:
+    """The literals moved out of goal_action into pinned tables; every output is identical
+    (snapshot taken before the move, equal to release 836222282dfc)."""
+
+    from hashlib import sha256
+
+    from app.domains.tarot.engine import _POSITIONS
+    from app.domains.tarot.meaning_brief import GOAL_KEYS, goal_action, goal_by_key
+
+    keys = sorted({key for positions in _POSITIONS.values() for key, _ in positions} | {"unknown"})
+    outputs = {
+        f"{goal}|{key}": goal_action(goal_by_key(goal), key)
+        for goal in sorted(GOAL_KEYS)
+        for key in keys
+    }
+    text = json.dumps(outputs, ensure_ascii=False, sort_keys=True)
+    assert len(outputs) == 189
+    assert (
+        sha256(text.encode()).hexdigest()
+        == "86698546666ec66f598b21ccfe2c1795d5a65d325b7413ee029092b06e3b31ce"
+    )
+
+
 # ---------------------------------------------------------------- Codex P2 regressions (PR #22)
 
 
