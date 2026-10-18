@@ -66,11 +66,11 @@ def test_apology_advice_does_not_invent_a_dating_decision() -> None:
         question="Mình nên nói gì để xin lỗi sau khi lỡ hẹn?",
         voice=TarotVoice.PLAYFUL_GROUNDED,
     )
-    assert "tiếp tục tìm hiểu" not in " ".join(p.small_action for p in reading.positions)
-    assert "xin lỗi" in reading.positions[0].small_action.lower()
+    assert "tiếp tục tìm hiểu" not in " ".join(p.small_action or "" for p in reading.positions)
+    assert "xin lỗi" in (reading.positions[0].small_action or "").lower()
     assert "Dễ vướng ở việc kết luận" in reading.summary
     assert len({p.reflection_question for p in reading.positions}) == 3
-    assert reading.positions[-1].small_action not in reading.positions[-1].meaning_here
+    assert (reading.positions[-1].small_action or "") not in reading.positions[-1].meaning_here
     assert "nói về muốn" not in reading.positions[-1].meaning_here
 
 

@@ -600,7 +600,6 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
               <span className="tarot-chapter-labels">
                 <strong>{position.card.title_vi}</strong>
                 <span>{position.label}</span>
-                <small>{position.card.title_en}</small>
               </span>
               <span className="tarot-chapter-chevron" aria-hidden="true">⌄</span>
             </summary>
@@ -611,10 +610,12 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
                 <div><strong>Ví dụ để đối chiếu</strong><p>{position.everyday_scene}</p></div>
               </div>
               <blockquote>{position.reflection_question}</blockquote>
-              <div className="tarot-action">
-                <Sparkle aria-hidden="true" />
-                <div><strong>Một việc bạn có thể thử</strong><p>{position.small_action}</p></div>
-              </div>
+              {position.small_action ? (
+                <div className="tarot-action">
+                  <Sparkle aria-hidden="true" />
+                  <div><strong>Một việc bạn có thể thử</strong><p>{position.small_action}</p></div>
+                </div>
+              ) : null}
             </div>
           </details>
         ))}
@@ -623,7 +624,11 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
       <section className="tarot-closing">
         <p>{reading.closing_prompt}</p>
         <ReadingDisclaimer compact>{reading.disclaimer}</ReadingDisclaimer>
-        <span>Engine {reading.provenance.knowledge_version} · bộ {reading.provenance.deck_version}</span>
+        <details className="tarot-tech">
+          <summary>Chi tiết kỹ thuật</summary>
+          <span>Tên lá gốc: {reading.positions.map((position) => position.card.title_en).join(", ")}</span>
+          <span>Engine {reading.provenance.knowledge_version} · bộ {reading.provenance.deck_version}</span>
+        </details>
       </section>
       <footer className="tarot-result-actions">
         {confirmDelete ? (

@@ -164,7 +164,8 @@ class TarotReadingPosition(BaseModel):
     meaning_here: str
     everyday_scene: str
     reflection_question: str
-    small_action: str
+    # Only step roles carry an action since B2-2 (US-20 AC07); legacy readings always have one.
+    small_action: str | None = None
 
 
 class TarotReadingProvenance(BaseModel):

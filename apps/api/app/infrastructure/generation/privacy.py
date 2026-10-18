@@ -102,7 +102,8 @@ class TarotPosition(SafeModel):
     meaning_here: str = Field(min_length=1, max_length=900)
     everyday_scene: str = Field(min_length=1, max_length=900)
     reflection_question: str = Field(min_length=1, max_length=500)
-    small_action: str = Field(min_length=1, max_length=500)
+    # Only step roles carry an action since B2-2; other positions send null.
+    small_action: str | None = Field(default=None, min_length=1, max_length=500)
 
 
 class TarotGoal(SafeModel):
