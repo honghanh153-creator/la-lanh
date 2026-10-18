@@ -40,7 +40,12 @@ from app.domains.tarot.models import (
 )
 from app.domains.tarot.tables import TarotSessionRow
 from app.infrastructure.crypto import EnvelopeCipher
-from app.infrastructure.generation.privacy import TAROT_FOCUS_SENTENCES, reduce_tarot_question
+from app.infrastructure.generation.privacy import (
+    TAROT_FOCUS_SENTENCES,
+    PrivacyMinimiser,
+    UnsafeRewritePayload,
+    reduce_tarot_question,
+)
 
 TAROT_REWRITE_RENDERER_VERSION = "gpt-6-luna-tarot-v4"
 TAROT_REWRITE_GATE_VERSION = canonical_surface_registry().require(RewriteSurface.TAROT).gate_version
@@ -221,8 +226,17 @@ def _compile_framed(
         "meaning_brief": cast(JsonValue, brief),
         "positions": cast(JsonValue, positions),
     }
-    if provenance.untraced_paths(
-        payload, focus_sentences=TAROT_FOCUS_SENTENCES, limits=frozenset(BRIEF_LIMITS)
+    # Trace what is built and what the queue and provider adapter actually emit: the privacy
+    # minimiser drops null optional codes, and both forms must resolve to the same catalog text.
+    try:
+        normalized = PrivacyMinimiser().minimise(RewriteSurface.TAROT, payload)
+    except UnsafeRewritePayload:
+        return None
+    if any(
+        provenance.untraced_paths(
+            candidate, focus_sentences=TAROT_FOCUS_SENTENCES, limits=frozenset(BRIEF_LIMITS)
+        )
+        for candidate in (payload, normalized)
     ):
         return None
     spec = canonical_surface_registry().require(RewriteSurface.TAROT)

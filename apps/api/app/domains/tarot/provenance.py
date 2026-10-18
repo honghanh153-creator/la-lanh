@@ -129,12 +129,15 @@ def resolve_position(
     topic: TarotContext,
     intent: TarotQuestionIntent,
 ) -> dict[str, str | None]:
-    """The four authored texts of a position, rebuilt from its codes only."""
+    """The four authored texts of a position, rebuilt from its codes only.
+
+    ``lead`` and ``action`` are optional in the privacy schema (default null) and the minimiser
+    drops null keys, so an absent key means null, exactly as the schema reads it."""
 
     return {
         "meaning_here": resolve_meaning(
             source["frame"],
-            source["lead"],
+            source.get("lead"),
             bool(source["gentle"]),
             position_key=position_key,
             card_id=card_id,
@@ -145,7 +148,7 @@ def resolve_position(
             source["reflection"], position_key=position_key, topic=topic, intent=intent
         ),
         "small_action": resolve_action(
-            source["action"], position_key=position_key, card_id=card_id, topic=topic
+            source.get("action"), position_key=position_key, card_id=card_id, topic=topic
         ),
     }
 

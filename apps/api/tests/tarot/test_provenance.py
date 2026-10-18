@@ -317,19 +317,27 @@ def test_ac06_private_canary_never_reaches_the_payload(spread_map: TarotSpreadMa
         assert _untraced(payload) == []
 
 
-class _CapturingRewrites:
-    """Stands in for ContentRewriteService.enqueue; nothing leaves the process."""
+class _CapturingRepository:
+    """In-memory stand-in for the job repository; the real ContentRewriteService (registry,
+    authorization, PrivacyMinimiser) runs in front of it, and nothing leaves the process."""
 
     def __init__(self) -> None:
-        self.requests: list[Any] = []
+        self.records: list[Any] = []
 
-    async def enqueue(self, request: Any, *, now: datetime) -> None:
-        del now
-        self.requests.append(request)
+    async def enqueue(self, record: Any) -> tuple[Any, bool]:
+        self.records.append(record)
+        return record, True
+
+
+class _Authorized:
+    async def is_authorized(self, request: Any) -> bool:
+        del request
+        return True
 
 
 async def test_ac06_canary_through_the_service_queue_path(tmp_path: Any) -> None:
     from app.db.session import Database
+    from app.domains.content_rewrite.service import ContentRewriteService
     from app.domains.tarot.service import TarotSessionService
     from tests.tarot.test_variants import CIPHER, HASHER, KEY, _guest
 
@@ -337,14 +345,17 @@ async def test_ac06_canary_through_the_service_queue_path(tmp_path: Any) -> None
     await db.initialize()
     try:
         guest = await _guest(db)
-        captured = _CapturingRewrites()
+        repository = _CapturingRepository()
         service = TarotSessionService(
             db.sessions,
             CIPHER,
             HASHER,
             generation_enabled=True,
             generation_model="gpt-6-luna",
-            content_rewrite_service=captured,  # type: ignore[arg-type]
+            content_rewrite_service=ContentRewriteService(
+                repository,  # type: ignore[arg-type]
+                _Authorized(),
+            ),
             variety_key=KEY,
         )
         view = await service.start(
@@ -365,7 +376,10 @@ async def test_ac06_canary_through_the_service_queue_path(tmp_path: Any) -> None
                 external_generation_authorized=True,
             )
         assert view.reading is not None
-        (request,) = captured.requests
+        (record,) = repository.records
+        request = record.request  # as queued: already minimised by the real service
+        assert "source" in request.safe_payload["positions"][0]
+        assert "action" not in request.safe_payload["positions"][0]["source"]  # null dropped
         outbound = _fold(json.dumps(request.model_dump(mode="json"), ensure_ascii=False))
         assert CANARY not in outbound
         assert not [g for g in _ngrams(PRIVATE, 2) if g in outbound and g not in _catalog_corpus()]
@@ -373,3 +387,40 @@ async def test_ac06_canary_through_the_service_queue_path(tmp_path: Any) -> None
         assert _untraced(cast(dict[str, Any], request.safe_payload)) == []
     finally:
         await db.dispose()
+
+
+# ---------------------------------------------------------------- Codex P2 regressions (#27)
+
+
+@pytest.mark.parametrize("spread_map", list(TarotSpreadMap))
+@pytest.mark.parametrize(
+    "voice", [TarotVoice.STRAIGHT_WARM, TarotVoice.GENTLE_SPECIFIC, TarotVoice.PLAYFUL_GROUNDED]
+)
+def test_ac06_the_minimised_payload_still_traces(
+    spread_map: TarotSpreadMap, voice: TarotVoice
+) -> None:
+    """The queue and the provider adapter emit the minimised form, which drops null optional
+    codes (``source.action`` off the step role, ``source.lead``); it must trace too."""
+
+    reading = _reading(
+        "Làm thế nào để mình chia việc rõ hơn với nhóm?", spread_map, voice=voice, seed=3
+    )
+    raw = _payload(reading)
+    assert _untraced(raw) == []
+    outgoing = cast(dict[str, Any], PrivacyMinimiser().minimise(_request_surface(), raw))
+    assert _untraced(outgoing) == []
+    sources = [position["source"] for position in outgoing["positions"]]
+    if len(sources) > 1:
+        assert any("action" not in source for source in sources)  # the case that broke
+
+
+def test_ac06_omitted_optional_codes_resolve_as_null() -> None:
+    reading = _reading("Làm thế nào để mình chia việc rõ hơn với nhóm?", TarotSpreadMap.FIVE_LOOP)
+    raw = _payload(reading)
+    stripped = json.loads(json.dumps(raw))
+    for position in stripped["positions"]:
+        if position["source"].get("action") is None:
+            position["source"].pop("action")
+        position["source"].pop("lead")  # a lead that is present must still match the text
+    untraced = _untraced(stripped)
+    assert untraced and all(path.endswith("meaning_here") for path in untraced)

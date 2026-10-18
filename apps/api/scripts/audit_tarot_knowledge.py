@@ -262,11 +262,12 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
 
     import random
 
+    from app.domains.content_rewrite.models import RewriteSurface
     from app.domains.tarot import checklist, provenance
     from app.domains.tarot import roles as tarot_roles
     from app.domains.tarot.meaning_brief import BRIEF_LIMITS
     from app.domains.tarot.variants import choose_variants
-    from app.infrastructure.generation.privacy import TAROT_FOCUS_SENTENCES
+    from app.infrastructure.generation.privacy import TAROT_FOCUS_SENTENCES, PrivacyMinimiser
 
     engine = TarotReadingEngine()
     items: list[dict[str, Any]] = json.loads(QUESTION_BANK.read_text())["items"]
@@ -342,9 +343,17 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
                     "meaning_brief": brief,
                     "positions": positions,
                 }
-                untraced = provenance.untraced_paths(
-                    payload, focus_sentences=TAROT_FOCUS_SENTENCES, limits=frozenset(BRIEF_LIMITS)
-                )
+                # The normalized form is what the queue and the provider adapter emit.
+                normalized = PrivacyMinimiser().minimise(RewriteSurface.TAROT, payload)
+                untraced = [
+                    path
+                    for candidate in (payload, normalized)
+                    for path in provenance.untraced_paths(
+                        candidate,
+                        focus_sentences=TAROT_FOCUS_SENTENCES,
+                        limits=frozenset(BRIEF_LIMITS),
+                    )
+                ]
                 if untraced:
                     failures.append(f"provenance/{label}: untraced {untraced[:3]}")
                     continue
@@ -607,7 +616,8 @@ def main() -> None:
     )
     print(
         f"Provenance (B2-4b, AC06): {stance_metrics['provenance_traced']} direct-voice provider "
-        "payloads, every string traced to a closed label or a catalog code."
+        "payloads, built and minimised forms, every string traced to a closed label or a catalog "
+        "code."
     )
     print(
         "Psychology checklist (B2-4b, AC14): gated items pass on every reading (headline gives "

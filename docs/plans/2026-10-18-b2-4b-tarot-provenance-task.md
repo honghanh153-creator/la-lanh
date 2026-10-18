@@ -50,6 +50,18 @@ Brief v3 = mục 1. `MEANING_BRIEF_VERSION` của brief v2 không đổi cho phi
   khung tiêu đề với mọi cụm hành động.
 - Sheet "Checklist AC14" trong file duyệt: kết quả máy cho từng bài mẫu và cột để owner chấm các mục còn lại.
 
+## Sửa theo review Codex #27 (@ `e0842a5`)
+
+1. **P2-1:** `PrivacyMinimiser` bỏ key null (`exclude_none`), nên payload thật trong hàng đợi và ở adapter
+   provider mất `source.action` (vị trí không phải bước tiếp) và `source.lead` khi null. Resolver giờ đọc mã tuỳ
+   chọn vắng mặt là null, đúng như schema. Compiler và audit kiểm **cả payload dựng ra lẫn bản đã chuẩn hoá**;
+   test service đi qua `ContentRewriteService` thật (registry, authorization, minimiser) với repository giả.
+2. **P2-2:** ngoại lệ checklist chỉ còn đúng ngữ cảnh đã duyệt:
+   - ép buộc: chỉ miễn cụm phủ định "không ai bắt bạn phải"; "Lá/Tôi bắt bạn phải…" bị bắt;
+   - tiêu đề: chỉ miễn khi tiêu đề khớp **trọn vẹn** một khung tiêu đề đã duyệt (tên lá thật, cụm hành động và
+     chủ đề đã duyệt); chữ của chính khung được kiểm riêng bằng `template_gives_advice`. Tiêu đề khác quét đầy
+     đủ, nên "<lá>: thử lại đi." bị bắt; "…trước khi thử lại" và marker hướng nghiêng vẫn hợp lệ.
+
 ## Ánh xạ AC
 
 | AC | Trạng thái | Bằng chứng |
