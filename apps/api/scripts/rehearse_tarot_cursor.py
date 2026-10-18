@@ -8,8 +8,12 @@ Checks (runbook "Tarot B2 (US-20)"):
 
 1. the connection role is not a superuser (PostgreSQL only);
 2. ``tarot_variant_cursors`` has RLS enabled and no browser-role privileges (PostgreSQL only);
-3. two concurrent session starts of one guest get distinct positions through the real upsert;
-4. deleting a reading and retention cleanup keep the cursor; deleting the guest removes it.
+3. two concurrent session starts of one guest get distinct positions through the real upsert,
+   and the variant records the two sessions actually stored (decrypted here, never printed) are
+   the ones for positions 0 and 1 and differ on every axis;
+4. deleting a reading keeps the cursor; retention cleanup, drained in bounded batches until the
+   synthetic sessions are gone (a restored copy may hold many older expired sessions), keeps it;
+   deleting the guest removes it.
 
 Cleanup runs with a far-future clock, so it also purges the restored copy's other Tarot sessions;
 the copy is disposable and destroyed by the rehearsal script.
@@ -31,10 +35,13 @@ from app.db.session import Database
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.tarot.models import TarotContext, TarotOrigin, TarotSpread, TarotVoice
 from app.domains.tarot.service import TarotSessionService
-from app.domains.tarot.tables import TarotVariantCursorRow
+from app.domains.tarot.tables import TarotSessionRow, TarotVariantCursorRow
+from app.domains.tarot.variants import TarotVariants, choose_variants
 from app.infrastructure.crypto import AesGcmEnvelopeCipher, SecretHasher, StaticDataKeyProvider
 
 QUESTION = "Mình cần nói rõ điều gì trước khi nhận thêm việc?"
+CLEANUP_BATCH = 1000
+MAX_CLEANUP_BATCHES = 10_000  # 10 million expired sessions; a real copy is far smaller
 
 
 class RehearsalFailed(RuntimeError):
@@ -80,6 +87,30 @@ async def _cursor(db: Database, guest: UUID) -> int | None:
         return None if row is None else row.next_position
 
 
+async def _stored(db: Database, service: TarotSessionService, session_id: UUID) -> TarotVariants:
+    async with db.sessions() as session:
+        row = await session.get(TarotSessionRow, session_id)
+        if row is None:
+            raise RehearsalFailed("synthetic-session-missing")
+        return TarotVariants.model_validate(service._decrypt(row)["variants"])
+
+
+async def _present(db: Database, session_ids: set[UUID]) -> bool:
+    async with db.sessions() as session:
+        found = await session.scalar(
+            select(TarotSessionRow.id).where(TarotSessionRow.id.in_(session_ids)).limit(1)
+        )
+        return found is not None
+
+
+def _differ_on_every_axis(left: TarotVariants, right: TarotVariants) -> bool:
+    return (
+        left.lead != right.lead
+        and left.headline != right.headline
+        and all(left.frame(key) != right.frame(key) for key in left.frames)
+    )
+
+
 async def exercise_cursor(db: Database) -> None:
     """Synthetic guest, real service and upsert; removes everything it created."""
 
@@ -98,11 +129,12 @@ async def exercise_cursor(db: Database) -> None:
                 expires_at=now + timedelta(days=1),
             )
         )
+    variety_key = secrets.token_bytes(32)
     service = TarotSessionService(
         db.sessions,
         AesGcmEnvelopeCipher(StaticDataKeyProvider(secrets.token_bytes(32))),
         SecretHasher(secrets.token_bytes(32)),
-        variety_key=secrets.token_bytes(32),
+        variety_key=variety_key,
     )
 
     async def start(tag: str) -> UUID:
@@ -118,13 +150,37 @@ async def exercise_cursor(db: Database) -> None:
         return view.id
 
     try:
-        first, _second = await asyncio.gather(start("a"), start("b"))
-        _require(await _cursor(db, guest) == 2, "concurrent-starts-share-a-position")
+        first, second = await asyncio.gather(start("a"), start("b"))
+        _require(await _cursor(db, guest) == 2, "concurrent-starts-did-not-both-allocate")
+        stored = [await _stored(db, service, session_id) for session_id in (first, second)]
+        keys = tuple(stored[0].frames)
+        expected = [
+            choose_variants(variety_key, guest, position, keys).model_dump(mode="json")
+            for position in (0, 1)
+        ]
+        actual = [variants.model_dump(mode="json") for variants in stored]
+        _require(
+            sorted(map(str, actual)) == sorted(map(str, expected)),
+            "concurrent-sessions-did-not-store-positions-0-and-1",
+        )
+        _require(_differ_on_every_axis(*stored), "concurrent-sessions-share-variants")
         await service.delete(guest, first)
-        await start("c")
+        third = await start("c")
         _require(await _cursor(db, guest) == 3, "deletion-rewound-the-cursor")
+        _require(
+            (await _stored(db, service, third)).model_dump(mode="json")
+            == choose_variants(variety_key, guest, 2, keys).model_dump(mode="json"),
+            "session-after-deletion-did-not-store-position-2",
+        )
         later = now + TarotSessionService.RETENTION_WINDOW + timedelta(days=1)
-        await service.cleanup(now=later)
+        synthetic = {second, third}
+        for _ in range(MAX_CLEANUP_BATCHES):
+            removed = await service.cleanup(batch_size=CLEANUP_BATCH, now=later)
+            if not await _present(db, synthetic):
+                break
+            _require(removed > 0, "cleanup-did-not-reach-the-synthetic-sessions")
+        else:
+            raise RehearsalFailed("cleanup-did-not-finish")
         _require(await _cursor(db, guest) == 3, "cleanup-rewound-the-cursor")
     finally:
         async with db.sessions() as session, session.begin():

@@ -22,6 +22,8 @@ IMAGE="la-lanh:${LA_LANH_RELEASE_ID}"
 NAME="la-lanh-rehearsal-$$"
 NET="${NAME}-net"
 BACKEND_ROLE="la_lanh_rehearsal_backend"
+# shellcheck source=rehearsal-lib.sh
+source "$(dirname "$0")/rehearsal-lib.sh"
 
 dump="$(ls -1t "${BACKUP_DIR}"/la-lanh-*.dump 2>/dev/null | head -n1)"
 [[ -n "$dump" ]] || { echo "No backup found in ${BACKUP_DIR}" >&2; exit 2; }
@@ -52,14 +54,8 @@ done
 docker exec "$NAME" psql -q -U postgres -d rehearsal -v ON_ERROR_STOP=1 -c "
   CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;"
 backend_password="$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')"
-# The password goes through a psql variable on stdin, not the command line.
-docker exec -i "$NAME" psql -q -U postgres -d rehearsal -v ON_ERROR_STOP=1 \
-  -v role="$BACKEND_ROLE" -v pw="$backend_password" <<'SQL'
-CREATE ROLE :"role" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS
-  PASSWORD :'pw';
-ALTER SCHEMA public OWNER TO :"role";
-GRANT CONNECT, TEMPORARY ON DATABASE rehearsal TO :"role";
-SQL
+# The password reaches psql on stdin only (see rehearsal-lib.sh), never a process argument.
+create_backend_role "$NAME" "$BACKEND_ROLE" "$backend_password"
 # Objects are created as the backend role, so it owns them as the pooler role does in production.
 docker exec -i "$NAME" pg_restore -U postgres -d rehearsal --no-owner --role="$BACKEND_ROLE" \
   < "$dump" || \
