@@ -127,3 +127,19 @@ khi owner duyệt.
 | 1. Tóm tắt lõi + dòng "sẵn sàng" vượt 180 chữ (182), nên lượt rút xong nhưng `reading = null` | Hai bậc khung câu: bản đầy đủ không vừa (đã tính phần dành cho dòng "sẵn sàng") thì dùng **khung gọn**. Khung gọn giữ đủ anchor và liên từ. Với các trường lá dài nhất (core 19, tension 16, resource 17 chữ), tên lá 3 chữ và liên từ 3 chữ, năm vai tối đa 156 chữ, cộng dòng "sẵn sàng" 20 chữ vẫn ≤ 180. Trần 180 chữ giữ nguyên | `test_p2_1_long_cards_plus_readiness_fit_the_budget` (2 bộ lá của Codex × 4 giọng); API trong `test_p2_service_long_draw_and_three_way_choice_complete_with_a_reading` (bộ bài tổng hợp, lượt rút hoàn tất **có** bài đọc); audit `audit_worst_length`: lá dài nhất không trùng × mọi map × 6 ngữ cảnh × 4 giọng × câu timing/yes-no = 288 lượt render |
 | 2. Câu ba phương án bị rút còn A/B | Chỉ so khi câu có **đúng hai phương án**: đúng một "hay"/"hoặc", hoặc đúng một "và" trong mệnh đề "giữa". Ngược lại ra `clarify_choice`. Giới hạn nhãn đóng 11/48 giữ nguyên | `test_p2_2_three_alternatives_never_become_an_a_b_lean` (hai câu của Codex, kèm đối chứng hai phương án); API: lượt rút ba phương án ra `clarify_choice` |
 | 3. Lý do và câu kết có thể mâu thuẫn với hướng nghiêng | `stance_consistent` so **toàn bộ** `stance` với bản tính lại (mức, hành động, câu kết, mọi lý do), và quét mọi chữ do engine viết hoặc được viết lại (tiêu đề, tóm tắt, câu kết, chữ ở từng vị trí) để chặn cụm của mức khác. Trường lá và cảnh ví dụ đã duyệt vẫn được bỏ qua | `test_p2_3_a_conflicting_reason_is_rejected_even_with_its_citation`; `test_p2_3_rewrite_with_a_contrary_closing_is_refused` (`rewrite_tarot_reading` từ chối câu kết trái hướng, đối chứng câu kết trung tính được nhận) |
+
+## Sửa theo review Codex @ `ebcb101` (P2 dấu phẩy)
+
+- **Lỗi:** mệnh đề "giữa" bị cắt ở dấu phẩy đầu tiên, nên "Giữa A và B, và C, …" bị so như A/B và mất C.
+- **Sửa:** kiểm cấu trúc hai phương án **trên toàn bộ câu**:
+  - dạng "giữa" có đúng một "và" trong cả câu, không có "hay"/"hoặc";
+  - dạng "hay" có đúng một "hay"/"hoặc" trong cả câu;
+  - ở cả hai dạng, không mệnh đề nào sau dấu phẩy được mở đầu bằng "và"/"hay"/"hoặc"/"cả".
+
+  Không chắc là hai phương án thì `clarify_choice`. Không thêm từ vựng hành động. Độ phủ 11/48 giữ nguyên.
+- **Census 24 ca của Codex** (3 hành động × 4 dạng): trước khi sửa 6 ca ", và C" vẫn so A/B; sau khi sửa
+  **0 lỗi, exit 0**. Ma trận nằm trong `test_p2_choice_arity_census`.
+- **Regression:**
+  - engine: thêm "Giữa A và B, và C, …" và "Nên A hay B, và C?" vào `test_p2_2_three_alternatives_*`;
+  - API: lượt rút "Giữa A và B, và C, …" ra `clarify_choice`;
+  - `test_p2_bank_choice_coverage_is_unchanged` (11/48).

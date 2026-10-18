@@ -5,7 +5,9 @@ Task: docs/plans/2026-10-18-b2-3-tarot-stance-task.md.
 
 from __future__ import annotations
 
+import itertools
 import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -316,6 +318,9 @@ def test_p2_1_long_cards_plus_readiness_fit_the_budget(
 THREE_WAY = (
     "Mình nên chọn ở nhà nghỉ hay ra ngoài đi dạo hay học thêm?",
     "Giữa ở nhà nghỉ và ra ngoài đi dạo và học thêm, mình nên chọn hướng nào?",
+    # A comma does not end the list of alternatives (Codex #25 @ ebcb101).
+    "Giữa ở nhà nghỉ và ra ngoài đi dạo, và học thêm, mình nên chọn hướng nào?",
+    "Nên ở nhà nghỉ hay ra ngoài đi dạo, và học thêm?",
 )
 
 
@@ -394,6 +399,12 @@ def test_p2_service_long_draw_and_three_way_choice_complete_with_a_reading() -> 
             ("major-sun", "major-tower", "major-star", "major-justice", "cups-ace"),
             "clarify_choice",
         ),
+        (
+            THREE_WAY[2],  # "Giữa A và B, và C, ..."
+            "energy",
+            ("major-sun", "major-tower", "major-star", "major-justice", "cups-ace"),
+            "clarify_choice",
+        ),
     )
     for index, (question, context, cards, level) in enumerate(cases):
         with TestClient(app, base_url="http://127.0.0.1:5173") as client:
@@ -439,3 +450,30 @@ def test_p2_service_long_draw_and_three_way_choice_complete_with_a_reading() -> 
             if level:
                 assert view.reading.stance is not None
                 assert view.reading.stance.level.value == level
+
+
+# Codex parser census (#25 @ ebcb101): 3 closed actions permuted across 4 shapes, 24 cases.
+_CENSUS_ACTS = ("ở nhà nghỉ", "ra ngoài đi dạo", "học thêm")
+_CENSUS_SHAPES = (
+    ("Giữa {a} và {b}, mình nên chọn hướng nào?", True),
+    ("Giữa {a} và {b} và {c}, mình nên chọn hướng nào?", False),
+    ("Giữa {a} và {b}, và {c}, mình nên chọn hướng nào?", False),
+    ("Giữa {a} và {b}, hoặc {c}, mình nên chọn hướng nào?", False),
+)
+
+
+@pytest.mark.parametrize("order", list(itertools.permutations(_CENSUS_ACTS)))
+@pytest.mark.parametrize(("shape", "compare"), _CENSUS_SHAPES)
+def test_p2_choice_arity_census(order: tuple[str, str, str], shape: str, compare: bool) -> None:
+    a, b, c = order
+    assert (stance.split_choice(shape.format(a=a, b=b, c=c)) is not None) is compare
+
+
+def test_p2_bank_choice_coverage_is_unchanged() -> None:
+    bank = json.loads(
+        (
+            Path(__file__).resolve().parents[4] / "docs/fixtures/tarot-question-bank-v1.json"
+        ).read_text()
+    )
+    choices = [i for i in bank["items"] if i.get("form") == "choice"]
+    assert sum(1 for i in choices if stance.split_choice(i["question"])) == 11

@@ -317,24 +317,34 @@ def summary_links(summary: str, views: Sequence[PositionView]) -> bool:
 _ALTERNATIVE_SEPARATORS = re.compile(r"(?<!\w)(?:hay|hoặc|hay là)(?!\w)")
 
 
+_AND = re.compile(r"(?<!\w)và(?!\w)")
+# A clause after a comma that opens with one of these adds another alternative.
+_CONTINUATION = re.compile(r"^\s*(?:và|hay|hoặc|hay là|cả)(?!\w)")
+
+
 def split_choice(question: str) -> tuple[TarotAction, TarotAction] | None:
     """A/B as two different closed action labels, only for an unambiguous two-option shape.
 
-    "Nên A hay B?" with exactly one "hay"/"hoặc", or "Giữa A và B, ..." with exactly one "và"
-    inside the "giữa" clause. A third alternative ("A hay B hay C", "giữa A và B và C") is not
-    an A/B question: the reading then shows what to clarify before choosing (US-20 AC08).
+    The shape is checked over the whole question, not just up to the first comma:
+    - "Giữa A và B, ...": exactly one "và" in the question and no "hay"/"hoặc";
+    - "Nên A hay B?": exactly one "hay"/"hoặc" in the question;
+    - in both, no later clause may open with "và"/"hay"/"hoặc" ("Giữa A và B, và C, ...").
+    Anything else is not an A/B question: the reading then shows what to clarify before
+    choosing (US-20 AC08).
     """
 
     text = question_frame.fold(question)
-    between = re.search(r"(?<!\w)giữa (.+?)(?:,|\?|$)", text)
+    clauses = re.split(r"[,;?]", text)
+    if any(_CONTINUATION.search(clause) for clause in clauses[1:]):
+        return None
+    between = re.search(r"(?<!\w)giữa (.+?)(?:,|;|\?|$)", text)
     if between:
-        parts = re.split(r"(?<!\w)và(?!\w)", between.group(1))
-        if len(parts) != 2 or _ALTERNATIVE_SEPARATORS.search(text):
+        parts = _AND.split(between.group(1))
+        if len(parts) != 2 or len(_AND.findall(text)) != 1 or _ALTERNATIVE_SEPARATORS.search(text):
             return None
         left, right = parts
     else:
-        clause = re.split(r"[,?]", text, maxsplit=1)[0]
-        parts = _ALTERNATIVE_SEPARATORS.split(clause)
+        parts = _ALTERNATIVE_SEPARATORS.split(clauses[0])
         if len(parts) != 2 or len(_ALTERNATIVE_SEPARATORS.findall(text)) != 1:
             return None
         left, right = parts
