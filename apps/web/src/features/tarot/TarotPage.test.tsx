@@ -330,6 +330,167 @@ describe("TarotPage", () => {
     expect(tech).toHaveTextContent("Engine tarot-knowledge-v1");
   });
 
+  it("shows the lean inside the night summary card (US-20 AC08)", async () => {
+    vi.mocked(getTarotSession).mockResolvedValue({
+      ...choosing,
+      version: 2,
+      state: "complete",
+      selected_cards: [{
+        fan_index: 17,
+        position_key: "focus",
+        position_label: "Điều đáng nhìn lúc này",
+        card: {
+          id: "major-hermit",
+          title_vi: "Ẩn Sĩ",
+          title_en: "The Hermit",
+          arcana: "major",
+          core: "lùi khỏi tiếng ồn để nghe câu trả lời của chính mình",
+          tension: "cô lập quá lâu",
+          resource: "xin một khoảng riêng có thời hạn",
+          source_concept_ids: ["archetype-depth"],
+        },
+      }],
+      reading: {
+        headline: "Bạn cần một chút thời gian trước khi nhắn lại.",
+        summary: "Ẩn Sĩ nhắc bạn dành một khoảng riêng để nghĩ rõ mình muốn nói gì.",
+        question: choosing.question,
+        question_intent: "communication",
+        context: "relationships",
+        spread: "one_card",
+        spread_map: "one_focus",
+        voice: "playful_grounded",
+        positions: [{
+          key: "focus",
+          label: "Điều đáng nhìn lúc này",
+          card: {
+            id: "major-hermit",
+            title_vi: "Ẩn Sĩ",
+            title_en: "The Hermit",
+            arcana: "major",
+            core: "lùi khỏi tiếng ồn để nghe câu trả lời của chính mình",
+            tension: "cô lập quá lâu",
+            resource: "xin một khoảng riêng có thời hạn",
+            source_concept_ids: ["archetype-depth"],
+          },
+          meaning_here: "Điều đang hiện khá rõ là bạn cần một khoảng lùi có thời hạn.",
+          everyday_scene: "Một tin nhắn đến chậm và bạn bắt đầu tự viết nốt phần còn thiếu.",
+          reflection_question: "Nếu bỏ phần đang đoán, điều gì đáng hỏi thẳng?",
+          small_action: "Viết một câu hỏi có thể trả lời thẳng rồi mới nhắn.",
+        }],
+        stance: {
+          version: "tarot-stance-v1",
+          kind: "yes_no",
+          level: "lean_try",
+          topic: "relationships",
+          action: "nhan_lai",
+          conclusion: "Các lá nghiêng về thử nhắn lại.",
+          reasons: [{ position_key: "focus", card_id: "major-hermit", text: "Điều đáng nhìn lúc này: Ẩn Sĩ cho thấy cần một khoảng lùi." }],
+        },
+        closing_prompt: "Giữ câu giúp bạn gọi đúng chuyện đang xảy ra.",
+        disclaimer: "Một góc tự soi, không phải dự đoán chắc chắn.",
+        provenance: {
+          schema_version: "tarot-reading/v1",
+          knowledge_version: "tarot-knowledge-v1",
+          renderer_version: "tarot-renderer-v1",
+          gate_version: "tarot-gates-v1",
+          deck_version: "tarot-78-v1",
+          spread_version: "tarot-spreads-v1",
+          question_rules_version: "tarot-question-rules-v1",
+          methodology_version: "tarot-methodology-v1",
+          source_ids: ["pollack-78-degrees", "greer-tarot-for-yourself"],
+          draw_actor: "self",
+          draw_purpose: "first_reading",
+        },
+      },
+    });
+    renderPage(`/tarot/${choosing.id}`);
+
+    const overview = await screen.findByRole("region", { name: "Tóm tắt bài của bạn" });
+    const block = within(overview).getByRole("group", { name: "Hướng nghiêng" });
+    expect(block).toHaveTextContent("Các lá nghiêng về thử nhắn lại.");
+    expect(block).toHaveTextContent("Ẩn Sĩ cho thấy cần một khoảng lùi.");
+  });
+
+  it("labels an unsplittable choice as what to clarify first", async () => {
+    vi.mocked(getTarotSession).mockResolvedValue({
+      ...choosing,
+      version: 2,
+      state: "complete",
+      selected_cards: [{
+        fan_index: 17,
+        position_key: "focus",
+        position_label: "Điều đáng nhìn lúc này",
+        card: {
+          id: "major-hermit",
+          title_vi: "Ẩn Sĩ",
+          title_en: "The Hermit",
+          arcana: "major",
+          core: "lùi khỏi tiếng ồn để nghe câu trả lời của chính mình",
+          tension: "cô lập quá lâu",
+          resource: "xin một khoảng riêng có thời hạn",
+          source_concept_ids: ["archetype-depth"],
+        },
+      }],
+      reading: {
+        headline: "Bạn cần một chút thời gian trước khi nhắn lại.",
+        summary: "Ẩn Sĩ nhắc bạn dành một khoảng riêng để nghĩ rõ mình muốn nói gì.",
+        question: choosing.question,
+        question_intent: "communication",
+        context: "relationships",
+        spread: "one_card",
+        spread_map: "one_focus",
+        voice: "playful_grounded",
+        positions: [{
+          key: "focus",
+          label: "Điều đáng nhìn lúc này",
+          card: {
+            id: "major-hermit",
+            title_vi: "Ẩn Sĩ",
+            title_en: "The Hermit",
+            arcana: "major",
+            core: "lùi khỏi tiếng ồn để nghe câu trả lời của chính mình",
+            tension: "cô lập quá lâu",
+            resource: "xin một khoảng riêng có thời hạn",
+            source_concept_ids: ["archetype-depth"],
+          },
+          meaning_here: "Điều đang hiện khá rõ là bạn cần một khoảng lùi có thời hạn.",
+          everyday_scene: "Một tin nhắn đến chậm và bạn bắt đầu tự viết nốt phần còn thiếu.",
+          reflection_question: "Nếu bỏ phần đang đoán, điều gì đáng hỏi thẳng?",
+          small_action: "Viết một câu hỏi có thể trả lời thẳng rồi mới nhắn.",
+        }],
+        stance: {
+          version: "tarot-stance-v1",
+          kind: "choice",
+          level: "clarify_choice",
+          topic: "relationships",
+          action: null,
+          conclusion: "Trải bài này chưa so được hai hướng; hãy xem điều cần rõ trước khi chọn.",
+          reasons: [{ position_key: "focus", card_id: "major-hermit", text: "Điều đáng nhìn lúc này: Ẩn Sĩ cho thấy cần một khoảng lùi." }],
+        },
+        closing_prompt: "Giữ câu giúp bạn gọi đúng chuyện đang xảy ra.",
+        disclaimer: "Một góc tự soi, không phải dự đoán chắc chắn.",
+        provenance: {
+          schema_version: "tarot-reading/v1",
+          knowledge_version: "tarot-knowledge-v1",
+          renderer_version: "tarot-renderer-v1",
+          gate_version: "tarot-gates-v1",
+          deck_version: "tarot-78-v1",
+          spread_version: "tarot-spreads-v1",
+          question_rules_version: "tarot-question-rules-v1",
+          methodology_version: "tarot-methodology-v1",
+          source_ids: ["pollack-78-degrees", "greer-tarot-for-yourself"],
+          draw_actor: "self",
+          draw_purpose: "first_reading",
+        },
+      },
+    });
+    renderPage(`/tarot/${choosing.id}`);
+
+    const overview = await screen.findByRole("region", { name: "Tóm tắt bài của bạn" });
+    expect(within(overview).getByRole("group", { name: "Điều cần rõ trước khi chọn" })).toBeInTheDocument();
+    expect(within(overview).queryByRole("group", { name: "Hướng nghiêng" })).not.toBeInTheDocument();
+  });
+
   it("shows no action block for a role without a step (US-20 AC07)", async () => {
     vi.mocked(getTarotSession).mockResolvedValue({
       ...choosing,

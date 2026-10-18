@@ -585,6 +585,17 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
           ))}
         </ul>
         <h2>{reading.headline}</h2>
+        {reading.stance ? (
+          <div className="tarot-stance" role="group" aria-label={reading.stance.level === "clarify_choice" ? "Điều cần rõ trước khi chọn" : "Hướng nghiêng"}>
+            <strong>{reading.stance.level === "clarify_choice" ? "Điều cần rõ trước khi chọn" : "Hướng nghiêng"}</strong>
+            <p>{reading.stance.conclusion}</p>
+            {reading.stance.reasons.length ? (
+              <ul>
+                {reading.stance.reasons.map((reason) => <li key={reason.position_key}>{reason.text}</li>)}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         <p>{reading.summary}</p>
       </section>
 

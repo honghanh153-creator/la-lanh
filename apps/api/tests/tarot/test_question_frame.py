@@ -169,7 +169,14 @@ def test_ac05_own_timing_is_answered_as_readiness_in_every_voice() -> None:
                 question_intent=assessment.intent,
                 frame=assessment.frame,
             )
-            assert reading.headline == qf.readiness_headline(voice)
+            # B2-3 (AC11): default voices get a dynamic readiness headline with the focal card;
+            # Roast keeps the B2-1 readiness headline until its frames exist (AC19).
+            if voice is TarotVoice.ROAST:
+                assert reading.headline == qf.readiness_headline(voice)
+            else:
+                focal = next(p for p in reading.positions if p.small_action)
+                assert reading.headline.startswith(f"{focal.card.title_vi}: ")
+                assert "điều cần sẵn sàng trước khi" in reading.headline
             assert reading.summary.startswith(qf.READINESS_NOTE)
             assert reading.provenance.question_rules_version == qf.QUESTION_RULES_VERSION
 
@@ -510,7 +517,7 @@ def test_ac06_frame_lives_only_in_the_encrypted_payload(client: TestClient) -> N
     view = _select(client, headers, started)
     body = json.dumps(view.model_dump(mode="json"), ensure_ascii=False)
     assert "question_frame" not in body and "xin_loi" not in body
-    assert view.reading is not None and view.reading.headline == qf.readiness_headline(view.voice)
+    assert view.reading is not None and "sẵn sàng" in view.reading.headline
 
 
 def test_frame_is_replayed_not_recomputed_when_rendering(

@@ -4099,6 +4099,43 @@
         "title": "SupportedConfigResponse",
         "type": "object"
       },
+      "TarotAction": {
+        "description": "Closed action labels (US-20, owner decision A6).",
+        "enum": [
+          "nhan_loi",
+          "tu_choi",
+          "noi_ra",
+          "nhan_lai",
+          "hoi_lai",
+          "cho_them",
+          "bat_dau",
+          "dung_lai",
+          "doi_viec",
+          "xin_gop_y",
+          "nghi_ngoi",
+          "gui_di",
+          "xin_loi",
+          "hen_gap",
+          "chia_se",
+          "dat_ranh_gioi",
+          "ket_thuc",
+          "thu_lai",
+          "hoc_them",
+          "tap_trung",
+          "sap_xep_lai",
+          "nho_giup",
+          "gop_y",
+          "de_xuat",
+          "don_dep",
+          "ra_ngoai",
+          "o_nha",
+          "doi_thoi_quen",
+          "tu_thuong",
+          "viet_ra"
+        ],
+        "title": "TarotAction",
+        "type": "string"
+      },
       "TarotCard": {
         "properties": {
           "arcana": {
@@ -4244,6 +4281,16 @@
           },
           "spread_map": {
             "$ref": "#/components/schemas/TarotSpreadMap"
+          },
+          "stance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TarotStance"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "summary": {
             "title": "Summary",
@@ -4571,6 +4618,128 @@
         ],
         "title": "TarotSpreadMap",
         "type": "string"
+      },
+      "TarotStance": {
+        "additionalProperties": false,
+        "description": "Lean computed from card labels and role weights (US-20 AC08/AC09, B2-3).",
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TarotAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conclusion": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Conclusion",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/TarotStanceKind"
+          },
+          "level": {
+            "$ref": "#/components/schemas/TarotStanceLevel"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "$ref": "#/components/schemas/TarotAction"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TarotAction"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TarotStanceReason"
+            },
+            "maxItems": 2,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/TarotContext",
+            "default": "general"
+          },
+          "version": {
+            "default": "tarot-stance-v1",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "level",
+          "conclusion"
+        ],
+        "title": "TarotStance",
+        "type": "object"
+      },
+      "TarotStanceKind": {
+        "enum": [
+          "yes_no",
+          "choice"
+        ],
+        "title": "TarotStanceKind",
+        "type": "string"
+      },
+      "TarotStanceLevel": {
+        "description": "Three levels of lean (no \"lean to not doing it\"), plus the choice fallback (US-20 AC08).",
+        "enum": [
+          "lean_try",
+          "consider",
+          "unclear",
+          "clarify_choice"
+        ],
+        "title": "TarotStanceLevel",
+        "type": "string"
+      },
+      "TarotStanceReason": {
+        "additionalProperties": false,
+        "properties": {
+          "card_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Card Id",
+            "type": "string"
+          },
+          "position_key": {
+            "pattern": "^[a-z][a-z0-9_]{1,39}$",
+            "title": "Position Key",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position_key",
+          "card_id",
+          "text"
+        ],
+        "title": "TarotStanceReason",
+        "type": "object"
       },
       "TarotStartRequest": {
         "additionalProperties": false,

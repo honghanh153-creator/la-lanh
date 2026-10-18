@@ -52,6 +52,15 @@ birth data, or report evidence in the URL.
   - The Tarot review has no minimum word count.
   - The `role_fit` and `no_decision_or_prediction` gates apply (`tarot-gates-v5`).
   - Earlier sessions render with the legacy renderer.
+- B2-3 (`docs/plans/2026-10-18-b2-3-tarot-stance-task.md`), framed sessions only:
+  - Yes/no questions, and choices whose A/B map to two closed action labels, get a `stance`. It
+    is computed from per-card lean labels and role weights: lean to try / consider more first /
+    unclear (both ways), with 1–2 reasons citing a position and its card.
+  - Unsplittable choices, or choices without option roles, get "what to clarify before choosing".
+  - The summary links every role with conjunctions; the headline is built from form, lean (or
+    action/topic) and the focal card.
+  - Gates: `stance_consistent` and `summary_links_cards`.
+  - Readings without a stance omit the key.
 - The launch voice is fixed to `playful_grounded`: current, direct, lightly playful, and never
   mystical filler. Voice selection is deliberately not another onboarding step.
 - 2026-10-11 owner decision: `POST /v1/tarot/sessions` accepts optional `voice: "default" | "roast"`
