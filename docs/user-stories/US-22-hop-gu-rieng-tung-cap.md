@@ -33,7 +33,7 @@ tôi chọn (crush, bạn, người yêu, …), với giọng tôi chọn. Bài 
 - **AC04:** Không có nhãn phán xét kiểu "Soulmate/Challenging", không điểm tổng, không đoán ý người kia.
   Gate anti-influence và meaning đạt.
 - **AC05:** Biến thể chọn **một lần khi tạo kết quả**, theo seed của kết quả đã có. Mở lại, đổi giọng hay
-  replay trả đúng bản đã tạo. Bản đã lưu giữ nguyên tới hết hạn 30 ngày.
+  replay trả đúng bản đã tạo. Bản đã lưu giữ nguyên tới hết hạn (check kín: 24 giờ; lời mời đã đồng ý: 30 ngày).
 - **AC06:** Không lưu thêm dữ liệu của người kia. Chart của họ vẫn tính xong rồi bỏ; nhãn và kết quả vẫn
   được mã hoá.
 - **AC07:** Người kia, hoặc cả hai, không rõ giờ sinh: không dùng Mặt Trăng, cung mọc, nhà của người đó.

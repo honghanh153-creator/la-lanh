@@ -89,6 +89,13 @@ describe("Radar private delete needs an in-app confirmation", () => {
     expect(deleteRadarResult).toHaveBeenCalledTimes(1);
   });
 
+  it("shows when each private check deletes itself, in Vietnam time", async () => {
+    renderPrivate();
+    expect(await screen.findByText("Tự xoá lúc 07:00, 31/10")).toBeInTheDocument();
+    expect(screen.getByText(/chỉ giữ 24 giờ để bạn mở lại; sau đó tự xoá/)).toBeInTheDocument();
+    expect(screen.queryByText(/30 ngày/)).not.toBeInTheDocument();
+  });
+
   it("closes the sheet without deleting when the owner changes", async () => {
     const user = userEvent.setup();
     const client = renderPrivate();
@@ -179,5 +186,25 @@ describe("Radar owner result delete uses the same sheet", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Xoá" }));
     await waitFor(() => expect(deleteRadarResult).toHaveBeenCalledWith("check-1"));
     expect(await screen.findByTestId("where")).toHaveTextContent("/radar/start#radar-history");
+  });
+
+  it("tells the owner a private check is kept 24 hours, and an invite result is not", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/radar/result/check-1"]}><Routes>
+      <Route element={<RadarOwnerResultPage />} path="/radar/result/:requestId" />
+    </Routes></MemoryRouter></QueryClientProvider>);
+    const note = (await screen.findByText("Bản đọc này chỉ giữ 24 giờ.")).closest("section");
+    expect(note).toHaveTextContent("không khôi phục được");
+    view.unmount();
+
+    vi.mocked(getRadarResult).mockResolvedValue({
+      status: "completed", mode: "consented_invite", recipient_label: "QA tổng hợp", headline: "Hai nhịp khác nhau",
+      summary: "Tóm tắt tổng hợp.", dimensions: [], disclaimer: "Chỉ để tự soi.",
+    } as unknown as Awaited<ReturnType<typeof getRadarResult>>);
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={["/radar/result/invite-1"]}><Routes>
+      <Route element={<RadarOwnerResultPage />} path="/radar/result/:requestId" />
+    </Routes></MemoryRouter></QueryClientProvider>);
+    expect(await screen.findByRole("button", { name: /Xóa kết quả này/ })).toBeInTheDocument();
+    expect(screen.queryByText("Bản đọc này chỉ giữ 24 giờ.")).not.toBeInTheDocument();
   });
 });

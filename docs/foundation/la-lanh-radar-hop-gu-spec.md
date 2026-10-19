@@ -52,7 +52,7 @@ flowchart TD
   M --> N["Hủy raw input B khỏi request memory"]
   N --> O["Lưu label + minimized result mã hóa"]
   O --> P["A xem kết quả"]
-  P --> Q["A xóa ngay hoặc tự hết hạn sau 30 ngày"]
+  P --> Q["A xóa ngay hoặc tự hết hạn sau 24 giờ"]
 ```
 
 ## 5. Field contract
@@ -77,11 +77,19 @@ Inputs must not enter URL, localStorage/sessionStorage, analytics, logs, error t
 | Data | Storage | Retention | User control |
 |---|---|---|---|
 | Raw B DOB/time/place in private mode | Request memory only | One computation | No history/profile created |
-| Nickname | AES-GCM, request-bound context | Max 30 days | Owner delete |
-| Minimized Radar result | AES-GCM | Max 30 days | Owner delete |
+| Nickname | AES-GCM, request-bound context | Private check: 24 hours; consented invite: 30 days from acceptance | Owner delete |
+| Minimized Radar result | AES-GCM | Private check: 24 hours; consented invite: 30 days from acceptance | Owner delete |
 | Permission attestation | Version + timestamp | Same request lifetime | Deleted with result |
 | Invite capability | Hash + temporary encrypted copy | 7 days or terminal state | Revoke |
 | B birth profile in invite mode | Existing encrypted birth domain | Existing guest policy | B withdraw/delete |
+
+Private-check retention (owner decision 2026-10-19): A enters B's data under A's attestation alone, so the
+result is kept only long enough to reopen it, 24 hours from creation. It is hidden at expiry, and the
+six-hour `cleanup_expired` job deletes the row and its rewrite jobs (cascade), so physical deletion happens
+within about 30 hours. The form, the history row (exact Vietnam-time expiry) and the result page say so;
+the result page keeps the delete-now button. Results created before this change keep the expiry they were
+created with (at most 30 days, as their notice said). A consented invite keeps 30 days because B consented
+separately and can withdraw.
 | Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 7 days | B withdraw; inaccessible after expiry |
 
 No contact upload, phone/email, GPS, current city, precise distance, IP fingerprint, mood, chat, advertising ID or model-training use belongs in Radar.
@@ -130,7 +138,7 @@ No contact upload, phone/email, GPS, current city, precise distance, IP fingerpr
 
 - Kết quả mới tiếp tục được ghi bằng `radar-result-v2`; Dossier là phần mở rộng additive, không phải một loại kết quả hay mục đích xử lý mới.
 - Web nhận biết các field Dossier optional. Kết quả v2 cũ chỉ có `title/body/evidence` vẫn render bằng card cũ và không cần migration.
-- API và web vẫn đọc `radar-result-v1` đã mã hóa cho tới khi tự hết hạn 30 ngày; không migrate hoặc giải mã hàng loạt dữ liệu cũ.
+- API và web vẫn đọc `radar-result-v1` đã mã hóa cho tới khi tự hết hạn (tối đa 30 ngày với bản tạo trước 2026-10-19); không migrate hoặc giải mã hàng loạt dữ liệu cũ.
 - Không bổ sung cột dữ liệu cá nhân và không gửi chart facts tới provider ngoài.
 
 ## 9. Edge cases

@@ -145,6 +145,10 @@ export function RadarContinuePage() {
   </main>;
 }
 
+function RadarPrivateRetentionNote() {
+  return <section className="radar-consent-note radar-retention-note" role="note"><LockKey /><p><strong>Bản đọc này chỉ giữ 24 giờ.</strong><br />Rời trang vẫn mở lại được trong “Những lần check gần đây” tới lúc tự xoá. Sau đó Lá xoá hẳn, không khôi phục được. Muốn xoá ngay, bấm nút bên dưới.</p></section>;
+}
+
 function RadarResultFooter({ ownerView, mode }: { ownerView: boolean; mode?: RadarResult["mode"] }) {
   if (!ownerView) return <section className="radar-next-step"><p className="eyebrow">Quyền của bạn</p><h2>Bản đọc này mở lại được trên thiết bị này trong 7 ngày.</h2><p>Bạn có thể rút chart bất cứ lúc nào; khi rút, cả hai phía đều không thể mở lại kết quả.</p><Link className="matching-secondary" to="/radar">Về Radar Hợp Gu</Link></section>;
   const historyUrl = mode === "consented_invite" ? "/radar/invite#radar-history" : "/radar/start#radar-history";
@@ -152,7 +156,7 @@ function RadarResultFooter({ ownerView, mode }: { ownerView: boolean; mode?: Rad
     <section className="radar-next-step">
       <p className="eyebrow">Tiếp theo</p>
       <h2>Muốn check thêm một kết nối?</h2>
-      <p>Mỗi bản đọc là riêng cho đúng hai chart. Kết quả cũ vẫn nằm trong lịch sử cho tới khi bạn xóa hoặc hết hạn.</p>
+      <p>Mỗi bản đọc là riêng cho đúng hai chart. {mode === "private_check" ? "Bản check kín nằm trong lịch sử 24 giờ rồi tự xoá." : "Kết quả cũ vẫn nằm trong lịch sử cho tới khi bạn xóa hoặc hết hạn."}</p>
       <div>
         <Link className="matching-primary" to="/radar/start">Check thêm một người <ArrowRight /></Link>
         <Link className="matching-secondary" to={historyUrl}>Xem các lần check</Link>
@@ -169,7 +173,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
   const hasDossier = sections.some((section) => section.depth !== undefined);
 
   if (result.version !== "radar-result-v2" || !signature || !compatibilityMap.length || !sections.length) {
-    return <main className={`matching-page radar-result${ownerView ? " radar-result--owner" : ""}`}><header className="matching-header"><BrandMark /><span className="matching-signal"><Sparkle /> Radar đã bắt sóng</span></header><RadarFlowSteps current={3} /><section className="radar-result__hero"><p className="eyebrow">{result.recipient_label ? `Bạn × ${result.recipient_label}` : "Bản đọc hai người"}</p><h1>{result.headline}</h1><p>{result.summary}</p></section><section className="radar-dimensions">{result.dimensions.map((item, index) => <article key={item.key}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{item.signal}</small><h2>{item.label}</h2><p>{item.body}</p><details><summary>Vì sao Radar đọc như vậy?</summary><p>{item.evidence_ids.length ? `Dựa trên ${item.evidence_ids.length} contact giữa hai chart. Mở dữ liệu kỹ thuật chỉ để kiểm chứng, không dùng để phán người.` : "Lớp này chưa có đủ contact mạnh để kết luận."}</p></details></div></article>)}</section>{ownerView ? <RadarTarotBridge /> : null}<ReadingDisclaimer>{result.disclaimer}</ReadingDisclaimer>{onWithdraw ? <button className="radar-withdraw" disabled={withdrawing} onClick={onWithdraw} type="button"><Trash /> {actionLabel}</button> : null}<RadarResultFooter mode={result.mode} ownerView={ownerView} /></main>;
+    return <main className={`matching-page radar-result${ownerView ? " radar-result--owner" : ""}`}><header className="matching-header"><BrandMark /><span className="matching-signal"><Sparkle /> Radar đã bắt sóng</span></header><RadarFlowSteps current={3} /><section className="radar-result__hero"><p className="eyebrow">{result.recipient_label ? `Bạn × ${result.recipient_label}` : "Bản đọc hai người"}</p><h1>{result.headline}</h1><p>{result.summary}</p></section><section className="radar-dimensions">{result.dimensions.map((item, index) => <article key={item.key}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{item.signal}</small><h2>{item.label}</h2><p>{item.body}</p><details><summary>Vì sao Radar đọc như vậy?</summary><p>{item.evidence_ids.length ? `Dựa trên ${item.evidence_ids.length} contact giữa hai chart. Mở dữ liệu kỹ thuật chỉ để kiểm chứng, không dùng để phán người.` : "Lớp này chưa có đủ contact mạnh để kết luận."}</p></details></div></article>)}</section>{ownerView ? <RadarTarotBridge /> : null}<ReadingDisclaimer>{result.disclaimer}</ReadingDisclaimer>{ownerView && result.mode === "private_check" ? <RadarPrivateRetentionNote /> : null}{onWithdraw ? <button className="radar-withdraw" disabled={withdrawing} onClick={onWithdraw} type="button"><Trash /> {actionLabel}</button> : null}<RadarResultFooter mode={result.mode} ownerView={ownerView} /></main>;
   }
 
   return <main className={`matching-page radar-result radar-result--v2${ownerView ? " radar-result--owner" : ""}`}>
@@ -201,6 +205,7 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
 
     {ownerView ? <RadarTarotBridge /> : null}
     <ReadingDisclaimer>{result.disclaimer}</ReadingDisclaimer>
+    {ownerView && result.mode === "private_check" ? <RadarPrivateRetentionNote /> : null}
     {onWithdraw ? <button className="radar-withdraw" disabled={withdrawing} onClick={onWithdraw} type="button"><Trash /> {actionLabel}</button> : null}
     <RadarResultFooter mode={result.mode} ownerView={ownerView} />
   </main>;
