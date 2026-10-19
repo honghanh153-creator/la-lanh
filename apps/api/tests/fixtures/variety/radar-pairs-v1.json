@@ -1,0 +1,1160 @@
+{
+ "meta": {
+  "version": "variety-radar-pairs-v1",
+  "seed": "la-lanh-variety-fixtures-v1",
+  "synthetic": true,
+  "sha256": "0c11130f909254541ef5903f1f35812651f5d9dc8ff3b1bc7f3a2a5cc05e829a"
+ },
+ "pairs": [
+  {
+   "id": "radar-00",
+   "a": {
+    "id": "radar-00-a",
+    "time_known": true,
+    "birth_date": "1971-10-10",
+    "birth_time_local": "00:02",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-00-b",
+    "time_known": true,
+    "birth_date": "1995-04-24",
+    "birth_time_local": "03:49",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-01",
+   "a": {
+    "id": "radar-01-a",
+    "time_known": true,
+    "birth_date": "1995-02-17",
+    "birth_time_local": "14:33",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-01-b",
+    "time_known": false,
+    "birth_date": "1996-12-01",
+    "birth_time_local": null,
+    "place": "can-tho",
+    "latitude": 10.0452,
+    "longitude": 105.7469,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-02",
+   "a": {
+    "id": "radar-02-a",
+    "time_known": true,
+    "birth_date": "1985-12-26",
+    "birth_time_local": "14:04",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-02-b",
+    "time_known": true,
+    "birth_date": "1982-06-04",
+    "birth_time_local": "08:19",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-03",
+   "a": {
+    "id": "radar-03-a",
+    "time_known": true,
+    "birth_date": "2003-12-14",
+    "birth_time_local": "22:44",
+    "place": "ho-chi-minh",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-03-b",
+    "time_known": false,
+    "birth_date": "1983-09-11",
+    "birth_time_local": null,
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-04",
+   "a": {
+    "id": "radar-04-a",
+    "time_known": true,
+    "birth_date": "1999-10-10",
+    "birth_time_local": "10:24",
+    "place": "can-tho",
+    "latitude": 10.0452,
+    "longitude": 105.7469,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-04-b",
+    "time_known": true,
+    "birth_date": "1998-10-29",
+    "birth_time_local": "18:55",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-05",
+   "a": {
+    "id": "radar-05-a",
+    "time_known": true,
+    "birth_date": "1999-01-19",
+    "birth_time_local": "19:52",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-05-b",
+    "time_known": false,
+    "birth_date": "1997-09-20",
+    "birth_time_local": null,
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-06",
+   "a": {
+    "id": "radar-06-a",
+    "time_known": true,
+    "birth_date": "1989-10-08",
+    "birth_time_local": "06:29",
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-06-b",
+    "time_known": true,
+    "birth_date": "2000-06-11",
+    "birth_time_local": "06:09",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-07",
+   "a": {
+    "id": "radar-07-a",
+    "time_known": true,
+    "birth_date": "2004-05-19",
+    "birth_time_local": "04:16",
+    "place": "ho-chi-minh",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-07-b",
+    "time_known": false,
+    "birth_date": "1980-10-20",
+    "birth_time_local": null,
+    "place": "ho-chi-minh",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-08",
+   "a": {
+    "id": "radar-08-a",
+    "time_known": true,
+    "birth_date": "2001-12-23",
+    "birth_time_local": "18:06",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-08-b",
+    "time_known": true,
+    "birth_date": "1999-12-19",
+    "birth_time_local": "14:13",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-09",
+   "a": {
+    "id": "radar-09-a",
+    "time_known": true,
+    "birth_date": "1976-11-26",
+    "birth_time_local": "11:23",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-09-b",
+    "time_known": false,
+    "birth_date": "1993-12-10",
+    "birth_time_local": null,
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-10",
+   "a": {
+    "id": "radar-10-a",
+    "time_known": true,
+    "birth_date": "2001-12-10",
+    "birth_time_local": "01:35",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-10-b",
+    "time_known": true,
+    "birth_date": "2001-12-16",
+    "birth_time_local": "23:38",
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-11",
+   "a": {
+    "id": "radar-11-a",
+    "time_known": true,
+    "birth_date": "1997-08-13",
+    "birth_time_local": "21:33",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-11-b",
+    "time_known": false,
+    "birth_date": "1979-03-05",
+    "birth_time_local": null,
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-12",
+   "a": {
+    "id": "radar-12-a",
+    "time_known": true,
+    "birth_date": "1975-03-25",
+    "birth_time_local": "01:32",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-12-b",
+    "time_known": true,
+    "birth_date": "1987-02-19",
+    "birth_time_local": "13:31",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-13",
+   "a": {
+    "id": "radar-13-a",
+    "time_known": true,
+    "birth_date": "1979-03-27",
+    "birth_time_local": "00:06",
+    "place": "can-tho",
+    "latitude": 10.0452,
+    "longitude": 105.7469,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-13-b",
+    "time_known": false,
+    "birth_date": "1993-12-06",
+    "birth_time_local": null,
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-14",
+   "a": {
+    "id": "radar-14-a",
+    "time_known": true,
+    "birth_date": "1997-12-16",
+    "birth_time_local": "15:28",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-14-b",
+    "time_known": true,
+    "birth_date": "1978-04-29",
+    "birth_time_local": "13:27",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-15",
+   "a": {
+    "id": "radar-15-a",
+    "time_known": true,
+    "birth_date": "1987-10-26",
+    "birth_time_local": "02:20",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-15-b",
+    "time_known": false,
+    "birth_date": "1975-08-27",
+    "birth_time_local": null,
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-16",
+   "a": {
+    "id": "radar-16-a",
+    "time_known": true,
+    "birth_date": "1979-09-25",
+    "birth_time_local": "09:48",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-16-b",
+    "time_known": true,
+    "birth_date": "1999-06-03",
+    "birth_time_local": "03:21",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-17",
+   "a": {
+    "id": "radar-17-a",
+    "time_known": true,
+    "birth_date": "1974-08-04",
+    "birth_time_local": "02:58",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-17-b",
+    "time_known": false,
+    "birth_date": "1989-08-11",
+    "birth_time_local": null,
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-18",
+   "a": {
+    "id": "radar-18-a",
+    "time_known": true,
+    "birth_date": "2003-11-05",
+    "birth_time_local": "20:29",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-18-b",
+    "time_known": true,
+    "birth_date": "1992-06-29",
+    "birth_time_local": "19:56",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-19",
+   "a": {
+    "id": "radar-19-a",
+    "time_known": true,
+    "birth_date": "1986-09-01",
+    "birth_time_local": "00:17",
+    "place": "can-tho",
+    "latitude": 10.0452,
+    "longitude": 105.7469,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-19-b",
+    "time_known": false,
+    "birth_date": "1996-06-12",
+    "birth_time_local": null,
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-20",
+   "a": {
+    "id": "radar-20-a",
+    "time_known": true,
+    "birth_date": "1999-03-25",
+    "birth_time_local": "17:45",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-20-b",
+    "time_known": true,
+    "birth_date": "1985-09-21",
+    "birth_time_local": "11:42",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-21",
+   "a": {
+    "id": "radar-21-a",
+    "time_known": true,
+    "birth_date": "1998-08-01",
+    "birth_time_local": "07:45",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-21-b",
+    "time_known": false,
+    "birth_date": "1992-08-07",
+    "birth_time_local": null,
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-22",
+   "a": {
+    "id": "radar-22-a",
+    "time_known": true,
+    "birth_date": "1996-08-09",
+    "birth_time_local": "02:09",
+    "place": "ho-chi-minh",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-22-b",
+    "time_known": true,
+    "birth_date": "1982-11-23",
+    "birth_time_local": "17:29",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-23",
+   "a": {
+    "id": "radar-23-a",
+    "time_known": true,
+    "birth_date": "1989-10-20",
+    "birth_time_local": "18:30",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-23-b",
+    "time_known": false,
+    "birth_date": "1991-10-27",
+    "birth_time_local": null,
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-24",
+   "a": {
+    "id": "radar-24-a",
+    "time_known": true,
+    "birth_date": "2003-03-27",
+    "birth_time_local": "15:49",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-24-b",
+    "time_known": true,
+    "birth_date": "1976-08-26",
+    "birth_time_local": "21:00",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-25",
+   "a": {
+    "id": "radar-25-a",
+    "time_known": true,
+    "birth_date": "2002-12-24",
+    "birth_time_local": "20:16",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-25-b",
+    "time_known": false,
+    "birth_date": "1976-11-09",
+    "birth_time_local": null,
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-26",
+   "a": {
+    "id": "radar-26-a",
+    "time_known": true,
+    "birth_date": "1999-11-13",
+    "birth_time_local": "20:04",
+    "place": "ho-chi-minh",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-26-b",
+    "time_known": true,
+    "birth_date": "1974-08-17",
+    "birth_time_local": "23:04",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-27",
+   "a": {
+    "id": "radar-27-a",
+    "time_known": true,
+    "birth_date": "2002-09-10",
+    "birth_time_local": "01:59",
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-27-b",
+    "time_known": false,
+    "birth_date": "1987-07-02",
+    "birth_time_local": null,
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-28",
+   "a": {
+    "id": "radar-28-a",
+    "time_known": true,
+    "birth_date": "1978-11-11",
+    "birth_time_local": "17:25",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-28-b",
+    "time_known": true,
+    "birth_date": "1999-06-25",
+    "birth_time_local": "19:03",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-29",
+   "a": {
+    "id": "radar-29-a",
+    "time_known": true,
+    "birth_date": "2000-07-31",
+    "birth_time_local": "00:14",
+    "place": "ho-chi-minh",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-29-b",
+    "time_known": false,
+    "birth_date": "2003-01-02",
+    "birth_time_local": null,
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-30",
+   "a": {
+    "id": "radar-30-a",
+    "time_known": true,
+    "birth_date": "1990-09-04",
+    "birth_time_local": "04:03",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-30-b",
+    "time_known": true,
+    "birth_date": "1987-05-05",
+    "birth_time_local": "04:58",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-31",
+   "a": {
+    "id": "radar-31-a",
+    "time_known": true,
+    "birth_date": "1998-02-24",
+    "birth_time_local": "18:08",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-31-b",
+    "time_known": false,
+    "birth_date": "2003-06-23",
+    "birth_time_local": null,
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-32",
+   "a": {
+    "id": "radar-32-a",
+    "time_known": true,
+    "birth_date": "1989-12-18",
+    "birth_time_local": "00:39",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-32-b",
+    "time_known": true,
+    "birth_date": "1986-02-24",
+    "birth_time_local": "00:53",
+    "place": "ho-chi-minh",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-33",
+   "a": {
+    "id": "radar-33-a",
+    "time_known": true,
+    "birth_date": "1973-05-28",
+    "birth_time_local": "15:45",
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-33-b",
+    "time_known": false,
+    "birth_date": "1984-05-27",
+    "birth_time_local": null,
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-34",
+   "a": {
+    "id": "radar-34-a",
+    "time_known": true,
+    "birth_date": "1989-03-30",
+    "birth_time_local": "16:15",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-34-b",
+    "time_known": true,
+    "birth_date": "1972-08-27",
+    "birth_time_local": "12:31",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-35",
+   "a": {
+    "id": "radar-35-a",
+    "time_known": true,
+    "birth_date": "1999-04-21",
+    "birth_time_local": "11:12",
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-35-b",
+    "time_known": false,
+    "birth_date": "1995-02-12",
+    "birth_time_local": null,
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-36",
+   "a": {
+    "id": "radar-36-a",
+    "time_known": true,
+    "birth_date": "1999-03-28",
+    "birth_time_local": "14:51",
+    "place": "can-tho",
+    "latitude": 10.0452,
+    "longitude": 105.7469,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-36-b",
+    "time_known": true,
+    "birth_date": "1987-10-02",
+    "birth_time_local": "11:29",
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-37",
+   "a": {
+    "id": "radar-37-a",
+    "time_known": true,
+    "birth_date": "1978-05-06",
+    "birth_time_local": "16:50",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-37-b",
+    "time_known": false,
+    "birth_date": "1973-05-21",
+    "birth_time_local": null,
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-38",
+   "a": {
+    "id": "radar-38-a",
+    "time_known": true,
+    "birth_date": "2002-03-05",
+    "birth_time_local": "08:33",
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-38-b",
+    "time_known": true,
+    "birth_date": "1995-10-18",
+    "birth_time_local": "01:01",
+    "place": "ho-chi-minh",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-39",
+   "a": {
+    "id": "radar-39-a",
+    "time_known": true,
+    "birth_date": "1972-05-29",
+    "birth_time_local": "15:35",
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-39-b",
+    "time_known": false,
+    "birth_date": "2002-10-04",
+    "birth_time_local": null,
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-40",
+   "a": {
+    "id": "radar-40-a",
+    "time_known": true,
+    "birth_date": "1973-05-05",
+    "birth_time_local": "10:12",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-40-b",
+    "time_known": true,
+    "birth_date": "1997-07-18",
+    "birth_time_local": "09:04",
+    "place": "da-nang",
+    "latitude": 16.0544,
+    "longitude": 108.2022,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-41",
+   "a": {
+    "id": "radar-41-a",
+    "time_known": true,
+    "birth_date": "1997-08-27",
+    "birth_time_local": "07:09",
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-41-b",
+    "time_known": false,
+    "birth_date": "1975-08-23",
+    "birth_time_local": null,
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-42",
+   "a": {
+    "id": "radar-42-a",
+    "time_known": true,
+    "birth_date": "1976-12-17",
+    "birth_time_local": "05:32",
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-42-b",
+    "time_known": true,
+    "birth_date": "2005-04-08",
+    "birth_time_local": "14:50",
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-43",
+   "a": {
+    "id": "radar-43-a",
+    "time_known": true,
+    "birth_date": "2007-11-08",
+    "birth_time_local": "03:48",
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-43-b",
+    "time_known": false,
+    "birth_date": "1987-11-01",
+    "birth_time_local": null,
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-44",
+   "a": {
+    "id": "radar-44-a",
+    "time_known": true,
+    "birth_date": "2006-01-09",
+    "birth_time_local": "16:29",
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-44-b",
+    "time_known": true,
+    "birth_date": "1992-02-13",
+    "birth_time_local": "13:00",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-45",
+   "a": {
+    "id": "radar-45-a",
+    "time_known": true,
+    "birth_date": "1985-11-03",
+    "birth_time_local": "08:02",
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-45-b",
+    "time_known": false,
+    "birth_date": "1994-02-23",
+    "birth_time_local": null,
+    "place": "da-lat",
+    "latitude": 11.9404,
+    "longitude": 108.4583,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-46",
+   "a": {
+    "id": "radar-46-a",
+    "time_known": true,
+    "birth_date": "1988-07-13",
+    "birth_time_local": "08:41",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-46-b",
+    "time_known": true,
+    "birth_date": "1975-01-17",
+    "birth_time_local": "18:50",
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-47",
+   "a": {
+    "id": "radar-47-a",
+    "time_known": true,
+    "birth_date": "2000-06-17",
+    "birth_time_local": "09:25",
+    "place": "can-tho",
+    "latitude": 10.0452,
+    "longitude": 105.7469,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-47-b",
+    "time_known": false,
+    "birth_date": "1988-07-24",
+    "birth_time_local": null,
+    "place": "hue",
+    "latitude": 16.4637,
+    "longitude": 107.5909,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-48",
+   "a": {
+    "id": "radar-48-a",
+    "time_known": true,
+    "birth_date": "1983-12-11",
+    "birth_time_local": "19:02",
+    "place": "nha-trang",
+    "latitude": 12.2388,
+    "longitude": 109.1967,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-48-b",
+    "time_known": true,
+    "birth_date": "1970-03-11",
+    "birth_time_local": "01:16",
+    "place": "hai-phong",
+    "latitude": 20.8449,
+    "longitude": 106.6881,
+    "focus": null
+   }
+  },
+  {
+   "id": "radar-49",
+   "a": {
+    "id": "radar-49-a",
+    "time_known": true,
+    "birth_date": "2007-09-21",
+    "birth_time_local": "10:59",
+    "place": "can-tho",
+    "latitude": 10.0452,
+    "longitude": 105.7469,
+    "focus": null
+   },
+   "b": {
+    "id": "radar-49-b",
+    "time_known": false,
+    "birth_date": "1983-05-29",
+    "birth_time_local": null,
+    "place": "ha-noi",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "focus": null
+   }
+  }
+ ]
+}

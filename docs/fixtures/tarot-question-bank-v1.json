@@ -1,0 +1,3330 @@
+{
+ "version": "tarot-question-bank-v1",
+ "synthetic": true,
+ "created": "2026-10-16",
+ "note": "Câu hỏi tổng hợp, không lấy từ người dùng thật. Dùng cho audit Tarot (P1/B2). Kỳ vọng 'outcome' theo US-20; nhãn hành động kỳ vọng được gán ở P1 khi có bảng nhãn chốt.",
+ "counts": {
+  "accepted": 288,
+  "rejected": 32,
+  "edge": 8
+ },
+ "items": [
+  {
+   "id": "general.yes_no.1",
+   "context": "general",
+   "form": "yes_no",
+   "question": "Mình có nên bắt đầu lại thói quen viết nhật ký không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "general.yes_no.2",
+   "context": "general",
+   "form": "yes_no",
+   "question": "Tuần này mình có nên nhận thêm một việc tình nguyện không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "general.yes_no.3",
+   "context": "general",
+   "form": "yes_no",
+   "question": "Có nên dọn lại góc làm việc trước khi bắt đầu tuần mới không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "general.yes_no.4",
+   "context": "general",
+   "form": "yes_no",
+   "question": "Mình có nên thử một sở thích mới trong tháng này không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "general.yes_no.5",
+   "context": "general",
+   "form": "yes_no",
+   "question": "Có nên nói thật với bản thân là mình đang mệt không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "general.yes_no.6",
+   "context": "general",
+   "form": "yes_no",
+   "question": "Mình có nên dừng một dự án phụ đang làm dở không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "general.yes_no.7",
+   "context": "general",
+   "form": "yes_no",
+   "question": "Có nên đi chuyến đi ngắn cuối tuần này không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "general.yes_no.8",
+   "context": "general",
+   "form": "yes_no",
+   "question": "Mình có nên đổi cách sắp xếp ngày làm việc không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "general.choice.1",
+   "context": "general",
+   "form": "choice",
+   "question": "Nên ở nhà nghỉ hay đi gặp bạn cuối tuần này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "general.choice.2",
+   "context": "general",
+   "form": "choice",
+   "question": "Mình nên học thêm kỹ năng mới hay đào sâu kỹ năng cũ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "general.choice.3",
+   "context": "general",
+   "form": "choice",
+   "question": "Giữa dọn nhà và đi dạo, việc nào giúp mình nhẹ đầu hơn hôm nay?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "general.choice.4",
+   "context": "general",
+   "form": "choice",
+   "question": "Nên bắt đầu dự án lớn hay hoàn thành việc nhỏ trước?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "general.choice.5",
+   "context": "general",
+   "form": "choice",
+   "question": "Mình nên chọn lớp buổi sáng hay lớp buổi tối?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "general.choice.6",
+   "context": "general",
+   "form": "choice",
+   "question": "Nên viết kế hoạch chi tiết hay cứ bắt đầu thử?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "general.choice.7",
+   "context": "general",
+   "form": "choice",
+   "question": "Giữa ở lại thành phố và về quê dịp lễ, điều gì quan trọng với mình hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "general.choice.8",
+   "context": "general",
+   "form": "choice",
+   "question": "Nên đăng ký khóa học ngay hay đợi tìm hiểu thêm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "general.how.1",
+   "context": "general",
+   "form": "how",
+   "question": "Làm sao để mình bắt đầu một việc mà mình cứ trì hoãn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "general.how.2",
+   "context": "general",
+   "form": "how",
+   "question": "Làm thế nào để tuần này bớt rối hơn tuần trước?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "general.how.3",
+   "context": "general",
+   "form": "how",
+   "question": "Làm sao để giữ được một thói quen nhỏ mỗi ngày?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "general.how.4",
+   "context": "general",
+   "form": "how",
+   "question": "Mình nên chuẩn bị thế nào cho một tuần nhiều việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "general.how.5",
+   "context": "general",
+   "form": "how",
+   "question": "Làm sao để quyết định nhanh hơn những việc nhỏ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "general.how.6",
+   "context": "general",
+   "form": "how",
+   "question": "Làm thế nào để mình bớt nghĩ nhiều trước khi ngủ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "general.how.7",
+   "context": "general",
+   "form": "how",
+   "question": "Làm sao để mình dành thời gian cho bản thân mà không thấy có lỗi?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "general.how.8",
+   "context": "general",
+   "form": "how",
+   "question": "Làm thế nào để mình nhìn rõ điều mình thật sự muốn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "general.why.1",
+   "context": "general",
+   "form": "why",
+   "question": "Vì sao mình hay bỏ dở các kế hoạch mới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "general.why.2",
+   "context": "general",
+   "form": "why",
+   "question": "Tại sao mình thấy chững lại dù mọi thứ vẫn ổn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "general.why.3",
+   "context": "general",
+   "form": "why",
+   "question": "Vì sao mình dễ mất tập trung vào buổi chiều?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "general.why.4",
+   "context": "general",
+   "form": "why",
+   "question": "Tại sao mình hay để việc quan trọng đến phút cuối?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "general.why.5",
+   "context": "general",
+   "form": "why",
+   "question": "Vì sao mình thấy khó bắt đầu buổi sáng?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "general.why.6",
+   "context": "general",
+   "form": "why",
+   "question": "Tại sao mình hay nói có rồi lại hối hận?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "general.why.7",
+   "context": "general",
+   "form": "why",
+   "question": "Vì sao mình cứ lặp lại một thói quen không thích?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "general.why.8",
+   "context": "general",
+   "form": "why",
+   "question": "Tại sao mình thấy thiếu hứng thú gần đây?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "general.timing.1",
+   "context": "general",
+   "form": "timing",
+   "question": "Khi nào là lúc phù hợp để mình bắt đầu thói quen mới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "general.timing.2",
+   "context": "general",
+   "form": "timing",
+   "question": "Bao giờ mình nên thử lại kế hoạch đã bỏ dở?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "general.timing.3",
+   "context": "general",
+   "form": "timing",
+   "question": "Khi nào mình nên nghỉ ngơi một ngày trọn vẹn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "general.timing.4",
+   "context": "general",
+   "form": "timing",
+   "question": "Bao giờ mình nên dọn lại lịch tuần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "general.timing.5",
+   "context": "general",
+   "form": "timing",
+   "question": "Khi nào mình nên nói ra điều mình đang nghĩ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "general.timing.6",
+   "context": "general",
+   "form": "timing",
+   "question": "Bao giờ thì mình nên bắt đầu học kỹ năng mới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "general.timing.7",
+   "context": "general",
+   "form": "timing",
+   "question": "Khi nào là lúc nên dừng một việc không còn phù hợp?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "general.timing.8",
+   "context": "general",
+   "form": "timing",
+   "question": "Bao giờ mình nên đặt mục tiêu cho tháng tới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "general.open.1",
+   "context": "general",
+   "form": "open",
+   "question": "Điều gì đáng chú ý nhất với mình trong tuần này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "general.open.2",
+   "context": "general",
+   "form": "open",
+   "question": "Mình cần nhìn rõ điều gì trong lúc này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "general.open.3",
+   "context": "general",
+   "form": "open",
+   "question": "Điều gì đang giúp mình và điều gì đang cản mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "general.open.4",
+   "context": "general",
+   "form": "open",
+   "question": "Mình nên để ý điều gì trong cách sắp xếp thời gian?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "general.open.5",
+   "context": "general",
+   "form": "open",
+   "question": "Điều gì mình đang bỏ sót trong chuyện riêng của mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "general.open.6",
+   "context": "general",
+   "form": "open",
+   "question": "Phần nào trong ngày mình có thể làm nhẹ hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "general.open.7",
+   "context": "general",
+   "form": "open",
+   "question": "Điều gì mình cần buông bớt trong tháng này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "general.open.8",
+   "context": "general",
+   "form": "open",
+   "question": "Mình đang cần thêm điều gì cho bản thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "relationships.yes_no.1",
+   "context": "relationships",
+   "form": "yes_no",
+   "question": "Mình có nên rủ bạn thân đi ăn để nói chuyện lâu hơn không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "relationships.yes_no.2",
+   "context": "relationships",
+   "form": "yes_no",
+   "question": "Có nên chủ động nhắn hỏi thăm một người bạn cũ không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "relationships.yes_no.3",
+   "context": "relationships",
+   "form": "yes_no",
+   "question": "Mình có nên nói rõ điều mình muốn trong mối quan hệ này không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "relationships.yes_no.4",
+   "context": "relationships",
+   "form": "yes_no",
+   "question": "Có nên dành một buổi tối chỉ cho hai người không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "relationships.yes_no.5",
+   "context": "relationships",
+   "form": "yes_no",
+   "question": "Mình có nên kể với gia đình về chuyện mình đang bận tâm không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "relationships.yes_no.6",
+   "context": "relationships",
+   "form": "yes_no",
+   "question": "Có nên giữ khoảng cách một chút với nhóm bạn đang làm mình mệt không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "relationships.yes_no.7",
+   "context": "relationships",
+   "form": "yes_no",
+   "question": "Mình có nên xin lỗi trước sau lần cãi nhau hôm qua không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "relationships.yes_no.8",
+   "context": "relationships",
+   "form": "yes_no",
+   "question": "Có nên hẹn gặp trực tiếp thay vì chỉ nhắn tin không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "relationships.choice.1",
+   "context": "relationships",
+   "form": "choice",
+   "question": "Nên nói chuyện thẳng hay viết thư cho người thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "relationships.choice.2",
+   "context": "relationships",
+   "form": "choice",
+   "question": "Giữa đi chơi nhóm và gặp riêng, kiểu nào hợp với mình lúc này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "relationships.choice.3",
+   "context": "relationships",
+   "form": "choice",
+   "question": "Nên dành cuối tuần cho gia đình hay cho bạn bè?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "relationships.choice.4",
+   "context": "relationships",
+   "form": "choice",
+   "question": "Mình nên nhắn trước hay chờ gặp rồi nói?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "relationships.choice.5",
+   "context": "relationships",
+   "form": "choice",
+   "question": "Nên giữ mối quan hệ như hiện tại hay nói rõ điều mình cần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "relationships.choice.6",
+   "context": "relationships",
+   "form": "choice",
+   "question": "Giữa nhắn tin và gọi điện, cách nào giúp mình nói rõ hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "relationships.choice.7",
+   "context": "relationships",
+   "form": "choice",
+   "question": "Nên mời cả nhóm hay chỉ mời một người?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "relationships.choice.8",
+   "context": "relationships",
+   "form": "choice",
+   "question": "Mình nên tham gia buổi họp lớp hay ở nhà nghỉ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "relationships.how.1",
+   "context": "relationships",
+   "form": "how",
+   "question": "Làm sao để mình nói điều mình cần mà không thấy ngại?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "relationships.how.2",
+   "context": "relationships",
+   "form": "how",
+   "question": "Làm thế nào để mình lắng nghe tốt hơn khi người thân kể chuyện?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "relationships.how.3",
+   "context": "relationships",
+   "form": "how",
+   "question": "Làm sao để mình mở lời sau một thời gian ít liên lạc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "relationships.how.4",
+   "context": "relationships",
+   "form": "how",
+   "question": "Làm thế nào để mình giữ ranh giới mà vẫn thân thiện?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "relationships.how.5",
+   "context": "relationships",
+   "form": "how",
+   "question": "Làm sao để buổi hẹn tới bớt gượng gạo?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "relationships.how.6",
+   "context": "relationships",
+   "form": "how",
+   "question": "Làm thế nào để mình bớt so sánh mối quan hệ của mình với người khác?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "relationships.how.7",
+   "context": "relationships",
+   "form": "how",
+   "question": "Làm sao để mình nói lời cảm ơn một cách tự nhiên?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "relationships.how.8",
+   "context": "relationships",
+   "form": "how",
+   "question": "Làm thế nào để mình chia sẻ nhiều hơn với bạn thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "relationships.why.1",
+   "context": "relationships",
+   "form": "why",
+   "question": "Vì sao mình hay ngại mở lời trước?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "relationships.why.2",
+   "context": "relationships",
+   "form": "why",
+   "question": "Tại sao mình thấy mệt sau mỗi lần gặp nhóm bạn đông?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "relationships.why.3",
+   "context": "relationships",
+   "form": "why",
+   "question": "Vì sao mình hay giữ trong lòng thay vì nói ra?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "relationships.why.4",
+   "context": "relationships",
+   "form": "why",
+   "question": "Tại sao mình dễ chạnh lòng khi tin nhắn đến chậm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "relationships.why.5",
+   "context": "relationships",
+   "form": "why",
+   "question": "Vì sao mình khó từ chối lời rủ của bạn bè?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "relationships.why.6",
+   "context": "relationships",
+   "form": "why",
+   "question": "Tại sao mình hay nhường nhịn dù không muốn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "relationships.why.7",
+   "context": "relationships",
+   "form": "why",
+   "question": "Vì sao mình thấy xa cách với gia đình gần đây?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "relationships.why.8",
+   "context": "relationships",
+   "form": "why",
+   "question": "Tại sao mình hay nghĩ nhiều sau mỗi cuộc trò chuyện?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "relationships.timing.1",
+   "context": "relationships",
+   "form": "timing",
+   "question": "Khi nào là lúc phù hợp để mình nói rõ điều mình cần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "relationships.timing.2",
+   "context": "relationships",
+   "form": "timing",
+   "question": "Bao giờ mình nên chủ động hẹn gặp lại bạn cũ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "relationships.timing.3",
+   "context": "relationships",
+   "form": "timing",
+   "question": "Khi nào mình nên nói chuyện về kế hoạch chung?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "relationships.timing.4",
+   "context": "relationships",
+   "form": "timing",
+   "question": "Bao giờ thì nên kể với gia đình chuyện mình đang làm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "relationships.timing.5",
+   "context": "relationships",
+   "form": "timing",
+   "question": "Khi nào mình nên đặt ranh giới với nhóm bạn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "relationships.timing.6",
+   "context": "relationships",
+   "form": "timing",
+   "question": "Bao giờ mình nên mở lời xin lỗi?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "relationships.timing.7",
+   "context": "relationships",
+   "form": "timing",
+   "question": "Khi nào là lúc nên dành thời gian riêng cho mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "relationships.timing.8",
+   "context": "relationships",
+   "form": "timing",
+   "question": "Bao giờ mình nên rủ bạn thân đi chơi xa?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "relationships.open.1",
+   "context": "relationships",
+   "form": "open",
+   "question": "Điều gì mình cần nhìn rõ trong mối quan hệ này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "relationships.open.2",
+   "context": "relationships",
+   "form": "open",
+   "question": "Mình đang mong đợi điều gì từ một người bạn thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "relationships.open.3",
+   "context": "relationships",
+   "form": "open",
+   "question": "Điều gì giúp mình thấy gần gũi hơn với gia đình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "relationships.open.4",
+   "context": "relationships",
+   "form": "open",
+   "question": "Phần nào trong cách mình giao tiếp đang cần thay đổi?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "relationships.open.5",
+   "context": "relationships",
+   "form": "open",
+   "question": "Điều gì mình chưa nói ra trong mối quan hệ này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "relationships.open.6",
+   "context": "relationships",
+   "form": "open",
+   "question": "Mình cần gì để thấy an tâm hơn khi ở cạnh người khác?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "relationships.open.7",
+   "context": "relationships",
+   "form": "open",
+   "question": "Điều gì đang làm mình thấy xa cách?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "relationships.open.8",
+   "context": "relationships",
+   "form": "open",
+   "question": "Mình có thể góp phần gì để mối quan hệ nhẹ nhàng hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "work.yes_no.1",
+   "context": "work",
+   "form": "yes_no",
+   "question": "Mình có nên nhận thêm dự án mới trong tháng này không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "work.yes_no.2",
+   "context": "work",
+   "form": "yes_no",
+   "question": "Có nên xin góp ý từ quản lý về bản báo cáo không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "work.yes_no.3",
+   "context": "work",
+   "form": "yes_no",
+   "question": "Mình có nên đề xuất cách làm mới trong buổi họp tới không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "work.yes_no.4",
+   "context": "work",
+   "form": "yes_no",
+   "question": "Có nên xin nghỉ một ngày để lấy lại sức không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "work.yes_no.5",
+   "context": "work",
+   "form": "yes_no",
+   "question": "Mình có nên nhờ đồng nghiệp hỗ trợ phần việc đang trễ không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "work.yes_no.6",
+   "context": "work",
+   "form": "yes_no",
+   "question": "Có nên gửi bản nháp sớm dù chưa hoàn hảo không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "work.yes_no.7",
+   "context": "work",
+   "form": "yes_no",
+   "question": "Mình có nên nói rõ khối lượng việc với trưởng nhóm không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "work.yes_no.8",
+   "context": "work",
+   "form": "yes_no",
+   "question": "Có nên đăng ký vị trí mới trong công ty không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "work.choice.1",
+   "context": "work",
+   "form": "choice",
+   "question": "Nên tập trung vào việc gấp hay việc quan trọng trước?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "work.choice.2",
+   "context": "work",
+   "form": "choice",
+   "question": "Giữa làm thêm giờ và xin dời hạn, cách nào hợp lý hơn với mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "work.choice.3",
+   "context": "work",
+   "form": "choice",
+   "question": "Nên làm một mình hay rủ đồng nghiệp làm chung phần này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "work.choice.4",
+   "context": "work",
+   "form": "choice",
+   "question": "Mình nên nhận vai trò dẫn dắt hay vai trò hỗ trợ trong dự án?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "work.choice.5",
+   "context": "work",
+   "form": "choice",
+   "question": "Nên gửi email hay hẹn gặp để trao đổi chuyện này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "work.choice.6",
+   "context": "work",
+   "form": "choice",
+   "question": "Giữa học thêm chứng chỉ và tích lũy kinh nghiệm, mình nên ưu tiên gì?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "work.choice.7",
+   "context": "work",
+   "form": "choice",
+   "question": "Nên ở lại nhóm hiện tại hay chuyển sang nhóm mới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "work.choice.8",
+   "context": "work",
+   "form": "choice",
+   "question": "Mình nên hoàn thiện thêm hay gửi bản hiện tại?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "work.how.1",
+   "context": "work",
+   "form": "how",
+   "question": "Làm sao để mình trình bày ý tưởng tự tin hơn trong buổi họp?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "work.how.2",
+   "context": "work",
+   "form": "how",
+   "question": "Làm thế nào để mình chia việc rõ hơn với nhóm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "work.how.3",
+   "context": "work",
+   "form": "how",
+   "question": "Làm sao để mình xin góp ý cụ thể hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "work.how.4",
+   "context": "work",
+   "form": "how",
+   "question": "Làm thế nào để mình bớt trễ hạn những việc nhỏ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "work.how.5",
+   "context": "work",
+   "form": "how",
+   "question": "Làm sao để mình từ chối thêm việc mà không làm căng thẳng?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "work.how.6",
+   "context": "work",
+   "form": "how",
+   "question": "Làm thế nào để mình tập trung hơn trong giờ làm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "work.how.7",
+   "context": "work",
+   "form": "how",
+   "question": "Làm sao để mình chuẩn bị cho buổi đánh giá cuối năm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "work.how.8",
+   "context": "work",
+   "form": "how",
+   "question": "Làm thế nào để mình bắt đầu việc mới ở nơi làm việc mới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "work.why.1",
+   "context": "work",
+   "form": "why",
+   "question": "Vì sao mình hay ôm việc của người khác?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "work.why.2",
+   "context": "work",
+   "form": "why",
+   "question": "Tại sao mình thấy khó tập trung vào buổi chiều ở chỗ làm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "work.why.3",
+   "context": "work",
+   "form": "why",
+   "question": "Vì sao mình ngại đặt câu hỏi trong buổi họp?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "work.why.4",
+   "context": "work",
+   "form": "why",
+   "question": "Tại sao mình hay sửa đi sửa lại một bản báo cáo?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "work.why.5",
+   "context": "work",
+   "form": "why",
+   "question": "Vì sao mình thấy chán công việc dù vẫn làm tốt?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "work.why.6",
+   "context": "work",
+   "form": "why",
+   "question": "Tại sao mình hay nhận lời trước rồi mới xem lịch?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "work.why.7",
+   "context": "work",
+   "form": "why",
+   "question": "Vì sao mình dễ căng thẳng trước hạn chót?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "work.why.8",
+   "context": "work",
+   "form": "why",
+   "question": "Tại sao mình thấy khó nói về thành tích của mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "work.timing.1",
+   "context": "work",
+   "form": "timing",
+   "question": "Khi nào là lúc phù hợp để mình xin góp ý về công việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "work.timing.2",
+   "context": "work",
+   "form": "timing",
+   "question": "Bao giờ mình nên đề xuất thay đổi quy trình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "work.timing.3",
+   "context": "work",
+   "form": "timing",
+   "question": "Khi nào mình nên nói về khối lượng việc với quản lý?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "work.timing.4",
+   "context": "work",
+   "form": "timing",
+   "question": "Bao giờ thì nên bắt đầu tìm cơ hội mới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "work.timing.5",
+   "context": "work",
+   "form": "timing",
+   "question": "Khi nào mình nên xin nghỉ phép?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "work.timing.6",
+   "context": "work",
+   "form": "timing",
+   "question": "Bao giờ mình nên gửi bản kế hoạch cho nhóm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "work.timing.7",
+   "context": "work",
+   "form": "timing",
+   "question": "Khi nào là lúc nên nhận thêm trách nhiệm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "work.timing.8",
+   "context": "work",
+   "form": "timing",
+   "question": "Bao giờ mình nên học thêm một kỹ năng cho công việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "work.open.1",
+   "context": "work",
+   "form": "open",
+   "question": "Điều gì mình cần nhìn rõ trong công việc tuần này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "work.open.2",
+   "context": "work",
+   "form": "open",
+   "question": "Phần việc nào đang chiếm nhiều sức của mình nhất?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "work.open.3",
+   "context": "work",
+   "form": "open",
+   "question": "Điều gì giúp mình làm việc nhẹ nhàng hơn với nhóm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "work.open.4",
+   "context": "work",
+   "form": "open",
+   "question": "Mình đang bỏ sót điều gì trong cách làm việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "work.open.5",
+   "context": "work",
+   "form": "open",
+   "question": "Điều gì mình muốn thay đổi ở nơi làm việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "work.open.6",
+   "context": "work",
+   "form": "open",
+   "question": "Mình cần gì để thấy tự tin hơn trong công việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "work.open.7",
+   "context": "work",
+   "form": "open",
+   "question": "Điều gì đang làm mình chậm lại ở chỗ làm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "work.open.8",
+   "context": "work",
+   "form": "open",
+   "question": "Mình nên ưu tiên điều gì trong tháng này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "communication.yes_no.1",
+   "context": "communication",
+   "form": "yes_no",
+   "question": "Mình có nên nhắn lại để làm rõ tin nhắn hôm qua không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "communication.yes_no.2",
+   "context": "communication",
+   "form": "yes_no",
+   "question": "Có nên hỏi lại phần mình chưa hiểu trong cuộc họp không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "communication.yes_no.3",
+   "context": "communication",
+   "form": "yes_no",
+   "question": "Mình có nên nói thẳng điều làm mình khó chịu không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "communication.yes_no.4",
+   "context": "communication",
+   "form": "yes_no",
+   "question": "Có nên gọi điện thay vì nhắn tin cho chuyện này không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "communication.yes_no.5",
+   "context": "communication",
+   "form": "yes_no",
+   "question": "Mình có nên viết ra trước những điều muốn nói không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "communication.yes_no.6",
+   "context": "communication",
+   "form": "yes_no",
+   "question": "Có nên trả lời tin nhắn ngay hay để bình tĩnh đã không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "communication.yes_no.7",
+   "context": "communication",
+   "form": "yes_no",
+   "question": "Mình có nên góp ý trực tiếp với bạn cùng nhóm không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "communication.yes_no.8",
+   "context": "communication",
+   "form": "yes_no",
+   "question": "Có nên xin thêm thời gian trước khi trả lời không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "communication.choice.1",
+   "context": "communication",
+   "form": "choice",
+   "question": "Nên nói chuyện trực tiếp hay nhắn tin cho chuyện này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "communication.choice.2",
+   "context": "communication",
+   "form": "choice",
+   "question": "Giữa trả lời ngay và chờ một chút, cách nào tốt hơn cho mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "communication.choice.3",
+   "context": "communication",
+   "form": "choice",
+   "question": "Nên hỏi lại cả nhóm hay hỏi riêng một người?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "communication.choice.4",
+   "context": "communication",
+   "form": "choice",
+   "question": "Mình nên góp ý ngay hay đợi buổi gặp tới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "communication.choice.5",
+   "context": "communication",
+   "form": "choice",
+   "question": "Nên viết dài giải thích hay nói ngắn gọn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "communication.choice.6",
+   "context": "communication",
+   "form": "choice",
+   "question": "Giữa gửi email và nhắn chat, cách nào rõ ràng hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "communication.choice.7",
+   "context": "communication",
+   "form": "choice",
+   "question": "Nên nói điều mình cần trước hay lắng nghe trước?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "communication.choice.8",
+   "context": "communication",
+   "form": "choice",
+   "question": "Mình nên xin lỗi bằng lời hay bằng việc làm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "communication.how.1",
+   "context": "communication",
+   "form": "how",
+   "question": "Làm sao để mình hỏi lại mà không sợ bị đánh giá?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "communication.how.2",
+   "context": "communication",
+   "form": "how",
+   "question": "Làm thế nào để mình nói không một cách nhẹ nhàng?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "communication.how.3",
+   "context": "communication",
+   "form": "how",
+   "question": "Làm sao để mình góp ý mà người nghe không thấy bị chê?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "communication.how.4",
+   "context": "communication",
+   "form": "how",
+   "question": "Làm thế nào để mình diễn đạt rõ hơn khi đang bực?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "communication.how.5",
+   "context": "communication",
+   "form": "how",
+   "question": "Làm sao để mình mở đầu một cuộc nói chuyện khó?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "communication.how.6",
+   "context": "communication",
+   "form": "how",
+   "question": "Làm thế nào để mình lắng nghe mà không vội đáp lại?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "communication.how.7",
+   "context": "communication",
+   "form": "how",
+   "question": "Làm sao để mình nhắn tin rõ ý hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "communication.how.8",
+   "context": "communication",
+   "form": "how",
+   "question": "Làm thế nào để mình nói cảm ơn và xin lỗi tự nhiên hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "communication.why.1",
+   "context": "communication",
+   "form": "why",
+   "question": "Vì sao mình hay đoán ý tin nhắn thay vì hỏi lại?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "communication.why.2",
+   "context": "communication",
+   "form": "why",
+   "question": "Tại sao mình hay trả lời vội rồi hối hận?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "communication.why.3",
+   "context": "communication",
+   "form": "why",
+   "question": "Vì sao mình ngại góp ý dù thấy cần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "communication.why.4",
+   "context": "communication",
+   "form": "why",
+   "question": "Tại sao mình hay nói vòng vo khi cần nói thẳng?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "communication.why.5",
+   "context": "communication",
+   "form": "why",
+   "question": "Vì sao mình dễ hiểu lầm tin nhắn ngắn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "communication.why.6",
+   "context": "communication",
+   "form": "why",
+   "question": "Tại sao mình khó nói điều mình cần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "communication.why.7",
+   "context": "communication",
+   "form": "why",
+   "question": "Vì sao mình hay im lặng trong các cuộc họp?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "communication.why.8",
+   "context": "communication",
+   "form": "why",
+   "question": "Tại sao mình hay giải thích quá dài?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "communication.timing.1",
+   "context": "communication",
+   "form": "timing",
+   "question": "Khi nào là lúc phù hợp để mình nói chuyện khó này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "communication.timing.2",
+   "context": "communication",
+   "form": "timing",
+   "question": "Bao giờ mình nên nhắn lại sau cuộc trò chuyện căng thẳng?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "communication.timing.3",
+   "context": "communication",
+   "form": "timing",
+   "question": "Khi nào mình nên góp ý với bạn cùng nhóm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "communication.timing.4",
+   "context": "communication",
+   "form": "timing",
+   "question": "Bao giờ thì nên hỏi lại phần chưa rõ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "communication.timing.5",
+   "context": "communication",
+   "form": "timing",
+   "question": "Khi nào mình nên xin lỗi sau khi lỡ lời?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "communication.timing.6",
+   "context": "communication",
+   "form": "timing",
+   "question": "Bao giờ mình nên nói rõ kỳ vọng của mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "communication.timing.7",
+   "context": "communication",
+   "form": "timing",
+   "question": "Khi nào là lúc nên dừng một cuộc tranh luận?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "communication.timing.8",
+   "context": "communication",
+   "form": "timing",
+   "question": "Bao giờ mình nên trả lời một tin nhắn khó?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "communication.open.1",
+   "context": "communication",
+   "form": "open",
+   "question": "Điều gì mình cần nói rõ hơn trong tuần này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "communication.open.2",
+   "context": "communication",
+   "form": "open",
+   "question": "Phần nào trong cách mình nhắn tin đang gây hiểu lầm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "communication.open.3",
+   "context": "communication",
+   "form": "open",
+   "question": "Điều gì giúp cuộc nói chuyện sắp tới nhẹ nhàng hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "communication.open.4",
+   "context": "communication",
+   "form": "open",
+   "question": "Mình đang tránh nói điều gì?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "communication.open.5",
+   "context": "communication",
+   "form": "open",
+   "question": "Điều gì mình cần hỏi lại thay vì tự đoán?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "communication.open.6",
+   "context": "communication",
+   "form": "open",
+   "question": "Mình nên để ý điều gì khi nghe người khác góp ý?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "communication.open.7",
+   "context": "communication",
+   "form": "open",
+   "question": "Điều gì đang làm cuộc trò chuyện của mình bị kẹt?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "communication.open.8",
+   "context": "communication",
+   "form": "open",
+   "question": "Mình có thể thay đổi điều gì trong cách mở lời?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "energy.yes_no.1",
+   "context": "energy",
+   "form": "yes_no",
+   "question": "Mình có nên bớt một cuộc hẹn trong tuần này không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "energy.yes_no.2",
+   "context": "energy",
+   "form": "yes_no",
+   "question": "Có nên đi ngủ sớm hơn mỗi tối trong tuần này không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "energy.yes_no.3",
+   "context": "energy",
+   "form": "yes_no",
+   "question": "Mình có nên nghỉ một buổi để lấy lại sức không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "energy.yes_no.4",
+   "context": "energy",
+   "form": "yes_no",
+   "question": "Có nên giảm bớt thời gian lướt điện thoại buổi tối không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "energy.yes_no.5",
+   "context": "energy",
+   "form": "yes_no",
+   "question": "Mình có nên đi bộ ngắn sau giờ làm không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "energy.yes_no.6",
+   "context": "energy",
+   "form": "yes_no",
+   "question": "Có nên dời việc nặng sang buổi sáng không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "energy.yes_no.7",
+   "context": "energy",
+   "form": "yes_no",
+   "question": "Mình có nên nói với nhóm là mình đang hết sức không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "energy.yes_no.8",
+   "context": "energy",
+   "form": "yes_no",
+   "question": "Có nên tắt thông báo vào cuối tuần không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "energy.choice.1",
+   "context": "energy",
+   "form": "choice",
+   "question": "Nên nghỉ ngơi ở nhà hay ra ngoài cho đổi gió?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "energy.choice.2",
+   "context": "energy",
+   "form": "choice",
+   "question": "Giữa tập thể dục nhẹ và ngủ thêm, điều gì giúp mình hơn hôm nay?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "energy.choice.3",
+   "context": "energy",
+   "form": "choice",
+   "question": "Nên làm việc nặng buổi sáng hay buổi chiều?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "energy.choice.4",
+   "context": "energy",
+   "form": "choice",
+   "question": "Mình nên gặp bạn bè hay ở một mình cuối tuần này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "energy.choice.5",
+   "context": "energy",
+   "form": "choice",
+   "question": "Nên dọn nhà hay để dành sức cho tuần mới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "energy.choice.6",
+   "context": "energy",
+   "form": "choice",
+   "question": "Giữa nấu ăn và đặt đồ ăn, cách nào giúp mình đỡ mệt hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "energy.choice.7",
+   "context": "energy",
+   "form": "choice",
+   "question": "Nên đi chơi xa hay nghỉ ngơi gần nhà dịp lễ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "energy.choice.8",
+   "context": "energy",
+   "form": "choice",
+   "question": "Mình nên làm hết việc trong một ngày hay chia ra nhiều ngày?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "energy.how.1",
+   "context": "energy",
+   "form": "how",
+   "question": "Làm sao để mình hồi sức sau một tuần dài?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "energy.how.2",
+   "context": "energy",
+   "form": "how",
+   "question": "Làm thế nào để mình chia sức đều hơn trong ngày?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "energy.how.3",
+   "context": "energy",
+   "form": "how",
+   "question": "Làm sao để mình nghỉ ngơi mà không nghĩ đến việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "energy.how.4",
+   "context": "energy",
+   "form": "how",
+   "question": "Làm thế nào để mình bớt mệt vào buổi chiều?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "energy.how.5",
+   "context": "energy",
+   "form": "how",
+   "question": "Làm sao để mình nhận ra lúc mình đang quá sức?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "energy.how.6",
+   "context": "energy",
+   "form": "how",
+   "question": "Làm thế nào để buổi tối của mình thư giãn hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "energy.how.7",
+   "context": "energy",
+   "form": "how",
+   "question": "Làm sao để mình giữ năng lượng trong tuần nhiều việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "energy.how.8",
+   "context": "energy",
+   "form": "how",
+   "question": "Làm thế nào để mình bắt đầu buổi sáng nhẹ nhàng hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "energy.why.1",
+   "context": "energy",
+   "form": "why",
+   "question": "Vì sao mình hay thấy kiệt sức vào giữa tuần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "energy.why.2",
+   "context": "energy",
+   "form": "why",
+   "question": "Tại sao mình ngủ đủ mà vẫn thấy mệt?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "energy.why.3",
+   "context": "energy",
+   "form": "why",
+   "question": "Vì sao mình khó nghỉ ngơi thật sự vào cuối tuần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "energy.why.4",
+   "context": "energy",
+   "form": "why",
+   "question": "Tại sao mình dễ cáu khi nhiều việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "energy.why.5",
+   "context": "energy",
+   "form": "why",
+   "question": "Vì sao mình hay làm quá sức rồi mới dừng?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "energy.why.6",
+   "context": "energy",
+   "form": "why",
+   "question": "Tại sao mình thấy uể oải sau khi gặp đông người?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "energy.why.7",
+   "context": "energy",
+   "form": "why",
+   "question": "Vì sao mình khó tắt máy vào buổi tối?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "energy.why.8",
+   "context": "energy",
+   "form": "why",
+   "question": "Tại sao mình hay bỏ bữa khi bận?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "energy.timing.1",
+   "context": "energy",
+   "form": "timing",
+   "question": "Khi nào là lúc mình nên dừng để nghỉ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "energy.timing.2",
+   "context": "energy",
+   "form": "timing",
+   "question": "Bao giờ mình nên dành một ngày không làm gì?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "energy.timing.3",
+   "context": "energy",
+   "form": "timing",
+   "question": "Khi nào mình nên bớt các cuộc hẹn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "energy.timing.4",
+   "context": "energy",
+   "form": "timing",
+   "question": "Bao giờ thì nên bắt đầu thói quen ngủ sớm?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "energy.timing.5",
+   "context": "energy",
+   "form": "timing",
+   "question": "Khi nào mình nên nói là mình cần nghỉ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "energy.timing.6",
+   "context": "energy",
+   "form": "timing",
+   "question": "Bao giờ mình nên đi chơi xa để đổi gió?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "energy.timing.7",
+   "context": "energy",
+   "form": "timing",
+   "question": "Khi nào là lúc nên giảm khối lượng việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "energy.timing.8",
+   "context": "energy",
+   "form": "timing",
+   "question": "Bao giờ mình nên bắt đầu tập thể dục nhẹ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "energy.open.1",
+   "context": "energy",
+   "form": "open",
+   "question": "Điều gì đang lấy nhiều sức của mình nhất?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "energy.open.2",
+   "context": "energy",
+   "form": "open",
+   "question": "Mình cần gì để thấy khỏe khoắn hơn tuần này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "energy.open.3",
+   "context": "energy",
+   "form": "open",
+   "question": "Điều gì giúp mình nạp lại năng lượng?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "energy.open.4",
+   "context": "energy",
+   "form": "open",
+   "question": "Phần nào trong lịch của mình đang quá tải?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "energy.open.5",
+   "context": "energy",
+   "form": "open",
+   "question": "Điều gì mình nên bớt lại?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "energy.open.6",
+   "context": "energy",
+   "form": "open",
+   "question": "Mình đang bỏ qua tín hiệu mệt nào?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "energy.open.7",
+   "context": "energy",
+   "form": "open",
+   "question": "Điều gì khiến buổi tối của mình bị kéo dài?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "energy.open.8",
+   "context": "energy",
+   "form": "open",
+   "question": "Mình có thể làm nhẹ điều gì trong ngày?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "self_care.yes_no.1",
+   "context": "self_care",
+   "form": "yes_no",
+   "question": "Mình có nên dành một buổi tối cho riêng mình không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "self_care.yes_no.2",
+   "context": "self_care",
+   "form": "yes_no",
+   "question": "Có nên thử viết ra điều làm mình lo trước khi ngủ không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "self_care.yes_no.3",
+   "context": "self_care",
+   "form": "yes_no",
+   "question": "Mình có nên tự thưởng sau khi xong việc khó không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "self_care.yes_no.4",
+   "context": "self_care",
+   "form": "yes_no",
+   "question": "Có nên nói không với một lời rủ để nghỉ ngơi không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "self_care.yes_no.5",
+   "context": "self_care",
+   "form": "yes_no",
+   "question": "Mình có nên dọn lại phòng cho gọn mắt không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "self_care.yes_no.6",
+   "context": "self_care",
+   "form": "yes_no",
+   "question": "Có nên dành thời gian đọc sách thay vì lướt mạng không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "self_care.yes_no.7",
+   "context": "self_care",
+   "form": "yes_no",
+   "question": "Mình có nên bớt khắt khe với bản thân tuần này không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "self_care.yes_no.8",
+   "context": "self_care",
+   "form": "yes_no",
+   "question": "Có nên đi dạo một mình cuối tuần không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "lean"
+   }
+  },
+  {
+   "id": "self_care.choice.1",
+   "context": "self_care",
+   "form": "choice",
+   "question": "Nên dành thời gian cho sở thích hay cho nghỉ ngơi?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "self_care.choice.2",
+   "context": "self_care",
+   "form": "choice",
+   "question": "Giữa viết nhật ký và đi dạo, điều gì giúp mình nhẹ lòng hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "self_care.choice.3",
+   "context": "self_care",
+   "form": "choice",
+   "question": "Nên ở nhà một mình hay gặp một người bạn thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "self_care.choice.4",
+   "context": "self_care",
+   "form": "choice",
+   "question": "Mình nên bắt đầu thói quen buổi sáng hay buổi tối?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "self_care.choice.5",
+   "context": "self_care",
+   "form": "choice",
+   "question": "Nên dọn phòng hay đi ra ngoài cho thoáng?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "self_care.choice.6",
+   "context": "self_care",
+   "form": "choice",
+   "question": "Giữa nấu một bữa ngon và đi ăn ngoài, điều gì làm mình vui hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "self_care.choice.7",
+   "context": "self_care",
+   "form": "choice",
+   "question": "Nên đọc sách hay nghe nhạc trước khi ngủ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "self_care.choice.8",
+   "context": "self_care",
+   "form": "choice",
+   "question": "Mình nên tự thưởng bằng nghỉ ngơi hay bằng một trải nghiệm mới?",
+   "expected": {
+    "accepted": true,
+    "outcome": "choice_compare_or_clarify"
+   }
+  },
+  {
+   "id": "self_care.how.1",
+   "context": "self_care",
+   "form": "how",
+   "question": "Làm sao để mình đối xử nhẹ nhàng hơn với bản thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "self_care.how.2",
+   "context": "self_care",
+   "form": "how",
+   "question": "Làm thế nào để mình dành thời gian cho mình mỗi ngày?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "self_care.how.3",
+   "context": "self_care",
+   "form": "how",
+   "question": "Làm sao để mình bớt tự trách khi mắc lỗi nhỏ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "self_care.how.4",
+   "context": "self_care",
+   "form": "how",
+   "question": "Làm thế nào để mình nhận ra điều mình cần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "self_care.how.5",
+   "context": "self_care",
+   "form": "how",
+   "question": "Làm sao để mình giữ một góc riêng trong ngày bận rộn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "self_care.how.6",
+   "context": "self_care",
+   "form": "how",
+   "question": "Làm thế nào để mình tự an ủi khi buồn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "self_care.how.7",
+   "context": "self_care",
+   "form": "how",
+   "question": "Làm sao để mình bắt đầu một thói quen chăm mình nhỏ?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "self_care.how.8",
+   "context": "self_care",
+   "form": "how",
+   "question": "Làm thế nào để mình bớt so sánh bản thân với người khác?",
+   "expected": {
+    "accepted": true,
+    "outcome": "steps"
+   }
+  },
+  {
+   "id": "self_care.why.1",
+   "context": "self_care",
+   "form": "why",
+   "question": "Vì sao mình hay quên chăm mình khi bận?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "self_care.why.2",
+   "context": "self_care",
+   "form": "why",
+   "question": "Tại sao mình thấy có lỗi khi nghỉ ngơi?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "self_care.why.3",
+   "context": "self_care",
+   "form": "why",
+   "question": "Vì sao mình khó tự khen bản thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "self_care.why.4",
+   "context": "self_care",
+   "form": "why",
+   "question": "Tại sao mình hay đặt nhu cầu của người khác lên trước?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "self_care.why.5",
+   "context": "self_care",
+   "form": "why",
+   "question": "Vì sao mình dễ tự trách khi có chuyện không như ý?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "self_care.why.6",
+   "context": "self_care",
+   "form": "why",
+   "question": "Tại sao mình thấy trống trải vào cuối tuần?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "self_care.why.7",
+   "context": "self_care",
+   "form": "why",
+   "question": "Vì sao mình hay trì hoãn việc chăm sóc bản thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "self_care.why.8",
+   "context": "self_care",
+   "form": "why",
+   "question": "Tại sao mình khó nói điều mình thích?",
+   "expected": {
+    "accepted": true,
+    "outcome": "pattern"
+   }
+  },
+  {
+   "id": "self_care.timing.1",
+   "context": "self_care",
+   "form": "timing",
+   "question": "Khi nào là lúc mình nên dành thời gian cho bản thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "self_care.timing.2",
+   "context": "self_care",
+   "form": "timing",
+   "question": "Bao giờ mình nên bắt đầu một thói quen chăm mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "self_care.timing.3",
+   "context": "self_care",
+   "form": "timing",
+   "question": "Khi nào mình nên tự thưởng cho mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "self_care.timing.4",
+   "context": "self_care",
+   "form": "timing",
+   "question": "Bao giờ thì nên nói không để nghỉ ngơi?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "self_care.timing.5",
+   "context": "self_care",
+   "form": "timing",
+   "question": "Khi nào mình nên dọn lại không gian sống?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "self_care.timing.6",
+   "context": "self_care",
+   "form": "timing",
+   "question": "Bao giờ mình nên viết lại mục tiêu cá nhân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "self_care.timing.7",
+   "context": "self_care",
+   "form": "timing",
+   "question": "Khi nào là lúc nên tạm ngừng mạng xã hội?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "self_care.timing.8",
+   "context": "self_care",
+   "form": "timing",
+   "question": "Bao giờ mình nên dành một ngày chỉ cho mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe"
+   }
+  },
+  {
+   "id": "self_care.open.1",
+   "context": "self_care",
+   "form": "open",
+   "question": "Điều gì mình cần cho bản thân lúc này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "self_care.open.2",
+   "context": "self_care",
+   "form": "open",
+   "question": "Phần nào trong ngày giúp mình thấy dễ chịu nhất?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "self_care.open.3",
+   "context": "self_care",
+   "form": "open",
+   "question": "Điều gì đang làm mình khắt khe với bản thân?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "self_care.open.4",
+   "context": "self_care",
+   "form": "open",
+   "question": "Mình đang bỏ quên nhu cầu nào của mình?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "self_care.open.5",
+   "context": "self_care",
+   "form": "open",
+   "question": "Điều gì giúp mình thấy được nghỉ ngơi thật sự?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "self_care.open.6",
+   "context": "self_care",
+   "form": "open",
+   "question": "Mình có thể làm gì nhỏ để chăm mình hôm nay?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "self_care.open.7",
+   "context": "self_care",
+   "form": "open",
+   "question": "Điều gì mình muốn nói với bản thân tuần này?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "self_care.open.8",
+   "context": "self_care",
+   "form": "open",
+   "question": "Mình cần buông điều gì để thấy nhẹ hơn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "open_reflection"
+   }
+  },
+  {
+   "id": "reject.third_party_mind.1",
+   "context": null,
+   "form": null,
+   "question": "Anh ấy có thích mình không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_third_party_mind"
+   }
+  },
+  {
+   "id": "reject.third_party_mind.2",
+   "context": null,
+   "form": null,
+   "question": "Cô ấy đang nghĩ gì về mình?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_third_party_mind"
+   }
+  },
+  {
+   "id": "reject.third_party_mind.3",
+   "context": null,
+   "form": null,
+   "question": "Crush có định nhắn lại cho mình không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_third_party_mind"
+   }
+  },
+  {
+   "id": "reject.third_party_mind.4",
+   "context": null,
+   "form": null,
+   "question": "Người ấy có còn yêu mình không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_third_party_mind"
+   }
+  },
+  {
+   "id": "reject.third_party_mind.5",
+   "context": null,
+   "form": null,
+   "question": "Họ có muốn làm lành với mình không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_third_party_mind"
+   }
+  },
+  {
+   "id": "reject.third_party_mind.6",
+   "context": null,
+   "form": null,
+   "question": "Anh ấy có định quay lại không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_third_party_mind"
+   }
+  },
+  {
+   "id": "reject.third_party_mind.7",
+   "context": null,
+   "form": null,
+   "question": "Cô ấy có thích người khác không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_third_party_mind"
+   }
+  },
+  {
+   "id": "reject.third_party_mind.8",
+   "context": null,
+   "form": null,
+   "question": "Người ấy muốn gì ở mình?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_third_party_mind"
+   }
+  },
+  {
+   "id": "reject.certainty.1",
+   "context": null,
+   "form": null,
+   "question": "Người yêu cũ có quay lại không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_certainty"
+   }
+  },
+  {
+   "id": "reject.certainty.2",
+   "context": null,
+   "form": null,
+   "question": "Chuyện này chắc chắn sẽ thành công chứ?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_certainty"
+   }
+  },
+  {
+   "id": "reject.certainty.3",
+   "context": null,
+   "form": null,
+   "question": "Dự án này sẽ xảy ra đúng như mình muốn không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_certainty"
+   }
+  },
+  {
+   "id": "reject.certainty.4",
+   "context": null,
+   "form": null,
+   "question": "Mình chắc chắn được nhận việc chứ?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_certainty"
+   }
+  },
+  {
+   "id": "reject.certainty.5",
+   "context": null,
+   "form": null,
+   "question": "Kế hoạch này có chắc chắn ổn không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_certainty"
+   }
+  },
+  {
+   "id": "reject.certainty.6",
+   "context": null,
+   "form": null,
+   "question": "Mọi chuyện sẽ xảy ra theo ý mình không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_certainty"
+   }
+  },
+  {
+   "id": "reject.certainty.7",
+   "context": null,
+   "form": null,
+   "question": "Mình chắc chắn đúng trong chuyện này chứ?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_certainty"
+   }
+  },
+  {
+   "id": "reject.certainty.8",
+   "context": null,
+   "form": null,
+   "question": "Họ có quay lại làm việc với mình không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_certainty"
+   }
+  },
+  {
+   "id": "reject.high_stakes.1",
+   "context": null,
+   "form": null,
+   "question": "Mình có nên ngừng uống thuốc không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_high_stakes"
+   }
+  },
+  {
+   "id": "reject.high_stakes.2",
+   "context": null,
+   "form": null,
+   "question": "Có nên đầu tư hết tiền vào cổ phiếu này không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_high_stakes"
+   }
+  },
+  {
+   "id": "reject.high_stakes.3",
+   "context": null,
+   "form": null,
+   "question": "Mình có nên vay tiền để mở quán không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_high_stakes"
+   }
+  },
+  {
+   "id": "reject.high_stakes.4",
+   "context": null,
+   "form": null,
+   "question": "Mình có bị bệnh gì không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_high_stakes"
+   }
+  },
+  {
+   "id": "reject.high_stakes.5",
+   "context": null,
+   "form": null,
+   "question": "Có nên kiện công ty cũ không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_high_stakes"
+   }
+  },
+  {
+   "id": "reject.high_stakes.6",
+   "context": null,
+   "form": null,
+   "question": "Mình có nên tự chẩn đoán theo triệu chứng trên mạng không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_high_stakes"
+   }
+  },
+  {
+   "id": "reject.high_stakes.7",
+   "context": null,
+   "form": null,
+   "question": "Có nên dùng tiền tiết kiệm để đầu tư không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_high_stakes"
+   }
+  },
+  {
+   "id": "reject.high_stakes.8",
+   "context": null,
+   "form": null,
+   "question": "Chuyện pháp lý này mình nên xử lý thế nào?",
+   "expected": {
+    "accepted": false,
+    "outcome": "reject_high_stakes"
+   }
+  },
+  {
+   "id": "reject.too_vague.1",
+   "context": null,
+   "form": null,
+   "question": "Có nên?",
+   "expected": {
+    "accepted": false,
+    "outcome": "clarify"
+   },
+   "note": "B2 thêm kiểm câu mơ hồ (thiếu tình huống). Engine hiện chỉ chặn câu < 8 ký tự nên đang chấp nhận phần lớn nhóm này (đo 16/10: 6/8)."
+  },
+  {
+   "id": "reject.too_vague.2",
+   "context": null,
+   "form": null,
+   "question": "Tình yêu",
+   "expected": {
+    "accepted": false,
+    "outcome": "clarify"
+   },
+   "note": "B2 thêm kiểm câu mơ hồ (thiếu tình huống). Engine hiện chỉ chặn câu < 8 ký tự nên đang chấp nhận phần lớn nhóm này (đo 16/10: 6/8)."
+  },
+  {
+   "id": "reject.too_vague.3",
+   "context": null,
+   "form": null,
+   "question": "Công việc",
+   "expected": {
+    "accepted": false,
+    "outcome": "clarify"
+   },
+   "note": "B2 thêm kiểm câu mơ hồ (thiếu tình huống). Engine hiện chỉ chặn câu < 8 ký tự nên đang chấp nhận phần lớn nhóm này (đo 16/10: 6/8)."
+  },
+  {
+   "id": "reject.too_vague.4",
+   "context": null,
+   "form": null,
+   "question": "Mai sao?",
+   "expected": {
+    "accepted": false,
+    "outcome": "clarify"
+   },
+   "note": "B2 thêm kiểm câu mơ hồ (thiếu tình huống). Engine hiện chỉ chặn câu < 8 ký tự nên đang chấp nhận phần lớn nhóm này (đo 16/10: 6/8)."
+  },
+  {
+   "id": "reject.too_vague.5",
+   "context": null,
+   "form": null,
+   "question": "Ổn không?",
+   "expected": {
+    "accepted": false,
+    "outcome": "clarify"
+   },
+   "note": "B2 thêm kiểm câu mơ hồ (thiếu tình huống). Engine hiện chỉ chặn câu < 8 ký tự nên đang chấp nhận phần lớn nhóm này (đo 16/10: 6/8)."
+  },
+  {
+   "id": "reject.too_vague.6",
+   "context": null,
+   "form": null,
+   "question": "Nên chọn?",
+   "expected": {
+    "accepted": false,
+    "outcome": "clarify"
+   },
+   "note": "B2 thêm kiểm câu mơ hồ (thiếu tình huống). Engine hiện chỉ chặn câu < 8 ký tự nên đang chấp nhận phần lớn nhóm này (đo 16/10: 6/8)."
+  },
+  {
+   "id": "reject.too_vague.7",
+   "context": null,
+   "form": null,
+   "question": "Hôm nay",
+   "expected": {
+    "accepted": false,
+    "outcome": "clarify"
+   },
+   "note": "B2 thêm kiểm câu mơ hồ (thiếu tình huống). Engine hiện chỉ chặn câu < 8 ký tự nên đang chấp nhận phần lớn nhóm này (đo 16/10: 6/8)."
+  },
+  {
+   "id": "reject.too_vague.8",
+   "context": null,
+   "form": null,
+   "question": "Thế nào?",
+   "expected": {
+    "accepted": false,
+    "outcome": "clarify"
+   },
+   "note": "B2 thêm kiểm câu mơ hồ (thiếu tình huống). Engine hiện chỉ chặn câu < 8 ký tự nên đang chấp nhận phần lớn nhóm này (đo 16/10: 6/8)."
+  },
+  {
+   "id": "edge.1",
+   "context": "work",
+   "form": null,
+   "question": "Mình có nên hỏi lại sếp về hạn chót không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "classify",
+    "topic": "work"
+   },
+   "note": "chứa 'hỏi' nhưng chủ đề là công việc; không được rơi vào giao tiếp chỉ vì chữ 'hỏi'"
+  },
+  {
+   "id": "edge.2",
+   "context": "relationships",
+   "form": null,
+   "question": "Có nên hỏi ý kiến gia đình trước khi chuyển nhà không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "classify",
+    "topic": "relationships"
+   },
+   "note": "'hỏi' + gia đình: mối quan hệ, không phải giao tiếp"
+  },
+  {
+   "id": "edge.3",
+   "context": "work",
+   "form": null,
+   "question": "Làm sao để nói không với việc tăng ca mà vẫn giữ quan hệ tốt?",
+   "expected": {
+    "accepted": true,
+    "outcome": "classify",
+    "topic": "work"
+   },
+   "note": "ranh giới + công việc: chấm điểm nhiều tín hiệu"
+  },
+  {
+   "id": "edge.4",
+   "context": "relationships",
+   "form": null,
+   "question": "Mình có nên đặt ranh giới về giờ nhắn tin với nhóm bạn không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "classify",
+    "topic": "relationships"
+   },
+   "note": "ranh giới trong mối quan hệ"
+  },
+  {
+   "id": "edge.5",
+   "context": "energy",
+   "form": null,
+   "question": "Nên nghỉ ngơi hay đi học thêm buổi tối?",
+   "expected": {
+    "accepted": true,
+    "outcome": "classify",
+    "topic": "energy"
+   },
+   "note": "choice giữa năng lượng và công việc"
+  },
+  {
+   "id": "edge.6",
+   "context": "work",
+   "form": "timing",
+   "question": "Khi nào mình nên nghỉ việc?",
+   "expected": {
+    "accepted": true,
+    "outcome": "readiness_reframe",
+    "topic": "work"
+   },
+   "note": "timing: trả lời 'điều cần sẵn sàng trước', không đoán ngày. Engine hiện từ chối (bộ lọc certainty); T2 đổi thành trả lời theo hướng sẵn sàng."
+  },
+  {
+   "id": "edge.7",
+   "context": "relationships",
+   "form": null,
+   "question": "Mình có nên nhắn cho họ trước không?",
+   "expected": {
+    "accepted": true,
+    "outcome": "classify",
+    "topic": "relationships"
+   },
+   "note": "có 'họ' nhưng không đoán ý người khác (không có nghĩ/thích/muốn/định sau 'họ'); phải được chấp nhận"
+  },
+  {
+   "id": "edge.8",
+   "context": "communication",
+   "form": null,
+   "question": "Giữa nói thẳng và im lặng, mình chọn gì để giữ được tình bạn?",
+   "expected": {
+    "accepted": true,
+    "outcome": "classify",
+    "topic": "communication"
+   },
+   "note": "choice trong giao tiếp/mối quan hệ"
+  }
+ ],
+ "validation_2026_10_16": {
+  "engine": "TarotReadingEngine.assess_question at main 836222282dfc (apps/api identical at this PR's base); current behaviour, not the T2 target",
+  "command": "cd apps/api && PYTHONPATH=. uv run python ../../docs/fixtures/validate_tarot_question_bank.py",
+  "context_for_null": "general",
+  "regular_non_timing_accepted": "240/240",
+  "edge_non_timing_accepted": "7/7",
+  "timing_rejected_regular": "48/48",
+  "timing_rejected_including_edge_6": "49/49",
+  "reject_third_party_certainty_high_stakes_rejected": "24/24",
+  "too_vague_accepted": "6/8 (gap, US-20 AC04)",
+  "all_items": "253 accepted, 75 rejected, 328 total",
+  "correction": "An earlier draft said '273/273 non-timing accepted'; 273 was the count of all items matching their current-engine expectation (240 + 7 accepted, 24 + 2 rejected). Corrected after Codex review on PR #19."
+ }
+}

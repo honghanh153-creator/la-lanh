@@ -25,9 +25,21 @@ class ReadingRepository(Protocol):
         self, guest_id: UUID, profile_id: UUID, revision_id: UUID
     ) -> ReadingRevisionRecord | None: ...
 
+    async def get_plan(
+        self, guest_id: UUID, profile_id: UUID, plan_id: UUID
+    ) -> ReadingPlanRecord | None: ...
+
     async def get_or_create_projection(
         self, record: ReadingProjectionRecord
     ) -> tuple[ReadingProjectionRecord, bool]: ...
+
+    async def activate_first(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        scope_key: str,
+        revision_id: UUID,
+    ) -> ReadingProjectionRecord: ...
 
     async def get_projection(
         self, guest_id: UUID, profile_id: UUID, scope_key: str
@@ -125,9 +137,26 @@ class ReadingProjectionRepository(Protocol):
         self, guest_id: UUID, profile_id: UUID, revision_id: UUID
     ) -> ReadingRevisionRecord | None: ...
 
+    async def get_plan(
+        self, guest_id: UUID, profile_id: UUID, plan_id: UUID
+    ) -> ReadingPlanRecord | None: ...
+
     async def get_or_create_projection(
         self, record: ReadingProjectionRecord
     ) -> tuple[ReadingProjectionRecord, bool]: ...
+
+    async def activate_first(
+        self,
+        guest_id: UUID,
+        profile_id: UUID,
+        scope_key: str,
+        revision_id: UUID,
+    ) -> ReadingProjectionRecord:
+        """Activate ``revision_id`` only while the projection has no active revision.
+
+        Never records an available update, so the first writer of a scope wins atomically.
+        """
+        ...
 
     async def get_projection(
         self, guest_id: UUID, profile_id: UUID, scope_key: str

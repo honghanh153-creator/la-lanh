@@ -328,7 +328,20 @@ export type TarotReadingPosition = {
   meaning_here: string;
   everyday_scene: string;
   reflection_question: string;
-  small_action: string;
+  /** Since B2-2 only step roles carry an action; legacy readings always have one. */
+  small_action?: string | null;
+};
+export type TarotStanceLevel = "lean_try" | "consider" | "unclear" | "clarify_choice";
+/** Lean for yes/no and separable choice questions (B2-3); absent on other readings. */
+export type TarotStance = {
+  version: string;
+  kind: "yes_no" | "choice";
+  level: TarotStanceLevel;
+  topic: TarotContext;
+  action?: string | null;
+  options?: [string, string] | null;
+  conclusion: string;
+  reasons: { position_key: string; card_id: string; text: string }[];
 };
 export type TarotReading = {
   headline: string;
@@ -340,6 +353,7 @@ export type TarotReading = {
   spread_map: TarotSpreadMap;
   voice: "straight_warm" | "gentle_specific" | "playful_grounded" | "roast";
   positions: TarotReadingPosition[];
+  stance?: TarotStance | null;
   closing_prompt: string;
   disclaimer: string;
   provenance: {

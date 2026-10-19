@@ -45,7 +45,7 @@ def prose_is_safe(reading: TarotReading) -> bool:
             position.meaning_here,
             position.everyday_scene,
             position.reflection_question,
-            position.small_action,
+            position.small_action or "",
         )
     )
     text = _fold(" ".join(values))

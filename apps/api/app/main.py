@@ -45,6 +45,7 @@ from app.domains.mood.postgres import PostgresMoodRepository
 from app.domains.mood.service import MoodService
 from app.domains.radar.service import RadarService
 from app.domains.readings.application import ReadingApplicationService
+from app.domains.readings.daily_rotation import derive_variety_key
 from app.domains.readings.postgres import PostgresReadingRepository
 from app.domains.readings.repository import ReadingRepository
 from app.domains.resonance.postgres import PostgresResonanceRepository
@@ -185,6 +186,9 @@ def create_app(
             generation_model=resolved_settings.generation_openai_model,
             generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
             content_rewrite_service=content_rewrite_service,
+            variety_key=derive_variety_key(
+                resolved_settings.guest_hash_key.get_secret_value().encode()
+            ),
         )
         app.state.la_chung_service = LaChungService(
             database.sessions,
@@ -259,6 +263,10 @@ def create_app(
                     rewrite_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
                     generation_max_attempts=resolved_settings.generation_max_attempts,
                     content_rewrite_service=content_rewrite_service,
+                    daily_variety_key=derive_variety_key(
+                        resolved_settings.guest_hash_key.get_secret_value().encode()
+                    ),
+                    daily_variety_from=resolved_settings.daily_variety_from,
                 )
         try:
             yield

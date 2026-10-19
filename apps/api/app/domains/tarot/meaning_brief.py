@@ -89,6 +89,17 @@ _DEFAULT_GOAL = QuestionGoal(
 )
 
 
+def goal_by_key(key: str) -> QuestionGoal:
+    """A closed goal by its catalog key (provenance resolver, US-20 AC06)."""
+
+    if key == _DEFAULT_GOAL.key:
+        return _DEFAULT_GOAL
+    return next(goal for goal in _GOALS if goal.key == key)
+
+
+GOAL_KEYS = frozenset({_DEFAULT_GOAL.key, *(goal.key for goal in _GOALS)})
+
+
 def question_goals(question: str, context: TarotContext) -> tuple[QuestionGoal, ...]:
     text = " ".join(question.casefold().split())
     # Only closed authored values are returned, never matched text, names or identities.
@@ -151,86 +162,77 @@ _GOAL_ACTIONS: dict[str, tuple[str, str, str]] = {
 }
 
 
+# Goal actions by position (US-20 AC06 provenance; pinned by the fallback approval since
+# 2026-10-18). Text unchanged from production release 836222282dfc; only moved out of goal_action
+# so the approval fingerprints it.
+_GOAL_FEELING_ACTION = (
+    "Viết một câu về cảm xúc của bạn khi chuyện đó xảy ra, không kết luận về ý của người kia."
+)
+_GOAL_NEED_ACTIONS: dict[str, str] = {
+    "apology": ("Nói rõ bạn muốn sửa điều gì sau lời xin lỗi, không yêu cầu họ tha thứ ngay."),
+    "meeting": "Nói rõ thời gian bạn có thể dành cho buổi gặp, thay vì hứa rồi đổi lịch.",
+    "shared_care": "Chọn một việc quan tâm cụ thể bạn mong cả hai cùng làm.",
+    "task_handoff": "Nói rõ thông tin bạn còn thiếu để làm xong phần việc của mình.",
+    "recognition": (
+        "Nói rõ bạn muốn được góp ý về kết quả nào, không yêu cầu đánh giá chung về con người."
+    ),
+    "workload": "Chọn việc cần ưu tiên nhất, rồi nói rõ vì sao việc đó cần làm trước.",
+    "rest": (
+        "Nói rõ điều bạn cần trong lúc nghỉ: yên tĩnh, ngủ thêm hoặc không phải trả lời ngay."
+    ),
+    "disagreement": (
+        "Nói rõ điều bạn muốn giải quyết trong cuộc trao đổi này, chỉ chọn một việc trước."
+    ),
+}
+_GOAL_AGENCY_ACTIONS: dict[str, str] = {
+    "apology": "Chọn một lỗi bạn có thể tự sửa, kể cả khi họ chưa sẵn sàng nói chuyện.",
+    "meeting": "Giữ một khung giờ phù hợp với lịch của bạn; chỉ chốt khi cả hai xác nhận.",
+    "shared_care": "Nói việc bạn có thể làm và việc bạn chưa thể nhận, không tự ôm hết.",
+    "task_handoff": ("Chọn phần việc bạn tự làm được, rồi báo rõ phần đang cần người khác hỗ trợ."),
+    "recognition": (
+        "Ghi lại kết quả và phần việc mình đã làm để trao đổi, thay vì chỉ chờ được khen."
+    ),
+    "workload": ("Chọn một đầu việc có thể dời, rồi hỏi lại người phụ trách về thứ tự ưu tiên."),
+    "rest": "Tắt một thông báo không cần trả lời ngay trong khoảng nghỉ bạn đã chọn.",
+    "disagreement": (
+        "Giữ cuộc trao đổi ở một việc cụ thể; nếu bắt đầu xúc phạm, dừng và hẹn nói tiếp."
+    ),
+}
+_GOAL_BOUNDARY_ACTIONS: dict[str, str] = {
+    "apology": ("Không hứa một việc bạn chưa làm được chỉ để cuộc nói chuyện kết thúc nhanh."),
+    "meeting": "Nói rõ giờ bạn cần về trước khi chốt buổi gặp.",
+    "shared_care": (
+        "Nói một việc bạn chưa thể nhận trong tuần này, rồi nghe xem họ có sắp xếp được không."
+    ),
+    "task_handoff": "Nói rõ phần nào chưa thể bàn giao và điều còn cần để hoàn thành.",
+    "recognition": (
+        "Giữ cuộc trao đổi ở kết quả công việc, không biến nó thành việc xin họ thích mình."
+    ),
+    "workload": "Nói rõ bạn chưa thể nhận thêm nếu các thời hạn hiện tại không được đổi.",
+    "rest": "Báo rằng bạn sẽ trả lời sau giờ nghỉ, thay vì vừa nghỉ vừa canh tin nhắn.",
+    "disagreement": ("Nói rõ bạn sẵn sàng nghe góp ý về việc đang bàn, không nhận lời xúc phạm."),
+}
+_STAGE_ONE_POSITIONS = frozenset({"missed", "assumption", "habit", "cost"})
+_STAGE_TWO_POSITIONS = frozenset(
+    {"next", "agency", "alternative", "boundary", "opening", "criterion", "tradeoff"}
+)
+
+
 def goal_action(goal: QuestionGoal, position_key: str) -> str | None:
     actions = _GOAL_ACTIONS.get(goal.key)
     if actions is None:
         return None
     if position_key == "feeling":
-        return (
-            "Viết một câu về cảm xúc của bạn khi chuyện "
-            "đó xảy ra, không kết luận về ý của người kia."
-        )
+        return _GOAL_FEELING_ACTION
     if position_key in {"need", "payoff"}:
-        return {
-            "apology": (
-                "Nói rõ bạn muốn sửa điều gì sau lời xin lỗi, không yêu cầu họ tha thứ ngay."
-            ),
-            "meeting": "Nói rõ thời gian bạn có thể dành cho buổi gặp, thay vì hứa rồi đổi lịch.",
-            "shared_care": "Chọn một việc quan tâm cụ thể bạn mong cả hai cùng làm.",
-            "task_handoff": "Nói rõ thông tin bạn còn thiếu để làm xong phần việc của mình.",
-            "recognition": (
-                "Nói rõ bạn muốn được góp ý về kết quả nào, "
-                "không yêu cầu đánh giá chung về con người."
-            ),
-            "workload": "Chọn việc cần ưu tiên nhất, rồi nói rõ vì sao việc đó cần làm trước.",
-            "rest": (
-                "Nói rõ điều bạn cần trong lúc nghỉ: yên "
-                "tĩnh, ngủ thêm hoặc không phải trả lời ngay."
-            ),
-            "disagreement": (
-                "Nói rõ điều bạn muốn giải quyết trong cuộc trao đổi này, chỉ chọn một việc trước."
-            ),
-        }[goal.key]
+        return _GOAL_NEED_ACTIONS[goal.key]
     if position_key == "agency":
-        return {
-            "apology": "Chọn một lỗi bạn có thể tự sửa, kể cả khi họ chưa sẵn sàng nói chuyện.",
-            "meeting": "Giữ một khung giờ phù hợp với lịch của bạn; chỉ chốt khi cả hai xác nhận.",
-            "shared_care": "Nói việc bạn có thể làm và việc bạn chưa thể nhận, không tự ôm hết.",
-            "task_handoff": (
-                "Chọn phần việc bạn tự làm được, rồi báo rõ phần đang cần người khác hỗ trợ."
-            ),
-            "recognition": (
-                "Ghi lại kết quả và phần việc mình đã làm để trao đổi, thay vì chỉ chờ được khen."
-            ),
-            "workload": (
-                "Chọn một đầu việc có thể dời, rồi hỏi lại người phụ trách về thứ tự ưu tiên."
-            ),
-            "rest": "Tắt một thông báo không cần trả lời ngay trong khoảng nghỉ bạn đã chọn.",
-            "disagreement": (
-                "Giữ cuộc trao đổi ở một việc cụ thể; nếu bắt đầu xúc phạm, dừng và hẹn nói tiếp."
-            ),
-        }[goal.key]
+        return _GOAL_AGENCY_ACTIONS[goal.key]
     if position_key == "boundary":
-        return {
-            "apology": (
-                "Không hứa một việc bạn chưa làm được chỉ để cuộc nói chuyện kết thúc nhanh."
-            ),
-            "meeting": "Nói rõ giờ bạn cần về trước khi chốt buổi gặp.",
-            "shared_care": (
-                "Nói một việc bạn chưa thể nhận trong tuần "
-                "này, rồi nghe xem họ có sắp xếp được không."
-            ),
-            "task_handoff": "Nói rõ phần nào chưa thể bàn giao và điều còn cần để hoàn thành.",
-            "recognition": (
-                "Giữ cuộc trao đổi ở kết quả công việc, không biến nó thành việc xin họ thích mình."
-            ),
-            "workload": "Nói rõ bạn chưa thể nhận thêm nếu các thời hạn hiện tại không được đổi.",
-            "rest": "Báo rằng bạn sẽ trả lời sau giờ nghỉ, thay vì vừa nghỉ vừa canh tin nhắn.",
-            "disagreement": (
-                "Nói rõ bạn sẵn sàng nghe góp ý về việc đang bàn, không nhận lời xúc phạm."
-            ),
-        }[goal.key]
-    if position_key in {"missed", "assumption", "habit", "cost"}:
+        return _GOAL_BOUNDARY_ACTIONS[goal.key]
+    if position_key in _STAGE_ONE_POSITIONS:
         stage = 1
-    elif position_key in {
-        "next",
-        "agency",
-        "alternative",
-        "boundary",
-        "opening",
-        "criterion",
-        "tradeoff",
-    }:
+    elif position_key in _STAGE_TWO_POSITIONS:
         stage = 2
     else:
         stage = 0
@@ -275,7 +277,12 @@ def card_links(
     positions: tuple[TarotReadingPosition, ...],
     context: TarotContext,
 ) -> list[dict[str, JsonValue]]:
-    available = {(position.card.id, position.key) for position in positions}
+    return links_for({(position.card.id, position.key) for position in positions}, context)
+
+
+def links_for(available: set[tuple[str, str]], context: TarotContext) -> list[dict[str, JsonValue]]:
+    """Authored links whose (card, position) pairs are all present in this draw."""
+
     return [
         {
             "key": link.key,
@@ -288,7 +295,16 @@ def card_links(
     ]
 
 
+BRIEF_LIMITS = (
+    "Examples are hypothetical, not observed events.",
+    "Cards cannot establish another person's thoughts or predict events.",
+    "No facts beyond the supplied card meanings and locally recognised goals.",
+)
+
+
 def meaning_brief_for(reading: TarotReading) -> dict[str, JsonValue]:
+    """Brief v2: sessions without a QuestionFrame (framed readings use provenance.framed_brief)."""
+
     goals = question_goals(reading.question, reading.context)
     return {
         "version": MEANING_BRIEF_VERSION,
@@ -297,9 +313,5 @@ def meaning_brief_for(reading: TarotReading) -> dict[str, JsonValue]:
         "goals": cast(JsonValue, [{"key": goal.key, "meaning": goal.meaning} for goal in goals]),
         "local_summary": reading.summary,
         "links": cast(JsonValue, card_links(reading.positions, reading.context)),
-        "limits": [
-            "Examples are hypothetical, not observed events.",
-            "Cards cannot establish another person's thoughts or predict events.",
-            "No facts beyond the supplied card meanings and locally recognised goals.",
-        ],
+        "limits": list(BRIEF_LIMITS),
     }

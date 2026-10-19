@@ -2949,6 +2949,12 @@ export interface components {
             /** Recommended */
             recommended: components["schemas"]["CalculationConfig"][];
         };
+        /**
+         * TarotAction
+         * @description Closed action labels (US-20, owner decision A6).
+         * @enum {string}
+         */
+        TarotAction: "nhan_loi" | "tu_choi" | "noi_ra" | "nhan_lai" | "hoi_lai" | "cho_them" | "bat_dau" | "dung_lai" | "doi_viec" | "xin_gop_y" | "nghi_ngoi" | "gui_di" | "xin_loi" | "hen_gap" | "chia_se" | "dat_ranh_gioi" | "ket_thuc" | "thu_lai" | "hoc_them" | "tap_trung" | "sap_xep_lai" | "nho_giup" | "gop_y" | "de_xuat" | "don_dep" | "ra_ngoai" | "o_nha" | "doi_thoi_quen" | "tu_thuong" | "viet_ra";
         /** TarotCard */
         TarotCard: {
             /** Arcana */
@@ -3004,6 +3010,7 @@ export interface components {
             question_intent: components["schemas"]["TarotQuestionIntent"];
             spread: components["schemas"]["TarotSpread"];
             spread_map: components["schemas"]["TarotSpreadMap"];
+            stance?: components["schemas"]["TarotStance"] | null;
             /** Summary */
             summary: string;
             voice: components["schemas"]["TarotVoice"];
@@ -3022,7 +3029,7 @@ export interface components {
             /** Reflection Question */
             reflection_question: string;
             /** Small Action */
-            small_action: string;
+            small_action?: string | null;
         };
         /** TarotReadingProvenance */
         TarotReadingProvenance: {
@@ -3041,30 +3048,18 @@ export interface components {
              * @default first_reading
              */
             draw_purpose: string;
-            /**
-             * Gate Version
-             * @default tarot-gates-v1
-             */
+            /** Gate Version */
             gate_version: string;
-            /**
-             * Knowledge Version
-             * @default tarot-knowledge-v2
-             */
+            /** Knowledge Version */
             knowledge_version: string;
             /**
              * Methodology Version
              * @default tarot-methodology-v1
              */
             methodology_version: string;
-            /**
-             * Question Rules Version
-             * @default tarot-question-rules-v1
-             */
+            /** Question Rules Version */
             question_rules_version: string;
-            /**
-             * Renderer Version
-             * @default tarot-renderer-v1
-             */
+            /** Renderer Version */
             renderer_version: string;
             /**
              * Schema Version
@@ -3156,6 +3151,54 @@ export interface components {
          * @enum {string}
          */
         TarotSpreadMap: "one_focus" | "three_unblock" | "five_clarity" | "five_loop" | "five_choice" | "five_conversation";
+        /**
+         * TarotStance
+         * @description Lean computed from card labels and role weights (US-20 AC08/AC09, B2-3).
+         */
+        TarotStance: {
+            action?: components["schemas"]["TarotAction"] | null;
+            /** Conclusion */
+            conclusion: string;
+            kind: components["schemas"]["TarotStanceKind"];
+            level: components["schemas"]["TarotStanceLevel"];
+            /** Options */
+            options?: [
+                components["schemas"]["TarotAction"],
+                components["schemas"]["TarotAction"]
+            ] | null;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: components["schemas"]["TarotStanceReason"][];
+            /** @default general */
+            topic: components["schemas"]["TarotContext"];
+            /**
+             * Version
+             * @default tarot-stance-v1
+             */
+            version: string;
+        };
+        /**
+         * TarotStanceKind
+         * @enum {string}
+         */
+        TarotStanceKind: "yes_no" | "choice";
+        /**
+         * TarotStanceLevel
+         * @description Three levels of lean (no "lean to not doing it"), plus the choice fallback (US-20 AC08).
+         * @enum {string}
+         */
+        TarotStanceLevel: "lean_try" | "consider" | "unclear" | "clarify_choice";
+        /** TarotStanceReason */
+        TarotStanceReason: {
+            /** Card Id */
+            card_id: string;
+            /** Position Key */
+            position_key: string;
+            /** Text */
+            text: string;
+        };
         /** TarotStartRequest */
         TarotStartRequest: {
             context: components["schemas"]["TarotContext"];

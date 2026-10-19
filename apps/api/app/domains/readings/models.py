@@ -241,6 +241,25 @@ class DailySelection(BaseModel):
         return self
 
 
+class DailyVariety(BaseModel):
+    """Per-person rotation inputs frozen into a Daily plan (B3-1a / A1).
+
+    ``seed`` is an HMAC of the owner scope under the selection-only key
+    ``key_version``; it holds no date and no birth data. ``day_index`` is the
+    note's calendar day since 2026-01-01 in ``MVP_TIMEZONE``.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    key_version: int = Field(ge=1, le=999)
+    catalog_version: str = Field(min_length=1, max_length=64)
+    seed: str = Field(pattern=r"^[0-9a-f]{32}$")
+    day_index: int = Field(ge=0, le=100_000)
+    # Issue keys actually served on D-1 and D-2 (most recent first), used only
+    # for the top-K guard. Closed catalog keys, never user text.
+    recent_issue_keys: tuple[str, ...] = Field(default=(), max_length=2)
+
+
 class ReadingPlan(BaseModel):
     """Canonical factor selection passed to deterministic or optional renderers."""
 
@@ -268,10 +287,14 @@ class ReadingPlan(BaseModel):
     forbidden_language: tuple[str, ...]
     # Absent on plans stored before B1b; canonical keys omit it when None.
     daily_selection: DailySelection | None = None
+    # Absent on plans stored before B3-1a; canonical keys omit it when None.
+    daily_variety: DailyVariety | None = None
 
     @model_validator(mode="after")
     def validate_plan(self) -> "ReadingPlan":
         factor_by_id = {factor.id: factor for factor in self.factors}
+        if self.daily_variety is not None and self.purpose is not ReadingPurpose.DAILY_NOTE:
+            raise ValueError("only a Daily note carries a daily rotation")
         selection = self.daily_selection
         if selection is not None:
             transit_ids = {
@@ -826,9 +849,11 @@ def experiment_projection_for(
 def canonical_reading_plan_key(plan: ReadingPlan, *, chart_snapshot_id: UUID | None = None) -> str:
     """Immutable plan identity, optionally bound to its persisted chart source."""
 
-    # Plans stored before B1b have no daily_selection; omitting the None field
-    # keeps their identity unchanged when they are loaded and re-keyed.
-    excluded = {"daily_selection"} if plan.daily_selection is None else None
+    # Plans stored before B1b (daily_selection) or B3-1a (daily_variety) lack the
+    # field; omitting it when None keeps their identity unchanged on re-keying.
+    excluded = {
+        field for field in ("daily_selection", "daily_variety") if getattr(plan, field) is None
+    } or None
     factual_key = sha256(
         plan.model_dump_json(exclude_none=False, exclude=excluded).encode()
     ).hexdigest()

@@ -12,7 +12,7 @@
     "dev": "pnpm db:up && concurrently --kill-others-on-fail --names api,web --prefix-colors magenta,green \"pnpm api:dev\" \"pnpm web:dev\"",
     "dev:down": "pnpm db:down",
     "build": "pnpm contracts:check && pnpm web:build && pnpm api:build",
-    "check": "pnpm contracts:check && pnpm verify:runtime && pnpm content:audit && pnpm content:why-today && pnpm tarot:audit && pnpm content:review && pnpm experience:audit && pnpm rewrite:corpus && pnpm web:lint && pnpm web:typecheck && pnpm web:test && pnpm api:lint && pnpm api:typecheck && pnpm api:test && pnpm qa:test",
+    "check": "pnpm contracts:check && pnpm verify:runtime && pnpm grammar:check && pnpm content:audit && pnpm content:why-today && pnpm tarot:audit && pnpm content:review && pnpm experience:audit && pnpm rewrite:corpus && pnpm web:lint && pnpm web:typecheck && pnpm web:test && pnpm api:lint && pnpm api:typecheck && pnpm api:test && pnpm qa:test",
     "qa": "pnpm qa:build && pnpm qa:start",
     "qa:build": "pnpm astro:build-native && pnpm astro:verify-assets && pnpm web:build",
     "qa:start": "node scripts/qa-server.mjs",
@@ -48,7 +48,12 @@
     "db:up": "docker compose -f infra/compose/compose.yaml up -d --wait postgres",
     "db:down": "docker compose -f infra/compose/compose.yaml down",
     "db:logs": "docker compose -f infra/compose/compose.yaml logs -f postgres",
-    "content:why-today": "uv run --directory apps/api python -m scripts.audit_daily_why_today"
+    "content:why-today": "uv run --directory apps/api python -m scripts.audit_daily_why_today",
+    "variety:fixtures": "uv run --directory apps/api python -m scripts.variety_fixtures --check",
+    "variety:baseline": "uv run --directory apps/api python -m scripts.variety_baseline",
+    "variety:a1": "uv run --directory apps/api python -m scripts.variety_baseline --variety",
+    "grammar:build": "uv run --directory apps/api python -m scripts.grammar_build",
+    "grammar:check": "uv run --directory apps/api python -m scripts.grammar_build --check && uv run --directory apps/api python -m scripts.fallback_approval --check"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

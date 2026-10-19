@@ -22,13 +22,15 @@ from app.domains.content_rewrite.models import (
 )
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
+from app.domains.tarot import provenance
 from app.domains.tarot.engine import (
-    TAROT_RENDERER_VERSION,
     TarotContentRejected,
     TarotReadingEngine,
+    current_renderer_version,
 )
-from app.domains.tarot.meaning_brief import meaning_brief_for
+from app.domains.tarot.meaning_brief import BRIEF_LIMITS, meaning_brief_for
 from app.domains.tarot.models import (
+    QUESTION_RULES_VERSION,
     TarotContext,
     TarotReading,
     TarotReadingPosition,
@@ -38,7 +40,12 @@ from app.domains.tarot.models import (
 )
 from app.domains.tarot.tables import TarotSessionRow
 from app.infrastructure.crypto import EnvelopeCipher
-from app.infrastructure.generation.privacy import reduce_tarot_question
+from app.infrastructure.generation.privacy import (
+    TAROT_FOCUS_SENTENCES,
+    PrivacyMinimiser,
+    UnsafeRewritePayload,
+    reduce_tarot_question,
+)
 
 TAROT_REWRITE_RENDERER_VERSION = "gpt-6-luna-tarot-v4"
 TAROT_REWRITE_GATE_VERSION = canonical_surface_registry().require(RewriteSurface.TAROT).gate_version
@@ -82,6 +89,18 @@ def _category(context: TarotContext) -> Literal["relationship", "work", "self", 
     return "general"
 
 
+def _framed(reading: TarotReading) -> bool:
+    return reading.provenance.question_rules_version == QUESTION_RULES_VERSION
+
+
+def _brief(reading: TarotReading) -> dict[str, JsonValue] | None:
+    """Brief v3 with catalog provenance for framed readings (US-20 AC06), v2 otherwise."""
+
+    if _framed(reading):
+        return cast(dict[str, JsonValue] | None, provenance.framed_brief(reading))
+    return meaning_brief_for(reading)
+
+
 def _blueprint_payload(reading: TarotReading) -> dict[str, JsonValue]:
     return {
         "context": reading.context.value,
@@ -89,7 +108,7 @@ def _blueprint_payload(reading: TarotReading) -> dict[str, JsonValue]:
         "spread": reading.spread.value,
         "spread_map": reading.spread_map.value,
         "voice": reading.voice.value,
-        "meaning_brief": cast(JsonValue, meaning_brief_for(reading)),
+        "meaning_brief": cast(JsonValue, _brief(reading)),
         "positions": cast(
             JsonValue,
             [
@@ -137,6 +156,16 @@ def compile_tarot_rewrite_request(
     reduced = reduce_tarot_question(reading.question, category=_category(reading.context))
     if reduced is None:
         return None
+    if _framed(reading):
+        return _compile_framed(
+            guest_id,
+            session,
+            reading,
+            reduced.focus_key.value,
+            model_version,
+            prompt_version,
+            reduced.category,
+        )
     positions = [
         {
             "position_key": position.key,
@@ -171,6 +200,58 @@ def compile_tarot_rewrite_request(
             "meaning_brief": cast(JsonValue, meaning_brief_for(reading)),
             "positions": cast(JsonValue, positions),
         },
+    )
+
+
+def _compile_framed(
+    guest_id: UUID,
+    session: TarotSessionView,
+    reading: TarotReading,
+    focus_key: str,
+    model_version: str,
+    prompt_version: str,
+    category: str,
+) -> RewriteRequestEnvelope | None:
+    """Framed readings (US-20 AC06): every string comes from a catalog resolution or a closed
+    label, and a payload with any untraced string is never built into a request."""
+
+    brief = provenance.framed_brief(reading)
+    positions = provenance.framed_positions(reading)
+    if brief is None or positions is None:
+        return None
+    payload: dict[str, JsonValue] = {
+        "category": category,
+        "focus_key": focus_key,
+        "focus_sentence": TAROT_FOCUS_SENTENCES[focus_key],
+        "meaning_brief": cast(JsonValue, brief),
+        "positions": cast(JsonValue, positions),
+    }
+    # Trace what is built and what the queue and provider adapter actually emit: the privacy
+    # minimiser drops null optional codes, and both forms must resolve to the same catalog text.
+    try:
+        normalized = PrivacyMinimiser().minimise(RewriteSurface.TAROT, payload)
+    except UnsafeRewritePayload:
+        return None
+    if any(
+        provenance.untraced_paths(
+            candidate, focus_sentences=TAROT_FOCUS_SENTENCES, limits=frozenset(BRIEF_LIMITS)
+        )
+        for candidate in (payload, normalized)
+    ):
+        return None
+    spec = canonical_surface_registry().require(RewriteSurface.TAROT)
+    return RewriteRequestEnvelope(
+        key=RewriteArtifactKey(
+            surface=RewriteSurface.TAROT,
+            owner=tarot_rewrite_owner(guest_id, session.id),
+            blueprint_hash=tarot_blueprint_hash(reading),
+            model_version=model_version,
+            prompt_version=prompt_version,
+            schema_version=spec.schema_version,
+            gate_version=spec.gate_version,
+        ),
+        authorization_receipt_id=content_rewrite_receipt_id(guest_id),
+        safe_payload=payload,
     )
 
 
@@ -353,7 +434,9 @@ class TarotRewriteProjector(RewriteProjector):
             if raw_reading is None:
                 return RewriteProjectionDecision(accepted=False, failure_code="stale_owner")
             baseline = TarotReading.model_validate(raw_reading)
-            if baseline.provenance.renderer_version != TAROT_RENDERER_VERSION:
+            # v7 for framed readings, v6 for sessions without a frame (US-20 AC18).
+            expected = current_renderer_version(baseline.provenance.question_rules_version)
+            if baseline.provenance.renderer_version != expected:
                 return RewriteProjectionDecision(
                     accepted=False, failure_code="stale_domain_version"
                 )

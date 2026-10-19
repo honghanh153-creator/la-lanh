@@ -5,23 +5,30 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-10-16 (hotfix)
+## Current production — 2026-10-18
 
-Release `836222282dfc` is live (#15 readable destructive button, #16 owner-bound Radar delete sheet
-on top of `b474cafbc434`). Alembic `20261011_0036`, generation/Google login off, staging on the same
-image digest. Receipt: [receipt-836222282dfc](../reviews/production-release-2026-10-16/receipt-836222282dfc.md).
-Immediate rollback image: `la-lanh:b474cafbc434`.
+Release `4111f03cee3c` is live (Tarot B2: question frame, roles, stance, variants, Roast frames,
+provenance-coded brief; B3-1a Daily rotation shipped **off**), Alembic head `20261018_0037`,
+generation/Google login off. Staging runs the same image digest. Receipt and findings:
+[production-release-2026-10-18](../reviews/production-release-2026-10-18/receipt.md). **No verified
+rollback anchor for B2 data:** `la-lanh:836222282dfc` starts on schema 0037 but cannot reopen framed Tarot
+readings stored since go-live (`small_action: null` fails its required-string model); see the receipt's
+"Rollback limit". Prefer a forward fix; an image is a safe rollback only after its reader accepts the B2
+reading shape and a disposable-copy probe reopens a reading created by `4111f03cee3c`. Never delete or
+rewrite guest readings to suit an old image. Run `rehearse-migration.sh` by absolute path; it runs as the least-privileged backend role. **Before `deploy.sh`, copy the server-local
+`infra/hetzner/sites/staging.caddy` from the previous release directory into the new one**, otherwise the
+recreated production Caddy drops the staging site. Staging: refresh `/opt/la-lanh/staging/source/infra`
+from the release, then `STAGING_GENERATION=off ./up.sh`, and recreate staging after `deploy.sh` so both run
+the deployed image digest.
 
-Every release: copy **both** server-only files from the current release into the new one before
-`deploy.sh`: `infra/hetzner/app.env` and `infra/hetzner/sites/staging.caddy`. Caddy mounts `sites/`
-from the active release, so a missing `staging.caddy` breaks staging TLS when `deploy.sh`
-recreates Caddy. Caddy's admin API is off, so a config change needs `docker restart la-lanh-caddy-1`.
-Run `rehearse-migration.sh` by absolute path. After `deploy.sh`, recreate staging
-(`STAGING_GENERATION=off ./up.sh`) so both run the deployed digest.
+Caddy's admin API is off, so a Caddy config change needs `docker restart la-lanh-caddy-1` (a few seconds
+of restart).
 
-Earlier on 16/10: release `b474cafbc434`,
-[receipt](../reviews/production-release-2026-10-16/receipt.md).
-Previous: release `a6e11bfd149b` (2026-10-11),
+Previous: hotfix release `836222282dfc` (2026-10-16, #15 + #16 on top of `b474cafbc434`),
+[receipt](../reviews/production-release-2026-10-16/receipt-836222282dfc.md); earlier the same day
+release `b474cafbc434`, [receipt](../reviews/production-release-2026-10-16/receipt.md).
+
+Earlier: release `a6e11bfd149b` (2026-10-11),
 [receipt](../reviews/production-release-2026-10-11/receipt.md).
 
 ## Radar/privacy follow-up, 2026-10-11
@@ -330,7 +337,8 @@ must restore `database_url.pre-ca` first.
 Backups: `infra/hetzner/backup-database.sh` (root-only custom dump of `public`, checksum, 14-day
 retention, `sslmode=verify-full`). Rehearse every schema change with
 `infra/hetzner/rehearse-migration.sh` (restores the newest backup into a disposable TLS-enabled
-PostgreSQL, runs the release image's migrations, privacy check and readiness, then destroys it).
+PostgreSQL, runs the release image's migrations, privacy check, Tarot cursor rehearsal and readiness as a
+least-privileged NOSUPERUSER backend role that owns the restored tables, then destroys it; since 2026-10-18).
 Staging: `infra/hetzner/staging/up.sh` (own empty database and keys; auth/generation off).
 
 Normally, keep the existing secret files. Recreate the database URL only after a password rotation or

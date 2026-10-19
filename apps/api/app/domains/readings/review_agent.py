@@ -210,7 +210,9 @@ class ContentReviewAgent:
             if not scene_sections:
                 findings.append(self._finding(sample, "scene", "scene-missing", "critical"))
             for section_name, scene in scene_sections:
-                if len(scene.split()) < 12 or not any(marker in scene for marker in SCENE_MARKERS):
+                # US-20 AC13: Tarot has no minimum length; it keeps the observability marker.
+                too_short = sample.surface != "tarot" and len(scene.split()) < 12
+                if too_short or not any(marker in scene for marker in SCENE_MARKERS):
                     findings.append(
                         self._finding(sample, section_name, "scene-not-observable", "high")
                     )
@@ -225,7 +227,8 @@ class ContentReviewAgent:
                 findings.append(self._finding(sample, "action", "action-missing", "critical"))
             for section_name, action in action_sections:
                 has_action_marker = any(marker in action for marker in ACTION_MARKERS)
-                if len(action.split()) < 6 or not has_action_marker:
+                too_short = sample.surface != "tarot" and len(action.split()) < 6
+                if too_short or not has_action_marker:
                     findings.append(
                         self._finding(sample, section_name, "action-not-testable", "high")
                     )
