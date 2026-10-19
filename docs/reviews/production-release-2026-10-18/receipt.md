@@ -84,3 +84,21 @@ Therefore:
 Real devices/iOS/Android, real-user comprehension, Luna generation (off; prompt update for the brief v3
 provenance labels is required before any activation), Google login (off), the B3-1a Daily rotation start
 date (owner decision).
+
+## Addendum — 19/10/2026: B3-1a Daily rotation enabled
+
+Owner instruction (chat, 19/10/2026): "lên hết production đi, để tôi cho người dùng dùng thử".
+
+- PR #32 (this receipt, APPROVE @ `069a5eefda13`) merged into `collab/integration`; `main` fast-forwarded to
+  `4f595a35dd68`. The only change under `apps/` is one grammar test assertion, so production keeps running
+  image `la-lanh:4111f03cee3c` (no rebuild needed for the merge itself).
+- `LA_LANH_DAILY_VARIETY_FROM=2026-10-19` added to the production and staging `app.env` (previous files kept
+  as `app.env.pre-daily-variety`). 19/10 is after the B3-1a deploy day (18/10), as the runbook requires; notes
+  already opened on 19/10 replay unchanged, new days use the per-person rotation.
+- Applied with the standard `deploy.sh` (same image; content review, privacy check and health passed) and
+  staging `up.sh`. Inside the image `Settings().daily_variety_from` = `2026-10-19`.
+- After the change: `smoke.sh` passed on production and staging; `qa-public-smoke.mjs` (synthetic only)
+  passed, including the date-only Daily note, Tarot 1/3/5 and Radar, and deleted its guest.
+- Not enabled: Luna (prompt update for brief v3, budget, key and DPA approval pending), Google login.
+- Turning it off: remove the line (or restore `app.env.pre-daily-variety`) and rerun `deploy.sh`; stored notes
+  keep their frozen plans, and a note reopened that day may show `available_update` (runbook "Daily rotation").
