@@ -5,17 +5,26 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-10-16
+## Current production — 2026-10-18
 
-Release `b474cafbc434` is live (Lá's companion line + "Tím đêm dịu" UI), Alembic head
-`20261011_0036`, generation/Google login off. Staging runs the same image digest. Receipt, parity
-table and findings: [production-release-2026-10-16](../reviews/production-release-2026-10-16/receipt.md).
-Immediate rollback image: `la-lanh:a6e11bfd149b` (same schema and secrets). Run
-`rehearse-migration.sh` by absolute path. Staging: refresh `/opt/la-lanh/staging/source/infra` from
-the release, then `STAGING_GENERATION=off ./up.sh`, and recreate staging after `deploy.sh` so both
-run the deployed image digest.
+Release `4111f03cee3c` is live (Tarot B2: question frame, roles, stance, variants, Roast frames,
+provenance-coded brief; B3-1a Daily rotation shipped **off**), Alembic head `20261018_0037`,
+generation/Google login off. Staging runs the same image digest. Receipt and findings:
+[production-release-2026-10-18](../reviews/production-release-2026-10-18/receipt.md). **No verified
+rollback anchor for B2 data:** `la-lanh:836222282dfc` starts on schema 0037 but cannot reopen framed Tarot
+readings stored since go-live (`small_action: null` fails its required-string model); see the receipt's
+"Rollback limit". Prefer a forward fix; an image is a safe rollback only after its reader accepts the B2
+reading shape and a disposable-copy probe reopens a reading created by `4111f03cee3c`. Never delete or
+rewrite guest readings to suit an old image. Run `rehearse-migration.sh` by absolute path; it runs as the least-privileged backend role. **Before `deploy.sh`, copy the server-local
+`infra/hetzner/sites/staging.caddy` from the previous release directory into the new one**, otherwise the
+recreated production Caddy drops the staging site. Staging: refresh `/opt/la-lanh/staging/source/infra`
+from the release, then `STAGING_GENERATION=off ./up.sh`, and recreate staging after `deploy.sh` so both run
+the deployed image digest.
 
-Previous: release `a6e11bfd149b` (2026-10-11),
+Previous: release `836222282dfc` (2026-10-16),
+[receipt](../reviews/production-release-2026-10-16/receipt.md).
+
+Earlier: release `a6e11bfd149b` (2026-10-11),
 [receipt](../reviews/production-release-2026-10-11/receipt.md).
 
 ## Radar/privacy follow-up, 2026-10-11

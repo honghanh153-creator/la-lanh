@@ -29,7 +29,7 @@ Release of the framed Tarot renderer (B2-1 to B2-4b) is **No-Go** until:
 - The owner has approved the copy in `docs/reviews/2026-10-18-b2-tarot-copy-review.xlsx`; then
   `question_frame.py`, `roles.py`, `stance.py` and `variants.py` join the fallback approval scope and
   `docs/operations/fallback-approval.json` is refreshed. Done 2026-10-18: `docs/reviews/2026-10-18-b2-tarot-owner-approval.md`;
-  set `approved_release` to the release commit at deploy.
+  `approved_release` = `4111f03cee3c` (production release 2026-10-18).
 - A PostgreSQL rehearsal with the **real backend role** (not SQLite, not DDL compilation) shows: migration
   `20261018_0037` upgrades cleanly; `tarot_variant_cursors` has RLS enabled and no grants for
   PUBLIC/anon/authenticated; the backend role can run the cursor upsert with `RETURNING`; concurrent session
@@ -39,7 +39,8 @@ Release of the framed Tarot renderer (B2-1 to B2-4b) is **No-Go** until:
   (absolute path). Since 2026-10-18 the script restores the newest backup as a NOSUPERUSER backend role that
   owns the public tables (like the Supabase pooler role), connects the app as that role, and runs
   `scripts.rehearse_tarot_cursor` after `check_database_privacy`; evidence is `database-privacy-isolation-ok`,
-  `tarot-cursor-rehearsal-ok` and `Rehearsal readiness OK`.
+  `tarot-cursor-rehearsal-ok` and `Rehearsal readiness OK`. **Done 2026-10-18** for release `4111f03cee3c`
+  (`docs/reviews/production-release-2026-10-18/receipt.md`).
 - Luna stays off unless separately approved; Roast readings are never queued.
 
 ## Pre-release Go/No-Go
