@@ -92,7 +92,7 @@
    "question_rules_version": "tarot-question-rules-v2",
    "renderer_version": "tarot-renderer-v6",
    "role_copy_version": "tarot-roles-v2",
-   "stance_version": "tarot-stance-v1",
+   "stance_version": "tarot-stance-v2",
    "tables": {
     "app.domains.tarot.engine.CONTEXT_READINGS": "3e62ebc179be8afa3bb1ceebb99854e0066d76d1372c7a875c66aa1360c53c35",
     "app.domains.tarot.engine.CONTEXT_SCENES": "50679ebb24720b5f2e61c2d46093fd633bb5b823a6a818668d83fbb2831efb17",
@@ -169,6 +169,7 @@
     "app.domains.tarot.stance.ROAST_CONJUNCTIONS": "95d4f338862f41fcd1ef487ab141bb0d14822ce669816b491d384661e029dfd3",
     "app.domains.tarot.stance.ROAST_HEADLINES": "eac360e3725044905c544724c78f8e58c1d2ab144fbc0a113531fae0c1eaae27",
     "app.domains.tarot.stance.ROLES": "81621e5417f3007a170050cbe715f3bbfbfe7c9104eb97098a31220456d79f58",
+    "app.domains.tarot.stance.SELF_CARE_ACTIONS": "739da50d627789697132c48da8fa44f78182b493c2c158695781e7b0e373dcbe",
     "app.domains.tarot.stance.TOPIC_PHRASES": "ac2cc18f1b57fc89452be82d9fd6bfe2a8ce38a94da3d37318448cfb0af6e121",
     "app.domains.tarot.stance._VALUE": "149d418aa512275dfdc52e6a2515f174993775fcd8b7dd9fd3bcf8f4e2a46d83",
     "app.domains.tarot.variants.DEFAULT_VARIANTS": "1454f69fca45659ee5e7d0de9bb17966558c95a7806b21859042586bb101a3e3",
@@ -194,7 +195,7 @@
   "owner_workbook": "docs/reviews/production-release-2026-10-16/content-approval.xlsx (owner content review of 16/10/2026)",
   "release": "production release 4111f03cee3c (docs/reviews/production-release-2026-10-18/); previous 836222282dfc (docs/reviews/production-release-2026-10-16/)",
   "tarot_b2_audit": "pnpm tarot:audit (bank x 6 maps x 4 voices: provenance, psychology checklist, T4, worst length) and Codex APPROVE of PR #23-#27",
-  "tarot_b2_owner_approval": "docs/reviews/2026-10-18-b2-tarot-owner-approval.md (owner approved all B2-1..B2-4b copy in docs/reviews/2026-10-18-b2-tarot-copy-review.xlsx and the AC14 samples, 18/10/2026)",
+  "tarot_b2_owner_approval": "docs/reviews/2026-10-18-b2-tarot-owner-approval.md (owner approved all B2-1..B2-4b copy in docs/reviews/2026-10-18-b2-tarot-copy-review.xlsx and the AC14 samples, 18/10/2026); 2026-10-19 addendum: self-care lean rule (tarot-stance-v2)",
   "tarot_legacy_copy": "docs/reviews/2026-10-18-tarot-legacy-copy-pin.md: tarot meaning_brief, voice and examples tables (pinned 2026-10-18) are byte-identical to production release 836222282dfc, which the owner approved for release"
  },
  "purpose": "Independent approval of the fallback store served on a variety_exception (docs/foundation/la-lanh-variety-measurement-spec.md §4b). Independent of any grammar manifest.",

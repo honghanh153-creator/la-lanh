@@ -24,7 +24,9 @@ from app.domains.tarot.models import (
 )
 from app.domains.tarot.roles import ROLES, RoleField
 
-STANCE_VERSION = "tarot-stance-v1"
+# v2 (2026-10-19): self-care and boundary actions never get "consider more before" (see
+# SELF_CARE_ACTIONS). Stored v1 stances keep their recorded version.
+STANCE_VERSION = "tarot-stance-v2"
 
 
 class Lean(StrEnum):
@@ -496,6 +498,22 @@ def stance_for(
     return None
 
 
+# Self-care and boundary actions (owner decision 2026-10-19). A "hold" card must not turn into
+# "consider more before resting / stopping / saying no / asking for help": that contradicts the
+# step the same reading offers and the content standard (never discourage self-care). For these
+# actions a hold card counts as neutral, so the lean is "try" or "unclear", never "consider".
+SELF_CARE_ACTIONS = frozenset(
+    {
+        TarotAction.NGHI_NGOI,
+        TarotAction.DUNG_LAI,
+        TarotAction.TU_CHOI,
+        TarotAction.DAT_RANH_GIOI,
+        TarotAction.NHO_GIUP,
+        TarotAction.TU_THUONG,
+    }
+)
+
+
 def yes_no_stance(
     action: TarotAction | None,
     topic: TarotContext,
@@ -506,6 +524,8 @@ def yes_no_stance(
     contributions = [
         (role_weight(view.key) * _VALUE[lean_of(view.card_id, topic)], view) for view in views
     ]
+    if action in SELF_CARE_ACTIONS:
+        contributions = [(max(value, 0.0), view) for value, view in contributions]
     score = sum(value for value, _ in contributions)
     level = (
         TarotStanceLevel.LEAN_TRY

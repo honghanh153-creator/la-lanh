@@ -485,3 +485,73 @@ def test_p2_bank_choice_coverage_is_unchanged() -> None:
     )
     choices = [i for i in bank["items"] if i.get("form") == "choice"]
     assert sum(1 for i in choices if stance.split_choice(i["question"])) == 11
+
+
+# ---------------------------------------------------------------- self-care lean (2026-10-19)
+
+
+SELF_CARE_QUESTIONS = (
+    ("Mình đang mệt, có nên nghỉ một tuần không?", TarotContext.SELF_CARE),
+    ("Mình có nên từ chối thêm việc tuần này không?", TarotContext.WORK),
+    ("Mình có nên dừng lại một chút không?", TarotContext.ENERGY),
+)
+
+
+@pytest.mark.parametrize(("question", "context"), SELF_CARE_QUESTIONS)
+def test_self_care_actions_never_get_consider_more_before(
+    question: str, context: TarotContext
+) -> None:
+    """Production bug 2026-10-19: 23/78 one-card readings told a tired reader to "consider more
+    before resting" while the step said to take a rest. Hold cards are neutral for these."""
+
+    from app.domains.tarot.knowledge import all_cards
+
+    assessment = ENGINE.assess_question(question, context)
+    assert assessment.frame is not None
+    assert assessment.frame.action in stance.SELF_CARE_ACTIONS
+    cards = [card.id for card in all_cards()]
+    for spread_map, count in ((TarotSpreadMap.ONE_FOCUS, 1), (TarotSpreadMap.THREE_UNBLOCK, 3)):
+        for start in range(78):
+            ids = tuple(cards[(start + 7 * i) % 78] for i in range(count))
+            for voice in (TarotVoice.PLAYFUL_GROUNDED, TarotVoice.ROAST):
+                reading = ENGINE.render(
+                    card_ids=ids,
+                    spread={1: TarotSpread.ONE_CARD, 3: TarotSpread.THREE_CARD}[count],
+                    spread_map=spread_map,
+                    context=context,
+                    question=question,
+                    voice=voice,
+                    question_intent=assessment.intent,
+                    frame=assessment.frame,
+                )
+                assert reading.stance is not None
+                assert reading.stance.level is not TarotStanceLevel.CONSIDER, (ids, voice)
+                prose = f"{reading.headline} {reading.stance.conclusion}".lower()
+                assert stance.MARKERS[TarotStanceLevel.CONSIDER] not in prose
+                assert reading.stance.version == "tarot-stance-v2"
+
+
+def test_other_actions_can_still_be_consider() -> None:
+    """The rule is scoped: an action like accepting more work can still lean "consider"."""
+
+    from app.domains.tarot.knowledge import all_cards
+
+    question = "Mình có nên nhận lời làm thêm dự án mới không?"
+    assessment = ENGINE.assess_question(question, TarotContext.WORK)
+    assert assessment.frame is not None
+    assert assessment.frame.action not in stance.SELF_CARE_ACTIONS
+    levels = set()
+    for card in all_cards():
+        reading = ENGINE.render(
+            card_ids=(card.id,),
+            spread=TarotSpread.ONE_CARD,
+            spread_map=TarotSpreadMap.ONE_FOCUS,
+            context=TarotContext.WORK,
+            question=question,
+            voice=TarotVoice.PLAYFUL_GROUNDED,
+            question_intent=assessment.intent,
+            frame=assessment.frame,
+        )
+        assert reading.stance is not None
+        levels.add(reading.stance.level)
+    assert TarotStanceLevel.CONSIDER in levels
