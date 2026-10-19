@@ -186,6 +186,33 @@ synthetic: the versioned catalog `apps/api/scripts/fixtures/daily_home_pilot_cas
    < 5%, zero gate failures, candidate mean > baseline mean) to the declared sample. This is a
    **pilot sample gate**, reported as such; it does not replace the full 670-case release gate.
 
+## Owner decision 2026-10-19: daily_home pilot accepted without per-case scoring
+
+The owner read the staging pilot outputs and approved Luna for `daily_home` without filling the
+per-case scoring workbook. This is an **owner waiver** of the human-scoring step (step 4) and of the
+pilot sample gate (step 5). Neither step was run: no `EvaluationRecord` and no
+`rewrite-results.json` exist for this pilot, and none may be produced retroactively without a real
+reviewer.
+
+What the pilot did show (automated, synthetic, not a comprehension study): 20 of 40 candidates
+failed a deterministic gate (`scene_context_lost` 7, `action_verb` 4, `companion_off_brief` 4,
+`dense_sentence` 2, `companion_contradicts_card` 1, `companion_budget` 1, `reading_gate` 1). A failed
+candidate is never published; the reader sees the deterministic note. Improving the prompt for
+these codes is follow-up work, not a release blocker under this waiver.
+
+Rollout order:
+
+1. Staging with testers (generation on since 2026-10-19; each tester opts in under Mình).
+2. Production only after the owner personally accepts the OpenAI DPA. Agents never accept it.
+   Then the operator copies the key to `/opt/la-lanh/secrets/openai_api_key`, adds the generation
+   settings to the server-only `app.env` (cap: owner-approved, private, never in git), and
+   redeploys. Kill switch as above.
+
+Still open after the waiver: DPA acceptance (owner), cross-border transfer impact assessment
+record (Law 91/2025/QH15, Decree 356/2025/NĐ-CP), check that in-app privacy copy and store
+declarations name the processor, live worker health check and one supervised end-to-end run on
+production after deploy.
+
 ## Paid pilot update, 2026-10-08
 
 This section supersedes the older **USD 1/day** examples below for the current pilot. The requested
