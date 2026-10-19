@@ -18,6 +18,7 @@
 | Hạ tầng | G0 composer (chưa phục vụ), P1 đo baseline, provenance cho payload Luna, fallback approval khoá copy B2 và copy cũ |
 | Tắt | Luna (AI rewrite), đăng nhập Google |
 | Rủi ro mở | **Chưa có image rollback đọc được bài Tarot B2**: sự cố thì sửa tiến. Backup DB chỉ chạy khi phát hành, chưa có lịch hằng ngày |
+| Chờ phát hành | Hotfix hướng nghiêng (PR #34, `tarot-stance-v2`): Codex APPROVE @ `e6debac449cb602b70baf91a8c18c01b693e4a7b` ngày 20/10. Chưa merge, chưa deploy; chờ owner chỉ thị |
 
 ## 1. Giai đoạn 0 — người dùng dùng thử (bắt đầu ngay)
 
@@ -125,6 +126,22 @@ và khai báo Apple/Google.
 3. Owner duyệt: API key (nhập qua kênh bảo vệ), ngân sách tháng, DPA/điều khoản, privacy copy, Data
    Safety/App Privacy; pilot cap và kill switch.
 4. Chỉ mở rộng phạm vi khi điểm chấm cho thấy tốt hơn.
+5. **Kiểm lại stance v1** (ghi chú review Codex PR #34, 20/10). Gate `stance_consistent`
+   (`TarotReadingEngine._stance_consistent`) gọi `stance.recompute`, mà hàm này luôn tính theo thuật toán
+   hiện hành (`tarot-stance-v2`) rồi so **toàn bộ** stance, kể cả trường `version`. Một bài có frame lưu
+   từ trước hotfix (`tarot-stance-v1`), nếu đem gate lại hoặc đưa vào rewrite, sẽ bị từ chối vì lệch
+   version. Khi bài đó hỏi về hành động tự chăm sóc, mức hướng nghiêng cũng có thể lệch.
+   - Hiện chưa ảnh hưởng: mở lại phiên cũ chỉ đọc bản đã lưu, không chạy gate này và không đổi version hay
+     chữ. Luna đang tắt.
+   - Phải chốt trước task bật Luna cho Tarot. Các hướng:
+     - (a) Kiểm lại theo đúng version đã lưu: giữ hàm tính v1 dưới tên riêng và cho `recompute` chọn hàm
+       theo `stance.version`. Bài cũ vẫn kiểm được và vẫn rewrite được.
+     - (b) Chỉ rewrite bài có `tarot-stance-v2`. Bài v1 giữ bản tất định, không tạo request; ghi lý do vào
+       ledger hoặc log mà không chứa nội dung.
+     - (c) Không chuyển bản lưu v1 sang v2, vì như vậy là đổi lời đã hiển thị cho người dùng.
+   - Đề xuất: (b) làm mặc định, vì đơn giản nhất và không gửi gì cho bài cũ. Chỉ thêm (a) nếu cần
+     rewrite bài cũ. Cả hai đều cần test: bản v1 tổng hợp đem gate lại không bị đổi chữ, và với (b) thì
+     không có request nào cho bài v1.
 
 ## 7. Thứ tự đề xuất
 
@@ -144,4 +161,4 @@ và khai báo Apple/Google.
 | D3 | Làm image rollback đọc được B2 (O2) | Có, trước khi mời nhiều người hơn |
 | D4 | Bắt đầu G1 ngay hay chờ phản hồi người dùng | Bắt đầu G1-0 ngay; G1-1 dùng phản hồi tuần đầu |
 | D5 | Thời điểm rà luật cho chặng 2 | Song song với G1, vì không chặn code |
-| D6 | Luna | Giữ tắt tới khi xong bước 1–3 ở mục 6 |
+| D6 | Luna | Giữ tắt tới khi xong bước 1–3 và bước 5 (stance v1) ở mục 6 |
