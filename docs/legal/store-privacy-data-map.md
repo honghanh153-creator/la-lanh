@@ -142,7 +142,7 @@ identifier). Our assessment, not legal advice, is that this cannot identify or h
 specific reader (Law 91/2025/QH15 Art. 2). `Settings` refuses rollout of every other surface,
 because they still send chart-derived evidence. The opt-in copy in `Mình` and on `/privacy` says
 what is sent (shared constant `OPENAI_REWRITE_SCOPE_NOTICE`) and that Tarot does not use AI yet;
-the new copy awaits owner approval.
+the owner approved this copy on 2026-10-20.
 
 Consent version: it stays `external-content-rewrite-v1` because the new wording **narrows** what
 is sent. Whether production already holds v1 consents is not known from code: the consent endpoint

@@ -45,9 +45,12 @@ changes the cache key.
   assessment, DPA acceptance becomes recommended rather than blocking for `daily_home` under M1, and
   Luna adds no cross-border transfer of personal data. This does **not** settle the separate
   question of the app's own hosting in Germany (Hetzner, Supabase Frankfurt), which a lawyer should
-  review independently. The opt-in in `Mình` stays, with copy stating what is sent.
+  review independently. The opt-in in `Mình` stays, with copy stating what is sent; the owner
+  approved that copy (`OPENAI_REWRITE_SCOPE_NOTICE` and the two sheet sentences) on 2026-10-20.
 - **Staging until M1 is deployed:** the staging image predates M1 and still sends chart evidence.
-  Keep staging generation on only with synthetic profiles, or off, until M1 is deployed there.
+  Owner decision 2026-10-20: staging generation is **off** until M1 is deployed there. The operator
+  reran `up.sh` with `STAGING_GENERATION=off` that day; the staging worker is gone and the app
+  reports generation disabled.
 
 Owner decision 2026-10-20 on the full 670-case gate (an exception, not a pass): for a `daily_home`
 pilot under M1 only, the production worker may run without the full gate for **14 days from
