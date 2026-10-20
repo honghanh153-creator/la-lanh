@@ -92,6 +92,7 @@ class AccountStatus(BaseModel):
     profile_expires_at: str | None
     guest_inactivity_days: int
     history_days: int = 30
+    daily_note_hours: int = 24
     account_inactivity_days: int = ACCOUNT_DAYS
 
 

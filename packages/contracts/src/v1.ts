@@ -1305,6 +1305,11 @@ export interface components {
              */
             account_inactivity_days: number;
             /**
+             * Daily Note Hours
+             * @default 24
+             */
+            daily_note_hours: number;
+            /**
              * Google Login Enabled
              * @default false
              */
@@ -1969,6 +1974,12 @@ export interface components {
         HistoryRetentionStatus: {
             /** Activated At */
             activated_at: string | null;
+            /**
+             * Daily Note Hours
+             * @default 24
+             * @constant
+             */
+            daily_note_hours: 24;
             /** Enabled */
             enabled: boolean;
             /**

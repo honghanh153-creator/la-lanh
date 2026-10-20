@@ -34,6 +34,12 @@ from app.infrastructure.crypto import EnvelopeCipher
 CONSENT_VERSION = "history-retention-v1"
 HISTORY_WINDOW = timedelta(days=30)
 PURGE_WINDOW = timedelta(days=29, hours=18)
+# Owner decision 2026-10-20: automatic Daily-note history (notes, Daily projections and plans with
+# their rewrite revisions) is kept at most 24 hours from creation. Purging from 18 hours keeps
+# physical deletion within 24 hours under the six-hour cleanup, like PURGE_WINDOW does for 30 days.
+# Saved notes and today's note are exempt as before; moods keep the 30-day window.
+DAILY_HISTORY_WINDOW = timedelta(hours=24)
+DAILY_PURGE_WINDOW = timedelta(hours=18)
 PRODUCT_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
@@ -55,8 +61,12 @@ def expired_history(
     now: datetime,
     *,
     physical: bool = False,
+    daily: bool = False,
 ) -> ColumnElement[bool]:
-    window = PURGE_WINDOW if physical else HISTORY_WINDOW
+    if daily:
+        window = DAILY_PURGE_WINDOW if physical else DAILY_HISTORY_WINDOW
+    else:
+        window = PURGE_WINDOW if physical else HISTORY_WINDOW
     return (created_at <= now - window) & select(HistoryRetentionPolicyRow.guest_id).where(
         HistoryRetentionPolicyRow.guest_id == guest_id,
         or_(
@@ -80,7 +90,7 @@ def saved_daily_source() -> ColumnElement[bool]:
 
 def unavailable_daily(now: datetime) -> ColumnElement[bool]:
     return (
-        expired_history(DailyNoteRow.guest_id, DailyNoteRow.created_at, now)
+        expired_history(DailyNoteRow.guest_id, DailyNoteRow.created_at, now, daily=True)
         & (DailyNoteRow.note_date < now.astimezone(PRODUCT_TIMEZONE).date())
         & ~saved_daily_source()
     )
@@ -90,7 +100,9 @@ def unavailable_projection(now: datetime) -> ColumnElement[bool]:
     return (
         (ReadingProjectionRow.purpose == "daily_note")
         & (ReadingProjectionRow.local_date < now.astimezone(PRODUCT_TIMEZONE).date())
-        & expired_history(ReadingProjectionRow.guest_id, ReadingProjectionRow.created_at, now)
+        & expired_history(
+            ReadingProjectionRow.guest_id, ReadingProjectionRow.created_at, now, daily=True
+        )
     )
 
 
@@ -236,7 +248,7 @@ class PostgresHistoryRepository:
             radar &= RadarRequestRow.completed_at.is_not(None)
         else:
             daily &= expired_history(
-                DailyNoteRow.guest_id, DailyNoteRow.created_at, now, physical=True
+                DailyNoteRow.guest_id, DailyNoteRow.created_at, now, physical=True, daily=True
             )
             moods &= expired_history(
                 MoodCheckInRow.guest_id, MoodCheckInRow.created_at, now, physical=True
@@ -297,7 +309,11 @@ class PostgresHistoryRepository:
         if not manual:
             query = query.where(
                 expired_history(
-                    ReadingPlanRow.guest_id, ReadingPlanRow.created_at, now, physical=True
+                    ReadingPlanRow.guest_id,
+                    ReadingPlanRow.created_at,
+                    now,
+                    physical=True,
+                    daily=True,
                 )
             )
         ids: list[UUID] = []

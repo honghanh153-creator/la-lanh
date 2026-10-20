@@ -14,7 +14,7 @@ provider errors, are `no-store`. Validation errors never echo request input.
 
 | Method/path | Request | Response |
 | --- | --- | --- |
-| GET `/account` | Current device cookie, if present | `login_enabled`, `signed_in`, `masked_email`, `profile_expires_at`, `guest_inactivity_days`, `history_days`, `account_inactivity_days` |
+| GET `/account` | Current device cookie, if present | `login_enabled`, `signed_in`, `masked_email`, `profile_expires_at`, `guest_inactivity_days`, `history_days`, `daily_note_hours`, `account_inactivity_days` |
 | POST `/account/login/code` | `{email, account_storage_consent?: "account-storage-v1"}`; current guest CSRF if active | `{status: "code_sent", login_csrf_token, expires_at, resend_after_seconds: 60}` |
 | POST `/account/login/verify` | `{code: "123456"}`; `X-CSRF-Token: login_csrf_token` | `signed_in`, `restore_required`, `onboarding_required`, or `consent_required` |
 | POST `/account/login/restore` | `{confirm: true}`; same login CSRF | `signed_in` after one-time HttpOnly restore proof validation |

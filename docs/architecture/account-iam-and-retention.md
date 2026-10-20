@@ -12,10 +12,11 @@ Không cần đăng nhập để đọc note, Tarot hoặc dùng chart. Welcome 
 | Hồ sơ khách | 30 ngày không hoạt động | Dùng tính năng riêng tư với phiên hợp lệ |
 | Hồ sơ tài khoản | 365 ngày không hoạt động, cần đồng ý riêng | Dùng phiên tài khoản hợp lệ |
 | Phiên từng thiết bị | 30 ngày không hoạt động | Chính thiết bị đó dùng tính năng riêng tư |
-| Lịch sử tự động | Tối đa 30 ngày từ lúc tạo | Không gia hạn khi mở lại hoặc đăng nhập |
+| Note ngày tự động (kèm mood của ngày đó, bản Luna đi cùng) | Tối đa 24 giờ từ lúc tạo (owner quyết 2026-10-20); note hôm nay và note đã lưu được miễn | Không gia hạn khi mở lại hoặc đăng nhập |
+| Lịch sử tự động khác | Tối đa 30 ngày từ lúc tạo | Không gia hạn khi mở lại hoặc đăng nhập |
 | Chart, bản đọc hiện tại, note đã lưu | Theo thời hạn hồ sơ | Không bị thao tác xoá lịch sử lấy đi |
 
-Hồ sơ cũ không tự bị bật chính sách lịch sử mới. Sau khi người dùng đồng ý, có đủ 30 ngày trước lần dọn đầu tiên. Dọn vật lý có khoảng dự phòng 6 giờ; phải chạy cleanup ít nhất mỗi 6 giờ. Không dùng việc xem link public hoặc worker để gia hạn hồ sơ.
+Hồ sơ cũ không tự bị bật chính sách lịch sử mới. Sau khi người dùng đồng ý, có đủ 30 ngày trước lần dọn đầu tiên. Dọn vật lý có khoảng dự phòng 6 giờ (note ngày: đủ điều kiện dọn từ 18 giờ, ẩn ở 24 giờ; lịch sử khác: dọn từ 29 ngày 18 giờ, ẩn ở 30 ngày); phải chạy cleanup ít nhất mỗi 6 giờ. Lượt dọn gặp fence gửi Luna của owner sẽ dời sang lượt sau. Không dùng việc xem link public hoặc worker để gia hạn hồ sơ.
 
 ## Nguồn quyền hạn nằm ở backend
 

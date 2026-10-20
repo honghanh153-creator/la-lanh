@@ -66,8 +66,8 @@ describe("ProfilePage resonance privacy controls", () => {
     vi.mocked(clearResonance).mockResolvedValue(undefined);
     vi.mocked(getContentRewriteStatus).mockResolvedValue({ enabled: true, consented: false, pilot_eligible: true });
     vi.mocked(setContentRewriteConsent).mockResolvedValue(undefined);
-    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, account_inactivity_days: 365 });
-    vi.mocked(getHistoryRetention).mockResolvedValue({ enabled: true, history_days: 30, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
+    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365 });
+    vi.mocked(getHistoryRetention).mockResolvedValue({ enabled: true, history_days: 30, daily_note_hours: 24, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
     vi.mocked(clearReadingHistory).mockResolvedValue(undefined);
     vi.mocked(logoutAccount).mockResolvedValue(undefined);
   });
@@ -85,8 +85,13 @@ describe("ProfilePage resonance privacy controls", () => {
     expect(screen.getByRole("heading", { name: "Mình" })).toBeInTheDocument();
   });
 
+  it("states the 24-hour Daily-note window and the 30-day window for other history", async () => {
+    renderPage();
+    expect(await screen.findByText("Note ngày tự động tối đa 24 giờ, lịch sử khác tối đa 30 ngày, tính từ lúc tạo; mở lại không kéo dài thời hạn.")).toBeInTheDocument();
+  });
+
   it("does not claim logout or history clear succeeded on a network failure", async () => {
-    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: true, google_login_enabled: true, signed_in: true, masked_email: "a***@example.org", profile_expires_at: "2027-10-10T00:00:00Z", guest_inactivity_days: 30, history_days: 30, account_inactivity_days: 365 });
+    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: true, google_login_enabled: true, signed_in: true, masked_email: "a***@example.org", profile_expires_at: "2027-10-10T00:00:00Z", guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365 });
     vi.mocked(logoutAccount).mockRejectedValue(new TypeError("offline"));
     vi.mocked(clearReadingHistory).mockRejectedValue(new TypeError("offline"));
     const user = userEvent.setup(); renderPage();
