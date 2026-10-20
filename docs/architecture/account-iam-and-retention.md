@@ -12,7 +12,7 @@ Không cần đăng nhập để đọc note, Tarot hoặc dùng chart. Welcome 
 | Hồ sơ khách | 30 ngày không hoạt động | Dùng tính năng riêng tư với phiên hợp lệ |
 | Hồ sơ tài khoản | 365 ngày không hoạt động, cần đồng ý riêng | Dùng phiên tài khoản hợp lệ |
 | Phiên từng thiết bị | 30 ngày không hoạt động | Chính thiết bị đó dùng tính năng riêng tư |
-| Note ngày tự động (kèm mood của ngày đó, bản Luna đi cùng) | Ẩn sau 24 giờ từ lúc tạo (owner quyết 2026-10-20), xoá thật ở lượt dọn kế tiếp; note hôm nay và note đã lưu được miễn; note còn việc nhỏ chờ nhìn lại, phản hồi hoặc link chia sẻ chưa hết hạn được giữ ẩn tới khi các mục đó hết hạn | Không gia hạn khi mở lại hoặc đăng nhập |
+| Note ngày tự động (kèm mood của ngày đó, bản Luna đi cùng) | Hiện tối đa 24 giờ từ lúc tạo (owner quyết 2026-10-20); đủ điều kiện xoá thật từ 18 giờ khi đã không còn là note hôm nay, nên có thể bị xoá trước mốc 24 giờ; note hôm nay và note đã lưu được miễn; note còn việc nhỏ chờ nhìn lại, phản hồi hoặc link chia sẻ chưa hết hạn được giữ ẩn tới khi các mục đó hết hạn | Không gia hạn khi mở lại hoặc đăng nhập |
 | Lịch sử tự động khác | Tối đa 30 ngày từ lúc tạo | Không gia hạn khi mở lại hoặc đăng nhập |
 | Chart, bản đọc hiện tại, note đã lưu | Theo thời hạn hồ sơ | Không bị thao tác xoá lịch sử lấy đi |
 

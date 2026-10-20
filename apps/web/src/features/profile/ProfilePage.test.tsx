@@ -87,7 +87,7 @@ describe("ProfilePage resonance privacy controls", () => {
 
   it("states the 24-hour Daily-note window and the 30-day window for other history", async () => {
     renderPage();
-    expect(await screen.findByText("Note ngày tự động ẩn sau 24 giờ rồi được xoá theo đợt dọn; lịch sử khác tối đa 30 ngày, tính từ lúc tạo; mở lại không kéo dài thời hạn.")).toBeInTheDocument();
+    expect(await screen.findByText("Note ngày tự động hiện tối đa 24 giờ (có thể được dọn sớm hơn); lịch sử khác tối đa 30 ngày, tính từ lúc tạo; mở lại không kéo dài thời hạn.")).toBeInTheDocument();
   });
 
   it("does not claim logout or history clear succeeded on a network failure", async () => {

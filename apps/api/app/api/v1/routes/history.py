@@ -21,8 +21,9 @@ class HistoryRetentionConsent(BaseModel):
 class HistoryRetentionStatus(BaseModel):
     enabled: bool
     history_days: Literal[30] = 30
-    # Automatic Daily-note history (and that day's mood) is hidden after this many hours and then
-    # deleted by scheduled cleanup; a live experiment, feedback or share link keeps it longer.
+    # Automatic Daily-note history (and that day's mood) is visible at most this many hours;
+    # scheduled cleanup may delete it earlier (from 18 hours, once not today's note). A live
+    # experiment, feedback or share link keeps it hidden but stored longer.
     daily_note_hours: Literal[24] = 24
     activated_at: datetime | None
     saved_notes_kept: Literal[True] = True

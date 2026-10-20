@@ -336,8 +336,8 @@ class PostgresHistoryRepository:
             ~saved,
         )
         if not manual:
-            # Revisions of a plan carry experiment and feedback children with their own expiry;
-            # keep the plan until they expire rather than cascading them away early.
+            # Revisions of a plan carry experiment, feedback and share children with their own
+            # expiry; keep the plan until they expire rather than cascading them away early.
             live_children = or_(
                 select(DailyExperimentRow.id)
                 .where(DailyExperimentRow.revision_id.in_(revisions))
@@ -346,6 +346,10 @@ class PostgresHistoryRepository:
                 select(ResonanceFeedbackRow.id)
                 .where(ResonanceFeedbackRow.revision_id.in_(revisions))
                 .where(ResonanceFeedbackRow.expires_at > now)
+                .exists(),
+                select(ShareArtifactRow.id)
+                .where(ShareArtifactRow.revision_id.in_(revisions))
+                .where(ShareArtifactRow.expires_at > now, ShareArtifactRow.revoked_at.is_(None))
                 .exists(),
             )
             query = query.where(~live_children)
