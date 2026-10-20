@@ -21,6 +21,7 @@ from app.domains.astro.models import (
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
 from app.domains.content_rewrite.models import RewriteSurface
 from app.domains.readings.companion import companion_issue_entry
+from app.domains.readings.daily_personalization import SUN_ISSUES
 from app.domains.readings.daily_psychology import (
     DAILY_ISSUES,
     current_scene_lead,
@@ -285,9 +286,11 @@ _CHART_WORDS = re.compile(
 )
 
 
-def test_m1_daily_payload_is_catalog_text_and_independent_of_the_chart() -> None:
-    """M1: across many synthetic charts, every payload string is catalog text for the chosen
-    situation, and charts that choose the same catalog content send byte-identical payloads."""
+def test_m1_daily_payload_is_catalog_text_without_direct_chart_facts() -> None:
+    """M1 provenance: across many synthetic charts, every payload string is catalog text for the
+    chosen situation, no chart word or factor id appears, and charts that choose the same catalog
+    content send byte-identical payloads. This is not chart independence: the catalog choice
+    itself reflects the chart coarsely (see the date-only test below)."""
 
     rng = random.Random(20261020)  # noqa: S311 - reproducible synthetic charts, not security
     issues = {f"psychology:{issue.key}": issue for issue in DAILY_ISSUES}
@@ -337,6 +340,37 @@ def test_m1_daily_payload_is_catalog_text_and_independent_of_the_chart() -> None
     assert all(len(group) == 1 for group in payloads.values())
     # The equality claim is exercised: some catalog choices were made by several charts.
     assert max(charts.values()) >= 2
+
+
+def test_m1_date_only_catalog_choice_reveals_the_sun_sign_and_nothing_finer() -> None:
+    """Known M1 limit, pinned so it cannot widen unnoticed: on a date-only reading the Daily issue
+    maps one-to-one to the Sun sign, so the catalog choice in the payload reveals the sign (a
+    group of about 1/12 of readers). Nothing finer is sent: no date, degree or other placement."""
+
+    inverse = {issue: sign for sign, issue in SUN_ISSUES.items()}
+    by_meaning = {issue.meaning: issue.key for issue in DAILY_ISSUES}
+    for sign in ZodiacSign:
+        plan = ReadingPlanner().plan(
+            DateOnlySunResult(
+                status="certain",
+                sign=sign,
+                candidates=(sign,),
+                provenance=EngineProvenance(version="synthetic", profile="synthetic"),
+            ),
+            purpose=ReadingPurpose.DAILY_NOTE,
+            editorial_seed="2026-10-20",
+        )
+        record, projection, _ = _records(plan)
+        baseline = DeterministicVietnameseRenderer().render(plan)
+        request = compile_daily_rewrite_request(
+            record, projection, baseline, model_version="offline", prompt_version="test"
+        )
+        safe = PrivacyMinimiser().minimise(RewriteSurface.DAILY_HOME, request.safe_payload)
+        brief = cast(dict[str, JsonValue], safe["meaning_brief"])
+        issue_key = str(safe["scene_key"]).split(":")[1]
+        assert inverse[issue_key] == sign.value
+        assert by_meaning[str(brief["core_meaning"])] == issue_key
+        assert not _CHART_WORDS.search(json.dumps(safe, ensure_ascii=False))
 
 
 def test_daily_compiler_hashes_meaning_and_preserves_its_allowed_distinction() -> None:

@@ -133,17 +133,26 @@ Provider generation may only move from `off` to `shadow` or user-visible exposur
 
 Native release additionally requires the API host to be configured as the cookie domain. `__Host-` cookie names must not be combined with a `Domain` attribute; if the app later moves session credentials to Keychain/Keystore, this map and both store disclosures must be regenerated from the signed binary.
 
-2026-10-20 M1 chart-free Daily payload: the `daily_home` provider payload no longer carries
-natal or transit evidence or the chart-selected first sentence of the meaning brief. It carries
-only Lá's shared catalog wording for the chosen situation and closed labels, which cannot identify
-or help identify a reader (Law 91/2025/QH15 Art. 2; our reading, not legal advice). `Settings`
-refuses rollout of every other surface, because they still send chart-derived evidence. The
-opt-in copy in `Mình` and on `/privacy` now says exactly this (shared constant
-`OPENAI_REWRITE_SCOPE_NOTICE`) and states that Tarot does not use AI yet. The consent version stays
-`external-content-rewrite-v1`: the new wording narrows what is sent, and production had no opt-ins
-because generation was off. Store declarations: OpenAI receives no personal data from Luna under M1,
-so no new App Privacy / Data Safety category is added for it; re-check before any surface that sends
-personal data is enabled. The app's own hosting abroad is unchanged by M1.
+2026-10-20 M1 Daily payload without direct chart facts: the `daily_home` provider payload no
+longer carries natal or transit evidence or the chart-selected first sentence of the meaning brief.
+It carries Lá's shared catalog wording for the chosen situation and closed labels. The situation is
+still chosen from the chart, so the payload reflects it coarsely; on a date-only reading it reveals
+the Sun sign (one-to-one `SUN_ISSUES`), and nothing finer (no date, degree, other placement or
+identifier). Our assessment, not legal advice, is that this cannot identify or help identify a
+specific reader (Law 91/2025/QH15 Art. 2). `Settings` refuses rollout of every other surface,
+because they still send chart-derived evidence. The opt-in copy in `Mình` and on `/privacy` says
+what is sent (shared constant `OPENAI_REWRITE_SCOPE_NOTICE`) and that Tarot does not use AI yet;
+the new copy awaits owner approval.
+
+Consent version: it stays `external-content-rewrite-v1` because the new wording **narrows** what
+is sent. Whether production already holds v1 consents is not known from code: the consent endpoint
+stores v1 even while generation is off, so "generation off" is no evidence that nobody opted in.
+The owner either confirms the production state (a read-only count, only on the owner's instruction)
+or decides on a version bump; no bump is required merely because the payload narrowed.
+
+Store declarations: on the assessment above, OpenAI receives no personal data from Luna under M1,
+so no new App Privacy / Data Safety category is added for it; re-check before any surface that
+sends personal data is enabled. The app's own hosting abroad is unchanged by M1.
 
 ## Tarot meaning brief delta — local work, 2026-10-09
 

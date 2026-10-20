@@ -139,9 +139,11 @@ def compile_daily_rewrite_request(
         SemanticArena.ENERGY: "energy",
         SemanticArena.SELF_CARE: "energy",
     }.get(blueprint.arena, "general")
-    # M1 (2026-10-20): the payload is chart-free. No natal or transit evidence, and the
+    # M1 (2026-10-20): no direct chart facts. No natal or transit evidence, and the
     # brief keeps only the situation's shared catalog meaning, not the chart-selected
     # personal sentence. Luna never writes astrology on this surface, so it needs neither.
+    # The situation (scene/action keys and wording) is still chosen from the chart: coarse,
+    # and on a date-only reading equivalent to the Sun sign (one-to-one ``SUN_ISSUES``).
     brief = blueprint.daily_meaning
     meaning_brief: JsonValue = None
     if brief is not None:

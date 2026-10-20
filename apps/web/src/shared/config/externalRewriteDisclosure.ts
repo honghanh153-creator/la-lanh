@@ -9,7 +9,7 @@ export const OPENAI_ABUSE_RETENTION_NOTICE =
 
 /**
  * What the AI rewrite receives (M1, 2026-10-20): only Lá's shared catalog wording for the Daily
- * note, never chart facts. The server refuses any other surface, so the copy names only the
+ * note, never direct chart facts (the situation is still chosen from the chart, coarsely). The server refuses any other surface, so the copy names only the
  * Daily note. Shared so the onboarding privacy page and the opt-in sheet in Mình agree.
  */
 export const OPENAI_REWRITE_SCOPE_NOTICE =

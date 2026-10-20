@@ -41,7 +41,7 @@ describe("ConsentPage privacy details", () => {
     expect(notice).toHaveTextContent("bảo vệ dịch vụ hay bên thứ ba khỏi tổn hại");
   });
 
-  it("says the AI rewrite gets only Lá's shared Daily wording, never chart facts", () => {
+  it("says the AI rewrite gets only Lá's shared Daily wording, never direct chart facts", () => {
     renderPrivacyPage();
 
     const notice = screen.getByText((_, element) => element?.tagName === "P" && (element.textContent ?? "").includes(OPENAI_REWRITE_SCOPE_NOTICE));

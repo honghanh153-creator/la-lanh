@@ -1382,7 +1382,9 @@ def issue_source_ids() -> frozenset[str]:
 
 def daily_issue_meaning(mechanism_key: str | None) -> str:
     """The shared catalog meaning of a Daily situation, without the chart-selected personal
-    sentence that ``core_meaning`` starts with. Luna payloads use this so they stay chart-free."""
+    sentence that ``core_meaning`` starts with. Luna payloads use this so they carry no direct
+    chart facts. The issue itself is still chosen from the chart (coarse; on a date-only reading it
+    maps one-to-one to the Sun sign, see ``SUN_ISSUES``)."""
 
     prefix = "psychology:"
     if not mechanism_key or not mechanism_key.startswith(prefix):

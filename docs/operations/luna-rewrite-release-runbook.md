@@ -1,10 +1,11 @@
 # Luna rewrite release runbook
 
-## M1: chart-free `daily_home` payload, 2026-10-20
+## M1: `daily_home` payload without direct chart facts, 2026-10-20
 
 Owner decision 2026-10-20: Luna may rewrite wording only from content that carries no personal
-data. M1 makes the `daily_home` provider payload chart-free. Chain: `surface-rewrite-v5` → schema
-`daily-rewrite/v3` → `daily-rewrite-gates/v4`; the schema bump changes the cache key.
+data. M1 removes every direct chart fact from the `daily_home` provider payload. Chain:
+`surface-rewrite-v5` → schema `daily-rewrite/v3` → `daily-rewrite-gates/v4`; the schema bump
+changes the cache key.
 
 - **Removed:** `evidence` (natal and transit labels: body, sign, house, aspect…), and the first,
   chart-selected sentence of `meaning_brief.core_meaning`. The brief now carries only the
@@ -13,28 +14,38 @@ data. M1 makes the `daily_home` provider payload chart-free. Chain: `surface-rew
   needed.
 - **What remains:** catalog wording for the chosen situation (title, scene with its context lead,
   action, Lá's companion brief, takeaway, anchors, observation question), the closed context label
-  and the catalog keys. No identifier, owner key or `store`d history; `store:false` as before.
+  and the catalog keys. No identifier, owner key or stored history; `store:false` as before.
+- **What the remaining content still reveals (coarse, not zero):** the situation is chosen from the
+  chart, so the catalog keys and wording reflect it coarsely: one of 15 situations, its title,
+  scene and action slots, and the context lead. On a **date-only** reading the situation maps
+  one-to-one to the Sun sign (`SUN_ISSUES`), so the payload reveals the Sun sign, a group of about
+  1/12 of readers; `test_m1_date_only_catalog_choice_reveals_the_sun_sign_and_nothing_finer` pins
+  this so it cannot widen unnoticed. No date, degree, house, other placement or identifier is
+  sent. M1 is therefore "no direct chart facts", **not** "chart-independent". Making the catalog
+  choice itself uninformative would need the rewrite separated from the personal selection (for
+  example editorial-time rewriting of the catalog), with its own date-only regression.
 - **Fail closed:** `DailySafePayload` no longer has `evidence` and forbids extra fields, so a job
   queued before M1 that still carries chart facts is rejected by the provider adapter and is
   never sent.
 - **Rollout guard:** `Settings` refuses any non-`off` rollout mode, `shadow` included, for a
   surface outside `CHART_FREE_REWRITE_SURFACES` (`daily_home` only). The other surfaces still send
-  chart-derived evidence and stay off until they are masked and proven chart-free.
-- **Evidence (synthetic, offline):** `test_m1_daily_payload_is_catalog_text_and_independent_of_the_chart`
-  checks 60 random charts. Every payload string is catalog text of the chosen situation, no
-  chart word or factor id appears, and charts that choose the same catalog content send
-  byte-identical payloads. A wider local probe through the pilot path (400 charts, transits
-  included) produced 75 distinct payloads, each fully determined by its catalog choice. The
-  catalog choice itself reflects the chart only coarsely (one of 15 situations and 5 context
-  leads), shared by many readers. Legal reading: Law 91/2025/QH15 Art. 2 treats data that cannot
-  identify or help identify a specific person as no longer personal data. That is our reading,
-  not legal advice; the owner may ask a lawyer to confirm.
-- **Effect on the privacy prerequisites** (stage 1 of the 2026-10-19 owner decision, PR #36): for
-  `daily_home` under M1 the provider receives no personal data, so DPA acceptance becomes
-  recommended rather than blocking for Luna, and Luna adds no cross-border transfer of personal
-  data. This does **not** settle the separate question of the app's own hosting in Germany
-  (Hetzner, Supabase Frankfurt), which a lawyer should review independently. The opt-in in `Mình`
-  stays, with copy stating what is sent.
+  chart-derived evidence and stay off until they are masked and proven to carry no direct chart facts.
+- **Evidence (synthetic, offline):** `test_m1_daily_payload_is_catalog_text_without_direct_chart_facts`
+  checks 60 random charts: every payload string is catalog text of the chosen situation, no chart
+  word or factor id appears, and charts that choose the same catalog content send byte-identical
+  payloads. This proves provenance and data reduction, not independence from the chart. A wider
+  local probe through the pilot path (400 charts, transits included) produced 75 distinct payloads,
+  each fully determined by its catalog choice.
+- **Legal reading (ours, not legal advice):** Law 91/2025/QH15 Art. 2 says data that cannot identify
+  or help identify a specific person is no longer personal data. Our assessment is that a coarse
+  situation choice, at most equivalent to a Sun sign and sent without any identifier, does not
+  identify or help identify a specific reader. That is the implementer's assessment, not a
+  confirmation from review; the owner may ask a lawyer to confirm.
+- **Effect on the privacy prerequisites** (stage 1 of the 2026-10-19 owner decision, PR #36): on that
+  assessment, DPA acceptance becomes recommended rather than blocking for `daily_home` under M1, and
+  Luna adds no cross-border transfer of personal data. This does **not** settle the separate
+  question of the app's own hosting in Germany (Hetzner, Supabase Frankfurt), which a lawyer should
+  review independently. The opt-in in `Mình` stays, with copy stating what is sent.
 - **Staging until M1 is deployed:** the staging image predates M1 and still sends chart evidence.
   Keep staging generation on only with synthetic profiles, or off, until M1 is deployed there.
 

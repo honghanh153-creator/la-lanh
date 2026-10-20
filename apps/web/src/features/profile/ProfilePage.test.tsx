@@ -126,7 +126,7 @@ describe("ProfilePage resonance privacy controls", () => {
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Thử AI viết lại" }));
     expect(screen.getByRole("dialog")).toHaveTextContent("OpenAI");
-    // M1: only Lá's shared catalog wording for the Daily note; never chart facts.
+    // M1: only Lá's shared catalog wording for the Daily note; never direct chart facts.
     expect(screen.getByRole("dialog")).toHaveTextContent(OPENAI_REWRITE_SCOPE_NOTICE);
     expect(screen.getByRole("dialog")).not.toHaveTextContent("nhãn chiêm tinh liên quan");
     // Tarot is refused server-side under M1; the sheet says it is not part of this consent.

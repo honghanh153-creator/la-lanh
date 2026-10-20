@@ -12,7 +12,9 @@ DEVELOPMENT_ENCRYPTION_KEY = "bGEtbGFuaC1kZXYtZW5jcnlwdGlvbi1rZXktMzIhISE="
 PINNED_OPENAI_MODEL: Literal["gpt-6-luna"] = "gpt-6-luna"
 
 
-# Surfaces whose provider payload carries no chart facts (M1). Extend only with proof.
+# Surfaces whose provider payload carries no direct chart facts (M1): no positions or labels.
+# A coarse catalog choice may still reflect the chart (see the Luna runbook).
+# Extend only with proof.
 CHART_FREE_REWRITE_SURFACES = frozenset({"daily_home"})
 
 
@@ -167,8 +169,8 @@ class Settings(BaseSettings):
                 raise ValueError(
                     f"generation rollout contains unknown surfaces: {sorted(unknown_surfaces)}"
                 )
-            # M1 (2026-10-20): only chart-free payloads may reach the provider. Every other
-            # surface still sends chart-derived evidence, and shadow mode sends too.
+            # M1 (2026-10-20): only payloads without direct chart facts may reach the provider.
+            # Every other surface still sends chart-derived evidence, and shadow mode sends too.
             chart_bound = {
                 surface
                 for surface, mode in self.generation_surface_rollout.items()
