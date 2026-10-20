@@ -18,6 +18,7 @@ from app.domains.astro.models import (
 )
 from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.content_rewrite.service import ContentRewriteService
+from app.domains.history.errors import HistoryUnavailable
 from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_MATRIX_VERSION,
@@ -506,7 +507,9 @@ class ReadingApplicationService:
         """Issue keys this owner was actually served on D-1 then D-2, from stored projections.
 
         Reads existing rows only (no history table). Stops at the first day without a served
-        note: the top-K guard is about consecutive calendar days the reader saw.
+        note: the top-K guard is about consecutive calendar days the reader saw. A day whose
+        history has expired under the retention policy counts as unavailable, never as an error,
+        so with the 24-hour Daily window the guard usually sees at most D-1.
         """
 
         issues: list[str] = []
@@ -519,14 +522,19 @@ class ReadingApplicationService:
                 datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC),
                 background_lens,
             )
-            projection = await self._repository.get_projection(guest_id, profile_id, scope_key)
-            revision = (
-                await self._repository.get_revision(
-                    guest_id, profile_id, projection.active_revision_id
+            try:
+                projection = await self._repository.get_projection(guest_id, profile_id, scope_key)
+                revision = (
+                    await self._repository.get_revision(
+                        guest_id, profile_id, projection.active_revision_id
+                    )
+                    if projection is not None and projection.active_revision_id is not None
+                    else None
                 )
-                if projection is not None and projection.active_revision_id is not None
-                else None
-            )
+            except HistoryUnavailable:
+                # Expired Daily history (24-hour window) is not evidence of what was served and
+                # must never block today's note; the guard just sees fewer days.
+                break
             candidate = revision.evaluation.publishable_candidate if revision else None
             blueprint = candidate.semantic_blueprint if candidate else None
             if blueprint is None or not blueprint.mechanism_key.startswith("psychology:"):

@@ -28,6 +28,7 @@ from app.domains.readings.tables import (
 )
 from app.domains.resonance.tables import ResonanceFeedbackRow
 from app.domains.saved.tables import SavedNoteRow
+from app.domains.share.tables import ShareArtifactRow
 from app.domains.tarot.tables import TarotSessionRow
 from app.infrastructure.crypto import EnvelopeCipher
 
@@ -35,9 +36,11 @@ CONSENT_VERSION = "history-retention-v1"
 HISTORY_WINDOW = timedelta(days=30)
 PURGE_WINDOW = timedelta(days=29, hours=18)
 # Owner decision 2026-10-20: automatic Daily-note history (notes, Daily projections and plans with
-# their rewrite revisions) is kept at most 24 hours from creation. Purging from 18 hours keeps
-# physical deletion within 24 hours under the six-hour cleanup, like PURGE_WINDOW does for 30 days.
-# Saved notes and today's note are exempt as before; moods keep the 30-day window.
+# their rewrite revisions) is hidden 24 hours after creation and becomes eligible for physical
+# deletion from 18 hours. Physical deletion happens at the first six-hour cleanup run after the
+# row is eligible, so it is not a proven 24-hour bound: today's note stays until the local day
+# ends, an owner's send fence defers a run, and a live child below keeps its root.
+# Saved notes and today's note are exempt as before; a note's mood is attached and goes with it.
 DAILY_HISTORY_WINDOW = timedelta(hours=24)
 DAILY_PURGE_WINDOW = timedelta(hours=18)
 PRODUCT_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -75,6 +78,32 @@ def expired_history(
             HistoryRetentionPolicyRow.activated_at <= now - HISTORY_WINDOW,
         ),
     ).exists()
+
+
+def live_daily_children(now: datetime) -> ColumnElement[bool]:
+    """A Daily note that a child with its own unexpired contract still references: a small
+    experiment awaiting review, resonance feedback, or an unrevoked share link. Automatic cleanup
+    keeps that root (hidden) until the child expires, instead of cascading the child away early."""
+
+    experiment = (
+        select(DailyExperimentRow.id)
+        .where(DailyExperimentRow.daily_note_id == DailyNoteRow.id)
+        .where(DailyExperimentRow.expires_at > now)
+        .exists()
+    )
+    feedback = (
+        select(ResonanceFeedbackRow.id)
+        .where(ResonanceFeedbackRow.daily_note_id == DailyNoteRow.id)
+        .where(ResonanceFeedbackRow.expires_at > now)
+        .exists()
+    )
+    share = (
+        select(ShareArtifactRow.id)
+        .where(ShareArtifactRow.daily_note_id == DailyNoteRow.id)
+        .where(ShareArtifactRow.expires_at > now, ShareArtifactRow.revoked_at.is_(None))
+        .exists()
+    )
+    return experiment | feedback | share
 
 
 def saved_daily_source() -> ColumnElement[bool]:
@@ -249,7 +278,7 @@ class PostgresHistoryRepository:
         else:
             daily &= expired_history(
                 DailyNoteRow.guest_id, DailyNoteRow.created_at, now, physical=True, daily=True
-            )
+            ) & ~live_daily_children(now)
             moods &= expired_history(
                 MoodCheckInRow.guest_id, MoodCheckInRow.created_at, now, physical=True
             )
@@ -307,6 +336,19 @@ class PostgresHistoryRepository:
             ~saved,
         )
         if not manual:
+            # Revisions of a plan carry experiment and feedback children with their own expiry;
+            # keep the plan until they expire rather than cascading them away early.
+            live_children = or_(
+                select(DailyExperimentRow.id)
+                .where(DailyExperimentRow.revision_id.in_(revisions))
+                .where(DailyExperimentRow.expires_at > now)
+                .exists(),
+                select(ResonanceFeedbackRow.id)
+                .where(ResonanceFeedbackRow.revision_id.in_(revisions))
+                .where(ResonanceFeedbackRow.expires_at > now)
+                .exists(),
+            )
+            query = query.where(~live_children)
             query = query.where(
                 expired_history(
                     ReadingPlanRow.guest_id,

@@ -12,11 +12,11 @@ Không cần đăng nhập để đọc note, Tarot hoặc dùng chart. Welcome 
 | Hồ sơ khách | 30 ngày không hoạt động | Dùng tính năng riêng tư với phiên hợp lệ |
 | Hồ sơ tài khoản | 365 ngày không hoạt động, cần đồng ý riêng | Dùng phiên tài khoản hợp lệ |
 | Phiên từng thiết bị | 30 ngày không hoạt động | Chính thiết bị đó dùng tính năng riêng tư |
-| Note ngày tự động (kèm mood của ngày đó, bản Luna đi cùng) | Tối đa 24 giờ từ lúc tạo (owner quyết 2026-10-20); note hôm nay và note đã lưu được miễn | Không gia hạn khi mở lại hoặc đăng nhập |
+| Note ngày tự động (kèm mood của ngày đó, bản Luna đi cùng) | Ẩn sau 24 giờ từ lúc tạo (owner quyết 2026-10-20), xoá thật ở lượt dọn kế tiếp; note hôm nay và note đã lưu được miễn; note còn việc nhỏ chờ nhìn lại, phản hồi hoặc link chia sẻ chưa hết hạn được giữ ẩn tới khi các mục đó hết hạn | Không gia hạn khi mở lại hoặc đăng nhập |
 | Lịch sử tự động khác | Tối đa 30 ngày từ lúc tạo | Không gia hạn khi mở lại hoặc đăng nhập |
 | Chart, bản đọc hiện tại, note đã lưu | Theo thời hạn hồ sơ | Không bị thao tác xoá lịch sử lấy đi |
 
-Hồ sơ cũ không tự bị bật chính sách lịch sử mới. Sau khi người dùng đồng ý, có đủ 30 ngày trước lần dọn đầu tiên. Dọn vật lý có khoảng dự phòng 6 giờ (note ngày: đủ điều kiện dọn từ 18 giờ, ẩn ở 24 giờ; lịch sử khác: dọn từ 29 ngày 18 giờ, ẩn ở 30 ngày); phải chạy cleanup ít nhất mỗi 6 giờ. Lượt dọn gặp fence gửi Luna của owner sẽ dời sang lượt sau. Không dùng việc xem link public hoặc worker để gia hạn hồ sơ.
+Hồ sơ cũ không tự bị bật chính sách lịch sử mới. Sau khi người dùng đồng ý, có đủ 30 ngày trước lần dọn đầu tiên. Dọn vật lý theo lịch, không phải cận cứng: lịch sử khác đủ điều kiện dọn từ 29 ngày 18 giờ và ẩn ở 30 ngày; note ngày ẩn ở 24 giờ và đủ điều kiện dọn từ 18 giờ nhưng chỉ khi đã không còn là note hôm nay, nên note tạo lúc 00:00 bị xoá ở lượt 00:40 hôm sau (khoảng 24 giờ 40 phút, chưa tính độ lệch timer). Phải chạy cleanup ít nhất mỗi 6 giờ. Lượt dọn gặp fence gửi Luna của owner sẽ dời sang lượt sau. Note ngày còn mục con có hạn riêng (experiment, resonance, share chưa thu hồi) được giữ ẩn tới khi các mục đó hết hạn, không bị cascade sớm. Không dùng việc xem link public hoặc worker để gia hạn hồ sơ.
 
 ## Nguồn quyền hạn nằm ở backend
 

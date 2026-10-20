@@ -41,12 +41,13 @@ describe("ConsentPage privacy details", () => {
     expect(notice).toHaveTextContent("bảo vệ dịch vụ hay bên thứ ba khỏi tổn hại");
   });
 
-  it("says automatic Daily notes are kept at most 24 hours and other history 30 days", () => {
+  it("says automatic Daily notes hide at 24 hours, when they are deleted, and other history 30 days", () => {
     renderPrivacyPage();
 
     const history = screen.getByText((_, element) => element?.tagName === "P" && (element.textContent ?? "").startsWith("Khi đồng ý, note ngày"));
-    expect(history).toHaveTextContent("tối đa 24 giờ từ lúc tạo, kèm mood của ngày đó");
-    expect(history).toHaveTextContent("lịch sử khác giữ tối đa 30 ngày");
+    expect(history).toHaveTextContent("ẩn sau 24 giờ từ lúc tạo, kèm mood của ngày đó");
+    expect(history).toHaveTextContent("được giữ ẩn tới khi các mục đó hết hạn");
+    expect(history).toHaveTextContent("Lịch sử khác giữ tối đa 30 ngày");
     expect(history).toHaveTextContent("Bấm Lưu để giữ một note lâu hơn");
   });
 

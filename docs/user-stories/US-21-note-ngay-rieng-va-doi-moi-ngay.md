@@ -51,6 +51,12 @@ cho phép.
   khoá `K[v+1]` chỉ áp cho ngày mới.
 - **AC05:** Tình huống chọn từ top-K đã sắp xếp ổn định, theo `day_index mod K`. Không quá 2 ngày liền
   cùng tình huống khi pool có ít nhất 2 phần tử. Pool 1 phần tử thì tình huống đứng yên và các ô vẫn đổi.
+  *Đối chiếu với note ngày 24 giờ (2026-10-20, chờ owner quyết):* guard đọc note đã phục vụ ở D−1 và
+  D−2. Với hạn 24 giờ, D−2 luôn đã hết hạn và D−1 thường cũng vậy, nên guard thường không đủ dữ liệu để
+  chặn ngày thứ ba. Lịch sử hết hạn được coi là không có, không bao giờ chặn note hôm nay, và không được
+  giữ thêm dữ liệu chỉ để phục vụ guard. Khi đó AC05 chỉ còn được bảo đảm bởi việc xoay `day_index mod K`
+  (pool ổn định thì hai ngày liền kề khác vị trí); ngày thứ ba liên tiếp vẫn có thể xảy ra khi pool đổi
+  thành phần. Đề xuất: owner chấp nhận AC05 ở mức "cố gắng tốt nhất" trong phạm vi lịch sử còn hạn.
 - **AC06:** Ngày bị ép ngoại lệ D thì D+1 ở đúng vị trí danh nghĩa (không dịch). Báo cáo có số lượt và
   tỷ lệ ngoại lệ. *(Phản ví dụ của Codex)*
 

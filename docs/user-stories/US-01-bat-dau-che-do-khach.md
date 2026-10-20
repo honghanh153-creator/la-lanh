@@ -343,7 +343,7 @@ flowchart TD
 
 Mở lại welcome/consent không xoá một guest đang còn hạn. Chỉ tạo owner mới khi phiên thực sự thiếu/hết hạn; lỗi mạng không phải bằng chứng hết hạn. **Không cung cấp action tạo hồ sơ khác trong bản này.** Cookie và thời hạn server của khách cùng gia hạn sau private use hợp lệ; người dùng không phải nhập lại DOB mỗi ngày. Không nhận hoạt động từ worker/public link làm gia hạn.
 
-Khách giữ hồ sơ 30 ngày **không hoạt động**. Lịch sử tự động có consent riêng: note ngày tối đa 24 giờ, lịch sử khác tối đa 30 ngày, **từ lúc tạo** (owner quyết 2026-10-20); chart/current reading/Saved giữ cùng hồ sơ. Người dùng cũ có opt-in và grace đầy đủ, không âm thầm bị dọn theo chính sách mới.
+Khách giữ hồ sơ 30 ngày **không hoạt động**. Lịch sử tự động có consent riêng: note ngày ẩn sau 24 giờ rồi được xoá theo đợt dọn (note còn việc nhỏ, phản hồi hoặc link chia sẻ còn hạn được giữ ẩn tới khi các mục đó hết hạn), lịch sử khác tối đa 30 ngày, **từ lúc tạo** (owner quyết 2026-10-20); chart/current reading/Saved giữ cùng hồ sơ. Người dùng cũ có opt-in và grace đầy đủ, không âm thầm bị dọn theo chính sách mới.
 
 Khách chỉ đã đồng ý Tarot không được ghi DOB cho tới receipt `birth_profile_basic`. Màn DOB ghi purpose này sau submit có notice; không đổi owner hay tự bật consent AI. Login Google là tuỳ chọn và chưa bật provider thật trong bản local này. Xem [contract IAM/retention](../architecture/account-iam-and-retention.md).
 

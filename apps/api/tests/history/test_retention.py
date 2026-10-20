@@ -621,3 +621,35 @@ async def test_mood_without_a_daily_purge_keeps_the_30_day_window(storage: Datab
     assert await PostgresHistoryRepository(storage.sessions, cipher()).purge_expired(NOW) == 0
     async with storage.sessions() as session:
         assert await session.get(MoodCheckInRow, mood.id) is not None
+
+
+async def test_todays_note_outlives_the_18_hour_threshold_until_the_local_day_ends(
+    storage: Database,
+) -> None:
+    """P3 of the PR #38 review: physical deletion is scheduled, not a proven 24-hour bound. A note
+    created at 00:00 local time is still today's note at the 18:40 run (18h40m old) and is first
+    removed at the 00:40 run the next day, 24h40m after creation (before timer jitter)."""
+
+    guest_id = await owner(storage)
+    vn_today = NOW.astimezone(PRODUCT_TIMEZONE).replace(hour=0, minute=0, second=0, microsecond=0)
+    created = (vn_today - timedelta(days=1)).astimezone(UTC)
+    daily = await PostgresDailyNoteRepository(storage.sessions, cipher()).get_or_create(
+        DailyNoteRecord(
+            id=uuid4(),
+            guest_id=guest_id,
+            note_date=(vn_today - timedelta(days=1)).date(),
+            title="synthetic",
+            body="private",
+            context_label="test",
+            content_version="test",
+            chart_snapshot_id=None,
+            created_at=created,
+        )
+    )
+    async with storage.sessions() as session, session.begin():
+        await activate_policy(session, guest_id, created - timedelta(days=1))
+    repository = PostgresHistoryRepository(storage.sessions, cipher())
+    assert await repository.purge_expired(created + timedelta(hours=18, minutes=40)) == 0
+    assert await repository.purge_expired(created + timedelta(hours=24, minutes=40)) == 1
+    async with storage.sessions() as session:
+        assert await session.get(DailyNoteRow, daily.id) is None
