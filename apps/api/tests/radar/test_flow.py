@@ -366,6 +366,21 @@ def test_private_check_computes_without_persisting_other_person_birth_input(
         _assert_dossier_payload(stored.json())
         _assert_no_raw_birth_data(stored.json())
         assert stored.json()["sections"][0]["highlights"] == payload["sections"][0]["highlights"]
+        # The owner sees this result's own expiry, on creation and on reopening.
+        expires_at = datetime.fromisoformat(stored.json()["expires_at"])
+        assert datetime.fromisoformat(payload["expires_at"]) == expires_at
+        # A result created before the 24-hour rule keeps, and shows, its original 30 days.
+        with sqlite3.connect(database) as connection:
+            connection.execute(
+                "UPDATE radar_requests SET completed_at = datetime('now', '-25 hours'), "
+                "created_at = datetime('now', '-25 hours'), "
+                "expires_at = datetime('now', '-25 hours', '+30 days')"
+            )
+            connection.commit()
+        legacy = owner.get(f"/v1/radar/results/{request_id}")
+        assert legacy.status_code == 200
+        assert _retention(database, request_id) == timedelta(days=30)
+        assert datetime.fromisoformat(legacy.json()["expires_at"]) - expires_at > timedelta(days=27)
         assert owner.delete(f"/v1/radar/results/{request_id}", headers=headers).status_code == 204
         assert owner.get(f"/v1/radar/results/{request_id}").status_code == 404
 

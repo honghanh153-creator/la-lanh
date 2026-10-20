@@ -291,6 +291,7 @@ class RadarService:
             "recipient_label": label,
             "mode": RadarMode.PRIVATE_CHECK.value,
             **projection,
+            "expires_at": row.expires_at,
         }
 
     async def list_owned(
@@ -475,6 +476,7 @@ class RadarService:
             "recipient_label": self._label(row),
             "mode": RadarMode.PRIVATE_CHECK.value,
             **payload,
+            "expires_at": row.expires_at,
         }
 
     async def share_token(self, principal_id: UUID, request_id: UUID) -> str:
@@ -620,6 +622,7 @@ class RadarService:
             result["request_id"] = str(row.id)
             result["recipient_label"] = self._label(row)
             result["mode"] = row.mode
+            result["expires_at"] = row.expires_at
             return result
 
     async def receipt_result(self, receipt: str) -> dict[str, Any]:

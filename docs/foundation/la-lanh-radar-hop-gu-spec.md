@@ -82,15 +82,23 @@ Inputs must not enter URL, localStorage/sessionStorage, analytics, logs, error t
 | Permission attestation | Version + timestamp | Same request lifetime | Deleted with result |
 | Invite capability | Hash + temporary encrypted copy | 7 days or terminal state | Revoke |
 | B birth profile in invite mode | Existing encrypted birth domain | Existing guest policy | B withdraw/delete |
+| Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 7 days | B withdraw; inaccessible after expiry |
 
 Private-check retention (owner decision 2026-10-19): A enters B's data under A's attestation alone, so the
-result is kept only long enough to reopen it, 24 hours from creation. It is hidden at expiry, and the
-six-hour `cleanup_expired` job deletes the row and its rewrite jobs (cascade), so physical deletion happens
-within about 30 hours. The form, the history row (exact Vietnam-time expiry) and the result page say so;
-the result page keeps the delete-now button. Results created before this change keep the expiry they were
-created with (at most 30 days, as their notice said). A consented invite keeps 30 days because B consented
-separately and can withdraw.
-| Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 7 days | B withdraw; inaccessible after expiry |
+result is kept only long enough to reopen it, 24 hours from creation.
+
+- **Hidden at expiry, always.** Read, replay and history treat a row with `expires_at <= now` as expired.
+- **Physical deletion is nominal, not a hard deadline.** The six-hour `cleanup_expired` job deletes expired
+  rows and their rewrite jobs (FK cascade). With no delay that is within about 30 hours of creation. The job
+  skips an owner while that owner has an active rewrite send fence or a started generation attempt (any
+  surface, Daily included), and a pass that cannot delete stops and is retried only at the next timer run.
+  Each overlap therefore defers deletion by one six-hour run. The fence is kept on purpose: it protects
+  in-flight sends from deletion races. There is no upper bound until a retry-after-fence mechanism exists.
+- **Notices state the row's own expiry.** The form states the 24-hour rule for new checks. The history row and
+  the result page show the stored `expires_at` in Vietnam time and keep the delete-now button. Results created
+  before this change keep the expiry they were created with (at most 30 days, as their notice said) and show
+  that expiry; there is no backfill.
+- A consented invite keeps 30 days because B consented separately and can withdraw.
 
 No contact upload, phone/email, GPS, current city, precise distance, IP fingerprint, mood, chat, advertising ID or model-training use belongs in Radar.
 

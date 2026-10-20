@@ -2541,6 +2541,8 @@ export interface components {
             }[];
             /** Disclaimer */
             disclaimer: string;
+            /** Expires At */
+            expires_at?: string | null;
             /** Headline */
             headline: string;
             /** Metadata */

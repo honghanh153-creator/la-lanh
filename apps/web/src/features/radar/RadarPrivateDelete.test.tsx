@@ -15,8 +15,10 @@ import {
   searchBirthPlaces,
   SESSION_EPOCH_KEY,
   type GuestSession,
+  type RadarResult,
 } from "../../shared/api/client";
 import { testLocks } from "../../shared/session/testLocks";
+import { RadarResultView } from "./RadarContinuePage";
 import { RadarOwnerResultPage } from "./RadarOwnerResultPage";
 import { RadarPrivateStartPage } from "./RadarPrivateStartPage";
 
@@ -188,23 +190,36 @@ describe("Radar owner result delete uses the same sheet", () => {
     expect(await screen.findByTestId("where")).toHaveTextContent("/radar/start#radar-history");
   });
 
-  it("tells the owner a private check is kept 24 hours, and an invite result is not", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const view = render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/radar/result/check-1"]}><Routes>
-      <Route element={<RadarOwnerResultPage />} path="/radar/result/:requestId" />
-    </Routes></MemoryRouter></QueryClientProvider>);
-    const note = (await screen.findByText("Bản đọc này chỉ giữ 24 giờ.")).closest("section");
-    expect(note).toHaveTextContent("không khôi phục được");
-    view.unmount();
+  it.each([
+    ["new 24-hour", "2026-10-20T03:00:00Z", "Bản đọc này tự xoá lúc 10:00, 20/10."],
+    ["legacy 30-day", "2026-11-18T03:00:00Z", "Bản đọc này tự xoá lúc 10:00, 18/11."],
+  ])("states the %s result's own expiry on v1 and v2, never a fixed 24 hours", (_kind, expiresAt, expected) => {
+    const base = { mode: "private_check", recipient_label: "QA tổng hợp", expires_at: expiresAt, disclaimer: "Chỉ để tự soi." } as const;
+    const v1 = { ...base, version: "radar-result-v1", headline: "Hai nhịp khác nhau", summary: "Tóm tắt tổng hợp.", dimensions: [] };
+    const v2 = {
+      ...base, version: "radar-result-v2", headline: "Hai nhịp khác nhau", summary: "Tóm tắt tổng hợp.", dimensions: [],
+      pair_signature: { kicker: "Tín hiệu", headline: "Hai nhịp khác nhau", summary: "Tóm tắt tổng hợp." },
+      compatibility_map: [{ key: "resonance", label: "Bắt sóng", value: 60, meaning: "Nghĩa tổng hợp." }],
+      sections: [{ key: "flow", label: "Dòng chảy", title: "Tiêu đề tổng hợp", body: "Thân bài tổng hợp.", evidence: [] }],
+    };
+    for (const result of [v1, v2]) {
+      const view = render(<MemoryRouter><RadarResultView onWithdraw={() => {}} ownerView result={result as unknown as RadarResult} /></MemoryRouter>);
+      const note = screen.getByText(expected).closest("section");
+      expect(note).toHaveTextContent("không mở lại được nữa");
+      expect(screen.queryByText(/24 giờ/)).not.toBeInTheDocument();
+      view.unmount();
+    }
+  });
 
-    vi.mocked(getRadarResult).mockResolvedValue({
-      status: "completed", mode: "consented_invite", recipient_label: "QA tổng hợp", headline: "Hai nhịp khác nhau",
-      summary: "Tóm tắt tổng hợp.", dimensions: [], disclaimer: "Chỉ để tự soi.",
-    } as unknown as Awaited<ReturnType<typeof getRadarResult>>);
-    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={["/radar/result/invite-1"]}><Routes>
-      <Route element={<RadarOwnerResultPage />} path="/radar/result/:requestId" />
-    </Routes></MemoryRouter></QueryClientProvider>);
-    expect(await screen.findByRole("button", { name: /Xóa kết quả này/ })).toBeInTheDocument();
-    expect(screen.queryByText("Bản đọc này chỉ giữ 24 giờ.")).not.toBeInTheDocument();
+  it("shows no retention note on a consented invite result or the recipient view", () => {
+    const result = {
+      mode: "consented_invite", recipient_label: "QA tổng hợp", expires_at: "2026-11-18T03:00:00Z", version: "radar-result-v1",
+      headline: "Hai nhịp khác nhau", summary: "Tóm tắt tổng hợp.", dimensions: [], disclaimer: "Chỉ để tự soi.",
+    } as unknown as RadarResult;
+    const owner = render(<MemoryRouter><RadarResultView ownerView result={result} /></MemoryRouter>);
+    expect(screen.queryByText(/tự xoá lúc/)).not.toBeInTheDocument();
+    owner.unmount();
+    render(<MemoryRouter><RadarResultView result={{ ...result, mode: "private_check" }} /></MemoryRouter>);
+    expect(screen.queryByText(/tự xoá lúc/)).not.toBeInTheDocument();
   });
 });
