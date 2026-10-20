@@ -181,7 +181,7 @@ def _rewrite_envelope() -> RewriteRequestEnvelope:
             blueprint_hash="a" * 64,
             model_version=MODEL,
             prompt_version="surface-rewrite-v1",
-            schema_version="daily-rewrite/v2",
+            schema_version="daily-rewrite/v3",
             gate_version="daily-rewrite-gates/v4",
         ),
         authorization_receipt_id="consent-receipt",
@@ -199,17 +199,6 @@ def _rewrite_envelope() -> RewriteRequestEnvelope:
                     "section": "manifestation",
                     "markers": ["tin nhắn", "chưa rõ"],
                     "min_matches": 1,
-                }
-            ],
-            "evidence": [
-                {
-                    "label": "factor_1",
-                    "source": "natal",
-                    "kind": "planet_placement",
-                    "domain": "communication",
-                    "role": "primary",
-                    "confidence": "high",
-                    "labels": [{"name": "body", "value": "Mặt Trời"}],
                 }
             ],
         },
@@ -401,6 +390,36 @@ async def test_pinned_sdk_transport_disables_sdk_retries_and_forwards_timeout() 
     assert call is not None
     assert call.kwargs["timeout"] == 4.5
     assert call.kwargs["store"] is False
+
+
+@pytest.mark.parametrize(
+    "rollout",
+    [
+        {"reveal": "shadow"},
+        {"tarot": "full"},
+        {"radar": "editorial"},
+        {"daily_home": "full", "daily_detail": "shadow"},
+    ],
+)
+def test_m1_rollout_rejects_surfaces_that_still_send_chart_facts(rollout: dict[str, str]) -> None:
+    """M1: only chart-free payloads may reach the provider; shadow mode sends too."""
+
+    with pytest.raises(ValidationError, match="chart-free surfaces"):
+        Settings(
+            environment="test",
+            generation_enabled=True,
+            generation_provider="openai",
+            generation_governance_approved=True,
+            generation_surface_rollout=rollout,
+        )
+    off_elsewhere = Settings(
+        environment="test",
+        generation_enabled=True,
+        generation_provider="openai",
+        generation_governance_approved=True,
+        generation_surface_rollout={**dict.fromkeys(rollout, "off"), "daily_home": "full"},
+    )
+    assert off_elsewhere.generation_surface_rollout["daily_home"] == "full"
 
 
 def test_provider_is_off_by_default_and_enabled_settings_fail_closed() -> None:

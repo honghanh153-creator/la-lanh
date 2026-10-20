@@ -57,7 +57,7 @@ def canonical_surface_registry() -> SurfaceRegistry:
         RewriteSurfaceSpec(
             surface=RewriteSurface.DAILY_HOME,
             fallback_owner="readings",
-            schema_version="daily-rewrite/v2",
+            schema_version="daily-rewrite/v3",
             gate_version="daily-rewrite-gates/v4",
             # companion = Lá's line next to the card (content matrix: readings/companion.py).
             fields=_fields("title", "scene", "action", "companion"),

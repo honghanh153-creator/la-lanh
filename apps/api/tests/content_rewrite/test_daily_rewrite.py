@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+import random
+import re
+from datetime import UTC, datetime, timedelta
+from typing import cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -16,8 +19,14 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
+from app.domains.content_rewrite.models import RewriteSurface
 from app.domains.readings.companion import companion_issue_entry
-from app.domains.readings.daily_psychology import current_scene_lead, split_scene_lead
+from app.domains.readings.daily_psychology import (
+    DAILY_ISSUES,
+    current_scene_lead,
+    daily_issue_meaning,
+    split_scene_lead,
+)
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     BackgroundLens,
@@ -41,6 +50,7 @@ from app.domains.readings.rewrite import (
     DailyRewriteProjector,
     compile_daily_rewrite_request,
 )
+from app.infrastructure.generation.privacy import PrivacyMinimiser
 
 NOW = datetime(2026, 10, 3, 12, tzinfo=UTC)
 
@@ -196,22 +206,28 @@ def test_daily_compiler_sends_only_derived_safe_brief() -> None:
         "companion_meaning",
         "meaning_brief",
         "requirements",
-        "evidence",
     }
     # Lá's brief is editorial meaning from the catalog, never the authored sentence.
     entry = companion_issue_entry(baseline.semantic_blueprint.mechanism_key)
     assert request.safe_payload["companion_meaning"] == entry.meaning
     assert entry.line.direct not in serialized and entry.line.roast not in serialized
-    assert request.key.schema_version == "daily-rewrite/v2"
+    assert request.key.schema_version == "daily-rewrite/v3"
     assert "1990" not in serialized
     assert "latitude" not in serialized
     assert "longitude" not in serialized
     assert str(plan_record.guest_id) not in serialized
     assert baseline.semantic_blueprint is not None
     assert baseline.semantic_blueprint.daily_meaning is not None
-    assert request.safe_payload["meaning_brief"] == (
-        baseline.semantic_blueprint.daily_meaning.model_dump(mode="json")
-    )
+    # M1: the brief keeps the shared situation meaning, not the chart-selected sentence.
+    brief = baseline.semantic_blueprint.daily_meaning
+    situation = daily_issue_meaning(baseline.semantic_blueprint.mechanism_key)
+    assert brief.core_meaning.endswith(situation) and brief.core_meaning != situation
+    assert request.safe_payload["meaning_brief"] == {
+        **brief.model_dump(mode="json"),
+        "core_meaning": situation,
+    }
+    personal = brief.core_meaning.removesuffix(situation).strip()
+    assert personal and personal.lower() not in serialized
     assert request.key.gate_version == "daily-rewrite-gates/v4"
 
 
@@ -238,12 +254,13 @@ def test_daily_compiler_carries_supported_full_chart_meaning_through_privacy_all
     assert baseline.semantic_blueprint is not None
     brief = baseline.semantic_blueprint.daily_meaning
     assert brief is not None and brief.scene_status == "illustrative"
-    assert request.safe_payload["meaning_brief"] == brief.model_dump(mode="json")
+    assert "evidence" not in request.safe_payload
     safe = PrivacyMinimiser().minimise(RewriteSurface.DAILY_HOME, request.safe_payload)
     assert safe["meaning_brief"] == request.safe_payload["meaning_brief"]
     serialized = json.dumps(safe, ensure_ascii=False)
     assert "1980" not in serialized and "21.0278" not in serialized
     assert all(factor.id not in serialized for factor in plan.factors)
+    assert not _CHART_WORDS.search(serialized)
     assert evaluate_daily_rewrite(_good_output(baseline), meaning_brief=brief).passed
 
 
@@ -258,6 +275,68 @@ def test_daily_compiler_rejects_unaccepted_fallback_before_rewrite() -> None:
             model_version="offline",
             prompt_version="test",
         )
+
+
+_CHART_WORDS = re.compile(
+    r"Mặt Trời|Mặt Trăng|Sao Thủy|Sao Kim|Sao Hỏa|Sao Mộc|Sao Thổ|Thiên Vương|Hải Vương|"
+    r"Diêm Vương|Bạch Dương|Kim Ngưu|Song Tử|Cự Giải|Sư Tử|Xử Nữ|Thiên Bình|Bọ Cạp|"
+    r"Nhân Mã|Ma Kết|Bảo Bình|Song Ngư|cung mọc|nhà \d+|factor_\d+",
+    re.IGNORECASE,
+)
+
+
+def test_m1_daily_payload_is_catalog_text_and_independent_of_the_chart() -> None:
+    """M1: across many synthetic charts, every payload string is catalog text for the chosen
+    situation, and charts that choose the same catalog content send byte-identical payloads."""
+
+    rng = random.Random(20261020)  # noqa: S311 - reproducible synthetic charts, not security
+    issues = {f"psychology:{issue.key}": issue for issue in DAILY_ISSUES}
+    payloads: dict[tuple[str, ...], set[str]] = {}
+    charts: dict[tuple[str, ...], int] = {}
+    for _ in range(60):
+        chart = NatalChartEngine().calculate_chart(
+            ChartInput(
+                utc_datetime=datetime(1975, 1, 1, tzinfo=UTC)
+                + timedelta(minutes=rng.randrange(30 * 365 * 24 * 60)),
+                latitude=rng.uniform(8.5, 23.3),
+                longitude=rng.uniform(102.2, 109.4),
+            ),
+            CalculationConfig.western_recommended(),
+        )
+        plan = ReadingPlanner().plan(
+            chart, purpose=ReadingPurpose.DAILY_NOTE, editorial_seed="2026-10-20"
+        )
+        record, projection, _ = _records(plan)
+        baseline = DeterministicVietnameseRenderer().render(plan)
+        request = compile_daily_rewrite_request(
+            record, projection, baseline, model_version="offline", prompt_version="test"
+        )
+        safe = PrivacyMinimiser().minimise(RewriteSurface.DAILY_HOME, request.safe_payload)
+        assert safe == request.safe_payload
+        serialized = json.dumps(safe, ensure_ascii=False, sort_keys=True)
+        assert "evidence" not in safe and not _CHART_WORDS.search(serialized)
+        assert all(factor.id not in serialized for factor in plan.factors)
+        # Every string is catalog text of the chosen situation.
+        assert baseline.semantic_blueprint is not None
+        issue = issues[baseline.semantic_blueprint.mechanism_key]
+        assert safe["title_meaning"] in issue.headlines
+        assert split_scene_lead(str(safe["scene_meaning"]))[1] in issue.scenes
+        assert safe["action_meaning"] in (*issue.advice, *issue.relationship_advice)
+        brief = cast(dict[str, JsonValue], safe["meaning_brief"])
+        assert brief["core_meaning"] == issue.meaning
+        assert brief["reader_takeaway"] == issue.takeaway
+        assert safe["companion_meaning"] == (
+            companion_issue_entry(baseline.semantic_blueprint.mechanism_key).meaning
+        )
+        key = tuple(
+            str(safe[name])
+            for name in ("scene_key", "action_key", "context", "title_meaning", "scene_meaning")
+        )
+        payloads.setdefault(key, set()).add(serialized)
+        charts[key] = charts.get(key, 0) + 1
+    assert all(len(group) == 1 for group in payloads.values())
+    # The equality claim is exercised: some catalog choices were made by several charts.
+    assert max(charts.values()) >= 2
 
 
 def test_daily_compiler_hashes_meaning_and_preserves_its_allowed_distinction() -> None:
