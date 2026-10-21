@@ -148,7 +148,8 @@ fallback.
 
 Still blocking activation (not done here): owner approval of spend and governance, DPA
 acceptance and cross-border transfer impact assessment (Law 91/2025/QH15, Decree 356/2025/NĐ-CP),
-privacy copy update, human scoring of the ~40-case `daily_home` sample, secret copy to the VPS,
+privacy copy update, human scoring of the ~40-case `daily_home` sample (waived by the owner on
+2026-10-19 for the pilot only; see below), secret copy to the VPS,
 live worker health check and one supervised end-to-end run on staging.
 
 ## daily_home pilot evaluation (~40 human-scored cases)
@@ -185,6 +186,45 @@ synthetic: the versioned catalog `apps/api/scripts/fixtures/daily_home_pilot_cas
    the unchanged release thresholds (comprehension ≥ 90%, relevance ≥ 85%, duplicate frames
    < 5%, zero gate failures, candidate mean > baseline mean) to the declared sample. This is a
    **pilot sample gate**, reported as such; it does not replace the full 670-case release gate.
+
+## Owner decision 2026-10-19: daily_home pilot accepted without per-case scoring
+
+The owner read the staging pilot outputs and approved Luna for `daily_home` without filling the
+per-case scoring workbook. This is an **owner waiver of exactly two steps of the 40-case pilot**: the
+human-scoring step (step 4) and the pilot sample gate (step 5). Neither step was run: no
+`EvaluationRecord` and no `rewrite-results.json` exist for this pilot, and none may be produced
+retroactively without a real reviewer.
+
+**Not waived** (nothing here may be read as a wider exception):
+
+- **The full 670-case release gate** (non-negotiable gate 8 below, and "Release gate" further down).
+  Status: **not met**. Only the 670-case manifest exists (`rewrite:corpus` checks coverage, not quality);
+  there is no complete scored `EvaluationRecord` file for it. A pilot sample waiver does not waive it. If
+  the owner wants an exception for a `daily_home`-only pilot, that needs its own written decision with
+  scope, duration and guardrails; until then it blocks the production worker.
+- **The privacy prerequisites** (gate 7 and "Still blocking activation" above): DPA acceptance by the owner,
+  the cross-border transfer impact assessment record (Law 91/2025/QH15, Decree 356/2025/NĐ-CP), and review
+  of the in-app consent/privacy copy, privacy policy and store declarations naming the processor.
+
+What the pilot did show (automated, synthetic, not a comprehension study): 20 of 40 candidates failed a
+deterministic gate (`scene_context_lost` 7, `action_verb` 4, `companion_off_brief` 4, `dense_sentence` 2,
+`companion_contradicts_card` 1, `companion_budget` 1, `reading_gate` 1). A failed candidate is never
+published; the reader sees the deterministic note. Improving the prompt for these codes is follow-up work.
+
+Conditions by stage:
+
+1. **Before any tester sends personal data, on staging or production.** All privacy prerequisites above
+   are complete. Until then staging testing uses **synthetic profiles only** (invented birth data, no
+   real person). Staging generation has been on since 2026-10-19 with opt-in under Mình; this document
+   cannot enforce synthetic-only use. The owner either tells testers to use synthetic profiles only, or
+   asks the operator to rerun staging with `STAGING_GENERATION=off` until stage 1 is complete.
+2. **Before the production worker starts.** Stage 1 is done. The full 670-case gate passes on real
+   scored output, or the owner records the separate exception described above. Spend and governance
+   approval are on record (cap: owner-approved, private, never in git). The operator copies the key to
+   `/opt/la-lanh/secrets/openai_api_key`, adds the generation settings to the server-only `app.env`, and
+   redeploys. DPA acceptance alone does not unblock this stage. Agents never accept the DPA.
+3. **After deploy.** Live worker health check, one supervised end-to-end run on production, and the kill
+   switch verified as above.
 
 ## Paid pilot update, 2026-10-08
 
