@@ -5,7 +5,20 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-10-18
+## Current production — 2026-10-21
+
+Release `c3fab3311d65` is live (`main` = `c3fab3311d659c240da944a84fec305eca416cc6`, image digest
+`sha256:ff8247ab158b…`, Alembic head unchanged at `20261018_0037`): PR #33–#39, including Daily
+history visible at most 24 hours, Radar private check 24 hours, the AC05 guard without history, and
+**Luna on for `daily_home` only** (M1 payload without chart facts, pilot 14 days from 2026-10-21, at
+most 20 opted-in sessions, private caps). Staging runs the same digest with Luna on.
+`/opt/la-lanh/current` now points at this release (it was stale at `836222282dfc`). Kill switch: set
+generation off and redeploy; `deploy.sh` from this follow-up also removes the worker, otherwise run
+`docker compose … --profile generation rm -sf rewrite-worker`. **Copy `app.env` from the previous
+release directory you verified, not blindly from `current`.** Receipt:
+[production-release-2026-10-21](../reviews/production-release-2026-10-21/receipt.md).
+
+## Previous production — 2026-10-18
 
 Release `4111f03cee3c` is live (Tarot B2: question frame, roles, stance, variants, Roast frames,
 provenance-coded brief; B3-1a Daily rotation **on since 2026-10-19** via `LA_LANH_DAILY_VARIETY_FROM`),
