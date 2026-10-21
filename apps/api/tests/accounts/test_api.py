@@ -183,6 +183,7 @@ def test_disabled_status_is_honest_and_code_never_creates_guest(tmp_path: Path) 
             "profile_expires_at": None,
             "guest_inactivity_days": 30,
             "history_days": 30,
+            "daily_note_hours": 24,
             "account_inactivity_days": 365,
         }
         denied = client.post(

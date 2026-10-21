@@ -41,6 +41,7 @@ def test_new_guest_policy_and_acknowledged_history_only_clear(tmp_path: Path) ->
         assert status.json() == {
             "enabled": True,
             "history_days": 30,
+            "daily_note_hours": 24,
             "activated_at": status.json()["activated_at"],
             "saved_notes_kept": True,
         }
@@ -67,6 +68,7 @@ def test_old_client_guest_stays_disabled_until_explicit_opt_in(tmp_path: Path) -
         assert disabled.json() == {
             "enabled": False,
             "history_days": 30,
+            "daily_note_hours": 24,
             "activated_at": None,
             "saved_notes_kept": True,
         }

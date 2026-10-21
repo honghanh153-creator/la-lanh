@@ -30,7 +30,7 @@ function renderPage(entry = "/existing-user") {
 describe("Google account", () => {
   beforeEach(() => {
     vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear();
-    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: true, google_login_enabled: true, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, account_inactivity_days: 365 });
+    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: true, google_login_enabled: true, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365 });
     vi.mocked(getSession).mockResolvedValue(session);
     vi.mocked(acceptBasicBirthConsent).mockResolvedValue(undefined);
     vi.mocked(cancelAccountLogin).mockResolvedValue(undefined);
@@ -39,7 +39,7 @@ describe("Google account", () => {
   });
 
   it("uses Google only, and disabled provider sends nothing", async () => {
-    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, account_inactivity_days: 365 });
+    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365 });
     renderPage();
     expect(await screen.findByText(/Đăng nhập Google chưa bật/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Email của bạn")).not.toBeInTheDocument();

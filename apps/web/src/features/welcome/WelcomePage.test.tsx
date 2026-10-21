@@ -50,7 +50,7 @@ describe("WelcomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(acceptBasicBirthConsent).mockResolvedValue(undefined);
-    vi.mocked(enableHistoryRetention).mockResolvedValue({ enabled: true, history_days: 30, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
+    vi.mocked(enableHistoryRetention).mockResolvedValue({ enabled: true, history_days: 30, daily_note_hours: 24, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
     sessionStorage.clear();
     vi.mocked(getSession).mockRejectedValue(new ApiProblem(401, "GUEST_SESSION_MISSING", "missing"));
     vi.mocked(createGuest).mockResolvedValue({
@@ -160,7 +160,7 @@ describe("WelcomePage", () => {
     expect(enableHistoryRetention).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole("link", { name: "Đăng nhập" }));
     await act(async () => {
-      consent.resolve({ enabled: true, history_days: 30, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
+      consent.resolve({ enabled: true, history_days: 30, daily_note_hours: 24, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
       await consent.promise;
     });
     expect(screen.getByRole("heading", { name: "Đăng nhập với Google" })).toBeInTheDocument();

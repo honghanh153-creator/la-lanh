@@ -176,7 +176,7 @@ class PostgresReadingRepository:
                         select(ReadingPlanRow.id).where(
                             ReadingPlanRow.id == plan.id,
                             expired_history(
-                                ReadingPlanRow.guest_id, ReadingPlanRow.created_at, now
+                                ReadingPlanRow.guest_id, ReadingPlanRow.created_at, now, daily=True
                             ),
                         )
                     )

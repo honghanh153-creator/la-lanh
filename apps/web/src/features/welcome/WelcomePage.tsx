@@ -140,7 +140,7 @@ export function WelcomePage() {
           onClick={(event) => { if (creating) event.preventDefault(); }}>Đăng nhập</Link>
         <div className="welcome-intro__privacy">
           <p>Chỉ cần ngày sinh · Chưa cần tài khoản</p>
-          <p>Khách: 30 ngày không hoạt động. Lịch sử tự động tối đa 30 ngày; note đã lưu giữ cùng hồ sơ.</p>
+          <p>Khách: 30 ngày không hoạt động. Note ngày tự động hiện tối đa 24 giờ (có thể được dọn sớm hơn), lịch sử khác tối đa 30 ngày; note đã lưu giữ cùng hồ sơ.</p>
           <p>Dữ liệu riêng tư · <Link to="/privacy">Xem chi tiết</Link></p>
         </div>
       </footer>

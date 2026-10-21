@@ -46,6 +46,11 @@
             "title": "Account Inactivity Days",
             "type": "integer"
           },
+          "daily_note_hours": {
+            "default": 24,
+            "title": "Daily Note Hours",
+            "type": "integer"
+          },
           "google_login_enabled": {
             "default": false,
             "title": "Google Login Enabled",
@@ -1728,6 +1733,12 @@
               }
             ],
             "title": "Activated At"
+          },
+          "daily_note_hours": {
+            "const": 24,
+            "default": 24,
+            "title": "Daily Note Hours",
+            "type": "integer"
           },
           "enabled": {
             "title": "Enabled",

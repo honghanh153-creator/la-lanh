@@ -199,9 +199,9 @@ export function ProfilePage() {
       <summary><GearSix aria-hidden="true" /> Dữ liệu & quyền riêng tư</summary>
       <section className="settings-section" aria-labelledby="history-settings">
         <h2 id="history-settings">Lịch sử, không phải hồ sơ</h2>
-        <p>{historyQuery.isPending ? "Đang kiểm tra thời hạn…" : historyQuery.isError ? "Chưa đọc được thời hạn. Chưa có dữ liệu nào bị xoá từ thao tác này." : historyQuery.data.enabled ? "Lịch sử tự động tối đa 30 ngày từ lúc tạo; mở lại không kéo dài thời hạn." : "Hồ sơ này chưa bật thời hạn mới. Lịch sử cũ không bị rút ngắn khi chưa đồng ý."}</p>
+        <p>{historyQuery.isPending ? "Đang kiểm tra thời hạn…" : historyQuery.isError ? "Chưa đọc được thời hạn. Chưa có dữ liệu nào bị xoá từ thao tác này." : historyQuery.data.enabled ? "Note ngày tự động hiện tối đa 24 giờ (có thể được dọn sớm hơn); lịch sử khác tối đa 30 ngày, tính từ lúc tạo; mở lại không kéo dài thời hạn." : "Hồ sơ này chưa bật thời hạn mới. Lịch sử cũ không bị rút ngắn khi chưa đồng ý."}</p>
         <p>Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ theo thời hạn của hồ sơ.</p>
-        {historyQuery.data && !historyQuery.data.enabled ? <button className="text-button" onClick={() => { setError(null); setConfirmingRetention(true); }} type="button">Bật lịch sử 30 ngày</button> : null}
+        {historyQuery.data && !historyQuery.data.enabled ? <button className="text-button" onClick={() => { setError(null); setConfirmingRetention(true); }} type="button">Bật thời hạn lịch sử</button> : null}
         <button className="text-button" onClick={() => { setError(null); setConfirmingHistory(true); }} type="button">Xoá lịch sử đã xem</button>
       </section>
       <section aria-labelledby="privacy-settings" className="settings-section">
@@ -285,8 +285,8 @@ export function ProfilePage() {
         <button className="danger-button" disabled={historyMutation.isPending} onClick={() => { setError(null); historyMutation.mutate(); }} type="button">{historyMutation.isPending ? "Đang xoá…" : "Xoá lịch sử"}</button>
         <button className="text-button" disabled={historyMutation.isPending} onClick={() => setConfirmingHistory(false)} type="button">Giữ lịch sử</button>
       </AppSheet>
-      <AppSheet open={confirmingRetention} title="Giữ lịch sử tối đa 30 ngày?" closeDisabled={retentionMutation.isPending} onClose={() => setConfirmingRetention(false)}>
-        <p>Lịch sử mới tự hết hạn sau tối đa 30 ngày từ lúc tạo. Lịch sử cũ được thêm 30 ngày chuyển tiếp từ khi bạn đồng ý, không bị xoá ngay.</p>
+      <AppSheet open={confirmingRetention} title="Bật thời hạn cho lịch sử?" closeDisabled={retentionMutation.isPending} onClose={() => setConfirmingRetention(false)}>
+        <p>Note ngày mới chỉ hiện tối đa 24 giờ, kèm mood của ngày đó, và có thể được xoá sớm hơn ở đợt dọn dữ liệu định kỳ; note đang gắn với việc nhỏ chờ nhìn lại, phản hồi hoặc link chia sẻ còn hạn được giữ ẩn tới khi các mục đó hết hạn. Lịch sử khác hết hạn sau tối đa 30 ngày. Bấm Lưu để giữ một note lâu hơn. Lịch sử cũ được thêm 30 ngày chuyển tiếp từ khi bạn đồng ý, không bị xoá ngay.</p>
         <p>Hồ sơ sinh, bản đọc hiện tại và note đã lưu không theo thời hạn này. Tarot và Hợp gu vẫn giữ thời hạn đã báo khi tạo.</p>
         {error ? <p className="inline-error" role="alert">{error}</p> : null}
         <button className="primary-button" disabled={retentionMutation.isPending} onClick={() => { setError(null); retentionMutation.mutate(); }} type="button">Đồng ý thời hạn lịch sử</button>
