@@ -18,7 +18,6 @@ from app.domains.astro.models import (
 )
 from app.domains.birth.models import BirthSnapshotRecord
 from app.domains.content_rewrite.service import ContentRewriteService
-from app.domains.history.errors import HistoryUnavailable
 from app.domains.readings.companion import companion_issue_entry
 from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_MATRIX_VERSION,
@@ -491,56 +490,124 @@ class ReadingApplicationService:
                 self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
             ),
             day_index=day_index(local_date),
-            recent_issue_keys=await self._served_daily_issues(
-                guest_id, profile_id, chart, local_date, background_lens
+            recent_issue_keys=await self._guard_issue_keys(
+                profile_id, chart, local_date, background_lens
             ),
         )
 
-    async def _served_daily_issues(
+    async def _guard_issue_keys(
         self,
-        guest_id: UUID,
         profile_id: UUID,
         chart: DateOnlySunResult | NatalChart,
         local_date: date,
         background_lens: BackgroundLens | None,
     ) -> tuple[str, ...]:
-        """Issue keys this owner was actually served on D-1 then D-2, from stored projections.
+        """AC05 guard pair from the chart alone (owner decision 2026-10-21, PR #39 review).
 
-        Reads existing rows only (no history table). Stops at the first day without a served
-        note: the top-K guard is about consecutive calendar days the reader saw. A day whose
-        history has expired under the retention policy counts as unavailable, never as an error,
-        so with the 24-hour Daily window the guard usually sees at most D-1.
+        No stored history is read and nothing is kept; every input is recomputed with the same
+        deterministic selection, and the lookback is bounded (one day for an even day, two for
+        an odd day). The pair feeds the existing two-key guard in ``_pick``, so frozen plans
+        replay as stored (AC04).
+
+        - Odd day: moves off its nominal situation when it equals the previous even day's
+          effective situation.
+        - Even day: moves off its nominal situation when the previous odd day had a one-entry
+          pool (so it could not move) and the two nominal situations are equal.
+
+        Then a situation can be served three days in a row only when the third day itself has a
+        one-entry pool, the AC05 exemption: an (even, odd) pair differs unless the odd day has
+        one entry, and an even day after such an odd day moves unless it has one entry too.
         """
 
-        issues: list[str] = []
-        for days_back in (1, 2):
-            day = local_date - timedelta(days=days_back)
-            scope_key = _scope_key(
+        if day_index(local_date) % 2 == 0:
+            return await self._even_guard(profile_id, chart, local_date, background_lens)
+        previous_day = local_date - timedelta(days=1)
+        previous = await self._computed_daily_issue(
+            profile_id,
+            chart,
+            previous_day,
+            background_lens,
+            recent=await self._even_guard(profile_id, chart, previous_day, background_lens),
+        )
+        return () if previous is None else (previous, previous)
+
+    async def _even_guard(
+        self,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        day: date,
+        background_lens: BackgroundLens | None,
+    ) -> tuple[str, ...]:
+        """Guard pair of an even ``day``: the previous odd day's situation when its pool had
+        one entry (detected by asking the real selection to move off it), else none."""
+
+        previous_day = day - timedelta(days=1)
+        nominal = await self._computed_daily_issue(profile_id, chart, previous_day, background_lens)
+        if nominal is None:
+            return ()
+        moved = await self._computed_daily_issue(
+            profile_id, chart, previous_day, background_lens, recent=(nominal, nominal)
+        )
+        return (nominal, nominal) if moved == nominal else ()
+
+    async def _computed_daily_issue(
+        self,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        day: date,
+        background_lens: BackgroundLens | None,
+        *,
+        recent: tuple[str, ...] = (),
+    ) -> str | None:
+        """The situation the rotation selects for ``day`` with the guard pair ``recent``,
+        recomputed from the chart, that day's transits and the owner's rotation seed, with the
+        serving fallback. ``recent=()`` gives the nominal top-K situation. Pure computation;
+        nothing is stored or sent."""
+
+        if not self._rotation_applies(ReadingPurpose.DAILY_NOTE, day):
+            return None
+        if self._daily_variety_key is None:  # pragma: no cover - guarded by _rotation_applies
+            return None
+        variety = DailyVariety(
+            key_version=VARIETY_KEY_VERSION,
+            catalog_version=DAILY_PSYCHOLOGY_MATRIX_VERSION,
+            seed=daily_variety_seed(
+                self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
+            ),
+            day_index=day_index(day),
+            recent_issue_keys=recent,
+        )
+        observed_at = datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC)
+        transits = await self._optional_transits(chart, ReadingPurpose.DAILY_NOTE, observed_at)
+        plan = self._planner.plan(
+            chart,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            transits=transits,
+            editorial_seed=day.isoformat(),
+            background_lens=background_lens,
+            daily_variety=variety,
+        )
+        candidate = self._renderer.render(plan)
+        if (
+            transits is not None
+            and candidate.transit is not None
+            and plan.daily_selection is not None
+            and not evaluate_candidate(plan, candidate).accepted
+        ):
+            # Same B1b fallback as serving: a rejected transit reason re-plans from natal only.
+            plan = self._planner.plan(
                 chart,
-                ReadingPurpose.DAILY_NOTE,
-                day,
-                datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC),
-                background_lens,
+                purpose=ReadingPurpose.DAILY_NOTE,
+                transits=None,
+                editorial_seed=day.isoformat(),
+                background_lens=background_lens,
+                daily_variety=variety,
             )
-            try:
-                projection = await self._repository.get_projection(guest_id, profile_id, scope_key)
-                revision = (
-                    await self._repository.get_revision(
-                        guest_id, profile_id, projection.active_revision_id
-                    )
-                    if projection is not None and projection.active_revision_id is not None
-                    else None
-                )
-            except HistoryUnavailable:
-                # Expired Daily history (24-hour window) is not evidence of what was served and
-                # must never block today's note; the guard just sees fewer days.
-                break
-            candidate = revision.evaluation.publishable_candidate if revision else None
-            blueprint = candidate.semantic_blueprint if candidate else None
-            if blueprint is None or not blueprint.mechanism_key.startswith("psychology:"):
-                break
-            issues.append(blueprint.mechanism_key.removeprefix("psychology:"))
-        return tuple(issues)
+            candidate = self._renderer.render(plan)
+        blueprint = candidate.semantic_blueprint
+        if blueprint is None or not blueprint.mechanism_key.startswith("psychology:"):
+            return None
+        return blueprint.mechanism_key.removeprefix("psychology:")
 
     async def _optional_enqueue(
         self,

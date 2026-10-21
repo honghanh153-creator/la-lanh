@@ -10,7 +10,7 @@ from uuid import UUID
 import pytest
 
 from app.domains.astro.engine import NatalChartEngine
-from app.domains.astro.models import DateOnlySunResult, NatalChart
+from app.domains.astro.models import ChartInput, DateOnlySunResult, NatalChart
 from app.domains.readings import daily_psychology
 from app.domains.readings.application import ReadingApplicationService
 from app.domains.readings.daily_personalization import SupportedSituation
@@ -360,36 +360,35 @@ async def test_rotation_replays_the_same_revision_after_restart() -> None:
     assert len(repository.plans) == 1
 
 
-async def test_guard_reads_served_days_and_stops_at_the_first_unserved_day() -> None:
-    repository = MemoryReadingRepository()
+async def test_odd_day_guard_equals_what_the_even_day_before_actually_served() -> None:
+    """PR #39 review: the guard reads no history, yet an odd day's guard pair is exactly the
+    situation served the day before, and every served day is reproduced by recomputation."""
+
+    for snapshot in (_date_only_snapshot(GUEST, OWNER_A), *_snapshots(3)):
+        repository = MemoryReadingRepository()
+        service = _service(repository, START)
+        previous_served: str | None = None
+        for offset in range(10):
+            day = START + timedelta(days=offset)
+            projection = await _open(service, snapshot, day)
+            served = _served(repository, projection).semantic_blueprint.mechanism_key
+            served = served.removeprefix("psychology:")
+            plan = _stored_plan(repository, projection.active.revision_id)
+            assert plan.daily_variety is not None
+            recent = plan.daily_variety.recent_issue_keys
+            assert served == await service._computed_daily_issue(
+                OWNER_A, snapshot.result, day, None, recent=recent
+            )
+            if day_index(day) % 2 == 1 and previous_served is not None:
+                assert recent == (previous_served, previous_served)
+            previous_served = served
     snapshot = _date_only_snapshot(GUEST, OWNER_A)
-    service = _service(repository, START)
-
-    async def open_on(day: date) -> ReadingPlan:
-        projection = await service.project(
-            guest_id=GUEST,
-            snapshot=snapshot,
-            purpose=ReadingPurpose.DAILY_NOTE,
-            requested_at=_at(day),
+    assert (
+        await _service(MemoryReadingRepository(), START)._computed_daily_issue(
+            OWNER_A, snapshot.result, START - timedelta(days=1), None
         )
-        return _stored_plan(repository, projection.active.revision_id)
-
-    day0 = await open_on(START)
-    day1 = await open_on(START + timedelta(days=1))
-    day2 = await open_on(START + timedelta(days=2))
-    day4 = await open_on(START + timedelta(days=4))  # nothing served on day 3
-
-    def issue(plan: ReadingPlan) -> str:
-        candidate = DeterministicVietnameseRenderer().render(plan)
-        assert candidate.semantic_blueprint is not None
-        return candidate.semantic_blueprint.mechanism_key.removeprefix("psychology:")
-
-    assert day0.daily_variety is not None and day0.daily_variety.recent_issue_keys == ()
-    assert day1.daily_variety is not None
-    assert day1.daily_variety.recent_issue_keys == (issue(day0),)
-    assert day2.daily_variety is not None
-    assert day2.daily_variety.recent_issue_keys == (issue(day1), issue(day0))
-    assert day4.daily_variety is not None and day4.daily_variety.recent_issue_keys == ()
+        is None
+    )
 
 
 def test_rotation_start_date_is_an_opt_in_setting_not_before_the_epoch(
@@ -451,7 +450,7 @@ async def test_late_previous_day_never_changes_an_opened_note() -> None:
     d2, d1, d0 = START, START + timedelta(days=1), START + timedelta(days=2)
 
     await _open(service, snapshot, d2)
-    first = await _open(service, snapshot, d0)  # D-1 still in flight: history is empty
+    first = await _open(service, snapshot, d0)  # D-1 still in flight: the guard ignores it
     await _open(service, snapshot, d1)  # D-1 completes after D was first opened
     reopened = await _open(service, snapshot, d0, hour=15)
 
@@ -460,7 +459,10 @@ async def test_late_previous_day_never_changes_an_opened_note() -> None:
     assert reopened.available_update is None
     plans = _plans_for(repository, d0)
     assert len(plans) == 1
-    assert plans[0].daily_variety is not None and plans[0].daily_variety.recent_issue_keys == ()
+    assert plans[0].daily_variety is not None
+    # The guard reads no history, so a late D-1 cannot change what D chose.
+    expected = await service._guard_issue_keys(OWNER_A, snapshot.result, d0, None)
+    assert plans[0].daily_variety.recent_issue_keys == expected
 
 
 async def test_new_key_material_after_restart_only_applies_to_new_days() -> None:
@@ -522,7 +524,9 @@ async def test_concurrent_first_readings_keep_the_first_writer() -> None:
     repository.release.set()
     late = await slow
 
-    assert len(_plans_for(repository, d0)) == 2  # both requests chose before either stored
+    # Both requests chose before either stored. The guard reads no history, so both chose the
+    # same plan (stored once by key); the first writer still wins.
+    assert len(_plans_for(repository, d0)) == 1
     assert late.active.revision_id == fast.active.revision_id
     assert late.active.sections == fast.active.sections
     assert late.available_update is None
@@ -643,3 +647,148 @@ async def test_note_opened_during_a_transit_outage_replays_after_recovery() -> N
     (tomorrow_plan,) = _plans_for(repository, TRANSIT_DAY + timedelta(days=1))
     assert tomorrow.active.revision_id != outage.active.revision_id
     assert tomorrow_plan.daily_variety is not None
+
+
+def _snapshots(count: int) -> list[Any]:
+    """Synthetic exact charts with different birth times; nothing real."""
+
+    engine = NatalChartEngine()
+    base = _exact_snapshot(GUEST, OWNER_A, engine)
+    snapshots = []
+    for index in range(count):
+        chart = engine.calculate_chart(
+            ChartInput(
+                utc_datetime=datetime(
+                    1980 + index, 1 + index % 12, 1 + (7 * index) % 28, (5 * index) % 24, tzinfo=UTC
+                ),
+                latitude=10.8231 + index % 12,
+                longitude=106.6297,
+            )
+        )
+        snapshots.append(replace(base, result=chart))
+    return snapshots
+
+
+def _served(repository: MemoryReadingRepository, projection: ReadingProjection) -> Any:
+    revision = repository.revisions[(GUEST, OWNER_A, projection.active.revision_id)]
+    candidate = revision.evaluation.publishable_candidate
+    assert candidate is not None and candidate.semantic_blueprint is not None
+    return candidate
+
+
+async def test_recomputed_situation_matches_what_was_served() -> None:
+    """Opening each day with nothing stored gives the same note as a continuous history: the
+    guard depends on the chart and date only."""
+
+    for snapshot in _snapshots(4):
+        continuous = MemoryReadingRepository()
+        service = _service(continuous, START)
+        for offset in range(8):
+            day = START + timedelta(days=offset)
+            kept = _served(continuous, await _open(service, snapshot, day))
+            fresh_repository = MemoryReadingRepository()
+            fresh = _served(
+                fresh_repository, await _open(_service(fresh_repository, START), snapshot, day)
+            )
+            assert kept.semantic_blueprint.mechanism_key == fresh.semantic_blueprint.mechanism_key
+            assert (kept.hook, kept.manifestation, kept.micro_action) == (
+                fresh.hook,
+                fresh.manifestation,
+                fresh.micro_action,
+            )
+
+
+async def test_consecutive_notes_without_history_stay_at_most_60_percent_similar() -> None:
+    """Owner rule 2026-10-21: if two consecutive notes would be more than 60% alike, write a
+    different angle. Each day here is opened with no stored history (as after the 24-hour
+    window); the guard reads no history. Axes: situation, title, scene, action, transit."""
+
+    worst = 0.0
+    for snapshot in _snapshots(4):
+        previous: tuple[object, ...] | None = None
+        situations: list[object] = []
+        for offset in range(14):
+            repository = MemoryReadingRepository()  # nothing kept from earlier days
+            projection = await _open(
+                _service(repository, START), snapshot, START + timedelta(days=offset)
+            )
+            candidate = _served(repository, projection)
+            axes = (
+                candidate.semantic_blueprint.mechanism_key,
+                candidate.hook,
+                candidate.manifestation,
+                candidate.micro_action,
+                candidate.transit,
+            )
+            if previous is not None:
+                similarity = sum(a == b for a, b in zip(axes, previous, strict=True)) / len(axes)
+                worst = max(worst, similarity)
+                assert similarity <= 0.6, (offset, similarity)
+            previous = axes
+            situations.append(axes[0])
+        # AC05 holds again without history: no situation three calendar days in a row.
+        runs = zip(situations, situations[1:], situations[2:], strict=False)
+        assert not any(a == b == c for a, b, c in runs)
+    assert worst > 0  # the measure is exercised (some axis can repeat, e.g. the situation)
+
+
+async def _served_issue_without_history(snapshot: Any, day: date) -> tuple[str, int]:
+    """(served situation, day index) for ``day`` opened with nothing stored before it."""
+
+    repository = MemoryReadingRepository()
+    projection = await _open(_service(repository, START), snapshot, day)
+    key = _served(repository, projection).semantic_blueprint.mechanism_key
+    return key.removeprefix("psychology:"), day_index(day)
+
+
+async def test_codex_counterexample_no_longer_serves_three_days_in_a_row() -> None:
+    """PR #39 review counterexample: 2027-04-22..24 all served group-pressure (pools 2/2/3)
+    because recomputing D-2 dropped that day's guard move. Final output must differ."""
+
+    engine = NatalChartEngine()
+    snapshot = replace(
+        _exact_snapshot(GUEST, OWNER_A, engine),
+        result=engine.calculate_chart(
+            ChartInput(
+                utc_datetime=datetime(1993, 2, 8, 17, tzinfo=UTC),
+                latitude=11.8231,
+                longitude=106.6297,
+            )
+        ),
+    )
+    issues = [
+        (await _served_issue_without_history(snapshot, date(2027, 4, day)))[0]
+        for day in range(20, 25)
+    ]
+    assert not any(a == b == c for a, b, c in zip(issues, issues[1:], issues[2:], strict=False))
+
+
+async def test_census_no_situation_three_days_in_a_row_on_actual_output() -> None:
+    """AC05 on what is actually served, with no stored history, across many synthetic charts
+    and two months, including guard moves followed by changing pools. A situation may repeat a
+    third day only when that third day has a one-entry pool (the AC05 exemption)."""
+
+    moved = moved_then_changed = exempt = 0
+    for snapshot in _snapshots(24):
+        service = _service(MemoryReadingRepository(), START)
+        served: list[str] = []
+        nominal: list[str | None] = []
+        for offset in range(60):
+            day = START + timedelta(days=offset)
+            issue, _ = await _served_issue_without_history(snapshot, day)
+            served.append(issue)
+            nominal.append(await service._computed_daily_issue(OWNER_A, snapshot.result, day, None))
+            if issue != nominal[-1]:
+                moved += 1
+            if offset >= 1 and served[-2] != nominal[-2] and nominal[-1] != nominal[-2]:
+                moved_then_changed += 1
+            if offset >= 2 and served[-1] == served[-2] == served[-3]:
+                # Only a one-entry pool on the third day may keep it: moving must be impossible.
+                stuck = await service._computed_daily_issue(
+                    OWNER_A, snapshot.result, day, None, recent=(issue, issue)
+                )
+                assert stuck == issue, (day, served[-3:])
+                exempt += 1
+    assert moved > 0 and moved_then_changed > 0  # the guard and changing pools are exercised
+    # `exempt` counts third days whose one-entry pool made moving impossible (6 of 1440 days
+    # in this census at the time of writing); each was verified above.
