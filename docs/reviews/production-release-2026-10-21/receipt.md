@@ -54,7 +54,10 @@ production, and turn Luna on for the Daily note. Spend: owner-approved cap for a
 - **Kill switch:** setting generation off and redeploying left the profiled `rewrite-worker` running
   with `LA_LANH_GENERATION_ENABLED=true` (compose does not treat a profiled service as an orphan). It was
   removed by hand with `docker compose … --profile generation rm -sf rewrite-worker`, then Luna was
-  turned back on (new worker, app and worker `true`). `deploy.sh` is fixed in this PR.
+  turned back on (new worker, app and worker `true`). The fix (PR #40) adds a preflight that reads
+  `Settings().generation_enabled` before the build and removes the worker unless it is `true`; it is
+  **not** on production, so the kill switch on `c3fab3311d65` remains the manual sequence in the Luna
+  runbook (remove the worker, then set generation off and redeploy).
 - **Stale `current` pointer:** `/opt/la-lanh/current` still pointed at `836222282dfc` after the
   2026-10-18 release (that release skipped the runbook switch), so the retention job read an old
   source tree. It now points at `c3fab3311d65`; both cleanup timers are active.

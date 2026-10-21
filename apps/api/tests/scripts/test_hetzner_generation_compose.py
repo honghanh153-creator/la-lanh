@@ -38,17 +38,6 @@ def test_deploy_uses_application_settings_for_generation_profile_selection() -> 
     assert "grep -Eq '^LA_LANH_GENERATION_ENABLED=true$'" not in deploy
 
 
-def test_deploy_with_generation_off_removes_a_running_worker() -> None:
-    """Kill switch (production 2026-10-21): with the generation profile unset, compose does not
-    treat the profiled worker as an orphan, so deploy must remove it explicitly, before the
-    build/check steps, or it keeps sending with the previous release's settings."""
-
-    deploy = (REPO_ROOT / "infra/hetzner/deploy.sh").read_text(encoding="utf-8")
-    off_branch = deploy.split("  false)", 1)[1].split(";;", 1)[0]
-    assert "--profile generation rm -sf rewrite-worker" in off_branch
-    assert deploy.index("rm -sf rewrite-worker") < deploy.index("scripts.review_content_release")
-
-
 def test_worker_entrypoint_satisfies_production_settings_with_fake_mounted_secrets(
     tmp_path: Path,
 ) -> None:

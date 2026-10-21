@@ -12,9 +12,11 @@ Release `c3fab3311d65` is live (`main` = `c3fab3311d659c240da944a84fec305eca416c
 history visible at most 24 hours, Radar private check 24 hours, the AC05 guard without history, and
 **Luna on for `daily_home` only** (M1 payload without chart facts, pilot 14 days from 2026-10-21, at
 most 20 opted-in sessions, private caps). Staging runs the same digest with Luna on.
-`/opt/la-lanh/current` now points at this release (it was stale at `836222282dfc`). Kill switch: set
-generation off and redeploy; `deploy.sh` from this follow-up also removes the worker, otherwise run
-`docker compose … --profile generation rm -sf rewrite-worker`. **Copy `app.env` from the previous
+`/opt/la-lanh/current` now points at this release (it was stale at `836222282dfc`). Kill switch on
+this release: remove the worker first with `docker compose "${COMPOSE_ARGS[@]}" --profile generation rm
+-sf rewrite-worker`, then set generation off and redeploy (full commands in the Luna runbook); its
+`deploy.sh` does not remove the worker. A later release with the PR #40 preflight removes it before
+the build. **Copy `app.env` from the previous
 release directory you verified, not blindly from `current`.** Receipt:
 [production-release-2026-10-21](../reviews/production-release-2026-10-21/receipt.md).
 

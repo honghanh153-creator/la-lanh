@@ -204,9 +204,27 @@ keeps the worker from starting (`Settings` validation). Kill switch: set
 `LA_LANH_GENERATION_ENABLED=false` (production: redeploy; staging: rerun `up.sh` with
 `STAGING_GENERATION=off`, which also removes the staging worker). Production release `c3fab3311d65`
 (2026-10-21) showed that its `deploy.sh` left the profiled `rewrite-worker` running with the old
-settings; the kill-switch test removed it with
-`docker compose "${COMPOSE_ARGS[@]}" --profile generation rm -sf rewrite-worker`. `deploy.sh` now does
-this itself when generation is off; on a release without that fix, run the command by hand. Deterministic notes stay as the
+settings; the kill-switch test removed it by hand. The follow-up `deploy.sh` (PR #40, not yet on
+production) reads `Settings().generation_enabled` in a **preflight before the build**: in the release
+image if it already exists, otherwise in the running app's image, through the same compose project,
+files (Auth overlay included) and `app.env`. When the result is not `true`, including when no image
+can be asked or Settings cannot be read, it removes the worker before building, so a failed build
+cannot leave a turned-off worker running. A failed removal stops the deploy; no worker is a no-op.
+The decision is re-read in the built release image afterwards. On production `c3fab3311d65`, which
+does not have this fix, use the manual kill switch:
+
+```sh
+# 1. Stop the worker now (it otherwise keeps sending with the old settings):
+cd /opt/la-lanh/releases/c3fab3311d65/source
+export LA_LANH_RELEASE_ID=c3fab3311d65 APP_HOSTNAME=la-lanh.2-28-136-44.sslip.io LA_LANH_SECRETS_DIR=/opt/la-lanh/secrets
+source infra/hetzner/compose-files.sh && select_compose_files infra/hetzner
+docker compose "${COMPOSE_ARGS[@]}" --profile generation rm -sf rewrite-worker
+# 2. Stop new enqueues: set LA_LANH_GENERATION_ENABLED=false in infra/hetzner/app.env, then
+infra/hetzner/deploy.sh
+# 3. Verify: no rewrite-worker container; the app reports generation false.
+docker ps --format '{{.Names}}' | grep -c rewrite-worker || true
+docker exec la-lanh-app-1 printenv LA_LANH_GENERATION_ENABLED
+``` Deterministic notes stay as the
 fallback.
 
 Still blocking activation (not done here): owner approval of spend and governance, DPA
