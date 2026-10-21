@@ -10,7 +10,7 @@ from uuid import UUID
 import pytest
 
 from app.domains.astro.engine import NatalChartEngine
-from app.domains.astro.models import DateOnlySunResult, NatalChart
+from app.domains.astro.models import ChartInput, DateOnlySunResult, NatalChart
 from app.domains.readings import daily_psychology
 from app.domains.readings.application import ReadingApplicationService
 from app.domains.readings.daily_personalization import SupportedSituation
@@ -360,7 +360,7 @@ async def test_rotation_replays_the_same_revision_after_restart() -> None:
     assert len(repository.plans) == 1
 
 
-async def test_guard_reads_served_days_and_stops_at_the_first_unserved_day() -> None:
+async def test_guard_reads_served_days_and_recomputes_an_unserved_day() -> None:
     repository = MemoryReadingRepository()
     snapshot = _date_only_snapshot(GUEST, OWNER_A)
     service = _service(repository, START)
@@ -378,6 +378,10 @@ async def test_guard_reads_served_days_and_stops_at_the_first_unserved_day() -> 
     day1 = await open_on(START + timedelta(days=1))
     day2 = await open_on(START + timedelta(days=2))
     day4 = await open_on(START + timedelta(days=4))  # nothing served on day 3
+    # Day 3's nominal situation, computed the same way from the chart and date (no storage).
+    day3_nominal = await service._computed_daily_issue(
+        OWNER_A, snapshot.result, START + timedelta(days=3), None
+    )
 
     def issue(plan: ReadingPlan) -> str:
         candidate = DeterministicVietnameseRenderer().render(plan)
@@ -389,7 +393,15 @@ async def test_guard_reads_served_days_and_stops_at_the_first_unserved_day() -> 
     assert day1.daily_variety.recent_issue_keys == (issue(day0),)
     assert day2.daily_variety is not None
     assert day2.daily_variety.recent_issue_keys == (issue(day1), issue(day0))
-    assert day4.daily_variety is not None and day4.daily_variety.recent_issue_keys == ()
+    assert day4.daily_variety is not None
+    assert day4.daily_variety.recent_issue_keys == (day3_nominal, issue(day2))
+    # Before the rotation start there is nothing to compute: the guard stops there.
+    assert (
+        await service._computed_daily_issue(
+            OWNER_A, snapshot.result, START - timedelta(days=1), None
+        )
+        is None
+    )
 
 
 def test_rotation_start_date_is_an_opt_in_setting_not_before_the_epoch(
@@ -451,7 +463,7 @@ async def test_late_previous_day_never_changes_an_opened_note() -> None:
     d2, d1, d0 = START, START + timedelta(days=1), START + timedelta(days=2)
 
     await _open(service, snapshot, d2)
-    first = await _open(service, snapshot, d0)  # D-1 still in flight: history is empty
+    first = await _open(service, snapshot, d0)  # D-1 still in flight: it is recomputed
     await _open(service, snapshot, d1)  # D-1 completes after D was first opened
     reopened = await _open(service, snapshot, d0, hour=15)
 
@@ -460,7 +472,9 @@ async def test_late_previous_day_never_changes_an_opened_note() -> None:
     assert reopened.available_update is None
     plans = _plans_for(repository, d0)
     assert len(plans) == 1
-    assert plans[0].daily_variety is not None and plans[0].daily_variety.recent_issue_keys == ()
+    assert plans[0].daily_variety is not None
+    nominal_d1 = await service._computed_daily_issue(OWNER_A, snapshot.result, d1, None)
+    assert plans[0].daily_variety.recent_issue_keys[0] == nominal_d1
 
 
 async def test_new_key_material_after_restart_only_applies_to_new_days() -> None:
@@ -522,7 +536,9 @@ async def test_concurrent_first_readings_keep_the_first_writer() -> None:
     repository.release.set()
     late = await slow
 
-    assert len(_plans_for(repository, d0)) == 2  # both requests chose before either stored
+    # Both requests chose before either stored. The slow one recomputes the missing D-1, so
+    # the two choices may now coincide (one plan) or still differ (two); the first writer wins.
+    assert len(_plans_for(repository, d0)) in (1, 2)
     assert late.active.revision_id == fast.active.revision_id
     assert late.active.sections == fast.active.sections
     assert late.available_update is None
@@ -643,3 +659,84 @@ async def test_note_opened_during_a_transit_outage_replays_after_recovery() -> N
     (tomorrow_plan,) = _plans_for(repository, TRANSIT_DAY + timedelta(days=1))
     assert tomorrow.active.revision_id != outage.active.revision_id
     assert tomorrow_plan.daily_variety is not None
+
+
+def _snapshots(count: int) -> list[Any]:
+    """Synthetic exact charts with different birth times; nothing real."""
+
+    engine = NatalChartEngine()
+    base = _exact_snapshot(GUEST, OWNER_A, engine)
+    snapshots = []
+    for index in range(count):
+        chart = engine.calculate_chart(
+            ChartInput(
+                utc_datetime=datetime(
+                    1980 + index, 1 + index % 12, 1 + (7 * index) % 28, (5 * index) % 24, tzinfo=UTC
+                ),
+                latitude=10.8231 + index % 12,
+                longitude=106.6297,
+            )
+        )
+        snapshots.append(replace(base, result=chart))
+    return snapshots
+
+
+def _served(repository: MemoryReadingRepository, projection: ReadingProjection) -> Any:
+    revision = repository.revisions[(GUEST, OWNER_A, projection.active.revision_id)]
+    candidate = revision.evaluation.publishable_candidate
+    assert candidate is not None and candidate.semantic_blueprint is not None
+    return candidate
+
+
+async def test_recomputed_situation_matches_what_was_served() -> None:
+    """Owner decision 2026-10-21: when history is gone, D-1/D-2 are recomputed from the chart
+    and date. The recomputation equals the served situation unless that day's own guard moved
+    it (a third day in a row), which is the only input the recomputation does not replay."""
+
+    for snapshot in _snapshots(4):
+        repository = MemoryReadingRepository()
+        service = _service(repository, START)
+        for offset in range(8):
+            day = START + timedelta(days=offset)
+            projection = await _open(service, snapshot, day)
+            served = _served(repository, projection).semantic_blueprint.mechanism_key
+            computed = await service._computed_daily_issue(OWNER_A, snapshot.result, day, None)
+            plan = _stored_plan(repository, projection.active.revision_id)
+            assert plan.daily_variety is not None
+            recent = plan.daily_variety.recent_issue_keys
+            guard_moved = len(recent) == 2 and recent[0] == recent[1] == computed
+            assert served.removeprefix("psychology:") == computed or guard_moved
+
+
+async def test_consecutive_notes_without_history_stay_at_most_60_percent_similar() -> None:
+    """Owner rule 2026-10-21: if two consecutive notes would be more than 60% alike, write a
+    different angle. Each day here is opened with no stored history (as after the 24-hour
+    window), so the guard recomputes D-1/D-2. Axes: situation, title, scene, action, transit."""
+
+    worst = 0.0
+    for snapshot in _snapshots(4):
+        previous: tuple[object, ...] | None = None
+        situations: list[object] = []
+        for offset in range(14):
+            repository = MemoryReadingRepository()  # nothing kept from earlier days
+            projection = await _open(
+                _service(repository, START), snapshot, START + timedelta(days=offset)
+            )
+            candidate = _served(repository, projection)
+            axes = (
+                candidate.semantic_blueprint.mechanism_key,
+                candidate.hook,
+                candidate.manifestation,
+                candidate.micro_action,
+                candidate.transit,
+            )
+            if previous is not None:
+                similarity = sum(a == b for a, b in zip(axes, previous, strict=True)) / len(axes)
+                worst = max(worst, similarity)
+                assert similarity <= 0.6, (offset, similarity)
+            previous = axes
+            situations.append(axes[0])
+        # AC05 holds again without history: no situation three calendar days in a row.
+        runs = zip(situations, situations[1:], situations[2:], strict=False)
+        assert not any(a == b == c for a, b, c in runs)
+    assert worst > 0  # the measure is exercised (some axis can repeat, e.g. the situation)

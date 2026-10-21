@@ -504,12 +504,13 @@ class ReadingApplicationService:
         local_date: date,
         background_lens: BackgroundLens | None,
     ) -> tuple[str, ...]:
-        """Issue keys this owner was actually served on D-1 then D-2, from stored projections.
+        """Issue keys of D-1 then D-2 for the AC05 guard.
 
-        Reads existing rows only (no history table). Stops at the first day without a served
-        note: the top-K guard is about consecutive calendar days the reader saw. A day whose
-        history has expired under the retention policy counts as unavailable, never as an error,
-        so with the 24-hour Daily window the guard usually sees at most D-1.
+        Uses the stored projection when it is still available. When it is not (never opened,
+        hidden or already deleted under the 24-hour Daily window), the day's situation is
+        recomputed from the chart and date with the same deterministic selection, so the guard
+        keeps working without storing any extra history (owner decision 2026-10-21). Expired
+        history is never an error. Stops at a day the rotation does not cover.
         """
 
         issues: list[str] = []
@@ -532,15 +533,74 @@ class ReadingApplicationService:
                     else None
                 )
             except HistoryUnavailable:
-                # Expired Daily history (24-hour window) is not evidence of what was served and
-                # must never block today's note; the guard just sees fewer days.
-                break
+                revision = None
             candidate = revision.evaluation.publishable_candidate if revision else None
             blueprint = candidate.semantic_blueprint if candidate else None
-            if blueprint is None or not blueprint.mechanism_key.startswith("psychology:"):
+            if blueprint is not None:
+                if not blueprint.mechanism_key.startswith("psychology:"):
+                    break
+                issues.append(blueprint.mechanism_key.removeprefix("psychology:"))
+                continue
+            computed = await self._computed_daily_issue(profile_id, chart, day, background_lens)
+            if computed is None:
                 break
-            issues.append(blueprint.mechanism_key.removeprefix("psychology:"))
+            issues.append(computed)
         return tuple(issues)
+
+    async def _computed_daily_issue(
+        self,
+        profile_id: UUID,
+        chart: DateOnlySunResult | NatalChart,
+        day: date,
+        background_lens: BackgroundLens | None,
+    ) -> str | None:
+        """The situation the rotation selects for ``day`` without that day's own guard: the
+        nominal top-K slot, recomputed from the chart, that day's transits and the owner's
+        rotation seed. Pure computation; nothing is stored or sent."""
+
+        if not self._rotation_applies(ReadingPurpose.DAILY_NOTE, day):
+            return None
+        if self._daily_variety_key is None:  # pragma: no cover - guarded by _rotation_applies
+            return None
+        variety = DailyVariety(
+            key_version=VARIETY_KEY_VERSION,
+            catalog_version=DAILY_PSYCHOLOGY_MATRIX_VERSION,
+            seed=daily_variety_seed(
+                self._daily_variety_key, profile_id, DAILY_PSYCHOLOGY_MATRIX_VERSION
+            ),
+            day_index=day_index(day),
+        )
+        observed_at = datetime.combine(day, time(hour=DAILY_OBSERVED_HOUR_UTC), tzinfo=UTC)
+        transits = await self._optional_transits(chart, ReadingPurpose.DAILY_NOTE, observed_at)
+        plan = self._planner.plan(
+            chart,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            transits=transits,
+            editorial_seed=day.isoformat(),
+            background_lens=background_lens,
+            daily_variety=variety,
+        )
+        candidate = self._renderer.render(plan)
+        if (
+            transits is not None
+            and candidate.transit is not None
+            and plan.daily_selection is not None
+            and not evaluate_candidate(plan, candidate).accepted
+        ):
+            # Same B1b fallback as serving: a rejected transit reason re-plans from natal only.
+            plan = self._planner.plan(
+                chart,
+                purpose=ReadingPurpose.DAILY_NOTE,
+                transits=None,
+                editorial_seed=day.isoformat(),
+                background_lens=background_lens,
+                daily_variety=variety,
+            )
+            candidate = self._renderer.render(plan)
+        blueprint = candidate.semantic_blueprint
+        if blueprint is None or not blueprint.mechanism_key.startswith("psychology:"):
+            return None
+        return blueprint.mechanism_key.removeprefix("psychology:")
 
     async def _optional_enqueue(
         self,

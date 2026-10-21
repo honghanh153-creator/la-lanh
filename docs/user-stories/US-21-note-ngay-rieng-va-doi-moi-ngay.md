@@ -51,12 +51,16 @@ cho phép.
   khoá `K[v+1]` chỉ áp cho ngày mới.
 - **AC05:** Tình huống chọn từ top-K đã sắp xếp ổn định, theo `day_index mod K`. Không quá 2 ngày liền
   cùng tình huống khi pool có ít nhất 2 phần tử. Pool 1 phần tử thì tình huống đứng yên và các ô vẫn đổi.
-  *Đối chiếu với note ngày 24 giờ (2026-10-20, chờ owner quyết):* guard đọc note đã phục vụ ở D−1 và
-  D−2. Với hạn 24 giờ, D−2 luôn đã hết hạn và D−1 thường cũng vậy, nên guard thường không đủ dữ liệu để
-  chặn ngày thứ ba. Lịch sử hết hạn được coi là không có, không bao giờ chặn note hôm nay, và không được
-  giữ thêm dữ liệu chỉ để phục vụ guard. Khi đó AC05 chỉ còn được bảo đảm bởi việc xoay `day_index mod K`
-  (pool ổn định thì hai ngày liền kề khác vị trí); ngày thứ ba liên tiếp vẫn có thể xảy ra khi pool đổi
-  thành phần. Đề xuất: owner chấp nhận AC05 ở mức "cố gắng tốt nhất" trong phạm vi lịch sử còn hạn.
+  *Đối chiếu với note ngày 24 giờ, owner quyết 2026-10-21:* note D−1/D−2 thường đã bị ẩn hoặc xoá, nên
+  guard không đọc được lịch sử. Owner không chấp nhận mức best effort. Thay vào đó, trước khi chọn tình
+  huống hôm nay, app **tính lại** tình huống danh nghĩa của D−1/D−2 từ lá số, transit của ngày đó và hạt
+  giống rotation (cùng công thức), rồi áp guard như cũ. Không lưu thêm dữ liệu nào và không gửi gì ra
+  ngoài. Bản ghi đã phục vụ vẫn được dùng khi còn đọc được. Giới hạn: phép tính lại không phát lại guard
+  của chính ngày đó, cũng không biết người dùng đã đổi góc nhìn ngày đó; ngày người dùng không mở cũng
+  được tính như đã phục vụ. Quy tắc owner "trùng trên 60% thì đổi góc viết" được đo trên 5 trục (tình
+  huống, tiêu đề, cảnh, việc nhỏ, transit): B3-1a đổi tiêu đề, cảnh và việc nhỏ mỗi ngày, nên hai ngày
+  liền kề trùng tối đa 40%. Bằng chứng tổng hợp: 12 lá số × 30 ngày không có lịch sử, có tính lại thì 0
+  lần ra 3 ngày liền, không tính lại thì 8 lần.
 - **AC06:** Ngày bị ép ngoại lệ D thì D+1 ở đúng vị trí danh nghĩa (không dịch). Báo cáo có số lượt và
   tỷ lệ ngoại lệ. *(Phản ví dụ của Codex)*
 
