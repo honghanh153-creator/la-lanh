@@ -15,8 +15,10 @@ import {
   searchBirthPlaces,
   SESSION_EPOCH_KEY,
   type GuestSession,
+  type RadarResult,
 } from "../../shared/api/client";
 import { testLocks } from "../../shared/session/testLocks";
+import { RadarResultView } from "./RadarContinuePage";
 import { RadarOwnerResultPage } from "./RadarOwnerResultPage";
 import { RadarPrivateStartPage } from "./RadarPrivateStartPage";
 
@@ -87,6 +89,13 @@ describe("Radar private delete needs an in-app confirmation", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Xoá" }));
     await waitFor(() => expect(deleteRadarResult).toHaveBeenCalledWith("check-1", expect.anything()));
     expect(deleteRadarResult).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows when each private check deletes itself, in Vietnam time", async () => {
+    renderPrivate();
+    expect(await screen.findByText("Tự xoá lúc 07:00, 31/10")).toBeInTheDocument();
+    expect(screen.getByText(/chỉ giữ 24 giờ để bạn mở lại; sau đó tự xoá/)).toBeInTheDocument();
+    expect(screen.queryByText(/30 ngày/)).not.toBeInTheDocument();
   });
 
   it("closes the sheet without deleting when the owner changes", async () => {
@@ -179,5 +188,38 @@ describe("Radar owner result delete uses the same sheet", () => {
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Xoá" }));
     await waitFor(() => expect(deleteRadarResult).toHaveBeenCalledWith("check-1"));
     expect(await screen.findByTestId("where")).toHaveTextContent("/radar/start#radar-history");
+  });
+
+  it.each([
+    ["new 24-hour", "2026-10-20T03:00:00Z", "Bản đọc này tự xoá lúc 10:00, 20/10."],
+    ["legacy 30-day", "2026-11-18T03:00:00Z", "Bản đọc này tự xoá lúc 10:00, 18/11."],
+  ])("states the %s result's own expiry on v1 and v2, never a fixed 24 hours", (_kind, expiresAt, expected) => {
+    const base = { mode: "private_check", recipient_label: "QA tổng hợp", expires_at: expiresAt, disclaimer: "Chỉ để tự soi." } as const;
+    const v1 = { ...base, version: "radar-result-v1", headline: "Hai nhịp khác nhau", summary: "Tóm tắt tổng hợp.", dimensions: [] };
+    const v2 = {
+      ...base, version: "radar-result-v2", headline: "Hai nhịp khác nhau", summary: "Tóm tắt tổng hợp.", dimensions: [],
+      pair_signature: { kicker: "Tín hiệu", headline: "Hai nhịp khác nhau", summary: "Tóm tắt tổng hợp." },
+      compatibility_map: [{ key: "resonance", label: "Bắt sóng", value: 60, meaning: "Nghĩa tổng hợp." }],
+      sections: [{ key: "flow", label: "Dòng chảy", title: "Tiêu đề tổng hợp", body: "Thân bài tổng hợp.", evidence: [] }],
+    };
+    for (const result of [v1, v2]) {
+      const view = render(<MemoryRouter><RadarResultView onWithdraw={() => {}} ownerView result={result as unknown as RadarResult} /></MemoryRouter>);
+      const note = screen.getByText(expected).closest("section");
+      expect(note).toHaveTextContent("không mở lại được nữa");
+      expect(screen.queryByText(/24 giờ/)).not.toBeInTheDocument();
+      view.unmount();
+    }
+  });
+
+  it("shows no retention note on a consented invite result or the recipient view", () => {
+    const result = {
+      mode: "consented_invite", recipient_label: "QA tổng hợp", expires_at: "2026-11-18T03:00:00Z", version: "radar-result-v1",
+      headline: "Hai nhịp khác nhau", summary: "Tóm tắt tổng hợp.", dimensions: [], disclaimer: "Chỉ để tự soi.",
+    } as unknown as RadarResult;
+    const owner = render(<MemoryRouter><RadarResultView ownerView result={result} /></MemoryRouter>);
+    expect(screen.queryByText(/tự xoá lúc/)).not.toBeInTheDocument();
+    owner.unmount();
+    render(<MemoryRouter><RadarResultView result={{ ...result, mode: "private_check" }} /></MemoryRouter>);
+    expect(screen.queryByText(/tự xoá lúc/)).not.toBeInTheDocument();
   });
 });

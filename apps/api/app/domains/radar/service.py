@@ -44,7 +44,10 @@ CONTEXTS = {"crush", "friend", "partner", "someone"}
 CONSENT_VERSION = "radar-pair-v1"
 AUTHORIZED_INPUT_VERSION = "radar-authorized-input-v1"
 INVITE_TTL = timedelta(days=7)
-PRIVATE_RESULT_TTL = timedelta(days=30)
+# Manual entry of the other person's birth data keeps the result briefly (owner decision
+# 2026-10-19); a mutually consented pair result keeps the longer window.
+PRIVATE_CHECK_TTL = timedelta(hours=24)
+CONSENTED_RESULT_TTL = timedelta(days=30)
 RECEIPT_TTL = timedelta(days=7)
 MAX_RETAINED_REQUESTS = 100
 PAGE_SIZE = 20
@@ -261,7 +264,7 @@ class RadarService:
                 context=f"radar-result:{request_id}".encode(),
             ),
             created_at=current,
-            expires_at=current + PRIVATE_RESULT_TTL,
+            expires_at=current + PRIVATE_CHECK_TTL,
             completed_at=current,
             idempotency_hash=idem,
             request_hash=request_hash,
@@ -288,6 +291,7 @@ class RadarService:
             "recipient_label": label,
             "mode": RadarMode.PRIVATE_CHECK.value,
             **projection,
+            "expires_at": row.expires_at,
         }
 
     async def list_owned(
@@ -472,6 +476,7 @@ class RadarService:
             "recipient_label": self._label(row),
             "mode": RadarMode.PRIVATE_CHECK.value,
             **payload,
+            "expires_at": row.expires_at,
         }
 
     async def share_token(self, principal_id: UUID, request_id: UUID) -> str:
@@ -571,7 +576,7 @@ class RadarService:
             )
             row.status = RadarStatus.COMPLETED.value
             row.completed_at = current
-            row.expires_at = current + PRIVATE_RESULT_TTL
+            row.expires_at = current + CONSENTED_RESULT_TTL
             row.token_ciphertext = None
             await session.flush()
             result = RadarAcceptResult(row.id, receipt, recipient_projection)
@@ -617,6 +622,7 @@ class RadarService:
             result["request_id"] = str(row.id)
             result["recipient_label"] = self._label(row)
             result["mode"] = row.mode
+            result["expires_at"] = row.expires_at
             return result
 
     async def receipt_result(self, receipt: str) -> dict[str, Any]:

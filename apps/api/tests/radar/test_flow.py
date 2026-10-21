@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
@@ -55,6 +56,16 @@ def _full_profile(client: TestClient, key: str, birth_date: str, birth_time: str
     assert supplement.status_code == 200
     assert supplement.json()["profile_level"] == 3
     return str(csrf)
+
+
+def _retention(database: Path, request_id: str) -> timedelta:
+    """Result lifetime from completion, read from the stored row."""
+    with sqlite3.connect(database) as connection:
+        completed_at, expires_at = connection.execute(
+            "SELECT completed_at, expires_at FROM radar_requests WHERE id = ?",
+            (request_id.replace("-", ""),),
+        ).fetchone()
+    return datetime.fromisoformat(expires_at) - datetime.fromisoformat(completed_at)
 
 
 def _assert_dossier_payload(payload: dict[str, Any]) -> None:
@@ -165,6 +176,9 @@ def test_private_radar_requires_both_people_and_supports_withdrawal(tmp_path: Pa
         assert receipt_result.json()["mode"] == "consented_invite"
         _assert_dossier_payload(receipt_result.json())
         _assert_no_raw_birth_data(receipt_result.json())
+
+        # A mutually consented pair result keeps the 30-day window from acceptance.
+        assert _retention(database, request_id) == timedelta(days=30)
 
         owner_result = owner.get(f"/v1/radar/results/{request_id}")
         assert owner_result.status_code == 200
@@ -344,12 +358,29 @@ def test_private_check_computes_without_persisting_other_person_birth_input(
         assert payload["headline"] not in row[6]
 
         request_id = payload["request_id"]
+        # Manual entry of the other person's data keeps the result for 24 hours only.
+        assert _retention(database, request_id) == timedelta(hours=24)
         stored = owner.get(f"/v1/radar/results/{request_id}")
         assert stored.status_code == 200
         assert stored.json()["mode"] == "private_check"
         _assert_dossier_payload(stored.json())
         _assert_no_raw_birth_data(stored.json())
         assert stored.json()["sections"][0]["highlights"] == payload["sections"][0]["highlights"]
+        # The owner sees this result's own expiry, on creation and on reopening.
+        expires_at = datetime.fromisoformat(stored.json()["expires_at"])
+        assert datetime.fromisoformat(payload["expires_at"]) == expires_at
+        # A result created before the 24-hour rule keeps, and shows, its original 30 days.
+        with sqlite3.connect(database) as connection:
+            connection.execute(
+                "UPDATE radar_requests SET completed_at = datetime('now', '-25 hours'), "
+                "created_at = datetime('now', '-25 hours'), "
+                "expires_at = datetime('now', '-25 hours', '+30 days')"
+            )
+            connection.commit()
+        legacy = owner.get(f"/v1/radar/results/{request_id}")
+        assert legacy.status_code == 200
+        assert _retention(database, request_id) == timedelta(days=30)
+        assert datetime.fromisoformat(legacy.json()["expires_at"]) - expires_at > timedelta(days=27)
         assert owner.delete(f"/v1/radar/results/{request_id}", headers=headers).status_code == 204
         assert owner.get(f"/v1/radar/results/{request_id}").status_code == 404
 

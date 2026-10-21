@@ -210,6 +210,7 @@ export type RadarResult = {
   request_id?: string | null;
   recipient_label?: string | null;
   mode?: RadarInvite["mode"] | null;
+  expires_at?: string | null;
   version: string;
   headline: string;
   summary: string;

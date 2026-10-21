@@ -52,7 +52,7 @@ flowchart TD
   M --> N["Hủy raw input B khỏi request memory"]
   N --> O["Lưu label + minimized result mã hóa"]
   O --> P["A xem kết quả"]
-  P --> Q["A xóa ngay hoặc tự hết hạn sau 30 ngày"]
+  P --> Q["A xóa ngay hoặc tự hết hạn sau 24 giờ"]
 ```
 
 ## 5. Field contract
@@ -77,12 +77,28 @@ Inputs must not enter URL, localStorage/sessionStorage, analytics, logs, error t
 | Data | Storage | Retention | User control |
 |---|---|---|---|
 | Raw B DOB/time/place in private mode | Request memory only | One computation | No history/profile created |
-| Nickname | AES-GCM, request-bound context | Max 30 days | Owner delete |
-| Minimized Radar result | AES-GCM | Max 30 days | Owner delete |
+| Nickname | AES-GCM, request-bound context | Private check: 24 hours; consented invite: 30 days from acceptance | Owner delete |
+| Minimized Radar result | AES-GCM | Private check: 24 hours; consented invite: 30 days from acceptance | Owner delete |
 | Permission attestation | Version + timestamp | Same request lifetime | Deleted with result |
 | Invite capability | Hash + temporary encrypted copy | 7 days or terminal state | Revoke |
 | B birth profile in invite mode | Existing encrypted birth domain | Existing guest policy | B withdraw/delete |
 | Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 7 days | B withdraw; inaccessible after expiry |
+
+Private-check retention (owner decision 2026-10-19): A enters B's data under A's attestation alone, so the
+result is kept only long enough to reopen it, 24 hours from creation.
+
+- **Hidden at expiry, always.** Read, replay and history treat a row with `expires_at <= now` as expired.
+- **Physical deletion is nominal, not a hard deadline.** The six-hour `cleanup_expired` job deletes expired
+  rows and their rewrite jobs (FK cascade). With no delay that is within about 30 hours of creation. The job
+  skips an owner while that owner has an active rewrite send fence or a started generation attempt (any
+  surface, Daily included), and a pass that cannot delete stops and is retried only at the next timer run.
+  Each overlap therefore defers deletion by one six-hour run. The fence is kept on purpose: it protects
+  in-flight sends from deletion races. There is no upper bound until a retry-after-fence mechanism exists.
+- **Notices state the row's own expiry.** The form states the 24-hour rule for new checks. The history row and
+  the result page show the stored `expires_at` in Vietnam time and keep the delete-now button. Results created
+  before this change keep the expiry they were created with (at most 30 days, as their notice said) and show
+  that expiry; there is no backfill.
+- A consented invite keeps 30 days because B consented separately and can withdraw.
 
 No contact upload, phone/email, GPS, current city, precise distance, IP fingerprint, mood, chat, advertising ID or model-training use belongs in Radar.
 
@@ -130,7 +146,7 @@ No contact upload, phone/email, GPS, current city, precise distance, IP fingerpr
 
 - Kết quả mới tiếp tục được ghi bằng `radar-result-v2`; Dossier là phần mở rộng additive, không phải một loại kết quả hay mục đích xử lý mới.
 - Web nhận biết các field Dossier optional. Kết quả v2 cũ chỉ có `title/body/evidence` vẫn render bằng card cũ và không cần migration.
-- API và web vẫn đọc `radar-result-v1` đã mã hóa cho tới khi tự hết hạn 30 ngày; không migrate hoặc giải mã hàng loạt dữ liệu cũ.
+- API và web vẫn đọc `radar-result-v1` đã mã hóa cho tới khi tự hết hạn (tối đa 30 ngày với bản tạo trước 2026-10-19); không migrate hoặc giải mã hàng loạt dữ liệu cũ.
 - Không bổ sung cột dữ liệu cá nhân và không gửi chart facts tới provider ngoài.
 
 ## 9. Edge cases

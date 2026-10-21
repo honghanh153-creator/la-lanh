@@ -147,6 +147,8 @@ class RadarResultResponse(BaseModel):
     request_id: UUID | None = None
     recipient_label: str | None = None
     mode: RadarMode | None = None
+    # Owner views only: when this stored result is hidden and queued for deletion.
+    expires_at: datetime | None = None
     version: str
     headline: str
     summary: str
