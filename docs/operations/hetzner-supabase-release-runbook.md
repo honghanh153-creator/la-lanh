@@ -8,7 +8,8 @@ status checklist is
 ## Current production — 2026-10-18
 
 Release `4111f03cee3c` is live (Tarot B2: question frame, roles, stance, variants, Roast frames,
-provenance-coded brief; B3-1a Daily rotation shipped **off**), Alembic head `20261018_0037`,
+provenance-coded brief; B3-1a Daily rotation **on since 2026-10-19** via `LA_LANH_DAILY_VARIETY_FROM`),
+Alembic head `20261018_0037`,
 generation/Google login off. Staging runs the same image digest. Receipt and findings:
 [production-release-2026-10-18](../reviews/production-release-2026-10-18/receipt.md). **No verified
 rollback anchor for B2 data:** `la-lanh:836222282dfc` starts on schema 0037 but cannot reopen framed Tarot
