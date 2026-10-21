@@ -1192,7 +1192,8 @@ def _pick(plan: ReadingPlan, pool: list[SupportedSituation]) -> SupportedSituati
     slot = top_k_slot(variety.day_index, len(pool))
     recent = variety.recent_issue_keys
     if len(pool) >= 2 and len(recent) == 2 and recent[0] == recent[1] == pool[slot].issue_key:
-        # AC05: never a third calendar day in a row on the same served situation.
+        # AC05: the guard pair. Plans since PR #39 pass (D-1, D-1) only on odd days, so an odd
+        # day never repeats the even day before it; older frozen plans replay their stored pair.
         slot = (slot + 1) % len(pool)
     return pool[slot]
 

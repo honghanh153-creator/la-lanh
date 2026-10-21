@@ -51,16 +51,26 @@ cho phép.
   khoá `K[v+1]` chỉ áp cho ngày mới.
 - **AC05:** Tình huống chọn từ top-K đã sắp xếp ổn định, theo `day_index mod K`. Không quá 2 ngày liền
   cùng tình huống khi pool có ít nhất 2 phần tử. Pool 1 phần tử thì tình huống đứng yên và các ô vẫn đổi.
-  *Đối chiếu với note ngày 24 giờ, owner quyết 2026-10-21:* note D−1/D−2 thường đã bị ẩn hoặc xoá, nên
-  guard không đọc được lịch sử. Owner không chấp nhận mức best effort. Thay vào đó, trước khi chọn tình
-  huống hôm nay, app **tính lại** tình huống danh nghĩa của D−1/D−2 từ lá số, transit của ngày đó và hạt
-  giống rotation (cùng công thức), rồi áp guard như cũ. Không lưu thêm dữ liệu nào và không gửi gì ra
-  ngoài. Bản ghi đã phục vụ vẫn được dùng khi còn đọc được. Giới hạn: phép tính lại không phát lại guard
-  của chính ngày đó, cũng không biết người dùng đã đổi góc nhìn ngày đó; ngày người dùng không mở cũng
-  được tính như đã phục vụ. Quy tắc owner "trùng trên 60% thì đổi góc viết" được đo trên 5 trục (tình
-  huống, tiêu đề, cảnh, việc nhỏ, transit): B3-1a đổi tiêu đề, cảnh và việc nhỏ mỗi ngày, nên hai ngày
-  liền kề trùng tối đa 40%. Bằng chứng tổng hợp: 12 lá số × 30 ngày không có lịch sử, có tính lại thì 0
-  lần ra 3 ngày liền, không tính lại thì 8 lần.
+  *Đối chiếu với note ngày 24 giờ, owner quyết 2026-10-21 (sửa theo review PR #39):* note D−1/D−2
+  thường đã bị ẩn hoặc xoá, và owner không chấp nhận best effort hay lưu thêm lịch sử. Guard không đọc
+  lịch sử nữa; nó chỉ dựa vào lá số và ngày, với lookback cố định:
+  - **Ngày lẻ** (`day_index` lẻ): đổi sang lựa chọn kế tiếp khi tình huống danh nghĩa trùng tình huống
+    thực tế của ngày chẵn hôm trước.
+  - **Ngày chẵn:** đổi khi ngày lẻ hôm trước có pool 1 phần tử (không đổi được) và hai tình huống danh
+    nghĩa trùng nhau.
+  - Mọi đầu vào được tính lại bằng đúng phép chọn khi phục vụ (transit ngày đó, hạt giống rotation, nhánh
+    dự phòng natal); pool 1 phần tử được nhận ra bằng cách yêu cầu phép chọn thật đổi khỏi nó. Ngày chẵn
+    tính thêm 1 ngày, ngày lẻ 2 ngày. Không lưu gì, không gửi gì. Plan đã đóng băng replay nguyên (AC04);
+    ngày bị đổi không dịch vị trí danh nghĩa của ngày sau (AC06).
+  - **Bảo đảm:** 3 ngày liền cùng tình huống chỉ còn xảy ra khi chính ngày thứ ba có pool 1 phần tử (ngoại
+    lệ của AC05). Cặp (chẵn, lẻ) luôn khác nhau trừ khi ngày lẻ có pool 1; ngày chẵn sau ngày lẻ như vậy
+    sẽ đổi, trừ khi nó cũng có pool 1.
+  - **Bằng chứng tổng hợp:** 100 lá số × 120 ngày không có lịch sử (12.000 ngày): 965 lần guard đổi tình
+    huống, 769 lần pool đổi ngay sau đó, 46 lần 3 ngày liền và cả 46 đều có pool 1 ở ngày thứ ba. Phản ví dụ
+    của Codex (lá số 1993-02-08, 22–24/4/2027) không còn lặp. Quy tắc "trùng trên 60% thì đổi góc viết":
+    hai ngày liền kề trùng tối đa 40% trên 5 trục (tình huống, tiêu đề, cảnh, việc nhỏ, transit).
+  - **Giới hạn:** phép tính dùng góc nhìn (lens) hiện tại và catalog hiện hành; đổi lens, đổi lá số hoặc
+    đổi catalog là một chuỗi mới.
 - **AC06:** Ngày bị ép ngoại lệ D thì D+1 ở đúng vị trí danh nghĩa (không dịch). Báo cáo có số lượt và
   tỷ lệ ngoại lệ. *(Phản ví dụ của Codex)*
 
