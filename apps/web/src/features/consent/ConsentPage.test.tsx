@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
-import { OPENAI_ABUSE_RETENTION_NOTICE } from "../../shared/config/externalRewriteDisclosure";
+import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 import { ConsentPage } from "./ConsentPage";
 
 describe("ConsentPage privacy details", () => {
@@ -51,6 +51,14 @@ describe("ConsentPage privacy details", () => {
     expect(history).toHaveTextContent("được giữ ẩn tới khi các mục đó hết hạn");
     expect(history).toHaveTextContent("Lịch sử khác giữ tối đa 30 ngày");
     expect(history).toHaveTextContent("Bấm Lưu để giữ một note lâu hơn");
+  });
+
+  it("says the AI rewrite gets only Lá's shared Daily wording, never direct chart facts", () => {
+    renderPrivacyPage();
+
+    const notice = screen.getByText((_, element) => element?.tagName === "P" && (element.textContent ?? "").includes(OPENAI_REWRITE_SCOPE_NOTICE));
+    expect(notice).toHaveTextContent("Không gửi lá số");
+    expect(notice).not.toHaveTextContent("nhãn chiêm tinh liên quan");
   });
 
   it("names the beta processors and hosting regions", () => {

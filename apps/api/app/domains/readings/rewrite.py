@@ -8,7 +8,6 @@ from uuid import UUID, uuid4
 
 from pydantic import JsonValue
 
-from app.domains.astro.models import TimePrecision
 from app.domains.content_rewrite.authorization import content_rewrite_receipt_id
 from app.domains.content_rewrite.gates import evaluate_daily_rewrite
 from app.domains.content_rewrite.models import (
@@ -20,11 +19,10 @@ from app.domains.content_rewrite.models import (
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
 from app.domains.readings.companion import companion_issue_entry
-from app.domains.readings.daily_psychology import StaleDailySelection
+from app.domains.readings.daily_psychology import StaleDailySelection, daily_issue_meaning
 from app.domains.readings.gates import evaluate_candidate
 from app.domains.readings.models import (
     ClaimSlotName,
-    FactorKind,
     ReadingCandidate,
     ReadingPlanRecord,
     ReadingProjectionRecord,
@@ -141,47 +139,18 @@ def compile_daily_rewrite_request(
         SemanticArena.ENERGY: "energy",
         SemanticArena.SELF_CARE: "energy",
     }.get(blueprint.arena, "general")
-    factors = {factor.id: factor for factor in plan_record.plan.factors}
-    evidence: list[dict[str, JsonValue]] = []
-    for index, factor_ref in enumerate(blueprint.evidence_factor_refs, start=1):
-        factor = factors.get(factor_ref)
-        if factor is None:
-            continue
-        if plan_record.plan.precision is not TimePrecision.EXACT and factor.kind in {
-            FactorKind.HOUSE_PLACEMENT,
-            FactorKind.ANGLE,
-        }:
-            raise ValueError("Daily rewrite cannot use houses or angles without exact precision")
-        claim = canonical_evidence_claim(factor)
-        labels: list[dict[str, JsonValue]] = []
-        for slot in claim.slots:
-            safe_name = {
-                ClaimSlotName.BODY: "body",
-                ClaimSlotName.BODY_A: "body",
-                ClaimSlotName.BODY_B: "other_body",
-                ClaimSlotName.SIGN: "sign",
-                ClaimSlotName.HOUSE: "house",
-                ClaimSlotName.ASPECT: "aspect",
-                ClaimSlotName.ANGLE: "angle",
-                ClaimSlotName.PHASE: "phase",
-                ClaimSlotName.MOTION: "motion",
-            }.get(slot.name)
-            if safe_name is not None:
-                labels.append({"name": safe_name, "value": slot.value})
-        evidence.append(
-            {
-                "label": f"factor_{index}",
-                "source": factor.source.value,
-                "kind": factor.kind.value,
-                "domain": factor.domain.value,
-                "role": factor.role.value,
-                "confidence": factor.confidence.value,
-                "phase": factor.phase.value if factor.phase else None,
-                "labels": cast(JsonValue, labels),
-            }
-        )
-    if not evidence:
-        raise ValueError("Daily rewrite requires anonymous evidence")
+    # M1 (2026-10-20): no direct chart facts. No natal or transit evidence, and the
+    # brief keeps only the situation's shared catalog meaning, not the chart-selected
+    # personal sentence. Luna never writes astrology on this surface, so it needs neither.
+    # The situation (scene/action keys and wording) is still chosen from the chart: coarse,
+    # and on a date-only reading equivalent to the Sun sign (one-to-one ``SUN_ISSUES``).
+    brief = blueprint.daily_meaning
+    meaning_brief: JsonValue = None
+    if brief is not None:
+        meaning_brief = {
+            **brief.model_dump(mode="json"),
+            "core_meaning": daily_issue_meaning(blueprint.mechanism_key),
+        }
     blueprint_json = json.dumps(
         blueprint.model_dump(mode="json"),
         ensure_ascii=False,
@@ -213,13 +182,10 @@ def compile_daily_rewrite_request(
             "scene_meaning": blueprint.manifestation,
             "action_meaning": blueprint.micro_action,
             "companion_meaning": companion_issue_entry(blueprint.mechanism_key).meaning,
-            "meaning_brief": (
-                blueprint.daily_meaning.model_dump(mode="json") if blueprint.daily_meaning else None
-            ),
+            "meaning_brief": meaning_brief,
             "requirements": [
                 requirement.model_dump(mode="json") for requirement in blueprint.requirements
             ],
-            "evidence": evidence,
         },
     )
 

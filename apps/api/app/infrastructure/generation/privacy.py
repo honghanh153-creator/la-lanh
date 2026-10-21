@@ -64,7 +64,8 @@ class DailySafePayload(SafeModel):
     companion_meaning: str = Field(min_length=1, max_length=200)
     meaning_brief: DailyMeaningBrief | None = None
     requirements: tuple[SafeRequirement, ...] = Field(min_length=1, max_length=8)
-    evidence: tuple[SafeEvidence, ...] = Field(min_length=1, max_length=12)
+    # M1 (2026-10-20): no ``evidence``. extra="forbid" rejects any payload that still carries
+    # chart facts, including jobs queued before this version, so they fail closed unsent.
 
 
 class ReadingSourceSection(SafeModel):

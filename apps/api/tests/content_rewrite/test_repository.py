@@ -181,7 +181,7 @@ def _request(*, owner_key: str = "daily:anonymous") -> RewriteRequestEnvelope:
             blueprint_hash="a" * 64,
             model_version="gpt-6-luna",
             prompt_version="surface-rewrite-v1",
-            schema_version="daily-rewrite/v2",
+            schema_version="daily-rewrite/v3",
             gate_version="daily-rewrite-gates/v4",
         ),
         authorization_receipt_id="consent-receipt",
@@ -199,17 +199,6 @@ def _request(*, owner_key: str = "daily:anonymous") -> RewriteRequestEnvelope:
                     "section": "manifestation",
                     "markers": ["tin nhắn", "chưa rõ"],
                     "min_matches": 1,
-                }
-            ],
-            "evidence": [
-                {
-                    "label": "factor_1",
-                    "source": "natal",
-                    "kind": "planet_placement",
-                    "domain": "communication",
-                    "role": "primary",
-                    "confidence": "high",
-                    "labels": [{"name": "sign", "value": "Song Ngư"}],
                 }
             ],
         },
