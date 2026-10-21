@@ -202,7 +202,11 @@ LA_LANH_GENERATION_OPENAI_PROJECT_ID=proj_eiNVxorNxWcueLgvBnYOU16T
 owner's explicit approval of this spend and of the privacy items below; leaving either `false`
 keeps the worker from starting (`Settings` validation). Kill switch: set
 `LA_LANH_GENERATION_ENABLED=false` (production: redeploy; staging: rerun `up.sh` with
-`STAGING_GENERATION=off`, which also removes the staging worker). Deterministic notes stay as the
+`STAGING_GENERATION=off`, which also removes the staging worker). Production release `c3fab3311d65`
+(2026-10-21) showed that its `deploy.sh` left the profiled `rewrite-worker` running with the old
+settings; the kill-switch test removed it with
+`docker compose "${COMPOSE_ARGS[@]}" --profile generation rm -sf rewrite-worker`. `deploy.sh` now does
+this itself when generation is off; on a release without that fix, run the command by hand. Deterministic notes stay as the
 fallback.
 
 Still blocking activation (not done here): owner approval of spend and governance, DPA

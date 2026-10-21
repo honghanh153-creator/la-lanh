@@ -54,6 +54,9 @@ case "$generation_enabled" in
     ;;
   false)
     unset COMPOSE_PROFILES || true
+    # Kill switch: a profiled worker is not an orphan, so `up --remove-orphans` would leave a
+    # worker from an earlier generation=on release running with its old settings. Stop it first.
+    docker compose "${COMPOSE_ARGS[@]}" --profile generation rm -sf rewrite-worker
     ;;
   *)
     echo "Deployment blocked: generation setting did not resolve to true or false." >&2
