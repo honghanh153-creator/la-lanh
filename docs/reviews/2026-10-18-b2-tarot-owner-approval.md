@@ -36,3 +36,17 @@ workbook's owner columns are therefore empty and this file is the record.
 - Luna prompt update before any Luna activation; Luna stays off.
 - `main` / `release` / deploy remain the owner's decision. `approved_release` in the approval file is set to the
   release commit when B2 ships.
+
+## Addendum — 2026-10-19: self-care lean rule
+
+Owner (chat, 2026-10-19): "ok sửa lỗi hướng nghiêng trước đi", after the production finding that 23 of 78
+one-card readings told a tired reader "cân nhắc thêm trước khi nghỉ ngơi" while the step said to take a rest.
+
+- Rule (`stance.SELF_CARE_ACTIONS`, `tarot-stance-v2`): for rest, stopping, saying no, setting a boundary, asking
+  for help and treating oneself, a "hold" card counts as neutral, so the lean is "nghiêng về thử" or "chưa rõ",
+  never "cân nhắc thêm trước khi". No new copy: the existing approved conclusions and headlines are reused.
+- Same session decisions recorded for the next Tarot/Hợp gu work (not implemented here): card names shown as
+  English + Vietnamese; keep the lean in a conditional form; Hợp gu keeps a number, shown as a range, with the
+  calibration reviewed so the strongest pairs can reach 90–100; Luna's role is to rewrite; Hợp gu allows manual
+  entry of the other person's birth data (consent basis to be confirmed, see the Hợp gu plan).
+- `fallback-approval.json` refreshed for the changed stance table and version.
