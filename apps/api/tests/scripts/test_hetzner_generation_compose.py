@@ -57,7 +57,7 @@ def test_worker_entrypoint_satisfies_production_settings_with_fake_mounted_secre
         "LA_LANH_GENERATION_MONTHLY_BUDGET_CENTS": "90",
         "LA_LANH_GENERATION_PILOT_USER_LIMIT": "20",
         "LA_LANH_GENERATION_OPENAI_PROJECT_ID": "proj_synthetic",
-        "LA_LANH_GENERATION_SURFACE_ROLLOUT": '{"tarot":"full"}',
+        "LA_LANH_GENERATION_SURFACE_ROLLOUT": '{"daily_home":"full"}',
         "LA_LANH_AUTH_ENABLED": "true",
         "LA_LANH_AUTH_GOOGLE_ENABLED": "true",
         "LA_LANH_AUTH_DELIVERY_APPROVED": "true",

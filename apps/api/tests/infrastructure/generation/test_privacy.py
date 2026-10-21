@@ -29,17 +29,6 @@ def _daily_payload() -> dict[str, object]:
                 "min_matches": 1,
             }
         ],
-        "evidence": [
-            {
-                "label": "factor_1",
-                "source": "natal",
-                "kind": "planet_placement",
-                "domain": "communication",
-                "role": "primary",
-                "confidence": "high",
-                "labels": [{"name": "sign", "value": "Song Ngư"}],
-            }
-        ],
     }
 
 
@@ -73,12 +62,33 @@ def test_minimiser_emits_only_surface_allowlist() -> None:
         "action_meaning",
         "companion_meaning",
         "requirements",
-        "evidence",
     }
     serialized = json.dumps(safe, ensure_ascii=False).lower()
     assert "profile_id" not in serialized
     assert "birth" not in serialized
     assert "longitude" not in serialized
+
+
+def test_daily_payload_carrying_chart_evidence_is_rejected_unsent() -> None:
+    """M1: a Daily payload with chart facts, such as a job queued before M1, fails closed."""
+
+    payload = {
+        **_daily_payload(),
+        "evidence": [
+            {
+                "label": "factor_1",
+                "source": "natal",
+                "kind": "planet_placement",
+                "domain": "communication",
+                "role": "primary",
+                "confidence": "high",
+                "labels": [{"name": "sign", "value": "Song Ngư"}],
+            }
+        ],
+    }
+
+    with pytest.raises(UnsafeRewritePayload):
+        PrivacyMinimiser().minimise(RewriteSurface.DAILY_HOME, payload)
 
 
 def test_tarot_question_is_locally_classified_without_forwarding_free_text() -> None:
