@@ -19,7 +19,7 @@ import {
   logoutAccount,
 } from "../../shared/api/client";
 import { ProfilePage } from "./ProfilePage";
-import { OPENAI_ABUSE_RETENTION_NOTICE } from "../../shared/config/externalRewriteDisclosure";
+import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 
 vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
@@ -126,9 +126,11 @@ describe("ProfilePage resonance privacy controls", () => {
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Thử AI viết lại" }));
     expect(screen.getByRole("dialog")).toHaveTextContent("OpenAI");
-    // Runtime sends anonymous chart labels and a Tarot topic, never the question text.
-    expect(screen.getByRole("dialog")).toHaveTextContent("nhãn chiêm tinh liên quan");
-    expect(screen.getByRole("dialog")).toHaveTextContent("không gửi nguyên văn câu hỏi");
+    // M1: only Lá's shared catalog wording for the Daily note; never direct chart facts.
+    expect(screen.getByRole("dialog")).toHaveTextContent(OPENAI_REWRITE_SCOPE_NOTICE);
+    expect(screen.getByRole("dialog")).not.toHaveTextContent("nhãn chiêm tinh liên quan");
+    // Tarot is refused server-side under M1; the sheet says it is not part of this consent.
+    expect(screen.getByRole("dialog")).toHaveTextContent("Các mục khác, như Tarot, chưa dùng AI");
     expect(screen.getByRole("dialog")).toHaveTextContent("xử lý ngoài Việt Nam");
     expect(screen.getByRole("dialog")).toHaveTextContent("huỷ các yêu cầu chưa gửi");
     // Full OpenAI exception set, shared with the onboarding privacy page.

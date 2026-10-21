@@ -64,17 +64,6 @@ def _synthetic_request() -> RewriteRequestEnvelope:
                 "min_matches": 1,
             }
         ],
-        "evidence": [
-            {
-                "label": "factor_1",
-                "source": "natal",
-                "kind": "planet_placement",
-                "domain": "communication",
-                "role": "primary",
-                "confidence": "high",
-                "labels": [{"name": "sign", "value": "Song Ngư"}],
-            }
-        ],
     }
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return RewriteRequestEnvelope(
@@ -84,7 +73,7 @@ def _synthetic_request() -> RewriteRequestEnvelope:
             blueprint_hash=sha256(canonical.encode()).hexdigest(),
             model_version=MODEL,
             prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
-            schema_version="daily-rewrite/v2",
+            schema_version="daily-rewrite/v3",
             gate_version="daily-rewrite-gates/v4",
             candidate_variant="paid-probe",
         ),

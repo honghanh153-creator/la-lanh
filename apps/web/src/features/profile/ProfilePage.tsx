@@ -28,7 +28,7 @@ import "./profile-identity.css";
 import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import "../../shared/styles/signal-note.css";
-import { OPENAI_ABUSE_RETENTION_NOTICE } from "../../shared/config/externalRewriteDisclosure";
+import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 import { useTheme } from "../../shared/theme/useTheme";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
@@ -273,7 +273,7 @@ export function ProfilePage() {
         <p className="profile-status">{rewriteQuery.data.consented ? "Đã đồng ý · kết quả chỉ hiện khi qua kiểm tra. Khi hết ngân sách, vẫn có bản đọc thường." : "Mặc định tắt. Chưa có đồng ý thì không gửi nội dung sang OpenAI."}</p>
       </section> : null}
       <AppSheet open={confirmingAI} title="Đồng ý để OpenAI sửa lời văn?" closeDisabled={rewriteMutation.isPending} onClose={() => setConfirmingAI(false)}>
-        <p>Với mục đang thử nghiệm, Lá Lành gửi sang OpenAI (công ty Hoa Kỳ, xử lý ngoài Việt Nam) bản tóm tắt ý nghĩa và nhãn chiêm tinh liên quan (hành tinh, cung, nhà, góc chiếu), hoặc ý nghĩa các lá Tarot. Không gửi tên, ngày/giờ/nơi sinh hay tọa độ. Nội dung suy ra vẫn có thể là thông tin cá nhân. Với Tarot, không gửi nguyên văn câu hỏi, chỉ gửi nhóm chủ đề đã phân loại sẵn. Dữ liệu riêng của người khác không nằm trong quyền đồng ý này.</p>
+        <p>Lá Lành nhờ OpenAI (công ty Hoa Kỳ, xử lý ngoài Việt Nam) viết lại câu chữ cho dễ đọc hơn. {OPENAI_REWRITE_SCOPE_NOTICE} Dữ liệu riêng của người khác không nằm trong quyền đồng ý này.</p>
         <p>Yêu cầu không lưu lịch sử trả lời, nhưng {OPENAI_ABUSE_RETENTION_NOTICE} Bạn có thể tắt bất cứ lúc nào trong Mình; tắt sẽ huỷ các yêu cầu chưa gửi và dừng các yêu cầu sau, không thu hồi được dữ liệu đã gửi. Bản AI đã hiện trước đó vẫn được giữ như các bản đọc khác.</p>
         <button className="primary-button" disabled={rewriteMutation.isPending} onClick={() => rewriteMutation.mutate(true)} type="button">Đồng ý và thử</button>
         <button className="text-button" disabled={rewriteMutation.isPending} onClick={() => setConfirmingAI(false)} type="button">Dùng bản thường</button>
