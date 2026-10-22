@@ -48,7 +48,9 @@ INVITE_TTL = timedelta(days=7)
 # 2026-10-19); a mutually consented pair result keeps the longer window.
 PRIVATE_CHECK_TTL = timedelta(hours=24)
 CONSENTED_RESULT_TTL = timedelta(days=30)
-RECEIPT_TTL = timedelta(days=7)
+# B's receipt lives as long as the consented result, so B can view or withdraw it for the
+# whole time A can (owner decision P09 D1, 22/10/2026; was 7 days).
+RECEIPT_TTL = CONSENTED_RESULT_TTL
 MAX_RETAINED_REQUESTS = 100
 PAGE_SIZE = 20
 MAX_PAGE_SIZE = 50
