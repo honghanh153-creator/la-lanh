@@ -29,6 +29,7 @@ import {
 } from "../../shared/api/client";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
+import { keepPendingMood, takePendingMood } from "../../shared/storage/pendingMood";
 import { birthCompletionPrompt } from "../../shared/astro/birthReadiness";
 import { dailyContextPath, dailyContextQueryKey } from "../../shared/astro/dailyContext";
 import {
@@ -80,6 +81,7 @@ const moods: readonly { value: MoodValue; emoji: string; hint: string }[] = [
   { value: "Căng", emoji: "😵‍💫", hint: "Đầu đang quay, người đang gồng" },
   { value: "Lạc trôi", emoji: "🥴", hint: "Chưa biết mình đang ở nhịp nào" },
 ];
+const isMoodValue = (value: unknown): value is MoodValue => moods.some((item) => item.value === value);
 
 export function HomePage() {
   const queryClient = useQueryClient();
@@ -221,7 +223,7 @@ export function HomePage() {
       setMessage(laMoodReaction(payload.mood, vibe));
     },
     onError: (_error, value) => {
-      localStorage.setItem("la-lanh-pending-mood-v1", JSON.stringify({ note_id: note?.id, mood: value }));
+      if (note) keepPendingMood(note.id, value);
       setMessage("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.");
     },
   });
@@ -237,17 +239,8 @@ export function HomePage() {
 
   useEffect(() => {
     if (!note || !navigator.onLine) return;
-    const raw = localStorage.getItem("la-lanh-pending-mood-v1");
-    if (!raw) return;
-    try {
-      const pendingMood = JSON.parse(raw) as { note_id?: string; mood?: MoodValue };
-      if (pendingMood.note_id === note.id && pendingMood.mood) {
-        localStorage.removeItem("la-lanh-pending-mood-v1");
-        moodMutation.mutate(pendingMood.mood);
-      }
-    } catch {
-      localStorage.removeItem("la-lanh-pending-mood-v1");
-    }
+    const pendingMood = takePendingMood(note.id, isMoodValue);
+    if (pendingMood) moodMutation.mutate(pendingMood);
   }, [note]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (noteQuery.isLoading) return <HomeLoading />;

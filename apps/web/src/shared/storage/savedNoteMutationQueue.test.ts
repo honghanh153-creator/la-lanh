@@ -5,6 +5,7 @@ import {
   enqueueSavedNoteMutation,
   flushSavedNoteMutations,
   readSavedNoteMutationQueue,
+  SAVED_INTENT_TTL_MS,
 } from "./savedNoteMutationQueue";
 
 describe("saved note mutation queue", () => {
@@ -90,6 +91,34 @@ describe("saved note mutation queue", () => {
 
     clearSavedNoteMutationQueue();
 
+    expect(readSavedNoteMutationQueue()).toEqual([]);
+  });
+
+  it("drops save intents after 24 h and unsave intents after 30 days (P04)", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-10-22T08:00:00Z"));
+      enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-save", intent: "save" });
+      enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-unsave", intent: "unsave" });
+
+      vi.advanceTimersByTime(SAVED_INTENT_TTL_MS.save - 1);
+      expect(readSavedNoteMutationQueue().map((item) => item.daily_note_id)).toEqual(["note-save", "note-unsave"]);
+      vi.advanceTimersByTime(1);
+      expect(readSavedNoteMutationQueue().map((item) => item.daily_note_id)).toEqual(["note-unsave"]);
+
+      vi.advanceTimersByTime(SAVED_INTENT_TTL_MS.unsave - SAVED_INTENT_TTL_MS.save);
+      expect(readSavedNoteMutationQueue()).toEqual([]);
+      expect(localStorage.getItem("la-lanh-saved-note-mutations-v1")).toBe("[]");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops intents with an unreadable or future timestamp", () => {
+    localStorage.setItem("la-lanh-saved-note-mutations-v1", JSON.stringify([
+      { session_epoch: "e", daily_note_id: "n1", revision_id: null, intent: "unsave", updated_at: "not a date" },
+      { session_epoch: "e", daily_note_id: "n2", revision_id: null, intent: "unsave", updated_at: "2999-01-01T00:00:00Z" },
+    ]));
     expect(readSavedNoteMutationQueue()).toEqual([]);
   });
 });

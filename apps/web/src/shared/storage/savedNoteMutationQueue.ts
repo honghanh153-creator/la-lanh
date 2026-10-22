@@ -1,5 +1,11 @@
 const KEY = "la-lanh-saved-note-mutations-v1";
 const MAX_INTENTS = 60;
+const HOUR_MS = 60 * 60 * 1000;
+// Lifetimes by purpose (audit 2026-10-22 P04). A "save" can only succeed while the Daily note
+// still exists (24 h). An "unsave" asks for deletion of a note that lives as long as the
+// profile (30 days of inactivity for an anonymous one), so dropping it early would keep the
+// note saved against the person's wish.
+export const SAVED_INTENT_TTL_MS = { save: 24 * HOUR_MS, unsave: 30 * 24 * HOUR_MS } as const;
 
 export type SavedNoteMutationIntent = {
   session_epoch: string;
@@ -28,6 +34,11 @@ function validIntent(value: unknown): value is SavedNoteMutationIntent {
   );
 }
 
+function fresh(intent: SavedNoteMutationIntent, now: number): boolean {
+  const age = now - Date.parse(intent.updated_at);
+  return age >= 0 && age < SAVED_INTENT_TTL_MS[intent.intent];
+}
+
 function write(intents: SavedNoteMutationIntent[]): void {
   const serialized = JSON.stringify(intents.slice(-MAX_INTENTS));
   if (localStorage.getItem(KEY) !== serialized) localStorage.setItem(KEY, serialized);
@@ -36,7 +47,10 @@ function write(intents: SavedNoteMutationIntent[]): void {
 export function readSavedNoteMutationQueue(): SavedNoteMutationIntent[] {
   try {
     const parsed = JSON.parse(localStorage.getItem(KEY) ?? "[]") as unknown;
-    const intents = (Array.isArray(parsed) ? parsed : []).filter(validIntent);
+    const now = Date.now();
+    const intents = (Array.isArray(parsed) ? parsed : [])
+      .filter(validIntent)
+      .filter((intent) => fresh(intent, now));
     write(intents);
     return intents;
   } catch {
