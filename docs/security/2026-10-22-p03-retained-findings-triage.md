@@ -200,3 +200,17 @@ source review. Every medium-severity entry (failed F1–F9, scoped S1–S9) maps
   (RC-09), edge body limit (RC-17), live DB TLS URL (RC-16), retention timer execution (RC-21).
 - AC/DoD for P03 still incomplete: findings were not re-run as tests in this pass; opt-in PostgreSQL
   tests were not executed; no runtime/native/device evidence was collected.
+
+## Follow-up the same day (fix PRs, not merged)
+
+The four OPEN root causes now have small fix PRs with red-on-base regressions:
+
+| RC | PR | State |
+|---|---|---|
+| RC-07 La Chứng result cache | #58 | FIXED_LOCAL_PR |
+| RC-10 QA proxy authority | #55 | FIXED_LOCAL_PR |
+| RC-11 GCP bootstrap argv password | #56 | MITIGATED_LOCAL_PR (retired script refuses to run; a non-argv path is still needed before reuse) |
+| RC-14 resonance withdrawal race | #57 | FIXED_LOCAL_PR (PostgreSQL two-transaction proof still to run) |
+
+RC-05 (pilot participant limit, `authorization.py`) stays NOT_APPLICABLE only while rewriting is limited to
+`daily_home`; it must be fixed before Radar, matching or Tarot rewriting is enabled.
