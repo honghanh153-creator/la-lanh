@@ -8,6 +8,12 @@ Revision 2026-10-12: addresses review of PR #9. It corrects the guest-storage an
 fixes the Mercury date, separates sky dates from action deadlines, and labels timings and benchmarks
 by how far they were verified.
 
+Revision 2026-10-22: the retention model is re-checked against the current target
+`collab/integration` @ `c3fab3311d65`, which includes `5f3eded` ("keep automatic Daily notes at most
+24 hours", owner decision 2026-10-20). The 2026-10-12 analysis was made against `10695ce4d4c1`; its
+other corrections stand. Daily notes and their moods are no longer a 29-day recap input; §3 and the
+recap options below are updated. No TTL is extended and nothing monthly is built in this PR.
+
 ## Tóm tắt tiếng Việt
 
 - **Tính được, nhưng chưa có sẵn.** Cần bộ giải sự kiện bầu trời (trăng mới/tròn, đứng nghịch/thuận,
@@ -15,13 +21,20 @@ by how far they were verified.
   Roast). Cần quyết định về consent và thời hạn lưu cho recap.
 - **Mô hình dữ liệu (đã đối chiếu code):**
   - Máy chủ giữ note ngày, mood, thí nghiệm hành động và tarot theo hồ sơ (`guest_id`, kể cả khách).
-  - Các dòng này bị xóa vật lý khi đủ 29 ngày 18 giờ, ở lần chạy dọn đầu tiên sau đó (6 giờ/lần).
-    Note và mood chỉ bị xóa khi hồ sơ đã bật chính sách lịch sử. Thí nghiệm và tarot luôn có hạn.
+  - **Theo target hiện tại (`c3fab3311d65`, cập nhật 22/10):** note ngày tự động bị **ẩn sau 24 giờ**
+    và **đủ điều kiện xóa vật lý từ 18 giờ**, xóa ở lần dọn đầu tiên sau đó (6 giờ/lần). Ngoại lệ: note
+    hôm nay (giữ tới hết ngày theo giờ VN), note đã lưu, và note còn "con" chưa hết hạn (việc nhỏ chờ
+    nhìn lại, phản hồi, link chia sẻ) được giữ ẩn tới khi con hết hạn. Mood có hạn riêng 29 ngày 18 giờ
+    nhưng **mất theo cascade khi note cha bị xóa**, nên mood của note không lưu thường mất trong khoảng
+    một ngày. Thí nghiệm và tarot vẫn xóa ở 29 ngày 18 giờ.
+  - Các quy tắc note/mood chỉ áp dụng khi hồ sơ đã bật chính sách lịch sử; thí nghiệm và tarot luôn có hạn.
   - Thiết bị chỉ có cache bộ nhớ 36 giờ và vài marker, không có kho lịch sử.
   - Câu cũ "không xóa trước 30 ngày" là **sai**. Lời hứa là xóa **chậm nhất** 30 ngày.
-- **Recap:** chỉ dựa được vào khoảng hôm nay + 28 ngày trước (29 ngày theo giờ VN). Phải ghi khoảng
-  ngày thật, ngày thiếu và ngày bắt đầu opt-in. Không coi thiếu dữ liệu là 0. Không kéo dài thời hạn
-  lưu. Hai hướng: endpoint tổng hợp theo hồ sơ, hoặc kho local mới có đủ kiểm soát.
+- **Recap:** cửa sổ 29 ngày theo giờ VN (hôm nay + 28 ngày trước) vẫn dùng được cho **dữ liệu còn
+  hợp lệ**: note đã lưu (và mood của chúng tới 29 ngày 18 giờ), thí nghiệm, tarot. Note ngày tự động và
+  mood của chúng **không** còn là đầu vào 29 ngày. Phải ghi khoảng ngày thật, loại dữ liệu nào mất sớm,
+  ngày thiếu và ngày bắt đầu opt-in. Không coi ngày thiếu là không hoạt động hay mood bằng 0. Không kéo
+  dài thời hạn lưu. Hai hướng: endpoint tổng hợp theo hồ sơ, hoặc kho local mới có đủ kiểm soát.
 - **Ngày bầu trời khác hạn chót:** Sao Thủy đứng nghịch 24/10 và **đứng thuận 13/11 lúc 22:53 giờ VN**;
   14/11 là Sao Kim. Giờ trăng mới/tròn khớp bảng của Espenak trong vòng 1 phút. Giờ đứng của hành tinh
   lệch vài phút giữa các nguồn, nên chỉ hiển thị ngày. Số đo 9 ms/29 ms là thử nghiệm một máy, không
@@ -33,8 +46,9 @@ by how far they were verified.
 - a new reviewed content matrix (direct + Roast);
 - a privacy decision on recap inputs.
 
-Raw recap inputs become eligible for purge at 29 d 18 h, so a calendar-month recap cannot be built
-from them. The main product risk is the conflict between the old PRD's "deadline/timing" framing and
+Automatic Daily notes become purge-eligible 18 h after creation (hidden at 24 h) and their moods
+cascade with them; saved notes, experiments and tarot become purge-eligible at 29 d 18 h. So a
+calendar-month recap cannot be built from raw inputs, and Daily/mood history is not a 29-day input. The main product risk is the conflict between the old PRD's "deadline/timing" framing and
 the newer no-prediction gates.
 
 **Open AC/DoD:**
@@ -237,9 +251,9 @@ charts are computed.
 
 | Data | Table | Useful fields | Retention |
 |---|---|---|---|
-| Daily notes | `daily_notes` (`apps/api/app/domains/daily/tables.py:12-36`) | `note_date`, `context_label`, `persona_mode` | Unsaved past-day notes are eligible for physical purge at `created_at` + 29 d 18 h. This applies only if the owner has the `history-retention-v1` policy and the row was created after activation, or activation was ≥ 30 d ago. Reads hide rows at 30 d (`apps/api/app/domains/history/postgres.py:34-36, 52-66, 81-86, 224-249`). |
+| Daily notes | `daily_notes` (`apps/api/app/domains/daily/tables.py:12-36`) | `note_date`, `context_label`, `persona_mode` | **Target `c3fab3311d65`:** automatic past-day notes are hidden 24 h after `created_at` and eligible for physical purge from 18 h, deleted at the first 6-hourly cleanup after that (`DAILY_HISTORY_WINDOW`, `DAILY_PURGE_WINDOW`, `apps/api/app/domains/history/postgres.py:38-45`). Exempt: today's note until the local ICT day ends (`note_date < today`, `:121-124`), saved notes (`saved_daily_source`), and notes with a live child — unexpired experiment, resonance feedback or unrevoked share — kept hidden until the child expires (`live_daily_children`, `:83-106`, applied at `:279-281`). An owner's rewrite send fence can defer a run. Daily projections and plans follow the same windows. Applies only under the `history-retention-v1` policy (row created after activation, or activation ≥ 30 d ago). Physical deletion is not a proven 24 h bound. |
 | Saved notes | `saved_notes` (`saved/tables.py:13-49`) | snapshots, `saved_at` | Kept for the profile's lifetime; protects its source daily note from purge (`history/postgres.py:70-78`) |
-| Mood | `mood_check_ins` (`mood/tables.py:12-22`), one per note | 5 moods (`mood/models.py:7-12`), `checked_in_at` | Same 29 d 18 h physical purge under the policy. **Saving the note does not protect the mood row.** It also cascades if its note is deleted. |
+| Mood | `mood_check_ins` (`mood/tables.py:12-22`), one per note | 5 moods (`mood/models.py:7-12`), `checked_in_at` | Own window unchanged: 29 d 18 h physical purge under the policy (`history/postgres.py:282-283`). But `daily_note_id` is `ON DELETE CASCADE` (`mood/tables.py:22`), so a mood **goes with its Daily note**: for an unsaved note that is usually within about a day. Saving the note keeps the note, and its mood until the mood's own 29 d 18 h point. |
 | Experiments | `daily_experiments` (`experiments/tables.py:22-70`) | `state` chosen/reflected; outcome `not_tried`/`helpful`/`no_difference`/`not_for_now` (`experiments/models.py:14-18`), encrypted payload | `expires_at` = creation + 29 d 18 h for every owner (`experiments/service.py:15,49`) |
 | Tarot sessions | `tarot_sessions` (`tarot/tables.py:12-33`) | `context`, `spread`, `voice`, encrypted payload | `expires_at` = creation + 29 d 18 h for every owner (`tarot/service.py:50,156`) |
 | Daily-note views | not recorded | — | — |
@@ -265,10 +279,13 @@ charts are computed.
   - GCP: `infra/gcp/deploy.sh:182-183`, `40 */6 * * *`.
 - The runbook alerts if no cleanup has succeeded for 6 hours
   (`docs/operations/aura-experiment-retention-runbook.md`).
-- So with a healthy scheduler, a row is deleted between 29 d 18 h and about 30 d after creation. The
-  user-facing promise is "tối đa 30 ngày" (`apps/web/src/features/consent/ConsentPage.tsx:74`).
+- So with a healthy scheduler, a saved-note mood, experiment or tarot row is deleted between 29 d 18 h
+  and about 30 d after creation; an automatic Daily note (and its mood) between 18 h and roughly a day
+  after creation, unless an exemption above applies. The user-facing copy on the target says automatic
+  Daily notes show for at most 24 h with that day's mood and may be deleted earlier; other history is
+  kept at most 30 days (`apps/web/src/features/consent/ConsentPage.tsx:74`).
 
-**Correction.** The earlier line "nothing is deleted before 30 days" was wrong. Rows become
+**Correction (2026-10-12, still valid for the 29 d 18 h data).** The earlier line "nothing is deleted before 30 days" was wrong. Rows become
 deletable at 29 d 18 h and are normally gone before day 30. The 6-hour margin exists to keep the
 "no later than 30 days" promise. It is not a guarantee that 30 × 24 h are kept. Between 29 d 18 h
 and 30 d, whether a row still exists depends on cleanup timing.
@@ -296,8 +313,11 @@ It would mean building a new store.
    - `Cache-Control: no-store`;
    - no new persisted artifact;
    - not sent to any rewrite provider.
-   The safe window is **today plus the previous 28 ICT dates (29 dates)**. Its oldest possible row is
-   at most 29 days old, inside the 29 d 18 h point. Persisting an aggregate beyond that is a
+   The safe window is **today plus the previous 28 ICT dates (29 dates)** for data still kept that
+   long: saved notes (and their moods up to 29 d 18 h), experiments and tarot. Its oldest possible row
+   is at most 29 days old, inside the 29 d 18 h point. Automatic Daily notes and their moods are **not**
+   available across that window on the current target; a recap may only say which kinds were kept and
+   must not infer activity or mood from their absence. Mood is biased towards saved notes. Persisting an aggregate beyond that is a
    separate, new derived dataset. It would need separate consent, its own retention, deletion on
    withdrawal or profile deletion, export, and store-declaration updates.
 2. **New local store** for recap inputs or results. It needs:
@@ -372,8 +392,10 @@ Tabs are `/home`, `/insights`, `/radar` and `/profile` (`apps/web/src/shared/ui/
   devices. It is never sent to providers, never used in analytics or matching, and does not invite
   naming third parties.
 - **Retention vs recap window.**
-  - Raw recap inputs become deletable at 29 d 18 h (§3).
-  - A recap label must show the real covered range. The safe rolling window is 29 ICT dates. A
+  - Saved-note moods, experiments and tarot become deletable at 29 d 18 h; automatic Daily notes and
+    their moods from 18 h (§3).
+  - A recap label must show the real covered range and which data kinds it covers. The safe rolling
+    window is 29 ICT dates for the kinds still kept that long. A
     "30 ngày qua" label without stated dates would overstate what is kept.
   - Persisting a minimised aggregate beyond the window is new derived data. It needs separate
     affirmative consent, its own retention, deletion and export, and store-declaration updates.

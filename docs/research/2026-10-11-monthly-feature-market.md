@@ -9,6 +9,11 @@ Rule 3 dates, source critique). The v1/v2 direction below is still an **unconfir
 recommendation**. The owner must pick a direction and create a user story with AC and DoD before
 anything is built.
 
+Revision 2026-10-22: retention re-checked against the current target `collab/integration` @
+`c3fab3311d65` (includes `5f3eded`, automatic Daily notes kept at most 24 hours). Daily notes and
+their moods are no longer a 29-day recap input; the recap section below is updated. The 2026-10-12
+corrections stand. No TTL is extended and nothing monthly is built in this PR.
+
 ---
 
 ## Tóm tắt tiếng Việt
@@ -22,7 +27,7 @@ anything is built.
 - Spotify Wrapped 2025 là case về **chia sẻ**: hơn 200 triệu người xem ít nhất một story trong 24 giờ; hơn 500 triệu lượt chia sẻ, tính cả ảnh chụp màn hình và tải về. Lượt chia sẻ không phải số người riêng biệt, và nguồn không có số liệu giữ chân hay ROI.
 - Recap kiểu "fun facts" khó duy trì (Gentler Streak đã bỏ).
 
-**Dữ liệu và recap (đã đối chiếu code):** Máy chủ giữ note ngày, mood, thí nghiệm hành động và tarot theo từng hồ sơ (`guest_id`, kể cả khách). Dữ liệu này bị xóa vật lý khi đã đủ 29 ngày 18 giờ, ở lần dọn đầu tiên sau đó (job chạy mỗi 6 giờ). Lời hứa là "tối đa 30 ngày", **không phải "giữ đủ 30 ngày"**. Thiết bị chỉ giữ cache trong bộ nhớ 36 giờ và vài marker đồng bộ, **không có kho lịch sử**. Vì vậy "tính trên thiết bị" chưa phải khả năng sẵn có. Có hai lựa chọn thật: (1) endpoint tổng hợp theo hồ sơ, đọc từ dữ liệu còn được phép giữ; (2) xây kho local mới, có thời hạn, xóa, đăng xuất và tách theo hồ sơ. Recap phải ghi rõ khoảng ngày thật có dữ liệu, ngày thiếu và ngày bắt đầu opt-in. Không coi ngày thiếu là "không hoạt động" hay mood bằng 0. Không âm thầm kéo dài thời hạn lưu.
+**Dữ liệu và recap (đã đối chiếu code):** Máy chủ giữ note ngày, mood, thí nghiệm hành động và tarot theo từng hồ sơ (`guest_id`, kể cả khách). Theo target hiện tại (`c3fab3311d65`), **note ngày tự động bị ẩn sau 24 giờ và đủ điều kiện xóa từ 18 giờ** (trừ note hôm nay, note đã lưu và note còn việc nhỏ/phản hồi/link chia sẻ chưa hết hạn); **mood mất theo note cha**. Note đã lưu (và mood của chúng), thí nghiệm và tarot bị xóa vật lý khi đủ 29 ngày 18 giờ, ở lần dọn đầu tiên sau đó (job chạy mỗi 6 giờ). Lời hứa là "tối đa", **không phải "giữ đủ"**. Thiết bị chỉ giữ cache trong bộ nhớ 36 giờ và vài marker đồng bộ, **không có kho lịch sử**. Vì vậy "tính trên thiết bị" chưa phải khả năng sẵn có. Có hai lựa chọn thật: (1) endpoint tổng hợp theo hồ sơ, đọc từ dữ liệu còn được phép giữ; (2) xây kho local mới, có thời hạn, xóa, đăng xuất và tách theo hồ sơ. Recap phải ghi rõ khoảng ngày thật có dữ liệu, ngày thiếu và ngày bắt đầu opt-in. Không coi ngày thiếu là "không hoạt động" hay mood bằng 0. Không âm thầm kéo dài thời hạn lưu.
 
 **Pháp lý** (đã đọc trang scan của PDF ký chính thức và toàn văn trên CSDL quốc gia; tách rõ điều luật và suy luận):
 - Luật 91/2025/QH15 Điều 9: đồng ý phải tự nguyện, biết rõ, thể hiện rõ ràng, kiểm chứng được, **theo từng mục đích**, không ép đồng ý mục đích khác; im lặng không phải đồng ý. Điều này không cấm một màn hình hỏi nhiều mục đích nếu từng lựa chọn độc lập. Điều 10: quyền rút lại đồng ý.
@@ -341,17 +346,19 @@ Shared constraints: guest-first; useful with no birth data at all; plain direct 
 
 ### B. "Tháng của bạn": a recap of the user's own notes, experiments and moods, plus one theme
 - **UI:** A **story recap of 3–5 cards**:
-  - the covered range, stated first: for example "29 ngày, từ 14/10 đến 11/11; có dữ liệu 9 ngày; bạn bật recap từ 20/10";
+  - the covered range and data kinds, stated first: for example "29 ngày, từ 14/10 đến 11/11; tính từ note đã lưu, việc nhỏ và tarot; có dữ liệu 9 ngày; bạn bật recap từ 20/10";
   - notes saved;
   - small actions tried, with the user's own "có ích / không" taps;
-  - a mood distribution, only if mood logging and recap were both consented;
+  - a mood distribution, only if mood logging and recap were both consented, labelled as covering saved notes only (automatic notes and their moods are deleted within about a day on the current target), or dropped;
   - one theme sentence, chosen from a reviewed bank by evidence and not generated freely;
   - an optional **month card** for sharing, off by default (see share rules).
 - **Data model (verified in code; details in the feasibility doc):**
-  - Server-side, per owner (`guest_id`, guests included): daily notes, mood check-ins, action experiments and tarot sessions. Each is physically purged once it is 29 d 18 h old, at the next cleanup run (every 6 hours), so within 30 days. Saved notes stay with the profile.
+  - Server-side, per owner (`guest_id`, guests included), on the current target `c3fab3311d65`:
+    - automatic Daily notes are hidden 24 h after creation and purge-eligible from 18 h, except today's note, saved notes and notes with an unexpired experiment, feedback or share; their moods cascade with them;
+    - saved notes stay with the profile; their moods, action experiments and tarot sessions are purged once 29 d 18 h old, at the next 6-hourly cleanup, so within 30 days.
   - On the device (web and the Capacitor app, which share the web code): only a 36-hour in-memory note cache and small sync markers. There is **no device-side history**, so "on-device-first" is not an existing capability.
 - **Two real options for v2:**
-  1. **Owner-scoped aggregate endpoint.** It reads only rows that are still allowed to be kept and computes at request time. Nothing new is persisted, and the response is `no-store`. The window is bounded by retention: at most today plus the previous 28 local (ICT) dates. That is 29 dates, which stays inside the 29 d 18 h point after which rows may already be gone. Keeping an aggregate beyond that window is a separate, new derived dataset with its own consent, retention, deletion and export.
+  1. **Owner-scoped aggregate endpoint.** It reads only rows that are still allowed to be kept and computes at request time. Nothing new is persisted, and the response is `no-store`. The window is bounded by retention: at most today plus the previous 28 local (ICT) dates (29 dates, inside the 29 d 18 h point) **for saved notes, their moods, experiments and tarot only**. Automatic Daily notes and their moods are not available across that window, so the recap must state which kinds it covers and must not present a mood distribution as the month's mood (it would cover saved notes only). Keeping an aggregate beyond that window is a separate, new derived dataset with its own consent, retention, deletion and export.
   2. **New local store.** It needs a retention limit, a delete control, clearing on logout and on profile or guest change, partitioning by profile on shared devices, exclusion from device backups, and its own privacy copy. "Local" does not mean "no privacy risk".
 - **Rules for either option:**
   - Show the actual covered range, missing days and the opt-in start date.
