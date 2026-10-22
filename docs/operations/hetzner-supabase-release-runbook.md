@@ -334,6 +334,10 @@ retention, `sslmode=verify-full`). Rehearse every schema change with
 `infra/hetzner/rehearse-migration.sh` (restores the newest backup into a disposable TLS-enabled
 PostgreSQL, runs the release image's migrations, privacy check, Tarot cursor rehearsal and readiness as a
 least-privileged NOSUPERUSER backend role that owns the restored tables, then destroys it; since 2026-10-18).
+Daily backup timer, freshness check, failure marker, restore probe and the open deletion-reconciliation
+decision: [backup-restore-and-deletion-reconciliation.md](backup-restore-and-deletion-reconciliation.md)
+(prepared 2026-10-22, not yet installed). Until the owner chooses a reconciliation design, **do not restore a
+backup into service**; restore only into a disposable copy.
 Staging: `infra/hetzner/staging/up.sh` (own empty database and keys; auth/generation off).
 
 Normally, keep the existing secret files. Recreate the database URL only after a password rotation or

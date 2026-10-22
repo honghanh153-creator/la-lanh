@@ -1,0 +1,12 @@
+[Unit]
+Description=Lá Lành backup freshness check (catches a backup timer that stopped running)
+OnFailure=la-lanh-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/la-lanh/current/infra/hetzner/check-backup-freshness.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+UMask=0077

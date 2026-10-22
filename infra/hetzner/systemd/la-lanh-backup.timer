@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the Lá Lành database backup once a day
+
+[Timer]
+# 20:10 UTC = 03:10 Vietnam time, away from the six-hourly cleanup runs at :25 and :40.
+OnCalendar=*-*-* 20:10:00
+Persistent=true
+RandomizedDelaySec=10min
+AccuracySec=1min
+Unit=la-lanh-backup.service
+
+[Install]
+WantedBy=timers.target

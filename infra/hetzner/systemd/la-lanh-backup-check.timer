@@ -1,0 +1,11 @@
+[Unit]
+Description=Check every six hours that a recent, valid Lá Lành backup exists
+
+[Timer]
+OnCalendar=*-*-* 02,08,14,20:50:00
+Persistent=true
+AccuracySec=1min
+Unit=la-lanh-backup-check.service
+
+[Install]
+WantedBy=timers.target
