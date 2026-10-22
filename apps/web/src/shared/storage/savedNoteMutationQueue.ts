@@ -1,3 +1,5 @@
+import { currentSessionEpoch, sessionGeneration } from "../session/sessionIdentity";
+
 const KEY = "la-lanh-saved-note-mutations-v1";
 const MAX_INTENTS = 60;
 const HOUR_MS = 60 * 60 * 1000;
@@ -76,28 +78,42 @@ export function enqueueSavedNoteMutation(input: EnqueueInput): void {
   write([...kept, next]);
 }
 
+function sameIntent(a: SavedNoteMutationIntent): (b: SavedNoteMutationIntent) => boolean {
+  return (b) => b.session_epoch === a.session_epoch
+    && b.daily_note_id === a.daily_note_id
+    && b.revision_id === a.revision_id
+    && b.updated_at === a.updated_at;
+}
+
 export async function flushSavedNoteMutations(
-  currentSessionEpoch: string,
+  epoch: string,
   apply: (intent: SavedNoteMutationIntent) => Promise<void>,
 ): Promise<void> {
-  let queue = readSavedNoteMutationQueue().filter(
-    (item) => item.session_epoch === currentSessionEpoch,
-  );
-  write(queue);
-  for (const pending of [...queue].sort((a, b) => a.updated_at.localeCompare(b.updated_at))) {
+  const generation = sessionGeneration();
+  write(readSavedNoteMutationQueue().filter((item) => item.session_epoch === epoch));
+  const order = readSavedNoteMutationQueue().sort((a, b) => a.updated_at.localeCompare(b.updated_at));
+  for (const pending of order) {
+    // Recheck right before each send (audit P04): while an earlier call was waiting, the
+    // session may have changed or been cleared, and this intent may have expired or been
+    // replaced. Reading the stored queue again also drops anything past its deadline.
+    const liveEpoch = currentSessionEpoch();
+    if (sessionGeneration() !== generation || (liveEpoch !== null && liveEpoch !== epoch)) return;
+    if (!readSavedNoteMutationQueue().some(sameIntent(pending))) continue;
     try {
       await apply(pending);
-      queue = queue.filter((item) => !(
-        item.session_epoch === pending.session_epoch
-        && item.daily_note_id === pending.daily_note_id
-        && item.revision_id === pending.revision_id
-        && item.updated_at === pending.updated_at
-      ));
-      write(queue);
+      write(readSavedNoteMutationQueue().filter((item) => !sameIntent(pending)(item)));
     } catch {
       // Keep current-session work for a later connectivity retry.
     }
   }
+}
+
+/**
+ * History deletion removes the unsaved Daily notes a queued "save" would target, so those
+ * intents go; queued "unsave" intents are deletion requests and stay until they reach the server.
+ */
+export function dropQueuedSaves(): void {
+  write(readSavedNoteMutationQueue().filter((item) => item.intent === "unsave"));
 }
 
 export function clearSavedNoteMutationQueue(): void {

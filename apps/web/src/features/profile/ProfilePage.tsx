@@ -34,6 +34,7 @@ import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { NightSky } from "../../shared/ui/NightSky";
 import { clearPendingMood } from "../../shared/storage/pendingMood";
+import { dropQueuedSaves } from "../../shared/storage/savedNoteMutationQueue";
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -99,6 +100,7 @@ export function ProfilePage() {
         queryClient.removeQueries({ queryKey: [key] });
       }
       clearPendingMood();
+      dropQueuedSaves();
       setConfirmingHistory(false);
       setStatusMessage("Đã xoá lịch sử. Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ.");
       await queryClient.invalidateQueries({ queryKey: ["daily-note-resonance"] });

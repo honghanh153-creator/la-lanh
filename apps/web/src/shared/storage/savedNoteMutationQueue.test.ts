@@ -4,9 +4,11 @@ import {
   clearSavedNoteMutationQueue,
   enqueueSavedNoteMutation,
   flushSavedNoteMutations,
+  dropQueuedSaves,
   readSavedNoteMutationQueue,
   SAVED_INTENT_TTL_MS,
 } from "./savedNoteMutationQueue";
+import { invalidateSessionRequests, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
 
 describe("saved note mutation queue", () => {
   beforeEach(() => {
@@ -121,4 +123,47 @@ describe("saved note mutation queue", () => {
     ]));
     expect(readSavedNoteMutationQueue()).toEqual([]);
   });
+
+  it("does not send an intent that expires while an earlier acknowledgement is pending (P04)", async () => {
+    let now = Date.parse("2026-10-22T00:00:00Z");
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const stamp = new Date(now).toISOString();
+    localStorage.setItem("la-lanh-saved-note-mutations-v1", JSON.stringify(["first", "second"].map((id) => (
+      { session_epoch: "epoch-a", daily_note_id: id, revision_id: null, intent: "save", updated_at: stamp }
+    ))));
+    let done!: () => void;
+    const apply = vi.fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => { done = resolve; }))
+      .mockResolvedValue(undefined);
+    const flushing = flushSavedNoteMutations("epoch-a", apply);
+    expect(apply).toHaveBeenCalledTimes(1);
+    now += SAVED_INTENT_TTL_MS.save;
+    done();
+    await flushing;
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("la-lanh-saved-note-mutations-v1")).toBe("[]");
+  });
+
+  it("stops sending when the session changes while an earlier send is pending (P04)", async () => {
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
+    enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "first", intent: "save" });
+    enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "second", intent: "unsave" });
+    let done!: () => void;
+    const apply = vi.fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => { done = resolve; }))
+      .mockResolvedValue(undefined);
+    const flushing = flushSavedNoteMutations("epoch-a", apply);
+    invalidateSessionRequests();
+    done();
+    await flushing;
+    expect(apply).toHaveBeenCalledTimes(1);
+  });
+
+  it("history deletion drops queued saves but keeps queued unsave requests", () => {
+    enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "saved", intent: "save" });
+    enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "removed", intent: "unsave" });
+    dropQueuedSaves();
+    expect(readSavedNoteMutationQueue().map((item) => [item.daily_note_id, item.intent])).toEqual([["removed", "unsave"]]);
+  });
 });
+
