@@ -43,7 +43,7 @@ The app target includes `PrivacyInfo.xcprivacy` with `NSPrivacyTracking=false`. 
 | Other User Content | birth date/time, selected context, mood and user-initiated response fields | Yes | No | App Functionality, Product Personalization |
 | Product Interaction | mood/save/share/activation state required to provide the feature | Yes | No | App Functionality |
 | Other Data Types | derived natal/transit factors, reading plan/revision and astrology profile | Yes | No | App Functionality, Product Personalization |
-| Other User Content | Radar nickname/context, permission attestation and minimized relationship result | Yes | Private mode: owner only; invite mode: invited pair | App Functionality, Personalization |
+| Other User Content | Radar nickname/context, permission attestation and minimized relationship result (audience: private mode owner only; invite mode the invited pair) | Yes | No | App Functionality, Product Personalization |
 
 Before App Store submission:
 
