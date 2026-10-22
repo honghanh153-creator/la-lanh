@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 # Real Docker Compose proof for the deploy kill switch (PR #40, audit O01). Run on a DISPOSABLE
-# Docker host only: it refuses a Lá Lành server. It uses busybox images tagged as two fake
-# releases and its own compose project, then removes everything it created.
+# Docker host only. It is opt-in and refuses anything it cannot verify as local and disposable.
+#
+# Opt in explicitly, on the disposable machine itself:
+#   LA_LANH_KILL_SWITCH_PROOF=1 LA_LANH_PROOF_DOCKER_CONTEXT=<context> \
+#     bash infra/hetzner/proof/kill-switch-compose-proof.sh
+# where <context> is the output of `docker context show` on that machine. It refuses when
+# DOCKER_HOST/DOCKER_CONTEXT are set, when the context is not the named one, when the context
+# endpoint is not a local socket (a remote daemon would make the /opt/la-lanh guard meaningless),
+# when the daemon is unreachable, or when Lá Lành containers exist. Each run uses its own compose
+# project and image tags and removes only what it created.
 #
 # It checks the Compose behaviour deploy.sh relies on, which the fake-docker tests only model:
 #   1. a running profiled worker survives `up -d --remove-orphans` without its profile (the bug);
@@ -9,17 +17,43 @@
 #   3. the same command with no worker is a successful no-op;
 #   4. `LA_LANH_RELEASE_ID=<old> docker compose run` uses the old release image (preflight).
 # Prints PASS/FAIL per check and exits non-zero on any FAIL.
+# Exit codes: 0 pass, 1 check failed, 2 looks like a Lá Lành server, 3 not opted in,
+# 4 Docker target not verified as local/disposable, 5 Docker daemon or Compose unavailable.
 set -euo pipefail
 
-if [[ -e /opt/la-lanh ]]; then
-  echo "Refusing: /opt/la-lanh exists. Run this on a disposable Docker host, never on a server." >&2
-  exit 2
-fi
-command -v docker >/dev/null && docker compose version >/dev/null
+refuse() { echo "Refusing: $2" >&2; exit "$1"; }
 
-PROJECT="la-lanh-killswitch-proof-$$"
+if [[ "${LA_LANH_KILL_SWITCH_PROOF:-}" != "1" ]]; then
+  echo "Skipped: set LA_LANH_KILL_SWITCH_PROOF=1 and LA_LANH_PROOF_DOCKER_CONTEXT on a disposable Docker host." >&2
+  exit 3
+fi
+if [[ -e /opt/la-lanh ]]; then
+  refuse 2 "/opt/la-lanh exists. Run this on a disposable Docker host, never on a server."
+fi
+command -v docker >/dev/null || refuse 5 "docker CLI not found."
+[[ -z "${DOCKER_HOST:-}" && -z "${DOCKER_CONTEXT:-}" ]] \
+  || refuse 4 "unset DOCKER_HOST and DOCKER_CONTEXT; select the disposable context with 'docker context use'."
+expected="${LA_LANH_PROOF_DOCKER_CONTEXT:-}"
+[[ -n "$expected" ]] || refuse 4 "set LA_LANH_PROOF_DOCKER_CONTEXT to the disposable context name."
+current="$(docker context show)"
+[[ "$current" == "$expected" ]] || refuse 4 "current Docker context '$current' is not '$expected'."
+endpoint="$(docker context inspect --format '{{.Endpoints.docker.Host}}' "$current")"
+case "$endpoint" in
+  unix://*|npipe://*) ;;
+  *) refuse 4 "context '$current' points to '$endpoint', not a local Docker socket." ;;
+esac
+docker info --format '{{.ServerVersion}}' >/dev/null 2>&1 \
+  || refuse 5 "the Docker daemon for context '$current' is not reachable."
+docker compose version >/dev/null 2>&1 || refuse 5 "docker compose is not available."
+if docker ps -a --format '{{.Names}}' | grep '^la-lanh' | grep -vq '^la-lanh-killswitch-proof-'; then
+  refuse 2 "Lá Lành containers exist on this Docker host; use a disposable one."
+fi
+
+RUN_ID="$(date +%Y%m%d%H%M%S)-$$-${RANDOM}"
+PROJECT="la-lanh-killswitch-proof-$RUN_ID"
+IMAGE="la-lanh-proof-$RUN_ID"
+export PROOF_IMAGE="$IMAGE"
 WORK="$(mktemp -d)"
-IMAGE="la-lanh-proof"
 failures=0
 cleanup() {
   docker compose -p "$PROJECT" -f "$WORK/compose.yaml" --profile generation down -v --remove-orphans \
@@ -32,11 +66,11 @@ trap cleanup EXIT
 cat > "$WORK/compose.yaml" <<'YAML'
 services:
   app:
-    image: la-lanh-proof:${LA_LANH_RELEASE_ID:?}
+    image: ${PROOF_IMAGE:?}:${LA_LANH_RELEASE_ID:?}
     command: ["sleep", "3600"]
   rewrite-worker:
     profiles: ["generation"]
-    image: la-lanh-proof:${LA_LANH_RELEASE_ID:?}
+    image: ${PROOF_IMAGE:?}:${LA_LANH_RELEASE_ID:?}
     command: ["sleep", "3600"]
 YAML
 

@@ -212,8 +212,13 @@ can be asked or Settings cannot be read, it removes the worker before building, 
 cannot leave a turned-off worker running. A failed removal stops the deploy; no worker is a no-op.
 The decision is re-read in the built release image afterwards. On production `c3fab3311d65`, which
 does not have this fix, use the manual kill switch. Real Compose behaviour behind the fix is checked by
-`infra/hetzner/proof/kill-switch-compose-proof.sh` on a disposable Docker host (never a server); its output
-is still missing evidence (audit O01). The manual kill switch:
+`infra/hetzner/proof/kill-switch-compose-proof.sh` on a disposable Docker host (never a server, staging or
+an unverified Docker context). The proof is opt-in: on the disposable machine itself, select its local
+context with `docker context use`, unset `DOCKER_HOST`/`DOCKER_CONTEXT`, then run
+`LA_LANH_KILL_SWITCH_PROOF=1 LA_LANH_PROOF_DOCKER_CONTEXT="$(docker context show)" bash infra/hetzner/proof/kill-switch-compose-proof.sh`.
+It refuses a remote or mismatched context, an unreachable daemon, `/opt/la-lanh` or existing Lá Lành
+containers, and uses its own project and image tags per run. The normal test suite skips the real proof
+unless `LA_LANH_KILL_SWITCH_PROOF=1` is set. Its output is still missing evidence (audit O01). The manual kill switch:
 
 ```sh
 # 1. Stop the worker now (it otherwise keeps sending with the old settings):

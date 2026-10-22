@@ -230,12 +230,28 @@ def test_every_compose_call_uses_the_same_project_files(tmp_path: Path, auth: bo
 
 
 PROOF = REPO_ROOT / "infra/hetzner/proof/kill-switch-compose-proof.sh"
+PROOF_OPT_IN = "LA_LANH_KILL_SWITCH_PROOF"
+PROOF_CONTEXT = "LA_LANH_PROOF_DOCKER_CONTEXT"
+# Docker subcommands that create, change or delete state. A refused proof must not reach any.
+STATEFUL = (" pull ", " tag ", " up ", " run ", " rm ", " image rm ", " down ")
+
+FAKE_PROOF_DOCKER = r"""#!/usr/bin/env bash
+# Records each call; answers only what the proof's guards ask. Never contacts Docker.
+printf '%s\n' "$*" >> "$FAKE_LOG"
+case " $* " in
+  " context show ") echo "${FAKE_CONTEXT:-disposable}" ;;
+  " context inspect "*) echo "${FAKE_ENDPOINT:-unix:///var/run/docker.sock}" ;;
+  " info "*) exit "${FAKE_INFO_RC:-0}" ;;
+  " ps -a "*) [[ -n "${FAKE_NAMES:-}" ]] && printf '%s\n' "$FAKE_NAMES"; exit 0 ;;
+  *) exit 0 ;;
+esac
+"""
 
 
 def test_compose_proof_is_disposable_only_and_covers_every_assumption() -> None:
     script = PROOF.read_text(encoding="utf-8")
     assert "if [[ -e /opt/la-lanh ]]; then" in script  # refuses a Lá Lành server
-    assert 'PROJECT="la-lanh-killswitch-proof-$$"' in script  # never the production project
+    assert 'PROJECT="la-lanh-killswitch-proof-$RUN_ID"' in script  # never the production project
     for label in (
         "1. profiled worker survives",
         "2. rm -sf",
@@ -246,9 +262,87 @@ def test_compose_proof_is_disposable_only_and_covers_every_assumption() -> None:
     assert subprocess.run(["/bin/bash", "-n", str(PROOF)], check=False).returncode == 0  # noqa: S603
 
 
-@pytest.mark.skipif(shutil.which("docker") is None, reason="needs a disposable Docker host")
+def _proof(tmp_path: Path, **env: str) -> tuple[int, list[str], str]:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    (bin_dir / "docker").write_text(FAKE_PROOF_DOCKER)
+    (bin_dir / "docker").chmod(0o755)
+    log = tmp_path / "docker.log"
+    log.write_text("")
+    base = {"PATH": f"{bin_dir}{os.pathsep}/usr/bin:/bin", "FAKE_LOG": str(log)}
+    result = subprocess.run(  # noqa: S603
+        ["/bin/bash", str(PROOF)], env={**base, **env}, capture_output=True, text=True, check=False
+    )
+    return result.returncode, log.read_text().splitlines(), result.stdout + result.stderr
+
+
+def _stateful(calls: list[str]) -> list[str]:
+    return [call for call in calls if any(word in f" {call} " for word in STATEFUL)]
+
+
+OPTED_IN = {PROOF_OPT_IN: "1", PROOF_CONTEXT: "disposable"}
+
+
+def test_proof_without_opt_in_skips_before_touching_docker(tmp_path: Path) -> None:
+    code, calls, output = _proof(tmp_path)
+    assert code == 3, output
+    assert calls == []
+    assert PROOF_OPT_IN in output
+
+
+@pytest.mark.parametrize(
+    ("env", "expected"),
+    [
+        ({**OPTED_IN, "DOCKER_HOST": "tcp://remote.invalid:2376"}, 4),
+        ({**OPTED_IN, "DOCKER_CONTEXT": "disposable"}, 4),
+        ({**OPTED_IN, "FAKE_ENDPOINT": "ssh://operator@remote.invalid"}, 4),
+        ({**OPTED_IN, "FAKE_ENDPOINT": "tcp://10.0.0.5:2376"}, 4),
+        ({**OPTED_IN, "FAKE_CONTEXT": "production"}, 4),
+        ({PROOF_OPT_IN: "1"}, 4),
+        ({**OPTED_IN, "FAKE_INFO_RC": "1"}, 5),
+        ({**OPTED_IN, "FAKE_NAMES": "la-lanh-app-1"}, 2),
+    ],
+    ids=[
+        "docker-host-env",
+        "docker-context-env",
+        "ssh-context",
+        "tcp-context",
+        "context-mismatch",
+        "context-not-named",
+        "daemon-unreachable",
+        "la-lanh-containers-present",
+    ],
+)
+def test_proof_refuses_unverified_docker_targets_without_changing_state(
+    tmp_path: Path, env: dict[str, str], expected: int
+) -> None:
+    code, calls, output = _proof(tmp_path, **env)
+    assert code == expected, output
+    assert _stateful(calls) == []
+
+
+def test_each_proof_run_uses_and_cleans_only_its_own_tags(tmp_path: Path) -> None:
+    images: list[set[str]] = []
+    for attempt in ("first", "second"):
+        run_dir = tmp_path / attempt
+        run_dir.mkdir()
+        # The fake reports no running worker, so checks fail (exit 1); the tagging is what matters.
+        code, calls, output = _proof(run_dir, **OPTED_IN)
+        assert code == 1, output
+        tagged = {call.split()[-1] for call in calls if call.startswith("tag busybox:1.36 ")}
+        removed = next(call for call in calls if call.startswith("image rm ")).split()[2:]
+        assert len(tagged) == 2 and set(removed) == tagged
+        assert not any(name.startswith("busybox") for name in removed)
+        images.append(tagged)
+    assert images[0].isdisjoint(images[1])
+
+
+@pytest.mark.skipif(
+    os.environ.get(PROOF_OPT_IN) != "1",
+    reason=f"opt-in only: set {PROOF_OPT_IN}=1 and {PROOF_CONTEXT} on a disposable Docker host",
+)
 def test_real_compose_proof_on_a_disposable_host() -> None:
-    """Runs only where Docker exists (never in this repo's CI); output is operator evidence."""
+    """Runs only when an operator opts in on a disposable host; output is operator evidence."""
 
     result = subprocess.run(  # noqa: S603
         ["/bin/bash", str(PROOF)], capture_output=True, text=True, check=False
