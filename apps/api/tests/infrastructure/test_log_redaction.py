@@ -123,3 +123,54 @@ def test_app_and_workers_install_the_redaction(monkeypatch: pytest.MonkeyPatch) 
     assert {"app.main", "app.domains.content_rewrite.worker", "app.domains.readings.worker"} <= set(
         calls
     )
+
+
+def test_exc_info_field_and_an_earlier_filter_never_see_the_raw_exception() -> None:
+    """Codex #51: a handler installed before create_app with %(exc_info)s, and a filter that was
+    attached before the redaction, must only ever see the redacted exception."""
+
+    root = logging.getLogger()
+    saved = root.handlers[:]
+    output = io.StringIO()
+    handler = logging.StreamHandler(output)
+    handler.setFormatter(logging.Formatter("%(message)s %(exc_info)s"))
+    seen: list[object] = []
+
+    class EarlierFilter(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            seen.append(record.exc_info)
+            seen.append(record.exc_text)
+            return True
+
+    handler.addFilter(EarlierFilter())
+    root.handlers = [handler]
+    try:
+        install_log_redaction()
+        try:
+            _fail()
+        except ValueError:
+            logging.getLogger("app.api.v1.routes.daily_notes").exception("safe message")
+    finally:
+        root.handlers = saved
+    written = output.getvalue()
+    assert "safe message" in written and "<message redacted>" in written
+    assert "zqcanary" not in written
+    assert all("zqcanary" not in repr(item) for item in seen)
+
+
+def test_a_filter_added_after_install_also_sees_only_the_redacted_record(
+    stream: io.StringIO,
+) -> None:
+    seen: list[str] = []
+
+    class LateFilter(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            seen.append(repr(record.exc_info) + str(record.exc_text))
+            return True
+
+    logging.getLogger().handlers[0].addFilter(LateFilter())
+    try:
+        _fail()
+    except ValueError:
+        logging.getLogger("app.domains.readings.application").exception("safe message")
+    assert seen and all("zqcanary" not in item for item in seen)
