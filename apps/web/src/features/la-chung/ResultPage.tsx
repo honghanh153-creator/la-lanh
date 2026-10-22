@@ -19,6 +19,8 @@ export function ResultPage() {
     retry: false,
   });
   const finish = async () => {
+    // A hidden or deleted result must not stay renderable from the cache (audit P03 RC-07).
+    cache.removeQueries({ queryKey: ["la-chung-result", requestId], exact: true });
     await cache.invalidateQueries({ queryKey: ["la-chung-invites"] });
     void navigate("/la-chung/history", { replace: true });
   };
@@ -36,7 +38,7 @@ export function ResultPage() {
       <Link className="icon-button" to="/la-chung/history"><ArrowLeft /></Link>
       <span className="eyebrow">Một Lá Chứng</span><span />
     </header>
-    {query.data ? <>
+    {query.data && !query.isError ? <>
       <section className="result-hero"><Sparkle weight="fill" /><p>{query.data.display_alias ? `Từ ${query.data.display_alias}` : "Một người đã chọn ẩn danh"}</p><h1>Họ nhìn thấy<br />những điều này ở bạn.</h1></section>
       <section className="result-stack">{query.data.statements.map((statement, index) => <article key={statement}><span>0{index + 1}</span><p>{statement}</p></article>)}</section>
       <aside className="result-privacy"><EyeSlash /><p>Kết quả này đứng riêng, không được dùng để chấm điểm hay đưa vào matching.</p></aside>
