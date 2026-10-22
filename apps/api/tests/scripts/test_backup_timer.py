@@ -31,7 +31,7 @@ def _unit(name: str) -> dict[str, list[str]]:
 
 def test_backup_runs_daily_and_verifies_itself() -> None:
     timer = _unit("la-lanh-backup.timer")
-    assert timer["OnCalendar"] == ["*-*-* 20:10:00"]
+    assert timer["OnCalendar"] == ["*-*-* 20:10:00 UTC"]
     assert timer["Persistent"] == ["true"]
     assert timer["Unit"] == ["la-lanh-backup.service"]
     service = _unit("la-lanh-backup.service")
@@ -47,7 +47,7 @@ def test_backup_runs_daily_and_verifies_itself() -> None:
 
 def test_an_independent_check_catches_a_stopped_backup_timer() -> None:
     timer = _unit("la-lanh-backup-check.timer")
-    assert timer["OnCalendar"] == ["*-*-* 02,08,14,20:50:00"]
+    assert timer["OnCalendar"] == ["*-*-* 02,08,14,20:50:00 UTC"]
     service = _unit("la-lanh-backup-check.service")
     assert service["ExecStart"] == ["/opt/la-lanh/current/infra/hetzner/check-backup-freshness.sh"]
     assert service["OnFailure"] == ["la-lanh-alert@%n.service"]
@@ -137,3 +137,11 @@ def test_invalid_age_setting_is_rejected(tmp_path: Path) -> None:
     _dump(tmp_path, "la-lanh-20261022T201000Z.dump")
     assert _check(tmp_path, max_age="0").returncode == 2
     assert _check(tmp_path, max_age="1d").returncode == 2
+
+
+@pytest.mark.parametrize("name", ["la-lanh-backup.timer", "la-lanh-backup-check.timer"])
+def test_backup_schedules_name_utc_explicitly(name: str) -> None:
+    """The documented instants are UTC; without the suffix systemd uses the host time zone, so a
+    host set to Asia/Ho_Chi_Minh would run the backup seven hours early (Codex #43)."""
+
+    assert all(value.endswith(" UTC") for value in _unit(name)["OnCalendar"])

@@ -42,7 +42,7 @@ LA_LANH_RELEASE_ID=<current release> infra/hetzner/rehearse-migration.sh
 Evidence to record: backup file name, checksum OK, `database-privacy-isolation-ok`, readiness OK,
 container removed. It proves a backup can be restored; it does not prove deletion reconciliation.
 
-## Deletion reconciliation after a restore: owner decision needed
+## Deletion reconciliation after a restore: option A chosen (journal not built yet)
 
 A restore brings back every row deleted after the backup was taken: guest erasure, history clears,
 Radar deletions, withdrawn consents and the 24-hour Daily/Radar purges. Today there is **no
@@ -58,3 +58,8 @@ removed. Options:
 Recommendation: A, scoped to explicit user actions (guest erasure, history clear, Radar delete,
 consent withdrawal) because time-based retention can be re-run (C) for everything else. Until the
 owner decides and the journal exists, the runbook must treat B as the rule: no restore into service.
+
+**Decision (22/10/2026):** the owner delegated this choice to the recommendation above: **A**, scoped to
+explicit user actions, with C's immediate re-run of retention cleanups for everything else. The journal is
+not implemented yet (separate PR, own tests, data-map entry for the pseudonymous deletion facts). Until it
+ships and is reviewed, **B stays the operating rule: no restore into service.**
