@@ -30,8 +30,12 @@ recap options below are updated. No TTL is extended and nothing monthly is built
   - Các quy tắc note/mood chỉ áp dụng khi hồ sơ đã bật chính sách lịch sử; thí nghiệm và tarot luôn có hạn.
   - Thiết bị chỉ có cache bộ nhớ 36 giờ và vài marker, không có kho lịch sử.
   - Câu cũ "không xóa trước 30 ngày" là **sai**. Lời hứa là xóa **chậm nhất** 30 ngày.
-- **Recap:** cửa sổ 29 ngày theo giờ VN (hôm nay + 28 ngày trước) vẫn dùng được cho **dữ liệu còn
-  hợp lệ**: note đã lưu (và mood của chúng tới 29 ngày 18 giờ), thí nghiệm, tarot. Note ngày tự động và
+- **Note đã lưu** không có hạn xóa tự động: giữ theo vòng đời hồ sơ hoặc tới khi người dùng bỏ lưu.
+  Chỉ **mood của note đã lưu, thí nghiệm và tarot** thuộc nhóm 29 ngày 18 giờ (theo điều kiện policy đã
+  ghi).
+- **Recap:** cửa sổ 29 ngày theo giờ VN (hôm nay + 28 ngày trước) là **phạm vi tổng hợp đề xuất**,
+  không phải thời hạn lưu của note đã lưu. Nó dùng được cho dữ liệu còn hợp lệ: note đã lưu (mood của
+  chúng tới 29 ngày 18 giờ), thí nghiệm, tarot. Note ngày tự động và
   mood của chúng **không** còn là đầu vào 29 ngày. Phải ghi khoảng ngày thật, loại dữ liệu nào mất sớm,
   ngày thiếu và ngày bắt đầu opt-in. Không coi ngày thiếu là không hoạt động hay mood bằng 0. Không kéo
   dài thời hạn lưu. Hai hướng: endpoint tổng hợp theo hồ sơ, hoặc kho local mới có đủ kiểm soát.
@@ -47,8 +51,10 @@ recap options below are updated. No TTL is extended and nothing monthly is built
 - a privacy decision on recap inputs.
 
 Automatic Daily notes become purge-eligible 18 h after creation (hidden at 24 h) and their moods
-cascade with them; saved notes, experiments and tarot become purge-eligible at 29 d 18 h. So a
-calendar-month recap cannot be built from raw inputs, and Daily/mood history is not a 29-day input. The main product risk is the conflict between the old PRD's "deadline/timing" framing and
+cascade with them. Saved notes have no purge window: they stay for the profile's lifetime or until
+the user unsaves them. The moods of saved notes, experiments and tarot become purge-eligible at
+29 d 18 h. So a calendar-month recap cannot be built from raw inputs, and Daily/mood history is not a
+29-day input. The 29-day recap window is a proposed aggregation range, not a TTL of saved notes. The main product risk is the conflict between the old PRD's "deadline/timing" framing and
 the newer no-prediction gates.
 
 **Open AC/DoD:**
@@ -252,7 +258,7 @@ charts are computed.
 | Data | Table | Useful fields | Retention |
 |---|---|---|---|
 | Daily notes | `daily_notes` (`apps/api/app/domains/daily/tables.py:12-36`) | `note_date`, `context_label`, `persona_mode` | **Target `c3fab3311d65`:** automatic past-day notes are hidden 24 h after `created_at` and eligible for physical purge from 18 h, deleted at the first 6-hourly cleanup after that (`DAILY_HISTORY_WINDOW`, `DAILY_PURGE_WINDOW`, `apps/api/app/domains/history/postgres.py:38-45`). Exempt: today's note until the local ICT day ends (`note_date < today`, `:121-124`), saved notes (`saved_daily_source`), and notes with a live child — unexpired experiment, resonance feedback or unrevoked share — kept hidden until the child expires (`live_daily_children`, `:83-106`, applied at `:279-281`). An owner's rewrite send fence can defer a run. Daily projections and plans follow the same windows. Applies only under the `history-retention-v1` policy (row created after activation, or activation ≥ 30 d ago). Physical deletion is not a proven 24 h bound. |
-| Saved notes | `saved_notes` (`saved/tables.py:13-49`) | snapshots, `saved_at` | Kept for the profile's lifetime; protects its source daily note from purge (`history/postgres.py:70-78`) |
+| Saved notes | `saved_notes` (`saved/tables.py:13-49`) | snapshots, `saved_at` | No automatic purge: kept for the profile's lifetime (cascade on profile deletion) or until the user unsaves (`routes/saved_notes.py:173-178`). Not in the cleanup list (`history/postgres.py:290-296` on target); protects its source Daily note through `saved_daily_source` (`:109-118`). |
 | Mood | `mood_check_ins` (`mood/tables.py:12-22`), one per note | 5 moods (`mood/models.py:7-12`), `checked_in_at` | Own window unchanged: 29 d 18 h physical purge under the policy (`history/postgres.py:282-283`). But `daily_note_id` is `ON DELETE CASCADE` (`mood/tables.py:22`), so a mood **goes with its Daily note**: for an unsaved note that is usually within about a day. Saving the note keeps the note, and its mood until the mood's own 29 d 18 h point. |
 | Experiments | `daily_experiments` (`experiments/tables.py:22-70`) | `state` chosen/reflected; outcome `not_tried`/`helpful`/`no_difference`/`not_for_now` (`experiments/models.py:14-18`), encrypted payload | `expires_at` = creation + 29 d 18 h for every owner (`experiments/service.py:15,49`) |
 | Tarot sessions | `tarot_sessions` (`tarot/tables.py:12-33`) | `context`, `spread`, `voice`, encrypted payload | `expires_at` = creation + 29 d 18 h for every owner (`tarot/service.py:50,156`) |
