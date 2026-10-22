@@ -272,6 +272,12 @@ class PostgresHistoryRepository:
         radar = RadarRequestRow.owner_guest_id == guest_id
         resonance = ResonanceFeedbackRow.guest_id == guest_id
         experiments = DailyExperimentRow.guest_id == guest_id
+        # A revoked or expired link already answers like an unknown one; its encrypted snapshot
+        # has no further use, even when the note it came from is saved (audit P05). Live links
+        # stay, in both modes.
+        shares = (ShareArtifactRow.guest_id == guest_id) & (
+            ShareArtifactRow.revoked_at.is_not(None) | (ShareArtifactRow.expires_at <= now)
+        )
         if manual:
             tarot &= TarotSessionRow.state == "complete"
             radar &= RadarRequestRow.completed_at.is_not(None)
@@ -291,6 +297,7 @@ class PostgresHistoryRepository:
             (MoodCheckInRow, moods),
             (ResonanceFeedbackRow, resonance),
             (DailyExperimentRow, experiments),
+            (ShareArtifactRow, shares),
             (TarotSessionRow, tarot),
             (RadarRequestRow, radar),
             (DailyNoteRow, daily),
