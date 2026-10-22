@@ -136,20 +136,24 @@ function recommendSpread(question: string): TarotSpread {
   return "three_card";
 }
 
-function startKey(signature: string): string {
-  const storageKey = "la-lanh-tarot-start";
-  const raw = sessionStorage.getItem(storageKey);
-  if (raw) {
-    try {
-      const cached = JSON.parse(raw) as { signature?: string; key?: string };
-      if (cached.signature === signature && cached.key) return cached.key;
-    } catch {
-      sessionStorage.removeItem(storageKey);
-    }
-  }
-  const key = crypto.randomUUID();
-  sessionStorage.setItem(storageKey, JSON.stringify({ signature, key }));
-  return key;
+// Older builds kept {question signature, key} here, so a failed start left the free-text question
+// in sessionStorage (audit P01, 2026-10-22). It is only ever removed now.
+const LEGACY_START_KEY = "la-lanh-tarot-start";
+
+/**
+ * Idempotency key for one unchanged draft in the current guest session, held in memory only.
+ * A retry of the same draft reuses it; a changed draft or another session gets a new one. A
+ * reload starts a fresh key, which at worst opens a second session for the same question.
+ */
+function useTarotStartKey() {
+  const latest = useRef<{ draft: string; key: string } | null>(null);
+  const forDraft = useCallback((input: object) => {
+    const draft = JSON.stringify([currentSessionEpoch(), input]);
+    if (latest.current?.draft !== draft) latest.current = { draft, key: crypto.randomUUID() };
+    return latest.current.key;
+  }, []);
+  const reset = useCallback(() => { latest.current = null; }, []);
+  return { forDraft, reset };
 }
 
 async function ensureTarotGuest(): Promise<void> {
@@ -215,22 +219,31 @@ export function TarotPage() {
   });
   const session = sessionQuery.data;
 
+  const startKey = useTarotStartKey();
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem(LEGACY_START_KEY);
+    } catch {
+      // Storage may be unavailable; nothing of ours is written there.
+    }
+  }, []);
+
   const start = useMutation({
     mutationFn: async () => {
       await ensureTarotGuest();
-      const signature = JSON.stringify({ context, question: question.trim(), spread, origin, promptId, vibe });
+      const draft = { context, question: question.trim(), spread, origin, promptId, vibe };
       return startTarotSession({
         context,
         question: question.trim(),
         spread,
         origin,
         prompt_id: promptId,
-        idempotency_key: startKey(signature),
+        idempotency_key: startKey.forDraft(draft),
         ...(vibe === "roast" ? { voice: vibe } : {}),
       });
     },
     onSuccess: (created) => {
-      sessionStorage.removeItem("la-lanh-tarot-start");
+      startKey.reset();
       setReframe(null);
       queryClient.setQueryData(["tarot-session", created.id], created);
       void navigate(`/tarot/${created.id}`, { replace: true });
