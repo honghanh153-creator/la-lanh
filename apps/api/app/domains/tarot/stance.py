@@ -434,7 +434,9 @@ _AND = re.compile(r"(?<!\w)và(?!\w)")
 _CONTINUATION = re.compile(r"^\s*(?:và|hay|hoặc|hay là|cả)(?!\w)")
 
 
-def split_choice(question: str) -> tuple[TarotAction, TarotAction] | None:
+def split_choice(
+    question: str, *, asked_clause: bool = False
+) -> tuple[TarotAction, TarotAction] | None:
     """A/B as two different closed action labels, only for an unambiguous two-option shape.
 
     The shape is checked over the whole question, not just up to the first comma:
@@ -460,6 +462,9 @@ def split_choice(question: str) -> tuple[TarotAction, TarotAction] | None:
         if len(parts) != 2 or len(_ALTERNATIVE_SEPARATORS.findall(text)) != 1:
             return None
         left, right = parts
+    if asked_clause:
+        # Frame v2 (T01): a background clause inside an option is not that option's action.
+        left, right = question_frame.target_clause(left), question_frame.target_clause(right)
     a, b = question_frame.match_action(left), question_frame.match_action(right)
     if a is None or b is None or a == b:
         return None
@@ -485,6 +490,7 @@ def stance_for(
     views: Sequence[PositionView],
     *,
     roast: bool = False,
+    asked_clause: bool = False,
 ) -> TarotStance | None:
     """Lean for yes/no questions and separable choices (AC08, AC09); None for other forms.
 
@@ -494,7 +500,9 @@ def stance_for(
     if form is TarotQuestionForm.YES_NO:
         return yes_no_stance(action, topic, views, roast=roast)
     if form is TarotQuestionForm.CHOICE:
-        return choice_stance(split_choice(question), topic, views, roast=roast)
+        return choice_stance(
+            split_choice(question, asked_clause=asked_clause), topic, views, roast=roast
+        )
     return None
 
 

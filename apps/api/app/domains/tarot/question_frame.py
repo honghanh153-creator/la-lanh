@@ -30,13 +30,16 @@ __all__ = [
     "TarotAction",
     "TarotQuestionForm",
     "TimingOwner",
+    "asked_text",
     "asks_own_timing",
     "classify_form",
     "frame_question",
+    "goal_text",
     "is_vague",
     "match_action",
     "readiness_headline",
     "score_topic",
+    "target_clause",
     "timing_owner",
 ]
 
@@ -529,6 +532,80 @@ def _negated(text: str, start: int) -> bool:
     return _NEGATED.search(clause) is not None
 
 
+# ---------------------------------------------------------------- target clause (T01)
+
+# Background clauses: when, before/after which event, why, despite or under which condition the
+# asked action would happen. Their actions are context, not the request: in "Mình có nên xin lỗi
+# sau lần nói chuyện vừa rồi không?" the request is the apology, not "nói chuyện" (audit T01,
+# 2026-10-22). Question words stay in the target: "khi nào", "là lúc", "vì sao" ask about timing
+# or reasons, and "thay vì" names the alternative being weighed, not a background event.
+_BACKGROUND = re.compile(
+    r"(?<!\w)(?:"
+    r"sau khi|trước khi|từ khi|kể từ|trong lúc|trong khi|mặc dù|bởi vì|tại vì|"
+    r"(?:sau|trước) (?:lần|buổi|cuộc|tuần|hôm|ngày|chuyện|vụ|đợt|kỳ|kì|khi)|"
+    r"(?<!là )(?<!đúng )(?:khi|lúc)(?! nào)|(?<!thay )vì(?! sao| thế| vậy)|nếu|dù"
+    r")(?!\w)"
+)
+
+
+def target_clause(question: str) -> str:
+    """The question with its background clauses removed: what is actually being asked.
+
+    A background clause runs from its connector to the end of its own clause. The result is used
+    only to pick closed labels (action, topic, goal); it is never stored or returned.
+    """
+
+    text = fold(question)
+    kept: list[str] = []
+    position = 0
+    for match in _BACKGROUND.finditer(text):
+        if match.start() < position:
+            continue
+        end = next(
+            (b.start() for b in _CLAUSE_BREAK.finditer(text, match.end())),
+            len(text),
+        )
+        kept.append(text[position : match.start()])
+        position = end
+    kept.append(text[position:])
+    return " ".join("".join(kept).split())
+
+
+# A why/how/open question reflects on a situation, and its "khi" clause often is that situation
+# ("Tại sao mình thấy có lỗi khi nghỉ ngơi?"). Decision forms keep the strict asked clause.
+_REFLECTIVE_FORMS = frozenset(
+    {TarotQuestionForm.WHY, TarotQuestionForm.HOW, TarotQuestionForm.OPEN}
+)
+
+
+def _mentions_negated_action(text: str) -> bool:
+    folded = fold(text)
+    return any(
+        _negated(folded, match.start())
+        for _, signals in _ACTION_SIGNALS
+        for signal in signals
+        for match in re.finditer(rf"(?<!\w){re.escape(signal)}(?!\w)", folded)
+    )
+
+
+def asked_text(question: str) -> str:
+    """Text the closed labels (action, topic, goals) read under frame v2.
+
+    The asked clause, except that a reflective question whose asked clause names no action at
+    all, affirmed or negated, reads the whole question. A decision question never borrows a
+    background action: with none asked, its label is ``None`` (clarify).
+    """
+
+    target = target_clause(question)
+    if (
+        classify_form(question) in _REFLECTIVE_FORMS
+        and match_action(target) is None
+        and not _mentions_negated_action(target)
+    ):
+        return fold(question)
+    return target
+
+
 def match_action(question: str) -> TarotAction | None:
     """The best-supported closed label among affirmed actions.
 
@@ -550,11 +627,22 @@ def match_action(question: str) -> TarotAction | None:
 
 
 def frame_question(question: str, chosen: TarotContext) -> QuestionFrame:
+    """Frame v2 (T01): topic and action come from the asked text (``asked_text``). The form reads
+    the whole question (a timing or choice marker may sit anywhere)."""
+
+    target = asked_text(question)
     return QuestionFrame(
         form=classify_form(question),
-        topic=score_topic(question, chosen),
-        action=match_action(question),
+        topic=score_topic(target, chosen),
+        action=match_action(target),
     )
+
+
+def goal_text(question: str, frame_version: str | None) -> str:
+    """Text the goal classifier reads: the asked text for frame v2 sessions, the whole question
+    for older frames and unframed sessions, so stored readings keep their goals (AC17)."""
+
+    return asked_text(question) if frame_version == QUESTION_FRAME_VERSION else question
 
 
 # ---------------------------------------------------------------- vague questions (AC04, A7)

@@ -22,6 +22,7 @@ from app.domains.tarot.knowledge import (
 )
 from app.domains.tarot.meaning_brief import card_links, goal_action, question_goals
 from app.domains.tarot.models import (
+    QUESTION_FRAME_VERSION,
     QUESTION_RULES_VERSION,
     QuestionFrame,
     TarotCard,
@@ -376,7 +377,10 @@ class TarotReadingEngine:
             raise TarotContentRejected("card count must match spread and be unique")
         rendered: list[TarotReadingPosition] = []
         meanings: list[_CardMeaning] = []
-        goals = question_goals(assessment.normalized_question, context)
+        frame_version = frame.version if frame is not None else None
+        # T01: frame v2 sessions classify goals from the asked clause, like their frame.
+        goal_question = question_frame.goal_text(assessment.normalized_question, frame_version)
+        goals = question_goals(goal_question, context)
         used_tails: set[str] = set()
         for index, ((key, label), card_id) in enumerate(zip(positions, card_ids, strict=True)):
             try:
@@ -462,13 +466,12 @@ class TarotReadingEngine:
                 frame.topic,
                 views,
                 roast=roast_copy,
+                asked_clause=frame.version == QUESTION_FRAME_VERSION,
             )
             lead = tuple(goal.meaning for goal in goals if goal.key != "general")
             summary = stance.linked_summary(views, lead, reserve, roast=roast_copy)
         else:
-            summary = self._summary(
-                tuple(rendered), tuple(meanings), context, assessment.normalized_question
-            )
+            summary = self._summary(tuple(rendered), tuple(meanings), context, goal_question)
         if roast:
             opener = SUMMARY_OPENERS[context]
             # The opener is optional framing; it never displaces a selected card.
