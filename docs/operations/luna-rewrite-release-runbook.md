@@ -211,7 +211,9 @@ files (Auth overlay included) and `app.env`. When the result is not `true`, incl
 can be asked or Settings cannot be read, it removes the worker before building, so a failed build
 cannot leave a turned-off worker running. A failed removal stops the deploy; no worker is a no-op.
 The decision is re-read in the built release image afterwards. On production `c3fab3311d65`, which
-does not have this fix, use the manual kill switch:
+does not have this fix, use the manual kill switch. Real Compose behaviour behind the fix is checked by
+`infra/hetzner/proof/kill-switch-compose-proof.sh` on a disposable Docker host (never a server); its output
+is still missing evidence (audit O01). The manual kill switch:
 
 ```sh
 # 1. Stop the worker now (it otherwise keeps sending with the old settings):

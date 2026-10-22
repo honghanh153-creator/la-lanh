@@ -227,3 +227,30 @@ def test_every_compose_call_uses_the_same_project_files(tmp_path: Path, auth: bo
         assert not any("compose.auth.yaml" in call for call in calls)
     removal = [call for call in calls if "rm -sf rewrite-worker" in call]
     assert len(removal) == 2  # preflight and the authoritative post-build decision
+
+
+PROOF = REPO_ROOT / "infra/hetzner/proof/kill-switch-compose-proof.sh"
+
+
+def test_compose_proof_is_disposable_only_and_covers_every_assumption() -> None:
+    script = PROOF.read_text(encoding="utf-8")
+    assert "if [[ -e /opt/la-lanh ]]; then" in script  # refuses a Lá Lành server
+    assert 'PROJECT="la-lanh-killswitch-proof-$$"' in script  # never the production project
+    for label in (
+        "1. profiled worker survives",
+        "2. rm -sf",
+        "3. rm -sf with no worker",
+        "4. LA_LANH",
+    ):
+        assert label in script
+    assert subprocess.run(["/bin/bash", "-n", str(PROOF)], check=False).returncode == 0  # noqa: S603
+
+
+@pytest.mark.skipif(shutil.which("docker") is None, reason="needs a disposable Docker host")
+def test_real_compose_proof_on_a_disposable_host() -> None:
+    """Runs only where Docker exists (never in this repo's CI); output is operator evidence."""
+
+    result = subprocess.run(  # noqa: S603
+        ["/bin/bash", str(PROOF)], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
