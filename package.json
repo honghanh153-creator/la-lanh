@@ -42,6 +42,7 @@
     "tarot:audit": "uv run --directory apps/api python -m scripts.audit_tarot_knowledge",
     "content:review": "uv run --directory apps/api python -m scripts.review_content_release",
     "experience:audit": "uv run --directory apps/api python -m scripts.audit_radar_experience",
+    "radar:us22": "uv run --directory apps/api python -m scripts.audit_radar_us22",
     "rewrite:corpus": "uv run --directory apps/api python -m scripts.audit_rewrite_release --manifest-only",
     "rewrite:release": "uv run --directory apps/api python -m scripts.audit_rewrite_release",
     "rewrite:pilot": "uv run --directory apps/api python -m scripts.daily_rewrite_pilot_eval",
