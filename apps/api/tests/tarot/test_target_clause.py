@@ -186,3 +186,41 @@ def test_question_words_and_reflective_situations_keep_their_label(
 ) -> None:
     frame = ENGINE.assess_question(question, chosen).frame
     assert frame is not None and frame.action is action
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        # Codex #45: a "rồi" continuation belongs to the background it continues.
+        "Mình có nên nghỉ ngơi sau khi đi làm về rồi nói chuyện với sếp không?",
+        "Mình có nên nghỉ ngơi nếu nói chuyện xong rồi xin góp ý không?",
+        "Mình có nên nghỉ ngơi sau khi gặp bạn rồi xin lỗi bạn ấy không?",
+    ],
+)
+def test_a_background_continuation_never_becomes_the_asked_action(question: str) -> None:
+    frame = ENGINE.assess_question(question, S).frame
+    assert frame is not None and frame.action is TarotAction.NGHI_NGOI
+    reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is not None and reading.stance.action is TarotAction.NGHI_NGOI
+    assert reading.stance.level is not TarotStanceLevel.CONSIDER
+
+
+def test_a_negated_target_never_borrows_the_background_continuation() -> None:
+    frame = ENGINE.assess_question(
+        "Mình có nên không nghỉ ngơi sau khi đã nói chuyện rồi xin góp ý xong không?", S
+    ).frame
+    assert frame is not None and frame.action is None
+
+
+def test_a_fronted_condition_ends_at_thi_and_the_main_clause_is_asked() -> None:
+    frame = ENGINE.assess_question("Nếu nói chuyện xong thì mình có nên nghỉ ngơi không?", S).frame
+    assert frame is not None and frame.action is TarotAction.NGHI_NGOI
+
+
+def test_when_the_background_swallows_the_only_action_the_label_is_none() -> None:
+    """No punctuation after a mid-sentence background: scope is uncertain, so clarify."""
+
+    frame = ENGINE.assess_question(
+        "Mình có nên sau khi đi làm về nói chuyện với sếp không?", W
+    ).frame
+    assert frame is not None and frame.action is None
