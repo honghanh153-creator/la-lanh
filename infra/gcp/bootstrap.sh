@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Retired route (production is Hetzner + Supabase). This script passes the generated database
 # password to gcloud on the command line, where other local processes can read it while it runs
-# (audit P03 RC-10/RC-11, finding F30). Fix that before using it again; until then it refuses.
+# (audit P03 RC-11, finding F30). Fix that before using it again; until then it refuses.
 if [[ "${LA_LANH_ALLOW_RETIRED_GCP_BOOTSTRAP:-}" != "1" ]]; then
   echo "infra/gcp/bootstrap.sh is retired: it passes the DB password on argv. See infra/gcp/README.md." >&2
   exit 2
