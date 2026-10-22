@@ -56,16 +56,16 @@ Severity is as stated by the historical report. "Vendor" = vendor/native input b
 | RC-20 | Arbitrary HTTP method tokens created unbounded Prometheus label sets | S8 | med | FIXED | `api/observability/metrics.py:20-26, 55` (allowlist → `OTHER`). Test: `tests/middleware/test_metrics_bounds.py:4` `test_unrecognized_methods_have_one_bounded_label` | — |
 | RC-21 | Guest erasure/expiry left decryptable rewrite request envelopes | S10 | low | FIXED | Guest/parent FK cascades `api/domains/content_rewrite/tables.py:81-91`; stale non-leased payload purge after 24 h `api/domains/guest/postgres.py:266-281`. Test: `tests/content_rewrite/test_execution_fences.py:127` `test_expired_leased_payload_erased_without_resend` | Purge timer execution in production is operational evidence |
 | RC-22 | Deleting rewrite jobs reset daily spend accounting | S11 | low | FIXED | Owner-independent day/month ledgers: `api/domains/content_rewrite/postgres.py:806-862`, tables `api/domains/content_rewrite/tables.py:12, 34`. Tests: `tests/history/test_retention.py:145` `test_terminal_rewrite_allows_clear_and_keeps_conservative_spend`; `tests/db/test_rewrite_fence_migration.py:5` | — |
-| RC-23 | Vendor: blank filename header → backward trim before buffer (`sweph.c:4549-4578`) | F13 | low | NEEDS_EVIDENCE | Reached by bound `swe_calc_ut` → `read_const`, but only with an attacker-crafted `.se1` in the ephemeris dir; shipped files are checksum-verified (see Method) | Vendor. Need: deployed image manifest showing `/app/vendor/swisseph/ephe` holds only the 3 checksummed files, root-owned and read-only; `LA_LANH_SWISSEPH_EPHEMERIS_PATH` not overridden in `app.env` |
+| RC-23 | Vendor: blank filename header → backward trim before buffer (`sweph.c:4549-4578`) | F13 | low | NEEDS_EVIDENCE | Reached by bound `swe_calc_ut` → `read_const`, but only with an attacker-crafted `.se1` in the ephemeris dir; shipped files are checksum-verified (see Method) | Vendor. Need proof of the **effective native search path**, not only the checksummed directory (see "Native ephemeris evidence" below) |
 | RC-24 | Vendor: CRC staging length allows 1-byte stack overflow (`sweph.c:4757-4779`) | F16 | low | NEEDS_EVIDENCE | Same `read_const` path as RC-23 | Vendor. Same evidence as RC-23 |
 | RC-25 | Vendor: ephemeris header object IDs index outside `swed.pldat` (`sweph.c:4798-4855`) | F49 | low | NEEDS_EVIDENCE | Same `read_const` path as RC-23 | Vendor. Same evidence as RC-23 |
 | RC-26 | Vendor: file coefficient count `ncoe` unchecked vs `MAXORD+1` (`sweph.c:4814-4827`) | F61, F68 | low | NEEDS_EVIDENCE | Same `read_const` path as RC-23 | Vendor. Same evidence as RC-23 |
-| RC-27 | Vendor: optional `swe_deltat.txt` year < 1620 writes before table (`swephlib.c:3097-3120`) | F15, F54, F72 | low | NEEDS_EVIDENCE | Reached via `swe_calc_ut` → delta-T init if that file exists in the ephemeris path; repo ships none (`vendor/swisseph/ephe` = 3 `.se1`) and it is not in the checksum list | Vendor. Same evidence as RC-23, plus confirmation no `swe_deltat.txt` exists in the image |
+| RC-27 | Vendor: optional `swe_deltat.txt` year < 1620 writes before table (`swephlib.c:3097-3120`) | F15, F54, F72 | low | NEEDS_EVIDENCE | Reached via `swe_calc_ut` → delta-T init if that file exists in the ephemeris path; repo ships none (`vendor/swisseph/ephe` = 3 `.se1`) and it is not in the checksum list | Vendor. Same evidence as RC-23 (including absence of `swe_deltat.txt` on every searched path) |
 | RC-28 | Vendor: JPL record/interpolation dimensions exceed fixed buffers (`swejpl.c:322-327`) | F11, F62 | low | NOT_APPLICABLE | JPL path needs `SEFLG_JPLEPH`/`swe_set_jpl_file`; app uses `SEFLG_SWIEPH` only (`swisseph.py:14-17`) | Vendor; latent if flags change |
 | RC-29 | Vendor: EOP loader writes past 36525-entry arrays (`sweph.c:1389-1420`) | F26, F32 | low | NOT_APPLICABLE | Only via `swe_set_jpl_file` (not bound, `swisseph.py:101-138`) | Vendor; latent |
 | RC-30 | Vendor: EOP rows with < 10 fields dereference NULL (`sweph.c:1403-1418`) | F27 | low | NOT_APPLICABLE | Same as RC-29 | Vendor; latent |
 | RC-31 | Vendor: leap-second table terminator written past end (`swedate.c:275-353`) | F48 | low | NOT_APPLICABLE | `swe_utc_*` not bound; app uses `swe_julday` | Vendor; latent |
-| RC-32 | Vendor: fixed-star record trimmed before field-count check (`sweph.c:6211-6225`) | F36 | low | NOT_APPLICABLE | `swe_fixstar*` not bound | Vendor; latent |
+| RC-32 | Vendor: fixed-star record trimmed before field-count check (`sweph.c:6211-6225`) | F36 | low | NOT_APPLICABLE | `swe_fixstar*` is not bound, but true-star sidereal modes call the fixed-star code indirectly; only the sidereal allowlist (modes 1/3/5, `engine.py:79-82`) keeps it unreachable | Vendor; reopens if a true-star ayanamsa is allowed |
 | RC-33 | Vendor: `swe_vis_limit_mag` strcpy of unbounded name into 256-byte stack (`swehel.c:305-313`) | F20, F39, F65 | low | NOT_APPLICABLE | Heliacal/visibility API not bound | Vendor; latent |
 | RC-34 | Vendor: heliacal arc-visibility passes `xaz[2]` to 3-output `swe_azalt` (`swehel.c:2211-2217`) | F40, F45, F73 | low | NOT_APPLICABLE | Heliacal API not bound | Vendor; latent |
 | RC-35 | Vendor: heliacal conjunction table indexed before bounds check (`swehel.c:2566-2589`) | F41 | low | NOT_APPLICABLE | Heliacal API not bound | Vendor; latent |
@@ -77,7 +77,7 @@ Severity is as stated by the historical report. "Vendor" = vendor/native input b
 | RC-41 | Vendor: empty orbital-elements file formats uninitialised stack text (`swemplan.c:703-756`) | F50 | low | NOT_APPLICABLE | Fictitious bodies (≥ 40) never requested; body IDs fixed (`engine.py:59-72`) | Vendor; latent |
 | RC-42 | Vendor: orbital-element parser loops on unsupported character (`swemplan.c:933-965`) | F58 | low | NOT_APPLICABLE | Same as RC-41 | Vendor; latent |
 | RC-43 | Vendor: numbered-asteroid header prefix overflows `sastnam` (`sweph.c:4594-4607`) | F43 | low | NOT_APPLICABLE | No numbered asteroid bodies requested (Chiron 15 is in `seas_18.se1`, `engine.py:71`) | Vendor; latent |
-| RC-44 | Vendor: Moshier error formats oversized finite JD with `%f` into 256 bytes (`swemplan.c:299-306`) | F44 | low | NOT_APPLICABLE | Needs a huge JD; app JD comes from `swe_julday` of a Python `date` (year ≤ 9999) and Moshier is never selected explicitly | Vendor; latent |
+| RC-44 | Vendor: Moshier error formats oversized finite JD with `%f` into 256 bytes (`swemplan.c:299-306`) | F44 | low | NOT_APPLICABLE | Moshier is never selected explicitly but runs through the automatic fallback when `.se1` data is not found; the huge-JD condition is excluded by Python date bounds (`swe_julday` of a `date`, year ≤ 9999) | Vendor; reopens if the date bounds change |
 
 ## Entry → root cause (all 86)
 
@@ -175,12 +175,16 @@ Severity is as stated by the historical report. "Vendor" = vendor/native input b
 
 ## Counts by disposition
 
+Counts are **primary assignments** (each entry counted once, under its main root cause), not fully closed
+entries: F12 is counted under a FIXED root cause but its La Chứng subcase belongs to RC-07, which is only
+fixed in PR #58.
+
 | Disposition | Root causes | Retained entries |
 |---|---|---|
 | FIXED | 16 (RC-01, 02, 03, 04, 06, 09, 12, 13, 15–22) | 40 |
 | FIXED_LOCAL_PR | 1 (RC-08 → #41) | 5 |
 | OPEN | 4 (RC-07, 10, 11, 14) | 6 |
-| NOT_APPLICABLE | 18 (RC-05 latent behind rollout guard; RC-28–44 vendor APIs not bound) | 27 |
+| NOT_APPLICABLE | 18 (RC-05 latent behind the rollout guard; RC-28–44 vendor code unreachable with the current bindings and inputs: most functions are not bound, RC-40 depends on the house allowlist, RC-32 on the sidereal allowlist, RC-44 on date bounds) | 27 |
 | NEEDS_EVIDENCE | 5 (RC-23–27 vendor ephemeris-file parsers) | 8 |
 | **Total** | **44** | **86** |
 
@@ -193,8 +197,8 @@ source review. Every medium-severity entry (failed F1–F9, scoped S1–S9) maps
   password), RC-14 (resonance withdraw race / status ignores consent).
 - RC-08 depends on merging PR #41; current source has no test for the deletion-path key removal.
 - RC-05 must be fixed before enabling any non-`daily_home` rewrite surface.
-- NEEDS_EVIDENCE (RC-23–27): deployed image manifest for the ephemeris directory, ownership/read-only
-  mount, and `app.env` without an ephemeris-path override. Vendored native bugs remain in source; any new
+- NEEDS_EVIDENCE (RC-23–27): the native effective-path checklist below. A checksum of one directory does
+  not prove the native library reads it. Vendored native bugs remain in source; any new
   FFI binding (heliacal, fixed stars, JPL, UTC helpers, pheno/rise) reopens the matching NOT_APPLICABLE RC.
 - Partial-evidence notes: native bundle rebuild provenance (RC-06), native WebView cookie behaviour
   (RC-09), edge body limit (RC-17), live DB TLS URL (RC-16), retention timer execution (RC-21).
@@ -214,3 +218,25 @@ The four OPEN root causes now have small fix PRs with red-on-base regressions:
 
 RC-05 (pilot participant limit, `authorization.py`) stays NOT_APPLICABLE only while rewriting is limited to
 `daily_home`; it must be fixed before Radar, matching or Tarot rewriting is enabled.
+
+## Native ephemeris evidence (RC-23–27, added after Codex #59)
+
+The constructor checksums the three `.se1` files in the directory Python passes to `swe_set_ephe_path`, but
+the vendor library gives the environment variable **`SE_EPHE_PATH`** priority over that argument
+(`sweph.c:1326-1341`) and already opens Moon data during initialisation (`:1343-1347`). Codex showed that
+with `SE_EPHE_PATH` pointing at an empty directory all constructor checksums still pass while native
+silently falls back to Moshier. So RC-23–27 stay NEEDS_EVIDENCE until the operator supplies, for the
+**running** API and worker containers of the deployed image digest:
+
+1. `SE_EPHE_PATH` unset in the image `ENV`, the compose files, `app.env` and the live process environment
+   (`/proc/<pid>/environ` names only, no values printed), and `LA_LANH_SWISSEPH_EPHEMERIS_PATH` unset or
+   equal to the checksummed directory.
+2. The effective search path the library uses (a synthetic calculation that reports `SEFLG_SWIEPH`, not
+   the Moshier fallback) matches the checksummed directory.
+3. Every component of that path, and its mount, is root-owned, not writable by the runtime user, and the
+   mount is read-only.
+4. The directory holds only the three checksummed files: no `swe_deltat.txt`, `seorbel.txt`,
+   `sefstars.txt`, other `.se1` or JPL files, on that path or any other searched path.
+5. Image provenance: the digest was built from the reviewed commit (release receipt), so the vendored
+   source and data are the reviewed ones.
+
