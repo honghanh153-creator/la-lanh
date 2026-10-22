@@ -35,14 +35,52 @@ def test_gate_measures_every_reading_of_the_fifty_pairs(
     }
 
 
-def test_attribution_needs_replication_across_pairs() -> None:
-    sun_trine = ("sun", "trine", "venus")
-    mars_square = ("mars", "square", "moon")
-    contacts = {"p1": {sun_trine, mars_square}, "p2": {sun_trine}, "p3": {mars_square}}
-    shown = {
-        ("p1", "crush", "roast"): ["specific", "unique to p1", "generic"],
-        ("p2", "crush", "roast"): ["specific", "generic"],
-        ("p3", "crush", "roast"): ["generic"],
-    }
-    # "unique to p1" would inherit both of p1's contacts; "generic" shares no contact.
-    assert contact_specific(shown, contacts) == {"specific"}
+PN = ("pluto", "square", "neptune")
+MM = ("mars", "trine", "moon")
+VS = ("venus", "square", "sun")
+GENERIC = "một chuyện nhỏ có thể chạm đúng nút nhạy của cả hai"
+K1, K2 = ("p1", "crush", "roast"), ("p2", "crush", "roast")
+
+
+def test_incidental_shared_contact_gives_no_credit() -> None:
+    """Codex #47 negative control: two pairs show the same generic line and happen to share
+    Pluto square Neptune; nothing declares that contact as the line's source."""
+
+    contacts = {"p1": {PN, MM}, "p2": {PN, VS}}
+    visible = {K1: [GENERIC], K2: [GENERIC]}
+    assert contact_specific(visible, contacts, {}) == {K1: set(), K2: set()}
+
+
+def test_declared_provenance_must_be_real_cited_visible_and_unique() -> None:
+    contacts = {"p1": {PN, MM}, "p2": {PN, VS}}
+    line = "mars của bạn chạm moon của người kia theo góc tam hợp"
+    cited = frozenset({MM})
+    ok = {K1: [(line, MM, cited)]}
+    assert contact_specific({K1: [line], K2: []}, contacts, ok)[K1] == {line}
+    # Not cited by the highlight that shows it.
+    assert (
+        contact_specific({K1: [line], K2: []}, contacts, {K1: [(line, MM, frozenset({PN}))]})[K1]
+        == set()
+    )
+    # A contact this pair does not have, or the reverse direction.
+    reverse = ("moon", "trine", "mars")
+    assert (
+        contact_specific(
+            {K1: [line], K2: []}, contacts, {K1: [(line, reverse, frozenset({reverse}))]}
+        )[K1]
+        == set()
+    )
+    # Declared but not visible.
+    assert contact_specific({K1: [], K2: []}, contacts, ok)[K1] == set()
+    # The same text declared for two contacts is generic.
+    both = {K1: [(line, MM, cited)], K2: [(line, VS, frozenset({VS}))]}
+    assert contact_specific({K1: [line], K2: [line]}, contacts, both)[K1] == set()
+    # Shown in a reading whose pair lacks the declared contact.
+    assert contact_specific({K1: [line], K2: [line]}, contacts, ok)[K1] == set()
+
+
+def test_current_content_declares_no_contact_lines(
+    gate: tuple[list[str], dict[str, object]],
+) -> None:
+    _, report = gate
+    assert report["AC01_specific_sentences_mean"] == 0.0

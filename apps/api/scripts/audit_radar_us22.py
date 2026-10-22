@@ -5,11 +5,13 @@
 Every number is measured on what the web shows (``radar_sentences``), never on evidence cards:
 
 - AC01: each reading with at least two certain contacts has >= 2 visible "fit"/"friction"
-  sentences that are specific to one contact. A sentence is specific to the directed contact
-  ``(body_a, aspect, body_b)`` when at least two different pairs show it and every reading that
-  shows it, across the whole corpus, has that contact (replicated, so a sentence that merely
-  happens to be unique to one pair is not credited). Generic aspect or planet phrases shown for
-  many different contacts do not count.
+  sentences that are specific to one directed contact ``(body_a, aspect, body_b)``. Credit needs
+  provenance the reading declares itself (``highlights[].contact_lines: [{text, evidence_id}]``)
+  and that the audit checks independently: the evidence id is a real contact of this pair in this
+  direction and is cited by that highlight; the text is a visible sentence; across the corpus the
+  text is never declared for another contact and never shown in a reading without that contact.
+  Co-occurrence alone (two pairs that happen to share Pluto square Neptune) gives no credit, and
+  generic, planet-only or aspect-only sentences cannot qualify (Codex #47).
   Low-signal pairs (the renderer's own condition) are reported as an honest exception.
 - AC02: same pair and voice, another context changes >= 50% of the fit/friction sentences on
   average; same pair and context, another voice changes >= 50% of them on average.
@@ -25,6 +27,7 @@ from __future__ import annotations
 import json
 import statistics
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from itertools import combinations
 from pathlib import Path
 from typing import Any
@@ -37,6 +40,7 @@ from scripts.variety_baseline import (
     RADAR_CONTEXTS,
     _radar_chart,
     changed_share,
+    normalize,
     radar_sentences,
 )
 
@@ -53,20 +57,59 @@ def _contacts(bundle: RelationshipBundle) -> set[ContactKey]:
     return {(c.body_a.value, c.kind, c.body_b.value) for c in bundle.synastry.contacts}
 
 
-def contact_specific(
-    sentences: dict[tuple[str, str, str], list[str]], contacts: dict[str, set[ContactKey]]
-) -> set[str]:
-    """Sentences shown by >= 2 pairs whose every showing reading shares one directed contact."""
+def _evidence_key(evidence_id: str) -> ContactKey | None:
+    """``syn:mars:trine:venus:0.40`` -> ``("mars", "trine", "venus")``; other sources -> None."""
 
-    shared: dict[str, set[ContactKey]] = {}
-    pairs: dict[str, set[str]] = defaultdict(set)
-    for (pid, _, _), shown in sentences.items():
-        for sentence in set(shown):
-            shared[sentence] = (
-                shared[sentence] & contacts[pid] if sentence in shared else set(contacts[pid])
-            )
-            pairs[sentence].add(pid)
-    return {sentence for sentence, common in shared.items() if common and len(pairs[sentence]) > 1}
+    parts = evidence_id.split(":")
+    return (parts[1], parts[2], parts[3]) if len(parts) >= 4 and parts[0] == "syn" else None
+
+
+DeclaredLine = tuple[str, ContactKey | None, frozenset[ContactKey | None]]
+
+
+def declared_lines(reading: dict[str, Any]) -> list[DeclaredLine]:
+    """``(normalised text, declared contact, contacts cited by the same highlight)``."""
+
+    lines: list[DeclaredLine] = []
+    for section in reading.get("sections", []):
+        if section.get("key") not in FIT_FRICTION:
+            continue
+        for item in section.get("highlights") or []:
+            cited = frozenset(_evidence_key(e) for e in item.get("evidence_ids", []))
+            for line in item.get("contact_lines") or []:
+                lines.append((normalize(line["text"]), _evidence_key(line["evidence_id"]), cited))
+    return lines
+
+
+def contact_specific(
+    visible: dict[tuple[str, str, str], list[str]],
+    contacts: dict[str, set[ContactKey]],
+    declared: Mapping[tuple[str, str, str], Sequence[DeclaredLine]],
+) -> dict[tuple[str, str, str], set[str]]:
+    """Per reading, the visible sentences credited to one directed contact (see AC01 above)."""
+
+    claimed: dict[str, set[ContactKey | None]] = defaultdict(set)
+    for lines in declared.values():
+        for text, contact, _ in lines:
+            claimed[text].add(contact)
+    shown_by: dict[str, set[str]] = defaultdict(set)
+    for (pid, _, _), sentences in visible.items():
+        for sentence in sentences:
+            shown_by[sentence].add(pid)
+    credited: dict[tuple[str, str, str], set[str]] = {}
+    for key, sentences in visible.items():
+        pid, shown = key[0], set(sentences)
+        credited[key] = {
+            text
+            for text, contact, cited in declared.get(key, [])
+            if contact is not None
+            and text in shown
+            and contact in cited
+            and contact in contacts[pid]
+            and claimed[text] == {contact}
+            and all(contact in contacts[other] for other in shown_by[text])
+        }
+    return credited
 
 
 def us22_gate(fixtures: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
@@ -89,15 +132,16 @@ def us22_gate(fixtures: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
     pair_ids = [pair["id"] for pair in fixtures["pairs"]]
     voices = [voice.value for voice in RelationshipVoice]
     fit_friction = {key: radar_sentences(r, FIT_FRICTION) for key, r in readings.items()}
+    declared = {key: declared_lines(r) for key, r in readings.items()}
 
-    credited = contact_specific(fit_friction, contacts)
+    credited = contact_specific(fit_friction, contacts, declared)
     specific_counts: list[int] = []
     short: list[str] = []
-    for key, sentences in fit_friction.items():
+    for key in fit_friction:
         pid = key[0]
         if pid in low_signal or len(contacts[pid]) < AC01_MIN_SPECIFIC:
             continue
-        count = len(set(sentences) & credited)
+        count = len(credited[key])
         specific_counts.append(count)
         if count < AC01_MIN_SPECIFIC:
             short.append("/".join(key))

@@ -46,10 +46,13 @@ tôi chọn (crush, bạn, người yêu, …), với giọng tôi chọn. Bài 
 - **AC09:** `scripts/audit_radar_experience.py` mở rộng lên 50 cặp (có giờ và không rõ giờ) và báo các chỉ
   số AC01–AC03. `pnpm check` đạt.
   - **Trạng thái 22/10/2026 (audit R01/R06):** gate AC01–AC03 nằm ở `scripts/audit_radar_us22.py`
-    (`pnpm radar:us22`). Trên `c3fab33` gate đỏ cả bốn chỉ số: AC01 528/800 bài dưới 2 câu riêng theo
-    contact (câu chỉ được tính khi ít nhất 2 cặp cùng hiện và cùng chung một contact có hướng), AC02 ngữ
-    cảnh 0,0 và giọng 0,0, AC03 trùng 0,9127. `tests/scripts/test_radar_us22_gate.py` giữ gate ở dạng
-    strict xfail: khi nội dung R03 đạt, test này đỏ cho tới khi gỡ marker và đưa gate vào `pnpm check`.
+    (`pnpm radar:us22`). AC01 chỉ tính câu khi bài đọc tự khai nguồn (`highlights[].contact_lines`:
+    câu ↔ directed contact) và audit kiểm độc lập: contact có thật đúng chiều, được chính highlight đó
+    trích dẫn, câu hiển thị, không khai cho contact khác, không hiện ở cặp thiếu contact đó. Đồng xuất
+    hiện tình cờ không được tính (Codex #47). Trên `c3fab33` gate đỏ cả bốn chỉ số: AC01 800/800 bài
+    chưa có câu riêng theo contact (nội dung hiện tại chưa khai nguồn), AC02 ngữ cảnh 0,0 và giọng 0,0,
+    AC03 trùng 0,9127. `tests/scripts/test_radar_us22_gate.py` giữ gate ở dạng strict xfail: khi nội
+    dung R03 đạt, test này đỏ cho tới khi gỡ marker và đưa gate vào `pnpm check`.
 - **AC10:** Cà khịa cho câu mới; owner duyệt qua file Excel.
 
 ## Definition of Done
