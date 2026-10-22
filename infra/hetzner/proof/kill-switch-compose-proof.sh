@@ -8,7 +8,8 @@
 # where <context> is the output of `docker context show` on that machine. It refuses when
 # DOCKER_HOST/DOCKER_CONTEXT are set, when the context is not the named one, when the context
 # endpoint is not a local socket (a remote daemon would make the /opt/la-lanh guard meaningless),
-# when the daemon is unreachable, or when Lá Lành containers exist. Each run uses its own compose
+# when the daemon is unreachable, or when Lá Lành containers exist. After the check, every Docker
+# command in the run is pinned to that endpoint via DOCKER_HOST. Each run uses its own compose
 # project and image tags and removes only what it created.
 #
 # It checks the Compose behaviour deploy.sh relies on, which the fake-docker tests only model:
@@ -42,6 +43,11 @@ case "$endpoint" in
   unix://*|npipe://*) ;;
   *) refuse 4 "context '$current' points to '$endpoint', not a local Docker socket." ;;
 esac
+# Pin every later Docker command to the endpoint just verified: the daemon probe, the container
+# inventory, the child `bash -c` checks and the cleanup trap all inherit DOCKER_HOST. A
+# `docker context use` (or `docker context update`) in another terminal can no longer redirect
+# this run to a daemon that was not checked.
+export DOCKER_HOST="$endpoint"
 docker info --format '{{.ServerVersion}}' >/dev/null 2>&1 \
   || refuse 5 "the Docker daemon for context '$current' is not reachable."
 docker compose version >/dev/null 2>&1 || refuse 5 "docker compose is not available."

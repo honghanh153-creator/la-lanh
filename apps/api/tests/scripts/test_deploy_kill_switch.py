@@ -237,12 +237,22 @@ STATEFUL = (" pull ", " tag ", " up ", " run ", " rm ", " image rm ", " down ")
 
 FAKE_PROOF_DOCKER = r"""#!/usr/bin/env bash
 # Records each call; answers only what the proof's guards ask. Never contacts Docker.
+# The active context lives in $FAKE_ACTIVE so a test can switch it mid-run, as a concurrent
+# `docker context use` in another terminal would. Each call also logs the daemon it would reach.
+active() { cat "$FAKE_ACTIVE" 2>/dev/null || echo "${FAKE_CONTEXT:-disposable}"; }
+if [[ -n "${DOCKER_HOST:-}" ]]; then target="$DOCKER_HOST"
+elif [[ -n "${DOCKER_CONTEXT:-}" ]]; then target="context:$DOCKER_CONTEXT"
+else target="context:$(active)"; fi
 printf '%s\n' "$*" >> "$FAKE_LOG"
+printf '%s|%s\n' "$target" "$*" >> "$FAKE_LOG.targets"
+switch_after() { [[ "${FAKE_SWITCH_AFTER:-}" == "$1" ]] && echo production > "$FAKE_ACTIVE"; true; }
 case " $* " in
-  " context show ") echo "${FAKE_CONTEXT:-disposable}" ;;
-  " context inspect "*) echo "${FAKE_ENDPOINT:-unix:///var/run/docker.sock}" ;;
+  " context show ") active ;;
+  " context inspect "*)
+    echo "${FAKE_ENDPOINT:-unix:///var/run/docker.sock}"
+    switch_after inspect ;;
   " info "*) exit "${FAKE_INFO_RC:-0}" ;;
-  " ps -a "*) [[ -n "${FAKE_NAMES:-}" ]] && printf '%s\n' "$FAKE_NAMES"; exit 0 ;;
+  " ps -a "*) [[ -n "${FAKE_NAMES:-}" ]] && printf '%s\n' "$FAKE_NAMES"; switch_after ps; exit 0 ;;
   *) exit 0 ;;
 esac
 """
@@ -269,7 +279,11 @@ def _proof(tmp_path: Path, **env: str) -> tuple[int, list[str], str]:
     (bin_dir / "docker").chmod(0o755)
     log = tmp_path / "docker.log"
     log.write_text("")
-    base = {"PATH": f"{bin_dir}{os.pathsep}/usr/bin:/bin", "FAKE_LOG": str(log)}
+    base = {
+        "PATH": f"{bin_dir}{os.pathsep}/usr/bin:/bin",
+        "FAKE_LOG": str(log),
+        "FAKE_ACTIVE": str(tmp_path / "active-context"),
+    }
     result = subprocess.run(  # noqa: S603
         ["/bin/bash", str(PROOF)], env={**base, **env}, capture_output=True, text=True, check=False
     )
@@ -335,6 +349,23 @@ def test_each_proof_run_uses_and_cleans_only_its_own_tags(tmp_path: Path) -> Non
         assert not any(name.startswith("busybox") for name in removed)
         images.append(tagged)
     assert images[0].isdisjoint(images[1])
+
+
+@pytest.mark.parametrize("switch_after", ["inspect", "ps"])
+def test_proof_stays_on_the_verified_target_after_the_active_context_changes(
+    tmp_path: Path, switch_after: str
+) -> None:
+    """Another terminal runs `docker context use production` after the guard read the context."""
+    _proof(tmp_path, **OPTED_IN, FAKE_SWITCH_AFTER=switch_after)
+    verified = "unix:///var/run/docker.sock"
+    calls = (tmp_path / "docker.log.targets").read_text().splitlines()
+    inspected = next(i for i, line in enumerate(calls) if "|context inspect " in line)
+    after_guard = calls[inspected + 1 :]
+    assert after_guard, "the proof must keep running Docker commands after its guard"
+    # Daemon probe, inventory, child shells and cleanup all reach the endpoint that was checked.
+    assert all(line.split("|", 1)[0] == verified for line in after_guard), after_guard
+    assert _stateful([line.split("|", 1)[1] for line in after_guard])
+    assert not any(line.startswith("context:production|") for line in calls)
 
 
 @pytest.mark.skipif(

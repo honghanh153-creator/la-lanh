@@ -217,7 +217,9 @@ an unverified Docker context). The proof is opt-in: on the disposable machine it
 context with `docker context use`, unset `DOCKER_HOST`/`DOCKER_CONTEXT`, then run
 `LA_LANH_KILL_SWITCH_PROOF=1 LA_LANH_PROOF_DOCKER_CONTEXT="$(docker context show)" bash infra/hetzner/proof/kill-switch-compose-proof.sh`.
 It refuses a remote or mismatched context, an unreachable daemon, `/opt/la-lanh` or existing Lá Lành
-containers, and uses its own project and image tags per run. The normal test suite skips the real proof
+containers, then pins every later Docker command (daemon probe, checks, cleanup) to the verified
+endpoint through `DOCKER_HOST`, so a `docker context use` elsewhere cannot redirect the run. It uses
+its own project and image tags per run. The normal test suite skips the real proof
 unless `LA_LANH_KILL_SWITCH_PROOF=1` is set. Its output is still missing evidence (audit O01). The manual kill switch:
 
 ```sh
