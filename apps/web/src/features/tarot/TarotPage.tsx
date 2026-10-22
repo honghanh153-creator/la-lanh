@@ -39,6 +39,8 @@ import { useTarotMotion } from "./useTarotMotion";
 import "./tarot.css";
 import "./tarot-polish.css";
 import { useVibe } from "../../shared/vibe/useVibe";
+import { CardName } from "./TarotCardLabel";
+import { cardName } from "./tarotCardName";
 
 const CONTEXTS: Array<{ key: TarotContext; label: string; hint: string }> = [
   { key: "general", label: "Một chuyện", hint: "Chưa cần gọi tên ngay" },
@@ -298,7 +300,7 @@ export function TarotPage() {
         <h1>Chưa mở được phần diễn giải.</h1>
         <p>Bộ lá của bạn không thay đổi.</p>
         <ul>{session.selected_cards.map((selected) => <li key={selected.card.id}>
-          {selected.position_label}: {selected.card.title_vi}
+          {selected.position_label}: {cardName(selected.card)}
         </li>)}</ul>
         <Link className="tarot-primary" to="/home">Về hôm nay</Link>
         <button className="tarot-secondary" disabled={remove.isPending} onClick={() => {
@@ -357,13 +359,13 @@ export function TarotPage() {
               </span>
               <span className="tarot-slot__copy">
                 <span>{selected?.position_label ?? `Lá ${index + 1}`}</span>
-                <strong>{selected?.card.title_vi ?? "Chưa chọn"}</strong>
+                <strong>{selected ? <CardName card={selected.card} /> : "Chưa chọn"}</strong>
               </span>
             </div>;
           })}
         </div>
         <p aria-live="polite" className="sr-only">
-          {lastPicked ? `Đã lật ${lastPicked.card.title_vi} cho ${lastPicked.position_label}.` : ""}
+          {lastPicked ? `Đã lật ${cardName(lastPicked.card)} cho ${lastPicked.position_label}.` : ""}
         </p>
         <section className="tarot-fan-wrap" aria-label="Bộ bài đang xòe" data-tarot-motion={motion ? "on" : "off"}>
           <p>Kéo ngang rồi chọn một lá</p>
@@ -573,7 +575,7 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
           {reading.positions.map((position, index) => (
             <li key={position.key}>
               <button
-                aria-label={`0${index + 1}. ${position.card.title_vi}, ${position.label}. Mở phần đọc lá này`}
+                aria-label={`0${index + 1}. ${cardName(position.card)}, ${position.label}. Mở phần đọc lá này`}
                 className="tarot-spread-row__card"
                 onClick={() => openChapter(position.key)}
                 type="button"
@@ -609,7 +611,7 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
                 <span className="tarot-chapter-number">0{index + 1}</span>
               </span>
               <span className="tarot-chapter-labels">
-                <strong>{position.card.title_vi}</strong>
+                <strong><CardName card={position.card} /></strong>
                 <span>{position.label}</span>
               </span>
               <span className="tarot-chapter-chevron" aria-hidden="true">⌄</span>
@@ -637,7 +639,6 @@ function TarotResult({ session, confirmDelete, deleting, onDelete, onKeep }: { s
         <ReadingDisclaimer compact>{reading.disclaimer}</ReadingDisclaimer>
         <details className="tarot-tech">
           <summary>Chi tiết kỹ thuật</summary>
-          <span>Tên lá gốc: {reading.positions.map((position) => position.card.title_en).join(", ")}</span>
           <span>Engine {reading.provenance.knowledge_version} · bộ {reading.provenance.deck_version}</span>
         </details>
       </section>
