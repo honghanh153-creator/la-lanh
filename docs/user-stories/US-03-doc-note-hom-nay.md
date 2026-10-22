@@ -481,3 +481,49 @@ Tap compact control hoặc `Đổi góc` mở cùng một scoped sheet. Sheet h�
 - **AC37 — Outcome-based lens:** Given context sheet mở, When user scan options, Then mỗi lựa chọn nói rõ Note sẽ giúp nhìn việc gì; không hỏi user category mơ hồ hoặc thu free text.
 - **AC38 — One sheet, two entries:** Given compact control hoặc `Đổi góc`, When tap, Then cùng accessible sheet mở; Escape/close trả focus về trigger và không đổi Note.
 - **AC39 — Honest mutation:** Given lens mới được chọn, When request pending/error/success, Then lần lượt khóa dismiss, giữ Note cũ + cho retry, hoặc đóng sheet + cập nhật chip/content; evidence invariants của AC22 vẫn giữ.
+
+## 24. Canonical delta — Trang giấy buổi sáng và Mầm đọc câu mở (2026-10-22)
+
+Trạng thái: **nháp, chờ chủ sản phẩm duyệt.** Nguồn: [PRD Nơi bình yên v0.4](../foundation/la-lanh-noi-binh-yen-prd.md) §0.1, D18. Phần này không thay content contract, cache, provenance, lens hay evidence của các mục trước; chỉ thêm hình thức trang giấy, giọng đọc câu mở và lối sang nơi bình yên.
+
+### Bản chất cần phục vụ
+
+Lá Lành là nơi tìm được những giây phút thư giãn bình yên, vui vẻ, những khoảnh khắc giúp bạn cảm giác được hiểu. Trong buổi sáng, **Note phục vụ phần "được hiểu"**: câu mở gọi đúng một tình huống đời thường, đọc trong 3–5 giây. Phần "bình yên" thuộc nơi bình yên; phần "vui vẻ" đến từ Mầm.
+
+### Hình thức "trang giấy"
+
+- Giữ Ultraviolet Paper. Thẻ Note là một trang giấy kem có vân rất nhẹ (tham chiếu R6 trong PRD), **câu mở (`hook`) là dòng chữ lớn nhất**, phần tình huống và việc nhỏ bên dưới giữ nguyên ngân sách chữ hiện hành (title 3–11 từ, scene 8–40, advice 4–24, tổng ≤ 70).
+- Minh họa vẽ tay hiện có (hành tinh, sao, bộ bài) giữ nguyên quy tắc chuyển động 2026-10-08. Không đặt video, ảnh chụp hay nền động sau chữ của Note.
+- **Mầm Aura** ngồi ở góc dưới trang giấy, cỡ ≤ 56 px, cùng chất vẽ tay; dùng đúng [AuraSproutCompanion](../../apps/web/src/shared/ui/companion/AuraSproutCompanion.tsx), chỉ trạng thái thức/ngủ theo giờ, không dùng các trạng thái lớn dần, phụ kiện, lễ hội trong lần đầu.
+- Ngay dưới thẻ Note là ô "Sáng nay ở nơi bình yên" / "Nơi bình yên" (sở hữu bởi NBY-01). Đó là lối duy nhất sang nơi bình yên từ Home; Note không thêm nút trùng.
+
+### Mầm đọc câu mở
+
+- Chạm Mầm → Mầm đọc **chỉ câu mở** bằng giọng Mầm (giọng AI, PRD D16), chip "Giọng AI" hiện cạnh Mầm khi phát. Mầm **không** đọc tình huống, việc nhỏ, evidence, thông tin chart hay disclaimer.
+- Audio dựng sẵn offline cho từng câu mở giọng direct trong catalog Daily (hiện 90 câu: 15 nhóm tình huống × 6, mỗi câu 8–11 từ — `daily_psychology.py`, `hook = issue.headlines[headline_slot]`). App băm SHA-256 câu mở đang hiển thị (sau chuẩn hóa NFC/khoảng trắng) và tra manifest `note-voice` (PRD NBY-09 AC12). Có file thì Mầm có trạng thái "có thể nghe"; không có file thì Mầm chỉ phản ứng vui khi chạm, không phát gì.
+- Không có audio cho giọng Roast, bản Luna rewrite, Jyotish, fallback hay bất kỳ câu nào không khớp chính xác; không dùng giọng tổng hợp của hệ điều hành và không gọi dịch vụ giọng lúc chạy.
+
+### AC bổ sung
+
+- **AC40 — Note-first giữ nguyên:** Given Home có Daily Note ở 390×844, When render, Then thẻ Note trang giấy vẫn là nội dung chính đầu tiên, câu mở là chữ lớn nhất, và ô nơi bình yên bên dưới không đẩy câu mở, tình huống hay việc nhỏ ra khỏi first viewport so với hiện tại.
+- **AC41 — Không video sau chữ:** Given Note hiển thị, When inspect, Then nền Note là giấy tĩnh/minh họa; không có `<video>`, ảnh chụp hay canvas động nằm sau chữ Note; tương phản chữ ≥ 4,5:1.
+- **AC42 — Chỉ phát khi được chạm:** Given Home vừa mở, When chưa có chạm vào Mầm, Then không có âm thanh nào phát; giọng chỉ bắt đầu sau chạm Mầm hoặc nút "Nghe câu này" tương đương cho trình đọc màn hình.
+- **AC43 — Đúng câu, đúng file:** Given câu mở hiển thị khớp chính xác một mục trong manifest `note-voice`, When chạm Mầm, Then phát đúng file đó trong ≤ 500 ms (đã có trên máy) hoặc ≤ 2 s (tải); Given không khớp, Then không phát và không báo lỗi.
+- **AC44 — Không đọc ngoài câu mở:** Given bất kỳ Note nào, When Mầm đọc, Then chỉ câu mở được phát; không có audio cho scene, advice, evidence, chart, disclaimer, roast hay rewrite.
+- **AC45 — Nhãn AI:** Given giọng đang phát, When nhìn vào Mầm, Then chip "Giọng AI" hiện; ⓘ cạnh Mầm mở tấm thông tin giọng (PRD NBY-AI-AC03); chip có nhãn cho trình đọc màn hình.
+- **AC46 — Tôn trọng im lặng và người dùng:** Given `navigator.audioSession.type = "ambient"` khả dụng, When công tắc im lặng bật, Then không nghe giọng; Given người dùng tắt "Mầm đọc Note" trong cài đặt, Then chạm Mầm chỉ có phản ứng hình; phát giọng không ngắt nhạc người dùng đang nghe (kiểm trên máy thật).
+- **AC47 — Riêng tư:** Given chạm Mầm, When phát, Then không có request mới mang cookie/token; file audio lấy từ gói trong app hoặc `/media/note-voice/<hash>.m4a` không cookie; không ghi log/analytics câu nào đã nghe; trạng thái chỉ trong bộ nhớ.
+- **AC48 — Vui vẻ, không áp lực:** Given chạm Mầm, When không có audio hoặc đang tắt giọng, Then Mầm có một phản ứng nhỏ (nghiêng đầu, chớp mắt) ≤ 600 ms; Mầm không có badge, chấm đỏ, đếm số lần, lời nhắc "nghe đi" hay câu gây áy náy; Reduce Motion tắt phản ứng chuyển động.
+- **AC49 — Ranh giới chiêm tinh–cảm xúc:** Given Note và nơi bình yên, When render, Then nơi bình yên không nhận hook, scene, issue, lens hay chart của Note; Mầm ở nơi bình yên không nhắc lại câu của Note.
+
+### Ngoài phạm vi delta này
+
+- Thông báo buổi sáng (vẫn là "story notification riêng" như mục 2; PRD D13 v1.1).
+- Sửa lệch hiện có giữa mô tả mốc đổi ngày của US-03 và runtime (server dùng 00:00 giờ Việt Nam, tạo note theo yêu cầu đầu tiên) và luồng "tap notification vào Note" chưa có deep-link handler — ghi nhận ở PRD §14, cần việc riêng.
+
+### DoD delta
+
+- AC40–AC49 có test tự động hoặc bằng chứng trên máy thật (iPhone, Android tầm trung; PWA và Capacitor).
+- Ảnh chụp 390×844 trước/sau chứng minh AC40.
+- Manifest `note-voice` có đủ 90 câu direct hiện hành; test CI phát hiện câu mở mới thiếu audio (cảnh báo, không chặn).
+- Chủ sản phẩm duyệt chất giọng trên ít nhất 10 câu mở trước khi bật.
