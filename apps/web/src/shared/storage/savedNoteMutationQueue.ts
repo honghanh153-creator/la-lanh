@@ -116,6 +116,20 @@ export function dropQueuedSaves(): void {
   write(readSavedNoteMutationQueue().filter((item) => item.intent === "unsave"));
 }
 
+/**
+ * A direct save or unsave the server just accepted supersedes every queued intent for the same
+ * note that was recorded before that call started, in either direction (Codex #48): an older
+ * queued save must not re-save a note the person has since unsaved, and vice versa. Newer
+ * intents and other sessions' intents stay.
+ */
+export function retireSupersededIntents(sessionEpoch: string, dailyNoteId: string, startedAt: number): void {
+  write(readSavedNoteMutationQueue().filter((item) => !(
+    item.session_epoch === sessionEpoch
+    && item.daily_note_id === dailyNoteId
+    && Date.parse(item.updated_at) <= startedAt
+  )));
+}
+
 export function clearSavedNoteMutationQueue(): void {
   localStorage.removeItem(KEY);
 }

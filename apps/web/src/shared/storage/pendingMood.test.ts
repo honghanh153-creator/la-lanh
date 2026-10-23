@@ -4,6 +4,7 @@ import { invalidateSessionRequests, SESSION_EPOCH_KEY } from "../session/session
 import {
   acknowledgePendingMood,
   captureMoodIntent,
+  clearPendingMood,
   keepPendingMood,
   PENDING_MOOD_KEY,
   PENDING_MOOD_TTL_MS,
@@ -104,4 +105,17 @@ describe("pending mood retry (P04)", () => {
     keepPendingMood("note-a", "calm", captureMoodIntent());
     expect(stored()).toBeNull();
   });
+
+  it("an acknowledged choice outlives the component: an older late failure stores nothing", () => {
+    const older = captureMoodIntent();
+    vi.advanceTimersByTime(1000);
+    acknowledgePendingMood("note-a", captureMoodIntent()); // newer choice accepted (e.g. after remount)
+    keepPendingMood("note-a", "calm", older); // the older request fails late
+    expect(stored()).toBeNull();
+    keepPendingMood("note-b", "calm", older); // another note is unaffected
+    expect(stored()?.note_id).toBe("note-b");
+    clearPendingMood();
+    expect(localStorage.getItem("la-lanh-pending-mood-ack-v1")).toBeNull();
+  });
 });
+

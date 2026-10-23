@@ -6,6 +6,7 @@ import {
   flushSavedNoteMutations,
   dropQueuedSaves,
   readSavedNoteMutationQueue,
+  retireSupersededIntents,
   SAVED_INTENT_TTL_MS,
 } from "./savedNoteMutationQueue";
 import { invalidateSessionRequests, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
@@ -164,6 +165,24 @@ describe("saved note mutation queue", () => {
     enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "removed", intent: "unsave" });
     dropQueuedSaves();
     expect(readSavedNoteMutationQueue().map((item) => [item.daily_note_id, item.intent])).toEqual([["removed", "unsave"]]);
+  });
+
+  it("a direct ACK retires older intents for that note only, keeping newer and other-owner work", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-10-22T08:00:00Z"));
+      enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-a", revisionId: "r1", intent: "save" });
+      enqueueSavedNoteMutation({ sessionEpoch: "epoch-b", dailyNoteId: "note-a", revisionId: "r1", intent: "save" });
+      enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-b", revisionId: "r1", intent: "save" });
+      const startedAt = Date.now();
+      vi.advanceTimersByTime(1000);
+      enqueueSavedNoteMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-a", revisionId: "r2", intent: "save" });
+      retireSupersededIntents("epoch-a", "note-a", startedAt);
+      expect(readSavedNoteMutationQueue().map((item) => [item.session_epoch, item.daily_note_id, item.revision_id]))
+        .toEqual([["epoch-b", "note-a", "r1"], ["epoch-a", "note-b", "r1"], ["epoch-a", "note-a", "r2"]]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

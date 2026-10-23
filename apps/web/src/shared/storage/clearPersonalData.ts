@@ -6,7 +6,7 @@ import {
 import { clearMatchingIntroExposure } from "./matchingIntroExposure";
 import { clearCachedDailyNote } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
-import { PENDING_MOOD_KEY } from "./pendingMood";
+import { PENDING_MOOD_ACK_KEY, PENDING_MOOD_KEY } from "./pendingMood";
 import { clearSavedNoteMutationQueue } from "./savedNoteMutationQueue";
 import { RADAR_PENDING_REQUEST_KEY } from "../../features/radar/radarOptions";
 import { invalidateSessionRequests, SESSION_RESTART_REQUIRED_KEY } from "../session/sessionIdentity";
@@ -15,6 +15,7 @@ export const PERSONAL_DATA_CLEARED_EVENT = "la-lanh-personal-data-cleared";
 
 const PERSONAL_LOCAL_KEYS = [
   PENDING_MOOD_KEY,
+  PENDING_MOOD_ACK_KEY,
   "la-lanh-daily-ritual-v1",
   "la-lanh-night-nudge-dismissed-v1",
   "la-lanh-companion-growth-v1",

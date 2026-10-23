@@ -135,3 +135,30 @@ describe("Home pending mood lifecycle (P04)", () => {
  });
 
 });
+
+describe("P04 late failure after remount", () => {
+ beforeEach(() => {
+  vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear(); clearCachedDailyNote();
+  sessionStorage.setItem("la-lanh-session-epoch", "epoch-a");
+  Object.defineProperty(navigator,"onLine",{value:true,configurable:true});
+  vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+  vi.mocked(getCurrentMood).mockResolvedValue(null); vi.mocked(listSavedNotes).mockResolvedValue([]);
+  vi.mocked(getBirthSupplement).mockRejectedValue(new Error("none"));
+  vi.mocked(getResonanceStatus).mockResolvedValue({consented:false,feedback_count:0,last_choice:null});
+ });
+ it("cannot resurrect a superseded mood after a newer choice was acknowledged on a remount", async () => {
+  let reject!:(reason:Error)=>void;
+  vi.mocked(checkInMood).mockImplementationOnce(()=>new Promise((_resolve,r)=>{reject=r;})).mockResolvedValueOnce({id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:00:00Z"});
+  const user=userEvent.setup();const first=renderPage();
+  await user.click(await screen.findByRole("button",{name:"Chọn mood hôm nay"}));
+  await user.click(screen.getByRole("button",{name:/Chill/}));
+  await waitFor(()=>expect(checkInMood).toHaveBeenCalledTimes(1));
+  first.unmount();
+  renderPage();
+  await user.click(await screen.findByRole("button",{name:"Chọn mood hôm nay"}));
+  await user.click(screen.getByRole("button",{name:/Rực/}));
+  await screen.findByRole("button",{name:"Mood hôm nay: Rực"});
+  await act(()=>{reject(new Error("old request failed late"));return Promise.resolve();});
+  await waitFor(()=>expect(localStorage.getItem("la-lanh-pending-mood-v1")).toBeNull());
+ });
+});
