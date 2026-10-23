@@ -548,20 +548,21 @@ _BACKGROUND = re.compile(
 )
 
 
-# Where a background clause ends: punctuation, a contrast or choice ("nhưng", "mà", "hay",
-# "hoặc"), or "thì" opening the main clause after a fronted condition. Unlike _CLAUSE_BREAK, "rồi"
-# does not end it: "sau khi đi làm về rồi nói chuyện với sếp" is one background sequence, and its
-# continuation must not become the asked action (Codex #45). A background that runs to the end of
-# the question and swallows the only action leaves no label, which is the clarify path.
-_BACKGROUND_END = re.compile(r"[,;.!?…]|(?<!\w)(?:nhưng|mà|hay|hoặc|thì)(?!\w)")
+# Where a background clause ends: punctuation, a choice between asked options ("hay", "hoặc"), or
+# "thì" opening the main clause after a fronted condition. A sequence ("rồi") or a contrast
+# ("nhưng", "mà") inside the background continues it: in "Sau khi nói chuyện với sếp nhưng vẫn phải
+# nhận thêm việc, mình có nên nghỉ ngơi không?" the extra work is part of what happened, and rest is
+# what is asked (Codex #45). A background that runs to the end of the question and swallows the
+# only action leaves no label, which is the clarify path.
+_BACKGROUND_END = re.compile(r"[,;.!?…]|(?<!\w)(?:hay|hoặc|thì)(?!\w)")
 
 
 def target_clause(question: str) -> str:
     """The question with its background clauses removed: what is actually being asked.
 
-    A background clause runs from its connector, through any "rồi" continuation, to the next
-    ``_BACKGROUND_END``. The result is used only to pick closed labels (action, topic, goal); it
-    is never stored or returned.
+    A background clause runs from its connector, through any "rồi" continuation or "nhưng"/"mà"
+    contrast, to the next ``_BACKGROUND_END``. The result is used only to pick closed labels
+    (action, topic, goal); it is never stored or returned.
     """
 
     text = fold(question)

@@ -224,3 +224,40 @@ def test_when_the_background_swallows_the_only_action_the_label_is_none() -> Non
         "Mình có nên sau khi đi làm về nói chuyện với sếp không?", W
     ).frame
     assert frame is not None and frame.action is None
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        # Codex #45 round 2: a "nhưng"/"mà" contrast inside a background clause stays background.
+        (
+            "Sau khi nói chuyện với sếp nhưng vẫn phải nhận thêm việc, "
+            "mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Mình có nên nghỉ ngơi sau khi nói chuyện với sếp nhưng vẫn phải nhận thêm việc không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Mình có nên không nghỉ ngơi sau khi đã nói chuyện "
+            "nhưng vẫn phải nhận thêm việc không?",
+            None,
+        ),
+        (
+            "Mình có nên nghỉ ngơi dù vẫn muốn gặp bạn nhưng còn phải nói chuyện với sếp không?",
+            TarotAction.NGHI_NGOI,
+        ),
+    ],
+)
+def test_a_contrast_inside_a_background_never_supplies_the_action(
+    question: str, expected: TarotAction | None
+) -> None:
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    if expected is not None:
+        reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+        assert reading.stance is not None and reading.stance.action is expected
+        assert reading.stance.level is not TarotStanceLevel.CONSIDER
+        assert "nhận lời" not in reading.stance.conclusion
