@@ -557,53 +557,22 @@ _BACKGROUND = re.compile(
 _BACKGROUND_END = re.compile(r"[,;.!?…]|(?<!\w)(?:hay|hoặc|thì)(?!\w)")
 
 
-# What marks the clause that carries the question: a question mark, a question word, or a
-# final question particle ("... không?", "... chưa?").
+# What marks the clause that carries the question: a question mark, a question word, or a final
+# question particle ("... không?", "... chưa?"). A bare "nên" is not enough on its own: it also
+# means "so" ("nên mình mệt").
 _ASKS = re.compile(
-    r"\?|(?<!\w)(?:có nên|nên|liệu|có phải|làm sao|thế nào|bao giờ|khi nào|vì sao|tại sao|"
+    r"\?|(?<!\w)(?:có nên|liệu|có phải|làm sao|thế nào|bao giờ|khi nào|vì sao|tại sao|"
     r"hay không)(?!\w)|(?<!\w)(?:không|chưa|nhỉ|à|hả)\s*[.!…]*\s*$"
 )
+# After a fronted condition, "thì" opens the main clause when a modal question follows it.
+_THEN_ASKS = re.compile(r"^\s*thì\s+(?:\w+\s+){0,2}?(?:có\s+)?nên(?!\w)")
+# A segment that only continues the background before it ("…, rồi phải nhận thêm việc, …").
+_CONTINUES = re.compile(r"^\s*(?:rồi|nhưng|mà|và|xong|sau đó|lại|còn|vẫn|hay|hoặc)(?!\w)")
 
 
-def _asked_segments(text: str) -> str:
-    """Drop fronted background segments when another segment carries the question.
+def _strip_background(text: str) -> str:
+    """Remove the background clauses inside one stretch of text (see ``_BACKGROUND_END``)."""
 
-    The question is split at "," and ";". A segment that opens with a background connector and
-    carries no question mark, question word or final particle is background as a whole, so a
-    "thì", "hay" or "hoặc" inside it never opens the asked clause (Codex #45): in "Khi mình nói
-    chuyện với sếp thì vẫn phải nhận thêm việc, mình có nên nghỉ ngơi không?" rest is asked.
-    With no other segment carrying the question, nothing is dropped here.
-    """
-
-    segments = re.split(r"(?<=[,;])", text)
-    if len(segments) < 2:
-        return text
-    background = [
-        _BACKGROUND.match(segment.lstrip()) is not None and _ASKS.search(segment) is None
-        for segment in segments
-    ]
-    if not any(
-        not is_background and _ASKS.search(segment)
-        for segment, is_background in zip(segments, background, strict=True)
-    ):
-        return text
-    return "".join(
-        segment
-        for segment, is_background in zip(segments, background, strict=True)
-        if not is_background
-    )
-
-
-def target_clause(question: str) -> str:
-    """The question with its background clauses removed: what is actually being asked.
-
-    Fronted background segments go first (``_asked_segments``). Within what remains, a
-    background clause runs from its connector, through any "rồi" continuation or "nhưng"/"mà"
-    contrast, to the next ``_BACKGROUND_END``. The result is used only to pick closed labels
-    (action, topic, goal); it is never stored or returned.
-    """
-
-    text = _asked_segments(fold(question))
     kept: list[str] = []
     position = 0
     for match in _BACKGROUND.finditer(text):
@@ -616,7 +585,53 @@ def target_clause(question: str) -> str:
         kept.append(text[position : match.start()])
         position = end
     kept.append(text[position:])
-    return " ".join("".join(kept).split())
+    return "".join(kept)
+
+
+def _asked_segments(text: str) -> str:
+    """Remove fronted background segments; keep the clause that asks (Codex #45).
+
+    The question is split at "," and ";". The last segment ends the question and is always kept.
+    An earlier segment that opens with a background connector is background, including any
+    question it reports ("Sau khi sếp hỏi có nên …"): only what remains after its own background
+    is kept, and only when that remainder opens the asked clause ("… thì mình có nên …", a
+    question word or particle). While in background, a following segment that merely continues
+    it ("rồi", "nhưng", "mà", …) without asking is background too. Any other segment starts the
+    asked clause. When the last segment asks nothing, the text is left to the clause rules.
+    """
+
+    segments = re.split(r"(?<=[,;])", text)
+    if len(segments) < 2 or _ASKS.search(segments[-1]) is None:
+        return text
+    kept: list[str] = []
+    in_background = False
+    for index, segment in enumerate(segments):
+        last = index == len(segments) - 1
+        if not last and _BACKGROUND.match(segment.lstrip()):
+            remainder = _strip_background(segment)
+            if _ASKS.search(remainder) or _THEN_ASKS.search(remainder):
+                kept.append(remainder)
+                in_background = False
+            else:
+                in_background = True
+            continue
+        if not last and in_background and _CONTINUES.match(segment) and not _ASKS.search(segment):
+            continue
+        in_background = False
+        kept.append(segment)
+    return "".join(kept)
+
+
+def target_clause(question: str) -> str:
+    """The question with its background clauses removed: what is actually being asked.
+
+    Fronted background segments go first (``_asked_segments``). Within what remains, a
+    background clause runs from its connector, through any "rồi" continuation or "nhưng"/"mà"
+    contrast, to the next ``_BACKGROUND_END``. The result is used only to pick closed labels
+    (action, topic, goal); it is never stored or returned.
+    """
+
+    return " ".join(_strip_background(_asked_segments(fold(question))).split())
 
 
 # A why/how/open question reflects on a situation, and its "khi" clause often is that situation

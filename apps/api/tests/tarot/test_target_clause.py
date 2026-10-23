@@ -280,6 +280,20 @@ def test_a_contrast_inside_a_background_never_supplies_the_action(
             "Khi sếp giao thêm việc hoặc nhắn muộn, mình có nên nghỉ ngơi không?",
             TarotAction.NGHI_NGOI,
         ),
+        # Codex #45 @ 7328572: a question reported inside the background ("sếp hỏi có nên …") is
+        # not the asked question, and a "rồi" segment continues the background.
+        (
+            "Sau khi sếp hỏi có nên nói chuyện hay nhận thêm việc, mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Sau khi nói chuyện với sếp, rồi phải nhận thêm việc, mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Khi sếp giao việc, nhưng vẫn phải nhận thêm việc, mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
         # Controls: "thì" opening the asked clause, and a background whose action is not asked.
         ("Khi nói chuyện với sếp thì mình có nên nghỉ ngơi không?", TarotAction.NGHI_NGOI),
         ("Khi sếp giao thêm việc, mình có nên nhận lời không?", TarotAction.NHAN_LOI),
@@ -295,3 +309,21 @@ def test_the_clause_carrying_the_question_supplies_the_action(
     assert reading.stance is not None and reading.stance.action is expected
     if expected is TarotAction.NGHI_NGOI:
         assert "nhận lời" not in reading.stance.conclusion
+        assert "nghỉ" in (reading.positions[-1].small_action or "")
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        # The asked clause can sit inside a fronted segment, after "thì". These forms are open, so
+        # only the frame is checked: the open form has no stance by design.
+        (
+            "Khi mệt thì mình có nên nghỉ ngơi không, dù sếp vẫn giao thêm việc?",
+            TarotAction.NGHI_NGOI,
+        ),
+    ],
+)
+def test_an_asked_clause_after_then_inside_a_fronted_segment_is_kept(
+    question: str, expected: TarotAction
+) -> None:
+    assert question_frame.match_action(question_frame.asked_text(question)) is expected
