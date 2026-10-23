@@ -7,6 +7,8 @@ Owner quyết định 23/10/2026:
 2. **Nơi bình yên hoãn toàn bộ.** Không viết code, không review, không merge thêm. PRD đã merge (#44) giữ nguyên làm tài
    liệu lưu trữ; #68 (PRD v0.7) để mở, không review và không merge cho tới khi owner mở lại.
 3. **Tarot Luna được đưa vào giai đoạn nội dung** (trước đây hoãn theo quyết định C6 ngày 18/10).
+4. **DPA không phải điều kiện deploy hay mở Luna.** Owner ký khi thuận tiện (quyết định 21/10 và 23/10); việc ký là
+   một mục theo dõi riêng của owner, không chặn bước nào trong plan.
 
 Cách phối hợp (không đổi): Claude làm, Codex review theo đúng SHA. Mỗi bước là một PR nhỏ có regression đỏ trên base →
 xanh trên head. Chỉ merge khi có `Review verdict: APPROVE @ <full SHA>` khớp head. Merge vào `main`, deploy, chạm server/DB
@@ -21,7 +23,7 @@ chủ; counsel trả lời câu hỏi pháp lý. Ngân sách Luna giữ trên se
 - Quyết định owner 18/10 (C6/T06): thêm cảnh và AI cho Tarot cần duyệt chi phí riêng. Audit v2 giữ Tarot Luna tắt sau
   các cổng: brief bám đúng câu được hỏi (T01), prompt/provenance/canary mới, chiến lược cho stance, và đánh giá với
   người đọc thật.
-- Các cổng privacy chung chưa xong: DPA chưa ký, roster pilot (RC-05, #61) chưa deploy, câu hỏi Tarot là văn bản tự do
+- Các cổng privacy chung chưa xong: roster pilot (RC-05, #61) chưa deploy, câu hỏi Tarot là văn bản tự do
   nhạy cảm và không được rời máy chủ ở dạng thô.
 
 ## Giai đoạn 0: đưa hàng đợi hiện tại lên (đang làm)
@@ -42,13 +44,13 @@ Tiêu chí thoát: release mới chạy trên production, có receipt; kill swit
 | P07 | Sổ ghi xoá có khoá (phương án A) + chạy lại retention (C) sau restore; cài backup timer, alert, restore thử, receipt Supabase backup/PITR | Claude (code), operator (cài/chạy) | PR journal A + receipt operator | Restore thử trên bản sao không làm sống lại dữ liệu đã xoá; B (không restore vào service) chỉ bỏ khi PR A được duyệt |
 | P06 | Số đếm tổng hợp dữ liệu cũ chưa mã hoá (staging rồi production, kênh riêng); backfill/purge theo cột "Preferred" | Operator (đếm), Claude (tool), owner (xác nhận) | `check_legacy_plaintext` + PR backfill | Số đếm về 0; PR gỡ reader tương thích cũ |
 | P09 D2 | Kênh yêu cầu quyền thủ công cho B: xác minh bằng link mời/receipt hoặc A xoá hộ, không thu lại ngày sinh | Claude | PR + quy trình vận hành | Có đường xem/xuất/xoá cho B khi không còn receipt; log không chứa dữ liệu B |
-| P09 D3/D4, P10 | Cơ sở pháp lý cho private check, thông báo cho B, DPA, xuyên biên giới (Đức), DPIA, App Privacy/Data Safety | Counsel, owner | Dossier #52 | Có câu trả lời của counsel; copy/consent/data map cập nhật nếu cần (PR riêng, owner duyệt copy) |
+| P09 D3/D4, P10 | Cơ sở pháp lý cho private check, thông báo cho B, xuyên biên giới (Đức), DPIA, App Privacy/Data Safety; DPA owner ký khi thuận tiện (không chặn) | Counsel, owner | Dossier #52 | Có câu trả lời của counsel; copy/consent/data map cập nhật nếu cần (PR riêng, owner duyệt copy) |
 | P08 | Canary log ingress/Docker trên host; app native ký thật kiểm theo MASVS (cookie, storage, backup, crash, deep link, xoá) | Operator, thiết bị | Receipt | Không có câu hỏi/ngày sinh/token trong log thật; checklist MASVS đạt |
 | P03 RC-23–27 | Bằng chứng đường dẫn ephemeris thực tế (`SE_EPHE_PATH`, mount, file phụ, nguồn image) | Operator | Receipt theo checklist #59 | Năm điều trong checklist đều có bằng chứng |
-| P11 | Roster pilot (#61) đã deploy; DPA ký trước khi mở thêm surface Luna nào | Owner, operator | Receipt | Điều kiện bắt buộc cho Tarot Luna ở giai đoạn 2 |
+| P11 | Roster pilot (#61) đã deploy, có số đếm consent trước deploy | Operator | Receipt | Điều kiện cho Tarot Luna ở giai đoạn 2 |
 | P12 | Google sign-in: xoay secret qua kênh bảo vệ, kiểm thử chấp nhận trên staging | Operator, owner | Receipt | Chỉ bật khi owner cho phép |
 
-Tiêu chí thoát giai đoạn 1: P06/P07/P08/RC-23–27 có receipt, D2 chạy được, counsel đã trả lời D3/D4 và DPA. Không ghi
+Tiêu chí thoát giai đoạn 1: P06/P07/P08/RC-23–27 có receipt, D2 chạy được, counsel đã trả lời D3/D4. DPA không thuộc tiêu chí thoát. Không ghi
 "đã xong privacy" khi còn mục nào chỉ có tài liệu.
 
 ## Giai đoạn 2: nội dung (toàn bộ)
@@ -61,7 +63,7 @@ Bắt đầu bằng việc owner duyệt copy (làm song song được với gia
 | T02/T03 | Owner duyệt workbook #67 → wiring cảnh/bước theo hành động, bump version, giữ bài đã lưu, fallback approval có evidence | Owner duyệt, Claude làm | T01 |
 | T04 | Kiểm screen reader và tên dài trên thiết bị; owner chốt thứ tự Anh · Việt | Thiết bị, owner | #63 |
 | T05 | Rubric hiểu nghĩa/đáp đúng câu hỏi + gate đo trên bank | Claude, owner duyệt rubric | T02/T03 |
-| **T06 Tarot Luna** | (a) brief v2 chỉ gửi mã nhãn đóng của hành động/chủ đề/vai và nội dung đã duyệt, **không bao giờ gửi câu hỏi thô**; (b) prompt `gpt-6-luna-tarot-v4` + gate + canary + provenance; (c) corpus tổng hợp + đánh giá người đọc; (d) owner duyệt chi phí (ghi trên server), consent/data map/store disclosure; (e) thêm `tarot` vào allowlist bằng PR riêng, pilot ≤ N phiên opt-in | Claude (a–c, e), owner (d), Codex review từng bước | Giai đoạn 1 xong (DPA, RC-05 deploy), T01–T05 |
+| **T06 Tarot Luna** | (a) brief v2 chỉ gửi mã nhãn đóng của hành động/chủ đề/vai và nội dung đã duyệt, **không bao giờ gửi câu hỏi thô**; (b) prompt `gpt-6-luna-tarot-v4` + gate + canary + provenance; (c) corpus tổng hợp + đánh giá người đọc; (d) owner duyệt chi phí (ghi trên server), consent/data map/store disclosure; (e) thêm `tarot` vào allowlist bằng PR riêng, pilot ≤ N phiên opt-in | Claude (a–c, e), owner (d), Codex review từng bước | Giai đoạn 1 xong (RC-05 đã deploy), T01–T05 |
 | R03 | Owner duyệt workbook #65 (chọn `deep_dive` hay `roast`) → catalog `radar/contact_copy.py` + wiring thay câu chung, variant theo seed để đạt AC02/AC03; bỏ strict xfail khi gate #47 xanh thật | Owner, Claude | #47 |
 | R04 | Owner quyết spec #64 → API/UI khoảng điểm, adapter cho bài cũ | Owner, Claude | R03 |
 | R05 | Freeze variant lúc tạo + grammar manifest trên output thật | Claude | R03 |
@@ -83,6 +85,6 @@ owner duyệt; Tarot Luna pilot có số liệu đánh giá, không chỉ test m
 ## Owner cần trả lời
 
 - Giai đoạn 0: cho phép merge và deploy khi Codex APPROVE.
-- Giai đoạn 1: ký DPA (hoặc quyết không ký), chuyển câu hỏi cho counsel.
+- Giai đoạn 1: chuyển câu hỏi cho counsel. DPA ký khi thuận tiện, không chặn deploy.
 - Giai đoạn 2: duyệt #67, #65 (chọn giọng), #64, copy #62/#63; mức chi phí cho Tarot Luna (gửi riêng, không ghi git).
 - Giai đoạn 3: chọn hướng game.
