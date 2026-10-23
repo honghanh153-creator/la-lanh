@@ -107,7 +107,11 @@ hỏi vào bài đọc.**
 - **AC11:** Tiêu đề dựng từ dạng câu + hướng nghiêng (hoặc chủ đề) + lá trọng tâm. Trên ngân hàng câu
   hỏi, tỷ lệ tiêu đề trùng nhau < 10%.
 - **AC12:** Không còn "Ý chính của lá:", "Thử nhé:", hay "Ví dụ:" nằm dưới nhãn "Ví dụ để đối chiếu". Tên
-  lá tiếng Anh và dòng "Engine …" không hiện trong nội dung, chỉ còn trong chi tiết kỹ thuật thu gọn.
+  lá hiện **cả tiếng Anh truyền thống và tiếng Việt** ở mọi nhãn lá (ô vị trí đã chọn, tiêu đề từng lá,
+  danh sách lá đã rút) và trong tên đọc cho trình đọc màn hình, dạng "The Devil · Sợi Ràng", phần tiếng Anh
+  gắn `lang="en"` (owner quyết định 19/10/2026, audit T04; trước đây tên tiếng Anh chỉ nằm trong chi tiết
+  kỹ thuật). Câu văn của bài đọc do server sinh giữ nguyên, bài đã lưu không đổi. Dòng "Engine …" vẫn chỉ
+  nằm trong chi tiết kỹ thuật thu gọn.
 - **AC13:** Gate Tarot không còn ép số chữ tối thiểu (cảnh ≥ 12 chữ, hành động ≥ 6 chữ). Vẫn giữ trần độ
   dài và các bộ lọc an toàn. Gate `no_decision_or_prediction` và `role_fit` mới đều đạt.
 - **AC14:** Checklist tâm lý của chuẩn nội dung đạt cho cả bài và từng phần.
