@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 6, after the Codex verdicts of 23/10/2026, round 5)
+# Audit v2 registry (revision 7, after the Codex verdicts of 23/10/2026, round 6)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -26,7 +26,7 @@ GitHub-hosted runner; **nothing on staging or production**), `OWNER_DECISION`, `
 | P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `d3c9b3f27165311a596fd86ca03fa1c7b7ff8bfc` · RC @ 3e120f5 (cross-tab ordering confirmed fixed; a callback waiting for the queue lock could write ids back after clear-device) → owner, generation and clear re-checked inside the lock, awaiting re-review | Codex | device check |
 | P05 | Physical purge of revoked/expired share; experiment wording | MERGED_INTEGRATION | #49 `76d3460cba6f5ceebb563198d271c40551156552` · APPROVE @ same · merged into integration (`c787681`) | release to main (owner order); counsel on "tối đa 30 ngày" | PostgreSQL run |
 | P06 | Aggregate legacy-plaintext check + plan | PARTIAL (tooling approved) | #50 `109072dd385e5510086a741c87ef33b31b8e629a` · APPROVE @ same · merged into integration (`9c02707`) | operator: staging/prod counts via private channel | real counts; then backfill tool per owner choice |
-| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`) | operator install; Codex reviews journal A | install, first backup, restore probe, alert, Supabase backup/PITR receipt. Journal A: #78 `5579600e4e7efc4a2a47c24162cde65e14c94a1c` · RC @ 8173a20 (HTTP history clear bypassed the journal; wall-clock replay cutoff) → journaled service path and dump-row snapshot checkpoint, awaiting re-review (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until it is deployed and a restore probe has replayed it |
+| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`) | operator install; Codex reviews journal A | install, first backup, restore probe, alert, Supabase backup/PITR receipt. Journal A: #78 `610c8ae548645861c5df50136e76da891ad59f0e` · RC @ 5579600 (P1: a purged journal row looked unreflected, so an old export re-applied a clear and erased later history; the two P2s from 8173a20 were confirmed fixed) → purge horizon recorded with each purge, awaiting re-review (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until it is deployed and a restore probe has replayed it |
 | P08 | Log canaries; ingress/Docker; native | PARTIAL | #51 `1fcfa84368ebcda3592f3e2bc9e74ccf7c8dec0b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/51#issuecomment-6346170351) · merged into integration (`8df0492`) | operator/device | ingress/Docker runtime logs; signed native build on device (MASVS) |
 | P09 | B rights; receipt 7 d vs result 30 d | PARTIAL / OWNER_DECISION | dossier #52 APPROVE; D1 #62 `288b3ad281bb8eb3d5c1dc015592c7c68c7a70b2` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/62#issuecomment-6346173801) · merged into integration (`aae55b5`) (cookies already expired at 7 days are not revived) | owner (copy "30 ngày"), counsel D2–D4 | manual rights channel; lawful basis/notice answers |
 | P10 | Apple Tracking column; disclosures; counsel dossier | PARTIAL | #52 APPROVE · merged into integration (`0cf6334`) (column fixed; dossier is not a legal conclusion) | counsel | cross-border/DPIA, store forms at submission; DPA signature tracked separately by the owner, not a gate |
@@ -96,7 +96,10 @@ not Supabase, migration or live certification).
 
 ## Combined-branch checks (local, not pushed)
 
-### Author's local code-cohort check (revision 6)
+### Author's local code-cohort check (revision 6, stale for #78)
+
+Since this run #78 moved from `5579600` to `610c8ae`; the other heads are unchanged.
+
 
 Local head `65cfeab4493656100fbde114a0f5bfe28358234e` (not pushed) = `collab/integration` `b5e4427` + #45 `c9cc3d9`,
 #48 `d3c9b3f`, #70 `4c08e3c`, #71 `58192de`, #72 `ebd99a7`, #73 `46059af`, #77 `2573e5b`, #78 `5579600`, merged in
