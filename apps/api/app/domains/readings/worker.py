@@ -34,6 +34,7 @@ from app.infrastructure.generation.base import (
     GenerationSuccess,
     GenerationTransient,
 )
+from app.infrastructure.log_redaction import install_log_redaction
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +240,7 @@ async def _run_standalone() -> None:
 
 
 def main() -> None:
+    install_log_redaction()
     asyncio.run(_run_standalone())
 
 
