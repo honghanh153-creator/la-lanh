@@ -37,8 +37,12 @@ recreated production Caddy drops the staging site. Staging: refresh `/opt/la-lan
 from the release, then `STAGING_GENERATION=off ./up.sh`, and recreate staging after `deploy.sh` so both run
 the deployed image digest.
 
-Previous: release `836222282dfc` (2026-10-16),
-[receipt](../reviews/production-release-2026-10-16/receipt.md).
+Caddy's admin API is off, so a Caddy config change needs `docker restart la-lanh-caddy-1` (a few seconds
+of restart).
+
+Previous: hotfix release `836222282dfc` (2026-10-16, #15 + #16 on top of `b474cafbc434`),
+[receipt](../reviews/production-release-2026-10-16/receipt-836222282dfc.md); earlier the same day
+release `b474cafbc434`, [receipt](../reviews/production-release-2026-10-16/receipt.md).
 
 Earlier: release `a6e11bfd149b` (2026-10-11),
 [receipt](../reviews/production-release-2026-10-11/receipt.md).
@@ -321,6 +325,8 @@ example on the first release:
 ```sh
 cp /opt/la-lanh/current/infra/hetzner/app.env /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/app.env
 chmod 0600 /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/app.env
+# Server-only staging site: Caddy mounts sites/ from the active release.
+cp /opt/la-lanh/current/infra/hetzner/sites/staging.caddy /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/sites/staging.caddy
 ```
 
 Review the file without changing the established contract:
