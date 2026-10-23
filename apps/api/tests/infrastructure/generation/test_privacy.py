@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import cast
 
 import pytest
 
@@ -167,20 +168,66 @@ def test_radar_payload_accepts_only_derived_dimensions_and_anonymous_evidence() 
             {
                 "label": "signal_1",
                 "source": "relationship",
-                "kind": "synastry_aspect",
+                "kind": "relationship_signal",
                 "domain": "communication",
                 "role": "friction",
                 "confidence": "medium",
-                "labels": [{"name": "aspect", "value": "vuông"}],
             }
         ],
     }
 
     safe = PrivacyMinimiser().minimise(RewriteSurface.RADAR, payload)
-    assert safe == payload
+    evidence = cast(list[dict[str, object]], payload["evidence"])
+    assert safe == {**payload, "evidence": [{**evidence[0], "labels": []}]}
 
     with pytest.raises(UnsafeRewritePayload):
         PrivacyMinimiser().minimise(
             RewriteSurface.RADAR,
             {**payload, "other_person_name": "Bình"},
         )
+
+
+@pytest.mark.parametrize(
+    "evidence_patch",
+    [
+        {"labels": [{"name": "aspect", "value": "vuông"}]},
+        {"labels": [{"name": "body", "value": "venus"}]},
+        {"labels": [{"name": "house", "value": "7"}]},
+        {"kind": "synastry_aspect"},
+        {"kind": "house_overlay"},
+    ],
+)
+def test_radar_minimiser_refuses_chart_facts_matching_still_allows_labels(
+    evidence_patch: dict[str, object],
+) -> None:
+    """Luna S2: chart facts are refused at enqueue and again before send, not only by the
+    compiler. Matching is unchanged (still outside CHART_FREE_REWRITE_SURFACES)."""
+
+    item = {
+        "label": "signal_1",
+        "source": "relationship",
+        "kind": "relationship_signal",
+        "domain": "friction",
+        "role": "supporting",
+        "confidence": "medium",
+    }
+    payload = {
+        "context": "crush",
+        "dimensions": [
+            {
+                "dimension": "friction",
+                "band": "medium",
+                "direction": "mutual",
+                "meaning_keys": ["friction"],
+            }
+        ],
+        "source_sections": [
+            {"key": key, "meaning": "Hỏi rõ một câu thay vì đoán ý."}
+            for key in ("overview", "strength", "friction", "asymmetry", "prompt")
+        ],
+        "evidence": [{**item, **evidence_patch}],
+    }
+
+    with pytest.raises(UnsafeRewritePayload):
+        PrivacyMinimiser().minimise(RewriteSurface.RADAR, payload)
+    assert PrivacyMinimiser().minimise(RewriteSurface.MATCHING, payload)

@@ -230,24 +230,18 @@ def _safe_evidence(projection: dict[str, object]) -> list[dict[str, JsonValue]]:
             if not source_id or source_id in seen:
                 continue
             seen.add(source_id)
-            # Only the strength is read, to grade confidence. Planet, aspect and house labels
-            # stay local: the prompt maps the section meanings and never needs them, and the
-            # payload stays free of chart facts (Luna sprint S2).
+            # Only the strength is read, to grade confidence. Planet, aspect and house labels and
+            # the technique (synastry, composite, overlay) stay local: the prompt maps the section
+            # meanings and never needs them, and the payload stays free of chart facts (Luna S2).
             technical = receipt.get("technical")
             strength = 0.5
             if isinstance(technical, dict) and isinstance(technical.get("strength"), int | float):
                 strength = float(technical["strength"])
-            source = str(receipt.get("source", "relationship"))
-            kind = {
-                "synastry": "synastry_aspect",
-                "composite_midpoint": "composite_aspect",
-                "house_overlay": "house_overlay",
-            }.get(source, "relationship_signal")
             evidence.append(
                 {
                     "label": f"signal_{len(evidence) + 1}",
                     "source": "relationship",
-                    "kind": kind,
+                    "kind": "relationship_signal",
                     "domain": re.sub(r"[^a-z0-9_]", "_", domain.casefold())[:40],
                     "role": "supporting",
                     "confidence": (
