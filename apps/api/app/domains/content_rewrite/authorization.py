@@ -6,7 +6,7 @@ from enum import StrEnum
 from hashlib import sha256
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.domains.content_rewrite.models import (
@@ -190,22 +190,37 @@ class DatabaseRewriteAuthorization(RewriteAuthorizationChecker):
         self._pilot_user_limit = pilot_user_limit
 
     async def pilot_eligible(self, guest_id: UUID) -> bool:
+        """Whether the guest holds one of the first ``pilot_user_limit`` participant slots.
+
+        A slot belongs to a person, whatever the surface: every active external-rewrite consent
+        (personal, Radar or matching) counts, ordered by each guest's earliest acceptance.
+        Counting personal consents only let Radar- or matching-only guests through without ever
+        occupying a slot (audit P03 RC-05).
+        """
+
         if not self._pilot_user_limit:
             return True
-        definition = consent_definition(RewriteConsentScope.PERSONAL)
+        definitions = [consent_definition(scope) for scope in RewriteConsentScope]
+        first_accepted = func.min(ConsentRow.accepted_at)
         async with self._sessions() as session:
             participants = tuple(
                 await session.scalars(
                     select(ConsentRow.guest_id)
                     .join(GuestSessionRow, GuestSessionRow.id == ConsentRow.guest_id)
                     .where(
-                        ConsentRow.version == definition.version,
-                        ConsentRow.purpose == definition.purpose,
+                        or_(
+                            *(
+                                (ConsentRow.version == item.version)
+                                & (ConsentRow.purpose == item.purpose)
+                                for item in definitions
+                            )
+                        ),
                         ConsentRow.revoked_at.is_(None),
                         GuestSessionRow.expires_at > datetime.now(UTC),
                         GuestSessionRow.state == GuestState.ACTIVE.value,
                     )
-                    .order_by(ConsentRow.accepted_at, ConsentRow.guest_id)
+                    .group_by(ConsentRow.guest_id)
+                    .order_by(first_accepted, ConsentRow.guest_id)
                     .limit(self._pilot_user_limit)
                 )
             )
@@ -253,4 +268,8 @@ class DatabaseRewriteAuthorization(RewriteAuthorizationChecker):
         for subject_id in subjects:
             if not await self.authorized_guest(subject_id, scope=scope):
                 return False
-        return await self.pilot_eligible(guest_id)
+        # Every person whose content is sent needs a slot (both people for a Radar pair).
+        for subject_id in subjects:
+            if not await self.pilot_eligible(subject_id):
+                return False
+        return True
