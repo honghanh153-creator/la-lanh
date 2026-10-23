@@ -68,6 +68,24 @@ def _retention(database: Path, request_id: str) -> timedelta:
     return datetime.fromisoformat(expires_at) - datetime.fromisoformat(completed_at)
 
 
+def _shift_completion(database: Path, request_id: str, *, days: int) -> None:
+    """Move completion and expiry back in time together (synthetic SQLite only)."""
+    with sqlite3.connect(database) as connection:
+        completed_at, expires_at = connection.execute(
+            "SELECT completed_at, expires_at FROM radar_requests WHERE id = ?",
+            (request_id.replace("-", ""),),
+        ).fetchone()
+        shift = timedelta(days=days)
+        connection.execute(
+            "UPDATE radar_requests SET completed_at = ?, expires_at = ? WHERE id = ?",
+            (
+                (datetime.fromisoformat(completed_at) - shift).isoformat(sep=" "),
+                (datetime.fromisoformat(expires_at) - shift).isoformat(sep=" "),
+                request_id.replace("-", ""),
+            ),
+        )
+
+
 def _assert_dossier_payload(payload: dict[str, Any]) -> None:
     assert payload["version"] == "radar-result-v2"
     assert len(payload["compatibility_map"]) == 3
@@ -179,6 +197,11 @@ def test_private_radar_requires_both_people_and_supports_withdrawal(tmp_path: Pa
 
         # A mutually consented pair result keeps the 30-day window from acceptance.
         assert _retention(database, request_id) == timedelta(days=30)
+        # P09 D1 (owner, 22/10): B's receipt lives as long as the result, so B can view or
+        # withdraw on day 20 instead of losing self-service after day 7.
+        assert "max-age=2592000" in result.headers["set-cookie"].lower()
+        _shift_completion(database, request_id, days=20)
+        assert recipient.get("/v1/public/radar/receipt").status_code == 200
 
         owner_result = owner.get(f"/v1/radar/results/{request_id}")
         assert owner_result.status_code == 200
