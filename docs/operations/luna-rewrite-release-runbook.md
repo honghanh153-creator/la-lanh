@@ -150,11 +150,11 @@ How the code reads these values:
   `beta_10` publishes only ~10% of artifacts, so 20 testers would rarely see Luna. Use `full`.
   Even then a Luna note is only an *available update*; the tester activates it explicitly.
 - Unlisted surfaces stay `off`, so `reveal`/`natal`/`transit_insight`/`tarot` are not enqueued
+  even though the same personal consent receipt covers them. Do not add them without a new
+  owner decision and copy review.
 - Tarot is in `CHART_FREE_REWRITE_SURFACES` since Luna sprint S4 (23/10/2026): its payload has no chart fact and no
   question text (pinned by `tests/content_rewrite/test_tarot_chart_free.py`). Allowed is not on: Tarot runs only when the
   operator sets its rollout mode, within the shared Luna budget and the pilot roster; Roast stays local.
-  even though the same personal consent receipt covers them. Do not add them without a new
-  owner decision and copy review.
 - One Daily job reserves ~5.3k–6.2k tokens and 0.061–0.070 cents before the provider call
   (conservative UTF-8 byte count of the brief + prompt + schema + 512, output cap 220; measured on
   synthetic v7 cards 2026-10-13). Observed real cost is ~0.01 cent per job.
