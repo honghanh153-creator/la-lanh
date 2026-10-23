@@ -6,13 +6,16 @@ Every number is measured on what the web shows (``radar_sentences``), never on e
 
 - AC01: each reading with at least two certain contacts has >= 2 visible "fit"/"friction"
   sentences that are specific to one directed contact ``(body_a, aspect, body_b)``. Credit needs
-  provenance the reading declares itself (``highlights[].contact_lines: [{text, evidence_id}]``)
-  and that the audit checks independently: the evidence id is a real contact of this pair in this
-  direction and is cited by that highlight; the text is a visible sentence; across the corpus the
-  text is never declared for another contact and never shown in a reading without that contact.
-  Co-occurrence alone (two pairs that happen to share Pluto square Neptune) gives no credit, and
-  generic, planet-only or aspect-only sentences cannot qualify (Codex #47).
-  Low-signal pairs (the renderer's own condition) are reported as an honest exception.
+  two independent things (Codex #47):
+  1. a **closed source catalog** that binds the text to exactly that directed contact and to no
+     other (``contact_source_catalog()``: ``app.domains.radar.contact_copy.CONTACT_LINES``, built
+     from the owner-approved R03 copy; absent today, so nothing can be credited);
+  2. provenance the reading declares (``highlights[].contact_lines: [{text, evidence_id}]``), which
+     the audit checks: the evidence id is a real contact of this pair in this direction and is
+     cited by that highlight; the text is visible; corpus-wide it is never declared for another
+     contact and never shown in a reading without that contact.
+  The renderer's own declarations never certify text by themselves; generic, planet-only,
+  aspect-only or scene text cannot qualify. Low-signal pairs are an honest exception.
 - AC02: same pair and voice, another context changes >= 50% of the fit/friction sentences on
   average; same pair and context, another voice changes >= 50% of them on average.
 - AC03: mean share of a reading's sentences also shown for another pair (same context and voice)
@@ -24,10 +27,11 @@ holds it as a strict expected failure so it turns red the moment it starts passi
 
 from __future__ import annotations
 
+import importlib
 import json
 import statistics
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from itertools import combinations
 from pathlib import Path
 from typing import Any
@@ -81,12 +85,34 @@ def declared_lines(reading: dict[str, Any]) -> list[DeclaredLine]:
     return lines
 
 
+def contact_source_catalog() -> Mapping[ContactKey, Collection[str]]:
+    """The closed text -> directed-contact source, independent of what the renderer declares.
+
+    It is the approved R03 contact copy once wired (``app.domains.radar.contact_copy``); until then
+    it is empty and no sentence can earn AC01 credit.
+    """
+
+    try:
+        module = importlib.import_module("app.domains.radar.contact_copy")
+    except ModuleNotFoundError:
+        return {}
+    lines: Mapping[ContactKey, Collection[str]] = getattr(module, "CONTACT_LINES", {})
+    return lines
+
+
 def contact_specific(
     visible: dict[tuple[str, str, str], list[str]],
     contacts: dict[str, set[ContactKey]],
     declared: Mapping[tuple[str, str, str], Sequence[DeclaredLine]],
+    catalog: Mapping[ContactKey, Collection[str]] | None = None,
 ) -> dict[tuple[str, str, str], set[str]]:
     """Per reading, the visible sentences credited to one directed contact (see AC01 above)."""
+
+    source = contact_source_catalog() if catalog is None else catalog
+    bound: dict[str, set[ContactKey]] = defaultdict(set)
+    for source_contact, texts in source.items():
+        for source_text in texts:
+            bound[normalize(source_text)].add(source_contact)
 
     claimed: dict[str, set[ContactKey | None]] = defaultdict(set)
     for lines in declared.values():
@@ -103,6 +129,7 @@ def contact_specific(
             text
             for text, contact, cited in declared.get(key, [])
             if contact is not None
+            and bound.get(text) == {contact}
             and text in shown
             and contact in cited
             and contact in contacts[pid]

@@ -5,10 +5,11 @@ marker is removed and the gate joins ``pnpm check``."""
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 
 import pytest
 
-from scripts.audit_radar_us22 import FIXTURES, contact_specific, us22_gate
+from scripts.audit_radar_us22 import FIXTURES, DeclaredLine, contact_specific, us22_gate
 
 
 @pytest.fixture(scope="module")
@@ -54,29 +55,37 @@ def test_incidental_shared_contact_gives_no_credit() -> None:
 def test_declared_provenance_must_be_real_cited_visible_and_unique() -> None:
     contacts = {"p1": {PN, MM}, "p2": {PN, VS}}
     line = "mars của bạn chạm moon của người kia theo góc tam hợp"
+
+    def contact_specific_mm(
+        visible: dict[tuple[str, str, str], list[str]],
+        pairs: dict[str, set[tuple[str, str, str]]],
+        declared: Mapping[tuple[str, str, str], Sequence[DeclaredLine]],
+    ) -> dict[tuple[str, str, str], set[str]]:
+        return contact_specific(visible, pairs, declared, catalog={MM: frozenset({line})})
+
     cited = frozenset({MM})
     ok = {K1: [(line, MM, cited)]}
-    assert contact_specific({K1: [line], K2: []}, contacts, ok)[K1] == {line}
+    assert contact_specific_mm({K1: [line], K2: []}, contacts, ok)[K1] == {line}
     # Not cited by the highlight that shows it.
     assert (
-        contact_specific({K1: [line], K2: []}, contacts, {K1: [(line, MM, frozenset({PN}))]})[K1]
+        contact_specific_mm({K1: [line], K2: []}, contacts, {K1: [(line, MM, frozenset({PN}))]})[K1]
         == set()
     )
     # A contact this pair does not have, or the reverse direction.
     reverse = ("moon", "trine", "mars")
     assert (
-        contact_specific(
+        contact_specific_mm(
             {K1: [line], K2: []}, contacts, {K1: [(line, reverse, frozenset({reverse}))]}
         )[K1]
         == set()
     )
     # Declared but not visible.
-    assert contact_specific({K1: [], K2: []}, contacts, ok)[K1] == set()
+    assert contact_specific_mm({K1: [], K2: []}, contacts, ok)[K1] == set()
     # The same text declared for two contacts is generic.
     both = {K1: [(line, MM, cited)], K2: [(line, VS, frozenset({VS}))]}
-    assert contact_specific({K1: [line], K2: [line]}, contacts, both)[K1] == set()
+    assert contact_specific_mm({K1: [line], K2: [line]}, contacts, both)[K1] == set()
     # Shown in a reading whose pair lacks the declared contact.
-    assert contact_specific({K1: [line], K2: [line]}, contacts, ok)[K1] == set()
+    assert contact_specific_mm({K1: [line], K2: [line]}, contacts, ok)[K1] == set()
 
 
 def test_current_content_declares_no_contact_lines(
@@ -84,3 +93,45 @@ def test_current_content_declares_no_contact_lines(
 ) -> None:
     _, report = gate
     assert report["AC01_specific_sentences_mean"] == 0.0
+
+
+SS = ("saturn", "trine", "sun")
+MS = ("mars", "square", "sun")
+BRIDGE = "mars của bạn chạm sun của người kia ở góc vuông"
+SCENE = "một đoạn chat đang trôi rồi một câu ngắn làm nhịp đổi"
+
+
+def test_declaration_alone_never_certifies_generic_text() -> None:
+    """Codex #47 round 2: a real, cited contact declared for generic prose gets no credit unless
+    the closed source catalog binds that text to that directed contact."""
+
+    contacts = {"p1": {PN, MM}, "p2": {PN, VS}}
+    declared = {K1: [(GENERIC, PN, frozenset({PN}))], K2: [(GENERIC, PN, frozenset({PN}))]}
+    visible = {K1: [GENERIC], K2: [GENERIC]}
+    assert not any(contact_specific(visible, contacts, declared).values())
+    assert not any(contact_specific(visible, contacts, declared, catalog={}).values())
+
+
+def test_text_bound_to_another_contact_is_not_credited_to_a_declared_one() -> None:
+    contacts = {"p1": {SS, MS}}
+    catalog = {MS: frozenset({BRIDGE})}
+    declared = {K1: [(BRIDGE, SS, frozenset({SS}))]}  # Mars->Sun line declared as Saturn->Sun
+    assert contact_specific({K1: [BRIDGE]}, contacts, declared, catalog=catalog)[K1] == set()
+
+
+def test_a_scene_on_an_unrelated_highlight_is_not_credited() -> None:
+    contacts = {"p1": {MM, PN}}
+    catalog = {MM: frozenset({"mars của bạn chạm moon của người kia theo góc tam hợp"})}
+    declared = {K1: [(SCENE, MM, frozenset({MM}))]}
+    assert contact_specific({K1: [SCENE]}, contacts, declared, catalog=catalog)[K1] == set()
+
+
+def test_catalog_bound_text_for_the_declared_contact_is_credited() -> None:
+    line = "mars của bạn chạm moon của người kia theo góc tam hợp"
+    contacts = {"p1": {MM, PN}}
+    declared = {K1: [(line, MM, frozenset({MM}))]}
+    catalog = {MM: frozenset({line})}
+    assert contact_specific({K1: [line]}, contacts, declared, catalog=catalog)[K1] == {line}
+    # The same text bound to two contacts in the catalog is generic.
+    shared = {MM: frozenset({line}), PN: frozenset({line})}
+    assert contact_specific({K1: [line]}, contacts, declared, catalog=shared)[K1] == set()
