@@ -150,6 +150,8 @@ How the code reads these values:
   `beta_10` publishes only ~10% of artifacts, so 20 testers would rarely see Luna. Use `full`.
   Even then a Luna note is only an *available update*; the tester activates it explicitly.
 - Unlisted surfaces stay `off`, so `reveal`/`natal`/`transit_insight`/`tarot` are not enqueued
+- Radar payload (Luna sprint S2, 23/10/2026): evidence items carry only label/kind/domain/confidence, no planet,
+  aspect or house labels; the prompt maps the supplied section meanings. Radar stays out of the allowlist until S5.
   even though the same personal consent receipt covers them. Do not add them without a new
   owner decision and copy review.
 - One Daily job reserves ~5.3k–6.2k tokens and 0.061–0.070 cents before the provider call

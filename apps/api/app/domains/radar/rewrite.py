@@ -230,21 +230,13 @@ def _safe_evidence(projection: dict[str, object]) -> list[dict[str, JsonValue]]:
             if not source_id or source_id in seen:
                 continue
             seen.add(source_id)
+            # Only the strength is read, to grade confidence. Planet, aspect and house labels
+            # stay local: the prompt maps the section meanings and never needs them, and the
+            # payload stays free of chart facts (Luna sprint S2).
             technical = receipt.get("technical")
-            labels: list[dict[str, str]] = []
             strength = 0.5
-            if isinstance(technical, dict):
-                for source_key, label_name in (
-                    ("body_a", "body"),
-                    ("body_b", "other_body"),
-                    ("aspect", "aspect"),
-                    ("house", "house"),
-                ):
-                    value = technical.get(source_key)
-                    if isinstance(value, str | int) and str(value).strip():
-                        labels.append({"name": label_name, "value": str(value)[:64]})
-                if isinstance(technical.get("strength"), int | float):
-                    strength = float(technical["strength"])
+            if isinstance(technical, dict) and isinstance(technical.get("strength"), int | float):
+                strength = float(technical["strength"])
             source = str(receipt.get("source", "relationship"))
             kind = {
                 "synastry": "synastry_aspect",
@@ -261,7 +253,6 @@ def _safe_evidence(projection: dict[str, object]) -> list[dict[str, JsonValue]]:
                     "confidence": (
                         "high" if strength >= 0.75 else "medium" if strength >= 0.45 else "limited"
                     ),
-                    "labels": cast(JsonValue, labels[:8]),
                 }
             )
             if len(evidence) == 16:
