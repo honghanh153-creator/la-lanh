@@ -40,6 +40,22 @@ cần nằm trong mức chung đó.
 
 Tiêu chí thoát: release mới chạy trên production, có receipt; kill switch đã kiểm trên Compose thật.
 
+## Sprint Luna (23/10/2026): làm cơ chế viết lại tối ưu cho Tarot và Hợp gu
+
+Kết quả rà ngày 23/10: content engine dựng bản mask → Luna viết lại → gate → merge; gate từ chối thì giữ bản của engine.
+Tarot đã đủ code (mask chỉ mã nhãn đóng và nội dung đã duyệt, không gửi câu hỏi thô; merge có gate chặt), chỉ chưa có
+trong allowlist. Hợp gu có code nhưng payload còn nhãn kỹ thuật và gate merge yếu. Cả hai đang tạo job dù surface tắt.
+
+| Bước | Việc | Thuộc giai đoạn | Tiêu chí xong |
+|---|---|---|---|
+| S1 | Chỉ tạo job viết lại khi surface đó đang bật (Tarot, Hợp gu); không lưu job vô ích khi chỉ Note ngày bật | 1 (tối thiểu hoá dữ liệu) | Test: rollout chỉ `daily_home` ⇒ Tarot/Radar không enqueue; bật surface ⇒ enqueue |
+| S2 | Payload Hợp gu bỏ nhãn kỹ thuật (hành tinh, góc chiếu, nhà), chỉ gửi nghĩa đã dựng và mức độ | 1 | Test chứng minh payload Radar không chứa tên hành tinh/góc/nhà; prompt và gate vẫn chạy |
+| S3 | Gate merge Hợp gu ngang Tarot: gate nghĩa và chống thao túng, giữ giọng và ngữ cảnh, giữ nguyên câu theo cặp hành tinh (R03) | 2 | Test từ chối output đổi giọng/ngữ cảnh, xoá câu theo contact, hoặc trái nghĩa |
+| S4 | Bật Tarot Luna: thêm `tarot` vào allowlist kèm test payload không có dữ kiện lá số; pilot trong giới hạn người hiện có | 2 | Sau khi #45 merge; receipt pilot và kiểm canary |
+| S5 | Bật Hợp gu Luna | 2 | Sau khi R03 được duyệt và wiring xong, S2/S3 đã merge |
+
+Mỗi bước một PR nhỏ có regression đỏ → xanh; xong bước nào gửi prompt review cho Codex ngay.
+
 ## Giai đoạn 1: data privacy
 
 | ID | Việc | Ai | PR/artifact | Tiêu chí thoát |
