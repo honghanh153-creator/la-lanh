@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  acknowledgeSavedMutation,
   clearSavedNoteMutationQueue,
+  enqueueFailedSavedMutation,
   enqueueSavedNoteMutation,
   flushSavedNoteMutations,
   dropQueuedSaves,
@@ -183,6 +185,31 @@ describe("saved note mutation queue", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("keeps ordering facts minimal, for an hour, and removes them with the queue", async () => {
+    const started = Date.now() - 1_000;
+    await acknowledgeSavedMutation("epoch-a", "note-a", started);
+    const stored = JSON.parse(localStorage.getItem("la-lanh-saved-note-acks-v1") ?? "[]") as Record<string, unknown>[];
+    expect(stored).toHaveLength(1);
+    expect(Object.keys(stored[0] ?? {}).sort()).toEqual(["acked_start", "daily_note_id", "recorded_at", "session_epoch"]);
+    // An older failure is fenced; a call that started after the ACK still queues.
+    await enqueueFailedSavedMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-a", intent: "save", startedAt: started - 1 });
+    expect(readSavedNoteMutationQueue()).toHaveLength(0);
+    await enqueueFailedSavedMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-a", intent: "save", startedAt: started + 1 });
+    expect(readSavedNoteMutationQueue()).toHaveLength(1);
+    // Another session's call is not fenced by this owner's ACK.
+    await enqueueFailedSavedMutation({ sessionEpoch: "epoch-b", dailyNoteId: "note-a", intent: "unsave", startedAt: started - 1 });
+    expect(readSavedNoteMutationQueue()).toHaveLength(2);
+    // After an hour the fact is gone, so it cannot block anything any more.
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60 * 60 * 1000 + 1);
+    await enqueueFailedSavedMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-b", intent: "save", startedAt: started - 1 });
+    await acknowledgeSavedMutation("epoch-a", "note-c", Date.now());
+    const later = JSON.parse(localStorage.getItem("la-lanh-saved-note-acks-v1") ?? "[]") as Record<string, unknown>[];
+    expect(later.map((ack) => ack.daily_note_id)).toEqual(["note-c"]);
+    clearSavedNoteMutationQueue();
+    expect(localStorage.getItem("la-lanh-saved-note-acks-v1")).toBeNull();
+    expect(localStorage.getItem("la-lanh-saved-note-mutations-v1")).toBeNull();
   });
 });
 

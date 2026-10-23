@@ -15,6 +15,8 @@ export type SavedNoteMutationIntent = {
   revision_id: string | null;
   intent: "save" | "unsave";
   updated_at: string;
+  /** When the direct call that queued this intent started (see beginSavedNoteMutation). */
+  started_at?: number;
 };
 
 type EnqueueInput = {
@@ -22,24 +24,57 @@ type EnqueueInput = {
   dailyNoteId: string;
   revisionId?: string | null;
   intent: SavedNoteMutationIntent["intent"];
-  /** Ticket from beginSavedNoteMutation() for a direct call that failed. */
-  ticket?: number;
+  startedAt?: number;
 };
 
-// Ordering fence for direct calls (Codex #48): each save/unsave takes a ticket when it starts;
-// an ACK records the newest acknowledged ticket per note. A call that fails after a newer call
-// for the same note was acknowledged queues nothing, so it cannot undo the person's later choice.
-let lastTicket = 0;
-const acknowledgedTicket = new Map<string, number>();
-const fenceKey = (sessionEpoch: string, dailyNoteId: string) => `${sessionEpoch}\u0000${dailyNoteId}`;
+// Browser-wide ordering of direct calls (Codex #48). Every tab shares this localStorage, so the
+// ordering facts live here too, not in module memory: an acknowledged call leaves
+// {session_epoch, daily_note_id, acked_start} for an hour (a direct call times out after 15 s),
+// and both recording it and queueing a failed call happen under one Web Lock for all tabs.
+const ACK_KEY = "la-lanh-saved-note-acks-v1";
+const ACK_TTL_MS = HOUR_MS;
+const QUEUE_LOCK = "la-lanh-saved-note-queue-v1";
 
+type SavedAck = { session_epoch: string; daily_note_id: string; acked_start: number; recorded_at: number };
+
+/** A start time comparable across tabs of one origin. */
 export function beginSavedNoteMutation(): number {
-  lastTicket += 1;
-  return lastTicket;
+  return typeof performance !== "undefined" && performance.timeOrigin
+    ? performance.timeOrigin + performance.now()
+    : Date.now();
 }
 
-function supersededByAck(sessionEpoch: string, dailyNoteId: string, ticket: number): boolean {
-  return (acknowledgedTicket.get(fenceKey(sessionEpoch, dailyNoteId)) ?? 0) > ticket;
+function validAck(value: unknown): value is SavedAck {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return typeof item.session_epoch === "string"
+    && typeof item.daily_note_id === "string"
+    && typeof item.acked_start === "number"
+    && typeof item.recorded_at === "number";
+}
+
+function readAcks(now: number): SavedAck[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ACK_KEY) ?? "[]") as unknown;
+    return (Array.isArray(parsed) ? parsed : [])
+      .filter(validAck)
+      .filter((ack) => now - ack.recorded_at >= 0 && now - ack.recorded_at < ACK_TTL_MS);
+  } catch {
+    return [];
+  }
+}
+
+function writeAcks(acks: SavedAck[]): void {
+  if (acks.length === 0) localStorage.removeItem(ACK_KEY);
+  else localStorage.setItem(ACK_KEY, JSON.stringify(acks.slice(-MAX_INTENTS)));
+}
+
+function withQueueLock(work: () => void): Promise<void> {
+  if (typeof navigator !== "undefined" && typeof navigator.locks?.request === "function") {
+    return navigator.locks.request(QUEUE_LOCK, () => { work(); });
+  }
+  work();
+  return Promise.resolve();
 }
 
 function validIntent(value: unknown): value is SavedNoteMutationIntent {
@@ -51,6 +86,7 @@ function validIntent(value: unknown): value is SavedNoteMutationIntent {
     && (typeof item.revision_id === "string" || item.revision_id === null)
     && (item.intent === "save" || item.intent === "unsave")
     && typeof item.updated_at === "string"
+    && (item.started_at === undefined || typeof item.started_at === "number")
   );
 }
 
@@ -80,7 +116,6 @@ export function readSavedNoteMutationQueue(): SavedNoteMutationIntent[] {
 }
 
 export function enqueueSavedNoteMutation(input: EnqueueInput): void {
-  if (input.ticket !== undefined && supersededByAck(input.sessionEpoch, input.dailyNoteId, input.ticket)) return;
   const revisionId = input.revisionId ?? null;
   const next: SavedNoteMutationIntent = {
     session_epoch: input.sessionEpoch,
@@ -88,6 +123,7 @@ export function enqueueSavedNoteMutation(input: EnqueueInput): void {
     revision_id: revisionId,
     intent: input.intent,
     updated_at: new Date().toISOString(),
+    ...(input.startedAt === undefined ? {} : { started_at: input.startedAt }),
   };
   const kept = readSavedNoteMutationQueue().filter((item) => !(
     item.session_epoch === next.session_epoch
@@ -141,24 +177,45 @@ export function dropQueuedSaves(): void {
  * queued save must not re-save a note the person has since unsaved, and vice versa. Newer
  * intents and other sessions' intents stay.
  */
-export function retireSupersededIntents(
-  sessionEpoch: string,
-  dailyNoteId: string,
-  startedAt: number,
-  ticket?: number,
-): void {
-  if (ticket !== undefined) {
-    const key = fenceKey(sessionEpoch, dailyNoteId);
-    acknowledgedTicket.set(key, Math.max(acknowledgedTicket.get(key) ?? 0, ticket));
-  }
+export function retireSupersededIntents(sessionEpoch: string, dailyNoteId: string, startedAt: number): void {
   write(readSavedNoteMutationQueue().filter((item) => !(
     item.session_epoch === sessionEpoch
     && item.daily_note_id === dailyNoteId
-    && Date.parse(item.updated_at) <= startedAt
+    // A queued intent is as old as the call that queued it, not as its enqueue time.
+    && (item.started_at ?? Date.parse(item.updated_at)) <= startedAt
   )));
 }
 
+/**
+ * The server accepted a direct call that started at ``startedAt``. In every tab, older queued
+ * intents for that note retire, and an older call still in flight can no longer queue a retry.
+ */
+export function acknowledgeSavedMutation(sessionEpoch: string, dailyNoteId: string, startedAt: number): Promise<void> {
+  return withQueueLock(() => {
+    const now = Date.now();
+    const others = readAcks(now).filter((ack) => !(ack.session_epoch === sessionEpoch && ack.daily_note_id === dailyNoteId));
+    const previous = readAcks(now).find((ack) => ack.session_epoch === sessionEpoch && ack.daily_note_id === dailyNoteId);
+    writeAcks([...others, {
+      session_epoch: sessionEpoch,
+      daily_note_id: dailyNoteId,
+      acked_start: Math.max(previous?.acked_start ?? startedAt, startedAt),
+      recorded_at: now,
+    }]);
+    retireSupersededIntents(sessionEpoch, dailyNoteId, startedAt);
+  });
+}
+
+/** Queue a failed direct call for retry unless a call for the same note started later and was acknowledged. */
+export function enqueueFailedSavedMutation(input: EnqueueInput & { startedAt: number }): Promise<void> {
+  return withQueueLock(() => {
+    const superseded = readAcks(Date.now()).some((ack) => ack.session_epoch === input.sessionEpoch
+      && ack.daily_note_id === input.dailyNoteId
+      && ack.acked_start >= input.startedAt);
+    if (!superseded) enqueueSavedNoteMutation(input);
+  });
+}
+
 export function clearSavedNoteMutationQueue(): void {
-  acknowledgedTicket.clear();
+  localStorage.removeItem(ACK_KEY);
   localStorage.removeItem(KEY);
 }
