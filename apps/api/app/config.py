@@ -14,8 +14,11 @@ PINNED_OPENAI_MODEL: Literal["gpt-6-luna"] = "gpt-6-luna"
 
 # Surfaces whose provider payload carries no direct chart facts (M1): no positions or labels.
 # A coarse catalog choice may still reflect the chart (see the Luna runbook).
-# Extend only with proof.
-CHART_FREE_REWRITE_SURFACES = frozenset({"daily_home"})
+# Extend only with proof: Tarot reads no chart and sends only closed labels, catalog-traced card
+# meanings and a fixed focus sentence, never the question (tests/content_rewrite/
+# test_tarot_chart_free.py, Luna sprint S4). Allowing a surface does not turn it on: the
+# operator still sets its rollout mode, within the shared Luna budget and pilot roster.
+CHART_FREE_REWRITE_SURFACES = frozenset({"daily_home", "tarot"})
 
 
 class Settings(BaseSettings):
