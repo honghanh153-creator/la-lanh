@@ -23,7 +23,7 @@ from app.domains.content_rewrite.models import (
     RewriteRequestEnvelope,
     RewriteSurface,
 )
-from app.domains.content_rewrite.polarity import negates_source_claim
+from app.domains.content_rewrite.polarity import NON_CLAIM_TOKENS, negates_source_claim
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
 from app.domains.radar.tables import RadarRequestRow
@@ -90,6 +90,9 @@ _CONTEXT_TERMS = {
     "friend": ("bạn thân", "tình bạn"),
     "partner": ("người yêu", "nửa kia", "bạn đời"),
 }
+# Ordinary phrases that contain a context term but name no relationship ("người yêu cầu":
+# the person asking).
+_CONTEXT_FALSE_FRIENDS = ("người yêu cầu",)
 
 
 def radar_rewrite_owner(
@@ -356,15 +359,30 @@ def _has_meaning(candidate: str, source: str) -> bool:
     return len(_tokens(candidate) & _tokens(source)) >= 2
 
 
+def _claim_tokens(value: str) -> set[str]:
+    return _tokens(value) - NON_CLAIM_TOKENS
+
+
+def _accented(value: str) -> str:
+    # Accents stay: "bản thân" (oneself) must not read as "bạn thân" (close friend).
+    return unicodedata.normalize("NFC", value).casefold()
+
+
+def _has_phrase(text: str, phrase: str) -> bool:
+    return re.search(rf"(?<!\w){re.escape(_accented(phrase))}(?!\w)", text) is not None
+
+
 def _foreign_context_terms(context: str | None, texts: list[str], source: str) -> bool:
     """A term of another relationship context that the source itself never used."""
 
     if context is None:
         return False
-    folded_source = _fold(source)
-    folded = _fold(" ".join(texts))
+    accented_source = _accented(source)
+    accented = _accented(" ".join(texts))
+    for phrase in _CONTEXT_FALSE_FRIENDS:
+        accented = accented.replace(_accented(phrase), " ")
     return any(
-        _fold(term) in folded and _fold(term) not in folded_source
+        _has_phrase(accented, term) and not _has_phrase(accented_source, term)
         for other, terms in _CONTEXT_TERMS.items()
         if other != context
         for term in terms
@@ -450,7 +468,10 @@ def rewrite_radar_projection(
         (asymmetry, _section_meaning(cast(dict[str, object], perspective))),
         (prompt, _section_meaning(cast(dict[str, object], check))),
     )
-    if any(negates_source_claim(source, text, _tokens) for text, source in pairs):
+    if any(
+        negates_source_claim(source, text, _tokens, caution_tokens=_claim_tokens)
+        for text, source in pairs
+    ):
         return None
     all_source = " ".join(source for _, source in pairs)
     if _foreign_context_terms(context, texts, all_source):

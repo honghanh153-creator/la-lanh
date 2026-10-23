@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from datetime import UTC, datetime
 from typing import cast
 from uuid import uuid4
@@ -13,9 +14,12 @@ from app.domains.content_rewrite.authorization import (
     RewriteConsentScope,
     content_rewrite_receipt_id,
 )
+from app.domains.content_rewrite.polarity import negates_source_claim
 from app.domains.radar.reading import build_radar_reading
 from app.domains.radar.rewrite import (
     RADAR_REWRITE_RENDERER_VERSION,
+    _section_meaning,
+    _tokens,
     compile_radar_rewrite_request,
     rewrite_radar_projection,
 )
@@ -136,6 +140,31 @@ def test_radar_rewrite_rejects_a_negated_source_claim() -> None:
     assert _rewrite(baseline, output) is None
 
 
+def test_an_unrelated_caution_does_not_exempt_a_reversed_fit_claim() -> None:
+    """Codex #72 P2-1: the source caution "Hai nhịp có sẵn đường để đi cùng mà không cần cố quá
+    nhiều" shares only "cùng"/"không" with this reversal, which is not the same claim."""
+
+    baseline = _projection()
+    output = _valid_output(baseline)
+    output["strengths"] = [
+        "Không nên cho rằng điểm dễ đi cùng nhất nằm ở sức hút và cách thể hiện sự thích."
+    ]
+    assert _rewrite(baseline, output) is None
+
+
+def test_restating_a_source_caution_is_still_accepted() -> None:
+    baseline = _projection()
+    fit = _section_meaning(_section(baseline, "fit"))
+    control = (
+        "Hai nhịp có sẵn đường đi cùng sức hút và cách thể hiện sự thích, không cần cố quá nhiều."
+    )
+    # The control does reach the exemption: without the caution it would be refused.
+    assert negates_source_claim(fit, control, _tokens, caution_tokens=lambda _: set())
+    output = _valid_output(baseline)
+    output["strengths"] = [control]
+    assert _rewrite(baseline, output) is not None
+
+
 def test_radar_rewrite_rejects_mind_reading_and_judgement_labels() -> None:
     baseline = _projection()
     for text in (
@@ -154,6 +183,33 @@ def test_radar_rewrite_keeps_the_chosen_relationship_context() -> None:
     output["overview"] = f"Với người yêu của bạn, {baseline['summary']}"
     assert _rewrite(baseline, output, context="crush") is None
     assert _rewrite(baseline, _valid_output(baseline), context="crush") is not None
+
+
+def test_self_reference_is_not_a_friendship_context() -> None:
+    """Codex #72 P2-2: "bản thân" (oneself) is not "bạn thân" (close friend)."""
+
+    baseline = _projection()  # rendered for context "crush"
+    for extra in (
+        " Bạn có thể bắt đầu từ điều bản thân cần.",
+        " BẢN THÂN bạn cũng cần được nghe.",
+        " Nếu bạn là người yêu cầu gặp, hãy hỏi một câu rõ.",
+    ):
+        output = _valid_output(baseline)
+        output["prompt"] = f"{output['prompt']}{extra}"
+        assert _rewrite(baseline, output, context="crush") is not None, extra
+
+
+def test_another_relationship_context_is_still_refused() -> None:
+    baseline = _projection()
+    for extra in (
+        " Hỏi bạn thân của bạn trước khi nhắn.",
+        " Bạn Thân của bạn có thể góp ý.",
+        unicodedata.normalize("NFD", " Hỏi bạn thân trước."),
+        " Hãy nói với nửa kia điều bạn cần.",
+    ):
+        output = _valid_output(baseline)
+        output["prompt"] = f"{output['prompt']}{extra}"
+        assert _rewrite(baseline, output, context="crush") is None, extra
 
 
 def test_radar_rewrite_rejects_duplicate_items() -> None:
