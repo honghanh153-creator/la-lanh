@@ -52,8 +52,13 @@ Với mỗi kênh `c ∈ {resonance, coordination, friction}`:
    |---|---|---|---|---|---|---|---|
    | Giá trị hiển thị | 20 | 40 | 55 | 70 | 82 | 90 | 97 |
 
-   Dưới p5 và trên p99,5 nối tuyến tính tới 10 và 100. Đơn điệu tăng nên thứ tự giữa các cặp không đổi. Bảng neo là
-   đề xuất; owner chốt lại khi xem phân bố thật của tham chiếu.
+   Dưới p5: nối tuyến tính từ `(min tham chiếu, 10)` tới neo p5; trên p99,5: nối tuyến tính từ neo p99,5 tới
+   `(max tham chiếu, 100)`; ngoài `[min, max]` của tham chiếu thì kẹp ở 10 và 100. Đơn điệu không giảm, nên thứ tự
+   giữa các cặp không đổi. Bảng neo là đề xuất; owner chốt lại khi xem phân bố thật của tham chiếu.
+   - **Phân vị:** nội suy tuyến tính giữa các thống kê thứ tự (phương pháp "linear", Hyndman–Fan loại 7) trên
+     2.000 giá trị, tính một lần lúc sinh tham chiếu và lưu kèm version.
+   - **Ties:** cùng `raw` ⇒ cùng giá trị; nếu hai neo liền nhau có cùng `raw` (phân bố có bậc), đoạn đó lấy giá trị
+     của neo cao hơn để hàm vẫn là hàm, đơn điệu và tái lập.
 3. Lực cấn dùng cùng cơ chế với tham chiếu của chính nó. Số cao nghĩa là "dễ cấn hơn", không phải "tệ hơn"; copy
    giữ nguyên tinh thần hiện tại.
 
@@ -61,11 +66,17 @@ Với mỗi kênh `c ∈ {resonance, coordination, friction}`:
 
 - Tâm: `m = cal_c(raw_c)`.
 - Nửa độ rộng: `w = 4 + 10/√n_c + 25·spread_c + (6 nếu u)`, kẹp `[5, 20]`.
-- Khoảng hiển thị: `[floor5(m − w), ceil5(m + w)]` rồi kẹp vào `[0, 100]` (làm tròn ra bội số 5 **ra ngoài**, để khoảng
-  không hẹp hơn bằng chứng).
+- Giá trị chưa làm tròn: `low_raw = max(0, m − w)`, `high_raw = min(100, m + w)`. Implementation **giữ hai giá trị này**
+  (metadata kiểm thử) để test kiểm được biên thật, không bị phép kẹp che đi.
+- Khoảng hiển thị: số nguyên làm tròn **ra ngoài**: `low = floor(low_raw)`, `high = ceil(high_raw)`, với một quy tắc
+  biên: **`high = 100` chỉ khi `high_raw > 99`**; nếu `high_raw ≤ 99` thì `high = min(ceil(high_raw), 99)`. Tương tự
+  `low = 0` chỉ khi `low_raw < 1`. Như vậy khoảng không bao giờ hẹp hơn bằng chứng quá 1 đơn vị và không chạm 0/100
+  chỉ vì làm tròn. (Bản trước làm tròn bội số 5 có thể đẩy 95,08 lên 100, trái AC3; đã bỏ.)
 - `n_c < 2` hoặc cặp low-signal (`_motifs` rỗng): **không có khoảng**, giữ câu "Chưa đủ tín hiệu riêng…" hiện có.
-- Ví dụ minh hoạ (không phải dữ liệu thật): `raw` ở p92, `n = 5`, `spread = 0,1`, có giờ → `m ≈ 84`, `w ≈ 11,0`
-  → hiện `70–95`.
+- Ví dụ minh hoạ (không phải dữ liệu thật): `raw` ở p92, `n = 5`, `spread = 0,1`, có giờ → `m ≈ 84`, `w ≈ 10,97`
+  → `low_raw ≈ 73,03`, `high_raw ≈ 94,97` → hiện `73–95`.
+- Phản ví dụ của review (Codex #64): `m = 82`, `n = 6`, `spread = 0,2`, có giờ → `w = 13,0825` → `high_raw = 95,0825`
+  → hiện `high = 96`, không phải 100.
 
 ## 6. Hợp đồng dữ liệu và lifecycle (làm sau khi duyệt)
 
@@ -77,10 +88,12 @@ Với mỗi kênh `c ∈ {resonance, coordination, friction}`:
 
 ## 7. Tiêu chí nghiệm thu (cho PR triển khai)
 
-1. Đơn điệu: `raw` tăng ⇒ tâm không giảm (test thuộc tính trên lưới `raw`).
+1. Đơn điệu: với `n_c`, `spread_c`, `u` giữ cố định, `raw` tăng ⇒ tâm, `low_raw` và `high_raw` không giảm (test thuộc
+   tính trên lưới `raw`). Không khẳng định đơn điệu của cả khoảng khi `spread` hoặc `n` cũng đổi.
 2. Tái lập: cùng bundle ⇒ cùng khoảng; phân vị tham chiếu sinh lại từ seed khớp bản đã lưu.
-3. Trên tham chiếu: cặp ở top 2,5% có `high ≥ 90`; trung vị nằm quanh 50–60; không cặp nào có khoảng chạm 100 chỉ
-   vì làm tròn.
+3. Trên tham chiếu: cặp ở top 2,5% có `high ≥ 90`; trung vị nằm quanh 50–60. `high = 100` khi và chỉ khi
+   `high_raw > 99`, `low = 0` khi và chỉ khi `low_raw < 1` (test giữ giá trị chưa làm tròn, gồm phản ví dụ
+   `m=82, n=6, spread=0,2, u=false` ⇒ `high = 96`).
 4. Độ rộng: không rõ giờ ⇒ khoảng không hẹp hơn cùng cặp có giờ; `n_c` giảm ⇒ khoảng không hẹp hơn.
 5. Low-signal và `n_c < 2` ⇒ `range = null` và câu trung thực hiện có.
 6. Không có trường nào cộng ba chỉ báo; copy không có "%", "điểm hợp", "xác suất".
