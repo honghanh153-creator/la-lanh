@@ -112,7 +112,7 @@ def canonical_surface_registry() -> SurfaceRegistry:
             surface=RewriteSurface.RADAR,
             fallback_owner="radar",
             schema_version="radar-rewrite/v1",
-            gate_version="relationship-rewrite-gates/v1",
+            gate_version="relationship-rewrite-gates/v2",
             fields=_fields("overview", "strengths", "frictions", "asymmetry", "prompt"),
             word_budget=900,
             forbidden_claims=("success_probability", "soulmate", "manipulation"),

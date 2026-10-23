@@ -23,13 +23,14 @@ from app.domains.content_rewrite.models import (
     RewriteRequestEnvelope,
     RewriteSurface,
 )
+from app.domains.content_rewrite.polarity import NON_CLAIM_TOKENS, negates_source_claim
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
 from app.domains.radar.tables import RadarRequestRow
 from app.infrastructure.crypto import EnvelopeCipher
 
 RADAR_REWRITE_RENDERER_VERSION = "gpt-6-luna-radar-v1"
-RADAR_REWRITE_GATE_VERSION = "relationship-rewrite-gates/v1"
+RADAR_REWRITE_GATE_VERSION = "relationship-rewrite-gates/v2"
 
 RadarPerspective = Literal["owner", "recipient"]
 
@@ -68,7 +69,30 @@ _FORBIDDEN = (
     "thử lòng",
     "theo dõi họ",
     "kiểm tra điện thoại",
+    # Judgement labels (US-22 AC04) and certainty about the other person (no mind reading).
+    "red flag",
+    "cờ đỏ",
+    "toxic",
+    "độc hại",
+    "sinh ra để dành cho nhau",
+    "người kia chắc chắn",
+    "họ chắc chắn",
+    "người kia đang nghĩ",
+    "họ đang nghĩ",
+    "người kia thích bạn",
+    "họ thích bạn",
+    "người kia yêu bạn",
 )
+# Relationship words that belong to one context; a rewrite must not move the reading into
+# another relationship than the one chosen (S3). Neutral words like "người kia" are allowed.
+_CONTEXT_TERMS = {
+    "crush": ("crush",),
+    "friend": ("bạn thân", "tình bạn"),
+    "partner": ("người yêu", "nửa kia", "bạn đời"),
+}
+# Ordinary phrases that contain a context term but name no relationship ("người yêu cầu":
+# the person asking).
+_CONTEXT_FALSE_FRIENDS = ("người yêu cầu",)
 
 
 def radar_rewrite_owner(
@@ -335,9 +359,41 @@ def _has_meaning(candidate: str, source: str) -> bool:
     return len(_tokens(candidate) & _tokens(source)) >= 2
 
 
+def _claim_tokens(value: str) -> set[str]:
+    return _tokens(value) - NON_CLAIM_TOKENS
+
+
+def _accented(value: str) -> str:
+    # Accents stay: "bản thân" (oneself) must not read as "bạn thân" (close friend).
+    return unicodedata.normalize("NFC", value).casefold()
+
+
+def _has_phrase(text: str, phrase: str) -> bool:
+    return re.search(rf"(?<!\w){re.escape(_accented(phrase))}(?!\w)", text) is not None
+
+
+def _foreign_context_terms(context: str | None, texts: list[str], source: str) -> bool:
+    """A term of another relationship context that the source itself never used."""
+
+    if context is None:
+        return False
+    accented_source = _accented(source)
+    accented = _accented(" ".join(texts))
+    for phrase in _CONTEXT_FALSE_FRIENDS:
+        accented = accented.replace(_accented(phrase), " ")
+    return any(
+        _has_phrase(accented, term) and not _has_phrase(accented_source, term)
+        for other, terms in _CONTEXT_TERMS.items()
+        if other != context
+        for term in terms
+    )
+
+
 def rewrite_radar_projection(
     baseline: dict[str, object],
     output: dict[str, JsonValue],
+    *,
+    context: str | None = None,
 ) -> dict[str, object] | None:
     if set(output) != {"overview", "strengths", "frictions", "asymmetry", "prompt"}:
         return None
@@ -397,6 +453,28 @@ def rewrite_radar_projection(
     if not _has_meaning(asymmetry, _section_meaning(cast(dict[str, object], perspective))):
         return None
     if not _has_meaning(prompt, _section_meaning(cast(dict[str, object], check))):
+        return None
+    # Parity with the Tarot merge (S3): no repeated item, no negated source claim, and no move
+    # into another relationship context.
+    fingerprints = [
+        re.sub(r"\W+", " ", _fold(item)).strip() for item in strength_texts + friction_texts
+    ]
+    if len(set(fingerprints)) != len(fingerprints):
+        return None
+    pairs = (
+        (overview, f"{headline} {summary}"),
+        *((item, _section_meaning(cast(dict[str, object], fit))) for item in strength_texts),
+        *((item, _section_meaning(cast(dict[str, object], friction))) for item in friction_texts),
+        (asymmetry, _section_meaning(cast(dict[str, object], perspective))),
+        (prompt, _section_meaning(cast(dict[str, object], check))),
+    )
+    if any(
+        negates_source_claim(source, text, _tokens, caution_tokens=_claim_tokens)
+        for text, source in pairs
+    ):
+        return None
+    all_source = " ".join(source for _, source in pairs)
+    if _foreign_context_terms(context, texts, all_source):
         return None
 
     candidate = json.loads(json.dumps(baseline, ensure_ascii=False))
@@ -481,7 +559,7 @@ class RadarRewriteProjector(RewriteProjector):
                     accepted=False,
                     failure_code="stale_domain_version",
                 )
-            candidate = rewrite_radar_projection(baseline, output)
+            candidate = rewrite_radar_projection(baseline, output, context=row.context)
             if candidate is None:
                 return RewriteProjectionDecision(accepted=False, failure_code="radar_gate_rejected")
             if publish:

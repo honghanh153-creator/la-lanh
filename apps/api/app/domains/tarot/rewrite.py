@@ -20,6 +20,7 @@ from app.domains.content_rewrite.models import (
     RewriteRequestEnvelope,
     RewriteSurface,
 )
+from app.domains.content_rewrite.polarity import negates_source_claim
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
 from app.domains.tarot import provenance
@@ -273,27 +274,8 @@ def _meaning_tokens(value: str) -> set[str]:
     }
 
 
-_NEGATION = re.compile(r"\b(?:khong can|khong nen|khong muon|chang can|dung|bo qua)\b")
-
-
 def _negates_source_claim(source: str, rewritten: str) -> bool:
-    """Conservative polarity tripwire, not a semantic-entailment proof.
-
-    Reject a new negated clause sharing anchors with a source assertion. Preserve
-    existing cautionary negations. Uncertain paraphrases fall back to the local reading.
-    """
-    source_clauses = [clause for clause in re.split(r"[.!?;:]", source) if clause.strip()]
-    positive = [_meaning_tokens(c) for c in source_clauses if not _NEGATION.search(_fold(c))]
-    negative = [_meaning_tokens(c) for c in source_clauses if _NEGATION.search(_fold(c))]
-    for clause in re.split(r"[.!?;:]", rewritten):
-        if not _NEGATION.search(_fold(clause)):
-            continue
-        tokens = _meaning_tokens(clause)
-        if any(len(tokens & anchors) >= 2 for anchors in positive) and not any(
-            len(tokens & anchors) >= 2 for anchors in negative
-        ):
-            return True
-    return False
+    return negates_source_claim(source, rewritten, _meaning_tokens)
 
 
 def rewrite_tarot_reading(
