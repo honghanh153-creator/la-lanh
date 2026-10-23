@@ -756,7 +756,8 @@ def radar_report(fixtures: dict[str, Any]) -> dict[str, Any]:
         "R3_cross_pair_overlap": round(statistics.fmean(overlap_rates), 4),
         "low_signal_pairs": low_signal,
         "unknown_time_method": (
-            "partner at local noon, Moon/houses/angles removed (current BirthService behaviour)"
+            "partner at local noon, Moon/houses/angles removed (BirthService); contacts and "
+            "composite aspects kept only when certain on the date domain (event-spec/v1 §9)"
         ),
         "versions": {
             k: any_reading["metadata"].get(k)

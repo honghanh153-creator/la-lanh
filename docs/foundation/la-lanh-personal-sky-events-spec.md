@@ -117,3 +117,9 @@ Ephemeris (`swe_calc_ut`, vị trí và tốc độ), https://www.astro.com/swis
 - Contact chỉ dùng khi chắc trong orb (`orb_max ≤ θ_synastry`). Synastry không có pha, chương hay
   `observed_at`.
 - Không dùng Mặt Trăng, cung mọc hay nhà của người không rõ giờ.
+- **Cài đặt (R02, 22/10/2026):** `NatalChartEngine.longitude_domains` + `orb_bounds` (`astro/engine.py`,
+  `astro/aspects.py`). Radar luôn có nơi sinh, và chart không rõ giờ được tính lúc 12:00 giờ địa phương, nên
+  miền là trưa ± 14 giờ (±12 giờ của ngày dân sự cộng tối đa 2 giờ đổi múi trong ngày), hẹp hơn khoảng 50 giờ
+  của §1 cho trường hợp không có nơi sinh nhưng luôn chứa thời điểm thật. Orb và strength báo ra là giá trị
+  xấu nhất trên miền. Composite midpoint dùng cùng miền: bỏ điểm khi trung điểm cung ngắn có thể lật 180°, và
+  bỏ góc chiếu nào không chắc trong orb (cận độc lập, nên chỉ bỏ bớt, không thêm). Chart có giờ không đổi.

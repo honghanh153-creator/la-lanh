@@ -75,7 +75,8 @@ Therefore:
    Caddy no longer served `staging.la-lanh…` (TLS internal error); production was unaffected. Fixed by
    copying the file from the previous release directory and restarting the Caddy container (a few seconds
    of production restart, same image and config); both smokes pass afterwards. The runbook now says to copy
-   it before `deploy.sh`; automating it is a follow-up.
+   it before `deploy.sh`; automating it is a follow-up. The same step had already been written down in PR #17 (hotfix receipt
+   `836222282dfc`, approved but not yet merged at the time), which is why the release checklist missed it.
 2. A typo in the full SHA while uploading the source produced an empty archive on the first try; the
    upload was redone from the `collab/integration` ref. No effect on the release.
 

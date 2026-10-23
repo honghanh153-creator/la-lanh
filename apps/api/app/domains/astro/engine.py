@@ -12,6 +12,7 @@ from app.domains.astro.aspects import (
     TRANSIT_ORB_VERSION,
     angular_distance,
     calculate_aspects,
+    orb_bounds,
     relationship_chart_orb_limit,
     synastry_orb_limit,
     transit_orb_limit,
@@ -71,6 +72,14 @@ BODY_IDS: tuple[tuple[BodyName, int], ...] = (
     (BodyName.CHIRON, 15),
 )
 SIGNS = tuple(ZodiacSign)
+# A chart without a birth time (TimePrecision.UNKNOWN) is calculated at local noon of the birth
+# date at the birthplace. Every instant of that civil date there lies within ±12 h of local noon,
+# plus at most 2 h for a same-day UTC-offset change, so ±14 h bounds the birth instant. This is
+# event-spec/v1 §1 with a known place (narrower than the 50 h place-free interval, never wider
+# than the truth). Longitudes are bounded over it per §2: both ends plus every station.
+DATE_DOMAIN_HALF_WIDTH_DAYS = 14.0 / 24.0
+_DATE_DOMAIN_STEP_DAYS = 6.0 / 24.0
+_STATION_TOLERANCE_DAYS = 1.0 / 1440.0
 HOUSE_CODES = {
     HouseSystem.PLACIDUS: "P",
     HouseSystem.WHOLE_SIGN: "W",
@@ -403,14 +412,82 @@ class NatalChartEngine:
                 self._transit_cache.popitem(last=False)
         return calculated
 
+    def longitude_domains(self, chart: NatalChart) -> dict[BodyName, tuple[float, float]]:
+        """``(low, high)`` longitude per body; a point unless the birth time is unknown.
+
+        For an unknown time each body is bounded over the birth-date interval: both ends and
+        every station inside it (speed sign change, located by bisection to one minute), with
+        ``high`` unwrapped past 360° when the domain crosses 0° (event-spec/v1 §2).
+        """
+
+        if chart.time_precision is not TimePrecision.UNKNOWN:
+            return {body.body: (body.longitude, body.longitude) for body in chart.bodies}
+        ids = dict(BODY_IDS) | {BodyName.MEAN_NODE: 10}
+        sidereal = chart.config.tradition is Tradition.JYOTISH
+        mode = AYANAMSA_IDS[chart.config.ayanamsa] if chart.config.ayanamsa else None
+        start = chart.julian_day_ut - DATE_DOMAIN_HALF_WIDTH_DAYS
+        end = chart.julian_day_ut + DATE_DOMAIN_HALF_WIDTH_DAYS
+        domains: dict[BodyName, tuple[float, float]] = {}
+        with self._native.calculation_scope(mode):
+            for body in chart.bodies:
+                if body.body is BodyName.SOUTH_NODE:
+                    continue
+                domains[body.body] = self._longitude_domain(
+                    body.body, ids[body.body], start, end, sidereal=sidereal
+                )
+        if BodyName.SOUTH_NODE in {body.body for body in chart.bodies}:
+            node = domains[
+                BodyName.MEAN_NODE if BodyName.MEAN_NODE in domains else BodyName.TRUE_NODE
+            ]
+            domains[BodyName.SOUTH_NODE] = (node[0] + 180.0, node[1] + 180.0)
+        return domains
+
+    def _longitude_domain(
+        self, body: BodyName, body_id: int, start: float, end: float, *, sidereal: bool
+    ) -> tuple[float, float]:
+        def at(julian_day: float) -> BodyPosition:
+            return self._body_position(julian_day, body, body_id, sidereal=sidereal)
+
+        first = at(start)
+        samples = [first, at(end)]
+        left, previous = start, first
+        while left < end:
+            right = min(left + _DATE_DOMAIN_STEP_DAYS, end)
+            current = at(right)
+            if (previous.longitude_speed > 0) != (current.longitude_speed > 0):
+                low, high = left, right
+                while high - low > _STATION_TOLERANCE_DAYS:
+                    middle = (low + high) / 2
+                    if (at(middle).longitude_speed > 0) == (previous.longitude_speed > 0):
+                        low = middle
+                    else:
+                        high = middle
+                samples += [at(low), at(high)]
+            left, previous = right, current
+        base = first.longitude
+        unwrapped = [base + ((item.longitude - base + 180.0) % 360.0 - 180.0) for item in samples]
+        return min(unwrapped), max(unwrapped)
+
     def calculate_synastry(self, chart_a: NatalChart, chart_b: NatalChart) -> SynastryFacts:
+        """Cross-chart contacts. With an unknown birth time a contact is kept only when it is
+        certainly within the synastry orb on the product of both date domains (``orb_max``),
+        and its orb and strength are the worst case over them (US-22 AC07, event-spec §9)."""
+
         _validate_relationship_pair(chart_a, chart_b)
+        dated = TimePrecision.UNKNOWN in {chart_a.time_precision, chart_b.time_precision}
+        domains_a = self.longitude_domains(chart_a) if dated else {}
+        domains_b = self.longitude_domains(chart_b) if dated else {}
         contacts: list[SynastryContact] = []
         for body_a in chart_a.bodies:
             for body_b in chart_b.bodies:
                 separation = angular_distance(body_a.longitude, body_b.longitude)
                 for kind, exact_angle, _ in ASPECTS:
-                    orb = abs(separation - exact_angle)
+                    if dated:
+                        orb = orb_bounds(
+                            domains_a[body_a.body], domains_b[body_b.body], exact_angle
+                        )[1]
+                    else:
+                        orb = abs(separation - exact_angle)
                     maximum_orb = synastry_orb_limit(body_a.body, body_b.body, kind)
                     if orb > maximum_orb:
                         continue
@@ -439,12 +516,21 @@ class NatalChartEngine:
         self, chart_a: NatalChart, chart_b: NatalChart
     ) -> CompositeChart:
         _validate_relationship_pair(chart_a, chart_b)
+        dated = TimePrecision.UNKNOWN in {chart_a.time_precision, chart_b.time_precision}
+        domains_a = self.longitude_domains(chart_a) if dated else {}
+        domains_b = self.longitude_domains(chart_b) if dated else {}
+        point_domains: dict[BodyName, tuple[float, float]] = {}
         by_body_b = {position.body: position for position in chart_b.bodies}
         points: list[CompositePoint] = []
         for position_a in chart_a.bodies:
             position_b = by_body_b.get(position_a.body)
             if position_b is None:
                 continue
+            if dated:
+                domain = _midpoint_domain(domains_a[position_a.body], domains_b[position_b.body])
+                if domain is None:
+                    continue  # the shorter-arc midpoint flips inside the domain: no point
+                point_domains[position_a.body] = domain
             longitude = midpoint_longitude(position_a.longitude, position_b.longitude)
             points.append(
                 CompositePoint(
@@ -459,7 +545,14 @@ class NatalChartEngine:
             for point_b in points[index + 1 :]:
                 separation = angular_distance(point_a.longitude, point_b.longitude)
                 for kind, exact_angle, _ in ASPECTS:
-                    orb = abs(separation - exact_angle)
+                    if dated:
+                        # Independent bounds over-cover (both points move with B's one birth
+                        # instant), so this only ever drops aspects, never adds one.
+                        orb = orb_bounds(
+                            point_domains[point_a.body], point_domains[point_b.body], exact_angle
+                        )[1]
+                    else:
+                        orb = abs(separation - exact_angle)
                     maximum_orb = relationship_chart_orb_limit(kind)
                     if orb > maximum_orb:
                         continue
@@ -617,6 +710,23 @@ def _transit_phase(
     future_separation = angular_distance(future_transit_longitude, natal_longitude)
     future_orb = abs(future_separation - exact_angle)
     return TransitPhase.APPROACHING if future_orb < orb else TransitPhase.SEPARATING
+
+
+def _midpoint_domain(
+    domain_a: tuple[float, float], domain_b: tuple[float, float]
+) -> tuple[float, float] | None:
+    """Domain of the shorter-arc midpoint, or ``None`` when the arc flips inside the domains
+    (the two longitudes can be exactly opposite, where the midpoint jumps by 180°)."""
+
+    low = domain_b[0] - domain_a[1]
+    high = domain_b[1] - domain_a[0]
+    shift = ((low + 180.0) % 360.0 - 180.0) - low
+    if high + shift >= 180.0:
+        return None
+    return (
+        (domain_a[0] + domain_b[0] + shift) / 2.0,
+        (domain_a[1] + domain_b[1] + shift) / 2.0,
+    )
 
 
 def midpoint_longitude(first: float, second: float) -> float:

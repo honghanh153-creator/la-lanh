@@ -119,10 +119,12 @@ class PostgresResonanceRepository:
                     .order_by(ResonanceFeedbackRow.created_at.desc())
                 )
             )
+            # Without consent nothing is reported back, even a row that has not been purged yet.
+            visible = rows if consented else ()
             return ResonanceStatus(
                 consented=consented,
-                feedback_count=len(rows),
-                last_choice=self._record(rows[0]).choice if rows else None,
+                feedback_count=len(visible),
+                last_choice=self._record(visible[0]).choice if visible else None,
             )
 
     async def clear_with_consent(
@@ -133,6 +135,9 @@ class PostgresResonanceRepository:
         now: datetime,
     ) -> None:
         async with self._sessions() as session, session.begin():
+            # Same lock as a feedback write: a write already in flight finishes first and is
+            # deleted here, so a successful withdrawal leaves no feedback behind (P03 RC-14).
+            await self._lock_owner(session, guest_id)
             await session.execute(
                 delete(ResonanceFeedbackRow).where(ResonanceFeedbackRow.guest_id == guest_id)
             )
@@ -165,12 +170,19 @@ class PostgresResonanceRepository:
             )
             return int(cast(CursorResult[Any], result).rowcount or 0)
 
-    async def _require_owned_target(self, session: AsyncSession, record: ResonanceRecord) -> None:
-        owner_id = await session.scalar(
-            select(GuestSessionRow.id)
-            .where(GuestSessionRow.id == record.guest_id)
-            .with_for_update()
+    @staticmethod
+    async def _lock_owner(session: AsyncSession, guest_id: UUID) -> UUID | None:
+        """The guest row lock that orders feedback writes against clear/withdrawal."""
+
+        return cast(
+            UUID | None,
+            await session.scalar(
+                select(GuestSessionRow.id).where(GuestSessionRow.id == guest_id).with_for_update()
+            ),
         )
+
+    async def _require_owned_target(self, session: AsyncSession, record: ResonanceRecord) -> None:
+        owner_id = await self._lock_owner(session, record.guest_id)
         if owner_id is None:
             raise ResonanceTargetNotFound
         note_id = await session.scalar(

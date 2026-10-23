@@ -64,10 +64,10 @@ write flows, Home UI, overflow at 320/360/390 px, pause, birth-time reminder pri
 companion direct→roast, Tarot 3, Radar invite revoke + sheet delete, privacy/consent copy, offline
 CSP, headers/cookies, CSRF (403), and byte-identical assets. It found:
 
-- **F1 (P2, live):** Radar private history deleted on a single tap (`RadarPrivateStartPage.tsx:213`),
-  and the owner result page used tap-twice inline. Fixed in the follow-up PR with the shared
-  owner-epoch `RadarEraseSheet`. **Not deployed.**
-- **F2 (P2, live):** the 1.32:1 destructive button above. Fixed in PR #15, approved, **not deployed**.
+- **F1 (P2):** Radar private history deleted on a single tap (`RadarPrivateStartPage.tsx:213`),
+  and the owner result page used tap-twice inline. Fixed in #16 with the shared owner-epoch
+  `RadarEraseSheet`. **Deployed in `836222282dfc`** (see `receipt-836222282dfc.md`).
+- **F2 (P2):** the 1.32:1 destructive button above. Fixed in #15. **Deployed in `836222282dfc`**.
 - **F3 (P3):** the string claim and contrast figures above, corrected here.
 
 ### Runtime evidence added afterwards (live b474caf, headless Chromium via Playwright, synthetic guests)
