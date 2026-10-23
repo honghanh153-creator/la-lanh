@@ -13,14 +13,17 @@ Owner quyết định 23/10/2026:
 Cách phối hợp (không đổi): Claude làm, Codex review theo đúng SHA. Mỗi bước là một PR nhỏ có regression đỏ trên base →
 xanh trên head. Chỉ merge khi có `Review verdict: APPROVE @ <full SHA>` khớp head. Merge vào `main`, deploy, chạm server/DB
 thật, đổi IAM/secret/budget hay bật provider chỉ làm khi owner ra lệnh, theo runbook. Operator làm các bước cần quyền máy
-chủ; counsel trả lời câu hỏi pháp lý. Ngân sách Luna giữ trên server, không ghi vào git.
+chủ; counsel trả lời câu hỏi pháp lý. **Ngân sách Luna đã được owner duyệt: một mức tổng chung cho mọi surface Luna**
+(Note ngày, Tarot, Hợp gu…), con số giữ trên server, không ghi vào git. Mở thêm surface không cần duyệt chi phí lại; chỉ
+cần nằm trong mức chung đó.
 
 ## Vì sao Tarot Luna chưa làm tới giờ
 
 - Code đã có: `apps/api/app/domains/tarot/rewrite.py`, `meaning_brief.py`, chain `tarot-renderer → tarot-meaning-brief-v1
   → gpt-6-luna-tarot-v3 → tarot-rewrite-gates/v3` (runbook Luna). Nhưng `CHART_FREE_REWRITE_SURFACES = {"daily_home"}`
   (`apps/api/app/config.py:18`) chặn mọi surface khác, nên Tarot không bao giờ được gửi đi.
-- Quyết định owner 18/10 (C6/T06): thêm cảnh và AI cho Tarot cần duyệt chi phí riêng. Audit v2 giữ Tarot Luna tắt sau
+- Quyết định owner 18/10 (C6/T06) để AI cho Tarot chờ duyệt chi phí; sau đó owner đã chốt một ngân sách tổng chung cho mọi
+  surface Luna, nên phần chi phí đã xong. Audit v2 vẫn giữ Tarot Luna tắt sau
   các cổng: brief bám đúng câu được hỏi (T01), prompt/provenance/canary mới, chiến lược cho stance, và đánh giá với
   người đọc thật.
 - Các cổng privacy chung chưa xong: roster pilot (RC-05, #61) chưa deploy, câu hỏi Tarot là văn bản tự do
@@ -63,7 +66,7 @@ Bắt đầu bằng việc owner duyệt copy (làm song song được với gia
 | T02/T03 | Owner duyệt workbook #67 → wiring cảnh/bước theo hành động, bump version, giữ bài đã lưu, fallback approval có evidence | Owner duyệt, Claude làm | T01 |
 | T04 | Kiểm screen reader và tên dài trên thiết bị; owner chốt thứ tự Anh · Việt | Thiết bị, owner | #63 |
 | T05 | Rubric hiểu nghĩa/đáp đúng câu hỏi + gate đo trên bank | Claude, owner duyệt rubric | T02/T03 |
-| **T06 Tarot Luna** | (a) brief v2 chỉ gửi mã nhãn đóng của hành động/chủ đề/vai và nội dung đã duyệt, **không bao giờ gửi câu hỏi thô**; (b) prompt `gpt-6-luna-tarot-v4` + gate + canary + provenance; (c) corpus tổng hợp + đánh giá người đọc; (d) owner duyệt chi phí (ghi trên server), consent/data map/store disclosure; (e) thêm `tarot` vào allowlist bằng PR riêng, pilot ≤ N phiên opt-in | Claude (a–c, e), owner (d), Codex review từng bước | Giai đoạn 1 xong (RC-05 đã deploy), T01–T05 |
+| **T06 Tarot Luna** | (a) brief v2 chỉ gửi mã nhãn đóng của hành động/chủ đề/vai và nội dung đã duyệt, **không bao giờ gửi câu hỏi thô**; (b) prompt `gpt-6-luna-tarot-v4` + gate + canary + provenance; (c) corpus tổng hợp + đánh giá người đọc; (d) consent/data map/store disclosure, dùng chung ngân sách Luna đã duyệt (cap trên server); (e) thêm `tarot` vào allowlist bằng PR riêng, pilot ≤ N phiên opt-in | Claude (a–e), owner duyệt copy consent, Codex review từng bước | Giai đoạn 1 xong (RC-05 đã deploy), T01–T05 |
 | R03 | Owner duyệt workbook #65 (chọn `deep_dive` hay `roast`) → catalog `radar/contact_copy.py` + wiring thay câu chung, variant theo seed để đạt AC02/AC03; bỏ strict xfail khi gate #47 xanh thật | Owner, Claude | #47 |
 | R04 | Owner quyết spec #64 → API/UI khoảng điểm, adapter cho bài cũ | Owner, Claude | R03 |
 | R05 | Freeze variant lúc tạo + grammar manifest trên output thật | Claude | R03 |
@@ -86,5 +89,5 @@ owner duyệt; Tarot Luna pilot có số liệu đánh giá, không chỉ test m
 
 - Giai đoạn 0: cho phép merge và deploy khi Codex APPROVE.
 - Giai đoạn 1: chuyển câu hỏi cho counsel. DPA ký khi thuận tiện, không chặn deploy.
-- Giai đoạn 2: duyệt #67, #65 (chọn giọng), #64, copy #62/#63; mức chi phí cho Tarot Luna (gửi riêng, không ghi git).
+- Giai đoạn 2: duyệt #67, #65 (chọn giọng), #64, copy #62/#63. Chi phí Luna đã chốt (ngân sách chung), không cần quyết lại.
 - Giai đoạn 3: chọn hướng game.
