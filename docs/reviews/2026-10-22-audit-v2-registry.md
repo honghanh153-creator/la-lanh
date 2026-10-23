@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 5, after the Codex P2 verdicts of 23/10/2026, round 4)
+# Audit v2 registry (revision 6, after the Codex verdicts of 23/10/2026, round 5)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -23,7 +23,7 @@ GitHub-hosted runner; **nothing on staging or production**), `OWNER_DECISION`, `
 | P01 | Raw Tarot question out of Web Storage | MERGED_INTEGRATION | #41 `1fb1c83c8b59a7f64d7d9fd0cf78e5d4aa6e1cc8` · APPROVE @ same · merged into integration (`17df2cf`) | release to main (owner order) | staging check after merge |
 | P02 | Deferred matching: no new collection | MERGED_INTEGRATION | #42 `0d49c6233ad899b7b45b85da7ce441e6e0f5ac90` · APPROVE @ same · merged into integration (`b315a5c`) | release to main (owner order) | staging flag stays false |
 | P03 | Triage of 75+11 retained findings | PARTIAL | #59 `8c595f3c170ab0a1e37f1fbc5f80dca53ffedc76` · APPROVE @ same · merged into integration (`449a8a5`) (RC-05 side note corrected: an off surface never stores a job). Low fixes #55/#56/#57/#58 APPROVE; RC-05 #61 `da714a3df99eb54f09227a14d8116d5649200c71` · [APPROVE](https://github.com/honghanh153-creator/la-lanh/pull/61#issuecomment-6346172828) · merged into integration (`522d350`) | operator | RC-23–27 effective native ephemeris path evidence (NEEDS_EVIDENCE) |
-| P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `3e120f5406af12f40b74d89ce1156a4c8cdc525d` · RC @ b417b76 (the ordering fence lived in one module's memory, so another tab re-sent an older call) → browser-wide ACK markers and a shared Web Lock, awaiting re-review | Codex | device check |
+| P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `d3c9b3f27165311a596fd86ca03fa1c7b7ff8bfc` · RC @ 3e120f5 (cross-tab ordering confirmed fixed; a callback waiting for the queue lock could write ids back after clear-device) → owner, generation and clear re-checked inside the lock, awaiting re-review | Codex | device check |
 | P05 | Physical purge of revoked/expired share; experiment wording | MERGED_INTEGRATION | #49 `76d3460cba6f5ceebb563198d271c40551156552` · APPROVE @ same · merged into integration (`c787681`) | release to main (owner order); counsel on "tối đa 30 ngày" | PostgreSQL run |
 | P06 | Aggregate legacy-plaintext check + plan | PARTIAL (tooling approved) | #50 `109072dd385e5510086a741c87ef33b31b8e629a` · APPROVE @ same · merged into integration (`9c02707`) | operator: staging/prod counts via private channel | real counts; then backfill tool per owner choice |
 | P07 | Backup timer, alert, restore, reconciliation | PARTIAL | #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`) | operator install; Codex reviews journal A | install, first backup, restore probe, alert, Supabase backup/PITR receipt. Journal A: #78 `5579600e4e7efc4a2a47c24162cde65e14c94a1c` · RC @ 8173a20 (HTTP history clear bypassed the journal; wall-clock replay cutoff) → journaled service path and dump-row snapshot checkpoint, awaiting re-review (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until it is deployed and a restore probe has replayed it |
@@ -37,7 +37,7 @@ GitHub-hosted runner; **nothing on staging or production**), `OWNER_DECISION`, `
 
 | ID | Requirement | Status | PR · head · verdict | Owner of next step | Evidence still missing |
 |---|---|---|---|---|---|
-| T01 | One asked target for frame, stance, goal, step | PARTIAL | #45 `c912caf5c2781f805f4f7a490255dc34273a0c83` · RC @ 7328572 (a question reported inside the background, or a ", rồi …," segment, was taken as asked) → fronted background segments and their continuations stay background, awaiting re-review | Codex; Claude (residuals) | meaning/scene remains T02; longest-signal and keyword-goal overrides are a separate open item |
+| T01 | One asked target for frame, stance, goal, step | PARTIAL | #45 `c9cc3d974cf165464744cffae14740ed116aadd9` · RC @ c912caf (a question reported in a continuation segment still counted as asked) → the reader's question owns the action; reported questions stay background; ambiguity gives None, awaiting re-review | Codex; Claude (residuals) | meaning/scene remains T02; longest-signal and keyword-goal overrides are a separate open item |
 | T02 | Scenes follow the asked action and context, observable, no hidden advice | OPEN (draft) | workbook #67 `bdf6287907c1b00dd913ccf7ce6b33a365e87526` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/67#issuecomment-6346177711) · merged into integration (`b5e4427`) as a draft, which is not copy approval (133 action×topic rows, 266 scenes); some current scenes break C4 (Ba Cốc, Tiết Chế) | owner approves copy | approval, then wiring with frozen readings kept |
 | T03 | Small step with a concrete trigger | OPEN (draft) | workbook #67 (142 action×role rows, 284 steps) | owner | same |
 | T04 | Card names English + Vietnamese; AC12 | MERGED_INTEGRATION | #63 `cd692bc63845f7724de1c84eb523cbe39e4707b0` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/63#issuecomment-6346174788) · merged into integration (`bc4eea1`) | owner (order/separator); device | screen reader and long-title layout on device |
@@ -96,15 +96,27 @@ not Supabase, migration or live certification).
 
 ## Combined-branch checks (local, not pushed)
 
-### Author's local code-cohort check (revision 5)
+### Author's local code-cohort check (revision 6)
+
+Local head `65cfeab4493656100fbde114a0f5bfe28358234e` (not pushed) = `collab/integration` `b5e4427` + #45 `c9cc3d9`,
+#48 `d3c9b3f`, #70 `4c08e3c`, #71 `58192de`, #72 `ebd99a7`, #73 `46059af`, #77 `2573e5b`, #78 `5579600`, merged in
+that order. One textual conflict, the Luna runbook (#71 and #73 add a bullet at the same place: keep both). Docs-only
+#60, #64 and #69 are not in it. `CI=1 pnpm check`, first run, exit 0: audits, contracts, privacy guard, grammar,
+fallback approval, web 77 files / 504 tests, API 2501 passed / 57 skipped / 1 xfailed (the R06 strict xfail, not a
+pass), QA smoke, E2E 8/8. Author's local synthetic run only: not re-run by Codex, not a Compose, staging or production
+proof, and any later head change makes it stale.
+
+### Author's local code-cohort check (revision 5, stale)
+
+Since this run #45, #48 and #78 have moved, so it no longer covers their current heads.
 
 Local head `b4cb913fa8acd33e69a1ef6f6ad26715796bf522` (not pushed) = `collab/integration` `b5e4427` + #45 `c912caf`,
 #48 `3e120f5`, #70 `4c08e3c`, #71 `58192de`, #72 `ebd99a7`, #73 `46059af`, #77 `2573e5b`, #78 `8173a20`, merged in
 that order. One textual conflict, the Luna runbook (#71 and #73 add a bullet at the same place: keep both). Docs-only
 #60, #64 and #69 are not in it. `CI=1 pnpm check`, first run, exit 0: audits, contracts, privacy guard, grammar,
 fallback approval, web 76 files / 498 tests, API 2490 passed / 57 skipped / 1 xfailed (the R06 strict xfail, not a
-pass), QA smoke, E2E 8/8. Author's local synthetic run only: not re-run by Codex, not a release or runtime proof, and
-any later head change makes it stale.
+pass), QA smoke, E2E 8/8. Author's local synthetic run only: not re-run by Codex, not a Compose, staging or production
+proof, and any later head change makes it stale.
 
 ### Author's local code-cohort check (revision 4)
 
