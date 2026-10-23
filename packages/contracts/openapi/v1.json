@@ -9683,6 +9683,9 @@
           "403": {
             "description": "Forbidden"
           },
+          "410": {
+            "description": "Gone"
+          },
           "422": {
             "description": "Unprocessable Content"
           }
@@ -9740,6 +9743,9 @@
           },
           "409": {
             "description": "Conflict"
+          },
+          "410": {
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -9805,6 +9811,9 @@
           },
           "403": {
             "description": "Forbidden"
+          },
+          "410": {
+            "description": "Gone"
           },
           "422": {
             "content": {
