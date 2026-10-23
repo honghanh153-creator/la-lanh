@@ -19,13 +19,18 @@ cần nằm trong mức chung đó.
 
 ## Vì sao Tarot Luna chưa làm tới giờ
 
-- Code đã có: `apps/api/app/domains/tarot/rewrite.py`, `meaning_brief.py`, chain `tarot-renderer → tarot-meaning-brief-v1
-  → gpt-6-luna-tarot-v3 → tarot-rewrite-gates/v3` (runbook Luna). Nhưng `CHART_FREE_REWRITE_SURFACES = {"daily_home"}`
-  (`apps/api/app/config.py:18`) chặn mọi surface khác, nên Tarot không bao giờ được gửi đi.
+- Code đã có trên `collab/integration` `7ca22cb` (đã làm, không cần làm lại):
+  - Bài **framed** (rules version hiện hành): `tarot-meaning-brief-v3` có provenance theo catalog
+    (`tarot/provenance.py:54`, `framed_brief`; `rewrite.py:_brief`), renderer `gpt-6-luna-tarot-v4` (`rewrite.py:50`),
+    gate `tarot-rewrite-gates/v4`, schema `tarot-rewrite/v1` (`content_rewrite/registry.py:133`).
+  - Bài **legacy** (rules version cũ): `tarot-meaning-brief-v2` (`meaning_brief.py:11`), cùng renderer và gate v4.
+  - Không gửi câu hỏi thô: reducer gửi `focus_sentence` cố định; Roast không tạo request.
+  - Nhưng `CHART_FREE_REWRITE_SURFACES = {"daily_home"}` (`apps/api/app/config.py:18`) chặn mọi surface khác, nên Tarot
+    không bao giờ được gửi đi. #73 (S4) thêm `tarot` vào allowlist; allowlist **không** phải bật.
 - Quyết định owner 18/10 (C6/T06) để AI cho Tarot chờ duyệt chi phí; sau đó owner đã chốt một ngân sách tổng chung cho mọi
   surface Luna, nên phần chi phí đã xong. Audit v2 vẫn giữ Tarot Luna tắt sau
-  các cổng: brief bám đúng câu được hỏi (T01), prompt/provenance/canary mới, chiến lược cho stance, và đánh giá với
-  người đọc thật.
+  các cổng còn lại: brief bám đúng câu được hỏi (T01, #45), chiến lược cho stance, và đánh giá với người đọc thật.
+  Prompt v4, provenance brief v3 và canary đã có trong code.
 - Các cổng privacy chung chưa xong: roster pilot (RC-05, #61) chưa deploy, câu hỏi Tarot là văn bản tự do
   nhạy cảm và không được rời máy chủ ở dạng thô.
 
@@ -51,9 +56,9 @@ bị từ chối, một việc thừa.
 | Bước | Việc | Thuộc giai đoạn | Tiêu chí xong |
 |---|---|---|---|
 | S1 (#70, APPROVE @ `4c08e3c`) | Service Tarot/Hợp gu chỉ dựng payload và gọi enqueue khi surface đó đang bật; tránh dựng payload và log enqueue không cần thiết khi chỉ Note ngày bật | 1 (tối thiểu hoá dữ liệu) | Test: rollout chỉ `daily_home` ⇒ Tarot/Radar không gọi enqueue; Daily vẫn gọi |
-| S2 | Payload Hợp gu bỏ nhãn kỹ thuật (hành tinh, góc chiếu, nhà), chỉ gửi nghĩa đã dựng và mức độ | 1 | Test chứng minh payload Radar không chứa tên hành tinh/góc/nhà; prompt và gate vẫn chạy |
-| S3 | Gate merge Hợp gu ngang Tarot: gate nghĩa và chống thao túng, giữ giọng và ngữ cảnh, giữ nguyên câu theo cặp hành tinh (R03) | 2 | Test từ chối output đổi giọng/ngữ cảnh, xoá câu theo contact, hoặc trái nghĩa |
-| S4 | Bật Tarot Luna: thêm `tarot` vào allowlist kèm test payload không có dữ kiện lá số; pilot trong giới hạn người hiện có | 2 | Sau khi #45 merge; receipt pilot và kiểm canary |
+| S2 (#71, APPROVE @ `58192de`) | Payload Hợp gu bỏ nhãn kỹ thuật (hành tinh, góc chiếu, nhà), chỉ gửi nghĩa đã dựng và mức độ | 1 | Test chứng minh payload Radar không chứa tên hành tinh/góc/nhà; prompt và gate vẫn chạy |
+| S3 (#72, đang review) | Gate merge Hợp gu ngang Tarot: gate nghĩa và chống thao túng, giữ ngữ cảnh, giữ nguyên câu theo cặp hành tinh (R03) | 2 | Test từ chối output đổi ngữ cảnh, xoá câu theo contact, hoặc trái nghĩa. **Còn mở:** gate giữ giọng bằng máy |
+| S4 (#73, APPROVE @ `46059af`, chỉ phần allowlist) | Thêm `tarot` vào allowlist kèm test payload không có dữ kiện lá số | 2 | Code: xong khi #73 merge (sau #45, #61, #66). **Chưa làm:** bật rollout, pilot trong giới hạn người hiện có, receipt pilot và canary trên môi trường thật — cần lệnh owner/operator |
 | S5 | Bật Hợp gu Luna | 2 | Sau khi R03 được duyệt và wiring xong, S2/S3 đã merge |
 
 Mỗi bước một PR nhỏ có regression đỏ → xanh; xong bước nào gửi prompt review cho Codex ngay. Full API trên `7ca22cb` còn
@@ -85,7 +90,7 @@ Bắt đầu bằng việc owner duyệt copy (làm song song được với gia
 | T02/T03 | Owner duyệt workbook #67 → wiring cảnh/bước theo hành động, bump version, giữ bài đã lưu, fallback approval có evidence | Owner duyệt, Claude làm | T01 |
 | T04 | Kiểm screen reader và tên dài trên thiết bị; owner chốt thứ tự Anh · Việt | Thiết bị, owner | #63 |
 | T05 | Rubric hiểu nghĩa/đáp đúng câu hỏi + gate đo trên bank | Claude, owner duyệt rubric | T02/T03 |
-| **T06 Tarot Luna** | (a) brief v2 chỉ gửi mã nhãn đóng của hành động/chủ đề/vai và nội dung đã duyệt, **không bao giờ gửi câu hỏi thô**; (b) prompt `gpt-6-luna-tarot-v4` + gate + canary + provenance; (c) corpus tổng hợp + đánh giá người đọc; (d) consent/data map/store disclosure, dùng chung ngân sách Luna đã duyệt (cap trên server); (e) thêm `tarot` vào allowlist bằng PR riêng, pilot ≤ N phiên opt-in | Claude (a–e), owner duyệt copy consent, Codex review từng bước | Giai đoạn 1 xong (RC-05 đã deploy), T01–T05 |
+| **T06 Tarot Luna** | **Đã có trong code** (không làm lại, không hạ version): brief v3 framed có provenance / brief v2 legacy, chỉ mã nhãn đóng và nội dung đã duyệt, không gửi câu hỏi thô; renderer `gpt-6-luna-tarot-v4`, gate `tarot-rewrite-gates/v4`, canary; allowlist (#73, chờ merge). **Còn lại:** (c) corpus tổng hợp + đánh giá người đọc; (d) consent/data map/store disclosure, dùng chung ngân sách Luna đã duyệt (cap trên server); (e) owner/operator bật rollout, pilot ≤ N phiên opt-in, receipt và canary trên môi trường thật | Claude (c–d), owner duyệt copy consent, operator (e), Codex review từng bước | Giai đoạn 1 xong (RC-05 #61 đã deploy), #45, #66, T01–T05 |
 | R03 | Owner duyệt workbook #65 (chọn `deep_dive` hay `roast`) → catalog `radar/contact_copy.py` + wiring thay câu chung, variant theo seed để đạt AC02/AC03; bỏ strict xfail khi gate #47 xanh thật | Owner, Claude | #47 |
 | R04 | Owner quyết spec #64 → API/UI khoảng điểm, adapter cho bài cũ | Owner, Claude | R03 |
 | R05 | Freeze variant lúc tạo + grammar manifest trên output thật | Claude | R03 |
