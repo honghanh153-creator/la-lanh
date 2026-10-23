@@ -50,4 +50,4 @@ def test_installer_and_dump_cover_the_journal() -> None:
         assert unit in installer
     assert "systemctl is-active --quiet la-lanh-erasure-journal.timer" in installer
     dump = (INFRA / "backup-database.sh").read_text()
-    assert "--schema=public --exclude-table-data=public.erasure_journal" in dump
+    assert "--schema=public" in dump and "exclude-table" not in dump

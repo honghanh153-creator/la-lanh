@@ -216,9 +216,18 @@ class PostgresHistoryRepository:
             await self._active_owner(session, guest_id, now)
             if await self._busy(session, guest_id, now):
                 raise HistoryBusy
-            if self._erasure_journal is not None:
-                self._erasure_journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
-            return await self._erase(session, guest_id, now, manual=True, batch_size=None)
+            return await self.clear_in_session(session, guest_id, now)
+
+    async def clear_in_session(self, session: AsyncSession, guest_id: UUID, now: datetime) -> int:
+        """A manual clear inside the caller's owner-locked, authorized transaction.
+
+        The journal fact and the deletion commit or roll back together (audit P07, option A).
+        Every manual clear path, the HTTP service included, goes through here.
+        """
+
+        if self._erasure_journal is not None:
+            self._erasure_journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
+        return await self._erase(session, guest_id, now, manual=True, batch_size=None)
 
     async def replay_clear(self, guest_id: UUID, cleared_at: datetime) -> int:
         """Re-apply a journaled manual clear after a restore, judged at its original time."""

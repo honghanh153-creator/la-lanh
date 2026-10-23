@@ -1,9 +1,10 @@
 """Deletion journal for explicit user erasures (audit P07, option A, owner decision 22/10/2026).
 
 Each explicit erasure or withdrawal appends, in the same transaction, a keyed HMAC of its root id
-with the kind of action and its time. After a restore, `replay` re-applies every entry newer than
-the backup; time-based retention is re-run separately (option C). The journal holds no content,
-is excluded from database dumps and is exported to the host so post-backup entries survive.
+with the kind of action and its time. After a restore, `replay` re-applies every exported entry
+that the restored snapshot does not hold; time-based retention is re-run separately (option C).
+The journal holds no content; dumps keep its rows as the snapshot checkpoint, and an hourly host
+copy carries the entries committed after a snapshot.
 """
 
 from __future__ import annotations

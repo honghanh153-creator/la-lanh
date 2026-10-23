@@ -359,7 +359,7 @@ Daily backup timer, freshness check, hourly deletion-journal copy, failure marke
 deletion-reconciliation procedure (option A, journal FIXED_LOCAL):
 [backup-restore-and-deletion-reconciliation.md](backup-restore-and-deletion-reconciliation.md)
 (prepared 2026-10-22, not yet installed). Until the journal is reviewed, deployed, its hourly copy is running
-and one restore probe has replayed it, **do not restore a backup into service**; restore only into a
+and the disposable PostgreSQL restore probe (interleaved dump) has replayed it, **do not restore a backup into service**; restore only into a
 disposable copy.
 Staging: `infra/hetzner/staging/up.sh` (own empty database and keys; auth/generation off).
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Hourly host-side copy of the deletion journal (audit P07, option A). Dumps exclude the journal's
-# rows, and a restore or provider PITR rewinds the database, so this file is what carries the
-# erasures made after the last backup. It holds keyed digests, kinds, scopes and times only.
+# Hourly host-side copy of the deletion journal (audit P07, option A). A restore or provider PITR
+# rewinds the database to a snapshot, so this file is what carries the erasures committed after it. It holds keyed digests, kinds, scopes and times only.
 set -euo pipefail
 
 BACKUP_DIR="${LA_LANH_BACKUP_DIR:-/opt/la-lanh/backups}"

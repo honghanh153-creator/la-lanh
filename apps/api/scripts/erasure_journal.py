@@ -1,8 +1,8 @@
 """Deletion journal operations (audit P07, option A). Output never contains ids or content.
 
-export [--since ISO]          JSON lines on stdout, for the host-side copy and before a restore
-import FILE [FILE ...]        add exported entries to a restored database
-replay --since ISO            re-apply erasures newer than the restored dump's time
+export                        JSON lines on stdout, for the host-side copy and before a restore
+replay FILE [FILE ...]        apply to a restored database every exported erasure its
+                              snapshot does not hold (the dump's journal rows are the checkpoint)
 purge [--retention-days N]    drop entries older than the oldest restorable backup
 """
 
@@ -15,12 +15,7 @@ from pathlib import Path
 from app.config import get_settings
 from app.db.session import Database
 from app.domains.erasure_journal.journal import ErasureJournal
-from app.domains.erasure_journal.replay import (
-    export_entries,
-    import_entries,
-    purge_entries,
-    replay,
-)
+from app.domains.erasure_journal.replay import export_entries, purge_entries, replay
 from app.infrastructure.crypto import (
     AesGcmEnvelopeCipher,
     SecretHasher,
@@ -29,25 +24,14 @@ from app.infrastructure.crypto import (
 )
 
 
-def _when(value: str) -> datetime:
-    moment = datetime.fromisoformat(value)
-    if moment.tzinfo is None:
-        raise argparse.ArgumentTypeError("time must carry a UTC offset")
-    return moment
-
-
 async def _run(args: argparse.Namespace) -> int:
     settings = get_settings()
     database = Database(str(settings.database_url))
     await database.initialize()
     try:
         if args.command == "export":
-            for line in await export_entries(database.sessions, since=args.since):
+            for line in await export_entries(database.sessions):
                 print(line)
-            return 0
-        if args.command == "import":
-            lines = args.lines
-            print(f"Imported {await import_entries(database.sessions, lines)} journal entr(y/ies).")
             return 0
         if args.command == "purge":
             days = args.retention_days or settings.erasure_journal_retention_days
@@ -64,7 +48,7 @@ async def _run(args: argparse.Namespace) -> int:
                 decode_key(settings.guest_encryption_key.get_secret_value(), expected_bytes=32)
             )
         )
-        report = await replay(database.sessions, journal, envelope, since=args.since)
+        report = await replay(database.sessions, journal, envelope, args.lines)
         for line in report.lines():
             print(line)
         print("Next: run the guest and expired cleanup jobs before serving.")
@@ -76,16 +60,13 @@ async def _run(args: argparse.Namespace) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Deletion journal operations (audit P07).")
     commands = parser.add_subparsers(dest="command", required=True)
-    export = commands.add_parser("export")
-    export.add_argument("--since", type=_when)
-    load = commands.add_parser("import")
-    load.add_argument("files", nargs="+")
+    commands.add_parser("export")
     again = commands.add_parser("replay")
-    again.add_argument("--since", type=_when, required=True)
+    again.add_argument("files", nargs="+")
     purge = commands.add_parser("purge")
     purge.add_argument("--retention-days", type=int)
     args = parser.parse_args()
-    if args.command == "import":
+    if args.command == "replay":
         # Read before the event loop starts: the files are small exported digest lists.
         args.lines = [line for path in args.files for line in Path(path).read_text().splitlines()]
     if args.command == "purge" and args.retention_days is not None and args.retention_days < 1:

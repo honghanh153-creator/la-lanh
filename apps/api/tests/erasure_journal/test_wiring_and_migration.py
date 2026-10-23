@@ -50,12 +50,14 @@ def test_migration_creates_a_private_table_matching_the_model() -> None:
     }  # fmt: skip
 
 
-def test_backups_carry_the_table_but_not_its_entries() -> None:
+def test_dumps_keep_the_journal_rows_as_the_snapshot_checkpoint() -> None:
     backup = (ROOT / "infra/hetzner/backup-database.sh").read_text()
-    assert "--exclude-table-data=public.erasure_journal" in backup
+    # The rows must be in the dump: they mark exactly which erasures that snapshot reflects.
+    assert "exclude-table" not in backup
+    assert "--schema=public" in backup
 
 
-def test_cli_exports_imports_and_replays_without_ids(tmp_path: Path) -> None:
+def test_cli_exports_and_replays_without_ids(tmp_path: Path) -> None:
     import json
     import os
     import subprocess
@@ -83,11 +85,12 @@ def test_cli_exports_imports_and_replays_without_ids(tmp_path: Path) -> None:
     }
     exported = tmp_path / "journal.jsonl"
     exported.write_text(json.dumps(entry) + "\n")
-    assert "Imported 1" in cli("import", str(exported))
-    assert [json.loads(line) for line in cli("export").splitlines()] == [entry]
-    replayed = cli("replay", "--since", "2026-10-23T00:00:00+00:00")
-    assert "history_cleared: entries=1 applied=0 unmatched=1" in replayed
+    replayed = cli("replay", str(exported))
+    assert "history_cleared: entries=1 reflected=0 applied=0 unmatched=1" in replayed
     assert "cleanup" in replayed
+    assert [json.loads(line) for line in cli("export").splitlines()] == [entry]
+    again = cli("replay", str(exported), str(exported))
+    assert "history_cleared: entries=1 reflected=1 applied=0 unmatched=0" in again
 
 
 def test_six_hourly_expired_cleanup_also_applies_journal_retention() -> None:

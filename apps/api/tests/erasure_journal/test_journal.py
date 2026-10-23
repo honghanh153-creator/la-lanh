@@ -27,7 +27,7 @@ from app.domains.daily.tables import DailyNoteRow
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.erasure_journal.replay import (
     export_entries,
-    import_entries,
+    parse_entries,
     purge_entries,
     replay,
 )
@@ -225,7 +225,6 @@ async def test_restore_then_replay_reapplies_every_post_backup_erasure(tmp_path:
     ids, token = await _seed(database)
     await database.dispose()
     shutil.copyfile(live, backup)  # the dump
-    dumped_at = datetime.now(UTC)
 
     database = Database(f"sqlite+aiosqlite:///{live}")
     await _erase_everything(database, ids, token, datetime.now(UTC))
@@ -238,9 +237,8 @@ async def test_restore_then_replay_reapplies_every_post_backup_erasure(tmp_path:
         async with database.sessions() as session:
             assert await session.get(GuestSessionRow, ids["erased"]) is not None
             assert await session.get(RadarRequestRow, ids["radar_deleted"]) is not None
-        assert await import_entries(database.sessions, exported) == len(exported)
-        report = await replay(database.sessions, JOURNAL, ENVELOPE, since=dumped_at)
-        assert sum(report.applied.values()) == 8 and not report.unmatched
+        report = await replay(database.sessions, JOURNAL, ENVELOPE, exported)
+        assert sum(report.applied.values()) == 8 and not report.unmatched and not report.reflected
         await PostgresGuestRepository(database.sessions).purge_expired(NOW, 500)  # option C step
 
         async with database.sessions() as session:
@@ -270,30 +268,79 @@ async def test_restore_then_replay_reapplies_every_post_backup_erasure(tmp_path:
             assert withdrawn.result_ciphertext is None and withdrawn.receipt_ciphertext is None
             journal_rows = await session.scalar(select(func.count()).select_from(ErasureJournalRow))
 
-        # Idempotent, and replay itself journals nothing new.
-        again = await replay(database.sessions, JOURNAL, ENVELOPE, since=dumped_at)
-        assert sum(again.applied.values()) + sum(again.unmatched.values()) == 8
+        # Idempotent: a second run finds every entry held, and journals nothing new.
+        again = await replay(database.sessions, JOURNAL, ENVELOPE, exported)
+        assert sum(again.reflected.values()) == 8 and not again.applied
         async with database.sessions() as session:
             assert await session.scalar(select(func.count()).select_from(ErasureJournalRow)) == (
                 journal_rows
             )
-        assert await import_entries(database.sessions, exported) == 0
+        assert journal_rows == 8
     finally:
         await database.dispose()
 
 
-async def test_entries_at_or_before_the_dump_are_not_replayed(storage: Database) -> None:
-    guest_id = await _guest(storage)
-    note_id = await _note(storage, guest_id)
-    async with storage.sessions() as session, session.begin():
-        JOURNAL.record(session, ErasureKind.HISTORY_CLEARED, guest_id, OLD - timedelta(days=1))
-    report = await replay(storage.sessions, JOURNAL, ENVELOPE, since=OLD)
-    assert not report.entries
-    async with storage.sessions() as session:
-        assert await session.get(DailyNoteRow, note_id) is not None
+async def test_an_erasure_requested_before_the_dump_but_committed_after_it_is_replayed(
+    tmp_path: Path,
+) -> None:
+    """Codex #78 P2-2: the request time precedes the snapshot, the commit follows it. A wall-clock
+    cutoff skipped it; the dump's own journal rows are the checkpoint, so it is replayed."""
+
+    live, dump = tmp_path / "live.db", tmp_path / "dump.db"
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    await database.initialize()
+    token = b"synthetic-token-hash".ljust(32, b"x")
+    guest_id = await _guest(database, token)
+    requested_at = datetime.now(UTC)  # taken before the owner lock is granted
+    await database.dispose()
+    shutil.copyfile(live, dump)  # the snapshot is taken while the request waits
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    assert await PostgresGuestRepository(
+        database.sessions, erasure_journal=JOURNAL
+    ).delete_by_token_hash(token, requested_at)
+    exported = await export_entries(database.sessions)
+    await database.dispose()
+    shutil.copyfile(dump, live)
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    try:
+        report = await replay(database.sessions, JOURNAL, ENVELOPE, exported)
+        assert report.applied[ErasureKind.GUEST_ERASED.value] == 1
+        await PostgresGuestRepository(database.sessions).purge_expired(datetime.now(UTC), 500)
+        async with database.sessions() as session:
+            assert await session.get(GuestSessionRow, guest_id) is None
+    finally:
+        await database.dispose()
 
 
-async def test_import_fails_closed_and_purge_keeps_recent_entries(storage: Database) -> None:
+async def test_an_erasure_the_snapshot_holds_is_not_reapplied_to_later_data(tmp_path: Path) -> None:
+    """Other side of the boundary: a clear committed before the snapshot is in the dump with its
+    journal row, so replay skips it and a note created after the clear (also in the dump) stays."""
+
+    live, dump = tmp_path / "live.db", tmp_path / "dump.db"
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    await database.initialize()
+    guest_id = await _guest(database)
+    cleared = await _note(database, guest_id)
+    await PostgresHistoryRepository(database.sessions, ENVELOPE, JOURNAL).clear(guest_id, NOW)
+    kept = await _note(database, guest_id)  # created after the clear, before the snapshot
+    await database.dispose()
+    shutil.copyfile(live, dump)
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    exported = await export_entries(database.sessions)
+    await database.dispose()
+    shutil.copyfile(dump, live)
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    try:
+        report = await replay(database.sessions, JOURNAL, ENVELOPE, exported)
+        assert report.reflected[ErasureKind.HISTORY_CLEARED.value] == 1 and not report.applied
+        async with database.sessions() as session:
+            assert await session.get(DailyNoteRow, cleared) is None
+            assert await session.get(DailyNoteRow, kept) is not None
+    finally:
+        await database.dispose()
+
+
+async def test_exported_lines_fail_closed_and_purge_keeps_recent_entries(storage: Database) -> None:
     good = {
         "kind": "guest_erased",
         "subject_digest": "ab" * 32,
@@ -301,18 +348,28 @@ async def test_import_fails_closed_and_purge_keeps_recent_entries(storage: Datab
         "occurred_at": NOW.isoformat(),
     }
     with pytest.raises(ValueError):
-        await import_entries(storage.sessions, [json.dumps({**good, "kind": "unknown"})])
+        parse_entries([json.dumps({**good, "kind": "unknown"})])
     with pytest.raises(ValueError):
-        await import_entries(storage.sessions, [json.dumps({**good, "subject_digest": "ab"})])
+        parse_entries([json.dumps({**good, "subject_digest": "ab"})])
+    with pytest.raises(ValueError):
+        parse_entries([json.dumps({**good, "occurred_at": "2026-10-23T12:00:00"})])
+    assert len(parse_entries([json.dumps(good)] * 3)) == 1  # duplicates across files
     old = {**good, "occurred_at": (NOW - timedelta(days=20)).isoformat()}
-    assert await import_entries(storage.sessions, [json.dumps(good), json.dumps(old)]) == 2
+    report = await replay(storage.sessions, JOURNAL, ENVELOPE, [json.dumps(good), json.dumps(old)])
+    assert report.unmatched["guest_erased"] == 2  # recorded even though nothing matched
     assert await purge_entries(storage.sessions, before=NOW - timedelta(days=15)) == 1
     assert len(await export_entries(storage.sessions)) == 1
 
 
-async def test_switching_to_an_unknown_time_is_journaled_and_replayed(storage: Database) -> None:
-    guest_id = await _guest(storage)
-    birth = PostgresBirthRepository(storage.sessions, ENVELOPE, JOURNAL)
+async def test_switching_to_an_unknown_time_is_journaled_and_replayed(tmp_path: Path) -> None:
+    live, dump = tmp_path / "live.db", tmp_path / "dump.db"
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    await database.initialize()
+    guest_id = await _guest(database)
+    await database.dispose()
+    shutil.copyfile(live, dump)  # the snapshot still has the precise time
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    birth = PostgresBirthRepository(database.sessions, ENVELOPE, JOURNAL)
     await birth.save_supplement(
         guest_id,
         None,
@@ -323,27 +380,23 @@ async def test_switching_to_an_unknown_time_is_journaled_and_replayed(storage: D
         expected_snapshot_id=None,  # type: ignore[arg-type]
         expected_updated_at=OLD,
     )  # fmt: skip
-    async with storage.sessions() as session:
+    async with database.sessions() as session:
         row = await session.scalar(select(ErasureJournalRow))
         assert row is not None and row.kind == ErasureKind.BIRTH_TIME_DOWNGRADED.value
         assert row.subject_digest == JOURNAL.digest(ErasureKind.BIRTH_TIME_DOWNGRADED, guest_id)
-        profile = await session.scalar(
-            select(BirthProfileRow).where(BirthProfileRow.guest_id == guest_id)
-        )
-        assert profile is not None
-        # Stand-in for the restored copy: the precise time is back.
-    async with storage.sessions() as session, session.begin():
-        restored = await session.scalar(
-            select(BirthProfileRow).where(BirthProfileRow.guest_id == guest_id)
-        )
-        assert restored is not None
-        restored.birth_time_ciphertext, restored.time_precision = "synthetic-time", "exact"
-    report = await replay(storage.sessions, JOURNAL, ENVELOPE, since=OLD)
-    assert report.applied[ErasureKind.BIRTH_TIME_DOWNGRADED.value] == 1
-    async with storage.sessions() as session:
-        profile = await session.scalar(
-            select(BirthProfileRow).where(BirthProfileRow.guest_id == guest_id)
-        )
-        assert profile is not None and profile.birth_time_ciphertext is None
-        assert profile.time_precision == "unknown"
-        assert profile.birth_place_ciphertext == "synthetic-place"
+    exported = await export_entries(database.sessions)
+    await database.dispose()
+    shutil.copyfile(dump, live)
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    try:
+        report = await replay(database.sessions, JOURNAL, ENVELOPE, exported)
+        assert report.applied[ErasureKind.BIRTH_TIME_DOWNGRADED.value] == 1
+        async with database.sessions() as session:
+            profile = await session.scalar(
+                select(BirthProfileRow).where(BirthProfileRow.guest_id == guest_id)
+            )
+            assert profile is not None and profile.birth_time_ciphertext is None
+            assert profile.time_precision == "unknown"
+            assert profile.birth_place_ciphertext == "synthetic-place"
+    finally:
+        await database.dispose()
