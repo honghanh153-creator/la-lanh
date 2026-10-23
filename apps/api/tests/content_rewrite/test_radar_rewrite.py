@@ -152,17 +152,41 @@ def test_an_unrelated_caution_does_not_exempt_a_reversed_fit_claim() -> None:
     assert _rewrite(baseline, output) is None
 
 
+def test_an_introduction_cannot_lend_a_caution_to_a_reversed_fit_claim() -> None:
+    """Codex #72 P2 @ 86971f6: words before the comma ("đường", "nhịp") matched the source
+    caution and exempted the reversal after it. The plain reversal was already refused."""
+
+    baseline = _projection()
+    for text in (
+        "Đừng xem sức hút và cách thể hiện sự thích là điểm dễ đi cùng nhất.",
+        "Trên đường tìm nhịp chung, đừng xem sức hút và cách thể hiện sự thích là điểm dễ đi "
+        "cùng nhất.",
+        "Trên đường tìm nhịp chung đừng xem sức hút và cách thể hiện sự thích là điểm dễ đi "
+        "cùng nhất.",
+        "Trên đường tìm nhịp chung, hai nhịp có sẵn đường, đừng xem sức hút là điểm dễ đi cùng "
+        "nhất.",
+        "Sức hút và cách thể hiện sự thích, đừng xem là điểm dễ đi cùng nhất.",
+    ):
+        output = _valid_output(baseline)
+        output["strengths"] = [text]
+        assert _rewrite(baseline, output) is None, text
+
+
 def test_restating_a_source_caution_is_still_accepted() -> None:
+    """Genuine restatements of the source caution "Hai nhịp có sẵn đường để đi cùng mà không
+    cần cố quá nhiều", with and without a comma, keep the exemption."""
+
     baseline = _projection()
     fit = _section_meaning(_section(baseline, "fit"))
-    control = (
-        "Hai nhịp có sẵn đường đi cùng sức hút và cách thể hiện sự thích, không cần cố quá nhiều."
-    )
-    # The control does reach the exemption: without the caution it would be refused.
-    assert negates_source_claim(fit, control, _tokens, caution_tokens=lambda _: set())
-    output = _valid_output(baseline)
-    output["strengths"] = [control]
-    assert _rewrite(baseline, output) is not None
+    for control in (
+        "Hai nhịp có sẵn đường để đi cùng mà không cần cố quá nhiều.",
+        "Không cần cố quá nhiều, hai nhịp vẫn có sẵn đường để đi cùng.",
+    ):
+        # Each control reaches the exemption: without the caution it would be refused.
+        assert negates_source_claim(fit, control, _tokens, caution_tokens=lambda _: set())
+        output = _valid_output(baseline)
+        output["strengths"] = [control]
+        assert _rewrite(baseline, output) is not None, control
 
 
 def test_radar_rewrite_rejects_mind_reading_and_judgement_labels() -> None:
