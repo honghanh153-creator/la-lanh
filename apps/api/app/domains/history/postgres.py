@@ -13,6 +13,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from app.domains.accounts.postgres import account_transaction, lock_owner
 from app.domains.content_rewrite.tables import RewriteSendFenceRow
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.errors import GuestExpired
 from app.domains.guest.tables import GuestSessionRow
@@ -158,9 +159,11 @@ class PostgresHistoryRepository:
         self,
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def status(self, guest_id: UUID) -> datetime | None:
         async with self._sessions() as session:
@@ -213,7 +216,15 @@ class PostgresHistoryRepository:
             await self._active_owner(session, guest_id, now)
             if await self._busy(session, guest_id, now):
                 raise HistoryBusy
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
             return await self._erase(session, guest_id, now, manual=True, batch_size=None)
+
+    async def replay_clear(self, guest_id: UUID, cleared_at: datetime) -> int:
+        """Re-apply a journaled manual clear after a restore, judged at its original time."""
+
+        async with account_transaction(self._sessions) as session:
+            return await self._erase(session, guest_id, cleared_at, manual=True, batch_size=None)
 
     async def purge_expired(self, now: datetime, batch_size: int = 500) -> int:
         """Bound each transaction to one owner's batch, visiting owners in UUID order."""

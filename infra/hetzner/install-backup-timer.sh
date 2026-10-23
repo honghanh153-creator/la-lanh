@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Operator step, run as root on the VPS from the active release: installs the daily backup timer,
-# the six-hourly freshness check and the failure marker unit, then runs one backup and one check.
+# the six-hourly freshness check, the hourly deletion-journal copy and the failure marker unit,
+# then runs one backup, one check and one journal copy.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,16 +22,20 @@ for unit in \
   la-lanh-backup.timer \
   la-lanh-backup-check.service \
   la-lanh-backup-check.timer \
+  la-lanh-erasure-journal.service \
+  la-lanh-erasure-journal.timer \
   la-lanh-alert@.service; do
   install -m 0644 "${UNIT_DIR}/${unit}" "${SYSTEMD_DIR}/${unit}"
 done
 install -d -m 0700 /opt/la-lanh/backups
 
 systemctl daemon-reload
-systemctl enable --now la-lanh-backup.timer la-lanh-backup-check.timer
+systemctl enable --now la-lanh-backup.timer la-lanh-backup-check.timer la-lanh-erasure-journal.timer
 systemctl start la-lanh-backup.service
 systemctl start la-lanh-backup-check.service
+systemctl start la-lanh-erasure-journal.service
 
 systemctl is-active --quiet la-lanh-backup.timer
 systemctl is-active --quiet la-lanh-backup-check.timer
-echo "Lá Lành backup timer and freshness check are active."
+systemctl is-active --quiet la-lanh-erasure-journal.timer
+echo "Lá Lành backup, freshness check and deletion-journal copy timers are active."

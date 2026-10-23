@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.identity.tables import PrincipalRow
 from app.domains.matching.models import (
     GenderPreference,
@@ -28,9 +29,11 @@ class PostgresMatchingRepository:
         self,
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def get_profile(self, principal_id: UUID) -> MatchingProfile | None:
         async with self._sessions() as session:
@@ -144,6 +147,10 @@ class PostgresMatchingRepository:
                 .where(MatchingProfileRow.principal_id == principal_id)
                 .values(active=False, joined_at=None, updated_at=now)
             )
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    session, ErasureKind.MATCHING_CONSENT_WITHDRAWN, principal_id, now
+                )
 
     async def get_verification(self, principal_id: UUID) -> MatchingVerification | None:
         async with self._sessions() as session:

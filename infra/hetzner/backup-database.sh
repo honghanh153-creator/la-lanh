@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Back up the application schema (public) to a root-only custom-format dump.
+# The deletion journal keeps its table but not its rows: its post-backup entries are exported
+# hourly by export-erasure-journal.sh and replayed after a restore (audit P07, option A).
 # The connection string is read inside the client container from the mounted
 # secret file and is never printed, logged or passed as a host argument.
 set -euo pipefail
@@ -26,7 +28,7 @@ docker run --rm --network host \
   "$PG_IMAGE" sh -ec '
     url="$(sed -e "s#^postgresql+asyncpg://#postgresql://#" -e "s#\([?&]\)ssl=[^&]*#\1sslmode=verify-full#" /run/secrets/database_url)"
     case "$url" in *sslrootcert=*) ;; *\?*) url="${url}&sslrootcert=/etc/la-lanh/database-ca.pem" ;; *) url="${url}?sslrootcert=/etc/la-lanh/database-ca.pem" ;; esac
-    exec pg_dump --format=custom --no-owner --schema=public --dbname="$url"
+    exec pg_dump --format=custom --no-owner --schema=public --exclude-table-data=public.erasure_journal --dbname="$url"
   ' > "${out}.partial"
 
 mv "${out}.partial" "$out"

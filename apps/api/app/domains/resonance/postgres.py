@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
 from app.domains.readings.models import BackgroundLens
 from app.domains.readings.tables import ReadingRevisionRow
@@ -25,9 +26,11 @@ class PostgresResonanceRepository:
         self,
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def record_with_consent(
         self,
@@ -142,6 +145,14 @@ class PostgresResonanceRepository:
                 delete(ResonanceFeedbackRow).where(ResonanceFeedbackRow.guest_id == guest_id)
             )
             await self._after_clear()
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    session,
+                    ErasureKind.RESONANCE_CLEARED,
+                    guest_id,
+                    now,
+                    scope="consent" if revoke_consent else "",
+                )
             if revoke_consent:
                 await session.execute(
                     update(ConsentRow)

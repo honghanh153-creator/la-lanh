@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     guest_cookie_secure: bool = False
     guest_ttl_days: int = Field(default=30, ge=1, le=30)
     guest_replay_minutes: int = Field(default=10, ge=1, le=10)
+    # Deletion journal (audit P07): keep facts at least as long as the oldest restorable backup.
+    # App dumps live 14 days; raise this if the provider's own backups/PITR reach further back.
+    erasure_journal_retention_days: int = Field(default=15, ge=15, le=60)
     guest_hash_key: SecretStr = SecretStr(DEVELOPMENT_HASH_KEY)
     guest_encryption_key: SecretStr = SecretStr(DEVELOPMENT_ENCRYPTION_KEY)
     auth_enabled: bool = False

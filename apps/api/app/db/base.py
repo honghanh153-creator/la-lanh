@@ -10,6 +10,7 @@ from app.domains.accounts import tables as account_tables  # noqa: E402,F401
 from app.domains.birth import tables as birth_tables  # noqa: E402,F401
 from app.domains.content import tables as content_tables  # noqa: E402,F401
 from app.domains.content_rewrite import tables as content_rewrite_tables  # noqa: E402,F401
+from app.domains.erasure_journal import tables as erasure_journal_tables  # noqa: E402,F401
 from app.domains.experiments import tables as experiment_tables  # noqa: E402,F401
 from app.domains.guest import tables as guest_tables  # noqa: E402,F401
 from app.domains.history import tables as history_tables  # noqa: E402,F401

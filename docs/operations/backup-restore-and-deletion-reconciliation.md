@@ -60,6 +60,35 @@ consent withdrawal) because time-based retention can be re-run (C) for everythin
 owner decides and the journal exists, the runbook must treat B as the rule: no restore into service.
 
 **Decision (22/10/2026):** the owner delegated this choice to the recommendation above: **A**, scoped to
-explicit user actions, with C's immediate re-run of retention cleanups for everything else. The journal is
-not implemented yet (separate PR, own tests, data-map entry for the pseudonymous deletion facts). Until it
-ships and is reviewed, **B stays the operating rule: no restore into service.**
+explicit user actions, with C's immediate re-run of retention cleanups for everything else.
+
+## Option A implementation (FIXED_LOCAL, not deployed)
+
+| Piece | Where | Behaviour |
+|---|---|---|
+| Journal table | `erasure_journal` (migration `20261023_0038`), `domains/erasure_journal/` | `{kind, HMAC-SHA256(server hash key, "erasure-journal:<kind>" + root id), scope, occurred_at}`. No id or content. RLS on; no `anon`/`authenticated` access. |
+| Recording | same transaction as the erasure | guest erasure (with the DELETING marker), history clear, birth supplement removal (`time`/`place`), switch to an unknown birth time, Radar delete, Radar withdraw, consent withdrawal (purpose as scope), resonance clear (`consent` when withdrawn), Vòng Lá matching consent withdrawal. |
+| Not yet journaled | follow-up PR | Tarot session delete, share-link revoke, La Chung withdraw/delete/revoke/hide, saved-note unsave, experiment undo, pending Radar invite revoke. Until then a restore can bring these back; C covers only their time-based expiry. |
+| Dump exclusion | `backup-database.sh` `--exclude-table-data=public.erasure_journal` | The table is in every dump, its rows are not. |
+| Host copy | `export-erasure-journal.sh`, `la-lanh-erasure-journal.{service,timer}` (hourly at :05, installed by `install-backup-timer.sh`) | `scripts.erasure_journal export` to `/opt/la-lanh/backups/erasure-journal/journal-<UTC>.jsonl` (0600), then `purge` of entries older than `LA_LANH_ERASURE_JOURNAL_RETENTION_DAYS` (default 15, minimum 15). Older export files are kept about two days. The six-hourly expired cleanup applies the same retention, so it holds before this timer is installed. |
+| Replay | `scripts.erasure_journal replay --since <dump time>` | Matches digests against ids present in the restored copy and re-applies each erasure through the same repository code, without journaling again. Idempotent. Entries at or before the dump time are skipped. |
+
+Losses the design accepts, so the runbook must not hide them:
+- Erasures in the last hour before a total loss of both the database and its live journal are only in the
+  database. An export from the live database before any restore closes this gap whenever it is readable.
+- A provider point-in-time recovery rewinds the journal too: export it first.
+- Rotating the server hash key makes older digests unmatchable. Replay any pending restore before rotating.
+- Linked accounts: the Supabase Auth identity was already deleted at erasure time; replay finishes the local
+  deletion through the guest cleanup job, which retries the identity call.
+
+### Restore procedure (only after this PR is reviewed and deployed)
+
+1. If the damaged database is still readable: `scripts.erasure_journal export > pre-restore.jsonl` (root-only).
+2. Restore the chosen dump (`pg_restore --no-owner --role=<backend>`), note its UTC time from the file name.
+3. `scripts.erasure_journal import pre-restore.jsonl /opt/la-lanh/backups/erasure-journal/journal-*.jsonl`.
+4. `scripts.erasure_journal replay --since <dump UTC time>` and record the per-kind counts (no ids).
+5. Run the guest and expired cleanup jobs (option C) until they report nothing remaining.
+6. Privacy isolation check and readiness, then serve.
+
+Until the journal is deployed, the hourly copy has run and a restore probe has exercised steps 2–5 on a
+disposable copy, **B stays the operating rule: no restore into service.**
