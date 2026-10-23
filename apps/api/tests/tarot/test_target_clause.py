@@ -261,3 +261,37 @@ def test_a_contrast_inside_a_background_never_supplies_the_action(
         assert reading.stance is not None and reading.stance.action is expected
         assert reading.stance.level is not TarotStanceLevel.CONSIDER
         assert "nhận lời" not in reading.stance.conclusion
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        # Codex #45 @ 4e02c46: the asked clause is the one that carries the question. A fronted
+        # background segment ends at its punctuation, whatever "thì"/"hay"/"hoặc" it contains.
+        (
+            "Khi mình nói chuyện với sếp thì vẫn phải nhận thêm việc, mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Sau khi nói chuyện với sếp hay nhận thêm việc, mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Khi sếp giao thêm việc hoặc nhắn muộn, mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        # Controls: "thì" opening the asked clause, and a background whose action is not asked.
+        ("Khi nói chuyện với sếp thì mình có nên nghỉ ngơi không?", TarotAction.NGHI_NGOI),
+        ("Khi sếp giao thêm việc, mình có nên nhận lời không?", TarotAction.NHAN_LOI),
+    ],
+)
+def test_the_clause_carrying_the_question_supplies_the_action(
+    question: str, expected: TarotAction
+) -> None:
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is not None and reading.stance.action is expected
+    if expected is TarotAction.NGHI_NGOI:
+        assert "nhận lời" not in reading.stance.conclusion

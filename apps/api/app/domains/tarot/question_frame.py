@@ -557,15 +557,53 @@ _BACKGROUND = re.compile(
 _BACKGROUND_END = re.compile(r"[,;.!?…]|(?<!\w)(?:hay|hoặc|thì)(?!\w)")
 
 
+# What marks the clause that carries the question: a question mark, a question word, or a
+# final question particle ("... không?", "... chưa?").
+_ASKS = re.compile(
+    r"\?|(?<!\w)(?:có nên|nên|liệu|có phải|làm sao|thế nào|bao giờ|khi nào|vì sao|tại sao|"
+    r"hay không)(?!\w)|(?<!\w)(?:không|chưa|nhỉ|à|hả)\s*[.!…]*\s*$"
+)
+
+
+def _asked_segments(text: str) -> str:
+    """Drop fronted background segments when another segment carries the question.
+
+    The question is split at "," and ";". A segment that opens with a background connector and
+    carries no question mark, question word or final particle is background as a whole, so a
+    "thì", "hay" or "hoặc" inside it never opens the asked clause (Codex #45): in "Khi mình nói
+    chuyện với sếp thì vẫn phải nhận thêm việc, mình có nên nghỉ ngơi không?" rest is asked.
+    With no other segment carrying the question, nothing is dropped here.
+    """
+
+    segments = re.split(r"(?<=[,;])", text)
+    if len(segments) < 2:
+        return text
+    background = [
+        _BACKGROUND.match(segment.lstrip()) is not None and _ASKS.search(segment) is None
+        for segment in segments
+    ]
+    if not any(
+        not is_background and _ASKS.search(segment)
+        for segment, is_background in zip(segments, background, strict=True)
+    ):
+        return text
+    return "".join(
+        segment
+        for segment, is_background in zip(segments, background, strict=True)
+        if not is_background
+    )
+
+
 def target_clause(question: str) -> str:
     """The question with its background clauses removed: what is actually being asked.
 
-    A background clause runs from its connector, through any "rồi" continuation or "nhưng"/"mà"
+    Fronted background segments go first (``_asked_segments``). Within what remains, a
+    background clause runs from its connector, through any "rồi" continuation or "nhưng"/"mà"
     contrast, to the next ``_BACKGROUND_END``. The result is used only to pick closed labels
     (action, topic, goal); it is never stored or returned.
     """
 
-    text = fold(question)
+    text = _asked_segments(fold(question))
     kept: list[str] = []
     position = 0
     for match in _BACKGROUND.finditer(text):
