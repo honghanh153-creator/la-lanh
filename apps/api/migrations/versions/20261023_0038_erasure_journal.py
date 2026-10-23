@@ -28,9 +28,16 @@ def upgrade() -> None:
         ),
     )
     op.create_index("ix_erasure_journal_occurred", "erasure_journal", ["occurred_at"])
+    op.create_table(
+        "erasure_journal_horizon",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("purged_before", sa.DateTime(timezone=True), nullable=False),
+    )
     if op.get_bind().dialect.name == "postgresql":
         op.execute("ALTER TABLE public.erasure_journal ENABLE ROW LEVEL SECURITY")
         op.execute("REVOKE ALL ON TABLE public.erasure_journal FROM PUBLIC")
+        op.execute("ALTER TABLE public.erasure_journal_horizon ENABLE ROW LEVEL SECURITY")
+        op.execute("REVOKE ALL ON TABLE public.erasure_journal_horizon FROM PUBLIC")
         op.execute("""
             DO $protect$ DECLARE browser_role text;
             BEGIN
@@ -38,6 +45,8 @@ def upgrade() -> None:
                 IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = browser_role) THEN
                   EXECUTE format(
                     'REVOKE ALL ON TABLE public.erasure_journal FROM %I', browser_role);
+                  EXECUTE format(
+                    'REVOKE ALL ON TABLE public.erasure_journal_horizon FROM %I', browser_role);
                 END IF;
               END LOOP;
             END $protect$;

@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.domains.erasure_journal.tables import ErasureJournalRow
+from app.domains.erasure_journal.tables import ErasureJournalHorizonRow, ErasureJournalRow
 from app.main import create_app
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -41,9 +41,15 @@ def test_migration_creates_a_private_table_matching_the_model() -> None:
     assert 'down_revision: str | Sequence[str] | None = "20261018_0037"' in source
     assert "ENABLE ROW LEVEL SECURITY" in source
     assert "REVOKE ALL ON TABLE public.erasure_journal FROM PUBLIC" in source
+    assert "ALTER TABLE public.erasure_journal_horizon ENABLE ROW LEVEL SECURITY" in source
+    assert "REVOKE ALL ON TABLE public.erasure_journal_horizon FROM PUBLIC" in source
+    assert "'REVOKE ALL ON TABLE public.erasure_journal_horizon FROM %I'" in source
     assert "'anon', 'authenticated'" in source
     for column in ErasureJournalRow.__table__.columns:
         assert f'"{column.name}"' in source, column.name
+    for column in ErasureJournalHorizonRow.__table__.columns:
+        assert f'"{column.name}"' in source, column.name
+    assert {c.name for c in ErasureJournalHorizonRow.__table__.columns} == {"id", "purged_before"}
     # Pseudonymous facts only: no content-bearing column.
     assert {c.name for c in ErasureJournalRow.__table__.columns} == {
         "id", "kind", "subject_digest", "scope", "occurred_at",

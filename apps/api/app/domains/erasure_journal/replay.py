@@ -2,8 +2,10 @@
 
 Checkpoint: each journal row commits in the same transaction as its erasure, and database dumps
 keep the journal's rows. A restored copy therefore holds exactly the journal entries whose
-erasures its snapshot already reflects, whatever the wall-clock times. Replay applies only the
-exported entries that the restored copy does not hold, then records them.
+erasures its snapshot already reflects, whatever the wall-clock times. Rows that retention purged
+are covered by the purge horizon, recorded in the purge's own transaction and so also in the
+snapshot. Replay applies only the exported entries that the restored copy neither holds nor
+covers by its horizon, then records them.
 
 Restore order (runbook): export the live journal if the database is still readable; restore the
 dump; `replay` every exported journal file; run the guest and expired cleanups (option C);
@@ -27,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.domains.birth.postgres import PostgresBirthRepository
 from app.domains.content_rewrite.tables import ContentRewriteJobRow
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
-from app.domains.erasure_journal.tables import ErasureJournalRow
+from app.domains.erasure_journal.tables import ErasureJournalHorizonRow, ErasureJournalRow
 from app.domains.guest.models import GuestState
 from app.domains.guest.postgres import PostgresGuestRepository
 from app.domains.guest.tables import GuestSessionRow
@@ -120,11 +122,30 @@ def parse_entries(lines: Iterable[str]) -> list[JournalEntry]:
 
 
 async def purge_entries(sessions: async_sessionmaker[AsyncSession], *, before: datetime) -> int:
+    """Drop entries older than ``before`` and record that horizon in the same transaction.
+
+    A snapshot holding the horizon reflects every entry older than it: such an entry committed
+    within seconds of its time (requests time out), long before a purge that runs at least the
+    retention period later. Replay therefore treats a missing row older than the horizon as
+    reflected, never as an erasure to apply again.
+    """
+
     async with sessions() as session, session.begin():
         result = await session.execute(
             delete(ErasureJournalRow).where(ErasureJournalRow.occurred_at < before)
         )
+        horizon = await session.get(ErasureJournalHorizonRow, 1, with_for_update=True)
+        if horizon is None:
+            session.add(ErasureJournalHorizonRow(id=1, purged_before=before))
+        elif horizon.purged_before < before:
+            horizon.purged_before = before
         return int(cast(CursorResult[Any], result).rowcount or 0)
+
+
+async def _purge_horizon(sessions: async_sessionmaker[AsyncSession]) -> datetime | None:
+    async with sessions() as session:
+        horizon = await session.get(ErasureJournalHorizonRow, 1)
+        return horizon.purged_before if horizon is not None else None
 
 
 async def _subjects(
@@ -163,9 +184,10 @@ async def replay(
     """Re-apply every exported erasure that the restored snapshot does not already reflect.
 
     An entry the restored copy holds committed with its erasure before the snapshot, so it is
-    skipped ("reflected"); data created afterwards stays. Any other entry is applied through the
-    same repository code, built without a journal, and only then recorded, so an interrupted
-    replay re-applies it next time. Every step is idempotent.
+    skipped ("reflected"); data created afterwards stays. So is an entry older than the restored
+    copy's purge horizon: its row was purged, not missing (see ``purge_entries``). Any other
+    entry is applied through the same repository code, built without a journal, and only then
+    recorded, so an interrupted replay re-applies it next time. Every step is idempotent.
     """
 
     guests = PostgresGuestRepository(sessions)
@@ -175,10 +197,12 @@ async def replay(
     matching = PostgresMatchingRepository(sessions, envelope)
     subjects: dict[ErasureKind, dict[bytes, UUID]] = {}
     report = ReplayReport()
+    horizon = await _purge_horizon(sessions)
     for entry in parse_entries(lines):
         kind = entry.kind
         report.entries[kind.value] += 1
-        if await _held(sessions, entry):
+        if (horizon is not None and entry.occurred_at < horizon) or await _held(sessions, entry):
+            # Held, or purged from this snapshot's own journal: either way already reflected.
             report.reflected[kind.value] += 1
             continue
         if kind not in subjects:
