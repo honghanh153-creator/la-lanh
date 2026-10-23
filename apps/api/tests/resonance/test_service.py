@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, select, text, update
 
 from app.db.session import Database
 from app.domains.daily.models import (
@@ -266,3 +266,63 @@ async def test_guest_deletion_cascades_feedback_and_consent(storage) -> None:  #
             )
             == 0
         )
+
+
+@pytest.mark.asyncio
+async def test_clear_takes_the_owner_lock_before_deleting(storage) -> None:  # type: ignore[no-untyped-def]
+    """P03 RC-14: clear/withdraw orders itself against feedback writes with the same guest lock,
+    taken before the delete, so an in-flight write cannot survive a successful withdrawal."""
+
+    database, repository, service, envelope = storage
+    guest_id, note_id = await _owner_with_note(database, envelope)
+    await service.record(
+        guest_id=guest_id,
+        daily_note_id=note_id,
+        revision_id=None,
+        choice=ResonanceChoice.HIT,
+        background_lens=BackgroundLens.WORK,
+        consent_version="reading-resonance-v1",
+        now=NOW,
+    )
+    events: list[str] = []
+    lock = repository._lock_owner
+
+    async def spy_lock(session, owner):  # type: ignore[no-untyped-def]
+        events.append("lock")
+        return await lock(session, owner)
+
+    async def spy_after_clear() -> None:
+        async with database.sessions() as session:
+            remaining = await session.scalar(select(func.count()).select_from(ResonanceFeedbackRow))
+        events.append(f"deleted:{remaining == 0}")
+
+    repository._lock_owner = spy_lock
+    repository._after_clear = spy_after_clear
+    await repository.clear_with_consent(guest_id, revoke_consent=True, now=NOW)
+    # The lock comes first; the delete happens inside the same transaction after it.
+    assert events[0] == "lock" and len(events) == 2
+
+
+@pytest.mark.asyncio
+async def test_status_reports_nothing_after_consent_is_withdrawn(storage) -> None:  # type: ignore[no-untyped-def]
+    database, _repository, service, envelope = storage
+    guest_id, note_id = await _owner_with_note(database, envelope)
+    await service.record(
+        guest_id=guest_id,
+        daily_note_id=note_id,
+        revision_id=None,
+        choice=ResonanceChoice.MISS,
+        background_lens=BackgroundLens.WORK,
+        consent_version="reading-resonance-v1",
+        now=NOW,
+    )
+    # A row that survived (e.g. a write that raced an older withdrawal) is never reported back.
+    async with database.sessions() as session, session.begin():
+        await session.execute(
+            update(ConsentRow)
+            .where(ConsentRow.guest_id == guest_id)
+            .values(revoked_at=NOW + timedelta(minutes=1))
+        )
+    status = await service.status(guest_id, now=NOW + timedelta(minutes=2))
+    assert status.consented is False
+    assert status.feedback_count == 0 and status.last_choice is None
