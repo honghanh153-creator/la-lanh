@@ -28,7 +28,9 @@ Mục tiêu:
 
 Không mục tiêu (giữ nguyên từ US-22 AC04 và audit):
 - Không điểm tổng, không cộng/trung bình ba chỉ báo, không "% hợp", không xác suất thành công.
-- Không ép số lên 100 cho vui mắt; không làm tròn lên ở biên.
+- Không ép số lên 100 cho vui mắt: không làm tròn theo bội số (5, 10) và không kéo biên về 0/100. Chính sách biên duy
+  nhất là **làm tròn ra ngoài tới số nguyên gần nhất** (mục 5): khoảng hiển thị luôn chứa khoảng chưa làm tròn, nên
+  `100` chỉ hiện khi `high_raw > 99` và `0` chỉ khi `low_raw < 1`.
 - Không đổi kết quả đã lưu (frozen); không đọc lại bằng công thức mới.
 
 ## 3. Định nghĩa
@@ -68,10 +70,11 @@ Với mỗi kênh `c ∈ {resonance, coordination, friction}`:
 - Nửa độ rộng: `w = 4 + 10/√n_c + 25·spread_c + (6 nếu u)`, kẹp `[5, 20]`.
 - Giá trị chưa làm tròn: `low_raw = max(0, m − w)`, `high_raw = min(100, m + w)`. Implementation **giữ hai giá trị này**
   (metadata kiểm thử) để test kiểm được biên thật, không bị phép kẹp che đi.
-- Khoảng hiển thị: số nguyên làm tròn **ra ngoài**: `low = floor(low_raw)`, `high = ceil(high_raw)`, với một quy tắc
-  biên: **`high = 100` chỉ khi `high_raw > 99`**; nếu `high_raw ≤ 99` thì `high = min(ceil(high_raw), 99)`. Tương tự
-  `low = 0` chỉ khi `low_raw < 1`. Như vậy khoảng không bao giờ hẹp hơn bằng chứng quá 1 đơn vị và không chạm 0/100
-  chỉ vì làm tròn. (Bản trước làm tròn bội số 5 có thể đẩy 95,08 lên 100, trái AC3; đã bỏ.)
+- Khoảng hiển thị: số nguyên làm tròn **ra ngoài**, không có quy tắc biên nào khác: `low = floor(low_raw)`,
+  `high = ceil(high_raw)`. Hệ quả: `[low, high]` luôn chứa `[low_raw, high_raw]` và rộng hơn tối đa 1 đơn vị mỗi đầu;
+  `high = 100` khi và chỉ khi `high_raw > 99` (ví dụ `99,000001 → 100`, `99 → 99`); `low = 0` khi và chỉ khi
+  `low_raw < 1`. Đây là làm tròn ra ngoài một bước, không phải kéo lên biên. (Bản trước làm tròn bội số 5 có thể đẩy
+  95,08 lên 100, trái AC3; đã bỏ.)
 - `n_c < 2` hoặc cặp low-signal (`_motifs` rỗng): **không có khoảng**, giữ câu "Chưa đủ tín hiệu riêng…" hiện có.
 - Ví dụ minh hoạ (không phải dữ liệu thật): `raw` ở p92, `n = 5`, `spread = 0,1`, có giờ → `m ≈ 84`, `w ≈ 10,97`
   → `low_raw ≈ 73,03`, `high_raw ≈ 94,97` → hiện `73–95`.
@@ -92,8 +95,9 @@ Với mỗi kênh `c ∈ {resonance, coordination, friction}`:
    tính trên lưới `raw`). Không khẳng định đơn điệu của cả khoảng khi `spread` hoặc `n` cũng đổi.
 2. Tái lập: cùng bundle ⇒ cùng khoảng; phân vị tham chiếu sinh lại từ seed khớp bản đã lưu.
 3. Trên tham chiếu: cặp ở top 2,5% có `high ≥ 90`; trung vị nằm quanh 50–60. `high = 100` khi và chỉ khi
-   `high_raw > 99`, `low = 0` khi và chỉ khi `low_raw < 1` (test giữ giá trị chưa làm tròn, gồm phản ví dụ
-   `m=82, n=6, spread=0,2, u=false` ⇒ `high = 96`).
+   `high_raw > 99`, `low = 0` khi và chỉ khi `low_raw < 1`, đúng theo `floor`/`ceil` ở mục 5 (test giữ giá trị chưa
+   làm tròn, gồm phản ví dụ `m=82, n=6, spread=0,2, u=false` ⇒ `high = 96`, và biên `high_raw = 99,000001 ⇒ 100`,
+   `high_raw = 99 ⇒ 99`).
 4. Độ rộng: không rõ giờ ⇒ khoảng không hẹp hơn cùng cặp có giờ; `n_c` giảm ⇒ khoảng không hẹp hơn.
 5. Low-signal và `n_c < 2` ⇒ `range = null` và câu trung thực hiện có.
 6. Không có trường nào cộng ba chỉ báo; copy không có "%", "điểm hợp", "xác suất".
