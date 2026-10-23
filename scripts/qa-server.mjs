@@ -77,7 +77,14 @@ function sendJson(response, status, value) {
 }
 
 function proxyRequest(request, response, apiOrigin) {
-  const target = new URL(request.url ?? "/", apiOrigin);
+  // Only the path and query travel upstream. A scheme-relative request target such as
+  // "//other.example/v1/..." must not replace the configured API origin (audit P03 RC-10).
+  const local = new URL(request.url ?? "/", "http://127.0.0.1");
+  const target = new URL(`${local.pathname}${local.search}`, apiOrigin);
+  if (target.origin !== new URL(apiOrigin).origin) {
+    sendJson(response, 400, { status: "bad_request" });
+    return;
+  }
   const upstream = requestUpstream(target, {
     method: request.method,
     headers: { ...request.headers, host: target.host },
