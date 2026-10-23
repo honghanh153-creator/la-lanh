@@ -566,8 +566,6 @@ _ASKS = re.compile(
 )
 # After a fronted condition, "thì" opens the main clause when a modal question follows it.
 _THEN_ASKS = re.compile(r"^\s*thì\s+(?:\w+\s+){0,2}?(?:có\s+)?nên(?!\w)")
-# A segment that only continues the background before it ("…, rồi phải nhận thêm việc, …").
-_CONTINUES = re.compile(r"^\s*(?:rồi|nhưng|mà|và|xong|sau đó|lại|còn|vẫn|hay|hoặc)(?!\w)")
 
 
 def _strip_background(text: str) -> str:
@@ -588,38 +586,61 @@ def _strip_background(text: str) -> str:
     return "".join(kept)
 
 
-def _asked_segments(text: str) -> str:
-    """Remove fronted background segments; keep the clause that asks (Codex #45).
+# The main clause offers alternatives ("…, hay nhận thêm việc?"): the one before it is asked too.
+_CHOICE = re.compile(r"^\s*(?:hay|hoặc)(?!\w)")
 
-    The question is split at "," and ";". The last segment ends the question and is always kept.
-    An earlier segment that opens with a background connector is background, including any
-    question it reports ("Sau khi sếp hỏi có nên …"): only what remains after its own background
-    is kept, and only when that remainder opens the asked clause ("… thì mình có nên …", a
-    question word or particle). While in background, a following segment that merely continues
-    it ("rồi", "nhưng", "mà", …) without asking is background too. Any other segment starts the
-    asked clause. When the last segment asks nothing, the text is left to the clause rules.
+
+def _names_action(text: str) -> bool:
+    return match_action(text) is not None or _mentions_negated_action(text)
+
+
+def _asked_segments(text: str) -> str:
+    """The reader's own question, by ownership rather than by question markers (Codex #45).
+
+    A question mark or "có nên" shows that a segment is interrogative, not whose question it is:
+    "Sau khi sếp hỏi có nên nói chuyện, rồi sếp hỏi mình có nên nhận thêm việc, mình có nên nghỉ
+    ngơi không?" reports two questions and asks one. Split at "," and ";":
+
+    - trailing segments that open with a background connector ("…, khi sếp vẫn giao việc?") are
+      background; the reader's question is the last segment before them;
+    - when that question offers alternatives ("…, hay …?"), the alternative before it is asked too;
+    - every earlier segment is background, whatever it asks or reports;
+    - only when the question names no action of its own ("…, mình có nên không?") does it borrow
+      one: from the plain statements just before it, or else from a "thì …" clause that a fronted
+      background opens. Otherwise nothing is borrowed and the label stays None (clarify).
+
+    With no background segment and no other question before the end, commas only separate a
+    list or plain statements, and the text is left to the clause rules unchanged.
     """
 
     segments = re.split(r"(?<=[,;])", text)
     if len(segments) < 2 or _ASKS.search(segments[-1]) is None:
         return text
-    kept: list[str] = []
-    in_background = False
-    for index, segment in enumerate(segments):
-        last = index == len(segments) - 1
-        if not last and _BACKGROUND.match(segment.lstrip()):
-            remainder = _strip_background(segment)
+    if not any(
+        _BACKGROUND.match(segment.lstrip()) or _ASKS.search(segment) for segment in segments[:-1]
+    ):
+        # No background and no other question before the end: commas only separate a list or
+        # plain statements ("chia việc, công sức và lịch gặp"), so the clause rules decide.
+        return text
+    end = len(segments)
+    while end > 1 and _BACKGROUND.match(segments[end - 1].lstrip()):
+        end -= 1
+    start = end - 1
+    while start > 0 and _CHOICE.match(segments[start]):
+        start -= 1
+    asked = segments[start:end]
+    if start > 0 and not _names_action(_strip_background("".join(asked))):
+        index = start - 1
+        while index >= 0 and not _BACKGROUND.match(segments[index].lstrip()):
+            if _ASKS.search(segments[index]):
+                break  # another (reported) question is not an antecedent
+            asked = [segments[index], *asked]
+            index -= 1
+        if index >= 0 and len(asked) == end - start and _BACKGROUND.match(segments[index].lstrip()):
+            remainder = _strip_background(segments[index])
             if _ASKS.search(remainder) or _THEN_ASKS.search(remainder):
-                kept.append(remainder)
-                in_background = False
-            else:
-                in_background = True
-            continue
-        if not last and in_background and _CONTINUES.match(segment) and not _ASKS.search(segment):
-            continue
-        in_background = False
-        kept.append(segment)
-    return "".join(kept)
+                asked = [remainder, *asked]
+    return "".join(asked)
 
 
 def target_clause(question: str) -> str:

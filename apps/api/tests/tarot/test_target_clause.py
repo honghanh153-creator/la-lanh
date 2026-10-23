@@ -294,6 +294,22 @@ def test_a_contrast_inside_a_background_never_supplies_the_action(
             "Khi sếp giao việc, nhưng vẫn phải nhận thêm việc, mình có nên nghỉ ngơi không?",
             TarotAction.NGHI_NGOI,
         ),
+        # Codex #45 @ c912caf: a question reported in a later segment ("rồi sếp hỏi mình có nên …",
+        # or with no connector at all) is still not the reader's question.
+        (
+            "Sau khi sếp hỏi có nên nói chuyện, rồi sếp hỏi mình có nên nhận thêm việc, "
+            "mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Sau khi sếp hỏi có nên nói chuyện, sếp lại hỏi mình có nên nhận thêm việc, "
+            "mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Sếp hỏi mình có nên nhận thêm việc không, mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
         # Controls: "thì" opening the asked clause, and a background whose action is not asked.
         ("Khi nói chuyện với sếp thì mình có nên nghỉ ngơi không?", TarotAction.NGHI_NGOI),
         ("Khi sếp giao thêm việc, mình có nên nhận lời không?", TarotAction.NHAN_LOI),
@@ -326,4 +342,23 @@ def test_the_clause_carrying_the_question_supplies_the_action(
 def test_an_asked_clause_after_then_inside_a_fronted_segment_is_kept(
     question: str, expected: TarotAction
 ) -> None:
+    assert question_frame.match_action(question_frame.asked_text(question)) is expected
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        # The reader's question names no action and points back at a plain statement before it.
+        ("Sếp muốn mình nhận thêm việc, mình có nên không?", TarotAction.NHAN_LOI),
+        # It points back at a background clause only: no action is owned by the question, so the
+        # label is None (clarify) rather than a guess from the background.
+        ("Sau khi sếp giao thêm việc, mình có nên không?", None),
+        # A choice keeps both alternatives as the asked clause.
+        (
+            "Khi mệt, mình nên nghỉ ngơi, hay nhận thêm việc?",
+            question_frame.match_action("mình nên nghỉ ngơi, hay nhận thêm việc?"),
+        ),
+    ],
+)
+def test_the_question_owns_its_action_or_none(question: str, expected: TarotAction | None) -> None:
     assert question_frame.match_action(question_frame.asked_text(question)) is expected
