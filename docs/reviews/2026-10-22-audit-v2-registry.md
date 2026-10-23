@@ -96,6 +96,16 @@ not Supabase, migration or live certification).
 
 ## Combined-branch checks (local, not pushed)
 
+### Author's local code-cohort check (revision 5)
+
+Local head `b4cb913fa8acd33e69a1ef6f6ad26715796bf522` (not pushed) = `collab/integration` `b5e4427` + #45 `c912caf`,
+#48 `3e120f5`, #70 `4c08e3c`, #71 `58192de`, #72 `ebd99a7`, #73 `46059af`, #77 `2573e5b`, #78 `8173a20`, merged in
+that order. One textual conflict, the Luna runbook (#71 and #73 add a bullet at the same place: keep both). Docs-only
+#60, #64 and #69 are not in it. `CI=1 pnpm check`, first run, exit 0: audits, contracts, privacy guard, grammar,
+fallback approval, web 76 files / 498 tests, API 2490 passed / 57 skipped / 1 xfailed (the R06 strict xfail, not a
+pass), QA smoke, E2E 8/8. Author's local synthetic run only: not re-run by Codex, not a release or runtime proof, and
+any later head change makes it stale.
+
 ### Author's local code-cohort check (revision 4)
 
 Local head `c65145ac077fa1ef94ab9770b047f9ade4aee72d` (not pushed) = `collab/integration` `b5e4427` + #45 `7328572`,
