@@ -118,3 +118,61 @@ def test_radar_rewrite_rejects_fate_probability_and_manipulation_copy() -> None:
     output = _valid_output(baseline)
     output["prompt"] = "Hãy thử lòng bằng cách theo dõi họ trong vài ngày."
     assert rewrite_radar_projection(baseline, cast(dict[str, JsonValue], output)) is None
+
+
+# --- Luna sprint S3: Radar merge gates on par with Tarot -------------------------------------
+
+
+def _rewrite(baseline: dict[str, object], output: dict[str, object], context: str = "crush"):  # type: ignore[no-untyped-def]
+    return rewrite_radar_projection(baseline, cast(dict[str, JsonValue], output), context=context)
+
+
+def test_radar_rewrite_rejects_a_negated_source_claim() -> None:
+    baseline = _projection()
+    output = _valid_output(baseline)
+    output["strengths"] = [
+        "Không nên tin vào sức hút và cách thể hiện sự thích; điểm dễ đi cùng nhất không nằm ở đó."
+    ]
+    assert _rewrite(baseline, output) is None
+
+
+def test_radar_rewrite_rejects_mind_reading_and_judgement_labels() -> None:
+    baseline = _projection()
+    for text in (
+        "Người kia chắc chắn đang để ý bạn qua sức hút và cách thể hiện sự thích.",
+        "Họ đang nghĩ về bạn nhiều hơn bạn tưởng, sức hút và cách thể hiện sự thích rất rõ.",
+        "Đây là một red flag về sức hút và cách thể hiện sự thích giữa hai người.",
+    ):
+        output = _valid_output(baseline)
+        output["strengths"] = [text]
+        assert _rewrite(baseline, output) is None, text
+
+
+def test_radar_rewrite_keeps_the_chosen_relationship_context() -> None:
+    baseline = _projection()  # rendered for context "crush"
+    output = _valid_output(baseline)
+    output["overview"] = f"Với người yêu của bạn, {baseline['summary']}"
+    assert _rewrite(baseline, output, context="crush") is None
+    assert _rewrite(baseline, _valid_output(baseline), context="crush") is not None
+
+
+def test_radar_rewrite_rejects_duplicate_items() -> None:
+    baseline = _projection()
+    output = _valid_output(baseline)
+    fit = _section(baseline, "fit")["body"]
+    output["strengths"] = [fit, fit]
+    assert _rewrite(baseline, output) is None
+
+
+def test_radar_rewrite_leaves_highlights_and_contact_lines_untouched() -> None:
+    """Contact-specific sentences (R03) live in highlights; Luna rewrites section bodies only."""
+
+    baseline = _projection()
+    fit = _section(baseline, "fit")
+    highlights = fit["highlights"]
+    assert isinstance(highlights, list) and highlights
+    highlights[0]["contact_lines"] = [{"text": "synthetic contact line", "evidence_id": "syn:x"}]
+    before = json.loads(json.dumps(fit["highlights"], ensure_ascii=False))
+    candidate = _rewrite(baseline, _valid_output(baseline))
+    assert candidate is not None
+    assert _section(candidate, "fit")["highlights"] == before
