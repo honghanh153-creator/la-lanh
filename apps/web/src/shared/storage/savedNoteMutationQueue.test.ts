@@ -11,7 +11,7 @@ import {
   retireSupersededIntents,
   SAVED_INTENT_TTL_MS,
 } from "./savedNoteMutationQueue";
-import { invalidateSessionRequests, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
+import { invalidateSessionRequests, SESSION_EPOCH_KEY, sessionGeneration } from "../session/sessionIdentity";
 
 describe("saved note mutation queue", () => {
   beforeEach(() => {
@@ -189,22 +189,24 @@ describe("saved note mutation queue", () => {
 
   it("keeps ordering facts minimal, for an hour, and removes them with the queue", async () => {
     const started = Date.now() - 1_000;
-    await acknowledgeSavedMutation("epoch-a", "note-a", started);
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
+    const owner = (sessionEpoch: string, startedAt: number) => ({ sessionEpoch, generation: sessionGeneration(), startedAt });
+    await acknowledgeSavedMutation(owner("epoch-a", started), "note-a");
     const stored = JSON.parse(localStorage.getItem("la-lanh-saved-note-acks-v1") ?? "[]") as Record<string, unknown>[];
     expect(stored).toHaveLength(1);
     expect(Object.keys(stored[0] ?? {}).sort()).toEqual(["acked_start", "daily_note_id", "recorded_at", "session_epoch"]);
     // An older failure is fenced; a call that started after the ACK still queues.
-    await enqueueFailedSavedMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-a", intent: "save", startedAt: started - 1 });
+    await enqueueFailedSavedMutation(owner("epoch-a", started - 1), { dailyNoteId: "note-a", intent: "save" });
     expect(readSavedNoteMutationQueue()).toHaveLength(0);
-    await enqueueFailedSavedMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-a", intent: "save", startedAt: started + 1 });
+    await enqueueFailedSavedMutation(owner("epoch-a", started + 1), { dailyNoteId: "note-a", intent: "save" });
     expect(readSavedNoteMutationQueue()).toHaveLength(1);
-    // Another session's call is not fenced by this owner's ACK.
-    await enqueueFailedSavedMutation({ sessionEpoch: "epoch-b", dailyNoteId: "note-a", intent: "unsave", startedAt: started - 1 });
-    expect(readSavedNoteMutationQueue()).toHaveLength(2);
+    // A call owned by a session this tab no longer has writes nothing.
+    await enqueueFailedSavedMutation(owner("epoch-b", started - 1), { dailyNoteId: "note-a", intent: "unsave" });
+    expect(readSavedNoteMutationQueue()).toHaveLength(1);
     // After an hour the fact is gone, so it cannot block anything any more.
     vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60 * 60 * 1000 + 1);
-    await enqueueFailedSavedMutation({ sessionEpoch: "epoch-a", dailyNoteId: "note-b", intent: "save", startedAt: started - 1 });
-    await acknowledgeSavedMutation("epoch-a", "note-c", Date.now());
+    await enqueueFailedSavedMutation(owner("epoch-a", started - 1), { dailyNoteId: "note-b", intent: "save" });
+    await acknowledgeSavedMutation(owner("epoch-a", Date.now()), "note-c");
     const later = JSON.parse(localStorage.getItem("la-lanh-saved-note-acks-v1") ?? "[]") as Record<string, unknown>[];
     expect(later.map((ack) => ack.daily_note_id)).toEqual(["note-c"]);
     clearSavedNoteMutationQueue();

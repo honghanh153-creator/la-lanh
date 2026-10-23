@@ -32,6 +32,9 @@ type EnqueueInput = {
 // {session_epoch, daily_note_id, acked_start} for an hour (a direct call times out after 15 s),
 // and both recording it and queueing a failed call happen under one Web Lock for all tabs.
 const ACK_KEY = "la-lanh-saved-note-acks-v1";
+// When this device's saved-note data was last cleared (a time only, nothing else). Callbacks of
+// calls that started earlier write nothing afterwards, in this tab or any other (Codex #48).
+const CLEARED_KEY = "la-lanh-saved-note-cleared-at-v1";
 const ACK_TTL_MS = HOUR_MS;
 const QUEUE_LOCK = "la-lanh-saved-note-queue-v1";
 
@@ -67,6 +70,26 @@ function readAcks(now: number): SavedAck[] {
 function writeAcks(acks: SavedAck[]): void {
   if (acks.length === 0) localStorage.removeItem(ACK_KEY);
   else localStorage.setItem(ACK_KEY, JSON.stringify(acks.slice(-MAX_INTENTS)));
+}
+
+/** Who made a direct call, captured when it started: checked again just before any write. */
+export type SavedCallOwner = { sessionEpoch: string; generation: number; startedAt: number };
+
+function clearedSince(startedAt: number, now: number): boolean {
+  const raw = localStorage.getItem(CLEARED_KEY);
+  if (raw === null) return false;
+  const clearedAt = Number(raw);
+  if (!Number.isFinite(clearedAt) || now - clearedAt >= ACK_TTL_MS) {
+    localStorage.removeItem(CLEARED_KEY); // older than any call still in flight
+    return false;
+  }
+  return clearedAt >= startedAt;
+}
+
+function stillOwned(owner: SavedCallOwner): boolean {
+  return sessionGeneration() === owner.generation
+    && currentSessionEpoch() === owner.sessionEpoch
+    && !clearedSince(owner.startedAt, Date.now());
 }
 
 function withQueueLock(work: () => void): Promise<void> {
@@ -190,8 +213,11 @@ export function retireSupersededIntents(sessionEpoch: string, dailyNoteId: strin
  * The server accepted a direct call that started at ``startedAt``. In every tab, older queued
  * intents for that note retire, and an older call still in flight can no longer queue a retry.
  */
-export function acknowledgeSavedMutation(sessionEpoch: string, dailyNoteId: string, startedAt: number): Promise<void> {
+export function acknowledgeSavedMutation(owner: SavedCallOwner, dailyNoteId: string): Promise<void> {
+  const { sessionEpoch, startedAt } = owner;
   return withQueueLock(() => {
+    // Re-checked inside the lock: a device clear or owner change while waiting wins.
+    if (!stillOwned(owner)) return;
     const now = Date.now();
     const others = readAcks(now).filter((ack) => !(ack.session_epoch === sessionEpoch && ack.daily_note_id === dailyNoteId));
     const previous = readAcks(now).find((ack) => ack.session_epoch === sessionEpoch && ack.daily_note_id === dailyNoteId);
@@ -206,13 +232,27 @@ export function acknowledgeSavedMutation(sessionEpoch: string, dailyNoteId: stri
 }
 
 /** Queue a failed direct call for retry unless a call for the same note started later and was acknowledged. */
-export function enqueueFailedSavedMutation(input: EnqueueInput & { startedAt: number }): Promise<void> {
+export function enqueueFailedSavedMutation(
+  owner: SavedCallOwner,
+  input: Omit<EnqueueInput, "sessionEpoch" | "startedAt">,
+): Promise<void> {
   return withQueueLock(() => {
-    const superseded = readAcks(Date.now()).some((ack) => ack.session_epoch === input.sessionEpoch
+    if (!stillOwned(owner)) return;
+    const superseded = readAcks(Date.now()).some((ack) => ack.session_epoch === owner.sessionEpoch
       && ack.daily_note_id === input.dailyNoteId
-      && ack.acked_start >= input.startedAt);
-    if (!superseded) enqueueSavedNoteMutation(input);
+      && ack.acked_start >= owner.startedAt);
+    if (!superseded) {
+      enqueueSavedNoteMutation({ ...input, sessionEpoch: owner.sessionEpoch, startedAt: owner.startedAt });
+    }
   });
+}
+
+/**
+ * Device clear: calls that started before now write nothing afterwards, in any tab, even if the
+ * same session epoch comes back. Guest deletion does not need it: it removes the epoch itself.
+ */
+export function fenceSavedNoteCallbacks(): void {
+  localStorage.setItem(CLEARED_KEY, String(Date.now()));
 }
 
 export function clearSavedNoteMutationQueue(): void {

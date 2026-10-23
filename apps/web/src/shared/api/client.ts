@@ -15,6 +15,7 @@ import {
   clearSavedNoteMutationQueue,
   enqueueFailedSavedMutation,
   flushSavedNoteMutations,
+  type SavedCallOwner,
   type SavedNoteMutationIntent,
 } from "../storage/savedNoteMutationQueue";
 
@@ -905,37 +906,30 @@ export async function listSavedNotes(signal?: AbortSignal): Promise<SavedNote[]>
   return request<SavedNote[]>("/saved-notes", { signal });
 }
 
-async function retireAfterAck(startEpoch: string | null, dailyNoteId: string, startedAt: number): Promise<void> {
-  // Only for the owner that made the call; a session change in between leaves the queue alone.
-  if (startEpoch && startEpoch === currentSessionEpoch()) {
-    await acknowledgeSavedMutation(startEpoch, dailyNoteId, startedAt);
-  }
+function beginSavedCall(): SavedCallOwner | null {
+  const sessionEpoch = currentSessionEpoch();
+  return sessionEpoch
+    ? { sessionEpoch, generation: sessionGeneration(), startedAt: beginSavedNoteMutation() }
+    : null;
 }
 
 export async function saveDailyNote(
   dailyNoteId: string,
   revisionId: string | null = currentDailyRevisionId(),
 ): Promise<SavedNote> {
-  const startEpoch = currentSessionEpoch();
-  const startedAt = beginSavedNoteMutation();
+  const owner = beginSavedCall();
   try {
     const saved = await request<SavedNote>(`/daily-note/${dailyNoteId}/saved`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...csrfHeader() },
       body: JSON.stringify({ revision_id: revisionId }),
     });
-    await retireAfterAck(startEpoch, dailyNoteId, startedAt);
+    // Only for the owner that made the call; the queue re-checks it inside its lock.
+    if (owner) await acknowledgeSavedMutation(owner, dailyNoteId);
     return saved;
   } catch (error) {
-    const epoch = currentSessionEpoch();
-    if (epoch && isConnectivityFailure(error)) {
-      await enqueueFailedSavedMutation({
-        sessionEpoch: epoch,
-        dailyNoteId,
-        revisionId,
-        intent: "save",
-        startedAt,
-      });
+    if (owner && isConnectivityFailure(error)) {
+      await enqueueFailedSavedMutation(owner, { dailyNoteId, revisionId, intent: "save" });
     }
     throw error;
   }
@@ -945,24 +939,17 @@ export async function unsaveDailyNote(
   dailyNoteId: string,
   revisionId: string | null = currentDailyRevisionId(),
 ): Promise<void> {
-  const startEpoch = currentSessionEpoch();
-  const startedAt = beginSavedNoteMutation();
+  const owner = beginSavedCall();
   try {
     await request<void>(`/daily-note/${dailyNoteId}/saved`, {
       method: "DELETE",
       headers: csrfHeader(),
     });
-    await retireAfterAck(startEpoch, dailyNoteId, startedAt);
+    // Only for the owner that made the call; the queue re-checks it inside its lock.
+    if (owner) await acknowledgeSavedMutation(owner, dailyNoteId);
   } catch (error) {
-    const epoch = currentSessionEpoch();
-    if (!epoch || !isConnectivityFailure(error)) throw error;
-    await enqueueFailedSavedMutation({
-      sessionEpoch: epoch,
-      dailyNoteId,
-      revisionId,
-      intent: "unsave",
-      startedAt,
-    });
+    if (!owner || !isConnectivityFailure(error)) throw error;
+    await enqueueFailedSavedMutation(owner, { dailyNoteId, revisionId, intent: "unsave" });
   }
 }
 
