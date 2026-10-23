@@ -152,6 +152,11 @@ How the code reads these values:
 - Unlisted surfaces stay `off`, so `reveal`/`natal`/`transit_insight`/`tarot` are not enqueued
   even though the same personal consent receipt covers them. Do not add them without a new
   owner decision and copy review.
+- Radar payload (Luna sprint S2, 23/10/2026): section meanings from the approved reading, dimension
+  bands, and evidence items with only label/domain/confidence (`kind` is always
+  `relationship_signal`). No planet, aspect or house label and no technique name (synastry,
+  composite, overlay); `RadarSafePayload` refuses them at enqueue and again before send. Stored
+  readings and their blueprint hash are unchanged. Radar stays out of the allowlist until S5.
 - One Daily job reserves ~5.3k–6.2k tokens and 0.061–0.070 cents before the provider call
   (conservative UTF-8 byte count of the brief + prompt + schema + 512, output cap 220; measured on
   synthetic v7 cards 2026-10-13). Observed real cost is ~0.01 cent per job.
