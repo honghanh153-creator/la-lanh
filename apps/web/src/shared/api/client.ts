@@ -10,6 +10,7 @@ import {
 } from "../session/sessionIdentity";
 import { readCachedDailyNote } from "../storage/noteCache";
 import {
+  beginSavedNoteMutation,
   clearSavedNoteMutationQueue,
   enqueueSavedNoteMutation,
   flushSavedNoteMutations,
@@ -904,9 +905,11 @@ export async function listSavedNotes(signal?: AbortSignal): Promise<SavedNote[]>
   return request<SavedNote[]>("/saved-notes", { signal });
 }
 
-function retireAfterAck(startEpoch: string | null, dailyNoteId: string, startedAt: number): void {
+function retireAfterAck(startEpoch: string | null, dailyNoteId: string, startedAt: number, ticket: number): void {
   // Only for the owner that made the call; a session change in between leaves the queue alone.
-  if (startEpoch && startEpoch === currentSessionEpoch()) retireSupersededIntents(startEpoch, dailyNoteId, startedAt);
+  if (startEpoch && startEpoch === currentSessionEpoch()) {
+    retireSupersededIntents(startEpoch, dailyNoteId, startedAt, ticket);
+  }
 }
 
 export async function saveDailyNote(
@@ -915,13 +918,14 @@ export async function saveDailyNote(
 ): Promise<SavedNote> {
   const startEpoch = currentSessionEpoch();
   const startedAt = Date.now();
+  const ticket = beginSavedNoteMutation();
   try {
     const saved = await request<SavedNote>(`/daily-note/${dailyNoteId}/saved`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...csrfHeader() },
       body: JSON.stringify({ revision_id: revisionId }),
     });
-    retireAfterAck(startEpoch, dailyNoteId, startedAt);
+    retireAfterAck(startEpoch, dailyNoteId, startedAt, ticket);
     return saved;
   } catch (error) {
     const epoch = currentSessionEpoch();
@@ -931,6 +935,7 @@ export async function saveDailyNote(
         dailyNoteId,
         revisionId,
         intent: "save",
+        ticket,
       });
     }
     throw error;
@@ -943,12 +948,13 @@ export async function unsaveDailyNote(
 ): Promise<void> {
   const startEpoch = currentSessionEpoch();
   const startedAt = Date.now();
+  const ticket = beginSavedNoteMutation();
   try {
     await request<void>(`/daily-note/${dailyNoteId}/saved`, {
       method: "DELETE",
       headers: csrfHeader(),
     });
-    retireAfterAck(startEpoch, dailyNoteId, startedAt);
+    retireAfterAck(startEpoch, dailyNoteId, startedAt, ticket);
   } catch (error) {
     const epoch = currentSessionEpoch();
     if (!epoch || !isConnectivityFailure(error)) throw error;
@@ -957,6 +963,7 @@ export async function unsaveDailyNote(
       dailyNoteId,
       revisionId,
       intent: "unsave",
+      ticket,
     });
   }
 }

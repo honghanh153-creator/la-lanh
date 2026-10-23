@@ -22,7 +22,25 @@ type EnqueueInput = {
   dailyNoteId: string;
   revisionId?: string | null;
   intent: SavedNoteMutationIntent["intent"];
+  /** Ticket from beginSavedNoteMutation() for a direct call that failed. */
+  ticket?: number;
 };
+
+// Ordering fence for direct calls (Codex #48): each save/unsave takes a ticket when it starts;
+// an ACK records the newest acknowledged ticket per note. A call that fails after a newer call
+// for the same note was acknowledged queues nothing, so it cannot undo the person's later choice.
+let lastTicket = 0;
+const acknowledgedTicket = new Map<string, number>();
+const fenceKey = (sessionEpoch: string, dailyNoteId: string) => `${sessionEpoch}\u0000${dailyNoteId}`;
+
+export function beginSavedNoteMutation(): number {
+  lastTicket += 1;
+  return lastTicket;
+}
+
+function supersededByAck(sessionEpoch: string, dailyNoteId: string, ticket: number): boolean {
+  return (acknowledgedTicket.get(fenceKey(sessionEpoch, dailyNoteId)) ?? 0) > ticket;
+}
 
 function validIntent(value: unknown): value is SavedNoteMutationIntent {
   if (!value || typeof value !== "object") return false;
@@ -62,6 +80,7 @@ export function readSavedNoteMutationQueue(): SavedNoteMutationIntent[] {
 }
 
 export function enqueueSavedNoteMutation(input: EnqueueInput): void {
+  if (input.ticket !== undefined && supersededByAck(input.sessionEpoch, input.dailyNoteId, input.ticket)) return;
   const revisionId = input.revisionId ?? null;
   const next: SavedNoteMutationIntent = {
     session_epoch: input.sessionEpoch,
@@ -122,7 +141,16 @@ export function dropQueuedSaves(): void {
  * queued save must not re-save a note the person has since unsaved, and vice versa. Newer
  * intents and other sessions' intents stay.
  */
-export function retireSupersededIntents(sessionEpoch: string, dailyNoteId: string, startedAt: number): void {
+export function retireSupersededIntents(
+  sessionEpoch: string,
+  dailyNoteId: string,
+  startedAt: number,
+  ticket?: number,
+): void {
+  if (ticket !== undefined) {
+    const key = fenceKey(sessionEpoch, dailyNoteId);
+    acknowledgedTicket.set(key, Math.max(acknowledgedTicket.get(key) ?? 0, ticket));
+  }
   write(readSavedNoteMutationQueue().filter((item) => !(
     item.session_epoch === sessionEpoch
     && item.daily_note_id === dailyNoteId
@@ -131,5 +159,6 @@ export function retireSupersededIntents(sessionEpoch: string, dailyNoteId: strin
 }
 
 export function clearSavedNoteMutationQueue(): void {
+  acknowledgedTicket.clear();
   localStorage.removeItem(KEY);
 }
