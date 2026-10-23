@@ -1,3 +1,5 @@
+import math
+
 from app.domains.astro.models import Aspect, BodyName, BodyPosition
 
 ASPECTS: tuple[tuple[str, float, float], ...] = (
@@ -47,6 +49,34 @@ def relationship_chart_orb_limit(aspect_kind: str) -> float:
 def angular_distance(first: float, second: float) -> float:
     raw = abs(first - second) % 360.0
     return min(raw, 360.0 - raw)
+
+
+def orb_bounds(
+    domain_a: tuple[float, float], domain_b: tuple[float, float], exact_angle: float
+) -> tuple[float, float]:
+    """``(orb_min, orb_max)`` of an aspect while both longitudes run over their domains.
+
+    Each domain is ``(low, high)`` with ``high`` unwrapped past 360° when it crosses 0°. The
+    signed separation then fills ``[b_low - a_high, b_high - a_low]`` exactly (event-spec/v1
+    §3, §9). The orb is piecewise linear in it, with breakpoints at multiples of 180° (where the
+    angular distance turns) and where the distance equals the aspect angle (orb 0), so both
+    extremes are among the interval ends and those breakpoints.
+    """
+
+    low = domain_b[0] - domain_a[1]
+    high = domain_b[1] - domain_a[0]
+    points = [low, high]
+    turn = math.ceil(low / 180.0)
+    while turn * 180.0 <= high:
+        points.append(turn * 180.0)
+        turn += 1
+    orbs = [abs(angular_distance(point, 0.0) - exact_angle) for point in points]
+    # The orb is 0 where the separation is ±angle (mod 360°); is one of those inside?
+    crosses = any(
+        math.ceil((low - offset) / 360.0) * 360.0 + offset <= high
+        for offset in (exact_angle, -exact_angle)
+    )
+    return (0.0 if crosses else min(orbs)), max(orbs)
 
 
 def calculate_aspects(bodies: tuple[BodyPosition, ...]) -> tuple[Aspect, ...]:

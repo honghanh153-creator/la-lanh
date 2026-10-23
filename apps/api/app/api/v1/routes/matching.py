@@ -94,6 +94,14 @@ def _matching(request: Request) -> MatchingService:
     return cast(MatchingService, request.app.state.matching_service)
 
 
+def _collection_retired(request: Request) -> bool:
+    return not bool(request.app.state.settings.matching_accepting_new_activity)
+
+
+def _retired() -> Response:
+    return Response(status_code=410, headers={"Cache-Control": "no-store, max-age=0"})
+
+
 async def _owner(request: Request) -> OwnerIdentity:
     return await resume_owner_for_guest(request, _identity(request))
 
@@ -179,7 +187,9 @@ async def get_readiness(
     return _readiness_response(value)
 
 
-@router.put("/profile", response_model=MatchingProfileResponse, responses={401: {}, 403: {}})
+@router.put(
+    "/profile", response_model=MatchingProfileResponse, responses={401: {}, 403: {}, 410: {}}
+)
 async def put_profile(
     payload: MatchingProfileInput,
     request: Request,
@@ -191,6 +201,8 @@ async def put_profile(
         return _problem(422, "MATCHING_AGE_RANGE_INVALID", "Khoảng tuổi chưa hợp lệ")
     try:
         owner = await _owner_mutation(request, csrf_token)
+        if _collection_retired(request):
+            return _retired()
         profile = await _matching(request).save_profile(
             owner.principal_id,
             display_name=payload.display_name,
@@ -209,7 +221,7 @@ async def put_profile(
     return _profile_response(profile)
 
 
-@router.post("/consent", status_code=204, responses={401: {}, 403: {}, 422: {}})
+@router.post("/consent", status_code=204, responses={401: {}, 403: {}, 410: {}, 422: {}})
 async def grant_consent(
     payload: MatchingConsentInput,
     request: Request,
@@ -219,6 +231,8 @@ async def grant_consent(
     response.headers["Cache-Control"] = "no-store, max-age=0"
     try:
         owner = await _owner_mutation(request, csrf_token)
+        if _collection_retired(request):
+            return _retired()
         await _matching(request).grant_consent(owner.principal_id, version=payload.version)
     except (OwnerSessionUnavailable, GuestDomainError):
         return _problem(401, "OWNER_REQUIRED", "Phiên Vòng Lá đã hết hạn")
@@ -241,7 +255,9 @@ async def withdraw_consent(
 
 
 @router.put(
-    "/pool-membership", response_model=MatchingProfileResponse, responses={401: {}, 409: {}}
+    "/pool-membership",
+    response_model=MatchingProfileResponse,
+    responses={401: {}, 409: {}, 410: {}},
 )
 async def set_pool_membership(
     payload: PoolMembershipInput,
@@ -252,6 +268,8 @@ async def set_pool_membership(
     response.headers["Cache-Control"] = "no-store, max-age=0"
     try:
         owner = await _owner_mutation(request, csrf_token)
+        if payload.active and _collection_retired(request):
+            return _retired()
         profile = await _matching(request).set_pool_membership(
             owner.principal_id,
             owner.source_guest_id,

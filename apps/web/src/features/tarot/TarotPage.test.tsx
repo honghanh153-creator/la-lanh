@@ -243,10 +243,10 @@ describe("TarotPage", () => {
     expect(chapter).not.toHaveAttribute("open");
     expect(chapter?.querySelector(".tarot-chapter-thumb svg[data-art='major:hermit']")).toBeInTheDocument();
     expect(within(overview).getByRole("list", { name: "Các lá bạn đã rút" })).toBeInTheDocument();
-    await user.click(within(overview).getByRole("button", { name: /^01\. Ẩn Sĩ, Điều đáng nhìn lúc này/ }));
+    await user.click(within(overview).getByRole("button", { name: /^01\. The Hermit · Ẩn Sĩ, Điều đáng nhìn lúc này/ }));
     expect(chapter).toHaveAttribute("open");
     chapter?.removeAttribute("open");
-    await user.click(within(chapters).getByText("Ẩn Sĩ"));
+    await user.click(within(chapters).getByText("The Hermit"));
     expect(chapter).toHaveAttribute("open");
     expect(screen.getByText(/tin nhắn đến chậm/i)).toBeInTheDocument();
     expect(screen.getAllByText(/điều gì đáng hỏi thẳng/i)).toHaveLength(2);
@@ -256,7 +256,7 @@ describe("TarotPage", () => {
     );
   });
 
-  it("keeps English names and engine versions in collapsed technical details (US-20 AC12)", async () => {
+  it("shows the English and Vietnamese card names together and keeps engine versions collapsed (US-20 AC12)", async () => {
     vi.mocked(getTarotSession).mockResolvedValue({
       ...choosing,
       version: 2,
@@ -323,11 +323,13 @@ describe("TarotPage", () => {
     renderPage(`/tarot/${choosing.id}`);
 
     const chapters = await screen.findByRole("region", { name: "Mở từng lá để đọc thêm" });
-    expect(within(chapters).queryByText("The Hermit")).not.toBeInTheDocument();
+    const english = within(chapters).getByText("The Hermit");
+    expect(english).toHaveAttribute("lang", "en");
+    expect(english.closest("strong")).toHaveTextContent("The Hermit · Ẩn Sĩ");
     const tech = screen.getByText("Chi tiết kỹ thuật").closest("details");
     expect(tech).not.toHaveAttribute("open");
-    expect(tech).toHaveTextContent("Tên lá gốc: The Hermit");
     expect(tech).toHaveTextContent("Engine tarot-knowledge-v1");
+    expect(tech).not.toHaveTextContent("Tên lá gốc");
   });
 
   it("shows the lean inside the night summary card (US-20 AC08)", async () => {
@@ -682,7 +684,7 @@ describe("TarotPage accessibility and card art", () => {
     expect(picked).toHaveAttribute("aria-pressed", "true");
     const slots = screen.getByLabelText("Các vị trí đã chọn");
     expect(slots.querySelector("svg[data-art='minor:cups:7']")).toHaveAttribute("aria-hidden", "true");
-    expect(within(slots).getByText("Bảy Cốc")).toBeInTheDocument();
+    expect(within(slots).getByText("Seven of Cups").closest("strong")).toHaveTextContent("Seven of Cups · Bảy Cốc");
     expect(within(slots).getAllByText("Chưa chọn")).toHaveLength(2);
   });
 
@@ -711,11 +713,11 @@ describe("TarotPage accessibility and card art", () => {
     vi.mocked(selectTarotCard).mockResolvedValue({ ...active, version: 2, selected_cards: [sevenOfCups] });
     renderPage(`/tarot/${active.id}`);
     await user.click(await screen.findByRole("button", { name: "Lá úp 1 trên 78" }));
-    expect(await within(screen.getByLabelText("Các vị trí đã chọn")).findByText("Bảy Cốc")).toBeInTheDocument();
+    expect(await within(screen.getByLabelText("Các vị trí đã chọn")).findByText("Seven of Cups")).toBeInTheDocument();
     expect(document.querySelector(".tarot-pick-flight svg[data-art='minor:cups:7']")).toBeInTheDocument();
     expect(animate).toHaveBeenCalled();
     expect(document.querySelector("[data-slot-art='0']")).toHaveClass("is-arriving");
-    expect(screen.getByText("Đã lật Bảy Cốc cho Điều đã rõ.")).toBeInTheDocument();
+    expect(screen.getByText("Đã lật Seven of Cups · Bảy Cốc cho Điều đã rõ.")).toBeInTheDocument();
   });
 
   it("skips the pick animation for system reduced motion", async () => {
@@ -728,7 +730,7 @@ describe("TarotPage accessibility and card art", () => {
     renderPage(`/tarot/${active.id}`);
     expect(await screen.findByLabelText("Bộ bài đang xòe")).toHaveAttribute("data-tarot-motion", "off");
     await user.click(screen.getByRole("button", { name: "Lá úp 1 trên 78" }));
-    expect(await within(screen.getByLabelText("Các vị trí đã chọn")).findByText("Bảy Cốc")).toBeInTheDocument();
+    expect(await within(screen.getByLabelText("Các vị trí đã chọn")).findByText("Seven of Cups")).toBeInTheDocument();
     expect(document.querySelector(".tarot-pick-flight")).not.toBeInTheDocument();
     expect(animate).not.toHaveBeenCalled();
     expect(document.querySelector("[data-slot-art='0']")).not.toHaveClass("is-arriving");

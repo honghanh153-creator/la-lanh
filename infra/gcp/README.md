@@ -1,3 +1,7 @@
+> **Retired (22/10/2026).** Production runs on Hetzner + Supabase. `bootstrap.sh` refuses to run unless
+> `LA_LANH_ALLOW_RETIRED_GCP_BOOTSTRAP=1`, because it passes the database password to `gcloud` on the command
+> line (audit P03, finding F30). Change it to a non-argv password path before any reuse.
+
 # Lá Lành web beta on Google Cloud
 
 The beta uses one Cloud Run origin for both the Vite web build and FastAPI. This preserves the

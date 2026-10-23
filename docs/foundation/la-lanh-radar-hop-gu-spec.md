@@ -29,9 +29,9 @@ Không được tự động chuyển từ mode này sang mode kia. CTA chính l
 | `/radar/invite` | Fallback invite | Tạo link khi A chưa có quyền nhập hộ | Capability 7 ngày |
 | `/radar/i/:token` | Public preview | B hiểu mục đích/quyền trước khi nhập | Safe capability continuation |
 | `/radar/continue` | Pair consent | B consent riêng và chạy hai chart | Derived pair result |
-| `/radar/receipt` | Kết quả phía người nhận | B mở lại trong 7 ngày hoặc rút chart khỏi kết quả | HttpOnly receipt-bound read/withdraw |
+| `/radar/receipt` | Kết quả phía người nhận | B mở lại trong 30 ngày (bằng hạn kết quả) hoặc rút chart khỏi kết quả | HttpOnly receipt-bound read/withdraw |
 
-Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Check thêm một người`, `Xem các lần check` và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 7 ngày, có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
+Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Check thêm một người`, `Xem các lần check` và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 30 ngày (bằng hạn kết quả), có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
 
 ## 4. Primary user flow
 
@@ -82,7 +82,7 @@ Inputs must not enter URL, localStorage/sessionStorage, analytics, logs, error t
 | Permission attestation | Version + timestamp | Same request lifetime | Deleted with result |
 | Invite capability | Hash + temporary encrypted copy | 7 days or terminal state | Revoke |
 | B birth profile in invite mode | Existing encrypted birth domain | Existing guest policy | B withdraw/delete |
-| Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 7 days | B withdraw; inaccessible after expiry |
+| Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 30 days, same as the consented result (owner decision P09 D1, 22/10/2026; was 7 days) | B withdraw; inaccessible after expiry |
 
 Private-check retention (owner decision 2026-10-19): A enters B's data under A's attestation alone, so the
 result is kept only long enough to reopen it, 24 hours from creation.
@@ -163,7 +163,7 @@ No contact upload, phone/email, GPS, current city, precise distance, IP fingerpr
 | User leaves form | Discard state; no draft in browser storage |
 | Result expires | Return terminal/not found; purge job deletes ciphertext |
 | Owner deletes | Hard-delete request row and encrypted result |
-| Recipient reloads result | Reopen `/radar/receipt` with HttpOnly receipt for at most 7 days |
+| Recipient reloads result | Reopen `/radar/receipt` with HttpOnly receipt for at most 30 days (the result's lifetime) |
 | Recipient withdraw fails | Keep result unchanged; show explicit retry rather than claiming success |
 | Two invite tabs cross | Block consent when tab-bound request ID differs from current invite cookie |
 

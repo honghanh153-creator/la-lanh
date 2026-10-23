@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     generation_max_attempts: int = Field(default=2, ge=1, le=3)
     generation_retry_delay_seconds: int = Field(default=60, ge=10, le=3600)
     la_chung_accepting_new_activity: bool = False
+    # Vòng Lá is deferred: no new matching profile, consent or pool membership (audit P02,
+    # 2026-10-22). Withdrawal and leaving the pool stay available for data collected before.
+    matching_accepting_new_activity: bool = False
     content_studio_enabled: bool = False
     content_studio_api_token: SecretStr | None = None
     content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)

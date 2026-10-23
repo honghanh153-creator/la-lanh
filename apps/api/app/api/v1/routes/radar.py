@@ -13,6 +13,7 @@ from app.domains.identity.service import OwnerIdentityService, OwnerSessionUnava
 from app.domains.radar.models import RadarInviteView, RadarMode, RadarStatus
 from app.domains.radar.service import (
     CONSENT_VERSION,
+    RECEIPT_TTL,
     RadarChartRequired,
     RadarConflict,
     RadarError,
@@ -405,7 +406,7 @@ async def accept_invite(
         httponly=True,
         secure=settings.guest_cookie_secure,
         samesite="strict",
-        max_age=7 * 86400,
+        max_age=int(RECEIPT_TTL.total_seconds()),
         path="/v1/public/radar/receipt",
     )
     response.delete_cookie(RADAR_COOKIE, path="/v1/public/radar")

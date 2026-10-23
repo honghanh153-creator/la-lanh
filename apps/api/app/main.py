@@ -65,6 +65,7 @@ from app.infrastructure.generation.openai import (
     OPENAI_PROMPT_VERSION,
     OPENAI_REWRITE_PROMPT_VERSION,
 )
+from app.infrastructure.log_redaction import install_log_redaction
 from app.middleware.admission import AdmissionControlMiddleware
 from app.middleware.body_limit import BodyLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
@@ -90,9 +91,11 @@ def create_app(
     auth_transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
+    install_log_redaction()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        install_log_redaction()  # uvicorn configures its handlers after importing the app
         database = Database(str(resolved_settings.database_url))
         await database.initialize()
         app.state.database = database

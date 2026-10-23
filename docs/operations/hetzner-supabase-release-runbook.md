@@ -5,7 +5,22 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-10-18
+## Current production — 2026-10-21
+
+Release `c3fab3311d65` is live (`main` = `c3fab3311d659c240da944a84fec305eca416cc6`, image digest
+`sha256:ff8247ab158b…`, Alembic head unchanged at `20261018_0037`): PR #33–#39, including Daily
+history visible at most 24 hours, Radar private check 24 hours, the AC05 guard without history, and
+**Luna on for `daily_home` only** (M1 payload without chart facts, pilot 14 days from 2026-10-21, at
+most 20 opted-in sessions, private caps). Staging runs the same digest with Luna on.
+`/opt/la-lanh/current` now points at this release (it was stale at `836222282dfc`). Kill switch on
+this release: remove the worker first with `docker compose "${COMPOSE_ARGS[@]}" --profile generation rm
+-sf rewrite-worker`, then set generation off and redeploy (full commands in the Luna runbook); its
+`deploy.sh` does not remove the worker. A later release with the PR #40 preflight removes it before
+the build. **Copy `app.env` from the previous
+release directory you verified, not blindly from `current`.** Receipt:
+[production-release-2026-10-21](../reviews/production-release-2026-10-21/receipt.md).
+
+## Previous production — 2026-10-18
 
 Release `4111f03cee3c` is live (Tarot B2: question frame, roles, stance, variants, Roast frames,
 provenance-coded brief; B3-1a Daily rotation **on since 2026-10-19** via `LA_LANH_DAILY_VARIETY_FROM`),
@@ -22,8 +37,12 @@ recreated production Caddy drops the staging site. Staging: refresh `/opt/la-lan
 from the release, then `STAGING_GENERATION=off ./up.sh`, and recreate staging after `deploy.sh` so both run
 the deployed image digest.
 
-Previous: release `836222282dfc` (2026-10-16),
-[receipt](../reviews/production-release-2026-10-16/receipt.md).
+Caddy's admin API is off, so a Caddy config change needs `docker restart la-lanh-caddy-1` (a few seconds
+of restart).
+
+Previous: hotfix release `836222282dfc` (2026-10-16, #15 + #16 on top of `b474cafbc434`),
+[receipt](../reviews/production-release-2026-10-16/receipt-836222282dfc.md); earlier the same day
+release `b474cafbc434`, [receipt](../reviews/production-release-2026-10-16/receipt.md).
 
 Earlier: release `a6e11bfd149b` (2026-10-11),
 [receipt](../reviews/production-release-2026-10-11/receipt.md).
@@ -306,6 +325,8 @@ example on the first release:
 ```sh
 cp /opt/la-lanh/current/infra/hetzner/app.env /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/app.env
 chmod 0600 /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/app.env
+# Server-only staging site: Caddy mounts sites/ from the active release.
+cp /opt/la-lanh/current/infra/hetzner/sites/staging.caddy /opt/la-lanh/releases/<RELEASE_ID>/source/infra/hetzner/sites/staging.caddy
 ```
 
 Review the file without changing the established contract:
@@ -334,6 +355,10 @@ retention, `sslmode=verify-full`). Rehearse every schema change with
 `infra/hetzner/rehearse-migration.sh` (restores the newest backup into a disposable TLS-enabled
 PostgreSQL, runs the release image's migrations, privacy check, Tarot cursor rehearsal and readiness as a
 least-privileged NOSUPERUSER backend role that owns the restored tables, then destroys it; since 2026-10-18).
+Daily backup timer, freshness check, failure marker, restore probe and the open deletion-reconciliation
+decision: [backup-restore-and-deletion-reconciliation.md](backup-restore-and-deletion-reconciliation.md)
+(prepared 2026-10-22, not yet installed). Until the owner chooses a reconciliation design, **do not restore a
+backup into service**; restore only into a disposable copy.
 Staging: `infra/hetzner/staging/up.sh` (own empty database and keys; auth/generation off).
 
 Normally, keep the existing secret files. Recreate the database URL only after a password rotation or
