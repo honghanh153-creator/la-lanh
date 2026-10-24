@@ -102,6 +102,14 @@ PostgreSQL with synthetic data, not on staging or production:
 3. Export the journal, restore the dump into a fresh disposable database, run step 3 above and both cleanups.
 4. Record: the in-flight erasure is `applied` (its row was not in the snapshot), an erasure committed before the
    dump is `reflected` with later data kept, the post-dump erasure is `applied`, and no erased row remains.
+5. Purge horizon (export before purge, snapshot after purge): on a fresh disposable database, run a history clear
+   dated older than the retention period, export the journal, create new completed history for the same guest,
+   run `purge`, take a new `pg_dump`, restore it, replay the earlier export together with a new one, and run both
+   cleanups. Record: the old clear is `reflected` (by the horizon), nothing is `applied`, and the new history
+   remains.
+6. Note that the horizon assumes each erasure commits well within the retention period after its `occurred_at`
+   and a sane server clock. Request deadlines make this expected; SQLite tests and this document do not prove
+   PostgreSQL commit order in general, so steps 1–5 are the evidence.
 
 Until the journal is deployed, the hourly copy has run and this probe has passed, **B stays the operating
 rule: no restore into service.**

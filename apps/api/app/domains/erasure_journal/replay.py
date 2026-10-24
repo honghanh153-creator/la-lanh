@@ -124,10 +124,13 @@ def parse_entries(lines: Iterable[str]) -> list[JournalEntry]:
 async def purge_entries(sessions: async_sessionmaker[AsyncSession], *, before: datetime) -> int:
     """Drop entries older than ``before`` and record that horizon in the same transaction.
 
-    A snapshot holding the horizon reflects every entry older than it: such an entry committed
-    within seconds of its time (requests time out), long before a purge that runs at least the
-    retention period later. Replay therefore treats a missing row older than the horizon as
-    reflected, never as an erasure to apply again.
+    A snapshot holding the horizon reflects every entry older than it, under one stated
+    assumption: an erasure commits well within the retention period after its ``occurred_at``
+    (taken when the request starts) and the server clock is sane, so it committed before a purge
+    that runs at least that long after it. Request deadlines make this expected, but nothing here
+    proves it for PostgreSQL; the operator restore probe covers it. Replay therefore treats a
+    missing row older than the horizon as reflected, never as an erasure to apply again. The
+    boundary is strict: an entry exactly at the horizon still goes by row presence.
     """
 
     async with sessions() as session, session.begin():
