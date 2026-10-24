@@ -261,9 +261,30 @@ def stance_labels(reading: TarotReading) -> dict[str, Any] | None:
 
 
 def goal_keys_for(reading: TarotReading) -> tuple[str, ...]:
-    """Closed goal codes classified locally (as the renderer did); never matched text."""
+    """Closed goal codes classified locally (as the renderer did); never matched text.
 
-    return tuple(goal.key for goal in question_goals(reading.question, reading.context))
+    Frame v2 readings classified goals from the asked text, older ones from the whole question
+    (T01). The reading does not say which, and nothing about the frame is exposed, so both
+    classifications are tried and only one that reproduces the stored summary is used; with
+    neither, the brief fails closed (no request)."""
+
+    readiness = reading.summary.startswith(f"{question_frame.READINESS_NOTE} ")
+    candidates: list[tuple[str, ...]] = []
+    for text in (question_frame.asked_text(reading.question), reading.question):
+        keys = tuple(goal.key for goal in question_goals(text, reading.context))
+        if keys not in candidates:
+            candidates.append(keys)
+    for keys in candidates:
+        summary = resolve_summary(
+            spread_map=reading.spread_map,
+            card_ids=[position.card.id for position in reading.positions],
+            topic=reading.context,
+            goal_keys=keys,
+            readiness=readiness,
+        )
+        if summary == reading.summary:
+            return keys
+    return candidates[0]
 
 
 def framed_brief(reading: TarotReading) -> dict[str, Any] | None:

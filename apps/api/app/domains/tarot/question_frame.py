@@ -30,13 +30,16 @@ __all__ = [
     "TarotAction",
     "TarotQuestionForm",
     "TimingOwner",
+    "asked_text",
     "asks_own_timing",
     "classify_form",
     "frame_question",
+    "goal_text",
     "is_vague",
     "match_action",
     "readiness_headline",
     "score_topic",
+    "target_clause",
     "timing_owner",
 ]
 
@@ -529,6 +532,306 @@ def _negated(text: str, start: int) -> bool:
     return _NEGATED.search(clause) is not None
 
 
+# ---------------------------------------------------------------- target clause (T01)
+
+# Background clauses: when, before/after which event, why, despite or under which condition the
+# asked action would happen. Their actions are context, not the request: in "Mình có nên xin lỗi
+# sau lần nói chuyện vừa rồi không?" the request is the apology, not "nói chuyện" (audit T01,
+# 2026-10-22). Question words stay in the target: "khi nào", "là lúc", "vì sao" ask about timing
+# or reasons, and "thay vì" names the alternative being weighed, not a background event.
+_BACKGROUND = re.compile(
+    r"(?<!\w)(?:"
+    r"sau khi|trước khi|từ khi|kể từ|trong lúc|trong khi|mặc dù|bởi vì|tại vì|"
+    r"(?:sau|trước) (?:lần|buổi|cuộc|tuần|hôm|ngày|chuyện|vụ|đợt|kỳ|kì|khi)|"
+    r"(?<!là )(?<!đúng )(?:khi|lúc)(?! nào)|(?<!thay )vì(?! sao| thế| vậy)|nếu|dù"
+    r")(?!\w)"
+)
+
+
+# Where a background clause ends: punctuation, a choice between asked options ("hay", "hoặc"), or
+# "thì" opening the main clause after a fronted condition. A sequence ("rồi") or a contrast
+# ("nhưng", "mà") inside the background continues it: in "Sau khi nói chuyện với sếp nhưng vẫn phải
+# nhận thêm việc, mình có nên nghỉ ngơi không?" the extra work is part of what happened, and rest is
+# what is asked (Codex #45). A background that runs to the end of the question and swallows the
+# only action leaves no label, which is the clarify path.
+_BACKGROUND_END = re.compile(r"[,;.!?…]|(?<!\w)(?:hay|hoặc|thì)(?!\w)")
+
+
+# What marks the clause that carries the question: a question mark, a question word, or a final
+# question particle ("... không?", "... chưa?"). A bare "nên" is not enough on its own: it also
+# means "so" ("nên mình mệt").
+_ASKS = re.compile(
+    r"\?|(?<!\w)(?:có nên|liệu|có phải|làm sao|thế nào|bao giờ|khi nào|vì sao|tại sao|"
+    r"hay không)(?!\w)|(?<!\w)(?:không|chưa|nhỉ|à|hả)\s*[.!…]*\s*$"
+)
+# After a fronted condition, "thì" opens the main clause when a modal question follows it.
+_THEN_ASKS = re.compile(r"^\s*thì\s+(?:\w+\s+){0,2}?(?:có\s+)?nên(?!\w)")
+
+
+def _strip_background(text: str) -> str:
+    """Remove the background clauses inside one stretch of text (see ``_BACKGROUND_END``)."""
+
+    kept: list[str] = []
+    position = 0
+    for match in _BACKGROUND.finditer(text):
+        if match.start() < position:
+            continue
+        end = next(
+            (b.start() for b in _BACKGROUND_END.finditer(text, match.end())),
+            len(text),
+        )
+        kept.append(text[position : match.start()])
+        position = end
+    kept.append(text[position:])
+    return "".join(kept)
+
+
+# The main clause offers alternatives ("…, hay nhận thêm việc?"): the one before it is asked too.
+_CHOICE = re.compile(r"^\s*(?:hay|hoặc)(?!\w)")
+# What opens an interrogative clause, as opposed to the particle that closes it ("… không?").
+_OPENS = re.compile(
+    r"(?<!\w)(?:có nên|nên|liệu|có phải|làm sao|thế nào|bao giờ|khi nào|vì sao|tại sao|"
+    r"gì|nào)(?!\w)"
+)
+# Openers that also read as indefinites ("một người nào đó", "hôm nào cũng", "gì đó"): they do not
+# show that the reader's own question has opened.
+_INDEFINITE_OPENER = re.compile(r"(?:gì|nào)")
+# A segment that only continues a list or a set of alternatives ("…, và học thêm, …").
+_LIST_ITEM = re.compile(r"^\s*(?:và|hay|hoặc)(?!\w)")
+# A modal question frame ("được không/chưa/chứ"). It closes a question but proves no predicate:
+# "…, gia đình và đồng nghiệp được không?" ends a noun list whose verb is earlier.
+_MODAL_FRAME = re.compile(r"(?<!\w)được\s+(?:không|chưa|chứ)(?!\w)")
+# A conjunction inside a segment marks it as the last items of a list or alternatives.
+_LIST_MARK = re.compile(r"(?<!\w)(?:và|hoặc|hay(?!\s+không))(?!\w)")
+
+
+def _first_action_at(text: str) -> int | None:
+    """Where the first action word starts, affirmed or negated, or None."""
+
+    positions = [
+        match.start()
+        for _, signals in _ACTION_SIGNALS
+        for signal in signals
+        for match in re.finditer(rf"(?<!\w){re.escape(signal)}(?!\w)", text)
+    ]
+    return min(positions) if positions else None
+
+
+def _owns_predicate(segment: str) -> bool:
+    """Does this segment carry a predicate of its own, as a complete clause does?
+
+    Its first action word must not be a list item (no "và", "hoặc", "hay" before it in the
+    segment), and the clause around it must be complete: something stands in the subject slot
+    before it ("mình nghỉ ngơi …") or a modal frame closes it ("nghỉ ngơi được không?"). A
+    noun-list tail ("công sức và lịch gặp …", "…, lịch gặp không?") owns none.
+    """
+
+    at = _first_action_at(segment)
+    if at is None:
+        return False
+    before = segment[:at]
+    if _LIST_MARK.search(before):
+        return False
+    return bool(re.search(r"\w", before)) or _MODAL_FRAME.search(segment) is not None
+
+
+def _ends_in_background(segment: str) -> bool:
+    """Does a background clause opened in this segment run to its end ("…, vì bất đồng về X,")?"""
+
+    body = segment.rstrip().rstrip(",;").rstrip()
+    last = None
+    for match in _BACKGROUND.finditer(body):
+        last = match
+    return last is not None and _BACKGROUND_END.search(body, last.end()) is None
+
+
+def _reports_another_question(segment: str) -> bool:
+    """Is the question this segment opens someone else's ("Sếp hỏi có nên …")?
+
+    The reporting verb is bound to the interrogative it introduces: the first opener with a
+    reporting verb before it, so an earlier "nào" in the subject or a time phrase ("Một người nào
+    đó hỏi có nên …", "Sếp hôm nào cũng hỏi có nên …") does not hide it. An earlier opener that is
+    not an indefinite (``_INDEFINITE_OPENER``) is the reader's own question, and a report after it
+    is nested inside it ("Mình có nên hỏi lại xem mình nên làm gì …"). Only the head before the
+    segment's background clause counts: a question reported inside the reader's own reason ("Mình
+    có nên nghỉ ngơi vì sếp hỏi có nên …") belongs to that reason. The reader's own introduction
+    ("Mình muốn hỏi có nên …", ``_is_reporting_prefix``) still asks the reader's question.
+    """
+
+    background = _BACKGROUND.search(segment)
+    head = segment[: background.start()] if background else segment
+    for opens in _OPENS.finditer(head):
+        lead = _tokens(fold(head[: opens.start()]))
+        if _mentions_reporting(lead):
+            return not _is_reporting_prefix(lead)
+        if _INDEFINITE_OPENER.fullmatch(fold(opens.group())) is None:
+            # The reader's own question opens first; a report after it is nested inside it
+            # ("Mình có nên hỏi lại xem mình nên làm gì …", "… nghỉ ngơi để biết mình nên …").
+            return False
+    return False
+
+
+def _names_action(text: str) -> bool:
+    return match_action(text) is not None or _mentions_negated_action(text)
+
+
+def _question_start(segments: list[str], last: int) -> int:
+    """Where the reader's question starts when its last segment has no opener (Codex #45).
+
+    Ownership follows the predicate, not closing words. The earlier segment that opens the
+    question (never across a background segment) is ``opener``. The span reaches back to the
+    opener when:
+
+    - the opener segment ends inside a background clause ("Mình có nên xin lỗi vì bất đồng về
+      chia việc, công sức, lịch gặp không?"): what follows continues that background list or
+      clause, even if an item looks like an action word or a degree/result clause has words before
+      its action ("… vì mình quá mệt, đến mức không tập trung được không?"). Only when the opener
+      reports someone else's question (``_reports_another_question``) does a last segment that owns
+      a predicate (``_owns_predicate``) stay the reader's own question ("Sếp hỏi có nên nhận thêm
+      việc vì thiếu người, mình nghỉ ngơi được không?");
+    - otherwise the last segment owns no predicate (no action of its own) and is not an incomplete
+      own clause: list items or alternatives ("…, gia đình, đồng nghiệp không?", "…, gia đình và
+      đồng nghiệp được không?").
+
+    A last segment naming its own action ("mình nghỉ ngơi (được) không?") is a complete clause and
+    stays the question. One with a modal frame but neither an action nor a list mark ("mình được
+    không?") is an incomplete own clause: it stays alone and the label is None, never borrowed
+    from an earlier, possibly reported, question.
+    """
+
+    opener = None
+    for index in range(last - 1, -1, -1):
+        if _BACKGROUND.match(segments[index].lstrip()):
+            break
+        if _OPENS.search(segments[index]):
+            opener = index
+            break
+    if opener is None:
+        return last
+    tail = segments[last]
+    if _ends_in_background(segments[opener]):
+        if _reports_another_question(segments[opener]) and _owns_predicate(tail):
+            # The reported question is not the reader's, so the reader's own complete question
+            # follows its reason ("Sếp hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi
+            # được không?").
+            return last
+        # The reader's own question: what follows continues its open reason, including a
+        # degree or result clause ("… vì mình quá mệt, đến mức không tập trung được không?").
+        return opener
+    if _names_action(tail):
+        return last
+    if _MODAL_FRAME.search(tail) and not _LIST_MARK.search(tail):
+        return last
+    return opener
+
+
+def _asked_segments(text: str) -> str:
+    """The reader's own question, by ownership rather than by question markers (Codex #45).
+
+    A question mark or "có nên" shows that a segment is interrogative, not whose question it is:
+    "Sau khi sếp hỏi có nên nói chuyện, rồi sếp hỏi mình có nên nhận thêm việc, mình có nên nghỉ
+    ngơi không?" reports two questions and asks one. Split at "," and ";":
+
+    - trailing segments that open with a background connector ("…, khi sếp vẫn giao việc?") are
+      background; the reader's question ends at the last segment before them;
+    - a last segment without an opener is attached by predicate ownership (``_question_start``):
+      noun-list or alternatives tails reach back to the segment that opened the question, a tail
+      continuing a background clause does too, and a last segment with its own action is a
+      complete clause;
+    - when it offers alternatives ("…, hay …?"), the alternative before it is asked too;
+    - every earlier segment is background, whatever it asks or reports;
+    - only when the question names no action of its own ("…, mình có nên không?") does it borrow
+      one: from the plain statement just before it (with the rest of its list, if that statement
+      continues one with "và", "hay", "hoặc"), or else from a "thì …" clause that a fronted
+      background opens. Otherwise nothing is borrowed and the label stays None (clarify).
+
+    With no background segment and no other question before the end, commas only separate a
+    list or plain statements, and the text is left to the clause rules unchanged.
+    """
+
+    segments = re.split(r"(?<=[,;])", text)
+    if len(segments) < 2 or _ASKS.search(segments[-1]) is None:
+        return text
+    if not any(
+        _BACKGROUND.match(segment.lstrip()) or _ASKS.search(segment) for segment in segments[:-1]
+    ):
+        # No background and no other question before the end: commas only separate a list or
+        # plain statements ("chia việc, công sức và lịch gặp"), so the clause rules decide.
+        return text
+    end = len(segments)
+    while end > 1 and _BACKGROUND.match(segments[end - 1].lstrip()):
+        end -= 1
+    start = end - 1
+    if not _OPENS.search(segments[start]):
+        start = _question_start(segments, start)
+    while start > 0 and _CHOICE.match(segments[start]):
+        start -= 1
+    asked = segments[start:end]
+    if start > 0 and not _names_action(_strip_background("".join(asked))):
+        index = start - 1
+        before = segments[index]
+        if not _BACKGROUND.match(before.lstrip()) and not _ASKS.search(before):
+            asked = [before, *asked]
+            while _LIST_ITEM.match(before) and index > 0:
+                index -= 1
+                before = segments[index]
+                if _BACKGROUND.match(before.lstrip()) or _ASKS.search(before):
+                    break
+                asked = [before, *asked]
+        elif _BACKGROUND.match(before.lstrip()):
+            remainder = _strip_background(before)
+            if _ASKS.search(remainder) or _THEN_ASKS.search(remainder):
+                asked = [remainder, *asked]
+    return "".join(asked)
+
+
+def target_clause(question: str) -> str:
+    """The question with its background clauses removed: what is actually being asked.
+
+    Fronted background segments go first (``_asked_segments``). Within what remains, a
+    background clause runs from its connector, through any "rồi" continuation or "nhưng"/"mà"
+    contrast, to the next ``_BACKGROUND_END``. The result is used only to pick closed labels
+    (action, topic, goal); it is never stored or returned.
+    """
+
+    return " ".join(_strip_background(_asked_segments(fold(question))).split())
+
+
+# A why/how/open question reflects on a situation, and its "khi" clause often is that situation
+# ("Tại sao mình thấy có lỗi khi nghỉ ngơi?"). Decision forms keep the strict asked clause.
+_REFLECTIVE_FORMS = frozenset(
+    {TarotQuestionForm.WHY, TarotQuestionForm.HOW, TarotQuestionForm.OPEN}
+)
+
+
+def _mentions_negated_action(text: str) -> bool:
+    folded = fold(text)
+    return any(
+        _negated(folded, match.start())
+        for _, signals in _ACTION_SIGNALS
+        for signal in signals
+        for match in re.finditer(rf"(?<!\w){re.escape(signal)}(?!\w)", folded)
+    )
+
+
+def asked_text(question: str) -> str:
+    """Text the closed labels (action, topic, goals) read under frame v2.
+
+    The asked clause, except that a reflective question whose asked clause names no action at
+    all, affirmed or negated, reads the whole question. A decision question never borrows a
+    background action: with none asked, its label is ``None`` (clarify).
+    """
+
+    target = target_clause(question)
+    if (
+        classify_form(question) in _REFLECTIVE_FORMS
+        and match_action(target) is None
+        and not _mentions_negated_action(target)
+    ):
+        return fold(question)
+    return target
+
+
 def match_action(question: str) -> TarotAction | None:
     """The best-supported closed label among affirmed actions.
 
@@ -550,11 +853,22 @@ def match_action(question: str) -> TarotAction | None:
 
 
 def frame_question(question: str, chosen: TarotContext) -> QuestionFrame:
+    """Frame v2 (T01): topic and action come from the asked text (``asked_text``). The form reads
+    the whole question (a timing or choice marker may sit anywhere)."""
+
+    target = asked_text(question)
     return QuestionFrame(
         form=classify_form(question),
-        topic=score_topic(question, chosen),
-        action=match_action(question),
+        topic=score_topic(target, chosen),
+        action=match_action(target),
     )
+
+
+def goal_text(question: str, frame_version: str | None) -> str:
+    """Text the goal classifier reads: the asked text for frame v2 sessions, the whole question
+    for older frames and unframed sessions, so stored readings keep their goals (AC17)."""
+
+    return asked_text(question) if frame_version == QUESTION_FRAME_VERSION else question
 
 
 # ---------------------------------------------------------------- vague questions (AC04, A7)
