@@ -6,14 +6,16 @@ import {
 import { clearMatchingIntroExposure } from "./matchingIntroExposure";
 import { clearCachedDailyNote } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
-import { clearSavedNoteMutationQueue } from "./savedNoteMutationQueue";
+import { PENDING_MOOD_ACK_KEY, PENDING_MOOD_KEY } from "./pendingMood";
+import { clearSavedNoteMutationQueue, fenceSavedNoteCallbacks } from "./savedNoteMutationQueue";
 import { RADAR_PENDING_REQUEST_KEY } from "../../features/radar/radarOptions";
 import { invalidateSessionRequests, SESSION_RESTART_REQUIRED_KEY } from "../session/sessionIdentity";
 
 export const PERSONAL_DATA_CLEARED_EVENT = "la-lanh-personal-data-cleared";
 
 const PERSONAL_LOCAL_KEYS = [
-  "la-lanh-pending-mood-v1",
+  PENDING_MOOD_KEY,
+  PENDING_MOOD_ACK_KEY,
   "la-lanh-daily-ritual-v1",
   "la-lanh-night-nudge-dismissed-v1",
   "la-lanh-companion-growth-v1",
@@ -43,6 +45,7 @@ export async function clearPersonalDataOnDevice(): Promise<void> {
   attempt(clearActiveDailyReading);
   attempt(clearCachedDailyNote);
   attempt(clearLocalSavedNotes);
+  attempt(fenceSavedNoteCallbacks);
   attempt(clearSavedNoteMutationQueue);
   attempt(() => {
     if (!clearMatchingIntroExposure()) {

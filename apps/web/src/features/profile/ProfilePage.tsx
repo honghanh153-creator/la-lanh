@@ -33,6 +33,8 @@ import { useTheme } from "../../shared/theme/useTheme";
 import { AppNav } from "../../shared/ui/AppNav";
 import { AppSheet } from "../../shared/ui/AppSheet";
 import { NightSky } from "../../shared/ui/NightSky";
+import { clearPendingMood } from "../../shared/storage/pendingMood";
+import { dropQueuedSaves } from "../../shared/storage/savedNoteMutationQueue";
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -97,7 +99,8 @@ export function ProfilePage() {
       for (const key of ["tarot-session", "radar-invites", "radar-result", "daily-note-mood", "daily-note-resonance", "daily-experiment"]) {
         queryClient.removeQueries({ queryKey: [key] });
       }
-      try { localStorage.removeItem("la-lanh-pending-mood-v1"); } catch { /* No persistence is available on this device. */ }
+      clearPendingMood();
+      dropQueuedSaves();
       setConfirmingHistory(false);
       setStatusMessage("Đã xoá lịch sử. Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ.");
       await queryClient.invalidateQueries({ queryKey: ["daily-note-resonance"] });

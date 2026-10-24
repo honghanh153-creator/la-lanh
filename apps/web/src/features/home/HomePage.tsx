@@ -29,6 +29,14 @@ import {
 } from "../../shared/api/client";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
 import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
+import {
+  acknowledgePendingMood,
+  captureMoodIntent,
+  keepPendingMood,
+  prunePendingMood,
+  takePendingMood,
+  type MoodIntent,
+} from "../../shared/storage/pendingMood";
 import { birthCompletionPrompt } from "../../shared/astro/birthReadiness";
 import { dailyContextPath, dailyContextQueryKey } from "../../shared/astro/dailyContext";
 import {
@@ -80,6 +88,7 @@ const moods: readonly { value: MoodValue; emoji: string; hint: string }[] = [
   { value: "Căng", emoji: "😵‍💫", hint: "Đầu đang quay, người đang gồng" },
   { value: "Lạc trôi", emoji: "🥴", hint: "Chưa biết mình đang ở nhịp nào" },
 ];
+const isMoodValue = (value: unknown): value is MoodValue => moods.some((item) => item.value === value);
 
 export function HomePage() {
   const queryClient = useQueryClient();
@@ -205,23 +214,26 @@ export function HomePage() {
   });
 
   const moodMutation = useMutation({
-    mutationFn: (value: MoodValue) => {
+    // The owner and first-capture time travel with the choice, so a late callback can neither
+    // relabel it under a new session nor renew its deadline (audit P04).
+    mutationFn: ({ mood: value }: { mood: MoodValue; intent: MoodIntent }) => {
       if (!note) throw new Error("Missing daily note");
       return checkInMood(note.id, value);
     },
-    onMutate: (value) => {
+    onMutate: ({ mood: value }) => {
       const previous = mood;
       setMood(value);
       setMoodSheetOpen(false);
       setMessage("Đang lưu cảm xúc này cho bạn…");
       return { previous };
     },
-    onSuccess: (payload) => {
+    onSuccess: (payload, { intent }) => {
+      if (note) acknowledgePendingMood(note.id, intent);
       setMood(payload.mood);
       setMessage(laMoodReaction(payload.mood, vibe));
     },
-    onError: (_error, value) => {
-      localStorage.setItem("la-lanh-pending-mood-v1", JSON.stringify({ note_id: note?.id, mood: value }));
+    onError: (_error, { mood: value, intent }) => {
+      if (note) keepPendingMood(note.id, value, intent);
       setMessage("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.");
     },
   });
@@ -236,18 +248,10 @@ export function HomePage() {
   }, [moodQuery.data]);
 
   useEffect(() => {
+    prunePendingMood();
     if (!note || !navigator.onLine) return;
-    const raw = localStorage.getItem("la-lanh-pending-mood-v1");
-    if (!raw) return;
-    try {
-      const pendingMood = JSON.parse(raw) as { note_id?: string; mood?: MoodValue };
-      if (pendingMood.note_id === note.id && pendingMood.mood) {
-        localStorage.removeItem("la-lanh-pending-mood-v1");
-        moodMutation.mutate(pendingMood.mood);
-      }
-    } catch {
-      localStorage.removeItem("la-lanh-pending-mood-v1");
-    }
+    const pending = takePendingMood(note.id, isMoodValue);
+    if (pending) moodMutation.mutate(pending);
   }, [note]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (noteQuery.isLoading) return <HomeLoading />;
@@ -318,7 +322,7 @@ export function HomePage() {
         </button>
       } />
       <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? `${dailyContextPath("/note/today", context)}#${WHY_TODAY_ID}` : undefined}>
-        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate(value); }} open={moodSheetOpen} pending={moodMutation.isPending} />
+        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate({ mood: value, intent: captureMoodIntent() }); }} open={moodSheetOpen} pending={moodMutation.isPending} />
       </HomeValueHero>
 
       {noteQuery.isError ? (
