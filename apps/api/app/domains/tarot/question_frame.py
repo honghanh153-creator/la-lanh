@@ -602,6 +602,36 @@ _MODAL_FRAME = re.compile(r"(?<!\w)được\s+(?:không|chưa|chứ)(?!\w)")
 _LIST_MARK = re.compile(r"(?<!\w)(?:và|hoặc|hay(?!\s+không))(?!\w)")
 
 
+def _first_action_at(text: str) -> int | None:
+    """Where the first action word starts, affirmed or negated, or None."""
+
+    positions = [
+        match.start()
+        for _, signals in _ACTION_SIGNALS
+        for signal in signals
+        for match in re.finditer(rf"(?<!\w){re.escape(signal)}(?!\w)", text)
+    ]
+    return min(positions) if positions else None
+
+
+def _owns_predicate(segment: str) -> bool:
+    """Does this segment carry a predicate of its own, as a complete clause does?
+
+    Its first action word must not be a list item (no "và", "hoặc", "hay" before it in the
+    segment), and the clause around it must be complete: something stands in the subject slot
+    before it ("mình nghỉ ngơi …") or a modal frame closes it ("nghỉ ngơi được không?"). A
+    noun-list tail ("công sức và lịch gặp …", "…, lịch gặp không?") owns none.
+    """
+
+    at = _first_action_at(segment)
+    if at is None:
+        return False
+    before = segment[:at]
+    if _LIST_MARK.search(before):
+        return False
+    return bool(re.search(r"\w", before)) or _MODAL_FRAME.search(segment) is not None
+
+
 def _ends_in_background(segment: str) -> bool:
     """Does a background clause opened in this segment run to its end ("…, vì bất đồng về X,")?"""
 
@@ -620,7 +650,10 @@ def _question_start(segments: list[str], last: int) -> int:
     """Where the reader's question starts when its last segment has no opener (Codex #45).
 
     Ownership follows the predicate, not closing words. The earlier segment that opens the
-    question (never across a background segment) is ``opener``. The span reaches back to it when:
+    question (never across a background segment) is ``opener``. A last segment that owns a
+    predicate (``_owns_predicate``) is the reader's own complete clause and stays the question,
+    checked first so that a reason inside a reported question cannot absorb it. Otherwise the
+    span reaches back to the opener when:
 
     - the opener segment ends inside a background clause ("Mình có nên xin lỗi vì bất đồng về
       chia việc, công sức, lịch gặp không?"): what follows continues that background list, even if
@@ -645,6 +678,10 @@ def _question_start(segments: list[str], last: int) -> int:
     if opener is None:
         return last
     tail = segments[last]
+    if _owns_predicate(tail):
+        # The reader's own complete question, even after a reported question that ends in a
+        # reason ("Sếp hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?").
+        return last
     if _ends_in_background(segments[opener]):
         return opener
     if _names_action(tail):

@@ -499,3 +499,43 @@ def test_stored_v2_goal_extraction_follows_the_spanning_list(
     assert [g.key for g in question_goals(text, R)] == goals
     v1 = frame.model_copy(update={"version": "tarot-question-frame-v1"})
     assert question_frame.goal_text(question, v1.version) == question
+
+
+@pytest.mark.parametrize(
+    ("question", "control", "expected"),
+    [
+        # Codex #45 @ e348902: a reason inside a reported question ("vì dự án đang gấp") does not
+        # make the reader's own complete question that follows part of that reason list.
+        (
+            "Sếp hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Sếp hỏi có nên nói chuyện vì dự án đang gấp, mình xin lỗi được không?",
+            "Mình có nên xin lỗi không?",
+            TarotAction.XIN_LOI,
+        ),
+        (
+            "Sếp hỏi có nên xin lỗi vì dự án đang gấp, mình học thêm được không?",
+            "Mình có nên học thêm không?",
+            TarotAction.HOC_THEM,
+        ),
+        (
+            "Sếp hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+    ],
+)
+def test_a_reported_reason_does_not_absorb_the_readers_own_question(
+    question: str, control: str, expected: TarotAction
+) -> None:
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    reference = _render(control, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is not None and reading.stance.action is expected
+    assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
+    assert reading.positions[-1].small_action == reference.positions[-1].small_action
