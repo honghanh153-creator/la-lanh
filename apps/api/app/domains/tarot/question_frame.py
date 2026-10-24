@@ -642,6 +642,20 @@ def _ends_in_background(segment: str) -> bool:
     return last is not None and _BACKGROUND_END.search(body, last.end()) is None
 
 
+def _reports_another_question(segment: str) -> bool:
+    """Is the question this segment opens someone else's ("Sếp hỏi có nên …")?
+
+    A reporting verb before the opener reports a question; the reader's own introduction ("Mình
+    muốn hỏi có nên …", ``_is_reporting_prefix``) still asks the reader's question.
+    """
+
+    opens = _OPENS.search(segment)
+    if opens is None:
+        return False
+    lead = _tokens(fold(segment[: opens.start()]))
+    return _mentions_reporting(lead) and not _is_reporting_prefix(lead)
+
+
 def _names_action(text: str) -> bool:
     return match_action(text) is not None or _mentions_negated_action(text)
 
@@ -650,14 +664,16 @@ def _question_start(segments: list[str], last: int) -> int:
     """Where the reader's question starts when its last segment has no opener (Codex #45).
 
     Ownership follows the predicate, not closing words. The earlier segment that opens the
-    question (never across a background segment) is ``opener``. A last segment that owns a
-    predicate (``_owns_predicate``) is the reader's own complete clause and stays the question,
-    checked first so that a reason inside a reported question cannot absorb it. Otherwise the
-    span reaches back to the opener when:
+    question (never across a background segment) is ``opener``. The span reaches back to the
+    opener when:
 
     - the opener segment ends inside a background clause ("Mình có nên xin lỗi vì bất đồng về
-      chia việc, công sức, lịch gặp không?"): what follows continues that background list, even if
-      an item looks like an action word;
+      chia việc, công sức, lịch gặp không?"): what follows continues that background list or
+      clause, even if an item looks like an action word or a degree/result clause has words before
+      its action ("… vì mình quá mệt, đến mức không tập trung được không?"). Only when the opener
+      reports someone else's question (``_reports_another_question``) does a last segment that owns
+      a predicate (``_owns_predicate``) stay the reader's own question ("Sếp hỏi có nên nhận thêm
+      việc vì thiếu người, mình nghỉ ngơi được không?");
     - otherwise the last segment owns no predicate (no action of its own) and is not an incomplete
       own clause: list items or alternatives ("…, gia đình, đồng nghiệp không?", "…, gia đình và
       đồng nghiệp được không?").
@@ -678,11 +694,14 @@ def _question_start(segments: list[str], last: int) -> int:
     if opener is None:
         return last
     tail = segments[last]
-    if _owns_predicate(tail):
-        # The reader's own complete question, even after a reported question that ends in a
-        # reason ("Sếp hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?").
-        return last
     if _ends_in_background(segments[opener]):
+        if _reports_another_question(segments[opener]) and _owns_predicate(tail):
+            # The reported question is not the reader's, so the reader's own complete question
+            # follows its reason ("Sếp hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi
+            # được không?").
+            return last
+        # The reader's own question: what follows continues its open reason, including a
+        # degree or result clause ("… vì mình quá mệt, đến mức không tập trung được không?").
         return opener
     if _names_action(tail):
         return last
