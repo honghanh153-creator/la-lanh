@@ -595,6 +595,9 @@ _OPENS = re.compile(
 )
 # A segment that only continues a list or a set of alternatives ("…, và học thêm, …").
 _LIST_ITEM = re.compile(r"^\s*(?:và|hay|hoặc)(?!\w)")
+# The grammatical mark of a list's last items ("A, B và C", "…, hay C"): a conjunction inside
+# the segment. "hay không" closes a question and is not one.
+_LIST_TAIL = re.compile(r"(?<!\w)(?:và|hoặc|hay(?! không))(?!\w)")
 
 
 def _names_action(text: str) -> bool:
@@ -610,10 +613,11 @@ def _asked_segments(text: str) -> str:
 
     - trailing segments that open with a background connector ("…, khi sếp vẫn giao việc?") are
       background; the reader's question ends at the last segment before them;
-    - it starts at the nearest segment that opens an interrogative ("có nên", "nên", a question
-      word), because a commas-separated list belongs to one question: in "Mình có nên xin lỗi
-      bạn bè, gia đình và đồng nghiệp không?" the last segment only closes it. The search never
-      crosses a background segment;
+    - a last segment without an opener reaches back only when it is a list or alternatives tail,
+      marked by a conjunction ("và", "hoặc", "hay"): in "Mình có nên xin lỗi bạn bè, gia đình và
+      đồng nghiệp không?" the question starts at the segment that opens it. A last segment with
+      no opener and no list mark ("mình nghỉ ngơi được không?") is a complete clause of its own.
+      The search never crosses a background segment;
     - when it offers alternatives ("…, hay …?"), the alternative before it is asked too;
     - every earlier segment is background, whatever it asks or reports;
     - only when the question names no action of its own ("…, mình có nên không?") does it borrow
@@ -638,7 +642,11 @@ def _asked_segments(text: str) -> str:
     while end > 1 and _BACKGROUND.match(segments[end - 1].lstrip()):
         end -= 1
     start = end - 1
-    if not _OPENS.search(segments[start]):
+    # Without an opener, the last segment is either a complete clause closed by a particle
+    # ("mình nghỉ ngơi được không?") or the tail of a list or set of alternatives that an earlier
+    # segment opened ("…, gia đình và đồng nghiệp không?"). Only the list mark tells the tail
+    # apart; without it the segment is the reader's own clause and the span does not reach back.
+    if not _OPENS.search(segments[start]) and _LIST_TAIL.search(segments[start]):
         for index in range(start - 1, -1, -1):
             if _BACKGROUND.match(segments[index].lstrip()):
                 break

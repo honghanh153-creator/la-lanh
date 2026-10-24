@@ -384,3 +384,29 @@ def test_the_question_owns_its_action_or_none(question: str, expected: TarotActi
 def test_a_question_spanning_a_list_keeps_its_action(question: str, expected: TarotAction) -> None:
     frame = ENGINE.assess_question(question, S).frame
     assert frame is not None and frame.action is expected
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        # Codex #45 @ 87ca55f: a final clause with its own action that closes with "được không?"
+        # is a complete question even without an opener; it is not a list tail of the reported
+        # question before it.
+        ("Sếp hỏi có nên nhận thêm việc, mình nghỉ ngơi được không?", TarotAction.NGHI_NGOI),
+        ("Sếp hỏi có nên nói chuyện, mình xin lỗi được không?", TarotAction.XIN_LOI),
+        ("Sếp hỏi có nên xin lỗi, mình học thêm được không?", TarotAction.HOC_THEM),
+    ],
+)
+def test_a_closed_own_clause_is_not_a_list_tail(question: str, expected: TarotAction) -> None:
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is None or reading.stance.action is expected
+
+
+def test_a_closing_only_segment_without_a_list_mark_borrows_nothing_from_a_question() -> None:
+    """No conjunction and no action of its own: the owner is unclear, so the label is None."""
+
+    frame = ENGINE.assess_question("Sếp hỏi có nên nhận thêm việc, mình được không?", S).frame
+    assert frame is None or frame.action is None
