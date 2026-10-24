@@ -2982,11 +2982,6 @@
         "additionalProperties": false,
         "description": "B proves possession of the invite link; the token is in the body, never the URL.",
         "properties": {
-          "request_id": {
-            "format": "uuid",
-            "title": "Request Id",
-            "type": "string"
-          },
           "token": {
             "maxLength": 43,
             "minLength": 43,
@@ -2995,7 +2990,6 @@
           }
         },
         "required": [
-          "request_id",
           "token"
         ],
         "title": "RadarInviteWithdrawRequest",

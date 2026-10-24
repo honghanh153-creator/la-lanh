@@ -148,7 +148,6 @@ class RadarInviteWithdrawRequest(BaseModel):
     """B proves possession of the invite link; the token is in the body, never the URL."""
 
     model_config = ConfigDict(extra="forbid")
-    request_id: UUID
     token: str = Field(min_length=43, max_length=43)
 
 
@@ -439,7 +438,7 @@ async def withdraw_by_invite(
     _safe_public(response)
     try:
         require_trusted_origin(request, trusted_origins(request))
-        await _service(request).withdraw_by_invite(body.token, expected_request_id=body.request_id)
+        await _service(request).withdraw_by_invite(body.token)
     except RadarError:
         return Response(status_code=404, headers=dict(response.headers))
     response.status_code = 204

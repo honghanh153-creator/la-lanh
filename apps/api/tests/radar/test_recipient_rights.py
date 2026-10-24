@@ -118,16 +118,19 @@ def test_invite_link_withdraws_without_receipt_or_session_and_never_opens_a_view
         fresh = TestClient(owner.app, base_url=ORIGIN)
         assert fresh.get(f"/v1/public/radar/{token}").status_code == 404
 
-        wrong_request = fresh.post(
+        # B on a new device cannot learn the request id, so only the token is sent; a request
+        # id binding is not accepted on this path.
+        with_binding = fresh.post(
             "/v1/public/radar/invite/withdraw",
             headers={"Origin": ORIGIN},
-            json={"request_id": "00000000-0000-4000-8000-000000000000", "token": token},
+            json={"request_id": request_id, "token": token},
         )
-        assert wrong_request.status_code == 404
+        assert with_binding.status_code == 422
+        assert owner.get(f"/v1/radar/results/{request_id}").status_code == 200
         wrong_token = fresh.post(
             "/v1/public/radar/invite/withdraw",
             headers={"Origin": ORIGIN},
-            json={"request_id": request_id, "token": "x" * 43},
+            json={"token": "x" * 43},
         )
         assert wrong_token.status_code == 404
         assert owner.get(f"/v1/radar/results/{request_id}").status_code == 200
@@ -135,7 +138,7 @@ def test_invite_link_withdraws_without_receipt_or_session_and_never_opens_a_view
         withdrawn = fresh.post(
             "/v1/public/radar/invite/withdraw",
             headers={"Origin": ORIGIN},
-            json={"request_id": request_id, "token": token},
+            json={"token": token},
         )
         assert withdrawn.status_code == 204
         assert withdrawn.headers["cache-control"].startswith("no-store")
@@ -145,7 +148,7 @@ def test_invite_link_withdraws_without_receipt_or_session_and_never_opens_a_view
         replay = fresh.post(
             "/v1/public/radar/invite/withdraw",
             headers={"Origin": ORIGIN},
-            json={"request_id": request_id, "token": token},
+            json={"token": token},
         )
         assert replay.status_code == 404
 
@@ -170,7 +173,7 @@ def test_received_rights_end_with_the_result_window(tmp_path: Path) -> None:
             recipient.post(
                 "/v1/public/radar/invite/withdraw",
                 headers={"Origin": ORIGIN},
-                json={"request_id": request_id, "token": token},
+                json={"token": token},
             ).status_code
             == 404
         )

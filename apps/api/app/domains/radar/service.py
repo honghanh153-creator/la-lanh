@@ -738,20 +738,24 @@ class RadarService:
             request_id,
         )
 
-    async def withdraw_by_invite(self, token: str, *, expected_request_id: UUID) -> None:
+    async def withdraw_by_invite(self, token: str) -> None:
         """Withdraw a consented result by proving possession of its invite link (P09 D2).
 
         For B without the receipt or the session. Withdraw only, never view: A holds the same
-        link, and A can already delete the result.
+        link, and A can already delete the result. The token names the row; no request id is
+        bound because B on a new device cannot learn it (the completed invite no longer previews).
         """
 
         if CAPABILITY_PATTERN.fullmatch(token) is None:
             raise RadarUnavailable
         digest = self._hasher.digest("radar-capability", token)
-        await self._withdraw(RadarRequestRow.token_hash == digest, expected_request_id)
+        await self._withdraw(RadarRequestRow.token_hash == digest, None)
 
-    async def _withdraw(self, condition: ColumnElement[bool], expected_request_id: UUID) -> None:
+    async def _withdraw(
+        self, condition: ColumnElement[bool], expected_request_id: UUID | None
+    ) -> None:
         current = datetime.now(UTC)
+        request_id: UUID
         owner_guest_id: UUID
         recipient_guest_id: UUID | None
         async with self._sessions() as session, session.begin():
@@ -761,9 +765,10 @@ class RadarService:
                 or row.completed_at is None
                 or row.completed_at + RECEIPT_TTL <= current
                 or row.withdrawn_at is not None
-                or row.id != expected_request_id
+                or (expected_request_id is not None and row.id != expected_request_id)
             ):
                 raise RadarUnavailable
+            request_id = row.id
             owner_guest_id = row.owner_guest_id
             recipient_guest_id = row.recipient_guest_id
             sends = await pending_sends(
@@ -773,7 +778,7 @@ class RadarService:
             row.withdrawn_at = current
             row.result_ciphertext = None
             row.receipt_ciphertext = None
-        await self._cancel_rewrites(expected_request_id, owner_guest_id, recipient_guest_id)
+        await self._cancel_rewrites(request_id, owner_guest_id, recipient_guest_id)
         await drain_sends(self._sessions, sends)
 
     async def _enqueue_rewrite(

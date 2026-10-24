@@ -11,7 +11,7 @@ deadline under Decree 356/2025 is a counsel question.** This document claims nei
 |---|---|---|
 | Has the receipt cookie (device that accepted) | `/radar/receipt` | view, withdraw |
 | Lost the receipt, still has the guest session that accepted | `GET /v1/radar/received`, `GET /v1/radar/received/{id}`, `POST /v1/radar/received/{id}/withdraw` | view, withdraw |
-| Lost receipt and session, still has the invite link | `POST /v1/public/radar/invite/withdraw` with `{request_id, token}` in the body | withdraw only |
+| Lost receipt and session, still has the invite link | `POST /v1/public/radar/invite/withdraw` with `{token}` in the body (no request id: B on a new device cannot learn it) | withdraw only |
 | Deleted B's own profile | birth-profile erase already deletes rows where B is recipient | nothing left |
 
 All paths end with the result's 30-day window. Withdrawal clears the result for both people, cancels

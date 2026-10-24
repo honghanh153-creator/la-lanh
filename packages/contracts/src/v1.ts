@@ -2585,11 +2585,6 @@ export interface components {
          * @description B proves possession of the invite link; the token is in the body, never the URL.
          */
         RadarInviteWithdrawRequest: {
-            /**
-             * Request Id
-             * Format: uuid
-             */
-            request_id: string;
             /** Token */
             token: string;
         };
