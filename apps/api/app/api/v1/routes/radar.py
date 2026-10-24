@@ -10,7 +10,7 @@ from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.identity.models import OwnerIdentity
 from app.domains.identity.service import OwnerIdentityService, OwnerSessionUnavailable
-from app.domains.radar.models import RadarInviteView, RadarMode, RadarStatus
+from app.domains.radar.models import RadarInviteView, RadarMode, RadarReceivedView, RadarStatus
 from app.domains.radar.service import (
     CONSENT_VERSION,
     RECEIPT_TTL,
@@ -142,6 +142,26 @@ class RadarAcceptRequest(BaseModel):
 class RadarBoundActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     request_id: UUID
+
+
+class RadarInviteWithdrawRequest(BaseModel):
+    """B proves possession of the invite link; the token is in the body, never the URL."""
+
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    token: str = Field(min_length=43, max_length=43)
+
+
+class RadarReceivedItem(BaseModel):
+    request_id: UUID
+    context: str
+    voice: str
+    completed_at: datetime
+    expires_at: datetime
+
+
+class RadarReceivedListResponse(BaseModel):
+    items: list[RadarReceivedItem]
 
 
 class RadarResultResponse(BaseModel):
@@ -351,6 +371,79 @@ async def delete_owner_result(
     except (OwnerSessionUnavailable, GuestDomainError, RadarError):
         return Response(status_code=404)
     return Response(status_code=204)
+
+
+async def _recipient_guest(request: Request) -> UUID:
+    settings = request.app.state.settings
+    guest = await _guests(request).resume(request.cookies.get(settings.guest_cookie_name))
+    return guest.id
+
+
+def _received_item(view: RadarReceivedView) -> RadarReceivedItem:
+    return RadarReceivedItem(
+        request_id=view.request_id,
+        context=view.context,
+        voice=view.voice,
+        completed_at=view.completed_at,
+        expires_at=view.expires_at,
+    )
+
+
+@router.get("/radar/received", response_model=RadarReceivedListResponse)
+async def received_results(request: Request) -> RadarReceivedListResponse | Response:
+    """Results B accepted, found by B's own guest session (P09 D2): no receipt needed."""
+    try:
+        views = await _service(request).received(await _recipient_guest(request))
+    except GuestDomainError:
+        return Response(status_code=401)
+    return RadarReceivedListResponse(items=[_received_item(view) for view in views])
+
+
+@router.get("/radar/received/{request_id}", response_model=RadarResultResponse)
+async def received_result(request_id: UUID, request: Request) -> RadarResultResponse | Response:
+    try:
+        result = await _service(request).received_result(
+            await _recipient_guest(request), request_id
+        )
+    except (GuestDomainError, RadarError):
+        return Response(status_code=404)
+    return RadarResultResponse.model_validate(result)
+
+
+@router.post("/radar/received/{request_id}/withdraw", status_code=204)
+async def withdraw_received(
+    request_id: UUID,
+    request: Request,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> Response:
+    settings = request.app.state.settings
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        guest = await _guests(request).verify_csrf(
+            request.cookies.get(settings.guest_cookie_name), csrf_token
+        )
+        await _service(request).withdraw_received(guest.id, request_id)
+    except (GuestDomainError, RadarError):
+        return Response(status_code=404)
+    return Response(status_code=204)
+
+
+@public_router.post("/public/radar/invite/withdraw", status_code=204)
+async def withdraw_by_invite(
+    body: RadarInviteWithdrawRequest, request: Request, response: Response
+) -> Response:
+    """B withdraws by proving possession of the invite link, without receipt or session.
+
+    Withdraw only: A holds the same link, so it never opens B's view.
+    """
+    _safe_public(response)
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        await _service(request).withdraw_by_invite(body.token, expected_request_id=body.request_id)
+    except RadarError:
+        return Response(status_code=404, headers=dict(response.headers))
+    response.status_code = 204
+    return response
 
 
 @public_router.get("/public/radar/current", response_model=PublicRadarInviteResponse)

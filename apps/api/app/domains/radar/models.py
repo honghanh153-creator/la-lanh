@@ -44,3 +44,14 @@ class RadarAcceptResult:
     request_id: UUID
     receipt_token: str
     result: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class RadarReceivedView:
+    """A consented result as B sees it in B's own session: no label A chose for B."""
+
+    request_id: UUID
+    context: str
+    voice: str
+    completed_at: datetime
+    expires_at: datetime
