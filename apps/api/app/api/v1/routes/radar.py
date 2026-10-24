@@ -6,7 +6,7 @@ from fastapi import APIRouter, Cookie, Header, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.domains.guest.errors import GuestDomainError
+from app.domains.guest.errors import CsrfRejected, GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.identity.models import OwnerIdentity
 from app.domains.identity.service import OwnerIdentityService, OwnerSessionUnavailable
@@ -161,6 +161,8 @@ class RadarReceivedItem(BaseModel):
 
 class RadarReceivedListResponse(BaseModel):
     items: list[RadarReceivedItem]
+    # Pass as ``before`` for the next page; null on the last page.
+    next_before: UUID | None = None
 
 
 class RadarResultResponse(BaseModel):
@@ -389,13 +391,24 @@ def _received_item(view: RadarReceivedView) -> RadarReceivedItem:
 
 
 @router.get("/radar/received", response_model=RadarReceivedListResponse)
-async def received_results(request: Request) -> RadarReceivedListResponse | Response:
+async def received_results(
+    request: Request,
+    before: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> RadarReceivedListResponse | Response:
     """Results B accepted, found by B's own guest session (P09 D2): no receipt needed."""
     try:
-        views = await _service(request).received(await _recipient_guest(request))
+        views = await _service(request).received(
+            await _recipient_guest(request), before=before, limit=limit
+        )
     except GuestDomainError:
         return Response(status_code=401)
-    return RadarReceivedListResponse(items=[_received_item(view) for view in views])
+    except RadarError:
+        return Response(status_code=404)
+    return RadarReceivedListResponse(
+        items=[_received_item(view) for view in views],
+        next_before=views[-1].request_id if len(views) == limit else None,
+    )
 
 
 @router.get("/radar/received/{request_id}", response_model=RadarResultResponse)
@@ -439,6 +452,8 @@ async def withdraw_by_invite(
     try:
         require_trusted_origin(request, trusted_origins(request))
         await _service(request).withdraw_by_invite(body.token)
+    except CsrfRejected:
+        return Response(status_code=403, headers=dict(response.headers))
     except RadarError:
         return Response(status_code=404, headers=dict(response.headers))
     response.status_code = 204

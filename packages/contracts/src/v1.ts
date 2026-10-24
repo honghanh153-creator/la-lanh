@@ -2650,6 +2650,8 @@ export interface components {
         RadarReceivedListResponse: {
             /** Items */
             items: components["schemas"]["RadarReceivedItem"][];
+            /** Next Before */
+            next_before?: string | null;
         };
         /** RadarResultResponse */
         RadarResultResponse: {
@@ -7387,7 +7389,10 @@ export interface operations {
     };
     received_results_v1_radar_received_get: {
         parameters: {
-            query?: never;
+            query?: {
+                before?: string | null;
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7401,6 +7406,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RadarReceivedListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

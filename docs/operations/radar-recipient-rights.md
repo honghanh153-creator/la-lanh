@@ -10,11 +10,12 @@ deadline under Decree 356/2025 is a counsel question.** This document claims nei
 | B's situation | Path | What it opens |
 |---|---|---|
 | Has the receipt cookie (device that accepted) | `/radar/receipt` | view, withdraw |
-| Lost the receipt, still has the guest session that accepted | `GET /v1/radar/received`, `GET /v1/radar/received/{id}`, `POST /v1/radar/received/{id}/withdraw` | view, withdraw |
+| Lost the receipt, still has the guest session that accepted | `GET /v1/radar/received` (pages via `before`/`next_before`), `GET /v1/radar/received/{id}`, `POST /v1/radar/received/{id}/withdraw` | view, withdraw |
 | Lost receipt and session, still has the invite link | `POST /v1/public/radar/invite/withdraw` with `{token}` in the body (no request id: B on a new device cannot learn it) | withdraw only |
 | Deleted B's own profile | birth-profile erase already deletes rows where B is recipient | nothing left |
 
-All paths end with the result's 30-day window. Withdrawal clears the result for both people, cancels
+All paths end with the result's 30-day access window; physical deletion of the row follows the same
+cleanup job and fence rules as above. Withdrawal clears the result for both people, cancels
 both rewrite jobs and waits for any in-flight provider send. The web screens for the session and
 invite-link paths need owner-approved copy and are not built yet.
 
@@ -25,8 +26,14 @@ invite-link paths need owner-approved copy and are not built yet.
    to use the device that accepted. Support staff must not handle the token: do not ask B to paste the
    link into email or chat.
 3. Private check (A entered B's data): the system stores no identifier for B, only A's nickname for B
-   and a derived result that expires 24 hours after creation. Tell B that the result is deleted
-   automatically within 24 hours and that A can delete it at any time. Do not search for B by name.
+   and a derived result. Tell B what is true, without promising erasure by a date (Radar spec §6):
+   - **Access ends at the stored expiry.** New checks: 24 hours after creation. Checks created before
+     the 24-hour rule (2026-10-19) keep the expiry they were created with, at most 30 days. Expired
+     rows are hidden at once.
+   - **Physical deletion follows later** by the six-hour cleanup job, nominally within about 30 hours
+     of creation for a new check. Each run that meets an active rewrite send fence or generation
+     attempt for A defers it by one more run, with no hard upper bound. Backups expire separately (P07).
+   - A can delete the result at any time. Do not search for B by name.
 4. Log only: request date, channel, which path was suggested, outcome. No name, nickname, email body,
    token, link or birth data in the log.
 5. Questions about lawful basis or notice to B (D3/D4) go to counsel; do not answer them ad hoc.

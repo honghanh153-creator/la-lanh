@@ -1,6 +1,9 @@
 """P09 D2: B keeps view and withdrawal of a consented result without the receipt."""
 
+import sqlite3
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
@@ -62,7 +65,8 @@ def test_recipient_session_views_and_withdraws_without_the_receipt(tmp_path: Pat
         assert viewed.status_code == 200
         assert viewed.json()["request_id"] == request_id
         assert viewed.json()["mode"] == "consented_invite"
-        assert viewed.json()["headline"] == accepted["headline"]
+        # The whole directional projection B saw at acceptance, not only the headline.
+        assert viewed.json() == accepted
         assert viewed.json()["recipient_label"] is None and "Mèo" not in viewed.text
         _assert_no_raw_birth_data(viewed.json())
 
@@ -201,3 +205,119 @@ def test_a_private_check_never_appears_as_received(tmp_path: Path) -> None:
         request_id = created.json()["request_id"]
         assert owner.get("/v1/radar/received").json()["items"] == []
         assert owner.get(f"/v1/radar/received/{request_id}").status_code == 404
+
+
+def _clone_received(database: Path, request_id: str, count: int, **changes: object) -> list[str]:
+    """Synthetic SQLite rows for B from two senders (each sender stays under its own cap)."""
+    with sqlite3.connect(database) as connection:
+        connection.row_factory = sqlite3.Row
+        base = dict(
+            connection.execute(
+                "SELECT * FROM radar_requests WHERE id = ?", (request_id.replace("-", ""),)
+            ).fetchone()
+        )
+        other = connection.execute(
+            "SELECT id, source_guest_id FROM principals WHERE id != ?", (base["principal_id"],)
+        ).fetchone()
+        start = datetime.fromisoformat(base["completed_at"])
+        ids = []
+        for index in range(count):
+            row = dict(base)
+            row.update(
+                id=uuid4().hex,
+                completed_at=(start + timedelta(seconds=index + 1)).isoformat(sep=" "),
+                token_hash=None,
+                receipt_hash=None,
+                idempotency_hash=None,
+                request_hash=None,
+                **changes,
+            )
+            if index % 2 and other is not None:
+                row.update(principal_id=other["id"], owner_guest_id=other["source_guest_id"])
+            keys = list(row)  # the table's own column names, from SELECT *
+            connection.execute(
+                f"INSERT INTO radar_requests ({','.join(keys)}) VALUES "  # noqa: S608
+                f"({','.join('?' for _ in keys)})",
+                [row[key] for key in keys],
+            )
+            ids.append(str(row["id"]))
+    return ids
+
+
+def _second_sender(owner: TestClient) -> None:
+    sender = TestClient(owner.app, base_url=ORIGIN)
+    csrf = _full_profile(sender, "radar-second-sender-12345678", "1993-02-01", "09:15")
+    claim = sender.post("/v1/identity/claim", headers={"Origin": ORIGIN, "X-CSRF-Token": csrf})
+    assert claim.status_code == 200
+
+
+def test_withdrawn_results_never_hide_a_readable_one(tmp_path: Path) -> None:
+    database = tmp_path / "radar.db"
+    with _client(database) as owner:
+        recipient, _, request_id, _, _ = _accepted_invite(owner)
+        _second_sender(owner)
+        now = datetime.now(UTC).isoformat(sep=" ")
+        # 100 newer withdrawn results from two senders.
+        _clone_received(
+            database,
+            request_id,
+            100,
+            status="withdrawn",
+            withdrawn_at=now,
+            result_ciphertext=None,
+            receipt_ciphertext=None,
+        )
+        items = recipient.get("/v1/radar/received").json()["items"]
+        assert [item["request_id"] for item in items] == [request_id]
+
+
+def test_more_than_a_page_of_received_results_continues_stably(tmp_path: Path) -> None:
+    database = tmp_path / "radar.db"
+    with _client(database) as owner:
+        recipient, _, request_id, _, _ = _accepted_invite(owner)
+        _second_sender(owner)
+        clones = _clone_received(database, request_id, 101)
+        expected = [*(str(UUID(value)) for value in reversed(clones)), request_id]
+
+        seen: list[str] = []
+        before = None
+        pages = 0
+        while True:
+            params = {"limit": 50, **({"before": before} if before else {})}
+            page = recipient.get("/v1/radar/received", params=params)
+            assert page.status_code == 200
+            seen += [item["request_id"] for item in page.json()["items"]]
+            pages += 1
+            before = page.json()["next_before"]
+            if before is None:
+                break
+        assert pages == 3
+        assert seen == expected and len(set(seen)) == 102
+
+        # A cursor that is not B's own received row is refused, never treated as "from start".
+        foreign = recipient.get("/v1/radar/received", params={"before": str(uuid4())})
+        assert foreign.status_code == 404
+        assert recipient.get("/v1/radar/received", params={"limit": 0}).status_code == 422
+        assert recipient.get("/v1/radar/received", params={"limit": 51}).status_code == 422
+
+
+def test_missing_or_untrusted_origin_is_a_client_error_and_changes_nothing(
+    tmp_path: Path,
+) -> None:
+    with _client(tmp_path / "radar.db") as owner:
+        recipient, recipient_csrf, request_id, token, _ = _accepted_invite(owner)
+        fresh = TestClient(owner.app, base_url=ORIGIN)
+        for headers in ({}, {"Origin": "https://evil.example"}):
+            public = fresh.post(
+                "/v1/public/radar/invite/withdraw", headers=headers, json={"token": token}
+            )
+            assert public.status_code == 403
+            assert public.headers["cache-control"].startswith("no-store")
+            assert public.headers["referrer-policy"] == "no-referrer"
+            session = recipient.post(
+                f"/v1/radar/received/{request_id}/withdraw",
+                headers={**headers, "X-CSRF-Token": recipient_csrf},
+            )
+            assert session.status_code == 404
+        assert owner.get(f"/v1/radar/results/{request_id}").status_code == 200
+        assert recipient.get(f"/v1/radar/received/{request_id}").status_code == 200

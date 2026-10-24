@@ -639,24 +639,70 @@ class RadarService:
                 raise RadarUnavailable
             return self._recipient_result(row)
 
-    async def received(self, recipient_guest_id: UUID) -> list[RadarReceivedView]:
+    async def received(
+        self,
+        recipient_guest_id: UUID,
+        *,
+        before: UUID | None = None,
+        limit: int = PAGE_SIZE,
+    ) -> tuple[RadarReceivedView, ...]:
         """Consented results B can still see, found by B's own session (P09 D2).
 
         B needs no receipt: the session that accepted the invite is the proof, so a lost
-        receipt cookie does not end B's view, export or withdrawal.
+        receipt cookie does not end B's view, export or withdrawal. Eligibility is filtered in
+        SQL before the page limit, so withdrawn or expired rows never hide a readable one, and
+        ``before`` continues from the last id of the previous page across every sender.
         """
 
+        if not 1 <= limit <= MAX_PAGE_SIZE:
+            raise RadarInvalid
         current = datetime.now(UTC)
         async with self._sessions() as session:
-            rows = (
-                await session.scalars(
-                    select(RadarRequestRow)
-                    .where(RadarRequestRow.recipient_guest_id == recipient_guest_id)
-                    .order_by(RadarRequestRow.completed_at.desc())
-                    .limit(MAX_RETAINED_REQUESTS)
+            query = select(RadarRequestRow).where(
+                RadarRequestRow.recipient_guest_id == recipient_guest_id,
+                RadarRequestRow.status == RadarStatus.COMPLETED.value,
+                RadarRequestRow.withdrawn_at.is_(None),
+                RadarRequestRow.result_ciphertext.is_not(None),
+                RadarRequestRow.completed_at.is_not(None),
+                RadarRequestRow.completed_at > current - RECEIPT_TTL,
+            )
+            if before is not None:
+                cursor = (
+                    await session.execute(
+                        select(RadarRequestRow.completed_at, RadarRequestRow.id).where(
+                            RadarRequestRow.id == before,
+                            RadarRequestRow.recipient_guest_id == recipient_guest_id,
+                            RadarRequestRow.completed_at.is_not(None),
+                        )
+                    )
+                ).one_or_none()
+                if cursor is None:
+                    raise RadarUnavailable
+                query = query.where(
+                    or_(
+                        RadarRequestRow.completed_at < cursor.completed_at,
+                        and_(
+                            RadarRequestRow.completed_at == cursor.completed_at,
+                            RadarRequestRow.id < cursor.id,
+                        ),
+                    )
                 )
-            ).all()
-        return [
+            rows = tuple(
+                await session.scalars(
+                    query.options(
+                        load_only(
+                            RadarRequestRow.id,
+                            RadarRequestRow.context,
+                            RadarRequestRow.voice,
+                            RadarRequestRow.completed_at,
+                            RadarRequestRow.expires_at,
+                        )
+                    )
+                    .order_by(RadarRequestRow.completed_at.desc(), RadarRequestRow.id.desc())
+                    .limit(limit)
+                )
+            )
+        return tuple(
             RadarReceivedView(
                 request_id=row.id,
                 context=row.context,
@@ -665,8 +711,7 @@ class RadarService:
                 expires_at=row.expires_at,
             )
             for row in rows
-            if self._shared_with_recipient(row, current)
-        ]
+        )
 
     async def received_result(self, recipient_guest_id: UUID, request_id: UUID) -> dict[str, Any]:
         current = datetime.now(UTC)
