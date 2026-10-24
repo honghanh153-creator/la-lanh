@@ -410,3 +410,32 @@ def test_a_closing_only_segment_without_a_list_mark_borrows_nothing_from_a_quest
 
     frame = ENGINE.assess_question("Sếp hỏi có nên nhận thêm việc, mình được không?", S).frame
     assert frame is None or frame.action is None
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        # Codex #45 @ 00a87df: a list needs no conjunction. A segment that only closes the open
+        # question ("…, đồng nghiệp không?") continues it; a clause with its own question frame
+        # ("… được không?") does not, even when it contains "và".
+        ("Mình có nên xin lỗi bạn bè, gia đình, đồng nghiệp không?", TarotAction.XIN_LOI),
+        (
+            "Mình có nên xin lỗi vì bất đồng về chia việc, công sức, lịch gặp không?",
+            TarotAction.XIN_LOI,
+        ),
+        ("Mình có nên xin lỗi bạn bè, gia đình không?", TarotAction.XIN_LOI),
+        ("Mình có nên xin lỗi vì bất đồng về chia việc, công sức không?", TarotAction.XIN_LOI),
+        ("Mình có nên xin lỗi bạn bè, gia đình và đồng nghiệp không?", TarotAction.XIN_LOI),
+        ("Sếp hỏi có nên nhận thêm việc, mình nghỉ ngơi và ngủ được không?", TarotAction.NGHI_NGOI),
+        (
+            "Mình có nên xin lỗi bạn bè, gia đình không, dù sếp vẫn giao thêm việc?",
+            TarotAction.XIN_LOI,
+        ),
+    ],
+)
+def test_lists_and_own_clauses_by_clause_structure(question: str, expected: TarotAction) -> None:
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is None or reading.stance.action is expected
