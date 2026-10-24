@@ -593,6 +593,9 @@ _OPENS = re.compile(
     r"(?<!\w)(?:có nên|nên|liệu|có phải|làm sao|thế nào|bao giờ|khi nào|vì sao|tại sao|"
     r"gì|nào)(?!\w)"
 )
+# Openers that also read as indefinites ("một người nào đó", "hôm nào cũng", "gì đó"): they do not
+# show that the reader's own question has opened.
+_INDEFINITE_OPENER = re.compile(r"(?:gì|nào)")
 # A segment that only continues a list or a set of alternatives ("…, và học thêm, …").
 _LIST_ITEM = re.compile(r"^\s*(?:và|hay|hoặc)(?!\w)")
 # A modal question frame ("được không/chưa/chứ"). It closes a question but proves no predicate:
@@ -647,7 +650,9 @@ def _reports_another_question(segment: str) -> bool:
 
     The reporting verb is bound to the interrogative it introduces: the first opener with a
     reporting verb before it, so an earlier "nào" in the subject or a time phrase ("Một người nào
-    đó hỏi có nên …", "Sếp hôm nào cũng hỏi có nên …") does not hide it. Only the head before the
+    đó hỏi có nên …", "Sếp hôm nào cũng hỏi có nên …") does not hide it. An earlier opener that is
+    not an indefinite (``_INDEFINITE_OPENER``) is the reader's own question, and a report after it
+    is nested inside it ("Mình có nên hỏi lại xem mình nên làm gì …"). Only the head before the
     segment's background clause counts: a question reported inside the reader's own reason ("Mình
     có nên nghỉ ngơi vì sếp hỏi có nên …") belongs to that reason. The reader's own introduction
     ("Mình muốn hỏi có nên …", ``_is_reporting_prefix``) still asks the reader's question.
@@ -659,6 +664,10 @@ def _reports_another_question(segment: str) -> bool:
         lead = _tokens(fold(head[: opens.start()]))
         if _mentions_reporting(lead):
             return not _is_reporting_prefix(lead)
+        if _INDEFINITE_OPENER.fullmatch(fold(opens.group())) is None:
+            # The reader's own question opens first; a report after it is nested inside it
+            # ("Mình có nên hỏi lại xem mình nên làm gì …", "… nghỉ ngơi để biết mình nên …").
+            return False
     return False
 
 

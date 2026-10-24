@@ -634,3 +634,52 @@ def test_a_reporting_verb_binds_to_the_question_it_introduces(
     assert reading.stance is not None and reading.stance.action is expected
     assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
     assert reading.positions[-1].small_action == reference.positions[-1].small_action
+
+
+@pytest.mark.parametrize(
+    ("question", "control", "expected"),
+    [
+        # Codex #45 @ e3a4e67: the reader's own question opens first, so a report and its question
+        # after it are nested inside it and never take ownership.
+        (
+            "Mình có nên hỏi lại xem mình nên làm gì vì quá mệt, đến mức không tập trung được "
+            "không?",
+            "Mình có nên hỏi lại không?",
+            TarotAction.HOI_LAI,
+        ),
+        (
+            "Mình có nên nghỉ ngơi để biết mình nên làm gì vì quá mệt, đến mức không tập trung "
+            "được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Mình có nên nghỉ ngơi mà không biết mình nên làm gì vì quá mệt, đến mức không tập "
+            "trung được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        # Controls: indefinite "nào" before a real report, and a report of a wh-question.
+        (
+            "Một người nào đó hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Sếp hỏi mình nên làm gì vì thiếu người, mình nghỉ ngơi được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+    ],
+)
+def test_a_question_nested_in_the_readers_own_question_stays_nested(
+    question: str, control: str, expected: TarotAction
+) -> None:
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    reference = _render(control, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is not None and reading.stance.action is expected
+    assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
+    assert reading.positions[-1].small_action == reference.positions[-1].small_action
