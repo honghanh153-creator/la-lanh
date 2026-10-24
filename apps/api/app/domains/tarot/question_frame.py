@@ -588,6 +588,13 @@ def _strip_background(text: str) -> str:
 
 # The main clause offers alternatives ("…, hay nhận thêm việc?"): the one before it is asked too.
 _CHOICE = re.compile(r"^\s*(?:hay|hoặc)(?!\w)")
+# What opens an interrogative clause, as opposed to the particle that closes it ("… không?").
+_OPENS = re.compile(
+    r"(?<!\w)(?:có nên|nên|liệu|có phải|làm sao|thế nào|bao giờ|khi nào|vì sao|tại sao|"
+    r"gì|nào)(?!\w)"
+)
+# A segment that only continues a list or a set of alternatives ("…, và học thêm, …").
+_LIST_ITEM = re.compile(r"^\s*(?:và|hay|hoặc)(?!\w)")
 
 
 def _names_action(text: str) -> bool:
@@ -602,11 +609,16 @@ def _asked_segments(text: str) -> str:
     ngơi không?" reports two questions and asks one. Split at "," and ";":
 
     - trailing segments that open with a background connector ("…, khi sếp vẫn giao việc?") are
-      background; the reader's question is the last segment before them;
-    - when that question offers alternatives ("…, hay …?"), the alternative before it is asked too;
+      background; the reader's question ends at the last segment before them;
+    - it starts at the nearest segment that opens an interrogative ("có nên", "nên", a question
+      word), because a commas-separated list belongs to one question: in "Mình có nên xin lỗi
+      bạn bè, gia đình và đồng nghiệp không?" the last segment only closes it. The search never
+      crosses a background segment;
+    - when it offers alternatives ("…, hay …?"), the alternative before it is asked too;
     - every earlier segment is background, whatever it asks or reports;
     - only when the question names no action of its own ("…, mình có nên không?") does it borrow
-      one: from the plain statements just before it, or else from a "thì …" clause that a fronted
+      one: from the plain statement just before it (with the rest of its list, if that statement
+      continues one with "và", "hay", "hoặc"), or else from a "thì …" clause that a fronted
       background opens. Otherwise nothing is borrowed and the label stays None (clarify).
 
     With no background segment and no other question before the end, commas only separate a
@@ -626,18 +638,29 @@ def _asked_segments(text: str) -> str:
     while end > 1 and _BACKGROUND.match(segments[end - 1].lstrip()):
         end -= 1
     start = end - 1
+    if not _OPENS.search(segments[start]):
+        for index in range(start - 1, -1, -1):
+            if _BACKGROUND.match(segments[index].lstrip()):
+                break
+            if _OPENS.search(segments[index]):
+                start = index
+                break
     while start > 0 and _CHOICE.match(segments[start]):
         start -= 1
     asked = segments[start:end]
     if start > 0 and not _names_action(_strip_background("".join(asked))):
         index = start - 1
-        while index >= 0 and not _BACKGROUND.match(segments[index].lstrip()):
-            if _ASKS.search(segments[index]):
-                break  # another (reported) question is not an antecedent
-            asked = [segments[index], *asked]
-            index -= 1
-        if index >= 0 and len(asked) == end - start and _BACKGROUND.match(segments[index].lstrip()):
-            remainder = _strip_background(segments[index])
+        before = segments[index]
+        if not _BACKGROUND.match(before.lstrip()) and not _ASKS.search(before):
+            asked = [before, *asked]
+            while _LIST_ITEM.match(before) and index > 0:
+                index -= 1
+                before = segments[index]
+                if _BACKGROUND.match(before.lstrip()) or _ASKS.search(before):
+                    break
+                asked = [before, *asked]
+        elif _BACKGROUND.match(before.lstrip()):
+            remainder = _strip_background(before)
             if _ASKS.search(remainder) or _THEN_ASKS.search(remainder):
                 asked = [remainder, *asked]
     return "".join(asked)

@@ -362,3 +362,25 @@ def test_an_asked_clause_after_then_inside_a_fronted_segment_is_kept(
 )
 def test_the_question_owns_its_action_or_none(question: str, expected: TarotAction | None) -> None:
     assert question_frame.match_action(question_frame.asked_text(question)) is expected
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        # Codex #45 @ c9cc3d9: one question can span a list. "có nên … không?" opens in the first
+        # segment and closes in the last; the last alone is not an independent clause.
+        ("Mình có nên xin lỗi bạn bè, gia đình và đồng nghiệp không?", TarotAction.XIN_LOI),
+        (
+            "Mình có nên xin lỗi vì bất đồng về chia việc, công sức và lịch gặp không?",
+            TarotAction.XIN_LOI,
+        ),
+        # An antecedent is the plain statement just before the question.
+        (
+            "Sau khi nói chuyện với sếp, mình muốn nghỉ ngơi, mình có nên không?",
+            TarotAction.NGHI_NGOI,
+        ),
+    ],
+)
+def test_a_question_spanning_a_list_keeps_its_action(question: str, expected: TarotAction) -> None:
+    frame = ENGINE.assess_question(question, S).frame
+    assert frame is not None and frame.action is expected
