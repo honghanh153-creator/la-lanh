@@ -32,9 +32,11 @@ type EnqueueInput = {
 // {session_epoch, daily_note_id, acked_start} for an hour (a direct call times out after 15 s),
 // and both recording it and queueing a failed call happen under one Web Lock for all tabs.
 const ACK_KEY = "la-lanh-saved-note-acks-v1";
-// When this device's saved-note data was last cleared (a time only, nothing else). Callbacks of
-// calls that started earlier write nothing afterwards, in this tab or any other (Codex #48).
-const CLEARED_KEY = "la-lanh-saved-note-cleared-at-v1";
+// How many times this device's saved-note data was cleared (a count only, nothing else). A call
+// captures it when it starts; if it changed, its callback writes nothing, in this tab or any other.
+// A counter, not a time: call start times use the monotonic clock and a wall-clock correction
+// must neither let an old callback through nor drop a new call's retry (Codex #48).
+const CLEARS_KEY = "la-lanh-saved-note-clears-v1";
 const ACK_TTL_MS = HOUR_MS;
 const QUEUE_LOCK = "la-lanh-saved-note-queue-v1";
 
@@ -73,23 +75,17 @@ function writeAcks(acks: SavedAck[]): void {
 }
 
 /** Who made a direct call, captured when it started: checked again just before any write. */
-export type SavedCallOwner = { sessionEpoch: string; generation: number; startedAt: number };
+export type SavedCallOwner = { sessionEpoch: string; generation: number; clears: number; startedAt: number };
 
-function clearedSince(startedAt: number, now: number): boolean {
-  const raw = localStorage.getItem(CLEARED_KEY);
-  if (raw === null) return false;
-  const clearedAt = Number(raw);
-  if (!Number.isFinite(clearedAt) || now - clearedAt >= ACK_TTL_MS) {
-    localStorage.removeItem(CLEARED_KEY); // older than any call still in flight
-    return false;
-  }
-  return clearedAt >= startedAt;
+export function savedNoteClearCount(): number {
+  const count = Number(localStorage.getItem(CLEARS_KEY) ?? "0");
+  return Number.isSafeInteger(count) && count >= 0 ? count : 0;
 }
 
 function stillOwned(owner: SavedCallOwner): boolean {
   return sessionGeneration() === owner.generation
     && currentSessionEpoch() === owner.sessionEpoch
-    && !clearedSince(owner.startedAt, Date.now());
+    && savedNoteClearCount() === owner.clears;
 }
 
 function withQueueLock(work: () => void): Promise<void> {
@@ -248,11 +244,11 @@ export function enqueueFailedSavedMutation(
 }
 
 /**
- * Device clear: calls that started before now write nothing afterwards, in any tab, even if the
+ * Device clear: calls that started before it write nothing afterwards, in any tab, even if the
  * same session epoch comes back. Guest deletion does not need it: it removes the epoch itself.
  */
 export function fenceSavedNoteCallbacks(): void {
-  localStorage.setItem(CLEARED_KEY, String(Date.now()));
+  localStorage.setItem(CLEARS_KEY, String(savedNoteClearCount() + 1));
 }
 
 export function clearSavedNoteMutationQueue(): void {

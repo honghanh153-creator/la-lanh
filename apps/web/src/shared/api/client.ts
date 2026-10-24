@@ -15,6 +15,7 @@ import {
   clearSavedNoteMutationQueue,
   enqueueFailedSavedMutation,
   flushSavedNoteMutations,
+  savedNoteClearCount,
   type SavedCallOwner,
   type SavedNoteMutationIntent,
 } from "../storage/savedNoteMutationQueue";
@@ -909,7 +910,12 @@ export async function listSavedNotes(signal?: AbortSignal): Promise<SavedNote[]>
 function beginSavedCall(): SavedCallOwner | null {
   const sessionEpoch = currentSessionEpoch();
   return sessionEpoch
-    ? { sessionEpoch, generation: sessionGeneration(), startedAt: beginSavedNoteMutation() }
+    ? {
+      sessionEpoch,
+      generation: sessionGeneration(),
+      clears: savedNoteClearCount(),
+      startedAt: beginSavedNoteMutation(),
+    }
     : null;
 }
 

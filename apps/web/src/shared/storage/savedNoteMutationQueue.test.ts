@@ -190,7 +190,7 @@ describe("saved note mutation queue", () => {
   it("keeps ordering facts minimal, for an hour, and removes them with the queue", async () => {
     const started = Date.now() - 1_000;
     sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
-    const owner = (sessionEpoch: string, startedAt: number) => ({ sessionEpoch, generation: sessionGeneration(), startedAt });
+    const owner = (sessionEpoch: string, startedAt: number) => ({ sessionEpoch, generation: sessionGeneration(), clears: 0, startedAt });
     await acknowledgeSavedMutation(owner("epoch-a", started), "note-a");
     const stored = JSON.parse(localStorage.getItem("la-lanh-saved-note-acks-v1") ?? "[]") as Record<string, unknown>[];
     expect(stored).toHaveLength(1);
