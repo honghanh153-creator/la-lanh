@@ -439,3 +439,63 @@ def test_lists_and_own_clauses_by_clause_structure(question: str, expected: Taro
     assert assessment.frame.action is expected
     reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
     assert reading.stance is None or reading.stance.action is expected
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        # Codex #45 @ 58cbd26: "được không" closes the question but the verb sits in an earlier
+        # segment; a noun-list tail owns no predicate and must not drop or replace the action.
+        "Liệu mình xin lỗi bạn bè, gia đình và đồng nghiệp được không?",
+        "Liệu mình xin lỗi vì bất đồng về chia việc, công sức và lịch gặp được không?",
+    ],
+)
+def test_a_predicate_free_tail_keeps_the_spanning_action(question: str) -> None:
+    assessment = ENGINE.assess_question(question, R)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is TarotAction.XIN_LOI
+    reading = _render(question, R, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    control = _render(
+        "Mình có nên xin lỗi không?", R, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM
+    )
+    assert reading.stance is not None and reading.stance.action is TarotAction.XIN_LOI
+    assert reading.stance.conclusion == control.stance.conclusion  # type: ignore[union-attr]
+    assert reading.positions[-1].small_action == control.positions[-1].small_action
+
+
+def test_a_bare_own_clause_with_its_own_verb_stays_the_question() -> None:
+    """Correct on 00a87df; 58cbd26 regressed it (Codex r13 supporting evidence)."""
+
+    question = "Sếp hỏi có nên nhận thêm việc, mình nghỉ ngơi không?"
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.frame is not None and assessment.frame.action is TarotAction.NGHI_NGOI
+
+
+@pytest.mark.parametrize(
+    ("question", "goals"),
+    [
+        # Same goals as c912caf/87ca55f; "meeting" is the reason list's own pre-existing goal.
+        ("Liệu mình xin lỗi bạn bè, gia đình và đồng nghiệp được không?", ["apology"]),
+        (
+            "Liệu mình xin lỗi vì bất đồng về chia việc, công sức và lịch gặp được không?",
+            ["apology", "meeting"],
+        ),
+        (
+            "Mình có nên xin lỗi vì bất đồng về chia việc, công sức, lịch gặp không?",
+            ["apology", "meeting"],
+        ),
+    ],
+)
+def test_stored_v2_goal_extraction_follows_the_spanning_list(
+    question: str, goals: list[str]
+) -> None:
+    """Rendering a stored v2 frame reads goals from goal_text: the list span must hold there too
+    (apology stays the leading goal), while a stored v1 frame keeps whole-question goals."""
+
+    frame = ENGINE.assess_question(question, R).frame
+    assert frame is not None and frame.version == QUESTION_FRAME_VERSION
+    assert frame.action is TarotAction.XIN_LOI
+    text = question_frame.goal_text(question, frame.version)
+    assert [g.key for g in question_goals(text, R)] == goals
+    v1 = frame.model_copy(update={"version": "tarot-question-frame-v1"})
+    assert question_frame.goal_text(question, v1.version) == question

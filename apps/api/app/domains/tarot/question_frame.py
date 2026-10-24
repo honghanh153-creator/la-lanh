@@ -595,18 +595,63 @@ _OPENS = re.compile(
 )
 # A segment that only continues a list or a set of alternatives ("…, và học thêm, …").
 _LIST_ITEM = re.compile(r"^\s*(?:và|hay|hoặc)(?!\w)")
-# A question frame that carries its own predicate, so the segment is a complete clause even with
-# no opener: "V được không/chưa/chứ?", "có V … không?", "V hay không?". A segment with only the
-# closing particle ("…, đồng nghiệp không?") has no frame of its own and closes the open question.
-_OWN_FRAME = re.compile(
-    r"(?<!\w)được\s+(?:không|chưa|chứ)(?!\w)"
-    r"|(?<!\w)có(?!\s+(?:nên|phải)(?!\w))\s+\S.*?(?<!\w)không\s*[.!?…]*\s*$"
-    r"|(?<!\w)hay\s+không(?!\w)"
-)
+# A modal question frame ("được không/chưa/chứ"). It closes a question but proves no predicate:
+# "…, gia đình và đồng nghiệp được không?" ends a noun list whose verb is earlier.
+_MODAL_FRAME = re.compile(r"(?<!\w)được\s+(?:không|chưa|chứ)(?!\w)")
+# A conjunction inside a segment marks it as the last items of a list or alternatives.
+_LIST_MARK = re.compile(r"(?<!\w)(?:và|hoặc|hay(?!\s+không))(?!\w)")
+
+
+def _ends_in_background(segment: str) -> bool:
+    """Does a background clause opened in this segment run to its end ("…, vì bất đồng về X,")?"""
+
+    body = segment.rstrip().rstrip(",;").rstrip()
+    last = None
+    for match in _BACKGROUND.finditer(body):
+        last = match
+    return last is not None and _BACKGROUND_END.search(body, last.end()) is None
 
 
 def _names_action(text: str) -> bool:
     return match_action(text) is not None or _mentions_negated_action(text)
+
+
+def _question_start(segments: list[str], last: int) -> int:
+    """Where the reader's question starts when its last segment has no opener (Codex #45).
+
+    Ownership follows the predicate, not closing words. The earlier segment that opens the
+    question (never across a background segment) is ``opener``. The span reaches back to it when:
+
+    - the opener segment ends inside a background clause ("Mình có nên xin lỗi vì bất đồng về
+      chia việc, công sức, lịch gặp không?"): what follows continues that background list, even if
+      an item looks like an action word;
+    - otherwise the last segment owns no predicate (no action of its own) and is not an incomplete
+      own clause: list items or alternatives ("…, gia đình, đồng nghiệp không?", "…, gia đình và
+      đồng nghiệp được không?").
+
+    A last segment naming its own action ("mình nghỉ ngơi (được) không?") is a complete clause and
+    stays the question. One with a modal frame but neither an action nor a list mark ("mình được
+    không?") is an incomplete own clause: it stays alone and the label is None, never borrowed
+    from an earlier, possibly reported, question.
+    """
+
+    opener = None
+    for index in range(last - 1, -1, -1):
+        if _BACKGROUND.match(segments[index].lstrip()):
+            break
+        if _OPENS.search(segments[index]):
+            opener = index
+            break
+    if opener is None:
+        return last
+    tail = segments[last]
+    if _ends_in_background(segments[opener]):
+        return opener
+    if _names_action(tail):
+        return last
+    if _MODAL_FRAME.search(tail) and not _LIST_MARK.search(tail):
+        return last
+    return opener
 
 
 def _asked_segments(text: str) -> str:
@@ -618,14 +663,10 @@ def _asked_segments(text: str) -> str:
 
     - trailing segments that open with a background connector ("…, khi sếp vẫn giao việc?") are
       background; the reader's question ends at the last segment before them;
-    - a last segment with neither an opener nor its own question frame (``_OWN_FRAME``) only
-      closes the question an earlier segment opened, as list items or alternatives with or
-      without a conjunction: in "Mình có nên xin lỗi bạn bè, gia đình, đồng nghiệp không?" the
-      question starts at the segment that opens it. A last segment with its own frame ("mình
-      nghỉ ngơi được không?") is a complete clause. The search never crosses a background
-      segment. Residual: a bare "… không?" clause with its own verb after a reported question
-      reads as that question's continuation; telling a verb from a noun item needs more than
-      clause punctuation;
+    - a last segment without an opener is attached by predicate ownership (``_question_start``):
+      noun-list or alternatives tails reach back to the segment that opened the question, a tail
+      continuing a background clause does too, and a last segment with its own action is a
+      complete clause;
     - when it offers alternatives ("…, hay …?"), the alternative before it is asked too;
     - every earlier segment is background, whatever it asks or reports;
     - only when the question names no action of its own ("…, mình có nên không?") does it borrow
@@ -650,18 +691,8 @@ def _asked_segments(text: str) -> str:
     while end > 1 and _BACKGROUND.match(segments[end - 1].lstrip()):
         end -= 1
     start = end - 1
-    # Without an opener, the last segment is either a complete clause with its own question frame
-    # ("mình nghỉ ngơi được không?", even "… nghỉ ngơi và ngủ được không?") or the remainder of
-    # the question an earlier segment opened: list items with or without a conjunction
-    # ("…, gia đình, đồng nghiệp không?") or alternatives ("…, hay …?"). Clause structure decides,
-    # not conjunctions: only a segment without a frame of its own reaches back.
-    if not _OPENS.search(segments[start]) and not _OWN_FRAME.search(segments[start]):
-        for index in range(start - 1, -1, -1):
-            if _BACKGROUND.match(segments[index].lstrip()):
-                break
-            if _OPENS.search(segments[index]):
-                start = index
-                break
+    if not _OPENS.search(segments[start]):
+        start = _question_start(segments, start)
     while start > 0 and _CHOICE.match(segments[start]):
         start -= 1
     asked = segments[start:end]
