@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 8, after the Codex verdicts of 23–24/10/2026, round 7)
+# Audit v2 registry (revision 9, after the Codex verdicts of 24/10/2026)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -7,7 +7,9 @@ now `b5e4427` (#40, #9, #44, then #66, #17, #41–#43, #46, #47, #49–#59, #61�
 still `c3fab33`**: nothing merged here is released. The only runtime evidence is O01's disposable Compose proof on a
 GitHub-hosted runner; nothing is verified on staging or production. Open: #45, #48, #60 (this PR), #64, #69, #70–#78
 (#68 stays unreviewed by owner decision). Rows below carry the latest verdict per PR as of revision 5; heads pushed
-after a REQUEST_CHANGES are marked "awaiting re-review".
+after a verdict are marked "awaiting re-review": the REQUEST_CHANGES or APPROVE stands only for the exact SHA it
+names, until Codex reviews the new head. The registry's own live-head check proves only that the heads listed match
+GitHub; it says nothing about verdicts, test quality or runtime behaviour.
 
 Status values: `OPEN`, `PARTIAL` (some of the requirement fixed locally, the rest open), `MERGED_INTEGRATION` (approved
 and merged into `collab/integration`, not released to `main`/production), `FIXED_LOCAL` (code or docs
@@ -26,7 +28,7 @@ GitHub-hosted runner; **nothing on staging or production**), `OWNER_DECISION`, `
 | P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `0c51d84963c6236589e838bf64a875d6cb045802` · [RC @ d3c9b3f](https://github.com/honghanh153-creator/la-lanh/pull/48#issuecomment-6369020572) (the clear fence compared a monotonic start time with a wall-clock marker) → clear counter captured per call, awaiting re-review | Codex | device check |
 | P05 | Physical purge of revoked/expired share; experiment wording | MERGED_INTEGRATION | #49 `76d3460cba6f5ceebb563198d271c40551156552` · APPROVE @ same · merged into integration (`c787681`) | release to main (owner order); counsel on "tối đa 30 ngày" | PostgreSQL run |
 | P06 | Aggregate legacy-plaintext check + plan | PARTIAL (tooling approved) | #50 `109072dd385e5510086a741c87ef33b31b8e629a` · APPROVE @ same · merged into integration (`9c02707`) | operator: staging/prod counts via private channel | real counts; then backfill tool per owner choice |
-| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`) | operator install; Codex reviews journal A | install, first backup, restore probe, alert, Supabase backup/PITR receipt. Journal A: #78 `610c8ae548645861c5df50136e76da891ad59f0e` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271) (purge horizon; the RC @ 5579600 P1 and the two P2s @ 8173a20 fixed). Not deployed; the operator PostgreSQL probe should also cover export-before-purge with a snapshot after the purge (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until it is deployed and a restore probe has replayed it |
+| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`) | operator install; Codex reviews journal A | install, first backup, restore probe, alert, Supabase backup/PITR receipt. Journal A: #78 `c76b6954e656afe48784e9816beaaa431ce0355b` · [APPROVE @ 610c8ae](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271) (purge horizon; the RC @ 5579600 P1 and the two P2s @ 8173a20 fixed). The new head adds only the follow-ups Codex suggested (horizon edge regressions, stated commit-delay assumption, export-before-purge step in the operator PostgreSQL probe) and awaits re-review. P07 stays PARTIAL: not deployed, the operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until it is deployed and a restore probe has replayed it |
 | P08 | Log canaries; ingress/Docker; native | PARTIAL | #51 `1fcfa84368ebcda3592f3e2bc9e74ccf7c8dec0b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/51#issuecomment-6346170351) · merged into integration (`8df0492`) | operator/device | ingress/Docker runtime logs; signed native build on device (MASVS) |
 | P09 | B rights; receipt 7 d vs result 30 d | PARTIAL / OWNER_DECISION | dossier #52 APPROVE; D1 #62 `288b3ad281bb8eb3d5c1dc015592c7c68c7a70b2` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/62#issuecomment-6346173801) · merged into integration (`aae55b5`) (cookies already expired at 7 days are not revived) | owner (copy "30 ngày"), counsel D2–D4 | manual rights channel; lawful basis/notice answers |
 | P10 | Apple Tracking column; disclosures; counsel dossier | PARTIAL | #52 APPROVE · merged into integration (`0cf6334`) (column fixed; dossier is not a legal conclusion) | counsel | cross-border/DPIA, store forms at submission; DPA signature tracked separately by the owner, not a gate |
@@ -96,7 +98,10 @@ not Supabase, migration or live certification).
 
 ## Combined-branch checks (local, not pushed)
 
-### Author's local code-cohort check (revision 8)
+### Author's local code-cohort check (revision 8, stale for #78)
+
+Since this run #78 moved from `610c8ae` to `c76b695` (tests and docs only); the other heads are unchanged.
+
 
 Local head `06d870354c4e3fa3d2e0315c7eda394a6be5166d` (not pushed) = `collab/integration` `b5e4427` + #45 `87ca55f`,
 #48 `0c51d84`, #70 `4c08e3c`, #71 `58192de`, #72 `ebd99a7`, #73 `46059af`, #77 `2573e5b`, #78 `610c8ae`, merged in
