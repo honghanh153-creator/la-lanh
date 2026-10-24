@@ -586,3 +586,51 @@ def test_a_dependent_clause_continues_the_readers_own_reason(
     assert reading.stance is not None and reading.stance.action is expected
     assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
     assert reading.positions[-1].small_action == reference.positions[-1].small_action
+
+
+@pytest.mark.parametrize(
+    ("question", "control", "expected"),
+    [
+        # Codex #45 @ 5b5b9e1: the reporting verb is bound to the interrogative it introduces; an
+        # earlier non-interrogative "nào" (indefinite subject, habitual time) does not hide it.
+        (
+            "Một người nào đó hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Sếp hôm nào cũng hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        # Controls: plain reported subjects, a question reported inside the reader's own reason,
+        # and an indefinite time phrase inside the reader's own reason with a dependent clause.
+        (
+            "Ai đó hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Mình có nên nghỉ ngơi vì sếp hỏi có nên nhận thêm việc, đến mức không tập trung "
+            "được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Mình có nên nghỉ ngơi vì ngày nào cũng quá mệt, đến mức không tập trung được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+    ],
+)
+def test_a_reporting_verb_binds_to_the_question_it_introduces(
+    question: str, control: str, expected: TarotAction
+) -> None:
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    reference = _render(control, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is not None and reading.stance.action is expected
+    assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
+    assert reading.positions[-1].small_action == reference.positions[-1].small_action

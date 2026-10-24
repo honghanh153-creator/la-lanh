@@ -645,15 +645,21 @@ def _ends_in_background(segment: str) -> bool:
 def _reports_another_question(segment: str) -> bool:
     """Is the question this segment opens someone else's ("Sếp hỏi có nên …")?
 
-    A reporting verb before the opener reports a question; the reader's own introduction ("Mình
-    muốn hỏi có nên …", ``_is_reporting_prefix``) still asks the reader's question.
+    The reporting verb is bound to the interrogative it introduces: the first opener with a
+    reporting verb before it, so an earlier "nào" in the subject or a time phrase ("Một người nào
+    đó hỏi có nên …", "Sếp hôm nào cũng hỏi có nên …") does not hide it. Only the head before the
+    segment's background clause counts: a question reported inside the reader's own reason ("Mình
+    có nên nghỉ ngơi vì sếp hỏi có nên …") belongs to that reason. The reader's own introduction
+    ("Mình muốn hỏi có nên …", ``_is_reporting_prefix``) still asks the reader's question.
     """
 
-    opens = _OPENS.search(segment)
-    if opens is None:
-        return False
-    lead = _tokens(fold(segment[: opens.start()]))
-    return _mentions_reporting(lead) and not _is_reporting_prefix(lead)
+    background = _BACKGROUND.search(segment)
+    head = segment[: background.start()] if background else segment
+    for opens in _OPENS.finditer(head):
+        lead = _tokens(fold(head[: opens.start()]))
+        if _mentions_reporting(lead):
+            return not _is_reporting_prefix(lead)
+    return False
 
 
 def _names_action(text: str) -> bool:
