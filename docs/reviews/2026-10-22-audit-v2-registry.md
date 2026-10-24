@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 9, after the Codex verdicts of 24/10/2026)
+# Audit v2 registry (revision 10, after the Codex verdicts of 24/10/2026, r9 round)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -25,10 +25,10 @@ GitHub-hosted runner; **nothing on staging or production**), `OWNER_DECISION`, `
 | P01 | Raw Tarot question out of Web Storage | MERGED_INTEGRATION | #41 `1fb1c83c8b59a7f64d7d9fd0cf78e5d4aa6e1cc8` · APPROVE @ same · merged into integration (`17df2cf`) | release to main (owner order) | staging check after merge |
 | P02 | Deferred matching: no new collection | MERGED_INTEGRATION | #42 `0d49c6233ad899b7b45b85da7ce441e6e0f5ac90` · APPROVE @ same · merged into integration (`b315a5c`) | release to main (owner order) | staging flag stays false |
 | P03 | Triage of 75+11 retained findings | PARTIAL | #59 `8c595f3c170ab0a1e37f1fbc5f80dca53ffedc76` · APPROVE @ same · merged into integration (`449a8a5`) (RC-05 side note corrected: an off surface never stores a job). Low fixes #55/#56/#57/#58 APPROVE; RC-05 #61 `da714a3df99eb54f09227a14d8116d5649200c71` · [APPROVE](https://github.com/honghanh153-creator/la-lanh/pull/61#issuecomment-6346172828) · merged into integration (`522d350`) | operator | RC-23–27 effective native ephemeris path evidence (NEEDS_EVIDENCE) |
-| P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `0c51d84963c6236589e838bf64a875d6cb045802` · [RC @ d3c9b3f](https://github.com/honghanh153-creator/la-lanh/pull/48#issuecomment-6369020572) (the clear fence compared a monotonic start time with a wall-clock marker) → clear counter captured per call, awaiting re-review | Codex | device check |
+| P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `0c51d84963c6236589e838bf64a875d6cb045802` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/48#issuecomment-6378685160) (captured clear counter, epoch and generation inside the queue lock). Device and real multi-event-loop proof remain verification limits | Codex | device check |
 | P05 | Physical purge of revoked/expired share; experiment wording | MERGED_INTEGRATION | #49 `76d3460cba6f5ceebb563198d271c40551156552` · APPROVE @ same · merged into integration (`c787681`) | release to main (owner order); counsel on "tối đa 30 ngày" | PostgreSQL run |
 | P06 | Aggregate legacy-plaintext check + plan | PARTIAL (tooling approved) | #50 `109072dd385e5510086a741c87ef33b31b8e629a` · APPROVE @ same · merged into integration (`9c02707`) | operator: staging/prod counts via private channel | real counts; then backfill tool per owner choice |
-| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`) | operator install; Codex reviews journal A | install, first backup, restore probe, alert, Supabase backup/PITR receipt. Journal A: #78 `c76b6954e656afe48784e9816beaaa431ce0355b` · [APPROVE @ 610c8ae](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271) (purge horizon; the RC @ 5579600 P1 and the two P2s @ 8173a20 fixed). The new head adds only the follow-ups Codex suggested (horizon edge regressions, stated commit-delay assumption, export-before-purge step in the operator PostgreSQL probe) and awaits re-review. P07 stays PARTIAL: not deployed, the operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until it is deployed and a restore probe has replayed it |
+| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`) | operator install; Codex reviews journal A | install, first backup, restore probe, alert, Supabase backup/PITR receipt. Journal A: #78 `610c8ae548645861c5df50136e76da891ad59f0e` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271) (purge horizon; the RC @ 5579600 P1 and the two P2s @ 8173a20 fixed); the branch was restored to this head. The suggested follow-ups (horizon edge regressions, stated commit-delay assumption, export-before-purge step in the operator PostgreSQL probe) are #79 `c76b6954e656afe48784e9816beaaa431ce0355b`, stacked on #78, awaiting review. P07 stays PARTIAL: not deployed, the operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until it is deployed and a restore probe has replayed it |
 | P08 | Log canaries; ingress/Docker; native | PARTIAL | #51 `1fcfa84368ebcda3592f3e2bc9e74ccf7c8dec0b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/51#issuecomment-6346170351) · merged into integration (`8df0492`) | operator/device | ingress/Docker runtime logs; signed native build on device (MASVS) |
 | P09 | B rights; receipt 7 d vs result 30 d | PARTIAL / OWNER_DECISION | dossier #52 APPROVE; D1 #62 `288b3ad281bb8eb3d5c1dc015592c7c68c7a70b2` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/62#issuecomment-6346173801) · merged into integration (`aae55b5`) (cookies already expired at 7 days are not revived) | owner (copy "30 ngày"), counsel D2–D4 | manual rights channel; lawful basis/notice answers |
 | P10 | Apple Tracking column; disclosures; counsel dossier | PARTIAL | #52 APPROVE · merged into integration (`0cf6334`) (column fixed; dossier is not a legal conclusion) | counsel | cross-border/DPIA, store forms at submission; DPA signature tracked separately by the owner, not a gate |
@@ -39,7 +39,7 @@ GitHub-hosted runner; **nothing on staging or production**), `OWNER_DECISION`, `
 
 | ID | Requirement | Status | PR · head · verdict | Owner of next step | Evidence still missing |
 |---|---|---|---|---|---|
-| T01 | One asked target for frame, stance, goal, step | PARTIAL | #45 `87ca55fb4df3d52cfdd9a38035e221aad00d02d2` · [RC @ c9cc3d9](https://github.com/honghanh153-creator/la-lanh/pull/45#issuecomment-6369019512) (list questions split at commas lost their action) → a question starts at the nearest interrogative opener, awaiting re-review | Codex; Claude (residuals) | meaning/scene remains T02; longest-signal and keyword-goal overrides are a separate open item |
+| T01 | One asked target for frame, stance, goal, step | PARTIAL | #45 `00a87df2941b7afb2a0eb72de2dcd1ab292c2d87` · [RC @ 87ca55f](https://github.com/honghanh153-creator/la-lanh/pull/45#issuecomment-6378684689) (a closed own clause "… được không?" was scanned back into a reported question) → only a conjunction-marked list tail reaches back, awaiting re-review | Codex; Claude (residuals) | meaning/scene remains T02; longest-signal and keyword-goal overrides are a separate open item |
 | T02 | Scenes follow the asked action and context, observable, no hidden advice | OPEN (draft) | workbook #67 `bdf6287907c1b00dd913ccf7ce6b33a365e87526` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/67#issuecomment-6346177711) · merged into integration (`b5e4427`) as a draft, which is not copy approval (133 action×topic rows, 266 scenes); some current scenes break C4 (Ba Cốc, Tiết Chế) | owner approves copy | approval, then wiring with frozen readings kept |
 | T03 | Small step with a concrete trigger | OPEN (draft) | workbook #67 (142 action×role rows, 284 steps) | owner | same |
 | T04 | Card names English + Vietnamese; AC12 | MERGED_INTEGRATION | #63 `cd692bc63845f7724de1c84eb523cbe39e4707b0` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/63#issuecomment-6346174788) · merged into integration (`bc4eea1`) | owner (order/separator); device | screen reader and long-title layout on device |
@@ -96,11 +96,28 @@ not Supabase, migration or live certification).
 | P06 | Per-table "Preferred" column of `legacy-plaintext-backfill-plan.md` | after operator counts |
 | P04 TTL | Keep 24 h mood/save, 30 days unsave | #48 |
 
+## Proposed merge order into `collab/integration` (plan only; nothing merged)
+
+Not all audit PRs are approved yet (#45 awaits re-review; #79 and this PR's new head await review). Each step needs the
+owner's merge order and a Codex APPROVE on the exact head being merged; re-run `CI=1 pnpm check` on integration after
+each group.
+1. #70 `4c08e3c` (S1), #71 `58192de` (S2), #72 `ebd99a7` (S3; its own branch shows the inherited pin failure that
+   #66 already fixed on integration), #77 `2573e5b` (test-only).
+2. #48 `0c51d84` (P04; already merged integration once, data map keeps P04 and P05).
+3. #78 `610c8ae` (P07 journal, approved head). Then retarget #79 to `collab/integration` and merge it only after its
+   own APPROVE.
+4. #45, only after APPROVE on its current head, then #73 `46059af` (S4 allowlist depends on #45). #71 and #73 add a
+   bullet at the same place in the Luna runbook: keep both.
+5. Docs: #64 `df80d62`, #69 `aba9988`, then this registry last, re-reviewed at its final head so it records the merges.
+
+Merging is not release: `main`/production stays `c3fab33`, #75 stays No-Go, #74 and #76 keep their owner gates, and
+nothing here enables a provider or rollout.
+
 ## Combined-branch checks (local, not pushed)
 
-### Author's local code-cohort check (revision 8, stale for #78)
+### Author's local code-cohort check (revision 8, stale for #45)
 
-Since this run #78 moved from `610c8ae` to `c76b695` (tests and docs only); the other heads are unchanged.
+Since this run #45 moved from `87ca55f` to `00a87df`; #78 is back at `610c8ae` as in the manifest, and the other heads are unchanged. Test green and the live-head check do not show that no content defects remain.
 
 
 Local head `06d870354c4e3fa3d2e0315c7eda394a6be5166d` (not pushed) = `collab/integration` `b5e4427` + #45 `87ca55f`,
