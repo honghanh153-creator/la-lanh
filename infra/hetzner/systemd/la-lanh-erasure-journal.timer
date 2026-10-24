@@ -1,0 +1,13 @@
+[Unit]
+Description=Copy the Lá Lành deletion journal to the host every hour
+
+[Timer]
+# At :05, clear of the cleanup runs at :25/:40 and the backup at 20:10 UTC.
+OnCalendar=*-*-* *:05:00 UTC
+Persistent=true
+RandomizedDelaySec=2min
+AccuracySec=1min
+Unit=la-lanh-erasure-journal.service
+
+[Install]
+WantedBy=timers.target

@@ -27,6 +27,7 @@ from app.domains.content_rewrite.authorization import (
 from app.domains.content_rewrite.postgres import authorization_fingerprint
 from app.domains.content_rewrite.send_fence import drain_sends, pending_sends
 from app.domains.content_rewrite.tables import ContentRewriteJobRow, RewriteSendFenceRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.guest.errors import AccountErasurePending, GuestExpired
 from app.domains.guest.models import (
     ConsentRecord,
@@ -50,9 +51,11 @@ class PostgresGuestRepository:
         sessions: async_sessionmaker[AsyncSession],
         *,
         identity_eraser: Callable[[UUID], Awaitable[None]] | None = None,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._identity_eraser = identity_eraser
+        self._erasure_journal = erasure_journal
 
     async def create_or_replay(self, material: CreationMaterial) -> StoredCreation:
         async with self._sessions() as session, session.begin():
@@ -160,6 +163,9 @@ class PostgresGuestRepository:
             )
             sends = await pending_sends(session, (guest_id,))
             guest.state = GuestState.DELETING.value
+            if self._erasure_journal is not None:
+                # Recorded with the DELETING marker, which is also what cleanup resumes from.
+                self._erasure_journal.record(session, ErasureKind.GUEST_ERASED, guest_id, now)
 
             # Anything that has not crossed the durable provider-send marker is cancelled.
             # Attempts already sending are allowed to finish, and deletion does not report
@@ -405,6 +411,10 @@ class PostgresGuestRepository:
                 .where(ConsentRow.guest_id == guest_id, ConsentRow.purpose == purpose)
                 .values(revoked_at=revoked_at)
             )
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    session, ErasureKind.CONSENT_REVOKED, guest_id, revoked_at, scope=purpose
+                )
             for scope in RewriteConsentScope:
                 if consent_definition(scope).purpose == purpose:
                     if scope is RewriteConsentScope.RADAR:

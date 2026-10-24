@@ -30,6 +30,7 @@ from app.domains.content_rewrite.rollout import SurfaceRolloutPolicy
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.service import DailyNoteService
+from app.domains.erasure_journal.journal import ErasureJournal
 from app.domains.experiments.postgres import PostgresExperimentRepository
 from app.domains.experiments.service import ExperimentService
 from app.domains.guest.postgres import PostgresGuestRepository
@@ -114,9 +115,15 @@ def create_app(
             return await _runtime_ready(database, engine)
 
         app.state.readiness_probe = readiness_probe
+        credential_hasher = SecretHasher(
+            decode_key(resolved_settings.guest_hash_key.get_secret_value())
+        )
+        erasure_journal = ErasureJournal(credential_hasher)
+        app.state.erasure_journal = erasure_journal
         repository = guest_repository or PostgresGuestRepository(
             database.sessions,
             identity_eraser=SupabaseIdentityEraser(resolved_settings, transport=auth_transport),
+            erasure_journal=erasure_journal,
         )
         envelope = AesGcmEnvelopeCipher(
             StaticDataKeyProvider(
@@ -126,9 +133,6 @@ def create_app(
                 )
             )
         )
-        credential_hasher = SecretHasher(
-            decode_key(resolved_settings.guest_hash_key.get_secret_value())
-        )
         app.state.account_service = AccountService(
             database.sessions,
             credential_hasher,
@@ -137,7 +141,8 @@ def create_app(
             resolved_settings,
         )
         app.state.history_service = HistoryService(
-            PostgresHistoryRepository(database.sessions, envelope), credential_hasher
+            PostgresHistoryRepository(database.sessions, envelope, erasure_journal),
+            credential_hasher,
         )
         content_rewrite_repository = PostgresContentRewriteRepository(
             database.sessions,
@@ -198,7 +203,9 @@ def create_app(
             credential_hasher,
             envelope,
         )
-        birth_repo = birth_repository or PostgresBirthRepository(database.sessions, envelope)
+        birth_repo = birth_repository or PostgresBirthRepository(
+            database.sessions, envelope, erasure_journal
+        )
         app.state.birth_chart_service = (
             BirthChartService(
                 birth_repo,
@@ -211,7 +218,7 @@ def create_app(
         )
         app.state.matching_service = (
             MatchingService(
-                PostgresMatchingRepository(database.sessions, envelope),
+                PostgresMatchingRepository(database.sessions, envelope, erasure_journal),
                 app.state.birth_chart_service,
             )
             if app.state.birth_chart_service is not None
@@ -228,6 +235,7 @@ def create_app(
                 generation_model=resolved_settings.generation_openai_model,
                 generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
                 content_rewrite_service=content_rewrite_service,
+                erasure_journal=erasure_journal,
             )
             if app.state.birth_chart_service is not None and engine is not None
             else None
@@ -242,7 +250,7 @@ def create_app(
                 PostgresMoodRepository(database.sessions), daily_service
             )
             app.state.resonance_service = ResonanceService(
-                PostgresResonanceRepository(database.sessions, envelope)
+                PostgresResonanceRepository(database.sessions, envelope, erasure_journal)
             )
             app.state.experiment_service = ExperimentService(
                 PostgresExperimentRepository(database.sessions, envelope)

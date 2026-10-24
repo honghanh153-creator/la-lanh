@@ -13,6 +13,7 @@ from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
 from app.domains.content_rewrite.send_fence import drain_sends, pending_sends
 from app.domains.content_rewrite.tables import ContentRewriteJobRow
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.radar.tables import RadarRequestRow
@@ -25,9 +26,11 @@ class PostgresBirthRepository:
         self,
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def save_or_replay(self, record: BirthSnapshotRecord) -> tuple[BirthSnapshotRecord, bool]:
         async with self._sessions() as session, session.begin():
@@ -191,6 +194,10 @@ class PostgresBirthRepository:
                 raise BirthProfileChanged
             if snapshot is None:
                 await self._erase_precision(session, profile)
+                if self._erasure_journal is not None:
+                    self._erasure_journal.record(
+                        session, ErasureKind.BIRTH_TIME_DOWNGRADED, guest_id, datetime.now(UTC)
+                    )
             active: ChartSnapshotRow | None = None
             if snapshot is not None:
                 active = await session.scalar(
@@ -294,10 +301,41 @@ class PostgresBirthRepository:
             if remove_time or remove_place:
                 await self._erase_precision(session, profile)
                 profile.updated_at = datetime.now(UTC)
+                if self._erasure_journal is not None:
+                    self._erasure_journal.record(
+                        session,
+                        ErasureKind.BIRTH_SUPPLEMENT_REMOVED,
+                        guest_id,
+                        profile.updated_at,
+                        scope=",".join(
+                            name
+                            for name, removed in (("time", remove_time), ("place", remove_place))
+                            if removed
+                        ),
+                    )
             await session.flush()
             stored = _supplement_record(profile)
         await drain_sends(self._sessions, sends)
         return stored
+
+    async def replay_time_downgrade(self, guest_id: UUID) -> None:
+        """Re-apply a journaled switch to an unknown birth time after a restore."""
+
+        async with self._sessions() as session, session.begin():
+            await session.scalar(
+                select(GuestSessionRow).where(GuestSessionRow.id == guest_id).with_for_update()
+            )
+            sends = await pending_sends(session, (guest_id,))
+            profile = await session.scalar(
+                select(BirthProfileRow).where(BirthProfileRow.guest_id == guest_id)
+            )
+            if profile is not None:
+                await self._erase_precision(session, profile)
+                profile.birth_time_ciphertext = None
+                profile.time_precision = "unknown"
+                profile.profile_level = 1
+                profile.updated_at = datetime.now(UTC)
+        await drain_sends(self._sessions, sends)
 
     async def _erase_precision(self, session: AsyncSession, profile: BirthProfileRow) -> None:
         snapshots = list(

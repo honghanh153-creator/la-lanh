@@ -1,0 +1,18 @@
+[Unit]
+Description=Lá Lành hourly host copy of the deletion journal (digests only) and journal retention
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+OnFailure=la-lanh-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/la-lanh/current
+ExecStart=/opt/la-lanh/current/infra/hetzner/export-erasure-journal.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/la-lanh/backups
+TimeoutStartSec=10min
+UMask=0077
