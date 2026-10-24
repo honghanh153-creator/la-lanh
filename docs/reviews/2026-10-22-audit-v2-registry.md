@@ -90,7 +90,7 @@ not Supabase, migration or live certification).
 |---|---|---|
 | P07 reconciliation | **A** (keyed deletion journal for explicit user actions) + C's retention re-run; **B** (no restore into service) until the journal ships | #43 doc; journal is a future PR |
 | P09 D1 | Receipt lives as long as the consented result (30 days) | #62 |
-| P09 D2 | Manual rights channel; verify by possession of the invite link/receipt or A deletes on request; never re-collect B's birth data | process to build after counsel |
+| P09 D2 | Manual rights channel; verify by possession of the invite link/receipt or A deletes on request; never re-collect B's birth data | API + procedure #80 `bf8bb8f082c1775bbf3d0cedd8b24411147ae483`, awaiting Codex review (B's own session views/withdraws; invite link withdraws only); web screens need owner-approved copy; counsel to confirm |
 | P09 D3 | Keep A's attestation with the 24 h private result until counsel answers | unchanged |
 | P09 D4 | No automatic contact of B until counsel answers | unchanged |
 | P06 | Per-table "Preferred" column of `legacy-plaintext-backfill-plan.md` | after operator counts |
