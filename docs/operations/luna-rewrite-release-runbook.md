@@ -157,6 +157,9 @@ How the code reads these values:
   `relationship_signal`). No planet, aspect or house label and no technique name (synastry,
   composite, overlay); `RadarSafePayload` refuses them at enqueue and again before send. Stored
   readings and their blueprint hash are unchanged. Radar stays out of the allowlist until S5.
+- Tarot is in `CHART_FREE_REWRITE_SURFACES` since Luna sprint S4 (23/10/2026): its payload has no chart fact and no
+  question text (pinned by `tests/content_rewrite/test_tarot_chart_free.py`). Allowed is not on: Tarot runs only when the
+  operator sets its rollout mode, within the shared Luna budget and the pilot roster; Roast stays local.
 - One Daily job reserves ~5.3k–6.2k tokens and 0.061–0.070 cents before the provider call
   (conservative UTF-8 byte count of the brief + prompt + schema + 512, output cap 220; measured on
   synthetic v7 cards 2026-10-13). Observed real cost is ~0.01 cent per job.

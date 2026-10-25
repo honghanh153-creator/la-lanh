@@ -396,7 +396,8 @@ async def test_pinned_sdk_transport_disables_sdk_retries_and_forwards_timeout() 
     "rollout",
     [
         {"reveal": "shadow"},
-        {"tarot": "full"},
+        # Tarot became chart-free in Luna sprint S4 (test_tarot_chart_free.py).
+        {"matching": "full"},
         {"radar": "editorial"},
         {"daily_home": "full", "daily_detail": "shadow"},
     ],
