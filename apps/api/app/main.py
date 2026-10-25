@@ -25,6 +25,7 @@ from app.domains.content.catalog import restore_bundled_daily_catalog
 from app.domains.content.postgres import PostgresContentRepository
 from app.domains.content.service import ContentStudioService
 from app.domains.content_rewrite.authorization import DatabaseRewriteAuthorization
+from app.domains.content_rewrite.models import RewriteSurface
 from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
 from app.domains.content_rewrite.rollout import SurfaceRolloutPolicy
 from app.domains.content_rewrite.service import ContentRewriteService
@@ -185,7 +186,9 @@ def create_app(
             database.sessions,
             envelope,
             credential_hasher,
-            generation_enabled=resolved_settings.generation_enabled,
+            # Only build Tarot rewrite jobs when the Tarot surface itself is on (Luna sprint S1).
+            generation_enabled=resolved_settings.generation_enabled
+            and content_rewrite_rollout.should_generate(RewriteSurface.TAROT),
             generation_model=resolved_settings.generation_openai_model,
             generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
             content_rewrite_service=content_rewrite_service,
@@ -224,7 +227,8 @@ def create_app(
                 envelope,
                 app.state.birth_chart_service,
                 engine,
-                generation_enabled=resolved_settings.generation_enabled,
+                generation_enabled=resolved_settings.generation_enabled
+                and content_rewrite_rollout.should_generate(RewriteSurface.RADAR),
                 generation_model=resolved_settings.generation_openai_model,
                 generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
                 content_rewrite_service=content_rewrite_service,
