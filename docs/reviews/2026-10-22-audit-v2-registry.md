@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 18, after the Codex r20 verdicts of 24/10/2026)
+# Audit v2 registry (revision 19, after the Codex r21 verdicts of 24/10/2026)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -6,7 +6,7 @@ Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; 
 now `b5e4427` (#40, #9, #44, then #66, #17, #41–#43, #46, #47, #49–#59, #61–#63, #65, #67). **`main`/production is
 still `c3fab33`**: nothing merged here is released. The only runtime evidence is O01's disposable Compose proof on a
 GitHub-hosted runner; nothing is verified on staging or production. Open: #45, #48, #60 (this PR), #64, #69, #70–#78
-(#68 stays unreviewed by owner decision). Rows below carry the latest verdict per PR as of revision 18, each checked against a Codex comment naming the exact full SHA; heads pushed
+(#68 stays unreviewed by owner decision). Rows below carry the latest verdict per PR as of revision 19, each checked against a Codex comment naming the exact full SHA; heads pushed
 after a verdict are marked "awaiting re-review": the REQUEST_CHANGES or APPROVE stands only for the exact SHA it
 names, until Codex reviews the new head. The registry's own live-head check proves only that the heads listed match
 GitHub; it says nothing about verdicts, test quality or runtime behaviour.
@@ -90,7 +90,7 @@ not Supabase, migration or live certification).
 |---|---|---|
 | P07 reconciliation | **A** (keyed deletion journal for explicit user actions) + C's retention re-run; **B** (no restore into service) until the journal ships | #43 doc; journal is a future PR |
 | P09 D1 | Receipt lives as long as the consented result (30 days) | #62 |
-| P09 D2 | Manual rights channel; verify by possession of the invite link/receipt or A deletes on request; never re-collect B's birth data | API + procedure #80 `52f08bafaa3ba741dacb3f64c1b17af0a523cd5c` · [RC @ bf8bb8f](https://github.com/honghanh153-creator/la-lanh/pull/80#issuecomment-6384799937), then [RC @ fb83a52](https://github.com/honghanh153-creator/la-lanh/pull/80#issuecomment-6385064921) (token-only fixed; received list limited before eligibility and the 24 h deletion promise remained at that snapshot) → Claude's fixes at this head, not yet reviewed (B's own session views/withdraws; invite link withdraws only); web screens need owner-approved copy; counsel to confirm |
+| P09 D2 | Manual rights channel; verify by possession of the invite link/receipt or A deletes on request; never re-collect B's birth data | API + procedure #80 `52f08bafaa3ba741dacb3f64c1b17af0a523cd5c` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/80#issuecomment-6385370273) (scoped API/procedure only, not D2 completion or release; earlier RC @ bf8bb8f and @ fb83a52 addressed). Still open: web screens with owner-approved copy, counsel, data export (B's own session views/withdraws; invite link withdraws only); web screens need owner-approved copy; counsel to confirm |
 | P09 D3 | Keep A's attestation with the 24 h private result until counsel answers | unchanged |
 | P09 D4 | No automatic contact of B until counsel answers | unchanged |
 | P06 | Per-table "Preferred" column of `legacy-plaintext-backfill-plan.md` | after operator counts |
