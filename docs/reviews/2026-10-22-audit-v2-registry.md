@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 20, after the Codex r22 verdicts of 25/10/2026)
+# Audit v2 registry (revision 21, after the Codex r24 verdicts of 25/10/2026)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -6,7 +6,7 @@ Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; 
 now `b5e4427` (#40, #9, #44, then #66, #17, #41–#43, #46, #47, #49–#59, #61–#63, #65, #67). **`main`/production is
 still `c3fab33`**: nothing merged here is released. The only runtime evidence is O01's disposable Compose proof on a
 GitHub-hosted runner; nothing is verified on staging or production. Open: #45, #48, #60 (this PR), #64, #69, #70–#78
-(#68 stays unreviewed by owner decision). Rows below carry the latest verdict per PR as of revision 20, each checked against a Codex comment naming the exact full SHA; heads pushed
+(#68 stays unreviewed by owner decision). Rows below carry the latest verdict per PR as of revision 21, each checked against a Codex comment naming the exact full SHA; heads pushed
 after a verdict are marked "awaiting re-review": the REQUEST_CHANGES or APPROVE stands only for the exact SHA it
 names, until Codex reviews the new head. The registry's own live-head check proves only that the heads listed match
 GitHub; it says nothing about verdicts, test quality or runtime behaviour.
@@ -39,7 +39,7 @@ GitHub-hosted runner; **nothing on staging or production**), `OWNER_DECISION`, `
 
 | ID | Requirement | Status | PR · head · verdict | Owner of next step | Evidence still missing |
 |---|---|---|---|---|---|
-| T01 | One asked target for frame, stance, goal, step | PARTIAL | #45 `56c0247ce5a2510b49a514fcb7af3f614872405e` · [RC @ 70f612c](https://github.com/honghanh153-creator/la-lanh/pull/45#issuecomment-6392282777) (a causal bare "nên" was taken as the reader's opener and hid the reported question) → Claude fixed at this head (a bare "nên" opens the reader's question only with the reader as its subject; nested-own, reported-speaker, indefinite "nào", dependent-clause and noun-list fixes and stored-v2 goals unchanged), awaiting Codex re-review | Codex re-review; Claude (residual: lexical action signals; two own questions after a reason keep the first) | meaning/scene remains T02; longest-signal and keyword-goal overrides are a separate open item |
+| T01 | One asked target for frame, stance, goal, step | PARTIAL | #45 `e2e5b4c2eae8f7180f8d571a3666a38bb95154aa` · [APPROVE @ 56c0247](https://github.com/honghanh153-creator/la-lanh/pull/45#issuecomment-6397238926) (asked-clause ownership across reported, nested, causal and dependent shapes). This head only merges integration and re-pins `question_frame#function_literals` for the rule token "nên" (logic and tests byte-identical to 56c0247), awaiting Codex re-review | Codex re-review of the merge head; owner sees the one-line literal pin | still PARTIAL: lexical action signals and keyword-goal overrides; two own questions after a reason keep the first; meaning/scene and copy remain T02/T03; machine audit is not human comprehension or copy approval | meaning/scene remains T02; longest-signal and keyword-goal overrides are a separate open item |
 | T02 | Scenes follow the asked action and context, observable, no hidden advice | OPEN (draft) | workbook #67 `bdf6287907c1b00dd913ccf7ce6b33a365e87526` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/67#issuecomment-6346177711) · merged into integration (`b5e4427`) as a draft, which is not copy approval (133 action×topic rows, 266 scenes); some current scenes break C4 (Ba Cốc, Tiết Chế) | owner approves copy | approval, then wiring with frozen readings kept |
 | T03 | Small step with a concrete trigger | OPEN (draft) | workbook #67 (142 action×role rows, 284 steps) | owner | same |
 | T04 | Card names English + Vietnamese; AC12 | MERGED_INTEGRATION | #63 `cd692bc63845f7724de1c84eb523cbe39e4707b0` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/63#issuecomment-6346174788) · merged into integration (`bc4eea1`) | owner (order/separator); device | screen reader and long-title layout on device |
@@ -80,7 +80,7 @@ not Supabase, migration or live certification).
 | S1 enqueue only when the surface is on | #70 `4c08e3c853a43e1e199a273edd06319272f1f3a8` · APPROVE @ same | FIXED_LOCAL | merge |
 | S2 Hợp gu payload without chart labels | #71 `58192dea24cff5a6a43e878f01488e234e5a2107` · APPROVE @ same | FIXED_LOCAL | merge (runbook conflict with #73: keep both bullets) |
 | S3 Hợp gu merge gates | #72 `ebd99a761c9bcc8b9180b691fb55ca32bc456fb9` · APPROVE @ same (tripwire). Its own branch shows the inherited `approved_release` failure (2166 passed / 57 skipped / 1 failed), fixed by #66 on integration | PARTIAL | machine voice-preservation gate |
-| S4 Tarot allowlist | #73 `46059af4628021eded928d5d0eefd6bbfcebe92b` · APPROVE @ same | FIXED_LOCAL (allowlist only) | merge after #45 (#61, #66 merged into integration; #61 not deployed); rollout, pilot, live canary |
+| S4 Tarot allowlist | #73 `3760dcd1ebd0557139ea2d71734be7eddd5c197b` · APPROVE @ 46059af; this head merges #71's approved head and keeps both runbook bullets (Radar S2 before Tarot S4), awaiting Codex re-review | FIXED_LOCAL (allowlist only) | merge after #45 (#61, #66 merged into integration; #61 not deployed); rollout, pilot, live canary |
 | Plan | #69 `aba9988ea6199adaa74da121c05601503234f6c2` · APPROVE @ same (plan delta; not privacy or Luna completion) | — | — |
 | Tarot canary controls | #77 `2573e5b50d98a338900d1b8dd593ff3b7e24ccaa` (test-only: legacy and Roast canary) · APPROVE @ same; not an allowlist or rollout change | FIXED_LOCAL | merge |
 
@@ -98,15 +98,15 @@ not Supabase, migration or live certification).
 
 ## Proposed merge order into `collab/integration` (plan only; nothing merged)
 
-Not all audit PRs are approved yet: #45 `56c0247` and this registry's new head await Codex review. Each step needs the
+Not all heads below are approved yet: #45 `e2e5b4c` (integration merge + one literal pin), #73 `3760dcd` (runbook merge) and this registry's new head await Codex review. Each step needs the
 owner's merge order and a Codex APPROVE on the exact head being merged; re-run `CI=1 pnpm check` on integration after
 each group.
 1. #70 `4c08e3c` (S1), #71 `58192de` (S2), #72 `ebd99a7` (S3; its own branch shows the inherited pin failure that
    #66 already fixed on integration), #77 `2573e5b` (test-only).
 2. #48 `0c51d84` (P04; already merged integration once, data map keeps P04 and P05).
-3. #78 `c76b695` (P07 journal with follow-ups, approved head).
-4. #45, only after APPROVE on its current head, then #73 `46059af` (S4 allowlist depends on #45). #71 and #73 add a
-   bullet at the same place in the Luna runbook: keep both.
+3. #78 `c76b695` (P07 journal with follow-ups, approved head), then #80 `52f08ba` (P09 D2 API and procedure, scoped approval; UI/copy/counsel/export still open).
+4. #45 `e2e5b4c`, then #73 `3760dcd` (S4 allowlist depends on #45; the runbook conflict with #71 is already resolved on
+   the #73 branch, both bullets kept).
 5. Docs: #64 `df80d62`, #69 `aba9988`, then this registry last, re-reviewed at its final head so it records the merges.
 
 Draft commands for the owner/Codex, to run only after the owner orders the merge and #45 plus this registry have an
@@ -119,20 +119,26 @@ gh pr merge 72 --merge --match-head-commit ebd99a761c9bcc8b9180b691fb55ca32bc456
 gh pr merge 77 --merge --match-head-commit 2573e5b50d98a338900d1b8dd593ff3b7e24ccaa
 gh pr merge 48 --merge --match-head-commit 0c51d84963c6236589e838bf64a875d6cb045802
 gh pr merge 78 --merge --match-head-commit c76b6954e656afe48784e9816beaaa431ce0355b
-gh pr merge 45 --merge --match-head-commit <APPROVED #45 head, now 56c0247ce5a2510b49a514fcb7af3f614872405e pending>
-gh pr merge 73 --merge --match-head-commit 46059af4628021eded928d5d0eefd6bbfcebe92b   # runbook: keep both bullets
+gh pr merge 80 --merge --match-head-commit 52f08bafaa3ba741dacb3f64c1b17af0a523cd5c
+gh pr merge 45 --merge --match-head-commit e2e5b4c2eae8f7180f8d571a3666a38bb95154aa   # needs Codex APPROVE @ this head
+gh pr merge 73 --merge --match-head-commit 3760dcd1ebd0557139ea2d71734be7eddd5c197b   # needs Codex APPROVE @ this head
 gh pr merge 64 --merge --match-head-commit df80d621987aaf0e3f8702b2709f133afeb58621
 gh pr merge 69 --merge --match-head-commit aba9988ea6199adaa74da121c05601503234f6c2
 gh pr merge 60 --merge --match-head-commit <APPROVED registry head>
 ```
 
-The #73 step will report the runbook conflict with #71: resolve it on the #73 branch keeping both bullets, then it needs
-a fresh APPROVE before merging. Run `CI=1 pnpm check` on integration after each group.
+The #71/#73 runbook conflict is resolved on the #73 branch (`3760dcd`). Run `CI=1 pnpm check` on integration after each group.
 
 Merging is not release: `main`/production stays `c3fab33`, #75 stays No-Go, #74 and #76 keep their owner gates, and
 nothing here enables a provider or rollout.
 
 ## Combined-branch checks (local, not pushed)
+
+### Author's local merge-order check (revision 21)
+
+One-off local merge on `b5e4427` in the order above, with #45 `e2e5b4c` and #73 `3760dcd`: all 12 merges clean (local
+tree `59e0db8`, never pushed). `CI=1 pnpm check` exit 0: contracts, runtime/privacy/mobile guards, grammar and fallback approval, content/Tarot/Radar/rewrite audits, web lint/typecheck/511 tests, API lint/mypy and 2,559 passed / 57 skipped / 1 xfailed (R06 strict xfail), QA, web e2e 8/8. A first run with #45 at `56c0247` stopped at `fallback_approval --check`
+(`question_frame#function_literals`), which `e2e5b4c` fixes. This is the author's run, not Codex or runtime proof.
 
 ### Author's local code-cohort check (revision 8, stale)
 
