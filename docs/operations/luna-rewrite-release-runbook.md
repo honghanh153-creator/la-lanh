@@ -152,6 +152,11 @@ How the code reads these values:
 - Unlisted surfaces stay `off`, so `reveal`/`natal`/`transit_insight`/`tarot` are not enqueued
   even though the same personal consent receipt covers them. Do not add them without a new
   owner decision and copy review.
+- Radar payload (Luna sprint S2, 23/10/2026): section meanings from the approved reading, dimension
+  bands, and evidence items with only label/domain/confidence (`kind` is always
+  `relationship_signal`). No planet, aspect or house label and no technique name (synastry,
+  composite, overlay); `RadarSafePayload` refuses them at enqueue and again before send. Stored
+  readings and their blueprint hash are unchanged. Radar stays out of the allowlist until S5.
 - Tarot is in `CHART_FREE_REWRITE_SURFACES` since Luna sprint S4 (23/10/2026): its payload has no chart fact and no
   question text (pinned by `tests/content_rewrite/test_tarot_chart_free.py`). Allowed is not on: Tarot runs only when the
   operator sets its rollout mode, within the shared Luna budget and the pilot roster; Roast stays local.
