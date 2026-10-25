@@ -20,6 +20,7 @@ from app.domains.birth.service import BirthChartService
 from app.domains.birth.tables import BirthProfileRow
 from app.domains.content_rewrite.send_fence import drain_sends, pending_sends
 from app.domains.content_rewrite.service import ContentRewriteService
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.identity.tables import PrincipalRow
 from app.domains.radar.models import (
@@ -95,9 +96,11 @@ class RadarService:
         generation_model: str = "disabled",
         generation_prompt_version: str = "surface-rewrite-v1",
         content_rewrite_service: ContentRewriteService | None = None,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._hasher = hasher
+        self._erasure_journal = erasure_journal
         self._envelope = envelope
         self._birth = birth
         self._engine = engine
@@ -671,6 +674,10 @@ class RadarService:
             sends = await pending_sends(
                 session, (owner_guest_id,) + ((recipient_guest_id,) if recipient_guest_id else ())
             )
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    session, ErasureKind.RADAR_DELETED, request_id, datetime.now(UTC)
+                )
             await session.delete(row)
         await self._cancel_rewrites(request_id, owner_guest_id, recipient_guest_id)
         await drain_sends(self._sessions, sends)
@@ -701,6 +708,8 @@ class RadarService:
             )
             row.status = RadarStatus.WITHDRAWN.value
             row.withdrawn_at = current
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(session, ErasureKind.RADAR_WITHDRAWN, row.id, current)
             row.result_ciphertext = None
             row.receipt_ciphertext = None
         await self._cancel_rewrites(expected_request_id, owner_guest_id, recipient_guest_id)

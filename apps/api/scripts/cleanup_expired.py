@@ -1,10 +1,11 @@
 import argparse
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from time import monotonic
 
 from app.config import get_settings
 from app.db.session import Database
+from app.domains.erasure_journal.replay import purge_entries
 from app.domains.history.postgres import PostgresHistoryRepository
 from app.infrastructure.crypto import (
     AesGcmEnvelopeCipher,
@@ -39,7 +40,17 @@ async def _cleanup(batch_size: int) -> int:
     )
     now = datetime.now(UTC)
     try:
-        return await _drain(PostgresHistoryRepository(database.sessions, envelope), now, batch_size)
+        removed = await _drain(
+            PostgresHistoryRepository(database.sessions, envelope), now, batch_size
+        )
+        # Deletion-journal retention also runs here, so it holds even before the hourly host
+        # copy is installed (audit P07, option A).
+        journal = await purge_entries(
+            database.sessions,
+            before=now - timedelta(days=settings.erasure_journal_retention_days),
+        )
+        print(f"Deletion journal: purged={journal}", flush=True)
+        return removed
     finally:
         await database.dispose()
 

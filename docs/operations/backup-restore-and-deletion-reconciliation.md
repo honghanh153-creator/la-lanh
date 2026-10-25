@@ -60,6 +60,56 @@ consent withdrawal) because time-based retention can be re-run (C) for everythin
 owner decides and the journal exists, the runbook must treat B as the rule: no restore into service.
 
 **Decision (22/10/2026):** the owner delegated this choice to the recommendation above: **A**, scoped to
-explicit user actions, with C's immediate re-run of retention cleanups for everything else. The journal is
-not implemented yet (separate PR, own tests, data-map entry for the pseudonymous deletion facts). Until it
-ships and is reviewed, **B stays the operating rule: no restore into service.**
+explicit user actions, with C's immediate re-run of retention cleanups for everything else.
+
+## Option A implementation (FIXED_LOCAL, not deployed)
+
+| Piece | Where | Behaviour |
+|---|---|---|
+| Journal table | `erasure_journal` (migration `20261023_0038`), `domains/erasure_journal/` | `{kind, HMAC-SHA256(server hash key, "erasure-journal:<kind>" + root id), scope, occurred_at}`. No id or content. RLS on; no `anon`/`authenticated` access. |
+| Recording | same transaction as the erasure | guest erasure (with the DELETING marker), history clear (through `clear_in_session`, which the HTTP service and `repository.clear` both use), birth supplement removal (`time`/`place`), switch to an unknown birth time, Radar delete, Radar withdraw, consent withdrawal (purpose as scope), resonance clear (`consent` when withdrawn), Vòng Lá matching consent withdrawal. |
+| Not yet journaled | follow-up PR | Tarot session delete, share-link revoke, La Chung withdraw/delete/revoke/hide, saved-note unsave, experiment undo, pending Radar invite revoke. Until then a restore can bring these back; C covers only their time-based expiry. |
+| Snapshot checkpoint | `backup-database.sh` dumps `public` with the journal rows | Each journal row commits with its erasure, and `pg_dump` reads one consistent snapshot, so the rows in a dump are exactly the erasures that snapshot reflects. No wall-clock cutoff is used. |
+| Purge horizon | `erasure_journal_horizon` (one row: `purged_before`, a time only), written in each purge's own transaction | Retention removes old rows, but an export taken before the purge can still carry them. Every entry older than the horizon committed long before that purge, so a snapshot holding the horizon reflects it: replay counts such an entry as `reflected` and never applies it again, which keeps history created after an old clear. Entries newer than the horizon still go by row presence. |
+| Host copy | `export-erasure-journal.sh`, `la-lanh-erasure-journal.{service,timer}` (hourly at :05, installed by `install-backup-timer.sh`) | `scripts.erasure_journal export` to `/opt/la-lanh/backups/erasure-journal/journal-<UTC>.jsonl` (0600), then `purge` of entries older than `LA_LANH_ERASURE_JOURNAL_RETENTION_DAYS` (default 15, minimum 15). Older export files are kept about two days. The six-hourly expired cleanup applies the same retention, so it holds before this timer is installed. |
+| Replay | `scripts.erasure_journal replay FILE...` | For each exported entry: if the restored copy already holds it, or the entry is older than the copy's purge horizon, its erasure is in the snapshot and it is skipped (data created afterwards stays). Otherwise it matches the digest against ids in the restored copy, re-applies the erasure through the same repository code (built without a journal), and then records the entry. Idempotent: a second run finds every entry held. |
+
+Losses the design accepts, so the runbook must not hide them:
+- Erasures in the last hour before a total loss of both the database and its live journal are only in the
+  database. An export from the live database before any restore closes this gap whenever it is readable.
+- A provider point-in-time recovery rewinds the journal with the data (the checkpoint stays consistent), so the
+  entries after that point must come from an export taken before the recovery or from the hourly copy.
+- Rotating the server hash key makes older digests unmatchable. Replay any pending restore before rotating.
+- Linked accounts: the Supabase Auth identity was already deleted at erasure time; replay finishes the local
+  deletion through the guest cleanup job, which retries the identity call.
+
+### Restore procedure (only after this PR is reviewed and deployed)
+
+1. If the damaged database is still readable: `scripts.erasure_journal export > pre-restore.jsonl` (root-only).
+2. Restore the chosen dump (`pg_restore --no-owner --role=<backend>`); its journal rows come with it.
+3. `scripts.erasure_journal replay pre-restore.jsonl /opt/la-lanh/backups/erasure-journal/journal-*.jsonl`
+   and record the per-kind counts (`reflected`/`applied`/`unmatched`, no ids).
+4. Run the guest and expired cleanup jobs (option C) until they report nothing remaining.
+5. Privacy isolation check and readiness, then serve.
+
+### Disposable PostgreSQL restore probe (operator, before B can be lifted)
+
+SQLite tests model the snapshot as a file copy. The real interleaving must be shown once on a disposable
+PostgreSQL with synthetic data, not on staging or production:
+1. Seed synthetic guests with history. Open an erasure (for example a history clear) whose transaction has
+   taken `now` and holds the owner lock but has not committed.
+2. Start `pg_dump` while that transaction is open, then commit it, then run one more erasure after the dump.
+3. Export the journal, restore the dump into a fresh disposable database, run step 3 above and both cleanups.
+4. Record: the in-flight erasure is `applied` (its row was not in the snapshot), an erasure committed before the
+   dump is `reflected` with later data kept, the post-dump erasure is `applied`, and no erased row remains.
+5. Purge horizon (export before purge, snapshot after purge): on a fresh disposable database, run a history clear
+   dated older than the retention period, export the journal, create new completed history for the same guest,
+   run `purge`, take a new `pg_dump`, restore it, replay the earlier export together with a new one, and run both
+   cleanups. Record: the old clear is `reflected` (by the horizon), nothing is `applied`, and the new history
+   remains.
+6. Note that the horizon assumes each erasure commits well within the retention period after its `occurred_at`
+   and a sane server clock. Request deadlines make this expected; SQLite tests and this document do not prove
+   PostgreSQL commit order in general, so steps 1–5 are the evidence.
+
+Until the journal is deployed, the hourly copy has run and this probe has passed, **B stays the operating
+rule: no restore into service.**

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Back up the application schema (public) to a root-only custom-format dump.
+# The deletion journal's rows stay in the dump on purpose: each commits with its erasure, so the
+# rows in a dump are exactly the erasures that snapshot reflects. After a restore, replay applies
+# only the exported entries the dump lacks (export-erasure-journal.sh, audit P07, option A).
 # The connection string is read inside the client container from the mounted
 # secret file and is never printed, logged or passed as a host argument.
 set -euo pipefail

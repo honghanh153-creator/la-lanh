@@ -40,7 +40,7 @@ class HistoryService:
             if action == "clear":
                 if await self._repository._busy(session, guest.id, now):
                     raise HistoryBusy
-                await self._repository._erase(session, guest.id, now, manual=True, batch_size=None)
+                await self._repository.clear_in_session(session, guest.id, now)
                 return None
             row = await session.get(HistoryRetentionPolicyRow, guest.id)
             return row.activated_at if row else None
