@@ -1,0 +1,9 @@
+[Unit]
+Description=Record a failed Lá Lành unit (%i) for the operator
+
+[Service]
+Type=oneshot
+# No message delivery channel is configured here: the alert is an err-priority journal entry and
+# a marker file the operator's monitoring must read (see the runbook "Backup and restore" section).
+ExecStart=/bin/sh -c 'mkdir -p /var/lib/la-lanh/alerts && date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ > "/var/lib/la-lanh/alerts/%i.failed" && echo "Lá Lành unit failed: %i" | systemd-cat -t la-lanh-alert -p err'
+UMask=0077

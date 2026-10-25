@@ -40,13 +40,50 @@ if grep -Eq '^LA_LANH_SWISSEPH_LICENSE_MODE=development$' "${SCRIPT_DIR}/app.env
   exit 2
 fi
 
+# Settings().generation_enabled for this release's app.env, read inside the image of release
+# $1 through the same compose project, files and secrets as the app.
+settings_generation() {
+  LA_LANH_RELEASE_ID="$1" docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps -T app \
+    python -c 'from app.config import Settings; print(str(Settings().generation_enabled).lower())'
+}
+
+# Kill switch: a profiled worker is not an orphan, so `up --remove-orphans` never removes it.
+# A failure here must stop the deploy; with no worker it is a successful no-op.
+stop_rewrite_worker() {
+  docker compose "${COMPOSE_ARGS[@]}" --profile generation rm -sf rewrite-worker
+}
+
 cd "$REPO_ROOT"
 docker compose "${COMPOSE_ARGS[@]}" config --quiet
+
+# Preflight, before any build or release check, so a failed build cannot leave running a worker
+# that this release turns off. Settings is read in the release image if it already exists,
+# otherwise in the image of the running app. With no image to ask, or when Settings cannot be
+# read, the worker is stopped (fail safe); a generation=true release recreates it after the
+# build. The authoritative decision below is re-read in the freshly built release image.
+preflight_release=""
+if docker image inspect "la-lanh:${LA_LANH_RELEASE_ID}" >/dev/null 2>&1; then
+  preflight_release="${LA_LANH_RELEASE_ID}"
+else
+  running_app="$(docker compose "${COMPOSE_ARGS[@]}" ps -q app 2>/dev/null | head -n 1 || true)"
+  if [[ -n "$running_app" ]]; then
+    running_image="$(docker inspect --format '{{.Config.Image}}' "$running_app" 2>/dev/null || true)"
+    case "$running_image" in
+      la-lanh:*) preflight_release="${running_image#la-lanh:}" ;;
+    esac
+  fi
+fi
+preflight_generation="unknown"
+if [[ -n "$preflight_release" ]]; then
+  preflight_generation="$(settings_generation "$preflight_release" 2>/dev/null || true)"
+fi
+if [[ "$preflight_generation" != "true" ]]; then
+  echo "Preflight: generation=${preflight_generation:-unknown}; stopping any rewrite worker before build."
+  stop_rewrite_worker
+fi
+
 docker compose "${COMPOSE_ARGS[@]}" build app
-generation_enabled="$(
-  docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps -T app \
-    python -c 'from app.config import Settings; print(str(Settings().generation_enabled).lower())'
-)"
+generation_enabled="$(settings_generation "${LA_LANH_RELEASE_ID}")"
 case "$generation_enabled" in
   true)
     require_secret_file "${LA_LANH_SECRETS_DIR}/openai_api_key"
@@ -54,6 +91,7 @@ case "$generation_enabled" in
     ;;
   false)
     unset COMPOSE_PROFILES || true
+    stop_rewrite_worker
     ;;
   *)
     echo "Deployment blocked: generation setting did not resolve to true or false." >&2
