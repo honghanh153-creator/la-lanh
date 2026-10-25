@@ -864,6 +864,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/public/radar/invite/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw By Invite
+         * @description B withdraws by proving possession of the invite link, without receipt or session.
+         *
+         *     Withdraw only: A holds the same link, so it never opens B's view.
+         */
+        post: operations["withdraw_by_invite_v1_public_radar_invite_withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/public/radar/receipt": {
         parameters: {
             query?: never;
@@ -926,6 +948,60 @@ export interface paths {
         put?: never;
         /** Create Private Check */
         post: operations["create_private_check_v1_radar_private_checks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/received": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Received Results
+         * @description Results B accepted, found by B's own guest session (P09 D2): no receipt needed.
+         */
+        get: operations["received_results_v1_radar_received_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/received/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Received Result */
+        get: operations["received_result_v1_radar_received__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radar/received/{request_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw Received */
+        post: operations["withdraw_received_v1_radar_received__request_id__withdraw_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2505,6 +2581,14 @@ export interface components {
             voice: string;
         };
         /**
+         * RadarInviteWithdrawRequest
+         * @description B proves possession of the invite link; the token is in the body, never the URL.
+         */
+        RadarInviteWithdrawRequest: {
+            /** Token */
+            token: string;
+        };
+        /**
          * RadarMode
          * @enum {string}
          */
@@ -2539,6 +2623,35 @@ export interface components {
             recipient_label: string;
             /** @default straight_warm */
             voice: components["schemas"]["RelationshipVoice"];
+        };
+        /** RadarReceivedItem */
+        RadarReceivedItem: {
+            /**
+             * Completed At
+             * Format: date-time
+             */
+            completed_at: string;
+            /** Context */
+            context: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Voice */
+            voice: string;
+        };
+        /** RadarReceivedListResponse */
+        RadarReceivedListResponse: {
+            /** Items */
+            items: components["schemas"]["RadarReceivedItem"][];
+            /** Next Before */
+            next_before?: string | null;
         };
         /** RadarResultResponse */
         RadarResultResponse: {
@@ -7064,6 +7177,37 @@ export interface operations {
             };
         };
     };
+    withdraw_by_invite_v1_public_radar_invite_withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarInviteWithdrawRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     receipt_result_v1_public_radar_receipt_get: {
         parameters: {
             query?: never;
@@ -7239,6 +7383,100 @@ export interface operations {
                          */
                         type: string;
                     };
+                };
+            };
+        };
+    };
+    received_results_v1_radar_received_get: {
+        parameters: {
+            query?: {
+                before?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarReceivedListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    received_result_v1_radar_received__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_received_v1_radar_received__request_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
