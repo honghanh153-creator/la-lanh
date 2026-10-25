@@ -683,3 +683,58 @@ def test_a_question_nested_in_the_readers_own_question_stays_nested(
     assert reading.stance is not None and reading.stance.action is expected
     assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
     assert reading.positions[-1].small_action == reference.positions[-1].small_action
+
+
+@pytest.mark.parametrize(
+    ("question", "control", "expected"),
+    [
+        # Codex #45 @ 70f612c: a bare "nên" after a clause is causal ("so"), not the reader's
+        # question, so the report it introduces is still someone else's.
+        (
+            "Sếp mệt nên hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Sếp thấy thiếu người nên hỏi có nên nhận thêm việc vì dự án đang gấp, mình nghỉ ngơi "
+            "được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Mình mệt nên hỏi có nên nhận thêm việc vì thiếu người, mình nghỉ ngơi được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        # Controls: "nên" with the reader as its subject opens the reader's own question, so a
+        # report after it stays nested; and the dependent tail keeps the reader's action.
+        (
+            "Mình nên nghỉ ngơi để biết mình nên làm gì vì quá mệt, đến mức không tập trung được "
+            "không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Nên nghỉ ngơi để biết mình nên làm gì vì quá mệt, đến mức không tập trung được không?",
+            "Mình có nên nghỉ ngơi không?",
+            TarotAction.NGHI_NGOI,
+        ),
+        (
+            "Mình có nên hỏi lại xem mình nên làm gì vì quá mệt, đến mức không tập trung được "
+            "không?",
+            "Mình có nên hỏi lại không?",
+            TarotAction.HOI_LAI,
+        ),
+    ],
+)
+def test_a_causal_nen_does_not_open_the_readers_question(
+    question: str, control: str, expected: TarotAction
+) -> None:
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    reference = _render(control, S, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is not None and reading.stance.action is expected
+    assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
+    assert reading.positions[-1].small_action == reference.positions[-1].small_action

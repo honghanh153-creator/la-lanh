@@ -664,11 +664,24 @@ def _reports_another_question(segment: str) -> bool:
         lead = _tokens(fold(head[: opens.start()]))
         if _mentions_reporting(lead):
             return not _is_reporting_prefix(lead)
-        if _INDEFINITE_OPENER.fullmatch(fold(opens.group())) is None:
-            # The reader's own question opens first; a report after it is nested inside it
-            # ("Mình có nên hỏi lại xem mình nên làm gì …", "… nghỉ ngơi để biết mình nên …").
-            return False
+        opener = fold(opens.group())
+        if _INDEFINITE_OPENER.fullmatch(opener) is not None:
+            continue
+        if opener == "nên" and not _reader_is_advised(lead):
+            # A bare "nên" after a clause is causal ("Sếp mệt nên hỏi có nên …") or another
+            # person's "should" (``_ASKS``); it does not open the reader's question.
+            continue
+        # The reader's own question opens first; a report after it is nested inside it
+        # ("Mình có nên hỏi lại xem mình nên làm gì …", "… nghỉ ngơi để biết mình nên …").
+        return False
     return False
+
+
+def _reader_is_advised(lead: list[str]) -> bool:
+    """A bare "nên" asks the reader's question only with the reader as its subject: clause-initial
+    ("Nên …") or right after a first-person subject ("Mình nên …"), as in ``_clause_owner``."""
+
+    return not lead or (len(lead) == 1 and lead[0] in _FIRST_PERSON)
 
 
 def _names_action(text: str) -> bool:
