@@ -45,7 +45,9 @@ class TarotQuestionIntent(StrEnum):
 
 
 QUESTION_RULES_VERSION = "tarot-question-rules-v2"
-QUESTION_FRAME_VERSION = "tarot-question-frame-v1"
+# v2 (2026-10-22, audit T01): topic, action and goals read the asked clause, not background
+# clauses ("sau lần nói chuyện…"). Stored v1 frames keep whole-question semantics.
+QUESTION_FRAME_VERSION = "tarot-question-frame-v2"
 
 
 class TarotQuestionForm(StrEnum):

@@ -50,3 +50,17 @@ one-card readings told a tired reader "cân nhắc thêm trước khi nghỉ ng�
   calibration reviewed so the strongest pairs can reach 90–100; Luna's role is to rewrite; Hợp gu allows manual
   entry of the other person's birth data (consent basis to be confirmed, see the Hợp gu plan).
 - `fallback-approval.json` refreshed for the changed stance table and version.
+
+## Addendum — 2026-10-22: asked-clause labels (audit T01)
+
+Owner (chat, 2026-10-22, audit v2): "sửa Tarot target-action nhất quán", after the audit found that a background
+clause decided the action ("Mình có nên xin lỗi sau lần nói chuyện vừa rồi không?" was labelled "nói ra", so the
+lean, goals and step answered a conversation instead of the apology).
+
+- Rule (`question_frame.asked_text`, frame `tarot-question-frame-v2`): action, topic and goals come from the asked
+  clause; "sau khi / trước khi / sau lần … / khi / vì / nếu / dù …" clauses are background. Question words stay
+  asked ("khi nào", "là lúc", "vì sao", "thay vì"). A why/how/open question whose asked clause names no action reads
+  the whole question (`_REFLECTIVE_FORMS`), because its "khi" clause is the situation being reflected on.
+- Stored v1 frames are replayed as stored (AC17); choice options under v2 drop their own background clauses.
+- No new copy. On the 296-question bank one label changes (`general.yes_no.3`: bắt đầu → dọn dẹp).
+- `fallback-approval.json` refreshed for the new rule table `_REFLECTIVE_FORMS` only.
