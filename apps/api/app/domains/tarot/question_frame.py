@@ -853,6 +853,11 @@ def asked_text(question: str) -> str:
 # what is asked.
 _ASKED_MODAL = re.compile(r"(?<!\w)(?:có nên|nên)(?!\w)")
 _DEPENDENT_MARK = re.compile(r"(?<!\w)(?:trong|rồi|về|sau|trước|khi|lúc|với)(?!\w)")
+# Light verbs whose complement is the asked action: in "bắt đầu với việc nghỉ ngơi" or "thử nghỉ
+# ngơi" the request is the rest, so a light verb directly followed by another action (optionally
+# through "với"/"việc") hands the head to that action (Codex r32 on #89).
+_LIGHT_VERB = re.compile(r"(?:bắt đầu|thử lại|thử|dừng|ngừng)")
+_COMPLEMENT_GAP = re.compile(r"\s*(?:với\s+)?(?:việc\s+)?")
 
 
 def _affirmed_signals(text: str) -> list[tuple[int, int, int, int, TarotAction]]:
@@ -867,14 +872,17 @@ def _affirmed_signals(text: str) -> list[tuple[int, int, int, int, TarotAction]]
     return found
 
 
-def match_action(question: str) -> TarotAction | None:
+def match_action(question: str, *, asked_predicate: bool = False) -> TarotAction | None:
     """The best-supported closed label among affirmed actions.
 
     Negated matches are removed first, then the longest signal wins, then table order; with no
-    affirmed match the label is ``None`` rather than a guess. One structural exception: in a
-    yes/no clause opened by "có nên"/"nên" (not a choice), the action that follows the modal is the
-    asked predicate, so a longer action word that a dependent marker puts after it does not win
-    ("Mình có nên xin lỗi bạn ấy trong buổi nói chuyện tối nay không?" asks about apologising).
+    affirmed match the label is ``None`` rather than a guess. One structural exception, only when
+    the caller says the whole question is a new yes/no intake (``asked_predicate``): in a clause
+    opened by "có nên"/"nên" (not a choice), the action that follows the modal is the asked
+    predicate, so a longer action word that a dependent marker puts after it does not win ("Mình có
+    nên xin lỗi bạn ấy trong buổi nói chuyện tối nay không?" asks about apologising). A light verb
+    does not take the head from its complement. Choice options and stored frames keep the plain
+    rule, so a pending session renders as it did when it was framed.
     """
 
     text = fold(question)
@@ -882,6 +890,8 @@ def match_action(question: str) -> TarotAction | None:
     if not found:
         return None
     longest = max(found, key=lambda hit: (hit[2], -hit[3]))
+    if not asked_predicate:
+        return longest[4]
     modal = _ASKED_MODAL.search(text)
     if modal is None or _CHOICE_WORD.search(text, modal.end()):
         return longest[4]
@@ -889,6 +899,17 @@ def match_action(question: str) -> TarotAction | None:
     if not after:
         return longest[4]
     head = min(after, key=lambda hit: (hit[0], -hit[2], hit[3]))
+    while _LIGHT_VERB.fullmatch(text, head[0], head[1]):
+        light_end = head[1]
+        complements = [
+            hit
+            for hit in after
+            if hit[0] >= light_end and _COMPLEMENT_GAP.fullmatch(text, light_end, hit[0])
+        ]
+        complement = min(complements, key=lambda hit: (hit[0], -hit[2], hit[3]), default=None)
+        if complement is None:
+            break
+        head = complement
     if head[4] is longest[4]:
         return longest[4]
     later = min(
@@ -904,10 +925,11 @@ def frame_question(question: str, chosen: TarotContext) -> QuestionFrame:
     the whole question (a timing or choice marker may sit anywhere)."""
 
     target = asked_text(question)
+    form = classify_form(question)
     return QuestionFrame(
-        form=classify_form(question),
+        form=form,
         topic=score_topic(target, chosen),
-        action=match_action(target),
+        action=match_action(target, asked_predicate=form is TarotQuestionForm.YES_NO),
     )
 
 
