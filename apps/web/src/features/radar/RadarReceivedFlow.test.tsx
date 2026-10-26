@@ -146,6 +146,32 @@ describe("Radar results B received (P09 D2)", () => {
     expect(screen.queryByText(result.headline)).not.toBeInTheDocument();
   });
 
+  it("keeps a retry when both the withdrawal outcome and the re-read are inconclusive", async () => {
+    // Codex r32 (P3): a POST timeout plus a transient GET failure is not a definitive denial.
+    vi.mocked(withdrawReceivedRadar).mockRejectedValueOnce(new Error("timeout"));
+    renderAt("/radar/received/request-a");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rút chart của tôi khỏi kết quả này" }));
+    vi.mocked(getReceivedRadarResult).mockRejectedValueOnce(new Error("offline"));
+    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Rút chart" }));
+    expect(await screen.findByRole("heading", { name: "Chưa mở được bản đọc." })).toBeInTheDocument();
+    expect(screen.queryByText(result.headline)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Thử lại/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa rút được chart: bản đọc vẫn còn trên máy chủ.");
+    expect(screen.getByRole("button", { name: "Thử rút chart lại" })).toBeInTheDocument();
+  });
+
+  it("treats a definitive denial of the withdrawal as terminal even if the re-read is inconclusive", async () => {
+    vi.mocked(withdrawReceivedRadar).mockRejectedValueOnce(new ApiProblem(404, "RADAR_UNAVAILABLE", "Unavailable"));
+    renderAt("/radar/received/request-a");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rút chart của tôi khỏi kết quả này" }));
+    vi.mocked(getReceivedRadarResult).mockRejectedValueOnce(new Error("offline"));
+    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Rút chart" }));
+    expect(await screen.findByRole("heading", { name: "Bản đọc này không còn mở được." })).toBeInTheDocument();
+  });
+
   it("lets the holder of a used invite link withdraw without opening the reading", async () => {
     vi.mocked(getPublicRadarInvite).mockRejectedValue(new Error("not found"));
     vi.mocked(withdrawRadarByInvite).mockResolvedValueOnce(undefined);

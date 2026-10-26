@@ -286,3 +286,42 @@ def test_content_rewrite_consent_is_explicit_csrf_protected_and_revocable(tmp_pa
         )
         assert revoked.status_code == 204
         assert client.get("/v1/session/content-rewrite-consent").json()["consented"] is False
+
+
+def test_secure_deployments_clear_cookies_with_secure_too(tmp_path: Path) -> None:
+    # Codex/staging smoke 26/10: deletion headers carried no Secure flag. Every cookie a secure
+    # deployment sets or clears is Secure, so a clear never weakens the cookie it replaces.
+    origin = "https://127.0.0.1:5173"
+    app = create_app(
+        Settings(
+            environment="test",
+            database_url=f"sqlite+aiosqlite:///{tmp_path / 'guest-secure.db'}",
+            cors_origins=[origin],
+            guest_cookie_name="la_lanh_guest",
+            guest_cookie_secure=True,
+        ),
+        guest_repository=MemoryGuestRepository(),
+    )
+    with TestClient(app, base_url=origin) as client:
+        created = client.post(
+            "/v1/guest-sessions",
+            headers={"origin": origin},
+            json={
+                "consent_version": "birth-profile-v1",
+                "purpose": "birth_profile_basic",
+                "idempotency_key": "guest-secure-key-1234567890",
+            },
+        )
+        assert created.status_code == 200
+        deleted = client.delete(
+            "/v1/guest-session",
+            headers={"origin": origin, "x-csrf-token": str(created.json()["csrf_token"])},
+        )
+        assert deleted.status_code == 204
+        headers = [
+            *created.headers.get_list("set-cookie"),
+            *deleted.headers.get_list("set-cookie"),
+        ]
+    clears = [header for header in headers if "Max-Age=0" in header]
+    assert len(clears) >= 6
+    assert all("Secure" in header for header in headers), headers

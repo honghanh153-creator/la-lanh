@@ -121,7 +121,8 @@ export function RadarReceivedResultPage() {
   }
   // A definitive denial hides retained prose; a connection failure keeps a retry without showing stale data.
   if (!query.data || (query.isError && isTerminalDenial(query.error))) {
-    return isTerminalDenial(query.error) || withdraw.isError
+    // Only a definitive denial (of the read or of the withdrawal) is terminal; an inconclusive re-read keeps a retry.
+    return isTerminalDenial(query.error) || isTerminalDenial(withdraw.error)
       ? <MissingCard body="Có thể bản đọc đã hết hạn hoặc chart đã được rút." title="Bản đọc này không còn mở được." />
       : <MissingCard body="Chưa kết nối được để mở lại bản đọc. Thử lại sau một chút nhé." onRetry={() => void query.refetch()} title="Chưa mở được bản đọc." />;
   }
