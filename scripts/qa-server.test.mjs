@@ -108,3 +108,41 @@ test("QA server serves SPA deep links and proxies API readiness", async (context
   assert.equal(apiReadiness.status, 200);
   assert.deepEqual(await apiReadiness.json(), { status: "ready", source: "api" });
 });
+
+test("a scheme-relative request target never leaves the configured API origin", async (context) => {
+  const distDir = await mkdtemp(join(tmpdir(), "la-lanh-qa-"));
+  await writeFile(join(distDir, "index.html"), "<main>Lá Lành QA</main>");
+  const seen = { api: [], other: [] };
+  const api = createServer((request, response) => {
+    seen.api.push(request.url);
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end("{}");
+  });
+  const other = createServer((request, response) => {
+    seen.other.push(request.headers.cookie ?? "");
+    response.end("{}");
+  });
+  await new Promise((resolve) => api.listen(0, "127.0.0.1", resolve));
+  await new Promise((resolve) => other.listen(0, "127.0.0.1", resolve));
+  const qa = createQaServer({ distDir, apiOrigin: `http://127.0.0.1:${api.address().port}` });
+  await new Promise((resolve) => qa.listen(0, "127.0.0.1", resolve));
+  context.after(async () => {
+    await Promise.all([api, other, qa].map((server) => new Promise((resolve) => server.close(resolve))));
+    await rm(distDir, { recursive: true, force: true });
+  });
+
+  const { request: httpRequest } = await import("node:http");
+  const status = await new Promise((resolve, reject) => {
+    const outgoing = httpRequest({
+      host: "127.0.0.1",
+      port: qa.address().port,
+      path: `//127.0.0.1:${other.address().port}/v1/session`,
+      headers: { cookie: "la_lanh_guest=synthetic-canary" },
+    }, (response) => { response.resume(); response.on("end", () => resolve(response.statusCode)); });
+    outgoing.on("error", reject);
+    outgoing.end();
+  });
+  assert.equal(status, 200);
+  assert.deepEqual(seen.other, []);
+  assert.deepEqual(seen.api, ["/v1/session"]);
+});

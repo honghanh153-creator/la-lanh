@@ -30,6 +30,7 @@ from app.infrastructure.generation.pricing import (
     cents_to_nanos,
 )
 from app.infrastructure.generation.schemas import surface_output_contract
+from app.infrastructure.log_redaction import install_log_redaction
 
 logger = logging.getLogger(__name__)
 
@@ -421,6 +422,7 @@ async def _run_standalone() -> None:
 
 
 def main() -> None:
+    install_log_redaction()
     asyncio.run(_run_standalone())
 
 

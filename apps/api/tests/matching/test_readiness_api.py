@@ -17,6 +17,8 @@ def _client(tmp_path: Path) -> TestClient:
                 database_url=f"sqlite+aiosqlite:///{tmp_path / 'matching.db'}",
                 cors_origins=[ORIGIN],
                 guest_cookie_secure=False,
+                # These tests cover the reopened feature; deferral is in test_collection_gate.py.
+                matching_accepting_new_activity=True,
             )
         ),
         base_url=ORIGIN,

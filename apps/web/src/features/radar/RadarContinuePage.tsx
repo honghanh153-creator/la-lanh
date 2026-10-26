@@ -151,7 +151,7 @@ function RadarPrivateRetentionNote({ expiresAt }: { expiresAt?: string | null })
 }
 
 function RadarResultFooter({ ownerView, mode }: { ownerView: boolean; mode?: RadarResult["mode"] }) {
-  if (!ownerView) return <section className="radar-next-step"><p className="eyebrow">Quyền của bạn</p><h2>Bản đọc này mở lại được trên thiết bị này trong 7 ngày.</h2><p>Bạn có thể rút chart bất cứ lúc nào; khi rút, cả hai phía đều không thể mở lại kết quả.</p><Link className="matching-secondary" to="/radar">Về Radar Hợp Gu</Link></section>;
+  if (!ownerView) return <section className="radar-next-step"><p className="eyebrow">Quyền của bạn</p><h2>Bạn có thể xem lại bản đọc trên thiết bị này trong tối đa 30 ngày.</h2><p>Bạn có thể rút chart bất cứ lúc nào; khi rút, cả hai phía đều không thể mở lại kết quả.</p><Link className="matching-secondary" to="/radar">Về Radar Hợp Gu</Link></section>;
   const historyUrl = mode === "consented_invite" ? "/radar/invite#radar-history" : "/radar/start#radar-history";
   return <>
     <section className="radar-next-step">

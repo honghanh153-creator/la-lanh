@@ -236,6 +236,16 @@ class RelationshipSafePayload(SafeModel):
     evidence: tuple[SafeEvidence, ...] = Field(min_length=1, max_length=16)
 
 
+class RadarSafePayload(RelationshipSafePayload):
+    """Hợp gu sends section meanings and levels only, never chart facts (Luna sprint S2)."""
+
+    @model_validator(mode="after")
+    def _evidence_is_chart_free(self) -> RadarSafePayload:
+        if any(item.labels or item.kind != "relationship_signal" for item in self.evidence):
+            raise ValueError("Radar evidence carries no planet, aspect or house labels")
+        return self
+
+
 class ShareSafePayload(SafeModel):
     source_headline: str = Field(min_length=1, max_length=280)
     source_summary: str = Field(min_length=1, max_length=900)
@@ -253,7 +263,7 @@ _PAYLOAD_MODELS: dict[RewriteSurface, type[SafeModel]] = {
     RewriteSurface.HOUSE_INSIGHT: ReadingSafePayload,
     RewriteSurface.ASPECT_INSIGHT: ReadingSafePayload,
     RewriteSurface.TRANSIT_INSIGHT: ReadingSafePayload,
-    RewriteSurface.RADAR: RelationshipSafePayload,
+    RewriteSurface.RADAR: RadarSafePayload,
     RewriteSurface.MATCHING: RelationshipSafePayload,
     RewriteSurface.TAROT: TarotSafePayload,
     RewriteSurface.SHARE_CARD: ShareSafePayload,

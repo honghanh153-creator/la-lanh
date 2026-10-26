@@ -14,8 +14,11 @@ PINNED_OPENAI_MODEL: Literal["gpt-6-luna"] = "gpt-6-luna"
 
 # Surfaces whose provider payload carries no direct chart facts (M1): no positions or labels.
 # A coarse catalog choice may still reflect the chart (see the Luna runbook).
-# Extend only with proof.
-CHART_FREE_REWRITE_SURFACES = frozenset({"daily_home"})
+# Extend only with proof: Tarot reads no chart and sends only closed labels, catalog-traced card
+# meanings and a fixed focus sentence, never the question (tests/content_rewrite/
+# test_tarot_chart_free.py, Luna sprint S4). Allowing a surface does not turn it on: the
+# operator still sets its rollout mode, within the shared Luna budget and pilot roster.
+CHART_FREE_REWRITE_SURFACES = frozenset({"daily_home", "tarot"})
 
 
 class Settings(BaseSettings):
@@ -45,6 +48,9 @@ class Settings(BaseSettings):
     guest_cookie_secure: bool = False
     guest_ttl_days: int = Field(default=30, ge=1, le=30)
     guest_replay_minutes: int = Field(default=10, ge=1, le=10)
+    # Deletion journal (audit P07): keep facts at least as long as the oldest restorable backup.
+    # App dumps live 14 days; raise this if the provider's own backups/PITR reach further back.
+    erasure_journal_retention_days: int = Field(default=15, ge=15, le=60)
     guest_hash_key: SecretStr = SecretStr(DEVELOPMENT_HASH_KEY)
     guest_encryption_key: SecretStr = SecretStr(DEVELOPMENT_ENCRYPTION_KEY)
     auth_enabled: bool = False
@@ -74,6 +80,9 @@ class Settings(BaseSettings):
     generation_max_attempts: int = Field(default=2, ge=1, le=3)
     generation_retry_delay_seconds: int = Field(default=60, ge=10, le=3600)
     la_chung_accepting_new_activity: bool = False
+    # Vòng Lá is deferred: no new matching profile, consent or pool membership (audit P02,
+    # 2026-10-22). Withdrawal and leaving the pool stay available for data collected before.
+    matching_accepting_new_activity: bool = False
     content_studio_enabled: bool = False
     content_studio_api_token: SecretStr | None = None
     content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)

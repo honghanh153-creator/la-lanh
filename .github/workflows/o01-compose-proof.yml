@@ -1,0 +1,44 @@
+name: O01 disposable Compose proof
+on:
+  push:
+    branches: [agent/codex/o01-compose-proof-20261023]
+    paths: [.github/workflows/o01-compose-proof.yml]
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Full reviewed release SHA to prove; never a server or secret
+        required: true
+        type: string
+permissions: {}
+concurrency:
+  group: o01-compose-proof-${{ github.ref }}-${{ inputs.target_sha || 'bootstrap' }}
+  cancel-in-progress: true
+jobs:
+  compose-proof:
+    if: ${{ github.event.repository.visibility == 'public' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PROOF_TARGET_SHA: ${{ inputs.target_sha || '7ca22cbfb82eb329ebe4b4a416384e60cb8e550b' }}
+    steps:
+      - name: Run exact public proof without app data or credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$PROOF_TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git clone --no-checkout https://github.com/honghanh153-creator/la-lanh.git proof-source
+          cd proof-source
+          git checkout --detach "$PROOF_TARGET_SHA"
+          test "$(git rev-parse HEAD)" = "$PROOF_TARGET_SHA"
+          test ! -e /opt/la-lanh
+          unset DOCKER_HOST DOCKER_CONTEXT
+          printf 'sha=%s\n' "$PROOF_TARGET_SHA"
+          date -u '+date=%Y-%m-%dT%H:%M:%SZ'
+          LA_LANH_KILL_SWITCH_PROOF=1 LA_LANH_PROOF_DOCKER_CONTEXT="$(docker context show)" \
+            bash infra/hetzner/proof/kill-switch-compose-proof.sh
+          containers="$(docker ps -a --filter name=la-lanh-killswitch-proof --format '{{.Names}}' | wc -l | tr -d ' ')"
+          images="$(docker images --format '{{.Repository}}:{{.Tag}}' | awk '/^la-lanh-proof-/ {n++} END {print n+0}')"
+          printf 'cleanup_containers=%s\ncleanup_images=%s\n' "$containers" "$images"
+          test "$containers" = 0
+          test "$images" = 0
+          echo 'exit=0'

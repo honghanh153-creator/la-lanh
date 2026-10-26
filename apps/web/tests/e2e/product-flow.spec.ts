@@ -23,6 +23,26 @@ const reveal = {
   resumed: false,
 };
 
+// The suite runs against Vite preview only, with no API process: every /v1 call a test does not
+// mock answers with an explicit failure instead of a proxy ECONNREFUSED, and the test fails listing
+// those paths (registered first, so the specific routes in each test take precedence).
+let unmocked: string[] = [];
+test.beforeEach(async ({ page }) => {
+  unmocked = [];
+  await page.route("**/v1/**", async (route) => {
+    const path = `${route.request().method()} ${new URL(route.request().url()).pathname}`;
+    unmocked.push(path);
+    await route.fulfill({ status: 503, json: { code: "E2E_UNMOCKED", path } });
+  });
+  await page.route("**/v1/session/renew", async (route) => route.fulfill({ status: 200, json: {
+    state: "active", onboarding_status: "completed", expires_at: "2026-09-30T00:00:00Z", resumed: true, session_epoch: "epoch-test",
+  } }));
+  await page.route("**/v1/session/birth-profile-consent", async (route) => route.fulfill({ status: 204 }));
+});
+test.afterEach(() => {
+  expect(unmocked, "API calls without a mock").toEqual([]);
+});
+
 test("guest can reveal, save mood, and create a share card", async ({ page }) => {
   let guestCreated = false;
   let birthProfileCreates = 0;
@@ -30,6 +50,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   let dailyNoteReads = 0;
   let savedRevisionId: string | null = null;
   let sharedRevisionId: string | null = null;
+  let moodSaved: string | null = null;
   await page.route("**/v1/session", async (route) => {
     await route.fulfill(guestCreated ? {
       status: 200,
@@ -90,6 +111,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   });
   await page.route("**/v1/daily-note/note-test/mood", async (route) => {
     if (route.request().method() === "GET") return route.fulfill({ status: 200, json: null });
+    moodSaved = (route.request().postDataJSON() as { mood?: string }).mood ?? null;
     await route.fulfill({ status: 200, json: { id: "mood-test", daily_note_id: "note-test", mood: "Chill", checked_in_at: "2026-09-02T00:00:00Z" } });
   });
   await page.route("**/v1/daily-note/resonance", async (route) => route.fulfill({ status: 200, json: {
@@ -127,8 +149,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   } }));
 
   await page.goto("/welcome");
-  await expect(page.getByText("TRẠM BẮT SÓNG · 00/02")).toBeVisible();
-  await page.getByRole("button", { name: "Đồng ý & bật tín hiệu" }).click();
+  await page.getByRole("button", { name: "Đồng ý & bắt đầu" }).click();
   await expect(page).toHaveURL(/\/birth$/);
 
   await page.getByRole("textbox", { name: "Ngày" }).fill("01");
@@ -141,52 +162,45 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   expect(birthProfileCreates).toBe(1);
   expect(birthProfileReads).toBe(0);
   expect(dailyNoteReads).toBe(1);
-  await page.getByRole("button", { name: "Lá hôm nay đang mở" }).click();
+  await page.getByRole("button", { name: "Mở Note hôm nay" }).click();
 
   await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByRole("heading", { name: "Bạn đang muốn hiểu điều gì?" })).toBeVisible();
-  await expect(page.getByLabel("Note hôm nay")).toBeVisible();
-  expect(await page.getByLabel("Note hôm nay").evaluate((note, question) => (
-    Boolean(note.compareDocumentPosition(question as Node) & Node.DOCUMENT_POSITION_FOLLOWING)
-  ), await page.getByRole("region", { name: "Bạn đang muốn hiểu điều gì?" }).elementHandle())).toBe(true);
+  await expect(page.getByRole("heading", { level: 1, name: "Hôm nay có gì đáng để ý?" })).toBeVisible();
+  const note = page.getByRole("region", { name: "Note hôm nay" });
+  await expect(note.getByRole("heading", { name: "Đừng biến mình thành deadline." })).toBeVisible();
+  expect(birthProfileReads).toBe(0);
 
-  await page.getByRole("link", { name: /^Chuyện đang xảy ra/ }).click();
-  await expect(page).toHaveURL(/\/insights\/current-sky/);
-  await expect(page.getByText("Ảnh chụp bầu trời, không phải lời phán.")).toBeVisible();
-  await page.getByRole("link").first().click();
-  await expect(page).toHaveURL(/\/home$/);
-
-  await page.getByRole("link", { name: "Bản đồ" }).click();
-  await expect(page).toHaveURL(/\/insights$/);
-  await expect(page.getByRole("heading", { name: "Cần giờ và nơi sinh để đọc đủ chart." })).toBeVisible();
-  await page.getByRole("link", { name: "Về hôm nay" }).click();
-  await expect(page).toHaveURL(/\/home$/);
-
-  await page.getByRole("link", { name: /Có một chuyện cứ chạy trong đầu/ }).click();
+  await page.getByRole("link", { name: /Rút Tarot/ }).click();
   await expect(page).toHaveURL(/\/tarot$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/home$/);
+
+  await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Khám phá" }).click();
+  await expect(page).toHaveURL(/\/insights$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByText("Lá Chứng")).toHaveCount(0);
-  await expect(
-    page.getByLabel("Note hôm nay").getByText("Vibe · Một lớp từ ngày sinh"),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Chill" }).click();
-  await expect(page.getByRole("button", { name: "Chill" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Lưu lại" }).click();
-  await expect(page.getByRole("button", { name: "Đã lưu" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Chọn mood hôm nay" }).click();
+  await page.getByRole("button", { name: /Chill/ }).click();
+  await expect.poll(() => moodSaved).toBe("Chill");
+
+  await note.getByRole("link", { name: "Đọc đầy đủ" }).click();
+  await expect(page).toHaveURL(/\/note\/today$/);
+  await page.getByRole("button", { name: /^Lưu/ }).click();
+  await expect(page.getByRole("button", { name: /Đã lưu/ })).toBeVisible();
   expect(savedRevisionId).toBe("00000000-0000-4000-8000-000000000010");
 
-  await page.getByRole("link", { name: "Chia sẻ" }).click();
+  await page.goto("/card");
   await expect(page.getByRole("heading", { name: "Đừng biến mình thành deadline." })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Tải ảnh PNG" })).toBeEnabled();
-  await page.getByRole("button", { name: "Tạo safe link" }).click();
+  await page.getByRole("button", { name: /safe link/i }).click();
   await expect(page.getByRole("status")).toContainText("Không kèm ngày/giờ/nơi sinh");
   expect(sharedRevisionId).toBe("00000000-0000-4000-8000-000000000010");
 });
 
 test("under-18 birth date is stopped before any personal data is sent", async ({ page }) => {
   let birthProfileRequests = 0;
-  await page.route("**/v1/session", async (route) => route.fulfill({ status: 200, json: { state: "active", onboarding_status: "birth_pending", expires_at: "2026-09-30T00:00:00Z", resumed: true } }));
+  await page.route("**/v1/session", async (route) => route.fulfill({ status: 200, json: { state: "active", onboarding_status: "birth_pending", expires_at: "2026-09-30T00:00:00Z", resumed: true, session_epoch: "epoch-test" } }));
   await page.route("**/v1/birth-profile", async (route) => {
     birthProfileRequests += 1;
     await route.fulfill({ status: 500, json: { code: "SHOULD_NOT_BE_CALLED" } });
@@ -267,6 +281,10 @@ test("guest can add exact birth time and place only after explicit deep-data con
       }],
     });
   });
+  // A date-only profile: the editor answers with nothing saved yet (404 means no profile at all).
+  await page.route("**/v1/birth-profile/supplement/edit", async (route) => route.fulfill({ status: 200, json: {
+    birth_time_mode: "unknown", birth_time_local: null, approx_window: null, place: null,
+  } }));
   await page.route("**/v1/birth-profile/supplement", async (route) => {
     if (route.request().method() === "POST") {
       submittedSupplement = route.request().postDataJSON() as Record<string, unknown>;
@@ -402,9 +420,13 @@ test("guest can add exact birth time and place only after explicit deep-data con
     await route.fulfill({ status: 200, json: heldExperiment });
   });
 
+  await page.route("**/v1/session", async (route) => route.fulfill({ status: 200, json: {
+    state: "active", onboarding_status: "completed", expires_at: "2026-09-30T00:00:00Z", resumed: true, session_epoch: "epoch-test",
+  } }));
   await page.goto("/birth-time");
   await page.getByRole("button", { name: "Thêm để mở lớp mới" }).click();
-  await page.getByRole("textbox", { name: "Giờ sinh" }).fill("08:15");
+  await page.getByRole("combobox", { name: "Giờ (0–23)" }).selectOption("08");
+  await page.getByRole("combobox", { name: "Phút (0–59)" }).selectOption("15");
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await page.getByLabel("Thành phố / tỉnh").fill("Hà Nội");
   await page.getByRole("button", { name: /Hà Nội, Việt Nam/ }).click();
@@ -420,7 +442,9 @@ test("guest can add exact birth time and place only after explicit deep-data con
   await page.getByRole("button", { name: "Dùng Aura hôm nay" }).click();
 
   await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByText("Aura · Tổng hòa lá số").first()).toBeVisible();
+  expect(auraActivated).toBe(true);
+  await page.getByRole("region", { name: "Note hôm nay" }).getByRole("link", { name: "Đọc đầy đủ" }).click();
+  await expect(page).toHaveURL(/\/note\/today$/);
   await page.getByRole("button", { name: "Giữ để thử hôm nay" }).click();
   await expect(page.getByRole("button", { name: "Bỏ giữ việc này" })).toBeVisible();
   expect(chosenExperimentBody).toMatchObject({
@@ -430,8 +454,6 @@ test("guest can add exact birth time and place only after explicit deep-data con
     consent_version: "action-experiment-v1",
   });
 
-  await page.getByRole("link", { name: "Đọc note đầy đủ" }).click();
-  await expect(page).toHaveURL(/\/note\/today$/);
   await page.getByRole("button", { name: "Bỏ giữ việc này" }).click();
   await expect(page.getByRole("button", { name: "Giữ để thử hôm nay" })).toBeVisible();
   expect(undoExperimentBody).toMatchObject({

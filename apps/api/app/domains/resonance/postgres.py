@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
 from app.domains.readings.models import BackgroundLens
 from app.domains.readings.tables import ReadingRevisionRow
@@ -25,9 +26,11 @@ class PostgresResonanceRepository:
         self,
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def record_with_consent(
         self,
@@ -119,10 +122,12 @@ class PostgresResonanceRepository:
                     .order_by(ResonanceFeedbackRow.created_at.desc())
                 )
             )
+            # Without consent nothing is reported back, even a row that has not been purged yet.
+            visible = rows if consented else ()
             return ResonanceStatus(
                 consented=consented,
-                feedback_count=len(rows),
-                last_choice=self._record(rows[0]).choice if rows else None,
+                feedback_count=len(visible),
+                last_choice=self._record(visible[0]).choice if visible else None,
             )
 
     async def clear_with_consent(
@@ -133,10 +138,21 @@ class PostgresResonanceRepository:
         now: datetime,
     ) -> None:
         async with self._sessions() as session, session.begin():
+            # Same lock as a feedback write: a write already in flight finishes first and is
+            # deleted here, so a successful withdrawal leaves no feedback behind (P03 RC-14).
+            await self._lock_owner(session, guest_id)
             await session.execute(
                 delete(ResonanceFeedbackRow).where(ResonanceFeedbackRow.guest_id == guest_id)
             )
             await self._after_clear()
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    session,
+                    ErasureKind.RESONANCE_CLEARED,
+                    guest_id,
+                    now,
+                    scope="consent" if revoke_consent else "",
+                )
             if revoke_consent:
                 await session.execute(
                     update(ConsentRow)
@@ -165,12 +181,19 @@ class PostgresResonanceRepository:
             )
             return int(cast(CursorResult[Any], result).rowcount or 0)
 
-    async def _require_owned_target(self, session: AsyncSession, record: ResonanceRecord) -> None:
-        owner_id = await session.scalar(
-            select(GuestSessionRow.id)
-            .where(GuestSessionRow.id == record.guest_id)
-            .with_for_update()
+    @staticmethod
+    async def _lock_owner(session: AsyncSession, guest_id: UUID) -> UUID | None:
+        """The guest row lock that orders feedback writes against clear/withdrawal."""
+
+        return cast(
+            UUID | None,
+            await session.scalar(
+                select(GuestSessionRow.id).where(GuestSessionRow.id == guest_id).with_for_update()
+            ),
         )
+
+    async def _require_owned_target(self, session: AsyncSession, record: ResonanceRecord) -> None:
+        owner_id = await self._lock_owner(session, record.guest_id)
         if owner_id is None:
             raise ResonanceTargetNotFound
         note_id = await session.scalar(

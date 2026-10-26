@@ -1,0 +1,19 @@
+[Unit]
+Description=Lá Lành daily database backup (custom dump of public, checksum, bounded retention)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+OnFailure=la-lanh-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/la-lanh/current
+ExecStart=/opt/la-lanh/current/infra/hetzner/backup-database.sh
+ExecStartPost=/opt/la-lanh/current/infra/hetzner/check-backup-freshness.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/la-lanh/backups
+TimeoutStartSec=30min
+UMask=0077

@@ -29,9 +29,9 @@ Không được tự động chuyển từ mode này sang mode kia. CTA chính l
 | `/radar/invite` | Fallback invite | Tạo link khi A chưa có quyền nhập hộ | Capability 7 ngày |
 | `/radar/i/:token` | Public preview | B hiểu mục đích/quyền trước khi nhập | Safe capability continuation |
 | `/radar/continue` | Pair consent | B consent riêng và chạy hai chart | Derived pair result |
-| `/radar/receipt` | Kết quả phía người nhận | B mở lại trong 7 ngày hoặc rút chart khỏi kết quả | HttpOnly receipt-bound read/withdraw |
+| `/radar/receipt` | Kết quả phía người nhận | B mở lại trong 30 ngày (bằng hạn kết quả) hoặc rút chart khỏi kết quả | HttpOnly receipt-bound read/withdraw |
 
-Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Check thêm một người`, `Xem các lần check` và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 7 ngày, có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
+Ba bước `Bắt đầu → Thông tin → Bản đọc` phải xuất hiện nhất quán trên flow chính và flow lời mời. Màn kết quả không được là ngõ cụt: owner luôn có đường `Check thêm một người`, `Xem các lần check` và điều hướng chính; recipient mở lại bằng receipt trên đúng thiết bị trong 30 ngày (bằng hạn kết quả), có thể rút chart và luôn có đường về Radar. Kết quả hết hạn/đã xóa phải hiển thị terminal state có CTA quay lại thay vì một trang trống.
 
 ## 4. Primary user flow
 
@@ -82,7 +82,7 @@ Inputs must not enter URL, localStorage/sessionStorage, analytics, logs, error t
 | Permission attestation | Version + timestamp | Same request lifetime | Deleted with result |
 | Invite capability | Hash + temporary encrypted copy | 7 days or terminal state | Revoke |
 | B birth profile in invite mode | Existing encrypted birth domain | Existing guest policy | B withdraw/delete |
-| Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 7 days | B withdraw; inaccessible after expiry |
+| Recipient result receipt | HttpOnly, SameSite=Strict capability cookie | 30 days, same as the consented result (owner decision P09 D1, 22/10/2026; was 7 days) | B withdraw; inaccessible after expiry |
 
 Private-check retention (owner decision 2026-10-19): A enters B's data under A's attestation alone, so the
 result is kept only long enough to reopen it, 24 hours from creation.
@@ -113,7 +113,8 @@ No contact upload, phone/email, GPS, current city, precise distance, IP fingerpr
 - Public invite trả về `request_id` không bí mật để bind đúng consent action với đúng lời mời đang hiển thị. Accept/decline phải gửi lại binding này; receipt withdrawal cũng phải gửi đúng `request_id`. Cookie và request binding lệch nhau bị từ chối để một tab cũ không thể tác động lên lời mời/kết quả vừa mở ở tab khác.
 - Web giữ expected `request_id` theo từng tab trong session storage; `/radar/continue` chỉ hiện consent khi expected ID trùng invitation cookie hiện tại. Không lưu token, ngày sinh, giờ sinh hoặc nơi sinh ở đây.
 - Owner history/result cache is keyed by server-confirmed guest session epoch. Khi phiên đổi hoặc người dùng xóa dữ liệu, cache history/result/place-search bị xóa trước khi UI có thể render lại.
-- Recipient projection được lưu chung trong encrypted result envelope nhưng chỉ mở bằng receipt riêng; owner và recipient nhận hai projection đổi chiều nên đại từ và góc nhìn không bị lẫn.
+- Recipient projection được lưu chung trong encrypted result envelope nhưng chỉ mở bằng receipt riêng hoặc bằng chính phiên guest đã accept (P09 D2); owner và recipient nhận hai projection đổi chiều nên đại từ và góc nhìn không bị lẫn.
+- **Quyền của B khi không còn receipt (P09 D2, API).** Phiên guest đã accept là bằng chứng, không thu lại ngày sinh: `GET /v1/radar/received` (chỉ bản còn hợp lệ, lọc trước giới hạn trang; phân trang ổn định qua `before`/`next_before` trên mọi người gửi), `GET /v1/radar/received/{request_id}` (projection phía B, không kèm nickname A đặt cho B) và `POST /v1/radar/received/{request_id}/withdraw` (trusted Origin + CSRF). B mất cả receipt lẫn phiên vẫn rút được bằng cách chứng minh còn giữ link mời: `POST /v1/public/radar/invite/withdraw` chỉ với token trong body (không nằm trong URL; không bind `request_id` vì B ở máy mới không biết được nó), chỉ rút, không bao giờ mở bản đọc, vì A giữ cùng link và vốn đã xóa được. Mọi đường dùng chung cửa sổ 30 ngày của kết quả và cùng lõi rút (hủy job viết lại, chờ send fence). Màn web cho các đường này cần copy được owner duyệt; chưa có trong PR API. B của check kín không có danh tính nào trong hệ thống: kênh là nhờ A xóa, hoặc kết quả tự hết hạn sau 24 giờ (`docs/operations/radar-recipient-rights.md`).
 - Stored nickname/result use separate envelope-encryption contexts.
 - Result is inaccessible after TTL and physically deletable. Production requires a scheduled physical purge of expired rows.
 - Secondary invite retains 256-bit capability tokens, safe public headers, consent, revoke and recipient withdrawal.
@@ -163,7 +164,7 @@ No contact upload, phone/email, GPS, current city, precise distance, IP fingerpr
 | User leaves form | Discard state; no draft in browser storage |
 | Result expires | Return terminal/not found; purge job deletes ciphertext |
 | Owner deletes | Hard-delete request row and encrypted result |
-| Recipient reloads result | Reopen `/radar/receipt` with HttpOnly receipt for at most 7 days |
+| Recipient reloads result | Reopen `/radar/receipt` with HttpOnly receipt for at most 30 days (the result's lifetime) |
 | Recipient withdraw fails | Keep result unchanged; show explicit retry rather than claiming success |
 | Two invite tabs cross | Block consent when tab-bound request ID differs from current invite cookie |
 

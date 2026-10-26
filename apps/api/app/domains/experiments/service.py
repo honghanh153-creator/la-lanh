@@ -10,8 +10,9 @@ from app.domains.readings.models import BackgroundLens
 
 class ExperimentService:
     CONSENT_VERSION = "action-experiment-v1"
-    # Leave a six-hour deletion margin for the mandatory cleanup schedule so
-    # physical retention never crosses the published 30-day ceiling.
+    # Expires six hours before 30 days so the six-hourly cleanup normally removes it within 30
+    # days. This is not a hard bound: cleanup skips an owner while a rewrite send fence is open
+    # (history/postgres.py _busy), so physical deletion can come later (audit P05).
     RETENTION_WINDOW = timedelta(days=29, hours=18)
 
     def __init__(self, repository: ExperimentRepository) -> None:

@@ -25,11 +25,13 @@ from app.domains.content.catalog import restore_bundled_daily_catalog
 from app.domains.content.postgres import PostgresContentRepository
 from app.domains.content.service import ContentStudioService
 from app.domains.content_rewrite.authorization import DatabaseRewriteAuthorization
+from app.domains.content_rewrite.models import RewriteSurface
 from app.domains.content_rewrite.postgres import PostgresContentRewriteRepository
 from app.domains.content_rewrite.rollout import SurfaceRolloutPolicy
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.service import DailyNoteService
+from app.domains.erasure_journal.journal import ErasureJournal
 from app.domains.experiments.postgres import PostgresExperimentRepository
 from app.domains.experiments.service import ExperimentService
 from app.domains.guest.postgres import PostgresGuestRepository
@@ -65,6 +67,7 @@ from app.infrastructure.generation.openai import (
     OPENAI_PROMPT_VERSION,
     OPENAI_REWRITE_PROMPT_VERSION,
 )
+from app.infrastructure.log_redaction import install_log_redaction
 from app.middleware.admission import AdmissionControlMiddleware
 from app.middleware.body_limit import BodyLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
@@ -90,9 +93,11 @@ def create_app(
     auth_transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
+    install_log_redaction()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        install_log_redaction()  # uvicorn configures its handlers after importing the app
         database = Database(str(resolved_settings.database_url))
         await database.initialize()
         app.state.database = database
@@ -111,9 +116,15 @@ def create_app(
             return await _runtime_ready(database, engine)
 
         app.state.readiness_probe = readiness_probe
+        credential_hasher = SecretHasher(
+            decode_key(resolved_settings.guest_hash_key.get_secret_value())
+        )
+        erasure_journal = ErasureJournal(credential_hasher)
+        app.state.erasure_journal = erasure_journal
         repository = guest_repository or PostgresGuestRepository(
             database.sessions,
             identity_eraser=SupabaseIdentityEraser(resolved_settings, transport=auth_transport),
+            erasure_journal=erasure_journal,
         )
         envelope = AesGcmEnvelopeCipher(
             StaticDataKeyProvider(
@@ -123,9 +134,6 @@ def create_app(
                 )
             )
         )
-        credential_hasher = SecretHasher(
-            decode_key(resolved_settings.guest_hash_key.get_secret_value())
-        )
         app.state.account_service = AccountService(
             database.sessions,
             credential_hasher,
@@ -134,7 +142,8 @@ def create_app(
             resolved_settings,
         )
         app.state.history_service = HistoryService(
-            PostgresHistoryRepository(database.sessions, envelope), credential_hasher
+            PostgresHistoryRepository(database.sessions, envelope, erasure_journal),
+            credential_hasher,
         )
         content_rewrite_repository = PostgresContentRewriteRepository(
             database.sessions,
@@ -182,7 +191,9 @@ def create_app(
             database.sessions,
             envelope,
             credential_hasher,
-            generation_enabled=resolved_settings.generation_enabled,
+            # Only build Tarot rewrite jobs when the Tarot surface itself is on (Luna sprint S1).
+            generation_enabled=resolved_settings.generation_enabled
+            and content_rewrite_rollout.should_generate(RewriteSurface.TAROT),
             generation_model=resolved_settings.generation_openai_model,
             generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
             content_rewrite_service=content_rewrite_service,
@@ -195,7 +206,9 @@ def create_app(
             credential_hasher,
             envelope,
         )
-        birth_repo = birth_repository or PostgresBirthRepository(database.sessions, envelope)
+        birth_repo = birth_repository or PostgresBirthRepository(
+            database.sessions, envelope, erasure_journal
+        )
         app.state.birth_chart_service = (
             BirthChartService(
                 birth_repo,
@@ -208,7 +221,7 @@ def create_app(
         )
         app.state.matching_service = (
             MatchingService(
-                PostgresMatchingRepository(database.sessions, envelope),
+                PostgresMatchingRepository(database.sessions, envelope, erasure_journal),
                 app.state.birth_chart_service,
             )
             if app.state.birth_chart_service is not None
@@ -221,10 +234,12 @@ def create_app(
                 envelope,
                 app.state.birth_chart_service,
                 engine,
-                generation_enabled=resolved_settings.generation_enabled,
+                generation_enabled=resolved_settings.generation_enabled
+                and content_rewrite_rollout.should_generate(RewriteSurface.RADAR),
                 generation_model=resolved_settings.generation_openai_model,
                 generation_prompt_version=OPENAI_REWRITE_PROMPT_VERSION,
                 content_rewrite_service=content_rewrite_service,
+                erasure_journal=erasure_journal,
             )
             if app.state.birth_chart_service is not None and engine is not None
             else None
@@ -239,7 +254,7 @@ def create_app(
                 PostgresMoodRepository(database.sessions), daily_service
             )
             app.state.resonance_service = ResonanceService(
-                PostgresResonanceRepository(database.sessions, envelope)
+                PostgresResonanceRepository(database.sessions, envelope, erasure_journal)
             )
             app.state.experiment_service = ExperimentService(
                 PostgresExperimentRepository(database.sessions, envelope)

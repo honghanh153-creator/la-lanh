@@ -12,7 +12,9 @@ current code differs, so the store served on a ``variety_exception`` is always t
 from __future__ import annotations
 
 import argparse
+import ast
 import dataclasses
+import inspect
 import json
 import re
 import sys
@@ -25,7 +27,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from app.domains.radar import reading as radar_reading
-from app.domains.readings import companion, daily_psychology, gates, voice
+from app.domains.readings import companion, daily_psychology, gates, renderers, voice
 from app.domains.readings.application import DETERMINISTIC_CONTENT_VERSION
 from app.domains.readings.renderers import DETERMINISTIC_RENDERER_VERSION
 from app.domains.tarot import engine as tarot_engine
@@ -84,6 +86,57 @@ def module_tables(module: ModuleType) -> dict[str, str]:
     return tables
 
 
+def source_literals(source: str) -> list[str]:
+    """Copy written inside function bodies: every non-ASCII string literal (f-strings keep their
+    text with ``{}`` for each placeholder), docstrings excluded, each literal once (audit O04).
+
+    Module tables are pinned by ``module_tables``; prose built inside functions was not, so a
+    sentence could change without the approval noticing. Non-ASCII is the copy marker: keys,
+    codes and log messages are ASCII.
+    """
+
+    tree = ast.parse(source)
+    docstrings = {
+        id(node.body[0].value)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef)
+        and node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+        and isinstance(node.body[0].value.value, str)
+    }
+    seen: set[int] = set()
+    found: list[str] = []
+    for function in ast.walk(tree):
+        if not isinstance(function, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda):
+            continue
+        for node in ast.walk(function):
+            if id(node) in seen or id(node) in docstrings:
+                continue
+            seen.add(id(node))
+            if isinstance(node, ast.JoinedStr):
+                seen.update(id(part) for part in node.values)
+                text = "".join(
+                    str(part.value) if isinstance(part, ast.Constant) else "{}"
+                    for part in node.values
+                )
+            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                text = node.value
+            else:
+                continue
+            if not text.isascii():
+                found.append(text)
+    return found
+
+
+def function_literals(module: ModuleType) -> dict[str, str]:
+    """One order-independent hash of a module's in-function copy."""
+
+    literals = sorted(source_literals(inspect.getsource(module)))
+    text = json.dumps(literals, ensure_ascii=False, separators=(",", ":"))
+    return {f"{module.__name__}#function_literals": sha256(text.encode()).hexdigest()}
+
+
 def current() -> dict[str, Any]:
     cards = json.dumps(canonical(tarot_knowledge.all_cards()), ensure_ascii=False, sort_keys=True)
     return {
@@ -96,6 +149,10 @@ def current() -> dict[str, Any]:
                 **module_tables(daily_psychology),
                 **module_tables(companion),
                 **module_tables(voice),
+                **function_literals(daily_psychology),
+                **function_literals(companion),
+                **function_literals(voice),
+                **function_literals(renderers),
             },
         },
         "tarot": {
@@ -125,12 +182,28 @@ def current() -> dict[str, Any]:
                 **module_tables(tarot_voice),
                 **module_tables(tarot_examples),
                 "app.domains.tarot.knowledge.all_cards()": sha256(cards.encode()).hexdigest(),
+                # In-function copy (audit O04), pinned 2026-10-22 at c3fab33 = production.
+                **{
+                    key: value
+                    for module in (
+                        tarot_knowledge,
+                        tarot_engine,
+                        tarot_question_frame,
+                        tarot_roles,
+                        tarot_stance,
+                        tarot_variants,
+                        tarot_meaning_brief,
+                        tarot_voice,
+                        tarot_examples,
+                    )
+                    for key, value in function_literals(module).items()
+                },
             },
         },
         "radar": {
             "renderer_version": radar_reading.RENDERER_VERSION,
             "gate_version": radar_reading.GATE_VERSION,
-            "tables": module_tables(radar_reading),
+            "tables": {**module_tables(radar_reading), **function_literals(radar_reading)},
         },
         "gate_versions": {
             "anti_influence": gates.ANTI_INFLUENCE_GATE_VERSION,

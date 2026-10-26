@@ -2978,6 +2978,23 @@
         "title": "RadarInviteResponse",
         "type": "object"
       },
+      "RadarInviteWithdrawRequest": {
+        "additionalProperties": false,
+        "description": "B proves possession of the invite link; the token is in the body, never the URL.",
+        "properties": {
+          "token": {
+            "maxLength": 43,
+            "minLength": 43,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "RadarInviteWithdrawRequest",
+        "type": "object"
+      },
       "RadarMode": {
         "enum": [
           "private_check",
@@ -3061,6 +3078,70 @@
           "authorization_attested"
         ],
         "title": "RadarPrivateCheckRequest",
+        "type": "object"
+      },
+      "RadarReceivedItem": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "context",
+          "voice",
+          "completed_at",
+          "expires_at"
+        ],
+        "title": "RadarReceivedItem",
+        "type": "object"
+      },
+      "RadarReceivedListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RadarReceivedItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_before": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "RadarReceivedListResponse",
         "type": "object"
       },
       "RadarResultResponse": {
@@ -9683,6 +9764,9 @@
           "403": {
             "description": "Forbidden"
           },
+          "410": {
+            "description": "Gone"
+          },
           "422": {
             "description": "Unprocessable Content"
           }
@@ -9740,6 +9824,9 @@
           },
           "409": {
             "description": "Conflict"
+          },
+          "410": {
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -9805,6 +9892,9 @@
           },
           "403": {
             "description": "Forbidden"
+          },
+          "410": {
+            "description": "Gone"
           },
           "422": {
             "content": {
@@ -10218,6 +10308,41 @@
         ]
       }
     },
+    "/v1/public/radar/invite/withdraw": {
+      "post": {
+        "description": "B withdraws by proving possession of the invite link, without receipt or session.\n\nWithdraw only: A holds the same link, so it never opens B's view.",
+        "operationId": "withdraw_by_invite_v1_public_radar_invite_withdraw_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RadarInviteWithdrawRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Withdraw By Invite",
+        "tags": [
+          "radar-public"
+        ]
+      }
+    },
     "/v1/public/radar/receipt": {
       "get": {
         "operationId": "receipt_result_v1_public_radar_receipt_get",
@@ -10514,6 +10639,164 @@
           }
         },
         "summary": "Create Private Check",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/received": {
+      "get": {
+        "description": "Results B accepted, found by B's own guest session (P09 D2): no receipt needed.",
+        "operationId": "received_results_v1_radar_received_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarReceivedListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Received Results",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/received/{request_id}": {
+      "get": {
+        "operationId": "received_result_v1_radar_received__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Received Result",
+        "tags": [
+          "radar"
+        ]
+      }
+    },
+    "/v1/radar/received/{request_id}/withdraw": {
+      "post": {
+        "operationId": "withdraw_received_v1_radar_received__request_id__withdraw_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Withdraw Received",
         "tags": [
           "radar"
         ]
