@@ -32,6 +32,7 @@ import { RadarLandingPage } from "../features/radar/RadarLandingPage";
 import { RadarOwnerResultPage } from "../features/radar/RadarOwnerResultPage";
 import { RadarPrivateStartPage } from "../features/radar/RadarPrivateStartPage";
 import { RadarReceiptPage } from "../features/radar/RadarReceiptPage";
+import { RadarReceivedPage, RadarReceivedResultPage } from "../features/radar/RadarReceivedPage";
 import { RadarStartPage } from "../features/radar/RadarStartPage";
 import { ProfilePage } from "../features/profile/ProfilePage";
 import { AuraCutoverPage } from "../features/reveal/AuraCutoverPage";
@@ -98,6 +99,8 @@ export const appRoutes: RouteObject[] = [
       { path: "radar/invite", element: <RadarStartPage /> },
       { path: "radar/continue", element: <RadarContinuePage /> },
       { path: "radar/receipt", element: <RadarReceiptPage /> },
+      { path: "radar/received", element: <RadarReceivedPage /> },
+      { path: "radar/received/:requestId", element: <RadarReceivedResultPage /> },
       { path: "radar/result/:requestId", element: <RadarOwnerResultPage /> },
       { path: "vong-la", element: <RadarLandingPage /> },
       { path: "vong-la/setup", element: <RadarStartPage /> },
