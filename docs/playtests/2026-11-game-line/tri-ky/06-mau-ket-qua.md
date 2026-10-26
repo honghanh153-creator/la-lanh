@@ -48,6 +48,9 @@ Tác phẩm tên "Tri kỷ" được nhắc tới (đếm số người nhắc m
 | Số người thấy ba nhãn là ba hạng; thứ tự hay gặp | |
 | Giải tán im lặng: nhẹ nhàng / BT / hơi lạ / không ổn | |
 | Muốn được báo khi bị giải tán: Có / Không / Tuỳ | |
+| Câu "dữ liệu nhạy cảm" (F2): số người đọc câu trước khi thấy ô | |
+| Câu "dữ liệu nhạy cảm": YT / BT / NH / S (đếm) | |
+| Từ khoá hay gặp cho "dữ liệu nhạy cảm" (không ghi ai nói) | |
 
 ## Phần 5 — Hiểu Nhau Không?
 
@@ -80,6 +83,7 @@ Tác phẩm tên "Tri kỷ" được nhắc tới (đếm số người nhắc m
 | Có hiện điểm x/7 không; cách "cả hai đúng" (mặc định TK-5) có ổn không so với cách "ít nhất một đúng" (D5 chỉ quyết không có % độ hợp) | |
 | Câu kỷ lục nào dùng được mà không gây áp lực quay lại | |
 | Giải tán im lặng giữ nguyên hay cần thêm gì | |
+| Câu "dữ liệu nhạy cảm" ngay trên ô: giữ, sửa chữ, hay cần owner/counsel viết lại (kết quả này là đầu vào cho test copy T-TK-23, không thay cho owner duyệt) | |
 
 ## Khảo sát
 

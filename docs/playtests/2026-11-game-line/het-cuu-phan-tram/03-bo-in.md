@@ -182,12 +182,12 @@ Mức 1 — người khai cao nhất: {biệt danh}. {K}/{N} người đoán ra.
 Mức 2 — người khai cao nhất: {biệt danh}. {K}/{N} người đoán ra.
 Mức 3 — người khai cao nhất: {biệt danh}. {K}/{N} người đoán ra.
 Lời khai: "{câu}"
-{Nếu có} Nhân Vật Chính {biệt danh}: lệch {Z} điểm — {HẾT CỨU / Cứu được chút / Tự biết mình ghê}.
+{Nếu có} Nhân Vật Chính {biệt danh}: {HẾT CỨU / Cứu được chút / Tự biết mình ghê}.
 Lá tuần này: {tên lá} — {câu}.
 (Bản chữ không ghi % của từng người.)
 ```
 
-Ghi chú: bản D6b có ghi độ lệch của Nhân Vật Chính vì người đó đã tự nguyện. Nếu Nhân Vật Chính bật "ẩn %", bỏ dòng độ lệch, chỉ ghi nhãn.
+Ghi chú: tin trong nhóm chat nằm lại lâu hơn hạn xoá 72 giờ, nên bản D6b chỉ ghi **nhãn** của Nhân Vật Chính, không ghi % tự khai, % cả hội đoán hay số điểm lệch. Con số chỉ được nói trong cuộc gọi hoặc chiếu trên slide (mục E), không gửi thành tin nhắn.
 
 ### D7 — khảo sát (thứ Sáu 27/11, sau màn lật cuối)
 
@@ -204,12 +204,14 @@ Host chép vào bảng đếm rồi xoá tin ngay.
 ```
 🍂 HẾT CỨU % — TỔNG KẾT 3 TUẦN
 Danh hiệu: tuần 1 {…}, tuần 2 {…}, tuần 3 {…}
-Khoảnh khắc hết cứu nhất mùa: {một câu}
-Chiếu lại: "Tuần 1 có người khai mức 3 chỉ {X}%. Giờ thì sao?" (không nêu tên)
+Khoảnh khắc hết cứu nhất mùa: {chọn một trong ba "khoảnh khắc hết cứu nhất" đã gửi ở D6, chép nguyên câu, không có số % của ai}
+Nhắc lại cho vui: "Tuần 1, cả hội chắc nịch đoán sai người khai cao nhất mức 3. Tuần 3 thì sao?" (không nêu tên, không có số)
 
 Không có bảng điểm cộng dồn. Cảm ơn cả nhà đã chơi thử.
 Trước 20:00 thứ Hai 30/11, host xoá toàn bộ tin nhắn riêng và bảng tính.
 ```
+
+Ghi chú cho host: D8 **không có con số** (%, phiếu đoán, độ lệch). Số của mỗi tuần đã bị xoá 72 giờ sau màn lật của tuần đó (README §6), nên tổng kết mùa chỉ dùng danh hiệu và câu khoảnh khắc đã viết bằng chữ ở D6. Không giữ lại phiếu hay tin nhắn của tuần 1, 2 tới cuối mùa để làm D8.
 
 ## E. Mẫu slide màn lật (chiếu khi gọi nhóm, không gửi tệp)
 

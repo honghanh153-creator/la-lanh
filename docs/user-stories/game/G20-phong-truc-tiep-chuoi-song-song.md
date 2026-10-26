@@ -62,14 +62,14 @@ Màn chiếu trong lúc chơi: "Vòng {r}/5 · {bàn}" + đồng hồ + "đã ch
 
 ## 6. Quy tắc nghiệp vụ
 
-TS-FR-01–14. Thời lượng nhịp thường 10/20/15/20/15 giây; nhịp chậm gấp đôi. Xoay vòng: vòng r, người i làm chuỗi (i − r) mod N.
+TS-FR-01–14. Thời lượng nhịp thường 10/20/15/20/15 giây; nhịp chậm gấp đôi. Xoay vòng theo TS-FR-05: bước s của chuỗi j do người (j + o(s)) mod N; o = 0, 1, 2, 3, 4 khi N = 5 hoặc 6; o = 0, 1, 2, Bot, 3 khi N = 4. Bảng phân công từng người, từng bước cho N = 4, 5, 6 ở SRS §3.1.1. Bất biến: không ai làm hai bước của cùng một chuỗi; người gieo không bao giờ đoán gốc.
 
 ## 7. Tiêu chí chấp nhận
 
 - **G20-AC01:** Given trang vào phòng Tam Sao, Then ngoài ô 18+ của RP có đúng hai ô "Hiện biệt danh của tôi ở bước tôi đã chọn khi phát lại" và "Cho biệt danh của tôi nằm trên thẻ lật", đều không tick sẵn; không tick vẫn vào chơi được.
 - **G20-AC02:** Given 27 người chơi tự chọn bàn lệch (ví dụ 15/8/4), When host bắt đầu, Then mọi bàn có 4–6 người, số người bị chuyển là nhỏ nhất, người chọn sớm hơn được giữ bàn.
 - **G20-AC03:** Given bàn N = 5 hoặc 6, Then sau 5 vòng mỗi chuỗi có 5 bước do 5 người khác nhau làm, và mỗi người làm đúng một bước ở mỗi vòng.
-- **G20-AC04:** Given bàn 4 người, Then bước 4 của mọi chuỗi có `bot_filled = true`, bốn người làm bước 1, 2, 3, 5 và không ai làm hai bước một chuỗi.
+- **G20-AC04:** Given bàn 4 người, Then bước 4 của mọi chuỗi có `bot_filled = true`; chuỗi j đi qua người j, j+1, j+2, Bot, j+3 (đúng bảng N = 4 ở SRS §3.1.1); không ai làm hai bước một chuỗi.
 - **G20-AC05:** Given người chơi chưa chọn khi hết giờ bước (+ 750 ms), Then Bot chọn một trong các phương án đang hiện cho người đó, bước ghi `bot_filled`, và người chơi thấy "Sao Thủy đã điền giúp".
 - **G20-AC06:** Given người chơi rời hoặc bị kick ở vòng 2, Then các bước còn lại của họ do Bot điền, bước đã làm hiện "Người đã rời" khi lật, và biệt danh của họ bị xoá ngay theo RP-FR-82.
 - **G20-AC07:** Given người làm bước 4, When kiểm mọi gói dữ liệu gửi tới điện thoại đó trong ván, Then chỉ có mood + độ mạnh của chuỗi đang làm và 4 phương án; không có câu gốc, câu bước 2 hay dữ liệu chuỗi khác; màn chiếu không nhận lựa chọn nào trước màn lật.
@@ -78,6 +78,7 @@ TS-FR-01–14. Thời lượng nhịp thường 10/20/15/20/15 giây; nhịp ch�
 - **G20-AC10:** Given bước 1, Then 3 câu gốc thuộc 3 ý định khác nhau, và khi ngân hàng đủ, không hai người cùng bàn nhận cùng một ý định ở chuỗi mình gieo.
 - **G20-AC11:** Given người vào sau khi ván bắt đầu, Then chỉ vào được làm khán giả và không được giao bước nào.
 - **G20-AC12:** Given đọc to bật, Then không có yêu cầu quyền micro hay camera nào, không có âm thanh nào được ghi hay gửi; bỏ qua nhắc không ảnh hưởng ván.
+- **G20-AC13:** Given bàn N = 4, 5 hoặc 6 chơi hết 5 bước, When so người làm bước 5 với người gieo của từng chuỗi, Then không chuỗi nào có người gieo tự đoán gốc, và phân công khớp bảng SRS §3.1.1.
 
 ## 8. Edge case
 
@@ -91,7 +92,7 @@ TS-FR-01–14. Thời lượng nhịp thường 10/20/15/20/15 giây; nhịp ch�
 
 ## 9. Definition of Done
 
-- G20-AC01–AC12 có test; T-TS-01–04, T-TS-18 xanh; playtest giấy trực tiếp đã chạy và phân bố độ thất bản không dồn về 0–1.
+- G20-AC01–AC13 có test; T-TS-01–04, T-TS-18 xanh; playtest giấy trực tiếp đã chạy và phân bố độ thất bản không dồn về 0–1.
 - Owner chốt TS-D3, TS-D5 và duyệt chữ hai ô biệt danh; luật sư xem hai ô.
 - Bảo mật: tách thông tin theo bước (test hợp đồng), kiểm `choice_id` thuộc phương án đã hiện, CSRF + Origin, giới hạn theo RP; không P0/P1.
 - Quyền riêng tư: hai cờ biệt danh có trong DPIA §5.4; kho phòng không backup (RP-D3); chính sách quyền riêng tư nói rõ lựa chọn chỉ gắn tên khi đồng ý.

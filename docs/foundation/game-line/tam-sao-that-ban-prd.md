@@ -90,8 +90,9 @@ Không tài khoản: host và người chơi là **phiên thiết bị** + biệ
 | 6. Lật | Màn hình chung phát lại từng chuỗi: Gốc → Ý → Câu → Mood → Câu mới → Đoán, dấu "THẤT BẢN" theo độ thất bản | Bỏ phiếu "chuỗi thất bản đẹp nhất" | 5–8 phút |
 
 - Quy mô MVP: 4–30 người. Mỗi người làm đúng một bước của mỗi chuỗi mình chạm vào, không làm hai bước trong cùng một chuỗi.
-- Xoay vòng: ở vòng r (0–4), người thứ i làm chuỗi (i − r) mod N trong bàn của mình.
-- **Bàn 4 người** (phòng 4 người, hoặc bàn còn 4 vì có người rời): bước 4 do Bot Sao Thủy điền, có nhãn; bốn người làm bước 1, 2, 3, 5 (TS-D3).
+- Xoay vòng: bàn 5 hoặc 6 người, chuỗi của người thứ j đi qua người j, j+1, j+2, j+3, j+4 trong bàn (đếm vòng).
+- **Bàn 4 người** lúc bắt đầu (phòng 4 người, hoặc bàn còn 4 vì có người rời trước khi bắt đầu): bước 1, 2, 3 do người j, j+1, j+2; bước 4 do Bot Sao Thủy điền, có nhãn; bước 5 do người j+3 (TS-D3).
+- **Luật không đổi ở mọi cỡ bàn:** không ai làm hai bước của cùng một chuỗi, và người gieo không bao giờ là người đoán gốc. Bảng phân công cho bàn 4, 5, 6 người ở SRS §3.1.1 (TS-FR-05).
 - Hết giờ mà chưa chọn, hoặc mất kết nối: Bot Sao Thủy chọn ngẫu nhiên một phương án, có nhãn "Sao Thủy điền giúp".
 - Phòng > 12 người: chia bàn 4–6 người, chuỗi xoay trong bàn; mỗi bàn bầu một chuỗi trên điện thoại, chuỗi cao phiếu nhất của từng bàn lên màn hình chung;
   cả phòng bầu chuỗi đẹp nhất. Người vào sau khi ván bắt đầu và người chọn "chỉ xem" là khán giả bỏ phiếu.
@@ -240,7 +241,7 @@ Các mục là **"Đề xuất — chờ owner"**, chưa phải quyết định.
 | D7 | AI ở MVP | Không. Bot Sao Thủy là chọn ngẫu nhiên có nhãn |
 | TS-D1 | Màn lật hiện độ thất bản bằng gì | Nhãn chữ 5 mức (§4.3), không con số |
 | TS-D2 | Biệt danh khi lật | Hai lựa chọn riêng, đều không tick sẵn: (a) hiện biệt danh khi phát lại cho người trong phòng/nhóm; (b) cho biệt danh nằm trên thẻ lật để chia sẻ ra ngoài. Không tick thì hiện "Người chơi A, B…". Đổi lại được tới khi lật |
-| TS-D3 | Bàn/nhóm 4 người | Bước 4 (Nói lại) do Bot điền, có nhãn |
+| TS-D3 | Bàn/nhóm 4 người | Bước 4 (Nói lại) do Bot điền, có nhãn; bước 5 do người thứ tư, không bao giờ là người gieo |
 | TS-D4 | Thời gian bản chat | Hạn chót lượt 3 giờ, giữ lượt 10 phút, giờ lật trong 2–48 giờ, xoá 48 giờ sau lật |
 | TS-D5 | Lượt "đọc to" | Tắt mặc định; host bật cho phòng; mỗi người bỏ qua được |
 | TS-D6 | Chú thích Sao Thủy cá nhân | Không làm trong Lá Úp |
@@ -262,7 +263,7 @@ Các mục là **"Đề xuất — chờ owner"**, chưa phải quyết định.
 plan 23/10/2026; chuẩn nội dung tiếng Việt; `privacy-security-flow-notes.md`; trang Apple App Review Guidelines (đọc lại 26/10/2026, 1.1.1, 1.2, 4.7).
 
 **Phát hiện đã sửa trong thiết kế:** (1) biệt danh khi phát lại và trên thẻ lật chuyển sang hai đồng ý riêng, mặc định ẩn (báo cáo: "chỉ có biệt danh người chơi tự đặt"); bỏ thông báo đẩy ở bản chat để không phải lưu địa chỉ nhận thông báo; (2) bàn 4 người
-không đủ người cho 5 bước → Bot điền bước 4; (3) bước 5 trước đây chỉ có nhiễu của câu gốc, nên đoán sai gần như không xảy ra khi bước 4 đã lệch ý định → thêm câu gốc
+không đủ người cho 5 bước → Bot điền bước 4, bước 5 do người thứ tư (sửa theo review Codex @ c1960a3: bản trước chuyền bước 5 về người gieo; bảng phân công ở SRS §3.1.1); (3) bước 5 trước đây chỉ có nhiễu của câu gốc, nên đoán sai gần như không xảy ra khi bước 4 đã lệch ý định → thêm câu gốc
 của ý định bước 4 vào phương án; (4) đề "chúc mừng qua môn" đổi để tránh chủ đề kết quả thi; (5) chú thích Sao Thủy cá nhân loại khỏi Lá Úp; (6) "mood" ghi rõ là cảm
 xúc của câu nhắn, không phải tâm trạng người chơi.
 

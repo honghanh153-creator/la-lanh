@@ -42,8 +42,9 @@ và nguyên văn changelog Guideline 1.2 ngày 06/02/2026.
 
 1. **Tri Kỷ** thêm một data type mới vào nhãn Apple của Lá Lành: **Gameplay Content**, dùng cho câu trả lời và kỷ lục của
    Hiểu Nhau Không?. Lá đôi là dữ liệu suy luận, nên khai vào hàng **Other Data Types** đã có. Lời mời, đồng ý và giải tán khai vào
-   các hàng **Other User Content** và **Product Interaction** đã có. Tracking: **No**. Analytics: **không khai**, vì Tri Kỷ bị loại
-   khỏi phân tích.
+   các hàng **Other User Content** và **Product Interaction** đã có. Tracking: **No**. Tri Kỷ **không theo dõi từng người và không
+   phân tích nội dung**, nhưng có **bộ đếm tổng hợp theo ngày không định danh** (TK SRS §10). Có phải khai bộ đếm này là Analytics
+   "Not Linked to You" hay không: **chờ counsel và owner**, hai phương án ở 3.2 (Q-9).
 2. **Tri Kỷ** trên Google: thêm **Personal info → Name** cho biệt danh hiện cho người kia, **App activity → Other actions** cho
    câu trả lời trò đố, và **App activity → App interactions** cho trạng thái mời/nhận/chia sẻ/giải tán. Lá đôi khai vào
    **Personal info → Other info**. Shared: **No**, vì người kia nhận lá do chính hai người chủ động, nên rơi vào ngoại lệ
@@ -74,8 +75,8 @@ Bảng dưới chỉ ghi phần Tri Kỷ thêm vào. "Có sẵn" nghĩa là cate
 | User Content → Other User Content | Ngày/giờ sinh **của từng người, từ hồ sơ mà chính người đó đã đồng ý**, được dùng lại để tính lá đôi (không thu mới, không ai nhập hộ ai) | Có sẵn (hàng "birth date/time…"), **không thu mới** | Yes | No | App Functionality, Product Personalization |
 | Other Data → Other Data Types | Lá đôi: ba khối nội dung, nhãn bậc, lá tarot của cặp. Đây là dữ liệu suy luận về quan hệ, xử lý như dữ liệu nhạy cảm "đời sống riêng tư" | Có sẵn (hàng "derived natal/transit factors… astrology profile"), mở rộng mô tả | Yes | No | App Functionality, Product Personalization |
 | Location → Precise Location | Toạ độ nơi sinh trong hồ sơ của từng người (không phải GPS) được dùng lại để tính lá đôi | Có sẵn, **không thu mới** | Yes | No | App Functionality, Product Personalization |
-| User Content → Other User Content | Biệt danh A hiện cho B trên lời mời; cờ đồng ý chia sẻ của từng người; bản ghi đồng ý mục đích Tri Kỷ | Có sẵn (giống hàng Radar) | Yes | No | App Functionality |
-| **User Content → Gameplay Content** | Hiểu Nhau Không?: mã lựa chọn của từng câu (của mình và câu đoán về người kia), điểm x/7, kỷ lục tốt nhất của cặp | **Mới** | Yes | No | App Functionality |
+| User Content → Other User Content | Biệt danh A hiện cho B trên lời mời; bản ghi đồng ý mục đích Tri Kỷ; bằng chứng đồng ý chia sẻ của từng người (ai, lúc nào, phiên bản câu chữ, bản ảnh; không có ảnh) | Có sẵn (giống hàng Radar) | Yes | No | App Functionality |
+| **User Content → Gameplay Content** | Hiểu Nhau Không?: mã lựa chọn của từng câu (của mình và câu đoán về người kia), gắn với cặp nên Lá Lành xử lý như dữ liệu nhạy cảm; xoá khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt xong. Sau đó chỉ còn kỷ lục x/7 (và tháng) của cặp | **Mới** | Yes | No | App Functionality |
 | Usage Data → Product Interaction | Trạng thái mời, nhận, chia sẻ, giải tán | Có sẵn | Yes | No | App Functionality |
 
 **Lý do chọn Gameplay Content:** Apple định nghĩa type này gồm "saved games, multiplayer matching or gameplay logic, or
@@ -89,7 +90,7 @@ Không được bỏ cả hai.
 |---|---|---|
 | Contacts | Không đọc danh bạ. Lời mời gửi qua bảng chia sẻ của hệ điều hành, mỗi lần một người (5.1.2(v)). Không tải danh bạ, không gợi ý người để mời | Apple tính cả "social graph" vào Contacts. Một cặp Tri Kỷ là một cạnh quan hệ giữa hai người dùng. Lời mời Radar đang khai là Other User Content, và tài liệu này theo cùng tiền lệ đó. Nếu counsel coi cặp là social graph, phải thêm Contacts cho **cả Radar lẫn Tri Kỷ cùng lúc** (câu hỏi Q-3) |
 | Sensitive Info | Danh sách của Apple gồm chủng tộc, xu hướng tính dục, thai sản, khuyết tật, tôn giáo/triết lý, công đoàn, chính trị, di truyền, sinh trắc. Tri Kỷ chặn khung yêu đương ("không phải chuyện yêu đương") và không suy ra những điều này | Câu hỏi Q-4: lá số chiêm tinh có bị coi là "religious or philosophical beliefs" không. Nhãn hiện tại của Lá Lành không khai, nên giữ nhất quán cho tới khi counsel trả lời. Luật Việt Nam xếp "đời sống riêng tư" vào nhóm nhạy cảm, nhưng đó là nghĩa vụ theo luật, không phải category của Apple |
-| Usage Data → Other Usage Data / mục đích Analytics | Hợp đồng dữ liệu loại Tri Kỷ khỏi phân tích | Báo cáo nghiên cứu muốn đo tỉ lệ nhận lời mời và tỉ lệ giải tán. Nếu owner cần số này, phải thiết kế bộ đếm tổng hợp không gắn ID. Khi đó thêm một hàng "Not Linked to You → Analytics" (câu hỏi Q-9) |
+| Usage Data → Product Interaction với mục đích Analytics (**chưa chốt**) | Tri Kỷ không có analytics theo người hay theo nội dung, không SDK. PRD §6 và TK SRS §10 có bộ đếm tổng hợp theo ngày: `invite_created`, `invite_accepted`, `pair_built`, `invite_profile_created_in_flow`, `share_requested`, `share_approved`, `pair_dissolved_lt30d`, `pair_dissolved_ge30d`, `invite_reported{reason}`, `inviter_blocked`, `build_failed{code}`; không ID, ẩn ô < 3 (KS-04), báo cáo chỉ ô ≥ 10, thời hạn theo DPIA X7 | **Hai phương án, chờ counsel và owner (Q-9):** (A) bộ đếm chỉ tăng một số nguyên, không lưu sự kiện từng lần, nên counsel có thể kết luận không cần khai → giữ như hiện tại, không thêm Analytics. (B) khai thận trọng: thêm "Usage Data → Product Interaction, **Not Linked to You**, Analytics". Đề xuất mặc định: (B), cùng cách với Lá Úp ở 3.4. Tài liệu này không đề xuất xây thêm analytics nào |
 | Identifiers → Device ID | Token lời mời là token năng lực (capability) được băm, không phải ID thiết bị | — |
 | Purchases, Financial Info | Không thu phí xem, không có gói "ai chọn bạn" | Không bao giờ thêm (bài học NGL) |
 | Contact Info → Name | Biệt danh là tên hiển thị trong app, Apple xếp "screen name" vào User ID | — |
@@ -99,7 +100,7 @@ Không được bỏ cả hai.
 `apps/mobile/ios/App/App/PrivacyInfo.xcprivacy` hiện khai `UserID`, `PreciseLocation`, `OtherUserContent`, `ProductInteraction`,
 `OtherDataTypes`, tất cả `Linked=true`, `Tracking=false`. Khi Hiểu Nhau Không? ra mắt phải thêm
 `NSPrivacyCollectedDataTypeGameplayContent` (Linked `true`, Tracking `false`, Purpose `AppFunctionality`). Lá đôi (không có trò đố)
-không cần thêm type mới. `NSPrivacyTracking` giữ `false`.
+không cần thêm type mới. `NSPrivacyTracking` giữ `false`. Nếu Q-9 chốt phương án (B), manifest cần thêm một mục `NSPrivacyCollectedDataTypeProductInteraction` với Linked `false`, Purpose `Analytics` cho bộ đếm tổng hợp của Tri Kỷ; phương án (A) thì không đổi. **Chờ chốt.**
 
 ### 3.4 Lá Úp và nhãn App Store
 
@@ -176,7 +177,8 @@ Lý do từng ô:
 - **Shared = No.** Google định nghĩa "sharing" là chuyển cho bên thứ ba. Hetzner và Supabase là bên cung cấp dịch vụ (ngoại lệ
   "service providers"). B nhìn thấy lá đôi vì cả A và B chủ động tạo lá, và việc chia ảnh ra ngoài chỉ xảy ra khi cả hai bấm đồng
   ý, qua share sheet do người dùng mở (ngoại lệ "user-initiated action or consent").
-- **Ephemeral = No.** Lá đôi sống tới khi một người giải tán. Câu trả lời trò đố sống tới khi hiện kết quả, tức là qua nhiều request.
+- **Ephemeral = No.** Lá đôi sống tới khi một người giải tán. Câu trả lời trò đố sống tới khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt xong, tức là qua nhiều request.
+- **Bộ đếm tổng hợp (chưa chốt, Q-9):** (A) không khai nếu counsel kết luận bộ đếm số nguyên không lưu sự kiện không phải "collection"; (B) thêm mục đích **Analytics** vào hàng App activity → App interactions. Đề xuất mặc định: (B). Không có trả lời "No" vô điều kiện cho câu hỏi này cho tới khi chốt.
 - **Name.** Google ghi rõ type này gồm cả "nickname". Hàng Radar hiện khai biệt danh dưới "Personal info / User-generated content".
   Tri Kỷ khai cụ thể hơn là Name. Nên sửa luôn hàng Radar cho thống nhất (mục 8, F-1).
 - **Contacts:** không khai, cùng lý do và cùng câu hỏi Q-3 như phần Apple. Google cũng tính "social graph data such as usernames"
@@ -255,13 +257,16 @@ người**, do chính người đó nhập và đồng ý. Không ai nhập thô
 nhau, một việc nhỏ để thử và lá tarot của hai bạn. Lá không có phần trăm độ hợp và không xếp hạng ai.
 
 **Vì sao cần đồng ý riêng?**
-Lá đôi là thông tin suy ra về mối quan hệ của hai người, nên Lá Lành coi đây là thông tin nhạy cảm về đời sống riêng tư. Đồng ý
-dùng hồ sơ cho bản đọc của riêng bạn không tự bật Tri Kỷ. Mỗi người tick một ô riêng, không tick sẵn, cho đúng một lá với đúng
-một người.
+Lá đôi là thông tin suy ra về mối quan hệ của hai người, nên Lá Lành coi đây là dữ liệu nhạy cảm về đời sống riêng tư. Lá Lành
+nói điều này ngay trên ô đồng ý, ở màn của người mời và màn của người nhận. Đồng ý dùng hồ sơ cho bản đọc của riêng bạn không tự
+bật Tri Kỷ. Mỗi người tick một ô riêng, không tick sẵn, cho đúng một lá với đúng một người.
 
 **Ai thấy lá đôi?**
-Chỉ hai bạn. Lá không hiện trong thông báo, không hiện trong ảnh xem trước của link và không đưa vào số liệu phân tích. Ảnh lá
-đôi chỉ chia ra ngoài được khi cả hai cùng bấm đồng ý. Ảnh có biệt danh, không có ngày, giờ hay nơi sinh.
+Chỉ hai bạn. Lá không hiện trong thông báo, không hiện trong ảnh xem trước của link. Lá Lành không theo dõi riêng từng người và
+không phân tích nội dung lá; Lá Lành chỉ đếm tổng số theo ngày, ví dụ có bao nhiêu lời mời được nhận, không gắn với ai. Ảnh lá
+đôi chỉ chia ra ngoài được khi cả hai cùng bấm đồng ý. Ảnh có biệt danh, không có ngày, giờ hay nơi sinh. Mỗi lần một bạn đồng ý
+chia sẻ, Lá Lành ghi lại ai đồng ý, lúc nào và cho ảnh nào (không lưu ảnh); bản ghi này giữ khi lá còn và bị xoá khi giải tán.
+Yêu cầu chia sẻ đã xong được xoá sau 7 ngày.
 
 **Lời mời hoạt động thế nào?**
 Bạn gửi lời mời cho từng người qua bảng chia sẻ của điện thoại. Lá Lành không đọc danh bạ. Link mời có hạn (7 ngày), bạn thu hồi
@@ -270,8 +275,9 @@ chặn người mời hoặc báo cáo lời mời; danh sách chặn giữ tớ
 ngày để chống lạm dụng rồi xoá.
 
 **Hiểu Nhau Không? lưu gì?**
-Câu bạn chọn cho mình và câu bạn đoán về người kia. Câu trả lời bị xoá ngay sau khi hiện kết quả. Lá Lành chỉ giữ kỷ lục tốt
-nhất của hai bạn, dạng x/7, tới khi lá đôi bị giải tán.
+Câu bạn chọn cho mình và câu bạn đoán về người kia. Câu trả lời gắn với hai bạn nên Lá Lành xử lý như dữ liệu nhạy cảm. Câu
+trả lời bị xoá khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt chơi xong. Sau đó Lá Lành chỉ giữ kỷ lục tốt nhất của hai
+bạn, dạng x/7, kèm tháng đạt kỷ lục, tới khi một bạn tắt trò đố hoặc lá đôi bị giải tán.
 
 **Giữ bao lâu, xoá thế nào?**
 Lá đôi còn tới khi một trong hai người giải tán. Ai cũng giải tán được bất cứ lúc nào trong Tri Kỷ. Khi giải tán, lá và mọi dữ
@@ -517,11 +523,15 @@ A mở Tri Kỷ:
 > Tri kỷ là người hiểu mình — không phải chuyện yêu đương, không có bảng xếp hạng.
 > Bạn mời một người. Khi người đó đồng ý, hai bạn nhận một lá đôi. Chỉ hai bạn thấy.
 >
+> Lá còn tới khi một trong hai người giải tán.
+>
+> Lá đôi là dữ liệu nhạy cảm vì nó nói về đời sống riêng tư của hai bạn. Lá Lành chỉ tạo khi cả hai cùng đồng ý, và chỉ hai bạn xem được.
 > ☐ Dùng hồ sơ sinh của tôi để tạo lá Tri Kỷ với người tôi mời.
 >
-> Lá đôi là thông tin về mối quan hệ của hai bạn. Lá còn tới khi một trong hai người giải tán.
->
 > [Tạo lời mời]
+
+Câu "dữ liệu nhạy cảm" nằm **ngay trên** ô, không có nội dung nào chen giữa (FR-TK-005). Câu là nháp, chờ owner duyệt; counsel xem
+có đủ cho Nghị định 356 Điều 6 khoản 4 không. Phải qua test copy T-TK-23 trước khi build.
 
 Trước khi gửi (preview lời mời, theo US-08):
 
@@ -534,22 +544,28 @@ B mở link:
 > Nếu đồng ý, Lá Lành dùng thông tin sinh trong hồ sơ của **bạn** để tạo lá đôi. [Biệt danh A] không thấy ngày, giờ hay nơi sinh
 > của bạn. Chỉ hai bạn thấy lá đôi.
 >
+> Lá đôi là dữ liệu nhạy cảm vì nó nói về đời sống riêng tư của hai bạn. Lá Lành chỉ tạo khi cả hai cùng đồng ý, và chỉ hai bạn xem được.
 > ☐ Dùng thông tin sinh của tôi cho lá Tri Kỷ với [biệt danh A].
 >
 > [Đồng ý]  [Không, cảm ơn]
+
+Màn của B dùng cùng câu, cũng đặt ngay trên ô (FR-TK-033); thiếu câu thì nút "Đồng ý" không bật.
 
 Nếu B chưa có hồ sơ, B đi qua màn đồng ý hồ sơ sinh hiện có của Lá Lành (`birth-profile-v1`) trước, rồi mới thấy ô Tri Kỷ.
 Hai đồng ý tách riêng.
 
 Hiểu Nhau Không?:
 
-> 7 câu vô hại. Bạn trả lời cho mình và đoán câu của người kia. Câu trả lời bị xoá sau khi hiện kết quả. Lá chỉ giữ kỷ lục của hai bạn.
+> 7 câu vô hại. Bạn trả lời cho mình và đoán câu của người kia.
+> Câu trả lời gắn với hai bạn nên Lá Lành xử lý như dữ liệu nhạy cảm.
+> ☐ Lưu câu trả lời của tôi cho lượt chơi này. Câu trả lời bị xoá khi cả hai bạn đã xem kết quả, muộn nhất 7 ngày sau khi lượt xong; chỉ giữ kỷ lục của hai bạn.
 >
 > [Bắt đầu]
 
 Chia sẻ ảnh:
 
-> Ảnh lá đôi có biệt danh của hai bạn, không có thông tin sinh. Ảnh chỉ chia được khi cả hai cùng đồng ý.
+> Ảnh lá đôi có biệt danh của hai bạn, không có thông tin sinh. Ảnh chỉ chia được khi cả hai cùng đồng ý. Ảnh đã chia ra ngoài
+> thì Lá Lành không thu lại được. Lá Lành ghi lại bạn đã đồng ý cho ảnh này (không lưu ảnh) tới khi lá bị giải tán.
 >
 > ☐ Tôi đồng ý chia sẻ ảnh lá đôi này.
 >
@@ -589,7 +605,7 @@ Ký hiệu: **RT** = runtime dự kiến (hợp đồng dữ liệu); **App** = 
 | Bản ghi báo cáo (loại, slot bị báo cáo, mã nội dung) **[bổ sung]** | Xoá khi kết thúc; chỉ giữ số đếm theo loại và mã nội dung; không lưu người gửi | — | "Phòng giữ dữ liệu bao lâu?" (số lượt báo cáo) | Gameplay Content | Other actions |
 | Khoá giới hạn tần suất (hash IP có muối xoay theo ngày + phiên trình duyệt) **[bổ sung]** | Chỉ trong bộ nhớ, tối đa 24 giờ, không ghi log | — | "bảo vệ" (giới hạn đoán mã) | Không lưu quá một ngày; counsel xem có cần khai (Q-5) | Fraud prevention (nếu phải khai) |
 | Log lỗi thô (không biệt danh/câu trả lời/token) | Theo chính sách log của host (Q-5) | — | "bảo vệ" | Other Diagnostic Data, Not linked | Diagnostics |
-| Số đếm tổng hợp | 24 tháng (RP §6.3), không định danh; SRS Hết Cứu %, Tam Sao, Tri Kỷ hiện ghi không giới hạn (DPIA X7, chờ owner) | 6.8 | "Phòng giữ dữ liệu bao lâu?" | Product Interaction, Not linked, Analytics | App interactions, Analytics |
+| Số đếm tổng hợp | Theo DPIA X7 (mặc định chỉ ghi ở đó, chờ owner), không định danh, ẩn ô < 3 (KS-04) | 6.8 | "Phòng giữ dữ liệu bao lâu?" | Product Interaction, Not linked, Analytics | App interactions, Analytics |
 
 ### 7.2 Phiên Tòa Tủ Lạnh
 
@@ -653,11 +669,13 @@ Ký hiệu: **RT** = runtime dự kiến (hợp đồng dữ liệu); **App** = 
 | Danh sách chặn của B (HMAC người mời, tên A lúc bị chặn, mã hoá) **[bổ sung]** | Tới khi bỏ chặn hoặc hồ sơ người chặn bị xoá | — (cần thêm một câu ở 5.1) | "Lời mời hoạt động thế nào?" | Other User Content | App interactions |
 | Báo cáo lời mời **[bổ sung]** | 30 ngày; không lưu IP, thiết bị, token | — | Như trên | Other User Content | App interactions |
 | Lá đôi (dữ liệu suy luận, nhạy cảm) | Tới khi một người giải tán; giải tán = xoá cứng, không báo người kia | 6.7 | "Ai thấy…", "Giữ bao lâu…" | Other Data Types | Other info |
-| Đồng ý chia sẻ của cả hai | Tới khi giải tán | 6.7 (chia sẻ) | "Ai thấy lá đôi?" | Other User Content | App interactions |
-| Câu trả lời Hiểu Nhau Không? (mã lựa chọn) | Xoá sau khi hiện kết quả | 6.7 (trò đố) | "Hiểu Nhau Không? lưu gì?" | Gameplay Content (**mới**) | Other actions (**mới**) |
-| Điểm x/7 và kỷ lục của cặp (`quiz_best_score`, `quiz_best_month` **[bổ sung]**) | Chỉ giữ kỷ lục tốt nhất tới khi giải tán; không có điểm riêng từng người | 6.7 | Như trên | Gameplay Content | Other actions |
-| Bản ghi đồng ý mục đích Tri Kỷ | Tới khi rút hoặc giải tán, cộng thời hạn giữ bằng chứng (Q-2) | 6.7 | "Vì sao cần đồng ý riêng?" | Other User Content | App interactions |
-| Phân tích, nội dung thông báo, ảnh xem trước link | **Không có**: Tri Kỷ bị loại | — | "Ai thấy lá đôi?" | Không khai Analytics | Không khai Analytics |
+| Hàng yêu cầu chia sẻ (vận hành: người xin, trạng thái, hạn) | 72 giờ chờ, 24 giờ xuất; hàng xoá 7 ngày sau trạng thái cuối (TK SRS §8) | 6.7 (chia sẻ) | "Ai thấy lá đôi?" | Other User Content | App interactions |
+| Bằng chứng đồng ý chia sẻ của từng người (`tri_ky_share_consents`: thành viên, thời điểm, phiên bản câu chữ, `layout_version`, `card_hash`; không ảnh) | Khi lá còn; xoá khi giải tán hoặc xoá hồ sơ. Giữ lâu hơn hay không: chờ counsel (Q-16) | 6.7 (chia sẻ) | "Ai thấy lá đôi?" | Other User Content | App interactions |
+| Câu trả lời Hiểu Nhau Không? (mã lựa chọn, gắn với cặp, **dữ liệu nhạy cảm**) | Xoá ngay khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt hoàn tất; lượt không đủ hai người xoá sau 7 ngày; giải tán xoá hết | 6.7 (trò đố) | "Hiểu Nhau Không? lưu gì?" | Gameplay Content (**mới**) | Other actions (**mới**) |
+| Kỷ lục của cặp (`quiz_best_score` x/7, `quiz_best_month` **[bổ sung]**) | Khi cặp còn; tắt trò đố hoặc giải tán thì xoá; không có điểm riêng từng người | 6.7 | Như trên | Gameplay Content | Other actions |
+| Bản ghi đồng ý mục đích Tri Kỷ (`tri-ky-pair-v1`, trên hàng cặp) | Tới khi giải tán hoặc xoá hồ sơ. Giữ lâu hơn hay không: chờ counsel (Q-16) | 6.7 (câu "dữ liệu nhạy cảm" ngay trên ô) | "Vì sao cần đồng ý riêng?" | Other User Content | App interactions |
+| Bộ đếm tổng hợp theo ngày (danh sách ở TK SRS §10; không ID, không nội dung) | Theo DPIA X7 (chờ owner); ẩn ô < 3, báo cáo chỉ ô ≥ 10 | — | "Ai thấy lá đôi?" (chỉ đếm tổng số) | **Chưa chốt (Q-9):** (A) không khai; (B) Product Interaction, Not Linked, Analytics. Đề xuất (B) | **Chưa chốt (Q-9):** (A) không khai; (B) thêm Analytics vào App interactions. Đề xuất (B) |
+| Analytics theo người, analytics nội dung, nội dung thông báo, ảnh xem trước link | **Không có** | — | "Ai thấy lá đôi?" | — | — |
 
 ## 8. Việc cần sửa ở file hiện có (chưa sửa trong đợt này)
 
@@ -669,7 +687,7 @@ Ký hiệu: **RT** = runtime dự kiến (hợp đồng dữ liệu); **App** = 
 | F-4 | `apps/web/src/features/consent/ConsentPage.tsx` | Thêm một `<details>` "Tri Kỷ" theo mục 5.1 (rút gọn còn một đoạn, trỏ sang trang chính sách đầy đủ nếu F-5 làm) | Cùng PR runtime Tri Kỷ; owner duyệt copy |
 | F-5 | `apps/web/src/features/consent/ConsentPage.tsx` / route `/privacy` | **Có trước dòng game.** Google yêu cầu privacy policy gắn nhãn rõ "privacy policy", công khai, có thông tin nhà phát triển. Trang hiện có tiêu đề "Lá Lành dùng dữ liệu thế nào?", không nêu pháp nhân. Cần một trang "Chính sách quyền riêng tư" công khai (hoặc đổi tiêu đề), có tên bên kiểm soát dữ liệu, và dùng URL đó trong App Store Connect và Play Console | Giai đoạn 1 (privacy); owner và counsel |
 | F-6 | `docs/legal/2026-10-22-privacy-counsel-dossier.md` | Thêm các câu hỏi Q-1 đến Q-12 ở mục 9 vào phần câu hỏi cho counsel, kèm tham chiếu DPIA game | Khi chuyển gói câu hỏi cho counsel |
-| F-7 | `apps/web/public/_headers` | Khi Tri Kỷ có route lời mời riêng (ví dụ `/tri-ky/i/*`), thêm `Cache-Control: no-store, max-age=0`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow, noarchive` như `/la-chung/i/*`. Bề mặt Lá Úp cần file header tương đương cho mọi route phòng, nhóm và mời | Cùng PR runtime |
+| F-7 | `apps/web/public/_headers` (Lá Lành) và file header tương đương của bề mặt Lá Úp | Link mời đặt token trong fragment, nên request HTTP chỉ tới **đúng đường không có token**. Tri Kỷ: link `/tri-ky/i#<token>` → request tới `/tri-ky/i` (không dấu `/` cuối, token không nằm trong path; TK SRS §9). Luật header phải khớp **chính xác** `/tri-ky/i` (thêm `/tri-ky/i/` nếu router chuẩn hoá dấu `/`, và mọi route con thật nếu SRS thêm sau); mẫu `/tri-ky/i/*` một mình **không** khớp `/tri-ky/i`. Header: `Cache-Control: no-store, max-age=0`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow, noarchive`. Lá Úp, cùng luật đường chính xác: `/j` (Hết Cứu %, HC-FR-05), `/t` (Tam Sao bản chat, TS-FR-16), trang vào phòng và trang màn chiếu (RP-FR-04, RP-FR-05; tên đường chốt khi build). Kiểm riêng, **không** thay bằng kiểm header API: (1) HTML cuối cùng trả cho trình duyệt; (2) mọi redirect và trang lỗi trên các đường đó; (3) service worker không cache và không trả từ cache các đường đó (kể cả app shell/navigation fallback); (4) header API (`/v1/public/tri-ky/*`, `POST /join/preview`…) kiểm riêng | Cùng PR runtime |
 | F-8 | `docs/legal/privacy-security-flow-notes.md` | Thêm một dòng "Game line" trỏ tới DPIA và tài liệu này; ghi rằng câu 18+ của Lá Úp là tuổi tự khai, không phải xác minh tuổi | Tuỳ chọn, cùng F-1 |
 
 ## 9. Câu hỏi mở
@@ -684,13 +702,14 @@ Ký hiệu: **RT** = runtime dự kiến (hợp đồng dữ liệu); **App** = 
 | Q-6 | Lá Úp không có nút chặn ở cấp người chơi; host kick thay. Đủ cho web chưa? Nếu vào app, Guideline 4.7.1 đòi "block abusive users" | Owner, Writer B | Thêm "ẩn người này với tôi" trong phòng trước khi đóng gói vào app |
 | Q-7 | Dịch vụ đẩy của trình duyệt (Google, Apple, Mozilla) nhận endpoint và payload đã mã hoá. Đó là bên xử lý, bên nhận, hay "sharing" theo Google? Có cần ghi trong hồ sơ chuyển dữ liệu ra nước ngoài không? | Counsel, Writer D | Ghi trong chính sách (đã làm ở 5.2); payload không có dữ liệu cá nhân |
 | Q-8 | Hết Cứu %: có nút "Xoá dữ liệu của tôi" và xoá ngay khi rời nhóm không? Rời nhóm thì danh hiệu đã có tên mình xử lý sao? | Writer A, owner | **Đã có trong SRS:** HC-FR-48 (rời nhóm xoá ngay cả khoảnh khắc mang biệt danh), HC-FR-49 ("Xoá dữ liệu của tôi"), HC-FR-50 ("Dữ liệu của tôi") |
-| Q-9 | Báo cáo nghiên cứu muốn đo tỉ lệ nhận lời mời và giải tán Tri Kỷ, nhưng hợp đồng dữ liệu loại Tri Kỷ khỏi phân tích | Owner, Writer C | Không đo ở MVP; nếu cần thì dùng bộ đếm tổng hợp không ID và thêm hàng "Not linked" |
+| Q-9 | Tri Kỷ không theo dõi từng người và không phân tích nội dung, nhưng PRD §6 và TK SRS §10 có bộ đếm tổng hợp theo ngày không ID (danh sách chuẩn ở SRS §10). Có phải khai bộ đếm này trên Apple (Analytics, Not Linked) và Google (Analytics trong App interactions) không? | Counsel, owner | **Chưa chốt.** Hai phương án ở 3.2 và 4.1: (A) không khai nếu bộ đếm chỉ là số nguyên, không lưu sự kiện; (B) khai thận trọng. Đề xuất mặc định (B). Ngưỡng ô nhỏ và thời hạn theo SRS §10 và DPIA X7 |
 | Q-10 | Pháp nhân nào là bên kiểm soát dữ liệu ghi trong chính sách (Google bắt buộc có thông tin nhà phát triển; Apple 5.1.1(ix) muốn app cần dữ liệu nhạy cảm do pháp nhân nộp)? | Owner, counsel | — |
 | Q-11 | Nhóm Hết Cứu % sang mùa mới thì biệt danh và phiên thành viên sống bao lâu? Hợp đồng chỉ ghi thời hạn cho dữ liệu sự kiện | Writer A, owner | **Đã có trong SRS, chờ owner:** HC-FR-45 / HC-D4 (hết mùa + 30 ngày không có mùa mới thì xoá nhóm, thành viên, link, thuê bao đẩy); phiên thiết bị 120 ngày không hoạt động |
 | Q-12 | **Lệch giữa báo cáo và hợp đồng:** tổng kết mùa chiếu lại "Tuần 3 bạn khai 10%", tức là giữ % thô quá 72 giờ. Cờ tình nguyện và hai nút riêng tư cũng chưa có thời hạn trong hợp đồng | Writer A, owner | **Đã có trong SRS:** khoảnh khắc chỉ giữ số của Nhân Vật Chính khi người đó tick giữ (C-HC-03, `hc_moment.nvc_numbers`); ba cờ xoá cùng % sau 72 giờ (`hc_participation_flags`, `hc_claim.hide_pct`) |
 | Q-13 | Khi một người rời phòng giữa buổi (Phiên Tòa, Sĩ Số +1), câu trả lời của người đó có bị xoá ngay không? | Writer B | **Đã có trong SRS:** RP-FR-82 (xoá ngay biệt danh, 5 câu, bản ghi đồng ý; vai và phiếu giữ ẩn danh "Người đã rời" tới hết buổi) |
 | Q-14 | Cơ chế đặt "lá" của Hết Cứu % có bị xếp là "Simulated Gambling" trong câu hỏi xếp hạng tuổi của Apple và IARC khi vào app không? (D3) | Owner, counsel | Chưa kiểm; kiểm lại trước khi đóng gói |
 | Q-15 | Tam Sao: có cho người chơi chọn "ẩn biệt danh của tôi trên thẻ lật" không? | Writer A | **Đã có trong SRS:** mặc định ẩn; hai ô riêng không tick sẵn `show_name_on_screen`, `show_name_on_card` (TS SRS §8.2, TS-FR-33, TS-FR-37) |
+| Q-16 | Tri Kỷ: bản ghi đồng ý `tri-ky-pair-v1` và bằng chứng đồng ý chia sẻ hiện bị xoá cùng lá khi giải tán. Có phải giữ một bản tối thiểu lâu hơn để chứng minh đồng ý (Nghị định 356 Điều 6 khoản 2) không? | Counsel | **Chưa có câu trả lời.** Mặc định hiện tại: xoá cùng lá. Cùng câu với TK PRD Q-L7 và DPIA Q23 |
 
 ## 10. Bàn giao theo AGENTS.md
 
@@ -716,7 +735,12 @@ Ký hiệu: **RT** = runtime dự kiến (hợp đồng dữ liệu); **App** = 
 - Thông báo Hết Cứu % viết theo SRS: tối đa một lần mỗi tuần cho mỗi nhóm, tự bật, câu cố định, không phải ba lần như báo cáo; ba trò còn lại không gửi thông báo.
 - Cầu nối sang Lá Lành: URL không mang dữ liệu game, có no-referrer, có màn xác nhận.
 
-**Rủi ro chưa giải quyết:** Q-1 đến Q-15, đặc biệt Q-2 (bằng chứng đồng ý khi không có tài khoản), Q-3 (social graph),
+**Rà lại theo review Codex @ c1960a3 (26/10/2026):** câu trả lời Hiểu Nhau Không? xếp nhạy cảm và xoá khi cả hai đã xem, muộn
+nhất 7 ngày (3.1, 4.1, 5.1, 6.7, 7.6); tách hàng yêu cầu chia sẻ (7 ngày) với bằng chứng đồng ý chia sẻ (khi lá còn, Q-16);
+tách "không theo dõi từng người" khỏi bộ đếm tổng hợp, câu trả lời store về Analytics để hai phương án chờ chốt (Q-9); câu "dữ liệu
+nhạy cảm" ngay trên ô đồng ý của A và B ở 6.7; F-7 viết lại theo đường chính xác `/tri-ky/i`, `/j`, `/t`.
+
+**Rủi ro chưa giải quyết:** Q-1 đến Q-16, đặc biệt Q-2 (bằng chứng đồng ý khi không có tài khoản), Q-3 (social graph),
 Q-12 (khoảnh khắc mùa giữ % thô) và F-5 (trang chính sách hiện tại chưa đạt yêu cầu nhãn của Google, có trước dòng game).
 
 **AC/DoD còn thiếu:**

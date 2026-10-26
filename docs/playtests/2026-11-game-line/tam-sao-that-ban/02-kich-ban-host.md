@@ -48,6 +48,44 @@
 
 Chia bàn 5–6 người. Mỗi bàn xoay chuỗi trong bàn. Mỗi bàn tự bầu chuỗi hay nhất, host chỉ lật chuỗi được bầu của từng bàn. Người vào muộn làm khán giả bầu.
 
+### Ai làm lượt nào (bàn 4, 5, 6 người)
+
+Luật không đổi: **không ai làm hai lượt của cùng một chuỗi, và người gieo không bao giờ đoán gốc.** Ngồi vòng tròn, đánh số P1, P2… theo chiều chuyền (sang trái). Chuỗi C1 là phong bì P1 gieo. Ô ghi phong bì người đó cầm ở lượt đó. Bảng giống SRS Tam Sao §3.1.1.
+
+**Bàn 5 người** (chuyền sang trái sau mỗi lượt):
+
+| Người | Lượt 1 | Lượt 2 | Lượt 3 | Lượt 4 | Lượt 5 |
+|---|---|---|---|---|---|
+| P1 | C1 | C5 | C4 | C3 | C2 |
+| P2 | C2 | C1 | C5 | C4 | C3 |
+| P3 | C3 | C2 | C1 | C5 | C4 |
+| P4 | C4 | C3 | C2 | C1 | C5 |
+| P5 | C5 | C4 | C3 | C2 | C1 |
+
+**Bàn 6 người** (chuyền sang trái sau mỗi lượt; mỗi phong bì có đúng một người không chạm vào):
+
+| Người | Lượt 1 | Lượt 2 | Lượt 3 | Lượt 4 | Lượt 5 |
+|---|---|---|---|---|---|
+| P1 | C1 | C6 | C5 | C4 | C3 |
+| P2 | C2 | C1 | C6 | C5 | C4 |
+| P3 | C3 | C2 | C1 | C6 | C5 |
+| P4 | C4 | C3 | C2 | C1 | C6 |
+| P5 | C5 | C4 | C3 | C2 | C1 |
+| P6 | C6 | C5 | C4 | C3 | C2 |
+
+**Bàn 4 người** (lượt 4 do host làm Bot Sao Thủy):
+
+| Người | Lượt 1 | Lượt 2 | Lượt 3 | Lượt 4 | Lượt 5 |
+|---|---|---|---|---|---|
+| P1 | C1 | C4 | C3 | 🤖 Bot (host) | C2 |
+| P2 | C2 | C1 | C4 | 🤖 Bot (host) | C3 |
+| P3 | C3 | C2 | C1 | 🤖 Bot (host) | C4 |
+| P4 | C4 | C3 | C2 | 🤖 Bot (host) | C1 |
+
+Cách chạy bàn 4 người: sau lượt 3, mọi người chuyền sang trái như thường nhưng **chưa mở** phong bì LƯỢT 4. Host đi quanh bàn, với từng phong bì: đọc emoji ở dòng 3, rút thăm một dải trong đúng nhóm mood đó, kẹp vào dòng 4, ghi "🤖 Bot Sao Thủy" vào ô "Ai làm", gấp dòng 3. Người đang cầm phong bì làm luôn lượt 5. Như vậy chuỗi C1 đi P1 → P2 → P3 → Bot → P4, và người gieo không tự đoán câu của mình.
+
+Trước lượt 5, host liếc ô "người gieo" của từng phong bì: nếu người đang cầm chính là người gieo (do ai đó chuyền nhầm), đổi phong bì với người bên cạnh trước khi mở LƯỢT 5.
+
 ### Khi có chuyện
 
 | Tình huống | Host làm |
@@ -71,7 +109,7 @@ Chia bàn 5–6 người. Mỗi bàn xoay chuỗi trong bàn. Mỗi bàn tự b�
 |---|---|---|
 | Thứ Ba 20:30 | Gọi nhóm 5 phút hoặc gửi tin đồng ý. Ai trả lời "đồng ý" mới được nhận lượt | F0 |
 | 21:00 | Mở 4 chuỗi | F1 |
-| 21:00 → 23:00 | Ai nhắn "Nhận lượt" thì gửi riêng lượt đang chờ sớm nhất mà người đó chưa làm trong chuỗi đó. Lượt 1 (gieo) cũng nhận như vậy | F2 (gửi riêng kèm ảnh thẻ) |
+| 21:00 → 23:00 | Ai nhắn "Nhận lượt" thì gửi riêng lượt đang chờ sớm nhất mà người đó chưa làm trong chuỗi đó. Lượt 1 (gieo) cũng nhận như vậy. Nếu lượt 4 của một chuỗi chỉ còn **một** người chưa chạm vào chuỗi đó, host làm Bot Sao Thủy cho lượt 4 ngay và giữ người đó cho lượt 5 (TS-FR-23), để người gieo không bao giờ đoán gốc | F2 (gửi riêng kèm ảnh thẻ) |
 | Mỗi lượt | Ghi giờ nhận. Hạn chót = giờ nhận + 3 giờ, **không tính 23:00–8:00** | — |
 | Hạn chót − 1 giờ | Nhắc riêng **một lần** nếu chưa nộp | F3 |
 | Quá hạn | Chuyển lượt cho người khác đang rảnh. Nếu không ai nhận trong 30 phút, host làm **Bot Sao Thủy**: rút thăm một phương án, ghi nhãn "🤖 Bot Sao Thủy" vào sổ chuỗi | F4 (vào nhóm) |

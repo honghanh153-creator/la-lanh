@@ -209,7 +209,7 @@ Khớp hợp đồng dữ liệu chung (brief dòng game, mục Hết Cứu %). 
 | `hc_moment` | `moment_id`, `group_id`, `season_no`, `event_no`, `kind` (`level3_title`/`thanh_lua`/`thay_doc_vi`/`het_cuu`), `member_id`, `nickname_snapshot`, `nvc_numbers` (chỉ khi NVC giữ, C-HC-03) | | "titles/moments" | Hết mùa + 30 ngày; hoặc người đó rời/xoá dữ liệu/bỏ giữ | `purge_moments` + giao dịch |
 | `hc_push_subscription` | `member_id`, `endpoint`, `p256dh`, `auth`, `kind` (`drop`/`reveal`), `created_at` | | Mã hoá AES-GCM | Tới tắt / rời / 404–410 | Ngay |
 | `hc_report` **[bổ sung]** | `report_id`, `group_id`, `category`, `bank_event_id`, `reported_member_id` (chỉ với "biệt danh"), `created_at` | | Không lưu người báo cáo | 30 ngày hoặc khi xử lý xong | `purge_reports` |
-| `hc_metric_daily` | số đếm tổng hợp (PRD §6) | | Không định danh; không ghi khi nhóm có < 4 thành viên tham gia | Không giới hạn (DPIA X7 đề xuất 24 tháng như RP §6.3 — chờ owner) | — |
+| `hc_metric_daily` | số đếm tổng hợp (PRD §6) | | Không định danh; không ghi khi nhóm có < 4 thành viên tham gia | Theo DPIA X7 (mặc định nằm ở đó, chờ owner) | — |
 
 **Job xoá** (worker, chạy mỗi 15 phút, idempotent, ghi biên nhận gồm số dòng xoá, không ghi định danh):
 
@@ -234,7 +234,7 @@ Bản sao lưu: dữ liệu đã xoá có thể còn trong bản sao lưu tới 
 |---|---|
 | Phiên và quyền | Mọi route nhóm kiểm `session_hash` → `member` thuộc `group_id`; route host kiểm `role=host`. Không tin `member_id` từ client. Truy cập nhóm khác trả 404 giống nhau (không lộ tồn tại) |
 | CSRF | Mọi thay đổi (POST/PUT/PATCH/DELETE) cần Origin tin cậy + token CSRF tách khỏi cookie phiên |
-| Link mời | Token 256 bit trong fragment URL; băm HMAC; kiểm dạng trước khi tra DB; một phản hồi chung cho sai/hết hạn/thu hồi; fragment xoá khỏi thanh địa chỉ ngay khi đọc; trang có token: `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow`, `<meta name="robots" content="noindex,nofollow">`; token không vào log, analytics, lịch sử server-side; Service Worker không cache route có token |
+| Link mời | Token 256 bit trong fragment URL; băm HMAC; kiểm dạng trước khi tra DB; một phản hồi chung cho sai/hết hạn/thu hồi; fragment xoá khỏi thanh địa chỉ ngay khi đọc; trang có token: `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow`, `<meta name="robots" content="noindex,nofollow">`; token không vào log, analytics, lịch sử server-side; Service Worker không cache route có token. Vì token chỉ ở fragment, request HTTP chỉ tới **đúng đường `/j`** (không token trong path): luật header phải khớp chính xác `/j` (và `/j/` nếu router chuẩn hoá dấu `/`), không chỉ mẫu `/j/*`. Kiểm riêng HTML cuối, redirect, trang lỗi và phản hồi qua Service Worker trên đường đó; header API (`POST /join/preview`, `POST /join`) kiểm riêng |
 | Giới hạn tần suất | Tạo nhóm: 3/phiên/ngày, 10/IP/ngày. Mở/nộp link mời: 20/IP/giờ, 5 lần sai liên tiếp/IP → chờ 15 phút. Lưu câu trả lời: 30/phiên/giờ. Báo cáo: 5/phiên/ngày. Đổi biệt danh/gỡ: 20/host/ngày. Bộ đếm IP chỉ giữ trong bộ nhớ hoặc cache tạm ≤ 24 giờ, không vào DB |
 | Kiểm tra đầu vào | Schema chặt, từ chối trường thừa; enum đóng; % bội số 5; tổng lá ≤ 3; phiếu không tự đoán mình |
 | Lạm dụng | Không chữ tự do ngoài biệt danh; bộ lọc biệt danh; host gỡ/đổi tên; nhóm tối đa 12; không khám phá công khai; HC-FR-61 tự gỡ đề bị báo cáo |

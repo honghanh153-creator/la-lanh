@@ -113,6 +113,21 @@ Gió sẽ không nhận thông báo.
 [ Giải tán ]   [ Giữ lại ]
 ```
 
+## F2. Màn đồng ý có câu "dữ liệu nhạy cảm" (test copy trước khi build, T-TK-23)
+
+Câu là nháp, **chờ owner duyệt**; counsel chưa xác nhận câu này đủ cho Nghị định 356 (Q-L1). In đúng thứ tự: câu nằm ngay trên ô, không có gì chen giữa. Người tham gia không tick thật, chỉ đọc.
+
+```
+Dùng hồ sơ sinh của bạn để tạo lá Tri Kỷ với Gió?
+
+Lá đôi là dữ liệu nhạy cảm vì nó nói về đời sống riêng tư của hai bạn. Lá Lành chỉ tạo khi cả hai cùng đồng ý, và chỉ hai bạn xem được.
+☐ Dùng hồ sơ sinh của tôi để tạo lá Tri Kỷ với Gió.
+
+[ Đồng ý ]   [ Không, cảm ơn ]
+```
+
+Thẻ chọn: `Yên tâm hơn` · `Bình thường` · `Ngại hơn` · `Sợ, không dám tick`.
+
 ## G. Phiếu đố "Hiểu Nhau Không?" (mỗi người một phiếu, không ghi tên)
 
 ```

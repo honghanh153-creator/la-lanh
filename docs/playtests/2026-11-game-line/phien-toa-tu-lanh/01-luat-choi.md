@@ -35,7 +35,7 @@
 6. **Bỏ phiếu** cùng lúc bằng giơ tay.
 7. **Tuyên án tượng trưng**, luôn có nút **"Miễn án"**. Rồi "Sự thật là…": manh mối nào thật, manh mối nào bị cài.
 
-Bị kết án đúng vẫn là được khen: Thủ Phạm nhận danh hiệu **Thủ Phạm Xuất Sắc**. Kết án nhầm thì người đó nhận **Người Bị Oan Đẹp Nhất**.
+Bị kết án đúng vẫn là được khen: Thủ Phạm nhận danh hiệu **Thủ Phạm Xuất Sắc**. Kết án nhầm thì tòa minh oan ngay và người đó nhận **Người Được Minh Oan**.
 
 ## Đại Án
 

@@ -135,14 +135,14 @@ Bảng dưới là luật sản phẩm. Phần kỹ thuật ở SRS.
 | Bước | Diễn biến | Luật |
 |---|---|---|
 | 1 | A mở Tri Kỷ. Màn giới thiệu: người hiểu mình, không yêu đương, không xếp hạng, chỉ hai người thấy, rời đi lúc nào cũng được | Không danh sách gợi ý người. A cần hồ sơ ngày sinh (Level 1 trở lên, đề xuất TK-1) và đăng nhập khi tạo link (đề xuất TK-2) |
-| 2 | A chọn tên hiển thị B sẽ thấy, đọc trước đúng màn B sẽ thấy, tick ô đồng ý của mình (`tri-ky-pair-v1`) rồi tạo link | A cũng là chủ thể dữ liệu của lá đôi nên A cũng phải đồng ý. Ô không tick sẵn |
+| 2 | A chọn tên hiển thị B sẽ thấy, đọc trước đúng màn B sẽ thấy, đọc câu báo dữ liệu nhạy cảm ngay trên ô, tick ô đồng ý của mình (`tri-ky-pair-v1`) rồi tạo link | A cũng là chủ thể dữ liệu của lá đôi nên A cũng phải đồng ý. Ô không tick sẵn. Câu "dữ liệu nhạy cảm" nằm ngay trên ô, không chỉ trong chính sách |
 | 3 | A gửi link qua bảng chia sẻ hệ điều hành, mỗi lần một người | Link hạn 7 ngày, dùng một lần, thu hồi được, không chứa định danh hay dữ liệu sinh. Không ghi "đã gửi/đã đọc" |
 | 4 | B mở link: thấy tên A chọn, hai bên sẽ thấy gì, mình phải đưa gì, rút ra thế nào | Xem trước không tạo sự kiện theo dõi. B không phải đăng nhập để xem |
-| 5 | B dùng hồ sơ Lá Lành của mình, hoặc tự tạo hồ sơ (US-01/US-02 với đồng ý hồ sơ riêng), rồi tick ô đồng ý riêng: "Dùng hồ sơ sinh của tôi để dựng lá Tri Kỷ với [tên A]" và chọn tên hiển thị của mình | Không ai nhập hộ ai. B phải 18+. B có nút "Không nhận", "Báo cáo", "Không nhận lời mời Tri Kỷ từ người này nữa" |
+| 5 | B dùng hồ sơ Lá Lành của mình, hoặc tự tạo hồ sơ (US-01/US-02 với đồng ý hồ sơ riêng), đọc câu báo dữ liệu nhạy cảm ngay trên ô, rồi tick ô đồng ý riêng: "Dùng hồ sơ sinh của tôi để dựng lá Tri Kỷ với [tên A]" và chọn tên hiển thị của mình | Không ai nhập hộ ai. B phải 18+. Câu "dữ liệu nhạy cảm" nằm ngay trên ô của B như ở màn của A. B có nút "Không nhận", "Báo cáo", "Không nhận lời mời Tri Kỷ từ người này nữa" |
 | 6 | Hệ thống dựng lá đôi và hiện cho cả hai: ba khối nội dung + nhãn kiểu đồng điệu | Không %, không điểm, không chỉ báo 0–100. Nhãn là một trong ba **kiểu** ngang hàng, không phải bậc. Lá đóng băng nội dung lúc dựng |
-| 7 | Chia sẻ ảnh lá chỉ khi cả hai cùng bấm đồng ý cho đúng ảnh đó | Ảnh có tên hiển thị, nhãn kiểu và một câu chung; không ngày sinh, không cung, không nguyên tố. Không tạo link công khai. Người kia không bấm thì yêu cầu tự hết hạn, không có thông báo "bị từ chối" |
-| 8 | Ai cũng giải tán lá được, im lặng | Xoá cứng lá, yêu cầu chia sẻ, dữ liệu trò đố. Người kia chỉ thấy lá không còn, giống mọi trường hợp lá không còn khác |
-| 9 (sau MVP) | Hiểu Nhau Không?: 7 câu vô hại, mỗi người trả lời cho mình và đoán câu của người kia, khi nào rảnh thì chơi | Đồng ý riêng `tri-ky-quiz-v1`. Kết quả là điểm chung của cặp "x/7", chỉ hai người thấy, không có điểm riêng từng người. Câu trả lời bị xoá sau khi kết quả được xem; chỉ giữ kỷ lục của cặp |
+| 7 | Chia sẻ ảnh lá chỉ khi cả hai cùng bấm đồng ý cho đúng ảnh đó | Ảnh có tên hiển thị, nhãn kiểu và một câu chung; không ngày sinh, không cung, không nguyên tố. Không tạo link công khai. Người kia không bấm thì yêu cầu tự hết hạn, không có thông báo "bị từ chối". Yêu cầu chia sẻ (hàng vận hành) xoá 7 ngày sau khi kết thúc; mỗi lần đồng ý để lại một bằng chứng tối thiểu (ai, lúc nào, bản câu chữ, bản ảnh; không có ảnh), giữ khi lá còn, xoá khi giải tán (SRS FR-TK-067). Có phải giữ bằng chứng lâu hơn không: chờ counsel (Q-L7) |
+| 8 | Ai cũng giải tán lá được, im lặng | Xoá cứng lá, yêu cầu chia sẻ, bằng chứng đồng ý chia sẻ, dữ liệu trò đố. Người kia chỉ thấy lá không còn, giống mọi trường hợp lá không còn khác |
+| 9 (sau MVP) | Hiểu Nhau Không?: 7 câu vô hại, mỗi người trả lời cho mình và đoán câu của người kia, khi nào rảnh thì chơi | Đồng ý riêng `tri-ky-quiz-v1`. Kết quả là điểm chung của cặp "x/7", chỉ hai người thấy, không có điểm riêng từng người. Câu trả lời gắn với cặp nên được xử lý như **dữ liệu nhạy cảm**; bị xoá ngay khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt xong. Sau đó chỉ còn kỷ lục x/7 (và tháng) của cặp, giữ khi cặp còn; giải tán xoá hết |
 
 **Ba kiểu đồng điệu (đề xuất, chờ owner duyệt và kiểm chữ):**
 
@@ -167,6 +167,7 @@ Giọng direct theo `la-lanh-plain-vietnamese-content-standard.md`. Có thể d�
 | Dòng chặn hiểu sai (luôn hiện ở màn giới thiệu và trên lá) | Tri Kỷ nói về tình bạn, không phải chuyện yêu đương. Không có bảng xếp hạng. |
 | Ba bước | Bạn gửi lời mời cho một người → người ấy dùng hồ sơ Lá Lành của họ và đồng ý → hai bạn cùng mở lá đôi. |
 | Riêng tư (trước nút tạo link) | Lá đôi chỉ hai bạn thấy. Không ai nhập ngày sinh hộ ai. Ai cũng giải tán được, lúc nào cũng được. |
+| Câu báo dữ liệu nhạy cảm (đặt **ngay trên** ô đồng ý của A và ô đồng ý của B, không xen nội dung khác) | Lá đôi là dữ liệu nhạy cảm vì nó nói về đời sống riêng tư của hai bạn. Lá Lành chỉ tạo khi cả hai cùng đồng ý, và chỉ hai bạn xem được. *(nháp, chờ owner duyệt; counsel xem có đủ cho Nghị định 356 Điều 6 khoản 4 không, Q-L1)* |
 | Ô đồng ý của A | Dùng hồ sơ sinh của tôi để dựng lá Tri Kỷ với người nhận lời mời này. Tôi hiểu lá đôi là thông tin riêng tư về hai chúng tôi và chỉ hai người thấy. |
 | Nút | Tạo link riêng |
 | Sau khi tạo | Link đã sẵn sàng. Link dùng được một lần, trong 7 ngày. |
@@ -188,7 +189,8 @@ Giọng direct theo `la-lanh-plain-vietnamese-content-standard.md`. Có thể d�
 | Yêu cầu chia sẻ (người được hỏi) | [Tên kia] muốn chia sẻ ảnh lá đôi này. Bạn đồng ý không? · Đồng ý chia sẻ · Không chia sẻ |
 | Chưa chia sẻ được (hết 72 giờ, không nói lý do) | Ảnh này chưa chia sẻ được. |
 | Hiểu Nhau Không? giới thiệu | 7 câu vui. Bạn trả lời cho mình và đoán câu của [tên kia]. Hai bạn chỉ so với kỷ lục của chính mình. |
-| Ô đồng ý trò đố | Lưu câu trả lời của tôi cho lượt chơi này. Câu trả lời bị xoá sau khi hai bạn xem kết quả; chỉ giữ kỷ lục của hai bạn. |
+| Câu ngay trên ô đồng ý trò đố | Câu trả lời gắn với hai bạn nên Lá Lành xử lý như dữ liệu nhạy cảm. |
+| Ô đồng ý trò đố | Lưu câu trả lời của tôi cho lượt chơi này. Câu trả lời bị xoá khi cả hai bạn đã xem kết quả, muộn nhất 7 ngày sau khi lượt xong; chỉ giữ kỷ lục của hai bạn. |
 | Kết quả | Lần này hai bạn hiểu nhau 5/7 câu. Kỷ lục của hai bạn: 6/7. |
 | Kết quả bằng hoặc thấp hơn kỷ lục | Kỷ lục vẫn là 6/7. Lượt sau có câu mới. |
 | Push khi có người nhận lời (nếu có push, chỉ câu cố định) | Có cập nhật mới trong Lá Lành. |
@@ -197,7 +199,7 @@ Không dùng ở bất kỳ đâu: "bạn đã bị xoá", "ai đó đã chọn 
 
 ## 6. Chỉ số
 
-Chỉ dùng **bộ đếm tổng hợp phía server**, không ID người, không ID cặp, không nhãn, không nội dung, không SDK bên thứ ba. Báo cáo chỉ khi mỗi ô ≥ 10 sự kiện để tránh nhận ra người trong pilot nhỏ.
+**Không theo dõi từng người, không phân tích nội dung.** Chỉ dùng **bộ đếm tổng hợp theo ngày phía server**: không ID người, không ID cặp, không nhãn, không nội dung, không SDK bên thứ ba. Danh sách trường, mục đích, ngưỡng ô nhỏ (ẩn mọi ô < 3 theo KS-04; báo cáo Tri Kỷ chỉ hiện ô ≥ 10) và thời hạn (DPIA X7, chờ owner) nằm ở SRS §10 và là bản chuẩn; bảng dưới chỉ định nghĩa chỉ số tính từ các bộ đếm đó.
 
 | Chỉ số | Định nghĩa | Vai trò |
 |---|---|---|
@@ -282,6 +284,7 @@ Native app là đích phát hành; web là companion cho B mở link. Ultraviole
 - **Q-L4.** Khi một người giải tán, xoá cả phần lá của người kia (người kia không đồng ý xoá) có vấn đề gì không? Có cần thông báo cho người kia không, hay "không thông báo" là được?
 - **Q-L5.** Câu trả lời trò đố (sở thích vô hại) có cần đồng ý riêng theo mục đích hay đã nằm trong mục đích Tri Kỷ?
 - **Q-L6.** Bản đánh giá tác động (DPIA) và hồ sơ chuyển dữ liệu ra nước ngoài hiện có có cần bổ sung riêng cho Tri Kỷ không?
+- **Q-L7.** Bằng chứng đồng ý (đồng ý theo cặp trên hàng cặp và bằng chứng đồng ý chia sẻ `tri_ky_share_consents`) hiện bị xoá cùng lá khi giải tán. Nghị định 356 Điều 6 khoản 2 đặt trách nhiệm chứng minh đồng ý lên bên kiểm soát: có phải giữ một bản tối thiểu lâu hơn lá không, giữ bao lâu, và có mâu thuẫn với lời hứa "giải tán xoá mọi dữ liệu của cặp" không? **Chờ counsel.**
 
 ## 13. Việc phải sửa ở tài liệu khác (follow-up, **không** sửa trong PR này)
 
@@ -306,6 +309,8 @@ Native app là đích phát hành; web là companion cho B mở link. Ultraviole
 
 **Phát hiện đã sửa trong thiết kế:** bỏ ba chỉ báo 0–100 của Radar khỏi Tri Kỷ; đổi "giữ nhịp" (cụm từ cấm) trong ví dụ của báo cáo; bỏ "chơi lại mỗi tháng" vì trái nguyên tắc không áp lực quay lại; trò đố chỉ có điểm chung của cặp để tránh bất đối xứng; yêu cầu chia sẻ hết hạn im lặng thay vì "bị từ chối"; A cũng phải đồng ý theo mục đích (không chỉ B); xem trước link chỉ hiện tên A tự chọn, không hiện nhãn riêng A đặt cho B (khác runtime Radar/Lá Chứng hiện tại, xem SRS §3.3); token đặt trong fragment URL để không vào log server (SRS §9).
 
-**Rủi ro chưa giải quyết:** §8 (R1–R12) và §12 (Q-L1–Q-L6). Nổi bật: chưa rõ dữ liệu suy luận có là dữ liệu nhạy cảm; lá không hạn riêng; chữ "tri kỷ" chưa đo với người dùng.
+**Rà lại theo review Codex @ c1960a3 (26/10/2026):** thêm câu báo dữ liệu nhạy cảm ngay trên ô đồng ý của A và B (§4 bước 2, 5; §5); câu trả lời đố là dữ liệu nhạy cảm, xoá khi cả hai đã xem hoặc muộn nhất 7 ngày; tách hàng yêu cầu chia sẻ (7 ngày) với bằng chứng đồng ý (khi lá còn); §6 trỏ về danh sách chuẩn bộ đếm ở SRS §10; thêm Q-L7.
+
+**Rủi ro chưa giải quyết:** §8 (R1–R12) và §12 (Q-L1–Q-L7). Nổi bật: chưa rõ dữ liệu suy luận có là dữ liệu nhạy cảm; lá không hạn riêng; chữ "tri kỷ" chưa đo với người dùng.
 
 **AC/DoD còn thiếu:** toàn bộ. Chưa có quyết định D5, TK-1–TK-12; copy §5 chưa duyệt; chưa kiểm chữ; chưa có ý kiến luật sư; nhãn App Privacy, Data Safety, chính sách quyền riêng tư chưa cập nhật; DPIA chưa có; chưa có code (đúng kế hoạch).

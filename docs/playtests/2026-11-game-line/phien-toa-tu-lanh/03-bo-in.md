@@ -309,8 +309,8 @@ In mỗi bản án một thẻ. Mặt dưới mỗi thẻ in khung: **"MIỄN Á
 | TP-08 | Bác phản đối | Phản đối bị bác! Lý lẽ rất hay, nhưng tòa thích manh mối hơn. |
 | TP-09 | Bỏ phiếu | Tòa mời các bồi thẩm bỏ phiếu. Ba, hai, một. Giơ tay thật cao, tòa đếm được tới năm mươi. |
 | TP-10 | Hoà phiếu | Phiếu bằng nhau. Tòa không kết án khi chưa chắc. Thủ Phạm hôm nay may mắn, lần này thôi. |
-| TP-11 | Kết án đúng | Có tội! Bị cáo số {x}, tòa công nhận bạn là Thủ Phạm Xuất Sắc. Bị bắt mà vẫn đẹp. |
-| TP-12 | Kết án nhầm | Tòa tuyên… khoan. Hồ sơ cho thấy bị cáo số {x} vô tội. Tòa xin lỗi, và trao danh hiệu Người Bị Oan Đẹp Nhất. Thủ Phạm thật vẫn đang ngồi đâu đây. |
+| TP-11 | Kết án đúng | Có tội! Bị cáo số {x}, tòa công nhận bạn là Thủ Phạm Xuất Sắc. Diễn tròn vai tới phút cuối. |
+| TP-12 | Kết án nhầm | Tòa tuyên… khoan. Hồ sơ cho thấy bị cáo số {x} vô tội. Tòa xin lỗi, minh oan ngay tại chỗ và trao danh hiệu Người Được Minh Oan. Thủ Phạm thật vẫn đang ngồi đâu đây. |
 | TP-13 | Tuyên án | Tòa tuyên án tượng trưng. Mời bị cáo rút một thẻ bản án. Bị cáo có quyền nói "Miễn án". |
 | TP-14 | Miễn án | Miễn án! Tòa chấp nhận, không hỏi lý do. Bản án được cất vào ngăn đá. |
 | TP-15 | Nhớ vụ trước | Lại là Đội {tên}! Vụ trước các vị cũng chỉ đúng. Tòa bắt đầu nghi các vị… nghi là các vị quá giỏi. |
@@ -351,7 +351,7 @@ Kẻ Chủ Mưu: áo ______, ngồi ______, túi có ______
 |---|---|
 | Thủ Phạm Xuất Sắc | Thủ Phạm bị kết án đúng (mỗi vụ) |
 | Thủ Phạm Thoát Án | Thủ Phạm không bị kết án |
-| Người Bị Oan Đẹp Nhất | Người bị kết án nhầm |
+| Người Được Minh Oan | Người bị kết án nhầm, được tòa minh oan ở màn "Sự thật là" (danh hiệu thử cho buổi giấy, chưa có trong PRD Phiên Tòa §4.3 — chờ owner) |
 | Đồng Phạm Diễn Sâu | Đồng Phạm có manh mối giả khiến một đội chọn sai (host chọn) |
 | Kẻ Chủ Mưu Bất Bại / Đội Phá Đại Án | Tuỳ kết quả Đại Án |
 | Thư Ký Mẫn Cán | Thư Ký Tòa |

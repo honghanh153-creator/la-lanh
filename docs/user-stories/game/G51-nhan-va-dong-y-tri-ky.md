@@ -47,7 +47,7 @@ flowchart TD
 | Không hợp lệ | "Lời mời này không còn mở được. Nếu cần, nhờ người gửi tạo link mới." | Như nhau cho sai/hết hạn/thu hồi/đã dùng/bị chặn |
 | Xem trước | "[Tên A] mời bạn mở một lá Tri Kỷ." + B sẽ đưa gì + hai bên thấy gì + dòng chặn hiểu sai + "Chỉ nhận nếu lời mời này dành cho bạn." | CTA "Tiếp tục"; phụ "Không nhận"; liên kết "Báo cáo lời mời", "Không nhận lời mời Tri Kỷ từ người này nữa" |
 | Tạo hồ sơ | US-01/US-02 nguyên trạng | Sau khi có hồ sơ, quay lại xem trước, không mất ý định |
-| Đồng ý | Tên hiển thị B (1–32), ô `tri-ky-pair-v1` trống | "Đồng ý và mở lá" và "Không nhận" cùng kích thước |
+| Đồng ý | Tên hiển thị B (1–32); câu báo dữ liệu nhạy cảm; ngay bên dưới là ô `tri-ky-pair-v1` trống | Câu nằm **ngay trên** ô, giống màn của A (FR-TK-033). Nháp, chờ owner duyệt: "Lá đôi là dữ liệu nhạy cảm vì nó nói về đời sống riêng tư của hai bạn. Lá Lành chỉ tạo khi cả hai cùng đồng ý, và chỉ hai bạn xem được." "Đồng ý và mở lá" và "Không nhận" cùng kích thước |
 | Báo cáo | Lý do: Không dành cho tôi · Tôi không biết người gửi · Tên không phù hợp · Link đáng ngờ · Khác | Không chữ tự do; xác nhận trung tính |
 
 Xem trước không hiện chart, Vibe, cung, ngày sinh hay nhãn riêng nào A đặt cho B.
@@ -87,6 +87,7 @@ Xem trước không hiện chart, Vibe, cung, ngày sinh hay nhãn riêng nào A
 - **G51-AC13:** Given B chặn A, When A tạo lời mời mới cho B, Then B thấy màn không hợp lệ và A không được báo đã bị chặn.
 - **G51-AC14:** Given báo cáo `dont_know_sender`, When gửi, Then lời mời vô hiệu ngay và có bản ghi lý do, không có chữ tự do.
 - **G51-AC15:** Given lá đã có giữa hai người, When accept lời mời mới, Then trả lá hiện có.
+- **G51-AC16:** Given màn đồng ý của B (app hoặc web companion), When hiện, Then câu báo có chữ "dữ liệu nhạy cảm" là phần tử nằm ngay phía trên ô `tri-ky-pair-v1` đang trống, screen reader đọc câu trước ô, và nút "Đồng ý và mở lá" không bật khi thiếu câu này; test copy T-TK-23 chạy và pass **trước khi build** màn này.
 
 ## 9. Edge cases
 
@@ -109,7 +110,7 @@ Bộ đếm server `invite_accepted`, `pair_built`, `invite_profile_created_in_f
 
 ## 12. Definition of Done
 
-- G51-AC01–AC15 pass; T-TK-02, T-TK-05, T-TK-06, T-TK-08, T-TK-09, T-TK-10, T-TK-11, T-TK-22 pass.
+- G51-AC01–AC16 pass; T-TK-02, T-TK-05, T-TK-06, T-TK-08, T-TK-09, T-TK-10, T-TK-11, T-TK-22, T-TK-23 pass.
 - Không còn đường nào cho phép A cung cấp dữ liệu sinh của B (test âm).
 - Copy được owner duyệt; luật sư trả lời Q-L1, Q-L2.
 - **Riêng tư/store:** data map, App Privacy, Data Safety, chính sách quyền riêng tư phản ánh: đồng ý theo mục đích của cả hai, lá đôi là dữ liệu suy luận linked, chặn, báo cáo; web companion không tracker.

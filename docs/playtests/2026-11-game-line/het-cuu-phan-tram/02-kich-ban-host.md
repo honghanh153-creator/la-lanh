@@ -105,7 +105,7 @@ Nếu nhóm không gọi được: gửi mẫu D6b (bản lật dạng chữ, kh
 | Ngày | Host làm |
 |---|---|
 | Thứ Sáu 27/11, sau màn lật | Gửi mẫu D7 (khảo sát 3 câu) |
-| Thứ Bảy 28/11 | Gửi mẫu D8 (tổng kết mùa ngắn, chỉ danh hiệu và một khoảnh khắc, không có bảng điểm cộng dồn) |
+| Thứ Bảy 28/11 | Gửi mẫu D8 (tổng kết mùa ngắn, chỉ danh hiệu và một khoảnh khắc bằng chữ đã gửi ở D6, không có con số nào, không có bảng điểm cộng dồn) |
 | Thứ Hai 30/11 trước 20:00 | Xoá mọi tin nhắn riêng, phiếu điểm, bảng đếm khảo sát. Điền mẫu kết quả |
 | 30 ngày sau khi playtest kết thúc | Xoá danh sách danh hiệu theo tuần nếu còn giữ |
 

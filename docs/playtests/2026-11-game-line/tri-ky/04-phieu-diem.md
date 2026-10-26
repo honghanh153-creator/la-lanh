@@ -72,6 +72,14 @@ C1/C2: BB = muốn biết hợp nhau kiểu bạn bè, TH = đang thích mình, 
 
 Nhãn: V = vui, BT = bình thường, HB = hơi buồn, TC = như bị từ chối.
 
+### Phần 4b — câu "dữ liệu nhạy cảm" ngay trên ô đồng ý (mục F2)
+
+| P | Đọc câu trước khi thấy ô? (C/K) | "Dữ liệu nhạy cảm" nghĩa là gì (tối đa 3 từ khoá) | Cảm giác (YT / BT / NH / S) |
+|---|---|---|---|
+| P1–P10 | | | |
+
+Cảm giác: YT = yên tâm hơn, BT = bình thường, NH = ngại hơn, S = sợ, không dám tick.
+
 ### Câu cuối
 
 | P | Tên chọn cho tính năng | Chữ hợp làm câu phụ |

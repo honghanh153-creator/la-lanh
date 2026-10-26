@@ -16,7 +16,7 @@ Là một thành viên của cặp Tri Kỷ, tôi muốn giải tán lá đôi b
 ## 3. Actor, điều kiện và output
 
 - **Actor:** bất kỳ thành viên nào.
-- **Output:** không còn hàng nào của cặp trong `tri_ky_pairs`, `tri_ky_share_requests`, `tri_ky_quiz_rounds`; một dòng journal `tri_ky_dissolved` (HMAC của `pair_id`, không nội dung); bộ đếm `pair_dissolved_lt30d` hoặc `pair_dissolved_ge30d`.
+- **Output:** không còn hàng nào của cặp trong `tri_ky_pairs`, `tri_ky_share_requests`, `tri_ky_share_consents`, `tri_ky_quiz_rounds`; một dòng journal `tri_ky_dissolved` (HMAC của `pair_id`, không nội dung); bộ đếm `pair_dissolved_lt30d` hoặc `pair_dissolved_ge30d`.
 
 ## 4. Luồng
 
@@ -43,7 +43,7 @@ Màn "Lá này không còn." giống hệt khi lá mất vì xoá hồ sơ, hồ
 ## 6. Business rules
 
 1. Giải tán = rút đồng ý `tri-ky-pair-v1`; không có trạng thái trung gian.
-2. Một giao dịch: `SELECT … FOR UPDATE` hàng cặp; xoá yêu cầu chia sẻ, lượt đố, cặp (FK cascade); ghi journal; tăng bộ đếm theo tuổi lá (bucket < 30 ngày / ≥ 30 ngày, tính tại thời điểm xoá, không lưu ngày tạo).
+2. Một giao dịch: `SELECT … FOR UPDATE` hàng cặp; xoá yêu cầu chia sẻ, bằng chứng đồng ý chia sẻ (FR-TK-067), lượt đố và câu trả lời, kỷ lục, cặp (FK cascade); ghi journal; tăng bộ đếm theo tuổi lá (bucket < 30 ngày / ≥ 30 ngày, tính tại thời điểm xoá, không lưu ngày tạo).
 3. Không outbox, không hộp thư, không push cho bất kỳ ai.
 4. Idempotent: thành viên thứ hai gọi giải tán nhận cùng phản hồi; không lộ ai giải tán trước (FR-TK-082).
 5. Xoá hồ sơ khách/tài khoản của một thành viên cascade xoá mọi cặp có người đó (FR-TK-084).
@@ -58,7 +58,7 @@ Màn "Lá này không còn." giống hệt khi lá mất vì xoá hồ sơ, hồ
 
 ## 8. Acceptance Criteria
 
-- **G54-AC01:** Given một thành viên xác nhận giải tán, When giao dịch xong, Then không còn hàng `tri_ky_pairs`, `tri_ky_share_requests`, `tri_ky_quiz_rounds` của cặp và có đúng một dòng journal `tri_ky_dissolved` (T-TK-07).
+- **G54-AC01:** Given một thành viên xác nhận giải tán, When giao dịch xong, Then không còn hàng `tri_ky_pairs`, `tri_ky_share_requests`, `tri_ky_share_consents`, `tri_ky_quiz_rounds` của cặp và có đúng một dòng journal `tri_ky_dissolved` (T-TK-07).
 - **G54-AC02:** Given giải tán, When kiểm outbox, hộp thư, push, Then không có mục nào được tạo cho ai (T-TK-08).
 - **G54-AC03:** Given người kia mở lá sau khi bị giải tán, When gọi API, Then nhận 404 giống hệt với `pair_id` ngẫu nhiên và thấy "Lá này không còn."
 - **G54-AC04:** Given cả hai cùng bấm giải tán gần như cùng lúc, When race, Then một giao dịch xoá, giao dịch kia trả cùng phản hồi thành công; không ai biết ai bấm trước.

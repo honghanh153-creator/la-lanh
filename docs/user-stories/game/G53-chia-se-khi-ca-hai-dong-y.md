@@ -17,7 +17,7 @@ Là một thành viên của cặp Tri Kỷ, tôi muốn chia sẻ ảnh lá đ�
 
 - **Actor:** người xin (một thành viên) và người duyệt (thành viên còn lại).
 - **Điều kiện:** cặp `active`; không có yêu cầu nào đang chờ.
-- **Output:** `tri_ky_share_requests` với `approved` và `export_until`, hoặc `expired`/`cancelled`. Ảnh dựng trên máy, không lưu server.
+- **Output:** `tri_ky_share_requests` với `approved` và `export_until`, hoặc `expired`/`cancelled` (hàng vận hành, xoá 7 ngày sau trạng thái cuối); một hàng `tri_ky_share_consents` cho mỗi lần một thành viên đồng ý (bằng chứng, giữ khi lá còn). Ảnh dựng trên máy, không lưu server.
 
 ## 4. Luồng
 
@@ -55,11 +55,13 @@ Không đếm ngược 72 giờ trên màn. Không push nhắc người duyệt.
 6. Không URL, QR, ID, watermark có định danh.
 7. Ảnh dựng trên máy; file tạm ở cache dir, xoá sau khi bảng chia sẻ đóng; web: tải ảnh qua `blob:` không lưu server.
 8. Không push nội dung; mục yêu cầu trong lá/hộp thư trong app có thể hiện tên người kia.
-9. Giải tán xoá mọi yêu cầu (G54).
+9. Mỗi lần đồng ý (người xin khi tạo yêu cầu; người kia khi bấm "Đồng ý chia sẻ") ghi một bằng chứng `tri_ky_share_consents`: thành viên, thời điểm, phiên bản câu chữ, `layout_version`, `card_hash`; không ảnh, không câu, không tên (FR-TK-067).
+10. Hàng yêu cầu chia sẻ xoá 7 ngày sau trạng thái cuối; bằng chứng đồng ý không xoá theo, mà sống khi lá còn.
+11. Giải tán hoặc xoá hồ sơ xoá mọi yêu cầu **và** mọi bằng chứng đồng ý của cặp (G54). Có phải giữ bằng chứng lâu hơn lá không: chờ counsel (Q-L7).
 
 ## 7. Dữ liệu và API
 
-`POST /v1/tri-ky/pairs/{id}/share-requests`, `GET .../share-requests/current`, `POST /v1/tri-ky/share-requests/{id}/approve|decline|cancel` (SRS §12). Bảng `tri_ky_share_requests` (SRS §6.3).
+`POST /v1/tri-ky/pairs/{id}/share-requests`, `GET .../share-requests/current`, `POST /v1/tri-ky/share-requests/{id}/approve|decline|cancel` (SRS §12). Bảng `tri_ky_share_requests` và `tri_ky_share_consents` (SRS §6.3).
 
 ## 8. Acceptance Criteria
 
@@ -72,6 +74,7 @@ Không đếm ngược 72 giờ trên màn. Không push nhắc người duyệt.
 - **G53-AC07:** Given luồng chia sẻ chạy xong, When kiểm server và log, Then không có file ảnh, URL công khai hay nội dung ảnh.
 - **G53-AC08:** Given native, When bảng chia sẻ đóng, Then file tạm đã bị xoá khỏi cache dir.
 - **G53-AC09:** Given bất kỳ trạng thái nào, When rà push, Then không có push nào cho yêu cầu chia sẻ.
+- **G53-AC10:** Given hai thành viên đã đồng ý một ảnh, When kiểm DB, Then có đúng hai hàng `tri_ky_share_consents` (mỗi người một) với phiên bản câu chữ, `layout_version`, `card_hash`, không ảnh/câu/tên; Given 7 ngày sau trạng thái cuối, When dọn dẹp chạy, Then hàng yêu cầu chia sẻ mất còn hai hàng bằng chứng vẫn còn; Given giải tán, Then cả hai hàng bằng chứng bị xoá (T-TK-24).
 
 ## 9. Edge cases
 
@@ -92,9 +95,9 @@ Bộ đếm `share_requested`, `share_approved` (SRS §10). Không ID, không n�
 
 ## 12. Definition of Done
 
-- G53-AC01–AC09 pass; T-TK-13, T-TK-14 pass.
+- G53-AC01–AC10 pass; T-TK-13, T-TK-14, T-TK-24 pass.
 - Layout ảnh và copy được owner duyệt (TK-8).
-- **Riêng tư/store:** data map ghi yêu cầu chia sẻ (đồng ý, thời điểm) là dữ liệu linked; ghi rõ ảnh do người dùng tự xuất, Lá Lành không chia sẻ cho bên thứ ba và không lưu ảnh; chính sách quyền riêng tư nói ảnh ra ngoài không thu lại được.
+- **Riêng tư/store:** data map ghi hàng yêu cầu chia sẻ (7 ngày sau trạng thái cuối) và bằng chứng đồng ý chia sẻ (khi lá còn) là dữ liệu linked; ghi rõ ảnh do người dùng tự xuất, Lá Lành không chia sẻ cho bên thứ ba và không lưu ảnh; chính sách quyền riêng tư nói ảnh ra ngoài không thu lại được.
 - Evidence native share sheet và xoá file tạm — `[Pending]`.
 
 ## 13. Phụ thuộc, riêng tư và evidence

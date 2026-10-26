@@ -41,7 +41,7 @@ flowchart TD
 
 | Màn | Nội dung (copy nháp PRD §5) |
 |---|---|
-| Giới thiệu | "7 câu vui. Bạn trả lời cho mình và đoán câu của [tên kia]. Hai bạn chỉ so với kỷ lục của chính mình." + ô đồng ý trống |
+| Giới thiệu | "7 câu vui. Bạn trả lời cho mình và đoán câu của [tên kia]. Hai bạn chỉ so với kỷ lục của chính mình." + câu "Câu trả lời gắn với hai bạn nên Lá Lành xử lý như dữ liệu nhạy cảm." ngay trên ô đồng ý trống (copy PRD §5, chờ owner) |
 | Câu hỏi | Một câu, 3–5 lựa chọn; hai phần "Bạn chọn" và "Bạn đoán [tên kia] chọn"; tiến độ "3/7" là vị trí câu, không phải điểm |
 | Chờ | "Đã lưu. Kết quả mở khi [tên kia] chơi xong." Không đếm ngược, không nút "nhắc bạn ấy" |
 | Kết quả | "Lần này hai bạn hiểu nhau 5/7 câu. Kỷ lục của hai bạn: 6/7." Từng câu: lựa chọn của hai người, dấu "hiểu nhau" cho câu được tính. Không điểm riêng, không "bạn đoán đúng 6, [tên kia] đoán đúng 4" |
@@ -58,7 +58,7 @@ Không confetti, không huy hiệu, không bộ đếm số lượt, không "m�
 4. Ngân hàng chỉ có chủ đề vô hại (món ăn khuya, bài hát nghe lặp, kiểu nghỉ ngơi, đồ uống ưa thích, cách đi chơi cuối tuần…); loại ngoại hình, sức khoẻ, tình dục, tiền, gia đình, tôn giáo, vùng miền, chính trị, người thật có tên, rượu bia, yêu đương, "ai toxic".
 5. Điểm chung `x/7`; một câu được tính theo TK-5 (mặc định: cả hai cùng đoán đúng câu của nhau). Server không lưu và không trả điểm riêng.
 6. Kỷ lục chỉ tăng; lưu `quiz_best_score` (0–7) và `quiz_best_month` (tháng/năm).
-7. Câu trả lời mã hoá; xoá khi cả hai đã xem kết quả hoặc 7 ngày sau khi hoàn tất, cái nào trước.
+7. Câu trả lời gắn với cặp nên là **dữ liệu nhạy cảm (đời sống riêng tư)** (SRS §6.6). Mã hoá; xoá ngay khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt hoàn tất, cái nào trước. Sau đó chỉ còn kỷ lục x/7 và tháng, giữ khi cặp còn; giải tán xoá hết (FR-TK-106).
 8. Lượt chưa đủ hai người sau 7 ngày → `expired`, xoá câu trả lời, không tính điểm, không thông báo.
 9. Không push, không hộp thư nhắc; chỉ một chấm nhỏ trong màn lá đôi khi có lượt đang chờ mình.
 10. Không chơi lại để "cày": mỗi lượt có câu mới; không giới hạn thời gian hiển thị (TK-6).
@@ -74,7 +74,7 @@ Bảng `tri_ky_quiz_rounds`; cột quiz trên `tri_ky_pairs` (SRS §6.2, §6.4).
 - **G55-AC03:** Given gửi câu trả lời, When payload có chữ tự do hoặc id không thuộc câu, Then 422.
 - **G55-AC04:** Given cả hai đã trả lời, When tính, Then chỉ có một điểm chung `x/7` theo TK-5; API không có trường điểm riêng (T-TK-20).
 - **G55-AC05:** Given kết quả cao hơn kỷ lục, When lưu, Then `quiz_best_score` tăng; thấp hơn hoặc bằng thì không đổi.
-- **G55-AC06:** Given cả hai đã xem kết quả, When cleanup chạy, Then `answers_ciphertext` bị xoá; chỉ còn kỷ lục.
+- **G55-AC06:** Given cả hai đã xem kết quả, When cleanup chạy, Then `answers_ciphertext` bị xoá; chỉ còn kỷ lục. Given lượt đã hoàn tất nhưng mới một người xem, When đủ 7 ngày sau khi hoàn tất, Then `answers_ciphertext` vẫn bị xoá; người chưa xem chỉ còn thấy kỷ lục của cặp (đã cập nhật nếu lượt này cao hơn), không thấy chi tiết từng câu.
 - **G55-AC07:** Given chỉ một người trả lời trong 7 ngày, When hết hạn, Then lượt `expired`, câu trả lời bị xoá, không có thông báo nào.
 - **G55-AC08:** Given mọi màn trò đố, When rà, Then không có streak, huy hiệu, đếm ngược, "mỗi tháng", "quay lại", so với cặp khác (T-TK-18).
 - **G55-AC09:** Given một thành viên tắt trò đố, When xác nhận, Then lượt đang mở và kỷ lục bị xoá, có journal `tri_ky_quiz_cleared`.
@@ -104,7 +104,7 @@ Không có bộ đếm cho trò đố ở bản đầu. Nếu cần sau này: ch
 - G55-AC01–AC11 pass; T-TK-18, T-TK-20 pass; `growth.test.ts` vẫn xanh.
 - Ngân hàng ≥ 28 câu và copy được owner duyệt; rà theo danh sách chủ đề loại trừ; playtest giấy với 3–5 cặp (Writer F) cho thấy không ai thấy bị "chấm".
 - Quyết định TK-5, TK-6, TK-11 đã chốt.
-- **Riêng tư/store:** data map và nhãn store thêm câu trả lời đố (lựa chọn, linked, App Functionality, xoá sau khi xem) và kỷ lục; chính sách quyền riêng tư nói rõ hạn xoá; luật sư trả lời Q-L5.
+- **Riêng tư/store:** data map và nhãn store thêm câu trả lời đố (lựa chọn, linked, App Functionality, dữ liệu nhạy cảm vì gắn với cặp, xoá khi cả hai đã xem hoặc muộn nhất 7 ngày sau khi lượt xong) và kỷ lục; chính sách quyền riêng tư nói rõ hạn xoá; luật sư trả lời Q-L5.
 
 ## 13. Phụ thuộc, riêng tư và evidence
 

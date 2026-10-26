@@ -218,15 +218,21 @@ cảnh bạn bè (US-13, `docs/foundation/la-lanh-radar-hop-gu-spec.md`). **[b�
 báo cáo lời mời, hàng lời mời đã kết thúc giữ 30 ngày, `quiz_best_month`.
 
 - **Trường:** hồ sơ sinh đã có của **cả hai** người (mỗi người dùng hồ sơ đã đồng ý của chính mình, không ai nhập hộ ai); bản ghi
-  mời và nhận lời; **lá đôi** (nội dung suy luận về quan hệ, xử lý như dữ liệu nhạy cảm "đời sống riêng tư"); đồng ý chia sẻ của
-  cả hai; câu trả lời Hiểu Nhau Không? (mã lựa chọn) và điểm cặp x/7.
-- **Đồng ý:** riêng cho từng người và từng mục đích (PRD dùng tên `tri-ky-pair-v1`, `tri-ky-quiz-v1`). Lối "Check kín" của US-12
-  (A tự khai đã được B cho phép) **bị chặn** cho Tri Kỷ.
+  mời và nhận lời; **lá đôi** (nội dung suy luận về quan hệ, xử lý như dữ liệu nhạy cảm "đời sống riêng tư"); hàng yêu cầu chia
+  sẻ (vận hành) và bằng chứng đồng ý chia sẻ tối thiểu của từng người (FR-TK-067); câu trả lời Hiểu Nhau Không? (mã lựa chọn, gắn
+  với cặp, xử lý như dữ liệu nhạy cảm) và kỷ lục x/7 của cặp.
+- **Đồng ý:** riêng cho từng người và từng mục đích (`tri-ky-pair-v1`, `tri-ky-share-v1`, `tri-ky-quiz-v1`). Màn của A và màn
+  của B đều có câu báo "dữ liệu nhạy cảm" **ngay trên** ô đồng ý `tri-ky-pair-v1` (FR-TK-005, FR-TK-033; copy chờ owner và counsel).
+  Lối "Check kín" của US-12 (A tự khai đã được B cho phép) **bị chặn** cho Tri Kỷ.
 - **Thời hạn:** lá đôi tồn tại tới khi một trong hai người giải tán. Giải tán là im lặng, người kia không được báo, dữ liệu cặp bị
-  xoá. Câu trả lời trò đố xoá sau khi hiện kết quả; chỉ giữ điểm cao nhất của cặp khi cặp còn. Lá cũng mất khi hồ sơ của một
+  xoá. Câu trả lời trò đố xoá ngay khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt hoàn tất (FR-TK-106); sau đó chỉ
+  còn kỷ lục x/7 (và tháng) của cặp khi cặp còn. Hàng yêu cầu chia sẻ xoá 7 ngày sau trạng thái cuối; bằng chứng đồng ý chia sẻ
+  giữ khi lá còn và xoá khi giải tán (giữ lâu hơn hay không: Q23, chờ counsel). Lá cũng mất khi hồ sơ của một
   người hết hạn hoặc bị xoá (30 ngày không hoạt động với khách, 365 ngày với tài khoản liên kết, theo data map), vì xoá theo
   chuỗi.
-- **Loại trừ:** không vào analytics, không có trong nội dung thông báo, không có trong xem trước link chia sẻ, không gửi cho Luna
+- **Loại trừ:** không có analytics theo người hay theo nội dung (chỉ bộ đếm tổng hợp theo ngày không định danh, danh sách chuẩn ở
+  TK SRS §10, ngưỡng ô nhỏ: ẩn ô < 3 theo KS-04, báo cáo Tri Kỷ chỉ hiện ô ≥ 10; thời hạn theo X7), không có trong nội dung thông
+  báo, không có trong xem trước link chia sẻ, không gửi cho Luna
   hay bất kỳ AI nào.
 
 ### 5.7. Dữ liệu phát sinh ngoài hợp đồng chung (cần owner ghi nhận)
@@ -252,7 +258,8 @@ Các trường dưới đây không có trong hợp đồng dữ liệu chung nh
 | Báo cáo lời mời Tri Kỷ (lý do, thời điểm) | TK SRS §6.5 [bổ sung] | Xử lý lạm dụng | 30 ngày; không lưu IP, thiết bị, token | Phù hợp |
 | Hàng lời mời Tri Kỷ đã kết thúc | TK SRS §8 [bổ sung] | Chống lạm dụng, như US-08/US-09 | 30 ngày sau trạng thái cuối | Phù hợp; token đã NULL |
 | `quiz_best_month` (tháng/năm của kỷ lục đố) | TK SRS §6.2 [bổ sung] | Hiện "kỷ lục tháng…" cho cặp | Như lá | Chấp nhận; owner xem có cần không (tối thiểu hoá) |
-| Số đếm tổng hợp gộp theo ngày | RP §6.3 (giữ 24 tháng); SRS HC (`hc_metric_daily`), TS (`ts_metric_daily`), TK (bộ đếm §10) ghi "không giới hạn" | Đo sức khoẻ trò | Đề xuất thống nhất **24 tháng** cho mọi trò (X7) | Không định danh nếu có ngưỡng nhỏ nhất (KS-04) |
+| Tách hàng yêu cầu chia sẻ Tri Kỷ (vận hành) khỏi bằng chứng đồng ý chia sẻ (`tri_ky_share_consents`: thành viên, thời điểm, phiên bản câu chữ, `layout_version`, `card_hash`; không ảnh) | TK SRS §6.3, FR-TK-067 | Chạy luồng duyệt; chứng minh từng người đã đồng ý đúng ảnh đó (Nghị định 356 Điều 6 khoản 2) | Hàng yêu cầu: 7 ngày sau trạng thái cuối. Bằng chứng: khi lá còn, xoá khi giải tán | Phù hợp; giữ bằng chứng sau giải tán hay không là Q23, chờ counsel |
+| Số đếm tổng hợp gộp theo ngày | RP §6.3; SRS HC (`hc_metric_daily`), TS (`ts_metric_daily`), TK (bộ đếm §10); các SRS trỏ về X7 | Đo sức khoẻ trò | Theo X7 | Không định danh nếu có ngưỡng nhỏ nhất (KS-04; Tri Kỷ chặt hơn: báo cáo chỉ ô ≥ 10) |
 
 Bên nhận ngoài hợp đồng chung: **dịch vụ đẩy của hãng trình duyệt** (Apple, Google, Mozilla) nhận endpoint và payload đã mã hoá của
 thông báo Hết Cứu % (HC SRS §2, §6; mục 15; Q13). Nháp chính sách 5.2 và ma trận 7.5 đã ghi.
@@ -300,7 +307,8 @@ flowchart LR
   C -->|"chỉ A và B thấy"| B
   A -->|"giải tán im lặng"| DEL["Xoá cứng dữ liệu cặp"]
   B -->|"giải tán im lặng"| DEL
-  C -.->|"không bao giờ"| NO["Analytics, nội dung thông báo,<br/>xem trước link, Luna/AI"]
+  C -.->|"không bao giờ"| NO["Analytics theo người hay nội dung,<br/>nội dung thông báo, xem trước link, Luna/AI"]
+  C -.->|"chỉ số nguyên theo ngày,<br/>không ID (TK SRS §10)"| CNT["Bộ đếm tổng hợp"]
 ```
 
 ### 6.4. Hạ tầng và đường ra nước ngoài
@@ -357,11 +365,12 @@ Viết tắt: **CB** = dữ liệu cơ bản (Nghị định 356 Điều 3); **N
 | Tên hiển thị trong cặp [bổ sung] | Tri Kỷ | CB (tên gọi khác) | Người kia nhận ra mình | ĐY | AES-GCM, Supabase | Như lời mời / như lá | Người kia trong cặp | Đức |
 | Danh sách chặn, báo cáo lời mời [bổ sung] | Tri Kỷ | CB | An toàn, chống lạm dụng | ĐY / lợi ích an toàn (Q6) | Supabase; HMAC người mời, tên mã hoá | Chặn: tới khi bỏ chặn; báo cáo: 30 ngày | B; đội xử lý lạm dụng (báo cáo) | Đức |
 | **Lá đôi** (kết quả suy luận về quan hệ) | Tri Kỷ | **NC đề xuất** (đời sống riêng tư, Điều 4 khoản 1 điểm c) | Khoảnh khắc "được hiểu" chung | ĐY riêng của **cả hai**, báo là dữ liệu nhạy cảm (Nghị định 356 Điều 6 khoản 4) | AES-GCM, Supabase | Tới khi một người giải tán, hoặc hồ sơ một người hết hạn/bị xoá | Chỉ A và B | Đức |
-| Đồng ý chia sẻ ảnh lá | Tri Kỷ | Bản ghi đồng ý | Chỉ chia sẻ khi cả hai cùng bấm | ĐY | Supabase | Theo lá | A, B | Đức |
-| Câu trả lời Hiểu Nhau Không? (mã lựa chọn) | Tri Kỷ (sau MVP) | NC đề xuất (gắn với cặp) | Tính điểm x/7 | ĐY riêng (`tri-ky-quiz-v1`) | Supabase | Xoá sau khi hiện kết quả | A, B | Đức |
-| Điểm cao nhất của cặp (`quiz_best_score`, `quiz_best_month` [bổ sung]) | Tri Kỷ | NC đề xuất | Kỷ lục của cặp | ĐY | Supabase | Khi cặp còn | A, B | Đức |
+| Hàng yêu cầu chia sẻ ảnh lá (vận hành) | Tri Kỷ | CB | Chạy luồng xin/duyệt/xuất ảnh | ĐY (`tri-ky-share-v1`) | Supabase | 7 ngày sau trạng thái cuối (TK SRS §8) | A, B | Đức |
+| Bằng chứng đồng ý chia sẻ (`tri_ky_share_consents`: thành viên, thời điểm, phiên bản câu chữ, `layout_version`, `card_hash`; không ảnh) | Tri Kỷ | Bản ghi đồng ý | Chứng minh từng người đã đồng ý đúng ảnh đó | Nghĩa vụ Nghị định 356 Điều 6 khoản 2 | Supabase | Khi lá còn; xoá khi giải tán hoặc xoá hồ sơ; giữ lâu hơn hay không: Q23, chờ counsel | Máy chủ; A, B không xem bảng này | Đức |
+| Câu trả lời Hiểu Nhau Không? (mã lựa chọn) | Tri Kỷ (sau MVP) | NC đề xuất (gắn với cặp, đời sống riêng tư) | Tính điểm x/7 | ĐY riêng (`tri-ky-quiz-v1`), báo là dữ liệu nhạy cảm | AES-GCM, Supabase | Xoá ngay khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt hoàn tất; lượt không đủ hai người xoá sau 7 ngày; giải tán xoá hết (FR-TK-103, FR-TK-106) | A, B | Đức |
+| Điểm cao nhất của cặp (`quiz_best_score`, `quiz_best_month` [bổ sung]) | Tri Kỷ | NC đề xuất | Kỷ lục của cặp | ĐY | Supabase | Khi cặp còn; rút đồng ý đố hoặc giải tán thì xoá | A, B | Đức |
 | Log lỗi thô | Mọi trò | Không chứa dữ liệu cá nhân theo thiết kế | Vận hành | — | Hetzner | Theo chính sách log hiện hành (P08) | Operator | Đức |
-| Số đếm tổng hợp | Mọi trò | Không định danh nếu qua ngưỡng (Luật Điều 2 khoản 1) | Đo sức khoẻ sản phẩm | Không còn là dữ liệu cá nhân (đánh giá của chúng tôi, Q4) | Supabase | 24 tháng (đề xuất thống nhất; SRS HC, TS, TK hiện ghi không giới hạn, X7) | Owner, đội sản phẩm | Đức |
+| Số đếm tổng hợp | Mọi trò | Không định danh nếu qua ngưỡng (Luật Điều 2 khoản 1) | Đo sức khoẻ sản phẩm | Không còn là dữ liệu cá nhân (đánh giá của chúng tôi, Q4) | Supabase | Theo X7 (chờ owner) | Owner, đội sản phẩm | Đức |
 
 **Không thu ở bất kỳ trò Lá Úp nào:** ngày sinh, giờ sinh, nơi sinh, toạ độ, vị trí thiết bị, danh bạ, ảnh, khuôn mặt, giọng
 nói, email, số điện thoại, chữ tự do ngoài biệt danh, mã quảng cáo, dấu vân tay thiết bị (RP-PRV-01).
@@ -387,7 +396,7 @@ nói, email, số điện thoại, chữ tự do ngoài biệt danh, mã quảng
 | Đồng ý theo từng mục đích, không kèm điều kiện | Luật Điều 9 khoản 4 điểm a, b | Tách: vào phòng / hiện câu trả lời trên màn chung / thông báo đẩy / Tri Kỷ / trò đố / chia sẻ ảnh lá. Không đồng ý hiện câu trả lời vẫn chơi được bằng "Chỉ xem, không khai" (RP-FR-11, RP-FR-12) |
 | Biết rõ loại dữ liệu, mục đích, bên kiểm soát, quyền | Luật Điều 9 khoản 2 | Màn vào phòng và màn đồng ý của từng trò phải nêu: dữ liệu gì, để làm gì, ai thấy, xoá khi nào, ai là bên kiểm soát (Lá Lành), liên hệ. Câu chữ chờ owner duyệt |
 | Không mặc định đồng ý, không chỉ dẫn gây hiểu lầm | Nghị định Điều 6 khoản 3 | Ô không tick sẵn; hai nút ngang hàng, cùng cỡ (RP-FR-11) |
-| Báo rõ là dữ liệu nhạy cảm | Nghị định Điều 6 khoản 4 | Bắt buộc ở màn đồng ý Tri Kỷ của cả A và B. Câu chữ PRD Tri Kỷ hiện nói "thông tin riêng tư"; cần thêm chữ "dữ liệu nhạy cảm" hoặc câu tương đương counsel duyệt |
+| Báo rõ là dữ liệu nhạy cảm | Nghị định Điều 6 khoản 4 | Bắt buộc ở màn đồng ý Tri Kỷ của cả A và B. **Thiết kế đã thêm (26/10/2026):** câu báo "dữ liệu nhạy cảm" nằm ngay trên ô `tri-ky-pair-v1` của A và của B (TK PRD §5; FR-TK-005, FR-TK-033; G50-AC13, G51-AC16; test copy T-TK-23). Nháp: "Lá đôi là dữ liệu nhạy cảm vì nó nói về đời sống riêng tư của hai bạn. Lá Lành chỉ tạo khi cả hai cùng đồng ý, và chỉ hai bạn xem được." **Chờ owner duyệt copy, chờ counsel xác nhận đủ (Q4), test copy chưa chạy.** Trò đố có câu tương tự ngay trên ô `tri-ky-quiz-v1` |
 | Kiểm chứng được và lưu lại | Nghị định Điều 6 khoản 1–2 | Lá Lành, Hết Cứu %: lưu phiên bản, thời điểm, chủ thể (bút danh). Phòng trực tiếp: xung đột với xoá ngay (9.3) |
 | Im lặng không phải đồng ý | Luật Điều 9 khoản 4 điểm d | Không tự bật thông báo; không coi việc ở lại phòng là đồng ý hiện câu trả lời |
 | Rút đồng ý bằng định dạng kiểm chứng được | Luật Điều 10 khoản 2 | Nút trong trò: "Chỉ xem" (xoá câu trả lời), "Rời phòng", tắt thông báo, giải tán lá, "Xoá dữ liệu của tôi". Counsel xác nhận nút trong app đủ là "định dạng kiểm chứng được" với người không tài khoản (Q8) |
@@ -406,9 +415,9 @@ nói, email, số điện thoại, chữ tự do ngoài biệt danh, mã quảng
 | Làm Nhân Vật Chính tuần này | Người tự nguyện | Không tick | `hc-nvc-v1` (C-HC-02) | Rút lui trước giờ lật |
 | Giữ số của Nhân Vật Chính trong khoảnh khắc mùa | NVC | Không | `hc-moment-v1` (C-HC-03) | Bỏ giữ |
 | Thông báo (tối đa 1/tuần mỗi nhóm) | Thành viên Hết Cứu % | Tắt | `hc-push-v1` (C-HC-04) | Một chạm tắt; xoá endpoint ngay |
-| Dựng lá đôi | A và B, mỗi người riêng | Không tick | `tri-ky-pair-v1` | Giải tán |
-| Trò đố Hiểu Nhau Không? | A và B | Không tick | `tri-ky-quiz-v1` | Không chơi; giải tán |
-| Chia sẻ ảnh lá | A và B, cho đúng ảnh đó | Không | `tri-ky-share-v1` (FR-TK-060–066) | Không bấm; để hết hạn |
+| Dựng lá đôi (câu báo dữ liệu nhạy cảm ngay trên ô) | A và B, mỗi người riêng | Không tick | `tri-ky-pair-v1` | Giải tán |
+| Trò đố Hiểu Nhau Không? (câu báo dữ liệu nhạy cảm ngay trên ô) | A và B | Không tick | `tri-ky-quiz-v1` | Tắt trò đố; giải tán |
+| Chia sẻ ảnh lá | A và B, cho đúng ảnh đó | Không | `tri-ky-share-v1` (FR-TK-060–067); mỗi lần đồng ý có một bằng chứng `tri_ky_share_consents` | Không bấm; để hết hạn |
 | Cầu nối về Lá Lành | Người chơi Lá Úp | Không | Đồng ý hiện có của Lá Lành | Theo Lá Lành |
 
 ### 9.3. Xung đột: chứng minh đồng ý và xoá ngay
@@ -491,7 +500,7 @@ soát nhất quán ngày 26/10/2026 đã đối chiếu thêm SRS Phiên Tòa (P
 | KS-16 | Job xoá Hết Cứu %: % thô và phiếu lật + 72 giờ; danh hiệu hết mùa + 30 ngày; rời nhóm hoặc "Xoá dữ liệu của tôi" thì xoá ngay cả khoảnh khắc mang biệt danh của họ; biên nhận job không định danh | R12 | HC SRS §6, HC-FR-49 |
 | KS-17 | Web Push: tắt mặc định; tối đa 1 thông báo/tuần cho mỗi nhóm; nội dung là câu cố định không có biệt danh, %, kết quả; payload mã hoá theo RFC 8291; endpoint mã hoá khi lưu; xoá khi tắt, rời nhóm, nhóm bị xoá, hoặc dịch vụ trả 404/410 | R09 | HC-FR-54, HC SRS §6, T-HC-14 |
 | KS-18 | Tam Sao bản chat: link nhóm băm, thu hồi, hết hạn; chuỗi xoá 48 giờ sau lật; thẻ lật chỉ có biệt danh (của người đã tick) và chữ trong ngân hàng đề; cảnh báo "ảnh đã chia sẻ thì không thu lại được" | R03, R11, R12 | TS-FR-16, TS-FR-29, TS-FR-33, TS-FR-37, TS-FR-38, TS-FR-61, TS-FR-64, TS-FR-66; C-TS-05 |
-| KS-19 | Tri Kỷ: đồng ý riêng từng người, báo là dữ liệu nhạy cảm; API từ chối dữ liệu sinh của người khác; không Check kín; không %; mã hoá AES-GCM theo bản ghi; chỉ A và B truy cập; phân quyền và quy trình theo Nghị định 356 Điều 4 khoản 2; giải tán xoá cứng | R07, R08 | FR-TK-005, FR-TK-022, FR-TK-024, FR-TK-041, FR-TK-080–086; TK SRS §6, §7. **Còn thiếu:** câu đồng ý ở TK SRS §7 ghi "thông tin riêng tư", chưa có chữ "dữ liệu nhạy cảm" (mục 9.1) |
+| KS-19 | Tri Kỷ: đồng ý riêng từng người, báo là dữ liệu nhạy cảm ngay trên ô đồng ý của A và B; API từ chối dữ liệu sinh của người khác; không Check kín; không %; mã hoá AES-GCM theo bản ghi; chỉ A và B truy cập; phân quyền và quy trình theo Nghị định 356 Điều 4 khoản 2; giải tán xoá cứng (kể cả bằng chứng đồng ý chia sẻ và câu trả lời đố) | R07, R08 | FR-TK-005, FR-TK-022, FR-TK-024, FR-TK-033, FR-TK-041, FR-TK-067, FR-TK-080–086, FR-TK-106; TK SRS §6, §7; G50-AC13, G51-AC16; T-TK-23. **Trạng thái: thiết kế đã thêm câu "dữ liệu nhạy cảm", chờ owner/counsel duyệt copy và chờ chạy test copy. Chưa xong** |
 | KS-20 | Tri Kỷ: mời từng người qua bảng chia sẻ, không danh bạ, không chọn hàng loạt (Apple 5.1.2(v)); link hết hạn, thu hồi, token băm; B có chặn và báo cáo | R03, R07 | US-08 (mẫu link); FR-TK-007–011, FR-TK-020–021, FR-TK-120–122 |
 | KS-21 | Không AI ở MVP cho cả dòng game. Nếu thêm: chỉ nhãn vai, không tên hiển thị, lọc đầu ra, cập nhật hồ sơ này và Mẫu 09 trước khi bật | R07, R14 | README dòng game (nguyên tắc 5) |
 | KS-22 | Cầu nối về Lá Lành là link thường, không `room_id`, slot, biệt danh, tham số theo dõi hay referrer; cần đồng ý riêng ở Lá Lành; Lá Úp ở origin riêng ngoài cookie của Lá Lành | R14, R20 | RP-PRV-07, RP-D6 |
@@ -659,10 +668,12 @@ Chỉ ghi điểm làm thay đổi cách xử lý dữ liệu. Phần nhãn và 
 | X4 | Màn lật Sĩ Số +1 nêu tên người đã thì thầm ("… vì Lan đã thì thầm") | Báo cáo | Rủi ro R10. **Đề xuất DP-1, chờ owner:** màn lật nêu vai và cơ chế ("một Kẻ Bị Nhập đã thì thầm"), chỉ nêu biệt danh khi người đó tự bật lúc lật. PRD, SRS (SS-D10, SS-FR-80), story G47, bộ chơi thử giấy và nháp chính sách đã theo DP-1 |
 | X5 | Tri Kỷ sống tới khi giải tán, trong khi Radar mời có đồng ý chỉ 30 ngày | Brief; Radar spec | Giữ theo hợp đồng; giới hạn bởi vòng đời hồ sơ (Tri Kỷ PRD R9, TK-7). Counsel xem có cần hạn tối đa (Q19) |
 | X6 | Thông báo Hết Cứu %: hợp đồng nói "tối đa 1/tuần", SRS ghi "1/tuần **mỗi nhóm**" | Brief; HC-FR-54 | **Đã thống nhất trong bộ tài liệu (26/10/2026):** tối đa 1 thông báo đẩy tự bật mỗi tuần cho mỗi nhóm, câu cố định không tên, không số; Tam Sao, Phiên Tòa, Sĩ Số +1 không gửi. Một thiết bị ở tối đa 5 nhóm (HC-FR-10) nên có thể nhận tới 5 thông báo/tuần; owner có thể hạ xuống trần theo thiết bị |
-| X7 | Số đếm tổng hợp: phòng giữ 24 tháng, Hết Cứu %, Tam Sao bản chat, Tri Kỷ "không giới hạn" | RP §6.3; HC SRS §6; TS SRS §6.2; TK SRS §6.6 | Đề xuất thống nhất 24 tháng; các SRS đã ghi chú "chờ owner" |
+| X7 | Thời hạn số đếm tổng hợp theo ngày của mọi trò | RP §6.3; HC SRS §6; TS SRS §6.2; TK SRS §6.6, §10; nháp store 7.1, 7.6 | **Đây là chỗ duy nhất ghi mặc định:** đề xuất **24 tháng** cho mọi trò, **chờ owner**. HC, TS, TK SRS và nháp store trỏ về X7 thay vì ghi số riêng (26/10/2026); RP §6.3 đã ghi 24 tháng |
 | X8 | Trường ngoài hợp đồng (mục 5.7) | RP, HC, TS, SS, TK SRS | Ghi nhận ở mục 5.7, mục 7 và ma trận 7.x của nháp chính sách; chờ owner |
 | X9 | Hợp đồng không có ngưỡng nhỏ nhất cho số đếm hiện trên màn chung | Brief; RP | Đã thêm KS-04 vào RP-PRV-10, PT-PRV-03, SS-FR-81; hợp đồng chung vẫn chưa ghi, chờ owner |
 | X10 | Tri Kỷ dùng đường ray Lá Chứng, mà code tạo mới của Lá Chứng đang tắt (`la_chung_accepting_new_activity=False`) | Tri Kỷ PRD | Không ảnh hưởng hồ sơ; ghi để SRS Tri Kỷ không giả định đường ray đang chạy |
+| X11 | Câu trả lời Hiểu Nhau Không?: bản trước của hồ sơ này và nháp store ghi "xoá ngay sau khi hiện kết quả", SRS ghi "khi cả hai đã xem hoặc 7 ngày"; SRS §6.6 xếp "cơ bản", hồ sơ này xếp nhạy cảm. Đồng ý chia sẻ ghi "theo lá" trong khi SRS xoá hàng yêu cầu sau 7 ngày | Review Codex @ c1960a3 | **Đã thống nhất (26/10/2026):** câu trả lời là dữ liệu nhạy cảm vì gắn với cặp; xoá ngay khi cả hai đã xem, muộn nhất 7 ngày sau khi lượt hoàn tất; chỉ giữ kỷ lục x/7 và tháng khi cặp còn; giải tán xoá hết. Hàng yêu cầu chia sẻ xoá 7 ngày sau trạng thái cuối; bằng chứng đồng ý chia sẻ tối thiểu giữ khi lá còn, xoá khi giải tán (Q23 chờ counsel). PRD, SRS, G53–G55, hồ sơ này và nháp store đã sửa cùng lúc |
+| X12 | Nháp store từng ghi Tri Kỷ "không đo, không Analytics", trong khi PRD §6 và TK SRS §10 có bộ đếm tổng hợp theo ngày | Review Codex @ c1960a3 | **Đã thống nhất:** "không theo dõi từng người, không phân tích nội dung" khác với "bộ đếm tổng hợp không định danh". Nháp store ghi hai phương án khai Apple/Google, chờ counsel và owner |
 
 ## 21. Câu hỏi cho counsel
 
@@ -713,15 +724,19 @@ Chỉ ghi điểm làm thay đổi cách xử lý dữ liệu. Phần nhãn và 
 21. **Nhân sự bảo vệ dữ liệu.** Đơn vị có bắt buộc chỉ định theo Luật Điều 33 khoản 2 và Nghị định 356 Điều 13 không, hay được miễn?
 22. **Màn lật Sĩ Số +1.** Nêu biệt danh người đã thì thầm ở màn lật (thiết kế của báo cáo) có vấn đề về dữ liệu cá nhân hay quấy rối
     không, nếu người đó đã đồng ý luật chơi lúc vào phòng?
+23. **Tri Kỷ: bằng chứng đồng ý sau khi giải tán.** Đồng ý `tri-ky-pair-v1` (trên hàng cặp) và bằng chứng đồng ý chia sẻ
+    (`tri_ky_share_consents`: thành viên, thời điểm, phiên bản câu chữ, `layout_version`, `card_hash`, không ảnh) hiện bị xoá cùng lá
+    khi giải tán. Với Nghị định 356 Điều 6 khoản 2, có phải giữ một bản tối thiểu lâu hơn lá không, giữ bao lâu, và có mâu thuẫn với
+    lời hứa "giải tán xoá mọi dữ liệu của cặp" không? (Tri Kỷ PRD Q-L7.) **Chưa có câu trả lời.**
 
 ## 22. Việc phải làm trước khi nộp hoặc mở trò
 
 - [ ] Owner điền thông tin pháp nhân, nhân sự bảo vệ dữ liệu, liên hệ (mục 4).
-- [ ] Counsel trả lời Q1–Q22; ưu tiên Q15–Q17 (cổng KS-26), Q2, Q3, Q4, Q7.
+- [ ] Counsel trả lời Q1–Q23; ưu tiên Q15–Q17 (cổng KS-26), Q2, Q3, Q4, Q7.
 - [ ] Owner chốt D3, DP-1, X6, X7, HC-D4, RP-D3, RP-D5, RP-D6 và các trường [bổ sung] ở mục 5.7.
 - [x] Thêm KS-04 (ngưỡng nhỏ nhất cho số đếm) vào RP và SRS Sĩ Số +1, Phiên Tòa (RP-PRV-10, PT-PRV-03, SS-FR-81).
 - [x] SRS Phiên Tòa, Sĩ Số +1, Tam Sao, Tri Kỷ trích KS tương ứng ở mục 12 (đối chiếu 26/10/2026).
-- [ ] Câu đồng ý Tri Kỷ có chữ "dữ liệu nhạy cảm" (KS-19, TK SRS §7).
+- [ ] Câu đồng ý Tri Kỷ có chữ "dữ liệu nhạy cảm" ngay trên ô của A và của B (KS-19): **thiết kế đã thêm** (TK PRD §5, FR-TK-005, FR-TK-033, G50-AC13, G51-AC16, T-TK-23); còn chờ owner/counsel duyệt copy và chạy test copy.
 - [ ] Bản sao hợp đồng hoặc DPA với Hetzner, Supabase; danh sách tiểu xử lý của họ.
 - [ ] Chính sách lưu trữ và xoá bằng văn bản cho dòng game (lấy từ mục 7, mục 14).
 - [ ] Biểu mẫu đồng ý cuối cùng do owner duyệt, có chữ "dữ liệu nhạy cảm" ở Tri Kỷ.
@@ -765,7 +780,8 @@ Chỉ ghi điểm làm thay đổi cách xử lý dữ liệu. Phần nhãn và 
 - Số đếm trong phòng nhỏ có thể lộ một người: thêm KS-04 (ngưỡng nhỏ nhất); đã vào RP-PRV-10, PT-PRV-03, SS-FR-81.
 - Thông báo đẩy đi qua dịch vụ đẩy của hãng trình duyệt: ghi là bên nhận phải khai.
 - Màn lật Sĩ Số +1 nêu tên người thì thầm: đề xuất DP-1.
-- Tri Kỷ cần chữ "dữ liệu nhạy cảm" trong màn đồng ý (Nghị định 356 Điều 6 khoản 4).
+- Tri Kỷ cần chữ "dữ liệu nhạy cảm" trong màn đồng ý (Nghị định 356 Điều 6 khoản 4): thiết kế đã thêm câu ngay trên ô của A và B; chờ owner/counsel duyệt copy và test copy (KS-19).
+- Theo review Codex @ c1960a3: thống nhất hợp đồng câu trả lời đố và chia sẻ Tri Kỷ (X11), tách "không theo dõi từng người" khỏi bộ đếm tổng hợp (X12), X7 thành chỗ duy nhất ghi mặc định thời hạn số đếm; thêm Q23.
 - Trần thông báo đã thống nhất là 1/tuần mỗi nhóm, chỉ Hết Cứu % (X6). Thời hạn số đếm chưa thống nhất (X7).
 - Rà soát nhất quán 26/10/2026: thêm các trường [bổ sung] của SRS Tam Sao, Sĩ Số +1, Tri Kỷ vào mục 5.7 và mục 7; cột SRS ở mục 12
   trỏ tới ID thật; bỏ các ghi chú "SRS chưa có".
@@ -776,5 +792,5 @@ khai); R13 (hồ sơ xuyên biên giới chung); R19 (điểm l); R10 (DP-1); R2
 câu chữ Nghị định 356 mới đọc qua OCR.
 
 **AC/DoD còn thiếu:** chưa có thông tin pháp nhân và nhân sự bảo vệ dữ liệu; chưa có câu trả lời của counsel; câu đồng ý Tri
-Kỷ chưa có chữ "dữ liệu nhạy cảm"; owner chưa chốt D3, DP-1, X7, HC-D4, RP-D3, RP-D5, RP-D6 và các trường [bổ sung]; chưa có DPA trong repo; chưa có runtime để đối chiếu; data map, nhãn Apple/Google và chính sách quyền riêng tư chưa cập
+Kỷ đã có chữ "dữ liệu nhạy cảm" trong thiết kế nhưng copy chưa được owner/counsel duyệt và test copy chưa chạy (KS-19 chưa xong); owner chưa chốt D3, DP-1, X7, HC-D4, RP-D3, RP-D5, RP-D6 và các trường [bổ sung]; chưa có DPA trong repo; chưa có runtime để đối chiếu; data map, nhãn Apple/Google và chính sách quyền riêng tư chưa cập
 nhật cho dòng game.

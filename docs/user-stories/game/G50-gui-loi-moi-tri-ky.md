@@ -47,7 +47,7 @@ flowchart TD
 | Giới thiệu | Câu giới thiệu, dòng chặn hiểu sai, ba bước, ghi chú riêng tư (copy PRD §5) | Một CTA "Mời một người", phụ "Để sau". Không danh sách gợi ý |
 | Soạn | `sender_display_name` 1–32 grapheme | Mặc định tên hồ sơ nếu có; lọc từ cấm, số điện thoại, email, URL |
 | Xem trước | Bản sao đúng màn B sẽ thấy | Không hiện chart, Vibe, cung, ngày sinh của A |
-| Đồng ý | Ô `tri-ky-pair-v1` | Trống mặc định; nút tạo link tắt khi chưa tick; không chữ nhỏ che ý chính |
+| Đồng ý | Câu báo dữ liệu nhạy cảm, ngay bên dưới là ô `tri-ky-pair-v1` | Câu nằm **ngay trên** ô, không xen nội dung, nút hay liên kết nào khác (FR-TK-005). Nháp, chờ owner duyệt: "Lá đôi là dữ liệu nhạy cảm vì nó nói về đời sống riêng tư của hai bạn. Lá Lành chỉ tạo khi cả hai cùng đồng ý, và chỉ hai bạn xem được." Ô trống mặc định; nút tạo link tắt khi chưa tick; không chữ nhỏ che ý chính |
 | Gửi | "Chia sẻ", "Sao chép link", "Xong" | Share sheet đóng → quay lại màn gửi; không ghi "đã gửi". Sao chép kèm cảnh báo ai có link cũng mở được |
 | Đang chờ | Tên A chọn, ngày tạo, hạn, trạng thái | Gửi lại; thu hồi có xác nhận; không có "đã xem" |
 
@@ -81,6 +81,7 @@ Bảng `tri_ky_invites` (SRS §6.1). Endpoint: `POST /v1/tri-ky/invites`, `GET /
 - **G50-AC10:** Given A đã có 5 lời mời đang chờ hoặc 10 lá, When tạo thêm, Then nhận thông báo trung tính và không có lời mời mới.
 - **G50-AC11:** Given mọi request tạo lời mời, When payload có trường sinh hoặc ngữ cảnh khác `friend`, Then server trả 422.
 - **G50-AC12:** Given mọi màn G50, When rà copy, Then không có "crush", "nửa kia", "soulmate", "top", "thân nhất", không đếm ngược hay áp lực.
+- **G50-AC13:** Given màn đồng ý của A, When hiện, Then câu báo có chữ "dữ liệu nhạy cảm" là phần tử nằm ngay phía trên ô `tri-ky-pair-v1` đang trống (không nội dung nào chen giữa), screen reader đọc câu này trước ô, và câu không chỉ nằm trong trang chính sách; test copy T-TK-23 chạy và pass **trước khi build** màn này.
 
 ## 9. Edge cases
 
@@ -103,9 +104,9 @@ Chỉ bộ đếm server `invite_created` (SRS §10). Không sự kiện client,
 
 ## 12. Definition of Done
 
-- G50-AC01–AC12 pass; test T-TK-02, T-TK-06, T-TK-10, T-TK-11, T-TK-22 pass.
+- G50-AC01–AC13 pass; test T-TK-02, T-TK-06, T-TK-10, T-TK-11, T-TK-22, T-TK-23 pass.
 - Capability link, idempotency, phân quyền, CSRF/Origin, rate limit, race có test.
-- Copy được owner duyệt; kiểm chữ "tri kỷ" với 5–10 người đã chạy.
+- Copy được owner duyệt, gồm câu báo dữ liệu nhạy cảm (chờ owner và counsel duyệt, Q-L1); kiểm chữ "tri kỷ" với 5–10 người đã chạy.
 - **Riêng tư/store:** dòng Tri Kỷ trong `store-privacy-data-map.md` (Apple App Privacy, Google Data Safety) và chính sách quyền riêng tư đã cập nhật cho tên hiển thị, đồng ý, token; không khai "tracking".
 - Evidence native: share sheet, universal/app link giữ fragment, không quyền danh bạ — `[Pending]`.
 - Không còn P0/P1 bảo mật/riêng tư.

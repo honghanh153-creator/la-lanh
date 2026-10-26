@@ -21,6 +21,7 @@ Có phương án cài sẵn để câu trôi: đổi dấu, từ gần âm, đ�
 
 - Mỗi người gieo một chuỗi, nên có bao nhiêu người là bấy nhiêu chuỗi chạy cùng lúc.
 - Mỗi vòng, chuyền phong bì sang người bên trái. Host bấm giờ.
+- Không ai làm hai lượt của cùng một chuỗi, và người gieo không bao giờ đoán câu của mình. Bàn chỉ có 4 người thì host làm lượt 4 (Bot Sao Thủy), người thứ tư đoán gốc.
 - Lúc lật, người làm lượt 2 có thể **đọc to** câu của mình bằng giọng được giao. Ai ngại thì nói "bỏ qua".
 - Cả ván khoảng 20–25 phút cho bản giấy.
 

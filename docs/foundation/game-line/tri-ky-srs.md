@@ -17,7 +17,9 @@
 | **Lời mời** (`tri_ky_invite`) | Capability link dùng một lần, hạn 7 ngày |
 | **Lá đôi** (`tri_ky_pair`) | Bản ghi cặp + projection nội dung đã mã hoá |
 | **Kiểu đồng điệu** (`band`) | `deep`, `complementary`, `opening`. Phân loại ngang hàng, không thứ bậc |
-| **Yêu cầu chia sẻ** | Một lần xin chia sẻ một ảnh cụ thể, cần người kia duyệt |
+| **Yêu cầu chia sẻ** | Một lần xin chia sẻ một ảnh cụ thể, cần người kia duyệt. Hàng vận hành, xoá 7 ngày sau trạng thái cuối |
+| **Bằng chứng đồng ý chia sẻ** | Bản ghi tối thiểu cho mỗi lần một thành viên đồng ý chia sẻ một ảnh (ai, lúc nào, bản câu chữ, bản ảnh). Tách khỏi hàng yêu cầu chia sẻ; sống khi lá còn |
+| **Câu báo dữ liệu nhạy cảm** | Câu đặt ngay trên ô đồng ý `tri-ky-pair-v1` của A và của B, nói rõ lá đôi là dữ liệu nhạy cảm (Nghị định 356 Điều 6 khoản 4) |
 | **Lượt đố** | Một lượt Hiểu Nhau Không? (sau MVP) |
 
 Trong phạm vi: G50–G55. Ngoài phạm vi: mọi thứ ở PRD §2.2.
@@ -102,7 +104,7 @@ Ký hiệu: **P** = bắt buộc ở MVP; **L** = sau MVP; ID ổn định để
 | FR-TK-002 | A cần hồ sơ hiện tại đạt mức tối thiểu (TK-1: Level 1). Thiếu hồ sơ → dẫn sang US-02 rồi quay lại đúng màn | P |
 | FR-TK-003 | Tạo link cần A đăng nhập (TK-2). Bản nháp (tên hiển thị) giữ qua US-19; huỷ đăng nhập không tạo lời mời | P |
 | FR-TK-004 | A nhập `sender_display_name` 1–32 grapheme, lọc ký tự điều khiển/markup, mặc định từ tên hồ sơ nếu có; xem trước đúng màn B sẽ thấy | P |
-| FR-TK-005 | A tick ô đồng ý `tri-ky-pair-v1`, mặc định trống. Nút tạo link chỉ bật khi đã tick | P |
+| FR-TK-005 | A tick ô đồng ý `tri-ky-pair-v1`, mặc định trống. Nút tạo link chỉ bật khi đã tick. **Ngay trên ô** (không xen nội dung, nút hay liên kết nào khác) là câu báo dữ liệu nhạy cảm; bản nháp chờ owner duyệt: "Lá đôi là dữ liệu nhạy cảm vì nó nói về đời sống riêng tư của hai bạn. Lá Lành chỉ tạo khi cả hai cùng đồng ý, và chỉ hai bạn xem được." Câu này không chỉ nằm trong chính sách | P |
 | FR-TK-006 | Tạo lời mời idempotent theo `idempotency_key` + hash nháp; bấm hai lần chỉ có một lời mời | P |
 | FR-TK-007 | Token ≥ 256 bit ngẫu nhiên; DB giữ hash; bản mã hoá envelope chỉ để A gửi lại, xoá khi lời mời kết thúc | P |
 | FR-TK-008 | Hạn 7 × 24 giờ theo giờ server; gửi lại không kéo dài hạn | P |
@@ -127,6 +129,7 @@ Ký hiệu: **P** = bắt buộc ở MVP; **L** = sau MVP; ID ổn định để
 | FR-TK-030 | Đã có lá đang có giữa đúng hai người → không dựng lá thứ hai; trả về lá hiện có | P |
 | FR-TK-031 | Accept thành công: dựng lá trong cùng giao dịch; lỗi engine/gate → rollback, không lưu đồng ý, không lưu lá dở, lời mời vẫn `pending` | P |
 | FR-TK-032 | Sau accept: một mục hộp thư cho A (idempotent theo `pair_id`). Push chỉ khi A đã bật push và chỉ câu cố định (TK-12) | P |
+| FR-TK-033 | Màn đồng ý của B: ngay trên ô `tri-ky-pair-v1` (mặc định trống) là cùng câu báo dữ liệu nhạy cảm như FR-TK-005, không xen nội dung khác. Thiếu câu này thì không được bật nút "Đồng ý và mở lá" (kiểm bằng test copy T-TK-23) | P |
 
 ### 4.3. Lá đôi (G52)
 
@@ -149,23 +152,24 @@ Ký hiệu: **P** = bắt buộc ở MVP; **L** = sau MVP; ID ổn định để
 
 | ID | Yêu cầu | Mức |
 |---|---|---|
-| FR-TK-060 | Thành viên tạo yêu cầu chia sẻ với `layout_version` cố định; người tạo được tính là đã đồng ý (`tri-ky-share-v1`) | P |
+| FR-TK-060 | Thành viên tạo yêu cầu chia sẻ với `layout_version` cố định; người tạo được tính là đã đồng ý (`tri-ky-share-v1`) và có một bằng chứng đồng ý theo FR-TK-067 | P |
 | FR-TK-061 | Người kia thấy đúng ảnh sẽ được chia sẻ và chọn "Đồng ý chia sẻ" hoặc "Không chia sẻ". Không chọn trong 72 giờ → `expired` | P |
 | FR-TK-062 | "Không chia sẻ" và hết hạn hiện giống nhau với người xin: "Ảnh này chưa chia sẻ được." Không nói lý do, không thông báo | P |
 | FR-TK-063 | Ảnh chỉ gồm: chữ "Tri Kỷ", hai tên hiển thị, nhãn kiểu, một câu `shared` đã qua gate không nhắc cung/nguyên tố/ngày (TK-8). Không mã QR, không link, không ID | P |
 | FR-TK-064 | Ảnh dựng trên máy từ projection, không lưu ảnh trên server, không tạo URL công khai. Sau khi duyệt, hai thành viên được xuất ảnh đó trong 24 giờ; sau đó phải xin lại | P |
 | FR-TK-065 | Tối đa một yêu cầu đang chờ mỗi cặp; tối đa 3 yêu cầu mỗi cặp mỗi ngày | P |
 | FR-TK-066 | File ảnh tạm trên native ghi vào thư mục cache của app, xoá sau khi bảng chia sẻ đóng | P |
+| FR-TK-067 | Mỗi lần một thành viên đồng ý chia sẻ (người xin khi tạo yêu cầu; người kia khi bấm "Đồng ý chia sẻ"), server ghi một hàng `tri_ky_share_consents` (§6.3) trong cùng giao dịch: thành viên (`a`/`b`), thời điểm, phiên bản câu chữ đồng ý, `layout_version` và `card_hash` của đúng ảnh đã duyệt. Không ảnh, không câu trong ảnh, không tên. Hàng này không bị xoá khi hàng yêu cầu chia sẻ bị dọn (7 ngày sau trạng thái cuối); nó sống khi lá còn và bị xoá cùng lá khi giải tán hoặc xoá hồ sơ. Có phải giữ bằng chứng lâu hơn lá không là câu hỏi counsel Q-L7, **chờ counsel** | P |
 
 ### 4.5. Giải tán, rút đồng ý và xoá (G54)
 
 | ID | Yêu cầu | Mức |
 |---|---|---|
-| FR-TK-080 | Một thành viên bấm "Giải tán" và xác nhận → xoá cứng trong một giao dịch: hàng `tri_ky_pairs`, yêu cầu chia sẻ, lượt đố, kỷ lục, đồng ý theo cặp; ghi erasure journal `tri_ky_dissolved` | P |
+| FR-TK-080 | Một thành viên bấm "Giải tán" và xác nhận → xoá cứng trong một giao dịch: hàng `tri_ky_pairs`, yêu cầu chia sẻ, bằng chứng đồng ý chia sẻ, lượt đố và câu trả lời, kỷ lục, đồng ý theo cặp; ghi erasure journal `tri_ky_dissolved` | P |
 | FR-TK-081 | Không thông báo, không mục hộp thư, không push cho người kia. Người kia mở lá → 404 → "Lá này không còn", giống hệt khi hồ sơ bị xoá hay hết hạn | P |
 | FR-TK-082 | Giải tán idempotent: lần gọi thứ hai của bất kỳ thành viên nào trả cùng kết quả, không lộ ai giải tán trước | P |
 | FR-TK-083 | "Rút đồng ý" Tri Kỷ chính là giải tán; không có trạng thái "đồng ý đã rút nhưng lá còn" | P |
-| FR-TK-084 | Xoá hồ sơ khách/tài khoản của một thành viên cascade xoá mọi lá, lời mời, yêu cầu, lượt đố có người đó | P |
+| FR-TK-084 | Xoá hồ sơ khách/tài khoản của một thành viên cascade xoá mọi lá, lời mời, yêu cầu chia sẻ, bằng chứng đồng ý chia sẻ, lượt đố có người đó | P |
 | FR-TK-085 | Rút giờ/nơi sinh: áp FR-TK-047 (dựng lại với độ chính xác mới); không giữ bản dựng từ dữ liệu đã rút | P |
 | FR-TK-086 | Sau restore backup, erasure journal chạy lại để lá đã giải tán không sống lại (P07) | P |
 
@@ -173,13 +177,13 @@ Ký hiệu: **P** = bắt buộc ở MVP; **L** = sau MVP; ID ổn định để
 
 | ID | Yêu cầu | Mức |
 |---|---|---|
-| FR-TK-100 | Mỗi thành viên đồng ý riêng `tri-ky-quiz-v1` cho cặp đó trước lượt đầu; rút đồng ý → xoá lượt đang mở và kỷ lục (`tri_ky_quiz_cleared`) | L |
+| FR-TK-100 | Mỗi thành viên đồng ý riêng `tri-ky-quiz-v1` cho cặp đó trước lượt đầu; ô mặc định trống, ngay trên ô có câu nói câu trả lời gắn với cặp nên được xử lý như dữ liệu nhạy cảm (copy PRD §5); rút đồng ý → xoá lượt đang mở và kỷ lục (`tri_ky_quiz_cleared`) | L |
 | FR-TK-101 | Một lượt = 7 câu rút từ ngân hàng đã duyệt (≥ 28 câu, phiên bản cố định), không trùng bộ câu của lượt trước của cặp | L |
 | FR-TK-102 | Mỗi câu có 3–5 lựa chọn soạn sẵn; không chữ tự do. Mỗi người chọn câu của mình và đoán câu của người kia | L |
 | FR-TK-103 | Chơi không đồng bộ; lượt hết hạn sau 7 ngày nếu chưa đủ hai người → xoá câu trả lời, không tính điểm, không thông báo | L |
 | FR-TK-104 | Điểm chung của cặp `x/7`; một câu được tính theo TK-5 (mặc định: cả hai cùng đoán đúng). Không lưu, không trả điểm riêng từng người | L |
 | FR-TK-105 | Kết quả hiện cho mỗi người: từng câu với lựa chọn của hai người, dấu "hiểu nhau" cho câu được tính, `x/7`, kỷ lục của cặp | L |
-| FR-TK-106 | Xoá câu trả lời khi cả hai đã xem kết quả hoặc 7 ngày sau khi hoàn tất, cái nào tới trước. Chỉ giữ `quiz_best_score` và `quiz_best_month` (tháng/năm) | L |
+| FR-TK-106 | Câu trả lời gắn với cặp nên là **dữ liệu nhạy cảm (đời sống riêng tư)** (§6.6). Xoá câu trả lời ngay khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt hoàn tất, cái nào tới trước. Sau đó cặp chỉ còn `quiz_best_score` (x/7) và `quiz_best_month` (tháng/năm), giữ khi cặp còn. Giải tán hoặc xoá hồ sơ xoá hết (FR-TK-080, FR-TK-084) | L |
 | FR-TK-107 | Không nhắc, không push, không đếm ngược, không cooldown hiển thị, không "mỗi tháng" (TK-6). Một lượt đang mở mỗi cặp | L |
 | FR-TK-108 | Ngân hàng câu loại: ngoại hình, sức khoẻ, tình dục, tiền, gia đình, tôn giáo, vùng miền, chính trị, người thật có tên, rượu bia, tình cảm/yêu đương, "ai toxic" | L |
 
@@ -211,7 +215,7 @@ stateDiagram-v2
 |---|---|---|---|
 | Lời mời | `pending`, `accepted`, `revoked`, `expired` | như sơ đồ; mọi trạng thái cuối xoá `token_ciphertext` | Hàng lời mời cuối xoá sau 30 ngày (§8) |
 | Lá đôi | `active`, `rebuilding` | `active → rebuilding` khi hồ sơ đổi; `rebuilding → active` khi dựng lại xong | Không có `dissolved`: giải tán là xoá hàng |
-| Yêu cầu chia sẻ | `pending`, `approved`, `expired`, `cancelled` | `pending → approved` khi người kia đồng ý; `pending → expired` khi quá 72 giờ hoặc "Không chia sẻ"; người xin huỷ → `cancelled` | "Không chia sẻ" lưu thành `expired` để không phân biệt được |
+| Yêu cầu chia sẻ | `pending`, `approved`, `expired`, `cancelled` | `pending → approved` khi người kia đồng ý; `pending → expired` khi quá 72 giờ hoặc "Không chia sẻ"; người xin huỷ → `cancelled` | "Không chia sẻ" lưu thành `expired` để không phân biệt được. Hàng xoá 7 ngày sau trạng thái cuối (`approved` tính từ hết `export_until`); bằng chứng đồng ý (§6.3) không xoá theo |
 | Lượt đố | `open`, `completed`, `expired` | `open → completed` khi đủ hai người; `open → expired` sau 7 ngày | Câu trả lời xoá theo FR-TK-106 |
 
 ## 6. Mô hình dữ liệu (theo hợp đồng dữ liệu chung, brief 26/10/2026)
@@ -255,9 +259,11 @@ Mọi bảng bật RLS, không grant cho PUBLIC/anon/authenticated, server dùng
 
 `band`, nội dung, evidence **không** có cột plaintext. Không truy vấn SQL nào nhóm theo kiểu đồng điệu được.
 
-### 6.3. `tri_ky_share_requests`
+### 6.3. `tri_ky_share_requests` và `tri_ky_share_consents`
 
-`id`, `pair_id` FK cascade, `requester` (`a|b`), `layout_version`, `status`, `created_at`, `expires_at` (72 giờ), `approved_at`, `export_until` (24 giờ sau duyệt). Không lưu ảnh.
+`tri_ky_share_requests` (hàng vận hành): `id`, `pair_id` FK cascade, `requester` (`a|b`), `layout_version`, `status`, `created_at`, `expires_at` (72 giờ), `approved_at`, `export_until` (24 giờ sau duyệt), `terminal_at`. Không lưu ảnh. Hàng xoá 7 ngày sau `terminal_at` (§8).
+
+`tri_ky_share_consents` (bằng chứng đồng ý, FR-TK-067): `id`, `pair_id` FK cascade, `member` (`a|b`), `consent_version` (`tri-ky-share-v1`), `consented_at`, `layout_version`, `card_hash` (HMAC theo khoá server của projection ảnh đã duyệt; không đảo ngược ra nội dung). Không có `request_id` để hàng này không phụ thuộc hàng vận hành; không ảnh, không câu, không tên, không IP. Sống khi lá còn; xoá cùng lá (giải tán, xoá hồ sơ). Giữ sau giải tán hay không: **chờ counsel** (Q-L7).
 
 ### 6.4. `tri_ky_quiz_rounds` (L)
 
@@ -274,16 +280,18 @@ Mọi bảng bật RLS, không grant cho PUBLIC/anon/authenticated, server dùng
 |---|---|---|---|---|
 | Hồ sơ sinh của A, B | Có sẵn trong domain birth, mỗi người tự khai | Dựng lá | Theo inventory hiện có | Theo hồ sơ |
 | Tên hiển thị trong cặp **[bổ sung]** | Người dùng nhập | Hiện cho người kia | Cơ bản | Như lá / lời mời |
-| Đồng ý theo cặp, chia sẻ, đố | Hành động người dùng | Chứng minh đồng ý | Cơ bản | Như đối tượng được đồng ý |
+| Đồng ý theo cặp (`tri-ky-pair-v1`, trên hàng cặp) và đồng ý đố (`tri-ky-quiz-v1`) | Hành động người dùng | Chứng minh đồng ý | Cơ bản (bản ghi đồng ý) | Tới khi giải tán hoặc hồ sơ bị xoá; giữ lâu hơn hay không: chờ counsel (Q-L7) |
+| Hàng yêu cầu chia sẻ (vận hành) | Hành động người dùng | Chạy luồng duyệt và xuất ảnh | Cơ bản | 7 ngày sau trạng thái cuối |
+| Bằng chứng đồng ý chia sẻ (`tri_ky_share_consents`: thành viên, thời điểm, phiên bản câu chữ, `layout_version`, `card_hash`; không ảnh) | Hệ thống ghi khi người dùng đồng ý | Chứng minh từng người đã đồng ý đúng ảnh đó | Cơ bản (bản ghi đồng ý) | Khi lá còn; xoá khi giải tán hoặc hồ sơ bị xoá; giữ lâu hơn hay không: chờ counsel (Q-L7) |
 | Lá đôi (kiểu, ba khối, evidence) | Suy luận từ hai hồ sơ | Hiện cho hai người | **Nhạy cảm (đời sống riêng tư)** cho tới khi luật sư trả lời Q-L1 | Tới khi giải tán hoặc hồ sơ hết hạn/xoá |
 | Quan hệ "A có lá với B" | Suy ra từ hàng cặp | Phân quyền | **Nhạy cảm** (đồ thị quan hệ) | Như lá |
-| Câu trả lời đố | Người dùng chọn | Tính điểm lượt | Cơ bản (sở thích vô hại) | Tới khi cả hai xem hoặc 7 ngày |
-| Kỷ lục đố (`quiz_best_score`; `quiz_best_month` **[bổ sung]**) | Suy ra | Hiện cho hai người | Như lá | Như lá |
+| Câu trả lời đố (mã lựa chọn, gắn với cặp) | Người dùng chọn | Tính điểm lượt | **Nhạy cảm (đời sống riêng tư)** vì gắn với một cặp cụ thể, dù từng câu là sở thích vô hại | Xoá ngay khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt hoàn tất; lượt không đủ hai người xoá sau 7 ngày; giải tán xoá hết |
+| Kỷ lục đố (`quiz_best_score` x/7; `quiz_best_month` **[bổ sung]**) | Suy ra | Hiện cho hai người | Nhạy cảm (như lá) | Khi cặp còn; rút đồng ý đố hoặc giải tán thì xoá |
 | Danh sách chặn (HMAC người mời + tên A lúc chặn, mã hoá) **[bổ sung]** | Hành động người dùng | An toàn | Cơ bản | Tới khi bỏ chặn |
 | Báo cáo lời mời **[bổ sung]** | Hành động người dùng | Xử lý lạm dụng | Cơ bản | 30 ngày |
 | Hàng lời mời đã kết thúc **[bổ sung: giữ 30 ngày]** | Hệ thống | Chống lạm dụng (như US-08/US-09) | Cơ bản | 30 ngày sau trạng thái cuối |
 | Token, binding, idempotency | Hệ thống | Bảo mật | Bí mật kỹ thuật | Như lời mời |
-| Bộ đếm tổng hợp | Hệ thống | Chỉ số PRD §6 | Không định danh | Không giới hạn, không có ID (DPIA X7 đề xuất 24 tháng — chờ owner) |
+| Bộ đếm tổng hợp theo ngày (danh sách ở §10) | Hệ thống | Chỉ số PRD §6 | Không định danh: không ID người/cặp, không kiểu, không nội dung; ẩn ô nhỏ theo §10 | Theo DPIA X7 (mặc định nằm ở đó, chờ owner) |
 
 Không thu: danh bạ, số điện thoại, email người nhận, vị trí hiện tại, ảnh, giọng, chữ tự do ngoài tên hiển thị, ID quảng cáo.
 
@@ -291,11 +299,11 @@ Không thu: danh bạ, số điện thoại, email người nhận, vị trí hi
 
 | Version | Ai | Khi nào | Nội dung tối thiểu (copy nháp ở PRD §5, chờ owner và luật sư) | Rút thế nào |
 |---|---|---|---|---|
-| `tri-ky-pair-v1` | A khi tạo link; B khi nhận | Ngay trước hành động | Mục đích (dựng lá Tri Kỷ với người cụ thể), dữ liệu dùng (hồ sơ sinh của tôi), ai thấy (chỉ hai người), là thông tin riêng tư về hai người, giữ tới khi một người giải tán, xoá thế nào | Giải tán |
-| `tri-ky-share-v1` | Từng người cho từng ảnh | Khi xin/duyệt chia sẻ | Ảnh gồm gì, ai sẽ thấy là người nhận ảnh, ảnh ra ngoài không thu lại được | Không duyệt / để hết hạn |
-| `tri-ky-quiz-v1` (L) | Từng người cho từng cặp | Trước lượt đầu | Lưu câu chọn cho lượt chơi, xoá sau khi xem, chỉ giữ kỷ lục của cặp | Tắt trong cài đặt cặp |
+| `tri-ky-pair-v1` | A khi tạo link; B khi nhận | Ngay trước hành động | Câu báo dữ liệu nhạy cảm đặt **ngay trên ô** (FR-TK-005, FR-TK-033); mục đích (dựng lá Tri Kỷ với người cụ thể), dữ liệu dùng (hồ sơ sinh của tôi), ai thấy (chỉ hai người), giữ tới khi một người giải tán, xoá thế nào | Giải tán |
+| `tri-ky-share-v1` | Từng người cho từng ảnh | Khi xin/duyệt chia sẻ | Ảnh gồm gì, ai sẽ thấy là người nhận ảnh, ảnh ra ngoài không thu lại được. Mỗi lần đồng ý ghi một bằng chứng `tri_ky_share_consents` (FR-TK-067) | Không duyệt / để hết hạn (ảnh đã xuất thì không thu lại được) |
+| `tri-ky-quiz-v1` (L) | Từng người cho từng cặp | Trước lượt đầu | Câu trả lời gắn với cặp nên xử lý như dữ liệu nhạy cảm; lưu câu chọn cho lượt chơi; xoá khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt xong; chỉ giữ kỷ lục x/7 của cặp | Tắt trong cài đặt cặp |
 
-Luật: ô đồng ý mặc định trống; nút đồng ý và nút từ chối cùng kích thước và độ rõ; từ chối không chặn dùng phần còn lại của app; mỗi version lưu kèm thời điểm; đổi nghĩa copy = version mới. Đồng ý hồ sơ sinh (US-01/US-02) không thay cho `tri-ky-pair-v1`.
+Luật: ô đồng ý mặc định trống; với `tri-ky-pair-v1`, câu báo dữ liệu nhạy cảm nằm ngay trên ô ở cả màn của A và màn của B, và có test copy trước khi build (T-TK-23); nút đồng ý và nút từ chối cùng kích thước và độ rõ; từ chối không chặn dùng phần còn lại của app; mỗi version lưu kèm thời điểm; đổi nghĩa copy = version mới. Đồng ý hồ sơ sinh (US-01/US-02) không thay cho `tri-ky-pair-v1`.
 
 ## 8. Lưu trữ và xoá
 
@@ -304,9 +312,11 @@ Luật: ô đồng ý mặc định trống; nút đồng ý và nút từ chố
 | Lời mời `pending` | 7 ngày | Hết hạn → `expired`; `token_ciphertext` NULL |
 | Hàng lời mời cuối | 30 ngày sau `terminal_at` (như US-08/US-09 cho chống lạm dụng) | Dọn dẹp sáu giờ |
 | Lá đôi | Tới khi một thành viên giải tán, hoặc hồ sơ của một thành viên bị xoá/hết hạn (30 ngày không hoạt động với khách, 365 ngày với tài khoản liên kết) (TK-7) | FR-TK-080, FR-TK-084 |
-| Yêu cầu chia sẻ | 72 giờ chờ; 24 giờ xuất sau duyệt; hàng xoá 7 ngày sau trạng thái cuối | Dọn dẹp |
-| Lượt đố | FR-TK-103, FR-TK-106 | Dọn dẹp |
-| Kỷ lục đố | Như lá; rút đồng ý đố thì xoá | FR-TK-100 |
+| Yêu cầu chia sẻ (hàng vận hành) | 72 giờ chờ; 24 giờ xuất sau duyệt; hàng xoá 7 ngày sau trạng thái cuối | Dọn dẹp |
+| Bằng chứng đồng ý chia sẻ | Khi lá còn; xoá cùng lá. Giữ sau giải tán hay không: chờ counsel (Q-L7) | FR-TK-080, FR-TK-084 |
+| Câu trả lời đố | Xoá ngay khi cả hai đã xem kết quả, muộn nhất 7 ngày sau khi lượt hoàn tất (FR-TK-106); lượt không đủ hai người xoá sau 7 ngày (FR-TK-103) | Dọn dẹp |
+| Kỷ lục đố (x/7, tháng) | Khi cặp còn; rút đồng ý đố hoặc giải tán thì xoá | FR-TK-100, FR-TK-080 |
+| Bộ đếm tổng hợp | Theo DPIA X7 (chờ owner) | Dọn dẹp |
 | Chặn | Tới khi bỏ chặn/hồ sơ xoá | Người dùng |
 | Báo cáo | 30 ngày | Dọn dẹp |
 | Erasure journal | 15 ngày mặc định (P07) | Theo P07 |
@@ -322,7 +332,7 @@ Baseline: OWASP ASVS cho API/web, OWASP MASVS/MASTG cho app native (theo AGENTS.
 | Xác thực/phân quyền | Mọi route riêng xác định thành viên từ credential server-side; không nhận `member_id`/`principal_id` từ client. ID đoán, của người khác, đã xoá → cùng 404 |
 | CSRF/Origin | Mọi mutation: trusted Origin + CSRF; public accept dùng phiên khách + CSRF |
 | Capability link | 256 bit, `token_urlsafe(32)`; link dạng `https://<host>/tri-ky/i#<token>`; client đọc fragment, xoá fragment khỏi lịch sử (`history.replaceState`) rồi POST token trong body; server kiểm hình dạng trước khi tra hash; dùng một lần; thu hồi; hạn 7 ngày |
-| Header | `_safe_public` cho mọi route công khai và trang landing HTML: `no-store`, `no-referrer`, `noindex, nofollow, noarchive`, CSP chặt, không script bên thứ ba |
+| Header | `_safe_public` cho mọi route công khai và trang landing HTML: `no-store`, `no-referrer`, `noindex, nofollow, noarchive`, CSP chặt, không script bên thứ ba. Vì token nằm trong fragment, request HTTP chỉ tới **đúng đường `/tri-ky/i`** (không dấu `/` cuối, không token trong path). Luật header phải khớp chính xác `/tri-ky/i` (và `/tri-ky/i/` nếu router chuẩn hoá dấu `/`, cùng mọi route con thật nếu sau này có); mẫu `/tri-ky/i/*` một mình không khớp `/tri-ky/i`. Kiểm riêng, không thay bằng kiểm header API: HTML cuối cùng trả cho trình duyệt; mọi redirect và trang lỗi trên đường đó; service worker không cache và không trả từ cache đường đó (kể cả app shell/navigation fallback). Header API `/v1/public/tri-ky/*` kiểm riêng (T-TK-11) |
 | Rate limit | Tạo lời mời (5 đang chờ, 10/ngày), xem trước và accept theo IP-bucket và phiên (chống dò), báo cáo, yêu cầu chia sẻ, lượt đố; cần giới hạn phân tán ở edge trước public launch (như chart-synthesis runbook) |
 | Đầu vào | Pydantic `extra=forbid`; enum đóng; giới hạn grapheme; lọc tên hiển thị (FR-TK-122) |
 | Mật mã | AES-GCM envelope theo context bản ghi; khoá quản lý như hiện tại; HMAC cho token, cặp, chặn, idempotency; không tự chế thuật toán |
@@ -350,7 +360,12 @@ Baseline: OWASP ASVS cho API/web, OWASP MASVS/MASTG cho app native (theo AGENTS.
 ## 10. Quyền riêng tư
 
 - **Tối thiểu hoá:** không dữ liệu sinh mới; chỉ tên hiển thị là chữ do người dùng nhập.
-- **Analytics:** không sự kiện client cho Tri Kỷ. Server tăng bộ đếm theo ngày cho: `invite_created`, `invite_accepted`, `pair_built`, `invite_profile_created_in_flow`, `share_requested`, `share_approved`, `pair_dissolved_lt30d`, `pair_dissolved_ge30d`, `invite_reported{reason}`, `inviter_blocked`, `build_failed{code}`. Không ID, không kiểu đồng điệu, không điểm đố. Báo cáo chỉ ô ≥ 10.
+- **Không theo dõi từng người, không phân tích nội dung; chỉ có bộ đếm tổng hợp.** Không sự kiện client, không SDK, không ID người/cặp/lời mời, không kiểu đồng điệu, không nội dung lá, không câu trả lời hay điểm đố. Đây là **danh sách chuẩn** của bộ đếm Tri Kỷ; PRD §6, DPIA và nháp store trỏ về đây:
+  - **Trường:** server tăng một số nguyên theo ngày (giờ `Asia/Ho_Chi_Minh`) cho `invite_created`, `invite_accepted`, `pair_built`, `invite_profile_created_in_flow`, `share_requested`, `share_approved`, `pair_dissolved_lt30d`, `pair_dissolved_ge30d`, `invite_reported{reason}`, `inviter_blocked`, `build_failed{code}`. Không lưu sự kiện từng lần, chỉ lưu số đếm của ngày.
+  - **Mục đích:** đo sức khoẻ luồng mời và guardrail an toàn (PRD §6); không dùng để nhắm ai, không nối với dữ liệu khác.
+  - **Ngưỡng ô nhỏ:** mọi số đếm theo ngày < 3 bị ẩn trong báo cáo (sàn chung KS-04 của DPIA). Tri Kỷ chặt hơn: báo cáo chỉ hiện một ô khi ô đó ≥ 10, ô nhỏ hơn hiện là "< 10", vì đây là dữ liệu về quan hệ.
+  - **Thời hạn:** theo DPIA X7 (mặc định nằm ở đó, chờ owner).
+  - **Nhãn store:** có phải khai các bộ đếm này là Analytics "Not linked" hay không phụ thuộc counsel; nháp store ghi hai phương án, chờ quyết định.
 - **Thông báo:** hộp thư trong app được hiện tên người kia (đã đăng nhập, trong app). Push nếu có: một câu cố định "Có cập nhật mới trong Lá Lành", không tên, không kiểu, không chữ "Tri Kỷ". Không thông báo khi giải tán, từ chối, hết hạn, chặn, báo cáo.
 - **Xem trước link:** không có link công khai cho lá hay ảnh. Link mời không có OG tag mô tả nội dung, không ảnh xem trước; tiêu đề trang chung "Lá Lành".
 - **Bên thứ ba:** không gửi gì cho OpenAI/Luna (TK-10); không SDK quảng cáo/analytics. Hosting như hiện tại (Hetzner Đức, Supabase Frankfurt), thuộc hồ sơ chuyển dữ liệu ra nước ngoài #52.
@@ -428,11 +443,11 @@ Ghi chú `dissolve`: để không lộ ai giải tán trước, phản hồi cho
 | T-TK-04 | Projection không bao giờ chọn motif `attraction`; ngữ cảnh khác `friend` bị từ chối | Unit |
 | T-TK-05 | Accept: dưới 18, tự nhận, bị chặn, đã có lá, binding sai, consent thiếu/sai version → không có hàng mới | API |
 | T-TK-06 | Race accept/accept, accept/revoke, accept/expire → đúng một kết quả | Integration |
-| T-TK-07 | Giải tán: sau giao dịch không còn hàng `tri_ky_pairs`, `share_requests`, `quiz_rounds` của cặp; có journal `tri_ky_dissolved`; người kia nhận 404 giống ID ngẫu nhiên | Integration |
+| T-TK-07 | Giải tán: sau giao dịch không còn hàng `tri_ky_pairs`, `share_requests`, `share_consents`, `quiz_rounds` của cặp; có journal `tri_ky_dissolved`; người kia nhận 404 giống ID ngẫu nhiên | Integration |
 | T-TK-08 | Không có outbox/push/inbox nào được tạo khi giải tán, từ chối, hết hạn, chặn, báo cáo | Integration |
 | T-TK-09 | Nội dung push (nếu bật) đúng chuỗi cố định; không chứa tên/kiểu/"Tri Kỷ" | Unit |
 | T-TK-10 | Canary log/APM/crash: chạy luồng đầy đủ với giá trị đánh dấu; không tìm thấy token, fragment, tên hiển thị, kiểu, nội dung | Privacy |
-| T-TK-11 | Header công khai đúng `_safe_public`; không route GET nào nhận token | Security |
+| T-TK-11 | Header công khai đúng `_safe_public` trên **đường chính xác** `/tri-ky/i`: HTML cuối, redirect, trang lỗi, phản hồi qua service worker; header API `/v1/public/tri-ky/*` kiểm riêng; không route GET nào nhận token | Security |
 | T-TK-12 | Danh sách lá sắp theo `created_at`, không chứa kiểu đồng điệu | Contract |
 | T-TK-13 | Chia sẻ: thiếu duyệt của người kia thì không có `export_until`; "Không chia sẻ" và hết hạn trả cùng trạng thái cho người xin | API |
 | T-TK-14 | Ảnh chia sẻ: render từ fixture; không chứa ngày, cung, nguyên tố, URL, QR | Visual/unit |
@@ -440,10 +455,12 @@ Ghi chú `dissolve`: để không lộ ai giải tán trước, phản hồi cho
 | T-TK-16 | Xoá hồ sơ một thành viên cascade xoá lá, lời mời, yêu cầu, lượt đố | Integration |
 | T-TK-17 | Restore backup cũ + chạy erasure journal → lá đã giải tán không sống lại | Rehearsal (operator) |
 | T-TK-18 | Không UI Tri Kỷ nào có bộ đếm ngày/streak/huy hiệu; giữ `growth.test.ts` xanh | UI |
-| T-TK-19 | Bộ đếm tổng hợp không có cột ID; ô < 10 bị ẩn khi báo cáo | Privacy |
-| T-TK-20 (L) | Đố: không trả điểm riêng; xoá câu trả lời đúng điều kiện FR-TK-106; kỷ lục chỉ tăng | Integration |
+| T-TK-19 | Bộ đếm tổng hợp không có cột ID và không lưu sự kiện từng lần; ô < 3 luôn bị ẩn (KS-04) và báo cáo Tri Kỷ chỉ hiện ô ≥ 10 (§10) | Privacy |
+| T-TK-20 (L) | Đố: không trả điểm riêng; xoá câu trả lời ngay khi cả hai đã xem, hoặc đúng 7 ngày sau khi hoàn tất nếu chưa đủ hai người xem (FR-TK-106); kỷ lục chỉ tăng; giải tán xoá hết | Integration |
 | T-TK-21 | Native: lá không có trong storage bền; file ảnh tạm bị xoá; universal link giữ fragment | Device (MASVS) |
 | T-TK-22 | Rate limit tạo/xem trước/accept/báo cáo trả 429 trung tính | Security |
+| T-TK-23 | Test copy (chạy trước khi build và trong CI UI): ở màn đồng ý của A và của B, câu báo dữ liệu nhạy cảm là phần tử ngay phía trên ô `tri-ky-pair-v1` trống, có chữ "dữ liệu nhạy cảm", đọc được bằng screen reader trước ô; thiếu câu thì nút đồng ý không bật | UI/copy |
+| T-TK-24 | Bằng chứng đồng ý chia sẻ: mỗi lần đồng ý có đúng một hàng `tri_ky_share_consents`, không có ảnh/câu/tên; hàng còn sau khi hàng yêu cầu chia sẻ bị dọn sau 7 ngày; giải tán và xoá hồ sơ xoá hàng này | Integration |
 
 ## 15. Bàn giao theo AGENTS.md
 
@@ -451,6 +468,8 @@ Ghi chú `dissolve`: để không lộ ai giải tán trước, phản hồi cho
 
 **Phát hiện đã sửa trong thiết kế:** SRS tách domain riêng thay vì thêm mode vào `radar_requests`; bỏ ba chỉ báo số; chặn trường sinh ở schema (Check kín); token trong fragment và đổi bằng POST; xem trước không trả nhãn riêng; giải tán không lộ ai giải tán; "Không chia sẻ" lưu như hết hạn; trò đố chỉ điểm chung.
 
-**Rủi ro chưa giải quyết:** universal link có giữ fragment trên iOS/Android chưa kiểm; ngưỡng `tri-ky-band-v1` chưa có dữ liệu golden; cách hiện thực FR-TK-082 (tombstone vs journal) chưa chọn; xem trước Radar/Lá Chứng hiện trả `recipient_label` cho người cầm link (follow-up riêng); các câu hỏi luật sư Q-L1–Q-L6.
+**Rà lại theo review Codex @ c1960a3 (26/10/2026):** thống nhất một hợp đồng cho câu trả lời đố (nhạy cảm vì gắn với cặp; xoá khi cả hai đã xem, muộn nhất 7 ngày; chỉ giữ kỷ lục) và cho chia sẻ (hàng vận hành xoá 7 ngày sau trạng thái cuối; bằng chứng đồng ý tối thiểu `tri_ky_share_consents` sống khi lá còn, Q-L7 chờ counsel); thêm câu báo dữ liệu nhạy cảm ngay trên ô đồng ý của A và B (FR-TK-005, FR-TK-033, T-TK-23); §10 thành danh sách chuẩn của bộ đếm tổng hợp, ngưỡng ô nhỏ và thời hạn trỏ DPIA X7; header theo đường chính xác `/tri-ky/i`.
+
+**Rủi ro chưa giải quyết:** universal link có giữ fragment trên iOS/Android chưa kiểm; ngưỡng `tri-ky-band-v1` chưa có dữ liệu golden; cách hiện thực FR-TK-082 (tombstone vs journal) chưa chọn; xem trước Radar/Lá Chứng hiện trả `recipient_label` cho người cầm link (follow-up riêng); các câu hỏi luật sư Q-L1–Q-L7.
 
 **AC/DoD còn thiếu:** toàn bộ triển khai; quyết định D5, TK-1–TK-12; copy và lexicon chờ owner; DPIA và nháp store label/chính sách đã đối chiếu với §6.6 (26/10/2026) nhưng chưa được owner, counsel duyệt; data map và trang `/privacy` hiện có chưa cập nhật; evidence native chưa có.

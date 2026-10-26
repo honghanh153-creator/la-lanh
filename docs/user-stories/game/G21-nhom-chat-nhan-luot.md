@@ -67,7 +67,7 @@ TS-FR-15–30. Mỗi chuỗi có một bước sẵn sàng tại một thời đ
 - **G21-AC03:** Given hai thành viên bấm "Nhận một lượt" cùng lúc và chỉ còn một bước phù hợp, Then đúng một người giữ bước đó; người kia nhận bước khác hoặc "Chưa có lượt cho bạn".
 - **G21-AC04:** Given giữ lượt, When quá 10 phút không nộp, Then bước trở lại `ready`; Given bấm "Thêm 10 phút" lần hai, Then bị từ chối; nộp sau khi lease hết bị từ chối.
 - **G21-AC05:** Given thành viên đã làm bất kỳ bước nào của chuỗi X, Then máy chủ không bao giờ giao thêm bước nào của X cho họ; và họ chỉ gieo được một chuỗi.
-- **G21-AC06:** Given bước sẵn sàng 3 giờ không có ai nộp, Then Bot điền trong ≤ 2 phút và bước ghi `bot_filled`; Given không còn thành viên nào đủ điều kiện cho bước, Then Bot điền ngay.
+- **G21-AC06:** Given bước sẵn sàng 3 giờ không có ai nộp, Then Bot điền trong ≤ 2 phút và bước ghi `bot_filled`; Given không còn thành viên nào đủ điều kiện cho bước, Then Bot điền ngay; Given bước 4 sẵn sàng mà chỉ còn đúng một thành viên đủ điều kiện, Then Bot điền bước 4 ngay và bước 5 được giao cho thành viên đó, không bao giờ cho người gieo (TS-FR-23).
 - **G21-AC07:** Given đồng hồ giả tới giờ lật khi còn bước thiếu, Then Bot điền mọi bước thiếu và ván `revealed` trong ≤ 2 phút; Given mọi chuỗi xong sớm, Then host thấy "Lật ngay".
 - **G21-AC08:** Given bước chờ quá 1 giờ, Then host sao chép được câu nhắc cố định đúng một lần cho bước đó; câu không chứa biệt danh, không chứa link, không chứa token.
 - **G21-AC09:** Given toàn bộ ván, Then không có yêu cầu quyền thông báo, không lưu địa chỉ nhận thông báo, không gửi email hay tin nhắn nào từ máy chủ.
@@ -80,7 +80,7 @@ TS-FR-15–30. Mỗi chuỗi có một bước sẵn sàng tại một thời đ
 
 | Tình huống | Xử lý |
 |---|---|
-| Nhóm 4 người | Bước 4 thường không còn ai đủ điều kiện → Bot điền ngay (TS-FR-23) |
+| Nhóm 4 người, hoặc bước 4 chỉ còn một người đủ điều kiện | Bot điền bước 4 ngay; người còn lại được giữ cho bước 5, nên người gieo không bao giờ đoán gốc (TS-FR-23) |
 | Thành viên mở link trong trình duyệt nhúng của Zalo, mất cookie | Thành thành viên mới nếu còn chỗ; bước cũ thành "Người đã rời" |
 | Host xoá cookie | Mất quyền host; ván vẫn chạy tới giờ lật và tự xoá (TS-FR-57) |
 | Một người nhận lượt liên tục rồi bỏ | Lease 10 phút, gia hạn 1 lần, 30 lượt/giờ; Bot điền khi quá hạn |

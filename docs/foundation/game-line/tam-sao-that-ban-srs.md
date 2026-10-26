@@ -44,7 +44,7 @@ Giờ hiển thị theo `Asia/Ho_Chi_Minh`; máy chủ lưu UTC. Đồng hồ b�
 | TS-FR-02 | Vào phòng theo RP-FR-10–18 với bản đồng ý rút gọn cho trò không khai báo (ô 18+) **cộng** hai ô riêng của Tam Sao, đều không tick sẵn và không bắt buộc để chơi: "Hiện biệt danh của tôi ở từng bước khi phát lại" (`show_name_on_screen`) và "Cho biệt danh của tôi nằm trên thẻ lật để chia sẻ ra ngoài" (`show_name_on_card`). Chữ ở §8.2 |
 | TS-FR-03 | Phòng > 12 người chia bàn 4–6 người theo RP-FR-33(b): người chơi tự chọn bàn trong sảnh; khi host bấm bắt đầu, máy chủ cân lại để mọi bàn có 4–6 người (chuyển ít người nhất, người tự chọn trước được giữ trước). Phòng ≤ 12 là một bàn |
 | TS-FR-04 | Bước 1: mỗi người nhận 3 thông điệp gốc khác ý định, rút ngẫu nhiên an toàn từ ngân hàng, không trùng ý định với người khác cùng bàn khi ngân hàng đủ. Chọn 1 trong 10 giây (nhịp thường) |
-| TS-FR-05 | Xoay vòng: bàn có N người, chuỗi j do người j gieo; ở vòng r ∈ {0..4}, người i làm chuỗi (i − r) mod N. Bàn 4 người: vòng 3 (bước 4) do Bot điền cho mọi chuỗi; người chơi làm vòng 0, 1, 2, 4 (TS-D3). Không ai làm hai bước của cùng một chuỗi |
+| TS-FR-05 | Xoay vòng: bàn có N người (4–6) lúc bắt đầu, đánh số 0…N−1 theo thứ tự trong bàn; chuỗi j do người j gieo. Bước s (1–5) của chuỗi j do người (j + o(s)) mod N làm. Độ lệch o: N = 5 hoặc 6 → 0, 1, 2, 3, 4; **N = 4 → 0, 1, 2, Bot, 3**, tức bước 4 do Bot Sao Thủy điền cho mọi chuỗi (có nhãn) và bước 5 do người (j + 3) mod 4 làm (TS-D3). Nói cách khác, ở bước s người i làm chuỗi (i − o(s)) mod N. **Bất biến:** không ai làm hai bước của cùng một chuỗi; người gieo không bao giờ làm bước 5 (đoán gốc). Bảng phân công ở §3.1.1. Người rời giữa ván không làm đổi bảng: bước còn lại của họ do Bot điền (TS-FR-13) |
 | TS-FR-06 | Bước 2: người chơi chỉ nhận chip ý định + sắc thái của chuỗi và một giọng V được giao ngẫu nhiên; chọn 1 trong 4 phương án (TS-FR-42). 20 giây |
 | TS-FR-07 | Bước 3: chỉ nhận câu bước 2; chọn mood (8) và độ mạnh (1–3). 15 giây. Nếu "đọc to" bật: màn bước 2 của người trước hiện thêm nút "Đọc to câu này" (chỉ nhắc, không ghi âm, không dùng micro); người chơi bỏ qua được |
 | TS-FR-08 | Bước 4: chỉ nhận mood + độ mạnh; giọng V' ≠ V; chọn 1 trong 4 câu (TS-FR-43). 20 giây |
@@ -54,6 +54,46 @@ Giờ hiển thị theo `Asia/Ho_Chi_Minh`; máy chủ lưu UTC. Đồng hồ b�
 | TS-FR-12 | Người vào sau khi bắt đầu, và người bấm "Chỉ xem", là khán giả (RP-FR-16, RP-FR-83): không làm bước, bỏ phiếu khán giả ở màn lật |
 | TS-FR-13 | Người chơi rời hoặc bị kick giữa ván: các bước còn lại của họ do Bot điền; bước đã làm giữ dưới nhãn "Người đã rời" (RP-FR-81/82) |
 | TS-FR-14 | Điện thoại chỉ nhận dữ liệu của bước mình đang làm. Không API nào trả chuỗi khác hoặc các bước trước bước liền kề trước khi lật |
+
+#### 3.1.1. Bảng phân công theo TS-FR-05
+
+Ký hiệu: P1…PN là người trong bàn (P1 = người số 0); Cj là chuỗi do Pj gieo. Mỗi ô ghi chuỗi người đó làm ở bước đó. Bảng được kiểm bằng script (26/10/2026) theo ba điều: không ai làm hai bước của một chuỗi; người gieo không làm bước 5; ở mỗi bước có người, mỗi người làm đúng một chuỗi.
+
+**N = 4** (bước 4 là Bot cho mọi chuỗi)
+
+| Người | B1 Gieo | B2 Diễn đạt | B3 Bắt mood | B4 Nói lại | B5 Đoán gốc |
+|---|---|---|---|---|---|
+| P1 | C1 | C4 | C3 | Bot | C2 |
+| P2 | C2 | C1 | C4 | Bot | C3 |
+| P3 | C3 | C2 | C1 | Bot | C4 |
+| P4 | C4 | C3 | C2 | Bot | C1 |
+
+Theo chuỗi: C1 = P1 → P2 → P3 → Bot → P4; C2 = P2 → P3 → P4 → Bot → P1; C3 = P3 → P4 → P1 → Bot → P2; C4 = P4 → P1 → P2 → Bot → P3.
+
+**N = 5**
+
+| Người | B1 Gieo | B2 Diễn đạt | B3 Bắt mood | B4 Nói lại | B5 Đoán gốc |
+|---|---|---|---|---|---|
+| P1 | C1 | C5 | C4 | C3 | C2 |
+| P2 | C2 | C1 | C5 | C4 | C3 |
+| P3 | C3 | C2 | C1 | C5 | C4 |
+| P4 | C4 | C3 | C2 | C1 | C5 |
+| P5 | C5 | C4 | C3 | C2 | C1 |
+
+Theo chuỗi: Cj = Pj → Pj+1 → Pj+2 → Pj+3 → Pj+4 (đếm vòng trong 5 người). Ví dụ C1 = P1 → P2 → P3 → P4 → P5.
+
+**N = 6**
+
+| Người | B1 Gieo | B2 Diễn đạt | B3 Bắt mood | B4 Nói lại | B5 Đoán gốc |
+|---|---|---|---|---|---|
+| P1 | C1 | C6 | C5 | C4 | C3 |
+| P2 | C2 | C1 | C6 | C5 | C4 |
+| P3 | C3 | C2 | C1 | C6 | C5 |
+| P4 | C4 | C3 | C2 | C1 | C6 |
+| P5 | C5 | C4 | C3 | C2 | C1 |
+| P6 | C6 | C5 | C4 | C3 | C2 |
+
+Theo chuỗi: Cj = Pj → Pj+1 → … → Pj+4 (đếm vòng trong 6 người); người Pj+5 không chạm vào chuỗi Cj. Ví dụ C1 = P1 → P2 → P3 → P4 → P5.
 
 ### 3.2. Nhóm chat không đồng bộ — G21 (chỉ khi D4 đạt)
 
@@ -67,7 +107,7 @@ Giờ hiển thị theo `Asia/Ho_Chi_Minh`; máy chủ lưu UTC. Đồng hồ b�
 | TS-FR-20 | Bước 1 của mỗi chuỗi cũng là lượt nhận được. Một thành viên gieo tối đa một chuỗi |
 | TS-FR-21 | Giữ lượt 10 phút; hết 10 phút chưa nộp thì lượt trả về hàng chờ. Được gia hạn một lần thêm 10 phút |
 | TS-FR-22 | Hạn chót bước: 3 giờ từ khi bước sẵn sàng (TS-D4). Quá hạn → Bot điền. Không còn thành viên nào đủ điều kiện cho bước đó → Bot điền ngay |
-| TS-FR-23 | Nhóm 4 thành viên: bước 4 thường không còn người đủ điều kiện, nên do Bot điền theo TS-FR-22 |
+| TS-FR-23 | Giữ người cho bước đoán gốc: khi bước 4 của một chuỗi sẵn sàng mà chỉ còn **đúng một** thành viên đủ điều kiện, máy chủ không giao bước 4 cho người đó; Bot điền bước 4 ngay và người đó được giữ cho bước 5. Nhờ vậy bước 5 luôn do một người chưa chạm vào chuỗi làm, không bao giờ là người gieo. Nhóm 4 thành viên luôn rơi vào trường hợp này (TS-D3, cùng bất biến với TS-FR-05) |
 | TS-FR-24 | Giờ lật: mọi bước còn thiếu do Bot điền, rồi lật. Nếu mọi chuỗi xong trước giờ lật, host được bấm "Lật ngay" |
 | TS-FR-25 | Chuỗi "hoàn tất" khi có ≥ 4 bước do người làm (tính cả bước 1). Chỉ dùng cho chỉ số và nhãn "Sao Thủy gánh" khi < 4 |
 | TS-FR-26 | Câu nhắc: với mỗi bước đang chờ quá 1 giờ, host thấy "Sao chép câu nhắc" một lần duy nhất cho bước đó. Câu cố định: "Tam Sao Thất Bản còn lượt đang chờ. Ai rảnh vào nhận nhé, kết quả lúc {giờ lật}." Không chứa biệt danh, không chứa link (host tự dán link nếu muốn) |
@@ -205,7 +245,7 @@ kết thúc; chat: link năng lực băm, chuỗi xoá 48 giờ sau lật; thẻ
 | `ts_claim` | `chain_id`, `step`, `member_id`, `lease_expires_at`, `extended` | | Khi nộp/hết hạn; `purge_at` |
 | `ts_vote` | `game_id`, `member_id`, `chain_id` | Chỉ công bố số đếm | `purge_at` |
 | `ts_report` **[bổ sung]** | `game_id`, `category`, `bank_item_id`, `reported_member_id` (chỉ với biệt danh), `created_at` | Không lưu người báo cáo | `purge_at`; chỉ mã nội dung + số đếm giữ sau đó (RP-FR-73) |
-| `ts_metric_daily` | số đếm PRD §6 | Không định danh, gộp theo ngày | Không giới hạn (DPIA X7 đề xuất 24 tháng như RP §6.3 — chờ owner) |
+| `ts_metric_daily` | số đếm PRD §6 | Không định danh, gộp theo ngày | Theo DPIA X7 (mặc định nằm ở đó, chờ owner) |
 
 **Job:** `ts_expire_claims` (mỗi phút), `ts_bot_fill` (mỗi phút), `ts_reveal` (mỗi phút, idempotent), `ts_purge` (mỗi 15 phút; biên nhận số dòng, không định danh).
 
@@ -220,7 +260,7 @@ kết thúc; chat: link năng lực băm, chuỗi xoá 48 giờ sau lật; thẻ
 | Quyền | Mọi route kiểm phiên → thành viên/slot của đúng ván; route host kiểm `host_session`. Không tin id từ client. Truy cập ván khác: 404 chung |
 | Tách thông tin | Máy chủ chỉ gửi cho mỗi điện thoại dữ liệu bước người đó đang làm (TS-FR-14); kiểm bằng test hợp đồng phản hồi. Màn chiếu không nhận lựa chọn trước khi lật |
 | CSRF | Mọi thay đổi cần Origin tin cậy + token CSRF (như RP) |
-| Link năng lực | Token trong fragment; băm; kiểm dạng trước khi tra; phản hồi chung; `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow`; không vào log/analytics/localStorage; Service Worker không cache route có token (KS-05, KS-06) |
+| Link năng lực | Token trong fragment; băm; kiểm dạng trước khi tra; phản hồi chung; `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow`; không vào log/analytics/localStorage; Service Worker không cache route có token (KS-05, KS-06). Request HTTP chỉ tới **đúng đường `/t`** (token chỉ ở fragment): luật header khớp chính xác `/t` (và `/t/` nếu router chuẩn hoá), không chỉ mẫu `/t/*`; kiểm riêng HTML cuối, redirect, trang lỗi và phản hồi qua Service Worker; header API kiểm riêng |
 | Giới hạn tần suất | Tạo ván chat: 3/phiên/ngày, 10/khoá IP/ngày. Vào ván: 20/khoá IP/giờ; 5 lần token sai liên tiếp → chờ 15 phút. Nhận lượt: 30/phiên/giờ. Nộp bước: 60/phiên/giờ. Báo cáo: 5/slot. Khoá IP là hash có muối xoay theo ngày, chỉ trong bộ nhớ ≤ 24 giờ (KS-24). Phòng trực tiếp theo RP |
 | Đầu vào | `choice_id` phải thuộc `offered_option_ids` của bước; mood ∈ 8, độ mạnh ∈ 1–3; schema chặt, từ chối trường thừa; nộp sau hết giờ (trực tiếp: hết giờ + 750 ms) bị từ chối |
 | Đua | Nhận lượt dùng khoá dòng: một bước chỉ một người giữ; nộp kiểm `lease` còn hạn và đúng người; lật idempotent |
@@ -325,12 +365,12 @@ không đếm ván đã bỏ, không "bạn chưa chơi".
 
 | Test | Kiểm | FR | AC |
 |---|---|---|---|
-| T-TS-01 | Xoay vòng: N = 4…6, không ai làm hai bước một chuỗi; N = 4 thì bước 4 là Bot | 05 | G20-AC03, AC04 |
+| T-TS-01 | Xoay vòng đúng bảng §3.1.1 với N = 4, 5, 6: không ai làm hai bước một chuỗi; người gieo không làm bước 5; N = 4 thì bước 4 là Bot và bước 5 của chuỗi j do người (j + 3) mod 4 | 05 | G20-AC03, AC04, AC13 |
 | T-TS-02 | Hợp đồng phản hồi: điện thoại chỉ nhận dữ liệu bước mình; màn chiếu không nhận lựa chọn trước lật | 14 | G20-AC07 |
 | T-TS-03 | Hết giờ / mất kết nối / rời → Bot chọn trong phương án đang hiện, `bot_filled` | 10, 13 | G20-AC05, AC06 |
 | T-TS-04 | Chia bàn > 12: mọi bàn 4–6, chuyển ít người nhất | 03 | G20-AC02 |
 | T-TS-05 | Nhận lượt: một bước một người; lease 10 phút; gia hạn 1 lần; không nhận bước thứ hai trong cùng chuỗi | 19–21 | G21-AC03–AC05 |
-| T-TS-06 | Hạn chót 3 giờ và không còn người đủ điều kiện → Bot | 22, 23 | G21-AC06 |
+| T-TS-06 | Hạn chót 3 giờ và không còn người đủ điều kiện → Bot; bước 4 còn đúng một người đủ điều kiện → Bot điền bước 4, người đó làm bước 5 | 22, 23 | G21-AC06 |
 | T-TS-07 | Đồng hồ giả: lật đúng giờ, Bot điền phần thiếu, < 4 thành viên thì huỷ và xoá | 18, 24 | G21-AC02, AC07 |
 | T-TS-08 | Câu nhắc: một lần mỗi bước, không biệt danh, không link | 26 | G21-AC08 |
 | T-TS-09 | Độ thất bản: bảng kịch bản 0–4 | 31 | G22-AC01 |
@@ -364,7 +404,7 @@ KS-18 (TS-FR-16, 37, 38, 61, 66), KS-21 (§7), KS-22 (TS-FR-40), KS-23 (TS-FR-67
 `2026-10-26-game-line-dpia.md` §5.4 và bảng KS; báo cáo "Chốt năm trò"; `relay_games_chat_vs_live.md`; `AGENTS.md`; `privacy-security-flow-notes.md`; US-08 (mẫu link).
 
 **Phát hiện đã sửa:** thêm hai cờ hiện biệt danh (phát lại / thẻ) thay cho việc gắn tên mặc định; bỏ thông báo đẩy ở bản chat; câu nhắc không chứa biệt danh hay link; bàn 4 người dùng Bot ở
-bước 4; bước 5 thêm câu gốc của ý định bước 4 để đoán sai xảy ra được; rời ván bỏ liên kết lựa chọn với người; giới hạn thời gian sống tối đa của ván chat.
+bước 4; bước 5 thêm câu gốc của ý định bước 4 để đoán sai xảy ra được; rời ván bỏ liên kết lựa chọn với người; giới hạn thời gian sống tối đa của ván chat. Theo review Codex @ c1960a3 (26/10/2026): công thức cũ cho bàn 4 người (lệch 0, 1, 2, 4 mod 4) chuyền bước 5 về đúng người gieo; nay lệch 0, 1, 2, Bot, 3, có bảng phân công N = 4, 5, 6 kiểm bằng script (§3.1.1), bất biến "người gieo không đoán gốc" ghi vào TS-FR-05, TS-FR-23, T-TS-01, T-TS-06; header link `/t` theo đường chính xác.
 
 **Rủi ro chưa giải quyết:** hai cờ biệt danh và `ts_report` là **[bổ sung]** chưa có trong hợp đồng dữ liệu chung (DPIA §5.7 đã ghi nhận, chờ owner); bản đồng ý rút gọn của RP
 nay đã ghi rõ câu "biệt danh có thể hiện trên màn hình chung" chỉ nói về sảnh, gắn tên vào từng bước cần ô riêng (RP §8.1); phân loại G1/mạng xã hội (KS-26) chưa có ý kiến luật sư; độ trôi của trắc nghiệm chưa kiểm chứng.
