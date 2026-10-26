@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 23, after the owner-ordered merge of 25/10/2026)
+# Audit v2 registry (revision 23, after the owner-ordered merge of 25/10/2026; corrected 26/10)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -110,6 +110,12 @@ were run by Claude on the real integration heads, not by Codex.
 | 3 | #78 `c76b695` → `99d7d90`; #80 `52f08ba` → `10989fa` | `10989fa` | exit 0: web 511, API 2,335 / 57 / 1, e2e 8/8 |
 | 4 | #45 `e2e5b4c` → `d7177f2`; #73 `3760dcd` → `d140799` | `d140799` | exit 0: web 511, API 2,559 / 57 / 1, e2e 8/8 |
 | 5 | #64 `df80d62` → `f5eae3b`; #69 `aba9988` → `fdfe5e1`; #60 `7c17d88` → `3d34eb4` | `3d34eb4` | exit 0: web 511, API 2,559 / 57 / 1, e2e 8/8 |
+
+**Correction (26/10/2026):** Codex's independent `CI=1 pnpm check` at `3d34eb4` (r28) is **red**: web 509 passed / 2 failed
+in `client.reliability.test.ts`. Two owner-session fixtures expire at `2026-10-26T00:00:00Z` without a pinned clock, so they
+started failing once that date passed; the green runs above were Claude's, on 25/10, before that instant. The product
+logic is correct. Test-only fix #82 (`5971415`) pins the clock and adds a 60-second-buffer regression; with it
+`CI=1 pnpm check` exits 0 (Claude's run), awaiting Codex review. Until #82 merges, integration's full check is red.
 
 Merging is not release: `main`/production stays `c3fab33`. The release PR #75 now points at `3d34eb4` and stays No-Go
 until the owner decides #74 and #76, the operator takes a fresh backup and restores the timers, and staging →
