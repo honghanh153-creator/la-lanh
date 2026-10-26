@@ -827,6 +827,35 @@ def test_a_light_verb_does_not_take_the_head_from_its_complement() -> None:
     assert reading.positions[0].small_action == "Chọn một khoảng nghỉ bạn có thể giữ hôm nay."
 
 
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Mình có nên bắt đầu với một khoảng nghỉ ngơi không?",
+        "Mình có nên bắt đầu với vài ngày nghỉ ngơi không?",
+        "Mình có nên thử lại với một khoảng nghỉ ngơi không?",
+    ],
+)
+def test_an_unresolved_light_complement_keeps_the_longest_signal(question: str) -> None:
+    # Codex r33 on #89: nominal material between the light verb and the action is not resolved as a
+    # complement, so the light verb must not take the label; the self-care step and stance agree.
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is TarotAction.NGHI_NGOI
+    reading = ENGINE.render(
+        card_ids=("major-hermit",),
+        spread=TarotSpread.ONE_CARD,
+        spread_map=TarotSpreadMap.ONE_FOCUS,
+        context=S,
+        question=question,
+        voice=TarotVoice.STRAIGHT_WARM,
+        question_intent=assessment.intent,
+        frame=assessment.frame,
+    )
+    assert reading.stance is not None
+    assert reading.stance.level is not TarotStanceLevel.CONSIDER
+    assert reading.positions[0].small_action == "Chọn một khoảng nghỉ bạn có thể giữ hôm nay."
+
+
 @pytest.mark.parametrize("version", ["tarot-question-frame-v1", QUESTION_FRAME_VERSION])
 def test_a_stored_choice_frame_keeps_its_option_labels(version: str) -> None:
     # Codex r32 on #89: choice options are split without "hay", so the asked-predicate exception

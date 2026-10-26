@@ -855,7 +855,8 @@ _ASKED_MODAL = re.compile(r"(?<!\w)(?:có nên|nên)(?!\w)")
 _DEPENDENT_MARK = re.compile(r"(?<!\w)(?:trong|rồi|về|sau|trước|khi|lúc|với)(?!\w)")
 # Light verbs whose complement is the asked action: in "bắt đầu với việc nghỉ ngơi" or "thử nghỉ
 # ngơi" the request is the rest, so a light verb directly followed by another action (optionally
-# through "với"/"việc") hands the head to that action (Codex r32 on #89).
+# through "với"/"việc") hands the head to that action (Codex r32 on #89). A light verb whose
+# complement cannot be resolved never takes the head; the longest signal stands (Codex r33).
 _LIGHT_VERB = re.compile(r"(?:bắt đầu|thử lại|thử|dừng|ngừng)")
 _COMPLEMENT_GAP = re.compile(r"\s*(?:với\s+)?(?:việc\s+)?")
 
@@ -908,7 +909,9 @@ def match_action(question: str, *, asked_predicate: bool = False) -> TarotAction
         ]
         complement = min(complements, key=lambda hit: (hit[0], -hit[2], hit[3]), default=None)
         if complement is None:
-            break
+            # The complement is not resolved ("bắt đầu với một khoảng nghỉ ngơi"): keep the plain
+            # longest-signal result rather than let the light verb take the label (Codex r33).
+            return longest[4]
         head = complement
     if head[4] is longest[4]:
         return longest[4]
