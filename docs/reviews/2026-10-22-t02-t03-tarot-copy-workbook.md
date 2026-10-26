@@ -1,6 +1,6 @@
 # T02/T03 — Tarot copy keyed by the asked action (draft for owner review), 2026-10-22
 
-**Status: DRAFT, awaiting owner approval.** Nothing in the workbook is live. It is not wired into the engine,
+**Status: decided under owner delegation (26/10/2026), not yet wired.** Was: DRAFT, awaiting owner approval. Nothing in the workbook is live. It is not wired into the engine,
 `examples.py`, `roles.py`, `meaning_brief.py` or the fallback approval scope (`docs/operations/fallback-approval.json`).
 
 Workbook: `docs/reviews/2026-10-22-t02-t03-tarot-copy-workbook.xlsx`
@@ -58,3 +58,30 @@ and run `pnpm tarot:audit` and `pnpm content:review`.
 - Owner approval of every row (US-20 AC14/AC19 copy approval; DoD "owner duyệt nội dung mới"): not started.
 - Wiring, versioning, audits and Codex review: not started, by design.
 - Framer longest-signal collisions (finding 1) and goal override (finding 2): not fixed here.
+
+
+## Delegated decision (26/10/2026)
+
+The owner delegated copy decisions to Claude on 26/10/2026. Claude had a first-pass reviewer read every row against the
+rules above, then checked samples and every uncertain row itself. The "Owner decision" / "Owner note" columns now carry
+each decision ("Uỷ quyền 26/10: …"). This is one careful reading, not a comprehension test with real readers.
+
+| Sheet | Approve A | Approve B | Rewrite | Drop (use the action's general row) |
+|---|---|---|---|---|
+| Scenes (T02, 133) | 96 | 33 | 1 | 3 |
+| Steps (T03, 142) | 90 | 49 | 3 | 0 |
+
+- **Rewrites (Codex to polish before wiring):** `T02-chia_se-self_care` (A ended alone in a dark room; B was writing, not
+  sharing); `T03-nhan_loi-opening`, `T03-hen_gap-opening`, `T03-gop_y-opening` (both drafts fitted one topic only).
+- **Dropped for now:** `T02-dat_ranh_gioi-relationships` (a partner monitoring messages is control-adjacent; it waits for
+  a safety layer); `T02-tap_trung-self_care` and `T02-sap_xep_lai-self_care` (their example questions belong to another
+  action: "tập trung vào bản thân", tidying a room). Both are T01 framer follow-ups.
+- **Switched to B** where A ran longer than one small step: `T03-nghi_ngoi-next`, `T03-o_nha-next`, `T03-hen_gap-next`.
+
+Conditions for the wiring PR (not done here):
+1. Steps are keyed by action × role but render for every topic. Every `opening` line must read naturally for all topics
+   of its action; any that cannot is split by topic in the wiring PR.
+2. Add a variety check (AC16): scenes repeat images (typing then deleting, rereading, an unopened chat) and many steps
+   end "…và ghi lại bạn thấy thế nào". Vary these before readers see them across readings.
+3. Keep frozen readings: wiring bumps the content version, and stored readings keep their old text.
+4. A human comprehension check stays open (T05). This decision does not replace it.
