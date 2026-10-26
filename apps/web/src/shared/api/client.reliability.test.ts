@@ -37,6 +37,15 @@ function signalReason(signal: AbortSignal | null | undefined): Error {
     : new DOMException("Request aborted", "AbortError");
 }
 
+// Owner-session fixtures expire at a fixed instant, so these tests pin `Date` to a moment before it; the
+// verdict must not depend on the day the suite happens to run.
+const OWNER_CLOCK = Date.parse("2026-10-25T00:00:00Z");
+
+function pinOwnerClock(now: number = OWNER_CLOCK): void {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(now);
+}
+
 describe("API client reliability", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -318,6 +327,7 @@ describe("API client reliability", () => {
   });
 
   it("refreshes the owner binding when the active guest session changes", async () => {
+    pinOwnerClock();
     sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-b");
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(jsonResponse({
       principal_id: "00000000-0000-4000-8000-000000000030",
@@ -334,6 +344,7 @@ describe("API client reliability", () => {
   });
 
   it("does not bind an owner response to a guest session that changed in flight", async () => {
+    pinOwnerClock();
     sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-a");
     let finishClaim: ((response: Response) => void) | undefined;
     let requestStarted: () => void = () => { throw new Error("Owner request not started"); };
@@ -363,5 +374,23 @@ describe("API client reliability", () => {
     await claimOwner();
     expect(sessionStorage.getItem(OWNER_SESSION_EPOCH_KEY)).toBe("epoch-b");
     expect(ownerClaimNeedsRefresh()).toBe(false);
+  });
+
+  it.each([
+    ["the fixture clock", OWNER_CLOCK],
+    ["a much later real date", Date.parse("2031-06-01T12:00:00Z")],
+  ])("decides owner refresh from the pinned clock with a 60-second buffer (%s)", (_label, now) => {
+    pinOwnerClock(now);
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "epoch-c");
+    sessionStorage.setItem(OWNER_SESSION_EPOCH_KEY, "epoch-c");
+    const expiresIn = (ms: number) => {
+      sessionStorage.setItem("la-lanh-owner-session-until-v1", new Date(now + ms).toISOString());
+      return ownerClaimNeedsRefresh();
+    };
+
+    expect(expiresIn(60_001)).toBe(false);
+    expect(expiresIn(60_000)).toBe(true);
+    expect(expiresIn(0)).toBe(true);
+    expect(expiresIn(-1_000)).toBe(true);
   });
 });
