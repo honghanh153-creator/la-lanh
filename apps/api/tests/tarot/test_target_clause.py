@@ -738,3 +738,68 @@ def test_a_causal_nen_does_not_open_the_readers_question(
     assert reading.stance is not None and reading.stance.action is expected
     assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
     assert reading.positions[-1].small_action == reference.positions[-1].small_action
+
+
+@pytest.mark.parametrize(
+    ("question", "control", "expected"),
+    [
+        # T01 follow-up: in a yes/no clause the action right after "có nên" is the asked
+        # predicate; a longer action word that a dependent marker places after it ("trong buổi
+        # nói chuyện", "rồi nói chuyện lại") no longer takes the label.
+        (
+            "Mình có nên xin lỗi bạn ấy trong buổi nói chuyện tối nay không?",
+            "Mình có nên xin lỗi không?",
+            TarotAction.XIN_LOI,
+        ),
+        (
+            "Mình có nên xin lỗi bạn ấy trong buổi nói chuyện tối nay hay không?",
+            "Mình có nên xin lỗi không?",
+            TarotAction.XIN_LOI,
+        ),
+        (
+            "Mình có nên xin lỗi rồi nói chuyện lại với bạn ấy không?",
+            "Mình có nên xin lỗi không?",
+            TarotAction.XIN_LOI,
+        ),
+        # Controls that keep the longest-signal label: the asked predicate itself, a choice, and an
+        # auxiliary-like "bắt đầu" before the real action.
+        (
+            "Mình có nên nói chuyện thẳng thắn về việc chia tay không?",
+            "Mình có nên nói ra không?",
+            TarotAction.NOI_RA,
+        ),
+        (
+            "Mình có nên đợi thêm thời gian rồi mới chia tay không?",
+            "Mình có nên cho thêm thời gian không?",
+            TarotAction.CHO_THEM,
+        ),
+    ],
+)
+def test_the_action_after_the_modal_is_the_asked_predicate(
+    question: str, control: str, expected: TarotAction
+) -> None:
+    assessment = ENGINE.assess_question(question, R)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, R, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    reference = _render(control, R, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is not None and reading.stance.action is expected
+    assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
+    assert reading.positions[-1].small_action == reference.positions[-1].small_action
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("Khi mệt, mình nên nghỉ ngơi, hay nhận thêm việc?", TarotAction.NHAN_LOI),
+        ("Bao giờ thì nên bắt đầu tìm cơ hội mới?", TarotAction.DOI_VIEC),
+        # Purpose "để" is not a dependent marker: the light verb "dừng" does not take the label.
+        ("Khi nào là lúc mình nên dừng để nghỉ?", TarotAction.NGHI_NGOI),
+        # "trước" marks the later action word as dependent, so the asked "viết ra" wins.
+        ("Mình có nên viết ra trước những điều muốn nói không?", TarotAction.VIET_RA),
+    ],
+)
+def test_choices_and_auxiliary_verbs_keep_the_longest_signal(
+    question: str, expected: TarotAction
+) -> None:
+    assert question_frame.match_action(question_frame.asked_text(question)) is expected
