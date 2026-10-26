@@ -180,9 +180,21 @@ The 37 rewrites keep their contact, section, context and voice; Codex polishes t
 - **Friction lines that judge the other person,** and one playful line that praised answering a crush's fear with a plan,
   against sibling lines that say listen first.
 
+**`deep_dive` lines (added 26/10/2026, sheet "Câu deep_dive"):** 140 draft sentences, 35 contacts × 4 contexts. Each keeps
+its cell's section and contact meaning: 92 fit, 48 friction. They passed a script check:
+- one sentence each;
+- no banned, fate, astrology or flagged-frame words, and no workbook mind-reading phrases;
+- first three words differ from the three sibling voices;
+- word overlap with each sibling under 50% (highest 39%);
+- 140 unique lines, and no opening phrase used more than 8 times.
+
+They run 31–40 syllables. **Decision (delegated):** `deep_dive` may use up to 40 syllables, against 30 for the other
+voices, because its closing "check or limit" is what makes the voice. All are approved as a draft for Codex to polish.
+Four friction/crush lines are flagged in the note column.
+
 Conditions for the wiring PR (not done here):
-1. **Write the `deep_dive` lines,** 35 contacts × 4 contexts = 140, under the same rules. The fourth runtime voice has no
-   copy yet.
+1. **Wire the `deep_dive` lines** and run the AC02 gate on them. One line per cell still leaves 100% overlap between pairs
+   that share a contact (AC03).
 2. **Break the fixed template per voice.** Most straight_warm lines open "Khi…", most gentle_specific "Có thể…/Nếu…", and
    playful_grounded is almost always "scenario: punchline". With 2–6 lines per reading this shows. Add second variants per
    cell (also needed for AC03), or a renderer rule against two lines with the same opening in one reading.
