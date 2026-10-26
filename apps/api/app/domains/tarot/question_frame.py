@@ -588,6 +588,8 @@ def _strip_background(text: str) -> str:
 
 # The main clause offers alternatives ("…, hay nhận thêm việc?"): the one before it is asked too.
 _CHOICE = re.compile(r"^\s*(?:hay|hoặc)(?!\w)")
+# A choice inside a clause ("…, hay nhận thêm việc?"): its options are weighed elsewhere.
+_CHOICE_WORD = re.compile(r"(?<!\w)(?:hay(?!\s+không)|hoặc)(?!\w)")
 # What opens an interrogative clause, as opposed to the particle that closes it ("… không?").
 _OPENS = re.compile(
     r"(?<!\w)(?:có nên|nên|liệu|có phải|làm sao|thế nào|bao giờ|khi nào|vì sao|tại sao|"
@@ -845,24 +847,80 @@ def asked_text(question: str) -> str:
     return target
 
 
-def match_action(question: str) -> TarotAction | None:
-    """The best-supported closed label among affirmed actions.
+# The modal that opens an asked yes/no clause, and the markers that put a later action word in a
+# dependent phrase ("… trong buổi nói chuyện", "… rồi nói chuyện lại", "… trước những điều muốn
+# nói"). Purpose "để" is left out: in "dừng để nghỉ" the first verb is light and the purpose is
+# what is asked.
+_ASKED_MODAL = re.compile(r"(?<!\w)(?:có nên|nên)(?!\w)")
+_DEPENDENT_MARK = re.compile(r"(?<!\w)(?:trong|rồi|về|sau|trước|khi|lúc|với)(?!\w)")
+# Light verbs whose complement is the asked action: in "bắt đầu với việc nghỉ ngơi" or "thử nghỉ
+# ngơi" the request is the rest, so a light verb directly followed by another action (optionally
+# through "với"/"việc") hands the head to that action (Codex r32 on #89). A light verb whose
+# complement cannot be resolved never takes the head; the longest signal stands (Codex r33).
+_LIGHT_VERB = re.compile(r"(?:bắt đầu|thử lại|thử|dừng|ngừng)")
+_COMPLEMENT_GAP = re.compile(r"\s*(?:với\s+)?(?:việc\s+)?")
 
-    Negated matches are removed first, then the longest signal wins, then table order; with no
-    affirmed match the label is ``None`` rather than a guess.
-    """
 
-    text = fold(question)
-    best: tuple[int, int, TarotAction] | None = None
+def _affirmed_signals(text: str) -> list[tuple[int, int, int, int, TarotAction]]:
+    """Every affirmed action match as (start, end, length, table order, label)."""
+
+    found = []
     for order, (label, signals) in enumerate(_ACTION_SIGNALS):
         for signal in signals:
             for match in re.finditer(rf"(?<!\w){re.escape(signal)}(?!\w)", text):
-                if _negated(text, match.start()):
-                    continue
-                candidate = (len(signal), -order, label)
-                if best is None or candidate[:2] > best[:2]:
-                    best = candidate
-    return best[2] if best else None
+                if not _negated(text, match.start()):
+                    found.append((match.start(), match.end(), len(signal), order, label))
+    return found
+
+
+def match_action(question: str, *, asked_predicate: bool = False) -> TarotAction | None:
+    """The best-supported closed label among affirmed actions.
+
+    Negated matches are removed first, then the longest signal wins, then table order; with no
+    affirmed match the label is ``None`` rather than a guess. One structural exception, only when
+    the caller says the whole question is a new yes/no intake (``asked_predicate``): in a clause
+    opened by "có nên"/"nên" (not a choice), the action that follows the modal is the asked
+    predicate, so a longer action word that a dependent marker puts after it does not win ("Mình có
+    nên xin lỗi bạn ấy trong buổi nói chuyện tối nay không?" asks about apologising). A light verb
+    does not take the head from its complement. Choice options and stored frames keep the plain
+    rule, so a pending session renders as it did when it was framed.
+    """
+
+    text = fold(question)
+    found = _affirmed_signals(text)
+    if not found:
+        return None
+    longest = max(found, key=lambda hit: (hit[2], -hit[3]))
+    if not asked_predicate:
+        return longest[4]
+    modal = _ASKED_MODAL.search(text)
+    if modal is None or _CHOICE_WORD.search(text, modal.end()):
+        return longest[4]
+    after = [hit for hit in found if hit[0] >= modal.end()]
+    if not after:
+        return longest[4]
+    head = min(after, key=lambda hit: (hit[0], -hit[2], hit[3]))
+    while _LIGHT_VERB.fullmatch(text, head[0], head[1]):
+        light_end = head[1]
+        complements = [
+            hit
+            for hit in after
+            if hit[0] >= light_end and _COMPLEMENT_GAP.fullmatch(text, light_end, hit[0])
+        ]
+        complement = min(complements, key=lambda hit: (hit[0], -hit[2], hit[3]), default=None)
+        if complement is None:
+            # The complement is not resolved ("bắt đầu với một khoảng nghỉ ngơi"): keep the plain
+            # longest-signal result rather than let the light verb take the label (Codex r33).
+            return longest[4]
+        head = complement
+    if head[4] is longest[4]:
+        return longest[4]
+    later = min(
+        (hit for hit in after if hit[4] is longest[4]), key=lambda hit: hit[0], default=None
+    )
+    if later is not None and later[0] > head[0] and _DEPENDENT_MARK.search(text, head[1], later[0]):
+        return head[4]
+    return longest[4]
 
 
 def frame_question(question: str, chosen: TarotContext) -> QuestionFrame:
@@ -870,10 +928,11 @@ def frame_question(question: str, chosen: TarotContext) -> QuestionFrame:
     the whole question (a timing or choice marker may sit anywhere)."""
 
     target = asked_text(question)
+    form = classify_form(question)
     return QuestionFrame(
-        form=classify_form(question),
+        form=form,
         topic=score_topic(target, chosen),
-        action=match_action(target),
+        action=match_action(target, asked_predicate=form is TarotQuestionForm.YES_NO),
     )
 
 

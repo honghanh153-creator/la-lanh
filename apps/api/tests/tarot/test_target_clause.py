@@ -738,3 +738,148 @@ def test_a_causal_nen_does_not_open_the_readers_question(
     assert reading.stance is not None and reading.stance.action is expected
     assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
     assert reading.positions[-1].small_action == reference.positions[-1].small_action
+
+
+@pytest.mark.parametrize(
+    ("question", "control", "expected"),
+    [
+        # T01 follow-up: in a yes/no clause the action right after "có nên" is the asked
+        # predicate; a longer action word that a dependent marker places after it ("trong buổi
+        # nói chuyện", "rồi nói chuyện lại") no longer takes the label.
+        (
+            "Mình có nên xin lỗi bạn ấy trong buổi nói chuyện tối nay không?",
+            "Mình có nên xin lỗi không?",
+            TarotAction.XIN_LOI,
+        ),
+        (
+            "Mình có nên xin lỗi bạn ấy trong buổi nói chuyện tối nay hay không?",
+            "Mình có nên xin lỗi không?",
+            TarotAction.XIN_LOI,
+        ),
+        (
+            "Mình có nên xin lỗi rồi nói chuyện lại với bạn ấy không?",
+            "Mình có nên xin lỗi không?",
+            TarotAction.XIN_LOI,
+        ),
+        # Controls that keep the longest-signal label: the asked predicate itself, a choice, and an
+        # auxiliary-like "bắt đầu" before the real action.
+        (
+            "Mình có nên nói chuyện thẳng thắn về việc chia tay không?",
+            "Mình có nên nói ra không?",
+            TarotAction.NOI_RA,
+        ),
+        (
+            "Mình có nên đợi thêm thời gian rồi mới chia tay không?",
+            "Mình có nên cho thêm thời gian không?",
+            TarotAction.CHO_THEM,
+        ),
+    ],
+)
+def test_the_action_after_the_modal_is_the_asked_predicate(
+    question: str, control: str, expected: TarotAction
+) -> None:
+    assessment = ENGINE.assess_question(question, R)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is expected
+    reading = _render(question, R, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    reference = _render(control, R, TarotSpreadMap.ONE_FOCUS, TarotVoice.STRAIGHT_WARM)
+    assert reading.stance is not None and reading.stance.action is expected
+    assert reading.stance.conclusion == reference.stance.conclusion  # type: ignore[union-attr]
+    assert reading.positions[-1].small_action == reference.positions[-1].small_action
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("Khi mệt, mình nên nghỉ ngơi, hay nhận thêm việc?", TarotAction.NHAN_LOI),
+        ("Bao giờ thì nên bắt đầu tìm cơ hội mới?", TarotAction.DOI_VIEC),
+        # Purpose "để" is not a dependent marker: the light verb "dừng" does not take the label.
+        ("Khi nào là lúc mình nên dừng để nghỉ?", TarotAction.NGHI_NGOI),
+        # "trước" marks the later action word as dependent, so the asked "viết ra" wins.
+        ("Mình có nên viết ra trước những điều muốn nói không?", TarotAction.VIET_RA),
+    ],
+)
+def test_choices_and_auxiliary_verbs_keep_the_longest_signal(
+    question: str, expected: TarotAction
+) -> None:
+    assert question_frame.frame_question(question, R).action is expected
+
+
+def test_a_light_verb_does_not_take_the_head_from_its_complement() -> None:
+    # Codex r32 on #89: "bắt đầu với việc nghỉ ngơi" asks about rest. Frame, stance and step agree,
+    # so the self-care safeguard still holds.
+    question = "Mình có nên bắt đầu với việc nghỉ ngơi không?"
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is TarotAction.NGHI_NGOI
+    reading = ENGINE.render(
+        card_ids=("major-hermit",),
+        spread=TarotSpread.ONE_CARD,
+        spread_map=TarotSpreadMap.ONE_FOCUS,
+        context=S,
+        question=question,
+        voice=TarotVoice.STRAIGHT_WARM,
+        question_intent=assessment.intent,
+        frame=assessment.frame,
+    )
+    assert reading.stance is not None
+    assert reading.stance.level is not TarotStanceLevel.CONSIDER
+    assert reading.positions[0].small_action == "Chọn một khoảng nghỉ bạn có thể giữ hôm nay."
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Mình có nên bắt đầu với một khoảng nghỉ ngơi không?",
+        "Mình có nên bắt đầu với vài ngày nghỉ ngơi không?",
+        "Mình có nên thử lại với một khoảng nghỉ ngơi không?",
+    ],
+)
+def test_an_unresolved_light_complement_keeps_the_longest_signal(question: str) -> None:
+    # Codex r33 on #89: nominal material between the light verb and the action is not resolved as a
+    # complement, so the light verb must not take the label; the self-care step and stance agree.
+    assessment = ENGINE.assess_question(question, S)
+    assert assessment.accepted and assessment.frame is not None
+    assert assessment.frame.action is TarotAction.NGHI_NGOI
+    reading = ENGINE.render(
+        card_ids=("major-hermit",),
+        spread=TarotSpread.ONE_CARD,
+        spread_map=TarotSpreadMap.ONE_FOCUS,
+        context=S,
+        question=question,
+        voice=TarotVoice.STRAIGHT_WARM,
+        question_intent=assessment.intent,
+        frame=assessment.frame,
+    )
+    assert reading.stance is not None
+    assert reading.stance.level is not TarotStanceLevel.CONSIDER
+    assert reading.positions[0].small_action == "Chọn một khoảng nghỉ bạn có thể giữ hôm nay."
+
+
+@pytest.mark.parametrize("version", ["tarot-question-frame-v1", QUESTION_FRAME_VERSION])
+def test_a_stored_choice_frame_keeps_its_option_labels(version: str) -> None:
+    # Codex r32 on #89: choice options are split without "hay", so the asked-predicate exception
+    # must not reach them; a pending stored-frame session renders as it did when it was framed.
+    question = "Mình nên xin lỗi trong buổi nói chuyện hay nói chuyện thẳng thắn?"
+    assessment = ENGINE.assess_question(question, R)
+    frozen = QuestionFrame(
+        version=version, form=TarotQuestionForm.CHOICE, topic=R, action=TarotAction.NOI_RA
+    )
+    reading = ENGINE.render(
+        card_ids=("major-hermit", "major-fool", "major-high-priestess", "cups-ace", "swords-2"),
+        spread=TarotSpread.FIVE_CARD,
+        spread_map=TarotSpreadMap.FIVE_CHOICE,
+        context=R,
+        question=question,
+        voice=TarotVoice.STRAIGHT_WARM,
+        question_intent=assessment.intent,
+        frame=frozen,
+    )
+    assert reading.stance is not None
+    assert reading.stance.level is TarotStanceLevel.CLARIFY_CHOICE
+
+
+def test_the_asked_predicate_exception_is_opt_in() -> None:
+    fragment = "mình nên xin lỗi trong buổi nói chuyện"
+    assert question_frame.match_action(fragment) is TarotAction.NOI_RA
+    assert question_frame.match_action(fragment, asked_predicate=True) is TarotAction.XIN_LOI
