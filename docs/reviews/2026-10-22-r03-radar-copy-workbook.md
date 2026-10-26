@@ -3,7 +3,7 @@
 Date: 2026-10-22 · Audit item: R03 · Story: `docs/user-stories/US-22-hop-gu-rieng-tung-cap.md`
 Workbook: `docs/reviews/2026-10-22-r03-radar-copy-workbook.xlsx`
 
-**Status: DRAFT, awaiting owner approval.** Nothing here is wired into the renderer or added to the
+**Status: decided under owner delegation (26/10/2026), not yet wired.** Was: DRAFT, awaiting owner approval. Nothing here is wired into the renderer or added to the
 approved fallback store (`fallback-approval.json`). No user sees these sentences until the owner approves
 them. Wiring happens later in a separate PR.
 
@@ -151,3 +151,42 @@ banned words, but only as the rule itself.
   - AC09 (audit in `pnpm check`);
   - AC10 (owner approval of this file).
 - **Privacy:** synthetic data only. The workbook contains no personal data. No new data flows.
+
+
+## Delegated decision (26/10/2026)
+
+The owner delegated copy decisions to Claude on 26/10/2026. Hợp gu's fourth voice is `deep_dive`, as the runtime has it,
+not `roast` (decision record #84, item 8). A first-pass reviewer read the 420 non-roast rows against the "Hướng dẫn"
+rules, US-22 and this document. Claude then checked a sample and every row the reviewer was unsure about. The
+"Owner decision" / "Owner note" columns carry each decision ("Uỷ quyền 26/10: …"). This is one careful reading, not a
+reader comprehension test.
+
+| Voice | Approve | Rewrite | Not used |
+|---|---|---|---|
+| straight_warm | 135 | 5 | – |
+| gentle_specific | 127 | 13 | – |
+| playful_grounded | 121 | 19 | – |
+| roast | – | – | 140 (fourth voice is `deep_dive`) |
+
+The 37 rewrites keep their contact, section, context and voice; Codex polishes them before wiring. They fix:
+- **The other person's inner need stated as fact** (mostly gentle_specific: "muốn được khen / công nhận / tự hào"). The
+  workbook's mind-reading list did not catch these.
+- **Double meanings and hidden verdicts in jokes:**
+  - possible sexual readings;
+  - "không sai người" (an implied "right person");
+  - rating the other person ("chấm thêm", "đánh giá năm sao");
+  - "bẩm sinh";
+  - one line that normalised opening a partner's bank history.
+- **Friction lines that judge the other person,** and one playful line that praised answering a crush's fear with a plan,
+  against sibling lines that say listen first.
+
+Conditions for the wiring PR (not done here):
+1. **Write the `deep_dive` lines,** 35 contacts × 4 contexts = 140, under the same rules. The fourth runtime voice has no
+   copy yet.
+2. **Break the fixed template per voice.** Most straight_warm lines open "Khi…", most gentle_specific "Có thể…/Nếu…", and
+   playful_grounded is almost always "scenario: punchline". With 2–6 lines per reading this shows. Add second variants per
+   cell (also needed for AC03), or a renderer rule against two lines with the same opening in one reading.
+3. **Thin repeated jokes:** hệ thống/thuật toán, "hội … N thành viên", "không lương", kế toán, kịch bản, phiên bản, trà
+   sữa. Each motif should appear at most once per reading.
+4. **Keep the stated limits:** each contact's astrological meaning and the fusion section choices were not re-judged
+   here. AC03, AC05 and AC08–AC10, plus wiring, stay open.
