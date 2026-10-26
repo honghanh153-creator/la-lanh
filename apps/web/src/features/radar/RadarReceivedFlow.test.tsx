@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  ApiProblem,
   getPublicRadarInvite,
   getReceivedRadarResult,
   getSession,
@@ -122,14 +123,27 @@ describe("Radar results B received (P09 D2)", () => {
     expect(withdrawReceivedRadar).toHaveBeenCalledWith("request-a");
   });
 
-  it("keeps the result when withdrawal fails", async () => {
-    vi.mocked(withdrawReceivedRadar).mockRejectedValueOnce(new Error("offline"));
+  it("reconciles an unconfirmed withdrawal with the server before promising anything", async () => {
+    // A lost response: the server still has the reading, so the page says so only after re-reading it.
+    vi.mocked(withdrawReceivedRadar).mockRejectedValueOnce(new Error("timeout"));
     renderAt("/radar/received/request-a");
 
     await userEvent.click(await screen.findByRole("button", { name: "Rút chart của tôi khỏi kết quả này" }));
     await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Rút chart" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa rút được chart. Kết quả vẫn được giữ như cũ.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa rút được chart: bản đọc vẫn còn trên máy chủ.");
     expect(screen.getByRole("button", { name: "Thử rút chart lại" })).toBeInTheDocument();
+    expect(getReceivedRadarResult).toHaveBeenCalledTimes(2);
+  });
+
+  it("treats an unconfirmed withdrawal as done when the server no longer has the reading", async () => {
+    vi.mocked(withdrawReceivedRadar).mockRejectedValueOnce(new Error("timeout"));
+    renderAt("/radar/received/request-a");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rút chart của tôi khỏi kết quả này" }));
+    vi.mocked(getReceivedRadarResult).mockRejectedValue(new ApiProblem(404, "RADAR_UNAVAILABLE", "Unavailable"));
+    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Rút chart" }));
+    expect(await screen.findByRole("heading", { name: "Bản đọc này không còn mở được." })).toBeInTheDocument();
+    expect(screen.queryByText(result.headline)).not.toBeInTheDocument();
   });
 
   it("lets the holder of a used invite link withdraw without opening the reading", async () => {
@@ -147,13 +161,23 @@ describe("Radar results B received (P09 D2)", () => {
     expect(getReceivedRadarResult).not.toHaveBeenCalled();
   });
 
-  it("says plainly when the used link can no longer withdraw", async () => {
+  it("says the link can no longer withdraw only on a definitive 404", async () => {
     vi.mocked(getPublicRadarInvite).mockRejectedValue(new Error("not found"));
-    vi.mocked(withdrawRadarByInvite).mockRejectedValueOnce(new Error("not found"));
+    vi.mocked(withdrawRadarByInvite).mockRejectedValueOnce(new ApiProblem(404, "RADAR_UNAVAILABLE", "Unavailable"));
     renderAt("/radar/i/token-123");
 
     await userEvent.click(await screen.findByRole("button", { name: "Rút chart khỏi kết quả" }));
     await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Rút chart" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Link này không còn dùng được.");
+  });
+
+  it("does not claim the link failed when the withdrawal outcome is unknown", async () => {
+    vi.mocked(getPublicRadarInvite).mockRejectedValue(new Error("not found"));
+    vi.mocked(withdrawRadarByInvite).mockRejectedValueOnce(new Error("timeout"));
+    renderAt("/radar/i/token-123");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rút chart khỏi kết quả" }));
+    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Rút chart" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa xác nhận được việc rút chart.");
   });
 });

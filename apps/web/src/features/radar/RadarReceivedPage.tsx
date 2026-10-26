@@ -16,6 +16,7 @@ import "../matching/matching.css";
 import "./radar.css";
 import { RadarResultView } from "./RadarContinuePage";
 import { formatRadarExpiry, RADAR_CONTEXT_OPTIONS } from "./radarOptions";
+import { evictRadarReadings, isTerminalDenial } from "./radarReadingCache";
 
 // P09 D2: B reopens results from B's own guest session, without the receipt cookie. Cached reads are
 // keyed by the server-confirmed session epoch, so another session on this device never sees them.
@@ -88,32 +89,47 @@ export function RadarReceivedResultPage() {
   const { epoch, session } = useRecipientSession();
   const [confirming, setConfirming] = useState(false);
   const [withdrawn, setWithdrawn] = useState(false);
+  // After a withdrawal attempt whose outcome is unknown, the reading is reloaded from the server before
+  // anything is promised about it.
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const queryKey = ["radar-received-result", epoch, requestId];
   const query = useQuery({
-    queryKey: ["radar-received-result", epoch, requestId],
+    queryKey,
     queryFn: ({ signal }) => getReceivedRadarResult(requestId, signal),
     enabled: epoch !== null && Boolean(requestId),
+    gcTime: 0,
+    refetchOnMount: "always",
     retry: false,
   });
   const withdraw = useMutation({
     mutationFn: () => withdrawReceivedRadar(requestId),
-    onSuccess: () => {
-      queryClient.removeQueries({ queryKey: ["radar-received-result", epoch, requestId] });
-      void queryClient.invalidateQueries({ queryKey: ["radar-received", epoch] });
+    onMutate: () => queryClient.cancelQueries({ queryKey }),
+    onSuccess: async () => {
+      await evictRadarReadings(queryClient);
       setWithdrawn(true);
+    },
+    onError: async (error) => {
+      await evictRadarReadings(queryClient);
+      if (!isTerminalDenial(error)) setUnconfirmed(true);
     },
   });
 
   if (withdrawn) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card uv-empty"><div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/pair.webp" /></div><h1>Chart của bạn đã được rút.</h1><p>Kết quả chung đã bị xóa; cả hai phía đều không thể mở lại.</p><Link className="matching-primary" to="/radar/received">Về kết quả bạn đã nhận</Link></section></main>;
-  if (session.isPending || (epoch !== null && query.isPending)) {
+  if (session.isPending || (epoch !== null && (query.isPending || query.isFetching && !query.data))) {
     if (session.isError) return <MissingCard body="Mở lại Lá trên thiết bị bạn đã dùng để đồng ý, rồi thử lại." title="Chưa nhận ra phiên của bạn." />;
-    return <main className="matching-page matching-page--loading"><Sparkle className="matching-pulse" /><p>Đang mở lại bản đọc của bạn…</p></main>;
+    return <main className="matching-page matching-page--loading"><Sparkle className="matching-pulse" /><p>{unconfirmed ? "Chưa xác nhận được việc rút chart. Đang kiểm tra lại…" : "Đang mở lại bản đọc của bạn…"}</p></main>;
   }
-  if (!query.data) return <MissingCard body="Có thể bản đọc đã hết hạn hoặc bạn đã rút chart." onRetry={() => void query.refetch()} title="Bản đọc này không còn mở được." />;
+  // A definitive denial hides retained prose; a connection failure keeps a retry without showing stale data.
+  if (!query.data || (query.isError && isTerminalDenial(query.error))) {
+    return isTerminalDenial(query.error) || withdraw.isError
+      ? <MissingCard body="Có thể bản đọc đã hết hạn hoặc chart đã được rút." title="Bản đọc này không còn mở được." />
+      : <MissingCard body="Chưa kết nối được để mở lại bản đọc. Thử lại sau một chút nhé." onRetry={() => void query.refetch()} title="Chưa mở được bản đọc." />;
+  }
 
   return <>
-    {withdraw.isError ? <p className="matching-message radar-receipt-error" role="alert">Chưa rút được chart. Kết quả vẫn được giữ như cũ.</p> : null}
+    {unconfirmed ? <p className="matching-message radar-receipt-error" role="alert">Chưa rút được chart: bản đọc vẫn còn trên máy chủ. Bạn có thể thử rút lại.</p> : null}
     <RadarResultView
-      actionLabel={withdraw.isError ? "Thử rút chart lại" : "Rút chart của tôi khỏi kết quả này"}
+      actionLabel={unconfirmed ? "Thử rút chart lại" : "Rút chart của tôi khỏi kết quả này"}
       onWithdraw={() => setConfirming(true)}
       result={query.data}
       withdrawing={withdraw.isPending}
