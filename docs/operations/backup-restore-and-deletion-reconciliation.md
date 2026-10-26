@@ -14,7 +14,12 @@ agent; each step below names who does it and what evidence closes it.
 | Installer | `infra/hetzner/install-backup-timer.sh` | Root only, refuses to run from a release other than `/opt/la-lanh/current`, installs the units, enables both timers, runs one backup and one check. |
 | Tests | `apps/api/tests/scripts/test_backup_timer.py` | Unit contents and the real freshness script against synthetic files (fresh, stale, empty, missing checksum, tampered newest dump, bad setting). No systemd in CI: whether timers fire on the VPS is operator evidence. |
 
-## Operator steps (not done; evidence still missing)
+## Operator steps
+
+Steps 1, 2 and the first restore probe were **done on 2026-10-26** with release `89ebdb0cf6b9`. Evidence is in
+[production-release-2026-10-26](../reviews/production-release-2026-10-26/receipt.md): timers active; first backup
+`la-lanh-20261026T102155Z.dump` with checksum OK and freshness check OK; first journal export. Steps 3 and 5 and the
+interleaved probe below are still open.
 
 1. After the release that contains these files is live and `/opt/la-lanh/current` points at it:
    `sudo /opt/la-lanh/current/infra/hetzner/install-backup-timer.sh`.

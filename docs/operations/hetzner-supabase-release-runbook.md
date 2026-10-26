@@ -5,7 +5,18 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-10-21
+## Current production — 2026-10-26
+
+Release `89ebdb0cf6b9` is live (`main` = `89ebdb0cf6b974994b7f67807873ac320b5ed228`, the #75 merge of
+`collab/integration` `7e6d69e`; image digest `sha256:8fcab2f44e27…`; Alembic head `20261023_0038`, the erasure
+journal). Staging runs the same digest. Flags are unchanged from 2026-10-21 (Luna on for `daily_home` only, private
+caps). Backup (20:10 UTC), freshness check (every six hours) and hourly erasure-journal timers were installed from
+this release, and their first runs passed. **P07/B still holds: no restore into service** until the interleaved
+journal replay probe passes. `c3fab3311d65` is not a verified rollback anchor on schema 0038, so prefer a forward
+fix. This release has the PR #40 preflight, so `deploy.sh` removes the worker when generation resolves to anything
+but `true`. Receipt: [production-release-2026-10-26](../reviews/production-release-2026-10-26/receipt.md).
+
+## Previous production — 2026-10-21
 
 Release `c3fab3311d65` is live (`main` = `c3fab3311d659c240da944a84fec305eca416cc6`, image digest
 `sha256:ff8247ab158b…`, Alembic head unchanged at `20261018_0037`): PR #33–#39, including Daily
@@ -358,7 +369,7 @@ least-privileged NOSUPERUSER backend role that owns the restored tables, then de
 Daily backup timer, freshness check, hourly deletion-journal copy, failure marker, restore probe and the
 deletion-reconciliation procedure (option A, journal FIXED_LOCAL):
 [backup-restore-and-deletion-reconciliation.md](backup-restore-and-deletion-reconciliation.md)
-(prepared 2026-10-22, not yet installed). Until the journal is reviewed, deployed, its hourly copy is running
+(prepared 2026-10-22; timers installed on production 2026-10-26). Until the journal is reviewed, deployed, its hourly copy is running
 and the disposable PostgreSQL restore probe (interleaved dump) has replayed it, **do not restore a backup into service**; restore only into a
 disposable copy.
 Staging: `infra/hetzner/staging/up.sh` (own empty database and keys; auth/generation off).
