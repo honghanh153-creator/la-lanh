@@ -17,7 +17,7 @@ bước đó vẫn cần lệnh riêng của owner và operator thực hiện th
 | 5 | R04 bảng neo §4.2 | Giữ đề xuất (p97 → 90, p99,5 → 97). PR triển khai in phân vị tham chiếu thật; chỉ chỉnh neo nếu AC3 không đạt, và ghi lý do | Claude khi triển khai |
 | 6 | R04 công thức độ rộng §5 | Giữ công thức hiện có (đã có phản ví dụ và test biên); không đổi sang ±10 cố định | Claude khi triển khai |
 | 7 | R04 câu giải thích khoảng | Nháp: "Khoảng cho biết Radar chắc đến đâu: càng ít dấu hiệu rõ, khoảng càng rộng. Đây không phải xác suất." | Codex chuốt; đưa vào workbook khi triển khai |
-| 8 | Giọng mặc định Hợp gu (R03) | `deep_dive` ("Đọc kỹ") cho bài đọc theo cặp, vì runtime có sẵn và không cần thêm Roast cho người được mời. Duyệt câu theo contact của workbook #65 là bước riêng, làm lần lượt | Claude rà workbook, Codex chuốt |
+| 8 | Giọng thứ tư của Hợp gu (R03) | `deep_dive` ("Đọc kỹ"), như runtime đang có; không thêm `roast` cho Hợp gu. 140 câu `roast` trong workbook #65 không dùng; 140 câu `deep_dive` cần viết mới ở bước riêng. 420 câu của ba giọng còn lại được rà lần lượt | Claude rà và viết, Codex chuốt |
 | 9 | Release #75 | Đồng ý release khi đủ điều kiện: #82 và #76 đã merge, #74 đã nhận, `CI=1 pnpm check` trên integration xanh (có cả lượt Codex), operator có backup mới + bật timer + chạy migration `20261023_0038`, smoke staging đạt. Việc bấm merge vào `main` và deploy vẫn cần owner ra lệnh cho operator | Owner ra lệnh; operator thực hiện |
 | 10 | T02/T03 (workbook #67) | Chưa duyệt trong lượt này: cần rà từng cảnh theo hành động và kiểm hiểu nội dung, không duyệt máy | Claude rà lần lượt, Codex chuốt |
 
