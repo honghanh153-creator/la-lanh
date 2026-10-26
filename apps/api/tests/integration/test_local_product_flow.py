@@ -8,8 +8,9 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import create_app
 
-# The share payload must never carry the synthetic birth year. Match "1990" only as its own number, so a timestamp such
-# as "…T04:53:32.219906Z" (digits on both sides) cannot false-fail the canary while "1990-01-01" or a bare 1990 still do.
+# The share payload must never carry the synthetic birth year. Match "1990" only as its own
+# number: a timestamp such as "…T04:53:32.219906Z" (digits on both sides) cannot false-fail
+# the canary, while "1990-01-01" or a bare 1990 still do.
 _BIRTH_YEAR = re.compile(r"(?<!\d)1990(?!\d)")
 
 
