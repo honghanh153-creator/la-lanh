@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select, text
 from app.db.session import Database
 from app.domains.astro.models import DateOnlySunResult, EngineProvenance, ZodiacSign
 from app.domains.birth.tables import BirthProfileRow
+from app.domains.content_rewrite.send_fence import pending_sends
 from app.domains.guest.postgres import PostgresGuestRepository
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.readings.gates import evaluate_candidate
@@ -644,19 +645,18 @@ async def test_deletion_waits_for_an_already_started_provider_send(storage) -> N
 # These tests pin both orders with barriers inside the real deletion transaction.
 
 
-def _hold_deletion_inside_its_write_transaction(monkeypatch):  # type: ignore[no-untyped-def]
-    import app.domains.guest.postgres as guest_postgres
-
+def _hold_deletion_inside_its_write_transaction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[asyncio.Event, asyncio.Event]:
     holding = asyncio.Event()
     release = asyncio.Event()
-    original = guest_postgres.pending_sends
 
-    async def paused(session, guest_ids):  # type: ignore[no-untyped-def]
+    async def paused(*args: Any, **kwargs: Any) -> Any:
         holding.set()
         await release.wait()
-        return await original(session, guest_ids)
+        return await pending_sends(*args, **kwargs)
 
-    monkeypatch.setattr(guest_postgres, "pending_sends", paused)
+    monkeypatch.setattr("app.domains.guest.postgres.pending_sends", paused)
     return holding, release
 
 
@@ -684,7 +684,7 @@ async def _token_hash(database: Database, guest_id: UUID) -> bytes:
             select(GuestSessionRow.token_hash).where(GuestSessionRow.id == guest_id)
         )
     assert token_hash is not None
-    return cast(bytes, token_hash)
+    return token_hash
 
 
 async def _counts(database: Database) -> tuple[int, int]:
@@ -730,7 +730,7 @@ async def test_finalize_that_read_before_deletion_locked_still_commits(  # type:
     await provider.entered.wait()
     armed.set()
     provider.release.set()
-    worker_result = await asyncio.gather(worker, return_exceptions=True)
+    worker_result = list(await asyncio.gather(worker, return_exceptions=True))
     release_deletion.set()
     assert worker_result == [True]
     assert await deletion[0] is True
@@ -758,7 +758,7 @@ async def test_finalize_waits_for_a_deletion_that_already_holds_the_write_lock( 
     await asyncio.sleep(0.1)
     assert deletion.done() is False
     release_deletion.set()
-    assert await asyncio.gather(worker, return_exceptions=True) == [True]
+    assert list(await asyncio.gather(worker, return_exceptions=True)) == [True]
     assert await deletion is True
     assert await _counts(database) == (0, 0)
 
@@ -793,7 +793,7 @@ async def test_send_fence_waits_for_deletion_and_then_never_sends(  # type: igno
     await holding.wait()
     await asyncio.sleep(0.1)
     release_deletion.set()
-    assert await asyncio.gather(worker, return_exceptions=True) == [True]
+    assert list(await asyncio.gather(worker, return_exceptions=True)) == [True]
     assert provider.calls == 0
     assert await deletion[0] is True
     assert await _counts(database) == (0, 0)
