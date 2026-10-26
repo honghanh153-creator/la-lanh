@@ -55,7 +55,7 @@ and run `pnpm tarot:audit` and `pnpm content:review`.
 
 ## Open items (AC/DoD)
 
-- Owner approval of every row (US-20 AC14/AC19 copy approval; DoD "owner duyệt nội dung mới"): not started.
+- Copy decisions are recorded under owner delegation for all 275 rows; four rewritten lines are polished by Codex below. Claude review of this polish remains open. This does not close wiring or T05.
 - Wiring, versioning, audits and Codex review: not started, by design.
 - Framer longest-signal collisions (finding 1) and goal override (finding 2): not fixed here.
 
@@ -85,3 +85,20 @@ Conditions for the wiring PR (not done here):
    end "…và ghi lại bạn thấy thế nào". Vary these before readers see them across readings.
 3. Keep frozen readings: wiring bumps the content version, and stored readings keep their old text.
 4. A human comprehension check stays open (T05). This decision does not replace it.
+
+
+## Codex wording pass (26/10/2026)
+
+Read the four requested rewrites against the C4/C5 rules and the topic-neutral opening requirement. The final proposed
+text is in each row's Owner note; drafts A/B remain unchanged as provenance. Claude must review this authored polish.
+
+| ID | Proposed text after polish |
+|---|---|
+| T02-chia_se-self_care | Cả tuần bạn trả lời “mình ổn” mỗi khi được hỏi thăm, rồi chuyển sang chuyện khác. |
+| T03-nhan_loi-opening | Mở lời: “Mình nhận lời nhé, mình thống nhất thời gian cụ thể với bạn được không?” |
+| T03-hen_gap-opening | Mở lời: “Bạn rảnh lúc nào để mình hẹn gặp và nói chuyện một chút?” |
+| T03-gop_y-opening | Mở lời: “Bạn có muốn nghe một góp ý của mình về chuyện này không?” |
+
+The scene is observable and carries no advice. The three openings do not assume a job, a date, a prior meeting or
+an existing disagreement. All four are at most 28 whitespace-delimited Vietnamese syllables. No runtime, catalog,
+versions, fallback approval, stored reading or provider payload changes. The wiring conditions and T05 stay open.
