@@ -111,11 +111,14 @@ were run by Claude on the real integration heads, not by Codex.
 | 4 | #45 `e2e5b4c` → `d7177f2`; #73 `3760dcd` → `d140799` | `d140799` | exit 0: web 511, API 2,559 / 57 / 1, e2e 8/8 |
 | 5 | #64 `df80d62` → `f5eae3b`; #69 `aba9988` → `fdfe5e1`; #60 `7c17d88` → `3d34eb4` | `3d34eb4` | exit 0: web 511, API 2,559 / 57 / 1, e2e 8/8 |
 
-**Correction (26/10/2026):** Codex's independent `CI=1 pnpm check` at `3d34eb4` (r28) is **red**: web 509 passed / 2 failed
-in `client.reliability.test.ts`. Two owner-session fixtures expire at `2026-10-26T00:00:00Z` without a pinned clock, so they
-started failing once that date passed; the green runs above were Claude's, on 25/10, before that instant. The product
-logic is correct. Test-only fix #82 (`5971415`) pins the clock and adds a 60-second-buffer regression; with it
-`CI=1 pnpm check` exits 0 (Claude's run), awaiting Codex review. Until #82 merges, integration's full check is red.
+**Codex receipt, 26/10/2026 (r28), recorded separately; the table above is unchanged and remains Claude's 25/10 history.**
+Codex's independent `CI=1 pnpm check` at `3d34eb4` is **red**: web 509 passed / 2 failed in `client.reliability.test.ts`
+(lines 331 and 365). Codex ran the steps after the stop separately: API lint/mypy pass, API 2,559 passed / 57 skipped /
+1 xfailed, QA smoke passes, E2E 8/8. Those separate passes do not make the full check green. Cause: two owner-session
+fixtures expire at `2026-10-26T00:00:00Z` without a pinned clock, so they started failing once that date passed; Claude's
+runs were on 25/10, before that instant. Product logic is correct. Test-only fix #82 (`5971415`) pins the clock and adds
+a 60-second-buffer regression; with it `CI=1 pnpm check` exits 0 (Claude's run), awaiting Codex review. Until #82
+merges, integration's full check is red.
 
 Merging is not release: `main`/production stays `c3fab33`. The release PR #75 now points at `3d34eb4` and stays No-Go
 until the owner decides #74 and #76, the operator takes a fresh backup and restores the timers, and staging →
