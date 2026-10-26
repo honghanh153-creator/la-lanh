@@ -1,3 +1,4 @@
+import re
 import sqlite3
 from uuid import uuid4
 
@@ -6,6 +7,21 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
+
+# The share payload must never carry the synthetic birth year. Match "1990" only as its own number, so a timestamp such
+# as "…T04:53:32.219906Z" (digits on both sides) cannot false-fail the canary while "1990-01-01" or a bare 1990 still do.
+_BIRTH_YEAR = re.compile(r"(?<!\d)1990(?!\d)")
+
+
+def _assert_no_birth_year(payload: object) -> None:
+    assert _BIRTH_YEAR.search(str(payload)) is None, "share payload leaks the birth year"
+
+
+def test_birth_year_canary_ignores_timestamps_but_catches_the_date() -> None:
+    _assert_no_birth_year({"created_at": "2026-10-26T04:53:32.219906Z", "count": 219906})
+    for leak in ({"date": "1990-01-01"}, {"year": 1990}, {"text": "sinh năm 1990."}):
+        with pytest.raises(AssertionError):
+            _assert_no_birth_year(leak)
 
 
 def test_real_local_persistence_runs_guest_to_birth_reveal() -> None:
@@ -114,7 +130,7 @@ def test_real_local_persistence_runs_us03_to_us06_product_loop(tmp_path) -> None
             share.json()["safe_snapshot"]["title"]
             == daily.json()["reading_projection"]["active"]["sections"]["hook"]
         )
-        assert "1990" not in str(share.json())
+        _assert_no_birth_year(share.json())
 
         places = client.post("/v1/birth-places/search", json={"query": "Ha"})
         assert places.status_code == 200
