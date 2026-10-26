@@ -31,11 +31,11 @@ and the release-receipt checks of 26/10), `OWNER_DECISION`, `DEFERRED`.
 | P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `0c51d84963c6236589e838bf64a875d6cb045802` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/48#issuecomment-6378685160) (captured clear counter, epoch and generation inside the queue lock). Device and real multi-event-loop proof remain verification limits · merged into integration (`9a86179`) | operator/device | device check on a real browser/WebView with parallel tabs |
 | P05 | Physical purge of revoked/expired share; experiment wording | RELEASED | #49 `76d3460cba6f5ceebb563198d271c40551156552` · APPROVE @ same · merged into integration (`c787681`) | counsel on "tối đa 30 ngày" | PostgreSQL run |
 | P06 | Aggregate legacy-plaintext check + plan | PARTIAL (tooling approved) | #50 `109072dd385e5510086a741c87ef33b31b8e629a` · APPROVE @ same · merged into integration (`9c02707`) | operator: staging/prod counts via private channel | real counts; then backfill tool per owner choice |
-| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | **26/10: #43 timers and #78 journal live in `89ebdb0`; backup/check/journal timers installed, first runs pass; restore probe of the new backup passes ([receipt](production-release-2026-10-26/receipt.md)). Still open: interleaved replay probe, alert channel, Supabase PITR record, unjournaled kinds; B holds.** #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`) | operator install; Codex reviews journal A | install, first backup, restore probe, alert, Supabase backup/PITR receipt. Journal A: #78 `c76b6954e656afe48784e9816beaaa431ce0355b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6378889433) (purge horizon, earlier [APPROVE @ 610c8ae](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271), plus the suggested horizon edge regressions, stated commit-delay assumption and export-before-purge operator step). #79 holds the same commit and has its own [APPROVE @ c76b695](https://github.com/honghanh153-creator/la-lanh/pull/79). #78 merged into integration (`99d7d90`) on 25/10; nothing reached main. P07 stays PARTIAL: not deployed, the operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until it is deployed and a restore probe has replayed it |
+| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | **26/10: #43 timers and #78 journal live in `89ebdb0`; backup/check/journal timers installed, first runs pass; restore probe of the new backup passes ([receipt](production-release-2026-10-26/receipt.md)). Still open: interleaved replay probe, alert channel, Supabase PITR record, unjournaled kinds; B holds.** #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`), released in `89ebdb0` | operator: interleaved replay probe; owner: alert channel | interleaved replay probe, alert delivery, Supabase backup/PITR receipt, unjournaled kinds (install, first backup and restore probe done 26/10). Journal A: #78 `c76b6954e656afe48784e9816beaaa431ce0355b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6378889433) (purge horizon, earlier [APPROVE @ 610c8ae](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271), plus the suggested horizon edge regressions, stated commit-delay assumption and export-before-purge operator step). #79 holds the same commit and has its own [APPROVE @ c76b695](https://github.com/honghanh153-creator/la-lanh/pull/79). #78 merged into integration (`99d7d90`) on 25/10 and was released in `89ebdb0` on 26/10. P07 stays PARTIAL: the interleaved operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until an interleaved restore probe has replayed the deployed journal |
 | P08 | Log canaries; ingress/Docker; native | PARTIAL | #51 `1fcfa84368ebcda3592f3e2bc9e74ccf7c8dec0b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/51#issuecomment-6346170351) · merged into integration (`8df0492`) | operator/device | ingress/Docker runtime logs; signed native build on device (MASVS) |
 | P09 | B rights; receipt 7 d vs result 30 d | PARTIAL / OWNER_DECISION | dossier #52 APPROVE; D1 #62 `288b3ad281bb8eb3d5c1dc015592c7c68c7a70b2` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/62#issuecomment-6346173801) · merged into integration (`aae55b5`) (cookies already expired at 7 days are not revived). D2 API and procedure #80 `52f08bafaa3ba741dacb3f64c1b17af0a523cd5c` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/80#issuecomment-6385370273) · merged into integration (`10989fa`) | owner (copy "30 ngày", D2 screen copy), counsel D2–D4 | D2 web screens; data export decision; lawful basis/notice answers |
 | P10 | Apple Tracking column; disclosures; counsel dossier | PARTIAL | #52 APPROVE · merged into integration (`0cf6334`) (column fixed; dossier is not a legal conclusion) | counsel | cross-border/DPIA, store forms at submission; DPA signature tracked separately by the owner, not a gate |
-| P11 | Provider/pilot gates | PARTIAL | #61 APPROVE · merged into integration (`522d350`) (roster code only, not activation or deploy); Luna Daily pilot unchanged. DPA is not a deploy or Luna gate (owner 21/10 and 23/10); the owner signs it separately | operator (aggregate count of Radar/matching rewrite consents before deploying #61) | that count |
+| P11 | Provider/pilot gates | PARTIAL | #61 APPROVE · merged into integration (`522d350`), released in `89ebdb0` (roster code only; not activated); Luna Daily pilot unchanged. DPA is not a deploy or Luna gate (owner 21/10 and 23/10); the owner signs it separately | operator (aggregate count of Radar/matching rewrite consents before deploying #61) | that count |
 | P12 | Google/auth acceptance | OPEN | Google stays off | operator (secret rotation via protected channel), owner | acceptance run with a test account on staging |
 
 ## B. Tarot
@@ -47,7 +47,7 @@ and the release-receipt checks of 26/10), `OWNER_DECISION`, `DEFERRED`.
 | T03 | Small step with a concrete trigger | OPEN (draft) | workbook #67 (142 action×role rows, 284 steps) | owner | same |
 | T04 | Card names English + Vietnamese; AC12 | RELEASED | #63 `cd692bc63845f7724de1c84eb523cbe39e4707b0` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/63#issuecomment-6346174788) · merged into integration (`bc4eea1`) | owner (order/separator); device | screen reader and long-title layout on device |
 | T05 | Meaning/comprehension rubric | OPEN | — | Claude + owner rubric | rubric and gate |
-| T06 | Extra scenes; Tarot Luna | PARTIAL | Owner wants Tarot Luna (23/10); shared Luna budget already approved. Code on `7ca22cb`: framed brief v3 / legacy brief v2, renderer v4, gates v4. Allowlist #73 `3760dcd1ebd0557139ea2d71734be7eddd5c197b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/73#issuecomment-6398063830) · merged into integration (`d140799`) (allowlist only, not enabled) | release to main; #61 deployed; then owner/operator | reader evaluation, consent/store copy, rollout, pilot, live canary receipt; extra scenes stay with T02 |
+| T06 | Extra scenes; Tarot Luna | PARTIAL | Owner wants Tarot Luna (23/10); shared Luna budget already approved. Code on `7ca22cb`: framed brief v3 / legacy brief v2, renderer v4, gates v4. Allowlist #73 `3760dcd1ebd0557139ea2d71734be7eddd5c197b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/73#issuecomment-6398063830) · merged into integration (`d140799`), released in `89ebdb0` (allowlist only, not enabled; #61 roster released too) | owner/operator | reader evaluation, consent/store copy, rollout, pilot, live canary receipt; extra scenes stay with T02 |
 
 ## C. Hợp gu / Radar
 
@@ -80,12 +80,12 @@ not Supabase, migration or live certification).
 
 | Step | PR · head · verdict | Status | Still missing |
 |---|---|---|---|
-| S1 enqueue only when the surface is on | #70 `4c08e3c853a43e1e199a273edd06319272f1f3a8` · APPROVE @ same · merged into integration (`cdb88a4`) | RELEASED | release to main |
-| S2 Hợp gu payload without chart labels | #71 `58192dea24cff5a6a43e878f01488e234e5a2107` · APPROVE @ same · merged into integration (`764b8f0`) | RELEASED | release to main |
+| S1 enqueue only when the surface is on | #70 `4c08e3c853a43e1e199a273edd06319272f1f3a8` · APPROVE @ same · merged into integration (`cdb88a4`), released in `89ebdb0` | RELEASED | — |
+| S2 Hợp gu payload without chart labels | #71 `58192dea24cff5a6a43e878f01488e234e5a2107` · APPROVE @ same · merged into integration (`764b8f0`), released in `89ebdb0` | RELEASED | — |
 | S3 Hợp gu merge gates | #72 `ebd99a761c9bcc8b9180b691fb55ca32bc456fb9` · APPROVE @ same (tripwire). Its own branch shows the inherited `approved_release` failure (2166 passed / 57 skipped / 1 failed), fixed by #66 on integration · merged into integration (`3d78ccd`) | PARTIAL | machine voice-preservation gate |
-| S4 Tarot allowlist | #73 `3760dcd1ebd0557139ea2d71734be7eddd5c197b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/73#issuecomment-6398063830) (merges #71's approved head; both runbook bullets kept, Radar S2 before Tarot S4). Branch evidence: related suites 284 passed / 28 skipped; full API 2,192 passed / 57 skipped / **1 failed**, the inherited `approved_release` pin at `tests/grammar/test_grammar.py:367` (same failure on 46059af, fixed by #66 on integration), so the branch alone is not full-API green; on integration after merge `CI=1 pnpm check` exit 0 · merged into integration (`d140799`) | MERGED_INTEGRATION (allowlist only) | release to main; #61 deployed; rollout, pilot, live canary |
+| S4 Tarot allowlist | #73 `3760dcd1ebd0557139ea2d71734be7eddd5c197b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/73#issuecomment-6398063830) (merges #71's approved head; both runbook bullets kept, Radar S2 before Tarot S4). Branch evidence: related suites 284 passed / 28 skipped; full API 2,192 passed / 57 skipped / **1 failed**, the inherited `approved_release` pin at `tests/grammar/test_grammar.py:367` (same failure on 46059af, fixed by #66 on integration), so the branch alone is not full-API green; on integration after merge `CI=1 pnpm check` exit 0 · merged into integration (`d140799`), released in `89ebdb0` | RELEASED (allowlist code only; Tarot not enabled) | reader evaluation, rollout, pilot, live canary (activation and evaluation stay open) |
 | Plan | #69 `aba9988ea6199adaa74da121c05601503234f6c2` · APPROVE @ same · merged into integration (`fdfe5e1`) (plan delta; not privacy or Luna completion) | RELEASED | — |
-| Tarot canary controls | #77 `2573e5b50d98a338900d1b8dd593ff3b7e24ccaa` (test-only: legacy and Roast canary) · APPROVE @ same · merged into integration (`5859a4d`); not an allowlist or rollout change | RELEASED | release to main |
+| Tarot canary controls | #77 `2573e5b50d98a338900d1b8dd593ff3b7e24ccaa` (test-only: legacy and Roast canary) · APPROVE @ same · merged into integration (`5859a4d`), released in `89ebdb0`; not an allowlist or rollout change | RELEASED | — |
 
 ## Owner decisions recorded 22/10/2026 (delegated: "tự quyết định theo cách bạn đề xuất")
 
@@ -93,7 +93,7 @@ not Supabase, migration or live certification).
 |---|---|---|
 | P07 reconciliation | **A** (keyed deletion journal for explicit user actions) + C's retention re-run; **B** (no restore into service) until the journal ships | #43 doc; journal is a future PR |
 | P09 D1 | Receipt lives as long as the consented result (30 days) | #62 |
-| P09 D2 | Manual rights channel; verify by possession of the invite link/receipt or A deletes on request; never re-collect B's birth data | API + procedure #80 `52f08bafaa3ba741dacb3f64c1b17af0a523cd5c` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/80#issuecomment-6385370273) (scoped API/procedure only, not D2 completion or release; earlier RC @ bf8bb8f and @ fb83a52 addressed). · merged into integration (`10989fa`). Still open: web screens with owner-approved copy, counsel, data export |
+| P09 D2 | Manual rights channel; verify by possession of the invite link/receipt or A deletes on request; never re-collect B's birth data | API + procedure #80 `52f08bafaa3ba741dacb3f64c1b17af0a523cd5c` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/80#issuecomment-6385370273) (scoped API/procedure only, not D2 completion or release; earlier RC @ bf8bb8f and @ fb83a52 addressed). · merged into integration (`10989fa`), released in `89ebdb0` (staging and production two-guest smoke green). Web screens #83 `df3fde6` · Codex APPROVE @ same · merged into integration (`288a535`), not released. Still open: release of the screens, counsel, data export |
 | P09 D3 | Keep A's attestation with the 24 h private result until counsel answers | unchanged |
 | P09 D4 | No automatic contact of B until counsel answers | unchanged |
 | P06 | Per-table "Preferred" column of `legacy-plaintext-backfill-plan.md` | after operator counts |
@@ -120,7 +120,7 @@ Codex's independent `CI=1 pnpm check` at `3d34eb4` is **red**: web 509 passed / 
 fixtures expire at `2026-10-26T00:00:00Z` without a pinned clock, so they started failing once that date passed; Claude's
 runs were on 25/10, before that instant. Product logic is correct. Test-only fix #82 (`5971415`) pins the clock and adds
 a 60-second-buffer regression; with it `CI=1 pnpm check` exits 0 (Claude's run), awaiting Codex review. Until #82
-merges, integration's full check is red.
+merges, integration's full check is red. (#82 merged on 26/10; see the next section.)
 
 (25/10, superseded by the release below.) Merging is not release: `main`/production stays `c3fab33`. The release PR #75 now points at `3d34eb4` and stays No-Go
 until the owner decides #74 and #76, the operator takes a fresh backup and restores the timers, and staging →
@@ -144,6 +144,12 @@ On the owner's release order the operator (Claude) took a protected backup with 
 disposable copy, deployed staging, smoked it, merged #75 → `89ebdb0`, deployed production, smoked it and installed the
 backup/check/journal timers. Full evidence: [production-release-2026-10-26](production-release-2026-10-26/receipt.md).
 Flags are unchanged. #83, #87 and #88 (Codex APPROVE) and #89 (REQUEST_CHANGES) are not in the release.
+
+**After the release (integration only, not released):** #87 `4db3a60` → `2cb2041`, #88 `8052eab` → `b899d11` and #83
+`df3fde6` → `288a535`, each pinned to its Codex APPROVE SHA. Codex independent `CI=1 pnpm check` at
+`288a5357122257f4ac583e8c294a9768e5529d80`: **PASS** (r33, 12:14–12:21 UTC): web 527 / 81 files, API 2,563 passed / 57
+skipped / 1 strict xfailed, QA PASS, E2E 8/8. #91 (P3 follow-ups) has Codex APPROVE @
+`53264393292dca4782950480d04b12ce339a99fe`, not merged. #89 is under re-review.
 
 ## Combined-branch checks (local, not pushed)
 
@@ -229,13 +235,27 @@ into integration.
 Daily Luna pilot review on **04/11/2026**; at most 20 opted-in sessions; the full 670-case gate is **not met** and runs
 under the owner's exception; no EvaluationRecord exists or was fabricated; budget figures stay server-side.
 
-## Not done (honest list)
+## Not done (honest list, as of 26/10/2026 after release `89ebdb0cf6b9`)
 
-T02/T03/R03 are drafts awaiting approval; T05, R05, R07, P12, journal A, rights channel, native/device and all runtime
-evidence remain open. Not complete either: the R06 strict xfail, the Tarot and Daily pilots, and any release to `main`
-(draft #75 is No-Go; copy PR #76 is REQUEST_CHANGES pending the owner's wording). Operator evidence: the disposable
-Compose proof (O01) passed and the pre-#61 consent count was taken privately; still missing are the kill-switch path in a
-real staging/production deploy, a fresh backup with #43's timers installed and their first-run receipts, a restore
-probe, the Supabase backup/PITR record and the disclosure re-check for the release. #45 is still a merge prerequisite for the Tarot
-allowlist; #61 (merged, not deployed) and #66 (merged) remain dependencies of any Tarot rollout. No merge, deploy, server or database access, IAM/secret/budget change, or extra
-Luna/Google/paid API in this session.
+Released and live: everything merged into integration up to `7e6d69e`, including journal A (migration 0038), #61's
+roster and #76's copy. Staging and production smokes are green, and the backup/check/journal timers run with
+first-run receipts ([receipt](production-release-2026-10-26/receipt.md)).
+
+Still open:
+- **Content:** T02/T03/R03 are drafts awaiting approval; T05, R05, R07 and P12 are open; the R06 strict xfail
+  remains.
+- **Pilots:** the Tarot pilot is not enabled; the Daily pilot continues to its 04/11 review.
+- **Rights and devices:** the rights channel and native/device evidence are open.
+- **P07:** the interleaved replay probe, failure-alert delivery, the Supabase backup/PITR record and the erasure
+  kinds not yet journaled. **B holds.**
+- **Operations:** a generation-off deploy (the worker-removal path) has not been exercised in a real deploy. The
+  disclosure re-check for the release is open.
+- **Rollback:** `c3fab33` is not a verified rollback anchor on schema 0038.
+- **Integration after the release:** #83/#87/#88 merged into integration (`288a535`) and are not released; #89 is
+  under review; #91 is approved and not merged.
+
+As of 25/10 (before the release), the list also had: draft #75 No-Go; #76 pending the owner's wording; no fresh
+backup, timers or restore probe; #61 merged but not deployed. All of those are closed by the release above.
+
+This session's server and database access was operator work under the owner's release order of 26/10/2026.
+There was no IAM/secret/budget change and no extra Luna/Google/paid API.
