@@ -19,6 +19,7 @@ export function RadarLandingPage() {
       <div className="matching-landing__hero-action">
         <Link className="matching-primary" to="/radar/start">Check kín một người <ArrowRight /></Link>
         <Link className="radar-history-link" to="/radar/start#radar-history">Xem kết quả đã có</Link>
+        <Link className="radar-history-link" to="/radar/received">Kết quả bạn đã nhận</Link>
         <small>Bạn chỉ nhập thông tin sinh khi đã được người ấy cho phép dùng.</small>
       </div>
     </section>

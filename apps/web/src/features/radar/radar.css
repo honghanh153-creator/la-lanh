@@ -221,3 +221,12 @@
   flex: 0 0 auto;
   margin-top: 0.1rem;
 }
+
+/* P09 D2: results B accepted, reopened from B's own session. */
+.radar-received__list { display: grid; margin: 0 0 1rem; padding: 0; list-style: none; gap: 0.6rem; }
+.radar-received__item { display: grid; padding: 0.85rem 1rem; border: 1px solid rgb(185 150 255 / 30%); border-radius: 1.1rem; grid-template-columns: 1fr auto; gap: 0.2rem 0.6rem; color: #eee9fa; text-decoration: none; background: linear-gradient(145deg, rgb(28 25 65 / 90%), rgb(12 12 39 / 88%)); }
+.radar-received__item strong { font-size: 0.82rem; }
+.radar-received__item span { grid-column: 1; color: #aaa1c6; font-size: 0.72rem; }
+.radar-received__item svg { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--match-lime); }
+.radar-received__item:focus-visible { outline: 2px solid var(--match-lime); outline-offset: 2px; }
+.radar-received__empty { margin: 0 0 1rem; color: #aaa1c6; font-size: 0.78rem; line-height: 1.5; text-align: center; }
