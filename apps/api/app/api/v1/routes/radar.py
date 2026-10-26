@@ -161,8 +161,9 @@ class RadarReceivedItem(BaseModel):
 
 class RadarReceivedListResponse(BaseModel):
     items: list[RadarReceivedItem]
-    # Pass as ``before`` for the next page. Null once a page returns fewer than ``limit`` items; a
-    # page that is exactly full still returns a cursor, and the page after it is empty.
+    # Pass as ``before`` for the next page. Null once a page returns fewer than ``limit`` items.
+    # Every full page returns a cursor, so when the last page is exactly full, one extra request
+    # returns an empty page.
     next_before: UUID | None = None
 
 
