@@ -1,10 +1,19 @@
 # Backup, restore and deletion reconciliation
 
 Audit 2026-10-22: P07 (backup/restore/physical deletion evidence) and O02 (daily backup). This file
-prepares the operator and owner steps. Nothing here has been installed or run on the VPS by an
-agent; each step below names who does it and what evidence closes it.
+prepares the operator and owner steps; each step below names who does it and what evidence closes it.
 
-## What the code now provides (FIXED_LOCAL)
+**Current state (2026-10-26, production release `89ebdb0cf6b9`):**
+- **Deployed:** the timers, freshness check, failure marker and erasure journal (migration 0038). The
+  installer ran, and the first backup, check and journal export passed. A restore probe of the new
+  backup passed ([receipt](../reviews/production-release-2026-10-26/receipt.md)).
+- **Still open:** the interleaved PostgreSQL replay probe, delivery of failure alerts to a person, the
+  Supabase backup/PITR record, and the erasure kinds not yet journaled.
+- **B stays the operating rule: no restore into service.**
+
+Passages below marked as of 2026-10-22 describe the state before the release.
+
+## What the code provides (deployed 2026-10-26)
 
 | Piece | File | Behaviour |
 |---|---|---|
@@ -14,7 +23,12 @@ agent; each step below names who does it and what evidence closes it.
 | Installer | `infra/hetzner/install-backup-timer.sh` | Root only, refuses to run from a release other than `/opt/la-lanh/current`, installs the units, enables both timers, runs one backup and one check. |
 | Tests | `apps/api/tests/scripts/test_backup_timer.py` | Unit contents and the real freshness script against synthetic files (fresh, stale, empty, missing checksum, tampered newest dump, bad setting). No systemd in CI: whether timers fire on the VPS is operator evidence. |
 
-## Operator steps (not done; evidence still missing)
+## Operator steps
+
+Steps 1, 2 and the first restore probe were **done on 2026-10-26** with release `89ebdb0cf6b9`. Evidence is in
+[production-release-2026-10-26](../reviews/production-release-2026-10-26/receipt.md): timers active; first backup
+`la-lanh-20261026T102155Z.dump` with checksum OK and freshness check OK; first journal export. Steps 3 and 5 and the
+interleaved probe below are still open.
 
 1. After the release that contains these files is live and `/opt/la-lanh/current` points at it:
    `sudo /opt/la-lanh/current/infra/hetzner/install-backup-timer.sh`.
@@ -42,12 +56,13 @@ LA_LANH_RELEASE_ID=<current release> infra/hetzner/rehearse-migration.sh
 Evidence to record: backup file name, checksum OK, `database-privacy-isolation-ok`, readiness OK,
 container removed. It proves a backup can be restored; it does not prove deletion reconciliation.
 
-## Deletion reconciliation after a restore: option A chosen (journal not built yet)
+## Deletion reconciliation after a restore: option A chosen (journal deployed 2026-10-26)
 
 A restore brings back every row deleted after the backup was taken: guest erasure, history clears,
-Radar deletions, withdrawn consents and the 24-hour Daily/Radar purges. Today there is **no
-mechanism** to replay those deletions, so a restore can resurrect data that users or retention
-removed. Options:
+Radar deletions, withdrawn consents and the 24-hour Daily/Radar purges. As of 2026-10-22 there was **no
+mechanism** to replay those deletions, so a restore could resurrect data that users or retention
+removed. The journal below has been the mechanism since 2026-10-26, but it is unproven on an interleaved
+PostgreSQL dump. Options considered:
 
 | Option | How | Trade-off |
 |---|---|---|
@@ -62,7 +77,7 @@ owner decides and the journal exists, the runbook must treat B as the rule: no r
 **Decision (22/10/2026):** the owner delegated this choice to the recommendation above: **A**, scoped to
 explicit user actions, with C's immediate re-run of retention cleanups for everything else.
 
-## Option A implementation (FIXED_LOCAL, not deployed)
+## Option A implementation (deployed 2026-10-26; interleaved probe still open)
 
 | Piece | Where | Behaviour |
 |---|---|---|
@@ -83,7 +98,7 @@ Losses the design accepts, so the runbook must not hide them:
 - Linked accounts: the Supabase Auth identity was already deleted at erasure time; replay finishes the local
   deletion through the guest cleanup job, which retries the identity call.
 
-### Restore procedure (only after this PR is reviewed and deployed)
+### Restore procedure (journal deployed 2026-10-26; usable only after the interleaved probe below passes)
 
 1. If the damaged database is still readable: `scripts.erasure_journal export > pre-restore.jsonl` (root-only).
 2. Restore the chosen dump (`pg_restore --no-owner --role=<backend>`); its journal rows come with it.
@@ -111,5 +126,5 @@ PostgreSQL with synthetic data, not on staging or production:
    and a sane server clock. Request deadlines make this expected; SQLite tests and this document do not prove
    PostgreSQL commit order in general, so steps 1–5 are the evidence.
 
-Until the journal is deployed, the hourly copy has run and this probe has passed, **B stays the operating
+The journal has been deployed and its hourly copy running since 2026-10-26. Until this probe has passed, **B stays the operating
 rule: no restore into service.**
