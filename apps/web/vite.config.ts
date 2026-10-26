@@ -20,6 +20,9 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     setupFiles: "./src/test/setup.ts",
+    // Above the Testing Library wait in src/test/setup.ts, so a slow wait fails as a missing
+    // element rather than a test timeout.
+    testTimeout: 15_000,
     css: true,
     coverage: {
       reporter: ["text", "html"],
