@@ -1,6 +1,6 @@
 # T02/T03 — Tarot copy keyed by the asked action (draft for owner review), 2026-10-22
 
-**Status: DRAFT, awaiting owner approval.** Nothing in the workbook is live. It is not wired into the engine,
+**Status: decided under owner delegation (26/10/2026), not yet wired.** Was: DRAFT, awaiting owner approval. Nothing in the workbook is live. It is not wired into the engine,
 `examples.py`, `roles.py`, `meaning_brief.py` or the fallback approval scope (`docs/operations/fallback-approval.json`).
 
 Workbook: `docs/reviews/2026-10-22-t02-t03-tarot-copy-workbook.xlsx`
@@ -55,6 +55,50 @@ and run `pnpm tarot:audit` and `pnpm content:review`.
 
 ## Open items (AC/DoD)
 
-- Owner approval of every row (US-20 AC14/AC19 copy approval; DoD "owner duyệt nội dung mới"): not started.
+- Copy decisions are recorded under owner delegation for all 275 rows; four rewritten lines are polished by Codex below. Claude review of this polish remains open. This does not close wiring or T05.
 - Wiring, versioning, audits and Codex review: not started, by design.
 - Framer longest-signal collisions (finding 1) and goal override (finding 2): not fixed here.
+
+
+## Delegated decision (26/10/2026)
+
+The owner delegated copy decisions to Claude on 26/10/2026. Claude had a first-pass reviewer read every row against the
+rules above, then checked samples and every uncertain row itself. The "Owner decision" / "Owner note" columns now carry
+each decision ("Uỷ quyền 26/10: …"). This is one careful reading, not a comprehension test with real readers.
+
+| Sheet | Approve A | Approve B | Rewrite | Drop (use the action's general row) |
+|---|---|---|---|---|
+| Scenes (T02, 133) | 96 | 33 | 1 | 3 |
+| Steps (T03, 142) | 90 | 49 | 3 | 0 |
+
+- **Rewrites (Codex to polish before wiring):** `T02-chia_se-self_care` (A ended alone in a dark room; B was writing, not
+  sharing); `T03-nhan_loi-opening`, `T03-hen_gap-opening`, `T03-gop_y-opening` (both drafts fitted one topic only).
+- **Dropped for now:** `T02-dat_ranh_gioi-relationships` (a partner monitoring messages is control-adjacent; it waits for
+  a safety layer); `T02-tap_trung-self_care` and `T02-sap_xep_lai-self_care` (their example questions belong to another
+  action: "tập trung vào bản thân", tidying a room). Both are T01 framer follow-ups.
+- **Switched to B** where A ran longer than one small step: `T03-nghi_ngoi-next`, `T03-o_nha-next`, `T03-hen_gap-next`.
+
+Conditions for the wiring PR (not done here):
+1. Steps are keyed by action × role but render for every topic. Every `opening` line must read naturally for all topics
+   of its action; any that cannot is split by topic in the wiring PR.
+2. Add a variety check (AC16): scenes repeat images (typing then deleting, rereading, an unopened chat) and many steps
+   end "…và ghi lại bạn thấy thế nào". Vary these before readers see them across readings.
+3. Keep frozen readings: wiring bumps the content version, and stored readings keep their old text.
+4. A human comprehension check stays open (T05). This decision does not replace it.
+
+
+## Codex wording pass (26/10/2026)
+
+Read the four requested rewrites against the C4/C5 rules and the topic-neutral opening requirement. The final proposed
+text is in each row's Owner note; drafts A/B remain unchanged as provenance. Claude must review this authored polish.
+
+| ID | Proposed text after polish |
+|---|---|
+| T02-chia_se-self_care | Cả tuần bạn trả lời “mình ổn” mỗi khi được hỏi thăm, rồi chuyển sang chuyện khác. |
+| T03-nhan_loi-opening | Mở lời: “Mình nhận lời nhé, mình thống nhất thời gian cụ thể với bạn được không?” |
+| T03-hen_gap-opening | Mở lời: “Bạn rảnh lúc nào để mình hẹn gặp và nói chuyện một chút?” |
+| T03-gop_y-opening | Mở lời: “Bạn có muốn nghe một góp ý của mình về chuyện này không?” |
+
+The scene is observable and carries no advice. The three openings do not assume a job, a date, a prior meeting or
+an existing disagreement. All four are at most 28 whitespace-delimited Vietnamese syllables. No runtime, catalog,
+versions, fallback approval, stored reading or provider payload changes. The wiring conditions and T05 stay open.
