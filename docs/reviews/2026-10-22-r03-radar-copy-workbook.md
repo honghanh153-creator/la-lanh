@@ -3,9 +3,8 @@
 Date: 2026-10-22 · Audit item: R03 · Story: `docs/user-stories/US-22-hop-gu-rieng-tung-cap.md`
 Workbook: `docs/reviews/2026-10-22-r03-radar-copy-workbook.xlsx`
 
-**Status: DRAFT, awaiting owner approval.** Nothing here is wired into the renderer or added to the
-approved fallback store (`fallback-approval.json`). No user sees these sentences until the owner approves
-them. Wiring happens later in a separate PR.
+**Status: decided under owner delegation (26/10/2026), not yet wired.** Was: DRAFT, awaiting owner approval. Nothing here is wired into the renderer or added to the
+approved fallback store (`fallback-approval.json`). The decisions under delegation are recorded below; the Codex polish needs Claude review. Nothing is served until a separate wiring PR passes its gates.
 
 ## What it is
 
@@ -83,9 +82,8 @@ would be all 125 personal–personal directed contacts (2,000 sentences).
     the fit/friction sentences.
 - **Voice set mismatch:**
   - Runtime `RelationshipVoice` has `deep_dive`, not `roast`, and the gate iterates the runtime enum.
-  - The owner must decide whether roast replaces deep_dive or is added as a fifth voice. If it is added,
-    deep_dive needs its own lines.
-  - Roast also needs a `VoiceProfile`: tease the user only, never cruel, never about appearance or body.
+  - Resolved under delegation on 26/10: keep deep_dive as the fourth voice; the 140 roast rows are unused.
+  - The 140 deep_dive drafts are in the added sheet; there is no fifth voice.
 - **AC03 cannot be met by this workbook alone:**
   - Each sentence belongs to one contact, and every drafted contact appears in at least 2 pairs. With
     one variant per cell, cross-pair overlap of contact lines is **100%**.
@@ -141,7 +139,7 @@ banned words, but only as the rule itself.
 - **Findings fixed here:** none in code. This is a draft-copy deliverable only.
 - **Unresolved risks:**
   - AC03 is structurally unmet by single-variant contact copy;
-  - the roast vs deep_dive voice decision;
+  - Claude review of the Codex copy polish; the fourth-voice decision itself is resolved;
   - AC02 needs wiring that replaces the generic prose;
   - coverage is measured on a small, flat synthetic fixture;
   - fusion section choices need an owner call.
@@ -149,5 +147,75 @@ banned words, but only as the rule itself.
   - US-22 AC01–AC03 and AC05 (not wired);
   - AC08 (grammar/manifest);
   - AC09 (audit in `pnpm check`);
-  - AC10 (owner approval of this file).
+  - AC10 final copy sign-off for the polished lines; the delegated decisions below are recorded but not runtime approval.
 - **Privacy:** synthetic data only. The workbook contains no personal data. No new data flows.
+
+
+## Delegated decision (26/10/2026)
+
+The owner delegated copy decisions to Claude on 26/10/2026. Hợp gu's fourth voice is `deep_dive`, as the runtime has it,
+not `roast` (decision record #84, item 8). A first-pass reviewer read the 420 non-roast rows against the "Hướng dẫn"
+rules, US-22 and this document. Claude then checked a sample and every row the reviewer was unsure about. The
+"Owner decision" / "Owner note" columns carry each decision ("Uỷ quyền 26/10: …"). This is one careful reading, not a
+reader comprehension test.
+
+| Voice | Approve | Rewrite | Not used |
+|---|---|---|---|
+| straight_warm | 135 | 5 | – |
+| gentle_specific | 127 | 13 | – |
+| playful_grounded | 121 | 19 | – |
+| roast | – | – | 140 (fourth voice is `deep_dive`) |
+
+The 37 rewrites keep their contact, section, context and voice; Codex polishes them before wiring. They fix:
+- **The other person's inner need stated as fact** (mostly gentle_specific: "muốn được khen / công nhận / tự hào"). The
+  workbook's mind-reading list did not catch these.
+- **Double meanings and hidden verdicts in jokes:**
+  - possible sexual readings;
+  - "không sai người" (an implied "right person");
+  - rating the other person ("chấm thêm", "đánh giá năm sao");
+  - "bẩm sinh";
+  - one line that normalised opening a partner's bank history.
+- **Friction lines that judge the other person,** and one playful line that praised answering a crush's fear with a plan,
+  against sibling lines that say listen first.
+
+**`deep_dive` lines (added 26/10/2026, sheet "Câu deep_dive"):** 140 draft sentences, 35 contacts × 4 contexts. Each keeps
+its cell's section and contact meaning: 92 fit, 48 friction. They passed a script check:
+- one sentence each;
+- no banned, fate, astrology or flagged-frame words, and no workbook mind-reading phrases;
+- first three words differ from the three sibling voices;
+- word overlap with each sibling under 50% (highest 39%);
+- 140 unique lines, and no opening phrase used more than 8 times.
+
+They run 31–40 syllables. **Decision (delegated):** `deep_dive` may use up to 40 syllables, against 30 for the other
+voices, because its closing "check or limit" is what makes the voice. All are approved as a draft for Codex to polish.
+Four friction/crush lines are flagged in the note column.
+
+Conditions for the wiring PR (not done here):
+1. **Wire the `deep_dive` lines** and run the AC02 gate on them. One line per cell still leaves 100% overlap between pairs
+   that share a contact (AC03).
+2. **Break the fixed template per voice.** Most straight_warm lines open "Khi…", most gentle_specific "Có thể…/Nếu…", and
+   playful_grounded is almost always "scenario: punchline". With 2–6 lines per reading this shows. Add second variants per
+   cell (also needed for AC03), or a renderer rule against two lines with the same opening in one reading.
+3. **Thin repeated jokes:** hệ thống/thuật toán, "hội … N thành viên", "không lương", kế toán, kịch bản, phiên bản, trà
+   sữa. Each motif should appear at most once per reading.
+4. **Keep the stated limits:** each contact's astrological meaning and the fusion section choices were not re-judged
+   here. AC03, AC05 and AC08–AC10, plus wiring, stay open.
+
+
+## Codex wording pass (26/10/2026)
+
+Codex read all 37 requested rewrite notes and all 140 deep_dive drafts. The 37 final proposed replacements remain in
+Owner note, with the old sentence retained as provenance; 29 deep_dive sentences were changed directly, with word
+counts updated. The other 111 deep_dive drafts were retained after reading. Claude must review these authored edits.
+
+- Replaced vague or judgemental language with a concrete situation and an action the reader can choose.
+- Removed claims that the app has observed past meetings, assurances that interest will progress, and the suggestion
+  to decide whether one may feel hurt only after answering. The four flagged rows were included.
+- The 29 changed deep_dive cells use conditional situations that readers can compare with real interactions; they
+  do not present birth-chart interpretation as a record of events.
+- The 37 replacements are at most 30 syllables and the 29 changed deep_dive lines at most 40, counted by whitespace.
+  Single-sentence, uniqueness, and cross-voice overlap were checked separately. These remain heuristic checks.
+
+No astrology/evidence binding was re-derived in this wording pass. No runtime wiring, versions, fallback approval,
+frozen results, provider payloads or privacy retention changed. Coverage, variety, comprehension and the existing
+wiring conditions remain open; this pass does not close R03 or the strict-xfail gate.

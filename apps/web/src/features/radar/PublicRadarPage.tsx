@@ -1,13 +1,16 @@
 import { ArrowRight, EyeSlash, LockKey, ShieldCheck, Sparkle } from "@phosphor-icons/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { declineRadarInvite, getPublicRadarInvite } from "../../shared/api/client";
+import { declineRadarInvite, getPublicRadarInvite, withdrawRadarByInvite } from "../../shared/api/client";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import "../matching/matching.css";
 import "./radar.css";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { radarVoiceLabel, RADAR_PENDING_REQUEST_KEY } from "./radarOptions";
+import { WithdrawSheet } from "./RadarReceivedPage";
+import { evictRadarReadings, isTerminalDenial } from "./radarReadingCache";
 
 export function PublicRadarPage() {
   return <div className="app-shell ultraviolet-app"><PublicRadarContent /></div>;
@@ -25,7 +28,7 @@ function PublicRadarContent() {
     },
   });
   if (query.isLoading) return <main className="matching-page matching-page--loading"><Sparkle className="matching-pulse" /><p>Đang bắt link Radar…</p></main>;
-  if (!query.data) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card uv-empty"><div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div><h1>Link này không còn hoạt động.</h1><p>Có thể link đã hết hạn, bị thu hồi hoặc đã được dùng.</p><Link className="matching-primary" to="/radar">Tìm hiểu Radar Hợp Gu</Link></section></main>;
+  if (!query.data) return <UsedInvite token={token} />;
   const invite = query.data;
   const continueFlow = () => sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, invite.request_id);
   return <main className="matching-page radar-public">
@@ -37,4 +40,29 @@ function PublicRadarContent() {
     {decline.isError ? <p className="matching-message" role="alert">Chưa đóng được lời mời. Dữ liệu chưa thay đổi—bạn có thể thử lại.</p> : null}
     <button className="matching-secondary" disabled={decline.isPending} onClick={() => decline.mutate()} type="button">{decline.isPending ? "Đang đóng lời mời…" : decline.isError ? "Thử đóng lại" : "Không tham gia"}</button>
   </main>;
+}
+
+// P09 D2: a used invite no longer previews. Whoever holds the link may still withdraw the result; this page
+// never opens the reading, because the person who sent the link holds it too.
+function UsedInvite({ token }: { token: string }) {
+  const queryClient = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+  // The token names no result id, so every cached Radar reading is cleared, also when the outcome is unknown.
+  const withdraw = useMutation({
+    mutationFn: () => withdrawRadarByInvite(token),
+    onSettled: () => evictRadarReadings(queryClient),
+  });
+  if (withdraw.isSuccess) return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card uv-empty"><div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/pair.webp" /></div><h1>Chart của bạn đã được rút.</h1><p>Kết quả chung đã bị xóa; cả hai phía đều không thể mở lại.</p><Link className="matching-primary" to="/radar">Về Radar Hợp Gu</Link></section></main>;
+  return <main className="matching-page radar-public"><BrandMark /><section className="radar-public__card uv-empty">
+    <div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div>
+    <h1>Link này không còn mở lời mời.</h1>
+    <p>Có thể link đã hết hạn, bị thu hồi hoặc đã được dùng. Nếu bạn là người đã đồng ý và muốn rút chart của mình khỏi kết quả, bạn có thể làm ngay tại đây. Trang này không mở lại bản đọc.</p>
+    {withdraw.isError ? <p className="matching-message" role="alert">{isTerminalDenial(withdraw.error)
+      ? "Link này không còn dùng được. Có thể kết quả đã hết hạn hoặc đã được rút trước đó."
+      : "Chưa xác nhận được việc rút chart. Kiểm tra mạng rồi thử lại; nếu link báo không còn dùng được, có thể chart đã được rút."}</p> : null}
+    <button className="matching-primary" disabled={withdraw.isPending} onClick={() => setConfirming(true)} type="button">{withdraw.isPending ? "Đang rút chart…" : "Rút chart khỏi kết quả"}</button>
+    <Link className="matching-secondary" to="/radar/received">Xem kết quả bạn đã nhận</Link>
+    <Link className="matching-secondary" to="/radar">Tìm hiểu Radar Hợp Gu</Link>
+    <WithdrawSheet onCancel={() => setConfirming(false)} onConfirm={() => { setConfirming(false); withdraw.mutate(); }} open={confirming} pending={withdraw.isPending} />
+  </section></main>;
 }

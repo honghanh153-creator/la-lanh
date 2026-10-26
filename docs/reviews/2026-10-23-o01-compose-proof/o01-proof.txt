@@ -1,0 +1,13 @@
+sha=7ca22cbfb82eb329ebe4b4a416384e60cb8e550b
+date=2026-10-23T12:35:04Z
+PASS: setup: worker running with the generation profile
+PASS: 1. profiled worker survives up --remove-orphans without its profile
+PASS: 2. rm -sf rewrite-worker removes it and exits 0
+PASS: 2b. no worker container remains
+PASS: 3. rm -sf with no worker is a successful no-op
+PASS: 4. LA_LANH_RELEASE_ID=old compose run uses la-lanh-proof-20261023123504-2186-8223:old (got la-lanh-proof-20261023123504-2186-8223:old)
+Docker: 28.0.4; Compose: 2.38.2
+All kill-switch Compose checks passed.
+cleanup_containers=0
+cleanup_images=0
+exit=0
