@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="800" viewBox="0 0 1440 800" role="img" aria-labelledby="title desc">
+  <title id="title">Cùng một bản đồ, ba mốc thời gian của vụ cà phê</title>
+  <desc id="desc">Ba khung giữ nguyên pantry ở trên trái, máy in ở trên phải, bàn chung ở dưới trái và lối ra ở dưới phải. Quá khứ chỉ hiện quan sát đã kiếm được: lúc 08:55 có cốc và dây, lúc 08:57 thấy người chưa rõ danh tính kéo dây. Lúc 09:00 thấy hiện trường và vị trí hiện tại của ba vai. Không có lớp sự thật kín hoặc đáp án trong hình.</desc>
+  <defs>
+    <style>
+      text { font-family: Arial, sans-serif; fill: #172b3a; }
+      .heading { font-size: 34px; font-weight: 700; }
+      .sub { font-size: 21px; }
+      .time { font-size: 27px; font-weight: 700; }
+      .badge { font-size: 18px; font-weight: 700; }
+      .zone { font-size: 20px; font-weight: 700; }
+      .label { font-size: 19px; }
+      .small { font-size: 17px; }
+      .muted { fill: #536675; }
+      .ev { fill: #075c51; }
+      .wire { fill: none; stroke: #15648b; stroke-width: 5; stroke-linecap: round; }
+    </style>
+    <g id="office">
+      <rect width="440" height="350" rx="8" fill="#fff" stroke="#516674" stroke-width="2"/>
+      <path d="M0 150 H80 M125 150 H315 M360 150 H440 M220 0 V150" fill="none" stroke="#516674" stroke-width="3"/>
+      <path d="M80 150 V113 M315 150 V113" fill="none" stroke="#9aaab5" stroke-width="2"/>
+      <text x="18" y="33" class="zone">P. Pantry</text>
+      <text x="238" y="33" class="zone">I. Máy in</text>
+      <text x="18" y="184" class="zone">D. Bàn chung</text>
+      <text x="285" y="184" class="zone">L. Lối ra</text>
+    </g>
+    <g id="cup">
+      <path d="M0 0 H40 V36 Q20 48 0 36 Z" fill="#fffaf0" stroke="#765d46" stroke-width="3"/>
+      <path d="M40 7 C68 -1 68 34 40 27" fill="none" stroke="#765d46" stroke-width="4"/>
+      <ellipse cx="20" cy="1" rx="20" ry="5" fill="#90654d" stroke="#765d46" stroke-width="2"/>
+    </g>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8" fill="none" stroke="#15648b" stroke-width="2"/>
+    </marker>
+  </defs>
+
+  <rect width="1440" height="800" fill="#f3f5ef"/>
+  <text x="32" y="50" class="heading">Cùng một bản đồ, ba mốc thời gian</text>
+  <text x="32" y="86" class="sub">T0 và T1 minh họa sau khi kiếm chứng cứ. Đầu ván, hai mốc này còn khóa.</text>
+
+  <g transform="translate(32 0)">
+    <text x="0" y="138" class="time">T0 · 08:55</text>
+    <rect x="0" y="155" width="440" height="36" rx="6" fill="#dceee7"/>
+    <text x="12" y="180" class="badge ev">EV01 · Chỉ mở phần bàn trong ảnh</text>
+    <g transform="translate(0 208)">
+      <use href="#office"/>
+      <text x="18" y="88" class="label muted">? Chưa rõ</text>
+      <text x="238" y="88" class="label muted">? Chưa rõ</text>
+      <text x="285" y="265" class="label muted">? Chưa rõ</text>
+      <rect x="20" y="202" width="230" height="122" rx="6" fill="#f0f3ed" stroke="#718278"/>
+      <text x="30" y="226" class="small ev">EV01 · Cốc đứng</text>
+      <use href="#cup" x="76" y="248"/>
+      <path class="wire" d="M34 294 L99 294 L132 265 L225 265"/>
+      <text x="148" y="306" class="small">Dây X</text>
+    </g>
+    <text x="0" y="590" class="label">Thấy dây đi qua quai cốc.</text>
+    <text x="0" y="619" class="label muted">Chưa biết ai có mặt hoặc kéo dây.</text>
+  </g>
+
+  <g transform="translate(500 0)">
+    <text x="0" y="138" class="time">T1 · 08:57</text>
+    <rect x="0" y="155" width="440" height="36" rx="6" fill="#dceee7"/>
+    <text x="12" y="180" class="badge ev">Sau EV02 · Chưa kiếm EV04</text>
+    <g transform="translate(0 208)">
+      <use href="#office"/>
+      <text x="18" y="88" class="label muted">? Chưa rõ</text>
+      <text x="238" y="88" class="label muted">? Chưa rõ</text>
+      <text x="285" y="265" class="label muted">? Chưa rõ</text>
+      <rect x="20" y="202" width="230" height="122" rx="6" fill="#f0f3ed" stroke="#718278"/>
+      <text x="30" y="226" class="small ev">EV02 · Cốc nghiêng</text>
+      <ellipse cx="82" cy="297" rx="41" ry="13" fill="#b38365"/>
+      <g transform="translate(72 252) rotate(27 20 20)"><use href="#cup"/></g>
+      <path class="wire" d="M40 307 L135 278 L189 278"/>
+      <circle cx="202" cy="248" r="17" fill="#e2e8ec" stroke="#516674" stroke-width="2"/>
+      <text x="196" y="255" class="label">?</text>
+      <path d="M190 270 Q202 261 214 270 V296 H190 Z" fill="#e2e8ec" stroke="#516674" stroke-width="2"/>
+      <path d="M215 278 H244" class="wire" marker-end="url(#arrow)"/>
+      <text x="264" y="322" class="small muted">Chưa mở đường đi</text>
+    </g>
+    <text x="0" y="590" class="label">Thấy hành động kéo và cốc nghiêng.</text>
+    <text x="0" y="619" class="label muted">Danh tính người kéo vẫn chưa rõ.</text>
+  </g>
+
+  <g transform="translate(968 0)">
+    <text x="0" y="138" class="time">T2 · 09:00</text>
+    <rect x="0" y="155" width="440" height="36" rx="6" fill="#dceee7"/>
+    <text x="12" y="180" class="badge ev">EV00 · Hiện tại, mở từ đầu</text>
+    <g transform="translate(0 208)">
+      <use href="#office"/>
+      <circle cx="40" cy="87" r="17" fill="#dceee7" stroke="#075c51" stroke-width="2"/>
+      <text x="32" y="94" class="label ev">H</text>
+      <text x="68" y="94" class="label">Hạnh</text>
+      <circle cx="260" cy="87" r="17" fill="#dceee7" stroke="#075c51" stroke-width="2"/>
+      <text x="252" y="94" class="label ev">Q</text>
+      <text x="288" y="94" class="label">Quân</text>
+      <circle cx="295" cy="244" r="17" fill="#dceee7" stroke="#075c51" stroke-width="2"/>
+      <text x="286" y="251" class="label ev">M</text>
+      <text x="322" y="251" class="label">Minh</text>
+      <rect x="20" y="202" width="230" height="122" rx="6" fill="#f0f3ed" stroke="#718278"/>
+      <rect x="118" y="246" width="99" height="57" rx="2" fill="#fff" stroke="#9aaab5"/>
+      <path d="M130 257 H201 M130 270 H201 M130 283 H184" stroke="#bdc8cc" stroke-width="2"/>
+      <ellipse cx="137" cy="280" rx="54" ry="17" fill="#b38365"/>
+      <g transform="translate(67 254) rotate(85 20 20)"><use href="#cup"/></g>
+      <text x="30" y="226" class="small ev">EV00 · Cốc đã đổ</text>
+      <text x="30" y="317" class="small">Dây X không còn ở D</text>
+    </g>
+    <text x="0" y="590" class="label">Vị trí vai đang quan sát được.</text>
+    <text x="0" y="619" class="label muted">Không chứng minh vị trí quá khứ.</text>
+  </g>
+
+  <path d="M32 649 H1408" stroke="#b8c5c0"/>
+  <text x="32" y="682" class="sub">GT: kín, không hiển thị · EV: đã kiểm chứng · CL: lời khai · HY: giả thuyết, nét đứt</text>
+  <text x="32" y="716" class="sub">Lời khai và giả thuyết không tự mở quá khứ. Chỉ cuối ván mới tái hiện toàn bộ.</text>
+  <text x="32" y="761" class="small muted">Phác tĩnh cho tài liệu, không phải giao diện đang chạy. Sơ đồ không theo tỉ lệ; biểu tượng không phải ảnh chứng cứ cuối cùng.</text>
+</svg>
