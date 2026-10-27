@@ -42,6 +42,8 @@
   // Where the six record avatars stand (tile coords). They never stand on solid tiles.
   const NPC_HOME = [[2, 3], [5, 5], [8, 3], [10, 7], [13, 5], [6, 7]];
   const PLAYER_START = [7, 8];
+  // Detectives start along the front row (index matches Cases.detectives).
+  const DETECTIVE_HOME = [[5, 8], [7, 8], [9, 8], [11, 8]];
 
   function tileAt(tx, ty) { return tx < 0 || ty < 0 || tx >= W || ty >= H ? 'W' : MAP[ty][tx]; }
   function solidTile(tx, ty) { return SOLID.has(tileAt(tx, ty)); }
@@ -166,18 +168,27 @@
   const SKIN = '#f2c9a0';
   const LOOKS = {
     player: { H: '#3a2a22', T: '#3f6b55', C: '#4f8a6b', P: '#2f3b4a', B: '#1d1b26', hat: true },
-    an: { H: '#2b2230', C: '#efe3c8', P: '#2e3a5c', B: '#3a3540', glasses: true },
-    binh: { H: '#26201c', C: '#9fd3bd', P: '#30303a', B: '#e8e4dc' },
-    chi: { H: '#3b2420', C: '#ef7b6a', P: '#26252b', B: '#e8e4dc', longHair: true },
-    duy: { H: '#1f1c1c', C: '#e3b23c', P: '#2e3a5c', B: '#e8e4dc', glasses: true },
-    ha: { H: '#4a3028', C: '#3d9a96', P: '#2f2f38', B: '#3a3540', longHair: true },
-    linh: { H: '#211d24', C: '#a995d8', P: '#30303a', B: '#e8e4dc' }
+    hanh: { H: '#3b2420', T: '#c0605a', C: '#ef9a8a', P: '#3a3550', B: '#1d1b26', longHair: true },
+    quan: { H: '#1f1c1c', T: '#c08a2a', C: '#e3b23c', P: '#2e3a5c', B: '#1d1b26', glasses: true },
+    minh: { H: '#26201c', T: '#3f6b55', C: '#7fc8a0', P: '#30303a', B: '#1d1b26', hat: true },
+    thao: { H: '#2b2230', T: '#6a4fa0', C: '#a995d8', P: '#2f2f38', B: '#1d1b26', longHair: true },
+    an: { ghost: true, H: '#2b2230', C: '#efe3c8', P: '#2e3a5c', B: '#3a3540', glasses: true },
+    binh: { ghost: true, H: '#26201c', C: '#9fd3bd', P: '#30303a', B: '#e8e4dc' },
+    chi: { ghost: true, H: '#3b2420', C: '#ef7b6a', P: '#26252b', B: '#e8e4dc', longHair: true },
+    duy: { ghost: true, H: '#1f1c1c', C: '#e3b23c', P: '#2e3a5c', B: '#e8e4dc', glasses: true },
+    ha: { ghost: true, H: '#4a3028', C: '#3d9a96', P: '#2f2f38', B: '#3a3540', longHair: true },
+    linh: { ghost: true, H: '#211d24', C: '#a995d8', P: '#30303a', B: '#e8e4dc' }
   };
+
+  // Records are machine holograms: same body shapes, one cool palette, drawn translucent.
+  const GHOST = { H: '#3d7f9a', C: '#7fd0e0', P: '#4f9ab0', B: '#3d7f9a', skin: '#c9f1f6' };
 
   const DIRS = ['down', 'up', 'left', 'right'];
   const FRAMES = ['stand', 'a', 'b'];
   function buildSheet(look) {
-    const palette = { H: look.H, S: SKIN, E: '#1d1b26', m: '#c98a78', G: '#1d1b26', C: look.C, P: look.P, B: look.B, T: look.T || look.H };
+    const g = look.ghost ? GHOST : null;
+    const palette = g ? { H: g.H, S: g.skin, E: '#1d4a5a', m: '#8fc8d4', G: '#1d4a5a', C: g.C, P: g.P, B: g.B, T: g.H }
+      : { H: look.H, S: SKIN, E: '#1d1b26', m: '#c98a78', G: '#1d1b26', C: look.C, P: look.P, B: look.B, T: look.T || look.H };
     const sheet = {};
     for (const d of DIRS) for (const f of FRAMES) for (const blink of [false, true]) {
       sheet[d + ':' + f + ':' + (blink ? 1 : 0)] = renderSprite(template(d, f, { ...look, blink }), palette);
@@ -194,5 +205,5 @@
   }
 
   return { TILE, MAP, W, H, SPOTS, SOURCE_SPOT, NPC_HOME, PLAYER_START, tileAt, solidTile, boxHitsSolid, moveWithSlide,
-    findPath, standTiles, MOVE, stepVelocity, template, renderSprite, LOOKS, buildSheet, walkFrame, WALK_MS, drawSprite, DIRS };
+    findPath, standTiles, DETECTIVE_HOME, MOVE, stepVelocity, template, renderSprite, LOOKS, buildSheet, walkFrame, WALK_MS, drawSprite, DIRS };
 });

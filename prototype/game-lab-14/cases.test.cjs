@@ -100,16 +100,35 @@ test('progress unlocks one case at a time and only on solved', () => {
   assert.equal(p.unlocked, 1);
 });
 
-test('method cards never name a character', () => {
+test('method cards never name a record or a detective', () => {
   for (const c of C.cases) {
     const m = C.methodFor(c);
-    for (const pr of C.profiles) assert.ok(!m.text.includes(pr.name + ' '), c.id);
+    for (const pr of C.profiles.concat(C.detectives)) assert.ok(!m.text.includes(pr.name + ' '), c.id);
   }
 });
 
-test('personality lines contain no case facts (no minutes, counts or node names)', () => {
-  for (const pr of C.profiles) for (const line of Object.values(pr.lines)) {
-    assert.ok(!/\d/.test(line), pr.id);
-    for (const n of C.nodes) assert.ok(!line.includes(n), pr.id + ' mentions ' + n);
+test('detective lines contain no case facts and no record names', () => {
+  for (const d of C.detectives) for (const line of Object.values(d.lines).concat([d.help, d.hold])) {
+    assert.ok(!/\d/.test(line), d.id);
+    for (const n of C.nodes) assert.ok(!line.includes(n), d.id + ' mentions ' + n);
+    for (const r of C.profiles) assert.ok(!new RegExp('(^|[^\\p{L}])' + r.name + '($|[^\\p{L}])', 'u').test(line), d.id + ' names record ' + r.name);
+  }
+});
+
+test('records and detectives never share a name; every spot that gives a source has exactly one role owner', () => {
+  const names = new Set(C.profiles.map(p => p.name));
+  for (const d of C.detectives) assert.ok(!names.has(d.name));
+  const roleIds = C.detectives.map(d => d.role);
+  assert.equal(new Set(roleIds).size, roleIds.length);
+  for (const spot of ['camera', 'mirror', 'poster', 'door', 'scanner', 'shelf', 'teacher', 'tarot']) assert.ok(C.ownerOfSpot(spot), spot);
+  assert.equal(C.ownerOfSpot('terminal'), null);
+});
+
+test('co-op plates sit on free floor away from the spot they unlock', () => {
+  const E = require('./engine.js');
+  for (const c of C.cases.filter(x => x.plate)) {
+    const [px, py] = c.plate.at, sp = E.SPOTS[c.plate.spot];
+    assert.ok(!E.solidTile(px, py), c.id);
+    for (const [sx, sy] of E.standTiles(sp.tx, sp.ty)) assert.ok(Math.abs(sx - px) + Math.abs(sy - py) >= 4, c.id + ' plate too close to its spot');
   }
 });

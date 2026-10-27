@@ -37,6 +37,13 @@ test('record avatars stand on free tiles and do not block any spot', () => {
   }
 });
 
+test('detectives start on free tiles and every spot is reachable from each start', () => {
+  for (const home of E.DETECTIVE_HOME) {
+    assert.ok(!E.solidTile(...home));
+    for (const [name, s] of Object.entries(E.SPOTS)) assert.ok(E.standTiles(s.tx, s.ty).some(t => E.findPath(home, t)), name + ' from ' + home);
+  }
+});
+
 test('sliding: blocked axis is dropped, free axis still moves', () => {
   const body = { x: 16 * 1 + 4, y: 16 * 2 + 1, w: 8, h: 5 }; // just below the wall row
   const moved = E.moveWithSlide(body, 3, -4, []);

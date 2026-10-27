@@ -5,21 +5,38 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  // Fictional adult characters. Zodiac and tarot are author-assigned archetypes for dialogue tone only.
+  // Six machine-exported attendance records. They are data (ghost holograms in the room), not people
+  // anyone plays, so the "extra record" never maps onto a player.
   const profiles = [
-    { id: 'an', name: 'An', sign: 'Xử Nữ', tarot: 'Justice', trait: 'Ngăn nắp, hay hỏi nguồn',
-      lines: { soft: 'Cho mình xem nguồn trước nhé, rồi mình cùng rà từng dòng.', direct: 'Đặt hai bản cạnh nhau. Chỗ nào lệch thì khoanh lại.', joke: 'Tớ chưa kết tội ai. Tớ mới kết tội cái máy in thôi.' } },
-    { id: 'binh', name: 'Bình', sign: 'Song Tử', tarot: 'The Magician', trait: 'Hoạt ngôn, nảy nhiều ý',
-      lines: { soft: 'Ý hay nè, mà khoan, còn ý này nữa, à thôi bạn hỏi tiếp đi.', direct: 'Hỏi từng câu một nha, tớ hay nói lạc đề lắm.', joke: 'Tớ có ba giả thuyết. Hai cái đang chờ được cứu.' } },
-    { id: 'chi', name: 'Chi', sign: 'Sư Tử', tarot: 'The Sun', trait: 'Nhiệt tình, kể chuyện có hồn',
-      lines: { soft: 'Ôi bạn đi điều tra hả? Ngầu ghê! Hỏi đi, mình kể hết.', direct: 'Một chi tiết thôi nhé, kẻo mình kể sang cả tập hai.', joke: 'Drama thì có, nhưng bằng chứng nhớ nộp kèm nha.' } },
-    { id: 'duy', name: 'Duy', sign: 'Kim Ngưu', tarot: 'The Emperor', trait: 'Điềm tĩnh, thích làm đúng quy trình',
-      lines: { soft: 'Từ từ. Mình làm lại phép kiểm thêm một lượt cho chắc.', direct: 'Luật áp cho cả sáu hồ sơ như nhau chứ?', joke: 'Tớ đi chậm thật, nhưng chưa nhanh hơn bản đồ bao giờ.' } },
-    { id: 'ha', name: 'Hà', sign: 'Cự Giải', tarot: 'Temperance', trait: 'Quan tâm nhóm, giỏi hạ nhiệt',
-      lines: { soft: 'Bạn ổn không? Mình kiểm hồ sơ thôi, không đánh giá ai đâu.', direct: 'Một nguồn chưa đủ thì ghi là chưa biết nhé.', joke: 'Máy thêm một người, chứ đồ ăn đâu tự thêm một suất.' } },
-    { id: 'linh', name: 'Linh', sign: 'Bảo Bình', tarot: 'The Star', trait: 'Tò mò, thích thử cách khác',
-      lines: { soft: 'Thử bỏ từng hồ sơ một xem sao, sai thì làm lại được mà.', direct: 'Bạn đã đếm tay chưa, hay mới nhìn lướt?', joke: 'Nếu có người thứ sáu thật, mời người đó thuyết trình giùm.' } }
+    { id: 'an', name: 'An' }, { id: 'binh', name: 'Bình' }, { id: 'chi', name: 'Chi' },
+    { id: 'duy', name: 'Duy' }, { id: 'ha', name: 'Hà' }, { id: 'linh', name: 'Linh' }
   ];
+
+  // Playable fictional adult detectives. Each role opens one kind of source; zodiac and tarot are
+  // author-assigned archetypes that only colour how they talk.
+  const roles = {
+    photo: { name: 'Thợ ảnh', spots: ['camera', 'mirror'] },
+    route: { name: 'Người đo đường', spots: ['poster', 'door'] },
+    records: { name: 'Thủ thư', spots: ['scanner', 'shelf', 'teacher'] },
+    seer: { name: 'Người đọc lá', spots: ['tarot'] }
+  };
+  const detectives = [
+    { id: 'hanh', name: 'Hạnh', role: 'records', sign: 'Cự Giải', tarot: 'Temperance', trait: 'Chu đáo, hay hỏi lại cho chắc mọi người cùng hiểu',
+      lines: { soft: 'Mình cùng xem lại điều đã thấy nhé, không ai phải vội.', direct: 'Bạn muốn mình mở sổ nào? Nói một chỗ thôi.', joke: 'Hồ sơ thì ghép nhầm được, chứ trà sữa của mình thì không.' },
+      help: 'Để mình đi lấy cho, sổ sách là nghề của mình.', hold: 'Mình đứng đây giữ, bạn cứ làm đi.' },
+    { id: 'quan', name: 'Quân', role: 'photo', sign: 'Song Tử', tarot: 'The Magician', trait: 'Tò mò, nói nhanh, nảy ý liên tục',
+      lines: { soft: 'Ý hay đó! À khoan, còn ý này nữa. Thôi bạn hỏi tiếp đi.', direct: 'Hỏi từng câu nha, tớ hay lạc đề lắm.', joke: 'Tớ chụp ảnh đẹp lắm, chỉ là hay quên tắt đèn flash.' },
+      help: 'Máy ảnh hả? Đi liền!', hold: 'Tớ giữ công tắc, nhưng đừng bắt tớ đứng im lâu quá nha.' },
+    { id: 'minh', name: 'Minh', role: 'route', sign: 'Thiên Bình', tarot: 'Justice', trait: 'Cẩn thận, thích đo đạc rồi mới nói',
+      lines: { soft: 'Đo trước, nói sau. Mình cùng nhìn sơ đồ nhé.', direct: 'Đoạn nào, mấy phút? Nói số đi.', joke: 'Tớ không chậm, tớ chỉ đang cân nhắc từng bước chân.' },
+      help: 'Để tớ đi đo, đường xá là phần của tớ.', hold: 'Tớ đứng đây, chính xác từng phân.' },
+    { id: 'thao', name: 'Thảo', role: 'seer', sign: 'Bảo Bình', tarot: 'The Star', trait: 'Mơ màng nhưng sắc, thích thử cách nghĩ khác',
+      lines: { soft: 'Lá bài không biết đáp án đâu, nó chỉ gợi cách nhìn thôi.', direct: 'Bạn đếm tay chưa, hay mới nhìn lướt?', joke: 'Sao chiếu mệnh hôm nay bảo: đếm lại lần nữa.' },
+      help: 'Để mình rút một lá gợi cách kiểm.', hold: 'Mình giữ cho, tiện ngắm trần nhà luôn.' }
+  ];
+  const roleOfSpot = spot => Object.keys(roles).find(r => roles[r].spots.includes(spot)) || null;
+  const ownerOfSpot = spot => detectives.find(d => d.role === roleOfSpot(spot)) || null;
+
   const ids = profiles.map(p => p.id);
   const nameOf = id => (profiles.find(p => p.id === id) || {}).name || id;
 
@@ -60,16 +77,16 @@
       rows: cols({ trip: [[0, 1, 5], [1, 3, 3], [2, 0, 3], [1, 0, 4], [3, 1, 3], [0, 3, 4]] }) },
     { id: 'p4', kind: 'photo', title: 'Ảnh chụp qua gương', skill: 'Đọc dấu nguồn của ảnh', stamp: 'P4 · 11:05',
       intro: 'Ba ảnh cận. Một ảnh được chụp qua gương tủ đồ, dấu nguồn có ghi.',
-      sources: ['badge', 'book', 'ticket'], mirrored: ['ticket'],
+      sources: ['badge', 'book', 'ticket'], mirrored: ['ticket'], plate: { spot: 'mirror', at: [13, 8] },
       rows: cols({ badge: [1, 0, 1, 1, 0, 0], book: [0, 0, 0, 1, 0, 1], ticket: [1, 1, 0, 1, 0, 1] }),
       proof: { badge: [3, 2, 0], book: [3, 2], ticket: [2, 3] } },
     { id: 'r4', kind: 'route', title: 'Cửa thoát hiểm một chiều', skill: 'Chọn đường, tôn trọng cửa một chiều', stamp: 'R4 · 13:15',
       intro: 'Tầng này có thêm hành lang dài S–L và một cửa thoát hiểm chỉ mở từ Lớp ra Thư viện.',
-      sources: ['map', 'scan', 'door'], graph: 'branched',
+      sources: ['map', 'scan', 'door'], graph: 'branched', plate: { spot: 'door', at: [1, 5] },
       rows: cols({ trip: [[3, 1, 2], [3, 0, 1], [1, 3, 3], [2, 1, 2], [0, 1, 2], [0, 3, 3]] }) },
     { id: 'x1', kind: 'timeline', title: 'Ảnh phòng máy lúc 09:04', skill: 'Ghép hành trình với ảnh có giờ', stamp: 'X1 · 09:04',
       intro: 'Sáu hồ sơ hành trình đều đi kịp. Nhưng có một ảnh toàn cảnh phòng máy lúc 09:04.',
-      sources: ['map', 'scan', 'roomphoto'], graph: 'linear', photoAt: 4, photoNode: 2,
+      sources: ['map', 'scan', 'roomphoto'], graph: 'linear', photoAt: 4, photoNode: 2, plate: { spot: 'camera', at: [1, 5] },
       // trip: [from, startMinute, to, endMinute] in minutes after 09:00; badge 0 Sao, 1 Trăng
       rows: cols({ trip: [[0, 1, 3, 5], [3, 0, 2, 6], [0, 0, 1, 7], [3, 0, 2, 7], [0, 1, 3, 5], [0, 3, 3, 8]], badge: [1, 1, 1, 1, 0, 1] }),
       proof: { badge: [0, 3, 0] } }
@@ -239,7 +256,7 @@
   };
   const methodFor = c => methods[c.id] || methods[c.kind === 'photo' ? 'photo' : 'route'];
 
-  return { profiles, ids, nameOf, fields, nodes, short, graphs, edgesOf, cases, counts, earliest, shortestFrom,
+  return { profiles, detectives, roles, roleOfSpot, ownerOfSpot, ids, nameOf, fields, nodes, short, graphs, edgesOf, cases, counts, earliest, shortestFrom,
     presence, candidates, seenProof, expectedReason, reasonFields, judge, sourceCheck, checkSource,
     createProgress, complete, methodFor };
 });

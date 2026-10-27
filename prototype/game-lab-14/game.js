@@ -1,4 +1,4 @@
-// Game lab 14: game loop, room drawing, movement, effects, notebook and dialogs.
+// Game lab 14: detectives (players or default NPCs), ghost records, co-op plates, notebook and dialogs.
 (function () {
   'use strict';
   const C = window.Cases, E = window.Engine, T = E.TILE;
@@ -20,6 +20,8 @@
   const keys = new Set();
   const particles = [];
   let time = 0, scale = 1;
+  // Faces: detective id -> small canvas cropped from a photo the player picked. Memory only.
+  const faces = new Map();
 
   const fx = () => motion === 'full';
   const quiet = () => !fx();
@@ -30,13 +32,23 @@
     return sessions.get(c.id);
   }
 
+  // Keyboard sets for same-screen play. Alone, the one player may use WASD or arrows.
+  const CONTROLS = [
+    { label: 'E', name: 'W A S D · E', up: 'w', down: 's', left: 'a', right: 'd', act: 'e' },
+    { label: '↵', name: 'Mũi tên · Enter', up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', act: 'Enter' },
+    { label: 'O', name: 'I J K L · O', up: 'i', down: 'k', left: 'j', right: 'l', act: 'o' },
+    { label: 'Y', name: 'T F G H · Y', up: 't', down: 'g', left: 'f', right: 'h', act: 'y' }
+  ];
+  // team: which detective each human slot plays. Unclaimed detectives run as default NPCs.
+  let team = ['hanh'];
+  let active = 0; // slot that touch / mouse controls
+
   // ---------- sprites ----------
   const sheets = {};
   function toCanvas(spr) {
     const cv = document.createElement('canvas');
     cv.width = spr.w; cv.height = spr.h;
-    const g = cv.getContext('2d');
-    E.drawSprite(g, spr, 0, 0);
+    E.drawSprite(cv.getContext('2d'), spr, 0, 0);
     return cv;
   }
   for (const [name, look] of Object.entries(E.LOOKS)) {
@@ -47,12 +59,17 @@
 
   // ---------- entities ----------
   const feet = (tx, ty) => ({ x: tx * T + 4, y: ty * T + 9, w: 8, h: 5 });
-  const player = { look: 'player', ...feet(...E.PLAYER_START), vx: 0, vy: 0, dir: 'up', walkMs: 0, moving: false, path: null, then: null, blinkAt: 2000, blinkTill: 0, dustAt: 0 };
-  const npcs = C.profiles.map((p, i) => ({ id: p.id, look: p.id, home: E.NPC_HOME[i], ...feet(...E.NPC_HOME[i]), dir: 'down', walkMs: 0, moving: false, target: null, nextThink: 1500 + i * 700, blinkAt: 1200 + i * 900, blinkTill: 0, hop: 0, alpha: 1, glitch: 0, hidden: false }));
+  const dets = C.detectives.map((d, i) => ({ kind: 'det', id: d.id, look: d.id, home: E.DETECTIVE_HOME[i], ...feet(...E.DETECTIVE_HOME[i]), vx: 0, vy: 0, dir: 'up', walkMs: 0, moving: false, path: null, then: null, task: null, nextThink: 1800 + i * 900, blinkAt: 1500 + i * 700, blinkTill: 0, dustAt: 0, hop: 0, stuckMs: 0 }));
+  const ghosts = C.profiles.map((p, i) => ({ kind: 'ghost', id: p.id, look: p.id, ...feet(...E.NPC_HOME[i]), dir: 'down', walkMs: 0, moving: false, blinkAt: 2000 + i * 600, blinkTill: 0, hop: 0, glitch: 0, hidden: false, phase: i * 1.1 }));
+  const slotOf = d => team.indexOf(d.id);
+  const humans = () => dets.filter(d => slotOf(d) >= 0);
+  const lead = () => dets.find(d => d.id === team[active]) || dets.find(d => d.id === team[0]);
+  const detById = id => dets.find(d => d.id === id);
   const tileOf = b => [Math.floor((b.x + b.w / 2) / T), Math.floor((b.y + b.h / 2) / T)];
   const centerOf = b => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
-  const npcBlockers = (except) => npcs.filter(n => n !== except && !n.hidden).map(n => ({ x: n.x, y: n.y, w: n.w, h: n.h }));
-  const occupied = (except) => { const s = new Set(npcs.filter(n => n !== except && !n.hidden).map(n => tileOf(n).join(','))); return (x, y) => s.has(x + ',' + y); };
+  const facing = (from, to) => { const a = centerOf(from), b = centerOf(to); const dx = b.x - a.x, dy = b.y - a.y; return Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'); };
+  // Detectives pass through each other and through holograms, so nobody gets stuck in couch co-op.
+  const noBlock = () => false;
 
   // ---------- room background (drawn once) ----------
   const bg = document.createElement('canvas'); bg.width = VW; bg.height = VH;
@@ -144,21 +161,32 @@
   window.addEventListener('resize', fit);
 
   // ---------- interaction targets ----------
-  function targets() {
+  function plateHeld() {
+    const p = kase().plate;
+    return !!p && dets.some(d => { const [x, y] = tileOf(d); return x === p.at[0] && y === p.at[1]; });
+  }
+  function plateNeeded() {
+    const c = kase(), s = session();
+    return !!c.plate && !s.earned.includes(c.sources.find(k => E.SOURCE_SPOT[k] === c.plate.spot));
+  }
+  function targets(self) {
     const c = kase(), s = session(), list = [];
     for (const [name, sp] of Object.entries(E.SPOTS)) {
       const src = c.sources.find(k => E.SOURCE_SPOT[k] === name);
       list.push({ kind: 'spot', name, tx: sp.tx, ty: sp.ty, label: sp.label, src, earned: src ? s.earned.includes(src) : false, relevant: !!src || name === 'terminal' || name === 'tarot' });
     }
-    for (const n of npcs) if (!n.hidden) { const [tx, ty] = tileOf(n); list.push({ kind: 'npc', npc: n, tx, ty, label: C.nameOf(n.id), relevant: true }); }
+    for (const g of ghosts) if (!g.hidden) { const [tx, ty] = tileOf(g); list.push({ kind: 'ghost', ghost: g, tx, ty, label: 'Hồ sơ ' + C.nameOf(g.id), relevant: true }); }
+    for (const d of dets) if (d !== self) { const [tx, ty] = tileOf(d); list.push({ kind: 'det', det: d, tx, ty, label: C.detectives.find(x => x.id === d.id).name, relevant: true }); }
     return list;
   }
-  function nearest() {
-    const p = centerOf(player);
+  function nearest(self) {
+    if (!self) return null;
+    const p = centerOf(self);
     let best = null, bd = 20;
-    for (const t of targets()) {
-      const cx = t.tx * T + 8, cy = t.ty * T + (t.kind === 'npc' ? 12 : 10);
-      const d = Math.hypot(cx - p.x, cy - p.y);
+    for (const t of targets(self)) {
+      const cx = t.kind === 'spot' ? t.tx * T + 8 : centerOf(t.ghost || t.det).x;
+      const cy = t.kind === 'spot' ? t.ty * T + 10 : centerOf(t.ghost || t.det).y;
+      const d = Math.hypot(cx - p.x, cy - p.y) + (t.kind === 'ghost' ? 4 : 0);
       if (d < bd) { bd = d; best = t; }
     }
     return best;
@@ -166,88 +194,77 @@
   function nextGoal() {
     const c = kase(), s = session();
     const missing = c.sources.find(k => !s.earned.includes(k));
-    if (missing) return E.SPOTS[E.SOURCE_SPOT[missing]];
+    if (missing) {
+      const spotName = E.SOURCE_SPOT[missing];
+      if (c.plate && c.plate.spot === spotName && !plateHeld()) return { tx: c.plate.at[0], ty: c.plate.at[1] + 1, plate: true };
+      return E.SPOTS[spotName];
+    }
     return s.solved ? null : E.SPOTS.terminal;
   }
 
   // ---------- update ----------
-  function updatePlayer(dt) {
+  function inputFor(d) {
+    const slot = slotOf(d);
+    if (slot < 0 || modalOpen || busy) return [0, 0];
+    const sets = team.length === 1 ? [CONTROLS[0], CONTROLS[1]] : [CONTROLS[slot]];
     let ix = 0, iy = 0;
-    if (!modalOpen && !busy) {
-      if (keys.has('ArrowLeft') || keys.has('a')) ix -= 1;
-      if (keys.has('ArrowRight') || keys.has('d')) ix += 1;
-      if (keys.has('ArrowUp') || keys.has('w')) iy -= 1;
-      if (keys.has('ArrowDown') || keys.has('s')) iy += 1;
+    for (const k of sets) {
+      if (keys.has(k.left)) ix -= 1;
+      if (keys.has(k.right)) ix += 1;
+      if (keys.has(k.up)) iy -= 1;
+      if (keys.has(k.down)) iy += 1;
     }
-    if (ix || iy) player.path = null;
-    if (!ix && !iy && player.path && player.path.length && !modalOpen && !busy) {
-      const [tx, ty] = player.path[0];
+    return [Math.sign(ix), Math.sign(iy)];
+  }
+
+  function updateDet(d, dt) {
+    let [ix, iy] = inputFor(d);
+    if (ix || iy) { d.path = null; d.then = null; }
+    const human = slotOf(d) >= 0;
+    if (!human && !d.path && !d.task) idleThink(d);
+    if (!ix && !iy && d.path && d.path.length && !modalOpen && !busy) {
+      const [tx, ty] = d.path[0];
       const goal = feet(tx, ty);
-      const dx = goal.x - player.x, dy = goal.y - player.y;
+      const dx = goal.x - d.x, dy = goal.y - d.y;
       if (Math.abs(dx) < 1.2 && Math.abs(dy) < 1.2) {
-        player.x = goal.x; player.y = goal.y; player.path.shift();
-        if (!player.path.length) { player.path = null; const then = player.then; player.then = null; if (then) then(); }
+        d.x = goal.x; d.y = goal.y; d.path.shift();
+        if (!d.path.length) { d.path = null; const then = d.then; d.then = null; if (then) then(); }
       } else { ix = Math.abs(dx) >= 1.2 ? Math.sign(dx) : 0; iy = ix ? 0 : Math.sign(dy); }
     }
     const len = Math.hypot(ix, iy) || 1;
-    player.vx = E.stepVelocity(player.vx, ix / len, dt);
-    player.vy = E.stepVelocity(player.vy, iy / len, dt);
-    const moved = E.moveWithSlide(player, player.vx * dt, player.vy * dt, npcBlockers());
-    const travelled = Math.hypot(moved.x - player.x, moved.y - player.y);
-    player.x = moved.x; player.y = moved.y;
-    player.moving = travelled > 0.05;
-    if (ix || iy) player.dir = Math.abs(ix) > Math.abs(iy) ? (ix < 0 ? 'left' : 'right') : (iy < 0 ? 'up' : 'down');
-    if (player.moving) {
-      player.walkMs += dt * 1000;
-      if (!quiet() && time > player.dustAt) { player.dustAt = time + 260; puff(player.x + player.w / 2, player.y + player.h); }
-    } else player.walkMs = 0;
-    // Blocked mid-path (someone stepped in) for a moment: snap to the current tile and re-plan.
-    if (player.path && player.path.length && travelled < 0.01) player.stuckMs = (player.stuckMs || 0) + dt * 1000; else player.stuckMs = 0;
-    if (player.stuckMs > 150) {
-      player.stuckMs = 0;
-      const last = player.path[player.path.length - 1];
-      const here = tileOf(player);
-      const p = E.findPath(here, last, occupied());
-      if (p) { Object.assign(player, feet(...here)); player.path = p.slice(1); }
-      else { player.path = null; player.then = null; toast('Có người đang đứng chắn, thử lại nhé.'); }
+    const speed = human || d.task ? 1 : 0.45; // idle NPCs amble
+    d.vx = E.stepVelocity(d.vx, ix / len * speed, dt);
+    d.vy = E.stepVelocity(d.vy, iy / len * speed, dt);
+    const moved = E.moveWithSlide(d, d.vx * dt, d.vy * dt, []);
+    const travelled = Math.hypot(moved.x - d.x, moved.y - d.y);
+    d.x = moved.x; d.y = moved.y;
+    d.moving = travelled > 0.05;
+    if (ix || iy) d.dir = Math.abs(ix) > Math.abs(iy) ? (ix < 0 ? 'left' : 'right') : (iy < 0 ? 'up' : 'down');
+    if (d.moving) {
+      d.walkMs += dt * 1000;
+      if (fx() && time > d.dustAt) { d.dustAt = time + 260; puff(d.x + d.w / 2, d.y + d.h); }
+    } else d.walkMs = 0;
+    if (d.path && d.path.length && travelled < 0.01) d.stuckMs += dt * 1000; else d.stuckMs = 0;
+    if (d.stuckMs > 150) {
+      d.stuckMs = 0;
+      const here = tileOf(d), last = d.path[d.path.length - 1];
+      const p = E.findPath(here, last, noBlock);
+      if (p) { Object.assign(d, feet(...here)); d.path = p.slice(1); } else { d.path = null; d.then = null; }
     }
   }
 
-  function updateNpc(n, dt) {
-    if (n.hidden) return;
-    if (n.hop > 0) n.hop = Math.max(0, n.hop - dt * 1000);
-    if (motion === 'off') { n.moving = false; n.target = null; return; }
-    if (n.target) {
-      const goal = feet(...n.target);
-      const dx = goal.x - n.x, dy = goal.y - n.y;
-      if (Math.abs(dx) < 0.8 && Math.abs(dy) < 0.8) { n.x = goal.x; n.y = goal.y; n.target = null; n.moving = false; }
-      else {
-        const sp = 28 * dt;
-        const mx = Math.abs(dx) > 0.8 ? Math.sign(dx) * Math.min(sp, Math.abs(dx)) : 0;
-        const my = mx ? 0 : Math.sign(dy) * Math.min(sp, Math.abs(dy));
-        const pb = { x: player.x, y: player.y, w: player.w, h: player.h };
-        const m = E.moveWithSlide(n, mx, my, npcBlockers(n).concat([pb]));
-        if (m.x === n.x && m.y === n.y) { n.target = null; n.moving = false; }
-        else { n.x = m.x; n.y = m.y; n.moving = true; n.walkMs += dt * 1000; n.dir = mx ? (mx < 0 ? 'left' : 'right') : (my < 0 ? 'up' : 'down'); }
-      }
-      return;
-    }
-    n.walkMs = 0;
-    if (time < n.nextThink) return;
-    n.nextThink = time + 2200 + Math.random() * 3600;
-    const p = centerOf(player), c = centerOf(n);
-    if (Math.hypot(p.x - c.x, p.y - c.y) < 40) {
-      const dx = p.x - c.x, dy = p.y - c.y;
-      n.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
-      return;
-    }
-    const [hx, hy] = n.home, [cx, cy] = tileOf(n);
-    if (cx !== hx || cy !== hy) { if (!(player.path || []).some(t => t[0] === hx && t[1] === hy)) n.target = [hx, hy]; return; }
-    if (fx() && Math.random() < 0.45) {
-      const planned = new Set((player.path || []).map(t => t.join(',')).concat([tileOf(player).join(',')]));
-      const opts = [[hx + 1, hy], [hx - 1, hy], [hx, hy + 1], [hx, hy - 1]].filter(([x, y]) => !E.solidTile(x, y) && !occupied(n)(x, y) && !planned.has(x + ',' + y));
-      if (opts.length) n.target = opts[Math.floor(Math.random() * opts.length)];
-    } else n.dir = E.DIRS[Math.floor(Math.random() * 4)];
+  // Default NPC detectives potter around their home tile and look at whoever comes close.
+  function idleThink(d) {
+    if (motion === 'off' || time < d.nextThink) return;
+    d.nextThink = time + 2600 + Math.random() * 3600;
+    const near = humans().find(h => Math.hypot(centerOf(h).x - centerOf(d).x, centerOf(h).y - centerOf(d).y) < 40);
+    if (near) { d.dir = facing(d, near); return; }
+    const [hx, hy] = d.home, [cx, cy] = tileOf(d);
+    if (cx !== hx || cy !== hy) { const p = E.findPath([cx, cy], [hx, hy], noBlock); if (p) d.path = p.slice(1); return; }
+    if (fx() && Math.random() < 0.4) {
+      const opts = [[hx + 1, hy], [hx - 1, hy], [hx, hy - 1]].filter(([x, y]) => !E.solidTile(x, y));
+      if (opts.length) d.path = [opts[Math.floor(Math.random() * opts.length)]];
+    } else d.dir = E.DIRS[Math.floor(Math.random() * 4)];
   }
 
   function blink(e) {
@@ -255,6 +272,43 @@
     if (time > e.blinkAt) { e.blinkTill = time + 130; e.blinkAt = time + 3000 + Math.random() * 2000; }
     return time < e.blinkTill;
   }
+
+  // ---------- NPC tasks: fetch a source or hold the plate ----------
+  function sendTo(d, tile, then) {
+    const from = tileOf(d);
+    const goals = E.solidTile(tile[0], tile[1]) ? E.standTiles(tile[0], tile[1], from) : [tile];
+    for (const g of goals) {
+      const p = E.findPath(from, g, noBlock);
+      if (p) {
+        d.path = p.slice(1); d.then = then;
+        if (!d.path.length) { d.path = null; d.then = null; if (then) then(); }
+        return true;
+      }
+    }
+    return false;
+  }
+  function askFetch(d, spotName) {
+    const sp = E.SPOTS[spotName], who = C.detectives.find(x => x.id === d.id);
+    d.task = { type: 'fetch', spot: spotName };
+    sendTo(d, [sp.tx, sp.ty], () => {
+      d.dir = facing(d, { x: sp.tx * T + 4, y: sp.ty * T + 9, w: 8, h: 5 });
+      const c = kase();
+      if (c.plate && c.plate.spot === spotName && !plateHeld()) { d.task = null; toast(who.name + ': khoá rồi, cần một người đứng giữ công tắc.'); return; }
+      d.task = null;
+      const src = c.sources.find(k => E.SOURCE_SPOT[k] === spotName);
+      const run = () => (spotName === 'tarot' ? tarot(who) : src ? examine(src, who) : null);
+      if (modalOpen) pending.push(run); else run();
+    });
+    toast(who.name + ': ' + who.help);
+  }
+  function askHold(d) {
+    const c = kase(), who = C.detectives.find(x => x.id === d.id);
+    d.task = { type: 'hold' };
+    sendTo(d, c.plate.at, () => { d.dir = 'down'; });
+    toast(who.name + ': ' + who.hold);
+  }
+  const pending = [];
+  function releaseHolders() { for (const d of dets) if (d.task && d.task.type === 'hold' && !plateNeeded()) { d.task = null; d.nextThink = time + 800; } }
 
   // ---------- particles (no flashing; all fade over >= 400 ms) ----------
   function puff(x, y) { for (let i = 0; i < 2; i++) particles.push({ x: x + (i ? 2 : -2), y, vx: (i ? 6 : -6), vy: -4, life: 420, max: 420, c: '#c9b79a', s: 1 }); }
@@ -276,16 +330,21 @@
   // ---------- render ----------
   function spriteFor(e) {
     const frame = e.moving ? E.walkFrame(e.walkMs) : 'stand';
-    return sheets[e.look][e.dir + ':' + frame + ':' + (blink(e) ? 1 : 0)];
+    const key = e.dir + ':' + frame + ':' + (blink(e) ? 1 : 0);
+    const s = sheets[e.look] && sheets[e.look][key];
+    if (!s && !spriteFor.warned) { spriteFor.warned = true; console.warn('sprite key missing', e.look, key, e.walkMs); }
+    return s || sheets[e.look]['down:stand:0'];
   }
   function drawEntity(e) {
     const s = spriteFor(e);
     const bob = e.moving && (E.walkFrame(e.walkMs) === 'stand') ? -1 : 0;
     const hop = e.hop ? -Math.round(Math.sin((1 - e.hop / 380) * Math.PI) * 4) : 0;
-    const x = Math.round(e.x + e.w / 2 - s.spr.w / 2), y = Math.round(e.y + e.h - s.spr.h + 1 + bob + hop);
-    ctx.globalAlpha = 0.28 * e.alpha; ctx.fillStyle = '#000';
+    const float = e.kind === 'ghost' && fx() ? Math.round(Math.sin(time / 700 + e.phase)) : 0;
+    const x = Math.round(e.x + e.w / 2 - s.spr.w / 2), y = Math.round(e.y + e.h - s.spr.h + 1 + bob + hop + float);
+    const alpha = e.kind === 'ghost' ? 0.62 : 1;
+    ctx.globalAlpha = (e.kind === 'ghost' ? 0.15 : 0.28); ctx.fillStyle = '#000';
     ctx.fillRect(x + 3, Math.round(e.y + e.h - 1), s.spr.w - 6, 2); ctx.fillRect(x + 4, Math.round(e.y + e.h + 1), s.spr.w - 8, 1);
-    ctx.globalAlpha = e.alpha;
+    ctx.globalAlpha = alpha;
     if (e.glitch > 0) {
       for (let row = 0; row < s.spr.h; row += 3) {
         const off = ((row / 3 + Math.floor(time / 90)) % 3) - 1;
@@ -293,31 +352,60 @@
       }
     } else ctx.drawImage(s.cv, x, y);
     ctx.globalAlpha = 1;
-  }
-  function drawMarker(t, near) {
-    const x = t.tx * T + 8, y = t.ty * T - (t.kind === 'npc' ? 14 : 4);
-    if (t.kind === 'spot' && t.earned) { ctx.fillStyle = '#2a2140'; ctx.fillRect(x - 3, y - 4, 7, 6); ctx.fillStyle = '#7fc8a0'; ctx.fillRect(x - 2, y - 1, 1, 1); ctx.fillRect(x - 1, y, 1, 1); ctx.fillRect(x, y - 1, 1, 1); ctx.fillRect(x + 1, y - 2, 1, 1); ctx.fillRect(x + 2, y - 3, 1, 1); }
-    if (near && t.kind === 'npc') {
-      ctx.font = '7px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const label = (coarse ? '' : 'E · ') + t.label, w = Math.ceil(ctx.measureText(label).width) + 6;
-      ctx.fillStyle = '#2a2140'; ctx.fillRect(x - w / 2 - 1, y - 13, w + 2, 10);
-      ctx.fillStyle = '#efe3c8'; ctx.fillRect(x - w / 2, y - 12, w, 8);
-      ctx.fillStyle = '#2a2140'; ctx.fillText(label, x, y - 7.5);
-    } else if (near) {
-      const label = coarse ? '●' : 'E';
-      ctx.fillStyle = '#2a2140'; ctx.fillRect(x - 5, y - 13, 11, 10);
-      ctx.fillStyle = '#efe3c8'; ctx.fillRect(x - 4, y - 12, 9, 8);
-      ctx.fillStyle = '#2a2140'; ctx.font = '7px ui-monospace, Menlo, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(label, x + 0.5, y - 7.5);
-      ctx.fillRect(x, y - 3, 1, 1);
+    if (e.kind === 'det') {
+      const face = faces.get(e.id);
+      if (face && e.dir !== 'up') drawFace(face, x + s.spr.w / 2, y + 4);
+      const slot = slotOf(e);
+      if (slot >= 0 && team.length > 1) {
+        ctx.fillStyle = ['#f2b45a', '#7fc8a0', '#ef8a7a', '#6aa7e8'][slot];
+        ctx.fillRect(x + s.spr.w / 2 - 1, y - 4, 3, 2); ctx.fillRect(x + s.spr.w / 2, y - 2, 1, 1);
+      }
+      if (e.task) {
+        ctx.fillStyle = '#2a2140'; ctx.fillRect(x + s.spr.w - 3, y - 3, 7, 5);
+        ctx.fillStyle = '#efe3c8'; ctx.fillRect(x + s.spr.w - 2, y - 2, 5, 3);
+        ctx.fillStyle = '#2a2140'; for (let i = 0; i < 3; i++) if (e.task.type === 'hold' || Math.floor(time / 300) % 3 >= i) ctx.fillRect(x + s.spr.w - 2 + i * 2, y - 1, 1, 1);
+      }
     }
+  }
+  // A real photo on a pixel body: drawn smooth and slightly big on purpose (bobblehead).
+  function drawFace(face, cx, cy) {
+    const r = 8;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r + 0.75, 0, Math.PI * 2); ctx.fillStyle = '#2a2140'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(face, cx - r, cy - r, r * 2, r * 2);
+    ctx.restore();
+    ctx.imageSmoothingEnabled = false;
+  }
+  function drawPlate() {
+    const p = kase().plate; if (!p) return;
+    const held = plateHeld(), x = p.at[0] * T, y = p.at[1] * T;
+    ctx.fillStyle = '#2a2140'; ctx.fillRect(x + 2, y + 4, 12, 9);
+    ctx.fillStyle = held ? '#7fc8a0' : '#8d99a6'; ctx.fillRect(x + 3, y + 5 + (held ? 1 : 0), 10, 7 - (held ? 1 : 0));
+    ctx.fillStyle = held ? '#c9f1d8' : '#c9cfd8'; ctx.fillRect(x + 4, y + 6 + (held ? 1 : 0), 8, 1);
+    if (plateNeeded() && !held) {
+      const a = quiet() ? 0.5 : 0.3 + 0.25 * (Math.sin(time / 450) + 1) / 2;
+      ctx.globalAlpha = a; ctx.strokeStyle = '#7fc8a0'; ctx.strokeRect(x + 0.5, y + 2.5, 15, 13); ctx.globalAlpha = 1;
+    }
+  }
+  function drawMarker(t, near, keyLabel) {
+    const x = t.tx * T + 8, y = t.ty * T - (t.kind === 'spot' ? 4 : 14);
+    if (t.kind === 'spot' && t.earned) { ctx.fillStyle = '#2a2140'; ctx.fillRect(x - 3, y - 4, 7, 6); ctx.fillStyle = '#7fc8a0'; ctx.fillRect(x - 2, y - 1, 1, 1); ctx.fillRect(x - 1, y, 1, 1); ctx.fillRect(x, y - 1, 1, 1); ctx.fillRect(x + 1, y - 2, 1, 1); ctx.fillRect(x + 2, y - 3, 1, 1); }
+    if (!near) return;
+    ctx.font = '7px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const label = t.kind === 'spot' ? keyLabel : (keyLabel ? keyLabel + ' · ' : '') + t.label;
+    const w = Math.max(9, Math.ceil(ctx.measureText(label).width) + 6);
+    ctx.fillStyle = '#2a2140'; ctx.fillRect(x - w / 2 - 1, y - 13, w + 2, 10);
+    ctx.fillStyle = '#efe3c8'; ctx.fillRect(x - w / 2, y - 12, w, 8);
+    ctx.fillStyle = '#2a2140'; ctx.fillText(label, x, y - 7.5);
   }
   function drawGoalArrow() {
     const g = nextGoal(); if (!g) return;
     const bounce = quiet() ? 0 : Math.round(Math.sin(time / 220) * 2);
     const x = g.tx * T + 8, y = g.ty * T - 18 + bounce;
     ctx.fillStyle = '#2a2140'; ctx.fillRect(x - 4, y - 1, 9, 2); ctx.fillRect(x - 3, y + 1, 7, 2); ctx.fillRect(x - 2, y + 3, 5, 2); ctx.fillRect(x - 1, y + 5, 3, 1);
-    ctx.fillStyle = '#f2b45a'; ctx.fillRect(x - 3, y, 7, 1); ctx.fillRect(x - 2, y + 1, 5, 2); ctx.fillRect(x - 1, y + 3, 3, 2);
+    ctx.fillStyle = g.plate ? '#7fc8a0' : '#f2b45a'; ctx.fillRect(x - 3, y, 7, 1); ctx.fillRect(x - 2, y + 1, 5, 2); ctx.fillRect(x - 1, y + 3, 3, 2);
   }
   function drawGlow(t) {
     if (t.kind !== 'spot' || !t.relevant || t.earned) return;
@@ -326,44 +414,58 @@
     ctx.strokeRect(t.tx * T + 0.5, t.ty * T + 0.5, T - 1, T - 1);
     ctx.globalAlpha = 1;
   }
+  function keyLabelFor(d) { return coarse ? '' : team.length === 1 ? 'E' : CONTROLS[slotOf(d)].label; }
   function render() {
     ctx.drawImage(bg, 0, 0);
-    // terminal screen shows the 5 vs 6 count softly
-    const ts = targets(), near = nearest();
+    drawPlate();
+    const ts = targets(null);
     for (const t of ts) drawGlow(t);
-    const ents = npcs.filter(n => !n.hidden).concat([player]).sort((a, b) => a.y - b.y);
+    const ents = ghosts.filter(n => !n.hidden).concat(dets).sort((a, b) => a.y - b.y);
     for (const e of ents) drawEntity(e);
     for (const p of particles) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.c; ctx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s); }
     ctx.globalAlpha = 1;
-    for (const t of ts) drawMarker(t, near === t && !modalOpen && !busy);
+    for (const t of ts) if (t.kind === 'spot') drawMarker(t, false);
+    if (!modalOpen && !busy) for (const h of humans()) { const n = nearest(h); if (n) drawMarker(n, true, keyLabelFor(h)); }
     drawGoalArrow();
   }
 
   // ---------- loop ----------
-  let last = 0, lastNear = null;
+  let last = 0, lastNear = '';
   let held = false; // test hook: freeze the real-time loop so scripted steps are deterministic
-  function frame(now) { if (!held) tick(now); schedule(); }
+  function frame(now) { try { if (!held) tick(now); } finally { schedule(); } }
   function tick(now) {
     const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; time = now;
-    updatePlayer(dt);
-    for (const n of npcs) updateNpc(n, dt);
+    for (const d of dets) updateDet(d, dt);
+    for (const g of ghosts) if (g.hop > 0) g.hop = Math.max(0, g.hop - dt * 1000);
+    for (const d of dets) if (d.hop > 0) d.hop = Math.max(0, d.hop - dt * 1000);
     updateParticles(dt);
     render();
-    const n = modalOpen || busy ? null : nearest();
-    if (n !== lastNear && (!n || !lastNear || n.label !== lastNear.label)) {
-      lastNear = n;
-      const btn = $('actBtn');
-      if (n) { const verb = n.kind === 'npc' ? 'Nói chuyện' : n.name === 'terminal' ? 'Nộp lập luận' : 'Khám'; btn.textContent = verb + ' · ' + n.label; btn.hidden = false; $('near').textContent = 'Gần ' + n.label + '. Nhấn E để ' + verb.toLowerCase() + '.'; }
-      else { btn.hidden = true; $('near').textContent = ''; }
+    if (!modalOpen && pending.length) pending.shift()();
+    const me = lead();
+    const n = modalOpen || busy ? null : nearest(me);
+    const key = n ? n.kind + n.label : '';
+    if (key !== lastNear) {
+      lastNear = key;
+      const btnEl = $('actBtn');
+      if (n) { const verb = actionVerb(me, n); btnEl.textContent = verb + ' · ' + n.label; btnEl.disabled = false; $('near').textContent = 'Gần ' + n.label + '. Nhấn ' + (team.length === 1 ? 'E' : CONTROLS[active].label) + ' để ' + verb.toLowerCase() + '.'; }
+      else { btnEl.textContent = 'Lại gần đồ vật hoặc người để tương tác'; btnEl.disabled = true; $('near').textContent = ''; }
     }
   }
   // Hidden tabs get no animation frames; fall back to a slow timer so state still advances.
   function schedule() { if (document.hidden) setTimeout(() => frame(performance.now()), 50); else requestAnimationFrame(frame); }
+  function actionVerb(d, t) {
+    if (t.kind === 'det') return 'Nói chuyện';
+    if (t.kind === 'ghost') return 'Xem hồ sơ';
+    if (t.name === 'terminal') return 'Nộp lập luận';
+    const owner = C.ownerOfSpot(t.name);
+    return owner && owner.id !== d.id ? 'Nhờ ' + owner.name : 'Khám';
+  }
 
   // ---------- input ----------
-  const moveKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'w', 'a', 's', 'd'];
+  const keyName = e => (e.key.length === 1 ? e.key.toLowerCase() : e.key);
+  const allMoveKeys = new Set(CONTROLS.flatMap(k => [k.up, k.down, k.left, k.right]));
   document.addEventListener('keydown', e => {
-    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const k = keyName(e);
     if (modalOpen) {
       if (k === 'Escape') closeModal();
       if (k === 'Tab') trapFocus(e);
@@ -371,42 +473,35 @@
     }
     const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement && document.activeElement.tagName);
     if (typing) return;
-    if (moveKeys.includes(k)) { keys.add(k); e.preventDefault(); }
-    if ((k === 'e' || k === ' ' || k === 'Enter') && document.activeElement === document.body) { const n = nearest(); if (n) { e.preventDefault(); interact(n); } }
-    if (k === 'n') toggleBook();
+    if (allMoveKeys.has(k)) { keys.add(k); e.preventDefault(); }
+    const onBody = document.activeElement === document.body || document.activeElement === canvas;
+    if (onBody) {
+      const slot = team.length === 1 ? ((k === 'e' || k === ' ' || k === 'Enter') ? 0 : -1) : CONTROLS.findIndex(c => c.act === k);
+      if (slot >= 0 && slot < team.length) { const d = detById(team[slot]); const n = nearest(d); if (n) { e.preventDefault(); interact(d, n); } }
+    }
+    if (k === 'n' && team.length === 1) toggleBook();
   });
-  document.addEventListener('keyup', e => keys.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key));
+  document.addEventListener('keyup', e => keys.delete(keyName(e)));
   window.addEventListener('blur', () => keys.clear());
-  $('actBtn').addEventListener('click', () => { const n = nearest(); if (n) interact(n); });
+  $('actBtn').addEventListener('click', () => { const d = lead(); const n = nearest(d); if (n) interact(d, n); });
 
   canvas.addEventListener('pointerdown', e => {
     if (modalOpen || busy) return;
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width * VW, y = (e.clientY - rect.top) / rect.height * VH;
-    let tx = Math.floor(x / T), ty = Math.floor(y / T);
-    // tapping a character's head selects that character
-    const hit = npcs.find(n => !n.hidden && x >= n.x - 3 && x <= n.x + n.w + 3 && y >= n.y - 14 && y <= n.y + n.h);
+    const tx = Math.floor(x / T), ty = Math.floor(y / T);
+    const me = lead();
+    const hitDet = dets.find(d => d !== me && x >= d.x - 3 && x <= d.x + d.w + 3 && y >= d.y - 14 && y <= d.y + d.h);
+    const hitGhost = !hitDet && ghosts.find(g => !g.hidden && x >= g.x - 3 && x <= g.x + g.w + 3 && y >= g.y - 14 && y <= g.y + g.h);
     const spot = Object.entries(E.SPOTS).find(([, s]) => s.tx === tx && s.ty === ty);
-    const t = hit ? targets().find(q => q.npc === hit) : spot ? targets().find(q => q.name === spot[0]) : null;
-    walkTo(t ? [t.tx, t.ty] : [tx, ty], t ? () => interact(t) : null);
+    const all = targets(me);
+    const t = hitDet ? all.find(q => q.det === hitDet) : hitGhost ? all.find(q => q.ghost === hitGhost) : spot ? all.find(q => q.name === spot[0]) : null;
+    walkTo(me, t ? [t.tx, t.ty] : [tx, ty], t ? () => { const fresh = targets(me).find(q => (q.det && q.det === t.det) || (q.ghost && q.ghost === t.ghost) || (q.name && q.name === t.name)); interact(me, fresh || t); } : null);
   });
 
-  function walkTo(tile, then) {
-    const occ = occupied();
-    const from = tileOf(player);
-    let goals;
-    if (E.solidTile(tile[0], tile[1]) || occ(tile[0], tile[1])) goals = E.standTiles(tile[0], tile[1], from, occ);
-    else goals = [tile];
-    for (const g of goals) {
-      const p = E.findPath(from, g, occ);
-      if (p) {
-        player.path = p.slice(1); player.then = then;
-        if (!player.path.length) { player.path = null; player.then = null; if (then) then(); }
-        return true;
-      }
-    }
-    toast('Không tới được chỗ đó.');
-    return false;
+  function walkTo(d, tile, then) {
+    d.task = null;
+    if (!sendTo(d, tile, then)) toast('Không tới được chỗ đó.');
   }
 
   // ---------- UI helpers ----------
@@ -416,7 +511,7 @@
   function toast(text) { clearTimeout(toastT); const t = $('toast'); t.textContent = text; t.hidden = false; toastT = setTimeout(() => (t.hidden = true), 2400); }
   function openModal(kicker, title) {
     if (!modalOpen) returnFocus = document.activeElement;
-    modalOpen = true; keys.clear(); player.path = null;
+    modalOpen = true; keys.clear(); for (const d of dets) if (slotOf(d) >= 0) { d.path = null; d.then = null; }
     $('mKicker').textContent = kicker; $('mTitle').textContent = title; $('mBody').replaceChildren();
     $('shade').hidden = false; setTimeout(() => $('mClose').focus(), 0);
     return $('mBody');
@@ -452,19 +547,195 @@
   }
 
   // ---------- interactions ----------
-  function interact(t) {
-    if (busy || modalOpen) return;
-    if (t.kind === 'npc') return talk(t.npc);
+  function interact(d, t) {
+    if (busy || modalOpen || !t) return;
+    const me = C.detectives.find(x => x.id === d.id);
+    if (t.kind === 'det') return talkDetective(d, t.det);
+    if (t.kind === 'ghost') return recordCard(t.ghost);
     if (t.name === 'terminal') return terminal();
-    if (t.name === 'tarot') return tarot();
-    if (t.src) return examine(t.src);
-    toast(E.SPOTS[t.name].label + ': vụ này không có nguồn mới ở đây.');
+    const owner = C.ownerOfSpot(t.name);
+    if (t.name !== 'tarot' && !t.src) { toast(t.label + ': vụ này không có nguồn mới ở đây.'); return; }
+    if (owner && owner.id !== me.id) {
+      const od = detById(owner.id);
+      if (slotOf(od) >= 0) { toast(t.label + ' là việc của ' + C.roles[owner.role].name + ' ' + owner.name + '. Gọi ' + owner.name + ' tới nhé.'); return; }
+      return askOwner(d, od, t);
+    }
+    const c = kase();
+    if (c.plate && c.plate.spot === t.name && !plateHeld()) return lockedPlate(d, t);
+    if (t.name === 'tarot') return tarot(me);
+    return examine(t.src, me);
   }
 
-  function examine(key) {
+  function askOwner(d, od, t) {
+    const owner = C.detectives.find(x => x.id === od.id);
+    const body = openModal(C.roles[owner.role].name.toUpperCase() + ' · ' + t.label.toUpperCase(), 'Việc của ' + owner.name);
+    body.append(el('p', '', t.label + ' chỉ ' + C.roles[owner.role].name.toLowerCase() + ' mới mở được. ' + owner.name + ' đang ở trong phòng.'));
+    body.append(btn('Nhờ ' + owner.name + ' đi khám', 'primary', () => { closeModal(); askFetch(od, t.name); }), document.createTextNode(' '), btn('Để sau', 'ghost', closeModal));
+  }
+
+  function lockedPlate(d, t) {
+    const c = kase();
+    const body = openModal('THỬ THÁCH HAI NGƯỜI', t.label + ' đang khoá');
+    body.append(el('p', '', 'Khoá chỉ mở khi có một người đứng giữ công tắc sáng xanh ở ô ' + (c.plate.at[0] > 7 ? 'bên phải' : 'bên trái') + ' phòng. Một người không thể vừa giữ công tắc vừa khám.'));
+    const helpers = dets.filter(x => x !== d && slotOf(x) < 0 && !x.task);
+    for (const h of helpers) {
+      const who = C.detectives.find(x => x.id === h.id);
+      body.append(btn('Nhờ ' + who.name + ' giữ công tắc', 'ghost', () => { closeModal(); askHold(h); }), document.createTextNode(' '));
+    }
+    if (team.length > 1) body.append(el('p', 'note', 'Chơi nhiều người: một bạn đứng lên công tắc, bạn kia khám.'));
+  }
+
+  function recordCard(g) {
+    const c = kase(), s = session();
+    const body = openModal('HỒ SƠ MÁY XUẤT · BÓNG DỮ LIỆU', 'Hồ sơ ' + C.nameOf(g.id));
+    const wrap = el('div', 'talk');
+    wrap.append(portrait(g.id));
+    const right = el('div');
+    right.append(el('p', '', 'Một trong sáu hồ sơ máy điểm danh chiếu ra. Không ai đóng vai hồ sơ; đúng một bóng là bản máy ghép thừa.'));
+    const rec = el('div', 'record');
+    const row = c.rows.find(r => r.id === g.id);
+    const bits = [];
+    if (c.kind === 'photo') for (const k of c.sources) if (s.earned.includes(k)) { const sp = el('span'); sp.append(C.fields[k].name + ' ', icon(k, row[k])); bits.push(sp); }
+    if (c.kind !== 'photo' && s.earned.includes('scan')) bits.push(el('span', '', c.kind === 'timeline'
+      ? C.short[row.trip[0]] + ' 09:0' + row.trip[1] + ' → ' + C.short[row.trip[2]] + ' 09:0' + row.trip[3] + ' · huy hiệu ' + C.fields.badge.labels[row.badge]
+      : C.nodes[row.trip[0]] + ' → ' + C.nodes[row.trip[1]] + ', ' + row.trip[2] + ' phút'));
+    if (bits.length) bits.forEach((b, i) => { if (i) rec.append(' · '); rec.append(b); });
+    else rec.append(el('span', 'note', 'Chưa có thuộc tính nào. Khám nguồn để máy mở thông tin của hồ sơ này.'));
+    right.append(rec);
+    wrap.append(right); body.append(wrap);
+  }
+
+  function talkDetective(d, other) {
+    const p = C.detectives.find(x => x.id === other.id), c = kase(), s = session();
+    if (slotOf(other) < 0) other.dir = facing(other, d);
+    const body = openModal(C.roles[p.role].name.toUpperCase() + (slotOf(other) >= 0 ? ' · NGƯỜI CHƠI ĐIỀU KHIỂN' : ' · THÁM TỬ MẶC ĐỊNH'), p.name);
+    const wrap = el('div', 'talk');
+    wrap.append(portrait(p.id));
+    const right = el('div');
+    right.append(el('span', 'arch', p.sign + ' · ' + p.tarot), el('p', '', p.trait));
+    const bubble = el('div', 'bubble'); bubble.setAttribute('aria-live', 'polite');
+    let typing;
+    const say = text => {
+      clearInterval(typing);
+      if (quiet()) { bubble.textContent = text; return; }
+      let i = 0; bubble.textContent = '';
+      typing = setInterval(() => { i += 2; bubble.textContent = text.slice(0, i); if (i >= text.length) clearInterval(typing); }, 24);
+    };
+    const tones = el('div', 'seg');
+    [['soft', 'Hỏi nhẹ'], ['direct', 'Hỏi thẳng'], ['joke', 'Trêu nhẹ']].forEach(([k, lab], i) => {
+      const b = btn(lab, '', () => { tones.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); say(p.lines[k]); });
+      b.setAttribute('aria-pressed', String(i === 0)); tones.append(b);
+    });
+    right.append(bubble, tones);
+    if (slotOf(other) < 0) {
+      const asks = el('div', 'choices');
+      for (const spotName of C.roles[p.role].spots) {
+        const src = c.sources.find(k => E.SOURCE_SPOT[k] === spotName);
+        if (spotName === 'tarot' || (src && !s.earned.includes(src))) asks.append(btn('Nhờ ' + p.name + ' khám ' + E.SPOTS[spotName].label.toLowerCase(), '', () => { closeModal(); askFetch(other, spotName); }));
+      }
+      if (plateNeeded() && !plateHeld()) asks.append(btn('Nhờ ' + p.name + ' giữ công tắc', '', () => { closeModal(); askHold(other); }));
+      if (other.task && other.task.type === 'hold') asks.append(btn('Thôi, ' + p.name + ' nghỉ đi', '', () => { closeModal(); other.task = null; other.nextThink = time + 500; }));
+      if (asks.childElementCount) right.append(el('p', 'note', 'Nhờ việc:'), asks);
+    } else right.append(el('p', 'note', 'Bạn này do một người chơi điều khiển. Muốn họ khám gì thì nói với họ.'));
+    right.append(el('p', 'note', 'Lời nói chỉ thể hiện tính cách, không phải chứng cứ. Cung và tarot do tác giả gán, không dùng để chấm.'));
+    wrap.append(right); body.append(wrap);
+    say(p.lines.soft);
+  }
+
+  function reveal(id) {
+    const c = kase(), s = session();
+    C.complete(progress, index, { status: 'solved' });
+    s.solved = true; busy = true;
+    for (const d of dets) { d.path = null; d.then = null; d.task = null; }
+    const g = ghosts.find(x => x.id === id);
+    const finish = () => {
+      g.hidden = true; g.glitch = 0; busy = false; s.gone = id;
+      const body = openModal(c.stamp + ' · ĐÃ TÌM RA BẢN GHÉP', 'Hồ sơ thừa: ' + C.nameOf(id));
+      const box = el('div', 'reveal'); box.append(el('h3', '', 'Bóng hồ sơ ' + C.nameOf(id) + ' là bản máy ghép thừa'), el('p', '', explain(c, id)));
+      body.append(box, el('p', 'note', 'Hồ sơ là dữ liệu hư cấu, không ai trong đội đóng vai nó. Không có điểm, coin hay streak.'));
+      if (index < C.cases.length - 1) body.append(btn('Sang vụ ' + (index + 2) + ' →', 'primary', () => { closeModal(); goTo(index + 1); }));
+      else body.append(el('p', '', 'Đội đã đi hết bảy vụ: đếm, cộng đường, đối chiếu, checkpoint, đọc gương, cửa một chiều và ghép giờ.'), btn('Chơi lại từ đầu', 'primary', () => { closeModal(); resetAll(); }));
+      renderAll();
+    };
+    if (quiet()) { finish(); return; }
+    g.glitch = 1;
+    for (const d of dets) setTimeout(() => (d.hop = 380), 900 + Math.random() * 300);
+    setTimeout(() => { leaves(g); g.hidden = true; }, 600);
+    setTimeout(finish, 1500);
+  }
+
+  // ---------- team setup and faces ----------
+  async function loadFace(file) {
+    // Decode locally, crop a centred square, keep only a 64 x 64 canvas in memory. Nothing is uploaded or stored.
+    const bmp = await createImageBitmap(file);
+    const side = Math.min(bmp.width, bmp.height);
+    const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
+    const g = cv.getContext('2d');
+    g.imageSmoothingEnabled = true;
+    g.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2.6, side, side, 0, 0, 64, 64);
+    if (bmp.close) bmp.close();
+    return cv;
+  }
+  function teamSetup(then) {
+    const body = openModal('ĐỘI THÁM TỬ · CHỈ TRÊN MÁY NÀY', 'Ai chơi?');
+    let count = team.length;
+    const draft = team.slice();
+    const render = () => {
+      body.replaceChildren();
+      body.append(el('p', 'note', 'Chơi một mình: bạn chọn một thám tử, ba người còn lại là thám tử mặc định, bạn nhờ họ đi khám hay giữ công tắc. Chơi nhiều người trên cùng màn hình: mỗi người một thám tử và một bộ phím.'));
+      const seg = el('div', 'seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Số người chơi');
+      [1, 2, 3, 4].forEach(n => { const b = btn(n + ' người', '', () => { count = n; while (draft.length < n) draft.push(C.detectives.find(x => !draft.includes(x.id)).id); draft.length = n; render(); }); b.setAttribute('aria-pressed', String(n === count)); seg.append(b); });
+      body.append(seg);
+      for (let slot = 0; slot < count; slot++) {
+        const box = el('div', 'slot');
+        box.append(el('b', '', 'Người chơi ' + (slot + 1)), el('span', 'note', ' · ' + (count === 1 ? 'W A S D hoặc mũi tên · E' : CONTROLS[slot].name) + (slot === 0 ? ' · chạm/bấm chuột' : '')));
+        const pick = el('div', 'pick four');
+        for (const d of C.detectives) {
+          const taken = draft.includes(d.id) && draft[slot] !== d.id;
+          const b = btn('', '', () => { draft[slot] = d.id; render(); });
+          b.disabled = taken; b.setAttribute('aria-pressed', String(draft[slot] === d.id));
+          b.append(portrait(d.id, 42, 54), el('span', '', d.name), el('small', '', C.roles[d.role].name));
+          pick.append(b);
+        }
+        box.append(pick);
+        const id = draft[slot];
+        const faceRow = el('div', 'row');
+        if (faces.has(id)) { const thumb = faces.get(id); const img = el('canvas', 'thumb'); img.width = 64; img.height = 64; img.getContext('2d').drawImage(thumb, 0, 0); faceRow.append(img, btn('Bỏ ảnh mặt', 'small', () => { faces.delete(id); render(); })); }
+        const label = el('label', 'small filebtn', faces.has(id) ? 'Đổi ảnh mặt' : 'Gắn mặt của bạn (tuỳ chọn)');
+        const inp = el('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'user'); inp.className = 'sr-only';
+        inp.addEventListener('change', async () => { const f = inp.files && inp.files[0]; if (!f) return; try { faces.set(id, await loadFace(f)); } catch (err) { toast('Không đọc được ảnh này.'); } inp.value = ''; render(); });
+        label.append(inp); faceRow.append(label);
+        box.append(faceRow);
+        body.append(box);
+      }
+      body.append(el('p', 'note', 'Ảnh mặt: chỉ dùng ảnh của chính người chơi thám tử đó. Ảnh được cắt và dán ngay trong trình duyệt, không gửi đi đâu, không lưu; tải lại trang hoặc bấm "Bỏ ảnh mặt" là mất.'));
+      body.append(btn('Vào phòng', 'primary', () => {
+        team = draft.slice(0, count); active = 0;
+        for (const d of dets) { d.path = null; d.then = null; d.task = null; }
+        closeModal(); renderAll(); renderSlots(); if (then) then();
+      }));
+    };
+    render();
+  }
+  function renderSlots() {
+    const bar = $('slots'); bar.replaceChildren();
+    bar.hidden = team.length < 2;
+    team.forEach((id, slot) => {
+      const d = C.detectives.find(x => x.id === id);
+      const b = btn('', 'slotchip', () => { active = slot; renderSlots(); });
+      b.setAttribute('aria-pressed', String(slot === active));
+      b.style.setProperty('--slot', ['#f2b45a', '#7fc8a0', '#ef8a7a', '#6aa7e8'][slot]);
+      b.append(el('i'), d.name + ' · ' + CONTROLS[slot].label);
+      b.setAttribute('aria-label', 'Chạm để điều khiển ' + d.name);
+      bar.append(b);
+    });
+  }
+  $('teamBtn').addEventListener('click', () => teamSetup());
+
+  function examine(key, via) {
     const c = kase(), s = session();
     const spot = E.SPOTS[E.SOURCE_SPOT[key]];
-    const body = openModal(c.stamp + ' · NGUỒN HƯ CẤU', sourceTitle(key));
+    const body = openModal(c.stamp + ' · ' + (via ? C.roles[via.role].name.toUpperCase() + ' ' + via.name.toUpperCase() : 'NGUỒN HƯ CẤU'), sourceTitle(key));
     body.append(sourceView(c, key));
     if (s.earned.includes(key)) { body.append(el('p', 'msg good', '✓ Đã ghi vào sổ tay.')); return; }
     const chk = C.sourceCheck(c, key);
@@ -499,6 +770,7 @@
     const confirm = btn('Ghi vào sổ tay', 'primary', () => {
       if (!C.checkSource(chk, value)) { msg.textContent = 'Chưa khớp với điều đang hiện trong nguồn. Xem lại, không mất gì.'; box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); return; }
       if (!s.earned.includes(key)) s.earned.push(key);
+      releaseHolders();
       if (chk.type === 'tally') s.tallies[key] = value.slice();
       closeModal();
       sparkle(spot.tx * T + 8, spot.ty * T + 4);
@@ -597,46 +869,9 @@
     return svg;
   }
 
-  function talk(n) {
-    const p = C.profiles.find(x => x.id === n.id), c = kase(), s = session();
-    n.dir = (() => { const a = centerOf(player), b = centerOf(n); const dx = a.x - b.x, dy = a.y - b.y; return Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'); })();
-    const body = openModal('HỒ SƠ MÁY XUẤT · NHÂN VẬT HƯ CẤU', p.name);
-    const wrap = el('div', 'talk');
-    wrap.append(portrait(p.id));
-    const right = el('div');
-    right.append(el('span', 'arch', p.sign + ' · ' + p.tarot), el('p', '', p.trait));
-    const bubble = el('div', 'bubble'); bubble.setAttribute('aria-live', 'polite');
-    let typing;
-    const say = text => {
-      clearInterval(typing);
-      if (quiet()) { bubble.textContent = text; return; }
-      let i = 0; bubble.textContent = '';
-      typing = setInterval(() => { i += 2; bubble.textContent = text.slice(0, i); if (i >= text.length) clearInterval(typing); }, 24);
-    };
-    const tones = el('div', 'seg');
-    [['soft', 'Hỏi nhẹ'], ['direct', 'Hỏi thẳng'], ['joke', 'Trêu nhẹ']].forEach(([k, lab], i) => {
-      const b = btn(lab, '', () => { tones.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); say(p.lines[k]); });
-      b.setAttribute('aria-pressed', String(i === 0)); tones.append(b);
-    });
-    right.append(bubble, tones);
-    const rec = el('div', 'record');
-    rec.append(el('b', '', 'Hồ sơ máy của ' + p.name + ': '));
-    const row = c.rows.find(r => r.id === p.id);
-    const bits = [];
-    if (c.kind === 'photo') for (const k of c.sources) if (s.earned.includes(k)) { const sp = el('span'); sp.append(C.fields[k].name + ' ', icon(k, row[k])); bits.push(sp); }
-    if (c.kind !== 'photo' && s.earned.includes('scan')) bits.push(el('span', '', c.kind === 'timeline'
-      ? C.short[row.trip[0]] + ' 09:0' + row.trip[1] + ' → ' + C.short[row.trip[2]] + ' 09:0' + row.trip[3] + ' · huy hiệu ' + C.fields.badge.labels[row.badge]
-      : C.nodes[row.trip[0]] + ' → ' + C.nodes[row.trip[1]] + ', ' + row.trip[2] + ' phút'));
-    if (bits.length) bits.forEach((b, i) => { if (i) rec.append(' · '); rec.append(b); });
-    else rec.append(el('span', 'note', 'chưa có. Khám nguồn để máy mở thông tin của hồ sơ này.'));
-    right.append(rec, el('p', 'note', 'Lời nói chỉ thể hiện tính cách, không phải chứng cứ. Cung và tarot do tác giả gán, không dùng để chấm.'));
-    wrap.append(right); body.append(wrap);
-    say(p.lines.soft);
-  }
-
-  function tarot() {
+  function tarot(who) {
     const c = kase(), m = C.methodFor(c);
-    const body = openModal('LÁ GỢI CÁCH KIỂM · KHÔNG PHẢI CHỨNG CỨ', m.card);
+    const body = openModal((who ? who.name.toUpperCase() + ' RÚT LÁ · ' : '') + 'GỢI CÁCH KIỂM · KHÔNG PHẢI CHỨNG CỨ', m.card);
     const w = el('div', 'tarot');
     const card = el('div', 'card'); const inner = el('div'); inner.append(el('b', '', m.glyph), el('small', '', m.card.toUpperCase())); card.append(inner);
     const txt = el('div'); txt.append(el('p', '', m.text), el('p', 'note', 'Lá này không biết ai là hồ sơ thừa và không mở nguồn bạn chưa khám.'));
@@ -650,7 +885,7 @@
     const missing = c.sources.filter(k => !s.earned.includes(k));
     if (missing.length) {
       body.append(el('p', '', 'Máy chỉ nhận lập luận khi bạn đã khám đủ nguồn. Còn thiếu: ' + missing.map(sourceTitle).join(', ') + '.'));
-      body.append(btn('Đi tới nguồn còn thiếu', 'primary', () => { closeModal(); const sp = E.SPOTS[E.SOURCE_SPOT[missing[0]]]; walkTo([sp.tx, sp.ty], () => examine(missing[0])); }));
+      body.append(btn('Đi tới nguồn còn thiếu', 'primary', () => { closeModal(); const sp = E.SPOTS[E.SOURCE_SPOT[missing[0]]]; const me = lead(); walkTo(me, [sp.tx, sp.ty], () => interact(me, targets(me).find(q => q.name === E.SOURCE_SPOT[missing[0]]))); }));
       return;
     }
     let who = '';
@@ -698,27 +933,6 @@
     return name + ' đi sát giờ nên bắt buộc đang ở phòng máy lúc 09:04, nhưng ảnh không có huy hiệu ' + C.fields.badge.labels[r.badge] + '.';
   }
 
-  function reveal(id) {
-    const c = kase(), s = session();
-    C.complete(progress, index, { status: 'solved' });
-    s.solved = true; busy = true; player.path = null;
-    const n = npcs.find(x => x.id === id);
-    const finish = () => {
-      n.hidden = true; n.glitch = 0; busy = false; s.gone = id;
-      const body = openModal(c.stamp + ' · ĐÃ TÌM RA BẢN GHÉP', 'Hồ sơ thừa: ' + C.nameOf(id));
-      const box = el('div', 'reveal'); box.append(el('h3', '', C.nameOf(id) + ' là hồ sơ máy ghép thừa'), el('p', '', explain(c, id)));
-      body.append(box, el('p', 'note', 'Đây là lỗi dữ liệu trong chuyện hư cấu, không phải đánh giá một người có thuộc về nhóm hay không. Không có điểm, coin hay streak.'));
-      if (index < C.cases.length - 1) body.append(btn('Sang vụ ' + (index + 2) + ' →', 'primary', () => { closeModal(); goTo(index + 1); }));
-      else body.append(el('p', '', 'Bạn đã đi hết bảy vụ. Mỗi vụ dạy một cách kiểm khác nhau: đếm, cộng đường, đối chiếu, checkpoint, đọc gương, cửa một chiều và ghép giờ.'), btn('Chơi lại từ đầu', 'primary', () => { closeModal(); resetAll(); }));
-      renderAll();
-    };
-    if (quiet()) { finish(); return; }
-    n.glitch = 1; n.dir = 'down';
-    for (const o of npcs) if (o !== n && !o.hidden) setTimeout(() => (o.hop = 380), 900 + Math.random() * 300);
-    setTimeout(() => { leaves(n); n.hidden = true; }, 600);
-    setTimeout(finish, 1500);
-  }
-
   // ---------- notebook ----------
   // The notebook is always on screen (side panel on desktop, below the stage on phones). N jumps to it.
   function toggleBook(force) {
@@ -759,9 +973,9 @@
       if (c.kind === 'photo') workPhoto(body, c, s); else workRoute(body, c, s);
     } else {
       const list = el('div', 'places');
-      for (const t of targets().filter(t => t.relevant)) {
-        const b = btn('', '', () => { toggleBook(false); walkTo([t.tx, t.ty], () => interact(t)); });
-        b.append(el('span', '', (t.kind === 'npc' ? 'Nói chuyện với ' : 'Đi tới ') + t.label));
+      for (const t of targets(lead()).filter(t => t.relevant && t.kind !== 'ghost')) {
+        const b = btn('', '', () => { toggleBook(false); const me = lead(); walkTo(me, [t.tx, t.ty], () => interact(me, targets(me).find(q => (q.name && q.name === t.name) || (q.det && q.det === t.det)) || t)); });
+        b.append(el('span', '', (t.kind === 'det' ? 'Nói chuyện với ' : 'Đi tới ') + t.label));
         if (t.earned) b.append(el('span', 'ok', '✓ đã khám'));
         list.append(b);
       }
@@ -854,8 +1068,15 @@
   function renderGoal() {
     const c = kase(), s = session();
     const have = c.sources.filter(k => s.earned.includes(k)).length;
+    const missing = c.sources.find(k => !s.earned.includes(k));
+    let hint = '';
+    if (missing) {
+      const owner = C.ownerOfSpot(E.SOURCE_SPOT[missing]);
+      hint = ' · tiếp: ' + E.SPOTS[E.SOURCE_SPOT[missing]].label + (owner ? ' (' + owner.name + ')' : '');
+      if (c.plate && c.plate.spot === E.SOURCE_SPOT[missing] && !plateHeld()) hint += ', cần người giữ công tắc';
+    }
     const steps = [
-      ['Khám nguồn (' + have + '/' + c.sources.length + ')', have === c.sources.length],
+      ['Khám nguồn (' + have + '/' + c.sources.length + ')' + hint, have === c.sources.length],
       ['Tự suy luận trong sổ tay', s.solved],
       ['Nộp lập luận ở máy điểm danh', s.solved]
     ];
@@ -867,9 +1088,11 @@
   function renderAll() { renderTrack(); renderGoal(); renderBook(); }
 
   // ---------- case flow ----------
-  function placeNpcs() {
+  function placeEveryone() {
     const s = session();
-    npcs.forEach(n => { Object.assign(n, feet(...n.home)); n.target = null; n.moving = false; n.hidden = s.gone === n.id; n.alpha = 1; n.glitch = 0; n.hop = 0; });
+    dets.forEach(d => Object.assign(d, feet(...d.home), { dir: 'up', path: null, then: null, task: null, vx: 0, vy: 0, hop: 0 }));
+    ghosts.forEach(g => Object.assign(g, feet(...E.NPC_HOME[C.ids.indexOf(g.id)]), { hidden: s.gone === g.id, glitch: 0, hop: 0 }));
+    pending.length = 0;
   }
   function intro() {
     const c = kase();
@@ -877,20 +1100,21 @@
     body.append(el('span', 'intro-skill', c.skill), el('p', '', c.intro));
     if (index === 0) {
       const g = el('div', 'controls');
-      g.append(el('b', '', 'Đi'), el('span', '', coarse ? 'Chạm vào sàn, nhân vật tự đi tới.' : 'W A S D, phím mũi tên, hoặc bấm vào sàn.'),
-        el('b', '', 'Khám'), el('span', '', coarse ? 'Chạm vào đồ vật hoặc nút Khám ở góc.' : 'Đứng cạnh đồ vật rồi nhấn E, hoặc bấm vào đồ vật.'),
-        el('b', '', 'Mục tiêu'), el('span', '', 'Mũi tên vàng chỉ chỗ cần tới tiếp. Sổ tay ghi lại mọi nguồn.'));
+      g.append(el('b', '', 'Đi'), el('span', '', coarse ? 'Chạm vào sàn, thám tử tự đi tới.' : 'W A S D, phím mũi tên, hoặc bấm vào sàn.'),
+        el('b', '', 'Khám'), el('span', '', coarse ? 'Chạm vào đồ vật hoặc nút ở cạnh dưới.' : 'Đứng cạnh đồ vật rồi nhấn phím hành động, hoặc bấm vào đồ vật.'),
+        el('b', '', 'Vai'), el('span', '', 'Mỗi thám tử chỉ mở được loại nguồn của vai mình. Việc của người khác thì nhờ họ.'),
+        el('b', '', 'Mục tiêu'), el('span', '', 'Mũi tên vàng chỉ chỗ cần tới, mũi tên xanh chỉ công tắc cần người giữ.'));
       body.append(g);
     }
-    body.append(el('p', 'note', 'Sáu nhân vật trong phòng là sáu hồ sơ máy xuất. Đúng một hồ sơ là bản ghép thừa.'));
+    if (c.plate) body.append(el('p', 'note', 'Vụ này có một thử thách hai người: một nguồn bị khoá, cần một thám tử đứng giữ công tắc.'));
+    body.append(el('p', 'note', 'Sáu bóng xanh trong phòng là sáu hồ sơ máy chiếu ra. Đúng một bóng là bản ghép thừa.'));
     body.append(btn('Vào phòng', 'primary', closeModal));
   }
   function goTo(i) {
     if (i > progress.unlocked || busy) return;
     const changing = i !== index;
-    const doIt = () => { index = i; Object.assign(player, feet(...E.PLAYER_START), { dir: 'up', path: null, vx: 0, vy: 0 }); placeNpcs(); renderAll(); if (!session().solved) intro(); };
-    if (!changing) { doIt(); return; }
-    if (quiet()) { doIt(); return; }
+    const doIt = () => { index = i; placeEveryone(); renderAll(); if (!session().solved) intro(); };
+    if (!changing || quiet()) { doIt(); return; }
     busy = true; $('fade').classList.add('on');
     setTimeout(() => { doIt(); busy = false; $('fade').classList.remove('on'); }, 320);
   }
@@ -900,8 +1124,9 @@
   }
   $('resetBtn').addEventListener('click', () => {
     const body = openModal('CHỈ XOÁ TRONG TAB NÀY', 'Chơi lại từ đầu?');
-    body.append(el('p', '', 'Xoá nguồn đã khám và tiến độ cả bảy vụ trong tab này.'), btn('Chơi lại', 'primary', () => { closeModal(); resetAll(); }), document.createTextNode(' '), btn('Giữ ván đang chơi', 'ghost', closeModal));
+    body.append(el('p', '', 'Xoá nguồn đã khám và tiến độ cả bảy vụ trong tab này. Đội và ảnh mặt giữ nguyên.'), btn('Chơi lại', 'primary', () => { closeModal(); resetAll(); }), document.createTextNode(' '), btn('Giữ ván đang chơi', 'ghost', closeModal));
   });
+
   const MOTION_LABEL = { full: 'Cử động: đầy đủ', reduced: 'Cử động: giảm', off: 'Cử động: tắt' };
   function applyMotion() {
     document.body.classList.toggle('reduced', motion === 'reduced');
@@ -912,24 +1137,30 @@
   }
   $('motionBtn').addEventListener('click', () => { motion = { full: 'reduced', reduced: 'off', off: 'full' }[motion]; applyMotion(); toast(MOTION_LABEL[motion]); });
 
-  // Optional on-screen d-pad for touch. Tap-to-move stays the main control.
+  // Optional on-screen d-pad for touch. It drives the active detective; tap-to-move stays the main control.
   if (coarse) $('padBtn').hidden = false;
   $('padBtn').addEventListener('click', () => {
     const on = $('dpad').hidden; $('dpad').hidden = !on; $('padBtn').setAttribute('aria-pressed', String(on));
   });
-  document.querySelectorAll('#dpad [data-key]').forEach(b => {
-    const k = b.dataset.key;
-    const down = e => { e.preventDefault(); keys.add(k); player.path = null; };
-    const up = () => keys.delete(k);
+  document.querySelectorAll('#dpad [data-dir]').forEach(b => {
+    const key = () => (team.length === 1 ? CONTROLS[0] : CONTROLS[active])[b.dataset.dir];
+    let k = null;
+    const down = e => { e.preventDefault(); k = key(); keys.add(k); const d = lead(); d.path = null; d.then = null; };
+    const up = () => { if (k) keys.delete(k); k = null; };
     b.addEventListener('pointerdown', down); b.addEventListener('pointerup', up); b.addEventListener('pointerleave', up); b.addEventListener('pointercancel', up);
   });
 
   // ---------- boot ----------
   applyMotion();
   fit();
-  placeNpcs();
+  placeEveryone();
   renderAll();
+  renderSlots();
   schedule();
-  intro();
-  window.__lab14 = { hold: (v) => { held = v; }, step: (ms) => { for (let t = 0; t < ms; t += 16) tick(time + 16); }, player, npcs, sessions, progress: () => progress, index: () => index, walkTo, interact, targets, nearest, goTo };
+  teamSetup(intro);
+  window.__lab14 = {
+    hold: (v) => { held = v; }, step: (ms) => { for (let t = 0; t < ms; t += 16) tick(time + 16); },
+    dets, ghosts, sessions, faces, team: () => team.slice(), setTeam: (t) => { team = t.slice(); active = 0; renderSlots(); renderAll(); },
+    progress: () => progress, index: () => index, lead, walkTo, interact, targets, nearest, goTo, plateHeld, askFetch, askHold
+  };
 })();

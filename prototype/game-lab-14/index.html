@@ -13,6 +13,7 @@
   <header class="top">
     <div class="brand"><b>Sĩ số <em>+1</em></b><span>Lá Lành · game lab 14 · nhân vật hư cấu 18+</span></div>
     <div class="top-actions">
+      <button id="teamBtn" class="chip">Đội chơi</button>
       <button id="padBtn" class="chip" aria-pressed="false" hidden>D-pad</button>
       <button id="motionBtn" class="chip">Cử động: đầy đủ</button>
       <button id="resetBtn" class="chip">Chơi lại</button>
@@ -24,18 +25,19 @@
   <main class="play">
     <section class="stage-col">
       <div class="stage" id="stage">
-        <canvas id="game" role="img" aria-label="Phòng học pixel. Đi bằng phím mũi tên hoặc WASD, hoặc chạm vào sàn. Nhấn E để khám đồ vật hoặc nói chuyện."></canvas>
+        <canvas id="game" role="img" aria-label="Phòng học pixel với bốn thám tử và sáu bóng hồ sơ. Đi bằng phím hoặc chạm vào sàn; dùng tab Đi tới trong sổ tay nếu không dùng được canvas."></canvas>
         <div class="hud-case"><span id="hudStamp"></span><b id="hudTitle"></b></div>
-        <button class="act" id="actBtn" hidden></button>
         <div class="dpad" id="dpad" hidden aria-label="Phím di chuyển">
-          <button data-key="ArrowUp" aria-label="Lên">▲</button><button data-key="ArrowLeft" aria-label="Trái">◀</button><button data-key="ArrowRight" aria-label="Phải">▶</button><button data-key="ArrowDown" aria-label="Xuống">▼</button>
+          <button data-dir="up" aria-label="Lên">▲</button><button data-dir="left" aria-label="Trái">◀</button><button data-dir="right" aria-label="Phải">▶</button><button data-dir="down" aria-label="Xuống">▼</button>
         </div>
         <div class="toast" id="toast" role="status" hidden></div>
         <div class="fade" id="fade"></div>
       </div>
+      <button class="act" id="actBtn" disabled>Lại gần đồ vật hoặc người để tương tác</button>
+      <div class="slots" id="slots" hidden aria-label="Chạm để chọn thám tử điều khiển bằng chuột hoặc cảm ứng"></div>
       <ol class="goal" id="goal" aria-label="Mục tiêu vụ này"></ol>
       <p class="sr-only" id="near" aria-live="polite"></p>
-      <p class="hint" id="controlsHint">Đi: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> hoặc mũi tên · Khám: <kbd>E</kbd> · Sổ tay: <kbd>N</kbd> · Hoặc chạm vào sàn và đồ vật.</p>
+      <p class="hint" id="controlsHint">Một người: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>/mũi tên, <kbd>E</kbd> · Nhiều người: WASD·E, mũi tên·Enter, IJKL·O, TFGH·Y · Hoặc chạm vào sàn và đồ vật.</p>
     </section>
 
     <aside class="book" id="book" aria-label="Sổ tay điều tra">
