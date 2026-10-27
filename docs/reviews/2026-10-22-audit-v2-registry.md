@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 28, 27/10/2026: P07 batch 1 #102 and registry r27 #103 approved, not merged)
+# Audit v2 registry (revision 29, 27/10/2026: five merges, integration `010b27e`, independent CI PASS)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -12,8 +12,10 @@ release's staging/production smokes and the backup timers. On 26–27/10 #90, #9
 merged into integration, which is now **`95c058c`** with an independent Codex CI PASS (r39), not released (see
 "26/10 evening–27/10"). On 27/10 Codex r42 approved the test follow-ups #100 and #101 at their exact heads; neither
 is merged (see "27/10: test follow-ups approved (r42)"). Codex r43 then approved P07 journal batch 1 #102 and registry
-revision 27 #103; batch 2 #105 and the prepared (not executed) PostgreSQL probe #106 await review (see "27/10: r43").
-P07/B still holds. #68 stays unreviewed by owner decision. Rows below carry the latest verdict per PR as of revision 23, each checked against a Codex comment naming the exact full SHA; heads pushed
+revision 27 #103. On the owner's order of 27/10 #99, #103, #100, #101 and #102 merged into integration, which is now
+**`010b27e`** with an independent Codex CI PASS (r45), not released (see "27/10: five merges"). Batch 2 #105 and
+registry r28 #107 are approved, not merged; the PostgreSQL probe #106 had REQUEST_CHANGES and is fixed at a new head
+awaiting re-review, never executed. P07/B still holds. #68 stays unreviewed by owner decision. Rows below carry the latest verdict per PR as of revision 23, each checked against a Codex comment naming the exact full SHA; heads pushed
 after a verdict are marked "awaiting re-review": the REQUEST_CHANGES or APPROVE stands only for the exact SHA it
 names, until Codex reviews the new head. The registry's own live-head check proves only that the heads listed match
 GitHub; it says nothing about verdicts, test quality or runtime behaviour.
@@ -36,7 +38,7 @@ and the release-receipt checks of 26/10), `OWNER_DECISION`, `DEFERRED`.
 | P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `0c51d84963c6236589e838bf64a875d6cb045802` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/48#issuecomment-6378685160) (captured clear counter, epoch and generation inside the queue lock). Device and real multi-event-loop proof remain verification limits · merged into integration (`9a86179`) | operator/device | device check on a real browser/WebView with parallel tabs |
 | P05 | Physical purge of revoked/expired share; experiment wording | RELEASED | #49 `76d3460cba6f5ceebb563198d271c40551156552` · APPROVE @ same · merged into integration (`c787681`) | counsel on "tối đa 30 ngày" | PostgreSQL run |
 | P06 | Aggregate legacy-plaintext check + plan | PARTIAL (tooling approved) | #50 `109072dd385e5510086a741c87ef33b31b8e629a` · APPROVE @ same · merged into integration (`9c02707`) | operator: staging/prod counts via private channel | real counts; then backfill tool per owner choice |
-| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | **Alert channel (owner, 26/10):** a local scheduled task `la-lanh-ops-watch` on the owner's Mac (every six hours, read-only SSH checks of timers, failed units, markers, backup age/checksum, journal copy, disk, `/v1/ready`). A failure opens a public `ops-alert` issue with data-free facts and fix prompts. Its first run started 26/10 15:28 UTC and stalled, most likely on a tool approval, so **delivery is not yet proven**. It runs only while the Mac app is open. Off-site Google Drive backup is deferred by owner choice. **26/10: #43 timers and #78 journal live in `89ebdb0`; backup/check/journal timers installed, first runs pass; restore probe of the new backup passes ([receipt](production-release-2026-10-26/receipt.md)). Still open: interleaved replay probe, alert channel, Supabase PITR record, unjournaled kinds; B holds.** #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`), released in `89ebdb0` | operator: interleaved replay probe; owner: alert channel | interleaved replay probe, alert delivery, Supabase backup/PITR receipt, unjournaled kinds (install, first backup and restore probe done 26/10). Batch 1 of the missing kinds: #102 `e5819ccee6ad87c33a050ee90a69119959f266d6` (Tarot session delete, share revoke, saved-note unsave) · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/102#issuecomment-6443347549) (Codex r43), not merged. Batch 2: #105 `17a65445f85ef54907105dea857d9516c94f10b7` (La Chung revoke/withdraw/hide/delete, experiment undo, pending Radar invite revoke) awaits review. Until a merge and release every deferred kind stays unjournaled in integration and production. Disposable PostgreSQL probe prepared in #106, not executed. Journal A: #78 `c76b6954e656afe48784e9816beaaa431ce0355b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6378889433) (purge horizon, earlier [APPROVE @ 610c8ae](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271), plus the suggested horizon edge regressions, stated commit-delay assumption and export-before-purge operator step). #79 holds the same commit and has its own [APPROVE @ c76b695](https://github.com/honghanh153-creator/la-lanh/pull/79). #78 merged into integration (`99d7d90`) on 25/10 and was released in `89ebdb0` on 26/10. P07 stays PARTIAL: the interleaved operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until an interleaved restore probe has replayed the deployed journal |
+| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | **Alert channel (owner, 26/10):** a local scheduled task `la-lanh-ops-watch` on the owner's Mac (every six hours, read-only SSH checks of timers, failed units, markers, backup age/checksum, journal copy, disk, `/v1/ready`). A failure opens a public `ops-alert` issue with data-free facts and fix prompts. Its first run started 26/10 15:28 UTC and stalled, most likely on a tool approval, so **delivery is not yet proven**. It runs only while the Mac app is open. Off-site Google Drive backup is deferred by owner choice. **26/10: #43 timers and #78 journal live in `89ebdb0`; backup/check/journal timers installed, first runs pass; restore probe of the new backup passes ([receipt](production-release-2026-10-26/receipt.md)). Still open: interleaved replay probe, alert channel, Supabase PITR record, unjournaled kinds; B holds.** #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`), released in `89ebdb0` | operator: interleaved replay probe; owner: alert channel | interleaved replay probe, alert delivery, Supabase backup/PITR receipt, unjournaled kinds (install, first backup and restore probe done 26/10). Batch 1 of the missing kinds: #102 `e5819ccee6ad87c33a050ee90a69119959f266d6` (Tarot session delete, share revoke, saved-note unsave) · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/102#issuecomment-6443347549) (Codex r43) · merged into integration (`010b27e`), not released. Batch 2: #105 `17a65445f85ef54907105dea857d9516c94f10b7` (La Chung revoke/withdraw/hide/delete, experiment undo, pending Radar invite revoke) · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/105#issuecomment-6445069855) (Codex r44), not merged. Until a release every deferred kind stays unjournaled in production (batch 2 also in integration). Disposable PostgreSQL probe #106: REQUEST_CHANGES @ `8201ff0` (r44), fixed at `442ce98`, awaiting re-review, not executed. Journal A: #78 `c76b6954e656afe48784e9816beaaa431ce0355b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6378889433) (purge horizon, earlier [APPROVE @ 610c8ae](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271), plus the suggested horizon edge regressions, stated commit-delay assumption and export-before-purge operator step). #79 holds the same commit and has its own [APPROVE @ c76b695](https://github.com/honghanh153-creator/la-lanh/pull/79). #78 merged into integration (`99d7d90`) on 25/10 and was released in `89ebdb0` on 26/10. P07 stays PARTIAL: the interleaved operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until an interleaved restore probe has replayed the deployed journal |
 | P08 | Log canaries; ingress/Docker; native | PARTIAL | #51 `1fcfa84368ebcda3592f3e2bc9e74ccf7c8dec0b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/51#issuecomment-6346170351) · merged into integration (`8df0492`) | operator/device | ingress/Docker runtime logs; signed native build on device (MASVS) |
 | P09 | B rights; receipt 7 d vs result 30 d | PARTIAL / OWNER_DECISION | dossier #52 APPROVE; D1 #62 `288b3ad281bb8eb3d5c1dc015592c7c68c7a70b2` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/62#issuecomment-6346173801) · merged into integration (`aae55b5`) (cookies already expired at 7 days are not revived). D2 API and procedure #80 `52f08bafaa3ba741dacb3f64c1b17af0a523cd5c` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/80#issuecomment-6385370273) · merged into integration (`10989fa`) | owner (copy "30 ngày", D2 screen copy), counsel D2–D4 | D2 web screens; data export decision; lawful basis/notice answers |
 | P10 | Apple Tracking column; disclosures; counsel dossier | PARTIAL | #52 APPROVE · merged into integration (`0cf6334`) (column fixed; dossier is not a legal conclusion) | counsel | cross-border/DPIA, store forms at submission; DPA signature tracked separately by the owner, not a gate |
@@ -48,8 +50,8 @@ and the release-receipt checks of 26/10), `OWNER_DECISION`, `DEFERRED`.
 | ID | Requirement | Status | PR · head · verdict | Owner of next step | Evidence still missing |
 |---|---|---|---|---|---|
 | T01 | One asked target for frame, stance, goal, step | PARTIAL | #45 `e2e5b4c2eae8f7180f8d571a3666a38bb95154aa` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/45#issuecomment-6398062394) (integration merge plus the one-line `question_frame#function_literals` pin for the rule token "nên"; logic byte-identical to [APPROVE @ 56c0247](https://github.com/honghanh153-creator/la-lanh/pull/45#issuecomment-6397238926)). Author's runs: full API 2,456 passed / 57 skipped / 1 xfailed. Codex: fallback check, 14 probes and an independent 18/18 census · merged into integration (`d7177f2`) | Claude for the lexical/goal follow-up | still PARTIAL: lexical action signals and keyword-goal overrides; two own questions after a reason keep the first; meaning/scene and copy remain T02/T03; machine audit is not human comprehension or copy approval |
-| T02 | Scenes follow the asked action and context, observable, no hidden advice | OPEN (draft) | workbook #67 `bdf6287907c1b00dd913ccf7ce6b33a365e87526` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/67#issuecomment-6346177711) · merged into integration (`b5e4427`) as a draft, which is not copy approval (133 action×topic rows, 266 scenes); some current scenes break C4 (Ba Cốc, Tiết Chế) | owner approves copy | approval, then wiring with frozen readings kept |
-| T03 | Small step with a concrete trigger | OPEN (draft) | workbook #67 (142 action×role rows, 284 steps) | owner | same |
+| T02 | Scenes follow the asked action and context, observable, no hidden advice | OPEN (decided under delegation 26/10, not wired; see the r29 correction) | workbook #67 `bdf6287907c1b00dd913ccf7ce6b33a365e87526` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/67#issuecomment-6346177711) · merged into integration (`b5e4427`) as a draft, which is not copy approval (133 action×topic rows, 266 scenes); some current scenes break C4 (Ba Cốc, Tiết Chế) | owner approves copy | approval, then wiring with frozen readings kept |
+| T03 | Small step with a concrete trigger | OPEN (decided under delegation 26/10, not wired) | workbook #67 (142 action×role rows, 284 steps) | owner | same |
 | T04 | Card names English + Vietnamese; AC12 | RELEASED | #63 `cd692bc63845f7724de1c84eb523cbe39e4707b0` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/63#issuecomment-6346174788) · merged into integration (`bc4eea1`) | owner (order/separator); device | screen reader and long-title layout on device |
 | T05 | Meaning/comprehension rubric | OPEN | — | Claude + owner rubric | rubric and gate |
 | T06 | Extra scenes; Tarot Luna | PARTIAL | Owner wants Tarot Luna (23/10); shared Luna budget already approved. Code on `7ca22cb`: framed brief v3 / legacy brief v2, renderer v4, gates v4. Allowlist #73 `3760dcd1ebd0557139ea2d71734be7eddd5c197b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/73#issuecomment-6398063830) · merged into integration (`d140799`), released in `89ebdb0` (allowlist only, not enabled; #61 roster released too) | owner/operator | reader evaluation, consent/store copy, rollout, pilot, live canary receipt; extra scenes stay with T02 |
@@ -60,7 +62,7 @@ and the release-receipt checks of 26/10), `OWNER_DECISION`, `DEFERRED`.
 |---|---|---|---|---|---|
 | R01 | Context/voice change ≥ 50% of fit/friction | OPEN (gate red) | — | content R03 | — |
 | R02 | Unknown-time contacts certain on the date domain | RELEASED | #46 `780b0f7bdf8f6fbd9a4dd193257516804b7fc4d8` · APPROVE @ same · merged into integration (`465c4b6`) | — | ±14 h is the reviewed known-place path only; it does not replace the place-free §1 date-only domain |
-| R03 | Contact-specific sentences, context scenes, full-sentence voice | OPEN (draft) | workbook #65 `aa8bf9f44808711fc54faed5c5292afcc3bd5b68` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/65#issuecomment-6346176631) · merged into integration (`4303dec`) as a draft, which is not copy approval (560 sentences, 35 contacts × 4 contexts × 4 voices; projected AC01 43/50) | owner: approval and the voice choice (runtime has `deep_dive`, no `roast`) | AC03 needs pair-specific facts or seeded variants at wiring; AC02 needs replacing, not appending |
+| R03 | Contact-specific sentences, context scenes, full-sentence voice | OPEN (decided under delegation 26/10, not wired; voice `deep_dive`) | workbook #65 `aa8bf9f44808711fc54faed5c5292afcc3bd5b68` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/65#issuecomment-6346176631) · merged into integration (`4303dec`) as a draft, which is not copy approval (560 sentences, 35 contacts × 4 contexts × 4 voices; projected AC01 43/50) | owner: approval and the voice choice (runtime has `deep_dive`, no `roast`) | AC03 needs pair-specific facts or seeded variants at wiring; AC02 needs replacing, not appending |
 | R04 | Range/calibration | OWNER_DECISION | spec #64 `df80d621987aaf0e3f8702b2709f133afeb58621` · APPROVE @ same · merged into integration (`f5eae3b`) (spec coherent: one outward-rounding policy). Not an approved implementation or owner policy | owner | decisions in spec §8 |
 | R05 | Variants frozen at creation; grammar manifest on real output | OPEN | — | Claude after R03 | — |
 | R06 | Release audit measures US-22 AC01–AC03 | PARTIAL | #47 `de6f666934b34f440057173134b4b5d513cb8959` · APPROVE @ same · merged into integration (`ef043da`) (closed-catalog oracle). The gate stays a strict xfail until R03 wiring; not complete | Claude after R03 | real AC01–AC03 pass on wired output |
@@ -265,6 +267,53 @@ section's snapshot.
 P07 stays **PARTIAL** and **B holds** until the probe has run on a disposable cluster, Codex has reviewed the receipt
 and the owner decides; the journaled kinds must also be deployed. Every red receipt above stays.
 
+## 27/10: five merges on the owner's order; integration `010b27e`, independent CI PASS (r45)
+
+**Merged (owner order in chat, 27/10):** before each merge the live head, base and OPEN state were checked, and the merge
+was pinned with `--match-head-commit` to its Codex APPROVE SHA. #103 was retargeted from #99's branch to
+`collab/integration` after #99 merged; its head did not change. Branches were kept.
+
+| PR · approved head → merge commit | Verdict |
+|---|---|
+| #99 `1b47308` → `799039a` | r40 APPROVE @ `1b47308400a6f25c336a9fed56dfb9ca9348d67c` |
+| #103 `ad26433` → `123525e` | r43 APPROVE @ `ad26433583844b8030a0f60dd6e244ef42317078` |
+| #100 `11281ec` → `6382f6f` | r42 APPROVE @ `11281ec80f448cab778028956ac916705feb6b69` |
+| #101 `1f46985` → `49c8886` | r42 APPROVE @ `1f46985168993ee71ac0ef70cc63cceb63688c87` |
+| #102 `e5819cc` → `010b27e` | r43 APPROVE @ `e5819ccee6ad87c33a050ee90a69119959f266d6` |
+
+Integration is **`010b27e92136119a79223ffca3b29fbe6df8ceef`**; `main` stays `89ebdb0`.
+
+**CI receipts at `010b27e`:**
+- **Claude (author evidence): PASS, exit 0**, first run ([record](https://github.com/honghanh153-creator/la-lanh/issues/2#issuecomment-6445043714)).
+  Web 537 / 82 files, API 2,588 / 57 / 1 (2,583 + #100's negative control + #102's four tests), e2e 8/8.
+- **Codex r45, independent: PASS, exit 0** ([handoff](https://github.com/honghanh153-creator/la-lanh/issues/2#issuecomment-6445633904)),
+  15:01–15:08 UTC, one continuous invocation in a fresh exact-head archive. Web 537 / 82 files, API 2,588 / 57 / 1
+  (mypy 412 files), QA/native/web build and CLI smoke PASS, Playwright 8/8. Codex verified five consecutive
+  first-parent merges from `95c058c`, each with two parents and the second equal to the approved head, and all 1,613
+  tracked blobs unchanged after the run.
+- Codex's first offline `pnpm install` in r45 failed before any CI or test step (a tarball missing from its package
+  store); a frozen-lockfile install into a task-owned store then succeeded. It is kept as a setup failure, not a product
+  failure. The full command was not retried.
+- The PASS applies to `010b27e` only. It does not rewrite earlier red receipts (r36 and Claude run 1 at `9b945e6`, #92
+  at `8329279`, the r39 environment failure, the r43/r44 control, setup and checker receipts), and one pass does not
+  prove flakes impossible. A later merged head needs its own check.
+
+**Codex r44 verdicts (unchanged by retargeting, re-confirmed in r45):**
+
+| PR | Verdict | Notes |
+|---|---|---|
+| #105 P07 batch 2 | [APPROVE @ `17a65445f85ef54907105dea857d9516c94f10b7`](https://github.com/honghanh153-creator/la-lanh/pull/105#issuecomment-6445069855) | Base now `collab/integration`; not merged. |
+| #106 PostgreSQL probe | [REQUEST_CHANGES @ `8201ff096540ad1943b2b1aee51406032f300b7d`](https://github.com/honghanh153-creator/la-lanh/pull/106#issuecomment-6445070952) | P1: query keys such as `?database=` or `?host=` override asyncpg's target past the guard (the fixture truncates). P2: the sibling invite seed broke `principals.source_guest_id` uniqueness. P2: the procedure's fresh cluster had no TLS, but every connection verifies the server. Fixed at `442ce989b601b3fd2221995cf4c7a86451702b31` with 13 new offline cases; **awaiting re-review, never executed**. |
+| #107 registry revision 28 | [APPROVE @ `7382ee2d387f61e2a7953d4a03fc33e4eaadc7b7`](https://github.com/honghanh153-creator/la-lanh/pull/107#issuecomment-6445072132) | Base now `collab/integration`; not merged; this revision is stacked on it. |
+
+**Correction, T02/T03/R03:** the rows below said "owner approves copy". The owner delegated these copy decisions on
+26/10; the decisions are recorded row by row in the workbooks (#85 T02/T03, #86 R03, merged 26/10 and part of
+`89ebdb0` as documents). T02: 129 approved, 1 rewrite, 3 dropped; T03: 139 approved, 3 rewrites; R03: fourth voice
+`deep_dive`, rewrites per voice. Nothing is wired: next are Codex's polish of the rewrite rows, then a wiring PR that
+keeps frozen readings. One careful reading is not a reader comprehension test.
+
+**CI PASS and merges are not release Go.** A release needs an explicit owner order and the runbook gates.
+
 ## Combined-branch checks (local, not pushed)
 
 ### Author's local merge-order check (revision 21)
@@ -361,17 +410,17 @@ Still open:
 - **Pilots:** the Tarot pilot is not enabled; the Daily pilot continues to its 04/11 review.
 - **Rights and devices:** the rights channel and native/device evidence are open.
 - **P07:** the interleaved replay probe, failure-alert delivery, the Supabase backup/PITR record and the erasure
-  kinds not yet journaled in production (#102 batch 1 approved, #105 batch 2 awaiting review, neither merged); the
-  disposable PostgreSQL probe is prepared (#106), not executed. **B holds.**
+  kinds not yet journaled in production (#102 batch 1 in integration, #105 batch 2 approved and not merged); the
+  disposable PostgreSQL probe (#106) is being fixed after r44 and has never run. **B holds.**
 - **Operations:** a generation-off deploy (the worker-removal path) has not been exercised in a real deploy. The
   disclosure re-check for the release is open.
 - **Rollback:** `c3fab33` is not a verified rollback anchor on schema 0038.
-- **Integration after the release:** #83/#87/#88, #90/#91/#89 and #98/#92/#94/#97 merged into integration
-  (`95c058c`), not released. Independent check at `95c058c`: **PASS** (Codex r39); the red receipts at `9b945e6` and
-  `8329279` stay. Release awaits an owner order. Details: "26/10 evening–27/10" above.
+- **Integration after the release:** #83/#87/#88, #90/#91/#89, #98/#92/#94/#97 and #99/#103/#100/#101/#102 merged into
+  integration (`010b27e`), not released. Independent check at `010b27e`: **PASS** (Codex r45; `95c058c` had r39); the
+  red receipts at `9b945e6` and `8329279` stay. Release awaits an owner order. Details: "27/10: five merges" above.
 - **Test follow-ups:** #97 operation-entry handshakes and #94 guard test (#100) and the focus assertion race (#101) are
-  approved (Codex r42) but not merged; the PostgreSQL two-connection verification is not run (#106 prepares the journal
-  part of it, not the send-first/delete-first fence).
+  merged into integration; the PostgreSQL two-connection verification is not run (#106 prepares the journal part of
+  it, not the send-first/delete-first fence).
 
 As of 25/10 (before the release), the list also had: draft #75 No-Go; #76 pending the owner's wording; no fresh
 backup, timers or restore probe; #61 merged but not deployed. All of those are closed by the release above.
