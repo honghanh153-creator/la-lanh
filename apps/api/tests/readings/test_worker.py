@@ -1,11 +1,14 @@
 import asyncio
-import contextlib
+import sqlite3
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import aiosqlite
 import pytest
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, event, func, select, text
 
 from app.db.session import Database
 from app.domains.astro.models import DateOnlySunResult, EngineProvenance, ZodiacSign
@@ -642,7 +645,92 @@ async def test_deletion_waits_for_an_already_started_provider_send(storage) -> N
 # another connection holds the write lock; SQLite answers SQLITE_BUSY at once (no busy wait) to
 # avoid deadlock. Guest deletion takes the write lock up front (BEGIN IMMEDIATE), so a worker
 # transaction that read before deletion locked and wrote after failed with "database is locked".
-# These tests pin both orders with barriers inside the real deletion transaction.
+# These tests pin both orders with barriers inside the real deletion transaction. They release a
+# barrier only after SQLite itself reports that the other side's BEGIN IMMEDIATE arrived while the
+# write lock was held (Codex r41: a signal from SQLAlchemy's cursor events fires before aiosqlite
+# has even created the cursor, so it cannot show that the request reached SQLite).
+
+
+async def _observed(signal: asyncio.Event) -> None:
+    # A bound for failing, never for ordering: on code without the write lock up front the
+    # expected request never comes, and the test should fail rather than hang.
+    await asyncio.wait_for(signal.wait(), 10)
+
+
+def _write_lock_held_elsewhere(connection: sqlite3.Connection) -> bool:
+    """Ask SQLite, on its own thread, whether another connection holds the write lock now.
+
+    Tries BEGIN IMMEDIATE with a zero busy timeout: SQLITE_BUSY means it is held elsewhere. A
+    successful try is rolled back at once, so the real statement starts from the same state.
+    """
+    timeout = int(connection.execute("PRAGMA busy_timeout").fetchone()[0])
+    connection.execute("PRAGMA busy_timeout = 0")
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+    except sqlite3.OperationalError as error:
+        if "database is locked" not in str(error):
+            raise
+        return True
+    else:
+        connection.execute("ROLLBACK")
+        return False
+    finally:
+        connection.execute(f"PRAGMA busy_timeout = {timeout}")
+
+
+@dataclass
+class _LockRequest:
+    loop: asyncio.AbstractEventLoop
+    entered: asyncio.Event = field(default_factory=asyncio.Event)
+    acquired: asyncio.Event = field(default_factory=asyncio.Event)
+    contended: bool | None = None
+
+    def _enter(self, contended: bool) -> None:
+        self.contended = contended
+        self.entered.set()
+
+    def wrap(self, execute: Callable[..., Any]) -> Callable[..., Any]:
+        # Runs on aiosqlite's thread, after the cursor exists, immediately before sqlite3 executes.
+        def run(*args: Any, **kwargs: Any) -> Any:
+            connection = cast(sqlite3.Cursor, execute.__self__).connection  # type: ignore[attr-defined]
+            self.loop.call_soon_threadsafe(self._enter, _write_lock_held_elsewhere(connection))
+            result = execute(*args, **kwargs)
+            self.loop.call_soon_threadsafe(self.acquired.set)
+            return result
+
+        return run
+
+
+class _WriteLockProbe:
+    """Observes a task's next BEGIN IMMEDIATE where aiosqlite hands it to SQLite.
+
+    The task is identified on the event loop when aiosqlite queues the statement; the check and
+    the signals then run on aiosqlite's thread around the real sqlite3 call. `entered` with
+    `contended=True` and no `acquired` means the request reached SQLite while another connection
+    held the write lock, and the task is waiting for it.
+    """
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._armed: dict[asyncio.Task[Any], _LockRequest] = {}
+        original = cast(Callable[..., Awaitable[Any]], aiosqlite.Connection._execute)
+        armed = self._armed
+
+        async def execute(
+            connection: aiosqlite.Connection, fn: Any, *args: Any, **kwargs: Any
+        ) -> Any:
+            task = asyncio.current_task()
+            request = armed.get(task) if task is not None else None
+            if request is not None and args and args[0] == "BEGIN IMMEDIATE":
+                del armed[task]  # type: ignore[arg-type]
+                fn = request.wrap(fn)
+            return await original(connection, fn, *args, **kwargs)
+
+        monkeypatch.setattr(aiosqlite.Connection, "_execute", execute)
+
+    def arm(self, task: asyncio.Task[Any]) -> _LockRequest:
+        request = _LockRequest(asyncio.get_running_loop())
+        self._armed[task] = request
+        return request
 
 
 def _hold_deletion_inside_its_write_transaction(
@@ -707,20 +795,26 @@ async def test_finalize_that_read_before_deletion_locked_still_commits(  # type:
     token_hash = await _token_hash(database, guest_id)
     holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
     provider = _GateProvider()
+    probe = _WriteLockProbe(monkeypatch)
     deletion: list[asyncio.Task[bool]] = []
+    deletion_pending: list[bool] = []
     original_find_plan = readings_postgres._find_plan
     armed = asyncio.Event()
 
     async def find_plan_then_let_deletion_lock(*args):  # type: ignore[no-untyped-def]
         if armed.is_set() and not deletion:
-            deletion.append(
-                asyncio.create_task(
-                    PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
-                )
+            task = asyncio.create_task(
+                PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
             )
-            # Wait until deletion holds the write lock, unless finalize already holds it.
-            with contextlib.suppress(TimeoutError):
-                await asyncio.wait_for(holding.wait(), 0.5)
+            deletion.append(task)
+            request = probe.arm(task)
+            if finalize.acquired.is_set():
+                # Finalize already holds the write lock: deletion must queue behind it.
+                await _observed(request.entered)
+                deletion_pending.append(request.contended is True and not request.acquired.is_set())
+            else:
+                # Finalize read without the lock: let deletion take it before finalize writes.
+                await _observed(holding)
         return await original_find_plan(*args)
 
     monkeypatch.setattr(readings_postgres, "_find_plan", find_plan_then_let_deletion_lock)
@@ -728,11 +822,13 @@ async def test_finalize_that_read_before_deletion_locked_still_commits(  # type:
         ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
     )
     await provider.entered.wait()
+    finalize = probe.arm(worker)
     armed.set()
     provider.release.set()
     worker_result = list(await asyncio.gather(worker, return_exceptions=True))
     release_deletion.set()
     assert worker_result == [True]
+    assert deletion_pending == [True]
     assert await deletion[0] is True
     assert await _counts(database) == (0, 0)
 
@@ -746,6 +842,7 @@ async def test_finalize_waits_for_a_deletion_that_already_holds_the_write_lock( 
     token_hash = await _token_hash(database, guest_id)
     holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
     provider = _GateProvider()
+    probe = _WriteLockProbe(monkeypatch)
     worker = asyncio.create_task(
         ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
     )
@@ -754,8 +851,12 @@ async def test_finalize_waits_for_a_deletion_that_already_holds_the_write_lock( 
         PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
     )
     await holding.wait()
+    finalize = probe.arm(worker)
     provider.release.set()
-    await asyncio.sleep(0.1)
+    # Released only once finalize's BEGIN IMMEDIATE reached SQLite while deletion held the lock.
+    await _observed(finalize.entered)
+    assert finalize.contended is True
+    assert finalize.acquired.is_set() is False
     assert deletion.done() is False
     release_deletion.set()
     assert list(await asyncio.gather(worker, return_exceptions=True)) == [True]
@@ -774,7 +875,10 @@ async def test_send_fence_waits_for_deletion_and_then_never_sends(  # type: igno
     holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
     provider = _GateProvider()
     provider.release.set()
+    probe = _WriteLockProbe(monkeypatch)
     deletion: list[asyncio.Task[bool]] = []
+    mark_lock: list[_LockRequest] = []
+    mark_armed = asyncio.Event()
     original_mark = repository.mark_generation_request_started
 
     async def mark_after_deletion_locks(**kwargs):  # type: ignore[no-untyped-def]
@@ -784,6 +888,8 @@ async def test_send_fence_waits_for_deletion_and_then_never_sends(  # type: igno
             )
         )
         await holding.wait()
+        mark_lock.append(probe.arm(asyncio.current_task()))  # type: ignore[arg-type]
+        mark_armed.set()
         return await original_mark(**kwargs)
 
     monkeypatch.setattr(repository, "mark_generation_request_started", mark_after_deletion_locks)
@@ -791,9 +897,65 @@ async def test_send_fence_waits_for_deletion_and_then_never_sends(  # type: igno
         ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
     )
     await holding.wait()
-    await asyncio.sleep(0.1)
+    await _observed(mark_armed)
+    mark = mark_lock[0]
+    # Released only once the pre-send marker's BEGIN IMMEDIATE reached SQLite while deletion held
+    # the lock.
+    await _observed(mark.entered)
+    assert mark.contended is True
+    assert mark.acquired.is_set() is False
     release_deletion.set()
     assert list(await asyncio.gather(worker, return_exceptions=True)) == [True]
     assert provider.calls == 0
     assert await deletion[0] is True
     assert await _counts(database) == (0, 0)
+
+
+async def test_write_lock_probe_rejects_a_request_that_reaches_sqlite_after_the_holder_commits(  # type: ignore[no-untyped-def]
+    storage, monkeypatch
+) -> None:
+    # Negative control for Codex r41's schedule: SQLAlchemy has started BEGIN IMMEDIATE (its cursor
+    # event fired) while the holder owns the lock, but aiosqlite's cursor creation is held until
+    # the holder commits. The probe must not report contention, so the tests above would fail.
+    database, _ = storage
+    probe = _WriteLockProbe(monkeypatch)
+    sqlalchemy_began = asyncio.Event()
+    at_cursor = asyncio.Event()
+    holder_committed = asyncio.Event()
+    contender: list[asyncio.Task[None]] = []
+    begin_next: set[asyncio.Task[Any]] = set()
+
+    def note_begin(_conn, _cursor, statement, *_args) -> None:  # type: ignore[no-untyped-def]
+        task = asyncio.current_task()
+        if statement == "BEGIN IMMEDIATE" and contender and task is contender[0]:
+            begin_next.add(task)
+            sqlalchemy_began.set()
+
+    event.listen(database.engine.sync_engine, "before_cursor_execute", note_begin)
+    original_cursor = aiosqlite.Connection.cursor
+
+    async def late_cursor(connection: aiosqlite.Connection) -> aiosqlite.Cursor:
+        task = asyncio.current_task()
+        if task in begin_next:
+            begin_next.discard(task)
+            at_cursor.set()
+            await holder_committed.wait()
+        return await original_cursor(connection)
+
+    monkeypatch.setattr(aiosqlite.Connection, "cursor", late_cursor)
+
+    async def take_write_lock() -> None:
+        async with database.sessions() as session, session.begin():
+            await session.connection(execution_options={"sqlite_write": True})
+
+    async with database.sessions() as holder, holder.begin():
+        await holder.connection(execution_options={"sqlite_write": True})
+        contender.append(asyncio.create_task(take_write_lock()))
+        request = probe.arm(contender[0])
+        await _observed(at_cursor)
+        assert sqlalchemy_began.is_set() is True
+        assert request.entered.is_set() is False
+    holder_committed.set()
+    await asyncio.wait_for(contender[0], 10)
+    assert request.contended is False
+    assert request.acquired.is_set() is True
