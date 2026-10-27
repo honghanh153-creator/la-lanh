@@ -1,6 +1,7 @@
 import asyncio
+import contextlib
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -9,6 +10,7 @@ from sqlalchemy import delete, func, select, text
 from app.db.session import Database
 from app.domains.astro.models import DateOnlySunResult, EngineProvenance, ZodiacSign
 from app.domains.birth.tables import BirthProfileRow
+from app.domains.content_rewrite.send_fence import pending_sends
 from app.domains.guest.postgres import PostgresGuestRepository
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.readings.gates import evaluate_candidate
@@ -634,3 +636,164 @@ async def test_deletion_waits_for_an_already_started_provider_send(storage) -> N
             select(func.count()).select_from(ReadingGenerationAttemptRow)
         )
     assert (guest_count, attempt_count) == (0, 0)
+
+
+# Codex r36: on local SQLite a deferred transaction that has read cannot upgrade to a write while
+# another connection holds the write lock; SQLite answers SQLITE_BUSY at once (no busy wait) to
+# avoid deadlock. Guest deletion takes the write lock up front (BEGIN IMMEDIATE), so a worker
+# transaction that read before deletion locked and wrote after failed with "database is locked".
+# These tests pin both orders with barriers inside the real deletion transaction.
+
+
+def _hold_deletion_inside_its_write_transaction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[asyncio.Event, asyncio.Event]:
+    holding = asyncio.Event()
+    release = asyncio.Event()
+
+    async def paused(*args: Any, **kwargs: Any) -> Any:
+        holding.set()
+        await release.wait()
+        return await pending_sends(*args, **kwargs)
+
+    monkeypatch.setattr("app.domains.guest.postgres.pending_sends", paused)
+    return holding, release
+
+
+class _GateProvider:
+    def __init__(self) -> None:
+        self.entered = asyncio.Event()
+        self.release = asyncio.Event()
+        self.calls = 0
+
+    async def generate(self, plan):  # type: ignore[no-untyped-def]
+        self.calls += 1
+        self.entered.set()
+        await self.release.wait()
+        candidate = (
+            DeterministicVietnameseRenderer()
+            .render(plan)
+            .model_copy(update={"renderer_version": "openai-responses-v1"})
+        )
+        return GenerationSuccess(candidate=candidate)
+
+
+async def _token_hash(database: Database, guest_id: UUID) -> bytes:
+    async with database.sessions() as session:
+        token_hash = await session.scalar(
+            select(GuestSessionRow.token_hash).where(GuestSessionRow.id == guest_id)
+        )
+    assert token_hash is not None
+    return token_hash
+
+
+async def _counts(database: Database) -> tuple[int, int]:
+    async with database.sessions() as session:
+        guests = await session.scalar(select(func.count()).select_from(GuestSessionRow))
+        attempts = await session.scalar(
+            select(func.count()).select_from(ReadingGenerationAttemptRow)
+        )
+    return int(guests or 0), int(attempts or 0)
+
+
+async def test_finalize_that_read_before_deletion_locked_still_commits(  # type: ignore[no-untyped-def]
+    storage, monkeypatch
+) -> None:
+    # Order A: the worker's finalize has started reading when deletion takes the write lock.
+    import app.domains.readings.postgres as readings_postgres
+
+    database, repository = storage
+    guest_id, _, _, _ = await _queued_attempt(database, repository)
+    token_hash = await _token_hash(database, guest_id)
+    holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
+    provider = _GateProvider()
+    deletion: list[asyncio.Task[bool]] = []
+    original_find_plan = readings_postgres._find_plan
+    armed = asyncio.Event()
+
+    async def find_plan_then_let_deletion_lock(*args):  # type: ignore[no-untyped-def]
+        if armed.is_set() and not deletion:
+            deletion.append(
+                asyncio.create_task(
+                    PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
+                )
+            )
+            # Wait until deletion holds the write lock, unless finalize already holds it.
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(holding.wait(), 0.5)
+        return await original_find_plan(*args)
+
+    monkeypatch.setattr(readings_postgres, "_find_plan", find_plan_then_let_deletion_lock)
+    worker = asyncio.create_task(
+        ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
+    )
+    await provider.entered.wait()
+    armed.set()
+    provider.release.set()
+    worker_result = list(await asyncio.gather(worker, return_exceptions=True))
+    release_deletion.set()
+    assert worker_result == [True]
+    assert await deletion[0] is True
+    assert await _counts(database) == (0, 0)
+
+
+async def test_finalize_waits_for_a_deletion_that_already_holds_the_write_lock(  # type: ignore[no-untyped-def]
+    storage, monkeypatch
+) -> None:
+    # Order B: deletion holds the write lock before the worker finalizes its started send.
+    database, repository = storage
+    guest_id, _, _, _ = await _queued_attempt(database, repository)
+    token_hash = await _token_hash(database, guest_id)
+    holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
+    provider = _GateProvider()
+    worker = asyncio.create_task(
+        ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
+    )
+    await provider.entered.wait()
+    deletion = asyncio.create_task(
+        PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
+    )
+    await holding.wait()
+    provider.release.set()
+    await asyncio.sleep(0.1)
+    assert deletion.done() is False
+    release_deletion.set()
+    assert list(await asyncio.gather(worker, return_exceptions=True)) == [True]
+    assert await deletion is True
+    assert await _counts(database) == (0, 0)
+
+
+async def test_send_fence_waits_for_deletion_and_then_never_sends(  # type: ignore[no-untyped-def]
+    storage, monkeypatch
+) -> None:
+    # The pre-send marker reads ACTIVE then writes. If deletion locks in between, the worker must
+    # wait for it and then refuse to send, not crash or send for a deleted guest.
+    database, repository = storage
+    guest_id, _, _, _ = await _queued_attempt(database, repository)
+    token_hash = await _token_hash(database, guest_id)
+    holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
+    provider = _GateProvider()
+    provider.release.set()
+    deletion: list[asyncio.Task[bool]] = []
+    original_mark = repository.mark_generation_request_started
+
+    async def mark_after_deletion_locks(**kwargs):  # type: ignore[no-untyped-def]
+        deletion.append(
+            asyncio.create_task(
+                PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
+            )
+        )
+        await holding.wait()
+        return await original_mark(**kwargs)
+
+    monkeypatch.setattr(repository, "mark_generation_request_started", mark_after_deletion_locks)
+    worker = asyncio.create_task(
+        ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
+    )
+    await holding.wait()
+    await asyncio.sleep(0.1)
+    release_deletion.set()
+    assert list(await asyncio.gather(worker, return_exceptions=True)) == [True]
+    assert provider.calls == 0
+    assert await deletion[0] is True
+    assert await _counts(database) == (0, 0)
