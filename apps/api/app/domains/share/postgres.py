@@ -8,6 +8,7 @@ from sqlalchemy import select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.share.models import SafeShareSnapshot, ShareArtifactRecord, ShareFormat
 from app.domains.share.tables import ShareArtifactRow
 from app.infrastructure.crypto import EnvelopeCipher
@@ -18,9 +19,11 @@ class PostgresShareArtifactRepository:
         self,
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def create(self, record: ShareArtifactRecord) -> ShareArtifactRecord:
         async with self._sessions() as session, session.begin():
@@ -59,7 +62,12 @@ class PostgresShareArtifactRepository:
                 )
                 .values(revoked_at=revoked_at)
             )
-            return bool(cast(CursorResult[Any], result).rowcount)
+            revoked = bool(cast(CursorResult[Any], result).rowcount)
+            if revoked and self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    session, ErasureKind.SHARE_REVOKED, artifact_id, revoked_at
+                )
+            return revoked
 
 
 def _snapshot_context(record_id: UUID) -> bytes:

@@ -29,6 +29,11 @@ class ErasureKind(StrEnum):
     CONSENT_REVOKED = "consent_revoked"
     RESONANCE_CLEARED = "resonance_cleared"
     MATCHING_CONSENT_WITHDRAWN = "matching_consent_withdrawn"
+    # Owned artifacts (follow-up batch 1): the root is the row's own random id, so a later
+    # re-save or a new reading is never touched by a replay.
+    TAROT_SESSION_DELETED = "tarot_session_deleted"
+    SHARE_REVOKED = "share_revoked"
+    SAVED_NOTE_REMOVED = "saved_note_removed"
 
 
 class ErasureJournal:

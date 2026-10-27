@@ -39,6 +39,9 @@ from app.domains.matching.tables import MatchingConsentRow, MatchingProfileRow
 from app.domains.radar.models import RadarStatus
 from app.domains.radar.tables import RadarRequestRow
 from app.domains.resonance.postgres import PostgresResonanceRepository
+from app.domains.saved.tables import SavedNoteRow
+from app.domains.share.tables import ShareArtifactRow
+from app.domains.tarot.tables import TarotSessionRow
 from app.infrastructure.crypto import EnvelopeCipher
 
 _GUEST_KINDS = frozenset(
@@ -52,6 +55,12 @@ _GUEST_KINDS = frozenset(
     }
 )
 _RADAR_KINDS = frozenset({ErasureKind.RADAR_DELETED, ErasureKind.RADAR_WITHDRAWN})
+# Owned artifacts: the journal subject is the row's own id.
+_ARTIFACT_IDS = {
+    ErasureKind.TAROT_SESSION_DELETED: TarotSessionRow.id,
+    ErasureKind.SHARE_REVOKED: ShareArtifactRow.id,
+    ErasureKind.SAVED_NOTE_REMOVED: SavedNoteRow.id,
+}
 
 
 @dataclass
@@ -159,6 +168,8 @@ async def _subjects(
             ids = set(await session.scalars(select(GuestSessionRow.id)))
         elif kind in _RADAR_KINDS:
             ids = set(await session.scalars(select(RadarRequestRow.id)))
+        elif kind in _ARTIFACT_IDS:
+            ids = set(await session.scalars(select(_ARTIFACT_IDS[kind])))
         else:
             ids = set(await session.scalars(select(MatchingConsentRow.principal_id)))
             ids |= set(await session.scalars(select(MatchingProfileRow.principal_id)))
@@ -272,6 +283,23 @@ async def _apply(
                 delete(ContentRewriteJobRow).where(ContentRewriteJobRow.radar_request_id == subject)
             )
             await session.execute(delete(RadarRequestRow).where(RadarRequestRow.id == subject))
+    elif kind is ErasureKind.TAROT_SESSION_DELETED:
+        async with sessions() as session, session.begin():
+            await session.execute(
+                delete(ContentRewriteJobRow).where(ContentRewriteJobRow.tarot_session_id == subject)
+            )
+            await session.execute(delete(TarotSessionRow).where(TarotSessionRow.id == subject))
+    elif kind is ErasureKind.SHARE_REVOKED:
+        async with sessions() as session, session.begin():
+            # Keeps an earlier revocation; a restored link never becomes readable again.
+            await session.execute(
+                update(ShareArtifactRow)
+                .where(ShareArtifactRow.id == subject, ShareArtifactRow.revoked_at.is_(None))
+                .values(revoked_at=at)
+            )
+    elif kind is ErasureKind.SAVED_NOTE_REMOVED:
+        async with sessions() as session, session.begin():
+            await session.execute(delete(SavedNoteRow).where(SavedNoteRow.id == subject))
     elif kind is ErasureKind.RADAR_WITHDRAWN:
         async with sessions() as session, session.begin():
             await session.execute(

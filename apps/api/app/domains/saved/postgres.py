@@ -1,14 +1,15 @@
 import json
-from typing import Any, cast
+from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import delete, select
-from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.domains.accounts.postgres import account_transaction, lock_owner
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.history.postgres import unavailable_daily
 from app.domains.readings.models import ReadingContentProjection
 from app.domains.readings.tables import ReadingRevisionRow
@@ -23,9 +24,11 @@ class PostgresSavedNoteRepository:
         self,
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def save(self, record: SavedNoteRecord) -> SavedNoteRecord:
         async with account_transaction(self._sessions) as session:
@@ -95,13 +98,23 @@ class PostgresSavedNoteRepository:
 
     async def delete(self, guest_id: UUID, daily_note_id: UUID) -> bool:
         async with self._sessions() as session, session.begin():
-            result = await session.execute(
-                delete(SavedNoteRow).where(
-                    SavedNoteRow.guest_id == guest_id,
-                    SavedNoteRow.daily_note_id == daily_note_id,
+            removed = tuple(
+                await session.scalars(
+                    delete(SavedNoteRow)
+                    .where(
+                        SavedNoteRow.guest_id == guest_id,
+                        SavedNoteRow.daily_note_id == daily_note_id,
+                    )
+                    .returning(SavedNoteRow.id)
                 )
             )
-            return bool(cast(CursorResult[Any], result).rowcount)
+            if self._erasure_journal is not None:
+                at = datetime.now(UTC)
+                for saved_id in removed:
+                    self._erasure_journal.record(
+                        session, ErasureKind.SAVED_NOTE_REMOVED, saved_id, at
+                    )
+            return bool(removed)
 
 
 def _snapshot_context(record_id: UUID) -> bytes:
