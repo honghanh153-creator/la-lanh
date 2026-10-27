@@ -90,9 +90,9 @@ Không tài khoản: host và người chơi là **phiên thiết bị** + biệ
 | 6. Lật | Màn hình chung phát lại từng chuỗi: Gốc → Ý → Câu → Mood → Câu mới → Đoán, dấu "THẤT BẢN" theo độ thất bản | Bỏ phiếu "chuỗi thất bản đẹp nhất" | 5–8 phút |
 
 - Quy mô MVP: 4–30 người. Mỗi người làm đúng một bước của mỗi chuỗi mình chạm vào, không làm hai bước trong cùng một chuỗi.
-- Xoay vòng: bàn 5 hoặc 6 người, chuỗi của người thứ j đi qua người j, j+1, j+2, j+3, j+4 trong bàn (đếm vòng).
+- Xoay vòng: mọi bàn từ 5 đến 12 người (phòng ≤ 12 là một bàn), chuỗi của người thứ j đi qua người j, j+1, j+2, j+3, j+4 trong bàn (đếm vòng).
 - **Bàn 4 người** lúc bắt đầu (phòng 4 người, hoặc bàn còn 4 vì có người rời trước khi bắt đầu): bước 1, 2, 3 do người j, j+1, j+2; bước 4 do Bot Sao Thủy điền, có nhãn; bước 5 do người j+3 (TS-D3).
-- **Luật không đổi ở mọi cỡ bàn:** không ai làm hai bước của cùng một chuỗi, và người gieo không bao giờ là người đoán gốc. Bảng phân công cho bàn 4, 5, 6 người ở SRS §3.1.1 (TS-FR-05).
+- **Luật không đổi ở mọi cỡ bàn:** không ai làm hai bước của cùng một chuỗi, và người gieo không bao giờ là người đoán gốc. Công thức chung cho mọi bàn 4–12 người ở TS-FR-05; bảng ví dụ cho bàn 4, 5, 6, 7 và 12 người ở SRS §3.1.1.
 - Hết giờ mà chưa chọn, hoặc mất kết nối: Bot Sao Thủy chọn ngẫu nhiên một phương án, có nhãn "Sao Thủy điền giúp".
 - Phòng > 12 người: chia bàn 4–6 người, chuỗi xoay trong bàn; mỗi bàn bầu một chuỗi trên điện thoại, chuỗi cao phiếu nhất của từng bàn lên màn hình chung;
   cả phòng bầu chuỗi đẹp nhất. Người vào sau khi ván bắt đầu và người chọn "chỉ xem" là khán giả bỏ phiếu.

@@ -317,7 +317,7 @@ Gợi ý in: vẽ thành vòng tròn 8 ô, mỗi ô một emoji và tên; dướ
 
 > Mỗi dòng xong thì gấp dòng trước lại. Người sau chỉ thấy đúng dòng ngay trên mình. Chỉ ghi biệt danh, không ghi tên thật.
 >
-> Bàn 4 người: dòng 4 do host điền bằng cách rút thăm (ghi "🤖 Bot Sao Thủy" ở cột "Ai làm"). Người ở dòng 5 không được trùng biệt danh ở dòng 1. Bảng ai làm lượt nào cho bàn 4, 5, 6 người nằm ở `02-kich-ban-host.md`.
+> Bàn 4 người: dòng 4 do host điền bằng cách rút thăm (ghi "🤖 Bot Sao Thủy" ở cột "Ai làm"). Người làm mỗi dòng phải là người bảng phân công giao, và **chưa có biệt danh ở bất kỳ dòng nào trước đó** của phong bì này (dòng 5 càng không được là người gieo). Luật và bảng cho bàn 4–12 người nằm ở `02-kich-ban-host.md`.
 
 | Dòng | Ai làm (biệt danh) | Nội dung | Gấp khi |
 |---|---|---|---|

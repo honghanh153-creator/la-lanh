@@ -48,9 +48,11 @@
 
 Chia bàn 5–6 người. Mỗi bàn xoay chuỗi trong bàn. Mỗi bàn tự bầu chuỗi hay nhất, host chỉ lật chuỗi được bầu của từng bàn. Người vào muộn làm khán giả bầu.
 
-### Ai làm lượt nào (bàn 4, 5, 6 người)
+### Ai làm lượt nào (bàn 4–12 người)
 
 Luật không đổi: **không ai làm hai lượt của cùng một chuỗi, và người gieo không bao giờ đoán gốc.** Ngồi vòng tròn, đánh số P1, P2… theo chiều chuyền (sang trái). Chuỗi C1 là phong bì P1 gieo. Ô ghi phong bì người đó cầm ở lượt đó. Bảng giống SRS Tam Sao §3.1.1.
+
+**Luật chung cho bàn 5–12 người:** ở lượt s (1–5), người Pi cầm phong bì của người ngồi cách mình s − 1 chỗ về bên phải, tức chuỗi C(i − s + 1) đếm vòng. Mỗi lượt chuyền sang trái một chỗ; phong bì dừng sau lượt 5. Bàn 7–12 người: mỗi phong bì có N − 5 người không chạm vào. Bảng mẫu cho bàn 7 người ở dưới; bàn 8–12 làm theo cùng luật.
 
 **Bàn 5 người** (chuyền sang trái sau mỗi lượt):
 
@@ -73,6 +75,18 @@ Luật không đổi: **không ai làm hai lượt của cùng một chuỗi, v�
 | P5 | C5 | C4 | C3 | C2 | C1 |
 | P6 | C6 | C5 | C4 | C3 | C2 |
 
+**Bàn 7 người** (chuyền sang trái sau mỗi lượt; mỗi phong bì có hai người không chạm vào):
+
+| Người | Lượt 1 | Lượt 2 | Lượt 3 | Lượt 4 | Lượt 5 |
+|---|---|---|---|---|---|
+| P1 | C1 | C7 | C6 | C5 | C4 |
+| P2 | C2 | C1 | C7 | C6 | C5 |
+| P3 | C3 | C2 | C1 | C7 | C6 |
+| P4 | C4 | C3 | C2 | C1 | C7 |
+| P5 | C5 | C4 | C3 | C2 | C1 |
+| P6 | C6 | C5 | C4 | C3 | C2 |
+| P7 | C7 | C6 | C5 | C4 | C3 |
+
 **Bàn 4 người** (lượt 4 do host làm Bot Sao Thủy):
 
 | Người | Lượt 1 | Lượt 2 | Lượt 3 | Lượt 4 | Lượt 5 |
@@ -84,7 +98,12 @@ Luật không đổi: **không ai làm hai lượt của cùng một chuỗi, v�
 
 Cách chạy bàn 4 người: sau lượt 3, mọi người chuyền sang trái như thường nhưng **chưa mở** phong bì LƯỢT 4. Host đi quanh bàn, với từng phong bì: đọc emoji ở dòng 3, rút thăm một dải trong đúng nhóm mood đó, kẹp vào dòng 4, ghi "🤖 Bot Sao Thủy" vào ô "Ai làm", gấp dòng 3. Người đang cầm phong bì làm luôn lượt 5. Như vậy chuỗi C1 đi P1 → P2 → P3 → Bot → P4, và người gieo không tự đoán câu của mình.
 
-Trước lượt 5, host liếc ô "người gieo" của từng phong bì: nếu người đang cầm chính là người gieo (do ai đó chuyền nhầm), đổi phong bì với người bên cạnh trước khi mở LƯỢT 5.
+Trước mỗi lượt, nhất là lượt 5, host so từng phong bì với bảng: phong bì Cj ở lượt s phải nằm trong tay đúng người bảng giao. Nếu có chuyền nhầm:
+
+1. Thu các phong bì bị lệch.
+2. Trả **từng phong bì về đúng người bảng giao** cho lượt đó. Không đổi với người bên cạnh, vì đổi tuỳ ý dễ đưa phong bì về tay người đã làm chuỗi đó. Ví dụ bàn 4 người, lượt 5 đúng là P1:C2, P2:C3, P3:C4, P4:C1; nếu P1 và P4 cầm nhầm rồi P1 đổi với P2, kết quả P1:C3, P2:C1, P4:C2 — cả ba người đều đã làm các chuỗi đó.
+3. Với mỗi phong bì vừa trả, đọc cột "Ai làm" của mọi dòng trước: người nhận **chưa có biệt danh ở dòng nào** của phong bì đó. Không đạt thì dừng lại so bảng lần nữa.
+4. Nếu không khôi phục được (ví dụ ai đó đã lỡ viết vào phong bì không phải của mình), host làm Bot Sao Thủy cho lượt đó của phong bì, ghi nhãn rõ, và ghi sự cố vào phiếu điểm (không ghi tên).
 
 ### Khi có chuyện
 

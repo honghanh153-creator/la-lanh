@@ -178,16 +178,16 @@ Host sẽ xoá tin nhắn riêng và bảng tính tuần này trước 20:00 th�
 
 ```
 🧯 LẬT KẾT QUẢ — {tên sự kiện}
-Mức 1 — người khai cao nhất: {biệt danh}. {K}/{N} người đoán ra.
-Mức 2 — người khai cao nhất: {biệt danh}. {K}/{N} người đoán ra.
-Mức 3 — người khai cao nhất: {biệt danh}. {K}/{N} người đoán ra.
+Mức 1 — người khai cao nhất: {biệt danh}.
+Mức 2 — người khai cao nhất: {biệt danh}.
+Mức 3 — người khai cao nhất: {biệt danh}.
 Lời khai: "{câu}"
 {Nếu có} Nhân Vật Chính {biệt danh}: {HẾT CỨU / Cứu được chút / Tự biết mình ghê}.
 Lá tuần này: {tên lá} — {câu}.
-(Bản chữ không ghi % của từng người.)
+(Bản chữ không ghi % của từng người, không ghi số người đoán ra.)
 ```
 
-Ghi chú: tin trong nhóm chat nằm lại lâu hơn hạn xoá 72 giờ, nên bản D6b chỉ ghi **nhãn** của Nhân Vật Chính, không ghi % tự khai, % cả hội đoán hay số điểm lệch. Con số chỉ được nói trong cuộc gọi hoặc chiếu trên slide (mục E), không gửi thành tin nhắn.
+Ghi chú: tin trong nhóm chat nằm lại lâu hơn hạn xoá 72 giờ, nên bản D6b chỉ ghi **nhãn** của Nhân Vật Chính, không ghi % tự khai, % cả hội đoán, số điểm lệch hay số phiếu đoán (bao nhiêu người đoán ra). Con số chỉ được nói trong cuộc gọi hoặc chiếu trên slide (mục E), không gửi thành tin nhắn.
 
 ### D7 — khảo sát (thứ Sáu 27/11, sau màn lật cuối)
 

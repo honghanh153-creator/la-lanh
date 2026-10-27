@@ -44,7 +44,7 @@ Giờ hiển thị theo `Asia/Ho_Chi_Minh`; máy chủ lưu UTC. Đồng hồ b�
 | TS-FR-02 | Vào phòng theo RP-FR-10–18 với bản đồng ý rút gọn cho trò không khai báo (ô 18+) **cộng** hai ô riêng của Tam Sao, đều không tick sẵn và không bắt buộc để chơi: "Hiện biệt danh của tôi ở từng bước khi phát lại" (`show_name_on_screen`) và "Cho biệt danh của tôi nằm trên thẻ lật để chia sẻ ra ngoài" (`show_name_on_card`). Chữ ở §8.2 |
 | TS-FR-03 | Phòng > 12 người chia bàn 4–6 người theo RP-FR-33(b): người chơi tự chọn bàn trong sảnh; khi host bấm bắt đầu, máy chủ cân lại để mọi bàn có 4–6 người (chuyển ít người nhất, người tự chọn trước được giữ trước). Phòng ≤ 12 là một bàn |
 | TS-FR-04 | Bước 1: mỗi người nhận 3 thông điệp gốc khác ý định, rút ngẫu nhiên an toàn từ ngân hàng, không trùng ý định với người khác cùng bàn khi ngân hàng đủ. Chọn 1 trong 10 giây (nhịp thường) |
-| TS-FR-05 | Xoay vòng: bàn có N người (4–6) lúc bắt đầu, đánh số 0…N−1 theo thứ tự trong bàn; chuỗi j do người j gieo. Bước s (1–5) của chuỗi j do người (j + o(s)) mod N làm. Độ lệch o: N = 5 hoặc 6 → 0, 1, 2, 3, 4; **N = 4 → 0, 1, 2, Bot, 3**, tức bước 4 do Bot Sao Thủy điền cho mọi chuỗi (có nhãn) và bước 5 do người (j + 3) mod 4 làm (TS-D3). Nói cách khác, ở bước s người i làm chuỗi (i − o(s)) mod N. **Bất biến:** không ai làm hai bước của cùng một chuỗi; người gieo không bao giờ làm bước 5 (đoán gốc). Bảng phân công ở §3.1.1. Người rời giữa ván không làm đổi bảng: bước còn lại của họ do Bot điền (TS-FR-13) |
+| TS-FR-05 | Xoay vòng: bàn có N người (4–12) lúc bắt đầu — phòng ≤ 12 là một bàn, phòng > 12 chia bàn 4–6 theo TS-FR-03, đánh số 0…N−1 theo thứ tự trong bàn; chuỗi j do người j gieo. Bước s (1–5) của chuỗi j do người (j + o(s)) mod N làm. Độ lệch o: **mọi N từ 5 đến 12 → 0, 1, 2, 3, 4** (với N ≥ 6, mỗi chuỗi có N − 5 người không chạm vào); **N = 4 → 0, 1, 2, Bot, 3**, tức bước 4 do Bot Sao Thủy điền cho mọi chuỗi (có nhãn) và bước 5 do người (j + 3) mod 4 làm (TS-D3). Nói cách khác, ở bước s người i làm chuỗi (i − o(s)) mod N. **Bất biến:** không ai làm hai bước của cùng một chuỗi; người gieo không bao giờ làm bước 5 (đoán gốc). Bảng phân công ở §3.1.1. Người rời giữa ván không làm đổi bảng: bước còn lại của họ do Bot điền (TS-FR-13) |
 | TS-FR-06 | Bước 2: người chơi chỉ nhận chip ý định + sắc thái của chuỗi và một giọng V được giao ngẫu nhiên; chọn 1 trong 4 phương án (TS-FR-42). 20 giây |
 | TS-FR-07 | Bước 3: chỉ nhận câu bước 2; chọn mood (8) và độ mạnh (1–3). 15 giây. Nếu "đọc to" bật: màn bước 2 của người trước hiện thêm nút "Đọc to câu này" (chỉ nhắc, không ghi âm, không dùng micro); người chơi bỏ qua được |
 | TS-FR-08 | Bước 4: chỉ nhận mood + độ mạnh; giọng V' ≠ V; chọn 1 trong 4 câu (TS-FR-43). 20 giây |
@@ -57,7 +57,7 @@ Giờ hiển thị theo `Asia/Ho_Chi_Minh`; máy chủ lưu UTC. Đồng hồ b�
 
 #### 3.1.1. Bảng phân công theo TS-FR-05
 
-Ký hiệu: P1…PN là người trong bàn (P1 = người số 0); Cj là chuỗi do Pj gieo. Mỗi ô ghi chuỗi người đó làm ở bước đó. Bảng được kiểm bằng script (26/10/2026) theo ba điều: không ai làm hai bước của một chuỗi; người gieo không làm bước 5; ở mỗi bước có người, mỗi người làm đúng một chuỗi.
+Ký hiệu: P1…PN là người trong bàn (P1 = người số 0); Cj là chuỗi do Pj gieo. Mỗi ô ghi chuỗi người đó làm ở bước đó. Công thức TS-FR-05 áp cho mọi bàn 4–12 người; bảng dưới là ví dụ cho N = 4, 5, 6 và hai biên N = 7, N = 12. Script kiểm (27/10/2026) mọi N từ 4 đến 12 theo ba điều: không ai làm hai bước của một chuỗi; người gieo không làm bước 5; ở mỗi bước có người, mỗi người làm đúng một chuỗi.
 
 **N = 4** (bước 4 là Bot cho mọi chuỗi)
 
@@ -94,6 +94,39 @@ Theo chuỗi: Cj = Pj → Pj+1 → Pj+2 → Pj+3 → Pj+4 (đếm vòng trong 5 
 | P6 | C6 | C5 | C4 | C3 | C2 |
 
 Theo chuỗi: Cj = Pj → Pj+1 → … → Pj+4 (đếm vòng trong 6 người); người Pj+5 không chạm vào chuỗi Cj. Ví dụ C1 = P1 → P2 → P3 → P4 → P5.
+
+**N = 7** (biên dưới của bàn một-phòng lớn hơn 6)
+
+| Người | B1 Gieo | B2 Diễn đạt | B3 Bắt mood | B4 Nói lại | B5 Đoán gốc |
+|---|---|---|---|---|---|
+| P1 | C1 | C7 | C6 | C5 | C4 |
+| P2 | C2 | C1 | C7 | C6 | C5 |
+| P3 | C3 | C2 | C1 | C7 | C6 |
+| P4 | C4 | C3 | C2 | C1 | C7 |
+| P5 | C5 | C4 | C3 | C2 | C1 |
+| P6 | C6 | C5 | C4 | C3 | C2 |
+| P7 | C7 | C6 | C5 | C4 | C3 |
+
+Theo chuỗi: Cj = Pj → … → Pj+4 (đếm vòng trong 7 người); Pj+5 và Pj+6 không chạm vào Cj.
+
+**N = 12** (biên trên của phòng một bàn)
+
+| Người | B1 Gieo | B2 Diễn đạt | B3 Bắt mood | B4 Nói lại | B5 Đoán gốc |
+|---|---|---|---|---|---|
+| P1 | C1 | C12 | C11 | C10 | C9 |
+| P2 | C2 | C1 | C12 | C11 | C10 |
+| P3 | C3 | C2 | C1 | C12 | C11 |
+| P4 | C4 | C3 | C2 | C1 | C12 |
+| P5 | C5 | C4 | C3 | C2 | C1 |
+| P6 | C6 | C5 | C4 | C3 | C2 |
+| P7 | C7 | C6 | C5 | C4 | C3 |
+| P8 | C8 | C7 | C6 | C5 | C4 |
+| P9 | C9 | C8 | C7 | C6 | C5 |
+| P10 | C10 | C9 | C8 | C7 | C6 |
+| P11 | C11 | C10 | C9 | C8 | C7 |
+| P12 | C12 | C11 | C10 | C9 | C8 |
+
+Theo chuỗi: Cj = Pj → … → Pj+4 (đếm vòng trong 12 người); bảy người còn lại không chạm vào Cj.
 
 ### 3.2. Nhóm chat không đồng bộ — G21 (chỉ khi D4 đạt)
 
@@ -365,7 +398,7 @@ không đếm ván đã bỏ, không "bạn chưa chơi".
 
 | Test | Kiểm | FR | AC |
 |---|---|---|---|
-| T-TS-01 | Xoay vòng đúng bảng §3.1.1 với N = 4, 5, 6: không ai làm hai bước một chuỗi; người gieo không làm bước 5; N = 4 thì bước 4 là Bot và bước 5 của chuỗi j do người (j + 3) mod 4 | 05 | G20-AC03, AC04, AC13 |
+| T-TS-01 | Xoay vòng đúng công thức TS-FR-05 với mọi N = 4–12 (tối thiểu kiểm N = 4, 5, 6, 7, 12 theo bảng §3.1.1): không ai làm hai bước một chuỗi; người gieo không làm bước 5; N = 4 thì bước 4 là Bot và bước 5 của chuỗi j do người (j + 3) mod 4 | 05 | G20-AC03, AC04, AC13 |
 | T-TS-02 | Hợp đồng phản hồi: điện thoại chỉ nhận dữ liệu bước mình; màn chiếu không nhận lựa chọn trước lật | 14 | G20-AC07 |
 | T-TS-03 | Hết giờ / mất kết nối / rời → Bot chọn trong phương án đang hiện, `bot_filled` | 10, 13 | G20-AC05, AC06 |
 | T-TS-04 | Chia bàn > 12: mọi bàn 4–6, chuyển ít người nhất | 03 | G20-AC02 |

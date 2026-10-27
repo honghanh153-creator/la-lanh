@@ -92,7 +92,7 @@ Làm theo `04-phieu-diem.md`:
 | 18:00 | Chốt | "Tuần sau thứ Hai 9 giờ có sự kiện mới. Ai muốn nghỉ một tuần thì cứ nghỉ." (Tuần 3: "Đây là tuần cuối. Mình sẽ gửi phiếu khảo sát 3 câu.") |
 | 19:00 | Gửi mẫu D6 vào nhóm (chỉ danh hiệu) | — |
 
-Nếu nhóm không gọi được: gửi mẫu D6b (bản lật dạng chữ, không có bảng % từng người).
+Nếu nhóm không gọi được: gửi mẫu D6b (bản lật dạng chữ: không có % của từng người, không có số người đoán ra). Con số ở dòng 3:30 và 8:00 chỉ đọc trong cuộc gọi.
 
 ### Thứ Hai tuần sau, trước 20:00 — xoá
 
