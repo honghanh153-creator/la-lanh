@@ -25,10 +25,11 @@ from uuid import UUID, uuid4
 import pytest
 from alembic.script import ScriptDirectory
 from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql.asyncpg import dialect as asyncpg_dialect
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.session import Database
+from app.db.session import Database, verified_engine_options
 from app.domains.daily.models import DailyNoteRecord
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
@@ -59,7 +60,13 @@ BOUND_SECONDS = 10  # only so a missing observation fails instead of hanging
 
 
 def disposable_target(raw: str) -> URL:
-    """The probe URL, or ValueError unless it is a disposable localhost database."""
+    """The probe URL, or ValueError unless it is a disposable localhost database over verified TLS.
+
+    The query may carry only ``sslrootcert``: one absolute path to the disposable CA. asyncpg lets
+    any other query key (``host``, ``database``, ``port``, ``user``, …) override the URL's own
+    target, so the engine could reach a database these checks never saw (Codex r44 P1). The target
+    the application's own engine options would connect to must equal the checked one.
+    """
 
     url = make_url(raw)
     if url.drivername != "postgresql+asyncpg":
@@ -69,20 +76,45 @@ def disposable_target(raw: str) -> URL:
     name = url.database or ""
     if not name.startswith(PREFIX) or re.fullmatch(r"[a-z0-9_]{1,50}", name) is None:
         raise ValueError(f"the probe database name must start with {PREFIX} (a-z, 0-9, _)")
+    extra = sorted(set(url.query) - {"sslrootcert"})
+    if extra:
+        raise ValueError(f"the probe URL may not carry query keys {extra}")
+    cafile = url.query.get("sslrootcert")
+    if not isinstance(cafile, str) or not Path(cafile).is_absolute() or not Path(cafile).is_file():
+        raise ValueError("the probe needs one absolute sslrootcert: the disposable cluster's CA")
+    effective = _effective_target(raw)
+    expected = {"host": url.host, "port": url.port, "database": name, "user": url.username}
+    if {key: effective.get(key) for key in expected} != expected:
+        raise ValueError("the engine would connect to a different target than the one checked")
     return url
 
 
+def _effective_target(raw: str) -> dict[str, Any]:
+    """Where the application's engine options would connect: asyncpg merges ``url.query`` in."""
+
+    dialect = cast(Any, asyncpg_dialect)()
+    _, arguments = dialect.create_connect_args(verified_engine_options(raw)["url"])
+    return cast(dict[str, Any], arguments)
+
+
 def libpq_env(url: URL) -> dict[str, str]:
-    """Connection settings for the PostgreSQL tools: the password goes only in PGPASSWORD."""
+    """Connection settings for the PostgreSQL tools.
+
+    The password goes only in PGPASSWORD, and the tools verify the server against the same CA
+    as the application (``verify-full``). No inherited PG* variable can redirect them.
+    """
 
     env = {key: value for key, value in os.environ.items() if not key.startswith("PG")}
-    env |= {"PGHOST": str(url.host), "PGPORT": str(url.port or 5432)}
+    env |= {
+        "PGHOST": str(url.host),
+        "PGPORT": str(url.port or 5432),
+        "PGSSLMODE": "verify-full",
+        "PGSSLROOTCERT": str(url.query["sslrootcert"]),
+    }
     if url.username:
         env["PGUSER"] = url.username
     if url.password:
         env["PGPASSWORD"] = str(url.password)
-    if "PGSSLMODE" in os.environ:
-        env["PGSSLMODE"] = os.environ["PGSSLMODE"]
     return env
 
 
@@ -90,7 +122,13 @@ async def _tool(env: dict[str, str], *args: str) -> None:
     process = await asyncio.create_subprocess_exec(
         *args, env=env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
     )
-    _, stderr = await asyncio.wait_for(process.communicate(), 300)
+    try:
+        _, stderr = await asyncio.wait_for(process.communicate(), 300)
+    except TimeoutError:
+        # Reap the child so it releases its connection before teardown drops the database.
+        process.kill()
+        await process.wait()
+        raise AssertionError(f"{args[0]} did not finish within 300 s") from None
     first = stderr.decode(errors="replace").splitlines()[:1]
     assert process.returncode == 0, f"{args[0]} exited {process.returncode}: {first}"
 
@@ -236,15 +274,51 @@ async def _saved_note(database: Database, guest_id: UUID, day: int) -> tuple[UUI
     return note.id, saved_id
 
 
-async def _invite(database: Database, guest_id: UUID) -> tuple[UUID, UUID]:
+async def _principal(database: Database, guest_id: UUID) -> UUID:
+    # One principal per guest: ``principals.source_guest_id`` is unique (Codex r44 P2).
     principal_id = uuid4()
     async with database.sessions() as session, session.begin():
         session.add(PrincipalRow(id=principal_id, source_guest_id=guest_id, created_at=NOW))
+    return principal_id
+
+
+async def _invite(database: Database, principal_id: UUID) -> UUID:
     view, _ = await LaChungService(database.sessions, HASHER, ENVELOPE).create(
         principal_id=principal_id, recipient_label="Bạn tổng hợp", context="friend",
         idempotency_key=uuid4().hex,
     )  # fmt: skip
-    return principal_id, view.id
+    return view.id
+
+
+async def _seed_interleaved(database: Database) -> dict[str, Any]:
+    guest_id = await _guest(database)
+    principal_id = await _principal(database, guest_id)
+    return {
+        "guest": guest_id,
+        "principal": principal_id,
+        "notes": {
+            name: await _saved_note(database, guest_id, day)
+            for day, name in enumerate(("before", "in_flight", "after", "kept"))
+        },
+        "invite": await _invite(database, principal_id),
+        "invite_kept": await _invite(database, principal_id),
+    }
+
+
+async def _seed_horizon(database: Database) -> tuple[UUID, UUID]:
+    guest_id = await _guest(database)
+    note_id, _ = await _saved_note(database, guest_id, 0)
+    share_id = uuid4()
+    async with database.sessions() as session, session.begin():
+        session.add(
+            ShareArtifactRow(
+                id=share_id, guest_id=guest_id, daily_note_id=note_id,
+                token_hash=uuid4().bytes + uuid4().bytes, safe_snapshot={},
+                format="story_9_16", created_at=NOW - timedelta(days=21),
+                expires_at=NOW + timedelta(days=7),
+            )
+        )  # fmt: skip
+    return guest_id, share_id
 
 
 def _saved(sessions: Any) -> PostgresSavedNoteRepository:
@@ -284,13 +358,9 @@ async def test_a_dump_taken_mid_erasure_restores_and_replays(probe: Any, tmp_pat
     """Interleaving: before the dump → reflected; in flight and after the dump → applied."""
 
     database, url, env = probe
-    guest_id = await _guest(database)
-    notes = {
-        name: await _saved_note(database, guest_id, day)
-        for day, name in enumerate(("before", "in_flight", "after", "kept"))
-    }
-    principal_id, invite_id = await _invite(database, guest_id)
-    _, invite_kept = await _invite(database, guest_id)
+    seed = await _seed_interleaved(database)
+    guest_id, principal_id, notes = seed["guest"], seed["principal"], seed["notes"]
+    invite_id, invite_kept = seed["invite"], seed["invite_kept"]
     dump = tmp_path / "probe.dump"
 
     assert await _saved(database.sessions).delete(guest_id, notes["before"][0])
@@ -351,18 +421,7 @@ async def test_the_purge_horizon_travels_with_the_dump(probe: Any, tmp_path: Pat
     """An export taken before a purge replays as reflected on a snapshot taken after it."""
 
     database, url, env = probe
-    guest_id = await _guest(database)
-    note_id, _ = await _saved_note(database, guest_id, 0)
-    share_id = uuid4()
-    async with database.sessions() as session, session.begin():
-        session.add(
-            ShareArtifactRow(
-                id=share_id, guest_id=guest_id, daily_note_id=note_id,
-                token_hash=uuid4().bytes + uuid4().bytes, safe_snapshot={},
-                format="story_9_16", created_at=NOW - timedelta(days=21),
-                expires_at=NOW + timedelta(days=7),
-            )
-        )  # fmt: skip
+    guest_id, share_id = await _seed_horizon(database)
     old = NOW - timedelta(days=20)
     shares = PostgresShareArtifactRepository(database.sessions, ENVELOPE, JOURNAL)
     assert await shares.revoke_owned(guest_id, share_id, old)
@@ -370,9 +429,9 @@ async def test_the_purge_horizon_travels_with_the_dump(probe: Any, tmp_path: Pat
     assert await purge_entries(database.sessions, before=NOW - timedelta(days=15)) == 1
     dump = tmp_path / "horizon.dump"
     await _tool(
-            env, "pg_dump", "--format=custom", "--schema=public", f"--file={dump}",
-            f"--dbname={url.database}",
-        )  # fmt: skip
+        env, "pg_dump", "--format=custom", "--schema=public", f"--file={dump}",
+        f"--dbname={url.database}",
+    )  # fmt: skip
 
     restore = f"{url.database}_restore"
     await _tool(env, "createdb", restore)
@@ -386,6 +445,40 @@ async def test_the_purge_horizon_travels_with_the_dump(probe: Any, tmp_path: Pat
         assert report.reflected[revoked] == 1 and not report.applied and not report.unmatched
     finally:
         await restored.dispose()
+
+
+@pytest.fixture
+def ca_file(tmp_path: Path) -> Path:
+    """A throwaway self-signed CA certificate, so the guard can build the real TLS context."""
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "lalanh probe test CA")])
+    certificate = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(NOW - timedelta(days=1))
+        .not_valid_after(NOW + timedelta(days=1))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(key, hashes.SHA256())
+    )
+    path = tmp_path / "probe-ca.crt"
+    path.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+    return path
+
+
+def _probe_url(ca: Path, query: str = "", *, database: str = "lalanh_probe_a") -> str:
+    return (
+        f"postgresql+asyncpg://probe:synthetic-pw@127.0.0.1:55440/{database}"
+        f"?sslrootcert={ca}{query}"
+    )
 
 
 @pytest.mark.parametrize(
@@ -403,11 +496,88 @@ def test_the_guard_refuses_anything_but_a_disposable_localhost_database(raw: str
         disposable_target(raw)
 
 
-def test_the_tools_get_the_password_only_through_the_environment() -> None:
-    url = disposable_target(
-        "postgresql+asyncpg://probe:synthetic-pw@127.0.0.1:55432/lalanh_probe_a"
-    )
+@pytest.mark.parametrize(
+    "query",
+    [
+        "&database=la_lanh",
+        "&host=outside.example.invalid",
+        "&port=5432",
+        "&user=postgres",
+        "&password=other",
+        "&server_settings=search_path",
+        "&ssl=disable",
+        "&sslmode=disable",
+        "&database=la_lanh&database=lalanh_probe_a",
+        "&sslrootcert=/etc/ssl/cert.pem",
+    ],
+)
+def test_the_guard_refuses_query_keys_that_could_move_the_target(ca_file: Path, query: str) -> None:
+    with pytest.raises(ValueError):
+        disposable_target(_probe_url(ca_file, query))
+
+
+def test_the_guard_requires_one_absolute_existing_ca(tmp_path: Path) -> None:
+    base = "postgresql+asyncpg://probe:synthetic@127.0.0.1:55440/lalanh_probe_a"
+    for raw in (base, f"{base}?sslrootcert=probe-ca.crt", f"{base}?sslrootcert={tmp_path}/no.crt"):
+        with pytest.raises(ValueError):
+            disposable_target(raw)
+
+
+def test_the_checked_target_is_the_one_the_engine_and_tools_use(ca_file: Path) -> None:
+    url = disposable_target(_probe_url(ca_file))
+    effective = _effective_target(url.render_as_string(hide_password=False))
+    assert (effective["host"], effective["port"], effective["database"], effective["user"]) == (
+        "127.0.0.1", 55440, "lalanh_probe_a", "probe",
+    )  # fmt: skip
     env = libpq_env(url)
     assert env["PGPASSWORD"] == "synthetic-pw"
-    assert (env["PGHOST"], env["PGPORT"], env["PGUSER"]) == ("127.0.0.1", "55432", "probe")
+    assert (env["PGHOST"], env["PGPORT"], env["PGUSER"]) == ("127.0.0.1", "55440", "probe")
+    assert (env["PGSSLMODE"], env["PGSSLROOTCERT"]) == ("verify-full", str(ca_file))
     assert "PGDATABASE" not in env  # every tool call names its database explicitly
+
+
+async def test_every_probe_seed_runs_on_sqlite(tmp_path: Path) -> None:
+    """The seeds respect the schema's constraints before any PostgreSQL run (Codex r44 P2)."""
+
+    database = Database(f"sqlite+aiosqlite:///{tmp_path / 'seed.db'}")
+    await database.initialize()
+    try:
+        seed = await _seed_interleaved(database)
+        assert seed["invite"] != seed["invite_kept"]
+        async with database.sessions() as session:
+            owners = set(
+                await session.scalars(
+                    select(LaChungRequestRow.principal_id).where(
+                        LaChungRequestRow.id.in_((seed["invite"], seed["invite_kept"]))
+                    )
+                )
+            )
+        assert owners == {seed["principal"]}
+        await _seed_horizon(database)
+    finally:
+        await database.dispose()
+
+
+async def test_a_held_commit_writes_first_and_commits_only_after_the_hold(tmp_path: Path) -> None:
+    """On SQLite: while held, another connection still sees the row and no journal entry."""
+
+    database = Database(f"sqlite+aiosqlite:///{tmp_path / 'held.db'}")
+    await database.initialize()
+    try:
+        guest_id = await _guest(database)
+        note_id, saved_id = await _saved_note(database, guest_id, 0)
+        seen: list[bool] = []
+
+        async def hold() -> None:
+            async with database.sessions() as other:
+                seen.append(await other.get(SavedNoteRow, saved_id) is not None)
+                seen.append(bool(tuple(await other.scalars(select(ErasureJournalRow.id)))))
+
+        assert await _saved(_held(database.sessions, hold)).delete(guest_id, note_id)
+        assert seen == [True, False]  # flushed, not committed, while the hold ran
+        async with database.sessions() as session:
+            assert await session.get(SavedNoteRow, saved_id) is None
+        digest = JOURNAL.digest(ErasureKind.SAVED_NOTE_REMOVED, saved_id)
+        assert await _journal(database) == [(ErasureKind.SAVED_NOTE_REMOVED.value, digest)]
+    finally:
+        await database.dispose()
