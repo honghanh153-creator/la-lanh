@@ -10,7 +10,7 @@ from app.domains.readings.review_agent import (
 )
 
 # Modules, not names: upper-case names imported here would join the pinned fallback tables.
-from app.domains.tarot import question_frame, roles, stance
+from app.domains.tarot import action_copy, question_frame, roles, stance
 from app.domains.tarot import variants as tarot_variants
 from app.domains.tarot import voice as tarot_voice
 from app.domains.tarot.context_readings import CONTEXT_READINGS, CONTEXT_SCENES
@@ -61,9 +61,11 @@ LEGACY_KNOWLEDGE_VERSION = KNOWLEDGE_VERSION
 # B2-4 (US-20 AC18): framed (B2-1+) readings. Renderer v7 = roles, stance, summary, per-session
 # variants and Roast frames; knowledge v5 = the card knowledge plus lean labels and role frames;
 # gates v5 = role_fit, no_decision_or_prediction, summary_links_cards and stance_consistent.
-FRAMED_RENDERER_VERSION = "tarot-renderer-v7"
+# T02/T03 (27/10/2026): renderer v8 and knowledge v6 add the asked action's scene and step at the
+# step role (action_copy.py). Readings stored under v7 keep their text.
+FRAMED_RENDERER_VERSION = "tarot-renderer-v8"
 TAROT_GATE_VERSION = "tarot-gates-v5"
-FRAMED_KNOWLEDGE_VERSION = "tarot-knowledge-v5"
+FRAMED_KNOWLEDGE_VERSION = "tarot-knowledge-v6"
 
 
 def card_scene(card_id: str, context: TarotContext) -> str:
@@ -412,6 +414,7 @@ class TarotReadingEngine:
                         frame_index=chosen.frame(key),
                         lead=roles.lead_for(frame.form, chosen.lead, index),
                         roast_copy=roast_copy,
+                        frame=frame,
                     )
                 )
                 continue
@@ -552,10 +555,12 @@ class TarotReadingEngine:
         frame_index: int = 0,
         lead: str | None = None,
         roast_copy: bool = False,
+        frame: QuestionFrame | None = None,
     ) -> TarotReadingPosition:
         """One position read by its role (US-20 AC07, AC12): the role's card field in the
         session's frame after the question form's lead (AC15, AC16, AC19), a scene without a
-        duplicate "Ví dụ:" label, and an action only on a step role."""
+        duplicate "Ví dụ:" label, and an action only on a step role. At the step role, a
+        frame's action brings its own scene and step (T02/T03, action_copy.py)."""
 
         tension, _ = _tension_parts(meaning.tension)
         text = roles.meaning_for(
@@ -579,7 +584,14 @@ class TarotReadingEngine:
         scene = card_scene(card.id, context)
         action: str | None = None
         if key in roles.STEP_ROLES:
-            step = goal_step or roles.action_for(meaning.resource)
+            asked = frame.action if frame is not None else None
+            topic = frame.topic if frame is not None else context
+            scene = action_copy.action_scene(asked, topic) or scene
+            step = (
+                action_copy.action_step(asked, key, topic)
+                or goal_step
+                or roles.action_for(meaning.resource)
+            )
             action = f"{action_frame(index, context)} {step}" if voice is TarotVoice.ROAST else step
         return TarotReadingPosition(
             key=key,

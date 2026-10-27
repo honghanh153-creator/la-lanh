@@ -111,6 +111,49 @@ ACTION_MARKERS = (
     "sửa ",
     "tự hỏi",
 )
+# Tarot only (T02/T03 action scenes and steps, 27/10/2026): observable time, place and object
+# words and concrete verbs that the reviewed copy uses. Daily and natal keep the lists above.
+TAROT_SCENE_MARKERS = (
+    "điện thoại",
+    "màn hình",
+    "khung chat",
+    "email",
+    "file",
+    "cuộc gọi",
+    "buổi ",
+    "tối ",
+    "sáng ",
+    "chiều ",
+    "đêm",
+    "hôm ",
+    "tuần",
+    "ngày ",
+    "giờ",
+    "nhà",
+    "phòng",
+    "bàn",
+    "cửa",
+    "gõ ",
+    "kể ",
+)
+TAROT_ACTION_MARKERS = (
+    "mở lời:",
+    "mở lịch",
+    "mở bài",
+    "gửi ",
+    "học ",
+    "dời ",
+    "trả lời",
+    "gập ",
+    "nằm ",
+    "ngủ ",
+    "đứng ",
+    "dừng ",
+    "nghỉ ",
+    "rót ",
+    "ăn ",
+    "bước ",
+)
 
 
 @dataclass(frozen=True)
@@ -209,10 +252,13 @@ class ContentReviewAgent:
             )
             if not scene_sections:
                 findings.append(self._finding(sample, "scene", "scene-missing", "critical"))
+            tarot = sample.surface == "tarot"
+            scene_markers = SCENE_MARKERS + (TAROT_SCENE_MARKERS if tarot else ())
+            action_markers = ACTION_MARKERS + (TAROT_ACTION_MARKERS if tarot else ())
             for section_name, scene in scene_sections:
                 # US-20 AC13: Tarot has no minimum length; it keeps the observability marker.
                 too_short = sample.surface != "tarot" and len(scene.split()) < 12
-                if too_short or not any(marker in scene for marker in SCENE_MARKERS):
+                if too_short or not any(marker in scene for marker in scene_markers):
                     findings.append(
                         self._finding(sample, section_name, "scene-not-observable", "high")
                     )
@@ -226,7 +272,7 @@ class ContentReviewAgent:
             if not action_sections:
                 findings.append(self._finding(sample, "action", "action-missing", "critical"))
             for section_name, action in action_sections:
-                has_action_marker = any(marker in action for marker in ACTION_MARKERS)
+                has_action_marker = any(marker in action for marker in action_markers)
                 too_short = sample.surface != "tarot" and len(action.split()) < 6
                 if too_short or not has_action_marker:
                     findings.append(

@@ -89,9 +89,10 @@
    }
   },
   "tarot": {
+   "action_copy_version": "tarot-action-copy-v1",
    "deck_version": "tarot-78-v1",
-   "framed_knowledge_version": "tarot-knowledge-v5",
-   "framed_renderer_version": "tarot-renderer-v7",
+   "framed_knowledge_version": "tarot-knowledge-v6",
+   "framed_renderer_version": "tarot-renderer-v8",
    "gate_version": "tarot-gates-v5",
    "knowledge_version": "tarot-knowledge-v4",
    "question_rules_version": "tarot-question-rules-v2",
@@ -99,6 +100,10 @@
    "role_copy_version": "tarot-roles-v2",
    "stance_version": "tarot-stance-v2",
    "tables": {
+    "app.domains.tarot.action_copy#function_literals": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "app.domains.tarot.action_copy.ACTION_OPENINGS_BY_TOPIC": "9b390cc8233f2efd2e618f87a0abd386873afefcffddd1e1b8193172e8a19a95",
+    "app.domains.tarot.action_copy.ACTION_SCENES": "51a50f66c4ea58a02e211ba8eae806d31ab3ee0e5d865075d3a983210c7f6eaa",
+    "app.domains.tarot.action_copy.ACTION_STEPS": "d54d7c882739d23d5a5234c696563b2d00fc802a2eea45c67a238771b0f86320",
     "app.domains.tarot.engine#function_literals": "b8017f47a5919a28abae92761d64b675cbe0d1f5daf02e0ff411d9e3bbf1fbe8",
     "app.domains.tarot.engine.CONTEXT_READINGS": "3e62ebc179be8afa3bb1ceebb99854e0066d76d1372c7a875c66aa1360c53c35",
     "app.domains.tarot.engine.CONTEXT_SCENES": "50679ebb24720b5f2e61c2d46093fd633bb5b823a6a818668d83fbb2831efb17",
@@ -210,6 +215,7 @@
   "owner_receipt": "docs/reviews/production-release-2026-10-26/receipt.md (previous: docs/reviews/production-release-2026-10-21/receipt.md)",
   "owner_workbook": "docs/reviews/production-release-2026-10-16/content-approval.xlsx (owner content review of 16/10/2026)",
   "release": "production release 89ebdb0cf6b9 (docs/reviews/production-release-2026-10-26/); previous c3fab3311d65 (docs/reviews/production-release-2026-10-21/)",
+  "tarot_action_copy": "docs/reviews/2026-10-22-t02-t03-tarot-copy-workbook.md and .xlsx: T02/T03 scenes and steps decided row by row under the owner's delegation of 26/10/2026 (Codex polish of four rows reviewed by Claude); wiring edits listed in the workbook document (19 topic openings, one shortened step); tarot-action-copy-v1, renderer v8 / knowledge v6, not yet released",
   "tarot_b2_audit": "pnpm tarot:audit (bank x 6 maps x 4 voices: provenance, psychology checklist, T4, worst length) and Codex APPROVE of PR #23-#27",
   "tarot_b2_owner_approval": "docs/reviews/2026-10-18-b2-tarot-owner-approval.md (owner approved all B2-1..B2-4b copy in docs/reviews/2026-10-18-b2-tarot-copy-review.xlsx and the AC14 samples, 18/10/2026); 2026-10-19 addendum: self-care lean rule (tarot-stance-v2)",
   "tarot_legacy_copy": "docs/reviews/2026-10-18-tarot-legacy-copy-pin.md: tarot meaning_brief, voice and examples tables (pinned 2026-10-18) are byte-identical to production release 836222282dfc, which the owner approved for release"

@@ -614,10 +614,11 @@ async def test_ac19_sensitive_questions_never_get_roast_through_the_service(
 # ---------------------------------------------------------------- AC17/AC18 versions
 
 
-def test_ac18_framed_readings_record_v7_v5_v5_and_legacy_keeps_v6_v4_v4() -> None:
+def test_ac18_framed_readings_record_v8_v6_v5_and_legacy_keeps_v6_v4_v4() -> None:
+    # T02/T03 (27/10/2026) moved framed readings from renderer v7 / knowledge v5 to v8 / v6.
     framed = _render(YES_NO, TarotSpreadMap.THREE_UNBLOCK)
-    assert framed.provenance.renderer_version == FRAMED_RENDERER_VERSION == "tarot-renderer-v7"
-    assert framed.provenance.knowledge_version == FRAMED_KNOWLEDGE_VERSION == "tarot-knowledge-v5"
+    assert framed.provenance.renderer_version == FRAMED_RENDERER_VERSION == "tarot-renderer-v8"
+    assert framed.provenance.knowledge_version == FRAMED_KNOWLEDGE_VERSION == "tarot-knowledge-v6"
     assert framed.provenance.gate_version == TAROT_GATE_VERSION == "tarot-gates-v5"
     legacy = ENGINE.render(
         card_ids=tuple(CARDS[:3]),

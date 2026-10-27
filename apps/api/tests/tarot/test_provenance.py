@@ -133,9 +133,20 @@ def test_ac06_framed_payload_is_brief_v3_with_a_source_per_position() -> None:
     assert brief["stance"]["level"] == reading.stance.level.value  # type: ignore[union-attr]
     assert set(brief["stance"]) == {"kind", "level", "action", "options"}  # labels, no prose
     assert all(
-        set(p["source"]) == {"frame", "lead", "gentle", "reflection", "action"}
+        set(p["source"]) == {"frame", "lead", "gentle", "reflection", "action", "scene"}
         for p in payload["positions"]
     )
+    # T02/T03: the step role carries the asked action's scene and step as closed codes; the
+    # other positions keep the card x topic scene (no scene code).
+    *others, step = payload["positions"]
+    frame = ENGINE.assess_question(reading.question, TarotContext.WORK).frame
+    assert frame is not None and frame.action is not None
+    code = f"act.{frame.action.value}.{frame.topic.value}"
+    assert (step["source"]["scene"], step["source"]["action"]) == (code, code)
+    assert all(p["source"]["scene"] is None for p in others)
+    assert [(p["everyday_scene"], p["small_action"]) for p in payload["positions"]] == [
+        (p.everyday_scene, p.small_action) for p in reading.positions
+    ]
     # The texts equal what the reader sees, but they were rebuilt from the codes.
     assert [p["meaning_here"] for p in payload["positions"]] == [
         p.meaning_here for p in reading.positions

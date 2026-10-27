@@ -1,6 +1,6 @@
 # T02/T03 — Tarot copy keyed by the asked action (draft for owner review), 2026-10-22
 
-**Status: decided under owner delegation (26/10/2026), not yet wired.** Was: DRAFT, awaiting owner approval. Nothing in the workbook is live. It is not wired into the engine,
+**Status: decided under owner delegation (26/10/2026); wired in the T02/T03 wiring PR (27/10/2026, renderer v8), not released.** Was: DRAFT, awaiting owner approval. Nothing in the workbook is live. It is not wired into the engine,
 `examples.py`, `roles.py`, `meaning_brief.py` or the fallback approval scope (`docs/operations/fallback-approval.json`).
 
 Workbook: `docs/reviews/2026-10-22-t02-t03-tarot-copy-workbook.xlsx`
@@ -102,3 +102,61 @@ text is in each row's Owner note; drafts A/B remain unchanged as provenance. Cla
 The scene is observable and carries no advice. The three openings do not assume a job, a date, a prior meeting or
 an existing disagreement. All four are at most 28 whitespace-delimited Vietnamese syllables. No runtime, catalog,
 versions, fallback approval, stored reading or provider payload changes. The wiring conditions and T05 stay open.
+
+
+## Wiring (27/10/2026, Claude; awaiting Codex review, not released)
+
+`apps/api/app/domains/tarot/action_copy.py` holds the decided rows: 130 scenes (three dropped rows
+fall back to the action's `general` row) and 142 steps, plus one table of topic openings. A framed
+reading whose QuestionFrame carries an action shows, **at the spread's one step role only**, the
+action's scene for the frame's topic and the action's step for that role; the other positions keep
+the card × topic scene. A frame without an action, and an action without a row (the eight solo
+actions have no opening), render as before. Renderer `tarot-renderer-v8`, knowledge
+`tarot-knowledge-v6`, `tarot-action-copy-v1`; readings stored under v7 keep their text (a test
+reopens a drawn session after the copy changes). The fallback approval pins the module.
+
+**Claude review of the Codex polish:** the four lines are kept as written. The scene is observable
+and carries no advice; the three openings are sample lines that do not assume a job, a date or a
+dispute.
+
+**Wiring condition 1 (openings for every topic).** 19 topic openings were added where the action's
+opening did not read naturally for one of its topics (new copy, for Codex review):
+
+| Action × topic | Opening |
+|---|---|
+| nhan_lai × relationships | Mở lời: “Hôm qua đi chơi với bạn vui lắm, cảm ơn bạn nhé.” |
+| nhan_lai × communication | Mở lời: “Hình như mình nói chưa rõ, ý mình là…” |
+| cho_them × relationships | Mở lời: “Mình cần chút thời gian để nghĩ, vài hôm nữa mình nhắn bạn nhé.” |
+| bat_dau × relationships | Mở lời: “Hôm trước nói chuyện với bạn vui ghê, cuối tuần này mình đi cà phê nhé?” |
+| bat_dau × self_care | Mở lời: “Mỗi sáng mình giữ mười phút cho riêng mình, lúc đó mình chưa trả lời tin nhắn nhé.” |
+| xin_gop_y × relationships | Mở lời: “Mình muốn nghe bạn nghĩ thật về chuyện tình cảm của mình, bạn nói thẳng giúp mình nhé.” |
+| gui_di × relationships | Mở lời: “Mình có món quà nhỏ muốn gửi bạn, bạn nhận giúp mình nhé.” |
+| xin_loi × general, work | Mở lời: “Mình xin lỗi về chuyện hôm trước, phần đó là lỗi của mình. Mình muốn nghe bạn nói.” |
+| dat_ranh_gioi × work | Mở lời: “Ngoài giờ làm mình ít xem tin nhắn, việc gấp thì bạn gọi mình nhé.” |
+| dat_ranh_gioi × energy | Mở lời: “Tuần này mình chỉ gặp được một buổi, mình hẹn bạn hôm khác nhé.” |
+| dat_ranh_gioi × self_care | Mở lời: “Dạo này mình cần giữ khoảng cách một chút, mình nói trước để bạn biết.” |
+| thu_lai × general, work, self_care | Mở lời: “Mình định thử lại chuyện này lần nữa, bạn nhắc mình giữ lời nhé?” |
+| thu_lai × relationships | Mở lời: “Lâu rồi mình chưa hỏi thăm bạn, dạo này bạn thế nào?” |
+| sap_xep_lai × energy | Mở lời: “Từ tuần này mình ngủ sớm hơn, sau mười giờ mình trả lời bạn vào sáng hôm sau nhé.” |
+| sap_xep_lai × self_care | Mở lời: “Cuối tuần này mình dọn lại phòng, bạn giúp mình một tay được không?” |
+| de_xuat × relationships | Mở lời: “Mình có một cách chia việc khác, bạn nghe mình nói hai phút nhé?” |
+
+**One edited step.** `T03-dung_lai-criterion` lost "rõ ràng" and now ends "… lên một mẩu giấy dán
+cạnh bàn": with the Roast lead-in the old line had 29 words in one sentence, and it ended like
+`tap_trung/next`.
+
+**Wiring condition 2 (variety).** Measured on the chosen drafts: no repeated line; "gõ … xóa" in 2
+scenes, "đọc lại" in 3, "ghi lại … thấy thế nào" in 2 steps. A test keeps these caps. Action scenes
+still do not depend on the card: two readings with the same action and topic show the same step-role
+scene; the card's meaning differs.
+
+**Review gate.** The plain-language review's observability and testability checks are word lists. 58
+decided lines (concrete times, places, objects and verbs such as "gửi", "dời", "nằm") were missing
+from them. Tarot-only marker lists were added (`TAROT_SCENE_MARKERS`, `TAROT_ACTION_MARKERS`); Daily
+and natal keep the old lists, and the existing negative cases still fail.
+
+**Luna provenance.** The step role's scene and step trace to closed codes `act.<action>.<topic>`
+(new optional `scene` code; the action code pattern widened), so Tarot Luna can still rebuild every
+text. No new data reaches a provider: the action label was already in the brief's stance labels.
+
+Still open: framer longest-signal collisions (finding 1), T05 comprehension check, release.

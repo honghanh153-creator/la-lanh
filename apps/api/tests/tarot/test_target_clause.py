@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.domains.tarot import question_frame, stance
+from app.domains.tarot import action_copy, question_frame, stance
 from app.domains.tarot.engine import _POSITIONS, TarotReadingEngine
 from app.domains.tarot.meaning_brief import goal_action, goal_by_key, question_goals
 from app.domains.tarot.models import (
@@ -111,11 +111,12 @@ def test_stance_and_step_answer_the_same_target(
     assert reading.stance is not None and reading.stance.action is action
     if action in stance.SELF_CARE_ACTIONS:
         assert reading.stance.level is not TarotStanceLevel.CONSIDER
-    if goal != "general":
-        step = reading.positions[-1]
-        expected = goal_action(goal_by_key(goal), step.key)
-        assert expected is not None and step.small_action is not None
-        assert step.small_action.endswith(expected)
+    step = reading.positions[-1]
+    # T02/T03: the asked action's own step answers first; the goal step is the fallback.
+    goal_step = goal_action(goal_by_key(goal), step.key) if goal != "general" else None
+    expected = action_copy.action_step(action, step.key, topic) or goal_step
+    if expected is not None:
+        assert step.small_action is not None and step.small_action.endswith(expected)
     assert [key for key, _ in _POSITIONS[spread_map]] == [p.key for p in reading.positions]
 
 
@@ -325,7 +326,8 @@ def test_the_clause_carrying_the_question_supplies_the_action(
     assert reading.stance is not None and reading.stance.action is expected
     if expected is TarotAction.NGHI_NGOI:
         assert "nhận lời" not in reading.stance.conclusion
-        assert "nghỉ" in (reading.positions[-1].small_action or "")
+        rest = action_copy.action_step(expected, "focus", assessment.frame.topic)
+        assert rest is not None and reading.positions[-1].small_action == rest
 
 
 @pytest.mark.parametrize(
@@ -824,7 +826,8 @@ def test_a_light_verb_does_not_take_the_head_from_its_complement() -> None:
     )
     assert reading.stance is not None
     assert reading.stance.level is not TarotStanceLevel.CONSIDER
-    assert reading.positions[0].small_action == "Chọn một khoảng nghỉ bạn có thể giữ hôm nay."
+    rest = action_copy.action_step(TarotAction.NGHI_NGOI, "focus", assessment.frame.topic)
+    assert rest is not None and reading.positions[0].small_action == rest
 
 
 @pytest.mark.parametrize(
@@ -853,7 +856,8 @@ def test_an_unresolved_light_complement_keeps_the_longest_signal(question: str) 
     )
     assert reading.stance is not None
     assert reading.stance.level is not TarotStanceLevel.CONSIDER
-    assert reading.positions[0].small_action == "Chọn một khoảng nghỉ bạn có thể giữ hôm nay."
+    rest = action_copy.action_step(TarotAction.NGHI_NGOI, "focus", assessment.frame.topic)
+    assert rest is not None and reading.positions[0].small_action == rest
 
 
 @pytest.mark.parametrize("version", ["tarot-question-frame-v1", QUESTION_FRAME_VERSION])

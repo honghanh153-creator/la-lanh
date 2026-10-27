@@ -75,7 +75,8 @@ birth data, or report evidence in the URL.
   - Roast has its own role frames, headlines, stance conclusions and summary conjunctions, mapped
     one to one by combination code. Energy and self-care Roast keeps the direct frames with the
     gentle opener and tails. Sensitive questions still render the default voice.
-  - Framed readings record `tarot-renderer-v7`, `tarot-knowledge-v5`, `tarot-gates-v5`; sessions
+  - Framed readings record `tarot-renderer-v8`, `tarot-knowledge-v6`, `tarot-gates-v5` (v7 / v5 until
+    T02/T03, 27/10/2026: the asked action's scene and step at the step role, `tarot/action_copy.py`); sessions
     without a frame keep v6 / v4 / v4 byte for byte. Provenance version fields have no defaults.
 - B2-4b (`docs/plans/2026-10-18-b2-4b-tarot-provenance-task.md`), framed sessions only:
   - The Luna payload uses meaning brief v3: closed labels (topic, intent, spread map, goal codes, stance
