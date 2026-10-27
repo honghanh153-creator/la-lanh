@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 25, 27/10/2026: integration `9b945e6`, CI blockers #94/#97)
+# Audit v2 registry (revision 26, 27/10/2026: integration `95c058c`, independent CI PASS)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -8,7 +8,9 @@ Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; 
 `collab/integration`"). On 26/10 #82, #81, #76, #74, #84, #85 and #86 followed (integration `7e6d69e`). On the owner's
 release order of 26/10 #75 merged that exact commit into `main` = **`89ebdb0`**, which is **live on staging and
 production** (see "Release `89ebdb0cf6b9`"); integration was fast-forwarded to it. Runtime evidence now covers that
-release's staging/production smokes and the backup timers. P07/B still holds. #68 stays unreviewed by owner decision. Rows below carry the latest verdict per PR as of revision 23, each checked against a Codex comment naming the exact full SHA; heads pushed
+release's staging/production smokes and the backup timers. On 26–27/10 #90, #91, #89, then #98, #92, #94 and #97
+merged into integration, which is now **`95c058c`** with an independent Codex CI PASS (r39), not released (see
+"26/10 evening–27/10"). P07/B still holds. #68 stays unreviewed by owner decision. Rows below carry the latest verdict per PR as of revision 23, each checked against a Codex comment naming the exact full SHA; heads pushed
 after a verdict are marked "awaiting re-review": the REQUEST_CHANGES or APPROVE stands only for the exact SHA it
 names, until Codex reviews the new head. The registry's own live-head check proves only that the heads listed match
 GitHub; it says nothing about verdicts, test quality or runtime behaviour.
@@ -151,7 +153,7 @@ Flags are unchanged. #83, #87 and #88 (Codex APPROVE) and #89 (REQUEST_CHANGES) 
 skipped / 1 strict xfailed, QA PASS, E2E 8/8. #91 (P3 follow-ups) has Codex APPROVE @
 `53264393292dca4782950480d04b12ce339a99fe`, not merged. #89 is under re-review.
 
-## 26/10 evening–27/10: integration `9b945e6` and CI blockers
+## 26/10 evening–27/10: integration `9b945e6` → `95c058c`
 
 **Merged (owner order, 26/10):** #90 `88b1e57` → `eaca728`, #91 `5326439` → `8b73f64`, #89 `77d6875` → `9b945e6`, each
 pinned with `--match-head-commit` to its Codex APPROVE SHA. Integration is **`9b945e660462963af6866dcc38a4cad47bdde628`**;
@@ -165,7 +167,7 @@ pinned with `--match-head-commit` to its Codex APPROVE SHA. Integration is **`9b
   SQLite `database is locked`); QA/E2E not reached.
 - The integration gate is **not green**. A green rerun does not prove determinism.
 
-**Approved, not merged:**
+**Approved, then merged on 27/10 (see below):**
 
 | PR | Verdict | Notes |
 |---|---|---|
@@ -181,15 +183,34 @@ pinned with `--match-head-commit` to its Codex APPROVE SHA. Integration is **`9b
 2. **#94 guard test.** `asyncUtilTimeout.test.ts:11` compares to the literal 15,000 rather than the resolved Vitest
    `testTimeout`, and imports `setup.ts` directly. Follow-up: pin the real config and wiring.
 
-**Still open:**
+**Still open (unchanged by the 27/10 PASS):**
 - The release runbook's PostgreSQL two-connection delete-first/send-first verification has not been executed; local
   file-backed SQLite is the only database tested.
 - The 57 skipped tests and 1 strict xfail remain coverage limits.
 - The focus assertion race ("gives focus back to the open sheet…") is outside #94.
 - #94's before-fix concurrent measurements were taken under leftover stress-loop load, as disclosed in its body.
 
-**Next (owner order needed):** combine #92/#94/#97 into integration, pinned to the approved SHAs, then run one
-independent full check on the actual combined head before any release decision.
+**Merged (owner order, 27/10):** #98 `9aedc8e` → `406bcbb`, #92 `8329279` → `9a96b02`, #94 `80e8d86` → `eda90c5`, #97
+`3fe4a42` → `95c058c`, each pinned with `--match-head-commit` to its Codex APPROVE SHA (#98: [APPROVE](https://github.com/honghanh153-creator/la-lanh/pull/98#issuecomment-6432404118)).
+Integration is **`95c058c84114c34e286b01b533d8c628bce97bdb`**; `main` stays `89ebdb0`.
+
+**CI receipts at `95c058c`:**
+- **Claude (author evidence): PASS, exit 0**, first run. Web 537 / 82 files, API 2,583 / 57 / 1, e2e 8/8.
+- **Codex r39, independent: PASS, exit 0** ([handoff](https://github.com/honghanh153-creator/la-lanh/issues/2#issuecomment-6434669012)),
+  05:30–05:37 UTC, separate exact-tree archive, one continuous invocation. Web 537 / 82 files, API 2,583 / 57 / 1
+  (mypy 411 files), QA/native/web build PASS, Playwright 8/8. Codex also verified each merge's second parent equals the
+  approved head, a contiguous first-parent chain from `9b945e6` (#98 → #92 → #94 → #97) with no conflict-resolution
+  hunks, and all 1,612 tracked blobs unchanged after the run.
+- Codex's earlier invocation in r39 exited 1 at the first contracts import (local Python env missing `httpx`) before
+  any test ran; it is kept as a setup failure (`integration-full-ci-setup-failed-01.*`), not a product failure. No
+  failing product test was retried.
+- The PASS applies to `95c058c` only. It does not rewrite the red receipts above (r36 at `9b945e6`, #92 at `8329279`,
+  Claude's run 1 at `9b945e6`). One pass does not prove determinism of the timeout, focus or SQLite-lock failures.
+- **The exact-head check for `95c058c` is complete; no further same-SHA check is requested.** A new head needs its own
+  check.
+
+**CI PASS is not release Go.** A release of `95c058c` needs an explicit owner order and the runbook gates (backup,
+restore probe, staging, smokes, production receipt). Nothing was deployed and no flag or provider changed.
 
 ## Combined-branch checks (local, not pushed)
 
@@ -275,7 +296,7 @@ into integration.
 Daily Luna pilot review on **04/11/2026**; at most 20 opted-in sessions; the full 670-case gate is **not met** and runs
 under the owner's exception; no EvaluationRecord exists or was fabricated; budget figures stay server-side.
 
-## Not done (honest list, as of 26/10/2026 after release `89ebdb0cf6b9`)
+## Not done (honest list, as of 27/10/2026; production is still `89ebdb0cf6b9`)
 
 Released and live: everything merged into integration up to `7e6d69e`, including journal A (migration 0038), #61's
 roster and #76's copy. Staging and production smokes are green, and the backup/check/journal timers run with
@@ -291,9 +312,11 @@ Still open:
 - **Operations:** a generation-off deploy (the worker-removal path) has not been exercised in a real deploy. The
   disclosure re-check for the release is open.
 - **Rollback:** `c3fab33` is not a verified rollback anchor on schema 0038.
-- **Integration after the release:** #83/#87/#88 and then #90/#91/#89 merged into integration (`9b945e6`), not
-  released. The independent integration check is red (Codex r36). #92/#94/#97 are approved and not merged. Details:
-  "26/10 evening–27/10" above.
+- **Integration after the release:** #83/#87/#88, #90/#91/#89 and #98/#92/#94/#97 merged into integration
+  (`95c058c`), not released. Independent check at `95c058c`: **PASS** (Codex r39); the red receipts at `9b945e6` and
+  `8329279` stay. Release awaits an owner order. Details: "26/10 evening–27/10" above.
+- **Test follow-ups:** #97 operation-entry handshakes, #94 guard test against the resolved Vitest config, the focus
+  assertion race; the PostgreSQL two-connection verification is not run.
 
 As of 25/10 (before the release), the list also had: draft #75 No-Go; #76 pending the owner's wording; no fresh
 backup, timers or restore probe; #61 merged but not deployed. All of those are closed by the release above.
