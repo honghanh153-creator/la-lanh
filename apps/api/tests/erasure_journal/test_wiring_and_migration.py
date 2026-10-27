@@ -30,6 +30,9 @@ def test_every_explicit_erasure_path_gets_the_same_journal(tmp_path: Path) -> No
             "matching": state.matching_service._repository._erasure_journal,
             "radar": state.radar_service._erasure_journal,
             "resonance": state.resonance_service._repository._erasure_journal,
+            "tarot": state.tarot_session_service._erasure_journal,
+            "share": state.share_artifact_service._repository._erasure_journal,
+            "saved": state.saved_note_service._repository._erasure_journal,
         }
         assert {name: value is journal for name, value in wired.items()} == dict.fromkeys(
             wired, True
