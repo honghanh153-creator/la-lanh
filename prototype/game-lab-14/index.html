@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Sĩ số +1 · Game lab 14</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>Sĩ số <em>+1</em></b><span>Lá Lành · game lab 14 · nhân vật hư cấu 18+</span></div>
+    <div class="top-actions">
+      <button id="padBtn" class="chip" aria-pressed="false" hidden>D-pad</button>
+      <button id="motionBtn" class="chip">Cử động: đầy đủ</button>
+      <button id="resetBtn" class="chip">Chơi lại</button>
+    </div>
+  </header>
+
+  <nav class="track" id="track" aria-label="Bảy vụ"></nav>
+
+  <main class="play">
+    <section class="stage-col">
+      <div class="stage" id="stage">
+        <canvas id="game" role="img" aria-label="Phòng học pixel. Đi bằng phím mũi tên hoặc WASD, hoặc chạm vào sàn. Nhấn E để khám đồ vật hoặc nói chuyện."></canvas>
+        <div class="hud-case"><span id="hudStamp"></span><b id="hudTitle"></b></div>
+        <button class="act" id="actBtn" hidden></button>
+        <div class="dpad" id="dpad" hidden aria-label="Phím di chuyển">
+          <button data-key="ArrowUp" aria-label="Lên">▲</button><button data-key="ArrowLeft" aria-label="Trái">◀</button><button data-key="ArrowRight" aria-label="Phải">▶</button><button data-key="ArrowDown" aria-label="Xuống">▼</button>
+        </div>
+        <div class="toast" id="toast" role="status" hidden></div>
+        <div class="fade" id="fade"></div>
+      </div>
+      <ol class="goal" id="goal" aria-label="Mục tiêu vụ này"></ol>
+      <p class="sr-only" id="near" aria-live="polite"></p>
+      <p class="hint" id="controlsHint">Đi: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> hoặc mũi tên · Khám: <kbd>E</kbd> · Sổ tay: <kbd>N</kbd> · Hoặc chạm vào sàn và đồ vật.</p>
+    </section>
+
+    <aside class="book" id="book" aria-label="Sổ tay điều tra">
+      <header class="book-head">
+        <h2>Sổ tay</h2>
+        <div class="tabs" role="tablist">
+          <button role="tab" data-tab="sources" aria-selected="true">Nguồn</button>
+          <button role="tab" data-tab="work" aria-selected="false">Tự suy luận</button>
+          <button role="tab" data-tab="places" aria-selected="false">Đi tới</button>
+        </div>
+      </header>
+      <div class="book-body" id="bookBody"></div>
+    </aside>
+  </main>
+  <footer class="foot">Chỉ lưu trong bộ nhớ của tab. Không tên thật, ảnh, ngày sinh hay dữ liệu gửi đi. Cung và tarot là archetype tác giả gán, chỉ đổi giọng nói.</footer>
+</div>
+
+<div class="shade" id="shade" hidden>
+  <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <header class="m-head"><div><small id="mKicker"></small><h2 id="mTitle"></h2></div><button class="m-close" id="mClose" aria-label="Đóng">×</button></header>
+    <div class="m-body" id="mBody"></div>
+  </section>
+</div>
+
+<script src="cases.js"></script>
+<script src="engine.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
