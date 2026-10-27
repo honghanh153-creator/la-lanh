@@ -117,6 +117,9 @@ Losses the design accepts, so the runbook must not hide them:
 
 ### Disposable PostgreSQL restore probe (operator, before B can be lifted)
 
+Executable steps and checks: [disposable-postgres-journal-probe.md](disposable-postgres-journal-probe.md)
+(prepared 27/10/2026, **not executed**).
+
 SQLite tests model the snapshot as a file copy. The real interleaving must be shown once on a disposable
 PostgreSQL with synthetic data, not on staging or production:
 1. Seed synthetic guests with history. Open an erasure (for example a history clear) whose transaction has
