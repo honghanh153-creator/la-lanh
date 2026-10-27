@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 24, after production release `89ebdb0cf6b9` of 26/10/2026)
+# Audit v2 registry (revision 25, 27/10/2026: integration `9b945e6`, CI blockers #94/#97)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -31,7 +31,7 @@ and the release-receipt checks of 26/10), `OWNER_DECISION`, `DEFERRED`.
 | P04 | TTL/owner for pending mood and saved retries | PARTIAL | #48 `0c51d84963c6236589e838bf64a875d6cb045802` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/48#issuecomment-6378685160) (captured clear counter, epoch and generation inside the queue lock). Device and real multi-event-loop proof remain verification limits · merged into integration (`9a86179`) | operator/device | device check on a real browser/WebView with parallel tabs |
 | P05 | Physical purge of revoked/expired share; experiment wording | RELEASED | #49 `76d3460cba6f5ceebb563198d271c40551156552` · APPROVE @ same · merged into integration (`c787681`) | counsel on "tối đa 30 ngày" | PostgreSQL run |
 | P06 | Aggregate legacy-plaintext check + plan | PARTIAL (tooling approved) | #50 `109072dd385e5510086a741c87ef33b31b8e629a` · APPROVE @ same · merged into integration (`9c02707`) | operator: staging/prod counts via private channel | real counts; then backfill tool per owner choice |
-| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | **26/10: #43 timers and #78 journal live in `89ebdb0`; backup/check/journal timers installed, first runs pass; restore probe of the new backup passes ([receipt](production-release-2026-10-26/receipt.md)). Still open: interleaved replay probe, alert channel, Supabase PITR record, unjournaled kinds; B holds.** #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`), released in `89ebdb0` | operator: interleaved replay probe; owner: alert channel | interleaved replay probe, alert delivery, Supabase backup/PITR receipt, unjournaled kinds (install, first backup and restore probe done 26/10). Journal A: #78 `c76b6954e656afe48784e9816beaaa431ce0355b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6378889433) (purge horizon, earlier [APPROVE @ 610c8ae](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271), plus the suggested horizon edge regressions, stated commit-delay assumption and export-before-purge operator step). #79 holds the same commit and has its own [APPROVE @ c76b695](https://github.com/honghanh153-creator/la-lanh/pull/79). #78 merged into integration (`99d7d90`) on 25/10 and was released in `89ebdb0` on 26/10. P07 stays PARTIAL: the interleaved operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until an interleaved restore probe has replayed the deployed journal |
+| P07 | Backup timer, alert, restore, reconciliation | PARTIAL | **Alert channel (owner, 26/10):** a local scheduled task `la-lanh-ops-watch` on the owner's Mac (every six hours, read-only SSH checks of timers, failed units, markers, backup age/checksum, journal copy, disk, `/v1/ready`). A failure opens a public `ops-alert` issue with data-free facts and fix prompts. Its first run started 26/10 15:28 UTC and stalled, most likely on a tool approval, so **delivery is not yet proven**. It runs only while the Mac app is open. Off-site Google Drive backup is deferred by owner choice. **26/10: #43 timers and #78 journal live in `89ebdb0`; backup/check/journal timers installed, first runs pass; restore probe of the new backup passes ([receipt](production-release-2026-10-26/receipt.md)). Still open: interleaved replay probe, alert channel, Supabase PITR record, unjournaled kinds; B holds.** #43 `1de386f5e5a027161b3c9d6110f28ef5de3a7d7b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/43#issuecomment-6346165927) · merged into integration (`abab031`), released in `89ebdb0` | operator: interleaved replay probe; owner: alert channel | interleaved replay probe, alert delivery, Supabase backup/PITR receipt, unjournaled kinds (install, first backup and restore probe done 26/10). Journal A: #78 `c76b6954e656afe48784e9816beaaa431ce0355b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6378889433) (purge horizon, earlier [APPROVE @ 610c8ae](https://github.com/honghanh153-creator/la-lanh/pull/78#issuecomment-6377666271), plus the suggested horizon edge regressions, stated commit-delay assumption and export-before-purge operator step). #79 holds the same commit and has its own [APPROVE @ c76b695](https://github.com/honghanh153-creator/la-lanh/pull/79). #78 merged into integration (`99d7d90`) on 25/10 and was released in `89ebdb0` on 26/10. P07 stays PARTIAL: the interleaved operator probe has not run, B holds, and deferred erasure kinds are unjournaled (8 explicit erasure kinds; Tarot delete, share revoke, La Chung, unsave, experiment undo and pending invite revoke still unjournaled). A disposable PostgreSQL restore probe with an interleaved dump is required (operator). B = no restore into service until an interleaved restore probe has replayed the deployed journal |
 | P08 | Log canaries; ingress/Docker; native | PARTIAL | #51 `1fcfa84368ebcda3592f3e2bc9e74ccf7c8dec0b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/51#issuecomment-6346170351) · merged into integration (`8df0492`) | operator/device | ingress/Docker runtime logs; signed native build on device (MASVS) |
 | P09 | B rights; receipt 7 d vs result 30 d | PARTIAL / OWNER_DECISION | dossier #52 APPROVE; D1 #62 `288b3ad281bb8eb3d5c1dc015592c7c68c7a70b2` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/62#issuecomment-6346173801) · merged into integration (`aae55b5`) (cookies already expired at 7 days are not revived). D2 API and procedure #80 `52f08bafaa3ba741dacb3f64c1b17af0a523cd5c` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/80#issuecomment-6385370273) · merged into integration (`10989fa`) | owner (copy "30 ngày", D2 screen copy), counsel D2–D4 | D2 web screens; data export decision; lawful basis/notice answers |
 | P10 | Apple Tracking column; disclosures; counsel dossier | PARTIAL | #52 APPROVE · merged into integration (`0cf6334`) (column fixed; dossier is not a legal conclusion) | counsel | cross-border/DPIA, store forms at submission; DPA signature tracked separately by the owner, not a gate |
@@ -151,6 +151,46 @@ Flags are unchanged. #83, #87 and #88 (Codex APPROVE) and #89 (REQUEST_CHANGES) 
 skipped / 1 strict xfailed, QA PASS, E2E 8/8. #91 (P3 follow-ups) has Codex APPROVE @
 `53264393292dca4782950480d04b12ce339a99fe`, not merged. #89 is under re-review.
 
+## 26/10 evening–27/10: integration `9b945e6` and CI blockers
+
+**Merged (owner order, 26/10):** #90 `88b1e57` → `eaca728`, #91 `5326439` → `8b73f64`, #89 `77d6875` → `9b945e6`, each
+pinned with `--match-head-commit` to its Codex APPROVE SHA. Integration is **`9b945e660462963af6866dcc38a4cad47bdde628`**;
+`main` stays `89ebdb0`.
+
+**CI receipts at `9b945e6` (all kept):**
+- **Claude, run 1: FAIL, exit 1.** Web 526 / 3 failed (`findBy` timeouts in RadarPrivateStartPage, BirthDatePage and
+  TarotPage, under high host load).
+- **Claude, run 2 (unchanged source): PASS, exit 0.** Web 529, API 2,580 / 57 / 1, e2e 8/8.
+- **Codex r36, independent: FAIL, exit 1.** API 2,579 passed / 1 failed (`test_deletion_waits_for_an_already_started_provider_send`,
+  SQLite `database is locked`); QA/E2E not reached.
+- The integration gate is **not green**. A green rerun does not prove determinism.
+
+**Approved, not merged:**
+
+| PR | Verdict | Notes |
+|---|---|---|
+| #92 Lá Chứng cache fence | Codex APPROVE @ `8329279326c1c5821f53dbbebad0c5c2adea9c69` | Codex full check at that SHA **FAIL, exit 1** (web 533 / 1 failed, `RadarStartPage.test.tsx:54`), kept. Later separate steps passed, which does not make that invocation a PASS. |
+| #97 SQLite send-boundary lock | Codex APPROVE @ `3fe4a428c21168d66a34d0a1d4d1813c73b77f31` | Cause: a deferred read-then-write transaction cannot upgrade while deletion holds `BEGIN IMMEDIATE`. `mark_generation_request_started` and `finalize_generation_success` now take the SQLite write lock first; PostgreSQL is unchanged. Codex: the new regressions fail 3/3 on old code; the original test passed 10 fresh runs; API 2,583 / 57 / 1. Claude full check exit 0 at that SHA (its first run at `51a530f` stopped at mypy on test typing). |
+| #94 owner-chain wait headroom | Codex APPROVE @ `80e8d86d78d87ab665c24d9407f8cbf6a7206a33` | `asyncUtilTimeout` 5,000 ms and `testTimeout` 15,000 ms. Codex: old config fails and head passes with a 1,100 ms history delay; a never-resolving history still rejects at ~5,010 ms; web 530 / 82 files. Claude full check exit 0 at that SHA. |
+
+**Non-blocking test caveats (Codex r37), open as follow-ups:**
+1. **#97 barrier scope.** Order B and the send-fence test release deletion after a 100 ms sleep without observing the
+   worker's entry into its blocked DB operation (`test_worker.py:758`, `:794`). Order A tolerates a bounded 500 ms
+   acquisition wait (`:721–724`). The old-code failures prove the exercised schedule, not scheduling-independent
+   determinism. Follow-up: operation-entry/pending-operation handshakes. The PR body was corrected.
+2. **#94 guard test.** `asyncUtilTimeout.test.ts:11` compares to the literal 15,000 rather than the resolved Vitest
+   `testTimeout`, and imports `setup.ts` directly. Follow-up: pin the real config and wiring.
+
+**Still open:**
+- The release runbook's PostgreSQL two-connection delete-first/send-first verification has not been executed; local
+  file-backed SQLite is the only database tested.
+- The 57 skipped tests and 1 strict xfail remain coverage limits.
+- The focus assertion race ("gives focus back to the open sheet…") is outside #94.
+- #94's before-fix concurrent measurements were taken under leftover stress-loop load, as disclosed in its body.
+
+**Next (owner order needed):** combine #92/#94/#97 into integration, pinned to the approved SHAs, then run one
+independent full check on the actual combined head before any release decision.
+
 ## Combined-branch checks (local, not pushed)
 
 ### Author's local merge-order check (revision 21)
@@ -251,8 +291,9 @@ Still open:
 - **Operations:** a generation-off deploy (the worker-removal path) has not been exercised in a real deploy. The
   disclosure re-check for the release is open.
 - **Rollback:** `c3fab33` is not a verified rollback anchor on schema 0038.
-- **Integration after the release:** #83/#87/#88 merged into integration (`288a535`) and are not released; #89 is
-  under review; #91 is approved and not merged.
+- **Integration after the release:** #83/#87/#88 and then #90/#91/#89 merged into integration (`9b945e6`), not
+  released. The independent integration check is red (Codex r36). #92/#94/#97 are approved and not merged. Details:
+  "26/10 evening–27/10" above.
 
 As of 25/10 (before the release), the list also had: draft #75 No-Go; #76 pending the owner's wording; no fresh
 backup, timers or restore probe; #61 merged but not deployed. All of those are closed by the release above.

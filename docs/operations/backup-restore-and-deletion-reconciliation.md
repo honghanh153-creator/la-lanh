@@ -36,6 +36,14 @@ interleaved probe below are still open.
    result, and the freshness check output. Do not paste database URLs or dump contents.
 3. Choose and record how failures reach a person (journal forwarding, uptime monitor on the marker
    directory, or a mail relay). Until then the marker is local only.
+   **Owner choice (26/10/2026):** a local scheduled task, `la-lanh-ops-watch`, on the owner's Mac.
+   - It runs every six hours and only reads the server over SSH: timers, failed units, alert markers,
+     backup age and checksum, journal copy, disk and `/v1/ready`.
+   - On a failure it opens a public `ops-alert` issue with data-free facts and fix prompts. It never
+     changes production.
+   - It runs only while the Mac app is open.
+   - Its first run (26/10 15:28 UTC) stalled, most likely on a tool approval, so delivery is **not yet
+     proven**. The owner should approve the tools once with "Run now".
 4. Monthly and after each schema-changing release, run the restore probe below and record the
    output summary.
 5. Check the Supabase plan's own backups/PITR and their retention in the dashboard; provider
