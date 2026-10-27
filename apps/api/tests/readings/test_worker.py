@@ -1,11 +1,10 @@
 import asyncio
-import contextlib
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, event, func, select, text
 
 from app.db.session import Database
 from app.domains.astro.models import DateOnlySunResult, EngineProvenance, ZodiacSign
@@ -642,7 +641,50 @@ async def test_deletion_waits_for_an_already_started_provider_send(storage) -> N
 # another connection holds the write lock; SQLite answers SQLITE_BUSY at once (no busy wait) to
 # avoid deadlock. Guest deletion takes the write lock up front (BEGIN IMMEDIATE), so a worker
 # transaction that read before deletion locked and wrote after failed with "database is locked".
-# These tests pin both orders with barriers inside the real deletion transaction.
+# These tests pin both orders with barriers inside the real deletion transaction, and observe each
+# BEGIN IMMEDIATE (dispatched, then acquired) instead of sleeping to guess where a task is.
+
+
+async def _observed(signal: asyncio.Event) -> None:
+    # A bound for failing, never for ordering: on code without the write lock up front the
+    # expected request never comes, and the test should fail rather than hang.
+    await asyncio.wait_for(signal.wait(), 10)
+
+
+class _WriteLockProbe:
+    """Observes a task's next BEGIN IMMEDIATE on local SQLite: dispatched, then acquired.
+
+    The statement is queued to the aiosqlite thread before the task yields, so once `entered` is
+    set and `acquired` is not, the task is waiting for the write lock.
+    """
+
+    def __init__(self, database: Database) -> None:
+        self._armed: dict[asyncio.Task[Any], tuple[asyncio.Event, asyncio.Event]] = {}
+        engine = database.engine.sync_engine
+        event.listen(engine, "before_cursor_execute", self._before)
+        event.listen(engine, "after_cursor_execute", self._after)
+
+    def arm(self, task: asyncio.Task[Any]) -> tuple[asyncio.Event, asyncio.Event]:
+        events = (asyncio.Event(), asyncio.Event())
+        self._armed[task] = events
+        return events
+
+    def _events(self, statement: str) -> tuple[asyncio.Event, asyncio.Event] | None:
+        task = asyncio.current_task()
+        if statement != "BEGIN IMMEDIATE" or task is None:
+            return None
+        return self._armed.get(task)
+
+    def _before(self, _conn, _cursor, statement, *_args) -> None:  # type: ignore[no-untyped-def]
+        events = self._events(statement)
+        if events is not None and not events[0].is_set():
+            events[0].set()
+
+    def _after(self, _conn, _cursor, statement, *_args) -> None:  # type: ignore[no-untyped-def]
+        events = self._events(statement)
+        if events is not None and events[0].is_set() and not events[1].is_set():
+            events[1].set()
+            del self._armed[asyncio.current_task()]  # type: ignore[arg-type]
 
 
 def _hold_deletion_inside_its_write_transaction(
@@ -707,20 +749,26 @@ async def test_finalize_that_read_before_deletion_locked_still_commits(  # type:
     token_hash = await _token_hash(database, guest_id)
     holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
     provider = _GateProvider()
+    probe = _WriteLockProbe(database)
     deletion: list[asyncio.Task[bool]] = []
+    deletion_pending: list[bool] = []
     original_find_plan = readings_postgres._find_plan
     armed = asyncio.Event()
 
     async def find_plan_then_let_deletion_lock(*args):  # type: ignore[no-untyped-def]
         if armed.is_set() and not deletion:
-            deletion.append(
-                asyncio.create_task(
-                    PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
-                )
+            task = asyncio.create_task(
+                PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
             )
-            # Wait until deletion holds the write lock, unless finalize already holds it.
-            with contextlib.suppress(TimeoutError):
-                await asyncio.wait_for(holding.wait(), 0.5)
+            deletion.append(task)
+            deletion_entered, deletion_acquired = probe.arm(task)
+            if finalize_acquired.is_set():
+                # Finalize already holds the write lock: deletion must queue behind it.
+                await _observed(deletion_entered)
+                deletion_pending.append(not deletion_acquired.is_set())
+            else:
+                # Finalize read without the lock: let deletion take it before finalize writes.
+                await _observed(holding)
         return await original_find_plan(*args)
 
     monkeypatch.setattr(readings_postgres, "_find_plan", find_plan_then_let_deletion_lock)
@@ -728,11 +776,13 @@ async def test_finalize_that_read_before_deletion_locked_still_commits(  # type:
         ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
     )
     await provider.entered.wait()
+    _, finalize_acquired = probe.arm(worker)
     armed.set()
     provider.release.set()
     worker_result = list(await asyncio.gather(worker, return_exceptions=True))
     release_deletion.set()
     assert worker_result == [True]
+    assert deletion_pending == [True]
     assert await deletion[0] is True
     assert await _counts(database) == (0, 0)
 
@@ -746,6 +796,7 @@ async def test_finalize_waits_for_a_deletion_that_already_holds_the_write_lock( 
     token_hash = await _token_hash(database, guest_id)
     holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
     provider = _GateProvider()
+    probe = _WriteLockProbe(database)
     worker = asyncio.create_task(
         ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
     )
@@ -754,8 +805,11 @@ async def test_finalize_waits_for_a_deletion_that_already_holds_the_write_lock( 
         PostgresGuestRepository(database.sessions).delete_by_token_hash(token_hash, NOW)
     )
     await holding.wait()
+    finalize_entered, finalize_acquired = probe.arm(worker)
     provider.release.set()
-    await asyncio.sleep(0.1)
+    # Released only once finalize has dispatched its write-lock request and is still waiting.
+    await _observed(finalize_entered)
+    assert finalize_acquired.is_set() is False
     assert deletion.done() is False
     release_deletion.set()
     assert list(await asyncio.gather(worker, return_exceptions=True)) == [True]
@@ -774,7 +828,10 @@ async def test_send_fence_waits_for_deletion_and_then_never_sends(  # type: igno
     holding, release_deletion = _hold_deletion_inside_its_write_transaction(monkeypatch)
     provider = _GateProvider()
     provider.release.set()
+    probe = _WriteLockProbe(database)
     deletion: list[asyncio.Task[bool]] = []
+    mark_lock: list[tuple[asyncio.Event, asyncio.Event]] = []
+    mark_armed = asyncio.Event()
     original_mark = repository.mark_generation_request_started
 
     async def mark_after_deletion_locks(**kwargs):  # type: ignore[no-untyped-def]
@@ -784,6 +841,8 @@ async def test_send_fence_waits_for_deletion_and_then_never_sends(  # type: igno
             )
         )
         await holding.wait()
+        mark_lock.append(probe.arm(asyncio.current_task()))  # type: ignore[arg-type]
+        mark_armed.set()
         return await original_mark(**kwargs)
 
     monkeypatch.setattr(repository, "mark_generation_request_started", mark_after_deletion_locks)
@@ -791,7 +850,11 @@ async def test_send_fence_waits_for_deletion_and_then_never_sends(  # type: igno
         ReadingGenerationWorker(repository, provider, clock=lambda: NOW).process_one()
     )
     await holding.wait()
-    await asyncio.sleep(0.1)
+    await _observed(mark_armed)
+    mark_entered, mark_acquired = mark_lock[0]
+    # Released only once the pre-send marker has dispatched its write-lock request and waits.
+    await _observed(mark_entered)
+    assert mark_acquired.is_set() is False
     release_deletion.set()
     assert list(await asyncio.gather(worker, return_exceptions=True)) == [True]
     assert provider.calls == 0
