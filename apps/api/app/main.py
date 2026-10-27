@@ -206,6 +206,7 @@ def create_app(
             database.sessions,
             credential_hasher,
             envelope,
+            erasure_journal,
         )
         birth_repo = birth_repository or PostgresBirthRepository(
             database.sessions, envelope, erasure_journal
@@ -258,7 +259,7 @@ def create_app(
                 PostgresResonanceRepository(database.sessions, envelope, erasure_journal)
             )
             app.state.experiment_service = ExperimentService(
-                PostgresExperimentRepository(database.sessions, envelope)
+                PostgresExperimentRepository(database.sessions, envelope, erasure_journal)
             )
             app.state.saved_note_service = SavedNoteService(
                 PostgresSavedNoteRepository(database.sessions, envelope, erasure_journal),
