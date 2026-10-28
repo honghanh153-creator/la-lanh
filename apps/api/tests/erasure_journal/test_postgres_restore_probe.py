@@ -481,46 +481,86 @@ def _probe_url(ca: Path, query: str = "", *, database: str = "lalanh_probe_a") -
     )
 
 
-@pytest.mark.parametrize(
-    "raw",
-    [
-        "postgresql+asyncpg://probe:synthetic@db.example.com:5432/lalanh_probe_a",
-        "postgresql+psycopg://probe:synthetic@127.0.0.1:5432/lalanh_probe_a",
-        "postgresql+asyncpg://probe:synthetic@127.0.0.1:5432/la_lanh",
-        "postgresql+asyncpg://probe:synthetic@127.0.0.1:5432/lalanh_probe_A;drop",
-        "sqlite+aiosqlite:///lalanh_probe_a.db",
-    ],
-)
-def test_the_guard_refuses_anything_but_a_disposable_localhost_database(raw: str) -> None:
-    with pytest.raises(ValueError):
-        disposable_target(raw)
+_DRIVER = "postgresql\\+asyncpg driver"
+_LOCAL = "only against a database on localhost"
+_NAME = "must start with lalanh_probe_"
 
 
 @pytest.mark.parametrize(
-    "query",
+    ("raw", "reason"),
     [
-        "&database=la_lanh",
-        "&host=outside.example.invalid",
-        "&port=5432",
-        "&user=postgres",
-        "&password=other",
-        "&server_settings=search_path",
-        "&ssl=disable",
-        "&sslmode=disable",
-        "&database=la_lanh&database=lalanh_probe_a",
-        "&sslrootcert=/etc/ssl/cert.pem",
+        ("postgresql+asyncpg://probe:synthetic@db.example.com:5432/lalanh_probe_a", _LOCAL),
+        ("postgresql+asyncpg://probe:synthetic@10.0.0.5:5432/lalanh_probe_a", _LOCAL),
+        ("postgresql+psycopg://probe:synthetic@127.0.0.1:5432/lalanh_probe_a", _DRIVER),
+        ("postgresql+asyncpg://probe:synthetic@127.0.0.1:5432/la_lanh", _NAME),
+        ("postgresql+asyncpg://probe:synthetic@127.0.0.1:5432/lalanh_probe_A;drop", _NAME),
+        ("sqlite+aiosqlite:///lalanh_probe_a.db", _DRIVER),
     ],
 )
-def test_the_guard_refuses_query_keys_that_could_move_the_target(ca_file: Path, query: str) -> None:
-    with pytest.raises(ValueError):
+def test_the_guard_refuses_anything_but_a_disposable_localhost_database(
+    ca_file: Path, raw: str, reason: str
+) -> None:
+    """Each URL carries a valid CA, so only the named check can refuse it (Codex r46 P2)."""
+
+    with pytest.raises(ValueError, match=reason):
+        disposable_target(f"{raw}?sslrootcert={ca_file}")
+
+
+_QUERY = "may not carry query keys"
+_CA = "one absolute sslrootcert"
+
+
+@pytest.mark.parametrize(
+    ("query", "reason"),
+    [
+        ("&database=la_lanh", _QUERY),
+        ("&host=outside.example.invalid", _QUERY),
+        ("&port=5432", _QUERY),
+        ("&user=postgres", _QUERY),
+        ("&password=other", _QUERY),
+        ("&server_settings=search_path", _QUERY),
+        ("&ssl=disable", _QUERY),
+        ("&sslmode=disable", _QUERY),
+        ("&database=la_lanh&database=lalanh_probe_a", _QUERY),
+        ("&sslrootcert=/etc/ssl/cert.pem", _CA),
+    ],
+)
+def test_the_guard_refuses_query_keys_that_could_move_the_target(
+    ca_file: Path, query: str, reason: str
+) -> None:
+    with pytest.raises(ValueError, match=reason):
         disposable_target(_probe_url(ca_file, query))
 
 
 def test_the_guard_requires_one_absolute_existing_ca(tmp_path: Path) -> None:
     base = "postgresql+asyncpg://probe:synthetic@127.0.0.1:55440/lalanh_probe_a"
     for raw in (base, f"{base}?sslrootcert=probe-ca.crt", f"{base}?sslrootcert={tmp_path}/no.crt"):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=_CA):
             disposable_target(raw)
+
+
+PROCEDURE = (
+    Path(__file__).resolve().parents[4] / "docs/operations/disposable-postgres-journal-probe.md"
+)
+
+
+def test_the_procedure_orders_pg_hba_and_creates_the_role_stubs() -> None:
+    """Static check of the operator procedure (Codex r46): PostgreSQL takes the first matching
+    pg_hba line, so the TLS allowance comes before every reject and plaintext TCP still ends in
+    a reject; the browser-role stubs exist before Alembic, whose migrations revoke from them."""
+
+    text = PROCEDURE.read_text()
+    block = re.search(r"```\n\s*(# TYPE.*?)```", text, re.DOTALL)
+    assert block is not None, "the procedure must give the complete pg_hba.conf"
+    lines = [line.split() for line in block.group(1).splitlines()[1:] if line.strip()]
+    kinds = [(line[0], line[-1]) for line in lines]
+    tls = kinds.index(("hostssl", "scram-sha-256"))
+    rejects = [i for i, (_, method) in enumerate(kinds) if method == "reject"]
+    assert rejects and all(tls < i for i in rejects)
+    assert all(kind != "host" or method == "reject" for kind, method in kinds)
+    assert {line[3] for line in lines if line[0] == "host"} == {"0.0.0.0/0", "::/0"}
+    stubs = text.index("CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;")
+    assert stubs < text.index("CREATE ROLE lalanh_probe LOGIN") < text.index("alembic upgrade head")
 
 
 def test_the_checked_target_is_the_one_the_engine_and_tools_use(ca_file: Path) -> None:
