@@ -50,8 +50,8 @@ and the release-receipt checks of 26/10), `OWNER_DECISION`, `DEFERRED`.
 | ID | Requirement | Status | PR · head · verdict | Owner of next step | Evidence still missing |
 |---|---|---|---|---|---|
 | T01 | One asked target for frame, stance, goal, step | PARTIAL | #45 `e2e5b4c2eae8f7180f8d571a3666a38bb95154aa` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/45#issuecomment-6398062394) (integration merge plus the one-line `question_frame#function_literals` pin for the rule token "nên"; logic byte-identical to [APPROVE @ 56c0247](https://github.com/honghanh153-creator/la-lanh/pull/45#issuecomment-6397238926)). Author's runs: full API 2,456 passed / 57 skipped / 1 xfailed. Codex: fallback check, 14 probes and an independent 18/18 census · merged into integration (`d7177f2`) | Claude for the lexical/goal follow-up | still PARTIAL: lexical action signals and keyword-goal overrides; two own questions after a reason keep the first; meaning/scene and copy remain T02/T03; machine audit is not human comprehension or copy approval |
-| T02 | Scenes follow the asked action and context, observable, no hidden advice | OPEN (decided under delegation 26/10, not wired; see the r29 correction) | workbook #67 `bdf6287907c1b00dd913ccf7ce6b33a365e87526` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/67#issuecomment-6346177711) · merged into integration (`b5e4427`) as a draft, which is not copy approval (133 action×topic rows, 266 scenes); some current scenes break C4 (Ba Cốc, Tiết Chế) | owner approves copy | approval, then wiring with frozen readings kept |
-| T03 | Small step with a concrete trigger | OPEN (decided under delegation 26/10, not wired) | workbook #67 (142 action×role rows, 284 steps) | owner | same |
+| T02 | Scenes follow the asked action and context, observable, no hidden advice | OPEN (copy decided under delegation 26/10 and polished by Codex; not served; see the r29 correction) | workbook #67 `bdf6287907c1b00dd913ccf7ce6b33a365e87526` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/67#issuecomment-6346177711) · merged into integration (`b5e4427`) as a draft (133 action×topic rows, 266 scenes); decisions recorded in #85; Codex wording pass in the workbook's "Codex wording pass (26/10/2026)" section; some current scenes break C4 (Ba Cốc, Tiết Chế) | Claude: review Codex's polished lines, then a wiring PR with versioning, frozen readings and the audit (wiring PR #110 is in review) | wiring merged and released; T05 comprehension gate; no reader has seen this copy |
+| T03 | Small step with a concrete trigger | OPEN (as T02) | workbook #67 (142 action×role rows, 284 steps); decisions #85; Codex wording pass as T02 | Claude, as T02 (same wiring PR) | as T02 |
 | T04 | Card names English + Vietnamese; AC12 | RELEASED | #63 `cd692bc63845f7724de1c84eb523cbe39e4707b0` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/63#issuecomment-6346174788) · merged into integration (`bc4eea1`) | owner (order/separator); device | screen reader and long-title layout on device |
 | T05 | Meaning/comprehension rubric | OPEN | — | Claude + owner rubric | rubric and gate |
 | T06 | Extra scenes; Tarot Luna | PARTIAL | Owner wants Tarot Luna (23/10); shared Luna budget already approved. Code on `7ca22cb`: framed brief v3 / legacy brief v2, renderer v4, gates v4. Allowlist #73 `3760dcd1ebd0557139ea2d71734be7eddd5c197b` · [APPROVE @ same](https://github.com/honghanh153-creator/la-lanh/pull/73#issuecomment-6398063830) · merged into integration (`d140799`), released in `89ebdb0` (allowlist only, not enabled; #61 roster released too) | owner/operator | reader evaluation, consent/store copy, rollout, pilot, live canary receipt; extra scenes stay with T02 |
@@ -62,7 +62,7 @@ and the release-receipt checks of 26/10), `OWNER_DECISION`, `DEFERRED`.
 |---|---|---|---|---|---|
 | R01 | Context/voice change ≥ 50% of fit/friction | OPEN (gate red) | — | content R03 | — |
 | R02 | Unknown-time contacts certain on the date domain | RELEASED | #46 `780b0f7bdf8f6fbd9a4dd193257516804b7fc4d8` · APPROVE @ same · merged into integration (`465c4b6`) | — | ±14 h is the reviewed known-place path only; it does not replace the place-free §1 date-only domain |
-| R03 | Contact-specific sentences, context scenes, full-sentence voice | OPEN (decided under delegation 26/10, not wired; voice `deep_dive`) | workbook #65 `aa8bf9f44808711fc54faed5c5292afcc3bd5b68` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/65#issuecomment-6346176631) · merged into integration (`4303dec`) as a draft, which is not copy approval (560 sentences, 35 contacts × 4 contexts × 4 voices; projected AC01 43/50) | owner: approval and the voice choice (runtime has `deep_dive`, no `roast`) | AC03 needs pair-specific facts or seeded variants at wiring; AC02 needs replacing, not appending |
+| R03 | Contact-specific sentences, context scenes, full-sentence voice | OPEN (copy and the fourth voice `deep_dive` decided under delegation 26/10, polished by Codex; not wired) | workbook #65 `aa8bf9f44808711fc54faed5c5292afcc3bd5b68` · [APPROVE as a draft only](https://github.com/honghanh153-creator/la-lanh/pull/65#issuecomment-6346176631) · merged into integration (`4303dec`) as a draft (560 sentences, 35 contacts × 4 contexts × 4 voices; projected AC01 43/50); decisions recorded in #86; Codex wording pass in the workbook (37 replacements, 29 `deep_dive` lines) | Claude: review Codex's authored edits, then a wiring PR with versioning, frozen results and the audit | AC03 needs pair-specific facts or seeded variants at wiring; AC02 needs replacing, not appending; comprehension gate |
 | R04 | Range/calibration | OWNER_DECISION | spec #64 `df80d621987aaf0e3f8702b2709f133afeb58621` · APPROVE @ same · merged into integration (`f5eae3b`) (spec coherent: one outward-rounding policy). Not an approved implementation or owner policy | owner | decisions in spec §8 |
 | R05 | Variants frozen at creation; grammar manifest on real output | OPEN | — | Claude after R03 | — |
 | R06 | Release audit measures US-22 AC01–AC03 | PARTIAL | #47 `de6f666934b34f440057173134b4b5d513cb8959` · APPROVE @ same · merged into integration (`ef043da`) (closed-catalog oracle). The gate stays a strict xfail until R03 wiring; not complete | Claude after R03 | real AC01–AC03 pass on wired output |
@@ -303,14 +303,17 @@ Integration is **`010b27e92136119a79223ffca3b29fbe6df8ceef`**; `main` stays `89e
 | PR | Verdict | Notes |
 |---|---|---|
 | #105 P07 batch 2 | [APPROVE @ `17a65445f85ef54907105dea857d9516c94f10b7`](https://github.com/honghanh153-creator/la-lanh/pull/105#issuecomment-6445069855) | Base now `collab/integration`; not merged. |
-| #106 PostgreSQL probe | [REQUEST_CHANGES @ `8201ff096540ad1943b2b1aee51406032f300b7d`](https://github.com/honghanh153-creator/la-lanh/pull/106#issuecomment-6445070952) | P1: query keys such as `?database=` or `?host=` override asyncpg's target past the guard (the fixture truncates). P2: the sibling invite seed broke `principals.source_guest_id` uniqueness. P2: the procedure's fresh cluster had no TLS, but every connection verifies the server. Fixed at `442ce989b601b3fd2221995cf4c7a86451702b31` with 13 new offline cases; **awaiting re-review, never executed**. |
+| #106 PostgreSQL probe | [REQUEST_CHANGES @ `8201ff096540ad1943b2b1aee51406032f300b7d`](https://github.com/honghanh153-creator/la-lanh/pull/106#issuecomment-6445070952) | P1: query keys such as `?database=` or `?host=` override asyncpg's target past the guard (the fixture truncates). P2: the sibling invite seed broke `principals.source_guest_id` uniqueness. P2: the procedure's fresh cluster had no TLS, but every connection verifies the server. Fixed at `442ce989b601b3fd2221995cf4c7a86451702b31` with 13 new offline cases. [r46 (28/10): REQUEST_CHANGES @ `442ce98`](https://github.com/honghanh153-creator/la-lanh/pull/106#issuecomment-6446632256) (guard tests without a valid CA; `pg_hba` order), fixed at `c46a62840a530b82469618c378b164ba80fe8390`; **awaiting re-review, never executed**. |
 | #107 registry revision 28 | [APPROVE @ `7382ee2d387f61e2a7953d4a03fc33e4eaadc7b7`](https://github.com/honghanh153-creator/la-lanh/pull/107#issuecomment-6445072132) | Base now `collab/integration`; not merged; this revision is stacked on it. |
 
-**Correction, T02/T03/R03:** the rows below said "owner approves copy". The owner delegated these copy decisions on
+**Correction, T02/T03/R03:** the current rows (T02, T03 and R03 above) said "owner approves copy". The owner delegated these copy decisions on
 26/10; the decisions are recorded row by row in the workbooks (#85 T02/T03, #86 R03, merged 26/10 and part of
 `89ebdb0` as documents). T02: 129 approved, 1 rewrite, 3 dropped; T03: 139 approved, 3 rewrites; R03: fourth voice
-`deep_dive`, rewrites per voice. Nothing is wired: next are Codex's polish of the rewrite rows, then a wiring PR that
-keeps frozen readings. One careful reading is not a reader comprehension test.
+`deep_dive`, rewrites per voice. Codex's wording pass is already recorded in both workbooks (their "Codex wording pass
+(26/10/2026)" sections) and asks Claude to review the authored edits. Next, per feature: Claude's review of those edits;
+a separate wiring PR with versioning, frozen readings and the audit (T02/T03: #110, in review; R03: not started); then
+the comprehension gates (T05 for Tarot, R03's own). Nothing is served. One careful reading is not a reader
+comprehension test.
 
 **CI PASS and merges are not release Go.** A release needs an explicit owner order and the runbook gates.
 
@@ -405,13 +408,14 @@ roster and #76's copy. Staging and production smokes are green, and the backup/c
 first-run receipts ([receipt](production-release-2026-10-26/receipt.md)).
 
 Still open:
-- **Content:** T02/T03/R03 are drafts awaiting approval; T05, R05, R07 and P12 are open; the R06 strict xfail
-  remains.
+- **Content:** T02/T03/R03 copy is decided under the owner's 26/10 delegation and polished by Codex, but not served.
+  T02/T03 wiring is in review (#110). R03 waits on Claude's review of the Codex edits and on its wiring. The
+  comprehension gates (T05, R03) are open, as are R05, R07 and P12; the R06 strict xfail remains.
 - **Pilots:** the Tarot pilot is not enabled; the Daily pilot continues to its 04/11 review.
 - **Rights and devices:** the rights channel and native/device evidence are open.
 - **P07:** the interleaved replay probe, failure-alert delivery, the Supabase backup/PITR record and the erasure
   kinds not yet journaled in production (#102 batch 1 in integration, #105 batch 2 approved and not merged); the
-  disposable PostgreSQL probe (#106) is being fixed after r44 and has never run. **B holds.**
+  disposable PostgreSQL probe (#106) is being fixed after r44 and r46 and has never run. **B holds.**
 - **Operations:** a generation-off deploy (the worker-removal path) has not been exercised in a real deploy. The
   disclosure re-check for the release is open.
 - **Rollback:** `c3fab33` is not a verified rollback anchor on schema 0038.
