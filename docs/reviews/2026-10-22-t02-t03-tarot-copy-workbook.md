@@ -1,7 +1,8 @@
 # T02/T03 — Tarot copy keyed by the asked action (draft for owner review), 2026-10-22
 
-**Status: decided under owner delegation (26/10/2026); wired in the T02/T03 wiring PR (27/10/2026, renderer v8), not released.** Was: DRAFT, awaiting owner approval. Nothing in the workbook is live. It is not wired into the engine,
-`examples.py`, `roles.py`, `meaning_brief.py` or the fallback approval scope (`docs/operations/fallback-approval.json`).
+**Status: decided under owner delegation (26/10/2026); wired in the T02/T03 wiring PR (27/10/2026, renderer v8) with the Codex r47 fixes (28/10/2026), not released.** Nothing in the workbook is live until release. Was (22/10): DRAFT awaiting owner
+approval, not wired into the engine or the fallback approval scope; the wiring now lives in
+`tarot/action_copy.py`, which the fallback approval pins (`docs/operations/fallback-approval.json`).
 
 Workbook: `docs/reviews/2026-10-22-t02-t03-tarot-copy-workbook.xlsx`
 
@@ -160,3 +161,91 @@ and natal keep the old lists, and the existing negative cases still fail.
 text. No new data reaches a provider: the action label was already in the brief's stance labels.
 
 Still open: framer longest-signal collisions (finding 1), T05 comprehension check, release.
+
+## Codex r47 fixes (28/10/2026, Claude; awaiting Codex review, not released)
+
+Codex r47 ([PR #110 comment](https://github.com/honghanh153-creator/la-lanh/pull/110#issuecomment-6458291780))
+found two whole-output defects that passed every gate. Both are fixed from closed labels (the frame,
+the stance and a closed partner word list), not from a question or card whitelist, and no gate was
+loosened. Versions stay `tarot-renderer-v8` / `tarot-knowledge-v6` / `tarot-action-copy-v1`:
+nothing has been released or stored under them.
+
+**1. The step agrees with the stance** (`action_copy.plan_step`). The stance is decided from the drawn
+cards before any prose, then the step role shows:
+
+| Reading | Step | Scene |
+|---|---|---|
+| yes/no leaning "thử" (LEAN_TRY), or how / why / open | the action's own step (as wired 27/10) | the action's scene |
+| yes/no "cân nhắc thêm" (CONSIDER) or "kéo về hai phía" (UNCLEAR), or "khi nào" (timing) | the action's **preparation step** (below) | the action's scene |
+| the same, for a self-care or boundary action (`stance.SELF_CARE_ACTIONS`) | the action's own step (owner decision 2026-10-19: never discourage rest or a boundary) | the action's scene |
+| a choice the cards settle | the chosen option's step | the chosen option's scene |
+| a choice the cards do not settle | the **choice step** (names neither option) | the card's scene |
+
+In Roast, a reading whose cards ask for care uses only the two existing lead-ins that do not urge
+acting now ("Bài tập nhỏ, khỏi gồng:", "Một nước đi gọn gàng:"); "Thôi nào, làm liền:", "Chốt kèo
+nhỏ này nha:" and "Làm thử cho biết nè:" stay for readings that lean toward trying. No new lead-in.
+
+New copy for Codex review, 24 preparation steps and 1 choice step (`PREP_STEPS`):
+
+| Key | Step |
+|---|---|
+| nhan_loi | Trước khi trả lời lời mời, mở lịch và ghi ra một việc bị lùi lại nếu bạn nhận lời. |
+| noi_ra | Viết điều bạn muốn nói thành một câu, để qua một đêm và sáng mai đọc lại xem còn đúng ý không. |
+| nhan_lai | Gõ tin bạn định gửi vào ghi chú, ba mươi phút sau đọc lại rồi mới chọn gửi hay sửa. |
+| hoi_lai | Ghi ra đúng một chỗ bạn chưa hiểu, kèm điều bạn đang đoán về chỗ đó, trước khi nhắn hỏi. |
+| cho_them | Ghi vào lịch một ngày để xem lại chuyện này, và đến ngày đó mới chốt chờ tiếp hay thôi. |
+| bat_dau | Ghi ra một thứ cần có sẵn để bắt đầu, như giờ rảnh hay dụng cụ, và kiểm xem đã có chưa. |
+| doi_viec | Trong mười phút, ghi ra hai điều bạn muốn giữ ở công việc hiện tại và hai điều bạn muốn đổi. |
+| xin_gop_y | Đánh dấu đúng một phần bạn muốn được góp ý, và viết một câu hỏi cụ thể cho phần đó. |
+| gui_di | Đọc lại bản này một lượt và ghi ra một điều bạn muốn người nhận hiểu đúng nhất. |
+| xin_loi | Viết câu xin lỗi vào ghi chú, đọc to một lần, rồi gạch bớt những chữ đang biện minh. |
+| hen_gap | Mở lịch và khoanh hai khung giờ bạn thật sự rảnh, chưa cần nhắn rủ ngay. |
+| chia_se | Viết ra một câu bạn muốn kể và một phần bạn muốn giữ riêng, trước khi kể với ai. |
+| ket_thuc | Viết hai cột, điều chuyện này còn cho bạn và điều nó không còn đáp ứng, rồi để đó một ngày. |
+| thu_lai | Ghi ra điều khiến lần trước chưa ổn và một chi tiết bạn đổi được ở lần này. |
+| hoc_them | Ghi ra bạn muốn học để làm gì trong một câu, rồi xem bài đầu mà chưa đăng ký khóa nào. |
+| tap_trung | Ghi ra ba việc đang kéo sự chú ý của bạn, và khoanh việc nào xong thì các việc kia nhẹ đi. |
+| sap_xep_lai | Mở lịch tuần này và đánh dấu những ngày đang dồn việc, chưa cần dời việc nào. |
+| gop_y | Viết góp ý bạn định nói ra giấy, giữ ý về việc làm và gạch những ý nói về con người. |
+| de_xuat | Viết đề xuất thành ba dòng, vấn đề, cách làm, bước đầu, rồi đọc lại xem dòng nào còn thiếu. |
+| don_dep | Đi một vòng và ghi ra góc bạn muốn dùng lại trước tiên, chưa cần dọn ngay. |
+| ra_ngoai | Ghi ra bạn muốn ra ngoài để làm gì, gặp người hay đổi không khí, rồi chọn một chỗ gần nhà. |
+| o_nha | Ghi ra điều bạn cần nhất tối nay, nghỉ hay gặp người, trước khi trả lời lời rủ. |
+| doi_thoi_quen | Ghi ra lúc thói quen cũ hay bắt đầu và việc bạn thường làm ngay trước đó. |
+| viet_ra | Ghi một dòng về điều đang chiếm đầu bạn nhất, chưa cần viết hết mọi thứ. |
+| choice | Viết hai lựa chọn thành hai cột, dưới mỗi cột ghi điều bạn được và điều bạn lo nhất. |
+
+**2. No presumed partner or event.** Ten of the 19 topic openings presumed something the closed
+labels do not establish; they now read event-neutral:
+
+| Action × topic | 27/10 | Now | Why |
+|---|---|---|---|
+| nhan_lai × relationships | Mở lời: “Hôm qua đi chơi với bạn vui lắm, cảm ơn bạn nhé.” | Mở lời: “Mình đọc tin rồi, giờ mình nhắn lại đây.” | invented an outing (Codex r47) |
+| nhan_lai × communication | Mở lời: “Hình như mình nói chưa rõ, ý mình là…” | Mở lời: “Mình nhắn lại về chuyện lúc trước, mình muốn nói thêm một chút.” | assumed the reader had been unclear |
+| bat_dau × relationships | Mở lời: “Hôm trước nói chuyện với bạn vui ghê, cuối tuần này mình đi cà phê nhé?” | Mở lời: “Mình muốn cùng bạn bắt đầu một việc nhỏ, bạn nghe mình kể nhé?” | assumed an earlier talk and a café date |
+| xin_gop_y × relationships | Mở lời: “Mình muốn nghe bạn nghĩ thật về chuyện tình cảm của mình, bạn nói thẳng giúp mình nhé.” | Mở lời: “Mình muốn nghe bạn nghĩ thật về chuyện này, bạn nói thẳng giúp mình nhé.” | assumed a romance ("chuyện tình cảm") |
+| gui_di × relationships | Mở lời: “Mình có món quà nhỏ muốn gửi bạn, bạn nhận giúp mình nhé.” | Mở lời: “Mình có cái này muốn gửi bạn, bạn xem khi tiện nhé.” | assumed a gift |
+| xin_loi × general, work | Mở lời: “Mình xin lỗi về chuyện hôm trước, phần đó là lỗi của mình. Mình muốn nghe bạn nói.” | Mở lời: “Mình xin lỗi về chuyện vừa rồi, phần đó là lỗi của mình. Mình muốn nghe bạn nói.” | "hôm trước" assumed when it happened (work row too) |
+| dat_ranh_gioi × energy | Mở lời: “Tuần này mình chỉ gặp được một buổi, mình hẹn bạn hôm khác nhé.” | Mở lời: “Dạo này mình cần nghỉ nhiều hơn, tuần này mình chỉ nhận một buổi gặp thôi nhé.” | assumed plans already made |
+| thu_lai × relationships | Mở lời: “Lâu rồi mình chưa hỏi thăm bạn, dạo này bạn thế nào?” | Mở lời: “Mình muốn thử nói chuyện lại một lần nữa, bạn cho mình vài phút nhé?” | assumed a long silence |
+| sap_xep_lai × self_care | Mở lời: “Cuối tuần này mình dọn lại phòng, bạn giúp mình một tay được không?” | Mở lời: “Mình đang xếp lại lịch tuần này cho đỡ dồn, mình dời việc này sang hôm khác được không?” | assumed tidying a room |
+| de_xuat × relationships | Mở lời: “Mình có một cách chia việc khác, bạn nghe mình nói hai phút nhé?” | Mở lời: “Mình có một ý muốn đề xuất, bạn nghe mình nói hai phút nhé?” | assumed shared chores |
+
+The other nine openings were reread and kept (they propose a future behaviour; none presumes a
+past event or a partner).
+
+Relationships also covers family and friends. Sixteen decided relationships scenes presume a
+romantic partner or a date (bat_dau, chia_se, doi_thoi_quen, dung_lai, gop_y, hen_gap, hoi_lai, ket_thuc, nhan_lai, nhan_loi, nho_giup, noi_ra, o_nha, sap_xep_lai, thu_lai, tu_choi); they now show only when the question names a partner
+(`question_frame.PARTNER_SIGNALS`: người yêu, người ấy, người cũ, crush, bạn trai, bạn gái, vợ, chồng,
+ny, nửa kia, hẹn hò, buổi hẹn, tỏ tình). Otherwise the action's `general` scene stands in, as for the
+dropped rows. A test keeps that list equal to the rows with a partner word, with two hand-reviewed
+exceptions each way. Limitation: the `general` scene is a different everyday vignette (for "nhắn lại
+cho mẹ" it shows a friend's unanswered message); family-specific scenes would be new copy.
+
+**Luna provenance.** Preparation and choice steps trace to closed codes `prep.<key>`; the general
+fallback scene traces to `act.<action>.general`. The partner word is read only at render time and
+never leaves the engine; the provider sees only which closed code was chosen.
+
+**Frozen readings.** A literal reading persisted under renderer v7 (rendered at `010b27e`, the root
+bug: the dating scene) is a test fixture; the service returns it byte for byte.
+

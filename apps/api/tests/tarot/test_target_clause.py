@@ -112,9 +112,13 @@ def test_stance_and_step_answer_the_same_target(
     if action in stance.SELF_CARE_ACTIONS:
         assert reading.stance.level is not TarotStanceLevel.CONSIDER
     step = reading.positions[-1]
-    # T02/T03: the asked action's own step answers first; the goal step is the fallback.
+    # T02/T03: the asked action's own step answers first; the goal step is the fallback. Codex
+    # r47: when the cards ask for more care first, the step prepares the action instead.
     goal_step = goal_action(goal_by_key(goal), step.key) if goal != "general" else None
-    expected = action_copy.action_step(action, step.key, topic) or goal_step
+    if reading.stance.level is TarotStanceLevel.CONSIDER:
+        expected: str | None = action_copy.PREP_STEPS[action.value]
+    else:
+        expected = action_copy.action_step(action, step.key, topic) or goal_step
     if expected is not None:
         assert step.small_action is not None and step.small_action.endswith(expected)
     assert [key for key, _ in _POSITIONS[spread_map]] == [p.key for p in reading.positions]

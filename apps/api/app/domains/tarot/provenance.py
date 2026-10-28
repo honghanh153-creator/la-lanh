@@ -58,6 +58,8 @@ _GOAL_CODE = re.compile(r"^goal\.(?P<key>[a-z_]{2,20})$")
 # T02/T03: the asked action's scene or step, with the frame topic it was chosen for.
 _ACTION_CODE = re.compile(r"^act\.(?P<action>[a-z_]{2,20})\.(?P<topic>[a-z_]{2,20})$")
 _ACTION_CODES = tuple(f"act.{a.value}.{t.value}" for a in TarotAction for t in TarotContext)
+# Codex r47: the preparation step of an action, or the step of an unsettled choice.
+_PREP_CODES = tuple(f"prep.{key}" for key in action_copy.PREP_STEPS)
 
 
 def _action_code(code: str) -> tuple[TarotAction, TarotContext]:
@@ -138,6 +140,8 @@ def resolve_action(code: str | None, *, position_key: str, card_id: str, topic: 
         return None
     if code == "card":
         return roles.action_for(_CardMeaning.for_context(card_by_id(card_id), topic).resource)
+    if code.startswith("prep."):
+        return action_copy.PREP_STEPS[code.removeprefix("prep.")]
     if code.startswith("act."):
         asked, asked_topic = _action_code(code)
         step = action_copy.action_step(asked, position_key, asked_topic)
@@ -223,6 +227,7 @@ def position_source(
         # Closed labels only: every action x topic code is tried, nothing is read from the text.
         action_codes = [
             *(c for c in _ACTION_CODES if _has_step(c, key)),
+            *_PREP_CODES,
             *(f"goal.{k}" for k in goal_keys if goal_action(goal_by_key(k), key) is not None),
             "card",
         ]

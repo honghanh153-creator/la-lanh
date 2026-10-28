@@ -9,12 +9,27 @@ action's scene for the frame's topic (else the action's ``general`` scene) and t
 for that role. Any other position, a frame without an action and an action without a row keep
 the card x topic scene and the goal or card step, as before. Stored readings keep their text.
 
+Codex r47 (whole-output composition): the step agrees with the reading's stance (plan_step and
+PREP_STEPS), and relationships scenes that presume a partner show only when the question names
+one (PARTNER_SCENES). Openings presume no event the closed labels do not establish.
+
 New copy here needs owner approval; the module is in the fallback approval scope.
 """
 
 from __future__ import annotations
 
-from app.domains.tarot.models import TarotAction, TarotContext
+from dataclasses import dataclass
+from enum import StrEnum
+
+from app.domains.tarot.models import (
+    QuestionFrame,
+    TarotAction,
+    TarotContext,
+    TarotQuestionForm,
+    TarotStance,
+    TarotStanceLevel,
+)
+from app.domains.tarot.stance import SELF_CARE_ACTIONS
 
 ACTION_COPY_VERSION = "tarot-action-copy-v1"
 
@@ -858,39 +873,35 @@ ACTION_STEPS: dict[tuple[str, str], str] = {
 # Wiring condition 1 of the delegated decision: an opening must read naturally for every topic of
 # its action. These topics get their own opening (authored in the wiring PR, Claude, 27/10/2026).
 ACTION_OPENINGS_BY_TOPIC: dict[tuple[str, str], str] = {
-    ("nhan_lai", "relationships"): "Mở lời: “Hôm qua đi chơi với bạn vui lắm, cảm ơn bạn nhé.”",
-    ("nhan_lai", "communication"): "Mở lời: “Hình như mình nói chưa rõ, ý mình là…”",
+    ("nhan_lai", "relationships"): "Mở lời: “Mình đọc tin rồi, giờ mình nhắn lại đây.”",
+    ("nhan_lai", "communication"): (
+        "Mở lời: “Mình nhắn lại về chuyện lúc trước, mình muốn nói thêm một chút.”"
+    ),
     ("cho_them", "relationships"): (
         "Mở lời: “Mình cần chút thời gian để nghĩ, vài hôm nữa mình nhắn bạn nhé.”"
     ),
     ("bat_dau", "relationships"): (
-        "Mở lời: “Hôm trước nói chuyện với bạn vui ghê, cuối tuần này mình đi cà phê nhé?”"
+        "Mở lời: “Mình muốn cùng bạn bắt đầu một việc nhỏ, bạn nghe mình kể nhé?”"
     ),
     ("bat_dau", "self_care"): (
         "Mở lời: “Mỗi sáng mình giữ mười phút cho riêng mình, lúc đó mình chưa trả lời tin "
         "nhắn nhé.”"
     ),
     ("xin_gop_y", "relationships"): (
-        "Mở lời: “Mình muốn nghe bạn nghĩ thật về chuyện tình cảm của mình, bạn nói thẳng giúp "
-        "mình nhé.”"
+        "Mở lời: “Mình muốn nghe bạn nghĩ thật về chuyện này, bạn nói thẳng giúp mình nhé.”"
     ),
-    (
-        "gui_di",
-        "relationships",
-    ): "Mở lời: “Mình có món quà nhỏ muốn gửi bạn, bạn nhận giúp mình nhé.”",
+    ("gui_di", "relationships"): "Mở lời: “Mình có cái này muốn gửi bạn, bạn xem khi tiện nhé.”",
     ("xin_loi", "general"): (
-        "Mở lời: “Mình xin lỗi về chuyện hôm trước, phần đó là lỗi của mình. Mình muốn nghe bạn "
-        "nói.”"
+        "Mở lời: “Mình xin lỗi về chuyện vừa rồi, phần đó là lỗi của mình. Mình muốn nghe bạn nói.”"
     ),
     ("xin_loi", "work"): (
-        "Mở lời: “Mình xin lỗi về chuyện hôm trước, phần đó là lỗi của mình. Mình muốn nghe bạn "
-        "nói.”"
+        "Mở lời: “Mình xin lỗi về chuyện vừa rồi, phần đó là lỗi của mình. Mình muốn nghe bạn nói.”"
     ),
     ("dat_ranh_gioi", "work"): (
         "Mở lời: “Ngoài giờ làm mình ít xem tin nhắn, việc gấp thì bạn gọi mình nhé.”"
     ),
     ("dat_ranh_gioi", "energy"): (
-        "Mở lời: “Tuần này mình chỉ gặp được một buổi, mình hẹn bạn hôm khác nhé.”"
+        "Mở lời: “Dạo này mình cần nghỉ nhiều hơn, tuần này mình chỉ nhận một buổi gặp thôi nhé.”"
     ),
     ("dat_ranh_gioi", "self_care"): (
         "Mở lời: “Dạo này mình cần giữ khoảng cách một chút, mình nói trước để bạn biết.”"
@@ -898,7 +909,9 @@ ACTION_OPENINGS_BY_TOPIC: dict[tuple[str, str], str] = {
     ("thu_lai", "general"): (
         "Mở lời: “Mình định thử lại chuyện này lần nữa, bạn nhắc mình giữ lời nhé?”"
     ),
-    ("thu_lai", "relationships"): "Mở lời: “Lâu rồi mình chưa hỏi thăm bạn, dạo này bạn thế nào?”",
+    ("thu_lai", "relationships"): (
+        "Mở lời: “Mình muốn thử nói chuyện lại một lần nữa, bạn cho mình vài phút nhé?”"
+    ),
     ("thu_lai", "work"): (
         "Mở lời: “Mình định thử lại chuyện này lần nữa, bạn nhắc mình giữ lời nhé?”"
     ),
@@ -910,22 +923,170 @@ ACTION_OPENINGS_BY_TOPIC: dict[tuple[str, str], str] = {
         "nhé.”"
     ),
     ("sap_xep_lai", "self_care"): (
-        "Mở lời: “Cuối tuần này mình dọn lại phòng, bạn giúp mình một tay được không?”"
+        "Mở lời: “Mình đang xếp lại lịch tuần này cho đỡ dồn, mình dời việc này sang hôm khác "
+        "được không?”"
     ),
     ("de_xuat", "relationships"): (
-        "Mở lời: “Mình có một cách chia việc khác, bạn nghe mình nói hai phút nhé?”"
+        "Mở lời: “Mình có một ý muốn đề xuất, bạn nghe mình nói hai phút nhé?”"
     ),
 }
 
+# Scene rows that presume a romantic partner or a date ("người yêu", "người cũ", a first
+# coffee, "buổi hẹn"). The relationships topic also covers family and friends, so these rows show
+# only when the question names a partner (question_frame.names_partner); otherwise the action's
+# ``general`` row stands in. Codex r47: the scene must not invent who the other person is.
+PARTNER_SCENES: frozenset[tuple[str, str]] = frozenset(
+    (action, "relationships")
+    for action in (
+        "bat_dau",
+        "chia_se",
+        "doi_thoi_quen",
+        "dung_lai",
+        "gop_y",
+        "hen_gap",
+        "hoi_lai",
+        "ket_thuc",
+        "nhan_lai",
+        "nhan_loi",
+        "nho_giup",
+        "noi_ra",
+        "o_nha",
+        "sap_xep_lai",
+        "thu_lai",
+        "tu_choi",
+    )
+)
 
-def action_scene(action: TarotAction | None, topic: TarotContext) -> str | None:
-    """The action's scene for the topic, else its ``general`` scene; None without an action."""
+# Preparation steps (Codex r47): when the cards ask for more care ("cân nhắc thêm"), pull two
+# ways or answer a "when" question with what to have ready, the step role prepares the asked
+# action instead of carrying it out. Self-care and boundary actions keep their own step
+# (stance.SELF_CARE_ACTIONS, owner decision 2026-10-19). "choice" is the step of a two-option
+# question the cards do not settle: it names neither option.
+PREP_STEPS: dict[str, str] = {
+    "nhan_loi": (
+        "Trước khi trả lời lời mời, mở lịch và ghi ra một việc bị lùi lại nếu bạn nhận lời."
+    ),
+    "noi_ra": (
+        "Viết điều bạn muốn nói thành một câu, để qua một đêm và sáng mai đọc lại xem còn đúng ý "
+        "không."
+    ),
+    "nhan_lai": (
+        "Gõ tin bạn định gửi vào ghi chú, ba mươi phút sau đọc lại rồi mới chọn gửi hay sửa."
+    ),
+    "hoi_lai": (
+        "Ghi ra đúng một chỗ bạn chưa hiểu, kèm điều bạn đang đoán về chỗ đó, trước khi nhắn hỏi."
+    ),
+    "cho_them": (
+        "Ghi vào lịch một ngày để xem lại chuyện này, và đến ngày đó mới chốt chờ tiếp hay thôi."
+    ),
+    "bat_dau": (
+        "Ghi ra một thứ cần có sẵn để bắt đầu, như giờ rảnh hay dụng cụ, và kiểm xem đã có chưa."
+    ),
+    "doi_viec": (
+        "Trong mười phút, ghi ra hai điều bạn muốn giữ ở công việc hiện tại và hai điều bạn muốn "
+        "đổi."
+    ),
+    "xin_gop_y": (
+        "Đánh dấu đúng một phần bạn muốn được góp ý, và viết một câu hỏi cụ thể cho phần đó."
+    ),
+    "gui_di": "Đọc lại bản này một lượt và ghi ra một điều bạn muốn người nhận hiểu đúng nhất.",
+    "xin_loi": (
+        "Viết câu xin lỗi vào ghi chú, đọc to một lần, rồi gạch bớt những chữ đang biện minh."
+    ),
+    "hen_gap": "Mở lịch và khoanh hai khung giờ bạn thật sự rảnh, chưa cần nhắn rủ ngay.",
+    "chia_se": ("Viết ra một câu bạn muốn kể và một phần bạn muốn giữ riêng, trước khi kể với ai."),
+    "ket_thuc": (
+        "Viết hai cột, điều chuyện này còn cho bạn và điều nó không còn đáp ứng, rồi để đó một "
+        "ngày."
+    ),
+    "thu_lai": "Ghi ra điều khiến lần trước chưa ổn và một chi tiết bạn đổi được ở lần này.",
+    "hoc_them": (
+        "Ghi ra bạn muốn học để làm gì trong một câu, rồi xem bài đầu mà chưa đăng ký khóa nào."
+    ),
+    "tap_trung": (
+        "Ghi ra ba việc đang kéo sự chú ý của bạn, và khoanh việc nào xong thì các việc kia nhẹ đi."
+    ),
+    "sap_xep_lai": "Mở lịch tuần này và đánh dấu những ngày đang dồn việc, chưa cần dời việc nào.",
+    "gop_y": (
+        "Viết góp ý bạn định nói ra giấy, giữ ý về việc làm và gạch những ý nói về con người."
+    ),
+    "de_xuat": (
+        "Viết đề xuất thành ba dòng, vấn đề, cách làm, bước đầu, rồi đọc lại xem dòng nào còn "
+        "thiếu."
+    ),
+    "don_dep": "Đi một vòng và ghi ra góc bạn muốn dùng lại trước tiên, chưa cần dọn ngay.",
+    "ra_ngoai": (
+        "Ghi ra bạn muốn ra ngoài để làm gì, gặp người hay đổi không khí, rồi chọn một chỗ gần nhà."
+    ),
+    "o_nha": "Ghi ra điều bạn cần nhất tối nay, nghỉ hay gặp người, trước khi trả lời lời rủ.",
+    "doi_thoi_quen": "Ghi ra lúc thói quen cũ hay bắt đầu và việc bạn thường làm ngay trước đó.",
+    "viet_ra": "Ghi một dòng về điều đang chiếm đầu bạn nhất, chưa cần viết hết mọi thứ.",
+    "choice": (
+        "Viết hai lựa chọn thành hai cột, dưới mỗi cột ghi điều bạn được và điều bạn lo nhất."
+    ),
+}
+CHOICE_STEP = "choice"
+
+
+class StepMode(StrEnum):
+    ACT = "act"  # the asked action's own step
+    PREPARE = "prepare"  # a preparation step for the same action
+    CHOOSE = "choose"  # a two-option question the cards do not settle
+
+
+@dataclass(frozen=True)
+class StepPlan:
+    """What the step role says, decided from closed labels: the frame and the stance."""
+
+    action: TarotAction | None
+    mode: StepMode
+    cautious: bool  # the cards ask for care first: no "do it now" lead-in either
+
+
+_CAUTIOUS = frozenset(
+    {TarotStanceLevel.CONSIDER, TarotStanceLevel.UNCLEAR, TarotStanceLevel.CLARIFY_CHOICE}
+)
+
+
+def plan_step(frame: QuestionFrame | None, reading_stance: TarotStance | None) -> StepPlan:
+    """The step role's copy for the whole reading (Codex r47): the asked action's step only when
+    the reading leans toward trying it or the question asks how; a preparation step when the
+    cards ask for care, pull two ways or the question asks when; for a choice, the chosen
+    option's step, or a step that names neither option when the cards do not choose."""
+
+    if frame is None:
+        return StepPlan(None, StepMode.ACT, cautious=False)
+    cautious = frame.form is TarotQuestionForm.TIMING or (
+        reading_stance is not None and reading_stance.level in _CAUTIOUS
+    )
+    if frame.form is TarotQuestionForm.CHOICE:
+        if (
+            reading_stance is not None
+            and reading_stance.level is TarotStanceLevel.LEAN_TRY
+            and reading_stance.action is not None
+        ):
+            return StepPlan(reading_stance.action, StepMode.ACT, cautious=False)
+        mode = StepMode.CHOOSE if frame.action is not None else StepMode.ACT
+        return StepPlan(None, mode, cautious)
+    action = frame.action
+    if action is None or action in SELF_CARE_ACTIONS or not cautious:
+        return StepPlan(action, StepMode.ACT, cautious)
+    return StepPlan(action, StepMode.PREPARE, cautious)
+
+
+def action_scene(
+    action: TarotAction | None, topic: TarotContext, *, partner: bool = True
+) -> str | None:
+    """The action's scene for the topic, else its ``general`` scene; None without an action.
+
+    ``partner`` False (the question names no partner) skips the rows in PARTNER_SCENES."""
 
     if action is None:
         return None
-    return ACTION_SCENES.get((action.value, topic.value)) or ACTION_SCENES.get(
-        (action.value, TarotContext.GENERAL.value)
-    )
+    key = (action.value, topic.value)
+    if not partner and key in PARTNER_SCENES:
+        key = (action.value, TarotContext.GENERAL.value)
+    return ACTION_SCENES.get(key) or ACTION_SCENES.get((action.value, TarotContext.GENERAL.value))
 
 
 def action_step(action: TarotAction | None, role: str, topic: TarotContext) -> str | None:

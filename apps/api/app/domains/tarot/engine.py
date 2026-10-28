@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from app.domains.readings.review_agent import (
@@ -174,15 +175,23 @@ _HIGH_STAKES = re.compile(
 def _position_views(
     positions: tuple[TarotReadingPosition, ...], context: TarotContext
 ) -> list[stance.PositionView]:
+    return _views_for(((p.key, p.label, p.card) for p in positions), context)
+
+
+def _views_for(
+    entries: Iterable[tuple[str, str, TarotCard]], context: TarotContext
+) -> list[stance.PositionView]:
+    """Stance views from the drawn cards alone: the lean never depends on the rendered prose."""
+
     views = []
-    for position in positions:
-        meaning = _CardMeaning.for_context(position.card, context)
+    for key, label, card in entries:
+        meaning = _CardMeaning.for_context(card, context)
         views.append(
             stance.PositionView(
-                key=position.key,
-                label=position.label,
-                card_id=position.card.id,
-                title=position.card.title_vi,
+                key=key,
+                label=label,
+                card_id=card.id,
+                title=card.title_vi,
                 core=meaning.core,
                 tension=_tension_parts(meaning.tension)[0],
                 resource=_resource_step(meaning.resource),
@@ -384,6 +393,28 @@ class TarotReadingEngine:
         goal_question = question_frame.goal_text(assessment.normalized_question, frame_version)
         goals = question_goals(goal_question, context)
         used_tails: set[str] = set()
+        reading_stance = None
+        step_plan = action_copy.plan_step(None, None)
+        partner = question_frame.names_partner(assessment.normalized_question)
+        if frame is not None:
+            # B2-3 lean (AC08-AC11), decided from the drawn cards before any prose, so the step
+            # role can agree with it (Codex r47).
+            try:
+                drawn = [card_by_id(card_id) for card_id in card_ids]
+            except KeyError as exc:
+                raise TarotContentRejected("unknown card") from exc
+            reading_stance = stance.stance_for(
+                frame.form,
+                frame.action,
+                assessment.normalized_question,
+                frame.topic,
+                _views_for(
+                    ((k, lbl, c) for (k, lbl), c in zip(positions, drawn, strict=True)), context
+                ),
+                roast=roast_copy,
+                asked_clause=frame.version == QUESTION_FRAME_VERSION,
+            )
+            step_plan = action_copy.plan_step(frame, reading_stance)
         for index, ((key, label), card_id) in enumerate(zip(positions, card_ids, strict=True)):
             try:
                 card = card_by_id(card_id)
@@ -415,6 +446,8 @@ class TarotReadingEngine:
                         lead=roles.lead_for(frame.form, chosen.lead, index),
                         roast_copy=roast_copy,
                         frame=frame,
+                        step_plan=step_plan,
+                        partner=partner,
                     )
                 )
                 continue
@@ -453,7 +486,6 @@ class TarotReadingEngine:
                     small_action=action,
                 )
             )
-        reading_stance = None
         reserve = (
             len(question_frame.READINESS_NOTE.split())
             if frame is not None and frame.form is TarotQuestionForm.TIMING
@@ -462,15 +494,6 @@ class TarotReadingEngine:
         if frame is not None:
             # B2-3: lean, a summary that links the roles, and a dynamic headline (AC08-AC11).
             views = _position_views(tuple(rendered), context)
-            reading_stance = stance.stance_for(
-                frame.form,
-                frame.action,
-                assessment.normalized_question,
-                frame.topic,
-                views,
-                roast=roast_copy,
-                asked_clause=frame.version == QUESTION_FRAME_VERSION,
-            )
             lead = tuple(goal.meaning for goal in goals if goal.key != "general")
             summary = stance.linked_summary(views, lead, reserve, roast=roast_copy)
         else:
@@ -556,11 +579,14 @@ class TarotReadingEngine:
         lead: str | None = None,
         roast_copy: bool = False,
         frame: QuestionFrame | None = None,
+        step_plan: action_copy.StepPlan | None = None,
+        partner: bool = True,
     ) -> TarotReadingPosition:
         """One position read by its role (US-20 AC07, AC12): the role's card field in the
         session's frame after the question form's lead (AC15, AC16, AC19), a scene without a
         duplicate "Ví dụ:" label, and an action only on a step role. At the step role, a
-        frame's action brings its own scene and step (T02/T03, action_copy.py)."""
+        frame's action brings its own scene and a step that agrees with the stance (T02/T03,
+        Codex r47; ``step_plan`` from action_copy.plan_step)."""
 
         tension, _ = _tension_parts(meaning.tension)
         text = roles.meaning_for(
@@ -584,15 +610,23 @@ class TarotReadingEngine:
         scene = card_scene(card.id, context)
         action: str | None = None
         if key in roles.STEP_ROLES:
-            asked = frame.action if frame is not None else None
+            plan = step_plan or action_copy.plan_step(frame, None)
             topic = frame.topic if frame is not None else context
-            scene = action_copy.action_scene(asked, topic) or scene
-            step = (
-                action_copy.action_step(asked, key, topic)
-                or goal_step
-                or roles.action_for(meaning.resource)
-            )
-            action = f"{action_frame(index, context)} {step}" if voice is TarotVoice.ROAST else step
+            scene = action_copy.action_scene(plan.action, topic, partner=partner) or scene
+            if plan.mode is action_copy.StepMode.PREPARE and plan.action is not None:
+                step = action_copy.PREP_STEPS[plan.action.value]
+            elif plan.mode is action_copy.StepMode.CHOOSE:
+                step = action_copy.PREP_STEPS[action_copy.CHOICE_STEP]
+            else:
+                step = (
+                    action_copy.action_step(plan.action, key, topic)
+                    or goal_step
+                    or roles.action_for(meaning.resource)
+                )
+            if voice is TarotVoice.ROAST:
+                action = f"{action_frame(index, context, cautious=plan.cautious)} {step}"
+            else:
+                action = step
         return TarotReadingPosition(
             key=key,
             label=label,

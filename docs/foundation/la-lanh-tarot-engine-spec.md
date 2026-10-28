@@ -77,7 +77,10 @@ birth data, or report evidence in the URL.
     gentle opener and tails. Sensitive questions still render the default voice.
   - Framed readings record `tarot-renderer-v8`, `tarot-knowledge-v6`, `tarot-gates-v5` (v7 / v5 until
     T02/T03, 27/10/2026: the asked action's scene and step at the step role, `tarot/action_copy.py`); sessions
-    without a frame keep v6 / v4 / v4 byte for byte. Provenance version fields have no defaults.
+    without a frame keep v6 / v4 / v4 byte for byte. The step agrees with the stance (Codex r47,
+    `action_copy.plan_step`): a preparation step when the cards ask for care, pull two ways or the
+    question asks when; the chosen option's step, or a step naming neither option, for a choice.
+    Relationships scenes that presume a partner need a partner word in the question. Provenance version fields have no defaults.
 - B2-4b (`docs/plans/2026-10-18-b2-4b-tarot-provenance-task.md`), framed sessions only:
   - The Luna payload uses meaning brief v3: closed labels (topic, intent, spread map, goal codes, stance
     kind/level/action/options) and, on every position, the catalog codes its texts resolve from. The

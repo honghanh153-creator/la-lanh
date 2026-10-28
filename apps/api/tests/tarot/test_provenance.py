@@ -435,3 +435,47 @@ def test_ac06_omitted_optional_codes_resolve_as_null() -> None:
         position["source"].pop("lead")  # a lead that is present must still match the text
     untraced = _untraced(stripped)
     assert untraced and all(path.endswith("meaning_here") for path in untraced)
+
+
+@pytest.mark.parametrize(
+    ("question", "context", "cards", "scene", "action"),
+    [
+        # CONSIDER: the step prepares the asked action.
+        ("Mình có nên gửi bản thảo này đi không?", TarotContext.WORK, ("major-hermit",),
+         "act.gui_di.work", "prep.gui_di"),
+        # No partner named: the partner-only relationships scene gives way to the general row.
+        ("Mình có nên nhắn lại cho mẹ sau lần cãi nhau không?", TarotContext.RELATIONSHIPS,
+         ("major-sun", "major-star", "wands-8", "cups-9", "pentacles-8"),
+         "act.nhan_lai.general", "act.nhan_lai.relationships"),
+        # A choice the cards do not settle: a step that names neither option, the card scene.
+        ("Mình nên nhắn lại hay chờ thêm?", TarotContext.RELATIONSHIPS,
+         ("major-hermit", "major-sun", "wands-8", "cups-9", "pentacles-8"), None, "prep.choice"),
+    ],
+)  # fmt: skip
+def test_r47_steps_and_scenes_trace_to_closed_codes(
+    question: str,
+    context: TarotContext,
+    cards: tuple[str, ...],
+    scene: str | None,
+    action: str,
+) -> None:
+    """Codex r47: preparation and choice steps and the general fallback scene are rebuilt from
+    closed codes; Tarot Luna would otherwise fail closed on these readings."""
+
+    assessment = ENGINE.assess_question(question, context)
+    assert assessment.frame is not None
+    reading = ENGINE.render(
+        card_ids=cards,
+        spread=SPREAD[len(cards)],
+        context=context,
+        question=question,
+        voice=TarotVoice.STRAIGHT_WARM,
+        question_intent=assessment.intent,
+        frame=assessment.frame,
+    )
+    payload = _payload(reading)
+    step = payload["positions"][-1]
+    assert (step["source"]["scene"], step["source"]["action"]) == (scene, action)
+    assert step["small_action"] == reading.positions[-1].small_action
+    assert _untraced(payload) == []
+    assert "mẹ" not in json.dumps(payload, ensure_ascii=False)

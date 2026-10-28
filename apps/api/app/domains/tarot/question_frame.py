@@ -481,6 +481,32 @@ def score_topic(question: str, chosen: TarotContext) -> TarotContext:
     return next(topic for topic in TarotContext if scores.get(topic) == best)
 
 
+# A romantic partner named in the question (Codex r47). The relationships topic also covers
+# family and friends, so scene rows that presume a partner (action_copy.PARTNER_SCENES) need one
+# of these words. Read once at render time; only the resulting closed scene code leaves the
+# engine, never the word.
+PARTNER_SIGNALS: tuple[str, ...] = (
+    "người yêu",
+    "người ấy",
+    "người cũ",
+    "crush",
+    "bạn trai",
+    "bạn gái",
+    "vợ",
+    "chồng",
+    "ny",
+    "nửa kia",
+    "hẹn hò",
+    "buổi hẹn",
+    "tỏ tình",
+)
+
+
+def names_partner(question: str) -> bool:
+    text = fold(question)
+    return any(_has(text, phrase) for phrase in PARTNER_SIGNALS)
+
+
 # ---------------------------------------------------------------- action (closed labels)
 
 _ACTION_SIGNALS: tuple[tuple[TarotAction, tuple[str, ...]], ...] = (
