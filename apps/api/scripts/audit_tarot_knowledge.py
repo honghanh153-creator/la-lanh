@@ -241,6 +241,12 @@ AUDIT_OWNERS = uuid.UUID("6f1c0b4e-7a1d-4c55-9e35-0b2d5c7a9e11")
 _TRAILING = re.compile(r"[\s.!?…,;:]+$")
 
 
+def opening_key(headline: str, summary: str) -> str:
+    """The opening (headline + summary) as measured by T2: each part normalised per spec §2."""
+
+    return f"{_normalize(headline)} | {_normalize(summary)}"
+
+
 def _normalize(text: str) -> str:
     """Measurement spec §4c normalisation (same as scripts/variety_baseline.normalize)."""
 
@@ -320,9 +326,7 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
                 headlines[reading.voice].append(
                     " ".join(reading.headline.casefold().split()).rstrip(".!?")
                 )
-                openings[reading.voice].append(
-                    " ".join(f"{reading.headline} {reading.summary}".casefold().split())
-                )
+                openings[reading.voice].append(opening_key(reading.headline, reading.summary))
                 levels[reading.stance.level.value if reading.stance else "none"] += 1
                 prose = " ".join(
                     [reading.headline, reading.summary]

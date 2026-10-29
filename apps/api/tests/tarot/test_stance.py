@@ -197,10 +197,12 @@ def test_ac09_stance_consistent_rejects_tampered_lean_or_prose() -> None:
     with pytest.raises(TarotContentRejected, match="headline does not state"):
         focal = reading.positions[2].card.title_vi
         ENGINE.validate(reading.model_copy(update={"headline": f"{focal}: một hướng khác."}))
+    # Inserted before the final step, so only the stance gate can catch it (the summary must
+    # still end on the shown step, gates v6).
+    head, sep, tail = reading.summary.rpartition("Trước hết, ")
+    tampered_summary = f"{head}Chưa rõ: kéo về hai phía. {sep}{tail}"
     with pytest.raises(TarotContentRejected, match="different stance"):
-        ENGINE.validate(
-            reading.model_copy(update={"summary": f"{reading.summary} Chưa rõ: kéo về hai phía."})
-        )
+        ENGINE.validate(reading.model_copy(update={"summary": tampered_summary}))
 
 
 # ---------------------------------------------------------------- AC11 headline

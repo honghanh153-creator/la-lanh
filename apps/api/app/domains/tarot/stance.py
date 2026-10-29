@@ -8,6 +8,7 @@ the fallback approval scope then (docs/plans/2026-10-18-b2-3-tarot-stance-task.m
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -390,18 +391,41 @@ def plain_summary(
     return " ".join([*extra[:1], core])
 
 
-def summary_covers(summary: str, views: Sequence[PositionView], step: str | None) -> bool:
-    """Gate summary_plain (gates v6, replaces summary_links_cards): the summary carries each
-    summarized role's anchor and the shown step, and names no card."""
+def _folded(text: str) -> str:
+    return unicodedata.normalize("NFC", text).casefold()
 
-    if any(view.title in summary for view in views):
-        return False
+
+def summary_covers(
+    summary: str,
+    views: Sequence[PositionView],
+    step: str | None,
+    card_titles: Sequence[str] = (),
+) -> bool:
+    """Gate summary_plain (gates v6, replaces summary_links_cards): the summary carries each
+    summarized role's anchor, ends on exactly the shown step, and names no card of the closed
+    catalog (``card_titles``, both languages; NFC + case-insensitive), selected or not.
+
+    The authored anchors and step are removed before the title scan, so a card field that happens
+    to contain a title's words (for example "tiếng gọi") cannot trip it (Codex r54)."""
+
     for view in summary_views(views):
         role = ROLES[view.key]
         needed = (view.core, view.tension) if role.field is RoleField.OPTION else (anchor(view),)
         if any(text not in summary for text in needed):
             return False
-    return not step or step_sentence(step) in summary
+    if step and not summary.endswith(step_sentence(step)):
+        return False
+    rest = summary
+    authored = [step or ""]
+    for view in summary_views(views):
+        authored.extend((view.core, view.tension, anchor(view)))
+    for text in sorted({t for t in authored if t}, key=len, reverse=True):
+        rest = rest.replace(text, " ")
+    folded = _folded(rest)
+    titles = {*card_titles, *(view.title for view in views)}
+    return not any(
+        re.search(rf"(?<!\w){re.escape(_folded(title))}(?!\w)", folded) for title in titles
+    )
 
 
 _ALTERNATIVE_SEPARATORS = re.compile(r"(?<!\w)(?:hay|hoặc|hay là)(?!\w)")

@@ -29,8 +29,13 @@ Owner feedback in chat, 29/10/2026, on a framed work reading: "chỗ content tar
     - the goal lead and the timing readiness line stay;
     - other roles stay only in their own blocks.
 - **Gate `summary_plain`** (replaces `summary_links_cards`): the summary carries each summarized role's text and
-  the shown step, and names no card. Luna's synthesis is held to the same gate. Its instruction now says the
-  synthesis names no card and ends on the same step.
+  ends on exactly the shown step. Outside the authored card text, it names no card of the whole deck, selected
+  or not, in either language (NFC, case-insensitive).
+  - Luna's synthesis is held to the same gate.
+  - Luna's synthesis-coverage check follows the summarized roles; every detailed position keeps its own meaning
+    check, and legacy readings still cover every position.
+  - The provider instruction is chosen by brief version: framed (v3) is card-free and ends on the step; legacy
+    readings must still name every card, as their gate requires (Codex r54).
 - **Headlines** carry the form and the lean (or topic), without card names. Stance markers, "sẵn sàng" for timing,
   no advice words, three frames per key per register: all kept.
 - **Roast opener**: only legacy (unframed) readings still get it.

@@ -108,8 +108,10 @@ hỏi vào bài đọc.**
   - sau đó là hai hướng của câu chọn, hoặc điều dễ vướng đầu tiên;
   - kết thúc bằng đúng bước nhỏ hiện ở vị trí bước.
 
-  Gate `summary_plain` thay `summary_links_cards`: có nội dung các vai được tóm, có bước đang hiển thị, và
-  không nêu tên lá. (Trước đây: nối các vai bằng liên từ, gate `summary_links_cards` đòi N−1 liên từ.)
+  Gate `summary_plain` thay `summary_links_cards`: có nội dung các vai được tóm, **kết thúc đúng bằng** bước
+  đang hiển thị, và ngoài phần chữ của lá thì không nêu tên lá nào trong cả bộ, kể cả lá không được rút, ở cả
+  hai thứ tiếng. Việc so tên dùng chuẩn NFC và không phân biệt hoa thường. Bài cũ (legacy) vẫn giữ quy tắc
+  nêu đủ tên lá. (Trước đây: nối các vai bằng liên từ, gate `summary_links_cards` đòi N−1 liên từ.)
 - **AC11:** Tiêu đề dựng từ dạng câu + hướng nghiêng (hoặc chủ đề), **không nêu tên lá** (owner, 29/10/2026).
   Trên ngân hàng câu hỏi, tỷ lệ **phần mở đầu (tiêu đề + tóm tắt)** trùng nhau < 10%. Tỷ lệ trùng của riêng
   tiêu đề vẫn được báo cáo. (Trước đây: có lá trọng tâm trong tiêu đề, và ngưỡng 10% đo trên tiêu đề.)

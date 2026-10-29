@@ -18,6 +18,7 @@ from app.domains.tarot.context_readings import CONTEXT_READINGS, CONTEXT_SCENES
 from app.domains.tarot.examples import example_for
 from app.domains.tarot.knowledge import (
     KNOWLEDGE_VERSION,
+    all_cards,
     card_by_id,
     source_ids_for_concepts,
 )
@@ -253,6 +254,12 @@ def _tension_parts(value: str) -> tuple[str, str | None]:
 
 def _resource_step(value: str) -> str:
     return value.partition(", rồi ")[0]
+
+
+# Every card name of the closed deck, both languages: a framed summary names none of them.
+CARD_TITLES: tuple[str, ...] = tuple(
+    title for card in all_cards() for title in (card.title_vi, card.title_en)
+)
 
 
 def step_clause(action: str | None) -> str | None:
@@ -843,7 +850,9 @@ class TarotReadingEngine:
         if framed:
             views = _position_views(reading.positions, reading.context)
             # Gate summary_plain (gates v6) replaces summary_links_cards (US-20 AC10).
-            if not stance.summary_covers(reading.summary, views, _shown_step(reading.positions)):
+            if not stance.summary_covers(
+                reading.summary, views, _shown_step(reading.positions), CARD_TITLES
+            ):
                 raise TarotContentRejected("summary does not carry its roles and step")
             TarotReadingEngine._stance_consistent(reading, views)
         elif any(position.card.title_vi not in reading.summary for position in reading.positions):
