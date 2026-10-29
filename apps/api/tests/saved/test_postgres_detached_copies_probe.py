@@ -9,6 +9,7 @@ guest deletion and birth time/place removal still remove it.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
@@ -28,11 +29,17 @@ from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.tables import DailyNoteRow
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.saved.tables import SavedNoteRow
+from app.domains.share.errors import ShareArtifactUnavailable
+from app.domains.share.models import SafeShareSnapshot, ShareArtifactRecord, ShareFormat
+from app.domains.share.postgres import PostgresShareArtifactRepository
 from app.domains.share.tables import ShareArtifactRow
 from tests.erasure_journal.test_postgres_restore_probe import (
     ENVELOPE,
     MIGRATIONS,
     PROBE_ENV,
+    _bounded,
+    _held,
+    _lock_waiters,
     disposable_target,
 )
 
@@ -148,6 +155,48 @@ async def test_time_removal_and_guest_deletion_still_remove_copies(probe: Databa
     assert await _present(probe, deleted) == (False, False)
 
 
+def _link(ids: dict[str, UUID]) -> ShareArtifactRecord:
+    return ShareArtifactRecord(
+        id=uuid4(), guest_id=ids["guest"], daily_note_id=ids["note"],
+        token_hash=uuid4().bytes + uuid4().bytes, safe_snapshot=SafeShareSnapshot(*(["s"] * 8)),
+        format=ShareFormat.STORY_9_16, created_at=NOW, expires_at=NOW + timedelta(days=14),
+    )  # fmt: skip
+
+
+async def test_a_share_create_waiting_on_a_removal_is_rejected(probe: Database) -> None:
+    """Codex r54 P2: remove-then-create. The removal holds the guest lock and has deleted the
+    source; a create on another connection waits on that lock, then rechecks and fails."""
+
+    ids = await _seed(probe)
+    shares = PostgresShareArtifactRepository(probe.sessions, ENVELOPE)
+    late = _link(ids)
+    created: list[asyncio.Task[ShareArtifactRecord]] = []
+
+    async def hold() -> None:
+        created.append(asyncio.create_task(shares.create(late)))
+        await _bounded(_lock_waiters(probe, 1))  # PostgreSQL says the create waits on the lock
+
+    await PostgresBirthRepository(_held(probe.sessions, hold), ENVELOPE).clear_supplement(
+        ids["guest"], remove_time=True, remove_place=False
+    )
+    with pytest.raises(ShareArtifactUnavailable):
+        await _bounded(created[0])
+    async with probe.sessions() as session:
+        assert await session.get(ShareArtifactRow, late.id) is None
+
+
+async def test_a_share_created_before_a_removal_is_deleted_by_it(probe: Database) -> None:
+    """Create-then-remove: the link exists, and time removal deletes it with every copy."""
+
+    ids = await _seed(probe)
+    early = await PostgresShareArtifactRepository(probe.sessions, ENVELOPE).create(_link(ids))
+    await PostgresBirthRepository(probe.sessions, ENVELOPE).clear_supplement(
+        ids["guest"], remove_time=True, remove_place=False
+    )
+    async with probe.sessions() as session:
+        assert await session.get(ShareArtifactRow, early.id) is None
+
+
 async def test_the_probe_seed_and_checks_run_on_sqlite(tmp_path: Any) -> None:
     """The seed respects the schema before any PostgreSQL run; the lifecycle holds on SQLite."""
 
@@ -162,5 +211,11 @@ async def test_the_probe_seed_and_checks_run_on_sqlite(tmp_path: Any) -> None:
             ids["guest"], remove_time=True, remove_place=False
         )
         assert await _present(database, ids) == (False, False)
+        fresh = await _seed(database)
+        await PostgresShareArtifactRepository(database.sessions, ENVELOPE).create(_link(fresh))
+        async with database.sessions() as session, session.begin():
+            await session.execute(delete(DailyNoteRow).where(DailyNoteRow.id == fresh["note"]))
+        with pytest.raises(ShareArtifactUnavailable):
+            await PostgresShareArtifactRepository(database.sessions, ENVELOPE).create(_link(fresh))
     finally:
         await database.dispose()
