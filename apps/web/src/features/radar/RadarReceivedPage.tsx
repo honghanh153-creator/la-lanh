@@ -69,6 +69,11 @@ export function RadarReceivedPage() {
       <h1>Kết quả bạn đã nhận</h1>
       <p>Những lần ai đó mời bạn check Hợp gu và bạn đã đồng ý. Mỗi kết quả mở được trong 30 ngày kể từ lúc bạn đồng ý. Bạn không cần nhập lại ngày sinh.</p>
     </section>
+    <details className="radar-received__held">
+      <summary>Lá đang giữ gì về bạn ở đây?</summary>
+      <p>Hồ sơ sinh của bạn nằm trong hồ sơ của chính bạn; người mời không thấy ngày, giờ hay nơi sinh của bạn. Kết quả chung chỉ giữ trong 30 ngày kể từ lúc bạn đồng ý, rồi hết hạn với cả hai người.</p>
+      <p>Rút chart sẽ xoá kết quả chung với cả hai người ngay trong app. Bạn có thể tải bản sao dữ liệu của mình trong Mình.</p>
+    </details>
     {items.length ? <ul className="radar-received__list">
       {items.map((item) => <li key={item.request_id}>
         <Link className="radar-received__item" to={`/radar/received/${encodeURIComponent(item.request_id)}`}>

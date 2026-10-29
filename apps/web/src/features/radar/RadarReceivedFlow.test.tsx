@@ -97,6 +97,16 @@ describe("Radar results B received (P09 D2)", () => {
     expect(screen.queryByRole("button", { name: "Xem thêm" })).not.toBeInTheDocument();
   });
 
+  it("tells B what is held about them without asking for birth data again", async () => {
+    vi.mocked(listReceivedRadar).mockResolvedValueOnce({ items: [item("request-a", "friend")], next_before: null });
+    renderAt("/radar/received");
+    await userEvent.click(await screen.findByText("Lá đang giữ gì về bạn ở đây?"));
+    expect(screen.getByText(/người mời không thấy ngày, giờ hay nơi sinh của bạn/)).toBeVisible();
+    expect(screen.getByText(/giữ trong 30 ngày kể từ lúc bạn đồng ý/)).toBeVisible();
+    expect(screen.queryByLabelText(/ngày sinh/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
   it("shows the empty and error states", async () => {
     vi.mocked(listReceivedRadar).mockResolvedValueOnce({ items: [], next_before: null });
     const view = renderAt("/radar/received");

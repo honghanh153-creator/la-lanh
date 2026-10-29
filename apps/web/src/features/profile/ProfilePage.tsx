@@ -1,4 +1,4 @@
-import { BookmarkSimple, GearSix, LockSimple, Moon, MoonStars, ShareNetwork, ShieldCheck, Sun, Trash } from "@phosphor-icons/react";
+import { BookmarkSimple, DownloadSimple, GearSix, HeartStraight, LockSimple, Moon, MoonStars, ShareNetwork, ShieldCheck, Sun, Trash } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ import {
   getHistoryRetention,
   logoutAccount,
   deleteGuest,
+  exportMyData,
   getBirthProfile,
   getBirthSupplement,
   getContentRewriteStatus,
@@ -35,6 +36,7 @@ import { AppSheet } from "../../shared/ui/AppSheet";
 import { NightSky } from "../../shared/ui/NightSky";
 import { clearPendingMood } from "../../shared/storage/pendingMood";
 import { dropQueuedSaves } from "../../shared/storage/savedNoteMutationQueue";
+import { saveDataExport } from "./downloadMyData";
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -58,6 +60,20 @@ export function ProfilePage() {
   const accountQuery = useQuery({ queryKey: ["account-status"], queryFn: ({ signal }) => getAccountStatus(signal), retry: false, gcTime: 0 });
   const historyQuery = useQuery({ queryKey: ["history-retention"], queryFn: ({ signal }) => getHistoryRetention(signal), retry: false });
   const [confirmingAI, setConfirmingAI] = useState(false);
+  const [confirmingExport, setConfirmingExport] = useState(false);
+  // The file is handed to the device and dropped: never cached in React Query or storage.
+  const exportMutation = useMutation({
+    mutationFn: async () => saveDataExport(await exportMyData()),
+    onSuccess: (outcome) => {
+      setConfirmingExport(false);
+      setStatusMessage(outcome === "cancelled"
+        ? "Bạn đã đóng bảng lưu tệp. Chưa có tệp nào được lưu."
+        : "Đã tạo tệp dữ liệu của bạn. Hãy cất ở nơi riêng tư nhé.");
+    },
+    onError: (failure) => setError(failure instanceof ApiProblem && failure.status === 429
+      ? "Bạn vừa tải mấy lần liền. Đợi khoảng một phút rồi thử lại nhé."
+      : "Chưa tải được dữ liệu. Kiểm tra kết nối rồi thử lại nhé."),
+  });
   const rewriteQuery = useQuery({
     queryKey: ["content-rewrite-status"],
     queryFn: ({ signal }) => getContentRewriteStatus(signal),
@@ -214,6 +230,8 @@ export function ProfilePage() {
         </div>
         <div className="settings-list">
         <article><ShieldCheck /><div><strong>Dữ liệu sinh đã mã hóa</strong><p>Không nằm trong cookie, URL hoặc local storage.</p></div></article>
+        <button className="settings-link" onClick={() => { setError(null); setConfirmingExport(true); }} type="button"><span><DownloadSimple aria-hidden="true" /></span><div><strong>Tải dữ liệu của tôi</strong><p>Một tệp riêng tư gồm những gì Lá đang giữ cho hồ sơ này.</p></div></button>
+        <Link className="settings-link" to="/radar/received"><span><HeartStraight aria-hidden="true" /></span><div><strong>Khi bạn là người được mời Hợp gu</strong><p>Xem hoặc rút chart khỏi kết quả bạn đã đồng ý, không cần nhập lại ngày sinh.</p></div></Link>
         <Link className="settings-link" to="/birth-time"><span><MoonStars aria-hidden="true" /></span><div><strong>{supplement && supplement.profile_level > 1 ? "Sửa lớp dữ liệu sinh" : "Mở thêm lớp cá nhân"}</strong><p>{supplement && supplement.profile_level > 1 ? `${supplement.time_precision === "approximate" ? "Giờ gần đúng" : "Đã có giờ sinh"}${supplement.place_display_name ? ` · ${supplement.place_display_name}` : " · chưa có nơi sinh"}` : "Thêm giờ/nơi sinh khi bạn muốn Moon, House và note sâu hơn."}</p></div></Link>
         {supplement && supplement.birth_time_mode !== "unknown" ? <button className="danger-row" onClick={() => {
           if (window.confirm("Xóa giờ sinh và mọi note, bản lưu, link chia sẻ hiện có? Ngày sinh vẫn được giữ.")) removeSupplement.mutate("time");
@@ -281,6 +299,14 @@ export function ProfilePage() {
         <button className="primary-button" disabled={rewriteMutation.isPending} onClick={() => rewriteMutation.mutate(true)} type="button">Đồng ý và thử</button>
         <button className="text-button" disabled={rewriteMutation.isPending} onClick={() => setConfirmingAI(false)} type="button">Dùng bản thường</button>
       </AppSheet>
+      <AppSheet open={confirmingExport} title="Tải dữ liệu của bạn?" closeDisabled={exportMutation.isPending} onClose={() => setConfirmingExport(false)}>
+        <p>Tệp JSON gồm hồ sơ sinh (ngày sinh, giờ và nơi sinh nếu bạn đã thêm), các lần đồng ý, note ngày còn hiển thị, note đã lưu, Tarot còn hạn, mood, phản hồi, ngày tạo link chia sẻ và phần của bạn trong Hợp gu.</p>
+        <p>Tệp không có mã đăng nhập, link chia sẻ hay dữ liệu sinh của người khác. Kết quả Hợp gu chỉ xem trong app khi còn hạn.</p>
+        <p>Tệp chứa dữ liệu riêng tư của bạn. Hãy cất ở nơi chỉ bạn mở được; Lá không giữ thêm bản sao nào của tệp này.</p>
+        {error ? <p className="inline-error" role="alert">{error}</p> : null}
+        <button className="primary-button" disabled={exportMutation.isPending} onClick={() => { setError(null); exportMutation.mutate(); }} type="button">{exportMutation.isPending ? "Đang chuẩn bị tệp…" : "Tải về"}</button>
+        <button className="text-button" disabled={exportMutation.isPending} onClick={() => setConfirmingExport(false)} type="button">Để sau</button>
+      </AppSheet>
       <AppSheet open={confirmingHistory} title="Xoá lịch sử đã xem?" closeDisabled={historyMutation.isPending} onClose={() => setConfirmingHistory(false)}>
         <p>Xoá kết quả Tarot và Hợp gu đã hoàn thành, check-in, phản hồi và note tự động của những ngày trước chưa lưu.</p>
         <p>Hồ sơ sinh, bản đọc hiện tại và note đã lưu vẫn được giữ. Phiên đang bốc Tarot hoặc lời mời chưa hoàn thành không nằm trong thao tác này.</p>
@@ -295,7 +321,7 @@ export function ProfilePage() {
         <button className="primary-button" disabled={retentionMutation.isPending} onClick={() => { setError(null); retentionMutation.mutate(); }} type="button">Đồng ý thời hạn lịch sử</button>
         <button className="text-button" disabled={retentionMutation.isPending} onClick={() => setConfirmingRetention(false)} type="button">Chưa thay đổi</button>
       </AppSheet>
-      {error && !confirmingHistory && !confirmingRetention ? <p className="inline-error" role="alert">{error}</p> : null}
+      {error && !confirmingHistory && !confirmingRetention && !confirmingExport ? <p className="inline-error" role="alert">{error}</p> : null}
       <p className="sr-only" aria-live="polite" role="status">{statusMessage}</p>
       {statusMessage ? <p className="profile-status" aria-hidden="true">{statusMessage}</p> : null}
       <AppSheet open={confirming} title="Xoá hồ sơ Lá Lành?" closeDisabled={deleting} onClose={() => setConfirming(false)}><p>Xoá hồ sơ sinh, mọi bản đọc, note đã lưu và liên kết tài khoản trên hệ thống Lá Lành. Tất cả thiết bị mất quyền truy cập hồ sơ này; không thể khôi phục bằng đăng nhập lại.</p><p>Nếu đã liên kết tài khoản, hệ thống cũng yêu cầu xoá danh tính đăng nhập tại Supabase. Chỉ báo hoàn tất sau khi xác nhận; nếu lỗi sẽ khoá hồ sơ và thử lại. Tài khoản Google của bạn không bị xoá.</p><button className="danger-button" disabled={deleting} onClick={() => void remove()} type="button">{deleting ? "Đang xoá…" : "Xóa vĩnh viễn"}</button><button className="text-button" disabled={deleting} onClick={() => setConfirming(false)} type="button">Giữ lại</button></AppSheet>

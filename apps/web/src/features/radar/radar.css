@@ -230,3 +230,7 @@
 .radar-received__item svg { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--match-lime); }
 .radar-received__item:focus-visible { outline: 2px solid var(--match-lime); outline-offset: 2px; }
 .radar-received__empty { margin: 0 0 1rem; color: #aaa1c6; font-size: 0.78rem; line-height: 1.5; text-align: center; }
+.radar-received__held { margin: 0 0 1rem; padding: 0.75rem 1rem; border: 1px solid rgb(185 150 255 / 22%); border-radius: 1rem; color: #d9d2ef; background: rgb(255 255 255 / 3%); }
+.radar-received__held summary { cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+.radar-received__held summary:focus-visible { outline: 2px solid var(--match-lime); outline-offset: 2px; }
+.radar-received__held p { margin: 0.5rem 0 0; color: #aaa1c6; font-size: 0.76rem; line-height: 1.5; }
