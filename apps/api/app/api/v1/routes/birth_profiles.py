@@ -215,11 +215,11 @@ async def correct_birth_date(
         )
     except (BirthDomainError, GuestDomainError) as error:
         # Event name and result code only: never a date, a guest id or a chart value (AC10).
-        logger.info("birth_date_correction rejected code=%s", error.code)
+        logger.info("profile date edit rejected code=%s", error.code)
         problem = _problem(error)
         problem.headers["Cache-Control"] = "no-store, max-age=0"
         return problem
-    logger.info("birth_date_correction accepted")
+    logger.info("profile date edit accepted")
     return _response(reveal)
 
 
