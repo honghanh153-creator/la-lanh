@@ -586,6 +586,10 @@ def test_the_procedure_keeps_the_server_log_before_teardown() -> None:
     delete = text.index("If step 9.1 exited 0, delete `$P` entirely", teardown)
     assert keep < fail_closed < stop < delete
     assert "grep -iv password" not in text  # Codex r51: a line filter kept SQL and row ids
+    # Codex r53: this attempt's dumps live in $P, so both teardown branches remove them.
+    run = text.index("7. **Run:**")
+    assert "--basetemp=$P/pytest" in text[run : text.index("8. **Receipt**")]
+    assert "`$P/pytest` with this attempt's dumps" in text[fail_closed:stop]
     assert (Path(__file__).resolve().parents[2] / "scripts/sanitize_probe_server_log.py").is_file()
 
 

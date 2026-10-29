@@ -83,7 +83,8 @@ Record the outcome of each step for the receipt.
    - The same command with `PGSSLMODE=disable` must be refused with a `pg_hba.conf` rejection. That shows plaintext TCP is closed.
    - The probe sets the same `PGSSLMODE`/`PGSSLROOTCERT` for `pg_dump`, `pg_restore`, `createdb` and `dropdb`.
 6. **Migrate** the probe database: `cd apps/api && uv run alembic upgrade head`. The test checks that `alembic_version` equals the repository head.
-7. **Run:** `cd apps/api && uv run pytest -q -p no:randomly tests/erasure_journal/test_postgres_restore_probe.py`.
+7. **Run:** `cd apps/api && uv run pytest -q -p no:randomly --basetemp=$P/pytest tests/erasure_journal/test_postgres_restore_probe.py`.
+   - `--basetemp` keeps this attempt's dumps (`probe.dump`, `horizon.dump`) inside `$P`, so both teardown branches remove them (Codex r53).
    - Expected: 25 passed (3 PostgreSQL checks, 22 offline cases).
    - A failure is evidence too: keep it and do not rerun to get a green result.
 8. **Receipt** (data-free): date and time, commit SHA, server and client versions, the start-up control results, the TLS check result, the pytest summary line, and any failure's test name and assertion. If the attempt stopped before pytest, name the step and attach the sanitized server log from step 9 after reading it once. Never attach the raw log. No URL, password, certificate, key, SQL, row id or dump.
@@ -97,9 +98,9 @@ Record the outcome of each step for the receipt.
       - The raw log is never copied out or attached. PostgreSQL logs the failing statement of every ERROR by default (`log_min_error_statement = error`, even with `log_statement = none`; [PostgreSQL 17: error reporting and logging](https://www.postgresql.org/docs/17/runtime-config-logging.html)), and DETAIL lines can hold row values.
       - The script drops STATEMENT, QUERY, DETAIL, CONTEXT and LOCATION entries and every continuation line. In the lines it keeps, it replaces `$P`, home directories, URLs, e-mail addresses, UUIDs, long tokens, `key=value` secrets, single-quoted values, double-quoted values other than SQL identifiers, loopback addresses and paths under `$P` (in ERROR lines, every double-quoted value), and any line that mentions a password. It then checks its own output again.
       - **Exit 0:** `$R/server-log.sanitized.txt` (mode 600) holds the sanitized log, or the one-line note that `$P/server.log` did not exist. Record the status line it prints; it never contains log content.
-      - **Any other exit: fail closed.** Nothing was written. Record the status line in `$R`, do step 9.2, then delete everything in `$P` **except** `server.log` (keys, certificates, env file, cluster) and keep `$P` at mode 700. The raw log stays there, on this machine only, until a reviewed sanitizer fix produces a safe copy; then delete `$P`. If no safe copy exists within 7 days, delete `$P` and record "log not kept" in the receipt.
+      - **Any other exit: fail closed.** Nothing was written. Record the status line in `$R`, do step 9.2, then delete everything in `$P` **except** `server.log` (keys, certificates, env file, cluster, `$P/pytest` with this attempt's dumps) and keep `$P` at mode 700. The raw log stays there, on this machine only, until a reviewed sanitizer fix produces a safe copy; then delete `$P`. If no safe copy exists within 7 days, delete `$P` and record "log not kept" in the receipt.
    2. `pg_ctl -D $P/data -m fast stop` if `$P/data/postmaster.pid` exists.
-   3. If step 9.1 exited 0, delete `$P` entirely (cluster, CA and server keys, certificates, env file, raw log) and any `*.dump` left in pytest's temporary directory.
+   3. If step 9.1 exited 0, delete `$P` entirely (cluster, CA and server keys, certificates, env file, `$P/pytest` with its dumps, raw log). If it refused, step 9.1 has already deleted everything in `$P` except `server.log`, including `$P/pytest` and its dumps. No cleanup outside `$P` is needed, and none touches unrelated files.
    4. `unset` the variables.
 
 ## What the receipt can close

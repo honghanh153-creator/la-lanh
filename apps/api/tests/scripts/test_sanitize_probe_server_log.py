@@ -103,8 +103,8 @@ def test_the_realistic_error_log_keeps_diagnostics_and_drops_sql_rows_urls_and_s
         "HINT:  Is another postmaster already running on port 55440?",
         "FATAL:  [line removed: credential wording]",
         'database "lalanh_probe_journal", no encryption',
-        'ERROR:  duplicate key value violates unique constraint "[value]"',
-        'ERROR:  invalid input syntax for type uuid: "[value]"',
+        "ERROR:  duplicate key value violates unique constraint [value]",
+        "ERROR:  invalid input syntax for type uuid: [value]",
         "ERROR:  canceling statement due to user request",
         "LOG:  database system is shut down",
     ):
@@ -237,3 +237,67 @@ def test_kept_quoted_values_are_identifiers_loopback_or_masked_paths_only() -> N
         assert SAFE_QUOTED.fullmatch(safe)
     for unsafe in ("Hello there", ROW, "/var/folders/x", "a'b", "x-y"):
         assert not SAFE_QUOTED.fullmatch(unsafe)
+
+
+# ------------------------------------------------- Codex r53: quote shapes and Unicode separators
+
+PREFIX = "2026-10-29 10:00:09 UTC [4242] "
+SECRET_VALUE = "synthetic_value"  # noqa: S105 - a fixture value, not a password
+
+
+def _publish(raw: str, dirs: tuple[Path, Path]) -> tuple[int, str]:
+    probe, receipts = dirs
+    (probe / "server.log").write_text(raw, encoding="utf-8")
+    out = receipts / "server-log.sanitized.txt"
+    code, _ = run(probe / "server.log", probe, out)
+    return code, out.read_text(encoding="utf-8") if out.exists() else ""
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        f"plain{SECRET_VALUE}",  # control: ordinary quoted value
+        f'before"{SECRET_VALUE}"after',  # embedded quotes
+        f"before\u2028{SECRET_VALUE}",  # LINE SEPARATOR inside the value
+        f"before\u2029{SECRET_VALUE}",  # PARAGRAPH SEPARATOR inside the value
+        f'"{SECRET_VALUE}',  # unbalanced
+    ],
+)
+def test_an_error_value_is_removed_whatever_its_quote_shape(
+    value: str, dirs: tuple[Path, Path]
+) -> None:
+    raw = f'{PREFIX}ERROR:  invalid input syntax for type uuid: "{value}"\n'
+    code, published = _publish(raw, dirs)
+    # Either the whole value is gone from an exit-0 copy, or nothing is written.
+    assert SECRET_VALUE not in published
+    if code == 0:
+        assert "ERROR:  invalid input syntax for type uuid: [value]" in published
+        assert forbidden(published, []) == []
+
+
+@pytest.mark.parametrize("separator", ["\u2028", "\u2029", "\x85", "\x0b"])
+def test_a_separator_outside_quotes_in_a_kept_line_refuses_the_copy(
+    separator: str, dirs: tuple[Path, Path]
+) -> None:
+    raw = f"{PREFIX}LOG:  checkpoint starting{separator}{SECRET_VALUE}\n"
+    code, published = _publish(raw, dirs)
+    assert code == 2
+    assert published == ""
+
+
+def test_a_run_on_quote_in_a_log_line_is_cut(dirs: tuple[Path, Path]) -> None:
+    raw = f'{PREFIX}LOG:  could not open "saved_notes"{SECRET_VALUE}" here\n'
+    code, published = _publish(raw, dirs)
+    assert code == 0
+    assert SECRET_VALUE not in published
+    assert "LOG:  could not open [value]" in published
+
+
+def test_crlf_logs_split_on_physical_lines(dirs: tuple[Path, Path]) -> None:
+    raw = (
+        f"{PREFIX}LOG:  starting PostgreSQL 17.11\r\n{PREFIX}LOG:  database system is shut down\r\n"
+    )
+    code, published = _publish(raw, dirs)
+    assert code == 0
+    assert "LOG:  starting PostgreSQL 17.11" in published
+    assert "\r" not in published

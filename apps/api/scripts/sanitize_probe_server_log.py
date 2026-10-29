@@ -10,7 +10,11 @@ diagnostics and removes the rest:
 - in the lines kept, the probe directory, home directories, URLs, e-mail addresses, UUIDs, long
   tokens, ``key=value`` secrets and single-quoted literals are replaced, and so are double-quoted
   values other than plain SQL identifiers, loopback addresses and paths under the probe directory
-  (in ERROR entries, which can quote an input value, every double-quoted value is replaced);
+  (in ERROR entries, which can quote an input value, everything from the first quote to the end
+  of the line is replaced, so nested or unbalanced quotes cannot leave part of a value; any other
+  kept line with an unbalanced or run-on quote is cut the same way);
+- records are physical lines (``\n``), so a U+2028/U+2029 inside a quoted value never starts a
+  new record; a kept line that still holds such a separator makes the copy unsafe (refused);
 - a line that mentions a password keeps only its prefix and level.
 
 The result is checked again before anything is written. If anything forbidden is left, or the
@@ -49,6 +53,10 @@ UUID = re.compile(r"\b[0-9A-Fa-f]{8}-(?:[0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}\b")
 SECRET = re.compile(r"(?i)\b(\w*(?:secret|token|key|passwd|pwd))\s*[=:]\s*\S+")
 SINGLE_QUOTED = re.compile(r"'[^']*'")
 DOUBLE_QUOTED = re.compile(r'"([^"]*)"')
+QUOTE_CHARS = "\"'\u201c\u201d\u2018\u2019"  # straight and curly quotes
+# Characters str.splitlines() would treat as record breaks inside a value (Codex r53).
+LINE_SEPARATORS = "\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029"
+
 SAFE_QUOTED = re.compile(
     r"[a-z_][a-z0-9_$]{0,62}(?:\.[a-z_][a-z0-9_$]{0,62})?"
     r"|127\.0\.0\.1|::1|localhost|0\.0\.0\.0"
@@ -65,6 +73,7 @@ FORBIDDEN = (
     ("continuation line", re.compile(r"(?m)^[ \t]")),
     ("dropped entry", DROPPED_ENTRY),
     ("long token", TOKEN),
+    ("line separator", re.compile(f"[{LINE_SEPARATORS}]")),
     (
         "sql",
         re.compile(
@@ -73,6 +82,17 @@ FORBIDDEN = (
         ),
     ),
 )
+
+
+def _ambiguous_quotes(line: str) -> bool:
+    """An odd number of double quotes, or a quoted pair run straight into more text."""
+
+    if line.count('"') % 2:
+        return True
+    return any(
+        match.end() < len(line) and line[match.end()] not in " \t,.:;)]"
+        for match in DOUBLE_QUOTED.finditer(line)
+    )
 
 
 def scrub(line: str, masks: list[str], *, quote_identifiers: bool = True) -> tuple[str, int]:
@@ -94,6 +114,13 @@ def scrub(line: str, masks: list[str], *, quote_identifiers: bool = True) -> tup
     line = count(EMAIL, "[email]", line)
     line = count(UUID, "[uuid]", line)
     line = count(SECRET, r"\1=[redacted]", line)
+    if not quote_identifiers or _ambiguous_quotes(line):
+        # A value-bearing ERROR, or a quote shape we cannot pair safely: keep only the text
+        # before the first quote (Codex r53: `"before"value"after"` left part of the value).
+        cut = min((i for i in (line.find(q) for q in QUOTE_CHARS) if i >= 0), default=-1)
+        if cut >= 0:
+            replaced += 1
+            line = f"{line[:cut].rstrip()} [value]"
     line = count(SINGLE_QUOTED, "'[value]'", line)
 
     def quoted(match: re.Match[str]) -> str:
@@ -122,7 +149,7 @@ def sanitize(raw: str, masks: list[str]) -> tuple[list[str], int, int]:
     kept: list[str] = []
     dropped = replaced = 0
     in_dropped_entry = False
-    for line in raw.splitlines():
+    for line in raw.replace("\r\n", "\n").split("\n"):
         if not line.strip():
             continue
         entry = ENTRY.match(line)
