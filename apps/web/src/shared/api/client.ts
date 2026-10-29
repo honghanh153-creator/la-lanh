@@ -153,6 +153,8 @@ export type BirthSupplement = components["schemas"]["BirthSupplementResponse"];
 export type BirthSupplementState = components["schemas"]["BirthSupplementStateResponse"];
 export type BirthSupplementEdit = components["schemas"]["BirthSupplementEditResponse"];
 export type PublicShareArtifact = components["schemas"]["PublicShareArtifactResponse"];
+export type ShareLink = components["schemas"]["ShareLinkResponse"];
+export type ShareLinkList = components["schemas"]["ShareLinkListResponse"];
 export type OnboardingStatus = components["schemas"]["OnboardingStatus"];
 export type InsightOverview = components["schemas"]["InsightOverviewResponse"];
 export type ReadingContent = components["schemas"]["ReadingContentProjection"];
@@ -992,6 +994,13 @@ export function revokeShareArtifact(artifactId: string): Promise<void> {
     method: "DELETE",
     headers: csrfHeader(),
   });
+}
+
+/** The session owner's own links: dates, format and status only (no token, no content). */
+export function listShareLinks(signal?: AbortSignal, cursor?: string): Promise<ShareLinkList> {
+  const query = new URLSearchParams({ limit: "20" });
+  if (cursor) query.set("cursor", cursor);
+  return request<ShareLinkList>(`/share-artifacts?${query.toString()}`, { signal });
 }
 
 export function getShareArtifact(

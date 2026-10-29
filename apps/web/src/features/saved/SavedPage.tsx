@@ -7,6 +7,7 @@ import { listSavedNotes, unsaveDailyNote, type SavedNote } from "../../shared/ap
 import { readLocalSavedNotes, unsaveNoteLocally } from "../../shared/storage/savedNoteCache";
 import { AppNav } from "../../shared/ui/AppNav";
 import { LaLoading } from "../../shared/ui/la/LaLoading";
+import { ShareLinksSection } from "./ShareLinksSection";
 
 function noteText(saved: SavedNote, key: "title" | "body" | "context_label" | "persona_mode" | "persona_label"): string {
   const value = saved.note_snapshot[key];
@@ -130,6 +131,7 @@ export function SavedPage() {
           <Link className="electric-button" to="/home">Về note hôm nay</Link>
         </section>
       )}
+      <ShareLinksSection />
       <AppNav />
     </main>
   );
