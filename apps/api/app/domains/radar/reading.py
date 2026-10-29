@@ -1,11 +1,24 @@
-"""Deterministic, evidence-bound relationship readings for Radar.
+"""Deterministic, evidence-bound relationship readings for Hợp gu (Radar).
 
-The projector intentionally receives chart facts rather than raw birth inputs. It
-creates reflection prompts, not a verdict about either person or the relationship.
+The projector receives chart facts, never raw birth inputs. Renderer ``radar-readable-v2``
+(29/10/2026, owner feedback + research report "Phương án sửa Tarot và Hợp gu", Phần B):
+
+- a named tier per context with a one-line reason, ranked against a fixed synthetic reference
+  distribution, instead of three compressed 0-100 numbers (no number by default; see
+  ``SHOW_TIER_SCORE``);
+- one headline about how the two interact, without a forced "nhưng";
+- a "cần để ý" paragraph only when a friction signal crosses ``TENSION_THRESHOLD``;
+- context-specific areas (crush / friend / partner / someone) and copy;
+- plain Vietnamese in the default view; astrology terms only in the "Xem thêm" layer;
+- one fixed calm closing line instead of a hedging kicker.
+
+It describes how two people interact; it never says what the absent person thinks, feels or
+wants, and makes no fate or success claim.
 """
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from dataclasses import dataclass
 from typing import Any
 
@@ -23,8 +36,64 @@ from app.domains.relationships.knowledge import (
 )
 from app.domains.relationships.models import RelationshipPrompt, RelationshipVoice
 
-RENDERER_VERSION = "radar-living-dossier-v1"
-GATE_VERSION = "conditional-reflection-v3"
+RESULT_VERSION = "radar-result-v2"
+RENDERER_VERSION = "radar-readable-v2"
+# Readings stored by the previous renderer stay as they were until they expire.
+PREVIOUS_RENDERER_VERSIONS = ("radar-living-dossier-v1",)
+GATE_VERSION = "conditional-reflection-v4"
+TIER_CALIBRATION_VERSION = "radar-tier-ref-v1"
+
+# Owner switch (decision 6 of the research report). False: the tier has no number, which keeps
+# the spec invariant "no scalar compatibility score". True adds ``tier.score``, the pair's rank
+# (0-100) against the reference distribution; turning it on lifts that invariant and needs the
+# owner's explicit decision, a new GATE_VERSION and a fallback-approval refresh.
+SHOW_TIER_SCORE = False
+
+# Weight of friction against coordination in the ease signal that ranks a pair.
+EASE_FRICTION_WEIGHT = 0.6
+# A cluster whose friction reaches this value (and exceeds its coordination) gets a "cần để ý"
+# paragraph. At 0.6 about 40% of reference pairs show one (owner decision 9).
+TENSION_THRESHOLD = 0.6
+# A calm cluster reads "hợp" (and may join "Điều trôi chảy" as a second theme) only when its
+# coordination reaches this value; below it, "cân bằng". Calibrated so "hợp" tracks the tier.
+GOOD_MIN_COORDINATION = 0.45
+
+# Ease quantiles of the reference distribution ``radar-tier-ref-v1`` at p0, p5, ..., p100:
+# 2,000 synthetic pairs from a fixed seed (``scripts.radar_tier_reference``), no user data.
+TIER_REFERENCE = (
+    -0.2216,
+    -0.013,
+    0.0445,
+    0.08,
+    0.1095,
+    0.129,
+    0.1466,
+    0.1645,
+    0.1835,
+    0.1999,
+    0.2145,
+    0.2305,
+    0.246,
+    0.265,
+    0.2857,
+    0.305,
+    0.3273,
+    0.3487,
+    0.3857,
+    0.4298,
+    0.6565,
+)
+
+# Tier by rank against the reference: top 15%, next 25%, middle 30%, next 20%, last 10%.
+TIER_BANDS = (
+    ("very_easy", 85.0),
+    ("easy", 60.0),
+    ("complementary", 30.0),
+    ("warming_up", 10.0),
+    ("patient", 0.0),
+)
+
+CONTEXTS = ("crush", "friend", "partner", "someone")
 
 
 @dataclass(frozen=True)
@@ -46,6 +115,21 @@ class ThemeCluster:
     resonance: float
     coordination: float
     friction: float
+
+
+@dataclass(frozen=True)
+class PairSignals:
+    """Everything the copy is chosen from; no text, so it can be calibrated and tested."""
+
+    motifs: tuple[Motif, ...]
+    clusters: tuple[ThemeCluster, ...]
+    ease: float
+    percentile: float
+    tier: str
+    fit: ThemeCluster
+    support: ThemeCluster | None
+    tension: ThemeCluster | None
+    levels: dict[str, str]
 
 
 BODY_LABELS = {
@@ -98,87 +182,37 @@ BODY_WEIGHT = {
     BodyName.CHIRON: 0.58,
 }
 
+# Plain areas of life, used only in the "Xem thêm" layer (two sides of the same meeting).
 HOUSE_AREAS = {
-    1: "cách xuất hiện và phản ứng ngay lúc gặp nhau",
-    2: "cảm giác an tâm, giá trị và chuyện cho - nhận",
-    3: "cách nói chuyện, nhắn tin và xử lý chuyện hằng ngày",
-    4: "vùng riêng tư, gia đình và cảm giác được ở nhà",
-    5: "sự vui, flirt, sáng tạo và cách thể hiện mình thích ai đó",
-    6: "nếp sinh hoạt, việc nhỏ và cách hỗ trợ nhau",
-    7: "cách hai người định nghĩa quan hệ và sự công bằng",
-    8: "niềm tin, ranh giới thân mật và chuyện khó nói",
-    9: "niềm tin sống, học hỏi và trải nghiệm mới",
-    10: "mục tiêu, hình ảnh bên ngoài và cách cùng tiến lên",
-    11: "tình bạn, nhóm chung và những kế hoạch phía trước",
-    12: "điều nhạy cảm, khó gọi tên hoặc cần thêm thời gian mới rõ",
-}
-
-BODY_FUNCTIONS = {
-    BodyName.SUN: "cách thể hiện mình và nhu cầu được nhìn nhận",
-    BodyName.MOON: "cảm xúc và cảm giác an tâm",
-    BodyName.MERCURY: "cách nói, hỏi và xử lý thông tin",
-    BodyName.VENUS: "cách cho - nhận sự quan tâm",
-    BodyName.MARS: "cách chủ động, phản ứng và đặt ranh giới",
-    BodyName.JUPITER: "cách mở rộng góc nhìn và tạo hy vọng",
-    BodyName.SATURN: "nhịp cam kết, giới hạn và trách nhiệm",
-    BodyName.URANUS: "nhu cầu tự do và cách phản ứng với thay đổi",
-    BodyName.NEPTUNE: "trực giác, tưởng tượng và điều chưa nói rõ",
-    BodyName.PLUTO: "cường độ, quyền lực và điều khó làm ngơ",
-    BodyName.TRUE_NODE: "hướng phát triển còn mới",
-    BodyName.MEAN_NODE: "hướng phát triển còn mới",
-    BodyName.SOUTH_NODE: "phản xạ đã quen",
-    BodyName.CHIRON: "điểm nhạy và cách học từ điều dễ đau",
-}
-
-BODY_ACTIONS = {
-    BodyName.SUN: "cách bạn xuất hiện và thể hiện mình",
-    BodyName.MOON: "mood và phản xạ cảm xúc của bạn",
-    BodyName.MERCURY: "cách bạn nhắn, hỏi và giải thích",
-    BodyName.VENUS: "cách bạn thể hiện thích và quan tâm",
-    BodyName.MARS: "cách bạn chủ động, phản ứng và đặt giới hạn",
-    BodyName.JUPITER: "cách bạn khích lệ và mở rộng câu chuyện",
-    BodyName.SATURN: "cách bạn giữ lời, đặt giới hạn và nhắc trách nhiệm",
-    BodyName.URANUS: "những thay đổi bất ngờ và nhu cầu tự do của bạn",
-    BodyName.NEPTUNE: "cách bạn bắt mood, tưởng tượng và để ngỏ",
-    BodyName.PLUTO: "độ tập trung, im lặng và sức nặng bạn mang vào tương tác",
-    BodyName.TRUE_NODE: "những lựa chọn còn mới với bạn",
-    BodyName.MEAN_NODE: "những lựa chọn còn mới với bạn",
-    BodyName.SOUTH_NODE: "phản xạ quen thuộc của bạn",
-    BodyName.CHIRON: "cách bạn phản ứng quanh một điểm nhạy",
-}
-
-BODY_RECEPTIONS = {
-    BodyName.SUN: "cảm giác được nhìn thấy của người kia",
-    BodyName.MOON: "cảm giác an tâm và được thấu hiểu của người kia",
-    BodyName.MERCURY: "cách người kia nghe, hiểu và trả lời",
-    BodyName.VENUS: "cách người kia nhận sự quan tâm và đánh giá điều mình thích",
-    BodyName.MARS: "cách người kia hành động và bảo vệ ranh giới",
-    BodyName.JUPITER: "niềm tin và cảm giác còn nhiều khả năng của người kia",
-    BodyName.SATURN: "cách người kia nhìn cam kết, giới hạn và trách nhiệm",
-    BodyName.URANUS: "nhu cầu tự do và phản ứng với thay đổi của người kia",
-    BodyName.NEPTUNE: "trực giác, kỳ vọng và phần người kia chưa gọi tên",
-    BodyName.PLUTO: "điều người kia khó làm ngơ hoặc chỉ nói khi đủ tin",
-    BodyName.TRUE_NODE: "hướng phát triển còn mới với người kia",
-    BodyName.MEAN_NODE: "hướng phát triển còn mới với người kia",
-    BodyName.SOUTH_NODE: "phản xạ quen thuộc của người kia",
-    BodyName.CHIRON: "điểm nhạy và cách người kia tự bảo vệ",
+    1: "ấn tượng đầu tiên khi gặp nhau",
+    2: "cảm giác an tâm và chuyện cho - nhận",
+    3: "chuyện trò, nhắn tin hằng ngày",
+    4: "chuyện nhà, chuyện riêng tư",
+    5: "niềm vui, sở thích và cách thể hiện sự thích",
+    6: "nếp sinh hoạt và những việc nhỏ hằng ngày",
+    7: "sự công bằng giữa hai người",
+    8: "niềm tin và những chuyện khó nói",
+    9: "trải nghiệm mới và chuyện học hỏi",
+    10: "mục tiêu và hình ảnh bên ngoài",
+    11: "bạn bè, nhóm chung và kế hoạch phía trước",
+    12: "những điều nhạy cảm, cần thời gian mới nói ra",
 }
 
 BODY_SHARED_ROLES = {
-    BodyName.SUN: "nhu cầu được nhìn thấy",
-    BodyName.MOON: "mood và cảm giác an tâm",
+    BodyName.SUN: "nhu cầu được ghi nhận",
+    BodyName.MOON: "tâm trạng và cảm giác an tâm",
     BodyName.MERCURY: "cách hai người nói và hiểu",
-    BodyName.VENUS: "cách tạo sự dễ chịu và quan tâm",
-    BodyName.MARS: "nhịp chủ động, phản ứng và đặt giới hạn",
-    BodyName.JUPITER: "cảm giác lạc quan và muốn thử thêm",
-    BodyName.SATURN: "nhịp cam kết, giới hạn và trách nhiệm",
+    BodyName.VENUS: "sự dễ chịu và quan tâm",
+    BodyName.MARS: "sự chủ động",
+    BodyName.JUPITER: "sự lạc quan và muốn thử thêm",
+    BodyName.SATURN: "sự nghiêm túc và giữ lời",
     BodyName.URANUS: "nhu cầu tự do và đổi mới",
-    BodyName.NEPTUNE: "mood, tưởng tượng và điều còn để ngỏ",
-    BodyName.PLUTO: "độ sâu và sức nặng của tương tác",
-    BodyName.TRUE_NODE: "một hướng phát triển còn mới",
-    BodyName.MEAN_NODE: "một hướng phát triển còn mới",
-    BodyName.SOUTH_NODE: "phản xạ chung đã thành quen",
-    BodyName.CHIRON: "điểm nhạy và khả năng học từ va chạm",
+    BodyName.NEPTUNE: "trí tưởng tượng và những điều còn để ngỏ",
+    BodyName.PLUTO: "độ sâu của mối quan hệ",
+    BodyName.TRUE_NODE: "một hướng còn mới với cả hai",
+    BodyName.MEAN_NODE: "một hướng còn mới với cả hai",
+    BodyName.SOUTH_NODE: "những thói quen đã quen",
+    BodyName.CHIRON: "những điểm dễ tổn thương",
 }
 
 LOW_PERSONALIZATION_BODIES = {
@@ -191,126 +225,653 @@ LOW_PERSONALIZATION_BODIES = {
     BodyName.CHIRON,
 }
 
-SCENE_COPY = {
+THEME_PLAIN = {
+    "communication": "cách nói chuyện",
+    "emotional": "cách nhận ra cảm xúc của nhau",
+    "attraction": "sự hào hứng khi ở gần nhau",
+    "pace": "sự đều đặn và giữ lời",
+    "clarity": "trí tưởng tượng chung",
+    "freedom": "sự mới mẻ khi ở cạnh nhau",
+    "intensity": "độ sâu khi trò chuyện",
+    "visibility": "cách cổ vũ nhau",
+}
+
+# Owner decision 8: one set of tier names per context, no "định mệnh", lowest tier not a verdict.
+TIER_LABELS = {
+    "crush": {
+        "very_easy": "Dễ bắt nhịp",
+        "easy": "Dễ bắt chuyện",
+        "complementary": "Có nhiều điều để tò mò",
+        "warming_up": "Cần thêm thời gian làm quen",
+        "patient": "Nhịp khá khác nhau",
+        "unclear": "Chưa đủ dữ kiện để xếp bậc",
+    },
+    "friend": {
+        "very_easy": "Rất hợp cạ",
+        "easy": "Hợp chuyện",
+        "complementary": "Bổ sung cho nhau",
+        "warming_up": "Cần thời gian làm quen",
+        "patient": "Khác nhịp, cần kiên nhẫn",
+        "unclear": "Chưa đủ dữ kiện để xếp bậc",
+    },
+    "partner": {
+        "very_easy": "Rất ăn ý",
+        "easy": "Ăn ý",
+        "complementary": "Bổ sung cho nhau",
+        "warming_up": "Cần thêm thời gian hiểu nhau",
+        "patient": "Khác nhịp, cần nhiều kiên nhẫn",
+        "unclear": "Chưa đủ dữ kiện để xếp bậc",
+    },
+    "someone": {
+        "very_easy": "Rất ăn ý",
+        "easy": "Ăn ý",
+        "complementary": "Bổ sung cho nhau",
+        "warming_up": "Cần làm quen",
+        "patient": "Khác nhịp, cần kiên nhẫn",
+        "unclear": "Chưa đủ dữ kiện để xếp bậc",
+    },
+}
+
+TIER_REASONS = {
+    "very_easy": "Nhiều điểm của hai bạn đi cùng chiều, rõ nhất là {fit}.",
+    "easy": "Hai bạn có khá nhiều điểm dễ đi cùng, nổi bật là {fit}.",
+    "complementary": "Hai bạn có chỗ giống, có chỗ khác; chỗ dễ bắt đầu nhất là {fit}.",
+    "warming_up": "Nhiều điểm của hai bạn cần thời gian để quen nhịp; chỗ dễ bắt đầu là {fit}.",
+    "patient": "Hai bạn khác nhịp ở nhiều chỗ, nên cần kiên nhẫn hơn; chỗ dễ bắt đầu là {fit}.",
+}
+
+HEADLINES = {
     "communication": {
-        "title": "Một đoạn chat đang trôi, rồi một câu ngắn làm nhịp đổi",
-        "fit": (
-            "Hai người có thể bắt được ý hoặc nối câu khá nhanh. Lúc này, câu chuyện dễ đi xa "
-            "hơn xã giao vì mỗi người đều cảm thấy người kia đang thật sự theo kịp."
+        "crush": "Hai bạn dễ bắt chuyện với nhau.",
+        "friend": "Hai bạn có thể nói chuyện hàng giờ mà không thấy mệt.",
+        "partner": "Hai bạn dễ nói cho nhau hiểu.",
+        "someone": "Nói chuyện với nhau là điểm dễ nhất của hai bạn.",
+    },
+    "emotional": {
+        "crush": "Hai bạn dễ cảm được tâm trạng của nhau.",
+        "friend": "Hai bạn là kiểu bạn dễ để ý tới nhau.",
+        "partner": "Hai bạn dễ chăm cho nhau qua những điều nhỏ.",
+        "someone": "Hai bạn dễ đồng cảm với nhau.",
+    },
+    "attraction": {
+        "crush": "Ở gần nhau, không khí giữa hai bạn dễ sôi nổi.",
+        "friend": "Hai bạn dễ rủ nhau làm gì đó cho vui.",
+        "partner": "Hai bạn dễ giữ được sự hào hứng khi ở bên nhau.",
+        "someone": "Ở gần nhau, hai bạn dễ có thêm năng lượng.",
+    },
+    "pace": {
+        "crush": "Hai bạn dễ giữ được một nhịp trò chuyện đều.",
+        "friend": "Hai bạn dễ thành bạn đáng tin của nhau.",
+        "partner": "Hai bạn dễ cùng xây một nhịp sống ổn định.",
+        "someone": "Hai bạn dễ phối hợp với nhau.",
+    },
+    "clarity": {
+        "crush": "Hai bạn dễ cùng nhau mơ mộng.",
+        "friend": "Hai bạn dễ có một thế giới riêng.",
+        "partner": "Hai bạn dễ có chung những ước mơ.",
+        "someone": "Hai bạn dễ hiểu nhau mà không cần nói nhiều.",
+    },
+    "freedom": {
+        "crush": "Ở cạnh nhau, mọi thứ dễ thấy mới mẻ.",
+        "friend": "Hai bạn hay kéo nhau đi thử điều mới.",
+        "partner": "Hai bạn dễ vừa gắn bó vừa thoải mái.",
+        "someone": "Hai bạn dễ làm mới nhau.",
+    },
+    "intensity": {
+        "crush": "Hai bạn ít khi chỉ nói chuyện xã giao.",
+        "friend": "Hai bạn dễ thành bạn để nói chuyện thật lòng.",
+        "partner": "Hai bạn dễ gắn bó sâu với nhau.",
+        "someone": "Hai bạn dễ đi sâu khi trò chuyện.",
+    },
+    "visibility": {
+        "crush": "Hai bạn dễ làm nhau cười và tự tin hơn.",
+        "friend": "Hai bạn dễ thành cổ động viên của nhau.",
+        "partner": "Hai bạn dễ làm nhau thấy được trân trọng.",
+        "someone": "Hai bạn dễ làm nhau tỏa sáng hơn.",
+    },
+}
+
+FIT_COPY = {
+    "communication": {
+        "crush": (
+            "Câu chuyện giữa hai bạn dễ đi từ chuyện vặt sang chuyện thật. Một câu hỏi nhỏ "
+            "cũng đủ mở ra cả buổi trò chuyện."
         ),
-        "friction": (
-            "Chỉ một câu trả lời cụt, một từ dùng khác ý hoặc việc trả lời quá nhanh cũng có thể "
-            "làm hai người phản ứng với giọng điệu trước khi nghe hết nội dung."
+        "friend": (
+            "Hai bạn bắt ý nhau nhanh và hay đùa cùng một kiểu. Nhắn qua nhắn lại vài câu là "
+            "đủ hiểu bạn mình đang muốn nói gì."
+        ),
+        "partner": (
+            "Chuyện lớn hay chuyện nhỏ, hai bạn đều dễ tìm ra cách nói cho nhau hiểu. Lúc cần "
+            "bàn việc chung, hai bạn ít phải vòng vo."
+        ),
+        "someone": (
+            "Hai bạn dễ nối câu và hiểu ý nhau. Cuộc trò chuyện thường tự trôi mà không cần cố."
         ),
     },
     "emotional": {
-        "title": "Một người xuống mood; người kia nhận ra nhưng chưa chắc biết nên làm gì",
-        "fit": (
-            "Tín hiệu cảm xúc có thể được nhận ra khá sớm, kể cả trước khi được gọi tên. Khi hỏi "
-            "nhẹ và chờ câu trả lời thật, hai người có cửa hiểu nhau sâu hơn."
+        "crush": (
+            "Không cần nói nhiều, hai bạn vẫn dễ bắt được không khí khi gặp nhau. Điều đó làm "
+            "những lần gặp đầu bớt gượng."
         ),
-        "friction": (
-            "Một người có thể muốn được hỏi ngay, trong khi người kia nghĩ cho khoảng riêng mới là "
-            "quan tâm. Không nói rõ nhu cầu khiến cả hai cùng cố đúng nhưng vẫn hụt nhau."
+        "friend": (
+            "Hai bạn dễ thấy khi bạn mình đang không ổn. Một câu hỏi han đúng lúc giữa hai bạn "
+            "thường có sức nặng."
+        ),
+        "partner": (
+            "Hai bạn dễ nhận ra khi nào nhau cần được ở gần, khi nào cần yên. Một tin nhắn hỏi "
+            "han đúng lúc thường đủ để cả hai thấy yên lòng."
+        ),
+        "someone": (
+            "Hai bạn dễ nhận ra tâm trạng của nhau. Một lời hỏi thăm nhẹ thường đủ để không khí "
+            "dễ chịu hơn."
         ),
     },
     "attraction": {
-        "title": "Sự chú ý lộ ra qua cách chủ động, flirt hoặc dành thời gian",
-        "fit": (
-            "Hai người dễ nhận ra mình đang được để ý qua hành động nhỏ, ánh nhìn hoặc cách "
-            "ưu tiên thời gian. Đây là lực hút để quan sát thêm, không phải bằng chứng về ý định."
+        "crush": (
+            "Những việc nhỏ như chủ động hỏi han hay dành thời gian cho nhau thường dễ được để "
+            "ý. Gặp nhau vài lần là hai bạn đã có chuyện để nhắc lại."
         ),
-        "friction": (
-            "Một người có thể xem sự chủ động là hứng thú rõ ràng; người kia chỉ đang thoải mái ở "
-            "khoảnh khắc đó. Nếu không hỏi, chemistry rất dễ bị dùng để điền vào chỗ chưa biết."
+        "friend": (
+            "Hai bạn có năng lượng hợp nhau, đi đâu cũng dễ vui. Ở cạnh nhau, hai bạn ít khi "
+            "thấy chán."
+        ),
+        "partner": (
+            "Sau những ngày bận, hai bạn vẫn dễ tìm lại cảm giác muốn ở gần nhau. Những cử chỉ "
+            "quan tâm nhỏ giữa hai bạn thường có tác dụng."
+        ),
+        "someone": (
+            "Ở gần nhau, việc chủ động bắt chuyện hay rủ nhau làm gì đó thường không khó. Không "
+            "khí giữa hai bạn dễ sôi nổi."
         ),
     },
     "pace": {
-        "title": "Chuyện hẹn gặp, phản hồi hoặc định nghĩa mối quan hệ bắt đầu cần một nhịp rõ",
-        "fit": (
-            "Có khả năng tạo được sự đều đặn: nhớ việc đã hẹn, quay lại chuyện còn dang dở và cho "
-            "nhau biết điều gì đang xảy ra. Những việc nhỏ này làm kết nối bớt mơ hồ."
+        "crush": ("Hai bạn không dồn dập cũng không bỏ lửng nhau. Hẹn gì thì dễ nhớ và dễ giữ."),
+        "friend": (
+            "Hai bạn dễ thành kiểu bạn hẹn là đến, nói là làm. Kế hoạch chung giữa hai bạn ít "
+            "khi bị bỏ dở."
         ),
-        "friction": (
-            "Một người có thể muốn chắc rồi mới tiến; người kia lại thấy việc phải chốt sớm "
-            "làm mất tự nhiên. Cấn nằm ở tốc độ, không tự động có nghĩa là thiếu quan tâm."
+        "partner": (
+            "Hai bạn dễ xây những thói quen chung đáng tin, như giờ gọi nhau hay cách chia việc. "
+            "Sự đều đặn này giúp cả hai thấy yên tâm."
+        ),
+        "someone": (
+            "Việc chung giữa hai bạn thường được làm tới nơi tới chốn. Phần ai nấy lo cũng dễ "
+            "rõ ràng."
         ),
     },
     "clarity": {
-        "title": "Một khoảng trống thông tin xuất hiện sau câu nói mơ hồ hoặc lời hẹn chưa chốt",
-        "fit": (
-            "Hai người có thể cùng bắt được mood, ẩn ý hoặc một thế giới riêng rất nhanh. Khi phần "
-            "thực tế cũng được nói rõ, sự đồng điệu này làm cuộc trò chuyện có chiều sâu."
+        "crush": (
+            "Từ bộ phim muốn xem tới nơi muốn đi, hai bạn dễ nghĩ ra những điều thú vị cùng "
+            "nhau. Trò chuyện vì thế dễ có màu sắc."
         ),
-        "friction": (
-            "Điều chưa nói rất dễ được trí tưởng tượng hoàn thiện hộ. Cả hai có thể phản ứng "
-            "với câu chuyện mình tự nối thêm thay vì điều người kia thật sự đã nói."
+        "friend": (
+            "Hai bạn dễ có những câu đùa mà chỉ hai đứa hiểu. Một ánh mắt hay một từ khoá là đủ."
         ),
+        "partner": (
+            "Hai bạn dễ cùng nhau hình dung những điều đẹp phía trước. Nói về tương lai, hai bạn "
+            "dễ thấy mình đi cùng một hướng."
+        ),
+        "someone": "Hai bạn dễ bắt được ý ngầm và câu đùa của nhau. Trò chuyện vì thế nhẹ và vui.",
     },
     "freedom": {
-        "title": "Kế hoạch đổi phút chót hoặc một người cần biến mất một lúc",
-        "fit": (
-            "Mỗi người có thể kéo người kia thử cách làm mới, bớt đóng khung và có thêm không gian "
-            "cho sự bất ngờ. Kết nối vì thế khó bị nhàm."
+        "crush": (
+            "Gặp nhau, hai bạn dễ nảy ra những ý tưởng bất ngờ. Không ai phải đóng một vai cố định."
         ),
-        "friction": (
-            "Điều từng tạo cảm giác thú vị có thể thành thất thường nếu thay đổi không được báo "
-            "trước. Một phía cần tự do; phía kia cần biết mình đang đứng ở đâu."
+        "friend": (
+            "Đi với nhau, hai bạn dễ có những trải nghiệm chưa từng có. Mỗi người cũng dễ tôn "
+            "trọng khoảng riêng của người còn lại."
         ),
+        "partner": (
+            "Mỗi người vẫn giữ được không gian riêng trong khi ở bên nhau. Những thay đổi trong "
+            "cuộc sống chung ít làm hai bạn hoảng."
+        ),
+        "someone": "Hai bạn dễ kéo nhau ra khỏi lối quen. Ở cạnh nhau, hai bạn khó thấy nhàm.",
     },
     "intensity": {
-        "title": "Một chuyện nhỏ chạm đúng điều cả hai thật sự để tâm",
-        "fit": (
-            "Hai người khó chỉ dừng ở chuyện bề mặt khi đã mở lòng. Có khả năng nhìn thấy phần "
-            "người kia thường giấu và tạo cảm giác kết nối này có trọng lượng."
+        "crush": (
+            "Chỉ vài lần trò chuyện, hai bạn đã có thể chạm tới những điều thật. Câu chuyện giữa "
+            "hai bạn dễ có chiều sâu."
         ),
-        "friction": (
-            "Độ sâu cũng làm phản ứng mạnh hơn: một lần lảng tránh, giữ bí mật hoặc tranh quyền "
-            "chủ động có thể nặng hơn chính sự việc."
+        "friend": (
+            "Những chuyện khó nói thường dễ được kể với nhau. Tình bạn kiểu này thường bền hơn "
+            "sau vài chuyện khó."
+        ),
+        "partner": (
+            "Khi đã tin, cả hai dễ mở lòng về những điều ít ai biết. Sự nghiêm túc giữa hai bạn "
+            "thường đến sớm."
+        ),
+        "someone": (
+            "Hai bạn khó chỉ dừng ở chuyện bề mặt. Một cuộc trò chuyện ngắn cũng có thể để lại "
+            "ấn tượng."
         ),
     },
     "visibility": {
-        "title": "Một người cần được ghi nhận; người kia thể hiện chú ý theo cách khác",
-        "fit": (
-            "Hai người có thể làm nhau thấy mình nổi bật hơn, được khích lệ hoặc có thêm tự tin để "
-            "thể hiện. Sự chú ý nhất quán là phần có giá trị nhất ở đây."
+        "crush": (
+            "Hai bạn dễ khen nhau đúng chỗ. Ở cạnh nhau, mỗi người dễ thể hiện mặt tốt của mình."
         ),
-        "friction": (
-            "Cả hai có thể đều muốn được nhìn thấy nhưng không nhận ra tín hiệu của nhau. Khen sai "
-            "điều hoặc chỉ chú ý lúc cao trào dễ để lại cảm giác mình không thật sự được hiểu."
+        "friend": (
+            "Từ chuyện học, chuyện làm tới sở thích riêng, hai bạn dễ đứng về phía nhau. Có bạn "
+            "bên cạnh, mỗi người dám thử hơn."
+        ),
+        "partner": (
+            "Một lời ghi nhận nhỏ giữa hai bạn thường đi đúng chỗ. Hai bạn dễ nhớ và nhắc lại "
+            "điều nhau làm tốt."
+        ),
+        "someone": (
+            "Hai bạn dễ làm nhau tự tin hơn. Sự ghi nhận qua lại khiến những lần gặp dễ chịu."
         ),
     },
 }
 
-CONTEXT_CHECKS = {
-    "crush": {
-        "title": "Thử một lần nói rõ, đừng thử lòng",
-        "body": (
-            "Trong lần nhắn tin hoặc gặp tiếp theo, hỏi một câu có thể trả lời thẳng. "
-            "Sau đó nhìn vào cách hai người phản hồi thật, thay vì dùng độ hút để đoán ý nhau."
+# A situation and one step. Shown only above TENSION_THRESHOLD.
+TENSION_COPY = {
+    "communication": {
+        "crush": (
+            "Lúc nhắn tin, một câu trả lời cụt hay chậm dễ bị hiểu thành lạnh nhạt. Nếu thấy "
+            "chột dạ, hỏi lại một câu thay vì tự đoán."
+        ),
+        "friend": (
+            "Khi đang vội hoặc mệt, cách nói thẳng của một người dễ làm người còn lại chạnh "
+            'lòng. Lúc đó, nói rõ "mình đang vội, không phải giận" là đủ.'
+        ),
+        "partner": (
+            "Khi bàn chuyện quan trọng, hai bạn dễ phản ứng với giọng nói trước khi nghe hết ý. "
+            "Thử nhắc lại ý của nhau một lần trước khi trả lời."
+        ),
+        "someone": (
+            "Một câu nói thiếu ngữ cảnh dễ làm hai bạn hiểu lệch nhau. Hỏi lại một ý cụ thể sẽ "
+            "nhanh hơn đoán thái độ."
         ),
     },
-    "friend": {
-        "title": "Thử chốt một kế hoạch thật cụ thể",
-        "body": (
-            "Chọn một việc nhỏ hai bạn cùng muốn làm, thống nhất thời gian và cách đổi kế hoạch. "
-            "Nhịp phối hợp ngoài đời sẽ nói nhiều hơn một khoảnh khắc hợp mood."
+    "emotional": {
+        "crush": (
+            "Hai bạn có thể có cách quan tâm khác nhau: một người muốn được hỏi han ngay, một "
+            "người cần yên một lúc. Nói trước mình thuộc kiểu nào sẽ đỡ hụt nhau."
+        ),
+        "friend": (
+            "Khi một người cần ở một mình, người còn lại dễ hiểu thành bị bỏ rơi. Thử hẹn trước "
+            'một câu báo hiệu như "mình cần sạc pin, mai nói tiếp nhé".'
+        ),
+        "partner": (
+            "Lúc một người buồn, người còn lại dễ lao vào sửa vấn đề trong khi điều cần là được "
+            "nghe. Hỏi trước một câu: cần mình nghe, hay cần mình cùng tìm cách?"
+        ),
+        "someone": (
+            'Hai bạn có thể cần được an ủi theo những cách khác nhau. Hỏi thẳng "lúc này bạn '
+            'cần gì?" sẽ đỡ phải đoán.'
         ),
     },
-    "partner": {
-        "title": "Thử đổi một va chạm thành yêu cầu rõ",
-        "body": (
-            "Khi một chuyện quen thuộc nóng lên, mỗi người nói điều mình quan sát được và một "
-            "đề nghị có thể nhận hoặc từ chối. Xem hai bạn có quay lại được với nhau không."
+    "attraction": {
+        "crush": (
+            "Sự hào hứng lúc đầu dễ làm nhịp của hai bạn lệch nhau: một người muốn tiến nhanh, "
+            "một người muốn từ từ. Để cả hai cùng chủ động sẽ dễ chịu hơn."
+        ),
+        "friend": (
+            "Hai bạn đều có ý riêng, nên chuyện chọn chỗ đi hay việc làm chung dễ thành giành "
+            "phần. Thay phiên nhau quyết là cách đơn giản."
+        ),
+        "partner": (
+            "Khi một người muốn gần gũi mà người còn lại đang mệt, dễ có cảm giác bị từ chối. "
+            'Nói rõ "không phải lúc này, không phải không muốn" giúp cả hai nhẹ lòng.'
+        ),
+        "someone": (
+            "Năng lượng mạnh dễ làm hai bạn tranh nhau dẫn dắt. Chia rõ ai lo việc gì sẽ đỡ "
+            "va chạm."
         ),
     },
-    "someone": {
-        "title": "Thử một tương tác nhỏ rồi xem thật",
-        "body": (
-            "Chọn một câu hỏi hoặc một việc chung ít áp lực. Để ý xem cuộc nói chuyện có qua lại, "
-            "có tôn trọng khoảng riêng và có dễ làm rõ khi hiểu nhầm không."
+    "pace": {
+        "crush": (
+            "Một người có thể muốn rõ ràng sớm, người còn lại muốn để mọi thứ tự nhiên. Không cần "
+            "chốt gì vội; hỏi nhau về nhịp thấy thoải mái là đủ."
+        ),
+        "friend": (
+            "Khi kế hoạch bị đổi hoặc trễ hẹn, chuyện nhỏ dễ thành khó chịu. Báo sớm khi có thay "
+            "đổi sẽ giữ được sự tin nhau."
+        ),
+        "partner": (
+            "Hai bạn có thể khác nhau về tốc độ cam kết hay cách chia trách nhiệm. Nói rõ điều "
+            "mỗi người mong đợi sẽ giúp sự nghiêm túc không thành áp lực."
+        ),
+        "someone": (
+            "Hai bạn có thể khác nhau về tốc độ và mức chặt chẽ. Thống nhất trước việc gì cần "
+            "đúng hạn sẽ đỡ căng."
         ),
     },
+    "clarity": {
+        "crush": (
+            "Những điều chưa nói rõ dễ được trí tưởng tượng tự điền vào. Nếu đang mong chờ điều "
+            "gì, hỏi nhẹ một câu sẽ tốt hơn tự đoán."
+        ),
+        "friend": (
+            'Lời hẹn kiểu "để tính" dễ làm một người chờ, một người quên. Chốt rõ ngày giờ sẽ '
+            "tránh hụt hẫng."
+        ),
+        "partner": (
+            "Những kỳ vọng chưa nói ra dễ thành hiểu lầm. Thỉnh thoảng nói thẳng điều mình mong "
+            "sẽ giúp ước mơ chung không thành gánh nặng."
+        ),
+        "someone": (
+            "Một lời hẹn hay một ý chưa nói rõ dễ làm hai bạn hiểu mỗi người một kiểu. Nhắc lại "
+            "điều đã thống nhất sẽ đỡ nhầm."
+        ),
+    },
+    "freedom": {
+        "crush": (
+            "Một người thích bất ngờ, một người cần biết trước, nên nhịp gặp nhau dễ chập chờn. "
+            "Báo trước khi đổi kế hoạch là đủ để cả hai yên tâm."
+        ),
+        "friend": (
+            "Khi một người cần biến mất một thời gian, người còn lại dễ thấy bị gạt ra. Nhắn một "
+            'câu ngắn trước khi "tắt sóng" sẽ giữ được tình bạn.'
+        ),
+        "partner": (
+            "Nhu cầu tự do của một người có thể làm người còn lại thấy chông chênh. Thoả thuận "
+            "trước về khoảng riêng giúp cả hai không phải đoán."
+        ),
+        "someone": "Sự thay đổi phút chót dễ làm hai bạn lệch nhau. Báo trước một chút là đủ.",
+    },
+    "intensity": {
+        "crush": (
+            "Vì dễ đi sâu, một câu nói vô tình cũng có thể chạm tự ái. Giữ nhịp nhẹ nhàng ở "
+            "những lần đầu sẽ giúp cả hai thoải mái."
+        ),
+        "friend": (
+            "Khi có chuyện không vui, hai bạn dễ để nó âm ỉ lâu hơn bình thường. Nói ra sớm, "
+            "dù chỉ một câu, sẽ nhẹ hơn để dồn."
+        ),
+        "partner": (
+            "Cảm xúc mạnh dễ làm một chuyện nhỏ thành căng thẳng lớn. Tạm dừng khi cả hai đang "
+            "nóng và hẹn quay lại sau là cách an toàn."
+        ),
+        "someone": (
+            "Độ sâu cũng làm phản ứng mạnh hơn mức chuyện đáng có. Dừng một nhịp trước khi trả "
+            "lời sẽ giúp ích."
+        ),
+    },
+    "visibility": {
+        "crush": (
+            "Hai bạn có thể thích được ghi nhận theo những cách khác nhau. Một lời khen cụ thể "
+            "thường đi xa hơn một lời khen chung chung."
+        ),
+        "friend": (
+            "Khi cả hai đều muốn được chú ý, có lúc một người thấy mình bị lu mờ. Thay phiên làm "
+            '"nhân vật chính" của buổi gặp sẽ công bằng hơn.'
+        ),
+        "partner": (
+            "Mỗi người có thể cần được ghi nhận theo một kiểu: lời nói, hành động hay thời gian. "
+            "Hỏi nhau kiểu nào hợp sẽ đỡ cố mà không trúng."
+        ),
+        "someone": (
+            "Hai bạn có thể muốn được ghi nhận theo cách khác nhau. Một lời cảm ơn cụ thể thường "
+            "hiệu quả hơn lời khen chung."
+        ),
+    },
+}
+
+# One small thing to do and one question the user can ask (never a guess about the other).
+SUGGESTIONS = {
+    "communication": {
+        "crush": (
+            "Lần tới nhắn tin, thử hỏi một câu mở về điều bạn ấy đang thích dạo này.",
+            "Dạo này có gì làm cậu thấy vui không?",
+        ),
+        "friend": (
+            "Rủ nhau một buổi nói chuyện không điện thoại, chỉ hai đứa.",
+            "Có chuyện gì gần đây cậu muốn kể mà chưa có dịp không?",
+        ),
+        "partner": (
+            "Dành mười phút cuối ngày để kể nhau nghe một chuyện nhỏ.",
+            "Hôm nay có lúc nào bạn thấy được hiểu, hoặc chưa được hiểu không?",
+        ),
+        "someone": (
+            "Lần tới gặp, thử hỏi một câu mà bạn thật sự muốn biết câu trả lời.",
+            "Bạn thích được nói chuyện theo kiểu nào nhất?",
+        ),
+    },
+    "emotional": {
+        "crush": (
+            "Khi thấy không khí trầm xuống, hỏi nhẹ một câu rồi để bạn ấy tự chọn kể hay không.",
+            "Hôm nay của cậu thế nào?",
+        ),
+        "friend": (
+            "Hẹn với nhau một câu báo hiệu khi ai đó cần ở một mình.",
+            "Khi mệt, cậu muốn được hỏi han hay được để yên?",
+        ),
+        "partner": (
+            "Thử nói với nhau một điều nhỏ giúp mình thấy được thương.",
+            "Điều gì nhỏ thôi nhưng làm bạn thấy được quan tâm?",
+        ),
+        "someone": (
+            "Thử hỏi thăm một câu đơn giản và nghe trọn câu trả lời.",
+            "Lúc buồn, bạn thích được an ủi theo cách nào?",
+        ),
+    },
+    "attraction": {
+        "crush": (
+            "Rủ nhau làm một việc nhỏ cùng nhau, như đi uống nước hay cùng xem một bộ phim.",
+            "Cuối tuần này cậu có muốn làm gì cho vui không?",
+        ),
+        "friend": (
+            "Lên một kế hoạch đi chơi mà mỗi người chọn một phần.",
+            "Có chỗ nào cậu muốn đi mà chưa đi được không?",
+        ),
+        "partner": (
+            "Thử làm lại một điều hai bạn từng rất thích làm cùng nhau.",
+            "Có việc gì bạn muốn hai đứa làm cùng nhau thêm không?",
+        ),
+        "someone": (
+            "Thử cùng nhau làm một việc nhỏ, ít áp lực.",
+            "Bạn thường nạp năng lượng bằng cách nào?",
+        ),
+    },
+    "pace": {
+        "crush": (
+            "Giữ một nhịp nhắn tin thoải mái và để mọi thứ tiến từ từ.",
+            "Cậu thích nói chuyện thường xuyên hay thỉnh thoảng thôi?",
+        ),
+        "friend": (
+            "Chốt một kế hoạch cụ thể với ngày giờ rõ ràng.",
+            "Lần tới mình gặp vào hôm nào thì tiện cho cậu?",
+        ),
+        "partner": (
+            "Cùng nhau chọn một thói quen nhỏ muốn giữ mỗi tuần.",
+            "Có thói quen chung nào bạn muốn hai đứa giữ không?",
+        ),
+        "someone": (
+            "Thống nhất trước một việc nhỏ cần làm chung và hạn của nó.",
+            "Bạn thích làm việc theo kế hoạch hay linh hoạt?",
+        ),
+    },
+    "clarity": {
+        "crush": (
+            "Khi đang mong chờ điều gì, nói nhẹ ra thay vì chờ được đoán.",
+            "Cậu có hay thích lên kế hoạch trước không?",
+        ),
+        "friend": (
+            "Biến một câu đùa riêng của hai đứa thành một kế hoạch thật.",
+            'Có điều gì hai đứa hay nói "để hôm nào" mà chưa làm không?',
+        ),
+        "partner": (
+            "Kể cho nhau nghe một điều mình mong cho năm tới.",
+            "Một năm nữa, bạn mong hai đứa đang làm gì?",
+        ),
+        "someone": (
+            "Nhắc lại điều hai bạn đã thống nhất bằng một tin nhắn ngắn.",
+            "Mình hiểu đúng ý bạn chưa?",
+        ),
+    },
+    "freedom": {
+        "crush": (
+            "Rủ nhau thử một chỗ mới hay một việc chưa ai làm.",
+            "Có điều gì cậu muốn thử mà chưa có ai đi cùng không?",
+        ),
+        "friend": (
+            "Thử một hoạt động mới toanh cùng nhau, kể cả khi hơi ngớ ngẩn.",
+            "Điều điên rồ nhất cậu muốn thử là gì?",
+        ),
+        "partner": (
+            "Thống nhất với nhau một khoảng thời gian riêng cho mỗi người.",
+            "Bạn cần bao nhiêu thời gian riêng để thấy thoải mái?",
+        ),
+        "someone": (
+            "Thử đổi một thói quen quen thuộc khi gặp nhau.",
+            "Bạn thích mọi thứ được lên kế hoạch hay để tự nhiên?",
+        ),
+    },
+    "intensity": {
+        "crush": (
+            "Giữ những lần trò chuyện đầu nhẹ nhàng, để sự tin tưởng đến từ từ.",
+            "Điều gì làm cậu thấy thoải mái khi nói chuyện với một người mới?",
+        ),
+        "friend": (
+            "Khi có chuyện chưa vui, nói ra một câu ngắn trong ngày.",
+            "Có chuyện gì giữa hai đứa cậu muốn nói rõ không?",
+        ),
+        "partner": (
+            "Thống nhất một cách tạm dừng khi cả hai đang nóng.",
+            "Khi mình căng thẳng, bạn muốn mình làm gì?",
+        ),
+        "someone": (
+            "Dành thời gian cho một cuộc trò chuyện không vội.",
+            "Điều gì quan trọng nhất với bạn lúc này?",
+        ),
+    },
+    "visibility": {
+        "crush": (
+            "Khen một điều cụ thể bạn thật sự thấy hay ở bạn ấy.",
+            "Gần đây cậu tự hào về điều gì?",
+        ),
+        "friend": (
+            "Có mặt ở một dịp quan trọng của bạn mình, dù chỉ là nhắn chúc.",
+            "Dạo này cậu đang cố gắng cho chuyện gì?",
+        ),
+        "partner": (
+            "Nói cảm ơn về một việc cụ thể nhau đã làm trong tuần.",
+            "Bạn thích được ghi nhận bằng lời, bằng hành động hay bằng thời gian?",
+        ),
+        "someone": (
+            "Gửi một lời cảm ơn cụ thể sau lần gặp tới.",
+            "Điều gì làm bạn thấy được tôn trọng?",
+        ),
+    },
+}
+
+LOW_SIGNAL_SUGGESTIONS = {
+    "crush": (
+        "Lần tới nhắn tin, hỏi một câu có thể trả lời thẳng và xem cuộc trò chuyện đi tới đâu.",
+        "Dạo này cậu đang thích điều gì?",
+    ),
+    "friend": (
+        "Chốt một kế hoạch nhỏ cùng nhau và xem hai bạn phối hợp ra sao.",
+        "Lần tới mình làm gì cùng nhau nhỉ?",
+    ),
+    "partner": (
+        "Chọn một chuyện nhỏ trong tuần để cùng bàn và cùng quyết.",
+        "Tuần này có điều gì bạn muốn hai đứa làm khác đi không?",
+    ),
+    "someone": (
+        "Thử một cuộc trò chuyện ít áp lực và để ý xem hai bạn có qua lại dễ không.",
+        "Bạn thích được bắt chuyện theo cách nào?",
+    ),
+}
+
+# Areas per context (research option B/C): each theme belongs to exactly one area.
+AREAS = {
+    "crush": (
+        ("spark", "Điểm thu hút", ("attraction", "visibility", "intensity")),
+        ("opening", "Cách mở lời", ("communication", "clarity")),
+        ("closeness", "Nhịp tiến gần", ("pace", "freedom", "emotional")),
+    ),
+    "friend": (
+        ("talk", "Nói chuyện", ("communication", "clarity")),
+        ("fun", "Chơi chung", ("attraction", "freedom", "visibility")),
+        ("support", "Hỗ trợ nhau", ("emotional", "pace", "intensity")),
+    ),
+    "partner": (
+        ("bond", "Gắn bó", ("emotional", "intensity", "attraction")),
+        ("disagree", "Xử lý bất đồng", ("communication", "clarity", "visibility")),
+        ("life", "Nhịp sống chung", ("pace", "freedom")),
+    ),
+    "someone": (
+        ("talk", "Nói chuyện", ("communication", "clarity")),
+        ("feel", "Cảm xúc", ("emotional", "intensity", "attraction")),
+        ("rhythm", "Nhịp phối hợp", ("pace", "freedom", "visibility")),
+    ),
+}
+
+LEVEL_LABELS = {
+    "good": "hợp",
+    "balanced": "cân bằng",
+    "watch": "cần để ý",
+    "quiet": "chưa rõ",
+}
+
+FACTOR_COPY = {
+    "communication": {
+        "good": "Cách hai bạn nói và nghe dễ khớp nhau.",
+        "balanced": "Cách nói chuyện có chỗ khớp, có chỗ cần hỏi lại.",
+        "watch": "Cách nói của hai bạn dễ lệch nhau khi vội.",
+    },
+    "emotional": {
+        "good": "Hai bạn dễ nhận ra cảm xúc của nhau.",
+        "balanced": "Cảm xúc của hai bạn có lúc hợp, có lúc cần nói ra mới hiểu.",
+        "watch": "Hai bạn có thể cần được quan tâm theo cách khác nhau.",
+    },
+    "attraction": {
+        "good": "Khi gặp nhau, hai bạn dễ thấy hào hứng.",
+        "balanced": "Sự hào hứng giữa hai bạn có lúc lên, có lúc xuống.",
+        "watch": "Nhịp chủ động của hai bạn dễ lệch nhau.",
+    },
+    "pace": {
+        "good": "Hai bạn dễ giữ nhịp và giữ lời với nhau.",
+        "balanced": "Nhịp giữ hẹn, giữ lời của hai bạn cần thống nhất thêm.",
+        "watch": "Tốc độ và mức chặt chẽ của hai bạn dễ khác nhau.",
+    },
+    "clarity": {
+        "good": "Hai bạn dễ hiểu ý ngầm và tưởng tượng cùng nhau.",
+        "balanced": "Có điều hai bạn hiểu ngay, có điều cần nói rõ.",
+        "watch": "Điều chưa nói rõ dễ được hiểu theo nhiều cách.",
+    },
+    "freedom": {
+        "good": "Hai bạn dễ cho nhau sự mới mẻ và khoảng riêng.",
+        "balanced": "Nhu cầu tự do của hai bạn cần cân lại một chút.",
+        "watch": "Thay đổi bất ngờ dễ làm hai bạn lệch nhịp.",
+    },
+    "intensity": {
+        "good": "Hai bạn dễ đi sâu và tin nhau.",
+        "balanced": "Độ sâu giữa hai bạn cần thời gian để lớn dần.",
+        "watch": "Cảm xúc mạnh dễ làm chuyện nhỏ thành lớn.",
+    },
+    "visibility": {
+        "good": "Hai bạn dễ cổ vũ và ghi nhận nhau.",
+        "balanced": "Cách ghi nhận nhau của hai bạn có lúc trúng, có lúc lệch.",
+        "watch": "Cách hai bạn muốn được ghi nhận dễ khác nhau.",
+    },
+}
+
+SECTION_LABELS = {
+    "fit": "Điều trôi chảy",
+    "friction": "Điều cần để ý",
+    "check": "Một gợi ý",
+    "why": "Vì sao ra kết quả này?",
+    "perspective": "Hai phía có thể thấy khác nhau",
+    "practice": "Thêm vài cách thử",
+}
+
+# Owner decision 10: one fixed calm line, once, in one place, for every pair.
+CLOSING_LINE = "Kết quả để tham khảo, cách hai bạn đối xử với nhau mới là điều quyết định."
+
+LOW_SIGNAL_COPY = {
+    "headline": "Lá chưa thấy đủ điểm riêng để kể về hai bạn.",
+    "summary": (
+        "Những dữ kiện còn lại quá chung để nói đây là nét riêng của hai bạn, nên bài đọc này ngắn."
+    ),
+    "fit": (
+        "Lá chưa thấy điểm dễ đi cùng nào đủ rõ. Cách hai bạn trò chuyện thật sẽ nói nhiều hơn "
+        "mọi phỏng đoán."
+    ),
+    "why": "Sau bước lọc, không còn điểm chạm nào đủ riêng của hai bạn để dùng.",
 }
 
 
@@ -320,175 +881,119 @@ def build_radar_reading(
     context: str,
     voice: RelationshipVoice = RelationshipVoice.STRAIGHT_WARM,
 ) -> dict[str, Any]:
-    """Project relationship facts into a layered, traceable public dossier."""
+    """Project relationship facts into a short default reading plus one "Xem thêm" layer."""
 
-    safe_context = context if context in CONTEXT_CHECKS else "someone"
-    motifs = _motifs(bundle)
-    if not motifs:
+    safe_context = context if context in CONTEXTS else "someone"
+    signals = pair_signals(bundle)
+    if signals is None:
         return _low_signal_reading(bundle, context=safe_context, voice=voice)
 
-    clusters = _clusters(motifs)
+    fit, tension = signals.fit, signals.tension
+    focus = tension if tension is not None else fit
+    tier_label = TIER_LABELS[safe_context][signals.tier]
+    headline = HEADLINES[fit.key][safe_context]
+    summary = TIER_REASONS[signals.tier].format(fit=THEME_PLAIN[fit.key])
+    action, question = SUGGESTIONS[focus.key][safe_context]
 
-    resonance, resonance_receipts = _index(motifs, "resonance")
-    coordination, coordination_receipts = _index(motifs, "coordination")
-    friction, friction_receipts = _index(motifs, "friction")
-    fit = max(clusters, key=lambda item: (item.coordination, item.resonance, item.key))
-    tension = max(clusters, key=lambda item: (item.friction, item.resonance, item.key))
-    if tension.key == fit.key and len(clusters) > 1:
-        tension = max(
-            (item for item in clusters if item.key != fit.key),
-            key=lambda item: (item.friction, item.resonance, item.key),
+    support = signals.support
+    fit_receipts = _cluster_receipts(fit, mode="fit")
+    tension_receipts = _cluster_receipts(tension, mode="friction") if tension else []
+    fit_body = FIT_COPY[fit.key][safe_context]
+    if support is not None:
+        fit_body = f"{fit_body} {FIT_COPY[support.key][safe_context]}"
+    sections: list[dict[str, Any]] = [
+        _section(
+            "fit",
+            body=fit_body,
+            topics=[fit.label, *([support.label] if support else [])],
+            evidence=_dedupe_receipts(
+                [*fit_receipts, *(_cluster_receipts(support, mode="fit") if support else [])]
+            ),
+        )
+    ]
+    if tension is not None:
+        sections.append(
+            _section(
+                "friction",
+                body=TENSION_COPY[tension.key][safe_context],
+                topics=[tension.label],
+                evidence=tension_receipts,
+            )
+        )
+    sections.append(
+        _section(
+            "check",
+            body=action,
+            question=question,
+            topics=[focus.label],
+            evidence=[(tension_receipts or fit_receipts)[0]],
+        )
+    )
+
+    tier_receipts = _tier_receipts(list(signals.motifs))
+    factors, factor_receipts = _factors(signals)
+    sections.append(
+        _section(
+            "why",
+            layer="more",
+            title="Những điểm chạm Lá đã dùng",
+            body=(
+                "Mỗi dòng là một điểm chạm giữa hai lá số, kèm tên gọi trong chiêm tinh cho ai "
+                "muốn tra thêm. Bậc được xếp bằng cách so cặp này với nhiều cặp mẫu."
+            ),
+            factors=factors,
+            evidence=_dedupe_receipts([*factor_receipts, *tier_receipts]),
+        )
+    )
+    perspective_body, perspective_receipts, perspective_items = _perspective(
+        bundle, list(signals.motifs)
+    )
+    sections.append(
+        _section(
+            "perspective",
+            layer="more",
+            title="Cùng một lần gặp, mỗi người có thể để tâm chuyện khác",
+            body=perspective_body,
+            perspectives=perspective_items,
+            evidence=perspective_receipts,
+        )
+    )
+    actions, action_receipts, voice_label = _editorial_actions(
+        bundle, motifs=list(signals.motifs), voice=voice
+    )
+    if actions:
+        sections.append(
+            _section(
+                "practice",
+                layer="more",
+                title="Nếu muốn thử thêm",
+                body="Vài cách nhỏ để hai bạn tự kiểm chứng ngoài đời.",
+                highlights=actions,
+                evidence=action_receipts,
+            )
         )
 
-    fit_support = _support_cluster(clusters, fit, channel="coordination")
-    tension_support = _support_cluster(clusters, tension, channel="friction")
-
-    has_distinct_tension = tension.key != fit.key or tension.friction >= 0.35
-    active_tension = tension if has_distinct_tension else None
-    headline = _headline(fit, tension) if active_tension else _headline_without_tension(fit)
-    summary = _summary(fit, tension) if active_tension else _summary_without_tension(fit)
-    perspective_body, perspective_receipts, perspective_items = _perspective(bundle, motifs)
-    fit_receipts = _chapter_receipts(fit, fit_support, mode="fit")
-    tension_receipts = (
-        _chapter_receipts(tension, tension_support, mode="friction") if active_tension else []
-    )
-    check = CONTEXT_CHECKS[safe_context]
-    editorial_actions, editorial_receipts, voice_label = _editorial_actions(
-        bundle, motifs=motifs, voice=voice
-    )
-    sections: list[dict[str, Any]] = [
-        {
-            "key": "fit",
-            "label": "Điểm hợp",
-            "title": _fit_title(_primary_motif(fit, mode="fit")),
-            "body": _chapter_intro(fit, fit_support, mode="fit"),
-            "topics": _topic_labels(fit, fit_support),
-            "depth": _depth(fit_receipts),
-            "highlights": _chapter_highlights(fit, fit_support, mode="fit"),
-            "scene": _scene_card(fit.key, mode="fit"),
-            "perspectives": [],
-            "observation": None,
-            "evidence": fit_receipts,
-        },
-        {
-            "key": "friction",
-            "label": "Điểm dễ cấn",
-            "title": (
-                _friction_title(_primary_motif(tension, mode="friction"))
-                if active_tension
-                else "Chưa thấy một điểm cấn đủ mạnh để gọi tên"
-            ),
-            "body": (
-                _chapter_intro(tension, tension_support, mode="friction")
-                if active_tension
-                else (
-                    "Các tín hiệu hiện có chưa cho thấy một điểm lệch riêng. "
-                    "Đừng biến khoảng trống này thành kết luận rằng hai người sẽ luôn dễ dàng; "
-                    "hãy nhìn cách cả hai xử lý lần hiểu nhầm thật đầu tiên."
-                )
-            ),
-            "topics": _topic_labels(tension, tension_support) if active_tension else [],
-            "depth": _depth(tension_receipts),
-            "highlights": (
-                _chapter_highlights(tension, tension_support, mode="friction")
-                if active_tension
-                else []
-            ),
-            "scene": _scene_card(tension.key, mode="friction") if active_tension else None,
-            "perspectives": [],
-            "observation": None,
-            "evidence": tension_receipts,
-        },
-        {
-            "key": "perspective",
-            "label": "Hai phía có thể thấy khác nhau",
-            "title": "Cùng một kết nối, chưa chắc cùng một trải nghiệm",
-            "body": perspective_body,
-            "topics": list(dict.fromkeys([fit.label, tension.label])),
-            "depth": _depth(perspective_receipts),
-            "highlights": [],
-            "scene": None,
-            "perspectives": perspective_items,
-            "observation": {
-                "label": "Điều đáng đối chiếu",
-                "title": "Đừng dùng trải nghiệm của mình để đo hộ phía còn lại",
-                "body": (
-                    "Cùng một lần nhắn tin, gặp gỡ hoặc im lặng có thể mang trọng lượng khác nhau "
-                    "với mỗi người. Hỏi về trải nghiệm thật sẽ chính xác hơn suy từ chart."
-                ),
-            },
-            "evidence": perspective_receipts,
-        },
-        {
-            "key": "check",
-            "label": "Đem ra đời thật",
-            "title": check["title"],
-            "body": check["body"],
-            "topics": list(
-                dict.fromkeys([fit.label, *([tension.label] if active_tension else [])])
-            ),
-            "depth": "focused",
-            "highlights": editorial_actions,
-            "scene": None,
-            "perspectives": [],
-            "observation": {
-                "label": "Một lần thử là đủ",
-                "title": "Quan sát cách hai người quay lại sau một nhịp lệch",
-                "body": _observation_body(fit, active_tension, safe_context),
-            },
-            "evidence": _dedupe_receipts(
-                [
-                    fit_receipts[0],
-                    *([tension_receipts[0]] if tension_receipts else []),
-                    *editorial_receipts,
-                ]
-            ),
-        },
-    ]
-    all_receipts = [
-        *(receipt for section in sections for receipt in section["evidence"]),
-        *resonance_receipts,
-        *coordination_receipts,
-        *friction_receipts,
-    ]
-    all_evidence_ids = list(dict.fromkeys(str(receipt["evidence_id"]) for receipt in all_receipts))
-
+    all_receipts = [receipt for section in sections for receipt in section["evidence"]]
+    evidence_ids = list(dict.fromkeys(str(receipt["evidence_id"]) for receipt in all_receipts))
+    tier: dict[str, Any] = {"key": signals.tier, "label": tier_label}
+    if SHOW_TIER_SCORE:
+        tier["score"] = round(signals.percentile)
     return {
-        "version": "radar-result-v2",
+        "version": RESULT_VERSION,
         "headline": headline,
         "summary": summary,
         "pair_signature": {
-            "kicker": _kicker(resonance, coordination, friction),
+            "kicker": tier_label,
             "headline": headline,
             "summary": summary,
+            "tier": tier,
+            "areas": _areas(signals, safe_context),
             "themes": [
                 {"key": fit.key, "label": fit.label},
-                *([{"key": tension.key, "label": tension.label}] if active_tension else []),
+                *([{"key": tension.key, "label": tension.label}] if tension else []),
             ],
         },
-        "compatibility_map": [
-            {
-                "key": "resonance",
-                "label": "Bắt sóng",
-                "value": resonance,
-                "meaning": "Độ hai người dễ làm nhau chú ý hoặc thấy có tín hiệu qua lại.",
-                "evidence": resonance_receipts,
-            },
-            {
-                "key": "coordination",
-                "label": "Dễ phối hợp",
-                "value": coordination,
-                "meaning": "Độ hai nhịp có sẵn đường để nói, làm và điều chỉnh cùng nhau.",
-                "evidence": coordination_receipts,
-            },
-            {
-                "key": "friction",
-                "label": "Lực cấn",
-                "value": friction,
-                "meaning": "Độ tương tác dễ kích hoạt khác biệt hoặc cần làm rõ nhiều hơn.",
-                "evidence": friction_receipts,
-            },
-        ],
+        "compatibility_map": [],
         "sections": sections,
         "dimensions": [],
         "strongest_contacts": [
@@ -499,22 +1004,233 @@ def build_radar_reading(
                 "tone": item.contact.tone.value,
                 "orb": round(item.contact.orb, 2),
             }
-            for item in motifs[:5]
+            for item in signals.motifs[:5]
         ],
-        "metadata": {
-            "knowledge_version": RELATIONSHIP_KNOWLEDGE_VERSION,
-            "renderer_version": RENDERER_VERSION,
-            "gate_version": GATE_VERSION,
-            "chart_config_version": bundle.provenance.config_hash,
-            "evidence_ids": all_evidence_ids,
-            "concept_ids": [item["concept_id"] for item in editorial_actions],
-            "voice": voice.value,
-            "voice_label": voice_label,
-        },
-        "disclaimer": (
-            "Ba chỉ báo là bản đồ tương tác từ hai chart, không phải xác suất thành công. "
-            "Điều hai người thực sự nói và làm vẫn là dữ liệu quan trọng nhất."
+        "metadata": _metadata(
+            bundle,
+            voice=voice,
+            voice_label=voice_label,
+            evidence_ids=evidence_ids,
+            concept_ids=[item["concept_id"] for item in actions],
+            signal_bands=_signal_bands(list(signals.motifs)),
         ),
+        "disclaimer": CLOSING_LINE,
+    }
+
+
+def pair_signals(bundle: RelationshipBundle) -> PairSignals | None:
+    """Rank and classify one directed pair; None when no pair-specific contact survives."""
+
+    motifs = tuple(_motifs(bundle))
+    if not motifs:
+        return None
+    clusters = tuple(_clusters(list(motifs)))
+    ease = ease_signal(list(motifs))
+    percentile = rank_percentile(ease)
+    levels = {cluster.key: _cluster_level(cluster) for cluster in clusters}
+    calm = [cluster for cluster in clusters if levels[cluster.key] != "watch"]
+    fit = max(calm or clusters, key=lambda item: (item.coordination, item.resonance, item.key))
+    watched = [cluster for cluster in clusters if levels[cluster.key] == "watch"]
+    distinct = [cluster for cluster in watched if cluster.key != fit.key]
+    tension = max(
+        distinct or watched,
+        key=lambda item: (item.friction, item.resonance, item.key),
+        default=None,
+    )
+    support = max(
+        (
+            cluster
+            for cluster in clusters
+            if levels[cluster.key] == "good"
+            and cluster.key not in {fit.key, tension.key if tension else ""}
+        ),
+        key=lambda item: (item.coordination, item.resonance, item.key),
+        default=None,
+    )
+    return PairSignals(
+        motifs=motifs,
+        clusters=clusters,
+        ease=ease,
+        percentile=percentile,
+        tier=tier_for(percentile),
+        fit=fit,
+        support=support,
+        tension=tension,
+        levels=levels,
+    )
+
+
+def ease_signal(motifs: list[Motif]) -> float:
+    """How easily the two interact: coordination minus weighted friction (unscaled)."""
+
+    return _channel_mean(motifs, "coordination") - EASE_FRICTION_WEIGHT * _channel_mean(
+        motifs, "friction"
+    )
+
+
+def rank_percentile(ease: float) -> float:
+    """Position (0-100) of ``ease`` in the reference distribution, linear between quantiles."""
+
+    reference = TIER_REFERENCE
+    if ease <= reference[0]:
+        return 0.0
+    if ease >= reference[-1]:
+        return 100.0
+    step = 100.0 / (len(reference) - 1)
+    index = bisect_right(reference, ease) - 1
+    low, high = reference[index], reference[index + 1]
+    fraction = 0.0 if high <= low else (ease - low) / (high - low)
+    return min(100.0, step * (index + fraction))
+
+
+def tier_for(percentile: float) -> str:
+    return next(key for key, floor in TIER_BANDS if percentile >= floor)
+
+
+def _cluster_level(cluster: ThemeCluster) -> str:
+    if cluster.friction >= TENSION_THRESHOLD and cluster.friction > cluster.coordination:
+        return "watch"
+    if cluster.coordination >= max(cluster.friction, GOOD_MIN_COORDINATION):
+        return "good"
+    return "balanced"
+
+
+def _areas(signals: PairSignals, context: str) -> list[dict[str, str]]:
+    by_key = {cluster.key: cluster for cluster in signals.clusters}
+    areas: list[dict[str, str]] = []
+    for key, label, themes in AREAS[context]:
+        present = [by_key[theme] for theme in themes if theme in by_key]
+        if not present:
+            areas.append(
+                {
+                    "key": key,
+                    "label": label,
+                    "level": "quiet",
+                    "level_label": LEVEL_LABELS["quiet"],
+                    "note": f"Chưa đủ dữ kiện cho mảng {label.lower()}.",
+                }
+            )
+            continue
+        order = {"watch": 0, "good": 1, "balanced": 2}
+        lead = min(
+            present,
+            key=lambda item: (
+                order[signals.levels[item.key]],
+                -max(item.coordination, item.friction),
+                item.key,
+            ),
+        )
+        level = signals.levels[lead.key]
+        areas.append(
+            {
+                "key": key,
+                "label": label,
+                "level": level,
+                "level_label": LEVEL_LABELS[level],
+                "note": FACTOR_COPY[lead.key][level],
+            }
+        )
+    return areas
+
+
+def _factors(signals: PairSignals) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """The "Vì sao?" checklist: up to five clusters, each with its level and chart terms."""
+
+    factors: list[dict[str, Any]] = []
+    receipts: list[dict[str, Any]] = []
+    for cluster in signals.clusters[:5]:
+        level = signals.levels[cluster.key]
+        mode = "friction" if level == "watch" else "fit"
+        ordered = _ordered_motifs(cluster, mode=mode)
+        lead = ordered[0].contact
+        note = (
+            f"{BODY_LABELS[lead.body_a]} của bạn và {BODY_LABELS[lead.body_b]} của người kia, "
+            f"góc {ASPECT_LABELS.get(lead.kind, lead.kind)}"
+        )
+        if len(ordered) > 1:
+            note += f", cùng {len(ordered) - 1} điểm chạm khác"
+        factors.append(
+            {
+                "key": cluster.key,
+                "label": THEME_PLAIN[cluster.key][:1].upper() + THEME_PLAIN[cluster.key][1:],
+                "level": level,
+                "level_label": LEVEL_LABELS[level],
+                "technical_note": note + ".",
+                "evidence_ids": [item.evidence_id for item in ordered[:3]],
+            }
+        )
+        receipts.extend(_contact_receipt(item) for item in ordered[:3])
+    return factors, _dedupe_receipts(receipts)
+
+
+def _section(
+    key: str,
+    *,
+    body: str,
+    layer: str = "main",
+    title: str = "",
+    question: str | None = None,
+    topics: list[str] | None = None,
+    highlights: list[dict[str, Any]] | None = None,
+    perspectives: list[dict[str, str]] | None = None,
+    factors: list[dict[str, Any]] | None = None,
+    evidence: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    receipts = evidence or []
+    section: dict[str, Any] = {
+        "key": key,
+        "layer": layer,
+        "label": SECTION_LABELS[key],
+        "title": title,
+        "body": body,
+        "topics": topics or [],
+        "depth": "layered" if len(receipts) >= 2 else "focused",
+        "highlights": highlights or [],
+        "scene": None,
+        "perspectives": perspectives or [],
+        "observation": None,
+        "evidence": receipts,
+    }
+    if question is not None:
+        section["question"] = question
+    if factors is not None:
+        section["factors"] = factors
+    return section
+
+
+def _metadata(
+    bundle: RelationshipBundle,
+    *,
+    voice: RelationshipVoice,
+    voice_label: str,
+    evidence_ids: list[str],
+    concept_ids: list[str],
+    signal_bands: dict[str, str],
+) -> dict[str, Any]:
+    return {
+        "knowledge_version": RELATIONSHIP_KNOWLEDGE_VERSION,
+        "renderer_version": RENDERER_VERSION,
+        "gate_version": GATE_VERSION,
+        "tier_calibration_version": TIER_CALIBRATION_VERSION,
+        "chart_config_version": bundle.provenance.config_hash,
+        "evidence_ids": evidence_ids,
+        "concept_ids": concept_ids,
+        "voice": voice.value,
+        "voice_label": voice_label,
+        # Coarse levels for the optional Luna rewrite payload; never shown.
+        "signal_bands": signal_bands,
+    }
+
+
+def _signal_bands(motifs: list[Motif]) -> dict[str, str]:
+    def band(value: float) -> str:
+        scaled = 18 + 78 * value if motifs else 0
+        return "low" if scaled < 34 else "medium" if scaled < 67 else "high"
+
+    return {
+        "attraction": band(_channel_mean(motifs, "resonance")),
+        "coordination": band(_channel_mean(motifs, "coordination")),
+        "friction": band(_channel_mean(motifs, "friction")),
     }
 
 
@@ -587,9 +1303,9 @@ def _render_prompt(
         return f"{prefixes[index % len(prefixes)]}{base}"
     if voice is RelationshipVoice.DEEP_DIVE:
         prefixes = (
-            "Từ tín hiệu đang nổi bật trong chart, ",
-            "Để kiểm chứng lớp này ngoài đời, ",
-            "Thay vì kết luận từ chart, ",
+            "Từ điểm chạm đang nổi bật, ",
+            "Để kiểm chứng điều này ngoài đời, ",
+            "Thay vì kết luận từ lá số, ",
         )
         return (
             f"{prefixes[index % len(prefixes)]}{base} Sau đó đối chiếu phản hồi thật: "
@@ -608,125 +1324,66 @@ def _low_signal_reading(
     context: str,
     voice: RelationshipVoice,
 ) -> dict[str, Any]:
-    """Return an honest short report when no pair-specific contact survives filtering."""
+    """An honest short reading when no pair-specific contact survives filtering."""
 
     perspective_body, perspective_receipts, perspective_items = _perspective(bundle, [])
-    check = CONTEXT_CHECKS[context]
-    evidence_ids = [str(item["evidence_id"]) for item in perspective_receipts]
-    compatibility_map = [
-        {
-            "key": key,
-            "label": label,
-            "value": 0,
-            "meaning": "Chưa đủ tín hiệu riêng của cặp để đọc chỉ báo này.",
-            "evidence": [],
-        }
-        for key, label in (
-            ("resonance", "Bắt sóng"),
-            ("coordination", "Dễ phối hợp"),
-            ("friction", "Lực cấn"),
-        )
-    ]
+    action, question = LOW_SIGNAL_SUGGESTIONS[context]
+    tier_label = TIER_LABELS[context]["unclear"]
     sections = [
-        {
-            "key": "fit",
-            "label": "Điểm hợp",
-            "title": "Chưa có điểm hợp đủ riêng để gọi tên",
-            "body": (
-                "Những tín hiệu còn lại quá chung để nói đây là nét riêng của hai người. "
-                "Radar dừng ở đây thay vì bù bằng một lời hợp gu nghe hay nhưng khó kiểm chứng."
-            ),
-            "topics": [],
-            "depth": "focused",
-            "highlights": [],
-            "scene": None,
-            "perspectives": [],
-            "observation": None,
-            "evidence": [],
-        },
-        {
-            "key": "friction",
-            "label": "Điểm dễ cấn",
-            "title": "Chưa có điểm cấn đủ riêng để gọi tên",
-            "body": (
-                "Không có đủ bằng chứng để gắn một kiểu lệch nhịp cho cặp này. "
-                "Một lần hai người bất đồng thật sẽ cho nhiều dữ liệu hơn một câu đoán từ chart."
-            ),
-            "topics": [],
-            "depth": "focused",
-            "highlights": [],
-            "scene": None,
-            "perspectives": [],
-            "observation": None,
-            "evidence": [],
-        },
-        {
-            "key": "perspective",
-            "label": "Hai phía có thể thấy khác nhau",
-            "title": "Cùng một kết nối, chưa chắc cùng một trải nghiệm",
-            "body": perspective_body,
-            "topics": [],
-            "depth": _depth(perspective_receipts),
-            "highlights": [],
-            "scene": None,
-            "perspectives": perspective_items,
-            "observation": None,
-            "evidence": perspective_receipts,
-        },
-        {
-            "key": "check",
-            "label": "Đem ra đời thật",
-            "title": check["title"],
-            "body": check["body"],
-            "topics": [],
-            "depth": "focused",
-            "highlights": [],
-            "scene": None,
-            "perspectives": [],
-            "observation": {
-                "label": "Một lần thử là đủ",
-                "title": "Ưu tiên điều hai người thật sự làm",
-                "body": (
-                    "Khi chart chưa cho đủ tín hiệu riêng, cách hai người hỏi, trả lời và sửa một "
-                    "hiểu nhầm nhỏ là dữ liệu hữu ích nhất."
-                ),
-            },
-            "evidence": [],
-        },
+        _section("fit", body=LOW_SIGNAL_COPY["fit"]),
+        _section("check", body=action, question=question),
+        _section(
+            "why",
+            layer="more",
+            title="Những điểm chạm Lá đã dùng",
+            body=LOW_SIGNAL_COPY["why"],
+            factors=[],
+        ),
+        _section(
+            "perspective",
+            layer="more",
+            title="Cùng một lần gặp, mỗi người có thể để tâm chuyện khác",
+            body=perspective_body,
+            perspectives=perspective_items,
+            evidence=perspective_receipts,
+        ),
     ]
-    headline = "Chart chưa cho đủ tín hiệu riêng để kể thay câu chuyện của hai người."
-    summary = (
-        "Radar chỉ giữ phần có thể truy ngược. Lần này dữ liệu phù hợp còn mỏng, nên bản đọc "
-        "ngắn và nhường chỗ cho tương tác thật."
-    )
+    headline = LOW_SIGNAL_COPY["headline"]
+    summary = LOW_SIGNAL_COPY["summary"]
     return {
-        "version": "radar-result-v2",
+        "version": RESULT_VERSION,
         "headline": headline,
         "summary": summary,
         "pair_signature": {
-            "kicker": "Tín hiệu mỏng · chưa nên đoán xa",
+            "kicker": tier_label,
             "headline": headline,
             "summary": summary,
+            "tier": {"key": "unclear", "label": tier_label},
+            "areas": [
+                {
+                    "key": key,
+                    "label": label,
+                    "level": "quiet",
+                    "level_label": LEVEL_LABELS["quiet"],
+                    "note": f"Chưa đủ dữ kiện cho mảng {label.lower()}.",
+                }
+                for key, label, _ in AREAS[context]
+            ],
             "themes": [],
         },
-        "compatibility_map": compatibility_map,
+        "compatibility_map": [],
         "sections": sections,
         "dimensions": [],
         "strongest_contacts": [],
-        "metadata": {
-            "knowledge_version": RELATIONSHIP_KNOWLEDGE_VERSION,
-            "renderer_version": RENDERER_VERSION,
-            "gate_version": GATE_VERSION,
-            "chart_config_version": bundle.provenance.config_hash,
-            "evidence_ids": evidence_ids,
-            "concept_ids": [],
-            "voice": voice.value,
-            "voice_label": voice_profile(voice).label,
-        },
-        "disclaimer": (
-            "Bản đọc ngắn vì Radar chưa có đủ bằng chứng riêng của cặp. "
-            "Điều hai người thực sự nói và làm vẫn là dữ liệu quan trọng nhất."
+        "metadata": _metadata(
+            bundle,
+            voice=voice,
+            voice_label=voice_profile(voice).label,
+            evidence_ids=[str(item["evidence_id"]) for item in perspective_receipts],
+            concept_ids=[],
+            signal_bands=_signal_bands([]),
         ),
+        "disclaimer": CLOSING_LINE,
     }
 
 
@@ -808,117 +1465,43 @@ def _cluster_channel(motifs: tuple[Motif, ...], channel: str) -> float:
     return min(1.2, weighted / divisor + reinforcement)
 
 
-def _support_cluster(
-    clusters: list[ThemeCluster], primary: ThemeCluster, *, channel: str
-) -> ThemeCluster | None:
-    candidates = [item for item in clusters if item.key != primary.key]
-    if not candidates:
-        return None
-    support = max(
-        candidates,
-        key=lambda item: (float(getattr(item, channel)), item.resonance, item.key),
+def _channel_strongest(motifs: list[Motif], channel: str) -> list[Motif]:
+    return sorted(
+        motifs,
+        key=lambda item: (float(getattr(item, channel)), item.evidence_id),
+        reverse=True,
+    )[:6]
+
+
+def _channel_mean(motifs: list[Motif], channel: str) -> float:
+    strongest = _channel_strongest(motifs, channel)
+    if not strongest:
+        return 0.0
+    weighted = sum(
+        float(getattr(item, channel)) * (1 - index * 0.08) for index, item in enumerate(strongest)
     )
-    return support if float(getattr(support, channel)) >= 0.35 else None
+    return weighted / sum(1 - index * 0.08 for index in range(len(strongest)))
 
 
-def _topic_labels(primary: ThemeCluster, support: ThemeCluster | None) -> list[str]:
-    return [primary.label] if support is None else [primary.label, support.label]
+def _tier_receipts(motifs: list[Motif]) -> list[dict[str, Any]]:
+    """Every contact the ease signal read (top six per channel), so the tier is traceable."""
+
+    used = [
+        item
+        for channel in ("coordination", "friction")
+        for item in _channel_strongest(motifs, channel)
+    ]
+    return _dedupe_receipts([_contact_receipt(item) for item in used])
 
 
-def _chapter_receipts(
-    primary: ThemeCluster, support: ThemeCluster | None, *, mode: str
-) -> list[dict[str, Any]]:
-    motifs = [*_ordered_motifs(primary, mode=mode)[:3]]
-    if support is not None:
-        motifs.extend(_ordered_motifs(support, mode=mode)[:3])
-    return _dedupe_receipts([_contact_receipt(item) for item in motifs])
+def _cluster_receipts(cluster: ThemeCluster, *, mode: str) -> list[dict[str, Any]]:
+    return _dedupe_receipts(
+        [_contact_receipt(item) for item in _ordered_motifs(cluster, mode=mode)[:3]]
+    )
 
 
 def _dedupe_receipts(receipts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return list({str(item["evidence_id"]): item for item in receipts}.values())
-
-
-def _depth(receipts: list[dict[str, Any]]) -> str:
-    return "layered" if len(receipts) >= 2 else "focused"
-
-
-def _chapter_highlights(
-    primary: ThemeCluster,
-    support: ThemeCluster | None,
-    *,
-    mode: str,
-) -> list[dict[str, Any]]:
-    highlights = [_cluster_highlight(primary, mode=mode, role="Tín hiệu chính")]
-    if len(primary.motifs) > 1:
-        highlights.append(_reinforcement_highlight(primary, mode=mode))
-    elif support is not None:
-        highlights.append(_cluster_highlight(support, mode=mode, role="Lớp đi kèm"))
-    return highlights
-
-
-def _cluster_highlight(
-    cluster: ThemeCluster,
-    *,
-    mode: str,
-    role: str,
-) -> dict[str, Any]:
-    primary = _primary_motif(cluster, mode=mode)
-    ordered = _ordered_motifs(cluster, mode=mode)
-    return {
-        "key": f"{mode}:{cluster.key}:primary",
-        "label": role,
-        "title": _fit_title(primary) if mode == "fit" else _friction_title(primary),
-        "body": _cluster_body(cluster, mode=mode),
-        "evidence_ids": [item.evidence_id for item in ordered[:3]],
-    }
-
-
-def _reinforcement_highlight(cluster: ThemeCluster, *, mode: str) -> dict[str, Any]:
-    first, second = _ordered_motifs(cluster, mode=mode)[:2]
-    scene = _first_sentence(SCENE_COPY[cluster.key][mode])
-    return {
-        "key": f"{mode}:{cluster.key}:reinforced",
-        "label": "Điểm lặp lại trong chart",
-        "title": "Đây không phải tín hiệu đến từ một góc đơn lẻ",
-        "body": (
-            f"{scene} Hai góc khác nhau cùng quay về {cluster.label}; vì vậy Radar giữ "
-            "chủ đề này để bạn kiểm chứng qua nhiều lần tương tác, không phải chỉ một khoảnh khắc."
-        ),
-        "evidence_ids": [first.evidence_id, second.evidence_id],
-    }
-
-
-def _chapter_intro(
-    cluster: ThemeCluster,
-    support: ThemeCluster | None,
-    *,
-    mode: str,
-) -> str:
-    lead = "Điểm dễ đi cùng nhất" if mode == "fit" else "Điểm dễ lệch nhất"
-    next_step = (
-        "Phần dưới chỉ ra lúc nó giúp hai người vào nhịp và cách kiểm chứng trong đời thường."
-        if mode == "fit"
-        else "Phần dưới chỉ ra lúc nó dễ làm hai người lệch nhịp và cách nhận biết sớm."
-    )
-    if support is None:
-        return f"{lead} nằm ở {cluster.label}. {next_step}"
-    return (
-        f"{lead} nằm ở {cluster.label}. {next_step} Một lớp khác cũng xuất hiện ở "
-        f"{support.label}; mở phần dưới để xem hai lớp này đi cùng nhau thế nào."
-    )
-
-
-def _cluster_body(cluster: ThemeCluster, *, mode: str) -> str:
-    ordered = _ordered_motifs(cluster, mode=mode)
-    primary = ordered[0]
-    body = _fit_body(primary) if mode == "fit" else _friction_body(primary)
-    if len(ordered) > 1:
-        support = ordered[1]
-        return (
-            f"{body} Ở lớp đi kèm, {_contact_bridge(support.contact)}. "
-            f"{_aspect_dynamic(support.contact.kind).capitalize()}."
-        )
-    return body
 
 
 def _ordered_motifs(cluster: ThemeCluster, *, mode: str) -> tuple[Motif, ...]:
@@ -935,74 +1518,6 @@ def _ordered_motifs(cluster: ThemeCluster, *, mode: str) -> tuple[Motif, ...]:
             reverse=True,
         )
     )
-
-
-def _primary_motif(cluster: ThemeCluster, *, mode: str) -> Motif:
-    return _ordered_motifs(cluster, mode=mode)[0]
-
-
-def _contact_bridge(contact: SynastryContact) -> str:
-    return f"{BODY_ACTIONS[contact.body_a]} chạm vào {BODY_RECEPTIONS[contact.body_b]}"
-
-
-def _aspect_dynamic(kind: str) -> str:
-    return {
-        "conjunction": "hai nhịp dễ bật lên cùng lúc và làm tín hiệu mạnh hơn",
-        "trine": "hai nhịp có sẵn đường để đi cùng mà không cần cố quá nhiều",
-        "sextile": "hai nhịp có cửa phối hợp khi một trong hai chủ động mở lời",
-        "square": "khác biệt khó bị lờ đi và thường đòi hỏi nói rõ hơn",
-        "opposition": "hai phía dễ hút nhau vào cùng một vấn đề nhưng đứng ở hai đầu khác nhau",
-    }.get(kind, "hai nhịp tạo ra một điểm chạm đáng để quan sát")
-
-
-def _scene_card(theme: str, *, mode: str) -> dict[str, str]:
-    scene = SCENE_COPY[theme]
-    return {
-        "label": "Cảnh dễ gặp",
-        "title": scene["title"],
-        "body": scene[mode],
-    }
-
-
-def _observation_body(fit: ThemeCluster, tension: ThemeCluster | None, context: str) -> str:
-    context_line = {
-        "crush": "Sau một lần nhắn hoặc gặp, để ý xem câu hỏi rõ có được trả lời rõ không.",
-        "friend": (
-            "Sau một kế hoạch chung, để ý xem hai người có báo thay đổi và chốt lại dễ không."
-        ),
-        "partner": (
-            "Sau một va chạm nhỏ, để ý xem hai người có quay lại để làm rõ điều vừa xảy ra không."
-        ),
-        "someone": (
-            "Sau một tương tác ít áp lực, để ý xem cuộc nói chuyện có qua lại và tôn trọng "
-            "khoảng riêng không."
-        ),
-    }[context]
-    if tension is None:
-        return (
-            f"{context_line} Đừng chỉ đo bằng lúc {fit.label} đang rất vào; hãy chờ thêm một "
-            "lần hai người phải làm rõ điều chưa hiểu nhau."
-        )
-    return (
-        f"{context_line} Đừng chỉ đo bằng lúc {fit.label} đang rất vào; hãy nhìn thêm cách "
-        f"hai người xử lý {tension.label} khi nhịp bắt đầu lệch."
-    )
-
-
-def _index(motifs: list[Motif], channel: str) -> tuple[int, list[dict[str, Any]]]:
-    strongest = sorted(
-        motifs,
-        key=lambda item: (float(getattr(item, channel)), item.evidence_id),
-        reverse=True,
-    )[:6]
-    if not strongest:
-        return 0, []
-    weighted = sum(
-        float(getattr(item, channel)) * (1 - index * 0.08) for index, item in enumerate(strongest)
-    )
-    divisor = sum(1 - index * 0.08 for index in range(len(strongest)))
-    value = round(max(8, min(96, 18 + 78 * weighted / divisor)))
-    return value, [_contact_receipt(item) for item in strongest]
 
 
 def _theme(contact: SynastryContact) -> str:
@@ -1025,16 +1540,7 @@ def _theme(contact: SynastryContact) -> str:
 
 
 def _theme_label(theme: str) -> str:
-    return {
-        "communication": "cách nói và hiểu nhau",
-        "emotional": "nhịp cảm xúc",
-        "attraction": "sức hút và cách thể hiện sự thích",
-        "pace": "nhịp tiến gần và ranh giới",
-        "clarity": "kỳ vọng và độ rõ ràng",
-        "freedom": "khoảng riêng và sự bất ngờ",
-        "intensity": "độ gắn sâu và cường độ",
-        "visibility": "cảm giác được nhìn thấy",
-    }[theme]
+    return THEME_PLAIN[theme]
 
 
 def _contact_evidence_id(contact: SynastryContact) -> str:
@@ -1049,7 +1555,7 @@ def _contact_receipt(motif: Motif) -> dict[str, Any]:
         "plain": (
             f"{BODY_LABELS[contact.body_a]} của bạn tạo góc "
             f"{ASPECT_LABELS.get(contact.kind, contact.kind)} với "
-            f"{BODY_LABELS[contact.body_b]} của người kia; Radar dùng góc này để đọc "
+            f"{BODY_LABELS[contact.body_b]} của người kia; Lá dùng góc này để đọc "
             f"{motif.label}."
         ),
         "technical": {
@@ -1062,201 +1568,14 @@ def _contact_receipt(motif: Motif) -> dict[str, Any]:
     }
 
 
-def _headline(
-    fit: ThemeCluster,
-    tension: ThemeCluster,
-) -> str:
-    resource = {
-        "communication": "Nói chuyện có thể vào rất nhanh",
-        "emotional": "Hai người dễ nhận ra mood của nhau",
-        "attraction": "Sự chú ý qua lại khó bị xem là vô tình",
-        "pace": "Kết nối này có cửa tạo được một nhịp đều",
-        "clarity": "Hai người dễ cùng bước vào một thế giới riêng",
-        "freedom": "Mỗi người kéo người kia ra khỏi lối quen",
-        "intensity": "Kết nối này khó dừng ở chuyện bề mặt",
-        "visibility": "Hai người dễ làm nhau thấy mình nổi bật",
-    }[fit.key]
-    negotiation = {
-        "communication": "một câu thiếu ngữ cảnh cũng đủ làm lệch sóng",
-        "emotional": "cách cần được trấn an lại chưa chắc giống nhau",
-        "attraction": "chemistry không tự nói hộ ý định",
-        "pace": "tốc độ tiến gần cần được nói rõ",
-        "clarity": "khoảng trống thông tin rất dễ bị suy diễn lấp đầy",
-        "freedom": "sự bất ngờ cần đi cùng báo trước",
-        "intensity": "độ sâu cũng khiến phản ứng dễ nặng hơn sự việc",
-        "visibility": "hai người có thể cần được ghi nhận theo hai cách khác nhau",
-    }[tension.key]
-    return f"{resource}; nhưng {negotiation}."
-
-
-def _headline_without_tension(fit: ThemeCluster) -> str:
-    resource = {
-        "communication": "Nói chuyện có thể vào rất nhanh",
-        "emotional": "Hai người dễ nhận ra mood của nhau",
-        "attraction": "Sự chú ý qua lại khó bị xem là vô tình",
-        "pace": "Kết nối này có cửa tạo được một nhịp đều",
-        "clarity": "Hai người dễ cùng bước vào một thế giới riêng",
-        "freedom": "Mỗi người kéo người kia ra khỏi lối quen",
-        "intensity": "Kết nối này khó dừng ở chuyện bề mặt",
-        "visibility": "Hai người dễ làm nhau thấy mình nổi bật",
-    }[fit.key]
-    return f"{resource}; phần dễ lệch chưa đủ rõ để Radar nói hộ."
-
-
-def _summary(fit: ThemeCluster, tension: ThemeCluster) -> str:
-    if fit.key == tension.key:
-        return (
-            f'Điểm hút và điểm cấn cùng nằm ở {fit.label}: rất dễ có cảm giác "đúng sóng", '
-            "nhưng cũng dễ hiểu quá nhiều từ một tín hiệu nhỏ."
-        )
-    return (
-        f"Chỗ dễ đi cùng nằm ở {fit.label}: {_first_sentence(SCENE_COPY[fit.key]['fit'])} "
-        f"Chỗ cần thương lượng nằm ở {tension.label}: "
-        f"{_first_sentence(SCENE_COPY[tension.key]['friction'])}"
-    )
-
-
-def _summary_without_tension(fit: ThemeCluster) -> str:
-    return (
-        f"Tín hiệu rõ nhất hiện nằm ở {fit.label}: "
-        f"{_first_sentence(SCENE_COPY[fit.key]['fit'])} "
-        "Radar chưa có một cụm bằng chứng khác đủ mạnh để gắn nhãn điểm cấn."
-    )
-
-
-def _first_sentence(value: str) -> str:
-    first, _, _ = value.partition(". ")
-    return first.rstrip(".") + "."
-
-
-def _kicker(resonance: int, coordination: int, friction: int) -> str:
-    if resonance >= 70 and friction >= 65:
-        return "Hút rõ · cấn cũng rõ"
-    if coordination >= 68:
-        return "Dễ vào nhịp · vẫn cần nói thật"
-    if friction >= 70:
-        return "Có tín hiệu · cần nhiều phiên dịch"
-    return "Có điểm chạm · nên xem bằng tương tác thật"
-
-
-def _fit_title(motif: Motif) -> str:
-    pair_title = {
-        (BodyName.PLUTO, BodyName.SUN): "Sự chú ý của bạn dễ có sức nặng với người kia",
-        (BodyName.SUN, BodyName.PLUTO): "Cách bạn hiện diện có thể chạm sâu hơn vẻ ngoài",
-        (BodyName.MERCURY, BodyName.MOON): "Một câu nói có thể chạm tới mood trước lời giải thích",
-        (BodyName.MOON, BodyName.MERCURY): "Mood của bạn dễ đổi cách người kia nghe và trả lời",
-        (BodyName.VENUS, BodyName.MARS): "Sự quan tâm của bạn dễ gặp lại một phản ứng rõ",
-        (BodyName.MARS, BodyName.VENUS): "Sự chủ động của bạn dễ làm người kia chú ý",
-    }.get((motif.contact.body_a, motif.contact.body_b))
-    if pair_title is not None:
-        return pair_title
-    return {
-        "communication": "Nói đúng nhịp là bắt được ý khá nhanh",
-        "emotional": "Có cửa để nhận ra mood của nhau",
-        "attraction": "Sự chú ý giữa hai người không quá khó thấy",
-        "pace": "Có khả năng tạo cảm giác nghiêm túc và có mặt",
-        "clarity": "Trí tưởng tượng chung có thể làm cuộc trò chuyện cuốn",
-        "freedom": "Hai người dễ kéo nhau ra khỏi lối quen",
-        "intensity": "Kết nối này khó bị xem là nhạt",
-        "visibility": "Có tín hiệu khiến mỗi người thấy mình được để ý",
-    }[motif.key]
-
-
-def _fit_body(motif: Motif) -> str:
-    flow = motif.contact.kind in {"trine", "sextile"}
-    bridge = _contact_bridge(motif.contact).capitalize() + ". "
-    if motif.key == "communication":
-        return bridge + (
-            "Cuộc nói chuyện thường dễ nối tiếp."
-            if flow
-            else "Khác biệt đủ rõ để hai người khó chỉ nói chuyện cho có."
-        )
-    if motif.key == "emotional":
-        return bridge + (
-            "Hai người có thể bắt được thay đổi cảm xúc sớm hơn bình thường, "
-            "nhất là khi cả hai nói nhu cầu thay vì bắt nhau đoán."
-        )
-    if motif.key == "attraction":
-        return bridge + (
-            "Sự chủ động, quan tâm hoặc flirt dễ nhận được phản ứng. "
-            "Độ hút có thật; ý định vẫn cần hỏi bằng lời."
-        )
-    if motif.key == "pace":
-        return bridge + (
-            "Tương tác có thể có nhịp và ranh giới rõ hơn. Khi không biến "
-            "sự nghiêm túc thành kiểm soát, đây là điểm giữ kết nối khỏi trôi."
-        )
-    if motif.key == "clarity":
-        return bridge + (
-            "Hai người có thể cùng bắt được một mood, một câu đùa hoặc một hình dung rất "
-            "nhanh. Viết rõ điều mình muốn sẽ giúp phần đẹp này không biến thành suy diễn."
-        )
-    if motif.key == "freedom":
-        return bridge + (
-            "Sự khác nhau dễ tạo tò mò và kéo hai người thử một cách tương tác mới. Cho nhau "
-            "quyền đổi ý giúp sự mới mẻ này bớt thất thường."
-        )
-    if motif.key == "intensity":
-        return bridge + (
-            "Một lời khen, ánh nhìn hoặc lần nhớ đúng chi tiết nhỏ có thể được cảm nhận mạnh hơn "
-            "bình thường. Sự nhất quán sẽ nói nhiều hơn một khoảnh khắc quá cuốn."
-        )
-    return bridge + (
-        "Một người có thể khiến người kia thấy mình nổi bật hơn trong cuộc trò chuyện. "
-        "Tín hiệu này mạnh nhất khi sự chú ý đi kèm hành động nhất quán."
-    )
-
-
-def _friction_title(motif: Motif) -> str:
-    pair_title = {
-        (BodyName.SATURN, BodyName.MOON): "Lúc một người cần mềm, người kia có thể chuyển sang sửa",
-        (BodyName.MOON, BodyName.SATURN): "Mood của bạn có thể gặp lại sự dè chừng từ người kia",
-        (BodyName.MERCURY, BodyName.MOON): "Một câu nói dễ bị nghe bằng mood hiện tại",
-        (BodyName.MOON, BodyName.MERCURY): "Cảm xúc có thể đi nhanh hơn phần giải thích",
-        (BodyName.MARS, BodyName.VENUS): "Sự chủ động và cảm giác được thích chưa chắc cùng nhịp",
-    }.get((motif.contact.body_a, motif.contact.body_b))
-    if pair_title is not None:
-        return pair_title
-    return {
-        "communication": "Dễ phản ứng với cách nói trước khi nghe hết ý",
-        "emotional": "Cùng có cảm xúc nhưng chưa chắc cần cùng một cách được dỗ",
-        "attraction": "Độ hút mạnh không đồng nghĩa hai người muốn cùng một nhịp",
-        "pace": "Một người muốn chắc, người kia có thể thấy mình bị chậm lại",
-        "clarity": "Khoảng trống thông tin rất dễ bị trí tưởng tượng lấp đầy",
-        "freedom": "Sự bất ngờ vui lúc đầu có thể thành thiếu ổn định về sau",
-        "intensity": "Một chuyện nhỏ có thể chạm đúng nút nhạy của cả hai",
-        "visibility": "Cả hai có thể cùng muốn được công nhận theo cách khác nhau",
-    }[motif.key]
-
-
-def _friction_body(motif: Motif) -> str:
-    bridge = _contact_bridge(motif.contact).capitalize() + ". "
-    if motif.contact.kind in {"square", "opposition"}:
-        lead = "Góc này tạo lực kéo đủ mạnh để khác biệt khó bị lờ đi."
-    elif motif.contact.kind == "conjunction":
-        lead = "Hai chức năng đứng rất gần nhau nên tín hiệu dễ bị khuếch đại."
-    else:
-        lead = "Đường kết nối khá trơn nên chỗ lệch có thể bị bỏ qua lúc đầu."
-    follow = {
-        "communication": (
-            " Khi câu chữ bắt đầu sắc, hỏi lại một ý cụ thể sẽ hữu ích hơn đoán thái độ."
-        ),
-        "emotional": " Một người cần gần chưa chắc người kia cũng sẵn sàng gần ngay lúc đó.",
-        "attraction": " Nên tách điều mình thấy hấp dẫn khỏi điều người kia thực sự đã đồng ý.",
-        "pace": " Nói rõ tốc độ và giới hạn giúp sự chắc chắn không biến thành sức ép.",
-        "clarity": " Điều chưa được nói nên được giữ là dấu hỏi, không nâng thành sự thật.",
-        "freedom": (" Báo trước thay đổi và tôn trọng khoảng riêng sẽ giảm cảm giác bị kéo - đẩy."),
-        "intensity": " Dừng đúng lúc và quay lại sau giúp tránh biến quan tâm thành cuộc giằng co.",
-        "visibility": " Đừng dùng sự chú ý như bằng chứng rằng hai người đang muốn cùng một điều.",
-    }[motif.key]
-    return bridge + lead + follow
-
-
 def _perspective(
     bundle: RelationshipBundle, motifs: list[Motif]
 ) -> tuple[str, list[dict[str, Any]], list[dict[str, str]]]:
+    """Two sides of one meeting, without saying what the other person thinks or wants."""
+
     personal = {BodyName.SUN, BodyName.MOON, BodyName.MERCURY, BodyName.VENUS, BodyName.MARS}
     overlays = [item for item in bundle.synastry.house_overlays if item.body in personal]
+    composite = _strongest_composite(bundle.composite.aspects)
     if overlays:
         preferred_bodies = tuple(
             dict.fromkeys(
@@ -1288,82 +1607,62 @@ def _perspective(
             ),
         )
         body = (
-            f"Bạn có thể làm vùng {HOUSE_AREAS[first.house]} nổi lên ở phía người kia, trong khi "
-            f"người kia có thể chạm vào {HOUSE_AREAS[reverse.house]} ở bạn. Vì vậy cùng một "
-            "tương tác có thể quan trọng theo hai cách khác nhau."
+            f"Ở cạnh nhau, bạn có thể để ý nhiều tới {HOUSE_AREAS[reverse.house]}. Còn "
+            f"{HOUSE_AREAS[first.house]} có quan trọng với phía bên kia hay không thì chỉ họ trả "
+            "lời được."
         )
         receipts = [_overlay_receipt(first), _overlay_receipt(reverse)]
         perspectives = [
-            _overlay_perspective(first, key="you"),
-            _overlay_perspective(reverse, key="them"),
+            {
+                "key": "you",
+                "label": "Phía bạn",
+                "title": f"Bạn có thể để ý nhiều tới {HOUSE_AREAS[reverse.house]}",
+                "body": "Cảm nhận thật của bạn khi ở cạnh nhau vẫn là điều đáng tin nhất.",
+            },
+            {
+                "key": "them",
+                "label": "Phía bên kia",
+                "title": "Điều nên hỏi thay vì đoán",
+                "body": (
+                    f"Chuyện {HOUSE_AREAS[first.house]} quan trọng thế nào với họ, chỉ họ trả "
+                    "lời được. Thử hỏi nhẹ một câu."
+                ),
+            },
         ]
-        composite = _strongest_composite(bundle.composite.aspects)
         if composite is not None:
-            body += " " + _composite_sentence(composite)
             receipts.append(_composite_receipt(composite))
             perspectives.append(_composite_perspective(composite))
         return body, _dedupe_receipts(receipts), perspectives
-
-    composite = _strongest_composite(bundle.composite.aspects)
     if composite is not None:
         return (
             _composite_sentence(composite),
             [_composite_receipt(composite)],
             [_composite_perspective(composite)],
         )
-    if not motifs:
-        return (
-            "Chưa có lớp nhà hoặc nhịp chung đủ tin cậy để tách trải nghiệm của hai phía.",
-            [],
-            [],
-        )
     return (
-        "Chưa có lớp nhà đủ tin cậy để nói hai phía cảm nhận ở vùng đời sống nào. Radar chỉ "
-        "giữ lại khác biệt đã thấy trong các contact giữa hai chart.",
-        [_contact_receipt(motifs[0])],
+        "Lá chưa có đủ dữ kiện để tách cảm nhận của hai phía. Cách chắc nhất là hỏi nhau.",
+        [],
         [],
     )
-
-
-def _overlay_perspective(overlay: HouseOverlay, *, key: str) -> dict[str, str]:
-    if key == "you":
-        return {
-            "key": "you",
-            "label": "Bạn có thể tạo tín hiệu này",
-            "title": f"Bạn chạm vào {HOUSE_AREAS[overlay.house]} ở phía người kia",
-            "body": (
-                f"Khi {BODY_FUNCTIONS[overlay.body]} của bạn lộ ra, người kia có thể chú ý "
-                f"nhiều hơn tới {HOUSE_AREAS[overlay.house]}. Đây là vùng được kích hoạt, "
-                "không phải điều "
-                "chart có thể dùng để nói hộ suy nghĩ hoặc ý muốn của họ."
-            ),
-        }
-    return {
-        "key": "them",
-        "label": "Người kia có thể tạo tín hiệu này",
-        "title": f"Họ chạm vào {HOUSE_AREAS[overlay.house]} ở bạn",
-        "body": (
-            f"Khi {BODY_FUNCTIONS[overlay.body]} của người kia lộ ra, bạn có thể để ý nhiều "
-            f"hơn tới {HOUSE_AREAS[overlay.house]}. Cảm giác thật của bạn vẫn là dữ liệu "
-            "cần ưu tiên."
-        ),
-    }
 
 
 def _composite_perspective(aspect: CompositeAspect) -> dict[str, str]:
     return {
         "key": "shared",
-        "label": "Nhịp chung khi ở cạnh nhau",
+        "label": "Khi ở cạnh nhau",
         "title": (
-            f"{BODY_SHARED_ROLES[aspect.body_a].capitalize()} dễ kéo theo "
-            f"{BODY_SHARED_ROLES[aspect.body_b]}"
+            f"{BODY_SHARED_ROLES[aspect.body_a][:1].upper()}{BODY_SHARED_ROLES[aspect.body_a][1:]}"
+            f" dễ đi cùng {BODY_SHARED_ROLES[aspect.body_b]}"
         ),
-        "body": (
-            f"Khi hai người ở cạnh nhau, {BODY_SHARED_ROLES[aspect.body_a]} có thể đi cùng "
-            f"{BODY_SHARED_ROLES[aspect.body_b]}. {_aspect_dynamic(aspect.kind).capitalize()}. "
-            "Đây là không khí chung của tương tác, không phải tính cách riêng của một người."
-        ),
+        "body": "Đây là không khí chung hai bạn tạo ra, không phải tính cách của riêng ai.",
     }
+
+
+def _composite_sentence(aspect: CompositeAspect) -> str:
+    return (
+        f"Khi ở cạnh nhau, {BODY_SHARED_ROLES[aspect.body_a]} dễ đi cùng "
+        f"{BODY_SHARED_ROLES[aspect.body_b]}. Muốn biết mỗi người thấy thế nào, cứ hỏi."
+    )
 
 
 def _overlay_receipt(overlay: HouseOverlay) -> dict[str, Any]:
@@ -1399,14 +1698,6 @@ def _strongest_composite(aspects: tuple[CompositeAspect, ...]) -> CompositeAspec
     return max(eligible, key=lambda item: (item.strength, -item.orb), default=None)
 
 
-def _composite_sentence(aspect: CompositeAspect) -> str:
-    return (
-        f"Nhịp chung cũng cho thấy {BODY_SHARED_ROLES[aspect.body_a]} có thể đi cùng "
-        f"{BODY_SHARED_ROLES[aspect.body_b]}. Đây là không khí hai người tạo ra khi ở cạnh nhau, "
-        "không phải tính cách của riêng ai."
-    )
-
-
 def _composite_receipt(aspect: CompositeAspect) -> dict[str, Any]:
     return {
         "evidence_id": (
@@ -1414,7 +1705,7 @@ def _composite_receipt(aspect: CompositeAspect) -> dict[str, Any]:
         ),
         "source": "composite_midpoint",
         "plain": (
-            f"Trong chart chung, {BODY_LABELS[aspect.body_a]} tạo góc "
+            f"Trong lá số chung, {BODY_LABELS[aspect.body_a]} tạo góc "
             f"{ASPECT_LABELS.get(aspect.kind, aspect.kind)} với {BODY_LABELS[aspect.body_b]}. "
             "Đây là nhịp chung, không gán cho riêng một người."
         ),

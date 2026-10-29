@@ -18,7 +18,7 @@ import pytest
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.content_rewrite.models import RewriteRequestEnvelope, RewriteSurface
-from app.domains.radar.reading import build_radar_reading
+from app.domains.radar.reading import RENDERER_VERSION, build_radar_reading
 from app.domains.radar.rewrite import compile_radar_rewrite_request, radar_blueprint_hash
 from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.generation.privacy import PrivacyMinimiser
@@ -157,7 +157,7 @@ def test_stored_reading_and_provenance_are_untouched(compiled: list[Compiled]) -
     for item in compiled:
         assert json.dumps(item.stored, ensure_ascii=False, sort_keys=True) == item.before
         assert item.request.key.blueprint_hash == radar_blueprint_hash(item.stored)
-        assert item.stored["metadata"]["renderer_version"] == "radar-living-dossier-v1"  # type: ignore[index]
+        assert item.stored["metadata"]["renderer_version"] == RENDERER_VERSION  # type: ignore[index]
     receipts = [
         receipt
         for item in compiled
