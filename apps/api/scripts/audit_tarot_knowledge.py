@@ -230,7 +230,10 @@ def audit_question_bank() -> tuple[list[str], dict[str, Any]]:
     return failures, metrics
 
 
-HEADLINE_DUPLICATE_CEILING = 0.10  # US-20 AC11
+# US-20 AC11 / measurement spec T2, as changed after the owner's feedback of 29/10/2026: headlines
+# no longer name cards, so the ceiling applies to the reading's opening (headline + summary), what
+# the reader scans first. The headline-only rate is still reported.
+OPENING_DUPLICATE_CEILING = 0.10
 T4_FLOOR = 0.80  # US-20 AC16, measurement spec §4c
 # Synthetic selection key and owner namespace: audit sessions are not real guests.
 AUDIT_VARIETY_KEY = b"tarot-audit-synthetic-variety-key"
@@ -250,8 +253,8 @@ def _audit_owner(item_id: str) -> uuid.UUID:
 
 
 def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
-    """B2-3/B2-4 on the bank (US-20 AC20): stance distribution, headline duplicates per voice
-    (< 10%), no generic copy. B2-4b adds, on the same readings, the provenance trace of every
+    """B2-3/B2-4 on the bank (US-20 AC20): stance distribution, opening (headline + summary)
+    duplicates per voice (< 10%; headline-only duplicates reported), no generic copy. B2-4b adds, on the same readings, the provenance trace of every
     provider payload (US-20 AC06, direct voices; Roast is never sent) and the machine items of
     the psychology checklist (US-20 AC14).
 
@@ -276,6 +279,7 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
     scenes_with_advice = triggers = steps = 0
     cards = [card.id for card in all_cards()]
     headlines: dict[TarotVoice, list[str]] = {voice: [] for voice in TarotVoice}
+    openings: dict[TarotVoice, list[str]] = {voice: [] for voice in TarotVoice}
     levels: Counter[str] = Counter()
     generic = 0
     failures: list[str] = []
@@ -314,6 +318,9 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
                 # Measurement spec §4c T2: normalised, per (effective) voice.
                 headlines[reading.voice].append(
                     " ".join(reading.headline.casefold().split()).rstrip(".!?")
+                )
+                openings[reading.voice].append(
+                    " ".join(f"{reading.headline} {reading.summary}".casefold().split())
                 )
                 levels[reading.stance.level.value if reading.stance else "none"] += 1
                 prose = " ".join(
@@ -362,14 +369,18 @@ def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
         voice.value: round(1 - len(set(values)) / len(values), 4) if values else 0.0
         for voice, values in headlines.items()
     }
-    duplicate_rate = max(rates.values())
-    if duplicate_rate >= HEADLINE_DUPLICATE_CEILING:
-        failures.append(f"headline duplicate rate {rates} >= 0.10")
+    opening_rates = {
+        voice.value: round(1 - len(set(values)) / len(values), 4) if values else 0.0
+        for voice, values in openings.items()
+    }
+    if max(opening_rates.values()) >= OPENING_DUPLICATE_CEILING:
+        failures.append(f"opening duplicate rate {opening_rates} >= 0.10")
     if generic:
         failures.append(f"{generic} framed readings still carry generic filler")
     metrics = {
         "readings": sum(len(values) for values in headlines.values()),
         "headline_duplicate_rate": rates,
+        "opening_duplicate_rate": opening_rates,
         "stance_levels": dict(sorted(levels.items())),
         "generic": generic,
         "provenance_traced": traced,
@@ -610,8 +621,9 @@ def main() -> None:
     print(f"Worst-length draws (B2-3/B2-4): {worst_count} renders within every budget.")
     print(
         f"Stance and headlines (B2-3/B2-4): {stance_metrics['readings']} framed readings "
-        f"(bank x {len(TarotSpreadMap)} maps x {len(TarotVoice)} voices); headline "
-        f"duplicate rate {stance_metrics['headline_duplicate_rate']}; stance levels "
+        f"(bank x {len(TarotSpreadMap)} maps x {len(TarotVoice)} voices); opening duplicate rate "
+        f"{stance_metrics['opening_duplicate_rate']} (headline only, reported: "
+        f"{stance_metrics['headline_duplicate_rate']}); stance levels "
         f"{stance_metrics['stance_levels']}; generic filler {stance_metrics['generic']}."
     )
     print(

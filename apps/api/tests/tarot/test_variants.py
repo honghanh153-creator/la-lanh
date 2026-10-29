@@ -499,18 +499,14 @@ def test_ac19_roast_copy_maps_one_to_one_by_combination_code() -> None:
         for direct, roasted in zip(frames, roast_frames, strict=True):
             assert _slots(direct) == _slots(roasted)
     assert set(stance.CONCLUSIONS) == set(stance.ROAST_CONCLUSIONS)
-    assert set(stance.CONJUNCTIONS) == set(stance.ROAST_CONJUNCTIONS)
 
 
 def test_every_headline_frame_fits_the_budget_with_the_longest_slots() -> None:
-    title = max(len(card.title_vi.split()) for card in all_cards())
     action = max(
         len(text.split()) for text in (*stance.ACTION_PHRASES.values(), stance.GENERIC_ACTION)
     )
     topic = max(len(text.split()) for text in stance.TOPIC_PHRASES.values())
     words = {
-        "focal": " ".join(["x"] * title),
-        "pair": " ".join(["x"] * (2 * title + 1)),
         "action": " ".join(["a"] * action),
         "topic": " ".join(["t"] * topic),
         "target": " ".join(["a"] * max(action, topic + 1)),
@@ -554,16 +550,15 @@ def test_ac19_roast_reading_uses_roast_frames_conclusion_links_and_headline() ->
     assert reading.stance.conclusion == stance.ROAST_CONCLUSIONS[reading.stance.level].format(
         action=phrase
     )
-    roast_links = {c for pair in stance.ROAST_CONJUNCTIONS.values() for c in pair}
-    assert any(f". {c} " in reading.summary for c in roast_links)
+    # Renderer v9 (owner, 29/10/2026): the summary is the same plain text in every voice.
+    direct_reading = _render(YES_NO, TarotSpreadMap.THREE_UNBLOCK, variants=variants)
+    assert reading.summary == direct_reading.summary
     views = _position_views(reading.positions, reading.context)
     assert reading.headline == stance.dynamic_headline(
         TarotQuestionForm.YES_NO,
         reading.stance,
         action,
         TarotContext.WORK,
-        views[2],
-        views[1],
         variant=1,
         roast=True,
     )
@@ -614,12 +609,13 @@ async def test_ac19_sensitive_questions_never_get_roast_through_the_service(
 # ---------------------------------------------------------------- AC17/AC18 versions
 
 
-def test_ac18_framed_readings_record_v8_v6_v5_and_legacy_keeps_v6_v4_v4() -> None:
-    # T02/T03 (27/10/2026) moved framed readings from renderer v7 / knowledge v5 to v8 / v6.
+def test_ac18_framed_readings_record_v9_v6_v6_and_legacy_keeps_v6_v4_v4() -> None:
+    # T02/T03 (27/10/2026) moved framed readings from renderer v7 / knowledge v5 to v8 / v6; the
+    # plain summary (owner, 29/10/2026) moved them to renderer v9 / gates v6.
     framed = _render(YES_NO, TarotSpreadMap.THREE_UNBLOCK)
-    assert framed.provenance.renderer_version == FRAMED_RENDERER_VERSION == "tarot-renderer-v8"
+    assert framed.provenance.renderer_version == FRAMED_RENDERER_VERSION == "tarot-renderer-v9"
     assert framed.provenance.knowledge_version == FRAMED_KNOWLEDGE_VERSION == "tarot-knowledge-v6"
-    assert framed.provenance.gate_version == TAROT_GATE_VERSION == "tarot-gates-v5"
+    assert framed.provenance.gate_version == TAROT_GATE_VERSION == "tarot-gates-v6"
     legacy = ENGINE.render(
         card_ids=tuple(CARDS[:3]),
         spread=TarotSpread.THREE_CARD,

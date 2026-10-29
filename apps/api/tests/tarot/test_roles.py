@@ -269,7 +269,7 @@ def test_service_three_card_session_reads_by_role_and_payload_stays_closed() -> 
         assert view is not None and view.reading is not None
         actions = [position.small_action for position in view.reading.positions]
         assert actions[0] is None and actions[1] is None and actions[2]
-        assert view.reading.provenance.gate_version == "tarot-gates-v5"
+        assert view.reading.provenance.gate_version == "tarot-gates-v6"
 
         guest_id, _ = _payload(test_client)
         request = compile_tarot_rewrite_request(

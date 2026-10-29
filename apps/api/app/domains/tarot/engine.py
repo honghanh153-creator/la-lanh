@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from app.domains.readings.review_agent import (
@@ -64,8 +64,11 @@ LEGACY_KNOWLEDGE_VERSION = KNOWLEDGE_VERSION
 # gates v5 = role_fit, no_decision_or_prediction, summary_links_cards and stance_consistent.
 # T02/T03 (27/10/2026): renderer v8 and knowledge v6 add the asked action's scene and step at the
 # step role (action_copy.py). Readings stored under v7 keep their text.
-FRAMED_RENDERER_VERSION = "tarot-renderer-v8"
-TAROT_GATE_VERSION = "tarot-gates-v5"
+# Owner feedback (29/10/2026): renderer v9 and gates v6 give a plain summary (no card names, no
+# linking words between unrelated cards, ending on the shown step) and headlines without card
+# names. Readings stored under v8 keep their text.
+FRAMED_RENDERER_VERSION = "tarot-renderer-v9"
+TAROT_GATE_VERSION = "tarot-gates-v6"
 FRAMED_KNOWLEDGE_VERSION = "tarot-knowledge-v6"
 
 
@@ -250,6 +253,22 @@ def _tension_parts(value: str) -> tuple[str, str | None]:
 
 def _resource_step(value: str) -> str:
     return value.partition(", rồi ")[0]
+
+
+def step_clause(action: str | None) -> str | None:
+    """A step position's action without its voice lead-in and final stop, as it continues a
+    sentence (the plain summary ends on it)."""
+
+    if not action:
+        return None
+    step = tarot_voice.without_action_frame(action).rstrip(".").strip()
+    return f"{step[:1].lower()}{step[1:]}"
+
+
+def _shown_step(positions: Sequence[TarotReadingPosition]) -> str | None:
+    """The step the reader sees at the step position."""
+
+    return step_clause(next((p.small_action for p in positions if p.key in roles.STEP_ROLES), None))
 
 
 def _sentence_start(value: str) -> str:
@@ -495,10 +514,12 @@ class TarotReadingEngine:
             # B2-3: lean, a summary that links the roles, and a dynamic headline (AC08-AC11).
             views = _position_views(tuple(rendered), context)
             lead = tuple(goal.meaning for goal in goals if goal.key != "general")
-            summary = stance.linked_summary(views, lead, reserve, roast=roast_copy)
+            summary = stance.plain_summary(views, _shown_step(tuple(rendered)), lead, reserve)
         else:
             summary = self._summary(tuple(rendered), tuple(meanings), context, goal_question)
-        if roast:
+        if roast and frame is None:
+            # Framed summaries are already short (owner, 29/10/2026); the opener stays for
+            # legacy readings only.
             opener = SUMMARY_OPENERS[context]
             # The opener is optional framing; it never displaces a selected card.
             if len(f"{opener} {summary}".split()) + reserve <= 180:
@@ -511,19 +532,11 @@ class TarotReadingEngine:
         if frame is not None:
             # AC11: a headline from form + lean (or action/topic) + the focal card, in the
             # session's headline frame (AC15) and the Roast register when it applies (AC19).
-            focal = next((view for view in views if roles.ROLES[view.key].step), views[-1])
-            others = [view for view in views if view is not focal]
-            second = next(
-                (v for v in others if roles.ROLES[v.key].field is roles.RoleField.TENSION),
-                others[0] if others else None,
-            )
             headline = stance.dynamic_headline(
                 frame.form,
                 reading_stance,
                 frame.action,
                 frame.topic,
-                focal,
-                second,
                 variant=chosen.headline,
                 roast=roast_copy,
             )
@@ -829,9 +842,9 @@ class TarotReadingEngine:
         framed = reading.provenance.question_rules_version == QUESTION_RULES_VERSION
         if framed:
             views = _position_views(reading.positions, reading.context)
-            # Gate summary_links_cards replaces "names every card" (US-20 AC10).
-            if not stance.summary_links(reading.summary, views):
-                raise TarotContentRejected("summary does not link every role")
+            # Gate summary_plain (gates v6) replaces summary_links_cards (US-20 AC10).
+            if not stance.summary_covers(reading.summary, views, _shown_step(reading.positions)):
+                raise TarotContentRejected("summary does not carry its roles and step")
             TarotReadingEngine._stance_consistent(reading, views)
         elif any(position.card.title_vi not in reading.summary for position in reading.positions):
             raise TarotContentRejected("summary omits a selected card")

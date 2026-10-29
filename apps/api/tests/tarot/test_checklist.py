@@ -22,8 +22,6 @@ def test_ac14_no_headline_frame_gives_advice(table: dict[str, tuple[str, str, st
             # ... and every filled frame is recognised as that approved frame.
             for action in (*stance.ACTION_PHRASES.values(), stance.GENERIC_ACTION):
                 text = template.format(
-                    focal="Mặt Trời",
-                    pair="Mặt Trời và Hai Gậy",
                     action=action,
                     topic="công việc",
                     target=action,
@@ -37,7 +35,7 @@ def test_ac14_no_headline_frame_gives_advice(table: dict[str, tuple[str, str, st
         ("Mặt Trời: hãy nhắn ngay.", True),
         ("Với Mặt Trời, nên cân nhắc thêm trước khi gửi đi.", True),
         ("Mặt Trời: cân nhắc thêm trước khi gửi đi, đừng vội.", True),
-        ("Mặt Trời: điều cần sẵn sàng trước khi thử lại.", False),  # an approved action phrase
+        ("Điều cần sẵn sàng trước khi thử lại.", False),  # an approved frame and action phrase
         ("Mặt Trời: các lá nghiêng về thử nhắn lại.", False),  # the stance marker
         ("Mặt Trời: thử lại đi.", True),  # a bare action phrase is advice (Codex #27)
         ("Mặt Trời: chuyện thử lại đi.", True),
@@ -118,7 +116,7 @@ def test_ac14_negated_force_is_still_allowed() -> None:
 
 # ------------------------------------------------------------- Codex P2 regression (#27 @ f7b0798)
 
-RETRY = "Làm thế nào để mình thử lại việc này?"  # HOW + thu_lai: "{pair}" is one title on 1 card
+RETRY = "Làm thế nào để mình thử lại việc này?"  # HOW + thu_lai
 
 
 @pytest.mark.parametrize("voice", list(TarotVoice))
@@ -128,8 +126,8 @@ def test_ac14_one_card_how_headline_with_an_action_is_an_approved_frame(
 ) -> None:
     reading = _reading(RETRY, TarotSpreadMap.ONE_FOCUS, voice=voice, seed=seed)
     TarotReadingEngine.validate(reading)
-    title = reading.positions[0].card.title_vi
-    assert title in reading.headline and " và " not in reading.headline
+    # Renderer v9 (owner, 29/10/2026): headlines name no card.
+    assert reading.positions[0].card.title_vi not in reading.headline
     assert "thử lại" in reading.headline
     result = checklist.check(reading)
     assert not result.headline_advice and result.gated_ok, reading.headline
@@ -140,8 +138,8 @@ def test_ac14_multi_card_how_headline_still_matches_and_bare_imperative_fails(
     voice: TarotVoice,
 ) -> None:
     reading = _reading(RETRY, TarotSpreadMap.THREE_UNBLOCK, voice=voice)
-    assert " và " in reading.headline
+    assert not any(p.card.title_vi in reading.headline for p in reading.positions)
     assert checklist.check(reading).gated_ok, reading.headline
     title = reading.positions[0].card.title_vi
-    for bare in (f"{title}: thử lại đi.", f"{title} và {title}: thử lại đi."):
+    for bare in ("Thử lại đi.", f"{title}: thử lại đi.", f"{title} và {title}: thử lại đi."):
         assert checklist.headline_gives_advice(bare), bare

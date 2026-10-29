@@ -8,7 +8,7 @@ the fallback approval scope then (docs/plans/2026-10-18-b2-3-tarot-stance-task.m
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -208,116 +208,98 @@ TOPIC_PHRASES: dict[TarotContext, str] = {
     TarotContext.ENERGY: "nhịp năng lượng",
     TarotContext.SELF_CARE: "việc chăm mình",
 }
-# Headline = form + lean (or action/topic) + focal card (+ the pitfall card when there is one).
-# Three frames per key, picked once per session (AC15). Frame i of ROAST_HEADLINES is the Roast
-# version of frame i ("headline.<key>.<i>", AC19). Stance headlines keep their level's marker;
-# timing headlines all say "sẵn sàng" (AC05). No headline gives advice (content standard
-# psychology checklist, US-20 AC14): the stance marker states the lean, nothing tells the reader
-# what to do. Worst case (3-word titles, a 7-word pair, a 6-word
-# action, a 3-word topic) stays within the 18-word headline budget; tests check every frame.
+# Headline = form + lean (or action/topic) (AC11 as changed by the owner, 29/10/2026: no card
+# names, so a headline never names two of five cards as if they were the reading). Three frames
+# per key, picked once per session (AC15). Frame i of ROAST_HEADLINES is the Roast version of
+# frame i ("headline.<key>.<i>", AC19). Stance headlines keep their level's marker; timing
+# headlines all say "sẵn sàng" (AC05). No headline gives advice (content standard psychology
+# checklist, US-20 AC14): the stance marker states the lean, nothing tells the reader what to do.
+# Worst case (a 6-word action, a 3-word topic) stays within the 18-word headline budget; tests
+# check every frame.
 HEADLINES: dict[str, tuple[str, str, str]] = {
     TarotStanceLevel.LEAN_TRY.value: (
-        "{focal}: các lá nghiêng về thử {action}.",
-        "Với {focal}, các lá nghiêng về thử {action}.",
-        "{focal} gợi ý: nghiêng về thử {action}.",
+        "Các lá nghiêng về thử {action}.",
+        "Với chuyện này, các lá nghiêng về thử {action}.",
+        "Lúc này, các lá nghiêng về thử {action}.",
     ),
     TarotStanceLevel.CONSIDER.value: (
-        "{focal}: cân nhắc thêm trước khi {action}.",
-        "{focal} cho thấy: cân nhắc thêm trước khi {action}.",
-        "{focal} nhắc: cân nhắc thêm trước khi {action}.",
+        "Các lá gợi ý cân nhắc thêm trước khi {action}.",
+        "Lúc này, cân nhắc thêm trước khi {action}.",
+        "Chuyện này cần cân nhắc thêm trước khi {action}.",
     ),
     TarotStanceLevel.UNCLEAR.value: (
-        "{focal}: chuyện {action} còn kéo về hai phía.",
-        "Với {focal}, chuyện {action} đang kéo về hai phía.",
-        "{focal} cho thấy chuyện {action} còn kéo về hai phía.",
+        "Chuyện {action} còn kéo về hai phía.",
+        "Với chuyện {action}, các lá kéo về hai phía.",
+        "Các lá cho thấy chuyện {action} kéo về hai phía.",
     ),
     TarotStanceLevel.CLARIFY_CHOICE.value: (
-        "{pair}: điều cần rõ trước khi chọn.",
-        "Với {pair}, có điều cần rõ trước khi chọn.",
-        "{pair} chỉ ra điều cần rõ trước khi chọn.",
+        "Có điều cần rõ trước khi chọn.",
+        "Hai hướng đều có giá, có điều cần rõ trước khi chọn.",
+        "Các lá chỉ ra điều cần rõ trước khi chọn.",
     ),
     TarotQuestionForm.TIMING.value: (
-        "{focal}: điều cần sẵn sàng trước khi {action}.",
-        "Với {focal}, sẵn sàng điều này trước khi {action}.",
-        "{focal} chỉ ra điều cần sẵn sàng trước khi {action}.",
+        "Điều cần sẵn sàng trước khi {action}.",
+        "Lúc này, cần sẵn sàng điều này trước khi {action}.",
+        "Các lá chỉ ra điều cần sẵn sàng trước khi {action}.",
     ),
     TarotQuestionForm.HOW.value: (
-        "{pair}: một cách bắt đầu {target}.",
-        "Với {pair}, một cách bắt đầu {target}.",
-        "{pair} gợi ý cách bắt đầu {target}.",
+        "Một cách bắt đầu {target}.",
+        "Bắt đầu {target} từ một việc nhỏ.",
+        "Các lá gợi ý cách bắt đầu {target}.",
     ),
     TarotQuestionForm.WHY.value: (
-        "{pair}: một lý do đáng soi trong {topic}.",
-        "Với {pair}, soi một lý do trong {topic}.",
-        "{pair} gợi một lý do đáng nhìn trong {topic}.",
+        "Một lý do đáng nhìn trong {topic}.",
+        "Trong {topic}, có một lý do đáng nhìn.",
+        "Các lá gợi một lý do trong {topic}.",
     ),
     TarotQuestionForm.OPEN.value: (
-        "{pair}: điều đáng nhìn rõ trong {topic}.",
-        "Với {pair}, nhìn rõ một điều trong {topic}.",
-        "{pair} soi một điều đáng nhìn trong {topic}.",
+        "Điều đáng nhìn rõ trong {topic} lúc này.",
+        "Trong {topic}, có một điều đáng nhìn rõ.",
+        "Các lá chỉ ra điều đáng nhìn trong {topic}.",
     ),
 }
 ROAST_HEADLINES: dict[str, tuple[str, str, str]] = {
     TarotStanceLevel.LEAN_TRY.value: (
-        "{focal} bật đèn xanh nhẹ: nghiêng về thử {action}.",
-        "{focal} nháy mắt: nghiêng về thử {action}.",
-        "Theo {focal}, nghiêng về thử {action}, nhẹ nhàng thôi.",
+        "Đèn xanh nhẹ: nghiêng về thử {action}.",
+        "Các lá nháy mắt: nghiêng về thử {action}.",
+        "Nghiêng về thử {action}, nhẹ nhàng thôi.",
     ),
     TarotStanceLevel.CONSIDER.value: (
-        "{focal} kéo phanh tay: cân nhắc thêm trước khi {action}.",
-        "{focal} bật đèn vàng: cân nhắc thêm trước khi {action}.",
-        "{focal} giơ biển chậm lại: cân nhắc thêm trước khi {action}.",
+        "Kéo phanh tay: cân nhắc thêm trước khi {action}.",
+        "Đèn vàng: cân nhắc thêm trước khi {action}.",
+        "Chậm lại chút: cân nhắc thêm trước khi {action}.",
     ),
     TarotStanceLevel.UNCLEAR.value: (
-        "{focal} đang giằng co: chuyện {action} kéo về hai phía.",
-        "{focal} chia phe: chuyện {action} kéo về hai phía.",
-        "Chuyện {action} kéo về hai phía, {focal} chưa chịu chốt.",
+        "Hội đồng đang giằng co: chuyện {action} kéo về hai phía.",
+        "Chia phe rồi: chuyện {action} kéo về hai phía.",
+        "Chuyện {action} kéo về hai phía, chưa ai chịu chốt.",
     ),
     TarotStanceLevel.CLARIFY_CHOICE.value: (
-        "{pair} còn giằng co: có điều cần rõ trước khi chọn.",
-        "Chưa so kèo được, {pair} chỉ điều cần rõ trước khi chọn.",
-        "{pair}: điều cần rõ trước khi chọn nằm ở đây.",
+        "Còn giằng co: có điều cần rõ trước khi chọn.",
+        "Chưa so kèo được: có điều cần rõ trước khi chọn.",
+        "Điều cần rõ trước khi chọn nằm ngay dưới đây.",
     ),
     TarotQuestionForm.TIMING.value: (
-        "{focal}: khỏi xem lịch, sẵn sàng điều này trước khi {action}.",
-        "{focal} bảo: lo phần sẵn sàng trước khi {action}.",
-        "Khỏi đồng hồ, {focal} gợi ý sẵn sàng trước khi {action}.",
+        "Khỏi xem lịch: sẵn sàng điều này trước khi {action}.",
+        "Lo phần sẵn sàng trước khi {action}.",
+        "Khỏi đồng hồ: sẵn sàng điều này trước khi {action}.",
     ),
     TarotQuestionForm.HOW.value: (
-        "{pair}: khỏi lý thuyết, bắt đầu {target}.",
-        "Cẩm nang từ {pair}: bắt đầu {target}.",
-        "{pair} chỉ đường: bắt đầu {target}.",
+        "Khỏi lý thuyết: một cách bắt đầu {target}.",
+        "Cẩm nang gọn: bắt đầu {target}.",
+        "Chỉ đường gọn: bắt đầu {target}.",
     ),
     TarotQuestionForm.WHY.value: (
-        "{pair}: thám tử soi lý do trong {topic}.",
-        "Truy tới gốc: {pair} chỉ một lý do trong {topic}.",
-        "{pair} lật một lý do trong {topic}.",
+        "Truy tới gốc một lý do trong {topic}.",
+        "Lật lại một lý do trong {topic}.",
+        "Soi tới gốc một lý do trong {topic}.",
     ),
     TarotQuestionForm.OPEN.value: (
-        "{pair}: điều đáng soi kỹ trong {topic}, khỏi vòng vo.",
-        "Nói gọn: {pair} soi một điều trong {topic}.",
-        "{pair} chỉ ra chỗ đáng nhìn trong {topic}.",
+        "Chuyện {topic}, nói gọn nè.",
+        "Soi nhanh chuyện {topic}, khỏi vòng vo.",
+        "Chuyện {topic}, gom lại vài ý chính nè.",
     ),
 }
-
-# Conjunctions by the role being joined (AC10); Roast pairs share the codes (AC19).
-CONJUNCTIONS: dict[RoleField | str, tuple[str, str]] = {
-    RoleField.TENSION: ("Nhưng", "Có điều,"),
-    "step": ("Vì vậy,", "Từ đó,"),
-    RoleField.RESOURCE: ("Vì vậy,", "Từ đó,"),
-    RoleField.CORE: ("Bên cạnh đó,", "Thêm nữa,"),
-    RoleField.OPTION: ("Bên cạnh đó,", "Thêm nữa,"),
-}
-ROAST_CONJUNCTIONS: dict[RoleField | str, tuple[str, str]] = {
-    RoleField.TENSION: ("Nhưng khoan,", "Có điều nè,"),
-    "step": ("Thế nên,", "Từ đó mà,"),
-    RoleField.RESOURCE: ("Thế nên,", "Từ đó mà,"),
-    RoleField.CORE: ("Thêm nữa nè,", "Chưa hết,"),
-    RoleField.OPTION: ("Thêm nữa nè,", "Chưa hết,"),
-}
-ALL_CONJUNCTIONS = frozenset(
-    c for table in (CONJUNCTIONS, ROAST_CONJUNCTIONS) for pair in table.values() for c in pair
-)
 
 
 @dataclass(frozen=True)
@@ -345,85 +327,81 @@ def anchor(view: PositionView) -> str:
 
 
 SUMMARY_BUDGET = 180  # words; the engine's scan budget
+OPTION_NAMES = {"option_a": "A", "option_b": "B"}
 
 
-def _compact_sentence(view: PositionView) -> str:
-    """Shortest frame that still carries the role's anchor (used when the full one won't fit)."""
+def summary_views(views: Sequence[PositionView]) -> list[PositionView]:
+    """The roles the summary speaks for (owner, 29/10/2026): the first card that shows what is
+    already there, then both options of a choice (each with its cost) or else the first pitfall.
+    Other roles stay in their own position block below, so the summary does not repeat the
+    whole reading."""
+
+    chosen: list[PositionView] = []
+    core = next(
+        (v for v in views if v.key == "focus" or ROLES[v.key].field is RoleField.CORE), None
+    )
+    if core is not None:
+        chosen.append(core)
+    options = [v for v in views if ROLES[v.key].field is RoleField.OPTION]
+    chosen.extend(options)
+    tension = next((v for v in views if ROLES[v.key].field is RoleField.TENSION), None)
+    if tension is not None and not options:
+        chosen.append(tension)
+    return chosen
+
+
+def _plain_sentence(view: PositionView) -> str:
+    """No card is the subject; card names stay in the position blocks. Card cores are noun or
+    verb phrases, so they follow a short label rather than a verb."""
 
     role = ROLES[view.key]
-    if view.key == "focus" or role.field is RoleField.CORE:
-        return f"{view.title}: {view.core}"
-    if role.field is RoleField.TENSION:
-        return f"{view.title}: dễ {view.tension}"
     if role.field is RoleField.OPTION:
-        return f"{view.title}: được {view.core}. Đổi lại dễ {view.tension}"
-    return f"{view.title}: {view.resource}"
-
-
-def _role_sentence(view: PositionView) -> str:
-    role = ROLES[view.key]
-    if view.key == "focus" or role.field in {RoleField.CORE}:
-        return f"{view.title} cho thấy {view.core}"
+        name = OPTION_NAMES.get(view.key, "này")
+        return f"Hướng {name}: {view.core}. Đổi lại, dễ {view.tension}."
     if role.field is RoleField.TENSION:
-        return f"{view.title} nhắc rằng bạn dễ {view.tension}"
-    if role.field is RoleField.OPTION:
-        # Two short sentences: a gain and its cost in one would exceed the density limit. With
-        # the longest fields (core 19 words, three-word titles and conjunctions) each stays
-        # within the review's 28-word sentence limit.
-        return f"{view.title}: hướng này được {view.core}. Đổi lại, hướng này dễ {view.tension}"
-    return f"{view.title} gợi ý bạn có thể {view.resource}"
+        return f"Có điều, bạn dễ {view.tension}."
+    return f"Điểm chính: {view.core}."
 
 
-def linked_summary(
+def step_sentence(step: str) -> str:
+    """The summary's last sentence; a step that ends on a quoted line keeps its own stop."""
+
+    return f"Trước hết, {step}" if step.endswith(("”", "?", "!")) else f"Trước hết, {step}."
+
+
+def plain_summary(
     views: Sequence[PositionView],
+    step: str | None,
     lead: Sequence[str] = (),
     reserve: int = 0,
-    *,
-    roast: bool = False,
 ) -> str:
-    """One sentence per role in spread order, joined by role-appropriate conjunctions.
+    """What the reading says in a few plain sentences, ending on the one step the reader sees at
+    the step position (``step`` is that position's action without its lead-in).
 
-    ``reserve`` words stay free for text added in front later (the B2-1 readiness line)."""
+    No card names and no linking words between unrelated cards (owner feedback, 29/10/2026, on
+    "Ngôi Sao cho thấy… Có điều nè, Át Kiếm nhắc… Thêm nữa nè…"). ``reserve`` words stay free for
+    text added in front later (the B2-1 readiness line)."""
 
-    conjunctions = ROAST_CONJUNCTIONS if roast else CONJUNCTIONS
-    core = _joined(views, _role_sentence, conjunctions)
-    if len(core.split()) + reserve > SUMMARY_BUDGET:
-        # Bounded fallback: every anchor and link stays, only the frame words shrink. With the
-        # longest card fields (core 19, tension 16, resource 17 words), three-word titles and
-        # conjunctions, five roles take at most 156 words (160 with the Roast links, one word
-        # longer each), leaving 20 for the readiness line, which is exactly 20 words.
-        core = _joined(views, _compact_sentence, conjunctions)
+    sentences = [_plain_sentence(view) for view in summary_views(views)]
+    if step:
+        sentences.append(step_sentence(step))
+    core = " ".join(sentences)
     extra = [line for line in lead if len(f"{line} {core}".split()) + reserve <= SUMMARY_BUDGET]
     return " ".join([*extra[:1], core])
 
 
-def _joined(
-    views: Sequence[PositionView],
-    frame: Callable[[PositionView], str],
-    conjunctions: dict[RoleField | str, tuple[str, str]],
-) -> str:
-    sentences: list[str] = []
-    for index, view in enumerate(views):
-        body = frame(view)
-        if index == 0:
-            sentences.append(f"{body[:1].upper()}{body[1:]}.")
-            continue
-        role = ROLES[view.key]
-        kind: RoleField | str = "step" if role.step else role.field
-        conjunction = conjunctions[kind][index % 2]
-        sentences.append(f"{conjunction} {body}.")
-    return " ".join(sentences)
+def summary_covers(summary: str, views: Sequence[PositionView], step: str | None) -> bool:
+    """Gate summary_plain (gates v6, replaces summary_links_cards): the summary carries each
+    summarized role's anchor and the shown step, and names no card."""
 
-
-def summary_links(summary: str, views: Sequence[PositionView]) -> bool:
-    """Gate summary_links_cards: every role's anchor is present, with at least N-1 links."""
-
-    if any(anchor(view) not in summary for view in views):
+    if any(view.title in summary for view in views):
         return False
-    links = sum(
-        len(re.findall(rf"(?:^|[.!?]\s+){re.escape(c)}(?=\s)", summary)) for c in ALL_CONJUNCTIONS
-    )
-    return links >= len(views) - 1
+    for view in summary_views(views):
+        role = ROLES[view.key]
+        needed = (view.core, view.tension) if role.field is RoleField.OPTION else (anchor(view),)
+        if any(text not in summary for text in needed):
+            return False
+    return not step or step_sentence(step) in summary
 
 
 _ALTERNATIVE_SEPARATORS = re.compile(r"(?<!\w)(?:hay|hoặc|hay là)(?!\w)")
@@ -620,18 +598,12 @@ def dynamic_headline(
     stance: TarotStance | None,
     action: TarotAction | None,
     topic: TarotContext,
-    focal: PositionView,
-    second: PositionView | None,
     *,
     variant: int = 0,
     roast: bool = False,
 ) -> str:
-    """Headline from form + lean (or action/topic) + the focal card (AC11), in frame
-    ``variant`` of the voice register (AC15, AC19).
-
-    ``second`` (the pitfall card, else another card) joins how/why/open/clarify headlines, so two
-    readings share a headline only when they share both cards, the form and the topic.
-    """
+    """Headline from form + lean (or action/topic) (AC11; no card names since the owner's
+    feedback of 29/10/2026), in frame ``variant`` of the voice register (AC15, AC19)."""
 
     chosen = stance.action if stance is not None else action
     phrase = ACTION_PHRASES[chosen] if chosen else GENERIC_ACTION
@@ -639,8 +611,5 @@ def dynamic_headline(
     table = ROAST_HEADLINES if roast else HEADLINES
     frames = table.get(key, table[TarotQuestionForm.OPEN.value])
     template = frames[variant % len(frames)]
-    pair = f"{focal.title} và {second.title}" if second is not None else focal.title
     target = phrase if chosen else f"cho {TOPIC_PHRASES[topic]}"
-    return template.format(
-        focal=focal.title, pair=pair, action=phrase, topic=TOPIC_PHRASES[topic], target=target
-    )
+    return template.format(action=phrase, topic=TOPIC_PHRASES[topic], target=target)
