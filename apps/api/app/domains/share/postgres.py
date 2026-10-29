@@ -8,7 +8,12 @@ from sqlalchemy import and_, or_, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.accounts.postgres import account_transaction, lock_owner
+from app.domains.daily.tables import DailyNoteRow
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
+from app.domains.history.postgres import unavailable_daily
+from app.domains.readings.tables import ReadingRevisionRow
+from app.domains.share.errors import ShareArtifactUnavailable
 from app.domains.share.models import (
     SafeShareSnapshot,
     ShareArtifactRecord,
@@ -31,7 +36,36 @@ class PostgresShareArtifactRepository:
         self._erasure_journal = erasure_journal
 
     async def create(self, record: ShareArtifactRecord) -> ShareArtifactRecord:
-        async with self._sessions() as session, session.begin():
+        """Insert a link only while its source is still live, under the owner's lock.
+
+        Since migration 20261029_0039 no foreign key rejects a link whose Daily note or revision
+        was deleted after the service read it. Birth time/place removal and the birth-date
+        correction take this same guest row lock, so the recheck here is serialized with them:
+        a removal that commits first makes this create fail; one that commits later deletes or
+        keeps the link exactly as for any other existing link.
+        """
+
+        async with account_transaction(self._sessions) as session:
+            await lock_owner(session, record.guest_id)
+            source = await session.scalar(
+                select(DailyNoteRow.id).where(
+                    DailyNoteRow.id == record.daily_note_id,
+                    DailyNoteRow.guest_id == record.guest_id,
+                    ~unavailable_daily(record.created_at),
+                )
+            )
+            if source is None:
+                raise ShareArtifactUnavailable
+            if record.revision_id is not None:
+                revision = await session.scalar(
+                    select(ReadingRevisionRow.id).where(
+                        ReadingRevisionRow.id == record.revision_id,
+                        ReadingRevisionRow.guest_id == record.guest_id,
+                        ReadingRevisionRow.profile_id == record.profile_id,
+                    )
+                )
+                if revision is None:
+                    raise ShareArtifactUnavailable
             row = ShareArtifactRow(
                 id=record.id,
                 guest_id=record.guest_id,
