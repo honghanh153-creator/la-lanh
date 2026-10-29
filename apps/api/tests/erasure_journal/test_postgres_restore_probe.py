@@ -576,10 +576,17 @@ def test_the_procedure_keeps_the_server_log_before_teardown() -> None:
     controls = ("postgres -D $P/data -C ssl", "$P/.s.PGSQL.55440", 's.bind(("127.0.0.1", 55440))')
     assert all(text.index(control) < start for control in controls)
     teardown = text.index("9. **Teardown**")
-    keep = text.index("> $R/server-log.sanitized.txt", teardown)
+    keep = text.index(
+        "python3 -I apps/api/scripts/sanitize_probe_server_log.py --log $P/server.log "
+        "--probe-dir $P --out $R/server-log.sanitized.txt",
+        teardown,
+    )
+    fail_closed = text.index("**Any other exit: fail closed.**", teardown)
     stop = text.index("pg_ctl -D $P/data -m fast stop", teardown)
-    delete = text.index("Delete `$P` entirely", teardown)
-    assert keep < stop < delete
+    delete = text.index("If step 9.1 exited 0, delete `$P` entirely", teardown)
+    assert keep < fail_closed < stop < delete
+    assert "grep -iv password" not in text  # Codex r51: a line filter kept SQL and row ids
+    assert (Path(__file__).resolve().parents[2] / "scripts/sanitize_probe_server_log.py").is_file()
 
 
 def test_the_checked_target_is_the_one_the_engine_and_tools_use(ca_file: Path) -> None:
