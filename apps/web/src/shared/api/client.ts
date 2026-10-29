@@ -776,6 +776,19 @@ export function createBirthProfile(birthDate: string): Promise<BirthReveal> {
   });
 }
 
+/** US-23: replace the saved birth date. The server refuses a stale revision or a minor's date. */
+export function correctBirthDate(input: {
+  birth_date: string;
+  confirm_birth_date: string;
+  expected_revision: string;
+}): Promise<BirthReveal> {
+  return request<BirthReveal>("/birth-profile/date", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify(input),
+  });
+}
+
 export async function getDailyNote(signal?: AbortSignal, voice?: AppVibe): Promise<DailyNote> {
   // Voice is read-time wording only; the stored and shared reading stays direct.
   const path = voice === "roast" ? "/daily-note?voice=roast" : "/daily-note";
