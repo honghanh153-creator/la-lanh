@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
-from app.domains.tarot import question_frame
+from app.domains.tarot import phrasing, question_frame
 from app.domains.tarot.models import (
     TarotAction,
     TarotContext,
@@ -254,7 +254,7 @@ HEADLINES: dict[str, tuple[str, str, str]] = {
         "Các lá gợi một lý do trong {topic}.",
     ),
     TarotQuestionForm.OPEN.value: (
-        "Điều đáng nhìn rõ trong {topic} lúc này.",
+        "Lúc này, điều đáng nhìn rõ trong {topic}.",
         "Trong {topic}, có một điều đáng nhìn rõ.",
         "Các lá chỉ ra điều đáng nhìn trong {topic}.",
     ),
@@ -296,9 +296,9 @@ ROAST_HEADLINES: dict[str, tuple[str, str, str]] = {
         "Soi tới gốc một lý do trong {topic}.",
     ),
     TarotQuestionForm.OPEN.value: (
-        "Chuyện {topic}, nói gọn nè.",
-        "Soi nhanh chuyện {topic}, khỏi vòng vo.",
-        "Chuyện {topic}, gom lại vài ý chính nè.",
+        "Nói gọn về {topic} nè.",
+        "Soi nhanh {topic}, khỏi vòng vo.",
+        "Gom lại vài ý chính về {topic} nè.",
     ),
 }
 
@@ -312,19 +312,23 @@ class PositionView:
     card_id: str
     title: str
     core: str
+    # The core as a complete clause (phrasing.core_sentence, Tarot pass 2): what framed prose
+    # quotes. ``core`` stays the authored field.
+    core_sentence: str
     tension: str
     resource: str
 
 
 def anchor(view: PositionView) -> str:
-    """The role field a summary or a reason must mention for this position."""
+    """The role field a summary or a reason must mention for this position (the core as a
+    clause since Tarot pass 2)."""
 
     role = ROLES[view.key]
     if role.step or role.field is RoleField.RESOURCE:
-        return view.resource if view.key != "focus" else view.core
+        return view.resource if view.key != "focus" else view.core_sentence
     if role.field is RoleField.TENSION:
         return view.tension
-    return view.core
+    return view.core_sentence
 
 
 SUMMARY_BUDGET = 180  # words; the engine's scan budget
@@ -352,16 +356,16 @@ def summary_views(views: Sequence[PositionView]) -> list[PositionView]:
 
 
 def _plain_sentence(view: PositionView) -> str:
-    """No card is the subject; card names stay in the position blocks. Card cores are noun or
-    verb phrases, so they follow a short label rather than a verb."""
+    """No card is the subject; card names stay in the position blocks. The core is a complete
+    clause (Tarot pass 2), so it stands as its own sentence without a "Điểm chính:" label."""
 
     role = ROLES[view.key]
     if role.field is RoleField.OPTION:
         name = OPTION_NAMES.get(view.key, "này")
-        return f"Hướng {name}: {view.core}. Đổi lại, dễ {view.tension}."
+        return f"Với hướng {name}, {view.core_sentence}. Đổi lại, bạn dễ {view.tension}."
     if role.field is RoleField.TENSION:
         return f"Có điều, bạn dễ {view.tension}."
-    return f"Điểm chính: {view.core}."
+    return f"{phrasing.capitalized(view.core_sentence)}."
 
 
 def step_sentence(step: str) -> str:
@@ -410,15 +414,21 @@ def summary_covers(
 
     for view in summary_views(views):
         role = ROLES[view.key]
-        needed = (view.core, view.tension) if role.field is RoleField.OPTION else (anchor(view),)
-        if any(text not in summary for text in needed):
+        needed = (
+            (view.core_sentence, view.tension)
+            if role.field is RoleField.OPTION
+            else (anchor(view),)
+        )
+        # The core clause may open a sentence, so its first letter may be capitalized.
+        if any(not phrasing.contains_clause(summary, text) for text in needed):
             return False
     if step and not summary.endswith(step_sentence(step)):
         return False
     rest = summary
     authored = [step or ""]
     for view in summary_views(views):
-        authored.extend((view.core, view.tension, anchor(view)))
+        for text in (view.core, view.core_sentence, view.tension, anchor(view)):
+            authored.extend((text, phrasing.capitalized(text)))
     for text in sorted({t for t in authored if t}, key=len, reverse=True):
         rest = rest.replace(text, " ")
     folded = _folded(rest)
@@ -480,7 +490,7 @@ def _reason(view: PositionView) -> TarotStanceReason:
     elif role.step or role.field is RoleField.RESOURCE:
         text = f"{view.label}: {view.title} gợi ý bạn có thể {view.resource}."
     else:
-        text = f"{view.label}: {view.title} cho thấy {view.core}."
+        text = f"{view.label}: {view.title} cho thấy {view.core_sentence}."
     return TarotStanceReason(position_key=view.key, card_id=view.card_id, text=text)
 
 
