@@ -205,6 +205,26 @@ class TarotSessionService:
                 raise TarotSessionNotFound
             return self._view(row, self._decrypt(row))
 
+    async def export_views(
+        self, guest_id: UUID, *, limit: int, now: datetime | None = None
+    ) -> tuple[TarotSessionView, ...]:
+        """The guest's unexpired sessions, newest first, for the owner's own data export."""
+
+        current = now or datetime.now(UTC)
+        async with self._sessions() as database:
+            rows = tuple(
+                await database.scalars(
+                    select(TarotSessionRow)
+                    .where(
+                        TarotSessionRow.guest_id == guest_id,
+                        TarotSessionRow.expires_at > current,
+                    )
+                    .order_by(TarotSessionRow.created_at.desc(), TarotSessionRow.id.desc())
+                    .limit(limit)
+                )
+            )
+            return tuple(self._view(row, self._decrypt(row)) for row in rows)
+
     async def select_card(
         self,
         *,

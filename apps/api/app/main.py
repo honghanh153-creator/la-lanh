@@ -31,6 +31,7 @@ from app.domains.content_rewrite.rollout import SurfaceRolloutPolicy
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.service import DailyNoteService
+from app.domains.data_export.service import DataExportService
 from app.domains.erasure_journal.journal import ErasureJournal
 from app.domains.experiments.postgres import PostgresExperimentRepository
 from app.domains.experiments.service import ExperimentService
@@ -210,6 +211,9 @@ def create_app(
         )
         birth_repo = birth_repository or PostgresBirthRepository(
             database.sessions, envelope, erasure_journal
+        )
+        app.state.data_export_service = DataExportService(
+            database.sessions, envelope, birth_repo, app.state.tarot_session_service
         )
         app.state.birth_chart_service = (
             BirthChartService(
