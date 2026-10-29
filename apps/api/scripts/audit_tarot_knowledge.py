@@ -254,9 +254,10 @@ def _audit_owner(item_id: str) -> uuid.UUID:
 
 def audit_stance_and_headlines() -> tuple[list[str], dict[str, Any]]:
     """B2-3/B2-4 on the bank (US-20 AC20): stance distribution, opening (headline + summary)
-    duplicates per voice (< 10%; headline-only duplicates reported), no generic copy. B2-4b adds, on the same readings, the provenance trace of every
-    provider payload (US-20 AC06, direct voices; Roast is never sent) and the machine items of
-    the psychology checklist (US-20 AC14).
+    duplicates per voice (< 10%; headline-only duplicates reported), no generic copy. B2-4b
+    adds, on the same readings, the provenance trace of every provider payload (US-20 AC06,
+    direct voices; Roast is never sent) and the machine items of the psychology checklist
+    (US-20 AC14).
 
     Every accepted bank question x every spread map x all four voices, with cards drawn from a
     seed fixed per question and the variants a synthetic guest's first session would get. Roast
