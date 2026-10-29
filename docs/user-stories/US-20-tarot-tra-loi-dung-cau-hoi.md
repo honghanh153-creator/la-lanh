@@ -94,6 +94,9 @@ hỏi vào bài đọc.**
   - Trải 5 lá dùng các vai theo `_POSITIONS`.
   - Không còn nhánh câu chung ("Ý chính của lá: …").
   - Việc nhỏ chỉ xuất hiện ở vai mang tính bước tiếp.
+  - (Tarot pass 2, góp ý của owner 29/10/2026, `docs/reviews/2026-10-29-tarot-pass2.md`.) Khung câu của vị
+    trí không lặp lại tên vị trí dưới dạng nhãn ("Bằng chứng thật: …", "Kịch bản tự viết: …"). Ý chính của lá
+    được đọc như một câu đủ chủ ngữ (`tarot/phrasing.py`). Bài cũ (legacy) giữ nguyên câu chữ.
 - **AC08:** Câu `yes_no` và `choice` (khi tách được A và B vào nhãn đóng) có **hướng nghiêng** đúng một
   trong ba mức: "Các lá nghiêng về thử {action}", "Các lá gợi ý cân nhắc thêm trước khi {action}", "Chưa
   rõ: các lá kéo về hai phía".
