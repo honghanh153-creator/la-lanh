@@ -18,6 +18,8 @@ from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.radar.tables import RadarRequestRow
 from app.domains.readings.tables import ReadingPlanRow, ReadingProjectionRow
+from app.domains.saved.tables import SavedNoteRow
+from app.domains.share.tables import ShareArtifactRow
 from app.infrastructure.crypto import EnvelopeCipher
 
 
@@ -372,25 +374,12 @@ class PostgresBirthRepository:
         if date_only is not None:
             profile.current_snapshot_id = date_only.id
             await session.flush([profile])
-        await session.execute(
-            delete(RadarRequestRow).where(
-                or_(
-                    RadarRequestRow.owner_guest_id == profile.guest_id,
-                    RadarRequestRow.recipient_guest_id == profile.guest_id,
-                )
-            )
-        )
-        await session.execute(
-            delete(ContentRewriteJobRow).where(
-                ContentRewriteJobRow.owner_guest_id == profile.guest_id,
-                ContentRewriteJobRow.owner_namespace.in_(("readings", "radar")),
-            )
-        )
-        await session.execute(
-            delete(DailyExperimentRow).where(DailyExperimentRow.guest_id == profile.guest_id)
-        )
-        await session.execute(delete(DailyNoteRow).where(DailyNoteRow.guest_id == profile.guest_id))
-        await session.execute(delete(ReadingPlanRow).where(ReadingPlanRow.profile_id == profile.id))
+        # Removing time or place deletes every saved note and share link of this person, as its
+        # confirmation promises ("mọi note, bản lưu, link chia sẻ hiện có"). Since migration
+        # 20261029_0039 the copies no longer cascade from their source, so delete them here; this
+        # also covers copies a birth-date correction detached earlier.
+        await delete_copies(session, profile.guest_id)
+        await delete_derived(session, profile)
         if date_only is not None:
             await session.execute(
                 delete(ChartSnapshotRow).where(
@@ -398,6 +387,41 @@ class PostgresBirthRepository:
                     ChartSnapshotRow.id != date_only.id,
                 )
             )
+
+
+async def delete_copies(session: AsyncSession, guest_id: UUID) -> None:
+    """Every saved note and share link the guest owns, attached to a source or not."""
+
+    await session.execute(delete(SavedNoteRow).where(SavedNoteRow.guest_id == guest_id))
+    await session.execute(delete(ShareArtifactRow).where(ShareArtifactRow.guest_id == guest_id))
+
+
+async def delete_derived(session: AsyncSession, profile: BirthProfileRow) -> None:
+    """Content derived from the profile's birth data, saved and shared copies excepted.
+
+    Radar rows of both perspectives go first, then their and the Reading rewrite jobs, so no job
+    outlives its parent; then experiments, Daily notes (their mood, feedback and attempts cascade)
+    and reading plans (their revisions, attempts and pointing projections cascade).
+    """
+
+    guest_id = profile.guest_id
+    await session.execute(
+        delete(RadarRequestRow).where(
+            or_(
+                RadarRequestRow.owner_guest_id == guest_id,
+                RadarRequestRow.recipient_guest_id == guest_id,
+            )
+        )
+    )
+    await session.execute(
+        delete(ContentRewriteJobRow).where(
+            ContentRewriteJobRow.owner_guest_id == guest_id,
+            ContentRewriteJobRow.owner_namespace.in_(("readings", "radar")),
+        )
+    )
+    await session.execute(delete(DailyExperimentRow).where(DailyExperimentRow.guest_id == guest_id))
+    await session.execute(delete(DailyNoteRow).where(DailyNoteRow.guest_id == guest_id))
+    await session.execute(delete(ReadingPlanRow).where(ReadingPlanRow.profile_id == profile.id))
 
 
 def _record(
