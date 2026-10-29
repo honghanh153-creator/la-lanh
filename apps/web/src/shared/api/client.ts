@@ -238,6 +238,19 @@ export type RadarResult = {
       key: string;
       label: string;
     }>;
+    /** radar-readable-v2: a named tier per context; `score` only if the owner switch is on. */
+    tier?: {
+      key: string;
+      label: string;
+      score?: number | null;
+    };
+    areas?: Array<{
+      key: string;
+      label: string;
+      level: "good" | "balanced" | "watch" | "quiet";
+      level_label: string;
+      note: string;
+    }>;
   } | null;
   compatibility_map?: Array<{
     key: "resonance" | "coordination" | "friction";
@@ -252,10 +265,21 @@ export type RadarResult = {
     }>;
   }>;
   sections?: Array<{
-    key: "fit" | "friction" | "perspective" | "check";
+    key: "fit" | "friction" | "perspective" | "check" | "why" | "practice";
+    /** radar-readable-v2: "main" shows by default, "more" sits behind one "Xem thêm". */
+    layer?: "main" | "more";
     label: string;
     title: string;
     body: string;
+    question?: string;
+    factors?: Array<{
+      key: string;
+      label: string;
+      level: "good" | "balanced" | "watch";
+      level_label: string;
+      technical_note: string;
+      evidence_ids: string[];
+    }>;
     topics?: string[];
     depth?: "focused" | "layered";
     highlights?: Array<{
@@ -311,6 +335,8 @@ export type RadarResult = {
     concept_ids: string[];
     voice: RadarVoice;
     voice_label: string;
+    /** radar-readable-v2 only. */
+    tier_calibration_version?: string;
     time_precision?: "exact" | "unknown";
     precision_note?: string;
   } | null;
