@@ -1,7 +1,7 @@
 # Edit birth data after it is saved: plan (29/10/2026)
 
 **Status: plan only, no code.** Owner request, 29/10/2026: "lên kế hoạch để làm thêm phần đổi thông tin, cập
-nhật thông tin ngày sinh sau khi đã có". Facts below are read from integration `e0d62fa`. Revised after Codex r52
+nhật thông tin ngày sinh sau khi đã có". Facts below are read from integration `e0d62fa`. Revised after Codex r52 and r54
 ([REQUEST_CHANGES @ `db50cd7`](https://github.com/honghanh153-creator/la-lanh/pull/113#issuecomment-6497712508)): an
 artifact-lifecycle prerequisite, a fail-closed restore state, an explicit 18+ policy, the compute/commit/drain phases,
 a cache withdrawal that keeps queued unsaves, share-link management, and the invite-link disclosure. Delivery follows
@@ -75,7 +75,8 @@ birth data. This fits the north star: calm, no surprises, and "this app understa
      - Lá khai sinh, note hôm nay and gợi ý are recomputed;
      - giờ và nơi sinh are cleared, and you can add them again;
      - kết quả Hợp gu built from the old date are deleted;
-     - **lời mời Hợp gu bạn đã gửi mà chưa ai mở sẽ ngừng hoạt động.**
+     - **lời mời Hợp gu bạn đã gửi mà chưa được chấp nhận sẽ ngừng hoạt động** (kể cả lời mời đã được mở nhưng
+       chưa chấp nhận).
    - What stays: ghi chú đã lưu and đường link đã chia sẻ. You can unsave a note or revoke a link in Đã lưu.
    - Actions: "Đổi ngày sinh" / "Giữ như cũ".
 3. **The edit page** is `BirthDatePage` in edit mode: the current date is prefilled, and a save asks for the date once
@@ -109,6 +110,16 @@ birth data. This fits the north star: calm, no surprises, and "this app understa
   - Removing time or place keeps deleting saved notes and share links, as its confirm text promises.
   - History clear and retention already skip sources that a copy uses. That exclusion stays unless a test shows it can
     be simplified safely.
+- **Share-creation fence.** Today `ShareArtifactService.create` reads the owned source (`share/service.py:43`)
+  and `PostgresShareArtifactRepository.create` inserts in another transaction (`share/postgres.py:28-46`). The
+  source FKs are what reject a late insert after removal deleted the source. Once those FKs are dropped:
+  - the insert transaction takes the same guest row lock as correction and time/place removal;
+  - inside that lock it rechecks that the live daily note (and the revision, when one is referenced) still exists
+    and is owned by the caller, and refuses otherwise;
+  - **creation first:** the later removal or correction deletes the new copy as part of its cascade;
+  - **removal first:** the late creation finds no source and is refused, so no copy of deleted chart text is
+    published;
+  - saving a note gets the same fence.
 - **Reads.** Saving still requires a live source. Listing saved notes, unsave, the public share read, revoke, purge
   and erasure-journal replay of unsave and share revoke must work for a detached row. The public share read already
   serves only the stored safe snapshot.
@@ -118,6 +129,8 @@ birth data. This fits the north star: calm, no surprises, and "this app understa
   - The correction endpoint is not enabled until this migration is deployed.
 - **Tests:** SQLite and PostgreSQL.
   - A copy survives deletion of its source.
+  - A share creation paused between its source read and its insert, with the source deleted meanwhile, is refused
+    (SQLite control now; a PostgreSQL race test before this slice ships on its own).
   - Removing time or place still deletes copies.
   - Unsave, revoke, public read, purge and replay work on a detached row.
   - The migration upgrades rows, and the downgrade refuses while detached rows exist.
@@ -150,12 +163,16 @@ birth data. This fits the north star: calm, no surprises, and "this app understa
 - **Phase 2, one transaction** under the guest row lock that `save_or_replay` and `clear_supplement` already take:
   1. Recheck `expected_revision` and the D5 limit.
   2. Capture the admitted provider sends for this guest (`pending_sends`), as `clear_supplement` does.
-  3. Delete the D1 dependents explicitly: Radar requests of both perspectives first, then rewrite jobs, experiments,
+  3. Insert the prepared new snapshot (not yet active).
+  4. **Detach the active pointer and flush:** point `current_snapshot_id` at the new snapshot and flush before any
+     old snapshot is deleted. `BirthProfileRow.current_snapshot_id` is an immediate FK with no `ON DELETE`
+     (`birth/tables.py:19-26`); `_erase_precision` uses the same order (flush at `birth/postgres.py:373-374`,
+     delete at `:396`).
+  5. Delete the D1 dependents explicitly: Radar requests of both perspectives first, then rewrite jobs, experiments,
      daily notes, plans and the old snapshots. Saved copies and share links stay, per the prerequisite.
-  4. Clear time, place and deep consent.
-  5. Activate the new snapshot.
-  6. Write the journal entry.
-  7. Commit.
+  6. Clear time, place and deep consent.
+  7. Write the journal entry.
+  8. Commit. Any failure rolls back the whole transaction: the old subject stays active and nothing is deleted.
 - **Phase 3, after commit and before the response:** `drain_sends` waits for every captured send to finish. This
   matters because `content_rewrite/worker.py:143-157` releases its guard before provider I/O. Publication is fenced
   by the job lease and deletion epoch (`worker.py:213`); a test proves that a late result for a deleted job is
@@ -164,6 +181,7 @@ birth data. This fits the north star: calm, no surprises, and "this app understa
   - a send admitted before the correction finishes before success and never publishes old-subject text;
   - a late publication after commit is discarded;
   - a failure in phase 1 or 2 changes nothing;
+  - an active subject is corrected without an FK error (detach and flush come first);
   - two tabs race on the fence.
 
 ### Erasure journal and restore
@@ -175,7 +193,8 @@ birth data. This fits the north star: calm, no surprises, and "this app understa
     the new subject untouched.
   - **The dump was taken before the correction:** the dump holds only the old subject, and no replacement value exists
     to restore. Replay fails closed:
-    - it deletes the old subject's snapshots, plans, revisions, projections, daily notes, Radar rows and rewrite jobs;
+    - in one owner-locked transaction, it first sets `current_snapshot_id` to null and flushes, then deletes the old
+      subject's snapshots, plans, revisions, projections, daily notes, Radar rows and rewrite jobs;
     - it clears the profile's date-bearing state, time, place and deep consent, leaving **no active birth subject**;
     - saved copies and share links follow the prerequisite and stay;
     - on the next visit, the app asks the person to enter their birth date again, and `POST` accepts it because no
@@ -295,11 +314,14 @@ part of the owner/engineering P09 assessment and is not claimed here.
   can be revoked; the public link then answers as revoked.
 - **AC13:** Given an unsave queued offline before the correction, after the correction and a reload the unsave reaches
   the server.
-- **AC14:** Given a pending Radar invite, the confirm sheet says it will stop working before the person confirms.
+- **AC14:** Given a pending Radar invite, including one opened but not accepted, the confirm sheet says it will stop
+  working before the person confirms.
+- **AC15:** Given a share or save that read its source before a correction or time/place removal committed, the late
+  insert is refused, and no copy of the deleted chart text becomes readable.
 
 ## DoD
 
-- All AC are covered by tests, with PostgreSQL for AC2, AC4, AC8, AC11 and the lifecycle migration.
+- All AC are covered by tests, with PostgreSQL for AC2, AC4, AC8, AC11, AC15 and the lifecycle migration.
 - Codex APPROVE at each exact SHA.
 - Docs, privacy copy and the data map match runtime behavior.
 - Experience and content audits pass.
