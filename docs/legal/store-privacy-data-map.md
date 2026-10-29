@@ -1,6 +1,6 @@
 # Lá Lành — store privacy data map
 
-Last reviewed: 2026-10-09 (local engineering delta). This is an engineering disclosure map, not legal advice. Final answers must be reconciled against the signed release binary, production data flow, every SDK and the store console wording at submission time.
+Last reviewed: 2026-10-29 (data export delta; earlier local engineering delta 2026-10-09). This is an engineering disclosure map, not legal advice. Final answers must be reconciled against the signed release binary, production data flow, every SDK and the store console wording at submission time.
 
 ## Runtime posture
 
@@ -257,3 +257,10 @@ scene, reflection, action) and the closed lean labels (kind, level, action label
 rebuilt from those codes and checked before a request is built; a string that traces to no closed label or
 catalog code blocks the request. The question, the QuestionFrame, the variant record and the variant cursor are
 never sent; lean conclusions and reasons stay local. No new data type, recipient or store declaration.
+
+## Data export and B rights delta — 2026-10-29, not a store submission
+
+- **Right of access / provision:** `POST /v1/session/data-export` (Mình > "Tải dữ liệu của tôi") returns the requester's own data as a JSON attachment: profile dates, linked account (masked email, device dates), consents, history retention, decrypted birth date, time mode/local time or window, place display name and timezone, chart result, visible Daily notes with mood, saved notes, share-link dates/status, unexpired Tarot questions and readings, note feedback, experiments, A's own Radar and Lá Chứng side (nickname A typed, context, status, dates, A's attestation time), B's received Radar consent and dates, and Vòng Lá matching profile/consents/verification status.
+- Never in the file: ids, hashes, digests, capability/receipt tokens, CSRF or session secrets, Radar result prose, Lá Chứng responder content, other people's birth data, birthplace centroid coordinates, rows the app already hides (expired Daily history, Tarot, Radar), internal reading/rewrite state.
+- Delivery: built on request from a fresh read, not stored or cached server-side (`no-store`, `Pragma: no-cache`, `nosniff`, `no-referrer`, fixed filename `la-lanh-du-lieu-cua-toi.json`), CSRF + trusted origin, 5/min per peer. The web client hands the Blob to the device and keeps no copy; the Capacitor shell uses the system share sheet. No third party or SDK receives it, so Apple App Privacy and Google Play Data Safety answers do not change (no new collection or sharing). Play's "users can request data deletion" answer is unchanged; the export is an additional in-app right.
+- **P09 D2:** B's self-service screens (session list/view/withdraw, used-invite withdraw, receipt) are in integration since #83; Mình and the privacy page now link B to them and explain what is held. B is never asked for birth data again. Inventory and open questions: [plan](../plans/2026-10-29-privacy-export-and-b-rights.md).

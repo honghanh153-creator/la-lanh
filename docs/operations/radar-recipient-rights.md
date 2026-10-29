@@ -16,8 +16,10 @@ deadline under Decree 356/2025 is a counsel question.** This document claims nei
 
 All paths end with the result's 30-day access window; physical deletion of the row follows the same
 cleanup job and fence rules as above. Withdrawal clears the result for both people, cancels
-both rewrite jobs and waits for any in-flight provider send. The web screens for the session and
-invite-link paths need owner-approved copy and are not built yet.
+both rewrite jobs and waits for any in-flight provider send. Web screens: `/radar/received` and
+`/radar/received/:id` (session path) and the used-invite page `/radar/i/:token` (withdraw only) were
+built in #83; Mình links B to `/radar/received`, which explains what is held about B (2026-10-29).
+Their copy still needs owner approval.
 
 ## Manual requests (email or support channel)
 
@@ -40,5 +42,9 @@ invite-link paths need owner-approved copy and are not built yet.
 
 ## Not covered
 
-- A data export (portability) endpoint does not exist for anyone yet; B's "export" today is the view.
+- Data export exists since 2026-10-29 (`POST /v1/session/data-export`, Mình > "Tải dữ liệu của tôi").
+  B's file lists B's received results (context, B's consent version, accepted, expiry) and B's own
+  profile, never the nickname A chose for B or the result prose; A's file lists only A's side. See
+  [the plan](../plans/2026-10-29-privacy-export-and-b-rights.md). A request by email for a copy is
+  answered by pointing to that button; support never builds an export by hand.
 - Backups keep deleted rows until they age out (P07); a restore must replay the erasure journal.
