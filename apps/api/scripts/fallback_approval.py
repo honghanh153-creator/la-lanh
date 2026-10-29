@@ -30,6 +30,7 @@ from app.domains.radar import reading as radar_reading
 from app.domains.readings import companion, daily_psychology, gates, renderers, voice
 from app.domains.readings.application import DETERMINISTIC_CONTENT_VERSION
 from app.domains.readings.renderers import DETERMINISTIC_RENDERER_VERSION
+from app.domains.tarot import action_copy as tarot_action_copy
 from app.domains.tarot import engine as tarot_engine
 from app.domains.tarot import examples as tarot_examples
 from app.domains.tarot import knowledge as tarot_knowledge
@@ -168,6 +169,8 @@ def current() -> dict[str, Any]:
             "stance_version": tarot_stance.STANCE_VERSION,
             "variants_version": tarot_variants.TAROT_VARIANTS_VERSION,
             "variant_catalog_version": tarot_variants.TAROT_VARIANT_CATALOG_VERSION,
+            # T02/T03 action scenes and steps, decided under owner delegation 2026-10-26.
+            "action_copy_version": tarot_action_copy.ACTION_COPY_VERSION,
             "tables": {
                 **module_tables(tarot_knowledge),
                 **module_tables(tarot_engine),
@@ -181,6 +184,8 @@ def current() -> dict[str, Any]:
                 **module_tables(tarot_meaning_brief),
                 **module_tables(tarot_voice),
                 **module_tables(tarot_examples),
+                **module_tables(tarot_action_copy),
+                **function_literals(tarot_action_copy),
                 "app.domains.tarot.knowledge.all_cards()": sha256(cards.encode()).hexdigest(),
                 # In-function copy (audit O04), pinned 2026-10-22 at c3fab33 = production.
                 **{

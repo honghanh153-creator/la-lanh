@@ -133,9 +133,20 @@ def test_ac06_framed_payload_is_brief_v3_with_a_source_per_position() -> None:
     assert brief["stance"]["level"] == reading.stance.level.value  # type: ignore[union-attr]
     assert set(brief["stance"]) == {"kind", "level", "action", "options"}  # labels, no prose
     assert all(
-        set(p["source"]) == {"frame", "lead", "gentle", "reflection", "action"}
+        set(p["source"]) == {"frame", "lead", "gentle", "reflection", "action", "scene"}
         for p in payload["positions"]
     )
+    # T02/T03: the step role carries the asked action's scene and step as closed codes; the
+    # other positions keep the card x topic scene (no scene code).
+    *others, step = payload["positions"]
+    frame = ENGINE.assess_question(reading.question, TarotContext.WORK).frame
+    assert frame is not None and frame.action is not None
+    code = f"act.{frame.action.value}.{frame.topic.value}"
+    assert (step["source"]["scene"], step["source"]["action"]) == (code, code)
+    assert all(p["source"]["scene"] is None for p in others)
+    assert [(p["everyday_scene"], p["small_action"]) for p in payload["positions"]] == [
+        (p.everyday_scene, p.small_action) for p in reading.positions
+    ]
     # The texts equal what the reader sees, but they were rebuilt from the codes.
     assert [p["meaning_here"] for p in payload["positions"]] == [
         p.meaning_here for p in reading.positions
@@ -424,3 +435,47 @@ def test_ac06_omitted_optional_codes_resolve_as_null() -> None:
         position["source"].pop("lead")  # a lead that is present must still match the text
     untraced = _untraced(stripped)
     assert untraced and all(path.endswith("meaning_here") for path in untraced)
+
+
+@pytest.mark.parametrize(
+    ("question", "context", "cards", "scene", "action"),
+    [
+        # CONSIDER: the step prepares the asked action.
+        ("Mình có nên gửi bản thảo này đi không?", TarotContext.WORK, ("major-hermit",),
+         "act.gui_di.work", "prep.gui_di"),
+        # No partner named: the partner-only relationships scene gives way to the general row.
+        ("Mình có nên nhắn lại cho mẹ sau lần cãi nhau không?", TarotContext.RELATIONSHIPS,
+         ("major-sun", "major-star", "wands-8", "cups-9", "pentacles-8"),
+         "act.nhan_lai.general", "act.nhan_lai.relationships"),
+        # A choice the cards do not settle: a step that names neither option, the card scene.
+        ("Mình nên nhắn lại hay chờ thêm?", TarotContext.RELATIONSHIPS,
+         ("major-hermit", "major-sun", "wands-8", "cups-9", "pentacles-8"), None, "prep.choice"),
+    ],
+)  # fmt: skip
+def test_r47_steps_and_scenes_trace_to_closed_codes(
+    question: str,
+    context: TarotContext,
+    cards: tuple[str, ...],
+    scene: str | None,
+    action: str,
+) -> None:
+    """Codex r47: preparation and choice steps and the general fallback scene are rebuilt from
+    closed codes; Tarot Luna would otherwise fail closed on these readings."""
+
+    assessment = ENGINE.assess_question(question, context)
+    assert assessment.frame is not None
+    reading = ENGINE.render(
+        card_ids=cards,
+        spread=SPREAD[len(cards)],
+        context=context,
+        question=question,
+        voice=TarotVoice.STRAIGHT_WARM,
+        question_intent=assessment.intent,
+        frame=assessment.frame,
+    )
+    payload = _payload(reading)
+    step = payload["positions"][-1]
+    assert (step["source"]["scene"], step["source"]["action"]) == (scene, action)
+    assert step["small_action"] == reading.positions[-1].small_action
+    assert _untraced(payload) == []
+    assert "mẹ" not in json.dumps(payload, ensure_ascii=False)

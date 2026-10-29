@@ -97,6 +97,9 @@ ROAST_ACTION_FRAMES: tuple[str, ...] = (
     "Một nước đi gọn gàng:",
     "Làm thử cho biết nè:",
 )
+# Lead-ins that do not urge acting now, for readings whose cards ask for care first (Codex r47:
+# "Thôi nào, làm liền" under "Khoan đạp ga"). Taken from ROAST_ACTION_FRAMES, no new copy.
+ROAST_PREP_FRAMES: tuple[str, ...] = (ROAST_ACTION_FRAMES[1], ROAST_ACTION_FRAMES[3])
 GENTLE_ACTION_FRAMES: tuple[str, ...] = (
     "Nhẹ nhàng thôi:",
     "Một việc nhỏ cho mình:",
@@ -146,8 +149,11 @@ def meaning_tail(position_key: str, context: TarotContext) -> str:
     return tails[_MEANING_GROUPS.get(position_key, "default")]
 
 
-def action_frame(index: int, context: TarotContext) -> str:
-    frames = GENTLE_ACTION_FRAMES if context in GENTLE_CONTEXTS else ROAST_ACTION_FRAMES
+def action_frame(index: int, context: TarotContext, *, cautious: bool = False) -> str:
+    if context in GENTLE_CONTEXTS:
+        frames = GENTLE_ACTION_FRAMES
+    else:
+        frames = ROAST_PREP_FRAMES if cautious else ROAST_ACTION_FRAMES
     return frames[index % len(frames)]
 
 

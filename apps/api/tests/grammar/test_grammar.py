@@ -376,21 +376,25 @@ def test_fallback_approval_pins_the_framed_tarot_renderer(monkeypatch: pytest.Mo
     """Owner approval 2026-10-18 (docs/reviews/2026-10-18-b2-tarot-owner-approval.md): the B2
     copy modules and versions are pinned, so an unapproved edit fails grammar:check."""
 
-    from app.domains.tarot import roles, stance
+    from app.domains.tarot import action_copy, roles, stance
     from scripts import fallback_approval
 
     tarot = fallback_approval.current()["tarot"]
-    assert tarot["framed_renderer_version"] == "tarot-renderer-v7"
-    assert tarot["framed_knowledge_version"] == "tarot-knowledge-v5"
+    # T02/T03 (27/10/2026): renderer v8 / knowledge v6 with the action copy module pinned.
+    assert tarot["framed_renderer_version"] == "tarot-renderer-v8"
+    assert tarot["framed_knowledge_version"] == "tarot-knowledge-v6"
     assert tarot["gate_version"] == "tarot-gates-v5"
-    for module in ("question_frame", "roles", "stance", "variants"):
+    assert tarot["action_copy_version"] == "tarot-action-copy-v1"
+    for module in ("question_frame", "roles", "stance", "variants", "action_copy"):
         assert any(key.startswith(f"app.domains.tarot.{module}.") for key in tarot["tables"])
     approved = json.loads(fallback_approval.APPROVAL.read_text())["approved"]
-    for table, edit in (
-        ("ROAST_HEADLINES", {**stance.ROAST_HEADLINES, "open": ("a", "b", "c")}),
-        ("LEADS", {**roles.LEADS, next(iter(roles.LEADS)): ("a", "b", "c", "d", "e")}),
+    first_step = next(iter(action_copy.ACTION_STEPS))
+    for owner, table, edit in (
+        (stance, "ROAST_HEADLINES", {**stance.ROAST_HEADLINES, "open": ("a", "b", "c")}),
+        (roles, "LEADS", {**roles.LEADS, next(iter(roles.LEADS)): ("a", "b", "c", "d", "e")}),
+        (action_copy, "ACTION_STEPS", {**action_copy.ACTION_STEPS, first_step: "Ghi một dòng."}),
+        (action_copy, "ACTION_OPENINGS_BY_TOPIC", {}),
     ):
-        owner = stance if table == "ROAST_HEADLINES" else roles
         with monkeypatch.context() as patched:
             patched.setattr(owner, table, edit)
             assert fallback_approval.current() != approved, table
