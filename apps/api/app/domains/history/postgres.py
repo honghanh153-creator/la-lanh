@@ -427,6 +427,9 @@ class PostgresHistoryRepository:
             remaining = None if batch_size is None else batch_size - removed
             if remaining == 0:
                 return removed
+            if model is DailyNoteRow:
+                removed += await self._erase_daily(session, criteria, remaining)
+                continue
             if remaining is None:
                 result = await session.execute(delete(model).where(criteria))
                 removed += int(cast(CursorResult[Any], result).rowcount or 0)
@@ -449,6 +452,46 @@ class PostgresHistoryRepository:
             limit=remaining,
         )
         if ids:
+            revisions = select(ReadingRevisionRow.id).where(ReadingRevisionRow.plan_id.in_(ids))
+            await _delete_copies(
+                session,
+                SavedNoteRow.revision_id.in_(revisions),
+                ShareArtifactRow.revision_id.in_(revisions),
+            )
             result = await session.execute(delete(ReadingPlanRow).where(ReadingPlanRow.id.in_(ids)))
             removed += int(cast(CursorResult[Any], result).rowcount or 0)
         return removed
+
+    @staticmethod
+    async def _erase_daily(
+        session: AsyncSession, criteria: ColumnElement[bool], limit: int | None
+    ) -> int:
+        """Delete Daily roots and, explicitly, any copy still attached to them.
+
+        Until migration 20261029_0039 a deleted root cascaded into its saved notes and share links.
+        The criteria already keep a saved root, and automatic cleanup keeps a root with a live
+        link, so this only removes what the cascade removed before: the live links on unsaved
+        roots of a manual clear. Ids are read first so the copy deletes cannot correlate with the
+        criteria's own share/saved subqueries.
+        """
+
+        query = select(DailyNoteRow.id).where(criteria).order_by(DailyNoteRow.id)
+        if limit is not None:
+            query = query.limit(limit)
+        ids = list(await session.scalars(query))
+        if not ids:
+            return 0
+        await _delete_copies(
+            session,
+            SavedNoteRow.daily_note_id.in_(ids),
+            ShareArtifactRow.daily_note_id.in_(ids),
+        )
+        result = await session.execute(delete(DailyNoteRow).where(DailyNoteRow.id.in_(ids)))
+        return int(cast(CursorResult[Any], result).rowcount or 0)
+
+
+async def _delete_copies(
+    session: AsyncSession, saved: ColumnElement[bool], shares: ColumnElement[bool]
+) -> None:
+    await session.execute(delete(SavedNoteRow).where(saved))
+    await session.execute(delete(ShareArtifactRow).where(shares))
