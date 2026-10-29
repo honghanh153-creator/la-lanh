@@ -1,6 +1,9 @@
 # Hợp gu R04 — khoảng điểm và calibration (spec chờ owner duyệt)
 
-Trạng thái: **đề xuất, chưa triển khai**. Viết 22/10/2026 cho audit R04. Không đổi API, UI, version hay kết quả đã
+Trạng thái: **thay thế 29/10/2026** bởi bậc có tên xếp theo thứ hạng (`radar-readable-v2`,
+`radar-tier-ref-v1`, xem `docs/reviews/2026-10-29-hop-gu-readable.md`): bài mới không còn hiện ba chỉ
+báo 0–100 nên khoảng điểm không cần nữa. Phần phân bố tham chiếu và phân vị (§4) được dùng lại cho bậc.
+Bản gốc: **đề xuất, chưa triển khai**. Viết 22/10/2026 cho audit R04. Không đổi API, UI, version hay kết quả đã
 lưu cho tới khi owner duyệt spec này; sau đó mới làm PR riêng có test và adapter cho bài cũ.
 
 ## 1. Hiện trạng (đo trên `c3fab33`, 50 cặp tổng hợp `radar-pairs-v1`, ngữ cảnh crush)

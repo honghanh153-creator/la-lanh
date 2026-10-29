@@ -1,12 +1,12 @@
 # Lá Lành — Radar hợp gu 1:1
 
 **Status:** Active MVP scope  
-**Version:** `radar-authorized-input-v1` / `radar-pair-v1` / `radar-result-v2` / `radar-living-dossier-v1`  
+**Version:** `radar-authorized-input-v1` / `radar-pair-v1` / `radar-result-v2` / `radar-readable-v2` (from 29/10/2026; stored `radar-living-dossier-v1` results stay as they are)  
 **Product decision:** Check kín bằng dữ liệu do người dùng tự nhập là flow chính. Lời mời tự nhập là fallback khi người dùng chưa được phép nhập hộ. Pool matching/Vòng Ghép chưa thuộc scope này.
 
 ## 1. Product promise
 
-Radar giúp một người hiểu tương tác với người họ đã biết: chỗ dễ nói chuyện, dễ rung động, nhịp hành động hợp nhau và chỗ dễ cấn. Radar hiển thị ba chỉ báo độc lập trên thang 0–100 (`Bắt sóng`, `Dễ phối hợp`, `Lực cấn`) để người dùng so sánh các lớp trong chính cặp này; chúng không cộng thành 100, không phải điểm tổng hay xác suất thành công. Radar không kết luận soulmate/red flag và không suy ra ý định hoặc độ an toàn của người kia.
+Radar giúp một người hiểu tương tác với người họ đã biết: chỗ dễ nói chuyện, dễ rung động, nhịp hành động hợp nhau và chỗ dễ cấn. Từ `radar-readable-v2` (29/10/2026, phản hồi owner) Radar mở đầu bằng **một bậc có tên theo ngữ cảnh** kèm một câu lý do, ba mảng theo ngữ cảnh (hợp / cân bằng / cần để ý / chưa rõ) và vài đoạn ngắn; không hiển thị con số. Bậc xếp theo thứ hạng so với phân bố tham chiếu tổng hợp cố định, không phải xác suất thành công. Radar không kết luận soulmate/red flag/định mệnh và không suy ra ý định, cảm xúc hoặc độ an toàn của người kia. (Bài cũ `radar-living-dossier-v1` hiển thị ba chỉ báo 0–100 cho tới khi hết hạn.)
 
 **“Check kín” nghĩa là:** Lá Lành không gửi link/thông báo cho người kia, không tạo hồ sơ cho họ và không đưa họ vào pool. “Kín” không có nghĩa là được phép dùng lén dữ liệu. Người nhập phải xác nhận người kia đã cho phép dùng thông tin sinh cho mục đích này.
 
@@ -109,7 +109,7 @@ No contact upload, phone/email, GPS, current city, precise distance, IP fingerpr
 - Pydantic rejects extra fields; time/date/place use strict server validation.
 - Birthplace resolves from a local allow-list, so the query is not sent to a map provider.
 - Raw B birth input is passed directly to a transient chart calculation and is not written to DB, cache, event stream or application log.
-- Result projection excludes raw date/time/place/coordinates and scalar compatibility score. Ba chỉ báo độc lập chỉ được tạo từ evidence contribution có thể truy ngược và không được dùng để rank người.
+- Result projection excludes raw date/time/place/coordinates and any scalar compatibility number (`SHOW_TIER_SCORE = False`). The named tier comes only from traceable evidence contributions (the contacts it read are listed in the "Vì sao?" receipts) and is never used to rank people against each other.
 - Public invite trả về `request_id` không bí mật để bind đúng consent action với đúng lời mời đang hiển thị. Accept/decline phải gửi lại binding này; receipt withdrawal cũng phải gửi đúng `request_id`. Cookie và request binding lệch nhau bị từ chối để một tab cũ không thể tác động lên lời mời/kết quả vừa mở ở tab khác.
 - Web giữ expected `request_id` theo từng tab trong session storage; `/radar/continue` chỉ hiện consent khi expected ID trùng invitation cookie hiện tại. Không lưu token, ngày sinh, giờ sinh hoặc nơi sinh ở đây.
 - Owner history/result cache is keyed by server-confirmed guest session epoch. Khi phiên đổi hoặc người dùng xóa dữ liệu, cache history/result/place-search bị xóa trước khi UI có thể render lại.
@@ -125,18 +125,23 @@ No contact upload, phone/email, GPS, current city, precise distance, IP fingerpr
 - Inputs: chart A exact và chart B Western Tropical cùng `CalculationConfig`. B có thể chọn `unknown`; engine dùng local noon làm mốc thiên văn nội bộ nhưng phải loại Moon của B, mọi aspect dính Moon của B, Rising, angles, houses và overlays phụ thuộc giờ khỏi evidence/result.
 - Calculation: Swiss Ephemeris → natal facts → synastry contacts → bidirectional house overlays → midpoint composite → evidence motifs → Pair Signature.
 - Synastry đọc cách hai chức năng của A/B kích hoạt nhau; overlay giữ rõ chiều A→B/B→A và chỉ dùng khi precision đủ; Composite chỉ mô tả pattern chung, không gán thành tính cách của một người.
-- Pair Signature mở đầu bằng một mâu thuẫn có nghĩa của đúng cặp, ví dụ dễ bắt sóng nhưng cũng dễ nóng lên. Không chọn một contact rồi bỏ các evidence trái chiều.
-- Compatibility Map gồm `Bắt sóng`, `Dễ phối hợp`, `Lực cấn`. Mỗi chỉ báo nhận contribution riêng; square/opposition có thể làm cả `Bắt sóng` và `Lực cấn` cùng cao.
-- Mỗi chỉ báo giữ riêng evidence receipts đã thực sự đóng góp vào con số; UI đặt chúng sau disclosure `Vì sao có con số này?`, không biến chỉ báo thành điểm tổng.
-- Bốn chương bắt buộc: `Điểm hợp`, `Điểm dễ cấn`, `Hai phía có thể thấy khác nhau`, `Đem ra đời thật`.
-- Renderer `radar-living-dossier-v1` gom các contact liên quan thành theme cluster trước khi chọn luận điểm. Mỗi chapter giữ `title/body/evidence` để tương thích ngược và có thể thêm `topics`, `highlights`, `scene`, `perspectives`, `observation`; mọi highlight phải truy được về evidence ID.
+- **`radar-readable-v2` (29/10/2026).** Owner feedback: bài cũ khó đọc, khoảng 1.200 chữ, điểm 0–100 dồn trong 44–73, tiêu đề nào cũng "…; nhưng…", kicker rào đón ở 94% bài, ba ngữ cảnh gần như giống nhau. Hợp đồng mới (đo trong `pnpm experience:audit`, US-22 AC11):
+  - **Bậc:** `ease = coordination − 0,6 × friction` (trung bình có trọng số của tối đa 6 contact mạnh nhất mỗi kênh), đặt vào phân bố `radar-tier-ref-v1` (2.000 cặp tổng hợp, seed cố định, `scripts.radar_tier_reference`). 15% cao nhất / 25% / 30% / 20% / 10% thấp nhất ⇒ `very_easy / easy / complementary / warming_up / patient`. Tên bậc khác nhau theo crush / friend / partner / someone (`TIER_LABELS`); không "định mệnh", "tri kỷ"; bậc thấp nhất không kết án. Low-signal ⇒ `unclear`.
+  - **Con số:** không hiện. Cờ `SHOW_TIER_SCORE` (mặc định `False`) thêm `tier.score` = thứ hạng 0–100; bật cờ là gỡ invariant "không điểm số", cần owner quyết, bump `GATE_VERSION` và làm lại fallback approval.
+  - **Tiêu đề:** một câu về cách hai người tương tác, theo theme hợp nhất × ngữ cảnh; không ép "nhưng".
+  - **Mảng:** ba mảng mỗi ngữ cảnh (crush: Điểm thu hút / Cách mở lời / Nhịp tiến gần; bạn bè: Nói chuyện / Chơi chung / Hỗ trợ nhau; người yêu: Gắn bó / Xử lý bất đồng / Nhịp sống chung; một người: Nói chuyện / Cảm xúc / Nhịp phối hợp), mỗi theme thuộc đúng một mảng; mức `hợp / cân bằng / cần để ý / chưa rõ` và một câu lý do.
+  - **Màn mặc định:** `Điều trôi chảy` (theme hợp nhất, thêm một theme "hợp" thứ hai nếu có; "hợp" = coordination ≥ max(friction, `GOOD_MIN_COORDINATION` = 0,45), còn lại "cân bằng"), `Điều cần để ý` **chỉ khi** một cluster có friction ≥ `TENSION_THRESHOLD = 0,6` và lớn hơn coordination (khoảng 40% cặp tham chiếu), `Một gợi ý` (một việc nhỏ + một câu có thể hỏi người kia, không đoán). Dòng kết cố định một lần: "Kết quả để tham khảo, cách hai bạn đối xử với nhau mới là điều quyết định."
+  - **Một lớp "Xem thêm":** `Vì sao ra kết quả này?` (tối đa 5 theme, mức và thuật ngữ chiêm tinh, receipts kỹ thuật), `Hai phía có thể thấy khác nhau` (không nói hộ phía kia, gợi ý hỏi), `Thêm vài cách thử` (prompt biên tập theo giọng).
+  - Thuật ngữ chiêm tinh/app chỉ ở lớp "Xem thêm". Section có `layer: "main" | "more"`; `compatibility_map` rỗng; `metadata.signal_bands` (low/medium/high) chỉ cho payload Luna.
+- Bản `radar-living-dossier-v1` (trước 29/10/2026) mở đầu bằng một mâu thuẫn ("…; nhưng…"), có Compatibility Map ba chỉ báo và bốn chương `Điểm hợp`, `Điểm dễ cấn`, `Hai phía có thể thấy khác nhau`, `Đem ra đời thật`. Kết quả đã lưu theo bản này giữ nguyên tới khi hết hạn; web vẫn render chúng.
+- Renderer gom các contact liên quan thành theme cluster trước khi chọn luận điểm. Mỗi section giữ `title/body/evidence` để tương thích ngược; mọi highlight và factor phải truy được về evidence ID.
 - Outer-planet/Node/Chiron contact chỉ được đưa vào luận điểm khi nó chạm một hành tinh cá nhân hoặc social planet; contact chỉ giữa hai điểm thế hệ bị loại khỏi Dossier vì không đủ khả năng phân biệt đúng cặp. Quy tắc tương tự áp dụng khi chọn Composite aspect cho main copy.
 - Độ dài báo cáo đi theo lượng evidence thật. Chapter có ít evidence được phép ngắn; không tạo filler, không lặp cùng một nhu cầu ở hai vế và không đổi synonym để giả cảm giác cá nhân hóa.
-- Nếu chỉ còn một cluster và không có friction đủ mạnh, chapter cấn phải nói rõ giới hạn thay vì dùng chính evidence fit để chế thêm mâu thuẫn. Nếu không còn contact đủ riêng sau content gate, Radar vẫn trả một low-signal report ngắn thay vì lỗi hoặc bịa đủ bốn luận điểm.
+- Nếu không có friction vượt ngưỡng, bài **không có** đoạn cấn (không chế thêm mâu thuẫn, không câu "chưa thấy điểm cấn"). Nếu không còn contact đủ riêng sau content gate, Radar vẫn trả một low-signal report ngắn thay vì lỗi hoặc bịa đủ bốn luận điểm.
 - `Hai phía có thể thấy khác nhau` tách A→B, B→A và nhịp chung khi có overlay/composite phù hợp. Nếu thiếu một lớp evidence, UI không được bịa đủ ba phía.
-- UI giữ Pair Signature và ba chỉ báo ở lớp scan nhanh, sau đó là mục lục bốn chương. Chương đầu mở sẵn; phần giải thích đời thường đứng trước, chart mechanics nằm sau disclosure `Vì sao Lá đọc vậy?`.
+- UI (`radar-readable-v2`): bậc + lý do + tiêu đề, ba mảng, các section `main`; một `<details>` "Xem thêm: vì sao ra kết quả này" đóng sẵn chứa các section `more`. Bài cũ vẫn dùng layout ba chỉ báo + mục lục bốn chương.
 - Với consented invite, hệ thống tính projection A→B để lưu cho chủ lời mời và projection B→A để trả ngay cho người nhận. Vì vậy `bạn/người kia` luôn đi theo người đang đọc; raw chart và nickname riêng của chủ lời mời không bị gửi sang phía kia.
-- Context `crush/friend/partner/someone` chỉ thay ví dụ và micro-experiment. Nó không thay chart evidence, evidence ID hoặc ba chỉ báo.
+- Context `crush/friend/partner/someone` đổi tên bậc, mảng, tiêu đề, đoạn hợp, đoạn cấn và gợi ý. Nó không đổi chart evidence, evidence ID hoặc thứ hạng của cặp. Crush: không câu nào đoán người kia có thích mình hay không.
 - Mỗi chương có evidence receipt giải thích bằng đời thường và metadata kỹ thuật tối thiểu. Payload lưu `knowledge_version`, `renderer_version`, `gate_version`, `chart_config_version`, `evidence_ids` và `concept_ids`.
 - `scalar_score_eligible=false` vẫn là hard invariant; không tạo điểm tổng, soulmate/red-flag verdict hoặc xác suất dài hạn.
 - Every interpretation is conditional and traceable to evidence IDs.

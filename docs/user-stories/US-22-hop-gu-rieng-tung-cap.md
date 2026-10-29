@@ -30,8 +30,15 @@ tôi chọn (crush, bạn, người yêu, …), với giọng tôi chọn. Bài 
 - **AC02:** Cùng một cặp, đổi ngữ cảnh thì ≥ 50% câu của mục "hợp" và "ma sát" đổi (không chỉ thẻ kiểm
   chứng). Đổi giọng thì ≥ 50% câu đổi (không chỉ tiền tố).
 - **AC03:** Trên 50 cặp tổng hợp × 4 ngữ cảnh × 4 giọng, độ trùng câu sau chuẩn hoá giữa các cặp < 30%.
-- **AC04:** Không có nhãn phán xét kiểu "Soulmate/Challenging", không điểm tổng, không đoán ý người kia.
+- **AC04:** Không có nhãn phán xét kiểu "Soulmate/Challenging", không đoán ý người kia.
   Gate anti-influence và meaning đạt.
+  - **Đổi hợp đồng 29/10/2026 (owner duyệt làm, chờ owner đọc copy trước release):** bỏ "không điểm
+    tổng" cho **bậc có tên**: mỗi bài có một bậc theo ngữ cảnh (5 bậc, ví dụ bạn bè "Rất hợp cạ /
+    Hợp chuyện / Bổ sung cho nhau / Cần thời gian làm quen / Khác nhịp, cần kiên nhẫn") kèm một câu
+    lý do. Bậc xếp theo **thứ hạng** so với phân bố tham chiếu cố định `radar-tier-ref-v1` (2.000 cặp
+    tổng hợp), không theo điểm thô. Vẫn **không** có con số, phần trăm hay xác suất (cờ
+    `SHOW_TIER_SCORE = False`); không dùng "định mệnh", "tri kỷ"; bậc thấp nhất không mang tính kết
+    án. Ba chỉ báo 0–100 (`Bắt sóng/Dễ phối hợp/Lực cấn`) không còn hiển thị ở bài mới.
 - **AC05:** Biến thể chọn **một lần khi tạo kết quả**, theo seed của kết quả đã có. Mở lại, đổi giọng hay
   replay trả đúng bản đã tạo. Bản đã lưu giữ nguyên tới hết hạn (check kín: 24 giờ; lời mời đã đồng ý: 30 ngày).
 - **AC06:** Không lưu thêm dữ liệu của người kia. Chart của họ vẫn tính xong rồi bỏ; nhãn và kết quả vẫn
@@ -45,6 +52,9 @@ tôi chọn (crush, bạn, người yêu, …), với giọng tôi chọn. Bài 
   - Ngoại lệ báo riêng theo lý do.
 - **AC09:** `scripts/audit_radar_experience.py` mở rộng lên 50 cặp (có giờ và không rõ giờ) và báo các chỉ
   số AC01–AC03. `pnpm check` đạt.
+  - **Trạng thái 29/10/2026 (`radar-readable-v2`):** AC02 ngữ cảnh 1,0 (trước 0,0); AC02 giọng vẫn
+    0,0 (giọng chỉ đổi lớp "Thêm vài cách thử"); AC03 trùng 0,9439 (trước 0,9132); AC01 vẫn đỏ vì
+    chưa có catalog câu theo contact (R03). Gate vẫn strict xfail.
   - **Trạng thái 22/10/2026 (audit R01/R06):** gate AC01–AC03 nằm ở `scripts/audit_radar_us22.py`
     (`pnpm radar:us22`). AC01 chỉ tính câu khi **catalog nguồn đóng** (copy R03 đã duyệt, `radar/contact_copy.CONTACT_LINES`; hiện chưa có)
     gắn đúng câu đó với đúng directed contact và không contact nào khác, và bài đọc tự khai nguồn
@@ -55,6 +65,17 @@ tôi chọn (crush, bạn, người yêu, …), với giọng tôi chọn. Bài 
     AC03 trùng 0,9127. `tests/scripts/test_radar_us22_gate.py` giữ gate ở dạng strict xfail: khi nội
     dung R03 đạt, test này đỏ cho tới khi gỡ marker và đưa gate vào `pnpm check`.
 - **AC10:** Cà khịa cho câu mới; owner duyệt qua file Excel.
+- **AC11 (thêm 29/10/2026, phản hồi owner + báo cáo "Phương án sửa Tarot và Hợp gu", Phần B):** bài
+  đọc dễ đọc, đo bằng `pnpm experience:audit` trên 50 cặp `radar-pairs-v1` × 4 ngữ cảnh:
+  - màn mặc định (chưa mở gì) ≤ 400 chữ; chi tiết nằm sau **một** lớp "Xem thêm";
+  - tiêu đề không có chữ "nhưng" ép buộc; không còn kicker rào đón, chỉ một dòng kết cố định;
+  - đoạn "Điều cần để ý" chỉ hiện khi tín hiệu cấn ≥ `TENSION_THRESHOLD` (0,6), tỷ lệ cặp có đoạn này
+    trong (0; 0,6];
+  - 0 thuật ngữ chiêm tinh/app ("chart", "contact", tên hành tinh, tên góc…) ở màn mặc định;
+  - 0 câu lặp trong một bài; 0 cụm đoán ý người kia, định mệnh, phần trăm ở mọi lớp;
+  - không bậc nào giữ > 40% số cặp;
+  - cùng một cặp, đổi crush/bạn/người yêu thì ≥ 50% câu ở màn mặc định đổi.
+  - Bài đã lưu bằng `radar-living-dossier-v1` giữ nguyên chữ tới khi hết hạn; web vẫn render bản cũ.
 
 ## Definition of Done
 
