@@ -337,6 +337,34 @@
         "title": "BasicBirthConsentRequest",
         "type": "object"
       },
+      "BirthDateCorrectionRequest": {
+        "additionalProperties": false,
+        "description": "US-23: the new date twice (typo check) and the revision fence read from GET.",
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "confirm_birth_date": {
+            "format": "date",
+            "title": "Confirm Birth Date",
+            "type": "string"
+          },
+          "expected_revision": {
+            "format": "date-time",
+            "title": "Expected Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "birth_date",
+          "confirm_birth_date",
+          "expected_revision"
+        ],
+        "title": "BirthDateCorrectionRequest",
+        "type": "object"
+      },
       "BirthDateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -387,6 +415,18 @@
             "format": "uuid",
             "title": "Profile Id",
             "type": "string"
+          },
+          "profile_revision": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Revision"
           },
           "resumed": {
             "title": "Resumed",
@@ -7866,6 +7906,77 @@
           }
         },
         "summary": "Create Birth Profile",
+        "tags": [
+          "birth-chart"
+        ]
+      }
+    },
+    "/v1/birth-profile/date": {
+      "put": {
+        "description": "Correct a saved birth date (US-23). Success is returned only after the old subject is\ngone and every provider send admitted before the change has finished.",
+        "operationId": "correct_birth_date_v1_birth_profile_date_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BirthDateCorrectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthRevealResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Correct Birth Date",
         "tags": [
           "birth-chart"
         ]

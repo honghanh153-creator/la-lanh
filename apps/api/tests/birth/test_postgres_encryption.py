@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 import pytest
@@ -9,9 +10,24 @@ from app.config import Settings
 from app.main import create_app
 
 
+def _correct(client: TestClient, headers: dict[str, str], birth_date: str) -> Any:
+    """US-23: the explicit, fenced birth-date correction (POST refuses a different date)."""
+
+    revision = client.get("/v1/birth-profile").json()["profile_revision"]
+    return client.put(
+        "/v1/birth-profile/date",
+        headers=headers,
+        json={
+            "birth_date": birth_date,
+            "confirm_birth_date": birth_date,
+            "expected_revision": revision,
+        },
+    )
+
+
 @pytest.mark.parametrize("initially_full", [False, True])
 @pytest.mark.parametrize("other_birth_date", ["1990-11-15", "1990-03-16"])
-def test_reentering_previous_birth_date_switches_current_profile_and_daily_reading(
+def test_correcting_back_to_a_previous_birth_date_switches_current_profile_and_daily_reading(
     tmp_path: Path, initially_full: bool, other_birth_date: str
 ) -> None:
     database_path = tmp_path / "birth-replay.db"
@@ -50,10 +66,17 @@ def test_reentering_previous_birth_date_switches_current_profile_and_daily_readi
                 == 200
             )
         # Each intermediate request must read its own current chart, not just the final one.
-        for birth_date in ("1990-03-15", other_birth_date, "1990-03-15"):
-            submitted = client.post(
+        for index, birth_date in enumerate(("1990-03-15", other_birth_date, "1990-03-15")):
+            posted = client.post(
                 "/v1/birth-profile", headers=headers, json={"birth_date": birth_date}
             )
+            if index == 0:
+                submitted = posted  # the same date replays the current subject
+            else:
+                # US-23 D4: POST never replaces an active subject; the edit does.
+                assert posted.status_code == 409
+                assert posted.json()["code"] == "BIRTH_DATE_CHANGE_REQUIRES_EDIT"
+                submitted = _correct(client, headers, birth_date)
             assert submitted.status_code == 200
             current = client.get("/v1/birth-profile")
             assert current.status_code == 200
@@ -75,7 +98,11 @@ def test_reentering_previous_birth_date_switches_current_profile_and_daily_readi
                 ).fetchone()[0]
             assert UUID(note_source_id) == UUID(current.json()["snapshot_id"])
             assert UUID(source_id) == UUID(current.json()["snapshot_id"])
-        assert current.json()["snapshot_id"] == first_basic_id
+        # A correction replaces the subject (D1): the first snapshot is gone, not reactivated.
+        corrected_id = current.json()["snapshot_id"]
+        assert corrected_id != first_basic_id
+        with sqlite3.connect(database_path) as connection:
+            assert connection.execute("SELECT COUNT(*) FROM chart_snapshots").fetchone()[0] == 1
         assert note.json()["persona_label"] == "Mộng"
         state = client.get("/v1/birth-profile/supplement").json()
         assert state["profile_level"] == 1
@@ -92,7 +119,7 @@ def test_reentering_previous_birth_date_switches_current_profile_and_daily_readi
             json={"remove_time": True, "remove_place": True},
         )
         assert erased.status_code == 200
-        assert client.get("/v1/birth-profile").json()["snapshot_id"] == first_basic_id
+        assert client.get("/v1/birth-profile").json()["snapshot_id"] == corrected_id
 
 
 def test_retrying_same_birth_date_preserves_full_chart_and_profile_revision(
@@ -193,14 +220,11 @@ def test_birth_replay_and_reading_reset_cannot_change_another_guest(tmp_path: Pa
         client.cookies.clear()
         client.cookies.update(first_cookies)
         for birth_date in ("1990-11-15", "1990-03-15"):
-            assert (
-                client.post(
-                    "/v1/birth-profile", headers=first_headers, json={"birth_date": birth_date}
-                ).status_code
-                == 200
-            )
+            assert _correct(client, first_headers, birth_date).status_code == 200
             assert client.get("/v1/daily-note").status_code == 200
-        assert client.get("/v1/birth-profile").json()["snapshot_id"] == first_profile["snapshot_id"]
+        corrected = client.get("/v1/birth-profile").json()
+        assert corrected["birth_date"] == first_profile["birth_date"]
+        assert corrected["snapshot_id"] != first_profile["snapshot_id"]
 
         second_cookies, _, second_profile, second_note = sessions[1]
         client.cookies.clear()

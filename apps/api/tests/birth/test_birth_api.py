@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import cast
 from uuid import UUID
 
@@ -93,6 +93,23 @@ class MemoryBirthRepository:
         )
         self.supplements[guest_id] = updated
         return updated
+
+    async def recent_date_changes(self, guest_id: UUID, *, since: datetime) -> int:
+        return 0
+
+    async def replace_date(
+        self,
+        record: BirthSnapshotRecord,
+        *,
+        expected_revision: datetime,
+        now: datetime,
+        limit: int,
+        window: timedelta,
+    ) -> BirthSnapshotRecord:
+        self.current[record.guest_id] = record
+        self.supplements.pop(record.guest_id, None)
+        self.by_input[(record.guest_id, record.input_hash)] = record
+        return record
 
 
 @pytest.fixture

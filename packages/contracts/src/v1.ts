@@ -226,6 +226,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/birth-profile/date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Correct Birth Date
+         * @description Correct a saved birth date (US-23). Success is returned only after the old subject is
+         *     gone and every provider send admitted before the change has finished.
+         */
+        put: operations["correct_birth_date_v1_birth_profile_date_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/birth-profile/supplement": {
         parameters: {
             query?: never;
@@ -1526,6 +1547,27 @@ export interface components {
              */
             consent_version: "birth-profile-v1";
         };
+        /**
+         * BirthDateCorrectionRequest
+         * @description US-23: the new date twice (typo check) and the revision fence read from GET.
+         */
+        BirthDateCorrectionRequest: {
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /**
+             * Confirm Birth Date
+             * Format: date
+             */
+            confirm_birth_date: string;
+            /**
+             * Expected Revision
+             * Format: date-time
+             */
+            expected_revision: string;
+        };
         /** BirthDateRequest */
         BirthDateRequest: {
             /**
@@ -1558,6 +1600,8 @@ export interface components {
              * Format: uuid
              */
             profile_id: string;
+            /** Profile Revision */
+            profile_revision?: string | null;
             /** Resumed */
             resumed: boolean;
             /**
@@ -5219,6 +5263,81 @@ export interface operations {
             };
             /** @description Unprocessable Content */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    correct_birth_date_v1_birth_profile_date_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BirthDateCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BirthRevealResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
