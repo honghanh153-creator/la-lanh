@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 32, 29/10/2026: #106 and #110 merged, integration `e0d62fa` with independent CI PASS (r52); #111 approved; #112 and #113 in review)
+# Audit v2 registry (revision 33, 29/10/2026: r53–r54 verdicts; #111 and #114 approved; #112, #113 and #115 fixed and in review; privacy and content batch branches)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -345,8 +345,41 @@ with the r48 context limit.
 | PR | Verdict history | Latest |
 |---|---|---|
 | #111 registry revision 31 | r50 RC @ `44ecbe3`; r51 [APPROVE @ `8db5737`](https://github.com/honghanh153-creator/la-lanh/pull/111#issuecomment-6493832909) | [APPROVE @ `aa34c2551063576224c3d76f41aee2ce6c7e32fe`](https://github.com/honghanh153-creator/la-lanh/pull/111#issuecomment-6497512742) (r52; adds the separate owner approval for a probe attempt) |
-| #112 probe log capture | r51 [RC @ `06fff21`](https://github.com/honghanh153-creator/la-lanh/pull/112#issuecomment-6493833617), confirmed in r52: the `grep -iv password` filter kept SQL and row ids, because PostgreSQL 17 logs the failing statement of every ERROR by default | new head `571fef9f37056ab70df241c7f07a1a1b60175eaf` (tested fail-closed sanitizer), **not reviewed** |
-| #113 birth-data edit plan | r52 [RC @ `db50cd7`](https://github.com/honghanh153-creator/la-lanh/pull/113#issuecomment-6497712508): one P1 (retained saved/share copies cascade away with their sources), five P2 and one P3 | new head `e372e29df57ef060619ae059258618a82dd6c065`, **not reviewed**; plan only, no runtime |
+| #112 probe log capture | r51 [RC @ `06fff21`](https://github.com/honghanh153-creator/la-lanh/pull/112#issuecomment-6493833617), confirmed in r52: the `grep -iv password` filter kept SQL and row ids, because PostgreSQL 17 logs the failing statement of every ERROR by default | head `571fef9` (as of r52, not reviewed; see r53–r54 below) |
+| #113 birth-data edit plan | r52 [RC @ `db50cd7`](https://github.com/honghanh153-creator/la-lanh/pull/113#issuecomment-6497712508): one P1 (retained saved/share copies cascade away with their sources), five P2 and one P3 | head `e372e29` (as of r52; see r53–r54 below) |
+
+**r53–r54 verdicts (exact SHA; [Codex r54 handoff](https://github.com/honghanh153-creator/la-lanh/issues/2#issuecomment-6499924785))**
+
+| PR | Verdict | Next head (not reviewed) |
+|---|---|---|
+| #111 registry r31 | [APPROVE @ `aa34c2551063576224c3d76f41aee2ce6c7e32fe`](https://github.com/honghanh153-creator/la-lanh/pull/111#issuecomment-6497512742) (r52) | — awaits an owner merge order |
+| #114 registry r32 | [APPROVE @ `2680dfe18a85c4cedd73f021f9638d93f0efea15`](https://github.com/honghanh153-creator/la-lanh/pull/114#issuecomment-6499881975) (r54) | — |
+| #112 probe log capture | r53 [RC @ `571fef9`](https://github.com/honghanh153-creator/la-lanh/pull/112#issuecomment-6498303917), confirmed r54: embedded quotes, U+2028/U+2029 record splitting, conditional dump cleanup | `4185a6fe16a9702e95e396c94d568f029a886e27` |
+| #113 birth-data edit plan | r54 [RC @ `e372e29`](https://github.com/honghanh153-creator/la-lanh/pull/113#issuecomment-6499880630): detach/flush the active snapshot before deleting; share-creation fence after the source-FK drop; P3 invite wording | `181f1e7da45e5d400c7552e668b784e159c832a0` |
+| #115 Tarot plain summary | r54 [RC @ `712707a`](https://github.com/honghanh153-creator/la-lanh/pull/115#issuecomment-6499883436): synthesis coverage vs the shorter summary; unselected-title acceptance; extra text after the step; legacy instruction conflict; P3 metric normaliser | `676a71c821fb6226c676fbbaa90e386a8f5acb56` |
+
+Codex r54 independent checks at `712707a`:
+- full API exit 0, 2,649 / 60 / 1;
+- Tarot audit exit 0;
+- 24 base-rendered v8 readings pass unchanged through the head's persisted view.
+
+Copy samples and the opening-based AC11/T2 metric are **not owner-approved**. Red receipts kept: author ruff at `56969ad` and `88d194e`, r53 sanitizer setup and semantic reds, r54 harness setup errors, r50 SETUP_FAILED.
+
+**Batch branches (owner order 29/10, "làm hết 1 lượt đi"; author evidence only, not reviewed):**
+- `docs/privacy-assessment-p09-p10` @ `5a2faf4`: P09/P10 assessment draft for owner/engineering.
+  - Law 91/2025/QH15 and Decree 356/2025/NĐ-CP read from the official gazette.
+  - Possible 60-day cross-border and impact-assessment filing window from the first production transfer. Unverified dates; owner decisions listed.
+  - No compliance claim.
+- `feat/privacy-export-and-b-rights` @ `b1916f1`:
+  - owner-only `POST /v1/session/data-export` and "Tải dữ liệu của tôi";
+  - B's entry points; the D2 screens already merged in #83.
+- `feat/birth-date-correction` @ `4290bf0`: US-23.
+  - Migrations 0039 (detached copies with a refusing downgrade) and 0040 (change counter).
+  - Share-creation fence, share-link list, `PUT /v1/birth-profile/date`, web edit.
+  - PostgreSQL tests written, not run.
+- `feat/hop-gu-readable` @ `59cf0db`: Hợp gu `radar-readable-v2`.
+  - Tiers instead of numbers, no forced "nhưng", default screen about 175 words, context-specific areas.
+  - Owner copy reading pending.
 
 ## 29/10: three merges on the owner's order; integration `64ec6d9`
 
@@ -542,7 +575,9 @@ Still open:
   as the message topic can still select a romantic scene; the fix must bind the recipient), and framer finding 1 is
   open. R03 waits on Claude's review of the Codex edits and on its wiring. The
   comprehension gates (T05, R03) are open, as are R05, R07 and P12; the R06 strict xfail remains.
-- **Birth-data edit:** the plan (#113) is in review after r52 REQUEST_CHANGES; no runtime work has started.
+- **Birth-data edit:** the plan (#113) is in review after r54 REQUEST_CHANGES (fixed at `181f1e7`); the US-23 implementation exists on `feat/birth-date-correction`, unreviewed, PostgreSQL tests not run.
+- **Data export and the P09/P10 draft:** built or drafted on batch branches, unreviewed; the cross-border/impact filings and the notice rewrite await owner decisions.
+- **Content:** Tarot plain summary (#115, fixed after r54) and Hợp gu readable v2 await review and the owner's copy reading; the Tarot position frames and card lines are the next pass.
 - **Privacy assessments (owner/engineering, no counsel):** lawful basis and notice (P09), cross-border transfer and
   DPIA applicability (P10), kept open until a recorded scope, applicability or exemption assessment.
 - **Pilots:** the Tarot pilot is not enabled; the Daily pilot continues to its 04/11 review.
