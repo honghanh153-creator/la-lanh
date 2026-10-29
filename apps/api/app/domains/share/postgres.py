@@ -4,12 +4,17 @@ from datetime import datetime
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
-from app.domains.share.models import SafeShareSnapshot, ShareArtifactRecord, ShareFormat
+from app.domains.share.models import (
+    SafeShareSnapshot,
+    ShareArtifactRecord,
+    ShareFormat,
+    ShareLinkSummary,
+)
 from app.domains.share.tables import ShareArtifactRow
 from app.infrastructure.crypto import EnvelopeCipher
 
@@ -51,6 +56,48 @@ class PostgresShareArtifactRepository:
                 select(ShareArtifactRow).where(ShareArtifactRow.token_hash == token_hash)
             )
             return _record(row, self._envelope) if row is not None else None
+
+    async def list_owned(
+        self, guest_id: UUID, *, limit: int, before: tuple[datetime, UUID] | None
+    ) -> tuple[ShareLinkSummary, ...]:
+        """Newest first, keyset-paged. Reads only metadata columns: no snapshot is decrypted,
+        and attached or detached links are listed alike (US-23 D2)."""
+
+        query = (
+            select(
+                ShareArtifactRow.id,
+                ShareArtifactRow.format,
+                ShareArtifactRow.created_at,
+                ShareArtifactRow.expires_at,
+                ShareArtifactRow.revoked_at,
+            )
+            .where(ShareArtifactRow.guest_id == guest_id)
+            .order_by(ShareArtifactRow.created_at.desc(), ShareArtifactRow.id.desc())
+            .limit(limit)
+        )
+        if before is not None:
+            created_at, artifact_id = before
+            query = query.where(
+                or_(
+                    ShareArtifactRow.created_at < created_at,
+                    and_(
+                        ShareArtifactRow.created_at == created_at,
+                        ShareArtifactRow.id < artifact_id,
+                    ),
+                )
+            )
+        async with self._sessions() as session:
+            rows = (await session.execute(query)).all()
+        return tuple(
+            ShareLinkSummary(
+                id=row.id,
+                format=ShareFormat(row.format),
+                created_at=row.created_at,
+                expires_at=row.expires_at,
+                revoked_at=row.revoked_at,
+            )
+            for row in rows
+        )
 
     async def revoke_owned(self, guest_id: UUID, artifact_id: UUID, revoked_at: datetime) -> bool:
         async with self._sessions() as session, session.begin():

@@ -8,7 +8,7 @@ import { clearSavedNoteMutationQueue } from "./savedNoteMutationQueue";
 const CHART_DERIVED_KEYS = new Set([
   "birth-profile", "birth-supplement", "birth-supplement-edit", "daily-note", "daily-note-context",
   "daily-note-mood", "daily-experiment", "insight-overview", "private-reading",
-  "saved-notes", "share-artifact", "radar-invites", "radar-result",
+  "saved-notes", "share-artifact", "share-links", "radar-invites", "radar-result",
   "radar-receipt", "radar-received", "radar-received-result", "current-radar", "matching-readiness",
   "daily-note-resonance",
 ]);

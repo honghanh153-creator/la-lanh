@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domains.share.models import ShareArtifactRecord
+from app.domains.share.models import ShareArtifactRecord, ShareLinkSummary
 
 
 class ShareArtifactRepository(Protocol):
@@ -13,3 +13,7 @@ class ShareArtifactRepository(Protocol):
     async def revoke_owned(
         self, guest_id: UUID, artifact_id: UUID, revoked_at: datetime
     ) -> bool: ...
+
+    async def list_owned(
+        self, guest_id: UUID, *, limit: int, before: tuple[datetime, UUID] | None
+    ) -> tuple[ShareLinkSummary, ...]: ...

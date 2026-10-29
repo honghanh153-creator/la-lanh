@@ -1268,6 +1268,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/share-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Share Artifacts
+         * @description The session owner's own links, newest first. Never a token (only its hash is stored),
+         *     never the snapshot, never the Daily note it came from.
+         */
+        get: operations["list_share_artifacts_v1_share_artifacts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/share-artifacts/{artifact_id}": {
         parameters: {
             query?: never;
@@ -3008,6 +3029,43 @@ export interface components {
          * @enum {string}
          */
         ShareFormat: "story_9_16" | "square_1_1";
+        /** ShareLinkListResponse */
+        ShareLinkListResponse: {
+            /** Items */
+            items: components["schemas"]["ShareLinkResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * ShareLinkResponse
+         * @description One of the owner's links: dates, format and status only (US-23).
+         */
+        ShareLinkResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            format: components["schemas"]["ShareFormat"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            status: components["schemas"]["ShareLinkStatus"];
+        };
+        /**
+         * ShareLinkStatus
+         * @enum {string}
+         */
+        ShareLinkStatus: "active" | "revoked" | "expired";
         /** SkyChapterResponse */
         SkyChapterResponse: {
             /** Disclaimer */
@@ -8318,6 +8376,43 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    list_share_artifacts_v1_share_artifacts_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

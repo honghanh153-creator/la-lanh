@@ -34,3 +34,27 @@ class ShareArtifactRecord:
     revoked_at: datetime | None = None
     profile_id: UUID | None = None
     revision_id: UUID | None = None
+
+
+class ShareLinkStatus(StrEnum):
+    ACTIVE = "active"
+    REVOKED = "revoked"
+    EXPIRED = "expired"
+
+
+@dataclass(frozen=True, slots=True)
+class ShareLinkSummary:
+    """What the owner may see about one of their links: never the token or the snapshot."""
+
+    id: UUID
+    format: ShareFormat
+    created_at: datetime
+    expires_at: datetime
+    revoked_at: datetime | None
+
+    def status(self, now: datetime) -> ShareLinkStatus:
+        if self.revoked_at is not None:
+            return ShareLinkStatus.REVOKED
+        if self.expires_at <= now:
+            return ShareLinkStatus.EXPIRED
+        return ShareLinkStatus.ACTIVE

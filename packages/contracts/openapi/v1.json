@@ -4030,6 +4030,91 @@
         "title": "ShareFormat",
         "type": "string"
       },
+      "ShareLinkListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ShareLinkResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ShareLinkListResponse",
+        "type": "object"
+      },
+      "ShareLinkResponse": {
+        "description": "One of the owner's links: dates, format and status only (US-23).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/ShareFormat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ShareLinkStatus"
+          }
+        },
+        "required": [
+          "id",
+          "format",
+          "status",
+          "created_at",
+          "expires_at",
+          "revoked_at"
+        ],
+        "title": "ShareLinkResponse",
+        "type": "object"
+      },
+      "ShareLinkStatus": {
+        "enum": [
+          "active",
+          "revoked",
+          "expired"
+        ],
+        "title": "ShareLinkStatus",
+        "type": "string"
+      },
       "SkyChapterResponse": {
         "properties": {
           "disclaimer": {
@@ -12040,6 +12125,65 @@
         "summary": "Renew Session",
         "tags": [
           "guest"
+        ]
+      }
+    },
+    "/v1/share-artifacts": {
+      "get": {
+        "description": "The session owner's own links, newest first. Never a token (only its hash is stored),\nnever the snapshot, never the Daily note it came from.",
+        "operationId": "list_share_artifacts_v1_share_artifacts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List Share Artifacts",
+        "tags": [
+          "share"
         ]
       }
     },
