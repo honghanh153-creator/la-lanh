@@ -30,10 +30,13 @@ from app.domains.birth.postgres import PostgresBirthRepository
 from app.domains.content_rewrite.tables import ContentRewriteJobRow
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.erasure_journal.tables import ErasureJournalHorizonRow, ErasureJournalRow
+from app.domains.experiments.tables import DailyExperimentRow
 from app.domains.guest.models import GuestState
 from app.domains.guest.postgres import PostgresGuestRepository
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.history.postgres import PostgresHistoryRepository
+from app.domains.la_chung.models import RequestStatus
+from app.domains.la_chung.tables import LaChungReportRow, LaChungRequestRow, LaChungResponseRow
 from app.domains.matching.postgres import PostgresMatchingRepository
 from app.domains.matching.tables import MatchingConsentRow, MatchingProfileRow
 from app.domains.radar.models import RadarStatus
@@ -54,12 +57,19 @@ _GUEST_KINDS = frozenset(
         ErasureKind.RESONANCE_CLEARED,
     }
 )
-_RADAR_KINDS = frozenset({ErasureKind.RADAR_DELETED, ErasureKind.RADAR_WITHDRAWN})
+_RADAR_KINDS = frozenset(
+    {ErasureKind.RADAR_DELETED, ErasureKind.RADAR_WITHDRAWN, ErasureKind.RADAR_INVITE_REVOKED}
+)
 # Owned artifacts: the journal subject is the row's own id.
 _ARTIFACT_IDS = {
     ErasureKind.TAROT_SESSION_DELETED: TarotSessionRow.id,
     ErasureKind.SHARE_REVOKED: ShareArtifactRow.id,
     ErasureKind.SAVED_NOTE_REMOVED: SavedNoteRow.id,
+    ErasureKind.LA_CHUNG_INVITE_REVOKED: LaChungRequestRow.id,
+    ErasureKind.LA_CHUNG_RESULT_DELETED: LaChungRequestRow.id,
+    ErasureKind.LA_CHUNG_RESPONSE_WITHDRAWN: LaChungResponseRow.id,
+    ErasureKind.LA_CHUNG_RESULT_HIDDEN: LaChungResponseRow.id,
+    ErasureKind.EXPERIMENT_UNDONE: DailyExperimentRow.id,
 }
 
 
@@ -300,6 +310,64 @@ async def _apply(
     elif kind is ErasureKind.SAVED_NOTE_REMOVED:
         async with sessions() as session, session.begin():
             await session.execute(delete(SavedNoteRow).where(SavedNoteRow.id == subject))
+    elif kind is ErasureKind.RADAR_INVITE_REVOKED:
+        async with sessions() as session, session.begin():
+            # Only a still-pending invite: an accepted or withdrawn row keeps its own state.
+            await session.execute(
+                update(RadarRequestRow)
+                .where(
+                    RadarRequestRow.id == subject,
+                    RadarRequestRow.status == RadarStatus.PENDING.value,
+                )
+                .values(status=RadarStatus.REVOKED.value, revoked_at=at, token_ciphertext=None)
+            )
+    elif kind is ErasureKind.LA_CHUNG_INVITE_REVOKED:
+        async with sessions() as session, session.begin():
+            await session.execute(
+                update(LaChungRequestRow)
+                .where(
+                    LaChungRequestRow.id == subject,
+                    LaChungRequestRow.status == RequestStatus.PENDING.value,
+                )
+                .values(status=RequestStatus.REVOKED.value, revoked_at=at, token_ciphertext=None)
+            )
+    elif kind is ErasureKind.LA_CHUNG_RESPONSE_WITHDRAWN:
+        async with sessions() as session, session.begin():
+            request_id = await session.scalar(
+                select(LaChungResponseRow.request_id).where(LaChungResponseRow.id == subject)
+            )
+            await session.execute(
+                update(LaChungResponseRow)
+                .where(LaChungResponseRow.id == subject, LaChungResponseRow.withdrawn_at.is_(None))
+                .values(withdrawn_at=at, receipt_ciphertext=None)
+            )
+            await session.execute(
+                update(LaChungRequestRow)
+                .where(
+                    LaChungRequestRow.id == request_id,
+                    LaChungRequestRow.status == RequestStatus.COMPLETED.value,
+                )
+                .values(status=RequestStatus.WITHDRAWN.value)
+            )
+    elif kind is ErasureKind.LA_CHUNG_RESULT_HIDDEN:
+        async with sessions() as session, session.begin():
+            # Keeps an earlier hide time.
+            await session.execute(
+                update(LaChungResponseRow)
+                .where(LaChungResponseRow.id == subject, LaChungResponseRow.hidden_at.is_(None))
+                .values(hidden_at=at)
+            )
+    elif kind is ErasureKind.LA_CHUNG_RESULT_DELETED:
+        async with sessions() as session, session.begin():
+            # Children first, so the result is gone even where the cascade is not enforced.
+            for child in (LaChungResponseRow, LaChungReportRow):
+                await session.execute(delete(child).where(child.request_id == subject))
+            await session.execute(delete(LaChungRequestRow).where(LaChungRequestRow.id == subject))
+    elif kind is ErasureKind.EXPERIMENT_UNDONE:
+        async with sessions() as session, session.begin():
+            await session.execute(
+                delete(DailyExperimentRow).where(DailyExperimentRow.id == subject)
+            )
     elif kind is ErasureKind.RADAR_WITHDRAWN:
         async with sessions() as session, session.begin():
             await session.execute(

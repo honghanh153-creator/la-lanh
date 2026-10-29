@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.la_chung.models import (
     IdentityMode,
     InviteView,
@@ -57,10 +58,12 @@ class LaChungService:
         sessions: async_sessionmaker[AsyncSession],
         hasher: SecretHasher,
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._hasher = hasher
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def create(
         self,
@@ -197,6 +200,7 @@ class LaChungService:
                 row.status = RequestStatus.REVOKED.value
                 row.revoked_at = current
                 row.token_ciphertext = None
+                self._record(session, ErasureKind.LA_CHUNG_INVITE_REVOKED, row.id, current)
 
     async def preview(self, token: str) -> PublicInvite:
         if CAPABILITY_PATTERN.fullmatch(token) is None:
@@ -319,6 +323,7 @@ class LaChungService:
             response.withdrawn_at = current
             response.receipt_ciphertext = None
             request.status = RequestStatus.WITHDRAWN.value
+            self._record(session, ErasureKind.LA_CHUNG_RESPONSE_WITHDRAWN, response.id, current)
 
     async def result(self, principal_id: UUID, request_id: UUID) -> OwnerResult:
         async with self._sessions() as session:
@@ -394,7 +399,9 @@ class LaChungService:
             )
             if response is None:
                 raise LaChungUnavailable
-            response.hidden_at = datetime.now(UTC)
+            hidden_at = datetime.now(UTC)
+            response.hidden_at = hidden_at
+            self._record(session, ErasureKind.LA_CHUNG_RESULT_HIDDEN, response.id, hidden_at)
 
     async def delete_result(self, principal_id: UUID, request_id: UUID) -> None:
         async with self._sessions() as session, session.begin():
@@ -402,6 +409,16 @@ class LaChungService:
             if request is None or request.principal_id != principal_id:
                 raise LaChungUnavailable
             await session.delete(request)
+            self._record(
+                session, ErasureKind.LA_CHUNG_RESULT_DELETED, request.id, datetime.now(UTC)
+            )
+
+    def _record(
+        self, session: AsyncSession, kind: ErasureKind, subject: UUID, at: datetime
+    ) -> None:
+        # Same transaction as the erasure, keyed by the row's own id (audit P07, batch 2).
+        if self._erasure_journal is not None:
+            self._erasure_journal.record(session, kind, subject, at)
 
     def _recipient_label(self, row: LaChungRequestRow) -> str:
         if row.recipient_label_ciphertext is not None:

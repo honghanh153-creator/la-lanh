@@ -509,6 +509,10 @@ class RadarService:
                 row.status = RadarStatus.REVOKED.value
                 row.revoked_at = current
                 row.token_ciphertext = None
+                if self._erasure_journal is not None:
+                    self._erasure_journal.record(
+                        session, ErasureKind.RADAR_INVITE_REVOKED, row.id, current
+                    )
 
     async def preview(self, token: str) -> RadarPublicInvite:
         row = await self._pending_by_token(token)
