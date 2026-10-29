@@ -563,7 +563,6 @@ def test_the_procedure_orders_pg_hba_and_creates_the_role_stubs() -> None:
     assert stubs < text.index("CREATE ROLE lalanh_probe LOGIN") < text.index("alembic upgrade head")
 
 
-
 def test_the_procedure_keeps_the_server_log_before_teardown() -> None:
     """Static check of the operator procedure (after the r50 attempt): the start-up controls run
     before the first start, and teardown copies a sanitized server log to the receipt directory
@@ -574,13 +573,14 @@ def test_the_procedure_keeps_the_server_log_before_teardown() -> None:
     assert receipt_dir < text.index("1. **Tools.**")
     assert "**outside** `$P`" in text[receipt_dir : text.index("1. **Tools.**")]
     start = text.index("pg_ctl -D $P/data -l $P/server.log -w -t 60 start")
-    for control in ("postgres -D $P/data -C ssl", "$P/.s.PGSQL.55440", 's.bind(("127.0.0.1", 55440))'):
-        assert text.index(control) < start
+    controls = ("postgres -D $P/data -C ssl", "$P/.s.PGSQL.55440", 's.bind(("127.0.0.1", 55440))')
+    assert all(text.index(control) < start for control in controls)
     teardown = text.index("9. **Teardown**")
     keep = text.index("> $R/server-log.sanitized.txt", teardown)
     stop = text.index("pg_ctl -D $P/data -m fast stop", teardown)
     delete = text.index("Delete `$P` entirely", teardown)
     assert keep < stop < delete
+
 
 def test_the_checked_target_is_the_one_the_engine_and_tools_use(ca_file: Path) -> None:
     url = disposable_target(_probe_url(ca_file))
