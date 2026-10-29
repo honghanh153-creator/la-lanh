@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import UUID
 
@@ -31,3 +31,15 @@ class BirthRepository(Protocol):
     async def clear_supplement(
         self, guest_id: UUID, *, remove_time: bool, remove_place: bool
     ) -> BirthSupplementStored: ...
+
+    async def recent_date_changes(self, guest_id: UUID, *, since: datetime) -> int: ...
+
+    async def replace_date(
+        self,
+        record: BirthSnapshotRecord,
+        *,
+        expected_revision: datetime,
+        now: datetime,
+        limit: int,
+        window: timedelta,
+    ) -> BirthSnapshotRecord: ...

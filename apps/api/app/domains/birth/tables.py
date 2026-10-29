@@ -72,3 +72,20 @@ class ChartSnapshotRow(Base):
     profile: Mapped[BirthProfileRow] = relationship(
         back_populates="snapshots", foreign_keys=[profile_id]
     )
+
+
+class BirthDateChangeRow(Base):
+    """One accepted birth-date correction (US-23 D5): the owner and a time, nothing else.
+
+    Counts corrections in a sliding 24-hour window. Rows older than the window are pruned by the
+    next correction and by the six-hourly cleanup; guest deletion cascades.
+    """
+
+    __tablename__ = "birth_date_changes"
+    __table_args__ = (Index("ix_birth_date_changes_guest_changed", "guest_id", "changed_at"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    guest_id: Mapped[UUID] = mapped_column(
+        ForeignKey("guest_sessions.id", ondelete="CASCADE"), nullable=False
+    )
+    changed_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)

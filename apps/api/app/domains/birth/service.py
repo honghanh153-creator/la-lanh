@@ -9,12 +9,19 @@ from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, TimePrecision
 from app.domains.birth.errors import (
     BirthChartBusy,
+    BirthDateChangeLimited,
+    BirthDateChangeRequiresEdit,
+    BirthDateConfirmationMismatch,
     BirthDateOutOfRange,
+    BirthDateUnchanged,
+    BirthProfileChanged,
     BirthProfileNotFound,
     BirthSupplementConsentInvalid,
     BirthSupplementInvalid,
 )
 from app.domains.birth.models import (
+    DATE_CHANGE_LIMIT,
+    DATE_CHANGE_WINDOW,
     ApproxWindow,
     BirthReveal,
     BirthSnapshotRecord,
@@ -57,10 +64,11 @@ class BirthChartService:
         now: datetime | None = None,
     ) -> BirthReveal:
         current = now or datetime.now(UTC)
-        youngest_allowed = _years_before(current.date(), 18)
-        oldest_allowed = _years_before(current.date(), 120)
-        if birth_date < oldest_allowed or birth_date > youngest_allowed:
-            raise BirthDateOutOfRange
+        _require_adult_date(birth_date, current)
+        active = await self._repository.find_current(guest_id)
+        if active is not None and self._stored_date(active) != birth_date:
+            # D4, checked again under the lock in save_or_replay; this only avoids the compute.
+            raise BirthDateChangeRequiresEdit
         canonical_input = f"{guest_id}:date-only-v1:{birth_date.isoformat()}"
         input_hash = self._hasher.digest("birth-input", canonical_input)
         replay = await self._repository.find_by_input_hash(guest_id, input_hash)
@@ -84,6 +92,68 @@ class BirthChartService:
             )
         )
         return self._reveal(stored, resumed=resumed)
+
+    async def correct_date(
+        self,
+        *,
+        guest_id: UUID,
+        birth_date: date,
+        confirm_birth_date: date,
+        expected_revision: datetime,
+        now: datetime | None = None,
+    ) -> BirthReveal:
+        """Replace a saved birth date (US-23).
+
+        Phase 1 here: validate (confirmation, the 18+ rule before anything is read or computed,
+        an active subject, a different date, the revision fence, the rolling limit), then compute
+        and encrypt the new date-only chart without any lock or write. A failure leaves everything
+        as it was. Phases 2 and 3 are ``BirthRepository.replace_date``. No value is logged.
+        """
+
+        current = now or datetime.now(UTC)
+        if confirm_birth_date != birth_date:
+            raise BirthDateConfirmationMismatch
+        _require_adult_date(birth_date, current)  # D6: refused before compute, nothing kept
+        stored = await self._repository.find_current(guest_id)
+        if stored is None:
+            raise BirthProfileNotFound
+        if self._stored_date(stored) == birth_date:
+            raise BirthDateUnchanged
+        if stored.profile_revision != expected_revision:
+            raise BirthProfileChanged
+        since = current - DATE_CHANGE_WINDOW
+        if await self._repository.recent_date_changes(guest_id, since=since) >= DATE_CHANGE_LIMIT:
+            raise BirthDateChangeLimited
+        result = await self._run_compute(self._engine.calculate_date_only_sun, birth_date)
+        replaced = await self._repository.replace_date(
+            BirthSnapshotRecord(
+                id=uuid4(),
+                guest_id=guest_id,
+                profile_id=stored.profile_id,
+                input_hash=self._hasher.digest(
+                    "birth-input", f"{guest_id}:date-only-v1:{birth_date.isoformat()}"
+                ),
+                birth_date_ciphertext=self._envelope.encrypt(
+                    birth_date.isoformat().encode(),
+                    context=f"birth-date:{guest_id}".encode(),
+                ),
+                result=result,
+                created_at=current,
+            ),
+            expected_revision=expected_revision,
+            now=current,
+            limit=DATE_CHANGE_LIMIT,
+            window=DATE_CHANGE_WINDOW,
+        )
+        return self._reveal(replaced, resumed=False)
+
+    def _stored_date(self, stored: BirthSnapshotRecord) -> date:
+        return date.fromisoformat(
+            self._envelope.decrypt(
+                stored.birth_date_ciphertext,
+                context=f"birth-date:{stored.guest_id}".encode(),
+            ).decode()
+        )
 
     async def current(self, guest_id: UUID) -> BirthReveal:
         stored = await self._repository.find_current(guest_id)
@@ -475,6 +545,13 @@ def _resolve_time(
         ApproxWindow.NIGHT: time(hour=23),
     }[approx_window]
     return midpoint, TimePrecision.APPROXIMATE
+
+
+def _require_adult_date(birth_date: date, now: datetime) -> None:
+    """The product-wide 18+ rule (US-02), identical at onboarding and correction (US-23 D6)."""
+
+    if birth_date < _years_before(now.date(), 120) or birth_date > _years_before(now.date(), 18):
+        raise BirthDateOutOfRange
 
 
 def _years_before(value: date, years: int) -> date:
