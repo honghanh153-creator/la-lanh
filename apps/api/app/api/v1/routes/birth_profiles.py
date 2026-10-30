@@ -1,10 +1,13 @@
 import logging
+from collections.abc import Callable, Coroutine
 from datetime import date, datetime
-from typing import Annotated, Literal, cast
+from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Header, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domains.astro.models import DateOnlySunResult, NatalChart
@@ -16,7 +19,39 @@ from app.domains.guest.models import OnboardingStatus
 from app.domains.guest.service import GuestSessionService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
-router = APIRouter()
+
+class PrivateBirthRoute(APIRoute):
+    """Birth input never comes back in an error (US-23 AC10, Codex r55).
+
+    FastAPI's default 422 body repeats the submitted fields, birth dates and times included, for a
+    missing field, a malformed value or an extra key. Every birth route answers one fixed code
+    instead, like the account routes.
+    """
+
+    def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
+        original = super().get_route_handler()
+
+        async def safe(request: Request) -> Response:
+            try:
+                return await original(request)
+            except RequestValidationError:
+                problem = JSONResponse(
+                    status_code=422,
+                    content={
+                        "type": "about:blank",
+                        "title": "Birth chart request was rejected",
+                        "status": 422,
+                        "code": "BIRTH_INPUT_INVALID",
+                    },
+                    media_type="application/problem+json",
+                )
+                problem.headers["Cache-Control"] = "no-store, max-age=0"
+                return problem
+
+        return safe
+
+
+router = APIRouter(route_class=PrivateBirthRoute)
 logger = logging.getLogger(__name__)
 
 

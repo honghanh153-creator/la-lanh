@@ -6,6 +6,7 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.accounts.postgres import account_transaction
 from app.domains.astro.models import ChartType, DateOnlySunResult, NatalChart
 from app.domains.birth.errors import (
     BirthDateChangeLimited,
@@ -338,7 +339,10 @@ class PostgresBirthRepository:
         """
 
         guest_id = record.guest_id
-        async with self._sessions() as session, session.begin():
+        # The SQLite writer reservation is taken before the first read (SQLite ignores FOR
+        # UPDATE), so a second tab waits and then reads the committed revision instead of failing
+        # its read-to-write upgrade with "database is locked" (Codex r55).
+        async with account_transaction(self._sessions) as session:
             await session.scalar(
                 select(GuestSessionRow).where(GuestSessionRow.id == guest_id).with_for_update()
             )

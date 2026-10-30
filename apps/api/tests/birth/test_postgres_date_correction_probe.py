@@ -10,6 +10,8 @@ replacement, a send drain across connections, and pg_dump/pg_restore on both sid
 from __future__ import annotations
 
 import asyncio
+import contextlib
+from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -83,6 +85,29 @@ async def test_an_active_natal_subject_is_replaced_without_fk_error(probe: Any) 
     assert profile.birth_time_ciphertext is None and profile.supplement_consent_version is None
 
 
+async def _await_commit(task: asyncio.Task[Any], committed: Callable[[], Awaitable[bool]]) -> None:
+    """Wait, bounded, until the correction has committed (Codex r55).
+
+    A correction that fails before committing surfaces its own error at once; one that never
+    commits times out instead of polling forever, and its task is cancelled so teardown runs.
+    """
+
+    async def poll() -> None:
+        while not await committed():
+            if task.done():
+                task.result()  # raises the correction's error
+                raise AssertionError("the correction finished without committing")
+            await asyncio.sleep(0.05)
+
+    try:
+        await _bounded(poll())
+    except BaseException:
+        task.cancel()
+        with contextlib.suppress(BaseException):
+            await task
+        raise
+
+
 async def test_two_tabs_race_on_the_revision_fence(probe: Any) -> None:
     database, _, _ = probe
     guest_id = await _guest(database)
@@ -111,8 +136,11 @@ async def test_success_waits_for_an_admitted_send(probe: Any) -> None:
         )  # fmt: skip
     revision = (await service.current(guest_id)).profile_revision
     task = asyncio.create_task(_correct(service, guest_id, SECOND, revision))
-    while (await service.current(guest_id)).birth_date != SECOND:  # noqa: ASYNC110
-        await asyncio.sleep(0.05)
+
+    async def committed() -> bool:
+        return (await service.current(guest_id)).birth_date == SECOND
+
+    await _await_commit(task, committed)
     assert not task.done()
     async with database.sessions() as session, session.begin():
         row = await session.scalar(
