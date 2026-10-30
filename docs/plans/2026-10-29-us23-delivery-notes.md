@@ -134,3 +134,14 @@ how the duties apply stays in the owner/engineering P09 assessment and no compli
 - AC13 is covered by unit tests of the queue and withdrawal, not by an e2e test with a reload.
 - DoD: Codex APPROVE per SHA, e2e, native device check, experience/content audit of the new copy, store-form re-check at
   release, owner release order.
+
+## Codex r55 corrections (30/10/2026)
+
+Findings on #119 at `4290bf0`, applied to the split: U2 (#123) answers malformed requests with a fixed
+`422 BIRTH_INPUT_INVALID` that never echoes birth input, takes the SQLite writer reservation before reading the
+revision (two tabs: one success, one `409 BIRTH_PROFILE_CHANGED`, no "database is locked"), and bounds the PostgreSQL
+probe's commit wait. U3 (#124) no longer overwrites the profile refetched during cleanup with the correction's own
+(possibly older) response, gives the correction a 90 s timeout (success waits for the bounded send drain), and
+reconciles an ambiguous failure by re-reading the profile: a new revision withdraws the old chart caches and says the
+date was changed; no change keeps "Lá cũ vẫn giữ nguyên"; an unreadable profile says the outcome is unknown.
+Regressions: `tests/birth/test_date_correction_r55.py`, `src/features/birth/BirthDateEdit.races.test.tsx`.

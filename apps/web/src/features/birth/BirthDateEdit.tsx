@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent, type Ref } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ApiProblem, correctBirthDate, getBirthProfile } from "../../shared/api/client";
+import { ApiProblem, correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
 import { withdrawCorrectedChart } from "../../shared/storage/clearChartDerivedData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { isUnder18, validDate } from "./birthDateInput";
@@ -18,7 +18,7 @@ function partsOf(isoDate: string): DateParts {
   return { day: day ?? "", month: month ?? "", year: year ?? "" };
 }
 
-function messageFor(error: unknown): { text: string; age?: boolean; reload?: boolean } {
+function messageFor(error: unknown): { text: string; age?: boolean; reload?: boolean; ambiguous?: boolean } {
   const code = error instanceof ApiProblem ? error.code : null;
   switch (code) {
     case "BIRTH_DATE_UNCHANGED":
@@ -32,9 +32,13 @@ function messageFor(error: unknown): { text: string; age?: boolean; reload?: boo
     case "BIRTH_DATE_CONFIRMATION_MISMATCH":
       return { text: "Hai lần nhập chưa giống nhau. Kiểm tra lại nhé." };
     default:
-      return { text: "Chưa tính được Lá mới. Lá cũ vẫn giữ nguyên." };
+      return { text: UNCHANGED_MESSAGE, ambiguous: true };
   }
 }
+
+const UNCHANGED_MESSAGE = "Chưa tính được Lá mới. Lá cũ vẫn giữ nguyên.";
+const RECONCILED_MESSAGE = "Ngày sinh đã được đổi dù trang chưa nhận được trả lời. Mình đã tải lại hồ sơ hiện tại.";
+const UNKNOWN_MESSAGE = "Chưa rõ thay đổi đã được lưu chưa. Kiểm tra lại ngày sinh trong Mình nhé.";
 
 function DateFields({ idPrefix, legend, value, onChange, disabled, invalid, firstInput }: {
   idPrefix: string;
@@ -138,16 +142,23 @@ export function BirthDateEdit() {
     setPending(true);
     setError(null);
     try {
-      const reveal = await correctBirthDate({
+      await correctBirthDate({
         birth_date: birthDate,
         confirm_birth_date: confirmed,
         expected_revision: loaded.profile_revision,
       });
+      // The cleanup refetches the active profile; that answer is the latest server revision and
+      // is kept even if another tab corrected again meanwhile (Codex r55).
       await withdrawCorrectedChart(queryClient);
-      queryClient.setQueryData(["birth-profile"], reveal);
       void navigate("/reveal", { replace: true, state: { corrected: true } });
     } catch (failure) {
       const message = messageFor(failure);
+      if (message.ambiguous) {
+        // A timeout or transport failure says nothing about the commit, which happens before the
+        // send drain. Read the profile again: a new revision means the change is in.
+        setError({ text: await reconcile(loaded.profile_revision) });
+        return;
+      }
       setError(message);
       if (message.reload) {
         setStage("edit");
@@ -157,6 +168,17 @@ export function BirthDateEdit() {
     } finally {
       setPending(false);
     }
+  };
+
+  const reconcile = async (submitted: string): Promise<string> => {
+    const current = await profile.refetch();
+    if (current.isError || !current.data) return UNKNOWN_MESSAGE;
+    if (current.data.profile_revision === submitted) return UNCHANGED_MESSAGE;
+    await withdrawCorrectedChart(queryClient);
+    const latest = queryClient.getQueryData<BirthReveal>(["birth-profile"]) ?? current.data;
+    setValue(partsOf(latest.birth_date));
+    setStage("edit");
+    return RECONCILED_MESSAGE;
   };
 
   const actions = (

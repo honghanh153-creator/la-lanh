@@ -439,6 +439,7 @@ export function isGuestSessionUnavailable(error: unknown): boolean {
 export { currentSessionEpoch, OWNER_SESSION_EPOCH_KEY, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
 const NATIVE_CSRF_KEY = "la-lanh-native-csrf-v1";
 const REQUEST_TIMEOUT_MS = 15_000;
+const BIRTH_CORRECTION_TIMEOUT_MS = 90_000;
 const DELETE_GUEST_TIMEOUT_MS = 75_000;
 let activeDailyReading: { scopeKey: string; revisionId: string } | null = null;
 let ownerClaimInFlight: { sessionEpoch: string | null; promise: Promise<OwnerClaim> } | null = null;
@@ -786,6 +787,9 @@ export function correctBirthDate(input: {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...csrfHeader() },
     body: JSON.stringify(input),
+    // Success waits for provider sends admitted before the change (bounded server-side at about
+    // a minute), so the default 15 s would turn many committed corrections into timeouts.
+    timeoutMs: BIRTH_CORRECTION_TIMEOUT_MS,
   });
 }
 
