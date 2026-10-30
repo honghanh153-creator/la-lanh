@@ -81,7 +81,7 @@ regions:
 | 10 | Experiments and resonance (`reading-resonance-v1`) | feedback, action experiment | user | AES-GCM | same | 29 d 18 h / 30 d | reset ("Tắt và xóa"); cleanup |
 | 11 | Radar invite (`radar-pair-v1`) | B's own profile (through B's guest), nickname, result, receipt hash | user (B consents for B) | nickname/result AES-GCM; context/voice plaintext | same | 30 days from acceptance; receipt 30 days (D1) | A deletes; B withdraws (receipt, session or invite link, D2) |
 | 12 | Radar `private_check` (`radar-authorized-input-v1`) | **B's birth date, time and place** (request memory only); A's nickname for B; result; attestation time; keyed HMAC request digests that include B's raw inputs | **A-about-B** | B's raw data not persisted; nickname/result AES-GCM; context/voice plaintext; HMAC digests | same | 24 h access; physical deletion by the 6-hourly cleanup, deferred by send fences (no hard bound) | A deletes; expiry; guest erase of A |
-| 13 | Luna AI rewrite (`external-content-rewrite-v1`, opt-in) | M1 Daily payload: shared catalog wording plus closed labels; can reveal the Sun sign on a date-only reading; never raw birth data, IDs or the Tarot question | derived | encrypted rewrite queue (24 h) | **OpenAI, US** | OpenAI abuse-monitoring logs up to 30 days (`store:false` is not ZDR) | consent toggle cancels queued jobs; data already sent cannot be recalled |
+| 13 | Luna AI rewrite (`external-content-rewrite-v1`, opt-in) | M1 Daily payload: shared catalog wording plus closed labels; can reveal the Sun sign on a date-only reading; never raw birth data, IDs or the Tarot question | derived | encrypted rewrite queue (24 h) | **OpenAI, US** | OpenAI abuse-monitoring logs normally up to 30 days, longer when the law requires it or to protect the service or third parties from harm (canonical wording: `OPENAI_ABUSE_RETENTION_NOTICE`, data map; `store:false` is not ZDR) | consent toggle cancels queued jobs; data already sent cannot be recalled |
 | 14 | Deletion journal (P07) | keyed HMAC of the root id, kind, scope, time | system | DB row and an hourly host copy (0600) | Hetzner, Supabase | 15 days | purge timer |
 | 15 | Backups | everything in `public` (ciphertexts plus plaintext operational fields) | system | `pg_dump` custom format on the VPS disk; **no app-level encryption in `backup-database.sh`** | Hetzner (DE); Supabase snapshots | 14 days (app); provider snapshots unknown | age-out; journal replay on restore |
 | 16 | Matching (deferred) | gender identity, intent, preference, age range, region | user (legacy rows) | encrypted display name; the rest plaintext | same | new writes return 410 (P02) | withdraw; guest erase |
@@ -120,7 +120,7 @@ page, and the store tables in the data map.
 
 | Requirement | Current notice | Gap |
 |---|---|---|
-| Data types and purpose (Art. 9.2(a)) | Birth data for the Sun sign and Lá Khai Sinh; history windows; Radar; AI; hosting | Mostly covered. Mood and Tarot questions are not named as data types. |
+| Data types and purpose (Art. 9.2(a)) | Birth data for the Sun sign and Lá Khai Sinh; history windows; Radar; AI; hosting | Mostly covered. Mood is mentioned only inside the history-retention paragraph ("kèm mood của ngày đó"), without its own purpose or data-type line; Tarot questions are not named as a data type. |
 | **Controller (Art. 9.2(b))** | Only a contact email | **No controller named** (person or entity). Google Play also asks for the developer entity. |
 | Rights and obligations (Art. 9.2(c); Decree 356 Art. 5.1) | "Xem, sửa, rút đồng ý hoặc xóa toàn bộ trong mục Mình" | **"Sửa" overclaims**: the birth date cannot be edited (only the time/place layer), see section 5. No export exists. No request procedure or response time is published. Restriction, objection and complaint are not mentioned. |
 | Sensitive data flag (Decree 356 Art. 6.4) | None | Depends on decision 2. |
@@ -241,7 +241,7 @@ The DPIA and the transfer dossier overlap heavily, so one working pack can feed 
 | Delete (d), 20 days | In-app full erase (guest and linked account); history clear; per-item delete; Radar delete. Journal replay protects erasures across restores (P07). | Physical delay from send fences has no hard bound. Supabase snapshot retention is unknown. App backups (14 days) fall within 20 days. |
 | Restrict / object (d), 15 days | No in-app path; contact email only | Needs a published manual procedure with the 2-working-day acknowledgement |
 | Complain (đ) | Contact email | State the procedure |
-| **B, private check** | Nothing stored identifies B. A can delete. Expires in 24 h. Manual path in `radar-recipient-rights.md`. | That doc still calls the response deadline "a counsel question"; Decree 356 Art. 5 now answers it. Depends on D3. |
+| **B, private check** | No raw birth input and no B account are stored. What is stored is still potentially identifying derived data linked to A: A's nickname for B (which may be a real name, reversible AES-GCM), the relationship result and keyed retry digests. A can delete. Access ends after 24 h; physical deletion follows at the 6-hourly cleanup and can be deferred by send fences (no hard bound). Manual path in `radar-recipient-rights.md`. | That doc still calls the response deadline "a counsel question"; Decree 356 Art. 5 now answers it. Depends on D3. |
 | B, invite | API paths released in `89ebdb0`. Session and invite-link screens #83 are on integration, not released. | Planned: further P09 D2 web screens on parallel branches; release pending |
 
 Operational gap: every manual right is served by one person through one mailbox. The 2-working-day
@@ -278,7 +278,7 @@ Each item gives a recommended option. Nothing below has been implemented.
    - the controller;
    - the rights list with the procedure and response times;
    - accurate "sửa" wording until US-23 ships;
-   - mood and Tarot questions as data types;
+   - a clearer purpose and data-type line for mood (already mentioned in the retention paragraph) and Tarot questions as a data type;
    - the sensitive flag (item 2);
    - an automated-processing paragraph;
    - the possible delay of physical deletion.
