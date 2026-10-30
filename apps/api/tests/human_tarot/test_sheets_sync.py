@@ -257,6 +257,30 @@ async def test_a_cancel_during_an_export_in_flight_still_clears_the_row(
     assert slot.sheet_state == "cleared"
 
 
+async def test_a_row_that_lands_after_its_clear_is_cleared_again(database: Database) -> None:
+    clock, sheet = Clock(vn(DAY, 7)), _sheet()
+    tarot, bridge = _wire(database, clock, sheet)
+    guest = await support.guest(database)
+    view = await support.create(tarot, guest)
+    row = list(sheet.grid(TAB)[1])
+    await tarot.cancel(guest, view.id)
+    (slot,) = await support.slots(database)
+    assert slot.sheet_state == "cleared"
+    # The earlier write, timed out on our side, lands at Google now.
+    sheet.set_row(TAB, 2, row)
+    clock.advance(minutes=5)
+    report = await bridge.sync_once()
+    assert report.counts.get("reappeared") == 1 and report.counts.get("cleared") == 1
+    assert all(cell == "" for cell in sheet.grid(TAB)[1])
+    (slot,) = await support.slots(database)
+    assert slot.sheet_state == "cleared"
+    # After the verification window a cleared slot no longer costs a Google read.
+    clock.advance(minutes=20)
+    calls = len(sheet.calls)
+    await bridge.sync_once()
+    assert len(sheet.calls) == calls
+
+
 async def test_guest_deletion_and_unknown_codes_leave_no_copy(database: Database) -> None:
     clock, sheet = Clock(vn(DAY, 7)), _sheet()
     tarot, bridge = _wire(database, clock, sheet)

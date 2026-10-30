@@ -50,6 +50,7 @@ PER_DAY = 2000
 SLOT_LEASE = timedelta(seconds=30)
 SYNC_LEASE = timedelta(seconds=55)
 MAX_BACKOFF = timedelta(minutes=15)
+CLEAR_VERIFY = timedelta(minutes=15)
 
 
 class BudgetExhausted(Exception):
@@ -157,12 +158,18 @@ class HumanTarotSheetBridge:
         return report
 
     async def _pass(self, report: SyncReport) -> None:
-        today = policy.local_day(self._service.now())
+        now = self._service.now()
+        today = policy.local_day(now)
         async with self._sessions() as database:
             active = list(
                 await database.scalars(
                     select(HumanTarotSlotRow).where(
-                        HumanTarotSlotRow.sheet_state != SheetState.CLEARED.value
+                        or_(
+                            HumanTarotSlotRow.sheet_state != SheetState.CLEARED.value,
+                            # Keep looking for a while after a clear: a write that timed out on
+                            # our side may still land at Google afterwards.
+                            HumanTarotSlotRow.cleared_at > now - CLEAR_VERIFY,
+                        )
                     )
                 )
             )
@@ -173,13 +180,35 @@ class HumanTarotSheetBridge:
         # Read the known codes only after the grid: a slot always commits before its row is
         # written, so every code the grid shows is already in this set unless it is truly unknown.
         async with self._sessions() as database:
-            known = set(await database.scalars(select(HumanTarotSlotRow.request_code)))
-        # Rows carrying a well-formed app code this database does not know (for example after a
-        # restore, or a late write that lost its slot) hold a question with no purpose left.
+            found = await database.execute(
+                select(HumanTarotSlotRow.request_code, HumanTarotSlotRow.id).where(
+                    HumanTarotSlotRow.request_code.in_(list(rows))
+                )
+            )
+            known = {code: slot_id for code, slot_id in found.tuples()}
+            cleared = set(
+                await database.scalars(
+                    select(HumanTarotSlotRow.id).where(
+                        HumanTarotSlotRow.id.in_(list(known.values())),
+                        HumanTarotSlotRow.sheet_state == SheetState.CLEARED.value,
+                    )
+                )
+            )
         for code, numbers in rows.items():
             if sheet_rows.is_app_code(code) and code not in known:
+                # A well-formed app code this database does not know (for example after a
+                # restore) holds a question with no purpose left.
                 await self._clear_rows(numbers)
                 report.add("orphan_cleared", len(numbers))
+            elif code in known and known[code] in cleared:
+                # Back after it was cleared (a late write): clear it again.
+                await self._reopen_clear(known[code])
+                report.add("reappeared")
+                active.append(
+                    HumanTarotSlotRow(
+                        id=known[code], request_code=code, sheet_state=SheetState.CLEAR_DUE.value
+                    )
+                )
         for slot in active:
             if slot.sheet_state == SheetState.CLEAR_SENT.value:
                 await self._confirm_clear(slot, rows, report)
@@ -316,6 +345,19 @@ class HumanTarotSheetBridge:
                 raise
         finally:
             await self._release(slot_id, token)
+
+    async def _reopen_clear(self, slot_id: UUID) -> None:
+        async with account_transaction(self._sessions) as database:
+            await database.execute(
+                update(HumanTarotSlotRow)
+                .where(
+                    HumanTarotSlotRow.id == slot_id,
+                    HumanTarotSlotRow.sheet_state == SheetState.CLEARED.value,
+                )
+                .values(
+                    sheet_state=SheetState.CLEAR_DUE.value, cleared_at=None, next_attempt_at=None
+                )
+            )
 
     async def _confirm_clear(
         self, slot: HumanTarotSlotRow, rows: dict[str, list[int]], report: SyncReport
