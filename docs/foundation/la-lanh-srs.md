@@ -612,7 +612,8 @@ Client poll hoặc nhận WebSocket event để cập nhật UI khi content sẵ
 
 | Loại dữ liệu | Mã hóa | Ai truy cập được |
 |---|---|---|
-| birthDate, birthTime, birthPlace | Encrypt at rest (cột riêng, key quản lý tập trung) | Chỉ Astro Engine module qua internal call; không expose API trả thẳng dữ liệu thô này ra client sau khi đã tính chart |
+| birthDate, birthTime, birthPlace | Encrypt at rest (cột riêng, key quản lý tập trung) | Chỉ Astro Engine module qua internal call; không expose API trả thẳng dữ liệu thô này ra client sau khi đã tính chart. Ngoại lệ chỉ cho chính chủ hồ sơ: form sửa giờ/nơi sinh riêng và bản sao dữ liệu `POST /v1/session/data-export` (cookie + CSRF + origin tin cậy, no-store, giới hạn tần suất; không bao giờ chứa dữ liệu sinh của người khác) |
+| Bản sao dữ liệu ("Tải dữ liệu của tôi") | Tạo khi yêu cầu, không lưu trên server, không cache | Chỉ chủ hồ sơ; không chứa id, hash, token, receipt, nội dung kết quả Radar hay câu trả lời Lá Chứng của người khác. Danh mục: `docs/plans/2026-10-29-privacy-export-and-b-rights.md` |
 | NatalChart/reading suy ra (sign/house/aspect/factor) | Encrypt at rest; đây vẫn là personal data và có thể giúp suy ngược dữ liệu sinh | Chỉ module/consumer được allowlist theo purpose; public/share dùng DTO đã redact |
 | Ảnh xác minh | Object Storage riêng, access qua signed URL có TTL ngắn | Chỉ hệ thống kiểm duyệt, không public |
 | GPS/live device location | Không thu hoặc lưu cho birth chart; matching chỉ dùng region user chọn | Theo yêu cầu Safety ở PRD Phần 4.3 |

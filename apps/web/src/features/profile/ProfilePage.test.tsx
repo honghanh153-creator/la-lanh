@@ -17,7 +17,11 @@ import {
   getHistoryRetention,
   clearReadingHistory,
   logoutAccount,
+  exportMyData,
+  ApiProblem,
+  type DataExport,
 } from "../../shared/api/client";
+import { saveDataExport } from "./downloadMyData";
 import { ProfilePage } from "./ProfilePage";
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 
@@ -37,8 +41,11 @@ vi.mock("../../shared/api/client", async (original) => {
     getHistoryRetention: vi.fn(),
     clearReadingHistory: vi.fn(),
     logoutAccount: vi.fn(),
+    exportMyData: vi.fn(),
   };
 });
+
+vi.mock("./downloadMyData", () => ({ saveDataExport: vi.fn() }));
 
 vi.mock("../../shared/theme/useTheme", () => ({
   useTheme: () => ({ theme: "dark", setTheme: vi.fn() }),
@@ -208,5 +215,42 @@ describe("ProfilePage resonance privacy controls", () => {
     await waitFor(() => {
       for (const key of keys) expect(client.getQueryData(key)).toBeUndefined();
     });
+  });
+
+  it("downloads the owner's own data only after explaining what the private file holds", async () => {
+    const file = { format: "la-lanh-data-export-v1" } as DataExport;
+    vi.mocked(exportMyData).mockResolvedValue(file);
+    vi.mocked(saveDataExport).mockResolvedValue("downloaded");
+    const user = userEvent.setup(); renderPage();
+    await user.click(await screen.findByRole("button", { name: /Tải dữ liệu của tôi/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("không có mã đăng nhập, link chia sẻ hay dữ liệu sinh của người khác");
+    expect(dialog).toHaveTextContent("Hãy cất ở nơi chỉ bạn mở được");
+    await user.click(screen.getByRole("button", { name: "Để sau" }));
+    expect(exportMyData).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /Tải dữ liệu của tôi/ }));
+    await user.click(screen.getByRole("button", { name: "Tải về" }));
+    await waitFor(() => expect(saveDataExport).toHaveBeenCalledWith(file));
+    expect(exportMyData).toHaveBeenCalledOnce();
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã tạo tệp dữ liệu của bạn");
+  });
+
+  it("explains a rate limit and a failed export without claiming a file was saved", async () => {
+    vi.mocked(exportMyData).mockRejectedValueOnce(new ApiProblem(429, "ADMISSION_LIMITED", "limited"));
+    vi.mocked(exportMyData).mockRejectedValueOnce(new TypeError("offline"));
+    const user = userEvent.setup(); renderPage();
+    await user.click(await screen.findByRole("button", { name: /Tải dữ liệu của tôi/ }));
+    await user.click(screen.getByRole("button", { name: "Tải về" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Đợi khoảng một phút");
+    await user.click(screen.getByRole("button", { name: "Tải về" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa tải được dữ liệu");
+    expect(saveDataExport).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Đã tạo tệp dữ liệu/)).not.toBeInTheDocument();
+  });
+
+  it("links an invited person to their received Radar results", async () => {
+    renderPage();
+    expect(await screen.findByRole("link", { name: /Khi bạn là người được mời Hợp gu/ })).toHaveAttribute("href", "/radar/received");
   });
 });

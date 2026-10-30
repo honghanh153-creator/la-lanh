@@ -1085,6 +1085,176 @@
         "title": "DailyNoteResponse",
         "type": "object"
       },
+      "DataExport": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportAccount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "birth_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportBirthProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "consents": {
+            "items": {
+              "$ref": "#/components/schemas/ExportConsent"
+            },
+            "title": "Consents",
+            "type": "array"
+          },
+          "daily_experiments": {
+            "items": {
+              "$ref": "#/components/schemas/ExportDailyExperiment"
+            },
+            "title": "Daily Experiments",
+            "type": "array"
+          },
+          "daily_notes": {
+            "items": {
+              "$ref": "#/components/schemas/ExportDailyNote"
+            },
+            "title": "Daily Notes",
+            "type": "array"
+          },
+          "format": {
+            "const": "la-lanh-data-export-v1",
+            "default": "la-lanh-data-export-v1",
+            "title": "Format",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "history_retention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportHistoryRetention"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "la_chung_invites": {
+            "items": {
+              "$ref": "#/components/schemas/ExportLaChungInvite"
+            },
+            "title": "La Chung Invites",
+            "type": "array"
+          },
+          "matching": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportMatching"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "not_included": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Included",
+            "type": "array"
+          },
+          "note_feedback": {
+            "items": {
+              "$ref": "#/components/schemas/ExportNoteFeedback"
+            },
+            "title": "Note Feedback",
+            "type": "array"
+          },
+          "notice": {
+            "title": "Notice",
+            "type": "string"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ExportProfile"
+          },
+          "radar_received": {
+            "items": {
+              "$ref": "#/components/schemas/ExportRadarReceived"
+            },
+            "title": "Radar Received",
+            "type": "array"
+          },
+          "radar_sent": {
+            "items": {
+              "$ref": "#/components/schemas/ExportRadarSent"
+            },
+            "title": "Radar Sent",
+            "type": "array"
+          },
+          "saved_notes": {
+            "items": {
+              "$ref": "#/components/schemas/ExportSavedNote"
+            },
+            "title": "Saved Notes",
+            "type": "array"
+          },
+          "share_links": {
+            "items": {
+              "$ref": "#/components/schemas/ExportShareLink"
+            },
+            "title": "Share Links",
+            "type": "array"
+          },
+          "tarot_sessions": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTarotSession"
+            },
+            "title": "Tarot Sessions",
+            "type": "array"
+          },
+          "truncated": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Truncated",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at",
+          "notice",
+          "profile",
+          "account",
+          "consents",
+          "history_retention",
+          "birth_profile",
+          "daily_notes",
+          "saved_notes",
+          "share_links",
+          "tarot_sessions",
+          "note_feedback",
+          "daily_experiments",
+          "radar_sent",
+          "radar_received",
+          "la_chung_invites",
+          "matching",
+          "not_included",
+          "truncated"
+        ],
+        "title": "DataExport",
+        "type": "object"
+      },
       "DateOnlySunResult": {
         "properties": {
           "candidates": {
@@ -1478,6 +1648,1151 @@
         ],
         "title": "ExperimentState",
         "type": "string"
+      },
+      "ExportAccount": {
+        "additionalProperties": false,
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/ExportDevice"
+            },
+            "title": "Devices",
+            "type": "array"
+          },
+          "linked_at": {
+            "format": "date-time",
+            "title": "Linked At",
+            "type": "string"
+          },
+          "masked_email": {
+            "title": "Masked Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "masked_email",
+          "linked_at",
+          "devices"
+        ],
+        "title": "ExportAccount",
+        "type": "object"
+      },
+      "ExportBirthProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "approx_window": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approx Window"
+          },
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "birth_time_local": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Time Local"
+          },
+          "birth_time_mode": {
+            "title": "Birth Time Mode",
+            "type": "string"
+          },
+          "calculated_at": {
+            "format": "date-time",
+            "title": "Calculated At",
+            "type": "string"
+          },
+          "calculation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DateOnlySunResult"
+              },
+              {
+                "$ref": "#/components/schemas/NatalChart"
+              }
+            ],
+            "title": "Calculation"
+          },
+          "calculation_kind": {
+            "enum": [
+              "date_only_sun",
+              "natal_chart"
+            ],
+            "title": "Calculation Kind",
+            "type": "string"
+          },
+          "place_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Display Name"
+          },
+          "profile_level": {
+            "title": "Profile Level",
+            "type": "integer"
+          },
+          "supplement_consent_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplement Consent Version"
+          },
+          "time_precision": {
+            "title": "Time Precision",
+            "type": "string"
+          },
+          "timezone_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone Id"
+          }
+        },
+        "required": [
+          "birth_date",
+          "profile_level",
+          "time_precision",
+          "birth_time_mode",
+          "birth_time_local",
+          "approx_window",
+          "place_display_name",
+          "timezone_id",
+          "supplement_consent_version",
+          "calculated_at",
+          "calculation_kind",
+          "calculation"
+        ],
+        "title": "ExportBirthProfile",
+        "type": "object"
+      },
+      "ExportConsent": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted_at": {
+            "format": "date-time",
+            "title": "Accepted At",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "version",
+          "accepted_at",
+          "revoked_at"
+        ],
+        "title": "ExportConsent",
+        "type": "object"
+      },
+      "ExportDailyExperiment": {
+        "additionalProperties": false,
+        "properties": {
+          "background_lens": {
+            "title": "Background Lens",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "reflected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reflected At"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "background_lens",
+          "outcome",
+          "created_at",
+          "expires_at",
+          "reflected_at"
+        ],
+        "title": "ExportDailyExperiment",
+        "type": "object"
+      },
+      "ExportDailyNote": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "context_label": {
+            "title": "Context Label",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "full_body": {
+            "title": "Full Body",
+            "type": "string"
+          },
+          "mood": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mood"
+          },
+          "mood_checked_in_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mood Checked In At"
+          },
+          "note_date": {
+            "format": "date",
+            "title": "Note Date",
+            "type": "string"
+          },
+          "persona_label": {
+            "title": "Persona Label",
+            "type": "string"
+          },
+          "persona_mode": {
+            "title": "Persona Mode",
+            "type": "string"
+          },
+          "readings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ExportSavedReading"
+            },
+            "title": "Readings",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "note_date",
+          "title",
+          "body",
+          "full_body",
+          "context_label",
+          "persona_mode",
+          "persona_label",
+          "created_at",
+          "mood",
+          "mood_checked_in_at"
+        ],
+        "title": "ExportDailyNote",
+        "type": "object"
+      },
+      "ExportDevice": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "last_active_at": {
+            "format": "date-time",
+            "title": "Last Active At",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          }
+        },
+        "required": [
+          "created_at",
+          "last_active_at",
+          "expires_at",
+          "revoked_at"
+        ],
+        "title": "ExportDevice",
+        "type": "object"
+      },
+      "ExportHistoryRetention": {
+        "additionalProperties": false,
+        "properties": {
+          "activated_at": {
+            "format": "date-time",
+            "title": "Activated At",
+            "type": "string"
+          },
+          "consent_version": {
+            "title": "Consent Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "consent_version",
+          "activated_at"
+        ],
+        "title": "ExportHistoryRetention",
+        "type": "object"
+      },
+      "ExportLaChungInvite": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "has_response": {
+            "title": "Has Response",
+            "type": "boolean"
+          },
+          "nickname": {
+            "title": "Nickname",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nickname",
+          "context",
+          "status",
+          "has_response",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportLaChungInvite",
+        "type": "object"
+      },
+      "ExportMatching": {
+        "additionalProperties": false,
+        "properties": {
+          "consents": {
+            "items": {
+              "$ref": "#/components/schemas/ExportConsent"
+            },
+            "title": "Consents",
+            "type": "array"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportMatchingProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verification_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Status"
+          }
+        },
+        "required": [
+          "profile",
+          "consents",
+          "verification_status"
+        ],
+        "title": "ExportMatching",
+        "type": "object"
+      },
+      "ExportMatchingProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "gender_identity": {
+            "title": "Gender Identity",
+            "type": "string"
+          },
+          "gender_preference": {
+            "title": "Gender Preference",
+            "type": "string"
+          },
+          "intent": {
+            "title": "Intent",
+            "type": "string"
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Joined At"
+          },
+          "max_age": {
+            "title": "Max Age",
+            "type": "integer"
+          },
+          "min_age": {
+            "title": "Min Age",
+            "type": "integer"
+          },
+          "region_code": {
+            "title": "Region Code",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "weekly_intent": {
+            "title": "Weekly Intent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "gender_identity",
+          "intent",
+          "gender_preference",
+          "min_age",
+          "max_age",
+          "region_code",
+          "weekly_intent",
+          "active",
+          "joined_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ExportMatchingProfile",
+        "type": "object"
+      },
+      "ExportNoteFeedback": {
+        "additionalProperties": false,
+        "properties": {
+          "background_lens": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Background Lens"
+          },
+          "choice": {
+            "title": "Choice",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "choice",
+          "background_lens",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportNoteFeedback",
+        "type": "object"
+      },
+      "ExportProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "last_active_at": {
+            "format": "date-time",
+            "title": "Last Active At",
+            "type": "string"
+          },
+          "onboarding_status": {
+            "title": "Onboarding Status",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "onboarding_status",
+          "created_at",
+          "last_active_at",
+          "expires_at"
+        ],
+        "title": "ExportProfile",
+        "type": "object"
+      },
+      "ExportRadarReceived": {
+        "additionalProperties": false,
+        "description": "B's own side: B's consent, never the nickname the sender chose for B.",
+        "properties": {
+          "accepted_at": {
+            "format": "date-time",
+            "title": "Accepted At",
+            "type": "string"
+          },
+          "consent_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consent Version"
+          },
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "context",
+          "consent_version",
+          "accepted_at",
+          "expires_at"
+        ],
+        "title": "ExportRadarReceived",
+        "type": "object"
+      },
+      "ExportRadarSent": {
+        "additionalProperties": false,
+        "description": "A's own side only: the nickname A typed and the request's lifecycle, never B's data.",
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "nickname": {
+            "title": "Nickname",
+            "type": "string"
+          },
+          "permission_attested_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permission Attested At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nickname",
+          "context",
+          "voice",
+          "mode",
+          "status",
+          "permission_attested_at",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportRadarSent",
+        "type": "object"
+      },
+      "ExportReadingEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "framework_disclosure": {
+            "title": "Framework Disclosure",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "claims",
+          "framework_disclosure"
+        ],
+        "title": "ExportReadingEvidence",
+        "type": "object"
+      },
+      "ExportReadingSections": {
+        "additionalProperties": false,
+        "properties": {
+          "companion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companion"
+          },
+          "hook": {
+            "title": "Hook",
+            "type": "string"
+          },
+          "manifestation": {
+            "title": "Manifestation",
+            "type": "string"
+          },
+          "micro_action": {
+            "title": "Micro Action",
+            "type": "string"
+          },
+          "thesis": {
+            "title": "Thesis",
+            "type": "string"
+          },
+          "transit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transit"
+          }
+        },
+        "required": [
+          "hook",
+          "thesis",
+          "manifestation",
+          "transit",
+          "micro_action",
+          "companion"
+        ],
+        "title": "ExportReadingSections",
+        "type": "object"
+      },
+      "ExportSavedNote": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "context_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Label"
+          },
+          "full_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Body"
+          },
+          "note_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note Date"
+          },
+          "persona_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Label"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportSavedReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "saved_at": {
+            "format": "date-time",
+            "title": "Saved At",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "saved_at",
+          "note_date",
+          "title",
+          "body",
+          "full_body",
+          "context_label",
+          "persona_label",
+          "reading"
+        ],
+        "title": "ExportSavedNote",
+        "type": "object"
+      },
+      "ExportSavedReading": {
+        "additionalProperties": false,
+        "properties": {
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/ExportReadingEvidence"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/ExportReadingSections"
+          }
+        },
+        "required": [
+          "sections",
+          "evidence",
+          "disclaimer"
+        ],
+        "title": "ExportSavedReading",
+        "type": "object"
+      },
+      "ExportShareLink": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "revoked",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "status",
+          "created_at",
+          "expires_at",
+          "revoked_at"
+        ],
+        "title": "ExportShareLink",
+        "type": "object"
+      },
+      "ExportTarotCard": {
+        "additionalProperties": false,
+        "properties": {
+          "card": {
+            "title": "Card",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "card"
+        ],
+        "title": "ExportTarotCard",
+        "type": "object"
+      },
+      "ExportTarotPosition": {
+        "additionalProperties": false,
+        "properties": {
+          "card": {
+            "title": "Card",
+            "type": "string"
+          },
+          "everyday_scene": {
+            "title": "Everyday Scene",
+            "type": "string"
+          },
+          "meaning_here": {
+            "title": "Meaning Here",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "reflection_question": {
+            "title": "Reflection Question",
+            "type": "string"
+          },
+          "small_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Small Action"
+          }
+        },
+        "required": [
+          "position",
+          "card",
+          "meaning_here",
+          "everyday_scene",
+          "reflection_question",
+          "small_action"
+        ],
+        "title": "ExportTarotPosition",
+        "type": "object"
+      },
+      "ExportTarotReading": {
+        "additionalProperties": false,
+        "properties": {
+          "closing_prompt": {
+            "title": "Closing Prompt",
+            "type": "string"
+          },
+          "conclusion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conclusion"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTarotPosition"
+            },
+            "title": "Positions",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "headline",
+          "summary",
+          "positions",
+          "conclusion",
+          "closing_prompt",
+          "disclaimer"
+        ],
+        "title": "ExportTarotReading",
+        "type": "object"
+      },
+      "ExportTarotSession": {
+        "additionalProperties": false,
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTarotCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportTarotReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spread": {
+            "title": "Spread",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "context",
+          "spread",
+          "voice",
+          "question",
+          "cards",
+          "reading",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportTarotSession",
+        "type": "object"
       },
       "FallbackReason": {
         "enum": [
@@ -11772,6 +13087,67 @@
         "summary": "Grant Content Rewrite Consent",
         "tags": [
           "guest"
+        ]
+      }
+    },
+    "/v1/session/data-export": {
+      "post": {
+        "operationId": "export_my_data_v1_session_data_export_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataExport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Export My Data",
+        "tags": [
+          "privacy"
         ]
       }
     },

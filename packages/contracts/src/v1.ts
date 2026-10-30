@@ -1199,6 +1199,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/session/data-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export My Data */
+        post: operations["export_my_data_v1_session_data_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/session/history": {
         parameters: {
             query?: never;
@@ -1772,6 +1789,51 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** DataExport */
+        DataExport: {
+            account: components["schemas"]["ExportAccount"] | null;
+            birth_profile: components["schemas"]["ExportBirthProfile"] | null;
+            /** Consents */
+            consents: components["schemas"]["ExportConsent"][];
+            /** Daily Experiments */
+            daily_experiments: components["schemas"]["ExportDailyExperiment"][];
+            /** Daily Notes */
+            daily_notes: components["schemas"]["ExportDailyNote"][];
+            /**
+             * Format
+             * @default la-lanh-data-export-v1
+             * @constant
+             */
+            format: "la-lanh-data-export-v1";
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            history_retention: components["schemas"]["ExportHistoryRetention"] | null;
+            /** La Chung Invites */
+            la_chung_invites: components["schemas"]["ExportLaChungInvite"][];
+            matching: components["schemas"]["ExportMatching"] | null;
+            /** Not Included */
+            not_included: string[];
+            /** Note Feedback */
+            note_feedback: components["schemas"]["ExportNoteFeedback"][];
+            /** Notice */
+            notice: string;
+            profile: components["schemas"]["ExportProfile"];
+            /** Radar Received */
+            radar_received: components["schemas"]["ExportRadarReceived"][];
+            /** Radar Sent */
+            radar_sent: components["schemas"]["ExportRadarSent"][];
+            /** Saved Notes */
+            saved_notes: components["schemas"]["ExportSavedNote"][];
+            /** Share Links */
+            share_links: components["schemas"]["ExportShareLink"][];
+            /** Tarot Sessions */
+            tarot_sessions: components["schemas"]["ExportTarotSession"][];
+            /** Truncated */
+            truncated: string[];
+        };
         /** DateOnlySunResult */
         DateOnlySunResult: {
             /** Candidates */
@@ -1950,6 +2012,439 @@ export interface components {
          * @enum {string}
          */
         ExperimentState: "chosen" | "reflected";
+        /** ExportAccount */
+        ExportAccount: {
+            /** Devices */
+            devices: components["schemas"]["ExportDevice"][];
+            /**
+             * Linked At
+             * Format: date-time
+             */
+            linked_at: string;
+            /** Masked Email */
+            masked_email: string;
+        };
+        /** ExportBirthProfile */
+        ExportBirthProfile: {
+            /** Approx Window */
+            approx_window: string | null;
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /** Birth Time Local */
+            birth_time_local: string | null;
+            /** Birth Time Mode */
+            birth_time_mode: string;
+            /**
+             * Calculated At
+             * Format: date-time
+             */
+            calculated_at: string;
+            /** Calculation */
+            calculation: components["schemas"]["DateOnlySunResult"] | components["schemas"]["NatalChart"];
+            /**
+             * Calculation Kind
+             * @enum {string}
+             */
+            calculation_kind: "date_only_sun" | "natal_chart";
+            /** Place Display Name */
+            place_display_name: string | null;
+            /** Profile Level */
+            profile_level: number;
+            /** Supplement Consent Version */
+            supplement_consent_version: string | null;
+            /** Time Precision */
+            time_precision: string;
+            /** Timezone Id */
+            timezone_id: string | null;
+        };
+        /** ExportConsent */
+        ExportConsent: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /** Purpose */
+            purpose: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Version */
+            version: string;
+        };
+        /** ExportDailyExperiment */
+        ExportDailyExperiment: {
+            /** Background Lens */
+            background_lens: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Outcome */
+            outcome: string | null;
+            /** Reflected At */
+            reflected_at: string | null;
+            /** State */
+            state: string;
+        };
+        /** ExportDailyNote */
+        ExportDailyNote: {
+            /** Body */
+            body: string;
+            /** Context Label */
+            context_label: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Full Body */
+            full_body: string;
+            /** Mood */
+            mood: string | null;
+            /** Mood Checked In At */
+            mood_checked_in_at: string | null;
+            /**
+             * Note Date
+             * Format: date
+             */
+            note_date: string;
+            /** Persona Label */
+            persona_label: string;
+            /** Persona Mode */
+            persona_mode: string;
+            /**
+             * Readings
+             * @default []
+             */
+            readings: components["schemas"]["ExportSavedReading"][];
+            /** Title */
+            title: string;
+        };
+        /** ExportDevice */
+        ExportDevice: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Last Active At
+             * Format: date-time
+             */
+            last_active_at: string;
+            /** Revoked At */
+            revoked_at: string | null;
+        };
+        /** ExportHistoryRetention */
+        ExportHistoryRetention: {
+            /**
+             * Activated At
+             * Format: date-time
+             */
+            activated_at: string;
+            /** Consent Version */
+            consent_version: string;
+        };
+        /** ExportLaChungInvite */
+        ExportLaChungInvite: {
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Has Response */
+            has_response: boolean;
+            /** Nickname */
+            nickname: string;
+            /** Status */
+            status: string;
+        };
+        /** ExportMatching */
+        ExportMatching: {
+            /** Consents */
+            consents: components["schemas"]["ExportConsent"][];
+            profile: components["schemas"]["ExportMatchingProfile"] | null;
+            /** Verification Status */
+            verification_status: string | null;
+        };
+        /** ExportMatchingProfile */
+        ExportMatchingProfile: {
+            /** Active */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string;
+            /** Gender Identity */
+            gender_identity: string;
+            /** Gender Preference */
+            gender_preference: string;
+            /** Intent */
+            intent: string;
+            /** Joined At */
+            joined_at: string | null;
+            /** Max Age */
+            max_age: number;
+            /** Min Age */
+            min_age: number;
+            /** Region Code */
+            region_code: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Weekly Intent */
+            weekly_intent: string;
+        };
+        /** ExportNoteFeedback */
+        ExportNoteFeedback: {
+            /** Background Lens */
+            background_lens: string | null;
+            /** Choice */
+            choice: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /** ExportProfile */
+        ExportProfile: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Last Active At
+             * Format: date-time
+             */
+            last_active_at: string;
+            /** Onboarding Status */
+            onboarding_status: string;
+            /** State */
+            state: string;
+        };
+        /**
+         * ExportRadarReceived
+         * @description B's own side: B's consent, never the nickname the sender chose for B.
+         */
+        ExportRadarReceived: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /** Consent Version */
+            consent_version: string | null;
+            /** Context */
+            context: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /**
+         * ExportRadarSent
+         * @description A's own side only: the nickname A typed and the request's lifecycle, never B's data.
+         */
+        ExportRadarSent: {
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Mode */
+            mode: string;
+            /** Nickname */
+            nickname: string;
+            /** Permission Attested At */
+            permission_attested_at: string | null;
+            /** Status */
+            status: string;
+            /** Voice */
+            voice: string;
+        };
+        /** ExportReadingEvidence */
+        ExportReadingEvidence: {
+            /** Claims */
+            claims: string[];
+            /** Framework Disclosure */
+            framework_disclosure: string;
+            /** Title */
+            title: string;
+        };
+        /** ExportReadingSections */
+        ExportReadingSections: {
+            /** Companion */
+            companion: string | null;
+            /** Hook */
+            hook: string;
+            /** Manifestation */
+            manifestation: string;
+            /** Micro Action */
+            micro_action: string;
+            /** Thesis */
+            thesis: string;
+            /** Transit */
+            transit: string | null;
+        };
+        /** ExportSavedNote */
+        ExportSavedNote: {
+            /** Body */
+            body: string | null;
+            /** Context Label */
+            context_label: string | null;
+            /** Full Body */
+            full_body: string | null;
+            /** Note Date */
+            note_date: string | null;
+            /** Persona Label */
+            persona_label: string | null;
+            reading: components["schemas"]["ExportSavedReading"] | null;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Title */
+            title: string | null;
+        };
+        /** ExportSavedReading */
+        ExportSavedReading: {
+            /** Disclaimer */
+            disclaimer: string;
+            evidence: components["schemas"]["ExportReadingEvidence"];
+            sections: components["schemas"]["ExportReadingSections"];
+        };
+        /** ExportShareLink */
+        ExportShareLink: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Format */
+            format: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "revoked" | "expired";
+        };
+        /** ExportTarotCard */
+        ExportTarotCard: {
+            /** Card */
+            card: string;
+            /** Position */
+            position: string;
+        };
+        /** ExportTarotPosition */
+        ExportTarotPosition: {
+            /** Card */
+            card: string;
+            /** Everyday Scene */
+            everyday_scene: string;
+            /** Meaning Here */
+            meaning_here: string;
+            /** Position */
+            position: string;
+            /** Reflection Question */
+            reflection_question: string;
+            /** Small Action */
+            small_action: string | null;
+        };
+        /** ExportTarotReading */
+        ExportTarotReading: {
+            /** Closing Prompt */
+            closing_prompt: string;
+            /** Conclusion */
+            conclusion: string | null;
+            /** Disclaimer */
+            disclaimer: string;
+            /** Headline */
+            headline: string;
+            /** Positions */
+            positions: components["schemas"]["ExportTarotPosition"][];
+            /** Summary */
+            summary: string;
+        };
+        /** ExportTarotSession */
+        ExportTarotSession: {
+            /** Cards */
+            cards: components["schemas"]["ExportTarotCard"][];
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Question */
+            question: string;
+            reading: components["schemas"]["ExportTarotReading"] | null;
+            /** Spread */
+            spread: string;
+            /** State */
+            state: string;
+            /** Voice */
+            voice: string;
+        };
         /**
          * FallbackReason
          * @enum {string}
@@ -8132,6 +8627,65 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    export_my_data_v1_session_data_export_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataExport"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
