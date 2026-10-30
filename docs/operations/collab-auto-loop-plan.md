@@ -115,7 +115,9 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | APPROVE @ head đủ điều kiện | Merge |
 | Draft / `needs-owner` / xếp chồng chờ PR cha / bị `Bỏ #N` hôm nay | Giữ |
 
-`--run`: tối đa 2 lượt Codex và 2 merge mỗi lần; lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
+`--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở** (nhóm sớm nhất còn PR không ở trạng thái Giữ): content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới sau 23:30. Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
+
+Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dùng chung clone; review thứ hai trả `busy` và chờ lượt sau. Author check mới nhất cho head quyết định (FAIL sau PASS thì chặn). Sau khi đổi base, verdict cũ hết hiệu lực.
 
 ## 5. An toàn
 

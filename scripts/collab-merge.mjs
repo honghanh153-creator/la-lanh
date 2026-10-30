@@ -2,7 +2,7 @@
 // Usage: node scripts/collab-merge.mjs --pr N [--dry-run]
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { agentMarker, clean, fixForwardIssue, integration, isSha, makeGh, repo, stateDir, trustedComments, writeJson } from './collab-trust.mjs';
+import { agentMarker, clean, fixForwardIssue, integration, isSha, makeGh, repo, reviewState, stateDir, writeJson } from './collab-trust.mjs';
 
 export function mergeGate(pr) {
   const reasons = [];
@@ -14,10 +14,10 @@ export function mergeGate(pr) {
   if (pr.isDraft) reasons.push('draft');
   if (labels.includes('needs-owner')) reasons.push('needs-owner');
   if (pr.mergeable !== 'MERGEABLE') reasons.push(`GitHub báo mergeable=${pr.mergeable}`);
-  const trusted = trustedComments(pr.comments);
-  const last = trusted.filter(c => c.verdict).at(-1);
-  if (!last || last.verdict.verdict !== 'APPROVE' || last.verdict.sha !== head) reasons.push('verdict mới nhất không phải APPROVE @ head');
-  if (!trusted.some(c => c.check?.status === 'PASS' && c.check.sha === head)) reasons.push('thiếu Author check: PASS @ head');
+  const { check, last } = reviewState(pr);
+  if (!last || last.verdict.verdict !== 'APPROVE' || last.verdict.sha !== head) reasons.push('verdict mới nhất (sau lần đổi base gần nhất) không phải APPROVE @ head');
+  // The newest author check for the head decides; an older PASS does not outvote a later FAIL.
+  if (check?.status !== 'PASS') reasons.push('Author check mới nhất @ head không phải PASS');
   // Automatic approvals with non-blocking P2 must link their fix-forward issue.
   const p2 = Number(/codex-auto-review sha=[0-9a-f]{40} p2=(\d+)/.exec(last?.body ?? '')?.[1] ?? 0);
   if (last?.auto && p2 > 0 && !fixForwardIssue(last.body)) reasons.push('APPROVE có P2 nhưng thiếu issue fix-forward');
@@ -34,7 +34,7 @@ export function runMerge(number, { gh = makeGh(), dryRun = false } = {}) {
   const retargeted = [];
   for (const child of gh.openPrs().filter(p => p.baseRefName === pr.headRefName)) {
     gh.raw(['pr', 'edit', String(child.number), '--repo', repo, '--base', integration]);
-    gh.comment('pr', child.number, `PR cha #${pr.number} đã merge vào \`${integration}\`; base của PR này được đổi sang \`${integration}\`. Head không đổi.\n\n${agentMarker} retarget parent=${pr.number} -->`);
+    gh.comment('pr', child.number, `PR cha #${pr.number} đã merge vào \`${integration}\`; base của PR này được đổi sang \`${integration}\`. Head không đổi; verdict trước đây hết hiệu lực, PR cần review lại.\n\n${agentMarker} retarget parent=${pr.number} -->`);
     retargeted.push(child.number);
   }
   writeJson(join(stateDir, 'logs', `merge-pr${pr.number}-${gate.head.slice(0, 12)}.json`), { pr: pr.number, head: gate.head, retargeted, at: new Date().toISOString() });

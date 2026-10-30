@@ -2,7 +2,7 @@
 // Usage: node scripts/codex-review.mjs --pr N [--auto]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { agentMarker, blockingP2, clean, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
@@ -44,7 +44,7 @@ export function fillPrompt(template, values) {
   return template.replace(/\{\{([A-Z_]+)\}\}/g, (_, key) => values[key] ?? '');
 }
 
-const cell = text => clean(text, 300).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+const cell = text => clean(text, 900).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue }) {
   const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${cell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);
@@ -98,7 +98,17 @@ function ensureLabel(gh, name, color, description) {
   gh.raw(['label', 'create', name, '--repo', repo, '--color', color, '--description', description, '--force']);
 }
 
-export function runReview(number, { auto = false, gh = makeGh(), run = execFileSync, now = vnNow(), readOut } = {}) {
+// One review at a time: every review shares the clone, so a second caller waits for the next run.
+export function runReview(number, options = {}) {
+  mkdirSync(stateDir, { recursive: true });
+  const path = join(stateDir, 'review.lock');
+  try { if (Date.now() - statSync(path).mtimeMs > 45 * 60000) rmSync(path); } catch {}
+  let fd;
+  try { fd = openSync(path, 'wx'); } catch { return { status: 'busy', reason: 'một review khác đang chạy' }; }
+  try { return reviewOnce(number, options); } finally { closeSync(fd); rmSync(path, { force: true }); }
+}
+
+function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, now = vnNow(), readOut } = {}) {
   const pr = gh.pr(number);
   const head = pr.headRefOid;
   if (!isSha(head)) throw new Error('PR head SHA unavailable.');
@@ -133,6 +143,8 @@ export function runReview(number, { auto = false, gh = makeGh(), run = execFileS
   if (result.status === 'limit') return { status: 'limit', reason: result.error };
   writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
   if (result.status !== 'ok') return { status: 'error', reason: result.error };
+  // The verdict must describe what Codex actually read.
+  if (git(['rev-parse', 'HEAD'], dir, run) !== head) throw new Error('Review clone moved while Codex was reading; verdict not posted.');
 
   const rawOut = readOut ? readOut(outPath) : readFileSync(outPath, 'utf8');
   const out = validateOutput(JSON.parse(rawOut), head);

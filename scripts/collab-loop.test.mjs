@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -227,4 +227,68 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   assert.equal(tick(deps({ hour: 10, minute: 11 })).status, 'already-ran-this-hour');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.deepEqual(queue.items.map(i => [i.number, i.turn]), [[5, 'claude-check']]);
+});
+
+test('r1: a newer FAIL outvotes an older PASS, and a retarget voids earlier verdicts', () => {
+  const failedLater = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), check(A, 'FAIL')] });
+  assert.ok(!mergeGate(failedLater).ok);
+  assert.equal(prTurn(failedLater).turn, 'claude-fix');
+  const retargeted = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), owner(`Base changed.\n\n${trust.agentMarker} retarget parent=6 -->`)] });
+  assert.ok(!mergeGate(retargeted).ok);
+  assert.equal(prTurn(retargeted).turn, 'codex-review');
+  retargeted.comments.push(owner(`Review verdict: APPROVE @ ${A}`));
+  assert.ok(mergeGate(retargeted).ok);
+});
+
+test('r1: only one review uses the shared clone at a time', () => {
+  const lock = join(trust.stateDir, 'review.lock');
+  trust.writeJson(lock, {});
+  try {
+    const result = review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run });
+    assert.equal(result.status, 'busy');
+  } finally { rmSync(lock, { force: true }); }
+});
+
+const plannedGh = (open, date) => {
+  const comments = [{ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` }];
+  return { ...fakeGh({ pr: open[0], open }), json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments } };
+};
+
+test('r1: the clock is re-read before each review, so nothing new starts after 23:30', () => {
+  const date = '2026-11-03';
+  const open = [pr({ number: 1, comments: [check(A)] }), pr({ number: 2, comments: [check(A)] })];
+  const times = [{ hour: 23, minute: 20 }, { hour: 23, minute: 20 }, { hour: 23, minute: 41 }];
+  const started = [];
+  const result = tick({ gh: plannedGh(open, date), clock: () => ({ date, ...(times.shift() ?? { hour: 23, minute: 45 }) }), merge: () => ({}), review: n => { started.push(n); return { status: 'posted' }; } });
+  assert.equal(result.status, 'ran');
+  assert.deepEqual(started, [1]);
+});
+
+test('r1: review errors count as tick failures and alert on the second', () => {
+  const date = '2026-11-04';
+  const open = [pr({ number: 1, comments: [check(A)] })];
+  const alerts = [];
+  const run = hour => tick({ gh: plannedGh(open, date), now: { date, hour, minute: 5 }, merge: () => ({}), review: () => ({ status: 'error', reason: 'codex missing' }), alert: text => alerts.push(text) });
+  assert.equal(run(11).status, 'ran-with-errors');
+  assert.equal(alerts.length, 0);
+  run(12);
+  assert.equal(alerts.length, 1);
+});
+
+test('r1: privacy and features wait until no content PR is in play', () => {
+  const date = '2026-11-05';
+  const open = [
+    pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
+    pr({ number: 2, title: 'feat(privacy): export', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+    pr({ number: 3, title: 'feat(tarot): held', isDraft: true }),
+  ];
+  const merged = [];
+  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
+  assert.equal(result.area, 'content');
+  assert.deepEqual(merged, []);
+  const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+  assert.deepEqual(queue.items.map(i => i.number), [1]);
+  open[0].isDraft = true;
+  tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
+  assert.deepEqual(merged, [2], 'once content is only held, privacy proceeds');
 });

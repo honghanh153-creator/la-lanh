@@ -68,6 +68,19 @@ export function trustedComments(comments = []) {
     .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
 }
 
+// One reading of a PR's review state for both the turn table and the merge gate.
+// The latest author check for the head wins; verdicts before a retarget no longer count.
+export function reviewState(pr) {
+  const trusted = trustedComments(pr.comments);
+  const retarget = trusted.filter(c => String(c.body ?? '').includes(`${agentMarker} retarget`)).at(-1);
+  const current = retarget ? trusted.filter(c => String(c.createdAt) > String(retarget.createdAt)) : trusted;
+  return {
+    trusted,
+    check: trusted.filter(c => c.check?.sha === pr.headRefOid).at(-1)?.check ?? null,
+    last: current.filter(c => c.verdict).at(-1) ?? null,
+  };
+}
+
 export function classifyArea(pr) {
   const label = (pr.labels ?? []).map(l => l.name ?? l).find(n => /^area:/.test(n));
   if (label && areaOrder.includes(label.slice(5))) return label.slice(5);
