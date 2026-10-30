@@ -35,6 +35,8 @@ from app.domains.guest.models import GuestState
 from app.domains.guest.postgres import PostgresGuestRepository
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.history.postgres import PostgresHistoryRepository
+from app.domains.human_tarot.service import schedule_clear, tombstone
+from app.domains.human_tarot.tables import HumanTarotRequestRow, HumanTarotSlotRow
 from app.domains.la_chung.models import RequestStatus
 from app.domains.la_chung.tables import LaChungReportRow, LaChungRequestRow, LaChungResponseRow
 from app.domains.matching.postgres import PostgresMatchingRepository
@@ -70,6 +72,7 @@ _ARTIFACT_IDS = {
     ErasureKind.LA_CHUNG_RESPONSE_WITHDRAWN: LaChungResponseRow.id,
     ErasureKind.LA_CHUNG_RESULT_HIDDEN: LaChungResponseRow.id,
     ErasureKind.EXPERIMENT_UNDONE: DailyExperimentRow.id,
+    ErasureKind.HUMAN_TAROT_REQUEST_CANCELLED: HumanTarotRequestRow.id,
 }
 
 
@@ -368,6 +371,17 @@ async def _apply(
             await session.execute(
                 delete(DailyExperimentRow).where(DailyExperimentRow.id == subject)
             )
+    elif kind is ErasureKind.HUMAN_TAROT_REQUEST_CANCELLED:
+        async with sessions() as session, session.begin():
+            # Question and reading go again; the Sheet bridge clears the restored row's copy.
+            request = await session.get(HumanTarotRequestRow, subject, with_for_update=True)
+            if request is not None and request.status != "cancelled":
+                tombstone(request, at)
+            slot = await session.scalar(
+                select(HumanTarotSlotRow).where(HumanTarotSlotRow.request_id == subject)
+            )
+            if slot is not None:
+                schedule_clear(slot)
     elif kind is ErasureKind.RADAR_WITHDRAWN:
         async with sessions() as session, session.begin():
             await session.execute(
