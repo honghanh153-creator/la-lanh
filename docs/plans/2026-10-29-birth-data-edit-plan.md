@@ -116,9 +116,12 @@ birth data. This fits the north star: calm, no surprises, and "this app understa
   - the insert transaction takes the same guest row lock as correction and time/place removal;
   - inside that lock it rechecks that the live daily note (and the revision, when one is referenced) still exists
     and is owned by the caller, and refuses otherwise;
-  - **creation first:** the later removal or correction deletes the new copy as part of its cascade;
-  - **removal first:** the late creation finds no source and is refused, so no copy of deleted chart text is
-    published;
+  - **creation first, then date correction:** the copy committed first is a frozen copy like any other and is
+    **kept** (D2), still unsavable and revocable;
+  - **creation first, then time/place removal:** the removal **explicitly deletes** the new copy with the guest's
+    other copies, as its confirm text promises (not by cascade: the source FKs are gone);
+  - **removal or correction first:** the late creation rechecks its source under the lock, finds it missing and is
+    refused, so no copy of deleted chart text is published;
   - saving a note gets the same fence.
 - **Reads.** Saving still requires a live source. Listing saved notes, unsave, the public share read, revoke, purge
   and erasure-journal replay of unsave and share revoke must work for a detached row. The public share read already
@@ -317,7 +320,8 @@ part of the owner/engineering P09 assessment and is not claimed here.
 - **AC14:** Given a pending Radar invite, including one opened but not accepted, the confirm sheet says it will stop
   working before the person confirms.
 - **AC15:** Given a share or save that read its source before a correction or time/place removal committed, the late
-  insert is refused, and no copy of the deleted chart text becomes readable.
+  insert is refused, and no copy of the deleted chart text becomes readable. Given a share or save that committed
+  first, a later date correction keeps it as a frozen copy (D2), and a later time/place removal deletes it (Codex r55).
 
 ## DoD
 
