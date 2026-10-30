@@ -74,7 +74,7 @@ async def test_export_writes_the_assigned_row_as_text(database: Database) -> Non
     assert view.delivery == "delivered"
     (slot,) = await support.slots(database)
     row = sheet.grid(TAB)[1]
-    assert row[0] == slot.request_code and row[1] == "30/10/2026" and row[2] == "10:00"
+    assert row[0] == slot.request_code and row[1] == "30/10/2026" and row[2] == "22:00"
     assert row[3] == "Công việc" and row[4] == formula_like and row[5] == "3"
     assert row[6] == "1. Điều đã rõ · 2. Điều dễ bỏ sót · 3. Một bước nhỏ có thể thử"
     assert row[15] == sheet_rows.STATUS_WAITING
@@ -83,22 +83,22 @@ async def test_export_writes_the_assigned_row_as_text(database: Database) -> Non
     assert str(guest) not in str(sheet.grid(TAB)) and str(view.id) not in str(sheet.grid(TAB))
 
 
-async def test_ready_row_is_validated_frozen_and_opens_at_ten(database: Database) -> None:
+async def test_ready_row_is_validated_frozen_and_opens_at_22(database: Database) -> None:
     clock, sheet = Clock(vn(DAY, 7)), _sheet()
     tarot, bridge = _wire(database, clock, sheet)
     guest = await support.guest(database)
     view = await support.create(tarot, guest)
     titles = _titles()
     _owner_writes(sheet, 2, cards=[titles["major-star"], titles["cups-5"], titles["wands-ace"]])
-    clock.moment = vn(DAY, 9)
+    clock.moment = vn(DAY, 19)
     report = await bridge.sync_once()
     assert report.counts.get("imported") == 1, report.line()
     assert sheet.cell(TAB, "P2") == sheet_rows.STATUS_IMPORTED
-    assert (await tarot.get(guest, view.id)).result is None  # still before 10:00
+    assert (await tarot.get(guest, view.id)).result is None  # still before 22:00
     # A later edit of the Sheet never replaces the frozen reading (AC16).
     sheet.set_row(TAB, 2, ["Một bài khác hẳn, viết lại sau khi app đã nhận bài đọc rồi."], "M")
     await bridge.sync_once()
-    clock.moment = vn(DAY, 10)
+    clock.moment = vn(DAY, 22)
     opened = await tarot.get(guest, view.id)
     assert opened.status is VisibleStatus.READY and opened.result is not None
     assert opened.result.reading.startswith("Bài đọc tổng hợp")
@@ -286,7 +286,7 @@ async def test_guest_deletion_and_unknown_codes_leave_no_copy(database: Database
     tarot, bridge = _wire(database, clock, sheet)
     guest = await support.guest(database)
     await support.create(tarot, guest)
-    sheet.set_row(TAB, 5, ["LL-ABCDEF", "30/10/2026", "10:00", "Quan hệ", "Một câu hỏi lạ"])
+    sheet.set_row(TAB, 5, ["LL-ABCDEF", "30/10/2026", "22:00", "Quan hệ", "Một câu hỏi lạ"])
     async with database.sessions() as session, session.begin():
         await session.execute(delete(GuestSessionRow).where(GuestSessionRow.id == guest))
     report = await bridge.sync_once()

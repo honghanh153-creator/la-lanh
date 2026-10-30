@@ -25,10 +25,10 @@
 | Giờ | Việc |
 |---|---|
 | Từ 00:00 | App nhận tối đa 10 câu hỏi, mỗi câu vào đúng hàng app cấp (cột A–G do app ghi). Cột P ghi "Đang chờ bài". |
-| Trước giờ ngừng nhận (mặc định 10:00, đề xuất 09:00) | Đọc câu hỏi, bốc đúng số lá ở cột F theo thứ tự vị trí ở cột G, chọn tên lá ở H–L. |
-| Trước 10:00 | Viết "Bài đọc" (M, 40–1.500 ký tự) và "Bước nhỏ" (N, 8–240 ký tự) bằng chữ thường: không link, không công thức, không nội dung do AI viết. Tick **Sẵn sàng** (O) sau cùng. |
+| Từ 00:00 tới 18:00 (giờ ngừng nhận, owner chốt 30/10) | Đọc câu hỏi, bốc đúng số lá ở cột F theo thứ tự vị trí ở cột G, chọn tên lá ở H–L. |
+| Trước 22:00 | Viết "Bài đọc" (M, 40–1.500 ký tự) và "Bước nhỏ" (N, 8–240 ký tự) bằng chữ thường: không link, không công thức, không nội dung do AI viết. Tick **Sẵn sàng** (O) sau cùng. |
 | Trong vòng 1 phút | App đọc hàng đã tick. Hợp lệ → cột P "Đã nhận bài". Chưa hợp lệ → P "Cần sửa", cột Q ghi mã lỗi (bảng dưới); sửa rồi để nguyên dấu tick, app đọc lại. |
-| 10:00 | Người dùng mở được bài. Bài đã nhận không đổi nữa dù sửa Sheet. |
+| 22:00 | Người dùng mở được bài. Bài đã nhận không đổi nữa dù sửa Sheet. |
 | Hết ngày | App xoá mọi hàng của ngày đó. Câu nào chưa có bài thì kết thúc, người dùng thấy "không có bài hôm nay". |
 
 Mã lỗi ở cột Q: `NGAY_KHONG_KHOP` (cột B bị sửa), `SO_LA_SAI`, `LA_n_KHONG_CO` (tên lá không có trong tab Lá),
