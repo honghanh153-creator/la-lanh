@@ -1944,6 +1944,14 @@
             "title": "Persona Mode",
             "type": "string"
           },
+          "readings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ExportSavedReading"
+            },
+            "title": "Readings",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -13119,6 +13127,9 @@
           },
           "403": {
             "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
           },
           "422": {
             "content": {

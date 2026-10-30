@@ -13,6 +13,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Header, Request, Response
 from fastapi.responses import JSONResponse
 
+from app.domains.data_export.errors import DataExportBusy
 from app.domains.data_export.models import DataExport
 from app.domains.data_export.service import DataExportService
 from app.domains.guest.errors import GuestDomainError
@@ -30,7 +31,7 @@ EXPORT_HEADERS = {
 }
 
 
-def _problem(error: GuestDomainError) -> JSONResponse:
+def _problem(error: GuestDomainError | DataExportBusy) -> JSONResponse:
     return JSONResponse(
         status_code=error.status_code,
         content={
@@ -47,7 +48,7 @@ def _problem(error: GuestDomainError) -> JSONResponse:
 @router.post(
     "/session/data-export",
     response_model=DataExport,
-    responses={401: {}, 403: {}, 429: {}},
+    responses={401: {}, 403: {}, 409: {}, 429: {}},
 )
 async def export_my_data(
     request: Request,
@@ -63,7 +64,7 @@ async def export_my_data(
         export = await cast(DataExportService, request.app.state.data_export_service).export(
             guest.id
         )
-    except GuestDomainError as error:
+    except (GuestDomainError, DataExportBusy) as error:
         return _problem(error)
     response.headers.update(EXPORT_HEADERS)
     response.headers["Content-Disposition"] = f'attachment; filename="{EXPORT_FILENAME}"'

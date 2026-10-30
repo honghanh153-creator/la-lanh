@@ -81,6 +81,9 @@ class ExportDailyNote(_Strict):
     created_at: datetime
     mood: str | None
     mood_checked_in_at: datetime | None
+    # The reading shown for this note (active revision; saved-note shape). Empty when the note
+    # had no reading revision, e.g. the legacy path.
+    readings: list["ExportSavedReading"] = []
 
 
 class ExportReadingSections(_Strict):

@@ -24,7 +24,7 @@ advice.
 | Headers | `Cache-Control: no-store, max-age=0`, `Pragma: no-cache`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Content-Disposition: attachment; filename="la-lanh-du-lieu-cua-toi.json"` |
 | Errors | `401` no/expired session, `403` bad CSRF or origin, `429` admission limit (`Retry-After`) - all problem+json, no data |
 | Rate limit | admission policy `data-export`: 5 per minute per peer, 60 per minute global (rejected attempts count) |
-| Size | each list holds the newest 500 items; a cut list is named in `truncated` |
+| Size | each list holds the newest 500 items, nested lists included (`account.devices`, `consents`, `matching.consents`, newest first); a cut list is named in `truncated` |
 
 Why POST: the file is a bulk disclosure. A GET with a `SameSite=Lax` cookie can be triggered by a
 cross-site top-level navigation, a link prefetcher or a crawler; POST with the CSRF token and a
@@ -44,7 +44,7 @@ Every table with personal data was read (`apps/api/app/domains/*/tables.py`).
 | `consents` | purpose, version, accepted, revoked (birth basic/deep, Tarot, resonance, AI rewrite, history, account storage...) | `consents` |
 | `history_retention` | consent version, activated at | `history_retention_policies` |
 | `birth_profile` | **birth date, time mode, exact local time or window, place display name, timezone** (decrypted), profile level, precision, supplement consent version, natal chart or date-only Sun result | `birth_profiles`, `chart_snapshots` |
-| `daily_notes` | date, title, body, full body, context label, persona, created, that day's mood and time | `daily_notes`, `mood_check_ins` |
+| `daily_notes` | date, title, body, full body, context label, persona, created, that day's mood and time, and `readings`: the reading shown for the note (the active revision of its Daily projection, saved-note shape: sections, evidence, disclaimer; Codex r55) | `daily_notes`, `mood_check_ins`, active `reading_projections` → `reading_revisions` |
 | `saved_notes` | saved at, note text snapshot, saved reading sections, evidence and disclaimer | `saved_notes` |
 | `share_links` | format, status, created, expiry, revoked | `share_artifacts` |
 | `tarot_sessions` | state, topic, spread, voice, question, cards by position, reading (headline, summary, positions, stance conclusion, closing prompt, disclaimer) | `tarot_sessions` |
@@ -66,7 +66,7 @@ Every table with personal data was read (`apps/api/app/domains/*/tables.py`).
 | B's birth date/time/place | Never stored as a profile (private check) or lives in B's own profile (invite). |
 | Birthplace centroid coordinates | Catalog data derived from the chosen place; the place name and timezone are exported. |
 | Daily notes hidden by the history window, expired Tarot, expired/withdrawn/revoked Radar requests | Hidden in the app and pending cleanup; the file must not bring back what the person was told is gone. Saved notes and today's note are always included. |
-| Reading plans, revisions, projections, generation attempts, content-rewrite jobs (encrypted request/output) | Internal processing state. What the person saw is in Daily notes, Tarot and saved notes. |
+| Reading plans, available (not yet shown) revisions, ids, keys, evaluation metadata, generation attempts, content-rewrite jobs (encrypted request/output) | Internal processing state. The text the person saw is in Daily notes (`readings`, from the active revision), Tarot and saved notes. |
 | Experiment `action_key` | Opaque digest of catalog copy. |
 | Matching verification provider reference | External identifier. |
 | Erasure journal, login challenges/quotas, Tarot variant cursor | Keyed digests or counters about the system, not readable content about the person. |
@@ -88,6 +88,7 @@ Every table with personal data was read (`apps/api/app/domains/*/tables.py`).
   `scripts/verify-privacy.mjs` passes.
 - **Schema drift:** strict Pydantic models, `response_model`, and a test that rejects keys ending in
   `_id`/`_hash`/`_ciphertext` (except `timezone_id` and the chart engine's `config_hash` label).
+- **Coherent birth section (Codex r55):** the chart and the time/place layer come from one profile revision, re-read if a birth change commits during assembly; repeated changes answer `409 DATA_EXPORT_RETRY`.
 - **Failure paths:** a decryption failure is a 500 with no body content; nothing partial is written
   anywhere. The export is read-only, so no rollback is needed.
 - **Mobile (MASVS-STORAGE/PLATFORM):** the web client never writes the file to localStorage,

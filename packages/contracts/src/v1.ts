@@ -2121,6 +2121,11 @@ export interface components {
             persona_label: string;
             /** Persona Mode */
             persona_mode: string;
+            /**
+             * Readings
+             * @default []
+             */
+            readings: components["schemas"]["ExportSavedReading"][];
             /** Title */
             title: string;
         };
@@ -8654,6 +8659,13 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

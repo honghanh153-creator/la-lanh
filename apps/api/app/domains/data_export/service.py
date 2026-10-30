@@ -18,9 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.domains.accounts.tables import AccountDeviceRow, AccountRow
 from app.domains.astro.models import DateOnlySunResult
+from app.domains.birth.models import BirthSnapshotRecord, BirthSupplementStored
 from app.domains.birth.repository import BirthRepository
 from app.domains.daily.postgres import _content as daily_content
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.data_export.errors import DataExportBusy
 from app.domains.data_export.models import (
     MAX_ITEMS_PER_SECTION,
     DataExport,
@@ -65,7 +67,11 @@ from app.domains.mood.tables import MoodCheckInRow
 from app.domains.radar.models import RadarStatus
 from app.domains.radar.service import RECEIPT_TTL
 from app.domains.radar.tables import RadarRequestRow
-from app.domains.readings.models import ReadingContentProjection
+from app.domains.readings.application import _content_projection as content_projection
+from app.domains.readings.models import ReadingContentProjection, ReadingPurpose
+from app.domains.readings.postgres import _projection_record as projection_record
+from app.domains.readings.postgres import _revision_record as revision_record
+from app.domains.readings.tables import ReadingProjectionRow, ReadingRevisionRow
 from app.domains.resonance.postgres import _payload_context as resonance_context
 from app.domains.resonance.tables import ResonanceFeedbackRow
 from app.domains.saved.postgres import _snapshot_payload as saved_snapshot
@@ -98,6 +104,11 @@ NOT_INCLUDED = (
 )
 
 
+# A birth change landing during assembly re-reads the birth section; more than this many in a row
+# answer 409 so the client can ask again.
+_BIRTH_RETRIES = 3
+
+
 class DataExportService:
     def __init__(
         self,
@@ -117,7 +128,7 @@ class DataExportService:
     async def export(self, guest_id: UUID, *, now: datetime | None = None) -> DataExport:
         current = now or datetime.now(UTC)
         truncated: list[str] = []
-        birth_profile = await self._birth_profile(guest_id)
+        birth_profile, birth_key = await self._birth_profile(guest_id)
         tarot_views = await self._tarot.export_views(
             guest_id, limit=self._max_items + 1, now=current
         )
@@ -131,45 +142,66 @@ class DataExportService:
             principal_id = await session.scalar(
                 select(PrincipalRow.id).where(PrincipalRow.source_guest_id == guest_id)
             )
-            return DataExport(
-                generated_at=current,
-                notice=NOTICE,
-                profile=ExportProfile(
-                    state=guest.state,
-                    onboarding_status=guest.onboarding_status,
-                    created_at=guest.created_at,
-                    last_active_at=guest.last_active_at,
-                    expires_at=guest.expires_at,
-                ),
-                account=await self._account(session, guest_id),
-                consents=await self._consents(session, guest_id),
-                history_retention=await self._history(session, guest_id),
-                birth_profile=birth_profile,
-                daily_notes=await self._daily_notes(session, guest_id, current, truncated),
-                saved_notes=await self._saved_notes(session, guest_id, truncated),
-                share_links=await self._share_links(session, guest_id, current, truncated),
-                tarot_sessions=tarot_sessions,
-                note_feedback=await self._feedback(session, guest_id, current, truncated),
-                daily_experiments=await self._experiments(session, guest_id, current, truncated),
-                radar_sent=(
-                    await self._radar_sent(session, principal_id, current, truncated)
-                    if principal_id is not None
-                    else []
-                ),
-                radar_received=await self._radar_received(session, guest_id, current, truncated),
-                la_chung_invites=(
-                    await self._la_chung(session, principal_id, current, truncated)
-                    if principal_id is not None
-                    else []
-                ),
-                matching=(
-                    await self._matching(session, principal_id)
-                    if principal_id is not None
-                    else None
-                ),
-                not_included=list(NOT_INCLUDED),
-                truncated=truncated,
+            account = await self._account(session, guest_id, truncated)
+            consents = await self._consents(session, guest_id, truncated)
+            history_retention = await self._history(session, guest_id)
+            daily_notes = await self._daily_notes(session, guest_id, current, truncated)
+            saved_notes = await self._saved_notes(session, guest_id, truncated)
+            share_links = await self._share_links(session, guest_id, current, truncated)
+            note_feedback = await self._feedback(session, guest_id, current, truncated)
+            daily_experiments = await self._experiments(session, guest_id, current, truncated)
+            radar_sent = (
+                await self._radar_sent(session, principal_id, current, truncated)
+                if principal_id is not None
+                else []
             )
+            radar_received = await self._radar_received(session, guest_id, current, truncated)
+            la_chung_invites = (
+                await self._la_chung(session, principal_id, current, truncated)
+                if principal_id is not None
+                else []
+            )
+            matching = (
+                await self._matching(session, principal_id, truncated)
+                if principal_id is not None
+                else None
+            )
+        # Codex r55: a time/place removal (or any birth change) that committed while the file was
+        # being assembled must not leave the erased precision or its chart in the file. The birth
+        # section is re-read until its revision held from read to end of assembly.
+        for _ in range(_BIRTH_RETRIES):
+            if await self._birth_key(guest_id) == birth_key:
+                break
+            birth_profile, birth_key = await self._birth_profile(guest_id)
+        else:
+            raise DataExportBusy
+        return DataExport(
+            generated_at=current,
+            notice=NOTICE,
+            profile=ExportProfile(
+                state=guest.state,
+                onboarding_status=guest.onboarding_status,
+                created_at=guest.created_at,
+                last_active_at=guest.last_active_at,
+                expires_at=guest.expires_at,
+            ),
+            birth_profile=birth_profile,
+            tarot_sessions=tarot_sessions,
+            account=account,
+            consents=consents,
+            history_retention=history_retention,
+            daily_notes=daily_notes,
+            saved_notes=saved_notes,
+            share_links=share_links,
+            note_feedback=note_feedback,
+            daily_experiments=daily_experiments,
+            radar_sent=radar_sent,
+            radar_received=radar_received,
+            la_chung_invites=la_chung_invites,
+            matching=matching,
+            not_included=list(NOT_INCLUDED),
+            truncated=truncated,
+        )
 
     def _bound[T](self, items: tuple[T, ...] | list[T], name: str, truncated: list[str]) -> list[T]:
         if len(items) > self._max_items:
@@ -188,17 +220,45 @@ class DataExportService:
             raise ValueError("invalid encrypted export payload")
         return cast(dict[str, Any], payload)
 
-    async def _birth_profile(self, guest_id: UUID) -> ExportBirthProfile | None:
+    async def _birth_key(self, guest_id: UUID) -> tuple[UUID, datetime | None] | None:
+        """Which chart is current and the profile revision it belongs to (a time, no content)."""
+
         snapshot = await self._birth.find_current(guest_id)
-        if snapshot is None:
-            return None
-        supplement = await self._birth.find_supplement(guest_id)
+        return (snapshot.id, snapshot.profile_revision) if snapshot is not None else None
+
+    async def _birth_profile(
+        self, guest_id: UUID
+    ) -> tuple[ExportBirthProfile | None, tuple[UUID, datetime | None] | None]:
+        """The chart and the time/place layer from one profile revision (Codex r55).
+
+        Two reads that straddle a removal would pair a time-derived chart with cleared fields.
+        The pair is accepted only when the supplement carries the chart's profile revision and the
+        current chart did not move meanwhile.
+        """
+
+        for _ in range(_BIRTH_RETRIES):
+            snapshot = await self._birth.find_current(guest_id)
+            if snapshot is None:
+                return None, None
+            supplement = await self._birth.find_supplement(guest_id)
+            key = (snapshot.id, snapshot.profile_revision)
+            if (
+                supplement is not None
+                and supplement.updated_at == snapshot.profile_revision
+                and await self._birth_key(guest_id) == key
+            ):
+                return self._birth_section(guest_id, snapshot, supplement), key
+        raise DataExportBusy
+
+    def _birth_section(
+        self, guest_id: UUID, snapshot: BirthSnapshotRecord, supplement: BirthSupplementStored
+    ) -> ExportBirthProfile:
         birth_date = self._envelope.decrypt(
             snapshot.birth_date_ciphertext, context=f"birth-date:{guest_id}".encode()
         ).decode()
         time_mode, local_time, window = "unknown", None, None
         place_name, timezone_id = None, None
-        if supplement is not None and supplement.birth_time_ciphertext:
+        if supplement.birth_time_ciphertext:
             raw_time = self._envelope.decrypt(
                 supplement.birth_time_ciphertext, context=f"birth-time:{guest_id}".encode()
             ).decode()
@@ -207,7 +267,7 @@ class DataExportService:
                 local_time = value
             elif time_mode == "approx_window":
                 window = value or None
-        if supplement is not None and supplement.birth_place_ciphertext:
+        if supplement.birth_place_ciphertext:
             raw_place = self._envelope.decrypt(
                 supplement.birth_place_ciphertext, context=f"birth-place:{guest_id}".encode()
             ).decode()
@@ -215,16 +275,14 @@ class DataExportService:
             _, place_name, timezone_id, _, _ = raw_place.split("|", maxsplit=4)
         return ExportBirthProfile(
             birth_date=date.fromisoformat(birth_date),
-            profile_level=supplement.profile_level if supplement is not None else 1,
-            time_precision=supplement.time_precision if supplement is not None else "unknown",
+            profile_level=supplement.profile_level,
+            time_precision=supplement.time_precision,
             birth_time_mode=time_mode,
             birth_time_local=local_time,
             approx_window=window,
             place_display_name=place_name,
             timezone_id=timezone_id,
-            supplement_consent_version=(
-                supplement.supplement_consent_version if supplement is not None else None
-            ),
+            supplement_consent_version=supplement.supplement_consent_version,
             calculated_at=snapshot.created_at,
             calculation_kind=(
                 "date_only_sun" if isinstance(snapshot.result, DateOnlySunResult) else "natal_chart"
@@ -232,16 +290,19 @@ class DataExportService:
             calculation=snapshot.result,
         )
 
-    @staticmethod
-    async def _account(session: AsyncSession, guest_id: UUID) -> ExportAccount | None:
+    async def _account(
+        self, session: AsyncSession, guest_id: UUID, truncated: list[str]
+    ) -> ExportAccount | None:
         account = await session.scalar(select(AccountRow).where(AccountRow.guest_id == guest_id))
         if account is None:
             return None
-        devices = await session.scalars(
+        devices = await self._rows(
+            session,
             select(AccountDeviceRow)
             .where(AccountDeviceRow.guest_id == guest_id)
-            .order_by(AccountDeviceRow.created_at)
-            .limit(MAX_ITEMS_PER_SECTION)
+            .order_by(AccountDeviceRow.created_at.desc(), AccountDeviceRow.id),
+            "account.devices",
+            truncated,
         )
         return ExportAccount(
             masked_email=account.masked_email,
@@ -257,12 +318,16 @@ class DataExportService:
             ],
         )
 
-    @staticmethod
-    async def _consents(session: AsyncSession, guest_id: UUID) -> list[ExportConsent]:
-        rows = await session.scalars(
+    async def _consents(
+        self, session: AsyncSession, guest_id: UUID, truncated: list[str]
+    ) -> list[ExportConsent]:
+        rows = await self._rows(
+            session,
             select(ConsentRow)
             .where(ConsentRow.guest_id == guest_id)
-            .order_by(ConsentRow.accepted_at)
+            .order_by(ConsentRow.accepted_at.desc(), ConsentRow.id),
+            "consents",
+            truncated,
         )
         return [
             ExportConsent(
@@ -305,6 +370,7 @@ class DataExportService:
                 )
             )
         }
+        readings = await self._visible_daily_readings(session, guest_id, rows)
         notes: list[ExportDailyNote] = []
         for row in rows:
             content = daily_content(row, self._envelope)
@@ -321,9 +387,44 @@ class DataExportService:
                     created_at=row.created_at,
                     mood=mood.mood if mood is not None else None,
                     mood_checked_in_at=mood.checked_in_at if mood is not None else None,
+                    readings=readings.get(row.note_date, []),
                 )
             )
         return notes
+
+    async def _visible_daily_readings(
+        self, session: AsyncSession, guest_id: UUID, notes: list[DailyNoteRow]
+    ) -> dict[date, list[ExportSavedReading]]:
+        """The Daily reading text the person sees: the active revision of each visible note's
+        projection (Codex r55). Never an available draft, an id, a key or evaluation metadata, and
+        nothing is generated here."""
+
+        dates = {row.note_date for row in notes}
+        if not dates:
+            return {}
+        pairs = await session.execute(
+            select(ReadingProjectionRow, ReadingRevisionRow)
+            .join(
+                ReadingRevisionRow,
+                (ReadingRevisionRow.id == ReadingProjectionRow.active_revision_id)
+                & (ReadingRevisionRow.guest_id == ReadingProjectionRow.guest_id),
+            )
+            .where(
+                ReadingProjectionRow.guest_id == guest_id,
+                ReadingProjectionRow.purpose == ReadingPurpose.DAILY_NOTE.value,
+                ReadingProjectionRow.local_date.in_(dates),
+            )
+            .order_by(ReadingProjectionRow.local_date.desc(), ReadingProjectionRow.created_at)
+        )
+        found: dict[date, list[ExportSavedReading]] = {}
+        for projection_row, revision_row in pairs.tuples():
+            if projection_row.local_date is None:
+                continue
+            content = content_projection(
+                revision_record(revision_row, self._envelope), projection_record(projection_row)
+            )
+            found.setdefault(projection_row.local_date, []).append(_reading(content))
+        return found
 
     async def _saved_notes(
         self, session: AsyncSession, guest_id: UUID, truncated: list[str]
@@ -344,16 +445,7 @@ class DataExportService:
             raw_reading = payload.get("reading_snapshot")
             reading = None
             if raw_reading is not None:
-                projection = ReadingContentProjection.model_validate(raw_reading)
-                reading = ExportSavedReading(
-                    sections=ExportReadingSections.model_validate(projection.sections.model_dump()),
-                    evidence=ExportReadingEvidence(
-                        title=projection.evidence.title,
-                        claims=list(projection.evidence.claims),
-                        framework_disclosure=projection.evidence.framework_disclosure,
-                    ),
-                    disclaimer=projection.disclaimer,
-                )
+                reading = _reading(ReadingContentProjection.model_validate(raw_reading))
             saved.append(
                 ExportSavedNote(
                     saved_at=row.saved_at,
@@ -563,16 +655,19 @@ class DataExportService:
             )
         return invites
 
-    async def _matching(self, session: AsyncSession, principal_id: UUID) -> ExportMatching | None:
+    async def _matching(
+        self, session: AsyncSession, principal_id: UUID, truncated: list[str]
+    ) -> ExportMatching | None:
         profile_row = await session.scalar(
             select(MatchingProfileRow).where(MatchingProfileRow.principal_id == principal_id)
         )
-        consent_rows = tuple(
-            await session.scalars(
-                select(MatchingConsentRow)
-                .where(MatchingConsentRow.principal_id == principal_id)
-                .order_by(MatchingConsentRow.accepted_at)
-            )
+        consent_rows = await self._rows(
+            session,
+            select(MatchingConsentRow)
+            .where(MatchingConsentRow.principal_id == principal_id)
+            .order_by(MatchingConsentRow.accepted_at.desc(), MatchingConsentRow.id),
+            "matching.consents",
+            truncated,
         )
         # The verification provider reference is an external identifier; only the status goes out.
         verification = await session.scalar(
@@ -656,4 +751,16 @@ def _tarot(view: TarotSessionView) -> ExportTarotSession:
         ),
         created_at=view.created_at,
         expires_at=view.expires_at,
+    )
+
+
+def _reading(projection: ReadingContentProjection) -> ExportSavedReading:
+    return ExportSavedReading(
+        sections=ExportReadingSections.model_validate(projection.sections.model_dump()),
+        evidence=ExportReadingEvidence(
+            title=projection.evidence.title,
+            claims=list(projection.evidence.claims),
+            framework_disclosure=projection.evidence.framework_disclosure,
+        ),
+        disclaimer=projection.disclaimer,
     )
