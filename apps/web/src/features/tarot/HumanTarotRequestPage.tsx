@@ -87,13 +87,14 @@ export function HumanTarotRequestPage() {
 
   return <Frame>
     <section className="human-tarot-receipt" aria-labelledby="human-tarot-title">
-      <p className="tarot-kicker"><UserFocus aria-hidden="true" /> Bài do người bốc viết</p>
+      <p className="tarot-kicker"><UserFocus aria-hidden="true" /> {request.status === "ready" ? "Bài do người bốc viết" : "Nhờ người bốc"}</p>
       {request.status === "waiting" ? <>
         <h1 id="human-tarot-title">Đã nhận câu hỏi · Hẹn bạn lúc {releaseTime}, {releaseDay}</h1>
         <Delivery request={request} />
         <p>Bài sẽ mở lúc {releaseTime}. Bạn quay lại lúc đó nhé.</p>
         {checkAgain}
       </> : null}
+      {request.status === "ready" ? <h1 id="human-tarot-title">Bài của bạn đã mở lúc {releaseTime}, {releaseDay}.</h1> : null}
       {request.status === "late" ? <>
         <h1 id="human-tarot-title">Bài của bạn chưa hoàn tất.</h1>
         <p>Bạn có thể quay lại sau hoặc huỷ yêu cầu.</p>

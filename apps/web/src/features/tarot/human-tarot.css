@@ -1,30 +1,33 @@
-/* US-24 human Tarot reader: mode switch, request panel, receipt and result. Tarot is dark-only. */
+/* US-24 human Tarot reader: mode switch, request panel, receipt and result.
+   Colours come from the app's ultraviolet tokens (light and dark), like the context chips. */
 .human-tarot-mode {
   position: relative;
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.55rem;
-  margin: 1rem 0 0.25rem;
+  margin: 1.25rem 0 0.25rem;
 }
 .human-tarot-mode button {
   display: grid;
-  min-height: 3.6rem;
-  padding: 0.55rem 0.6rem;
-  border: 1px solid rgb(190 151 235 / 38%);
+  min-height: 3.25rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--uv-line, rgb(190 151 235 / 38%));
   border-radius: 0.9rem;
   place-content: center;
-  color: #c8b8e2;
-  background: rgb(7 9 35 / 55%);
+  color: var(--uv-muted, #c8b8e2);
+  background: transparent;
   font-family: inherit;
+  text-align: center;
 }
-.human-tarot-mode button strong { font-size: 0.88rem; }
-.human-tarot-mode button small { margin-top: 0.1rem; color: inherit; font-size: 0.68rem; }
+.human-tarot-mode button strong { font-size: 0.9rem; }
+.human-tarot-mode button small { margin-top: 0.1rem; color: inherit; font-size: 0.72rem; }
 .human-tarot-mode button.is-active {
-  border-color: #fff8ed;
-  color: #11132b;
-  background: #fff8ed;
-  box-shadow: 0 0 0 0.18rem rgb(159 112 218 / 26%);
+  border-color: var(--uv-accent, #fff8ed);
+  color: var(--uv-action, #11132b);
+  background: var(--uv-tint, #fff8ed);
+  box-shadow: inset 0 0 0 0.5px var(--uv-accent, transparent);
+  font-weight: 600;
 }
 .human-tarot-panel {
   position: relative;
@@ -33,72 +36,78 @@
   gap: 0.7rem;
   margin: 0.75rem 0 1rem;
   padding: 1rem;
-  border: 1px solid rgb(192 148 237 / 32%);
-  border-radius: 1.2rem;
-  background: linear-gradient(145deg, rgb(36 32 77 / 78%), rgb(17 15 51 / 80%));
+  border: 1px solid var(--uv-line, rgb(192 148 237 / 32%));
+  border-radius: 20px;
+  color: var(--uv-text, #fdf8ed);
+  background: var(--uv-surface, rgb(21 18 60 / 80%));
+  box-shadow: var(--uv-shadow-1, none);
 }
-.human-tarot-panel p { margin: 0; color: #d9c9e2; font-size: 0.82rem; line-height: 1.55; }
-.human-tarot-panel__lead { display: flex; align-items: center; gap: 0.4rem; color: #fff8ed !important; font-weight: 800; }
-.human-tarot-panel__meta { color: #a993bd !important; font-size: 0.72rem !important; }
-.human-tarot-panel__note { color: #b9a8cc !important; font-size: 0.74rem !important; }
+.human-tarot-panel p { margin: 0; color: var(--uv-text, #d9c9e2); font-size: 0.875rem; line-height: 1.55; }
+.human-tarot-panel__lead { display: flex; align-items: center; gap: 0.4rem; font-weight: 700; }
+.human-tarot-panel__lead svg { flex: none; color: var(--uv-accent, currentColor); }
+.human-tarot-panel .human-tarot-panel__meta,
+.human-tarot-panel .human-tarot-panel__note { color: var(--uv-muted, #b9a8cc); font-size: 0.8125rem; }
 .human-tarot-consent {
   display: grid;
   grid-template-columns: 1.4rem 1fr;
   gap: 0.6rem;
   align-items: start;
   padding: 0.75rem;
-  border: 1px solid rgb(255 245 223 / 22%);
+  border: 1px solid var(--uv-line, rgb(255 245 223 / 22%));
   border-radius: 0.9rem;
-  color: #fff8ed;
-  font-size: 0.8rem;
+  color: var(--uv-text, #fff8ed);
+  background: var(--uv-tint, transparent);
+  font-size: 0.875rem;
   line-height: 1.5;
 }
-.human-tarot-consent input { width: 1.25rem; height: 1.25rem; margin: 0.1rem 0 0; accent-color: #d8fa19; }
-.human-tarot-receipt { position: relative; z-index: 1; padding: 3.5rem 0 0.5rem; }
+.human-tarot-consent input { width: 1.25rem; height: 1.25rem; margin: 0.1rem 0 0; accent-color: var(--uv-accent, #d8fa19); }
+.human-tarot-receipt { position: relative; z-index: 1; padding: 1.75rem 0 0.5rem; }
 .human-tarot-receipt h1 {
   max-width: 30rem;
-  margin: 0.75rem 0 0.8rem;
-  font-size: clamp(1.7rem, 7vw, 2.6rem);
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  line-height: 1.08;
+  margin: 0.6rem 0 0.8rem;
+  color: var(--uv-text, #fdf8ed);
+  font-size: clamp(1.6rem, 7vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
   text-wrap: balance;
 }
-.human-tarot-receipt > p { max-width: 30rem; margin: 0 0 0.7rem; color: #cabbd5; line-height: 1.6; }
+.human-tarot-receipt > p { max-width: 30rem; margin: 0 0 0.75rem; color: var(--uv-muted, #cabbd5); line-height: 1.6; }
 .human-tarot-receipt .tarot-kicker { display: flex; align-items: center; gap: 0.35rem; }
-.human-tarot-delivery { display: flex; align-items: center; gap: 0.4rem; color: #e7ddf1 !important; font-size: 0.85rem; }
-.human-tarot-delivery.is-error { color: #ffd7d1 !important; }
+.human-tarot-receipt > .human-tarot-delivery { display: flex; align-items: center; gap: 0.4rem; color: var(--uv-text, #e7ddf1); font-weight: 600; }
+.human-tarot-receipt > .human-tarot-delivery.is-error { color: var(--uv-danger, #ffd7d1); }
 .human-tarot-check {
   display: inline-flex;
-  min-height: 2.9rem;
-  padding: 0.6rem 1rem;
-  border: 1px solid rgb(255 245 223 / 30%);
+  min-height: 2.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--uv-line, rgb(255 245 223 / 30%));
   border-radius: 999px;
   align-items: center;
   gap: 0.45rem;
-  color: #fff8ed;
-  background: transparent;
+  color: var(--uv-text, #fff8ed);
+  background: var(--uv-surface, transparent);
   font-family: inherit;
-  font-weight: 700;
+  font-weight: 600;
 }
 .human-tarot-result { margin-top: 0.5rem; }
-.human-tarot-result > h2 { margin: 0.5rem 0 0; font-size: 1.3rem; }
+.human-tarot-result > h2 { margin: 0.5rem 0 0; color: var(--uv-text, #fdf8ed); font-size: 1.25rem; }
 .human-tarot-cards { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
 .human-tarot-cards li {
   display: grid;
-  grid-template-columns: 3.4rem 1fr;
+  grid-template-columns: 3.4rem minmax(0, 1fr);
   align-items: center;
   gap: 0.75rem;
   padding: 0.55rem;
-  border: 1px solid rgb(198 147 237 / 30%);
+  border: 1px solid var(--uv-line, rgb(198 147 237 / 30%));
   border-radius: 1rem;
-  background: rgb(21 18 60 / 62%);
+  background: var(--uv-surface, rgb(21 18 60 / 62%));
 }
 .human-tarot-cards small, .human-tarot-cards strong { display: block; }
-.human-tarot-cards small { color: #a993bd; font-size: 0.68rem; }
-.human-tarot-cards strong { margin-top: 0.15rem; color: #fff8ed; font-size: 0.95rem; }
+.human-tarot-cards small { color: var(--uv-muted, #a993bd); font-size: 0.75rem; }
+.human-tarot-cards strong { margin-top: 0.15rem; color: var(--uv-text, #fff8ed); font-size: 0.95rem; }
 .human-tarot-reading .tarot-reading-copy > p { white-space: pre-line; }
-.human-tarot-disclaimer { margin: 0; color: #9f91b0; font-size: 0.72rem; line-height: 1.5; }
+.human-tarot-disclaimer { margin: 0; color: var(--uv-muted, #9f91b0); font-size: 0.8125rem; line-height: 1.5; }
 @media (max-width: 22rem) {
   .human-tarot-mode { grid-template-columns: 1fr; }
 }

@@ -110,7 +110,7 @@ describe("human Tarot option on /tarot", () => {
     renderAt("/tarot");
     const user = await typeQuestion();
     await user.click(await screen.findByRole("button", { name: /Nhờ người bốc/ }));
-    expect(screen.getByRole("button", { name: /Xòe 3 lá/ , hidden: true })).not.toBeVisible();
+    expect(screen.queryByRole("button", { name: /Xòe 3 lá/, hidden: true })).not.toBeInTheDocument();
     expect(screen.getByText(/Tối đa 10 lượt\/ngày · Trả bài lúc 10:00 hôm nay/)).toBeInTheDocument();
     expect(screen.getByText(/còn 7 lượt/)).toBeInTheDocument();
     const send = screen.getByRole("button", { name: "Gửi cho người bốc" });
