@@ -83,8 +83,8 @@ class Settings(BaseSettings):
     # Vòng Lá is deferred: no new matching profile, consent or pool membership (audit P02,
     # 2026-10-22). Withdrawal and leaving the pool stay available for data collected before.
     matching_accepting_new_activity: bool = False
-    # US-24 human Tarot reader. Off everywhere until the owner settles the cut-off time, retention
-    # and Google identity (US-24 OD1-OD6) and records it with human_tarot_launch_approved.
+    # US-24 human Tarot reader. Off everywhere until OD4 (copy) and OD6 (privacy notice, P09/P10,
+    # store) are done and the owner records the launch with human_tarot_launch_approved.
     human_tarot_enabled: bool = False
     human_tarot_launch_approved: bool = False
     # OD1 (owner, 30/10/2026): intake closes at 18:00 for the 22:00 release, never later than it.

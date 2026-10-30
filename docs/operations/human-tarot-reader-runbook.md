@@ -1,9 +1,9 @@
 # Runbook — Người bốc Tarot làm việc trong Google Sheet (US-24)
 
 > Dành cho owner (người bốc) và người vận hành. Chưa áp dụng cho dữ liệu thật: cờ `human_tarot_enabled` và
-> `human_tarot_sheet_sync_enabled` đang tắt, chưa có file Google hay quyền nào được cấp. Trước dữ liệu thật owner
-> phải chốt US-24 OD1–OD6 (giờ ngừng nhận, retention và bản sao Google, danh tính Google, copy, số lượt còn lại,
-> P09/P10).
+> `human_tarot_sheet_sync_enabled` đang tắt, chưa có file Google hay quyền nào được cấp. Owner đã chốt (30/10): ngừng
+> nhận 18:00, trả bài 22:00, retention, thay file mỗi tháng, service account trên đúng một file, tài khoản Google
+> Workspace. Còn mở trước dữ liệu thật: copy (OD4) và P09/P10, thông báo quyền riêng tư, store (OD6).
 
 ## 1. Chuẩn bị một lần (owner)
 
@@ -65,7 +65,7 @@ muốn thay phải có quy trình riêng (chưa có trong bản đầu).
 - Restore database trong một ngày đang nhận: chạy `python -m scripts.sync_human_tarot close-today` ngay sau replay
   nhật ký xoá (lệnh replay cũng tự làm việc này). Ngày đó không nhận thêm, dù Sheet còn hàng trống. Hàng trên Sheet
   có mã mà database không biết sẽ bị job xoá.
-- Thay file Sheet định kỳ (OD2, đề xuất mỗi tháng, ngoài giờ nhận): tạo file mới từ bản mẫu, chia sẻ cho service
+- Thay file Sheet mỗi tháng (OD2, owner duyệt 30/10; làm sau 22:00 hoặc trước 00:00 ngày mới): tạo file mới từ bản mẫu, chia sẻ cho service
   account, đổi `LA_LANH_HUMAN_TAROT_SHEET_ID`, kiểm một lượt job, rồi chuyển file cũ vào thùng rác và dọn thùng rác.
   Đây là cách giới hạn lịch sử phiên bản của Google; xoá ô không xoá lịch sử phiên bản.
 
