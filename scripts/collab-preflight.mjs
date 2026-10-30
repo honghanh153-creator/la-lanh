@@ -136,7 +136,7 @@ export function renderFindings(result) {
     '| Loại | Vị trí | Quy tắc |', '|---|---|---|', ...rows,
     ...(result.findings.length > 40 ? [`| … | còn ${result.findings.length - 40} lỗi | |`] : []),
     '',
-    ...(leaked ? ['Khóa hoặc file nhạy cảm đã được push lên repo public: thu hồi/đổi khóa trước, rồi mới xóa khỏi branch.', ''] : []),
+    ...(leaked ? ['Nếu khóa hoặc file nhạy cảm đã push lên repo public: thu hồi/đổi khóa trước, rồi mới xóa khỏi branch.', ''] : []),
     'Nhận nhầm thì thêm `collab-preflight: allow <lý do>` trên chính dòng đó; Codex sẽ review chú thích này.',
   ].join('\n');
 }
