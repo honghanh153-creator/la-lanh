@@ -130,6 +130,11 @@ birth data. This fits the north star: calm, no surprises, and "this app understa
   - The downgrade refuses to run while any detached row exists, because the old cascade cannot hold them. There is no
     automatic downgrade in production.
   - The correction endpoint is not enabled until this migration is deployed.
+- **Compatibility release (Codex r56 P1).** `deploy.sh` migrates before it replaces the app, so the app still running
+  during the cascade drop must already delete copies itself. The explicit deletes and the share-create fence ship
+  first, with the cascades kept and a no-op marker migration. The cascade drop ships in the next release, revises
+  that marker and refuses to run in the same upgrade that applies it on a database with people. Once it has run,
+  roll back only to an image of the compatibility release or later.
 - **Tests:** SQLite and PostgreSQL.
   - A copy survives deletion of its source.
   - A share creation paused between its source read and its insert, with the source deleted meanwhile, is refused
@@ -272,8 +277,9 @@ part of the owner/engineering P09 assessment and is not claimed here.
      `/users/me/birth-data` sketch.
    - Data map, erasure doc and privacy notice lines.
    - US-06 `:205/:360` pointed at US-23.
-2. **Artifact lifecycle.** The schema change, migration, explicit deletes and their SQLite and PostgreSQL tests. No
-   product behavior changes yet.
+2. **Artifact lifecycle**, in two releases. First the explicit deletes, the share-create fence and the marker, with
+   the cascades kept (compatibility release). Then the schema change and migration, deployed only after every app
+   process runs the compatibility release. SQLite and PostgreSQL tests for both. No product behavior changes yet.
 3. **Share-link management.** The `GET` list, the Đã lưu section and its tests.
 4. **Date correction API.**
    - `PUT /date` with the three phases, journal kind and replay, D4 refusal, D5 limit and D6 rule.
