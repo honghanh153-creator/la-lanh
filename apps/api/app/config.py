@@ -89,6 +89,11 @@ class Settings(BaseSettings):
     human_tarot_launch_approved: bool = False
     # OD1 (owner, 30/10/2026): intake closes at 18:00 for the 22:00 release, never later than it.
     human_tarot_intake_closes_at: time = time(18, 0)
+    # US-24 U5: the owner's Google Sheet. A service account shared on that one file (OD3); the
+    # key is a secret file on the host, never in the repository or the environment.
+    human_tarot_sheet_sync_enabled: bool = False
+    human_tarot_sheet_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{20,128}$")
+    human_tarot_google_credentials_file: str | None = None
     content_studio_enabled: bool = False
     content_studio_api_token: SecretStr | None = None
     content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)
@@ -105,6 +110,13 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    def human_tarot_sheet(self) -> tuple[str, str]:
+        """The Sheet id and the service-account key file of the US-24 bridge."""
+
+        if self.human_tarot_sheet_id is None or self.human_tarot_google_credentials_file is None:
+            raise ValueError("human Tarot Sheet sync is not configured")
+        return self.human_tarot_sheet_id, self.human_tarot_google_credentials_file
 
     @model_validator(mode="after")
     def validate_security_settings(self) -> "Settings":
@@ -216,8 +228,12 @@ class Settings(BaseSettings):
                 raise ValueError("paid generation worker requires PostgreSQL lifecycle locks")
         if self.human_tarot_intake_closes_at > time(22, 0):
             raise ValueError("human Tarot intake must close no later than the 22:00 release")
+        if self.human_tarot_sheet_sync_enabled and (
+            self.human_tarot_sheet_id is None or self.human_tarot_google_credentials_file is None
+        ):
+            raise ValueError("human Tarot Sheet sync needs the Sheet id and the credentials file")
         if (
-            self.human_tarot_enabled
+            (self.human_tarot_enabled or self.human_tarot_sheet_sync_enabled)
             and self.environment in {"staging", "production"}
             and not self.human_tarot_launch_approved
         ):
