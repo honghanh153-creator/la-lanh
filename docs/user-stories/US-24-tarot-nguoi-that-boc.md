@@ -80,7 +80,7 @@ flowchart TD
 |---|---|
 | Lựa chọn | "Tự bốc ngay" · "Nhờ người bốc" |
 | Dưới "Nhờ người bốc" | "Tối đa 10 lượt/ngày · Trả bài lúc 22:00 hôm nay" + "Giờ Việt Nam" + "Còn N lượt" |
-| Đồng ý (checkbox, không tick sẵn) | "Mình đồng ý để người bốc của Lá Lành đọc câu hỏi này, và để câu hỏi được lưu tạm trong một Google Sheet riêng của người bốc cho tới khi có bài (tối đa hết ngày). Câu hỏi không kèm tên, ngày sinh hay thông tin tài khoản." |
+| Đồng ý (checkbox, không tick sẵn) | "Mình đồng ý để người bốc của Lá Lành đọc câu hỏi này, và để câu hỏi được lưu tạm trong một Google Sheet riêng của người bốc tới hết ngày, hoặc tới khi mình huỷ. Lịch sử chỉnh sửa của Sheet chỉ mất khi file được thay hằng tháng. Câu hỏi không kèm tên, ngày sinh hay thông tin tài khoản." (khớp vòng đời ở mục 8 và OD2, Codex r56) |
 | Nhắc trước nút gửi | "Đừng ghi tên đầy đủ, số điện thoại hay chi tiết giúp nhận ra người khác." |
 | Hết lượt | "Hôm nay đã đủ 10 lượt. Bạn có thể quay lại ngày mai hoặc tự bốc ngay." |
 | Đóng nhận | "Hôm nay đã ngừng nhận lượt. Ngày mai bạn quay lại nhé." |
