@@ -8,6 +8,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
+import { invalidateSessionRequests } from "../../shared/session/sessionIdentity";
 import { BirthDateEdit } from "./BirthDateEdit";
 
 vi.mock("../../shared/api/client", async (original) => ({
@@ -99,4 +100,19 @@ it("does not promise anything when the reconciliation itself fails", async () =>
   for (const alert of screen.getAllByRole("alert")) {
     expect(alert).not.toHaveTextContent("Lá cũ vẫn giữ nguyên");
   }
+});
+
+it("stops after the correction when the browser session changed meanwhile (Codex r56)", async () => {
+  vi.mocked(getBirthProfile).mockResolvedValue(old);
+  vi.mocked(correctBirthDate).mockImplementation(() => {
+    invalidateSessionRequests(); // another account took over this browser during the request
+    return Promise.resolve(first);
+  });
+  const query = mount();
+  query.setQueryData(["unrelated"], "kept");
+  await enterNewDate();
+  await waitFor(() => expect(correctBirthDate).toHaveBeenCalled());
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  expect(screen.queryByText("Finished")).not.toBeInTheDocument();
+  expect(getBirthProfile).toHaveBeenCalledTimes(1); // no cleanup refetch for the old owner
 });

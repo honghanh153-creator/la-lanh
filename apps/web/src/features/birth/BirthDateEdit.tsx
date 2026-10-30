@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent, type Ref } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { ApiProblem, correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
+import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
 import { withdrawCorrectedChart } from "../../shared/storage/clearChartDerivedData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { isUnder18, validDate } from "./birthDateInput";
@@ -141,22 +142,32 @@ export function BirthDateEdit() {
     }
     setPending(true);
     setError(null);
+    // Codex r56: every continuation after an await belongs to the session that started it. If the
+    // browser session changed meanwhile, nothing is written to the cache, shown or navigated here
+    // (the session boundary clears the old owner's data itself).
+    const epoch = currentSessionEpoch();
+    const generation = sessionGeneration();
+    const sameSession = () => epoch === currentSessionEpoch() && generation === sessionGeneration();
     try {
       await correctBirthDate({
         birth_date: birthDate,
         confirm_birth_date: confirmed,
         expected_revision: loaded.profile_revision,
       });
+      if (!sameSession()) return;
       // The cleanup refetches the active profile; that answer is the latest server revision and
       // is kept even if another tab corrected again meanwhile (Codex r55).
       await withdrawCorrectedChart(queryClient);
+      if (!sameSession()) return;
       void navigate("/reveal", { replace: true, state: { corrected: true } });
     } catch (failure) {
+      if (!sameSession()) return;
       const message = messageFor(failure);
       if (message.ambiguous) {
         // A timeout or transport failure says nothing about the commit, which happens before the
         // send drain. Read the profile again: a new revision means the change is in.
-        setError({ text: await reconcile(loaded.profile_revision) });
+        const text = await reconcile(loaded.profile_revision, sameSession);
+        if (sameSession()) setError({ text });
         return;
       }
       setError(message);
@@ -170,11 +181,12 @@ export function BirthDateEdit() {
     }
   };
 
-  const reconcile = async (submitted: string): Promise<string> => {
+  const reconcile = async (submitted: string, sameSession: () => boolean): Promise<string> => {
     const current = await profile.refetch();
-    if (current.isError || !current.data) return UNKNOWN_MESSAGE;
+    if (!sameSession() || current.isError || !current.data) return UNKNOWN_MESSAGE;
     if (current.data.profile_revision === submitted) return UNCHANGED_MESSAGE;
     await withdrawCorrectedChart(queryClient);
+    if (!sameSession()) return UNKNOWN_MESSAGE;
     const latest = queryClient.getQueryData<BirthReveal>(["birth-profile"]) ?? current.data;
     setValue(partsOf(latest.birth_date));
     setStage("edit");
