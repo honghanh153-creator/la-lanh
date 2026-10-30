@@ -15,8 +15,8 @@ from app.domains.readings.models import (
     ReadingRevisionSource,
     ReadingSectionsProjection,
 )
-from app.domains.share.errors import ShareArtifactUnavailable
-from app.domains.share.models import ShareArtifactRecord, ShareFormat
+from app.domains.share.errors import ShareArtifactUnavailable, ShareCursorInvalid
+from app.domains.share.models import ShareArtifactRecord, ShareFormat, ShareLinkSummary
 from app.domains.share.service import SHARE_ARTIFACT_TTL, ShareArtifactService
 
 
@@ -40,6 +40,27 @@ class MemoryShareRepository:
             return False
         self.records[artifact_id] = replace(record, revoked_at=revoked_at)
         return True
+
+    async def list_owned(
+        self, guest_id: UUID, *, limit: int, before: tuple[datetime, UUID] | None
+    ) -> tuple[ShareLinkSummary, ...]:
+        owned = sorted(
+            (record for record in self.records.values() if record.guest_id == guest_id),
+            key=lambda record: (record.created_at, record.id),
+            reverse=True,
+        )
+        if before is not None:
+            owned = [record for record in owned if (record.created_at, record.id) < before]
+        return tuple(
+            ShareLinkSummary(
+                id=record.id,
+                format=record.format,
+                created_at=record.created_at,
+                expires_at=record.expires_at,
+                revoked_at=record.revoked_at,
+            )
+            for record in owned[:limit]
+        )
 
 
 class OwnedDailyNotes:
@@ -157,3 +178,46 @@ async def test_share_freezes_compact_revision_allowlist_without_private_evidence
     assert "PRIVATE_EVIDENCE_CANARY" not in serialized
     assert "PRIVATE_FRAMEWORK_CANARY" not in serialized
     assert "PRIVATE_FULL_BODY_CANARY" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_list_pages_by_opaque_cursor_and_reports_status() -> None:
+    guest_id = uuid4()
+    note = DailyNoteRecord(
+        id=uuid4(),
+        guest_id=guest_id,
+        note_date=date(2026, 9, 2),
+        title="Safe title",
+        body="Safe body",
+        full_body="Safe full body",
+        context_label="Safe context",
+        content_version="daily-note-v1",
+        chart_snapshot_id=uuid4(),
+        created_at=datetime(2026, 9, 2, tzinfo=UTC),
+    )
+    service = ShareArtifactService(MemoryShareRepository(), OwnedDailyNotes(note))
+    issued = datetime(2026, 9, 2, 8, tzinfo=UTC)
+    made = [
+        (
+            await service.create(
+                guest_id=guest_id,
+                daily_note_id=note.id,
+                format=ShareFormat.STORY_9_16,
+                now=issued + timedelta(minutes=index),
+            )
+        )[0]
+        for index in range(3)
+    ]
+    first, cursor = await service.list_owned(guest_id=guest_id, limit=2, cursor=None)
+    assert [item.id for item in first] == [made[2].id, made[1].id]
+    assert cursor is not None and str(made[1].id) not in cursor
+    rest, end = await service.list_owned(guest_id=guest_id, limit=2, cursor=cursor)
+    assert [item.id for item in rest] == [made[0].id] and end is None
+    assert rest[0].status(issued).value == "active"
+    assert rest[0].status(made[0].expires_at).value == "expired"
+    assert (await service.list_owned(guest_id=uuid4(), limit=2, cursor=None)) == ((), None)
+    for bad in ("", "!!!", "bm90LWEtY3Vyc29y", "MjAyNi0wOS0wMlQwODowMDowMHxub3QtYS11dWlk"):
+        with pytest.raises(ShareCursorInvalid):
+            await service.list_owned(guest_id=guest_id, limit=2, cursor=bad)
+    with pytest.raises(ShareCursorInvalid):
+        await service.list_owned(guest_id=guest_id, limit=51, cursor=None)

@@ -153,6 +153,8 @@ export type BirthSupplement = components["schemas"]["BirthSupplementResponse"];
 export type BirthSupplementState = components["schemas"]["BirthSupplementStateResponse"];
 export type BirthSupplementEdit = components["schemas"]["BirthSupplementEditResponse"];
 export type PublicShareArtifact = components["schemas"]["PublicShareArtifactResponse"];
+export type ShareLink = components["schemas"]["ShareLinkResponse"];
+export type ShareLinkList = components["schemas"]["ShareLinkListResponse"];
 export type OnboardingStatus = components["schemas"]["OnboardingStatus"];
 export type InsightOverview = components["schemas"]["InsightOverviewResponse"];
 export type ReadingContent = components["schemas"]["ReadingContentProjection"];
@@ -437,6 +439,7 @@ export function isGuestSessionUnavailable(error: unknown): boolean {
 export { currentSessionEpoch, OWNER_SESSION_EPOCH_KEY, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
 const NATIVE_CSRF_KEY = "la-lanh-native-csrf-v1";
 const REQUEST_TIMEOUT_MS = 15_000;
+const BIRTH_CORRECTION_TIMEOUT_MS = 90_000;
 const DELETE_GUEST_TIMEOUT_MS = 75_000;
 let activeDailyReading: { scopeKey: string; revisionId: string } | null = null;
 let ownerClaimInFlight: { sessionEpoch: string | null; promise: Promise<OwnerClaim> } | null = null;
@@ -774,6 +777,22 @@ export function createBirthProfile(birthDate: string): Promise<BirthReveal> {
   });
 }
 
+/** US-23: replace the saved birth date. The server refuses a stale revision or a minor's date. */
+export function correctBirthDate(input: {
+  birth_date: string;
+  confirm_birth_date: string;
+  expected_revision: string;
+}): Promise<BirthReveal> {
+  return request<BirthReveal>("/birth-profile/date", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify(input),
+    // Success waits for provider sends admitted before the change (bounded server-side at about
+    // a minute), so the default 15 s would turn many committed corrections into timeouts.
+    timeoutMs: BIRTH_CORRECTION_TIMEOUT_MS,
+  });
+}
+
 export async function getDailyNote(signal?: AbortSignal, voice?: AppVibe): Promise<DailyNote> {
   // Voice is read-time wording only; the stored and shared reading stays direct.
   const path = voice === "roast" ? "/daily-note?voice=roast" : "/daily-note";
@@ -992,6 +1011,13 @@ export function revokeShareArtifact(artifactId: string): Promise<void> {
     method: "DELETE",
     headers: csrfHeader(),
   });
+}
+
+/** The session owner's own links: dates, format and status only (no token, no content). */
+export function listShareLinks(signal?: AbortSignal, cursor?: string): Promise<ShareLinkList> {
+  const query = new URLSearchParams({ limit: "20" });
+  if (cursor) query.set("cursor", cursor);
+  return request<ShareLinkList>(`/share-artifacts?${query.toString()}`, { signal });
 }
 
 export function getShareArtifact(

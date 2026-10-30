@@ -1,7 +1,7 @@
 import { ArrowDown } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { getBirthProfile, getDailyNote, updateOnboardingStatus } from "../../shared/api/client";
 import { isDateOnlyCalculation, sunSignsFromCalculation } from "../../shared/astro/chart";
@@ -21,6 +21,7 @@ const elementBySign = {
 
 export function RevealPage() {
   const navigate = useNavigate();
+  const corrected = (useLocation().state as { corrected?: boolean } | null)?.corrected === true;
   const [completing, setCompleting] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const query = useQuery({ queryKey: ["birth-profile"], queryFn: ({ signal }) => getBirthProfile(signal), staleTime: 60_000 });
@@ -73,6 +74,7 @@ export function RevealPage() {
       <button className="signal-station__button" disabled={completing} onClick={() => void complete()} type="button">
         {completing ? "Đang mở Note…" : "Mở Note hôm nay"} <ArrowDown aria-hidden="true" />
       </button>
+      {corrected ? <Link className="signal-station__secondary" to="/birth-time">Thêm giờ và nơi sinh để Lá rõ hơn</Link> : null}
       {hasExactChart ? <button className="signal-station__secondary" disabled={completing} onClick={() => void complete("/natal")} type="button">Đọc tổng quan về mình</button> : null}
       <Link className="signal-station__secondary" to="/existing-user?returnTo=/reveal">Giữ hồ sơ khi đổi máy · đăng nhập tuỳ chọn</Link>
       <ReadingDisclaimer compact>
