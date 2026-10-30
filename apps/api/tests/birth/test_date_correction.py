@@ -142,7 +142,8 @@ def test_a_correction_replaces_the_full_subject_and_keeps_saved_and_shared_copie
         assert [item["daily_note_id"] for item in client.get("/v1/saved-notes").json()] == [
             copies.note_id
         ]
-        # The owner link list arrives in U3; here the kept link is checked by its public path.
+        links = client.get("/v1/share-artifacts").json()["items"]
+        assert [(item["id"], item["status"]) for item in links] == [(copies.share_id, "active")]
         assert client.get(copies.public_path).status_code == 200
         assert client.delete(f"/v1/share-artifacts/{copies.share_id}", headers=headers).status_code
         assert client.get(copies.public_path).status_code == 404
