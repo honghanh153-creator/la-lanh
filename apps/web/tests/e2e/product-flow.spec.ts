@@ -40,8 +40,8 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/v1/session/birth-profile-consent", async (route) => route.fulfill({ status: 204 }));
   // US-24: /tarot asks whether the human reader is on; it is off, as everywhere today.
   await page.route("**/v1/human-tarot/availability", async (route) => route.fulfill({ status: 200, json: {
-    enabled: false, accepting: false, reason: "disabled", local_date: "2026-09-01", closes_at: "2026-09-01T03:00:00Z",
-    release_at: "2026-09-01T03:00:00Z", daily_limit: 10, remaining: 10, consent_version: "human-tarot-v1", current_request_id: null,
+    enabled: false, accepting: false, reason: "disabled", local_date: "2026-09-01", closes_at: "2026-09-01T11:00:00Z",
+    release_at: "2026-09-01T15:00:00Z", daily_limit: 10, remaining: 10, consent_version: "human-tarot-v1", current_request_id: null,
   } }));
 });
 test.afterEach(() => {

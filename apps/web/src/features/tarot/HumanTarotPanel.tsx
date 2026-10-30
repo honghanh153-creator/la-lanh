@@ -15,13 +15,13 @@ import { formatVietnamTime, type TarotMode } from "./humanTarot";
 import { ensureTarotGuest } from "./tarotGuest";
 import "./human-tarot.css";
 
-export function TarotModeSwitch({ mode, onChange }: { mode: TarotMode; onChange: (mode: TarotMode) => void }) {
+export function TarotModeSwitch({ mode, onChange, releaseAt }: { mode: TarotMode; onChange: (mode: TarotMode) => void; releaseAt: string }) {
   return <div aria-label="Cách bốc bài" className="human-tarot-mode" role="group">
     <button aria-pressed={mode === "self"} className={mode === "self" ? "is-active" : ""} onClick={() => onChange("self")} type="button">
       <strong>Tự bốc ngay</strong><small>Xem bài liền</small>
     </button>
     <button aria-pressed={mode === "human"} className={mode === "human" ? "is-active" : ""} onClick={() => onChange("human")} type="button">
-      <strong>Nhờ người bốc</strong><small>Trả bài lúc 10:00</small>
+      <strong>Nhờ người bốc</strong><small>Trả bài lúc {formatVietnamTime(releaseAt)}</small>
     </button>
   </div>;
 }

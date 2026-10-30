@@ -460,7 +460,7 @@ export function TarotPage() {
         {reframe ? <aside className="tarot-reframe" role="alert"><strong>Đổi góc một chút để bài không nói hộ bạn.</strong><p>{reframe.explanation}</p><button onClick={() => { setQuestion(reframe.question); setSpreadOverride(null); setReframe(null); }} type="button">Dùng câu: “{reframe.question}”</button></aside> : null}
       </section>
 
-      {humanAvailability ? <TarotModeSwitch mode={mode} onChange={setMode} /> : null}
+      {humanAvailability ? <TarotModeSwitch mode={mode} onChange={setMode} releaseAt={humanAvailability.release_at} /> : null}
       {humanMode && humanAvailability ? <HumanTarotSubmit
         availability={humanAvailability}
         context={context}

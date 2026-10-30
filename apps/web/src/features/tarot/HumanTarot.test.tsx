@@ -36,8 +36,8 @@ const OPEN: HumanTarotAvailability = {
   accepting: true,
   reason: "open",
   local_date: "2026-10-30",
-  closes_at: "2026-10-30T02:00:00Z",
-  release_at: "2026-10-30T03:00:00Z",
+  closes_at: "2026-10-30T11:00:00Z",
+  release_at: "2026-10-30T15:00:00Z",
   daily_limit: 10,
   remaining: 7,
   consent_version: "human-tarot-v1",
@@ -49,12 +49,12 @@ const WAITING: HumanTarotRequest = {
   delivery: "pending",
   copy_cleared: null,
   local_date: "2026-10-30",
-  release_at: "2026-10-30T03:00:00Z",
+  release_at: "2026-10-30T15:00:00Z",
   context: "work",
   spread: "three_card",
   question: QUESTION,
   result: null,
-  expires_at: "2026-11-29T03:00:00Z",
+  expires_at: "2026-11-29T15:00:00Z",
 };
 const CARD = {
   arcana: "major" as const,
@@ -111,8 +111,9 @@ describe("human Tarot option on /tarot", () => {
     const user = await typeQuestion();
     await user.click(await screen.findByRole("button", { name: /Nhờ người bốc/ }));
     expect(screen.queryByRole("button", { name: /Xòe 3 lá/, hidden: true })).not.toBeInTheDocument();
-    expect(screen.getByText(/Tối đa 10 lượt\/ngày · Trả bài lúc 10:00 hôm nay/)).toBeInTheDocument();
+    expect(screen.getByText(/Tối đa 10 lượt\/ngày · Trả bài lúc 22:00 hôm nay/)).toBeInTheDocument();
     expect(screen.getByText(/còn 7 lượt/)).toBeInTheDocument();
+    expect(screen.getByText(/nhận tới 18:00/)).toBeInTheDocument();
     const send = screen.getByRole("button", { name: "Gửi cho người bốc" });
     const consent = screen.getByRole("checkbox", { name: /đồng ý để người bốc/ });
     expect(consent).not.toBeChecked();
@@ -121,7 +122,7 @@ describe("human Tarot option on /tarot", () => {
     await user.click(send);
     expect(await screen.findByRole("alert")).toHaveTextContent("Chưa gửi được");
     await user.click(screen.getByRole("button", { name: "Gửi cho người bốc" }));
-    expect(await screen.findByRole("heading", { name: /Đã nhận câu hỏi · Hẹn bạn lúc 10:00, 30\/10/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Đã nhận câu hỏi · Hẹn bạn lúc 22:00, 30\/10/ })).toBeInTheDocument();
     const [first, second] = vi.mocked(createHumanTarotRequest).mock.calls.map(([body]) => body);
     expect(first).toMatchObject({ context: "general", question: QUESTION, spread: "three_card", consent_version: "human-tarot-v1" });
     expect(second.idempotency_key).toBe(first.idempotency_key); // a retry takes no second slot
@@ -182,7 +183,7 @@ describe("human Tarot request page", () => {
     vi.mocked(getHumanTarotRequest).mockResolvedValue({ ...WAITING, delivery });
     renderAt(`/tarot/nguoi-boc/${WAITING.id}`);
     expect(await screen.findByText(text)).toBeInTheDocument();
-    expect(screen.getByText("Bài sẽ mở lúc 10:00. Bạn quay lại lúc đó nhé.")).toBeInTheDocument();
+    expect(screen.getByText("Bài sẽ mở lúc 22:00. Bạn quay lại lúc đó nhé.")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Bài người bốc viết cho bạn" })).not.toBeInTheDocument();
   });
 
