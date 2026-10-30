@@ -111,7 +111,10 @@ Losses the design accepts, so the runbook must not hide them:
 1. If the damaged database is still readable: `scripts.erasure_journal export > pre-restore.jsonl` (root-only).
 2. Restore the chosen dump (`pg_restore --no-owner --role=<backend>`); its journal rows come with it.
 3. `scripts.erasure_journal replay pre-restore.jsonl /opt/la-lanh/backups/erasure-journal/journal-*.jsonl`
-   and record the per-kind counts (`reflected`/`applied`/`unmatched`, no ids).
+   and record the per-kind counts (`reflected`/`applied`/`unmatched`, no ids). Replay also closes today's human
+   Tarot intake (US-24, `human_tarot_intake_closed day=…`): the restored day tally may be lower than what was
+   accepted, so that day takes no more requests. A replayed `human_tarot_request_cancelled` queues its Sheet row
+   for clearing, and the Sheet bridge clears rows whose code the restored copy does not know.
 4. Run the guest and expired cleanup jobs (option C) until they report nothing remaining.
 5. Privacy isolation check and readiness, then serve.
 

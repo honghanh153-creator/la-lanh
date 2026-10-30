@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the Lá Lành human Tarot Sheet bridge every minute (US-24)
+
+[Timer]
+OnCalendar=*-*-* *:*:15
+AccuracySec=5s
+Unit=la-lanh-human-tarot-sync.service
+
+[Install]
+WantedBy=timers.target

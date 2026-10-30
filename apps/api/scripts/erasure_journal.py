@@ -16,6 +16,8 @@ from app.config import get_settings
 from app.db.session import Database
 from app.domains.erasure_journal.journal import ErasureJournal
 from app.domains.erasure_journal.replay import export_entries, purge_entries, replay
+from app.domains.human_tarot import policy
+from app.domains.human_tarot.service import HumanTarotService
 from app.infrastructure.crypto import (
     AesGcmEnvelopeCipher,
     SecretHasher,
@@ -40,9 +42,8 @@ async def _run(args: argparse.Namespace) -> int:
             )
             print(f"Purged {removed} journal entr(y/ies) older than {days} days.", file=sys.stderr)
             return 0
-        journal = ErasureJournal(
-            SecretHasher(decode_key(settings.guest_hash_key.get_secret_value()))
-        )
+        journal_hasher = SecretHasher(decode_key(settings.guest_hash_key.get_secret_value()))
+        journal = ErasureJournal(journal_hasher)
         envelope = AesGcmEnvelopeCipher(
             StaticDataKeyProvider(
                 decode_key(settings.guest_encryption_key.get_secret_value(), expected_bytes=32)
@@ -51,6 +52,12 @@ async def _run(args: argparse.Namespace) -> int:
         report = await replay(database.sessions, journal, envelope, args.lines)
         for line in report.lines():
             print(line)
+        # US-24: a restored day tally may be lower than what was really accepted; stop today's
+        # human Tarot intake instead of trusting it (the Sheet bridge clears unknown rows).
+        human_tarot = HumanTarotService(database.sessions, envelope, journal_hasher)
+        today = policy.local_day(human_tarot.now())
+        await human_tarot.close_intake(today)
+        print(f"human_tarot_intake_closed day={today.isoformat()}")
         print("Next: run the guest and expired cleanup jobs before serving.")
         return 0
     finally:
