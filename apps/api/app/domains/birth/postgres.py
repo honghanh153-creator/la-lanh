@@ -483,9 +483,9 @@ class PostgresBirthRepository:
             profile.current_snapshot_id = date_only.id
             await session.flush([profile])
         # Removing time or place deletes every saved note and share link of this person, as its
-        # confirmation promises ("mọi note, bản lưu, link chia sẻ hiện có"). Delete them here
-        # rather than through the source cascades, which migration 20261029_0039 drops in the next
-        # release; this also covers copies a birth-date correction detaches.
+        # confirmation promises ("mọi note, bản lưu, link chia sẻ hiện có"). Since migration
+        # 20261029_0039 the copies no longer cascade from their source, so delete them here; this
+        # also covers copies a birth-date correction detached earlier.
         await delete_copies(session, profile.guest_id)
         await delete_derived(session, profile)
         if date_only is not None:
