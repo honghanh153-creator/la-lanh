@@ -53,6 +53,7 @@ _GUEST_KINDS = frozenset(
         ErasureKind.HISTORY_CLEARED,
         ErasureKind.BIRTH_SUPPLEMENT_REMOVED,
         ErasureKind.BIRTH_TIME_DOWNGRADED,
+        ErasureKind.BIRTH_DATE_REPLACED,
         ErasureKind.CONSENT_REVOKED,
         ErasureKind.RESONANCE_CLEARED,
     }
@@ -281,6 +282,10 @@ async def _apply(
             return  # no birth profile left in the restored copy: nothing to remove
     elif kind is ErasureKind.BIRTH_TIME_DOWNGRADED:
         await birth.replay_time_downgrade(subject)
+    elif kind is ErasureKind.BIRTH_DATE_REPLACED:
+        # Reached only for a copy that does not hold the entry, i.e. one taken before the
+        # correction: it holds the old subject and no replacement value. Fail closed.
+        await birth.replay_date_replacement(subject)
     elif kind is ErasureKind.CONSENT_REVOKED:
         await guests.revoke_consent(subject, entry.scope, at)
     elif kind is ErasureKind.RESONANCE_CLEARED:

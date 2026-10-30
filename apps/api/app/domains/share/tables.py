@@ -5,7 +5,6 @@ from sqlalchemy import (
     JSON,
     CheckConstraint,
     ForeignKey,
-    ForeignKeyConstraint,
     Index,
     LargeBinary,
     String,
@@ -20,22 +19,19 @@ from app.db.types import UtcDateTime
 
 
 class ShareArtifactRow(Base):
+    """A frozen, privacy-safe copy behind a public link.
+
+    Since migration 20261029_0039 it no longer cascades from its Daily note or reading revision
+    (US-23 D2): a birth-date correction keeps live links listable and revocable. Paths that must
+    remove links with their source delete them explicitly; guest deletion still cascades.
+    """
+
     __tablename__ = "share_artifacts"
     __table_args__ = (
         CheckConstraint("expires_at > created_at", name="ck_share_artifact_expiry_after_creation"),
         CheckConstraint(
             "revoked_at IS NULL OR revoked_at >= created_at",
             name="ck_share_artifact_revocation_after_creation",
-        ),
-        ForeignKeyConstraint(
-            ("revision_id", "guest_id", "profile_id"),
-            (
-                "reading_revisions.id",
-                "reading_revisions.guest_id",
-                "reading_revisions.profile_id",
-            ),
-            name="fk_share_artifacts_revision_owner",
-            ondelete="CASCADE",
         ),
         CheckConstraint(
             "(revision_id IS NULL AND profile_id IS NULL) OR "
@@ -50,9 +46,7 @@ class ShareArtifactRow(Base):
     guest_id: Mapped[UUID] = mapped_column(
         ForeignKey("guest_sessions.id", ondelete="CASCADE"), nullable=False
     )
-    daily_note_id: Mapped[UUID] = mapped_column(
-        ForeignKey("daily_notes.id", ondelete="CASCADE"), nullable=False
-    )
+    daily_note_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
     profile_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     revision_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     token_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)

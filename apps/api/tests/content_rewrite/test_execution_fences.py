@@ -422,8 +422,14 @@ async def test_obsolete_birth_reading_cannot_send_or_reserve_budget(fenced, with
         next_attempt_at=now,
     )
     await repository.enqueue(record)
-    # History remains, but it is no longer the user's live source.
-    await birth.create_date_only(guest_id=guest_id, birth_date=date(1990, 11, 15))
+    # A birth-date correction (US-23) replaces the subject and deletes its queued jobs (D1).
+    current = await birth.current(guest_id)
+    await birth.correct_date(
+        guest_id=guest_id,
+        birth_date=date(1990, 11, 15),
+        confirm_birth_date=date(1990, 11, 15),
+        expected_revision=current.profile_revision,  # type: ignore[arg-type]
+    )
 
     class Provider:
         calls = 0
@@ -442,15 +448,88 @@ async def test_obsolete_birth_reading_cannot_send_or_reserve_budget(fenced, with
         daily_cost_budget_cents=100 if with_budget else None,
         monthly_cost_budget_cents=100 if with_budget else None,
     )
-    assert await worker.process_one()
+    assert not await worker.process_one()  # nothing left to lease
     assert provider.calls == 0
     async with db.sessions() as session:
-        row = await session.get(ContentRewriteJobRow, record.id)
-        assert row is not None and row.status in {"failed", "cancelled"}
-        assert row.budget_reserved_cost_nanos == 0
+        assert await session.get(ContentRewriteJobRow, record.id) is None
         assert await session.get(ContentRewriteSpendMonthRow, now.strftime("%Y-%m")) is None
     with pytest.raises(PermissionError):
         await repository.enqueue(record.model_copy(update={"id": uuid4()}))
+
+
+async def test_a_reading_leased_before_a_date_correction_cannot_publish_after_it(fenced):  # type: ignore[no-untyped-def]
+    """US-23 AC11: a job leased (admitted) before the correction is deleted by it, so a late
+    provider result finds no authority and publication is refused."""
+    from app.domains.astro.engine import NatalChartEngine
+    from app.domains.birth.postgres import PostgresBirthRepository
+    from app.domains.birth.service import BirthChartService
+    from app.domains.readings.application import ReadingApplicationService
+    from app.domains.readings.postgres import PostgresReadingRepository
+    from app.domains.readings.renderers import DeterministicVietnameseRenderer
+    from app.domains.readings.rewrite import compile_daily_rewrite_request
+    from app.domains.readings.tables import ReadingPlanRow
+    from app.infrastructure.crypto import SecretHasher
+
+    db, repository, cipher, guest_id, _, _ = fenced
+    async with db.sessions() as session, session.begin():
+        await session.execute(delete(ContentRewriteJobRow))
+    birth_repository = PostgresBirthRepository(db.sessions, cipher)
+    birth = BirthChartService(birth_repository, NatalChartEngine(), cipher, SecretHasher(b"h" * 32))
+    await birth.create_date_only(guest_id=guest_id, birth_date=date(1990, 3, 15))
+    snapshot = await birth_repository.find_current(guest_id)
+    assert snapshot is not None
+    readings = PostgresReadingRepository(db.sessions, cipher)
+    view = await ReadingApplicationService(readings).project(
+        guest_id=guest_id, snapshot=snapshot, purpose=ReadingPurpose.DAILY_NOTE
+    )
+    async with db.sessions() as session:
+        plan_id = await session.scalar(select(ReadingPlanRow.id))
+    assert plan_id is not None
+    plan = await readings.get_plan(guest_id, snapshot.profile_id, plan_id)
+    projection = await readings.get_projection(guest_id, snapshot.profile_id, view.scope_key)
+    assert plan is not None and projection is not None
+    request = compile_daily_rewrite_request(
+        plan,
+        projection,
+        DeterministicVietnameseRenderer().render(plan.plan),
+        model_version="gpt-6-luna",
+        prompt_version="surface-rewrite-v1",
+    )
+    now = datetime.now(UTC)
+    await repository.enqueue(
+        RewriteJobRecord(
+            id=uuid4(),
+            request=request,
+            deletion_epoch=uuid4(),
+            created_at=now,
+            updated_at=now,
+            next_attempt_at=now,
+        )
+    )
+    lease = await repository.lease(now=now, lease_for_seconds=120)
+    assert lease is not None
+
+    current = await birth.current(guest_id)
+    assert current.profile_revision is not None
+    await birth.correct_date(
+        guest_id=guest_id,
+        birth_date=date(1990, 11, 15),
+        confirm_birth_date=date(1990, 11, 15),
+        expected_revision=current.profile_revision,
+    )
+    async with repository.execution_guard(lease) as allowed:
+        assert allowed is False
+    assert not await repository.succeed(
+        lease=lease,
+        gate_receipt_id="offline",
+        output_fingerprint="f" * 64,
+        input_tokens=1,
+        output_tokens=1,
+        cost_nanos=1,
+        completed_at=datetime.now(UTC),
+    )
+    async with db.sessions() as session:
+        assert await session.get(ContentRewriteJobRow, lease.id) is None
 
 
 async def test_valid_birthless_tarot_projects_and_terminalizes_together(fenced):  # type: ignore[no-untyped-def]

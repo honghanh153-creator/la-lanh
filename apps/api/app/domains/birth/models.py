@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from enum import StrEnum
 from uuid import UUID
 
@@ -7,6 +7,9 @@ from app.domains.astro.models import DateOnlySunResult, NatalChart
 from app.domains.geo.models import PlaceResult
 
 ChartResult = DateOnlySunResult | NatalChart
+# US-23 D5: at most this many birth-date corrections per person in a rolling window.
+DATE_CHANGE_LIMIT = 3
+DATE_CHANGE_WINDOW = timedelta(hours=24)
 
 
 class BirthTimeMode(StrEnum):

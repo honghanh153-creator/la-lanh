@@ -36,3 +36,25 @@ class BirthSupplementInvalid(BirthDomainError):
 class BirthSupplementConsentInvalid(BirthDomainError):
     code = "BIRTH_SUPPLEMENT_CONSENT_INVALID"
     status_code = 422
+
+
+class BirthDateUnchanged(BirthDomainError):
+    code = "BIRTH_DATE_UNCHANGED"
+    status_code = 409
+
+
+class BirthDateChangeRequiresEdit(BirthDomainError):
+    """A different date while an active subject exists: only the explicit edit replaces it."""
+
+    code = "BIRTH_DATE_CHANGE_REQUIRES_EDIT"
+    status_code = 409
+
+
+class BirthDateChangeLimited(BirthDomainError):
+    code = "BIRTH_DATE_CHANGE_LIMITED"
+    status_code = 429
+
+
+class BirthDateConfirmationMismatch(BirthDomainError):
+    code = "BIRTH_DATE_CONFIRMATION_MISMATCH"
+    status_code = 422
