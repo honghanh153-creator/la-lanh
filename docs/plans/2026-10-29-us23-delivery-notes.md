@@ -1,9 +1,18 @@
-# US-23 delivery notes: birth-data correction (29/10/2026)
+# US-23 delivery notes: birth-data correction (29/10/2026, split 30/10/2026)
 
-Branch `feat/birth-date-correction`, built on the plan branch `docs/birth-data-edit-plan` (`e372e29`, plan after
-Codex r52) plus the Codex r54 corrections relayed by the coordinator (snapshot ordering, share-creation fence,
-invite copy). The plan doc itself is maintained on its own branch and is not edited here. Not merged, not released;
-the correction must not be enabled before migrations `20261029_0039` and `20261029_0040` are deployed.
+Split by plan U-ID (`docs/plans/2026-10-29-2222-feat-birth-human-tarot-plan.md`) on top of the plan branch
+`docs/birth-data-edit-plan` at `181f1e7` (the #113 plan after both r54 P2s), replacing the single branch
+`feat/birth-date-correction` (#119) with three stacked branches whose final tree is identical to #119 plus that
+plan revision:
+
+| U-ID | Branch | Content |
+|---|---|---|
+| U1 | `feat/birth-u1-lifecycle` | Docs (story, SRS, data map), migration 0039 (copies outlive their source), explicit deletes, share-creation fence. Ships alone: no correction endpoint. |
+| U2 | `feat/birth-u2-correction-api` | Migration 0040, `PUT /v1/birth-profile/date`, journal kind and replay, log hygiene. |
+| U3 | `feat/birth-u3-edit-flow` | Share-link list API and "Link đã chia sẻ", the Mình edit flow, cache withdrawal, these notes. |
+
+Not merged, not released; the correction must not be enabled before migrations `20261029_0039` and
+`20261029_0040` are deployed.
 
 ## What shipped on the branch
 
@@ -107,8 +116,8 @@ how the duties apply stays in the owner/engineering P09 assessment and no compli
    deletion removes it; it holds no value.
 3. The Mình time/place summary shows precision and city, not "07:30": the general supplement state never contains the
    raw time by design.
-4. The share-create fence landed as its own commit after slice 3 (the coordinator asked for it in the lifecycle slice);
-   nothing on the branch ships independently.
+4. The share-create fence is part of U1 (Codex r54 P2), so the lifecycle prerequisite can ship before the
+   correction endpoint exists. The owner share-link list moved to U3 with the UI that uses it.
 5. A publish that finds its revision erased by a birth edit now answers `409 BIRTH_PROFILE_CHANGED` instead of an
    ownership error (a cross-owner revision still raises the ownership error).
 6. The replay also resets the guest to `birth_pending` so every client path asks for the date again.
