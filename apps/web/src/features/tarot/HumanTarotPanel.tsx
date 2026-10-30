@@ -75,10 +75,10 @@ export function HumanTarotSubmit({ availability, context, question, spread, ques
   const releaseAt = formatVietnamTime(availability.release_at);
   const problem = create.error instanceof ApiProblem ? create.error.code : null;
 
-  if (availability.reason === "already_requested" && availability.current_request_id) {
+  if (availability.reason === "already_requested" || problem === "HUMAN_TAROT_ALREADY_REQUESTED") {
     return <section className="human-tarot-panel" aria-label="Nhờ người bốc">
-      <p>Hôm nay bạn đã gửi một câu cho người bốc.</p>
-      <Link className="tarot-primary" to={`/tarot/nguoi-boc/${availability.current_request_id}`}>Xem yêu cầu hôm nay<ArrowRight aria-hidden="true" /></Link>
+      <p role="status">Hôm nay bạn đã gửi một câu cho người bốc.</p>
+      {availability.current_request_id ? <Link className="tarot-primary" to={`/tarot/nguoi-boc/${availability.current_request_id}`}>Xem yêu cầu hôm nay<ArrowRight aria-hidden="true" /></Link> : null}
     </section>;
   }
   if (availability.reason === "full" || problem === "HUMAN_TAROT_FULL") {

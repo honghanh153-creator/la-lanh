@@ -148,6 +148,15 @@ describe("human Tarot option on /tarot", () => {
     expect(screen.getByRole("link", { name: /Xem yêu cầu hôm nay/ })).toHaveAttribute("href", `/tarot/nguoi-boc/${WAITING.id}`);
   });
 
+  it("never offers a second request, even without a link to the first", async () => {
+    vi.mocked(getHumanTarotAvailability).mockResolvedValue({ ...OPEN, reason: "already_requested", accepting: false, current_request_id: null });
+    renderAt("/tarot");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Nhờ người bốc/ }));
+    expect(screen.getByRole("status")).toHaveTextContent("Hôm nay bạn đã gửi một câu cho người bốc.");
+    expect(screen.queryByRole("button", { name: "Gửi cho người bốc" })).not.toBeInTheDocument();
+  });
+
   it("goes to the restart page when the browser session changed", async () => {
     vi.mocked(getHumanTarotAvailability).mockResolvedValue(OPEN);
     vi.mocked(createHumanTarotRequest).mockRejectedValue(new ApiProblem(401, "SESSION_CHANGED", "x"));
