@@ -16,7 +16,6 @@ The tier reference distribution is also regenerated and compared with ``reading.
 from __future__ import annotations
 
 import json
-import re
 import statistics
 from collections import Counter
 from datetime import UTC, datetime
@@ -27,11 +26,19 @@ from typing import Any
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import ChartInput, RelationshipBundle
 from app.domains.radar import reading
+from app.domains.radar.readable import (
+    JARGON,
+    MAX_DEFAULT_WORDS,
+    default_view,
+    more_layer,
+    sentences,
+    words,
+)
 from app.domains.radar.reading import build_radar_reading
 from app.domains.relationships.models import RelationshipVoice
 from scripts.radar_tier_reference import reference_signals
 from scripts.radar_tier_reference import report as reference_report
-from scripts.variety_baseline import _SENTENCE, _radar_chart, normalize
+from scripts.variety_baseline import _radar_chart
 
 FIXTURES = Path(__file__).resolve().parents[1] / "tests/fixtures/variety/radar-pairs-v1.json"
 CONTEXTS = ("crush", "friend", "partner", "someone")
@@ -46,15 +53,6 @@ FORBIDDEN = (
     "họ thích", "thích bạn", "yêu bạn", "theo dõi", "tỷ lệ", "tỉ lệ", "%", "/100",
     "hai nhu cầu bật lên", "cross-aspect", "jyotish", "sau mutual", "a→b",
 )  # fmt: skip
-# Astrology and app jargon allowed only in the "Xem thêm" layer.
-JARGON = (
-    "chart", "contact", "radar", "mood", "flirt", "chemistry", "synastry", "composite",
-    "mặt trời", "mặt trăng", "sao thủy", "sao kim", "sao hỏa", "sao mộc", "sao thổ",
-    "thiên vương", "hải vương", "diêm vương", "tam hợp", "lục hợp", "đối đỉnh", "đồng vị",
-    "góc vuông", "nhà ", "cung ",
-)  # fmt: skip
-
-MAX_DEFAULT_WORDS = 400
 MAX_TENSION_SHARE = 0.6
 MAX_TIER_SHARE = 0.4
 MIN_CONTEXT_CHANGE = 0.5
@@ -81,51 +79,6 @@ def _fixed_bundle() -> RelationshipBundle:
 
 def _section(result: dict[str, Any], key: str) -> dict[str, Any] | None:
     return next((item for item in result["sections"] if item["key"] == key), None)
-
-
-def default_view(result: dict[str, Any]) -> list[str]:
-    """Text on screen before anything is opened: tier, reason, headline, areas, main sections."""
-
-    signature = result["pair_signature"]
-    texts = [signature["tier"]["label"], signature["summary"], signature["headline"]]
-    if signature["tier"].get("score") is not None:
-        texts.append(str(signature["tier"]["score"]))
-    for area in signature["areas"]:
-        texts += [area["label"], area["level_label"], area["note"]]
-    for section in result["sections"]:
-        if section["layer"] == "main":
-            texts += [section["label"], section["title"], section["body"]]
-            texts.append(section.get("question") or "")
-    texts.append(result["disclaimer"])
-    return [text for text in texts if text]
-
-
-def more_layer(result: dict[str, Any]) -> list[str]:
-    """Text behind the one "Xem thêm" disclosure."""
-
-    texts: list[str] = []
-    for section in result["sections"]:
-        if section["layer"] != "more":
-            continue
-        texts += [section["label"], section["title"], section["body"]]
-        for factor in section.get("factors") or []:
-            texts += [factor["label"], factor["level_label"], factor["technical_note"]]
-        for block in [*section["highlights"], *section["perspectives"]]:
-            texts += [block["title"], block["body"]]
-    return [text for text in texts if text]
-
-
-def words(texts: list[str]) -> int:
-    return sum(len(re.findall(r"[^\W_]+", text)) for text in texts)
-
-
-def sentences(texts: list[str]) -> list[str]:
-    return [
-        normalize(part)
-        for text in texts
-        for part in _SENTENCE.split(text)
-        if len(part.split()) >= 4
-    ]
 
 
 def _fixed_pair_gate() -> None:

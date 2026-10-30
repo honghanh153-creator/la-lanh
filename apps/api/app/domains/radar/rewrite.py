@@ -5,7 +5,7 @@ import re
 import unicodedata
 from datetime import datetime
 from hashlib import sha256
-from typing import Literal, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from pydantic import JsonValue
@@ -26,6 +26,7 @@ from app.domains.content_rewrite.models import (
 from app.domains.content_rewrite.polarity import NON_CLAIM_TOKENS, negates_source_claim
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
+from app.domains.radar.readable import readable_violations
 from app.domains.radar.reading import PREVIOUS_RENDERER_VERSIONS, RENDERER_VERSION
 from app.domains.radar.tables import RadarRequestRow
 from app.infrastructure.crypto import EnvelopeCipher
@@ -523,6 +524,11 @@ def rewrite_radar_projection(
         if section is None:
             return None
         section["body"] = body
+    # Codex r55: a readable (tiered) result keeps AC11 after the rewrite, checked on the page as
+    # assembled (unchanged headline, areas and question included). Otherwise the deterministic
+    # result stays.
+    if tiered and readable_violations(cast(dict[str, Any], candidate)):
+        return None
     metadata = candidate.get("metadata")
     if not isinstance(metadata, dict):
         return None

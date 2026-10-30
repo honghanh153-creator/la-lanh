@@ -126,7 +126,8 @@ class PairSignals:
     ease: float
     percentile: float
     tier: str
-    fit: ThemeCluster
+    # The easiest theme that is not "watch"; positive copy is used only for a "good" one.
+    fit: ThemeCluster | None
     support: ThemeCluster | None
     tension: ThemeCluster | None
     levels: dict[str, str]
@@ -862,6 +863,22 @@ SECTION_LABELS = {
 # Owner decision 10: one fixed calm line, once, in one place, for every pair.
 CLOSING_LINE = "Kết quả để tham khảo, cách hai bạn đối xử với nhau mới là điều quyết định."
 
+# Codex r55: when no theme is "good". Draft copy, owner reading pending like the rest of US-22.
+UNCLEAR_FIT_HEADLINES = {
+    "crush": "Hai bạn còn đang dò nhịp của nhau.",
+    "friend": "Hai bạn còn đang tìm nhịp chung.",
+    "partner": "Hai bạn đang học dần nhịp của nhau.",
+    "someone": "Giữa hai bạn chưa có một điểm dễ đi cùng thật rõ.",
+}
+NO_CLEAR_FIT_REASON = {
+    "tension": (
+        "Lá chưa thấy chỗ nào thật sự dễ đi cùng giữa hai bạn; điều cần để ý nằm ngay bên dưới."
+    ),
+    "even": "Các điểm chạm của hai bạn đều ở mức vừa, chưa có chỗ nào nổi lên thật rõ.",
+}
+UNCLEAR_FIT_LABEL = "Điều ở mức vừa"
+BALANCED_FIT_COPY = "Ở {theme}, hai bạn ở mức vừa: có lúc thuận, có lúc cần nói rõ thêm."
+
 LOW_SIGNAL_COPY = {
     "headline": "Lá chưa thấy đủ điểm riêng để kể về hai bạn.",
     "summary": (
@@ -890,19 +907,20 @@ def build_radar_reading(
 
     fit, tension = signals.fit, signals.tension
     focus = tension if tension is not None else fit
+    if focus is None:  # pragma: no cover - a pair has at least one theme, watch or calm
+        return _low_signal_reading(bundle, context=safe_context, voice=voice)
     tier_label = TIER_LABELS[safe_context][signals.tier]
-    headline = HEADLINES[fit.key][safe_context]
-    summary = TIER_REASONS[signals.tier].format(fit=THEME_PLAIN[fit.key])
     action, question = SUGGESTIONS[focus.key][safe_context]
-
     support = signals.support
-    fit_receipts = _cluster_receipts(fit, mode="fit")
     tension_receipts = _cluster_receipts(tension, mode="friction") if tension else []
-    fit_body = FIT_COPY[fit.key][safe_context]
-    if support is not None:
-        fit_body = f"{fit_body} {FIT_COPY[support.key][safe_context]}"
-    sections: list[dict[str, Any]] = [
-        _section(
+    if fit is not None and signals.levels[fit.key] == "good":
+        headline = HEADLINES[fit.key][safe_context]
+        summary = TIER_REASONS[signals.tier].format(fit=THEME_PLAIN[fit.key])
+        fit_receipts = _cluster_receipts(fit, mode="fit")
+        fit_body = FIT_COPY[fit.key][safe_context]
+        if support is not None:
+            fit_body = f"{fit_body} {FIT_COPY[support.key][safe_context]}"
+        fit_section = _section(
             "fit",
             body=fit_body,
             topics=[fit.label, *([support.label] if support else [])],
@@ -910,7 +928,24 @@ def build_radar_reading(
                 [*fit_receipts, *(_cluster_receipts(support, mode="fit") if support else [])]
             ),
         )
-    ]
+    else:
+        # Codex r55: no theme is "good" (or the only one is "watch"), so nothing is presented as
+        # easy. The tier and the friction classification are unchanged.
+        headline = UNCLEAR_FIT_HEADLINES[safe_context]
+        summary = NO_CLEAR_FIT_REASON["tension" if tension is not None else "even"]
+        fit_receipts = _cluster_receipts(fit, mode="fit") if fit is not None else []
+        fit_section = _section(
+            "fit",
+            label=UNCLEAR_FIT_LABEL,
+            body=(
+                BALANCED_FIT_COPY.format(theme=THEME_PLAIN[fit.key])
+                if fit is not None
+                else LOW_SIGNAL_COPY["fit"]
+            ),
+            topics=[fit.label] if fit is not None else [],
+            evidence=fit_receipts or tension_receipts[:1],
+        )
+    sections: list[dict[str, Any]] = [fit_section]
     if tension is not None:
         sections.append(
             _section(
@@ -989,7 +1024,7 @@ def build_radar_reading(
             "tier": tier,
             "areas": _areas(signals, safe_context),
             "themes": [
-                {"key": fit.key, "label": fit.label},
+                *([{"key": fit.key, "label": fit.label}] if fit else []),
                 *([{"key": tension.key, "label": tension.label}] if tension else []),
             ],
         },
@@ -1028,10 +1063,17 @@ def pair_signals(bundle: RelationshipBundle) -> PairSignals | None:
     ease = ease_signal(list(motifs))
     percentile = rank_percentile(ease)
     levels = {cluster.key: _cluster_level(cluster) for cluster in clusters}
+    good = [cluster for cluster in clusters if levels[cluster.key] == "good"]
     calm = [cluster for cluster in clusters if levels[cluster.key] != "watch"]
-    fit = max(calm or clusters, key=lambda item: (item.coordination, item.resonance, item.key))
+    # Codex r55: a "watch" theme is never the fit, and a good theme wins over a merely balanced
+    # one with more coordination, so the positive copy below is only ever chosen for "good".
+    fit = max(
+        good or calm,
+        key=lambda item: (item.coordination, item.resonance, item.key),
+        default=None,
+    )
     watched = [cluster for cluster in clusters if levels[cluster.key] == "watch"]
-    distinct = [cluster for cluster in watched if cluster.key != fit.key]
+    distinct = [cluster for cluster in watched if fit is None or cluster.key != fit.key]
     tension = max(
         distinct or watched,
         key=lambda item: (item.friction, item.resonance, item.key),
@@ -1042,7 +1084,7 @@ def pair_signals(bundle: RelationshipBundle) -> PairSignals | None:
             cluster
             for cluster in clusters
             if levels[cluster.key] == "good"
-            and cluster.key not in {fit.key, tension.key if tension else ""}
+            and cluster.key not in {fit.key if fit else "", tension.key if tension else ""}
         ),
         key=lambda item: (item.coordination, item.resonance, item.key),
         default=None,
@@ -1168,6 +1210,7 @@ def _section(
     *,
     body: str,
     layer: str = "main",
+    label: str | None = None,
     title: str = "",
     question: str | None = None,
     topics: list[str] | None = None,
@@ -1180,7 +1223,7 @@ def _section(
     section: dict[str, Any] = {
         "key": key,
         "layer": layer,
-        "label": SECTION_LABELS[key],
+        "label": label or SECTION_LABELS[key],
         "title": title,
         "body": body,
         "topics": topics or [],

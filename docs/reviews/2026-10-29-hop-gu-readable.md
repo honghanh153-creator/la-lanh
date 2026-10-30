@@ -257,3 +257,17 @@ diện.
 - **Lớp "Xem thêm" giống nhau giữa các ngữ cảnh**, chỉ màn mặc định đổi.
 - `pnpm check` đầy đủ chưa chạy (theo quy tắc workspace). Các lệnh đã chạy được liệt kê trong handoff.
 - DoD "Codex APPROVE @ SHA; release theo runbook" chưa làm.
+
+## Codex r55 corrections (30/10/2026)
+
+- **Honest fit.** `pair_signals` picks the fit only among themes that are not "watch", preferring a "good" one; the
+  positive headline, tier reason and "Điều trôi chảy" paragraph are used only when the fit is "good". Otherwise the
+  result says the pair is still finding its rhythm (`UNCLEAR_FIT_HEADLINES`, `NO_CLEAR_FIT_REASON`), labels the
+  section "Điều ở mức vừa" and describes a balanced theme without claiming ease. Tier and friction classification are
+  unchanged. Example fixed: a sole strong Mercury–Moon square no longer reads "Hai bạn dễ nói cho nhau hiểu".
+  The new strings are draft copy awaiting the owner's reading with the rest of US-22.
+- **AC11 on rewrites.** The readable contract (≤ 400 visible words, no default-view jargon, no sentence repeated across
+  fields or layers) moved to `app/domains/radar/readable.py` and is applied to the assembled rewrite candidate of a
+  tiered result before it can be published; a violation keeps the deterministic result. Legacy projections are
+  unchanged. The release audit uses the same module.
+- Regressions: `apps/api/tests/radar/test_readable_r55.py` (11 of 13 fail on `59cf0db`).
