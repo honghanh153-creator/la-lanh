@@ -80,6 +80,9 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         return AdmissionPolicy("guest-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path == "/v1/tarot/sessions":
         return AdmissionPolicy("tarot-session-create", per_peer=20, global_limit=240)
+    if request.method == "POST" and path == "/v1/human-tarot/requests":
+        # The durable cap (10 a day, one per guest) is in the database; this only sheds floods.
+        return AdmissionPolicy("human-tarot-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path in {"/v1/radar/requests", "/v1/radar/private-checks"}:
         return AdmissionPolicy("radar-create", per_peer=10, global_limit=120)
     if request.method == "GET" and path.startswith("/v1/radar/"):

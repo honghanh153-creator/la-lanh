@@ -277,6 +277,17 @@
         "title": "AuraUnlockLayer",
         "type": "string"
       },
+      "AvailabilityReason": {
+        "enum": [
+          "open",
+          "full",
+          "closed",
+          "already_requested",
+          "disabled"
+        ],
+        "title": "AvailabilityReason",
+        "type": "string"
+      },
       "AvailableReadingUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -1796,6 +1807,264 @@
         ],
         "title": "HouseSystem",
         "type": "string"
+      },
+      "HumanTarotAvailability": {
+        "properties": {
+          "accepting": {
+            "title": "Accepting",
+            "type": "boolean"
+          },
+          "closes_at": {
+            "format": "date-time",
+            "title": "Closes At",
+            "type": "string"
+          },
+          "consent_version": {
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "current_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Request Id"
+          },
+          "daily_limit": {
+            "title": "Daily Limit",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "local_date": {
+            "format": "date",
+            "title": "Local Date",
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/AvailabilityReason"
+          },
+          "release_at": {
+            "format": "date-time",
+            "title": "Release At",
+            "type": "string"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "accepting",
+          "reason",
+          "local_date",
+          "closes_at",
+          "release_at",
+          "daily_limit",
+          "remaining",
+          "consent_version"
+        ],
+        "title": "HumanTarotAvailability",
+        "type": "object"
+      },
+      "HumanTarotCardPosition": {
+        "properties": {
+          "card": {
+            "$ref": "#/components/schemas/TarotCard"
+          },
+          "position_key": {
+            "title": "Position Key",
+            "type": "string"
+          },
+          "position_label": {
+            "title": "Position Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position_key",
+          "position_label",
+          "card"
+        ],
+        "title": "HumanTarotCardPosition",
+        "type": "object"
+      },
+      "HumanTarotCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "context": {
+            "$ref": "#/components/schemas/TarotContext"
+          },
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 22,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 280,
+            "minLength": 8,
+            "title": "Question",
+            "type": "string"
+          },
+          "spread": {
+            "$ref": "#/components/schemas/TarotSpread"
+          }
+        },
+        "required": [
+          "context",
+          "question",
+          "spread",
+          "consent_version",
+          "idempotency_key"
+        ],
+        "title": "HumanTarotCreateRequest",
+        "type": "object"
+      },
+      "HumanTarotRequestView": {
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/TarotContext"
+          },
+          "copy_cleared": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy Cleared"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "delivered",
+                  "error"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "local_date": {
+            "format": "date",
+            "title": "Local Date",
+            "type": "string"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "release_at": {
+            "format": "date-time",
+            "title": "Release At",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HumanTarotResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spread": {
+            "$ref": "#/components/schemas/TarotSpread"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VisibleStatus"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "local_date",
+          "release_at",
+          "context",
+          "spread",
+          "expires_at"
+        ],
+        "title": "HumanTarotRequestView",
+        "type": "object"
+      },
+      "HumanTarotResult": {
+        "description": "The owner's frozen reading. Never rewritten by the engine or Luna.",
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/HumanTarotCardPosition"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "imported_at": {
+            "format": "date-time",
+            "title": "Imported At",
+            "type": "string"
+          },
+          "reader": {
+            "const": "human",
+            "default": "human",
+            "title": "Reader",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cards",
+          "reading",
+          "step",
+          "imported_at"
+        ],
+        "title": "HumanTarotResult",
+        "type": "object"
       },
       "IdentityMode": {
         "enum": [
@@ -5003,6 +5272,18 @@
         ],
         "title": "VerifyRequest",
         "type": "object"
+      },
+      "VisibleStatus": {
+        "description": "What the owner of a request sees; decided by the server clock on every read (R9).",
+        "enum": [
+          "waiting",
+          "ready",
+          "late",
+          "unfulfilled",
+          "cancelled"
+        ],
+        "title": "VisibleStatus",
+        "type": "string"
       },
       "WeeklyIntent": {
         "enum": [
@@ -8950,6 +9231,200 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/v1/human-tarot/availability": {
+      "get": {
+        "operationId": "human_tarot_availability_v1_human_tarot_availability_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTarotAvailability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Human Tarot Availability",
+        "tags": [
+          "human-tarot"
+        ]
+      }
+    },
+    "/v1/human-tarot/requests": {
+      "post": {
+        "operationId": "create_human_tarot_request_v1_human_tarot_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTarotCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTarotRequestView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Human Tarot Request",
+        "tags": [
+          "human-tarot"
+        ]
+      }
+    },
+    "/v1/human-tarot/requests/current": {
+      "get": {
+        "operationId": "current_human_tarot_request_v1_human_tarot_requests_current_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTarotRequestView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Current Human Tarot Request",
+        "tags": [
+          "human-tarot"
+        ]
+      }
+    },
+    "/v1/human-tarot/requests/{request_id}": {
+      "delete": {
+        "operationId": "cancel_human_tarot_request_v1_human_tarot_requests__request_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Human Tarot Request",
+        "tags": [
+          "human-tarot"
+        ]
+      },
+      "get": {
+        "operationId": "get_human_tarot_request_v1_human_tarot_requests__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTarotRequestView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Human Tarot Request",
+        "tags": [
+          "human-tarot"
         ]
       }
     },

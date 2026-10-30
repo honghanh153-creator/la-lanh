@@ -19,6 +19,7 @@ from app.domains.guest.errors import GuestExpired
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.history.errors import HistoryBusy
 from app.domains.history.tables import HistoryRetentionPolicyRow
+from app.domains.human_tarot.tables import HumanTarotRequestRow
 from app.domains.mood.tables import MoodCheckInRow
 from app.domains.radar.tables import RadarRequestRow
 from app.domains.readings.tables import (
@@ -289,6 +290,8 @@ class PostgresHistoryRepository:
         )
         moods = MoodCheckInRow.guest_id == guest_id
         tarot = TarotSessionRow.guest_id == guest_id
+        # US-24: removing a request also clears its Google Sheet row (the slot loses its link).
+        human_tarot = HumanTarotRequestRow.guest_id == guest_id
         radar = RadarRequestRow.owner_guest_id == guest_id
         resonance = ResonanceFeedbackRow.guest_id == guest_id
         experiments = DailyExperimentRow.guest_id == guest_id
@@ -300,6 +303,10 @@ class PostgresHistoryRepository:
         )
         if manual:
             tarot &= TarotSessionRow.state == "complete"
+            # Finished ones only; a request still waiting for its reading is cancelled explicitly.
+            human_tarot &= HumanTarotRequestRow.status.in_(
+                ("ready", "unfulfilled", "cancelled")
+            ) & (HumanTarotRequestRow.release_at <= now)
             radar &= RadarRequestRow.completed_at.is_not(None)
         else:
             daily &= expired_history(
@@ -309,6 +316,7 @@ class PostgresHistoryRepository:
                 MoodCheckInRow.guest_id, MoodCheckInRow.created_at, now, physical=True
             )
             tarot &= TarotSessionRow.expires_at <= now
+            human_tarot &= HumanTarotRequestRow.expires_at <= now
             radar &= RadarRequestRow.expires_at <= now
             resonance &= ResonanceFeedbackRow.expires_at <= now
             experiments &= DailyExperimentRow.expires_at <= now
@@ -319,6 +327,7 @@ class PostgresHistoryRepository:
             (DailyExperimentRow, experiments),
             (ShareArtifactRow, shares),
             (TarotSessionRow, tarot),
+            (HumanTarotRequestRow, human_tarot),
             (RadarRequestRow, radar),
             (DailyNoteRow, daily),
         ]

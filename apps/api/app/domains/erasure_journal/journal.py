@@ -42,6 +42,8 @@ class ErasureKind(StrEnum):
     LA_CHUNG_RESULT_DELETED = "la_chung_result_deleted"
     EXPERIMENT_UNDONE = "experiment_undone"
     RADAR_INVITE_REVOKED = "radar_invite_revoked"
+    # Human Tarot (US-24): cancel or delete of one request; replay also clears its Sheet row.
+    HUMAN_TAROT_REQUEST_CANCELLED = "human_tarot_request_cancelled"
 
 
 class ErasureJournal:
