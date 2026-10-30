@@ -257,3 +257,24 @@ scene, reflection, action) and the closed lean labels (kind, level, action label
 rebuilt from those codes and checked before a request is built; a string that traces to no closed label or
 catalog code blocks the request. The question, the QuestionFrame, the variant record and the variant cursor are
 never sent; lean conclusions and reasons stay local. No new data type, recipient or store declaration.
+
+## Human Tarot reader delta — US-24, 2026-10-30 (code behind flags, OFF; no store change yet)
+
+Nothing below is collected today: `human_tarot_enabled` and `human_tarot_sheet_sync_enabled` are false in every
+environment and staging/production refuse them without the owner's launch approval. If the owner enables the
+flow after US-24 OD1–OD7, the following becomes true and the store forms, the privacy policy and the in-app
+privacy notice must be updated **before** the first tester request:
+
+| Data | Where | Recipient | Retention (OD2 proposal, not approved) |
+|---|---|---|---|
+| Question text, chosen context and number of cards | App DB (AES-GCM, bound to the request id) | Owner (the human reader) | Question: 24 h after the 10:00 release; at day end if no reading; at once on cancel/delete. |
+| Same question, context, number of cards, positions, a random code, date, release time | One Google Sheet of the owner | **Google** (Sheets storage, possibly outside Viet Nam) and the owner | Live row cleared on cancel/delete and at the latest at day end; Google revision history is not deletable by API (OD2 file rotation). |
+| Owner-written cards, reading and small step | App DB (frozen, encrypted) | The requesting guest only, from 10:00 | 30 days after release; guest deletion, history clear and delete remove it earlier. |
+| Per-request consent version and time | App DB | — | With the request. |
+| Day tally, slot ledger (guest link set null on deletion), Google call counters | App DB | — | Tally 40 days; slots 2 days after clearing; counters 2 days. No question in any of them. |
+
+Store mapping when enabled: Apple "Other User Content" (App Functionality), linked, not tracking; Google Play
+"User-generated content / Other", collected and **shared** (with Google as the Sheet host and with the human
+reader), optional, App functionality. Not used for ads, analytics or AI. Before enabling, decide OD7: a consumer
+Google account has no processor terms; a Google Workspace account with the Cloud Data Processing Addendum makes
+Google a processor (official source checked 30/10/2026, see `docs/plans/2026-10-30-us24-validation.md`).

@@ -2,8 +2,8 @@
 
 > Dành cho owner (người bốc) và người vận hành. Chưa áp dụng cho dữ liệu thật: cờ `human_tarot_enabled` và
 > `human_tarot_sheet_sync_enabled` đang tắt, chưa có file Google hay quyền nào được cấp. Trước dữ liệu thật owner
-> phải chốt US-24 OD1–OD6 (giờ ngừng nhận, retention và bản sao Google, danh tính Google, copy, số lượt còn lại,
-> P09/P10).
+> phải chốt US-24 OD1–OD7 (giờ ngừng nhận, retention và bản sao Google, danh tính Google, copy, số lượt còn lại,
+> P09/P10, loại tài khoản Google).
 
 ## 1. Chuẩn bị một lần (owner)
 

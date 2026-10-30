@@ -9,7 +9,7 @@
 > xoá), P09/P10 (đánh giá quyền riêng tư, owner/engineering).
 
 **Trạng thái:** đặc tả và code sau cờ tắt. Không có dữ liệu thật, không có kết nối Google, không bật ở staging hay
-production. Ba lựa chọn ở mục 9 phải được owner chốt trước dữ liệu thật.
+production. Các lựa chọn OD1–OD7 ở mục 9 phải được owner chốt trước dữ liệu thật.
 
 ## 1. User story
 
@@ -183,6 +183,7 @@ riêng (huỷ yêu cầu, không sửa âm thầm).
 | OD4 | Copy mục 4 và câu đồng ý | — | Bản nháp. |
 | OD5 | Hiện số lượt còn lại cho mọi người | Có (không lộ ai đã gửi) | Có. |
 | OD6 | P09/P10: thêm bên nhận Google (có thể ngoài Việt Nam) và người bốc; cập nhật thông báo quyền riêng tư, store privacy | Cập nhật trước tester thật | Bản nháp ở U7. |
+| OD7 | Loại tài khoản Google giữ Sheet | Tài khoản Google Workspace có Cloud Data Processing Addendum (Google là bên xử lý). Tài khoản Gmail cá nhân không có điều khoản bên xử lý. | Chưa có tài khoản nào được dùng. |
 
 Khi chưa chốt đủ, cờ `human_tarot_enabled` chỉ được bật ở local/test với Sheet giả; config từ chối bật ở staging hay
 production nếu thiếu `human_tarot_launch_approved`.
@@ -243,6 +244,6 @@ production nếu thiếu `human_tarot_launch_approved`.
 - AC01–AC24 có test; concurrency có test SQLite thật và test PostgreSQL (chạy khi được phép một lần, không thay bằng
   SQLite để gọi là đạt).
 - OpenAPI/TS, copy, đồng ý, data map, thông báo quyền riêng tư và khai báo store không mâu thuẫn với runtime.
-- Owner chốt OD1–OD6 và cấp quyền Google cho file tổng hợp; rehearsal với file tổng hợp có receipt riêng.
+- Owner chốt OD1–OD7 và cấp quyền Google cho file tổng hợp; rehearsal với file tổng hợp có receipt riêng.
 - Cờ vẫn tắt ở staging/production tới lệnh release riêng. P07 PARTIAL/B và mọi receipt đỏ giữ nguyên.
 - Codex APPROVE theo đúng SHA của từng PR (U4, U5, U6, U7).
