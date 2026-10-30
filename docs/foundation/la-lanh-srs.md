@@ -559,7 +559,7 @@ POST   /v1/human-tarot/requests          { context, question, spread, consent_ve
                                           idempotency_key } → 201 biên nhận; CSRF; tối đa 10 lượt toàn app
                                           và 1 lượt/phiên mỗi ngày Asia/Ho_Chi_Minh; không nhận sau giờ đóng
 GET    /v1/human-tarot/requests/current  → yêu cầu gần nhất còn hạn của phiên (404 nếu không có)
-GET    /v1/human-tarot/requests/{id}     → view chủ sở hữu; result chỉ có từ release_at (10:00 cùng ngày)
+GET    /v1/human-tarot/requests/{id}     → view chủ sở hữu; result chỉ có từ release_at (22:00 cùng ngày)
 DELETE /v1/human-tarot/requests/{id}     → huỷ/xoá; chặn đọc và nhập ngay, job xoá hàng trên Google Sheet
 ```
 

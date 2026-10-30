@@ -3,7 +3,7 @@
 > Nguồn: kế hoạch `docs/plans/2026-10-29-2222-feat-birth-human-tarot-plan.md` (Codex, 29/10/2026; Product Contract
 > R4–R14, KD1–KD3, KTD1–KTD7, U4–U7) và quyết định của owner trong chat ngày 29–30/10/2026: người thật bốc và viết,
 > tối đa 10 lượt toàn app mỗi ngày, ghi sang một Google Sheet ngay khi nhận, owner điền kết quả và tick Sẵn sàng, app
-> mở bài từ 10:00 cùng ngày; sau giờ đóng nhận không nhận và không tự xếp sang hôm sau. Ít backend, không thêm AI,
+> mở bài từ 22:00 cùng ngày (owner 30/10: ngừng nhận 18:00, trả bài 22:00); sau giờ đóng nhận không nhận và không tự xếp sang hôm sau. Ít backend, không thêm AI,
 > SaaS hay dashboard: DB kiểm hạn mức và quyền xem, Sheet là nơi owner làm việc.
 > Story liên quan: US-20 (Tarot tự bốc, intake an toàn), US-01 (phiên khách, xoá dữ liệu), US-05 (lưu), P07 (nhật ký
 > xoá), P09/P10 (đánh giá quyền riêng tư, owner/engineering).
@@ -14,7 +14,7 @@ production. Ba lựa chọn ở mục 9 phải được owner chốt trước d�
 ## 1. User story
 
 Là người đang phân vân một chuyện, tôi muốn nhờ một người thật bốc bài và viết riêng cho câu hỏi của mình, rồi quay
-lại app lúc 10:00 để đọc. Tôi biết rõ bài nào do người viết và bài nào do app tự xếp, biết còn lượt hay không, biết
+lại app lúc 22:00 để đọc. Tôi biết rõ bài nào do người viết và bài nào do app tự xếp, biết còn lượt hay không, biết
 câu hỏi của mình được đưa đi đâu và có thể huỷ hoặc xoá bất cứ lúc nào.
 
 Là owner (người bốc), tôi muốn nhận câu hỏi trong một Google Sheet quen thuộc với tối đa 10 hàng mỗi ngày, viết bài
@@ -29,7 +29,7 @@ ngay trong Sheet, tick Sẵn sàng là xong; không phải mở dashboard, chat 
 - Đồng ý riêng `human-tarot-v1` cho từng lần gửi.
 - Ghi yêu cầu vào đúng một Google Sheet của owner ngay sau khi nhận; job đồng bộ mỗi phút nhập bài Sẵn sàng, thử
   lại khi Google lỗi và xoá bản sao trên Sheet.
-- Mở bài cho đúng người từ 10:00 cùng ngày; trước giờ đó API chỉ trả trạng thái và giờ hẹn.
+- Mở bài cho đúng người từ 22:00 cùng ngày; trước giờ đó API chỉ trả trạng thái và giờ hẹn.
 - Huỷ yêu cầu, xoá bài; xoá theo xoá phiên khách, xoá lịch sử, hết hạn và replay sau restore.
 
 **Không bao gồm (bản đầu):**
@@ -45,7 +45,7 @@ ngay trong Sheet, tick Sẵn sàng là xong; không phải mở dashboard, chat 
 | # | Quyết định | Nguồn |
 |---|---|---|
 | KD1 | Người thật bốc và viết; không phải người dùng tự bốc rồi chỉ hẹn giờ. App không bao giờ âm thầm thay bằng bài máy. | Owner 29/10 |
-| KD2 | Một đợt trả bài 10:00 cùng ngày. Không nhận từ giờ đóng nhận tới hết ngày; không xếp sang hôm sau. | Owner 29/10 |
+| KD2 | Một đợt trả bài 22:00 cùng ngày. Không nhận từ giờ đóng nhận tới hết ngày; không xếp sang hôm sau. | Owner 29/10 |
 | KD3 | Owner làm việc trong một Google Sheet riêng thay cho công cụ quản trị. | Owner 29/10 |
 | D-HT1 | DB là nguồn của hạn mức, quyền xem, giờ mở và trạng thái xoá. Sheet chỉ là bàn làm việc. | Plan KTD1/KTD3 |
 | D-HT2 | Đồng ý gắn vào **từng yêu cầu** (`consent_version = "human-tarot-v1"`, lưu cùng yêu cầu), không gộp vào đồng ý Luna hay đồng ý Tarot cũ, không mặc định bật. Rút lại = huỷ yêu cầu. | Plan R11, KTD6 |
@@ -64,13 +64,13 @@ flowchart TD
   A -->|"đã đóng nhận"| Z["Hôm nay đã ngừng nhận lượt…"]
   A -->|"đã gửi hôm nay"| R
   A -->|"mở"| Q["Chủ đề + câu hỏi + số lá + đồng ý riêng"] --> P["POST: giữ lượt trong DB"]
-  P --> R["Biên nhận: Đã nhận câu hỏi · Hẹn bạn lúc 10:00, dd/MM"]
+  P --> R["Biên nhận: Đã nhận câu hỏi · Hẹn bạn lúc 22:00, dd/MM"]
   R --> E["Ghi vào Sheet (ngoài transaction)"]
   E --> O["Owner bốc, viết, tick Sẵn sàng"] --> I["Job nhập + kiểm + đóng băng"]
   R --> V{"Quay lại app"}
-  V -->|"trước 10:00"| W["Đang chờ · giờ hẹn"]
-  V -->|"từ 10:00, có bài"| B["Bài của người bốc"]
-  V -->|"từ 10:00, chưa có"| L["Bài chưa hoàn tất…"]
+  V -->|"trước 22:00"| W["Đang chờ · giờ hẹn"]
+  V -->|"từ 22:00, có bài"| B["Bài của người bốc"]
+  V -->|"từ 22:00, chưa có"| L["Bài chưa hoàn tất…"]
   V -->|"hết ngày, chưa có"| U["Không có bài hôm nay"]
 ```
 
@@ -79,16 +79,16 @@ flowchart TD
 | Nơi | Chữ |
 |---|---|
 | Lựa chọn | "Tự bốc ngay" · "Nhờ người bốc" |
-| Dưới "Nhờ người bốc" | "Tối đa 10 lượt/ngày · Trả bài lúc 10:00 hôm nay" + "Giờ Việt Nam" + "Còn N lượt" |
+| Dưới "Nhờ người bốc" | "Tối đa 10 lượt/ngày · Trả bài lúc 22:00 hôm nay" + "Giờ Việt Nam" + "Còn N lượt" |
 | Đồng ý (checkbox, không tick sẵn) | "Mình đồng ý để người bốc của Lá Lành đọc câu hỏi này, và để câu hỏi được lưu tạm trong một Google Sheet riêng của người bốc cho tới khi có bài (tối đa hết ngày). Câu hỏi không kèm tên, ngày sinh hay thông tin tài khoản." |
 | Nhắc trước nút gửi | "Đừng ghi tên đầy đủ, số điện thoại hay chi tiết giúp nhận ra người khác." |
 | Hết lượt | "Hôm nay đã đủ 10 lượt. Bạn có thể quay lại ngày mai hoặc tự bốc ngay." |
 | Đóng nhận | "Hôm nay đã ngừng nhận lượt. Ngày mai bạn quay lại nhé." |
-| Biên nhận | "Đã nhận câu hỏi · Hẹn bạn lúc 10:00, dd/MM" |
+| Biên nhận | "Đã nhận câu hỏi · Hẹn bạn lúc 22:00, dd/MM" |
 | Đang chuyển | "Đang chuyển tới người bốc" |
 | Đã chuyển | "Người bốc đã nhận câu hỏi" (chỉ nói Sheet đã có hàng; không phải bằng chứng owner đã đọc) |
 | Chuyển lỗi | "Chưa chuyển được tới người bốc. App đang thử lại; lượt của bạn vẫn được giữ." |
-| Trước giờ | "Bài sẽ mở lúc 10:00. Bạn quay lại lúc đó nhé." + nút "Kiểm tra lại" |
+| Trước giờ | "Bài sẽ mở lúc 22:00. Bạn quay lại lúc đó nhé." + nút "Kiểm tra lại" |
 | Chậm | "Bài của bạn chưa hoàn tất. Bạn có thể quay lại sau hoặc huỷ yêu cầu." |
 | Hết ngày không có bài | "Hôm nay người bốc chưa kịp viết bài cho bạn. Yêu cầu đã kết thúc; bạn có thể tự bốc ngay." |
 | Kết quả | Nhãn "Bài do người bốc viết", các lá theo vị trí, bài đọc, "Một bước nhỏ". |
@@ -156,7 +156,7 @@ Một file production và một file tổng hợp cho staging. Tab **"Hôm nay"*
 |---|---|---|---|
 | A | Mã yêu cầu | App | `LL-XXXXXX`, ngẫu nhiên; không phải token truy cập. |
 | B | Ngày nhận | App | `dd/MM/yyyy` giờ Việt Nam. |
-| C | Giờ trả bài | App | `10:00`. |
+| C | Giờ trả bài | App | `22:00`. |
 | D | Chủ đề | App | Nhãn tiếng Việt của chủ đề. |
 | E | Câu hỏi | App | Ghi bằng `RAW`: chuỗi bắt đầu bằng `=` vẫn là chữ. |
 | F | Số lá | App | 1, 3 hoặc 5. |
@@ -177,8 +177,8 @@ riêng (huỷ yêu cầu, không sửa âm thầm).
 
 | # | Lựa chọn | Đề xuất | Hiện trạng code |
 |---|---|---|---|
-| OD1 | Giờ ngừng nhận trước 10:00 (A1) | 09:00, để có thời gian bốc và viết | Mặc định 10:00 (cận trên R6); cấu hình `human_tarot_intake_closes_at`, không được muộn hơn 10:00. |
-| OD2 | Retention (A3) và bản sao Google | Câu hỏi trong app: xoá 24 giờ sau giờ hẹn. Bài đóng băng: 30 ngày sau giờ hẹn. Hàng trên Sheet: xoá khi huỷ/xoá, và chậm nhất lúc hết ngày (≤ 14 giờ sau giờ hẹn). Lịch sử phiên bản của Sheet không xoá được qua API: thay file Sheet định kỳ (đề xuất mỗi tháng), chuyển file cũ vào thùng rác rồi dọn thùng rác. | Hằng số trong `human_tarot/policy.py`; chưa có quy trình thay file. |
+| OD1 | Giờ ngừng nhận và giờ trả bài (A1) | **Owner chốt 30/10: ngừng nhận 18:00, trả bài 22:00** để kịp bốc và viết | `RELEASE_TIME = 22:00`; `human_tarot_intake_closes_at` mặc định 18:00, không được muộn hơn 22:00. |
+| OD2 | Retention (A3) và bản sao Google | Câu hỏi trong app: xoá 24 giờ sau giờ hẹn. Bài đóng băng: 30 ngày sau giờ hẹn. Hàng trên Sheet: xoá khi huỷ/xoá, và chậm nhất lúc hết ngày (≤ 2 giờ sau giờ hẹn). Lịch sử phiên bản của Sheet không xoá được qua API: thay file Sheet định kỳ (đề xuất mỗi tháng), chuyển file cũ vào thùng rác rồi dọn thùng rác. | Hằng số trong `human_tarot/policy.py`; chưa có quy trình thay file. |
 | OD3 | Danh tính Google và quyền (A4) | Service account riêng, chỉ được chia sẻ quyền Editor trên đúng một file; scope `spreadsheets`; khoá là file secret trên VPS. Không dùng OAuth tài khoản cá nhân (quyền rộng hơn). | Adapter có sẵn nhưng chỉ chạy khi cấu hình đủ; không có credential nào trong repo. |
 | OD4 | Copy mục 4 và câu đồng ý | — | Bản nháp. |
 | OD5 | Hiện số lượt còn lại cho mọi người | Có (không lộ ai đã gửi) | Có. |
@@ -205,10 +205,10 @@ production nếu thiếu `human_tarot_launch_approved`.
 
 ### Xem bài
 
-- **AC08:** Given bài đã nhập, When GET lúc 09:59:59, Then không có `result`; lúc 10:00:00 có `result`. Đổi giờ máy
+- **AC08:** Given bài đã nhập, When GET lúc 21:59:59, Then không có `result`; lúc 22:00:00 có `result`. Đổi giờ máy
   người dùng không ảnh hưởng. (R9)
 - **AC09:** Phiên khác GET hoặc DELETE id của người khác → `404`, không lộ trạng thái. (R9)
-- **AC10:** Từ 10:00 chưa có bài → `late`; hết ngày chưa có bài → `unfulfilled`, câu hỏi bị xoá khỏi payload; không
+- **AC10:** Từ 22:00 chưa có bài → `late`; hết ngày chưa có bài → `unfulfilled`, câu hỏi bị xoá khỏi payload; không
   có bài máy nào được tạo thay. (R9, KD1)
 - **AC11:** Bài hiện nhãn "Bài do người bốc viết"; provenance lưu `reader`, `schema`, `imported_at`. (R4, KTD5)
 
