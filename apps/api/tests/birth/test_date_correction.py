@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import shutil
+import time
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -141,8 +142,7 @@ def test_a_correction_replaces_the_full_subject_and_keeps_saved_and_shared_copie
         assert [item["daily_note_id"] for item in client.get("/v1/saved-notes").json()] == [
             copies.note_id
         ]
-        links = client.get("/v1/share-artifacts").json()["items"]
-        assert [(item["id"], item["status"]) for item in links] == [(copies.share_id, "active")]
+        # The owner link list arrives in U3; here the kept link is checked by its public path.
         assert client.get(copies.public_path).status_code == 200
         assert client.delete(f"/v1/share-artifacts/{copies.share_id}", headers=headers).status_code
         assert client.get(copies.public_path).status_code == 404
@@ -441,9 +441,22 @@ def test_success_waits_for_a_send_admitted_before_the_correction(tmp_path: Path)
                 expected_revision=datetime.fromisoformat(before["profile_revision"]),
             )
         )
-        deadline = datetime.now(UTC) + timedelta(seconds=5)
-        while client.get("/v1/birth-profile").json()["birth_date"] != NEW_DATE:
+        # Poll read-only: an HTTP read also renews the guest row, and a tight loop of those
+        # writes could starve the correction's writer transaction on SQLite under load.
+        deadline = datetime.now(UTC) + timedelta(seconds=10)
+        while True:
+            connection = raw(database_path)
+            try:
+                (changes,) = connection.execute(
+                    "SELECT count(*) FROM birth_date_changes"
+                ).fetchall()
+            finally:
+                connection.close()  # no lingering shared lock in front of the writer
+            if changes[0] == 1:
+                break
             assert datetime.now(UTC) < deadline, "the replacement did not commit"
+            time.sleep(0.02)
+        assert client.get("/v1/birth-profile").json()["birth_date"] == NEW_DATE
         assert not future.done(), "success must wait for the admitted send"
 
         async def finish_send() -> None:
