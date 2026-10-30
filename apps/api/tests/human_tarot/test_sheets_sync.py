@@ -271,6 +271,30 @@ async def test_guest_deletion_and_unknown_codes_leave_no_copy(database: Database
     assert all(cell == "" for row in sheet.grid(TAB)[1:] for cell in row)
 
 
+async def test_a_request_admitted_during_the_grid_read_is_not_taken_for_an_orphan(
+    database: Database,
+) -> None:
+    clock, sheet = Clock(vn(DAY, 7)), _sheet()
+    tarot, bridge = _wire(database, clock, sheet)
+    await support.create(tarot, await support.guest(database))
+    late_guest = await support.guest(database)
+    original = sheet.read
+    admitted: list[bool] = []
+
+    async def read_while_admitting(range_a1: str) -> list[list[Any]]:
+        if not admitted:
+            admitted.append(True)
+            # A new request commits and lands on the Sheet after the pass listed its slots.
+            await support.create(tarot, late_guest)
+        return await original(range_a1)
+
+    sheet.read = read_while_admitting  # type: ignore[method-assign]
+    report = await bridge.sync_once()
+    assert "orphan_cleared" not in report.counts, report.line()
+    codes = [row[0] for row in sheet.grid(TAB)[1:] if row[0]]
+    assert len(codes) == 2
+
+
 async def test_day_end_clears_yesterday_and_frees_rows_for_today(database: Database) -> None:
     clock, sheet = Clock(vn(DAY, 7)), _sheet()
     tarot, bridge = _wire(database, clock, sheet)

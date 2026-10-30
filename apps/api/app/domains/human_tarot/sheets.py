@@ -166,11 +166,14 @@ class HumanTarotSheetBridge:
                     )
                 )
             )
-            known = set(await database.scalars(select(HumanTarotSlotRow.request_code)))
         if not active:
             return  # nothing in flight: no Google call at all
         grid = await self._grid()
         rows = sheet_rows.code_rows(grid)
+        # Read the known codes only after the grid: a slot always commits before its row is
+        # written, so every code the grid shows is already in this set unless it is truly unknown.
+        async with self._sessions() as database:
+            known = set(await database.scalars(select(HumanTarotSlotRow.request_code)))
         # Rows carrying a well-formed app code this database does not know (for example after a
         # restore, or a late write that lost its slot) hold a question with no purpose left.
         for code, numbers in rows.items():
