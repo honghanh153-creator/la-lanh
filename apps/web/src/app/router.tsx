@@ -39,6 +39,7 @@ import { AuraCutoverPage } from "../features/reveal/AuraCutoverPage";
 import { RevealPage } from "../features/reveal/RevealPage";
 import { SavedPage } from "../features/saved/SavedPage";
 import { WelcomePage } from "../features/welcome/WelcomePage";
+import { HumanTarotRequestPage } from "../features/tarot/HumanTarotRequestPage";
 import { TarotPage } from "../features/tarot/TarotPage";
 import { ContentStudioPage } from "../features/studio/ContentStudioPage";
 import { AppShell } from "./AppShell";
@@ -115,6 +116,7 @@ export const appRoutes: RouteObject[] = [
       { path: "auth/callback", element: <ExistingUserPage key="google-callback" /> },
       { path: "tarot", element: <TarotPage /> },
       { path: "tarot/:sessionId", element: <TarotPage /> },
+      { path: "tarot/nguoi-boc/:requestId", element: <HumanTarotRequestPage /> },
     ],
   },
   {

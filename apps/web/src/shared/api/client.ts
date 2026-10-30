@@ -759,6 +759,69 @@ export function deleteTarotSession(sessionId: string): Promise<void> {
   });
 }
 
+export type HumanTarotAvailability = {
+  enabled: boolean;
+  accepting: boolean;
+  reason: "open" | "full" | "closed" | "already_requested" | "disabled";
+  local_date: string;
+  closes_at: string;
+  release_at: string;
+  daily_limit: number;
+  remaining: number;
+  consent_version: string;
+  current_request_id?: string | null;
+};
+export type HumanTarotResult = {
+  reader: "human";
+  cards: Array<{ position_key: string; position_label: string; card: TarotCard }>;
+  reading: string;
+  step: string;
+  imported_at: string;
+};
+export type HumanTarotRequest = {
+  id: string;
+  status: "waiting" | "ready" | "late" | "unfulfilled" | "cancelled";
+  delivery?: "pending" | "delivered" | "error" | null;
+  copy_cleared?: boolean | null;
+  local_date: string;
+  release_at: string;
+  context: TarotContext;
+  spread: TarotSpread;
+  question?: string | null;
+  result?: HumanTarotResult | null;
+  expires_at: string;
+};
+
+// US-24: counts and times only; works before a guest session exists.
+export function getHumanTarotAvailability(signal?: AbortSignal): Promise<HumanTarotAvailability> {
+  return request<HumanTarotAvailability>("/human-tarot/availability", { signal });
+}
+
+export function createHumanTarotRequest(input: {
+  context: TarotContext;
+  question: string;
+  spread: TarotSpread;
+  consent_version: string;
+  idempotency_key: string;
+}): Promise<HumanTarotRequest> {
+  return request<HumanTarotRequest>("/human-tarot/requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify(input),
+  });
+}
+
+export function getHumanTarotRequest(requestId: string, signal?: AbortSignal): Promise<HumanTarotRequest> {
+  return request<HumanTarotRequest>(`/human-tarot/requests/${encodeURIComponent(requestId)}`, { signal });
+}
+
+export function cancelHumanTarotRequest(requestId: string): Promise<void> {
+  return request<void>(`/human-tarot/requests/${encodeURIComponent(requestId)}`, {
+    method: "DELETE",
+    headers: csrfHeader(),
+  });
+}
+
 export function getBirthProfile(signal?: AbortSignal): Promise<BirthReveal> {
   return request<BirthReveal>("/birth-profile", { signal });
 }

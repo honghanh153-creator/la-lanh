@@ -17,9 +17,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import {
   ApiProblem,
   currentSessionEpoch,
-  createTarotGuest,
   deleteTarotSession,
-  getSession,
   getTarotSession,
   selectTarotCard,
   startTarotSession,
@@ -28,13 +26,15 @@ import {
   type TarotSession,
   type TarotSpread,
 } from "../../shared/api/client";
-import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { BrandMark } from "../../shared/ui/BrandMark";
 import { NightSky } from "../../shared/ui/NightSky";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { TarotCardArt, TarotCardBack } from "./TarotCardArt";
 import { TarotPickFlight } from "./TarotPickFlight";
+import { HumanTarotSubmit, TarotModeSwitch } from "./HumanTarotPanel";
+import { useHumanTarotAvailability, type TarotMode } from "./humanTarot";
 import { TarotRevealCeremony } from "./TarotRevealCeremony";
+import { ensureTarotGuest } from "./tarotGuest";
 import { useTarotMotion } from "./useTarotMotion";
 import "./tarot.css";
 import "./tarot-polish.css";
@@ -158,24 +158,6 @@ function useTarotStartKey() {
   return { forDraft, reset };
 }
 
-async function ensureTarotGuest(): Promise<void> {
-  const expectedEpoch = currentSessionEpoch();
-  try {
-    const session = await getSession();
-    if (expectedEpoch && expectedEpoch !== session.session_epoch) {
-      sessionStorage.setItem(SESSION_RESTART_REQUIRED_KEY, "1");
-      throw new ApiProblem(401, "SESSION_CHANGED", "Phiên trên trình duyệt đã đổi.");
-    }
-  } catch (error) {
-    if (error instanceof ApiProblem && error.code === "SESSION_CHANGED") throw error;
-    if (!(error instanceof ApiProblem) || error.status !== 401) throw error;
-    const key = sessionStorage.getItem("la-lanh-tarot-guest-key") ?? crypto.randomUUID();
-    sessionStorage.setItem("la-lanh-tarot-guest-key", key);
-    await createTarotGuest(key);
-    sessionStorage.removeItem("la-lanh-tarot-guest-key");
-  }
-}
-
 type PickFlight = { key: string; fanIndex: number; slotIndex: number; card: TarotCard };
 
 function contextFromQuery(promptId: string | null, rawContext: string | null): TarotContext {
@@ -204,6 +186,10 @@ export function TarotPage() {
   const spread = spreadOverride ?? recommendation;
   const selectedSpreadCopy = SPREAD_COPY[spread];
   const [showStarters, setShowStarters] = useState(false);
+  // US-24: shown only while the human reader is switched on; the self-draw stays the default.
+  const humanAvailability = useHumanTarotAvailability();
+  const [mode, setMode] = useState<TarotMode>("self");
+  const humanMode = mode === "human" && humanAvailability !== null;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [revealSessionId, setRevealSessionId] = useState<string | null>(null);
   const finishReveal = useCallback(() => setRevealSessionId(null), []);
@@ -474,8 +460,16 @@ export function TarotPage() {
         {reframe ? <aside className="tarot-reframe" role="alert"><strong>Đổi góc một chút để bài không nói hộ bạn.</strong><p>{reframe.explanation}</p><button onClick={() => { setQuestion(reframe.question); setSpreadOverride(null); setReframe(null); }} type="button">Dùng câu: “{reframe.question}”</button></aside> : null}
       </section>
 
-      {start.isError && !reframe ? <p className="tarot-error" role="alert">Chưa xòe bài được. Câu hỏi vẫn ở đây; kiểm tra mạng rồi thử lại.</p> : null}
-      <footer className="tarot-start-actions">
+      {humanAvailability ? <TarotModeSwitch mode={mode} onChange={setMode} /> : null}
+      {humanMode && humanAvailability ? <HumanTarotSubmit
+        availability={humanAvailability}
+        context={context}
+        question={question}
+        questionTooShort={questionTooShort}
+        spread={spread}
+      /> : null}
+      {start.isError && !reframe && !humanMode ? <p className="tarot-error" role="alert">Chưa xòe bài được. Câu hỏi vẫn ở đây; kiểm tra mạng rồi thử lại.</p> : null}
+      <footer className="tarot-start-actions" hidden={humanMode}>
         <button
           aria-describedby={questionTooShort && !start.isPending ? "tarot-start-hint" : undefined}
           className="tarot-primary"
