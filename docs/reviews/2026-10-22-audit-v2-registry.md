@@ -1,4 +1,4 @@
-# Audit v2 registry (revision 33, 29/10/2026: r53–r54 verdicts; #111 and #114 approved; #112, #113 and #115 fixed and in review; privacy and content batch branches)
+# Audit v2 registry (revision 34, 30/10/2026: r55 verdicts; #112, #115, #120 and #121 approved; #113, #116–#118 and the US-23 split #122–#124 fixed and in review; US-24 human Tarot #125–#129 in review)
 
 Sources: `la-lanh-audit-2026-10-22/claude-prompt-v2.md` and `privacy-content/`; Codex exact-head reviews in
 `la-lanh-review-audit-v2-2026-10-22/` and on each PR. The audit PRs branch from
@@ -381,6 +381,39 @@ Copy samples and the opening-based AC11/T2 metric are **not owner-approved**. Re
   - Tiers instead of numbers, no forced "nhưng", default screen about 175 words, context-specific areas.
   - Owner copy reading pending.
 
+**r55 verdicts (exact SHA; [Codex r55 handoff](https://github.com/honghanh153-creator/la-lanh/issues/2#issuecomment-6520330200); 13 P2 + 1 P3, no P0/P1)**
+
+| PR | r55 verdict | Next head (not reviewed) |
+|---|---|---|
+| #112 probe log capture | [APPROVE @ `4185a6fe16a9702e95e396c94d568f029a886e27`](https://github.com/honghanh153-creator/la-lanh/pull/112#issuecomment-6520215445) | — awaits an owner merge order; a probe still needs its own approval |
+| #115 Tarot plain summary | [APPROVE @ `676a71c821fb6226c676fbbaa90e386a8f5acb56`](https://github.com/honghanh153-creator/la-lanh/pull/115#issuecomment-6520217231) | — |
+| #120 Tarot pass 2 | [APPROVE @ `bbce9ba633c334904ccd6ecc8f1405532b3ca92e`](https://github.com/honghanh153-creator/la-lanh/pull/120#issuecomment-6520218801) | — |
+| #121 registry r33 | [APPROVE @ `a7b1f75bc2e63bd52d8118ee455a11c2b231d8bd`](https://github.com/honghanh153-creator/la-lanh/pull/121#issuecomment-6520219595) | — (this revision is stacked on it) |
+| #113 birth-data edit plan | [RC @ `181f1e7`](https://github.com/honghanh153-creator/la-lanh/pull/113#issuecomment-6520216346): creation-first contradicted D2 | `af90698b7f59be114527901d95acdbad98672bb1` (creation → correction keeps, creation → time/place removal deletes, removal/correction → creation refused) |
+| #116 P09/P10 draft | [RC @ `5a2faf4`](https://github.com/honghanh153-creator/la-lanh/pull/116#issuecomment-6520218068): B data not categorically non-identifying; OpenAI retention exceptions; P3 mood already mentioned | `83620d7672691defe4ecc1b99802a621883fc956` |
+| #117 data export | [RC @ `b1916f1`](https://github.com/honghanh153-creator/la-lanh/pull/117#issuecomment-6520284411): mixed chart/precision snapshot; visible Daily reading missing; nested list bounds | `e3e5ed650e9e7ded56fdb05e7513c743b995f904` |
+| #118 Hợp gu readable | [RC @ `59cf0db`](https://github.com/honghanh153-creator/la-lanh/pull/118#issuecomment-6520285151): easy-fit copy on watch/balanced themes; AC11 not applied to assembled rewrites | `b135f1b46e8b9f62ae61668a1d798fce07530571` |
+| #119 US-23 (closed) | [RC @ `4290bf0`](https://github.com/honghanh153-creator/la-lanh/pull/119#issuecomment-6520285916): input echoed in 422s; SQLite writer race; unbounded probe poll; newer refetch overwritten; ambiguous timeout | superseded by the U-ID split, fixes applied there: #122 U1 `3bc605434765c874f211289d09920e4f07abb197`, #123 U2 `e26ae01a85ba4075b73dc601b965cb23b96c3b20`, #124 U3 `9b0a55fe6d9762f865844666ab5aef6d9f62f4bf` |
+
+Each finding has a regression in the repository that fails on the blocked head and passes on the next head:
+`tests/privacy/test_data_export_r55.py` (4/4 red on `b1916f1`), `tests/radar/test_readable_r55.py` (11/13 red on
+`59cf0db`), `tests/birth/test_date_correction_r55.py` (6/6 red on U2 code `9f9044b`, identical to `ef4f1a6`),
+`src/features/birth/BirthDateEdit.races.test.tsx` (3/4 red on U3 code `a2fe15f`). The r55 revoked-device control
+stays an observation, not a proved P1. Codex r55 independent checks: full API #115 2,663/60/1, #117 2,656/60/1,
+#118 2,658/60/1, #119 2,688/69/1, #120 2,676/60/1; no independent full pnpm/E2E claimed.
+
+**US-23 split and US-24 (owner order 30/10; author evidence only, not reviewed):**
+- #119 closed; #122 U1 lifecycle + share fence (ships alone), #123 U2 correction API, #124 U3 edit flow and share list.
+  Author red kept: full check at the first U2 head `7adab67` exit 1 (a test read the moved share list; the drain
+  test busy-polled HTTP under load); runs on `52bd7a7`, `cd50d49`, `96c687f`, `24bef52` stopped before a result.
+- US-24 human Tarot reader via Google Sheet: #125 spec, #126 U4 admission and private APIs, #127 U5 Sheet bridge,
+  #128 U6 web, #129 U7 validation. Flags off everywhere; no Google credential, file id or call. Author red kept:
+  full check at `83954a7` exit 1 (e2e mock missing).
+- Owner decisions 30/10 for US-24: intake until 18:00, release at 22:00; retention (question 24 h after release,
+  reading 30 days, Sheet row cleared on cancel and at day end); monthly Sheet rotation; a service account on one
+  file; a Google Workspace account. Copy: Claude decides, Luna to rewrite (open: calling Luna is a paid API). P09/P10,
+  privacy notice and store forms before enabling (open).
+
 ## 29/10: three merges on the owner's order; integration `64ec6d9`
 
 **Merged (owner order in chat, 29/10: "Merge đi", answering the list #105, #107, then #109 after an APPROVE):** before
@@ -575,9 +608,10 @@ Still open:
   as the message topic can still select a romantic scene; the fix must bind the recipient), and framer finding 1 is
   open. R03 waits on Claude's review of the Codex edits and on its wiring. The
   comprehension gates (T05, R03) are open, as are R05, R07 and P12; the R06 strict xfail remains.
-- **Birth-data edit:** the plan (#113) is in review after r54 REQUEST_CHANGES (fixed at `181f1e7`); the US-23 implementation exists on `feat/birth-date-correction`, unreviewed, PostgreSQL tests not run.
-- **Data export and the P09/P10 draft:** built or drafted on batch branches, unreviewed; the cross-border/impact filings and the notice rewrite await owner decisions.
-- **Content:** Tarot plain summary (#115, fixed after r54) and Hợp gu readable v2 await review and the owner's copy reading; the Tarot position frames and card lines are the next pass.
+- **Birth-data edit:** the plan (#113) and the US-23 split (#122–#124) are in review after r55 REQUEST_CHANGES (fixed at the heads above); PostgreSQL tests written, not run.
+- **Data export and the P09/P10 draft:** #117 and #116 fixed after r55, in review; the cross-border/impact filings and the notice rewrite await owner decisions.
+- **Human Tarot reader (US-24):** #125–#129 in review, flags off; OD4 copy (Luna rewrite) and OD6 privacy/store updates open.
+- **Content:** Tarot plain summary (#115) and pass 2 (#120) approved at their SHAs; Hợp gu readable v2 (#118) fixed after r55, in review; copy samples, the 177 sentences and AC11/T2 still await the owner.
 - **Privacy assessments (owner/engineering, no counsel):** lawful basis and notice (P09), cross-border transfer and
   DPIA applicability (P10), kept open until a recorded scope, applicability or exemption assessment.
 - **Pilots:** the Tarot pilot is not enabled; the Daily pilot continues to its 04/11 review.
