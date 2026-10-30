@@ -39,6 +39,23 @@ call exists, and no real question was used anywhere (synthetic data only).
 Still owed: PostgreSQL runs (needs a separate owner approval), a rehearsal against a synthetic Google file with a
 granted service account (OD3/OD7), e2e on the QA stack, a native device check, and owner copy approval.
 
+## Codex r56 findings (reviewed `7ac7d35`…`d951b48`) and where they are fixed
+
+| PR | Finding | Fixed in | Regression (red on the reviewed head's code, green after) |
+|---|---|---|---|
+| #125 | P2 consent draft promised removal "until there is a reading" | spec commit "states the real Sheet lifetime" | doc; UI test below |
+| #126 | P2 owner not rechecked inside the admission lock | "rechecks the owner inside the lock" | `test_api.py::test_admission_rechecks_the_owner_inside_the_lock` (2 red on `4fd5dcc`) |
+| #127 | P1 missing code ≠ deleted; stale row reused for the next guest | "bind Sheet rows by assigned row and code" | `test_sheet_binding_r56.py` (6 red on `486234a`) |
+| #127 | P2 partial A:G sort imported swapped readings | same | `…::test_a_partial_sort_cannot_swap_two_peoples_readings` |
+| #127 | P2 OAuth request outside the budget | same | `…::test_the_oauth_request_is_in_the_budget` |
+| #127 | P2 back-off overflow after a long outage | same | `…::test_the_back_off_stays_bounded_after_a_long_outage` |
+| #128 | P2 consent copy vs lifecycle | "release refetch covers the whole day…" | `HumanTarot.test.tsx::states the real Sheet lifetime in the consent` |
+| #128 | P2 no release timer for a page opened >6 h early | same | `…::schedules the refetch at the release from …17:01Z` |
+| #128 | P2 late send redirected a newly chosen self draw | same | `…::does not take a newly chosen self draw away…` (3 red on `d92afaf`) |
+
+#129 was approved at `d951b48` for the docs delta only; its new head carries the 30/10 owner decisions and this table
+and needs its own review.
+
 Self-review findings fixed before handoff (each with a test that fails on the earlier head): the orphan sweep read
 the known codes before the grid and could clear a fresh request's row; a row that Google applied after its clear
 had no clear job left. Both on U5.
