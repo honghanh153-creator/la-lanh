@@ -103,7 +103,7 @@ flowchart TD
 | `spread` | body | `one_card`, `three_card`, `five_card`; map vị trí do engine chọn như luồng tự bốc. |
 | `consent_version` | body | Phải đúng `human-tarot-v1`, nếu không → `422 HUMAN_TAROT_CONSENT_REQUIRED`. |
 | `idempotency_key` | body | 22–200 ký tự `[A-Za-z0-9_-]`. Cùng key + cùng nội dung → trả lại biên nhận cũ; cùng key + khác nội dung → `409 HUMAN_TAROT_CONFLICT`. |
-| Phiên | cookie + `X-CSRF-Token` | Trusted Origin + CSRF cho POST/DELETE; chủ sở hữu suy ra từ cookie. GET cần phiên còn hạn. |
+| Phiên | cookie + `X-CSRF-Token` | Trusted Origin + CSRF cho POST/DELETE; chủ sở hữu suy ra từ cookie. GET yêu cầu cần phiên còn hạn. `availability` công khai (chỉ số đếm và giờ) để khách chưa có phiên vẫn thấy lựa chọn mà app không tạo phiên; có phiên thì thêm `current_request_id` của chính phiên đó. |
 | Thân request | — | `extra="forbid"`. Không nhận giờ hẹn, ngày, tên hay liên hệ. |
 
 ### Thứ tự kiểm tra của POST

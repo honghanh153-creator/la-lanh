@@ -494,7 +494,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Human Tarot Availability */
+        /**
+         * Human Tarot Availability
+         * @description Public counts and times, so a visitor sees the option without a session being created.
+         *
+         *     Only a valid session adds its own request id; nothing here names anyone else's.
+         */
         get: operations["human_tarot_availability_v1_human_tarot_availability_get"];
         put?: never;
         post?: never;

@@ -9236,6 +9236,7 @@
     },
     "/v1/human-tarot/availability": {
       "get": {
+        "description": "Public counts and times, so a visitor sees the option without a session being created.\n\nOnly a valid session adds its own request id; nothing here names anyone else's.",
         "operationId": "human_tarot_availability_v1_human_tarot_availability_get",
         "responses": {
           "200": {

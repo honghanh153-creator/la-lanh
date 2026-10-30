@@ -125,7 +125,9 @@ def test_reads_need_a_session_and_stay_with_their_owner(client: TestClient) -> N
     headers = _guest(client)
     view = client.post("/v1/human-tarot/requests", headers=headers, json=_body()).json()
     client.cookies.clear()
-    assert client.get("/v1/human-tarot/availability").status_code == 401
+    public = client.get("/v1/human-tarot/availability")
+    assert public.status_code == 200 and public.json()["current_request_id"] is None
+    assert public.json()["remaining"] == 9
     assert client.get(f"/v1/human-tarot/requests/{view['id']}").status_code == 401
     other = _guest(client, key="human-tarot-guest-other-12345")
     missing = client.get(f"/v1/human-tarot/requests/{view['id']}")

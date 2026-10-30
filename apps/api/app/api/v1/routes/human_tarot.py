@@ -70,12 +70,17 @@ async def _guest_for_mutation(request: Request, csrf_token: str | None):  # type
 
 
 @router.get("/human-tarot/availability", response_model=HumanTarotAvailability)
-async def human_tarot_availability(request: Request) -> HumanTarotAvailability | Response:
+async def human_tarot_availability(request: Request) -> HumanTarotAvailability:
+    """Public counts and times, so a visitor sees the option without a session being created.
+
+    Only a valid session adds its own request id; nothing here names anyone else's.
+    """
+
     try:
-        guest = await _guest_for_read(request)
-        return await _service(request).availability(guest.id)
-    except GuestDomainError as error:
-        return _problem(error)
+        guest_id = (await _guest_for_read(request)).id
+    except GuestDomainError:
+        guest_id = None
+    return await _service(request).availability(guest_id)
 
 
 @router.post("/human-tarot/requests", response_model=HumanTarotRequestView, status_code=201)

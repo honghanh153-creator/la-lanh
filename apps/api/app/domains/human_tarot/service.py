@@ -106,18 +106,22 @@ class HumanTarotService:
 
     # ------------------------------------------------------------------ reads
 
-    async def availability(self, guest_id: UUID) -> HumanTarotAvailability:
+    async def availability(self, guest_id: UUID | None) -> HumanTarotAvailability:
         now = self.now()
         day = policy.local_day(now)
         async with self._sessions() as database:
             day_row = await database.get(HumanTarotDayRow, day)
             mine = (
-                await database.execute(
-                    select(HumanTarotSlotRow.id, HumanTarotSlotRow.request_id).where(
-                        HumanTarotSlotRow.day == day, HumanTarotSlotRow.guest_id == guest_id
+                (
+                    await database.execute(
+                        select(HumanTarotSlotRow.id, HumanTarotSlotRow.request_id).where(
+                            HumanTarotSlotRow.day == day, HumanTarotSlotRow.guest_id == guest_id
+                        )
                     )
-                )
-            ).one_or_none()
+                ).one_or_none()
+                if guest_id is not None
+                else None
+            )
         accepted = day_row.accepted_count if day_row is not None else 0
         remaining = max(policy.DAILY_LIMIT - accepted, 0)
         if not self._enabled:
