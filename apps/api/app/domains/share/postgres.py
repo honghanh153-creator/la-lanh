@@ -33,9 +33,10 @@ class PostgresShareArtifactRepository:
     async def create(self, record: ShareArtifactRecord) -> ShareArtifactRecord:
         """Insert a link only while its source is still live, under the owner's lock.
 
-        Since migration 20261029_0039 no foreign key rejects a link whose Daily note or revision
-        was deleted after the service read it. Birth time/place removal and the birth-date
-        correction take this same guest row lock, so the recheck here is serialized with them:
+        Once migration 20261029_0039 drops the source foreign keys, nothing else rejects a link
+        whose Daily note or revision was deleted after the service read it. Birth time/place
+        removal and the birth-date correction take this same guest row lock, so the recheck here
+        is serialized with them:
         a removal that commits first makes this create fail; one that commits later deletes or
         keeps the link exactly as for any other existing link.
         """

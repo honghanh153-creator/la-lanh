@@ -468,11 +468,12 @@ class PostgresHistoryRepository:
     ) -> int:
         """Delete Daily roots and, explicitly, any copy still attached to them.
 
-        Until migration 20261029_0039 a deleted root cascaded into its saved notes and share links.
-        The criteria already keep a saved root, and automatic cleanup keeps a root with a live
-        link, so this only removes what the cascade removed before: the live links on unsaved
-        roots of a manual clear. Ids are read first so the copy deletes cannot correlate with the
-        criteria's own share/saved subqueries.
+        A deleted root still cascades into its saved notes and share links until migration
+        20261029_0039 (next release) drops that cascade; deleting them here first gives the same
+        result on either schema. The criteria already keep a saved root, and automatic cleanup
+        keeps a root with a live link, so this only removes what the cascade removes: the live
+        links on unsaved roots of a manual clear. Ids are read first so the copy deletes cannot
+        correlate with the criteria's own share/saved subqueries.
         """
 
         query = select(DailyNoteRow.id).where(criteria).order_by(DailyNoteRow.id)

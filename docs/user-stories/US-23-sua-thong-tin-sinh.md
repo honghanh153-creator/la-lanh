@@ -20,7 +20,8 @@ và sau đó không có dữ liệu cũ nào lẫn vào dữ liệu mới.
 - Sheet xác nhận, trang sửa (BirthDatePage ở chế độ sửa), API `PUT /v1/birth-profile/date`, giới hạn đổi, cổng
   18+, loại nhật ký xoá `birth_date_replaced`.
 - Điều kiện tiên quyết: bản lưu và link chia sẻ sống lâu hơn nguồn của chúng (bỏ FK cascade, migration
-  `20261029_0039`), và quản lý link chia sẻ: `GET /v1/share-artifacts` + mục "Link đã chia sẻ" trong Đã lưu.
+  `20261029_0039`, phát hành sau bản tương thích — xem "Thứ tự phát hành"), và quản lý link chia sẻ:
+  `GET /v1/share-artifacts` + mục "Link đã chia sẻ" trong Đã lưu.
 - `POST /v1/birth-profile` từ chối đổi ngày khi đã có hồ sơ sinh đang dùng.
 
 **Không bao gồm:**
@@ -181,4 +182,24 @@ DELETE /v1/share-artifacts/{id}  (đã có) thu hồi, kể cả link đã tách
   release).
 - Experience audit và content audit qua; copy pass cho các chuỗi mới (kể cả dòng lời mời Hợp gu).
 - Kiểm thử trên bản native (thiết bị) cho sheet, trang sửa và việc rút cache.
-- Migration `20261029_0039` và `20261029_0040` được deploy trước khi bật màn sửa ngày; release vẫn cần lệnh owner.
+- Migration `20261029_0039` và `20261029_0040` được deploy trước khi bật màn sửa ngày, theo đúng "Thứ tự phát
+  hành" dưới đây; release vẫn cần lệnh owner.
+
+## 12. Thứ tự phát hành và rollback (Codex r56 P1)
+
+`deploy.sh` chạy `alembic upgrade head` trước khi thay app, nên trong vài phút app cũ vẫn chạy trên schema mới. Nếu
+bỏ cascade cùng lúc với code xoá tường minh, app cũ (chỉ dựa vào cascade) sẽ báo xoá giờ/nơi sinh thành công mà bản
+lưu và link công khai vẫn còn. Vì vậy chia hai bản phát hành:
+
+1. **Bản tương thích (U1, PR #122):** code xoá bản lưu/link tường minh khi xoá giờ/nơi sinh và khi dọn lịch sử thủ
+   công, rào tạo link; **cascade vẫn giữ**. Migration duy nhất là marker `20261029_0038a` (không đổi schema). App cũ
+   và app U1 đều đúng trên schema này.
+2. **Bản bỏ cascade (U2, PR #123 trở đi):** migration `20261029_0039` (revises `20261029_0038a`) rồi `20261029_0040`.
+   Chỉ deploy sau khi bản U1 đã báo "Release … is running" và mọi tiến trình app đã là U1. `20261029_0039` tự từ chối
+   (No-Go) nếu marker `20261029_0038a` được áp trong **cùng** lần upgrade trên một database đã có người dùng — tức là
+   ai đó nhảy thẳng từ bản trước U1 lên U2.
+
+Rollback: khi `20261029_0039` đã chạy, chỉ quay về image U1 trở lên (image này xoá bản sao tường minh). Image trước U1
+không được chạy trên schema đó. Muốn về trước U1 thì phải downgrade xuống `20261029_0038a`, và downgrade này từ chối
+khi đã có bản sao tách nguồn — khi đó roll forward. Kiểm chứng: `tests/saved/test_copy_deletion_compat.py` (U1) và
+`tests/db/test_detached_copy_migration.py` (U2). Chưa chạy PostgreSQL thật; probe vẫn là bước operator riêng.

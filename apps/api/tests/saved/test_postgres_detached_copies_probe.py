@@ -1,10 +1,11 @@
-"""Disposable PostgreSQL probe for migration 20261029_0039 (US-23 prerequisite; operator evidence).
+"""Disposable PostgreSQL probe for the copy lifecycle (US-23 prerequisite; operator evidence).
 
 Skipped unless ``LA_LANH_JOURNAL_PROBE_POSTGRES_URL`` names a migrated, disposable localhost
 database whose name starts with ``lalanh_probe_`` (same guard and procedure as the journal probe:
-docs/operations/disposable-postgres-journal-probe.md). Synthetic rows only. It checks what SQLite
-cannot: the live PostgreSQL catalog after the migration, and that a copy survives its source while
-guest deletion and birth time/place removal still remove it.
+docs/operations/disposable-postgres-journal-probe.md). Synthetic rows only. This release keeps the
+source cascades (the compatibility release; migration 20261029_0039 drops them in the next one), so
+it checks that birth time/place removal and guest deletion remove every copy, and that a share
+create serialized behind a removal is rejected.
 """
 
 from __future__ import annotations
@@ -13,7 +14,6 @@ import asyncio
 import os
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
-from importlib import import_module
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -43,7 +43,6 @@ from tests.erasure_journal.test_postgres_restore_probe import (
     disposable_target,
 )
 
-MIGRATION: Any = import_module("migrations.versions.20261029_0039_detached_saved_share_copies")
 NOW = datetime.now(UTC)
 
 
@@ -117,32 +116,6 @@ async def _present(database: Database, ids: dict[str, UUID]) -> tuple[bool, bool
         )
 
 
-async def test_the_catalog_has_no_source_cascade_after_0039(probe: Database) -> None:
-    async with probe.engine.connect() as connection:
-        for table in MIGRATION.COPY_TABLES:
-            names = await connection.run_sync(MIGRATION.source_foreign_keys, table)
-            assert names == []
-
-
-async def test_a_copy_survives_its_source_and_blocks_the_downgrade(probe: Database) -> None:
-    ids = await _seed(probe)
-    async with probe.engine.connect() as connection:
-        assert await connection.run_sync(MIGRATION.detached_copies) == {
-            "saved_notes": 0,
-            "share_artifacts": 0,
-        }
-    async with probe.sessions() as session, session.begin():
-        await session.execute(delete(DailyNoteRow).where(DailyNoteRow.id == ids["note"]))
-    assert await _present(probe, ids) == (True, True)
-    async with probe.engine.connect() as connection:
-        assert await connection.run_sync(MIGRATION.detached_copies) == {
-            "saved_notes": 1,
-            "share_artifacts": 1,
-        }
-        with pytest.raises(RuntimeError, match="No-Go"):
-            await connection.run_sync(MIGRATION.assert_no_detached_copies)
-
-
 async def test_time_removal_and_guest_deletion_still_remove_copies(probe: Database) -> None:
     removed, deleted = await _seed(probe), await _seed(probe)
     await PostgresBirthRepository(probe.sessions, ENVELOPE).clear_supplement(
@@ -204,8 +177,6 @@ async def test_the_probe_seed_and_checks_run_on_sqlite(tmp_path: Any) -> None:
     await database.initialize()
     try:
         ids = await _seed(database)
-        async with database.sessions() as session, session.begin():
-            await session.execute(delete(DailyNoteRow).where(DailyNoteRow.id == ids["note"]))
         assert await _present(database, ids) == (True, True)
         await PostgresBirthRepository(database.sessions, ENVELOPE).clear_supplement(
             ids["guest"], remove_time=True, remove_place=False
