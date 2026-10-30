@@ -21,6 +21,8 @@ vi.mock("../../shared/api/client", async (original) => {
     ...actual,
     createTarotGuest: vi.fn(),
     deleteTarotSession: vi.fn(),
+    // US-24 reader off: the self-draw page must look exactly as before.
+    getHumanTarotAvailability: vi.fn().mockResolvedValue({ enabled: false }),
     getSession: vi.fn(),
     getTarotSession: vi.fn(),
     selectTarotCard: vi.fn(),
