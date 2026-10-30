@@ -80,14 +80,14 @@ class HumanTarotService:
         hasher: SecretHasher,
         *,
         enabled: bool = False,
-        intake_closes_at: time = policy.RELEASE_TIME,
+        intake_closes_at: time = policy.INTAKE_CLOSES,
         engine: TarotReadingEngine | None = None,
         erasure_journal: ErasureJournal | None = None,
         bridge: SheetBridge | None = None,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         if intake_closes_at > policy.RELEASE_TIME:
-            raise ValueError("intake must close no later than the 10:00 release")
+            raise ValueError("intake must close no later than the 22:00 release")
         self._sessions = sessions
         self._envelope = envelope
         self._hasher = hasher

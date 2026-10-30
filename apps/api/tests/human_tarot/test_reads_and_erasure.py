@@ -22,17 +22,17 @@ from tests.human_tarot import support
 from tests.human_tarot.support import DAY, JOURNAL, QUESTION, Clock, vn
 
 
-async def test_ac08_the_reading_opens_at_ten_by_the_server_clock(database: Database) -> None:
+async def test_ac08_the_reading_opens_at_22_by_the_server_clock(database: Database) -> None:
     clock = Clock(vn(DAY, 8))
     tarot = support.service(database, clock)
     guest = await support.guest(database)
     view = await support.create(tarot, guest)
-    await support.freeze(database, tarot, view.id, vn(DAY, 9))
-    clock.moment = vn(DAY, 9, 59, 59)
+    await support.freeze(database, tarot, view.id, vn(DAY, 19))
+    clock.moment = vn(DAY, 21, 59, 59)
     before = await tarot.get(guest, view.id)
     assert before.status is VisibleStatus.WAITING and before.result is None
     assert before.question == QUESTION
-    clock.moment = vn(DAY, 10)
+    clock.moment = vn(DAY, 22)
     after = await tarot.get(guest, view.id)
     assert after.status is VisibleStatus.READY and after.result is not None
     assert after.result.reader == "human"
@@ -59,7 +59,7 @@ async def test_ac10_late_then_unfulfilled_without_any_machine_reading(database: 
     tarot = support.service(database, clock)
     guest = await support.guest(database)
     view = await support.create(tarot, guest)
-    clock.moment = vn(DAY, 10, 30)
+    clock.moment = vn(DAY, 22, 30)
     late = await tarot.get(guest, view.id)
     assert late.status is VisibleStatus.LATE and late.result is None
     clock.moment = vn(DAY + timedelta(days=1), 0, 0, 1)
@@ -78,7 +78,7 @@ async def test_ac11_provenance_is_stored_with_the_frozen_reading(database: Datab
     tarot = support.service(database, clock)
     guest = await support.guest(database)
     view = await support.create(tarot, guest)
-    await support.freeze(database, tarot, view.id, vn(DAY, 9))
+    await support.freeze(database, tarot, view.id, vn(DAY, 19))
     row = await support.request_row(database, view.id)
     assert row is not None
     payload = tarot.decrypt(row)
@@ -104,14 +104,14 @@ async def test_ac19_cancel_blocks_reading_and_tracks_the_sheet_copy(database: Da
     tarot = support.service(database, clock)
     guest = await support.guest(database)
     view = await support.create(tarot, guest)
-    await support.freeze(database, tarot, view.id, vn(DAY, 9))
+    await support.freeze(database, tarot, view.id, vn(DAY, 19))
     async with database.sessions() as session, session.begin():
         slot = await session.get(HumanTarotSlotRow, (await support.slot_for(database, view.id)).id)  # type: ignore[union-attr]
         assert slot is not None
         slot.sheet_state = "on_sheet"
     await tarot.cancel(guest, view.id)
     await tarot.cancel(guest, view.id)  # idempotent
-    clock.moment = vn(DAY, 11)
+    clock.moment = vn(DAY, 23)
     cancelled = await tarot.get(guest, view.id)
     assert cancelled.status is VisibleStatus.CANCELLED
     assert cancelled.result is None and cancelled.question is None
@@ -142,8 +142,8 @@ async def test_question_is_purged_a_day_after_release_and_the_reading_after_thir
     tarot = support.service(database, clock)
     guest = await support.guest(database)
     view = await support.create(tarot, guest)
-    await support.freeze(database, tarot, view.id, vn(DAY, 9))
-    clock.moment = vn(DAY, 10) + policy.QUESTION_KEPT_AFTER_RELEASE
+    await support.freeze(database, tarot, view.id, vn(DAY, 19))
+    clock.moment = vn(DAY, 22) + policy.QUESTION_KEPT_AFTER_RELEASE
     assert (await tarot.get(guest, view.id)).question is None
     counts = await tarot.finalize_and_purge()
     assert counts["questions_purged"] == 1
@@ -152,7 +152,7 @@ async def test_question_is_purged_a_day_after_release_and_the_reading_after_thir
     payload = tarot.decrypt(row)
     assert "question" not in payload and "result" in payload
     assert (await tarot.get(guest, view.id)).result is not None
-    clock.moment = vn(DAY, 10) + policy.RESULT_KEPT_AFTER_RELEASE
+    clock.moment = vn(DAY, 22) + policy.RESULT_KEPT_AFTER_RELEASE
     counts = await tarot.finalize_and_purge()
     assert counts["expired"] == 1
     assert await support.request_row(database, view.id) is None
@@ -186,10 +186,10 @@ async def test_ac21_manual_history_clear_removes_finished_requests_only(
     finished, waiting = await support.guest(database), await support.guest(database)
     done = await support.create(tarot, finished)
     pending = await support.create(tarot, waiting)
-    await support.freeze(database, tarot, done.id, vn(DAY, 9))
+    await support.freeze(database, tarot, done.id, vn(DAY, 19))
     history = PostgresHistoryRepository(database.sessions, support.CIPHER, JOURNAL)
-    await history.clear(finished, vn(DAY, 11))
-    await history.clear(waiting, vn(DAY, 9, 30))
+    await history.clear(finished, vn(DAY, 23))
+    await history.clear(waiting, vn(DAY, 21, 30))
     assert await support.request_row(database, done.id) is None
     assert await support.request_row(database, pending.id) is not None
 

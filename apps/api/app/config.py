@@ -87,8 +87,8 @@ class Settings(BaseSettings):
     # and Google identity (US-24 OD1-OD6) and records it with human_tarot_launch_approved.
     human_tarot_enabled: bool = False
     human_tarot_launch_approved: bool = False
-    # OD1: the owner may close intake earlier than the 10:00 release, never later.
-    human_tarot_intake_closes_at: time = time(10, 0)
+    # OD1 (owner, 30/10/2026): intake closes at 18:00 for the 22:00 release, never later than it.
+    human_tarot_intake_closes_at: time = time(18, 0)
     content_studio_enabled: bool = False
     content_studio_api_token: SecretStr | None = None
     content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)
@@ -214,8 +214,8 @@ class Settings(BaseSettings):
                 raise ValueError("enabled generation worker requires an explicit OpenAI project")
             if not self.database_url.startswith("postgresql+asyncpg://"):
                 raise ValueError("paid generation worker requires PostgreSQL lifecycle locks")
-        if self.human_tarot_intake_closes_at > time(10, 0):
-            raise ValueError("human Tarot intake must close no later than the 10:00 release")
+        if self.human_tarot_intake_closes_at > time(22, 0):
+            raise ValueError("human Tarot intake must close no later than the 22:00 release")
         if (
             self.human_tarot_enabled
             and self.environment in {"staging", "production"}

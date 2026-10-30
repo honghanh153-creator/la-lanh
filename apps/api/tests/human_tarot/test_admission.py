@@ -83,11 +83,11 @@ async def test_ac03_one_request_per_guest_per_day_even_after_cancel(database: Da
 
 
 async def test_ac04_cut_off_rejects_new_requests_but_replays_old_ones(database: Database) -> None:
-    clock = Clock(vn(DAY, 9, 59, 59))
+    clock = Clock(vn(DAY, 17, 59, 59))
     tarot = support.service(database, clock)
     early, late = await support.guest(database), await support.guest(database)
     accepted = await support.create(tarot, early)
-    clock.moment = vn(DAY, 10)
+    clock.moment = vn(DAY, 18)
     with pytest.raises(HumanTarotClosed):
         await support.create(tarot, late)
     assert (await support.create(tarot, early)).id == accepted.id  # retry after the cut-off
@@ -100,13 +100,13 @@ async def test_ac04_a_request_that_waited_for_the_lock_past_the_cut_off_is_close
 ) -> None:
     from app.domains.human_tarot import service as module
 
-    clock = Clock(vn(DAY, 9, 59, 59))
+    clock = Clock(vn(DAY, 17, 59, 59))
     tarot = support.service(database, clock)
     guest = await support.guest(database)
     from app.domains.accounts.postgres import lock_owner as original
 
     async def slow_lock(session, guest_id):  # type: ignore[no-untyped-def]
-        clock.moment = vn(DAY, 10, 0, 1)  # the clock moves while waiting for the guest lock
+        clock.moment = vn(DAY, 18, 0, 1)  # the clock moves while waiting for the guest lock
         return await original(session, guest_id)
 
     monkeypatch.setattr(module, "lock_owner", slow_lock)
@@ -115,7 +115,9 @@ async def test_ac04_a_request_that_waited_for_the_lock_past_the_cut_off_is_close
     assert await _count(database) == 0
 
 
-async def test_owner_cut_off_earlier_than_ten(database: Database) -> None:
+async def test_a_cut_off_other_than_the_default_still_ends_before_the_release(
+    database: Database,
+) -> None:
     clock = Clock(vn(DAY, 9))
     tarot = support.service(database, clock, closes=time(9, 0))
     guest = await support.guest(database)
@@ -123,9 +125,11 @@ async def test_owner_cut_off_earlier_than_ten(database: Database) -> None:
         await support.create(tarot, guest)
     availability = await tarot.availability(guest)
     assert availability.closes_at == vn(DAY, 9)
-    assert availability.release_at == vn(DAY, 10)
-    with pytest.raises(ValueError, match="10:00"):
-        support.service(database, clock, closes=time(10, 1))
+    assert availability.release_at == vn(DAY, 22)
+    with pytest.raises(ValueError, match="22:00"):
+        support.service(database, clock, closes=time(22, 1))
+    default = await support.service(database, clock).availability(await support.guest(database))
+    assert default.closes_at == vn(DAY, 18)
 
 
 async def test_ac05_cancel_guest_deletion_and_retry_never_refund(database: Database) -> None:
@@ -156,7 +160,7 @@ async def test_ac06_the_day_changes_at_vietnam_midnight_not_utc(database: Databa
     clock.moment = vn(DAY.replace(day=31), 0)
     view = await support.create(tarot, guest)
     assert view.local_date == DAY.replace(day=31)
-    assert view.release_at == vn(DAY.replace(day=31), 10)
+    assert view.release_at == vn(DAY.replace(day=31), 22)
     assert await _count(database, DAY.replace(day=31)) == 1
     assert await _count(database, DAY) == 0
 

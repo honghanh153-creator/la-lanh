@@ -1,8 +1,8 @@
-"""Fixed rules of the human Tarot reader (US-24): one Vietnam day, 10 requests, release at 10:00.
+"""Fixed rules of the human Tarot reader (US-24): one Vietnam day, 10 requests, release at 22:00.
 
-The owner decided the limit, the 10:00 release and "no intake for tomorrow" (29/10/2026). The
-retention periods below are the plan's A3 proposal and are NOT approved yet (US-24 OD2): no real
-data may be accepted before the owner settles them.
+The owner decided the limit and "no intake for tomorrow" (29/10/2026), then the 18:00 cut-off and
+the 22:00 release, the retention below, monthly Sheet rotation, a service account on one file and a
+Google Workspace account (30/10/2026, US-24 OD1-OD3, OD7).
 """
 
 from __future__ import annotations
@@ -13,12 +13,13 @@ from zoneinfo import ZoneInfo
 
 PRODUCT_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 DAILY_LIMIT = 10
-RELEASE_TIME = time(10, 0)
+RELEASE_TIME = time(22, 0)
+INTAKE_CLOSES = time(18, 0)
 CONSENT_VERSION = "human-tarot-v1"
 RESULT_SCHEMA = "human-tarot-result-v1"
 READER = "owner"
 
-# US-24 OD2 (proposal, owner approval pending).
+# US-24 OD2, approved by the owner on 30/10/2026.
 QUESTION_KEPT_AFTER_RELEASE = timedelta(hours=24)
 RESULT_KEPT_AFTER_RELEASE = timedelta(days=30)
 TOMBSTONE_KEPT = timedelta(days=2)

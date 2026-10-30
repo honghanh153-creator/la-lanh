@@ -74,7 +74,7 @@ def test_create_read_and_cancel_through_the_api(client: TestClient) -> None:
     view = created.json()
     assert view["status"] == "waiting" and view["delivery"] == "pending"
     assert view["question"] == QUESTION and view["result"] is None
-    assert view["release_at"].startswith("2026-10-30T03:00:00")  # 10:00 in Vietnam
+    assert view["release_at"].startswith("2026-10-30T15:00:00")  # 22:00 in Vietnam
     assert set(view) == {
         "id",
         "status",
@@ -173,5 +173,6 @@ def test_launch_needs_owner_approval_outside_local() -> None:
             swisseph_license_mode="agpl",
             human_tarot_enabled=True,
         )
-    with pytest.raises(ValueError, match="10:00"):
-        Settings(environment="test", human_tarot_intake_closes_at="10:30")
+    with pytest.raises(ValueError, match="22:00"):
+        Settings(environment="test", human_tarot_intake_closes_at="22:30")
+    assert Settings(environment="test").human_tarot_intake_closes_at.hour == 18
