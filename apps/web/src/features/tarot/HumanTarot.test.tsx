@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -246,5 +246,63 @@ describe("human Tarot request page", () => {
     vi.mocked(getHumanTarotRequest).mockRejectedValue(new ApiProblem(404, "HUMAN_TAROT_NOT_FOUND", "x"));
     renderAt(`/tarot/nguoi-boc/${WAITING.id}`);
     expect(await screen.findByRole("heading", { name: "Không mở được yêu cầu này." })).toBeInTheDocument();
+  });
+});
+
+describe("Codex r56 boundaries", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    localStorage.clear();
+    vi.mocked(getSession).mockResolvedValue({ session_epoch: null } as never);
+  });
+
+  it.each([
+    // 00:01 in Vietnam: the 22:00 release is ~22 h away and must still be scheduled.
+    ["2026-10-29T17:01:00Z", 79_141_000],
+    ["2026-10-30T14:00:00Z", 3_601_000],
+  ])("schedules the refetch at the release from %s", async (now, expected) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(now));
+    const schedule = vi.spyOn(window, "setTimeout");
+    try {
+      vi.mocked(getHumanTarotRequest).mockResolvedValue(WAITING);
+      renderAt(`/tarot/nguoi-boc/${WAITING.id}`);
+      await screen.findByRole("heading", { name: /Đã nhận câu hỏi/ });
+      expect(schedule.mock.calls.some(([, delay]) => typeof delay === "number" && Math.abs(delay - expected) < 3000)).toBe(true);
+    } finally {
+      schedule.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not take a newly chosen self draw away when the old human send completes", async () => {
+    let resolve!: (value: HumanTarotRequest) => void;
+    const pending = new Promise<HumanTarotRequest>((done) => { resolve = done; });
+    vi.mocked(getHumanTarotAvailability).mockResolvedValue(OPEN);
+    vi.mocked(createHumanTarotRequest).mockReturnValue(pending);
+    vi.mocked(getHumanTarotRequest).mockResolvedValue(WAITING);
+    renderAt("/tarot");
+    const user = await typeQuestion();
+    await user.click(await screen.findByRole("button", { name: /Nhờ người bốc/ }));
+    await user.click(screen.getByRole("checkbox", { name: /đồng ý để người bốc/ }));
+    await user.click(screen.getByRole("button", { name: "Gửi cho người bốc" }));
+    await waitFor(() => expect(createHumanTarotRequest).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: /Tự bốc ngay/ }));
+    await act(async () => { resolve(WAITING); await pending; });
+    expect(screen.getByRole("button", { name: /Xòe 3 lá/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Đã nhận câu hỏi/ })).not.toBeInTheDocument();
+  });
+
+  it("states the real Sheet lifetime in the consent", async () => {
+    vi.mocked(getHumanTarotAvailability).mockResolvedValue(OPEN);
+    renderAt("/tarot");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Nhờ người bốc/ }));
+    const consent = screen.getByRole("checkbox", { name: /đồng ý để người bốc/ });
+    const label = consent.closest("label");
+    expect(label).toHaveTextContent("tới hết ngày, hoặc tới khi mình huỷ");
+    expect(label).toHaveTextContent("thay hằng tháng");
+    expect(label).not.toHaveTextContent("cho tới khi có bài");
   });
 });

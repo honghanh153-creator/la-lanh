@@ -19,7 +19,9 @@ import "./tarot-polish.css";
 import "./human-tarot.css";
 
 // The browser timer only triggers a refetch at the release time; the server decides what opens.
-const MAX_TIMER_MS = 6 * 60 * 60 * 1000;
+// A page opened just after midnight is ~22 h before the 22:00 release, so a whole day is covered
+// (Codex r56); beyond that the focus refetch and "Kiểm tra lại" remain.
+const MAX_TIMER_MS = 26 * 60 * 60 * 1000;
 
 function useRefetchAt(iso: string | undefined, refetch: () => void) {
   useEffect(() => {

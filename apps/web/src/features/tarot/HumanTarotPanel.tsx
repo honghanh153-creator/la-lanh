@@ -1,6 +1,6 @@
 import { ArrowRight, LockKey, UserFocus } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -51,6 +51,13 @@ export function HumanTarotSubmit({ availability, context, question, spread, ques
   const [consented, setConsented] = useState(false);
   const [reframe, setReframe] = useState<string | null>(null);
   const keyFor = useDraftKey();
+  // Codex r56: if the person switched back to the self draw (this panel unmounted) while the send
+  // was in flight, its late success must not take them to the human receipt.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const create = useMutation({
     mutationFn: async () => {
       await ensureTarotGuest();
@@ -58,7 +65,7 @@ export function HumanTarotSubmit({ availability, context, question, spread, ques
       return createHumanTarotRequest({ ...body, idempotency_key: keyFor(body) });
     },
     onSuccess: (created) => {
-      void navigate(`/tarot/nguoi-boc/${created.id}`, { replace: true });
+      if (mounted.current) void navigate(`/tarot/nguoi-boc/${created.id}`, { replace: true });
     },
     onError: (error) => {
       if (error instanceof ApiProblem && error.code === "SESSION_CHANGED") {
@@ -93,7 +100,7 @@ export function HumanTarotSubmit({ availability, context, question, spread, ques
     <p className="human-tarot-panel__note">Một người thật của Lá Lành sẽ bốc {spread === "one_card" ? "1" : spread === "three_card" ? "3" : "5"} lá và viết bài riêng cho câu này. Không có AI viết thay.</p>
     <label className="human-tarot-consent" htmlFor={consentId}>
       <input checked={consented} id={consentId} onChange={(event) => setConsented(event.target.checked)} type="checkbox" />
-      <span>Mình đồng ý để người bốc của Lá Lành đọc câu hỏi này, và để câu hỏi được lưu tạm trong một Google Sheet riêng của người bốc cho tới khi có bài (tối đa hết ngày). Câu hỏi không kèm tên, ngày sinh hay thông tin tài khoản.</span>
+      <span>Mình đồng ý để người bốc của Lá Lành đọc câu hỏi này, và để câu hỏi được lưu tạm trong một Google Sheet riêng của người bốc tới hết ngày, hoặc tới khi mình huỷ. Lịch sử chỉnh sửa của Sheet chỉ mất khi file được thay hằng tháng. Câu hỏi không kèm tên, ngày sinh hay thông tin tài khoản.</span>
     </label>
     <p className="human-tarot-panel__note">Đừng ghi tên đầy đủ, số điện thoại hay chi tiết giúp nhận ra người khác.</p>
     {reframe ? <p className="tarot-error" role="alert">{reframe}</p> : null}
