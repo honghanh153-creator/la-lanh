@@ -176,3 +176,34 @@ def test_launch_needs_owner_approval_outside_local() -> None:
     with pytest.raises(ValueError, match="22:00"):
         Settings(environment="test", human_tarot_intake_closes_at="22:30")
     assert Settings(environment="test").human_tarot_intake_closes_at.hour == 18
+
+
+@pytest.mark.parametrize("state", ["deleting", "expired"])
+def test_admission_rechecks_the_owner_inside_the_lock(client: TestClient, state: str) -> None:
+    """Codex r56: the session can turn DELETING or expire between authentication and admission;
+    nothing is stored or counted for it."""
+
+    from datetime import timedelta
+
+    from app.domains.guest.tables import GuestSessionRow
+
+    headers = _guest(client)
+    service: Any = client.app.state.human_tarot_service  # type: ignore[attr-defined]
+    original = service.create
+
+    async def owner_changed_after_auth(**kwargs: Any) -> Any:
+        async with service._sessions() as database, database.begin():
+            owner = await database.get(GuestSessionRow, kwargs["guest_id"])
+            if state == "deleting":
+                owner.state = "deleting"
+            else:
+                owner.created_at = service.now() - timedelta(days=2)
+                owner.expires_at = service.now() - timedelta(seconds=1)
+        return await original(**kwargs)
+
+    service.create = owner_changed_after_auth
+    response = client.post("/v1/human-tarot/requests", headers=headers, json=_body())
+    assert response.status_code == 401 and response.json()["code"] == "GUEST_EXPIRED"
+    service.create = original
+    service_view = client.portal.call(service.availability, None)  # type: ignore[union-attr]
+    assert service_view.remaining == 10

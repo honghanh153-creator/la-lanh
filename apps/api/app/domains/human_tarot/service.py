@@ -24,6 +24,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.domains.accounts.postgres import account_transaction, lock_owner
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
+from app.domains.guest.errors import GuestExpired
+from app.domains.guest.models import GuestState
 from app.domains.human_tarot import policy
 from app.domains.human_tarot.errors import (
     HumanTarotAlreadyRequested,
@@ -217,9 +219,13 @@ class HumanTarotService:
         async with account_transaction(self._sessions) as database:
             # Lock order (plan KTD2): the day row, then the guest row. No other path locks both.
             day_row = await _lock_day(database, policy.local_day(self.now()), self.now())
-            await lock_owner(database, guest_id)
+            owner = await lock_owner(database, guest_id)
             # The clock is read again after waiting for the locks.
             now = self.now()
+            # Codex r56: the session may have turned DELETING or expired since authentication;
+            # nothing is stored and no slot is taken for it.
+            if owner is None or owner.state != GuestState.ACTIVE.value or owner.expires_at <= now:
+                raise GuestExpired
             existing = await database.scalar(
                 select(HumanTarotRequestRow).where(
                     HumanTarotRequestRow.guest_id == guest_id,
