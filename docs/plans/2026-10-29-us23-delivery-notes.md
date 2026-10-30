@@ -7,8 +7,8 @@ plan revision:
 
 | U-ID | Branch | Content |
 |---|---|---|
-| U1 | `feat/birth-u1-lifecycle` | Docs (story, SRS, data map), migration 0039 (copies outlive their source), explicit deletes, share-creation fence. Ships alone: no correction endpoint. |
-| U2 | `feat/birth-u2-correction-api` | Migration 0040, `PUT /v1/birth-profile/date`, journal kind and replay, log hygiene. |
+| U1 | `feat/birth-u1-lifecycle` | Compatibility release: docs (story, SRS, data map), explicit deletes, share-creation fence, no-op marker migration 0038a. The cascades stay. Ships alone: no correction endpoint. |
+| U2 | `feat/birth-u2-correction-api` | Migration 0039 (copies outlive their source; refuses to run in the same upgrade as 0038a), migration 0040, `PUT /v1/birth-profile/date`, journal kind and replay, log hygiene. |
 | U3 | `feat/birth-u3-edit-flow` | Share-link list API and "Link đã chia sẻ", the Mình edit flow, cache withdrawal, these notes. |
 
 Not merged, not released; the correction must not be enabled before migrations `20261029_0039` and
@@ -126,7 +126,8 @@ how the duties apply stays in the owner/engineering P09 assessment and no compli
 
 - D1–D6 stay delegated choices; in particular the 3-per-24h limit and keeping saved/shared copies through a correction.
 - Copy pass for the new strings (sheet, edit page, share list, privacy detail).
-- Release order: deploy 0039 (+ share fence) and the share list first, then 0040 and the correction, as the plan says.
+- Release order (US-23 §12, Codex r56 P1): U1 first, until every app process runs it; then U2 (0039, 0040, correction
+  API); then U3 (share list, edit flow). Once 0039 has run, roll back only to a U1 image or later.
 
 ## AC / DoD still incomplete
 
@@ -145,3 +146,13 @@ probe's commit wait. U3 (#124) no longer overwrites the profile refetched during
 reconciles an ambiguous failure by re-reading the profile: a new revision withdraws the old chart caches and says the
 date was changed; no change keeps "Lá cũ vẫn giữ nguyên"; an unreadable profile says the outcome is unknown.
 Regressions: `tests/birth/test_date_correction_r55.py`, `src/features/birth/BirthDateEdit.races.test.tsx`.
+
+## Codex r56 correction (30/10/2026)
+
+P1 on #122 at `ad7f270`: `deploy.sh` migrates before it replaces the app, so shipping 0039 with the explicit deletes
+let the previous app run on a schema without cascades; its time/place removal reported success while saved notes and
+public links remained. U1 is now a compatibility release (explicit deletes, cascades kept, marker 0038a); 0039 moved
+to U2, revises the marker and refuses to run in the same upgrade that applies it on a database with people.
+Regressions: `tests/saved/test_copy_deletion_compat.py` (U1; red on `3bc6054`) and the guard tests in
+`tests/db/test_detached_copy_migration.py` (U2; red on `e26ae01`). U3 (#124): the correction stops when the browser
+session changed during it (`855a894`). PostgreSQL still not run.
