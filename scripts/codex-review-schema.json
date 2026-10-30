@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "sha", "reviewed_range", "complete", "summary", "findings"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["APPROVE", "REQUEST_CHANGES"] },
+    "sha": { "type": "string", "description": "The full 40-character head SHA that was reviewed." },
+    "reviewed_range": { "type": "string", "description": "The git range actually read, e.g. <merge-base>..<head> or <old>..<head>." },
+    "complete": { "type": "boolean", "description": "False when the diff could not be reviewed in full." },
+    "summary": { "type": "string", "description": "At most 8 sentences: what changed, what was checked, why the verdict." },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "category", "file", "line", "title", "detail"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["P0", "P1", "P2", "P3"] },
+          "category": { "type": "string", "enum": ["privacy", "security", "user_copy", "correctness", "test", "docs", "other"] },
+          "file": { "type": "string" },
+          "line": { "type": ["integer", "null"] },
+          "title": { "type": "string" },
+          "detail": { "type": "string", "description": "Why it matters and a concrete failure scenario or reproducer." }
+        }
+      }
+    }
+  }
+}
