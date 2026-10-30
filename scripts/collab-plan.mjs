@@ -35,7 +35,7 @@ export function renderPlan(now, turns, { codexLeft }) {
   return [
     `## Plan ${now.date}`,
     '',
-    'Thứ tự ưu tiên: content → privacy → tính năng mới → ops. Trong nhóm, PR cũ trước.',
+    'Thứ tự ưu tiên: quy trình (ops) → content → privacy → tính năng mới. Trong nhóm, PR cũ trước.',
     `Lượt Codex tự động còn hôm nay: ${codexLeft}/12. Chạy mỗi giờ tới 23:30, không merge vào main, không deploy.`,
     '',
     '| PR | Nhóm | Lượt kế tiếp | Lý do | Tiêu đề |',

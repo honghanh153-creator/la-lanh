@@ -79,7 +79,7 @@ test('turns follow check → review → fix/merge on the exact head', () => {
   assert.equal(prTurn(p, { dropped: [7] }).turn, 'hold');
 });
 
-test('queue order is content → privacy → feature → ops, oldest first', () => {
+test('queue order is ops → content → privacy → feature, oldest first', () => {
   const order = turnsFor([
     pr({ number: 1, title: 'docs(registry): r33' }),
     pr({ number: 2, title: 'feat(prototype): game lab 14' }),
@@ -88,7 +88,7 @@ test('queue order is content → privacy → feature → ops, oldest first', () 
     pr({ number: 5, title: 'feat(radar): readable Hợp gu', createdAt: '2026-10-29T01:00:00Z' }),
     pr({ number: 6, title: 'anything', labels: [{ name: 'area:content' }], createdAt: '2026-10-30T00:00:00Z' }),
   ]).map(t => t.number);
-  assert.deepEqual(order, [5, 4, 6, 3, 2, 1]);
+  assert.deepEqual(order, [1, 5, 4, 6, 3, 2]);
 });
 
 test('daily gate: 08:50 plan, owner window, 10:00 auto start, 23:30 stop', () => {

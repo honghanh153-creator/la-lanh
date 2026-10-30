@@ -10,7 +10,8 @@ export const integration = 'collab/integration';
 export const agentMarker = '<!-- la-lanh-agent';
 export const stateDir = process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cache', 'la-lanh-collab');
 export const blockingP2 = new Set(['privacy', 'security', 'user_copy']);
-export const areaOrder = ['content', 'privacy', 'feature', 'ops'];
+// Process PRs (the loop itself, CI, test hardening) go first: a broken loop stalls every other group.
+export const areaOrder = ['ops', 'content', 'privacy', 'feature'];
 
 const sha40 = /^[0-9a-f]{40}$/;
 export const isSha = value => sha40.test(String(value ?? ''));
