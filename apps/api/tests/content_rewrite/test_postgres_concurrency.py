@@ -394,7 +394,7 @@ async def test_different_owner_workers_race_absent_ledgers_without_provider_over
         return valid
 
     monkeypatch.setattr(repository, "_parent_exists", synchronized_parent)
-    contract = surface_output_contract(record.request.key.surface)
+    contract = surface_output_contract(record.request.key.surface, record.request.safe_payload)
     # Synthetic prices make each reservation about 60 cents, with no paid provider.
     pricing = GenerationPricing(
         version="offline-synthetic-budget-race",

@@ -58,8 +58,12 @@ birth data, or report evidence in the URL.
     unclear (both ways), with 1–2 reasons citing a position and its card.
   - Unsplittable choices, or choices without option roles, get "what to clarify before choosing".
   - The summary links every role with conjunctions; the headline is built from form, lean (or
-    action/topic) and the focal card.
-  - Gates: `stance_consistent` and `summary_links_cards`.
+    action/topic) and the focal card. Since renderer v9 (owner feedback, 29/10/2026,
+    `docs/reviews/2026-10-29-tarot-plain-summary.md`):
+    - the summary is plain: no card names and no linking words; the first core, both options or the first
+      pitfall, then the shown step;
+    - headlines name no card.
+  - Gates: `stance_consistent` and `summary_links_cards` (`summary_plain` since gates v6).
   - Readings without a stance omit the key.
 - B2-4a (`docs/plans/2026-10-18-b2-4-tarot-variety-roast-task.md`), framed sessions only:
   - Each role has three frames per voice register; the headline has three frames per key. A
@@ -75,8 +79,9 @@ birth data, or report evidence in the URL.
   - Roast has its own role frames, headlines, stance conclusions and summary conjunctions, mapped
     one to one by combination code. Energy and self-care Roast keeps the direct frames with the
     gentle opener and tails. Sensitive questions still render the default voice.
-  - Framed readings record `tarot-renderer-v8`, `tarot-knowledge-v6`, `tarot-gates-v5` (v7 / v5 until
-    T02/T03, 27/10/2026: the asked action's scene and step at the step role, `tarot/action_copy.py`); sessions
+  - Framed readings record `tarot-renderer-v9`, `tarot-knowledge-v6`, `tarot-gates-v6` (v8 / v5 until the plain
+    summary of 29/10/2026; v7 / v5 until T02/T03, 27/10/2026: the asked action's scene and step at the step role,
+    `tarot/action_copy.py`); sessions
     without a frame keep v6 / v4 / v4 byte for byte. The step agrees with the stance (Codex r47,
     `action_copy.plan_step`): a preparation step when the cards ask for care, pull two ways or the
     question asks when; the chosen option's step, or a step naming neither option, for a choice.

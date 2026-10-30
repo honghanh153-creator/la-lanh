@@ -92,8 +92,10 @@ Mọi phép đo dùng seed cố định trong fixture, nên hai bên chạy lạ
 
 - **T1, đúng dạng câu:** số mục có `form` khác null mà dạng phân loại đúng, chia cho số mục đó. Mẫu số hiện
   là 289 (288 câu thường + `edge.6`). Mục từ chối và các ca dễ nhầm khác có `form` null, không tính.
-- **T2, tiêu đề trùng:** chạy mọi mục chấp nhận × mọi map hợp lệ × 4 giọng với seed phiên cố định.
-  `1 − (số tiêu đề khác nhau sau chuẩn hoá / số bài)`, tính riêng theo giọng.
+- **T2, phần mở đầu trùng:** chạy mọi mục chấp nhận × mọi map hợp lệ × 4 giọng với seed phiên cố định.
+  `1 − (số phần mở đầu khác nhau sau chuẩn hoá / số bài)`, tính riêng theo giọng. Phần mở đầu là tiêu đề cộng
+  tóm tắt. Từ 29/10/2026 tiêu đề không nêu tên lá theo góp ý của owner, nên tỷ lệ trùng của riêng tiêu đề chỉ
+  để báo cáo.
 - **T3, câu chung chung:** đếm câu khớp danh sách mẫu chung (nhánh `else` cũ, các tiền tố đã bỏ) trên toàn bộ bài
   của T2. Phải bằng 0.
 - **T4, cùng lá × vai khác câu:** với mỗi (lá, vai, chủ đề), ghép từng cặp câu hỏi khác nhau trong cùng chủ

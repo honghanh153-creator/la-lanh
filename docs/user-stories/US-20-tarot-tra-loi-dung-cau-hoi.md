@@ -102,10 +102,19 @@ hỏi vào bài đọc.**
   - Không tách được A/B thì chuyển sang dạng "điều cần rõ trước khi chọn".
 - **AC09:** Hướng nghiêng tính từ nhãn `lean ∈ {mở, giữ, hai mặt}` của lá × chủ đề và trọng số theo vai.
   Gate `stance_consistent` bảo đảm chữ trong tiêu đề, tóm tắt và khối hướng nghiêng khớp kết quả tính.
-- **AC10:** Tóm tắt nối các vai bằng liên từ. Gate `summary_links_cards` thay cho gate "nêu tên mọi lá":
-  nhắc nội dung của mỗi vai (anchor) và có ít nhất N−1 liên từ.
-- **AC11:** Tiêu đề dựng từ dạng câu + hướng nghiêng (hoặc chủ đề) + lá trọng tâm. Trên ngân hàng câu
-  hỏi, tỷ lệ tiêu đề trùng nhau < 10%.
+- **AC10:** (Đổi theo góp ý của owner ngày 29/10/2026, renderer v9.) Tóm tắt viết thường, không lấy tên lá
+  làm chủ ngữ, không dùng liên từ nối các lá không liên quan:
+  - nói ý chính của vai đầu tiên;
+  - sau đó là hai hướng của câu chọn, hoặc điều dễ vướng đầu tiên;
+  - kết thúc bằng đúng bước nhỏ hiện ở vị trí bước.
+
+  Gate `summary_plain` thay `summary_links_cards`: có nội dung các vai được tóm, **kết thúc đúng bằng** bước
+  đang hiển thị, và ngoài phần chữ của lá thì không nêu tên lá nào trong cả bộ, kể cả lá không được rút, ở cả
+  hai thứ tiếng. Việc so tên dùng chuẩn NFC và không phân biệt hoa thường. Bài cũ (legacy) vẫn giữ quy tắc
+  nêu đủ tên lá. (Trước đây: nối các vai bằng liên từ, gate `summary_links_cards` đòi N−1 liên từ.)
+- **AC11:** Tiêu đề dựng từ dạng câu + hướng nghiêng (hoặc chủ đề), **không nêu tên lá** (owner, 29/10/2026).
+  Trên ngân hàng câu hỏi, tỷ lệ **phần mở đầu (tiêu đề + tóm tắt)** trùng nhau < 10%. Tỷ lệ trùng của riêng
+  tiêu đề vẫn được báo cáo. (Trước đây: có lá trọng tâm trong tiêu đề, và ngưỡng 10% đo trên tiêu đề.)
 - **AC12:** Không còn "Ý chính của lá:", "Thử nhé:", hay "Ví dụ:" nằm dưới nhãn "Ví dụ để đối chiếu". Tên
   lá hiện **cả tiếng Anh truyền thống và tiếng Việt** ở mọi nhãn lá (ô vị trí đã chọn, tiêu đề từng lá,
   danh sách lá đã rút) và trong tên đọc cho trình đọc màn hình, dạng "The Devil · Sợi Ràng", phần tiếng Anh

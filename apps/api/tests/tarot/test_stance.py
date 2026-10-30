@@ -142,30 +142,43 @@ def test_ac08_other_forms_have_no_stance_and_omit_the_key(question: str) -> None
 
 
 @pytest.mark.parametrize("spread_map", list(TarotSpreadMap))
-def test_ac10_summary_mentions_every_role_with_n_minus_1_links(spread_map: TarotSpreadMap) -> None:
+def test_ac10_summary_is_plain_and_ends_on_the_shown_step(spread_map: TarotSpreadMap) -> None:
+    """Owner feedback 29/10/2026 (renderer v9): the summary names no card, carries the first core,
+    both options and the first pitfall, uses no linking words between unrelated cards, and ends on
+    the step the reader sees at the step position."""
+
     cards = tuple(c.id for c in all_cards())[3 : 3 + len(_POSITIONS[spread_map])]
     reading = _render(YES_NO, cards, spread_map)
-    from app.domains.tarot.engine import _position_views
+    from app.domains.tarot.engine import _position_views, _shown_step
 
     views = _position_views(reading.positions, reading.context)
-    assert stance.summary_links(reading.summary, views)
-    for view in views:
+    step = _shown_step(reading.positions)
+    assert step is not None
+    assert stance.summary_covers(reading.summary, views, step)
+    assert reading.summary.endswith(stance.step_sentence(step))
+    assert not any(view.title in reading.summary for view in views)
+    for retired in ("Bên cạnh đó,", "Thêm nữa,", "Từ đó,", "Vì vậy,", "Thêm nữa nè,", "Từ đó mà,"):
+        assert retired not in reading.summary
+    for view in stance.summary_views(views):
         assert stance.anchor(view) in reading.summary
+    assert len(reading.summary.split()) <= (110 if spread_map is TarotSpreadMap.FIVE_CHOICE else 70)
 
 
-def test_ac10_gate_rejects_a_summary_that_drops_a_role_or_its_links() -> None:
+def test_ac10_gate_rejects_a_card_name_a_dropped_role_or_another_step() -> None:
     from app.domains.tarot.engine import _position_views
 
     reading = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK)
-    unlinked = reading.summary
-    for conjunction in stance.ALL_CONJUNCTIONS:
-        unlinked = unlinked.replace(f"{conjunction} ", "")
-    with pytest.raises(TarotContentRejected, match="link every role"):
-        ENGINE.validate(reading.model_copy(update={"summary": unlinked}))
+    ENGINE.validate(reading)
+    named = f"{reading.positions[0].card.title_vi} cho thấy. {reading.summary}"
+    with pytest.raises(TarotContentRejected, match="carry its roles and step"):
+        ENGINE.validate(reading.model_copy(update={"summary": named}))
     missing = stance.anchor(_position_views(reading.positions, reading.context)[1])
     dropped = reading.summary.replace(missing, "một ý khác")
-    with pytest.raises(TarotContentRejected, match="link every role"):
+    with pytest.raises(TarotContentRejected, match="carry its roles and step"):
         ENGINE.validate(reading.model_copy(update={"summary": dropped}))
+    other_step = reading.summary.replace("Trước hết, ", "Sau đó, ")
+    with pytest.raises(TarotContentRejected, match="carry its roles and step"):
+        ENGINE.validate(reading.model_copy(update={"summary": other_step}))
 
 
 # ---------------------------------------------------------------- AC09 stance_consistent
@@ -184,32 +197,40 @@ def test_ac09_stance_consistent_rejects_tampered_lean_or_prose() -> None:
     with pytest.raises(TarotContentRejected, match="headline does not state"):
         focal = reading.positions[2].card.title_vi
         ENGINE.validate(reading.model_copy(update={"headline": f"{focal}: một hướng khác."}))
+    # Inserted before the final step, so only the stance gate can catch it (the summary must
+    # still end on the shown step, gates v6).
+    head, sep, tail = reading.summary.rpartition("Trước hết, ")
+    tampered_summary = f"{head}Chưa rõ: kéo về hai phía. {sep}{tail}"
     with pytest.raises(TarotContentRejected, match="different stance"):
-        ENGINE.validate(
-            reading.model_copy(update={"summary": f"{reading.summary} Chưa rõ: kéo về hai phía."})
-        )
+        ENGINE.validate(reading.model_copy(update={"summary": tampered_summary}))
 
 
 # ---------------------------------------------------------------- AC11 headline
 
 
-def test_ac11_headline_carries_form_lean_and_focal_card() -> None:
+def test_ac11_headline_carries_form_and_lean_without_card_names() -> None:
     lean = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK)
-    focal = lean.positions[2].card.title_vi  # the step role
-    assert lean.headline == f"{focal}: các lá nghiêng về thử xin lỗi."
+    assert lean.headline == "Các lá nghiêng về thử xin lỗi."
     how = _render(
         "Làm thế nào để mình chia việc rõ hơn với nhóm?",
         OPEN[:3],
         TarotSpreadMap.THREE_UNBLOCK,
         context=TarotContext.WORK,
     )
-    assert how.headline.startswith(
-        f"{how.positions[2].card.title_vi} và {how.positions[1].card.title_vi}"
-    )
-    assert all(len(r.headline.split()) <= 18 for r in (lean, how))
-    # B2-4 (AC19): Roast has its own headline frames, still with the focal card and the marker.
+    assert how.headline == "Một cách bắt đầu cho công việc."
+    titles = {card.title_vi for card in all_cards()}
+    for reading in (lean, how):
+        assert len(reading.headline.split()) <= 18
+        assert not any(title in reading.headline for title in titles)
+    # B2-4 (AC19): Roast has its own headline frames, still with the marker.
     roast = _render(YES_NO, OPEN[:3], TarotSpreadMap.THREE_UNBLOCK, voice=TarotVoice.ROAST)
-    assert roast.headline == f"{focal} bật đèn xanh nhẹ: nghiêng về thử xin lỗi."
+    assert roast.headline == "Đèn xanh nhẹ: nghiêng về thử xin lỗi."
+
+
+def test_ac11_no_headline_frame_has_a_card_slot() -> None:
+    for table in (stance.HEADLINES, stance.ROAST_HEADLINES):
+        for frames in table.values():
+            assert all("{focal}" not in f and "{pair}" not in f for f in frames)
 
 
 # ---------------------------------------------------------------- service, API and payload
@@ -305,7 +326,7 @@ def test_p2_1_long_cards_plus_readiness_fit_the_budget(
     context: TarotContext, cards: tuple[str, ...], voice: TarotVoice
 ) -> None:
     from app.domains.tarot import question_frame
-    from app.domains.tarot.engine import _position_views
+    from app.domains.tarot.engine import _position_views, _shown_step
 
     assessment = ENGINE.assess_question(LONG_TIMING, context)
     reading = ENGINE.render(
@@ -320,7 +341,9 @@ def test_p2_1_long_cards_plus_readiness_fit_the_budget(
     assert reading.spread_map is TarotSpreadMap.FIVE_CHOICE
     assert reading.summary.startswith(question_frame.READINESS_NOTE)
     assert len(reading.summary.split()) <= 180
-    assert stance.summary_links(reading.summary, _position_views(reading.positions, context))
+    assert stance.summary_covers(
+        reading.summary, _position_views(reading.positions, context), _shown_step(reading.positions)
+    )
 
 
 THREE_WAY = (

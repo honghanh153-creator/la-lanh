@@ -245,7 +245,7 @@ def _rewrite_request(
     envelope: RewriteRequestEnvelope,
     safe_payload: dict[str, Any],
 ) -> dict[str, Any]:
-    contract = surface_output_contract(envelope.key.surface)
+    contract = surface_output_contract(envelope.key.surface, safe_payload)
     return {
         "model": model,
         "store": False,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -86,7 +87,7 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
         "Write exactly one position_reading for each supplied position_key, in the same order. "
         "Each reading must name its supplied card_title and explain what that card means in that "
         "specific position. Use synthesis to answer the fixed focus_sentence without predicting. "
-        "Synthesis must include every supplied card_title once, not only the first card. "
+        "{tarot_synthesis_rule} "
         "Write a short overview before the detailed positions. Use direct ordinary Vietnamese. "
         "Explain a card as something the reader can notice or say, not as a chain of abstract "
         "nouns. Do not repeat the explanation in the example or invent a fact about the user "
@@ -114,7 +115,30 @@ _SURFACE_MAPPING_INSTRUCTIONS = {
 }
 
 
-def surface_output_contract(surface: RewriteSurface) -> SurfaceOutputContract:
+# Framed Tarot readings (meaning brief v3, renderer v9+) have a card-free summary that ends on the
+# shown step; legacy readings keep their gate, which requires every selected card title.
+_TAROT_FRAMED_BRIEF = "tarot-meaning-brief-v3"
+_TAROT_FRAMED_SYNTHESIS = (
+    "Synthesis names no card_title (card names belong in the position readings), keeps "
+    "local_summary's points and ends on the same step."
+)
+_TAROT_LEGACY_SYNTHESIS = (
+    "Synthesis must include every supplied card_title once, not only the first card."
+)
+
+
+def _tarot_synthesis_rule(safe_payload: Mapping[str, Any] | None) -> str:
+    brief = safe_payload.get("meaning_brief") if safe_payload is not None else None
+    version = brief.get("version") if isinstance(brief, Mapping) else None
+    return _TAROT_FRAMED_SYNTHESIS if version == _TAROT_FRAMED_BRIEF else _TAROT_LEGACY_SYNTHESIS
+
+
+def surface_output_contract(
+    surface: RewriteSurface, safe_payload: Mapping[str, Any] | None = None
+) -> SurfaceOutputContract:
+    """The output schema and developer instruction for ``surface``; Tarot's synthesis rule
+    follows the payload's meaning-brief version (framed v3 or legacy)."""
+
     spec = canonical_surface_registry().require(surface)
     properties: dict[str, Any] = {}
     for field in spec.rewritable_fields:
@@ -152,6 +176,9 @@ def surface_output_contract(surface: RewriteSurface) -> SurfaceOutputContract:
         "properties": properties,
     }
     tokens = min(1_800, max(220, spec.word_budget * 3))
+    mapping = _SURFACE_MAPPING_INSTRUCTIONS.get(surface, "").replace(
+        "{tarot_synthesis_rule}", _tarot_synthesis_rule(safe_payload)
+    )
     instruction = (
         "Rewrite only the requested Vietnamese prose fields from the closed safe brief. "
         "Use plain everyday Vietnamese that a Vietnamese student can understand on the first "
@@ -161,7 +188,7 @@ def surface_output_contract(surface: RewriteSurface) -> SurfaceOutputContract:
         "paradoxes, or therapy jargon. Prefer a clear subject, verb, and observable situation. "
         "Preserve every supplied meaning and distinction. "
         "Do not infer identity, private facts, diagnoses, predictions, urgency, or decisions. "
-        f"{_SURFACE_MAPPING_INSTRUCTIONS.get(surface, '')} "
+        f"{mapping} "
         "Return only JSON matching the schema."
     )
     return SurfaceOutputContract(

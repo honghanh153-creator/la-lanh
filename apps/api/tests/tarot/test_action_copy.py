@@ -225,7 +225,7 @@ def test_the_step_role_shows_the_action_scene_and_step_and_other_roles_keep_the_
             card_scene(position.card.id, TarotContext.RELATIONSHIPS)
         )
         assert position.small_action is None
-    assert reading.provenance.renderer_version == "tarot-renderer-v8"
+    assert reading.provenance.renderer_version == "tarot-renderer-v9"
 
 
 def test_the_bug_question_gets_an_apology_scene_not_a_dating_scene() -> None:

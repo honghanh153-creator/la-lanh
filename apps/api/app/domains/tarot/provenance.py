@@ -26,8 +26,10 @@ from app.domains.tarot.engine import (
     TarotReadingEngine,
     _CardMeaning,
     _resource_step,
+    _shown_step,
     _tension_parts,
     card_scene,
+    step_clause,
 )
 from app.domains.tarot.knowledge import card_by_id
 from app.domains.tarot.meaning_brief import (
@@ -294,13 +296,40 @@ def resolve_summary(
     topic: TarotContext,
     goal_keys: Sequence[str],
     readiness: bool,
+    step: str | None,
 ) -> str:
-    """The direct-voice linked summary, rebuilt from cards, goal codes and the readiness flag."""
+    """The plain summary, rebuilt from cards, goal codes, the readiness flag and the step
+    position's action (itself resolved from its codes)."""
 
     lead = tuple(goal_by_key(k).meaning for k in goal_keys if k != "general")
     reserve = len(question_frame.READINESS_NOTE.split()) if readiness else 0
-    summary = stance.linked_summary(_views(spread_map, card_ids, topic), lead, reserve)
+    summary = stance.plain_summary(_views(spread_map, card_ids, topic), step, lead, reserve)
     return f"{question_frame.READINESS_NOTE} {summary}" if readiness else summary
+
+
+def _resolved_step(
+    positions: Sequence[Mapping[str, Any]],
+    keys: Sequence[str],
+    topic: TarotContext,
+    intent: TarotQuestionIntent,
+) -> str | None:
+    """The step the summary ends on, from the step position's codes only (never its text)."""
+
+    for position, key in zip(positions, keys, strict=False):
+        if key not in roles.STEP_ROLES:
+            continue
+        source = position.get("source")
+        if not isinstance(source, Mapping):
+            return None
+        action = resolve_position(
+            source,
+            position_key=key,
+            card_id=card_by_id(position.get("card_key", "")).id,
+            topic=topic,
+            intent=intent,
+        )["small_action"]
+        return step_clause(action)
+    return None
 
 
 def stance_labels(reading: TarotReading) -> dict[str, Any] | None:
@@ -336,6 +365,7 @@ def goal_keys_for(reading: TarotReading) -> tuple[str, ...]:
             topic=reading.context,
             goal_keys=keys,
             readiness=readiness,
+            step=_shown_step(reading.positions),
         )
         if summary == reading.summary:
             return keys
@@ -355,6 +385,7 @@ def framed_brief(reading: TarotReading) -> dict[str, Any] | None:
         topic=reading.context,
         goal_keys=goal_keys,
         readiness=readiness,
+        step=_shown_step(reading.positions),
     )
     if summary != reading.summary:
         return None
@@ -486,6 +517,7 @@ def untraced_paths(
                 topic=topic,
                 goal_keys=goal_keys,
                 readiness=bool(summary_source.get("readiness")),
+                step=_resolved_step(positions, keys, topic, intent),
             )
         except (KeyError, StopIteration, ValueError):
             expected_summary = None
