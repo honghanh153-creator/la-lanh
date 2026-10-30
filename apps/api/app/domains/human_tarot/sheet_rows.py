@@ -126,6 +126,30 @@ def code_rows(grid: list[list[Any]]) -> dict[str, list[int]]:
     return found
 
 
+def row_blank(row: list[Any]) -> bool:
+    return all(_text(value) == "" for value in row)
+
+
+def clear_decision(grid: list[list[Any]], code: str, slot_no: int) -> str:
+    """What clearing a request's copy means for this grid (Codex r56), by binding not by code alone.
+
+    ``gone``: the code is nowhere and the assigned row is empty. ``clear``: the assigned row holds
+    the request (its code, or owner content with the code deleted). ``moved``: the code sits in
+    another row. ``unverified``: the assigned row now carries another app code.
+    """
+
+    own = row_number(slot_no)
+    found = code_rows(grid).get(code, [])
+    if found:
+        return "clear" if found == [own] else "moved"
+    row = grid[own - 1]
+    if row_blank(row):
+        return "gone"
+    if is_app_code(row[CODE]):
+        return "unverified"
+    return "clear"
+
+
 def is_ready(value: Any) -> bool:
     return value is True or _text(value).upper() == "TRUE"
 

@@ -40,7 +40,7 @@ from app.domains.guest.service import GuestSessionService
 from app.domains.history.postgres import PostgresHistoryRepository
 from app.domains.history.service import HistoryService
 from app.domains.human_tarot.service import HumanTarotService
-from app.domains.human_tarot.sheets import HumanTarotSheetBridge
+from app.domains.human_tarot.sheets import GoogleBudget, HumanTarotSheetBridge
 from app.domains.identity.service import OwnerIdentityService
 from app.domains.la_chung.service import LaChungService
 from app.domains.matching.postgres import PostgresMatchingRepository
@@ -215,10 +215,14 @@ def create_app(
         )
         if resolved_settings.human_tarot_sheet_sync_enabled:
             sheet_id, credentials_file = resolved_settings.human_tarot_sheet()
+            budget = GoogleBudget(database.sessions, app.state.human_tarot_service.now)
             app.state.human_tarot_service.bridge = HumanTarotSheetBridge(
                 database.sessions,
                 app.state.human_tarot_service,
-                GoogleSheetsClient(sheet_id, ServiceAccount.from_file(credentials_file)),
+                GoogleSheetsClient(
+                    sheet_id, ServiceAccount.from_file(credentials_file), reserve=budget.reserve
+                ),
+                budget=budget,
             )
         app.state.la_chung_service = LaChungService(
             database.sessions,

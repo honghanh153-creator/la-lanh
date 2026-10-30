@@ -211,7 +211,7 @@ class HumanTarotSheetBridge:
                 )
         for slot in active:
             if slot.sheet_state == SheetState.CLEAR_SENT.value:
-                await self._confirm_clear(slot, rows, report)
+                await self._confirm_clear(slot, grid, report)
         for slot in active:
             if slot.sheet_state == SheetState.CLEAR_DUE.value:
                 await self._clear(slot.id, report)
@@ -221,10 +221,15 @@ class HumanTarotSheetBridge:
         for slot in active:
             if slot.sheet_state == SheetState.ON_SHEET.value and slot.day == today:
                 numbers = rows.get(slot.request_code, [])
-                if len(numbers) == 1:
-                    await self._import(slot, grid[numbers[0] - 1], numbers[0], report)
+                own = sheet_rows.row_number(slot.slot_no)
+                if numbers == [own]:
+                    await self._import(slot, grid[own - 1], own, report)
                 elif len(numbers) > 1:
                     report.add("duplicate_code")
+                elif numbers:
+                    # Codex r56: the code left the row the DB assigned (a sort of A:G only), so the
+                    # owner columns beside it may belong to someone else. Never import from there.
+                    report.add("row_moved")
 
     # ------------------------------------------------------------------ export
 
@@ -274,7 +279,10 @@ class HumanTarotSheetBridge:
             grid = await self._grid()
             number = sheet_rows.row_number(slot.slot_no)
             occupant = str(grid[number - 1][sheet_rows.CODE] or "").strip()
-            if occupant not in ("", slot.request_code):
+            # Codex r56: write only into a row that is empty in every column, or that already
+            # carries this request's own code (a retry). Owner content left without a code may
+            # be a previous person's reading and must never be bound to this request.
+            if occupant != slot.request_code and not sheet_rows.row_blank(grid[number - 1]):
                 await self._fail(slot_id, token, "SLOT_OCCUPIED")
                 report.add("export_blocked")
                 return
@@ -321,12 +329,20 @@ class HumanTarotSheetBridge:
             if slot is None:
                 return
             grid = await self._grid()
-            numbers = sheet_rows.code_rows(grid).get(slot.request_code, [])
-            if numbers:
-                await self._clear_rows(numbers)
-                # Read back: only an empty row counts as cleared (R13).
-                numbers = sheet_rows.code_rows(await self._grid()).get(slot.request_code, [])
-            if numbers:
+            decision = sheet_rows.clear_decision(grid, slot.request_code, slot.slot_no)
+            if decision in {"moved", "unverified"}:
+                # Fail closed (Codex r56): the code sits in another row, or the assigned row now
+                # belongs to another request. Nothing is cleared blindly; the owner fixes it.
+                await self._fail(
+                    slot_id, token, "SLOT_MOVED" if decision == "moved" else "ROW_UNVERIFIED"
+                )
+                report.add(f"clear_{decision}")
+                return
+            if decision == "clear":
+                await self._clear_rows([sheet_rows.row_number(slot.slot_no)])
+                grid = await self._grid()
+            # Read back the whole assigned row: a missing code alone never proves deletion (R13).
+            if sheet_rows.clear_decision(grid, slot.request_code, slot.slot_no) != "gone":
                 await self._finish(slot_id, token, SheetState.CLEAR_DUE, SheetState.CLEAR_SENT)
                 report.add("clear_unconfirmed")
             else:
@@ -360,9 +376,10 @@ class HumanTarotSheetBridge:
             )
 
     async def _confirm_clear(
-        self, slot: HumanTarotSlotRow, rows: dict[str, list[int]], report: SyncReport
+        self, slot: HumanTarotSlotRow, grid: list[list[Any]], report: SyncReport
     ) -> None:
-        state = SheetState.CLEAR_DUE if slot.request_code in rows else SheetState.CLEARED
+        gone = sheet_rows.clear_decision(grid, slot.request_code, slot.slot_no) == "gone"
+        state = SheetState.CLEARED if gone else SheetState.CLEAR_DUE
         async with account_transaction(self._sessions) as database:
             await database.execute(
                 update(HumanTarotSlotRow)
@@ -550,7 +567,9 @@ class HumanTarotSheetBridge:
                 return
             slot.attempts += 1
             slot.sheet_error = code
-            slot.next_attempt_at = now + min(timedelta(minutes=2**slot.attempts), MAX_BACKOFF)
+            # Bounded before building the duration: 2**attempts overflows after a long outage.
+            delay = MAX_BACKOFF if slot.attempts >= 4 else timedelta(minutes=2**slot.attempts)
+            slot.next_attempt_at = now + min(delay, MAX_BACKOFF)
         logger.warning("human_tarot_sheet_error code=%s", code)
 
     async def _release(self, slot_id: UUID, token: UUID) -> None:

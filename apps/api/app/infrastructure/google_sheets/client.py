@@ -12,6 +12,7 @@ from __future__ import annotations
 import base64
 import json
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -102,6 +103,7 @@ class GoogleSheetsClient:
         transport: httpx.AsyncBaseTransport | None = None,
         timeout_seconds: float = 8.0,
         clock: Any = time.time,
+        reserve: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
         self._spreadsheet_id = spreadsheet_id
         self._account = account
@@ -110,6 +112,9 @@ class GoogleSheetsClient:
         self._clock = clock
         self._token: str | None = None
         self._token_expires = 0.0
+        # The application budget covers every Google HTTP request (Codex r56). The caller reserves
+        # one call per Sheets operation; the token request takes its own reservation here.
+        self._reserve = reserve
 
     async def read(self, range_a1: str) -> list[list[Any]]:
         body = await self._call(
@@ -138,6 +143,8 @@ class GoogleSheetsClient:
         now = float(self._clock())
         if self._token is not None and now < self._token_expires - 60:
             return self._token
+        if self._reserve is not None:
+            await self._reserve()
         response = await client.post(
             TOKEN_URI,
             data={

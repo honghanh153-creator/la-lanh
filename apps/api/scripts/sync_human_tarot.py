@@ -16,7 +16,7 @@ from app.db.session import Database
 from app.domains.daily import tables as daily_tables  # noqa: F401 - local SQLite create_all
 from app.domains.human_tarot import policy
 from app.domains.human_tarot.service import HumanTarotService
-from app.domains.human_tarot.sheets import HumanTarotSheetBridge
+from app.domains.human_tarot.sheets import GoogleBudget, HumanTarotSheetBridge
 from app.infrastructure.crypto import (
     AesGcmEnvelopeCipher,
     SecretHasher,
@@ -55,8 +55,13 @@ async def _run(command: str) -> int:
             print("human_tarot_sync disabled")
             return 0
         sheet_id, credentials_file = settings.human_tarot_sheet()
-        gateway = GoogleSheetsClient(sheet_id, ServiceAccount.from_file(credentials_file))
-        report = await HumanTarotSheetBridge(database.sessions, service, gateway).sync_once()
+        budget = GoogleBudget(database.sessions, service.now)
+        gateway = GoogleSheetsClient(
+            sheet_id, ServiceAccount.from_file(credentials_file), reserve=budget.reserve
+        )
+        report = await HumanTarotSheetBridge(
+            database.sessions, service, gateway, budget=budget
+        ).sync_once()
         print(report.line())
         return 1 if report.error is not None else 0
     finally:

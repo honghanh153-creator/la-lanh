@@ -54,7 +54,11 @@ muốn thay phải có quy trình riêng (chưa có trong bản đầu).
 - Trần gọi Google của app: 30 lần/phút và 2.000 lần/ngày, gồm cả retry. Chạm trần → `GOOGLE_BUDGET_EXHAUSTED`, job
   dừng và thử lại phút sau; không tự xin thêm quota hay bật billing.
 - Log chỉ có số đếm và mã lỗi (`SHEETS_UNAVAILABLE`, `SHEETS_RATE_LIMITED`, `SHEETS_ACCESS_DENIED`,
-  `SHEET_LAYOUT_INVALID`, `SLOT_OCCUPIED`, `GOOGLE_BUDGET_EXHAUSTED`). Không bao giờ in câu hỏi, bài, mã yêu cầu
+  `SHEET_LAYOUT_INVALID`, `SLOT_OCCUPIED`, `SLOT_MOVED`, `ROW_UNVERIFIED`, `GOOGLE_BUDGET_EXHAUSTED`).
+- Mỗi hàng gắn với yêu cầu bằng cả **vị trí hàng do app cấp** và **mã**. App không bao giờ ghi vào hàng còn chữ mà
+  thiếu mã (`SLOT_OCCUPIED`), không nhập bài khi mã đã rời hàng của nó (ví dụ chỉ sort A:G: `row_moved`), và không xoá
+  khi mã nằm ở hàng khác (`SLOT_MOVED`) hay hàng đã mang mã khác (`ROW_UNVERIFIED`). Khi gặp các mã này, owner trả
+  hàng về đúng chỗ hoặc xoá trống cả hàng; đừng chỉ xoá mã. Chỉ khi đọc lại cả hàng trống app mới báo đã xoá bản tạm. Không bao giờ in câu hỏi, bài, mã yêu cầu
   hay giá trị ô.
 - Google lỗi hoặc mất quyền: lượt người dùng vẫn được giữ, app hiện "Chưa chuyển được tới người bốc"; sửa quyền
   rồi job tự thử lại (giãn tối đa 15 phút).
