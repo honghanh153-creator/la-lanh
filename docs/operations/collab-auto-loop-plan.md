@@ -27,7 +27,9 @@ Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider
 ## 3. Luồng chuẩn
 
 ```
-Claude xong việc trên branch, push → node scripts/collab-check.mjs --pr N (pnpm check trên đúng head) → "Author check: PASS @ SHA"
+Claude xong việc trên branch, push → node scripts/collab-check.mjs --pr N
+      soát nhanh trên diff (vài giây) → lỗi: "Author check: FAIL @ SHA", chưa chạy pnpm check
+      → chờ khóa việc nặng toàn máy + chờ máy hết nóng → pnpm check trên đúng head → "Author check: PASS @ SHA"
   → mở PR (nếu chưa có), gắn nhãn area:content | area:privacy | area:feature | area:ops
   → node scripts/codex-review.mjs --pr N        (Claude chờ, cùng session)
       ├─ APPROVE @ SHA   → node scripts/collab-merge.mjs --pr N → merge integration
@@ -72,7 +74,9 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | `docs/operations/codex-review-prompt.md` | Prompt review cố định | Đổi qua PR |
 | `scripts/collab-merge.mjs` | Kiểm đủ điều kiện rồi `gh pr merge --merge --match-head-commit` | Chỉ base `collab/integration` |
 | `scripts/collab-plan.mjs` | Lập plan 08:50, đọc trả lời owner, cho biết hôm nay đã được chạy chưa | Comment issue plan |
-| `scripts/collab-check.mjs` | Author check: `pnpm check` trên checkout sạch đúng head, đăng `Author check: PASS\|FAIL @ SHA` | Comment PR |
+| `scripts/collab-check.mjs` | Author check: soát nhanh, rồi `pnpm check` trong khóa việc nặng, trên checkout sạch đúng head; đăng `Author check: PASS\|FAIL @ SHA` | Comment PR |
+| `scripts/collab-preflight.mjs` | Soát nhanh dòng thêm mới trong diff (mục 4.4); chạy riêng được | Chỉ đọc |
+| `scripts/collab-heavy.mjs` | Khóa việc nặng toàn máy và chờ máy hết nóng (mục 4.4); bọc lệnh bất kỳ | File khóa ngoài repo |
 | `scripts/collab-cron.sh` | Điểm vào cho launchd: cập nhật clone ops về `origin/collab/integration`, gọi `collab-tick.mjs` | — |
 | `scripts/collab-tick.mjs` | Điểm vào một tick (tách khỏi `collab-turn` để không import vòng) | — |
 | `scripts/launchd/com.lalanh.collab-tick.plist` | Mẫu job launchd (mỗi 10 phút) | — |
@@ -119,6 +123,31 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 `--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở** (nhóm sớm nhất còn PR không ở trạng thái Giữ): content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới sau 23:30. Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
 
 Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dùng chung clone; review thứ hai trả `busy` và chờ lượt sau. Author check mới nhất cho head quyết định (FAIL sau PASS thì chặn). Sau khi đổi base, verdict cũ hết hiệu lực.
+
+### 4.4 Soát nhanh và khóa việc nặng (bổ sung 30.10.2026)
+
+Mục đích: bớt vòng REQUEST_CHANGES (bớt lượt Codex) và bớt làm nóng máy owner (MacBook Air không quạt, 16 GB). Chỉ **thêm** bước kiểm; không bỏ hay nới bước nào. `pnpm check` đầy đủ, Codex `high` và điều kiện merge giữ nguyên.
+
+**Soát nhanh** (`collab-preflight.mjs`), chạy đầu `collab-check` trên các dòng **thêm mới** so với merge-base của base PR. Không dùng AI, không mạng, không tải công cụ.
+
+| Kiểm | Chặn khi |
+|---|---|
+| Khóa bí mật | Dòng thêm có khóa riêng (`PRIVATE KEY`), token GitHub/OpenAI/Anthropic/Google/AWS/Slack, hoặc gán literal dài cho tên `secret`/`password`/`token`/`api_key` |
+| File nhạy cảm | Thêm `.env*` (trừ `.env.example`/`.sample`/`.template`), `.p12`, `.pfx`, `.jks`, `.keystore`, `.mobileprovision`, hoặc `.pem`/`.key` chứa khóa riêng (chứng chỉ công khai được phép) |
+| Dữ liệu cá nhân trong log | Dòng thêm (ngoài test) gọi log/print và nhắc ngày/giờ/nơi sinh, toạ độ, email, số điện thoại, token, mật khẩu, mood, nhật ký |
+
+Dòng bị nhận nhầm được giữ lại bằng chú thích trên chính dòng đó: `collab-preflight: allow <lý do>`. Codex thấy chú thích này trong diff và review như mọi thay đổi khác. Soát nhanh có lỗi → đăng `Author check: FAIL @ SHA` kèm bảng lỗi, không chạy `pnpm check`.
+
+Công cụ ngoài (gitleaks, Semgrep, osv-scanner) chưa cài trên máy owner; thêm sau khi owner duyệt tải về.
+
+**Khóa việc nặng** (`collab-heavy.mjs`): `~/.cache/la-lanh-collab/heavy.lock` ghi pid, việc, giờ bắt đầu. Mỗi lúc cả máy chỉ một việc nặng (`pnpm check`, test API/web, e2e, audit nội dung). Khóa của tiến trình đã chết hoặc cũ hơn 120 phút bị bỏ. `collab-check` chờ khóa tối đa 90 phút; quá hạn trả `busy`, không đăng gì. Session và autopilot bọc lệnh nặng bằng:
+
+```
+node scripts/collab-heavy.mjs -- pnpm check
+node scripts/collab-heavy.mjs --job api-test -- pnpm api:test
+```
+
+**Chờ máy hết nóng**: trước khi chạy việc nặng, đọc `pmset -g therm` (giới hạn tốc độ CPU dưới 100% hoặc có mức cảnh báo nhiệt/hiệu năng) và tải 1 phút so với số nhân. Máy nóng hoặc quá tải thì chờ, mỗi lần 60 giây, tối đa 15 phút, rồi vẫn chạy (máy nóng chỉ làm chậm, không làm sai kết quả). Lý do chờ được ghi vào comment author check.
 
 ## 5. An toàn
 
