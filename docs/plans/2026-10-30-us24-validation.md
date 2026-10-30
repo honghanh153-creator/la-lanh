@@ -18,7 +18,7 @@ call exists, and no real question was used anywhere (synthetic data only).
 | AC05 never refunded | `test_ac05…` | Pass |
 | AC06 Vietnam midnight | `test_ac06…` | Pass |
 | AC07 consent / filter / key take no slot | `test_ac07…`, HTTP `test_rejected_question…` | Pass |
-| AC08 10:00 by server clock | `test_ac08…`, `test_ready_row…opens_at_ten` | Pass (device clock: release decided only server-side; web refetch is presentation) |
+| AC08 22:00 by server clock | `test_ac08…`, `test_ready_row…opens_at_22` | Pass (device clock: release decided only server-side; web refetch is presentation) |
 | AC09 owner only | `test_ac09…`, HTTP `test_reads_need_a_session…` | Pass |
 | AC10 late / unfulfilled, no machine reading | `test_ac10…`, `test_day_end_clears_yesterday…` | Pass |
 | AC11 label + provenance | `test_ac11…`, web "Bài do người bốc viết" | Pass |
@@ -55,7 +55,7 @@ Tarot reader delta". Controls in code:
   position labels; never a guest/session/request id, account, birth data, cookie, token or link
   (`test_export_writes…`). The intake filter of US-20 still rejects mind reading and high-stakes questions; users
   are told not to name other people. A free-text question can still contain sensitive data: no claim of anonymity.
-- **Purpose and retention**: OD2 proposal in `policy.py`; question removed from the app 24 h after release (or at
+- **Purpose and retention**: OD2, approved by the owner on 30/10, in `policy.py`; question removed from the app 24 h after release (or at
   day end / cancel), Sheet row cleared at cancel and day end, reading kept 30 days. Owner approval pending.
 - **Deletion**: cancel/delete, guest deletion (cascade, then the slot loses its link and the Sheet row is cleared),
   history clear, expiry, journal replay (`human_tarot_request_cancelled`), restore (day closed, unknown Sheet rows
@@ -112,6 +112,8 @@ Official:
 
 ## Owner decisions open
 
-OD1 cut-off (proposal 09:00), OD2 retention and Sheet rotation, OD3 service account on one file, OD4 copy, OD5
-remaining count, OD6 P09/P10 + privacy notice + store forms, OD7 Workspace account with the processing addendum.
+Settled by the owner on 30/10/2026: OD1 intake until 18:00 and release at 22:00, OD2 retention and monthly Sheet
+rotation, OD3 service account on one file, OD7 Google Workspace account; OD5 delegated (remaining count shown).
+Still open: OD4 copy (owner: Claude decides, Luna rewrites; calling Luna is a paid API, not allowed in this batch)
+and OD6 P09/P10, privacy notice and store forms before enabling.
 Plus: release order of the two stacks, any PostgreSQL run, the Google rehearsal and enabling anything.

@@ -9,7 +9,8 @@
 > xoá), P09/P10 (đánh giá quyền riêng tư, owner/engineering).
 
 **Trạng thái:** đặc tả và code sau cờ tắt. Không có dữ liệu thật, không có kết nối Google, không bật ở staging hay
-production. Các lựa chọn OD1–OD7 ở mục 9 phải được owner chốt trước dữ liệu thật.
+production. Owner đã chốt OD1–OD3, OD5 (giao Claude), OD7 ngày 30/10; OD4 (copy, nhờ Luna viết lại) và OD6 (P09/P10,
+thông báo quyền riêng tư, store) còn mở và phải xong trước dữ liệu thật.
 
 ## 1. User story
 
@@ -173,19 +174,19 @@ sort, mã trùng hay mã khác ở hàng đã cấp → lỗi đồng bộ, khô
 đó. Mã đúng dạng nhưng DB không biết (ví dụ sau restore) → xoá hàng. Owner sửa bài sau khi đã nhập phải qua quy trình
 riêng (huỷ yêu cầu, không sửa âm thầm).
 
-## 9. Lựa chọn owner phải chốt trước dữ liệu thật
+## 9. Lựa chọn owner (chốt 30/10/2026, trừ phần ghi rõ còn mở)
 
 | # | Lựa chọn | Đề xuất | Hiện trạng code |
 |---|---|---|---|
 | OD1 | Giờ ngừng nhận và giờ trả bài (A1) | **Owner chốt 30/10: ngừng nhận 18:00, trả bài 22:00** để kịp bốc và viết | `RELEASE_TIME = 22:00`; `human_tarot_intake_closes_at` mặc định 18:00, không được muộn hơn 22:00. |
-| OD2 | Retention (A3) và bản sao Google | Câu hỏi trong app: xoá 24 giờ sau giờ hẹn. Bài đóng băng: 30 ngày sau giờ hẹn. Hàng trên Sheet: xoá khi huỷ/xoá, và chậm nhất lúc hết ngày (≤ 2 giờ sau giờ hẹn). Lịch sử phiên bản của Sheet không xoá được qua API: thay file Sheet định kỳ (đề xuất mỗi tháng), chuyển file cũ vào thùng rác rồi dọn thùng rác. | Hằng số trong `human_tarot/policy.py`; chưa có quy trình thay file. |
-| OD3 | Danh tính Google và quyền (A4) | Service account riêng, chỉ được chia sẻ quyền Editor trên đúng một file; scope `spreadsheets`; khoá là file secret trên VPS. Không dùng OAuth tài khoản cá nhân (quyền rộng hơn). | Adapter có sẵn nhưng chỉ chạy khi cấu hình đủ; không có credential nào trong repo. |
-| OD4 | Copy mục 4 và câu đồng ý | — | Bản nháp. |
-| OD5 | Hiện số lượt còn lại cho mọi người | Có (không lộ ai đã gửi) | Có. |
-| OD6 | P09/P10: thêm bên nhận Google (có thể ngoài Việt Nam) và người bốc; cập nhật thông báo quyền riêng tư, store privacy | Cập nhật trước tester thật | Bản nháp ở U7. |
-| OD7 | Loại tài khoản Google giữ Sheet | Tài khoản Google Workspace có Cloud Data Processing Addendum (Google là bên xử lý). Tài khoản Gmail cá nhân không có điều khoản bên xử lý. | Chưa có tài khoản nào được dùng. |
+| OD2 | Retention (A3) và bản sao Google | Câu hỏi trong app: xoá 24 giờ sau giờ hẹn. Bài đóng băng: 30 ngày sau giờ hẹn. Hàng trên Sheet: xoá khi huỷ/xoá, và chậm nhất lúc hết ngày (≤ 2 giờ sau giờ hẹn). Lịch sử phiên bản của Sheet không xoá được qua API: thay file Sheet định kỳ (đề xuất mỗi tháng), chuyển file cũ vào thùng rác rồi dọn thùng rác. | **Owner duyệt 30/10.** Hằng số trong `human_tarot/policy.py`; thay file mỗi tháng theo runbook. |
+| OD3 | Danh tính Google và quyền (A4) | Service account riêng, chỉ được chia sẻ quyền Editor trên đúng một file; scope `spreadsheets`; khoá là file secret trên VPS. Không dùng OAuth tài khoản cá nhân (quyền rộng hơn). | **Owner duyệt 30/10.** Adapter chỉ chạy khi cấu hình đủ; chưa có credential nào, việc cấp quyền là lệnh riêng. |
+| OD4 | Copy mục 4 và câu đồng ý | Owner 30/10: Claude tự quyết, **nhờ Luna viết lại** | Bản nháp. Gọi Luna là gọi API trả phí (cấm trong đợt này); chờ owner xác nhận cách làm. |
+| OD5 | Hiện số lượt còn lại cho mọi người | Owner giao Claude: **có** (không lộ ai đã gửi) | Có. |
+| OD6 | P09/P10: thêm bên nhận Google (có thể ngoài Việt Nam) và người bốc; cập nhật thông báo quyền riêng tư, store privacy | Cập nhật trước tester thật (owner 30/10) | Bản nháp ở U7; còn mở. |
+| OD7 | Loại tài khoản Google giữ Sheet | Tài khoản Google Workspace có Cloud Data Processing Addendum (Google là bên xử lý). Tài khoản Gmail cá nhân không có điều khoản bên xử lý. | **Owner duyệt 30/10.** Chưa có tài khoản nào được dùng. |
 
-Khi chưa chốt đủ, cờ `human_tarot_enabled` chỉ được bật ở local/test với Sheet giả; config từ chối bật ở staging hay
+Khi OD4/OD6 chưa xong, cờ `human_tarot_enabled` chỉ được bật ở local/test với Sheet giả; config từ chối bật ở staging hay
 production nếu thiếu `human_tarot_launch_approved`.
 
 ## 10. Acceptance Criteria
@@ -244,6 +245,6 @@ production nếu thiếu `human_tarot_launch_approved`.
 - AC01–AC24 có test; concurrency có test SQLite thật và test PostgreSQL (chạy khi được phép một lần, không thay bằng
   SQLite để gọi là đạt).
 - OpenAPI/TS, copy, đồng ý, data map, thông báo quyền riêng tư và khai báo store không mâu thuẫn với runtime.
-- Owner chốt OD1–OD7 và cấp quyền Google cho file tổng hợp; rehearsal với file tổng hợp có receipt riêng.
+- OD4 và OD6 xong; owner cấp quyền Google cho file tổng hợp; rehearsal với file tổng hợp có receipt riêng.
 - Cờ vẫn tắt ở staging/production tới lệnh release riêng. P07 PARTIAL/B và mọi receipt đỏ giữ nguyên.
 - Codex APPROVE theo đúng SHA của từng PR (U4, U5, U6, U7).
