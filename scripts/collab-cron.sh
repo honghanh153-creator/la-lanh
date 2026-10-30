@@ -17,5 +17,5 @@ mkdir -p "$home_dir/logs"
   /usr/bin/git -C "$ops" fetch --quiet origin collab/integration
   /usr/bin/git -C "$ops" checkout --quiet --force --detach FETCH_HEAD
   /usr/bin/git -C "$ops" clean -fdxq
-  node "$ops/scripts/collab-turn.mjs" --tick
+  node "$ops/scripts/collab-tick.mjs"
 } >>"$log" 2>&1

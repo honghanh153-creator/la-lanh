@@ -117,10 +117,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     const gh = makeGh();
     if (args.includes('--tick')) {
-      const { runReview } = await import('./codex-review.mjs');
-      const { runMerge } = await import('./collab-merge.mjs');
-      const result = tick({ gh, review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text) });
-      process.stdout.write(`${new Date().toISOString()} ${JSON.stringify(result)}\n`);
+      // codex-review imports this module, so the tick entry lives in collab-tick.mjs (no import cycle).
+      process.stderr.write('Use: node scripts/collab-tick.mjs\n'); process.exitCode = 2;
     } else if (args.includes('--status')) {
       const plan = readPlanStatus(gh);
       process.stdout.write(`${JSON.stringify({ plan: plan.state, reason: plan.reason, dropped: plan.dropped, queue: readJson(join(stateDir, 'claude-queue.json'), null) })}\n`);

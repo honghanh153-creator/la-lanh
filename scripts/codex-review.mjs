@@ -108,7 +108,7 @@ export function runReview(number, options = {}) {
   try { return reviewOnce(number, options); } finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
-function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, now = vnNow(), readOut } = {}) {
+function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut } = {}) {
   const pr = gh.pr(number);
   const head = pr.headRefOid;
   if (!isSha(head)) throw new Error('PR head SHA unavailable.');
@@ -137,8 +137,12 @@ function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, n
   const stamp = `${now.date}-pr${pr.number}-${head.slice(0, 12)}-${Date.now()}`;
   const outPath = join(stateDir, 'logs', `codex-${stamp}.json`);
   mkdirSync(dirname(outPath), { recursive: true });
-  // Stop before midnight on scheduled runs; 30 minutes otherwise.
-  const untilCutoff = ((23 * 60 + 55) - (now.hour * 60 + now.minute)) * 60000;
+  // Fetching can be slow, so read the clock again right before Codex starts (fix-forward #131).
+  // Scheduled runs start nothing after 23:30 and stop by 23:55; direct runs get 30 minutes.
+  const startAt = clock();
+  const startMinute = startAt.hour * 60 + startAt.minute;
+  if (auto && (startMinute < 8 * 60 + 50 || startMinute >= 23 * 60 + 30)) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  const untilCutoff = ((23 * 60 + 55) - startMinute) * 60000;
   const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.max(60000, Math.min(30 * 60000, untilCutoff)) : 30 * 60000, run });
   if (result.status === 'limit') return { status: 'limit', reason: result.error };
   writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
