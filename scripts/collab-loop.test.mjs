@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
@@ -291,4 +292,24 @@ test('r1: privacy and features wait until no content PR is in play', () => {
   open[0].isDraft = true;
   tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
   assert.deepEqual(merged, [2], 'once content is only held, privacy proceeds');
+});
+
+test('r2: every CLI entry loads and exits without hanging on an import cycle', () => {
+  for (const [file, args, expect] of [['collab-tick.mjs', ['--self-test'], /collab-tick ok/], ['codex-review.mjs', [], /Usage/], ['collab-merge.mjs', [], /Usage/], ['collab-check.mjs', [], /Usage/]]) {
+    const result = spawnSync(process.execPath, [join(import.meta.dirname, file), ...args], { encoding: 'utf8', timeout: 10000, env: { ...process.env, LA_LANH_COLLAB_HOME: trust.stateDir } });
+    assert.equal(result.error, undefined, `${file} must not time out`);
+    assert.match(`${result.stdout}${result.stderr}`, expect, file);
+    assert.doesNotMatch(result.stderr, /unsettled top-level await/, file);
+  }
+});
+
+test('r2 (#131): scheduled reviews read the clock after preparing the clone', () => {
+  const late = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now: { date: '2026-11-06', hour: 23, minute: 29 }, clock: () => ({ date: '2026-11-06', hour: 23, minute: 33 }) });
+  assert.equal(late.status, 'refused');
+  const runner = fakeRun();
+  review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-06', hour: 23, minute: 25 }) });
+  assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000);
+  const tight = fakeRun();
+  review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
+  assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000);
 });

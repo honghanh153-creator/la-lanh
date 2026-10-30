@@ -73,7 +73,8 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | `scripts/collab-merge.mjs` | Kiểm đủ điều kiện rồi `gh pr merge --merge --match-head-commit` | Chỉ base `collab/integration` |
 | `scripts/collab-plan.mjs` | Lập plan 08:50, đọc trả lời owner, cho biết hôm nay đã được chạy chưa | Comment issue plan |
 | `scripts/collab-check.mjs` | Author check: `pnpm check` trên checkout sạch đúng head, đăng `Author check: PASS\|FAIL @ SHA` | Comment PR |
-| `scripts/collab-cron.sh` | Điểm vào cho launchd: cập nhật clone ops về `origin/collab/integration`, gọi `collab-turn --tick` | — |
+| `scripts/collab-cron.sh` | Điểm vào cho launchd: cập nhật clone ops về `origin/collab/integration`, gọi `collab-tick.mjs` | — |
+| `scripts/collab-tick.mjs` | Điểm vào một tick (tách khỏi `collab-turn` để không import vòng) | — |
 | `scripts/launchd/com.lalanh.collab-tick.plist` | Mẫu job launchd (mỗi 10 phút) | — |
 | Test `scripts/collab-loop.test.mjs` (`pnpm collab:test`, nằm trong `pnpm check`) | `node --test`, giả lập `gh`/`git`/`codex` | — |
 | `~/Library/LaunchAgents/com.lalanh.collab-*.plist` | Lịch | User-level, gỡ được |
