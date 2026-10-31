@@ -492,3 +492,12 @@ test('plan top-up: fewer than two machine jobs before 23:30 asks Claude to add t
   tick({ gh: plannedGh(busy, date), now: { date, hour: 16, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, false);
 });
+
+test('#158: top-up is computed from the queue left after this run', () => {
+  const date = '2026-11-16';
+  const open = [pr({ number: 1, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }), pr({ number: 2, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] })];
+  const merge = n => { open.splice(open.findIndex(p => p.number === n), 1); return { status: 'merged' }; };
+  tick({ gh: plannedGh(open, date), now: { date, hour: 15, minute: 5 }, merge, review: () => ({}) });
+  assert.equal(open.length, 0);
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, true, 'both merged, nothing left');
+});
