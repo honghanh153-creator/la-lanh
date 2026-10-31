@@ -11,7 +11,7 @@ const { prTurn, turnsFor, tick } = await import('./collab-turn.mjs');
 const { planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { renderCheck } = await import('./collab-check.mjs');
+const { renderCheck, runCheck, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -227,7 +227,7 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   assert.deepEqual(done, { merge: [1], review: [2, 3] });
   assert.equal(tick(deps({ hour: 10, minute: 11 })).status, 'already-ran-this-hour');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
-  assert.deepEqual(queue.items.map(i => [i.number, i.turn]), [[5, 'claude-check']]);
+  assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });
 
 test('r1: a newer FAIL outvotes an older PASS, and a retarget voids earlier verdicts', () => {
@@ -312,4 +312,31 @@ test('r2 (#131): scheduled reviews read the clock after preparing the clone', ()
   const tight = fakeRun();
   review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
   assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000);
+});
+
+test('r3: the tick runs one author check itself, then reviews that PR', () => {
+  const date = '2026-11-08';
+  const open = [pr({ number: 1 }), pr({ number: 2 })];
+  const calls = [];
+  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}),
+    check: n => { calls.push(['check', n]); return { status: 'PASS' }; }, review: n => { calls.push(['review', n]); return { status: 'posted' }; } });
+  assert.equal(result.status, 'ran');
+  assert.deepEqual(calls, [['check', 1], ['review', 1]], 'one check per tick, reviewed in the same tick');
+  const failed = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: n => { failed.push(n); return {}; } });
+  assert.deepEqual(failed, [], 'a FAIL is not reviewed');
+});
+
+test('r3: author check runs alone, with CI=1, in the given checkout', () => {
+  const gh = fakeGh({ pr: pr() });
+  const git = args => (args[0] === 'rev-parse' ? A : '');
+  assert.equal(runCheck(7, { gh, git, busy: () => '123 sh -c pnpm contracts:check', spawn: () => { throw new Error('must not run'); } }).status, 'busy');
+  const spawned = [];
+  const result = runCheck(7, { gh, git, cwd: '/tmp/author', busy: () => null, spawn: (cmd, args, opts) => { spawned.push({ cmd, args, opts }); return { status: 0 }; } });
+  assert.equal(result.status, 'PASS');
+  assert.equal(spawned[0].opts.env.CI, '1');
+  assert.equal(spawned[0].opts.cwd, '/tmp/author');
+  assert.equal(trust.parseAuthorCheck(gh.calls.find(c => c[0] === 'comment')[3]).status, 'PASS');
+  const nested = withCheckLock(() => runCheck(7, { gh, git, busy: () => null, spawn: () => ({ status: 0 }) }));
+  assert.equal(nested.status, 'busy', 'a second check waits for the lock');
 });
