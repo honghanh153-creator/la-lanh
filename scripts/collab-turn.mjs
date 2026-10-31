@@ -116,11 +116,14 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
         // Usage limit: wait for the reset; busy: a direct review holds the clone. The next run retries.
         if (['limit', 'busy'].includes(result?.status)) break;
       }
+      // Re-read the queue after this run's merges, checks and reviews, so Claude's queue and the
+      // top-up flag describe what is left, not what was there before (#158).
+      const remaining = done.length ? turnsFor(gh.openPrs(), { dropped: plan.dropped }) : turns;
       writeJson(join(stateDir, 'claude-queue.json'), {
-        at: new Date().toISOString(), plan: plan.state, area, items: turns.filter(t => t.turn === 'claude-fix'),
+        at: new Date().toISOString(), plan: plan.state, area, items: remaining.filter(t => t.turn === 'claude-fix'),
         // Plan top-up (owner 31.10.2026): fewer than two machine jobs left while the day still runs,
         // so Claude adds the next backlog task in priority order before the machine goes idle.
-        topUp: turns.filter(t => machineTurns.has(t.turn)).length < 2 && !late(),
+        topUp: remaining.filter(t => machineTurns.has(t.turn)).length < 2 && !late(),
       });
       const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
