@@ -20,7 +20,12 @@ const STATES = {
 const cell = text => clean(text, 120).replace(/\|/g, '\\|');
 const hhmm = t => `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`;
 
-export function renderBoard({ now, status, doing = null, area = null, turns = [], done = [], codexRuns = 0, cap = 12, failures = 0, error = null }) {
+const addMinutes = (t, minutes) => {
+  const total = t.hour * 60 + t.minute + minutes;
+  return { hour: Math.floor(total / 60) % 24, minute: total % 60 };
+};
+
+export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = 12, failures = 0, error = null }) {
   const [label, why] = STATES[status] ?? [status, ''];
   const waitingOwner = turns.filter(t => t.turn === 'hold' && /needs-owner|owner bỏ/.test(t.reason));
   const queue = turns.filter(t => t.turn !== 'hold').slice(0, 8);
@@ -30,7 +35,11 @@ export function renderBoard({ now, status, doing = null, area = null, turns = []
     '',
     `**${label}**${doing ? ` — ${cell(doing)}` : why ? ` — ${why}` : ''}`,
     '',
-    `Cập nhật lúc **${hhmm(now)} ${now.date}**. Tick chạy 10 phút một lần từ 08:50 tới 23:30. **Nếu giờ cập nhật cũ hơn 20 phút trong giờ chạy: Mac đang ngủ/tắt hoặc vòng bị kẹt.**`,
+    `Cập nhật lúc **${hhmm(now)} ${now.date}**. Tick chạy 10 phút một lần từ 08:50 tới 23:30.`,
+    // A long check or review holds the tick, so the stale rule names its own deadline (#145 r1).
+    status === 'running' && expectMinutes
+      ? `Việc này có thể chạy tới khoảng **${hhmm(addMinutes(now, expectMinutes))}**. **Qua ${hhmm(addMinutes(now, expectMinutes + 10))} mà bảng chưa đổi: vòng bị kẹt hoặc Mac đang ngủ.**`
+      : `**Trong giờ chạy, nếu giờ cập nhật cũ hơn 20 phút: Mac đang ngủ/tắt hoặc vòng bị kẹt.**`,
     '',
     `Nhóm đang làm: ${area ?? '—'} · Codex hôm nay: ${codexRuns}/${cap} · Lỗi liên tiếp: ${failures}`,
     ...(lastDone ? [`Lượt vừa rồi: ${cell(lastDone)}`] : []),
@@ -52,7 +61,8 @@ export function upsertBoard(gh, issue, body) {
   const cache = join(stateDir, 'status-comment.json');
   let id = readJson(cache, null)?.id;
   if (!id) {
-    const comments = gh.json(['api', `repos/${repo}/issues/${Number(issue)}/comments`, '--paginate']);
+    // --slurp returns one array of pages; plain --paginate prints one JSON array per page (#145 r1).
+    const comments = gh.json(['api', `repos/${repo}/issues/${Number(issue)}/comments`, '--paginate', '--slurp']).flat();
     id = comments.find(c => c.author_association === 'OWNER' && String(c.body ?? '').includes(boardMarker))?.id;
   }
   if (id) {

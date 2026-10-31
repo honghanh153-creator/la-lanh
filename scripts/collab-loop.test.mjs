@@ -276,7 +276,7 @@ test('r1: review errors count as tick failures and alert on the second', () => {
   assert.equal(alerts.length, 1);
 });
 
-test('r1: privacy and features wait until no content PR is in play', () => {
+test('r1: privacy and features wait while content has machine work; a content PR waiting for Claude does not block', () => {
   const date = '2026-11-05';
   const open = [
     pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
@@ -284,14 +284,17 @@ test('r1: privacy and features wait until no content PR is in play', () => {
     pr({ number: 3, title: 'feat(tarot): held', isDraft: true }),
   ];
   const merged = [];
-  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
-  assert.equal(result.area, 'content');
+  const content = pr({ number: 4, title: 'feat(tarot): needs a check' });
+  open.push(content);
+  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, check: () => ({ status: 'FAIL' }), review: () => ({ status: 'posted' }) });
+  assert.equal(result.area, 'content', 'content machine work (#4 check) goes first');
   assert.deepEqual(merged, []);
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
-  assert.deepEqual(queue.items.map(i => i.number), [1]);
-  open[0].isDraft = true;
-  tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
-  assert.deepEqual(merged, [2], 'once content is only held, privacy proceeds');
+  assert.deepEqual(queue.items.map(i => i.number), [1], 'Claude still fixes content first');
+  open.pop();
+  const next = tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
+  assert.equal(next.area, 'privacy', 'a content PR waiting for Claude does not stall the machine');
+  assert.deepEqual(merged, [2]);
 });
 
 test('r2: every CLI entry loads and exits without hanging on an import cycle', () => {

@@ -33,8 +33,12 @@ export function turnsFor(prs, options) {
 
 // Owner order: finish every content PR before privacy, and privacy before features.
 // Held PRs do not block a later group; anything else in an earlier group does.
+// The machine works on the earliest group that has machine work (check, review, merge). A PR that
+// waits for Claude's fix no longer blocks the machine: on 31.10 one ops PR in claude-fix stalled
+// every group for two hours. Claude still fixes in priority order (claude-queue.json).
+export const machineTurns = new Set(['claude-check', 'codex-review', 'merge']);
 export function activeArea(turns) {
-  return areaOrder.find(area => turns.some(t => t.area === area && t.turn !== 'hold')) ?? null;
+  return areaOrder.find(area => turns.some(t => t.area === area && machineTurns.has(t.turn))) ?? null;
 }
 
 export function renderReport(turns) {
@@ -91,14 +95,14 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       const late = () => { const t = time(); return t.hour * 60 + t.minute >= lastStartAt; };
       for (const t of work.filter(t => t.turn === 'merge').slice(0, 2)) {
         if (late()) break;
-        show({ status: 'running', doing: `merge #${t.number}`, area, turns, done });
+        show({ status: 'running', doing: `merge #${t.number}`, expectMinutes: 5, area, turns, done });
         done.push({ pr: t.number, merge: merge(t.number) });
       }
       // Author checks need no AI: the tick runs one per run in the dedicated clone, then reviews it.
       const checked = [];
       for (const t of work.filter(t => t.turn === 'claude-check').slice(0, 1)) {
         if (late()) break;
-        show({ status: 'running', doing: `author check #${t.number} (thường 10–15 phút)`, area, turns, done });
+        show({ status: 'running', doing: `author check #${t.number} (thường 10–35 phút)`, expectMinutes: 90, area, turns, done });
         const result = check(t.number, { auto: true, clock: time });
         done.push({ pr: t.number, check: result });
         if (result?.status === 'PASS') checked.push(t);
@@ -106,14 +110,14 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);
         if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= codexDailyCap || late()) break;
-        show({ status: 'running', doing: `Codex review #${t.number}`, area, turns, done });
+        show({ status: 'running', doing: `Codex review #${t.number}`, expectMinutes: 30, area, turns, done });
         const result = review(t.number, { auto: true, now: time() });
         done.push({ pr: t.number, review: result });
         // Usage limit: wait for the reset; busy: a direct review holds the clone. The next run retries.
         if (['limit', 'busy'].includes(result?.status)) break;
       }
       writeJson(join(stateDir, 'claude-queue.json'), {
-        at: new Date().toISOString(), plan: plan.state, area, items: work.filter(t => t.turn === 'claude-fix'),
+        at: new Date().toISOString(), plan: plan.state, area, items: turns.filter(t => t.turn === 'claude-fix'),
       });
       const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
