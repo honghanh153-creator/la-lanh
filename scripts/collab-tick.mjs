@@ -7,6 +7,8 @@ import { runMerge } from './collab-merge.mjs';
 import { runCheckInClone } from './collab-check.mjs';
 import { clean, makeGh } from './collab-trust.mjs';
 import { opsAlert, tick } from './collab-turn.mjs';
+import { renderBoard, upsertBoard } from './collab-status.mjs';
+import { planIssue } from './collab-plan.mjs';
 
 // Tools the loop and pnpm check need. A missing one used to surface as a false FAIL receipt
 // (31.10.2026: sha256sum, pnpm); now the tick stops with an error and alerts instead.
@@ -18,7 +20,8 @@ export function missingTools(path = process.env.PATH, run = execFileSync) {
 }
 
 export function runTick(gh = makeGh(), preflight = () => missingTools()) {
-  return tick({ gh, preflight, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text) });
+  const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
+  return tick({ gh, preflight, board, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text) });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
