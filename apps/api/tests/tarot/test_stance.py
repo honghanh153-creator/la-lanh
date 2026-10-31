@@ -12,7 +12,7 @@ from typing import Any, cast
 
 import pytest
 
-from app.domains.tarot import stance
+from app.domains.tarot import phrasing, stance
 from app.domains.tarot.engine import _POSITIONS, TarotContentRejected, TarotReadingEngine
 from app.domains.tarot.knowledge import all_cards
 from app.domains.tarot.models import (
@@ -160,7 +160,9 @@ def test_ac10_summary_is_plain_and_ends_on_the_shown_step(spread_map: TarotSprea
     for retired in ("Bên cạnh đó,", "Thêm nữa,", "Từ đó,", "Vì vậy,", "Thêm nữa nè,", "Từ đó mà,"):
         assert retired not in reading.summary
     for view in stance.summary_views(views):
-        assert stance.anchor(view) in reading.summary
+        # Tarot pass 2: the core is a clause that may open its sentence (capitalized).
+        assert phrasing.contains_clause(reading.summary, stance.anchor(view))
+    assert "Điểm chính:" not in reading.summary
     assert len(reading.summary.split()) <= (110 if spread_map is TarotSpreadMap.FIVE_CHOICE else 70)
 
 

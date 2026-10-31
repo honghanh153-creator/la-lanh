@@ -11,7 +11,7 @@ from app.domains.readings.review_agent import (
 )
 
 # Modules, not names: upper-case names imported here would join the pinned fallback tables.
-from app.domains.tarot import action_copy, question_frame, roles, stance
+from app.domains.tarot import action_copy, phrasing, question_frame, roles, stance
 from app.domains.tarot import variants as tarot_variants
 from app.domains.tarot import voice as tarot_voice
 from app.domains.tarot.context_readings import CONTEXT_READINGS, CONTEXT_SCENES
@@ -197,6 +197,7 @@ def _views_for(
                 card_id=card.id,
                 title=card.title_vi,
                 core=meaning.core,
+                core_sentence=phrasing.core_sentence(card.id, context, meaning.core),
                 tension=_tension_parts(meaning.tension)[0],
                 resource=_resource_step(meaning.resource),
             )
@@ -223,7 +224,15 @@ def _authored_by_engine(reading: TarotReading) -> str:
     )
     for position in reading.positions:
         meaning = _CardMeaning.for_context(position.card, reading.context)
-        for quoted in (meaning.core, meaning.tension, meaning.resource):
+        sentence = phrasing.core_sentence(position.card.id, reading.context, meaning.core)
+        quoted_texts = (
+            sentence,
+            phrasing.capitalized(sentence),
+            meaning.core,
+            meaning.tension,
+            meaning.resource,
+        )
+        for quoted in quoted_texts:
             text = text.replace(quoted, " ")
     return text.lower()
 
@@ -611,7 +620,7 @@ class TarotReadingEngine:
         tension, _ = _tension_parts(meaning.tension)
         text = roles.meaning_for(
             key,
-            core=meaning.core,
+            core_sentence=phrasing.core_sentence(card.id, context, meaning.core),
             tension=tension,
             resource=_resource_step(meaning.resource),
             frame=frame_index,
@@ -644,7 +653,10 @@ class TarotReadingEngine:
                     or roles.action_for(meaning.resource)
                 )
             if voice is TarotVoice.ROAST:
-                action = f"{action_frame(index, context, cautious=plan.cautious)} {step}"
+                # Tarot pass 2: Vietnamese continues in lower case after the lead-in's colon
+                # ("Làm thử cho biết nè: tách…"). Legacy readings keep their capital.
+                lead_in = action_frame(index, context, cautious=plan.cautious)
+                action = f"{lead_in} {step[:1].lower()}{step[1:]}"
             else:
                 action = step
         return TarotReadingPosition(
@@ -945,7 +957,8 @@ class TarotReadingEngine:
     @staticmethod
     def _role_fit(reading: TarotReading) -> None:
         """Gate ``role_fit`` (US-20 AC07, AC12): each position reads its role's card field, only
-        step roles carry an action, and retired prefixes are gone."""
+        step roles carry an action, and retired prefixes are gone. Core and option roles read
+        the core as a clause (phrasing.core_sentence, Tarot pass 2), which may open a sentence."""
 
         for position in reading.positions:
             role = roles.ROLES.get(position.key)
@@ -953,17 +966,18 @@ class TarotReadingEngine:
                 raise TarotContentRejected("position has no role")
             meaning = _CardMeaning.for_context(position.card, reading.context)
             tension, _ = _tension_parts(meaning.tension)
+            sentence = phrasing.core_sentence(position.card.id, reading.context, meaning.core)
             body = position.meaning_here
             expected = {
-                roles.RoleField.CORE: (meaning.core,),
+                roles.RoleField.CORE: (sentence,),
                 roles.RoleField.TENSION: (tension,),
-                roles.RoleField.OPTION: (meaning.core, tension),
+                roles.RoleField.OPTION: (sentence, tension),
                 roles.RoleField.RESOURCE: (),
             }[role.field]
-            if any(part not in body for part in expected):
+            if any(not phrasing.contains_clause(body, part) for part in expected):
                 raise TarotContentRejected("position does not read its role's field")
             if role.field is roles.RoleField.RESOURCE and not role.step:
-                if _resource_step(meaning.resource) not in body:
+                if not phrasing.contains_clause(body, _resource_step(meaning.resource)):
                     raise TarotContentRejected("position does not read its role's field")
             if role.step != bool(position.small_action and position.small_action.strip()):
                 raise TarotContentRejected("small action outside a step role, or missing")

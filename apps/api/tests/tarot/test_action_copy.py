@@ -79,6 +79,13 @@ SOLO_ACTIONS = frozenset(
 )
 
 
+def _shows_step(action: str, step: str) -> bool:
+    """Direct voices show the step as written; Roast puts its lead-in first and continues in
+    lower case after the colon (Tarot pass 2). An empty step matches, as ``endswith`` did."""
+
+    return not step or action == step or action.endswith(f": {step[:1].lower()}{step[1:]}")
+
+
 def _render(
     action: TarotAction | None,
     topic: TarotContext,
@@ -304,7 +311,7 @@ def test_roast_keeps_its_lead_in_before_the_action_step() -> None:
         TarotAction.TU_CHOI, TarotContext.WORK, TarotSpreadMap.THREE_UNBLOCK, voice=TarotVoice.ROAST
     )
     step = reading.positions[-1].small_action or ""
-    assert step.endswith(action_copy.ACTION_STEPS[("tu_choi", "next")])
+    assert _shows_step(step, action_copy.ACTION_STEPS[("tu_choi", "next")])
     assert step != action_copy.ACTION_STEPS[("tu_choi", "next")]
 
 
@@ -321,7 +328,7 @@ def test_every_action_topic_and_map_passes_the_gates(voice: TarotVoice) -> None:
         assert reading.stance.level is TarotStanceLevel.LEAN_TRY
         expected = action_copy.action_step(action, step.key, topic)
         if expected is not None:
-            assert (step.small_action or "").endswith(expected)
+            assert _shows_step(step.small_action or "", expected)
         # The question names no partner: partner-only rows give way to the general row.
         assert step.everyday_scene == action_copy.action_scene(action, topic, partner=False)
 
@@ -363,7 +370,7 @@ def test_the_send_question_gets_a_preparation_step_in_every_voice() -> None:
         (focus,) = reading.positions
         step = focus.small_action or ""
         assert "bấm gửi" not in step and not step.startswith(tuple(URGING)), voice
-        assert step.endswith(action_copy.PREP_STEPS["gui_di"]), voice
+        assert _shows_step(step, action_copy.PREP_STEPS["gui_di"]), voice
         assert focus.everyday_scene == action_copy.ACTION_SCENES[("gui_di", "work")]
     # The same question with an "open" card keeps the sending step.
     leaning = _intake(question, TarotContext.WORK, ("major-sun",))
@@ -397,7 +404,7 @@ def test_the_step_agrees_with_the_stance_for_every_action_form_and_map(voice: Ta
             else:
                 assert form is TarotQuestionForm.TIMING or level is TarotStanceLevel.CONSIDER
                 expected = action_copy.PREP_STEPS[action.value]
-            assert text.endswith(expected), (action, spread_map, form, topic)
+            assert _shows_step(text, expected), (action, spread_map, form, topic)
             assert not text.startswith(tuple(URGING)), (action, spread_map, form, topic)
 
 
@@ -479,11 +486,12 @@ def test_reply_questions_about_family_friends_and_partners(who: str, partner: bo
             expected_scene = ("nhan_lai", "relationships" if partner else "general")
             assert step.everyday_scene == action_copy.ACTION_SCENES[expected_scene]
             if cards is CARDS:
-                assert (step.small_action or "").endswith(
-                    action_copy.ACTION_OPENINGS_BY_TOPIC[("nhan_lai", "relationships")]
+                assert _shows_step(
+                    step.small_action or "",
+                    action_copy.ACTION_OPENINGS_BY_TOPIC[("nhan_lai", "relationships")],
                 )
             else:
-                assert (step.small_action or "").endswith(action_copy.PREP_STEPS["nhan_lai"])
+                assert _shows_step(step.small_action or "", action_copy.PREP_STEPS["nhan_lai"])
 
 
 # ---------------------------------------------------------------- stored readings stay frozen

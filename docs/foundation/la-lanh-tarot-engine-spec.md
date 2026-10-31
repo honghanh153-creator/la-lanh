@@ -76,6 +76,11 @@ birth data, or report evidence in the URL.
     integers) or the render fails.
   - Every position starts with a lead chosen by the question form (5 per form, none repeated in a
     reading), so two questions over the same card and role read differently (T4).
+  - Tarot pass 2 (owner feedback, 29/10/2026, `docs/reviews/2026-10-29-tarot-pass2.md`, still renderer v9):
+    - role frames no longer restate the position header as a label;
+    - core and option roles, the summary and the stance reasons read the card's core as a complete clause
+      (`tarot/phrasing.py`, `CORE_SENTENCES`, overlay on the card tables, which stay unchanged for legacy);
+    - framed Roast steps continue in lower case after the lead-in's colon.
   - Roast has its own role frames, headlines, stance conclusions and summary conjunctions, mapped
     one to one by combination code. Energy and self-care Roast keeps the direct frames with the
     gentle opener and tails. Sensitive questions still render the default voice.

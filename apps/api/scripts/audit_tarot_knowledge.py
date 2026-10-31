@@ -414,6 +414,7 @@ def audit_t4() -> tuple[list[str], dict[str, Any]]:
     full renders must match it exactly.
     """
 
+    from app.domains.tarot import phrasing
     from app.domains.tarot import roles as tarot_roles
     from app.domains.tarot.engine import _CardMeaning, _resource_step, _tension_parts
     from app.domains.tarot.variants import DEFAULT_VARIANTS, TarotVariants, choose_variants
@@ -433,7 +434,7 @@ def audit_t4() -> tuple[list[str], dict[str, Any]]:
             item_ids[item["question"]] = item["id"]
     fields = {
         (card.id, context): (
-            meaning.core,
+            phrasing.core_sentence(card.id, context, meaning.core),
             _tension_parts(meaning.tension)[0],
             _resource_step(meaning.resource),
         )
@@ -453,10 +454,10 @@ def audit_t4() -> tuple[list[str], dict[str, Any]]:
     def sentence(
         key: str, index: int, card_id: str, topic: TarotContext, frame: Any, chosen: TarotVariants
     ) -> str:
-        core, tension, resource = fields[(card_id, topic)]
+        core_sentence, tension, resource = fields[(card_id, topic)]
         return tarot_roles.meaning_for(
             key,
-            core=core,
+            core_sentence=core_sentence,
             tension=tension,
             resource=resource,
             frame=chosen.frame(key),
@@ -533,6 +534,7 @@ def audit_worst_length() -> tuple[list[str], int]:
     yes/no question. Any rejection (budget, density, links) fails the audit.
     """
 
+    from app.domains.tarot import phrasing
     from app.domains.tarot import roles as tarot_roles
     from app.domains.tarot.engine import _CardMeaning, _resource_step, _tension_parts
     from app.domains.tarot.variants import TarotVariants
@@ -545,13 +547,18 @@ def audit_worst_length() -> tuple[list[str], int]:
 
     def length(card_id: str, key: str, context: TarotContext) -> int:
         meaning = _CardMeaning.for_context(next(c for c in cards if c.id == card_id), context)
-        field = tarot_roles.ROLES[key].field
-        core, tension = meaning.core, _tension_parts(meaning.tension)[0]
+        role = tarot_roles.ROLES[key]
+        field = role.field
+        # Framed prose quotes the core as a clause (Tarot pass 2); step roles of the resource
+        # field (next, alternative, opening) read that clause, not the resource.
+        core = phrasing.core_sentence(card_id, context, meaning.core)
+        tension = _tension_parts(meaning.tension)[0]
         resource = _resource_step(meaning.resource)
+        reads_core = any("{core_sentence}" in frame for frame in (*role.frames, *role.roast))
         text = {
             tarot_roles.RoleField.CORE: core,
             tarot_roles.RoleField.TENSION: tension,
-            tarot_roles.RoleField.RESOURCE: resource,
+            tarot_roles.RoleField.RESOURCE: core if reads_core else resource,
             tarot_roles.RoleField.OPTION: f"{core} {tension}",
         }[field]
         return len(text.split())

@@ -20,7 +20,7 @@ import re
 from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
-from app.domains.tarot import action_copy, question_frame, roles, stance
+from app.domains.tarot import action_copy, phrasing, question_frame, roles, stance
 from app.domains.tarot.engine import (
     _POSITIONS,
     TarotReadingEngine,
@@ -106,7 +106,8 @@ def resolve_meaning(
     core, tension, resource = _fields(card_id, TarotContext(topic))
     text = roles.meaning_for(
         position_key,
-        core=core,
+        # Catalog text: the card's core as a clause (Tarot pass 2), keyed by card and topic.
+        core_sentence=phrasing.core_sentence(card_id, TarotContext(topic), core),
         tension=tension,
         resource=resource,
         frame=int(match["index"]),
@@ -282,6 +283,7 @@ def _views(
                 card_id=card_id,
                 title=card_by_id(card_id).title_vi,
                 core=core,
+                core_sentence=phrasing.core_sentence(card_id, topic, core),
                 tension=tension,
                 resource=resource,
             )

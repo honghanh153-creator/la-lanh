@@ -21,7 +21,7 @@ from sqlalchemy import delete, select
 from app.db.session import Database
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.readings.review_agent import ContentReviewAgent
-from app.domains.tarot import roles, stance
+from app.domains.tarot import phrasing, roles, stance
 from app.domains.tarot.engine import (
     _POSITIONS,
     FRAMED_KNOWLEDGE_VERSION,
@@ -459,10 +459,11 @@ def test_frames_fit_the_density_limit_and_read_their_field_for_every_card_and_to
                 meaning = _CardMeaning.for_context(card, context)
                 tension = _tension_parts(meaning.tension)[0]
                 resource = _resource_step(meaning.resource)
+                sentence = phrasing.core_sentence(card.id, context, meaning.core)
                 for index in range(roles.FRAME_VARIANTS):
                     text = roles.meaning_for(
                         key,
-                        core=meaning.core,
+                        core_sentence=sentence,
                         tension=tension,
                         resource=resource,
                         frame=index,
@@ -472,9 +473,9 @@ def test_frames_fit_the_density_limit_and_read_their_field_for_every_card_and_to
                     worst = max(len(s.split()) for s in _SENTENCES(text))
                     assert worst <= 28, (key, index, card.id, context, text)
                     expected = {
-                        roles.RoleField.CORE: (meaning.core,),
+                        roles.RoleField.CORE: (sentence,),
                         roles.RoleField.TENSION: (tension,),
-                        roles.RoleField.OPTION: (meaning.core, tension),
+                        roles.RoleField.OPTION: (sentence, tension),
                         roles.RoleField.RESOURCE: () if role.step else (resource,),
                     }[role.field]
                     assert all(part in text for part in expected), (key, index)
@@ -541,7 +542,7 @@ def test_ac19_roast_reading_uses_roast_frames_conclusion_links_and_headline() ->
     )
     assert reading.voice is TarotVoice.ROAST and reading.stance is not None
     clear = reading.positions[0]
-    assert "chuyện đã rõ mười mươi:" in clear.meaning_here.lower()
+    assert clear.meaning_here.endswith(", rõ mười mươi rồi.")
     # Roast frames carry the voice; the per-position tails stay with the gentle register only.
     prose = " ".join(p.meaning_here for p in reading.positions)
     assert not [tail for tail in ROAST_MEANING_TAILS.values() if tail in prose]
