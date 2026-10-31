@@ -53,7 +53,16 @@ Trả lời của owner trên issue plan (comment mới hơn plan của ngày đ
 
 Session mà owner đang trực tiếp trò chuyện không bị lịch này chặn; lịch chỉ áp cho lượt tự động.
 
-### 3.2 Plan trong ngày gồm
+### 3.2 Cách làm hằng ngày (owner chốt 31.10.2026)
+
+1. **Việc nặng nối tiếp, việc nhẹ song song.** Việc nặng là `pnpm check`, cài đặt hoặc build trong clone. Mỗi lúc chỉ một việc nặng trên cả máy (`check.lock`, từ chối khi máy đang có check). Trong lúc việc nặng chạy, Claude làm việc nhẹ của nhóm ưu tiên đang mở: sửa fix-forward, viết code, viết test, viết docs. Claude không ngồi chờ.
+2. **Việc nặng đi qua vòng tự động.** Author check, review và merge chạy qua tick hoặc qua `collab-check` → `codex-review` → `collab-merge`. Không session nào tự chạy `pnpm check` bằng script riêng; `checkshas.sh` đã thay (§7.1).
+3. **Fix-forward là việc kế tiếp.** Issue `fix-forward` mới thuộc cùng nhóm với PR gốc và được làm ngay trong ngày, qua PR riêng.
+4. **Đầu ngày.** Mac tự thức 08:45 (`sudo pmset repeat wakeorpoweron MTWRFSU 08:45:00`, owner chạy một lần). Claude đọc `collab-turn --report`, dừng lượt autopilot còn treo từ hôm trước và kiểm tra plan #133 đã được đăng.
+5. **Trong ngày.** Một quyết định mới của owner được ghi ngay vào file này hoặc vào issue hub #2, để mọi session đều đọc được (bài học từ #136).
+6. **Cuối ngày.** Claude nhìn lại quy trình trong ngày, viết report ở `docs/reviews/YYYY-MM-DD-collab-loop-retro.md` (số liệu, chỗ kẹt, đã sửa, đề xuất) và mở PR `area:ops` để Codex review qua vòng tự động.
+
+### 3.3 Plan trong ngày gồm
 
 - Hàng đợi PR theo thứ tự ưu tiên: quy trình/ops (sửa vòng tự động, CI, test) → content → privacy → tính năng mới (owner giao Claude tự tối ưu, 30.10.2026); trong cùng nhóm, PR cũ trước.
 - Lượt dự kiến cho từng PR (Claude check / Codex review / Claude sửa / merge / giữ).
