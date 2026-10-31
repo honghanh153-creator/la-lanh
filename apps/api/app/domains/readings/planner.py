@@ -144,6 +144,9 @@ def normalized_vietnamese_word_count(text: str) -> int:
     return _normalized_vietnamese_word_count(text)
 
 
+_TIME_STABLE_KINDS = frozenset({FactorKind.PLANET_PLACEMENT, FactorKind.NATAL_ASPECT})
+
+
 class ReadingPlanner:
     """Select and compose immutable reading factors without calculating a chart."""
 
@@ -169,7 +172,13 @@ class ReadingPlanner:
             )
         self._validate_transits(chart, transits)
         if chart.time_precision is not TimePrecision.EXACT:
-            return self._limited_plan(
+            approximate = (
+                self._approximate_plan(chart, purpose, background_lens, editorial_seed)
+                if chart.time_precision is TimePrecision.APPROXIMATE
+                and purpose is not ReadingPurpose.DAILY_NOTE
+                else None
+            )
+            return approximate or self._limited_plan(
                 chart, purpose, background_lens, editorial_seed, daily_variety
             )
 
@@ -308,6 +317,37 @@ class ReadingPlanner:
             background_lens=background_lens,
             editorial_seed=editorial_seed,
             daily_variety=daily_variety,
+        )
+
+    def _approximate_plan(
+        self,
+        chart: NatalChart,
+        purpose: ReadingPurpose,
+        background_lens: BackgroundLens | None,
+        editorial_seed: str | None,
+    ) -> ReadingPlan | None:
+        # Few people know their exact birth time (#143 E1). A time window still fixes the sign of
+        # every planet but the Moon and the aspects between them; houses, angles, the Moon and
+        # everything derived from them (nakshatra, graha drishti) are left out.
+        stable = tuple(
+            factor
+            for factor in self._natal_candidates(chart, purpose)
+            if factor.kind in _TIME_STABLE_KINDS and BodyName.MOON.value not in factor.subjects
+        )
+        selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
+        if not hero_refs:
+            return None
+        return self._build_plan(
+            tradition=chart.config.tradition,
+            config_hash=chart.config_hash,
+            purpose=purpose,
+            precision=chart.time_precision,
+            mode=PlanMode.FULL_SYNTHESIS,
+            factors=tuple(self._assign_roles(selected, hero_refs)),
+            hero_factor_refs=hero_refs,
+            composition=self._composition(has_transit=False),
+            background_lens=background_lens,
+            editorial_seed=editorial_seed,
         )
 
     def _limited_plan(
