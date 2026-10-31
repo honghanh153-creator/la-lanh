@@ -104,6 +104,36 @@ function RadarDossier({ sections }: { sections: RadarSection[] }) {
   </section>;
 }
 
+/** radar-readable-v2 (29/10/2026): named tier, plain areas, short sections, one "Xem thêm". */
+function RadarReadable({ sections }: { sections: RadarSection[] }) {
+  const main = sections.filter((section) => section.layer !== "more");
+  const more = sections.filter((section) => section.layer === "more");
+  return <>
+    <section aria-label="Bản đọc" className="radar-readable">
+      {main.map((section) => <article className={`radar-readable__card is-${section.key}`} key={section.key}>
+        <h2>{section.label}</h2>
+        <p>{section.body}</p>
+        {section.question ? <p className="radar-readable__question">Thử hỏi: “{section.question}”</p> : null}
+      </article>)}
+    </section>
+    {more.length ? <details className="radar-more">
+      <summary>Xem thêm: vì sao ra kết quả này</summary>
+      <div className="radar-more__body">{more.map((section) => <section aria-label={section.label} className={`radar-more__section is-${section.key}`} key={section.key}>
+        <h3>{section.label}</h3>
+        {section.title ? <p className="radar-more__title">{section.title}</p> : null}
+        {section.body ? <p>{section.body}</p> : null}
+        {section.factors?.length ? <ul className="radar-factors">{section.factors.map((factor) => <li className={`is-${factor.level}`} key={factor.key}>
+          <strong>{factor.label}</strong> <span>{factor.level_label}</span>
+          <small>{factor.technical_note}</small>
+        </li>)}</ul> : null}
+        {section.perspectives?.length ? <ul className="radar-more__list">{section.perspectives.map((item) => <li key={item.key}><strong>{item.title}</strong> {item.body}</li>)}</ul> : null}
+        {section.highlights?.length ? <ul className="radar-more__list">{section.highlights.map((item) => <li key={item.key}><strong>{item.title}</strong> {item.body}</li>)}</ul> : null}
+        {section.key === "why" && section.evidence.length ? <RadarEvidence evidence={section.evidence} summary="Dữ kiện kỹ thuật" /> : null}
+      </section>)}</div>
+    </details> : null}
+  </>;
+}
+
 function RadarTarotBridge() {
   return <section aria-labelledby="radar-tarot-title" className="radar-tarot-bridge">
     <p className="eyebrow">Muốn nhìn phần của mình?</p>
@@ -172,6 +202,33 @@ export function RadarResultView({ result, onWithdraw, withdrawing = false, actio
   const compatibilityMap = result.compatibility_map ?? [];
   const sections = result.sections ?? [];
   const hasDossier = sections.some((section) => section.depth !== undefined);
+  const tier = signature?.tier;
+
+  if (result.version === "radar-result-v2" && signature && tier && sections.length) {
+    return <main className={`matching-page radar-result radar-result--v2 radar-result--readable${ownerView ? " radar-result--owner" : ""}`}>
+      <header className="matching-header"><BrandMark /><span className="matching-signal"><Sparkle /> Hợp gu</span></header>
+      <RadarFlowSteps current={3} />
+      <section className="radar-result__hero radar-signature">
+        <NightSky moon planet stars={4} />
+        <p className="eyebrow">{result.recipient_label ? `Bạn × ${result.recipient_label}` : "Bản đọc hai người"}</p>
+        <p className="radar-tier"><strong>{tier.label}</strong>{typeof tier.score === "number" ? <span> · {tier.score}</span> : null}</p>
+        <p className="radar-tier__reason">{signature.summary}</p>
+        <h1>{signature.headline}</h1>
+        {result.metadata?.voice_label ? <small className="radar-reading-voice">Giọng đọc bạn chọn · {result.metadata.voice_label}</small> : null}
+        {result.metadata?.precision_note ? <small className="radar-reading-precision"><LockKey /> {result.metadata.precision_note}</small> : null}
+      </section>
+      {signature.areas?.length ? <ul aria-label="Từng mảng" className="radar-areas">{signature.areas.map((area) => <li className={`is-${area.level}`} key={area.key}>
+        <span>{area.label}</span><strong>{area.level_label}</strong>
+        <p>{area.note}</p>
+      </li>)}</ul> : null}
+      <RadarReadable sections={sections} />
+      {ownerView ? <RadarTarotBridge /> : null}
+      <ReadingDisclaimer>{result.disclaimer}</ReadingDisclaimer>
+      {ownerView && result.mode === "private_check" ? <RadarPrivateRetentionNote expiresAt={result.expires_at} /> : null}
+      {onWithdraw ? <button className="radar-withdraw" disabled={withdrawing} onClick={onWithdraw} type="button"><Trash /> {actionLabel}</button> : null}
+      <RadarResultFooter mode={result.mode} ownerView={ownerView} />
+    </main>;
+  }
 
   if (result.version !== "radar-result-v2" || !signature || !compatibilityMap.length || !sections.length) {
     return <main className={`matching-page radar-result${ownerView ? " radar-result--owner" : ""}`}><header className="matching-header"><BrandMark /><span className="matching-signal"><Sparkle /> Radar đã bắt sóng</span></header><RadarFlowSteps current={3} /><section className="radar-result__hero"><p className="eyebrow">{result.recipient_label ? `Bạn × ${result.recipient_label}` : "Bản đọc hai người"}</p><h1>{result.headline}</h1><p>{result.summary}</p></section><section className="radar-dimensions">{result.dimensions.map((item, index) => <article key={item.key}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{item.signal}</small><h2>{item.label}</h2><p>{item.body}</p><details><summary>Vì sao Radar đọc như vậy?</summary><p>{item.evidence_ids.length ? `Dựa trên ${item.evidence_ids.length} contact giữa hai chart. Mở dữ liệu kỹ thuật chỉ để kiểm chứng, không dùng để phán người.` : "Lớp này chưa có đủ contact mạnh để kết luận."}</p></details></div></article>)}</section>{ownerView ? <RadarTarotBridge /> : null}<ReadingDisclaimer>{result.disclaimer}</ReadingDisclaimer>{ownerView && result.mode === "private_check" ? <RadarPrivateRetentionNote expiresAt={result.expires_at} /> : null}{onWithdraw ? <button className="radar-withdraw" disabled={withdrawing} onClick={onWithdraw} type="button"><Trash /> {actionLabel}</button> : null}<RadarResultFooter mode={result.mode} ownerView={ownerView} /></main>;

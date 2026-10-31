@@ -63,7 +63,7 @@ One contact may support multiple dimensions. `tone` describes geometry (`flow`, 
 
 ## Radar Living Dossier projection
 
-The relationship engine returns inspectable facts; Radar turns those facts into a private, evidence-bound reading through `radar-living-dossier-v1`:
+The relationship engine returns inspectable facts; Radar turns those facts into a private, evidence-bound reading through `radar-living-dossier-v1` (replaced for new readings on 29/10/2026 by `radar-readable-v2`: named tier, context areas, short main sections and one "Xem thêm" layer; see `la-lanh-radar-hop-gu-spec.md` §8):
 
 1. eligible Synastry contacts are normalized into everyday themes such as communication, emotional rhythm, attraction, pace/boundaries, clarity and autonomy;
    contacts made only between outer/generational points are withheld from the public thesis because they cannot personalize this pair well enough; they may remain inspectable engine facts but do not compete with personal-planet evidence;

@@ -5,7 +5,7 @@ import re
 import unicodedata
 from datetime import datetime
 from hashlib import sha256
-from typing import Literal, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from pydantic import JsonValue
@@ -26,10 +26,21 @@ from app.domains.content_rewrite.models import (
 from app.domains.content_rewrite.polarity import NON_CLAIM_TOKENS, negates_source_claim
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
+from app.domains.radar.readable import readable_violations
+from app.domains.radar.reading import PREVIOUS_RENDERER_VERSIONS, RENDERER_VERSION
 from app.domains.radar.tables import RadarRequestRow
 from app.infrastructure.crypto import EnvelopeCipher
 
-RADAR_REWRITE_RENDERER_VERSION = "gpt-6-luna-radar-v1"
+RADAR_REWRITE_RENDERER_VERSION = "gpt-6-luna-radar-v2"
+# A rewrite of a reading stored by the previous renderer keeps its old provenance label.
+PREVIOUS_RADAR_REWRITE_RENDERER_VERSION = "gpt-6-luna-radar-v1"
+_REWRITABLE_RENDERERS = frozenset((RENDERER_VERSION, *PREVIOUS_RENDERER_VERSIONS))
+# radar-readable-v2 shows a "cần để ý" paragraph only above a signal threshold. The provider
+# schema still asks for at least one friction item, so a reading without one sends this fixed
+# meaning; the rewrite of it is checked for forbidden copy and then dropped, never shown.
+NO_FRICTION_MEANING = (
+    "Không có điểm cần để ý nào đủ rõ cho cặp này; giữ nguyên là không có, đừng thêm điểm mới."
+)
 RADAR_REWRITE_GATE_VERSION = "relationship-rewrite-gates/v2"
 
 RadarPerspective = Literal["owner", "recipient"]
@@ -208,6 +219,27 @@ def _safe_dimensions(projection: dict[str, object]) -> list[dict[str, JsonValue]
         "friction": "friction",
     }
     dimensions: list[dict[str, JsonValue]] = []
+    metadata = projection.get("metadata")
+    bands = metadata.get("signal_bands") if isinstance(metadata, dict) else None
+    if isinstance(bands, dict):
+        # radar-readable-v2 shows no numbers; the coarse bands stay in metadata for Luna.
+        for key, dimension in (
+            ("attraction", "attraction"),
+            ("coordination", "coordination"),
+            ("friction", "friction"),
+        ):
+            band = bands.get(key)
+            if band in {"low", "medium", "high"}:
+                dimensions.append(
+                    {
+                        "dimension": dimension,
+                        "band": cast(str, band),
+                        "direction": "mutual",
+                        "meaning_keys": [
+                            "resonance" if key == "attraction" else key,
+                        ],
+                    }
+                )
     raw_map = projection.get("compatibility_map")
     if isinstance(raw_map, list):
         for raw in raw_map:
@@ -307,6 +339,9 @@ def compile_radar_rewrite_request(
         ("check", "prompt"),
     ):
         section = _section(projection, section_key)
+        if section is None and section_key == "friction" and _has_tier(projection):
+            source_sections.append({"key": safe_key, "meaning": NO_FRICTION_MEANING})
+            continue
         if section is None:
             return None
         meaning = _section_meaning(section)
@@ -338,6 +373,11 @@ def compile_radar_rewrite_request(
             "evidence": cast(JsonValue, evidence),
         },
     )
+
+
+def _has_tier(projection: dict[str, object]) -> bool:
+    signature = projection.get("pair_signature")
+    return isinstance(signature, dict) and isinstance(signature.get("tier"), dict)
 
 
 def _has_meaning(candidate: str, source: str) -> bool:
@@ -419,8 +459,12 @@ def rewrite_radar_projection(
     check = _section(baseline, "check")
     headline = baseline.get("headline")
     summary = baseline.get("summary")
-    if not all(section is not None for section in (fit, friction, perspective, check)):
+    tiered = _has_tier(baseline)
+    if not all(section is not None for section in (fit, perspective, check)):
         return None
+    if friction is None and not tiered:
+        return None
+    friction_source = _section_meaning(friction) if friction is not None else NO_FRICTION_MEANING
     if not isinstance(headline, str) or not isinstance(summary, str):
         return None
     if not _has_meaning(overview, f"{headline} {summary}"):
@@ -430,9 +474,8 @@ def rewrite_radar_projection(
         for item in strength_texts
     ):
         return None
-    if not all(
-        _has_meaning(item, _section_meaning(cast(dict[str, object], friction)))
-        for item in friction_texts
+    if friction is not None and not all(
+        _has_meaning(item, friction_source) for item in friction_texts
     ):
         return None
     if not _has_meaning(asymmetry, _section_meaning(cast(dict[str, object], perspective))):
@@ -449,7 +492,7 @@ def rewrite_radar_projection(
     pairs = (
         (overview, f"{headline} {summary}"),
         *((item, _section_meaning(cast(dict[str, object], fit))) for item in strength_texts),
-        *((item, _section_meaning(cast(dict[str, object], friction))) for item in friction_texts),
+        *((item, friction_source) for item in friction_texts if friction is not None),
         (asymmetry, _section_meaning(cast(dict[str, object], perspective))),
         (prompt, _section_meaning(cast(dict[str, object], check))),
     )
@@ -471,19 +514,27 @@ def rewrite_radar_projection(
         signature["summary"] = overview.strip()
     replacements = {
         "fit": "\n\n".join(item.strip() for item in strength_texts),
-        "friction": "\n\n".join(item.strip() for item in friction_texts),
         "perspective": asymmetry.strip(),
         "check": prompt.strip(),
     }
+    if friction is not None:
+        replacements["friction"] = "\n\n".join(item.strip() for item in friction_texts)
     for key, body in replacements.items():
         section = _section(cast(dict[str, object], candidate), key)
         if section is None:
             return None
         section["body"] = body
+    # Codex r55: a readable (tiered) result keeps AC11 after the rewrite, checked on the page as
+    # assembled (unchanged headline, areas and question included). Otherwise the deterministic
+    # result stays.
+    if tiered and readable_violations(cast(dict[str, Any], candidate)):
+        return None
     metadata = candidate.get("metadata")
     if not isinstance(metadata, dict):
         return None
-    metadata["renderer_version"] = RADAR_REWRITE_RENDERER_VERSION
+    metadata["renderer_version"] = (
+        RADAR_REWRITE_RENDERER_VERSION if tiered else PREVIOUS_RADAR_REWRITE_RENDERER_VERSION
+    )
     metadata["gate_version"] = RADAR_REWRITE_GATE_VERSION
     return cast(dict[str, object], candidate)
 
@@ -537,7 +588,7 @@ class RadarRewriteProjector(RewriteProjector):
             metadata = baseline.get("metadata")
             if (
                 not isinstance(metadata, dict)
-                or metadata.get("renderer_version") != "radar-living-dossier-v1"
+                or metadata.get("renderer_version") not in _REWRITABLE_RENDERERS
                 or radar_blueprint_hash(baseline) != request.key.blueprint_hash
             ):
                 return RewriteProjectionDecision(
