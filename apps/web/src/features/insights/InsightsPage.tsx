@@ -108,6 +108,13 @@ export function InsightsPage() {
           <span>Mở bản đọc Natal đầy đủ <ArrowRight aria-hidden="true" /></span>
         </Link>
       ) : null}
+      {/* Approximate-time synthesis (#143 E1): what an exact time would add, in everyday words.
+          Copy approved by the owner on 31.10.2026. */}
+      {richReading?.mode === "full_synthesis" && richReading.precision === "approximate" ? (
+        <p className="insight-precision-note">
+          Bạn biết giờ sinh chính xác? <Link to="/birth-time">Thêm vào nhé</Link>, Lá sẽ đọc thêm được cách người khác nhìn thấy bạn lúc mới gặp, và những chuyện bạn hay gặp trong cuộc sống thường xoay quanh điều gì.
+        </p>
+      ) : null}
 
       {insight.data?.reading ? (
         <>

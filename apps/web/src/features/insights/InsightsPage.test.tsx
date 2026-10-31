@@ -98,4 +98,25 @@ describe("InsightsPage", () => {
     expect(screen.getByRole("link", { name: "Mở lại Trạm Bắt Sóng" })).toHaveAttribute("href", "/welcome");
     expect(screen.queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
   });
+  it("tells an approximate-time reader, in everyday words, what an exact time adds (#143 E1)", async () => {
+    vi.mocked(getInsightOverview).mockResolvedValue({
+      status: "ready", required_fields: [], houses_available: false, time_precision: "approximate", bodies: [],
+      reading: null,
+      reading_projection: {
+        scope_key: "a".repeat(64), available_update: null,
+        aura_transition: { profile_readiness: "aura_ready", transition_id: "b".repeat(64), acknowledged: true, unlock_layers: ["multi_factor"] },
+        active: {
+          revision_id: "00000000-0000-4000-8000-000000000011", source: "deterministic",
+          mode: "full_synthesis", purpose: "reading_detail", tradition: "western", precision: "approximate",
+          sections: { hook: "Một lớp đọc từ ngày sinh.", thesis: "Một ý chính.", manifestation: "Một cảnh.", transit: null, micro_action: "Một việc nhỏ." },
+          evidence: { title: "Căn cứ trong lá số", claims: ["Sao Kim ở Song Tử"], framework_disclosure: "Khung diễn giải." },
+          disclaimer: "Lá gợi một góc nhìn — quyền quyết định vẫn ở bạn.", created_at: "2026-10-31T00:00:00Z",
+        },
+      },
+    });
+    renderPage();
+    expect(await screen.findByText(/Bạn biết giờ sinh chính xác\?/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Thêm vào nhé" })).toHaveAttribute("href", "/birth-time");
+    expect(screen.getByText(/cách người khác nhìn thấy bạn lúc mới gặp/)).not.toHaveTextContent(/nhà|cung mọc|vận hạn/);
+  });
 });
