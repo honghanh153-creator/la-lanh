@@ -52,7 +52,7 @@ function withLock(fn) {
   try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
-export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skipped' }), review, merge, alert, log = () => {} } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = () => ({ status: 'skipped' }), review, merge, alert, log = () => {} } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -61,6 +61,9 @@ export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skip
     const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
     const heartbeat = status => writeJson(join(stateDir, 'heartbeat.json'), { at: new Date().toISOString(), vn: now, status });
     try {
+      // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.
+      const missing = preflight();
+      if (missing.length) throw new Error(`thiếu công cụ trên PATH: ${missing.join(', ')}`);
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
         const turns = turnsFor(gh.openPrs());

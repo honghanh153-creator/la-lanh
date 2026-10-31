@@ -17,10 +17,8 @@ export function missingTools(path = process.env.PATH, run = execFileSync) {
   });
 }
 
-export function runTick(gh = makeGh()) {
-  const missing = missingTools();
-  if (missing.length) throw new Error(`thiếu công cụ trên PATH: ${missing.join(', ')}`);
-  return tick({ gh, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text) });
+export function runTick(gh = makeGh(), preflight = () => missingTools()) {
+  return tick({ gh, preflight, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text) });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

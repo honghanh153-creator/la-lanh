@@ -436,3 +436,17 @@ test('false FAIL 31.10: the tick names missing tools instead of running checks',
   assert.deepEqual(missingTools('/nonexistent'), requiredTools);
   assert.deepEqual(missingTools('/x', () => ''), []);
 });
+
+test('#141 r1 P1: missing tools go through the tick failure path and alert on the second', () => {
+  const date = '2026-11-10';
+  const alerts = [];
+  const gh = { ...fakeGh({ pr: pr(), open: [] }), json: () => { throw new Error('no GitHub call before the preflight'); } };
+  const run = hour => tick({ gh, now: { date, hour, minute: 5 }, preflight: () => ['uv'], merge: () => ({}), review: () => ({}), alert: text => alerts.push(text) });
+  const first = run(11);
+  assert.equal(first.status, 'error');
+  assert.match(first.error, /thiếu công cụ trên PATH: uv/);
+  assert.match(trust.readJson(join(trust.stateDir, 'heartbeat.json'), {}).status, /thiếu công cụ/);
+  assert.equal(alerts.length, 0);
+  run(12);
+  assert.equal(alerts.length, 1, 'the second consecutive failure alerts');
+});
