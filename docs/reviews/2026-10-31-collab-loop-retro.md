@@ -63,6 +63,38 @@ Mọi giờ là giờ Việt Nam. File chỉ có metadata kỹ thuật, không c
 | D6 | Author check chỉ chạy phần liên quan cho PR chỉ đổi docs | Giảm 8–15 phút mỗi PR docs | Phải chứng minh tập kiểm tra rút gọn đủ an toàn |
 | D7 | Claude kiểm hàng đợi `claude-fix` trước khi kết thúc mỗi lượt trả lời | Tránh K12 | Không |
 
+## 5b. Liên hệ: "hệ thống AI tự thối rữa" (video owner gửi 31.10)
+
+Nguồn: reel "AIOS — Agentic Operating System" của kênh AI 5 Phút (Facebook). Claude chỉ đọc được phần mô tả bằng chữ, không nghe/xem nội dung video. Ý chính: xây hệ thống agent theo lớp, từ "danh tính" (CLAUDE.md: ai, làm gì, không bao giờ làm gì) tới công cụ; mỗi lớp có nhịp bảo trì riêng; nếu không bảo trì, hệ thống "thối" dần (quy tắc cũ chồng quy tắc mới, AI làm sai, phải nhắc lại).
+
+Áp vào Lá Lành. Rà ngay hôm nay tìm ra 5 chỗ "thối", đã dọn:
+
+| Chỗ thối | Hậu quả nếu để | Đã sửa |
+|---|---|---|
+| Memory "luôn đưa owner prompt dán cho Codex" | Claude tiếp tục bắt owner chuyển lời dù script đã tự gọi Codex | Đánh dấu SUPERSEDED |
+| Memory autopilot nhắc `codex-prompt.md` gộp | Autopilot viết file không ai dùng | Cập nhật theo vòng mới |
+| Memory "gom việc lớn rồi mới giao Codex" | PR to, review lâu, trái vòng tự động | Chỉnh: ngày làm nhiều việc, PR nhỏ |
+| Hàng đợi autopilot: "Merge any approved PR (owner order)" | Mâu thuẫn quy tắc merge tự động vào integration | Sửa: chỉ `main`/release/deploy cần lệnh owner |
+| Hàng đợi autopilot: việc "bấm Run now" đã xong | Nhắc owner việc đã làm | Xoá |
+
+Các lớp của mình hiện nay và nhịp bảo trì đề xuất:
+
+| Lớp | Ở đâu | Nhịp |
+|---|---|---|
+| Danh tính, luật cứng | `CLAUDE.md`, `AGENTS.md`, danh sách cấm (checklist §2) | khi owner đổi quyết định |
+| Quyết định | `decision-checklist.md`, plan §2 | ghi ngay khi có quyết định mới |
+| Trí nhớ | memory của Claude, `queue.md` | **rà mỗi tuần** (dễ thối nhất) |
+| Quy trình | lịch autopilot (SKILL), script vòng tự động | qua PR + Codex review |
+| Công cụ | launchd, `collab-*.mjs`, hook | test + chạy thử đúng môi trường |
+
+Đề xuất thêm cho Codex đánh giá:
+
+| # | Đề xuất | Lợi ích | Rủi ro |
+|---|---|---|---|
+| D8 | Rà "thối" mỗi tuần (Chủ nhật): Claude so memory, `queue.md`, SKILL autopilot với plan và checklist hiện hành; đánh dấu SUPERSEDED, xoá việc đã xong; báo owner một dòng | Ngăn quy tắc cũ quay lại | Tốn 1 lượt Claude mỗi tuần |
+| D9 | Hook trước khi push: lint/format đúng phần đã sửa (K14) — tách phần này khỏi #134 | Không còn FAIL vì định dạng | Hook chạy trên máy agent, cần owner bật |
+| D10 | Đóng gói cách làm hằng ngày (check → sửa → bổ sung plan → báo cáo cuối ngày) thành một skill Claude Code dùng chung cho mọi session | Session mới (kể cả session cũ như 09b7c769) làm đúng quy trình mà không cần nhắc | Phải giữ skill đồng bộ với plan (lớp "quy trình") |
+
 ## 6. Việc ngày mai
 
 1. E1 (#143) đến PR.
