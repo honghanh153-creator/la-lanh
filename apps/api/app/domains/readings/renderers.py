@@ -464,6 +464,14 @@ class DeterministicVietnameseRenderer:
                 f"Trong lúc chưa bổ sung giờ và nơi sinh, bạn có thể {LENS_ACTIONS[lens]}. "
                 "Khi dữ liệu đủ, Lá sẽ đọc lại từ đầu thay vì giữ kết luận tạm này."
             )
+        # Jyotish readings live in the structural arena, as the full Jyotish frame does; the lens
+        # arena made the meaning gate reject every limited Jyotish reading, so the overview
+        # answered 503 and the page showed a retry that could never succeed (#143 E2).
+        arena = (
+            SemanticArena.STRUCTURAL
+            if plan.tradition.value == "jyotish"
+            else semantic_arena(lens)
+        )
         return InterpretationFrame(
             hook=hook,
             thesis="Chưa đủ dữ liệu để Lá tạo một bản tổng hợp có căn cứ.",
@@ -471,9 +479,9 @@ class DeterministicVietnameseRenderer:
             micro_action=micro_action,
             evidence_factor_refs=(),
             knowledge_refs=("mode:limited",),
-            arena=semantic_arena(lens),
+            arena=arena,
             mechanism_key="limited-data",
-            scene_key=f"{semantic_arena(lens).value}:insufficient-data",
+            scene_key=f"{arena.value}:insufficient-data",
             action_key="complete-birth-data",
         )
 
