@@ -144,6 +144,23 @@ def normalized_vietnamese_word_count(text: str) -> int:
     return _normalized_vietnamese_word_count(text)
 
 
+# Every approximate window is shorter than a day, so a placement is time-stable when the planet
+# cannot reach a sign boundary within half a day either way (with a 1.5x margin on its speed).
+_HALF_WINDOW_DAYS = 0.5
+_SPEED_MARGIN = 1.5
+
+
+def _sign_is_time_stable(degree_in_sign: float, longitude_speed: float) -> bool:
+    margin = abs(longitude_speed) * _HALF_WINDOW_DAYS * _SPEED_MARGIN
+    return margin < degree_in_sign < 30.0 - margin
+
+
+def _aspect_is_time_stable(orb: float, limit: float, speed_a: float, speed_b: float) -> bool:
+    # The orb changes at most by the two planets' combined speed.
+    margin = (abs(speed_a) + abs(speed_b)) * _HALF_WINDOW_DAYS * _SPEED_MARGIN
+    return orb + margin < limit
+
+
 class ReadingPlanner:
     """Select and compose immutable reading factors without calculating a chart."""
 
@@ -169,7 +186,16 @@ class ReadingPlanner:
             )
         self._validate_transits(chart, transits)
         if chart.time_precision is not TimePrecision.EXACT:
-            return self._limited_plan(
+            approximate = (
+                self._approximate_plan(chart, purpose, background_lens, editorial_seed)
+                if chart.time_precision is TimePrecision.APPROXIMATE
+                and purpose is not ReadingPurpose.DAILY_NOTE
+                # Jyotish frames carry no evidence for a lone placement yet; Jyotish keeps the
+                # limited reading (no 503 since #144) until its frame does.
+                and chart.config.tradition is Tradition.WESTERN
+                else None
+            )
+            return approximate or self._limited_plan(
                 chart, purpose, background_lens, editorial_seed, daily_variety
             )
 
@@ -308,6 +334,57 @@ class ReadingPlanner:
             background_lens=background_lens,
             editorial_seed=editorial_seed,
             daily_variety=daily_variety,
+        )
+
+    def _approximate_plan(
+        self,
+        chart: NatalChart,
+        purpose: ReadingPurpose,
+        background_lens: BackgroundLens | None,
+        editorial_seed: str | None,
+    ) -> ReadingPlan | None:
+        # Few people know their exact birth time (#143 E1). The chart is computed at the window's
+        # midpoint, so only facts proven stable across the whole window are used: a planet's sign
+        # when it cannot reach a boundary, and an aspect whose orb cannot pass its limit (never
+        # the Moon). Houses, angles, nakshatra and graha drishti are left out.
+        speeds = {position.body.value: position.longitude_speed for position in chart.bodies}
+        stable_bodies = {
+            position.body.value
+            for position in chart.bodies
+            if position.body is not BodyName.MOON
+            and _sign_is_time_stable(position.degree_in_sign, position.longitude_speed)
+        }
+
+        def is_stable(factor: DerivedFactor) -> bool:
+            if factor.kind is FactorKind.PLANET_PLACEMENT:
+                return factor.subjects[0] in stable_bodies
+            if factor.kind is FactorKind.NATAL_ASPECT:
+                _, _, first, kind, second, _, orb = factor.id.split(":")
+                limit = _ASPECT_LIMIT.get(kind)
+                return (
+                    limit is not None
+                    and BodyName.MOON.value not in (first, second)
+                    and _aspect_is_time_stable(float(orb), limit, speeds[first], speeds[second])
+                )
+            return False
+
+        stable = tuple(
+            factor for factor in self._natal_candidates(chart, purpose) if is_stable(factor)
+        )
+        selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
+        if not hero_refs:
+            return None
+        return self._build_plan(
+            tradition=chart.config.tradition,
+            config_hash=chart.config_hash,
+            purpose=purpose,
+            precision=chart.time_precision,
+            mode=PlanMode.FULL_SYNTHESIS,
+            factors=tuple(self._assign_roles(selected, hero_refs)),
+            hero_factor_refs=hero_refs,
+            composition=self._composition(has_transit=False),
+            background_lens=background_lens,
+            editorial_seed=editorial_seed,
         )
 
     def _limited_plan(

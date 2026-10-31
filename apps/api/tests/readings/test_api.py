@@ -417,3 +417,42 @@ def test_reading_detail_and_personalized_sky_expose_one_safe_rich_contract(
         "provider",
     ):
         assert forbidden not in serialized
+
+
+def test_an_approximate_birth_time_reads_the_time_stable_chart(
+    reading_client: TestClient,
+) -> None:
+    """#143 E1: an approximate time used to give an empty "limited" reading that talked about
+    itself. Planet signs (except the Moon) and aspects do not move within a time window, so the
+    reading uses them and leaves houses, angles and the Moon out."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "1990-09-01"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+
+    overview = reading_client.get("/v1/insights/overview?tradition=western")
+
+    assert overview.status_code == 200
+    active = cast(
+        dict[str, object], cast(dict[str, object], overview.json()["reading_projection"])["active"]
+    )
+    assert active["mode"] == "full_synthesis"
+    assert active["precision"] == "approximate", "never labelled exact"
+    assert active.get("experiment") is None, "exact-only experiment stays closed"
+    sections = cast(dict[str, str], active["sections"])
+    prose = " ".join(text for text in sections.values() if text)
+    assert "Chưa cần đoán cho đầy trang" not in prose
+    evidence = " ".join(cast(list[str], cast(dict[str, object], active["evidence"])["claims"]))
+    for time_bound in ("Mặt Trăng", "Nhà ", "Cung mọc", "Thiên đỉnh", "Nakshatra"):
+        assert time_bound not in evidence, (time_bound, evidence)
