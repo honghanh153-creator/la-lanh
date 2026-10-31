@@ -128,7 +128,7 @@ function RadarReadable({ sections }: { sections: RadarSection[] }) {
         </li>)}</ul> : null}
         {section.perspectives?.length ? <ul className="radar-more__list">{section.perspectives.map((item) => <li key={item.key}><strong>{item.title}</strong> {item.body}</li>)}</ul> : null}
         {section.highlights?.length ? <ul className="radar-more__list">{section.highlights.map((item) => <li key={item.key}><strong>{item.title}</strong> {item.body}</li>)}</ul> : null}
-        {section.key === "why" && section.evidence.length ? <RadarEvidence evidence={section.evidence} summary="Dữ kiện kỹ thuật" /> : null}
+        {section.evidence.length ? <RadarEvidence evidence={section.evidence} summary="Dữ kiện kỹ thuật" /> : null}
       </section>)}</div>
     </details> : null}
   </>;

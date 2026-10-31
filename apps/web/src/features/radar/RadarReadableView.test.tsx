@@ -125,4 +125,26 @@ describe("RadarResultView · radar-readable-v2", () => {
     expect(screen.queryByRole("heading", { level: 2, name: "Điều cần để ý" })).not.toBeInTheDocument();
     expect(screen.getByText("· 72")).toBeInTheDocument();
   });
+  it("keeps the perspective's own receipts inside Xem thêm (#138)", () => {
+    const withOverlay: RadarResult = {
+      ...readable,
+      sections: readable.sections!.map((section) => section.key !== "perspective" ? section : {
+        ...section,
+        evidence: [{
+          evidence_id: "overlay:venus:house7",
+          source: "house_overlay",
+          plain: "Sao Kim của người kia rơi vào nhà 7 của bạn.",
+          technical: {},
+        }],
+      }),
+    };
+    const { container } = render(<MemoryRouter><RadarResultView ownerView result={withOverlay} /></MemoryRouter>);
+
+    const perspective = container.querySelector("details.radar-more .radar-more__section.is-perspective") as HTMLElement;
+    expect(within(perspective).getByText("Sao Kim của người kia rơi vào nhà 7 của bạn.")).toBeInTheDocument();
+    const outside = Array.from(container.querySelectorAll(".radar-signature, .radar-areas, .radar-readable"))
+      .map((node) => node.textContent ?? "")
+      .join(" ");
+    expect(outside).not.toMatch(/Sao Kim|nhà 7/);
+  });
 });
