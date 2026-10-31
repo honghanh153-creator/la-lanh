@@ -144,7 +144,21 @@ def normalized_vietnamese_word_count(text: str) -> int:
     return _normalized_vietnamese_word_count(text)
 
 
-_TIME_STABLE_KINDS = frozenset({FactorKind.PLANET_PLACEMENT, FactorKind.NATAL_ASPECT})
+# Every approximate window is shorter than a day, so a placement is time-stable when the planet
+# cannot reach a sign boundary within half a day either way (with a 1.5x margin on its speed).
+_HALF_WINDOW_DAYS = 0.5
+_SPEED_MARGIN = 1.5
+
+
+def _sign_is_time_stable(degree_in_sign: float, longitude_speed: float) -> bool:
+    margin = abs(longitude_speed) * _HALF_WINDOW_DAYS * _SPEED_MARGIN
+    return margin < degree_in_sign < 30.0 - margin
+
+
+def _aspect_is_time_stable(orb: float, limit: float, speed_a: float, speed_b: float) -> bool:
+    # The orb changes at most by the two planets' combined speed.
+    margin = (abs(speed_a) + abs(speed_b)) * _HALF_WINDOW_DAYS * _SPEED_MARGIN
+    return orb + margin < limit
 
 
 class ReadingPlanner:
@@ -176,6 +190,9 @@ class ReadingPlanner:
                 self._approximate_plan(chart, purpose, background_lens, editorial_seed)
                 if chart.time_precision is TimePrecision.APPROXIMATE
                 and purpose is not ReadingPurpose.DAILY_NOTE
+                # Jyotish frames carry no evidence for a lone placement yet; Jyotish keeps the
+                # limited reading (no 503 since #144) until its frame does.
+                and chart.config.tradition is Tradition.WESTERN
                 else None
             )
             return approximate or self._limited_plan(
@@ -326,13 +343,33 @@ class ReadingPlanner:
         background_lens: BackgroundLens | None,
         editorial_seed: str | None,
     ) -> ReadingPlan | None:
-        # Few people know their exact birth time (#143 E1). A time window still fixes the sign of
-        # every planet but the Moon and the aspects between them; houses, angles, the Moon and
-        # everything derived from them (nakshatra, graha drishti) are left out.
+        # Few people know their exact birth time (#143 E1). The chart is computed at the window's
+        # midpoint, so only facts proven stable across the whole window are used: a planet's sign
+        # when it cannot reach a boundary, and an aspect whose orb cannot pass its limit (never
+        # the Moon). Houses, angles, nakshatra and graha drishti are left out.
+        speeds = {position.body.value: position.longitude_speed for position in chart.bodies}
+        stable_bodies = {
+            position.body.value
+            for position in chart.bodies
+            if position.body is not BodyName.MOON
+            and _sign_is_time_stable(position.degree_in_sign, position.longitude_speed)
+        }
+
+        def is_stable(factor: DerivedFactor) -> bool:
+            if factor.kind is FactorKind.PLANET_PLACEMENT:
+                return factor.subjects[0] in stable_bodies
+            if factor.kind is FactorKind.NATAL_ASPECT:
+                _, _, first, kind, second, _, orb = factor.id.split(":")
+                limit = _ASPECT_LIMIT.get(kind)
+                return (
+                    limit is not None
+                    and BodyName.MOON.value not in (first, second)
+                    and _aspect_is_time_stable(float(orb), limit, speeds[first], speeds[second])
+                )
+            return False
+
         stable = tuple(
-            factor
-            for factor in self._natal_candidates(chart, purpose)
-            if factor.kind in _TIME_STABLE_KINDS and BodyName.MOON.value not in factor.subjects
+            factor for factor in self._natal_candidates(chart, purpose) if is_stable(factor)
         )
         selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
         if not hero_refs:

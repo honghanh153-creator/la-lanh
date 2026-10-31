@@ -419,9 +419,8 @@ def test_reading_detail_and_personalized_sky_expose_one_safe_rich_contract(
         assert forbidden not in serialized
 
 
-@pytest.mark.parametrize("tradition", ["western", "jyotish"])
 def test_an_approximate_birth_time_reads_the_time_stable_chart(
-    reading_client: TestClient, tradition: str
+    reading_client: TestClient,
 ) -> None:
     """#143 E1: an approximate time used to give an empty "limited" reading that talked about
     itself. Planet signs (except the Moon) and aspects do not move within a time window, so the
@@ -442,14 +441,15 @@ def test_an_approximate_birth_time_reads_the_time_stable_chart(
         headers=headers,
     )
 
-    overview = reading_client.get(f"/v1/insights/overview?tradition={tradition}")
+    overview = reading_client.get("/v1/insights/overview?tradition=western")
 
     assert overview.status_code == 200
     active = cast(
         dict[str, object], cast(dict[str, object], overview.json()["reading_projection"])["active"]
     )
     assert active["mode"] == "full_synthesis"
-    assert active["precision"] == "approximate"
+    assert active["precision"] == "approximate", "never labelled exact"
+    assert active.get("experiment") is None, "exact-only experiment stays closed"
     sections = cast(dict[str, str], active["sections"])
     prose = " ".join(text for text in sections.values() if text)
     assert "Chưa cần đoán cho đầy trang" not in prose

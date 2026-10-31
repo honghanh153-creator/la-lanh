@@ -198,6 +198,7 @@ def test_western_placement_factors_keep_degree_and_motion_as_private_evidence() 
 
 
 def test_approximate_excludes_midpoint_facts_without_engine_stability_proof() -> None:
+    """Midpoint facts are used only when stable over the whole window (#143 E1)."""
     approximate = _chart().model_copy(
         update={
             "time_precision": TimePrecision.APPROXIMATE,
@@ -208,9 +209,21 @@ def test_approximate_excludes_midpoint_facts_without_engine_stability_proof() ->
 
     plan = ReadingPlanner().plan(approximate, purpose=ReadingPurpose.READING_DETAIL)
 
-    assert plan.mode is PlanMode.LIMITED
-    assert plan.factors == ()
-    assert plan.hero_factor_refs == ()
+    # #143 E1: only placements proven stable across the window; never the Moon, houses,
+    # angles or aspects.
+    assert plan.mode is PlanMode.FULL_SYNTHESIS
+    assert plan.precision is TimePrecision.APPROXIMATE
+    assert plan.factors and all(
+        f.kind in {FactorKind.PLANET_PLACEMENT, FactorKind.NATAL_ASPECT} for f in plan.factors
+    )
+    assert all("moon" not in f.subjects for f in plan.factors)
+    by_body = {p.body.value: p for p in approximate.bodies}
+    for factor in plan.factors:
+        if factor.kind is not FactorKind.PLANET_PLACEMENT:
+            continue
+        position = by_body[factor.subjects[0]]
+        margin = abs(position.longitude_speed) * 0.5 * 1.5
+        assert margin < position.degree_in_sign < 30 - margin
     assert plan.composition.natal_percent == 100
     assert plan.composition.transit_percent == 0
     serialized = plan.model_dump_json().lower()
@@ -383,3 +396,20 @@ def test_service_exposes_the_same_canonical_planner_contract() -> None:
     plan = InsightReadingService().plan(chart, purpose=ReadingPurpose.AURA)
 
     assert plan == ReadingPlanner().plan(chart, purpose=ReadingPurpose.AURA)
+
+
+def test_a_planet_near_a_sign_boundary_is_not_read_from_an_approximate_time() -> None:
+    from app.domains.readings.planner import _sign_is_time_stable
+
+    # Mercury at full speed can move about 1.65 degrees in half a day with the margin.
+    assert not _sign_is_time_stable(29.2, 2.2)
+    assert not _sign_is_time_stable(0.8, 2.2)
+    assert _sign_is_time_stable(15.0, 2.2)
+
+
+def test_an_aspect_near_its_orb_limit_is_not_read_from_an_approximate_time() -> None:
+    from app.domains.readings.planner import _aspect_is_time_stable
+
+    # Sun (1.0) and Mercury (2.0) can change the orb by 2.25 degrees in half a day with the margin.
+    assert not _aspect_is_time_stable(5.0, 7.0, 1.0, 2.0)
+    assert _aspect_is_time_stable(4.0, 7.0, 1.0, 2.0)

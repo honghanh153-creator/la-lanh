@@ -846,7 +846,8 @@ async def test_projection_scope_separates_chart_calculation_configs() -> None:
 
 
 @pytest.mark.asyncio
-async def test_approximate_chart_is_limited_without_houses_or_empty_transit() -> None:
+async def test_approximate_chart_reads_time_stable_factors_without_houses_or_transit() -> None:
+    """#143 E1 (31.10.2026): an approximate time reads planet signs and aspects; it was limited."""
     repository = MemoryReadingRepository()
     engine = NatalChartEngine()
     service = ReadingApplicationService(repository, engine)
@@ -876,11 +877,11 @@ async def test_approximate_chart_is_limited_without_houses_or_empty_transit() ->
         requested_at=NOW,
     )
 
-    assert projection.active.mode is PlanMode.LIMITED
+    assert projection.active.mode is PlanMode.FULL_SYNTHESIS
     assert projection.active.precision is TimePrecision.APPROXIMATE
-    assert projection.aura_transition.profile_readiness is ProfileReadiness.LIMITED
-    assert projection.aura_transition.transition_id is None
-    assert projection.aura_transition.unlock_layers == ()
+    # Only the multi-factor layer opens; house and rising layers need an exact time.
+    assert projection.aura_transition.profile_readiness is ProfileReadiness.AURA_READY
+    assert projection.aura_transition.unlock_layers == (AuraUnlockLayer.MULTI_FACTOR,)
     assert projection.active.experiment is None
     assert projection.active.sections.transit is None
     serialized = projection.active.model_dump_json().lower()
