@@ -8,11 +8,29 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { agentMarker, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 
-// Any heavy test process anywhere on the machine (pnpm check starts with contracts:check).
-export const heavyPattern = 'contracts:check|vitest|pytest|playwright';
+// A heavy test process anywhere on the machine, matched on the program actually running.
+// `pgrep -f` matched any command line that merely mentioned these words, including the agent
+// shell that ran pgrep itself, so every caller saw the machine as busy (31.10.2026).
+export const heavyPatterns = [
+  // The `pnpm check` chain (package.json; today it starts with collab:test) and pnpm itself.
+  /^(\S*\/)?sh -c .*\bpnpm (collab:test|contracts:check)\b/,
+  /^(\S*\/)?pnpm\s+check(\s|$)/,
+  /^(\S*\/)?node\s+\S*pnpm\S*\s+check(\s|$)/,
+  // Test runners, bare or through node/python/uv.
+  /^(\S*\/)?(vitest|playwright|pytest)(\s|$)/,
+  /^(\S*\/)?node\s+\S*(vitest|playwright)\S*(\s|$)/,
+  /^(\S*\/)?python[\d.]*\s+(\S*\/pytest(\s|$)|-m\s+pytest)/,
+  /^(\S*\/)?uv\s+run\b.*\spytest(\s|$)/,
+];
+export const isHeavy = args => heavyPatterns.some(pattern => pattern.test(String(args).trim()));
 export function machineBusy(run = execFileSync) {
-  try { return String(run('pgrep', ['-fl', heavyPattern], { encoding: 'utf8' })).trim().split('\n')[0].slice(0, 120) || null; }
-  catch { return null; }
+  let table = '';
+  try { table = String(run('ps', ['-Ao', 'pid=,args='], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })); } catch { return null; }
+  for (const line of table.split('\n')) {
+    const match = /^\s*(\d+)\s+(.*)$/.exec(line);
+    if (match && Number(match[1]) !== process.pid && isHeavy(match[2])) return `${match[1]} ${match[2]}`.slice(0, 120);
+  }
+  return null;
 }
 
 // Run a command in its own process group and kill the whole group at the deadline or on exit,
@@ -177,9 +195,15 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
+  // `--busy`: the one shared answer to "is a heavy check running?" for agents and schedules.
+  if (args.includes('--busy')) {
+    const busy = machineBusy();
+    process.stdout.write(`${busy ? `busy: ${busy}` : 'free'}\n`);
+    process.exit(busy ? 1 : 0);
+  }
   const number = Number(args[args.indexOf('--pr') + 1]);
   if (!args.includes('--pr') || !Number.isInteger(number) || number <= 0) {
-    process.stderr.write('Usage: node scripts/collab-check.mjs --pr N\n'); process.exit(2);
+    process.stderr.write('Usage: node scripts/collab-check.mjs --pr N [--clone] | --busy\n'); process.exit(2);
   }
   try {
     const result = args.includes('--clone') ? runCheckInClone(number) : runCheck(number);
