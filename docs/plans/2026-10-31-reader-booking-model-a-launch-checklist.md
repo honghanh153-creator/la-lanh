@@ -21,16 +21,19 @@ Ký hiệu người làm: **[Chủ]** chủ sản phẩm, **[KT]** kỹ thuật,
 - [ ] [Chủ] Chỉ bán **buổi đọc 1–1 trực tiếp** (thời gian thực: gọi thoại/video hoặc chat trực tiếp trong khung giờ đã đặt). Đọc bất đồng bộ (gửi câu hỏi, trả lời sau) và phòng nhóm để sau, vì cả hai bắt buộc dùng IAP trên iOS (xem Cổng 3).
 - [ ] [Chủ] Chỉ loại đọc "Hiểu bản thân sâu hơn" (Natal Chart). Loại "Hiểu một mối quan hệ" (Composite Chart) **tạm khóa** cho tới khi có cách lấy đồng ý của người thứ hai (xem Cổng 4).
 - [ ] [Chủ] Chỉ người dùng đã đăng nhập, từ 18 tuổi trở lên, được đặt buổi trả phí.
+- [ ] [Chủ] Chat chỉ là kênh 1–1 riêng tư để thực hiện buổi đã mua. Không có bình luận công khai, nhóm, livestream hay cộng đồng quanh Lá Dẫn ở bản đầu, để không bị coi là mạng xã hội theo NĐ 147/2024/NĐ-CP. Đánh giá chỉ hiển thị dạng số sao tổng hợp.
 - [ ] [Chủ] Chốt số Lá Dẫn chạy thử, số buổi tối đa mỗi tuần, thời lượng buổi và thời điểm dừng thử. Giá, tỉ lệ thù lao và ngân sách ghi ở tài liệu nội bộ, **không ghi vào repo công khai**.
 - [ ] [Chủ] Ghi rõ những gì **không** bán: giải hạn, vật phẩm tâm linh, cam kết kết quả, tư vấn sức khỏe/tài chính/pháp lý, buổi bán thêm do Lá Dẫn tự mời.
 
 ## Cổng 1 — Pháp nhân, thuế, thanh toán
 
-- [ ] [Chủ] Có pháp nhân (doanh nghiệp hoặc hộ kinh doanh) đứng tên bán dịch vụ, ngành nghề đăng ký bao phủ dịch vụ này. Tên pháp nhân, địa chỉ, mã số thuế hiển thị ở trang điều khoản và hóa đơn.
-- [ ] [Chủ] Thông báo website/app thương mại điện tử bán hàng với Bộ Công Thương trước khi nhận tiền thật. Đối chiếu nghĩa vụ hiện hành theo Luật Thương mại điện tử 2025 (hiệu lực 01.07.2026) và nghị định hướng dẫn.
-- [ ] [Chủ] Hóa đơn điện tử cho từng buổi đã thu tiền; kê khai GTGT/TNDN theo pháp nhân đã chọn.
-- [ ] [Chủ] Thuế TNCN khi trả thù lao Lá Dẫn: khấu trừ tại nguồn với thu nhập vãng lai. **Kiểm tra lại ngưỡng hiện hành** trước khi trả lần đầu: hướng dẫn cũ dùng 2 triệu đồng/lần, một số nguồn nói ngưỡng mới là 5 triệu đồng/lần theo văn bản hướng dẫn Luật Thuế TNCN mới (NĐ 253/2026/NĐ-CP). Đọc văn bản gốc, không dùng bài tư vấn.
-- [ ] [KT] Thanh toán qua cổng có giấy phép (VNPay, MoMo, PayOS hoặc tương đương). Lá Lành **không** lưu số thẻ/tài khoản người dùng; chỉ lưu mã giao dịch, số tiền, trạng thái.
+Thứ tự làm, hồ sơ và lựa chọn cụ thể: [bộ hồ sơ chuẩn bị Cổng 1](../operations/reader-booking-gate1-prep-pack.md).
+
+- [ ] [Chủ] Có pháp nhân đứng tên bán dịch vụ. Đề xuất công ty TNHH một thành viên (Apple và Google cần pháp nhân có D-U-N-S để mở tài khoản tổ chức). Ngành nghề đăng ký bao phủ dịch vụ này. Tên pháp nhân, địa chỉ, mã số thuế hiển thị ở trang thông tin bên bán và hóa đơn.
+- [ ] [Chủ] Thông báo nền tảng thương mại điện tử kinh doanh trực tiếp (website và app) theo Luật Thương mại điện tử 2025 và NĐ 248/2026/NĐ-CP (cùng hiệu lực 01.07.2026). Nơi tiếp nhận là Sở Công Thương cấp tỉnh qua Cổng dịch vụ công / online.gov.vn. Phải được xác nhận **trước khi** nhận tiền thật.
+- [ ] [Chủ] Hóa đơn điện tử theo NĐ 254/2026/NĐ-CP: lập ngay khi thu tiền (không chờ buổi đọc diễn ra); kê khai GTGT/TNDN theo pháp nhân đã chọn.
+- [ ] [Chủ] Thuế TNCN khi trả thù lao Lá Dẫn: theo NĐ 253/2026/NĐ-CP (hiệu lực 01.07.2026), khấu trừ 10% khi mỗi lần chi từ 5 triệu đồng trở lên; ngưỡng 2 triệu đồng cũ không còn áp dụng. Lập chứng từ khấu trừ điện tử. Đối chiếu Công báo trước lần trả đầu tiên.
+- [ ] [KT] Thanh toán qua cổng có giấy phép (VNPAY, payOS, ZaloPay hoặc tương đương). Lá Lành **không** lưu số thẻ/tài khoản người dùng; chỉ lưu mã giao dịch, số tiền, trạng thái. Nội dung chuyển khoản/mô tả đơn chỉ chứa mã đơn, không chứa ngày sinh hay câu hỏi của người dùng.
 - [ ] [KT] Tiền vào tài khoản của pháp nhân Lá Lành, không chia tách trả thẳng cho Lá Dẫn tại thời điểm thanh toán (giữ đúng mô hình A).
 - [ ] [VH] Quy trình đối soát hằng tuần: giao dịch cổng ↔ booking ↔ hóa đơn ↔ hoàn tiền.
 - [ ] [Chủ] Lịch trả thù lao: chỉ trả cho buổi đã `completed` và hết thời hạn khiếu nại (giữ 7–14 ngày như PRD F5.3). Không trả theo số buổi Lá Dẫn tự khai.
@@ -139,7 +142,7 @@ Căn cứ: Luật Bảo vệ quyền lợi người tiêu dùng 2023.
 | Lá Dẫn tự đặt lịch trống | Giữ; quyền giới hạn ở Cổng 5 |
 | Thanh toán trước khi xác nhận | Giữ; cách thanh toán theo nền tảng ở Cổng 1 và 3 |
 | Nhắc lịch trước 30 phút cho cả hai bên | Giữ; nội dung thông báo ở Cổng 2 |
-| Đánh giá 1–5 sao + nhận xét | Giữ; thời hạn lưu ở Cổng 4 |
+| Đánh giá 1–5 sao + nhận xét | Giữ; nhận xét không công khai (Cổng 0), thời hạn lưu ở Cổng 4 |
 | Composite Chart với dữ liệu người kia | **Đổi**: tạm khóa, chỉ mở lại qua Lá Ghép đã đồng ý |
 | `cancelled` / `no_show` | **Thiếu quy tắc** trong PRD → bổ sung ở Cổng 6 |
 | Đồng ý chia sẻ dữ liệu với Lá Dẫn | **Thiếu** trong PRD → bổ sung ở Cổng 4 |
@@ -156,6 +159,9 @@ Khi bắt đầu làm tính năng, cập nhật PRD F5.2 và SRS theo bảng nà
 - NĐ 117/2025/NĐ-CP, sàn khấu trừ thuế thay (lý do không chọn mô hình sàn): https://lsvn.vn/san-thuong-mai-dien-tu-phai-khau-tru-va-nop-thue-thay-cho-ho-ca-nhan-kinh-doanh-a170137.html
 - NĐ 38/2021/NĐ-CP Điều 14 và BLHS Điều 320 — qua trang tư vấn, mức phạt giữa các nguồn chưa khớp: https://luatvietnam.vn/linh-vuc-khac/to-chuc-xem-boi-co-vi-pham-phap-luat-khong-883-90440-article.html
 - Luật BVDLCN 91/2025/QH15 và NĐ 356/2025/NĐ-CP: https://www.ey.com/vi_vn/technical/tax/tax-and-law-updates/nghi-dinh-so-356-2025-nd-cp-quy-dinh-chi-tiet-mot-so-dieu-va-bien-phap-thi-hanh-luat-bao-ve-du-lieu-ca-nhan
-- Ngưỡng khấu trừ TNCN thu nhập vãng lai (chưa xác nhận được ngưỡng hiện hành): https://thuvienphapluat.vn/lao-dong-tien-luong/chu-de/khau-tru-thue-thu-nhap-ca-nhan
+- NĐ 248/2026/NĐ-CP hướng dẫn Luật Thương mại điện tử: https://hethongphapluat.com/nghi-dinh-248-2026-nd-cp-huong-dan-luat-thuong-mai-dien-tu.html
+- NĐ 253/2026/NĐ-CP, ngưỡng khấu trừ TNCN 5 triệu đồng/lần: https://www.sapo.vn/blog/nghi-dinh-253-2026-nd-cp
+- NĐ 254/2026/NĐ-CP về hóa đơn, chứng từ điện tử: https://www.ey.com/vi_vn/technical/tax/tax-and-law-updates/nghi-dinh-254-2026-nd-cp-ve-hoa-don-dien-tu-va-chung-tu-dien-tu
+- Nguồn đầy đủ cho Cổng 1: xem [bộ hồ sơ chuẩn bị](../operations/reader-booking-gate1-prep-pack.md).
 
 Các mục pháp lý trên đã đọc qua bài tóm tắt, chưa đọc toàn văn. Đối chiếu văn bản gốc trên Công báo trước khi chốt từng cổng.
