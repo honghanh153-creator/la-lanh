@@ -59,6 +59,14 @@ export function checkBudgetMs({ auto, clock = vnNow, nowMs = Date.now }) {
   return Math.max(0, Math.min(byMinute, exact) - cleanupReserveMs);
 }
 
+// launchd and agent shells can run with a narrow PATH; tests call system tools such as
+// /sbin/sha256sum, and a missing tool gave false FAIL receipts on 31.10.2026 (#139, #120).
+export const systemDirs = ['/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+export function withSystemPath(path = '') {
+  const parts = String(path).split(':').filter(Boolean);
+  return [...parts, ...systemDirs.filter(dir => !parts.includes(dir))].join(':');
+}
+
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
 export function withCheckLock(fn) {
   mkdirSync(stateDir, { recursive: true });
@@ -99,7 +107,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget }) {
   if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
   const started = now();
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
-  const result = runGroup('pnpm', ['check'], { cwd, timeoutMs, env: { ...process.env, CI: '1' } }, spawn);
+  const result = runGroup('pnpm', ['check'], { cwd, timeoutMs, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
   const exitCode = result.status ?? 1;
   // A file the check rewrote means the receipt would not describe the committed head.
   const dirty = Boolean(git(['status', '--porcelain']));

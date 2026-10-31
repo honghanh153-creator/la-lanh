@@ -5,7 +5,8 @@ set -euo pipefail
 
 home_dir="${LA_LANH_COLLAB_HOME:-$HOME/.cache/la-lanh-collab}"
 runtime="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies"
-export PATH="$runtime/node/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+# pnpm lives in the runtime fallback dir; it goes last so /usr/bin/git wins over its own git.
+export PATH="$runtime/node/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$runtime/bin/fallback"
 ops="$home_dir/ops"
 log="$home_dir/logs/tick-$(date +%Y-%m-%d).log"
 mkdir -p "$home_dir/logs"

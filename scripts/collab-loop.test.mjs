@@ -11,7 +11,7 @@ const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const { planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { checkBudgetMs, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { checkBudgetMs, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -335,6 +335,7 @@ test('r3: author check runs alone, with CI=1, in the given checkout', () => {
   const result = runCheck(7, { gh, git, cwd: '/tmp/author', busy: () => null, spawn: (cmd, args, opts) => { spawned.push({ cmd, args, opts }); return { status: 0 }; } });
   assert.equal(result.status, 'PASS');
   assert.equal(spawned[0].opts.env.CI, '1');
+  assert.ok(spawned[0].opts.env.PATH.split(':').includes('/sbin'), 'system tools (sha256sum) are reachable');
   assert.equal(spawned[0].opts.cwd, '/tmp/author');
   assert.equal(trust.parseAuthorCheck(gh.calls.find(c => c[0] === 'comment')[3]).status, 'PASS');
   const nested = withCheckLock(() => runCheck(7, { gh, git, busy: () => null, spawn: () => ({ status: 0 }) }));
@@ -422,4 +423,16 @@ test('retro D3: the plan says when the Mac stopped ticking', () => {
   const body = renderPlan({ date: '2026-10-31', hour: 9, minute: 41 }, [], { codexLeft: 12, gap: { from: '04:25', to: '09:41' } });
   assert.match(body, /Máy không chạy tick từ 04:25 tới 09:41/);
   assert.doesNotThrow(() => trust.assertAgentBody(body));
+});
+
+test('false FAIL 31.10: pnpm check always sees the system tool directories', () => {
+  assert.equal(withSystemPath('/a:/usr/bin'), '/a:/usr/bin:/bin:/usr/sbin:/sbin');
+  assert.equal(withSystemPath(''), '/usr/bin:/bin:/usr/sbin:/sbin');
+});
+
+test('false FAIL 31.10: the tick names missing tools instead of running checks', async () => {
+  const { missingTools, requiredTools } = await import('./collab-tick.mjs');
+  assert.ok(requiredTools.includes('pnpm') && requiredTools.includes('sha256sum'));
+  assert.deepEqual(missingTools('/nonexistent'), requiredTools);
+  assert.deepEqual(missingTools('/x', () => ''), []);
 });
