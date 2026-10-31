@@ -68,3 +68,20 @@ def test_jyotish_reading_uses_jyotish_vocabulary_and_provenance() -> None:
         not any(ref.startswith("natal:aspect:") for ref in claim.factor_refs)
         for claim in reading.claims
     )
+
+
+def test_planets_in_the_same_sign_never_share_a_card_sentence() -> None:
+    """#143 E3: on a synthetic chart with the Sun and Mercury in one sign and Venus and Mars in
+    another, every card said the same sign phrase word for word."""
+
+    chart = NatalChartEngine().calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(1997, 9, 20, 5, 0, tzinfo=UTC), latitude=20.84, longitude=106.69
+        )
+    )
+    signs = {body.body.value: body.sign.value for body in chart.bodies}
+    assert signs["sun"] == signs["mercury"] and signs["venus"] == signs["mars"]
+
+    reading = InsightReadingService().overview(chart, observed_at=datetime(2026, 9, 4, tzinfo=UTC))
+    tails = [claim.summary.split(":", 1)[1].strip() for claim in reading.claims]
+    assert len(tails) == len(set(tails)), tails

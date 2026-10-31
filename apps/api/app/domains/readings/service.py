@@ -293,7 +293,9 @@ class InsightReadingService:
         label = BODY_VI[body]
         house = InsightReadingService._house_for_longitude(chart, chart.body(body).longitude)
         house_copy = f" · Nhà {house}" if house is not None else ""
-        return f"{label} ở {SIGN_VI[sign]}{house_copy}: {SIGN_MODE[sign]}."
+        # The sign-only phrase made two planets in one sign read word for word alike (#143 E3);
+        # the body-specific line from the detail headline keeps each card distinct.
+        return f"{label} ở {SIGN_VI[sign]}{house_copy}: {InsightReadingService._hook(body, sign)}"
 
     @staticmethod
     def _hook(body: BodyName, sign: str) -> str:
