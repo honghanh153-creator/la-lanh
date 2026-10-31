@@ -356,8 +356,8 @@ test('r4 (P0): fork or outside PRs are never checked, reviewed or merged', () =>
 
 test('r4 (P1): automatic checks start nothing after 23:30 and end by 23:55', () => {
   const at = (hour, minute) => () => ({ date: 'd', hour, minute });
-  assert.equal(checkBudgetMs({ auto: true, clock: at(11, 0) }), 90 * 60000);
-  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 20) }), 35 * 60000);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(11, 0) }), 90 * 60000 - 15000);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 20) }), 35 * 60000 - 15000);
   assert.equal(checkBudgetMs({ auto: true, clock: at(23, 30) }), 0);
   assert.equal(checkBudgetMs({ auto: true, clock: at(8, 0) }), 0);
   assert.equal(checkBudgetMs({ auto: false, clock: at(23, 50) }), 90 * 60000);
@@ -404,4 +404,13 @@ test('r5 (#137 r2 P1): members that ignore SIGTERM are force-killed before the s
   assert.equal(result.status, 124);
   assert.ok(Date.now() - started < 10000);
   assert.equal(spawnSync('pgrep', ['-f', `^sleep ${marker}`], { encoding: 'utf8' }).stdout.trim(), '', 'nothing survives');
+});
+
+test('#140: the budget ends at the exact 23:55:00 instant, with room for cleanup', () => {
+  const nowMs = () => Date.parse('2026-11-09T23:29:59+07:00');
+  const budget = checkBudgetMs({ auto: true, clock: () => ({ date: '2026-11-09', hour: 23, minute: 29 }), nowMs });
+  const cutoff = Date.parse('2026-11-09T23:55:00+07:00');
+  // Deadline plus the 5 s grace and the kill poll stay before the cutoff.
+  assert.ok(nowMs() + budget + 5000 + 1000 <= cutoff, `budget ${budget} runs past 23:55`);
+  assert.ok(budget > 24 * 60000);
 });

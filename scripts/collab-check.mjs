@@ -45,12 +45,18 @@ export function runGroup(cmd, args, { cwd, env, timeoutMs, graceMs = 5000, stdio
 }
 
 // Automatic checks start nothing after 23:30 and end by 23:55 (plan §3.1); direct runs get 90 minutes.
-export function checkBudgetMs({ auto, clock = vnNow }) {
+// The budget ends at the exact 23:55:00 instant minus the cleanup reserve, so SIGTERM, the grace
+// period and SIGKILL all finish before the cutoff (#140).
+export const cleanupReserveMs = 15000;
+export function checkBudgetMs({ auto, clock = vnNow, nowMs = Date.now }) {
   if (!auto) return 90 * 60000;
   const t = clock();
   const minute = t.hour * 60 + t.minute;
   if (minute < 8 * 60 + 50 || minute >= 23 * 60 + 30) return 0;
-  return Math.min(90, 23 * 60 + 55 - minute) * 60000;
+  const byMinute = Math.min(90, 23 * 60 + 55 - minute) * 60000;
+  const cutoff = Date.parse(`${t.date}T23:55:00+07:00`);
+  const exact = Number.isFinite(cutoff) ? cutoff - nowMs() : byMinute;
+  return Math.max(0, Math.min(byMinute, exact) - cleanupReserveMs);
 }
 
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
@@ -150,13 +156,13 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   const other = (rest.busy ?? machineBusy)();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
   const nowMs = rest.nowMs ?? Date.now;
-  const deadlineMs = nowMs() + checkBudgetMs({ auto, clock });
+  const deadlineMs = nowMs() + checkBudgetMs({ auto, clock, nowMs });
   return withCheckLock(() => {
     let cwd;
     try { cwd = prepareAuthorClone(number, pr.headRefOid, run, { deadlineMs, nowMs, group: rest.group ?? runGroup }); }
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // The clock is read again after the clone and install, which can take minutes.
-    const budget = () => Math.min(checkBudgetMs({ auto, clock }), deadlineMs - nowMs());
+    const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
     return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, budget });
   });
 }
