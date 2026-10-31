@@ -126,7 +126,9 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
       writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures });
       heartbeat(errors.length ? 'ran-with-errors' : 'ran');
-      show({ status: errors.length ? 'ran-with-errors' : done.length ? 'ran' : 'idle', area, turns, done, error: errors.length ? JSON.stringify(errors) : null });
+      // A review waiting while the daily Codex cap is spent is a budget stop, not "no work" (#145 r2).
+      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= codexDailyCap;
+      show({ status: errors.length ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: errors.length ? JSON.stringify(errors) : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
       log(JSON.stringify(done));
       return { status: errors.length ? 'ran-with-errors' : 'ran', area, done };
