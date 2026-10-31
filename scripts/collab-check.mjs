@@ -17,16 +17,31 @@ export function machineBusy(run = execFileSync) {
 
 // Run a command in its own process group and kill the whole group at the deadline or on exit,
 // so Vite, Playwright or pytest children never outlive the check.
+// The supervisor stays alive until the whole group is gone: SIGTERM, then SIGKILL after
+// graceMs for members that ignore it, and only then exits (124 on timeout).
 const groupRunner = `
 const { spawn } = require('node:child_process');
-const [ms, cmd, ...args] = process.argv.slice(1);
+const [ms, grace, cmd, ...args] = process.argv.slice(1);
 const child = spawn(cmd, args, { stdio: 'inherit', detached: true });
-const kill = sig => { try { process.kill(-child.pid, sig); } catch {} };
-const timer = setTimeout(() => { kill('SIGTERM'); setTimeout(() => kill('SIGKILL'), 10000).unref(); }, Number(ms));
-child.on('exit', code => { clearTimeout(timer); kill('SIGTERM'); process.exit(code ?? 124); });
+const group = -child.pid;
+const kill = sig => { try { process.kill(group, sig); } catch {} };
+const alive = () => { try { process.kill(group, 0); return true; } catch { return false; } };
+let code = 1, timedOut = false, finishing = false;
+const finish = () => {
+  if (finishing) return;
+  finishing = true;
+  kill('SIGTERM');
+  const forceAt = Date.now() + Number(grace);
+  const poll = setInterval(() => {
+    if (!alive()) { clearInterval(poll); process.exit(timedOut ? 124 : code); }
+    if (Date.now() >= forceAt) kill('SIGKILL');
+  }, 100);
+};
+const timer = setTimeout(() => { timedOut = true; finish(); }, Number(ms));
+child.on('exit', c => { code = c ?? 1; clearTimeout(timer); finish(); });
 `;
-export function runGroup(cmd, args, { cwd, env, timeoutMs }, spawn = spawnSync) {
-  return spawn(process.execPath, ['-e', groupRunner, String(Math.max(1000, timeoutMs)), cmd, ...args], { cwd, env, stdio: 'inherit' });
+export function runGroup(cmd, args, { cwd, env, timeoutMs, graceMs = 5000, stdio = 'inherit' }, spawn = spawnSync) {
+  return spawn(process.execPath, ['-e', groupRunner, String(Math.max(1000, timeoutMs)), String(graceMs), cmd, ...args], { cwd, env, stdio });
 }
 
 // Automatic checks start nothing after 23:30 and end by 23:55 (plan §3.1); direct runs get 90 minutes.
@@ -91,20 +106,37 @@ const git = (args, cwd, run) => String(run('/usr/bin/git', args, { cwd, encoding
 
 // A clone only for author checks, so no agent checkout is switched under anyone.
 // Ignored build outputs (node_modules, .venv, ephemeris build) are kept between runs.
-export function prepareAuthorClone(number, head, run = execFileSync) {
+export class DeadlineError extends Error {}
+
+// Every preparation step is bounded by the time left before the absolute deadline;
+// install and make run as process groups so nothing they start survives the cutoff.
+export function prepareAuthorClone(number, head, run = execFileSync, { deadlineMs = Infinity, nowMs = Date.now, group = runGroup } = {}) {
+  const left = cap => {
+    const ms = Math.min(cap, deadlineMs - nowMs());
+    if (ms <= 0) throw new DeadlineError('hết giờ khi đang chuẩn bị clone');
+    return ms;
+  };
+  const step = (args, cwd, cap) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: left(cap), maxBuffer: 64 * 1024 * 1024 })).trim();
+  const build = (cmd, args, cap) => {
+    const ok = group(cmd, args, { cwd: dir, timeoutMs: left(cap), stdio: 'ignore' }).status === 0;
+    if (!ok && nowMs() >= deadlineMs) throw new DeadlineError('hết giờ khi đang chuẩn bị clone');
+    return ok;
+  };
   const dir = join(stateDir, 'author');
   if (!existsSync(join(dir, '.git'))) {
     mkdirSync(stateDir, { recursive: true });
-    git(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, dir], stateDir, run);
+    step(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, dir], stateDir, 600000);
   }
-  git(['fetch', '--quiet', '--force', 'origin', `+refs/heads/${integration}:refs/remotes/origin/${integration}`, `+refs/pull/${Number(number)}/head:refs/remotes/pr/${Number(number)}`], dir, run);
-  git(['checkout', '--quiet', '--force', '--detach', head], dir, run);
-  git(['clean', '-fdq'], dir, run);
-  const actual = git(['rev-parse', 'HEAD'], dir, run);
+  step(['fetch', '--quiet', '--force', 'origin', `+refs/heads/${integration}:refs/remotes/origin/${integration}`, `+refs/pull/${Number(number)}/head:refs/remotes/pr/${Number(number)}`], dir, 300000);
+  step(['checkout', '--quiet', '--force', '--detach', head], dir, 120000);
+  step(['clean', '-fdq'], dir, 120000);
+  const actual = step(['rev-parse', 'HEAD'], dir, 60000);
   if (actual !== head) throw new Error(`Author clone is at ${actual}, not ${head}.`);
-  try { run('pnpm', ['install', '--frozen-lockfile', '--offline'], { cwd: dir, stdio: 'ignore', timeout: 900000 }); }
-  catch { run('pnpm', ['install', '--frozen-lockfile'], { cwd: dir, stdio: 'ignore', timeout: 900000 }); }
-  run('make', ['-C', 'vendor/swisseph'], { cwd: dir, stdio: 'ignore', timeout: 600000 });
+  if (!build('pnpm', ['install', '--frozen-lockfile', '--offline'], 900000)) {
+    if (!build('pnpm', ['install', '--frozen-lockfile'], 900000)) throw new Error('pnpm install failed in the author clone');
+  }
+  if (!build('make', ['-C', 'vendor/swisseph'], 600000)) throw new Error('ephemeris build failed in the author clone');
+  left(1);
   return dir;
 }
 
@@ -117,10 +149,15 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   // Refuse before touching the clone when another check owns the machine.
   const other = (rest.busy ?? machineBusy)();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
+  const nowMs = rest.nowMs ?? Date.now;
+  const deadlineMs = nowMs() + checkBudgetMs({ auto, clock });
   return withCheckLock(() => {
-    const cwd = prepareAuthorClone(number, pr.headRefOid, run);
+    let cwd;
+    try { cwd = prepareAuthorClone(number, pr.headRefOid, run, { deadlineMs, nowMs, group: rest.group ?? runGroup }); }
+    catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // The clock is read again after the clone and install, which can take minutes.
-    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, budget: () => checkBudgetMs({ auto, clock }) });
+    const budget = () => Math.min(checkBudgetMs({ auto, clock }), deadlineMs - nowMs());
+    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, budget });
   });
 }
 

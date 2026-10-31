@@ -11,7 +11,7 @@ const { prTurn, turnsFor, tick } = await import('./collab-turn.mjs');
 const { planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { checkBudgetMs, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { checkBudgetMs, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -365,7 +365,7 @@ test('r4 (P1): automatic checks start nothing after 23:30 and end by 23:55', () 
   const times = [at(23, 20)(), at(23, 33)()];
   const spawned = [];
   const run = (cmd, args) => (cmd === '/usr/bin/git' && args[0] === 'rev-parse' ? `${A}\n` : '');
-  const result = runCheckInClone(7, { gh: fakeGh({ pr: pr() }), run, auto: true, clock: () => times.shift() ?? at(23, 40)(), busy: () => null, spawn: (...a) => { spawned.push(a); return { status: 0 }; } });
+  const result = runCheckInClone(7, { gh: fakeGh({ pr: pr() }), run, group: () => ({ status: 0 }), auto: true, clock: () => times.shift() ?? at(23, 40)(), busy: () => null, spawn: (...a) => { spawned.push(a); return { status: 0 }; } });
   assert.equal(result.status, 'refused');
   assert.deepEqual(spawned, []);
 });
@@ -378,4 +378,30 @@ test('r4 (P1): the deadline kills the whole process group', () => {
   assert.ok(Date.now() - started < 15000, 'returns at the deadline');
   const left = spawnSync('pgrep', ['-f', `^sleep ${marker}`], { encoding: 'utf8' }).stdout.trim();
   assert.equal(left, '', 'no child outlives the check');
+});
+
+test('r5 (#137 r2 P1): clone preparation is bounded by the nightly deadline', () => {
+  const minute = 60000;
+  let fake = 0;
+  const calls = [];
+  // Worst case: every build step uses its whole budget and times out.
+  const group = (cmd, args, opts) => { calls.push({ cmd, ms: opts.timeoutMs, left: 26 * minute - fake }); fake += opts.timeoutMs; return { status: 124 }; };
+  const run = (cmd, args) => (args[0] === 'rev-parse' ? A : '');
+  // Selected at 23:29: 26 minutes to 23:55.
+  assert.throws(() => prepareAuthorClone(7, A, run, { deadlineMs: 26 * minute, nowMs: () => fake, group }), /hết giờ/);
+  assert.ok(calls.length >= 1);
+  assert.ok(calls.every(c => c.ms <= c.left), 'no step may run past the deadline');
+  assert.ok(!calls.some(c => c.cmd === 'make'), 'make never starts after the deadline');
+  assert.ok(fake <= 26 * minute);
+  const result = runCheckInClone(7, { gh: fakeGh({ pr: pr() }), run, auto: true, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => fake, group, busy: () => null, spawn: () => { throw new Error('pnpm check must not start'); } });
+  assert.equal(result.status, 'refused');
+});
+
+test('r5 (#137 r2 P1): members that ignore SIGTERM are force-killed before the supervisor returns', () => {
+  const marker = `${40 + (process.pid % 7)}.${Date.now() % 100000}`;
+  const started = Date.now();
+  const result = runGroup('/bin/sh', ['-c', `trap '' TERM; sleep ${marker} & sleep ${marker}`], { timeoutMs: 500, graceMs: 1000, stdio: 'ignore' });
+  assert.equal(result.status, 124);
+  assert.ok(Date.now() - started < 10000);
+  assert.equal(spawnSync('pgrep', ['-f', `^sleep ${marker}`], { encoding: 'utf8' }).stdout.trim(), '', 'nothing survives');
 });
