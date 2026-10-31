@@ -225,7 +225,7 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   assert.equal(tick(deps({ hour: 9, minute: 20 })).status, 'waiting');
   assert.equal(tick(deps({ hour: 10, minute: 1 })).status, 'ran');
   assert.deepEqual(done, { merge: [1], review: [2, 3] });
-  assert.equal(tick(deps({ hour: 10, minute: 11 })).status, 'already-ran-this-hour');
+  assert.equal(tick(deps({ hour: 10, minute: 11 })).status, 'ran', 'the next tick keeps working (retro D1)');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });

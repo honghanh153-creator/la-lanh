@@ -50,7 +50,7 @@ Chất lượng review: Codex tìm ra lỗi thật ở mọi PR quy trình lớn
 
 | # | Đề xuất | Lợi ích | Rủi ro |
 |---|---|---|---|
-| D1 | Bỏ cổng "một lần mỗi giờ" (K6): tick chạy tiếp khi máy rảnh, khóa đã bảo đảm chạy nối tiếp | 1 PR/giờ → khoảng 4 PR/giờ | Tốn hạn mức Codex nhanh hơn (trần 12/ngày vẫn giữ) |
+| D1 | **Làm trong PR này:** bỏ cổng "một lần mỗi giờ" (K6); tick làm việc mỗi lần chạy khi máy rảnh, khóa bảo đảm chạy nối tiếp | 1 PR/giờ → khoảng 4 PR/giờ | Tốn hạn mức Codex nhanh hơn (trần 12/ngày vẫn giữ) |
 | D2 | Tick phát hiện lượt autopilot treo (không có tiến triển > 30 phút) và mở `ops-alert` | K1 không kéo dài qua đêm | Chỉ báo, không tự dừng session |
 | D3 | Plan 08:50 kèm dòng "máy đã ngủ từ … tới …" khi tick thấy khoảng trống heartbeat | Owner thấy K2 ngay | Không |
 | D4 | Tách phần khóa việc nặng của #134 (owner tạm dừng) thành PR riêng nếu vẫn cần sau #137 | Một cơ chế khóa cho mọi session | Trùng với `check.lock` của #137; cần so sánh trước |

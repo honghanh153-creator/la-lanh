@@ -42,7 +42,7 @@ Claude xong việc trên branch, push → node scripts/collab-check.mjs --pr N (
 | 08:50 | `collab-plan.mjs --make`: lập plan trong ngày, đăng lên issue "Kế hoạch chạy tự động hằng ngày", báo thông báo macOS |
 | 09:00–09:50 | Mỗi 10 phút kiểm owner trả lời. `Duyệt` → bắt đầu chạy ngay |
 | 10:00 | Chưa có trả lời → tự bắt đầu chạy theo plan |
-| Từ lúc bắt đầu → 23:30 | launchd tick mỗi 10 phút; lượt đầu tiên của mỗi giờ thì chạy (merge, Codex review). Claude autopilot chạy mỗi giờ (phút :37) |
+| Từ lúc bắt đầu → 23:30 | launchd tick mỗi 10 phút; mỗi tick làm việc khi máy rảnh (merge, author check, Codex review), không còn giới hạn một lần mỗi giờ (retro D1, 31.10.2026). Claude autopilot chạy mỗi giờ (phút :37) |
 | 23:55 | Cắt mọi lượt đang chạy dở; không bắt đầu lượt mới sau 23:30 |
 | 00:00–08:50 | Không chạy tự động |
 

@@ -69,7 +69,8 @@ export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skip
         return { status: 'plan-made' };
       }
       if (plan.state !== 'open') { heartbeat(plan.state); return { status: plan.state }; }
-      if (day.lastRunHour === now.hour) { heartbeat('already-ran-this-hour'); return { status: 'already-ran-this-hour' }; }
+      // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
+      // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const turns = turnsFor(gh.openPrs(), { dropped: plan.dropped });
       const area = activeArea(turns);
       const work = turns.filter(t => t.area === area);
