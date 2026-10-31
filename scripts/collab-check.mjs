@@ -12,11 +12,15 @@ import { agentMarker, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir
 // `pgrep -f` matched any command line that merely mentioned these words, including the agent
 // shell that ran pgrep itself, so every caller saw the machine as busy (31.10.2026).
 export const heavyPatterns = [
-  /^sh -c pnpm contracts:check/,
-  /^\S*\/(vitest|playwright|pytest)(\s|$)/,
-  /^\S*\/node\s+\S*(vitest|playwright)\S*(\s|$)/,
-  /^\S*\/python[\d.]*\s+(\S*\/pytest(\s|$)|-m\s+pytest)/,
-  /^uv run\s.*\spytest(\s|$)/,
+  // The `pnpm check` chain (package.json; today it starts with collab:test) and pnpm itself.
+  /^(\S*\/)?sh -c .*\bpnpm (collab:test|contracts:check)\b/,
+  /^(\S*\/)?pnpm\s+check(\s|$)/,
+  /^(\S*\/)?node\s+\S*pnpm\S*\s+check(\s|$)/,
+  // Test runners, bare or through node/python/uv.
+  /^(\S*\/)?(vitest|playwright|pytest)(\s|$)/,
+  /^(\S*\/)?node\s+\S*(vitest|playwright)\S*(\s|$)/,
+  /^(\S*\/)?python[\d.]*\s+(\S*\/pytest(\s|$)|-m\s+pytest)/,
+  /^(\S*\/)?uv\s+run\b.*\spytest(\s|$)/,
 ];
 export const isHeavy = args => heavyPatterns.some(pattern => pattern.test(String(args).trim()));
 export function machineBusy(run = execFileSync) {
