@@ -563,6 +563,36 @@ def test_the_procedure_orders_pg_hba_and_creates_the_role_stubs() -> None:
     assert stubs < text.index("CREATE ROLE lalanh_probe LOGIN") < text.index("alembic upgrade head")
 
 
+def test_the_procedure_keeps_the_server_log_before_teardown() -> None:
+    """Static check of the operator procedure (after the r50 attempt): the start-up controls run
+    before the first start, and teardown copies a sanitized server log to the receipt directory
+    outside $P before the cluster is stopped or $P is deleted, so a failed start keeps its cause."""
+
+    text = PROCEDURE.read_text()
+    receipt_dir = text.index("**Receipt directory** `$R`")
+    assert receipt_dir < text.index("1. **Tools.**")
+    assert "**outside** `$P`" in text[receipt_dir : text.index("1. **Tools.**")]
+    start = text.index("pg_ctl -D $P/data -l $P/server.log -w -t 60 start")
+    controls = ("postgres -D $P/data -C ssl", "$P/.s.PGSQL.55440", 's.bind(("127.0.0.1", 55440))')
+    assert all(text.index(control) < start for control in controls)
+    teardown = text.index("9. **Teardown**")
+    keep = text.index(
+        "python3 -I apps/api/scripts/sanitize_probe_server_log.py --log $P/server.log "
+        "--probe-dir $P --out $R/server-log.sanitized.txt",
+        teardown,
+    )
+    fail_closed = text.index("**Any other exit: fail closed.**", teardown)
+    stop = text.index("pg_ctl -D $P/data -m fast stop", teardown)
+    delete = text.index("If step 9.1 exited 0, delete `$P` entirely", teardown)
+    assert keep < fail_closed < stop < delete
+    assert "grep -iv password" not in text  # Codex r51: a line filter kept SQL and row ids
+    # Codex r53: this attempt's dumps live in $P, so both teardown branches remove them.
+    run = text.index("7. **Run:**")
+    assert "--basetemp=$P/pytest" in text[run : text.index("8. **Receipt**")]
+    assert "`$P/pytest` with this attempt's dumps" in text[fail_closed:stop]
+    assert (Path(__file__).resolve().parents[2] / "scripts/sanitize_probe_server_log.py").is_file()
+
+
 def test_the_checked_target_is_the_one_the_engine_and_tools_use(ca_file: Path) -> None:
     url = disposable_target(_probe_url(ca_file))
     effective = _effective_target(url.render_as_string(hide_password=False))
