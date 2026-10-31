@@ -64,7 +64,7 @@ export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skip
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
         const turns = turnsFor(gh.openPrs());
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns) });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)) });
         heartbeat('plan-made');
         return { status: 'plan-made' };
       }
@@ -114,6 +114,14 @@ export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skip
       return { status: 'error', error: clean(error.message, 300) };
     }
   });
+}
+
+// Ticks run every 10 minutes; a heartbeat older than 30 minutes means the Mac slept or was off.
+export function tickGap(last, nowMs = Date.now()) {
+  const at = Date.parse(last?.at ?? '');
+  if (!Number.isFinite(at) || nowMs - at < 30 * 60000) return null;
+  const hhmm = ms => new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(ms);
+  return { from: hhmm(at), to: hhmm(nowMs) };
 }
 
 export function opsAlert(gh, text) {

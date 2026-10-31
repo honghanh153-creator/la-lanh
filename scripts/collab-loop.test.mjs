@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { prTurn, turnsFor, tick } = await import('./collab-turn.mjs');
+const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const { planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
@@ -413,4 +413,13 @@ test('#140: the budget ends at the exact 23:55:00 instant, with room for cleanup
   // Deadline plus the 5 s grace and the kill poll stay before the cutoff.
   assert.ok(nowMs() + budget + 5000 + 1000 <= cutoff, `budget ${budget} runs past 23:55`);
   assert.ok(budget > 24 * 60000);
+});
+
+test('retro D3: the plan says when the Mac stopped ticking', () => {
+  const now = Date.parse('2026-10-31T09:41:00+07:00');
+  assert.equal(tickGap({ at: new Date(now - 10 * 60000).toISOString() }, now), null);
+  assert.deepEqual(tickGap({ at: '2026-10-30T21:25:43Z' }, now), { from: '04:25', to: '09:41' });
+  const body = renderPlan({ date: '2026-10-31', hour: 9, minute: 41 }, [], { codexLeft: 12, gap: { from: '04:25', to: '09:41' } });
+  assert.match(body, /Máy không chạy tick từ 04:25 tới 09:41/);
+  assert.doesNotThrow(() => trust.assertAgentBody(body));
 });
