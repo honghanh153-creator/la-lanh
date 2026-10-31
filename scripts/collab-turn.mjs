@@ -6,6 +6,17 @@ import { areaOrder, classifyArea, clean, dayStatePath, integration, isOwnPr, mak
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 
 export const codexDailyCap = 12;
+// Owner, 31.10.2026: the cap is flexible but owner-confirmed. The morning plan estimates the day's
+// Codex runs (+20% for surprises); "Duyệt" on the plan confirms it, a raise in chat is written to
+// the day state by Claude. Without a confirmation the default cap stays.
+export const roundsPerReview = 1.5;
+export const surpriseBuffer = 1.2;
+export function codexEstimate(turns) {
+  // A merge-ready PR already has its approval and needs no Codex run (#157 r1).
+  const reviews = turns.filter(t => t.turn !== 'hold' && t.turn !== 'merge').length;
+  return Math.ceil(reviews * roundsPerReview * surpriseBuffer);
+}
+export const dailyCap = day => Math.max(codexDailyCap, Number(day?.cap) || 0);
 
 export function prTurn(pr, { dropped = [] } = {}) {
   const head = pr.headRefOid;
@@ -67,7 +78,7 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
     // The phone-visible board must never break a tick.
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, cap: dailyCap(counts), failures: counts.failures ?? 0, ...info }); } catch {}
     };
     try {
       // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.
@@ -76,10 +87,16 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
         const turns = turnsFor(gh.openPrs());
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)) });
+        const estimate = codexEstimate(turns);
+        writeJson(dayPath, { ...readJson(dayPath, day), estimate });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, dailyCap(day) - (day.codexRuns ?? 0)), estimate, gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)) });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
         return { status: 'plan-made' };
+      }
+      if (plan.reason === 'approve') {
+        const current = readJson(dayPath, day);
+        if (current.estimate && !current.cap) writeJson(dayPath, { ...current, cap: current.estimate, capBy: 'owner Duyệt on the plan' });
       }
       if (plan.state !== 'open') {
         heartbeat(plan.state);
@@ -109,7 +126,7 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       }
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);
-        if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= codexDailyCap || late()) break;
+        if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= dailyCap(fresh) || late()) break;
         show({ status: 'running', doing: `Codex review #${t.number}`, expectMinutes: 30, area, turns, done });
         const result = review(t.number, { auto: true, now: time() });
         done.push({ pr: t.number, review: result });
@@ -127,7 +144,7 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures });
       heartbeat(errors.length ? 'ran-with-errors' : 'ran');
       // A review waiting while the daily Codex cap is spent is a budget stop, not "no work" (#145 r2).
-      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= codexDailyCap;
+      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= dailyCap(readJson(dayPath, day));
       show({ status: errors.length ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: errors.length ? JSON.stringify(errors) : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
       log(JSON.stringify(done));

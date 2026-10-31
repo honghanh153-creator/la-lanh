@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
+const { codexEstimate, dailyCap, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const { planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
@@ -481,6 +481,45 @@ test('busy check matches the running program, not a command line that mentions i
   const ps = () => `  ${process.pid} sh -c pnpm contracts:check\n  41405 /bin/zsh -c pgrep -f contracts:check\n  9 /bin/zsh\n`;
   assert.equal(machineBusy(ps), null, 'its own process and agent shells are ignored');
   assert.match(machineBusy(() => '  77 sh -c pnpm contracts:check && x\n'), /^77 sh -c pnpm contracts:check/);
+});
+
+test('owner-confirmed cap: the plan estimates Codex runs with a 20% buffer; Duyệt confirms it', () => {
+  const turns = Array.from({ length: 10 }, (_, i) => ({ number: i, turn: 'codex-review' })).concat([{ number: 99, turn: 'hold' }]);
+  assert.equal(codexEstimate(turns), 18, '10 PRs x 1.5 rounds x 1.2');
+  assert.equal(dailyCap({}), 12);
+  assert.equal(dailyCap({ cap: 40 }), 40, 'a raise confirmed in chat');
+  assert.equal(dailyCap({ cap: 5 }), 12, 'never below the default');
+  const body = renderPlan({ date: '2026-11-14', hour: 8, minute: 50 }, [], { codexLeft: 12, estimate: 18 });
+  assert.match(body, /Ước tính hôm nay: khoảng 18 lượt Codex/);
+  assert.doesNotThrow(() => trust.assertAgentBody(body));
+
+  const date = '2026-11-14';
+  trust.writeJson(trust.dayStatePath(date), { codexRuns: 0, estimate: 18 });
+  const plan = { authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` };
+  const reply = { authorAssociation: 'OWNER', createdAt: `${date}T02:05:00Z`, body: 'Duyệt' };
+  const gh = { ...fakeGh({ pr: pr(), open: [] }), json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments: [plan, reply] }) };
+  tick({ gh, now: { date, hour: 9, minute: 15 }, merge: () => ({}), review: () => ({}) });
+  assert.equal(trust.readJson(trust.dayStatePath(date), {}).cap, 18);
+  const waitDate = '2026-11-15';
+  trust.writeJson(trust.dayStatePath(waitDate), { codexRuns: 0, estimate: 18 });
+  const plan2 = { ...plan, body: `${trust.agentMarker} daily-plan date=${waitDate} -->`, createdAt: `${waitDate}T01:50:00Z` };
+  const gh2 = { ...gh, json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments: [plan2] }) };
+  tick({ gh: gh2, now: { date: waitDate, hour: 10, minute: 5 }, merge: () => ({}), review: () => ({}) });
+  assert.equal(trust.readJson(trust.dayStatePath(waitDate), {}).cap, undefined, 'no confirmation, default cap');
+});
+
+test('#157 r1: the plan names the enforced cap; merge-ready PRs need no review; the board shows the real cap', () => {
+  assert.equal(codexEstimate([{ turn: 'merge' }, { turn: 'merge' }, { turn: 'hold' }]), 0);
+  assert.equal(codexEstimate([{ turn: 'codex-review' }]), 2);
+  const small = renderPlan({ date: '2026-11-17', hour: 8, minute: 50 }, [], { codexLeft: 12, estimate: 2 });
+  assert.match(small, /khoảng 2 lượt Codex[\s\S]*đồng ý trần \*\*12 lượt\*\*/);
+  const date = '2026-11-17';
+  trust.writeJson(trust.dayStatePath(date), { codexRuns: 13, cap: 18 });
+  const comments = [{ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` }];
+  const gh = { ...fakeGh({ pr: pr(), open: [] }), json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments }) };
+  const caps = [];
+  tick({ gh, now: { date, hour: 15, minute: 5 }, board: info => caps.push(info.cap), merge: () => ({}), review: () => ({}) });
+  assert.ok(caps.length && caps.every(c => c === 18), String(caps));
 });
 
 test('plan top-up: fewer than two machine jobs before 23:30 asks Claude to add the next task', () => {
