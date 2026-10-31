@@ -118,6 +118,9 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       }
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: turns.filter(t => t.turn === 'claude-fix'),
+        // Plan top-up (owner 31.10.2026): fewer than two machine jobs left while the day still runs,
+        // so Claude adds the next backlog task in priority order before the machine goes idle.
+        topUp: turns.filter(t => machineTurns.has(t.turn)).length < 2 && !late(),
       });
       const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
