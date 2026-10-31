@@ -78,6 +78,11 @@ describe("InsightsPage", () => {
     expect(await screen.findByText("Mạch suy nghĩ")).toBeInTheDocument();
     expect(screen.getByText("Vùng nở rộng")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Thêm.*sinh/ })).not.toBeInTheDocument();
+    // #143 E4: engine version and config hash stay folded under "Chi tiết kỹ thuật".
+    const tech = screen.getByText("Chi tiết kỹ thuật").closest("details");
+    expect(tech).not.toBeNull();
+    expect(tech).not.toHaveAttribute("open");
+    expect(tech).toContainElement(screen.getByText(/Engine 2\.10\.03 · abc12345/));
   });
 
   it("asks only for the missing place, not an already supplied birth time", async () => {

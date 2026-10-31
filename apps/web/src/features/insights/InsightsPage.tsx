@@ -132,10 +132,12 @@ export function InsightsPage() {
             <strong>Xem bối cảnh chung của hôm nay</strong>
             <ArrowRight aria-hidden="true" />
           </Link>
-          <section className="provenance-strip">
+          {/* Engine version and config hash are for support, not the reader: folded like Tarot's (#143 E4). */}
+          <details className="provenance-strip">
+            <summary>Chi tiết kỹ thuật</summary>
             <p>{traditionCopy[tradition].label} · {insight.data.reading.provenance.zodiac}</p>
             <small>Engine {insight.data.reading.provenance.version} · {insight.data.reading.config_hash.slice(0, 8)}</small>
-          </section>
+          </details>
         </>
       ) : null}
       <AppNav />
