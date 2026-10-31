@@ -11,7 +11,7 @@ const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const { planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { checkBudgetMs, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { checkBudgetMs, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -449,4 +449,23 @@ test('#141 r1 P1: missing tools go through the tick failure path and alert on th
   assert.equal(alerts.length, 0);
   run(12);
   assert.equal(alerts.length, 1, 'the second consecutive failure alerts');
+});
+
+test('busy check matches the running program, not a command line that mentions it (31.10)', () => {
+  for (const heavy of [
+    'sh -c pnpm contracts:check && pnpm verify:runtime && pnpm grammar:check',
+    '/Users/x/apps/api/.venv/bin/python /Users/x/apps/api/.venv/bin/pytest -q',
+    'uv run --directory apps/api pytest',
+    '/x/node/bin/node /x/node_modules/.bin/../vitest/vitest.mjs run',
+    '/x/node/bin/node /x/node_modules/@playwright/test/cli.js test',
+  ]) assert.ok(isHeavy(heavy), heavy);
+  for (const light of [
+    '/bin/zsh -c source snap.sh && eval \'pgrep -f "contracts:check|vitest|pytest|playwright"\'',
+    'node /x/scripts/collab-check.mjs --pr 1 --clone',
+    'grep -E vitest|pytest',
+    'tail -f /x/check-139.log',
+  ]) assert.ok(!isHeavy(light), light);
+  const ps = () => `  ${process.pid} sh -c pnpm contracts:check\n  41405 /bin/zsh -c pgrep -f contracts:check\n  9 /bin/zsh\n`;
+  assert.equal(machineBusy(ps), null, 'its own process and agent shells are ignored');
+  assert.match(machineBusy(() => '  77 sh -c pnpm contracts:check && x\n'), /^77 sh -c pnpm contracts:check/);
 });
