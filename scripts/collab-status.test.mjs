@@ -73,3 +73,18 @@ test('every tick updates the board, before heavy work too, and a board failure n
   const result = tick({ gh, now: { date, hour: 12, minute: 5 }, board: () => { throw new Error('GitHub down'); }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   assert.notEqual(result.status, 'error', 'a failing board does not fail the tick');
 });
+
+test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not "no work"', () => {
+  const date = '2026-11-13';
+  trust.writeJson(trust.dayStatePath(date), { codexRuns: 12 });
+  const comments = [{ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` }];
+  const checked = pr({ number: 9, comments: [{ authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${trust.agentMarker} x -->` }] });
+  const gh = {
+    pr: () => checked, openPrs: () => [checked], raw: () => '', comment: () => {},
+    json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments }),
+  };
+  const shown = [];
+  tick({ gh, now: { date, hour: 15, minute: 5 }, board: info => shown.push(info.status), merge: () => ({}), review: () => ({ status: 'posted' }) });
+  assert.deepEqual(shown, ['cap']);
+  assert.match(renderBoard({ now, status: 'cap' }), /HẾT LƯỢT CODEX HÔM NAY/);
+});

@@ -13,6 +13,7 @@ const STATES = {
   waiting: ['🟡 CHỜ DUYỆT PLAN', 'chưa có trả lời; 10:00 tự chạy'],
   held: ['⏸ DỪNG THEO OWNER', 'owner trả lời Giữ hôm nay'],
   closed: ['🌙 NGOÀI GIỜ', 'chạy từ 08:50 tới 23:30'],
+  cap: ['⏸ HẾT LƯỢT CODEX HÔM NAY', 'còn PR chờ review; ngày mai chạy tiếp từ 08:50'],
   idle: ['⚪ KHÔNG CÓ VIỆC', 'không PR nào đang tới lượt máy làm'],
   error: ['🔴 LỖI', 'tick không chạy được, xem lỗi bên dưới'],
 };
