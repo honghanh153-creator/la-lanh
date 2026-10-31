@@ -65,6 +65,8 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 5. **Trong ngày.** Một quyết định mới của owner được ghi ngay vào file này hoặc vào issue hub #2, để mọi session đều đọc được (bài học từ #136).
 6. **Cuối ngày.** Claude nhìn lại quy trình trong ngày, viết report ở `docs/reviews/YYYY-MM-DD-collab-loop-retro.md` (số liệu, chỗ kẹt, đã sửa, đề xuất) và mở PR `area:ops` để Codex review qua vòng tự động.
 
+7. **Bổ sung plan khi còn giờ** (owner 31.10.2026). Khi máy còn dưới 2 việc (check/review/merge) mà chưa tới 23:30, tick ghi `topUp: true` trong hàng đợi của Claude. Claude lấy việc kế tiếp theo thứ tự ưu tiên: issue task mở có nhãn `area:*` và không `needs-owner` trước, rồi việc `auto: yes` trong backlog. Mỗi việc đi qua checklist quyết định (Q1–Q5). Claude đăng một comment "Bổ sung plan HH:MM" trên issue plan (mang marker agent, không dùng cú pháp trả lời của owner), ghi việc gì, vì sao chọn, và mở PR để máy chạy tiếp. Việc cần owner (copy mới, dữ liệu cá nhân, hướng sản phẩm) vẫn mở PR nhưng gắn `needs-owner`.
+
 ### 3.3 Plan trong ngày gồm
 
 - Hàng đợi PR theo thứ tự ưu tiên: quy trình/ops (sửa vòng tự động, CI, test) → content → privacy → tính năng mới (owner giao Claude tự tối ưu, 30.10.2026); trong cùng nhóm, PR cũ trước.

@@ -482,3 +482,13 @@ test('busy check matches the running program, not a command line that mentions i
   assert.equal(machineBusy(ps), null, 'its own process and agent shells are ignored');
   assert.match(machineBusy(() => '  77 sh -c pnpm contracts:check && x\n'), /^77 sh -c pnpm contracts:check/);
 });
+
+test('plan top-up: fewer than two machine jobs before 23:30 asks Claude to add the next task', () => {
+  const date = '2026-11-12';
+  const one = [pr({ number: 1, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }), pr({ number: 2 })];
+  tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, true);
+  const busy = [pr({ number: 3 }), pr({ number: 4 }), pr({ number: 5 })];
+  tick({ gh: plannedGh(busy, date), now: { date, hour: 16, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, false);
+});
