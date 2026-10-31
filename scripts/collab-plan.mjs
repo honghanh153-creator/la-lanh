@@ -29,14 +29,15 @@ export function planState(now, comments = []) {
   return { state, reason: action ?? (state === 'open' ? 'auto-10h' : 'waiting-owner'), plan, dropped: [...dropped].sort((a, b) => a - b) };
 }
 
-export function renderPlan(now, turns, { codexLeft, gap = null }) {
+export function renderPlan(now, turns, { codexLeft, estimate = null, gap = null }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
   const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\|/g, '\\|')} |`);
   return [
     `## Plan ${now.date}`,
     '',
     'Thứ tự ưu tiên: quy trình (ops) → content → privacy → tính năng mới. Trong nhóm, PR cũ trước.',
-    `Lượt Codex tự động còn hôm nay: ${codexLeft}/12. Chạy tới 23:30, không merge vào main, không deploy.`,
+    `Lượt Codex tự động còn hôm nay: ${codexLeft}. Chạy tới 23:30, không merge vào main, không deploy.`,
+    ...(estimate ? [`**Ước tính hôm nay: khoảng ${estimate} lượt Codex** (mỗi PR ~1,5 lượt, đã cộng 20% phát sinh). Trả lời \`Duyệt\` là đồng ý trần ${estimate} lượt hôm nay; không trả lời thì trần giữ mặc định 12.`] : []),
     // A long pause before the plan means the Mac slept or was off (retro D3, 31.10.2026).
     ...(gap ? [`**Máy không chạy tick từ ${gap.from} tới ${gap.to}** (Mac ngủ hoặc tắt), nên plan có thể trễ.`] : []),
     '',
@@ -80,9 +81,9 @@ export function readPlanStatus(gh, now = vnNow()) {
   return { issue: number, ...planState(now, issue.comments ?? []) };
 }
 
-export function makePlan(gh, now, turns, { codexLeft, gap = null }) {
+export function makePlan(gh, now, turns, { codexLeft, estimate = null, gap = null }) {
   const number = planIssue(gh);
-  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, gap }));
+  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, estimate, gap }));
   return number;
 }
 
