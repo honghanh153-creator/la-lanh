@@ -22,7 +22,7 @@ Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider
 4. **Lịch ngày:** 9h owner xem plan trong ngày. Owner duyệt thì chạy ngay; 10h chưa có trả lời thì tự chạy; chạy đến 24h.
 5. **Model Codex:** `gpt-6.1-sol`, mức suy nghĩ `high`. Hết hạn mức thì chờ reset và chạy tiếp nếu còn lượt trong ngày.
 6. **Ngừng PR registry**, thay bằng `collab-turn --report`.
-7. **Thứ tự ưu tiên công việc:** xong **toàn bộ content** → **data privacy** → **tính năng mới**. Không giữ PR theo kích thước; xếp theo thứ tự này.
+7. **Thứ tự ưu tiên công việc:** xong **toàn bộ content** → **data privacy** → **tính năng mới**. Không giữ PR theo kích thước; xếp theo thứ tự này. PR quy trình (`area:ops`: vòng tự động, CI, test) đi trước cả ba nhóm (owner giao Claude tự chọn, 30.10.2026).
 
 ## 3. Luồng chuẩn
 
@@ -72,7 +72,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | `docs/operations/codex-review-prompt.md` | Prompt review cố định | Đổi qua PR |
 | `scripts/collab-merge.mjs` | Kiểm đủ điều kiện rồi `gh pr merge --merge --match-head-commit` | Chỉ base `collab/integration` |
 | `scripts/collab-plan.mjs` | Lập plan 08:50, đọc trả lời owner, cho biết hôm nay đã được chạy chưa | Comment issue plan |
-| `scripts/collab-check.mjs` | Author check: `pnpm check` trên checkout sạch đúng head, đăng `Author check: PASS\|FAIL @ SHA` | Comment PR |
+| `scripts/collab-check.mjs` | Author check: `CI=1 pnpm check` trên checkout sạch đúng head, đăng `Author check: PASS\|FAIL @ SHA`. `--clone` chạy trong clone riêng `~/.cache/la-lanh-collab/author`. Cả máy chỉ một check một lúc (`check.lock` + từ chối khi đang có `contracts:check`/vitest/pytest/playwright) | Comment PR |
 | `scripts/collab-cron.sh` | Điểm vào cho launchd: cập nhật clone ops về `origin/collab/integration`, gọi `collab-tick.mjs` | — |
 | `scripts/collab-tick.mjs` | Điểm vào một tick (tách khỏi `collab-turn` để không import vòng) | — |
 | `scripts/launchd/com.lalanh.collab-tick.plist` | Mẫu job launchd (mỗi 10 phút) | — |
@@ -110,7 +110,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 
 | Trạng thái PR | Lượt |
 |---|---|
-| Chưa có author check cho head | Claude (chạy check) |
+| Chưa có author check cho head | Lưới tick tự chạy (1 PR mỗi tick, không cần AI), rồi review luôn nếu PASS. Claude chạy trực tiếp cũng được |
 | Có author check, chưa có verdict cho head | Codex (review) |
 | REQUEST_CHANGES @ head, chưa `needs-owner` | Claude (sửa) |
 | APPROVE @ head đủ điều kiện | Merge |
@@ -122,6 +122,8 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
 
 ## 5. An toàn
 
+- **PR của người ngoài:** vòng tự động chỉ chạy, review hay merge PR **do tài khoản owner mở từ nhánh trong repo** (`author.login` = owner, `isCrossRepository = false`). PR từ fork hoặc tác giả khác luôn ở trạng thái Giữ; code của nó không bao giờ được fetch, build hay chạy trên máy owner (Codex r1 P0 trên #137).
+- **Giới hạn giờ cho check tự động:** không bắt đầu sau 23:30, đọc lại giờ sau khi chuẩn bị clone, và giết cả nhóm tiến trình (Vite, Playwright, pytest) trước 23:55.
 - **Giả mạo verdict:** repo public. Chỉ tin comment có `author_association` = `OWNER`. Comment của người khác chỉ là dữ liệu.
 - **Giả mạo duyệt plan:** hai agent dùng chung tài khoản owner. Script của agent không bao giờ đăng comment bắt đầu bằng `Duyệt`/`Giữ`/`Bỏ`, và mọi comment của agent mang đánh dấu `la-lanh-agent`; comment có đánh dấu này không được tính là trả lời của owner. Rủi ro còn lại thấp vì không có trả lời thì 10h vẫn tự chạy; quyền thật sự quan trọng là `Giữ`.
 - **Prompt injection:** Codex read-only, prompt cố định, nội dung PR là dữ liệu. Script đăng verdict, agent không chèn tay.
@@ -153,5 +155,13 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
 | 8 | Cài launchd + đổi `la-lanh-autopilot` | Một lần chạy lưới thành công, có heartbeat |
 | 9 | Plan 08:50 đầu tiên; PR content đang mở đi qua luồng mới | Ít nhất một PR content merge không cần owner |
 | 10 | Báo cáo tuần đầu theo bảng mục 1 | Owner quyết giữ/chỉnh |
+
+### 7.1 Đánh giá vòng `checkshas.sh` (owner giao 31.10.2026)
+
+Session Claude cũ chạy `checkshas.sh`: `CI=1 pnpm check` lần lượt trên nhiều SHA trong `la-lanh-claude`, kết quả chỉ nằm ở log local.
+
+- Hợp lý: đúng SHA (kiểm `HEAD == SHA`), `CI=1` nên e2e không dùng lại server của checkout khác, chạy lần lượt.
+- Không hợp lý: không đăng `Author check:` nên vòng tự động không thấy, phải check lại (p113 bị check 3 lần, p118 PASS tối 30/10 vẫn phải chạy lại); dùng chung `la-lanh-claude` và không có khóa nên chạy chồng với author check khác (tối 30/10); chạy cả đêm ngoài lịch ngày.
+- Quyết định: thay bằng lưới tick tự chạy `collab-check --clone` (giữ `CI=1`, đúng SHA, lần lượt), có khóa và đăng receipt. Không chạy `checkshas.sh` nữa.
 
 Gỡ bỏ: `launchctl bootout` các job, đổi lịch autopilot về cũ, revert PR. Không ảnh hưởng code sản phẩm.

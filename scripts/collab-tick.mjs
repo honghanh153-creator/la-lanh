@@ -3,11 +3,12 @@
 import { pathToFileURL } from 'node:url';
 import { runReview } from './codex-review.mjs';
 import { runMerge } from './collab-merge.mjs';
+import { runCheckInClone } from './collab-check.mjs';
 import { clean, makeGh } from './collab-trust.mjs';
 import { opsAlert, tick } from './collab-turn.mjs';
 
 export function runTick(gh = makeGh()) {
-  return tick({ gh, review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text) });
+  return tick({ gh, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text) });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

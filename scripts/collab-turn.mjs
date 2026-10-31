@@ -2,7 +2,7 @@
 import { closeSync, mkdirSync, openSync, rmSync, statSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { areaOrder, classifyArea, clean, dayStatePath, integration, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { areaOrder, classifyArea, clean, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 
 export const codexDailyCap = 12;
@@ -11,6 +11,7 @@ export function prTurn(pr, { dropped = [] } = {}) {
   const head = pr.headRefOid;
   const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason });
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
+  if (!isOwnPr(pr)) return out('hold', 'PR không phải của owner hoặc từ fork: không chạy, không review');
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
@@ -51,7 +52,7 @@ function withLock(fn) {
   try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
-export function tick({ gh = makeGh(), now, clock, review, merge, alert, log = () => {} } = {}) {
+export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skipped' }), review, merge, alert, log = () => {} } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -78,7 +79,15 @@ export function tick({ gh = makeGh(), now, clock, review, merge, alert, log = ()
         if (late()) break;
         done.push({ pr: t.number, merge: merge(t.number) });
       }
-      for (const t of work.filter(t => t.turn === 'codex-review')) {
+      // Author checks need no AI: the tick runs one per run in the dedicated clone, then reviews it.
+      const checked = [];
+      for (const t of work.filter(t => t.turn === 'claude-check').slice(0, 1)) {
+        if (late()) break;
+        const result = check(t.number, { auto: true, clock: time });
+        done.push({ pr: t.number, check: result });
+        if (result?.status === 'PASS') checked.push(t);
+      }
+      for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);
         if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= codexDailyCap || late()) break;
         const result = review(t.number, { auto: true, now: time() });
@@ -87,9 +96,9 @@ export function tick({ gh = makeGh(), now, clock, review, merge, alert, log = ()
         if (['limit', 'busy'].includes(result?.status)) break;
       }
       writeJson(join(stateDir, 'claude-queue.json'), {
-        at: new Date().toISOString(), plan: plan.state, area, items: work.filter(t => t.turn.startsWith('claude-')),
+        at: new Date().toISOString(), plan: plan.state, area, items: work.filter(t => t.turn === 'claude-fix'),
       });
-      const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error');
+      const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
       writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures });
       heartbeat(errors.length ? 'ran-with-errors' : 'ran');
