@@ -36,6 +36,11 @@ Run Q1–Q5 of the checklist. All "no" → decide, do, report. UX improvements t
 done without waiting. New user-facing copy, personal data, product direction, cost or anything
 irreversible → ask once, with numbered options and a recommendation, and keep working meanwhile.
 
+From the third automatic review round (owner, 31.10.2026), Claude decides: a PR labelled
+`needs-owner` only by the two-round cap is fixed and unlabelled when the finding is critical or
+user-impacting, or when Q1–Q5 are all "no"; comment "Round N: Claude decides per checklist".
+Copy approval and any Q1–Q5 "yes" still wait for the owner.
+
 ## Never
 
 Merge to `main`, release, deploy, touch production or real user data, change IAM/secrets/budget,

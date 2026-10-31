@@ -24,6 +24,8 @@ Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider
 6. **Ngừng PR registry**, thay bằng `collab-turn --report`.
 7. **Thứ tự ưu tiên công việc:** xong **toàn bộ content** → **data privacy** → **tính năng mới**. Không giữ PR theo kích thước; xếp theo thứ tự này. PR quy trình (`area:ops`: vòng tự động, CI, test) đi trước cả ba nhóm (owner giao Claude tự chọn, 30.10.2026).
 
+10. **Từ vòng review tự động thứ 3** (owner 31.10.2026): Claude tự quyết theo checklist, không chờ owner. Nhãn `needs-owner` do trần 2 vòng được Claude gỡ khi lỗi nghiêm trọng hoặc ảnh hưởng người dùng (sửa tiếp dù nhiều vòng), hoặc khi Q1–Q5 đều "không"; ghi "Round N: Claude decides per checklist" trên PR. Duyệt copy và mọi câu Q1–Q5 "có" vẫn chờ owner.
+
 ## 3. Luồng chuẩn
 
 ```
