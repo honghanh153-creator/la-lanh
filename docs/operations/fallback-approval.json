@@ -73,7 +73,7 @@
    "gate_version": "conditional-reflection-v4",
    "renderer_version": "radar-readable-v2",
    "tables": {
-    "app.domains.radar.reading#function_literals": "28efec0d3bf05d9e719da8f0ad6704c187edc10870d576e1934edd7463e66b63",
+    "app.domains.radar.reading#function_literals": "8fed6a2db8c9af4c9f7fb61b0f1e6536437ad9d03e76524db565b9f8a7b24bc5",
     "app.domains.radar.reading.AREAS": "5ce93cdf560cb656358c182db874e5171b525216ac2634b14b8ced921331fa06",
     "app.domains.radar.reading.ASPECT_CHANNELS": "7b716946333191662850df8c2bab53317a45f7c928bee165d01e1b9f90eea815",
     "app.domains.radar.reading.ASPECT_LABELS": "6451608df6ce08324ba2456735b8ce29917936987bc2e250a0976f7112bdcf99",
@@ -237,6 +237,7 @@
   "function_literals": "docs/reviews/2026-10-22-function-literal-pin.md: in-function copy (non-ASCII literals) of the pinned Daily, Tarot and Radar modules pinned at c3fab3311d65, byte-identical to the production release code; no copy change (audit O04)",
   "owner_receipt": "docs/reviews/production-release-2026-10-26/receipt.md (previous: docs/reviews/production-release-2026-10-21/receipt.md)",
   "owner_workbook": "docs/reviews/production-release-2026-10-16/content-approval.xlsx (owner content review of 16/10/2026)",
+  "radar_deep_dive_138": "PR #139 / issue #138: DEEP_DIVE practice actions keep the follow-up question (\"Sau đó đối chiếu phản hồi thật…\") on the first action only, so the page no longer repeats a sentence; no new sentence. Owner approved this copy in chat on 31/10/2026 (\"duyệt copy #139\"); approved_release unchanged.",
   "radar_readable_v2": "docs/reviews/2026-10-29-hop-gu-readable.md: Hợp gu renderer radar-readable-v2 / conditional-reflection-v4 / radar-tier-ref-v1 (named tiers, context areas, threshold-gated friction, one Xem thêm layer), built on the owner's order of 29/10/2026 from the owner's feedback and the research report Phần B; the new copy is NOT yet read by the owner and must be read before any release; approved_release unchanged; Codex r55 (30/10/2026): UNCLEAR_FIT_HEADLINES, NO_CLEAR_FIT_REASON, UNCLEAR_FIT_LABEL and BALANCED_FIT_COPY for pairs without a good theme (draft copy, owner reading pending with the rest of US-22), tests/radar/test_readable_r55.py",
   "release": "production release 89ebdb0cf6b9 (docs/reviews/production-release-2026-10-26/); previous c3fab3311d65 (docs/reviews/production-release-2026-10-21/)",
   "tarot_action_copy": "docs/reviews/2026-10-22-t02-t03-tarot-copy-workbook.md and .xlsx: T02/T03 scenes and steps decided row by row under the owner's delegation of 26/10/2026 (Codex polish of four rows reviewed by Claude); wiring edits listed in the workbook document (19 topic openings, one shortened step); Codex r47 fixes listed there (24 preparation steps and one choice step chosen from the stance, 10 openings made event-neutral, partner-only relationships scenes gated on a named partner, two existing Roast lead-ins reused for cautious readings); tarot-action-copy-v1, renderer v8 / knowledge v6, not yet released",
