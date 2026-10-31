@@ -14,7 +14,7 @@ const STATES = {
   held: ['⏸ DỪNG THEO OWNER', 'owner trả lời Giữ hôm nay'],
   closed: ['🌙 NGOÀI GIỜ', 'chạy từ 08:50 tới 23:30'],
   cap: ['⏸ HẾT LƯỢT CODEX HÔM NAY', 'còn PR chờ review; ngày mai chạy tiếp từ 08:50'],
-  idle: ['⚪ KHÔNG CÓ VIỆC', 'không PR nào đang tới lượt máy làm'],
+  idle: ['⚪ HẾT VIỆC TRONG PLAN', 'Claude bổ sung việc kế tiếp từ backlog (§3.2 mục 7)'],
   error: ['🔴 LỖI', 'tick không chạy được, xem lỗi bên dưới'],
 };
 

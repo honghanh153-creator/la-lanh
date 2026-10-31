@@ -520,4 +520,12 @@ test('#157 r1: the plan names the enforced cap; merge-ready PRs need no review; 
   const caps = [];
   tick({ gh, now: { date, hour: 15, minute: 5 }, board: info => caps.push(info.cap), merge: () => ({}), review: () => ({}) });
   assert.ok(caps.length && caps.every(c => c === 18), String(caps));
+test('plan top-up: fewer than two machine jobs before 23:30 asks Claude to add the next task', () => {
+  const date = '2026-11-12';
+  const one = [pr({ number: 1, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }), pr({ number: 2 })];
+  tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, true);
+  const busy = [pr({ number: 3 }), pr({ number: 4 }), pr({ number: 5 })];
+  tick({ gh: plannedGh(busy, date), now: { date, hour: 16, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, false);
 });
