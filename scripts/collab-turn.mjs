@@ -12,7 +12,8 @@ export const codexDailyCap = 12;
 export const roundsPerReview = 1.5;
 export const surpriseBuffer = 1.2;
 export function codexEstimate(turns) {
-  const reviews = turns.filter(t => t.turn !== 'hold').length;
+  // A merge-ready PR already has its approval and needs no Codex run (#157 r1).
+  const reviews = turns.filter(t => t.turn !== 'hold' && t.turn !== 'merge').length;
   return Math.ceil(reviews * roundsPerReview * surpriseBuffer);
 }
 export const dailyCap = day => Math.max(codexDailyCap, Number(day?.cap) || 0);
@@ -77,7 +78,7 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
     // The phone-visible board must never break a tick.
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, cap: dailyCap(counts), failures: counts.failures ?? 0, ...info }); } catch {}
     };
     try {
       // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.

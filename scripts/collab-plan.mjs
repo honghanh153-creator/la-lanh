@@ -37,7 +37,8 @@ export function renderPlan(now, turns, { codexLeft, estimate = null, gap = null 
     '',
     'Thứ tự ưu tiên: quy trình (ops) → content → privacy → tính năng mới. Trong nhóm, PR cũ trước.',
     `Lượt Codex tự động còn hôm nay: ${codexLeft}. Chạy tới 23:30, không merge vào main, không deploy.`,
-    ...(estimate ? [`**Ước tính hôm nay: khoảng ${estimate} lượt Codex** (mỗi PR ~1,5 lượt, đã cộng 20% phát sinh). Trả lời \`Duyệt\` là đồng ý trần ${estimate} lượt hôm nay; không trả lời thì trần giữ mặc định 12.`] : []),
+    // The approval names the cap that will be enforced: never below the default 12 (#157 r1).
+    ...(estimate ? [`**Ước tính hôm nay: khoảng ${estimate} lượt Codex** (mỗi PR ~1,5 lượt, đã cộng 20% phát sinh). Trả lời \`Duyệt\` là đồng ý trần **${Math.max(12, estimate)} lượt** hôm nay; không trả lời thì trần giữ mặc định 12.`] : []),
     // A long pause before the plan means the Mac slept or was off (retro D3, 31.10.2026).
     ...(gap ? [`**Máy không chạy tick từ ${gap.from} tới ${gap.to}** (Mac ngủ hoặc tắt), nên plan có thể trễ.`] : []),
     '',

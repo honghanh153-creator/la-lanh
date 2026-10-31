@@ -507,3 +507,17 @@ test('owner-confirmed cap: the plan estimates Codex runs with a 20% buffer; Duy�
   tick({ gh: gh2, now: { date: waitDate, hour: 10, minute: 5 }, merge: () => ({}), review: () => ({}) });
   assert.equal(trust.readJson(trust.dayStatePath(waitDate), {}).cap, undefined, 'no confirmation, default cap');
 });
+
+test('#157 r1: the plan names the enforced cap; merge-ready PRs need no review; the board shows the real cap', () => {
+  assert.equal(codexEstimate([{ turn: 'merge' }, { turn: 'merge' }, { turn: 'hold' }]), 0);
+  assert.equal(codexEstimate([{ turn: 'codex-review' }]), 2);
+  const small = renderPlan({ date: '2026-11-17', hour: 8, minute: 50 }, [], { codexLeft: 12, estimate: 2 });
+  assert.match(small, /khoảng 2 lượt Codex[\s\S]*đồng ý trần \*\*12 lượt\*\*/);
+  const date = '2026-11-17';
+  trust.writeJson(trust.dayStatePath(date), { codexRuns: 13, cap: 18 });
+  const comments = [{ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` }];
+  const gh = { ...fakeGh({ pr: pr(), open: [] }), json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments }) };
+  const caps = [];
+  tick({ gh, now: { date, hour: 15, minute: 5 }, board: info => caps.push(info.cap), merge: () => ({}), review: () => ({}) });
+  assert.ok(caps.length && caps.every(c => c === 18), String(caps));
+});
