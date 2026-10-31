@@ -468,9 +468,7 @@ class DeterministicVietnameseRenderer:
         # arena made the meaning gate reject every limited Jyotish reading, so the overview
         # answered 503 and the page showed a retry that could never succeed (#143 E2).
         arena = (
-            SemanticArena.STRUCTURAL
-            if plan.tradition.value == "jyotish"
-            else semantic_arena(lens)
+            SemanticArena.STRUCTURAL if plan.tradition.value == "jyotish" else semantic_arena(lens)
         )
         return InterpretationFrame(
             hook=hook,
