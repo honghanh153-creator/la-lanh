@@ -72,6 +72,9 @@ jobs:
           pnpm collab:test
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         if: needs.scope.outputs.level == 'full'
+        with:
+          # Same interpreter as the Mac author check: the OpenAPI export differs under 3.12.
+          python-version: '3.13'
       - name: Full author check (same command as the Mac author check)
         if: needs.scope.outputs.level == 'full'
         env:
