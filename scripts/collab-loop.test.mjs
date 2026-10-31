@@ -11,7 +11,7 @@ const { prTurn, turnsFor, tick } = await import('./collab-turn.mjs');
 const { planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { renderCheck, runCheck, withCheckLock } = await import('./collab-check.mjs');
+const { checkBudgetMs, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -20,7 +20,7 @@ let clock = 0;
 const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
 const outsider = body => ({ ...owner(body), authorAssociation: 'NONE' });
 const check = (sha, status = 'PASS') => owner(renderCheck({ head: sha, status, exitCode: status === 'PASS' ? 0 : 1, seconds: 1, date: 'x' }));
-const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: 'PR body', ...extra });
+const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: 'PR body', ...extra });
 
 function fakeGh(state) {
   const calls = [];
@@ -339,4 +339,43 @@ test('r3: author check runs alone, with CI=1, in the given checkout', () => {
   assert.equal(trust.parseAuthorCheck(gh.calls.find(c => c[0] === 'comment')[3]).status, 'PASS');
   const nested = withCheckLock(() => runCheck(7, { gh, git, busy: () => null, spawn: () => ({ status: 0 }) }));
   assert.equal(nested.status, 'busy', 'a second check waits for the lock');
+});
+
+test('r4 (P0): fork or outside PRs are never checked, reviewed or merged', () => {
+  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  for (const hostile of [pr({ isCrossRepository: true, comments: approved }), pr({ author: { login: 'someone-else' }, comments: approved }), pr({ author: undefined, comments: approved })]) {
+    assert.equal(prTurn(hostile).turn, 'hold');
+    assert.ok(!mergeGate(hostile).ok);
+    const never = () => { throw new Error('must not run anything for an untrusted PR'); };
+    assert.equal(runCheckInClone(7, { gh: fakeGh({ pr: hostile }), run: never, busy: () => null }).status, 'refused');
+    assert.equal(runCheck(7, { gh: fakeGh({ pr: hostile }), git: args => (args[0] === 'rev-parse' ? A : ''), busy: () => null, spawn: never }).status, 'refused');
+    assert.equal(review.runReview(7, { gh: fakeGh({ pr: { ...hostile, comments: [check(A)] } }), run: never }).status, 'refused');
+  }
+  assert.deepEqual(turnsFor([pr({ number: 9, title: 'ops(collab): x', isCrossRepository: true })]).map(t => t.turn), ['hold'], 'an ops title from a fork gets no priority');
+});
+
+test('r4 (P1): automatic checks start nothing after 23:30 and end by 23:55', () => {
+  const at = (hour, minute) => () => ({ date: 'd', hour, minute });
+  assert.equal(checkBudgetMs({ auto: true, clock: at(11, 0) }), 90 * 60000);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 20) }), 35 * 60000);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 30) }), 0);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(8, 0) }), 0);
+  assert.equal(checkBudgetMs({ auto: false, clock: at(23, 50) }), 90 * 60000);
+  // Selected at 23:20, ready after a slow clone/install at 23:33: refused before pnpm check starts.
+  const times = [at(23, 20)(), at(23, 33)()];
+  const spawned = [];
+  const run = (cmd, args) => (cmd === '/usr/bin/git' && args[0] === 'rev-parse' ? `${A}\n` : '');
+  const result = runCheckInClone(7, { gh: fakeGh({ pr: pr() }), run, auto: true, clock: () => times.shift() ?? at(23, 40)(), busy: () => null, spawn: (...a) => { spawned.push(a); return { status: 0 }; } });
+  assert.equal(result.status, 'refused');
+  assert.deepEqual(spawned, []);
+});
+
+test('r4 (P1): the deadline kills the whole process group', () => {
+  // A marker built at run time, so pgrep cannot match the shell that launched the tests.
+  const marker = `${30 + (process.pid % 7)}.${Date.now() % 100000}`;
+  const started = Date.now();
+  runGroup('/bin/sh', ['-c', `sleep ${marker} & sleep ${marker}`], { timeoutMs: 1000 });
+  assert.ok(Date.now() - started < 15000, 'returns at the deadline');
+  const left = spawnSync('pgrep', ['-f', `^sleep ${marker}`], { encoding: 'utf8' }).stdout.trim();
+  assert.equal(left, '', 'no child outlives the check');
 });

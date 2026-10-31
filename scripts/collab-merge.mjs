@@ -2,13 +2,14 @@
 // Usage: node scripts/collab-merge.mjs --pr N [--dry-run]
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { agentMarker, clean, fixForwardIssue, integration, isSha, makeGh, repo, reviewState, stateDir, writeJson } from './collab-trust.mjs';
+import { agentMarker, clean, fixForwardIssue, integration, isOwnPr, isSha, makeGh, repo, reviewState, stateDir, writeJson } from './collab-trust.mjs';
 
 export function mergeGate(pr) {
   const reasons = [];
   const head = pr.headRefOid;
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (!isSha(head)) reasons.push('không đọc được head SHA');
+  if (!isOwnPr(pr)) reasons.push('PR không phải của owner hoặc từ fork');
   if (pr.state && pr.state !== 'OPEN') reasons.push(`PR đang ${pr.state}`);
   if (pr.baseRefName !== integration) reasons.push(`base là ${pr.baseRefName}, chỉ merge vào ${integration}`);
   if (pr.isDraft) reasons.push('draft');

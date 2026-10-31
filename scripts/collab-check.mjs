@@ -6,13 +6,36 @@ import { spawnSync, execFileSync } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { agentMarker, clean, integration, isSha, makeGh, repo, stateDir } from './collab-trust.mjs';
+import { agentMarker, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 
 // Any heavy test process anywhere on the machine (pnpm check starts with contracts:check).
 export const heavyPattern = 'contracts:check|vitest|pytest|playwright';
 export function machineBusy(run = execFileSync) {
   try { return String(run('pgrep', ['-fl', heavyPattern], { encoding: 'utf8' })).trim().split('\n')[0].slice(0, 120) || null; }
   catch { return null; }
+}
+
+// Run a command in its own process group and kill the whole group at the deadline or on exit,
+// so Vite, Playwright or pytest children never outlive the check.
+const groupRunner = `
+const { spawn } = require('node:child_process');
+const [ms, cmd, ...args] = process.argv.slice(1);
+const child = spawn(cmd, args, { stdio: 'inherit', detached: true });
+const kill = sig => { try { process.kill(-child.pid, sig); } catch {} };
+const timer = setTimeout(() => { kill('SIGTERM'); setTimeout(() => kill('SIGKILL'), 10000).unref(); }, Number(ms));
+child.on('exit', code => { clearTimeout(timer); kill('SIGTERM'); process.exit(code ?? 124); });
+`;
+export function runGroup(cmd, args, { cwd, env, timeoutMs }, spawn = spawnSync) {
+  return spawn(process.execPath, ['-e', groupRunner, String(Math.max(1000, timeoutMs)), cmd, ...args], { cwd, env, stdio: 'inherit' });
+}
+
+// Automatic checks start nothing after 23:30 and end by 23:55 (plan §3.1); direct runs get 90 minutes.
+export function checkBudgetMs({ auto, clock = vnNow }) {
+  if (!auto) return 90 * 60000;
+  const t = clock();
+  const minute = t.hour * 60 + t.minute;
+  if (minute < 8 * 60 + 50 || minute >= 23 * 60 + 30) return 0;
+  return Math.min(90, 23 * 60 + 55 - minute) * 60000;
 }
 
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
@@ -40,19 +63,22 @@ export function renderCheck({ head, status, exitCode, seconds, date }) {
 }
 
 export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8' })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy } = {}) {
-  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy }));
+  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, budget: () => 90 * 60000 }));
 }
 
-function checkOnce(number, { gh, cwd, git, spawn, now, busy }) {
+function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget }) {
   const pr = gh.pr(number);
+  if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   const head = git(['rev-parse', 'HEAD']);
   if (!isSha(pr.headRefOid) || head !== pr.headRefOid) return { status: 'refused', reason: `HEAD ${head.slice(0, 12)} không phải head của PR ${String(pr.headRefOid).slice(0, 12)}` };
   if (git(['status', '--porcelain'])) return { status: 'refused', reason: 'checkout có thay đổi chưa commit' };
   const other = busy();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
+  const timeoutMs = budget();
+  if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
   const started = now();
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
-  const result = spawn('pnpm', ['check'], { cwd, stdio: 'inherit', timeout: 90 * 60000, env: { ...process.env, CI: '1' } });
+  const result = runGroup('pnpm', ['check'], { cwd, timeoutMs, env: { ...process.env, CI: '1' } }, spawn);
   const exitCode = result.status ?? 1;
   // A file the check rewrote means the receipt would not describe the committed head.
   const dirty = Boolean(git(['status', '--porcelain']));
@@ -82,15 +108,19 @@ export function prepareAuthorClone(number, head, run = execFileSync) {
   return dir;
 }
 
-export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, ...rest } = {}) {
+export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, auto = false, clock = vnNow, ...rest } = {}) {
   const pr = gh.pr(number);
   if (!isSha(pr.headRefOid)) throw new Error('PR head SHA unavailable.');
+  // Never fetch, build or run a PR that is not the owner's own branch (fork or outside author).
+  if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
+  if (checkBudgetMs({ auto, clock }) <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
   // Refuse before touching the clone when another check owns the machine.
   const other = (rest.busy ?? machineBusy)();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
   return withCheckLock(() => {
     const cwd = prepareAuthorClone(number, pr.headRefOid, run);
-    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy });
+    // The clock is read again after the clone and install, which can take minutes.
+    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, budget: () => checkBudgetMs({ auto, clock }) });
   });
 }
 

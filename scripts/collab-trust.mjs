@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 export const repo = 'honghanh153-creator/la-lanh';
 export const integration = 'collab/integration';
+export const ownerLogin = repo.split('/')[0];
 export const agentMarker = '<!-- la-lanh-agent';
 export const stateDir = process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cache', 'la-lanh-collab');
 export const blockingP2 = new Set(['privacy', 'security', 'user_copy']);
@@ -20,6 +21,10 @@ export function clean(value, limit = 4000) {
   const text = String(value ?? '').replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029]/g, '');
   return text.length > limit ? `${text.slice(0, limit)} [...truncated]` : text;
 }
+
+// The loop runs PR code (author checks) and reviews PR text only for the owner's own branches.
+// The repo is public: a fork PR could carry a hostile Makefile or test, so it is never touched.
+export const isOwnPr = pr => pr?.author?.login === ownerLogin && pr?.isCrossRepository === false;
 
 // The repo is public: anyone may comment. Only the owner account (shared by both agents) counts.
 export const isTrusted = comment => comment?.authorAssociation === 'OWNER';
@@ -113,9 +118,9 @@ export function makeGh(run = execFileSync) {
     raw: call,
     json: args => JSON.parse(call(args)),
     pr: number => JSON.parse(call(['pr', 'view', String(Number(number)), '--repo', repo, '--json',
-      'number,title,url,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,body'])),
+      'number,title,url,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,body,author,isCrossRepository'])),
     openPrs: () => JSON.parse(call(['pr', 'list', '--repo', repo, '--state', 'open', '--limit', '100', '--json',
-      'number,title,url,isDraft,baseRefName,headRefName,headRefOid,labels,createdAt,comments'])),
+      'number,title,url,isDraft,baseRefName,headRefName,headRefOid,labels,createdAt,comments,author,isCrossRepository'])),
     comment: (kind, number, body) => call([kind, 'comment', String(Number(number)), '--repo', repo, '--body-file', '-'], assertAgentBody(body)),
   };
 }

@@ -2,7 +2,7 @@
 import { closeSync, mkdirSync, openSync, rmSync, statSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { areaOrder, classifyArea, clean, dayStatePath, integration, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { areaOrder, classifyArea, clean, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 
 export const codexDailyCap = 12;
@@ -11,6 +11,7 @@ export function prTurn(pr, { dropped = [] } = {}) {
   const head = pr.headRefOid;
   const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason });
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
+  if (!isOwnPr(pr)) return out('hold', 'PR không phải của owner hoặc từ fork: không chạy, không review');
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
@@ -82,7 +83,7 @@ export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skip
       const checked = [];
       for (const t of work.filter(t => t.turn === 'claude-check').slice(0, 1)) {
         if (late()) break;
-        const result = check(t.number);
+        const result = check(t.number, { auto: true, clock: time });
         done.push({ pr: t.number, check: result });
         if (result?.status === 'PASS') checked.push(t);
       }
