@@ -16,6 +16,8 @@ Trả lời lần lượt. Gặp **"có"** ở câu nào thì dừng ở câu đ
 | Q5 | Có **tốn tiền, không hoàn tác được, hoặc ảnh hưởng người dùng thật ngay** không? | Hỏi owner. |
 | — | Cả năm câu đều "không" | **Tự quyết, làm, báo lại** trong tóm tắt cuối lượt. |
 
+**Cải thiện trải nghiệm người dùng (owner, 31.10.2026):** việc giúp người dùng dùng app dễ, rõ, êm hơn mà không vướng Q1–Q5 thì agent **chủ động làm luôn**, không chờ được giao: sửa lỗi hiển thị, trạng thái lỗi/đang tải rõ ràng hơn, bỏ thông tin kỹ thuật lộ ra người dùng, tránh lặp, tăng khả năng tiếp cận, tăng tốc. Nếu việc đó cần câu chữ mới thì vẫn qua Q2 (bản nháp + owner duyệt copy).
+
 ## 2. Danh sách cấm (luôn cần lệnh riêng của owner)
 
 - Merge vào `main`, release, deploy, SSH hay chạm server/database thật.
@@ -34,8 +36,12 @@ Trả lời lần lượt. Gặp **"có"** ở câu nào thì dừng ở câu đ
 | Sửa fix-forward P2 | Đã có verdict; không đổi copy | #140 |
 | Hướng kỹ thuật khi dữ liệu thiếu | Không đổi dữ liệu thu thập | E1 #143: giờ khoảng vẫn đọc hành tinh, bỏ nhà/cung mọc |
 | Việc local, miễn phí, riêng tư | Không chạm production | Cài job launchd, dọn lượt autopilot treo |
+| Cải thiện trải nghiệm không đổi câu chữ | Q1–Q5 đều "không" | Thống nhất mức dữ liệu trên trang Khám phá, giấu footer kỹ thuật (#143 E4) |
 
 ## 4. Input cần có trước khi quyết
+
+Trước khi push: chạy nhanh lint/format/test của đúng phần đã sửa (vài giây), để author check không fail vì lỗi định dạng (bài học #144).
+
 
 | Input | Lấy ở đâu |
 |---|---|
