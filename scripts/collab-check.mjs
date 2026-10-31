@@ -45,12 +45,26 @@ export function runGroup(cmd, args, { cwd, env, timeoutMs, graceMs = 5000, stdio
 }
 
 // Automatic checks start nothing after 23:30 and end by 23:55 (plan §3.1); direct runs get 90 minutes.
-export function checkBudgetMs({ auto, clock = vnNow }) {
+// The budget ends at the exact 23:55:00 instant minus the cleanup reserve, so SIGTERM, the grace
+// period and SIGKILL all finish before the cutoff (#140).
+export const cleanupReserveMs = 15000;
+export function checkBudgetMs({ auto, clock = vnNow, nowMs = Date.now }) {
   if (!auto) return 90 * 60000;
   const t = clock();
   const minute = t.hour * 60 + t.minute;
   if (minute < 8 * 60 + 50 || minute >= 23 * 60 + 30) return 0;
-  return Math.min(90, 23 * 60 + 55 - minute) * 60000;
+  const byMinute = Math.min(90, 23 * 60 + 55 - minute) * 60000;
+  const cutoff = Date.parse(`${t.date}T23:55:00+07:00`);
+  const exact = Number.isFinite(cutoff) ? cutoff - nowMs() : byMinute;
+  return Math.max(0, Math.min(byMinute, exact) - cleanupReserveMs);
+}
+
+// launchd and agent shells can run with a narrow PATH; tests call system tools such as
+// /sbin/sha256sum, and a missing tool gave false FAIL receipts on 31.10.2026 (#139, #120).
+export const systemDirs = ['/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+export function withSystemPath(path = '') {
+  const parts = String(path).split(':').filter(Boolean);
+  return [...parts, ...systemDirs.filter(dir => !parts.includes(dir))].join(':');
 }
 
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
@@ -93,7 +107,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget }) {
   if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
   const started = now();
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
-  const result = runGroup('pnpm', ['check'], { cwd, timeoutMs, env: { ...process.env, CI: '1' } }, spawn);
+  const result = runGroup('pnpm', ['check'], { cwd, timeoutMs, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
   const exitCode = result.status ?? 1;
   // A file the check rewrote means the receipt would not describe the committed head.
   const dirty = Boolean(git(['status', '--porcelain']));
@@ -150,13 +164,13 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   const other = (rest.busy ?? machineBusy)();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
   const nowMs = rest.nowMs ?? Date.now;
-  const deadlineMs = nowMs() + checkBudgetMs({ auto, clock });
+  const deadlineMs = nowMs() + checkBudgetMs({ auto, clock, nowMs });
   return withCheckLock(() => {
     let cwd;
     try { cwd = prepareAuthorClone(number, pr.headRefOid, run, { deadlineMs, nowMs, group: rest.group ?? runGroup }); }
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // The clock is read again after the clone and install, which can take minutes.
-    const budget = () => Math.min(checkBudgetMs({ auto, clock }), deadlineMs - nowMs());
+    const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
     return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, budget });
   });
 }

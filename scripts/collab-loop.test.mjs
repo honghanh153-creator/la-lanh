@@ -7,11 +7,11 @@ import { spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { prTurn, turnsFor, tick } = await import('./collab-turn.mjs');
+const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const { planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { checkBudgetMs, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { checkBudgetMs, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -225,7 +225,7 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   assert.equal(tick(deps({ hour: 9, minute: 20 })).status, 'waiting');
   assert.equal(tick(deps({ hour: 10, minute: 1 })).status, 'ran');
   assert.deepEqual(done, { merge: [1], review: [2, 3] });
-  assert.equal(tick(deps({ hour: 10, minute: 11 })).status, 'already-ran-this-hour');
+  assert.equal(tick(deps({ hour: 10, minute: 11 })).status, 'ran', 'the next tick keeps working (retro D1)');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
   assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });
@@ -335,6 +335,7 @@ test('r3: author check runs alone, with CI=1, in the given checkout', () => {
   const result = runCheck(7, { gh, git, cwd: '/tmp/author', busy: () => null, spawn: (cmd, args, opts) => { spawned.push({ cmd, args, opts }); return { status: 0 }; } });
   assert.equal(result.status, 'PASS');
   assert.equal(spawned[0].opts.env.CI, '1');
+  assert.ok(spawned[0].opts.env.PATH.split(':').includes('/sbin'), 'system tools (sha256sum) are reachable');
   assert.equal(spawned[0].opts.cwd, '/tmp/author');
   assert.equal(trust.parseAuthorCheck(gh.calls.find(c => c[0] === 'comment')[3]).status, 'PASS');
   const nested = withCheckLock(() => runCheck(7, { gh, git, busy: () => null, spawn: () => ({ status: 0 }) }));
@@ -356,8 +357,8 @@ test('r4 (P0): fork or outside PRs are never checked, reviewed or merged', () =>
 
 test('r4 (P1): automatic checks start nothing after 23:30 and end by 23:55', () => {
   const at = (hour, minute) => () => ({ date: 'd', hour, minute });
-  assert.equal(checkBudgetMs({ auto: true, clock: at(11, 0) }), 90 * 60000);
-  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 20) }), 35 * 60000);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(11, 0) }), 90 * 60000 - 15000);
+  assert.equal(checkBudgetMs({ auto: true, clock: at(23, 20) }), 35 * 60000 - 15000);
   assert.equal(checkBudgetMs({ auto: true, clock: at(23, 30) }), 0);
   assert.equal(checkBudgetMs({ auto: true, clock: at(8, 0) }), 0);
   assert.equal(checkBudgetMs({ auto: false, clock: at(23, 50) }), 90 * 60000);
@@ -404,4 +405,48 @@ test('r5 (#137 r2 P1): members that ignore SIGTERM are force-killed before the s
   assert.equal(result.status, 124);
   assert.ok(Date.now() - started < 10000);
   assert.equal(spawnSync('pgrep', ['-f', `^sleep ${marker}`], { encoding: 'utf8' }).stdout.trim(), '', 'nothing survives');
+});
+
+test('#140: the budget ends at the exact 23:55:00 instant, with room for cleanup', () => {
+  const nowMs = () => Date.parse('2026-11-09T23:29:59+07:00');
+  const budget = checkBudgetMs({ auto: true, clock: () => ({ date: '2026-11-09', hour: 23, minute: 29 }), nowMs });
+  const cutoff = Date.parse('2026-11-09T23:55:00+07:00');
+  // Deadline plus the 5 s grace and the kill poll stay before the cutoff.
+  assert.ok(nowMs() + budget + 5000 + 1000 <= cutoff, `budget ${budget} runs past 23:55`);
+  assert.ok(budget > 24 * 60000);
+});
+
+test('retro D3: the plan says when the Mac stopped ticking', () => {
+  const now = Date.parse('2026-10-31T09:41:00+07:00');
+  assert.equal(tickGap({ at: new Date(now - 10 * 60000).toISOString() }, now), null);
+  assert.deepEqual(tickGap({ at: '2026-10-30T21:25:43Z' }, now), { from: '04:25', to: '09:41' });
+  const body = renderPlan({ date: '2026-10-31', hour: 9, minute: 41 }, [], { codexLeft: 12, gap: { from: '04:25', to: '09:41' } });
+  assert.match(body, /Máy không chạy tick từ 04:25 tới 09:41/);
+  assert.doesNotThrow(() => trust.assertAgentBody(body));
+});
+
+test('false FAIL 31.10: pnpm check always sees the system tool directories', () => {
+  assert.equal(withSystemPath('/a:/usr/bin'), '/a:/usr/bin:/bin:/usr/sbin:/sbin');
+  assert.equal(withSystemPath(''), '/usr/bin:/bin:/usr/sbin:/sbin');
+});
+
+test('false FAIL 31.10: the tick names missing tools instead of running checks', async () => {
+  const { missingTools, requiredTools } = await import('./collab-tick.mjs');
+  assert.ok(requiredTools.includes('pnpm') && requiredTools.includes('sha256sum'));
+  assert.deepEqual(missingTools('/nonexistent'), requiredTools);
+  assert.deepEqual(missingTools('/x', () => ''), []);
+});
+
+test('#141 r1 P1: missing tools go through the tick failure path and alert on the second', () => {
+  const date = '2026-11-10';
+  const alerts = [];
+  const gh = { ...fakeGh({ pr: pr(), open: [] }), json: () => { throw new Error('no GitHub call before the preflight'); } };
+  const run = hour => tick({ gh, now: { date, hour, minute: 5 }, preflight: () => ['uv'], merge: () => ({}), review: () => ({}), alert: text => alerts.push(text) });
+  const first = run(11);
+  assert.equal(first.status, 'error');
+  assert.match(first.error, /thiếu công cụ trên PATH: uv/);
+  assert.match(trust.readJson(join(trust.stateDir, 'heartbeat.json'), {}).status, /thiếu công cụ/);
+  assert.equal(alerts.length, 0);
+  run(12);
+  assert.equal(alerts.length, 1, 'the second consecutive failure alerts');
 });

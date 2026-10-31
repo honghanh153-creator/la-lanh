@@ -52,7 +52,7 @@ function withLock(fn) {
   try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
-export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skipped' }), review, merge, alert, log = () => {} } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = () => ({ status: 'skipped' }), review, merge, alert, log = () => {} } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -61,15 +61,19 @@ export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skip
     const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
     const heartbeat = status => writeJson(join(stateDir, 'heartbeat.json'), { at: new Date().toISOString(), vn: now, status });
     try {
+      // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.
+      const missing = preflight();
+      if (missing.length) throw new Error(`thiếu công cụ trên PATH: ${missing.join(', ')}`);
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
         const turns = turnsFor(gh.openPrs());
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns) });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)) });
         heartbeat('plan-made');
         return { status: 'plan-made' };
       }
       if (plan.state !== 'open') { heartbeat(plan.state); return { status: plan.state }; }
-      if (day.lastRunHour === now.hour) { heartbeat('already-ran-this-hour'); return { status: 'already-ran-this-hour' }; }
+      // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
+      // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const turns = turnsFor(gh.openPrs(), { dropped: plan.dropped });
       const area = activeArea(turns);
       const work = turns.filter(t => t.area === area);
@@ -113,6 +117,14 @@ export function tick({ gh = makeGh(), now, clock, check = () => ({ status: 'skip
       return { status: 'error', error: clean(error.message, 300) };
     }
   });
+}
+
+// Ticks run every 10 minutes; a heartbeat older than 30 minutes means the Mac slept or was off.
+export function tickGap(last, nowMs = Date.now()) {
+  const at = Date.parse(last?.at ?? '');
+  if (!Number.isFinite(at) || nowMs - at < 30 * 60000) return null;
+  const hhmm = ms => new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(ms);
+  return { from: hhmm(at), to: hhmm(nowMs) };
 }
 
 export function opsAlert(gh, text) {
