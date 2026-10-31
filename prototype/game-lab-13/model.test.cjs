@@ -1,0 +1,17 @@
+const test=require('node:test');const assert=require('node:assert/strict');const M=require('./model.js');
+const expected={photo:['linh','binh','duy'],route:['linh','ha','duy']};
+for(const mode of ['photo','route'])for(const [index,c]of M[mode].entries()){
+ test(`${c.id}: exactly one answer derived from public fixtures`,()=>{assert.deepEqual(M.candidates(c,mode),[expected[mode][index]]);assert.equal(new Set(c.rows.map(r=>r.id)).size,6);});
+ test(`${c.id}: all six guesses stay ungraded before complete evidence and pins`,()=>{for(const p of M.profiles){assert.equal(M.judge(c,mode,p.id,[],[]).status,'insufficient');for(const missing of c.required){const partial=c.required.filter(k=>k!==missing);assert.equal(M.judge(c,mode,p.id,partial,partial).status,'insufficient');assert.equal(M.judge(c,mode,p.id,c.required,partial).status,'insufficient');}}});
+ test(`${c.id}: only evidence-supported answer advances; wrong guesses do not`,()=>{const progress=M.createProgress();progress[mode].unlocked=index;for(const p of M.profiles){const result=M.judge(c,mode,p.id,c.required,c.required);assert.equal(result.status,p.id===expected[mode][index]?'solved':'retry');if(result.status==='retry')assert(!M.complete(progress,mode,index,result));}const correct=M.judge(c,mode,expected[mode][index],c.required,c.required);assert(M.complete(progress,mode,index,correct));assert(progress[mode].completed.includes(index));assert.equal(progress[mode].unlocked,Math.min(index+1,2));});
+ test(`${c.id}: quizzes use readable fixture values`,()=>{c.required.forEach(k=>{const q=M.clueQuiz(c,mode,k);assert(q.answer>=q.min&&q.answer<=q.max);});});
+}
+test('photo2 no single clue identifies the answer',()=>{const c=M.photo[1];for(const k of c.required)assert(M.candidates(c,'photo',[k]).length>1);});
+test('photo3 first two tables leave two candidates',()=>{assert.deepEqual(M.candidates(M.photo[2],'photo',['badge','book']),['an','duy']);});
+test('route checkpoints require a return journey',()=>{assert.equal(M.earliest(M.route[1],1,0),5);assert.equal(M.earliest(M.route[0],1,0),1);});
+test('gate allows crossing already started; a late arrival waits',()=>{assert.equal(M.earliest(M.route[2],1,2),2);assert.equal(M.earliest(M.route[2],0,3),8);assert.equal(M.earliest(M.route[2],3,0),8);});
+test('waiting at destination is valid, not suspicious',()=>{const c=M.route[2];assert.equal(M.earliest(c,1,2),2);assert.equal(c.rows[1].minutes,7);assert(!M.candidates(c,'route').includes('binh'));});
+test('personality changes do not affect any solution',()=>{const before=[...M.photo.map(c=>M.candidates(c,'photo')),...M.route.map(c=>M.candidates(c,'route'))];const old=M.profiles.map(p=>({...p}));M.profiles.forEach(p=>{p.sign='không dùng';p.trait='ngược lại';p.tendency='bất kỳ';});assert.deepEqual([...M.photo.map(c=>M.candidates(c,'photo')),...M.route.map(c=>M.candidates(c,'route'))],before);old.forEach((p,i)=>Object.assign(M.profiles[i],p));});
+test('locked level cannot be completed directly',()=>{const p=M.createProgress();assert(!M.complete(p,'photo',2,{status:'solved'}));assert.deepEqual(p,M.createProgress());assert(!M.complete(p,'wrong',0,{status:'solved'}));});
+test('invalid candidate cannot silently solve',()=>{assert.equal(M.judge(M.photo[0],'photo','unknown',['badge'],['badge']).status,'invalid');});
+test('photo source totals are five and actual fixture subtraction has one solution',()=>{for(const c of M.photo)for(const key of c.required)assert.equal(c.proof[key].reduce((a,b)=>a+b,0),5);});
