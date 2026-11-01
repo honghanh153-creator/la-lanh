@@ -1,20 +1,28 @@
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import delete, or_, select, update
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.accounts.postgres import account_transaction
 from app.domains.astro.models import ChartType, DateOnlySunResult, NatalChart
-from app.domains.birth.errors import BirthProfileChanged
+from app.domains.birth.errors import (
+    BirthDateChangeLimited,
+    BirthDateChangeRequiresEdit,
+    BirthDateUnchanged,
+    BirthProfileChanged,
+    BirthProfileNotFound,
+)
 from app.domains.birth.models import BirthSnapshotRecord, BirthSupplement, BirthSupplementStored
-from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
+from app.domains.birth.tables import BirthDateChangeRow, BirthProfileRow, ChartSnapshotRow
 from app.domains.content_rewrite.send_fence import drain_sends, pending_sends
 from app.domains.content_rewrite.tables import ContentRewriteJobRow
 from app.domains.daily.tables import DailyNoteRow
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.experiments.tables import DailyExperimentRow
+from app.domains.guest.models import OnboardingStatus
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.radar.tables import RadarRequestRow
 from app.domains.readings.tables import ReadingPlanRow, ReadingProjectionRow
@@ -94,29 +102,9 @@ class PostgresBirthRepository:
                     return _record(
                         current_snapshot, self._envelope, profile_revision=profile.updated_at
                     ), True
-
-                # A different date is a different reading subject, not an optional copy update.
-                # Keep immutable history, but detach live pointers to the previous subject.
-                await session.execute(
-                    update(ReadingProjectionRow)
-                    .where(
-                        ReadingProjectionRow.guest_id == record.guest_id,
-                        ReadingProjectionRow.profile_id == profile.id,
-                    )
-                    .values(
-                        active_revision_id=None,
-                        available_revision_id=None,
-                        acknowledged_aura_transition_id=None,
-                        updated_at=datetime.now(UTC),
-                    )
-                )
-                profile.profile_level = 1
-                profile.birth_time_ciphertext = None
-                profile.birth_place_ciphertext = None
-                profile.time_precision = "unknown"
-                profile.place_display_name = None
-                profile.timezone_id = None
-                profile.supplement_consent_version = None
+                # US-23 D4: a different date replaces the subject, which only the explicit,
+                # confirmed and fenced edit may do. A retry or crafted request never does.
+                raise BirthDateChangeRequiresEdit
 
             if existing is not None:
                 profile.current_snapshot_id = existing.id
@@ -320,6 +308,126 @@ class PostgresBirthRepository:
         await drain_sends(self._sessions, sends)
         return stored
 
+    async def recent_date_changes(self, guest_id: UUID, *, since: datetime) -> int:
+        async with self._sessions() as session:
+            used = await session.scalar(
+                select(func.count())
+                .select_from(BirthDateChangeRow)
+                .where(
+                    BirthDateChangeRow.guest_id == guest_id, BirthDateChangeRow.changed_at > since
+                )
+            )
+        return int(used or 0)
+
+    async def replace_date(
+        self,
+        record: BirthSnapshotRecord,
+        *,
+        expected_revision: datetime,
+        now: datetime,
+        limit: int,
+        window: timedelta,
+    ) -> BirthSnapshotRecord:
+        """Phase 2 of a birth-date correction (US-23): one transaction under the guest lock.
+
+        The new date-only chart was computed and encrypted beforehand, outside any lock. Here the
+        revision fence, the unchanged-date rule and the rolling limit are checked again, the
+        admitted provider sends are captured, the old subject and everything derived from it are
+        deleted (saved notes and share links stay, D2), time/place/deep consent are cleared, the
+        new snapshot becomes current, and the change and its data-free journal entry are written.
+        Phase 3 drains the captured sends after commit, before the caller reports success.
+        """
+
+        guest_id = record.guest_id
+        # The SQLite writer reservation is taken before the first read (SQLite ignores FOR
+        # UPDATE), so a second tab waits and then reads the committed revision instead of failing
+        # its read-to-write upgrade with "database is locked" (Codex r55).
+        async with account_transaction(self._sessions) as session:
+            await session.scalar(
+                select(GuestSessionRow).where(GuestSessionRow.id == guest_id).with_for_update()
+            )
+            profile = await session.scalar(
+                select(BirthProfileRow).where(BirthProfileRow.guest_id == guest_id)
+            )
+            if profile is None or profile.current_snapshot_id is None:
+                raise BirthProfileNotFound
+            if profile.updated_at != expected_revision:
+                raise BirthProfileChanged
+            current = await session.get(ChartSnapshotRow, profile.current_snapshot_id)
+            if current is None:
+                raise RuntimeError("current snapshot could not be resolved")
+            date_context = f"birth-date:{guest_id}".encode()
+            if self._envelope.decrypt(
+                current.birth_date_ciphertext, context=date_context
+            ) == self._envelope.decrypt(record.birth_date_ciphertext, context=date_context):
+                raise BirthDateUnchanged
+            await session.execute(
+                delete(BirthDateChangeRow).where(
+                    BirthDateChangeRow.guest_id == guest_id,
+                    BirthDateChangeRow.changed_at <= now - window,
+                )
+            )
+            used = await session.scalar(
+                select(func.count())
+                .select_from(BirthDateChangeRow)
+                .where(BirthDateChangeRow.guest_id == guest_id)
+            )
+            if int(used or 0) >= limit:
+                raise BirthDateChangeLimited
+            sends = await pending_sends(session, (guest_id,))
+            await _replace_subject(session, profile)
+            snapshot = ChartSnapshotRow(
+                id=record.id,
+                guest_id=guest_id,
+                profile_id=profile.id,
+                input_hash=record.input_hash,
+                birth_date_ciphertext=record.birth_date_ciphertext,
+                schema_version="1.0.0",
+                engine_version=record.result.provenance.version,
+                calculation_profile=record.result.provenance.profile,
+                result_payload=None,
+                result_ciphertext=_encrypt_result(record, self._envelope),
+                created_at=record.created_at,
+            )
+            session.add(snapshot)
+            await session.flush([snapshot])
+            profile.current_snapshot_id = snapshot.id
+            profile.updated_at = datetime.now(UTC)
+            session.add(BirthDateChangeRow(guest_id=guest_id, changed_at=now))
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    session, ErasureKind.BIRTH_DATE_REPLACED, guest_id, now
+                )
+            await session.flush()
+            stored = _record(snapshot, self._envelope, profile_revision=profile.updated_at)
+        await drain_sends(self._sessions, sends)
+        return stored
+
+    async def replay_date_replacement(self, guest_id: UUID) -> None:
+        """Re-apply a journaled date correction to a restored copy that predates it.
+
+        The restored copy holds only the old subject and no replacement value exists to restore,
+        so this fails closed: the old subject and its dependents go and no active birth subject
+        remains. The guest returns to ``birth_pending``; the app asks for the date again and
+        ``POST /v1/birth-profile`` accepts it because no subject exists. Saved notes and share
+        links stay, as after the live correction. Idempotent.
+        """
+
+        async with self._sessions() as session, session.begin():
+            guest = await session.scalar(
+                select(GuestSessionRow).where(GuestSessionRow.id == guest_id).with_for_update()
+            )
+            sends = await pending_sends(session, (guest_id,))
+            profile = await session.scalar(
+                select(BirthProfileRow).where(BirthProfileRow.guest_id == guest_id)
+            )
+            if profile is not None:
+                await _replace_subject(session, profile)
+                profile.updated_at = datetime.now(UTC)
+            if guest is not None:
+                guest.onboarding_status = OnboardingStatus.BIRTH_PENDING.value
+        await drain_sends(self._sessions, sends)
+
     async def replay_time_downgrade(self, guest_id: UUID) -> None:
         """Re-apply a journaled switch to an unknown birth time after a restore."""
 
@@ -375,9 +483,9 @@ class PostgresBirthRepository:
             profile.current_snapshot_id = date_only.id
             await session.flush([profile])
         # Removing time or place deletes every saved note and share link of this person, as its
-        # confirmation promises ("mọi note, bản lưu, link chia sẻ hiện có"). Delete them here
-        # rather than through the source cascades, which migration 20261029_0039 drops in the next
-        # release; this also covers copies a birth-date correction detaches.
+        # confirmation promises ("mọi note, bản lưu, link chia sẻ hiện có"). Since migration
+        # 20261029_0039 the copies no longer cascade from their source, so delete them here; this
+        # also covers copies a birth-date correction detached earlier.
         await delete_copies(session, profile.guest_id)
         await delete_derived(session, profile)
         if date_only is not None:
@@ -387,6 +495,29 @@ class PostgresBirthRepository:
                     ChartSnapshotRow.id != date_only.id,
                 )
             )
+
+
+async def _replace_subject(session: AsyncSession, profile: BirthProfileRow) -> None:
+    """Delete the profile's birth subject and everything derived from it (US-23 D1, D3).
+
+    Leaves the profile with no current snapshot, date-only level and no time, place or deep
+    consent. Saved notes and share links are kept (D2); they no longer cascade from their source.
+    """
+
+    await delete_derived(session, profile)
+    await session.execute(
+        delete(ReadingProjectionRow).where(ReadingProjectionRow.profile_id == profile.id)
+    )
+    profile.current_snapshot_id = None
+    await session.flush([profile])
+    await session.execute(delete(ChartSnapshotRow).where(ChartSnapshotRow.profile_id == profile.id))
+    profile.profile_level = 1
+    profile.birth_time_ciphertext = None
+    profile.birth_place_ciphertext = None
+    profile.time_precision = "unknown"
+    profile.place_display_name = None
+    profile.timezone_id = None
+    profile.supplement_consent_version = None
 
 
 async def delete_copies(session: AsyncSession, guest_id: UUID) -> None:

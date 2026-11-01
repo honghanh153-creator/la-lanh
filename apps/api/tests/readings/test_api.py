@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 from typing import cast
+from uuid import UUID
 
 import pytest
 from fastapi import FastAPI
@@ -68,6 +69,19 @@ def _create_deep_profile(client: TestClient) -> str:
     )
 
     return csrf
+
+
+async def _replace_subject(app: FastAPI, guest_id: UUID, birth_date: date) -> None:
+    """A concurrent birth-date correction (US-23): the explicit, fenced replacement."""
+
+    service = app.state.birth_chart_service
+    current = await service.current(guest_id)
+    await service.correct_date(
+        guest_id=guest_id,
+        birth_date=birth_date,
+        confirm_birth_date=birth_date,
+        expected_revision=current.profile_revision,
+    )
 
 
 def _restore_legacy_date_only_pointer(client: TestClient) -> None:
@@ -164,9 +178,7 @@ def test_birth_change_before_publication_cannot_reactivate_previous_subject(
     async def change_before_publish(guest_id, profile_id, scope_key, revision_id):  # type: ignore[no-untyped-def]
         nonlocal changed
         changed = True
-        await app.state.birth_chart_service.create_date_only(
-            guest_id=guest_id, birth_date=date(1991, 11, 15)
-        )
+        await _replace_subject(app, guest_id, date(1991, 11, 15))
         return await publish(guest_id, profile_id, scope_key, revision_id)
 
     monkeypatch.setattr(repository, "publish_available", change_before_publish)
@@ -206,9 +218,7 @@ def test_daily_response_never_mixes_birth_sources(
         nonlocal changed
         result = await original(*args, **kwargs)
         guest_id = args[0] if args else kwargs["guest_id"]
-        await app.state.birth_chart_service.create_date_only(
-            guest_id=guest_id, birth_date=date(1991, 11, 15)
-        )
+        await _replace_subject(app, guest_id, date(1991, 11, 15))
         changed = True
         return result
 
@@ -233,9 +243,7 @@ def test_late_legacy_daily_write_cannot_replace_current_subject_note(
         nonlocal changed
         if not changed:
             changed = True
-            await app.state.birth_chart_service.create_date_only(
-                guest_id=record.guest_id, birth_date=date(1991, 11, 15)
-            )
+            await _replace_subject(app, record.guest_id, date(1991, 11, 15))
             await daily.today(record.guest_id)
         return await save(record)
 

@@ -19,6 +19,8 @@ from app.domains.accounts.tables import (
     LoginChallengeRow,
     LoginQuotaRow,
 )
+from app.domains.birth.models import DATE_CHANGE_WINDOW
+from app.domains.birth.tables import BirthDateChangeRow
 from app.domains.content_rewrite.authorization import (
     RewriteConsentScope,
     consent_definition,
@@ -264,6 +266,12 @@ class PostgresGuestRepository:
             removed = 0
             await session.execute(
                 delete(RewriteSendFenceRow).where(RewriteSendFenceRow.expires_at <= now)
+            )
+            # US-23 D5 counters only matter inside their 24-hour window.
+            await session.execute(
+                delete(BirthDateChangeRow).where(
+                    BirthDateChangeRow.changed_at <= now - DATE_CHANGE_WINDOW
+                )
             )
             if ids:
                 result = await session.execute(
