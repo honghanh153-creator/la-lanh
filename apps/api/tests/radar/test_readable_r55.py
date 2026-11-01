@@ -130,3 +130,21 @@ def test_a_clean_rewrite_of_the_same_result_is_still_accepted() -> None:
         rewrite_radar_projection(baseline, cast(Any, _valid_output(baseline)), context="crush")
         is not None
     )
+
+
+def test_a_deep_dive_reading_with_several_actions_still_accepts_a_clean_rewrite() -> None:
+    """#138 (Codex auto-review of #118): the deep-dive follow-up sentence was appended to every
+    practice action, so the assembled page repeated it and every rewrite was rejected."""
+
+    from app.domains.radar.readable import readable_violations
+    from app.domains.relationships.models import RelationshipVoice
+    from tests.radar.test_reading import _clustered_bundle
+
+    baseline = radar.build_radar_reading(
+        _clustered_bundle(), context="crush", voice=RelationshipVoice.DEEP_DIVE
+    )
+    practice = next(s for s in baseline["sections"] if s["key"] == "practice")
+    assert len(practice["highlights"]) >= 2, "the fixture must carry several actions"
+    assert "repeated_sentence" not in readable_violations(baseline)
+    output: Any = _valid_output(baseline)
+    assert rewrite_radar_projection(baseline, output, context="crush") is not None

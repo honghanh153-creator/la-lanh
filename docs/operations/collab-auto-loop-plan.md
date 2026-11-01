@@ -24,6 +24,9 @@ Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider
 6. **Ngừng PR registry**, thay bằng `collab-turn --report`.
 7. **Thứ tự ưu tiên công việc:** xong **toàn bộ content** → **data privacy** → **tính năng mới**. Không giữ PR theo kích thước; xếp theo thứ tự này. PR quy trình (`area:ops`: vòng tự động, CI, test) đi trước cả ba nhóm (owner giao Claude tự chọn, 30.10.2026).
 
+8. **Checklist quyết định** (owner yêu cầu 31.10.2026): việc nào agent tự quyết, việc nào hỏi owner, tiêu chí và input cần có ở `docs/operations/decision-checklist.md`.
+9. **Bảng trạng thái** (owner yêu cầu 31.10.2026): mỗi tick sửa tại chỗ một comment "Trạng thái vòng tự động" trên issue plan, ghi đang chạy gì, giờ cập nhật, lý do dừng, hàng đợi và việc chờ owner. Giờ cập nhật cũ hơn 20 phút trong giờ chạy nghĩa là Mac ngủ/tắt hoặc vòng bị kẹt.
+
 ## 3. Luồng chuẩn
 
 ```
@@ -61,6 +64,8 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 4. **Đầu ngày.** Mac tự thức 08:45 (`sudo pmset repeat wakeorpoweron MTWRFSU 08:45:00`, owner chạy một lần). Claude đọc `collab-turn --report`, dừng lượt autopilot còn treo từ hôm trước và kiểm tra plan #133 đã được đăng.
 5. **Trong ngày.** Một quyết định mới của owner được ghi ngay vào file này hoặc vào issue hub #2, để mọi session đều đọc được (bài học từ #136).
 6. **Cuối ngày.** Claude nhìn lại quy trình trong ngày, viết report ở `docs/reviews/YYYY-MM-DD-collab-loop-retro.md` (số liệu, chỗ kẹt, đã sửa, đề xuất) và mở PR `area:ops` để Codex review qua vòng tự động.
+
+7. **Bổ sung plan khi còn giờ** (owner 31.10.2026). Khi máy còn dưới 2 việc (check/review/merge) mà chưa tới 23:30, tick ghi `topUp: true` trong hàng đợi của Claude. Claude lấy việc kế tiếp theo thứ tự ưu tiên: issue task mở có nhãn `area:*` và không `needs-owner` trước, rồi việc `auto: yes` trong backlog. Mỗi việc đi qua checklist quyết định (Q1–Q5). Claude đăng một comment "Bổ sung plan HH:MM" trên issue plan (mang marker agent, không dùng cú pháp trả lời của owner), ghi việc gì, vì sao chọn, và mở PR để máy chạy tiếp. Việc cần owner (copy mới, dữ liệu cá nhân, hướng sản phẩm) vẫn mở PR nhưng gắn `needs-owner`.
 
 ### 3.3 Plan trong ngày gồm
 
@@ -125,7 +130,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | APPROVE @ head đủ điều kiện | Merge |
 | Draft / `needs-owner` / xếp chồng chờ PR cha / bị `Bỏ #N` hôm nay | Giữ |
 
-`--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở** (nhóm sớm nhất còn PR không ở trạng thái Giữ): PR quy trình trước, rồi content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới sau 23:30. Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
+`--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở**: nhóm sớm nhất còn việc cho máy (author check, Codex review, merge). PR đang chờ Claude sửa không chặn máy; Claude vẫn sửa theo thứ tự nhóm (sửa 31.10.2026 sau 2 giờ đứng yên): PR quy trình trước, rồi content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới sau 23:30. Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
 
 Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dùng chung clone; review thứ hai trả `busy` và chờ lượt sau. Author check mới nhất cho head quyết định (FAIL sau PASS thì chặn). Sau khi đổi base, verdict cũ hết hiệu lực.
 

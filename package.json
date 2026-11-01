@@ -34,7 +34,7 @@
     "astro:verify-assets": "cd vendor/swisseph && shasum -a 256 -c checksums.txt",
     "verify:runtime": "node scripts/verify-no-mock-runtime.mjs && node scripts/verify-privacy.mjs && node scripts/verify-mobile-config.mjs",
     "mobile:sync": "node scripts/sync-mobile.mjs",
-    "collab:test": "node --test scripts/collaboration-inbox.test.mjs scripts/collaboration-sync.test.mjs scripts/collab-loop.test.mjs",
+    "collab:test": "node --test scripts/collaboration-inbox.test.mjs scripts/collaboration-sync.test.mjs scripts/collab-loop.test.mjs scripts/collab-status.test.mjs",
     "mobile:guard:test": "node --test scripts/verify-mobile-config.test.mjs",
     "contracts:generate": "pnpm api:openapi && pnpm --filter @la-lanh/contracts generate",
     "contracts:check": "uv run --directory apps/api python -m scripts.export_openapi --check && pnpm --filter @la-lanh/contracts check",

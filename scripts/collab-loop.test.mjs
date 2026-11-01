@@ -276,7 +276,7 @@ test('r1: review errors count as tick failures and alert on the second', () => {
   assert.equal(alerts.length, 1);
 });
 
-test('r1: privacy and features wait until no content PR is in play', () => {
+test('r1: privacy and features wait while content has machine work; a content PR waiting for Claude does not block', () => {
   const date = '2026-11-05';
   const open = [
     pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
@@ -284,14 +284,17 @@ test('r1: privacy and features wait until no content PR is in play', () => {
     pr({ number: 3, title: 'feat(tarot): held', isDraft: true }),
   ];
   const merged = [];
-  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
-  assert.equal(result.area, 'content');
+  const content = pr({ number: 4, title: 'feat(tarot): needs a check' });
+  open.push(content);
+  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, check: () => ({ status: 'FAIL' }), review: () => ({ status: 'posted' }) });
+  assert.equal(result.area, 'content', 'content machine work (#4 check) goes first');
   assert.deepEqual(merged, []);
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
-  assert.deepEqual(queue.items.map(i => i.number), [1]);
-  open[0].isDraft = true;
-  tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
-  assert.deepEqual(merged, [2], 'once content is only held, privacy proceeds');
+  assert.deepEqual(queue.items.map(i => i.number), [1], 'Claude still fixes content first');
+  open.pop();
+  const next = tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
+  assert.equal(next.area, 'privacy', 'a content PR waiting for Claude does not stall the machine');
+  assert.deepEqual(merged, [2]);
 });
 
 test('r2: every CLI entry loads and exits without hanging on an import cycle', () => {
@@ -478,4 +481,14 @@ test('busy check matches the running program, not a command line that mentions i
   const ps = () => `  ${process.pid} sh -c pnpm contracts:check\n  41405 /bin/zsh -c pgrep -f contracts:check\n  9 /bin/zsh\n`;
   assert.equal(machineBusy(ps), null, 'its own process and agent shells are ignored');
   assert.match(machineBusy(() => '  77 sh -c pnpm contracts:check && x\n'), /^77 sh -c pnpm contracts:check/);
+});
+
+test('plan top-up: fewer than two machine jobs before 23:30 asks Claude to add the next task', () => {
+  const date = '2026-11-12';
+  const one = [pr({ number: 1, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }), pr({ number: 2 })];
+  tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, true);
+  const busy = [pr({ number: 3 }), pr({ number: 4 }), pr({ number: 5 })];
+  tick({ gh: plannedGh(busy, date), now: { date, hour: 16, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, false);
 });

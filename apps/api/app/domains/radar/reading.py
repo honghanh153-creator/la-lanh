@@ -1350,10 +1350,15 @@ def _render_prompt(
             "Để kiểm chứng điều này ngoài đời, ",
             "Thay vì kết luận từ lá số, ",
         )
-        return (
-            f"{prefixes[index % len(prefixes)]}{base} Sau đó đối chiếu phản hồi thật: "
+        # The follow-up question closes the first action only: repeated on every action it made
+        # the page repeat a sentence, which the readable contract (AC11) rejects (#138).
+        follow_up = (
+            " Sau đó đối chiếu phản hồi thật: "
             "hai người có nói rõ hơn, tôn trọng ranh giới hơn hay vẫn phải đoán nhau?"
+            if index == 0
+            else ""
         )
+        return f"{prefixes[index % len(prefixes)]}{base}{follow_up}"
     return prompt.prompt_pattern
 
 

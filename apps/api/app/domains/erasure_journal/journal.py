@@ -24,6 +24,9 @@ class ErasureKind(StrEnum):
     HISTORY_CLEARED = "history_cleared"
     BIRTH_SUPPLEMENT_REMOVED = "birth_supplement_removed"
     BIRTH_TIME_DOWNGRADED = "birth_time_downgraded"
+    # US-23: a corrected birth date replaced the subject. Keyed by the guest id, empty scope: no
+    # date or value. Replaying it on a pre-correction dump leaves no active subject (fail closed).
+    BIRTH_DATE_REPLACED = "birth_date_replaced"
     RADAR_DELETED = "radar_deleted"
     RADAR_WITHDRAWN = "radar_withdrawn"
     CONSENT_REVOKED = "consent_revoked"
