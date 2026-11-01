@@ -456,3 +456,52 @@ def test_an_approximate_birth_time_reads_the_time_stable_chart(
     evidence = " ".join(cast(list[str], cast(dict[str, object], active["evidence"])["claims"]))
     for time_bound in ("Mặt Trăng", "Nhà ", "Cung mọc", "Thiên đỉnh", "Nakshatra"):
         assert time_bound not in evidence, (time_bound, evidence)
+
+
+def test_a_stored_limited_approximate_reading_upgrades_through_activation(
+    reading_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#150 review: a user whose approximate-time reading was stored as "limited" before E1
+    must be able to activate the new synthesis; the snapshot pin still applies."""
+
+    from app.domains.readings.planner import ReadingPlanner
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "1990-09-01"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+    with monkeypatch.context() as patch:  # the pre-E1 planner had no approximate synthesis
+        patch.setattr(ReadingPlanner, "_approximate_plan", lambda *_args, **_kwargs: None)
+        before = reading_client.get("/v1/insights/overview?tradition=western")
+    assert before.status_code == 200
+    stored = cast(dict[str, object], before.json()["reading_projection"])
+    assert cast(dict[str, object], stored["active"])["mode"] == "limited"
+
+    after = reading_client.get("/v1/insights/overview?tradition=western")
+    assert after.status_code == 200
+    projection = cast(dict[str, object], after.json()["reading_projection"])
+    assert cast(dict[str, object], projection["active"])["mode"] == "limited"
+    update = cast(dict[str, object], projection["available_update"])
+    assert cast(dict[str, object], update["content"])["mode"] == "full_synthesis"
+
+    activated = reading_client.put(
+        f"/v1/reading-projections/{projection['scope_key']}/activate",
+        json={"expected_revision_id": update["revision_id"]},
+        headers=headers,
+    )
+
+    assert activated.status_code == 200, activated.text
+    active = cast(dict[str, object], activated.json()["active"])
+    assert active["mode"] == "full_synthesis"
+    assert active["precision"] == "approximate"
+    assert activated.json()["available_update"] is None
