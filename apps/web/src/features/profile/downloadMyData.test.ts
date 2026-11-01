@@ -14,6 +14,19 @@ function readText(blob: Blob): Promise<string> {
   });
 }
 
+const fs = vi.hoisted(() => ({
+  writeFile: vi.fn<(options: { path: string; data: string; directory: string; encoding: string }) => Promise<{ uri: string }>>(),
+  deleteFile: vi.fn<(options: { path: string; directory: string }) => Promise<void>>(),
+}));
+const share = vi.hoisted(() => ({ share: vi.fn<(options: { title?: string; files?: string[] }) => Promise<unknown>>() }));
+
+vi.mock("@capacitor/filesystem", () => ({
+  Filesystem: fs,
+  Directory: { Cache: "CACHE" },
+  Encoding: { UTF8: "utf8" },
+}));
+vi.mock("@capacitor/share", () => ({ Share: share }));
+
 type CapacitorWindow = Window & { Capacitor?: { isNativePlatform?: () => boolean } };
 
 describe("saveDataExport", () => {
@@ -31,6 +44,9 @@ describe("saveDataExport", () => {
     });
     URL.createObjectURL = createObjectURL;
     URL.revokeObjectURL = vi.fn((url: string) => { revoked.push(url); });
+    fs.writeFile.mockReset().mockResolvedValue({ uri: "file:///cache/export.json" });
+    fs.deleteFile.mockReset().mockResolvedValue(undefined);
+    share.share.mockReset().mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -58,32 +74,39 @@ describe("saveDataExport", () => {
     expect(revoked).toEqual(["blob:la-lanh/export"]);
   });
 
-  it("uses the system share sheet in the native shell and reports a cancelled save", async () => {
+  it("writes a cache file, opens the share sheet and deletes the file in the native shell", async () => {
     (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
-    const share = vi.fn<(input: ShareData) => Promise<void>>().mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new DOMException("closed", "AbortError"));
-    Object.assign(navigator, { canShare: () => true, share });
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click");
 
     await expect(saveDataExport(data)).resolves.toBe("shared");
-    const shared = share.mock.calls[0][0].files?.[0];
-    expect(shared?.name).toBe(DATA_EXPORT_FILE_NAME);
-    await expect(saveDataExport(data)).resolves.toBe("cancelled");
+
+    expect(fs.writeFile).toHaveBeenCalledTimes(1);
+    const written = fs.writeFile.mock.calls[0][0];
+    expect(written).toMatchObject({ path: DATA_EXPORT_FILE_NAME, directory: "CACHE", encoding: "utf8" });
+    expect(JSON.parse(written.data)).toEqual(data);
+    expect(share.share).toHaveBeenCalledWith(expect.objectContaining({ files: ["file:///cache/export.json"] }));
+    expect(fs.deleteFile).toHaveBeenCalledWith({ path: DATA_EXPORT_FILE_NAME, directory: "CACHE" });
     expect(click).not.toHaveBeenCalled();
     expect(createObjectURL).not.toHaveBeenCalled();
   });
 
-  it("never reports a save in the native shell when the share sheet cannot take the file", async () => {
+  it("treats closing the share sheet as a cancel, not an error, and still deletes the file", async () => {
+    (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
+    share.share.mockRejectedValueOnce(new Error("Share canceled"));
+    await expect(saveDataExport(data)).resolves.toBe("cancelled");
+    expect(fs.deleteFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("never reports a save in the native shell when the plugins fail", async () => {
     (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click");
-    Object.assign(navigator, { canShare: () => false, share: vi.fn() });
+    share.share.mockRejectedValueOnce(new Error("No activity found"));
     await expect(saveDataExport(data)).resolves.toBe("unsupported");
-    const share = vi.fn<(input: ShareData) => Promise<void>>()
-      .mockRejectedValueOnce(new DOMException("blocked", "NotAllowedError"));
-    Object.assign(navigator, { canShare: () => true, share });
+    expect(fs.deleteFile).toHaveBeenCalledTimes(1);
+
+    fs.writeFile.mockRejectedValueOnce(new Error("disk full"));
     await expect(saveDataExport(data)).resolves.toBe("unsupported");
-    Object.assign(navigator, { canShare: undefined, share: undefined });
-    await expect(saveDataExport(data)).resolves.toBe("unsupported");
+    expect(share.share).toHaveBeenCalledTimes(1);
     expect(click).not.toHaveBeenCalled();
     expect(createObjectURL).not.toHaveBeenCalled();
   });

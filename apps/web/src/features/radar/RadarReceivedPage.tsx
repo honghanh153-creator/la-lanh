@@ -71,7 +71,7 @@ export function RadarReceivedPage() {
     </section>
     <details className="radar-received__held">
       <summary>Lá đang giữ gì về bạn ở đây?</summary>
-      <p>Hồ sơ sinh của bạn nằm trong hồ sơ của chính bạn; người mời không thấy ngày, giờ hay nơi sinh của bạn. Kết quả chung mở được trong 30 ngày kể từ lúc bạn đồng ý, rồi hết hạn với cả hai người. Hết hạn là không ai mở lại được; bản lưu sẽ được xoá sau đó ở đợt dọn dữ liệu định kỳ, có thể muộn hơn, và bản sao lưu hết hạn riêng.</p>
+      <p>Hồ sơ sinh của bạn nằm trong hồ sơ của chính bạn; người mời không thấy ngày, giờ hay nơi sinh của bạn. Kết quả chung chỉ mở được trong 30 ngày kể từ lúc bạn đồng ý.</p>
       <p>Rút chart sẽ xoá kết quả chung với cả hai người ngay trong app. Bạn có thể tải bản sao dữ liệu của mình trong Mình.</p>
     </details>
     {items.length ? <ul className="radar-received__list">
