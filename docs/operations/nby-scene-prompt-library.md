@@ -96,7 +96,7 @@ H2: Camera completely static, like sitting on the porch watching the rain. Rain 
 
 ## 6. Lỗi hay gặp và cách sửa
 
-Đợt thử 01.11 (giai đoạn 1): 6 ảnh góc nhà mới và 4 video H1, H2, H3, H6 (làm từ ảnh theo khung cũ `warm muted film colors`, nên bị chê "giống filter"; ảnh H1, H2, H3, H6 đã tạo lại bằng khung §2 mới, video chưa làm lại), đều Veo 3.1 Fast 8 giây, 720p, khung đầu và khung cuối là cùng một ảnh. Cả 4 video giữ nguyên bố cục, không có vật mới hay người. Chưa kiểm chỗ nối khi lặp và chưa kiểm nhấp nháy; hai việc này cần file tải về.
+Đợt thử 01.11 (giai đoạn 1): 6 ảnh góc nhà mới và 4 video H1, H2, H3, H6 (làm từ ảnh theo khung cũ `warm muted film colors`, nên bị chê "giống filter"; ảnh H1, H2, H3, H6 đã tạo lại bằng khung §2 mới; video H1, H2, H3 đã làm lại theo màu thật, H6 chưa), đều Veo 3.1 Fast 8 giây, 720p, khung đầu và khung cuối là cùng một ảnh. Cả 4 video giữ nguyên bố cục, không có vật mới hay người. Chưa kiểm chỗ nối khi lặp và chưa kiểm nhấp nháy; hai việc này cần file tải về.
 
 
 | Lỗi | Cách sửa |

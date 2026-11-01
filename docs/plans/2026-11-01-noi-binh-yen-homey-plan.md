@@ -110,9 +110,10 @@ Chủ sản phẩm cho làm ngày 01.11 ("làm đi"). Claude làm trong tài kho
 
 - Nguyên nhân: khung prompt cũ có `warm muted film colors`; script #68 còn chỉnh màu thêm theo cùng hướng.
 - Đã sửa: khung ảnh mới ở [thư viện prompt](../operations/nby-scene-prompt-library.md) §2, tạo lại 4 ảnh H1, H2, H3, H6 (không tốn credit). Ảnh mới xanh tươi, trắng sạch, vùng tối rõ. Đề xuất sửa §7.5 (6), §7.6 và script ở §3.
-- Chưa làm lại 4 video: cần 80 credit, gói còn 60 tới 21.11. Chủ sản phẩm chọn: làm lại 3 video bây giờ, chờ 21.11, hay làm qua Vertex (D24).
+- Chủ sản phẩm chọn làm lại 3 video bằng 60 credit còn lại: hiên mưa (H2), góc đọc có mèo (H3), bếp sáng (H1). Cả 3 đã xong (8 giây, khung đầu = khung cuối, prompt video thêm `true-to-life natural colors, no color grading, no film look`). Khung giữa của cả 3 giữ đúng bố cục, màu thật, không vật mới. Hơi trà ở bếp giờ mỏng.
+- Gói Flow đã hết credit tới 21.11. Sân gạch hoa giấy (H6) mới có ảnh màu thật, video vẫn là bản màu cũ.
 
-Điều kiện xong của giai đoạn 1 (≥ 4 clip đạt §7.5) chưa đạt: chờ video làm lại theo màu thật.
+Điều kiện xong của giai đoạn 1 (≥ 4 clip đạt §7.5): có 3 clip màu thật chờ chủ sản phẩm xem. Clip thứ tư làm sau 21.11, hoặc qua Vertex (D24).
 
 ## 6. Công cụ tạo video: đã biết gì
 
