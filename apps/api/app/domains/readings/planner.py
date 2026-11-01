@@ -145,13 +145,33 @@ def normalized_vietnamese_word_count(text: str) -> int:
 
 
 # Every approximate window is shorter than a day, so a placement is time-stable when the planet
-# cannot reach a sign boundary within half a day either way (with a 1.5x margin on its speed).
+# cannot reach a sign boundary within half a day either way. The midpoint speed does not bound
+# motion across the window (it is ~0 at a station, while the planet still moves as it turns), so
+# the bound is each body's maximum geocentric |speed| in degrees/day over any date, with a margin.
+# Displacement over the window is at most that maximum times half the window, at stations too.
+# A body without a known bound fails closed and is not read.
 _HALF_WINDOW_DAYS = 0.5
 _SPEED_MARGIN = 1.5
+_MAX_SPEED_DEG_PER_DAY: dict[BodyName, float] = {
+    BodyName.SUN: 1.02,
+    BodyName.MERCURY: 2.21,
+    BodyName.VENUS: 1.27,
+    BodyName.MARS: 0.80,
+    BodyName.JUPITER: 0.25,
+    BodyName.SATURN: 0.14,
+    BodyName.URANUS: 0.07,
+    BodyName.NEPTUNE: 0.04,
+    BodyName.PLUTO: 0.04,
+    BodyName.MEAN_NODE: 0.06,
+    BodyName.CHIRON: 0.16,
+}
 
 
-def _sign_is_time_stable(degree_in_sign: float, longitude_speed: float) -> bool:
-    margin = abs(longitude_speed) * _HALF_WINDOW_DAYS * _SPEED_MARGIN
+def _sign_is_time_stable(body: BodyName, degree_in_sign: float) -> bool:
+    max_speed = _MAX_SPEED_DEG_PER_DAY.get(body)
+    if max_speed is None:
+        return False
+    margin = max_speed * _HALF_WINDOW_DAYS * _SPEED_MARGIN
     return margin < degree_in_sign < 30.0 - margin
 
 
@@ -348,7 +368,7 @@ class ReadingPlanner:
             position.body.value
             for position in chart.bodies
             if position.body is not BodyName.MOON
-            and _sign_is_time_stable(position.degree_in_sign, position.longitude_speed)
+            and _sign_is_time_stable(position.body, position.degree_in_sign)
         }
         stable = tuple(
             factor.model_copy(update={"evidence_refs": (factor.id,)})

@@ -223,7 +223,9 @@ def test_approximate_excludes_midpoint_facts_without_engine_stability_proof() ->
         if factor.kind is not FactorKind.PLANET_PLACEMENT:
             continue
         position = by_body[factor.subjects[0]]
-        margin = abs(position.longitude_speed) * 0.5 * 1.5
+        from app.domains.readings.planner import _MAX_SPEED_DEG_PER_DAY
+
+        margin = _MAX_SPEED_DEG_PER_DAY[position.body] * 0.5 * 1.5
         assert margin < position.degree_in_sign < 30 - margin
     assert plan.composition.natal_percent == 100
     assert plan.composition.transit_percent == 0
@@ -402,10 +404,24 @@ def test_service_exposes_the_same_canonical_planner_contract() -> None:
 def test_a_planet_near_a_sign_boundary_is_not_read_from_an_approximate_time() -> None:
     from app.domains.readings.planner import _sign_is_time_stable
 
-    # Mercury at full speed can move about 1.65 degrees in half a day with the margin.
-    assert not _sign_is_time_stable(29.2, 2.2)
-    assert not _sign_is_time_stable(0.8, 2.2)
-    assert _sign_is_time_stable(15.0, 2.2)
+    # Mercury at its maximum speed can move about 1.66 degrees in half a day with the margin.
+    assert not _sign_is_time_stable(BodyName.MERCURY, 29.2)
+    assert not _sign_is_time_stable(BodyName.MERCURY, 0.8)
+    assert _sign_is_time_stable(BodyName.MERCURY, 15.0)
+    # Unbounded or oscillating bodies fail closed.
+    assert not _sign_is_time_stable(BodyName.MOON, 15.0)
+    assert not _sign_is_time_stable(BodyName.TRUE_NODE, 15.0)
+
+
+def test_sign_stability_holds_near_a_station_where_midpoint_speed_is_zero() -> None:
+    from app.domains.readings.planner import _sign_is_time_stable
+
+    # Synthetic station: longitude(t) = 29.999 + 0.1 * t^2 (t in days), speed 0 at t = 0, and
+    # the sign changes within three hours. A midpoint-speed test would call it stable.
+    assert not _sign_is_time_stable(BodyName.MERCURY, 29.999)
+    assert not _sign_is_time_stable(BodyName.MARS, 29.999)
+    # A slow body far from a boundary stays readable at its station.
+    assert _sign_is_time_stable(BodyName.SATURN, 12.0)
 
 
 def _approximate_with(
@@ -478,3 +494,23 @@ def test_an_aspect_whose_phase_flips_in_the_window_is_not_published() -> None:
     assert plan.factors
     for forbidden in (":aspect:", ":orb:", ":phase:", ":degree_in_sign:", ":motion:"):
         assert forbidden not in refs
+
+
+def test_a_stationary_planet_near_a_boundary_is_dropped_from_an_approximate_plan() -> None:
+    """#150 r2 P1: speed 0 at the midpoint (a station) does not prove the sign for the window."""
+    chart = _approximate_with(
+        _chart(),
+        {BodyName.SUN: (15.0, 1.0), BodyName.MERCURY: (29.999, 0.0)},
+        Aspect(
+            body_a=BodyName.SUN,
+            body_b=BodyName.MERCURY,
+            kind="sextile",
+            exact_angle=60.0,
+            orb=5.0,
+            applying=False,
+        ),
+    )
+
+    plan = ReadingPlanner().plan(chart, purpose=ReadingPurpose.READING_DETAIL)
+
+    assert "mercury" not in {s for f in plan.factors for s in f.subjects}
