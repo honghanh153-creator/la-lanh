@@ -203,9 +203,15 @@ Hai chỉ số chỉ đo **lượng** chuyển động, không đo chuyển đ�
 | Cảnh | Clip | Tình trạng |
 |---|---|---|
 | H2 hiên mưa | Grok, lần 5 | **Đạt** (chủ sản phẩm duyệt) |
-| H3 góc đọc có mèo | Grok, vòng 2, đuôi vẫy một lần | Chờ chủ sản phẩm xem |
-| H1 bếp sáng | Grok, vòng 2, hơi trà mỏng | Chờ chủ sản phẩm xem |
-| H6 sân gạch hoa giấy | Chưa làm trên Grok | Chưa làm |
+| H3 góc đọc có mèo | Grok, vòng 2, đuôi vẫy một lần | **Đạt** (chủ sản phẩm duyệt) |
+| H1 bếp sáng | Grok, vòng 2, hơi trà mỏng | **Đạt** (chủ sản phẩm duyệt) |
+| H6 sân gạch hoa giấy | Grok, lần 2 (hoa giấy trên tường xa) | Chờ chủ sản phẩm xem |
+
+**H6 sân gạch hoa giấy trên Grok (01.11), làm theo mẫu §4a:**
+
+- Lần 1 (giàn hoa giấy ngay trên đầu máy): soi từng 0,2 giây thấy vài cánh hoa rơi ở giây 0,9–1,7 rồi **biến mất giữa không trung** ở giây 1,9, dù prompt cấm vật rơi. Loại.
+- Lần 2 (hoa giấy mọc trên bức tường xa, "flowers firmly attached", cấm vật "appears or disappears"): soi 30 khung và phóng to vùng tường mỗi 0,5 giây, không có cánh hoa rơi hay vật đổi chỗ. Chuyển động 7,1% điểm ảnh, hệ số biến thiên 0,22 (gió từng cơn). Chờ chủ sản phẩm xem.
+- Bài học: vật dễ rụng (hoa giấy, lá khô) ở gần máy hay bị AI cho rơi. Đặt chúng ở xa và ghi rõ "firmly attached".
 
 ## 7. Quyết định cần chủ sản phẩm
 
