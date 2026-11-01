@@ -195,8 +195,17 @@ Hai chỉ số chỉ đo **lượng** chuyển động, không đo chuyển đ�
 - Làm lại cảnh mưa (mưa vừa, "mọi thứ dính nguyên chỗ"): 30 khung không có vật rơi; chuyển động 8,4% điểm ảnh, nhưng đều (hệ số biến thiên 0,07). Bố cục lạ: hiên như tấm sàn nổi, vườn hiện cả trên lẫn dưới. Chưa đạt.
 - Thử lại theo yêu cầu của chủ sản phẩm, tả rõ bố cục "nhìn từ trong nhà ra hiên" (máy đặt thấp trong nhà, khung cửa gỗ hai bên, sàn gạch nối liền ra hiên, mép mái phía trên, vườn sau một bậc). Kết quả: bố cục đúng; 30 khung (mỗi 0,2 giây) không có vật rơi hay vật đổi chỗ. Nhưng gần như đứng im: 2,8% điểm ảnh chuyển động; so ba khung giây 1, 3, 5 thì lá chuối và chậu cây gần như trùng khít, chỉ có vệt mưa và giọt từ mái. Có hai lớp mái chồng nhau (mái nhà và mái hiên) nhìn hơi rối. Chưa đạt.
 - Chủ sản phẩm xem bản "nhìn từ trong nhà": "bố cục ổn hơn rồi". Giữ bố cục này.
-- Lần 5: giữ bố cục, đặt máy ngay ngưỡng cửa để khung cửa chỉ là viền mỏng, chỉ một lớp mái, vườn chuối chiếm phần lớn khung. Kết quả: 30 khung (mỗi 0,2 giây) không có vật rơi hay đổi chỗ; chuyển động tăng từ 2,8% lên 7,2% điểm ảnh; lá chuối đổi góc rõ giữa giây 1, 3 và 5. Mưa vẫn khá đều (hệ số biến thiên 0,08). Chờ chủ sản phẩm xem.
-- Nhận định sau bốn lần thử đầu: sửa được lỗi này thì lỗi khác xuất hiện (lá không động → lá bay ngược → sàn nổi → đứng im). Lần 5 là bản đầu tiên không có lỗi đã biết; nếu chủ sản phẩm vẫn thấy giả thì dùng video quay thật cho cảnh mưa (D29).
+- Lần 5: giữ bố cục, đặt máy ngay ngưỡng cửa để khung cửa chỉ là viền mỏng, chỉ một lớp mái, vườn chuối chiếm phần lớn khung. Kết quả: 30 khung (mỗi 0,2 giây) không có vật rơi hay đổi chỗ; chuyển động tăng từ 2,8% lên 7,2% điểm ảnh; lá chuối đổi góc rõ giữa giây 1, 3 và 5. Mưa vẫn khá đều (hệ số biến thiên 0,08). **Chủ sản phẩm duyệt: "Mình đã xem clip mưa mới, đạt rồi."** Prompt lưu làm mẫu chuẩn ở [thư viện prompt](../operations/nby-scene-prompt-library.md) §4a.
+- Nhận định sau bốn lần thử đầu: sửa được lỗi này thì lỗi khác xuất hiện (lá không động → lá bay ngược → sàn nổi → đứng im). Lần 5 là bản đầu tiên không có lỗi đã biết, và đã được duyệt. D29 (quay thật) không còn cần cho cảnh mưa; giữ làm phương án dự phòng.
+
+**Tình trạng giai đoạn 1 (01.11, cuối ngày):** cần ≥ 4 clip đạt.
+
+| Cảnh | Clip | Tình trạng |
+|---|---|---|
+| H2 hiên mưa | Grok, lần 5 | **Đạt** (chủ sản phẩm duyệt) |
+| H3 góc đọc có mèo | Grok, vòng 2, đuôi vẫy một lần | Chờ chủ sản phẩm xem |
+| H1 bếp sáng | Grok, vòng 2, hơi trà mỏng | Chờ chủ sản phẩm xem |
+| H6 sân gạch hoa giấy | Chưa làm trên Grok | Chưa làm |
 
 ## 7. Quyết định cần chủ sản phẩm
 

@@ -120,6 +120,36 @@ Không viết: người đi qua, bàn tay chạm vào vật, cửa đóng sầm,
 | N3 | Hiên nhìn ra biển | Video: giống N2, nhưng `<CAMERA_FEEL>` là `like sitting quietly on a seaside cottage veranda`, và thêm `gentle light and shadow on the wooden floor`, `a faint creak of old wood` | Có video. Chủ sản phẩm đã so sánh với N2 |
 | N4 | Cửa sổ gỗ mờ sương, cốc trà | Ảnh: `an old weathered wooden casement window, closed, its glass covered in soft morning condensation with a few water droplets. Outside it is blue hour just before sunrise: a misty meadow of small white and yellow wildflowers rolling gently to distant soft hills, pale sky. On the wooden windowsill a simple ceramic cup of tea with faint steam` | Có clip hơi trà (8 giây), clip cửa mở rồi mặt trời lên (16 giây, có Extend). Là ứng viên cho "Thở cùng cảnh" cách 1 |
 
+## 4a. Prompt mẫu đã được chủ sản phẩm duyệt
+
+### H2 hiên mưa, nhìn từ ngưỡng cửa: ĐÃ DUYỆT 01.11.2026
+
+Chủ sản phẩm: "Mình đã xem clip mưa mới, đạt rồi." Đây là mẫu chuẩn cho mọi cảnh mưa và cảnh "nhìn từ trong nhà ra".
+
+- **Công cụ:** Grok Imagine, text-to-video, 720p, 6 giây, 9:16, tài khoản trả phí của chủ sản phẩm.
+- **Đo:** 7,2% điểm ảnh chuyển động; lá chuối đổi góc rõ giữa giây 1, 3, 5; soi 30 khung (mỗi 0,2 giây) không có lỗi vật lý.
+- **Vì sao đạt** (đúc kết từ 5 lần thử):
+  - bố cục tả từ chỗ người xem đứng;
+  - chỉ một lớp mái;
+  - khung cửa chỉ là viền mỏng;
+  - cây nhỏ ở tiền cảnh;
+  - ánh sáng sáng;
+  - mưa chỉ ở ngoài mép mái;
+  - chuyển động không đều;
+  - mọi vật đứng nguyên chỗ.
+
+```text
+Photorealistic vertical video, static camera on a tripod, like real phone footage of an ordinary rainy afternoon. Layout, described from the viewer: the camera stands right at the threshold of the open wooden double door of an old Vietnamese countryside house, at seated eye level, looking straight out. Only a thin strip of the dark wooden door frame is visible at the far left and right edges. The red tiled floor continues outward at the same level as the covered porch, about two meters deep. On the porch, slightly to one side, a low wooden table with a small teapot and two tiny cups. Along the outer edge of the porch, a row of small potted plants (jasmine, basil, small ferns). A single terracotta tile roof edge runs straight across the top of the frame; only one roof, no second roof. Beyond the porch edge, one low step down, a lush garden of bushes and banana trees fills most of the view. Bright, soft overcast daylight, airy, well exposed, not dark. Rain falls only outside the roof edge, in clearly visible fine streaks of moderate intensity that sometimes grows a little heavier, then lighter. The garden is clearly alive with irregular, natural motion: the big banana leaves and bushes are constantly hit by rain, so different leaves dip, shake and spring back at different moments while others pause; now and then a weak gust makes the banana leaves sway noticeably, then they settle; the small potted plants on the porch edge tremble when drops hit them; drips fall from the roof edge at uneven intervals; splashes and ripples on the wet step and garden path. Everything stays attached: no leaf, petal or object falls, detaches, flies or moves across the frame; the table, cups, teapot, doors and pots never move. True-to-life natural colors like an unedited photo from a modern camera, accurate white balance, no color filter, no film look. Calm and real. No people, no hands, no animals, no human body parts. No text, no new objects, no camera movement. Sound: rain on the roof and leaves, uneven drips.
+```
+
+**Cách dùng cho cảnh khác:** giữ nguyên ba khối, chỉ thay nội dung:
+
+1. "Layout, described from the viewer" (chỗ đứng, khung, các lớp từ gần ra xa);
+2. đoạn chuyển động không đều;
+3. "Everything stays attached".
+
+Khung màu thật và danh sách "không" ở cuối giữ nguyên.
+
 ## 5. Ví dụ video theo khung mới (chưa chạy: gói Flow hết credit tới 21.11)
 
 ```text
