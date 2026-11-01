@@ -202,7 +202,7 @@ flowchart TD
 | Field | Loại | Required | Validation |
 |---|---|---|---|
 | `profile_id` | Opaque id | Có | Thuộc guest/account session hiện tại; không dùng raw trong URL public. |
-| `birth_date` | Date | Đã có từ US-02 | Không sửa ở US-06 trừ khi user vào edit profile riêng. |
+| `birth_date` | Date | Đã có từ US-02 | Không sửa ở US-06. Sửa ngày sinh thuộc [US-23](US-23-sua-thong-tin-sinh.md) (`PUT /v1/birth-profile/date`); đổi ngày xoá giờ, nơi và đồng ý sâu. |
 | `birth_time_mode` | Enum | Có | `exact`, `approx_window`, `unknown`. |
 | `birth_time_local` | HH:mm | Conditional | Required nếu exact; 00:00–23:59; timezone local của nơi sinh. |
 | `approx_window` | Enum | Conditional | Required nếu approx; mapping server-configurable. |
@@ -357,7 +357,7 @@ Không ghi raw giờ sinh, nơi sinh, query text, `place_id`, tọa độ, DOB, 
 | Exit defer/decline | No new sensitive data persisted; prompt snoozed or flow closed; existing Vibe/profile/Note remains usable. |
 | Exit failure | Atomic rollback to prior active snapshot + retry/status operation. |
 | Story sở hữu | Time mode, city-level place, purpose consent, geocode/timezone, recompute, readiness, edit/remove/downgrade. |
-| Không sở hữu | Deep reading content (US-07), DOB edit (profile story), auth claim (US-19), Daily Note mutation (US-03). |
+| Không sở hữu | Deep reading content (US-07), DOB edit ([US-23](US-23-sua-thong-tin-sinh.md)), auth claim (US-19), Daily Note mutation (US-03). |
 
 ## 15. Route/state matrix
 
