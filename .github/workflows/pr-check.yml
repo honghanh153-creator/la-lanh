@@ -80,6 +80,8 @@ jobs:
         env:
           CI: '1'
         run: |
+          # qa-server looks for uv at ~/.local/bin unless UV_BIN says where setup-uv put it.
+          export UV_BIN="$(command -v uv)"
           pnpm install --frozen-lockfile
           make -C vendor/swisseph
           pnpm --filter @la-lanh/web exec playwright install --with-deps chromium
