@@ -65,6 +65,10 @@ export function ProfilePage() {
   const exportMutation = useMutation({
     mutationFn: async () => saveDataExport(await exportMyData()),
     onSuccess: (outcome) => {
+      if (outcome === "unsupported") {
+        setError("Bản app trên máy này chưa lưu được tệp. Bạn mở Lá Lành trên trình duyệt để tải, hoặc gửi email theo trang Quyền riêng tư để nhận bản sao nhé.");
+        return;
+      }
       setConfirmingExport(false);
       setStatusMessage(outcome === "cancelled"
         ? "Bạn đã đóng bảng lưu tệp. Chưa có tệp nào được lưu."

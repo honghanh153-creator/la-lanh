@@ -67,6 +67,7 @@ Every table with personal data was read (`apps/api/app/domains/*/tables.py`).
 | Birthplace centroid coordinates | Catalog data derived from the chosen place; the place name and timezone are exported. |
 | Daily notes hidden by the history window, expired Tarot, expired/withdrawn/revoked Radar requests | Hidden in the app and pending cleanup; the file must not bring back what the person was told is gone. Saved notes and today's note are always included. |
 | Reading plans, available (not yet shown) revisions, ids, keys, evaluation metadata, generation attempts, content-rewrite jobs (encrypted request/output) | Internal processing state. The text the person saw is in Daily notes (`readings`, from the active revision), Tarot and saved notes. |
+| Active Aura and Insight readings (`/insights/readings/{purpose}`) | Not yet exported (gap, Codex auto-1 P2 non-blocking); disclosed in `not_included`. Follow-up: export their sanitized active content. |
 | Experiment `action_key` | Opaque digest of catalog copy. |
 | Matching verification provider reference | External identifier. |
 | Erasure journal, login challenges/quotas, Tarot variant cursor | Keyed digests or counters about the system, not readable content about the person. |

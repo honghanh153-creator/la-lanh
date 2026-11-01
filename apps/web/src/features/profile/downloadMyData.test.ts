@@ -72,4 +72,19 @@ describe("saveDataExport", () => {
     expect(click).not.toHaveBeenCalled();
     expect(createObjectURL).not.toHaveBeenCalled();
   });
+
+  it("never reports a save in the native shell when the share sheet cannot take the file", async () => {
+    (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click");
+    Object.assign(navigator, { canShare: () => false, share: vi.fn() });
+    await expect(saveDataExport(data)).resolves.toBe("unsupported");
+    const share = vi.fn<(input: ShareData) => Promise<void>>()
+      .mockRejectedValueOnce(new DOMException("blocked", "NotAllowedError"));
+    Object.assign(navigator, { canShare: () => true, share });
+    await expect(saveDataExport(data)).resolves.toBe("unsupported");
+    Object.assign(navigator, { canShare: undefined, share: undefined });
+    await expect(saveDataExport(data)).resolves.toBe("unsupported");
+    expect(click).not.toHaveBeenCalled();
+    expect(createObjectURL).not.toHaveBeenCalled();
+  });
 });

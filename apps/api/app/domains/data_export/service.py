@@ -97,6 +97,8 @@ NOT_INCLUDED = (
     "Ngày, giờ, nơi sinh của người khác: không được lưu thành hồ sơ nên không có để xuất.",
     "Tọa độ trung tâm thành phố nơi sinh: là dữ liệu danh mục suy từ nơi bạn chọn; tệp ghi "
     "tên nơi sinh và múi giờ.",
+    "Bản đọc Aura và Insight (ngoài note ngày): chưa có trong tệp này; bạn vẫn xem được trong "
+    "app khi còn hiển thị.",
     "Note ngày đã quá hạn hiển thị, Tarot đã hết hạn và lời mời đã hết hạn/rút: đang chờ "
     "dọn và không còn mở được trong app.",
     "Bản nháp xử lý nội bộ (kế hoạch bản đọc, bản sửa, hàng đợi AI viết lại, nhật ký xoá): "
@@ -126,9 +128,28 @@ class DataExportService:
         self._max_items = max_items
 
     async def export(self, guest_id: UUID, *, now: datetime | None = None) -> DataExport:
+        """Assemble the file; a birth change that commits during assembly rebuilds all of it.
+
+        Codex auto-1: removing time/place deletes Daily notes, saved notes and derived readings,
+        so refreshing only the birth section would leave already-collected erased content in the
+        file. The whole assembly is redone from scratch; repeated changes answer 409.
+        """
+
         current = now or datetime.now(UTC)
+        for _ in range(_BIRTH_RETRIES):
+            birth_profile, birth_key = await self._birth_profile(guest_id)
+            result = await self._assemble(guest_id, current, birth_profile)
+            if await self._birth_key(guest_id) == birth_key:
+                return result
+        raise DataExportBusy
+
+    async def _assemble(
+        self,
+        guest_id: UUID,
+        current: datetime,
+        birth_profile: ExportBirthProfile | None,
+    ) -> DataExport:
         truncated: list[str] = []
-        birth_profile, birth_key = await self._birth_profile(guest_id)
         tarot_views = await self._tarot.export_views(
             guest_id, limit=self._max_items + 1, now=current
         )
@@ -166,15 +187,6 @@ class DataExportService:
                 if principal_id is not None
                 else None
             )
-        # Codex r55: a time/place removal (or any birth change) that committed while the file was
-        # being assembled must not leave the erased precision or its chart in the file. The birth
-        # section is re-read until its revision held from read to end of assembly.
-        for _ in range(_BIRTH_RETRIES):
-            if await self._birth_key(guest_id) == birth_key:
-                break
-            birth_profile, birth_key = await self._birth_profile(guest_id)
-        else:
-            raise DataExportBusy
         return DataExport(
             generated_at=current,
             notice=NOTICE,
