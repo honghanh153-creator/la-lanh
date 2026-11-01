@@ -26,7 +26,7 @@ Prompt viết bằng tiếng Anh, vì Veo chỉ nhận prompt tiếng Anh.
    - Muốn video lặp liền mạch thì đặt khung cuối là chính ảnh đó. Nếu bỏ trống khung cuối, script sẽ lặp bằng cách hòa 1 giây cuối vào đầu.
    - Model: Veo 3.1 Fast, 8 giây. Chỉ dùng Quality khi Fast cho lỗi hình rõ.
    - Prompt: khung video (§3) cộng với chuyển động riêng của cảnh.
-3. **Xem lại 3 vòng lặp.** Kiểm méo, chớp, vật mới xuất hiện, và chỗ nối.
+3. **Xem lại 3 vòng lặp, rồi soi từng 0,2 giây.** Kiểm méo, chớp, vật mới xuất hiện, chỗ nối, và **lỗi vật lý**: vật rơi rồi bay ngược lên, vật trôi ngang, vật đổi chỗ, bố cục không gian vô lý. Ngày 01.11, khi chỉ xem 6 khung cách nhau 1 giây, đã bỏ sót một chiếc lá rơi xuống sàn rồi bật ngược lên bàn (giây 1,0–2,4). Làm một bảng khung hình mỗi 0,2 giây (30 khung cho clip 6 giây) và xem hết.
 4. **Nếu cần dài hơn,** dùng Extend (nối từ khung cuối). Không cắt cảnh.
 5. **Ghi sổ đăng ký** (PRD §8.3) cho mỗi clip giữ lại: công cụ, gói, model, ngày tạo, prompt ảnh, prompt video. Chụp điều khoản của gói tại ngày tạo.
 6. **Tải bản gốc** (cần chủ sản phẩm đồng ý từng lần) vào một thư mục riêng ngoài git. Sau đó chạy `scripts/media/nby-media.sh`.
@@ -81,7 +81,8 @@ Camera completely static on a tripod, <CAMERA_FEEL>. The scene itself is alive a
 | Con vật | `once, around the middle of the clip, the tip of its tail gives one slow, gentle flick and settles back`; `does not stand up, walk or look at the camera` | (đạt 01.11: đuôi mèo vẫy một lần ở giây 2,8–3,3) |
 | Cây tiền cảnh | `small potted plants with small and medium leaves, none of them large or dominating the frame` | Chậu lá to choán khung, nhìn lạ (mưa, Grok, 01.11) |
 | Ánh sáng mưa | `bright, soft overcast daylight, airy and light, well exposed, not dark, not moody` | Màu đậm, tối (mưa, Grok, 01.11) |
-| Vật rơi | Không xin vật rơi; thêm `no falling leaves or objects` | Một chiếc lá xanh tự rơi xuống bàn (mưa, Grok, 01.11) |
+| Vật rơi | Không xin vật rơi; thêm `Everything stays attached: no leaf, petal or object falls, detaches, flies, slides or moves across the frame; the table, cups, teapot and pots never move` | Một chiếc lá rời cây, rơi xuống sàn rồi bật ngược lên bàn (mưa, Grok, 01.11). Bản làm lại với câu này: 30 khung không có vật rơi |
+| Bố cục không gian | Tả rõ người xem đứng đâu và mặt sàn nối với gì: `seen from inside the house, the porch floor continues to the garden at the same level` | Bản làm lại cảnh mưa có hiên như tấm sàn nổi, vườn hiện cả phía trên lẫn phía dưới (Grok, 01.11) |
 
 **Từ vựng chuyển động:**
 

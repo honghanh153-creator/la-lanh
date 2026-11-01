@@ -191,6 +191,8 @@ Hai chỉ số chỉ đo **lượng** chuyển động, không đo chuyển đ�
 - Hiên mưa: cây nhỏ, ánh sáng sáng hơn, prompt chuyển động không đều. Chuyển động giảm còn 4,7% điểm ảnh, độ lên xuống (hệ số biến thiên giữa các khung) 0,17. Có một chiếc lá xanh tự rơi xuống bàn, không có trong prompt.
 - Bếp sáng: hơi trà mỏng, trong, lúc có lúc tan; gió từng cơn. Chuyển động 10,2%, độ lên xuống 0,26.
 - Bài học đã chép vào [thư viện prompt](../operations/nby-scene-prompt-library.md) §3: chuyển động không đều và bảng chi tiết nhỏ.
+- Chủ sản phẩm chỉ ra: "cái lá rơi sao mà bật lên bàn được". Soi từng 0,2 giây: lá rời cây chanh ở giây 1,0, chạm sàn ở 1,4, rồi trôi ngang và bật ngược lên mặt bàn ở 1,6–2,4. Claude đã bỏ sót vì chỉ xem 6 khung cách 1 giây. Quy trình duyệt nay soi từng 0,2 giây (thư viện prompt §1 bước 3).
+- Làm lại cảnh mưa (mưa vừa, "mọi thứ dính nguyên chỗ"): 30 khung không có vật rơi; chuyển động 8,4% điểm ảnh, nhưng đều (hệ số biến thiên 0,07). Bố cục lạ: hiên như tấm sàn nổi, vườn hiện cả trên lẫn dưới. Chưa đạt.
 
 ## 7. Quyết định cần chủ sản phẩm
 
