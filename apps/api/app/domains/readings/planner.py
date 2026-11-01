@@ -155,12 +155,6 @@ def _sign_is_time_stable(degree_in_sign: float, longitude_speed: float) -> bool:
     return margin < degree_in_sign < 30.0 - margin
 
 
-def _aspect_is_time_stable(orb: float, limit: float, speed_a: float, speed_b: float) -> bool:
-    # The orb changes at most by the two planets' combined speed.
-    margin = (abs(speed_a) + abs(speed_b)) * _HALF_WINDOW_DAYS * _SPEED_MARGIN
-    return orb + margin < limit
-
-
 class ReadingPlanner:
     """Select and compose immutable reading factors without calculating a chart."""
 
@@ -345,31 +339,21 @@ class ReadingPlanner:
     ) -> ReadingPlan | None:
         # Few people know their exact birth time (#143 E1). The chart is computed at the window's
         # midpoint, so only facts proven stable across the whole window are used: a planet's sign
-        # when it cannot reach a boundary, and an aspect whose orb cannot pass its limit (never
-        # the Moon). Houses, angles, nakshatra and graha drishti are left out.
-        speeds = {position.body.value: position.longitude_speed for position in chart.bodies}
+        # when it cannot reach a boundary (never the Moon). Midpoint-only values (degree, motion,
+        # aspect orb and applying/separating phase) are not proven for the window, so placements
+        # keep only their sign and aspects are left out (an aspect also references both
+        # placements, which may have been removed). Houses, angles, nakshatra and graha drishti
+        # are left out too.
         stable_bodies = {
             position.body.value
             for position in chart.bodies
             if position.body is not BodyName.MOON
             and _sign_is_time_stable(position.degree_in_sign, position.longitude_speed)
         }
-
-        def is_stable(factor: DerivedFactor) -> bool:
-            if factor.kind is FactorKind.PLANET_PLACEMENT:
-                return factor.subjects[0] in stable_bodies
-            if factor.kind is FactorKind.NATAL_ASPECT:
-                _, _, first, kind, second, _, orb = factor.id.split(":")
-                limit = _ASPECT_LIMIT.get(kind)
-                return (
-                    limit is not None
-                    and BodyName.MOON.value not in (first, second)
-                    and _aspect_is_time_stable(float(orb), limit, speeds[first], speeds[second])
-                )
-            return False
-
         stable = tuple(
-            factor for factor in self._natal_candidates(chart, purpose) if is_stable(factor)
+            factor.model_copy(update={"evidence_refs": (factor.id,)})
+            for factor in self._natal_candidates(chart, purpose)
+            if factor.kind is FactorKind.PLANET_PLACEMENT and factor.subjects[0] in stable_bodies
         )
         selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
         if not hero_refs:

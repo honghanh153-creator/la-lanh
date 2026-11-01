@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import (
+    Aspect,
     BodyName,
     CalculationConfig,
     ChartInput,
@@ -213,10 +214,10 @@ def test_approximate_excludes_midpoint_facts_without_engine_stability_proof() ->
     # angles or aspects.
     assert plan.mode is PlanMode.FULL_SYNTHESIS
     assert plan.precision is TimePrecision.APPROXIMATE
-    assert plan.factors and all(
-        f.kind in {FactorKind.PLANET_PLACEMENT, FactorKind.NATAL_ASPECT} for f in plan.factors
-    )
+    assert plan.factors and all(f.kind is FactorKind.PLANET_PLACEMENT for f in plan.factors)
     assert all("moon" not in f.subjects for f in plan.factors)
+    # Midpoint-only degree, motion, orb and phase are never published (#150 r1 P1).
+    assert all(f.evidence_refs == (f.id,) and not f.child_refs for f in plan.factors)
     by_body = {p.body.value: p for p in approximate.bodies}
     for factor in plan.factors:
         if factor.kind is not FactorKind.PLANET_PLACEMENT:
@@ -407,9 +408,73 @@ def test_a_planet_near_a_sign_boundary_is_not_read_from_an_approximate_time() ->
     assert _sign_is_time_stable(15.0, 2.2)
 
 
-def test_an_aspect_near_its_orb_limit_is_not_read_from_an_approximate_time() -> None:
-    from app.domains.readings.planner import _aspect_is_time_stable
+def _approximate_with(
+    chart: NatalChart, placements: dict[BodyName, tuple[float, float]], aspect: Aspect
+) -> NatalChart:
+    bodies = tuple(
+        position.model_copy(
+            update={
+                "degree_in_sign": placements[position.body][0],
+                "longitude_speed": placements[position.body][1],
+            }
+        )
+        if position.body in placements
+        else position
+        for position in chart.bodies
+    )
+    return chart.model_copy(
+        update={
+            "time_precision": TimePrecision.APPROXIMATE,
+            "houses": None,
+            "angles": None,
+            "bodies": bodies,
+            "aspects": (aspect,),
+        }
+    )
 
-    # Sun (1.0) and Mercury (2.0) can change the orb by 2.25 degrees in half a day with the margin.
-    assert not _aspect_is_time_stable(5.0, 7.0, 1.0, 2.0)
-    assert _aspect_is_time_stable(4.0, 7.0, 1.0, 2.0)
+
+@pytest.mark.parametrize("purpose", [ReadingPurpose.READING_DETAIL, ReadingPurpose.AURA])
+def test_an_aspect_to_a_removed_placement_never_reaches_selection(
+    purpose: ReadingPurpose,
+) -> None:
+    """#150 r1 P1: Mercury at 29.9 loses its sign; its conjunction must not crash the plan."""
+    chart = _approximate_with(
+        _chart(),
+        {BodyName.SUN: (27.0, 1.0), BodyName.MERCURY: (29.9, 2.0)},
+        Aspect(
+            body_a=BodyName.SUN,
+            body_b=BodyName.MERCURY,
+            kind="conjunction",
+            exact_angle=0.0,
+            orb=2.9,
+            applying=True,
+        ),
+    )
+
+    plan = ReadingPlanner().plan(chart, purpose=purpose)
+
+    assert all(f.kind is FactorKind.PLANET_PLACEMENT for f in plan.factors)
+    assert "mercury" not in {s for f in plan.factors for s in f.subjects}
+
+
+def test_an_aspect_whose_phase_flips_in_the_window_is_not_published() -> None:
+    """#150 r1 P1: Sun 15 / Mercury 14.9 flips applying to separating within the window."""
+    chart = _approximate_with(
+        _chart(),
+        {BodyName.SUN: (15.0, 1.0), BodyName.MERCURY: (14.9, 2.0)},
+        Aspect(
+            body_a=BodyName.SUN,
+            body_b=BodyName.MERCURY,
+            kind="conjunction",
+            exact_angle=0.0,
+            orb=0.1,
+            applying=True,
+        ),
+    )
+
+    plan = ReadingPlanner().plan(chart, purpose=ReadingPurpose.READING_DETAIL)
+
+    refs = " ".join(ref for f in plan.factors for ref in (f.id, *f.evidence_refs, *f.child_refs))
+    assert plan.factors
+    for forbidden in (":aspect:", ":orb:", ":phase:", ":degree_in_sign:", ":motion:"):
+        assert forbidden not in refs
