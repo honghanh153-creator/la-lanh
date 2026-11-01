@@ -1,6 +1,6 @@
 # Thư viện prompt cảnh cho Nơi bình yên
 
-Ngày soạn: 01.11.2026. Trạng thái: **bản đầu**. Chủ sản phẩm đã ưng hướng "góc nhà bình yên" ngày 01.11. Từng cảnh vẫn phải được duyệt trên video thật.
+Ngày soạn: 01.11.2026. Trạng thái: **bản đầu**; cột "Tình trạng" cập nhật sau đợt thử giai đoạn 1 cùng ngày. Chủ sản phẩm đã ưng hướng "góc nhà bình yên" ngày 01.11. Từng cảnh vẫn phải được duyệt trên video thật.
 
 Thư viện này dùng để tạo ảnh và video cảnh cho Nơi bình yên một cách đồng nhất. Mỗi prompt gồm hai phần:
 
@@ -66,12 +66,12 @@ Không viết các chuyển động lớn: người đi qua, cửa đóng sầm,
 
 | ID | Cảnh | `<SUBJECT>` | Tình trạng 01.11 |
 |---|---|---|---|
-| H1 | Bếp buổi sáng | `A small, lived-in home kitchen corner in early morning: a worn wooden table by a window, soft golden sunbeams falling across it with floating dust motes, a clay teapot with gentle steam, a simple ceramic cup, a linen cloth, a few herbs and a small bunch of wildflowers in a glass jar, a potted green plant on the windowsill` | Ảnh đạt. Hợp nhất với hướng góc nhà. Chưa có video |
-| H2 | Hiên mưa mái ngói | `Gentle rain on a quiet afternoon at an old countryside home in Southeast Asia: rain drips softly from the edge of a terracotta tile roof, a low wooden table on the tiled porch with a small teapot and two tiny tea cups, potted green plants and a pot of jasmine glistening with raindrops, a warm lamp glowing softly inside the open wooden door` | Ảnh đạt, chất Việt Nam rõ. Chưa có video |
-| H3 | Góc đọc sách (bản Việt Nam) | `A small reading corner in a Vietnamese apartment on a quiet morning: a rattan chair with a soft cotton blanket, an open book face down and a cup of tea on a low wooden stool, patterned cement floor tiles warmed by a patch of sunlight, a ginger cat curled up asleep in that sunlight, a sheer curtain glowing softly, a few potted plants` | Bản trước trông giống nhà châu Âu và ảnh thiếu con mèo. Prompt này đã sửa nhưng **chưa thử** |
-| H4 | Ban công chung cư (bản Việt Nam) | `A tiny Vietnamese apartment balcony at sunrise: potted herbs, chili and a small lime tree in plastic and clay pots, trailing pothos on the railing, a few clean white clothes drying on a line and gently lifting in the breeze, a small plastic stool with a glass of iced tea, soft blurred low-rise rooftops with water tanks in the background` | Bản trước trông giống ban công châu Âu. Prompt này đã sửa nhưng **chưa thử** |
-| H5 | Bàn học buổi tối | `A small study desk by a window in the evening: a warm desk lamp glowing, a notebook and a pen, a cup of tea with faint steam, a small potted plant, soft city lights blurred far outside the window, a gentle rain on the glass` | **Chưa thử**. Thẻ `dem` |
-| H6 | Sân gạch, giàn hoa giấy | `A quiet tiled courtyard of an old Vietnamese house at midday: bougainvillea flowers hanging from a trellis, soft dappled shade on red brick tiles, a ceramic water jar, a bamboo chair, a few fallen petals` | **Chưa thử**. Thẻ `nang` |
+| H1 | Bếp buổi sáng | `A small, lived-in home kitchen corner in early morning: a worn wooden table by a window, soft golden sunbeams falling across it with floating dust motes, a clay teapot with gentle steam, a simple ceramic cup, a linen cloth, a few herbs and a small bunch of wildflowers in a glass jar, a potted green plant on the windowsill` | Ảnh đạt. Video 8 giây (khung đầu = khung cuối) có hơi trà bốc lên; hơi nước hơi dày, cần chủ sản phẩm xem có quá đậm không |
+| H2 | Hiên mưa mái ngói | `Gentle rain on a quiet afternoon at an old countryside home in Southeast Asia: rain drips softly from the edge of a terracotta tile roof, a low wooden table on the tiled porch with a small teapot and two tiny tea cups, potted green plants and a pot of jasmine glistening with raindrops, a warm lamp glowing softly inside the open wooden door` | Ảnh đạt, chất Việt Nam rõ. Video 8 giây: mưa rơi từ mái, đèn trong nhà sáng đều. Ứng viên tốt nhất |
+| H3 | Góc đọc sách (bản Việt Nam) | `A small reading corner in a Vietnamese apartment on a quiet morning: a ginger cat curled up asleep in a warm patch of sunlight on patterned cement floor tiles, beside it a rattan chair with a soft cotton blanket, an open book face down and a cup of tea on a low wooden stool, a sheer curtain glowing softly, a few potted plants` | Bản trước trông giống nhà châu Âu và thiếu con mèo. Prompt đã sửa (đưa con mèo lên đầu) cho ra ghế mây, gạch bông, mèo ngủ trong nắng. Video 8 giây: mèo ngủ yên suốt clip. Dùng để quyết D26 |
+| H4 | Ban công chung cư (bản Việt Nam) | `A tiny Vietnamese apartment balcony at sunrise: potted herbs, chili and a small lime tree in plastic and clay pots, trailing pothos on the railing, a few clean white clothes drying on a line and gently lifting in the breeze, a small plastic stool with a glass of iced tea, soft blurred low-rise Vietnamese rooftops with water tanks in the background` | Prompt đã sửa cho ra nhà ống, bồn nước inox, ghế nhựa: chất Việt Nam rõ. Chỉ có ảnh, chưa làm video |
+| H5 | Bàn học buổi tối | `A small study desk by a window in a Vietnamese apartment in the evening: a warm desk lamp glowing, a notebook and a pen, a cup of tea with faint steam, a small potted plant, soft city lights blurred far outside the window, a gentle rain on the glass` | Ảnh đạt: đèn bàn, mưa trên kính, phố đêm mờ. Chỉ có ảnh, chưa làm video. Thẻ `dem` |
+| H6 | Sân gạch, giàn hoa giấy | `A quiet tiled courtyard of an old Vietnamese house at midday: magenta bougainvillea flowers hanging from a trellis, soft dappled shade on red brick tiles, a large glazed ceramic water jar, a bamboo chair, a few fallen petals on the bricks, potted plants along a yellow lime-washed wall` | Ảnh đạt: tường vàng, hoa giấy, chum sành, ghế tre. Video 8 giây: hoa lay nhẹ, nhưng một cánh hoa rơi sát ống kính thành đốm hồng mờ giữa khung, nên lần sau bỏ "one petal drifts down". Thẻ `nang` |
 
 ### Thiên nhiên và cửa sổ (N)
 
@@ -92,10 +92,14 @@ H2: Camera completely static, like sitting on the porch watching the rain. Rain 
 
 ## 6. Lỗi hay gặp và cách sửa
 
+Đợt thử 01.11 (giai đoạn 1): 6 ảnh góc nhà mới và 4 video H1, H2, H3, H6, đều Veo 3.1 Fast 8 giây, 720p, khung đầu và khung cuối là cùng một ảnh. Cả 4 video giữ nguyên bố cục, không có vật mới hay người. Chưa kiểm chỗ nối khi lặp và chưa kiểm nhấp nháy; hai việc này cần file tải về.
+
+
 | Lỗi | Cách sửa |
 |---|---|
 | Cảnh trông như nhà châu Âu | Thêm chi tiết Việt Nam cụ thể: gạch bông, mái ngói, ghế mây, ghế nhựa, ấm đất, bồn nước trên mái. Ghi rõ "Vietnamese" ngay từ đầu chủ thể |
 | Vật bị thiếu (ví dụ con mèo) | Đưa vật đó lên đầu chủ thể, và ghi rõ vị trí ("in the warm patch of sunlight on the floor") |
+| Vật bay sát ống kính thành đốm mờ (cánh hoa rơi) | Không yêu cầu vật rơi hay bay; chỉ tả chuyển động tại chỗ (lay, rung, thở) |
 | Có chữ trên đồ vật (sách, hộp, biển) | Thêm `no writing on objects`. Nếu vẫn có chữ thì chọn biến thể khác, không sửa ảnh bằng tay |
 | Video thêm vật mới hoặc chim bay vào | Giữ `No new objects`, và thêm `no birds` |
 | Máy quay vẫn trôi | Mở đầu bằng `Camera completely static, almost a still photograph` |

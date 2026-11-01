@@ -95,6 +95,17 @@ Giai đoạn 1–2 không đụng code của app, nên làm song song với vi�
 - Không đưa clip vào repo công khai: clip chưa có license phát hành, và file lớn. Clip nằm ở thư mục local ngoài git.
 - Nếu cần cho người thử mở trên điện thoại của họ: dùng một trang riêng tư, không công khai, không index, gỡ sau đợt thử. Cần chủ sản phẩm đồng ý trước khi đưa lên.
 
+## 5a. Kết quả giai đoạn 1 (01.11)
+
+Chủ sản phẩm cho làm ngày 01.11 ("làm đi"). Claude làm trong tài khoản Flow của chủ sản phẩm:
+
+- 6 ảnh góc nhà mới: góc đọc có mèo, ban công chung cư, bàn học buổi tối, sân gạch hoa giấy (mỗi cảnh 1–2 biến thể). Các cảnh sửa theo chất Việt Nam đã ra đúng chất.
+- 4 video 8 giây, khung đầu và khung cuối là cùng một ảnh: bếp sáng (H1), hiên mưa (H2), góc đọc có mèo (H3), sân gạch hoa giấy (H6). Kết quả từng cảnh ở [thư viện prompt](../operations/nby-scene-prompt-library.md) §4.
+- Dừng ở 4 video thay vì 6 để giữ credit: gói còn 60 credit tới lần cộng 21.11. Ban công (H4) và bàn học (H5) mới có ảnh.
+- Chưa tải clip về máy, nên chưa kiểm chỗ nối và nhấp nháy.
+
+Điều kiện xong của giai đoạn 1 (chủ sản phẩm chọn ≥ 4 clip đạt §7.5) đang chờ chủ sản phẩm xem.
+
 ## 6. Công cụ tạo video: đã biết gì
 
 Đây là dữ liệu cho D24. Nguồn chính là ghi chú nghiên cứu `research_notes/Nơi bình yên video AI/ai_video_tools_terms.md` (ngày 21.10, nằm ngoài git), cùng phần kiểm thêm ngày 01.11.
@@ -104,22 +115,20 @@ Giai đoạn 1–2 không đụng code của app, nên làm song song với vi�
 | Dùng để | Thử ý tưởng nhanh, chọn khung hình | Có thể dùng cho clip phát hành |
 | Quyền sở hữu đầu ra | Google ToS: Google không nhận quyền với đầu ra | Service Specific Terms §20(a): đầu ra là Customer Data |
 | Bồi thường IP | Không có (gói cá nhân) | Có, cho model GA, đầu ra chưa chỉnh sửa, có điều kiện |
-| Watermark nhìn thấy | Clip thử ngày 01.11 có dấu Veo ✦. **Chưa xác minh** trên trang chính thức xem gói của chủ sản phẩm có tắt được không | Không có |
+| Watermark nhìn thấy | Clip thử có dấu Veo ✦. Menu tài khoản Flow của chủ sản phẩm (01.11) có công tắc "Visible watermarking" bị khóa, ghi "Visible watermarking is required in your region": **ở Việt Nam không tắt được** | Không có |
 | Watermark ẩn, nguồn gốc | SynthID (Flow FAQ) | SynthID và C2PA do Google ký |
 | Giới hạn tuổi | Người dùng Flow phải từ 18 tuổi | §20(d) cấm dùng dịch vụ AI tạo sinh trong dịch vụ hướng tới người dưới 18 tuổi. Lá Lành chỉ tạo clip ngoài app rồi phát như file tĩnh, không gọi API trong app |
 | Chi phí | Credit trong gói đang dùng | Trả theo giây video, chủ sản phẩm tự trả. Số tiền không ghi vào repo |
 | Ảnh hưởng tới D22 | Không thêm tích hợp | Không thêm tích hợp vào app: theo §2.2 PRD, công cụ chủ sản phẩm tự dùng bên ngoài không phải tích hợp. Nhưng cần mở tài khoản Google Cloud, nên là việc của chủ sản phẩm |
 
-Theo NBY-AI-AC05, không được xóa watermark nhìn thấy được. Vì vậy:
-- Nếu clip Flow luôn có dấu ✦ thì chỉ dùng Flow để thử, còn clip phát hành tạo qua Vertex.
-- Nếu gói của chủ sản phẩm tắt được dấu ✦ hợp lệ, và điều khoản cho dùng thương mại, thì Flow cũng dùng được cho clip phát hành, nhưng không có bồi thường IP.
+Theo NBY-AI-AC05, không được xóa watermark nhìn thấy được. Vì clip Flow ở Việt Nam luôn có dấu ✦, Flow chỉ dùng để thử. Clip phát hành tạo qua Vertex (D24), hoặc chủ sản phẩm chấp nhận để dấu ✦ trong cảnh.
 
 ## 7. Quyết định cần chủ sản phẩm
 
 | ID | Câu hỏi | Đề xuất | Trạng thái |
 |---|---|---|---|
 | D23 | Chủ thể của thư viện | "Góc nhà bình yên" là chính (≥ 8/14 clip đầu), thiên nhiên là phụ | **Hướng đã chọn** 01.11 ("tôi thấy đẹp đấy"); tỷ lệ chờ duyệt |
-| D24 | Công cụ cho clip phát hành | Flow chỉ để thử. Clip phát hành tạo qua Veo 3.1 GA trên Vertex, trừ khi kiểm được Flow không có dấu nhìn thấy và cho dùng thương mại | Chờ chủ sản phẩm (việc trả phí, tài khoản nhà cung cấp) |
+| D24 | Công cụ cho clip phát hành | Flow chỉ để thử, vì dấu ✦ không tắt được ở Việt Nam. Clip phát hành tạo qua Veo 3.1 GA trên Vertex, dùng lại ảnh khung đầu đã duyệt trong Flow | Chờ chủ sản phẩm (việc trả phí, tài khoản nhà cung cấp) |
 | D25 | Có "Thở cùng cảnh" (NBY-12) trong v1 không | Quyết định sau giai đoạn 2, theo kết quả thử | Chờ thử |
 | D26 | Con vật trong cảnh | Cho phép con vật nhà ngủ yên, nhỏ trong khung, không nhìn vào máy quay (ví dụ mèo cuộn tròn trong nắng). Không có người | Chờ duyệt |
 | D27 | Cách thử bản mẫu | 8–12 người 18–25 tuổi, đồng ý bằng lời, ghi chú không tên; không ghi âm, ghi hình người thử | Chờ duyệt |
@@ -157,7 +166,8 @@ Theo NBY-AI-AC05, không được xóa watermark nhìn thấy được. Vì vậ
 - Đề xuất trong chat gọi phần sửa là "PRD 0.5", nhưng PRD đã ở 0.7. Kế hoạch đổi thành đề xuất cho 0.8 và không sửa trực tiếp PRD, để tránh xung đột với #68.
 
 **Rủi ro còn mở:**
-- Chưa đọc được trang chính thức về watermark nhìn thấy và quyền dùng thương mại của Flow cho gói của chủ sản phẩm. Phải kiểm trong phần cài đặt của Flow và trong điều khoản hiện hành trước giai đoạn 4.
+- Đã kiểm trong cài đặt Flow: dấu ✦ không tắt được ở Việt Nam. Quyền dùng thương mại của gói Flow vẫn chưa đọc được trên trang chính thức; không ảnh hưởng nếu chọn Vertex cho clip phát hành.
+- Ảnh khung đầu tạo bằng Nano Banana trong Flow có thể cũng mang dấu nhìn thấy hoặc SynthID; trước khi dùng làm khung đầu cho Vertex phải kiểm file ảnh.
 - Veo 3.1 GA trên Vertex ghi ngày ngừng là "November 17, 2026 or later". Cần kiểm lại model hiện hành trước giai đoạn 4.
 - Bảo hiểm bồi thường IP của Vertex chỉ áp dụng cho đầu ra chưa chỉnh sửa, mà script lặp có chỉnh sửa. Vì vậy phải giữ bản gốc và prompt.
 - Cách 2 của "Thở cùng cảnh" có thể trông giả.
