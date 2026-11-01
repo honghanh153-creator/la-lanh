@@ -184,6 +184,14 @@ Hai chỉ số chỉ đo **lượng** chuyển động, không đo chuyển đ�
 - Điều khoản: Grok vẫn như trên (giấy phép rộng cho xAI, không bồi thường, phải ghi công). Flow (gói cá nhân) không có bồi thường. Chỉ Vertex có bồi thường.
 - Chủ sản phẩm cần xem 3 clip Grok để chấm cảm giác "thật". Số liệu không thay được mắt người.
 
+**Vòng 2 trên Grok theo góp ý của chủ sản phẩm (01.11):**
+
+- Góp ý: mèo "vẩy nhẹ đuôi một cái"; mưa "hơi kỳ vì có cái chậu cây lá to, mà màu bị đậm tối"; hơi trà "nhìn hơi bất thường, trắng quá"; và nhận xét chung "thiếu chú ý tới tiểu tiết, các action nhìn khá đều đều trong khi thực tế thì có lẽ không như vậy".
+- Góc đọc có mèo: đuôi vẫy một lần ở giây 2,8–3,3 rồi cuộn lại; mèo ngủ yên, rèm tự bay.
+- Hiên mưa: cây nhỏ, ánh sáng sáng hơn, prompt chuyển động không đều. Chuyển động giảm còn 4,7% điểm ảnh, độ lên xuống (hệ số biến thiên giữa các khung) 0,17. Có một chiếc lá xanh tự rơi xuống bàn, không có trong prompt.
+- Bếp sáng: hơi trà mỏng, trong, lúc có lúc tan; gió từng cơn. Chuyển động 10,2%, độ lên xuống 0,26.
+- Bài học đã chép vào [thư viện prompt](../operations/nby-scene-prompt-library.md) §3: chuyển động không đều và bảng chi tiết nhỏ.
+
 ## 7. Quyết định cần chủ sản phẩm
 
 | ID | Câu hỏi | Đề xuất | Trạng thái |

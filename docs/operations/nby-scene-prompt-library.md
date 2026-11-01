@@ -64,6 +64,25 @@ Camera completely static on a tripod, <CAMERA_FEEL>. The scene itself is alive a
 | `<LIGHT>` | Ánh sáng thật của cảnh, ví dụ "Real early-morning sunlight". |
 | `<SOUND>` | Âm thanh nền. Tiếng trong clip chỉ để tham khảo, vì app dùng âm thanh có license riêng (NBY-06). |
 
+**Chuyển động phải không đều** (chủ sản phẩm, 01.11): "vấn đề là ở việc thiếu chú ý tới tiểu tiết, các action nhìn khá đều đều trong khi thực tế thì có lẽ không như vậy". Ngoài đời, gió đến từng cơn rồi lặng, giọt mưa trúng lá này rồi lá khác, phần lớn lá đứng yên phần lớn thời gian. Prompt phải ghi rõ:
+
+- `Motion must be irregular and natural like real life, never uniform or rhythmic`.
+- Chuyển động theo cơn, có lúc nghỉ: `uneven gusts ... then they slow down and almost stop for a moment before the next gust`.
+- Chỉ một phần vật chuyển động mỗi lúc: `only some leaves move at a time while others stay still`.
+- Mỗi chi tiết có thời điểm riêng: `a drop falls only now and then`, `drips fall at uneven intervals`, `ripples appear at random spots`.
+
+Đánh đổi đã thấy (01.11): prompt "không đều" cho chuyển động tự nhiên hơn nhưng ít hơn (mưa 4,7%, bếp 10,2% điểm ảnh chuyển động), so với prompt "rõ, liên tục" (mưa 27,7%, bếp 22%). Cần chủ sản phẩm chấm bằng mắt.
+
+**Chi tiết nhỏ cần ghi rõ:**
+
+| Chi tiết | Viết | Lỗi đã gặp |
+|---|---|---|
+| Hơi nước | `only a very faint, thin, almost invisible translucent wisp of steam, barely visible against the light, breaking up and disappearing quickly, not white smoke, not thick, not continuous` | Hơi trắng, dày, liên tục như khói (bếp, Grok, 01.11) |
+| Con vật | `once, around the middle of the clip, the tip of its tail gives one slow, gentle flick and settles back`; `does not stand up, walk or look at the camera` | (đạt 01.11: đuôi mèo vẫy một lần ở giây 2,8–3,3) |
+| Cây tiền cảnh | `small potted plants with small and medium leaves, none of them large or dominating the frame` | Chậu lá to choán khung, nhìn lạ (mưa, Grok, 01.11) |
+| Ánh sáng mưa | `bright, soft overcast daylight, airy and light, well exposed, not dark, not moody` | Màu đậm, tối (mưa, Grok, 01.11) |
+| Vật rơi | Không xin vật rơi; thêm `no falling leaves or objects` | Một chiếc lá xanh tự rơi xuống bàn (mưa, Grok, 01.11) |
+
 **Từ vựng chuyển động:**
 
 | Nguồn | Viết như thế này | Tránh |
