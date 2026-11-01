@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time
+from time import monotonic
 from typing import TypeVar
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
@@ -9,6 +10,7 @@ from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, TimePrecision
 from app.domains.birth.errors import (
     BirthChartBusy,
+    BirthCorrectionExpired,
     BirthDateChangeLimited,
     BirthDateChangeRequiresEdit,
     BirthDateConfirmationMismatch,
@@ -20,6 +22,7 @@ from app.domains.birth.errors import (
     BirthSupplementInvalid,
 )
 from app.domains.birth.models import (
+    DATE_CHANGE_COMMIT_DEADLINE_SECONDS,
     DATE_CHANGE_LIMIT,
     DATE_CHANGE_WINDOW,
     ApproxWindow,
@@ -101,6 +104,7 @@ class BirthChartService:
         confirm_birth_date: date,
         expected_revision: datetime,
         now: datetime | None = None,
+        commit_deadline: float | None = None,
     ) -> BirthReveal:
         """Replace a saved birth date (US-23).
 
@@ -110,6 +114,7 @@ class BirthChartService:
         as it was. Phases 2 and 3 are ``BirthRepository.replace_date``. No value is logged.
         """
 
+        deadline = commit_deadline or monotonic() + DATE_CHANGE_COMMIT_DEADLINE_SECONDS
         current = now or datetime.now(UTC)
         if confirm_birth_date != birth_date:
             raise BirthDateConfirmationMismatch
@@ -125,6 +130,8 @@ class BirthChartService:
         if await self._repository.recent_date_changes(guest_id, since=since) >= DATE_CHANGE_LIMIT:
             raise BirthDateChangeLimited
         result = await self._run_compute(self._engine.calculate_date_only_sun, birth_date)
+        if monotonic() >= deadline:
+            raise BirthCorrectionExpired
         replaced = await self._repository.replace_date(
             BirthSnapshotRecord(
                 id=uuid4(),
@@ -144,6 +151,7 @@ class BirthChartService:
             now=current,
             limit=DATE_CHANGE_LIMIT,
             window=DATE_CHANGE_WINDOW,
+            commit_deadline=deadline,
         )
         return self._reveal(replaced, resumed=False)
 

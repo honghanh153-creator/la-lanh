@@ -8,6 +8,7 @@ import {
   rememberVerifiedSession, sessionCookieMarker, sessionGeneration, trackSessionRequest,
   verifiedCookieHasChanged,
 } from "../session/sessionIdentity";
+import { awaitChartRelease, isChartDerivedRead } from "../storage/chartQuarantineGate";
 import { readCachedDailyNote } from "../storage/noteCache";
 import {
   acknowledgeSavedMutation,
@@ -518,6 +519,9 @@ function cookieCapable(path: string, method = "GET"): boolean {
 }
 
 async function request<T>(path: string, init?: RequestOptions, consume?: (result: T) => Promise<void>): Promise<T> {
+  // US-23 (Codex r59): no old chart content is read while a correction's outcome is unknown.
+  const held = isChartDerivedRead(path, init?.method) ? awaitChartRelease(init?.signal) : null;
+  if (held) await held;
   const epoch = currentSessionEpoch();
   const generation = sessionGeneration();
   const marker = sessionCookieMarker();

@@ -42,4 +42,5 @@ class BirthRepository(Protocol):
         now: datetime,
         limit: int,
         window: timedelta,
+        commit_deadline: float | None = None,
     ) -> BirthSnapshotRecord: ...

@@ -537,3 +537,64 @@ def test_the_counter_migration_is_private_and_reversible() -> None:
     ):
         migration.downgrade()
     drop.assert_called_once_with("birth_date_changes")
+
+
+def test_a_correction_past_its_pre_commit_deadline_rolls_back(tmp_path: Path) -> None:
+    """Codex r59: a request that has not committed by its deadline never commits later."""
+
+    database_path = tmp_path / "deadline.db"
+    app = make_app(database_path)
+    with TestClient(app, base_url=ORIGIN) as client:
+        headers = start_guest(client)
+        before = client.get("/v1/birth-profile").json()
+        state = _state(database_path)
+        guest_id = UUID(raw(database_path).execute("SELECT id FROM guest_sessions").fetchone()[0])
+        service = app.state.birth_chart_service
+        assert client.portal is not None
+        from app.domains.birth.errors import BirthCorrectionExpired
+
+        with pytest.raises(BirthCorrectionExpired):
+            client.portal.call(
+                lambda: service.correct_date(
+                    guest_id=guest_id,
+                    birth_date=date.fromisoformat(NEW_DATE),
+                    confirm_birth_date=date.fromisoformat(NEW_DATE),
+                    expected_revision=datetime.fromisoformat(before["profile_revision"]),
+                    commit_deadline=time.monotonic() - 1,
+                )
+            )
+        # Expired inside the transaction too: the repository rolls back at its last step.
+        repository = service._repository
+        with pytest.raises(BirthCorrectionExpired):
+            client.portal.call(
+                lambda: repository.replace_date(
+                    _snapshot(service, guest_id),
+                    expected_revision=datetime.fromisoformat(before["profile_revision"]),
+                    now=datetime.now(UTC),
+                    limit=3,
+                    window=timedelta(hours=24),
+                    commit_deadline=time.monotonic() - 1,
+                )
+            )
+        assert _state(database_path) == state
+        assert (
+            client.get("/v1/birth-profile").json()["profile_revision"] == before["profile_revision"]
+        )
+        assert _correct(client, headers).status_code == 200
+
+
+def _snapshot(service: Any, guest_id: UUID) -> Any:
+    from app.domains.birth.models import BirthSnapshotRecord
+
+    birth_date = date.fromisoformat(NEW_DATE)
+    return BirthSnapshotRecord(
+        id=uuid4(),
+        guest_id=guest_id,
+        profile_id=uuid4(),
+        input_hash=service._hasher.digest("birth-input", f"{guest_id}:date-only-v1:{NEW_DATE}"),
+        birth_date_ciphertext=service._envelope.encrypt(
+            NEW_DATE.encode(), context=f"birth-date:{guest_id}".encode()
+        ),
+        result=service._engine.calculate_date_only_sun(birth_date),
+        created_at=datetime.now(UTC),
+    )

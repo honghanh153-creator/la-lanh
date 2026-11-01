@@ -111,7 +111,9 @@ how the duties apply stays in the owner/engineering P09 assessment and no compli
 
 1. Error codes follow the API's uppercase convention: `BIRTH_DATE_CHANGE_REQUIRES_EDIT`, and the stale revision reuses
    the existing `409 BIRTH_PROFILE_CHANGED` (plan: `profile_revision_changed`). Added `BIRTH_DATE_UNCHANGED` (409),
-   `BIRTH_DATE_CHANGE_LIMITED` (429), `BIRTH_DATE_CONFIRMATION_MISMATCH` (422).
+   `BIRTH_DATE_CHANGE_LIMITED` (429), `BIRTH_DATE_CONFIRMATION_MISMATCH` (422), and `BIRTH_CORRECTION_EXPIRED`
+   (503, Codex r59): a correction not committed 60 s after it started rolls back, so the web quarantine (session-
+   scoped, restored on reload, derived reads held) lifts on an unchanged revision only after 120 s.
 2. The D5 counter is keyed by the guest id with an FK cascade (`birth_date_changes`) rather than an HMAC, so guest
    deletion removes it; it holds no value.
 3. The Mình time/place summary shows precision and city, not "07:30": the general supplement state never contains the

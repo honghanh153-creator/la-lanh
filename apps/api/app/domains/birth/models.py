@@ -7,6 +7,9 @@ from app.domains.astro.models import DateOnlySunResult, NatalChart
 from app.domains.geo.models import PlaceResult
 
 ChartResult = DateOnlySunResult | NatalChart
+# A correction that has not committed this long after it started rolls back instead (Codex r59).
+# The web client keeps its quarantine until well past this, so a late commit cannot slip by.
+DATE_CHANGE_COMMIT_DEADLINE_SECONDS = 60.0
 # US-23 D5: at most this many birth-date corrections per person in a rolling window.
 DATE_CHANGE_LIMIT = 3
 DATE_CHANGE_WINDOW = timedelta(hours=24)

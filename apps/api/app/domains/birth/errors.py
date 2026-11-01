@@ -58,3 +58,10 @@ class BirthDateChangeLimited(BirthDomainError):
 class BirthDateConfirmationMismatch(BirthDomainError):
     code = "BIRTH_DATE_CONFIRMATION_MISMATCH"
     status_code = 422
+
+
+class BirthCorrectionExpired(BirthDomainError):
+    """The correction reached its pre-commit deadline: rolled back, nothing changed (Codex r59)."""
+
+    code = "BIRTH_CORRECTION_EXPIRED"
+    status_code = 503
