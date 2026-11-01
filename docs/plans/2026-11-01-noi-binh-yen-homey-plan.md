@@ -140,6 +140,15 @@ Chủ sản phẩm cho làm ngày 01.11 ("làm đi"). Claude làm trong tài kho
 
 Theo NBY-AI-AC05, không được xóa watermark nhìn thấy được. Vì clip Flow ở Việt Nam luôn có dấu ✦, Flow chỉ dùng để thử. Clip phát hành tạo qua Vertex (D24), hoặc chủ sản phẩm chấp nhận để dấu ✦ trong cảnh.
 
+**Grok Imagine (xAI), kiểm ngày 01.11 theo câu hỏi của chủ sản phẩm.** Nguồn chính: điều khoản Consumer của xAI, "Last Updated: October 27, 2026", https://x.ai/legal/terms-of-service (công ty nay ghi tên "SpaceXSI").
+
+- Người dùng giữ quyền sở hữu đầu vào và đầu ra (§4).
+- Khi dùng đầu ra phải "attribute your generation of the Output to the Service" theo Brand Guidelines. Ghi công này đặt được trong tấm ⓘ (PRD §8.6).
+- Người dùng cấp cho xAI quyền "irrevocable, perpetual, transferable, sublicensable, royalty-free, and worldwide" với nội dung gửi lên: được dùng, sửa, công bố, làm tác phẩm phái sinh "for any purpose". Prompt và ảnh khung đầu của Lá Lành không có dữ liệu cá nhân, nhưng cảnh của thư viện có thể bị xAI dùng lại.
+- Không có bồi thường IP. Ngược lại, người dùng phải bồi thường cho xAI (§11).
+- Watermark: chưa đọc được nguồn chính. Các nguồn thứ cấp mâu thuẫn nhau (có dấu Grok, có thể không gỡ được).
+- Kết luận: Grok dùng được **để thử** nếu chủ sản phẩm đã có tài khoản. Không đề xuất cho clip phát hành, vì giấy phép rộng cho xAI, không có bồi thường và chưa rõ watermark. D24 không đổi.
+
 ## 7. Quyết định cần chủ sản phẩm
 
 | ID | Câu hỏi | Đề xuất | Trạng thái |
