@@ -166,7 +166,10 @@ export function BirthDateEdit() {
       if (message.ambiguous) {
         // A timeout or transport failure says nothing about the commit, which happens before the
         // send drain. Read the profile again: a new revision means the change is in.
-        const text = await reconcile(loaded.profile_revision, sameSession);
+        // Only a 4xx answer proves the server finished with this request; anything else (transport
+        // reset, timeout, 5xx/gateway) may still commit after the reconciliation read (Codex r57).
+        const terminal = failure instanceof ApiProblem && failure.status >= 400 && failure.status < 500;
+        const text = await reconcile(loaded.profile_revision, terminal, sameSession);
         if (sameSession()) setError({ text });
         return;
       }
@@ -174,17 +177,31 @@ export function BirthDateEdit() {
       if (message.reload) {
         setStage("edit");
         const current = await profile.refetch();
-        if (current.data) setValue(partsOf(current.data.birth_date));
+        if (!sameSession()) return;
+        if (current.data && current.data.profile_revision !== loaded.profile_revision) {
+          // Another tab's correction deleted this chart's sources on the server (Codex r57):
+          // withdraw the old derived caches too, keeping queued unsaves.
+          await withdrawCorrectedChart(queryClient);
+          if (!sameSession()) return;
+        }
+        const latest = queryClient.getQueryData<BirthReveal>(["birth-profile"]) ?? current.data;
+        if (latest) setValue(partsOf(latest.birth_date));
       }
     } finally {
       setPending(false);
     }
   };
 
-  const reconcile = async (submitted: string, sameSession: () => boolean): Promise<string> => {
+  const reconcile = async (submitted: string, terminal: boolean, sameSession: () => boolean): Promise<string> => {
     const current = await profile.refetch();
     if (!sameSession() || current.isError || !current.data) return UNKNOWN_MESSAGE;
-    if (current.data.profile_revision === submitted) return UNCHANGED_MESSAGE;
+    if (current.data.profile_revision === submitted) {
+      if (terminal) return UNCHANGED_MESSAGE;
+      // The request may still commit later; make every chart-derived view refetch on next use
+      // without dropping queued saves that are valid if the change never lands.
+      await queryClient.invalidateQueries({ refetchType: "none" });
+      return UNKNOWN_MESSAGE;
+    }
     await withdrawCorrectedChart(queryClient);
     if (!sameSession()) return UNKNOWN_MESSAGE;
     const latest = queryClient.getQueryData<BirthReveal>(["birth-profile"]) ?? current.data;

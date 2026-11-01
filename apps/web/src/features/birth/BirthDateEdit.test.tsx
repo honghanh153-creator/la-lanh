@@ -148,7 +148,8 @@ describe("BirthDatePage edit mode (US-23)", () => {
     await user.click(screen.getByRole("button", { name: /Đổi ngày sinh/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Hồ sơ vừa được cập nhật ở nơi khác");
     await waitFor(() => expect(within(screen.getByRole("group", { name: "Ngày sinh mới" })).getByRole("textbox", { name: "Năm" })).toHaveValue("1991"));
-    expect(withdrawCorrectedChart).not.toHaveBeenCalled();
+    // Codex r57: the other tab's correction deleted the old chart's sources; withdraw its caches.
+    expect(withdrawCorrectedChart).toHaveBeenCalledTimes(1);
   });
 
   it.each([

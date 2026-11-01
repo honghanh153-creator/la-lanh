@@ -7,7 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
+import { ApiProblem, correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
 import { invalidateSessionRequests } from "../../shared/session/sessionIdentity";
 import { BirthDateEdit } from "./BirthDateEdit";
 
@@ -83,9 +83,20 @@ it("reconciles an ambiguous failure that actually committed", async () => {
   expect(query.getQueryData(["birth-profile"])).toEqual(first);
 });
 
-it("still says the old chart stays when the server shows no change", async () => {
+it("stays uncertain when a transport failure precedes a later commit (Codex r57)", async () => {
+  // The server is still computing when the reconciliation read returns the old revision.
+  vi.mocked(getBirthProfile).mockResolvedValueOnce(old).mockResolvedValueOnce(old).mockResolvedValue(first);
+  vi.mocked(correctBirthDate).mockRejectedValue(new Error("synthetic transport reset"));
+  const query = mount();
+  await enterNewDate();
+  const alert = await screen.findByText(/Chưa rõ thay đổi đã được lưu chưa/);
+  expect(alert).not.toHaveTextContent("Lá cũ vẫn giữ nguyên");
+  await waitFor(() => expect(query.getQueryState(["birth-profile"])?.isInvalidated).toBe(true));
+});
+
+it("still says the old chart stays when the server refused the request", async () => {
   vi.mocked(getBirthProfile).mockResolvedValue(old);
-  vi.mocked(correctBirthDate).mockRejectedValue(new Error("synthetic transport failure"));
+  vi.mocked(correctBirthDate).mockRejectedValue(new ApiProblem(429, "BIRTH_CHART_BUSY", "busy"));
   mount();
   await enterNewDate();
   expect(await screen.findByRole("alert")).toHaveTextContent("Lá cũ vẫn giữ nguyên");
