@@ -193,6 +193,8 @@ Hai chỉ số chỉ đo **lượng** chuyển động, không đo chuyển đ�
 - Bài học đã chép vào [thư viện prompt](../operations/nby-scene-prompt-library.md) §3: chuyển động không đều và bảng chi tiết nhỏ.
 - Chủ sản phẩm chỉ ra: "cái lá rơi sao mà bật lên bàn được". Soi từng 0,2 giây: lá rời cây chanh ở giây 1,0, chạm sàn ở 1,4, rồi trôi ngang và bật ngược lên mặt bàn ở 1,6–2,4. Claude đã bỏ sót vì chỉ xem 6 khung cách 1 giây. Quy trình duyệt nay soi từng 0,2 giây (thư viện prompt §1 bước 3).
 - Làm lại cảnh mưa (mưa vừa, "mọi thứ dính nguyên chỗ"): 30 khung không có vật rơi; chuyển động 8,4% điểm ảnh, nhưng đều (hệ số biến thiên 0,07). Bố cục lạ: hiên như tấm sàn nổi, vườn hiện cả trên lẫn dưới. Chưa đạt.
+- Thử lại theo yêu cầu của chủ sản phẩm, tả rõ bố cục "nhìn từ trong nhà ra hiên" (máy đặt thấp trong nhà, khung cửa gỗ hai bên, sàn gạch nối liền ra hiên, mép mái phía trên, vườn sau một bậc). Kết quả: bố cục đúng; 30 khung (mỗi 0,2 giây) không có vật rơi hay vật đổi chỗ. Nhưng gần như đứng im: 2,8% điểm ảnh chuyển động; so ba khung giây 1, 3, 5 thì lá chuối và chậu cây gần như trùng khít, chỉ có vệt mưa và giọt từ mái. Có hai lớp mái chồng nhau (mái nhà và mái hiên) nhìn hơi rối. Chưa đạt.
+- Kết luận sau bốn lần thử cảnh mưa trên Grok: sửa được lỗi này thì lỗi khác xuất hiện (lá không động → lá bay ngược → sàn nổi → đứng im). Đề xuất dùng video quay thật cho cảnh mưa (D29); giữ AI cho các cảnh đã gần đạt (góc đọc có mèo, bếp).
 
 ## 7. Quyết định cần chủ sản phẩm
 
