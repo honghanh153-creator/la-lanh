@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import (
+    Aspect,
     BodyName,
     CalculationConfig,
     ChartInput,
@@ -198,6 +199,7 @@ def test_western_placement_factors_keep_degree_and_motion_as_private_evidence() 
 
 
 def test_approximate_excludes_midpoint_facts_without_engine_stability_proof() -> None:
+    """Midpoint facts are used only when stable over the whole window (#143 E1)."""
     approximate = _chart().model_copy(
         update={
             "time_precision": TimePrecision.APPROXIMATE,
@@ -208,9 +210,23 @@ def test_approximate_excludes_midpoint_facts_without_engine_stability_proof() ->
 
     plan = ReadingPlanner().plan(approximate, purpose=ReadingPurpose.READING_DETAIL)
 
-    assert plan.mode is PlanMode.LIMITED
-    assert plan.factors == ()
-    assert plan.hero_factor_refs == ()
+    # #143 E1: only placements proven stable across the window; never the Moon, houses,
+    # angles or aspects.
+    assert plan.mode is PlanMode.FULL_SYNTHESIS
+    assert plan.precision is TimePrecision.APPROXIMATE
+    assert plan.factors and all(f.kind is FactorKind.PLANET_PLACEMENT for f in plan.factors)
+    assert all("moon" not in f.subjects for f in plan.factors)
+    # Midpoint-only degree, motion, orb and phase are never published (#150 r1 P1).
+    assert all(f.evidence_refs == (f.id,) and not f.child_refs for f in plan.factors)
+    by_body = {p.body.value: p for p in approximate.bodies}
+    for factor in plan.factors:
+        if factor.kind is not FactorKind.PLANET_PLACEMENT:
+            continue
+        position = by_body[factor.subjects[0]]
+        from app.domains.readings.planner import _MAX_SPEED_DEG_PER_DAY
+
+        margin = _MAX_SPEED_DEG_PER_DAY[position.body] * 0.5 * 1.5
+        assert margin < position.degree_in_sign < 30 - margin
     assert plan.composition.natal_percent == 100
     assert plan.composition.transit_percent == 0
     serialized = plan.model_dump_json().lower()
@@ -383,3 +399,118 @@ def test_service_exposes_the_same_canonical_planner_contract() -> None:
     plan = InsightReadingService().plan(chart, purpose=ReadingPurpose.AURA)
 
     assert plan == ReadingPlanner().plan(chart, purpose=ReadingPurpose.AURA)
+
+
+def test_a_planet_near_a_sign_boundary_is_not_read_from_an_approximate_time() -> None:
+    from app.domains.readings.planner import _sign_is_time_stable
+
+    # Mercury at its maximum speed can move about 1.66 degrees in half a day with the margin.
+    assert not _sign_is_time_stable(BodyName.MERCURY, 29.2)
+    assert not _sign_is_time_stable(BodyName.MERCURY, 0.8)
+    assert _sign_is_time_stable(BodyName.MERCURY, 15.0)
+    # Unbounded or oscillating bodies fail closed.
+    assert not _sign_is_time_stable(BodyName.MOON, 15.0)
+    assert not _sign_is_time_stable(BodyName.TRUE_NODE, 15.0)
+
+
+def test_sign_stability_holds_near_a_station_where_midpoint_speed_is_zero() -> None:
+    from app.domains.readings.planner import _sign_is_time_stable
+
+    # Synthetic station: longitude(t) = 29.999 + 0.1 * t^2 (t in days), speed 0 at t = 0, and
+    # the sign changes within three hours. A midpoint-speed test would call it stable.
+    assert not _sign_is_time_stable(BodyName.MERCURY, 29.999)
+    assert not _sign_is_time_stable(BodyName.MARS, 29.999)
+    # A slow body far from a boundary stays readable at its station.
+    assert _sign_is_time_stable(BodyName.SATURN, 12.0)
+
+
+def _approximate_with(
+    chart: NatalChart, placements: dict[BodyName, tuple[float, float]], aspect: Aspect
+) -> NatalChart:
+    bodies = tuple(
+        position.model_copy(
+            update={
+                "degree_in_sign": placements[position.body][0],
+                "longitude_speed": placements[position.body][1],
+            }
+        )
+        if position.body in placements
+        else position
+        for position in chart.bodies
+    )
+    return chart.model_copy(
+        update={
+            "time_precision": TimePrecision.APPROXIMATE,
+            "houses": None,
+            "angles": None,
+            "bodies": bodies,
+            "aspects": (aspect,),
+        }
+    )
+
+
+@pytest.mark.parametrize("purpose", [ReadingPurpose.READING_DETAIL, ReadingPurpose.AURA])
+def test_an_aspect_to_a_removed_placement_never_reaches_selection(
+    purpose: ReadingPurpose,
+) -> None:
+    """#150 r1 P1: Mercury at 29.9 loses its sign; its conjunction must not crash the plan."""
+    chart = _approximate_with(
+        _chart(),
+        {BodyName.SUN: (27.0, 1.0), BodyName.MERCURY: (29.9, 2.0)},
+        Aspect(
+            body_a=BodyName.SUN,
+            body_b=BodyName.MERCURY,
+            kind="conjunction",
+            exact_angle=0.0,
+            orb=2.9,
+            applying=True,
+        ),
+    )
+
+    plan = ReadingPlanner().plan(chart, purpose=purpose)
+
+    assert all(f.kind is FactorKind.PLANET_PLACEMENT for f in plan.factors)
+    assert "mercury" not in {s for f in plan.factors for s in f.subjects}
+
+
+def test_an_aspect_whose_phase_flips_in_the_window_is_not_published() -> None:
+    """#150 r1 P1: Sun 15 / Mercury 14.9 flips applying to separating within the window."""
+    chart = _approximate_with(
+        _chart(),
+        {BodyName.SUN: (15.0, 1.0), BodyName.MERCURY: (14.9, 2.0)},
+        Aspect(
+            body_a=BodyName.SUN,
+            body_b=BodyName.MERCURY,
+            kind="conjunction",
+            exact_angle=0.0,
+            orb=0.1,
+            applying=True,
+        ),
+    )
+
+    plan = ReadingPlanner().plan(chart, purpose=ReadingPurpose.READING_DETAIL)
+
+    refs = " ".join(ref for f in plan.factors for ref in (f.id, *f.evidence_refs, *f.child_refs))
+    assert plan.factors
+    for forbidden in (":aspect:", ":orb:", ":phase:", ":degree_in_sign:", ":motion:"):
+        assert forbidden not in refs
+
+
+def test_a_stationary_planet_near_a_boundary_is_dropped_from_an_approximate_plan() -> None:
+    """#150 r2 P1: speed 0 at the midpoint (a station) does not prove the sign for the window."""
+    chart = _approximate_with(
+        _chart(),
+        {BodyName.SUN: (15.0, 1.0), BodyName.MERCURY: (29.999, 0.0)},
+        Aspect(
+            body_a=BodyName.SUN,
+            body_b=BodyName.MERCURY,
+            kind="sextile",
+            exact_angle=60.0,
+            orb=5.0,
+            applying=False,
+        ),
+    )
+
+    plan = ReadingPlanner().plan(chart, purpose=ReadingPurpose.READING_DETAIL)
+
+    assert "mercury" not in {s for f in plan.factors for s in f.subjects}

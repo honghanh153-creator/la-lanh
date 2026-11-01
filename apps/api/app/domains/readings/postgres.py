@@ -408,10 +408,12 @@ class PostgresReadingRepository:
             ):
                 return None
             if expected_chart_snapshot_id is not None:
+                # Exact and approximate-time synthesis (#143 E1) both upgrade a stored
+                # limited reading; the snapshot pin above still rejects stale charts.
                 plan = _plan_record(plan_row, self._envelope).plan
                 if (
                     plan.mode is not PlanMode.FULL_SYNTHESIS
-                    or plan.precision is not TimePrecision.EXACT
+                    or plan.precision is TimePrecision.UNKNOWN
                 ):
                     return None
             result = await session.execute(
