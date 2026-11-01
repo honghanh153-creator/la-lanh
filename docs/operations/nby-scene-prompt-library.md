@@ -51,18 +51,30 @@ Riêng cảnh ngoài trời rộng, có thể thay "close and intimate" bằng m
 
 ## 3. Khung chung cho video
 
+**Máy đứng yên, cảnh phải sống** (chủ sản phẩm, 01.11): video thiếu "sự sống động của những hình ảnh xung quanh"; "có gió thì phải lay động, còn mưa thì lá phải như nào". Khung cũ chỉ xin chuyển động "rất nhỏ, gần như không thấy", nên cảnh gần như đứng im. Khung mới xin chuyển động **rõ, đều và liên tục** của gió, mưa, nước và ánh sáng, nhưng vẫn êm: không bão, không giật.
+
 ```text
-Camera completely static, <CAMERA_FEEL>. <MOTION>. <LIGHT>, natural motion only, peaceful. No people, no new objects, no camera movement. Ambient sound: <SOUND>.
+Camera completely static on a tripod, <CAMERA_FEEL>. The scene itself is alive and keeps moving the whole time: <MOTION>. <LIGHT>, true-to-life natural colors, no color grading, no film look. Calm but clearly alive, never frozen. No people, no hands, no arms, no human body parts; nobody enters the frame or touches anything; every movement comes only from wind, rain, water, steam or light. No new objects, no camera movement. Ambient sound: <SOUND>.
 ```
 
 | Chỗ trống | Cách viết |
 |---|---|
 | `<CAMERA_FEEL>` | Một câu đặt người xem vào chỗ ngồi, ví dụ "like sitting quietly at the kitchen table". |
-| `<MOTION>` | 2–4 chuyển động **nhỏ, tự nhiên**: hơi nước, mưa nhỏ giọt, rèm thở, lá rung, nắng di chuyển chậm, bụi trong nắng. |
-| `<LIGHT>` | Ánh sáng thật của cảnh, ví dụ "Real early-morning sunlight, true-to-life colors, no color grading". |
+| `<MOTION>` | 3–5 chuyển động **thấy rõ** của môi trường, lấy từ bảng dưới. Mỗi cảnh có ít nhất một nguồn chuyển động lớn (gió hoặc mưa) và một chi tiết nhỏ (hơi nước, bóng lá). |
+| `<LIGHT>` | Ánh sáng thật của cảnh, ví dụ "Real early-morning sunlight". |
 | `<SOUND>` | Âm thanh nền. Tiếng trong clip chỉ để tham khảo, vì app dùng âm thanh có license riêng (NBY-06). |
 
-Không viết các chuyển động lớn: người đi qua, cửa đóng sầm, chim bay vào khung, đổi góc máy.
+**Từ vựng chuyển động:**
+
+| Nguồn | Viết như thế này | Tránh |
+|---|---|---|
+| Gió | `a steady breeze clearly sways the leaves and branches, the plant leaves flutter, turn and bounce back, the trees outside sway continuously, the curtain billows in and out by itself from the open window, hanging clothes swing` | `tremble slightly`, `almost imperceptibly`, `barely` |
+| Mưa | `steady rain falls in visible streaks, raindrops hit the leaves so they bounce, dip and spring back, water runs off the leaf tips and drips from the roof edge in a constant stream, puddles on the tiles ripple with every drop, wet leaves glisten` | `gentle rain` một mình (ra mưa gần như không thấy) |
+| Ánh sáng | `leaf shadows dance across the table as the branches outside sway, sunlight flickers through the moving leaves` | `the sunlight creeps slowly` |
+| Hơi nước | `thin steam curls up and drifts sideways in the breeze` | hơi nước dày, cuộn lớn |
+| Con vật (D26) | `the cat sleeps, its side rising and falling with each breath, one ear twitches` | để con vật đứng dậy, đi lại |
+
+Không viết: người đi qua, bàn tay chạm vào vật, cửa đóng sầm, chim bay vào khung, đổi góc máy, gió mạnh làm đồ đổ.
 
 ## 4. Danh mục chủ thể
 
@@ -86,23 +98,27 @@ Không viết các chuyển động lớn: người đi qua, cửa đóng sầm,
 | N3 | Hiên nhìn ra biển | Video: giống N2, nhưng `<CAMERA_FEEL>` là `like sitting quietly on a seaside cottage veranda`, và thêm `gentle light and shadow on the wooden floor`, `a faint creak of old wood` | Có video. Chủ sản phẩm đã so sánh với N2 |
 | N4 | Cửa sổ gỗ mờ sương, cốc trà | Ảnh: `an old weathered wooden casement window, closed, its glass covered in soft morning condensation with a few water droplets. Outside it is blue hour just before sunrise: a misty meadow of small white and yellow wildflowers rolling gently to distant soft hills, pale sky. On the wooden windowsill a simple ceramic cup of tea with faint steam` | Có clip hơi trà (8 giây), clip cửa mở rồi mặt trời lên (16 giây, có Extend). Là ứng viên cho "Thở cùng cảnh" cách 1 |
 
-## 5. Ví dụ video cho H1 và H2
+## 5. Ví dụ video theo khung mới (chưa chạy: gói Flow hết credit tới 21.11)
 
 ```text
-H1: Camera completely static, like sitting quietly at the kitchen table. Thin steam slowly rises from the clay teapot, the dust motes drift lazily in the sunbeams, the herbs in the glass jar tremble slightly, the patch of sunlight creeps almost imperceptibly across the table. Real early-morning sunlight, true-to-life colors, natural motion only, peaceful. No people, no new objects, no camera movement. Ambient sound: a faint kettle simmer, distant morning birds.
+H1: Camera completely static on a tripod, like sitting quietly at the kitchen table. The scene itself is alive and keeps moving the whole time: a steady breeze through the open window clearly sways the trees outside, the leaves of the potted plant on the sill flutter and bounce back, the herbs and wildflowers in the glass jar nod in the breeze, leaf shadows dance across the wooden table, thin steam curls up from the clay teapot and drifts sideways. Real early-morning daylight, true-to-life natural colors, no color grading, no film look. Calm but clearly alive, never frozen. No people, no hands, no arms, no human body parts; nobody enters the frame or touches anything; every movement comes only from wind, water, steam or light. No new objects, no camera movement. Ambient sound: leaves rustling in the breeze, morning birds, a faint kettle simmer.
 
-H2: Camera completely static, like sitting on the porch watching the rain. Rain drips steadily from the terracotta roof edge, raindrops make tiny ripples on the wet tiles, the jasmine leaves bob gently under the drops, faint steam rises from the tiny tea cups, the warm lamp inside glows steadily. Real rainy daylight, true-to-life colors, natural motion only, peaceful. No people, no new objects, no camera movement. Ambient sound: gentle steady rain on tiles, soft dripping.
+H2: Camera completely static on a tripod, like sitting on the porch watching the rain. The scene itself is alive and keeps moving the whole time: steady rain falls in visible streaks in front of the green garden, raindrops hit the leaves of the potted plants so they bounce, dip and spring back, water runs off the leaf tips and pours from the terracotta roof edge in a constant stream, puddles on the red tiles ripple with every drop, the wet leaves glisten, the lamp inside glows steadily. Real rainy daylight, true-to-life natural colors, no color grading, no film look. Calm but clearly alive, never frozen. No people, no hands, no arms, no human body parts; nobody enters the frame or touches anything; every movement comes only from rain, water and wind. No new objects, no camera movement. Ambient sound: steady rain on tiles and leaves, water dripping and splashing.
+
+H3: Camera completely static on a tripod, like sitting quietly in a sunny reading corner. The scene itself is alive and keeps moving the whole time: a breeze through the open window makes the white curtain billow in and out by itself, the leaves of the potted plants flutter and bounce back, leaf shadows from the trees outside dance on the patterned floor, the ginger cat keeps sleeping, its side rising and falling with each breath and one ear twitching. Real morning daylight, true-to-life natural colors, no color grading, no film look. Calm but clearly alive, never frozen. No people, no hands, no arms, no human body parts; nobody enters the frame or touches the curtain or anything else; every movement comes only from wind, light and the sleeping cat's breathing. No new objects, no camera movement. Ambient sound: curtain and leaves rustling, distant morning birds.
 ```
 
 ## 6. Lỗi hay gặp và cách sửa
 
-Đợt thử 01.11 (giai đoạn 1): 6 ảnh góc nhà mới và 4 video H1, H2, H3, H6 (làm từ ảnh theo khung cũ `warm muted film colors`, nên bị chê "giống filter"; ảnh H1, H2, H3, H6 đã tạo lại bằng khung §2 mới; video H1, H2, H3 đã làm lại theo màu thật, H6 chưa), đều Veo 3.1 Fast 8 giây, 720p, khung đầu và khung cuối là cùng một ảnh. Cả 4 video giữ nguyên bố cục, không có vật mới hay người. Chưa kiểm chỗ nối khi lặp và chưa kiểm nhấp nháy; hai việc này cần file tải về.
+Đợt thử 01.11 (giai đoạn 1): 6 ảnh góc nhà mới và 4 video H1, H2, H3, H6 (làm từ ảnh theo khung cũ `warm muted film colors`, nên bị chê "giống filter"; ảnh H1, H2, H3, H6 đã tạo lại bằng khung §2 mới; video H1, H2, H3 đã làm lại theo màu thật, H6 chưa. Chủ sản phẩm xem bản làm lại: H3 bị loại vì có bàn tay thả rèm; H1, H2 màu đạt nhưng "thiếu sống động", nên §3 viết lại khung video), đều Veo 3.1 Fast 8 giây, 720p, khung đầu và khung cuối là cùng một ảnh. Cả 4 video giữ nguyên bố cục, không có vật mới hay người. Chưa kiểm chỗ nối khi lặp và chưa kiểm nhấp nháy; hai việc này cần file tải về.
 
 
 | Lỗi | Cách sửa |
 |---|---|
 | Cảnh trông như nhà châu Âu | Thêm chi tiết Việt Nam cụ thể: gạch bông, mái ngói, ghế mây, ghế nhựa, ấm đất, bồn nước trên mái. Ghi rõ "Vietnamese" ngay từ đầu chủ thể |
 | Vật bị thiếu (ví dụ con mèo) | Đưa vật đó lên đầu chủ thể, và ghi rõ vị trí ("in the warm patch of sunlight on the floor") |
+| **Bàn tay người hiện ra** (video H3 ngày 01.11: một bàn tay thả rèm) | Loại clip ngay. Lỗi hay xảy ra khi prompt tả một vật "như có người làm" (rèm "thở", cốc trà vừa rót). Ghi rõ nguồn của chuyển động (`by itself from the open window`) và giữ câu `No people, no hands, no arms, no human body parts; nobody enters the frame or touches anything`. Khi duyệt, xem từng giây ở mép khung |
+| Cảnh gần như đứng im, "thiếu sống động" (H1, H2 ngày 01.11) | Dùng khung §3 mới: xin chuyển động rõ và liên tục của gió, mưa; bỏ `tremble slightly`, `almost imperceptibly` |
 | Vật bay sát ống kính thành đốm mờ (cánh hoa rơi) | Không yêu cầu vật rơi hay bay; chỉ tả chuyển động tại chỗ (lay, rung, thở) |
 | Có chữ trên đồ vật (sách, hộp, biển) | Thêm `no writing on objects`. Nếu vẫn có chữ thì chọn biến thể khác, không sửa ảnh bằng tay |
 | Video thêm vật mới hoặc chim bay vào | Giữ `No new objects`, và thêm `no birds` |
@@ -113,7 +129,7 @@ H2: Camera completely static, like sitting on the porch watching the rain. Rain 
 
 ## 7. Không bao giờ
 
-- Không có người, khuôn mặt, bàn tay, bóng người.
+- Không có người, khuôn mặt, bàn tay, cánh tay hay bóng người, kể cả thoáng qua ở mép khung.
 - Không có chữ, logo, nhãn hàng, địa danh nhận diện được.
 - Không có biểu tượng tôn giáo, bàn thờ, vật phẩm phong thủy.
 - Không có cảnh buồn hay đáng sợ: giông bão, cây chết, phòng tối đen.

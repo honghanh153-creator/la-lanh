@@ -46,9 +46,10 @@ Kết luận:
 | §0 tóm tắt | "một video thiên nhiên chân thực" | "một góc nhà hoặc cảnh thiên nhiên chân thực, gần gũi" |
 | §2.4 tham chiếu | Chỉ có R1–R6 (Facebook reels) | Thêm nhóm "góc nhà" H1–H6 theo [thư viện prompt](../operations/nby-scene-prompt-library.md). Thư viện ghi phong cách, không dùng reel làm ảnh đầu vào. |
 | §7.5 checklist (1) | "chủ thể thiên nhiên hoặc góc nhà yên tĩnh" | Giữ. Thêm các tiêu chí: (11) có ít nhất một dấu hiệu sống thường ngày (hơi nước, mưa, nắng di chuyển, rèm, lá cây); (12) cảnh trong nhà mang chất Việt Nam (gạch men, mái ngói, ấm trà, đồ tre, cây trong chậu), không giống căn hộ châu Âu; (13) đồ vật gọn, không bừa bộn, không có nhãn hàng. |
+| §7.5 checklist (2) | "không người, khuôn mặt…" | Thêm: không bàn tay, cánh tay hay bộ phận cơ thể nào, kể cả thoáng qua ở mép khung; người duyệt xem từng giây. Video H3 ngày 01.11 có một bàn tay thả rèm |
 | §7.5 checklist (6) | "màu ngả phim, pastel ấm, vùng tối được nâng" | **Màu thật như mắt nhìn**: cân bằng trắng đúng, độ bão hòa và tương phản tự nhiên, vùng tối sạch, không ngả cam, không bạc màu. Chủ sản phẩm 01.11: "mình muốn màu sắc thật, cảm giác sống động chứ không phải giống như đang có một filter" |
 | §7.6 bước 3 và script `nby-media.sh` (PR #68) | Script "chỉnh màu mềm": `eq=contrast=0.94:saturation=0.9:gamma=1.04`, `curves` nâng vùng tối, `colorbalance` ngả ấm | **Bỏ bước chỉnh màu mặc định**; chỉ giữ cắt, lặp, đổi kích thước và chuyển mã. Nếu cần sửa một clip cụ thể thì dùng tùy chọn riêng, có ghi lý do. Phải sửa trong #68 trước khi merge |
-| §3.2 Cảnh | "Video AI … gần như tĩnh" | Giữ. Thêm thẻ cảnh `goc_nha` / `thien_nhien`. Thư viện khởi đầu ≥ 14 clip, trong đó ≥ 8 clip góc nhà. |
+| §3.2 Cảnh | "Video AI … gần như tĩnh" | Đổi thành "máy đứng yên, cảnh sống động": chuyển động của gió, mưa, nước, ánh sáng thấy rõ và liên tục, nhưng không bão, không giật (chủ sản phẩm 01.11). Đồng thời sửa §0 ("gần như tĩnh") và §7.5 (3), (4) theo cùng ý. Thêm thẻ cảnh `goc_nha` / `thien_nhien`. Thư viện khởi đầu ≥ 14 clip, trong đó ≥ 8 clip góc nhà. |
 | NBY-02 thẻ video | ngày/đêm | Thêm thẻ thời tiết `mua` / `nang` để biên tập cân bằng. Thẻ chỉ dùng khi duyệt, **không** chọn theo thời tiết thật (giữ §2.2). |
 | NBY-12 (mới, chờ thử) | Chưa có | "Thở cùng cảnh": xem §4. Chỉ vào PRD nếu bản mẫu đạt ở giai đoạn 2. |
 | §8.6 công cụ | Yêu cầu chung cho mọi công cụ | Ghi kết quả kiểm Google Flow và Vertex Veo (§6, D24). |
@@ -113,7 +114,14 @@ Chủ sản phẩm cho làm ngày 01.11 ("làm đi"). Claude làm trong tài kho
 - Chủ sản phẩm chọn làm lại 3 video bằng 60 credit còn lại: hiên mưa (H2), góc đọc có mèo (H3), bếp sáng (H1). Cả 3 đã xong (8 giây, khung đầu = khung cuối, prompt video thêm `true-to-life natural colors, no color grading, no film look`). Khung giữa của cả 3 giữ đúng bố cục, màu thật, không vật mới. Hơi trà ở bếp giờ mỏng.
 - Gói Flow đã hết credit tới 21.11. Sân gạch hoa giấy (H6) mới có ảnh màu thật, video vẫn là bản màu cũ.
 
-Điều kiện xong của giai đoạn 1 (≥ 4 clip đạt §7.5): có 3 clip màu thật chờ chủ sản phẩm xem. Clip thứ tư làm sau 21.11, hoặc qua Vertex (D24).
+**Góp ý của chủ sản phẩm sau khi xem 3 video làm lại (01.11):**
+
+- Góc đọc có mèo: "kì quá, tự dưng lại có cái tay thả rèm". Có bàn tay người trong cảnh nên **loại** (vi phạm NBY-AI-AC07 và §7.5 (2)).
+- Hai video còn lại: "thiếu sự sống động của những hình ảnh xung quanh, kiểu có gió thì phải lay động, còn mưa thì lá phải như nào".
+- Nguyên nhân: prompt video xin chuyển động "rất nhỏ, gần như không thấy" theo PRD "gần như tĩnh"; prompt H3 tả rèm "thở" mà không nói nguồn chuyển động.
+- Đã sửa: khung video mới và từ vựng chuyển động ở [thư viện prompt](../operations/nby-scene-prompt-library.md) §3, ba prompt H1, H2, H3 viết sẵn ở §5, luật "không bàn tay" ở §6 và §7. Đề xuất sửa PRD §3.2, §0, §7.5 (2)–(4) ở §3.
+
+Điều kiện xong của giai đoạn 1 (≥ 4 clip đạt §7.5): **chưa có clip nào đạt.** Gói Flow hết credit tới 21.11, nên chưa chạy được prompt mới. Chủ sản phẩm chọn: chờ 21.11, hay làm qua Vertex (D24).
 
 ## 6. Công cụ tạo video: đã biết gì
 
