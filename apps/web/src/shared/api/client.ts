@@ -439,7 +439,7 @@ export function isGuestSessionUnavailable(error: unknown): boolean {
 export { currentSessionEpoch, OWNER_SESSION_EPOCH_KEY, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
 const NATIVE_CSRF_KEY = "la-lanh-native-csrf-v1";
 const REQUEST_TIMEOUT_MS = 15_000;
-const BIRTH_CORRECTION_TIMEOUT_MS = 90_000;
+export const BIRTH_CORRECTION_TIMEOUT_MS = 90_000;
 const DELETE_GUEST_TIMEOUT_MS = 75_000;
 let activeDailyReading: { scopeKey: string; revisionId: string } | null = null;
 let ownerClaimInFlight: { sessionEpoch: string | null; promise: Promise<OwnerClaim> } | null = null;

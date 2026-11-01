@@ -199,7 +199,7 @@ export function BirthDateEdit() {
       // The request may still commit later (Codex r57): clear the old derived content now, from
       // the query cache and the offline note cache, without dropping queued saves or unsaves
       // that stay valid if the change never lands.
-      await quarantineChartDerivedData(queryClient);
+      await quarantineChartDerivedData(queryClient, submitted);
       return UNKNOWN_MESSAGE;
     }
     await withdrawCorrectedChart(queryClient);

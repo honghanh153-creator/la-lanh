@@ -1,7 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import { clearActiveDailyReading } from "../api/client";
-import { clearCachedDailyNote } from "./noteCache";
+import { BIRTH_CORRECTION_TIMEOUT_MS, clearActiveDailyReading, getBirthProfile } from "../api/client";
+import { currentSessionEpoch, sessionGeneration } from "../session/sessionIdentity";
+import { clearCachedDailyNote, suspendDailyNoteCacheWrites } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
 import { clearSavedNoteMutationQueue, dropQueuedSaves } from "./savedNoteMutationQueue";
 
@@ -52,9 +53,61 @@ export async function withdrawCorrectedChart(client: QueryClient): Promise<void>
  * Hide the current chart's derived content while a correction's outcome is unknown (Codex r57):
  * the change may still commit, so nothing old may stay on screen or in the offline note cache,
  * but queued saves and unsaves stay too because they are valid if the change never lands.
+ *
+ * Codex r58: the quarantine lasts until the outcome is resolved. Until then no Daily note enters
+ * the offline cache, and the profile is re-read in the background. A new revision means the
+ * change landed: the old chart is withdrawn again, including anything fetched meanwhile. The same
+ * revision only ends it once the request can no longer commit (after its own deadline); a failed
+ * read keeps it.
  */
-export async function quarantineChartDerivedData(client: QueryClient): Promise<void> {
+export async function quarantineChartDerivedData(
+  client: QueryClient,
+  submittedRevision: string,
+  options: { intervalMs?: number; windowMs?: number } = {},
+): Promise<void> {
+  endQuarantine();
+  suspendDailyNoteCacheWrites(true);
   await withdrawChart(client, false);
+  const intervalMs = options.intervalMs ?? 10_000;
+  const deadline = Date.now() + (options.windowMs ?? BIRTH_CORRECTION_TIMEOUT_MS + 30_000);
+  const epoch = currentSessionEpoch();
+  const generation = sessionGeneration();
+  const token = {};
+  activeQuarantine = { token, timer: null };
+  const check = async () => {
+    if (activeQuarantine?.token !== token) return;
+    // The session boundary clears the old owner's data itself.
+    if (epoch !== currentSessionEpoch() || generation !== sessionGeneration()) return endQuarantine();
+    let revision: string | undefined;
+    try {
+      revision = (await getBirthProfile()).profile_revision ?? undefined;
+    } catch {
+      revision = undefined;
+    }
+    if (activeQuarantine?.token !== token) return;
+    if (revision !== undefined && revision !== submittedRevision) {
+      await withdrawCorrectedChart(client);
+      if (activeQuarantine?.token === token) endQuarantine();
+      return;
+    }
+    if (revision === submittedRevision && Date.now() >= deadline) return endQuarantine();
+    activeQuarantine.timer = setTimeout(() => void check(), intervalMs);
+  };
+  activeQuarantine.timer = setTimeout(() => void check(), intervalMs);
+}
+
+let activeQuarantine: { token: object; timer: ReturnType<typeof setTimeout> | null } | null = null;
+
+/** True while a correction's outcome is still unknown. */
+export function chartQuarantined(): boolean {
+  return activeQuarantine !== null;
+}
+
+/** Stop a pending quarantine (resolved, or replaced by a definitive withdrawal). */
+export function endQuarantine(): void {
+  if (activeQuarantine?.timer) clearTimeout(activeQuarantine.timer);
+  activeQuarantine = null;
+  suspendDailyNoteCacheWrites(false);
 }
 
 async function withdrawChart(client: QueryClient, sourceDeleted: boolean): Promise<void> {

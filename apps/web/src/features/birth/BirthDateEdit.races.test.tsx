@@ -9,7 +9,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { ApiProblem, correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
 import { invalidateSessionRequests } from "../../shared/session/sessionIdentity";
-import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
+import { chartDataRevision, chartQuarantined, endQuarantine } from "../../shared/storage/clearChartDerivedData";
 import { BirthDateEdit } from "./BirthDateEdit";
 
 vi.mock("../../shared/api/client", async (original) => ({
@@ -31,7 +31,7 @@ const old = {
 const first = { ...old, birth_date: "1992-07-20", snapshot_id: "synthetic-first", profile_revision: "2026-10-29T09:00:00Z" };
 const newer = { ...old, birth_date: "1993-07-20", snapshot_id: "synthetic-newer", profile_revision: "2026-10-29T10:00:00Z" };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => { vi.clearAllMocks(); endQuarantine(); });
 
 function mount() {
   const query = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -97,6 +97,8 @@ it("stays uncertain when a transport failure precedes a later commit (Codex r57)
   // The old chart's derived content is gone now, before any later commit (Codex r57 #2).
   expect(query.getQueryData(["daily-note"])).toBeUndefined();
   expect(chartDataRevision(query)).toBeGreaterThan(fence);
+  // And it stays quarantined until the outcome is resolved (Codex r58).
+  expect(chartQuarantined()).toBe(true);
 });
 
 it("withdraws the old chart after a conflict even when the refresh fails (Codex r57 #1)", async () => {
