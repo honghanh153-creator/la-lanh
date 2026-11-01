@@ -84,5 +84,5 @@ jobs:
           export UV_BIN="$(command -v uv)"
           pnpm install --frozen-lockfile
           make -C vendor/swisseph
-          pnpm --filter @la-lanh/web exec playwright install --with-deps chromium
+          pnpm --filter @la-lanh/web exec playwright install --with-deps chromium webkit
           pnpm check
