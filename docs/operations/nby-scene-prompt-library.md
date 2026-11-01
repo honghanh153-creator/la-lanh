@@ -119,6 +119,7 @@ H3: Camera completely static on a tripod, like sitting quietly in a sunny readin
 | Vật bị thiếu (ví dụ con mèo) | Đưa vật đó lên đầu chủ thể, và ghi rõ vị trí ("in the warm patch of sunlight on the floor") |
 | **Bàn tay người hiện ra** (video H3 ngày 01.11: một bàn tay thả rèm) | Loại clip ngay. Lỗi hay xảy ra khi prompt tả một vật "như có người làm" (rèm "thở", cốc trà vừa rót). Ghi rõ nguồn của chuyển động (`by itself from the open window`) và giữ câu `No people, no hands, no arms, no human body parts; nobody enters the frame or touches anything`. Khi duyệt, xem từng giây ở mép khung |
 | Cảnh gần như đứng im, "thiếu sống động" (H1, H2 ngày 01.11) | Dùng khung §3 mới: xin chuyển động rõ và liên tục của gió, mưa; bỏ `tremble slightly`, `almost imperceptibly` |
+| Mưa chỉ thành dòng ở mép mái, lá bị mưa mà không động (Grok, Flow ngày 01.11) | Đặt lá làm chủ thể cận cảnh; ghi `rain falls evenly across the whole frame`, `each hit makes the leaf dip, shake and spring back`. Chưa kiểm được là có sửa được không; nếu không, dùng video quay thật cho cảnh mưa |
 | Vật bay sát ống kính thành đốm mờ (cánh hoa rơi) | Không yêu cầu vật rơi hay bay; chỉ tả chuyển động tại chỗ (lay, rung, thở) |
 | Có chữ trên đồ vật (sách, hộp, biển) | Thêm `no writing on objects`. Nếu vẫn có chữ thì chọn biến thể khác, không sửa ảnh bằng tay |
 | Video thêm vật mới hoặc chim bay vào | Giữ `No new objects`, và thêm `no birds` |

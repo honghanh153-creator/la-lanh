@@ -149,11 +149,19 @@ Theo NBY-AI-AC05, không được xóa watermark nhìn thấy được. Vì clip
 - Watermark: chưa đọc được nguồn chính. Các nguồn thứ cấp mâu thuẫn nhau (có dấu Grok, có thể không gỡ được).
 - Kết luận: Grok dùng được **để thử** nếu chủ sản phẩm đã có tài khoản. Không đề xuất cho clip phát hành, vì giấy phép rộng cho xAI, không có bồi thường và chưa rõ watermark. D24 không đổi.
 
+**Thử Grok Imagine (01.11, tài khoản Grok của chủ sản phẩm, qua Chrome của chủ sản phẩm).**
+
+- Một video hiên mưa (H2), text-to-video, 6 giây, 480p, khung dọc. Màu thật hơn bản Flow; không thấy watermark trên khung hình; không có tay người.
+- Chủ sản phẩm xem: "nhìn vẫn giả và mắc lỗi như cũ"; cụ thể: "lá cây bị mưa mà không động, giọt mưa thì chỉ tập trung một số chỗ" (mưa chỉ thành dòng ở mép mái, không rơi khắp khung).
+- Lần thử thứ hai (cận cảnh lá là chủ thể, mưa rơi khắp khung, mỗi lá nhún rồi bật lại) không chạy được: gói miễn phí hết lượt; 720p và lượt tiếp theo đòi gói trả phí. Không mua gì.
+- Nhận định: cả Veo và Grok cùng yếu ở đúng chỗ chủ sản phẩm cần, là chuyển động vật lý nhỏ và dày (mưa đập lá, lá nhún). Có thể đây là giới hạn của video AI hiện tại, không phải của prompt. Phương án thay thế: **video quay thật** (kho có license, hoặc tự quay bằng điện thoại đặt cố định). PRD §8.4 vốn cho phép "tự quay"; clip quay thật không cần nhãn "Cảnh tạo bằng AI" nhưng vẫn qua checklist §7.5 và sổ đăng ký (§8.3).
+
 ## 7. Quyết định cần chủ sản phẩm
 
 | ID | Câu hỏi | Đề xuất | Trạng thái |
 |---|---|---|---|
 | D23 | Chủ thể của thư viện | "Góc nhà bình yên" là chính (≥ 8/14 clip đầu), thiên nhiên là phụ | **Hướng đã chọn** 01.11 ("tôi thấy đẹp đấy"); tỷ lệ chờ duyệt |
+| D29 | Nguồn cảnh: AI hay quay thật | Thử song song một bộ nhỏ quay thật (3–4 clip mưa, gió) để so với AI trước khi chốt; D8 ("video AI") có thể đổi thành "video thật là chính, AI là phụ" | Chờ chủ sản phẩm |
 | D24 | Công cụ cho clip phát hành | Flow chỉ để thử, vì dấu ✦ không tắt được ở Việt Nam. Clip phát hành tạo qua Veo 3.1 GA trên Vertex, dùng lại ảnh khung đầu đã duyệt trong Flow | Chờ chủ sản phẩm (việc trả phí, tài khoản nhà cung cấp) |
 | D25 | Có "Thở cùng cảnh" (NBY-12) trong v1 không | Quyết định sau giai đoạn 2, theo kết quả thử | Chờ thử |
 | D26 | Con vật trong cảnh | Cho phép con vật nhà ngủ yên, nhỏ trong khung, không nhìn vào máy quay (ví dụ mèo cuộn tròn trong nắng). Không có người | Chờ duyệt |
