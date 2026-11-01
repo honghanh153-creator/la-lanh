@@ -102,7 +102,8 @@ describe("Radar results B received (P09 D2)", () => {
     renderAt("/radar/received");
     await userEvent.click(await screen.findByText("Lá đang giữ gì về bạn ở đây?"));
     expect(screen.getByText(/người mời không thấy ngày, giờ hay nơi sinh của bạn/)).toBeVisible();
-    expect(screen.getByText(/giữ trong 30 ngày kể từ lúc bạn đồng ý/)).toBeVisible();
+    expect(screen.getByText(/Kết quả chung mở được trong 30 ngày kể từ lúc bạn đồng ý/)).toBeVisible();
+    expect(screen.getByText(/bản sao lưu hết hạn riêng/)).toBeVisible();
     expect(screen.queryByLabelText(/ngày sinh/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
