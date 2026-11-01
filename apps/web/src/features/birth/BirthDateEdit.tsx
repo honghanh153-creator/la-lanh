@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { ApiProblem, correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
 import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
-import { withdrawCorrectedChart } from "../../shared/storage/clearChartDerivedData";
+import { quarantineChartDerivedData, withdrawCorrectedChart } from "../../shared/storage/clearChartDerivedData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { isUnder18, validDate } from "./birthDateInput";
 
@@ -176,14 +176,13 @@ export function BirthDateEdit() {
       setError(message);
       if (message.reload) {
         setStage("edit");
+        // The conflict itself proves another correction deleted this chart's sources on the
+        // server, so withdraw the old derived caches even if the refresh below fails (Codex r57),
+        // keeping queued unsaves. The cleanup refetches the profile.
+        await withdrawCorrectedChart(queryClient);
+        if (!sameSession()) return;
         const current = await profile.refetch();
         if (!sameSession()) return;
-        if (current.data && current.data.profile_revision !== loaded.profile_revision) {
-          // Another tab's correction deleted this chart's sources on the server (Codex r57):
-          // withdraw the old derived caches too, keeping queued unsaves.
-          await withdrawCorrectedChart(queryClient);
-          if (!sameSession()) return;
-        }
         const latest = queryClient.getQueryData<BirthReveal>(["birth-profile"]) ?? current.data;
         if (latest) setValue(partsOf(latest.birth_date));
       }
@@ -194,12 +193,13 @@ export function BirthDateEdit() {
 
   const reconcile = async (submitted: string, terminal: boolean, sameSession: () => boolean): Promise<string> => {
     const current = await profile.refetch();
-    if (!sameSession() || current.isError || !current.data) return UNKNOWN_MESSAGE;
-    if (current.data.profile_revision === submitted) {
-      if (terminal) return UNCHANGED_MESSAGE;
-      // The request may still commit later; make every chart-derived view refetch on next use
-      // without dropping queued saves that are valid if the change never lands.
-      await queryClient.invalidateQueries({ refetchType: "none" });
+    if (!sameSession()) return UNKNOWN_MESSAGE;
+    if (current.isError || !current.data || current.data.profile_revision === submitted) {
+      if (terminal && current.data?.profile_revision === submitted) return UNCHANGED_MESSAGE;
+      // The request may still commit later (Codex r57): clear the old derived content now, from
+      // the query cache and the offline note cache, without dropping queued saves or unsaves
+      // that stay valid if the change never lands.
+      await quarantineChartDerivedData(queryClient);
       return UNKNOWN_MESSAGE;
     }
     await withdrawCorrectedChart(queryClient);

@@ -9,6 +9,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { ApiProblem, correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
 import { invalidateSessionRequests } from "../../shared/session/sessionIdentity";
+import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
 import { BirthDateEdit } from "./BirthDateEdit";
 
 vi.mock("../../shared/api/client", async (original) => ({
@@ -88,10 +89,26 @@ it("stays uncertain when a transport failure precedes a later commit (Codex r57)
   vi.mocked(getBirthProfile).mockResolvedValueOnce(old).mockResolvedValueOnce(old).mockResolvedValue(first);
   vi.mocked(correctBirthDate).mockRejectedValue(new Error("synthetic transport reset"));
   const query = mount();
+  query.setQueryData(["daily-note"], "synthetic old note");
+  const fence = chartDataRevision(query);
   await enterNewDate();
   const alert = await screen.findByText(/Chưa rõ thay đổi đã được lưu chưa/);
   expect(alert).not.toHaveTextContent("Lá cũ vẫn giữ nguyên");
-  await waitFor(() => expect(query.getQueryState(["birth-profile"])?.isInvalidated).toBe(true));
+  // The old chart's derived content is gone now, before any later commit (Codex r57 #2).
+  expect(query.getQueryData(["daily-note"])).toBeUndefined();
+  expect(chartDataRevision(query)).toBeGreaterThan(fence);
+});
+
+it("withdraws the old chart after a conflict even when the refresh fails (Codex r57 #1)", async () => {
+  vi.mocked(getBirthProfile).mockResolvedValueOnce(old).mockRejectedValue(new Error("offline"));
+  vi.mocked(correctBirthDate).mockRejectedValue(new ApiProblem(409, "BIRTH_PROFILE_CHANGED", "changed"));
+  const query = mount();
+  query.setQueryData(["daily-note"], "synthetic old note");
+  const fence = chartDataRevision(query);
+  await enterNewDate();
+  await screen.findByText(/Hồ sơ vừa được cập nhật ở nơi khác/);
+  await waitFor(() => expect(query.getQueryData(["daily-note"])).toBeUndefined());
+  expect(chartDataRevision(query)).toBeGreaterThan(fence);
 });
 
 it("still says the old chart stays when the server refused the request", async () => {

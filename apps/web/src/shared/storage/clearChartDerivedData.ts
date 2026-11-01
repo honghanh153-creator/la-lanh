@@ -45,6 +45,19 @@ const RETAINED_COPY_KEYS = new Set(["saved-notes", "share-links"]);
  * offline unsave must still reach it. Queued *saves* point at the deleted Daily note and go.
  */
 export async function withdrawCorrectedChart(client: QueryClient): Promise<void> {
+  await withdrawChart(client, true);
+}
+
+/**
+ * Hide the current chart's derived content while a correction's outcome is unknown (Codex r57):
+ * the change may still commit, so nothing old may stay on screen or in the offline note cache,
+ * but queued saves and unsaves stay too because they are valid if the change never lands.
+ */
+export async function quarantineChartDerivedData(client: QueryClient): Promise<void> {
+  await withdrawChart(client, false);
+}
+
+async function withdrawChart(client: QueryClient, sourceDeleted: boolean): Promise<void> {
   chartRevisions.set(client, chartDataRevision(client) + 1);
   const derived = (query: { queryKey: readonly unknown[] }) =>
     typeof query.queryKey[0] === "string"
@@ -56,8 +69,10 @@ export async function withdrawCorrectedChart(client: QueryClient): Promise<void>
   clearActiveDailyReading();
   clearCachedDailyNote();
   // Pending-sync markers of saves that can no longer reach their deleted source.
-  clearLocalSavedNotes();
-  dropQueuedSaves();
+  if (sourceDeleted) {
+    clearLocalSavedNotes();
+    dropQueuedSaves();
+  }
   client.removeQueries({ predicate: derived, type: "inactive" });
   await client.resetQueries({ predicate: derived, type: "active" });
   // listSavedNotes flushes the kept unsaves before it reads the list.
