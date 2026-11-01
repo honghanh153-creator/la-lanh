@@ -82,7 +82,8 @@ Camera completely static on a tripod, <CAMERA_FEEL>. The scene itself is alive a
 | Cây tiền cảnh | `small potted plants with small and medium leaves, none of them large or dominating the frame` | Chậu lá to choán khung, nhìn lạ (mưa, Grok, 01.11) |
 | Ánh sáng mưa | `bright, soft overcast daylight, airy and light, well exposed, not dark, not moody` | Màu đậm, tối (mưa, Grok, 01.11) |
 | Vật rơi | Không xin vật rơi; thêm `Everything stays attached: no leaf, petal or object falls, detaches, flies, slides or moves across the frame; the table, cups, teapot and pots never move` | Một chiếc lá rời cây, rơi xuống sàn rồi bật ngược lên bàn (mưa, Grok, 01.11). Bản làm lại với câu này: 30 khung không có vật rơi |
-| Khung cửa choán khung hình | Khi nhìn qua cửa, phần ngoài trời chỉ còn nhỏ nên chuyển động gần như không thấy (2,8%). Để khung cửa chỉ là viền mỏng hai bên, hoặc đặt máy ngay ngưỡng cửa | Mưa nhìn từ trong nhà (Grok, 01.11) |
+| Nhiều lớp mái | Ghi `A single roof edge runs straight across the top of the frame; only one roof, no second roof` | Hai lớp mái chồng nhau (mưa nhìn từ trong nhà, Grok, 01.11). Bản thêm câu này chỉ còn một lớp mái |
+| Khung cửa choán khung hình | Khi nhìn qua cửa, phần ngoài trời chỉ còn nhỏ nên chuyển động gần như không thấy (2,8%). Để khung cửa chỉ là viền mỏng hai bên, hoặc đặt máy ngay ngưỡng cửa | Mưa nhìn từ trong nhà (Grok, 01.11). Đặt máy ở ngưỡng cửa: chuyển động lên 7,2% |
 | Bố cục không gian | Tả rõ người xem đứng đâu và mặt sàn nối với gì: `seen from inside the house, the porch floor continues to the garden at the same level` | Bản làm lại cảnh mưa có hiên như tấm sàn nổi, vườn hiện cả phía trên lẫn phía dưới (Grok, 01.11) |
 
 **Từ vựng chuyển động:**
