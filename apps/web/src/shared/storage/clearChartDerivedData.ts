@@ -75,7 +75,8 @@ export async function quarantineChartDerivedData(
     epoch: currentSessionEpoch(),
   });
   suspendDailyNoteCacheWrites(true);
-  await withdrawChart(client, false);
+  // Codex r60: never await active refetches here; they wait on this very quarantine.
+  await withdrawChart(client, false, false);
   watchQuarantine(client, options.intervalMs ?? 10_000);
 }
 
@@ -105,7 +106,9 @@ function watchQuarantine(client: QueryClient, intervalMs: number): void {
     }
     if (activeQuarantine?.token !== token) return;
     if (revision !== undefined && revision !== pending.revision) {
-      await withdrawCorrectedChart(client);
+      // Codex r60: withdraw the cache without awaiting refetches (this gate holds them), then
+      // release the gate so the active queries refetch the corrected chart.
+      await withdrawChart(client, true, false);
       if (activeQuarantine?.token === token) endQuarantine();
       return;
     }
@@ -130,7 +133,7 @@ export function endQuarantine(): void {
   suspendDailyNoteCacheWrites(false);
 }
 
-async function withdrawChart(client: QueryClient, sourceDeleted: boolean): Promise<void> {
+async function withdrawChart(client: QueryClient, sourceDeleted: boolean, awaitRefetch = true): Promise<void> {
   chartRevisions.set(client, chartDataRevision(client) + 1);
   const derived = (query: { queryKey: readonly unknown[] }) =>
     typeof query.queryKey[0] === "string"
@@ -147,7 +150,12 @@ async function withdrawChart(client: QueryClient, sourceDeleted: boolean): Promi
     dropQueuedSaves();
   }
   client.removeQueries({ predicate: derived, type: "inactive" });
-  await client.resetQueries({ predicate: derived, type: "active" });
-  // listSavedNotes flushes the kept unsaves before it reads the list.
-  await client.invalidateQueries({ predicate: retained });
+  // resetQueries drops the old data synchronously; its refetch may wait behind the quarantine gate.
+  const refetch = Promise.all([
+    client.resetQueries({ predicate: derived, type: "active" }),
+    // listSavedNotes flushes the kept unsaves before it reads the list.
+    client.invalidateQueries({ predicate: retained }),
+  ]);
+  if (awaitRefetch) await refetch;
+  else void refetch.catch(() => undefined);
 }

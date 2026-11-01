@@ -1,9 +1,9 @@
 // Codex r58 (US-23): an unknown correction outcome keeps the old chart quarantined until it is
 // resolved, not just cleared once. Synthetic data only.
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { getBirthProfile, getDailyNote, SESSION_EPOCH_KEY, type BirthReveal, type DailyNote } from "../api/client";
+import { getBirthProfile, getDailyNote, getRadarReceipt, SESSION_EPOCH_KEY, type BirthReveal, type DailyNote } from "../api/client";
 import { CHART_QUARANTINE_KEY, isChartDerivedRead, pendingChartQuarantine } from "./chartQuarantineGate";
 import { chartQuarantined, endQuarantine, quarantineChartDerivedData } from "./clearChartDerivedData";
 import { readCachedDailyNote, writeCachedDailyNote } from "./noteCache";
@@ -140,4 +140,47 @@ it("drops a stored quarantine that belongs to another session", async () => {
   expect(gate.pendingChartQuarantine()).toBeNull();
   expect(pendingChartQuarantine()).toBeNull();
   expect(sessionStorage.getItem(CHART_QUARANTINE_KEY)).toBeNull();
+});
+
+// Codex r60: active queries (mounted observers) whose reads go through the real gate.
+it("does not deadlock when active derived queries are held at quarantine and reconciliation", async () => {
+  vi.useFakeTimers();
+  vi.mocked(getBirthProfile)
+    .mockRejectedValueOnce(new Error("offline")) // outcome still unknown
+    .mockResolvedValue(profile(NEW)); // committed late
+  const fetchMock = vi.fn((input: string | URL) => Promise.resolve(Response.json(
+    input.toString().includes("/public/radar/receipt")
+      ? { synthetic: "new-receipt" } : { id: "synthetic-new-note", reading_projection: null })));
+  vi.stubGlobal("fetch", fetchMock);
+  expect(isChartDerivedRead("/public/radar/receipt")).toBe(true);
+  expect(isChartDerivedRead("/public/radar/receipt/withdraw", "POST")).toBe(false);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  client.setQueryData(["daily-note"], "synthetic old note");
+  client.setQueryData(["radar-receipt"], "synthetic old receipt");
+  const home = new QueryObserver(client, { queryKey: ["daily-note"], queryFn: ({ signal }) => getDailyNote(signal) });
+  const receipt = new QueryObserver(client, { queryKey: ["radar-receipt"], queryFn: ({ signal }) => getRadarReceipt(signal) });
+  const offHome = home.subscribe(() => undefined);
+  const offReceipt = receipt.subscribe(() => undefined);
+
+  let entered = false;
+  void quarantineChartDerivedData(client, OLD, { intervalMs: 100, windowMs: 60_000 }).then(() => { entered = true; });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(entered).toBe(true); // not blocked by its own gated refetches
+  expect(client.getQueryData(["daily-note"])).toBeUndefined();
+  expect(client.getQueryData(["radar-receipt"])).toBeUndefined();
+  expect(fetchMock).not.toHaveBeenCalled(); // Home and receipt reads wait at the gate
+
+  await vi.advanceTimersByTimeAsync(100); // offline: still quarantined, nothing old shown
+  expect(chartQuarantined()).toBe(true);
+  expect(client.getQueryData(["radar-receipt"])).toBeUndefined();
+
+  await vi.advanceTimersByTimeAsync(100); // new revision: withdraw, release, refetch
+  await vi.waitFor(() => expect(chartQuarantined()).toBe(false));
+  expect(sessionStorage.getItem(CHART_QUARANTINE_KEY)).toBeNull();
+  await vi.waitFor(() => expect(client.getQueryData(["radar-receipt"])).toEqual({ synthetic: "new-receipt" }));
+  await vi.waitFor(() => expect(client.getQueryData(["daily-note"])).toMatchObject({ id: "synthetic-new-note" }));
+  offHome();
+  offReceipt();
+  vi.unstubAllGlobals();
+  client.clear();
 });

@@ -47,9 +47,12 @@ export function setPendingChartQuarantine(next: PendingChartQuarantine | null): 
 // Reads whose answer is the current chart's derived content (saved notes and share links survive
 // a correction on the server, D2, so they stay readable).
 const DERIVED_READS = ["/daily-note", "/insights/", "/birth-profile/supplement", "/radar/", "/matching/", "/public/radar/current"];
+// Codex r60: the receipt is the recipient's chart-derived pair result.
+const EXACT_DERIVED_READS = new Set(["/public/radar/receipt"]);
 
 export function isChartDerivedRead(path: string, method = "GET"): boolean {
-  return method === "GET" && DERIVED_READS.some((prefix) => path.startsWith(prefix));
+  if (method !== "GET") return false;
+  return EXACT_DERIVED_READS.has(path.split("?")[0]) || DERIVED_READS.some((prefix) => path.startsWith(prefix));
 }
 
 /** Hold a derived read while the outcome is unknown: the page keeps its own loading state. */
