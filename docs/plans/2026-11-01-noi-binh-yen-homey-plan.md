@@ -46,6 +46,8 @@ Kết luận:
 | §0 tóm tắt | "một video thiên nhiên chân thực" | "một góc nhà hoặc cảnh thiên nhiên chân thực, gần gũi" |
 | §2.4 tham chiếu | Chỉ có R1–R6 (Facebook reels) | Thêm nhóm "góc nhà" H1–H6 theo [thư viện prompt](../operations/nby-scene-prompt-library.md). Thư viện ghi phong cách, không dùng reel làm ảnh đầu vào. |
 | §7.5 checklist (1) | "chủ thể thiên nhiên hoặc góc nhà yên tĩnh" | Giữ. Thêm các tiêu chí: (11) có ít nhất một dấu hiệu sống thường ngày (hơi nước, mưa, nắng di chuyển, rèm, lá cây); (12) cảnh trong nhà mang chất Việt Nam (gạch men, mái ngói, ấm trà, đồ tre, cây trong chậu), không giống căn hộ châu Âu; (13) đồ vật gọn, không bừa bộn, không có nhãn hàng. |
+| §7.5 checklist (6) | "màu ngả phim, pastel ấm, vùng tối được nâng" | **Màu thật như mắt nhìn**: cân bằng trắng đúng, độ bão hòa và tương phản tự nhiên, vùng tối sạch, không ngả cam, không bạc màu. Chủ sản phẩm 01.11: "mình muốn màu sắc thật, cảm giác sống động chứ không phải giống như đang có một filter" |
+| §7.6 bước 3 và script `nby-media.sh` (PR #68) | Script "chỉnh màu mềm": `eq=contrast=0.94:saturation=0.9:gamma=1.04`, `curves` nâng vùng tối, `colorbalance` ngả ấm | **Bỏ bước chỉnh màu mặc định**; chỉ giữ cắt, lặp, đổi kích thước và chuyển mã. Nếu cần sửa một clip cụ thể thì dùng tùy chọn riêng, có ghi lý do. Phải sửa trong #68 trước khi merge |
 | §3.2 Cảnh | "Video AI … gần như tĩnh" | Giữ. Thêm thẻ cảnh `goc_nha` / `thien_nhien`. Thư viện khởi đầu ≥ 14 clip, trong đó ≥ 8 clip góc nhà. |
 | NBY-02 thẻ video | ngày/đêm | Thêm thẻ thời tiết `mua` / `nang` để biên tập cân bằng. Thẻ chỉ dùng khi duyệt, **không** chọn theo thời tiết thật (giữ §2.2). |
 | NBY-12 (mới, chờ thử) | Chưa có | "Thở cùng cảnh": xem §4. Chỉ vào PRD nếu bản mẫu đạt ở giai đoạn 2. |
@@ -104,7 +106,13 @@ Chủ sản phẩm cho làm ngày 01.11 ("làm đi"). Claude làm trong tài kho
 - Dừng ở 4 video thay vì 6 để giữ credit: gói còn 60 credit tới lần cộng 21.11. Ban công (H4) và bàn học (H5) mới có ảnh.
 - Chưa tải clip về máy, nên chưa kiểm chỗ nối và nhấp nháy.
 
-Điều kiện xong của giai đoạn 1 (chủ sản phẩm chọn ≥ 4 clip đạt §7.5) đang chờ chủ sản phẩm xem.
+**Góp ý của chủ sản phẩm sau khi xem 4 video (01.11):** "mình muốn màu sắc thật, cảm giác sống động chứ không phải giống như đang có một filter".
+
+- Nguyên nhân: khung prompt cũ có `warm muted film colors`; script #68 còn chỉnh màu thêm theo cùng hướng.
+- Đã sửa: khung ảnh mới ở [thư viện prompt](../operations/nby-scene-prompt-library.md) §2, tạo lại 4 ảnh H1, H2, H3, H6 (không tốn credit). Ảnh mới xanh tươi, trắng sạch, vùng tối rõ. Đề xuất sửa §7.5 (6), §7.6 và script ở §3.
+- Chưa làm lại 4 video: cần 80 credit, gói còn 60 tới 21.11. Chủ sản phẩm chọn: làm lại 3 video bây giờ, chờ 21.11, hay làm qua Vertex (D24).
+
+Điều kiện xong của giai đoạn 1 (≥ 4 clip đạt §7.5) chưa đạt: chờ video làm lại theo màu thật.
 
 ## 6. Công cụ tạo video: đã biết gì
 

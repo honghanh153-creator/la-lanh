@@ -35,13 +35,17 @@ Không dùng ảnh hay khung hình từ reel tham chiếu làm đầu vào. Prom
 
 ## 2. Khung chung cho ảnh
 
-Đặt chủ thể vào chỗ `<SUBJECT>`, và tính từ cảm xúc của cảnh vào chỗ `<MOOD>`:
+**Màu thật, không filter** (chủ sản phẩm, 01.11): "mình muốn màu sắc thật, cảm giác sống động chứ không phải giống như đang có một filter". Khung cũ có cụm `warm muted film colors`, tạo màu phim ngả cam, bạc màu. Không dùng cụm đó nữa.
+
+Đặt chủ thể vào chỗ `<SUBJECT>`:
 
 ```text
-Photorealistic cinematic still, 9:16 vertical, close and intimate. <SUBJECT>. Warm, homey, <MOOD> and safe. Soft natural light, warm muted film colors, shallow depth of field, 35mm lens. No people, no text, no logos.
+Photorealistic vertical 9:16 photo, close and intimate. <SUBJECT>. True-to-life natural colors exactly as the eye sees them, like an unedited photo from a modern full-frame camera: accurate white balance, natural saturation and contrast, crisp detail, clean deep shadows, bright clean daylight. Alive, fresh and calm. No color filter, no film look, no vintage or sepia tone, no orange tint, no haze, no faded blacks. No people, no text, no logos, no writing on objects.
 ```
 
-Gợi ý cho `<MOOD>`: `quiet`, `gentle`, `nostalgic`, `hopeful`.
+Cảnh đêm (H5) thay `bright clean daylight` bằng `real warm lamplight with natural night colors`. Cảnh mưa (H2) giữ ánh sáng mưa thật, không thêm nắng.
+
+Trong `<SUBJECT>`, tả màu thật của vật: `lush green`, `white curtain`, `blue patterned tiles`, `clear blue sky`. Tránh các từ làm màu ngả phim: `muted`, `film`, `vintage`, `nostalgic`, `golden haze`, `dreamy`.
 
 Riêng cảnh ngoài trời rộng, có thể thay "close and intimate" bằng một góc máy cụ thể, ví dụ "Low viewpoint from inside a dense bank of wildflowers".
 
@@ -55,7 +59,7 @@ Camera completely static, <CAMERA_FEEL>. <MOTION>. <LIGHT>, natural motion only,
 |---|---|
 | `<CAMERA_FEEL>` | Một câu đặt người xem vào chỗ ngồi, ví dụ "like sitting quietly at the kitchen table". |
 | `<MOTION>` | 2–4 chuyển động **nhỏ, tự nhiên**: hơi nước, mưa nhỏ giọt, rèm thở, lá rung, nắng di chuyển chậm, bụi trong nắng. |
-| `<LIGHT>` | Ánh sáng của cảnh, ví dụ "Soft early-morning sunlight". |
+| `<LIGHT>` | Ánh sáng thật của cảnh, ví dụ "Real early-morning sunlight, true-to-life colors, no color grading". |
 | `<SOUND>` | Âm thanh nền. Tiếng trong clip chỉ để tham khảo, vì app dùng âm thanh có license riêng (NBY-06). |
 
 Không viết các chuyển động lớn: người đi qua, cửa đóng sầm, chim bay vào khung, đổi góc máy.
@@ -85,14 +89,14 @@ Không viết các chuyển động lớn: người đi qua, cửa đóng sầm,
 ## 5. Ví dụ video cho H1 và H2
 
 ```text
-H1: Camera completely static, like sitting quietly at the kitchen table. Thin steam slowly rises from the clay teapot, the dust motes drift lazily in the sunbeams, the herbs in the glass jar tremble slightly, the patch of sunlight creeps almost imperceptibly across the table. Soft early-morning sunlight, natural motion only, peaceful. No people, no new objects, no camera movement. Ambient sound: a faint kettle simmer, distant morning birds.
+H1: Camera completely static, like sitting quietly at the kitchen table. Thin steam slowly rises from the clay teapot, the dust motes drift lazily in the sunbeams, the herbs in the glass jar tremble slightly, the patch of sunlight creeps almost imperceptibly across the table. Real early-morning sunlight, true-to-life colors, natural motion only, peaceful. No people, no new objects, no camera movement. Ambient sound: a faint kettle simmer, distant morning birds.
 
-H2: Camera completely static, like sitting on the porch watching the rain. Rain drips steadily from the terracotta roof edge, raindrops make tiny ripples on the wet tiles, the jasmine leaves bob gently under the drops, faint steam rises from the tiny tea cups, the warm lamp inside glows steadily. Soft diffused rainy light, natural motion only, peaceful. No people, no new objects, no camera movement. Ambient sound: gentle steady rain on tiles, soft dripping.
+H2: Camera completely static, like sitting on the porch watching the rain. Rain drips steadily from the terracotta roof edge, raindrops make tiny ripples on the wet tiles, the jasmine leaves bob gently under the drops, faint steam rises from the tiny tea cups, the warm lamp inside glows steadily. Real rainy daylight, true-to-life colors, natural motion only, peaceful. No people, no new objects, no camera movement. Ambient sound: gentle steady rain on tiles, soft dripping.
 ```
 
 ## 6. Lỗi hay gặp và cách sửa
 
-Đợt thử 01.11 (giai đoạn 1): 6 ảnh góc nhà mới và 4 video H1, H2, H3, H6, đều Veo 3.1 Fast 8 giây, 720p, khung đầu và khung cuối là cùng một ảnh. Cả 4 video giữ nguyên bố cục, không có vật mới hay người. Chưa kiểm chỗ nối khi lặp và chưa kiểm nhấp nháy; hai việc này cần file tải về.
+Đợt thử 01.11 (giai đoạn 1): 6 ảnh góc nhà mới và 4 video H1, H2, H3, H6 (làm từ ảnh theo khung cũ `warm muted film colors`, nên bị chê "giống filter"; ảnh H1, H2, H3, H6 đã tạo lại bằng khung §2 mới, video chưa làm lại), đều Veo 3.1 Fast 8 giây, 720p, khung đầu và khung cuối là cùng một ảnh. Cả 4 video giữ nguyên bố cục, không có vật mới hay người. Chưa kiểm chỗ nối khi lặp và chưa kiểm nhấp nháy; hai việc này cần file tải về.
 
 
 | Lỗi | Cách sửa |
@@ -104,7 +108,8 @@ H2: Camera completely static, like sitting on the porch watching the rain. Rain 
 | Video thêm vật mới hoặc chim bay vào | Giữ `No new objects`, và thêm `no birds` |
 | Máy quay vẫn trôi | Mở đầu bằng `Camera completely static, almost a still photograph` |
 | Ánh sáng chớp hoặc cháy trắng | Đổi sang `soft diffused light`. Loại clip có chớp theo kiểm nhấp nháy của NBY-09 |
-| Màu quá rực, "lộ AI" | Thêm `muted film colors`, và bớt các tính từ như `magical`, `dreamy` |
+| Màu như có filter: ngả cam, bạc màu, vùng tối xám (chủ sản phẩm chê 01.11) | Dùng khung §2: `true-to-life natural colors`, `accurate white balance`, `no film look`, `no orange tint`, `no faded blacks`. Không chỉnh màu thêm khi xử lý (xem kế hoạch §3) |
+| Màu quá rực, "lộ AI" | Giữ `natural saturation`; bớt các tính từ như `magical`, `vivid`, `dreamy` |
 
 ## 7. Không bao giờ
 
