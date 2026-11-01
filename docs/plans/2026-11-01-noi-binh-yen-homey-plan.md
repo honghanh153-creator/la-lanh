@@ -198,20 +198,22 @@ Hai chỉ số chỉ đo **lượng** chuyển động, không đo chuyển đ�
 - Lần 5: giữ bố cục, đặt máy ngay ngưỡng cửa để khung cửa chỉ là viền mỏng, chỉ một lớp mái, vườn chuối chiếm phần lớn khung. Kết quả: 30 khung (mỗi 0,2 giây) không có vật rơi hay đổi chỗ; chuyển động tăng từ 2,8% lên 7,2% điểm ảnh; lá chuối đổi góc rõ giữa giây 1, 3 và 5. Mưa vẫn khá đều (hệ số biến thiên 0,08). **Chủ sản phẩm duyệt: "Mình đã xem clip mưa mới, đạt rồi."** Prompt lưu làm mẫu chuẩn ở [thư viện prompt](../operations/nby-scene-prompt-library.md) §4a.
 - Nhận định sau bốn lần thử đầu: sửa được lỗi này thì lỗi khác xuất hiện (lá không động → lá bay ngược → sàn nổi → đứng im). Lần 5 là bản đầu tiên không có lỗi đã biết, và đã được duyệt. D29 (quay thật) không còn cần cho cảnh mưa; giữ làm phương án dự phòng.
 
-**Tình trạng giai đoạn 1 (01.11, cuối ngày):** cần ≥ 4 clip đạt.
+**Tình trạng giai đoạn 1 (01.11, cuối ngày): XONG, 4/4 clip đạt** (đều làm trên Grok Imagine; prompt lưu nguyên văn ở thư viện prompt §4a).
 
 | Cảnh | Clip | Tình trạng |
 |---|---|---|
 | H2 hiên mưa | Grok, lần 5 | **Đạt** (chủ sản phẩm duyệt) |
 | H3 góc đọc có mèo | Grok, vòng 2, đuôi vẫy một lần | **Đạt** (chủ sản phẩm duyệt) |
 | H1 bếp sáng | Grok, vòng 2, hơi trà mỏng | **Đạt** (chủ sản phẩm duyệt) |
-| H6 sân gạch hoa giấy | Grok, lần 2 (hoa giấy trên tường xa) | Chờ chủ sản phẩm xem |
+| H6 sân gạch hoa giấy | Grok, lần 2 (hoa giấy trên tường xa) | **Đạt** (chủ sản phẩm duyệt) |
 
 **H6 sân gạch hoa giấy trên Grok (01.11), làm theo mẫu §4a:**
 
 - Lần 1 (giàn hoa giấy ngay trên đầu máy): soi từng 0,2 giây thấy vài cánh hoa rơi ở giây 0,9–1,7 rồi **biến mất giữa không trung** ở giây 1,9, dù prompt cấm vật rơi. Loại.
-- Lần 2 (hoa giấy mọc trên bức tường xa, "flowers firmly attached", cấm vật "appears or disappears"): soi 30 khung và phóng to vùng tường mỗi 0,5 giây, không có cánh hoa rơi hay vật đổi chỗ. Chuyển động 7,1% điểm ảnh, hệ số biến thiên 0,22 (gió từng cơn). Chờ chủ sản phẩm xem.
+- Lần 2 (hoa giấy mọc trên bức tường xa, "flowers firmly attached", cấm vật "appears or disappears"): soi 30 khung và phóng to vùng tường mỗi 0,5 giây, không có cánh hoa rơi hay vật đổi chỗ. Chuyển động 7,1% điểm ảnh, hệ số biến thiên 0,22 (gió từng cơn). **Chủ sản phẩm duyệt.**
 - Bài học: vật dễ rụng (hoa giấy, lá khô) ở gần máy hay bị AI cho rơi. Đặt chúng ở xa và ghi rõ "firmly attached".
+
+**Lưu ý cho giai đoạn 2 trở đi:** 4 clip đạt đều làm trên Grok, nên chịu điều khoản của xAI (giấy phép rộng cho xAI, phải ghi công, không bồi thường). Dùng để thử với người dùng ở giai đoạn 2 thì được. Đưa vào app (giai đoạn 4) vẫn cần chủ sản phẩm chốt D24. Grok chưa thấy watermark trên khung hình, nhưng chưa kiểm metadata nguồn gốc (C2PA, SynthID-tương đương) trong file.
 
 ## 7. Quyết định cần chủ sản phẩm
 
