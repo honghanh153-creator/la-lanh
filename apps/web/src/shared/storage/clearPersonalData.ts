@@ -8,6 +8,7 @@ import { clearCachedDailyNote } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
 import { PENDING_MOOD_ACK_KEY, PENDING_MOOD_KEY } from "./pendingMood";
 import { clearSavedNoteMutationQueue, fenceSavedNoteCallbacks } from "./savedNoteMutationQueue";
+import { removeOrphanedNativeExport } from "../../features/profile/downloadMyData";
 import { RADAR_PENDING_REQUEST_KEY } from "../../features/radar/radarOptions";
 import { invalidateSessionRequests, SESSION_RESTART_REQUIRED_KEY } from "../session/sessionIdentity";
 
@@ -73,6 +74,12 @@ export async function clearPersonalDataOnDevice(): Promise<void> {
   attempt(() => sessionStorage.removeItem("la-lanh-radar-owner-start"));
   attempt(() => sessionStorage.removeItem("la-lanh-tarot-start"));
   attempt(() => sessionStorage.removeItem("la-lanh-tarot-guest-key"));
+
+  try {
+    await removeOrphanedNativeExport();
+  } catch (error) {
+    failures.push(error);
+  }
 
   if ("caches" in window) {
     const results = await Promise.allSettled(

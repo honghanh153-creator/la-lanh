@@ -22,8 +22,9 @@ function isShareCancel(error: unknown): boolean {
  * Native shell: WKWebView/Android WebView do not honour the download attribute, so the JSON is
  * written to the app cache directory with @capacitor/filesystem and handed to the system share
  * sheet with @capacitor/share ("Lưu vào Tệp"). The temp file is deleted right after the sheet
- * closes, whether the user saved, cancelled or the share failed; if deletion itself fails the OS
- * may clear the cache later. Plugins are loaded lazily so the web bundle path is unchanged.
+ * closes, whether the user saved, cancelled or the share failed. If the app is killed while the
+ * sheet is open, or that deletion fails, removeOrphanedNativeExport() removes the file on the next
+ * start and on every device/profile erase (Codex auto-3 on #117). Plugins are loaded lazily so the web bundle path is unchanged.
  */
 async function saveNative(json: string): Promise<SaveOutcome> {
   let Filesystem: typeof import("@capacitor/filesystem").Filesystem;
@@ -56,7 +57,7 @@ async function saveNative(json: string): Promise<SaveOutcome> {
     try {
       await Filesystem.deleteFile({ path: DATA_EXPORT_FILE_NAME, directory: Directory.Cache });
     } catch {
-      // Best effort: the file sits only in the app's own cache, which the OS may purge.
+      // Retried by removeOrphanedNativeExport() on next start and on device erase.
     }
   }
 }
@@ -86,4 +87,36 @@ export async function saveDataExport(data: DataExport): Promise<SaveOutcome> {
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   return "downloaded";
+}
+
+/**
+ * Deletes a leftover native export file (app killed mid-share, or the post-share delete failed).
+ * No-op on the web. Resolves when the file is gone or never existed; rejects only when the file is
+ * still there afterwards, so device erase can report the failure instead of hiding it.
+ */
+export async function removeOrphanedNativeExport(): Promise<void> {
+  if (!isNativeApp()) return;
+  let Filesystem: typeof import("@capacitor/filesystem").Filesystem;
+  let Directory: typeof import("@capacitor/filesystem").Directory;
+  try {
+    ({ Filesystem, Directory } = await import("@capacitor/filesystem"));
+  } catch {
+    return; // Without the plugin no export file can have been written.
+  }
+  const target = { path: DATA_EXPORT_FILE_NAME, directory: Directory.Cache };
+  try {
+    await Filesystem.deleteFile(target);
+    return;
+  } catch (deleteError) {
+    // deleteFile also rejects when the file does not exist; only a file that survives is a failure.
+    let stillThere = true;
+    try {
+      await Filesystem.stat(target);
+    } catch {
+      stillThere = false;
+    }
+    if (stillThere) {
+      throw deleteError instanceof Error ? deleteError : new Error("Native export file could not be deleted");
+    }
+  }
 }

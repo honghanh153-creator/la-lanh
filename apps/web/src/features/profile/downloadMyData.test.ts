@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DataExport } from "../../shared/api/client";
-import { DATA_EXPORT_FILE_NAME, saveDataExport } from "./downloadMyData";
+import { DATA_EXPORT_FILE_NAME, removeOrphanedNativeExport, saveDataExport } from "./downloadMyData";
+import { clearPersonalDataOnDevice } from "../../shared/storage/clearPersonalData";
 
 const data = { format: "la-lanh-data-export-v1", notice: "riêng tư" } as DataExport;
 
@@ -17,6 +18,7 @@ function readText(blob: Blob): Promise<string> {
 const fs = vi.hoisted(() => ({
   writeFile: vi.fn<(options: { path: string; data: string; directory: string; encoding: string }) => Promise<{ uri: string }>>(),
   deleteFile: vi.fn<(options: { path: string; directory: string }) => Promise<void>>(),
+  stat: vi.fn<(options: { path: string; directory: string }) => Promise<unknown>>(),
 }));
 const share = vi.hoisted(() => ({ share: vi.fn<(options: { title?: string; files?: string[] }) => Promise<unknown>>() }));
 
@@ -46,6 +48,7 @@ describe("saveDataExport", () => {
     URL.revokeObjectURL = vi.fn((url: string) => { revoked.push(url); });
     fs.writeFile.mockReset().mockResolvedValue({ uri: "file:///cache/export.json" });
     fs.deleteFile.mockReset().mockResolvedValue(undefined);
+    fs.stat.mockReset().mockRejectedValue(new Error("File does not exist"));
     share.share.mockReset().mockResolvedValue({});
   });
 
@@ -109,5 +112,51 @@ describe("saveDataExport", () => {
     expect(share.share).toHaveBeenCalledTimes(1);
     expect(click).not.toHaveBeenCalled();
     expect(createObjectURL).not.toHaveBeenCalled();
+  });
+
+  describe("orphaned native export cleanup (Codex auto-3 on #117)", () => {
+    const target = { path: "la-lanh-du-lieu-cua-toi.json", directory: "CACHE" };
+
+    it("removes a file left behind when the app was killed while the share sheet was open", async () => {
+      (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
+      // Interrupted export: the file was written but the share never settled, so finally never ran.
+      share.share.mockReturnValue(new Promise(() => undefined));
+      void saveDataExport(data);
+      await vi.waitFor(() => expect(share.share).toHaveBeenCalled());
+      expect(fs.deleteFile).not.toHaveBeenCalled();
+
+      // Next start / erase.
+      await expect(removeOrphanedNativeExport()).resolves.toBeUndefined();
+      expect(fs.deleteFile).toHaveBeenCalledWith(target);
+    });
+
+    it("treats a missing file as already clean", async () => {
+      (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
+      fs.deleteFile.mockRejectedValue(new Error("File does not exist"));
+      await expect(removeOrphanedNativeExport()).resolves.toBeUndefined();
+      expect(fs.stat).toHaveBeenCalledWith(target);
+    });
+
+    it("rejects when the file survives a failed delete, so erase reports it", async () => {
+      (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
+      fs.deleteFile.mockRejectedValue(new Error("EACCES"));
+      fs.stat.mockResolvedValue({ type: "file" });
+      await expect(removeOrphanedNativeExport()).rejects.toThrow("EACCES");
+    });
+
+    it("device erase deletes the leftover export and surfaces a failed delete", async () => {
+      (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
+      await clearPersonalDataOnDevice();
+      expect(fs.deleteFile).toHaveBeenCalledWith(target);
+
+      fs.deleteFile.mockRejectedValue(new Error("EACCES"));
+      fs.stat.mockResolvedValue({ type: "file" });
+      await expect(clearPersonalDataOnDevice()).rejects.toThrow("EACCES");
+    });
+
+    it("does nothing on the web", async () => {
+      await removeOrphanedNativeExport();
+      expect(fs.deleteFile).not.toHaveBeenCalled();
+    });
   });
 });
