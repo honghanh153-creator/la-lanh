@@ -22,6 +22,8 @@
   let time = 0, scale = 1;
   // Faces: detective id -> small canvas cropped from a photo the player picked. Memory only.
   const faces = new Map();
+  const faceGen = new Map(); // bumps on every load/remove so a stale decode cannot restore a removed face
+  let setupToken = 0;
 
   const fx = () => motion === 'full';
   const quiet = () => !fx();
@@ -474,7 +476,7 @@
     const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement && document.activeElement.tagName);
     if (typing) return;
     if (allMoveKeys.has(k)) { keys.add(k); e.preventDefault(); }
-    const onBody = document.activeElement === document.body || document.activeElement === canvas;
+    const onBody = document.activeElement === document.body || document.activeElement === canvas || (k.length === 1 && k !== ' ');
     if (onBody) {
       const slot = team.length === 1 ? ((k === 'e' || k === ' ' || k === 'Enter') ? 0 : -1) : CONTROLS.findIndex(c => c.act === k);
       if (slot >= 0 && slot < team.length) { const d = detById(team[slot]); const n = nearest(d); if (n) { e.preventDefault(); interact(d, n); } }
@@ -680,6 +682,8 @@
     const body = openModal('ĐỘI THÁM TỬ · CHỈ TRÊN MÁY NÀY', 'Ai chơi?');
     let count = team.length;
     const draft = team.slice();
+    const token = ++setupToken;
+    const bump = id => { const g = (faceGen.get(id) || 0) + 1; faceGen.set(id, g); return g; };
     const render = () => {
       body.replaceChildren();
       body.append(el('p', 'note', 'Chơi một mình: bạn chọn một thám tử, ba người còn lại là thám tử mặc định, bạn nhờ họ đi khám hay giữ công tắc. Chơi nhiều người trên cùng màn hình: mỗi người một thám tử và một bộ phím.'));
@@ -700,17 +704,18 @@
         box.append(pick);
         const id = draft[slot];
         const faceRow = el('div', 'row');
-        if (faces.has(id)) { const thumb = faces.get(id); const img = el('canvas', 'thumb'); img.width = 64; img.height = 64; img.getContext('2d').drawImage(thumb, 0, 0); faceRow.append(img, btn('Bỏ ảnh mặt', 'small', () => { faces.delete(id); render(); })); }
+        if (faces.has(id)) { const thumb = faces.get(id); const img = el('canvas', 'thumb'); img.width = 64; img.height = 64; img.getContext('2d').drawImage(thumb, 0, 0); faceRow.append(img, btn('Bỏ ảnh mặt', 'small', () => { bump(id); faces.delete(id); render(); })); }
         const label = el('label', 'small filebtn', faces.has(id) ? 'Đổi ảnh mặt' : 'Gắn mặt của bạn (tuỳ chọn)');
         const inp = el('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'user'); inp.className = 'sr-only';
-        inp.addEventListener('change', async () => { const f = inp.files && inp.files[0]; if (!f) return; try { faces.set(id, await loadFace(f)); } catch (err) { toast('Không đọc được ảnh này.'); } inp.value = ''; render(); });
+        inp.addEventListener('change', async () => { const f = inp.files && inp.files[0]; if (!f) return; const g = bump(id); try { const face = await loadFace(f); if (faceGen.get(id) === g) faces.set(id, face); } catch (err) { if (faceGen.get(id) === g) toast('Không đọc được ảnh này.'); } inp.value = ''; if (token === setupToken && modalOpen) render(); });
         label.append(inp); faceRow.append(label);
         box.append(faceRow);
         body.append(box);
       }
       body.append(el('p', 'note', 'Ảnh mặt: chỉ dùng ảnh của chính người chơi thám tử đó. Ảnh được cắt và dán ngay trong trình duyệt, không gửi đi đâu, không lưu; tải lại trang hoặc bấm "Bỏ ảnh mặt" là mất.'));
       body.append(btn('Vào phòng', 'primary', () => {
-        team = draft.slice(0, count); active = 0;
+        team = draft.slice(0, count); active = 0; setupToken++;
+        for (const id of [...faces.keys()]) if (!team.includes(id)) { bump(id); faces.delete(id); }
         for (const d of dets) { d.path = null; d.then = null; d.task = null; }
         closeModal(); renderAll(); renderSlots(); if (then) then();
       }));
