@@ -100,6 +100,7 @@ Căn cứ: Luật BVDLCN 91/2025/QH15 và NĐ 356/2025/NĐ-CP (hiệu lực 01.0
 - [ ] [KT] Webhook cổng thanh toán: xác thực chữ ký, chống gửi lặp (idempotency), đối chiếu số tiền với booking; trạng thái chỉ đổi theo webhook đã xác thực.
 - [ ] [KT] Giới hạn tần suất đặt/hủy và tạo giao dịch; chặn giữ chỗ ảo.
 - [ ] [KT] Lá Dẫn đăng nhập với xác thực hai bước; thu hồi quyền ngay khi chấm dứt hợp đồng.
+- [ ] [KT] Rút lại đồng ý giữa buổi (PRD F6.3): nút **Dừng chia sẻ** luôn hiện trong buổi và trong **Tài khoản**; bấm thì thu hồi ngay quyền xem hồ sơ, bản đồ sao, câu hỏi của Lá Dẫn và đóng link buổi gọi phía máy chủ, không chờ hết giờ; ghi sự kiện rút đồng ý (không ghi nội dung). Test: Lá Dẫn tải lại trang sau khi rút thì không còn thấy dữ liệu.
 - [ ] [KT] Link vào buổi gọi là link có quyền truy cập: chỉ hai người trong buổi mở được, hết hạn sau buổi, không lưu cache, không để lộ qua referrer hay log.
 - [ ] [KT] Trên app di động: rà theo OWASP MASVS (quyền micro/camera chỉ xin khi vào buổi, không lưu nội dung chat vào bộ nhớ máy không mã hóa).
 
@@ -114,6 +115,7 @@ Căn cứ: Luật Bảo vệ quyền lợi người tiêu dùng 2023.
   - người dùng vắng mặt → chốt mức;
   - lỗi kỹ thuật phía Lá Lành → hoàn toàn bộ;
   - người dùng báo vi phạm bộ quy tắc → hoàn tiền trong lúc xem xét.
+  - người dùng rút lại đồng ý chia sẻ giữa buổi → buổi dừng; hoàn tiền theo phần chưa diễn ra (mức cụ thể do [Chủ] chốt), chỉ giữ dữ liệu thanh toán, hóa đơn theo luật.
 - [ ] [VH] Kênh khiếu nại trong app, thời hạn phản hồi đã cam kết, ghi lại kết quả xử lý.
 - [ ] [KT] Kiểm tra tuổi trước khi thanh toán; không hiển thị lời mời mua với người dưới 18 tuổi.
 - [ ] [ND] Không dùng đếm ngược, "chỉ còn 1 chỗ", hay thông báo thúc mua. Đúng nguyên tắc "Paid mua chiều sâu, không mua quyền tiếp cận".

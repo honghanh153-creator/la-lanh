@@ -101,7 +101,7 @@ Thêm vào trang `/privacy` hiện có (`apps/web/src/features/consent/ConsentPa
 >
 > *Ai khác truy cập:* cổng thanh toán [tên] xử lý việc trả tiền; nhà cung cấp hóa đơn [tên] lập hóa đơn; [dịch vụ gọi/chat, nếu có]. Nhân viên hỗ trợ của Lá Lành chỉ xem tin nhắn khi bạn hoặc Lá Dẫn gửi báo cáo.
 >
-> *Bạn có thể:* xem, sửa, xóa dữ liệu, hoặc rút lại đồng ý cho các buổi sau tại **Tài khoản**. Xóa tài khoản thì câu hỏi, tin nhắn và đánh giá bị xóa; riêng dữ liệu hóa đơn được giữ theo luật.
+> *Bạn có thể:* xem, sửa, xóa dữ liệu, hoặc rút lại đồng ý bất cứ lúc nào, kể cả khi buổi đọc đang diễn ra. Bấm **Dừng chia sẻ** trong buổi (hoặc vào **Tài khoản**): Lá Dẫn mất quyền xem thông tin của bạn ngay, buổi đọc dừng lại, và tiền được hoàn theo [cách hủy và hoàn tiền]. Rút lại đồng ý không ảnh hưởng phần buổi đọc đã diễn ra trước đó. Xóa tài khoản thì câu hỏi, tin nhắn và đánh giá bị xóa; riêng dữ liệu hóa đơn được giữ theo luật.
 >
 > *Có thắc mắc:* [email hỗ trợ về dữ liệu].
 
@@ -113,6 +113,8 @@ Hiện ngay trên nút thanh toán, ô **không** tích sẵn, tách khỏi đi�
 > ☐ Tôi đã đọc [cách hủy và hoàn tiền].
 
 Bỏ chọn ô đầu thì không đặt được buổi, kèm một dòng giải thích: *"Lá Dẫn cần các thông tin này để đọc cho bạn."*
+
+Đồng ý này rút lại được bất cứ lúc nào, kể cả giữa buổi, qua nút **Dừng chia sẻ** luôn hiện trong màn hình buổi đọc. Rút lại thì quyền xem của Lá Dẫn bị thu hồi ngay, buổi kết thúc và được xử lý như một lần hủy theo quy tắc hoàn tiền. Chỉ giữ lại dữ liệu thanh toán, hóa đơn mà luật kế toán, thuế bắt buộc.
 
 ## Việc còn mở
 
