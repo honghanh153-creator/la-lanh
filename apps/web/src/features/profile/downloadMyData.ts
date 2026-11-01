@@ -108,15 +108,21 @@ export async function removeOrphanedNativeExport(): Promise<void> {
     await Filesystem.deleteFile(target);
     return;
   } catch (deleteError) {
-    // deleteFile also rejects when the file does not exist; only a file that survives is a failure.
-    let stillThere = true;
+    // deleteFile also rejects when the file does not exist. Only a confirmed not-found from stat
+    // counts as clean; any other stat failure leaves the state unknown and is surfaced.
     try {
       await Filesystem.stat(target);
-    } catch {
-      stillThere = false;
+    } catch (statError) {
+      if (isFileNotFound(statError)) return;
+      throw statError instanceof Error ? statError : new Error("Native export file state unknown");
     }
-    if (stillThere) {
-      throw deleteError instanceof Error ? deleteError : new Error("Native export file could not be deleted");
-    }
+    throw deleteError instanceof Error ? deleteError : new Error("Native export file could not be deleted");
   }
+}
+
+/** Capacitor Filesystem reports a missing file as "File does not exist" (iOS/Android) or ENOENT/NOTFOUND (web). */
+function isFileNotFound(error: unknown): boolean {
+  const e = error as { message?: unknown; code?: unknown } | null;
+  const text = `${typeof e?.code === "string" ? e.code : ""} ${typeof e?.message === "string" ? e.message : ""}`;
+  return /does not exist|no such file|ENOENT|NOTFOUND|not found/i.test(text);
 }

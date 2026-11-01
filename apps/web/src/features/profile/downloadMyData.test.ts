@@ -144,6 +144,14 @@ describe("saveDataExport", () => {
       await expect(removeOrphanedNativeExport()).rejects.toThrow("EACCES");
     });
 
+    it("rejects when stat fails for a reason other than not-found (Codex P2 on #117)", async () => {
+      (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
+      fs.deleteFile.mockRejectedValue(new Error("EACCES"));
+      fs.stat.mockRejectedValue(new Error("EACCES: permission denied"));
+      await expect(removeOrphanedNativeExport()).rejects.toThrow("EACCES");
+      await expect(clearPersonalDataOnDevice()).rejects.toThrow("EACCES");
+    });
+
     it("device erase deletes the leftover export and surfaces a failed delete", async () => {
       (window as CapacitorWindow).Capacitor = { isNativePlatform: () => true };
       await clearPersonalDataOnDevice();
