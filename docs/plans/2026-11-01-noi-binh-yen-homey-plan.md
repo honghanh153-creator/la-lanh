@@ -156,6 +156,34 @@ Theo NBY-AI-AC05, không được xóa watermark nhìn thấy được. Vì clip
 - Lần thử thứ hai (cận cảnh lá là chủ thể, mưa rơi khắp khung, mỗi lá nhún rồi bật lại) không chạy được: gói miễn phí hết lượt; 720p và lượt tiếp theo đòi gói trả phí. Không mua gì.
 - Nhận định: cả Veo và Grok cùng yếu ở đúng chỗ chủ sản phẩm cần, là chuyển động vật lý nhỏ và dày (mưa đập lá, lá nhún). Có thể đây là giới hạn của video AI hiện tại, không phải của prompt. Phương án thay thế: **video quay thật** (kho có license, hoặc tự quay bằng điện thoại đặt cố định). PRD §8.4 vốn cho phép "tự quay"; clip quay thật không cần nhãn "Cảnh tạo bằng AI" nhưng vẫn qua checklist §7.5 và sổ đăng ký (§8.3).
 
+### So sánh Google Flow và Grok Imagine (01.11)
+
+Chủ sản phẩm nâng cấp tài khoản Grok (tự trả phí, ngoài Lá Lành) và yêu cầu so sánh. Claude chạy 3 cảnh trên Grok bằng prompt "cảnh sống động" (thư viện prompt §3), text-to-video, 720p, 6 giây, 9:16.
+
+**Cách đo chuyển động.** Lấy một khung mỗi 0,25 giây, thu nhỏ còn 180×320, so từng điểm ảnh với khung trước. Hai chỉ số:
+- *Độ thay đổi trung bình*: chênh lệch màu trung bình mỗi điểm ảnh, thang 0–255.
+- *% điểm ảnh chuyển động*: phần điểm ảnh đổi hơn 6 đơn vị.
+
+Hai chỉ số chỉ đo **lượng** chuyển động, không đo chuyển động có **thật** hay không. Người duyệt vẫn phải xem.
+
+| Cảnh | Công cụ, prompt | Độ phân giải, độ dài | Độ thay đổi TB | % điểm ảnh chuyển động | Nhận xét |
+|---|---|---|---|---|---|
+| Hiên mưa | Flow Veo 3.1 Fast, prompt màu thật (cũ, ít chuyển động) | 720×1280, 8 giây | 1,60 | 4,3% | Các khung gần như giống hệt nhau. Chủ sản phẩm: lá không động |
+| Hiên mưa | Grok, prompt toàn cảnh | 416×752, 6 giây | 4,10 | 12,3% | Mưa chỉ thành dòng ở mép mái. Chủ sản phẩm: "vẫn giả" |
+| Hiên mưa cận lá | Grok, prompt sống động | 720×1280, 6 giây | 9,23 | 27,7% | Mưa rơi khắp khung, lá đổi vị trí giữa các khung, vũng nước gợn |
+| Bếp sáng | Flow Veo 3.1 Fast, prompt màu thật (cũ) | 720×1280, 8 giây | 1,47 | 4,5% | Gần như đứng im. Chủ sản phẩm: thiếu sống động |
+| Bếp sáng | Grok, prompt sống động | 720×1280, 6 giây | 6,68 | 22,0% | Hơi trà bốc, bóng lá trên bàn đổi; cây ngoài cửa lay ít |
+| Góc đọc có mèo | Flow Veo 3.1 Fast, prompt màu thật (cũ) | 720×1280, 8 giây | 4,56 | 14,8% | Có **bàn tay** thả rèm, nên bị loại; phần lớn chuyển động là do tay và rèm |
+| Góc đọc có mèo | Grok, prompt sống động | 720×1280, 6 giây | 6,84 | 19,7% | Rèm tự bay phồng rõ, bóng lá chạy trên sàn, mèo ngủ yên, không có tay |
+
+**Đọc kết quả:**
+- Grok dùng prompt mới, còn Flow dùng prompt cũ. So sánh này vì thế **chưa công bằng** về prompt. Flow cần chạy lại prompt mới sau 21.11 thì mới kết luận được về công cụ.
+- Dù vậy, Grok với prompt mới cho lượng chuyển động gấp khoảng 4–6 lần ở cảnh mưa và bếp, và không lỗi tay người trong 3 clip.
+- Trên các khung đã xem, không thấy watermark của Grok; chữ "HD" là giao diện của trang. Flow có dấu ✦ bắt buộc ở Việt Nam.
+- Màu: cả hai đều ra màu thật khi dùng khung §2.
+- Điều khoản: Grok vẫn như trên (giấy phép rộng cho xAI, không bồi thường, phải ghi công). Flow (gói cá nhân) không có bồi thường. Chỉ Vertex có bồi thường.
+- Chủ sản phẩm cần xem 3 clip Grok để chấm cảm giác "thật". Số liệu không thay được mắt người.
+
 ## 7. Quyết định cần chủ sản phẩm
 
 | ID | Câu hỏi | Đề xuất | Trạng thái |
