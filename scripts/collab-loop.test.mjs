@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
 const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
-const { planState, renderPlan } = await import('./collab-plan.mjs');
+const { committedTurns, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
 const { checkBudgetMs, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
@@ -454,6 +454,21 @@ test('retro D3: the plan says when the Mac stopped ticking', () => {
   assert.deepEqual(tickGap({ at: '2026-10-30T21:25:43Z' }, now), { from: '04:25', to: '09:41' });
   const body = renderPlan({ date: '2026-10-31', hour: 9, minute: 41 }, [], { codexLeft: 12, gap: { from: '04:25', to: '09:41' } });
   assert.match(body, /Máy không chạy tick từ 04:25 tới 09:41/);
+  assert.doesNotThrow(() => trust.assertAgentBody(body));
+});
+
+test('owner 02.11: the plan commits 6–8 PRs and says how the % is counted', () => {
+  const many = turnsFor(Array.from({ length: 10 }, (_, i) => pr({ number: 20 + i, createdAt: `2026-10-${10 + i}T00:00:00Z` })).concat(pr({ number: 99, isDraft: true })));
+  const committed = committedTurns(many);
+  assert.equal(committed.length, 8, 'never more than 8');
+  assert.ok(!committed.some(t => t.number === 99), 'a held PR is not committed');
+  const body = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, many, { codexLeft: 12 });
+  assert.match(body, /Cam kết hôm nay \(6–8 PR\):\*\* #\d+(, #\d+){7}\./);
+  assert.match(body, /% hôm nay = số PR cam kết đã merge/);
+  assert.doesNotMatch(body, /Còn thiếu/);
+  const few = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 12 });
+  assert.match(few, /Cam kết hôm nay \(6–8 PR\):\*\* #7\./);
+  assert.match(few, /Còn thiếu 5 PR so với mức 6/);
   assert.doesNotThrow(() => trust.assertAgentBody(body));
 });
 
