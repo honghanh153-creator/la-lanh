@@ -94,3 +94,14 @@ class HumanTarotRequestView(BaseModel):
     question: str | None = None
     result: HumanTarotResult | None = None
     expires_at: datetime
+
+
+class HumanTarotExportItem(BaseModel):
+    """One request for the owner's own data export: the app's view plus the consent given."""
+
+    model_config = ConfigDict(frozen=True)
+
+    view: HumanTarotRequestView
+    consent_version: str
+    consented_at: datetime
+    created_at: datetime

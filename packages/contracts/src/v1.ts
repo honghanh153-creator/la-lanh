@@ -1955,6 +1955,8 @@ export interface components {
              */
             generated_at: string;
             history_retention: components["schemas"]["ExportHistoryRetention"] | null;
+            /** Human Tarot Requests */
+            human_tarot_requests: components["schemas"]["ExportHumanTarotRequest"][];
             /** La Chung Invites */
             la_chung_invites: components["schemas"]["ExportLaChungInvite"][];
             matching: components["schemas"]["ExportMatching"] | null;
@@ -2302,6 +2304,76 @@ export interface components {
             activated_at: string;
             /** Consent Version */
             consent_version: string;
+        };
+        /**
+         * ExportHumanTarotReading
+         * @description The frozen reading a human reader wrote, once its release time has passed (US-24 R9).
+         */
+        ExportHumanTarotReading: {
+            /** Cards */
+            cards: components["schemas"]["ExportTarotCard"][];
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+            /**
+             * Reader
+             * @constant
+             */
+            reader: "human";
+            /** Reading */
+            reading: string;
+            /** Step */
+            step: string;
+        };
+        /**
+         * ExportHumanTarotRequest
+         * @description The person's own request as the app shows it (US-24 view), never the Sheet copy's state.
+         *
+         *     No request code, Sheet row, slot, delivery state, idempotency/request hash or day tally: those
+         *     are operational, not something the person gave or received.
+         */
+        ExportHumanTarotRequest: {
+            /** Consent Version */
+            consent_version: string;
+            /**
+             * Consented At
+             * Format: date-time
+             */
+            consented_at: string;
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /** Question */
+            question: string | null;
+            reading: components["schemas"]["ExportHumanTarotReading"] | null;
+            /**
+             * Release At
+             * Format: date-time
+             */
+            release_at: string;
+            /** Spread */
+            spread: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "waiting" | "ready" | "late" | "unfulfilled";
         };
         /** ExportLaChungInvite */
         ExportLaChungInvite: {

@@ -48,6 +48,7 @@ Every table with personal data was read (`apps/api/app/domains/*/tables.py`).
 | `saved_notes` | saved at, note text snapshot, saved reading sections, evidence and disclaimer | `saved_notes` |
 | `share_links` | format, status, created, expiry, revoked | `share_artifacts` |
 | `tarot_sessions` | state, topic, spread, voice, question, cards by position, reading (headline, summary, positions, stance conclusion, closing prompt, disclaimer) | `tarot_sessions` |
+| `human_tarot_requests` | US-24, the person's own requests as `GET /v1/human-tarot/requests/{id}` shows them: visible status (`waiting`/`ready`/`late`/`unfulfilled`), Vietnam day, topic, spread, question (until its 24 h retention after release ends), `human-tarot-v1` consent version and time, release time, created, expiry, and from the release time the frozen reading (`reader: "human"`, cards by position, reading, small step, imported at) | `human_tarot_requests` (guest-owned, `HumanTarotService.export_items`) |
 | `note_feedback` | hit/miss, background lens, created, expiry | `resonance_feedback` |
 | `daily_experiments` | state, lens, outcome, created, expiry, reflected | `daily_experiments` |
 | `radar_sent` | A's side: nickname A typed, context, voice, mode, status, A's permission attestation time, created, expiry | `radar_requests` (A as owner) |
@@ -68,6 +69,8 @@ Every table with personal data was read (`apps/api/app/domains/*/tables.py`).
 | Daily notes hidden by the history window, expired Tarot, expired/withdrawn/revoked Radar requests | Hidden in the app and pending cleanup; the file must not bring back what the person was told is gone. Saved notes and today's note are always included. |
 | Reading plans, available (not yet shown) revisions, ids, keys, evaluation metadata, generation attempts, content-rewrite jobs (encrypted request/output) | Internal processing state. The text the person saw is in Daily notes (`readings`, from the active revision), Tarot and saved notes. |
 | Active Aura and Insight readings (`/insights/readings/{purpose}`) | Not yet exported (gap, Codex auto-1 P2 non-blocking); disclosed in `not_included`. Follow-up: export their sanitized active content. |
+| Human Tarot: cancelled requests and deleted readings (tombstones), expired rows; rows removed by history clear, guest deletion or journal replay | The person was told they are gone; the file follows the app. History clear and replay delete the row, so there is nothing to read. An `unfulfilled` request stays, with status and dates but no question (the app erased it at day end). |
+| Human Tarot: request code (`LL-…`), `human_tarot_slots` (Sheet row number, Sheet state, delivery/clear status, error code, attempts, lease, feedback digest), `human_tarot_days` tally, idempotency/request hash, `spread_map`, `updated_at`, `question_purged_at` | Operational state of the owner's Google Sheet workflow and admission ledger, not something the person gave or received. The positions the map chose appear as the card position labels in the reading. A reading imported before 22:00 is not exported until the release time, matching R9. |
 | Experiment `action_key` | Opaque digest of catalog copy. |
 | Matching verification provider reference | External identifier. |
 | Erasure journal, login challenges/quotas, Tarot variant cursor | Keyed digests or counters about the system, not readable content about the person. |
@@ -119,6 +122,10 @@ Every table with personal data was read (`apps/api/app/domains/*/tables.py`).
   hashes or cookies; no B birth data; B's own file; CSRF/origin/anonymous/other-guest rejection and
   405 on GET; fresh read after removing time/place; per-peer 429; list bound and `truncated`; history
   visibility; empty guest.
+- API `apps/api/tests/privacy/test_data_export_human_tarot.py` (8): own request with question, then the
+  reading only from 22:00, then no question after 24 h; exact field set, no request id/code or Sheet
+  state; another guest's request absent; cancelled request, deleted reading, history clear and
+  expiry absent; unfulfilled kept without question; list bound and `truncated`.
 - Web: `downloadMyData.test.ts` (Blob download name, content, URL revoked; native share and cancel),
   `ProfilePage.test.tsx` (sheet copy, cancel, download, 429 and offline errors, B link),
   `RadarReceivedFlow.test.tsx` (held-data disclosure, no birth-data field).

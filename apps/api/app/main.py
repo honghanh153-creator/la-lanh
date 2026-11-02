@@ -222,7 +222,11 @@ def create_app(
             database.sessions, envelope, erasure_journal
         )
         app.state.data_export_service = DataExportService(
-            database.sessions, envelope, birth_repo, app.state.tarot_session_service
+            database.sessions,
+            envelope,
+            birth_repo,
+            app.state.tarot_session_service,
+            app.state.human_tarot_service,
         )
         app.state.birth_chart_service = (
             BirthChartService(

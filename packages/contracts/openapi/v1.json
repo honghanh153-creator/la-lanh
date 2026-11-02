@@ -1201,6 +1201,13 @@
               }
             ]
           },
+          "human_tarot_requests": {
+            "items": {
+              "$ref": "#/components/schemas/ExportHumanTarotRequest"
+            },
+            "title": "Human Tarot Requests",
+            "type": "array"
+          },
           "la_chung_invites": {
             "items": {
               "$ref": "#/components/schemas/ExportLaChungInvite"
@@ -1294,6 +1301,7 @@
           "saved_notes",
           "share_links",
           "tarot_sessions",
+          "human_tarot_requests",
           "note_feedback",
           "daily_experiments",
           "radar_sent",
@@ -2081,6 +2089,135 @@
           "activated_at"
         ],
         "title": "ExportHistoryRetention",
+        "type": "object"
+      },
+      "ExportHumanTarotReading": {
+        "additionalProperties": false,
+        "description": "The frozen reading a human reader wrote, once its release time has passed (US-24 R9).",
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTarotCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "imported_at": {
+            "format": "date-time",
+            "title": "Imported At",
+            "type": "string"
+          },
+          "reader": {
+            "const": "human",
+            "title": "Reader",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reader",
+          "cards",
+          "reading",
+          "step",
+          "imported_at"
+        ],
+        "title": "ExportHumanTarotReading",
+        "type": "object"
+      },
+      "ExportHumanTarotRequest": {
+        "additionalProperties": false,
+        "description": "The person's own request as the app shows it (US-24 view), never the Sheet copy's state.\n\nNo request code, Sheet row, slot, delivery state, idempotency/request hash or day tally: those\nare operational, not something the person gave or received.",
+        "properties": {
+          "consent_version": {
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "consented_at": {
+            "format": "date-time",
+            "title": "Consented At",
+            "type": "string"
+          },
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "local_date": {
+            "format": "date",
+            "title": "Local Date",
+            "type": "string"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportHumanTarotReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "release_at": {
+            "format": "date-time",
+            "title": "Release At",
+            "type": "string"
+          },
+          "spread": {
+            "title": "Spread",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "waiting",
+              "ready",
+              "late",
+              "unfulfilled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "local_date",
+          "context",
+          "spread",
+          "question",
+          "consent_version",
+          "consented_at",
+          "release_at",
+          "reading",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportHumanTarotRequest",
         "type": "object"
       },
       "ExportLaChungInvite": {

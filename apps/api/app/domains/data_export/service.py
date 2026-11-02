@@ -33,6 +33,8 @@ from app.domains.data_export.models import (
     ExportDailyNote,
     ExportDevice,
     ExportHistoryRetention,
+    ExportHumanTarotReading,
+    ExportHumanTarotRequest,
     ExportLaChungInvite,
     ExportMatching,
     ExportMatchingProfile,
@@ -49,6 +51,7 @@ from app.domains.data_export.models import (
     ExportTarotPosition,
     ExportTarotReading,
     ExportTarotSession,
+    HumanTarotExportStatus,
 )
 from app.domains.experiments.postgres import _payload_context as experiment_context
 from app.domains.experiments.tables import DailyExperimentRow
@@ -56,6 +59,8 @@ from app.domains.guest.errors import GuestExpired
 from app.domains.guest.tables import ConsentRow, GuestSessionRow
 from app.domains.history.postgres import unavailable_daily
 from app.domains.history.tables import HistoryRetentionPolicyRow
+from app.domains.human_tarot.models import HumanTarotExportItem
+from app.domains.human_tarot.service import HumanTarotService
 from app.domains.identity.tables import PrincipalRow
 from app.domains.la_chung.tables import LaChungRequestRow, LaChungResponseRow
 from app.domains.matching.tables import (
@@ -101,6 +106,9 @@ NOT_INCLUDED = (
     "app khi còn hiển thị.",
     "Note ngày đã quá hạn hiển thị, Tarot đã hết hạn và lời mời đã hết hạn/rút: đang chờ "
     "dọn và không còn mở được trong app.",
+    "Tarot nhờ người thật bốc: yêu cầu bạn đã huỷ và bài bạn đã xoá không có trong tệp. Câu hỏi "
+    "chỉ có khi app còn giữ, bài đọc chỉ có từ giờ trả bài. Mã yêu cầu, hàng trên bảng tính của "
+    "người bốc và số lượt trong ngày là dữ liệu vận hành, không phải nội dung của bạn.",
     "Bản nháp xử lý nội bộ (kế hoạch bản đọc, bản sửa, hàng đợi AI viết lại, nhật ký xoá): "
     "là dữ liệu kỹ thuật; nội dung bạn đã thấy nằm trong note, Tarot và note đã lưu.",
 )
@@ -118,6 +126,7 @@ class DataExportService:
         envelope: EnvelopeCipher,
         birth_repository: BirthRepository,
         tarot: TarotSessionService,
+        human_tarot: HumanTarotService,
         *,
         max_items: int = MAX_ITEMS_PER_SECTION,
     ) -> None:
@@ -125,6 +134,7 @@ class DataExportService:
         self._envelope = envelope
         self._birth = birth_repository
         self._tarot = tarot
+        self._human_tarot = human_tarot
         self._max_items = max_items
 
     async def export(self, guest_id: UUID, *, now: datetime | None = None) -> DataExport:
@@ -155,6 +165,13 @@ class DataExportService:
         )
         tarot_sessions = [
             _tarot(view) for view in self._bound(tarot_views, "tarot_sessions", truncated)
+        ]
+        human_tarot_items = await self._human_tarot.export_items(
+            guest_id, limit=self._max_items + 1, now=current
+        )
+        human_tarot_requests = [
+            _human_tarot(item)
+            for item in self._bound(human_tarot_items, "human_tarot_requests", truncated)
         ]
         async with self._sessions() as session:
             guest = await session.get(GuestSessionRow, guest_id)
@@ -199,6 +216,7 @@ class DataExportService:
             ),
             birth_profile=birth_profile,
             tarot_sessions=tarot_sessions,
+            human_tarot_requests=human_tarot_requests,
             account=account,
             consents=consents,
             history_retention=history_retention,
@@ -762,6 +780,36 @@ def _tarot(view: TarotSessionView) -> ExportTarotSession:
             else None
         ),
         created_at=view.created_at,
+        expires_at=view.expires_at,
+    )
+
+
+def _human_tarot(item: HumanTarotExportItem) -> ExportHumanTarotRequest:
+    view, result = item.view, item.view.result
+    return ExportHumanTarotRequest(
+        status=cast(HumanTarotExportStatus, view.status.value),
+        local_date=view.local_date,
+        context=view.context.value,
+        spread=view.spread.value,
+        question=view.question,
+        consent_version=item.consent_version,
+        consented_at=item.consented_at,
+        release_at=view.release_at,
+        reading=(
+            ExportHumanTarotReading(
+                reader=result.reader,
+                cards=[
+                    ExportTarotCard(position=card.position_label, card=card.card.title_vi)
+                    for card in result.cards
+                ],
+                reading=result.reading,
+                step=result.step,
+                imported_at=result.imported_at,
+            )
+            if result is not None
+            else None
+        ),
+        created_at=item.created_at,
         expires_at=view.expires_at,
     )
 

@@ -161,6 +161,40 @@ class ExportTarotSession(_Strict):
     expires_at: datetime
 
 
+# A cancelled request or deleted reading is never exported, so ``cancelled`` is not a value.
+HumanTarotExportStatus = Literal["waiting", "ready", "late", "unfulfilled"]
+
+
+class ExportHumanTarotReading(_Strict):
+    """The frozen reading a human reader wrote, once its release time has passed (US-24 R9)."""
+
+    reader: Literal["human"]
+    cards: list[ExportTarotCard]
+    reading: str
+    step: str
+    imported_at: datetime
+
+
+class ExportHumanTarotRequest(_Strict):
+    """The person's own request as the app shows it (US-24 view), never the Sheet copy's state.
+
+    No request code, Sheet row, slot, delivery state, idempotency/request hash or day tally: those
+    are operational, not something the person gave or received.
+    """
+
+    status: HumanTarotExportStatus
+    local_date: date
+    context: str
+    spread: str
+    question: str | None
+    consent_version: str
+    consented_at: datetime
+    release_at: datetime
+    reading: ExportHumanTarotReading | None
+    created_at: datetime
+    expires_at: datetime
+
+
 class ExportNoteFeedback(_Strict):
     choice: str
     background_lens: str | None
@@ -242,6 +276,7 @@ class DataExport(_Strict):
     saved_notes: list[ExportSavedNote]
     share_links: list[ExportShareLink]
     tarot_sessions: list[ExportTarotSession]
+    human_tarot_requests: list[ExportHumanTarotRequest]
     note_feedback: list[ExportNoteFeedback]
     daily_experiments: list[ExportDailyExperiment]
     radar_sent: list[ExportRadarSent]
