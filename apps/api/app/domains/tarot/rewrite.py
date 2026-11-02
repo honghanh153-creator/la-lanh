@@ -23,10 +23,11 @@ from app.domains.content_rewrite.models import (
 from app.domains.content_rewrite.polarity import negates_source_claim
 from app.domains.content_rewrite.registry import canonical_surface_registry
 from app.domains.content_rewrite.service import RewriteProjectionDecision, RewriteProjector
-from app.domains.tarot import provenance
+from app.domains.tarot import provenance, stance
 from app.domains.tarot.engine import (
     TarotContentRejected,
     TarotReadingEngine,
+    _position_views,
     current_renderer_version,
 )
 from app.domains.tarot.meaning_brief import BRIEF_LIMITS, meaning_brief_for
@@ -278,6 +279,15 @@ def _negates_source_claim(source: str, rewritten: str) -> bool:
     return negates_source_claim(source, rewritten, _meaning_tokens)
 
 
+def _summarized_keys(reading: TarotReading) -> frozenset[str] | None:
+    """Position keys a framed summary must cover (``None``: legacy, every position)."""
+
+    if not _framed(reading):
+        return None
+    views = _position_views(reading.positions, reading.context)
+    return frozenset(view.key for view in stance.summary_views(views))
+
+
 def rewrite_tarot_reading(
     baseline: TarotReading,
     output: dict[str, JsonValue],
@@ -304,6 +314,9 @@ def rewrite_tarot_reading(
     rewritten: list[TarotReadingPosition] = []
     fingerprints: set[str] = set()
     synthesis_terms = _meaning_tokens(synthesis)
+    # Framed (renderer v9+) summaries speak for the summarized roles only; every detailed
+    # position still has its own meaning check. Legacy summaries cover every position.
+    summarized = _summarized_keys(baseline)
     for raw in raw_positions:
         if not isinstance(raw, dict) or set(raw) != {"position_key", "reading"}:
             return None
@@ -319,7 +332,7 @@ def rewrite_tarot_reading(
             return None
         if _negates_source_claim(source.meaning_here, prose):
             return None
-        if len(source_terms & synthesis_terms) < 2:
+        if (summarized is None or key in summarized) and len(source_terms & synthesis_terms) < 2:
             return None
         fingerprint = re.sub(r"\W+", " ", _fold(prose)).strip()
         if fingerprint in fingerprints:

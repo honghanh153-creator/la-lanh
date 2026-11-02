@@ -118,7 +118,41 @@ def test_mutations_need_origin_and_csrf(client: TestClient) -> None:
     )
     assert foreign.status_code == 403
     extra = client.post("/v1/human-tarot/requests", headers=headers, json=_body(birth_date="x"))
-    assert extra.status_code == 422
+    assert extra.status_code == 422 and extra.json()["code"] == "HUMAN_TAROT_INPUT_INVALID"
+
+
+def test_validation_errors_never_echo_the_submitted_question(client: TestClient) -> None:
+    """Codex #126 P2: FastAPI's default 422 copies the input into ``detail[].input``."""
+
+    headers = _guest(client)
+    marker = "Câu hỏi tổng hợp cho kiểm thử, không phải của ai. "
+    question = (marker * 8)[:281]
+    assert len(question) == 281
+    for body in (
+        _body(question=question),
+        _body(question=question, spread="no-such-spread"),
+        _body(question=question, birth_place="synthetic-place"),
+    ):
+        response = client.post("/v1/human-tarot/requests", headers=headers, json=body)
+        assert response.status_code == 422
+        assert response.headers["content-type"].startswith("application/problem+json")
+        assert response.headers["cache-control"].startswith("no-store")
+        assert response.json() == {
+            "type": "about:blank",
+            "title": "Human Tarot request was rejected",
+            "status": 422,
+            "code": "HUMAN_TAROT_INPUT_INVALID",
+        }
+        assert marker.strip() not in response.text and "synthetic-place" not in response.text
+    broken = client.post(
+        "/v1/human-tarot/requests",
+        headers={**headers, "Content-Type": "application/json"},
+        content=b'{"question": "' + marker.encode() + b'"',
+    )
+    assert broken.status_code == 422 and marker.strip() not in broken.text
+    path = client.get("/v1/human-tarot/requests/synthetic-not-a-uuid")
+    assert path.status_code == 422 and "synthetic-not-a-uuid" not in path.text
+    assert client.get("/v1/human-tarot/availability").json()["remaining"] == 10
 
 
 def test_reads_need_a_session_and_stay_with_their_owner(client: TestClient) -> None:

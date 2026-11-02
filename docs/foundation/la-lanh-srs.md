@@ -493,7 +493,16 @@ Lớp lọc 3 — Synastry đầy đủ (đắt, chỉ chạy cho candidate đã
 ```
 POST   /auth/signup                      { phoneOrEmail }
 POST   /auth/verify-otp                  { otp, sessionToken }
-POST   /users/me/birth-data              { birthDate, birthTime?, birthPlace? }
+POST   /v1/birth-profile                 { birth_date }   (khai lần đầu; 409 BIRTH_DATE_CHANGE_REQUIRES_EDIT
+                                          nếu đã có chủ thể sinh đang dùng với ngày khác — US-23 D4)
+GET    /v1/birth-profile                 → reveal + profile_revision (fence cho lần sửa)
+PUT    /v1/birth-profile/date            { birth_date, confirm_birth_date, expected_revision }
+                                          → sửa ngày sinh (US-23): thay chủ thể, xoá dữ liệu suy ra,
+                                          giữ bản lưu/link; CSRF, no-store, 3 lần/24 giờ
+POST   /v1/birth-profile/supplement      giờ/nơi sinh + đồng ý sâu (US-06)
+DELETE /v1/birth-profile/supplement      { remove_time, remove_place } (US-06)
+GET    /v1/share-artifacts?limit&cursor  → link của chính mình: id, format, status, ngày (US-23);
+                                          không token, không nội dung
 GET    /users/me/profile-level           → { level: 1-5, missingFor: {...} }
 POST   /users/me/consent                 { consentVersion }
 DELETE /users/me/data                    { scope: 'full_account'|'birth_data'|... }

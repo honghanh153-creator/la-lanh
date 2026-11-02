@@ -55,6 +55,7 @@ _GUEST_KINDS = frozenset(
         ErasureKind.HISTORY_CLEARED,
         ErasureKind.BIRTH_SUPPLEMENT_REMOVED,
         ErasureKind.BIRTH_TIME_DOWNGRADED,
+        ErasureKind.BIRTH_DATE_REPLACED,
         ErasureKind.CONSENT_REVOKED,
         ErasureKind.RESONANCE_CLEARED,
     }
@@ -73,6 +74,7 @@ _ARTIFACT_IDS = {
     ErasureKind.LA_CHUNG_RESULT_HIDDEN: LaChungResponseRow.id,
     ErasureKind.EXPERIMENT_UNDONE: DailyExperimentRow.id,
     ErasureKind.HUMAN_TAROT_REQUEST_CANCELLED: HumanTarotRequestRow.id,
+    ErasureKind.HUMAN_TAROT_REQUEST_CLEARED: HumanTarotRequestRow.id,
 }
 
 
@@ -284,6 +286,10 @@ async def _apply(
             return  # no birth profile left in the restored copy: nothing to remove
     elif kind is ErasureKind.BIRTH_TIME_DOWNGRADED:
         await birth.replay_time_downgrade(subject)
+    elif kind is ErasureKind.BIRTH_DATE_REPLACED:
+        # Reached only for a copy that does not hold the entry, i.e. one taken before the
+        # correction: it holds the old subject and no replacement value. Fail closed.
+        await birth.replay_date_replacement(subject)
     elif kind is ErasureKind.CONSENT_REVOKED:
         await guests.revoke_consent(subject, entry.scope, at)
     elif kind is ErasureKind.RESONANCE_CLEARED:
@@ -382,6 +388,18 @@ async def _apply(
             )
             if slot is not None:
                 schedule_clear(slot)
+    elif kind is ErasureKind.HUMAN_TAROT_REQUEST_CLEARED:
+        async with sessions() as session, session.begin():
+            # Whatever status the restored row has: the clear removed it, so it goes again,
+            # and its Sheet row is cleared like any request that disappears.
+            slot = await session.scalar(
+                select(HumanTarotSlotRow).where(HumanTarotSlotRow.request_id == subject)
+            )
+            if slot is not None:
+                schedule_clear(slot)
+            await session.execute(
+                delete(HumanTarotRequestRow).where(HumanTarotRequestRow.id == subject)
+            )
     elif kind is ErasureKind.RADAR_WITHDRAWN:
         async with sessions() as session, session.begin():
             await session.execute(

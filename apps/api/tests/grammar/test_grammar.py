@@ -380,10 +380,11 @@ def test_fallback_approval_pins_the_framed_tarot_renderer(monkeypatch: pytest.Mo
     from scripts import fallback_approval
 
     tarot = fallback_approval.current()["tarot"]
-    # T02/T03 (27/10/2026): renderer v8 / knowledge v6 with the action copy module pinned.
-    assert tarot["framed_renderer_version"] == "tarot-renderer-v8"
+    # T02/T03 (27/10/2026): knowledge v6 with the action copy module pinned; the plain summary
+    # (owner, 29/10/2026) moved the framed renderer to v9 and the gates to v6.
+    assert tarot["framed_renderer_version"] == "tarot-renderer-v9"
     assert tarot["framed_knowledge_version"] == "tarot-knowledge-v6"
-    assert tarot["gate_version"] == "tarot-gates-v5"
+    assert tarot["gate_version"] == "tarot-gates-v6"
     assert tarot["action_copy_version"] == "tarot-action-copy-v1"
     for module in ("question_frame", "roles", "stance", "variants", "action_copy"):
         assert any(key.startswith(f"app.domains.tarot.{module}.") for key in tarot["tables"])

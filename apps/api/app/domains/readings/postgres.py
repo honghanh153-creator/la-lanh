@@ -296,6 +296,10 @@ class PostgresReadingRepository:
             if projection is not None:
                 await require_available_projection(session, projection)
             revision = await _find_revision(session, guest_id, profile_id, revision_id)
+            if revision is None and not await _revision_exists(session, revision_id):
+                # Erased under this same guest lock by a birth edit (time/place removal or a
+                # birth-date correction, US-23): the subject changed, not the owner.
+                raise BirthProfileChanged
             if projection is None or revision is None:
                 raise ReadingOwnershipError("projection and revision must share the owner scope")
             await self._validate_revision_for_projection(session, projection, revision)
@@ -404,10 +408,12 @@ class PostgresReadingRepository:
             ):
                 return None
             if expected_chart_snapshot_id is not None:
+                # Exact and approximate-time synthesis (#143 E1) both upgrade a stored
+                # limited reading; the snapshot pin above still rejects stale charts.
                 plan = _plan_record(plan_row, self._envelope).plan
                 if (
                     plan.mode is not PlanMode.FULL_SYNTHESIS
-                    or plan.precision is not TimePrecision.EXACT
+                    or plan.precision is TimePrecision.UNKNOWN
                 ):
                     return None
             result = await session.execute(
@@ -951,6 +957,13 @@ async def _find_revision_by_key(
             )
         ),
     )
+
+
+async def _revision_exists(session: AsyncSession, revision_id: UUID) -> bool:
+    found = await session.scalar(
+        select(ReadingRevisionRow.id).where(ReadingRevisionRow.id == revision_id)
+    )
+    return found is not None
 
 
 async def _find_revision(

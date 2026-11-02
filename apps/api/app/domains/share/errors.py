@@ -13,3 +13,8 @@ class ShareArtifactUnavailable(ShareDomainError):
 class ShareReadingUnavailable(ShareDomainError):
     code = "SHARE_READING_UNAVAILABLE"
     status_code = 503
+
+
+class ShareCursorInvalid(ShareDomainError):
+    code = "SHARE_CURSOR_INVALID"
+    status_code = 422

@@ -1,23 +1,57 @@
 """Human Tarot reader (US-24). Owner-only reads; every response is no-store."""
 
-from typing import Annotated, cast
+from collections.abc import Callable, Coroutine
+from typing import Annotated, Any, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Header, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.v1.routes.guest_sessions import ProblemResponse
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
-from app.domains.human_tarot.errors import HumanTarotError
+from app.domains.human_tarot.errors import HumanTarotError, HumanTarotInputInvalid
 from app.domains.human_tarot.models import HumanTarotAvailability, HumanTarotRequestView
 from app.domains.human_tarot.service import HumanTarotService
 from app.domains.tarot.errors import TarotDomainError, TarotQuestionRejected
 from app.domains.tarot.models import TarotContext, TarotSpread
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
-router = APIRouter()
 _NO_STORE = {"Cache-Control": "no-store, max-age=0"}
+
+
+class PrivateHumanTarotRoute(APIRoute):
+    """Body and path validation run before the endpoint; FastAPI's default 422 would echo the
+    submitted question in ``detail[].input``. Answer with the code only (US-24 section 7)."""
+
+    def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
+        original = super().get_route_handler()
+
+        async def safe(request: Request) -> Response:
+            try:
+                return await original(request)
+            except RequestValidationError:
+                return _problem(HumanTarotInputInvalid())
+
+        return safe
+
+
+router = APIRouter(route_class=PrivateHumanTarotRoute)
+
+
+def _problems(*statuses: int) -> dict[int | str, dict[str, Any]]:
+    return {
+        status: {
+            "description": "Human Tarot request was rejected",
+            "content": {
+                "application/problem+json": {"schema": ProblemResponse.model_json_schema()}
+            },
+        }
+        for status in statuses
+    }
 
 
 class HumanTarotCreateRequest(BaseModel):
@@ -83,7 +117,12 @@ async def human_tarot_availability(request: Request) -> HumanTarotAvailability:
     return await _service(request).availability(guest_id)
 
 
-@router.post("/human-tarot/requests", response_model=HumanTarotRequestView, status_code=201)
+@router.post(
+    "/human-tarot/requests",
+    response_model=HumanTarotRequestView,
+    status_code=201,
+    responses=_problems(401, 403, 404, 409, 422),
+)
 async def create_human_tarot_request(
     body: HumanTarotCreateRequest,
     request: Request,
@@ -103,7 +142,11 @@ async def create_human_tarot_request(
         return _problem(error)
 
 
-@router.get("/human-tarot/requests/current", response_model=HumanTarotRequestView)
+@router.get(
+    "/human-tarot/requests/current",
+    response_model=HumanTarotRequestView,
+    responses=_problems(401, 404),
+)
 async def current_human_tarot_request(request: Request) -> HumanTarotRequestView | Response:
     try:
         guest = await _guest_for_read(request)
@@ -112,7 +155,11 @@ async def current_human_tarot_request(request: Request) -> HumanTarotRequestView
         return _problem(error)
 
 
-@router.get("/human-tarot/requests/{request_id}", response_model=HumanTarotRequestView)
+@router.get(
+    "/human-tarot/requests/{request_id}",
+    response_model=HumanTarotRequestView,
+    responses=_problems(401, 404, 422),
+)
 async def get_human_tarot_request(
     request_id: UUID, request: Request
 ) -> HumanTarotRequestView | Response:
@@ -123,7 +170,11 @@ async def get_human_tarot_request(
         return _problem(error)
 
 
-@router.delete("/human-tarot/requests/{request_id}", status_code=204)
+@router.delete(
+    "/human-tarot/requests/{request_id}",
+    status_code=204,
+    responses=_problems(401, 403, 404, 422),
+)
 async def cancel_human_tarot_request(
     request_id: UUID,
     request: Request,

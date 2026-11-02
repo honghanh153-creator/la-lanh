@@ -230,3 +230,7 @@
   font-size: 0.72rem;
   line-height: 1.5;
 }
+
+/* Approximate-time note under the synthesis card (#143 E1). */
+.insight-precision-note { margin: 0.75rem 0 0; font-size: 0.875rem; line-height: 1.5; color: var(--uv-muted, inherit); }
+.insight-precision-note a { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }

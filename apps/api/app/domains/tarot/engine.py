@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from app.domains.readings.review_agent import (
@@ -11,13 +11,14 @@ from app.domains.readings.review_agent import (
 )
 
 # Modules, not names: upper-case names imported here would join the pinned fallback tables.
-from app.domains.tarot import action_copy, question_frame, roles, stance
+from app.domains.tarot import action_copy, phrasing, question_frame, roles, stance
 from app.domains.tarot import variants as tarot_variants
 from app.domains.tarot import voice as tarot_voice
 from app.domains.tarot.context_readings import CONTEXT_READINGS, CONTEXT_SCENES
 from app.domains.tarot.examples import example_for
 from app.domains.tarot.knowledge import (
     KNOWLEDGE_VERSION,
+    all_cards,
     card_by_id,
     source_ids_for_concepts,
 )
@@ -64,8 +65,11 @@ LEGACY_KNOWLEDGE_VERSION = KNOWLEDGE_VERSION
 # gates v5 = role_fit, no_decision_or_prediction, summary_links_cards and stance_consistent.
 # T02/T03 (27/10/2026): renderer v8 and knowledge v6 add the asked action's scene and step at the
 # step role (action_copy.py). Readings stored under v7 keep their text.
-FRAMED_RENDERER_VERSION = "tarot-renderer-v8"
-TAROT_GATE_VERSION = "tarot-gates-v5"
+# Owner feedback (29/10/2026): renderer v9 and gates v6 give a plain summary (no card names, no
+# linking words between unrelated cards, ending on the shown step) and headlines without card
+# names. Readings stored under v8 keep their text.
+FRAMED_RENDERER_VERSION = "tarot-renderer-v9"
+TAROT_GATE_VERSION = "tarot-gates-v6"
 FRAMED_KNOWLEDGE_VERSION = "tarot-knowledge-v6"
 
 
@@ -193,6 +197,7 @@ def _views_for(
                 card_id=card.id,
                 title=card.title_vi,
                 core=meaning.core,
+                core_sentence=phrasing.core_sentence(card.id, context, meaning.core),
                 tension=_tension_parts(meaning.tension)[0],
                 resource=_resource_step(meaning.resource),
             )
@@ -219,7 +224,15 @@ def _authored_by_engine(reading: TarotReading) -> str:
     )
     for position in reading.positions:
         meaning = _CardMeaning.for_context(position.card, reading.context)
-        for quoted in (meaning.core, meaning.tension, meaning.resource):
+        sentence = phrasing.core_sentence(position.card.id, reading.context, meaning.core)
+        quoted_texts = (
+            sentence,
+            phrasing.capitalized(sentence),
+            meaning.core,
+            meaning.tension,
+            meaning.resource,
+        )
+        for quoted in quoted_texts:
             text = text.replace(quoted, " ")
     return text.lower()
 
@@ -250,6 +263,28 @@ def _tension_parts(value: str) -> tuple[str, str | None]:
 
 def _resource_step(value: str) -> str:
     return value.partition(", rồi ")[0]
+
+
+# Every card name of the closed deck, both languages: a framed summary names none of them.
+CARD_TITLES: tuple[str, ...] = tuple(
+    title for card in all_cards() for title in (card.title_vi, card.title_en)
+)
+
+
+def step_clause(action: str | None) -> str | None:
+    """A step position's action without its voice lead-in and final stop, as it continues a
+    sentence (the plain summary ends on it)."""
+
+    if not action:
+        return None
+    step = tarot_voice.without_action_frame(action).rstrip(".").strip()
+    return f"{step[:1].lower()}{step[1:]}"
+
+
+def _shown_step(positions: Sequence[TarotReadingPosition]) -> str | None:
+    """The step the reader sees at the step position."""
+
+    return step_clause(next((p.small_action for p in positions if p.key in roles.STEP_ROLES), None))
 
 
 def _sentence_start(value: str) -> str:
@@ -495,10 +530,12 @@ class TarotReadingEngine:
             # B2-3: lean, a summary that links the roles, and a dynamic headline (AC08-AC11).
             views = _position_views(tuple(rendered), context)
             lead = tuple(goal.meaning for goal in goals if goal.key != "general")
-            summary = stance.linked_summary(views, lead, reserve, roast=roast_copy)
+            summary = stance.plain_summary(views, _shown_step(tuple(rendered)), lead, reserve)
         else:
             summary = self._summary(tuple(rendered), tuple(meanings), context, goal_question)
-        if roast:
+        if roast and frame is None:
+            # Framed summaries are already short (owner, 29/10/2026); the opener stays for
+            # legacy readings only.
             opener = SUMMARY_OPENERS[context]
             # The opener is optional framing; it never displaces a selected card.
             if len(f"{opener} {summary}".split()) + reserve <= 180:
@@ -511,19 +548,11 @@ class TarotReadingEngine:
         if frame is not None:
             # AC11: a headline from form + lean (or action/topic) + the focal card, in the
             # session's headline frame (AC15) and the Roast register when it applies (AC19).
-            focal = next((view for view in views if roles.ROLES[view.key].step), views[-1])
-            others = [view for view in views if view is not focal]
-            second = next(
-                (v for v in others if roles.ROLES[v.key].field is roles.RoleField.TENSION),
-                others[0] if others else None,
-            )
             headline = stance.dynamic_headline(
                 frame.form,
                 reading_stance,
                 frame.action,
                 frame.topic,
-                focal,
-                second,
                 variant=chosen.headline,
                 roast=roast_copy,
             )
@@ -591,7 +620,7 @@ class TarotReadingEngine:
         tension, _ = _tension_parts(meaning.tension)
         text = roles.meaning_for(
             key,
-            core=meaning.core,
+            core_sentence=phrasing.core_sentence(card.id, context, meaning.core),
             tension=tension,
             resource=_resource_step(meaning.resource),
             frame=frame_index,
@@ -624,7 +653,10 @@ class TarotReadingEngine:
                     or roles.action_for(meaning.resource)
                 )
             if voice is TarotVoice.ROAST:
-                action = f"{action_frame(index, context, cautious=plan.cautious)} {step}"
+                # Tarot pass 2: Vietnamese continues in lower case after the lead-in's colon
+                # ("Làm thử cho biết nè: tách…"). Legacy readings keep their capital.
+                lead_in = action_frame(index, context, cautious=plan.cautious)
+                action = f"{lead_in} {step[:1].lower()}{step[1:]}"
             else:
                 action = step
         return TarotReadingPosition(
@@ -829,9 +861,11 @@ class TarotReadingEngine:
         framed = reading.provenance.question_rules_version == QUESTION_RULES_VERSION
         if framed:
             views = _position_views(reading.positions, reading.context)
-            # Gate summary_links_cards replaces "names every card" (US-20 AC10).
-            if not stance.summary_links(reading.summary, views):
-                raise TarotContentRejected("summary does not link every role")
+            # Gate summary_plain (gates v6) replaces summary_links_cards (US-20 AC10).
+            if not stance.summary_covers(
+                reading.summary, views, _shown_step(reading.positions), CARD_TITLES
+            ):
+                raise TarotContentRejected("summary does not carry its roles and step")
             TarotReadingEngine._stance_consistent(reading, views)
         elif any(position.card.title_vi not in reading.summary for position in reading.positions):
             raise TarotContentRejected("summary omits a selected card")
@@ -923,7 +957,8 @@ class TarotReadingEngine:
     @staticmethod
     def _role_fit(reading: TarotReading) -> None:
         """Gate ``role_fit`` (US-20 AC07, AC12): each position reads its role's card field, only
-        step roles carry an action, and retired prefixes are gone."""
+        step roles carry an action, and retired prefixes are gone. Core and option roles read
+        the core as a clause (phrasing.core_sentence, Tarot pass 2), which may open a sentence."""
 
         for position in reading.positions:
             role = roles.ROLES.get(position.key)
@@ -931,17 +966,18 @@ class TarotReadingEngine:
                 raise TarotContentRejected("position has no role")
             meaning = _CardMeaning.for_context(position.card, reading.context)
             tension, _ = _tension_parts(meaning.tension)
+            sentence = phrasing.core_sentence(position.card.id, reading.context, meaning.core)
             body = position.meaning_here
             expected = {
-                roles.RoleField.CORE: (meaning.core,),
+                roles.RoleField.CORE: (sentence,),
                 roles.RoleField.TENSION: (tension,),
-                roles.RoleField.OPTION: (meaning.core, tension),
+                roles.RoleField.OPTION: (sentence, tension),
                 roles.RoleField.RESOURCE: (),
             }[role.field]
-            if any(part not in body for part in expected):
+            if any(not phrasing.contains_clause(body, part) for part in expected):
                 raise TarotContentRejected("position does not read its role's field")
             if role.field is roles.RoleField.RESOURCE and not role.step:
-                if _resource_step(meaning.resource) not in body:
+                if not phrasing.contains_clause(body, _resource_step(meaning.resource)):
                     raise TarotContentRejected("position does not read its role's field")
             if role.step != bool(position.small_action and position.small_action.strip()):
                 raise TarotContentRejected("small action outside a step role, or missing")

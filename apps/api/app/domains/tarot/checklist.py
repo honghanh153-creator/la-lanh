@@ -15,8 +15,7 @@ from dataclasses import dataclass
 
 from app.domains.readings.review_agent import ContentReviewAgent
 from app.domains.tarot import roles, stance
-from app.domains.tarot.engine import _authored_by_engine, _position_views
-from app.domains.tarot.knowledge import all_cards
+from app.domains.tarot.engine import _authored_by_engine, _shown_step
 from app.domains.tarot.models import TarotReading
 
 # Advice in a headline; the stance markers (statements of the lean) are removed first.
@@ -57,17 +56,12 @@ def _alternation(values: list[str]) -> str:
 
 
 def _template_patterns() -> tuple[re.Pattern[str], ...]:
-    """Each approved headline frame as a full-match pattern: real card titles for {focal} and
-    {pair} (one or two titles, as the renderer writes it), approved action phrases for
-    {action}, approved topic phrases for {topic}."""
+    """Each approved headline frame as a full-match pattern: approved action phrases for
+    {action}, approved topic phrases for {topic} (no card names since renderer v9)."""
 
-    titles = _alternation([card.title_vi for card in all_cards()])
     actions = _alternation([*stance.ACTION_PHRASES.values(), stance.GENERIC_ACTION])
     topics = _alternation(list(stance.TOPIC_PHRASES.values()))
     slots = {
-        "{focal}": f"(?:{titles})",
-        # stance.dynamic_headline: "A và B", or only the focal title when there is no second card.
-        "{pair}": f"(?:{titles})(?: và (?:{titles}))?",
         "{action}": f"(?:{actions})",
         "{topic}": f"(?:{topics})",
         "{target}": f"(?:{actions}|cho (?:{topics}))",
@@ -111,7 +105,6 @@ def headline_gives_advice(headline: str) -> bool:
 
 
 def check(reading: TarotReading) -> ChecklistResult:
-    views = _position_views(reading.positions, reading.context)
     last = reading.positions[-1]
     sentences = ContentReviewAgent._sentences(reading.summary)
     negative = 0
@@ -122,7 +115,8 @@ def check(reading: TarotReading) -> ChecklistResult:
         headline_advice=headline_gives_advice(reading.headline),
         coercion=bool(COERCION.search(_authored_by_engine(reading))),
         ends_with_step=last.key in roles.STEP_ROLES and bool(last.small_action),
-        summary_ends_with_step=bool(sentences) and stance.anchor(views[-1]) in sentences[-1],
+        summary_ends_with_step=bool(sentences)
+        and reading.summary.endswith(stance.step_sentence(_shown_step(reading.positions) or "")),
         negative_ideas=negative,
         scenes_with_advice_words=sum(
             bool(SCENE_ADVICE.search(position.everyday_scene)) for position in reading.positions

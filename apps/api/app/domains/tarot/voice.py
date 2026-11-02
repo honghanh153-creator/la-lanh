@@ -159,3 +159,12 @@ def action_frame(index: int, context: TarotContext, *, cautious: bool = False) -
 
 def roast_headline(intent: TarotQuestionIntent, context: TarotContext) -> str:
     return (GENTLE_HEADLINES if context in GENTLE_CONTEXTS else ROAST_HEADLINES)[intent]
+
+
+def without_action_frame(action: str) -> str:
+    """The step of a small action without the voice's lead-in ("Thôi nào, làm liền: …")."""
+
+    for frame in sorted((*ROAST_ACTION_FRAMES, *GENTLE_ACTION_FRAMES), key=len, reverse=True):
+        if action.startswith(f"{frame} "):
+            return action[len(frame) + 1 :]
+    return action

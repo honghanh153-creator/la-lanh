@@ -21,7 +21,7 @@ from sqlalchemy import delete, select
 from app.db.session import Database
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.readings.review_agent import ContentReviewAgent
-from app.domains.tarot import roles, stance
+from app.domains.tarot import phrasing, roles, stance
 from app.domains.tarot.engine import (
     _POSITIONS,
     FRAMED_KNOWLEDGE_VERSION,
@@ -459,10 +459,11 @@ def test_frames_fit_the_density_limit_and_read_their_field_for_every_card_and_to
                 meaning = _CardMeaning.for_context(card, context)
                 tension = _tension_parts(meaning.tension)[0]
                 resource = _resource_step(meaning.resource)
+                sentence = phrasing.core_sentence(card.id, context, meaning.core)
                 for index in range(roles.FRAME_VARIANTS):
                     text = roles.meaning_for(
                         key,
-                        core=meaning.core,
+                        core_sentence=sentence,
                         tension=tension,
                         resource=resource,
                         frame=index,
@@ -472,9 +473,9 @@ def test_frames_fit_the_density_limit_and_read_their_field_for_every_card_and_to
                     worst = max(len(s.split()) for s in _SENTENCES(text))
                     assert worst <= 28, (key, index, card.id, context, text)
                     expected = {
-                        roles.RoleField.CORE: (meaning.core,),
+                        roles.RoleField.CORE: (sentence,),
                         roles.RoleField.TENSION: (tension,),
-                        roles.RoleField.OPTION: (meaning.core, tension),
+                        roles.RoleField.OPTION: (sentence, tension),
                         roles.RoleField.RESOURCE: () if role.step else (resource,),
                     }[role.field]
                     assert all(part in text for part in expected), (key, index)
@@ -499,18 +500,14 @@ def test_ac19_roast_copy_maps_one_to_one_by_combination_code() -> None:
         for direct, roasted in zip(frames, roast_frames, strict=True):
             assert _slots(direct) == _slots(roasted)
     assert set(stance.CONCLUSIONS) == set(stance.ROAST_CONCLUSIONS)
-    assert set(stance.CONJUNCTIONS) == set(stance.ROAST_CONJUNCTIONS)
 
 
 def test_every_headline_frame_fits_the_budget_with_the_longest_slots() -> None:
-    title = max(len(card.title_vi.split()) for card in all_cards())
     action = max(
         len(text.split()) for text in (*stance.ACTION_PHRASES.values(), stance.GENERIC_ACTION)
     )
     topic = max(len(text.split()) for text in stance.TOPIC_PHRASES.values())
     words = {
-        "focal": " ".join(["x"] * title),
-        "pair": " ".join(["x"] * (2 * title + 1)),
         "action": " ".join(["a"] * action),
         "topic": " ".join(["t"] * topic),
         "target": " ".join(["a"] * max(action, topic + 1)),
@@ -545,7 +542,7 @@ def test_ac19_roast_reading_uses_roast_frames_conclusion_links_and_headline() ->
     )
     assert reading.voice is TarotVoice.ROAST and reading.stance is not None
     clear = reading.positions[0]
-    assert "chuyện đã rõ mười mươi:" in clear.meaning_here.lower()
+    assert clear.meaning_here.endswith(", rõ mười mươi rồi.")
     # Roast frames carry the voice; the per-position tails stay with the gentle register only.
     prose = " ".join(p.meaning_here for p in reading.positions)
     assert not [tail for tail in ROAST_MEANING_TAILS.values() if tail in prose]
@@ -554,16 +551,15 @@ def test_ac19_roast_reading_uses_roast_frames_conclusion_links_and_headline() ->
     assert reading.stance.conclusion == stance.ROAST_CONCLUSIONS[reading.stance.level].format(
         action=phrase
     )
-    roast_links = {c for pair in stance.ROAST_CONJUNCTIONS.values() for c in pair}
-    assert any(f". {c} " in reading.summary for c in roast_links)
+    # Renderer v9 (owner, 29/10/2026): the summary is the same plain text in every voice.
+    direct_reading = _render(YES_NO, TarotSpreadMap.THREE_UNBLOCK, variants=variants)
+    assert reading.summary == direct_reading.summary
     views = _position_views(reading.positions, reading.context)
     assert reading.headline == stance.dynamic_headline(
         TarotQuestionForm.YES_NO,
         reading.stance,
         action,
         TarotContext.WORK,
-        views[2],
-        views[1],
         variant=1,
         roast=True,
     )
@@ -614,12 +610,13 @@ async def test_ac19_sensitive_questions_never_get_roast_through_the_service(
 # ---------------------------------------------------------------- AC17/AC18 versions
 
 
-def test_ac18_framed_readings_record_v8_v6_v5_and_legacy_keeps_v6_v4_v4() -> None:
-    # T02/T03 (27/10/2026) moved framed readings from renderer v7 / knowledge v5 to v8 / v6.
+def test_ac18_framed_readings_record_v9_v6_v6_and_legacy_keeps_v6_v4_v4() -> None:
+    # T02/T03 (27/10/2026) moved framed readings from renderer v7 / knowledge v5 to v8 / v6; the
+    # plain summary (owner, 29/10/2026) moved them to renderer v9 / gates v6.
     framed = _render(YES_NO, TarotSpreadMap.THREE_UNBLOCK)
-    assert framed.provenance.renderer_version == FRAMED_RENDERER_VERSION == "tarot-renderer-v8"
+    assert framed.provenance.renderer_version == FRAMED_RENDERER_VERSION == "tarot-renderer-v9"
     assert framed.provenance.knowledge_version == FRAMED_KNOWLEDGE_VERSION == "tarot-knowledge-v6"
-    assert framed.provenance.gate_version == TAROT_GATE_VERSION == "tarot-gates-v5"
+    assert framed.provenance.gate_version == TAROT_GATE_VERSION == "tarot-gates-v6"
     legacy = ENGINE.render(
         card_ids=tuple(CARDS[:3]),
         spread=TarotSpread.THREE_CARD,
