@@ -768,6 +768,14 @@ class ReadingApplicationService:
             )
             return None
 
+    async def _plan_precision(
+        self, guest_id: UUID, profile_id: UUID, revision: ReadingRevisionRecord
+    ) -> TimePrecision | None:
+        # The public precision comes from the stored plan; evidence alone cannot tell an
+        # approximate-time synthesis (#143 E1) from an exact one.
+        record = await self._repository.get_plan(guest_id, profile_id, revision.plan_id)
+        return record.plan.precision if record is not None else None
+
     async def _hydrate(
         self,
         guest_id: UUID,
@@ -784,7 +792,13 @@ class ReadingApplicationService:
         )
         if active_record is None:
             raise ReadingApplicationError("active reading revision is unavailable")
-        active = _voiced_content(active_record, projection, voice, deterministic_baseline)
+        active = _voiced_content(
+            active_record,
+            projection,
+            voice,
+            deterministic_baseline,
+            plan_precision=await self._plan_precision(guest_id, profile_id, active_record),
+        )
 
         available_update = None
         available_record = None
@@ -794,7 +808,13 @@ class ReadingApplicationService:
             )
             if available_record is None:
                 raise ReadingApplicationError("available reading revision is unavailable")
-            available = _voiced_content(available_record, projection, voice, deterministic_baseline)
+            available = _voiced_content(
+                available_record,
+                projection,
+                voice,
+                deterministic_baseline,
+                plan_precision=await self._plan_precision(guest_id, profile_id, available_record),
+            )
             available_update = AvailableReadingUpdate(
                 revision_id=available.revision_id,
                 content=available,
@@ -883,11 +903,13 @@ def _companion_line(candidate: ReadingCandidate, purpose: ReadingPurpose) -> str
 def _content_projection(
     revision: ReadingRevisionRecord,
     projection: ReadingProjectionRecord,
+    *,
+    plan_precision: TimePrecision | None = None,
 ) -> ReadingContentProjection:
     candidate = revision.evaluation.publishable_candidate
     if candidate is None:  # The revision model protects this invariant too.
         raise ReadingApplicationError("accepted reading content is unavailable")
-    mode, precision = _public_mode_and_precision(candidate.evidence.claims)
+    mode, precision = _public_mode_and_precision(candidate.evidence.claims, plan_precision)
     experiment = None
     if mode is PlanMode.FULL_SYNTHESIS and precision is TimePrecision.EXACT:
         experiment = experiment_projection_for(
@@ -926,10 +948,12 @@ def _voiced_content(
     projection: ReadingProjectionRecord,
     voice: ReadingVoice,
     deterministic_baseline: ReadingRevisionRecord | None,
+    *,
+    plan_precision: TimePrecision | None = None,
 ) -> ReadingContentProjection:
     """Apply a read-time voice without ever mixing generated and voiced wording."""
 
-    content = _content_projection(revision, projection)
+    content = _content_projection(revision, projection, plan_precision=plan_precision)
     if voice is ReadingVoice.DIRECT:
         return content
     baseline = None
@@ -941,7 +965,9 @@ def _voiced_content(
         and deterministic_baseline.profile_id == revision.profile_id
         and deterministic_baseline.plan_id == revision.plan_id
     ):
-        baseline = _content_projection(deterministic_baseline, projection)
+        baseline = _content_projection(
+            deterministic_baseline, projection, plan_precision=plan_precision
+        )
     return voice_from_baseline(content, baseline, voice)
 
 
@@ -963,6 +989,7 @@ def _aura_unlock_layers(claims: tuple[EvidenceClaim, ...]) -> tuple[AuraUnlockLa
 
 def _public_mode_and_precision(
     claims: tuple[EvidenceClaim, ...],
+    plan_precision: TimePrecision | None = None,
 ) -> tuple[PlanMode, TimePrecision]:
     """Map the closed evidence contract to public metadata without exposing the plan."""
 
@@ -970,6 +997,10 @@ def _public_mode_and_precision(
         return PlanMode.VIBE_FALLBACK, TimePrecision.UNKNOWN
     if not claims:
         return PlanMode.LIMITED, TimePrecision.APPROXIMATE
+    # An approximate-time synthesis reads only time-stable factors (#143 E1); it is never
+    # labelled exact, so exact-only features (the experiment) stay closed for it.
+    if plan_precision is TimePrecision.APPROXIMATE:
+        return PlanMode.FULL_SYNTHESIS, TimePrecision.APPROXIMATE
     return PlanMode.FULL_SYNTHESIS, TimePrecision.EXACT
 
 

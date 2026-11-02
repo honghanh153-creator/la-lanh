@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: replace __HOME__ with the owner's home directory when installing (see collab-auto-loop-plan.md §7). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.lalanh.collab-tick</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__HOME__/.cache/la-lanh-collab/bin/collab-cron.sh</string>
+  </array>
+  <!-- Every 10 minutes; the script decides whether this tick makes the plan, waits, or runs. -->
+  <key>StartInterval</key>
+  <integer>600</integer>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>__HOME__/.cache/la-lanh-collab/logs/launchd.out</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.cache/la-lanh-collab/logs/launchd.err</string>
+</dict>
+</plist>

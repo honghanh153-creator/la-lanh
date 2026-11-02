@@ -905,11 +905,22 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
 
     by_id = {factor.id: factor for factor in plan.factors}
     hero = next((by_id[ref] for ref in plan.hero_factor_refs if ref in by_id), plan.factors[0])
-    body_refs = hero.child_refs or tuple(
-        factor.id
-        for factor in plan.factors
-        if factor.kind is FactorKind.PLANET_PLACEMENT
-        and set(factor.subjects).intersection(hero.subjects)
+    # A placement-only plan (approximate birth time, #143 E1) names an independent pair of
+    # placements as its heroes; both must be cited, or the evidence gate rejects the reading.
+    hero_placements = tuple(
+        ref
+        for ref in plan.hero_factor_refs
+        if ref in by_id and by_id[ref].kind is FactorKind.PLANET_PLACEMENT
+    )
+    body_refs = hero.child_refs or (
+        hero_placements
+        if hero.kind is FactorKind.PLANET_PLACEMENT and len(hero_placements) > 1
+        else tuple(
+            factor.id
+            for factor in plan.factors
+            if factor.kind is FactorKind.PLANET_PLACEMENT
+            and set(factor.subjects).intersection(hero.subjects)
+        )
     )
     placements = [
         by_id[ref]

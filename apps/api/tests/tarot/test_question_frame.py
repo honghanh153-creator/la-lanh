@@ -169,14 +169,12 @@ def test_ac05_own_timing_is_answered_as_readiness_in_every_voice() -> None:
                 question_intent=assessment.intent,
                 frame=assessment.frame,
             )
-            # B2-3 (AC11) + B2-4 (AC19): every voice gets a dynamic readiness headline with the
-            # focal card; Roast has its own frames.
-            focal = next(p for p in reading.positions if p.small_action)
-            assert focal.card.title_vi in reading.headline
+            # B2-3 (AC11) + B2-4 (AC19): every voice gets a dynamic readiness headline; Roast has
+            # its own frames. Renderer v9 (owner, 29/10/2026): no card names in the headline.
+            assert not any(p.card.title_vi in reading.headline for p in reading.positions)
             assert "sẵn sàng" in reading.headline
             if voice is not TarotVoice.ROAST:
-                assert reading.headline.startswith(f"{focal.card.title_vi}: ")
-                assert "điều cần sẵn sàng trước khi" in reading.headline
+                assert reading.headline == "Điều cần sẵn sàng trước khi đổi hướng công việc."
             assert reading.summary.startswith(qf.READINESS_NOTE)
             assert reading.provenance.question_rules_version == qf.QUESTION_RULES_VERSION
 

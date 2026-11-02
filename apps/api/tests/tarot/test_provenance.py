@@ -290,7 +290,7 @@ def _ngrams(phrase: str, size: int) -> set[str]:
 
 
 def _catalog_corpus() -> str:
-    from app.domains.tarot import stance
+    from app.domains.tarot import phrasing, stance
     from app.domains.tarot.engine import _CardMeaning, card_scene
 
     texts: list[str] = []
@@ -299,6 +299,7 @@ def _catalog_corpus() -> str:
         for context in TarotContext:
             meaning = _CardMeaning.for_context(card, context)
             texts += [meaning.core, meaning.tension, meaning.resource, card_scene(card.id, context)]
+            texts.append(phrasing.core_sentence(card.id, context, meaning.core))
     for role in roles.ROLES.values():
         texts += [*role.frames, *role.roast]
     texts += [lead for leads in roles.LEADS.values() for lead in leads]

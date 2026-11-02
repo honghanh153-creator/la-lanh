@@ -62,6 +62,13 @@ MAPS = {
 }
 
 
+def _shows_step(action: str, step: str) -> bool:
+    """Direct voices show the step as written; Roast puts its lead-in first and continues in
+    lower case after the colon (Tarot pass 2). An empty step matches, as ``endswith`` did."""
+
+    return not step or action == step or action.endswith(f": {step[:1].lower()}{step[1:]}")
+
+
 def _render(
     question: str,
     context: TarotContext,
@@ -120,7 +127,7 @@ def test_stance_and_step_answer_the_same_target(
     else:
         expected = action_copy.action_step(action, step.key, topic) or goal_step
     if expected is not None:
-        assert step.small_action is not None and step.small_action.endswith(expected)
+        assert step.small_action is not None and _shows_step(step.small_action, expected)
     assert [key for key, _ in _POSITIONS[spread_map]] == [p.key for p in reading.positions]
 
 

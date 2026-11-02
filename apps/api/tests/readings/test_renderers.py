@@ -230,9 +230,10 @@ def test_date_only_vibe_is_honestly_one_factor_and_asks_for_exact_time() -> None
 
 
 def test_empty_limited_plan_returns_useful_copy_without_fabricated_evidence() -> None:
+    # An unknown time keeps the limited plan; an approximate one reads stable placements (#143 E1).
     approximate = _chart().model_copy(
         update={
-            "time_precision": TimePrecision.APPROXIMATE,
+            "time_precision": TimePrecision.UNKNOWN,
             "houses": None,
             "angles": None,
         }
