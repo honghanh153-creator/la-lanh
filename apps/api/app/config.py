@@ -1,5 +1,5 @@
 import re
-from datetime import date
+from datetime import date, time
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlsplit
@@ -83,6 +83,12 @@ class Settings(BaseSettings):
     # Vòng Lá is deferred: no new matching profile, consent or pool membership (audit P02,
     # 2026-10-22). Withdrawal and leaving the pool stay available for data collected before.
     matching_accepting_new_activity: bool = False
+    # US-24 human Tarot reader. Off everywhere until the owner settles the cut-off time, retention
+    # and Google identity (US-24 OD1-OD6) and records it with human_tarot_launch_approved.
+    human_tarot_enabled: bool = False
+    human_tarot_launch_approved: bool = False
+    # OD1 (owner, 30/10/2026): intake closes at 18:00 for the 22:00 release, never later than it.
+    human_tarot_intake_closes_at: time = time(18, 0)
     content_studio_enabled: bool = False
     content_studio_api_token: SecretStr | None = None
     content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)
@@ -208,6 +214,16 @@ class Settings(BaseSettings):
                 raise ValueError("enabled generation worker requires an explicit OpenAI project")
             if not self.database_url.startswith("postgresql+asyncpg://"):
                 raise ValueError("paid generation worker requires PostgreSQL lifecycle locks")
+        if self.human_tarot_intake_closes_at > time(22, 0):
+            raise ValueError("human Tarot intake must close no later than the 22:00 release")
+        if (
+            self.human_tarot_enabled
+            and self.environment in {"staging", "production"}
+            and not self.human_tarot_launch_approved
+        ):
+            raise ValueError(
+                "human Tarot needs the owner's launch approval (cut-off, retention, Google access)"
+            )
         if self.content_studio_enabled:
             if self.content_studio_api_token is None:
                 raise ValueError("Content Studio requires an API token")

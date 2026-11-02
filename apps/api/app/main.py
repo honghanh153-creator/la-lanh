@@ -39,6 +39,7 @@ from app.domains.guest.repository import GuestRepository
 from app.domains.guest.service import GuestSessionService
 from app.domains.history.postgres import PostgresHistoryRepository
 from app.domains.history.service import HistoryService
+from app.domains.human_tarot.service import HumanTarotService
 from app.domains.identity.service import OwnerIdentityService
 from app.domains.la_chung.service import LaChungService
 from app.domains.matching.postgres import PostgresMatchingRepository
@@ -200,6 +201,14 @@ def create_app(
             variety_key=derive_variety_key(
                 resolved_settings.guest_hash_key.get_secret_value().encode()
             ),
+            erasure_journal=erasure_journal,
+        )
+        app.state.human_tarot_service = HumanTarotService(
+            database.sessions,
+            envelope,
+            credential_hasher,
+            enabled=resolved_settings.human_tarot_enabled,
+            intake_closes_at=resolved_settings.human_tarot_intake_closes_at,
             erasure_journal=erasure_journal,
         )
         app.state.la_chung_service = LaChungService(
