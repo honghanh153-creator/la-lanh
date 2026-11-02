@@ -6,7 +6,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statS
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { agentMarker, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
-import { codexDailyCap, prTurn } from './collab-turn.mjs';
+import { dailyCap, prTurn } from './collab-turn.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-prompt.md');
@@ -118,7 +118,7 @@ function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, n
   if (turn.turn !== 'codex-review') return { status: 'refused', reason: `lượt hiện tại là ${turn.turn}: ${turn.reason}` };
   const dayPath = dayStatePath(now.date);
   const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  if (auto && day.codexRuns >= codexDailyCap) return { status: 'refused', reason: 'hết 12 lượt Codex tự động hôm nay' };
+  if (auto && day.codexRuns >= dailyCap(day)) return { status: 'refused', reason: `hết ${dailyCap(day)} lượt Codex tự động hôm nay` };
 
   const trusted = trustedComments(pr.comments);
   const priorAuto = trusted.filter(c => c.auto && c.verdict).at(-1);

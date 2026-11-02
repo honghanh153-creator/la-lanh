@@ -27,6 +27,8 @@ Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider
 8. **Checklist quyết định** (owner yêu cầu 31.10.2026): việc nào agent tự quyết, việc nào hỏi owner, tiêu chí và input cần có ở `docs/operations/decision-checklist.md`.
 9. **Bảng trạng thái** (owner yêu cầu 31.10.2026): mỗi tick sửa tại chỗ một comment "Trạng thái vòng tự động" trên issue plan, ghi đang chạy gì, giờ cập nhật, lý do dừng, hàng đợi và việc chờ owner. Giờ cập nhật cũ hơn 20 phút trong giờ chạy nghĩa là Mac ngủ/tắt hoặc vòng bị kẹt.
 
+11. **Trần Codex linh hoạt, owner xác nhận** (31.10.2026): plan 08:50 ước tính số lượt Codex của ngày (số PR cần review × 1,5 vòng × 1,2 phát sinh). `Duyệt` trên plan là đồng ý trần đó cho hôm nay; không trả lời thì trần mặc định 12. Owner nâng trần trong chat thì Claude ghi vào trạng thái ngày (`cap`) và báo trên issue plan. Trần không bao giờ thấp hơn 12.
+
 ## 3. Luồng chuẩn
 
 ```
