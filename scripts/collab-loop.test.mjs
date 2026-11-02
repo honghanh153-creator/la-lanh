@@ -77,6 +77,9 @@ test('turns follow check → review → fix/merge on the exact head', () => {
   assert.equal(prTurn({ ...p, baseRefName: 'main' }).turn, 'hold');
   assert.equal(prTurn({ ...p, labels: [{ name: 'needs-owner' }] }).turn, 'hold');
   assert.equal(prTurn(p, { dropped: [7] }).turn, 'hold');
+  assert.equal(prTurn({ ...p, mergeable: 'CONFLICTING' }).turn, 'claude-fix', 'an approved PR in conflict goes to Claude, not to merge');
+  assert.equal(prTurn({ ...p, comments: [], mergeable: 'CONFLICTING' }).turn, 'claude-fix', 'no check on a head that cannot merge');
+  assert.equal(prTurn({ ...p, mergeable: 'UNKNOWN' }).turn, 'merge', 'GitHub still computing: collab-merge decides');
 });
 
 test('queue order is ops → content → privacy → feature, oldest first', () => {
