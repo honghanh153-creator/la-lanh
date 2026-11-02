@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 from sqlalchemy import delete
 
 from app.db.session import Database
 from app.domains.erasure_journal.journal import ErasureKind
-from app.domains.erasure_journal.replay import replay
+from app.domains.erasure_journal.replay import export_entries, replay
 from app.domains.erasure_journal.tables import ErasureJournalRow
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.history.postgres import PostgresHistoryRepository
@@ -192,6 +194,71 @@ async def test_ac21_manual_history_clear_removes_finished_requests_only(
     await history.clear(waiting, vn(DAY, 21, 30))
     assert await support.request_row(database, done.id) is None
     assert await support.request_row(database, pending.id) is not None
+
+
+async def test_ac21_history_clear_survives_a_snapshot_taken_before_the_import(
+    tmp_path: Path,
+) -> None:
+    """Codex #126 P1: the snapshot holds the request still waiting; the reading is imported and
+    the history cleared afterwards. Replaying HISTORY_CLEARED alone would skip the restored
+    waiting row, so the clear also names the request and replay deletes it whatever its status."""
+
+    live, snapshot = tmp_path / "live.db", tmp_path / "snapshot.db"
+    clock = Clock(vn(DAY, 8))
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    await database.initialize()
+    guest = await support.guest(database)
+    view = await support.create(support.service(database, clock), guest)
+    await database.dispose()
+    shutil.copyfile(live, snapshot)  # a dump taken while the request waits for its reading
+
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    await support.freeze(database, support.service(database, clock), view.id, vn(DAY, 19))
+    history = PostgresHistoryRepository(database.sessions, support.CIPHER, JOURNAL)
+    assert await history.clear(guest, vn(DAY, 23))
+    assert await support.request_row(database, view.id) is None
+    exported = await export_entries(database.sessions)
+    await database.dispose()
+
+    shutil.copyfile(snapshot, live)
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    try:
+        restored = await support.request_row(database, view.id)
+        assert restored is not None and restored.status == "accepted"
+        report = await replay(database.sessions, JOURNAL, support.CIPHER, exported)
+        assert report.applied[ErasureKind.HISTORY_CLEARED.value] == 1
+        assert report.applied[ErasureKind.HUMAN_TAROT_REQUEST_CLEARED.value] == 1
+        assert await support.request_row(database, view.id) is None
+        (slot,) = await support.slots(database)
+        assert slot.request_id is None and slot.sheet_state == "clear_due"
+        tarot = support.service(database, Clock(vn(DAY, 23)))
+        with pytest.raises(HumanTarotNotFound):
+            await tarot.get(guest, view.id)
+        again = await replay(database.sessions, JOURNAL, support.CIPHER, exported)
+        assert again.reflected[ErasureKind.HUMAN_TAROT_REQUEST_CLEARED.value] == 1
+    finally:
+        await database.dispose()
+
+
+async def test_history_clear_journals_only_the_requests_it_removes(database: Database) -> None:
+    clock = Clock(vn(DAY, 8))
+    tarot = support.service(database, clock)
+    finished, waiting = await support.guest(database), await support.guest(database)
+    done = await support.create(tarot, finished)
+    await support.create(tarot, waiting)
+    await support.freeze(database, tarot, done.id, vn(DAY, 19))
+    history = PostgresHistoryRepository(database.sessions, support.CIPHER, JOURNAL)
+    await history.clear(finished, vn(DAY, 23))
+    await history.clear(waiting, vn(DAY, 23))
+    async with database.sessions() as session:
+        digests = list(
+            await session.scalars(
+                ErasureJournalRow.__table__.select()
+                .with_only_columns(ErasureJournalRow.subject_digest)
+                .where(ErasureJournalRow.kind == ErasureKind.HUMAN_TAROT_REQUEST_CLEARED.value)
+            )
+        )
+    assert digests == [JOURNAL.digest(ErasureKind.HUMAN_TAROT_REQUEST_CLEARED, done.id)]
 
 
 async def test_ac21_journal_replay_cancels_a_restored_request(database: Database) -> None:

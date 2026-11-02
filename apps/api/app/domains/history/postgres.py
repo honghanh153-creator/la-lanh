@@ -228,6 +228,16 @@ class PostgresHistoryRepository:
 
         if self._erasure_journal is not None:
             self._erasure_journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
+            # Replaying HISTORY_CLEARED re-judges human Tarot requests by their restored status;
+            # a snapshot taken while one was still waiting would keep its question. Name each
+            # request removed here, so replay deletes it whatever status it was restored with.
+            human_tarot = dict(self._criteria(guest_id, now, manual=True))[HumanTarotRequestRow]
+            for request_id in await session.scalars(
+                select(HumanTarotRequestRow.id).where(human_tarot)
+            ):
+                self._erasure_journal.record(
+                    session, ErasureKind.HUMAN_TAROT_REQUEST_CLEARED, request_id, now
+                )
         return await self._erase(session, guest_id, now, manual=True, batch_size=None)
 
     async def replay_clear(self, guest_id: UUID, cleared_at: datetime) -> int:

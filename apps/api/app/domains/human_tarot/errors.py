@@ -18,6 +18,13 @@ class HumanTarotConsentRequired(HumanTarotError):
     status_code = 422
 
 
+class HumanTarotInputInvalid(HumanTarotError):
+    """Request validation failed; the response carries this code only, never the input."""
+
+    code = "HUMAN_TAROT_INPUT_INVALID"
+    status_code = 422
+
+
 class HumanTarotKeyInvalid(HumanTarotError):
     code = "HUMAN_TAROT_KEY_INVALID"
     status_code = 422

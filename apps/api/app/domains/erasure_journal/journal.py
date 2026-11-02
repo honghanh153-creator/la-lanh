@@ -44,6 +44,10 @@ class ErasureKind(StrEnum):
     RADAR_INVITE_REVOKED = "radar_invite_revoked"
     # Human Tarot (US-24): cancel or delete of one request; replay also clears its Sheet row.
     HUMAN_TAROT_REQUEST_CANCELLED = "human_tarot_request_cancelled"
+    # A request removed by a manual history clear. Journaled per request, beside the guest's
+    # HISTORY_CLEARED, because the clear selects by status and a snapshot taken earlier can hold
+    # the same request in a status that clear would skip (Codex #126 P1).
+    HUMAN_TAROT_REQUEST_CLEARED = "human_tarot_request_cleared"
 
 
 class ErasureJournal:
