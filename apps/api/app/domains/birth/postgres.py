@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.domains.accounts.postgres import account_transaction
 from app.domains.astro.models import ChartType, DateOnlySunResult, NatalChart
 from app.domains.birth.errors import (
+    BirthCorrectionExpired,
     BirthDateChangeLimited,
     BirthDateChangeRequiresEdit,
     BirthDateUnchanged,
@@ -327,6 +329,7 @@ class PostgresBirthRepository:
         now: datetime,
         limit: int,
         window: timedelta,
+        commit_deadline: float | None = None,
     ) -> BirthSnapshotRecord:
         """Phase 2 of a birth-date correction (US-23): one transaction under the guest lock.
 
@@ -399,6 +402,10 @@ class PostgresBirthRepository:
                     session, ErasureKind.BIRTH_DATE_REPLACED, guest_id, now
                 )
             await session.flush()
+            # Last step before COMMIT: past the monotonic deadline everything rolls back, so the
+            # client can treat an unchanged revision after it as final (Codex r59).
+            if commit_deadline is not None and time.monotonic() >= commit_deadline:
+                raise BirthCorrectionExpired
             stored = _record(snapshot, self._envelope, profile_revision=profile.updated_at)
         await drain_sends(self._sessions, sends)
         return stored

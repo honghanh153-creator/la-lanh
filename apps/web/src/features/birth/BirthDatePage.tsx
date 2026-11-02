@@ -1,45 +1,24 @@
 import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { acceptBasicBirthConsent, addBirthSupplement, ApiProblem, createBirthProfile, getBirthProfile, getDailyNote, getSession, updateOnboardingStatus } from "../../shared/api/client";
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
+import { BirthDateEdit } from "./BirthDateEdit";
+import { isUnder18, validDate } from "./birthDateInput";
 import { OptionalBirthDetails } from "./OptionalBirthDetails";
 import { birthDetailsError, emptyBirthDetails, hasBirthDetails, type OptionalBirthInput } from "./optionalBirthInput";
 
-function validDate(day: string, month: string, year: string): string | null {
-  if (!/^\d{1,2}$/.test(day) || !/^\d{1,2}$/.test(month) || !/^\d{4}$/.test(year)) {
-    return null;
-  }
-  const numericDay = Number(day);
-  const numericMonth = Number(month);
-  const numericYear = Number(year);
-  const value = new Date(Date.UTC(numericYear, numericMonth - 1, numericDay));
-  if (
-    numericYear < new Date().getFullYear() - 120 || numericYear > new Date().getFullYear()
-    || value.getUTCFullYear() !== numericYear
-    || value.getUTCMonth() !== numericMonth - 1
-    || value.getUTCDate() !== numericDay
-    || value > new Date()
-  ) return null;
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-}
-
-function isUnder18(birthDate: string): boolean {
-  const birth = new Date(`${birthDate}T00:00:00.000Z`);
-  const today = new Date();
-  let age = today.getUTCFullYear() - birth.getUTCFullYear();
-  const monthDelta = today.getUTCMonth() - birth.getUTCMonth();
-  const birthdayNotReached = monthDelta < 0
-    || (monthDelta === 0 && today.getUTCDate() < birth.getUTCDate());
-  if (birthdayNotReached) age -= 1;
-  return age < 18;
-}
-
 export function BirthDatePage() {
+  const [params] = useSearchParams();
+  // US-23: `/birth?edit=1` corrects a saved date; plain `/birth` is first entry only.
+  return params.get("edit") === "1" ? <BirthDateEdit /> : <BirthDateOnboarding />;
+}
+
+function BirthDateOnboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const dayInput = useRef<HTMLInputElement>(null);
@@ -57,7 +36,17 @@ export function BirthDatePage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void getSession(controller.signal).catch((reason: unknown) => {
+    void getSession(controller.signal).then(async (session) => {
+      // A person who already has an active birth subject corrects it from Mình (US-23), so
+      // first entry never posts a second date. Only checked once onboarding has moved on.
+      if (session.onboarding_status === "birth_pending") return;
+      try {
+        await getBirthProfile(controller.signal);
+        if (!controller.signal.aborted) void navigate("/profile", { replace: true });
+      } catch {
+        // No active subject (404, e.g. after a fail-closed restore): stay for re-entry.
+      }
+    }, (reason: unknown) => {
       if (!controller.signal.aborted && reason instanceof ApiProblem && reason.status === 401) {
         void navigate("/welcome", { replace: true });
       }

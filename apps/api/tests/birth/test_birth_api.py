@@ -105,6 +105,7 @@ class MemoryBirthRepository:
         now: datetime,
         limit: int,
         window: timedelta,
+        commit_deadline: float | None = None,
     ) -> BirthSnapshotRecord:
         self.current[record.guest_id] = record
         self.supplements.pop(record.guest_id, None)
