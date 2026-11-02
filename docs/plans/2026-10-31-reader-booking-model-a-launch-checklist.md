@@ -109,13 +109,14 @@ Căn cứ: Luật BVDLCN 91/2025/QH15 và NĐ 356/2025/NĐ-CP (hiệu lực 01.0
 Căn cứ: Luật Bảo vệ quyền lợi người tiêu dùng 2023.
 
 - [ ] [Chủ] Điều khoản dịch vụ cho buổi đọc: mô tả dịch vụ, giá đã gồm thuế, thời lượng, quyền và trách nhiệm hai bên, cách khiếu nại.
-- [ ] [Chủ] Quy tắc hủy/đổi/hoàn tiền (PRD có trạng thái `cancelled`, `no_show` nhưng chưa có quy tắc):
-  - người dùng hủy trước một mốc giờ → hoàn toàn bộ; sau mốc → chốt mức;
+- [ ] [Chủ] Quy tắc hủy/đổi/hoàn tiền (PRD có trạng thái `cancelled`, `no_show`). **Chủ chốt 02.11.2026:** người dùng tự hủy hoặc rút đồng ý chỉ được hoàn khi còn ít nhất 2 giờ trước giờ đọc bài; muộn hơn thì không hoàn. Các trường hợp lỗi không do người dùng vẫn hoàn toàn bộ.
+  - người dùng hủy hoặc đổi lịch trước giờ đọc ít nhất 2 giờ → hoàn toàn bộ hoặc đổi giờ; muộn hơn → không hoàn;
   - Lá Dẫn vắng mặt hoặc trễ quá ngưỡng → hoàn toàn bộ và ưu tiên đặt lại;
-  - người dùng vắng mặt → chốt mức;
+  - người dùng vắng mặt → không hoàn;
   - lỗi kỹ thuật phía Lá Lành → hoàn toàn bộ;
   - người dùng báo vi phạm bộ quy tắc → hoàn tiền trong lúc xem xét.
-  - người dùng rút lại đồng ý chia sẻ giữa buổi → buổi dừng; hoàn tiền theo phần chưa diễn ra (mức cụ thể do [Chủ] chốt), chỉ giữ dữ liệu thanh toán, hóa đơn theo luật.
+  - người dùng rút lại đồng ý chia sẻ → Lá Dẫn mất quyền xem ngay, ở bất kỳ thời điểm nào; về tiền thì xử lý như một lần hủy: còn ít nhất 2 giờ trước giờ đọc → hoàn toàn bộ, muộn hơn hoặc giữa buổi → không hoàn. Quy tắc tiền không bao giờ chặn hay làm chậm việc rút đồng ý. Chỉ giữ dữ liệu thanh toán, hóa đơn theo luật.
+  - quy tắc phải hiện rõ trước khi thanh toán (Trang 4 và ô đồng ý ở bước đặt) **[chưa xác minh: điều kiện hủy với hợp đồng từ xa theo Luật BVQLNTD 2023]**.
 - [ ] [VH] Kênh khiếu nại trong app, thời hạn phản hồi đã cam kết, ghi lại kết quả xử lý.
 - [ ] [KT] Kiểm tra tuổi trước khi thanh toán; không hiển thị lời mời mua với người dưới 18 tuổi.
 - [ ] [ND] Không dùng đếm ngược, "chỉ còn 1 chỗ", hay thông báo thúc mua. Đúng nguyên tắc "Paid mua chiều sâu, không mua quyền tiếp cận".
