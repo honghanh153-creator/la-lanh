@@ -74,6 +74,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 - Việc trong backlog Claude sẽ làm khi hàng đợi review trống (theo cùng thứ tự ưu tiên, chỉ việc `auto: yes`).
 - PR đang giữ và lý do (`needs-owner`, xếp chồng, draft).
 - Hạn mức: lượt Codex còn trong ngày.
+- **Cam kết 6–8 PR** (owner 02.11.2026). Plan liệt kê tối đa 8 PR không bị giữ, theo đúng thứ tự ưu tiên trên. Nếu chưa đủ 6, Claude mở thêm từ backlog `auto: yes` và ghi số PR vào issue plan. % trong ngày = số PR cam kết đã merge vào integration / số PR cam kết. PR ngoài danh sách làm nếu kịp, không tính vào %. Lý do: plan 8–10 PR vượt sức chứa của check tuần tự và hạn mức Codex, nên chưa ngày nào đạt 100%.
 
 ## 4. Thành phần
 

@@ -9,6 +9,12 @@ const minutes = now => now.hour * 60 + now.minute;
 export const planOpensAt = 8 * 60 + 50;
 export const autoStartAt = 10 * 60;
 export const lastStartAt = 23 * 60 + 30;
+// Owner decision 02.11.2026: each day commits 6–8 PRs and the day's % is merged / committed.
+// A plan larger than the serial checks and the Codex cap can carry never reached 100%.
+export const commitMin = 6;
+export const commitMax = 8;
+
+export const committedTurns = turns => turns.filter(t => t.turn !== 'hold').slice(0, commitMax);
 
 export function planState(now, comments = []) {
   const at = minutes(now);
@@ -31,6 +37,8 @@ export function planState(now, comments = []) {
 
 export function renderPlan(now, turns, { codexLeft, gap = null }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
+  const committed = committedTurns(turns);
+  const short = commitMin - committed.length;
   const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\|/g, '\\|')} |`);
   return [
     `## Plan ${now.date}`,
@@ -39,6 +47,10 @@ export function renderPlan(now, turns, { codexLeft, gap = null }) {
     `Lượt Codex tự động còn hôm nay: ${codexLeft}/12. Chạy tới 23:30, không merge vào main, không deploy.`,
     // A long pause before the plan means the Mac slept or was off (retro D3, 31.10.2026).
     ...(gap ? [`**Máy không chạy tick từ ${gap.from} tới ${gap.to}** (Mac ngủ hoặc tắt), nên plan có thể trễ.`] : []),
+    '',
+    `**Cam kết hôm nay (${commitMin}–${commitMax} PR):** ${committed.length ? committed.map(t => `#${t.number}`).join(', ') : 'chưa có PR nào sẵn sàng'}.`,
+    ...(short > 0 ? [`Còn thiếu ${short} PR so với mức ${commitMin}: Claude mở thêm từ backlog \`auto: yes\` và ghi số PR vào issue này.`] : []),
+    `% hôm nay = số PR cam kết đã merge vào integration / số PR cam kết. PR còn lại trong bảng làm nếu kịp, không tính vào %.`,
     '',
     '| PR | Nhóm | Lượt kế tiếp | Lý do | Tiêu đề |',
     '|---|---|---|---|---|',
