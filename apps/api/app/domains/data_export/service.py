@@ -106,9 +106,9 @@ NOT_INCLUDED = (
     "app khi còn hiển thị.",
     "Note ngày đã quá hạn hiển thị, Tarot đã hết hạn và lời mời đã hết hạn/rút: đang chờ "
     "dọn và không còn mở được trong app.",
-    "Tarot nhờ người thật bốc: yêu cầu bạn đã huỷ và bài bạn đã xoá không có trong tệp. Câu hỏi "
-    "chỉ có khi app còn giữ, bài đọc chỉ có từ giờ trả bài. Mã yêu cầu, hàng trên bảng tính của "
-    "người bốc và số lượt trong ngày là dữ liệu vận hành, không phải nội dung của bạn.",
+    "Nhờ người bốc: yêu cầu bạn đã huỷ và bài bạn đã xoá không có trong tệp. Câu hỏi chỉ có khi "
+    "app còn giữ; bài đọc có từ giờ trả bài. Mã yêu cầu và thông tin trên bảng tính của người bốc "
+    "là dữ liệu vận hành, không phải nội dung của bạn.",
     "Bản nháp xử lý nội bộ (kế hoạch bản đọc, bản sửa, hàng đợi AI viết lại, nhật ký xoá): "
     "là dữ liệu kỹ thuật; nội dung bạn đã thấy nằm trong note, Tarot và note đã lưu.",
 )
