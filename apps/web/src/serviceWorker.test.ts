@@ -1,3 +1,5 @@
+// Vitest 4 no longer pulls Node types into the app tsconfig; this test reads public/sw.js with Node APIs.
+/// <reference types="node" />
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { runInNewContext } from "node:vm";

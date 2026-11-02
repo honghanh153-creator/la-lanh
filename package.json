@@ -58,6 +58,6 @@
     "grammar:check": "uv run --directory apps/api python -m scripts.grammar_build --check && uv run --directory apps/api python -m scripts.fallback_approval --check"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.5"
   }
 }
