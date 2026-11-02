@@ -1,10 +1,10 @@
 import logging
-from datetime import datetime, time
+from datetime import UTC, datetime, time
 from typing import Annotated, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Header, Request, Response
+from fastapi import APIRouter, Header, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
@@ -19,8 +19,8 @@ from app.domains.share.errors import (
     ShareDomainError,
     ShareReadingUnavailable,
 )
-from app.domains.share.models import ShareFormat
-from app.domains.share.service import ShareArtifactService
+from app.domains.share.models import ShareFormat, ShareLinkStatus
+from app.domains.share.service import SHARE_LIST_MAX_PAGE, ShareArtifactService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
 router = APIRouter()
@@ -58,6 +58,22 @@ class ShareArtifactResponse(BaseModel):
     created_at: datetime
     expires_at: datetime
     revision_id: UUID | None = None
+
+
+class ShareLinkResponse(BaseModel):
+    """One of the owner's links: dates, format and status only (US-23)."""
+
+    id: UUID
+    format: ShareFormat
+    status: ShareLinkStatus
+    created_at: datetime
+    expires_at: datetime
+    revoked_at: datetime | None
+
+
+class ShareLinkListResponse(BaseModel):
+    items: list[ShareLinkResponse]
+    next_cursor: str | None
 
 
 class PublicShareArtifactResponse(BaseModel):
@@ -177,6 +193,49 @@ async def create_share_artifact(
         created_at=artifact.created_at,
         expires_at=artifact.expires_at,
         revision_id=artifact.revision_id,
+    )
+
+
+@router.get(
+    "/share-artifacts",
+    response_model=ShareLinkListResponse,
+    responses={401: {}, 422: {}},
+)
+async def list_share_artifacts(
+    request: Request,
+    response: Response,
+    limit: Annotated[int, Query(ge=1, le=SHARE_LIST_MAX_PAGE)] = 20,
+    cursor: Annotated[str | None, Query(max_length=120)] = None,
+) -> ShareLinkListResponse | Response:
+    """The session owner's own links, newest first. Never a token (only its hash is stored),
+    never the snapshot, never the Daily note it came from."""
+
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    try:
+        guest = await _guest_service(request).resume(
+            request.cookies.get(request.app.state.settings.guest_cookie_name)
+        )
+        page, next_cursor = await _share_service(request).list_owned(
+            guest_id=guest.id, limit=limit, cursor=cursor
+        )
+    except (GuestDomainError, ShareDomainError) as error:
+        problem = _problem(error)
+        problem.headers["Cache-Control"] = "no-store, max-age=0"
+        return problem
+    now = datetime.now(UTC)
+    return ShareLinkListResponse(
+        items=[
+            ShareLinkResponse(
+                id=item.id,
+                format=item.format,
+                status=item.status(now),
+                created_at=item.created_at,
+                expires_at=item.expires_at,
+                revoked_at=item.revoked_at,
+            )
+            for item in page
+        ],
+        next_cursor=next_cursor,
     )
 
 

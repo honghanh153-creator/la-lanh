@@ -2,7 +2,7 @@
 // Usage: node scripts/codex-review.mjs --pr N [--auto]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { agentMarker, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
@@ -128,10 +128,24 @@ function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, n
     try { git(['merge-base', '--is-ancestor', priorAuto.verdict.sha, head], dir, run); deltaFrom = priorAuto.verdict.sha; } catch {}
   }
   const mergeBase = git(['merge-base', `origin/${integration}`, head], dir, run);
+  // A delta that merges collab/integration in carries every other PR's files; on 02.11 Codex marked the
+  // #117 re-review incomplete over 230 such files (K25). Limit the delta to the PR's own files.
+  const mergesBase = deltaFrom && git(['rev-list', '--merges', `${deltaFrom}..${head}`], dir, run).trim() !== '';
+  // The script writes the scoped delta itself: NUL-separated names passed as literal paths keep
+  // filenames with spaces or quoting intact, which a shell substitution in the prompt would not.
+  const deltaPath = join(dir, '.git', 'la-lanh-review-delta.patch');
+  if (mergesBase) {
+    const own = String(run('/usr/bin/git', ['diff', '-z', '--name-only', `${mergeBase}..${head}`], { cwd: dir, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024 })).split('\0').filter(Boolean);
+    const patch = own.length ? String(run('/usr/bin/git', ['diff', `${deltaFrom}..${head}`, '--', ...own.map(f => `:(literal)${f}`)], { cwd: dir, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024 })) : '';
+    mkdirSync(dirname(deltaPath), { recursive: true });
+    writeFileSync(deltaPath, patch);
+  }
   const prompt = fillPrompt(readFileSync(promptPath, 'utf8'), {
     PR: String(pr.number), HEAD: head, BASE_REF: pr.baseRefName, MERGE_BASE: mergeBase,
     DELTA_LINE: deltaFrom
-      ? `Re-review: the previous automatic review was at \`${deltaFrom}\`. Read \`git diff ${deltaFrom}..${head}\` closely and confirm each earlier blocking finding is fixed; skim the rest.`
+      ? mergesBase
+        ? `Re-review: the previous automatic review was at \`${deltaFrom}\`, and the delta merges \`${integration}\` in. Read \`.git/la-lanh-review-delta.patch\` closely: it is \`git diff ${deltaFrom}..${head}\` limited to this PR's own files, including conflict resolutions and confirm each earlier blocking finding is fixed. Files changed only by the merged \`${integration}\` were reviewed in their own PRs: do not read them and do not mark the review incomplete because of them.`
+        : `Re-review: the previous automatic review was at \`${deltaFrom}\`. Read \`git diff ${deltaFrom}..${head}\` closely and confirm each earlier blocking finding is fixed; skim the rest.`
       : 'First automatic review of this PR: read the full change.',
     TITLE: clean(pr.title, 300), BODY: clean(pr.body, 12000), PRIOR: priorAuto ? clean(priorAuto.body, 8000) : 'None.',
   });

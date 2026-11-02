@@ -17,6 +17,9 @@ export function prTurn(pr, { dropped = [] } = {}) {
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
   if (pr.baseRefName !== integration) return out('hold', `xếp chồng trên ${pr.baseRefName}`);
+  // A conflict needs Claude at any stage: on 02.11 an approved PR in conflict kept every tick on a
+  // refused merge for three hours, and checking or reviewing a head that cannot merge wastes the run (K24).
+  if (pr.mergeable === 'CONFLICTING') return out('claude-fix', 'xung đột với collab/integration');
   const state = reviewState(pr);
   const check = state.check;
   const last = state.last?.verdict;

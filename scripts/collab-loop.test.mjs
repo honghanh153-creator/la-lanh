@@ -77,6 +77,9 @@ test('turns follow check → review → fix/merge on the exact head', () => {
   assert.equal(prTurn({ ...p, baseRefName: 'main' }).turn, 'hold');
   assert.equal(prTurn({ ...p, labels: [{ name: 'needs-owner' }] }).turn, 'hold');
   assert.equal(prTurn(p, { dropped: [7] }).turn, 'hold');
+  assert.equal(prTurn({ ...p, mergeable: 'CONFLICTING' }).turn, 'claude-fix', 'an approved PR in conflict goes to Claude, not to merge');
+  assert.equal(prTurn({ ...p, comments: [], mergeable: 'CONFLICTING' }).turn, 'claude-fix', 'no check on a head that cannot merge');
+  assert.equal(prTurn({ ...p, mergeable: 'UNKNOWN' }).turn, 'merge', 'GitHub still computing: collab-merge decides');
 });
 
 test('queue order is ops → content → privacy → feature, oldest first', () => {
@@ -159,6 +162,32 @@ test('review posts verdict, files fix-forward first, and records the output hash
   assert.match(body, /Output SHA-256: `[0-9a-f]{64}`/);
   assert.equal(prTurn(state.pr).turn, 'merge');
   assert.equal(review.runReview(7, { gh, run: runner.run, readOut: () => raw }).status, 'refused', 'no second verdict for the same head');
+});
+
+test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => {
+  let asked;
+  trust.makeGh((cmd, args) => { asked = args; return '[]'; }).openPrs();
+  assert.ok(asked.at(-1).split(',').includes('mergeable'));
+});
+
+test('a re-review across an integration merge reads only the PR files (K25)', () => {
+  const prior = owner(`Review verdict: REQUEST_CHANGES @ ${B}\n${trust.agentMarker} codex-auto-review sha=${B} p2=0 -->`);
+  const raw = JSON.stringify(output());
+  for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
+    const runner = fakeRun();
+    const base = runner.run;
+    const run = (cmd, args, opts) => {
+      if (cmd === '/usr/bin/git' && args[0] === 'rev-list' && args[1] === '--merges') return merges;
+      if (cmd === '/usr/bin/git' && args[0] === 'diff' && args[1] === '-z') return 'Open QA.command\0a"b.txt\0';
+      return base(cmd, args, opts);
+    };
+    review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [prior, check(A)] }) }), run, readOut: () => raw, now: { date: '2026-11-02', hour: 11, minute: 0 } });
+    const input = runner.calls.find(c => c[0] === review.codexBin)[2].input;
+    assert.match(input, new RegExp(`git diff ${B}\\.\\.${A}`));
+    assert.equal(input.includes('la-lanh-review-delta.patch'), scoped);
+    const scopedDiff = runner.calls.find(c => c[0] === '/usr/bin/git' && c[1][0] === 'diff' && c[1].includes('--'));
+    assert.deepEqual(scopedDiff?.[1].slice(-2), scoped ? [':(literal)Open QA.command', ':(literal)a"b.txt'] : undefined, 'names reach git as literal paths');
+  }
 });
 
 test('review refuses without an author check, stops on limits, and escalates to the owner', () => {

@@ -44,7 +44,16 @@ export function readCachedDailyNote(identity?: ReadingCacheIdentity): CachedNote
   return memoryCache;
 }
 
+// Codex r58: while a birth-date correction's outcome is unknown, no Daily note may enter the
+// offline fallback, because the change may still commit and delete it on the server.
+let writesSuspended = false;
+
+export function suspendDailyNoteCacheWrites(suspended: boolean): void {
+  writesSuspended = suspended;
+}
+
 export function writeCachedDailyNote(note: DailyNote): void {
+  if (writesSuspended) return;
   memoryCache = {
     note,
     expires_at: new Date(Date.now() + NOTE_CACHE_TTL_MS).toISOString(),

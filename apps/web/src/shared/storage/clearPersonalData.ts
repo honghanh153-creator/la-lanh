@@ -3,6 +3,7 @@ import {
   OWNER_SESSION_EPOCH_KEY,
   SESSION_EPOCH_KEY,
 } from "../api/client";
+import { setPendingChartQuarantine } from "./chartQuarantineGate";
 import { clearMatchingIntroExposure } from "./matchingIntroExposure";
 import { clearCachedDailyNote } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
@@ -69,6 +70,7 @@ export async function clearPersonalDataOnDevice(): Promise<void> {
   attempt(() => sessionStorage.removeItem(OWNER_SESSION_EPOCH_KEY));
   attempt(() => sessionStorage.removeItem("la-lanh-owner-session-until-v1"));
   attempt(() => sessionStorage.removeItem(SESSION_RESTART_REQUIRED_KEY));
+  attempt(() => setPendingChartQuarantine(null));
   attempt(() => sessionStorage.removeItem("la-lanh-radar-pending"));
   attempt(() => sessionStorage.removeItem(RADAR_PENDING_REQUEST_KEY));
   attempt(() => sessionStorage.removeItem("la-lanh-radar-owner-start"));

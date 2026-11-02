@@ -83,6 +83,11 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         return AdmissionPolicy("guest-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path == "/v1/tarot/sessions":
         return AdmissionPolicy("tarot-session-create", per_peer=20, global_limit=240)
+    if request.method == "GET" and path == "/v1/human-tarot/availability":
+        return AdmissionPolicy("human-tarot-availability", per_peer=120, global_limit=1200)
+    if request.method == "POST" and path == "/v1/human-tarot/requests":
+        # The durable cap (10 a day, one per guest) is in the database; this only sheds floods.
+        return AdmissionPolicy("human-tarot-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path in {"/v1/radar/requests", "/v1/radar/private-checks"}:
         return AdmissionPolicy("radar-create", per_peer=10, global_limit=120)
     if request.method == "GET" and path.startswith("/v1/radar/"):
@@ -104,6 +109,9 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         }
     ) or (request.method == "PUT" and path == "/v1/birth-profile/date"):
         return AdmissionPolicy("birth-compute", per_peer=20, global_limit=120)
+    if request.method == "GET" and path == "/v1/share-artifacts":
+        # The owner's link list (US-23): metadata only, but bounded like other private reads.
+        return AdmissionPolicy("share-list", per_peer=60, global_limit=600)
     if path.startswith("/v1/public/") or path.startswith("/v1/share-artifacts/"):
         return AdmissionPolicy("public-capability", per_peer=120, global_limit=1200)
     return None

@@ -8,6 +8,7 @@ import {
   rememberVerifiedSession, sessionCookieMarker, sessionGeneration, trackSessionRequest,
   verifiedCookieHasChanged,
 } from "../session/sessionIdentity";
+import { awaitChartRelease, isChartDerivedRead } from "../storage/chartQuarantineGate";
 import { readCachedDailyNote } from "../storage/noteCache";
 import {
   acknowledgeSavedMutation,
@@ -165,6 +166,8 @@ export type BirthSupplement = components["schemas"]["BirthSupplementResponse"];
 export type BirthSupplementState = components["schemas"]["BirthSupplementStateResponse"];
 export type BirthSupplementEdit = components["schemas"]["BirthSupplementEditResponse"];
 export type PublicShareArtifact = components["schemas"]["PublicShareArtifactResponse"];
+export type ShareLink = components["schemas"]["ShareLinkResponse"];
+export type ShareLinkList = components["schemas"]["ShareLinkListResponse"];
 export type OnboardingStatus = components["schemas"]["OnboardingStatus"];
 export type InsightOverview = components["schemas"]["InsightOverviewResponse"];
 export type ReadingContent = components["schemas"]["ReadingContentProjection"];
@@ -475,12 +478,18 @@ export function isGuestSessionUnavailable(error: unknown): boolean {
 export { currentSessionEpoch, OWNER_SESSION_EPOCH_KEY, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
 const NATIVE_CSRF_KEY = "la-lanh-native-csrf-v1";
 const REQUEST_TIMEOUT_MS = 15_000;
+export const BIRTH_CORRECTION_TIMEOUT_MS = 90_000;
 const DELETE_GUEST_TIMEOUT_MS = 75_000;
 const DATA_EXPORT_TIMEOUT_MS = 45_000;
 let activeDailyReading: { scopeKey: string; revisionId: string } | null = null;
 let ownerClaimInFlight: { sessionEpoch: string | null; promise: Promise<OwnerClaim> } | null = null;
 
-type RequestOptions = RequestInit & { timeoutMs?: number; sessionTransition?: boolean };
+type RequestOptions = RequestInit & {
+  timeoutMs?: number;
+  sessionTransition?: boolean;
+  /** US-23 (Codex r61): only a birth correction's own reconciliation read passes the quarantine gate. */
+  bypassChartQuarantine?: boolean;
+};
 
 class ApiTimeoutError extends Error {
   readonly name = "TimeoutError";
@@ -554,6 +563,11 @@ function cookieCapable(path: string, method = "GET"): boolean {
 }
 
 async function request<T>(path: string, init?: RequestOptions, consume?: (result: T) => Promise<void>): Promise<T> {
+  // US-23 (Codex r59): no old chart content is read while a correction's outcome is unknown.
+  // Checked again after each release: a new quarantine may start before the held read resumes.
+  if (isChartDerivedRead(path, init?.method) && !init?.bypassChartQuarantine) {
+    for (let held = awaitChartRelease(init?.signal); held; held = awaitChartRelease(init?.signal)) await held;
+  }
   const epoch = currentSessionEpoch();
   const generation = sessionGeneration();
   const marker = sessionCookieMarker();
@@ -581,7 +595,8 @@ async function requestLocked<T>(path: string, init?: RequestOptions): Promise<T>
   if (path !== "/session" && path !== "/session/renew" && path !== "/guest-sessions" && path !== "/guest-session" && verifiedCookieHasChanged()) {
     throw new ApiProblem(401, "SESSION_CHANGED", "Phiên trên trình duyệt đã đổi.");
   }
-  const { timeoutMs = REQUEST_TIMEOUT_MS, sessionTransition = false, ...fetchInit } = init ?? {};
+  const { timeoutMs = REQUEST_TIMEOUT_MS, sessionTransition = false, ...fetchInit }: RequestOptions = { ...init };
+  delete fetchInit.bypassChartQuarantine; // client-side only, never sent
   const mustDrain = cookieCapable(path, fetchInit.method);
   const transition = sessionTransition && fetchInit.method === "POST"
     && ["/account/login/verify", "/account/login/restore", "/account/login/google/verify", "/account/logout"].includes(path);
@@ -798,8 +813,15 @@ export function deleteTarotSession(sessionId: string): Promise<void> {
   });
 }
 
-export function getBirthProfile(signal?: AbortSignal): Promise<BirthReveal> {
-  return request<BirthReveal>("/birth-profile", { signal });
+/**
+ * `bypassChartQuarantine` is for the birth-correction reconciliation only (its revision reads):
+ * every other profile read waits while a correction's outcome is unknown (US-23, Codex r61).
+ */
+export function getBirthProfile(
+  signal?: AbortSignal,
+  options: { bypassChartQuarantine?: boolean } = {},
+): Promise<BirthReveal> {
+  return request<BirthReveal>("/birth-profile", { signal, bypassChartQuarantine: options.bypassChartQuarantine });
 }
 
 export function createBirthProfile(birthDate: string): Promise<BirthReveal> {
@@ -810,6 +832,22 @@ export function createBirthProfile(birthDate: string): Promise<BirthReveal> {
       ...csrfHeader(),
     },
     body: JSON.stringify({ birth_date: birthDate }),
+  });
+}
+
+/** US-23: replace the saved birth date. The server refuses a stale revision or a minor's date. */
+export function correctBirthDate(input: {
+  birth_date: string;
+  confirm_birth_date: string;
+  expected_revision: string;
+}): Promise<BirthReveal> {
+  return request<BirthReveal>("/birth-profile/date", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...csrfHeader() },
+    body: JSON.stringify(input),
+    // Success waits for provider sends admitted before the change (bounded server-side at about
+    // a minute), so the default 15 s would turn many committed corrections into timeouts.
+    timeoutMs: BIRTH_CORRECTION_TIMEOUT_MS,
   });
 }
 
@@ -1031,6 +1069,13 @@ export function revokeShareArtifact(artifactId: string): Promise<void> {
     method: "DELETE",
     headers: csrfHeader(),
   });
+}
+
+/** The session owner's own links: dates, format and status only (no token, no content). */
+export function listShareLinks(signal?: AbortSignal, cursor?: string): Promise<ShareLinkList> {
+  const query = new URLSearchParams({ limit: "20" });
+  if (cursor) query.set("cursor", cursor);
+  return request<ShareLinkList>(`/share-artifacts?${query.toString()}`, { signal });
 }
 
 export function getShareArtifact(

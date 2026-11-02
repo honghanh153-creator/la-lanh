@@ -508,6 +508,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/human-tarot/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Human Tarot Availability
+         * @description Public counts and times, so a visitor sees the option without a session being created.
+         *
+         *     Only a valid session adds its own request id; nothing here names anyone else's.
+         */
+        get: operations["human_tarot_availability_v1_human_tarot_availability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/human-tarot/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Human Tarot Request */
+        post: operations["create_human_tarot_request_v1_human_tarot_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/human-tarot/requests/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Human Tarot Request */
+        get: operations["current_human_tarot_request_v1_human_tarot_requests_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/human-tarot/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Human Tarot Request */
+        get: operations["get_human_tarot_request_v1_human_tarot_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        /** Cancel Human Tarot Request */
+        delete: operations["cancel_human_tarot_request_v1_human_tarot_requests__request_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/identity/claim": {
         parameters: {
             query?: never;
@@ -1306,6 +1380,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/share-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Share Artifacts
+         * @description The session owner's own links, newest first. Never a token (only its hash is stored),
+         *     never the snapshot, never the Daily note it came from.
+         */
+        get: operations["list_share_artifacts_v1_share_artifacts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/share-artifacts/{artifact_id}": {
         parameters: {
             query?: never;
@@ -1511,6 +1606,11 @@ export interface components {
          * @enum {string}
          */
         AuraUnlockLayer: "multi_factor" | "house_arena" | "rising_angles" | "current_sky";
+        /**
+         * AvailabilityReason
+         * @enum {string}
+         */
+        AvailabilityReason: "open" | "full" | "closed" | "already_requested" | "disabled";
         /** AvailableReadingUpdate */
         AvailableReadingUpdate: {
             content: components["schemas"]["ReadingContentProjection"];
@@ -2623,6 +2723,112 @@ export interface components {
          * @enum {string}
          */
         HouseSystem: "placidus" | "whole_sign" | "equal";
+        /** HumanTarotAvailability */
+        HumanTarotAvailability: {
+            /** Accepting */
+            accepting: boolean;
+            /**
+             * Closes At
+             * Format: date-time
+             */
+            closes_at: string;
+            /** Consent Version */
+            consent_version: string;
+            /** Current Request Id */
+            current_request_id?: string | null;
+            /** Daily Limit */
+            daily_limit: number;
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            reason: components["schemas"]["AvailabilityReason"];
+            /**
+             * Release At
+             * Format: date-time
+             */
+            release_at: string;
+            /** Remaining */
+            remaining: number;
+        };
+        /** HumanTarotCardPosition */
+        HumanTarotCardPosition: {
+            card: components["schemas"]["TarotCard"];
+            /** Position Key */
+            position_key: string;
+            /** Position Label */
+            position_label: string;
+        };
+        /** HumanTarotCreateRequest */
+        HumanTarotCreateRequest: {
+            /** Consent Version */
+            consent_version: string;
+            context: components["schemas"]["TarotContext"];
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Question */
+            question: string;
+            spread: components["schemas"]["TarotSpread"];
+        };
+        /** HumanTarotRequestView */
+        HumanTarotRequestView: {
+            context: components["schemas"]["TarotContext"];
+            /** Copy Cleared */
+            copy_cleared?: boolean | null;
+            /** Delivery */
+            delivery?: ("pending" | "delivered" | "error") | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /** Question */
+            question?: string | null;
+            /**
+             * Release At
+             * Format: date-time
+             */
+            release_at: string;
+            result?: components["schemas"]["HumanTarotResult"] | null;
+            spread: components["schemas"]["TarotSpread"];
+            status: components["schemas"]["VisibleStatus"];
+        };
+        /**
+         * HumanTarotResult
+         * @description The owner's frozen reading. Never rewritten by the engine or Luna.
+         */
+        HumanTarotResult: {
+            /** Cards */
+            cards: components["schemas"]["HumanTarotCardPosition"][];
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+            /**
+             * Reader
+             * @default human
+             * @constant
+             */
+            reader: "human";
+            /** Reading */
+            reading: string;
+            /** Step */
+            step: string;
+        };
         /**
          * IdentityMode
          * @enum {string}
@@ -3547,6 +3753,43 @@ export interface components {
          * @enum {string}
          */
         ShareFormat: "story_9_16" | "square_1_1";
+        /** ShareLinkListResponse */
+        ShareLinkListResponse: {
+            /** Items */
+            items: components["schemas"]["ShareLinkResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * ShareLinkResponse
+         * @description One of the owner's links: dates, format and status only (US-23).
+         */
+        ShareLinkResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            format: components["schemas"]["ShareFormat"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            status: components["schemas"]["ShareLinkStatus"];
+        };
+        /**
+         * ShareLinkStatus
+         * @enum {string}
+         */
+        ShareLinkStatus: "active" | "revoked" | "expired";
         /** SkyChapterResponse */
         SkyChapterResponse: {
             /** Disclaimer */
@@ -3926,6 +4169,12 @@ export interface components {
             /** Code */
             code: string;
         };
+        /**
+         * VisibleStatus
+         * @description What the owner of a request sees; decided by the server clock on every read (R9).
+         * @enum {string}
+         */
+        VisibleStatus: "waiting" | "ready" | "late" | "unfulfilled" | "cancelled";
         /**
          * WeeklyIntent
          * @enum {string}
@@ -6812,6 +7061,410 @@ export interface operations {
             };
         };
     };
+    human_tarot_availability_v1_human_tarot_availability_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanTarotAvailability"];
+                };
+            };
+        };
+    };
+    create_human_tarot_request_v1_human_tarot_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HumanTarotCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanTarotRequestView"];
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    current_human_tarot_request_v1_human_tarot_requests_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanTarotRequestView"];
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    get_human_tarot_request_v1_human_tarot_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanTarotRequestView"];
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    cancel_human_tarot_request_v1_human_tarot_requests__request_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Human Tarot request was rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
     claim_identity_v1_identity_claim_post: {
         parameters: {
             query?: never;
@@ -8991,6 +9644,43 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    list_share_artifacts_v1_share_artifacts_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
