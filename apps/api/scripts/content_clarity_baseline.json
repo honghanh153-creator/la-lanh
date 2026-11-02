@@ -1,0 +1,88 @@
+{
+  "spec": "docs/research/2026-11-01-content-clarity-gate.md#lớp-a",
+  "note": "Counts only go down. Rewrite with `python -m scripts.review_content_release --update-baseline` after an intended change, and explain it in the PR.",
+  "surfaces": {
+    "daily": {
+      "samples": 64,
+      "variants": {
+        "direct": 32,
+        "roast": 32
+      },
+      "rules": {
+        "A1": 0,
+        "A2": 0,
+        "A3": 0,
+        "A4": 0,
+        "A5": 0,
+        "A6": 1,
+        "A7": 36,
+        "A8": 33,
+        "A10": 2,
+        "A11": 0,
+        "A14": 5
+      }
+    },
+    "kham_pha": {
+      "samples": 88,
+      "variants": {
+        "jyotish": 22,
+        "western": 66
+      },
+      "rules": {
+        "A1": 1663,
+        "A2": 132,
+        "A3": 1320,
+        "A4": 396,
+        "A5": 6050,
+        "A6": 70,
+        "A7": 495,
+        "A8": 775,
+        "A10": 332,
+        "A11": 132,
+        "A14": 0
+      }
+    },
+    "radar": {
+      "samples": 96,
+      "variants": {
+        "crush": 24,
+        "friend": 24,
+        "partner": 24,
+        "someone": 24
+      },
+      "rules": {
+        "A1": 0,
+        "A2": 1,
+        "A3": 130,
+        "A4": 0,
+        "A5": 254,
+        "A6": 21,
+        "A7": 288,
+        "A8": 124,
+        "A10": 91,
+        "A11": 0,
+        "A14": 0
+      }
+    },
+    "tarot": {
+      "samples": 240,
+      "variants": {
+        "playful_grounded": 120,
+        "roast": 120
+      },
+      "rules": {
+        "A1": 0,
+        "A2": 0,
+        "A3": 1,
+        "A4": 0,
+        "A5": 712,
+        "A6": 6,
+        "A7": 373,
+        "A8": 24,
+        "A10": 0,
+        "A11": 0,
+        "A14": 5
+      }
+    }
+  }
+}

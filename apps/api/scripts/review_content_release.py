@@ -1,18 +1,39 @@
+"""Release content review: the core reviewer on ten personas, then the clarity ratchet.
+
+``python -m scripts.review_content_release`` fails when the core ``ContentReviewAgent`` finds a
+critical/high problem, or when any plain-language rule count (``clarity_lint``, spec layer A)
+rises above ``content_clarity_baseline.json`` on Daily, Tarot, Radar or Khám phá, or sample
+coverage drops. After an intended change, rewrite the baseline with ``--update-baseline`` and
+explain the new numbers in the PR. Only rule ids, counts and surface names are printed.
+"""
+
 from __future__ import annotations
 
+import argparse
+import json
+import time
+from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
+from typing import Any
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import (
     CalculationConfig,
     ChartInput,
-    DateOnlySunResult,
-    EngineProvenance,
     NatalChart,
     ZodiacSign,
 )
+from app.domains.readings.clarity_lint import (
+    RULES,
+    TODO_RULES,
+    SurfaceReport,
+    baseline_document,
+    lint_surface,
+    ratchet_regressions,
+)
 from app.domains.readings.gates import evaluate_candidate
-from app.domains.readings.models import BackgroundLens, ReadingPlan, ReadingPurpose
+from app.domains.readings.models import BackgroundLens, ReadingPurpose
 from app.domains.readings.planner import ReadingPlanner
 from app.domains.readings.renderers import DeterministicVietnameseRenderer
 from app.domains.readings.review_agent import ContentReviewAgent, ReviewSample
@@ -20,7 +41,14 @@ from app.domains.readings.voice import DailySections, roast_daily_sections
 from app.domains.tarot.engine import TarotReadingEngine
 from app.domains.tarot.knowledge import BOOK_SOURCES, all_cards
 from app.domains.tarot.models import TarotContext, TarotSpread, TarotVoice
+from scripts.content_clarity_corpus import (
+    MINIMUM_SAMPLES,
+    build_clarity_corpus,
+)
+from scripts.content_clarity_corpus import daily_review_plan as _daily_review_plan
+from scripts.content_clarity_corpus import date_only_chart as _date_only
 
+BASELINE_PATH = Path(__file__).with_name("content_clarity_baseline.json")
 PERSONA_COUNT = 10
 _QUESTIONS = (
     "Mình cần nhìn rõ điều gì trước khi nhắn lại?",
@@ -55,15 +83,6 @@ _SPREAD_CARD_COUNTS = {
 }
 
 
-def _date_only(sign: ZodiacSign) -> DateOnlySunResult:
-    return DateOnlySunResult(
-        status="certain",
-        sign=sign,
-        candidates=(sign,),
-        provenance=EngineProvenance(version="synthetic", profile="content-review"),
-    )
-
-
 def _full_chart(index: int) -> NatalChart:
     return NatalChartEngine().calculate_chart(
         ChartInput(
@@ -82,47 +101,9 @@ def _full_chart(index: int) -> NatalChart:
     )
 
 
-def _daily_review_plan(
-    planner: ReadingPlanner,
-    engine: NatalChartEngine,
-    chart: NatalChart | DateOnlySunResult,
-    lens: BackgroundLens,
-    start: date,
-    index: int,
-) -> ReadingPlan:
-    """Exact charts are reviewed on their first day (within 30) that has a real
-    "Vì sao hôm nay?" reason, so that sentence is read too; others on the base day."""
-
-    base = start + timedelta(days=index)
-    if not isinstance(chart, NatalChart):
-        return planner.plan(
-            chart,
-            purpose=ReadingPurpose.DAILY_NOTE,
-            background_lens=lens,
-            editorial_seed=base.isoformat(),
-        )
-    first: ReadingPlan | None = None
-    for offset in range(30):
-        day = base + timedelta(days=offset)
-        plan = planner.plan(
-            chart,
-            purpose=ReadingPurpose.DAILY_NOTE,
-            transits=engine.calculate_transit_to_natal(
-                chart, datetime(day.year, day.month, day.day, 5, tzinfo=UTC)
-            ),
-            background_lens=lens,
-            editorial_seed=day.isoformat(),
-        )
-        first = first or plan
-        if plan.daily_selection is not None and plan.daily_selection.transit_ref is not None:
-            return plan
-    if first is None:  # pragma: no cover - range(30) always yields a plan
-        raise RuntimeError("no Daily review plan")
-    return first
-
-
 def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
-    """Direct samples by default; ``roast`` reviews the approved read-time roast voice."""
+    """Production default voices (Daily direct, Tarot ``playful_grounded``) by default;
+    ``roast`` reviews the approved read-time roast voice on both."""
     planner = ReadingPlanner()
     renderer = DeterministicVietnameseRenderer()
     engine = NatalChartEngine()
@@ -194,7 +175,7 @@ def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
             spread=spread,
             context=_CONTEXTS[index],
             question=_QUESTIONS[index],
-            voice=TarotVoice.ROAST if roast else TarotVoice.STRAIGHT_WARM,
+            voice=TarotVoice.ROAST if roast else TarotVoice.PLAYFUL_GROUNDED,
         )
         source_ids = set(tarot_reading.provenance.source_ids)
         registered_source_ids = {source.source_id for source in BOOK_SOURCES}
@@ -233,9 +214,79 @@ def build_synthetic_samples(*, roast: bool = False) -> tuple[ReviewSample, ...]:
     return tuple(samples)
 
 
-def main() -> None:
+def main(argv: Sequence[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--update-baseline",
+        action="store_true",
+        help="rewrite the clarity baseline with the current counts (intended changes only)",
+    )
+    parser.add_argument("--baseline", type=Path, default=BASELINE_PATH, help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
     _review(build_synthetic_samples(), label="Content review")
     _review(build_synthetic_samples(roast=True), label="Roast voice review")
+    _clarity_ratchet(args.baseline, update=args.update_baseline)
+
+
+def clarity_reports() -> dict[str, SurfaceReport]:
+    return {
+        surface: lint_surface(surface, documents)
+        for surface, documents in build_clarity_corpus().items()
+    }
+
+
+def format_clarity_table(reports: Mapping[str, SurfaceReport], baseline: Mapping[str, Any]) -> str:
+    """Rule counts per surface; ``(+n)``/``(-n)`` is the change against the baseline."""
+
+    surfaces = list(reports)
+    expected: Mapping[str, Any] = baseline.get("surfaces", {})
+    width = 18
+    lines = [
+        f"{'rule':<34}" + "".join(f"{surface:>{width}}" for surface in surfaces),
+        f"{'samples':<34}"
+        + "".join(f"{reports[surface].samples:>{width}}" for surface in surfaces),
+    ]
+    for rule, name in RULES.items():
+        cells = []
+        for surface in surfaces:
+            value = reports[surface].rules[rule]
+            delta = value - int(expected.get(surface, {}).get("rules", {}).get(rule, 0))
+            cell = f"{value}" + (f" ({delta:+d})" if delta else "")
+            cells.append(f"{cell:>{width}}")
+        lines.append(f"{rule + ' ' + name:<34}" + "".join(cells))
+    return "\n".join(lines)
+
+
+def _clarity_ratchet(path: Path, *, update: bool) -> None:
+    started = time.perf_counter()
+    reports = clarity_reports()
+    elapsed = time.perf_counter() - started
+    baseline: dict[str, Any] = json.loads(path.read_text("utf-8")) if path.exists() else {}
+    print(f"Clarity lint (spec layer A) on rendered output, {elapsed:.1f}s:")
+    print(format_clarity_table(reports, baseline))
+    print("Not measured yet: " + "; ".join(f"{key} {name}" for key, name in TODO_RULES.items()))
+    if update:
+        path.write_text(
+            json.dumps(baseline_document(reports), ensure_ascii=False, indent=2) + "\n", "utf-8"
+        )
+        print(f"Clarity baseline rewritten: {path.name}")
+        return
+    problems = ratchet_regressions(reports, baseline, minimum_samples=MINIMUM_SAMPLES)
+    if problems:
+        print("Clarity ratchet failed (counts may only go down):")
+        for problem in problems:
+            print(f"- {problem}")
+        raise SystemExit(1)
+    expected = baseline.get("surfaces", {})
+    improved = any(
+        report.rules[rule] < int(expected.get(surface, {}).get("rules", {}).get(rule, 0))
+        for surface, report in reports.items()
+        for rule in RULES
+    )
+    print(
+        "Clarity ratchet passed: no rule count rose and coverage held."
+        + (" Some counts fell; lock them in with --update-baseline." if improved else "")
+    )
 
 
 def _review(samples: tuple[ReviewSample, ...], *, label: str) -> None:
