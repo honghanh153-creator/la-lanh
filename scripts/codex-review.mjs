@@ -128,10 +128,15 @@ function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, n
     try { git(['merge-base', '--is-ancestor', priorAuto.verdict.sha, head], dir, run); deltaFrom = priorAuto.verdict.sha; } catch {}
   }
   const mergeBase = git(['merge-base', `origin/${integration}`, head], dir, run);
+  // A delta that merges collab/integration in carries every other PR's files; on 02.11 Codex marked the
+  // #117 re-review incomplete over 230 such files (K25). Limit the delta to the PR's own files.
+  const mergesBase = deltaFrom && git(['rev-list', '--merges', `${deltaFrom}..${head}`], dir, run).trim() !== '';
   const prompt = fillPrompt(readFileSync(promptPath, 'utf8'), {
     PR: String(pr.number), HEAD: head, BASE_REF: pr.baseRefName, MERGE_BASE: mergeBase,
     DELTA_LINE: deltaFrom
-      ? `Re-review: the previous automatic review was at \`${deltaFrom}\`. Read \`git diff ${deltaFrom}..${head}\` closely and confirm each earlier blocking finding is fixed; skim the rest.`
+      ? mergesBase
+        ? `Re-review: the previous automatic review was at \`${deltaFrom}\`, and the delta merges \`${integration}\` in. Read \`git diff ${deltaFrom}..${head} -- $(git diff --name-only ${mergeBase}..${head})\` closely (the delta in this PR's own files, including conflict resolutions) and confirm each earlier blocking finding is fixed. Files changed only by the merged \`${integration}\` were reviewed in their own PRs: do not read them and do not mark the review incomplete because of them.`
+        : `Re-review: the previous automatic review was at \`${deltaFrom}\`. Read \`git diff ${deltaFrom}..${head}\` closely and confirm each earlier blocking finding is fixed; skim the rest.`
       : 'First automatic review of this PR: read the full change.',
     TITLE: clean(pr.title, 300), BODY: clean(pr.body, 12000), PRIOR: priorAuto ? clean(priorAuto.body, 8000) : 'None.',
   });

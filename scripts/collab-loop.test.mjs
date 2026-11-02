@@ -164,6 +164,20 @@ test('review posts verdict, files fix-forward first, and records the output hash
   assert.equal(review.runReview(7, { gh, run: runner.run, readOut: () => raw }).status, 'refused', 'no second verdict for the same head');
 });
 
+test('a re-review across an integration merge reads only the PR files (K25)', () => {
+  const prior = owner(`Review verdict: REQUEST_CHANGES @ ${B}\n${trust.agentMarker} codex-auto-review sha=${B} p2=0 -->`);
+  const raw = JSON.stringify(output());
+  for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
+    const runner = fakeRun();
+    const base = runner.run;
+    const run = (cmd, args, opts) => (cmd === '/usr/bin/git' && args[0] === 'rev-list' && args[1] === '--merges' ? merges : base(cmd, args, opts));
+    review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [prior, check(A)] }) }), run, readOut: () => raw, now: { date: '2026-11-02', hour: 11, minute: 0 } });
+    const input = runner.calls.find(c => c[0] === review.codexBin)[2].input;
+    assert.match(input, new RegExp(`git diff ${B}\\.\\.${A}`));
+    assert.equal(/-- \$\(git diff --name-only/.test(input), scoped);
+  }
+});
+
 test('review refuses without an author check, stops on limits, and escalates to the owner', () => {
   const now = { date: '2026-10-31', hour: 11, minute: 0 };
   assert.equal(review.runReview(7, { gh: fakeGh({ pr: pr() }), run: fakeRun().run, now }).status, 'refused');
