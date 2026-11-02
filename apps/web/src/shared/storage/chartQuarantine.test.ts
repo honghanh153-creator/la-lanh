@@ -83,7 +83,9 @@ it("holds derived reads while quarantined and lets them through once resolved", 
   const client = new QueryClient();
   await quarantineChartDerivedData(client, OLD, { intervalMs: 100, windowMs: 250 });
   expect(isChartDerivedRead("/daily-note?voice=roast")).toBe(true);
-  expect(isChartDerivedRead("/birth-profile")).toBe(false);
+  expect(isChartDerivedRead("/birth-profile")).toBe(true); // Codex r61: date and calculation
+  expect(isChartDerivedRead("/birth-profile/date", "PUT")).toBe(false);
+  expect(isChartDerivedRead("/birth-places/search?q=x")).toBe(false);
   expect(isChartDerivedRead("/saved-notes")).toBe(false);
 
   let settled = false;

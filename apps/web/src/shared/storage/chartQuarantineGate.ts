@@ -47,8 +47,10 @@ export function setPendingChartQuarantine(next: PendingChartQuarantine | null): 
 // Reads whose answer is the current chart's derived content (saved notes and share links survive
 // a correction on the server, D2, so they stay readable).
 const DERIVED_READS = ["/daily-note", "/insights/", "/birth-profile/supplement", "/radar/", "/matching/", "/public/radar/current"];
-// Codex r60: the receipt is the recipient's chart-derived pair result.
-const EXACT_DERIVED_READS = new Set(["/public/radar/receipt"]);
+// Codex r60: the receipt is the recipient's chart-derived pair result. Codex r61: the profile itself
+// carries the birth date and its calculation; only the reconciliation read passes, through the
+// explicit `bypassChartQuarantine` request option (never by path).
+const EXACT_DERIVED_READS = new Set(["/public/radar/receipt", "/birth-profile"]);
 
 export function isChartDerivedRead(path: string, method = "GET"): boolean {
   if (method !== "GET") return false;

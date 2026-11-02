@@ -2,7 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { BIRTH_CORRECTION_TIMEOUT_MS, clearActiveDailyReading, getBirthProfile } from "../api/client";
 import { currentSessionEpoch, sessionGeneration } from "../session/sessionIdentity";
-import { pendingChartQuarantine, setPendingChartQuarantine } from "./chartQuarantineGate";
+import { pendingChartQuarantine, setPendingChartQuarantine, type PendingChartQuarantine } from "./chartQuarantineGate";
 import { clearCachedDailyNote, suspendDailyNoteCacheWrites } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
 import { clearSavedNoteMutationQueue, dropQueuedSaves } from "./savedNoteMutationQueue";
@@ -47,7 +47,36 @@ const RETAINED_COPY_KEYS = new Set(["saved-notes", "share-links"]);
  * offline unsave must still reach it. Queued *saves* point at the deleted Daily note and go.
  */
 export async function withdrawCorrectedChart(client: QueryClient): Promise<void> {
-  await withdrawChart(client, true);
+  // The outcome is known now: drop the old cache, then release the gate (a pending correction
+  // record or quarantine holds the very refetches awaited below, Codex r61).
+  const { refetch } = await withdrawChart(client, true);
+  endQuarantine();
+  await refetch;
+}
+
+/**
+ * Codex r61: record the correction before its PUT leaves. A reload while the request is pending
+ * loses this page's continuation, but the server may still commit; the stored record (same shape
+ * as the quarantine: opaque revision, deadline, session epoch) makes the next app start hold the
+ * derived reads and reconcile (resumeChartQuarantine). Reads in this tab wait meanwhile too.
+ */
+export function beginPendingCorrection(submittedRevision: string): PendingChartQuarantine {
+  const record = {
+    revision: submittedRevision,
+    deadline: Date.now() + BIRTH_CORRECTION_TIMEOUT_MS + 30_000,
+    epoch: currentSessionEpoch(),
+  };
+  // An earlier unresolved correction keeps its watched quarantine, which already holds the reads
+  // (and the editor cannot load a date while it lasts).
+  if (!activeQuarantine) setPendingChartQuarantine(record);
+  return record;
+}
+
+/** A definitive answer: this request can no longer commit, so its record goes. */
+export function settlePendingCorrection(record: PendingChartQuarantine): void {
+  const current = pendingChartQuarantine();
+  if (activeQuarantine || !current) return;
+  if (current.revision === record.revision && current.deadline === record.deadline) endQuarantine();
 }
 
 /**
@@ -68,27 +97,34 @@ export async function quarantineChartDerivedData(
   submittedRevision: string,
   options: { intervalMs?: number; windowMs?: number } = {},
 ): Promise<void> {
-  endQuarantine();
+  // Replace any earlier record without releasing the gate in between (Codex r61): a release here
+  // would let held reads fetch the old chart before the new record is in place.
+  stopWatcher();
   setPendingChartQuarantine({
     revision: submittedRevision,
     deadline: Date.now() + (options.windowMs ?? BIRTH_CORRECTION_TIMEOUT_MS + 30_000),
     epoch: currentSessionEpoch(),
   });
   suspendDailyNoteCacheWrites(true);
-  // Codex r60: never await active refetches here; they wait on this very quarantine.
-  await withdrawChart(client, false, false);
+  // Codex r60: never await active refetches here; they wait on this very quarantine. The withdrawal
+  // includes the birth profile itself (date and calculation), Codex r61.
+  const { refetch } = await withdrawChart(client, false);
+  void refetch.catch(() => undefined);
   watchQuarantine(client, options.intervalMs ?? 10_000);
 }
 
-/** App start: continue a quarantine a reload interrupted, before anything derived is shown. */
+/**
+ * App start: continue a quarantine (or a correction still pending when the page reloaded) before
+ * anything derived is shown. The first reconciliation read runs at once.
+ */
 export function resumeChartQuarantine(client: QueryClient, options: { intervalMs?: number } = {}): void {
   if (activeQuarantine || !pendingChartQuarantine()) return;
   suspendDailyNoteCacheWrites(true);
   clearCachedDailyNote();
-  watchQuarantine(client, options.intervalMs ?? 10_000);
+  watchQuarantine(client, options.intervalMs ?? 10_000, 0);
 }
 
-function watchQuarantine(client: QueryClient, intervalMs: number): void {
+function watchQuarantine(client: QueryClient, intervalMs: number, firstDelayMs = intervalMs): void {
   const pending = pendingChartQuarantine();
   if (!pending) return;
   const generation = sessionGeneration();
@@ -100,7 +136,8 @@ function watchQuarantine(client: QueryClient, intervalMs: number): void {
     if (pending.epoch !== currentSessionEpoch() || generation !== sessionGeneration()) return endQuarantine();
     let revision: string | undefined;
     try {
-      revision = (await getBirthProfile()).profile_revision ?? undefined;
+      // The only profile read allowed past the gate (Codex r61).
+      revision = (await getBirthProfile(undefined, { bypassChartQuarantine: true })).profile_revision ?? undefined;
     } catch {
       revision = undefined;
     }
@@ -108,14 +145,20 @@ function watchQuarantine(client: QueryClient, intervalMs: number): void {
     if (revision !== undefined && revision !== pending.revision) {
       // Codex r60: withdraw the cache without awaiting refetches (this gate holds them), then
       // release the gate so the active queries refetch the corrected chart.
-      await withdrawChart(client, true, false);
+      const { refetch } = await withdrawChart(client, true);
+      void refetch.catch(() => undefined);
       if (activeQuarantine?.token === token) endQuarantine();
       return;
     }
     if (revision === pending.revision && Date.now() >= pending.deadline) return endQuarantine();
     activeQuarantine.timer = setTimeout(() => void check(), intervalMs);
   };
-  activeQuarantine.timer = setTimeout(() => void check(), intervalMs);
+  activeQuarantine.timer = setTimeout(() => void check(), firstDelayMs);
+}
+
+function stopWatcher(): void {
+  if (activeQuarantine?.timer) clearTimeout(activeQuarantine.timer);
+  activeQuarantine = null;
 }
 
 let activeQuarantine: { token: object; timer: ReturnType<typeof setTimeout> | null } | null = null;
@@ -127,13 +170,16 @@ export function chartQuarantined(): boolean {
 
 /** Stop a pending quarantine (resolved, or replaced by a definitive withdrawal). */
 export function endQuarantine(): void {
-  if (activeQuarantine?.timer) clearTimeout(activeQuarantine.timer);
-  activeQuarantine = null;
+  stopWatcher();
   setPendingChartQuarantine(null);
   suspendDailyNoteCacheWrites(false);
 }
 
-async function withdrawChart(client: QueryClient, sourceDeleted: boolean, awaitRefetch = true): Promise<void> {
+/**
+ * Drops the old derived cache and starts the refetches without awaiting them: they may wait at the
+ * quarantine gate, which the caller releases (wrapped so the async return does not await it).
+ */
+async function withdrawChart(client: QueryClient, sourceDeleted: boolean): Promise<{ refetch: Promise<unknown> }> {
   chartRevisions.set(client, chartDataRevision(client) + 1);
   const derived = (query: { queryKey: readonly unknown[] }) =>
     typeof query.queryKey[0] === "string"
@@ -156,6 +202,5 @@ async function withdrawChart(client: QueryClient, sourceDeleted: boolean, awaitR
     // listSavedNotes flushes the kept unsaves before it reads the list.
     client.invalidateQueries({ predicate: retained }),
   ]);
-  if (awaitRefetch) await refetch;
-  else void refetch.catch(() => undefined);
+  return { refetch };
 }

@@ -114,6 +114,9 @@ how the duties apply stays in the owner/engineering P09 assessment and no compli
    `BIRTH_DATE_CHANGE_LIMITED` (429), `BIRTH_DATE_CONFIRMATION_MISMATCH` (422), and `BIRTH_CORRECTION_EXPIRED`
    (503, Codex r59): a correction not committed 60 s after it started rolls back, so the web quarantine (session-
    scoped, restored on reload, derived reads held) lifts on an unchanged revision only after 120 s.
+   Codex r61: the record is written before the PUT is sent (a reload mid-request restores it), the web treats
+   `BIRTH_CORRECTION_EXPIRED` and other known refusals as final (record cleared), and `GET /birth-profile` is held
+   too; only the reconciliation read passes, through an explicit client option.
 2. The D5 counter is keyed by the guest id with an FK cascade (`birth_date_changes`) rather than an HMAC, so guest
    deletion removes it; it holds no value.
 3. The Mình time/place summary shows precision and city, not "07:30": the general supplement state never contains the

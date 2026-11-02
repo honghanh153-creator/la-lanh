@@ -5,7 +5,10 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { ApiProblem, correctBirthDate, getBirthProfile, type BirthReveal } from "../../shared/api/client";
 import { currentSessionEpoch, sessionGeneration } from "../../shared/session/sessionIdentity";
-import { quarantineChartDerivedData, withdrawCorrectedChart } from "../../shared/storage/clearChartDerivedData";
+import type { PendingChartQuarantine } from "../../shared/storage/chartQuarantineGate";
+import {
+  beginPendingCorrection, quarantineChartDerivedData, settlePendingCorrection, withdrawCorrectedChart,
+} from "../../shared/storage/clearChartDerivedData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { isUnder18, validDate } from "./birthDateInput";
 
@@ -148,31 +151,38 @@ export function BirthDateEdit() {
     const epoch = currentSessionEpoch();
     const generation = sessionGeneration();
     const sameSession = () => epoch === currentSessionEpoch() && generation === sessionGeneration();
+    // Codex r61: persisted before the PUT leaves, so a reload mid-request still reconciles.
+    const record = beginPendingCorrection(loaded.profile_revision);
     try {
       await correctBirthDate({
         birth_date: birthDate,
         confirm_birth_date: confirmed,
         expected_revision: loaded.profile_revision,
       });
-      if (!sameSession()) return;
+      // The session boundary clears the old owner's data, this record included.
+      if (!sameSession()) return settlePendingCorrection(record);
       // The cleanup refetches the active profile; that answer is the latest server revision and
-      // is kept even if another tab corrected again meanwhile (Codex r55).
+      // is kept even if another tab corrected again meanwhile (Codex r55). It also lifts the record.
       await withdrawCorrectedChart(queryClient);
       if (!sameSession()) return;
       void navigate("/reveal", { replace: true, state: { corrected: true } });
     } catch (failure) {
-      if (!sameSession()) return;
+      if (!sameSession()) return settlePendingCorrection(record);
       const message = messageFor(failure);
       if (message.ambiguous) {
         // A timeout or transport failure says nothing about the commit, which happens before the
         // send drain. Read the profile again: a new revision means the change is in.
-        // Only a 4xx answer proves the server finished with this request; anything else (transport
-        // reset, timeout, 5xx/gateway) may still commit after the reconciliation read (Codex r57).
-        const terminal = failure instanceof ApiProblem && failure.status >= 400 && failure.status < 500;
-        const text = await reconcile(loaded.profile_revision, terminal, sameSession);
+        // Only a 4xx answer, or the server's own pre-commit expiry (rolled back, Codex r59), proves
+        // the server finished with this request; anything else (transport reset, timeout,
+        // 5xx/gateway) may still commit after the reconciliation read (Codex r57).
+        const terminal = failure instanceof ApiProblem
+          && ((failure.status >= 400 && failure.status < 500) || failure.code === "BIRTH_CORRECTION_EXPIRED");
+        const text = await reconcile(loaded.profile_revision, terminal, sameSession, record);
         if (sameSession()) setError({ text });
         return;
       }
+      // A known refusal: nothing was changed by this request.
+      settlePendingCorrection(record);
       setError(message);
       if (message.reload) {
         setStage("edit");
@@ -191,11 +201,30 @@ export function BirthDateEdit() {
     }
   };
 
-  const reconcile = async (submitted: string, terminal: boolean, sameSession: () => boolean): Promise<string> => {
-    const current = await profile.refetch();
-    if (!sameSession()) return UNKNOWN_MESSAGE;
-    if (current.isError || !current.data || current.data.profile_revision === submitted) {
-      if (terminal && current.data?.profile_revision === submitted) return UNCHANGED_MESSAGE;
+  const reconcile = async (
+    submitted: string,
+    terminal: boolean,
+    sameSession: () => boolean,
+    record: PendingChartQuarantine,
+  ): Promise<string> => {
+    // The pending record holds ordinary profile reads, so this one read passes the gate itself
+    // (Codex r61); the cleanup below refreshes the cached profile.
+    let current: BirthReveal | null;
+    try {
+      current = await getBirthProfile(undefined, { bypassChartQuarantine: true });
+    } catch {
+      current = null;
+    }
+    if (!sameSession()) {
+      settlePendingCorrection(record);
+      return UNKNOWN_MESSAGE;
+    }
+    if (!current || current.profile_revision === submitted) {
+      if (terminal) {
+        // This request is finished and changed nothing (a failed read does not undo that).
+        settlePendingCorrection(record);
+        return UNCHANGED_MESSAGE;
+      }
       // The request may still commit later (Codex r57): clear the old derived content now, from
       // the query cache and the offline note cache, without dropping queued saves or unsaves
       // that stay valid if the change never lands.
@@ -204,7 +233,7 @@ export function BirthDateEdit() {
     }
     await withdrawCorrectedChart(queryClient);
     if (!sameSession()) return UNKNOWN_MESSAGE;
-    const latest = queryClient.getQueryData<BirthReveal>(["birth-profile"]) ?? current.data;
+    const latest = queryClient.getQueryData<BirthReveal>(["birth-profile"]) ?? current;
     setValue(partsOf(latest.birth_date));
     setStage("edit");
     return RECONCILED_MESSAGE;

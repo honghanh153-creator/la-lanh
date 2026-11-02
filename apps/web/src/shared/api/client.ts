@@ -445,7 +445,12 @@ const DELETE_GUEST_TIMEOUT_MS = 75_000;
 let activeDailyReading: { scopeKey: string; revisionId: string } | null = null;
 let ownerClaimInFlight: { sessionEpoch: string | null; promise: Promise<OwnerClaim> } | null = null;
 
-type RequestOptions = RequestInit & { timeoutMs?: number; sessionTransition?: boolean };
+type RequestOptions = RequestInit & {
+  timeoutMs?: number;
+  sessionTransition?: boolean;
+  /** US-23 (Codex r61): only a birth correction's own reconciliation read passes the quarantine gate. */
+  bypassChartQuarantine?: boolean;
+};
 
 class ApiTimeoutError extends Error {
   readonly name = "TimeoutError";
@@ -520,8 +525,10 @@ function cookieCapable(path: string, method = "GET"): boolean {
 
 async function request<T>(path: string, init?: RequestOptions, consume?: (result: T) => Promise<void>): Promise<T> {
   // US-23 (Codex r59): no old chart content is read while a correction's outcome is unknown.
-  const held = isChartDerivedRead(path, init?.method) ? awaitChartRelease(init?.signal) : null;
-  if (held) await held;
+  // Checked again after each release: a new quarantine may start before the held read resumes.
+  if (isChartDerivedRead(path, init?.method) && !init?.bypassChartQuarantine) {
+    for (let held = awaitChartRelease(init?.signal); held; held = awaitChartRelease(init?.signal)) await held;
+  }
   const epoch = currentSessionEpoch();
   const generation = sessionGeneration();
   const marker = sessionCookieMarker();
@@ -549,7 +556,8 @@ async function requestLocked<T>(path: string, init?: RequestOptions): Promise<T>
   if (path !== "/session" && path !== "/session/renew" && path !== "/guest-sessions" && path !== "/guest-session" && verifiedCookieHasChanged()) {
     throw new ApiProblem(401, "SESSION_CHANGED", "Phiên trên trình duyệt đã đổi.");
   }
-  const { timeoutMs = REQUEST_TIMEOUT_MS, sessionTransition = false, ...fetchInit } = init ?? {};
+  const { timeoutMs = REQUEST_TIMEOUT_MS, sessionTransition = false, ...fetchInit }: RequestOptions = { ...init };
+  delete fetchInit.bypassChartQuarantine; // client-side only, never sent
   const mustDrain = cookieCapable(path, fetchInit.method);
   const transition = sessionTransition && fetchInit.method === "POST"
     && ["/account/login/verify", "/account/login/restore", "/account/login/google/verify", "/account/logout"].includes(path);
@@ -766,8 +774,15 @@ export function deleteTarotSession(sessionId: string): Promise<void> {
   });
 }
 
-export function getBirthProfile(signal?: AbortSignal): Promise<BirthReveal> {
-  return request<BirthReveal>("/birth-profile", { signal });
+/**
+ * `bypassChartQuarantine` is for the birth-correction reconciliation only (its revision reads):
+ * every other profile read waits while a correction's outcome is unknown (US-23, Codex r61).
+ */
+export function getBirthProfile(
+  signal?: AbortSignal,
+  options: { bypassChartQuarantine?: boolean } = {},
+): Promise<BirthReveal> {
+  return request<BirthReveal>("/birth-profile", { signal, bypassChartQuarantine: options.bypassChartQuarantine });
 }
 
 export function createBirthProfile(birthDate: string): Promise<BirthReveal> {
