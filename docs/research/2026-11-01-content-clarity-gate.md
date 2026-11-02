@@ -10,41 +10,44 @@ phải đo gì, đo bằng cách nào, ngưỡng nào thì chặn phát hành.
 
 ### 1.1 Đo trên engine thật
 
-Render 300 bài Tarot (1/3/5 lá, giọng production `playful_grounded`), 80 bài Radar và 80 trang
-Khám phá từ chart ngẫu nhiên.
+> **Đính chính 2026-11-02.** Lần đo đầu chạy trên một nhánh cũ (`feat/luna-content-rewrite-runtime`).
+> Ở đó Radar và Tarot còn nhiều câu meta và thuật ngữ. Trên `collab/integration`, Radar đã được viết
+> lại dễ đọc hơn và Tarot đã bỏ các tiền tố "Ý chính của lá:", "Ví dụ:". Bảng dưới là số đo trên
+> `collab/integration`, đúng với baseline của C1 (#179). Đơn vị là tổng số lần vi phạm.
 
-| Chỉ số | Tarot | Radar | Khám phá |
-|---|---|---|---|
-| Âm tiết mỗi bài (trung vị) | 336 | 1360 | 1149 |
-| Bài có câu dài hơn 25 âm tiết | 8% | 100% | 100% |
-| Bài có ít nhất một cặp câu gần trùng | 100% (trung vị 3 cặp) | 100% (13) | 100% (51) |
-| Bài có thuật ngữ chiêm tinh / engine | 0% | 100% (4 lần) | 100% (19 lần) |
-| Bài có câu nói về bài/app/phương pháp | 100% (4) | 100% (18) | 100% (22) |
-| Bài có từ tiếng Anh | 0% | 100% (chart, mood, flirt) | 100% (Saturn, Pluto, Chiron) |
-| Từ rào đón mỗi câu (trung vị) | 0.33 | 0.92 | 0.43 |
+| Luật | Daily (64) | Tarot (240) | Radar (96) | Khám phá (88) |
+|---|---|---|---|---|
+| A1 thuật ngữ đứng trơ | 0 | 0 | 0 | 1663 |
+| A3 ẩn dụ máy (vượt 2/bài) | 0 | 1 | 130 | 1320 |
+| A4 nói về bài/app | 0 | 0 | 0 | 396 |
+| A5 cặp câu gần trùng | 0 | 712 | 254 | 6050 |
+| A7 rào đón (vượt 0.3/câu) | 36 | 373 | 288 | 495 |
+| A8 câu > 25 âm tiết | 33 | 24 | 124 | 775 |
+| A10 tiếng Anh | 2 | 0 | 91 | 332 |
+| A11 placeholder | 0 | 0 | 0 | 132 |
+| A14 khẳng định việc đã xảy ra | 5 | 5 | 0 | 0 |
 
-Từ gặp nhiều nhất:
-- **Radar:** "nhịp" 1374 lần, "tín hiệu" 701, "chạm vào" 585, "lớp" 447, "phần dưới" 291, "Radar giữ" 124.
-- **Khám phá:** "Nhà N" 960 lần, "lục hợp" 114, "tam hợp" 107; "không nói bạn là gì" 480, nghĩa là có trong mọi ô.
-
-Một số câu lặp điển hình:
-- Tarot: phần tóm tắt *"Tám Kiếm: Sợ phản ứng của người kia…"*, rồi đoạn nghĩa lại viết *"Ý chính của lá: sợ phản ứng của người kia…"*.
-- Radar: câu *"Có khả năng tạo được sự đều đặn…"* xuất hiện ở tóm tắt, ở mục "Điểm lặp lại" và ở cảnh.
-- Khám phá: cụm *"chiều sâu, sự riêng tư và niềm tin đã được kiểm chứng"* lặp ba lần trong cùng một ô Mặt Trời.
+Kết luận theo màn:
+- **Khám phá** nặng nhất. Ô hành tinh × cung × nhà được ghép độc lập nên lặp câu trong cùng trang;
+  có "Nhà N", tên góc chiếu, tên hành tinh tiếng Anh; câu "X không nói bạn là gì" có ở mọi ô; ô
+  Jyotish còn câu tạm "Phần giải nghĩa riêng chưa sẵn sàng".
+- **Tarot** không còn thuật ngữ, nhưng trung bình khoảng 3 cặp câu gần trùng mỗi bài, headline chung
+  chung (ví dụ "Lúc này, điều đáng nhìn rõ trong chuyện này."), và có cảnh không liên quan tới câu hỏi.
+- **Radar** đã dễ đọc hơn nhiều; còn câu dài, rào đón và lặp ý.
+- **Daily**: chữ khá sạch, nhưng **không bám theo ngày** (mục 1.4).
 
 ### 1.2 Vì sao cổng hiện tại không chặn
 
 1. **Không phủ hết các màn người dùng thấy.** `pnpm content:review` chỉ duyệt Daily, Natal detail và
-   Tarot: 10 persona, tổng 30 bài. Radar và các ô Khám phá **không được duyệt**. Thử chạy chính
-   `ContentReviewAgent` lên chúng thì **trượt ngay**:
-   - Radar: 34 câu quá dày, 19 câu lặp giữa các phần, 14 câu khó hiểu.
-   - Khám phá: 73 câu lặp, 20 cảnh không quan sát được.
+   Tarot: 10 persona, tổng 30 bài. Radar và các ô Khám phá **không được duyệt**. Chạy chính
+   `ContentReviewAgent` lên các ô Khám phá thì trượt ngay (73 câu lặp, 20 cảnh không quan sát được).
 2. **Duyệt sai giọng.** Script review render Tarot bằng `STRAIGHT_WARM`, nhưng route production luôn
    dùng `PLAYFUL_GROUNDED` (hoặc `ROAST`). Cổng đang kiểm một giọng không người dùng nào thấy.
 3. **Danh sách cấm đóng.** `BANNED_CORE_FRAGMENTS` / `OPAQUE_CORE_FRAGMENTS` là danh sách câu đã từng
    bị chê. Cách diễn đạt mới cùng kiểu vẫn lọt qua. Hiện chưa có từ điển thuật ngữ, mẫu câu meta,
    ngưỡng rào đón hay luật về tiếng Anh.
-4. **Chỉ bắt câu trùng y hệt.** Đổi tiền tố "Tám Kiếm:" thành "Ý chính của lá:" là thoát. Với Tarot,
+4. **Chỉ bắt câu trùng y hệt.** Hai câu cùng ý khác vài chữ là thoát (ví dụ ở nhánh cũ: "Tám Kiếm:
+   …" và "Ý chính của lá: …"); trên integration Tarot vẫn còn 712 cặp câu gần trùng. Với Tarot,
    lặp giữa các phần còn chỉ là mức `medium`, không chặn.
 5. **Kiểm hình thức, không kiểm nghĩa.** Một "cảnh" chỉ cần chứa "khi " hoặc "người "; một "hành
    động" chỉ cần chứa "nói " hoặc "làm ". Không cổng nào hỏi: bài có trả lời câu hỏi không, cảnh
@@ -89,11 +92,12 @@ cho đúng chart và ngày đó. Dữ liệu sinh và các vị trí suy ra từ
 khai nên tài liệu này chỉ ghi số đếm và dạng lỗi, không ghi vị trí hay góc của chart đó.
 
 **Daily Note của Lá Lành không bám theo ngày:**
-- 13/14 ngày liên tiếp, lý do chiêm tinh là cùng một transit của hành tinh chậm, kéo dài nhiều
-  tháng. Planner chọn transit theo độ chính xác của góc và trọng số hành tinh gốc,
+- Trên `collab/integration`: 11/14 ngày liên tiếp dùng cùng một transit của hành tinh chậm (kéo
+  dài khoảng 3 tháng), mà câu vẫn mở bằng "Hôm nay…". Ở nhánh cũ là 13/14 ngày.
+  Planner chọn transit theo độ chính xác của góc và trọng số hành tinh gốc,
   không tính tốc độ hành tinh.
-- Headline thay đổi mỗi ngày, nhưng do `editorial_seed` xoay vòng 12 ngày, không phải do bầu trời.
-  Ngày 14 lặp nguyên văn ngày 2.
+- Headline thay đổi theo `editorial_seed`, không theo bầu trời: 14 ngày chỉ có 9 headline khác nhau,
+  một câu lặp 3 lần. Cả loạt headline xoay quanh một chủ đề hẹp (bản nháp, xin góp ý).
 - Transit thật sự chỉ có trong hôm đó (một góc của Mặt Trăng, chính xác trong ngày) không được
   dùng.
 - Headline khẳng định một việc như đã xảy ra: *"Tin nhắn vừa gửi chưa đúng cách bạn muốn nói."*
@@ -163,11 +167,11 @@ phải hiệu chỉnh bằng bộ mẫu vàng (mục 4).
 | A6 | Không lặp câu giữa các bài | Một câu không phải disclaimer xuất hiện ở > 20% số bài của cùng màn | 0 câu | "X không nói bạn là gì; nó mô tả…" có trong mọi ô |
 | A7 | Ít rào đón | có thể, dễ, chưa chắc, không phải, đôi lúc, có lẽ | ≤ 0.3 mỗi câu; 0 câu kiểu disclaimer trong thân bài | Radar 0.92 mỗi câu |
 | A8 | Câu ngắn | Âm tiết mỗi câu | Không câu nào > 25 | 100% bài Radar và Khám phá |
-| A9 | Màn đầu vừa sức đọc trên điện thoại | Chỉ đếm âm tiết ở lớp đầu, trước khi người dùng bấm mở thêm. Lớp sâu không giới hạn tổng độ dài, nhưng từng đoạn vẫn phải qua A1–A8 | Tarot 1/3/5 lá: 120/250/400; Radar lớp đầu ≤ 400; Khám phá màn đầu ≤ 300; Daily màn đầu ≤ 150 | Radar 1360, Khám phá 1149 |
+| A9 | Màn đầu vừa sức đọc trên điện thoại | Chỉ đếm âm tiết ở lớp đầu, trước khi người dùng bấm mở thêm. Lớp sâu không giới hạn tổng độ dài, nhưng từng đoạn vẫn phải qua A1–A8 | Tarot 1/3/5 lá: 120/250/400; Radar lớp đầu ≤ 400; Khám phá màn đầu ≤ 300; Daily màn đầu ≤ 150 | Khám phá ~1150 âm tiết mỗi trang (đo trên nhánh cũ; cần đo lại khi có A9) |
 | A10 | Không tiếng Anh trong thân bài | Từ có f/j/w/z hoặc thuộc danh sách vay mượn; allowlist: Vibe, tên sản phẩm | 0 | chart, mood, flirt, Saturn |
 | A11 | Không câu chờ hay placeholder | "chưa sẵn sàng", "đang cập nhật", TODO | 0 | Ô nakshatra: "Phần giải nghĩa riêng chưa sẵn sàng." |
 | A12 | Phủ đủ và đúng giọng | Số mẫu: Tarot ≥ 200 (mọi giọng production), Radar ≥ 80, Khám phá ≥ 80, Daily ≥ 60 | Thiếu là trượt | Hiện 30 mẫu, sai giọng, thiếu Radar và Khám phá |
-| A13 | Daily bám đúng ngày | Render 30 ngày liên tiếp cho mỗi persona có giờ sinh. Đếm: (a) ngày có ít nhất một yếu tố nhanh (transit của Mặt Trăng, Mặt Trời, Sao Thủy, Sao Kim, Sao Hỏa, hoặc cung/nhà của Mặt Trăng); (b) số lý do khác nhau; (c) headline lặp | (a) 100% số ngày; (b) không có lý do nào chiếm > 3 ngày trong 7; (c) 0 headline lặp trong 30 ngày | 13/14 ngày cùng một lý do (transit chậm); headline lặp sau 12 ngày |
+| A13 | Daily bám đúng ngày | Render 30 ngày liên tiếp cho mỗi persona có giờ sinh. Đếm: (a) ngày có ít nhất một yếu tố nhanh (transit của Mặt Trăng, Mặt Trời, Sao Thủy, Sao Kim, Sao Hỏa, hoặc cung/nhà của Mặt Trăng); (b) số lý do khác nhau; (c) headline lặp | (a) 100% số ngày; (b) không có lý do nào chiếm > 3 ngày trong 7; (c) 0 headline lặp trong 30 ngày | 11/14 ngày cùng một lý do (transit chậm); 9 headline cho 14 ngày |
 | A14 | Không khẳng định sự việc đã xảy ra | Headline/cảnh có hành động của người đọc ở thể đã xong ("vừa gửi", "đã gửi", "rồi mới thấy", "vừa nói") mà không có "nếu/khi/lúc" | 0 | "Tin nhắn vừa gửi chưa đúng cách bạn muốn nói." |
 | A15 | Dữ kiện trong câu chữ khớp engine | Bóc mọi cặp hành tinh + góc/cung/nhà được nhắc trong thân bài, đối chiếu với contacts/positions của engine (gồm pha tiến gần/rời xa) | 0 sai lệch | (Lá Lành chưa thấy lỗi này; bài AI chat sai 3/6.) Cần trước khi bật Luna viết lại tự do hơn |
 

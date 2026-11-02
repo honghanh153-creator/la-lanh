@@ -25,10 +25,10 @@ Nghiên cứu và chẩn đoán: `docs/research/2026-11-01-content-clarity-gate.
 
 | Chỉ số | Hiện tại | Daily v2 (mô phỏng 20 chart × 30 ngày) |
 |---|---|---|
-| Lý do chiêm tinh trùng hôm qua | 93% (13/14 ngày cùng một transit chậm) | 7% |
+| Lý do chiêm tinh trùng hôm qua | 79% (11/14 ngày cùng một transit chậm, đo trên `collab/integration`) | 7% |
 | Bộ 3 yếu tố trùng hôm qua (Jaccard, trung vị) | — | 0.20 |
 | Ngày không đủ 3 yếu tố nhanh | — | 0% khi chạm mọi điểm gốc |
-| Headline lặp | Vòng xoay 12 ngày theo seed, không theo bầu trời | Mục tiêu: 0 lặp trong 30 ngày |
+| Headline lặp | 9 headline cho 14 ngày, xoay theo seed, không theo bầu trời | Mục tiêu: 0 lặp trong 30 ngày |
 | Giờ tính | Sky Chapter tính lúc 12:00 UTC (19h giờ VN) | Theo ngày giờ VN, lấy mẫu mỗi 30 phút |
 
 ## 3. Hợp đồng note ngày mới
