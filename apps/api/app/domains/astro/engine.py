@@ -378,6 +378,30 @@ class NatalChartEngine:
             config_hash=resolved.fingerprint,
         )
 
+    def transiting_position(
+        self,
+        body: BodyName,
+        observed_at: datetime,
+        config: CalculationConfig | None = None,
+    ) -> BodyPosition:
+        """One transiting body at an exact instant, without the natal comparison.
+
+        Cheap enough to scan day by day (one ephemeris call), so callers that only follow a
+        single body — the Moon's sign, a slow planet's orb window — do not need the full
+        transit-to-natal snapshot. The south node is derived, not calculated, so it is refused.
+        """
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        ids = dict(BODY_IDS) | {BodyName.MEAN_NODE: 10}
+        if body not in ids:
+            raise ValueError(f"{body.value} is not a calculated transiting body")
+        resolved = config or CalculationConfig.western_recommended()
+        sidereal = resolved.tradition is Tradition.JYOTISH
+        sidereal_mode = AYANAMSA_IDS[resolved.ayanamsa] if resolved.ayanamsa else None
+        julian_day_ut = self._julian_day(observed_at)
+        with self._native.calculation_scope(sidereal_mode):
+            return self._body_position(julian_day_ut, body, ids[body], sidereal=sidereal)
+
     def _transiting_bodies(
         self,
         julian_day_ut: float,
