@@ -23,7 +23,8 @@
   // Faces: detective id -> small canvas cropped from a photo the player picked. Memory only.
   const faces = new Map();
   const faceGen = new Map(); // bumps on every load/remove so a stale decode cannot restore a removed face
-  let setupToken = 0;
+  // Modal ownership: bumps on every open and close, so a late callback can tell whether its dialog is still the one shown.
+  let modalGen = 0, modalOnClose = null;
 
   const fx = () => motion === 'full';
   const quiet = () => !fx();
@@ -299,7 +300,7 @@
       d.task = null;
       const src = c.sources.find(k => E.SOURCE_SPOT[k] === spotName);
       const run = () => (spotName === 'tarot' ? tarot(who) : src ? examine(src, who) : null);
-      if (modalOpen) pending.push(run); else run();
+      if (modalOpen || busy) pending.push(run); else run();
     });
     toast(who.name + ': ' + who.help);
   }
@@ -442,7 +443,7 @@
     for (const d of dets) if (d.hop > 0) d.hop = Math.max(0, d.hop - dt * 1000);
     updateParticles(dt);
     render();
-    if (!modalOpen && pending.length) pending.shift()();
+    if (!modalOpen && !busy && pending.length) pending.shift()();
     const me = lead();
     const n = modalOpen || busy ? null : nearest(me);
     const key = n ? n.kind + n.label : '';
@@ -511,15 +512,19 @@
   function btn(text, cls, fn) { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', fn); return b; }
   let toastT;
   function toast(text) { clearTimeout(toastT); const t = $('toast'); t.textContent = text; t.hidden = false; toastT = setTimeout(() => (t.hidden = true), 2400); }
+  function endModalOwner() { const f = modalOnClose; modalOnClose = null; modalGen++; if (f) f(); }
   function openModal(kicker, title) {
     if (!modalOpen) returnFocus = document.activeElement;
+    endModalOwner();
+    const gen = modalGen;
     modalOpen = true; keys.clear(); for (const d of dets) if (slotOf(d) >= 0) { d.path = null; d.then = null; }
     $('mKicker').textContent = kicker; $('mTitle').textContent = title; $('mBody').replaceChildren();
-    $('shade').hidden = false; setTimeout(() => $('mClose').focus(), 0);
+    $('shade').hidden = false; setTimeout(() => { if (modalOpen && modalGen === gen) $('mClose').focus(); }, 0);
     return $('mBody');
   }
   function closeModal() {
     if (!modalOpen) return;
+    endModalOwner();
     modalOpen = false; $('shade').hidden = true;
     if (returnFocus && returnFocus.isConnected && returnFocus !== document.body) returnFocus.focus(); else canvas.blur();
     renderAll();
@@ -621,7 +626,7 @@
       clearInterval(typing);
       if (quiet()) { bubble.textContent = text; return; }
       let i = 0; bubble.textContent = '';
-      typing = setInterval(() => { i += 2; bubble.textContent = text.slice(0, i); if (i >= text.length) clearInterval(typing); }, 24);
+      typing = setInterval(() => { if (!bubble.isConnected) { clearInterval(typing); return; } i += 2; bubble.textContent = text.slice(0, i); if (i >= text.length) clearInterval(typing); }, 24);
     };
     const tones = el('div', 'seg');
     [['soft', 'Hỏi nhẹ'], ['direct', 'Hỏi thẳng'], ['joke', 'Trêu nhẹ']].forEach(([k, lab], i) => {
@@ -649,6 +654,7 @@
     C.complete(progress, index, { status: 'solved' });
     s.solved = true; busy = true;
     for (const d of dets) { d.path = null; d.then = null; d.task = null; }
+    pending.length = 0; // a source opened by an NPC errand must not pop up over or after the reveal
     const g = ghosts.find(x => x.id === id);
     const finish = () => {
       g.hidden = true; g.glitch = 0; busy = false; s.gone = id;
@@ -678,12 +684,18 @@
     if (bmp.close) bmp.close();
     return cv;
   }
+  const bumpFace = id => { const g = (faceGen.get(id) || 0) + 1; faceGen.set(id, g); return g; };
+  // A face belongs only to a detective a player controls: drop it, and cancel any decode still in flight, for everyone else.
+  function dropUnclaimedFaces() { for (const d of C.detectives) if (!team.includes(d.id)) { bumpFace(d.id); faces.delete(d.id); } }
   function teamSetup(then) {
     const body = openModal('ĐỘI THÁM TỬ · CHỈ TRÊN MÁY NÀY', 'Ai chơi?');
     let count = team.length;
     const draft = team.slice();
-    const token = ++setupToken;
-    const bump = id => { const g = (faceGen.get(id) || 0) + 1; faceGen.set(id, g); return g; };
+    const token = modalGen;
+    const owns = () => modalOpen && modalGen === token;
+    const bump = bumpFace;
+    // Closing setup by any route (X, Escape, backdrop, Vào phòng, another dialog) ends this setup's ownership of the modal.
+    modalOnClose = dropUnclaimedFaces;
     const render = () => {
       body.replaceChildren();
       body.append(el('p', 'note', 'Chơi một mình: bạn chọn một thám tử, ba người còn lại là thám tử mặc định, bạn nhờ họ đi khám hay giữ công tắc. Chơi nhiều người trên cùng màn hình: mỗi người một thám tử và một bộ phím.'));
@@ -707,15 +719,18 @@
         if (faces.has(id)) { const thumb = faces.get(id); const img = el('canvas', 'thumb'); img.width = 64; img.height = 64; img.getContext('2d').drawImage(thumb, 0, 0); faceRow.append(img, btn('Bỏ ảnh mặt', 'small', () => { bump(id); faces.delete(id); render(); })); }
         const label = el('label', 'small filebtn', faces.has(id) ? 'Đổi ảnh mặt' : 'Gắn mặt của bạn (tuỳ chọn)');
         const inp = el('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'user'); inp.className = 'sr-only';
-        inp.addEventListener('change', async () => { const f = inp.files && inp.files[0]; if (!f) return; const g = bump(id); try { const face = await loadFace(f); if (faceGen.get(id) === g) faces.set(id, face); } catch (err) { if (faceGen.get(id) === g) toast('Không đọc được ảnh này.'); } inp.value = ''; if (token === setupToken && modalOpen) render(); });
+        inp.addEventListener('change', async () => { const f = inp.files && inp.files[0]; if (!f) return; const g = bump(id); let face = null; try { face = await loadFace(f); } catch (err) { if (faceGen.get(id) === g && owns()) toast('Không đọc được ảnh này.'); } inp.value = '';
+          // Accept only if no newer load/remove/team change happened and the detective is still claimed: in the team, or picked in this still-open setup.
+          if (face && faceGen.get(id) === g && (team.includes(id) || (owns() && draft.slice(0, count).includes(id)))) faces.set(id, face);
+          if (owns()) render(); });
         label.append(inp); faceRow.append(label);
         box.append(faceRow);
         body.append(box);
       }
       body.append(el('p', 'note', 'Ảnh mặt: chỉ dùng ảnh của chính người chơi thám tử đó. Ảnh được cắt và dán ngay trong trình duyệt, không gửi đi đâu, không lưu; tải lại trang hoặc bấm "Bỏ ảnh mặt" là mất.'));
       body.append(btn('Vào phòng', 'primary', () => {
-        team = draft.slice(0, count); active = 0; setupToken++;
-        for (const id of [...faces.keys()]) if (!team.includes(id)) { bump(id); faces.delete(id); }
+        team = draft.slice(0, count); active = 0;
+        dropUnclaimedFaces();
         for (const d of dets) { d.path = null; d.then = null; d.task = null; }
         closeModal(); renderAll(); renderSlots(); if (then) then();
       }));
@@ -735,7 +750,7 @@
       bar.append(b);
     });
   }
-  $('teamBtn').addEventListener('click', () => teamSetup());
+  $('teamBtn').addEventListener('click', () => { if (!busy) teamSetup(); });
 
   function examine(key, via) {
     const c = kase(), s = session();
@@ -1128,6 +1143,7 @@
     goTo(0);
   }
   $('resetBtn').addEventListener('click', () => {
+    if (busy) return; // a reveal or room change is mid-flight; its timers would overwrite this dialog or skip the reset
     const body = openModal('CHỈ XOÁ TRONG TAB NÀY', 'Chơi lại từ đầu?');
     body.append(el('p', '', 'Xoá nguồn đã khám và tiến độ cả bảy vụ trong tab này. Đội và ảnh mặt giữ nguyên.'), btn('Chơi lại', 'primary', () => { closeModal(); resetAll(); }), document.createTextNode(' '), btn('Giữ ván đang chơi', 'ghost', closeModal));
   });
