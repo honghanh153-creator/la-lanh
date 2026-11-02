@@ -103,6 +103,12 @@ def test_operator_commands(tmp_path: Any) -> None:
     replayed = _script("scripts.erasure_journal", "replay", "/dev/null", tmp_path=tmp_path)
     assert replayed.returncode == 0, replayed.stderr[-400:]
     assert "human_tarot_intake_closed day=" in replayed.stdout
+    # Replay also asks the Sheet bridge to look for unknown codes at once (AC21).
+    import sqlite3
+
+    with sqlite3.connect(tmp_path / "ops.db") as ops:
+        names = [row[0] for row in ops.execute("SELECT name FROM human_tarot_sync_lease")]
+    assert names == ["reconcile"]
 
 
 def test_the_owner_template_carries_the_exact_header_and_the_catalog() -> None:

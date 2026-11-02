@@ -51,6 +51,7 @@ from app.domains.human_tarot.tables import (
     HumanTarotDayRow,
     HumanTarotRequestRow,
     HumanTarotSlotRow,
+    HumanTarotSyncLeaseRow,
 )
 from app.domains.tarot.engine import TarotReadingEngine
 from app.domains.tarot.errors import TarotQuestionRejected
@@ -59,6 +60,8 @@ from app.domains.tarot.models import TarotContext, TarotSpread, TarotSpreadMap
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
 
 _IDEMPOTENCY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{22,200}$")
+# The sync-lease row whose ``lease_until`` says when the Sheet bridge next looks for unknown codes.
+RECONCILE_LEASE = "reconcile"
 logger = logging.getLogger(__name__)
 
 
@@ -344,11 +347,17 @@ class HumanTarotService:
             await self._best_effort(self.bridge.clear_now, slot_id, "clear")
 
     async def close_intake(self, day: date) -> None:
-        """Stop intake for ``day`` (after a restore, plan "cost"); the count is never reopened."""
+        """Stop intake for ``day`` (after a restore, plan "cost"); the count is never reopened.
+
+        Also asks the Sheet bridge to look for unknown codes on its next pass, even when the
+        restored copy has nothing in flight (AC21).
+        """
 
         async with account_transaction(self._sessions) as database:
-            row = await _lock_day(database, day, self.now())
+            now = self.now()
+            row = await _lock_day(database, day, now)
             row.intake_closed = True
+            await _reconcile_now(database, now)
 
     async def finalize_and_purge(self, *, batch_size: int = 500) -> dict[str, int]:
         """Day end, question retention and expiry (US-24 OD2 proposal). Idempotent."""
@@ -598,6 +607,18 @@ async def _lock_day(database: AsyncSession, day: date, now: datetime) -> HumanTa
     if row is None:  # pragma: no cover - inserted above in this transaction
         raise RuntimeError("human Tarot day row missing")
     return row
+
+
+async def _reconcile_now(database: AsyncSession, now: datetime) -> None:
+    dialect = database.get_bind().dialect.name
+    insert = postgresql_insert if dialect == "postgresql" else sqlite_insert
+    await database.execute(
+        insert(HumanTarotSyncLeaseRow)
+        .values(name=RECONCILE_LEASE, holder=None, lease_until=now)
+        .on_conflict_do_update(
+            index_elements=[HumanTarotSyncLeaseRow.name], set_={"lease_until": now}
+        )
+    )
 
 
 async def _unused_code(database: AsyncSession) -> str:

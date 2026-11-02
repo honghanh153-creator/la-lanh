@@ -69,7 +69,11 @@ from app.infrastructure.generation.openai import (
     OPENAI_PROMPT_VERSION,
     OPENAI_REWRITE_PROMPT_VERSION,
 )
-from app.infrastructure.google_sheets.client import GoogleSheetsClient, ServiceAccount
+from app.infrastructure.google_sheets.client import (
+    FileTokenCache,
+    GoogleSheetsClient,
+    ServiceAccount,
+)
 from app.infrastructure.log_redaction import install_log_redaction
 from app.middleware.admission import AdmissionControlMiddleware
 from app.middleware.body_limit import BodyLimitMiddleware
@@ -220,7 +224,13 @@ def create_app(
                 database.sessions,
                 app.state.human_tarot_service,
                 GoogleSheetsClient(
-                    sheet_id, ServiceAccount.from_file(credentials_file), reserve=budget.reserve
+                    sheet_id,
+                    ServiceAccount.from_file(credentials_file),
+                    reserve=budget.reserve,
+                    # Shared with the minute job, so neither mints a token the other holds.
+                    token_cache=FileTokenCache.default(
+                        resolved_settings.human_tarot_google_token_cache_dir
+                    ),
                 ),
                 budget=budget,
             )

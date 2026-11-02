@@ -51,8 +51,12 @@ muốn thay phải có quy trình riêng (chưa có trong bản đầu).
 - Job: `python -m scripts.sync_human_tarot` mỗi phút trong container app đang chạy, qua timer
   `la-lanh-human-tarot-sync.timer` (`infra/hetzner/install-human-tarot-sync-timer.sh`, chỉ cài khi owner ra lệnh).
   Một lượt: dọn cuối ngày và retention, xoá hàng đến hạn, ghi hàng chưa ghi, nhập hàng đã tick.
-- Trần gọi Google của app: 30 lần/phút và 2.000 lần/ngày, gồm cả retry. Chạm trần → `GOOGLE_BUDGET_EXHAUSTED`, job
-  dừng và thử lại phút sau; không tự xin thêm quota hay bật billing.
+- Trần gọi Google của app: 30 lần/phút và 2.000 lần/ngày, gồm cả retry và request lấy token OAuth. Chạm trần →
+  `GOOGLE_BUDGET_EXHAUSTED`, job dừng và thử lại phút sau; không tự xin thêm quota hay bật billing. Token truy cập
+  (hạn 1 giờ) được app và job dùng chung qua file `google-token.json` quyền 0600 trong thư mục 0700 ở `/tmp` của
+  container (RAM, mất khi container khởi động lại, không vào backup). Không copy, in hay commit file này. Ngày có yêu
+  cầu tốn khoảng 1 lần đọc mỗi phút và 1 lần OAuth mỗi giờ (≈ 1.470/ngày), còn chỗ cho ghi, nhập và xoá.
+- Khi không có yêu cầu nào đang chạy, job vẫn đọc Sheet tối đa 15 phút một lần để xoá hàng có mã lạ.
 - Log chỉ có số đếm và mã lỗi (`SHEETS_UNAVAILABLE`, `SHEETS_RATE_LIMITED`, `SHEETS_ACCESS_DENIED`,
   `SHEET_LAYOUT_INVALID`, `SLOT_OCCUPIED`, `SLOT_MOVED`, `ROW_UNVERIFIED`, `GOOGLE_BUDGET_EXHAUSTED`).
 - Mỗi hàng gắn với yêu cầu bằng cả **vị trí hàng do app cấp** và **mã**. App không bao giờ ghi vào hàng còn chữ mà
@@ -64,7 +68,8 @@ muốn thay phải có quy trình riêng (chưa có trong bản đầu).
   rồi job tự thử lại (giãn tối đa 15 phút).
 - Restore database trong một ngày đang nhận: chạy `python -m scripts.sync_human_tarot close-today` ngay sau replay
   nhật ký xoá (lệnh replay cũng tự làm việc này). Ngày đó không nhận thêm, dù Sheet còn hàng trống. Hàng trên Sheet
-  có mã mà database không biết sẽ bị job xoá.
+  có mã mà database không biết sẽ bị job xoá ngay lượt kế tiếp, kể cả khi bản restore chưa có yêu cầu nào; kiểm log
+  có `orphan_cleared=N` rồi một lượt sau không còn số này.
 - Thay file Sheet định kỳ (OD2, đề xuất mỗi tháng, ngoài giờ nhận): tạo file mới từ bản mẫu, chia sẻ cho service
   account, đổi `LA_LANH_HUMAN_TAROT_SHEET_ID`, kiểm một lượt job, rồi chuyển file cũ vào thùng rác và dọn thùng rác.
   Đây là cách giới hạn lịch sử phiên bản của Google; xoá ô không xoá lịch sử phiên bản.

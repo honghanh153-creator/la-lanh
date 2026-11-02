@@ -3,7 +3,8 @@
 Export: right after admission commits, and again from the minute job until it lands, the request
 is written to its own DB-assigned row, never appended. Import: a row the owner ticked is matched by
 code and date, validated, and frozen once in the database. Clear: a cancelled, deleted, finished
-or orphaned request's row is cleared and confirmed by reading it back.
+or orphaned request's row is cleared and confirmed by reading it back. Unknown codes are looked
+for even when nothing is in flight, at most every ``IDLE_RECONCILE`` (and at once after a restore).
 
 Every Google call first takes a slot of the application budget (30 a minute, 2,000 a day,
 retries included) and fails closed when none is left. Writes to one row hold that slot's lease, so
@@ -32,7 +33,7 @@ from app.domains.guest.models import GuestState
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.human_tarot import policy, sheet_rows
 from app.domains.human_tarot.models import RequestStatus, SheetState
-from app.domains.human_tarot.service import HumanTarotService
+from app.domains.human_tarot.service import RECONCILE_LEASE, HumanTarotService
 from app.domains.human_tarot.tables import (
     HumanTarotGoogleUsageRow,
     HumanTarotRequestRow,
@@ -51,6 +52,10 @@ SLOT_LEASE = timedelta(seconds=30)
 SYNC_LEASE = timedelta(seconds=55)
 MAX_BACKOFF = timedelta(minutes=15)
 CLEAR_VERIFY = timedelta(minutes=15)
+# With nothing in flight the Sheet is still read this often, so a row whose code the database does
+# not know (a restore to an older snapshot, a late write after its slot was purged) is cleared
+# even when no new request ever arrives (AC21). At most 96 reads a day, inside the daily budget.
+IDLE_RECONCILE = timedelta(minutes=15)
 
 
 class BudgetExhausted(Exception):
@@ -174,7 +179,11 @@ class HumanTarotSheetBridge:
                 )
             )
         if not active:
-            return  # nothing in flight: no Google call at all
+            if not await self._reconcile_due(now):
+                return  # nothing in flight and the Sheet was checked recently: no Google call
+            # Take the idle check before reading, so a Sheet that keeps failing (layout, access,
+            # budget) is retried once per window, not every minute.
+            await self._schedule_reconcile(now + IDLE_RECONCILE)
         grid = await self._grid()
         rows = sheet_rows.code_rows(grid)
         # Read the known codes only after the grid: a slot always commits before its row is
@@ -194,13 +203,19 @@ class HumanTarotSheetBridge:
                     )
                 )
             )
-        for code, numbers in rows.items():
-            if sheet_rows.is_app_code(code) and code not in known:
-                # A well-formed app code this database does not know (for example after a
-                # restore) holds a question with no purpose left.
-                await self._clear_rows(numbers)
-                report.add("orphan_cleared", len(numbers))
-            elif code in known and known[code] in cleared:
+        # A well-formed app code this database does not know (for example after a restore) holds
+        # a question with no purpose left. All such rows go in one call.
+        orphans = sorted(
+            number
+            for code, numbers in rows.items()
+            if sheet_rows.is_app_code(code) and code not in known
+            for number in numbers
+        )
+        if orphans:
+            await self._clear_rows(orphans)
+            report.add("orphan_cleared", len(orphans))
+        for code in rows:
+            if code in known and known[code] in cleared:
                 # Back after it was cleared (a late write): clear it again.
                 await self._reopen_clear(known[code])
                 report.add("reappeared")
@@ -209,6 +224,9 @@ class HumanTarotSheetBridge:
                         id=known[code], request_code=code, sheet_state=SheetState.CLEAR_DUE.value
                     )
                 )
+        # Unknown rows were just cleared: read again next pass to confirm. Otherwise the Sheet holds
+        # no unknown code and the next idle check can wait. (A reappeared row is an active slot.)
+        await self._schedule_reconcile(now if orphans else now + IDLE_RECONCILE)
         for slot in active:
             if slot.sheet_state == SheetState.CLEAR_SENT.value:
                 await self._confirm_clear(slot, grid, report)
@@ -578,6 +596,30 @@ class HumanTarotSheetBridge:
                 update(HumanTarotSlotRow)
                 .where(HumanTarotSlotRow.id == slot_id, HumanTarotSlotRow.lease_token == token)
                 .values(lease_token=None, lease_until=None)
+            )
+
+    async def _reconcile_due(self, now: datetime) -> bool:
+        async with self._sessions() as database:
+            waiting = await database.scalar(
+                select(HumanTarotSyncLeaseRow.name).where(
+                    HumanTarotSyncLeaseRow.name == RECONCILE_LEASE,
+                    HumanTarotSyncLeaseRow.lease_until > now,
+                )
+            )
+        # No marker (a fresh or restored database that never checked the Sheet) means now.
+        return waiting is None
+
+    async def _schedule_reconcile(self, at: datetime) -> None:
+        async with account_transaction(self._sessions) as database:
+            await _insert_ignore(
+                database,
+                HumanTarotSyncLeaseRow,
+                {"name": RECONCILE_LEASE, "holder": None, "lease_until": at},
+            )
+            await database.execute(
+                update(HumanTarotSyncLeaseRow)
+                .where(HumanTarotSyncLeaseRow.name == RECONCILE_LEASE)
+                .values(lease_until=at)
             )
 
     async def _take_sync_lease(self, holder: UUID) -> bool:

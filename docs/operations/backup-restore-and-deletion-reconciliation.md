@@ -115,7 +115,9 @@ Losses the design accepts, so the runbook must not hide them:
    and record the per-kind counts (`reflected`/`applied`/`unmatched`, no ids). Replay also closes today's human
    Tarot intake (US-24, `human_tarot_intake_closed day=…`): the restored day tally may be lower than what was
    accepted, so that day takes no more requests. A replayed `human_tarot_request_cancelled` queues its Sheet row
-   for clearing, and the Sheet bridge clears rows whose code the restored copy does not know.
+   for clearing, and the Sheet bridge clears rows whose code the restored copy does not know. Replay also asks the
+   bridge to read the Sheet on its next pass, so this holds even when the restored copy has no human Tarot request
+   at all (`orphan_cleared=N` in the job log).
 4. Run the guest and expired cleanup jobs (option C) until they report nothing remaining.
 5. Privacy isolation check and readiness, then serve.
 

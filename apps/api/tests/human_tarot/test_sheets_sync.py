@@ -274,8 +274,12 @@ async def test_a_row_that_lands_after_its_clear_is_cleared_again(database: Datab
     assert all(cell == "" for cell in sheet.grid(TAB)[1])
     (slot,) = await support.slots(database)
     assert slot.sheet_state == "cleared"
-    # After the verification window a cleared slot no longer costs a Google read.
+    # After the verification window a cleared slot no longer costs a Google read of its own: only
+    # the idle check for unknown codes, at most once per window (AC21).
     clock.advance(minutes=20)
+    calls = len(sheet.calls)
+    await bridge.sync_once()
+    assert sheet.calls[calls:] == ["read"]
     calls = len(sheet.calls)
     await bridge.sync_once()
     assert len(sheet.calls) == calls
@@ -367,8 +371,12 @@ async def test_the_google_budget_fails_closed(database: Database) -> None:
 async def test_no_google_call_when_nothing_is_in_flight(database: Database) -> None:
     clock, sheet = Clock(vn(DAY, 7)), _sheet()
     _, bridge = _wire(database, clock, sheet)
+    # The first pass of a fresh (or restored) database checks the Sheet for unknown codes once.
     report = await bridge.sync_once()
-    assert sheet.calls == [] and report.error is None
+    assert sheet.calls == ["read"] and report.error is None
+    clock.advance(minutes=5)
+    report = await bridge.sync_once()
+    assert sheet.calls == ["read"] and report.error is None
 
 
 async def test_one_pass_at_a_time(database: Database) -> None:

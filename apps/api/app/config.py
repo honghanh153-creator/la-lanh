@@ -94,6 +94,9 @@ class Settings(BaseSettings):
     human_tarot_sheet_sync_enabled: bool = False
     human_tarot_sheet_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{20,128}$")
     human_tarot_google_credentials_file: str | None = None
+    # Private directory for the shared access token (0700, file 0600); default: a folder in the
+    # system temp directory, which is the container's RAM-backed /tmp in production.
+    human_tarot_google_token_cache_dir: str | None = None
     content_studio_enabled: bool = False
     content_studio_api_token: SecretStr | None = None
     content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)

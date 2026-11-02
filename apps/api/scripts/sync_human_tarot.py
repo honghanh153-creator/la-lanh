@@ -10,6 +10,7 @@ are configured. Prints counts and closed error codes only.
 import argparse
 import asyncio
 import sys
+from typing import Any
 
 from app.config import Settings, get_settings
 from app.db.session import Database
@@ -23,7 +24,11 @@ from app.infrastructure.crypto import (
     StaticDataKeyProvider,
     decode_key,
 )
-from app.infrastructure.google_sheets.client import GoogleSheetsClient, ServiceAccount
+from app.infrastructure.google_sheets.client import (
+    FileTokenCache,
+    GoogleSheetsClient,
+    ServiceAccount,
+)
 
 
 def _service(settings: Settings, database: Database) -> HumanTarotService:
@@ -37,6 +42,20 @@ def _service(settings: Settings, database: Database) -> HumanTarotService:
         SecretHasher(decode_key(settings.guest_hash_key.get_secret_value())),
         enabled=settings.human_tarot_enabled,
         intake_closes_at=settings.human_tarot_intake_closes_at,
+    )
+
+
+def gateway(settings: Settings, budget: GoogleBudget, **options: Any) -> GoogleSheetsClient:
+    """The Google client of one pass. Each pass is a new process, so the access token comes from
+    the shared private cache while it is valid instead of a new OAuth call (AC18 budget)."""
+
+    sheet_id, credentials_file = settings.human_tarot_sheet()
+    return GoogleSheetsClient(
+        sheet_id,
+        ServiceAccount.from_file(credentials_file),
+        reserve=budget.reserve,
+        token_cache=FileTokenCache.default(settings.human_tarot_google_token_cache_dir),
+        **options,
     )
 
 
@@ -54,13 +73,9 @@ async def _run(command: str) -> int:
         if not settings.human_tarot_sheet_sync_enabled:
             print("human_tarot_sync disabled")
             return 0
-        sheet_id, credentials_file = settings.human_tarot_sheet()
         budget = GoogleBudget(database.sessions, service.now)
-        gateway = GoogleSheetsClient(
-            sheet_id, ServiceAccount.from_file(credentials_file), reserve=budget.reserve
-        )
         report = await HumanTarotSheetBridge(
-            database.sessions, service, gateway, budget=budget
+            database.sessions, service, gateway(settings, budget), budget=budget
         ).sync_once()
         print(report.line())
         return 1 if report.error is not None else 0
