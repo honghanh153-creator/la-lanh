@@ -9,6 +9,7 @@ from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.identity.service import OwnerIdentityService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
+from app.infrastructure.session_cookies import token_cookie_value
 
 router = APIRouter()
 
@@ -44,7 +45,7 @@ async def claim_identity(
     claimed = await _identity(request).claim_guest(guest.id)
     response.set_cookie(
         settings.owner_cookie_name,
-        claimed.token,
+        token_cookie_value(claimed.token),
         httponly=True,
         secure=settings.guest_cookie_secure,
         samesite="strict",

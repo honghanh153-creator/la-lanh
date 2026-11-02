@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+import random
+import re
+import time
 from typing import cast
 
 import pytest
 
 from app.domains.content_rewrite.models import RewriteSurface
 from app.infrastructure.generation.privacy import (
+    _SENSITIVE_VALUE_PATTERNS,
     PrivacyMinimiser,
     UnsafeRewritePayload,
     reduce_tarot_question,
@@ -231,3 +235,42 @@ def test_radar_minimiser_refuses_chart_facts_matching_still_allows_labels(
     with pytest.raises(UnsafeRewritePayload):
         PrivacyMinimiser().minimise(RewriteSurface.RADAR, payload)
     assert PrivacyMinimiser().minimise(RewriteSurface.MATCHING, payload)
+
+
+# E-mail pattern before the CodeQL py/polynomial-redos fix, kept only as the oracle.
+_LEGACY_EMAIL = re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "hỏi về a@b.co nhé",
+        ".a@b.co",
+        "+-+@a.bc",
+        "đ@ư.vn",
+        "a@b.c",
+        "a@b.cd1",
+        "x.@y.zz",
+        "@b.co",
+        "chưa có địa chỉ nào",
+    ],
+)
+def test_email_pattern_keeps_the_legacy_result(text: str) -> None:
+    email = _SENSITIVE_VALUE_PATTERNS[0]
+    assert bool(email.search(text)) is bool(_LEGACY_EMAIL.search(text))
+
+
+def test_email_pattern_agrees_with_the_legacy_pattern_on_random_text() -> None:
+    email = _SENSITIVE_VALUE_PATTERNS[0]
+    rng = random.Random(20261102)  # noqa: S311 - seeded fuzz, not a secret
+    alphabet = "a1Z.+-@ _đ٣"
+    for _ in range(20_000):
+        text = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
+        assert bool(email.search(text)) is bool(_LEGACY_EMAIL.search(text))
+
+
+@pytest.mark.parametrize("text", ["a." * 25_000, "+" * 50_000, "-a" * 25_000, "a@" * 25_000])
+def test_email_pattern_is_fast_on_long_adversarial_text(text: str) -> None:
+    started = time.perf_counter()
+    _SENSITIVE_VALUE_PATTERNS[0].search(text)
+    assert time.perf_counter() - started < 0.25

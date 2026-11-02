@@ -13,6 +13,7 @@ from app.domains.la_chung.models import IdentityMode, RequestStatus
 from app.domains.la_chung.service import LaChungError, LaChungService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 from app.infrastructure.owner_session import resume_owner_for_guest
+from app.infrastructure.session_cookies import token_cookie_value
 
 router = APIRouter()
 public_router = APIRouter()
@@ -329,7 +330,7 @@ async def submit_response(
     settings = request.app.state.settings
     response.set_cookie(
         "la_lanh_lc_receipt",
-        result.receipt_token,
+        token_cookie_value(result.receipt_token),
         httponly=True,
         secure=settings.guest_cookie_secure,
         samesite="strict",

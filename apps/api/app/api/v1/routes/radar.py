@@ -24,6 +24,7 @@ from app.domains.radar.service import (
 from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 from app.infrastructure.owner_session import resume_owner_for_guest
+from app.infrastructure.session_cookies import is_token_cookie_value, token_cookie_value
 
 router = APIRouter()
 public_router = APIRouter()
@@ -511,7 +512,7 @@ async def accept_invite(
         return Response(status_code=422, headers=dict(response.headers))
     response.set_cookie(
         RADAR_RECEIPT_COOKIE,
-        result.receipt_token,
+        token_cookie_value(result.receipt_token),
         httponly=True,
         secure=settings.guest_cookie_secure,
         samesite="strict",
@@ -585,6 +586,10 @@ async def public_preview(
     token: str, request: Request, response: Response
 ) -> PublicRadarInviteResponse | Response:
     _safe_public(response)
+    # The path token becomes a cookie below. Refuse anything that is not the issued
+    # capability shape up front (the service would also answer 404 for it).
+    if not is_token_cookie_value(token):
+        return Response(status_code=404, headers=dict(response.headers))
     try:
         invite = await _service(request).preview(token)
     except RadarError:
@@ -592,7 +597,7 @@ async def public_preview(
     settings = request.app.state.settings
     response.set_cookie(
         RADAR_COOKIE,
-        token,
+        token_cookie_value(token),
         httponly=True,
         secure=settings.guest_cookie_secure,
         samesite="lax",

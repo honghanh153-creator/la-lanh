@@ -76,18 +76,50 @@ function sendJson(response, status, value) {
   response.end(JSON.stringify(value));
 }
 
-function proxyRequest(request, response, apiOrigin) {
-  // Only the path and query travel upstream. A scheme-relative request target such as
-  // "//other.example/v1/..." must not replace the configured API origin (audit P03 RC-10).
-  const local = new URL(request.url ?? "/", "http://127.0.0.1");
-  const target = new URL(`${local.pathname}${local.search}`, apiOrigin);
-  if (target.origin !== new URL(apiOrigin).origin) {
-    sendJson(response, 400, { status: "bad_request" });
-    return;
+const LOOPBACK_HOSTNAMES = new Map([
+  ["127.0.0.1", "127.0.0.1"],
+  ["localhost", "localhost"],
+  ["[::1]", "::1"],
+]);
+
+// The QA proxy only ever talks to the API it started on this machine. The upstream
+// is fixed once, at server creation, to plain http on a loopback host. Requests then
+// choose only the path and query; host, port and scheme never come from a request.
+export function loopbackApiTarget(apiOrigin) {
+  let url;
+  try {
+    url = new URL(apiOrigin);
+  } catch {
+    throw new TypeError("apiOrigin must be an http loopback origin");
   }
-  const upstream = requestUpstream(target, {
+  const hostname = LOOPBACK_HOSTNAMES.get(url.hostname);
+  if (
+    url.protocol !== "http:"
+    || hostname === undefined
+    || url.username
+    || url.password
+    || url.pathname !== "/"
+    || url.search
+    || url.hash
+  ) {
+    throw new TypeError("apiOrigin must be an http loopback origin");
+  }
+  return Object.freeze({ hostname, port: Number(url.port || 80), host: url.host });
+}
+
+function proxyRequest(request, response, upstreamTarget) {
+  // Only the path and query travel upstream. A scheme-relative request target such as
+  // "//other.example/v1/..." is parsed against a fixed local base, so its authority is
+  // dropped and only its path is kept (audit P03 RC-10).
+  const local = new URL(request.url ?? "/", "http://127.0.0.1");
+  const path = `${local.pathname}${local.search}`;
+  const upstream = requestUpstream({
+    protocol: "http:",
+    hostname: upstreamTarget.hostname,
+    port: upstreamTarget.port,
+    path,
     method: request.method,
-    headers: { ...request.headers, host: target.host },
+    headers: { ...request.headers, host: upstreamTarget.host },
   }, (upstreamResponse) => {
     response.writeHead(upstreamResponse.statusCode ?? 502, {
       ...upstreamResponse.headers,
@@ -157,6 +189,7 @@ export function createQaServer({
   readiness = { status: "ready" },
 } = {}) {
   if (!distDir) throw new TypeError("distDir is required");
+  const upstreamTarget = apiOrigin ? loopbackApiTarget(apiOrigin) : null;
   return createServer((request, response) => {
     const pathname = new URL(request.url ?? "/", "http://127.0.0.1").pathname;
     if (pathname === "/__qa/ready") {
@@ -172,8 +205,8 @@ export function createQaServer({
       response.end();
       return;
     }
-    if (apiOrigin && (pathname.startsWith("/v1/") || pathname === "/metrics")) {
-      proxyRequest(request, response, apiOrigin);
+    if (upstreamTarget && (pathname.startsWith("/v1/") || pathname === "/metrics")) {
+      proxyRequest(request, response, upstreamTarget);
       return;
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
