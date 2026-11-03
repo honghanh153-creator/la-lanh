@@ -25,11 +25,17 @@ Precision (``ContactEligibility``, AS-1/PL-14). A non-exact birth time still get
 factors, but only those that hold over the whole uncertain birth interval:
 
 * ``exact_time``: every natal body as a point; natal house of the transiting Moon is read.
-* ``approximate_time``: the chart is calculated at the window's stored midpoint and every stored
-  midpoint lies within ``APPROXIMATE_HALF_WIDTH_DAYS`` of its window's edges. Natal Sun…Pluto
-  and the natal Moon are bounded over that interval with ``NatalChartEngine.longitude_domains``
-  and a contact counts only while its worst-case orb (``orb_bounds``) is inside the limit; the
-  natal Moon gets ``NATAL_MOON_WINDOW_EXTRA_ORB`` on top because it spreads ~3° over the window.
+* ``approximate_time``: the chart is calculated at the window's stored midpoint and the four
+  daytime midpoints (08, 12, 15, 19 h) lie within ``APPROXIMATE_HALF_WIDTH_DAYS`` of their
+  window's edges. Natal Sun…Pluto and the natal Moon are bounded over that interval with
+  ``NatalChartEngine.longitude_domains`` and a contact counts only while its worst-case orb
+  (``orb_bounds``) is inside the limit; the natal Moon gets ``NATAL_MOON_WINDOW_EXTRA_ORB`` on
+  top because it spreads ~3° over the window.
+* ``approximate_night``: the "Đêm / sau 22h" window. There is no 00-06 h option, so people born
+  after midnight pick it too, and the birth service stores 23:00 on the entered date: the real
+  birth can be anywhere on that civil date. It is read like ``date_only`` (no natal Moon) over
+  ``NIGHT_HALF_WIDTH_DAYS`` around the stored instant. Any approximate chart whose window cannot
+  be recognised falls back to this rule (fail closed, see ``contact_eligibility``).
 * ``date_only``: as above over the engine's ±14 h birth-date interval, natal Sun…Pluto only; the
   natal Moon can sit anywhere in a ~13° band, so contacts to it would be invented precision.
 * Houses, angles, nodes and Chiron are never read for a non-exact time.
@@ -87,9 +93,16 @@ WAKING_END_HOUR = 23
 DAYS_TIER_MAX_DAYS = 7.0
 WEEKS_TIER_MAX_DAYS = 45.0
 SPAN_STEP = timedelta(hours=6)
-# Every stored approximate-window midpoint (birth service: 08, 12, 15, 19, 23 h) is at most 3 h
-# from its window's edges (06-10, 10-14, 14-18, 18-22, 22-24 h).
+# The daytime approximate-window midpoints stored by the birth service (08, 12, 15, 19 h local)
+# are at most 3 h from their window's edges (06-10, 10-14, 14-18, 18-22 h).
 APPROXIMATE_HALF_WIDTH_DAYS = 3.0 / 24.0
+DAYTIME_WINDOW_MIDPOINT_HOURS = frozenset({8, 12, 15, 19})
+# The night window ("sau 22h") is stored at 23:00 on the entered date but also holds births from
+# 00:00 to 06:00 that date (there is no 00-06 h option). The date-only interval is local noon
+# ±14 h, which reaches 25 h before a 23:00 instant; ±25 h around it therefore covers the whole
+# civil date with the same margin as date-only.
+NIGHT_HALF_WIDTH_DAYS = (23.0 - 12.0 + 14.0) / 24.0
+_UNIX_EPOCH_JULIAN_DAY = 2440587.5
 NATAL_MOON_WINDOW_EXTRA_ORB = 1.0
 # Day-by-day trend scan bound in each direction. A window that reaches the bound is flagged
 # open on that side.
@@ -238,6 +251,7 @@ class ContactEligibility(StrEnum):
 
     EXACT_TIME = "exact_time"
     APPROXIMATE_TIME = "approximate_time"
+    APPROXIMATE_NIGHT = "approximate_night"
     DATE_ONLY = "date_only"
     TRADITION_NOT_WESTERN = "tradition_not_western"
 
@@ -399,22 +413,41 @@ class DailySkySelection:
 NatalDomains = dict[BodyName, tuple[float, float]]
 
 
-def contact_eligibility(chart: NatalChart) -> ContactEligibility:
-    """Which precision mode applies to this chart (see the module docstring)."""
+def contact_eligibility(
+    chart: NatalChart, *, birth_timezone: str | None = None
+) -> ContactEligibility:
+    """Which precision mode applies to this chart (see the module docstring).
+
+    ``NatalChart`` does not carry the approximate window it was built from, only the stored
+    midpoint instant (``julian_day_ut``). The window is therefore keyed on the midpoint's local
+    hour in the birthplace zone (``birth_timezone``, default ``Asia/Ho_Chi_Minh``): 08, 12, 15
+    or 19 h on the minute is a daytime window; 23 h, or any other instant (a foreign birthplace
+    read in the wrong zone, a future window table), is treated as the night window, which is the
+    wider, date-only-like rule. A caller that knows the birthplace zone should pass it.
+    """
 
     if chart.config.tradition is not Tradition.WESTERN:
         return ContactEligibility.TRADITION_NOT_WESTERN
     if chart.time_precision is TimePrecision.EXACT:
         return ContactEligibility.EXACT_TIME
     if chart.time_precision is TimePrecision.APPROXIMATE:
-        return ContactEligibility.APPROXIMATE_TIME
+        zone = ZoneInfo(birth_timezone) if birth_timezone else DAILY_TIMEZONE
+        stored = datetime(1970, 1, 1, tzinfo=UTC) + timedelta(
+            days=chart.julian_day_ut - _UNIX_EPOCH_JULIAN_DAY
+        )
+        local = (stored + timedelta(seconds=30)).astimezone(zone)
+        if local.minute == 0 and local.hour in DAYTIME_WINDOW_MIDPOINT_HOURS:
+            return ContactEligibility.APPROXIMATE_TIME
+        return ContactEligibility.APPROXIMATE_NIGHT
     return ContactEligibility.DATE_ONLY
 
 
-def natal_domains(engine: NatalChartEngine, chart: NatalChart) -> NatalDomains:
+def natal_domains(
+    engine: NatalChartEngine, chart: NatalChart, *, birth_timezone: str | None = None
+) -> NatalDomains:
     """Natal points to scan, each as a ``(low, high)`` longitude domain (a point when exact)."""
 
-    eligibility = contact_eligibility(chart)
+    eligibility = contact_eligibility(chart, birth_timezone=birth_timezone)
     if eligibility is ContactEligibility.TRADITION_NOT_WESTERN:
         return {}
     if eligibility is ContactEligibility.EXACT_TIME:
@@ -426,6 +459,9 @@ def natal_domains(engine: NatalChartEngine, chart: NatalChart) -> NatalDomains:
     if eligibility is ContactEligibility.APPROXIMATE_TIME:
         domains = engine.longitude_domains(chart, half_width_days=APPROXIMATE_HALF_WIDTH_DAYS)
         targets: tuple[BodyName, ...] = (*INTERVAL_NATAL_BODIES, BodyName.MOON)
+    elif eligibility is ContactEligibility.APPROXIMATE_NIGHT:
+        domains = engine.longitude_domains(chart, half_width_days=NIGHT_HALF_WIDTH_DAYS)
+        targets = INTERVAL_NATAL_BODIES
     else:
         domains = engine.longitude_domains(chart)
         targets = INTERVAL_NATAL_BODIES
@@ -488,6 +524,7 @@ def scan_day(
     *,
     sample_minutes: int = DEFAULT_SAMPLE_MINUTES,
     domains: NatalDomains | None = None,
+    birth_timezone: str | None = None,
 ) -> tuple[DayContact, ...]:
     """Every contact in orb at some sample of the Vietnam day, scored and sorted by ``rank_key``.
 
@@ -499,11 +536,11 @@ def scan_day(
 
     if sample_minutes <= 0 or 1440 % sample_minutes:
         raise ValueError("sample_minutes must divide a day")
-    eligibility = contact_eligibility(chart)
+    eligibility = contact_eligibility(chart, birth_timezone=birth_timezone)
     if eligibility is ContactEligibility.TRADITION_NOT_WESTERN:
         return ()
     if domains is None:
-        domains = natal_domains(engine, chart)
+        domains = natal_domains(engine, chart, birth_timezone=birth_timezone)
     start, end = day_bounds(local_date)
     step = timedelta(minutes=sample_minutes)
     in_day = int((end - start) / step)
@@ -949,8 +986,10 @@ def _contact_domain(
     chart: NatalChart,
     contact: DayContact,
     domains: NatalDomains | None,
+    birth_timezone: str | None,
 ) -> tuple[float, float]:
-    domains = domains if domains is not None else natal_domains(engine, chart)
+    if domains is None:
+        domains = natal_domains(engine, chart, birth_timezone=birth_timezone)
     if contact.natal_body is BodyName.SOUTH_NODE and BodyName.SOUTH_NODE not in domains:
         node = next(domains[body] for body in NODE_BODIES if body in domains)
         return node[0] + 180.0, node[1] + 180.0
@@ -965,6 +1004,7 @@ def trend_window(
     *,
     max_scan_days: int = TREND_SCAN_DAYS,
     domains: NatalDomains | None = None,
+    birth_timezone: str | None = None,
 ) -> TrendWindow:
     """In-orb local dates around ``local_date`` for one contact, across retrograde passes.
 
@@ -977,7 +1017,7 @@ def trend_window(
     contact is in orb for only part of it (its noon sample may be just outside).
     """
 
-    domain = _contact_domain(engine, chart, contact, domains)
+    domain = _contact_domain(engine, chart, contact, domains, birth_timezone)
     limit = contact.orb_limit
     bridge = BRIDGE_DAYS_BY_BODY.get(contact.transit_body, TREND_BRIDGE_DAYS)
     speed = MAX_SPEED_DEG_PER_DAY.get(contact.transit_body, 1.0) * SPEED_MARGIN
@@ -1109,11 +1149,16 @@ def select_daily_sky(
     allow_fallback: bool = True,
     include_trend_windows: bool = True,
     max_scan_days: int = TREND_SCAN_DAYS,
+    birth_timezone: str | None = None,
 ) -> DailySkySelection:
-    """Select the day's sky for one natal chart and Vietnam-local date."""
+    """Select the day's sky for one natal chart and Vietnam-local date.
 
-    eligibility = contact_eligibility(chart)
-    domains = natal_domains(engine, chart)
+    ``birth_timezone`` is the birthplace IANA zone; it only matters for an approximate birth
+    time, to recognise the stored window (see ``contact_eligibility``).
+    """
+
+    eligibility = contact_eligibility(chart, birth_timezone=birth_timezone)
+    domains = natal_domains(engine, chart, birth_timezone=birth_timezone)
     contacts = scan_day(engine, chart, local_date, sample_minutes=sample_minutes, domains=domains)
     trend_contacts = tuple(
         sorted(

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -39,6 +40,7 @@ from app.domains.daily.sky_selection import (
     PassKind,
     SkyTier,
     TimeKind,
+    contact_eligibility,
     day_bounds,
     day_tone,
     moon_context,
@@ -466,24 +468,40 @@ def test_moon_context_reports_the_sign_change_time(
     assert changes >= 2  # the Moon changes sign every ~2.5 days
 
 
+def _window_chart(
+    engine: NatalChartEngine,
+    local_day: date,
+    hour: int,
+    precision: TimePrecision,
+    zone: str = "Asia/Ho_Chi_Minh",
+) -> NatalChart:
+    """A synthetic chart stored the way the birth service stores a window midpoint."""
+
+    stored = datetime.combine(local_day, time(hour), tzinfo=ZoneInfo(zone)).astimezone(UTC)
+    chart = engine.calculate_chart(ChartInput(utc_datetime=stored, latitude=16.0, longitude=108.0))
+    return chart.model_copy(update={"time_precision": precision})
+
+
 @pytest.mark.parametrize(
-    ("precision", "eligibility"),
+    ("hour", "precision", "eligibility"),
     [
-        (TimePrecision.APPROXIMATE, ContactEligibility.APPROXIMATE_TIME),
-        (TimePrecision.UNKNOWN, ContactEligibility.DATE_ONLY),
+        (8, TimePrecision.APPROXIMATE, ContactEligibility.APPROXIMATE_TIME),
+        (19, TimePrecision.APPROXIMATE, ContactEligibility.APPROXIMATE_TIME),
+        (23, TimePrecision.APPROXIMATE, ContactEligibility.APPROXIMATE_NIGHT),
+        (12, TimePrecision.UNKNOWN, ContactEligibility.DATE_ONLY),
     ],
 )
 def test_non_exact_birth_time_gets_interval_safe_contacts_without_houses(
     engine: NatalChartEngine,
-    charts: tuple[NatalChart, ...],
+    hour: int,
     precision: TimePrecision,
     eligibility: ContactEligibility,
 ) -> None:
-    chart = charts[0].model_copy(update={"time_precision": precision})
+    chart = _window_chart(engine, date(1990, 3, 14), hour, precision)
     assert chart.houses is not None  # houses on the record must still not be used
     domains = natal_domains(engine, chart)
     allowed = set(INTERVAL_NATAL_BODIES)
-    if precision is TimePrecision.APPROXIMATE:
+    if eligibility is ContactEligibility.APPROXIMATE_TIME:
         allowed.add(BodyName.MOON)
     assert set(domains) == allowed
     with_picks = 0
@@ -509,6 +527,61 @@ def test_non_exact_birth_time_gets_interval_safe_contacts_without_houses(
             extra = NATAL_MOON_WINDOW_EXTRA_ORB if item.natal_body is BodyName.MOON else 0.0
             assert item.orb_limit in {2.0 + extra, 2.5 + extra, 3.0 + extra}
     assert with_picks == 10
+
+
+def test_night_window_covers_births_after_midnight_on_the_entered_date(
+    engine: NatalChartEngine,
+) -> None:
+    # Born 03:00 on 14.03.1990 picks "Đêm"; the birth service stores 23:00 that date.
+    birth_day = date(1990, 3, 14)
+    night = _window_chart(engine, birth_day, 23, TimePrecision.APPROXIMATE)
+    assert contact_eligibility(night) is ContactEligibility.APPROXIMATE_NIGHT
+    domains = natal_domains(engine, night)
+    assert BodyName.MOON not in domains
+    date_only = natal_domains(engine, _window_chart(engine, birth_day, 12, TimePrecision.UNKNOWN))
+    for hour in (0, 3, 6, 22, 23):
+        at = datetime.combine(birth_day, time(hour), tzinfo=DAILY_TIMEZONE)
+        for body, (low, high) in domains.items():
+            longitude = engine.transiting_position(body, at).longitude
+            assert low - 1e-9 <= longitude <= high + 1e-9 or low <= longitude + 360.0 <= high
+    for body, (low, high) in date_only.items():
+        # The night domain contains the whole date-only domain.
+        night_low, night_high = domains[body]
+        shift = 360.0 if night_low > low + 180.0 else -360.0 if low > night_low + 180.0 else 0.0
+        assert night_low <= low + shift + 1e-9 and high + shift <= night_high + 1e-9
+    # Every daytime window keeps the narrow ±3 h rule.
+    narrow = natal_domains(engine, _window_chart(engine, birth_day, 15, TimePrecision.APPROXIMATE))
+    sun_low, sun_high = narrow[BodyName.SUN]
+    night_sun_low, night_sun_high = domains[BodyName.SUN]
+    assert sun_high - sun_low < 0.3 < 1.8 < night_sun_high - night_sun_low
+
+
+def test_unrecognised_window_fails_closed_and_birth_zone_is_honoured(
+    engine: NatalChartEngine,
+) -> None:
+    birth_day = date(1992, 8, 30)
+    # Not on a stored midpoint in Vietnam time: treated as the wide night rule.
+    odd = _window_chart(engine, birth_day, 10, TimePrecision.APPROXIMATE)
+    assert contact_eligibility(odd) is ContactEligibility.APPROXIMATE_NIGHT
+    # A foreign birthplace stored at its own 19:00 is recognised only with its zone.
+    tokyo = _window_chart(engine, birth_day, 19, TimePrecision.APPROXIMATE, "Asia/Tokyo")
+    assert contact_eligibility(tokyo) is ContactEligibility.APPROXIMATE_NIGHT
+    assert (
+        contact_eligibility(tokyo, birth_timezone="Asia/Tokyo")
+        is ContactEligibility.APPROXIMATE_TIME
+    )
+    tokyo_night = _window_chart(engine, birth_day, 23, TimePrecision.APPROXIMATE, "Asia/Tokyo")
+    assert (
+        contact_eligibility(tokyo_night, birth_timezone="Asia/Tokyo")
+        is ContactEligibility.APPROXIMATE_NIGHT
+    )
+    selection = select_daily_sky(
+        engine, tokyo, START, include_trend_windows=False, birth_timezone="Asia/Tokyo"
+    )
+    assert selection.eligibility is ContactEligibility.APPROXIMATE_TIME
+    # Exact and date-only charts ignore the window rule.
+    exact = _window_chart(engine, birth_day, 10, TimePrecision.EXACT)
+    assert contact_eligibility(exact) is ContactEligibility.EXACT_TIME
 
 
 def test_worst_orb_is_the_interval_maximum() -> None:
