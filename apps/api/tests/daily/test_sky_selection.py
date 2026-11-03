@@ -294,6 +294,45 @@ def test_score_prefers_rare_applying_stacked_and_triggering_contacts() -> None:
     )
 
 
+def test_phase_is_none_when_the_natal_domain_ends_disagree(
+    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
+) -> None:
+    # Spec §4: a synthetic natal Mercury domain [L-1°, L+1°] and the direct Moon at L at noon.
+    day = START + timedelta(days=6)
+    noon = _local(day, 12)
+    config = charts[0].config
+    moon = engine.transiting_position(BodyName.MOON, noon, config).longitude
+    key = "moon:conjunction:mercury"
+    domain = (moon - 1.0, moon + 1.0)
+    wide = _find(scan_day(engine, charts[0], day, domains={BodyName.MERCURY: domain}), key)
+    assert wide.closest_at is not None and abs(wide.closest_at - noon) <= timedelta(minutes=10)
+    assert wide.min_orb == pytest.approx(1.0, abs=0.02)  # certainly in orb over the domain
+    assert not wide.exact_today
+    # Both ends are in orb at noon, one separating and one approaching, so no phase is stated.
+    later = engine.transiting_position(BodyName.MOON, noon + timedelta(hours=1), config).longitude
+    closing = []
+    for natal in domain:
+        assert angular_distance(moon, natal) <= wide.orb_limit
+        closing.append(angular_distance(later, natal) < angular_distance(moon, natal))
+    assert closing == [False, True]
+    assert wide.phase is None
+    # An uncertain phase earns no applying bonus.
+    assert wide.score == score_contact(replace(wide, phase=TransitPhase.SEPARATING))
+    assert wide.score < score_contact(replace(wide, phase=TransitPhase.APPROACHING))
+
+    # A point domain keeps its certain phase.
+    point = _find(scan_day(engine, charts[0], day, domains={BodyName.MERCURY: (moon, moon)}), key)
+    assert point.phase is TransitPhase.EXACT
+    # A domain the Moon only closes in on all day: both ends agree, so the phase is kept.
+    end_moon = engine.transiting_position(
+        BodyName.MOON, _local(day + timedelta(days=1), 0), config
+    ).longitude
+    ahead_domain = (end_moon + 1.0, end_moon + 1.5)
+    ahead = _find(scan_day(engine, charts[0], day, domains={BodyName.MERCURY: ahead_domain}), key)
+    assert ahead.closest_at is None and ahead.phase is TransitPhase.APPROACHING
+    assert ahead.score > score_contact(replace(ahead, phase=None))
+
+
 def test_picks_cap_moon_and_slow_and_fall_back_to_personal_points_first() -> None:
     contacts = (
         _contact(BodyName.MOON, BodyName.SUN, 0.0, exact_today=True),

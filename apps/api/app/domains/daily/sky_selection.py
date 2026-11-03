@@ -181,6 +181,7 @@ HEAVY_TARGETS = frozenset({BodyName.SUN, BodyName.MOON, BodyName.MARS})
 #         + STACK_BONUS * other fast contacts on the same natal point (at most 2)
 #         + TRIGGER_BONUS                        ... and an active trend contact hits that point
 #       + APPLYING_BONUS                         when the contact closes in for most of the day
+#                                                (never for an uncertain phase, ``phase=None``)
 #       + MERGE_BONUS                            when it is one event over two natal points
 #       - ASLEEP_PENALTY                         when it peaks between 23:00 and 06:00
 # Bonuses for timing only apply to contacts that peak today, so a contact that runs for days
@@ -302,6 +303,11 @@ class DayContact:
     span within ``PEAK_ORB``; a bound equal to the day's start or end means the span continues
     past it. ``span_days`` is the measured length of the whole contact for Sun…Mars (``None``
     for the Moon, slow bodies, and fast contacts longer than ``WEEKS_TIER_MAX_DAYS``).
+
+    ``phase`` is ``None`` when it is uncertain (event spec §4): for a non-exact birth time the
+    phase read from the worst-case orb must agree with the phase each end of the natal domain
+    would get as a point, otherwise the copy must not state a phase and the applying bonus is
+    not given.
     """
 
     id: str
@@ -313,7 +319,7 @@ class DayContact:
     min_orb: float
     orb_limit: float
     closest_at: datetime | None
-    phase: TransitPhase
+    phase: TransitPhase | None
     exact_today: bool
     time_kind: TimeKind
     window_start: datetime
@@ -573,6 +579,18 @@ def scan_day(
                     index: worst_orb(sky[index][transit_body].longitude, domain, exact_angle)
                     for index in indices
                 }
+                ends: tuple[dict[int, float], ...] = ()
+                if domain[0] != domain[1]:
+                    # Each end of the natal domain as a point, for the phase check (spec §4).
+                    ends = tuple(
+                        {
+                            index: worst_orb(
+                                sky[index][transit_body].longitude, (edge, edge), exact_angle
+                            )
+                            for index in indices
+                        }
+                        for edge in domain
+                    )
                 contact = _day_contact(
                     engine,
                     chart,
@@ -586,6 +604,7 @@ def scan_day(
                     start,
                     step,
                     in_day,
+                    ends,
                 )
                 if contact is not None:
                     raw.append(contact)
@@ -605,33 +624,22 @@ def _day_contact(
     start: datetime,
     step: timedelta,
     in_day: int,
+    ends: tuple[dict[int, float], ...] = (),
 ) -> DayContact | None:
     if not _in_orb_today(orbs, limit, in_day):
         return None
-    # Closest approach over the whole sampled span, refined between its neighbours.
-    best = min(orbs, key=lambda index: (orbs[index], index))
-    offset, refined_orb = _refine_minimum(orbs, best)
-    position = best + offset
-    in_start, in_end = orbs[0] <= limit, orbs[in_day] <= limit
-    peaks_today = 0 <= position < in_day
-    if not peaks_today and not in_start and not in_end:
-        # In orb only inside the day: the minimum is inside even if the fit says otherwise.
-        position, refined_orb = float(min(max(best, 0), in_day - 1)), orbs[best]
-        peaks_today = True
-    if peaks_today:
-        closest_at: datetime | None = start + position * step
-        min_orb = refined_orb
-    else:
-        closest_at = None
-        min_orb = min(orbs[index] for index in range(in_day + 1))
-    exact_today = peaks_today and min_orb <= EXACT_ORB
-    if exact_today:
-        phase = TransitPhase.EXACT
-    elif peaks_today:
-        # A near miss (station): the phase that holds for most of the day.
-        phase = TransitPhase.APPROACHING if position >= in_day / 2 else TransitPhase.SEPARATING
-    else:
-        phase = TransitPhase.APPROACHING if orbs[in_day] < orbs[0] else TransitPhase.SEPARATING
+    timing = _series_timing(orbs, limit, in_day)
+    position, peaks_today, min_orb = timing.position, timing.peaks_today, timing.min_orb
+    in_start, in_end = timing.in_start, timing.in_end
+    closest_at = start + position * step if peaks_today else None
+    exact_today = timing.phase is TransitPhase.EXACT
+    phase: TransitPhase | None = timing.phase
+    if not exact_today and any(
+        _series_timing(end, limit, in_day).phase is not phase for end in ends
+    ):
+        # The domain ends disagree with the worst case: the phase is uncertain (spec §4). An
+        # exact worst case needs no check: every natal longitude is then within EXACT_ORB.
+        phase = None
 
     # In orb at some sample of [00:00, 24:00], so the in-day window is never empty.
     window_span = _span(orbs, limit, in_day) or (0.0, float(in_day))
@@ -696,6 +704,43 @@ def _in_orb_today(orbs: dict[int, float], limit: float, in_day: int) -> bool:
     """
 
     return min(orbs[index] for index in range(in_day)) <= limit or orbs[in_day] < limit
+
+
+@dataclass(frozen=True, slots=True)
+class _SeriesTiming:
+    position: float
+    peaks_today: bool
+    min_orb: float
+    in_start: bool
+    in_end: bool
+    phase: TransitPhase
+
+
+def _series_timing(orbs: dict[int, float], limit: float, in_day: int) -> _SeriesTiming:
+    """Closest approach, in-day peak and day phase of one sampled orb series."""
+
+    # Closest approach over the whole sampled span, refined between its neighbours.
+    best = min(orbs, key=lambda index: (orbs[index], index))
+    offset, refined_orb = _refine_minimum(orbs, best)
+    position = best + offset
+    in_start, in_end = orbs[0] <= limit, orbs[in_day] <= limit
+    peaks_today = 0 <= position < in_day
+    if not peaks_today and not in_start and not in_end:
+        # In orb only inside the day: the minimum is inside even if the fit says otherwise.
+        position, refined_orb = float(min(max(best, 0), in_day - 1)), orbs[best]
+        peaks_today = True
+    if peaks_today:
+        min_orb = refined_orb
+    else:
+        min_orb = min(orbs[index] for index in range(in_day + 1))
+    if peaks_today and min_orb <= EXACT_ORB:
+        phase = TransitPhase.EXACT
+    elif peaks_today:
+        # A near miss (station): the phase that holds for most of the day.
+        phase = TransitPhase.APPROACHING if position >= in_day / 2 else TransitPhase.SEPARATING
+    else:
+        phase = TransitPhase.APPROACHING if orbs[in_day] < orbs[0] else TransitPhase.SEPARATING
+    return _SeriesTiming(position, peaks_today, min_orb, in_start, in_end, phase)
 
 
 def _span(orbs: dict[int, float], threshold: float, in_day: int) -> tuple[float, float] | None:
