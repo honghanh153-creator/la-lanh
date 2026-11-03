@@ -1,10 +1,10 @@
 """Human Tarot reader: day tally, requests and Sheet slots (US-24, U4).
 
 Revision ID: 20261030_0041
-Revises: 20261023_0038
+Revises: 20261029_0040
 
 Kept apart from the birth-correction migrations (0039, 0040) so each can be reviewed and rolled
-back alone (plan KTD8). Whichever merges second rebases its ``down_revision`` onto the other.
+back alone (plan KTD8). It merged second, so it now follows 0040 and the chain has one head.
 """
 
 from collections.abc import Sequence
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "20261030_0041"
-down_revision: str | Sequence[str] | None = "20261023_0038"
+down_revision: str | Sequence[str] | None = "20261029_0040"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

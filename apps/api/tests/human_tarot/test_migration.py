@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 def test_human_tarot_tables_are_private_and_keep_the_ledger_on_guest_deletion() -> None:
     migration = import_module("migrations.versions.20261030_0041_human_tarot")
-    assert migration.down_revision == "20261023_0038"
+    assert migration.down_revision == "20261029_0040"
     bind = MagicMock()
     bind.dialect.name = "postgresql"
     with (
