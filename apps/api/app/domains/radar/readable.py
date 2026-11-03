@@ -21,7 +21,10 @@ JARGON = (
 MAX_DEFAULT_WORDS = 400
 
 _SENTENCE = re.compile(r"(?<=[.!?…])\s+")
-_TRAILING = re.compile(r"[\s.!?…,;:]+$")
+# Starts only where the run starts (the lookbehind): a long run of these characters that does
+# not reach the end is read once, not once per character (CodeQL py/polynomial-redos). The old
+# `[\s.!?…,;:]+$` matched from that same run start, so the result is unchanged.
+_TRAILING = re.compile(r"(?<![\s.!?…,;:])[\s.!?…,;:]+$")
 
 
 def normalize(text: str) -> str:
