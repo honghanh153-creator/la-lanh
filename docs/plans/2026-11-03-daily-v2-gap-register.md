@@ -279,5 +279,6 @@ phép thử thay thế:
 Một hằng số trong `content_clarity_corpus.py` (#179) ghi ngày sinh thật và gắn nó với owner. Codex chặn
 (P0). Đã viết lại lịch sử nhánh để xóa hằng số khỏi mọi commit và force-push (head mới 0a1c045). Các
 commit cũ vẫn có thể mở bằng SHA trên GitHub cho tới khi GitHub dọn; muốn xóa hẳn phải nhờ GitHub
-Support (việc của owner). Kiểm tra cứng đề xuất: test CI chặn
-mọi ngày sinh nằm trong danh sách cấm (lưu ở dạng băm, không lưu ngày rõ).
+Support (việc của owner). Kiểm tra cứng: author check trên máy
+chạy vòng tự động đọc một danh sách ngày cấm nằm ngoài repo và chặn PR có các ngày đó. Không để danh
+sách trong repo, kể cả ở dạng băm, vì băm một ngày rất dễ dò ngược.
