@@ -155,6 +155,15 @@ async def require_available_projection(
         raise HistoryUnavailable
 
 
+# Rows the manual clear selects by a status that can differ in an earlier snapshot. Each one it
+# removes is journaled by its own id beside the guest's HISTORY_CLEARED.
+_NAMED_ON_CLEAR: tuple[tuple[Any, ErasureKind], ...] = (
+    (TarotSessionRow, ErasureKind.TAROT_SESSION_DELETED),
+    (HumanTarotRequestRow, ErasureKind.HUMAN_TAROT_REQUEST_CLEARED),
+    (RadarRequestRow, ErasureKind.RADAR_DELETED),
+)
+
+
 class PostgresHistoryRepository:
     def __init__(
         self,
@@ -228,16 +237,14 @@ class PostgresHistoryRepository:
 
         if self._erasure_journal is not None:
             self._erasure_journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
-            # Replaying HISTORY_CLEARED re-judges human Tarot requests by their restored status;
-            # a snapshot taken while one was still waiting would keep its question. Name each
-            # request removed here, so replay deletes it whatever status it was restored with.
-            human_tarot = dict(self._criteria(guest_id, now, manual=True))[HumanTarotRequestRow]
-            for request_id in await session.scalars(
-                select(HumanTarotRequestRow.id).where(human_tarot)
-            ):
-                self._erasure_journal.record(
-                    session, ErasureKind.HUMAN_TAROT_REQUEST_CLEARED, request_id, now
-                )
+            # Replaying HISTORY_CLEARED re-judges status-selected rows by their restored status;
+            # a snapshot taken mid-session, or while a request still waited, would keep them
+            # (Codex #126 P1, #169). Name each such row removed here with a kind whose replay
+            # deletes it whatever status it was restored with.
+            criteria = dict(self._criteria(guest_id, now, manual=True))
+            for model, kind in _NAMED_ON_CLEAR:
+                for row_id in await session.scalars(select(model.id).where(criteria[model])):
+                    self._erasure_journal.record(session, kind, row_id, now)
         return await self._erase(session, guest_id, now, manual=True, batch_size=None)
 
     async def replay_clear(self, guest_id: UUID, cleared_at: datetime) -> int:
