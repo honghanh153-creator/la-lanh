@@ -10,6 +10,9 @@ export const integration = 'collab/integration';
 export const ownerLogin = repo.split('/')[0];
 export const agentMarker = '<!-- la-lanh-agent';
 export const stateDir = process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cache', 'la-lanh-collab');
+// Automatic Codex reviews per day. Owner 03.11.2026: up to 32, so the 16-PR commitment fits
+// (about 1.4 reviews per merged PR on 03.11). One constant for the tick, the review script and the board.
+export const codexDailyCap = 32;
 export const blockingP2 = new Set(['privacy', 'security', 'user_copy']);
 // Process PRs (the loop itself, CI, test hardening) go first: a broken loop stalls every other group.
 export const areaOrder = ['ops', 'content', 'privacy', 'feature'];

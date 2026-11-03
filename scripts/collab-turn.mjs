@@ -2,10 +2,10 @@
 import { closeSync, mkdirSync, openSync, rmSync, statSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { areaOrder, classifyArea, clean, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 
-export const codexDailyCap = 12;
+export { codexDailyCap };
 
 export function prTurn(pr, { dropped = [] } = {}) {
   const head = pr.headRefOid;

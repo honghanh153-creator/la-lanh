@@ -213,7 +213,7 @@ test('review refuses without an author check, stops on limits, and escalates to 
 
 test('daily cap refuses automatic reviews', () => {
   const now = { date: '2026-11-01', hour: 12, minute: 0 };
-  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: 12 });
+  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.codexDailyCap });
   const result = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now });
   assert.equal(result.status, 'refused');
 });
@@ -457,18 +457,19 @@ test('retro D3: the plan says when the Mac stopped ticking', () => {
   assert.doesNotThrow(() => trust.assertAgentBody(body));
 });
 
-test('owner 02.11: the plan commits 6–8 PRs and says how the % is counted', () => {
-  const many = turnsFor(Array.from({ length: 10 }, (_, i) => pr({ number: 20 + i, createdAt: `2026-10-${10 + i}T00:00:00Z` })).concat(pr({ number: 99, isDraft: true })));
+test('owner 03.11: the plan commits 16–20 PRs and says how the % is counted', () => {
+  const many = turnsFor(Array.from({ length: 24 }, (_, i) => pr({ number: 20 + i, createdAt: `2026-10-${10 + i}T00:00:00Z` })).concat(pr({ number: 99, isDraft: true })));
   const committed = committedTurns(many);
-  assert.equal(committed.length, 8, 'never more than 8');
+  assert.equal(committed.length, 20, 'never more than 20');
   assert.ok(!committed.some(t => t.number === 99), 'a held PR is not committed');
   const body = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, many, { codexLeft: 12 });
-  assert.match(body, /Cam kết hôm nay \(6–8 PR\):\*\* #\d+(, #\d+){7}\./);
+  assert.match(body, /Cam kết hôm nay \(16–20 PR\):\*\* #\d+(, #\d+){19}\./);
+  assert.match(body, /Lượt Codex tự động còn hôm nay: 12\/32\./);
   assert.match(body, /% hôm nay = số PR cam kết đã merge/);
   assert.doesNotMatch(body, /Còn thiếu/);
   const few = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 12 });
-  assert.match(few, /Cam kết hôm nay \(6–8 PR\):\*\* #7\./);
-  assert.match(few, /Còn thiếu 5 PR so với mức 6/);
+  assert.match(few, /Cam kết hôm nay \(16–20 PR\):\*\* #7\./);
+  assert.match(few, /Còn thiếu 15 PR so với mức 16/);
   assert.doesNotThrow(() => trust.assertAgentBody(body));
 });
 
