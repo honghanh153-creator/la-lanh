@@ -38,7 +38,7 @@ class MeaningSource(StrEnum):
 
 
 # A reading may open with a meaning only when a classical Western source stands behind it.
-LEAD_SOURCES = frozenset({MeaningSource.CLASSICAL, MeaningSource.BOTH})
+LEAD_SOURCES = frozenset({MeaningSource.CLASSICAL, MeaningSource.BOTH, MeaningSource.JYOTISH})
 
 
 @dataclass(frozen=True)
@@ -167,8 +167,8 @@ HOUSE_MEANINGS: dict[int, tuple[SourcedMeaning, ...]] = {
         _m("gains_income", "thu nhập, khoản được thêm", _J),
     ),
     12: (
+        _m("rest_sleep", "nghỉ ngơi, giấc ngủ", _J),
         _m("quiet_sorrow", "nỗi buồn giữ trong lòng", _C),
-        _m("unnoticed_self", "điều mình chưa nhận ra", _M),
         _m("solitude", "khoảng lặng, ở một mình", _M),
         _m("spiritual_life", "đời sống tâm linh", _M),
         _m("expenses", "chi tiêu, khoản tiền đi ra", _J),
@@ -186,8 +186,9 @@ def _can_lead(meaning: SourcedMeaning) -> bool:
 def display_order(house: int, *, daily: bool) -> tuple[SourcedMeaning, ...]:
     """Meanings of ``house`` in display-safe order.
 
-    The first meaning is never sensitive and never MODERN- or JYOTISH-only: it is the first
-    meaning in curated order that a classical Western source stands behind and that is not ⚠.
+    The first meaning is never sensitive and never MODERN-only: it is the first meaning in
+    curated order that a classical source (Lilly, BPHS or Phaladeepika) stands behind and that
+    is not ⚠.
     The rest keep their curated order. ``daily=True`` drops every meaning that must never reach
     a daily reading (death, loss, illness, hospital, prison, lawsuits and the like).
     """
