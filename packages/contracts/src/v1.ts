@@ -1539,7 +1539,7 @@ export interface components {
          * ApproxWindow
          * @enum {string}
          */
-        ApproxWindow: "morning" | "noon" | "afternoon" | "evening" | "night";
+        ApproxWindow: "dawn" | "morning" | "noon" | "afternoon" | "evening" | "night";
         /** Aspect */
         Aspect: {
             /** Applying */

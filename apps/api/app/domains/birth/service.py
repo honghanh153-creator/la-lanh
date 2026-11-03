@@ -567,6 +567,7 @@ def _resolve_time(
     if approx_window is None:
         raise BirthSupplementInvalid
     midpoint = {
+        ApproxWindow.DAWN: time(hour=3),
         ApproxWindow.MORNING: time(hour=8),
         ApproxWindow.NOON: time(hour=12),
         ApproxWindow.AFTERNOON: time(hour=15),

@@ -140,6 +140,7 @@
       },
       "ApproxWindow": {
         "enum": [
+          "dawn",
           "morning",
           "noon",
           "afternoon",
