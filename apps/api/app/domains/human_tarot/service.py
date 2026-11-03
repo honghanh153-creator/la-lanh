@@ -41,6 +41,7 @@ from app.domains.human_tarot.models import (
     AvailabilityReason,
     HumanTarotAvailability,
     HumanTarotCardPosition,
+    HumanTarotExportItem,
     HumanTarotRequestView,
     HumanTarotResult,
     RequestStatus,
@@ -180,6 +181,42 @@ class HumanTarotService:
                 raise HumanTarotNotFound
             slot = await _slot_of(database, row.id)
         return self._view(row, slot, now)
+
+    async def export_items(
+        self, guest_id: UUID, *, limit: int, now: datetime | None = None
+    ) -> tuple[HumanTarotExportItem, ...]:
+        """The guest's own requests as the app shows them, newest first, for the data export.
+
+        A cancelled request or a deleted reading is a tombstone the person was told is gone, so it
+        is left out. Expired rows are pending purge and no longer open in the app. History clear,
+        guest deletion and journal replay delete the row itself. The view is built without the
+        slot, so no Sheet state reaches the file; question and reading follow the same server-clock
+        rules as GET (the reading only from ``release_at``, the question until its retention ends).
+        """
+
+        current = now or self.now()
+        async with self._sessions() as database:
+            rows = tuple(
+                await database.scalars(
+                    select(HumanTarotRequestRow)
+                    .where(
+                        HumanTarotRequestRow.guest_id == guest_id,
+                        HumanTarotRequestRow.status != RequestStatus.CANCELLED.value,
+                        HumanTarotRequestRow.expires_at > current,
+                    )
+                    .order_by(HumanTarotRequestRow.created_at.desc(), HumanTarotRequestRow.id)
+                    .limit(limit)
+                )
+            )
+        return tuple(
+            HumanTarotExportItem(
+                view=self._view(row, None, current),
+                consent_version=row.consent_version,
+                consented_at=row.consented_at,
+                created_at=row.created_at,
+            )
+            for row in rows
+        )
 
     # ------------------------------------------------------------------ admission
 

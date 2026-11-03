@@ -76,6 +76,9 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         # This is only the cheap backstop. Durable database peer/email/global
         # quotas and challenge attempt limits are enforced by AccountService.
         return AdmissionPolicy("account-login", per_peer=30, global_limit=240)
+    if request.method == "POST" and path == "/v1/session/data-export":
+        # A full decrypting read of one profile: a person needs it rarely, a scraper often.
+        return AdmissionPolicy("data-export", per_peer=5, global_limit=60)
     if request.method == "POST" and path == "/v1/guest-sessions":
         return AdmissionPolicy("guest-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path == "/v1/tarot/sessions":

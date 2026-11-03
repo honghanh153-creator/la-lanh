@@ -9,6 +9,7 @@ import "@fontsource/be-vietnam-pro/900.css";
 
 import { AppProviders } from "./app/AppProviders";
 import { createAppRouter } from "./app/router";
+import { removeOrphanedNativeExport } from "./features/profile/downloadMyData";
 import { applyThemePreference, readThemePreference } from "./shared/theme/theme";
 import { applyVibe, readVibe } from "./shared/vibe/vibe";
 import "./shared/styles/global.css";
@@ -17,6 +18,8 @@ import "./shared/styles/vitality.css";
 
 applyThemePreference(readThemePreference());
 applyVibe(readVibe());
+// Remove a data-export file left in the native cache if the app was killed mid-share.
+void removeOrphanedNativeExport().catch(() => undefined);
 
 const root = document.getElementById("root");
 

@@ -45,6 +45,8 @@ export type AccountStatus = components["schemas"]["AccountStatus"];
 export type AccountCodeResponse = components["schemas"]["CodeResponse"];
 export type AccountLoginResult = components["schemas"]["LoginResponse"];
 export type HistoryRetention = components["schemas"]["HistoryRetentionStatus"];
+/** The owner's own data file ("Tải dữ liệu của tôi"): no ids, tokens or other people's birth data. */
+export type DataExport = components["schemas"]["DataExport"];
 
 export function getAccountStatus(signal?: AbortSignal): Promise<AccountStatus> {
   return request("/account", { signal });
@@ -124,6 +126,16 @@ export function enableHistoryRetention(): Promise<HistoryRetention> {
 
 export function clearReadingHistory(): Promise<void> {
   return request("/session/history", { method: "DELETE", headers: csrfHeader() });
+}
+
+// POST with the CSRF token: the file is a bulk disclosure, so it takes a mutation's proofs and a
+// cross-site navigation or prefetch cannot trigger it. The response is never cached (no-store).
+export function exportMyData(): Promise<DataExport> {
+  return request<DataExport>("/session/data-export", {
+    method: "POST",
+    headers: csrfHeader(),
+    timeoutMs: DATA_EXPORT_TIMEOUT_MS,
+  });
 }
 
 export function getContentRewriteStatus(signal?: AbortSignal): Promise<ContentRewriteStatus> {
@@ -468,6 +480,7 @@ const NATIVE_CSRF_KEY = "la-lanh-native-csrf-v1";
 const REQUEST_TIMEOUT_MS = 15_000;
 export const BIRTH_CORRECTION_TIMEOUT_MS = 90_000;
 const DELETE_GUEST_TIMEOUT_MS = 75_000;
+const DATA_EXPORT_TIMEOUT_MS = 45_000;
 let activeDailyReading: { scopeKey: string; revisionId: string } | null = null;
 let ownerClaimInFlight: { sessionEpoch: string | null; promise: Promise<OwnerClaim> } | null = null;
 
