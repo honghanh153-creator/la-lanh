@@ -606,7 +606,7 @@ def _day_contact(
     step: timedelta,
     in_day: int,
 ) -> DayContact | None:
-    if min(orbs[index] for index in range(in_day)) > limit:
+    if not _in_orb_today(orbs, limit, in_day):
         return None
     # Closest approach over the whole sampled span, refined between its neighbours.
     best = min(orbs, key=lambda index: (orbs[index], index))
@@ -633,7 +633,7 @@ def _day_contact(
     else:
         phase = TransitPhase.APPROACHING if orbs[in_day] < orbs[0] else TransitPhase.SEPARATING
 
-    # In orb at some in-day sample, so the in-day window is never empty.
+    # In orb at some sample of [00:00, 24:00], so the in-day window is never empty.
     window_span = _span(orbs, limit, in_day) or (0.0, float(in_day))
     span_days: float | None = None
     if transit_body in DAYS_BODIES:
@@ -685,6 +685,17 @@ def _day_contact(
         peak_end=local(peak_span[1]) if peak_span else None,
         span_days=None if span_days is None else round(span_days, 2),
     )
+
+
+def _in_orb_today(orbs: dict[int, float], limit: float, in_day: int) -> bool:
+    """In orb at some instant of ``[00:00, 24:00)``.
+
+    A sample before midnight in orb, or an entry between the last sample and midnight: the
+    midnight sample is then strictly inside the limit. A contact that only reaches the limit at
+    midnight begins the next day.
+    """
+
+    return min(orbs[index] for index in range(in_day)) <= limit or orbs[in_day] < limit
 
 
 def _span(orbs: dict[int, float], threshold: float, in_day: int) -> tuple[float, float] | None:

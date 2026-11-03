@@ -413,6 +413,33 @@ def test_moon_contact_belongs_to_the_vietnam_day_it_perfects(
         assert other is None or (not other.exact_today and other.closest_at is None)
 
 
+def test_moon_contact_entering_orb_before_midnight_belongs_to_the_day(
+    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
+) -> None:
+    # Orb ~limit + 0.13° at 23:30 and limit - 0.125° at midnight: it enters at ~23:45.
+    day = START + timedelta(days=7)
+    midnight = _local(day + timedelta(days=1), 0)
+    config = charts[0].config
+    limit = transit_orb_limit(BodyName.MOON, "conjunction")
+    natal = engine.transiting_position(BodyName.MOON, midnight, config).longitude + limit - 0.125
+    chart = _move_natal(charts[0], BodyName.SUN, natal)
+    before = engine.transiting_position(BodyName.MOON, _local(day, 23, 30), config).longitude
+    assert angular_distance(before, natal) > limit  # out of orb at the last in-day sample
+    key = "moon:conjunction:sun"
+
+    contact = _find(scan_day(engine, chart, day), key)
+    assert contact.time_kind is TimeKind.STARTS_TODAY
+    assert contact.closest_at is None and contact.phase is TransitPhase.APPROACHING
+    assert _local(day, 23, 30) < contact.window_start < midnight
+    assert contact.window_end == midnight
+    entry = engine.transiting_position(BodyName.MOON, contact.window_start, config).longitude
+    assert angular_distance(entry, natal) == pytest.approx(limit, abs=0.02)
+    assert contact.min_orb == pytest.approx(limit - 0.125, abs=1e-3)
+    # The next day carries it on from midnight.
+    following = _find(scan_day(engine, chart, day + timedelta(days=1)), key)
+    assert following.window_start == midnight
+
+
 def test_moon_house_lookup_wraps_through_aries(charts: tuple[NatalChart, ...]) -> None:
     cusps = (20.0, 50.0, 80.0, 110.0, 140.0, 170.0, 200.0, 230.0, 260.0, 290.0, 320.0, 350.0)
     houses = tuple(
