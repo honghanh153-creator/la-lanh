@@ -11,7 +11,7 @@ const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const { committedTurns, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { checkBudgetMs, guardHits, guardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -372,7 +372,7 @@ test('owner data 03.11: a guarded term fails the author check before pnpm runs a
   const never = () => { throw new Error('must not run pnpm'); };
   const terms = () => guardTerms('zz-secret-term');
   const gh = fakeGh({ pr: pr() });
-  const git = args => (args[0] === 'rev-parse' ? A : args[0] === 'diff' ? '+++ b/apps/fixture.ts\n@@ -0,0 +12 @@\n+const x = "zz-secret-term";' : '');
+  const git = args => (args[0] === 'rev-parse' ? A : args.includes('-p') ? '+++ b/apps/fixture.ts\n@@ -0,0 +12 @@\n+const x = "zz-secret-term";' : '');
   const result = runCheck(7, { gh, git, busy: () => null, spawn: never, terms });
   assert.equal(result.status, 'FAIL');
   const receipt = gh.calls.find(c => c[0] === 'comment')[3];
@@ -380,8 +380,37 @@ test('owner data 03.11: a guarded term fails the author check before pnpm runs a
   assert.match(receipt, /dữ liệu riêng tư[\s\S]*apps\/fixture\.ts:12/);
   assert.doesNotMatch(receipt, /zz-secret-term/);
   assert.equal(runCheck(7, { gh: fakeGh({ pr: pr({ body: 'see ZZ-SECRET-TERM' }) }), git: args => (args[0] === 'rev-parse' ? A : ''), busy: () => null, spawn: never, terms }).status, 'FAIL', 'PR body is scanned');
-  const broken = args => { if (args[0] === 'diff') throw new Error('no base'); return args[0] === 'rev-parse' ? A : ''; };
+  const broken = args => { if (args.includes('-p')) throw new Error('no base'); return args[0] === 'rev-parse' ? A : ''; };
   assert.equal(runCheck(7, { gh: fakeGh({ pr: pr() }), git: broken, busy: () => null, spawn: never, terms }).status, 'FAIL', 'fails closed without a diff');
+});
+
+test('#198 r1: every outgoing commit is scanned, the pushed refs are scanned, paths are masked', () => {
+  const terms = guardTerms('date:2001-02-03');
+  // Commit A adds the value, commit B removes it: the net diff is clean, the log patch is not.
+  const seen = [];
+  const git = args => { seen.push(args); return args.includes('-p') ? '+++ b/apps/a.ts\n@@ -0,0 +3 @@\n+x = "2001-02-03"\n+++ b/apps/a.ts\n@@ -3 +2,0 @@\n-x = "2001-02-03"' : ''; };
+  assert.deepEqual(privateHits({}, git, () => terms), ['apps/a.ts:3']);
+  assert.ok(seen.every(a => a[0] === 'log' && a.includes('origin/collab/integration..HEAD')), 'author check scans the PR commits');
+  // Pre-push: each pushed ref, every commit the remote lacks; a deleted ref sends nothing.
+  const Z = '0'.repeat(40);
+  assert.deepEqual(prePushRanges(`refs/heads/a ${A} refs/heads/a ${Z}\nrefs/heads/b ${B} refs/heads/b ${A}\n(delete) ${Z} refs/heads/c ${A}\n`), [[A, '--not', '--remotes=origin'], [B, '--not', '--remotes=origin']]);
+  const ranges = [];
+  privateHits({}, args => { if (args.includes('-p')) ranges.push(args.slice(5)); return ''; }, () => terms, prePushRanges(`refs/heads/b ${B} refs/heads/b ${A}`));
+  assert.deepEqual(ranges, [[B, '--not', '--remotes=origin']]);
+  // A path holding the value is a hit, and the receipt masks it.
+  const hits = guardHits(terms, { diff: '+++ b/fixtures/2001-02-03.txt\n@@ -0,0 +1 @@\n+fine' });
+  assert.deepEqual(hits, ['fixtures/[ẩn].txt']);
+  assert.doesNotMatch(renderCheck({ head: A, status: 'FAIL', exitCode: 'guard', seconds: 0, date: 'd', guard: hits }), /2001-02-03/);
+});
+
+test('#198 r1: an unreadable guard list blocks instead of switching the guard off', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-'));
+  assert.deepEqual(readGuardTerms(join(dir, 'absent.txt')), [], 'no file: no guard');
+  assert.throws(() => readGuardTerms(dir), /unreadable/, 'a directory at the path is an error');
+  assert.deepEqual(privateHits({}, () => '', () => readGuardTerms(dir)), ['danh sách chặn không đọc được']);
+  const never = () => { throw new Error('must not run pnpm'); };
+  assert.equal(runCheck(7, { gh: fakeGh({ pr: pr() }), git: args => (args[0] === 'rev-parse' ? A : ''), busy: () => null, spawn: never, terms: () => readGuardTerms(dir) }).status, 'FAIL');
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test('r3: author check runs alone, with CI=1, in the given checkout', () => {

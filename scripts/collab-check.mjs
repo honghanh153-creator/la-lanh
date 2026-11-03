@@ -114,10 +114,17 @@ export function guardTerms(text = '') {
     return [`${y}-${pad(m)}-${pad(d)}`, `${pad(d)}/${pad(m)}/${y}`, `${d}/${m}/${y}`, `${pad(d)}.${pad(m)}.${y}`, `${d}.${m}.${y}`, `${pad(d)}-${pad(m)}-${y}`, `${y}${pad(m)}${pad(d)}`, `${y}/${pad(m)}/${pad(d)}`];
   }))];
 }
+// A missing list means no guard. Any other read failure (permissions, a directory at the path)
+// must not silently switch the guard off, so it throws and the caller blocks.
 export function readGuardTerms(path = guardPath()) {
-  try { return guardTerms(readFileSync(path, 'utf8')); } catch { return []; }
+  try { return guardTerms(readFileSync(path, 'utf8')); }
+  catch (error) { if (error?.code === 'ENOENT') return []; throw new Error('private-guard list unreadable'); }
 }
-// Added lines of a unified diff, then free text such as commit messages and the PR body.
+const escapeRe = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// File names go into public receipts too, so a term inside a path is masked before it is shown.
+export const redact = (text, terms) => terms.reduce((out, term) => out.replace(new RegExp(escapeRe(term), 'gi'), '[ẩn]'), String(text ?? '').normalize('NFC'));
+// Added lines of a unified diff (or of `git log -p`), then free text such as commit messages and
+// the PR body. A path that holds a term is a hit itself.
 export function guardHits(terms, { diff = '', texts = {} } = {}) {
   if (!terms.length) return [];
   const has = line => { const low = line.normalize('NFC').toLowerCase(); return terms.some(term => low.includes(term)); };
@@ -125,7 +132,12 @@ export function guardHits(terms, { diff = '', texts = {} } = {}) {
   let file = null;
   let line = 0;
   for (const row of String(diff).split('\n')) {
-    if (row.startsWith('+++ ')) { file = row.slice(4).replace(/^b\//, ''); continue; }
+    if (row.startsWith('+++ ')) {
+      const path = row.slice(4).replace(/^b\//, '');
+      file = redact(path, terms);
+      if (has(path)) hits.push(file);
+      continue;
+    }
     const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)/.exec(row);
     if (hunk) { line = Number(hunk[1]); continue; }
     if (row.startsWith('+')) { if (has(row.slice(1))) hits.push(`${file}:${line}`); line += 1; }
@@ -151,14 +163,29 @@ export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = arg
   return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, budget: () => 90 * 60000 }));
 }
 
-// What the PR adds against integration. Fails closed: with terms set and no diff, the check fails.
-function privateHits(pr, git, terms) {
-  const list = terms();
+// Git's pre-push input: `<local ref> <local sha> <remote ref> <remote sha>` per pushed ref. Each
+// ref is scanned for every commit the remote does not have yet; a deleted ref sends nothing.
+export function prePushRanges(input = '') {
+  return String(input).split('\n').map(row => row.trim().split(/\s+/))
+    .filter(parts => parts.length === 4 && !/^0+$/.test(parts[1]))
+    .map(([, local]) => [local, '--not', '--remotes=origin']);
+}
+
+// What the PR (or a push) adds. Every outgoing commit's own patch is scanned, so a value added in
+// one commit and removed in the next is still caught. Fails closed: with terms set and no readable
+// history, or an unreadable list, the scan blocks.
+export function privateHits(pr, git, terms, ranges = [[`origin/${integration}..HEAD`]]) {
+  let list;
+  try { list = terms(); } catch { return ['danh sách chặn không đọc được']; }
   if (!list.length) return [];
   try {
-    const base = `origin/${integration}`;
-    return guardHits(list, { diff: git(['diff', '--no-color', '--unified=0', `${base}...HEAD`]), texts: { 'commit message': git(['log', '--format=%B', `${base}..HEAD`]), 'PR title/body': `${pr.title ?? ''}\n${pr.body ?? ''}` } });
-  } catch { return ['diff không đọc được']; }
+    const hits = ranges.flatMap(range => guardHits(list, {
+      diff: git(['log', '-p', '--no-color', '--unified=0', '--format=', ...range]),
+      texts: { 'commit message': git(['log', '--format=%B', ...range]) },
+    }));
+    if (pr.title || pr.body) hits.push(...guardHits(list, { texts: { 'PR title/body': `${pr.title ?? ''}\n${pr.body ?? ''}` } }));
+    return [...new Set(hits)];
+  } catch { return ['lịch sử nhánh không đọc được']; }
 }
 
 function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms }) {
@@ -258,8 +285,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   // reaches the public remote. Prints file:line only.
   if (args.includes('--guard')) {
     const run = gitArgs => String(execFileSync('/usr/bin/git', gitArgs, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim();
-    const hits = privateHits({}, run, readGuardTerms);
-    process.stdout.write(hits.length ? `private-guard: chặn, dữ liệu riêng tư ở ${hits.join(', ')}\n` : `private-guard: ok (${readGuardTerms().length ? 'đã quét' : 'chưa có danh sách'})\n`);
+    // As a pre-push hook Git sends the refs on stdin; run by hand, the current branch is scanned.
+    const input = process.stdin.isTTY ? '' : readFileSync(0, 'utf8');
+    const ranges = input.trim() ? prePushRanges(input) : [['HEAD', '--not', '--remotes=origin']];
+    const hits = privateHits({}, run, readGuardTerms, ranges);
+    process.stdout.write(hits.length ? `private-guard: chặn, dữ liệu riêng tư ở ${hits.join(', ')}\n` : 'private-guard: ok\n');
     process.exit(hits.length ? 1 : 0);
   }
   const number = Number(args[args.indexOf('--pr') + 1]);
