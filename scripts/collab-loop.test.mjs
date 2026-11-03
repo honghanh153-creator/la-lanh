@@ -11,7 +11,7 @@ const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const { committedTurns, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { checkBudgetMs, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { checkBudgetMs, guardHits, guardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -357,6 +357,31 @@ test('r3: the tick runs one author check itself, then reviews that PR', () => {
   const failed = [];
   tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: n => { failed.push(n); return {}; } });
   assert.deepEqual(failed, [], 'a FAIL is not reviewed');
+});
+
+test('owner data 03.11: the private guard expands dates and finds added lines, never removed ones', () => {
+  const terms = guardTerms('# synthetic only\ndate:2001-02-03\nZz Secret\n\n');
+  for (const spelling of ['2001-02-03', '03/02/2001', '3/2/2001', '03.02.2001', '20010203', 'zz secret']) assert.ok(terms.includes(spelling), spelling);
+  const diff = ['+++ b/apps/x.py', '@@ -1,0 +5,2 @@', '+ok line', '+born 03.02.2001', '+++ b/docs/y.md', '@@ -7 +7 @@', '-old ZZ SECRET', '+clean'].join('\n');
+  assert.deepEqual(guardHits(terms, { diff }), ['apps/x.py:6']);
+  assert.deepEqual(guardHits(terms, { diff: '', texts: { 'commit message': 'fix\nZZ secret here' } }), ['commit message']);
+  assert.deepEqual(guardHits([], { diff }), [], 'no list, nothing to block');
+});
+
+test('owner data 03.11: a guarded term fails the author check before pnpm runs and is never echoed', () => {
+  const never = () => { throw new Error('must not run pnpm'); };
+  const terms = () => guardTerms('zz-secret-term');
+  const gh = fakeGh({ pr: pr() });
+  const git = args => (args[0] === 'rev-parse' ? A : args[0] === 'diff' ? '+++ b/apps/fixture.ts\n@@ -0,0 +12 @@\n+const x = "zz-secret-term";' : '');
+  const result = runCheck(7, { gh, git, busy: () => null, spawn: never, terms });
+  assert.equal(result.status, 'FAIL');
+  const receipt = gh.calls.find(c => c[0] === 'comment')[3];
+  assert.equal(trust.parseAuthorCheck(receipt).status, 'FAIL');
+  assert.match(receipt, /dữ liệu riêng tư[\s\S]*apps\/fixture\.ts:12/);
+  assert.doesNotMatch(receipt, /zz-secret-term/);
+  assert.equal(runCheck(7, { gh: fakeGh({ pr: pr({ body: 'see ZZ-SECRET-TERM' }) }), git: args => (args[0] === 'rev-parse' ? A : ''), busy: () => null, spawn: never, terms }).status, 'FAIL', 'PR body is scanned');
+  const broken = args => { if (args[0] === 'diff') throw new Error('no base'); return args[0] === 'rev-parse' ? A : ''; };
+  assert.equal(runCheck(7, { gh: fakeGh({ pr: pr() }), git: broken, busy: () => null, spawn: never, terms }).status, 'FAIL', 'fails closed without a diff');
 });
 
 test('r3: author check runs alone, with CI=1, in the given checkout', () => {

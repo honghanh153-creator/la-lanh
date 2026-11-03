@@ -1,6 +1,7 @@
 // Author check: run `pnpm check` on the exact PR head, then post the receipt line.
 // Usage: node scripts/collab-check.mjs --pr N           (this checkout, must be at the PR head)
 //        node scripts/collab-check.mjs --pr N --clone   (dedicated clone ~/.cache/la-lanh-collab/author)
+//        node scripts/collab-check.mjs --guard          (private-data scan of this branch, for pre-push)
 // One check on the machine at a time: two checks share the API and e2e ports and give false receipts.
 import { spawnSync, execFileSync } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from 'node:fs';
@@ -98,22 +99,69 @@ export function withCheckLock(fn) {
   try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
-export function renderCheck({ head, status, exitCode, seconds, date }) {
+// Private-data guard (owner data in public #179, 03.11.2026). The owner's terms live only on the
+// owner's Mac, never in git: a hash of a birth date is as public as the date, since every date of
+// a century can be tried in milliseconds. One term per line, `#` comments; `date:YYYY-MM-DD`
+// also matches the usual Vietnamese, ISO and compact spellings. Receipts name the file and line,
+// never the term.
+export const guardPath = () => join(stateDir, 'private-guard.txt');
+const pad = n => String(n).padStart(2, '0');
+export function guardTerms(text = '') {
+  return [...new Set(String(text).split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#')).flatMap(line => {
+    const date = /^date:(\d{4})-(\d{2})-(\d{2})$/.exec(line);
+    if (!date) return [line.normalize('NFC').toLowerCase()];
+    const [y, m, d] = date.slice(1).map(Number);
+    return [`${y}-${pad(m)}-${pad(d)}`, `${pad(d)}/${pad(m)}/${y}`, `${d}/${m}/${y}`, `${pad(d)}.${pad(m)}.${y}`, `${d}.${m}.${y}`, `${pad(d)}-${pad(m)}-${y}`, `${y}${pad(m)}${pad(d)}`, `${y}/${pad(m)}/${pad(d)}`];
+  }))];
+}
+export function readGuardTerms(path = guardPath()) {
+  try { return guardTerms(readFileSync(path, 'utf8')); } catch { return []; }
+}
+// Added lines of a unified diff, then free text such as commit messages and the PR body.
+export function guardHits(terms, { diff = '', texts = {} } = {}) {
+  if (!terms.length) return [];
+  const has = line => { const low = line.normalize('NFC').toLowerCase(); return terms.some(term => low.includes(term)); };
+  const hits = [];
+  let file = null;
+  let line = 0;
+  for (const row of String(diff).split('\n')) {
+    if (row.startsWith('+++ ')) { file = row.slice(4).replace(/^b\//, ''); continue; }
+    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)/.exec(row);
+    if (hunk) { line = Number(hunk[1]); continue; }
+    if (row.startsWith('+')) { if (has(row.slice(1))) hits.push(`${file}:${line}`); line += 1; }
+    else if (!row.startsWith('-') && !row.startsWith('\\')) line += 1;
+  }
+  for (const [name, text] of Object.entries(texts)) if (String(text ?? '').split('\n').some(has)) hits.push(name);
+  return hits;
+}
+
+export function renderCheck({ head, status, exitCode, seconds, date, guard = null }) {
   return [
     `Author check: ${status} @ ${head}`,
     '',
     `Lệnh: \`pnpm check\` · exit ${exitCode} · ${seconds}s · ${date}. Chạy trên checkout sạch, \`HEAD == ${head.slice(0, 12)}\`.`,
+    ...(guard?.length ? [`**Chặn: dữ liệu riêng tư** trong danh sách cục bộ của owner xuất hiện ở ${guard.slice(0, 20).map(h => `\`${clean(h, 120)}\``).join(', ')}. Không chạy \`pnpm check\`. Thay bằng dữ liệu giả, sửa cả lịch sử nhánh nếu nằm trong commit.`] : []),
     status === 'PASS' ? 'Đây là bằng chứng của tác giả, không thay review.' : 'Lượt tiếp theo là Claude sửa.',
     '',
     `${agentMarker} author-check sha=${head} -->`,
   ].join('\n');
 }
 
-export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8' })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy } = {}) {
-  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, budget: () => 90 * 60000 }));
+export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy, terms = readGuardTerms } = {}) {
+  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, budget: () => 90 * 60000 }));
 }
 
-function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget }) {
+// What the PR adds against integration. Fails closed: with terms set and no diff, the check fails.
+function privateHits(pr, git, terms) {
+  const list = terms();
+  if (!list.length) return [];
+  try {
+    const base = `origin/${integration}`;
+    return guardHits(list, { diff: git(['diff', '--no-color', '--unified=0', `${base}...HEAD`]), texts: { 'commit message': git(['log', '--format=%B', `${base}..HEAD`]), 'PR title/body': `${pr.title ?? ''}\n${pr.body ?? ''}` } });
+  } catch { return ['diff không đọc được']; }
+}
+
+function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms }) {
   const pr = gh.pr(number);
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   const head = git(['rev-parse', 'HEAD']);
@@ -124,6 +172,11 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget }) {
   const timeoutMs = budget();
   if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
   const started = now();
+  const guard = privateHits(pr, git, terms);
+  if (guard.length) {
+    gh.comment('pr', pr.number, renderCheck({ head, status: 'FAIL', exitCode: 'guard', seconds: 0, date: new Date(started).toISOString(), guard }));
+    return { status: 'FAIL', guard };
+  }
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
   const result = runGroup('pnpm', ['check'], { cwd, timeoutMs, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
   const exitCode = result.status ?? 1;
@@ -189,7 +242,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // The clock is read again after the clone and install, which can take minutes.
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
-    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, budget });
+    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget });
   });
 }
 
@@ -201,9 +254,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.stdout.write(`${busy ? `busy: ${busy}` : 'free'}\n`);
     process.exit(busy ? 1 : 0);
   }
+  // `--guard`: the same private-data scan before a push (local pre-push hook), so a term never
+  // reaches the public remote. Prints file:line only.
+  if (args.includes('--guard')) {
+    const run = gitArgs => String(execFileSync('/usr/bin/git', gitArgs, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim();
+    const hits = privateHits({}, run, readGuardTerms);
+    process.stdout.write(hits.length ? `private-guard: chặn, dữ liệu riêng tư ở ${hits.join(', ')}\n` : `private-guard: ok (${readGuardTerms().length ? 'đã quét' : 'chưa có danh sách'})\n`);
+    process.exit(hits.length ? 1 : 0);
+  }
   const number = Number(args[args.indexOf('--pr') + 1]);
   if (!args.includes('--pr') || !Number.isInteger(number) || number <= 0) {
-    process.stderr.write('Usage: node scripts/collab-check.mjs --pr N [--clone] | --busy\n'); process.exit(2);
+    process.stderr.write('Usage: node scripts/collab-check.mjs --pr N [--clone] | --busy | --guard\n'); process.exit(2);
   }
   try {
     const result = args.includes('--clone') ? runCheckInClone(number) : runCheck(number);
