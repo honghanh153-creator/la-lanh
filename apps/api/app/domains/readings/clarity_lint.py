@@ -318,11 +318,16 @@ _FOREIGN_LETTERS = re.compile(r"[fjwz]")
 _ASCII_WORD = re.compile(r"[a-z]+")
 
 # Normalisation (gap register GT-11). Hidden characters are removed before linting and reported
-# by the hard-zero rule H1; look-alike spaces become a plain space; full-width ASCII becomes ASCII.
+# by the hard-zero rule H1; every run of spaces, tabs or look-alike spaces becomes one plain space,
+# so a multiword pattern cannot be dodged with "không  muốn" or "không\tmuốn"; line breaks become
+# one "\n" each (they still end a sentence); full-width ASCII becomes ASCII.
 _ZERO_WIDTH = "\u200b\u200c\u200d\u2060\ufeff\u00ad\u180e"
 _BIDI_CONTROLS = "\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069"
 HIDDEN_CHARACTERS = re.compile(f"[{_ZERO_WIDTH}{_BIDI_CONTROLS}]")
 _LOOKALIKE_SPACES = re.compile("[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]")
+_LINE_BREAKS = re.compile("\r\n?|[\x0b\x0c\x85\u2028\u2029]")
+# Any Unicode whitespace except the line feed: tab, NBSP, the look-alike spaces above and so on.
+_HORIZONTAL_WHITESPACE = re.compile(r"[^\S\n]+")
 _FULL_WIDTH_ASCII = {code: code - 0xFEE0 for code in range(0xFF01, 0xFF5F)}
 
 # Class-A safety (hard zero). A reading never diagnoses, predicts death or accidents, advises on
@@ -473,10 +478,12 @@ class SurfaceReport:
 
 
 def normalize_text(text: str) -> str:
-    """NFC, plain spaces, ASCII for full-width letters, no zero-width or bidi controls."""
+    """NFC, one plain space per run of other whitespace, line feeds for line breaks, ASCII for
+    full-width letters, no zero-width or bidi controls."""
 
     text = HIDDEN_CHARACTERS.sub("", text.translate(_FULL_WIDTH_ASCII))
-    return unicodedata.normalize("NFC", _LOOKALIKE_SPACES.sub(" ", text))
+    text = _LINE_BREAKS.sub("\n", _LOOKALIKE_SPACES.sub(" ", text))
+    return unicodedata.normalize("NFC", _HORIZONTAL_WHITESPACE.sub(" ", text))
 
 
 def normalize_document(document: ClarityDocument) -> ClarityDocument:

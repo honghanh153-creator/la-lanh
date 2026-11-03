@@ -570,6 +570,33 @@ def test_class_a_safety_rules_leave_everyday_lines_alone(text: str) -> None:
     assert {rule: counts[rule] for rule in HARD_ZERO_RULES} == dict.fromkeys(HARD_ZERO_RULES, 0)
 
 
+@pytest.mark.parametrize(
+    "variant",
+    (
+        "Bạn không  muốn sống.",  # two spaces
+        "Bạn không \t muốn sống.",  # space, tab, space
+        "Bạn không\tmuốn sống.",  # tab
+        "Bạn không\u00a0muốn\u00a0\u00a0sống.",  # no-break spaces
+        "Bạn không\u3000\u2009muốn sống.",  # ideographic + thin space
+        "Bạn   không muốn   sống.",
+    ),
+)
+def test_whitespace_runs_do_not_hide_a_multiword_safety_match(variant: str) -> None:
+    assert normalize_text(variant) == "Bạn không muốn sống."
+    assert lint_document(_doc(variant))["S7"] == 1
+    report = lint_surface("tarot", [_doc(variant)])
+    assert report.keys["S7"] == (sentence_key("Bạn không muốn sống."),)
+
+
+def test_line_breaks_stay_sentence_breaks_after_normalising() -> None:
+    assert normalize_text("Một  câu.\r\nCâu\thai.\u2028Ba") == "Một câu.\nCâu hai.\nBa"
+    assert sentences(normalize_text("Nghỉ sớm\r\nĐi bộ\u2029Ngủ")) == (
+        "Nghỉ sớm",
+        "Đi bộ",
+        "Ngủ",
+    )
+
+
 def test_hidden_characters_are_a_hard_zero_violation() -> None:
     sneaky = "Góc đối\u200bđỉnh với Sat\u200burn, phần\u2066dưới chỉ ra cách gỡ."
     counts = lint_document(_doc(sneaky, "Bạn nghỉ sớm."))
