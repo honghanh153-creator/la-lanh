@@ -53,9 +53,9 @@ Ghi chú: dùng email hỗ trợ riêng của công ty, không dùng email cá n
 
 > | Trường hợp | Bạn nhận lại |
 > |---|---|
-> | Bạn hủy hoặc đổi lịch trước buổi đọc ít nhất [N] giờ | Toàn bộ tiền, hoặc đổi sang giờ khác |
-> | Bạn hủy muộn hơn mốc trên | [mức] |
-> | Bạn không vào buổi | [mức] |
+> | Bạn hủy hoặc đổi lịch trước giờ đọc bài ít nhất 2 giờ | Toàn bộ tiền, hoặc đổi sang giờ khác |
+> | Bạn hủy khi còn chưa tới 2 giờ, hoặc dừng giữa buổi | Không hoàn tiền |
+> | Bạn không vào buổi | Không hoàn tiền |
 > | Lá Dẫn không vào, hoặc vào muộn quá [N] phút | Toàn bộ tiền, và được ưu tiên đặt lại |
 > | Lỗi kỹ thuật phía Lá Lành làm buổi không diễn ra | Toàn bộ tiền |
 > | Bạn báo Lá Dẫn làm sai quy tắc của Lá Lành | Lá Lành hoàn tiền trước, rồi mới xem xét |
@@ -101,7 +101,7 @@ Thêm vào trang `/privacy` hiện có (`apps/web/src/features/consent/ConsentPa
 >
 > *Ai khác truy cập:* cổng thanh toán [tên] xử lý việc trả tiền; nhà cung cấp hóa đơn [tên] lập hóa đơn; [dịch vụ gọi/chat, nếu có]. Nhân viên hỗ trợ của Lá Lành chỉ xem tin nhắn khi bạn hoặc Lá Dẫn gửi báo cáo.
 >
-> *Bạn có thể:* xem, sửa, xóa dữ liệu, hoặc rút lại đồng ý bất cứ lúc nào, kể cả khi buổi đọc đang diễn ra. Bấm **Dừng chia sẻ** trong buổi (hoặc vào **Tài khoản**): Lá Dẫn mất quyền xem thông tin của bạn ngay, buổi đọc dừng lại, và tiền được hoàn theo [cách hủy và hoàn tiền]. Rút lại đồng ý không ảnh hưởng phần buổi đọc đã diễn ra trước đó. Xóa tài khoản thì câu hỏi, tin nhắn và đánh giá bị xóa; riêng dữ liệu hóa đơn được giữ theo luật.
+> *Bạn có thể:* xem, sửa, xóa dữ liệu, hoặc rút lại đồng ý bất cứ lúc nào, kể cả khi buổi đọc đang diễn ra. Bấm **Dừng chia sẻ** trong buổi (hoặc vào **Tài khoản**): Lá Dẫn mất quyền xem thông tin của bạn ngay, buổi đọc dừng lại. Tiền được xử lý như một lần hủy theo [cách hủy và hoàn tiền]: còn ít nhất 2 giờ trước giờ đọc thì hoàn toàn bộ, muộn hơn thì không hoàn. Rút lại đồng ý không ảnh hưởng phần buổi đọc đã diễn ra trước đó. Xóa tài khoản thì câu hỏi, tin nhắn và đánh giá bị xóa; riêng dữ liệu hóa đơn được giữ theo luật.
 >
 > *Có thắc mắc:* [email hỗ trợ về dữ liệu].
 
