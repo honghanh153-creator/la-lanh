@@ -2,20 +2,37 @@
 exceptions file and CLI flags."""
 
 import json
+import re
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 import pytest
+from pydantic import BaseModel
 
 from app.domains.readings.clarity_lint import (
     HARD_ZERO_RULES,
     RULES,
+    ClarityDocument,
     SurfaceReport,
     hard_zero_violations,
+    lint_document,
     ratchet_regressions,
 )
+from app.domains.tarot.models import (
+    TarotReading,
+    TarotReadingPosition,
+    TarotStance,
+    TarotStanceReason,
+)
 from scripts import review_content_release
-from scripts.content_clarity_corpus import MINIMUM_SAMPLES, build_clarity_corpus
+from scripts.content_clarity_corpus import (
+    MINIMUM_SAMPLES,
+    TAROT_LINTED_FIELDS,
+    TAROT_UNLINTED_FIELDS,
+    build_clarity_corpus,
+    tarot_readings,
+    tarot_sections,
+)
 from scripts.review_content_release import (
     BASELINE_PATH,
     EXCEPTIONS_PATH,
@@ -49,6 +66,111 @@ def test_corpus_covers_every_surface_in_production_voices() -> None:
     assert len({doc.sample_id for docs in corpus.values() for doc in docs}) == sum(
         len(docs) for docs in corpus.values()
     )
+
+
+TAROT_PAGE = Path(__file__).parents[3] / "web/src/features/tarot/TarotPage.tsx"
+# The names TarotPage.tsx binds each reading model to.
+_TAROT_PAGE_NAMES: dict[str, type[BaseModel]] = {
+    "reading": TarotReading,
+    "reading.stance": TarotStance,
+    "position": TarotReadingPosition,
+    "reason": TarotStanceReason,
+}
+
+
+def _text_fields(model: type[BaseModel]) -> set[str]:
+    return {
+        name
+        for name, info in model.model_fields.items()
+        if str in (get_args(info.annotation) or (info.annotation,))
+    }
+
+
+def test_tarot_corpus_names_every_text_field_of_a_reading() -> None:
+    models = {model.__name__: model for model in _TAROT_PAGE_NAMES.values()}
+
+    assert set(TAROT_LINTED_FIELDS) | set(TAROT_UNLINTED_FIELDS) == set(models)
+    for name, model in models.items():
+        linted = TAROT_LINTED_FIELDS.get(name, frozenset())
+        unlinted = TAROT_UNLINTED_FIELDS.get(name, {})
+        assert not linted & set(unlinted), name
+        assert linted | set(unlinted) == _text_fields(model), name
+        assert all(reason.strip() for reason in unlinted.values()), name
+
+
+def test_tarot_corpus_lints_every_text_field_the_page_shows() -> None:
+    source = TAROT_PAGE.read_text("utf-8")
+    shown: dict[str, set[str]] = {}
+    for prefix, model in _TAROT_PAGE_NAMES.items():
+        pattern = rf"(?<![\w.]){re.escape(prefix)}\.([a-z_]+)\b"
+        fields = set(re.findall(pattern, source)) & _text_fields(model)
+        shown.setdefault(model.__name__, set()).update(fields)
+
+    assert "text" in shown["TarotStanceReason"]  # the parse still sees the reasons list
+    assert "conclusion" in shown["TarotStance"]
+    for name, fields in shown.items():
+        unlinted = set(TAROT_UNLINTED_FIELDS.get(name, {}))
+        assert fields - unlinted <= TAROT_LINTED_FIELDS[name], name
+
+
+def test_a_placeholder_in_any_linted_tarot_field_is_caught() -> None:
+    reading = next(
+        reading
+        for _, reading in tarot_readings()
+        if reading.stance is not None
+        and reading.stance.reasons
+        and any(position.small_action for position in reading.positions)
+    )
+    assert reading.stance is not None
+
+    def flagged(changed: TarotReading) -> int:
+        document = ClarityDocument("tarot", "probe", tarot_sections(changed))
+        return (
+            lint_document(document)["A11"]
+            - lint_document(ClarityDocument("tarot", "probe", tarot_sections(reading)))["A11"]
+        )
+
+    stance, reason, position = reading.stance, reading.stance.reasons[0], reading.positions[0]
+    probes: dict[str, TarotReading] = {
+        **{
+            f"TarotReading.{field}": reading.model_copy(update={field: "TODO viết lại."})
+            for field in TAROT_LINTED_FIELDS["TarotReading"]
+        },
+        **{
+            f"TarotStance.{field}": reading.model_copy(
+                update={"stance": stance.model_copy(update={field: "TODO viết lại."})}
+            )
+            for field in TAROT_LINTED_FIELDS["TarotStance"]
+        },
+        **{
+            f"TarotStanceReason.{field}": reading.model_copy(
+                update={
+                    "stance": stance.model_copy(
+                        update={
+                            "reasons": (
+                                reason.model_copy(update={field: "TODO viết lại."}),
+                                *stance.reasons[1:],
+                            )
+                        }
+                    )
+                }
+            )
+            for field in TAROT_LINTED_FIELDS["TarotStanceReason"]
+        },
+        **{
+            f"TarotReadingPosition.{field}": reading.model_copy(
+                update={
+                    "positions": (
+                        position.model_copy(update={field: "TODO viết lại."}),
+                        *reading.positions[1:],
+                    )
+                }
+            )
+            for field in TAROT_LINTED_FIELDS["TarotReadingPosition"]
+        },
+    }
+
+    assert {name: flagged(changed) for name, changed in probes.items()} == dict.fromkeys(probes, 1)
 
 
 def test_corpus_is_deterministic(reports: dict[str, SurfaceReport]) -> None:

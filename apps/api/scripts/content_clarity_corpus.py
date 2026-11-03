@@ -136,9 +136,7 @@ def daily_review_plan(
 def synthetic_chart_input(rng: random.Random) -> ChartInput:
     """A random birth moment in 1975-2006 at a random point inside Vietnam's bounding box."""
 
-    moment = datetime(1975, 1, 1, tzinfo=UTC) + timedelta(
-        minutes=rng.randrange(32 * 365 * 24 * 60)
-    )
+    moment = datetime(1975, 1, 1, tzinfo=UTC) + timedelta(minutes=rng.randrange(32 * 365 * 24 * 60))
     return ChartInput(
         utc_datetime=moment,
         latitude=round(rng.uniform(8.6, 23.3), 4),
@@ -194,10 +192,42 @@ def daily_documents(count: int = DAILY_COUNT) -> tuple[ClarityDocument, ...]:
     return tuple(documents)
 
 
+# Every text field of a Tarot reading, by model, with what the corpus does with it. A field the
+# Tarot page shows must be linted or named here with the reason it is not (tested against
+# apps/web/src/features/tarot/TarotPage.tsx), so new visible copy cannot skip the ratchet.
+TAROT_LINTED_FIELDS: dict[str, frozenset[str]] = {
+    "TarotReading": frozenset({"headline", "summary", "closing_prompt"}),
+    "TarotStance": frozenset({"conclusion"}),
+    "TarotStanceReason": frozenset({"text"}),
+    "TarotReadingPosition": frozenset(
+        {"meaning_here", "everyday_scene", "reflection_question", "small_action"}
+    ),
+}
+TAROT_UNLINTED_FIELDS: dict[str, dict[str, str]] = {
+    "TarotReading": {
+        "question": "the reader's own words, echoed back; not copy the engine writes",
+        "disclaimer": "one fixed engine string on every reading, reviewed in code, not generated",
+    },
+    "TarotReadingPosition": {
+        "key": "identifier",
+        "label": "spread position label from the fixed spread map (UI chrome)",
+    },
+    "TarotStanceReason": {
+        "position_key": "identifier",
+        "card_id": "identifier",
+    },
+    "TarotStance": {"version": "identifier"},
+}
+
+
 def tarot_sections(reading: TarotReading) -> tuple[tuple[str, str], ...]:
     sections: list[tuple[str, str]] = [("headline", reading.headline), ("summary", reading.summary)]
     if reading.stance is not None:
         sections.append(("stance", reading.stance.conclusion))
+        sections.extend(
+            (f"stance_reason_{reason.position_key}", reason.text)
+            for reason in reading.stance.reasons
+        )
     for position in reading.positions:
         sections.extend(
             (
@@ -212,7 +242,7 @@ def tarot_sections(reading: TarotReading) -> tuple[tuple[str, str], ...]:
     return tuple(sections)
 
 
-def tarot_documents(count: int = TAROT_COUNT) -> tuple[ClarityDocument, ...]:
+def tarot_readings(count: int = TAROT_COUNT) -> Iterator[tuple[int, TarotReading]]:
     """Mirrors ``TarotSessionService.start`` + ``select``; content rejections are skipped like
     production skips publishing them, so coverage is checked on rendered readings only."""
 
@@ -221,7 +251,6 @@ def tarot_documents(count: int = TAROT_COUNT) -> tuple[ClarityDocument, ...]:
     card_ids = tuple(card.id for card in all_cards())
     contexts = tuple(_TAROT_QUESTIONS)
     spreads = tuple(_SPREAD_CARDS)
-    documents: list[ClarityDocument] = []
     for index in range(count):
         spread = spreads[index % len(spreads)]
         requested = TarotVoice.PLAYFUL_GROUNDED if (index // 3) % 2 == 0 else TarotVoice.ROAST
@@ -255,15 +284,19 @@ def tarot_documents(count: int = TAROT_COUNT) -> tuple[ClarityDocument, ...]:
             )
         except TarotContentRejected:
             continue
-        documents.append(
-            ClarityDocument(
-                surface="tarot",
-                sample_id=f"tarot-{index:03d}",
-                variant=voice.value,
-                sections=tarot_sections(reading),
-            )
+        yield index, reading
+
+
+def tarot_documents(count: int = TAROT_COUNT) -> tuple[ClarityDocument, ...]:
+    return tuple(
+        ClarityDocument(
+            surface="tarot",
+            sample_id=f"tarot-{index:03d}",
+            variant=reading.voice.value,
+            sections=tarot_sections(reading),
         )
-    return tuple(documents)
+        for index, reading in tarot_readings(count)
+    )
 
 
 def _texts(items: Any, *keys: str) -> Iterator[str]:
