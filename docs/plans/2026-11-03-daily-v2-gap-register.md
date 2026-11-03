@@ -127,7 +127,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 | HM-7 | Không rõ giờ sinh: Sao Kim gốc bị gán "Hẹn hò hoặc Đối tác" | P2 | Dùng chùm nghĩa của hành tinh gốc, nói rộng |
 
 | HM-8 | Bản 9423dae lệch sách ở sáu chỗ: tình yêu ở nhà 5 chỉ có nguồn hiện đại; "học trò" không có nguồn; Mặt Trăng "vài giờ" (thật ra khoảng 2 ngày một nhà), Sao Kim "vài ngày" (thật ra vài tuần); chủ tinh hiện đại dùng chọn nghĩa không có nguồn cổ điển; câu mặc định có con; C3a đòi nguồn hiện đại chưa kiểm | P1 | **Đã chốt 03.11.2026** (plan mục 1.1, luật N-1…N-8, A-6…A-8; nghiên cứu `docs/research/2026-11-03-sach-chiem-tinh-nha-va-transit.md`) |
-| HM-9 | Hand và Sasportas chưa đối chiếu với sách thật; số câu Phaladeepika lấy từ OCR chưa soát | P2 | Đối chiếu trước khi C3a xong; tới lúc đó nghĩa chỉ có nguồn hiện đại không đứng đầu |
+| HM-9 | Hand và Sasportas chưa đối chiếu với sách thật; số câu Phaladeepika lấy từ OCR chưa soát | P2 | **Owner chốt không mua sách (03.11.2026):** nghĩa chỉ có nguồn hiện đại không bao giờ đứng đầu, không trích Hand/Sasportas trong app. Phaladeepika đối chiếu bản in trước khi vào lớp "Vì sao" |
 | HM-10 | Câu nhiều cửa dễ thành câu đúng với ai cũng được | P2 | Luật đo câu chung chung trong cổng lớp C |
 
 ### C2c — khoảng ngày của xu hướng
@@ -273,3 +273,11 @@ phép thử thay thế:
 - Quy tắc ba (JAMA); WHO, hướng dẫn đưa tin an toàn (9789240076846).
 - Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15; Nghị định 356/2025/NĐ-CP.
 - Apple App Review Guidelines 1.4.1, 4.3(b), 5.1.1, 5.1.2(ii); Google Play Data safety.
+
+## Sự cố 03.11.2026: ngày sinh của owner trong PR công khai
+
+Một hằng số trong `content_clarity_corpus.py` (#179) ghi ngày sinh thật và gắn nó với owner. Codex chặn
+(P0). Đã viết lại lịch sử nhánh để xóa hằng số khỏi mọi commit và force-push (head mới 0a1c045). Các
+commit cũ vẫn có thể mở bằng SHA trên GitHub cho tới khi GitHub dọn; muốn xóa hẳn phải nhờ GitHub
+Support (việc của owner). Kiểm tra cứng đề xuất: test CI chặn
+mọi ngày sinh nằm trong danh sách cấm (lưu ở dạng băm, không lưu ngày rõ).

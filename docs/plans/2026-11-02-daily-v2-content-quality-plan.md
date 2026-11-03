@@ -78,9 +78,10 @@ Dấu ⚠: chủ đề nhạy cảm, chỉ nói ở dạng rộng theo N-3 và N
 **Không rõ giờ sinh.** Không dùng nhà. Chủ đề lấy theo chùm nghĩa của hành tinh gốc bị chạm, viết theo N-2 và N-3. Ví dụ Sao Kim gốc gồm tình cảm, cái đẹp, tiền và sự dễ chịu.
 
 **Điều kiện để C3a xong:**
-1. **Đối chiếu Hand và Sasportas với sách thật.** Cần các đoạn sao Mộc và sao Thổ qua nhà 5, phần mở đầu của *Planets in Transit* (bản 2002), và chương nhà 5 của *The Twelve Houses*. Mua sách là khoản chi nên cần owner, hoặc mượn thư viện. Cho tới lúc đó:
-   - nghĩa "cổ điển" và "cả hai" được dùng bình thường;
-   - nghĩa chỉ có nguồn "hiện đại" chỉ được là một trong các cửa của N-3, không đứng đầu.
+1. **Hand và Sasportas: owner chốt không mua sách (03.11.2026).** Vì vậy:
+   - nghĩa có nguồn "cổ điển" hoặc "cả hai" dùng bình thường;
+   - nghĩa chỉ có nguồn "hiện đại" (ví dụ tình yêu ở nhà 5) chỉ được là một trong các cửa của N-3, không bao giờ đứng đầu câu và không lên chip;
+   - không trích lời hay số trang của Hand và Sasportas ở bất cứ đâu trong app.
 2. **Đối chiếu số câu Phaladeepika với bản in** trước khi đưa vào lớp "Vì sao".
 3. **Thêm luật đo câu chung chung vào cổng lớp C** (câu đúng với ai cũng được), vì đây là điểm yếu tự nhiên của câu nhiều cửa.
 
@@ -238,3 +239,53 @@ Chi tiết: `docs/plans/2026-11-03-daily-v2-gap-register.md`. Các thay đổi:
   tính từ Mặt Trăng. Sửa sáu chỗ lệch sách của bản trước: tình yêu ở nhà 5 chỉ có nguồn hiện đại; bỏ
   "học trò"; thời gian Mặt Trăng và Sao Kim; chủ tinh không dùng để chọn nghĩa; bỏ câu mặc định có
   con; C3a chờ đối chiếu Hand và Sasportas.
+
+## 9. Lộ trình tổng thể (triển khai lại 03.11.2026)
+
+Owner yêu cầu triển khai lại kế hoạch sau khi chốt mục 1.1. Thứ tự theo ưu tiên của owner: nội dung →
+quyền riêng tư → tính năng mới. Mỗi PR nhỏ, đi qua vòng tự động (author check → Codex → merge vào
+`collab/integration`); main, release và deploy vẫn do owner.
+
+**Đợt 1 — đang review (gói #180):**
+
+| PR | Việc | Trạng thái 03.11 chiều |
+|---|---|---|
+| #177 | Plan, sổ lỗ hổng | Đã merge (bản 927811b); phần sửa mục 1.1 sau đó đi PR mới |
+| #178 | C2a: chọn yếu tố trong ngày | Codex đòi sửa (pha không chắc chắn, múi giờ nơi sinh, góc vào orb lúc gần nửa đêm), đang sửa |
+| #179 | C1: cổng ngôn ngữ dễ hiểu | Codex chặn vì một hằng số gắn ngày sinh thật của owner; đã xóa khỏi toàn bộ lịch sử nhánh. Đang sửa thêm hai P2 |
+| #181, #182 | `/metrics` đóng; Jyotish không còn bị từ chối | Đã merge |
+| #183 | Múi giờ miền Bắc 1960–1975 | Codex đòi báo "giờ chưa chắc" trên Radar và xóa nhà/góc khi chưa chắc, đang sửa |
+| #184 | Sự kiện bầu trời | Codex đã duyệt, chờ merge |
+| #185 | Khung "Rạng sáng 00–06h" | Chờ review |
+| mới | Ngày mẫu trong test: dùng các ngày giả lập khác nhau | Đang làm |
+
+**Đợt 2 — nền nội dung theo mục 1.1 (04–05.11):**
+1. **C1-3, luật chặn cứng mới.** Chặn câu đoán sự kiện đời người (mang thai, cưới, chia tay, mất
+   việc, bệnh, mất người thân) và câu giả định hoàn cảnh (độc thân, có con, giới tính) — HM-4. Đưa
+   GT-1 về chặn cứng; thêm A9, A13, A15.
+2. **C3a-1, bảng chùm nghĩa 12 nhà có cột nguồn** (N-1) dạng dữ liệu, kèm test: mỗi nghĩa có nguồn,
+   mục ⚠ được đánh dấu, không có nghĩa thiếu nguồn. Bốn persona thành fixture cho cổng lớp C.
+3. **HM-2/HM-3, sửa Daily và bản đọc đang chạy.** `knowledge.py` `HOUSES` lấy từ bảng mới (nhà 5 có
+   con cái ở dạng rộng); `_short_arena` không gộp nhà; `HOUSE_ARENAS` không dồn 12 nhà vào 4 nhóm.
+4. **C2b, nhà theo độ tin cậy của giờ sinh** và góc với cung Mọc/Thiên Đỉnh; A-7 (sàn 18 tuổi, tính
+   lúc hiển thị).
+
+**Đợt 3 — bảng ô và nhà máy (05–07.11):**
+5. **C3a-2, bảng 120 ô hành tinh × nhà** theo N-2…N-5 và A-6; luật đo câu chung chung (HM-10).
+6. **C2c** nối các lần đi qua do nghịch hành; **C2d** chọn biến thể bằng HMAC, không lưu; N-6 (mục ⚠
+   tối đa một lần mỗi tuần).
+7. **C3b, nhà máy nội dung:** giám khảo chấm 100% mảnh, khác họ model; nghiệm thu trên note đã ghép;
+   kho mảnh không tự merge.
+
+**Đợt 4 — đưa tới người dùng (08–11.11):**
+8. **C4:** API và giao diện Daily v2; trường mới trong envelope mã hóa; tính một lần mỗi ngày.
+9. **C5 trước A/B:** dùng lại tính năng cảm nhận đúng/sai. Nếu thẻ xu hướng bị chấm "không giống mình"
+   nhiều, xét thêm lớp độ mạnh nhà (A-3).
+10. **C4a:** A/B giọng A và C bằng HMAC, chỉ bộ đếm tổng hợp.
+
+**Song song, không chặn:** Jyotish gochara theo A-8 (sau đợt 3); đối chiếu số câu Phaladeepika với
+bản in; cập nhật lời giải thích quyền riêng tư, khai báo App Store / Google Play và chính sách khi C4
+hoặc C5 thêm dữ liệu mới.
+
+**Cách đo xong.** Mỗi đợt xong khi các PR của đợt đã merge vào `collab/integration` với Codex APPROVE ở
+đúng head, và các chỉ số ở mục 2 được đo lại trên engine mới.
