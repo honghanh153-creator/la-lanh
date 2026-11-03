@@ -553,3 +553,48 @@ def test_an_approximate_birth_time_still_opens_a_reading_in_both_traditions(
     projection = cast(dict[str, object], payload["reading_projection"])
     active = cast(dict[str, object], projection["active"])
     assert active["tradition"] == tradition
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/insights/overview?tradition=jyotish",
+        "/v1/insights/readings/aura?tradition=jyotish",
+        "/v1/insights/readings/reading_detail?tradition=jyotish",
+        "/v1/insights/readings/personalized_sky?tradition=jyotish",
+    ],
+)
+def test_a_jyotish_chart_without_graha_drishti_opens_instead_of_503(
+    reading_client: TestClient, path: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """PL-3 (#180): with no graha drishti the planner names two placements as heroes; the
+    Jyotish frame cited only one, so every request was rejected, logged an exception and
+    answered 503. Synthetic input (audit seed 20261103): every body sits in Aries to Gemini."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    assert (
+        reading_client.post(
+            "/v1/birth-profile", json={"birth_date": "2002-04-16"}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        reading_client.post(
+            "/v1/birth-profile/supplement",
+            json={
+                "birth_time_mode": "exact",
+                "birth_time_local": "22:20",
+                "approx_window": None,
+                "place_id": "vn-ho-chi-minh",
+                "consent_version": "birth-profile-deep-v1",
+            },
+            headers=headers,
+        ).status_code
+        == 200
+    )
+
+    response = reading_client.get(path)
+
+    assert response.status_code == 200, response.text
+    assert not [record for record in caplog.records if record.exc_info]

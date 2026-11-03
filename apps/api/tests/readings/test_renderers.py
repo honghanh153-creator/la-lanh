@@ -508,3 +508,36 @@ def test_stored_v2_daily_plan_keeps_its_legacy_transit_rendering() -> None:
     assert "Hai vị trí đang" in candidate.transit
     assert any(word in candidate.transit for word in ("tiến gần", "ở sát", "đi xa"))
     assert evaluate_candidate(legacy, candidate).accepted is True
+
+
+def _jyotish_chart_without_graha_drishti() -> NatalChart:
+    """Synthetic chart (audit seed 20261103): every body sits in Aries to Gemini."""
+    chart = NatalChartEngine().calculate_chart(
+        ChartInput(
+            utc_datetime=datetime(2002, 4, 16, 15, 20, tzinfo=UTC),
+            latitude=15.6364,
+            longitude=104.2697,
+        ),
+        CalculationConfig.jyotish_recommended(),
+    )
+    assert chart.graha_drishti == ()
+    return chart
+
+
+@pytest.mark.parametrize("purpose", list(ReadingPurpose))
+def test_jyotish_chart_without_graha_drishti_cites_every_hero(purpose: ReadingPurpose) -> None:
+    """PL-3 (#180): two independent placements become the heroes; both must be cited."""
+    plan = ReadingPlanner().plan(
+        _jyotish_chart_without_graha_drishti(),
+        purpose=purpose,
+        editorial_seed="2026-11-03" if purpose is ReadingPurpose.DAILY_NOTE else None,
+    )
+
+    candidate = DeterministicVietnameseRenderer().render(plan)
+    evaluation = evaluate_candidate(plan, candidate)
+
+    assert plan.mode is PlanMode.FULL_SYNTHESIS
+    assert len(plan.hero_factor_refs) == 2
+    assert set(plan.hero_factor_refs) <= {claim.factor_ref for claim in candidate.evidence.claims}
+    assert GateFailureCode.EVIDENCE_MISSING_HERO not in evaluation.failure_codes
+    assert evaluation.accepted is True

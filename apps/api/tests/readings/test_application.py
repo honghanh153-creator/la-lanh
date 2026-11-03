@@ -516,6 +516,43 @@ async def test_authorized_natal_uses_generic_rewrite_queue_instead_of_legacy_que
 
 
 @pytest.mark.asyncio
+async def test_jyotish_daily_without_graha_drishti_publishes_a_note_every_day() -> None:
+    """PL-3 (#180): this chart used to be rejected on every day, so Daily always fell back."""
+    chart = NatalChartEngine().calculate_chart(
+        ChartInput(
+            # Synthetic (audit seed 20261103): every body sits in Aries to Gemini.
+            utc_datetime=datetime(2002, 4, 16, 15, 20, tzinfo=UTC),
+            latitude=15.6364,
+            longitude=104.2697,
+        ),
+        CalculationConfig.jyotish_recommended(),
+    )
+    assert chart.graha_drishti == ()
+    repository = MemoryReadingRepository()
+    service = ReadingApplicationService(repository, NatalChartEngine())
+    guest_id = UUID("20000000-0000-4000-8000-000000000180")
+    snapshot = BirthSnapshotRecord(
+        id=UUID("10000000-0000-4000-8000-000000000180"),
+        guest_id=guest_id,
+        profile_id=UUID("30000000-0000-4000-8000-000000000180"),
+        input_hash=b"jyotish",
+        birth_date_ciphertext="encrypted",
+        result=chart,
+        created_at=NOW,
+    )
+
+    for day in (3, 4, 5):
+        projection = await service.project(
+            guest_id=guest_id,
+            snapshot=snapshot,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            requested_at=datetime(2026, 11, day, 1, tzinfo=UTC),
+        )
+        assert projection.active.mode is PlanMode.FULL_SYNTHESIS
+        assert len(projection.active.evidence.claims) >= 2
+
+
+@pytest.mark.asyncio
 async def test_rejected_renderer_cannot_publish_a_revision_or_projection() -> None:
     class RejectingRenderer(DeterministicVietnameseRenderer):
         def render(self, plan):  # type: ignore[no-untyped-def]
