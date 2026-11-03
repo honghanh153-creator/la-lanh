@@ -6,14 +6,14 @@
       "surface": "kham_pha",
       "keys": ["b8b545bb54"],
       "reason": "pre-existing, fix in C3",
-      "approver": "pending-owner"
+      "approver": "owner in chat 03.11.2026 (keep until C3 rewrites)"
     },
     {
       "rule": "S7",
       "surface": "radar",
       "keys": ["1fb170d7fa"],
       "reason": "pre-existing, fix in C3",
-      "approver": "pending-owner"
+      "approver": "owner in chat 03.11.2026 (keep until C3 rewrites)"
     }
   ]
 }
