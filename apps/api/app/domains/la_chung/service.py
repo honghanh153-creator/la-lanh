@@ -33,7 +33,13 @@ STATEMENTS = (
 )
 STATEMENT_IDS = {item.id for item in STATEMENTS}
 CONTEXTS = {"bff", "crush", "couple", "friend", "workmate"}
-ALIAS_CONTACT = re.compile(r"(?:\+?\d[\d .-]{7,}|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,})")
+# Contact-looking aliases (a phone number or an e-mail address) are refused. Only the
+# existence of a match matters, so each quantifier is cut to the shortest form that
+# still decides it: a digit then 7 more phone characters, and one local-part
+# character right before "@". The old `[\w.+-]+@` could restart at every position
+# of a long run without "@" (CodeQL py/polynomial-redos); these forms stay linear.
+ALIAS_MAX_LENGTH = 24
+ALIAS_CONTACT = re.compile(r"\d[\d .-]{7}|[\w.+-]@[\w.-]+\.[A-Za-z]{2}")
 REPORT_REASONS = {"not_for_me", "unsafe", "spam", "other"}
 RECEIPT_TTL = timedelta(days=7)
 CAPABILITY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
@@ -239,10 +245,14 @@ class LaChungService:
             raise LaChungInvalid
         if not set(selections) <= STATEMENT_IDS:
             raise LaChungInvalid
+        if display_alias is not None and len(display_alias) > ALIAS_MAX_LENGTH:
+            # Same cap as the request schema (max_length=24), enforced again here so
+            # no caller can hand the normaliser or the contact check unbounded text.
+            raise LaChungInvalid
         alias = " ".join((display_alias or "").split()) or None
         if identity_mode is IdentityMode.ANONYMOUS:
             alias = None
-        elif alias is None or len(alias) > 24 or ALIAS_CONTACT.search(alias):
+        elif alias is None or ALIAS_CONTACT.search(alias):
             raise LaChungInvalid
         current = datetime.now(UTC)
         capability_hash = self._hasher.digest("la-chung-capability", token)
