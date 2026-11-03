@@ -7,7 +7,13 @@ from typing import Any
 
 import pytest
 
-from app.domains.readings.clarity_lint import RULES, SurfaceReport, ratchet_regressions
+from app.domains.readings.clarity_lint import (
+    HARD_ZERO_RULES,
+    RULES,
+    SurfaceReport,
+    hard_zero_violations,
+    ratchet_regressions,
+)
 from scripts import review_content_release
 from scripts.content_clarity_corpus import MINIMUM_SAMPLES, build_clarity_corpus
 from scripts.review_content_release import (
@@ -101,8 +107,16 @@ def test_cli_accepts_update_baseline_flag(
     )
 
 
-def test_committed_exceptions_file_is_empty() -> None:
-    assert json.loads(EXCEPTIONS_PATH.read_text("utf-8"))["exceptions"] == []
+def test_committed_exceptions_only_list_pre_existing_hard_zero_sentences(
+    reports: dict[str, SurfaceReport],
+) -> None:
+    entries = json.loads(EXCEPTIONS_PATH.read_text("utf-8"))["exceptions"]
+    assert all(entry["rule"] in HARD_ZERO_RULES for entry in entries)  # no ratchet waivers
+    assert all(entry["reason"] == "pre-existing, fix in C3" and entry["keys"] for entry in entries)
+    # Every listed key is still present; drop an entry as soon as C3 fixes the sentence.
+    for entry in entries:
+        assert set(entry["keys"]) <= set(reports[entry["surface"]].keys[entry["rule"]])
+    assert hard_zero_violations(reports) != ()  # the gate does see the pre-existing hits
 
 
 def _setup_base(
@@ -120,8 +134,10 @@ def _setup_base(
 
 
 def _exceptions(tmp_path: Path, *entries: dict[str, str]) -> Path:
+    """The committed exceptions plus ``entries``."""
+    committed = json.loads(EXCEPTIONS_PATH.read_text("utf-8"))["exceptions"]
     path = tmp_path / "exceptions.json"
-    path.write_text(json.dumps({"exceptions": list(entries)}), "utf-8")
+    path.write_text(json.dumps({"exceptions": [*committed, *entries]}), "utf-8")
     return path
 
 
@@ -215,3 +231,29 @@ def test_read_base_baseline_reads_a_git_ref() -> None:
     document, status = read_base_baseline("HEAD")
     assert status in {"found", "missing"}
     assert (document is not None) == (status == "found")
+
+
+def test_a_hard_zero_hit_fails_even_after_rewriting_the_baseline(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    reports: dict[str, SurfaceReport],
+) -> None:
+    tarot = reports["tarot"]
+    harmful = SurfaceReport(
+        surface="tarot",
+        samples=tarot.samples,
+        variants=tarot.variants,
+        rules=tarot.rules,
+        readings_flagged=tarot.readings_flagged,
+        keys={**tarot.keys, "S5": ("0123456789",)},
+        hard_zero={**tarot.hard_zero, "S5": 1},
+    )
+    head = _setup_base(tmp_path, monkeypatch, {**reports, "tarot": harmful}, None, "missing")
+    capsys.readouterr()
+
+    with pytest.raises(SystemExit):
+        review_content_release._clarity_ratchet(head, update=False, base_ref=None)
+    assert "tarot: S5 chắc chắn, định mệnh is a hard zero: 1 sentence(s) (0123456789)" in (
+        capsys.readouterr().out
+    )

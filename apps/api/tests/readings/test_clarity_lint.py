@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from app.domains.readings.clarity_lint import (
+    HARD_ZERO_RULES,
     RULES,
     ClarityDocument,
     RatchetException,
@@ -19,11 +20,13 @@ from app.domains.readings.clarity_lint import (
     count_meta_talk,
     count_past_action_claims,
     count_placeholders,
+    count_safety,
     dump_baseline,
     effective_baseline,
     english_words,
     excess_engine_metaphors,
     excess_hedges,
+    hard_zero_violations,
     lint_document,
     lint_document_keys,
     lint_surface,
@@ -305,7 +308,7 @@ def test_lookalike_characters_do_not_hide_a_match(variant: str) -> None:
 
 def test_lint_document_reports_every_rule_but_a6() -> None:
     counts = lint_document(_doc("Bạn nghỉ sớm một chút tối nay."))
-    assert set(counts) == set(RULES) - {"A6"}
+    assert set(counts) == (set(RULES) | set(HARD_ZERO_RULES)) - {"A6"}
     assert all(value == 0 for value in counts.values())
 
 
@@ -511,3 +514,94 @@ def test_exceptions_need_rule_surface_reason_and_approver(entry: Any, problem: s
     assert entries == ()
     assert len(problems) == 1
     assert problem in problems[0]
+
+
+@pytest.mark.parametrize(
+    ("rule", "text"),
+    (
+        ("S1", "Đau đầu hôm nay là do Sao Hỏa, không cần đi khám."),
+        ("S1", "Hôm nay hợp để nhịn ăn cả ngày cho cơ thể thải độc."),
+        ("S1", "Mất ngủ mấy hôm nay là dấu hiệu của trầm cảm."),
+        ("S1", "Hôm nay bạn có thể bỏ thuốc một bữa."),
+        ("S2", "Tuần này dễ gặp tai nạn khi đi xa."),
+        ("S2", "Ngày này, tốt nhất đừng ra khỏi nhà."),
+        ("S3", "Hôm nay là ngày đẹp để xuống tiền mua vàng."),
+        ("S3", "Vay thêm một khoản để chốt căn hộ đi, sao đang ủng hộ bạn."),
+        ("S3", "Đầu tư vào cổ phiếu tuần này là hợp."),
+        ("S4", "Ký luôn hợp đồng hôm nay, đừng đọc kỹ làm gì."),
+        ("S4", "Đây là thời điểm hợp để nộp đơn ly hôn."),
+        ("S5", "Hai bạn chắc chắn sẽ chia tay."),
+        ("S5", "Đây là định mệnh, bạn không thể tránh."),
+        ("S5", "Vận hạn đang tới, chuyện tình cảm khó mà cứu vãn."),
+        ("S5", "Sao Thổ đang phạt bạn vì những lựa chọn cũ."),
+        ("S5", "Hôm nay mọi chuyện sẽ đổ vỡ nếu bạn mở lời."),
+        ("S5", "Tuần sau bạn sẽ được tăng lương."),
+        ("S6", "Lỗi là ở bạn vì bạn quá nhạy cảm."),
+        ("S6", "Bạn lúc nào cũng làm hỏng mọi thứ."),
+        ("S6", "Nói thật nhé, bạn lười kinh khủng, chẳng trách không ai rủ."),
+        ("S7", "Nếu thấy mọi thứ vô nghĩa, cứ để mọi thứ trôi đi, không cần ai cả."),
+        ("S7", "Biến mất một thời gian cũng là một cách để mọi người nhớ bạn."),
+        ("S7", "Có những ngày bạn không muốn sống nữa."),
+        ("S7", "Hôm nay đừng tin ai ngoài chính mình."),
+    ),
+)
+def test_class_a_safety_rules_catch_harmful_lines(rule: str, text: str) -> None:
+    assert count_safety(rule, text) >= 1
+    assert lint_document(_doc(text))[rule] >= 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "Đèn vàng: cân nhắc thêm trước khi nhận lời.",
+        "Từ góc này, công sức đã đầu tư cần được xem lại bằng dấu hiệu tiến triển.",
+        "Lúc này, điều làm bạn đau lòng đáng được nhận ra mà không cần tự trách.",
+        "Để giữ đồ, tiền và thời gian riêng, bạn cần ranh giới hợp với nhu cầu của mình.",
+        "Khi quên cuộc hẹn, bạn gọi mình vô dụng thay vì nghĩ cách đặt lời nhắc.",
+        "Báo rõ bạn muốn dừng cuộc trao đổi, không đặt điều kiện trừng phạt.",
+        "Điều nào là dữ kiện, điều nào đang do bạn tự nối thêm?",
+        "Sự kiện cuối tuần kết thúc sớm, bạn về nhà nghỉ.",
+        "Bạn biết mình muốn gì, nhưng không phải lúc nào cũng nói ra.",
+        "Bạn có thể đang coi kịch bản đáng sợ nhất là chuyện chắc sẽ xảy ra.",
+    ),
+)
+def test_class_a_safety_rules_leave_everyday_lines_alone(text: str) -> None:
+    counts = lint_document(_doc(text))
+    assert {rule: counts[rule] for rule in HARD_ZERO_RULES} == dict.fromkeys(HARD_ZERO_RULES, 0)
+
+
+def test_hidden_characters_are_a_hard_zero_violation() -> None:
+    sneaky = "Góc đối\u200bđỉnh với Sat\u200burn, phần\u2066dưới chỉ ra cách gỡ."
+    counts = lint_document(_doc(sneaky, "Bạn nghỉ sớm."))
+    assert counts["H1"] == 1
+    assert lint_document(_doc("Bạn\u00a0nghỉ sớm."))["H1"] == 0  # NBSP is normalised, not hidden
+    report = lint_surface("tarot", [_doc(sneaky)])
+    assert report.hard_zero["H1"] == 1
+    assert report.keys["H1"] == (sentence_key(normalize_text(sneaky)),)
+
+
+def test_hard_zero_rules_fail_on_any_hit_unless_the_exact_key_is_excepted() -> None:
+    harmful = "Hôm nay là ngày đẹp để xuống tiền mua vàng."
+    other = "Vay thêm một khoản đi."
+    report = lint_surface("tarot", [_doc(harmful, other)])
+    assert "S3" not in report.rules  # never part of the ratcheted baseline
+    assert report.hard_zero["S3"] == 3  # "xuống tiền", "mua vàng", "vay"
+    problems = hard_zero_violations({"tarot": report})
+    assert problems == (
+        f"tarot: S3 khuyên tiền, vay, vàng, đầu tư is a hard zero: 2 sentence(s) "
+        f"({', '.join(sorted((sentence_key(harmful), sentence_key(other))))})",
+    )
+    excepted = RatchetException(
+        "S3", "tarot", "pre-existing, fix in C3", "owner", keys=(sentence_key(harmful),)
+    )
+    assert hard_zero_violations({"tarot": report}, (excepted,)) == (
+        f"tarot: S3 khuyên tiền, vay, vàng, đầu tư is a hard zero: 1 sentence(s) "
+        f"({sentence_key(other)})",
+    )
+    # A whole-rule waiver is not possible for a hard-zero rule.
+    entries, errors = parse_exceptions(
+        {"exceptions": [{"rule": "S3", "surface": "tarot", "reason": "x", "approver": "o"}]},
+        surfaces=("tarot",),
+    )
+    assert entries == ()
+    assert errors == ("exceptions[0]: a hard-zero rule needs the exact sentence keys",)

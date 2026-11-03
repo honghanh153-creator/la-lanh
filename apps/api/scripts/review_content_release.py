@@ -36,6 +36,7 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 from app.domains.readings.clarity_lint import (
+    HARD_ZERO_RULES,
     RULES,
     TODO_RULES,
     SurfaceReport,
@@ -43,6 +44,7 @@ from app.domains.readings.clarity_lint import (
     baseline_raises,
     dump_baseline,
     effective_baseline,
+    hard_zero_violations,
     lint_surface,
     parse_exceptions,
     ratchet_regressions,
@@ -280,6 +282,10 @@ def format_clarity_table(reports: Mapping[str, SurfaceReport], baseline: Mapping
             cell = f"{value}" + (f" ({delta:+d})" if delta else "")
             cells.append(f"{cell:>{width}}")
         lines.append(f"{rule + ' ' + name:<34}" + "".join(cells))
+    lines.append("hard zero (never ratcheted):")
+    for rule, name in HARD_ZERO_RULES.items():
+        cells = [f"{reports[surface].hard_zero.get(rule, 0):>{width}}" for surface in surfaces]
+        lines.append(f"{rule + ' ' + name:<34}" + "".join(cells))
     return "\n".join(lines)
 
 
@@ -368,6 +374,7 @@ def _clarity_ratchet(
     if base is not None:
         problems += baseline_raises(base, head, exceptions)
     problems += ratchet_regressions(reports, effective, minimum_samples=MINIMUM_SAMPLES)
+    problems += hard_zero_violations(reports, exceptions)
     if problems:
         print("Clarity ratchet failed (counts may only go down, no new violating sentence):")
         for problem in problems:

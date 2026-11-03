@@ -2,8 +2,13 @@
 
 Spec: ``docs/research/2026-11-01-content-clarity-gate.md`` section 3, "Lớp A". Every rule reads
 only the text a user sees in the body of a reading (no evidence, receipts, factor codes or UI
-labels) and returns a count, so a release review can keep a per-surface baseline and fail when a
-count rises (ratchet). Thresholds are provisional, like the spec says.
+labels) and returns a count plus the keys of the violating sentences (short hashes), so a release
+review can keep a per-surface baseline and fail when a count rises or a new violating sentence
+appears (ratchet). Thresholds are provisional, like the spec says.
+
+The class-A safety rules S1-S7 (health, death/accident, money, law, certainty, blame, crisis) and
+H1 (hidden characters) are never ratcheted: any hit fails unless its exact key is an approved
+exception (gap register GT-17, GT-24, GT-11).
 
 Text is normalised before any rule runs (NFC, no-break spaces as spaces, full-width ASCII as
 ASCII, zero-width and bidi controls removed), so look-alike characters cannot hide a match.
@@ -56,8 +61,18 @@ NEAR_DUPLICATE_OVERLAP = 0.5  # A5: shared bigrams over the smaller sentence's b
 SHARED_SENTENCE_SHARE = 0.2  # A6
 SHARED_SENTENCE_MIN_SYLLABLES = 4  # A6 ignores very short fragments
 KEY_LENGTH = 10  # hex digits of a violation key (40 bits)
-# Rules that are never ratcheted: any hit fails unless its exact key is an approved exception.
-HARD_ZERO_RULES: dict[str, str] = {}
+# Class-A safety rules (gap register GT-17, GT-24) and hidden characters (GT-11). They are never
+# ratcheted: any hit on any surface fails, unless its exact sentence key is an approved exception.
+HARD_ZERO_RULES: dict[str, str] = {
+    "S1": "sức khỏe, chẩn đoán",
+    "S2": "chết, tai nạn",
+    "S3": "khuyên tiền, vay, vàng, đầu tư",
+    "S4": "pháp lý, hợp đồng",
+    "S5": "chắc chắn, định mệnh",
+    "S6": "đổ lỗi cho người đọc",
+    "S7": "ngôn ngữ khủng hoảng",
+    "H1": "ký tự ẩn (zero-width, bidi)",
+}
 
 
 def _terms(*patterns: str) -> re.Pattern[str]:
@@ -310,6 +325,118 @@ HIDDEN_CHARACTERS = re.compile(f"[{_ZERO_WIDTH}{_BIDI_CONTROLS}]")
 _LOOKALIKE_SPACES = re.compile("[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]")
 _FULL_WIDTH_ASCII = {code: code - 0xFEE0 for code in range(0xFF01, 0xFF5F)}
 
+# Class-A safety (hard zero). A reading never diagnoses, predicts death or accidents, advises on
+# money or law, states fate as certain, blames the reader, or uses crisis language. Sources: WHO
+# safe messaging on suicide (2023), the gate spec, gap register GT-17/GT-24.
+SAFETY_RULES: dict[str, re.Pattern[str]] = {
+    "S1": _terms(
+        r"\bchẩn đoán\b",
+        r"\btrầm cảm\b",
+        r"\brối loạn (?:lo âu|ăn uống|lưỡng cực|giấc ngủ|tâm thần|nhân cách)\b",
+        r"\bbệnh\b",
+        r"\bung thư\b",
+        r"\bkhối u\b",
+        r"\btiểu đường\b",
+        r"\bhuyết áp\b",
+        r"\bđột quỵ\b",
+        r"\b(?:không cần|khỏi|đừng) (?:đi )?khám\b",
+        r"\b(?:uống|bỏ|ngưng|ngừng|tự mua|đổi) thuốc\b",
+        r"\bnhịn ăn\b",
+        r"\bthải độc\b",
+        r"\bdetox\b",
+        r"\bđau (?:đầu|bụng|ngực|lưng|dạ dày|tim|nửa đầu)\b",
+        r"\bmang thai\b",
+        r"\bsảy thai\b",
+        r"\bvô sinh\b",
+        r"\bphẫu thuật\b",
+        r"\bchữa (?:khỏi|bệnh)\b",
+    ),
+    "S2": _terms(
+        r"\bchết\b",
+        r"\btử vong\b",
+        r"\bqua đời\b",
+        r"\bmất mạng\b",
+        r"\btai nạn\b",
+        r"\btai ương\b",
+        r"\btai họa\b",
+        r"\bthảm họa\b",
+        r"\bđổ máu\b",
+        r"\bgặp (?:nạn|họa)\b",
+        r"\bđừng ra (?:khỏi nhà|đường)\b",
+    ),
+    "S3": _terms(
+        r"\bvay\b",
+        r"\b(?:mua|bán|giữ|tích trữ) vàng\b",
+        r"\bxuống tiền\b",
+        r"\bđầu tư (?:vào )?(?:tiền|vàng|cổ phiếu|chứng khoán|crypto|coin|tiền ảo|đất|bất động sản"
+        r"|căn hộ|nhà)\b",
+        r"\bcổ phiếu\b",
+        r"\bchứng khoán\b",
+        r"\bcrypto\b",
+        r"\btiền (?:ảo|mã hóa|điện tử)\b",
+        r"\bbất động sản\b",
+        r"\b(?:lô đề|xổ số|cá cược|cá độ|đánh bạc|cờ bạc)\b",
+        r"\blãi suất\b",
+        r"\bchốt (?:lời|lỗ|căn)\b",
+        r"\b(?:ngày|giờ) (?:đẹp|tốt|hợp) để (?:mua|bán|đầu tư|ký|vay)\b",
+    ),
+    "S4": _terms(
+        r"\bhợp đồng\b",
+        r"\bly hôn\b",
+        r"\b(?:thắng|thua|khởi|đi) kiện\b",
+        r"\bkiện tụng\b",
+        r"\bra tòa\b",
+        r"\btòa án\b",
+        r"\bluật sư\b",
+        r"\btranh chấp (?:đất|tài sản|thừa kế)\b",
+        r"\bthừa kế\b",
+    ),
+    "S5": _terms(
+        r"\bchắc chắn sẽ\b",
+        r"\bnhất định sẽ\b",
+        r"\bkhông thể tránh\b",
+        r"\bkhông tránh khỏi\b",
+        r"\bđịnh mệnh\b",
+        r"\bsố phận\b",
+        r"\bsố mệnh\b",
+        r"\bvận hạn\b",
+        r"\bnghiệp chướng\b",
+        r"\bngày xui\b",
+        r"\bxui xẻo\b",
+        r"\bsẽ (?:đổ vỡ|tan vỡ|thất bại|chia tay|mất việc|gặp may|gặp xui|trúng|phát tài"
+        r"|được tăng lương|thăng chức)\b",
+        r"\b(?:khó|không thể) (?:mà )?cứu vãn\b",
+        r"\b(?:sao \w+|vũ trụ|ông trời) (?:đang |sẽ )?(?:trừng phạt|phạt)\b",
+    ),
+    "S6": _terms(
+        r"\blỗi (?:là )?(?:ở|tại|do|của) bạn\b",
+        r"\btại bạn\b",
+        r"\bbạn (?:lúc nào cũng|luôn luôn|toàn) (?:làm hỏng|làm sai|phá hỏng|thất bại)\b",
+        r"\bbạn (?:thật |quá |rất |đúng là )?(?:vô dụng|tệ hại|ngu ngốc|đáng trách|ích kỷ)\b",
+        r"\bbạn lười (?:kinh khủng|quá|thế)\b",
+        r"\bchẳng trách\b",
+        r"\bđáng đời\b",
+        r"\btự chuốc\b",
+    ),
+    "S7": _terms(
+        r"\bbiến mất\b",
+        r"\bkhông cần ai\b",
+        r"\bkhông muốn sống\b",
+        r"\bkhông muốn tồn tại\b",
+        r"\btự tử\b",
+        r"\btự sát\b",
+        r"\btự (?:làm )?hại\b",
+        r"\btự làm đau\b",
+        r"\bkết liễu\b",
+        r"\b(?:kết thúc|chấm dứt) (?:tất cả|mọi thứ|cuộc đời|cuộc sống)\b",
+        r"\bbuông xuôi\b",
+        r"\b(?:mọi thứ|cuộc sống|sống) (?:đều |thật |cũng )?vô nghĩa\b",
+        r"\bkhông ai cần bạn\b",
+        r"\bđừng tin (?:ai|bất kỳ ai)\b",
+        r"\bcắt đứt (?:với )?(?:mọi người|tất cả)\b",
+    ),
+}
+
 # Closing quotes (straight, curly, guillemet) or a bracket after the end mark.
 _SENTENCE_SPLIT = re.compile("(?<=[.!?\u2026])[\"\u201d'\u2019\u00bb)]*\\s+|\n+")
 # Quotes (straight, curly, guillemets), brackets, dashes (- en em) and the middle dot.
@@ -334,6 +461,7 @@ class SurfaceReport:
     rules: dict[str, int]
     readings_flagged: dict[str, int] = field(default_factory=dict)
     keys: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    hard_zero: dict[str, int] = field(default_factory=dict)
 
     def as_baseline(self) -> dict[str, Any]:
         return {
@@ -508,6 +636,10 @@ def _pair_key(first: str, second: str) -> str:
     return _digest("\x1f".join(sorted((_sentence_key(first), _sentence_key(second)))))
 
 
+def _matches(pattern: re.Pattern[str]) -> Callable[[str], bool]:
+    return lambda sentence: bool(pattern.search(sentence))
+
+
 # Sentence-level rules: a sentence that matches is a violation key for the rule.
 _SENTENCE_RULES: dict[str, Callable[[str], bool]] = {
     "A1": lambda sentence: bool(JARGON.search(sentence)),
@@ -518,12 +650,28 @@ _SENTENCE_RULES: dict[str, Callable[[str], bool]] = {
     "A11": lambda sentence: bool(PLACEHOLDERS.search(sentence)),
     "A14": is_past_event_claim,
     "A16": lambda sentence: bool(HOUSE_SIGN_ASPECT.search(sentence)),
+    **{rule: _matches(pattern) for rule, pattern in SAFETY_RULES.items()},
 }
+
+
+def count_hidden_characters(document: ClarityDocument) -> int:
+    """H1. Sections that carry a zero-width or bidi control character (before normalisation)."""
+
+    return sum(bool(HIDDEN_CHARACTERS.search(text)) for _, text in document.sections)
+
+
+def count_safety(rule: str, text: str) -> int:
+    return _count(SAFETY_RULES[rule], text)
 
 
 def _document_findings(
     document: ClarityDocument,
 ) -> tuple[dict[str, int], dict[str, frozenset[str]]]:
+    hidden = {
+        sentence_key(normalize_text(text))
+        for _, text in document.sections
+        if HIDDEN_CHARACTERS.search(text)
+    }
     document = normalize_document(document)
     body = "\n".join(text for _, text in document.sections)
     items = document_sentences(document)
@@ -540,8 +688,11 @@ def _document_findings(
         "A11": count_placeholders(body),
         "A14": count_past_action_claims(items),
         "A16": count_house_sign_aspect_words(body),
+        **{rule: count_safety(rule, body) for rule in SAFETY_RULES},
+        "H1": len(hidden),
     }
     keys: dict[str, set[str]] = {rule: set() for rule in counts}
+    keys["H1"] = hidden
     for sentence in items:
         for rule, matches in _SENTENCE_RULES.items():
             if matches(sentence):
@@ -557,7 +708,8 @@ def _document_findings(
 
 
 def lint_document(document: ClarityDocument) -> dict[str, int]:
-    """Per-reading counts for every rule except A6, which needs the whole surface."""
+    """Per-reading counts for every rule except A6, which needs the whole surface, including the
+    hard-zero safety and hidden-character rules."""
 
     return _document_findings(document)[0]
 
@@ -588,13 +740,12 @@ def shared_sentences(documents: Iterable[ClarityDocument]) -> tuple[str, ...]:
 
 
 def lint_surface(surface: str, documents: Iterable[ClarityDocument]) -> SurfaceReport:
-    docs = tuple(
-        normalize_document(document) for document in documents if document.surface == surface
-    )
+    raw = tuple(document for document in documents if document.surface == surface)
+    docs = tuple(normalize_document(document) for document in raw)
     totals: Counter[str] = Counter()
     flagged: Counter[str] = Counter()
-    keys: dict[str, set[str]] = {rule: set() for rule in RULES}
-    for document in docs:
+    keys: dict[str, set[str]] = {rule: set() for rule in (*RULES, *HARD_ZERO_RULES)}
+    for document in raw:
         counts, found = _document_findings(document)
         for rule, value in counts.items():
             totals[rule] += value
@@ -613,8 +764,34 @@ def lint_surface(surface: str, documents: Iterable[ClarityDocument]) -> SurfaceR
         variants=dict(Counter(document.variant for document in docs)),
         rules={rule: totals.get(rule, 0) for rule in RULES},
         readings_flagged={rule: flagged.get(rule, 0) for rule in RULES},
-        keys={rule: tuple(sorted(keys[rule])) for rule in RULES},
+        keys={rule: tuple(sorted(keys[rule])) for rule in (*RULES, *HARD_ZERO_RULES)},
+        hard_zero={rule: totals.get(rule, 0) for rule in HARD_ZERO_RULES},
     )
+
+
+def hard_zero_violations(
+    current: Mapping[str, SurfaceReport], exceptions: Iterable[RatchetException] = ()
+) -> tuple[str, ...]:
+    """Class-A safety and hidden characters: every hit fails, on every surface, unless its exact
+    sentence key is listed for that rule and surface in an approved exception."""
+
+    tolerated: dict[tuple[str, str], set[str]] = {}
+    for entry in exceptions:
+        if entry.rule in HARD_ZERO_RULES:
+            tolerated.setdefault((entry.surface, entry.rule), set()).update(entry.keys)
+    problems: list[str] = []
+    for surface, report in sorted(current.items()):
+        for rule, name in HARD_ZERO_RULES.items():
+            found = set(report.keys.get(rule, ()))
+            if report.hard_zero.get(rule, 0) and not found:
+                found = {"(no key)"}
+            new_keys = sorted(found - tolerated.get((surface, rule), set()))
+            if new_keys:
+                problems.append(
+                    f"{surface}: {rule} {name} is a hard zero: {len(new_keys)} sentence(s) "
+                    f"({_preview(new_keys)})"
+                )
+    return tuple(problems)
 
 
 def ratchet_regressions(
