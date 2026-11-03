@@ -15,9 +15,45 @@ Nghiên cứu và chẩn đoán: `docs/research/2026-11-01-content-clarity-gate.
    lớp này để chọn và viết; dữ kiện chỉ nằm trong lớp "Vì sao".
 5. **Không rõ giờ sinh thì không dùng nhà, cung đầu nhà, chủ tinh.** Khi đó lĩnh vực lấy theo hành
    tinh gốc.
-6. **Cổng chất lượng tự động là chính.** Người không duyệt từng câu. *Chờ chốt:* đổi luật Q2 từ
-   "duyệt mọi câu chữ mới" sang "duyệt bộ chuẩn một lần, chỉ xem câu bị gắn cờ và báo cáo điểm".
-   Riêng 12 nhãn lĩnh vực vẫn cần duyệt một lần.
+6. **Cổng chất lượng tự động là chính.** Người không duyệt từng câu. **Đã chốt 03.11.2026** (owner giao
+   Claude chốt): luật Q2 với bản đọc là "duyệt bộ chuẩn một lần, chỉ xem câu bị gắn cờ và báo cáo
+   điểm" (`docs/operations/decision-checklist.md`).
+7. **Đủ 12 lĩnh vực, không gộp; mở rộng bằng khía cạnh con** (owner, 03.11.2026). Bảng ở mục 1.1.
+
+### 1.1 Mười hai lĩnh vực (chốt 03.11.2026)
+
+Mỗi nhà một lĩnh vực riêng.
+- **Chip** là nhãn ngắn trên trang chủ.
+- **Tên đầy đủ** dùng ở trang chi tiết.
+- **Khía cạnh con** là các việc cụ thể mà một thẻ có thể gọi tên ("Nhắn tin · 17h30"). Mỗi nhà có 4 khía cạnh.
+
+| Nhà | Chip | Tên đầy đủ | Khía cạnh con |
+|---|---|---|---|
+| 1 | Bản thân | Bản thân và cách mình xuất hiện | năng lượng cơ thể; vẻ ngoài; cách mở đầu việc mới; cảm giác là chính mình |
+| 2 | Tiền bạc | Tiền bạc và những gì mình có | thu nhập; chi tiêu; đồ đạc mình giữ; giá trị bản thân |
+| 3 | Giao tiếp | Giao tiếp và học hỏi | nhắn tin, nói chuyện; học điều mới; anh chị em, hàng xóm; đi lại gần |
+| 4 | Gia đình | Gia đình và tổ ấm | nhà cửa; cha mẹ; nơi thấy an toàn; ký ức, gốc rễ |
+| 5 | Hẹn hò | Hẹn hò và niềm vui | tình cảm mới; vui chơi; sáng tạo; con cái |
+| 6 | Việc hằng ngày | Việc hằng ngày và nếp sống | nếp sinh hoạt; đồng nghiệp; việc vặt; chăm sóc cơ thể (không phán đoán bệnh, luật S1) |
+| 7 | Đối tác | Người yêu và đối tác | người yêu, vợ chồng; hợp tác một-một; người đối diện; lời hứa đôi bên |
+| 8 | Gắn bó sâu | Gắn bó sâu và tin tưởng | thân mật; niềm tin; tiền chung, nợ nần (không khuyên đầu tư, luật S3); buông bỏ, thay đổi lớn |
+| 9 | Đi xa và học | Đi xa, học sâu và niềm tin | chuyến đi xa; học sâu, thi cử; quan điểm sống; người ở nơi khác |
+| 10 | Sự nghiệp | Sự nghiệp và vị trí | việc chính; cấp trên; mục tiêu dài; danh tiếng |
+| 11 | Bạn bè | Bạn bè và cộng đồng | nhóm bạn; cộng đồng; mạng lưới quen biết; mong ước chung |
+| 12 | Nghỉ ngơi | Nghỉ ngơi và thế giới bên trong | giấc ngủ; thời gian một mình; chuyện chưa nói ra; hồi phục |
+
+Quy tắc dùng:
+- Lĩnh vực của thẻ lấy theo nhà mà hành tinh đang đi qua đứng trong lá số gốc.
+- Khi transit chạm chủ tinh của một nhà thì thêm nhà đó. Chỉ áp dụng khi nhãn nhà không đổi trong khoảng sai số của giờ sinh (C2b).
+- Khía cạnh con chọn theo tính chất hành tinh đang đi. Ví dụ: Sao Thủy chọn khía cạnh về lời nói, Sao Kim về tình cảm và tiền, Sao Hỏa về hành động.
+- Mỗi lĩnh vực chỉ một chip mỗi ngày.
+- Không rõ giờ sinh thì lĩnh vực lấy theo hành tinh gốc, dùng cùng 12 chip:
+  - Mặt Trời → Bản thân;
+  - Mặt Trăng → Gia đình;
+  - Sao Thủy → Giao tiếp;
+  - Sao Kim → Hẹn hò hoặc Đối tác;
+  - Sao Hỏa → Việc hằng ngày.
+- Mở rộng thêm khía cạnh qua PR, không gộp lĩnh vực.
 
 ## 2. Số liệu nền
 
@@ -117,8 +153,7 @@ Sau Daily, dùng cùng nhà máy và cổng cho Tarot, Radar và Khám phá, m�
 
 ## 7. Còn mở
 
-- Chốt đổi luật Q2 (mục 1.6).
-- Duyệt 12 nhãn lĩnh vực.
+- Q2 và 12 lĩnh vực: đã chốt 03.11.2026 (mục 1.6, 1.7, 1.1).
 - Ngưỡng số của cổng là tạm thời, hiệu chỉnh bằng bộ mẫu vàng.
 
 ## 8. Thay đổi sau rà soát toàn diện (2026-11-03)

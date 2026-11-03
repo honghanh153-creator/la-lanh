@@ -186,7 +186,7 @@ Mức: **P1** là thông điệp chính sai hoặc thiếu, hỏng chức năng,
 | AS-9 | Sinh ở miền Bắc 1960–13/6/1975 lệch một giờ | P1 cho nhóm này | Chọn offset theo tỉnh và ngày: UTC+7 cho các tỉnh phía Bắc; đánh dấu giai đoạn chưa chắc |
 | PL-3 | Jyotish: 2/30 lá số bị từ chối mỗi ngày và ghi log lỗi | P1 | Tìm nguyên nhân, sửa |
 | PL-1, PL-2 | Note của người có giờ gần đúng hoặc chỉ có ngày gần như cố định | P1 | Trước mắt xoay nhiều tình huống hơn; giải pháp gốc là AS-1 |
-| PL-37 | Không có lựa chọn cho người sinh 00–06h. "Đêm (sau 22h)" được lưu thành 23:00 của ngày đã nhập, nên người sinh 3h sáng bị tính lệch khoảng 20 giờ | P1 | Cần chủ sản phẩm quyết: thêm lựa chọn 00–06h và quy định đêm thuộc ngày nào. Trong lúc chờ, engine chọn góc coi "Đêm" như chỉ có ngày sinh (#178) |
+| PL-37 | Không có lựa chọn cho người sinh 00–06h. "Đêm (sau 22h)" được lưu thành 23:00 của ngày đã nhập, nên người sinh 3h sáng bị tính lệch khoảng 20 giờ | P1 | **Owner chốt 03.11.2026:** thêm "Rạng sáng 00–06h" (lưu 03:00), "Đêm" thành 22–24h; không báo người dùng vì đang thử nghiệm. Engine chọn góc coi 03:00 là khung hẹp, còn bản ghi "Đêm" cũ vẫn theo luật rộng (#178) |
 | AS-10 | Hỏi "bạn biết giờ sinh từ đâu" và cho chọn theo canh giờ (Tý…Hợi) | P2 | Cần review quyền riêng tư trước, vì đây là trường mới |
 | PV-24 | `/metrics` mở công khai | P3 | Trả 404 ở Caddy hoặc yêu cầu token |
 | PV-26 | Nhãn persona và mood lưu dạng rõ | P3 | Đưa vào envelope ở lần migration tới |
