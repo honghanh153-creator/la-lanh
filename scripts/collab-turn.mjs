@@ -59,7 +59,7 @@ function withLock(fn) {
   try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
-export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {} } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [] } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -72,6 +72,8 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       const counts = readJson(dayPath, day);
       try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, ...info }); } catch {}
     };
+    // The scheduled-run watchdog runs before the plan gate, so it also watches at night; it never breaks a tick.
+    try { watchdog(); } catch {}
     try {
       // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.
       const missing = preflight();
@@ -79,7 +81,7 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
         const turns = turnsFor(gh.openPrs());
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)) });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: (() => { try { return health(); } catch { return []; } })() });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
         return { status: 'plan-made' };
@@ -154,9 +156,9 @@ export function tickGap(last, nowMs = Date.now()) {
   return { from: hhmm(at), to: hhmm(nowMs) };
 }
 
-export function opsAlert(gh, text) {
+export function opsAlert(gh, text, subject = 'collab loop') {
   gh.raw(['label', 'create', 'ops-alert', '--repo', repo, '--color', 'B60205', '--force']);
-  gh.raw(['issue', 'create', '--repo', repo, '--title', `[ops-alert] collab loop ${vnNow().date}`, '--label', 'ops-alert', '--body-file', '-'],
+  gh.raw(['issue', 'create', '--repo', repo, '--title', `[ops-alert] ${subject} ${vnNow().date}`, '--label', 'ops-alert', '--body-file', '-'],
     `${clean(text, 1000)}\n\nKiểm tra log ở ~/.cache/la-lanh-collab/logs trên máy owner.\n\n<!-- la-lanh-agent ops-alert -->`);
 }
 

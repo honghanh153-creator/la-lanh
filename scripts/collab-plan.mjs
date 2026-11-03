@@ -35,7 +35,7 @@ export function planState(now, comments = []) {
   return { state, reason: action ?? (state === 'open' ? 'auto-10h' : 'waiting-owner'), plan, dropped: [...dropped].sort((a, b) => a - b) };
 }
 
-export function renderPlan(now, turns, { codexLeft, gap = null }) {
+export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
   const committed = committedTurns(turns);
   const short = commitMin - committed.length;
@@ -47,6 +47,8 @@ export function renderPlan(now, turns, { codexLeft, gap = null }) {
     `Lượt Codex tự động còn hôm nay: ${codexLeft}/12. Chạy tới 23:30, không merge vào main, không deploy.`,
     // A long pause before the plan means the Mac slept or was off (retro D3, 31.10.2026).
     ...(gap ? [`**Máy không chạy tick từ ${gap.from} tới ${gap.to}** (Mac ngủ hoặc tắt), nên plan có thể trễ.`] : []),
+    // Health of the unattended Claude runs (watchdog, owner 03.11.2026): a stall shows every morning.
+    ...(health.length ? ['', '**Tác vụ hẹn giờ:**', ...health] : []),
     '',
     `**Cam kết hôm nay (${commitMin}–${commitMax} PR):** ${committed.length ? committed.map(t => `#${t.number}`).join(', ') : 'chưa có PR nào sẵn sàng'}.`,
     ...(short > 0 ? [`Còn thiếu ${short} PR so với mức ${commitMin}: Claude mở thêm từ backlog \`auto: yes\` và ghi số PR vào issue này.`] : []),
@@ -92,9 +94,9 @@ export function readPlanStatus(gh, now = vnNow()) {
   return { issue: number, ...planState(now, issue.comments ?? []) };
 }
 
-export function makePlan(gh, now, turns, { codexLeft, gap = null }) {
+export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [] }) {
   const number = planIssue(gh);
-  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, gap }));
+  gh.comment('issue', number, renderPlan(now, turns, { codexLeft, gap, health }));
   return number;
 }
 
