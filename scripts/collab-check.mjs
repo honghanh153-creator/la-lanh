@@ -172,17 +172,21 @@ export function prePushRanges(input = '') {
 }
 
 // What the PR (or a push) adds. Every outgoing commit's own patch is scanned, so a value added in
-// one commit and removed in the next is still caught. Fails closed: with terms set and no readable
-// history, or an unreadable list, the scan blocks.
+// one commit and removed in the next is still caught. `-m` adds a merge's diff against each parent
+// (a conflict resolution can introduce text neither side had); `--no-renames` shows a renamed file
+// as added; the separate `--name-only` pass catches paths with no content hunk at all (an empty
+// file, a rename-only change). quotePath off keeps Vietnamese paths readable. Fails closed: with
+// terms set and no readable history, or an unreadable list, the scan blocks.
 export function privateHits(pr, git, terms, ranges = [[`origin/${integration}..HEAD`]]) {
   let list;
   try { list = terms(); } catch { return ['danh sách chặn không đọc được']; }
   if (!list.length) return [];
   try {
-    const hits = ranges.flatMap(range => guardHits(list, {
-      diff: git(['log', '-p', '--no-color', '--unified=0', '--format=', ...range]),
-      texts: { 'commit message': git(['log', '--format=%B', ...range]) },
-    }));
+    const log = args => git(['-c', 'core.quotePath=false', 'log', '-m', '--no-renames', ...args]);
+    const hits = ranges.flatMap(range => [
+      ...guardHits(list, { diff: log(['-p', '--no-color', '--unified=0', '--format=', ...range]), texts: { 'commit message': log(['--format=%B', ...range]) } }),
+      ...log(['--name-only', '--format=', ...range]).split('\n').filter(path => path && guardHits(list, { texts: { x: path } }).length).map(path => redact(path, list)),
+    ]);
     if (pr.title || pr.body) hits.push(...guardHits(list, { texts: { 'PR title/body': `${pr.title ?? ''}\n${pr.body ?? ''}` } }));
     return [...new Set(hits)];
   } catch { return ['lịch sử nhánh không đọc được']; }

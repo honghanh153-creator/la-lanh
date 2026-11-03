@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
@@ -390,17 +390,42 @@ test('#198 r1: every outgoing commit is scanned, the pushed refs are scanned, pa
   const seen = [];
   const git = args => { seen.push(args); return args.includes('-p') ? '+++ b/apps/a.ts\n@@ -0,0 +3 @@\n+x = "2001-02-03"\n+++ b/apps/a.ts\n@@ -3 +2,0 @@\n-x = "2001-02-03"' : ''; };
   assert.deepEqual(privateHits({}, git, () => terms), ['apps/a.ts:3']);
-  assert.ok(seen.every(a => a[0] === 'log' && a.includes('origin/collab/integration..HEAD')), 'author check scans the PR commits');
+  assert.ok(seen.every(a => a.includes('log') && a.includes('-m') && a.includes('origin/collab/integration..HEAD')), 'author check scans the PR commits, merges included');
   // Pre-push: each pushed ref, every commit the remote lacks; a deleted ref sends nothing.
   const Z = '0'.repeat(40);
   assert.deepEqual(prePushRanges(`refs/heads/a ${A} refs/heads/a ${Z}\nrefs/heads/b ${B} refs/heads/b ${A}\n(delete) ${Z} refs/heads/c ${A}\n`), [[A, '--not', '--remotes=origin'], [B, '--not', '--remotes=origin']]);
   const ranges = [];
-  privateHits({}, args => { if (args.includes('-p')) ranges.push(args.slice(5)); return ''; }, () => terms, prePushRanges(`refs/heads/b ${B} refs/heads/b ${A}`));
+  privateHits({}, args => { if (args.includes('-p')) ranges.push(args.slice(-3)); return ''; }, () => terms, prePushRanges(`refs/heads/b ${B} refs/heads/b ${A}`));
   assert.deepEqual(ranges, [[B, '--not', '--remotes=origin']]);
   // A path holding the value is a hit, and the receipt masks it.
   const hits = guardHits(terms, { diff: '+++ b/fixtures/2001-02-03.txt\n@@ -0,0 +1 @@\n+fine' });
   assert.deepEqual(hits, ['fixtures/[ẩn].txt']);
   assert.doesNotMatch(renderCheck({ head: A, status: 'FAIL', exitCode: 'guard', seconds: 0, date: 'd', guard: hits }), /2001-02-03/);
+});
+
+test('#198 r2: real git history — a merge resolution and a rename-only change are caught', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-repo-'));
+  const run = args => String(execFileSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'commit.gpgsign=false', ...args], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).trim();
+  const write = (name, text) => writeFileSync(join(dir, name), text);
+  const terms = () => guardTerms('date:2001-02-03');
+  run(['init', '-q', '-b', 'main']);
+  write('a.txt', 'base\n'); write('sample.txt', 'same\n');
+  run(['add', '.']); run(['commit', '-qm', 'base']);
+  run(['update-ref', 'refs/remotes/origin/collab/integration', 'HEAD']);
+  run(['checkout', '-qb', 'side']); write('b.txt', 'side\n'); run(['add', '.']); run(['commit', '-qm', 'side']);
+  run(['checkout', '-q', 'main']); write('c.txt', 'main\n'); run(['add', '.']); run(['commit', '-qm', 'main']);
+  assert.deepEqual(privateHits({}, run, terms), [], 'clean history passes');
+  // The merge resolution alone adds the value: neither parent nor any message has it.
+  run(['merge', '-q', '--no-ff', '--no-commit', 'side']); write('a.txt', 'base\nresolved 2001-02-03\n'); run(['add', '.']); run(['commit', '-qm', 'merge side']);
+  assert.deepEqual(privateHits({}, run, terms), ['a.txt:2']);
+  run(['reset', '-q', '--hard', 'HEAD~1']);
+  // A rename with no content change: no +++ header with the new name, still a hit, shown masked.
+  run(['mv', 'sample.txt', '2001-02-03.txt']); run(['commit', '-qm', 'rename']);
+  assert.deepEqual(privateHits({}, run, terms), ['[ẩn].txt']);
+  // An empty new file has no hunk at all.
+  run(['reset', '-q', '--hard', 'HEAD~1']); write('03.02.2001', ''); run(['add', '.']); run(['commit', '-qm', 'empty']);
+  assert.deepEqual(privateHits({}, run, terms), ['[ẩn]']);
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test('#198 r1: an unreadable guard list blocks instead of switching the guard off', () => {
