@@ -1161,7 +1161,14 @@ def select_daily_sky(
 
     eligibility = contact_eligibility(chart, birth_timezone=birth_timezone)
     domains = natal_domains(engine, chart, birth_timezone=birth_timezone)
-    contacts = scan_day(engine, chart, local_date, sample_minutes=sample_minutes, domains=domains)
+    contacts = scan_day(
+        engine,
+        chart,
+        local_date,
+        sample_minutes=sample_minutes,
+        domains=domains,
+        birth_timezone=birth_timezone,
+    )
     trend_contacts = tuple(
         sorted(
             (item for item in contacts if item.tier is SkyTier.TREND),

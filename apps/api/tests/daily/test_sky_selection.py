@@ -11,7 +11,12 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.domains.astro.aspects import angular_distance, calculate_aspects, orb_bounds
+from app.domains.astro.aspects import (
+    angular_distance,
+    calculate_aspects,
+    orb_bounds,
+    transit_orb_limit,
+)
 from app.domains.astro.engine import NatalChartEngine, sign_for_longitude
 from app.domains.astro.models import (
     BodyName,
@@ -592,6 +597,40 @@ def test_unrecognised_window_fails_closed_and_birth_zone_is_honoured(
     # Exact and date-only charts ignore the window rule.
     exact = _window_chart(engine, birth_day, 10, TimePrecision.EXACT)
     assert contact_eligibility(exact) is ContactEligibility.EXACT_TIME
+
+
+def test_birth_zone_reaches_the_scan_and_widens_the_natal_moon_limit(
+    engine: NatalChartEngine,
+) -> None:
+    # A synthetic foreign birthplace stored at its own 19:00: the narrow window, natal Moon +1°.
+    tokyo = _window_chart(engine, date(1992, 8, 30), 19, TimePrecision.APPROXIMATE, "Asia/Tokyo")
+    domain = natal_domains(engine, tokyo, birth_timezone="Asia/Tokyo")[BodyName.MOON]
+    centre = (domain[0] + domain[1]) / 2.0
+
+    def ahead_of_centre(at: datetime) -> float:
+        longitude = engine.transiting_position(BodyName.MOON, at, tokyo.config).longitude
+        return (longitude - centre + 180.0) % 360.0 - 180.0
+
+    day = next(
+        START + timedelta(days=offset)
+        for offset in range(30)
+        if ahead_of_centre(_local(START + timedelta(days=offset), 0))
+        < 0.0
+        <= ahead_of_centre(_local(START + timedelta(days=offset + 1), 0))
+    )
+    selection = select_daily_sky(
+        engine, tokyo, day, include_trend_windows=False, birth_timezone="Asia/Tokyo"
+    )
+    contact = _find(selection.today, "moon:conjunction:moon")
+    expected = transit_orb_limit(BodyName.MOON, "conjunction") + NATAL_MOON_WINDOW_EXTRA_ORB
+    assert contact.orb_limit == expected == 4.0
+    # The in-day window is cut at the 4° worst-case orb, not the 3° night rule.
+    start, end = _local(day, 0), _local(day + timedelta(days=1), 0)
+    edges = [edge for edge in (contact.window_start, contact.window_end) if start < edge < end]
+    assert edges
+    for edge in edges:
+        longitude = engine.transiting_position(BodyName.MOON, edge, tokyo.config).longitude
+        assert worst_orb(longitude, domain, 0.0) == pytest.approx(expected, abs=0.05)
 
 
 def test_worst_orb_is_the_interval_maximum() -> None:
