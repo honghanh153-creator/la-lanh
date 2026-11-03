@@ -94,7 +94,7 @@ Mục 1.1 bản 03.11 đã chuyển sang "nhà = chùm nghĩa, chọn theo hành
 | A-4. Đồng hồ thứ hai | Chủ đề đời người từ sao chậm chỉ hiện khi có đồng hồ thứ hai đồng ý. Tây: năm tuổi rơi vào nhà đó theo phép tính năm. Ấn: đang ở dasha của chủ nhà đó hoặc của karaka. Không làm phép hướng chính (quá nặng). | Lilly tr.715–733, tr.589, tr.742; Phaladeepika 12.25 |
 | A-5. Sao nhanh chỉ nói ngày | Mặt Trăng, Mặt Trời, Sao Thủy, Sao Kim, Sao Hỏa chỉ nói tâm trạng và việc nhỏ trong ngày hoặc mấy ngày. | Lilly ch. CLXXIV, tr.741 |
 | A-6. Lọc giọng khắc nghiệt | Sao Thổ hay Sao Hỏa ở nhà 5 không bao giờ nhắc con cái trong thân bài, vì sách cổ đọc hai sao này là "con ngỗ nghịch" và "cằn". | Lilly tr.53, tr.603–604; thư gửi người học |
-| A-7. Sàn tuổi | Dưới 18 tuổi thì không có chủ đề con cái hay cam kết. Phép tính năm rơi vào nhà 5 ở tuổi 4, 16, 28, 40, 52…, nên tuổi 16 cũng bị chặn. | Suy từ BPHS 16.18–20 |
+| A-7. Sàn tuổi (owner bỏ 03.11.2026) | Đề xuất cũ: dưới 18 tuổi thì không có chủ đề con cái hay cam kết. Phép tính năm rơi vào nhà 5 ở tuổi 4, 16, 28, 40, 52…, nên tuổi 16 cũng bị chặn. | Suy từ BPHS 16.18–20 |
 | A-8. Jyotish tính riêng | Đếm transit từ Mặt Trăng gốc sidereal; dùng bảng ô tốt, điểm chặn, bảng điểm Ashtakavarga và thế mạnh yếu của sao. Không dùng lại bảng Tây. | Phaladeepika 26.1, 26.2, 26.7, 26.41, 26.31–32 |
 
 Ví dụ nhà 5, bản Tây, theo A:
@@ -154,7 +154,7 @@ Ví dụ nhà 5 theo B:
 | Người không rõ giờ sinh | mất hẳn chủ đề đời người | như hiện tại (lấy theo sao gốc) |
 | Hợp "êm, vui, thấy mình được hiểu" | êm, nhưng ít khi chạm chuyện lớn | gần hơn, nếu cổng chống câu chung chung làm tốt |
 
-**Khuyến nghị: chọn B làm nền, mượn ba luật của A.** Mượn A-6 (không nhắc con cái khi Sao Thổ hay Sao Hỏa ở nhà 5) và A-7 (sàn 18 tuổi cho chủ đề con cái và cam kết). Mượn A-8 cho Jyotish khi mở gochara. Thêm cột nguồn "cổ điển / hiện đại" của A-1 vào B-1. Lý do có ba. Thứ nhất, Lá Lành đã cấm đoán sự kiện đời người. Bộ cổng của Lilly và Phaladeepika sinh ra để canh *khi nào* chuyện xảy ra, nên dưới luật cấm này nó gần như không cho người dùng thấy gì thêm, mà vẫn nhân đôi nội dung và việc engine. Thứ hai, A buộc app suy ra một thước đo gần với khả năng có con. Đó đúng là vùng mà plan và Luật 91/2025/QH15 muốn tránh. B đạt cùng mục tiêu "không nhãn cố định" mà không suy ra gì thêm. Thứ ba, cả ba sách đều coi hoàn cảnh người đọc là lớp quyết định cuối. B giao lớp đó cho chính người đọc qua câu nhiều cửa, thay vì để engine đoán. Cách này hợp mục tiêu "thấy mình được hiểu" của sản phẩm.
+**Khuyến nghị: chọn B làm nền, mượn ba luật của A.** Mượn A-6 (không nhắc con cái khi Sao Thổ hay Sao Hỏa ở nhà 5) và A-7 (sàn 18 tuổi cho chủ đề con cái và cam kết; owner bỏ A-7 ngày 03.11.2026). Mượn A-8 cho Jyotish khi mở gochara. Thêm cột nguồn "cổ điển / hiện đại" của A-1 vào B-1. Lý do có ba. Thứ nhất, Lá Lành đã cấm đoán sự kiện đời người. Bộ cổng của Lilly và Phaladeepika sinh ra để canh *khi nào* chuyện xảy ra, nên dưới luật cấm này nó gần như không cho người dùng thấy gì thêm, mà vẫn nhân đôi nội dung và việc engine. Thứ hai, A buộc app suy ra một thước đo gần với khả năng có con. Đó đúng là vùng mà plan và Luật 91/2025/QH15 muốn tránh. B đạt cùng mục tiêu "không nhãn cố định" mà không suy ra gì thêm. Thứ ba, cả ba sách đều coi hoàn cảnh người đọc là lớp quyết định cuối. B giao lớp đó cho chính người đọc qua câu nhiều cửa, thay vì để engine đoán. Cách này hợp mục tiêu "thấy mình được hiểu" của sản phẩm.
 
 Khuyến nghị kèm hai điều kiện. Một: trước C3a, phải đối chiếu đoạn "Jupiter/Saturn in the Fifth House" và phần mở đầu của *Planets in Transit* (bản 2002, ISBN 9780924608261), cùng chương nhà 5 của *The Twelve Houses*, với sách thật. Mua sách là khoản chi, nên cần owner duyệt, hoặc mượn thư viện. Nếu không, điều kiện "một sách hiện đại" của C3a không đạt. Hai: cổng lớp C phải có luật đo câu chung chung, vì đây là điểm yếu tự nhiên của B. Có thể xét lại A sau khi C5 (tín hiệu "câu khó hiểu" và cảm nhận đúng/sai) đã có số liệu. Nếu người dùng chấm các thẻ xu hướng là "không giống mình", lúc đó độ mạnh nhà của A-3 là lớp nên thêm đầu tiên.
 
@@ -174,6 +174,6 @@ Hệ quả thực tế nằm ở dữ liệu nguồn hơn là ở code. Bảng 1
 
 **Đã sửa.** Không có. Báo cáo này chỉ đề xuất, không sửa plan hay code.
 
-**Rủi ro còn mở.** Sáu điểm lệch ở mục 1.1 nêu trên. Chưa có sàn tuổi cho chủ đề nhạy cảm trong Daily. Nếu một ngày mở gochara, có nguy cơ Jyotish dùng lại bảng nhà Tây. Nếu chọn A thì cần review quyền riêng tư cho hồ sơ suy diễn mới.
+**Rủi ro còn mở.** Sáu điểm lệch ở mục 1.1 nêu trên. Sàn tuổi riêng cho chủ đề nhạy cảm trong Daily: owner bỏ (A-7, 03.11.2026), vì cả app chỉ nhận người từ 18 tuổi lúc nhập ngày sinh (`BirthDateOutOfRange`, US-02). Nếu một ngày mở gochara, có nguy cơ Jyotish dùng lại bảng nhà Tây. Nếu chọn A thì cần review quyền riêng tư cho hồ sơ suy diễn mới.
 
 **AC/DoD chưa xong.** C3a "ít nhất hai nguồn độc lập (một cổ điển, một hiện đại)" chưa đạt vì nguồn hiện đại chưa kiểm. Bảng 120 ô chưa có cột nguồn. Ví dụ nhà 5 trong 1.1 chưa qua luật bốn persona. Thời gian Mặt Trăng và Sao Kim trong bảng ví dụ cần sửa.

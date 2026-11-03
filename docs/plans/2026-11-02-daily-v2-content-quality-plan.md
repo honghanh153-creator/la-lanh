@@ -47,12 +47,12 @@ Nghiên cứu và chẩn đoán: `docs/research/2026-11-01-content-clarity-gate.
 | N-1 | **Bảng chùm nghĩa 12 nhà có cột nguồn.** Mỗi nghĩa ghi "cổ điển", "hiện đại" hoặc "cả hai". Nhà 5 gồm: con cái ⚠ (cổ điển, đứng đầu); sáng tạo, tự thể hiện (hiện đại); niềm vui, giải trí, tiệc (cả hai); tình yêu, rung động (hiện đại); thể thao, chơi (hiện đại); may rủi ⚠ (cả hai); học, trí tuệ (Ấn). Bỏ "học trò" vì không có nguồn. Bảng đủ 12 nhà ở mục "Nhà 5 là nhà con cái trước" của báo cáo nghiên cứu. | Lilly tr.50–56; BPHS 11.2–11.13; Sasportas (chưa đối chiếu) |
 | N-2 | **Ô hành tinh × nhà là năng lượng × vùng đời sống, viết như lời mời.** Có 120 ô (10 hành tinh × 12 nhà). Mỗi ô gồm: một câu chủ đề, 3–4 cách thường hiện ra, và một gợi ý "nếu… thì…". Không câu nào báo trước một chuyện sẽ xảy ra. | Hand (theo tóm tắt, chưa đối chiếu) |
 | N-3 | **Câu nhiều cửa.** Câu về chủ đề đời người nêu ít nhất ba cách hiện ra. Mục ⚠ không bao giờ đứng một mình, không đứng đầu, không lên chip trang chủ. Đọc nguyên câu phải đúng với cả bốn persona (mục "Persona" bên dưới). | Luật riêng của Lá Lành |
-| N-4 | **Góc với sao gốc chỉ đổi thứ tự trong dải nghĩa.** Sao chậm chạm Sao Kim gốc: tình cảm lên trước. Chạm Mặt Trăng gốc: gia đình, chăm sóc lên trước. Chạm Sao Thủy gốc: việc học lên trước. Không thêm nghĩa mới. Mục ⚠ vẫn không lên đầu. Chủ tinh của nhà **không** dùng để chọn nghĩa; theo quyết định 1.2 nó chỉ dùng để thêm nhà (C2b). | Sasportas (chưa đối chiếu) |
+| N-4 | **Góc với sao gốc chỉ đổi thứ tự trong dải nghĩa.** Sao chậm chạm Sao Kim gốc: tình cảm lên trước. Chạm Mặt Trăng gốc: gia đình, chăm sóc lên trước. Chạm Sao Thủy gốc: việc học lên trước. Không thêm nghĩa mới. Mục ⚠ vẫn không lên đầu. **Luật nguồn đứng trên N-4:** N-4 chỉ đổi thứ tự giữa các nghĩa được phép đứng đầu (nguồn "cổ điển" hoặc "cả hai", không ⚠). Ví dụ Sao Mộc ở nhà 5 chạm Sao Kim gốc: tình yêu ở nhà 5 chỉ có nguồn hiện đại nên không lên đầu; câu mở bằng niềm vui, giải trí, tình yêu chỉ là một cửa phía sau. Chủ tinh của nhà **không** dùng để chọn nghĩa; theo quyết định 1.2 nó chỉ dùng để thêm nhà (C2b). | Sasportas (chưa đối chiếu) |
 | N-5 | **Thời gian thật của mỗi hành tinh.** Mặt Trăng: khoảng 2–2,5 ngày một nhà, góc chính xác vài giờ. Mặt Trời, Sao Thủy, Sao Kim: vài tuần, lâu hơn khi nghịch hành. Sao Hỏa: vài tuần đến vài tháng. Sao Mộc: khoảng 1 năm. Sao Thổ: khoảng 2,5 năm. Hành tinh nhanh chỉ nói tâm trạng và việc nhỏ. Chủ đề đời người (con cái, cam kết, nhà cửa, đổi việc) chỉ đến từ Sao Mộc trở ra, và chỉ trong tag "Xu hướng hiện tại". | Số thiên văn; Lilly tr.741 |
 | N-6 | **Giới hạn tần suất mục ⚠.** Một người thấy mục ⚠ trong tag xu hướng nhiều nhất một lần mỗi tuần. Xoay vòng bằng HMAC theo người, không lưu lịch sử (khớp C2d). | Bảo vệ persona đang mong con |
 | N-7 | **Không hỏi hoàn cảnh.** App không hỏi, không suy ra, không lưu tình trạng hôn nhân, chuyện có con hay ý định có con. Mang thai và khả năng có con là dữ liệu sức khỏe nhạy cảm. | Luật 91/2025/QH15 (cần kiểm lại văn bản chính thức khi làm C3a) |
 | A-6 | **Sao Thổ hay Sao Hỏa ở nhà 5 không nhắc con cái** trong thân bài, vì sách cổ đọc hai sao này ở đây rất nặng nề. Chỉ nói nhịp và kỷ luật của niềm vui, hoặc sự sôi nổi. | Lilly tr.53, tr.603–604; thư Lilly gửi người học |
-| A-7 | **Sàn 18 tuổi.** Dưới 18 tuổi (tính từ ngày sinh lúc hiển thị, không lưu thêm) thì không có chủ đề con cái hay cam kết. | Suy từ BPHS 16.18–20 |
+| A-7 | ~~Sàn 18 tuổi.~~ **Owner bỏ ngày 03.11.2026, không làm.** Chặn tuổi lúc nhập ngày sinh giữ nguyên. | (từng suy từ BPHS 16.18–20) |
 | A-8 | **Jyotish tính riêng.** Bản đọc ngày Jyotish vẫn chỉ dùng lá số gốc như hiện nay (`planner.py`). Khi mở transit Jyotish (gochara): đếm từ Mặt Trăng gốc sidereal; dùng bảng ô tốt, điểm chặn (vedha) và bảng điểm Ashtakavarga. Không dùng lại bảng Tây. | Phaladeepika 26.1, 26.2, 26.7, 26.41 |
 | N-8 | **Lớp "Vì sao Lá đọc vậy?" nói thật về luật của Lá.** Viết "Lá chọn không đoán chuyện này", không viết "chiêm tinh cổ không đoán", vì sách cổ vẫn đoán sự kiện. | Báo cáo nghiên cứu, mục đạo đức |
 
@@ -267,8 +267,8 @@ quyền riêng tư → tính năng mới. Mỗi PR nhỏ, đi qua vòng tự đ�
    mục ⚠ được đánh dấu, không có nghĩa thiếu nguồn. Bốn persona thành fixture cho cổng lớp C.
 3. **HM-2/HM-3, sửa Daily và bản đọc đang chạy.** `knowledge.py` `HOUSES` lấy từ bảng mới (nhà 5 có
    con cái ở dạng rộng); `_short_arena` không gộp nhà; `HOUSE_ARENAS` không dồn 12 nhà vào 4 nhóm.
-4. **C2b, nhà theo độ tin cậy của giờ sinh** và góc với cung Mọc/Thiên Đỉnh; A-7 (sàn 18 tuổi, tính
-   lúc hiển thị).
+4. **C2b, nhà theo độ tin cậy của giờ sinh** và góc với cung Mọc/Thiên Đỉnh. (A-7 owner bỏ ngày
+   03.11.2026.)
 
 **Đợt 3 — bảng ô và nhà máy (05–07.11):**
 5. **C3a-2, bảng 120 ô hành tinh × nhà** theo N-2…N-5 và A-6; luật đo câu chung chung (HM-10).
@@ -283,9 +283,12 @@ quyền riêng tư → tính năng mới. Mỗi PR nhỏ, đi qua vòng tự đ�
    nhiều, xét thêm lớp độ mạnh nhà (A-3).
 10. **C4a:** A/B giọng A và C bằng HMAC, chỉ bộ đếm tổng hợp.
 
+**Chặn, cùng PR (PV-18, PV-20):** PR C4 hoặc C5 nào thêm dữ liệu mới phải cập nhật ngay trong chính PR đó
+lời giải thích quyền riêng tư trong app, khai báo App Store / Google Play, bản đồ dữ liệu và chính sách.
+Thiếu phần này thì PR không merge và tính năng không bật.
+
 **Song song, không chặn:** Jyotish gochara theo A-8 (sau đợt 3); đối chiếu số câu Phaladeepika với
-bản in; cập nhật lời giải thích quyền riêng tư, khai báo App Store / Google Play và chính sách khi C4
-hoặc C5 thêm dữ liệu mới.
+bản in.
 
 **Cách đo xong.** Mỗi đợt xong khi các PR của đợt đã merge vào `collab/integration` với Codex APPROVE ở
 đúng head, và các chỉ số ở mục 2 được đo lại trên engine mới.
