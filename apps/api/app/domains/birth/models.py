@@ -22,6 +22,9 @@ class BirthTimeMode(StrEnum):
 
 
 class ApproxWindow(StrEnum):
+    # Local clock ranges the web picker shows: dawn 00-06, morning 06-10, noon 10-14,
+    # afternoon 14-18, evening 18-22, night 22-24 (PL-37). All on the entered birth date.
+    DAWN = "dawn"
     MORNING = "morning"
     NOON = "noon"
     AFTERNOON = "afternoon"
