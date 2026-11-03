@@ -126,6 +126,10 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 | HM-6 | Chủ đề đời người có thể đến từ hành tinh nhanh | P2 | Chỉ hành tinh chậm, trong tag "Xu hướng hiện tại" |
 | HM-7 | Không rõ giờ sinh: Sao Kim gốc bị gán "Hẹn hò hoặc Đối tác" | P2 | Dùng chùm nghĩa của hành tinh gốc, nói rộng |
 
+| HM-8 | Bản 9423dae lệch sách ở sáu chỗ: tình yêu ở nhà 5 chỉ có nguồn hiện đại; "học trò" không có nguồn; Mặt Trăng "vài giờ" (thật ra khoảng 2 ngày một nhà), Sao Kim "vài ngày" (thật ra vài tuần); chủ tinh hiện đại dùng chọn nghĩa không có nguồn cổ điển; câu mặc định có con; C3a đòi nguồn hiện đại chưa kiểm | P1 | **Đã chốt 03.11.2026** (plan mục 1.1, luật N-1…N-8, A-6…A-8; nghiên cứu `docs/research/2026-11-03-sach-chiem-tinh-nha-va-transit.md`) |
+| HM-9 | Hand và Sasportas chưa đối chiếu với sách thật; số câu Phaladeepika lấy từ OCR chưa soát | P2 | Đối chiếu trước khi C3a xong; tới lúc đó nghĩa chỉ có nguồn hiện đại không đứng đầu |
+| HM-10 | Câu nhiều cửa dễ thành câu đúng với ai cũng được | P2 | Luật đo câu chung chung trong cổng lớp C |
+
 ### C2c — khoảng ngày của xu hướng
 
 | Mã | Lỗ hổng | Mức | Sửa |

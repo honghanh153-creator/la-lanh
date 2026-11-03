@@ -18,88 +18,75 @@ Nghiên cứu và chẩn đoán: `docs/research/2026-11-01-content-clarity-gate.
 6. **Cổng chất lượng tự động là chính.** Người không duyệt từng câu. **Đã chốt 03.11.2026** (owner giao
    Claude chốt): luật Q2 với bản đọc là "duyệt bộ chuẩn một lần, chỉ xem câu bị gắn cờ và báo cáo
    điểm" (`docs/operations/decision-checklist.md`).
-7. **Đủ 12 nhà, không gộp** (owner, 03.11.2026). Mỗi nhà là một chùm nghĩa; nghĩa nào nổi lên do cặp
-   hành tinh × nhà, lá số gốc và độ dài transit quyết định, không có nhãn cố định (mục 1.1).
+7. **Đủ 12 nhà, không gộp** (owner, 03.11.2026). Mỗi nhà là một chùm nghĩa có cột nguồn; câu nhiều
+   cửa để người đọc tự nhận ra; không nhãn cố định (mục 1.1, chốt sau nghiên cứu ba nguồn).
 
-### 1.1 Mười hai nhà: mỗi nhà là một chùm nghĩa, không phải một nhãn (sửa 03.11.2026)
+### 1.1 Mười hai nhà và cách chọn nghĩa (chốt 03.11.2026)
 
-**Sửa bản 927811b.** Bản đó gán cho mỗi nhà một chip cố định, ví dụ nhà 5 là "Hẹn hò". Cách này sai:
-- Một nhà có nhiều nghĩa. Nghĩa nào hiện ra còn tùy hành tinh đang đi qua, lá số gốc và đời sống của người đọc.
-- Ví dụ của owner: Sao Mộc đi qua nhà 5 có thể là có con, hoặc có bầu rồi cưới. Đó không phải "hẹn hò mở rộng".
-- Sách cổ coi nhà 5 trước hết là nhà con cái. Lilly (1647) xếp con cái và phụ nữ mang thai lên đầu, trước vui chơi. Chiêm tinh Ấn Độ gọi nhà 5 là *putra bhava* (nhà con cái) và coi Sao Mộc là sao chủ về con cái (*putrakaraka*).
+**Lịch sử.**
+- Bản 927811b gán mỗi nhà một chip cố định (nhà 5 = "Hẹn hò"). Owner bác vì một nhà có nhiều nghĩa: Sao Mộc qua nhà 5 có thể là có con.
+- Bản 9423dae chuyển sang "nhà là chùm nghĩa".
+- Bản này chốt cách làm sau khi đối chiếu ba nguồn nền (`docs/research/2026-11-03-sach-chiem-tinh-nha-va-transit.md`):
+  - Lilly, *Christian Astrology* (1647);
+  - BPHS (bản Santhanam) cùng Phaladeepika;
+  - Hand, *Planets in Transit*, cùng Sasportas, *The Twelve Houses*.
+- Owner giao Claude chốt. Chọn **phương án B** (tâm lý hiện đại, câu nhiều cửa) làm nền, cộng **ba luật an toàn** lấy từ phương án A (cổ điển).
 
-**Code hiện tại mắc cùng lỗi** (sửa ở C2b/C3a, xem sổ lỗ hổng mục HM):
-- `readings/knowledge.py`, `HOUSES[5]` viết "niềm vui, sáng tạo và hẹn hò", không có con cái.
-- `_short_arena` gộp nhà 6 và 10 thành "công việc", nhà 4 và 12 thành "đời sống riêng", nhà 7 và 11 thành "quan hệ".
-- `readings/daily_personalization.py`, `HOUSE_ARENAS` dồn 12 nhà vào 4 nhóm, chẳng hạn nhà 5 thành SELF_CARE và nhà 9 thành WORK.
+**Ba điều cả ba nguồn cùng đồng ý, nên là luật cứng:**
+1. Một nhà là một chùm nghĩa. Nghĩa nào hiện ra phải qua nhiều lớp mới quyết.
+2. Hai trường phái cổ điển (Lilly tr.53, BPHS 11.6) đặt **con cái lên đầu nhà 5** và **tình yêu ở nhà 7** (Lilly tr.54, Phaladeepika 1.13). Chỉ trường phái hiện đại thêm tình yêu vào nhà 5.
+3. **Không nguồn nào để một transit đơn lẻ đoán có bầu hay cưới.**
+   - Lilly coi transit là đồng hồ của vài ngày (ch. CLXXIV, tr.741) và canh hôn nhân bằng kỹ thuật khác (tr.589).
+   - Phaladeepika đặt chu kỳ dasha trước transit (12.25).
+   - Hand coi transit là năng lượng để làm việc cùng, không phải lời báo trước.
 
-Vẫn đủ 12 nhà, không gộp. Engine chọn chủ đề qua **bốn tầng**:
+**Luật chọn nghĩa và viết:**
 
-**Tầng 1: chùm nghĩa của nhà.** Đây là bảng tra nội bộ, không hiện ra như một nhãn. Các nghĩa không xếp theo thứ tự ưu tiên.
-- Dấu ⚠ là chủ đề nhạy cảm, chỉ được nhắc ở dạng rộng (luật viết bên dưới).
-- Dấu ⛔ là chủ đề chỉ được giải thích khi người dùng tự tra lá số, không bao giờ đưa vào bản đọc theo ngày.
-
-| Nhà | Chùm nghĩa |
-|---|---|
-| 1 | thân thể, sức sống; vẻ ngoài; tính khí; cách mở đầu việc mới; hướng đi của chính mình |
-| 2 | tiền kiếm được; tài sản, đồ đạc; giá trị bản thân; khả năng tự lo cho mình; tài năng có thể ra tiền |
-| 3 | anh chị em, họ hàng gần; hàng xóm; nhắn tin, giấy tờ, ký kết nhỏ; học điều cơ bản; đi lại gần, xe cộ |
-| 4 | cha mẹ; nhà cửa, đất đai; chuyển nhà; quê, gốc rễ, ký ức; đời sống riêng; giai đoạn khép lại một việc |
-| 5 | con cái ⚠ (mang thai, sinh nở, nuôi dạy); tình yêu, hẹn hò; niềm vui, giải trí, sở thích; sáng tạo, biểu diễn; may rủi, đầu cơ ⚠; học trò |
-| 6 | việc hằng ngày; đồng nghiệp, người làm cùng; nếp sinh hoạt và chăm cơ thể ⚠; vật nuôi; phục vụ người khác; việc vặt |
-| 7 | vợ chồng, người yêu lâu dài; cưới hỏi ⚠; đối tác, hợp đồng; khách hàng; người đối diện, kể cả đối thủ công khai |
-| 8 | thân mật, tình dục ⚠; tiền chung, nợ, thừa kế, bảo hiểm, thuế ⚠; thay đổi lớn, buông bỏ; mất mát ⛔; tâm lý sâu |
-| 9 | đi xa, nước ngoài; học cao, thi cử; luật, tôn giáo, triết lý; thầy, người dẫn đường; xuất bản; gia đình bên vợ hoặc chồng |
-| 10 | sự nghiệp, vị trí; danh tiếng; cấp trên, người có quyền; mục tiêu dài; người cha hoặc mẹ dẫn dắt mình |
-| 11 | bạn bè; nhóm, cộng đồng; mạng lưới quen biết; mong ước, kế hoạch tương lai; lợi lộc từ công việc |
-| 12 | nghỉ ngơi, giấc ngủ; thời gian một mình; chuyện thầm kín; chi tiêu khó thấy; tâm linh, buông bỏ; bệnh viện, nơi cách ly ⛔ |
-
-**Tầng 2: cặp hành tinh × nhà quyết định mặt nào nổi.** Bảng có 10 hành tinh × 12 nhà = 120 ô. Mỗi ô gồm:
-- một câu chủ đề đủ rộng, để mọi người ở hoàn cảnh nào cũng thấy mình trong đó;
-- 2–3 cách chủ đề thường hiện ra, xếp theo mức hay gặp.
-
-Ví dụ với nhà 5:
-
-| Hành tinh | Câu chủ đề | Cách thường hiện ra |
+| Mã | Luật | Nguồn |
 |---|---|---|
-| Sao Mộc (xu hướng, nhiều tháng) | điều mình yêu thương lớn thêm | chuyện con cái hoặc gia đình có thêm người; một niềm vui hay sở thích mở rộng; thứ mình tạo ra được đón nhận; tình cảm ấm thêm |
-| Sao Thổ (xu hướng) | trách nhiệm với điều mình yêu | con cái cần nhiều thời gian hơn; tình cảm đi tới cam kết nghiêm túc; sáng tạo cần kỷ luật; ít thời gian chơi |
-| Sao Kim (vài ngày) | dễ thấy vui, dễ rung động | một buổi hẹn hay lời khen; làm đẹp, nghệ thuật; thời gian dễ chịu với con hoặc người thương |
-| Sao Hỏa (vài tuần) | muốn chơi hết mình | thể thao, thi đấu; tranh cãi vì cái tôi; nhiệt hơn trong tình cảm; con cái hiếu động |
-| Mặt Trăng (vài giờ) | cần một chút vui cho riêng mình | chơi với con; gặp một người mình thích; làm một việc bằng tay |
+| N-1 | **Bảng chùm nghĩa 12 nhà có cột nguồn.** Mỗi nghĩa ghi "cổ điển", "hiện đại" hoặc "cả hai". Nhà 5 gồm: con cái ⚠ (cổ điển, đứng đầu); sáng tạo, tự thể hiện (hiện đại); niềm vui, giải trí, tiệc (cả hai); tình yêu, rung động (hiện đại); thể thao, chơi (hiện đại); may rủi ⚠ (cả hai); học, trí tuệ (Ấn). Bỏ "học trò" vì không có nguồn. Bảng đủ 12 nhà ở mục "Nhà 5 là nhà con cái trước" của báo cáo nghiên cứu. | Lilly tr.50–56; BPHS 11.2–11.13; Sasportas (chưa đối chiếu) |
+| N-2 | **Ô hành tinh × nhà là năng lượng × vùng đời sống, viết như lời mời.** Có 120 ô (10 hành tinh × 12 nhà). Mỗi ô gồm: một câu chủ đề, 3–4 cách thường hiện ra, và một gợi ý "nếu… thì…". Không câu nào báo trước một chuyện sẽ xảy ra. | Hand (theo tóm tắt, chưa đối chiếu) |
+| N-3 | **Câu nhiều cửa.** Câu về chủ đề đời người nêu ít nhất ba cách hiện ra. Mục ⚠ không bao giờ đứng một mình, không đứng đầu, không lên chip trang chủ. Đọc nguyên câu phải đúng với cả bốn persona (mục "Persona" bên dưới). | Luật riêng của Lá Lành |
+| N-4 | **Góc với sao gốc chỉ đổi thứ tự trong dải nghĩa.** Sao chậm chạm Sao Kim gốc: tình cảm lên trước. Chạm Mặt Trăng gốc: gia đình, chăm sóc lên trước. Chạm Sao Thủy gốc: việc học lên trước. Không thêm nghĩa mới. Mục ⚠ vẫn không lên đầu. Chủ tinh của nhà **không** dùng để chọn nghĩa; theo quyết định 1.2 nó chỉ dùng để thêm nhà (C2b). | Sasportas (chưa đối chiếu) |
+| N-5 | **Thời gian thật của mỗi hành tinh.** Mặt Trăng: khoảng 2–2,5 ngày một nhà, góc chính xác vài giờ. Mặt Trời, Sao Thủy, Sao Kim: vài tuần, lâu hơn khi nghịch hành. Sao Hỏa: vài tuần đến vài tháng. Sao Mộc: khoảng 1 năm. Sao Thổ: khoảng 2,5 năm. Hành tinh nhanh chỉ nói tâm trạng và việc nhỏ. Chủ đề đời người (con cái, cam kết, nhà cửa, đổi việc) chỉ đến từ Sao Mộc trở ra, và chỉ trong tag "Xu hướng hiện tại". | Số thiên văn; Lilly tr.741 |
+| N-6 | **Giới hạn tần suất mục ⚠.** Một người thấy mục ⚠ trong tag xu hướng nhiều nhất một lần mỗi tuần. Xoay vòng bằng HMAC theo người, không lưu lịch sử (khớp C2d). | Bảo vệ persona đang mong con |
+| N-7 | **Không hỏi hoàn cảnh.** App không hỏi, không suy ra, không lưu tình trạng hôn nhân, chuyện có con hay ý định có con. Mang thai và khả năng có con là dữ liệu sức khỏe nhạy cảm. | Luật 91/2025/QH15 (cần kiểm lại văn bản chính thức khi làm C3a) |
+| A-6 | **Sao Thổ hay Sao Hỏa ở nhà 5 không nhắc con cái** trong thân bài, vì sách cổ đọc hai sao này ở đây rất nặng nề. Chỉ nói nhịp và kỷ luật của niềm vui, hoặc sự sôi nổi. | Lilly tr.53, tr.603–604; thư Lilly gửi người học |
+| A-7 | **Sàn 18 tuổi.** Dưới 18 tuổi (tính từ ngày sinh lúc hiển thị, không lưu thêm) thì không có chủ đề con cái hay cam kết. | Suy từ BPHS 16.18–20 |
+| A-8 | **Jyotish tính riêng.** Bản đọc ngày Jyotish vẫn chỉ dùng lá số gốc như hiện nay (`planner.py`). Khi mở transit Jyotish (gochara): đếm từ Mặt Trăng gốc sidereal; dùng bảng ô tốt, điểm chặn (vedha) và bảng điểm Ashtakavarga. Không dùng lại bảng Tây. | Phaladeepika 26.1, 26.2, 26.7, 26.41 |
+| N-8 | **Lớp "Vì sao Lá đọc vậy?" nói thật về luật của Lá.** Viết "Lá chọn không đoán chuyện này", không viết "chiêm tinh cổ không đoán", vì sách cổ vẫn đoán sự kiện. | Báo cáo nghiên cứu, mục đạo đức |
 
-Bảng đủ 120 ô được làm ở C3a:
-- dựa trên ít nhất hai nguồn độc lập (một sách cổ điển và một sách hiện đại);
-- Codex review;
-- phải qua cổng lớp A, B và C.
+Dấu ⚠: chủ đề nhạy cảm, chỉ nói ở dạng rộng theo N-3 và N-6. Các chủ đề sau **không bao giờ vào bản đọc theo ngày**: cái chết, mất người thân, bệnh tật, bệnh viện, tù tội, kiện tụng.
 
-**Tầng 3: lá số gốc dịch trọng tâm.** Ví dụ:
-- transit chạm chủ tinh nhà 5, hoặc đi qua Sao Mộc gốc, thì nghiêng về con cái;
-- transit chạm Sao Kim gốc thì nghiêng về tình cảm.
+**Persona** (bộ thử của cổng lớp C). Mỗi câu phải đúng và không làm đau bốn người:
+- độc thân, chưa có con;
+- có gia đình và con;
+- đang mong con hoặc hiếm muộn;
+- lớn tuổi, con đã lớn.
 
-Tầng này chỉ dùng khi nhãn nhà không đổi trong khoảng sai số của giờ sinh (C2b).
+**Ví dụ nhà 5 sau khi chốt.**
 
-**Tầng 4: độ dài transit quyết định cỡ chuyện.**
-- Hành tinh nhanh (Mặt Trăng, Sao Thủy, Sao Kim, Mặt Trời, Sao Hỏa) chỉ nói về khoảnh khắc, tâm trạng, việc nhỏ trong ngày.
-- Chủ đề đời người (con cái, cam kết, nhà cửa, đổi việc) chỉ đến từ hành tinh chậm, nằm trong tag "Xu hướng hiện tại", và luôn ở dạng khả năng.
+| Hành tinh (thời gian) | Thân bài | Lớp "Vì sao Lá đọc vậy?" |
+|---|---|---|
+| Sao Mộc (khoảng 1 năm, chỉ trong tag xu hướng) | "Mấy tháng này, điều bạn yêu dễ lớn thêm: một sở thích, thứ bạn tự tay làm ra, một mối tình cảm, hay chuyện con cái. Nếu có một niềm vui bạn đã gác lại, đây là lúc mở nó ra." | "Sao Mộc đi qua nhà 5. Nhà 5 là con cái, niềm vui, sáng tạo; sách hiện đại thêm tình yêu. Sao Mộc làm mọi thứ rộng ra. Lá không đoán chuyện gì sẽ xảy ra, chỉ gợi những hướng hay gặp." |
+| Sao Thổ (khoảng 2,5 năm, chỉ trong tag) | "Giai đoạn này, điều bạn yêu muốn bạn nghiêm túc hơn: một dự án cần kỷ luật, một niềm vui cần giờ cố định, hay một lời hứa cần rõ hơn. Nếu thấy chơi mà mệt, thử ít mà đều." (không nhắc con cái, A-6) | "Sao Thổ đi qua nhà 5. Sao Thổ đòi cam kết và kiên nhẫn." |
+| Sao Kim (vài tuần) | "Mấy tuần này mắt dễ thấy đẹp và lòng dễ vui: một bữa ngon, một buổi đi chơi, một lời khen. Nếu muốn, tặng mình một thứ nhỏ." | "Sao Kim đi qua nhà 5, nơi Lilly gọi là niềm vui của Sao Kim." |
+| Mặt Trăng (khoảng 2 ngày; giờ rõ nhất khi chạm sao gốc) | "Hôm nay lòng muốn chơi: vẽ vời, hát, nấu món mới, hay đùa với người thân." | "Mặt Trăng đi qua nhà 5: tâm trạng hợp với vui chơi và làm bằng tay." |
 
-**Luật viết** (thêm vào bộ chuẩn C3a và lint C1):
-- **Không đoán sự kiện đời người**, như mang thai, cưới, chia tay, ly hôn, mất việc, bệnh hay mất người thân. Chỉ nói chủ đề và vài cách nó có thể hiện ra, để người đọc tự nhận ra mình. Ví dụ: "Chuyện con cái, một niềm vui riêng hay thứ bạn đang tạo ra có thể lớn thêm trong mấy tháng này."
-- **Không giả định hoàn cảnh.** Không giả định tình trạng hôn nhân, có con hay không, giới tính hay nghề nghiệp. Mỗi câu phải đúng với bốn người đọc mẫu, dùng làm bộ persona cho cổng lớp C:
-  - độc thân, chưa có con;
-  - đã có gia đình và con;
-  - đang mong con hoặc hiếm muộn;
-  - lớn tuổi, con đã lớn.
-- **Mang thai, sinh nở và khả năng có con là dữ liệu sức khỏe**, thuộc dữ liệu nhạy cảm theo Luật 91/2025/QH15. App không suy ra, không lưu, không hỏi. Chỉ nói "chuyện con cái" ở dạng khả năng, giọng tích cực, không bao giờ nói khó có con hay mất con.
-- **Chủ đề ⛔ không vào bản đọc theo ngày.**
+**Chip.** Không có chip cố định theo nhà. Chip gồm giờ và một câu móc ngắn rút từ câu chủ đề, ví dụ "17h30 · lòng muốn chơi" (luật móc ở mục 3). Mục ⚠ không lên chip.
 
-**Chip.** Không còn chip cố định theo nhà:
-- Chip gồm giờ và một câu móc ngắn, rút từ câu chủ đề của ô hành tinh × nhà, ví dụ "17h30 · dễ thấy vui" (đúng luật móc ở mục 3).
-- Tên nhà và chùm nghĩa chỉ nằm trong lớp "Vì sao Lá đọc vậy?", ví dụ "Nhà 5: con cái, tình yêu, niềm vui, sáng tạo".
+**Không rõ giờ sinh.** Không dùng nhà. Chủ đề lấy theo chùm nghĩa của hành tinh gốc bị chạm, viết theo N-2 và N-3. Ví dụ Sao Kim gốc gồm tình cảm, cái đẹp, tiền và sự dễ chịu.
 
-**Không rõ giờ sinh.** Không dùng nhà. Chủ đề lấy theo chùm nghĩa của hành tinh gốc bị chạm, cũng nói rộng như trên. Ví dụ Sao Kim gốc gồm tình cảm, cái đẹp, tiền và sự dễ chịu, chứ không gán "Hẹn hò" hay "Đối tác".
+**Điều kiện để C3a xong:**
+1. **Đối chiếu Hand và Sasportas với sách thật.** Cần các đoạn sao Mộc và sao Thổ qua nhà 5, phần mở đầu của *Planets in Transit* (bản 2002), và chương nhà 5 của *The Twelve Houses*. Mua sách là khoản chi nên cần owner, hoặc mượn thư viện. Cho tới lúc đó:
+   - nghĩa "cổ điển" và "cả hai" được dùng bình thường;
+   - nghĩa chỉ có nguồn "hiện đại" chỉ được là một trong các cửa của N-3, không đứng đầu.
+2. **Đối chiếu số câu Phaladeepika với bản in** trước khi đưa vào lớp "Vì sao".
+3. **Thêm luật đo câu chung chung vào cổng lớp C** (câu đúng với ai cũng được), vì đây là điểm yếu tự nhiên của câu nhiều cửa.
 
-**Mở rộng.** Thêm nghĩa hoặc thêm ô qua PR. Không gộp nhà, không rút chùm nghĩa thành một nhãn.
+**Xét lại sau.** Khi C5 có số liệu, nếu người dùng chấm nhiều thẻ xu hướng là "không giống mình", lớp nên thêm đầu tiên là kiểm độ mạnh của nhà trong lá số gốc (phương án A-3). Lớp này chỉ làm câu nhẹ đi, không bao giờ tính điểm "khả năng có con".
+
+**Mở rộng.** Thêm nghĩa hoặc thêm ô qua PR, kèm cột nguồn. Không gộp nhà, không rút chùm nghĩa thành một nhãn.
 
 ## 2. Số liệu nền
 
@@ -118,7 +105,7 @@ Tầng này chỉ dùng khi nhãn nhà không đổi trong khoảng sai số c�
 **Trang chủ: chỉ tóm tắt** (≤ 60 âm tiết, quyết định chủ sản phẩm 2026-11-02):
 - Một câu chính, rút từ yếu tố mạnh nhất hôm nay.
 - Một gợi ý "hôm nay thử", lấy từ thẻ quan trọng nhất.
-- Ba chip có giờ và câu móc, ví dụ "17h30 · dễ thấy vui", "hôm nay · việc chính dễ trôi", "mấy ngày này · bạn bè gọi". Không có nhãn cố định theo nhà (mục 1.1).
+- Ba chip có giờ và câu móc, ví dụ "17h30 · lòng muốn chơi", "hôm nay · việc chính dễ trôi", "mấy ngày này · bạn bè gọi". Không có nhãn cố định theo nhà (mục 1.1).
 - Bấm vào note hoặc vào một chip thì mở trang chi tiết, tới đúng thẻ đó.
 - Trang chủ không có tag xu hướng, lớp "Vì sao" hay các thẻ đầy đủ.
 - **Trang chủ là cái móc, không phải bản tóm tắt khô.** Phản hồi của chủ sản phẩm 2026-11-02:
@@ -246,3 +233,8 @@ Chi tiết: `docs/plans/2026-11-03-daily-v2-gap-register.md`. Các thay đổi:
 - **Nghĩa của nhà (phản hồi owner 03.11.2026).** Bỏ bảng chip cố định theo nhà. Nhà là chùm nghĩa,
   chủ đề do cặp hành tinh × nhà, lá số gốc và độ dài transit chọn. Thêm luật không đoán sự kiện đời
   người, không giả định hoàn cảnh, và bốn persona cho cổng lớp C (mục 1.1; sổ lỗ hổng HM-1…HM-7).
+- **Chốt mục 1.1 sau nghiên cứu ba nguồn (03.11.2026).** Phương án B (câu nhiều cửa, bảng nghĩa có
+  cột nguồn) cộng ba luật của A: không nhắc con cái khi Sao Thổ/Sao Hỏa ở nhà 5, sàn 18 tuổi, Jyotish
+  tính từ Mặt Trăng. Sửa sáu chỗ lệch sách của bản trước: tình yêu ở nhà 5 chỉ có nguồn hiện đại; bỏ
+  "học trò"; thời gian Mặt Trăng và Sao Kim; chủ tinh không dùng để chọn nghĩa; bỏ câu mặc định có
+  con; C3a chờ đối chiếu Hand và Sasportas.
