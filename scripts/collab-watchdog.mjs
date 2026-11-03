@@ -34,7 +34,8 @@ export function beat(task, phase, nowMs = Date.now()) {
 export function readBeats(nowMs = Date.now()) {
   return Object.fromEntries(Object.keys(watched).map(task => {
     let b = readJson(beatPath(task), null);
-    if (!b) { b = { task, baselineAt: new Date(nowMs).toISOString() }; writeJson(beatPath(task), b); }
+    // A file with only a start beat (the run began before the first tick) gets the same grace.
+    if (!b?.doneAt && !b?.baselineAt) { b = { task, ...b, baselineAt: new Date(nowMs).toISOString() }; writeJson(beatPath(task), b); }
     return [task, b];
   }));
 }
@@ -72,21 +73,33 @@ export function healthLines(beats, nowMs = Date.now(), vn = vnNow(new Date(nowMs
 
 const osNotify = text => execFileSync('/usr/bin/osascript', ['-e', `display notification ${JSON.stringify(clean(text, 200))} with title "Lá Lành: tác vụ hẹn giờ bị treo"`], { stdio: 'ignore', timeout: 10000 });
 
-// One alert per stale episode: a new done beat ends the episode, so the next stall alerts again.
+// One alert per stale episode and channel. A channel that failed is retried on the next tick; a
+// new done beat ends the episode, so the next stall alerts again. Hours when a task is not watched
+// (autopilot before 11:00) keep the marker, so one stall does not alert again every morning.
 export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify } = {}) {
   const beats = readBeats(nowMs);
   const stale = staleTasks(beats, nowMs);
   const sent = readJson(alertPath(), {});
-  const fresh = stale.filter(s => sent[s.task] !== (s.lastDoneAt ?? 'none'));
-  for (const s of fresh) {
+  const episode = task => beats[task]?.doneAt ?? 'none';
+  for (const task of Object.keys(sent)) if (sent[task]?.episode !== episode(task)) delete sent[task];
+  const alerted = [];
+  for (const s of stale) {
+    const mark = sent[s.task] ?? { episode: episode(s.task), notify: false, alert: false };
+    if (mark.notify && mark.alert) continue;
     const text = describeStale(s);
-    try { notify(text); } catch {}
-    try { alert(`${text}\n\nCách xử lý: mở Claude → Scheduled → mở tác vụ này, dừng hoặc duyệt lần chạy đang treo. Watchdog: scripts/collab-watchdog.mjs (tick 10 phút, không dùng AI).`); } catch {}
-    sent[s.task] = s.lastDoneAt ?? 'none';
+    const channels = {
+      notify: () => notify(text),
+      alert: () => alert(`${text}\n\nCách xử lý: mở Claude → Scheduled → mở tác vụ này, dừng hoặc duyệt lần chạy đang treo. Watchdog: scripts/collab-watchdog.mjs (tick 10 phút, không dùng AI).`),
+    };
+    for (const [name, send] of Object.entries(channels)) {
+      if (mark[name]) continue;
+      try { send(); mark[name] = true; } catch {}
+    }
+    sent[s.task] = mark;
+    alerted.push(s.task);
   }
-  for (const task of Object.keys(sent)) if (!stale.some(s => s.task === task)) delete sent[task];
   writeJson(alertPath(), sent);
-  return { stale: stale.map(s => s.task), alerted: fresh.map(s => s.task) };
+  return { stale: stale.map(s => s.task), alerted };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

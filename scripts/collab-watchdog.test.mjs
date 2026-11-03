@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -57,6 +57,46 @@ test('one alert and one notification per stall; a done beat ends it and the next
   assert.deepEqual(run(t0 + 9 * H + 600000).stale, []);
   assert.deepEqual(run(t0 + 17 * H).alerted, ['la-lanh-ops-watch']);
   assert.match(alerts[1], /Không có lần chạy nào bắt đầu/);
+});
+
+test('a failed channel is retried on the next tick until it is delivered, then not again', () => {
+  const t0 = ms('2026-11-05T03:00:00Z');
+  for (const task of ['la-lanh-autopilot', 'la-lanh-ops-watch', 'la-lanh-retro']) beat(task, 'done', t0);
+  let ghUp = false; let issues = 0; let notes = 0;
+  const run = at => { beat('la-lanh-autopilot', 'done', at); return watch({ nowMs: at, alert: () => { if (!ghUp) throw new Error('gh down'); issues++; }, notify: () => { notes++; } }); };
+  assert.doesNotThrow(() => run(t0 + 8 * H));
+  assert.equal(issues, 0); assert.equal(notes, 1);
+  run(t0 + 8 * H + 600000);
+  assert.equal(issues, 0); assert.equal(notes, 1);
+  ghUp = true;
+  assert.deepEqual(run(t0 + 8 * H + 1200000).alerted, ['la-lanh-ops-watch']);
+  assert.equal(issues, 1); assert.equal(notes, 1);
+  assert.deepEqual(run(t0 + 8 * H + 1800000).alerted, []);
+  assert.equal(issues, 1);
+});
+
+test('an autopilot stall alerted yesterday does not alert again after the overnight pause', () => {
+  const t0 = ms('2026-11-06T03:00:00Z'); // 10:00 VN
+  for (const task of ['la-lanh-autopilot', 'la-lanh-ops-watch', 'la-lanh-retro']) beat(task, 'done', t0);
+  let count = 0;
+  const run = at => { beat('la-lanh-ops-watch', 'done', at); beat('la-lanh-retro', 'done', at); return watch({ nowMs: at, alert: () => {}, notify: () => { count++; } }); };
+  assert.deepEqual(run(t0 + 3 * H).alerted, ['la-lanh-autopilot']); // 13:00 VN
+  assert.deepEqual(run(t0 + 20 * H).stale, []); // 06:00 VN next day: not watched
+  assert.deepEqual(run(t0 + 25 * H + 600000).alerted, []); // 11:10 VN: same stall, no new alert
+  assert.equal(count, 1);
+  beat('la-lanh-autopilot', 'done', t0 + 26 * H);
+  assert.deepEqual(run(t0 + 29 * H).alerted, ['la-lanh-autopilot']); // a new stall alerts again
+});
+
+test('a start beat written before the first tick still gets the full grace period', () => {
+  const at = ms('2026-11-08T03:00:00Z');
+  for (const task of ['la-lanh-autopilot', 'la-lanh-retro']) beat(task, 'done', at);
+  rmSync(join(process.env.LA_LANH_COLLAB_HOME, 'beats', 'la-lanh-ops-watch.json'));
+  beat('la-lanh-ops-watch', 'start', at);
+  const alerts = [];
+  assert.deepEqual(watch({ nowMs: at + 60000, alert: t => alerts.push(t), notify: () => {} }).stale, []);
+  assert.equal(alerts.length, 0);
+  assert.deepEqual(watch({ nowMs: at + 8 * H, alert: t => alerts.push(t), notify: () => {} }).alerted.includes('la-lanh-ops-watch'), true);
 });
 
 test('a failing notifier or alert never stops the watchdog, and beats reject unknown names', () => {
