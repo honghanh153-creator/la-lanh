@@ -41,7 +41,7 @@ from tests.erasure_journal.test_postgres_restore_probe import (
 )
 
 __all__ = ["probe"]
-FIRST, SECOND, THIRD = date(1990, 3, 15), date(1991, 11, 15), date(1993, 6, 1)
+FIRST, SECOND, THIRD = date(1994, 3, 11), date(1991, 11, 15), date(1993, 6, 1)
 
 
 def _service(database: Database) -> BirthChartService:

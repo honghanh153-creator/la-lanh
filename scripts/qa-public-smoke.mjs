@@ -48,7 +48,7 @@ try {
   csrf = guest.csrf_token;
   createdGuest = true;
   const { data: birth } = await request("/v1/birth-profile", {
-    method: "POST", body: { birth_date: "1990-03-15" },
+    method: "POST", body: { birth_date: "2001-03-07" },
   });
   assert.equal(birth.calculation_kind, "date_only_sun");
   const { data: basic } = await request("/v1/daily-note");
@@ -67,7 +67,7 @@ try {
   );
   assert.equal(preview.safe_snapshot.title, work.active.sections.hook);
   assert.equal(previewResponse.headers.get("referrer-policy"), "no-referrer");
-  assert.ok(!JSON.stringify(preview).includes("1990-03-15"));
+  assert.ok(!JSON.stringify(preview).includes("2001-03-07"));
   await request(`/v1/share-artifacts/${share.id}`, { method: "DELETE", expected: 204 });
   await request(`/v1/share-artifacts/${share.token}`, { anonymous: true, expected: 404 });
   completed.push("work context → safe share → revoke");

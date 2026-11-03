@@ -40,7 +40,7 @@ def _daily_payload() -> dict[str, object]:
 @pytest.mark.parametrize(
     ("key", "value"),
     [
-        ("birth_date", "1990-03-15"),
+        ("birth_date", "1998-03-12"),
         ("birth_time", "07:30"),
         ("birth_place", "Hà Nội"),
         ("email", "an@example.com"),
@@ -126,7 +126,7 @@ def test_daily_meaning_brief_is_editorial_and_cannot_smuggle_private_context() -
         == question_brief
     )
     for invalid in (
-        brief | {"birth_date": "1990-03-15"},
+        brief | {"birth_date": "1998-03-12"},
         brief | {"core_meaning": "Nhắn an@example.com để hỏi."},
         brief | {"scene_status": "observed"},
         brief | {"observation_question": "Bạn đã nhắn an@example.com chưa?"},
@@ -141,7 +141,7 @@ def test_daily_meaning_brief_is_editorial_and_cannot_smuggle_private_context() -
     "question",
     [
         "Nhắn cho mình qua an@example.com nhé",
-        "Sinh ngày 1990-03-15 thì có hợp không?",
+        "Sinh ngày 1998-03-12 thì có hợp không?",
         "Gọi số 0912345678 để hỏi tiếp",
     ],
 )
