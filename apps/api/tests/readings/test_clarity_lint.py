@@ -10,6 +10,7 @@ from app.domains.readings.clarity_lint import (
     SurfaceReport,
     baseline_document,
     count_coined_labels,
+    count_house_sign_aspect_words,
     count_jargon,
     count_long_sentences,
     count_meta_talk,
@@ -21,6 +22,7 @@ from app.domains.readings.clarity_lint import (
     lint_document,
     lint_surface,
     near_duplicate_pairs,
+    normalize_text,
     ratchet_regressions,
     sentences,
     shared_sentences,
@@ -58,6 +60,25 @@ def test_a1_counts_astrology_and_engine_terms(text: str, expected: int) -> None:
     assert count_jargon(text) == expected
 
 
+@pytest.mark.parametrize(
+    "text",
+    (
+        "Sao Thủy đi lùi nên bạn dễ nói nhầm ý.",
+        "Mặt Trăng trùng tụ Sao Kim hôm nay.",
+        "Cung Mọc Bọ Cạp làm bạn kín đáo hơn.",
+        "Sao Hỏa xung chiếu Sao Kim, công việc hơi căng.",
+        "Sao Thổ đang giao hội với Sao Kim.",
+        "Chủ tinh của bạn hôm nay đổi chỗ.",
+        "Thiên Đỉnh của bạn được nhắc tới.",
+        "Mặt Trăng đi qua nhà thứ bảy.",
+        "Mặt Trăng đi qua nhà Bảy.",
+        "Góc 120 giữa Mặt Trời và Sao Mộc giúp bạn tự tin.",
+    ),
+)
+def test_a1_counts_synonyms_of_the_listed_terms(text: str) -> None:
+    assert count_jargon(text) == 1
+
+
 def test_a1_still_counts_a_term_explained_in_the_next_sentence() -> None:
     # Current behaviour, documented on purpose: the CDC-7 refinement (a term followed by its plain
     # meaning for "bạn") is TODO(A1+), so an explained term still counts today.
@@ -75,6 +96,30 @@ def test_a1_still_counts_a_term_explained_in_the_next_sentence() -> None:
 )
 def test_a2_counts_coined_labels(text: str, expected: int) -> None:
     assert count_coined_labels(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        ("Mặt Trăng trùng tụ Sao Kim ở nhà thứ bảy của bạn.", 2),
+        ("Chủ tinh nhà Bảy đang giao hội với Sao Thổ.", 3),
+        ("Sao Hỏa xung chiếu Thiên Đỉnh, cung Mọc thì yên.", 3),
+        ("Mặt Trời ở Nhà 10, góc 90 với Sao Thổ, tam hợp Sao Mộc.", 3),
+        ("Sao Thủy đi lùi, Sao Kim nghịch hành, hai sao lục hợp rồi vuông góc.", 4),
+        ("Mặt Trời và Sao Kim đối đỉnh; Sao Hỏa đồng cung Sao Thổ.", 2),
+        ("Bạn về nhà một mình, ghé nhà ba mẹ, về nhà bảy giờ, nhà hai bên đều vui.", 0),
+        ("Nhà bạn có bốn người; mua nhà mười năm trước.", 0),
+        ("Bạn ngồi ở góc phòng, nói chuyện với người trong nhà.", 0),
+    ),
+)
+def test_a16_counts_house_ruler_and_aspect_words(text: str, expected: int) -> None:
+    assert count_house_sign_aspect_words(text) == expected
+
+
+def test_a16_is_a_ratcheted_rule_measured_per_reading() -> None:
+    counts = lint_document(_doc("Sao Kim ở nhà thứ bảy.", "Chủ tinh đổi chỗ."))
+    assert counts["A16"] == 2
+    assert "A16" in RULES
 
 
 def test_a3_allows_two_engine_metaphors_per_reading() -> None:
@@ -161,6 +206,14 @@ def test_a8_flags_sentences_longer_than_25_syllables() -> None:
         ("Mini test, check nhẹ một nhịp.", ("mini", "test", "check")),
         ("Vibe hôm nay nhẹ, Radar và Luna đều nghỉ.", ()),
         ("Con cho nha minh nghi som", ()),  # unaccented Vietnamese is not English
+        ("Nguyen tien viet khuyen quynh ngoeo khuya", ()),
+        ("Hôm nay hợp để healing và detox cảm xúc.", ("healing", "detox")),
+        ("Đừng ghost người ta, cứ inbox nói rõ.", ("ghost", "inbox")),
+        ("Lilith ở Ascendant làm bạn hơi toxic.", ("lilith", "ascendant", "toxic")),
+        ("Drama chỉ là trend, giữ mindset.", ("drama", "trend", "mindset")),
+        ("Check-in trước deadline nhé, mood ổn.", ("check", "deadline", "mood")),
+        ("Hôm nay vibe nhẹ.", ("vibe",)),  # only the capitalised product label is allowed
+        ("Bạn mở tab mới xem video, đúng kiểu plot twist.", ("tab", "video", "plot", "twist")),
     ),
 )
 def test_a10_finds_english_words(text: str, expected: tuple[str, ...]) -> None:
@@ -174,7 +227,18 @@ def test_a10_finds_english_words(text: str, expected: tuple[str, ...]) -> None:
         ("Nội dung đang cập nhật.", 1),
         ("TODO viết lại câu này.", 1),
         ("Bạn hợp với {partner_name}.", 1),
+        ("Bạn hợp với {partnerName} hôm nay.", 1),
+        ("Xin chào {{ name }}.", 1),
+        ("Bạn và %s nên nói chuyện.", 1),
+        ("Bạn và %(name)s nên nói chuyện.", 1),
+        ("Hôm nay None sẽ giúp bạn.", 1),
+        ("Hôm nay undefined khá căng.", 1),
+        ("Giá trị null.", 1),
+        ("Bạn nhắn cho <tên người nhận> nhé.", 1),
+        ("Lĩnh vực: [TÊN LĨNH VỰC] · 17h30.", 1),
         ("Bạn đã sẵn sàng nói chuyện với người kia.", 0),
+        ("Khoảng 50% số việc là của bạn.", 0),
+        ("Bạn mỉm cười [nhẹ thôi].", 0),
     ),
 )
 def test_a11_counts_placeholders(text: str, expected: int) -> None:
@@ -190,10 +254,45 @@ def test_a11_counts_placeholders(text: str, expected: int) -> None:
         ("Nếu tin nhắn vừa gửi chưa đúng ý, bạn nói lại một câu ngắn.", 0),
         ("Khi đã gửi xong, bạn úp điện thoại xuống mười phút.", 0),
         ("Bạn gửi một tin ngắn trước giờ ăn tối.", 0),
+        ("Hôm qua bạn đã cãi nhau với người thân.", 1),
+        ("Bạn vừa nhận một tin không vui.", 1),
+        ("Sáng nay bạn đã gặp lại người cũ.", 1),
+        ("Tuần trước sếp mới nhắn bạn về lịch.", 1),
+        ("Người kia đã hứa sẽ gọi lại.", 1),
+        # "lúc nãy"/"khi nãy" are past times, not condition words.
+        ("Lúc nãy bạn vừa nói hơi gắt với người kia.", 1),
+        ("Khi nãy tin nhắn vừa gửi chưa đúng ý.", 1),
+        ("Nếu hôm qua bạn ngủ muộn, tối nay đi ngủ sớm hơn.", 0),
+        # "vừa … vừa …" is "both … and …"; "đã/mới" in a relative clause is not a claim.
+        ("Bạn vừa muốn hỏi lịch gặp, vừa hỏi lý do ít nhắn.", 0),
+        ("Sự đáng tin đến từ việc giữ lời đã nói.", 0),
+        ("Có những điều cần thời gian mới nói ra.", 0),
     ),
 )
 def test_a14_flags_a_past_action_stated_as_fact(sentence: str, expected: int) -> None:
     assert count_past_action_claims((sentence,)) == expected
+
+
+def test_text_is_normalised_before_linting() -> None:
+    assert normalize_text("a\u00a0b\u202fc") == "a b c"
+    assert normalize_text("\uff33\uff41\uff54\uff55\uff52\uff4e") == "Saturn"
+    assert normalize_text("x\u200by\u200dz\u202e\u2066") == "xyz"
+    decomposed = "Go\u0301c đo\u0302\u0301i đi\u0309nh"
+    assert normalize_text(decomposed) == "Góc đối đỉnh"
+
+
+@pytest.mark.parametrize(
+    "variant",
+    (
+        "Góc đối đỉnh với Saturn, phần dưới chỉ ra cách gỡ.",
+        "Go\u0301c đo\u0302\u0301i đi\u0309nh với Saturn, phần dưới chỉ ra cách gỡ.",  # NFD
+        "Góc đối\u00a0đỉnh với Saturn, phần\u00a0dưới chỉ ra cách gỡ.",  # no-break spaces
+        "Góc đối đỉnh với \uff33\uff41\uff54\uff55\uff52\uff4e, phần dưới chỉ ra cách gỡ.",
+    ),
+)
+def test_lookalike_characters_do_not_hide_a_match(variant: str) -> None:
+    counts = lint_document(_doc(variant))
+    assert (counts["A1"], counts["A4"], counts["A10"]) == (1, 1, 1)
 
 
 def test_lint_document_reports_every_rule_but_a6() -> None:

@@ -5,14 +5,18 @@ only the text a user sees in the body of a reading (no evidence, receipts, facto
 labels) and returns a count, so a release review can keep a per-surface baseline and fail when a
 count rises (ratchet). Thresholds are provisional, like the spec says.
 
+Text is normalised before any rule runs (NFC, no-break spaces as spaces, full-width ASCII as
+ASCII, zero-width and bidi controls removed), so look-alike characters cannot hide a match.
+
 Out of scope here (reported as TODO by the release review): A9 first-screen length, A13 Daily
-follows the day, A15 facts match the engine, A16.
+follows the day, A15 facts match the engine.
 """
 
 from __future__ import annotations
 
 import math
 import re
+import unicodedata
 from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
@@ -31,6 +35,7 @@ RULES: dict[str, str] = {
     "A10": "tiếng Anh",
     "A11": "placeholder",
     "A14": "khẳng định việc đã xảy ra",
+    "A16": "chữ nhà/cung/chủ tinh/góc",
 }
 TODO_RULES: dict[str, str] = {
     "A1+": "thuật ngữ được giải thích ở câu đó hoặc câu sau thì không tính",
@@ -38,7 +43,6 @@ TODO_RULES: dict[str, str] = {
     "A9": "độ dài màn đầu",
     "A13": "Daily bám đúng ngày (30 ngày)",
     "A15": "dữ kiện trong câu chữ khớp engine",
-    "A16": "chưa có trong spec",
 }
 
 ENGINE_METAPHOR_ALLOWANCE = 2  # A3: at most two per reading
@@ -54,6 +58,15 @@ def _terms(*patterns: str) -> re.Pattern[str]:
     return re.compile("|".join(f"(?:{pattern})" for pattern in patterns), re.IGNORECASE)
 
 
+# "Nhà Bảy", "nhà thứ bảy": a house named with a number word. Capitalised number words always
+# count; lower-case ones only from "bốn" up, and not before a unit ("về nhà bảy giờ"), because
+# "nhà một mình", "nhà hai bên" and "nhà ba mẹ" are everyday Vietnamese.
+_HOUSE_NUMBER_WORD = (
+    r"\bnhà (?:(?-i:Một|Hai|Ba|Bốn|Năm|Sáu|Bảy|Tám|Chín|Mười)"
+    r"|(?:bốn|sáu|bảy|tám|chín|mười(?: một| hai)?)"
+    r"(?!\s+(?:giờ|tiếng|phút|ngày|tuần|tháng|năm|người|lần|bữa|đứa|cái|chiếc|căn|tầng|mét)\b))\b"
+)
+
 # A1. Astrology and engine terms a first-time reader does not know. Orb and degrees belong to the
 # evidence layer ("Vì sao Lá đọc vậy?"), never to the body. English planet names are A10.
 JARGON = _terms(
@@ -66,7 +79,17 @@ JARGON = _terms(
     r"\blục hợp\b",
     r"\btam hợp\b",
     r"\bnghịch hành\b",
+    r"\bđi lùi\b",
+    r"\bgiao hội\b",
+    r"\bxung chiếu\b",
+    r"\btrùng tụ\b",
+    r"\bchủ tinh\b",
+    r"\bcung mọc\b",
+    r"\bthiên đỉnh\b",
     r"\bnhà \d+\b",
+    r"\bnhà thứ\b",
+    _HOUSE_NUMBER_WORD,
+    r"\bgóc \d+",
     r"\bcomposite\b",
     r"\bsynastry\b",
     r"\boverlay\b",
@@ -87,6 +110,29 @@ COINED_LABELS = _terms(
     r"\blớp kỹ thuật\b",
     r"\btrạm bắt sóng\b",
     r"\bbản đồ lá\b",
+)
+# A16. House, ascendant/midheaven, ruler and aspect words in the body of a reading. They belong to
+# the evidence layer; the body says what they mean for the reader instead (gap register GT-10).
+HOUSE_SIGN_ASPECT = _terms(
+    r"\bnhà \d+",
+    r"\bnhà thứ\b",
+    _HOUSE_NUMBER_WORD,
+    r"\bcung mọc\b",
+    r"\bchủ tinh\b",
+    r"\bthiên đỉnh\b",
+    r"\bgóc \d+",
+    r"\bgóc chiếu\b",
+    r"\bgóc vuông\b",
+    r"\bvuông góc\b",
+    r"\blục hợp\b",
+    r"\btam hợp\b",
+    r"\bđối đỉnh\b",
+    r"\bgiao hội\b",
+    r"\bxung chiếu\b",
+    r"\btrùng tụ\b",
+    r"\bđồng cung\b",
+    r"\bđi lùi\b",
+    r"\bnghịch hành\b",
 )
 # A3. Engine metaphors that need decoding. "sóng" alone so "lệch sóng" counts once.
 ENGINE_METAPHORS = _terms(
@@ -127,23 +173,85 @@ HEDGES = _terms(
     r"\bđôi lúc\b",
     r"\bcó lẽ\b",
 )
-# A11. Waiting copy and template leftovers. TODO/FIXME are matched case-sensitively.
+# A11. Waiting copy and template leftovers: "{name}", "{{ name }}", "%s", "%(name)s", "<name>",
+# "[TÊN]", and values a template prints when data is missing. Code words are case-sensitive.
 PLACEHOLDERS = re.compile(
-    r"(?i:chưa sẵn sàng|đang cập nhật|lorem ipsum)|\bTODO\b|\bFIXME\b|\{[a-z_]+\}"
+    r"(?i:chưa sẵn sàng|đang cập nhật|lorem ipsum)"
+    r"|\bTODO\b|\bFIXME\b|\bTBD\b|\bXXX\b"
+    r"|\{\{[^{}]*\}\}|\{[A-Za-z_][A-Za-z0-9_.]*\}|\$\{[^{}]*\}"
+    r"|%(?:\([A-Za-z_]\w*\))?[sdif](?![^\W\d_])"
+    r"|<[^<>\s][^<>]*>"
+    r"|\[[^\[\]]*[A-Z][^\[\]]*\]"
+    r"|\b(?:None|undefined|null|NaN|nil)\b"
 )
-# A14. A reader's action stated as already done, without a condition word in the sentence.
+# A14. An event stated as already done, without a condition word in the sentence: "vừa" with an
+# action verb ("tin nhắn vừa gửi"), a person who "đã/mới" did it ("bạn đã cãi"), or a past time
+# ("hôm qua", "sáng nay", "lúc nãy") the reader may not have lived. "lúc nãy"/"khi nãy" are past
+# times, not conditions. "đã/mới" without a person is mostly a relative clause ("lời đã nói",
+# "cần thời gian mới nói ra") and is not counted, except the original "đã gửi".
+_PAST_VERBS = (
+    "gửi|nói|nhắn|gặp|cãi|nhận|hứa|đăng|gọi|hỏi|trả lời|xin lỗi|chia tay|hủy|ký|đọc|nghe|quên"
+    "|viết|bỏ|từ chối|đồng ý|mua|tiêu|bấm|chặn|xóa|hẹn|khóc|giận|mất"
+)
+_PEOPLE = "bạn|mình|người kia|người ấy|anh ấy|cô ấy|em ấy|họ|sếp|cả hai|hai bạn|hai người|người yêu"
 PAST_ACTION = _terms(
-    r"\bvừa gửi\b",
+    rf"\bvừa (?:{_PAST_VERBS})\b",
+    rf"\b(?:{_PEOPLE}) (?:vừa |cũng |lại )?(?:đã|mới) (?:{_PAST_VERBS})\b",
     r"\bđã gửi\b",
     r"\brồi mới thấy\b",
-    r"\bvừa nói\b",
 )
-CONDITION_WORDS = _terms(r"\bnếu\b", r"\bkhi\b", r"\blúc\b")
+PAST_TIME = _terms(
+    r"\bhôm qua\b",
+    r"\btối qua\b",
+    r"\bđêm qua\b",
+    r"\bsáng nay\b",
+    r"\btrưa nay\b",
+    r"\b(?:lúc|khi|ban|hồi) nãy\b",
+    r"\bhồi sáng\b",
+    r"\bhôm trước\b",
+    r"\b(?:tuần|tháng) trước\b",
+    r"\bnăm ngoái\b",
+    r"\bvừa rồi\b",
+    r"\bmới đây\b",
+)
+CONDITION_WORDS = _terms(r"\bnếu\b", r"\bkhi\b(?! nãy)", r"\blúc\b(?! nãy)", r"\bgiả sử\b")
+_VUA = re.compile(r"\bvừa\b", re.IGNORECASE)
 
-# A10. Vietnamese has no f, j, w or z, so an unaccented word with one of them is foreign. Common
-# English loanwords without those letters are listed. Product names and "vibe" are allowed.
+# A10. A word written only in ASCII letters is foreign unless it has the shape of one unaccented
+# Vietnamese syllable (initial + rhyme). Vietnamese has no f, j, w or z, and no "st", "ck" or
+# "nd" clusters, so "healing", "detox", "ghost" or "mindset" never fit. Loanwords that happen to
+# fit ("sun", "moon", "plan"…) are listed. Product names are allowed; "Vibe" only as the
+# capitalised product label.
+_VIETNAMESE_SYLLABLE = re.compile(
+    r"(?:ngh|ng|gh|gi|kh|nh|ph|qu|th|tr|ch|[bcdghklmnprstvx])?"
+    r"(?:(?:oa|oe|uy|oo|[aeiouy])(?:ch|nh|ng|[cmnpt])|(?:uye|ye|ie|uo|ua)(?:ng|[cmnptiu])"
+    r"|oai|oao|oay|oeo|uya|uyu|eo|ia|iu|ua|ui|oa|oe|uy|[ao][iouy]|[aeiouy])"
+)
 ENGLISH_LOANWORDS = frozenset(
     {
+        "healing",
+        "detox",
+        "ghost",
+        "toxic",
+        "ascendant",
+        "vibe",
+        "inbox",
+        "drama",
+        "trend",
+        "mindset",
+        "transit",
+        "retrograde",
+        "ok",
+        "okay",
+        "sorry",
+        "hot",
+        "top",
+        "team",
+        "sale",
+        "app",
+        "like",
+        "share",
+        "post",
         "chart",
         "pattern",
         "mood",
@@ -183,9 +291,18 @@ ENGLISH_LOANWORDS = frozenset(
         "stress",
     }
 )
-ENGLISH_ALLOWLIST = frozenset({"vibe", "radar", "luna", "zalo"})
+ENGLISH_ALLOWLIST = frozenset({"radar", "luna", "zalo"})
+PRODUCT_LABELS = frozenset({"Vibe", "VIBE"})
 _FOREIGN_LETTERS = re.compile(r"[fjwz]")
 _ASCII_WORD = re.compile(r"[a-z]+")
+
+# Normalisation (gap register GT-11). Hidden characters are removed before linting and reported
+# by the hard-zero rule H1; look-alike spaces become a plain space; full-width ASCII becomes ASCII.
+_ZERO_WIDTH = "\u200b\u200c\u200d\u2060\ufeff\u00ad\u180e"
+_BIDI_CONTROLS = "\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069"
+HIDDEN_CHARACTERS = re.compile(f"[{_ZERO_WIDTH}{_BIDI_CONTROLS}]")
+_LOOKALIKE_SPACES = re.compile("[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]")
+_FULL_WIDTH_ASCII = {code: code - 0xFEE0 for code in range(0xFF01, 0xFF5F)}
 
 # Closing quotes (straight, curly, guillemet) or a bracket after the end mark.
 _SENTENCE_SPLIT = re.compile("(?<=[.!?\u2026])[\"\u201d'\u2019\u00bb)]*\\s+|\n+")
@@ -217,6 +334,22 @@ class SurfaceReport:
             "variants": dict(sorted(self.variants.items())),
             "rules": {rule: self.rules.get(rule, 0) for rule in RULES},
         }
+
+
+def normalize_text(text: str) -> str:
+    """NFC, plain spaces, ASCII for full-width letters, no zero-width or bidi controls."""
+
+    text = HIDDEN_CHARACTERS.sub("", text.translate(_FULL_WIDTH_ASCII))
+    return unicodedata.normalize("NFC", _LOOKALIKE_SPACES.sub(" ", text))
+
+
+def normalize_document(document: ClarityDocument) -> ClarityDocument:
+    return ClarityDocument(
+        surface=document.surface,
+        sample_id=document.sample_id,
+        sections=tuple((name, normalize_text(text)) for name, text in document.sections),
+        variant=document.variant,
+    )
 
 
 def sentences(text: str) -> tuple[str, ...]:
@@ -265,13 +398,23 @@ def count_placeholders(text: str) -> int:
     return _count(PLACEHOLDERS, text)
 
 
+def count_house_sign_aspect_words(text: str) -> int:
+    return _count(HOUSE_SIGN_ASPECT, text)
+
+
 def english_words(text: str) -> tuple[str, ...]:
     words: list[str] = []
     for token in re.findall(r"[^\W\d_]+", text):
         word = token.casefold()
         if not _ASCII_WORD.fullmatch(word) or word in ENGLISH_ALLOWLIST or len(word) < 2:
             continue
-        if _FOREIGN_LETTERS.search(word) or word in ENGLISH_LOANWORDS:
+        if token in PRODUCT_LABELS:
+            continue
+        if (
+            _FOREIGN_LETTERS.search(word)
+            or word in ENGLISH_LOANWORDS
+            or not _VIETNAMESE_SYLLABLE.fullmatch(word)
+        ):
             words.append(word)
     return tuple(words)
 
@@ -280,11 +423,22 @@ def count_long_sentences(items: Iterable[str]) -> int:
     return sum(syllables(sentence) > MAX_SENTENCE_SYLLABLES for sentence in items)
 
 
-def count_past_action_claims(items: Iterable[str]) -> int:
-    return sum(
-        bool(PAST_ACTION.search(sentence)) and not CONDITION_WORDS.search(sentence)
-        for sentence in items
+def is_past_event_claim(sentence: str) -> bool:
+    """A14. "vừa … vừa …" is "both … and …", not "just did"."""
+
+    if CONDITION_WORDS.search(sentence):
+        return False
+    if PAST_TIME.search(sentence):
+        return True
+    correlative = len(_VUA.findall(sentence)) > 1
+    return any(
+        not (correlative and match.group(0).casefold().startswith("vừa"))
+        for match in PAST_ACTION.finditer(sentence)
     )
+
+
+def count_past_action_claims(items: Iterable[str]) -> int:
+    return sum(is_past_event_claim(sentence) for sentence in items)
 
 
 def _bigrams(sentence: str) -> set[tuple[str, str]]:
@@ -325,6 +479,7 @@ def document_sentences(document: ClarityDocument) -> tuple[str, ...]:
 def lint_document(document: ClarityDocument) -> dict[str, int]:
     """Per-reading counts for every rule except A6, which needs the whole surface."""
 
+    document = normalize_document(document)
     body = "\n".join(text for _, text in document.sections)
     items = document_sentences(document)
     return {
@@ -338,6 +493,7 @@ def lint_document(document: ClarityDocument) -> dict[str, int]:
         "A10": len(english_words(body)),
         "A11": count_placeholders(body),
         "A14": count_past_action_claims(items),
+        "A16": count_house_sign_aspect_words(body),
     }
 
 
@@ -366,7 +522,9 @@ def shared_sentences(documents: Iterable[ClarityDocument]) -> tuple[str, ...]:
 
 
 def lint_surface(surface: str, documents: Iterable[ClarityDocument]) -> SurfaceReport:
-    docs = tuple(document for document in documents if document.surface == surface)
+    docs = tuple(
+        normalize_document(document) for document in documents if document.surface == surface
+    )
     totals: Counter[str] = Counter()
     flagged: Counter[str] = Counter()
     for document in docs:
