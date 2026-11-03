@@ -49,9 +49,9 @@ Ephemeris (`swe_calc_ut`, vị trí và tốc độ), https://www.astro.com/swis
   (`engine.py:609-619`: exact khi orb ≤ 0,2°, so với vị trí sau một giờ).
 - **Pha chắc:** tính pha ở hai đầu miền và ở mọi cực trị bên trong; nếu tất cả giống nhau thì pha đó chắc.
   Nếu không thì `phase = None`, và bài **không** nói pha.
-- **Ví dụ bắt buộc thành test** (probe của Codex, dữ liệu tổng hợp 1990-03-15): Sao Thuỷ natal
-  349,157941°…353,138133°, cùng cung Song Ngư. Transit lúc 2026-02-21 12:00 UTC cho orb 1,558642° và
-  2,421549°, pha separating và approaching. Kỳ vọng:
+- **Ví dụ bắt buộc thành test** (probe của Codex, dữ liệu tổng hợp 1992-02-27): Sao Thuỷ natal
+  348,801998°…352,574937°, cùng cung Song Ngư. Transit lúc 2026-02-21 12:00 UTC cho orb 1,914585° và
+  1,858353°, pha separating và approaching. Kỳ vọng:
   - `phase = None`, nên bài **không** có câu nói về pha;
   - orb ở mức "chắc trong orb" (cả hai ≤ 2,5°);
   - `observed_at` nằm trong cửa sổ chắc, nên **được** hiện "Ngày N" (đếm từ `t_s`, §5).

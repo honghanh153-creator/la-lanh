@@ -677,8 +677,8 @@ bài nói về chính họ. Bản triệt để đổi **cách tạo câu** và 
   - Hiện `calculate_date_only_sun` (`astro/engine.py:583-606`) chỉ trả tập cung của Mặt Trời từ các mẫu
     cách 6 giờ trên khoảng ngày dân sự (UTC+14 tới UTC−12, khoảng 50 giờ). Nó không trả miền longitude, orb
     hay pha.
-  - **Cùng cung chưa đủ.** Probe của Codex (dữ liệu tổng hợp 1990-03-15) cho Sao Thuỷ 349,16° và 353,14°
-    ở hai đầu khoảng sinh, vẫn cùng cung Song Ngư. Transit lúc 2026-02-21 12:00 UTC cho orb 1,56° và 2,42°,
+  - **Cùng cung chưa đủ.** Probe của Codex (dữ liệu tổng hợp 1992-02-27) cho Sao Thuỷ 348,80° và 352,57°
+    ở hai đầu khoảng sinh, vẫn cùng cung Song Ngư. Transit lúc 2026-02-21 12:00 UTC cho orb 1,91° và 1,86°,
     cả hai trong ngưỡng, nhưng `_transit_phase` trả **separating** cho một đầu và **approaching** cho đầu
     kia. Chọn một longitude đại diện sẽ nói sai pha với một giờ sinh vẫn hợp lệ.
   - **Contract mới (spec ở P0, làm ở G2):**

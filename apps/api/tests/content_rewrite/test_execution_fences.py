@@ -392,7 +392,7 @@ async def test_obsolete_birth_reading_cannot_send_or_reserve_budget(fenced, with
         await session.execute(delete(ContentRewriteJobRow))
     birth_repository = PostgresBirthRepository(db.sessions, cipher)
     birth = BirthChartService(birth_repository, NatalChartEngine(), cipher, SecretHasher(b"h" * 32))
-    await birth.create_date_only(guest_id=guest_id, birth_date=date(1990, 3, 15))
+    await birth.create_date_only(guest_id=guest_id, birth_date=date(1996, 3, 4))
     snapshot = await birth_repository.find_current(guest_id)
     assert snapshot is not None
     readings = PostgresReadingRepository(db.sessions, cipher)
@@ -475,7 +475,7 @@ async def test_a_reading_leased_before_a_date_correction_cannot_publish_after_it
         await session.execute(delete(ContentRewriteJobRow))
     birth_repository = PostgresBirthRepository(db.sessions, cipher)
     birth = BirthChartService(birth_repository, NatalChartEngine(), cipher, SecretHasher(b"h" * 32))
-    await birth.create_date_only(guest_id=guest_id, birth_date=date(1990, 3, 15))
+    await birth.create_date_only(guest_id=guest_id, birth_date=date(1996, 3, 4))
     snapshot = await birth_repository.find_current(guest_id)
     assert snapshot is not None
     readings = PostgresReadingRepository(db.sessions, cipher)

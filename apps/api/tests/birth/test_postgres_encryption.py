@@ -26,7 +26,7 @@ def _correct(client: TestClient, headers: dict[str, str], birth_date: str) -> An
 
 
 @pytest.mark.parametrize("initially_full", [False, True])
-@pytest.mark.parametrize("other_birth_date", ["1990-11-15", "1990-03-16"])
+@pytest.mark.parametrize("other_birth_date", ["1990-11-15", "1995-03-10"])
 def test_correcting_back_to_a_previous_birth_date_switches_current_profile_and_daily_reading(
     tmp_path: Path, initially_full: bool, other_birth_date: str
 ) -> None:
@@ -49,7 +49,7 @@ def test_correcting_back_to_a_previous_birth_date_switches_current_profile_and_d
             },
         )
         headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": guest.json()["csrf_token"]}
-        first = client.post("/v1/birth-profile", headers=headers, json={"birth_date": "1990-03-15"})
+        first = client.post("/v1/birth-profile", headers=headers, json={"birth_date": "1995-03-09"})
         assert first.status_code == 200
         first_basic_id = first.json()["snapshot_id"]
         supplement = {
@@ -66,7 +66,7 @@ def test_correcting_back_to_a_previous_birth_date_switches_current_profile_and_d
                 == 200
             )
         # Each intermediate request must read its own current chart, not just the final one.
-        for index, birth_date in enumerate(("1990-03-15", other_birth_date, "1990-03-15")):
+        for index, birth_date in enumerate(("1995-03-09", other_birth_date, "1995-03-09")):
             posted = client.post(
                 "/v1/birth-profile", headers=headers, json={"birth_date": birth_date}
             )
@@ -111,7 +111,7 @@ def test_correcting_back_to_a_previous_birth_date_switches_current_profile_and_d
         # The supplement must now be calculated against A, not the last chart B.
         full = client.post("/v1/birth-profile/supplement", headers=headers, json=supplement)
         assert full.status_code == 200
-        assert client.get("/v1/birth-profile").json()["birth_date"] == "1990-03-15"
+        assert client.get("/v1/birth-profile").json()["birth_date"] == "1995-03-09"
         erased = client.request(
             "DELETE",
             "/v1/birth-profile/supplement",
@@ -145,7 +145,7 @@ def test_retrying_same_birth_date_preserves_full_chart_and_profile_revision(
         headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": guest.json()["csrf_token"]}
         assert (
             client.post(
-                "/v1/birth-profile", headers=headers, json={"birth_date": "1990-03-15"}
+                "/v1/birth-profile", headers=headers, json={"birth_date": "1995-03-09"}
             ).status_code
             == 200
         )
@@ -172,7 +172,7 @@ def test_retrying_same_birth_date_preserves_full_chart_and_profile_revision(
             app.state.birth_chart_service._engine, "calculate_date_only_sun", unexpected_compute
         )
         retried = client.post(
-            "/v1/birth-profile", headers=headers, json={"birth_date": "1990-03-15"}
+            "/v1/birth-profile", headers=headers, json={"birth_date": "1995-03-09"}
         )
         assert retried.status_code == 200
         assert retried.json()["snapshot_id"] == before["snapshot_id"]
@@ -191,7 +191,7 @@ def test_birth_replay_and_reading_reset_cannot_change_another_guest(tmp_path: Pa
     )
     with TestClient(app, base_url="http://127.0.0.1:5173") as client:
         sessions = []
-        for index, birth_date in enumerate(("1990-03-15", "1990-11-15")):
+        for index, birth_date in enumerate(("1995-03-09", "1990-11-15")):
             client.cookies.clear()
             guest = client.post(
                 "/v1/guest-sessions",
@@ -219,7 +219,7 @@ def test_birth_replay_and_reading_reset_cannot_change_another_guest(tmp_path: Pa
         first_cookies, first_headers, first_profile, _ = sessions[0]
         client.cookies.clear()
         client.cookies.update(first_cookies)
-        for birth_date in ("1990-11-15", "1990-03-15"):
+        for birth_date in ("1990-11-15", "1995-03-09"):
             assert _correct(client, first_headers, birth_date).status_code == 200
             assert client.get("/v1/daily-note").status_code == 200
         corrected = client.get("/v1/birth-profile").json()
