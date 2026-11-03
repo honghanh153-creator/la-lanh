@@ -25,17 +25,18 @@ Precision (``ContactEligibility``, AS-1/PL-14). A non-exact birth time still get
 factors, but only those that hold over the whole uncertain birth interval:
 
 * ``exact_time``: every natal body as a point; natal house of the transiting Moon is read.
-* ``approximate_time``: the chart is calculated at the window's stored midpoint and the four
-  daytime midpoints (08, 12, 15, 19 h) lie within ``APPROXIMATE_HALF_WIDTH_DAYS`` of their
-  window's edges. Natal Sun…Pluto and the natal Moon are bounded over that interval with
+* ``approximate_time``: the chart is calculated at the window's stored midpoint and the five
+  narrow-window midpoints (03, 08, 12, 15, 19 h) lie within ``APPROXIMATE_HALF_WIDTH_DAYS`` of
+  their window's edges. Natal Sun…Pluto and the natal Moon are bounded over that interval with
   ``NatalChartEngine.longitude_domains`` and a contact counts only while its worst-case orb
   (``orb_bounds``) is inside the limit; the natal Moon gets ``NATAL_MOON_WINDOW_EXTRA_ORB`` on
   top because it spreads ~3° over the window.
-* ``approximate_night``: the "Đêm / sau 22h" window. There is no 00-06 h option, so people born
-  after midnight pick it too, and the birth service stores 23:00 on the entered date: the real
-  birth can be anywhere on that civil date. It is read like ``date_only`` (no natal Moon) over
-  ``NIGHT_HALF_WIDTH_DAYS`` around the stored instant. Any approximate chart whose window cannot
-  be recognised falls back to this rule (fail closed, see ``contact_eligibility``).
+* ``approximate_night``: the "Đêm" window, stored at 23:00 on the entered date. Before the
+  "Rạng sáng 00-06h" option (PL-37) it read "sau 22h" and people born after midnight picked it
+  too, so a stored night record can be anywhere on that civil date. It is read like
+  ``date_only`` (no natal Moon) over ``NIGHT_HALF_WIDTH_DAYS`` around the stored instant. Any
+  approximate chart whose window cannot be recognised falls back to this rule (fail closed, see
+  ``contact_eligibility``).
 * ``date_only``: as above over the engine's ±14 h birth-date interval, natal Sun…Pluto only; the
   natal Moon can sit anywhere in a ~13° band, so contacts to it would be invented precision.
 * Houses, angles, nodes and Chiron are never read for a non-exact time.
@@ -93,12 +94,13 @@ WAKING_END_HOUR = 23
 DAYS_TIER_MAX_DAYS = 7.0
 WEEKS_TIER_MAX_DAYS = 45.0
 SPAN_STEP = timedelta(hours=6)
-# The daytime approximate-window midpoints stored by the birth service (08, 12, 15, 19 h local)
-# are at most 3 h from their window's edges (06-10, 10-14, 14-18, 18-22 h).
+# The narrow approximate-window midpoints stored by the birth service (03, 08, 12, 15, 19 h
+# local) are at most 3 h from their window's edges (00-06, 06-10, 10-14, 14-18, 18-22 h).
 APPROXIMATE_HALF_WIDTH_DAYS = 3.0 / 24.0
-DAYTIME_WINDOW_MIDPOINT_HOURS = frozenset({8, 12, 15, 19})
-# The night window ("sau 22h") is stored at 23:00 on the entered date but also holds births from
-# 00:00 to 06:00 that date (there is no 00-06 h option). The date-only interval is local noon
+DAYTIME_WINDOW_MIDPOINT_HOURS = frozenset({3, 8, 12, 15, 19})
+# The night window is stored at 23:00 on the entered date. Records saved before the 00-06 h
+# option existed (PL-37) also hold births from 00:00 to 06:00 that date, and the two cannot be
+# told apart. The date-only interval is local noon
 # ±14 h, which reaches 25 h before a 23:00 instant; ±25 h around it therefore covers the whole
 # civil date with the same margin as date-only.
 NIGHT_HALF_WIDTH_DAYS = (23.0 - 12.0 + 14.0) / 24.0

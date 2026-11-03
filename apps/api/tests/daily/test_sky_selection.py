@@ -556,6 +556,16 @@ def test_night_window_covers_births_after_midnight_on_the_entered_date(
     assert sun_high - sun_low < 0.3 < 1.8 < night_sun_high - night_sun_low
 
 
+def test_dawn_window_is_narrow_and_keeps_the_natal_moon(engine: NatalChartEngine) -> None:
+    # "Rạng sáng 00-06h" (PL-37) is stored at 03:00, at most 3 h from its edges.
+    dawn = _window_chart(engine, date(1990, 3, 14), 3, TimePrecision.APPROXIMATE)
+    assert contact_eligibility(dawn) is ContactEligibility.APPROXIMATE_TIME
+    domains = natal_domains(engine, dawn)
+    assert BodyName.MOON in domains
+    sun_low, sun_high = domains[BodyName.SUN]
+    assert sun_high - sun_low < 0.3
+
+
 def test_unrecognised_window_fails_closed_and_birth_zone_is_honoured(
     engine: NatalChartEngine,
 ) -> None:
