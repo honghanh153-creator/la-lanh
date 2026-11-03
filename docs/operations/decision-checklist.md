@@ -10,11 +10,18 @@ Trả lời lần lượt. Gặp **"có"** ở câu nào thì dừng ở câu đ
 | # | Câu hỏi | Kết quả nếu "có" |
 |---|---|---|
 | Q1 | Việc này **có nằm trong danh sách cấm** ở mục 2 không? | Không làm. Hỏi owner, kèm đề xuất. |
-| Q2 | Có **câu chữ mới mà người dùng nhìn thấy** không (copy, nhãn, thông báo, bản đọc)? | Làm bản nháp + PR gắn `needs-owner`. Owner duyệt copy rồi mới merge. |
+| Q2 | Có **câu chữ mới mà người dùng nhìn thấy** không (copy, nhãn, thông báo, bản đọc)? | Làm bản nháp + PR gắn `needs-owner`. Owner duyệt copy rồi mới merge. **Ngoại lệ cho bản đọc** (owner, 03.11.2026): xem dưới bảng. |
 | Q3 | Có **thu thập, lưu, chia sẻ hay suy ra thêm dữ liệu cá nhân** không, hoặc đổi mục đích/thời hạn lưu? | Hỏi owner, kèm phân tích privacy (AGENTS.md mục 3). |
 | Q4 | Có **đổi hướng sản phẩm** không (tính năng mới, bỏ tính năng, đổi thứ tự ưu tiên owner đã chốt)? | Hỏi owner, kèm 2 lựa chọn và khuyến nghị. |
 | Q5 | Có **tốn tiền, không hoàn tác được, hoặc ảnh hưởng người dùng thật ngay** không? | Hỏi owner. |
 | — | Cả năm câu đều "không" | **Tự quyết, làm, báo lại** trong tóm tắt cuối lượt. |
+
+**Q2 cho bản đọc (owner giao Claude chốt, 03.11.2026):**
+- Bản đọc (Daily, Tarot, Khám phá, Hợp gu) do nhà máy nội dung sinh theo bộ chuẩn và đã qua đủ cổng tự động (lớp A lint, lớp B giám khảo, lớp C người đọc giả lập) thì không cần owner duyệt từng câu.
+- Owner chỉ xem câu bị cổng gắn cờ và báo cáo điểm của mỗi đợt.
+- Bộ chuẩn (C3a, `docs/plans/2026-11-02-daily-v2-content-quality-plan.md`) do Claude chốt và Codex review.
+- Đổi bộ chuẩn thì qua PR như mọi tài liệu khác.
+- Vẫn cần owner duyệt: copy giao diện (nút, thông báo, nhãn mới ngoài 12 lĩnh vực đã chốt), lời giải thích quyền riêng tư, nội dung pháp lý, và mọi ngoại lệ của luật an toàn S1–S7.
 
 **Cải thiện trải nghiệm người dùng (owner, 31.10.2026):** việc giúp người dùng dùng app dễ, rõ, êm hơn mà không vướng Q1–Q5 thì agent **chủ động làm luôn**, không chờ được giao: sửa lỗi hiển thị, trạng thái lỗi/đang tải rõ ràng hơn, bỏ thông tin kỹ thuật lộ ra người dùng, tránh lặp, tăng khả năng tiếp cận, tăng tốc. Nếu việc đó cần câu chữ mới thì vẫn qua Q2 (bản nháp + owner duyệt copy).
 
