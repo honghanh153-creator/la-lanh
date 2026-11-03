@@ -378,6 +378,53 @@ class NatalChartEngine:
             config_hash=resolved.fingerprint,
         )
 
+    def transiting_position(
+        self,
+        body: BodyName,
+        observed_at: datetime,
+        config: CalculationConfig | None = None,
+    ) -> BodyPosition:
+        """One transiting body at an exact instant, without the natal comparison.
+
+        Cheap enough to scan day by day (one ephemeris call), so callers that only follow a
+        single body — the Moon's sign, a slow planet's orb window — do not need the full
+        transit-to-natal snapshot. The south node is derived, not calculated, so it is refused.
+        """
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        ids = dict(BODY_IDS) | {BodyName.MEAN_NODE: 10}
+        if body not in ids:
+            raise ValueError(f"{body.value} is not a calculated transiting body")
+        resolved = config or CalculationConfig.western_recommended()
+        sidereal = resolved.tradition is Tradition.JYOTISH
+        sidereal_mode = AYANAMSA_IDS[resolved.ayanamsa] if resolved.ayanamsa else None
+        julian_day_ut = self._julian_day(observed_at)
+        with self._native.calculation_scope(sidereal_mode):
+            return self._body_position(julian_day_ut, body, ids[body], sidereal=sidereal)
+
+    def transiting_positions(
+        self,
+        observed_at: datetime,
+        config: CalculationConfig | None = None,
+    ) -> tuple[BodyPosition, ...]:
+        """Every transiting body at an exact instant (the node per ``config.node_mode``).
+
+        Shares the per-instant sky cache with ``calculate_transit_to_natal``, so many charts
+        scanned at the same instants reuse one ephemeris pass.
+        """
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        resolved = config or CalculationConfig.western_recommended()
+        sidereal = resolved.tradition is Tradition.JYOTISH
+        sidereal_mode = AYANAMSA_IDS[resolved.ayanamsa] if resolved.ayanamsa else None
+        return self._transiting_bodies(
+            self._julian_day(observed_at),
+            sidereal,
+            sidereal_mode,
+            resolved.node_mode,
+            resolved.fingerprint,
+        )
+
     def _transiting_bodies(
         self,
         julian_day_ut: float,
@@ -412,21 +459,31 @@ class NatalChartEngine:
                 self._transit_cache.popitem(last=False)
         return calculated
 
-    def longitude_domains(self, chart: NatalChart) -> dict[BodyName, tuple[float, float]]:
+    def longitude_domains(
+        self, chart: NatalChart, *, half_width_days: float | None = None
+    ) -> dict[BodyName, tuple[float, float]]:
         """``(low, high)`` longitude per body; a point unless the birth time is unknown.
 
         For an unknown time each body is bounded over the birth-date interval: both ends and
         every station inside it (speed sign change, located by bisection to one minute), with
         ``high`` unwrapped past 360° when the domain crosses 0° (event-spec/v1 §2).
+
+        ``half_width_days`` bounds the same way over ``julian_day_ut ± half_width_days`` for any
+        precision; callers pass it for an approximate-time window, whose chart is calculated at
+        the window's stored midpoint.
         """
 
-        if chart.time_precision is not TimePrecision.UNKNOWN:
-            return {body.body: (body.longitude, body.longitude) for body in chart.bodies}
+        if half_width_days is None:
+            if chart.time_precision is not TimePrecision.UNKNOWN:
+                return {body.body: (body.longitude, body.longitude) for body in chart.bodies}
+            half_width_days = DATE_DOMAIN_HALF_WIDTH_DAYS
+        if half_width_days < 0:
+            raise ValueError("half_width_days must not be negative")
         ids = dict(BODY_IDS) | {BodyName.MEAN_NODE: 10}
         sidereal = chart.config.tradition is Tradition.JYOTISH
         mode = AYANAMSA_IDS[chart.config.ayanamsa] if chart.config.ayanamsa else None
-        start = chart.julian_day_ut - DATE_DOMAIN_HALF_WIDTH_DAYS
-        end = chart.julian_day_ut + DATE_DOMAIN_HALF_WIDTH_DAYS
+        start = chart.julian_day_ut - half_width_days
+        end = chart.julian_day_ut + half_width_days
         domains: dict[BodyName, tuple[float, float]] = {}
         with self._native.calculation_scope(mode):
             for body in chart.bodies:
