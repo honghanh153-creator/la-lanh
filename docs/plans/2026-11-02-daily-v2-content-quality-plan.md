@@ -120,3 +120,45 @@ Sau Daily, dùng cùng nhà máy và cổng cho Tarot, Radar và Khám phá, m�
 - Chốt đổi luật Q2 (mục 1.6).
 - Duyệt 12 nhãn lĩnh vực.
 - Ngưỡng số của cổng là tạm thời, hiệu chỉnh bằng bộ mẫu vàng.
+
+## 8. Thay đổi sau rà soát toàn diện (2026-11-03)
+
+Chi tiết: `docs/plans/2026-11-03-daily-v2-gap-register.md`. Các thay đổi:
+
+- **Số liệu nền, mục 2.** "11/14 ngày cùng một transit chậm" là lựa chọn của planner. Theo đường
+  production, phần transit chỉ hiện khoảng 1/10 ngày (258/2.700 note giả lập), vì gate hay từ chối và
+  lùi về bản chỉ dựa trên lá số gốc. Daily hiện tại vì vậy còn ít bám theo ngày hơn số liệu ban đầu.
+- **C2a mở rộng:**
+  - nhánh cho người có giờ gần đúng hoặc chỉ có ngày sinh (`orb_bounds`);
+  - tông nền của ngày;
+  - xếp hạng theo trọng số và độ hiếm;
+  - giới hạn số lựa chọn Mặt Trăng;
+  - gộp một sự kiện bị tách thành hai thẻ;
+  - khung giờ thật;
+  - đặt tầng theo độ dài thật;
+  - sự kiện bầu trời: trạm, trăng non/tròn, thực, đổi cung, nghịch hành, sinh nhật.
+
+  Có thể tách thành C2a-2 để #178 giữ nhỏ.
+- **C2b:** thêm góc với cung Mọc/Thiên Đỉnh. Chỉ dùng nhãn nhà khi nhãn không đổi trong khoảng sai số
+  của giờ sinh.
+- **C2c:** nối các lần đi qua do nghịch hành.
+- **C2d:** không lưu lịch sử. Chọn biến thể bằng HMAC theo người, theo góc và theo chu kỳ trăng, để
+  giữ thời hạn 24 giờ của Daily.
+- **C4a (mới):**
+  - gán nhánh A/B bằng HMAC, không lưu;
+  - chỉ dùng bộ đếm tổng hợp;
+  - chọn A hay C chủ yếu bằng phép thử người đọc (note thật cùng note mồi); A/B live chỉ làm rào
+    chắn.
+- **C5 làm trước A/B,** dùng lại tính năng cảm nhận (hit/miss) đang có.
+- **C3a thêm luật an toàn hạng A** và dòng hỗ trợ tĩnh, chỉ dùng số đã xác minh.
+- **C3b:**
+  - giám khảo chấm 100% mảnh;
+  - giám khảo khác họ model với người viết;
+  - nghiệm thu trên note đã ghép;
+  - kho mảnh không tự merge.
+- **C1 sửa tiếp:** chặn cứng thật; baseline so với nhánh đích; ratchet theo từng câu; corpus phủ toàn
+  bộ chuỗi nguồn.
+- **Sửa ngay trên production, ngoài v2:**
+  - múi giờ của người sinh ở miền Bắc 1960–1975;
+  - 2/30 lá số Jyotish bị từ chối mỗi ngày;
+  - `/metrics` mở công khai.
