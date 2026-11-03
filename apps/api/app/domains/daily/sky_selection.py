@@ -5,31 +5,57 @@ slow contact that stays in orb for months wins day after day. This module select
 what changes *within the user's day*:
 
 * the day is the Vietnam civil day (``Asia/Ho_Chi_Minh``), sampled every 30 minutes;
-* ``today`` holds transiting-Moon contacts and any fast contact that perfects today;
-* ``days`` holds the other Sun/Mercury/Venus/Mars contacts (they last a few days);
-* ``trend`` holds Jupiter and slower bodies (incl. Chiron and the nodes), shown only as
-  "Xu hướng hiện tại" with a date range, never as one of the day's picks.
+* tiers follow the contact's measured length, not only the planet (AS-7): ``today`` holds
+  transiting-Moon contacts and fast contacts that perfect today, ``days`` fast contacts that
+  last at most ``DAYS_TIER_MAX_DAYS``, ``weeks`` longer fast contacts (a slow or stationary
+  Mercury…Mars), and ``trend`` Jupiter and slower bodies (incl. Chiron and the nodes) plus any
+  fast contact longer than ``WEEKS_TIER_MAX_DAYS``;
+* picks are ranked by a documented weighted score (``score_contact``), at most two Moon picks
+  and one slow pick a day, and one sky event touching two aspected natal points is one factor;
+* each contact carries its timing: ``time_kind``, the in-orb window and the tight 1° peak window
+  inside the day, and a closest moment only when the closest approach really falls inside it;
+* trend contacts carry their whole in-orb window across retrograde passes (C2c), with the orb at
+  each closest date and a weight; generational outer-to-outer contacts are dropped.
 
-It returns geometry only (no copy, no persistence) and is deterministic for a chart and date.
-Nothing in the request path calls it yet; the Daily service and planner wiring come later.
+It returns geometry and labels only (no copy, no persistence, no logging) and is deterministic
+for a chart and date. Nothing in the request path calls it yet; the Daily service and planner
+wiring come later.
 
-Eligibility mirrors the existing Daily path. Transit contacts are produced only for Western
-charts with an exact birth time: ``DailyNoteService`` builds its Sky Chapter only for
-``TimePrecision.EXACT`` and the planner keeps non-exact Daily notes on the limited plan and
-Jyotish readings natal-only. Without a birth time the natal Moon can sit anywhere in a ~13° band
-and the house cusps are unknown, so contacts to it and house placement would be invented
-precision. The transiting Moon's sign is sky-only and is still returned.
+Precision (``ContactEligibility``, AS-1/PL-14). A non-exact birth time still gets personal
+factors, but only those that hold over the whole uncertain birth interval:
+
+* ``exact_time``: every natal body as a point; natal house of the transiting Moon is read.
+* ``approximate_time``: the chart is calculated at the window's stored midpoint and every stored
+  midpoint lies within ``APPROXIMATE_HALF_WIDTH_DAYS`` of its window's edges. Natal Sun…Pluto
+  and the natal Moon are bounded over that interval with ``NatalChartEngine.longitude_domains``
+  and a contact counts only while its worst-case orb (``orb_bounds``) is inside the limit; the
+  natal Moon gets ``NATAL_MOON_WINDOW_EXTRA_ORB`` on top because it spreads ~3° over the window.
+* ``date_only``: as above over the engine's ±14 h birth-date interval, natal Sun…Pluto only; the
+  natal Moon can sit anywhere in a ~13° band, so contacts to it would be invented precision.
+* Houses, angles, nodes and Chiron are never read for a non-exact time.
+* ``tradition_not_western``: Jyotish stays natal-only. Its transit practice (gochara) counts
+  sidereal whole-sign houses from the natal Moon and graha drishti, not the tropical Ptolemaic
+  aspects and versioned orbs used here, and the planner keeps Jyotish readings natal-only; mixing
+  the two systems would give a sidereal chart Western contacts it does not use. The transiting
+  Moon's sign is sky-only and is still returned.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
 from zoneinfo import ZoneInfo
 
-from app.domains.astro.aspects import TRANSIT_ORB_VERSION, angular_distance, transit_orb_limit
-from app.domains.astro.engine import NatalChartEngine, house_for_longitude
+from app.domains.astro.aspects import (
+    ASPECTS,
+    TRANSIT_ORB_VERSION,
+    angular_distance,
+    orb_bounds,
+    transit_orb_limit,
+)
+from app.domains.astro.engine import NatalChartEngine, house_for_longitude, sign_for_longitude
 from app.domains.astro.models import (
     BodyName,
     NatalChart,
@@ -39,24 +65,74 @@ from app.domains.astro.models import (
     ZodiacSign,
 )
 
-DAILY_SELECTION_VERSION = "daily-sky-selection-v1"
+DAILY_SELECTION_VERSION = "daily-sky-selection-v2"
 DAILY_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 DEFAULT_SAMPLE_MINUTES = 30
 DEFAULT_PICK_LIMIT = 3
-# A fast contact whose closest approach today is under this orb counts as "exact today".
-EXACT_TODAY_ORB = 0.3
-# The engine's own "exact" phase threshold (``_transit_phase``).
-EXACT_PHASE_ORB = 0.2
-# Day-by-day trend scan bound in each direction. Pluto can hold a 2° orb for about two years
-# with its retrograde loops; a window that reaches the bound is flagged open on that side.
+# One "exact" threshold for both ``phase`` and ``exact_today`` (AS-13); it is the engine's own
+# ``_transit_phase`` threshold. A contact is exact only at its in-day closest approach.
+EXACT_ORB = 0.2
+# The tight orb (AS-15) used for ranking and time chips; the versioned wide orb still defines
+# whether a contact is in effect at all.
+PEAK_ORB = 1.0
+MAX_MOON_PICKS = 2
+MAX_SLOW_PICKS = 1
+# Two contacts of one transiting body to two natal points in aspect, peaking this close, are
+# one sky event (AS-4).
+MERGE_WINDOW = timedelta(hours=3)
+# Waking hours in Vietnam time: a tie-break between equally scored picks (K-5).
+WAKING_START_HOUR = 6
+WAKING_END_HOUR = 23
+# Tier by measured in-orb length (AS-7).
+DAYS_TIER_MAX_DAYS = 7.0
+WEEKS_TIER_MAX_DAYS = 45.0
+SPAN_STEP = timedelta(hours=6)
+# Every stored approximate-window midpoint (birth service: 08, 12, 15, 19, 23 h) is at most 3 h
+# from its window's edges (06-10, 10-14, 14-18, 18-22, 22-24 h).
+APPROXIMATE_HALF_WIDTH_DAYS = 3.0 / 24.0
+NATAL_MOON_WINDOW_EXTRA_ORB = 1.0
+# Day-by-day trend scan bound in each direction. A window that reaches the bound is flagged
+# open on that side.
 TREND_SCAN_DAYS = 900
+# Two in-orb stretches separated by less than this are one window (retrograde passes, AS-2).
+# Fast bodies use a shorter bridge so a contact never bridges to the same aspect from the
+# other side (e.g. Mars' second square ~225 days later).
+TREND_BRIDGE_DAYS = 400
+BRIDGE_DAYS_BY_BODY = {
+    BodyName.SUN: 0,
+    BodyName.MERCURY: 60,
+    BodyName.VENUS: 110,
+    BodyName.MARS: 200,
+}
 # Two closest approaches inside one trend window count separately only when the orb rises by at
 # least this much between them; it keeps the true node's short wobble from listing every dip.
 TREND_MIN_PROMINENCE = 0.2
+# In orb the trend scan steps by the days the body needs to move this far (at most).
+TREND_IN_ORB_STEP_DEG = 0.5
+# Largest geocentric |speed| in °/day (measured over 25 years with the bundled ephemeris, true
+# node 0.257°/day), used to skip out-of-orb stretches safely; ``SPEED_MARGIN`` on top.
+MAX_SPEED_DEG_PER_DAY = {
+    BodyName.SUN: 1.02,
+    BodyName.MOON: 15.4,
+    BodyName.MERCURY: 2.21,
+    BodyName.VENUS: 1.27,
+    BodyName.MARS: 0.80,
+    BodyName.JUPITER: 0.25,
+    BodyName.SATURN: 0.14,
+    BodyName.URANUS: 0.07,
+    BodyName.NEPTUNE: 0.04,
+    BodyName.PLUTO: 0.04,
+    BodyName.TRUE_NODE: 0.26,
+    BodyName.MEAN_NODE: 0.06,
+    BodyName.CHIRON: 0.16,
+}
+SPEED_MARGIN = 1.5
 
 MOON_BODIES = frozenset({BodyName.MOON})
 DAYS_BODIES = frozenset({BodyName.SUN, BodyName.MERCURY, BodyName.VENUS, BodyName.MARS})
 FAST_BODIES = MOON_BODIES | DAYS_BODIES
+OUTER_BODIES = frozenset({BodyName.URANUS, BodyName.NEPTUNE, BodyName.PLUTO})
+NODE_BODIES = frozenset({BodyName.TRUE_NODE, BodyName.MEAN_NODE})
 PREFERRED_NATAL_BODIES = (
     BodyName.SUN,
     BodyName.MOON,
@@ -64,27 +140,152 @@ PREFERRED_NATAL_BODIES = (
     BodyName.VENUS,
     BodyName.MARS,
 )
+# Natal points read for a non-exact birth time (natal Moon only with a time window).
+INTERVAL_NATAL_BODIES = (
+    BodyName.SUN,
+    BodyName.MERCURY,
+    BodyName.VENUS,
+    BodyName.MARS,
+    BodyName.JUPITER,
+    BodyName.SATURN,
+    BodyName.URANUS,
+    BodyName.NEPTUNE,
+    BodyName.PLUTO,
+)
+SOFT_KINDS = frozenset({"sextile", "trine"})
+TENSE_KINDS = frozenset({"square", "opposition"})
+HARD_KINDS = TENSE_KINDS | {"conjunction"}
+HEAVY_TRANSITS = frozenset({BodyName.SATURN, BodyName.PLUTO, BodyName.NEPTUNE})
+HEAVY_TARGETS = frozenset({BodyName.SUN, BodyName.MOON, BodyName.MARS})
+
+# --- Ranking weights (K-2, K-3, AS-3, AS-14, AS-19) -------------------------------------------
+# score = transit weight + natal weight
+#       + PEAKS_TODAY_BONUS                      when the closest approach falls inside the day
+#         + TIGHT_BONUS                          ... and comes within PEAK_ORB
+#         + RARITY_FAST_BONUS / RARITY_SLOW_BONUS ... and is exact for a non-Moon body
+#         + STACK_BONUS * other fast contacts on the same natal point (at most 2)
+#         + TRIGGER_BONUS                        ... and an active trend contact hits that point
+#       + APPLYING_BONUS                         when the contact closes in for most of the day
+#       + MERGE_BONUS                            when it is one event over two natal points
+#       - ASLEEP_PENALTY                         when it peaks between 23:00 and 06:00
+# Bonuses for timing only apply to contacts that peak today, so a contact that runs for days
+# without peaking never outranks a Moon contact peaking on a personal point; that keeps the
+# top pick rotating (top-1 repeat ≤ 10%).
+TRANSIT_WEIGHT = {
+    BodyName.MOON: 1.0,
+    BodyName.SUN: 2.0,
+    BodyName.MERCURY: 1.5,
+    BodyName.VENUS: 1.5,
+    BodyName.MARS: 2.0,
+    BodyName.JUPITER: 2.0,
+    BodyName.SATURN: 2.5,
+    BodyName.URANUS: 2.5,
+    BodyName.NEPTUNE: 2.5,
+    BodyName.PLUTO: 2.5,
+}
+NATAL_WEIGHT = {
+    BodyName.SUN: 3.0,
+    BodyName.MOON: 3.0,
+    BodyName.MERCURY: 2.0,
+    BodyName.VENUS: 2.0,
+    BodyName.MARS: 2.0,
+    BodyName.JUPITER: 1.5,
+    BodyName.SATURN: 1.5,
+}
+DEFAULT_WEIGHT = 1.0
+PEAKS_TODAY_BONUS = 2.0
+TIGHT_BONUS = 1.0
+RARITY_FAST_BONUS = 3.0
+RARITY_SLOW_BONUS = 4.0
+STACK_BONUS = 1.0
+MAX_STACK = 2
+TRIGGER_BONUS = 1.5
+APPLYING_BONUS = 0.5
+MERGE_BONUS = 0.5
+# A peak between 23:00 and 06:00 loses less than one natal-weight step, so the waking-hours
+# preference only reorders near-equal picks (K-5); exact ties also fall back to waking hours.
+ASLEEP_PENALTY = 0.75
+# Trend weight = planet * aspect * natal target (AS-8).
+TREND_PLANET_WEIGHT = {
+    BodyName.PLUTO: 3.0,
+    BodyName.NEPTUNE: 3.0,
+    BodyName.URANUS: 3.0,
+    BodyName.SATURN: 3.0,
+    BodyName.JUPITER: 2.0,
+    BodyName.MARS: 2.0,
+    BodyName.VENUS: 1.5,
+    BodyName.MERCURY: 1.5,
+    BodyName.SUN: 1.5,
+}
+ASPECT_WEIGHT = {
+    "conjunction": 3.0,
+    "opposition": 2.5,
+    "square": 2.5,
+    "trine": 2.0,
+    "sextile": 1.5,
+}
 
 
 class SkyTier(StrEnum):
     TODAY = "today"
     DAYS = "days"
+    WEEKS = "weeks"
     TREND = "trend"
 
 
 class ContactEligibility(StrEnum):
-    ELIGIBLE = "eligible"
-    TIME_NOT_EXACT = "time_not_exact"
+    """Which precision mode produced the contacts (see the module docstring)."""
+
+    EXACT_TIME = "exact_time"
+    APPROXIMATE_TIME = "approximate_time"
+    DATE_ONLY = "date_only"
     TRADITION_NOT_WESTERN = "tradition_not_western"
+
+
+class TimeKind(StrEnum):
+    """How a contact sits in the day (K-5, AS-5, AS-6).
+
+    ``peaks_today``: its closest approach falls inside the day (``closest_at`` is set).
+    ``starts_today`` / ``ends_today``: it enters / leaves orb during the day without peaking.
+    ``in_effect_all_day``: in orb all day, part of a contact of at most ``DAYS_TIER_MAX_DAYS``.
+    ``multi_day``: in orb all day, part of a longer contact (weeks or trend).
+    """
+
+    PEAKS_TODAY = "peaks_today"
+    IN_EFFECT_ALL_DAY = "in_effect_all_day"
+    STARTS_TODAY = "starts_today"
+    ENDS_TODAY = "ends_today"
+    MULTI_DAY = "multi_day"
+
+
+class DayTone(StrEnum):
+    """Geometry-only tone of the day (K-1).
+
+    Computed at selection time from the chart and never stored: a tone derived from someone's
+    chart is an inference about them, so it stays in memory with the selection (privacy PV-11).
+    """
+
+    LIGHT = "light"
+    MIXED = "mixed"
+    HEAVY = "heavy"
+
+
+class PassKind(StrEnum):
+    EXACT = "exact"
+    CLOSEST = "closest"
 
 
 @dataclass(frozen=True, slots=True)
 class DayContact:
     """One transit-to-natal contact as it ran during the local day.
 
-    ``min_orb`` and ``closest_at`` describe the closest approach inside the day. When the
-    contact perfects inside the day they are interpolated between the 30-minute samples;
-    otherwise they are the nearest in-day sample. ``closest_at`` is in Vietnam time.
+    Times are Vietnam time. ``min_orb`` is the in-day closest approach, interpolated between the
+    30-minute samples when it falls inside the day; ``closest_at`` is set only then, so a day
+    edge is never reported as a peak. For a non-exact birth time every orb is the worst case
+    over the birth interval. ``window_*`` is the in-orb span inside the day and ``peak_*`` the
+    span within ``PEAK_ORB``; a bound equal to the day's start or end means the span continues
+    past it. ``span_days`` is the measured length of the whole contact for Sun…Mars (``None``
+    for the Moon, slow bodies, and fast contacts longer than ``WEEKS_TIER_MAX_DAYS``).
     """
 
     id: str
@@ -95,43 +296,86 @@ class DayContact:
     tier: SkyTier
     min_orb: float
     orb_limit: float
-    closest_at: datetime
+    closest_at: datetime | None
     phase: TransitPhase
     exact_today: bool
+    time_kind: TimeKind
+    window_start: datetime
+    window_end: datetime
+    peak_start: datetime | None = None
+    peak_end: datetime | None = None
+    span_days: float | None = None
+    stack: int = 0
+    triggers_trend: tuple[str, ...] = ()
+    merged: tuple[DayContact, ...] = ()
+    score: float = 0.0
 
     @property
     def preferred_natal(self) -> bool:
         return self.natal_body in PREFERRED_NATAL_BODIES
+
+    @property
+    def natal_points(self) -> tuple[BodyName, ...]:
+        """The natal point plus those of contacts merged into this one (AS-4)."""
+
+        return (self.natal_body, *(item.natal_body for item in self.merged))
+
+    @property
+    def waking(self) -> bool:
+        """No in-day peak, or a peak between 06:00 and 23:00 Vietnam time."""
+
+        if self.closest_at is None:
+            return True
+        return WAKING_START_HOUR <= self.closest_at.hour < WAKING_END_HOUR
+
+
+@dataclass(frozen=True, slots=True)
+class TrendPass:
+    """One closest approach in a trend window, with its orb (AS-16)."""
+
+    date: date
+    orb: float
+    kind: PassKind
 
 
 @dataclass(frozen=True, slots=True)
 class TrendWindow:
     """Local dates a slow contact stays in orb (sampled at local noon) around today.
 
-    ``closest_dates`` lists every separate closest approach (retrograde loops can give up to
-    three). ``*_open`` means the scan hit ``TREND_SCAN_DAYS`` on that side, so the true start or
-    end lies further away than the date reported.
+    In-orb stretches separated by less than the body's bridge (``TREND_BRIDGE_DAYS`` for slow
+    bodies) form one window, so every retrograde pass is in ``passes`` (AS-2). ``*_open`` means
+    the scan hit ``TREND_SCAN_DAYS`` on that side, so the true start or end lies further away.
     """
 
     start_date: date
     end_date: date
-    closest_dates: tuple[date, ...]
+    passes: tuple[TrendPass, ...]
     start_open: bool
     end_open: bool
+
+    @property
+    def closest_dates(self) -> tuple[date, ...]:
+        return tuple(item.date for item in self.passes)
 
 
 @dataclass(frozen=True, slots=True)
 class TrendContact:
     contact: DayContact
     window: TrendWindow | None
+    weight: float
 
 
 @dataclass(frozen=True, slots=True)
 class MoonContext:
+    """The transiting Moon: sign at local noon, and at the day's start and end (K-10)."""
+
     observed_at: datetime
     sign: ZodiacSign
     longitude: float
     natal_house: int | None
+    sign_at_start: ZodiacSign
+    sign_at_end: ZodiacSign
+    sign_change_at: datetime | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,28 +387,89 @@ class DailySkySelection:
     orb_policy_version: str
     config_hash: str
     eligibility: ContactEligibility
+    tone: DayTone
     picks: tuple[DayContact, ...]
     today: tuple[DayContact, ...]
     days: tuple[DayContact, ...]
+    weeks: tuple[DayContact, ...]
     trend: tuple[TrendContact, ...]
     moon: MoonContext
 
 
+NatalDomains = dict[BodyName, tuple[float, float]]
+
+
 def contact_eligibility(chart: NatalChart) -> ContactEligibility:
-    """Whether transit contacts may be read from this chart (see the module docstring)."""
+    """Which precision mode applies to this chart (see the module docstring)."""
 
     if chart.config.tradition is not Tradition.WESTERN:
         return ContactEligibility.TRADITION_NOT_WESTERN
-    if chart.time_precision is not TimePrecision.EXACT:
-        return ContactEligibility.TIME_NOT_EXACT
-    return ContactEligibility.ELIGIBLE
+    if chart.time_precision is TimePrecision.EXACT:
+        return ContactEligibility.EXACT_TIME
+    if chart.time_precision is TimePrecision.APPROXIMATE:
+        return ContactEligibility.APPROXIMATE_TIME
+    return ContactEligibility.DATE_ONLY
 
 
-def tier_for(transit_body: BodyName, *, exact_today: bool) -> SkyTier:
-    if transit_body in MOON_BODIES or (transit_body in DAYS_BODIES and exact_today):
+def natal_domains(engine: NatalChartEngine, chart: NatalChart) -> NatalDomains:
+    """Natal points to scan, each as a ``(low, high)`` longitude domain (a point when exact)."""
+
+    eligibility = contact_eligibility(chart)
+    if eligibility is ContactEligibility.TRADITION_NOT_WESTERN:
+        return {}
+    if eligibility is ContactEligibility.EXACT_TIME:
+        return {
+            body.body: (body.longitude, body.longitude)
+            for body in chart.bodies
+            if body.body is not BodyName.SOUTH_NODE
+        }
+    if eligibility is ContactEligibility.APPROXIMATE_TIME:
+        domains = engine.longitude_domains(chart, half_width_days=APPROXIMATE_HALF_WIDTH_DAYS)
+        targets: tuple[BodyName, ...] = (*INTERVAL_NATAL_BODIES, BodyName.MOON)
+    else:
+        domains = engine.longitude_domains(chart)
+        targets = INTERVAL_NATAL_BODIES
+    return {body: domains[body] for body in targets if body in domains}
+
+
+def contact_orb_limit(
+    transit_body: BodyName, kind: str, natal_body: BodyName, eligibility: ContactEligibility
+) -> float:
+    limit = transit_orb_limit(transit_body, kind)
+    if natal_body is BodyName.MOON and eligibility is ContactEligibility.APPROXIMATE_TIME:
+        limit += NATAL_MOON_WINDOW_EXTRA_ORB
+    return limit
+
+
+def worst_orb(longitude: float, domain: tuple[float, float], exact_angle: float) -> float:
+    """The aspect orb, worst case over the natal domain (the plain orb for a point)."""
+
+    low, high = domain
+    if low == high:
+        return abs(angular_distance(longitude, low) - exact_angle)
+    return orb_bounds((longitude, longitude), domain, exact_angle)[1]
+
+
+def tier_for(
+    transit_body: BodyName, *, exact_today: bool, span_days: float | None = None
+) -> SkyTier:
+    """Moon → today; slow bodies → trend; Sun…Mars by exactness and measured length (AS-7).
+
+    ``span_days`` of ``None`` for a fast body means longer than ``WEEKS_TIER_MAX_DAYS``.
+    """
+
+    if transit_body in MOON_BODIES:
         return SkyTier.TODAY
-    if transit_body in DAYS_BODIES:
+    if transit_body not in DAYS_BODIES:
+        return SkyTier.TREND
+    if exact_today:
+        return SkyTier.TODAY
+    if span_days is None:
+        return SkyTier.TREND
+    if span_days <= DAYS_TIER_MAX_DAYS:
         return SkyTier.DAYS
+    if span_days <= WEEKS_TIER_MAX_DAYS:
+        return SkyTier.WEEKS
     return SkyTier.TREND
 
 
@@ -176,94 +481,225 @@ def day_bounds(local_date: date) -> tuple[datetime, datetime]:
     return start.astimezone(UTC), end.astimezone(UTC)
 
 
-@dataclass(slots=True)
-class _Series:
-    transit_body: BodyName
-    kind: str
-    exact_angle: float
-    natal_body: BodyName
-    samples: dict[int, tuple[float, TransitPhase]]
-
-
 def scan_day(
     engine: NatalChartEngine,
     chart: NatalChart,
     local_date: date,
     *,
     sample_minutes: int = DEFAULT_SAMPLE_MINUTES,
+    domains: NatalDomains | None = None,
 ) -> tuple[DayContact, ...]:
-    """Every contact in orb at some sample of the Vietnam day, sorted by ``rank_key``.
+    """Every contact in orb at some sample of the Vietnam day, scored and sorted by ``rank_key``.
 
-    Samples run over ``[00:00, 24:00)`` local plus one probe on each side, so a contact that
+    Samples run over ``[00:00, 24:00]`` local plus one probe on each side, so a contact that
     perfects near midnight is attributed to exactly one day: the one containing its perfection.
-    Returns nothing for an ineligible chart.
+    Generational outer-to-outer contacts are dropped (K-9) and an opposition to the natal node
+    is labelled a conjunction to the south node (AS-12). Returns nothing for a Jyotish chart.
     """
 
     if sample_minutes <= 0 or 1440 % sample_minutes:
         raise ValueError("sample_minutes must divide a day")
-    if contact_eligibility(chart) is not ContactEligibility.ELIGIBLE:
+    eligibility = contact_eligibility(chart)
+    if eligibility is ContactEligibility.TRADITION_NOT_WESTERN:
         return ()
+    if domains is None:
+        domains = natal_domains(engine, chart)
     start, end = day_bounds(local_date)
     step = timedelta(minutes=sample_minutes)
     in_day = int((end - start) / step)
-    series: dict[tuple[BodyName, str, BodyName], _Series] = {}
-    for index in range(-1, in_day + 2):
-        snapshot = engine.calculate_transit_to_natal(chart, start + index * step)
-        for contact in snapshot.contacts:
-            key = (contact.transit_body, contact.kind, contact.natal_body)
-            item = series.get(key)
-            if item is None:
-                item = series[key] = _Series(
-                    contact.transit_body, contact.kind, contact.exact_angle, contact.natal_body, {}
+    indices = range(-1, in_day + 2)
+    sky = {
+        index: {
+            item.body: item
+            for item in engine.transiting_positions(start + index * step, chart.config)
+        }
+        for index in indices
+    }
+    middle = sky[in_day // 2]
+    half_span_days = (in_day // 2 + 1) * step / timedelta(days=1)
+    raw: list[DayContact] = []
+    for transit_body, transit in middle.items():
+        reach = abs(transit.longitude_speed) * half_span_days * 1.1 + 0.05
+        for natal_body, domain in domains.items():
+            if transit_body in OUTER_BODIES and natal_body in OUTER_BODIES:
+                continue
+            centre = (domain[0] + domain[1]) / 2.0
+            spread = (domain[1] - domain[0]) / 2.0
+            separation = angular_distance(transit.longitude, centre)
+            for kind, exact_angle, _ in ASPECTS:
+                limit = contact_orb_limit(transit_body, kind, natal_body, eligibility)
+                if abs(separation - exact_angle) > limit + reach + spread:
+                    continue
+                orbs = {
+                    index: worst_orb(sky[index][transit_body].longitude, domain, exact_angle)
+                    for index in indices
+                }
+                contact = _day_contact(
+                    engine,
+                    chart,
+                    transit_body,
+                    kind,
+                    exact_angle,
+                    natal_body,
+                    domain,
+                    limit,
+                    orbs,
+                    start,
+                    step,
+                    in_day,
                 )
-            item.samples[index] = (contact.orb, contact.phase)
-    day_contacts = [
-        day_contact
-        for item in series.values()
-        if (day_contact := _day_contact(item, start, step, in_day)) is not None
-    ]
-    return tuple(sorted(day_contacts, key=rank_key))
+                if contact is not None:
+                    raw.append(contact)
+    return tuple(sorted(_merge_same_events(_score_all(raw), chart), key=rank_key))
 
 
-def _day_contact(item: _Series, start: datetime, step: timedelta, in_day: int) -> DayContact | None:
-    in_day_samples = {index: value for index, value in item.samples.items() if 0 <= index < in_day}
-    if not in_day_samples:
+def _day_contact(
+    engine: NatalChartEngine,
+    chart: NatalChart,
+    transit_body: BodyName,
+    kind: str,
+    exact_angle: float,
+    natal_body: BodyName,
+    domain: tuple[float, float],
+    limit: float,
+    orbs: dict[int, float],
+    start: datetime,
+    step: timedelta,
+    in_day: int,
+) -> DayContact | None:
+    if min(orbs[index] for index in range(in_day)) > limit:
         return None
     # Closest approach over the whole sampled span, refined between its neighbours.
-    best = min(item.samples, key=lambda index: (item.samples[index][0], index))
-    offset, refined_orb = _refine_minimum(item.samples, best)
-    refined_at = start + (best + offset) * step
-    if start <= refined_at < start + in_day * step:
-        closest_at, min_orb = refined_at, refined_orb
-        sample_phase = item.samples[best][1]
-        perfects_today = True
+    best = min(orbs, key=lambda index: (orbs[index], index))
+    offset, refined_orb = _refine_minimum(orbs, best)
+    position = best + offset
+    in_start, in_end = orbs[0] <= limit, orbs[in_day] <= limit
+    peaks_today = 0 <= position < in_day
+    if not peaks_today and not in_start and not in_end:
+        # In orb only inside the day: the minimum is inside even if the fit says otherwise.
+        position, refined_orb = float(min(max(best, 0), in_day - 1)), orbs[best]
+        peaks_today = True
+    if peaks_today:
+        closest_at: datetime | None = start + position * step
+        min_orb = refined_orb
     else:
-        # The closest approach falls on another day; today only sees one flank of it.
-        nearest = min(in_day_samples, key=lambda index: (in_day_samples[index][0], index))
-        closest_at, min_orb = start + nearest * step, in_day_samples[nearest][0]
-        sample_phase = in_day_samples[nearest][1]
-        perfects_today = False
-    exact_today = perfects_today and min_orb < EXACT_TODAY_ORB
-    # A refined orb is never above its sample, so a sampled EXACT phase stays consistent.
-    phase = TransitPhase.EXACT if min_orb <= EXACT_PHASE_ORB else sample_phase
+        closest_at = None
+        min_orb = min(orbs[index] for index in range(in_day + 1))
+    exact_today = peaks_today and min_orb <= EXACT_ORB
+    if exact_today:
+        phase = TransitPhase.EXACT
+    elif peaks_today:
+        # A near miss (station): the phase that holds for most of the day.
+        phase = TransitPhase.APPROACHING if position >= in_day / 2 else TransitPhase.SEPARATING
+    else:
+        phase = TransitPhase.APPROACHING if orbs[in_day] < orbs[0] else TransitPhase.SEPARATING
+
+    # In orb at some in-day sample, so the in-day window is never empty.
+    window_span = _span(orbs, limit, in_day) or (0.0, float(in_day))
+    span_days: float | None = None
+    if transit_body in DAYS_BODIES:
+
+        def orb_at(at: datetime) -> float:
+            position_at = engine.transiting_position(transit_body, at, chart.config)
+            return worst_orb(position_at.longitude, domain, exact_angle)
+
+        span_days = _measure_span(orb_at, limit, start, step, in_day, window_span)
+    tier = tier_for(transit_body, exact_today=exact_today, span_days=span_days)
+
+    if peaks_today:
+        time_kind = TimeKind.PEAKS_TODAY
+    elif in_start and in_end:
+        long_tiers = (SkyTier.WEEKS, SkyTier.TREND)
+        time_kind = TimeKind.MULTI_DAY if tier in long_tiers else TimeKind.IN_EFFECT_ALL_DAY
+    elif in_end:
+        time_kind = TimeKind.STARTS_TODAY
+    else:
+        time_kind = TimeKind.ENDS_TODAY
+
+    peak_span = _span(orbs, PEAK_ORB, in_day)
+    if peak_span is None and peaks_today and min_orb <= PEAK_ORB:
+        peak_span = (position, position)
+
+    def local(steps: float) -> datetime:
+        return (start + steps * step).astimezone(DAILY_TIMEZONE)
+
+    shown_body, shown_kind, shown_angle = natal_body, kind, exact_angle
+    if natal_body in NODE_BODIES and kind == "opposition":
+        # Opposite the north node is on the south node (AS-12).
+        shown_body, shown_kind, shown_angle = BodyName.SOUTH_NODE, "conjunction", 0.0
     return DayContact(
-        id=f"{item.transit_body.value}:{item.kind}:{item.natal_body.value}",
-        transit_body=item.transit_body,
-        kind=item.kind,
-        exact_angle=item.exact_angle,
-        natal_body=item.natal_body,
-        tier=tier_for(item.transit_body, exact_today=exact_today),
+        id=f"{transit_body.value}:{shown_kind}:{shown_body.value}",
+        transit_body=transit_body,
+        kind=shown_kind,
+        exact_angle=shown_angle,
+        natal_body=shown_body,
+        tier=tier,
         min_orb=round(min_orb, 4),
-        orb_limit=transit_orb_limit(item.transit_body, item.kind),
-        closest_at=closest_at.astimezone(DAILY_TIMEZONE),
+        orb_limit=limit,
+        closest_at=local(position) if closest_at is not None else None,
         phase=phase,
         exact_today=exact_today,
+        time_kind=time_kind,
+        window_start=local(window_span[0]),
+        window_end=local(window_span[1]),
+        peak_start=local(peak_span[0]) if peak_span else None,
+        peak_end=local(peak_span[1]) if peak_span else None,
+        span_days=None if span_days is None else round(span_days, 2),
     )
 
 
-def _refine_minimum(
-    samples: dict[int, tuple[float, TransitPhase]], index: int
-) -> tuple[float, float]:
+def _span(orbs: dict[int, float], threshold: float, in_day: int) -> tuple[float, float] | None:
+    """First entry and last exit of ``orb ≤ threshold`` inside ``[0, in_day]``, in steps."""
+
+    inside = [index for index in range(in_day + 1) if orbs[index] <= threshold]
+    if not inside:
+        return None
+    first, last = inside[0], inside[-1]
+    begin = 0.0 if first == 0 else _crossing(orbs, first - 1, first, threshold)
+    end = float(in_day) if last == in_day else _crossing(orbs, last, last + 1, threshold)
+    return begin, end
+
+
+def _crossing(orbs: dict[int, float], left: int, right: int, threshold: float) -> float:
+    low, high = orbs[left], orbs[right]
+    if high == low:
+        return float(right)
+    return left + (threshold - low) / (high - low)
+
+
+def _measure_span(
+    orb_at: Callable[[datetime], float],
+    limit: float,
+    start: datetime,
+    step: timedelta,
+    in_day: int,
+    window: tuple[float, float],
+) -> float | None:
+    """Whole in-orb length in days at ``SPAN_STEP`` resolution; ``None`` past the weeks cap."""
+
+    cap = timedelta(days=WEEKS_TIER_MAX_DAYS)
+    entry = start + window[0] * step
+    exit_ = start + window[1] * step
+    if window[0] == 0:
+        at = start
+        while orb_at(at - SPAN_STEP) <= limit:
+            at -= SPAN_STEP
+            if start - at > cap:
+                return None
+        entry = at - SPAN_STEP / 2
+    if window[1] == in_day:
+        end = start + in_day * step
+        at = end
+        while orb_at(at + SPAN_STEP) <= limit:
+            at += SPAN_STEP
+            if at - end > cap:
+                return None
+        exit_ = at + SPAN_STEP / 2
+    span = (exit_ - entry) / timedelta(days=1)
+    return span if span <= WEEKS_TIER_MAX_DAYS else None
+
+
+def _refine_minimum(samples: dict[int, float], index: int) -> tuple[float, float]:
     """``(offset in steps, orb)`` of the minimum near ``samples[index]``.
 
     Near its minimum the orb is a "V" (``|speed · Δt| + offset``) as long as the speed is
@@ -271,34 +707,110 @@ def _refine_minimum(
     flank fixes the speed; the other flank fixes where the V bottoms out and how deep.
     """
 
-    centre = samples[index][0]
+    centre = samples[index]
     before = samples.get(index - 1)
     after = samples.get(index + 1)
     if before is None or after is None:
         return 0.0, centre
-    left, right = before[0], after[0]
-    if left >= right:
-        slope = left - centre
+    if before >= after:
+        slope = before - centre
         if slope <= 1e-9:
             return 0.0, centre
-        floor = max(0.0, (centre + right - slope) / 2.0)
+        floor = max(0.0, (centre + after - slope) / 2.0)
         return min(1.0, (centre - floor) / slope), floor
-    slope = right - centre
+    slope = after - centre
     if slope <= 1e-9:
         return 0.0, centre
-    floor = max(0.0, (centre + left - slope) / 2.0)
+    floor = max(0.0, (centre + before - slope) / 2.0)
     return -min(1.0, (centre - floor) / slope), floor
 
 
-def rank_key(contact: DayContact) -> tuple[bool, bool, float, str]:
-    """Exact-today first, then Moon contacts, then the tighter orb, then the stable id."""
+def score_contact(contact: DayContact) -> float:
+    """The documented ranking score (see the weights at the top of the module)."""
 
-    return (
-        not contact.exact_today,
-        contact.transit_body not in MOON_BODIES,
-        contact.min_orb,
-        contact.id,
+    score = TRANSIT_WEIGHT.get(contact.transit_body, DEFAULT_WEIGHT) + NATAL_WEIGHT.get(
+        contact.natal_body, DEFAULT_WEIGHT
     )
+    if contact.closest_at is not None:
+        score += PEAKS_TODAY_BONUS
+        if contact.min_orb <= PEAK_ORB:
+            score += TIGHT_BONUS
+        if contact.exact_today and contact.transit_body not in MOON_BODIES:
+            fast = contact.transit_body in DAYS_BODIES
+            score += RARITY_FAST_BONUS if fast else RARITY_SLOW_BONUS
+        score += STACK_BONUS * min(contact.stack, MAX_STACK)
+        if contact.triggers_trend:
+            score += TRIGGER_BONUS
+    if contact.phase is TransitPhase.APPROACHING:
+        score += APPLYING_BONUS
+    if contact.merged:
+        score += MERGE_BONUS
+    if not contact.waking:
+        score -= ASLEEP_PENALTY
+    return round(score, 4)
+
+
+def rank_key(contact: DayContact) -> tuple[float, bool, float, str]:
+    """Higher score first, then a waking-hours peak (K-5), then the tighter orb, then the id."""
+
+    return (-contact.score, not contact.waking, contact.min_orb, contact.id)
+
+
+def _score_all(contacts: list[DayContact]) -> list[DayContact]:
+    """Annotate stacks (AS-19) and trend triggers (AS-3), then score."""
+
+    fast = [item for item in contacts if item.tier is not SkyTier.TREND]
+    trend = [item for item in contacts if item.tier is SkyTier.TREND]
+    scored = []
+    for item in contacts:
+        stack = triggers = None
+        if item.tier is not SkyTier.TREND:
+            stack = sum(
+                1 for other in fast if other is not item and other.natal_body is item.natal_body
+            )
+            triggers = tuple(
+                sorted(
+                    other.id
+                    for other in trend
+                    if other.natal_body is item.natal_body and other is not item
+                )
+            )
+        annotated = replace(item, stack=stack or 0, triggers_trend=triggers or ())
+        scored.append(replace(annotated, score=score_contact(annotated)))
+    return scored
+
+
+def _merge_same_events(contacts: list[DayContact], chart: NatalChart) -> list[DayContact]:
+    """One transiting body peaking on two aspected natal points within 3 h is one factor."""
+
+    aspected = {(item.body_a, item.body_b) for item in chart.aspects}
+    aspected |= {(b, a) for a, b in aspected}
+    ranked = sorted(contacts, key=rank_key)
+    consumed: set[str] = set()
+    result: list[DayContact] = []
+    for item in ranked:
+        if item.id in consumed:
+            continue
+        partners = tuple(
+            other
+            for other in ranked
+            if other is not item
+            and other.id not in consumed
+            and other.transit_body is item.transit_body
+            and other.natal_body is not item.natal_body
+            and SkyTier.TREND not in (item.tier, other.tier)
+            and item.closest_at is not None
+            and other.closest_at is not None
+            and abs(other.closest_at - item.closest_at) <= MERGE_WINDOW
+            and (item.natal_body, other.natal_body) in aspected
+        )
+        if partners:
+            consumed.update(other.id for other in partners)
+            merged = replace(item, merged=partners)
+            item = replace(merged, score=score_contact(merged))
+        consumed.add(item.id)
+        result.append(item)
+    return result
 
 
 def pick_daily_factors(
@@ -307,29 +819,80 @@ def pick_daily_factors(
     limit: int = DEFAULT_PICK_LIMIT,
     allow_fallback: bool = True,
 ) -> tuple[DayContact, ...]:
-    """Up to ``limit`` fast contacts, at most one per natal point.
+    """Up to ``limit`` factors by ``rank_key``; at most two Moon picks and one slow pick.
 
-    Natal Sun/Moon/Mercury/Venus/Mars are taken first; other natal points only fill the
-    remaining slots when ``allow_fallback`` is set. Trend-tier contacts are never picked.
+    Pass 1 takes one contact per natal Sun/Moon/Mercury/Venus/Mars. With ``allow_fallback``,
+    pass 2 takes a second contact on one of those points and pass 3 any other natal point
+    (AS-11). Trend-tier contacts are picked only when they perfect today (K-2).
     """
 
-    ranked = sorted((item for item in contacts if item.tier is not SkyTier.TREND), key=rank_key)
+    ranked = sorted(
+        (item for item in contacts if item.tier is not SkyTier.TREND or item.exact_today),
+        key=rank_key,
+    )
     chosen: list[DayContact] = []
     used: set[BodyName] = set()
-    passes = (True, False) if allow_fallback else (True,)
-    for preferred_only in passes:
+
+    def allowed(contact: DayContact) -> bool:
+        if contact in chosen:
+            return False
+        if contact.transit_body in MOON_BODIES:
+            return sum(item.transit_body in MOON_BODIES for item in chosen) < MAX_MOON_PICKS
+        if contact.transit_body not in FAST_BODIES:
+            return sum(item.transit_body not in FAST_BODIES for item in chosen) < MAX_SLOW_PICKS
+        return True
+
+    passes: tuple[Callable[[DayContact], bool], ...] = (
+        lambda item: item.preferred_natal and not used & set(item.natal_points),
+        lambda item: item.preferred_natal,
+        lambda item: not used & set(item.natal_points),
+    )
+    for accept in passes if allow_fallback else passes[:1]:
         for contact in ranked:
             if len(chosen) == limit:
                 return tuple(chosen)
-            if contact.natal_body in used or (preferred_only and not contact.preferred_natal):
-                continue
-            chosen.append(contact)
-            used.add(contact.natal_body)
+            if allowed(contact) and accept(contact):
+                chosen.append(contact)
+                used.update(contact.natal_points)
     return tuple(chosen)
 
 
+def day_tone(picks: tuple[DayContact, ...], trend: tuple[DayContact, ...]) -> DayTone:
+    """The day's tone from geometry alone (K-1); computed per request, never stored (PV-11).
+
+    Heavy when Saturn/Pluto/Neptune conjoin, square or oppose natal Sun/Moon/Mars inside the
+    trend orb, or when every pick is hard (square, opposition, or a Saturn/Pluto/Neptune
+    conjunction) and one of them is not the Moon's: a day of Moon squares alone is ordinary,
+    they pass within hours. "Every" rather than "most": with five aspects about a third of all
+    days have two hard picks out of three, which would make most days heavy on top of the trend
+    rule. Light when most picks are soft; mixed otherwise.
+    """
+
+    heavy_trend = any(
+        item.transit_body in HEAVY_TRANSITS
+        and item.natal_body in HEAVY_TARGETS
+        and item.kind in HARD_KINDS
+        for item in (*trend, *picks)
+    )
+    hard = sum(
+        item.kind in TENSE_KINDS
+        or (item.kind == "conjunction" and item.transit_body in HEAVY_TRANSITS)
+        for item in picks
+    )
+    hard_beyond_moon = any(
+        item.kind in TENSE_KINDS and item.transit_body not in MOON_BODIES for item in picks
+    )
+    soft = sum(item.kind in SOFT_KINDS for item in picks)
+    if heavy_trend or (picks and hard == len(picks) and hard_beyond_moon):
+        return DayTone.HEAVY
+    if picks and soft * 2 > len(picks):
+        return DayTone.LIGHT
+    return DayTone.MIXED
+
+
 def moon_context(engine: NatalChartEngine, chart: NatalChart, local_date: date) -> MoonContext:
-    """Transiting Moon at local noon, with its natal house when the birth time is exact."""
+    """Transiting Moon at local noon (natal house only for an exact time) and its sign at the
+    day's start and end, with the sign change time (to the minute) when it changes (K-10)."""
 
     observed_at = datetime.combine(local_date, time(hour=12), tzinfo=DAILY_TIMEZONE)
     moon = engine.transiting_position(BodyName.MOON, observed_at, chart.config)
@@ -340,12 +903,58 @@ def moon_context(engine: NatalChartEngine, chart: NatalChart, local_date: date) 
         and len(chart.houses) == 12
     ):
         house = house_for_longitude(moon.longitude, chart.houses)
+    start, end = day_bounds(local_date)
+    last = end - timedelta(minutes=1)
+
+    def sign_at(at: datetime) -> ZodiacSign:
+        return sign_for_longitude(
+            engine.transiting_position(BodyName.MOON, at, chart.config).longitude
+        )
+
+    first_sign, last_sign = sign_at(start), sign_at(last)
+    change_at = None
+    if first_sign is not last_sign:
+        low, high = start, last
+        while high - low > timedelta(minutes=1):
+            middle = low + (high - low) / 2
+            if sign_at(middle) is first_sign:
+                low = middle
+            else:
+                high = middle
+        change_at = high.replace(second=0, microsecond=0).astimezone(DAILY_TIMEZONE)
     return MoonContext(
         observed_at=observed_at,
         sign=moon.sign,
         longitude=moon.longitude,
         natal_house=house,
+        sign_at_start=first_sign,
+        sign_at_end=last_sign,
+        sign_change_at=change_at,
     )
+
+
+def trend_weight(contact: DayContact) -> float:
+    """Planet * aspect * natal target (AS-8)."""
+
+    return round(
+        TREND_PLANET_WEIGHT.get(contact.transit_body, DEFAULT_WEIGHT)
+        * ASPECT_WEIGHT.get(contact.kind, DEFAULT_WEIGHT)
+        * NATAL_WEIGHT.get(contact.natal_body, DEFAULT_WEIGHT),
+        4,
+    )
+
+
+def _contact_domain(
+    engine: NatalChartEngine,
+    chart: NatalChart,
+    contact: DayContact,
+    domains: NatalDomains | None,
+) -> tuple[float, float]:
+    domains = domains if domains is not None else natal_domains(engine, chart)
+    if contact.natal_body is BodyName.SOUTH_NODE and BodyName.SOUTH_NODE not in domains:
+        node = next(domains[body] for body in NODE_BODIES if body in domains)
+        return node[0] + 180.0, node[1] + 180.0
+    return domains[contact.natal_body]
 
 
 def trend_window(
@@ -355,51 +964,102 @@ def trend_window(
     local_date: date,
     *,
     max_scan_days: int = TREND_SCAN_DAYS,
+    domains: NatalDomains | None = None,
 ) -> TrendWindow:
-    """Contiguous in-orb local dates around ``local_date`` for one contact.
+    """In-orb local dates around ``local_date`` for one contact, across retrograde passes.
 
-    One ephemeris call per scanned day (sampled at local noon): a full ±900-day scan is about
-    1,800 calls, measured at ~18 ms on a developer laptop, and a typical chart has ~6 trend
-    contacts whose windows end long before the bound. It is request-path safe at that cost, but
-    the windows only change daily, so callers may cache them per chart and date. Today belongs
-    to the window by construction (the contact was in orb during today's scan).
+    Sampled at local noon. In orb the scan steps by the days the body needs, at its largest
+    speed, to move ``TREND_IN_ORB_STEP_DEG`` (one day for Jupiter, eight for Pluto),
+    then fills every day before an exit so the edges are exact to the day; out of orb it jumps
+    ahead by the days the body needs to get back into orb, so bridging a gap costs a few calls.
+    Each closest approach is re-sampled daily around it. Callers may cache windows per chart and
+    date; they only change daily. Today belongs to the window by construction, even when the
+    contact is in orb for only part of it (its noon sample may be just outside).
     """
 
-    natal_longitude = chart.body(contact.natal_body).longitude
+    domain = _contact_domain(engine, chart, contact, domains)
+    limit = contact.orb_limit
+    bridge = BRIDGE_DAYS_BY_BODY.get(contact.transit_body, TREND_BRIDGE_DAYS)
+    speed = MAX_SPEED_DEG_PER_DAY.get(contact.transit_body, 1.0) * SPEED_MARGIN
+    stride = max(1, int(TREND_IN_ORB_STEP_DEG / speed))
+    orbs: dict[int, float] = {}
 
-    def orb_on(day: date) -> float:
-        at = datetime.combine(day, time(hour=12), tzinfo=DAILY_TIMEZONE)
-        position = engine.transiting_position(contact.transit_body, at, chart.config)
-        return abs(angular_distance(position.longitude, natal_longitude) - contact.exact_angle)
+    def orb_at(offset: int) -> float:
+        if offset not in orbs:
+            at = datetime.combine(
+                local_date + timedelta(days=offset), time(hour=12), tzinfo=DAILY_TIMEZONE
+            )
+            position = engine.transiting_position(contact.transit_body, at, chart.config)
+            orbs[offset] = worst_orb(position.longitude, domain, contact.exact_angle)
+        return orbs[offset]
 
-    orbs: dict[date, float] = {local_date: orb_on(local_date)}
-    edges: list[tuple[date, bool]] = []
+    orb_at(0)
+    edges: list[tuple[int, bool]] = []
     for direction in (-1, 1):
-        edge, open_edge = local_date, True
-        for offset in range(1, max_scan_days + 1):
-            day = local_date + timedelta(days=direction * offset)
-            orb = orb_on(day)
-            if orb > contact.orb_limit:
-                open_edge = False
+        last_in, offset, previous_in = 0, stride, True
+        closed = False
+        while offset <= max_scan_days:
+            orb = orb_at(direction * offset)
+            if orb <= limit:
+                last_in, previous_in = offset, True
+                offset += stride
+                continue
+            if previous_in:
+                # Fill the days skipped since the last in-orb sample so the exit is exact.
+                for day in range(last_in + 1, offset):
+                    if orb_at(direction * day) <= limit:
+                        last_in = day
+            previous_in = False
+            if offset - last_in > bridge:
+                closed = True
                 break
-            orbs[day] = orb
-            edge = day
-        edges.append((edge, open_edge))
+            offset += max(1, int((orb - limit) / speed))
+        if not closed:
+            if previous_in:
+                for day in range(last_in + 1, max_scan_days + 1):
+                    if orb_at(direction * day) <= limit:
+                        last_in = day
+            closed = max_scan_days - last_in >= bridge and last_in < max_scan_days
+        edges.append((direction * last_in, not closed))
     (start, start_open), (end, end_open) = edges
-    days = sorted(orbs)
+    window = {offset: orb for offset, orb in orbs.items() if start <= offset <= end}
+    passes = _passes(
+        window,
+        limit,
+        stride,
+        orb_at,
+        start=start,
+        end=end,
+        start_open=start_open,
+        end_open=end_open,
+    )
     return TrendWindow(
-        start_date=start,
-        end_date=end,
-        closest_dates=_closest_dates(days, orbs, start_open=start_open, end_open=end_open),
+        start_date=local_date + timedelta(days=start),
+        end_date=local_date + timedelta(days=end),
+        passes=tuple(
+            TrendPass(date=local_date + timedelta(days=day), orb=orb, kind=kind)
+            for day, orb, kind in passes
+        ),
         start_open=start_open,
         end_open=end_open,
     )
 
 
-def _closest_dates(
-    days: list[date], orbs: dict[date, float], *, start_open: bool, end_open: bool
-) -> tuple[date, ...]:
-    values = [orbs[day] for day in days]
+def _passes(
+    orbs: dict[int, float],
+    limit: float,
+    stride: int,
+    orb_at: Callable[[int], float],
+    *,
+    start: int,
+    end: int,
+    start_open: bool,
+    end_open: bool,
+) -> list[tuple[int, float, PassKind]]:
+    """Separate closest approaches as ``(day offset, orb, kind)``, in date order."""
+
+    offsets = sorted(orbs)
+    values = [orbs[offset] for offset in offsets]
     # Outside a closed edge the orb is beyond the limit; outside an open edge it is unknown,
     # so a minimum is never claimed on an open edge.
     outside_low = float("-inf") if start_open else float("inf")
@@ -408,7 +1068,8 @@ def _closest_dates(
     minima = [
         index
         for index in range(len(values))
-        if padded[index] >= values[index] < padded[index + 2]
+        if values[index] <= limit
+        and padded[index] >= values[index] < padded[index + 2]
         and not (index == 0 and start_open)
         and not (index == len(values) - 1 and end_open)
     ]
@@ -426,7 +1087,16 @@ def _closest_dates(
     if not minima:
         # A monotonic window that runs into the scan bound: report its tightest scanned day.
         minima = [min(range(len(values)), key=lambda index: (values[index], index))]
-    return tuple(days[index] for index in minima)
+    passes = []
+    for index in minima:
+        # Re-sample daily around a strided minimum, then fit the V between days.
+        around = range(max(start, offsets[index] - stride), min(end, offsets[index] + stride) + 1)
+        best = min(around, key=lambda day: (orb_at(day), day))
+        neighbours = {day: orb_at(day) for day in (best - 1, best, best + 1)}
+        shift, orb = _refine_minimum(neighbours, best)
+        kind = PassKind.EXACT if orb <= EXACT_ORB else PassKind.CLOSEST
+        passes.append((best + round(shift), round(orb, 4), kind))
+    return passes
 
 
 def select_daily_sky(
@@ -443,19 +1113,27 @@ def select_daily_sky(
     """Select the day's sky for one natal chart and Vietnam-local date."""
 
     eligibility = contact_eligibility(chart)
-    contacts = scan_day(engine, chart, local_date, sample_minutes=sample_minutes)
+    domains = natal_domains(engine, chart)
+    contacts = scan_day(engine, chart, local_date, sample_minutes=sample_minutes, domains=domains)
+    trend_contacts = tuple(
+        sorted(
+            (item for item in contacts if item.tier is SkyTier.TREND),
+            key=lambda item: (-trend_weight(item), item.min_orb, item.id),
+        )
+    )
     trend = tuple(
         TrendContact(
             contact=contact,
-            window=trend_window(engine, chart, contact, local_date, max_scan_days=max_scan_days)
+            window=trend_window(
+                engine, chart, contact, local_date, max_scan_days=max_scan_days, domains=domains
+            )
             if include_trend_windows
             else None,
+            weight=trend_weight(contact),
         )
-        for contact in sorted(
-            (item for item in contacts if item.tier is SkyTier.TREND),
-            key=lambda item: (not item.preferred_natal, item.min_orb, item.id),
-        )
+        for contact in trend_contacts
     )
+    picks = pick_daily_factors(contacts, limit=limit, allow_fallback=allow_fallback)
     return DailySkySelection(
         version=DAILY_SELECTION_VERSION,
         local_date=local_date,
@@ -464,9 +1142,11 @@ def select_daily_sky(
         orb_policy_version=TRANSIT_ORB_VERSION,
         config_hash=chart.config_hash,
         eligibility=eligibility,
-        picks=pick_daily_factors(contacts, limit=limit, allow_fallback=allow_fallback),
+        tone=day_tone(picks, trend_contacts),
+        picks=picks,
         today=tuple(item for item in contacts if item.tier is SkyTier.TODAY),
         days=tuple(item for item in contacts if item.tier is SkyTier.DAYS),
+        weeks=tuple(item for item in contacts if item.tier is SkyTier.WEEKS),
         trend=trend,
         moon=moon_context(engine, chart, local_date),
     )
