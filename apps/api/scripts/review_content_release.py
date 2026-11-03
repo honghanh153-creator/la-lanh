@@ -44,9 +44,9 @@ from app.domains.tarot.models import TarotContext, TarotSpread, TarotVoice
 from scripts.content_clarity_corpus import (
     MINIMUM_SAMPLES,
     build_clarity_corpus,
+    date_only_chart,
 )
 from scripts.content_clarity_corpus import daily_review_plan as _daily_review_plan
-from scripts.content_clarity_corpus import date_only_chart as _date_only
 
 BASELINE_PATH = Path(__file__).with_name("content_clarity_baseline.json")
 PERSONA_COUNT = 10
@@ -81,6 +81,10 @@ _SPREAD_CARD_COUNTS = {
     TarotSpread.THREE_CARD: 3,
     TarotSpread.FIVE_CARD: 5,
 }
+
+
+# tests/readings/test_voice.py imports this helper from here.
+_date_only = date_only_chart
 
 
 def _full_chart(index: int) -> NatalChart:
