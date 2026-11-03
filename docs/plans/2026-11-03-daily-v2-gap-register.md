@@ -112,6 +112,20 @@ Mức: **P1** là thông điệp chính sai hoặc thiếu, hỏng chức năng,
 | PL-20 | Chưa định nghĩa nhà nào quyết định lĩnh vực của chip | P2 | Quy tắc: nhà transit đi qua hay nhà của điểm gốc; ghi vào plan |
 | AS-20 | Placidus không tính được ở vùng cực | P3 | Đổi hệ nhà khi có nơi sinh nước ngoài |
 
+### HM — nghĩa của nhà (phản hồi owner 03.11.2026; làm trong C2b và C3a)
+
+Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có thể là có con, không phải "hẹn hò mở rộng". Thiết kế mới ở plan mục 1.1.
+
+| Mã | Lỗ hổng | Mức | Cách sửa |
+|---|---|---|---|
+| HM-1 | Plan bản 927811b gán mỗi nhà một chip cố định (nhà 5 = "Hẹn hò") | P1 | Đã bỏ. Nhà là chùm nghĩa; chủ đề do cặp hành tinh × nhà, lá số gốc và độ dài transit chọn |
+| HM-2 | `knowledge.py` `HOUSES[5]` thiếu con cái; `_short_arena` gộp nhà 6+10, 4+12, 7+11 | P1 | Thay bằng bảng chùm nghĩa đủ 12 nhà và bảng hành tinh × nhà (C3a) |
+| HM-3 | `daily_personalization.py` `HOUSE_ARENAS` dồn 12 nhà vào 4 nhóm (5 → SELF_CARE, 9 → WORK) | P1 | Bỏ khi C2a/C4 thay Daily cũ; cho tới lúc đó ghi là nợ đã biết |
+| HM-4 | Không có luật chặn đoán sự kiện đời người (mang thai, cưới, chia tay, mất việc, bệnh, mất người thân) và giả định hoàn cảnh (độc thân, có con, giới tính) | P1 | Luật chặn cứng mới trong C1/C3a; bốn persona (độc thân; có gia đình và con; đang mong con/hiếm muộn; lớn tuổi) cho cổng lớp C |
+| HM-5 | Mang thai và khả năng có con là dữ liệu sức khỏe nhạy cảm | P1 | Không suy ra, không lưu, không hỏi; chỉ nói "chuyện con cái" ở dạng khả năng tích cực |
+| HM-6 | Chủ đề đời người có thể đến từ hành tinh nhanh | P2 | Chỉ hành tinh chậm, trong tag "Xu hướng hiện tại" |
+| HM-7 | Không rõ giờ sinh: Sao Kim gốc bị gán "Hẹn hò hoặc Đối tác" | P2 | Dùng chùm nghĩa của hành tinh gốc, nói rộng |
+
 ### C2c — khoảng ngày của xu hướng
 
 | Mã | Lỗ hổng | Mức | Sửa |

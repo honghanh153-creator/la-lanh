@@ -18,42 +18,88 @@ Nghiên cứu và chẩn đoán: `docs/research/2026-11-01-content-clarity-gate.
 6. **Cổng chất lượng tự động là chính.** Người không duyệt từng câu. **Đã chốt 03.11.2026** (owner giao
    Claude chốt): luật Q2 với bản đọc là "duyệt bộ chuẩn một lần, chỉ xem câu bị gắn cờ và báo cáo
    điểm" (`docs/operations/decision-checklist.md`).
-7. **Đủ 12 lĩnh vực, không gộp; mở rộng bằng khía cạnh con** (owner, 03.11.2026). Bảng ở mục 1.1.
+7. **Đủ 12 nhà, không gộp** (owner, 03.11.2026). Mỗi nhà là một chùm nghĩa; nghĩa nào nổi lên do cặp
+   hành tinh × nhà, lá số gốc và độ dài transit quyết định, không có nhãn cố định (mục 1.1).
 
-### 1.1 Mười hai lĩnh vực (chốt 03.11.2026)
+### 1.1 Mười hai nhà: mỗi nhà là một chùm nghĩa, không phải một nhãn (sửa 03.11.2026)
 
-Mỗi nhà một lĩnh vực riêng.
-- **Chip** là nhãn ngắn trên trang chủ.
-- **Tên đầy đủ** dùng ở trang chi tiết.
-- **Khía cạnh con** là các việc cụ thể mà một thẻ có thể gọi tên ("Nhắn tin · 17h30"). Mỗi nhà có 4 khía cạnh.
+**Sửa bản 927811b.** Bản đó gán cho mỗi nhà một chip cố định, ví dụ nhà 5 là "Hẹn hò". Cách này sai:
+- Một nhà có nhiều nghĩa. Nghĩa nào hiện ra còn tùy hành tinh đang đi qua, lá số gốc và đời sống của người đọc.
+- Ví dụ của owner: Sao Mộc đi qua nhà 5 có thể là có con, hoặc có bầu rồi cưới. Đó không phải "hẹn hò mở rộng".
+- Sách cổ coi nhà 5 trước hết là nhà con cái. Lilly (1647) xếp con cái và phụ nữ mang thai lên đầu, trước vui chơi. Chiêm tinh Ấn Độ gọi nhà 5 là *putra bhava* (nhà con cái) và coi Sao Mộc là sao chủ về con cái (*putrakaraka*).
 
-| Nhà | Chip | Tên đầy đủ | Khía cạnh con |
-|---|---|---|---|
-| 1 | Bản thân | Bản thân và cách mình xuất hiện | năng lượng cơ thể; vẻ ngoài; cách mở đầu việc mới; cảm giác là chính mình |
-| 2 | Tiền bạc | Tiền bạc và những gì mình có | thu nhập; chi tiêu; đồ đạc mình giữ; giá trị bản thân |
-| 3 | Giao tiếp | Giao tiếp và học hỏi | nhắn tin, nói chuyện; học điều mới; anh chị em, hàng xóm; đi lại gần |
-| 4 | Gia đình | Gia đình và tổ ấm | nhà cửa; cha mẹ; nơi thấy an toàn; ký ức, gốc rễ |
-| 5 | Hẹn hò | Hẹn hò và niềm vui | tình cảm mới; vui chơi; sáng tạo; con cái |
-| 6 | Việc hằng ngày | Việc hằng ngày và nếp sống | nếp sinh hoạt; đồng nghiệp; việc vặt; chăm sóc cơ thể (không phán đoán bệnh, luật S1) |
-| 7 | Đối tác | Người yêu và đối tác | người yêu, vợ chồng; hợp tác một-một; người đối diện; lời hứa đôi bên |
-| 8 | Gắn bó sâu | Gắn bó sâu và tin tưởng | thân mật; niềm tin; tiền chung, nợ nần (không khuyên đầu tư, luật S3); buông bỏ, thay đổi lớn |
-| 9 | Đi xa và học | Đi xa, học sâu và niềm tin | chuyến đi xa; học sâu, thi cử; quan điểm sống; người ở nơi khác |
-| 10 | Sự nghiệp | Sự nghiệp và vị trí | việc chính; cấp trên; mục tiêu dài; danh tiếng |
-| 11 | Bạn bè | Bạn bè và cộng đồng | nhóm bạn; cộng đồng; mạng lưới quen biết; mong ước chung |
-| 12 | Nghỉ ngơi | Nghỉ ngơi và thế giới bên trong | giấc ngủ; thời gian một mình; chuyện chưa nói ra; hồi phục |
+**Code hiện tại mắc cùng lỗi** (sửa ở C2b/C3a, xem sổ lỗ hổng mục HM):
+- `readings/knowledge.py`, `HOUSES[5]` viết "niềm vui, sáng tạo và hẹn hò", không có con cái.
+- `_short_arena` gộp nhà 6 và 10 thành "công việc", nhà 4 và 12 thành "đời sống riêng", nhà 7 và 11 thành "quan hệ".
+- `readings/daily_personalization.py`, `HOUSE_ARENAS` dồn 12 nhà vào 4 nhóm, chẳng hạn nhà 5 thành SELF_CARE và nhà 9 thành WORK.
 
-Quy tắc dùng:
-- Lĩnh vực của thẻ lấy theo nhà mà hành tinh đang đi qua đứng trong lá số gốc.
-- Khi transit chạm chủ tinh của một nhà thì thêm nhà đó. Chỉ áp dụng khi nhãn nhà không đổi trong khoảng sai số của giờ sinh (C2b).
-- Khía cạnh con chọn theo tính chất hành tinh đang đi. Ví dụ: Sao Thủy chọn khía cạnh về lời nói, Sao Kim về tình cảm và tiền, Sao Hỏa về hành động.
-- Mỗi lĩnh vực chỉ một chip mỗi ngày.
-- Không rõ giờ sinh thì lĩnh vực lấy theo hành tinh gốc, dùng cùng 12 chip:
-  - Mặt Trời → Bản thân;
-  - Mặt Trăng → Gia đình;
-  - Sao Thủy → Giao tiếp;
-  - Sao Kim → Hẹn hò hoặc Đối tác;
-  - Sao Hỏa → Việc hằng ngày.
-- Mở rộng thêm khía cạnh qua PR, không gộp lĩnh vực.
+Vẫn đủ 12 nhà, không gộp. Engine chọn chủ đề qua **bốn tầng**:
+
+**Tầng 1: chùm nghĩa của nhà.** Đây là bảng tra nội bộ, không hiện ra như một nhãn. Các nghĩa không xếp theo thứ tự ưu tiên.
+- Dấu ⚠ là chủ đề nhạy cảm, chỉ được nhắc ở dạng rộng (luật viết bên dưới).
+- Dấu ⛔ là chủ đề chỉ được giải thích khi người dùng tự tra lá số, không bao giờ đưa vào bản đọc theo ngày.
+
+| Nhà | Chùm nghĩa |
+|---|---|
+| 1 | thân thể, sức sống; vẻ ngoài; tính khí; cách mở đầu việc mới; hướng đi của chính mình |
+| 2 | tiền kiếm được; tài sản, đồ đạc; giá trị bản thân; khả năng tự lo cho mình; tài năng có thể ra tiền |
+| 3 | anh chị em, họ hàng gần; hàng xóm; nhắn tin, giấy tờ, ký kết nhỏ; học điều cơ bản; đi lại gần, xe cộ |
+| 4 | cha mẹ; nhà cửa, đất đai; chuyển nhà; quê, gốc rễ, ký ức; đời sống riêng; giai đoạn khép lại một việc |
+| 5 | con cái ⚠ (mang thai, sinh nở, nuôi dạy); tình yêu, hẹn hò; niềm vui, giải trí, sở thích; sáng tạo, biểu diễn; may rủi, đầu cơ ⚠; học trò |
+| 6 | việc hằng ngày; đồng nghiệp, người làm cùng; nếp sinh hoạt và chăm cơ thể ⚠; vật nuôi; phục vụ người khác; việc vặt |
+| 7 | vợ chồng, người yêu lâu dài; cưới hỏi ⚠; đối tác, hợp đồng; khách hàng; người đối diện, kể cả đối thủ công khai |
+| 8 | thân mật, tình dục ⚠; tiền chung, nợ, thừa kế, bảo hiểm, thuế ⚠; thay đổi lớn, buông bỏ; mất mát ⛔; tâm lý sâu |
+| 9 | đi xa, nước ngoài; học cao, thi cử; luật, tôn giáo, triết lý; thầy, người dẫn đường; xuất bản; gia đình bên vợ hoặc chồng |
+| 10 | sự nghiệp, vị trí; danh tiếng; cấp trên, người có quyền; mục tiêu dài; người cha hoặc mẹ dẫn dắt mình |
+| 11 | bạn bè; nhóm, cộng đồng; mạng lưới quen biết; mong ước, kế hoạch tương lai; lợi lộc từ công việc |
+| 12 | nghỉ ngơi, giấc ngủ; thời gian một mình; chuyện thầm kín; chi tiêu khó thấy; tâm linh, buông bỏ; bệnh viện, nơi cách ly ⛔ |
+
+**Tầng 2: cặp hành tinh × nhà quyết định mặt nào nổi.** Bảng có 10 hành tinh × 12 nhà = 120 ô. Mỗi ô gồm:
+- một câu chủ đề đủ rộng, để mọi người ở hoàn cảnh nào cũng thấy mình trong đó;
+- 2–3 cách chủ đề thường hiện ra, xếp theo mức hay gặp.
+
+Ví dụ với nhà 5:
+
+| Hành tinh | Câu chủ đề | Cách thường hiện ra |
+|---|---|---|
+| Sao Mộc (xu hướng, nhiều tháng) | điều mình yêu thương lớn thêm | chuyện con cái hoặc gia đình có thêm người; một niềm vui hay sở thích mở rộng; thứ mình tạo ra được đón nhận; tình cảm ấm thêm |
+| Sao Thổ (xu hướng) | trách nhiệm với điều mình yêu | con cái cần nhiều thời gian hơn; tình cảm đi tới cam kết nghiêm túc; sáng tạo cần kỷ luật; ít thời gian chơi |
+| Sao Kim (vài ngày) | dễ thấy vui, dễ rung động | một buổi hẹn hay lời khen; làm đẹp, nghệ thuật; thời gian dễ chịu với con hoặc người thương |
+| Sao Hỏa (vài tuần) | muốn chơi hết mình | thể thao, thi đấu; tranh cãi vì cái tôi; nhiệt hơn trong tình cảm; con cái hiếu động |
+| Mặt Trăng (vài giờ) | cần một chút vui cho riêng mình | chơi với con; gặp một người mình thích; làm một việc bằng tay |
+
+Bảng đủ 120 ô được làm ở C3a:
+- dựa trên ít nhất hai nguồn độc lập (một sách cổ điển và một sách hiện đại);
+- Codex review;
+- phải qua cổng lớp A, B và C.
+
+**Tầng 3: lá số gốc dịch trọng tâm.** Ví dụ:
+- transit chạm chủ tinh nhà 5, hoặc đi qua Sao Mộc gốc, thì nghiêng về con cái;
+- transit chạm Sao Kim gốc thì nghiêng về tình cảm.
+
+Tầng này chỉ dùng khi nhãn nhà không đổi trong khoảng sai số của giờ sinh (C2b).
+
+**Tầng 4: độ dài transit quyết định cỡ chuyện.**
+- Hành tinh nhanh (Mặt Trăng, Sao Thủy, Sao Kim, Mặt Trời, Sao Hỏa) chỉ nói về khoảnh khắc, tâm trạng, việc nhỏ trong ngày.
+- Chủ đề đời người (con cái, cam kết, nhà cửa, đổi việc) chỉ đến từ hành tinh chậm, nằm trong tag "Xu hướng hiện tại", và luôn ở dạng khả năng.
+
+**Luật viết** (thêm vào bộ chuẩn C3a và lint C1):
+- **Không đoán sự kiện đời người**, như mang thai, cưới, chia tay, ly hôn, mất việc, bệnh hay mất người thân. Chỉ nói chủ đề và vài cách nó có thể hiện ra, để người đọc tự nhận ra mình. Ví dụ: "Chuyện con cái, một niềm vui riêng hay thứ bạn đang tạo ra có thể lớn thêm trong mấy tháng này."
+- **Không giả định hoàn cảnh.** Không giả định tình trạng hôn nhân, có con hay không, giới tính hay nghề nghiệp. Mỗi câu phải đúng với bốn người đọc mẫu, dùng làm bộ persona cho cổng lớp C:
+  - độc thân, chưa có con;
+  - đã có gia đình và con;
+  - đang mong con hoặc hiếm muộn;
+  - lớn tuổi, con đã lớn.
+- **Mang thai, sinh nở và khả năng có con là dữ liệu sức khỏe**, thuộc dữ liệu nhạy cảm theo Luật 91/2025/QH15. App không suy ra, không lưu, không hỏi. Chỉ nói "chuyện con cái" ở dạng khả năng, giọng tích cực, không bao giờ nói khó có con hay mất con.
+- **Chủ đề ⛔ không vào bản đọc theo ngày.**
+
+**Chip.** Không còn chip cố định theo nhà:
+- Chip gồm giờ và một câu móc ngắn, rút từ câu chủ đề của ô hành tinh × nhà, ví dụ "17h30 · dễ thấy vui" (đúng luật móc ở mục 3).
+- Tên nhà và chùm nghĩa chỉ nằm trong lớp "Vì sao Lá đọc vậy?", ví dụ "Nhà 5: con cái, tình yêu, niềm vui, sáng tạo".
+
+**Không rõ giờ sinh.** Không dùng nhà. Chủ đề lấy theo chùm nghĩa của hành tinh gốc bị chạm, cũng nói rộng như trên. Ví dụ Sao Kim gốc gồm tình cảm, cái đẹp, tiền và sự dễ chịu, chứ không gán "Hẹn hò" hay "Đối tác".
+
+**Mở rộng.** Thêm nghĩa hoặc thêm ô qua PR. Không gộp nhà, không rút chùm nghĩa thành một nhãn.
 
 ## 2. Số liệu nền
 
@@ -72,7 +118,7 @@ Quy tắc dùng:
 **Trang chủ: chỉ tóm tắt** (≤ 60 âm tiết, quyết định chủ sản phẩm 2026-11-02):
 - Một câu chính, rút từ yếu tố mạnh nhất hôm nay.
 - Một gợi ý "hôm nay thử", lấy từ thẻ quan trọng nhất.
-- Ba chip lĩnh vực có giờ, ví dụ "Hẹn hò · 17h30", "Sự nghiệp · hôm nay", "Bạn bè · mấy ngày này".
+- Ba chip có giờ và câu móc, ví dụ "17h30 · dễ thấy vui", "hôm nay · việc chính dễ trôi", "mấy ngày này · bạn bè gọi". Không có nhãn cố định theo nhà (mục 1.1).
 - Bấm vào note hoặc vào một chip thì mở trang chi tiết, tới đúng thẻ đó.
 - Trang chủ không có tag xu hướng, lớp "Vì sao" hay các thẻ đầy đủ.
 - **Trang chủ là cái móc, không phải bản tóm tắt khô.** Phản hồi của chủ sản phẩm 2026-11-02:
@@ -153,7 +199,7 @@ Sau Daily, dùng cùng nhà máy và cổng cho Tarot, Radar và Khám phá, m�
 
 ## 7. Còn mở
 
-- Q2 và 12 lĩnh vực: đã chốt 03.11.2026 (mục 1.6, 1.7, 1.1).
+- Q2 và 12 nhà: đã chốt 03.11.2026 (mục 1.6, 1.7, 1.1). Bản nhãn cố định đã bỏ cùng ngày theo phản hồi owner.
 - Ngưỡng số của cổng là tạm thời, hiệu chỉnh bằng bộ mẫu vàng.
 
 ## 8. Thay đổi sau rà soát toàn diện (2026-11-03)
@@ -197,3 +243,6 @@ Chi tiết: `docs/plans/2026-11-03-daily-v2-gap-register.md`. Các thay đổi:
   - múi giờ của người sinh ở miền Bắc 1960–1975;
   - 2/30 lá số Jyotish bị từ chối mỗi ngày;
   - `/metrics` mở công khai.
+- **Nghĩa của nhà (phản hồi owner 03.11.2026).** Bỏ bảng chip cố định theo nhà. Nhà là chùm nghĩa,
+  chủ đề do cặp hành tinh × nhà, lá số gốc và độ dài transit chọn. Thêm luật không đoán sự kiện đời
+  người, không giả định hoàn cảnh, và bốn persona cho cổng lớp C (mục 1.1; sổ lỗ hổng HM-1…HM-7).
