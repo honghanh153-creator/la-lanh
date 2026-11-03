@@ -4,7 +4,6 @@ from datetime import UTC, date, datetime, time
 from time import monotonic
 from typing import TypeVar
 from uuid import UUID, uuid4
-from zoneinfo import ZoneInfo
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, TimePrecision
@@ -35,6 +34,7 @@ from app.domains.birth.models import (
     BirthTimeMode,
 )
 from app.domains.birth.repository import BirthRepository
+from app.domains.geo.historical_offset import ResolvedBirthInstant, resolve_birth_instant
 from app.domains.geo.models import PlaceResult
 from app.domains.geo.service import PlaceSearchService
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
@@ -224,19 +224,18 @@ class BirthChartService:
             profile_level = 2
         if place is not None and local_time is not None:
             profile_level = 3
-            local_datetime = datetime.combine(
-                birth_date,
-                local_time,
-                tzinfo=ZoneInfo(place.timezone_id),
-            )
+            instant = _birth_instant(place.place_id, place.timezone_id, birth_date, local_time)
             chart_input = ChartInput(
-                utc_datetime=local_datetime.astimezone(UTC),
+                utc_datetime=instant.utc,
                 latitude=place.latitude,
                 longitude=place.longitude,
             )
+            # The rule suffix exists only when a historical Vietnamese offset applied, so every
+            # other input keeps its replay key and an affected one never replays the old chart.
             canonical_input = (
                 f"supplement-v1:{birth_date.isoformat()}:{birth_time_mode.value}:"
                 f"{birth_time_local}:{approx_window}:{place.place_id}"
+                + (f":{instant.rule}" if instant.rule else "")
             ).encode()
             input_hash = self._hasher.digest("birth-input", canonical_input.decode())
             replay = await self._repository.find_by_input_hash(guest_id, input_hash)
@@ -245,7 +244,9 @@ class BirthChartService:
                 if replay is not None and isinstance(replay.result, NatalChart)
                 else await self._run_compute(self._engine.calculate_chart, chart_input)
             )
-            chart = chart.model_copy(update={"time_precision": precision})
+            chart = chart.model_copy(
+                update={"time_precision": _effective_precision(precision, instant)}
+            )
 
         encrypted_time = (
             self._envelope.encrypt(
@@ -432,14 +433,11 @@ class BirthChartService:
             supplement.birth_place_ciphertext,
             context=f"birth-place:{guest_id}".encode(),
         ).decode()
-        _, _, timezone_id, latitude, longitude = raw_place.split("|", maxsplit=4)
-        local_datetime = datetime.combine(
-            birth_date,
-            local_time,
-            tzinfo=ZoneInfo(timezone_id),
-        )
+        place_id, _, timezone_id, latitude, longitude = raw_place.split("|", maxsplit=4)
+        instant = _birth_instant(place_id, timezone_id, birth_date, local_time)
+        precision = _effective_precision(precision, instant)
         chart_input = ChartInput(
-            utc_datetime=local_datetime.astimezone(UTC),
+            utc_datetime=instant.utc,
             latitude=float(latitude),
             longitude=float(longitude),
             house_system=config.house_system,
@@ -483,13 +481,10 @@ class BirthChartService:
         place = self._places.get(place_id)
         if place is None or local_time is None:
             raise BirthSupplementInvalid
-        local_datetime = datetime.combine(
-            birth_date,
-            local_time,
-            tzinfo=ZoneInfo(place.timezone_id),
-        )
+        instant = _birth_instant(place.place_id, place.timezone_id, birth_date, local_time)
+        precision = _effective_precision(precision, instant)
         chart_input = ChartInput(
-            utc_datetime=local_datetime.astimezone(UTC),
+            utc_datetime=instant.utc,
             latitude=place.latitude,
             longitude=place.longitude,
             house_system=config.house_system,
@@ -515,6 +510,10 @@ class BirthChartService:
                     "angles": None,
                 }
             )
+        elif precision is TimePrecision.APPROXIMATE:
+            # Only reachable through an uncertain historical offset: houses and angles move
+            # about 15 degrees per hour, so they are withheld as chart_for_config does.
+            chart = chart.model_copy(update={"houses": None, "angles": None})
         return chart
 
     async def remove_supplement(
@@ -528,6 +527,24 @@ class BirthChartService:
             remove_place=remove_place,
         )
         return await self.supplement_state(guest_id)
+
+
+def _birth_instant(
+    place_id: str, timezone_id: str, birth_date: date, local_time: time
+) -> ResolvedBirthInstant:
+    return resolve_birth_instant(
+        place_id=place_id,
+        timezone_id=timezone_id,
+        local=datetime.combine(birth_date, local_time),
+    )
+
+
+def _effective_precision(precision: TimePrecision, instant: ResolvedBirthInstant) -> TimePrecision:
+    """An exact clock reading is only as exact as the UTC offset it is read against."""
+
+    if instant.offset_uncertain and precision is TimePrecision.EXACT:
+        return TimePrecision.APPROXIMATE
+    return precision
 
 
 def _resolve_time(
