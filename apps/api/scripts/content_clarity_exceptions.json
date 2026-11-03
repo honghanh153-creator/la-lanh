@@ -1,0 +1,4 @@
+{
+  "note": "Owner-approved exceptions to the content clarity ratchet (scripts/review_content_release.py). Each entry needs rule, surface, reason and approver. A ratcheted rule (A1-A16) listed here may rise to the PR's own baseline for that surface. A hard-zero rule also needs the exact sentence keys it tolerates. Keep this list empty unless the owner approved an entry.",
+  "exceptions": []
+}

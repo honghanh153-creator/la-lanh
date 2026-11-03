@@ -14,11 +14,14 @@ follows the day, A15 facts match the engine.
 
 from __future__ import annotations
 
+import copy
+import hashlib
+import json
 import math
 import re
 import unicodedata
 from collections import Counter
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from itertools import pairwise
 from typing import Any
@@ -52,6 +55,9 @@ NEAR_DUPLICATE_MIN_SYLLABLES = 6  # A5
 NEAR_DUPLICATE_OVERLAP = 0.5  # A5: shared bigrams over the smaller sentence's bigrams
 SHARED_SENTENCE_SHARE = 0.2  # A6
 SHARED_SENTENCE_MIN_SYLLABLES = 4  # A6 ignores very short fragments
+KEY_LENGTH = 10  # hex digits of a violation key (40 bits)
+# Rules that are never ratcheted: any hit fails unless its exact key is an approved exception.
+HARD_ZERO_RULES: dict[str, str] = {}
 
 
 def _terms(*patterns: str) -> re.Pattern[str]:
@@ -327,12 +333,14 @@ class SurfaceReport:
     variants: dict[str, int]
     rules: dict[str, int]
     readings_flagged: dict[str, int] = field(default_factory=dict)
+    keys: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     def as_baseline(self) -> dict[str, Any]:
         return {
             "samples": self.samples,
             "variants": dict(sorted(self.variants.items())),
             "rules": {rule: self.rules.get(rule, 0) for rule in RULES},
+            "keys": {rule: list(self.keys.get(rule, ())) for rule in RULES},
         }
 
 
@@ -446,21 +454,26 @@ def _bigrams(sentence: str) -> set[tuple[str, str]]:
     return set(pairwise(tokens))
 
 
-def near_duplicate_pairs(items: Iterable[str]) -> int:
+def near_duplicate_sentence_pairs(items: Iterable[str]) -> tuple[tuple[str, str], ...]:
     """A5. Pairs of sentences (>= 6 syllables) sharing >= 50% of the smaller one's bigrams."""
 
     grams = [
-        _bigrams(sentence)
+        (sentence, _bigrams(sentence))
         for sentence in items
         if syllables(sentence) >= NEAR_DUPLICATE_MIN_SYLLABLES
     ]
-    pairs = 0
-    for index, first in enumerate(grams):
-        for second in grams[index + 1 :]:
+    pairs: list[tuple[str, str]] = []
+    for index, (first_text, first) in enumerate(grams):
+        for second_text, second in grams[index + 1 :]:
             if first and second:
                 shared = len(first & second) / min(len(first), len(second))
-                pairs += shared >= NEAR_DUPLICATE_OVERLAP
-    return pairs
+                if shared >= NEAR_DUPLICATE_OVERLAP:
+                    pairs.append((first_text, second_text))
+    return tuple(pairs)
+
+
+def near_duplicate_pairs(items: Iterable[str]) -> int:
+    return len(near_duplicate_sentence_pairs(items))
 
 
 def excess_engine_metaphors(text: str) -> int:
@@ -476,18 +489,51 @@ def document_sentences(document: ClarityDocument) -> tuple[str, ...]:
     return tuple(sentence for _, text in document.sections for sentence in sentences(text))
 
 
-def lint_document(document: ClarityDocument) -> dict[str, int]:
-    """Per-reading counts for every rule except A6, which needs the whole surface."""
+def _sentence_key(sentence: str) -> str:
+    folded = " ".join(sentence.casefold().split()).strip(_EDGE_PUNCTUATION)
+    return re.sub(r"\d+", "#", folded)
 
+
+def _digest(normalised: str) -> str:
+    return hashlib.sha256(normalised.encode("utf-8")).hexdigest()[:KEY_LENGTH]
+
+
+def sentence_key(sentence: str) -> str:
+    """Short, stable id of a normalised sentence; the baseline stores ids, never prose."""
+
+    return _digest(_sentence_key(sentence))
+
+
+def _pair_key(first: str, second: str) -> str:
+    return _digest("\x1f".join(sorted((_sentence_key(first), _sentence_key(second)))))
+
+
+# Sentence-level rules: a sentence that matches is a violation key for the rule.
+_SENTENCE_RULES: dict[str, Callable[[str], bool]] = {
+    "A1": lambda sentence: bool(JARGON.search(sentence)),
+    "A2": lambda sentence: bool(COINED_LABELS.search(sentence)),
+    "A4": lambda sentence: bool(META_TALK.search(sentence)),
+    "A8": lambda sentence: syllables(sentence) > MAX_SENTENCE_SYLLABLES,
+    "A10": lambda sentence: bool(english_words(sentence)),
+    "A11": lambda sentence: bool(PLACEHOLDERS.search(sentence)),
+    "A14": is_past_event_claim,
+    "A16": lambda sentence: bool(HOUSE_SIGN_ASPECT.search(sentence)),
+}
+
+
+def _document_findings(
+    document: ClarityDocument,
+) -> tuple[dict[str, int], dict[str, frozenset[str]]]:
     document = normalize_document(document)
     body = "\n".join(text for _, text in document.sections)
     items = document_sentences(document)
-    return {
+    pairs = near_duplicate_sentence_pairs(items)
+    counts = {
         "A1": count_jargon(body),
         "A2": count_coined_labels(body),
         "A3": excess_engine_metaphors(body),
         "A4": count_meta_talk(body),
-        "A5": near_duplicate_pairs(items),
+        "A5": len(pairs),
         "A7": excess_hedges(body, len(items)),
         "A8": count_long_sentences(items),
         "A10": len(english_words(body)),
@@ -495,11 +541,31 @@ def lint_document(document: ClarityDocument) -> dict[str, int]:
         "A14": count_past_action_claims(items),
         "A16": count_house_sign_aspect_words(body),
     }
+    keys: dict[str, set[str]] = {rule: set() for rule in counts}
+    for sentence in items:
+        for rule, matches in _SENTENCE_RULES.items():
+            if matches(sentence):
+                keys[rule].add(sentence_key(sentence))
+        # A3 and A7 are per reading: once a reading is over its allowance, every sentence that
+        # carries a metaphor or a hedge is part of the violation.
+        if counts["A3"] and ENGINE_METAPHORS.search(sentence):
+            keys["A3"].add(sentence_key(sentence))
+        if counts["A7"] and HEDGES.search(sentence):
+            keys["A7"].add(sentence_key(sentence))
+    keys["A5"] = {_pair_key(first, second) for first, second in pairs}
+    return counts, {rule: frozenset(found) for rule, found in keys.items()}
 
 
-def _sentence_key(sentence: str) -> str:
-    folded = " ".join(sentence.casefold().split()).strip(_EDGE_PUNCTUATION)
-    return re.sub(r"\d+", "#", folded)
+def lint_document(document: ClarityDocument) -> dict[str, int]:
+    """Per-reading counts for every rule except A6, which needs the whole surface."""
+
+    return _document_findings(document)[0]
+
+
+def lint_document_keys(document: ClarityDocument) -> dict[str, frozenset[str]]:
+    """Per-reading violation keys (short hashes of normalised sentences or sentence pairs)."""
+
+    return _document_findings(document)[1]
 
 
 def shared_sentences(documents: Iterable[ClarityDocument]) -> tuple[str, ...]:
@@ -513,7 +579,7 @@ def shared_sentences(documents: Iterable[ClarityDocument]) -> tuple[str, ...]:
         frequency.update(
             {
                 _sentence_key(sentence)
-                for sentence in document_sentences(document)
+                for sentence in document_sentences(normalize_document(document))
                 if syllables(sentence) >= SHARED_SENTENCE_MIN_SYLLABLES
             }
         )
@@ -527,12 +593,16 @@ def lint_surface(surface: str, documents: Iterable[ClarityDocument]) -> SurfaceR
     )
     totals: Counter[str] = Counter()
     flagged: Counter[str] = Counter()
+    keys: dict[str, set[str]] = {rule: set() for rule in RULES}
     for document in docs:
-        for rule, value in lint_document(document).items():
+        counts, found = _document_findings(document)
+        for rule, value in counts.items():
             totals[rule] += value
             flagged[rule] += value > 0
+            keys[rule] |= found[rule]
     shared = shared_sentences(docs)
     totals["A6"] = len(shared)
+    keys["A6"] = {_digest(key) for key in shared}
     flagged["A6"] = sum(
         any(_sentence_key(sentence) in shared for sentence in document_sentences(document))
         for document in docs
@@ -543,6 +613,7 @@ def lint_surface(surface: str, documents: Iterable[ClarityDocument]) -> SurfaceR
         variants=dict(Counter(document.variant for document in docs)),
         rules={rule: totals.get(rule, 0) for rule in RULES},
         readings_flagged={rule: flagged.get(rule, 0) for rule in RULES},
+        keys={rule: tuple(sorted(keys[rule])) for rule in RULES},
     )
 
 
@@ -552,10 +623,12 @@ def ratchet_regressions(
     *,
     minimum_samples: Mapping[str, int],
 ) -> tuple[str, ...]:
-    """Problems that block a release: a count above baseline, or lost coverage.
+    """Problems that block a release: a count above baseline, a violating sentence the baseline
+    does not know (gap register GT-3: a fix elsewhere cannot hide it), or lost coverage.
 
-    A rule or surface missing from the baseline has a baseline of 0, so new rules start as hard
-    blocks. Counts below baseline never fail; lock them in with ``--update-baseline``.
+    A rule or surface missing from the baseline has a baseline of 0 and no keys, so new rules
+    start as hard blocks. Counts below baseline never fail; lock them in with
+    ``--update-baseline``.
     """
 
     problems: list[str] = []
@@ -576,22 +649,163 @@ def ratchet_regressions(
                     f"samples, baseline {count}"
                 )
     for surface, report in sorted(current.items()):
-        expected_rules: Mapping[str, Any] = surfaces.get(surface, {}).get("rules", {})
+        expected_surface: Mapping[str, Any] = surfaces.get(surface, {})
+        expected_rules: Mapping[str, Any] = expected_surface.get("rules", {})
+        expected_keys: Mapping[str, Any] = expected_surface.get("keys", {})
         for rule, value in report.rules.items():
             allowed = int(expected_rules.get(rule, 0))
             if value > allowed:
                 problems.append(
                     f"{surface}: {rule} {RULES[rule]} rose to {value} (baseline {allowed})"
                 )
+            new_keys = sorted(set(report.keys.get(rule, ())) - set(expected_keys.get(rule, ())))
+            if new_keys:
+                problems.append(
+                    f"{surface}: {rule} {RULES[rule]}: {len(new_keys)} new violating "
+                    f"sentence(s) not in the baseline ({_preview(new_keys)})"
+                )
     return tuple(problems)
+
+
+def _preview(keys: Sequence[str], limit: int = 5) -> str:
+    return ", ".join(keys[:limit]) + (f", +{len(keys) - limit} more" if len(keys) > limit else "")
 
 
 def baseline_document(reports: Mapping[str, SurfaceReport]) -> dict[str, Any]:
     return {
         "spec": "docs/research/2026-11-01-content-clarity-gate.md#lớp-a",
         "note": (
-            "Counts only go down. Rewrite with `python -m scripts.review_content_release "
-            "--update-baseline` after an intended change, and explain it in the PR."
+            "Counts only go down and no new violating sentence may appear; the PR is compared "
+            "with this file on its base branch. Rewrite with `python -m "
+            "scripts.review_content_release --update-baseline` after an intended change; a "
+            "rise needs an owner-approved entry in content_clarity_exceptions.json. Keys are "
+            "short hashes of normalised sentences, never prose."
         ),
         "surfaces": {surface: reports[surface].as_baseline() for surface in sorted(reports)},
     }
+
+
+def dump_baseline(document: Mapping[str, Any]) -> str:
+    """JSON with one line per key list, so the file stays small and diffs stay readable."""
+
+    compact = copy.deepcopy(dict(document))
+    placeholders: dict[str, str] = {}
+    for surface, entry in compact.get("surfaces", {}).items():
+        for rule, keys in entry.get("keys", {}).items():
+            token = f"@@keys:{surface}:{rule}@@"
+            placeholders[json.dumps(token)] = json.dumps(list(keys), separators=(",", ":"))
+            entry["keys"][rule] = token
+    text = json.dumps(compact, ensure_ascii=False, indent=2)
+    for token, value in placeholders.items():
+        text = text.replace(token, value)
+    return text + "\n"
+
+
+@dataclass(frozen=True)
+class RatchetException:
+    """An owner-approved rise for one rule on one surface (``content_clarity_exceptions.json``).
+
+    For a ratcheted rule the PR's own baseline is used for that rule and surface. ``keys`` is
+    only used by hard-zero rules, which accept nothing but the listed sentence keys.
+    """
+
+    rule: str
+    surface: str
+    reason: str
+    approver: str
+    keys: tuple[str, ...] = ()
+
+
+def parse_exceptions(
+    document: Mapping[str, Any], *, surfaces: Iterable[str]
+) -> tuple[tuple[RatchetException, ...], tuple[str, ...]]:
+    known_surfaces = set(surfaces)
+    entries: list[RatchetException] = []
+    problems: list[str] = []
+    for index, raw in enumerate(document.get("exceptions", ())):
+        where = f"exceptions[{index}]"
+        if not isinstance(raw, Mapping):
+            problems.append(f"{where}: must be an object")
+            continue
+        fields = {name: str(raw.get(name, "")).strip() for name in _EXCEPTION_FIELDS}
+        missing = [name for name, value in fields.items() if not value]
+        if missing:
+            problems.append(f"{where}: missing {', '.join(missing)}")
+            continue
+        if fields["rule"] not in RULES and fields["rule"] not in HARD_ZERO_RULES:
+            problems.append(f"{where}: unknown rule {fields['rule']}")
+            continue
+        if fields["surface"] not in known_surfaces:
+            problems.append(f"{where}: unknown surface {fields['surface']}")
+            continue
+        keys = tuple(str(key) for key in raw.get("keys", ()))
+        if fields["rule"] in HARD_ZERO_RULES and not keys:
+            problems.append(f"{where}: a hard-zero rule needs the exact sentence keys")
+            continue
+        entries.append(RatchetException(keys=keys, **fields))
+    return tuple(entries), tuple(problems)
+
+
+_EXCEPTION_FIELDS = ("rule", "surface", "reason", "approver")
+
+
+def _ratchet_exceptions(exceptions: Iterable[RatchetException]) -> set[tuple[str, str]]:
+    return {(entry.surface, entry.rule) for entry in exceptions if entry.rule in RULES}
+
+
+def baseline_raises(
+    base: Mapping[str, Any],
+    head: Mapping[str, Any],
+    exceptions: Iterable[RatchetException] = (),
+) -> tuple[str, ...]:
+    """GT-2. A PR may not raise its own baseline: a higher count or a new key than the base
+    branch's file fails unless an owner-approved exception names that rule and surface."""
+
+    allowed = _ratchet_exceptions(exceptions)
+    base_surfaces: Mapping[str, Any] = base.get("surfaces", {})
+    problems: list[str] = []
+    for surface, entry in sorted(dict(head.get("surfaces", {})).items()):
+        before: Mapping[str, Any] = base_surfaces.get(surface, {})
+        for rule in RULES:
+            if (surface, rule) in allowed:
+                continue
+            old = int(before.get("rules", {}).get(rule, 0))
+            new = int(entry.get("rules", {}).get(rule, 0))
+            if new > old:
+                problems.append(
+                    f"{surface}: baseline file raises {rule} from {old} to {new} "
+                    "without an exception"
+                )
+            added = sorted(
+                set(entry.get("keys", {}).get(rule, ())) - set(before.get("keys", {}).get(rule, ()))
+            )
+            if added:
+                problems.append(
+                    f"{surface}: baseline file adds {len(added)} {rule} key(s) "
+                    f"without an exception ({_preview(added)})"
+                )
+    return tuple(problems)
+
+
+def effective_baseline(
+    base: Mapping[str, Any],
+    head: Mapping[str, Any],
+    exceptions: Iterable[RatchetException] = (),
+) -> dict[str, Any]:
+    """The base branch's baseline, except for excepted rule/surface pairs, which use the PR's."""
+
+    merged: dict[str, Any] = copy.deepcopy(dict(base))
+    surfaces: dict[str, Any] = merged.setdefault("surfaces", {})
+    head_surfaces: Mapping[str, Any] = head.get("surfaces", {})
+    for surface, rule in sorted(_ratchet_exceptions(exceptions)):
+        source: Mapping[str, Any] = head_surfaces.get(surface, {})
+        target = surfaces.setdefault(
+            surface,
+            {
+                "samples": source.get("samples", 0),
+                "variants": dict(source.get("variants", {})),
+            },
+        )
+        target.setdefault("rules", {})[rule] = int(source.get("rules", {}).get(rule, 0))
+        target.setdefault("keys", {})[rule] = list(source.get("keys", {}).get(rule, ()))
+    return merged

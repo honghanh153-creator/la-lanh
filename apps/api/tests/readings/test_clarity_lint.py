@@ -1,5 +1,6 @@
 """Layer A plain-language rules (docs/research/2026-11-01-content-clarity-gate.md, section 3)."""
 
+import json
 from typing import Any
 
 import pytest
@@ -7,8 +8,10 @@ import pytest
 from app.domains.readings.clarity_lint import (
     RULES,
     ClarityDocument,
+    RatchetException,
     SurfaceReport,
     baseline_document,
+    baseline_raises,
     count_coined_labels,
     count_house_sign_aspect_words,
     count_jargon,
@@ -16,14 +19,19 @@ from app.domains.readings.clarity_lint import (
     count_meta_talk,
     count_past_action_claims,
     count_placeholders,
+    dump_baseline,
+    effective_baseline,
     english_words,
     excess_engine_metaphors,
     excess_hedges,
     lint_document,
+    lint_document_keys,
     lint_surface,
     near_duplicate_pairs,
     normalize_text,
+    parse_exceptions,
     ratchet_regressions,
+    sentence_key,
     sentences,
     shared_sentences,
     syllables,
@@ -366,3 +374,140 @@ def test_ratchet_enforces_the_spec_minimum_even_with_a_lower_baseline() -> None:
         {"tarot": _report(samples=30)}, baseline, minimum_samples={"tarot": 200}
     )
     assert problems == ("tarot: 30 samples, needs at least 200",)
+
+
+def _daily(index: int, *texts: str) -> ClarityDocument:
+    return ClarityDocument("daily", f"s{index}", tuple((f"p{k}", t) for k, t in enumerate(texts)))
+
+
+_FILL = [_daily(i, f"Bạn đi bộ mười phút sau bữa trưa số {i}.") for i in range(10)]
+
+
+def test_sentence_keys_are_short_stable_hashes_of_normalised_sentences() -> None:
+    key = sentence_key("Tin nhắn vừa gửi chưa đúng ý.")
+    assert len(key) == 10
+    assert int(key, 16) >= 0  # hex only, no prose
+    assert sentence_key("  TIN nhắn vừa gửi chưa đúng ý ") == key
+    assert sentence_key(normalize_text("Tin nha\u0306\u0301n vừa gửi chưa đúng ý.")) == key
+    assert sentence_key("Bài số 1.") == sentence_key("Bài số 22.")
+    assert sentence_key("Tin nhắn đã gửi chưa đúng ý.") != key
+
+
+def test_document_keys_name_the_violating_sentences() -> None:
+    keys = lint_document_keys(
+        _doc("Bạn nghỉ sớm.", "Tin nhắn vừa gửi chưa đúng ý.", "Sao Kim ở nhà thứ bảy.")
+    )
+    assert keys["A14"] == {sentence_key("Tin nhắn vừa gửi chưa đúng ý.")}
+    assert keys["A16"] == {sentence_key("Sao Kim ở nhà thứ bảy.")}
+    assert keys["A1"] == keys["A16"]
+    assert keys["A8"] == frozenset()
+
+
+def test_ratchet_fails_on_a_new_violation_hidden_behind_a_fix() -> None:
+    # Audit loophole 1 (GT-3): fix one A14 sentence, add a different one; the count is unchanged.
+    before = [_daily(0, "Tin nhắn vừa gửi chưa đúng cách bạn muốn nói."), *_FILL[1:]]
+    after = [*_FILL[:9], _daily(9, "Bạn đã gửi lời xin lỗi nhưng người kia im lặng.")]
+    baseline = baseline_document({"daily": lint_surface("daily", before)})
+    report = lint_surface("daily", after)
+    assert report.rules["A14"] == baseline["surfaces"]["daily"]["rules"]["A14"] == 1
+    problems = ratchet_regressions({"daily": report}, baseline, minimum_samples={})
+    new_key = sentence_key("Bạn đã gửi lời xin lỗi nhưng người kia im lặng.")
+    assert problems == (
+        f"daily: A14 khẳng định việc đã xảy ra: 1 new violating sentence(s) not in the "
+        f"baseline ({new_key})",
+    )
+
+
+def test_ratchet_keys_cover_pairs_shared_sentences_and_per_reading_rules() -> None:
+    hedgy = "Có thể bạn mệt. Có lẽ bạn dễ cáu."
+    shared = "Hôm nay bạn cần chậm lại một chút để nghe mình."
+    docs = [_daily(i, shared) if i < 3 else _FILL[i] for i in range(10)]
+    docs[3] = _daily(3, hedgy)
+    report = lint_surface("daily", docs)
+    # The numbered filler is one template sentence too (digits are normalised).
+    assert report.keys["A6"] == tuple(
+        sorted((sentence_key(shared), sentence_key("Bạn đi bộ mười phút sau bữa trưa số 3.")))
+    )
+    assert set(report.keys["A7"]) == {
+        sentence_key("Có thể bạn mệt."),
+        sentence_key("Có lẽ bạn dễ cáu."),
+    }
+    pair = lint_surface(
+        "daily",
+        [
+            _daily(
+                0,
+                "Tám Kiếm: Sợ phản ứng của người kia nên bạn chưa dám nói điều mình cần.",
+                "Ý chính của lá: sợ phản ứng của người kia nên bạn chưa dám nói điều mình cần.",
+            )
+        ],
+    )
+    assert len(pair.keys["A5"]) == 1
+
+
+def test_baseline_file_is_compact_json_without_prose() -> None:
+    report = lint_surface("daily", [_daily(0, "Tin nhắn vừa gửi chưa đúng ý.")])
+    document = baseline_document({"daily": report})
+    text = dump_baseline(document)
+    assert json.loads(text) == document
+    assert "Tin nhắn" not in text
+    assert f'"A14": ["{sentence_key("Tin nhắn vừa gửi chưa đúng ý.")}"]' in text
+
+
+def _file(**rules: int) -> dict[str, Any]:
+    keys = {rule: [f"{rule.lower()}key"] * bool(value) for rule, value in rules.items()}
+    report = SurfaceReport(
+        surface="tarot",
+        samples=200,
+        variants={"playful_grounded": 100, "roast": 100},
+        rules={rule: rules.get(rule, 0) for rule in RULES},
+    )
+    document = _baseline(report)
+    document["surfaces"]["tarot"]["keys"].update(keys)
+    return document
+
+
+def test_a_pr_cannot_raise_its_own_baseline_without_an_exception() -> None:
+    base = _file(A8=3)
+    assert baseline_raises(base, _file(A8=3)) == ()
+    assert baseline_raises(base, _file(A8=2)) == ()
+    assert baseline_raises(base, _file(A8=4)) == (
+        "tarot: baseline file raises A8 from 3 to 4 without an exception",
+    )
+    added = _file(A8=3)
+    added["surfaces"]["tarot"]["keys"]["A8"].append("feedbeef00")
+    assert baseline_raises(base, added) == (
+        "tarot: baseline file adds 1 A8 key(s) without an exception (feedbeef00)",
+    )
+    approved = RatchetException("A8", "tarot", "rewrite lands in two PRs", "owner")
+    assert baseline_raises(base, _file(A8=4), (approved,)) == ()
+
+
+def test_the_ratchet_uses_the_base_branch_except_for_approved_pairs() -> None:
+    base = _file(A8=3, A5=2)
+    head = _file(A8=9, A5=9)
+    approved = RatchetException("A8", "tarot", "approved rise", "owner")
+    merged = effective_baseline(base, head, (approved,))
+    assert merged["surfaces"]["tarot"]["rules"]["A8"] == 9
+    assert merged["surfaces"]["tarot"]["rules"]["A5"] == 2
+    current = {"tarot": _report(A8=9, A5=9)}
+    assert ratchet_regressions(current, merged, minimum_samples={}) == (
+        "tarot: A5 cặp câu gần trùng rose to 9 (baseline 2)",
+    )
+    assert base["surfaces"]["tarot"]["rules"]["A8"] == 3  # the base document is not mutated
+
+
+@pytest.mark.parametrize(
+    ("entry", "problem"),
+    (
+        ({"rule": "A8", "surface": "tarot", "reason": "x"}, "missing approver"),
+        ({"rule": "A99", "surface": "tarot", "reason": "x", "approver": "o"}, "unknown rule"),
+        ({"rule": "A8", "surface": "moon", "reason": "x", "approver": "o"}, "unknown surface"),
+        ("A8", "must be an object"),
+    ),
+)
+def test_exceptions_need_rule_surface_reason_and_approver(entry: Any, problem: str) -> None:
+    entries, problems = parse_exceptions({"exceptions": [entry]}, surfaces=("tarot",))
+    assert entries == ()
+    assert len(problems) == 1
+    assert problem in problems[0]

@@ -75,10 +75,18 @@ jobs:
         with:
           # Same interpreter as the Mac author check: the OpenAPI export differs under 3.12.
           python-version: '3.13'
+      - name: Fetch the PR base for the content clarity ratchet
+        if: needs.scope.outputs.level == 'full'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        # The ratchet reads content_clarity_baseline.json from the base branch so a PR cannot
+        # loosen the gate by editing its own copy (C1, GT-2). Public repo: no credentials needed.
+        run: git fetch --no-tags --depth=1 origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
       - name: Full author check (same command as the Mac author check)
         if: needs.scope.outputs.level == 'full'
         env:
           CI: '1'
+          CONTENT_CLARITY_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
         run: |
           # qa-server looks for uv at ~/.local/bin unless UV_BIN says where setup-uv put it.
           export UV_BIN="$(command -v uv)"
