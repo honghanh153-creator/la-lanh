@@ -1,16 +1,21 @@
 """Birth charts read North Vietnam 1960-1975 clocks as UTC+7 (synthetic people only)."""
 
 from datetime import UTC, date, datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
+from fastapi.testclient import TestClient
 
+from app.config import Settings
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, TimePrecision
 from app.domains.birth.models import BirthSnapshotRecord, BirthTimeMode
 from app.domains.birth.service import BirthChartService
 from app.domains.geo.service import PLACE_BY_ID
 from app.infrastructure.crypto import AesGcmEnvelopeCipher, SecretHasher, StaticDataKeyProvider
+from app.main import create_app
 from tests.birth.test_birth_api import MemoryBirthRepository
 
 NOW = datetime(2026, 11, 3, 9, 0, tzinfo=UTC)
@@ -114,14 +119,68 @@ async def test_resaving_a_northern_birth_never_replays_the_chart_stored_at_utc8(
 
 @pytest.mark.asyncio
 async def test_straddling_province_is_marked_approximate_not_guessed() -> None:
-    service, _, engine = _service()
+    service, repository, engine = _service()
     guest_id, chart = await _with_supplement(service, "vn-quang-tri")
     assert chart.time_precision is TimePrecision.APPROXIMATE
     assert chart.julian_day_ut == _expected(engine, "vn-quang-tri", 7.5).julian_day_ut
+    # Houses and angles at the invented +07:30 midpoint are neither returned nor stored.
+    assert (chart.houses, chart.angles) == (None, None)
+    stored = repository.current[guest_id].result
+    assert isinstance(stored, NatalChart)
+    assert stored.time_precision is TimePrecision.APPROXIMATE
+    assert (stored.houses, stored.angles) == (None, None)
+    reveal = await service.current(guest_id)
+    assert isinstance(reveal.result, NatalChart)
+    assert (reveal.result.houses, reveal.result.angles) == (None, None)
     on_read = await service.chart_for_config(guest_id, CalculationConfig.western_recommended())
     assert on_read is not None
     assert on_read.time_precision is TimePrecision.APPROXIMATE
     assert (on_read.houses, on_read.angles) == (None, None)
+
+
+def test_straddling_province_api_returns_and_stores_no_houses_or_angles(tmp_path: Path) -> None:
+    origin = "http://127.0.0.1:5173"
+    app = create_app(
+        Settings(
+            environment="test",
+            database_url=f"sqlite+aiosqlite:///{tmp_path / 'uncertain-offset.db'}",
+            cors_origins=[cast(Any, origin)],
+            guest_cookie_secure=False,
+        )
+    )
+    with TestClient(app, base_url=origin) as client:
+        guest = client.post(
+            "/v1/guest-sessions",
+            json={
+                "consent_version": "birth-profile-v1",
+                "purpose": "birth_profile_basic",
+                "idempotency_key": "uncertain-offset-guest-123456",
+            },
+        )
+        headers = {"Origin": origin, "X-CSRF-Token": guest.json()["csrf_token"]}
+        assert (
+            client.post(
+                "/v1/birth-profile", headers=headers, json={"birth_date": BIRTH_DATE.isoformat()}
+            ).status_code
+            == 200
+        )
+        posted = client.post(
+            "/v1/birth-profile/supplement",
+            headers=headers,
+            json={
+                "birth_time_mode": "exact",
+                "birth_time_local": BIRTH_TIME,
+                "place_id": "vn-quang-tri",
+                "consent_version": CONSENT,
+            },
+        )
+        assert posted.status_code == 200
+        returned = posted.json()["chart"]
+        assert returned["time_precision"] == "approximate"
+        assert (returned["houses"], returned["angles"]) == (None, None)
+        stored = client.get("/v1/birth-profile").json()["calculation"]
+        assert stored["time_precision"] == "approximate"
+        assert (stored["houses"], stored["angles"]) == (None, None)
 
 
 @pytest.mark.asyncio

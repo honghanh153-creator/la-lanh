@@ -247,6 +247,10 @@ class BirthChartService:
             chart = chart.model_copy(
                 update={"time_precision": _effective_precision(precision, instant)}
             )
+            if instant.offset_uncertain:
+                # Houses and angles at the invented midpoint offset must not be stored or
+                # returned; chart_for_config withholds them on read as well.
+                chart = chart.model_copy(update={"houses": None, "angles": None})
 
         encrypted_time = (
             self._envelope.encrypt(
