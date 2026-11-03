@@ -1216,8 +1216,12 @@ def _context_phrase(
 
 def _jyotish_structural_frame(plan: ReadingPlan) -> InterpretationFrame:
     by_id = {factor.id: factor for factor in plan.factors}
-    hero = next((by_id[ref] for ref in plan.hero_factor_refs if ref in by_id), plan.factors[0])
-    evidence_refs = [hero.id, *hero.child_refs]
+    hero_refs = tuple(ref for ref in plan.hero_factor_refs if ref in by_id)
+    hero = by_id[hero_refs[0]] if hero_refs else plan.factors[0]
+    # A chart with no graha drishti among the read bodies gets an independent pair of
+    # placements as its heroes (planner `_independent_pair`). Every hero must be cited,
+    # or the evidence gate rejects the reading on every day for that chart (PL-3, #180).
+    evidence_refs = [hero.id, *hero_refs, *hero.child_refs]
 
     if hero.kind is FactorKind.GRAHA_DRISHTI:
         parts = _parts(hero)
