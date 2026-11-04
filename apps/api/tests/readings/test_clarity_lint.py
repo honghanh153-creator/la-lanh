@@ -196,6 +196,35 @@ def test_a6_counts_sentences_in_more_than_a_fifth_of_readings() -> None:
     assert report.readings_flagged["A6"] == 10
 
 
+def test_a6_skips_fixed_titles_but_other_rules_still_lint_them() -> None:
+    title = "Đây là tiêu đề cố định của một phần"
+    docs = [
+        ClarityDocument(
+            surface="radar",
+            sample_id=f"s{index}",
+            sections=(
+                ("why_title", title),
+                ("scene_why_title", title),
+                ("why_body", f"Bài số {index} kể một chuyện rất riêng."),
+            ),
+        )
+        for index in range(10)
+    ]
+    report = lint_surface("radar", docs)
+    # The body template repeats (numbers are normalised); the title, seen in 10/10, does not count.
+    assert shared_sentences(docs) == ("bài số # kể một chuyện rất riêng",)
+    assert report.rules["A6"] == 1
+    # The same title in a body section is still a shared sentence.
+    body_docs = [
+        ClarityDocument(surface="radar", sample_id=f"s{index}", sections=(("why_body", title),))
+        for index in range(10)
+    ]
+    assert lint_surface("radar", body_docs).rules["A6"] == 1
+    # Titles keep every other rule: a placeholder in a title is still caught.
+    titled = ClarityDocument(surface="radar", sample_id="t", sections=(("why_title", "{name} ơi"),))
+    assert lint_document(titled) == lint_document(_doc("{name} ơi"))
+
+
 def test_a7_hedges_above_three_per_ten_sentences() -> None:
     assert excess_hedges("Bạn có thể thấy mệt. Có lẽ bạn dễ bỏ cuộc.", 2) == 3
     text = "Bạn thấy mệt sau giờ làm. Bạn nghỉ mười phút. Bạn đi bộ. Bạn có thể ngủ sớm."

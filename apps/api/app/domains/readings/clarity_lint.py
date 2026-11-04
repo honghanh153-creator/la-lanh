@@ -647,6 +647,22 @@ def document_sentences(document: ClarityDocument) -> tuple[str, ...]:
     return tuple(sentence for _, text in document.sections for sentence in sentences(text))
 
 
+# Fixed headings (Radar section and scene titles) repeat across readings by design, so A6 skips
+# sections whose name ends with this suffix; every other rule still lints them.
+TITLE_SECTION_SUFFIX = "_title"
+
+
+def a6_sentences(document: ClarityDocument) -> tuple[str, ...]:
+    """Sentences A6 compares across a surface: every section except fixed titles."""
+
+    return tuple(
+        sentence
+        for name, text in document.sections
+        if not name.endswith(TITLE_SECTION_SUFFIX)
+        for sentence in sentences(text)
+    )
+
+
 def _sentence_key(sentence: str) -> str:
     folded = " ".join(sentence.casefold().split()).strip(_EDGE_PUNCTUATION)
     return re.sub(r"\d+", "#", folded)
@@ -773,7 +789,7 @@ def shared_sentences(documents: Iterable[ClarityDocument]) -> tuple[str, ...]:
         frequency.update(
             {
                 _sentence_key(sentence)
-                for sentence in document_sentences(normalize_document(document))
+                for sentence in a6_sentences(normalize_document(document))
                 if syllables(sentence) >= SHARED_SENTENCE_MIN_SYLLABLES
             }
         )
@@ -797,7 +813,7 @@ def lint_surface(surface: str, documents: Iterable[ClarityDocument]) -> SurfaceR
     totals["A6"] = len(shared)
     keys["A6"] = {_digest(key) for key in shared}
     flagged["A6"] = sum(
-        any(_sentence_key(sentence) in shared for sentence in document_sentences(document))
+        any(_sentence_key(sentence) in shared for sentence in a6_sentences(document))
         for document in docs
     )
     return SurfaceReport(

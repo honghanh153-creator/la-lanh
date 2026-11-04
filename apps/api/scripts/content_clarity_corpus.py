@@ -355,7 +355,10 @@ def radar_sections(reading: dict[str, Any]) -> tuple[tuple[str, str], ...]:
             sections.append((f"{key}_question", section["question"]))
         scene = section.get("scene")
         if isinstance(scene, dict):
-            sections.extend((f"scene_{key}", text) for text in _texts([scene], "title", "body"))
+            if scene.get("title"):
+                sections.append((f"scene_{key}_title", scene["title"]))
+            if scene.get("body"):
+                sections.append((f"scene_{key}", scene["body"]))
         observation = section.get("observation")
         if isinstance(observation, str) and observation.strip():
             sections.append((f"{key}_observation", observation))
