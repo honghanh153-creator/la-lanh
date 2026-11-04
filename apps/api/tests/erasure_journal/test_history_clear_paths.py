@@ -368,9 +368,7 @@ async def test_a_completion_landing_inside_the_clear_is_journaled_with_its_delet
     ) -> int:
         # The concurrent completion, visible to the clear's DELETE (READ COMMITTED re-check).
         await session.execute(  # type: ignore[attr-defined]
-            update(TarotSessionRow)
-            .where(TarotSessionRow.id == late)
-            .values(state="complete")
+            update(TarotSessionRow).where(TarotSessionRow.id == late).values(state="complete")
         )
         return await original(self, session, *args, **kw)  # type: ignore[arg-type]
 
