@@ -2,7 +2,9 @@
 
 import re
 import unicodedata
+from collections.abc import Callable
 from types import ModuleType
+from typing import cast
 
 import pytest
 
@@ -16,7 +18,7 @@ from app.domains.readings.planet_house_cells import (
     PlanetHouseCell,
     cell,
 )
-from app.domains.readings.reader_personas import READER_PERSONAS
+from app.domains.readings.reader_personas import READER_PERSONAS, ReaderPersona
 
 HOUSES = range(1, 13)
 CELLS = tuple(PLANET_HOUSE_CELLS.values())
@@ -196,11 +198,14 @@ def _local_assumes_circumstances(sentence: str) -> bool:
 
 
 def _s8_pattern(lint: ModuleType) -> re.Pattern[str]:
-    return lint.SAFETY_RULES.get("S8", _LOCAL_S8)
+    return cast(re.Pattern[str], lint.SAFETY_RULES.get("S8", _LOCAL_S8))
 
 
-def _assumes(lint: ModuleType):
-    return getattr(lint, "assumes_circumstances", _local_assumes_circumstances)
+def _assumes(lint: ModuleType) -> Callable[[str], bool]:
+    return cast(
+        Callable[[str], bool],
+        getattr(lint, "assumes_circumstances", _local_assumes_circumstances),
+    )
 
 
 def _document(c: PlanetHouseCell) -> clarity_lint.ClarityDocument:
@@ -362,7 +367,7 @@ def test_surface_has_no_shared_sentence() -> None:
 
 
 @pytest.mark.parametrize("persona", READER_PERSONAS, ids=lambda p: p.key)
-def test_tender_topics_never_stand_alone_for_any_persona(persona) -> None:
+def test_tender_topics_never_stand_alone_for_any_persona(persona: ReaderPersona) -> None:
     tender_anywhere = {key for p in READER_PERSONAS for key in p.tender_meaning_keys}
     for c in CELLS:
         assert c.ways[0].meaning not in tender_anywhere, (c.planet, c.house)
