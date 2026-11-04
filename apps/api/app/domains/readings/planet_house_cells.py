@@ -15,7 +15,8 @@ Rules the data keeps (checked in ``tests/readings/test_planet_house_cells.py``):
 
 * The first way comes from a meaning a classical source stands behind (Lilly, BPHS or
   Phaladeepika) and is never ⚠. A MODERN-only meaning is only ever a later door ("source rule
-  outranks N-4").
+  outranks N-4"). Exception, house 6 only (owner decision 04.11.2026, same decision as PR #215):
+  every planet opens house 6 with ``daily_work``; small animals and helpers come later.
 * A ⚠ meaning is never first and never alone: a cell that uses one has at least three ways and
   at least two that are not ⚠. Meanings that must never reach a daily reading are not used.
 * Fast planets (Moon, Sun, Mercury, Venus, Mars) speak only of mood and small things: no ⚠
@@ -34,7 +35,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-PLANET_HOUSE_CELLS_VERSION = "planet-house-cells-2026-11-04-draft1"
+PLANET_HOUSE_CELLS_VERSION = "planet-house-cells-2026-11-04-draft2"
 
 PLANETS: tuple[str, ...] = (
     "moon",
@@ -134,8 +135,8 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Cảm xúc gắn với những việc nhỏ trong ngày.",
             (
-                ("small_animals", "thấy dịu lại khi ở cạnh một con vật nhỏ"),
                 ("daily_work", "muốn làm xong từng việc vặt cho nhẹ đầu"),
+                ("small_animals", "thấy dịu lại khi ở cạnh một con vật nhỏ"),
                 ("body_care_habits", "để ý hơn tới giấc ngủ và bữa ăn"),
                 ("helpers", "cảm kích một người giúp mình việc lặt vặt"),
             ),
@@ -172,7 +173,7 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
             "Nếu thấy ngột ngạt, thì đổi đường đi quen hoặc ghé một chỗ chưa từng tới.",
         ),
         10: (
-            "Cảm xúc hiện ra cả ở nơi đông người, chỗ mình làm việc hay học tập.",
+            "Cảm xúc hiện ra cả ở nơi đông người, ở nơi bạn góp sức.",
             (
                 ("reputation", "để tâm hơn tới cách người khác nhìn mình"),
                 ("career", "muốn việc mình làm được thấy và ghi nhận"),
@@ -258,8 +259,8 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Sức lực dồn vào việc hằng ngày và cách mình chăm cơ thể.",
             (
-                ("helpers", "cần tới người giúp một tay cho việc nhà, việc vặt"),
                 ("daily_work", "muốn làm việc gọn gàng, đúng giờ hơn"),
+                ("helpers", "cần tới người giúp một tay cho việc nhà, việc vặt"),
                 ("body_care_habits", "muốn sửa một thói quen ăn ngủ"),
                 ("service", "thấy vui khi giúp được ai đó"),
             ),
@@ -379,8 +380,8 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Đầu óc giỏi sắp xếp việc nhỏ hằng ngày.",
             (
-                ("helpers", "dặn dò, trao đổi với người phụ mình một tay"),
                 ("daily_work", "lập danh sách và gạch dần từng việc"),
+                ("helpers", "dặn dò, trao đổi với người phụ mình một tay"),
                 ("body_care_habits", "đọc về cách ăn uống, ngủ nghỉ"),
                 ("small_animals", "tìm hiểu cách chăm một con vật nhỏ"),
             ),
@@ -417,13 +418,13 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
             "Nếu muốn học một điều, thì chọn một cuốn sách và đọc mỗi ngày vài trang.",
         ),
         10: (
-            "Lời nói và giấy tờ ở chỗ làm cần được chăm chút.",
+            "Lời nói và giấy tờ ở nơi bạn góp sức cần được chăm chút.",
             (
                 ("career", "viết, trình bày, báo cáo việc mình làm"),
-                ("authority", "trao đổi với cấp trên hay người có quyền"),
+                ("authority", "trao đổi với người có quyền quyết định việc mình"),
                 ("reputation", "cân nhắc lời mình nói trước đông người"),
             ),
-            "Nếu sắp gửi một tin quan trọng ở chỗ làm, thì đọc lại một lần trước khi bấm gửi.",
+            "Nếu sắp gửi một tin quan trọng, thì đọc lại một lần trước khi bấm gửi.",
         ),
         11: (
             "Bạn bè và các nhóm trò chuyện sôi nổi hơn.",
@@ -499,9 +500,9 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Việc hằng ngày nhẹ hơn khi có chút niềm vui đi kèm.",
             (
+                ("daily_work", "điểm chút vui mắt cho góc mình hay ngồi làm việc vặt"),
                 ("small_animals", "vuốt ve một con vật nhỏ cho lòng dịu"),
                 ("helpers", "quý người giúp mình một tay"),
-                ("daily_work", "trang trí chỗ làm cho vui mắt"),
                 ("body_care_habits", "chăm cơ thể nhẹ nhàng, như ngâm chân, xoa bóp"),
             ),
             "Nếu ngày dài và mệt, thì kèm vào đó một thú vui nhỏ, như một bản nhạc.",
@@ -537,13 +538,13 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
             "Nếu chưa đi xa được, thì nấu một món ăn của một nơi bạn muốn tới.",
         ),
         10: (
-            "Ở chỗ làm, sự mềm mỏng và tinh tế là thế mạnh của bạn.",
+            "Ở nơi bạn góp sức, một lời nói mềm mỏng giúp việc trôi êm hơn.",
             (
-                ("reputation", "được khen về cách cư xử"),
+                ("reputation", "người khác để ý tới cách bạn cư xử"),
                 ("career", "làm việc trong không khí vui vẻ hơn"),
-                ("authority", "trò chuyện êm với cấp trên"),
+                ("authority", "trò chuyện êm với người có tiếng nói"),
             ),
-            "Nếu cần nhờ một người ở chỗ làm, thì mở lời bằng một câu khen thật lòng.",
+            "Nếu cần nhờ một người ở nơi bạn góp sức, thì nói rõ việc cần nhờ và cảm ơn khi xong.",
         ),
         11: (
             "Bạn bè mang lại niềm vui nhẹ nhàng.",
@@ -619,8 +620,8 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Bạn muốn làm thật nhiều việc trong ngày.",
             (
-                ("helpers", "sốt ruột khi người phụ mình làm chậm"),
                 ("daily_work", "làm việc dồn dập, muốn xong nhanh"),
+                ("helpers", "sốt ruột khi người phụ mình làm chậm"),
                 ("body_care_habits", "muốn tập luyện đều hơn"),
                 ("service", "xắn tay giúp người khác"),
             ),
@@ -663,7 +664,7 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
                 ("authority", "va chạm với người có quyền"),
                 ("reputation", "muốn chứng tỏ mình trước mọi người"),
             ),
-            "Nếu bất đồng với người phụ trách, thì nói bằng số liệu và giữ giọng bình tĩnh.",
+            "Nếu bất đồng với ai đó về cách làm, thì nói bằng số liệu và giữ giọng bình tĩnh.",
         ),
         11: (
             "Bạn hăng hái góp sức cho bạn bè và việc chung.",
@@ -740,8 +741,8 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Việc hằng ngày có thêm chỗ cho điều tốt.",
             (
-                ("helpers", "có thêm người phụ giúp một tay"),
                 ("daily_work", "công việc hằng ngày nhiều hơn, rộng hơn"),
+                ("helpers", "có thêm người phụ giúp một tay"),
                 ("body_care_habits", "xây một thói quen tốt cho cơ thể"),
                 ("service", "giúp người khác một cách rộng lượng"),
             ),
@@ -865,8 +866,8 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Việc hằng ngày cần nề nếp hơn.",
             (
-                ("helpers", "sắp xếp lại việc với người phụ giúp"),
                 ("daily_work", "nhận thêm trách nhiệm ở việc hằng ngày"),
+                ("helpers", "sắp xếp lại việc với người phụ giúp"),
                 ("body_care_habits", "xây thói quen chăm cơ thể đều đặn"),
                 ("service", "giúp người khác một cách bền bỉ"),
             ),
@@ -877,7 +878,6 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
             (
                 ("business_partners", "một mối hợp tác cần nói rõ phần việc"),
                 ("agreements", "một thỏa thuận cần ghi lại cho chắc"),
-                ("marriage", "một mối gắn bó cần cam kết rõ hơn"),
                 ("love", "thử thách sự kiên nhẫn trong tình cảm"),
             ),
             "Nếu một mối quan hệ làm bạn mệt, thì nói rõ điều bạn làm được và chưa làm được.",
@@ -906,7 +906,7 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
             "Con đường nghề nghiệp cần được xây từng bậc.",
             (
                 ("career", "nhận việc khó hơn, trách nhiệm hơn"),
-                ("authority", "làm việc dưới một người đòi hỏi cao"),
+                ("authority", "gặp một người có quyền đòi hỏi cao"),
                 ("position", "giữ một vị trí cần nhiều kiên nhẫn"),
                 ("lifelong_goal", "nghĩ lại điều mình muốn xây lâu dài"),
             ),
@@ -990,8 +990,8 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Việc hằng ngày muốn thoát khỏi lối mòn.",
             (
-                ("helpers", "đổi cách chia việc với người phụ giúp"),
                 ("daily_work", "đổi giờ làm, đổi cách làm"),
+                ("helpers", "đổi cách chia việc với người phụ giúp"),
                 ("body_care_habits", "thử một cách chăm cơ thể mới"),
             ),
             "Nếu thấy ngày nào cũng như ngày nào, thì đổi thứ tự một việc quen trong buổi sáng.",
@@ -1111,10 +1111,10 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Bạn cần thương mình hơn giữa những việc hằng ngày.",
             (
+                ("daily_work", "việc hằng ngày hay bị lẫn lộn"),
                 ("helpers", "thương cảm với người phụ giúp mình"),
                 ("service", "muốn giúp người khác không tính toán"),
                 ("body_care_habits", "cơ thể nhạy hơn, cần ngủ nghỉ đúng giờ"),
-                ("daily_work", "việc hằng ngày hay bị lẫn lộn"),
             ),
             "Nếu thấy mình giúp người quá sức, thì giữ lại một buổi trong tuần cho mình.",
         ),
@@ -1153,7 +1153,7 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
             (
                 ("career", "muốn làm việc có ý nghĩa hơn là chỉ vì tiền"),
                 ("reputation", "hình ảnh của mình trong mắt người khác chưa rõ"),
-                ("authority", "khó đọc ý người phụ trách"),
+                ("authority", "khó đọc ý người có quyền quyết định"),
                 ("lifelong_goal", "mơ về điều muốn làm cả đời"),
             ),
             "Nếu chưa rõ mình muốn gì, thì ghi lại những việc làm bạn quên giờ giấc.",
@@ -1236,8 +1236,8 @@ _RAW: dict[str, dict[int, tuple[str, tuple[tuple[str, str], ...], str]]] = {
         6: (
             "Việc hằng ngày muốn được làm lại từ gốc.",
             (
-                ("helpers", "đổi hẳn cách làm việc với người phụ giúp"),
                 ("daily_work", "bỏ một cách làm cũ không còn hợp"),
+                ("helpers", "đổi hẳn cách làm việc với người phụ giúp"),
                 ("body_care_habits", "thay đổi sâu thói quen chăm cơ thể"),
                 ("service", "giúp người theo cách thật lòng"),
             ),

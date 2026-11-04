@@ -261,7 +261,12 @@ def test_every_door_comes_from_a_daily_meaning_of_that_house(c: PlanetHouseCell)
 @pytest.mark.parametrize("c", CELLS, ids=CELL_IDS)
 def test_first_door_is_classical_and_not_sensitive(c: PlanetHouseCell) -> None:
     lead = meaning_by_key(c.ways[0].meaning)
-    assert lead.source in LEAD_SOURCES, f"MODERN-only meaning first: {lead.key}"
+    if c.house == 6:
+        # Owner decision 04.11.2026 (same decision as PR #215): house 6 opens with daily work
+        # for every planet; small animals and helpers come later. House 6 only.
+        assert lead.key == "daily_work", (c.planet, lead.key)
+    else:
+        assert lead.source in LEAD_SOURCES, f"MODERN-only meaning first: {lead.key}"
     assert not lead.sensitive
 
 
@@ -363,3 +368,14 @@ def test_tender_topics_never_stand_alone_for_any_persona(persona) -> None:
         assert c.ways[0].meaning not in tender_anywhere, (c.planet, c.house)
         safe = [w for w in c.ways if w.meaning not in persona.tender_meaning_keys]
         assert len(safe) >= 2, (persona.key, c.planet, c.house)
+
+
+def test_owner_edits_of_2026_11_04_hold() -> None:
+    """Owner decision 04.11.2026 on PR #221."""
+
+    saturn7 = PLANET_HOUSE_CELLS[("saturn", 7)]
+    assert "marriage" not in saturn7.sources and len(saturn7.ways) >= 3
+    for planet in PLANETS:
+        for sentence in PLANET_HOUSE_CELLS[(planet, 10)].sentences():
+            assert "chỗ làm" not in sentence and "cấp trên" not in sentence, (planet, sentence)
+    assert "thế mạnh của bạn" not in PLANET_HOUSE_CELLS[("venus", 10)].theme
