@@ -346,3 +346,46 @@ async def test_the_clear_names_only_the_rows_it_removes(storage: Database) -> No
             JOURNAL.digest(ErasureKind.TAROT_SESSION_DELETED, done),
         ),
     }
+
+
+async def test_a_completion_landing_inside_the_clear_is_journaled_with_its_deletion(
+    storage: Database, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex #199 P1: a final card selection only locks its Tarot row, so it can commit
+    'complete' after the clear began but before its DELETE. The row the DELETE removes must be
+    the row the journal names; otherwise a mid-session restore keeps it."""
+
+    guest_id, _, done = await _owner_with_history(storage)
+    late = uuid4()
+    async with storage.sessions() as session, session.begin():
+        row = _tarot(guest_id, late, OLD)
+        row.state = "choosing"
+        session.add(row)
+    original = PostgresHistoryRepository._erase
+
+    async def complete_then_erase(
+        self: object, session: object, *args: object, **kw: object
+    ) -> int:
+        # The concurrent completion, visible to the clear's DELETE (READ COMMITTED re-check).
+        await session.execute(  # type: ignore[attr-defined]
+            TarotSessionRow.__table__.update()
+            .where(TarotSessionRow.id == late)
+            .values(state="complete")
+        )
+        return await original(self, session, *args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(PostgresHistoryRepository, "_erase", complete_then_erase)
+    assert await _service(storage).request("clear", TOKEN, CSRF) is None
+    async with storage.sessions() as session:
+        assert await session.get(TarotSessionRow, late) is None
+        digests = set(
+            await session.scalars(
+                select(ErasureJournalRow.subject_digest).where(
+                    ErasureJournalRow.kind == ErasureKind.TAROT_SESSION_DELETED.value
+                )
+            )
+        )
+    assert digests == {
+        JOURNAL.digest(ErasureKind.TAROT_SESSION_DELETED, done),
+        JOURNAL.digest(ErasureKind.TAROT_SESSION_DELETED, late),
+    }

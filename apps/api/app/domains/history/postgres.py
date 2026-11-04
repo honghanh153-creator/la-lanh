@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
@@ -235,17 +236,24 @@ class PostgresHistoryRepository:
         Every manual clear path, the HTTP service included, goes through here.
         """
 
-        if self._erasure_journal is not None:
-            self._erasure_journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
-            # Replaying HISTORY_CLEARED re-judges status-selected rows by their restored status;
-            # a snapshot taken mid-session, or while a request still waited, would keep them
-            # (Codex #126 P1, #169). Name each such row removed here with a kind whose replay
-            # deletes it whatever status it was restored with.
-            criteria = dict(self._criteria(guest_id, now, manual=True))
-            for model, kind in _NAMED_ON_CLEAR:
-                for row_id in await session.scalars(select(model.id).where(criteria[model])):
-                    self._erasure_journal.record(session, kind, row_id, now)
-        return await self._erase(session, guest_id, now, manual=True, batch_size=None)
+        journal = self._erasure_journal
+        if journal is None:
+            return await self._erase(session, guest_id, now, manual=True, batch_size=None)
+        journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
+        # Replaying HISTORY_CLEARED re-judges status-selected rows by their restored status;
+        # a snapshot taken mid-session, or while a request still waited, would keep them
+        # (Codex #126 P1, #169). Name each such row removed here with a kind whose replay
+        # deletes it whatever status it was restored with. The ids come from the DELETE itself
+        # (RETURNING), not a prior SELECT: a Tarot completion committing between the two would
+        # otherwise be deleted without its entry (Codex #199 P1).
+        named = dict(_NAMED_ON_CLEAR)
+
+        def record(model: Any, row_id: UUID) -> None:
+            journal.record(session, named[model], row_id, now)
+
+        return await self._erase(
+            session, guest_id, now, manual=True, batch_size=None, on_named=record
+        )
 
     async def replay_clear(self, guest_id: UUID, cleared_at: datetime) -> int:
         """Re-apply a journaled manual clear after a restore, judged at its original time."""
@@ -447,7 +455,9 @@ class PostgresHistoryRepository:
         *,
         manual: bool,
         batch_size: int | None,
+        on_named: Callable[[Any, UUID], None] | None = None,
     ) -> int:
+        named = dict(_NAMED_ON_CLEAR)
         removed = 0
         for model, criteria in self._criteria(guest_id, now, manual=manual):
             remaining = None if batch_size is None else batch_size - removed
@@ -455,6 +465,14 @@ class PostgresHistoryRepository:
                 return removed
             if model is DailyNoteRow:
                 removed += await self._erase_daily(session, criteria, remaining)
+                continue
+            if remaining is None and on_named is not None and model in named:
+                deleted = list(
+                    await session.scalars(delete(model).where(criteria).returning(model.id))
+                )
+                for row_id in deleted:
+                    on_named(model, row_id)
+                removed += len(deleted)
                 continue
             if remaining is None:
                 result = await session.execute(delete(model).where(criteria))
