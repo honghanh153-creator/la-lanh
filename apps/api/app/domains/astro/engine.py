@@ -459,6 +459,33 @@ class NatalChartEngine:
                 self._transit_cache.popitem(last=False)
         return calculated
 
+    def house_cusps_at(
+        self,
+        julian_day_ut: float,
+        latitude: float,
+        longitude: float,
+        house_system: HouseSystem,
+        config: CalculationConfig | None = None,
+    ) -> tuple[tuple[float, ...], float, float]:
+        """``(cusps 1..12, ascendant, midheaven)`` for one instant and place, normalised.
+
+        The same calculation ``calculate_chart`` runs for its houses, exposed so a caller can
+        test how house labels move across an uncertain birth time without building a chart.
+        """
+
+        resolved = config or CalculationConfig.western_recommended()
+        sidereal = resolved.tradition is Tradition.JYOTISH
+        sidereal_mode = AYANAMSA_IDS[resolved.ayanamsa] if resolved.ayanamsa else None
+        with self._native.calculation_scope(sidereal_mode):
+            native = self._native.houses(
+                julian_day_ut, latitude, longitude, HOUSE_CODES[house_system], sidereal=sidereal
+            )
+        return (
+            tuple(normalize_longitude(value) for value in native.cusps),
+            normalize_longitude(native.ascendant),
+            normalize_longitude(native.midheaven),
+        )
+
     def longitude_domains(
         self, chart: NatalChart, *, half_width_days: float | None = None
     ) -> dict[BodyName, tuple[float, float]]:

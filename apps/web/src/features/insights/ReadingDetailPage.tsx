@@ -52,7 +52,11 @@ export function ReadingDetailPage() {
       {claimId !== "synthesis" && overviewQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
       {claimId === "synthesis" && readingQuery.data ? <ReadingContent content={readingQuery.data.active} /> : null}
       {focusedClaim && overviewQuery.data?.reading ? (
-        <FocusedClaimContent claim={focusedClaim} disclaimer={overviewQuery.data.reading.disclaimer} />
+        <FocusedClaimContent
+          claim={focusedClaim}
+          disclaimer={overviewQuery.data.reading.disclaimer}
+          housesAndAspects={overviewQuery.data.time_precision === "exact" && overviewQuery.data.houses_available}
+        />
       ) : null}
       {claimId === "synthesis" && readingQuery.isError ? (
         <section className="cosmic-state" role="alert">
@@ -74,7 +78,7 @@ export function ReadingDetailPage() {
 
 type FocusedClaim = NonNullable<NonNullable<Awaited<ReturnType<typeof getInsightOverview>>["reading"]>["claims"]>[number];
 
-function FocusedClaimContent({ claim, disclaimer }: { claim: FocusedClaim; disclaimer: string }) {
+function FocusedClaimContent({ claim, disclaimer, housesAndAspects }: { claim: FocusedClaim; disclaimer: string; housesAndAspects: boolean }) {
   const evidence = claim.evidence.length > 0 ? claim.evidence : [claim.summary];
   return (
     <article className="reading-content focused-reading-content">
@@ -102,7 +106,8 @@ function FocusedClaimContent({ claim, disclaimer }: { claim: FocusedClaim; discl
       <details className="reading-evidence">
         <summary><ChartBar aria-hidden="true" /><span>Căn cứ trong lá số</span></summary>
         <ul>{evidence.map((item) => <li key={item}>{item}</li>)}</ul>
-        <p>Vị trí, nhà và góc chiếu được tính từ chart; phần diễn giải là một khung để tự đối chiếu.</p>
+        {/* An approximate time reads no houses or aspects (#143 E4): only say so when the chart has them. */}
+        {housesAndAspects ? <p>Vị trí, nhà và góc chiếu được tính từ chart; phần diễn giải là một khung để tự đối chiếu.</p> : null}
       </details>
       <ReadingDisclaimer>{disclaimer}</ReadingDisclaimer>
     </article>
