@@ -16,6 +16,7 @@ from app.domains.readings.clarity_lint import (
     ClarityDocument,
     SurfaceReport,
     hard_zero_violations,
+    keys_digest,
     lint_document,
     ratchet_regressions,
 )
@@ -329,8 +330,18 @@ def test_cli_accepts_update_baseline_flag(
 def test_committed_exceptions_only_list_pre_existing_hard_zero_sentences(
     reports: dict[str, SurfaceReport],
 ) -> None:
-    entries = json.loads(EXCEPTIONS_PATH.read_text("utf-8"))["exceptions"]
-    assert all(entry["rule"] in HARD_ZERO_RULES for entry in entries)  # no ratchet waivers
+    all_entries = json.loads(EXCEPTIONS_PATH.read_text("utf-8"))["exceptions"]
+    entries = [entry for entry in all_entries if entry["rule"] in HARD_ZERO_RULES]
+    # Ratchet waivers are allowed only with a named owner approval and a reason.
+    waivers = [entry for entry in all_entries if entry["rule"] not in HARD_ZERO_RULES]
+    assert all(
+        entry["approver"].startswith("owner") and entry["reason"] and "keys" not in entry
+        for entry in waivers
+    )
+    # Each waiver is bound to the approved count and key set (Codex P1 on #219).
+    assert all(
+        isinstance(entry["max_count"], int) and len(entry["keys_digest"]) == 64 for entry in waivers
+    )
     assert all(entry["reason"] == "pre-existing, fix in C3" and entry["keys"] for entry in entries)
     # Every listed key is still present; drop an entry as soon as C3 fixes the sentence.
     for entry in entries:
@@ -380,9 +391,17 @@ def test_a_pr_raising_its_own_baseline_fails_against_the_base_branch(
     assert "tarot: baseline file raises A8 from" in output
     assert "tarot: A8 câu > 25 âm tiết rose to" in output
 
+    tarot = json.loads(head.read_text("utf-8"))["surfaces"]["tarot"]
     approved = _exceptions(
         tmp_path,
-        {"rule": "A8", "surface": "tarot", "reason": "approved rise", "approver": "owner"},
+        {
+            "rule": "A8",
+            "surface": "tarot",
+            "reason": "approved rise",
+            "approver": "owner",
+            "max_count": tarot["rules"]["A8"],
+            "keys_digest": keys_digest(tarot["keys"]["A8"]),
+        },
     )
     review_content_release._clarity_ratchet(
         head, update=False, base_ref="origin/base", exceptions_path=approved
