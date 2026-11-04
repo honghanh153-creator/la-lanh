@@ -475,6 +475,13 @@ export function isGuestSessionUnavailable(error: unknown): boolean {
     && (problem.code === "GUEST_SESSION_MISSING" || problem.code === "GUEST_EXPIRED");
 }
 
+/** #143 E2: the server could not produce this reading's content; retrying the same chart cannot help. */
+export function isReadingContentRejected(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const problem = error as { status?: unknown; code?: unknown };
+  return problem.status === 422 && problem.code === "READING_CONTENT_REJECTED";
+}
+
 export { currentSessionEpoch, OWNER_SESSION_EPOCH_KEY, SESSION_EPOCH_KEY } from "../session/sessionIdentity";
 const NATIVE_CSRF_KEY = "la-lanh-native-csrf-v1";
 const REQUEST_TIMEOUT_MS = 15_000;
