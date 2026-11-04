@@ -757,6 +757,22 @@ test('review 228 P2: a fork or outside PR never holds an owner PR on a shared fi
   assert.equal(turnsFor([outside, fork, mine]).find(t => t.number === 22).turn, 'claude-check');
 });
 
+test('fix B fix-forward: a PR that is itself on hold never holds another PR on a shared file', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const parked = pr({ number: 127, createdAt: '2026-10-20T00:00:00Z', labels: [{ name: 'needs-owner' }], files: f('app/privacy.py') });
+  const dropped = pr({ number: 130, createdAt: '2026-10-21T00:00:00Z', files: f('app/privacy.py') });
+  const privacy = pr({ number: 199, createdAt: '2026-11-03T00:00:00Z', files: f('app/privacy.py') });
+  const all = [parked, dropped, privacy];
+  assert.equal(fileBlocker(privacy, all, { dropped: [130] }), null);
+  const turns = Object.fromEntries(turnsFor(all, { dropped: [130] }).map(t => [t.number, t]));
+  assert.equal(turns[199].turn, 'claude-check', 'a needs-owner or dropped PR does not hold #199');
+  assert.equal(fileBlocker(privacy, all), 130, 'a blocker that can move still holds');
+  const feature = pr({ number: 120, title: 'feat: noi binh yen prototype', labels: [{ name: 'area:feature' }], createdAt: '2026-10-01T00:00:00Z', files: f('app/privacy.py') });
+  const priv = pr({ number: 199, title: 'fix(privacy): erasure', labels: [{ name: 'area:privacy' }], createdAt: '2026-11-03T00:00:00Z', files: f('app/privacy.py') });
+  assert.equal(fileBlocker(priv, [feature, priv]), null, 'a later group never holds an earlier group');
+  assert.equal(fileBlocker(feature, [feature, priv]), 199, 'the earlier group goes first on a shared file');
+});
+
 test('review 228: a deleted Python file is not linted by default', () => {
   const calls = [];
   assert.deepEqual(preflightMod.lintProblems(['app/deleted_for_test_only.py'], { cwd: '/nonexistent-la-lanh', spawn: () => { calls.push(1); return { status: 1 }; } }), []);
