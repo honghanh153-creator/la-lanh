@@ -494,3 +494,19 @@ def test_invalid_scan_bound_and_domain_wider_than_the_orb(engine: NatalChartEngi
     narrow = replace(contact, orb_limit=(high - low) / 4)
     with pytest.raises(ValueError, match="wider than the orb"):
         trend_episode(engine, chart, narrow, START)
+
+
+def test_true_node_double_station_in_one_day_keeps_one_episode_identity(
+    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
+) -> None:
+    """Two true-node stations inside one day dip into orb between two out-of-orb midnights.
+
+    Every day ``scan_day`` lists must give the same episode key, so the dip day belongs to it.
+    """
+
+    chart = _move_natal(charts[0], BodyName.MARS, 332.694868)
+    key = "true_node:conjunction:mars"
+    days = [date(2026, 5, 23), date(2026, 5, 24)]
+    episodes = [_episode(engine, chart, key, day) for day in days]
+    assert episodes[0].key == episodes[1].key
+    assert all(episode.in_orb_on(day) for episode in episodes for day in days)

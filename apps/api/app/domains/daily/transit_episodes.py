@@ -101,6 +101,9 @@ MAX_STRIDE_DAYS = 30
 WOBBLE_BODIES = frozenset(
     body for body, arc in REVERSE_ARC_DEG.items() if arc < TREND_MIN_PROMINENCE
 )
+# The true node can station twice inside one day, so its days are cut into this many pieces,
+# each holding at most one station (its stations are hours apart, never minutes).
+WOBBLE_PIECES_PER_DAY = 48
 # Bisection stops below one minute.
 _TOLERANCE_DAYS = 1.0 / 1440.0
 _EPSILON = 1e-9
@@ -199,6 +202,7 @@ class _Track:
         self._body = body
         self._point = point
         self.origin = datetime.combine(local_date, time(), tzinfo=DAILY_TIMEZONE)
+        self._pieces = WOBBLE_PIECES_PER_DAY if body in WOBBLE_BODIES else 1
         # Integer keys are local midnights; bisection instants go to ``_probes``.
         self.midnights: dict[int, tuple[float, float]] = {}
         self._probes: dict[float, tuple[float, float]] = {}
@@ -258,20 +262,37 @@ class _Track:
                 right = middle
         return (left + right) / 2.0
 
+    def pieces(self, left: int, right: int) -> list[tuple[float, float]]:
+        """Sub-intervals between two midnights, each holding at most one station.
+
+        For the wobbling true node every day is cut into ``WOBBLE_PIECES_PER_DAY`` pieces, so
+        two stations in one day (an in-orb dip between two out-of-orb midnights) are not missed.
+        """
+
+        if self._pieces == 1:
+            return [(float(left), float(right))]
+        cuts = [
+            day + step / self._pieces for day in range(left, right) for step in range(self._pieces)
+        ] + [float(right)]
+        return list(pairwise(cuts))
+
     def day_min(self, day: int) -> float:
         """Smallest |separation| during the local day ``day``."""
 
-        first, _ = self.midnight(day)
-        last, _ = self.midnight(day + 1)
-        if (first >= 0) != (last >= 0):
-            return 0.0
-        station = self.station(float(day), float(day + 1))
-        if station is not None:
-            turn = self.at(station)[0]
-            if (turn >= 0) != (first >= 0):
+        best = math.inf
+        for left, right in self.pieces(day, day + 1):
+            first = self.at(left)[0]
+            last = self.at(right)[0]
+            if (first >= 0) != (last >= 0):
                 return 0.0
-            return min(abs(first), abs(last), abs(turn))
-        return min(abs(first), abs(last))
+            best = min(best, abs(first), abs(last))
+            station = self.station(left, right)
+            if station is not None:
+                turn = self.at(station)[0]
+                if (turn >= 0) != (first >= 0):
+                    return 0.0
+                best = min(best, abs(turn))
+        return best
 
 
 def _aspect_point(
@@ -438,13 +459,10 @@ def _passes(
 
     found: list[tuple[float, float, PassMotion]] = []
     days = sorted(day for day in track.midnights if first <= day <= last)
-    for left, right in pairwise(days):
-        station = track.station(float(left), float(right))
-        pieces = (
-            [(float(left), station), (station, float(right))]
-            if station is not None
-            else [(float(left), float(right))]
-        )
+    intervals = [piece for a, b in pairwise(days) for piece in track.pieces(a, b)]
+    for left, right in intervals:
+        station = track.station(left, right)
+        pieces = [(left, station), (station, right)] if station is not None else [(left, right)]
         crossed = False
         for start, end in pieces:
             if (track.at(start)[0] >= 0) != (track.at(end)[0] >= 0):
@@ -456,7 +474,7 @@ def _passes(
             continue
         turn = abs(track.at(station)[0])
         if turn <= reach + _EPSILON and turn <= min(
-            abs(track.at(float(left))[0]), abs(track.at(float(right))[0])
+            abs(track.at(left)[0]), abs(track.at(right)[0])
         ):
             found.append((station, turn, PassMotion.STATIONARY))
     return found
