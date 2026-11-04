@@ -586,7 +586,11 @@ _CIRCUMSTANCE_KINDS: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = 
             r"\b(?:bố mẹ|cha mẹ|phụ huynh|mẹ bỉm|bỉm sữa) như bạn\b",
             r"\bmẹ bỉm\b",
         ),
-        _terms(r"\b(?:con|con cái|con nhỏ|bé|nhóc|bố|mẹ|cha|phụ huynh|làm cha mẹ|làm bố mẹ)\b"),
+        _terms(
+            r"\b(?:có|nuôi|chăm|nhà có) (?:con|bé|các con|con nhỏ)\b",
+            r"\b(?:con cái|con nhỏ|phụ huynh|làm cha mẹ|làm bố mẹ|làm mẹ|làm bố|làm cha)\b",
+            r"\bbạn (?:là|đang làm) (?:bố|mẹ|cha|ba|cha mẹ|bố mẹ|phụ huynh)\b",
+        ),
     ),
     (
         "gender",
@@ -1123,8 +1127,22 @@ def _aspect_claims(sentence: str, bodies: Sequence[_Mention]) -> list[_AspectCla
     return claims
 
 
-def _phase(sentence: str) -> str | None:
-    return next((phase for pattern, phase in _PHASE_WORDS if pattern.search(sentence)), None)
+def _phase(text: str) -> str | None:
+    return next((phase for pattern, phase in _PHASE_WORDS if pattern.search(text)), None)
+
+
+def _claim_phases(sentence: str, claims: Sequence[_AspectClaim]) -> list[str | None]:
+    """The phase each claim states: the phase words after its second body, up to the next claim.
+    A single claim may state its phase anywhere in the sentence ("Đang tiến gần, Sao Kim …")."""
+
+    if len(claims) == 1:
+        return [_phase(sentence)]
+    phases: list[str | None] = []
+    for index, claim in enumerate(claims):
+        start = claim.second.end
+        end = claims[index + 1].second.start if index + 1 < len(claims) else len(sentence)
+        phases.append(_phase(sentence[start : max(start, end)]))
+    return phases
 
 
 def _owner(
@@ -1142,9 +1160,9 @@ def _sentence_fact_errors(
 
     bodies = _bodies(sentence)
     ok = True
-    phase = _phase(sentence)
     today = _TRANSIT_TIME.search(sentence) is not None
-    for claim in _aspect_claims(sentence, bodies):
+    claims = _aspect_claims(sentence, bodies)
+    for claim, phase in zip(claims, _claim_phases(sentence, claims), strict=True):
         first, second = claim.first, claim.second
         directed = sentence[second.end :].lstrip().startswith("của bạn")
         transit = directed or today

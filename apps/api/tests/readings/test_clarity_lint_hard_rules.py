@@ -150,6 +150,7 @@ def test_s8_leaves_everyday_lines_alone(text: str) -> None:
         "Chiều nay đón con sớm hơn mười phút.",
         "Nếu chiều nay rảnh, đón con sớm hơn mười phút.",
         "Nếu chiều nay rảnh thì đón con sớm.",
+        "Nếu mẹ gọi thì đón con sớm.",  # a parent word that is not the reader having children
         "Nếu trời mưa thì nhắn cho chồng của bạn.",
         "Con của bạn cần bạn nghe nhiều hơn.",
         "Bé nhà bạn sẽ thích một buổi đi dạo.",
@@ -344,6 +345,8 @@ _FACTS = AstroFacts(
         "Hôm nay Mặt Trăng đang tạo góc căng với Sao Thổ của bạn.",
         "Ra ngoài đón chút nắng mặt trời buổi sáng.",  # not the planet
         "Sao Kim tam hợp Sao Hỏa và Mặt Trăng vuông góc Sao Thổ.",  # both claims computed
+        "Hôm nay Sao Kim tam hợp Sao Hỏa của bạn và đang tiến gần,"
+        " Mặt Trăng vuông góc Sao Thổ của bạn và đang rời xa.",  # each claim its own phase
     ),
 )
 def test_a15_accepts_facts_the_engine_computed(text: str) -> None:
@@ -361,6 +364,8 @@ def test_a15_accepts_facts_the_engine_computed(text: str) -> None:
         "Sao Mộc đối đỉnh Mặt Trời.",  # no such contact
         "Sao Kim tam hợp Sao Hỏa và đối đỉnh Sao Mộc.",  # second claim unsupported
         "Sao Kim tam hợp Sao Hỏa, Mặt Trăng vuông góc Sao Mộc.",  # second pair unsupported
+        "Hôm nay Sao Kim tam hợp Sao Hỏa của bạn và đang tiến gần,"
+        " Mặt Trăng vuông góc Sao Thổ của bạn và đang tiến gần.",  # second phase wrong
     ),
 )
 def test_a15_flags_a_fact_the_engine_did_not_compute(text: str) -> None:
