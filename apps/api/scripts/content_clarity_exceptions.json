@@ -1,17 +1,21 @@
 {
-  "note": "Owner-approved exceptions to the content clarity ratchet (scripts/review_content_release.py). Each entry needs rule, surface, reason and approver. A ratcheted rule (A1-A16) listed here may rise to the PR's own baseline for that surface. A hard-zero rule (S1-S7, H1) also needs the exact sentence keys it tolerates; any other hit still fails. Keep this list empty unless the owner approved an entry. The two S7 entries below were already in production copy when the hard-zero rule was introduced (#179) and are listed only so the gate can start at zero for new sentences.",
+  "note": "Owner-approved exceptions to the content clarity ratchet (scripts/review_content_release.py). Each entry needs rule, surface, reason and approver. A ratcheted rule (A1-A16) listed here may rise to the PR's own baseline for that surface, but only up to the approved max_count and only for the approved key set (keys_digest: SHA-256 of the sorted, newline-joined keys); any further rise fails. A hard-zero rule (S1-S7, H1) also needs the exact sentence keys it tolerates; any other hit still fails. Keep this list empty unless the owner approved an entry. The two S7 entries below were already in production copy when the hard-zero rule was introduced (#179) and are listed only so the gate can start at zero for new sentences.",
   "exceptions": [
     {
       "rule": "S7",
       "surface": "kham_pha",
-      "keys": ["b8b545bb54"],
+      "keys": [
+        "b8b545bb54"
+      ],
       "reason": "pre-existing, fix in C3",
       "approver": "owner in chat 03.11.2026 (keep until C3 rewrites)"
     },
     {
       "rule": "S7",
       "surface": "radar",
-      "keys": ["1fb170d7fa"],
+      "keys": [
+        "1fb170d7fa"
+      ],
       "reason": "pre-existing, fix in C3",
       "approver": "owner in chat 03.11.2026 (keep until C3 rewrites)"
     },
@@ -19,31 +23,41 @@
       "rule": "A1",
       "surface": "kham_pha",
       "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
-      "approver": "owner in chat 04.11.2026 (#219)"
+      "approver": "owner in chat 04.11.2026 (#219)",
+      "max_count": 1663,
+      "keys_digest": "21a8a78944cc59bd15fe7dc5e0b9d09f67d30142066185efdf00650ee2d6c95c"
     },
     {
       "rule": "A3",
       "surface": "kham_pha",
       "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
-      "approver": "owner in chat 04.11.2026 (#219)"
+      "approver": "owner in chat 04.11.2026 (#219)",
+      "max_count": 1320,
+      "keys_digest": "8c098a75636551bee42e6fc5d5916361c73b0f54b9bc20dc4faa1d66e9b89ef2"
     },
     {
       "rule": "A5",
       "surface": "kham_pha",
       "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
-      "approver": "owner in chat 04.11.2026 (#219)"
+      "approver": "owner in chat 04.11.2026 (#219)",
+      "max_count": 6050,
+      "keys_digest": "cce064592f4f09e482621b96908e5d364b55080fe5c4cfdb36c9ad4c475d2e0c"
     },
     {
       "rule": "A8",
       "surface": "kham_pha",
       "reason": "#219 Vietnamese body names change aspect-line sentence hashes (775 to 892)",
-      "approver": "owner in chat 04.11.2026 (#219)"
+      "approver": "owner in chat 04.11.2026 (#219)",
+      "max_count": 892,
+      "keys_digest": "da7c5bfbde6975ba62f1e4af4ff57e4a9aca931b517bba04599c6b9bdf42cf50"
     },
     {
       "rule": "A16",
       "surface": "kham_pha",
       "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
-      "approver": "owner in chat 04.11.2026 (#219)"
+      "approver": "owner in chat 04.11.2026 (#219)",
+      "max_count": 1619,
+      "keys_digest": "39ca18c689f8b2ee55886f31a3e1cf71ce39f36d99fa99791cfbc933cefbdd90"
     }
   ]
 }

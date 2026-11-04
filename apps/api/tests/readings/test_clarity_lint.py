@@ -27,6 +27,7 @@ from app.domains.readings.clarity_lint import (
     excess_engine_metaphors,
     excess_hedges,
     hard_zero_violations,
+    keys_digest,
     lint_document,
     lint_document_keys,
     lint_surface,
@@ -482,14 +483,49 @@ def test_a_pr_cannot_raise_its_own_baseline_without_an_exception() -> None:
     assert baseline_raises(base, added) == (
         "tarot: baseline file adds 1 A8 key(s) without an exception (feedbeef00)",
     )
-    approved = RatchetException("A8", "tarot", "rewrite lands in two PRs", "owner")
+    approved = _approved(_file(A8=4))
     assert baseline_raises(base, _file(A8=4), (approved,)) == ()
+
+
+def _approved(head: dict[str, Any], rule: str = "A8") -> RatchetException:
+    """An exception bound to the count and key set of ``head`` (what the owner approved)."""
+    entry = head["surfaces"]["tarot"]
+    return RatchetException(
+        rule,
+        "tarot",
+        "approved rise",
+        "owner",
+        max_count=entry["rules"][rule],
+        keys_digest=keys_digest(entry["keys"][rule]),
+    )
+
+
+def test_an_approved_exception_cannot_cover_a_further_rise_or_other_keys() -> None:
+    """Codex P1 on #219: an exception is bound to the approved count and key set."""
+    base = _file(A8=3)
+    approved = _approved(_file(A8=4))
+    assert baseline_raises(base, _file(A8=5), (approved,)) == (
+        "tarot: baseline file raises A8 from 3 to 5 beyond the approved exception "
+        "(max 4, approved key set)",
+    )
+    other_keys = _file(A8=4)
+    other_keys["surfaces"]["tarot"]["keys"]["A8"] = ["feedbeef00"]
+    assert baseline_raises(base, other_keys, (approved,)) == (
+        "tarot: baseline file raises A8 from 3 to 4 beyond the approved exception "
+        "(max 4, approved key set)",
+        "tarot: baseline file adds 1 A8 key(s) without an exception (feedbeef00)",
+    )
+    # The ratchet then keeps the base branch's count, so the rise fails there too.
+    merged = effective_baseline(base, _file(A8=5), (approved,))
+    assert merged["surfaces"]["tarot"]["rules"]["A8"] == 3
+    unbound = RatchetException("A8", "tarot", "approved rise", "owner")
+    assert baseline_raises(base, _file(A8=4), (unbound,)) != ()
 
 
 def test_the_ratchet_uses_the_base_branch_except_for_approved_pairs() -> None:
     base = _file(A8=3, A5=2)
     head = _file(A8=9, A5=9)
-    approved = RatchetException("A8", "tarot", "approved rise", "owner")
+    approved = _approved(head)
     merged = effective_baseline(base, head, (approved,))
     assert merged["surfaces"]["tarot"]["rules"]["A8"] == 9
     assert merged["surfaces"]["tarot"]["rules"]["A5"] == 2
