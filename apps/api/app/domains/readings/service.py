@@ -40,7 +40,25 @@ BODY_VI = {
     BodyName.VENUS: "Sao Kim",
     BodyName.MARS: "Sao Hỏa",
     BodyName.JUPITER: "Sao Mộc",
+    BodyName.SATURN: "Sao Thổ",
+    BodyName.URANUS: "Thiên Vương",
+    BodyName.NEPTUNE: "Hải Vương",
+    BodyName.PLUTO: "Diêm Vương",
+    BodyName.TRUE_NODE: "Nút Bắc",
+    BodyName.MEAN_NODE: "Nút Bắc",
+    BodyName.SOUTH_NODE: "Nút Nam",
+    BodyName.CHIRON: "Chiron",
 }
+
+# Bodies that get their own sign card; BODY_VI also names every body an aspect line can show.
+CLAIM_BODIES = (
+    BodyName.SUN,
+    BodyName.MOON,
+    BodyName.MERCURY,
+    BodyName.VENUS,
+    BodyName.MARS,
+    BodyName.JUPITER,
+)
 
 BODY_FUNCTION = {
     BodyName.SUN: "cách bạn chủ động, tạo dấu ấn và cảm thấy mình đang sống đúng hướng",
@@ -243,7 +261,8 @@ class InsightReadingService:
     @staticmethod
     def _jyotish_claims(chart: NatalChart) -> tuple[ReadingClaim, ...]:
         claims: list[ReadingClaim] = []
-        for body, label in BODY_VI.items():
+        for body in CLAIM_BODIES:
+            label = BODY_VI[body]
             try:
                 position = chart.body(body)
             except KeyError:

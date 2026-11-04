@@ -17,6 +17,10 @@ const BODY_LABELS: Record<string, string> = {
   uranus: "Thiên Vương",
   neptune: "Hải Vương",
   pluto: "Diêm Vương",
+  true_node: "Nút Bắc",
+  mean_node: "Nút Bắc",
+  south_node: "Nút Nam",
+  chiron: "Chiron",
 };
 
 const SIGN_LABELS: Record<string, string> = {

@@ -121,9 +121,9 @@ export function makeGh(run = execFileSync) {
     raw: call,
     json: args => JSON.parse(call(args)),
     pr: number => JSON.parse(call(['pr', 'view', String(Number(number)), '--repo', repo, '--json',
-      'number,title,url,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,body,author,isCrossRepository'])),
+      'number,title,url,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,body,author,isCrossRepository,files'])),
     openPrs: () => JSON.parse(call(['pr', 'list', '--repo', repo, '--state', 'open', '--limit', '100', '--json',
-      'number,title,url,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,author,isCrossRepository'])),
+      'number,title,url,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,body,author,isCrossRepository,files'])),
     comment: (kind, number, body) => call([kind, 'comment', String(Number(number)), '--repo', repo, '--body-file', '-'], assertAgentBody(body)),
   };
 }
