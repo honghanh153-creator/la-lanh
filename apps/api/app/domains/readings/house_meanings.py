@@ -213,6 +213,15 @@ def meaning_by_key(key: str) -> SourcedMeaning:
 # A many-door phrase names this many plain meanings (N-3: at least three ways a topic shows up).
 PLAIN_DOORS = 3
 
+# Owner override, decided in chat 04.11.2026 (PR #215): house 6 reads "công việc hằng ngày, thói
+# quen chăm sóc cơ thể hay vật nuôi nhỏ", so its many-door phrase opens with the MODERN-only
+# "công việc hằng ngày" and keeps the classical "vật nuôi nhỏ" last. This is the only exception to
+# "a MODERN-only meaning never leads"; it applies to the phrase only (``display_order`` is
+# unchanged) and to no other house. A test pins both.
+OWNER_DOOR_ORDER: dict[int, tuple[str, ...]] = {
+    6: ("daily_work", "body_care_habits", "small_animals"),
+}
+
 
 def many_doors(house: int) -> tuple[SourcedMeaning, ...]:
     """The meanings a running reading names for ``house``, in the order a reader sees them.
@@ -223,6 +232,8 @@ def many_doors(house: int) -> tuple[SourcedMeaning, ...]:
     never first and never alone. Every other ⚠ meaning stays out of the phrase.
     """
 
+    if house in OWNER_DOOR_ORDER:
+        return tuple(meaning_by_key(key) for key in OWNER_DOOR_ORDER[house])
     plain = [m for m in display_order(house, daily=True) if not m.sensitive][:PLAIN_DOORS]
     first = HOUSE_MEANINGS[house][0]
     if first.sensitive and first.daily_allowed:

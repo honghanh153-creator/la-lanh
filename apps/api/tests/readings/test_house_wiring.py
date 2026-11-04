@@ -22,6 +22,7 @@ from app.domains.readings.daily_personalization import (
 from app.domains.readings.house_meanings import (
     HOUSE_MEANINGS,
     LEAD_SOURCES,
+    OWNER_DOOR_ORDER,
     MeaningSource,
     door_words,
     house_phrase,
@@ -49,7 +50,8 @@ def test_knowledge_house_names_its_own_sourced_doors(house: int) -> None:
         ", ".join(door_words(m) for m in doors[:-1]) + f" hay {door_words(doors[-1])}"
     )
     lead = doors[0]
-    assert lead.source in LEAD_SOURCES and lead.source is not MeaningSource.MODERN
+    if house not in OWNER_DOOR_ORDER:
+        assert lead.source in LEAD_SOURCES and lead.source is not MeaningSource.MODERN
     assert not lead.sensitive
     assert all(m.daily_allowed for m in doors)
     plain = [m for m in doors if not m.sensitive]
@@ -62,6 +64,17 @@ def test_knowledge_house_names_its_own_sourced_doors(house: int) -> None:
     if sensitive:
         assert doors[-1] is sensitive[0]
     assert not any(label in house_phrase(house) for label in OLD_GROUP_LABELS)
+
+
+def test_owner_override_reorders_house_six_only() -> None:
+    # Owner decision in chat 04.11.2026 (PR #215): daily work first, small animals last.
+    assert set(OWNER_DOOR_ORDER) == {6}
+    assert house_phrase(6) == "công việc hằng ngày, thói quen chăm sóc cơ thể hay vật nuôi nhỏ"
+    assert many_doors(6)[0].source is MeaningSource.MODERN
+    # The rule still holds for every other house.
+    for house in HOUSES:
+        if house != 6:
+            assert many_doors(house)[0].source in LEAD_SOURCES
 
 
 def test_twelve_houses_are_twelve_different_sets() -> None:
