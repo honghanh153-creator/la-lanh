@@ -167,6 +167,26 @@ def test_s9_blocks_an_assumed_circumstance(text: str) -> None:
     assert lint_document(_doc(text))["S9"] == 1
 
 
+# Round 4: a condition opens the door only when it affirms the reader's own circumstance.
+_S9_CONDITION_TABLE = (
+    ("Nếu bạn làm việc với phụ huynh, đón con sớm.", True),  # unrelated subject
+    ("Nếu bạn chưa có con thì đón con sớm.", True),  # negation
+    ("Nếu bạn không có người yêu, nhắn cho người yêu của bạn một câu.", True),  # negation
+    ("Nếu bạn gặp con nhỏ của hàng xóm, đón con sớm.", True),  # topic belongs to someone else
+    ("Nếu trời mưa, đón con sớm.", True),  # condition about something else
+    ("Đón con sớm, nếu bạn có con nhỏ.", True),  # assumed before the door opens
+    ("Nếu bạn đã có con, đón con sớm.", False),
+    ("Nếu bạn là phụ huynh, đón con sớm.", False),
+    ("Với ai đang nuôi con nhỏ, đón con sớm hơn một chút.", False),
+)
+
+
+@pytest.mark.parametrize(("text", "flagged"), _S9_CONDITION_TABLE)
+def test_s9_condition_must_affirm_the_readers_circumstance(text: str, flagged: bool) -> None:
+    assert assumes_circumstances(text) is flagged
+    assert lint_document(_doc(text))["S9"] == int(flagged)
+
+
 @pytest.mark.parametrize(
     "text",
     (
@@ -372,6 +392,45 @@ def test_a15_flags_a_fact_the_engine_did_not_compute(text: str) -> None:
     document = _doc(text, surface="daily", facts=_FACTS)
     assert astro_fact_errors(document) == (text,)
     assert lint_document(document)["A15"] == 1
+
+
+# Round 4: each phase word binds to its own clause, before or after the claim's bodies.
+_A15_PHASE_TABLE = (
+    (
+        "Hôm nay Sao Kim đang rời xa góc tam hợp với Sao Hỏa của bạn,"
+        " Mặt Trăng đang tiến gần góc vuông với Sao Thổ của bạn.",
+        1,
+    ),  # phases before each second body, swapped
+    (
+        "Hôm nay Sao Kim đang tiến gần góc tam hợp với Sao Hỏa của bạn,"
+        " Mặt Trăng đang rời xa góc vuông với Sao Thổ của bạn.",
+        0,
+    ),  # phases before each second body, correct
+    (
+        "Hôm nay Sao Kim tam hợp Sao Hỏa của bạn và đang rời xa;"
+        " Mặt Trăng vuông góc Sao Thổ của bạn và đang tiến gần.",
+        1,
+    ),  # phases after each body, swapped
+    ("Sao Kim tam hợp Sao Hỏa đang tiến gần và đối đỉnh Sao Mộc.", 1),  # shared first body
+    ("Đang rời xa, Sao Kim tam hợp Sao Hỏa.", 1),  # single claim, phase first, wrong
+    ("Đang tiến gần, Sao Kim tam hợp Sao Hỏa.", 0),  # single claim, phase first, right
+    (
+        "Hôm nay Sao Kim đang tiến gần góc tam hợp với Sao Hỏa của bạn"
+        " và Mặt Trăng đang rời xa góc vuông với Sao Thổ của bạn.",
+        0,
+    ),  # joined by "và", no comma
+    (
+        "Hôm nay Sao Kim đang rời xa góc tam hợp với Sao Hỏa của bạn"
+        " và Mặt Trăng đang tiến gần góc vuông với Sao Thổ của bạn.",
+        1,
+    ),
+)
+
+
+@pytest.mark.parametrize(("text", "errors"), _A15_PHASE_TABLE)
+def test_a15_binds_each_phase_to_its_own_clause(text: str, errors: int) -> None:
+    document = _doc(text, surface="daily", facts=_FACTS)
+    assert lint_document(document)["A15"] == errors
 
 
 def test_a15_carries_the_subject_within_one_claim_only() -> None:

@@ -627,16 +627,39 @@ def _conditions(sentence: str) -> list[tuple[int, int]]:
     return found
 
 
-def assumes_circumstances(sentence: str) -> bool:
-    """S9. True when the sentence takes a circumstance of the reader for granted."""
+# A condition opens the door only when it says the reader (or "ai/người" the door names) has the
+# circumstance: the words between the door and the topic may only be "bạn" and plain verbs of
+# being or having. "Nếu bạn chưa có con", "Nếu bạn làm việc với phụ huynh" do not open it.
+_AFFIRMING_GAP = re.compile(
+    r"\s*(?:bạn\s+)?(?:(?:đã|đang|vẫn|cũng|hiện|là|có|vừa)\s+)*", re.IGNORECASE
+)
+_NEGATION = re.compile(r"\b(?:chưa|không|chẳng|chả|đâu có|không phải)\b", re.IGNORECASE)
 
-    conditions = _conditions(sentence)
+
+def _affirms(sentence: str, door_end: int, end: int, topic: re.Pattern[str]) -> bool:
+    if _NEGATION.search(sentence, door_end, end):
+        return False
+    return any(
+        _AFFIRMING_GAP.fullmatch(sentence, door_end, match.start())
+        for match in topic.finditer(sentence, door_end, end)
+    )
+
+
+def assumes_circumstances(sentence: str) -> bool:
+    """S9. True when the sentence takes a circumstance of the reader for granted. A circumstance
+    after a door word is fine only when that condition affirms the reader has it."""
+
+    doors = [
+        (door.end(), end)
+        for door, (_, end) in zip(
+            _DOOR_WORDS.finditer(sentence), _conditions(sentence), strict=True
+        )
+    ]
     for _, pattern, topic in _CIRCUMSTANCE_KINDS:
         for match in pattern.finditer(sentence):
             if not any(
-                start <= match.start()
-                and (match.start() < end or topic.search(sentence, start, end))
-                for start, end in conditions
+                door_end <= match.end() and _affirms(sentence, door_end, end, topic)
+                for door_end, end in doors
             ):
                 return True
     return False
@@ -1131,18 +1154,39 @@ def _phase(text: str) -> str | None:
     return next((phase for pattern, phase in _PHASE_WORDS if pattern.search(text)), None)
 
 
-def _claim_phases(sentence: str, claims: Sequence[_AspectClaim]) -> list[str | None]:
-    """The phase each claim states: the phase words after its second body, up to the next claim.
-    A single claim may state its phase anywhere in the sentence ("Đang tiến gần, Sao Kim …")."""
+_CLAUSE_BREAK = re.compile(r"[,;:]")
+_CLAUSE_JOIN = re.compile(r"\b(?:và|nhưng|còn)\b", re.IGNORECASE)
 
-    if len(claims) == 1:
-        return [_phase(sentence)]
-    phases: list[str | None] = []
-    for index, claim in enumerate(claims):
-        start = claim.second.end
-        end = claims[index + 1].second.start if index + 1 < len(claims) else len(sentence)
-        phases.append(_phase(sentence[start : max(start, end)]))
-    return phases
+
+def _claim_windows(sentence: str, claims: Sequence[_AspectClaim]) -> list[tuple[int, int]]:
+    """The stretch of the sentence each claim owns. Between two claims the text after the first
+    claim's second body is cut at the last clause break (comma, semicolon, colon) before the next
+    claim's second body; with none, where the next claim's own first body starts; with that body
+    shared, at the last "và/nhưng/còn". So phase words before or after a claim's bodies stay in
+    that claim's clause."""
+
+    if not claims:
+        return []
+    cuts: list[int] = []
+    for current, following in pairwise(claims):
+        gap_start = current.second.end
+        gap_end = max(gap_start, following.second.start)
+        breaks = [m.end() for m in _CLAUSE_BREAK.finditer(sentence, gap_start, gap_end)]
+        if not breaks and gap_start <= following.first.start < gap_end:
+            breaks = [following.first.start]
+        if not breaks:
+            breaks = [m.start() for m in _CLAUSE_JOIN.finditer(sentence, gap_start, gap_end)]
+        cuts.append(breaks[-1] if breaks else gap_end)
+    starts = [0, *cuts]
+    ends = [*cuts, len(sentence)]
+    return list(zip(starts, ends, strict=True))
+
+
+def _claim_phases(sentence: str, claims: Sequence[_AspectClaim]) -> list[str | None]:
+    """The phase each claim states: the phase words inside that claim's own clause, before or
+    after its bodies ("Sao Kim đang rời xa góc tam hợp với Sao Hỏa, Mặt Trăng đang tiến gần …")."""
+
+    return [_phase(sentence[start:end]) for start, end in _claim_windows(sentence, claims)]
 
 
 def _owner(
