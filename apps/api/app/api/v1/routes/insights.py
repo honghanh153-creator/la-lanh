@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import UTC, datetime
-from typing import Annotated, Literal, cast
+from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, Response
@@ -22,12 +22,21 @@ from app.domains.birth.service import BirthChartService
 from app.domains.daily.service import DailyNoteService
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
-from app.domains.readings.application import ReadingApplicationService
+from app.domains.readings.application import ReadingApplicationService, ReadingContentRejected
 from app.domains.readings.models import InsightReading, ReadingProjection, ReadingPurpose
 from app.domains.readings.service import InsightReadingService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# #143 E2: a 422 here is either bad query input (INPUT_INVALID) or READING_CONTENT_REJECTED, when
+# the content gates reject every candidate. Both are problem+json; neither is a retry prompt.
+_REJECTED_RESPONSE: dict[str, Any] = {
+    "description": "Request input was rejected, or the reading content was rejected",
+    "content": {
+        "application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemResponse"}}
+    },
+}
 
 
 class InsightBodyProjection(BaseModel):
@@ -123,6 +132,13 @@ def _reading_problem(status: int, code: str) -> JSONResponse:
     )
 
 
+def _content_rejected_problem() -> JSONResponse:
+    # #143 E2: the gates rejected every candidate (already logged without content by the
+    # application service). The same chart yields the same result, so this is a content
+    # error, not an outage: 422 like the content studio's gate, and no retry prompt.
+    return _reading_problem(422, "READING_CONTENT_REJECTED")
+
+
 def _calculation_config(
     tradition: Tradition,
     ayanamsa: Ayanamsa | None,
@@ -158,7 +174,7 @@ async def supported_configs() -> SupportedConfigResponse:
 @router.get(
     "/insights/overview",
     response_model=InsightOverviewResponse,
-    responses={401: {}, 404: {}, 409: {}, 503: {}},
+    responses={401: {}, 404: {}, 409: {}, 422: _REJECTED_RESPONSE, 503: {}},
 )
 async def insight_overview(
     request: Request,
@@ -204,6 +220,8 @@ async def insight_overview(
             await _daily_service(request).assert_current_birth_source(snapshot)
         except BirthDomainError as error:
             return _problem(error)
+        except ReadingContentRejected:
+            return _content_rejected_problem()
         except Exception:
             logger.exception(
                 "Private insight projection failed",
@@ -231,7 +249,7 @@ async def insight_overview(
 @router.get(
     "/insights/readings/{purpose}",
     response_model=ReadingProjection,
-    responses={401: {}, 404: {}, 409: {}, 503: {}},
+    responses={401: {}, 404: {}, 409: {}, 422: _REJECTED_RESPONSE, 503: {}},
 )
 async def private_reading(
     purpose: Literal["aura", "reading_detail", "personalized_sky"],
@@ -273,6 +291,8 @@ async def private_reading(
         return projection
     except BirthDomainError as error:
         return _problem(error)
+    except ReadingContentRejected:
+        return _content_rejected_problem()
     except Exception:
         logger.exception(
             "Private insight reading failed",

@@ -1,7 +1,7 @@
 // One status board on the daily plan issue, edited in place by every tick, so the owner can see
 // from a phone whether the loop is running and why it stopped (owner request 31.10.2026).
 import { join } from 'node:path';
-import { agentMarker, assertAgentBody, clean, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
+import { agentMarker, assertAgentBody, clean, codexDailyCap, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
 
 export const boardMarker = `${agentMarker} status-board -->`;
 
@@ -26,7 +26,7 @@ const addMinutes = (t, minutes) => {
   return { hour: Math.floor(total / 60) % 24, minute: total % 60 };
 };
 
-export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = 12, failures = 0, error = null }) {
+export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null }) {
   const [label, why] = STATES[status] ?? [status, ''];
   const waitingOwner = turns.filter(t => t.turn === 'hold' && /needs-owner|owner bỏ/.test(t.reason));
   const queue = turns.filter(t => t.turn !== 'hold').slice(0, 8);

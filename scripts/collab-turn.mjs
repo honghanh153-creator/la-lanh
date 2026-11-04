@@ -2,14 +2,34 @@
 import { closeSync, mkdirSync, openSync, rmSync, statSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { areaOrder, classifyArea, clean, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
+import { preflightFailure, readPreflight, recordPreflight } from './collab-preflight.mjs';
 
-export const codexDailyCap = 12;
+export { codexDailyCap };
 
-export function prTurn(pr, { dropped = [] } = {}) {
+export const prFiles = pr => (pr.files ?? []).map(f => f.path ?? f).filter(Boolean);
+
+// Fix B (04.11.2026): one open PR per file. Two PRs on the same file conflicted after the first
+// merge and cost a fix round each time; the later one waits for the earlier one to land.
+// The repo keeps no list of generated or lock files, so every file counts.
+// Fix-forward (04.11): only a blocker that can move counts. A PR on hold itself (fork/outside,
+// draft, needs-owner, dropped from today's plan, stacked) would hold the other for days (#199 behind #127).
+// "Earlier" means earlier in the owner's group order, then creation: a later group never holds an
+// earlier one, otherwise the group gate and the file gate wait on each other forever.
+const canMove = (o, dropped) => isOwnPr(o) && !o.isDraft && o.baseRefName === integration
+  && !(o.labels ?? []).some(l => (l.name ?? l) === 'needs-owner') && !dropped.includes(o.number);
+
+export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
+  const mine = new Set(prFiles(pr));
+  if (!mine.size) return null;
+  const order = sortByPriority([pr, ...prs.filter(o => o.number !== pr.number && canMove(o, dropped))]);
+  return order.slice(0, order.indexOf(pr)).find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;
+}
+
+export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   const head = pr.headRefOid;
-  const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason });
+  const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr) });
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (!isOwnPr(pr)) return out('hold', 'PR không phải của owner hoặc từ fork: không chạy, không review');
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
@@ -17,12 +37,16 @@ export function prTurn(pr, { dropped = [] } = {}) {
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
   if (pr.baseRefName !== integration) return out('hold', `xếp chồng trên ${pr.baseRefName}`);
+  const blocker = fileBlocker(pr, open, { dropped });
+  if (blocker) return out('hold', `chờ PR #${blocker} cùng file`);
   // A conflict needs Claude at any stage: on 02.11 an approved PR in conflict kept every tick on a
   // refused merge for three hours, and checking or reviewing a head that cannot merge wastes the run (K24).
   if (pr.mergeable === 'CONFLICTING') return out('claude-fix', 'xung đột với collab/integration');
   const state = reviewState(pr);
   const check = state.check;
   const last = state.last?.verdict;
+  const pre = check ? null : preflightFailure(preflight, pr);
+  if (pre) return out('claude-fix', `preflight: ${clean(pre.join('; '), 200)}`);
   if (!check) return out('claude-check', 'chưa có Author check @ head');
   if (check.status === 'FAIL') return out('claude-fix', 'Author check FAIL @ head');
   if (!last || last.sha !== head) return out('codex-review', last ? `verdict cuối cho ${last.sha.slice(0, 7)}` : 'chưa có verdict');
@@ -30,8 +54,9 @@ export function prTurn(pr, { dropped = [] } = {}) {
   return out('merge', 'APPROVE @ head');
 }
 
-export function turnsFor(prs, options) {
-  return sortByPriority(prs).map(pr => prTurn(pr, options));
+export function turnsFor(prs, options = {}) {
+  const preflight = options.preflight ?? readPreflight();
+  return sortByPriority(prs).map(pr => prTurn(pr, { ...options, open: prs, preflight }));
 }
 
 // Owner order: finish every content PR before privacy, and privacy before features.
@@ -39,6 +64,10 @@ export function turnsFor(prs, options) {
 // The machine works on the earliest group that has machine work (check, review, merge). A PR that
 // waits for Claude's fix no longer blocks the machine: on 31.10 one ops PR in claude-fix stalled
 // every group for two hours. Claude still fixes in priority order (claude-queue.json).
+// Fix E: how many checks one tick may run back to back; the tick lock is treated as crashed after
+// 90 minutes, so the drain also stops starting new checks after 60.
+export const checksPerTick = 3;
+export const drainMinutes = 60;
 export const machineTurns = new Set(['claude-check', 'codex-review', 'merge']);
 export function activeArea(turns) {
   return areaOrder.find(area => turns.some(t => t.area === area && machineTurns.has(t.turn))) ?? null;
@@ -59,7 +88,7 @@ function withLock(fn) {
   try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
-export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [] } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [] } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -76,7 +105,7 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
     try { watchdog(); } catch {}
     try {
       // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.
-      const missing = preflight();
+      const missing = tools();
       if (missing.length) throw new Error(`thiếu công cụ trên PATH: ${missing.join(', ')}`);
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
@@ -103,14 +132,26 @@ export function tick({ gh = makeGh(), now, clock, preflight = () => [], check = 
         show({ status: 'running', doing: `merge #${t.number}`, expectMinutes: 5, area, turns, done });
         done.push({ pr: t.number, merge: merge(t.number) });
       }
-      // Author checks need no AI: the tick runs one per run in the dedicated clone, then reviews it.
+      // Author checks need no AI: the tick runs them in the dedicated clone, one at a time, then reviews.
+      // Fix A: a fast preflight first; a failure is recorded (nothing posted) and costs no check slot.
+      // Fix E (04.11.2026): while the heavy-job lock is free and another PR is ready, the tick starts
+      // it at once instead of waiting 10 minutes for the next run. Checks stay strictly serial here,
+      // and the check lock still refuses a second heavy job from anywhere else.
       const checked = [];
-      for (const t of work.filter(t => t.turn === 'claude-check').slice(0, 1)) {
-        if (late()) break;
+      const startedMs = nowMs();
+      let checks = 0;
+      for (const t of work.filter(t => t.turn === 'claude-check')) {
+        if (late() || checks >= checksPerTick || nowMs() - startedMs > drainMinutes * 60000) break;
+        const pre = preflight(t.number);
+        if (pre?.status === 'FAIL') { recordPreflight(t.number, t.head, pre); done.push({ pr: t.number, preflight: pre }); continue; }
+        if (checks > 0 && !heavyFree()) break;
         show({ status: 'running', doing: `author check #${t.number} (thường 10–35 phút)`, expectMinutes: 90, area, turns, done });
         const result = check(t.number, { auto: true, clock: time });
+        checks += 1;
         done.push({ pr: t.number, check: result });
+        if (result?.status === 'preflight') { recordPreflight(t.number, t.head, { status: 'FAIL', reasons: result.reasons ?? [] }); checks -= 1; continue; }
         if (result?.status === 'PASS') checked.push(t);
+        if (!['PASS', 'FAIL'].includes(result?.status)) break;
       }
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);

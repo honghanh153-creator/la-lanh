@@ -1,7 +1,7 @@
 // Daily plan gate: 08:50 plan, owner replies Duyệt/Giữ/Bỏ #N between 9 and 10, 10:00 auto start, stop at 23:30.
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
-import { agentMarker, clean, isTrusted, makeGh, parseOwnerReply, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { agentMarker, clean, codexDailyCap, isTrusted, makeGh, parseOwnerReply, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 
 export const planTitle = 'Kế hoạch chạy tự động hằng ngày';
 const planMarker = date => `${agentMarker} daily-plan date=${date} -->`;
@@ -9,10 +9,25 @@ const minutes = now => now.hour * 60 + now.minute;
 export const planOpensAt = 8 * 60 + 50;
 export const autoStartAt = 10 * 60;
 export const lastStartAt = 23 * 60 + 30;
-// Owner decision 02.11.2026: each day commits 6–8 PRs and the day's % is merged / committed.
-// A plan larger than the serial checks and the Codex cap can carry never reached 100%.
-export const commitMin = 6;
-export const commitMax = 8;
+// Owner decision 02.11.2026: the day's % is merged / committed. Owner 03.11.2026: commit at least
+// 16 PRs (03.11 merged 16 and finished the 6–8 commitment by 15:37). 20 stays inside the Codex cap.
+export const commitMin = 16;
+export const commitMax = 20;
+
+// Fix C (04.11.2026): the owner approves new user-facing copy and clarity-ratchet rises together
+// with the plan. Detected from the PR's files: content sources, and the clarity baseline or
+// exceptions file (a change there means the ratchet expects more flagged sentences).
+export const copyPatterns = [
+  /^apps\/api\/app\/domains\/(content|content_rewrite)\//,
+  /^apps\/api\/app\/.*\.(json|ya?ml|md)$/,
+  /^apps\/web\/src\/.*(copy|strings|messages|i18n)[^/]*\.(ts|tsx|json)$/i,
+];
+export const ratchetFiles = ['apps/api/scripts/content_clarity_baseline.json', 'apps/api/scripts/content_clarity_exceptions.json'];
+export function copyReview(files = []) {
+  const copy = files.filter(f => !/(^|\/)tests?\//.test(f) && copyPatterns.some(p => p.test(f)));
+  const ratchet = files.filter(f => ratchetFiles.includes(f));
+  return copy.length || ratchet.length ? { copy, ratchet } : null;
+}
 
 export const committedTurns = turns => turns.filter(t => t.turn !== 'hold').slice(0, commitMax);
 
@@ -35,6 +50,15 @@ export function planState(now, comments = []) {
   return { state, reason: action ?? (state === 'open' ? 'auto-10h' : 'waiting-owner'), plan, dropped: [...dropped].sort((a, b) => a - b) };
 }
 
+function copyLines(committed) {
+  const rows = committed.map(t => [t, copyReview(t.files ?? [])]).filter(([, r]) => r).map(([t, r]) => {
+    const what = [r.copy.length ? `câu mới ở ${r.copy.slice(0, 3).map(f => `\`${f}\``).join(', ')}${r.copy.length > 3 ? ` (+${r.copy.length - 3})` : ''}` : null,
+      r.ratchet.length ? `clarity ratchet có thể tăng (${r.ratchet.map(f => `\`${f.split('/').at(-1)}\``).join(', ')})` : null].filter(Boolean).join('; ');
+    return `- #${t.number} **cần duyệt câu**: ${what}.`;
+  });
+  return rows.length ? ['', '**Câu chữ cần duyệt cùng plan** (`Duyệt` là duyệt luôn các câu này; `Bỏ #N` nếu chưa muốn):', ...rows, ''] : [];
+}
+
 export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
   const committed = committedTurns(turns);
@@ -44,7 +68,7 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     `## Plan ${now.date}`,
     '',
     'Thứ tự ưu tiên: quy trình (ops) → content → privacy → tính năng mới. Trong nhóm, PR cũ trước.',
-    `Lượt Codex tự động còn hôm nay: ${codexLeft}/12. Chạy tới 23:30, không merge vào main, không deploy.`,
+    `Lượt Codex tự động còn hôm nay: ${codexLeft}/${codexDailyCap}. Chạy tới 23:30, không merge vào main, không deploy.`,
     // A long pause before the plan means the Mac slept or was off (retro D3, 31.10.2026).
     ...(gap ? [`**Máy không chạy tick từ ${gap.from} tới ${gap.to}** (Mac ngủ hoặc tắt), nên plan có thể trễ.`] : []),
     // Health of the unattended Claude runs (watchdog, owner 03.11.2026): a stall shows every morning.
@@ -52,6 +76,7 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     '',
     `**Cam kết hôm nay (${commitMin}–${commitMax} PR):** ${committed.length ? committed.map(t => `#${t.number}`).join(', ') : 'chưa có PR nào sẵn sàng'}.`,
     ...(short > 0 ? [`Còn thiếu ${short} PR so với mức ${commitMin}: Claude mở thêm từ backlog \`auto: yes\` và ghi số PR vào issue này.`] : []),
+    ...copyLines(committed),
     `% hôm nay = số PR cam kết đã merge vào integration / số PR cam kết. PR còn lại trong bảng làm nếu kịp, không tính vào %.`,
     '',
     '| PR | Nhóm | Lượt kế tiếp | Lý do | Tiêu đề |',

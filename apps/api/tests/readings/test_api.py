@@ -13,6 +13,7 @@ from app.config import Settings
 from app.domains.birth.errors import BirthProfileChanged
 from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.readings.application import ReadingApplicationService, ReadingContentRejected
 from app.domains.readings.models import ReadingPurpose
 from app.domains.readings.tables import ReadingPlanRow
 from app.main import create_app
@@ -553,6 +554,138 @@ def test_an_approximate_birth_time_still_opens_a_reading_in_both_traditions(
     projection = cast(dict[str, object], payload["reading_projection"])
     active = cast(dict[str, object], projection["active"])
     assert active["tradition"] == tradition
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+@pytest.mark.parametrize("window", ["morning", "evening"])
+def test_an_approximate_window_reads_on_every_explore_surface(
+    reading_client: TestClient, tradition: str, window: str
+) -> None:
+    """#143 E2 (synthetic input): an approximate time window opens every private reading
+    surface in both traditions instead of a 503."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    assert (
+        reading_client.post(
+            "/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        reading_client.post(
+            "/v1/birth-profile/supplement",
+            json={
+                "birth_time_mode": "approx_window",
+                "birth_time_local": None,
+                "approx_window": window,
+                "place_id": "vn-hanoi",
+                "consent_version": "birth-profile-deep-v1",
+            },
+            headers=headers,
+        ).status_code
+        == 200
+    )
+
+    for path in (
+        "/v1/insights/overview",
+        "/v1/insights/readings/aura",
+        "/v1/insights/readings/reading_detail",
+        "/v1/insights/readings/personalized_sky",
+    ):
+        response = reading_client.get(f"{path}?tradition={tradition}")
+        assert response.status_code == 200, (path, response.text)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/insights/overview?tradition=jyotish",
+        "/v1/insights/readings/reading_detail?tradition=jyotish",
+    ],
+)
+def test_a_rejected_reading_answers_a_content_error_not_a_503(
+    reading_client: TestClient, monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    """#143 E2: when the gates reject every candidate, retrying cannot help. The route says
+    so with its own code, so Explore does not ask the reader to check the connection."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    assert (
+        reading_client.post(
+            "/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        reading_client.post(
+            "/v1/birth-profile/supplement",
+            json={
+                "birth_time_mode": "approx_window",
+                "birth_time_local": None,
+                "approx_window": "morning",
+                "place_id": "vn-hanoi",
+                "consent_version": "birth-profile-deep-v1",
+            },
+            headers=headers,
+        ).status_code
+        == 200
+    )
+
+    async def rejected(*_args: object, **_kwargs: object) -> None:
+        raise ReadingContentRejected
+
+    monkeypatch.setattr(ReadingApplicationService, "project", rejected)
+
+    response = reading_client.get(path)
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "READING_CONTENT_REJECTED"
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_explore_tiles_read_at_the_same_data_level_as_the_synthesis(
+    reading_client: TestClient, tradition: str
+) -> None:
+    """#143 E4: with an approximate time the synthesis reads only the time-stable signs, while the
+    tiles on the same page still stated the Moon, aspect orbs and the Moon's nakshatra as exact.
+    Synthetic profile: 2001-01-15, morning window."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+
+    overview = reading_client.get(f"/v1/insights/overview?tradition={tradition}")
+
+    assert overview.status_code == 200
+    payload = cast(dict[str, object], overview.json())
+    assert payload["time_precision"] == "approximate"
+    projection = cast(dict[str, object], payload["reading_projection"])
+    active = cast(dict[str, object], projection["active"])
+    assert active["precision"] == "approximate"
+    claims = cast(list[dict[str, object]], cast(dict[str, object], payload["reading"])["claims"])
+    assert claims, "the stable signs still give tiles"
+    for claim in claims:
+        visible = " ".join(
+            [str(claim[key]) for key in ("title", "summary", "hook", "meaning", "watch_for")]
+            + cast(list[str], claim["evidence"])
+        )
+        for time_bound in ("Mặt Trăng", "Nhà ", "nhà ", "orb", "Góc ", "Nakshatra", "Pada"):
+            assert time_bound not in visible, (claim["id"], time_bound, visible)
+        refs = cast(list[str], claim["factor_refs"])
+        assert not any(":longitude:" in ref or ":aspect:" in ref for ref in refs), refs
 
 
 @pytest.mark.parametrize(

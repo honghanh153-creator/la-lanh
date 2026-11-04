@@ -26,7 +26,7 @@ test('the board says the state, when it was updated and what waits on the owner'
   assert.match(renderBoard({ now, status: 'ran' }), /cũ hơn 20 phút/);
   assert.match(body, /\| #7 \| content \| claude-check \|/);
   assert.match(body, /Chờ owner: #139\./);
-  assert.match(body, /Codex hôm nay: 3\/12/);
+  assert.match(body, /Codex hôm nay: 3\/32/);
   assert.doesNotThrow(() => trust.assertAgentBody(body));
   assert.match(renderBoard({ now, status: 'closed' }), /NGOÀI GIỜ/);
   assert.match(renderBoard({ now, status: 'error', error: 'thiếu công cụ trên PATH: pnpm' }), /LỖI[\s\S]*thiếu công cụ/);
@@ -76,7 +76,7 @@ test('every tick updates the board, before heavy work too, and a board failure n
 
 test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not "no work"', () => {
   const date = '2026-11-13';
-  trust.writeJson(trust.dayStatePath(date), { codexRuns: 12 });
+  trust.writeJson(trust.dayStatePath(date), { codexRuns: trust.codexDailyCap });
   const comments = [{ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` }];
   const checked = pr({ number: 9, comments: [{ authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${trust.agentMarker} x -->` }] });
   const gh = {

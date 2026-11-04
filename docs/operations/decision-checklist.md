@@ -21,7 +21,7 @@ Trả lời lần lượt. Gặp **"có"** ở câu nào thì dừng ở câu đ
 - Owner chỉ xem câu bị cổng gắn cờ và báo cáo điểm của mỗi đợt.
 - Bộ chuẩn (C3a, `docs/plans/2026-11-02-daily-v2-content-quality-plan.md`) do Claude chốt và Codex review.
 - Đổi bộ chuẩn thì qua PR như mọi tài liệu khác.
-- Vẫn cần owner duyệt: copy giao diện (nút, thông báo, nhãn mới ngoài 12 lĩnh vực đã chốt), lời giải thích quyền riêng tư, nội dung pháp lý, và mọi ngoại lệ của luật an toàn S1–S7.
+- Vẫn cần owner duyệt: copy giao diện (nút, thông báo, nhãn mới hiện ra cho người dùng; bảng nghĩa 12 nhà và bảng hành tinh × nhà thuộc bản đọc, đi qua cổng), lời giải thích quyền riêng tư, nội dung pháp lý, và mọi ngoại lệ của luật an toàn S1–S7.
 
 **Cải thiện trải nghiệm người dùng (owner, 31.10.2026):** việc giúp người dùng dùng app dễ, rõ, êm hơn mà không vướng Q1–Q5 thì agent **chủ động làm luôn**, không chờ được giao: sửa lỗi hiển thị, trạng thái lỗi/đang tải rõ ràng hơn, bỏ thông tin kỹ thuật lộ ra người dùng, tránh lặp, tăng khả năng tiếp cận, tăng tốc. Nếu việc đó cần câu chữ mới thì vẫn qua Q2 (bản nháp + owner duyệt copy).
 

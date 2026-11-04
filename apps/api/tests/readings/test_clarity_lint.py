@@ -8,6 +8,7 @@ import pytest
 from app.domains.readings.clarity_lint import (
     HARD_ZERO_RULES,
     RULES,
+    SAFETY_RULES,
     ClarityDocument,
     RatchetException,
     SurfaceReport,
@@ -27,6 +28,7 @@ from app.domains.readings.clarity_lint import (
     excess_engine_metaphors,
     excess_hedges,
     hard_zero_violations,
+    keys_digest,
     lint_document,
     lint_document_keys,
     lint_surface,
@@ -193,6 +195,35 @@ def test_a6_counts_sentences_in_more_than_a_fifth_of_readings() -> None:
     report = lint_surface("tarot", docs)
     assert report.rules["A6"] == 2
     assert report.readings_flagged["A6"] == 10
+
+
+def test_a6_skips_fixed_titles_but_other_rules_still_lint_them() -> None:
+    title = "Đây là tiêu đề cố định của một phần"
+    docs = [
+        ClarityDocument(
+            surface="radar",
+            sample_id=f"s{index}",
+            sections=(
+                ("why_title", title),
+                ("scene_why_title", title),
+                ("why_body", f"Bài số {index} kể một chuyện rất riêng."),
+            ),
+        )
+        for index in range(10)
+    ]
+    report = lint_surface("radar", docs)
+    # The body template repeats (numbers are normalised); the title, seen in 10/10, does not count.
+    assert shared_sentences(docs) == ("bài số # kể một chuyện rất riêng",)
+    assert report.rules["A6"] == 1
+    # The same title in a body section is still a shared sentence.
+    body_docs = [
+        ClarityDocument(surface="radar", sample_id=f"s{index}", sections=(("why_body", title),))
+        for index in range(10)
+    ]
+    assert lint_surface("radar", body_docs).rules["A6"] == 1
+    # Titles keep every other rule: a placeholder in a title is still caught.
+    titled = ClarityDocument(surface="radar", sample_id="t", sections=(("why_title", "{name} ơi"),))
+    assert lint_document(titled) == lint_document(_doc("{name} ơi"))
 
 
 def test_a7_hedges_above_three_per_ten_sentences() -> None:
@@ -482,14 +513,49 @@ def test_a_pr_cannot_raise_its_own_baseline_without_an_exception() -> None:
     assert baseline_raises(base, added) == (
         "tarot: baseline file adds 1 A8 key(s) without an exception (feedbeef00)",
     )
-    approved = RatchetException("A8", "tarot", "rewrite lands in two PRs", "owner")
+    approved = _approved(_file(A8=4))
     assert baseline_raises(base, _file(A8=4), (approved,)) == ()
+
+
+def _approved(head: dict[str, Any], rule: str = "A8") -> RatchetException:
+    """An exception bound to the count and key set of ``head`` (what the owner approved)."""
+    entry = head["surfaces"]["tarot"]
+    return RatchetException(
+        rule,
+        "tarot",
+        "approved rise",
+        "owner",
+        max_count=entry["rules"][rule],
+        keys_digest=keys_digest(entry["keys"][rule]),
+    )
+
+
+def test_an_approved_exception_cannot_cover_a_further_rise_or_other_keys() -> None:
+    """Codex P1 on #219: an exception is bound to the approved count and key set."""
+    base = _file(A8=3)
+    approved = _approved(_file(A8=4))
+    assert baseline_raises(base, _file(A8=5), (approved,)) == (
+        "tarot: baseline file raises A8 from 3 to 5 beyond the approved exception "
+        "(max 4, approved key set)",
+    )
+    other_keys = _file(A8=4)
+    other_keys["surfaces"]["tarot"]["keys"]["A8"] = ["feedbeef00"]
+    assert baseline_raises(base, other_keys, (approved,)) == (
+        "tarot: baseline file raises A8 from 3 to 4 beyond the approved exception "
+        "(max 4, approved key set)",
+        "tarot: baseline file adds 1 A8 key(s) without an exception (feedbeef00)",
+    )
+    # The ratchet then keeps the base branch's count, so the rise fails there too.
+    merged = effective_baseline(base, _file(A8=5), (approved,))
+    assert merged["surfaces"]["tarot"]["rules"]["A8"] == 3
+    unbound = RatchetException("A8", "tarot", "approved rise", "owner")
+    assert baseline_raises(base, _file(A8=4), (unbound,)) != ()
 
 
 def test_the_ratchet_uses_the_base_branch_except_for_approved_pairs() -> None:
     base = _file(A8=3, A5=2)
     head = _file(A8=9, A5=9)
-    approved = RatchetException("A8", "tarot", "approved rise", "owner")
+    approved = _approved(head)
     merged = effective_baseline(base, head, (approved,))
     assert merged["surfaces"]["tarot"]["rules"]["A8"] == 9
     assert merged["surfaces"]["tarot"]["rules"]["A5"] == 2
@@ -586,6 +652,97 @@ def test_whitespace_runs_do_not_hide_a_multiword_safety_match(variant: str) -> N
     assert lint_document(_doc(variant))["S7"] == 1
     report = lint_surface("tarot", [_doc(variant)])
     assert report.keys["S7"] == (sentence_key("Bạn không muốn sống."),)
+
+
+_SPLIT_PHRASE_WHITESPACE = {
+    "line feed": "\n",
+    "CRLF": "\r\n",
+    "carriage return": "\r",
+    "two line feeds": "\n\n",
+    "line separator U+2028": "\u2028",
+    "paragraph separator U+2029": "\u2029",
+    "next line U+0085": "\x85",
+    "vertical tab": "\x0b",
+    "form feed": "\x0c",
+    "tab": "\t",
+    "no-break space": "\u00a0",
+    "narrow no-break space": "\u202f",
+    "ideographic space": "\u3000",
+    "several spaces": "   ",
+    "space, line feed, space": " \n ",
+    "tab, CRLF, no-break space": "\t\r\n\u00a0",
+}
+
+
+@pytest.mark.parametrize(
+    "gap", tuple(_SPLIT_PHRASE_WHITESPACE.values()), ids=tuple(_SPLIT_PHRASE_WHITESPACE)
+)
+def test_any_whitespace_inside_a_safety_phrase_is_caught_with_the_full_phrase_key(
+    gap: str,
+) -> None:
+    one_line = "Bạn không muốn sống."
+    split = f"Bạn không{gap}muốn sống."
+
+    assert count_safety("S7", split) == 1  # raw text, before normalising
+    assert lint_document(_doc(split))["S7"] == 1
+    assert lint_document_keys(_doc(split))["S7"] == {sentence_key(one_line)}
+    report = lint_surface("tarot", [_doc(split)])
+    assert report.hard_zero["S7"] == 1
+    assert report.keys["S7"] == (sentence_key(one_line),)
+    assert hard_zero_violations({"tarot": report}) == (
+        f"tarot: S7 ngôn ngữ khủng hoảng is a hard zero: 1 sentence(s) ({sentence_key(one_line)})",
+    )
+    # The key matches the one-line phrase, so an approved exception still names it exactly.
+    excepted = RatchetException(
+        "S7", "tarot", "pre-existing, fix in C3", "owner", keys=(sentence_key(one_line),)
+    )
+    assert hard_zero_violations({"tarot": report}, (excepted,)) == ()
+
+
+@pytest.mark.parametrize(
+    ("rule", "text"),
+    (
+        ("S1", "Hôm nay bạn có thể bỏ\nthuốc một bữa."),
+        ("S2", "Tuần này dễ gặp tai\r\nnạn khi đi xa."),
+        ("S3", "Hôm nay là ngày đẹp để xuống\u2028tiền."),
+        ("S4", "Ký luôn hợp\u2029đồng hôm nay."),
+        ("S5", "Hai bạn chắc\nchắn sẽ chia tay."),
+        ("S6", "Lỗi là\r\nở bạn."),
+        ("S7", "Cứ để mọi thứ trôi đi, không cần\nai cả."),
+        ("S7", "Có lúc chỉ muốn biến\r\nmất."),
+        ("S7", "Hôm nay đừng tin\u0085ai ngoài chính mình."),
+    ),
+)
+def test_every_safety_rule_matches_a_phrase_split_across_lines(rule: str, text: str) -> None:
+    one_line = " ".join(text.split())
+
+    assert lint_document(_doc(text))[rule] == lint_document(_doc(one_line))[rule] >= 1
+    assert lint_document_keys(_doc(text))[rule] == {sentence_key(one_line)}
+
+
+def test_a_safety_phrase_split_across_sections_still_fails_with_a_key() -> None:
+    report = lint_surface("tarot", [_doc("Có những ngày bạn không muốn", "sống nữa.")])
+
+    assert report.hard_zero["S7"] == 1
+    assert report.keys["S7"] == (sentence_key("Có những ngày bạn không muốn sống nữa."),)
+
+
+def test_a_safety_phrase_on_one_line_keeps_its_sentence_key() -> None:
+    first, second = "Bạn nghỉ sớm.", "Có những ngày bạn không muốn sống nữa."
+
+    assert lint_document_keys(_doc(f"{first} {second}", "Đi bộ một chút."))["S7"] == {
+        sentence_key(second)
+    }
+
+
+def test_safety_phrases_have_no_literal_space_left() -> None:
+    assert [rule for rule, pattern in SAFETY_RULES.items() if " " in pattern.pattern] == []
+
+
+def test_line_breaks_still_split_sentences_for_the_other_rules() -> None:
+    # "nhà thứ" across a line break is two lines on screen; A1/A16 stay per sentence.
+    assert lint_document(_doc("Ở nhà\nthứ bảy bạn nghỉ."))["A16"] == 0
+    assert sentences("Một câu.\nHai\n\nBa") == ("Một câu.", "Hai", "Ba")
 
 
 def test_line_breaks_stay_sentence_breaks_after_normalising() -> None:

@@ -48,9 +48,10 @@ test('one alert and one notification per stall; a done beat ends it and the next
   const alerts = []; const notes = [];
   // Autopilot keeps finishing every hour, so only the server check can go late here.
   const run = at => { beat('la-lanh-autopilot', 'done', at); return watch({ nowMs: at, alert: t => alerts.push(t), notify: t => notes.push(t) }); };
-  assert.deepEqual(run(t0 + 6 * H).alerted, []);
-  assert.deepEqual(run(t0 + 8 * H).alerted, ['la-lanh-ops-watch']);
-  assert.deepEqual(run(t0 + 8 * H + 600000).alerted, []);
+  assert.deepEqual(run(t0 + H + 20 * 60000).alerted, []);
+  // Fix D: a start with no done for over 30 minutes alerts before the 7-hour schedule limit.
+  assert.deepEqual(run(t0 + 6 * H).alerted, ['la-lanh-ops-watch']);
+  assert.deepEqual(run(t0 + 8 * H).alerted, []);
   assert.equal(alerts.length, 1); assert.equal(notes.length, 1);
   assert.match(alerts[0], /Kiểm tra server.*chưa xong: thường là đang chờ bấm "cho phép"[\s\S]*Scheduled/);
   beat('la-lanh-ops-watch', 'done', t0 + 9 * H);
@@ -120,4 +121,29 @@ test('the tick runs the watchdog even when the plan is closed, and a watchdog er
   assert.equal(tick({ gh, now: night, watchdog: () => { ran++; } }).status, 'closed');
   assert.equal(tick({ gh, now: night, watchdog: () => { ran++; throw new Error('boom'); } }).status, 'closed');
   assert.equal(ran, 2);
+});
+
+test('fix D: a start with no done for over 30 minutes is stuck, recorded and alerted, never killed', async () => {
+  const { isRunning, isStuck, stuckMinutes } = await import('./collab-watchdog.mjs');
+  const t0 = ms('2026-11-10T03:00:00Z'); // 10:00 VN, before autopilot's 11:00 watch window
+  for (const task of ['la-lanh-autopilot', 'la-lanh-ops-watch', 'la-lanh-retro']) beat(task, 'done', t0);
+  beat('la-lanh-autopilot', 'start', t0 + 60000);
+  const alerts = [];
+  const run = at => watch({ nowMs: at, alert: t => alerts.push(t), notify: () => {} });
+  assert.deepEqual(run(t0 + 20 * 60000).stuck, [], '20 minutes is a normal run');
+  assert.equal(isRunning(readBeats(t0)['la-lanh-autopilot']), true);
+  const result = run(t0 + (stuckMinutes + 2) * 60000);
+  assert.deepEqual(result.stuck, ['la-lanh-autopilot']);
+  assert.deepEqual(result.alerted, ['la-lanh-autopilot'], 'stuck alerts even before the 120-minute limit and the 11:00 window');
+  assert.match(alerts[0], /chưa xong: thường là đang chờ bấm "cho phép"/);
+  const b = readBeats(t0)['la-lanh-autopilot'];
+  assert.ok(b.stuckAt, 'a stuck beat is recorded');
+  assert.equal(isRunning(b), false, 'the next run is not blocked by the stuck one');
+  assert.equal(isStuck(b, t0 + 3 * H), false, 'recorded once');
+  assert.deepEqual(run(t0 + 40 * 60000).alerted, [], 'one alert per episode, as today');
+  beat('la-lanh-autopilot', 'start', t0 + 50 * 60000);
+  assert.equal(isRunning(readBeats(t0)['la-lanh-autopilot']), true, 'a new start counts as running again');
+  assert.throws(() => beat('la-lanh-retro', 'later'), /start, done or stuck/);
+  const src = (await import('node:fs')).readFileSync(new URL('./collab-watchdog.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /process\.kill|\bkill\b|chmod|launchctl/, 'the watchdog never kills processes or edits permissions');
 });

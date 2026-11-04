@@ -10,6 +10,9 @@ export const integration = 'collab/integration';
 export const ownerLogin = repo.split('/')[0];
 export const agentMarker = '<!-- la-lanh-agent';
 export const stateDir = process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cache', 'la-lanh-collab');
+// Automatic Codex reviews per day. Owner 03.11.2026: up to 32, so the 16-PR commitment fits
+// (about 1.4 reviews per merged PR on 03.11). One constant for the tick, the review script and the board.
+export const codexDailyCap = 32;
 export const blockingP2 = new Set(['privacy', 'security', 'user_copy']);
 // Process PRs (the loop itself, CI, test hardening) go first: a broken loop stalls every other group.
 export const areaOrder = ['ops', 'content', 'privacy', 'feature'];
@@ -118,9 +121,9 @@ export function makeGh(run = execFileSync) {
     raw: call,
     json: args => JSON.parse(call(args)),
     pr: number => JSON.parse(call(['pr', 'view', String(Number(number)), '--repo', repo, '--json',
-      'number,title,url,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,body,author,isCrossRepository'])),
+      'number,title,url,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,body,author,isCrossRepository,files'])),
     openPrs: () => JSON.parse(call(['pr', 'list', '--repo', repo, '--state', 'open', '--limit', '100', '--json',
-      'number,title,url,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,author,isCrossRepository'])),
+      'number,title,url,isDraft,baseRefName,headRefName,headRefOid,mergeable,labels,createdAt,comments,body,author,isCrossRepository,files'])),
     comment: (kind, number, body) => call([kind, 'comment', String(Number(number)), '--repo', repo, '--body-file', '-'], assertAgentBody(body)),
   };
 }

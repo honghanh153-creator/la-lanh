@@ -238,7 +238,10 @@ T4_FLOOR = 0.80  # US-20 AC16, measurement spec §4c
 # Synthetic selection key and owner namespace: audit sessions are not real guests.
 AUDIT_VARIETY_KEY = b"tarot-audit-synthetic-variety-key"
 AUDIT_OWNERS = uuid.UUID("6f1c0b4e-7a1d-4c55-9e35-0b2d5c7a9e11")
-_TRAILING = re.compile(r"[\s.!?…,;:]+$")
+# Starts only where the run starts (the lookbehind): a long run of these characters that does
+# not reach the end is read once, not once per character (CodeQL py/polynomial-redos). The old
+# `[\s.!?…,;:]+$` matched from that same run start, so the result is unchanged.
+_TRAILING = re.compile(r"(?<![\s.!?…,;:])[\s.!?…,;:]+$")
 
 
 def opening_key(headline: str, summary: str) -> str:

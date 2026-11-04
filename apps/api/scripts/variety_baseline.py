@@ -68,7 +68,10 @@ RADAR_CONTEXTS = ("crush", "friend", "partner", "someone")
 SYNTHETIC_VARIETY_KEY = derive_variety_key(b"la-lanh-variety-baseline-synthetic-key")
 OWNER_NAMESPACE = uuid.UUID("6f2b3c1e-6a77-4d0e-9a51-0c5f2b8d4e10")
 _SENTENCE = re.compile(r"(?<=[.!?…])\s+")
-_TRAILING = re.compile(r"[\s.!?…,;:]+$")
+# Starts only where the run starts (the lookbehind): a long run of these characters that does
+# not reach the end is read once, not once per character (CodeQL py/polynomial-redos). The old
+# `[\s.!?…,;:]+$` matched from that same run start, so the result is unchanged.
+_TRAILING = re.compile(r"(?<![\s.!?…,;:])[\s.!?…,;:]+$")
 
 
 def normalize(text: str) -> str:
