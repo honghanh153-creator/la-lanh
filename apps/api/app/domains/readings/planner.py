@@ -175,6 +175,19 @@ def _sign_is_time_stable(body: BodyName, degree_in_sign: float) -> bool:
     return margin < degree_in_sign < 30.0 - margin
 
 
+def time_stable_bodies(chart: NatalChart) -> frozenset[BodyName]:
+    """Bodies whose sign holds across the whole birth-time window; never the Moon.
+
+    The synthesis and the Explore tiles both read from this one set (#143 E4)."""
+
+    return frozenset(
+        position.body
+        for position in chart.bodies
+        if position.body is not BodyName.MOON
+        and _sign_is_time_stable(position.body, position.degree_in_sign)
+    )
+
+
 class ReadingPlanner:
     """Select and compose immutable reading factors without calculating a chart."""
 
@@ -364,12 +377,7 @@ class ReadingPlanner:
         # keep only their sign and aspects are left out (an aspect also references both
         # placements, which may have been removed). Houses, angles, nakshatra and graha drishti
         # are left out too.
-        stable_bodies = {
-            position.body.value
-            for position in chart.bodies
-            if position.body is not BodyName.MOON
-            and _sign_is_time_stable(position.body, position.degree_in_sign)
-        }
+        stable_bodies = {body.value for body in time_stable_bodies(chart)}
         stable = tuple(
             factor.model_copy(update={"evidence_refs": (factor.id,)})
             for factor in self._natal_candidates(chart, purpose)

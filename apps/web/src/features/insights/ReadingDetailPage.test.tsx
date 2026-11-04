@@ -12,11 +12,11 @@ vi.mock("../../shared/api/client", async (original) => {
   return { ...actual, getInsightOverview: vi.fn(), getPrivateReading: vi.fn() };
 });
 
-function renderPage() {
+function renderPage(entry = "/insights/moon-sign?tradition=western") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/insights/moon-sign?tradition=western"]}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes><Route path="/insights/:claimId" element={<ReadingDetailPage />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -91,5 +91,26 @@ describe("ReadingDetailPage", () => {
     expect(screen.getByText(/khung để tự đối chiếu/)).toBeInTheDocument();
     expect(screen.getByText("Nội dung tham khảo.")).toBeInTheDocument();
     expect(getPrivateReading).not.toHaveBeenCalled();
+  });
+
+  it("does not promise houses and aspects when the birth time is approximate (#143 E4)", async () => {
+    vi.mocked(getInsightOverview).mockResolvedValue({
+      status: "ready", required_fields: [], houses_available: false, time_precision: "approximate", bodies: [],
+      reading: {
+        tradition: "western", config_hash: "abc123456789", observed_at: "2026-11-04T00:00:00Z",
+        disclaimer: "Nội dung tham khảo.",
+        provenance: { engine: "swiss_ephemeris", version: "2.10.03", release_commit: "x", ephemeris_set: "se1", profile: "v2", tradition: "western", zodiac: "tropical", ayanamsa: null, config_hash: "abc123456789" },
+        claims: [{
+          id: "sun-sign", domain: "core", title: "Lõi sáng", summary: "Mặt Trời ở Ma Kết.", confidence: "high",
+          hook: "Một tín hiệu riêng.", meaning: "Một lớp nghĩa.", manifestation: "Một biểu hiện đời thường.",
+          watch_for: "Một điểm cần quan sát.", micro_action: "Một việc nhỏ để thử.",
+          evidence: ["Mặt Trời ở Ma Kết"], factor_refs: ["natal:sun:sign:capricorn"],
+        }],
+      },
+    });
+    renderPage("/insights/sun-sign?tradition=western");
+
+    expect(await screen.findByText("Mặt Trời ở Ma Kết")).toBeInTheDocument();
+    expect(screen.queryByText(/nhà và góc chiếu/)).not.toBeInTheDocument();
   });
 });

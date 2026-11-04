@@ -555,6 +555,50 @@ def test_an_approximate_birth_time_still_opens_a_reading_in_both_traditions(
     assert active["tradition"] == tradition
 
 
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_explore_tiles_read_at_the_same_data_level_as_the_synthesis(
+    reading_client: TestClient, tradition: str
+) -> None:
+    """#143 E4: with an approximate time the synthesis reads only the time-stable signs, while the
+    tiles on the same page still stated the Moon, aspect orbs and the Moon's nakshatra as exact.
+    Synthetic profile: 2001-01-15, morning window."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+
+    overview = reading_client.get(f"/v1/insights/overview?tradition={tradition}")
+
+    assert overview.status_code == 200
+    payload = cast(dict[str, object], overview.json())
+    assert payload["time_precision"] == "approximate"
+    projection = cast(dict[str, object], payload["reading_projection"])
+    active = cast(dict[str, object], projection["active"])
+    assert active["precision"] == "approximate"
+    claims = cast(list[dict[str, object]], cast(dict[str, object], payload["reading"])["claims"])
+    assert claims, "the stable signs still give tiles"
+    for claim in claims:
+        visible = " ".join(
+            [str(claim[key]) for key in ("title", "summary", "hook", "meaning", "watch_for")]
+            + cast(list[str], claim["evidence"])
+        )
+        for time_bound in ("Mặt Trăng", "Nhà ", "nhà ", "orb", "Góc ", "Nakshatra", "Pada"):
+            assert time_bound not in visible, (claim["id"], time_bound, visible)
+        refs = cast(list[str], claim["factor_refs"])
+        assert not any(":longitude:" in ref or ":aspect:" in ref for ref in refs), refs
+
+
 @pytest.mark.parametrize(
     "path",
     [
