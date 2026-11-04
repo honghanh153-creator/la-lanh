@@ -1100,9 +1100,14 @@ def _lens_copy(
         hook = f"Điểm khó không phải chọn một bên: bạn cần cả {hook_need_a} lẫn {hook_need_b}."
         # The default lens is what non-Daily readings render, so it names the house's own
         # sourced meanings too (HM-2, PR #215); Daily replaces this prose with its own scene.
-        where = f"Trong {arena}, điều này" if context else "Điều này"
+        # The house list and the scene are two sentences so neither passes A8's 25 syllables.
+        where = (
+            f"Trong {arena}, điều này thường xảy ra. Nhất là {context_phrase}."
+            if context
+            else f"Điều này thường xảy ra {context_phrase}."
+        )
         manifestation = (
-            f"{where} thường xảy ra {context_phrase}. Bạn có thể {default_reaction}; "
+            f"{where} Bạn có thể {default_reaction}; "
             f"bên dưới thường là phản xạ {perspective_a.protection}."
         )
         action = f"Thử thế này: {planet_a.action}. Chỉ quan sát phản ứng, không chấm điểm mình."

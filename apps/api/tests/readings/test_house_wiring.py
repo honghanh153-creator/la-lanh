@@ -12,7 +12,13 @@ from typing import Any, cast
 import pytest
 
 from app.domains.readings import knowledge
-from app.domains.readings.clarity_lint import ClarityDocument, lint_document
+from app.domains.readings.clarity_lint import (
+    MAX_SENTENCE_SYLLABLES,
+    ClarityDocument,
+    lint_document,
+    sentences,
+    syllables,
+)
 from app.domains.readings.daily_personalization import (
     DOOR_ARENAS,
     HOUSE_ARENAS,
@@ -199,3 +205,45 @@ def test_rendered_house_copy_passes_the_safety_rules(house: int) -> None:
     )
     assert not {rule: n for rule, n in counts.items() if rule.startswith(("S", "H")) and n}
     assert counts["A16"] == 0  # no house, sign or ruler words in the body
+
+
+@pytest.mark.parametrize("house", HOUSES)
+def test_default_lens_house_copy_keeps_sentences_short(house: int) -> None:
+    # Codex round 2 on PR #215: the house list and the scene in one sentence broke A8 (25
+    # syllables) for houses 5 and 6. The default lens is what non-Daily readings render.
+    hook, manifestation, action = _lens_copy(InterpretiveLens.INNER_PATTERN, house)
+    assert manifestation.startswith(f"Trong chuyện {knowledge.HOUSES[house].arena}, điều này ")
+    # The two sentences this PR adds (house list, then scene); the reaction sentence after
+    # them is unchanged copy and is covered by the clarity ratchet.
+    house_sentences = sentences(manifestation)[:2]
+    assert house_sentences[1].startswith("Nhất là ")
+    assert all(syllables(s) <= MAX_SENTENCE_SYLLABLES for s in house_sentences)
+    counts = lint_document(
+        ClarityDocument(
+            surface="house_wiring_default",
+            sample_id=str(house),
+            sections=(("hook", hook), ("scene", manifestation), ("action", action)),
+        )
+    )
+    assert not {rule: n for rule, n in counts.items() if rule.startswith(("S", "H")) and n}
+
+
+def test_changed_default_lens_prose_gets_a_new_revision_key() -> None:
+    # Codex round 2 on PR #215: same plan key + same versions + new prose collides with a stored
+    # revision (Postgres _assert_same_revision raises). The content version must move past v4.
+    from app.domains.readings.application import DETERMINISTIC_CONTENT_VERSION
+    from app.domains.readings.models import ReadingRevisionSource, canonical_reading_revision_key
+
+    def key(content_version: str) -> str:
+        return canonical_reading_revision_key(
+            plan_key="plan",
+            source=ReadingRevisionSource.DETERMINISTIC,
+            renderer_version="r",
+            content_version=content_version,
+            schema_version="s",
+            rules_version="rules",
+            gate_policy_version="g",
+        )
+
+    assert DETERMINISTIC_CONTENT_VERSION != "deterministic-reading-v4"
+    assert key(DETERMINISTIC_CONTENT_VERSION) != key("deterministic-reading-v4")

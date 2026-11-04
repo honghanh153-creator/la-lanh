@@ -2,7 +2,7 @@
  "approved": {
   "daily": {
    "companion_version": "la-companion-v1",
-   "content_version": "deterministic-reading-v4",
+   "content_version": "deterministic-reading-v5",
    "psychology_version": "daily-direct-meaning-v7",
    "renderer_version": "deterministic-vi-v12",
    "tables": {
