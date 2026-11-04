@@ -15,7 +15,9 @@ what changes *within the user's day*:
 * each contact carries its timing: ``time_kind``, the in-orb window and the tight 1° peak window
   inside the day, and a closest moment only when the closest approach really falls inside it;
 * trend contacts carry their whole in-orb window across retrograde passes (C2c), with the orb at
-  each closest date and a weight; generational outer-to-outer contacts are dropped.
+  each closest date and a weight; generational outer-to-outer contacts are dropped. Their
+  ``episode`` (``transit_episodes``) is the C2c contract: one aspect point, every pass with its
+  motion, and a key that is the same on every day of the episode.
 
 It returns geometry and labels only (no copy, no persistence, no logging) and is deterministic
 for a chart and date. Nothing in the request path calls it yet; the Daily service and planner
@@ -53,6 +55,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from app.domains.astro.aspects import (
@@ -71,6 +74,9 @@ from app.domains.astro.models import (
     TransitPhase,
     ZodiacSign,
 )
+
+if TYPE_CHECKING:
+    from app.domains.daily.transit_episodes import TransitEpisode
 
 DAILY_SELECTION_VERSION = "daily-sky-selection-v2"
 DAILY_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -385,6 +391,7 @@ class TrendContact:
     contact: DayContact
     window: TrendWindow | None
     weight: float
+    episode: TransitEpisode | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1215,6 +1222,8 @@ def select_daily_sky(
     time, to recognise the stored window (see ``contact_eligibility``).
     """
 
+    from app.domains.daily.transit_episodes import trend_episode  # imports this module
+
     eligibility = contact_eligibility(chart, birth_timezone=birth_timezone)
     domains = natal_domains(engine, chart, birth_timezone=birth_timezone)
     contacts = scan_day(
@@ -1240,6 +1249,11 @@ def select_daily_sky(
             if include_trend_windows
             else None,
             weight=trend_weight(contact),
+            episode=trend_episode(
+                engine, chart, contact, local_date, max_scan_days=max_scan_days, domains=domains
+            )
+            if include_trend_windows
+            else None,
         )
         for contact in trend_contacts
     )
