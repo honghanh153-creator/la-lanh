@@ -34,7 +34,7 @@ persistence, no logging):
   so later layers can treat all passes as one event. It is ``None`` when the start is open,
   because then the first day is not known.
 
-Nothing in the request path calls this yet; ``select_daily_sky`` attaches an episode to each
+Nothing in the request path calls this yet; the daily sky selection attaches an episode to each
 trend contact.
 """
 

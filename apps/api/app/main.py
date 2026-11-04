@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.input_problem import install_input_problem
 from app.api.v1.router import router as v1_router
 from app.api.v1.routes.content_studio import router as content_studio_router
 from app.config import Settings, get_settings
@@ -412,6 +413,7 @@ def create_app(
             prefix=f"/{resolved_settings.api_version}",
             tags=["content-studio"],
         )
+    install_input_problem(application)
     application.add_api_route(
         "/metrics",
         metrics_response,
