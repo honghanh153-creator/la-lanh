@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import ast
 import dataclasses
+import math
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 
 import pytest
 
 from app.domains.astro.aspects import angular_distance
-from app.domains.astro.engine import NatalChartEngine, house_for_longitude
+from app.domains.astro.engine import NatalChartEngine, house_for_longitude, sign_for_longitude
 from app.domains.astro.models import (
     BodyName,
     CalculationConfig,
@@ -137,6 +138,79 @@ def test_house_labels_hold_at_every_birth_time_in_the_error_range(
         } | {BodyName.SOUTH_NODE: _house(chart, node.longitude + 180.0)}
         assert len(exact.cusp_signs) == 12
     assert kept and dropped
+
+
+# Independent reference (#223): the same synthetic births at three round places, with the
+# angles worked out by the closed-form spherical-astronomy formulas below rather than by the
+# engine. Recorded settings: tropical zodiac, Placidus (the default), UT instants, mean
+# obliquity without nutation. The recorded signs are the expected cusp-1 and cusp-10 labels.
+REFERENCE_PLACES = (
+    Birthplace(latitude=16.0, longitude=108.0),
+    Birthplace(latitude=-34.0, longitude=151.0),
+    Birthplace(latitude=52.0, longitude=0.0),
+)
+REFERENCE_SIGNS = {
+    (SYNTHETIC_BIRTHS[0], REFERENCE_PLACES[0]): (ZodiacSign.TAURUS, ZodiacSign.CAPRICORN),
+    (SYNTHETIC_BIRTHS[0], REFERENCE_PLACES[1]): (ZodiacSign.TAURUS, ZodiacSign.PISCES),
+    (SYNTHETIC_BIRTHS[0], REFERENCE_PLACES[2]): (ZodiacSign.SAGITTARIUS, ZodiacSign.LIBRA),
+    (SYNTHETIC_BIRTHS[1], REFERENCE_PLACES[0]): (ZodiacSign.LEO, ZodiacSign.TAURUS),
+    (SYNTHETIC_BIRTHS[1], REFERENCE_PLACES[1]): (ZodiacSign.LIBRA, ZodiacSign.CANCER),
+    (SYNTHETIC_BIRTHS[1], REFERENCE_PLACES[2]): (ZodiacSign.GEMINI, ZodiacSign.CAPRICORN),
+    (SYNTHETIC_BIRTHS[2], REFERENCE_PLACES[0]): (ZodiacSign.SCORPIO, ZodiacSign.LEO),
+    (SYNTHETIC_BIRTHS[2], REFERENCE_PLACES[1]): (ZodiacSign.CAPRICORN, ZodiacSign.LIBRA),
+    (SYNTHETIC_BIRTHS[2], REFERENCE_PLACES[2]): (ZodiacSign.LEO, ZodiacSign.TAURUS),
+    (SYNTHETIC_BIRTHS[3], REFERENCE_PLACES[0]): (ZodiacSign.VIRGO, ZodiacSign.GEMINI),
+    (SYNTHETIC_BIRTHS[3], REFERENCE_PLACES[1]): (ZodiacSign.SCORPIO, ZodiacSign.LEO),
+    (SYNTHETIC_BIRTHS[3], REFERENCE_PLACES[2]): (ZodiacSign.CANCER, ZodiacSign.AQUARIUS),
+}
+# Nutation is left out of the reference; it moves the angles by well under this.
+REFERENCE_TOLERANCE_DEG = 0.01
+
+
+def _reference_angles(born: datetime, place: Birthplace) -> tuple[float, float]:
+    """Ascendant and midheaven from sidereal time and obliquity (Meeus, ch. 12, 13 and 22)."""
+
+    julian_day = born.timestamp() / 86400.0 + 2440587.5
+    days = julian_day - 2451545.0
+    centuries = days / 36525.0
+    sidereal = (
+        280.46061837
+        + 360.98564736629 * days
+        + 0.000387933 * centuries**2
+        - centuries**3 / 38710000.0
+    )
+    ramc = math.radians((sidereal + place.longitude) % 360.0)
+    obliquity = math.radians(
+        23.0
+        + 26.0 / 60.0
+        + (21.448 - 46.8150 * centuries - 0.00059 * centuries**2 + 0.001813 * centuries**3) / 3600.0
+    )
+    latitude = math.radians(place.latitude)
+    midheaven = math.atan2(math.sin(ramc), math.cos(ramc) * math.cos(obliquity))
+    ascendant = math.atan2(
+        math.cos(ramc),
+        -(math.sin(ramc) * math.cos(obliquity) + math.tan(latitude) * math.sin(obliquity)),
+    )
+    return math.degrees(ascendant) % 360.0, math.degrees(midheaven) % 360.0
+
+
+@pytest.mark.parametrize(("born", "place"), list(REFERENCE_SIGNS))
+def test_angles_and_angular_cusps_match_an_independent_reference(
+    engine: NatalChartEngine, born: datetime, place: Birthplace
+) -> None:
+    ascendant, midheaven = _reference_angles(born, place)
+    expected = REFERENCE_SIGNS[(born, place)]
+    # The recorded labels and the formulas agree, so neither can drift on its own.
+    assert (sign_for_longitude(ascendant), sign_for_longitude(midheaven)) == expected
+    chart = _chart(engine, born, place)
+    assert chart.angles is not None and chart.houses is not None
+    assert angular_distance(chart.angles.ascendant, ascendant) < REFERENCE_TOLERANCE_DEG
+    assert angular_distance(chart.angles.midheaven, midheaven) < REFERENCE_TOLERANCE_DEG
+    assert angular_distance(chart.houses[0].longitude, ascendant) < REFERENCE_TOLERANCE_DEG
+    assert angular_distance(chart.houses[9].longitude, midheaven) < REFERENCE_TOLERANCE_DEG
+    sharp = house_frame(engine, chart, place, time_error_minutes=0.0, place_margin_deg=0.0)
+    assert sharp is not None
+    assert (sharp.cusp_signs[1], sharp.cusp_signs[10]) == expected
 
 
 def test_a_body_near_a_cusp_loses_its_house_but_keeps_it_with_a_reliable_time(
