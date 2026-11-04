@@ -112,6 +112,24 @@ Mức: **P1** là thông điệp chính sai hoặc thiếu, hỏng chức năng,
 | PL-20 | Chưa định nghĩa nhà nào quyết định lĩnh vực của chip | P2 | Quy tắc: nhà transit đi qua hay nhà của điểm gốc; ghi vào plan |
 | AS-20 | Placidus không tính được ở vùng cực | P3 | Đổi hệ nhà khi có nơi sinh nước ngoài |
 
+### HM — nghĩa của nhà (phản hồi owner 03.11.2026; làm trong C2b và C3a)
+
+Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có thể là có con, không phải "hẹn hò mở rộng". Thiết kế mới ở plan mục 1.1.
+
+| Mã | Lỗ hổng | Mức | Cách sửa |
+|---|---|---|---|
+| HM-1 | Plan bản 927811b gán mỗi nhà một chip cố định (nhà 5 = "Hẹn hò") | P1 | Đã bỏ. Nhà là chùm nghĩa; chủ đề do cặp hành tinh × nhà, lá số gốc và độ dài transit chọn |
+| HM-2 | `knowledge.py` `HOUSES[5]` thiếu con cái; `_short_arena` gộp nhà 6+10, 4+12, 7+11 | P1 | Thay bằng bảng chùm nghĩa đủ 12 nhà và bảng hành tinh × nhà (C3a) |
+| HM-3 | `daily_personalization.py` `HOUSE_ARENAS` dồn 12 nhà vào 4 nhóm (5 → SELF_CARE, 9 → WORK) | P1 | Bỏ khi C2a/C4 thay Daily cũ; cho tới lúc đó ghi là nợ đã biết |
+| HM-4 | Không có luật chặn đoán sự kiện đời người (mang thai, cưới, chia tay, mất việc, bệnh, mất người thân) và giả định hoàn cảnh (độc thân, có con, giới tính) | P1 | Luật chặn cứng mới trong C1/C3a; bốn persona (độc thân; có gia đình và con; đang mong con/hiếm muộn; lớn tuổi) cho cổng lớp C |
+| HM-5 | Mang thai và khả năng có con là dữ liệu sức khỏe nhạy cảm | P1 | Không suy ra, không lưu, không hỏi; chỉ nói "chuyện con cái" ở dạng khả năng tích cực |
+| HM-6 | Chủ đề đời người có thể đến từ hành tinh nhanh | P2 | Chỉ hành tinh chậm, trong tag "Xu hướng hiện tại" |
+| HM-7 | Không rõ giờ sinh: Sao Kim gốc bị gán "Hẹn hò hoặc Đối tác" | P2 | Dùng chùm nghĩa của hành tinh gốc, nói rộng |
+
+| HM-8 | Bản 9423dae lệch sách ở sáu chỗ: tình yêu ở nhà 5 chỉ có nguồn hiện đại; "học trò" không có nguồn; Mặt Trăng "vài giờ" (thật ra khoảng 2 ngày một nhà), Sao Kim "vài ngày" (thật ra vài tuần); chủ tinh hiện đại dùng chọn nghĩa không có nguồn cổ điển; câu mặc định có con; C3a đòi nguồn hiện đại chưa kiểm | P1 | **Đã chốt 03.11.2026** (plan mục 1.1, luật N-1…N-8, A-6…A-8; nghiên cứu `docs/research/2026-11-03-sach-chiem-tinh-nha-va-transit.md`) |
+| HM-9 | Hand và Sasportas chưa đối chiếu với sách thật; số câu Phaladeepika lấy từ OCR chưa soát | P2 | **Owner chốt không mua sách (03.11.2026):** nghĩa chỉ có nguồn hiện đại không bao giờ đứng đầu, không trích Hand/Sasportas trong app. Phaladeepika đối chiếu bản in trước khi vào lớp "Vì sao" |
+| HM-10 | Câu nhiều cửa dễ thành câu đúng với ai cũng được | P2 | Luật đo câu chung chung trong cổng lớp C |
+
 ### C2c — khoảng ngày của xu hướng
 
 | Mã | Lỗ hổng | Mức | Sửa |
@@ -255,3 +273,12 @@ phép thử thay thế:
 - Quy tắc ba (JAMA); WHO, hướng dẫn đưa tin an toàn (9789240076846).
 - Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15; Nghị định 356/2025/NĐ-CP.
 - Apple App Review Guidelines 1.4.1, 4.3(b), 5.1.1, 5.1.2(ii); Google Play Data safety.
+
+## Sự cố 03.11.2026: ngày sinh của owner trong PR công khai
+
+Một hằng số trong `content_clarity_corpus.py` (#179) ghi ngày sinh thật và gắn nó với owner. Codex chặn
+(P0). Đã viết lại lịch sử nhánh để xóa hằng số khỏi mọi commit và force-push (head mới 0a1c045). Các
+commit cũ vẫn có thể mở bằng SHA trên GitHub cho tới khi GitHub dọn; muốn xóa hẳn phải nhờ GitHub
+Support (việc của owner). Kiểm tra cứng: author check trên máy
+chạy vòng tự động đọc một danh sách ngày cấm nằm ngoài repo và chặn PR có các ngày đó. Không để danh
+sách trong repo, kể cả ở dạng băm, vì băm một ngày rất dễ dò ngược.

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import UTC, datetime
-from typing import Annotated, Literal, cast
+from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, Response
@@ -28,6 +28,15 @@ from app.domains.readings.service import InsightReadingService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# #143 E2: a 422 here is either bad query input (INPUT_INVALID) or READING_CONTENT_REJECTED, when
+# the content gates reject every candidate. Both are problem+json; neither is a retry prompt.
+_REJECTED_RESPONSE: dict[str, Any] = {
+    "description": "Request input was rejected, or the reading content was rejected",
+    "content": {
+        "application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemResponse"}}
+    },
+}
 
 
 class InsightBodyProjection(BaseModel):
@@ -165,7 +174,7 @@ async def supported_configs() -> SupportedConfigResponse:
 @router.get(
     "/insights/overview",
     response_model=InsightOverviewResponse,
-    responses={401: {}, 404: {}, 409: {}, 503: {}},
+    responses={401: {}, 404: {}, 409: {}, 422: _REJECTED_RESPONSE, 503: {}},
 )
 async def insight_overview(
     request: Request,
@@ -240,7 +249,7 @@ async def insight_overview(
 @router.get(
     "/insights/readings/{purpose}",
     response_model=ReadingProjection,
-    responses={401: {}, 404: {}, 409: {}, 503: {}},
+    responses={401: {}, 404: {}, 409: {}, 422: _REJECTED_RESPONSE, 503: {}},
 )
 async def private_reading(
     purpose: Literal["aura", "reading_detail", "personalized_sky"],

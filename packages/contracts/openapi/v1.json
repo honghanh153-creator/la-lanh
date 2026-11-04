@@ -3167,19 +3167,6 @@
         "title": "GuestSessionResponse",
         "type": "object"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
-        "type": "object"
-      },
       "HealthResponse": {
         "properties": {
           "api_version": {
@@ -6784,46 +6771,6 @@
         "title": "TransitPhase",
         "type": "string"
       },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError",
-        "type": "object"
-      },
       "VerificationStatus": {
         "enum": [
           "not_started",
@@ -9516,7 +9463,14 @@
             "description": "Successful Response"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -9568,13 +9522,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -9633,7 +9587,14 @@
             "description": "Forbidden"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -9701,7 +9662,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "429": {
             "description": "Too Many Requests"
@@ -9768,7 +9736,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -9858,7 +9833,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -9949,13 +9931,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Daily Note",
@@ -10016,7 +9998,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -10073,7 +10062,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Undo Experiment",
@@ -10164,7 +10160,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Reflect On Experiment",
@@ -10216,13 +10219,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Clear Resonance",
@@ -10318,7 +10321,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Choose Experiment",
@@ -10369,13 +10379,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Current Mood",
@@ -10444,7 +10454,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Check In Mood",
@@ -10515,7 +10532,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Record Resonance",
@@ -10570,13 +10594,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Unsave Note",
@@ -10653,13 +10677,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Save Note",
@@ -10730,7 +10754,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Create Share Artifact",
@@ -10786,13 +10817,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "503": {
             "content": {
@@ -10847,13 +10878,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Create Guest Session",
@@ -11578,13 +11609,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Claim Identity",
@@ -11641,13 +11672,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Current Sky",
@@ -11733,13 +11764,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected, or the reading content was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -11842,13 +11873,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected, or the reading content was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -11932,7 +11963,14 @@
             "description": "Gone"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Create Invite",
@@ -11988,13 +12026,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Replace Invite",
@@ -12050,13 +12088,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Resend Invite",
@@ -12102,13 +12140,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Revoke Invite",
@@ -12154,13 +12192,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Delete Owner Result",
@@ -12195,13 +12233,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Owner Result",
@@ -12247,13 +12285,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Hide Owner Result",
@@ -12295,13 +12333,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw Consent",
@@ -12353,7 +12391,14 @@
             "description": "Gone"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Grant Consent",
@@ -12415,13 +12460,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Set Pool Membership",
@@ -12483,13 +12528,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Put Profile",
@@ -12552,13 +12597,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw Response",
@@ -12597,13 +12642,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Public Invite",
@@ -12647,13 +12692,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Report Invite",
@@ -12702,13 +12747,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Submit Response",
@@ -12751,13 +12796,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Current Invite",
@@ -12826,13 +12871,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Accept Invite",
@@ -12878,13 +12923,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Decline Invite",
@@ -12913,13 +12958,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw By Invite",
@@ -12962,13 +13007,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Receipt Result",
@@ -13014,13 +13059,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw Result",
@@ -13056,13 +13101,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Public Preview",
@@ -13173,13 +13218,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "429": {
             "content": {
@@ -13277,13 +13322,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Received Results",
@@ -13320,13 +13365,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Received Result",
@@ -13372,13 +13417,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw Received",
@@ -13454,13 +13499,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "List Requests",
@@ -13569,13 +13614,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "429": {
             "content": {
@@ -13662,13 +13707,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Revoke Request",
@@ -13721,13 +13766,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Share Request",
@@ -13773,13 +13818,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Delete Owner Result",
@@ -13814,13 +13859,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Owner Result",
@@ -13896,13 +13941,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -13980,7 +14025,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -14064,13 +14116,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "List Saved Notes",
@@ -14123,13 +14175,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Session",
@@ -14175,13 +14227,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Accept Basic Birth Consent",
@@ -14246,13 +14298,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Revoke Content Rewrite Consent",
@@ -14345,13 +14397,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Grant Content Rewrite Consent",
@@ -14403,13 +14455,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "429": {
             "description": "Too Many Requests"
@@ -14448,13 +14500,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Clear History",
@@ -14526,13 +14578,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Activate History Retention",
@@ -14605,13 +14657,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Update Onboarding Status",
@@ -14674,13 +14726,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Renew Session",
@@ -14739,7 +14791,14 @@
             "description": "Unauthorized"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "List Share Artifacts",
@@ -14794,13 +14853,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Revoke Share Artifact",
@@ -14839,13 +14898,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Share Artifact",
@@ -14898,13 +14957,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Start Tarot Session",
@@ -14950,13 +15009,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Delete Tarot Session",
@@ -14991,13 +15050,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Tarot Session",
@@ -15060,13 +15119,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Select Tarot Card",
