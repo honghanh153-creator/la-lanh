@@ -15,7 +15,7 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from app.db.session import Database
 from app.domains.daily.tables import DailyNoteRow
@@ -368,7 +368,7 @@ async def test_a_completion_landing_inside_the_clear_is_journaled_with_its_delet
     ) -> int:
         # The concurrent completion, visible to the clear's DELETE (READ COMMITTED re-check).
         await session.execute(  # type: ignore[attr-defined]
-            TarotSessionRow.__table__.update()
+            update(TarotSessionRow)
             .where(TarotSessionRow.id == late)
             .values(state="complete")
         )
