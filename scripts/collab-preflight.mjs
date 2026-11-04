@@ -1,0 +1,93 @@
+// Preflight before the author check (owner 04.11.2026, fix A). It fails fast on what `pnpm check`
+// cannot see or would only find after 15 minutes: a PR body without the G1–G10 template, the risk
+// level or the G7 checklist, and mypy/ruff errors in the changed Python files.
+// It never posts anything: the tick records the reason and the PR goes to claude-fix.
+// Usage: node scripts/collab-preflight.mjs --pr N   (body + lint in this checkout, at the PR head)
+//        node scripts/collab-preflight.mjs --lint   (lint only, changed files vs origin/collab/integration; pre-push)
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { clean, integration, makeGh, readJson, stateDir, writeJson } from './collab-trust.mjs';
+
+export const gates = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'];
+
+// The value after `- Gn <name>:` on its own line; empty when the template line was left blank.
+const gateValue = (body, gate) => {
+  const line = String(body ?? '').split('\n').find(row => new RegExp(`^\\s*[-*]?\\s*\\**${gate}\\b(?!\\d)`).test(row));
+  if (line === undefined) return null;
+  const at = line.indexOf(':');
+  return at < 0 ? '' : line.slice(at + 1).replace(/[*_`]/g, '').trim();
+};
+
+// The G7 quick checklist (product-development-process.md §4): one answer on whether the change
+// touches sessions, permissions, personal data or logs. A blank or "N/A" is not an answer.
+export const g7Terms = /phiên|session|quyền|permission|auth|dữ liệu|data|log|bí mật|secret|token|csrf|không đụng|không chạm/i;
+
+export function bodyProblems(body) {
+  const text = String(body ?? '');
+  const problems = [];
+  const missing = gates.filter(gate => !gateValue(text, gate));
+  if (missing.length) problems.push(`PR body thiếu cổng ${missing.join(', ')}`);
+  const level = /^\s*[-*]?\s*\**Mức\**\s*:\s*\**\s*([SML])\b(?!\s*\|)/m.exec(text);
+  if (!level) problems.push('PR body thiếu mức rủi ro S/M/L');
+  const g7 = gateValue(text, 'G7');
+  if (g7 && !g7Terms.test(g7)) problems.push('G7 chưa trả lời checklist (phiên, quyền, dữ liệu cá nhân, log)');
+  return problems;
+}
+
+// Python files ruff and mypy can see: apps/api is the uv project; paths are passed relative to it.
+export function changedPython(files = []) {
+  return [...new Set(files.map(f => f.path ?? f).filter(p => /^apps\/api\/.+\.py$/.test(p)).map(p => p.slice('apps/api/'.length)))];
+}
+
+// A deleted file is in the PR's file list but not on disk; ruff and mypy would fail on it.
+export function lintProblems(pyFiles, { cwd = process.cwd(), spawn = spawnSync, exists = existsSync, left = () => 600000 } = {}) {
+  const files = pyFiles.filter(f => exists(join(cwd, 'apps/api', f)));
+  if (!files.length) return [];
+  const problems = [];
+  for (const [name, args] of [['ruff', ['ruff', 'check', ...files]], ['ruff format', ['ruff', 'format', '--check', ...files]], ['mypy', ['mypy', ...files]]]) {
+    const ms = Math.min(600000, left());
+    if (ms <= 0) break;
+    const result = spawn('uv', ['run', '--directory', 'apps/api', ...args], { cwd, encoding: 'utf8', timeout: ms });
+    if (result.status !== 0) problems.push(`${name} lỗi: ${clean(`${result.stdout ?? ''}${result.stderr ?? ''}`, 300) || `exit ${result.status}`}`);
+  }
+  return problems;
+}
+
+export function runPreflight(pr, { cwd = null, spawn = spawnSync, exists, left } = {}) {
+  const problems = bodyProblems(pr.body);
+  // Body problems are enough to stop: no need to start uv as well.
+  if (!problems.length && cwd) problems.push(...lintProblems(changedPython(pr.files ?? []), { cwd, spawn, exists, left }));
+  return problems.length ? { status: 'FAIL', reasons: problems } : { status: 'PASS', reasons: [] };
+}
+
+// The tick's record of preflight failures, per PR and head; a new head clears it.
+const recordPath = () => join(stateDir, 'preflight.json');
+export const readPreflight = () => readJson(recordPath(), {});
+export function recordPreflight(number, head, result) {
+  const all = readPreflight();
+  if (result.status === 'FAIL') all[number] = { head, reasons: result.reasons, at: new Date().toISOString() };
+  else delete all[number];
+  writeJson(recordPath(), all);
+}
+export const preflightFailure = (records, pr) => {
+  const r = records?.[pr.number];
+  return r && r.head === pr.headRefOid ? r.reasons : null;
+};
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const args = process.argv.slice(2);
+  try {
+    let result;
+    if (args.includes('--lint')) {
+      const diff = String(execFileSync('/usr/bin/git', ['diff', '--name-only', '--diff-filter=ACMR', `origin/${integration}...HEAD`], { encoding: 'utf8' })).split('\n').filter(Boolean);
+      const reasons = lintProblems(changedPython(diff));
+      result = reasons.length ? { status: 'FAIL', reasons } : { status: 'PASS', reasons: [] };
+    } else if (args.includes('--pr')) {
+      result = runPreflight(makeGh().pr(Number(args[args.indexOf('--pr') + 1])), { cwd: process.cwd() });
+    } else { process.stderr.write('Usage: node scripts/collab-preflight.mjs --pr N | --lint\n'); process.exit(2); }
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+    if (result.status !== 'PASS') process.exitCode = 3;
+  } catch (error) { process.stderr.write(`collab-preflight failed: ${clean(error.message, 300)}\n`); process.exitCode = 1; }
+}

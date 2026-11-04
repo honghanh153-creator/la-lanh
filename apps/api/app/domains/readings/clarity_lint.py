@@ -1550,8 +1550,10 @@ def dump_baseline(document: Mapping[str, Any]) -> str:
 class RatchetException:
     """An owner-approved rise for one rule on one surface (``content_clarity_exceptions.json``).
 
-    For a ratcheted rule the PR's own baseline is used for that rule and surface. ``keys`` is
-    only used by hard-zero rules, which accept nothing but the listed sentence keys.
+    For a ratcheted rule the PR's own baseline is used for that rule and surface, but only up to
+    the approved ``max_count`` and only for the approved key set (``keys_digest``, see
+    :func:`keys_digest`); any further rise or other key set fails. ``keys`` is only used by
+    hard-zero rules, which accept nothing but the listed sentence keys.
     """
 
     rule: str
@@ -1559,6 +1561,21 @@ class RatchetException:
     reason: str
     approver: str
     keys: tuple[str, ...] = ()
+    max_count: int | None = None
+    keys_digest: str = ""
+
+    def covers(self, entry: Mapping[str, Any]) -> bool:
+        """Whether a baseline surface entry stays inside the approved count and key set."""
+
+        count = int(entry.get("rules", {}).get(self.rule, 0))
+        digest = keys_digest(entry.get("keys", {}).get(self.rule, ()))
+        return self.max_count is not None and count <= self.max_count and digest == self.keys_digest
+
+
+def keys_digest(keys: Iterable[str]) -> str:
+    """SHA-256 of the sorted, newline-joined sentence keys of one rule on one surface."""
+
+    return hashlib.sha256("\n".join(sorted(set(keys))).encode("utf-8")).hexdigest()
 
 
 def parse_exceptions(
@@ -1587,15 +1604,31 @@ def parse_exceptions(
         if fields["rule"] in HARD_ZERO_RULES and not keys:
             problems.append(f"{where}: a hard-zero rule needs the exact sentence keys")
             continue
-        entries.append(RatchetException(keys=keys, **fields))
+        max_count: int | None = None
+        digest = ""
+        if fields["rule"] in RULES:
+            raw_max = raw.get("max_count")
+            digest = str(raw.get("keys_digest", "")).strip()
+            if isinstance(raw_max, bool) or not isinstance(raw_max, int) or raw_max < 0:
+                problems.append(f"{where}: a ratcheted rule needs the approved max_count")
+                continue
+            if not re.fullmatch(r"[0-9a-f]{64}", digest):
+                problems.append(f"{where}: a ratcheted rule needs the approved keys_digest")
+                continue
+            max_count = raw_max
+        entries.append(
+            RatchetException(keys=keys, max_count=max_count, keys_digest=digest, **fields)
+        )
     return tuple(entries), tuple(problems)
 
 
 _EXCEPTION_FIELDS = ("rule", "surface", "reason", "approver")
 
 
-def _ratchet_exceptions(exceptions: Iterable[RatchetException]) -> set[tuple[str, str]]:
-    return {(entry.surface, entry.rule) for entry in exceptions if entry.rule in RULES}
+def _ratchet_exceptions(
+    exceptions: Iterable[RatchetException],
+) -> dict[tuple[str, str], RatchetException]:
+    return {(entry.surface, entry.rule): entry for entry in exceptions if entry.rule in RULES}
 
 
 def baseline_raises(
@@ -1604,7 +1637,8 @@ def baseline_raises(
     exceptions: Iterable[RatchetException] = (),
 ) -> tuple[str, ...]:
     """GT-2. A PR may not raise its own baseline: a higher count or a new key than the base
-    branch's file fails unless an owner-approved exception names that rule and surface."""
+    branch's file fails unless an owner-approved exception names that rule and surface and the
+    new count and key set stay inside what the owner approved (``max_count``/``keys_digest``)."""
 
     allowed = _ratchet_exceptions(exceptions)
     base_surfaces: Mapping[str, Any] = base.get("surfaces", {})
@@ -1612,14 +1646,20 @@ def baseline_raises(
     for surface, entry in sorted(dict(head.get("surfaces", {})).items()):
         before: Mapping[str, Any] = base_surfaces.get(surface, {})
         for rule in RULES:
-            if (surface, rule) in allowed:
+            exception = allowed.get((surface, rule))
+            if exception is not None and exception.covers(entry):
                 continue
             old = int(before.get("rules", {}).get(rule, 0))
             new = int(entry.get("rules", {}).get(rule, 0))
             if new > old:
                 problems.append(
                     f"{surface}: baseline file raises {rule} from {old} to {new} "
-                    "without an exception"
+                    + (
+                        "without an exception"
+                        if exception is None
+                        else f"beyond the approved exception (max {exception.max_count}, "
+                        "approved key set)"
+                    )
                 )
             added = sorted(
                 set(entry.get("keys", {}).get(rule, ())) - set(before.get("keys", {}).get(rule, ()))
@@ -1637,13 +1677,16 @@ def effective_baseline(
     head: Mapping[str, Any],
     exceptions: Iterable[RatchetException] = (),
 ) -> dict[str, Any]:
-    """The base branch's baseline, except for excepted rule/surface pairs, which use the PR's."""
+    """The base branch's baseline, except for excepted rule/surface pairs whose PR baseline stays
+    inside the approved count and key set, which use the PR's."""
 
     merged: dict[str, Any] = copy.deepcopy(dict(base))
     surfaces: dict[str, Any] = merged.setdefault("surfaces", {})
     head_surfaces: Mapping[str, Any] = head.get("surfaces", {})
-    for surface, rule in sorted(_ratchet_exceptions(exceptions)):
+    for (surface, rule), exception in sorted(_ratchet_exceptions(exceptions).items()):
         source: Mapping[str, Any] = head_surfaces.get(surface, {})
+        if not exception.covers(source):
+            continue
         target = surfaces.setdefault(
             surface,
             {
