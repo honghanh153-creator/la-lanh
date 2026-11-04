@@ -8,6 +8,7 @@ import pytest
 from app.domains.readings.clarity_lint import (
     HARD_ZERO_RULES,
     RULES,
+    SAFETY_RULES,
     ClarityDocument,
     RatchetException,
     SurfaceReport,
@@ -586,6 +587,97 @@ def test_whitespace_runs_do_not_hide_a_multiword_safety_match(variant: str) -> N
     assert lint_document(_doc(variant))["S7"] == 1
     report = lint_surface("tarot", [_doc(variant)])
     assert report.keys["S7"] == (sentence_key("Bạn không muốn sống."),)
+
+
+_SPLIT_PHRASE_WHITESPACE = {
+    "line feed": "\n",
+    "CRLF": "\r\n",
+    "carriage return": "\r",
+    "two line feeds": "\n\n",
+    "line separator U+2028": "\u2028",
+    "paragraph separator U+2029": "\u2029",
+    "next line U+0085": "\x85",
+    "vertical tab": "\x0b",
+    "form feed": "\x0c",
+    "tab": "\t",
+    "no-break space": "\u00a0",
+    "narrow no-break space": "\u202f",
+    "ideographic space": "\u3000",
+    "several spaces": "   ",
+    "space, line feed, space": " \n ",
+    "tab, CRLF, no-break space": "\t\r\n\u00a0",
+}
+
+
+@pytest.mark.parametrize(
+    "gap", tuple(_SPLIT_PHRASE_WHITESPACE.values()), ids=tuple(_SPLIT_PHRASE_WHITESPACE)
+)
+def test_any_whitespace_inside_a_safety_phrase_is_caught_with_the_full_phrase_key(
+    gap: str,
+) -> None:
+    one_line = "Bạn không muốn sống."
+    split = f"Bạn không{gap}muốn sống."
+
+    assert count_safety("S7", split) == 1  # raw text, before normalising
+    assert lint_document(_doc(split))["S7"] == 1
+    assert lint_document_keys(_doc(split))["S7"] == {sentence_key(one_line)}
+    report = lint_surface("tarot", [_doc(split)])
+    assert report.hard_zero["S7"] == 1
+    assert report.keys["S7"] == (sentence_key(one_line),)
+    assert hard_zero_violations({"tarot": report}) == (
+        f"tarot: S7 ngôn ngữ khủng hoảng is a hard zero: 1 sentence(s) ({sentence_key(one_line)})",
+    )
+    # The key matches the one-line phrase, so an approved exception still names it exactly.
+    excepted = RatchetException(
+        "S7", "tarot", "pre-existing, fix in C3", "owner", keys=(sentence_key(one_line),)
+    )
+    assert hard_zero_violations({"tarot": report}, (excepted,)) == ()
+
+
+@pytest.mark.parametrize(
+    ("rule", "text"),
+    (
+        ("S1", "Hôm nay bạn có thể bỏ\nthuốc một bữa."),
+        ("S2", "Tuần này dễ gặp tai\r\nnạn khi đi xa."),
+        ("S3", "Hôm nay là ngày đẹp để xuống\u2028tiền."),
+        ("S4", "Ký luôn hợp\u2029đồng hôm nay."),
+        ("S5", "Hai bạn chắc\nchắn sẽ chia tay."),
+        ("S6", "Lỗi là\r\nở bạn."),
+        ("S7", "Cứ để mọi thứ trôi đi, không cần\nai cả."),
+        ("S7", "Có lúc chỉ muốn biến\r\nmất."),
+        ("S7", "Hôm nay đừng tin\u0085ai ngoài chính mình."),
+    ),
+)
+def test_every_safety_rule_matches_a_phrase_split_across_lines(rule: str, text: str) -> None:
+    one_line = " ".join(text.split())
+
+    assert lint_document(_doc(text))[rule] == lint_document(_doc(one_line))[rule] >= 1
+    assert lint_document_keys(_doc(text))[rule] == {sentence_key(one_line)}
+
+
+def test_a_safety_phrase_split_across_sections_still_fails_with_a_key() -> None:
+    report = lint_surface("tarot", [_doc("Có những ngày bạn không muốn", "sống nữa.")])
+
+    assert report.hard_zero["S7"] == 1
+    assert report.keys["S7"] == (sentence_key("Có những ngày bạn không muốn sống nữa."),)
+
+
+def test_a_safety_phrase_on_one_line_keeps_its_sentence_key() -> None:
+    first, second = "Bạn nghỉ sớm.", "Có những ngày bạn không muốn sống nữa."
+
+    assert lint_document_keys(_doc(f"{first} {second}", "Đi bộ một chút."))["S7"] == {
+        sentence_key(second)
+    }
+
+
+def test_safety_phrases_have_no_literal_space_left() -> None:
+    assert [rule for rule, pattern in SAFETY_RULES.items() if " " in pattern.pattern] == []
+
+
+def test_line_breaks_still_split_sentences_for_the_other_rules() -> None:
+    # "nhà thứ" across a line break is two lines on screen; A1/A16 stay per sentence.
+    assert lint_document(_doc("Ở nhà\nthứ bảy bạn nghỉ."))["A16"] == 0
+    assert sentences("Một câu.\nHai\n\nBa") == ("Một câu.", "Hai", "Ba")
 
 
 def test_line_breaks_stay_sentence_breaks_after_normalising() -> None:

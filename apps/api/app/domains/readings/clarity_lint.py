@@ -11,7 +11,8 @@ H1 (hidden characters) are never ratcheted: any hit fails unless its exact key i
 exception (gap register GT-17, GT-24, GT-11).
 
 Text is normalised before any rule runs (NFC, no-break spaces as spaces, full-width ASCII as
-ASCII, zero-width and bidi controls removed), so look-alike characters cannot hide a match.
+ASCII, zero-width and bidi controls removed), so look-alike characters cannot hide a match. Safety
+phrases also match across line breaks, which stay sentence breaks for every other rule.
 
 Out of scope here (reported as TODO by the release review): A9 first-screen length, A13 Daily
 follows the day, A15 facts match the engine.
@@ -77,6 +78,14 @@ HARD_ZERO_RULES: dict[str, str] = {
 
 def _terms(*patterns: str) -> re.Pattern[str]:
     return re.compile("|".join(f"(?:{pattern})" for pattern in patterns), re.IGNORECASE)
+
+
+def _phrases(*patterns: str) -> re.Pattern[str]:
+    """Like ``_terms``, but every space in a pattern matches any run of whitespace, line breaks
+    included. The safety rules use it, so a line break (LF, CRLF, U+2028, U+2029…) inside
+    "không muốn sống" cannot hide the phrase. No pattern may put a space in a character class."""
+
+    return _terms(*(pattern.replace(" ", r"\s+") for pattern in patterns))
 
 
 # "Nhà Bảy", "nhà thứ bảy": a house named with a number word. Capitalised number words always
@@ -334,7 +343,7 @@ _FULL_WIDTH_ASCII = {code: code - 0xFEE0 for code in range(0xFF01, 0xFF5F)}
 # money or law, states fate as certain, blames the reader, or uses crisis language. Sources: WHO
 # safe messaging on suicide (2023), the gate spec, gap register GT-17/GT-24.
 SAFETY_RULES: dict[str, re.Pattern[str]] = {
-    "S1": _terms(
+    "S1": _phrases(
         r"\bchẩn đoán\b",
         r"\btrầm cảm\b",
         r"\brối loạn (?:lo âu|ăn uống|lưỡng cực|giấc ngủ|tâm thần|nhân cách)\b",
@@ -356,7 +365,7 @@ SAFETY_RULES: dict[str, re.Pattern[str]] = {
         r"\bphẫu thuật\b",
         r"\bchữa (?:khỏi|bệnh)\b",
     ),
-    "S2": _terms(
+    "S2": _phrases(
         r"\bchết\b",
         r"\btử vong\b",
         r"\bqua đời\b",
@@ -369,7 +378,7 @@ SAFETY_RULES: dict[str, re.Pattern[str]] = {
         r"\bgặp (?:nạn|họa)\b",
         r"\bđừng ra (?:khỏi nhà|đường)\b",
     ),
-    "S3": _terms(
+    "S3": _phrases(
         r"\bvay\b",
         r"\b(?:mua|bán|giữ|tích trữ) vàng\b",
         r"\bxuống tiền\b",
@@ -385,7 +394,7 @@ SAFETY_RULES: dict[str, re.Pattern[str]] = {
         r"\bchốt (?:lời|lỗ|căn)\b",
         r"\b(?:ngày|giờ) (?:đẹp|tốt|hợp) để (?:mua|bán|đầu tư|ký|vay)\b",
     ),
-    "S4": _terms(
+    "S4": _phrases(
         r"\bhợp đồng\b",
         r"\bly hôn\b",
         r"\b(?:thắng|thua|khởi|đi) kiện\b",
@@ -396,7 +405,7 @@ SAFETY_RULES: dict[str, re.Pattern[str]] = {
         r"\btranh chấp (?:đất|tài sản|thừa kế)\b",
         r"\bthừa kế\b",
     ),
-    "S5": _terms(
+    "S5": _phrases(
         r"\bchắc chắn sẽ\b",
         r"\bnhất định sẽ\b",
         r"\bkhông thể tránh\b",
@@ -413,7 +422,7 @@ SAFETY_RULES: dict[str, re.Pattern[str]] = {
         r"\b(?:khó|không thể) (?:mà )?cứu vãn\b",
         r"\b(?:sao \w+|vũ trụ|ông trời) (?:đang |sẽ )?(?:trừng phạt|phạt)\b",
     ),
-    "S6": _terms(
+    "S6": _phrases(
         r"\blỗi (?:là )?(?:ở|tại|do|của) bạn\b",
         r"\btại bạn\b",
         r"\bbạn (?:lúc nào cũng|luôn luôn|toàn) (?:làm hỏng|làm sai|phá hỏng|thất bại)\b",
@@ -423,7 +432,7 @@ SAFETY_RULES: dict[str, re.Pattern[str]] = {
         r"\bđáng đời\b",
         r"\btự chuốc\b",
     ),
-    "S7": _terms(
+    "S7": _phrases(
         r"\bbiến mất\b",
         r"\bkhông cần ai\b",
         r"\bkhông muốn sống\b",
@@ -495,10 +504,24 @@ def normalize_document(document: ClarityDocument) -> ClarityDocument:
     )
 
 
+def sentence_spans(text: str) -> tuple[tuple[int, int], ...]:
+    """Start and end offsets of each sentence in ``text`` (what ``sentences`` returns)."""
+
+    spans: list[tuple[int, int]] = []
+    start = 0
+    for end, resume in (
+        *((match.start(), match.end()) for match in _SENTENCE_SPLIT.finditer(text)),
+        (len(text), len(text)),
+    ):
+        part = text[start:end]
+        if part.strip(_EDGE_PUNCTUATION):
+            spans.append((start + len(part) - len(part.lstrip()), start + len(part.rstrip())))
+        start = resume
+    return tuple(spans)
+
+
 def sentences(text: str) -> tuple[str, ...]:
-    return tuple(
-        part.strip() for part in _SENTENCE_SPLIT.split(text) if part.strip(_EDGE_PUNCTUATION)
-    )
+    return tuple(text[start:end] for start, end in sentence_spans(text))
 
 
 def syllables(sentence: str) -> int:
@@ -643,11 +666,8 @@ def _pair_key(first: str, second: str) -> str:
     return _digest("\x1f".join(sorted((_sentence_key(first), _sentence_key(second)))))
 
 
-def _matches(pattern: re.Pattern[str]) -> Callable[[str], bool]:
-    return lambda sentence: bool(pattern.search(sentence))
-
-
-# Sentence-level rules: a sentence that matches is a violation key for the rule.
+# Sentence-level rules: a sentence that matches is a violation key for the rule. The safety rules
+# are keyed by ``safety_keys`` instead, because their phrases may cross a line break.
 _SENTENCE_RULES: dict[str, Callable[[str], bool]] = {
     "A1": lambda sentence: bool(JARGON.search(sentence)),
     "A2": lambda sentence: bool(COINED_LABELS.search(sentence)),
@@ -657,7 +677,6 @@ _SENTENCE_RULES: dict[str, Callable[[str], bool]] = {
     "A11": lambda sentence: bool(PLACEHOLDERS.search(sentence)),
     "A14": is_past_event_claim,
     "A16": lambda sentence: bool(HOUSE_SIGN_ASPECT.search(sentence)),
-    **{rule: _matches(pattern) for rule, pattern in SAFETY_RULES.items()},
 }
 
 
@@ -669,6 +688,20 @@ def count_hidden_characters(document: ClarityDocument) -> int:
 
 def count_safety(rule: str, text: str) -> int:
     return _count(SAFETY_RULES[rule], text)
+
+
+def safety_keys(rule: str, text: str) -> frozenset[str]:
+    """Keys of the sentences a safety phrase touches. A phrase split by a line break touches two
+    "sentences"; its key is the key of both read as one, which is the one-line sentence's key
+    when the only break was inside the phrase."""
+
+    spans = sentence_spans(text)
+    keys: set[str] = set()
+    for match in SAFETY_RULES[rule].finditer(text):
+        touched = [span for span in spans if span[0] < match.end() and match.start() < span[1]]
+        found = text[touched[0][0] : touched[-1][1]] if touched else match.group(0)
+        keys.add(sentence_key(found))
+    return frozenset(keys)
 
 
 def _document_findings(
@@ -711,6 +744,8 @@ def _document_findings(
         if counts["A7"] and HEDGES.search(sentence):
             keys["A7"].add(sentence_key(sentence))
     keys["A5"] = {_pair_key(first, second) for first, second in pairs}
+    for rule in SAFETY_RULES:
+        keys[rule] = set(safety_keys(rule, body))
     return counts, {rule: frozenset(found) for rule, found in keys.items()}
 
 
