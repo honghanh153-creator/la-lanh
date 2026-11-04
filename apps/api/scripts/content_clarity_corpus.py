@@ -191,16 +191,13 @@ def chart_facts(
         for aspect in chart.aspects
         for first, second in ((aspect.body_a, aspect.body_b), (aspect.body_b, aspect.body_a))
     }
-    for contact in transits.contacts if transits is not None else ():
-        contacts.add(
-            (
-                contact.transit_body.value,
-                contact.natal_body.value,
-                contact.kind,
-                contact.phase.value,
-            )
-        )
-    return AstroFacts(frozenset(placements), frozenset(houses), frozenset(contacts))
+    transit_contacts = {
+        (contact.transit_body.value, contact.natal_body.value, contact.kind, contact.phase.value)
+        for contact in (transits.contacts if transits is not None else ())
+    }
+    return AstroFacts(
+        frozenset(placements), frozenset(houses), frozenset(contacts), frozenset(transit_contacts)
+    )
 
 
 def synthetic_chart_input(rng: random.Random) -> ChartInput:

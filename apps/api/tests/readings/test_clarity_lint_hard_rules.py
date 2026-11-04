@@ -149,6 +149,8 @@ def test_s8_leaves_everyday_lines_alone(text: str) -> None:
         "Ông xã sẽ vui khi bạn về sớm.",
         "Chiều nay đón con sớm hơn mười phút.",
         "Nếu chiều nay rảnh, đón con sớm hơn mười phút.",
+        "Nếu chiều nay rảnh thì đón con sớm.",
+        "Nếu trời mưa thì nhắn cho chồng của bạn.",
         "Con của bạn cần bạn nghe nhiều hơn.",
         "Bé nhà bạn sẽ thích một buổi đi dạo.",
         "Là mẹ bỉm, bạn cần một giờ cho riêng mình.",
@@ -169,6 +171,9 @@ def test_s9_blocks_an_assumed_circumstance(text: str) -> None:
     (
         "Nếu bạn đang độc thân, đây là lúc gặp thêm bạn mới.",
         "Với ai đang có con nhỏ, một giờ ngủ trưa cũng đáng giá.",
+        "Nếu bạn có con nhỏ, đón con sớm.",
+        "Nếu bạn có con nhỏ thì đón con sớm hơn mười phút.",
+        "Nếu bạn đang có người yêu, nhắn cho người yêu của bạn một câu.",
         "Bạn nhắn cho người kia một câu ngắn.",
         "Lịch thứ Tư của bạn có bốn việc chồng lên nhau.",
         "Có điều gì bạn muốn thử mà chưa có ai đi cùng không?",
@@ -318,6 +323,9 @@ _FACTS = AstroFacts(
     placements=frozenset({("sun", "aquarius"), ("moon", "cancer"), ("venus", "leo")}),
     houses=frozenset({("sun", 11), ("moon", 3), ("venus", 5)}),
     contacts=frozenset(
+        {("venus", "mars", "trine", "approaching"), ("mars", "venus", "trine", "approaching")}
+    ),
+    transits=frozenset(
         {
             ("venus", "mars", "trine", "approaching"),
             ("moon", "saturn", "square", "separating"),
@@ -335,6 +343,7 @@ _FACTS = AstroFacts(
         "Sao Kim tam hợp Sao Hỏa và đang tiến gần.",
         "Hôm nay Mặt Trăng đang tạo góc căng với Sao Thổ của bạn.",
         "Ra ngoài đón chút nắng mặt trời buổi sáng.",  # not the planet
+        "Sao Kim tam hợp Sao Hỏa và Mặt Trăng vuông góc Sao Thổ.",  # both claims computed
     ),
 )
 def test_a15_accepts_facts_the_engine_computed(text: str) -> None:
@@ -350,6 +359,8 @@ def test_a15_accepts_facts_the_engine_computed(text: str) -> None:
         "Hôm nay Sao Hỏa đang hỗ trợ Sao Kim của bạn.",  # transit and natal swapped
         "Sao Kim tam hợp Sao Hỏa và đang rời xa.",  # wrong phase
         "Sao Mộc đối đỉnh Mặt Trời.",  # no such contact
+        "Sao Kim tam hợp Sao Hỏa và đối đỉnh Sao Mộc.",  # second claim unsupported
+        "Sao Kim tam hợp Sao Hỏa, Mặt Trăng vuông góc Sao Mộc.",  # second pair unsupported
     ),
 )
 def test_a15_flags_a_fact_the_engine_did_not_compute(text: str) -> None:
@@ -381,3 +392,27 @@ def test_a15_does_not_apply_without_a_chart_and_is_a_hard_zero() -> None:
     assert report.keys["A15"] == (sentence_key("Mặt Trời ở Sư Tử."),)
     empty = _doc("Mặt Trời ở Bảo Bình.", surface="radar", facts=AstroFacts())
     assert astro_fact_errors(empty) == ("Mặt Trời ở Bảo Bình.",)  # no facts wired: fails
+
+
+_NATAL_ONLY = AstroFacts(
+    contacts=frozenset(
+        {("venus", "mars", "trine", "approaching"), ("mars", "venus", "trine", "approaching")}
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "Hôm nay Sao Kim đang hỗ trợ Sao Hỏa của bạn.",
+        "Hôm nay Sao Kim tam hợp Sao Hỏa.",
+        "Sao Kim đang hỗ trợ Sao Hỏa của bạn.",
+    ),
+)
+def test_a15_a_natal_aspect_does_not_support_a_transit_claim(text: str) -> None:
+    assert astro_fact_errors(_doc(text, surface="daily", facts=_NATAL_ONLY)) == (text,)
+
+
+def test_a15_a_natal_aspect_supports_a_natal_claim() -> None:
+    text = "Sao Kim tam hợp Sao Hỏa trong lá số."
+    assert astro_fact_errors(_doc(text, surface="natal", facts=_NATAL_ONLY)) == ()

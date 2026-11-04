@@ -541,53 +541,100 @@ SAFETY_RULES: dict[str, re.Pattern[str]] = {
 
 # S9 (HM-4). Lá never assumes the reader's circumstances: single or partnered, has children or
 # not, gender (plan 1.1 personas, rule N-7). A door that names the circumstance as one
-# possibility ("Nếu bạn đang độc thân, …") is not an assumption: a door word before the match in
-# the same clause exempts it. A condition about something else ("Nếu chiều nay rảnh, đón con
-# sớm") does not.
-ASSUMED_CIRCUMSTANCES = _terms(
-    # single
-    r"\bbạn (?:đang |vẫn |còn |hiện )?(?:độc thân|ế|lẻ bóng|một mình chưa có ai)\b",
-    r"\b(?:độc thân|ế|lẻ bóng) như bạn\b",
-    r"\bchưa có (?:người yêu|bồ|nửa kia|ai để yêu)\b",
-    r"\bbạn chưa (?:lập gia đình|kết hôn|có gia đình|có con)\b",
-    # partnered
-    r"\b(?:người yêu|bạn trai|bạn gái|nửa kia|người ấy|vợ|chồng|người thương|crush) của bạn\b"
-    r"(?! (?:ấy|bè|thân))",
-    r"\b(?:ông|bà) xã\b",
-    r"\bvợ chồng (?:bạn|nhà bạn|hai bạn)\b",
-    r"\b(?:nhà|mẹ|bố|ba) (?:chồng|vợ)\b",
-    r"\bgia đình nhỏ của bạn\b",
-    # children
-    r"\b(?:con|các con|con cái|con nhỏ|bé|nhóc|các bé) (?:của|nhà) bạn\b(?! (?:ấy|bè|thân))",
-    r"\bcon bạn\b(?! (?:ấy|bè|thân|học|cùng))",
-    r"\b(?:đón|đưa) (?:con|bé|các con)\b",
-    r"\b(?:dỗ|ru|chăm|nuôi|tắm cho) (?:con|bé|các con)\b",
-    r"\bcho (?:con|bé) (?:bú|ăn|ngủ)\b",
-    r"\bbạn (?:là|đang làm) (?:bố|mẹ|cha|ba|cha mẹ|bố mẹ|phụ huynh)\b",
-    r"\b(?:bố mẹ|cha mẹ|phụ huynh|mẹ bỉm|bỉm sữa) như bạn\b",
-    r"\bmẹ bỉm\b",
-    # gender
-    r"\bbạn là (?:một )?(?:phụ nữ|đàn ông|đàn bà|con gái|con trai|cô gái|chàng trai|nam|nữ)\b",
-    r"\b(?:phụ nữ|đàn ông|con gái|con trai|cô gái|chàng trai|nàng|chàng) như bạn\b",
-    r"\bphái (?:đẹp|mạnh|yếu)\b",
-    r"\bchị em (?:mình|phụ nữ|ta)\b",
-    r"\b(?:các|mấy) (?:nàng|chàng)\b",
-    r"\b(?:nàng|chàng|anh|chị|cô) ơi\b",
-    r"\bđấng mày râu\b",
-    r"\b(?:cô nàng|chàng trai|anh chàng|quý cô|quý ông) (?:Bạch Dương|Kim Ngưu|Song Tử|Cự Giải"
-    r"|Sư Tử|Xử Nữ|Thiên Bình|Bọ Cạp|Thiên Yết|Nhân Mã|Ma Kết|Bảo Bình|Song Ngư)\b",
+# possibility ("Nếu bạn đang độc thân, …", "Nếu bạn có con nhỏ, đón con sớm") is not an
+# assumption: a match is exempt when a door word before it opens a condition (up to the next
+# clause break or "thì") that contains the match or names the same kind of circumstance; the
+# condition's scope runs through the consequent. A condition about something else ("Nếu chiều
+# nay rảnh thì đón con sớm") does not exempt it.
+_CIRCUMSTANCE_KINDS: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = (
+    (
+        "single",
+        _terms(
+            r"\bbạn (?:đang |vẫn |còn |hiện )?(?:độc thân|ế|lẻ bóng|một mình chưa có ai)\b",
+            r"\b(?:độc thân|ế|lẻ bóng) như bạn\b",
+            r"\bchưa có (?:người yêu|bồ|nửa kia|ai để yêu)\b",
+            r"\bbạn chưa (?:lập gia đình|kết hôn|có gia đình|có con)\b",
+        ),
+        _terms(r"\b(?:độc thân|ế|lẻ bóng|một mình|chưa có ai|người yêu|bồ|nửa kia)\b"),
+    ),
+    (
+        "partnered",
+        _terms(
+            r"\b(?:người yêu|bạn trai|bạn gái|nửa kia|người ấy|vợ|chồng|người thương|crush)"
+            r" của bạn\b"
+            r"(?! (?:ấy|bè|thân))",
+            r"\b(?:ông|bà) xã\b",
+            r"\bvợ chồng (?:bạn|nhà bạn|hai bạn)\b",
+            r"\b(?:nhà|mẹ|bố|ba) (?:chồng|vợ)\b",
+            r"\bgia đình nhỏ của bạn\b",
+        ),
+        _terms(
+            r"\b(?:người yêu|bạn trai|bạn gái|nửa kia|người ấy|vợ|chồng|người thương|crush"
+            r"|gia đình|kết hôn|lập gia đình|có đôi|hẹn hò)\b"
+        ),
+    ),
+    (
+        "children",
+        _terms(
+            r"\b(?:con|các con|con cái|con nhỏ|bé|nhóc|các bé) (?:của|nhà) bạn\b"
+            r"(?! (?:ấy|bè|thân))",
+            r"\bcon bạn\b(?! (?:ấy|bè|thân|học|cùng))",
+            r"\b(?:đón|đưa) (?:con|bé|các con)\b",
+            r"\b(?:dỗ|ru|chăm|nuôi|tắm cho) (?:con|bé|các con)\b",
+            r"\bcho (?:con|bé) (?:bú|ăn|ngủ)\b",
+            r"\bbạn (?:là|đang làm) (?:bố|mẹ|cha|ba|cha mẹ|bố mẹ|phụ huynh)\b",
+            r"\b(?:bố mẹ|cha mẹ|phụ huynh|mẹ bỉm|bỉm sữa) như bạn\b",
+            r"\bmẹ bỉm\b",
+        ),
+        _terms(r"\b(?:con|con cái|con nhỏ|bé|nhóc|bố|mẹ|cha|phụ huynh|làm cha mẹ|làm bố mẹ)\b"),
+    ),
+    (
+        "gender",
+        _terms(
+            r"\bbạn là (?:một )?"
+            r"(?:phụ nữ|đàn ông|đàn bà|con gái|con trai|cô gái|chàng trai|nam|nữ)\b",
+            r"\b(?:phụ nữ|đàn ông|con gái|con trai|cô gái|chàng trai|nàng|chàng) như bạn\b",
+            r"\bphái (?:đẹp|mạnh|yếu)\b",
+            r"\bchị em (?:mình|phụ nữ|ta)\b",
+            r"\b(?:các|mấy) (?:nàng|chàng)\b",
+            r"\b(?:nàng|chàng|anh|chị|cô) ơi\b",
+            r"\bđấng mày râu\b",
+            r"\b(?:cô nàng|chàng trai|anh chàng|quý cô|quý ông)"
+            r" (?:Bạch Dương|Kim Ngưu|Song Tử|Cự Giải"
+            r"|Sư Tử|Xử Nữ|Thiên Bình|Bọ Cạp|Thiên Yết|Nhân Mã|Ma Kết|Bảo Bình|Song Ngư)\b",
+        ),
+        _terms(r"\b(?:phụ nữ|đàn ông|đàn bà|con gái|con trai|cô gái|chàng trai|nam|nữ|giới)\b"),
+    ),
+)
+ASSUMED_CIRCUMSTANCES = re.compile(
+    "|".join(f"(?:{pattern.pattern})" for _, pattern, _ in _CIRCUMSTANCE_KINDS), re.IGNORECASE
 )
 _DOOR_WORDS = re.compile(r"\b(?:nếu|giả sử|trường hợp|với ai|ai đang|người đang)\b", re.IGNORECASE)
-_CLAUSE_BREAK = re.compile(r"[,;:]")
+_CONDITION_END = re.compile(r"[,;:]|\bthì\b", re.IGNORECASE)
+
+
+def _conditions(sentence: str) -> list[tuple[int, int]]:
+    """(start, end) of every condition a door word opens: up to the next clause break or "thì"."""
+
+    found = []
+    for door in _DOOR_WORDS.finditer(sentence):
+        end = _CONDITION_END.search(sentence, door.end())
+        found.append((door.start(), end.start() if end else len(sentence)))
+    return found
 
 
 def assumes_circumstances(sentence: str) -> bool:
     """S9. True when the sentence takes a circumstance of the reader for granted."""
 
-    for match in ASSUMED_CIRCUMSTANCES.finditer(sentence):
-        clause = _CLAUSE_BREAK.split(sentence[: match.start()])[-1]
-        if not _DOOR_WORDS.search(clause):
-            return True
+    conditions = _conditions(sentence)
+    for _, pattern, topic in _CIRCUMSTANCE_KINDS:
+        for match in pattern.finditer(sentence):
+            if not any(
+                start <= match.start()
+                and (match.start() < end or topic.search(sentence, start, end))
+                for start, end in conditions
+            ):
+                return True
     return False
 
 
@@ -601,15 +648,17 @@ _EDGE_PUNCTUATION = " \t.!?\u2026\"\u201c\u201d'\u2018\u2019\u00ab\u00bb()[]:;,-
 class AstroFacts:
     """What the engine computed for one reading (A15), in engine ids, never prose.
 
-    ``placements`` are (body, sign) pairs, ``houses`` (body, house number), ``contacts``
-    (first body, second body, aspect kind, phase): for a transit, the transit body comes first and
-    the natal body second; a natal aspect is listed in both orders. Phase is ``approaching``,
-    ``exact`` or ``separating``.
+    ``placements`` are (body, sign) pairs, ``houses`` (body, house number). ``contacts`` are the
+    natal aspects and ``transits`` the transit-to-natal contacts, both (first body, second body,
+    aspect kind, phase): a natal aspect is listed in both orders; a transit lists the transit body
+    first and the natal body second. Phase is ``approaching``, ``exact`` or ``separating``. A
+    claim about today's sky is checked against ``transits`` only.
     """
 
     placements: frozenset[tuple[str, str]] = frozenset()
     houses: frozenset[tuple[str, int]] = frozenset()
     contacts: frozenset[tuple[str, str, str, str]] = frozenset()
+    transits: frozenset[tuple[str, str, str, str]] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -1026,8 +1075,52 @@ def _houses(sentence: str) -> list[tuple[int, int]]:
     return found
 
 
-def _aspect_kinds(sentence: str) -> frozenset[str] | None:
-    return next((kinds for pattern, kinds in _ASPECT_WORDS if pattern.search(sentence)), None)
+# A sentence about the current sky claims a transit, not a natal aspect.
+_TRANSIT_TIME = _terms(
+    r"\b(?:hôm|sáng|trưa|chiều|tối|đêm|tuần|tháng|năm) nay\b",
+    r"\blúc này\b",
+    r"\bbây giờ\b",
+    r"\bdạo này\b",
+    r"\bnhững ngày (?:này|tới)\b",
+    r"\bhiện tại\b",
+)
+
+
+@dataclass(frozen=True)
+class _AspectClaim:
+    first: _Mention
+    second: _Mention
+    kinds: frozenset[str]
+
+
+def _aspect_claims(sentence: str, bodies: Sequence[_Mention]) -> list[_AspectClaim]:
+    """Every aspect named in the sentence, each with its own two bodies: the body after the
+    aspect word, and the nearest body before it that is not the previous claim's second body
+    ("Sao Kim tam hợp Sao Hỏa và đối đỉnh Sao Mộc" is Kim-Hỏa and Kim-Mộc). With no body after
+    the word, the two bodies before it ("Sao Kim và Sao Hỏa tam hợp")."""
+
+    words: list[tuple[int, int, frozenset[str]]] = []
+    for pattern, kinds in _ASPECT_WORDS:
+        for match in pattern.finditer(sentence):
+            if not any(start < match.end() and match.start() < end for start, end, _ in words):
+                words.append((match.start(), match.end(), kinds))
+    claims: list[_AspectClaim] = []
+    previous: _Mention | None = None
+    for start, end, kinds in sorted(words, key=lambda word: word[0]):
+        before = [mention for mention in bodies if mention.end <= start]
+        after = [mention for mention in bodies if mention.start >= end]
+        if after:
+            firsts = [mention for mention in before if mention is not previous] or before
+            if not firsts:
+                continue
+            claim = _AspectClaim(firsts[-1], after[0], kinds)
+        elif len(before) >= 2:
+            claim = _AspectClaim(before[-2], before[-1], kinds)
+        else:
+            continue
+        claims.append(claim)
+        previous = claim.second
+    return claims
 
 
 def _phase(sentence: str) -> str | None:
@@ -1049,20 +1142,23 @@ def _sentence_fact_errors(
 
     bodies = _bodies(sentence)
     ok = True
-    kinds = _aspect_kinds(sentence) if len(bodies) >= 2 else None
-    if kinds is not None:
-        first, second = bodies[0], bodies[1]
+    phase = _phase(sentence)
+    today = _TRANSIT_TIME.search(sentence) is not None
+    for claim in _aspect_claims(sentence, bodies):
+        first, second = claim.first, claim.second
         directed = sentence[second.end :].lstrip().startswith("của bạn")
-        phase = _phase(sentence)
-        ok = any(
-            kind in kinds
+        transit = directed or today
+        pool = facts.transits if transit else facts.contacts | facts.transits
+        if not any(
+            kind in claim.kinds
             and (phase is None or phase == contact_phase)
             and (
                 (a in first.ids and b in second.ids)
                 or (not directed and a in second.ids and b in first.ids)
             )
-            for a, b, kind, contact_phase in facts.contacts
-        )
+            for a, b, kind, contact_phase in pool
+        ):
+            ok = False
     for position, sign in _signs(sentence):
         owner = _owner(position, bodies, subject)
         if owner is not None and not any((body, sign) in facts.placements for body in owner):
