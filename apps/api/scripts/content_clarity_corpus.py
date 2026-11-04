@@ -307,6 +307,31 @@ def _texts(items: Any, *keys: str) -> Iterator[str]:
                 yield value
 
 
+# Every key of a Radar section and of the items inside it (highlights, perspectives, scene,
+# observation), with what the corpus does with it. A key RadarContinuePage.tsx shows must be
+# linted or named here with the reason it is not (tested against the page and against every
+# section the corpus renders), so new visible copy cannot skip the ratchet.
+RADAR_SECTION_LINTED_FIELDS = frozenset(
+    {"title", "body", "question", "scene", "observation", "highlights", "perspectives"}
+)
+RADAR_SECTION_UNLINTED_FIELDS: dict[str, str] = {
+    "key": "identifier",
+    "layer": "identifier (main view or the Xem thêm layer)",
+    "depth": "identifier (picks the dossier layout)",
+    "label": "section heading from the fixed SECTION_LABELS map (UI chrome)",
+    "topics": "theme name chips from the fixed theme label map (UI chrome)",
+    "factors": "the evidence layer of the why section (Vì sao ra kết quả này?)",
+    "evidence": "the evidence layer (receipts behind a disclosure)",
+}
+RADAR_ITEM_LINTED_FIELDS = frozenset({"title", "body"})
+RADAR_ITEM_UNLINTED_FIELDS: dict[str, str] = {
+    "key": "identifier",
+    "label": "kicker from a fixed label map (UI chrome)",
+    "concept_id": "identifier",
+    "evidence_ids": "identifiers of the evidence layer",
+}
+
+
 def radar_sections(reading: dict[str, Any]) -> tuple[tuple[str, str], ...]:
     """Body text of a Radar result. The ``why`` factors and every evidence ``plain`` line are
     the evidence layer; labels, kickers and level labels are UI chrome."""
@@ -322,13 +347,18 @@ def radar_sections(reading: dict[str, Any]) -> tuple[tuple[str, str], ...]:
     )
     for section in reading["sections"]:
         key = section["key"]
+        if section.get("title"):
+            sections.append((f"{key}_title", section["title"]))
         if section.get("body"):
             sections.append((f"{key}_body", section["body"]))
         if section.get("question"):
             sections.append((f"{key}_question", section["question"]))
         scene = section.get("scene")
-        if isinstance(scene, dict) and scene.get("body"):
-            sections.append((f"scene_{key}", scene["body"]))
+        if isinstance(scene, dict):
+            if scene.get("title"):
+                sections.append((f"scene_{key}_title", scene["title"]))
+            if scene.get("body"):
+                sections.append((f"scene_{key}", scene["body"]))
         observation = section.get("observation")
         if isinstance(observation, str) and observation.strip():
             sections.append((f"{key}_observation", observation))
@@ -347,25 +377,29 @@ def radar_sections(reading: dict[str, Any]) -> tuple[tuple[str, str], ...]:
     return tuple(sections)
 
 
-def radar_documents(count: int = RADAR_COUNT) -> tuple[ClarityDocument, ...]:
+def radar_readings(count: int = RADAR_COUNT) -> Iterator[tuple[int, str, dict[str, Any]]]:
+    """Synthetic pairs in every Radar context and relationship voice: (index, context, result)."""
+
     rng = random.Random(f"{_SEED}:radar")  # noqa: S311 - synthetic fixtures
     engine = NatalChartEngine()
     voices = tuple(RelationshipVoice)
-    documents: list[ClarityDocument] = []
     for index in range(count):
         context = RADAR_CONTEXTS[index % len(RADAR_CONTEXTS)]
         voice = voices[(index // len(RADAR_CONTEXTS)) % len(voices)]
         bundle = engine.calculate_relationship_bundle(_chart(engine, rng), _chart(engine, rng))
-        reading = build_radar_reading(bundle, context=context, voice=voice)
-        documents.append(
-            ClarityDocument(
-                surface="radar",
-                sample_id=f"radar-{index:03d}",
-                variant=context,
-                sections=radar_sections(reading),
-            )
+        yield index, context, build_radar_reading(bundle, context=context, voice=voice)
+
+
+def radar_documents(count: int = RADAR_COUNT) -> tuple[ClarityDocument, ...]:
+    return tuple(
+        ClarityDocument(
+            surface="radar",
+            sample_id=f"radar-{index:03d}",
+            variant=context,
+            sections=radar_sections(reading),
         )
-    return tuple(documents)
+        for index, context, reading in radar_readings(count)
+    )
 
 
 def kham_pha_documents(count: int = KHAM_PHA_COUNT) -> tuple[ClarityDocument, ...]:
