@@ -23,11 +23,11 @@ from app.domains.astro.models import (
     BodyPosition,
     CalculationConfig,
     ChartInput,
-    HousePosition,
     NatalChart,
     TimePrecision,
     TransitPhase,
 )
+from app.domains.daily.house_confidence import Birthplace, CuspSample, HouseFrame
 from app.domains.daily.sky_selection import (
     DAILY_SELECTION_VERSION,
     DAILY_TIMEZONE,
@@ -481,11 +481,8 @@ def test_moon_contact_entering_orb_before_midnight_belongs_to_the_day(
 
 def test_moon_house_lookup_wraps_through_aries(charts: tuple[NatalChart, ...]) -> None:
     cusps = (20.0, 50.0, 80.0, 110.0, 140.0, 170.0, 200.0, 230.0, 260.0, 290.0, 320.0, 350.0)
-    houses = tuple(
-        HousePosition(number=index, longitude=value, sign=sign_for_longitude(value))
-        for index, value in enumerate(cusps, start=1)
-    )
-    chart = charts[1].model_copy(update={"houses": houses})
+    frame = HouseFrame.from_samples((CuspSample(cusps=cusps, ascendant=20.0, midheaven=290.0),))
+    chart = charts[1]
 
     class FixedMoon(NatalChartEngine):
         def __init__(self, longitude: float) -> None:
@@ -508,11 +505,23 @@ def test_moon_house_lookup_wraps_through_aries(charts: tuple[NatalChart, ...]) -
 
     expected = {355.0: 12, 0.0: 12, 5.0: 12, 20.0: 1, 25.0: 1, 349.9: 11}
     for longitude, house in expected.items():
-        context = moon_context(FixedMoon(longitude), chart, START)
+        context = moon_context(FixedMoon(longitude), chart, START, houses=frame)
         assert context.natal_house == house
+        # No frame (no birthplace, or a time that cannot hold a house): no house.
+        assert moon_context(FixedMoon(longitude), chart, START).natal_house is None
         assert context.observed_at == _local(START, 12)
         assert context.sign_change_at is None
         assert context.sign_at_start is context.sign_at_end is context.sign
+
+
+def test_exact_time_moon_house_needs_proof_it_holds_over_the_time_error(
+    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
+) -> None:
+    # C2b: a typed HH:MM is not exact to the minute. The old selection read the house straight
+    # from the stored cusps; now a house is only read from a frame that holds over the error.
+    for chart in charts:
+        for offset in range(3):
+            assert moon_context(engine, chart, START + timedelta(days=offset)).natal_house is None
 
 
 def test_moon_context_reports_the_sign_change_time(
@@ -613,6 +622,7 @@ def test_night_window_covers_births_after_midnight_on_the_entered_date(
     for hour in (0, 3, 6, 22, 23):
         at = datetime.combine(birth_day, time(hour), tzinfo=DAILY_TIMEZONE)
         for body, (low, high) in domains.items():
+            assert isinstance(body, BodyName)  # no angle without an exact time (C2b)
             longitude = engine.transiting_position(body, at).longitude
             assert low - 1e-9 <= longitude <= high + 1e-9 or low <= longitude + 360.0 <= high
     for body, (low, high) in date_only.items():
@@ -748,12 +758,22 @@ def test_day_tone_from_geometry() -> None:
 def test_selection_is_versioned_and_deterministic(
     engine: NatalChartEngine, charts: tuple[NatalChart, ...]
 ) -> None:
-    first = select_daily_sky(engine, charts[2], START)
-    assert first == select_daily_sky(engine, charts[2], START)
-    assert first.version == DAILY_SELECTION_VERSION == "daily-sky-selection-v2"
+    _, lat, lon = SYNTHETIC_BIRTHS[2]
+    place = Birthplace(latitude=lat, longitude=lon)
+    first = select_daily_sky(engine, charts[2], START, birthplace=place)
+    assert first == select_daily_sky(engine, charts[2], START, birthplace=place)
+    assert first.version == DAILY_SELECTION_VERSION == "daily-sky-selection-v3"
     assert first.timezone == "Asia/Ho_Chi_Minh"
     assert first.eligibility is ContactEligibility.EXACT_TIME
     assert first.moon.natal_house is not None
+    assert first.houses is not None
+    # Without the birthplace nothing proves a house holds over the birth-time error (C2b).
+    blind = select_daily_sky(engine, charts[2], START)
+    assert blind.moon.natal_house is None and blind.houses is None
+    assert all(
+        item.transit_house is None and item.natal_house is None and not item.ruled_houses
+        for item in (*blind.today, *blind.days, *blind.weeks)
+    )
     assert len(first.picks) == 3
     assert all(item.tier is SkyTier.TODAY for item in first.today)
     assert all(item.tier is SkyTier.DAYS for item in first.days)
@@ -783,6 +803,7 @@ def test_trend_windows_contain_today_and_their_closest_approaches(
             assert window.passes
             assert list(window.closest_dates) == sorted(window.closest_dates)
             assert all(window.start_date <= day <= window.end_date for day in window.closest_dates)
+            assert isinstance(item.contact.natal_body, BodyName)  # no frame: no angle
             natal = chart.body(item.contact.natal_body).longitude
             for edge, open_edge, step in (
                 (window.start_date, window.start_open, -1),
