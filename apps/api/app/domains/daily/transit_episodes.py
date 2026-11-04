@@ -57,6 +57,7 @@ from app.domains.daily.sky_selection import (
     TREND_SCAN_DAYS,
     DayContact,
     NatalDomains,
+    NatalPoint,
     PassKind,
     _contact_domain,
 )
@@ -140,7 +141,7 @@ class TransitEpisode:
     version: str
     contact_id: str
     transit_body: BodyName
-    natal_body: BodyName
+    natal_body: NatalPoint
     kind: str
     start_date: date
     end_date: date
