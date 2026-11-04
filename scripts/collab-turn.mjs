@@ -16,7 +16,8 @@ export const prFiles = pr => (pr.files ?? []).map(f => f.path ?? f).filter(Boole
 export function fileBlocker(pr, prs = []) {
   const mine = new Set(prFiles(pr));
   if (!mine.size) return null;
-  const earlier = prs.filter(o => o.number !== pr.number && !o.isDraft && o.baseRefName === integration
+  // Only the owner's own PRs can hold another: a fork or outside PR is held forever itself.
+  const earlier = prs.filter(o => o.number !== pr.number && !o.isDraft && isOwnPr(o) && o.baseRefName === integration
     && (String(o.createdAt) < String(pr.createdAt) || (String(o.createdAt) === String(pr.createdAt) && o.number < pr.number)));
   return earlier.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)) || a.number - b.number)
     .find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;

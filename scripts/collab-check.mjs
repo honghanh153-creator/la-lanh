@@ -216,10 +216,13 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   }
   // Fix A (04.11.2026): template and changed-Python lint first. Nothing is posted; the tick
   // records the reasons and the PR goes to claude-fix without spending the 15-minute check.
-  const pre = preflight?.(pr, cwd);
+  // The lint is bounded by the same deadline, and the budget is read again before pnpm (K: 23:55).
+  const pre = preflight?.(pr, cwd, budget);
+  const left = budget();
+  if (left <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
   if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons };
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
-  const result = runGroup('pnpm', ['check'], { cwd, timeoutMs, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
+  const result = runGroup('pnpm', ['check'], { cwd, timeoutMs: left, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
   const exitCode = result.status ?? 1;
   // A file the check rewrote means the receipt would not describe the committed head.
   const dirty = Boolean(git(['status', '--porcelain']));
@@ -283,7 +286,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // The clock is read again after the clone and install, which can take minutes.
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
-    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir) => runPreflight(p, { cwd: dir }) : rest.preflight });
+    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
   });
 }
 

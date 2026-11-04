@@ -639,7 +639,7 @@ test('fix A: ruff and mypy run only on the changed Python files of apps/api', ()
   assert.deepEqual(preflightMod.changedPython([{ path: 'apps/api/app/x.py' }, { path: 'apps/web/a.ts' }, { path: 'scripts/y.py' }, 'apps/api/tests/t.py']), ['app/x.py', 'tests/t.py']);
   const runs = [];
   const spawn = (cmd, args) => { runs.push([cmd, ...args].join(' ')); return { status: args.includes('mypy') ? 1 : 0, stdout: 'app/x.py:3: error: bad' }; };
-  const result = preflightMod.runPreflight({ body: goodBody, files: [{ path: 'apps/api/app/x.py' }, { path: 'README.md' }] }, { cwd: '/repo', spawn });
+  const result = preflightMod.runPreflight({ body: goodBody, files: [{ path: 'apps/api/app/x.py' }, { path: 'README.md' }] }, { cwd: '/repo', spawn, exists: () => true });
   assert.deepEqual(runs, ['uv run --directory apps/api ruff check app/x.py', 'uv run --directory apps/api ruff format --check app/x.py', 'uv run --directory apps/api mypy app/x.py']);
   assert.equal(result.status, 'FAIL');
   assert.match(result.reasons[0], /^mypy lỗi: app\/x\.py:3/);
@@ -730,4 +730,35 @@ test('fix E: one heavy job at a time — no new check while the lock is busy, at
   assert.equal(slow.length, 1, 'no new check after 60 minutes, before the 90-minute tick lock expires');
   assert.equal(heavyJobFree(() => '1 pnpm check'), false);
   assert.equal(heavyJobFree(() => null), true);
+});
+
+test('review 228 P1: the budget is read again after the preflight, and lint is bounded by it', () => {
+  let t = 0;
+  const gh = { ...fakeGh({ pr: pr() }), comment: () => { throw new Error('nothing posted'); } };
+  const run = (cmd, args) => args[0] === 'rev-parse' ? A : '';
+  const seen = [];
+  const result = runCheckInClone(7, { gh, run, nowMs: () => t, group: () => ({ status: 0 }), busy: () => null, terms: () => [],
+    preflight: (p, dir, left) => { seen.push(left()); t += 200 * 60000; return { status: 'PASS', reasons: [] }; },
+    spawn: () => { throw new Error('pnpm check must not start past the deadline'); } });
+  assert.equal(result.status, 'refused');
+  assert.ok(seen[0] > 0, 'the preflight gets the remaining budget');
+  const timeouts = [];
+  let left = 1000;
+  preflightMod.lintProblems(['app/x.py'], { cwd: '/repo', exists: () => true, left: () => left, spawn: (c, a, o) => { timeouts.push(o.timeout); left = 0; return { status: 0 }; } });
+  assert.deepEqual(timeouts, [1000], 'no lint step starts after the deadline');
+});
+
+test('review 228 P2: a fork or outside PR never holds an owner PR on a shared file', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const outside = pr({ number: 20, createdAt: '2026-11-01T00:00:00Z', author: { login: 'someone-else' }, files: f('scripts/a.mjs') });
+  const fork = pr({ number: 21, createdAt: '2026-11-01T00:00:01Z', isCrossRepository: true, files: f('scripts/a.mjs') });
+  const mine = pr({ number: 22, createdAt: '2026-11-02T00:00:00Z', files: f('scripts/a.mjs') });
+  assert.equal(fileBlocker(mine, [outside, fork, mine]), null);
+  assert.equal(turnsFor([outside, fork, mine]).find(t => t.number === 22).turn, 'claude-check');
+});
+
+test('review 228: a deleted Python file is not linted by default', () => {
+  const calls = [];
+  assert.deepEqual(preflightMod.lintProblems(['app/deleted_for_test_only.py'], { cwd: '/nonexistent-la-lanh', spawn: () => { calls.push(1); return { status: 1 }; } }), []);
+  assert.equal(calls.length, 0);
 });
