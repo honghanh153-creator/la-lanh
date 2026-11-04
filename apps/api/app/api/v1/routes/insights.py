@@ -22,7 +22,7 @@ from app.domains.birth.service import BirthChartService
 from app.domains.daily.service import DailyNoteService
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
-from app.domains.readings.application import ReadingApplicationService
+from app.domains.readings.application import ReadingApplicationService, ReadingContentRejected
 from app.domains.readings.models import InsightReading, ReadingProjection, ReadingPurpose
 from app.domains.readings.service import InsightReadingService
 
@@ -123,6 +123,13 @@ def _reading_problem(status: int, code: str) -> JSONResponse:
     )
 
 
+def _content_rejected_problem() -> JSONResponse:
+    # #143 E2: the gates rejected every candidate (already logged without content by the
+    # application service). The same chart yields the same result, so this is a content
+    # error, not an outage: 422 like the content studio's gate, and no retry prompt.
+    return _reading_problem(422, "READING_CONTENT_REJECTED")
+
+
 def _calculation_config(
     tradition: Tradition,
     ayanamsa: Ayanamsa | None,
@@ -204,6 +211,8 @@ async def insight_overview(
             await _daily_service(request).assert_current_birth_source(snapshot)
         except BirthDomainError as error:
             return _problem(error)
+        except ReadingContentRejected:
+            return _content_rejected_problem()
         except Exception:
             logger.exception(
                 "Private insight projection failed",
@@ -273,6 +282,8 @@ async def private_reading(
         return projection
     except BirthDomainError as error:
         return _problem(error)
+    except ReadingContentRejected:
+        return _content_rejected_problem()
     except Exception:
         logger.exception(
             "Private insight reading failed",
