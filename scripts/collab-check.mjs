@@ -8,6 +8,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statS
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { agentMarker, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { runPreflight } from './collab-preflight.mjs';
 
 // A heavy test process anywhere on the machine, matched on the program actually running.
 // `pgrep -f` matched any command line that merely mentioned these words, including the agent
@@ -87,6 +88,11 @@ export function withSystemPath(path = '') {
 }
 
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
+// Fix E: the heavy-job lock is free when no live process holds check.lock and no heavy test runs.
+export function heavyJobFree(busy = machineBusy) {
+  try { const pid = Number(readFileSync(join(stateDir, 'check.lock'), 'utf8')); if (alive(pid)) return false; } catch {}
+  return !busy();
+}
 export function withCheckLock(fn) {
   mkdirSync(stateDir, { recursive: true });
   const path = join(stateDir, 'check.lock');
@@ -192,7 +198,7 @@ export function privateHits(pr, git, terms, ranges = [[`origin/${integration}..H
   } catch { return ['lịch sử nhánh không đọc được']; }
 }
 
-function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms }) {
+function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null }) {
   const pr = gh.pr(number);
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   const head = git(['rev-parse', 'HEAD']);
@@ -208,6 +214,10 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
     gh.comment('pr', pr.number, renderCheck({ head, status: 'FAIL', exitCode: 'guard', seconds: 0, date: new Date(started).toISOString(), guard }));
     return { status: 'FAIL', guard };
   }
+  // Fix A (04.11.2026): template and changed-Python lint first. Nothing is posted; the tick
+  // records the reasons and the PR goes to claude-fix without spending the 15-minute check.
+  const pre = preflight?.(pr, cwd);
+  if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons };
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
   const result = runGroup('pnpm', ['check'], { cwd, timeoutMs, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
   const exitCode = result.status ?? 1;
@@ -273,7 +283,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // The clock is read again after the clone and install, which can take minutes.
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
-    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget });
+    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir) => runPreflight(p, { cwd: dir }) : rest.preflight });
   });
 }
 

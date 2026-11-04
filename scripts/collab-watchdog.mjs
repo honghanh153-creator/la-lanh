@@ -22,11 +22,25 @@ const hhmm = ms => { const t = vnNow(new Date(ms)); return `${t.date.slice(8)}.$
 
 export function beat(task, phase, nowMs = Date.now()) {
   if (!watched[task]) throw new Error(`unknown task: ${task}`);
-  if (!['start', 'done'].includes(phase)) throw new Error(`phase must be start or done: ${phase}`);
+  if (!['start', 'done', 'stuck'].includes(phase)) throw new Error(`phase must be start, done or stuck: ${phase}`);
   const prev = readJson(beatPath(task), {});
-  const next = { ...prev, task, [phase === 'start' ? 'startedAt' : 'doneAt']: new Date(nowMs).toISOString() };
+  const next = { ...prev, task, [{ start: 'startedAt', done: 'doneAt', stuck: 'stuckAt' }[phase]]: new Date(nowMs).toISOString() };
   writeJson(beatPath(task), next);
   return next;
+}
+
+// Fix D (04.11.2026): a start beat with no done beat for more than 30 minutes is a stuck run. The
+// watchdog records a stuck beat, so a run that asks "is the last one still going?" (--running) is
+// not blocked by it, and alerts as for any stale task. It never kills a process.
+export const stuckMinutes = 30;
+const ms = value => Date.parse(value ?? 0) || 0;
+export const isStuck = (b = {}, nowMs = Date.now()) => ms(b.startedAt) > Math.max(ms(b.doneAt), ms(b.stuckAt)) && nowMs - ms(b.startedAt) > stuckMinutes * 60000;
+export const isRunning = (b = {}) => ms(b.startedAt) > Math.max(ms(b.doneAt), ms(b.stuckAt));
+export function markStuck(beats, nowMs = Date.now()) {
+  return Object.keys(beats).filter(task => watched[task] && isStuck(beats[task], nowMs)).map(task => {
+    beats[task] = beat(task, 'stuck', nowMs);
+    return task;
+  });
 }
 
 // A task with no beat file starts its clock when the watchdog first sees it, so installing the
@@ -43,11 +57,13 @@ export function readBeats(nowMs = Date.now()) {
 export function staleTasks(beats, nowMs = Date.now(), vn = vnNow(new Date(nowMs))) {
   const at = vn.hour * 60 + vn.minute;
   return Object.entries(watched).flatMap(([task, rule]) => {
-    if (rule.activeFrom && at < rule.activeFrom) return [];
     const b = beats[task] ?? {};
     const lastMs = Date.parse(b.doneAt ?? b.baselineAt ?? 0) || 0;
-    if (nowMs - lastMs <= rule.maxMinutes * 60000) return [];
     const startedMs = Date.parse(b.startedAt ?? 0) || 0;
+    // A run stuck for 30 minutes is reported at any hour, before its schedule limit.
+    const stuckRun = startedMs > lastMs && nowMs - startedMs > stuckMinutes * 60000;
+    if (!stuckRun && rule.activeFrom && at < rule.activeFrom) return [];
+    if (!stuckRun && nowMs - lastMs <= rule.maxMinutes * 60000) return [];
     // Started after the last done and never finished: the usual shape of a permission prompt.
     const stuckSince = startedMs > lastMs ? startedMs : null;
     return [{ task, label: rule.label, lastDoneAt: b.doneAt ?? null, stuckSince: stuckSince ? new Date(stuckSince).toISOString() : null }];
@@ -79,6 +95,7 @@ const osNotify = text => execFileSync('/usr/bin/osascript', ['-e', `display noti
 export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify } = {}) {
   const beats = readBeats(nowMs);
   const stale = staleTasks(beats, nowMs);
+  const stuck = markStuck(beats, nowMs);
   const sent = readJson(alertPath(), {});
   const episode = task => beats[task]?.doneAt ?? 'none';
   for (const task of Object.keys(sent)) if (sent[task]?.episode !== episode(task)) delete sent[task];
@@ -99,14 +116,16 @@ export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify 
     alerted.push(s.task);
   }
   writeJson(alertPath(), sent);
-  return { stale: stale.map(s => s.task), alerted };
+  return { stale: stale.map(s => s.task), alerted, stuck };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
   try {
     if (args[0] === '--beat') process.stdout.write(`${JSON.stringify(beat(args[1], args[2]))}\n`);
+    // Exit 0 while a run is in progress; a stuck run (stuck beat recorded) does not count.
+    else if (args[0] === '--running') { if (!watched[args[1]]) throw new Error(`unknown task: ${args[1]}`); const on = isRunning(readJson(beatPath(args[1]), {})); process.stdout.write(`${on ? 'running' : 'free'}\n`); process.exitCode = on ? 0 : 1; }
     else if (args[0] === '--report') process.stdout.write(`${healthLines(readBeats()).join('\n')}\n`);
-    else { process.stderr.write('Use: node scripts/collab-watchdog.mjs --beat <task> start|done | --report\n'); process.exitCode = 2; }
+    else { process.stderr.write('Use: node scripts/collab-watchdog.mjs --beat <task> start|done|stuck | --running <task> | --report\n'); process.exitCode = 2; }
   } catch (error) { process.stderr.write(`collab-watchdog failed: ${clean(error.message, 300)}\n`); process.exitCode = 1; }
 }
