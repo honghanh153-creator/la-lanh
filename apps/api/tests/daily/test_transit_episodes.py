@@ -17,6 +17,7 @@ import pytest
 from app.domains.astro.aspects import calculate_aspects
 from app.domains.astro.engine import NatalChartEngine, sign_for_longitude
 from app.domains.astro.models import BodyName, ChartInput, NatalChart, TimePrecision
+from app.domains.daily.house_confidence import Birthplace, ChartAngle
 from app.domains.daily.sky_selection import (
     DAILY_TIMEZONE,
     EXACT_ORB,
@@ -24,6 +25,7 @@ from app.domains.daily.sky_selection import (
     SPEED_MARGIN,
     DayContact,
     PassKind,
+    daily_house_frame,
     natal_domains,
     scan_day,
     select_daily_sky,
@@ -442,6 +444,41 @@ def test_strides_and_jumps_never_skip_a_station(engine: NatalChartEngine) -> Non
             assert (right_day - left_day).days >= MIN_STATION_GAP_DAYS[body] - 1, body
             if not left_direct:  # a retrograde arc runs from this station to the next
                 assert abs(_wrap(right - left)) <= arc, body
+
+
+def test_a_contact_to_a_chart_angle_keeps_the_angle_as_its_natal_point(
+    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
+) -> None:
+    """Slow transits to the Ascendant or Midheaven are episodes too (regression, PR #216)."""
+
+    for chart, (_, latitude, longitude) in zip(charts, SYNTHETIC_BIRTHS, strict=True):
+        # A reliable time keeps the angle domains narrower than the orb (see test_house_confidence).
+        frame = daily_house_frame(
+            engine,
+            chart,
+            Birthplace(latitude=latitude, longitude=longitude),
+            exact_time_error_minutes=0.0,
+        )
+        assert frame is not None
+        domains = natal_domains(engine, chart, houses=frame)
+        day = START
+        for _ in range(400):
+            angle_contacts = [
+                item
+                for listed in scan_day(engine, chart, day, domains=domains, houses=frame)
+                for item in (listed, *listed.merged)
+                if isinstance(item.natal_body, ChartAngle) and episode_stride(item.transit_body) > 1
+            ]
+            if angle_contacts:
+                contact = angle_contacts[0]
+                episode = trend_episode(engine, chart, contact, day, domains=domains)
+                assert episode.natal_body is contact.natal_body
+                assert isinstance(episode.natal_body, ChartAngle)
+                assert episode.contact_id == contact.id
+                assert episode.in_orb_on(day)
+                return
+            day += timedelta(days=7)
+    raise AssertionError("no slow contact to a chart angle in the synthetic charts")
 
 
 def test_invalid_scan_bound_and_domain_wider_than_the_orb(engine: NatalChartEngine) -> None:
