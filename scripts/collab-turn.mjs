@@ -13,14 +13,18 @@ export const prFiles = pr => (pr.files ?? []).map(f => f.path ?? f).filter(Boole
 // Fix B (04.11.2026): one open PR per file. Two PRs on the same file conflicted after the first
 // merge and cost a fix round each time; the later one waits for the earlier one to land.
 // The repo keeps no list of generated or lock files, so every file counts.
-export function fileBlocker(pr, prs = []) {
+// Fix-forward (04.11): only a blocker that can move counts. A PR on hold itself (fork/outside,
+// draft, needs-owner, dropped from today's plan, stacked) would hold the other for days (#199 behind #127).
+// "Earlier" means earlier in the owner's group order, then creation: a later group never holds an
+// earlier one, otherwise the group gate and the file gate wait on each other forever.
+const canMove = (o, dropped) => isOwnPr(o) && !o.isDraft && o.baseRefName === integration
+  && !(o.labels ?? []).some(l => (l.name ?? l) === 'needs-owner') && !dropped.includes(o.number);
+
+export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
   const mine = new Set(prFiles(pr));
   if (!mine.size) return null;
-  // Only the owner's own PRs can hold another: a fork or outside PR is held forever itself.
-  const earlier = prs.filter(o => o.number !== pr.number && !o.isDraft && isOwnPr(o) && o.baseRefName === integration
-    && (String(o.createdAt) < String(pr.createdAt) || (String(o.createdAt) === String(pr.createdAt) && o.number < pr.number)));
-  return earlier.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)) || a.number - b.number)
-    .find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;
+  const order = sortByPriority([pr, ...prs.filter(o => o.number !== pr.number && canMove(o, dropped))]);
+  return order.slice(0, order.indexOf(pr)).find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;
 }
 
 export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
@@ -33,7 +37,7 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
   if (pr.baseRefName !== integration) return out('hold', `xếp chồng trên ${pr.baseRefName}`);
-  const blocker = fileBlocker(pr, open);
+  const blocker = fileBlocker(pr, open, { dropped });
   if (blocker) return out('hold', `chờ PR #${blocker} cùng file`);
   // A conflict needs Claude at any stage: on 02.11 an approved PR in conflict kept every tick on a
   // refused merge for three hours, and checking or reviewing a head that cannot merge wastes the run (K24).
