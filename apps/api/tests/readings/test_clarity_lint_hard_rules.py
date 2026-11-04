@@ -480,3 +480,61 @@ def test_a15_a_natal_aspect_does_not_support_a_transit_claim(text: str) -> None:
 def test_a15_a_natal_aspect_supports_a_natal_claim() -> None:
     text = "Sao Kim tam hợp Sao Hỏa trong lá số."
     assert astro_fact_errors(_doc(text, surface="natal", facts=_NATAL_ONLY)) == ()
+
+
+# Round 5: one clause model for S9 and A15 (``split_clauses``). Codex's round-4 cases in both
+# directions, then the cases a reviewer would try next.
+_S9_CLAUSE_TABLE = (
+    ("Nếu bạn chưa có người yêu, tối nay cứ thong thả.", False),  # negative condition, door
+    ("Nếu bạn chưa có người yêu, nhắn cho người yêu của bạn.", True),  # main assumes opposite
+    ("Nếu bạn chưa có con thì đón con sớm.", True),  # condition denies the child
+    ("Nếu bạn đang độc thân thì tối nay cứ thong thả.", False),
+    ("Nếu bạn không độc thân, nhắn cho người yêu của bạn một câu.", False),  # negated single
+    ("Nếu bạn không độc thân, bạn đang độc thân thì cứ đi chơi.", True),  # contradicts it
+    ("Nếu chiều nay rảnh và bạn có con nhỏ, đón con sớm.", False),  # door joined by "và"
+    ("Nếu bạn có con nhỏ, còn người yêu của bạn bận, đón con sớm.", True),  # second assumption
+    ("Khi bạn có con nhỏ, đón con sớm hơn mười phút.", False),  # "khi" is a door
+    ("Khi đón con, hít thở chậm một nhịp.", True),  # "khi" alone establishes nothing
+    ("Đón con sớm, nếu bạn có con nhỏ.", True),  # door after the assumption
+    ("Nếu bạn làm việc với phụ huynh thì đón con sớm.", True),  # unrelated subject
+    ("Nếu bạn là phụ nữ, chị em mình hay ôm việc.", False),  # gender established
+)
+
+
+@pytest.mark.parametrize(("text", "flagged"), _S9_CLAUSE_TABLE)
+def test_s9_clause_model_matches_axis_and_polarity(text: str, flagged: bool) -> None:
+    assert assumes_circumstances(text) is flagged
+    assert lint_document(_doc(text))["S9"] == int(flagged)
+
+
+_CODEX_PAIRS = "Sao Kim và Sao Hỏa tam hợp, Mặt Trăng và Sao Thổ vuông góc."
+_CROSSED = AstroFacts(
+    contacts=frozenset(
+        {("mars", "moon", "trine", "approaching"), ("moon", "saturn", "square", "separating")}
+    ),
+)
+
+
+def test_a15_pairs_bodies_inside_each_clause() -> None:
+    assert astro_fact_errors(_doc(_CODEX_PAIRS, surface="natal", facts=_FACTS)) == ()
+    crossed = _doc(_CODEX_PAIRS, surface="natal", facts=_CROSSED)
+    assert astro_fact_errors(crossed) == (_CODEX_PAIRS,)
+
+
+_A15_CLAUSE_TABLE = (
+    ("Sao Kim và Sao Hỏa tam hợp; Mặt Trăng và Sao Thổ vuông góc.", 0),
+    ("Sao Kim và Sao Hỏa tam hợp, Mặt Trăng và Sao Mộc vuông góc.", 1),  # second pair wrong
+    ("Sao Kim và Sao Hỏa tam hợp và Mặt Trăng vuông góc Sao Thổ.", 0),  # "và" + new subject
+    ("Sao Kim và Mặt Trăng tam hợp, Sao Hỏa và Sao Thổ vuông góc.", 1),  # crossed pairs
+    ("Sao Kim, đang tiến gần, tam hợp Sao Hỏa.", 0),  # apposition joins its claim
+    ("Sao Kim, đang rời xa, tam hợp Sao Hỏa.", 1),  # and its phase is checked
+    ("Sao Kim tam hợp Sao Hỏa nhưng Mặt Trăng và Sao Thổ vuông góc.", 0),
+    ("Mặt Trăng và Sao Thổ vuông góc, đang rời xa; Sao Kim và Sao Hỏa tam hợp.", 0),
+    ("Mặt Trăng và Sao Thổ vuông góc, đang tiến gần; Sao Kim và Sao Hỏa tam hợp.", 1),
+    ("Sao Kim tam hợp Sao Hỏa và đối đỉnh Sao Mộc.", 1),  # shared subject, second unsupported
+)
+
+
+@pytest.mark.parametrize(("text", "errors"), _A15_CLAUSE_TABLE)
+def test_a15_clause_model_keeps_bodies_and_phase_in_their_clause(text: str, errors: int) -> None:
+    assert lint_document(_doc(text, surface="daily", facts=_FACTS))["A15"] == errors

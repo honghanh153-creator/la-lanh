@@ -539,26 +539,114 @@ SAFETY_RULES: dict[str, re.Pattern[str]] = {
     ),
 }
 
+# Clause model, shared by S9 and A15. A sentence splits into clauses at "," ";" ":", before
+# "thì", and before "và/nhưng/còn" when they start a new subject or a new predicate. A clause
+# that opens with a door word (nếu, khi, giả sử …) is a condition; every other clause is main.
+_HARD_BREAK = re.compile(r"[,;:]")
+_THEN = re.compile(r"\bthì\b", re.IGNORECASE)
+_CONJUNCTION = re.compile(r"\b(?:và|nhưng|còn)\b", re.IGNORECASE)
+_DOOR_WORDS = re.compile(
+    r"\b(?:nếu|giả sử|trường hợp|khi|lúc|với ai|ai đang|người đang)\b", re.IGNORECASE
+)
+_CLAUSE_LEAD = re.compile(r"[\s,;:]*(?:(?:và|nhưng|còn|thì)\s+)*", re.IGNORECASE)
+_AND_LEAD = re.compile(r"\s*và\b", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class Clause:
+    start: int
+    end: int
+    condition: bool
+    door_end: int  # where a condition's own words start (after the door word), else ``start``
+
+
+def split_clauses(
+    sentence: str,
+    *,
+    predicate: re.Pattern[str] | None = None,
+    subject: re.Pattern[str] | None = None,
+) -> list[Clause]:
+    """The clauses of one sentence. With ``predicate`` (A15: an aspect word), a conjunction splits
+    only when the clause before it already has a predicate and the words after it start with a
+    ``subject`` or a predicate. A stretch with no predicate joins the clause before it, or the
+    next one when it opens the sentence or names a subject (a phase word or an apposition stays
+    with its claim). Without ``predicate``, every conjunction splits."""
+
+    cuts = {m.start() for m in _HARD_BREAK.finditer(sentence)}
+    cuts |= {m.start() for m in _THEN.finditer(sentence)}
+    for match in _CONJUNCTION.finditer(sentence):
+        if predicate is None:
+            cuts.add(match.start())
+            continue
+        left = max((cut for cut in cuts if cut < match.start()), default=0)
+        rest = sentence[match.end() :].lstrip()
+        if predicate.search(sentence, left, match.start()) and (
+            predicate.match(rest) or (subject is not None and subject.match(rest))
+        ):
+            cuts.add(match.start())
+    bounds = [0, *sorted(cut for cut in cuts if 0 < cut < len(sentence)), len(sentence)]
+    spans = [(a, b) for a, b in pairwise(bounds) if sentence[a:b].strip(" ,;:")]
+    if predicate is not None and spans:
+        merged: list[tuple[int, int]] = []
+        pending: int | None = None
+        for start, end in spans:
+            begin = pending if pending is not None else start
+            if predicate.search(sentence, begin, end):
+                merged.append((begin, end))
+                pending = None
+            elif (
+                pending is None
+                and merged
+                and not (subject is not None and subject.search(sentence, start, end))
+            ):
+                # A trailing phrase with no subject ("…, đang rời xa;") stays with the claim
+                # before it; one that names a subject waits for its own predicate.
+                merged[-1] = (merged[-1][0], end)
+            else:
+                pending = begin
+        if pending is not None:
+            if merged:
+                merged[-1] = (merged[-1][0], len(sentence))
+            else:
+                merged.append((pending, len(sentence)))
+        spans = merged
+    clauses: list[Clause] = []
+    for start, end in spans:
+        lead = _CLAUSE_LEAD.match(sentence, start)
+        lead_end = lead.end() if lead else start
+        door = _DOOR_WORDS.match(sentence, lead_end)
+        if door is not None:
+            clauses.append(Clause(start, end, True, door.end()))
+        elif clauses and clauses[-1].condition and _AND_LEAD.match(sentence, start):
+            # "Nếu chiều nay rảnh và bạn có con nhỏ, …": "và" carries the condition on.
+            clauses.append(Clause(start, end, True, lead_end))
+        else:
+            clauses.append(Clause(start, end, False, start))
+    return clauses
+
+
 # S9 (HM-4). Lá never assumes the reader's circumstances: single or partnered, has children or
-# not, gender (plan 1.1 personas, rule N-7). A door that names the circumstance as one
-# possibility ("Nếu bạn đang độc thân, …", "Nếu bạn có con nhỏ, đón con sớm") is not an
-# assumption: a match is exempt when a door word before it opens a condition (up to the next
-# clause break or "thì") that contains the match or names the same kind of circumstance; the
-# condition's scope runs through the consequent. A condition about something else ("Nếu chiều
-# nay rảnh thì đón con sớm") does not exempt it.
-_CIRCUMSTANCE_KINDS: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = (
+# not, gender (plan 1.1 personas, rule N-7). Each circumstance phrase sits on an axis with a
+# polarity (partner: has one or not; children: has them or not; gender). A phrase is an
+# assumption unless a condition clause of the same sentence, opened before it, establishes the
+# same axis with the same polarity for the reader: "Nếu bạn chưa có người yêu, tối nay cứ thong
+# thả" is a door; "Nếu bạn chưa có con thì đón con sớm" is not (the condition denies the child
+# the main clause assumes); "Nếu bạn làm việc với phụ huynh" establishes nothing about the reader.
+_ASSUMPTIONS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
     (
-        "single",
+        "partner",
+        False,
         _terms(
             r"\bbạn (?:đang |vẫn |còn |hiện )?(?:độc thân|ế|lẻ bóng|một mình chưa có ai)\b",
             r"\b(?:độc thân|ế|lẻ bóng) như bạn\b",
             r"\bchưa có (?:người yêu|bồ|nửa kia|ai để yêu)\b",
-            r"\bbạn chưa (?:lập gia đình|kết hôn|có gia đình|có con)\b",
+            r"\bbạn chưa (?:lập gia đình|kết hôn|có gia đình)\b",
         ),
-        _terms(r"\b(?:độc thân|ế|lẻ bóng|một mình|chưa có ai|người yêu|bồ|nửa kia)\b"),
     ),
+    ("children", False, _terms(r"\bbạn chưa có con\b")),
     (
-        "partnered",
+        "partner",
+        True,
         _terms(
             r"\b(?:người yêu|bạn trai|bạn gái|nửa kia|người ấy|vợ|chồng|người thương|crush)"
             r" của bạn\b"
@@ -568,13 +656,10 @@ _CIRCUMSTANCE_KINDS: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = 
             r"\b(?:nhà|mẹ|bố|ba) (?:chồng|vợ)\b",
             r"\bgia đình nhỏ của bạn\b",
         ),
-        _terms(
-            r"\b(?:người yêu|bạn trai|bạn gái|nửa kia|người ấy|vợ|chồng|người thương|crush"
-            r"|gia đình|kết hôn|lập gia đình|có đôi|hẹn hò)\b"
-        ),
     ),
     (
         "children",
+        True,
         _terms(
             r"\b(?:con|các con|con cái|con nhỏ|bé|nhóc|các bé) (?:của|nhà) bạn\b"
             r"(?! (?:ấy|bè|thân))",
@@ -586,14 +671,10 @@ _CIRCUMSTANCE_KINDS: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = 
             r"\b(?:bố mẹ|cha mẹ|phụ huynh|mẹ bỉm|bỉm sữa) như bạn\b",
             r"\bmẹ bỉm\b",
         ),
-        _terms(
-            r"\b(?:có|nuôi|chăm|nhà có) (?:con|bé|các con|con nhỏ)\b",
-            r"\b(?:con cái|con nhỏ|phụ huynh|làm cha mẹ|làm bố mẹ|làm mẹ|làm bố|làm cha)\b",
-            r"\bbạn (?:là|đang làm) (?:bố|mẹ|cha|ba|cha mẹ|bố mẹ|phụ huynh)\b",
-        ),
     ),
     (
         "gender",
+        True,
         _terms(
             r"\bbạn là (?:một )?"
             r"(?:phụ nữ|đàn ông|đàn bà|con gái|con trai|cô gái|chàng trai|nam|nữ)\b",
@@ -607,59 +688,72 @@ _CIRCUMSTANCE_KINDS: tuple[tuple[str, re.Pattern[str], re.Pattern[str]], ...] = 
             r" (?:Bạch Dương|Kim Ngưu|Song Tử|Cự Giải"
             r"|Sư Tử|Xử Nữ|Thiên Bình|Bọ Cạp|Thiên Yết|Nhân Mã|Ma Kết|Bảo Bình|Song Ngư)\b",
         ),
-        _terms(r"\b(?:phụ nữ|đàn ông|đàn bà|con gái|con trai|cô gái|chàng trai|nam|nữ|giới)\b"),
     ),
 )
 ASSUMED_CIRCUMSTANCES = re.compile(
-    "|".join(f"(?:{pattern.pattern})" for _, pattern, _ in _CIRCUMSTANCE_KINDS), re.IGNORECASE
+    "|".join(f"(?:{pattern.pattern})" for _, _, pattern in _ASSUMPTIONS), re.IGNORECASE
 )
-_DOOR_WORDS = re.compile(r"\b(?:nếu|giả sử|trường hợp|với ai|ai đang|người đang)\b", re.IGNORECASE)
-_CONDITION_END = re.compile(r"[,;:]|\bthì\b", re.IGNORECASE)
+# What a condition can say about the reader: (axis, polarity of the plain word, words).
+_CONDITION_TOPICS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
+    ("partner", False, _terms(r"\b(?:độc thân|ế|lẻ bóng|một mình|chưa có ai)\b")),
+    (
+        "partner",
+        True,
+        _terms(
+            r"\b(?:người yêu|bạn trai|bạn gái|nửa kia|người ấy|vợ|chồng|người thương|crush"
+            r"|gia đình|kết hôn|lập gia đình|có đôi|hẹn hò|bồ)\b"
+        ),
+    ),
+    (
+        "children",
+        True,
+        _terms(
+            r"\b(?:có|nuôi|chăm|nhà có) (?:con|bé|các con|con nhỏ)\b",
+            r"\b(?:con cái|con nhỏ|phụ huynh|làm cha mẹ|làm bố mẹ|làm mẹ|làm bố|làm cha)\b",
+            r"\b(?:là|đang làm) (?:bố|mẹ|cha|ba|cha mẹ|bố mẹ|phụ huynh)\b",
+        ),
+    ),
+    (
+        "gender",
+        True,
+        _terms(r"\b(?:phụ nữ|đàn ông|đàn bà|con gái|con trai|cô gái|chàng trai|nam|nữ)\b"),
+    ),
+)
+# Between the door and the topic only "bạn" and plain verbs of being or having, so the condition
+# is about the reader. A negation there flips the topic's polarity.
+_READER_GAP = re.compile(
+    r"\s*(?:bạn\s+)?(?:(?:đã|đang|vẫn|cũng|hiện|là|có|vừa|còn|chưa|không|chẳng|chả|phải)\s+)*",
+    re.IGNORECASE,
+)
+_NEGATION = re.compile(r"\b(?:chưa|không|chẳng|chả)\b", re.IGNORECASE)
 
 
-def _conditions(sentence: str) -> list[tuple[int, int]]:
-    """(start, end) of every condition a door word opens: up to the next clause break or "thì"."""
+def _established(sentence: str, clause: Clause) -> set[tuple[str, bool]]:
+    """The (axis, polarity) a condition clause establishes for the reader."""
 
-    found = []
-    for door in _DOOR_WORDS.finditer(sentence):
-        end = _CONDITION_END.search(sentence, door.end())
-        found.append((door.start(), end.start() if end else len(sentence)))
+    found: set[tuple[str, bool]] = set()
+    if not clause.condition:
+        return found
+    for axis, plain, topic in _CONDITION_TOPICS:
+        for match in topic.finditer(sentence, clause.door_end, clause.end):
+            if _READER_GAP.fullmatch(sentence, clause.door_end, match.start()) is None:
+                continue
+            negated = _NEGATION.search(sentence, clause.door_end, match.start()) is not None
+            found.add((axis, plain != negated))
     return found
 
 
-# A condition opens the door only when it says the reader (or "ai/người" the door names) has the
-# circumstance: the words between the door and the topic may only be "bạn" and plain verbs of
-# being or having. "Nếu bạn chưa có con", "Nếu bạn làm việc với phụ huynh" do not open it.
-_AFFIRMING_GAP = re.compile(
-    r"\s*(?:bạn\s+)?(?:(?:đã|đang|vẫn|cũng|hiện|là|có|vừa)\s+)*", re.IGNORECASE
-)
-_NEGATION = re.compile(r"\b(?:chưa|không|chẳng|chả|đâu có|không phải)\b", re.IGNORECASE)
-
-
-def _affirms(sentence: str, door_end: int, end: int, topic: re.Pattern[str]) -> bool:
-    if _NEGATION.search(sentence, door_end, end):
-        return False
-    return any(
-        _AFFIRMING_GAP.fullmatch(sentence, door_end, match.start())
-        for match in topic.finditer(sentence, door_end, end)
-    )
-
-
 def assumes_circumstances(sentence: str) -> bool:
-    """S9. True when the sentence takes a circumstance of the reader for granted. A circumstance
-    after a door word is fine only when that condition affirms the reader has it."""
+    """S9. True when the sentence takes a circumstance of the reader for granted: a phrase that
+    no condition clause opened before it establishes on the same axis with the same polarity."""
 
-    doors = [
-        (door.end(), end)
-        for door, (_, end) in zip(
-            _DOOR_WORDS.finditer(sentence), _conditions(sentence), strict=True
-        )
+    established = [
+        (clause.start, _established(sentence, clause)) for clause in split_clauses(sentence)
     ]
-    for _, pattern, topic in _CIRCUMSTANCE_KINDS:
+    for axis, polarity, pattern in _ASSUMPTIONS:
         for match in pattern.finditer(sentence):
             if not any(
-                door_end <= match.end() and _affirms(sentence, door_end, end, topic)
-                for door_end, end in doors
+                start <= match.start() and (axis, polarity) in facts for start, facts in established
             ):
                 return True
     return False
@@ -1120,73 +1214,69 @@ class _AspectClaim:
     kinds: frozenset[str]
 
 
-def _aspect_claims(sentence: str, bodies: Sequence[_Mention]) -> list[_AspectClaim]:
-    """Every aspect named in the sentence, each with its own two bodies: the body after the
-    aspect word, and the nearest body before it that is not the previous claim's second body
-    ("Sao Kim tam hợp Sao Hỏa và đối đỉnh Sao Mộc" is Kim-Hỏa and Kim-Mộc). With no body after
-    the word, the two bodies before it ("Sao Kim và Sao Hỏa tam hợp")."""
-
-    words: list[tuple[int, int, frozenset[str]]] = []
-    for pattern, kinds in _ASPECT_WORDS:
-        for match in pattern.finditer(sentence):
-            if not any(start < match.end() and match.start() < end for start, end, _ in words):
-                words.append((match.start(), match.end(), kinds))
-    claims: list[_AspectClaim] = []
-    previous: _Mention | None = None
-    for start, end, kinds in sorted(words, key=lambda word: word[0]):
-        before = [mention for mention in bodies if mention.end <= start]
-        after = [mention for mention in bodies if mention.start >= end]
-        if after:
-            firsts = [mention for mention in before if mention is not previous] or before
-            if not firsts:
-                continue
-            claim = _AspectClaim(firsts[-1], after[0], kinds)
-        elif len(before) >= 2:
-            claim = _AspectClaim(before[-2], before[-1], kinds)
-        else:
-            continue
-        claims.append(claim)
-        previous = claim.second
-    return claims
+_ASPECT_PATTERN = re.compile(
+    "|".join(f"(?:{pattern.pattern})" for pattern, _ in _ASPECT_WORDS), re.IGNORECASE
+)
 
 
 def _phase(text: str) -> str | None:
     return next((phase for pattern, phase in _PHASE_WORDS if pattern.search(text)), None)
 
 
-_CLAUSE_BREAK = re.compile(r"[,;:]")
-_CLAUSE_JOIN = re.compile(r"\b(?:và|nhưng|còn)\b", re.IGNORECASE)
+def _aspect_claims(
+    sentence: str, bodies: Sequence[_Mention]
+) -> list[tuple[_AspectClaim, str | None]]:
+    """Every aspect named in the sentence with its phase. Each claim takes its two bodies and its
+    phase from its own clause (``split_clauses`` with the aspect word as predicate): the body
+    after the aspect word and the nearest body before it, or the two bodies before it ("Sao Kim
+    và Sao Hỏa tam hợp, Mặt Trăng và Sao Thổ vuông góc"). A clause with no body before the word
+    shares the subject of the claim before it ("Sao Kim tam hợp Sao Hỏa và đối đỉnh Sao Mộc")."""
 
-
-def _claim_windows(sentence: str, claims: Sequence[_AspectClaim]) -> list[tuple[int, int]]:
-    """The stretch of the sentence each claim owns. Between two claims the text after the first
-    claim's second body is cut at the last clause break (comma, semicolon, colon) before the next
-    claim's second body; with none, where the next claim's own first body starts; with that body
-    shared, at the last "và/nhưng/còn". So phase words before or after a claim's bodies stay in
-    that claim's clause."""
-
-    if not claims:
-        return []
-    cuts: list[int] = []
-    for current, following in pairwise(claims):
-        gap_start = current.second.end
-        gap_end = max(gap_start, following.second.start)
-        breaks = [m.end() for m in _CLAUSE_BREAK.finditer(sentence, gap_start, gap_end)]
-        if not breaks and gap_start <= following.first.start < gap_end:
-            breaks = [following.first.start]
-        if not breaks:
-            breaks = [m.start() for m in _CLAUSE_JOIN.finditer(sentence, gap_start, gap_end)]
-        cuts.append(breaks[-1] if breaks else gap_end)
-    starts = [0, *cuts]
-    ends = [*cuts, len(sentence)]
-    return list(zip(starts, ends, strict=True))
-
-
-def _claim_phases(sentence: str, claims: Sequence[_AspectClaim]) -> list[str | None]:
-    """The phase each claim states: the phase words inside that claim's own clause, before or
-    after its bodies ("Sao Kim đang rời xa góc tam hợp với Sao Hỏa, Mặt Trăng đang tiến gần …")."""
-
-    return [_phase(sentence[start:end]) for start, end in _claim_windows(sentence, claims)]
+    words: list[tuple[int, int, frozenset[str]]] = []
+    for pattern, kinds in _ASPECT_WORDS:
+        for match in pattern.finditer(sentence):
+            if not any(start < match.end() and match.start() < end for start, end, _ in words):
+                words.append((match.start(), match.end(), kinds))
+    words.sort(key=lambda word: word[0])
+    found: list[tuple[_AspectClaim, str | None]] = []
+    subject: _Mention | None = None
+    for clause in split_clauses(sentence, predicate=_ASPECT_PATTERN, subject=_BODY_PATTERN):
+        inside = [m for m in bodies if clause.start <= m.start and m.end <= clause.end]
+        mine = [w for w in words if clause.start <= w[0] and w[1] <= clause.end]
+        previous: _Mention | None = None
+        claims: list[_AspectClaim] = []
+        for start, end, kinds in mine:
+            before = [m for m in inside if m.end <= start]
+            after = [m for m in inside if m.start >= end]
+            if after:
+                firsts = [m for m in before if m is not previous] or before
+                first = firsts[-1] if firsts else subject
+                if first is None:
+                    first = next((m for m in reversed(bodies) if m.end <= clause.start), None)
+                if first is None:
+                    continue
+                claim = _AspectClaim(first, after[0], kinds)
+            elif len(before) >= 2:
+                claim = _AspectClaim(before[-2], before[-1], kinds)
+            else:
+                continue
+            claims.append(claim)
+            previous = claim.second
+        if not claims:
+            continue
+        # Two claims in one clause split it where the second claim's own words begin.
+        cuts = [clause.start]
+        for current, following in pairwise(claims):
+            cut = following.first.start
+            if not current.second.end <= cut:
+                cut = current.second.end
+            cuts.append(cut)
+        cuts.append(clause.end)
+        for claim, (start, end) in zip(claims, pairwise(cuts), strict=True):
+            found.append((claim, _phase(sentence[start:end])))
+        if claims:
+            subject = claims[0].first
+    return found
 
 
 def _owner(
@@ -1205,8 +1295,7 @@ def _sentence_fact_errors(
     bodies = _bodies(sentence)
     ok = True
     today = _TRANSIT_TIME.search(sentence) is not None
-    claims = _aspect_claims(sentence, bodies)
-    for claim, phase in zip(claims, _claim_phases(sentence, claims), strict=True):
+    for claim, phase in _aspect_claims(sentence, bodies):
         first, second = claim.first, claim.second
         directed = sentence[second.end :].lstrip().startswith("của bạn")
         transit = directed or today
