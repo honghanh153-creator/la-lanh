@@ -550,6 +550,21 @@ _DOOR_WORDS = re.compile(
 )
 _CLAUSE_LEAD = re.compile(r"[\s,;:]*(?:(?:và|nhưng|còn|thì)\s+)*", re.IGNORECASE)
 _AND_LEAD = re.compile(r"\s*và\b", re.IGNORECASE)
+# "còn" is also the adverb "still": "bạn còn độc thân", "vẫn còn", "còn đang". It joins clauses
+# only when it does not sit right after a subject pronoun or "vẫn", and is not followed by
+# another aspect adverb ("còn đang", "còn chưa").
+_STILL_BEFORE = re.compile(
+    r"\b(?:bạn|mình|em|anh|chị|họ|ta|tôi|ai|người ấy|vẫn|đang|cũng)\s*$", re.IGNORECASE
+)
+_STILL_AFTER = re.compile(r"\s*(?:đang|chưa|nữa|đó|lại|mãi|nguyên)\b", re.IGNORECASE)
+
+
+def _adverbial_con(sentence: str, match: re.Match[str]) -> bool:
+    if match.group(0).lower() != "còn":
+        return False
+    return bool(
+        _STILL_BEFORE.search(sentence[: match.start()]) or _STILL_AFTER.match(sentence, match.end())
+    )
 
 
 @dataclass(frozen=True)
@@ -575,6 +590,8 @@ def split_clauses(
     cuts = {m.start() for m in _HARD_BREAK.finditer(sentence)}
     cuts |= {m.start() for m in _THEN.finditer(sentence)}
     for match in _CONJUNCTION.finditer(sentence):
+        if _adverbial_con(sentence, match):
+            continue
         if predicate is None:
             cuts.add(match.start())
             continue

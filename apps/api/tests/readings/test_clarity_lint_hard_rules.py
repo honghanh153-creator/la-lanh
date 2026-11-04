@@ -498,6 +498,11 @@ _S9_CLAUSE_TABLE = (
     ("Đón con sớm, nếu bạn có con nhỏ.", True),  # door after the assumption
     ("Nếu bạn làm việc với phụ huynh thì đón con sớm.", True),  # unrelated subject
     ("Nếu bạn là phụ nữ, chị em mình hay ôm việc.", False),  # gender established
+    # Round 6: "còn" as the adverb "still" keeps its condition; as a conjunction it still splits.
+    ("Nếu bạn còn độc thân, tối nay cứ thong thả.", False),
+    ("Nếu bạn vẫn còn độc thân, tối nay cứ thong thả.", False),
+    ("Nếu bạn còn đang độc thân thì tối nay cứ thong thả.", False),
+    ("Nếu bạn có con nhỏ còn người yêu của bạn bận thì đón con sớm.", True),
 )
 
 
@@ -532,6 +537,10 @@ _A15_CLAUSE_TABLE = (
     ("Mặt Trăng và Sao Thổ vuông góc, đang rời xa; Sao Kim và Sao Hỏa tam hợp.", 0),
     ("Mặt Trăng và Sao Thổ vuông góc, đang tiến gần; Sao Kim và Sao Hỏa tam hợp.", 1),
     ("Sao Kim tam hợp Sao Hỏa và đối đỉnh Sao Mộc.", 1),  # shared subject, second unsupported
+    # Round 6: "còn" joining two claims still splits them.
+    ("Sao Kim tam hợp Sao Hỏa, còn Mặt Trăng vuông góc Sao Thổ.", 0),
+    ("Sao Kim tam hợp Sao Hỏa còn Mặt Trăng vuông góc Sao Thổ.", 0),
+    ("Sao Kim tam hợp Mặt Trăng còn Sao Hỏa vuông góc Sao Thổ.", 1),  # crossed pairs
 )
 
 
