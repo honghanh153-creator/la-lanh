@@ -232,8 +232,14 @@ def test_cli_accepts_update_baseline_flag(
 def test_committed_exceptions_only_list_pre_existing_hard_zero_sentences(
     reports: dict[str, SurfaceReport],
 ) -> None:
-    entries = json.loads(EXCEPTIONS_PATH.read_text("utf-8"))["exceptions"]
-    assert all(entry["rule"] in HARD_ZERO_RULES for entry in entries)  # no ratchet waivers
+    all_entries = json.loads(EXCEPTIONS_PATH.read_text("utf-8"))["exceptions"]
+    entries = [entry for entry in all_entries if entry["rule"] in HARD_ZERO_RULES]
+    # Ratchet waivers are allowed only with a named owner approval and a reason.
+    waivers = [entry for entry in all_entries if entry["rule"] not in HARD_ZERO_RULES]
+    assert all(
+        entry["approver"].startswith("owner") and entry["reason"] and "keys" not in entry
+        for entry in waivers
+    )
     assert all(entry["reason"] == "pre-existing, fix in C3" and entry["keys"] for entry in entries)
     # Every listed key is still present; drop an entry as soon as C3 fixes the sentence.
     for entry in entries:

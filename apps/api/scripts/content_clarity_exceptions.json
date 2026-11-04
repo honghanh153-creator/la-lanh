@@ -14,6 +14,36 @@
       "keys": ["1fb170d7fa"],
       "reason": "pre-existing, fix in C3",
       "approver": "owner in chat 03.11.2026 (keep until C3 rewrites)"
+    },
+    {
+      "rule": "A1",
+      "surface": "kham_pha",
+      "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
+      "approver": "owner in chat 04.11.2026 (#219)"
+    },
+    {
+      "rule": "A3",
+      "surface": "kham_pha",
+      "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
+      "approver": "owner in chat 04.11.2026 (#219)"
+    },
+    {
+      "rule": "A5",
+      "surface": "kham_pha",
+      "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
+      "approver": "owner in chat 04.11.2026 (#219)"
+    },
+    {
+      "rule": "A8",
+      "surface": "kham_pha",
+      "reason": "#219 Vietnamese body names change aspect-line sentence hashes (775 to 892)",
+      "approver": "owner in chat 04.11.2026 (#219)"
+    },
+    {
+      "rule": "A16",
+      "surface": "kham_pha",
+      "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
+      "approver": "owner in chat 04.11.2026 (#219)"
     }
   ]
 }
