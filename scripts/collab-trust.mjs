@@ -115,9 +115,20 @@ export function vnNow(date = new Date()) {
 }
 
 // gh with fixed argv and no shell. Tests pass their own runner.
-export function makeGh(run = execFileSync) {
-  const call = (args, input) => run('gh', args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: 60000, input });
+// Deadline helper (05.11.2026): a call's timeout is its usual cap or the time left before the
+// caller's absolute deadline, whichever is smaller; nothing starts once the time is spent.
+export class DeadlineError extends Error {}
+export function boundedTimeout(cap, left = () => Infinity) {
+  const ms = Math.min(cap, left());
+  if (!(ms > 0)) throw new DeadlineError('hết giờ trước khi gọi lệnh');
+  return Math.ceil(ms);
+}
+
+// `left`: time to the caller's deadline; withDeadline(left) returns the same client bounded by it.
+export function makeGh(run = execFileSync, { left = () => Infinity } = {}) {
+  const call = (args, input) => run('gh', args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: boundedTimeout(60000, left), input });
   return {
+    withDeadline: next => makeGh(run, { left: next }),
     raw: call,
     json: args => JSON.parse(call(args)),
     pr: number => JSON.parse(call(['pr', 'view', String(Number(number)), '--repo', repo, '--json',
