@@ -3,7 +3,9 @@
 ``python -m scripts.review_content_release`` fails when the core ``ContentReviewAgent`` finds a
 critical/high problem, or when the clarity ratchet (``clarity_lint``, spec layer A) finds, on
 Daily, Tarot, Radar or Khám phá: a rule count above the baseline, a violating sentence the
-baseline does not list (keys are short hashes of normalised sentences), or lower coverage.
+baseline does not list (keys are short hashes of normalised sentences), lower coverage, or any
+hit of a hard-zero rule (A4, A9, A11, A13, A14, A15, S1-S9, H1) whose exact key is not an
+approved exception. A13 reads 30-day Daily runs for every persona with a birth time.
 
 The baseline is read from the PR's base branch (``origin/collab/integration``, or
 ``CONTENT_CLARITY_BASE_REF``/``--base-ref``), so a PR cannot loosen the gate by editing its own
@@ -61,6 +63,7 @@ from app.domains.tarot.models import TarotContext, TarotSpread, TarotVoice
 from scripts.content_clarity_corpus import (
     MINIMUM_SAMPLES,
     build_clarity_corpus,
+    daily_days,
     date_only_chart,
 )
 from scripts.content_clarity_corpus import daily_review_plan as _daily_review_plan
@@ -258,7 +261,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
 def clarity_reports() -> dict[str, SurfaceReport]:
     return {
-        surface: lint_surface(surface, documents)
+        surface: lint_surface(surface, documents, days=daily_days() if surface == "daily" else ())
         for surface, documents in build_clarity_corpus().items()
     }
 
@@ -367,6 +370,15 @@ def _clarity_ratchet(
     print(f"Clarity lint (spec layer A) on rendered output, {elapsed:.1f}s:")
     print(format_clarity_table(reports, effective))
     print("Not measured yet: " + "; ".join(f"{key} {name}" for key, name in TODO_RULES.items()))
+    pending = [entry for entry in exceptions if entry.approver.casefold().startswith("pending")]
+    if pending:
+        print(
+            f"Awaiting owner approval: {len(pending)} exception(s) in {exceptions_path.name} "
+            "(do not merge before the owner approves them): "
+            + ", ".join(
+                f"{entry.surface}/{entry.rule} ({len(entry.keys)} key(s))" for entry in pending
+            )
+        )
     if update:
         path.write_text(dump_baseline(baseline_document(reports)), "utf-8")
         print(f"Clarity baseline rewritten: {path.name}")

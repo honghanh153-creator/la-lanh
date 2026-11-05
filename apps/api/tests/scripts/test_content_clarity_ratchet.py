@@ -10,6 +10,7 @@ from typing import Any, get_args
 import pytest
 from pydantic import BaseModel
 
+from app.domains.astro.models import NatalChart
 from app.domains.readings.clarity_lint import (
     HARD_ZERO_RULES,
     RULES,
@@ -36,6 +37,8 @@ from scripts.content_clarity_corpus import (
     TAROT_LINTED_FIELDS,
     TAROT_UNLINTED_FIELDS,
     build_clarity_corpus,
+    daily_charts,
+    daily_days,
     radar_readings,
     radar_sections,
     tarot_readings,
@@ -311,7 +314,7 @@ def test_update_baseline_flag_rewrites_then_ratchet_blocks_a_rise(
     assert exit_info.value.code == 1
     output = capsys.readouterr().out
     assert "tarot: A8 câu > 25 âm tiết rose to" in output
-    assert "A9" in output  # out-of-scope rules are listed as TODO
+    assert "A1+" in output  # rules not measured yet are listed as TODO
 
 
 def test_cli_accepts_update_baseline_flag(
@@ -342,7 +345,7 @@ def test_committed_exceptions_only_list_pre_existing_hard_zero_sentences(
     assert all(
         isinstance(entry["max_count"], int) and len(entry["keys_digest"]) == 64 for entry in waivers
     )
-    assert all(entry["reason"] == "pre-existing, fix in C3" and entry["keys"] for entry in entries)
+    assert all(entry["reason"].startswith("pre-existing") and entry["keys"] for entry in entries)
     # Every listed key is still present; drop an entry as soon as C3 fixes the sentence.
     for entry in entries:
         assert set(entry["keys"]) <= set(reports[entry["surface"]].keys[entry["rule"]])
@@ -416,7 +419,7 @@ def test_a_new_violation_key_fails_even_when_counts_hold(
     reports: dict[str, SurfaceReport],
 ) -> None:
     base = json.loads(BASELINE_PATH.read_text("utf-8"))
-    removed = base["surfaces"]["daily"]["keys"]["A14"].pop()
+    removed = base["surfaces"]["daily"]["keys"]["A8"].pop()
     head = _setup_base(tmp_path, monkeypatch, reports, base)
     capsys.readouterr()
 
@@ -426,7 +429,7 @@ def test_a_new_violation_key_fails_even_when_counts_hold(
         )
     output = capsys.readouterr().out
     assert (
-        f"daily: A14 khẳng định việc đã xảy ra: 1 new violating sentence(s) not in the "
+        f"daily: A8 câu > 25 âm tiết: 1 new violating sentence(s) not in the "
         f"baseline ({removed})" in output
     )
     assert "rose to" not in output
@@ -495,3 +498,43 @@ def test_a_hard_zero_hit_fails_even_after_rewriting_the_baseline(
     assert "tarot: S5 chắc chắn, định mệnh is a hard zero: 1 sentence(s) (0123456789)" in (
         capsys.readouterr().out
     )
+
+
+def test_every_reading_declares_its_first_screen_and_facts() -> None:
+    corpus = build_clarity_corpus()
+    for surface, documents in corpus.items():
+        for document in documents:
+            names = {name for name, _ in document.sections}
+            assert document.first_screen_limit is not None, document.sample_id
+            assert set(document.first_screen) & names, document.sample_id
+            # A15 runs wherever a chart stands behind the text; Tarot has none.
+            assert (document.facts is None) == (surface == "tarot"), document.sample_id
+    assert {doc.first_screen_limit for doc in corpus["tarot"]} == {120, 250, 400}
+
+
+def test_a13_reads_thirty_days_for_every_persona_with_a_birth_time() -> None:
+    days = daily_days()
+    personas = {day.persona for day in days}
+    exact = sum(isinstance(chart, NatalChart) for chart in daily_charts())
+    assert len(personas) == exact == 32
+    assert len(days) == 30 * exact
+
+
+def test_clarity_reports_include_a13_for_daily(reports: dict[str, SurfaceReport]) -> None:
+    assert reports["daily"].keys["A13"]  # Daily v1 does not follow the day yet (C2a/C4)
+    assert all(not reports[surface].keys["A13"] for surface in ("tarot", "radar", "kham_pha"))
+
+
+def test_pending_exceptions_are_announced(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    reports: dict[str, SurfaceReport],
+) -> None:
+    head = _setup_base(tmp_path, monkeypatch, reports, None, "missing")
+    capsys.readouterr()
+    review_content_release._clarity_ratchet(head, update=False, base_ref=None)
+    output = capsys.readouterr().out
+    entries = json.loads(EXCEPTIONS_PATH.read_text("utf-8"))["exceptions"]
+    pending = [entry for entry in entries if entry["approver"].casefold().startswith("pending")]
+    assert ("Awaiting owner approval" in output) == bool(pending)

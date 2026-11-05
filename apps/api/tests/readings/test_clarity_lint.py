@@ -337,9 +337,9 @@ def test_lookalike_characters_do_not_hide_a_match(variant: str) -> None:
     assert (counts["A1"], counts["A4"], counts["A10"]) == (1, 1, 1)
 
 
-def test_lint_document_reports_every_rule_but_a6() -> None:
+def test_lint_document_reports_every_rule_but_the_surface_rules() -> None:
     counts = lint_document(_doc("Bạn nghỉ sớm một chút tối nay."))
-    assert set(counts) == (set(RULES) | set(HARD_ZERO_RULES)) - {"A6"}
+    assert set(counts) == (set(RULES) | set(HARD_ZERO_RULES)) - {"A6", "A13"}
     assert all(value == 0 for value in counts.values())
 
 
@@ -376,11 +376,11 @@ def test_ratchet_fails_when_a_count_rises() -> None:
 
 def test_ratchet_treats_a_zero_or_missing_baseline_as_a_hard_block() -> None:
     baseline = _baseline(_report())
-    del baseline["surfaces"]["tarot"]["rules"]["A14"]
-    problems = ratchet_regressions({"tarot": _report(A11=1, A14=1)}, baseline, minimum_samples={})
+    del baseline["surfaces"]["tarot"]["rules"]["A16"]
+    problems = ratchet_regressions({"tarot": _report(A10=1, A16=1)}, baseline, minimum_samples={})
     assert problems == (
-        "tarot: A11 placeholder rose to 1 (baseline 0)",
-        "tarot: A14 khẳng định việc đã xảy ra rose to 1 (baseline 0)",
+        "tarot: A10 tiếng Anh rose to 1 (baseline 0)",
+        "tarot: A16 chữ nhà/cung/chủ tinh/góc rose to 1 (baseline 0)",
     )
 
 
@@ -438,17 +438,16 @@ def test_document_keys_name_the_violating_sentences() -> None:
 
 
 def test_ratchet_fails_on_a_new_violation_hidden_behind_a_fix() -> None:
-    # Audit loophole 1 (GT-3): fix one A14 sentence, add a different one; the count is unchanged.
-    before = [_daily(0, "Tin nhắn vừa gửi chưa đúng cách bạn muốn nói."), *_FILL[1:]]
-    after = [*_FILL[:9], _daily(9, "Bạn đã gửi lời xin lỗi nhưng người kia im lặng.")]
+    # Audit loophole 1 (GT-3): fix one A10 sentence, add a different one; the count is unchanged.
+    before = [_daily(0, "Bạn check lại lịch hôm nay."), *_FILL[1:]]
+    after = [*_FILL[:9], _daily(9, "Tối nay bạn chill một chút.")]
     baseline = baseline_document({"daily": lint_surface("daily", before)})
     report = lint_surface("daily", after)
-    assert report.rules["A14"] == baseline["surfaces"]["daily"]["rules"]["A14"] == 1
+    assert report.rules["A10"] == baseline["surfaces"]["daily"]["rules"]["A10"] == 1
     problems = ratchet_regressions({"daily": report}, baseline, minimum_samples={})
-    new_key = sentence_key("Bạn đã gửi lời xin lỗi nhưng người kia im lặng.")
+    new_key = sentence_key("Tối nay bạn chill một chút.")
     assert problems == (
-        f"daily: A14 khẳng định việc đã xảy ra: 1 new violating sentence(s) not in the "
-        f"baseline ({new_key})",
+        f"daily: A10 tiếng Anh: 1 new violating sentence(s) not in the baseline ({new_key})",
     )
 
 
@@ -480,12 +479,12 @@ def test_ratchet_keys_cover_pairs_shared_sentences_and_per_reading_rules() -> No
 
 
 def test_baseline_file_is_compact_json_without_prose() -> None:
-    report = lint_surface("daily", [_daily(0, "Tin nhắn vừa gửi chưa đúng ý.")])
+    report = lint_surface("daily", [_daily(0, "Sao Kim ở nhà thứ bảy hôm nay.")])
     document = baseline_document({"daily": report})
     text = dump_baseline(document)
     assert json.loads(text) == document
-    assert "Tin nhắn" not in text
-    assert f'"A14": ["{sentence_key("Tin nhắn vừa gửi chưa đúng ý.")}"]' in text
+    assert "Sao Kim" not in text
+    assert f'"A16": ["{sentence_key("Sao Kim ở nhà thứ bảy hôm nay.")}"]' in text
 
 
 def _file(**rules: int) -> dict[str, Any]:
@@ -633,7 +632,8 @@ def test_class_a_safety_rules_catch_harmful_lines(rule: str, text: str) -> None:
 )
 def test_class_a_safety_rules_leave_everyday_lines_alone(text: str) -> None:
     counts = lint_document(_doc(text))
-    assert {rule: counts[rule] for rule in HARD_ZERO_RULES} == dict.fromkeys(HARD_ZERO_RULES, 0)
+    safety = [rule for rule in HARD_ZERO_RULES if rule.startswith(("S", "H"))]
+    assert {rule: counts[rule] for rule in safety} == dict.fromkeys(safety, 0)
 
 
 @pytest.mark.parametrize(
