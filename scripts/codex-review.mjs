@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { agentMarker, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { DeadlineError, agentMarker, boundedTimeout, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { codexDailyCap, prTurn } from './collab-turn.mjs';
 import { groupExec } from './collab-heal.mjs';
 
@@ -63,20 +63,20 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue 
   ].join('\n');
 }
 
-function git(args, cwd, run) {
-  return String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024 })).trim();
+function git(args, cwd, run, left = () => Infinity) {
+  return String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 })).trim();
 }
 
-export function prepareClone(number, head, run = execFileSync) {
+export function prepareClone(number, head, run = execFileSync, left = () => Infinity) {
   const dir = join(stateDir, 'review');
   if (!existsSync(join(dir, '.git'))) {
     mkdirSync(stateDir, { recursive: true });
-    git(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, dir], stateDir, run);
+    git(['clone', '--quiet', '--no-checkout', `https://github.com/${repo}.git`, dir], stateDir, run, left);
   }
-  git(['fetch', '--quiet', '--force', 'origin', `+refs/heads/${integration}:refs/remotes/origin/${integration}`, `+refs/pull/${Number(number)}/head:refs/remotes/pr/${Number(number)}`], dir, run);
-  git(['checkout', '--quiet', '--force', '--detach', head], dir, run);
-  git(['clean', '-fdxq'], dir, run);
-  const actual = git(['rev-parse', 'HEAD'], dir, run);
+  git(['fetch', '--quiet', '--force', 'origin', `+refs/heads/${integration}:refs/remotes/origin/${integration}`, `+refs/pull/${Number(number)}/head:refs/remotes/pr/${Number(number)}`], dir, run, left);
+  git(['checkout', '--quiet', '--force', '--detach', head], dir, run, left);
+  git(['clean', '-fdxq'], dir, run, left);
+  const actual = git(['rev-parse', 'HEAD'], dir, run, left);
   if (actual !== head) throw new Error(`Review clone is at ${actual}, not ${head}.`);
   return dir;
 }
@@ -108,10 +108,16 @@ export function runReview(number, options = {}) {
   try { if (Date.now() - statSync(path).mtimeMs > 45 * 60000) rmSync(path); } catch {}
   let fd;
   try { fd = openSync(path, 'wx'); } catch { return { status: 'busy', reason: 'một review khác đang chạy' }; }
-  try { return reviewOnce(number, options); } finally { closeSync(fd); rmSync(path, { force: true }); }
+  try { return reviewOnce(number, options); }
+  catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: 'hết giờ (23:55) trong lúc review' }; throw error; }
+  finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
-function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut } = {}) {
+function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now } = {}) {
+  // Scheduled runs: every gh and git call ends by 23:55 (minus 15 s cleanup); direct runs keep fixed caps.
+  const cutoff = Date.parse(`${now.date}T23:55:00+07:00`) - 15000;
+  const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
+  const gh = ghIn.withDeadline?.(left) ?? ghIn;
   const pr = gh.pr(number);
   const head = pr.headRefOid;
   if (!isSha(head)) throw new Error('PR head SHA unavailable.');
@@ -125,21 +131,21 @@ function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, n
 
   const trusted = trustedComments(pr.comments);
   const priorAuto = trusted.filter(c => c.auto && c.verdict).at(-1);
-  const dir = prepareClone(number, head, run);
+  const dir = prepareClone(number, head, run, left);
   let deltaFrom = null;
   if (priorAuto && priorAuto.verdict.sha !== head) {
-    try { git(['merge-base', '--is-ancestor', priorAuto.verdict.sha, head], dir, run); deltaFrom = priorAuto.verdict.sha; } catch {}
+    try { git(['merge-base', '--is-ancestor', priorAuto.verdict.sha, head], dir, run, left); deltaFrom = priorAuto.verdict.sha; } catch {}
   }
-  const mergeBase = git(['merge-base', `origin/${integration}`, head], dir, run);
+  const mergeBase = git(['merge-base', `origin/${integration}`, head], dir, run, left);
   // A delta that merges collab/integration in carries every other PR's files; on 02.11 Codex marked the
   // #117 re-review incomplete over 230 such files (K25). Limit the delta to the PR's own files.
-  const mergesBase = deltaFrom && git(['rev-list', '--merges', `${deltaFrom}..${head}`], dir, run).trim() !== '';
+  const mergesBase = deltaFrom && git(['rev-list', '--merges', `${deltaFrom}..${head}`], dir, run, left).trim() !== '';
   // The script writes the scoped delta itself: NUL-separated names passed as literal paths keep
   // filenames with spaces or quoting intact, which a shell substitution in the prompt would not.
   const deltaPath = join(dir, '.git', 'la-lanh-review-delta.patch');
   if (mergesBase) {
-    const own = String(run('/usr/bin/git', ['diff', '-z', '--name-only', `${mergeBase}..${head}`], { cwd: dir, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024 })).split('\0').filter(Boolean);
-    const patch = own.length ? String(run('/usr/bin/git', ['diff', `${deltaFrom}..${head}`, '--', ...own.map(f => `:(literal)${f}`)], { cwd: dir, encoding: 'utf8', timeout: 300000, maxBuffer: 64 * 1024 * 1024 })) : '';
+    const own = String(run('/usr/bin/git', ['diff', '-z', '--name-only', `${mergeBase}..${head}`], { cwd: dir, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 })).split('\0').filter(Boolean);
+    const patch = own.length ? String(run('/usr/bin/git', ['diff', `${deltaFrom}..${head}`, '--', ...own.map(f => `:(literal)${f}`)], { cwd: dir, encoding: 'utf8', timeout: boundedTimeout(300000, left), maxBuffer: 64 * 1024 * 1024 })) : '';
     mkdirSync(dirname(deltaPath), { recursive: true });
     writeFileSync(deltaPath, patch);
   }
@@ -167,7 +173,7 @@ function reviewOnce(number, { auto = false, gh = makeGh(), run = execFileSync, n
   writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
   if (result.status !== 'ok') return { status: 'error', reason: result.error };
   // The verdict must describe what Codex actually read.
-  if (git(['rev-parse', 'HEAD'], dir, run) !== head) throw new Error('Review clone moved while Codex was reading; verdict not posted.');
+  if (git(['rev-parse', 'HEAD'], dir, run, left) !== head) throw new Error('Review clone moved while Codex was reading; verdict not posted.');
 
   const rawOut = readOut ? readOut(outPath) : readFileSync(outPath, 'utf8');
   const out = validateOutput(JSON.parse(rawOut), head);

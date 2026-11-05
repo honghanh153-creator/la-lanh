@@ -9,7 +9,7 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { agentMarker, clean, integration, readJson, stateDir, writeJson } from './collab-trust.mjs';
+import { DeadlineError, agentMarker, boundedTimeout, clean, integration, readJson, stateDir, writeJson } from './collab-trust.mjs';
 
 export const bodyHash = body => createHash('sha256').update(String(body ?? '')).digest('hex').slice(0, 16);
 
@@ -91,7 +91,7 @@ export const syncableBranch = name => /^agent\/(claude|codex)\/[\w./-]+$/.test(S
 export function syncWithIntegration(pr, { git, gh, left = () => 600000 }) {
   if (!syncableBranch(pr.headRefName)) return null;
   const expired = { status: 'refused', reason: 'hết giờ trước khi đồng bộ với integration' };
-  const ms = cap => { const t = Math.min(cap, left()); if (t <= 0) throw new DeadlineError(); return t; };
+  const ms = cap => boundedTimeout(cap, left);
   const base = `origin/${integration}`;
   try {
     try { git(['merge-base', '--is-ancestor', base, 'HEAD'], ms(60000)); return null; } catch (error) { if (error instanceof DeadlineError) throw error; }
@@ -105,7 +105,7 @@ export function syncWithIntegration(pr, { git, gh, left = () => 600000 }) {
     const head = git(['rev-parse', 'HEAD'], ms(60000));
     git(['push', 'origin', `HEAD:refs/heads/${pr.headRefName}`], ms(120000));
     // gh has a fixed 60 s timeout: post only when that fits; the push alone already heals the PR.
-    if (left() >= 60000) gh.comment('pr', pr.number, `Tự đồng bộ: nhánh đi sau ${integration} và merge sạch, nên đã merge ${integration} vào nhánh và push thường (không force). Head mới ${head.slice(0, 12)} cần author check riêng ở tick sau.\n\n${agentMarker} handoff -->`);
+    if (left() >= 60000) (gh.withDeadline?.(left) ?? gh).comment('pr', pr.number, `Tự đồng bộ: nhánh đi sau ${integration} và merge sạch, nên đã merge ${integration} vào nhánh và push thường (không force). Head mới ${head.slice(0, 12)} cần author check riêng ở tick sau.\n\n${agentMarker} handoff -->`);
     return { status: 'synced', head, reason: 'đã đồng bộ với integration, check lại ở tick sau' };
   } catch (error) {
     if (error instanceof DeadlineError) return expired;
@@ -113,7 +113,6 @@ export function syncWithIntegration(pr, { git, gh, left = () => 600000 }) {
   }
 }
 
-class DeadlineError extends Error {}
 
 // execFileSync-shaped wrapper over runGroup (returns stdout, throws with stdout/stderr on failure),
 // for callers such as the Codex review that used execFileSync with a timeout.

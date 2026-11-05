@@ -265,3 +265,43 @@ test('self-heal 3 r3 (P1): a stuck step queues its alert; delivery obeys an adva
   assert.ok(later.includes('second'));
   assert.deepEqual(JSON.parse(readText(heal.pendingAlertsPath(), 'utf8')), []);
 });
+
+// Deadline on every call (05.11.2026): gh, post-clone git and review git follow the time left.
+const trustMod = await import('./collab-trust.mjs');
+const codexMod = await import('./codex-review.mjs');
+
+test('deadline: gh calls are bounded by the time left and stop once it is spent', () => {
+  let clock = 0;
+  const timeouts = [];
+  const gh = trustMod.makeGh((cmd, args, opts) => { timeouts.push(opts.timeout); clock += 50000; return '{}'; }, { left: () => 100000 - clock });
+  gh.raw(['a']); gh.raw(['b']);
+  assert.deepEqual(timeouts, [60000, 50000]);
+  assert.throws(() => gh.raw(['c']), trustMod.DeadlineError);
+  assert.equal(timeouts.length, 2, 'nothing starts after the deadline');
+  const later = gh.withDeadline(() => 30000);
+  later.raw(['d']);
+  assert.equal(timeouts.at(-1), 30000);
+});
+
+test('deadline: git after the author clone follows the same deadline', async () => {
+  const { runCheckInClone, cleanupReserveMs } = await import('./collab-check.mjs');
+  let clock = 0;
+  const seen = [];
+  const deadline = 26 * 60000;
+  // Each git call takes 2 minutes of the fake clock.
+  const run = (cmd, args, opts) => { seen.push({ args: args.join(' '), timeout: opts.timeout, left: deadline - cleanupReserveMs - clock }); clock += 2 * 60000; return args[0] === "rev-parse" ? SHA : ''; };
+  const fakePr = { number: 505, author: { login: 'honghanh153-creator' }, isCrossRepository: false, headRefName: 'feat/x', headRefOid: SHA, body: 'b', comments: [], files: [] };
+  runCheckInClone(505, { gh: { pr: () => fakePr, comment: () => {} }, run, auto: true, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn: () => ({ status: 0 }) });
+  const after = seen.slice(seen.findIndex(s => s.args === 'rev-parse HEAD') + 1);
+  assert.ok(after.length >= 1, 'git ran after the clone');
+  assert.ok(after.every(s => s.timeout <= s.left), `post-clone git past the deadline: ${JSON.stringify(after)}`);
+});
+
+test('deadline: the review clone git calls follow the time left', () => {
+  let clock = 0;
+  const seen = [];
+  const run = (cmd, args, opts) => { seen.push({ timeout: opts.timeout, left: 400000 - clock }); clock += 200000; return args[0] === 'rev-parse' ? SHA : ''; };
+  assert.throws(() => codexMod.prepareClone(506, SHA, run, () => 400000 - clock), trustMod.DeadlineError);
+  assert.ok(seen.every(s => s.timeout <= s.left), JSON.stringify(seen));
+  assert.deepEqual(seen.map(s => s.timeout).slice(0, 2), [300000, 200000]);
+});

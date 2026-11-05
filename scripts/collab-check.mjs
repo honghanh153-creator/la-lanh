@@ -7,7 +7,7 @@ import { spawnSync, execFileSync } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { agentMarker, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { agentMarker, boundedTimeout, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 
@@ -261,11 +261,15 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // A branch behind integration is merged and pushed first; the new head gets its own check.
     // Bounded by the same absolute deadline as the clone preparation, with the cleanup reserve.
-    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh, left: () => deadlineMs - nowMs() - cleanupReserveMs });
+    const leftMs = () => deadlineMs - nowMs() - cleanupReserveMs;
+    // Every gh and git call after the clone is bounded by the same deadline (05.11.2026).
+    const ghD = gh.withDeadline?.(leftMs) ?? gh;
+    const gitD = args => git(args, cwd, run, boundedTimeout(600000, leftMs));
+    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
-    return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
+    return checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
   });
 }
 
