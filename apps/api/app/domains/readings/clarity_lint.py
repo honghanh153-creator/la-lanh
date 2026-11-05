@@ -552,6 +552,7 @@ _DOOR_WORDS = re.compile(
 _S9_CONJUNCTION = re.compile(r"\b(?:hoặc|mà)\b", re.IGNORECASE)
 _CLAUSE_LEAD = re.compile(r"[\s,;:]*(?:(?:và|nhưng|còn|thì|hoặc|mà)\s+)*", re.IGNORECASE)
 _AND_LEAD = re.compile(r"\s*(?:và|hoặc|mà)\b", re.IGNORECASE)
+_OR_LEAD = re.compile(r"\s*hoặc\b", re.IGNORECASE)
 # "còn" is also the adverb "still": "bạn còn độc thân", "vẫn còn", "còn đang". It joins clauses
 # only when it does not sit right after a subject pronoun or "vẫn", and is not followed by
 # another aspect adverb ("còn đang", "còn chưa").
@@ -906,22 +907,56 @@ def _established(
 
 def assumes_circumstances(sentence: str) -> bool:
     """S9. True when the sentence takes a circumstance of the reader for granted: a phrase that
-    no condition clause opened before it establishes on the same axis with the same polarity."""
+    no condition clause opened before it establishes on the same axis with the same polarity.
 
-    established: list[tuple[int, set[tuple[str, bool]]]] = []
+    Coordinated conditions form a chain. "và"/"mà" join predicates that all hold, so together
+    they establish the union of their circumstances; "hoặc" joins alternatives, so after the
+    chain only what holds in every alternative (the intersection) is established. Inside the
+    chain a phrase is covered by the earlier clauses of its own alternative."""
+
+    # Per clause: (start, alternative id, chain id, facts).
+    rows: list[tuple[int, int, int, set[tuple[str, bool]]]] = []
+    chain_end: dict[int, int] = {}
     subject: bool | None = None
+    chain = alternative = -1
     for clause in split_clauses(sentence):
         reader = _condition_subject(sentence, clause, subject)
         inherited = bool(
             reader and clause.continued and not _READER_SUBJECT.match(sentence, clause.door_end)
         )
-        established.append((clause.start, _established(sentence, clause, inherited=inherited)))
+        if not clause.continued:
+            chain += 1
+            alternative += 1
+        elif _OR_LEAD.match(sentence, clause.start):
+            alternative += 1
+        rows.append(
+            (clause.start, alternative, chain, _established(sentence, clause, inherited=inherited))
+        )
+        chain_end[chain] = clause.end
         subject = reader if clause.condition else None
+    unions: dict[int, set[tuple[str, bool]]] = {}
+    for _start, alt, _chain, facts in rows:
+        unions.setdefault(alt, set()).update(facts)
+    chain_facts: dict[int, set[tuple[str, bool]]] = {}
+    for _start, alt, chain_id, _facts in rows:
+        so_far = chain_facts.get(chain_id)
+        chain_facts[chain_id] = set(unions[alt]) if so_far is None else so_far & unions[alt]
+
+    def covered(position: int, fact: tuple[str, bool]) -> bool:
+        here = max((alt for start, alt, _c, _f in rows if start <= position), default=-1)
+        for start, alt, chain_id, facts in rows:
+            if start > position or fact not in facts:
+                continue
+            if position >= chain_end[chain_id]:
+                if fact in chain_facts[chain_id]:
+                    return True
+            elif alt == here:
+                return True
+        return False
+
     for axis, polarity, pattern in _ASSUMPTIONS:
         for match in pattern.finditer(sentence):
-            if not any(
-                start <= match.start() and (axis, polarity) in facts for start, facts in established
-            ):
+            if not covered(match.start(), (axis, polarity)):
                 return True
     return False
 
