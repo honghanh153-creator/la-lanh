@@ -213,3 +213,31 @@ test('self-heal 3: a timed step kills a grandchild and a step past the stuck lim
   assert.equal(alerts.length, 1, 'a quick step does not alert');
   assert.throws(() => heal.groupExec('/bin/sh', ['-c', 'sleep 5'], { timeout: 1000 }), /hết giờ/);
 });
+
+test('self-heal 2 r2 (P1): auto-sync is bounded by the deadline with a fake clock that advances', () => {
+  let clock = 0;
+  const steps = [];
+  // Each git step uses its whole budget.
+  const git = (args, ms) => { steps.push({ args: args.join(' '), ms, left: 200000 - clock }); clock += ms; if (args[0] === 'merge-base') throw new Error('behind'); return args[0] === 'rev-parse' ? 'b'.repeat(40) : ''; };
+  const posted = [];
+  const result = heal.syncWithIntegration({ number: 9, headRefName: 'agent/claude/x' }, { git, gh: { comment: (...a) => posted.push(a) }, left: () => 200000 - clock });
+  assert.equal(result.status, 'refused');
+  assert.ok(steps.filter(s => !s.args.includes('--abort')).every(s => s.ms <= s.left && s.ms > 0), 'no step runs past the deadline');
+  assert.ok(!steps.some(s => s.args.startsWith('push')) || steps.find(s => s.args.startsWith('push')).ms <= steps.find(s => s.args.startsWith('push')).left);
+  assert.deepEqual(posted, [], 'no comment once the deadline is spent');
+  const none = [];
+  assert.equal(heal.syncWithIntegration({ number: 9, headRefName: 'agent/claude/x' }, { git: a => { none.push(a); return ''; }, gh: {}, left: () => 0 }).status, 'refused');
+  assert.deepEqual(none, [], 'nothing starts after the deadline');
+});
+
+test('self-heal 1 r2 (P2): a legacy body record is re-evaluated; the clone path keeps the body hash', async () => {
+  const pr = { number: 503, headRefOid: SHA, body: 'x' };
+  preflightMod.recordPreflight(503, SHA, { status: 'FAIL', reasons: ['PR body thiếu mức rủi ro S/M/L'] });
+  assert.equal(preflightMod.preflightFailure(preflightMod.readPreflight(), pr), null, 'legacy body record without hash is stale');
+  const { runCheckInClone } = await import('./collab-check.mjs');
+  const fakePr = { number: 504, author: { login: 'honghanh153-creator' }, isCrossRepository: false, headRefName: 'feat/x', headRefOid: SHA, body: 'b', comments: [] };
+  const result = runCheckInClone(504, { gh: { pr: () => fakePr, comment: () => {} }, run: (c, a) => a[0] === 'rev-parse' ? SHA : '', group: () => ({ status: 0 }), busy: () => null, terms: () => [],
+    preflight: p => preflightMod.runPreflight(p), spawn: () => { throw new Error('no pnpm'); } });
+  assert.equal(result.status, 'preflight');
+  assert.equal(result.bodyHash, heal.bodyHash('b'), 'body hash carried through the clone check');
+});

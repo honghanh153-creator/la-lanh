@@ -195,7 +195,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const pre = preflight?.(pr, cwd, budget);
   const left = budget();
   if (left <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
-  if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons };
+  if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
   const result = runGroup('pnpm', ['check'], { cwd, timeoutMs: left, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
   const exitCode = result.status ?? 1;
@@ -206,7 +206,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   return { status, exitCode, dirty };
 }
 
-const git = (args, cwd, run) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: 600000, maxBuffer: 64 * 1024 * 1024 })).trim();
+const git = (args, cwd, run, timeout = 600000) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout, maxBuffer: 64 * 1024 * 1024 })).trim();
 
 // A clone only for author checks, so no agent checkout is switched under anyone.
 // Ignored build outputs (node_modules, .venv, ephemeris build) are kept between runs.
@@ -260,7 +260,8 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     try { cwd = prepareAuthorClone(number, pr.headRefOid, run, { deadlineMs, nowMs, group: rest.group ?? runGroup }); }
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // A branch behind integration is merged and pushed first; the new head gets its own check.
-    const synced = syncWithIntegration(pr, { git: args => git(args, cwd, run), gh });
+    // Bounded by the same absolute deadline as the clone preparation, with the cleanup reserve.
+    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh, left: () => deadlineMs - nowMs() - cleanupReserveMs });
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());

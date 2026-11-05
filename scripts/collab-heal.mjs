@@ -70,22 +70,35 @@ export function runGroup(cmd, args, { cwd, env, timeoutMs, graceMs = 5000, stdio
 export const syncableBranch = name => /^agent\/(claude|codex)\/[\w./-]+$/.test(String(name ?? '')) && !String(name).includes('..');
 
 // Called in the author clone at the PR head after the fetch of origin/collab/integration.
-// Returns null when there is nothing to do (up to date, or not an agent branch).
-export function syncWithIntegration(pr, { git, gh }) {
+// Returns null when there is nothing to do (up to date, or not an agent branch). Every git and gh
+// step is bounded by left() (time to the absolute deadline minus the cleanup reserve); nothing
+// starts once it is spent. A merge cut off by the deadline is aborted and nothing is pushed.
+export function syncWithIntegration(pr, { git, gh, left = () => 600000 }) {
   if (!syncableBranch(pr.headRefName)) return null;
+  const expired = { status: 'refused', reason: 'hết giờ trước khi đồng bộ với integration' };
+  const ms = cap => { const t = Math.min(cap, left()); if (t <= 0) throw new DeadlineError(); return t; };
   const base = `origin/${integration}`;
-  try { git(['merge-base', '--is-ancestor', base, 'HEAD']); return null; } catch {}
   try {
-    git(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'merge', '--no-edit', '--no-ff', '-m', `Merge ${integration} into ${pr.headRefName} (auto-sync before author check)`, base]);
-  } catch {
-    try { git(['merge', '--abort']); } catch {}
-    return { status: 'conflict', turn: 'claude-fix', reason: 'xung đột với collab/integration' };
+    try { git(['merge-base', '--is-ancestor', base, 'HEAD'], ms(60000)); return null; } catch (error) { if (error instanceof DeadlineError) throw error; }
+    try {
+      git(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'merge', '--no-edit', '--no-ff', '-m', `Merge ${integration} into ${pr.headRefName} (auto-sync before author check)`, base], ms(120000));
+    } catch (error) {
+      try { git(['merge', '--abort'], 10000); } catch {} // cleanup fits inside the reserve
+      if (error instanceof DeadlineError || left() <= 0) return expired;
+      return { status: 'conflict', turn: 'claude-fix', reason: 'xung đột với collab/integration' };
+    }
+    const head = git(['rev-parse', 'HEAD'], ms(60000));
+    git(['push', 'origin', `HEAD:refs/heads/${pr.headRefName}`], ms(120000));
+    // gh has a fixed 60 s timeout: post only when that fits; the push alone already heals the PR.
+    if (left() >= 60000) gh.comment('pr', pr.number, `Tự đồng bộ: nhánh đi sau ${integration} và merge sạch, nên đã merge ${integration} vào nhánh và push thường (không force). Head mới ${head.slice(0, 12)} cần author check riêng ở tick sau.\n\n${agentMarker} handoff -->`);
+    return { status: 'synced', head, reason: 'đã đồng bộ với integration, check lại ở tick sau' };
+  } catch (error) {
+    if (error instanceof DeadlineError) return expired;
+    throw error;
   }
-  const head = git(['rev-parse', 'HEAD']);
-  git(['push', 'origin', `HEAD:refs/heads/${pr.headRefName}`]);
-  gh.comment('pr', pr.number, `Tự đồng bộ: nhánh đi sau ${integration} và merge sạch, nên đã merge ${integration} vào nhánh và push thường (không force). Head mới ${head.slice(0, 12)} cần author check riêng ở tick sau.\n\n${agentMarker} handoff -->`);
-  return { status: 'synced', head, reason: 'đã đồng bộ với integration, check lại ở tick sau' };
 }
+
+class DeadlineError extends Error {}
 
 // execFileSync-shaped wrapper over runGroup (returns stdout, throws with stdout/stderr on failure),
 // for callers such as the Codex review that used execFileSync with a timeout.

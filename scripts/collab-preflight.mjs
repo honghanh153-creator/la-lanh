@@ -77,9 +77,14 @@ export function recordPreflight(number, head, result) {
   else delete all[number];
   writeJson(recordPath(), all);
 }
+export const isBodyReason = reason => /^(PR body|G7) /.test(String(reason ?? ''));
 export const preflightFailure = (records, pr) => {
   const r = records?.[pr.number];
-  return r && r.head === pr.headRefOid && (!r.bodyHash || r.bodyHash === bodyHash(pr.body)) ? r.reasons : null;
+  if (!r || r.head !== pr.headRefOid) return null;
+  // A record without a body hash (written before 05.11, or by an old caller) whose reasons are
+  // about the body cannot tell whether the body changed: re-evaluate instead of staying stuck.
+  if (!r.bodyHash) return (r.reasons ?? []).some(isBodyReason) ? null : r.reasons;
+  return r.bodyHash === bodyHash(pr.body) ? r.reasons : null;
 };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
