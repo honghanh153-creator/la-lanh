@@ -297,6 +297,24 @@ test('deadline: git after the author clone follows the same deadline', async () 
   assert.ok(after.every(s => s.timeout <= s.left), `post-clone git past the deadline: ${JSON.stringify(after)}`);
 });
 
+test('#243: a check that uses its whole pnpm budget still posts its receipt', async () => {
+  const { runCheckInClone } = await import('./collab-check.mjs');
+  for (const auto of [false, true]) {
+    let clock = 0;
+    const deadline = auto ? 26 * 60000 - 15000 : 90 * 60000;
+    const comments = [];
+    const run = (cmd, args) => { clock += 1000; return args[0] === 'rev-parse' ? SHA : ''; };
+    const gh = trustMod.makeGh((cmd, args, opts) => { if (args.includes('comment')) comments.push({ timeout: opts.timeout, left: deadline - clock }); return JSON.stringify(fakePr); });
+    const fakePr = { number: 507, author: { login: 'honghanh153-creator' }, isCrossRepository: false, headRefName: 'feat/x', headRefOid: SHA, body: 'b', comments: [], files: [] };
+    // pnpm runs until its own timeout (args[2] of the group runner).
+    const spawn = (exe, args) => { clock += Number(args[2]); return { status: 0 }; };
+    const result = runCheckInClone(507, { gh, run, auto, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn });
+    assert.equal(result.status, 'PASS', `auto=${auto}: ${JSON.stringify(result)}`);
+    assert.equal(comments.length, 1, 'receipt posted');
+    assert.equal(comments[0].timeout, 60000, 'gh comment had its full 60 s');
+  }
+});
+
 test('deadline: the review clone git calls follow the time left', () => {
   let clock = 0;
   const seen = [];
