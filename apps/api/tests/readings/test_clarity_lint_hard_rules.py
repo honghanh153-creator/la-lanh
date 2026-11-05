@@ -8,6 +8,7 @@ from datetime import date, timedelta
 import pytest
 
 from app.domains.readings.clarity_lint import (
+    _READER_FORMS,
     HARD_ZERO_RULES,
     RULES,
     AstroFacts,
@@ -23,6 +24,7 @@ from app.domains.readings.clarity_lint import (
     hard_zero_violations,
     lint_document,
     lint_surface,
+    reader_form_phrases,
     sentence_key,
 )
 
@@ -510,6 +512,24 @@ _S9_CLAUSE_TABLE = (
 def test_s9_clause_model_matches_axis_and_polarity(text: str, flagged: bool) -> None:
     assert assumes_circumstances(text) is flagged
     assert lint_document(_doc(text))["S9"] == int(flagged)
+
+
+# Round 7: the condition and assumption sides share one phrase grammar (_READER_FORMS), so
+# every circumstance phrase the assumption side recognises is also a door after "Nếu".
+_READER_PHRASES = [phrase for form in _READER_FORMS for phrase in reader_form_phrases(form)]
+
+
+@pytest.mark.parametrize("phrase", _READER_PHRASES)
+def test_s9_every_assumed_phrase_is_also_a_door(phrase: str) -> None:
+    door = f"Nếu {phrase}, hãy dành vài phút cho mình."
+    statement = f"{phrase[0].upper()}{phrase[1:]}, hãy dành vài phút cho mình."
+    assert lint_document(_doc(door))["S9"] == 0, door
+    assert lint_document(_doc(statement))["S9"] == 1, statement
+
+
+def test_s9_determiner_in_condition_is_a_door() -> None:
+    assert not assumes_circumstances("Nếu bạn là một phụ nữ, hãy dành vài phút cho mình.")
+    assert assumes_circumstances("Bạn là một phụ nữ, hãy dành vài phút cho mình.")
 
 
 _CODEX_PAIRS = "Sao Kim và Sao Hỏa tam hợp, Mặt Trăng và Sao Thổ vuông góc."

@@ -649,18 +649,93 @@ def split_clauses(
 # same axis with the same polarity for the reader: "Nếu bạn chưa có người yêu, tối nay cứ thong
 # thả" is a door; "Nếu bạn chưa có con thì đón con sớm" is not (the condition denies the child
 # the main clause assumes); "Nếu bạn làm việc với phụ huynh" establishes nothing about the reader.
+@dataclass(frozen=True)
+class ReaderForm:
+    """One "bạn + (adverb) + verb + (determiner) + topic" phrase of the shared S9 grammar.
+
+    The assumption side matches it as a statement ("bạn là một phụ nữ"); the condition side
+    matches the same phrase after a door word ("Nếu bạn là một phụ nữ"), so whatever one side
+    recognises the other does too. ``plain`` is the polarity of the topic word; a negation in
+    the verb ("chưa có") flips it."""
+
+    axis: str
+    plain: bool
+    verbs: tuple[str, ...]  # "" = no verb ("bạn đang độc thân")
+    topics: tuple[str, ...]
+
+    @property
+    def polarity(self) -> bool:
+        return self.plain != any(_NEGATION.search(verb) for verb in self.verbs if verb)
+
+
+_READER_ADVERBS = ("đã", "đang", "vẫn", "cũng", "hiện", "vừa", "còn")
+_READER_NEGATIONS = ("chưa", "không", "chẳng", "chả")
+_READER_DETERMINERS = ("một", "người", "cô", "anh")
+_NEGATION = re.compile(rf"\b(?:{'|'.join(_READER_NEGATIONS)})\b", re.IGNORECASE)
+_READER_FORMS: tuple[ReaderForm, ...] = (
+    ReaderForm("partner", False, ("",), ("độc thân", "ế", "lẻ bóng", "một mình chưa có ai")),
+    ReaderForm("partner", True, ("chưa",), ("lập gia đình", "kết hôn", "có gia đình")),
+    ReaderForm("children", True, ("chưa có",), ("con",)),
+    ReaderForm(
+        "children",
+        True,
+        ("là", "đang làm"),
+        ("bố", "mẹ", "cha", "ba", "cha mẹ", "bố mẹ", "phụ huynh"),
+    ),
+    ReaderForm(
+        "gender",
+        True,
+        ("là",),
+        ("phụ nữ", "đàn ông", "đàn bà", "con gái", "con trai", "cô gái", "chàng trai", "nam", "nữ"),
+    ),
+)
+
+
+def _alternation(words: Iterable[str]) -> str:
+    return "|".join(re.escape(word) for word in sorted(words, key=len, reverse=True))
+
+
+def _form_body(form: ReaderForm) -> str:
+    """The phrase after "bạn": adverbs, the form's verb, an optional determiner, the topic."""
+
+    verbs = [verb for verb in form.verbs if verb]
+    verb = rf"(?:{_alternation(verbs)})\s+" if verbs else ""
+    determiner = rf"(?:(?:{_alternation(_READER_DETERMINERS)})\s+)?" if verbs else ""
+    return (
+        rf"(?:(?:{_alternation(_READER_ADVERBS)})\s+)*{verb}{determiner}"
+        rf"(?:{_alternation(form.topics)})\b"
+    )
+
+
+def reader_form_phrases(form: ReaderForm) -> list[str]:
+    """Every concrete phrase of a form (each verb, each determiner, each topic)."""
+
+    determiners = ("", *_READER_DETERMINERS) if any(form.verbs) else ("",)
+    return [
+        " ".join(part for part in ("bạn", verb, det, topic) if part)
+        for verb in form.verbs
+        for det in determiners
+        for topic in form.topics
+    ]
+
+
+_FORM_STATEMENTS = tuple(
+    (form, re.compile(rf"\bbạn\s+{_form_body(form)}", re.IGNORECASE)) for form in _READER_FORMS
+)
+_FORM_CONDITIONS = tuple(
+    (form, re.compile(rf"\s*(?:bạn\s+)?{_form_body(form)}", re.IGNORECASE))
+    for form in _READER_FORMS
+)
 _ASSUMPTIONS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
+    *((form.axis, form.polarity, pattern) for form, pattern in _FORM_STATEMENTS),
     (
         "partner",
         False,
         _terms(
-            r"\bbạn (?:đang |vẫn |còn |hiện )?(?:độc thân|ế|lẻ bóng|một mình chưa có ai)\b",
             r"\b(?:độc thân|ế|lẻ bóng) như bạn\b",
             r"\bchưa có (?:người yêu|bồ|nửa kia|ai để yêu)\b",
-            r"\bbạn chưa (?:lập gia đình|kết hôn|có gia đình)\b",
         ),
     ),
-    ("children", False, _terms(r"\bbạn chưa có con\b")),
     (
         "partner",
         True,
@@ -684,7 +759,6 @@ _ASSUMPTIONS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
             r"\b(?:đón|đưa) (?:con|bé|các con)\b",
             r"\b(?:dỗ|ru|chăm|nuôi|tắm cho) (?:con|bé|các con)\b",
             r"\bcho (?:con|bé) (?:bú|ăn|ngủ)\b",
-            r"\bbạn (?:là|đang làm) (?:bố|mẹ|cha|ba|cha mẹ|bố mẹ|phụ huynh)\b",
             r"\b(?:bố mẹ|cha mẹ|phụ huynh|mẹ bỉm|bỉm sữa) như bạn\b",
             r"\bmẹ bỉm\b",
         ),
@@ -693,8 +767,6 @@ _ASSUMPTIONS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
         "gender",
         True,
         _terms(
-            r"\bbạn là (?:một )?"
-            r"(?:phụ nữ|đàn ông|đàn bà|con gái|con trai|cô gái|chàng trai|nam|nữ)\b",
             r"\b(?:phụ nữ|đàn ông|con gái|con trai|cô gái|chàng trai|nàng|chàng) như bạn\b",
             r"\bphái (?:đẹp|mạnh|yếu)\b",
             r"\bchị em (?:mình|phụ nữ|ta)\b",
@@ -738,11 +810,11 @@ _CONDITION_TOPICS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
 )
 # Between the door and the topic only "bạn" and plain verbs of being or having, so the condition
 # is about the reader. A negation there flips the topic's polarity.
+_GAP_WORDS = _alternation((*_READER_ADVERBS, *_READER_NEGATIONS, "là", "có", "phải"))
 _READER_GAP = re.compile(
-    r"\s*(?:bạn\s+)?(?:(?:đã|đang|vẫn|cũng|hiện|là|có|vừa|còn|chưa|không|chẳng|chả|phải)\s+)*",
+    rf"\s*(?:bạn\s+)?(?:(?:{_GAP_WORDS})\s+)*(?:(?:{_alternation(_READER_DETERMINERS)})\s+)?",
     re.IGNORECASE,
 )
-_NEGATION = re.compile(r"\b(?:chưa|không|chẳng|chả)\b", re.IGNORECASE)
 
 
 def _established(sentence: str, clause: Clause) -> set[tuple[str, bool]]:
@@ -757,6 +829,11 @@ def _established(sentence: str, clause: Clause) -> set[tuple[str, bool]]:
                 continue
             negated = _NEGATION.search(sentence, clause.door_end, match.start()) is not None
             found.add((axis, plain != negated))
+    for form, pattern in _FORM_CONDITIONS:
+        phrase = pattern.match(sentence, clause.door_end, clause.end)
+        if phrase is not None:
+            negated = _NEGATION.search(phrase.group(0)) is not None
+            found.add((form.axis, form.plain != negated))
     return found
 
 
