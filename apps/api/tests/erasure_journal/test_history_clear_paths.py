@@ -12,13 +12,14 @@ import sqlite3
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from app.db.session import Database
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.erasure_journal.journal import ErasureKind
 from app.domains.erasure_journal.replay import export_entries, purge_entries, replay
 from app.domains.erasure_journal.tables import ErasureJournalRow
 from app.domains.guest.errors import CsrfRejected
@@ -27,6 +28,7 @@ from app.domains.guest.tables import GuestSessionRow
 from app.domains.history.postgres import PostgresHistoryRepository
 from app.domains.history.service import HistoryService
 from app.domains.history.tables import HistoryRetentionPolicyRow
+from app.domains.radar.tables import RadarRequestRow
 from app.domains.tarot.tables import TarotSessionRow
 from tests.accounts.support import FakeTransport, headers
 from tests.accounts.support import client as make_client
@@ -38,6 +40,7 @@ from tests.erasure_journal.test_journal import (
     OLD,
     _guest,
     _note,
+    _principal,
 )
 from tests.history.test_api import disclosed_guest
 
@@ -54,7 +57,7 @@ async def storage(tmp_path: Path) -> AsyncIterator[Database]:
         await database.dispose()
 
 
-async def _owner_with_history(database: Database) -> tuple[object, object, object]:
+async def _owner_with_history(database: Database) -> tuple[UUID, UUID, UUID]:
     guest_id = await _guest(database, HASHER.digest("guest-credential", TOKEN))
     note_id = await _note(database, guest_id)
     tarot_id = uuid4()
@@ -103,7 +106,8 @@ async def test_service_clear_journals_once_and_survives_restore_with_both_cleanu
     shutil.copyfile(live, dump)
     database = Database(f"sqlite+aiosqlite:///{live}")
     assert await _service(database).request("clear", TOKEN, CSRF) is None
-    assert await _journal_count(database) == 1
+    # The guest's clear, and the completed Tarot session it removed, named by its own id (#169).
+    assert await _journal_count(database) == 2
     async with database.sessions() as session:
         assert await session.get(TarotSessionRow, tarot_id) is None
     exported = await export_entries(database.sessions)
@@ -114,6 +118,8 @@ async def test_service_clear_journals_once_and_survives_restore_with_both_cleanu
     try:
         report = await replay(database.sessions, JOURNAL, ENVELOPE, exported)
         assert report.applied["history_cleared"] == 1
+        # HISTORY_CLEARED already removed the restored, complete session; its own entry finds none.
+        assert report.unmatched["tarot_session_deleted"] == 1
         await PostgresGuestRepository(database.sessions).purge_expired(datetime.now(UTC), 500)
         history = PostgresHistoryRepository(database.sessions, ENVELOPE)
         for _ in range(100):
@@ -188,10 +194,10 @@ async def test_a_purged_checkpoint_does_not_reapply_an_old_clear_to_later_histor
         owner, clear_at
     )
     retained_file = await export_entries(database.sessions)  # the hourly copy, before its purge
-    assert len(retained_file) == 1
+    assert len(retained_file) == 2  # the clear and the one Tarot session it removed
     async with database.sessions() as session, session.begin():
         session.add(_tarot(owner, newer, NOW - timedelta(days=1)))
-    assert await purge_entries(database.sessions, before=NOW - timedelta(days=15)) == 1
+    assert await purge_entries(database.sessions, before=NOW - timedelta(days=15)) == 2
     latest_file = await export_entries(database.sessions)
     assert latest_file == []
     await database.dispose()
@@ -201,6 +207,7 @@ async def test_a_purged_checkpoint_does_not_reapply_an_old_clear_to_later_histor
     try:
         report = await replay(database.sessions, JOURNAL, ENVELOPE, [*retained_file, *latest_file])
         assert report.reflected["history_cleared"] == 1 and not report.applied
+        assert report.reflected["tarot_session_deleted"] == 1
         await PostgresGuestRepository(database.sessions).purge_expired(NOW, 500)
         history = PostgresHistoryRepository(database.sessions, ENVELOPE)
         for _ in range(100):
@@ -237,3 +244,146 @@ async def test_an_entry_newer_than_the_purge_horizon_is_still_applied(tmp_path: 
             assert await session.get(DailyNoteRow, note_id) is None
     finally:
         await database.dispose()
+
+
+async def test_a_clear_after_a_mid_session_snapshot_stays_cleared_after_restore(
+    tmp_path: Path,
+) -> None:
+    """#169: the clear selects Tarot sessions and Radar results by status. A snapshot taken while
+    the session was still choosing and the Radar check had no result holds both in a status the
+    clear skips; replaying HISTORY_CLEARED alone would bring them back. The clear also names each
+    removed row, and replay deletes it whatever status it was restored with."""
+
+    live, snapshot = tmp_path / "live.db", tmp_path / "snapshot.db"
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    await database.initialize()
+    guest_id, _, _ = await _owner_with_history(database)
+    principal_id = await _principal(database, guest_id)
+    tarot_id, radar_id = uuid4(), uuid4()
+    async with database.sessions() as session, session.begin():
+        choosing = _tarot(guest_id, tarot_id, OLD)
+        choosing.state, choosing.payload_ciphertext = "choosing", "synthetic-opaque-draft"
+        session.add(choosing)
+        session.add(
+            RadarRequestRow(
+                id=radar_id, principal_id=principal_id, owner_guest_id=guest_id,
+                recipient_label_ciphertext="synthetic", context="friend", mode="private_check",
+                status="pending", created_at=OLD, expires_at=NOW + timedelta(days=29),
+            )
+        )  # fmt: skip
+    await database.dispose()
+    shutil.copyfile(live, snapshot)  # a dump taken mid-session
+
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    async with database.sessions() as session, session.begin():
+        tarot = await session.get(TarotSessionRow, tarot_id)
+        radar = await session.get(RadarRequestRow, radar_id)
+        assert tarot is not None and radar is not None
+        tarot.state, tarot.payload_ciphertext = "complete", "synthetic-opaque-reading"
+        radar.status, radar.completed_at = "completed", NOW - timedelta(minutes=5)
+        radar.result_ciphertext = "synthetic-result"
+    assert await _service(database).request("clear", TOKEN, CSRF) is None
+    async with database.sessions() as session:
+        assert await session.get(TarotSessionRow, tarot_id) is None
+        assert await session.get(RadarRequestRow, radar_id) is None
+    exported = await export_entries(database.sessions)
+    await database.dispose()
+
+    shutil.copyfile(snapshot, live)
+    database = Database(f"sqlite+aiosqlite:///{live}")
+    try:
+        async with database.sessions() as session:
+            restored_tarot = await session.get(TarotSessionRow, tarot_id)
+            restored_radar = await session.get(RadarRequestRow, radar_id)
+            assert restored_tarot is not None and restored_tarot.state == "choosing"
+            assert restored_radar is not None and restored_radar.completed_at is None
+        report = await replay(database.sessions, JOURNAL, ENVELOPE, exported)
+        assert report.applied[ErasureKind.HISTORY_CLEARED.value] == 1
+        # The restored, still-choosing session goes by its own entry; the one already complete
+        # in the snapshot went with HISTORY_CLEARED, so its entry finds nothing left.
+        assert report.applied[ErasureKind.TAROT_SESSION_DELETED.value] == 1
+        assert report.unmatched[ErasureKind.TAROT_SESSION_DELETED.value] == 1
+        assert report.applied[ErasureKind.RADAR_DELETED.value] == 1
+        async with database.sessions() as session:
+            assert await session.get(TarotSessionRow, tarot_id) is None
+            assert await session.get(RadarRequestRow, radar_id) is None
+            assert await session.get(GuestSessionRow, guest_id) is not None
+        again = await replay(database.sessions, JOURNAL, ENVELOPE, exported)
+        assert not again.applied
+        assert again.reflected[ErasureKind.TAROT_SESSION_DELETED.value] == 2
+        assert again.reflected[ErasureKind.RADAR_DELETED.value] == 1
+    finally:
+        await database.dispose()
+
+
+async def test_the_clear_names_only_the_rows_it_removes(storage: Database) -> None:
+    """A session still choosing and a Radar check without a result stay, and are not journaled."""
+
+    guest_id, _, done = await _owner_with_history(storage)
+    principal_id = await _principal(storage, guest_id)
+    choosing, pending = uuid4(), uuid4()
+    async with storage.sessions() as session, session.begin():
+        row = _tarot(guest_id, choosing, OLD)
+        row.state = "choosing"
+        session.add(row)
+        session.add(
+            RadarRequestRow(
+                id=pending, principal_id=principal_id, owner_guest_id=guest_id,
+                recipient_label_ciphertext="synthetic", context="friend", mode="private_check",
+                status="pending", created_at=OLD, expires_at=NOW + timedelta(days=29),
+            )
+        )  # fmt: skip
+    assert await _service(storage).request("clear", TOKEN, CSRF) is None
+    async with storage.sessions() as session:
+        rows = {(row.kind, row.subject_digest) for row in await session.scalars(
+            select(ErasureJournalRow))}  # fmt: skip
+        assert await session.get(TarotSessionRow, choosing) is not None
+        assert await session.get(RadarRequestRow, pending) is not None
+    assert rows == {
+        (ErasureKind.HISTORY_CLEARED.value, JOURNAL.digest(ErasureKind.HISTORY_CLEARED, guest_id)),
+        (
+            ErasureKind.TAROT_SESSION_DELETED.value,
+            JOURNAL.digest(ErasureKind.TAROT_SESSION_DELETED, done),
+        ),
+    }
+
+
+async def test_a_completion_landing_inside_the_clear_is_journaled_with_its_deletion(
+    storage: Database, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex #199 P1: a final card selection only locks its Tarot row, so it can commit
+    'complete' after the clear began but before its DELETE. The row the DELETE removes must be
+    the row the journal names; otherwise a mid-session restore keeps it."""
+
+    guest_id, _, done = await _owner_with_history(storage)
+    late = uuid4()
+    async with storage.sessions() as session, session.begin():
+        row = _tarot(guest_id, late, OLD)
+        row.state = "choosing"
+        session.add(row)
+    original = PostgresHistoryRepository._erase
+
+    async def complete_then_erase(
+        self: object, session: object, *args: object, **kw: object
+    ) -> int:
+        # The concurrent completion, visible to the clear's DELETE (READ COMMITTED re-check).
+        await session.execute(  # type: ignore[attr-defined]
+            update(TarotSessionRow).where(TarotSessionRow.id == late).values(state="complete")
+        )
+        return await original(self, session, *args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(PostgresHistoryRepository, "_erase", complete_then_erase)
+    assert await _service(storage).request("clear", TOKEN, CSRF) is None
+    async with storage.sessions() as session:
+        assert await session.get(TarotSessionRow, late) is None
+        digests = set(
+            await session.scalars(
+                select(ErasureJournalRow.subject_digest).where(
+                    ErasureJournalRow.kind == ErasureKind.TAROT_SESSION_DELETED.value
+                )
+            )
+        )
+    assert digests == {
+        JOURNAL.digest(ErasureKind.TAROT_SESSION_DELETED, done),
+        JOURNAL.digest(ErasureKind.TAROT_SESSION_DELETED, late),
+    }
