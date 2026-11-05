@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { bodyHash, runGroup } from './collab-heal.mjs';
+import { sizeProblem } from './collab-size.mjs';
 import { clean, integration, makeGh, readJson, stateDir, writeJson } from './collab-trust.mjs';
 
 export const gates = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'];
@@ -62,6 +63,8 @@ export function lintProblems(pyFiles, { cwd = process.cwd(), spawn = groupSpawn,
 
 export function runPreflight(pr, { cwd = null, spawn = groupSpawn, exists, left } = {}) {
   const problems = bodyProblems(pr.body);
+  const size = sizeProblem(pr);
+  if (size) problems.push(size);
   // Body problems are enough to stop: no need to start uv as well.
   if (!problems.length && cwd) problems.push(...lintProblems(changedPython(pr.files ?? []), { cwd, spawn, exists, left }));
   return problems.length ? { status: 'FAIL', reasons: problems, bodyHash: bodyHash(pr.body) } : { status: 'PASS', reasons: [] };

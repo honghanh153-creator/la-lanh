@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import { codeLines, repeatFixReason, sizeProblem, withRepeatNote } from './collab-size.mjs';
+import { runPreflight } from './collab-preflight.mjs';
+
+const files = [
+  { path: 'scripts/a.mjs', additions: 300, deletions: 50 },
+  { path: 'scripts/a.test.mjs', additions: 900, deletions: 0 },
+  { path: 'apps/api/tests/test_x.py', additions: 500, deletions: 0 },
+  { path: 'docs/x.md', additions: 700, deletions: 0 },
+  { path: 'pnpm-lock.yaml', additions: 2000, deletions: 100 },
+  { path: 'apps/api/uv.lock', additions: 2000, deletions: 100 },
+];
+
+test('code lines skip tests, docs and lockfiles', () => {
+  assert.equal(codeLines(files), 350);
+  assert.equal(codeLines([...files, { path: 'apps/web/b.ts', additions: 60, deletions: 0 }]), 410);
+});
+
+test('more than 400 code lines fails unless the body has Size-exception', () => {
+  const big = [...files, { path: 'apps/web/b.ts', additions: 60, deletions: 0 }];
+  assert.equal(sizeProblem({ files }), null);
+  assert.equal(sizeProblem({ files: big }), 'PR quá lớn (410 dòng mã) — tách nhỏ hoặc ghi `Size-exception: <lý do>` trong body');
+  assert.equal(sizeProblem({ files: big, body: 'x\nSize-exception: một migration không tách được\n' }), null);
+  assert.notEqual(sizeProblem({ files: big, body: 'Size-exception:\n' }), null);
+});
+
+const body = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'].map(g => `- ${g}: ${g === 'G7' ? 'không đụng phiên, dữ liệu, log' : 'ok'}`).join('\n') + '\nMức: S\n';
+test('preflight reports the size cap', () => {
+  const big = [{ path: 'scripts/b.mjs', additions: 401, deletions: 0 }];
+  assert.deepEqual(runPreflight({ body, files: big }).reasons, ['PR quá lớn (401 dòng mã) — tách nhỏ hoặc ghi `Size-exception: <lý do>` trong body']);
+  assert.equal(runPreflight({ body: `${body}Size-exception: tách sẽ hỏng contract\n`, files: big }).status, 'PASS');
+});
+
+const sha = 'a'.repeat(40);
+const rc = { authorAssociation: 'OWNER', body: `Review verdict: REQUEST_CHANGES @ ${sha}\nReviewer: Codex` };
+test('after two REQUEST_CHANGES the next fix turn asks for a repo-wide sweep', () => {
+  assert.equal(repeatFixReason({ comments: [rc] }), null);
+  assert.equal(repeatFixReason({ comments: [rc, { ...rc, authorAssociation: 'NONE' }] }), null);
+  assert.match(repeatFixReason({ comments: [rc, rc] }), /rà cùng loại lỗi toàn repo trước khi push/);
+  const pr = { number: 9, comments: [rc, rc] };
+  assert.match(withRepeatNote({ turn: 'claude-fix', reason: 'REQUEST_CHANGES @ head' }, pr).reason, /^REQUEST_CHANGES @ head; .*rà cùng loại lỗi toàn repo trước khi push/);
+  assert.equal(withRepeatNote({ turn: 'codex-review', reason: 'x' }, pr).reason, 'x');
+  assert.match(readFileSync(new URL('./collab-turn.mjs', import.meta.url), 'utf8'), /withRepeatNote\(prTurn\(/);
+});
