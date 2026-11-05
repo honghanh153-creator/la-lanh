@@ -88,6 +88,9 @@ function withLock(fn) {
   try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
+export const idleTopUpRuns = 3;
+export const idleAlertRuns = 6;
+
 export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [] } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
@@ -162,12 +165,18 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // Usage limit: wait for the reset; busy: a direct review holds the clone. The next run retries.
         if (['limit', 'busy'].includes(result?.status)) break;
       }
+      // Retro S1 (K26/K31: 02.11 and 03.11 ran about two hours with no area): count runs in a row
+      // with no area. From the third Claude is told to top up from the backlog; the sixth alerts.
+      const idleRuns = area ? 0 : (readJson(dayPath, day).idleRuns ?? 0) + 1;
+      writeJson(dayPath, { ...readJson(dayPath, day), idleRuns });
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: turns.filter(t => t.turn === 'claude-fix'),
         // Plan top-up (owner 31.10.2026): fewer than two machine jobs left while the day still runs,
         // so Claude adds the next backlog task in priority order before the machine goes idle.
-        topUp: turns.filter(t => machineTurns.has(t.turn)).length < 2 && !late(),
+        topUp: (turns.filter(t => machineTurns.has(t.turn)).length < 2 || idleRuns >= idleTopUpRuns) && !late(),
+        idleRuns,
       });
+      if (idleRuns === idleAlertRuns && alert) alert(`collab tick chạy không ${idleRuns} lượt liền (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): plan không còn PR nào để làm, cần bổ sung việc từ backlog`);
       const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
       writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures });
