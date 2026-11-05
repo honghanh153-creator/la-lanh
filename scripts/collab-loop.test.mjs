@@ -618,6 +618,23 @@ test('plan top-up: fewer than two machine jobs before 23:30 asks Claude to add t
   assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, false);
 });
 
+test('retro S1: runs in a row with no area ask for a top-up from the third and alert on the sixth', () => {
+  const date = '2026-11-13';
+  const alerts = [];
+  const queue = () => JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+  const run = (open, minute) => tick({ gh: plannedGh(open, date), now: { date, hour: 18, minute }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}), alert: text => alerts.push(text) });
+  for (let i = 1; i <= 7; i += 1) {
+    run([], i);
+    assert.equal(queue().idleRuns, i);
+    assert.equal(queue().topUp, true);
+  }
+  assert.equal(alerts.length, 1, 'one alert at the sixth idle run, not on every run after it');
+  assert.match(alerts[0], /chạy không 6 lượt liền/);
+  run([pr({ number: 7 }), pr({ number: 8 }), pr({ number: 9 })], 30);
+  assert.equal(queue().idleRuns, 0, 'a run with an area resets the count');
+  assert.equal(queue().topUp, false);
+});
+
 // ---- Loop fixes A–E (owner 04.11.2026) ----
 const goodBody = [
   '- Mức: M — script vòng tự động',
