@@ -175,6 +175,31 @@ phải hiệu chỉnh bằng bộ mẫu vàng (mục 4).
 | A14 | Không khẳng định sự việc đã xảy ra | Headline/cảnh có hành động của người đọc ở thể đã xong ("vừa gửi", "đã gửi", "rồi mới thấy", "vừa nói") mà không có "nếu/khi/lúc" | 0 | "Tin nhắn vừa gửi chưa đúng cách bạn muốn nói." |
 | A15 | Dữ kiện trong câu chữ khớp engine | Bóc mọi cặp hành tinh + góc/cung/nhà được nhắc trong thân bài, đối chiếu với contacts/positions của engine (gồm pha tiến gần/rời xa) | 0 sai lệch | (Lá Lành chưa thấy lỗi này; bài AI chat sai 3/6.) Cần trước khi bật Luna viết lại tự do hơn |
 
+**Cập nhật 04.11.2026 (C1-3, #190 đợt 2).** Các luật sau là **chặn cứng**: một lần vi phạm là trượt,
+không có baseline. Chỉ được bỏ qua khi khóa vi phạm có trong `content_clarity_exceptions.json` và
+owner đã duyệt.
+
+- A4, A11, A14 (GT-1).
+- A9: đo các phần hiện ở màn đầu, theo giao diện hiện tại.
+  - Daily: headline, cảnh (hoặc luận điểm), việc nhỏ.
+  - Tarot: headline, hướng nghiêng, tóm tắt, câu kết.
+  - Radar: tóm tắt, headline, từng mảng, các phần không nằm trong "Xem thêm".
+  - Khám phá: tiêu đề và tóm tắt của mỗi ô.
+- A13: 30 ngày liên tiếp cho mỗi persona có giờ sinh (32 persona). Khóa theo persona và theo phép
+  kiểm (a), (b), (c); thiếu ngày cũng là vi phạm.
+- A15: đối chiếu cặp hành tinh với cung, nhà, góc và pha trong câu với dữ kiện engine của chính bài
+  đó. Cung hoặc nhà không có hành tinh trong câu thì gắn với hành tinh gần nhất trong cùng ô.
+  - Tarot không có lá số nên không áp dụng.
+  - Radar chưa có dữ kiện cặp, nên mọi vị trí Radar nhắc tới đều trượt cho tới khi có dữ kiện.
+- S8 (HM-4): chặn câu đoán sự kiện đời người: mang thai, cưới, chia tay, mất việc, bệnh, mất người
+  thân. Chuyện mang thai không được nhắc kể cả ở dạng điều kiện (HM-5). "Chuyện con cái" vẫn được
+  là một cửa của câu nhiều cửa.
+- S9 (HM-4): chặn câu giả định hoàn cảnh người đọc: độc thân hay có đôi, có con, giới tính. Câu mở
+  bằng điều kiện nói đúng hoàn cảnh đó, ví dụ "Nếu bạn đang độc thân, …", không bị tính.
+
+Danh sách từ của S8 và S9 là danh sách mở, giống S1–S7. Lớp B và C vẫn phải bắt các cách diễn đạt
+mới.
+
 Soft warning, không chặn: tỷ lệ từ Hán-Việt, tỷ lệ từ ngoài 3.000 từ thông dụng. Theo dõi theo xu
 hướng; nghiên cứu cho thấy chỉ đúng khoảng 80% nên không đủ để chặn.
 

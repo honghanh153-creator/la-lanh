@@ -4,6 +4,7 @@ from app.domains.astro.models import (
     BodyName,
     DateOnlySunResult,
     NatalChart,
+    TimePrecision,
     Tradition,
     TransitToNatalSnapshot,
 )
@@ -15,7 +16,7 @@ from app.domains.readings.models import (
     ReadingPlan,
     ReadingPurpose,
 )
-from app.domains.readings.planner import ReadingPlanner
+from app.domains.readings.planner import ReadingPlanner, time_stable_bodies
 
 SIGN_VI = {
     "aries": "Bạch Dương",
@@ -39,7 +40,25 @@ BODY_VI = {
     BodyName.VENUS: "Sao Kim",
     BodyName.MARS: "Sao Hỏa",
     BodyName.JUPITER: "Sao Mộc",
+    BodyName.SATURN: "Sao Thổ",
+    BodyName.URANUS: "Thiên Vương",
+    BodyName.NEPTUNE: "Hải Vương",
+    BodyName.PLUTO: "Diêm Vương",
+    BodyName.TRUE_NODE: "Nút Bắc",
+    BodyName.MEAN_NODE: "Nút Bắc",
+    BodyName.SOUTH_NODE: "Nút Nam",
+    BodyName.CHIRON: "Chiron",
 }
+
+# Bodies that get their own sign card; BODY_VI also names every body an aspect line can show.
+CLAIM_BODIES = (
+    BodyName.SUN,
+    BodyName.MOON,
+    BodyName.MERCURY,
+    BodyName.VENUS,
+    BodyName.MARS,
+    BodyName.JUPITER,
+)
 
 BODY_FUNCTION = {
     BodyName.SUN: "cách bạn chủ động, tạo dấu ấn và cảm thấy mình đang sống đúng hướng",
@@ -172,6 +191,8 @@ class InsightReadingService:
         )
 
     def overview(self, chart: NatalChart, *, observed_at: datetime) -> InsightReading:
+        provenance, config_hash = chart.provenance, chart.config_hash
+        chart = self._readable_chart(chart)
         claims = list(
             self._jyotish_claims(chart)
             if chart.config.tradition is Tradition.JYOTISH
@@ -209,16 +230,39 @@ class InsightReadingService:
             )
         return InsightReading(
             tradition=chart.config.tradition,
-            config_hash=chart.config_hash,
+            config_hash=config_hash,
             observed_at=observed_at,
             claims=tuple(claims[:6]),
-            provenance=chart.provenance,
+            provenance=provenance,
+        )
+
+    @staticmethod
+    def _readable_chart(chart: NatalChart) -> NatalChart:
+        """The tiles read at the same data level as the synthesis (#143 E4).
+
+        An approximate time computes the chart at the window's midpoint. The synthesis keeps only
+        the signs that hold across the window, so the tiles do too: no Moon, no sign near a
+        boundary, no aspect orb, house, angle, nakshatra or graha drishti."""
+
+        if chart.time_precision is TimePrecision.EXACT:
+            return chart
+        stable = time_stable_bodies(chart)
+        return chart.model_copy(
+            update={
+                "bodies": tuple(p for p in chart.bodies if p.body in stable),
+                "aspects": (),
+                "houses": None,
+                "angles": None,
+                "nakshatras": (),
+                "graha_drishti": (),
+            }
         )
 
     @staticmethod
     def _jyotish_claims(chart: NatalChart) -> tuple[ReadingClaim, ...]:
         claims: list[ReadingClaim] = []
-        for body, label in BODY_VI.items():
+        for body in CLAIM_BODIES:
+            label = BODY_VI[body]
             try:
                 position = chart.body(body)
             except KeyError:
@@ -374,10 +418,10 @@ class InsightReadingService:
         longitude: float,
         sign: str,
     ) -> tuple[str, ...]:
-        refs = [
-            f"natal:{body.value}:longitude:{longitude:.6f}",
-            f"natal:{body.value}:sign:{sign}",
-        ]
+        refs = [f"natal:{body.value}:sign:{sign}"]
+        if chart.time_precision is TimePrecision.EXACT:
+            # A midpoint degree is not a fact of an approximate window.
+            refs.insert(0, f"natal:{body.value}:longitude:{longitude:.6f}")
         house = self._house_for_longitude(chart, longitude)
         if house is not None:
             refs.append(f"natal:{body.value}:house:{house}")

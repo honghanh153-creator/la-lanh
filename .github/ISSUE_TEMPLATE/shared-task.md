@@ -6,6 +6,14 @@ title: "[Task] "
 
 ## Mục tiêu cho người dùng
 
+## Research note (bắt buộc trước khi làm, xem docs/operations/product-development-process.md §1)
+
+- Mức: S | M | L — lý do
+- Đã có trong repo (issue/PR/verdict/doc/quyết định liên quan):
+- Bên ngoài (prior art trên GitHub, chuẩn chính thức) — bắt buộc với mức L:
+- Lựa chọn và đề xuất:
+- Cổng bị ảnh hưởng (G1–G10):
+
 ## Tiêu chí đạt
 
 - [ ]

@@ -15,7 +15,9 @@ what changes *within the user's day*:
 * each contact carries its timing: ``time_kind``, the in-orb window and the tight 1° peak window
   inside the day, and a closest moment only when the closest approach really falls inside it;
 * trend contacts carry their whole in-orb window across retrograde passes (C2c), with the orb at
-  each closest date and a weight; generational outer-to-outer contacts are dropped.
+  each closest date and a weight; generational outer-to-outer contacts are dropped. Their
+  ``episode`` (``transit_episodes``) is the C2c contract: one aspect point, every pass with its
+  motion, and a key that is the same on every day of the episode.
 
 It returns geometry and labels only (no copy, no persistence, no logging) and is deterministic
 for a chart and date. Nothing in the request path calls it yet; the Daily service and planner
@@ -39,7 +41,20 @@ factors, but only those that hold over the whole uncertain birth interval:
   ``contact_eligibility``).
 * ``date_only``: as above over the engine's ±14 h birth-date interval, natal Sun…Pluto only; the
   natal Moon can sit anywhere in a ~13° band, so contacts to it would be invented precision.
-* Houses, angles, nodes and Chiron are never read for a non-exact time.
+* Nodes and Chiron are never read for a non-exact time.
+* Houses and angles (C2b, ``house_confidence``). Labels come from a ``HouseFrame`` sampled over
+  the birth-time error (``birth_time_error_minutes``: ±``EXACT_TIME_ERROR_MINUTES`` for a typed
+  time, the window's half-width for ``approximate_time``) and the birthplace margin; a label
+  that changes anywhere in that range is dropped. ``approximate_night`` and ``date_only`` get no
+  frame. Without the birthplace coordinates there is no frame either (fail closed). Each contact
+  carries ``transit_house`` (the natal house the transiting body passes through during the
+  contact's in-day window, the house that names the factor's area, PL-20), ``natal_house`` (the
+  touched natal point's house) and ``ruled_houses`` (the houses the touched natal planet rules;
+  decision 1.2: a ruler only adds houses, it never picks a meaning). Ranking does not read them.
+  The ascendant and midheaven are natal points only for ``exact_time``, as ``(low, high)``
+  domains over the same range, under the worst-case orb rule: an angle contact counts only when
+  it holds for every birth time in the range, so with the ±15 min default it is rare (the angle
+  itself spreads several degrees); a more reliable time level would be needed to see more.
 * ``tradition_not_western``: Jyotish stays natal-only. Its transit practice (gochara) counts
   sidereal whole-sign houses from the natal Moon and graha drishti, not the tropical Ptolemaic
   aspects and versioned orbs used here, and the planner keeps Jyotish readings natal-only; mixing
@@ -49,10 +64,12 @@ factors, but only those that hold over the whole uncertain birth interval:
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from app.domains.astro.aspects import (
@@ -62,17 +79,29 @@ from app.domains.astro.aspects import (
     orb_bounds,
     transit_orb_limit,
 )
-from app.domains.astro.engine import NatalChartEngine, house_for_longitude, sign_for_longitude
+from app.domains.astro.engine import NatalChartEngine, sign_for_longitude
 from app.domains.astro.models import (
     BodyName,
+    BodyPosition,
     NatalChart,
     TimePrecision,
     Tradition,
     TransitPhase,
     ZodiacSign,
 )
+from app.domains.daily.house_confidence import (
+    EXACT_TIME_ERROR_MINUTES,
+    Birthplace,
+    ChartAngle,
+    HouseFrame,
+    HouseLabels,
+    house_frame,
+)
 
-DAILY_SELECTION_VERSION = "daily-sky-selection-v2"
+if TYPE_CHECKING:
+    from app.domains.daily.transit_episodes import TransitEpisode
+
+DAILY_SELECTION_VERSION = "daily-sky-selection-v3"
 DAILY_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 DEFAULT_SAMPLE_MINUTES = 30
 DEFAULT_PICK_LIMIT = 3
@@ -143,6 +172,8 @@ MAX_SPEED_DEG_PER_DAY = {
 }
 SPEED_MARGIN = 1.5
 
+# A contact's natal point: a body, or an angle (exact time only, C2b).
+NatalPoint = BodyName | ChartAngle
 MOON_BODIES = frozenset({BodyName.MOON})
 DAYS_BODIES = frozenset({BodyName.SUN, BodyName.MERCURY, BodyName.VENUS, BodyName.MARS})
 FAST_BODIES = MOON_BODIES | DAYS_BODIES
@@ -199,7 +230,9 @@ TRANSIT_WEIGHT = {
     BodyName.NEPTUNE: 2.5,
     BodyName.PLUTO: 2.5,
 }
-NATAL_WEIGHT = {
+NATAL_WEIGHT: dict[BodyName | ChartAngle, float] = {
+    ChartAngle.ASCENDANT: 2.0,
+    ChartAngle.MIDHEAVEN: 2.0,
     BodyName.SUN: 3.0,
     BodyName.MOON: 3.0,
     BodyName.MERCURY: 2.0,
@@ -314,7 +347,7 @@ class DayContact:
     transit_body: BodyName
     kind: str
     exact_angle: float
-    natal_body: BodyName
+    natal_body: NatalPoint
     tier: SkyTier
     min_orb: float
     orb_limit: float
@@ -331,13 +364,16 @@ class DayContact:
     triggers_trend: tuple[str, ...] = ()
     merged: tuple[DayContact, ...] = ()
     score: float = 0.0
+    transit_house: int | None = None
+    natal_house: int | None = None
+    ruled_houses: tuple[int, ...] = ()
 
     @property
     def preferred_natal(self) -> bool:
         return self.natal_body in PREFERRED_NATAL_BODIES
 
     @property
-    def natal_points(self) -> tuple[BodyName, ...]:
+    def natal_points(self) -> tuple[NatalPoint, ...]:
         """The natal point plus those of contacts merged into this one (AS-4)."""
 
         return (self.natal_body, *(item.natal_body for item in self.merged))
@@ -385,6 +421,7 @@ class TrendContact:
     contact: DayContact
     window: TrendWindow | None
     weight: float
+    episode: TransitEpisode | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -416,9 +453,10 @@ class DailySkySelection:
     weeks: tuple[DayContact, ...]
     trend: tuple[TrendContact, ...]
     moon: MoonContext
+    houses: HouseLabels | None = None
 
 
-NatalDomains = dict[BodyName, tuple[float, float]]
+NatalDomains = dict[NatalPoint, tuple[float, float]]
 
 
 def contact_eligibility(
@@ -450,20 +488,59 @@ def contact_eligibility(
     return ContactEligibility.DATE_ONLY
 
 
+def birth_time_error_minutes(
+    eligibility: ContactEligibility, *, exact_time_error_minutes: float = EXACT_TIME_ERROR_MINUTES
+) -> float | None:
+    """Half-width of the birth-time range house labels must hold over; ``None``: no houses."""
+
+    if eligibility is ContactEligibility.EXACT_TIME:
+        return exact_time_error_minutes
+    if eligibility is ContactEligibility.APPROXIMATE_TIME:
+        return APPROXIMATE_HALF_WIDTH_DAYS * 1440.0
+    return None
+
+
+def daily_house_frame(
+    engine: NatalChartEngine,
+    chart: NatalChart,
+    birthplace: Birthplace | None,
+    *,
+    birth_timezone: str | None = None,
+    exact_time_error_minutes: float = EXACT_TIME_ERROR_MINUTES,
+) -> HouseFrame | None:
+    """The chart's ``HouseFrame`` for its precision (``None`` when no house may be read)."""
+
+    eligibility = contact_eligibility(chart, birth_timezone=birth_timezone)
+    error = birth_time_error_minutes(eligibility, exact_time_error_minutes=exact_time_error_minutes)
+    return house_frame(engine, chart, birthplace, time_error_minutes=error)
+
+
 def natal_domains(
-    engine: NatalChartEngine, chart: NatalChart, *, birth_timezone: str | None = None
+    engine: NatalChartEngine,
+    chart: NatalChart,
+    *,
+    birth_timezone: str | None = None,
+    houses: HouseFrame | None = None,
 ) -> NatalDomains:
-    """Natal points to scan, each as a ``(low, high)`` longitude domain (a point when exact)."""
+    """Natal points to scan, each as a ``(low, high)`` longitude domain (a point when exact).
+
+    With an exact time and a ``houses`` frame the ascendant and midheaven are added as domains
+    over the frame's birth-time and place range (C2b, K-6).
+    """
 
     eligibility = contact_eligibility(chart, birth_timezone=birth_timezone)
     if eligibility is ContactEligibility.TRADITION_NOT_WESTERN:
         return {}
     if eligibility is ContactEligibility.EXACT_TIME:
-        return {
+        points: NatalDomains = {
             body.body: (body.longitude, body.longitude)
             for body in chart.bodies
             if body.body is not BodyName.SOUTH_NODE
         }
+        if houses is not None:
+            for angle in ChartAngle:
+                points[angle] = houses.angle_domain(angle)
+        return points
     if eligibility is ContactEligibility.APPROXIMATE_TIME:
         domains = engine.longitude_domains(chart, half_width_days=APPROXIMATE_HALF_WIDTH_DAYS)
         targets: tuple[BodyName, ...] = (*INTERVAL_NATAL_BODIES, BodyName.MOON)
@@ -477,7 +554,7 @@ def natal_domains(
 
 
 def contact_orb_limit(
-    transit_body: BodyName, kind: str, natal_body: BodyName, eligibility: ContactEligibility
+    transit_body: BodyName, kind: str, natal_body: NatalPoint, eligibility: ContactEligibility
 ) -> float:
     limit = transit_orb_limit(transit_body, kind)
     if natal_body is BodyName.MOON and eligibility is ContactEligibility.APPROXIMATE_TIME:
@@ -533,6 +610,7 @@ def scan_day(
     sample_minutes: int = DEFAULT_SAMPLE_MINUTES,
     domains: NatalDomains | None = None,
     birth_timezone: str | None = None,
+    houses: HouseFrame | None = None,
 ) -> tuple[DayContact, ...]:
     """Every contact in orb at some sample of the Vietnam day, scored and sorted by ``rank_key``.
 
@@ -548,7 +626,7 @@ def scan_day(
     if eligibility is ContactEligibility.TRADITION_NOT_WESTERN:
         return ()
     if domains is None:
-        domains = natal_domains(engine, chart, birth_timezone=birth_timezone)
+        domains = natal_domains(engine, chart, birth_timezone=birth_timezone, houses=houses)
     start, end = day_bounds(local_date)
     step = timedelta(minutes=sample_minutes)
     in_day = int((end - start) / step)
@@ -607,8 +685,39 @@ def scan_day(
                     ends,
                 )
                 if contact is not None:
-                    raw.append(contact)
+                    raw.append(_with_houses(contact, houses, sky, start, step))
     return tuple(sorted(_merge_same_events(_score_all(raw), chart), key=rank_key))
+
+
+def _with_houses(
+    contact: DayContact,
+    houses: HouseFrame | None,
+    sky: dict[int, dict[BodyName, BodyPosition]],
+    start: datetime,
+    step: timedelta,
+) -> DayContact:
+    """Stable house labels for a contact (C2b); unchanged when there is no frame.
+
+    ``transit_house`` holds only when every sample of the in-day window puts the transiting body
+    in the same stable natal house: a Moon that crosses a cusp during the contact gets none.
+    """
+
+    if houses is None:
+        return contact
+    first = math.floor((contact.window_start.astimezone(UTC) - start) / step)
+    last = math.ceil((contact.window_end.astimezone(UTC) - start) / step)
+    labels = {
+        houses.house_of(sky[index][contact.transit_body].longitude)
+        for index in range(first, last + 1)
+        if index in sky
+    }
+    transit_house = labels.pop() if len(labels) == 1 else None
+    return replace(
+        contact,
+        transit_house=transit_house,
+        natal_house=houses.natal_house(contact.natal_body),
+        ruled_houses=houses.ruled_houses(contact.natal_body),
+    )
 
 
 def _day_contact(
@@ -617,7 +726,7 @@ def _day_contact(
     transit_body: BodyName,
     kind: str,
     exact_angle: float,
-    natal_body: BodyName,
+    natal_body: NatalPoint,
     domain: tuple[float, float],
     limit: float,
     orbs: dict[int, float],
@@ -926,7 +1035,7 @@ def pick_daily_factors(
         key=rank_key,
     )
     chosen: list[DayContact] = []
-    used: set[BodyName] = set()
+    used: set[NatalPoint] = set()
 
     def allowed(contact: DayContact) -> bool:
         if contact in chosen:
@@ -985,19 +1094,20 @@ def day_tone(picks: tuple[DayContact, ...], trend: tuple[DayContact, ...]) -> Da
     return DayTone.MIXED
 
 
-def moon_context(engine: NatalChartEngine, chart: NatalChart, local_date: date) -> MoonContext:
-    """Transiting Moon at local noon (natal house only for an exact time) and its sign at the
-    day's start and end, with the sign change time (to the minute) when it changes (K-10)."""
+def moon_context(
+    engine: NatalChartEngine,
+    chart: NatalChart,
+    local_date: date,
+    *,
+    houses: HouseFrame | None = None,
+) -> MoonContext:
+    """Transiting Moon at local noon (natal house only when ``houses`` holds it over the
+    birth-time range, C2b) and its sign at the day's start and end, with the sign change time
+    (to the minute) when it changes (K-10)."""
 
     observed_at = datetime.combine(local_date, time(hour=12), tzinfo=DAILY_TIMEZONE)
     moon = engine.transiting_position(BodyName.MOON, observed_at, chart.config)
-    house = None
-    if (
-        chart.time_precision is TimePrecision.EXACT
-        and chart.houses is not None
-        and len(chart.houses) == 12
-    ):
-        house = house_for_longitude(moon.longitude, chart.houses)
+    house = houses.house_of(moon.longitude) if houses is not None else None
     start, end = day_bounds(local_date)
     last = end - timedelta(minutes=1)
 
@@ -1047,6 +1157,8 @@ def _contact_domain(
     birth_timezone: str | None,
 ) -> tuple[float, float]:
     if domains is None:
+        if isinstance(contact.natal_body, ChartAngle):
+            raise ValueError("an angle contact needs the domains it was scanned with")
         domains = natal_domains(engine, chart, birth_timezone=birth_timezone)
     if contact.natal_body is BodyName.SOUTH_NODE and BodyName.SOUTH_NODE not in domains:
         node = next(domains[body] for body in NODE_BODIES if body in domains)
@@ -1208,15 +1320,28 @@ def select_daily_sky(
     include_trend_windows: bool = True,
     max_scan_days: int = TREND_SCAN_DAYS,
     birth_timezone: str | None = None,
+    birthplace: Birthplace | None = None,
+    exact_time_error_minutes: float = EXACT_TIME_ERROR_MINUTES,
 ) -> DailySkySelection:
     """Select the day's sky for one natal chart and Vietnam-local date.
 
     ``birth_timezone`` is the birthplace IANA zone; it only matters for an approximate birth
-    time, to recognise the stored window (see ``contact_eligibility``).
+    time, to recognise the stored window (see ``contact_eligibility``). ``birthplace`` is the
+    chart's birthplace coordinates, held in memory only; without it no house label or angle is
+    read (C2b). ``exact_time_error_minutes`` is the error assumed for a typed time.
     """
 
+    from app.domains.daily.transit_episodes import trend_episode  # imports this module
+
     eligibility = contact_eligibility(chart, birth_timezone=birth_timezone)
-    domains = natal_domains(engine, chart, birth_timezone=birth_timezone)
+    houses = daily_house_frame(
+        engine,
+        chart,
+        birthplace,
+        birth_timezone=birth_timezone,
+        exact_time_error_minutes=exact_time_error_minutes,
+    )
+    domains = natal_domains(engine, chart, birth_timezone=birth_timezone, houses=houses)
     contacts = scan_day(
         engine,
         chart,
@@ -1224,6 +1349,7 @@ def select_daily_sky(
         sample_minutes=sample_minutes,
         domains=domains,
         birth_timezone=birth_timezone,
+        houses=houses,
     )
     trend_contacts = tuple(
         sorted(
@@ -1240,6 +1366,11 @@ def select_daily_sky(
             if include_trend_windows
             else None,
             weight=trend_weight(contact),
+            episode=trend_episode(
+                engine, chart, contact, local_date, max_scan_days=max_scan_days, domains=domains
+            )
+            if include_trend_windows
+            else None,
         )
         for contact in trend_contacts
     )
@@ -1258,5 +1389,6 @@ def select_daily_sky(
         days=tuple(item for item in contacts if item.tier is SkyTier.DAYS),
         weeks=tuple(item for item in contacts if item.tier is SkyTier.WEEKS),
         trend=trend,
-        moon=moon_context(engine, chart, local_date),
+        moon=moon_context(engine, chart, local_date, houses=houses),
+        houses=houses.labels() if houses is not None else None,
     )
