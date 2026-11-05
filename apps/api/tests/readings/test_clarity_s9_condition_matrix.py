@@ -140,7 +140,8 @@ DOORS = ("nếu", "khi", "lúc", "giả sử", "trường hợp")
         ("Trừ khi bạn không có con nhỏ, hãy đón con sớm.", True),
         # A main clause ends the chain; the next condition opens its own chain.
         ("{D} bạn rảnh, hãy nghỉ, hoặc {d} bạn có con nhỏ, hãy đón con sớm.", False),
-        ("{D} bạn có con nhỏ, hãy nghỉ, hoặc {d} bạn rảnh, hãy đón con sớm.", False),
+        # Round 13: the earlier branch's fact does not carry into a sibling branch.
+        ("{D} bạn có con nhỏ, hãy nghỉ, hoặc {d} bạn rảnh, hãy đón con sớm.", True),
         ("Hãy đón con sớm, {d} bạn có con nhỏ.", True),
     ],
 )
@@ -247,4 +248,56 @@ def test_s9_value_matrix_size() -> None:
     ],
 )
 def test_s9_cross_value_named_cases(text: str, flagged: bool) -> None:
+    assert assumes_circumstances(text) is flagged, text
+
+
+# Round 13 (Codex auto-12 P1): a condition chain's facts cover only the main clause(s) it
+# governs, up to the next condition chain or the sentence end. Branch scope dimension: the
+# assumption's covering fact is in the same branch, only in a sibling (earlier) branch, or
+# nowhere; crossed with the connector before the second door, the door word and the axis.
+BRANCH_FACTS = {
+    "gender": ("bạn là phụ nữ", "chị em mình nên đi dạo", "bạn là đàn ông"),
+    "children": ("bạn có con nhỏ", "hãy cho bé ngủ sớm", "bạn rảnh"),
+    "partner": ("bạn có người yêu", "hãy rủ người yêu của bạn đi dạo", "bạn rảnh"),
+}
+BRANCH_SCOPES = ("same", "sibling", "none")
+BRANCH_JOINS = ("hoặc", "còn", "")
+BRANCH_DOORS = ("nếu", "khi")
+BranchCell = tuple[str, str, str, str]
+
+BRANCH_CELLS: list[BranchCell] = list(
+    product(BRANCH_FACTS, BRANCH_SCOPES, BRANCH_JOINS, BRANCH_DOORS)
+)
+
+
+def _branch_sentence(cell: BranchCell) -> str:
+    axis, scope, join, door = cell
+    fact, assumption, other = BRANCH_FACTS[axis]
+    first, second = {"same": (other, fact), "sibling": (fact, other), "none": (other, other)}[scope]
+    lead = f"{join} " if join else ""
+    return f"{door.capitalize()} {first}, hãy nghỉ, {lead}{door} {second}, {assumption}."
+
+
+@pytest.mark.parametrize("cell", BRANCH_CELLS, ids=lambda cell: "-".join(cell))
+def test_s9_branch_scope_matrix(cell: BranchCell) -> None:
+    text = _branch_sentence(cell)
+    assert assumes_circumstances(text) is (cell[1] != "same"), text
+
+
+def test_s9_branch_scope_matrix_size() -> None:
+    assert len(BRANCH_CELLS) == 54
+    assert len({_branch_sentence(cell) for cell in BRANCH_CELLS}) == 54
+
+
+@pytest.mark.parametrize(
+    ("text", "flagged"),
+    [
+        ("Nếu bạn là phụ nữ, hãy nghỉ, hoặc nếu bạn là đàn ông, chị em mình nên đi dạo.", True),
+        ("Nếu bạn là đàn ông, hãy nghỉ, hoặc nếu bạn là phụ nữ, chị em mình nên đi dạo.", False),
+        ("Nếu bạn rảnh, hãy nghỉ, hoặc nếu bạn có con nhỏ, hãy đón con sớm.", False),
+        ("Nếu bạn có con nhỏ, hãy nghỉ, hoặc nếu bạn rảnh, hãy đón con sớm.", True),
+        ("Nếu bạn có con nhỏ, hãy nghỉ và cho bé ngủ sớm.", False),
+    ],
+)
+def test_s9_branch_scope_named_cases(text: str, flagged: bool) -> None:
     assert assumes_circumstances(text) is flagged, text

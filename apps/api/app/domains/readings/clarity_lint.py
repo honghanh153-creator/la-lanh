@@ -962,11 +962,15 @@ def assumes_circumstances(sentence: str) -> bool:
     it. "và"/"mà" join predicates that all hold, so together they establish the union of their
     circumstances; "hoặc" joins alternatives, so after the
     chain only what holds in every alternative (the intersection) is established. Inside the
-    chain a phrase is covered by the earlier clauses of its own alternative."""
+    chain a phrase is covered by the earlier clauses of its own alternative. A chain's facts
+    cover only the main clause(s) it governs, up to the next condition chain or the end."""
 
     # Per clause: (start, alternative id, chain id, facts).
     rows: list[tuple[int, int, int, set[Fact]]] = []
     chain_end: dict[int, int] = {}
+    # Where each condition chain starts: a chain's facts cover only the main clause(s) up to
+    # the next condition chain, so a sibling branch ("…, hoặc nếu …") needs its own facts.
+    chain_starts: list[int] = []
     subject: bool | None = None
     chain = alternative = -1
     previous_condition = False
@@ -980,6 +984,8 @@ def assumes_circumstances(sentence: str) -> bool:
         if not (clause.condition and previous_condition):
             chain += 1
             alternative += 1
+            if clause.condition:
+                chain_starts.append(clause.start)
         elif _OR_LEAD.match(sentence, clause.start):
             alternative += 1
         previous_condition = clause.condition
@@ -1003,7 +1009,10 @@ def assumes_circumstances(sentence: str) -> bool:
             if start > position or not holds(facts, fact):
                 continue
             if position >= chain_end[chain_id]:
-                # After the chain the fact must hold in every alternative of it.
+                # After the chain the fact must hold in every alternative of it, and only in
+                # the main clause(s) it governs: a later condition chain opens a new branch.
+                if any(chain_end[chain_id] <= begin < position for begin in chain_starts):
+                    continue
                 if all(holds(unions[other], fact) for other in chain_alternatives[chain_id]):
                     return True
             elif alt == here:
