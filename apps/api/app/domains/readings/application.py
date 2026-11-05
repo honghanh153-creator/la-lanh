@@ -76,7 +76,8 @@ logger = logging.getLogger(__name__)
 
 MVP_TIMEZONE = "Asia/Ho_Chi_Minh"
 DAILY_OBSERVED_HOUR_UTC = 12
-DETERMINISTIC_CONTENT_VERSION = "deterministic-reading-v4"
+# v5: non-Daily default lens names house meanings (PR #215); same plan key, new prose.
+DETERMINISTIC_CONTENT_VERSION = "deterministic-reading-v5"
 _TRANSIT_PURPOSES = {
     ReadingPurpose.DAILY_NOTE,
     ReadingPurpose.PERSONALIZED_SKY,

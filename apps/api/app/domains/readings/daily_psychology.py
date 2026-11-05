@@ -1075,7 +1075,7 @@ DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
             "sign_elements": SIGN_ELEMENTS,
             "sun_issues": SUN_ISSUES,
             "body_domains": BODY_DOMAINS,
-            "house_arenas": HOUSE_ARENAS,
+            "house_arenas": {house: asdict(context) for house, context in HOUSE_ARENAS.items()},
             "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
             "why_today": WHY_TODAY_GISTS,
             "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
@@ -1157,7 +1157,7 @@ def _situation_pool(
 
     # A known house refines context, not personality. User's explicit lens wins.
     def rank(situation: SupportedSituation) -> tuple[int, int, int, int]:
-        return (*situation.rank, int(situation.arena is arena))
+        return (*situation.rank, int(arena in situation.arenas))
 
     if plan.daily_variety is not None:
         # B3-1a top-K: the strongest situation of each issue, ranked by score then
@@ -1306,7 +1306,10 @@ def apply_daily_psychology(
     scene_arena = (
         arena
         if arena is not SemanticArena.GENERAL
-        else (selected.arena if selected and selected.arena in issue.arenas else arena)
+        else next(
+            (item for item in (selected.arenas if selected else ()) if item in issue.arenas),
+            arena,
+        )
     )
     lead = _ARENA_LEADS.get(scene_arena)
     manifestation = issue.scenes[scene_slot]
