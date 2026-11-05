@@ -811,7 +811,7 @@ _CONDITION_TOPICS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
         "children",
         True,
         _terms(
-            r"\b(?:có|nuôi|chăm|nhà có) (?:con|bé|các con|con nhỏ)\b",
+            r"\b(?:có|nuôi|chăm|nhà có) (?:con nhỏ|các con|con|bé)\b",
             r"\b(?:con cái|con nhỏ|phụ huynh|làm cha mẹ|làm bố mẹ|làm mẹ|làm bố|làm cha)\b",
             r"\b(?:là|đang làm) (?:bố|mẹ|cha|ba|cha mẹ|bố mẹ|phụ huynh)\b",
         ),
@@ -829,6 +829,56 @@ _GAP_WORDS = _alternation((*_READER_ADVERBS, *_READER_NEGATIONS, "là", "có", "
 _GAP_TAIL = rf"(?:(?:{_GAP_WORDS})\s+)*(?:(?:{_alternation(_READER_DETERMINERS)})\s+)?"
 _READER_GAP = re.compile(rf"\s*bạn\s+{_GAP_TAIL}", re.IGNORECASE)
 _ADDRESSED_GAP = re.compile(rf"\s*(?:bạn\s+)?{_GAP_TAIL}", re.IGNORECASE)
+
+# A fact is (axis, polarity, value). The value names the circumstance more precisely than the
+# axis: which gender, a marriage rather than any partner, a young child rather than any child.
+# ``None`` is the general circumstance of the axis. Round 12 (Codex auto-11 P1): "Nếu bạn là
+# đàn ông, phụ nữ như bạn..." must not count as covered.
+Fact = tuple[str, bool, str | None]
+_FEMALE = re.compile(
+    r"\b(?:phụ nữ|đàn bà|con gái|cô gái|cô nàng|quý cô|nàng|nữ|phái đẹp|phái yếu|chị em|chị|cô)\b",
+    re.IGNORECASE,
+)
+_MALE = re.compile(
+    r"\b(?:đàn ông|con trai|chàng trai|anh chàng|quý ông|chàng|nam|phái mạnh|đấng mày râu|anh)\b",
+    re.IGNORECASE,
+)
+_MARRIED = re.compile(r"\b(?:vợ|chồng|xã|kết hôn|lập gia đình|gia đình)\b", re.IGNORECASE)
+_YOUNG_CHILD = re.compile(
+    r"\b(?:con nhỏ|bé|các bé|nhóc|bỉm sữa|mẹ bỉm|bú|ru|dỗ|tắm cho)\b", re.IGNORECASE
+)
+
+
+def _fact_value(axis: str, text: str) -> str | None:
+    """The value a matched circumstance phrase names on its axis (``None`` = general)."""
+
+    if axis == "gender":
+        female, male = _FEMALE.search(text), _MALE.search(text)
+        if female and (not male or female.start() <= male.start()):
+            return "female"
+        return "male" if male else "other"
+    if axis == "partner":
+        return "married" if _MARRIED.search(text) else None
+    if axis == "children":
+        return "young" if _YOUNG_CHILD.search(text) else None
+    return None
+
+
+def _implies(condition: Fact, assumption: Fact) -> bool:
+    """Whether an established fact covers an assumed one: same axis, same polarity, and a value
+    at least as specific. Having a specific circumstance implies having the general one ("đã
+    kết hôn" covers "người yêu của bạn"); lacking the general one implies lacking the specific
+    one ("độc thân" covers "chưa kết hôn"). A general condition never covers a specific
+    assumption, and two different values never cover each other."""
+
+    axis, polarity, value = condition
+    if (axis, polarity) != assumption[:2]:
+        return False
+    if value == assumption[2]:
+        return True
+    if axis == "gender":
+        return False
+    return assumption[2] is None if polarity else value is None
 
 
 # A continued condition with no subject of its own starts with a predicate word: an aspect
@@ -879,13 +929,11 @@ def _condition_subject(sentence: str, clause: Clause, previous: bool | None) -> 
     return False
 
 
-def _established(
-    sentence: str, clause: Clause, *, inherited: bool = False
-) -> set[tuple[str, bool]]:
-    """The (axis, polarity) a condition clause establishes for the reader. ``inherited``: the
+def _established(sentence: str, clause: Clause, *, inherited: bool = False) -> set[Fact]:
+    """The (axis, polarity, value) a condition clause establishes for the reader. ``inherited``: the
     clause has no subject and carries on a condition about the reader."""
 
-    found: set[tuple[str, bool]] = set()
+    found: set[Fact] = set()
     if not clause.condition:
         return found
     addressed = inherited or _ADDRESSING_DOOR.search(sentence, 0, clause.door_end) is not None
@@ -895,13 +943,14 @@ def _established(
             if gap.fullmatch(sentence, clause.door_end, match.start()) is None:
                 continue
             negated = _NEGATION.search(sentence, clause.door_end, match.start()) is not None
-            found.add((axis, plain != negated))
+            found.add((axis, plain != negated, _fact_value(axis, match.group(0))))
     for form, with_subject, addressed_pattern in _FORM_CONDITIONS:
         pattern = addressed_pattern if addressed else with_subject
         phrase = pattern.match(sentence, clause.door_end, clause.end)
         if phrase is not None:
             negated = _NEGATION.search(phrase.group(0)) is not None
-            found.add((form.axis, form.plain != negated))
+            value = _fact_value(form.axis, phrase.group(0))
+            found.add((form.axis, form.plain != negated, value))
     return found
 
 
@@ -916,7 +965,7 @@ def assumes_circumstances(sentence: str) -> bool:
     chain a phrase is covered by the earlier clauses of its own alternative."""
 
     # Per clause: (start, alternative id, chain id, facts).
-    rows: list[tuple[int, int, int, set[tuple[str, bool]]]] = []
+    rows: list[tuple[int, int, int, set[Fact]]] = []
     chain_end: dict[int, int] = {}
     subject: bool | None = None
     chain = alternative = -1
@@ -939,21 +988,23 @@ def assumes_circumstances(sentence: str) -> bool:
         )
         chain_end[chain] = clause.end
         subject = reader if clause.condition else None
-    unions: dict[int, set[tuple[str, bool]]] = {}
-    for _start, alt, _chain, facts in rows:
+    unions: dict[int, set[Fact]] = {}
+    chain_alternatives: dict[int, set[int]] = {}
+    for _start, alt, chain_id, facts in rows:
         unions.setdefault(alt, set()).update(facts)
-    chain_facts: dict[int, set[tuple[str, bool]]] = {}
-    for _start, alt, chain_id, _facts in rows:
-        so_far = chain_facts.get(chain_id)
-        chain_facts[chain_id] = set(unions[alt]) if so_far is None else so_far & unions[alt]
+        chain_alternatives.setdefault(chain_id, set()).add(alt)
 
-    def covered(position: int, fact: tuple[str, bool]) -> bool:
+    def holds(facts: Iterable[Fact], fact: Fact) -> bool:
+        return any(_implies(known, fact) for known in facts)
+
+    def covered(position: int, fact: Fact) -> bool:
         here = max((alt for start, alt, _c, _f in rows if start <= position), default=-1)
         for start, alt, chain_id, facts in rows:
-            if start > position or fact not in facts:
+            if start > position or not holds(facts, fact):
                 continue
             if position >= chain_end[chain_id]:
-                if fact in chain_facts[chain_id]:
+                # After the chain the fact must hold in every alternative of it.
+                if all(holds(unions[other], fact) for other in chain_alternatives[chain_id]):
                     return True
             elif alt == here:
                 return True
@@ -961,7 +1012,8 @@ def assumes_circumstances(sentence: str) -> bool:
 
     for axis, polarity, pattern in _ASSUMPTIONS:
         for match in pattern.finditer(sentence):
-            if not covered(match.start(), (axis, polarity)):
+            fact = (axis, polarity, _fact_value(axis, match.group(0)))
+            if not covered(match.start(), fact):
                 return True
     return False
 

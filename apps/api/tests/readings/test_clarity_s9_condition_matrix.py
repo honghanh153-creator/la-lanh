@@ -147,3 +147,104 @@ DOORS = ("nếu", "khi", "lúc", "giả sử", "trường hợp")
 def test_s9_repeated_door_stays_in_chain(door: str, template: str, flagged: bool) -> None:
     text = template.format(D=door[0].upper() + door[1:], d=door)
     assert assumes_circumstances(text) is flagged, text
+
+
+# Round 12 (Codex auto-11 P1): a fact carries a value, not only an axis and polarity. A
+# condition covers an assumption only when axis, polarity and value match; a specific condition
+# covers the general assumption of its axis, a general one never covers a specific assumption,
+# and different values (đàn ông / phụ nữ, a child / a young child) never cover each other.
+VALUE_CONDITIONS: dict[str, dict[str | None, tuple[str, ...]]] = {
+    "gender": {
+        "female": ("bạn là phụ nữ", "bạn là một cô gái", "bạn là nữ"),
+        "male": ("bạn là đàn ông", "bạn là một chàng trai", "bạn là nam"),
+    },
+    "partner": {
+        None: ("bạn có người yêu", "bạn đang hẹn hò"),
+        "married": ("bạn đã kết hôn", "bạn có chồng"),
+    },
+    "children": {
+        None: ("bạn có con", "bạn là phụ huynh"),
+        "young": ("bạn có con nhỏ", "bạn đang nuôi con nhỏ"),
+    },
+}
+VALUE_ASSUMPTIONS: dict[str, dict[str | None, tuple[str, ...]]] = {
+    "gender": {
+        "female": ("phụ nữ như bạn nên nghỉ sớm", "cô gái như bạn nên nghỉ sớm"),
+        "male": ("đàn ông như bạn nên nghỉ sớm", "chàng trai như bạn nên nghỉ sớm"),
+    },
+    "partner": {
+        None: ("hãy rủ người yêu của bạn đi dạo", "hãy nhắn cho nửa kia của bạn"),
+        "married": ("hãy rủ chồng của bạn đi dạo", "vợ chồng bạn nên nghỉ sớm"),
+    },
+    "children": {
+        None: ("hãy dành thời gian cho con của bạn", "hãy đón con sớm"),
+        "young": ("hãy dành thời gian cho con nhỏ của bạn", "hãy cho bé ngủ sớm"),
+    },
+}
+VALUE_DOORS = ("Nếu", "Khi")
+ValueCell = tuple[str, str | None, str, str | None, str, str, bool]
+
+
+def _value_expected(cell: ValueCell) -> bool:
+    axis, cond_value, _cond, asm_value, _asm, _door, before = cell
+    if not before:
+        return True
+    if cond_value == asm_value:
+        return False
+    # Gender values never imply each other; elsewhere the specific covers the general.
+    return axis == "gender" or asm_value is not None
+
+
+VALUE_CELLS: list[ValueCell] = [
+    (axis, cond_value, cond, asm_value, asm, door, before)
+    for axis in VALUE_CONDITIONS
+    for cond_value, conds in VALUE_CONDITIONS[axis].items()
+    for cond in conds
+    for asm_value, asms in VALUE_ASSUMPTIONS[axis].items()
+    for asm in asms
+    for door in VALUE_DOORS
+    for before in (True, False)
+]
+
+
+def _value_sentence(cell: ValueCell) -> str:
+    _axis, _cv, cond, _av, asm, door, before = cell
+    if before:
+        return f"{door} {cond}, {asm}."
+    return f"{asm[0].upper()}{asm[1:]}, {door.lower()} {cond}."
+
+
+@pytest.mark.parametrize("cell", VALUE_CELLS, ids=lambda cell: "-".join(map(str, cell)))
+def test_s9_value_matrix(cell: ValueCell) -> None:
+    text = _value_sentence(cell)
+    assert assumes_circumstances(text) is _value_expected(cell), text
+
+
+def test_s9_value_matrix_size() -> None:
+    assert len(VALUE_CELLS) == 224
+    assert len({_value_sentence(cell) for cell in VALUE_CELLS}) == 224
+
+
+@pytest.mark.parametrize(
+    ("text", "flagged"),
+    [
+        ("Nếu bạn là đàn ông, phụ nữ như bạn nên nghỉ sớm.", True),
+        ("Nếu bạn là phụ nữ, đàn ông như bạn nên nghỉ sớm.", True),
+        ("Nếu bạn là nam, cô gái như bạn nên nghỉ sớm.", True),
+        ("Nếu bạn là nữ, chàng trai như bạn nên nghỉ sớm.", True),
+        ("Nếu bạn là đàn ông, đấng mày râu cũng cần nghỉ.", False),
+        ("Nếu bạn là đàn ông, phái đẹp cũng cần nghỉ.", True),
+        ("Nếu bạn là phụ nữ, chị em mình cũng cần nghỉ.", False),
+        ("Nếu bạn là phụ nữ hoặc là đàn ông, phụ nữ như bạn nên nghỉ sớm.", True),
+        ("Nếu bạn là phụ nữ, phụ nữ như bạn nên nghỉ sớm.", False),
+        ("Nếu bạn có người yêu, ông xã của bạn sẽ vui.", True),
+        ("Nếu bạn đã kết hôn hoặc có người yêu, hãy rủ người yêu của bạn đi dạo.", False),
+        ("Nếu bạn đã kết hôn hoặc có người yêu, hãy rủ chồng của bạn đi dạo.", True),
+        ("Nếu bạn độc thân, bạn chưa kết hôn nên cứ thong thả.", False),
+        ("Nếu bạn chưa kết hôn, bạn đang độc thân nên cứ thong thả.", True),
+        ("Nếu bạn là phụ huynh, hãy cho bé ngủ sớm.", True),
+        ("Nếu bạn có con nhỏ, hãy cho bé ngủ sớm.", False),
+    ],
+)
+def test_s9_cross_value_named_cases(text: str, flagged: bool) -> None:
+    assert assumes_circumstances(text) is flagged, text
