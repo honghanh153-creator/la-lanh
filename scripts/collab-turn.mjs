@@ -6,6 +6,7 @@ import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integratio
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { bodyHash } from './collab-heal.mjs';
 import { preflightFailure, readPreflight, recordPreflight } from './collab-preflight.mjs';
+import { withRepeatNote } from './collab-size.mjs';
 import { bufferStatus } from './collab-buffer.mjs';
 
 export { codexDailyCap };
@@ -58,7 +59,7 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
 
 export function turnsFor(prs, options = {}) {
   const preflight = options.preflight ?? readPreflight();
-  return sortByPriority(prs).map(pr => prTurn(pr, { ...options, open: prs, preflight }));
+  return sortByPriority(prs).map(pr => withRepeatNote(prTurn(pr, { ...options, open: prs, preflight }), pr));
 }
 
 // Owner order: finish every content PR before privacy, and privacy before features.
