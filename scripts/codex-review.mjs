@@ -45,10 +45,12 @@ export function fillPrompt(template, values) {
   return template.replace(/\{\{([A-Z_]+)\}\}/g, (_, key) => values[key] ?? '');
 }
 
-const cell = text => clean(text, 900).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+const cell = (text, limit = 900) => clean(text, limit).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+// A detail may list every occurrence of one class (prompt rule S2); keep the whole list (fix-forward #238).
+const detailCell = text => cell(text, 6000);
 
 export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue }) {
-  const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${cell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);
+  const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${detailCell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);
   return [
     `Review verdict: ${policy.verdict} @ ${pr.headRefOid}`,
     'Reviewer: Codex (auto, scripts/codex-review.mjs)',
@@ -186,7 +188,7 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   let fixIssue = null;
   if (policy.fixForward.length) {
     ensureLabel(gh, 'fix-forward', 'FBCA04', 'P2 không chặn, sửa tiếp sau merge');
-    const list = policy.fixForward.map(f => `- [ ] ${f.severity} ${f.category} \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\`: ${cell(f.title)}. ${cell(f.detail)}`);
+    const list = policy.fixForward.map(f => `- [ ] ${f.severity} ${f.category} \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\`: ${cell(f.title)}. ${detailCell(f.detail)}`);
     const url = gh.raw(['issue', 'create', '--repo', repo, '--label', 'fix-forward', '--title', `[fix-forward] PR #${pr.number} @ ${head.slice(0, 7)}: ${policy.fixForward.length} P2`, '--body-file', '-'],
       [`Từ review tự động của PR #${pr.number} @ \`${head}\`. Theo chính sách P2 ngày 30.10.2026 những mục này không chặn merge.`, '', ...list, '', `${agentMarker} fix-forward pr=${pr.number} -->`].join('\n'));
     fixIssue = Number(/\/issues\/(\d+)/.exec(url)?.[1]) || null;
