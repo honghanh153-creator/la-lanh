@@ -20,6 +20,7 @@ stability contract across Python versions).
 from __future__ import annotations
 
 import hmac
+from collections.abc import Mapping, Sequence
 from datetime import date
 from hashlib import sha256
 from uuid import UUID
@@ -102,3 +103,47 @@ def axis_slot(seed: str, axis: str, n: int, index: int) -> int:
 
 def top_k_slot(index: int, pool_size: int) -> int:
     return index % min(pool_size, DAILY_TOP_K) if pool_size else 0
+
+
+ANTI_REPEAT_WINDOW_DAYS = 30
+
+
+def pick_avoiding_recent(
+    candidates: Sequence[tuple[str, float]],
+    recent: Mapping[str, date],
+    today: date,
+    seed: str,
+    *,
+    window_days: int = ANTI_REPEAT_WINDOW_DAYS,
+) -> str:
+    """Pick one content key, avoiding keys shown in the last ``window_days`` (C2d).
+
+    ``candidates`` are ``(key, relevance)`` pairs; only the top-relevance tier is ever
+    eligible, so anti-repeat never trades relevance for novelty. ``recent`` maps a key to the
+    last local date it was shown; the caller passes it in (recomputed, never stored here).
+
+    * Fresh keys in the top tier (not shown within the window) win; among them the order is
+      a deterministic hash of ``seed ‖ today ‖ key``.
+    * Fallback when every top-tier key is recent: the one shown longest ago (ties by key).
+
+    Pure: no I/O, no clock, no stored history.
+    """
+
+    if not candidates:
+        raise ValueError("anti-repeat needs at least one candidate")
+    if window_days < 1:
+        raise ValueError("the anti-repeat window is at least one day")
+    best = max(relevance for _, relevance in candidates)
+    tier = sorted({key for key, relevance in candidates if relevance == best})
+
+    def is_recent(key: str) -> bool:
+        seen = recent.get(key)
+        return seen is not None and 0 <= (today - seen).days < window_days
+
+    fresh = [key for key in tier if not is_recent(key)]
+    if fresh:
+        return min(
+            fresh,
+            key=lambda key: sha256(f"{seed}\x1f{today.isoformat()}\x1f{key}".encode()).digest(),
+        )
+    return min(tier, key=lambda key: (recent[key], key))
