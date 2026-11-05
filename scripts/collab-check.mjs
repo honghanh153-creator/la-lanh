@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { agentMarker, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { runPreflight } from './collab-preflight.mjs';
+import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 
 // A heavy test process anywhere on the machine, matched on the program actually running.
 // `pgrep -f` matched any command line that merely mentioned these words, including the agent
@@ -35,34 +36,8 @@ export function machineBusy(run = execFileSync) {
   return null;
 }
 
-// Run a command in its own process group and kill the whole group at the deadline or on exit,
-// so Vite, Playwright or pytest children never outlive the check.
-// The supervisor stays alive until the whole group is gone: SIGTERM, then SIGKILL after
-// graceMs for members that ignore it, and only then exits (124 on timeout).
-const groupRunner = `
-const { spawn } = require('node:child_process');
-const [ms, grace, cmd, ...args] = process.argv.slice(1);
-const child = spawn(cmd, args, { stdio: 'inherit', detached: true });
-const group = -child.pid;
-const kill = sig => { try { process.kill(group, sig); } catch {} };
-const alive = () => { try { process.kill(group, 0); return true; } catch { return false; } };
-let code = 1, timedOut = false, finishing = false;
-const finish = () => {
-  if (finishing) return;
-  finishing = true;
-  kill('SIGTERM');
-  const forceAt = Date.now() + Number(grace);
-  const poll = setInterval(() => {
-    if (!alive()) { clearInterval(poll); process.exit(timedOut ? 124 : code); }
-    if (Date.now() >= forceAt) kill('SIGKILL');
-  }, 100);
-};
-const timer = setTimeout(() => { timedOut = true; finish(); }, Number(ms));
-child.on('exit', c => { code = c ?? 1; clearTimeout(timer); finish(); });
-`;
-export function runGroup(cmd, args, { cwd, env, timeoutMs, graceMs = 5000, stdio = 'inherit' }, spawn = spawnSync) {
-  return spawn(process.execPath, ['-e', groupRunner, String(Math.max(1000, timeoutMs)), String(graceMs), cmd, ...args], { cwd, env, stdio });
-}
+// Process-group runner (kills the whole tree at the deadline, stuck beat after 30 min): collab-heal.mjs.
+export { runGroup };
 
 // Automatic checks start nothing after 23:30 and end by 23:55 (plan §3.1); direct runs get 90 minutes.
 // The budget ends at the exact 23:55:00 instant minus the cleanup reserve, so SIGTERM, the grace
@@ -220,7 +195,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const pre = preflight?.(pr, cwd, budget);
   const left = budget();
   if (left <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
-  if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons };
+  if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
   const result = runGroup('pnpm', ['check'], { cwd, timeoutMs: left, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
   const exitCode = result.status ?? 1;
@@ -231,7 +206,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   return { status, exitCode, dirty };
 }
 
-const git = (args, cwd, run) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout: 600000, maxBuffer: 64 * 1024 * 1024 })).trim();
+const git = (args, cwd, run, timeout = 600000) => String(run('/usr/bin/git', args, { cwd, encoding: 'utf8', timeout, maxBuffer: 64 * 1024 * 1024 })).trim();
 
 // A clone only for author checks, so no agent checkout is switched under anyone.
 // Ignored build outputs (node_modules, .venv, ephemeris build) are kept between runs.
@@ -284,6 +259,10 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     let cwd;
     try { cwd = prepareAuthorClone(number, pr.headRefOid, run, { deadlineMs, nowMs, group: rest.group ?? runGroup }); }
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
+    // A branch behind integration is merged and pushed first; the new head gets its own check.
+    // Bounded by the same absolute deadline as the clone preparation, with the cleanup reserve.
+    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh, left: () => deadlineMs - nowMs() - cleanupReserveMs });
+    if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
     return checkOnce(number, { gh, cwd, git: args => git(args, cwd, run), spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
