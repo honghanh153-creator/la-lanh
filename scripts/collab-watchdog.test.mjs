@@ -152,7 +152,8 @@ test('fix D: a start with no done for over 30 minutes is stuck, recorded and ale
 const heal = await import('./collab-heal.mjs');
 const preflightMod = await import('./collab-preflight.mjs');
 const { spawnSync: spawnPlain } = await import('node:child_process');
-const { readFileSync: readText } = await import('node:fs');
+const await_fs = await import('node:fs');
+const { readFileSync: readText } = await_fs;
 const SHA = 'a'.repeat(40);
 
 test('self-heal 1: editing the PR body (same head) clears a body preflight failure', () => {
@@ -240,4 +241,27 @@ test('self-heal 1 r2 (P2): a legacy body record is re-evaluated; the clone path 
     preflight: p => preflightMod.runPreflight(p), spawn: () => { throw new Error('no pnpm'); } });
   assert.equal(result.status, 'preflight');
   assert.equal(result.bodyHash, heal.bodyHash('b'), 'body hash carried through the clone check');
+});
+
+test('self-heal 3 r3 (P1): a stuck step queues its alert; delivery obeys an advancing deadline', () => {
+  const { writeFileSync: put } = await_fs;
+  put(heal.pendingAlertsPath(), '[]\n');
+  // Default alert: nothing sent inline, the alert is queued and the stuck beat is still written.
+  const r = heal.runGroup('/bin/sh', ['-c', 'sleep 1'], { timeoutMs: 5000, stuckMs: 200, stdio: 'ignore' });
+  assert.equal(r.status, 0);
+  assert.ok(JSON.parse(readText(heal.stepBeatPath(), 'utf8')).stuckAt, 'stuck beat written at once');
+  heal.queueAlert('second');
+  assert.equal(JSON.parse(readText(heal.pendingAlertsPath(), 'utf8')).length, 2);
+  // Fake clock: each gh call takes its full 60 s; the deadline allows only one.
+  let clock = 0;
+  const sent = [];
+  const out = heal.deliverPendingAlerts({ alert: t => { sent.push(t); clock += 60000; }, left: () => 100000 - clock });
+  assert.deepEqual(out, { sent: 1, left: 1 });
+  assert.match(sent[0], /quá 30 phút/);
+  // The watchdog's next run delivers the rest.
+  const later = [];
+  const w = watch({ nowMs: Date.now(), alert: t => later.push(t), notify: () => {} });
+  assert.equal(w.queued.sent, 1);
+  assert.ok(later.includes('second'));
+  assert.deepEqual(JSON.parse(readText(heal.pendingAlertsPath(), 'utf8')), []);
 });

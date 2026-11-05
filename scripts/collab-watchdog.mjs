@@ -5,6 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { deliverPendingAlerts } from './collab-heal.mjs';
 import { clean, readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 
 // maxMinutes = schedule interval + jitter + a normal run. activeFrom: autopilot only runs 9–23,
@@ -116,7 +117,9 @@ export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify 
     alerted.push(s.task);
   }
   writeJson(alertPath(), sent);
-  return { stale: stale.map(s => s.task), alerted, stuck };
+  // Stuck-step alerts queued by runGroup during a check (never sent inline).
+  const queued = deliverPendingAlerts({ alert });
+  return { stale: stale.map(s => s.task), alerted, stuck, queued };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
