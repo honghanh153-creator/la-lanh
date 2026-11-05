@@ -6,7 +6,8 @@
 //  - syncWithIntegration: a PR branch behind collab/integration that merges cleanly is merged and
 //    pushed (normal push), so the check runs on the new head next tick instead of going stale.
 //  - bodyHash: the preflight record is keyed by head and PR body, so editing the body re-checks.
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import { readdirSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { DeadlineError, agentMarker, boundedTimeout, clean, integration, readJson, stateDir, writeJson } from './collab-trust.mjs';
@@ -48,26 +49,36 @@ const timer = setTimeout(() => { timedOut = true; finish(); }, Number(ms));
 child.on('exit', c => { code = c ?? 1; clearTimeout(timer); finish(); });
 `;
 
-// Stuck alerts are never sent inline (a gh call here could run past 23:55): they are queued in a
-// local file (atomic write) and the watchdog delivers them at the start of its next tick.
-export const pendingAlertsPath = () => join(stateDir, 'beats', 'pending-alerts.json');
+// Stuck alerts are never sent inline (a gh call here could run past 23:55): each one is queued as
+// its own file (atomic write) and the watchdog delivers them at the start of its next tick.
+// One file per alert, so an alert queued while a delivery runs is never overwritten (#241).
+export const pendingAlertsDir = () => join(stateDir, 'beats', 'pending-alerts');
+const legacyAlertsPath = () => join(stateDir, 'beats', 'pending-alerts.json');
 export function queueAlert(text, nowMs = Date.now()) {
-  const list = readJson(pendingAlertsPath(), []);
-  writeJson(pendingAlertsPath(), [...(Array.isArray(list) ? list : []), { at: new Date(nowMs).toISOString(), text: clean(text, 1000) }]);
+  const name = `${String(nowMs).padStart(15, '0')}-${process.pid}-${randomBytes(4).toString('hex')}.json`;
+  writeJson(join(pendingAlertsDir(), name), { at: new Date(nowMs).toISOString(), text: clean(text, 1000) });
+}
+export function pendingAlerts() {
+  let names = [];
+  try { names = readdirSync(pendingAlertsDir()).filter(n => n.endsWith('.json')).sort(); } catch {}
+  return names.map(n => ({ path: join(pendingAlertsDir(), n), item: readJson(join(pendingAlertsDir(), n), null) })).filter(e => e.item?.text);
 }
 // Each delivery needs `perCallMs` (gh's fixed 60 s timeout) before the caller's deadline; what is
-// not sent stays queued for the next run.
+// not sent stays queued for the next run. Only delivered files are removed.
 export function deliverPendingAlerts({ alert, left = () => Infinity, perCallMs = 60000 } = {}) {
-  const list = readJson(pendingAlertsPath(), []);
-  if (!Array.isArray(list) || !list.length) return { sent: 0, left: 0 };
-  const rest = [];
-  let sent = 0;
-  for (const item of list) {
-    if (left() < perCallMs) { rest.push(item); continue; }
-    try { alert(item.text); sent += 1; } catch { rest.push(item); }
+  // A queue file from the old single-file format is moved into per-alert files first.
+  const legacy = readJson(legacyAlertsPath(), null);
+  if (Array.isArray(legacy)) {
+    legacy.forEach((item, i) => item?.text && writeJson(join(pendingAlertsDir(), `000000000000000-legacy-${i}.json`), item));
+    try { unlinkSync(legacyAlertsPath()); } catch {}
   }
-  writeJson(pendingAlertsPath(), rest);
-  return { sent, left: rest.length };
+  const list = pendingAlerts();
+  let sent = 0, rest = 0;
+  for (const { path, item } of list) {
+    if (left() < perCallMs) { rest += 1; continue; }
+    try { alert(item.text); sent += 1; try { unlinkSync(path); } catch {} } catch { rest += 1; }
+  }
+  return { sent, left: rest };
 }
 
 export function runGroup(cmd, args, { cwd, env, timeoutMs, graceMs = 5000, stdio = 'inherit', encoding, input, maxBuffer, stuckMs = stepStuckMinutes * 60000, alert = queueAlert } = {}, spawn = spawnSync) {
