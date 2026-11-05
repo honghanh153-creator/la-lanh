@@ -32,6 +32,11 @@ Return `REQUEST_CHANGES` only when at least one finding blocks under this policy
 `APPROVE` and still list the non-blocking findings. Set `complete` to false when you could not read the
 whole diff (for example, it is too large); the PR then goes to the owner.
 
+Same class (retro S2, #124 took seven rounds): when a finding is a pattern (a regex, a missing check, a
+copy rule, a lock), search the whole repository for every other place with the same pattern, for example
+with `git grep`, and name all of them in that one finding's `detail` as `file:line` entries. A re-review
+that finds the same class again in a place an earlier round could have named is itself a P2 `docs` finding.
+
 Report only findings you can point to in this diff with a concrete failure scenario. Do not repeat
 findings that the delta already fixed. The repository is public: use synthetic examples only, never real
 birth data, Tarot questions, tokens or personal data.
