@@ -909,8 +909,9 @@ def assumes_circumstances(sentence: str) -> bool:
     """S9. True when the sentence takes a circumstance of the reader for granted: a phrase that
     no condition clause opened before it establishes on the same axis with the same polarity.
 
-    Coordinated conditions form a chain. "và"/"mà" join predicates that all hold, so together
-    they establish the union of their circumstances; "hoặc" joins alternatives, so after the
+    Conditions in a row (with or without a repeated door word) form a chain; a main clause ends
+    it. "và"/"mà" join predicates that all hold, so together they establish the union of their
+    circumstances; "hoặc" joins alternatives, so after the
     chain only what holds in every alternative (the intersection) is established. Inside the
     chain a phrase is covered by the earlier clauses of its own alternative."""
 
@@ -919,16 +920,20 @@ def assumes_circumstances(sentence: str) -> bool:
     chain_end: dict[int, int] = {}
     subject: bool | None = None
     chain = alternative = -1
+    previous_condition = False
     for clause in split_clauses(sentence):
         reader = _condition_subject(sentence, clause, subject)
         inherited = bool(
             reader and clause.continued and not _READER_SUBJECT.match(sentence, clause.door_end)
         )
-        if not clause.continued:
+        # Conditions in a row form one chain, whether or not the door word is repeated after
+        # the connector; a main clause ends it. "hoặc" opens a new alternative of the chain.
+        if not (clause.condition and previous_condition):
             chain += 1
             alternative += 1
         elif _OR_LEAD.match(sentence, clause.start):
             alternative += 1
+        previous_condition = clause.condition
         rows.append(
             (clause.start, alternative, chain, _established(sentence, clause, inherited=inherited))
         )
