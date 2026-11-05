@@ -532,6 +532,33 @@ def test_s9_determiner_in_condition_is_a_door() -> None:
     assert assumes_circumstances("Bạn là một phụ nữ, hãy dành vài phút cho mình.")
 
 
+# Round 8: a condition is a door only when "bạn" is its subject. The same phrase about a third
+# party establishes nothing for the reader, so a main clause that assumes it still counts.
+_THIRD_PARTIES = ("một phụ huynh", "mẹ", "anh ấy", "người ta", "ai đó", "đồng nghiệp")
+_ASSUMING_MAIN = {
+    ("children", True): "hãy đón con của bạn sớm.",
+    ("children", False): "cứ thong thả vì bạn chưa có con.",
+    ("partner", True): "hãy nhắn cho người yêu của bạn.",
+    ("partner", False): "cứ thong thả vì bạn chưa có người yêu.",
+    ("gender", True): "phụ nữ như bạn nên nghỉ sớm.",
+}
+_THIRD_PARTY_CASES = [
+    (f"Nếu {who}{phrase[len('bạn') :]}, {_ASSUMING_MAIN[(form.axis, form.polarity)]}")
+    for form in _READER_FORMS
+    for phrase in reader_form_phrases(form)
+    for who in _THIRD_PARTIES
+]
+
+
+@pytest.mark.parametrize("text", _THIRD_PARTY_CASES)
+def test_s9_third_party_condition_is_not_a_door(text: str) -> None:
+    assert lint_document(_doc(text))["S9"] == 1, text
+
+
+def test_s9_third_party_determiner_regression() -> None:
+    assert lint_document(_doc("Nếu một phụ huynh gọi, hãy đón con của bạn sớm."))["S9"] == 1
+
+
 _CODEX_PAIRS = "Sao Kim và Sao Hỏa tam hợp, Mặt Trăng và Sao Thổ vuông góc."
 _CROSSED = AstroFacts(
     contacts=frozenset(

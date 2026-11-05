@@ -722,8 +722,16 @@ def reader_form_phrases(form: ReaderForm) -> list[str]:
 _FORM_STATEMENTS = tuple(
     (form, re.compile(rf"\bbạn\s+{_form_body(form)}", re.IGNORECASE)) for form in _READER_FORMS
 )
+# A condition speaks about the reader only with "bạn" as its subject, or when the door word
+# itself addresses whoever reads ("Với ai đang nuôi con nhỏ"). "Nếu một phụ huynh gọi" is about
+# someone else.
+_ADDRESSING_DOOR = re.compile(r"(?:với ai|ai đang|người đang)$", re.IGNORECASE)
 _FORM_CONDITIONS = tuple(
-    (form, re.compile(rf"\s*(?:bạn\s+)?{_form_body(form)}", re.IGNORECASE))
+    (
+        form,
+        re.compile(rf"\s*bạn\s+{_form_body(form)}", re.IGNORECASE),
+        re.compile(rf"\s*(?:bạn\s+)?{_form_body(form)}", re.IGNORECASE),
+    )
     for form in _READER_FORMS
 )
 _ASSUMPTIONS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
@@ -808,13 +816,13 @@ _CONDITION_TOPICS: tuple[tuple[str, bool, re.Pattern[str]], ...] = (
         _terms(r"\b(?:phụ nữ|đàn ông|đàn bà|con gái|con trai|cô gái|chàng trai|nam|nữ)\b"),
     ),
 )
-# Between the door and the topic only "bạn" and plain verbs of being or having, so the condition
+# Between the door and the topic: the subject "bạn" (required, so "Nếu một phụ huynh gọi"
+# establishes nothing about the reader), then only plain verbs of being or having, so the condition
 # is about the reader. A negation there flips the topic's polarity.
 _GAP_WORDS = _alternation((*_READER_ADVERBS, *_READER_NEGATIONS, "là", "có", "phải"))
-_READER_GAP = re.compile(
-    rf"\s*(?:bạn\s+)?(?:(?:{_GAP_WORDS})\s+)*(?:(?:{_alternation(_READER_DETERMINERS)})\s+)?",
-    re.IGNORECASE,
-)
+_GAP_TAIL = rf"(?:(?:{_GAP_WORDS})\s+)*(?:(?:{_alternation(_READER_DETERMINERS)})\s+)?"
+_READER_GAP = re.compile(rf"\s*bạn\s+{_GAP_TAIL}", re.IGNORECASE)
+_ADDRESSED_GAP = re.compile(rf"\s*(?:bạn\s+)?{_GAP_TAIL}", re.IGNORECASE)
 
 
 def _established(sentence: str, clause: Clause) -> set[tuple[str, bool]]:
@@ -823,13 +831,16 @@ def _established(sentence: str, clause: Clause) -> set[tuple[str, bool]]:
     found: set[tuple[str, bool]] = set()
     if not clause.condition:
         return found
+    addressed = _ADDRESSING_DOOR.search(sentence, 0, clause.door_end) is not None
+    gap = _ADDRESSED_GAP if addressed else _READER_GAP
     for axis, plain, topic in _CONDITION_TOPICS:
         for match in topic.finditer(sentence, clause.door_end, clause.end):
-            if _READER_GAP.fullmatch(sentence, clause.door_end, match.start()) is None:
+            if gap.fullmatch(sentence, clause.door_end, match.start()) is None:
                 continue
             negated = _NEGATION.search(sentence, clause.door_end, match.start()) is not None
             found.add((axis, plain != negated))
-    for form, pattern in _FORM_CONDITIONS:
+    for form, with_subject, addressed_pattern in _FORM_CONDITIONS:
+        pattern = addressed_pattern if addressed else with_subject
         phrase = pattern.match(sentence, clause.door_end, clause.end)
         if phrase is not None:
             negated = _NEGATION.search(phrase.group(0)) is not None
