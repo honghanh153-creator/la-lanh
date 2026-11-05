@@ -147,3 +147,69 @@ test('fix D: a start with no done for over 30 minutes is stuck, recorded and ale
   const src = (await import('node:fs')).readFileSync(new URL('./collab-watchdog.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /process\.kill|\bkill\b|chmod|launchctl/, 'the watchdog never kills processes or edits permissions');
 });
+
+// Self-heal fixes (05.11.2026): stale preflight record, auto-sync before the check, process-tree kill.
+const heal = await import('./collab-heal.mjs');
+const preflightMod = await import('./collab-preflight.mjs');
+const { spawnSync: spawnPlain } = await import('node:child_process');
+const { readFileSync: readText } = await import('node:fs');
+const SHA = 'a'.repeat(40);
+
+test('self-heal 1: editing the PR body (same head) clears a body preflight failure', () => {
+  const pr = { number: 501, headRefOid: SHA, body: 'old body' };
+  const fail = preflightMod.runPreflight(pr);
+  assert.equal(fail.status, 'FAIL');
+  preflightMod.recordPreflight(501, SHA, fail);
+  assert.ok(preflightMod.preflightFailure(preflightMod.readPreflight(), pr), 'same head and body: still failing');
+  assert.equal(preflightMod.preflightFailure(preflightMod.readPreflight(), { ...pr, body: 'fixed body' }), null, 'edited body is re-checked');
+  preflightMod.recordPreflight(502, SHA, { status: 'FAIL', reasons: ['ruff lỗi: x'] });
+  assert.ok(preflightMod.preflightFailure(preflightMod.readPreflight(), { number: 502, headRefOid: SHA, body: 'any' }), 'lint record stays keyed by head');
+});
+
+const fakeGit = ({ behind, conflict }) => {
+  const calls = [];
+  const git = args => {
+    calls.push(args.filter(a => !a.startsWith('user.') && a !== '-c').join(' '));
+    if (args[0] === 'merge-base' && behind) throw new Error('not ancestor');
+    if (args.includes('merge') && !args.includes('--abort') && conflict) throw new Error('CONFLICT');
+    return args[0] === 'rev-parse' ? 'b'.repeat(40) : '';
+  };
+  return { git, calls };
+};
+
+test('self-heal 2: a branch behind integration that merges cleanly is merged, pushed and rechecked', () => {
+  const posted = [];
+  const gh = { comment: (...a) => posted.push(a) };
+  const { git, calls } = fakeGit({ behind: true });
+  const result = heal.syncWithIntegration({ number: 9, headRefName: 'agent/claude/x' }, { git, gh });
+  assert.equal(result.status, 'synced');
+  assert.ok(calls.includes('push origin HEAD:refs/heads/agent/claude/x'));
+  assert.ok(!calls.some(c => /--force|-f\b/.test(c)), 'never a force push');
+  assert.match(posted[0][2], /<!-- la-lanh-agent handoff -->$/);
+  const up = fakeGit({ behind: false });
+  assert.equal(heal.syncWithIntegration({ number: 9, headRefName: 'agent/claude/x' }, { git: up.git, gh }), null, 'up to date: nothing');
+  assert.equal(heal.syncWithIntegration({ number: 9, headRefName: 'feat/x' }, { git: fakeGit({ behind: true }).git, gh }), null, 'only agent branches');
+  const bad = fakeGit({ behind: true, conflict: true });
+  assert.deepEqual(heal.syncWithIntegration({ number: 9, headRefName: 'agent/codex/y' }, { git: bad.git, gh }), { status: 'conflict', turn: 'claude-fix', reason: 'xung đột với collab/integration' });
+  assert.ok(bad.calls.includes('merge --abort') && !bad.calls.some(c => c.startsWith('push')), 'conflict: abort, push nothing');
+  assert.equal(posted.length, 1);
+});
+
+test('self-heal 3: a timed step kills a grandchild and a step past the stuck limit writes a beat and alerts', () => {
+  const marker = `${50 + (process.pid % 7)}.${Date.now() % 100000}`;
+  const alerts = [];
+  // The child spawns a sleeping grandchild in the background, then sleeps itself.
+  const started = Date.now();
+  const result = heal.runGroup('/bin/sh', ['-c', `(sleep ${marker} &) ; sleep ${marker}`], { timeoutMs: 1500, graceMs: 500, stdio: 'ignore', stuckMs: 300, alert: t => alerts.push(t) });
+  assert.equal(result.status, 124);
+  assert.ok(Date.now() - started < 10000);
+  assert.equal(spawnPlain('pgrep', ['-f', `^sleep ${marker}`], { encoding: 'utf8' }).stdout.trim(), '', 'no grandchild survives');
+  const b = JSON.parse(readText(heal.stepBeatPath(), 'utf8'));
+  assert.ok(b.stuckAt && b.doneAt, 'stuck beat written and closed');
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /quá 30 phút/);
+  const quick = heal.runGroup('/bin/sh', ['-c', 'exit 0'], { timeoutMs: 5000, stdio: 'ignore', alert: t => alerts.push(t) });
+  assert.equal(quick.status, 0);
+  assert.equal(alerts.length, 1, 'a quick step does not alert');
+  assert.throws(() => heal.groupExec('/bin/sh', ['-c', 'sleep 5'], { timeout: 1000 }), /hết giờ/);
+});

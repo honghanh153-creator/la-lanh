@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { agentMarker, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { codexDailyCap, prTurn } from './collab-turn.mjs';
+import { groupExec } from './collab-heal.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-prompt.md');
@@ -83,8 +84,10 @@ export function prepareClone(number, head, run = execFileSync) {
 const isLimit = text => /usage limit|rate limit|quota|too many requests|\b429\b/i.test(text);
 
 export function runCodex({ dir, prompt, outPath, timeoutMs, run = execFileSync }) {
+  // The real run is a process group: the timeout kills Codex and everything it started (05.11.2026).
+  const exec = run === execFileSync ? groupExec : run;
   try {
-    run(codexBin, ['exec', '-s', 'read-only', '--ephemeral', '-m', codexModel, '-c', 'model_reasoning_effort="high"',
+    exec(codexBin, ['exec', '-s', 'read-only', '--ephemeral', '-m', codexModel, '-c', 'model_reasoning_effort="high"',
       '-C', dir, '--output-schema', schemaPath, '-o', outPath, '--color', 'never', '-'],
     { input: prompt, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
   } catch (error) {

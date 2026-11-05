@@ -4,10 +4,11 @@
 // It never posts anything: the tick records the reason and the PR goes to claude-fix.
 // Usage: node scripts/collab-preflight.mjs --pr N   (body + lint in this checkout, at the PR head)
 //        node scripts/collab-preflight.mjs --lint   (lint only, changed files vs origin/collab/integration; pre-push)
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { bodyHash, runGroup } from './collab-heal.mjs';
 import { clean, integration, makeGh, readJson, stateDir, writeJson } from './collab-trust.mjs';
 
 export const gates = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'];
@@ -41,8 +42,12 @@ export function changedPython(files = []) {
   return [...new Set(files.map(f => f.path ?? f).filter(p => /^apps\/api\/.+\.py$/.test(p)).map(p => p.slice('apps/api/'.length)))];
 }
 
+// The default runs each lint step as a process group, so a hung uv/mypy child dies with the step
+// at the timeout (05.11.2026); tests inject a plain spawn.
+export const groupSpawn = (cmd, args, { timeout, ...opts } = {}) => runGroup(cmd, args, { ...opts, stdio: 'pipe', timeoutMs: timeout });
+
 // A deleted file is in the PR's file list but not on disk; ruff and mypy would fail on it.
-export function lintProblems(pyFiles, { cwd = process.cwd(), spawn = spawnSync, exists = existsSync, left = () => 600000 } = {}) {
+export function lintProblems(pyFiles, { cwd = process.cwd(), spawn = groupSpawn, exists = existsSync, left = () => 600000 } = {}) {
   const files = pyFiles.filter(f => exists(join(cwd, 'apps/api', f)));
   if (!files.length) return [];
   const problems = [];
@@ -55,25 +60,26 @@ export function lintProblems(pyFiles, { cwd = process.cwd(), spawn = spawnSync, 
   return problems;
 }
 
-export function runPreflight(pr, { cwd = null, spawn = spawnSync, exists, left } = {}) {
+export function runPreflight(pr, { cwd = null, spawn = groupSpawn, exists, left } = {}) {
   const problems = bodyProblems(pr.body);
   // Body problems are enough to stop: no need to start uv as well.
   if (!problems.length && cwd) problems.push(...lintProblems(changedPython(pr.files ?? []), { cwd, spawn, exists, left }));
-  return problems.length ? { status: 'FAIL', reasons: problems } : { status: 'PASS', reasons: [] };
+  return problems.length ? { status: 'FAIL', reasons: problems, bodyHash: bodyHash(pr.body) } : { status: 'PASS', reasons: [] };
 }
 
-// The tick's record of preflight failures, per PR and head; a new head clears it.
+// The tick's record of preflight failures, per PR, head and PR body (05.11.2026): a new head or an
+// edited body clears it. A lint-only record (no body hash) stays keyed by the head.
 const recordPath = () => join(stateDir, 'preflight.json');
 export const readPreflight = () => readJson(recordPath(), {});
 export function recordPreflight(number, head, result) {
   const all = readPreflight();
-  if (result.status === 'FAIL') all[number] = { head, reasons: result.reasons, at: new Date().toISOString() };
+  if (result.status === 'FAIL') all[number] = { head, ...(result.bodyHash ? { bodyHash: result.bodyHash } : {}), reasons: result.reasons, at: new Date().toISOString() };
   else delete all[number];
   writeJson(recordPath(), all);
 }
 export const preflightFailure = (records, pr) => {
   const r = records?.[pr.number];
-  return r && r.head === pr.headRefOid ? r.reasons : null;
+  return r && r.head === pr.headRefOid && (!r.bodyHash || r.bodyHash === bodyHash(pr.body)) ? r.reasons : null;
 };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
