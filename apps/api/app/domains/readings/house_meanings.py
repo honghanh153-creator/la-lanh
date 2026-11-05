@@ -19,7 +19,9 @@ Where the report was unsure, the meaning is marked MODERN. Nothing here quotes H
 Sasportas, and none of these texts names a house, a sign, a planet or an aspect: they are the
 plain words a reading may use.
 
-Not wired into ``knowledge.HOUSES`` or ``daily_personalization.HOUSE_ARENAS`` yet (HM-2/HM-3).
+``many_doors`` and ``house_phrase`` feed the running readings (HM-2/HM-3):
+``knowledge.HOUSES`` and ``daily_personalization.HOUSE_ARENAS`` are
+built from them, so every house keeps its own set of meanings and none is folded into another.
 """
 
 from __future__ import annotations
@@ -206,3 +208,47 @@ def meaning_by_key(key: str) -> SourcedMeaning:
             if meaning.key == key:
                 return meaning
     raise KeyError(key)
+
+
+# A many-door phrase names this many plain meanings (N-3: at least three ways a topic shows up).
+PLAIN_DOORS = 3
+
+# Owner override, decided in chat 04.11.2026 (PR #215): house 6 reads "công việc hằng ngày, thói
+# quen chăm sóc cơ thể hay vật nuôi nhỏ", so its many-door phrase opens with the MODERN-only
+# "công việc hằng ngày" and keeps the classical "vật nuôi nhỏ" last. This is the only exception to
+# "a MODERN-only meaning never leads"; it applies to the phrase only (``display_order`` is
+# unchanged) and to no other house. A test pins both.
+OWNER_DOOR_ORDER: dict[int, tuple[str, ...]] = {
+    6: ("daily_work", "body_care_habits", "small_animals"),
+}
+
+
+def many_doors(house: int) -> tuple[SourcedMeaning, ...]:
+    """The meanings a running reading names for ``house``, in the order a reader sees them.
+
+    The display-safe lead, then the next plain (not ⚠) daily meanings in curated order, three in
+    all. When the sources open the house with a ⚠ meaning that may reach a daily reading (house 5,
+    children: Lilly p.53, BPHS 11.6), that meaning is kept as the last door, in its broad form:
+    never first and never alone. Every other ⚠ meaning stays out of the phrase.
+    """
+
+    if house in OWNER_DOOR_ORDER:
+        return tuple(meaning_by_key(key) for key in OWNER_DOOR_ORDER[house])
+    plain = [m for m in display_order(house, daily=True) if not m.sensitive][:PLAIN_DOORS]
+    first = HOUSE_MEANINGS[house][0]
+    if first.sensitive and first.daily_allowed:
+        plain.append(first)
+    return tuple(plain)
+
+
+def door_words(meaning: SourcedMeaning) -> str:
+    """The short form of a meaning inside a list: the words before its first comma."""
+
+    return meaning.text.split(",", 1)[0].strip()
+
+
+def house_phrase(house: int) -> str:
+    """``many_doors`` as one noun phrase: "a, b hay c", in display order."""
+
+    words = [door_words(m) for m in many_doors(house)]
+    return f"{', '.join(words[:-1])} hay {words[-1]}"

@@ -951,3 +951,27 @@ async def test_transit_engine_failure_keeps_deterministic_natal_content() -> Non
         AuraUnlockLayer.MULTI_FACTOR,
         AuraUnlockLayer.HOUSE_ARENA,
     )
+
+
+@pytest.mark.asyncio
+async def test_exact_reading_detail_names_the_sourced_house_meanings() -> None:
+    # HM-2 (#190, PR #215): the non-Daily route renders the default lens, so the house's own
+    # sourced meanings must reach that lens too, not only the Daily growth/regulation copy.
+    from app.domains.readings.house_meanings import house_phrase
+
+    repository = MemoryReadingRepository()
+    engine = NatalChartEngine()
+    service = ReadingApplicationService(repository, engine)
+    guest_id = UUID("20000000-0000-4000-8000-000000000215")
+    profile_id = UUID("30000000-0000-4000-8000-000000000215")
+    snapshot = _exact_snapshot(guest_id, profile_id, engine)
+
+    projection = await service.project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.READING_DETAIL,
+        requested_at=NOW.replace(day=8),
+    )
+
+    text = str(projection.active.sections)
+    assert any(f"chuyện {house_phrase(house)}" in text for house in range(1, 13))

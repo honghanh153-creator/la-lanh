@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readInbox, renderInbox } from './collaboration-inbox.mjs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { agentsMaxBytes, docSizeProblems, repoDocs } from './agent-doc-size.mjs';
 
 test('inbox shows task decisions and PR handoffs', () => {
   const output = renderInbox([{ number: 2, title: 'Task', url: 'https://github.com/example/2', body: 'Worker: Claude. Files: Tarot. Handoff: abc.', comments: [{ body: 'Latest commit: def' }] }],
@@ -33,4 +36,23 @@ test('remote text is bounded and terminal control characters are stripped', () =
   assert.ok(!output.includes('\u001b'));
   assert.ok(output.length < 5000);
   assert.match(output, /\[\.\.\.truncated: read the full Issue\/PR\]/);
+});
+
+// Retro S5: the instruction files every agent reads at start must fit what each tool loads.
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+test('the repository instruction files fit what Claude Code and Codex actually load', () => {
+  assert.deepEqual(docSizeProblems(repoDocs(root)), []);
+});
+
+test('a CLAUDE.md over 200 lines is reported', () => {
+  assert.deepEqual(docSizeProblems({ 'CLAUDE.md': 'x\n'.repeat(200) }), []);
+  assert.match(docSizeProblems({ 'CLAUDE.md': 'x\n'.repeat(201) })[0], /CLAUDE\.md: 201 dòng/);
+});
+
+test('AGENTS.md is measured along the root-to-folder chain Codex joins', () => {
+  const half = 'a'.repeat(agentsMaxBytes / 2);
+  const files = { 'AGENTS.md': half, 'web/AGENTS.md': half, 'web/app/AGENTS.md': 'b', 'api/AGENTS.md': half };
+  assert.deepEqual(docSizeProblems(files), ['web/app/AGENTS.md: chuỗi AGENTS.md 32769 byte (tối đa 32768)']);
+  assert.match(docSizeProblems({ 'AGENTS.md': 'é'.repeat(agentsMaxBytes / 2 + 1) })[0], /32770 byte/);
 });
