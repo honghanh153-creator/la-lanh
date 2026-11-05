@@ -548,8 +548,10 @@ _CONJUNCTION = re.compile(r"\b(?:và|nhưng|còn)\b", re.IGNORECASE)
 _DOOR_WORDS = re.compile(
     r"\b(?:nếu|giả sử|trường hợp|khi|lúc|với ai|ai đang|người đang)\b", re.IGNORECASE
 )
-_CLAUSE_LEAD = re.compile(r"[\s,;:]*(?:(?:và|nhưng|còn|thì)\s+)*", re.IGNORECASE)
-_AND_LEAD = re.compile(r"\s*và\b", re.IGNORECASE)
+# S9 only: "hoặc" and "mà" also join coordinated condition predicates ("Nếu bạn rảnh hoặc …").
+_S9_CONJUNCTION = re.compile(r"\b(?:hoặc|mà)\b", re.IGNORECASE)
+_CLAUSE_LEAD = re.compile(r"[\s,;:]*(?:(?:và|nhưng|còn|thì|hoặc|mà)\s+)*", re.IGNORECASE)
+_AND_LEAD = re.compile(r"\s*(?:và|hoặc|mà)\b", re.IGNORECASE)
 # "còn" is also the adverb "still": "bạn còn độc thân", "vẫn còn", "còn đang". It joins clauses
 # only when it does not sit right after a subject pronoun or "vẫn", and is not followed by
 # another aspect adverb ("còn đang", "còn chưa").
@@ -573,6 +575,7 @@ class Clause:
     end: int
     condition: bool
     door_end: int  # where a condition's own words start (after the door word), else ``start``
+    continued: bool = False  # a condition carried on by "và/hoặc/mà" with no door word
 
 
 def split_clauses(
@@ -589,6 +592,8 @@ def split_clauses(
 
     cuts = {m.start() for m in _HARD_BREAK.finditer(sentence)}
     cuts |= {m.start() for m in _THEN.finditer(sentence)}
+    if predicate is None:
+        cuts |= {m.start() for m in _S9_CONJUNCTION.finditer(sentence)}
     for match in _CONJUNCTION.finditer(sentence):
         if _adverbial_con(sentence, match):
             continue
@@ -636,7 +641,7 @@ def split_clauses(
             clauses.append(Clause(start, end, True, door.end()))
         elif clauses and clauses[-1].condition and _AND_LEAD.match(sentence, start):
             # "Nếu chiều nay rảnh và bạn có con nhỏ, …": "và" carries the condition on.
-            clauses.append(Clause(start, end, True, lead_end))
+            clauses.append(Clause(start, end, True, lead_end, continued=True))
         else:
             clauses.append(Clause(start, end, False, start))
     return clauses
@@ -825,13 +830,64 @@ _READER_GAP = re.compile(rf"\s*bạn\s+{_GAP_TAIL}", re.IGNORECASE)
 _ADDRESSED_GAP = re.compile(rf"\s*(?:bạn\s+)?{_GAP_TAIL}", re.IGNORECASE)
 
 
-def _established(sentence: str, clause: Clause) -> set[tuple[str, bool]]:
-    """The (axis, polarity) a condition clause establishes for the reader."""
+# A continued condition with no subject of its own starts with a predicate word: an aspect
+# adverb, a negation, a verb of being/having/raising, or a state word. Anything else ("đồng
+# nghiệp", "một phụ huynh", "con nhỏ") names a new subject, which is not the reader.
+_PREDICATE_START = re.compile(
+    r"\s*(?:"
+    + _alternation(
+        (
+            *_READER_ADVERBS,
+            *_READER_NEGATIONS,
+            "là",
+            "có",
+            "phải",
+            "nuôi",
+            "chăm",
+            "làm",
+            "nhà có",
+            "đang làm",
+            "độc thân",
+            "ế",
+            "lẻ bóng",
+            "một mình",
+            "kết hôn",
+            "lập gia đình",
+            "hẹn hò",
+        )
+    )
+    + r")\b",
+    re.IGNORECASE,
+)
+_READER_SUBJECT = re.compile(r"\s*bạn\b", re.IGNORECASE)
+
+
+def _condition_subject(sentence: str, clause: Clause, previous: bool | None) -> bool | None:
+    """Whether a condition clause speaks about the reader. A clause carried on by "và/hoặc/mà"
+    with no subject of its own inherits the previous condition's subject; ``None`` = not a
+    condition."""
+
+    if not clause.condition:
+        return None
+    if _READER_SUBJECT.match(sentence, clause.door_end):
+        return True
+    if _ADDRESSING_DOOR.search(sentence, 0, clause.door_end) is not None:
+        return True
+    if clause.continued and _PREDICATE_START.match(sentence, clause.door_end):
+        return bool(previous)
+    return False
+
+
+def _established(
+    sentence: str, clause: Clause, *, inherited: bool = False
+) -> set[tuple[str, bool]]:
+    """The (axis, polarity) a condition clause establishes for the reader. ``inherited``: the
+    clause has no subject and carries on a condition about the reader."""
 
     found: set[tuple[str, bool]] = set()
     if not clause.condition:
         return found
-    addressed = _ADDRESSING_DOOR.search(sentence, 0, clause.door_end) is not None
+    addressed = inherited or _ADDRESSING_DOOR.search(sentence, 0, clause.door_end) is not None
     gap = _ADDRESSED_GAP if addressed else _READER_GAP
     for axis, plain, topic in _CONDITION_TOPICS:
         for match in topic.finditer(sentence, clause.door_end, clause.end):
@@ -852,9 +908,15 @@ def assumes_circumstances(sentence: str) -> bool:
     """S9. True when the sentence takes a circumstance of the reader for granted: a phrase that
     no condition clause opened before it establishes on the same axis with the same polarity."""
 
-    established = [
-        (clause.start, _established(sentence, clause)) for clause in split_clauses(sentence)
-    ]
+    established: list[tuple[int, set[tuple[str, bool]]]] = []
+    subject: bool | None = None
+    for clause in split_clauses(sentence):
+        reader = _condition_subject(sentence, clause, subject)
+        inherited = bool(
+            reader and clause.continued and not _READER_SUBJECT.match(sentence, clause.door_end)
+        )
+        established.append((clause.start, _established(sentence, clause, inherited=inherited)))
+        subject = reader if clause.condition else None
     for axis, polarity, pattern in _ASSUMPTIONS:
         for match in pattern.finditer(sentence):
             if not any(
