@@ -14,10 +14,9 @@ what changes *within the user's day*:
   and one slow pick a day, and one sky event touching two aspected natal points is one factor;
 * each contact carries its timing: ``time_kind``, the in-orb window and the tight 1° peak window
   inside the day, and a closest moment only when the closest approach really falls inside it;
-* trend contacts carry their whole in-orb window across retrograde passes (C2c), with the orb at
-  each closest date and a weight; generational outer-to-outer contacts are dropped. Their
-  ``episode`` (``transit_episodes``) is the C2c contract: one aspect point, every pass with its
-  motion, and a key that is the same on every day of the episode.
+* trend contacts carry a weight and their ``episode`` (``transit_episodes``); generational
+  outer-to-outer contacts are dropped. The episode is the C2c contract: one aspect point, every
+  pass with its motion, and a key that is the same on every day of the episode.
 
 It returns geometry and labels only (no copy, no persistence, no logging) and is deterministic
 for a chart and date. Nothing in the request path calls it yet; the Daily service and planner
@@ -138,21 +137,9 @@ NATAL_MOON_WINDOW_EXTRA_ORB = 1.0
 # Day-by-day trend scan bound in each direction. A window that reaches the bound is flagged
 # open on that side.
 TREND_SCAN_DAYS = 900
-# Two in-orb stretches separated by less than this are one window (retrograde passes, AS-2).
-# Fast bodies use a shorter bridge so a contact never bridges to the same aspect from the
-# other side (e.g. Mars' second square ~225 days later).
-TREND_BRIDGE_DAYS = 400
-BRIDGE_DAYS_BY_BODY = {
-    BodyName.SUN: 0,
-    BodyName.MERCURY: 60,
-    BodyName.VENUS: 110,
-    BodyName.MARS: 200,
-}
-# Two closest approaches inside one trend window count separately only when the orb rises by at
-# least this much between them; it keeps the true node's short wobble from listing every dip.
+# Two closest approaches of one episode count separately only when the orb rises by at least
+# this much between them; it keeps the true node's short wobble from listing every dip.
 TREND_MIN_PROMINENCE = 0.2
-# In orb the trend scan steps by the days the body needs to move this far (at most).
-TREND_IN_ORB_STEP_DEG = 0.5
 # Largest geocentric |speed| in °/day (measured over 25 years with the bundled ephemeris, true
 # node 0.257°/day), used to skip out-of-orb stretches safely; ``SPEED_MARGIN`` on top.
 MAX_SPEED_DEG_PER_DAY = {
@@ -388,38 +375,8 @@ class DayContact:
 
 
 @dataclass(frozen=True, slots=True)
-class TrendPass:
-    """One closest approach in a trend window, with its orb (AS-16)."""
-
-    date: date
-    orb: float
-    kind: PassKind
-
-
-@dataclass(frozen=True, slots=True)
-class TrendWindow:
-    """Local dates a slow contact stays in orb (sampled at local noon) around today.
-
-    In-orb stretches separated by less than the body's bridge (``TREND_BRIDGE_DAYS`` for slow
-    bodies) form one window, so every retrograde pass is in ``passes`` (AS-2). ``*_open`` means
-    the scan hit ``TREND_SCAN_DAYS`` on that side, so the true start or end lies further away.
-    """
-
-    start_date: date
-    end_date: date
-    passes: tuple[TrendPass, ...]
-    start_open: bool
-    end_open: bool
-
-    @property
-    def closest_dates(self) -> tuple[date, ...]:
-        return tuple(item.date for item in self.passes)
-
-
-@dataclass(frozen=True, slots=True)
 class TrendContact:
     contact: DayContact
-    window: TrendWindow | None
     weight: float
     episode: TransitEpisode | None = None
 
@@ -1166,149 +1123,6 @@ def _contact_domain(
     return domains[contact.natal_body]
 
 
-def trend_window(
-    engine: NatalChartEngine,
-    chart: NatalChart,
-    contact: DayContact,
-    local_date: date,
-    *,
-    max_scan_days: int = TREND_SCAN_DAYS,
-    domains: NatalDomains | None = None,
-    birth_timezone: str | None = None,
-) -> TrendWindow:
-    """In-orb local dates around ``local_date`` for one contact, across retrograde passes.
-
-    Sampled at local noon. In orb the scan steps by the days the body needs, at its largest
-    speed, to move ``TREND_IN_ORB_STEP_DEG`` (one day for Jupiter, eight for Pluto),
-    then fills every day before an exit so the edges are exact to the day; out of orb it jumps
-    ahead by the days the body needs to get back into orb, so bridging a gap costs a few calls.
-    Each closest approach is re-sampled daily around it. Callers may cache windows per chart and
-    date; they only change daily. Today belongs to the window by construction, even when the
-    contact is in orb for only part of it (its noon sample may be just outside).
-    """
-
-    domain = _contact_domain(engine, chart, contact, domains, birth_timezone)
-    limit = contact.orb_limit
-    bridge = BRIDGE_DAYS_BY_BODY.get(contact.transit_body, TREND_BRIDGE_DAYS)
-    speed = MAX_SPEED_DEG_PER_DAY.get(contact.transit_body, 1.0) * SPEED_MARGIN
-    stride = max(1, int(TREND_IN_ORB_STEP_DEG / speed))
-    orbs: dict[int, float] = {}
-
-    def orb_at(offset: int) -> float:
-        if offset not in orbs:
-            at = datetime.combine(
-                local_date + timedelta(days=offset), time(hour=12), tzinfo=DAILY_TIMEZONE
-            )
-            position = engine.transiting_position(contact.transit_body, at, chart.config)
-            orbs[offset] = worst_orb(position.longitude, domain, contact.exact_angle)
-        return orbs[offset]
-
-    orb_at(0)
-    edges: list[tuple[int, bool]] = []
-    for direction in (-1, 1):
-        last_in, offset, previous_in = 0, stride, True
-        closed = False
-        while offset <= max_scan_days:
-            orb = orb_at(direction * offset)
-            if orb <= limit:
-                last_in, previous_in = offset, True
-                offset += stride
-                continue
-            if previous_in:
-                # Fill the days skipped since the last in-orb sample so the exit is exact.
-                for day in range(last_in + 1, offset):
-                    if orb_at(direction * day) <= limit:
-                        last_in = day
-            previous_in = False
-            if offset - last_in > bridge:
-                closed = True
-                break
-            offset += max(1, int((orb - limit) / speed))
-        if not closed:
-            if previous_in:
-                for day in range(last_in + 1, max_scan_days + 1):
-                    if orb_at(direction * day) <= limit:
-                        last_in = day
-            closed = max_scan_days - last_in >= bridge and last_in < max_scan_days
-        edges.append((direction * last_in, not closed))
-    (start, start_open), (end, end_open) = edges
-    window = {offset: orb for offset, orb in orbs.items() if start <= offset <= end}
-    passes = _passes(
-        window,
-        limit,
-        stride,
-        orb_at,
-        start=start,
-        end=end,
-        start_open=start_open,
-        end_open=end_open,
-    )
-    return TrendWindow(
-        start_date=local_date + timedelta(days=start),
-        end_date=local_date + timedelta(days=end),
-        passes=tuple(
-            TrendPass(date=local_date + timedelta(days=day), orb=orb, kind=kind)
-            for day, orb, kind in passes
-        ),
-        start_open=start_open,
-        end_open=end_open,
-    )
-
-
-def _passes(
-    orbs: dict[int, float],
-    limit: float,
-    stride: int,
-    orb_at: Callable[[int], float],
-    *,
-    start: int,
-    end: int,
-    start_open: bool,
-    end_open: bool,
-) -> list[tuple[int, float, PassKind]]:
-    """Separate closest approaches as ``(day offset, orb, kind)``, in date order."""
-
-    offsets = sorted(orbs)
-    values = [orbs[offset] for offset in offsets]
-    # Outside a closed edge the orb is beyond the limit; outside an open edge it is unknown,
-    # so a minimum is never claimed on an open edge.
-    outside_low = float("-inf") if start_open else float("inf")
-    outside_high = float("-inf") if end_open else float("inf")
-    padded = [outside_low, *values, outside_high]
-    minima = [
-        index
-        for index in range(len(values))
-        if values[index] <= limit
-        and padded[index] >= values[index] < padded[index + 2]
-        and not (index == 0 and start_open)
-        and not (index == len(values) - 1 and end_open)
-    ]
-    merged = True
-    while merged and len(minima) > 1:
-        merged = False
-        for position in range(len(minima) - 1):
-            first, second = minima[position], minima[position + 1]
-            peak = max(values[first : second + 1])
-            if peak - max(values[first], values[second]) < TREND_MIN_PROMINENCE:
-                drop = second if values[second] >= values[first] else first
-                minima.remove(drop)
-                merged = True
-                break
-    if not minima:
-        # A monotonic window that runs into the scan bound: report its tightest scanned day.
-        minima = [min(range(len(values)), key=lambda index: (values[index], index))]
-    passes = []
-    for index in minima:
-        # Re-sample daily around a strided minimum, then fit the V between days.
-        around = range(max(start, offsets[index] - stride), min(end, offsets[index] + stride) + 1)
-        best = min(around, key=lambda day: (orb_at(day), day))
-        neighbours = {day: orb_at(day) for day in (best - 1, best, best + 1)}
-        shift, orb = _refine_minimum(neighbours, best)
-        kind = PassKind.EXACT if orb <= EXACT_ORB else PassKind.CLOSEST
-        passes.append((best + round(shift), round(orb, 4), kind))
-    return passes
-
-
 def select_daily_sky(
     engine: NatalChartEngine,
     chart: NatalChart,
@@ -1360,11 +1174,6 @@ def select_daily_sky(
     trend = tuple(
         TrendContact(
             contact=contact,
-            window=trend_window(
-                engine, chart, contact, local_date, max_scan_days=max_scan_days, domains=domains
-            )
-            if include_trend_windows
-            else None,
             weight=trend_weight(contact),
             episode=trend_episode(
                 engine, chart, contact, local_date, max_scan_days=max_scan_days, domains=domains
