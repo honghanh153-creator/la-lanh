@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { alertMissed, missedRuns, owner } from './collab-missed-run.mjs';
+import { alertMissed, defaultChannels, missedRuns } from './collab-missed-run.mjs';
 
 const vn = s => Date.parse(`${s}+07:00`);
 const fakeIssues = () => {
@@ -28,14 +28,14 @@ test('slots before the watchdog first saw a task are not misses', () => {
   assert.deepEqual(missedRuns(beats, vn('2026-11-05T11:00:00')), []);
 });
 
-test('one miss gives one alert; second miss same day comments on the same issue and tags owner', () => {
+test('one miss gives one alert; second miss same day comments on the same issue', () => {
   const issues = fakeIssues(); const store = mem(); const notes = [];
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
   const run = t => alertMissed({ beats, nowMs: vn(t), issues, notify: x => notes.push(x), ...store });
   run('2026-11-05T11:20:00'); run('2026-11-05T11:30:00');
   assert.equal(issues.log.length, 1); assert.equal(notes.length, 1);
   assert.equal(issues.log[0].op, 'create');
-  assert.match(issues.log[0].body, new RegExp(owner));
+  assert.doesNotMatch(issues.log[0].body, /@honghanh/);
   assert.match(issues.log[0].body, /Mở Claude để chạy bù/);
   run('2026-11-05T12:20:00');
   assert.deepEqual(issues.log.map(l => l.op), ['create', 'comment']);
@@ -56,4 +56,35 @@ test('a failed issue call retries next tick without a second notification', () =
 test('a done beat after the slot clears the miss', () => {
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T10:45:00')).toISOString() } };
   assert.deepEqual(missedRuns(beats, vn('2026-11-05T11:20:00')), []);
+});
+
+test('undelivered issue retries after the task ran again (fails 11:20, done 11:25, GitHub back 11:30)', () => {
+  const store = mem(); const notes = []; let fail = true; const log = [];
+  const issues = { find: () => null, create: () => { if (fail) throw new Error('offline'); log.push('create'); return 9; }, comment: () => {} };
+  const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), issues, notify: x => notes.push(x), ...store });
+  beats['la-lanh-autopilot'] = { doneAt: new Date(vn('2026-11-05T11:25:00')).toISOString() };
+  fail = false;
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), issues, notify: x => notes.push(x), ...store });
+  assert.deepEqual(log, ['create']); assert.equal(notes.length, 1);
+});
+
+test('stored misses expire after 48h undelivered', () => {
+  const store = mem();
+  const issues = { find: () => null, create: () => { throw new Error('offline'); }, comment: () => {} };
+  const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), issues, notify: () => {}, ...store });
+  const later = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-07T12:45:00')).toISOString() }, 'la-lanh-ops-watch': { doneAt: new Date(vn('2026-11-07T10:30:00')).toISOString() }, 'la-lanh-retro': { doneAt: new Date(vn('2026-11-06T23:40:00')).toISOString() } };
+  alertMissed({ beats: later, nowMs: vn('2026-11-07T13:00:00'), issues, notify: () => {}, ...store });
+  assert.deepEqual(Object.keys(store.load().slots), []);
+});
+
+test('phone channel is a disabled stub; a plugged channel receives the miss once', () => {
+  assert.equal(defaultChannels({}).phone, null);
+  const got = []; const store = mem();
+  const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
+  const channels = { phone: m => got.push(m.task), off: null };
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), channels, ...store });
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), channels, ...store });
+  assert.deepEqual(got, ['la-lanh-autopilot']);
 });

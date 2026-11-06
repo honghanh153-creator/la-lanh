@@ -1,14 +1,13 @@
 // Missed-run alert for the Claude desktop scheduled tasks (owner 06.11.2026). On 03.11–05.11 the
 // autopilot, server check and 23:35 retro skipped runs and nobody noticed: the watchdog wrote local
 // beats only. Here a scheduled slot with no done beat by slot + jitter + 30 minutes is a miss. One
-// miss raises one alert: a local notification and one ops-alert issue per task per day that
-// mentions the owner, so GitHub mobile pushes it to the phone. launchd cannot start a Claude
+// miss raises one alert per channel: a local notification and one ops-alert issue per task per
+// day. A phone channel is a disabled stub until the owner chooses one. launchd cannot start a Claude
 // scheduled task, so the alert asks the owner to open Claude and run it again.
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { clean, readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 
-export const owner = '@honghanh153-creator';
 export const graceMinutes = 30;
 const repo = 'honghanh153-creator/la-lanh';
 const hourMs = 3600000;
@@ -74,34 +73,48 @@ export function ghIssues(run) {
 const osNotify = text => execFileSync('/usr/bin/osascript', ['-e', `display notification ${JSON.stringify(clean(text, 200))} with title "Lá Lành: tác vụ hẹn giờ lỡ lượt"`], { stdio: 'ignore', timeout: 10000 });
 const statePath = () => join(stateDir, 'beats', 'missed-alerts.json');
 
-// One alert per missed slot and channel; a failed channel retries on the next tick. The first miss
-// of a day opens the task's issue, later misses that day comment on it.
-export function alertMissed({ beats, nowMs = Date.now(), issues, notify = osNotify, load = () => readJson(statePath(), {}), save = s => writeJson(statePath(), s) }) {
+// Delivery channels are pluggable: each is `send(miss, state)` or null (disabled). `phone` is a
+// disabled stub until the owner picks a channel; no new service is added here.
+export const disabledPhone = null;
+export function defaultChannels(issues, notify = osNotify) {
+  return {
+    notify: m => notify(m.text),
+    issue: (m, state) => {
+      const dayKey = `${m.task}@${m.day}`;
+      const body = `${m.text}\n\nLaunchd không tự chạy lại được tác vụ hẹn giờ của Claude: mở Claude → Scheduled → tác vụ này → Run now.\n\n<!-- la-lanh-agent ops-alert -->`;
+      const number = state.issues[dayKey] ?? issues.find(issueTitle(m));
+      if (number) issues.comment(number, body); else state.issues[dayKey] = issues.create(issueTitle(m), body);
+      if (number) state.issues[dayKey] = number;
+    },
+    phone: disabledPhone,
+  };
+}
+
+export const expireMs = 48 * hourMs;
+
+// Each missed slot is stored with its payload. Every tick retries each enabled channel that has
+// not delivered, for every stored slot, even after the task has run again, until delivered or 48h
+// old. One miss gives one alert per channel; the first miss of a day opens the task's issue, later
+// misses that day comment on it.
+export function alertMissed({ beats, nowMs = Date.now(), channels, issues, notify = osNotify, load = () => readJson(statePath(), {}), save = s => writeJson(statePath(), s) }) {
+  const send = channels ?? defaultChannels(issues, notify);
+  const enabled = Object.keys(send).filter(name => typeof send[name] === 'function');
   const state = load();
   state.slots ??= {}; state.issues ??= {};
-  const alerted = [];
   for (const m of missedRuns(beats, nowMs)) {
     const key = `${m.task}@${m.slot}`;
-    const mark = state.slots[key] ?? { notify: false, issue: false };
-    if (mark.notify && mark.issue) continue;
-    const text = describeMiss(m);
-    if (!mark.notify) { try { notify(text); mark.notify = true; } catch {} }
-    if (!mark.issue) {
-      try {
-        const dayKey = `${m.task}@${m.day}`;
-        const body = `${owner} ${text}\n\nLaunchd không tự chạy lại được tác vụ hẹn giờ của Claude: mở Claude → Scheduled → tác vụ này → Run now.\n\n<!-- la-lanh-agent ops-alert -->`;
-        const number = state.issues[dayKey] ?? issues.find(issueTitle(m));
-        if (number) issues.comment(number, body); else state.issues[dayKey] = issues.create(issueTitle(m), body);
-        if (number) state.issues[dayKey] = number;
-        mark.issue = true;
-      } catch {}
-    }
-    state.slots[key] = mark;
-    alerted.push(m.task);
+    state.slots[key] ??= { miss: { ...m, text: describeMiss(m) }, delivered: {} };
   }
-  // Keep two days of markers.
-  for (const k of Object.keys(state.slots)) if (nowMs - ms(k.split('@')[1]) > 48 * hourMs) delete state.slots[k];
-  for (const k of Object.keys(state.issues)) if (k.split('@')[1] < vnDate(nowMs - 48 * hourMs)) delete state.issues[k];
+  const delivered = [];
+  for (const [key, entry] of Object.entries(state.slots)) {
+    if (nowMs - ms(entry.miss?.slot) > expireMs) { delete state.slots[key]; continue; }
+    entry.delivered ??= {};
+    for (const name of enabled) {
+      if (entry.delivered[name]) continue;
+      try { send[name](entry.miss, state); entry.delivered[name] = new Date(nowMs).toISOString(); delivered.push(`${key}:${name}`); } catch {}
+    }
+  }
+  for (const k of Object.keys(state.issues)) if (k.split('@')[1] < vnDate(nowMs - expireMs)) delete state.issues[k];
   save(state);
-  return alerted;
+  return delivered;
 }
