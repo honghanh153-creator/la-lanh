@@ -33,12 +33,12 @@ test('flow metric adds the minutes since the last sample while no PR was actiona
   assert.match(renderFlow(day), /15 phút/);
 });
 
-test('bufferStatus is the one call collab-turn makes for --status and --report', () => {
+test('bufferStatus is the one call collab-turn makes for the tick, --status and --report', () => {
   const dir = mkdtempSync(join(tmpdir(), 'flow-'));
   const out = bufferStatus([pr(1)], [{ turn: 'claude-fix' }], { dir, nowMs: Date.parse('2026-11-05T03:00:00Z') });
   assert.deepEqual(out.queue, { topUp: true, topUpCount: 3, buffer: 1 });
   assert.equal(out.day.lastActionable, 0);
   assert.match(out.lines[0], /1\/5, cần thêm 3/);
   const turn = readFileSync(new URL('./collab-turn.mjs', import.meta.url), 'utf8');
-  assert.equal((turn.match(/bufferStatus\(/g) ?? []).length, 2);
+  assert.equal((turn.match(/bufferStatus\(/g) ?? []).length, 3, 'tick (#253), --status, --report');
 });
