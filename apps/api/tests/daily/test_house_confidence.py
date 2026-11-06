@@ -479,3 +479,75 @@ def test_no_new_stored_data() -> None:
         source = path.read_text()
         for name in ("house_confidence", "HouseFrame", "HouseLabels", "select_daily_sky"):
             assert name not in source, (path, name)
+
+
+# Independent reference (C2b, issue #223): the cusps are recomputed here with closed-form
+# spherical astronomy, without Swiss Ephemeris. Recorded settings: tropical zodiac, Placidus,
+# mean sidereal time (IAU 1982) and mean obliquity (IAU 1980), no nutation. The nutation the
+# engine adds moves the angles by a few thousandths of a degree, inside REFERENCE_TOLERANCE_DEG.
+REFERENCE_TOLERANCE_DEG = 0.05
+
+
+def _reference_placidus(born: datetime, place: Birthplace) -> dict[int, float]:
+    jd = born.timestamp() / 86400.0 + 2440587.5
+    t = (jd - 2451545.0) / 36525.0
+    gmst = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * t * t
+    ramc = math.radians((gmst + place.longitude) % 360.0)
+    eps = math.radians(23.439291 - 0.0130042 * t)
+    phi = math.radians(place.latitude)
+
+    def ecliptic(ra: float) -> float:
+        return math.atan2(math.sin(ra), math.cos(ra) * math.cos(eps))
+
+    def semi_diurnal(lon: float) -> float:
+        decl = math.asin(math.sin(eps) * math.sin(lon))
+        return math.acos(-math.tan(phi) * math.tan(decl))
+
+    def cusp(fraction: float, above: bool) -> float:
+        lon = ecliptic(ramc + (fraction if above else 1.0 - fraction) * math.pi / 2.0)
+        for _ in range(60):
+            sda = semi_diurnal(lon)
+            if above:
+                ra = ramc + fraction * sda
+            else:
+                # Below the horizon the cusp is measured back from the IC along the
+                # nocturnal semi-arc: cusp 2 at two thirds, cusp 3 at one third.
+                ra = ramc + math.pi - fraction * (math.pi - sda)
+            lon = ecliptic(ra)
+        return math.degrees(lon) % 360.0
+
+    mc = math.degrees(ecliptic(ramc)) % 360.0
+    asc = (
+        math.degrees(
+            math.atan2(
+                math.cos(ramc),
+                -(math.sin(ramc) * math.cos(eps) + math.tan(phi) * math.sin(eps)),
+            )
+        )
+        % 360.0
+    )
+    cusps = {
+        10: mc,
+        11: cusp(1 / 3, above=True),
+        12: cusp(2 / 3, above=True),
+        1: asc,
+        2: cusp(2 / 3, above=False),
+        3: cusp(1 / 3, above=False),
+    }
+    return cusps | {(number + 5) % 12 + 1: (lon + 180.0) % 360.0 for number, lon in cusps.items()}
+
+
+def test_engine_cusps_match_an_independent_placidus_reference(
+    charts: tuple[NatalChart, ...],
+) -> None:
+    for born, chart in zip(SYNTHETIC_BIRTHS, charts, strict=True):
+        assert chart.house_system is HouseSystem.PLACIDUS
+        assert chart.houses is not None and chart.angles is not None
+        reference = _reference_placidus(born, PLACE)
+        for house in chart.houses:
+            assert angular_distance(house.longitude, reference[house.number]) < (
+                REFERENCE_TOLERANCE_DEG
+            ), (born, house.number)
+            assert house.sign == sign_for_longitude(reference[house.number])
+        assert angular_distance(chart.angles.ascendant, reference[1]) < REFERENCE_TOLERANCE_DEG
+        assert angular_distance(chart.angles.midheaven, reference[10]) < REFERENCE_TOLERANCE_DEG

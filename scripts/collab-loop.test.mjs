@@ -357,10 +357,14 @@ test('r2 (#131): scheduled reviews read the clock after preparing the clone', ()
   assert.equal(late.status, 'refused');
   const runner = fakeRun();
   review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-06', hour: 23, minute: 25 }) });
-  assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000);
+  // #243: Codex ends early enough to publish the verdict before 23:55.
+  assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000 - review.reviewFinalizeReserveMs);
   const tight = fakeRun();
   review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
-  assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000);
+  assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000 - review.reviewFinalizeReserveMs);
+  const none = fakeRun();
+  assert.equal(review.runReview(9, { auto: true, gh: fakeGh({ pr: pr({ number: 9, comments: [check(A)] }) }), run: none.run, now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 50 }) }).status, 'refused');
+  assert.ok(!none.calls.some(c => c[0] === review.codexBin), 'no Codex run without room to publish');
 });
 
 test('r3: the tick runs one author check itself, then reviews that PR', () => {
