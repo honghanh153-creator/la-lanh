@@ -32,17 +32,6 @@ test('steps and the failing step come from the check chain and pnpm headers', ()
   assert.equal(log.failedStep('no headers', steps), null);
 });
 
-test('the receipt tail is 40 lines with secrets and private terms hidden', () => {
-  const tail = log.lastLines(output, ['ZZ-PRIVATE']);
-  assert.equal(tail.length, 40);
-  const text = tail.join('\n');
-  assert.doesNotMatch(text, /ghp_|Bearer|ZZ-PRIVATE/);
-  assert.match(text, /\[ẩn\]/);
-  assert.match(text, /FAIL src\/a\.test\.ts/);
-  for (const secret of ['export DATABASE_URL=postgres://u:p@h/db', 'see postgresql://u:pw@host/x', 'key sk-abcdefghijklmnop1234']) assert.match(log.scrubLines(secret)[0], /dòng ẩn/);
-  assert.equal(log.scrubLines('plain ```fence')[0], "plain '''fence", 'a fence in the log cannot close the code block');
-});
-
 test('logs rotate: only the newest 30 check logs stay', () => {
   const dir = join(home, 'rot');
   mkdirSync(dir);
@@ -58,19 +47,28 @@ test('logs rotate: only the newest 30 check logs stay', () => {
   assert.ok(!left.includes(log.logName(1, A)) && left.includes(log.logName(33, A)) && left.includes('other.txt'));
 });
 
-test('FAIL: the full output is kept and the receipt names the step and quotes the tail', () => {
+test('r3 P1: the FAIL receipt names the step and the log file, and never any log line', () => {
   const gh = fakeGh();
   const spawn = (cmd, args, opts) => { writeSync(opts.stdio[1], output); return { status: 1 }; };
-  const result = runCheck(248, { gh, git, busy: () => null, spawn, terms: () => ['ZZ-PRIVATE'], waitGuard: () => null });
+  const result = runCheck(248, { gh, git, cwd: process.cwd(), busy: () => null, spawn, terms: () => ['ZZ-PRIVATE'], waitGuard: () => null });
   assert.equal(result.status, 'FAIL');
   const saved = join(home, 'logs', log.logName(248, A));
-  assert.equal(readFileSync(saved, 'utf8'), output, 'the log file has the full unscrubbed output (owner Mac only, 0600)');
+  assert.equal(readFileSync(saved, 'utf8'), output, 'the full log stays on the owner Mac');
   const body = gh.calls[0];
   assert.equal(trust.parseAuthorCheck(body).status, 'FAIL');
   assert.match(body, /Bước lỗi: `pnpm web:test`/);
-  assert.match(body, /FAIL src\/a\.test\.ts/);
-  assert.match(body, /logs\/check-248-aaaaaaaaaaaa\.log/);
-  assert.doesNotMatch(body, /ghp_|ZZ-PRIVATE|\/Users\//);
+  assert.match(body, /`logs\/check-248-aaaaaaaaaaaa\.log`/);
+  for (const line of output.split('\n').filter(l => l.trim() && !l.startsWith('> '))) assert.ok(!body.includes(line), `log line published: ${line}`);
+  assert.doesNotMatch(body, /\/Users\/|\/tmp\//);
+});
+
+test('r3 P1: synthetic credential formats in the log never reach the receipt', () => {
+  const secrets = ['API_KEY=synthetic-k1', 'DB_PASS=synthetic-p2', 'DB_PWD=synthetic-p3', 'SESSION=synthetic-s4', 'Authorization: Basic c3ludGhldGljNQ==', JSON.stringify(JSON.stringify({ api_key: 'synthetic-k6' }))];
+  const gh = fakeGh();
+  runCheck(263, { gh, git, cwd: process.cwd(), busy: () => null, terms: () => [], waitGuard: () => null, spawn: (c, a, opts) => { writeSync(opts.stdio[1], `> la-lanh@0.1.0 api:test /x\n${secrets.join('\n')}\n`); return { status: 1 }; } });
+  for (const value of ['synthetic-k1', 'synthetic-p2', 'synthetic-p3', 'synthetic-s4', 'c3ludGhldGljNQ', 'synthetic-k6']) assert.ok(!gh.calls[0].includes(value), value);
+  assert.match(gh.calls[0], /`pnpm api:test`/);
+  assert.equal(log.failedStep('> x@1 not-a-step /x', ['api:test']), null, 'only steps of the check chain are named');
 });
 
 test('PASS: no log is kept and the receipt is unchanged', () => {
@@ -117,25 +115,6 @@ test('real locks: the guard steps back from check.lock, and a held guard lock bl
   assert.equal(existsSync(log.guardLockPath()), false);
 });
 
-test('r1 P1: credential formats in the log tail never reach the receipt', () => {
-  for (const line of ['TOKEN=synthetic-credential', 'SECRET=synthetic-credential', 'password: synthetic', '{"Authorization":"Bearer synthetic-credential"}', '"api_key": "synthetic"', 'postgresql+asyncpg://synthetic:synthetic@localhost/db', 'redis://:synthetic@localhost:6379', 'curl -H "Cookie: sid=synthetic"', 'Authorization: Basic c3ludGhldGljOnN5bnRo']) {
-    assert.match(log.scrubLines(line)[0], /dòng ẩn/, line);
-  }
-  assert.equal(log.scrubLines('FAIL src/a.test.ts > renders')[0], 'FAIL src/a.test.ts > renders', 'ordinary test lines stay');
-});
-
-test('r1 P1: the receipt uses the terms read for the scan, and drops the tail without them', () => {
-  let reads = 0;
-  const terms = () => { reads += 1; if (reads > 1) throw new Error('unreadable now'); return ['ZZ-PRIVATE']; };
-  const gh = fakeGh();
-  runCheck(260, { gh, git, busy: () => null, spawn: (c, a, opts) => { writeSync(opts.stdio[1], 'owner term ZZ-PRIVATE here\n'); return { status: 1 }; }, terms, waitGuard: () => null });
-  assert.equal(reads, 1, 'the private list is read once per check');
-  assert.doesNotMatch(gh.calls[0], /ZZ-PRIVATE/);
-  assert.match(gh.calls[0], /\[ẩn\]/);
-  const none = log.failDetails({ output: 'ZZ-PRIVATE', terms: [], tail: false }).join('\n');
-  assert.doesNotMatch(none, /ZZ-PRIVATE/);
-});
-
 test('r1 P1: the guard wait is bounded by the budget and the budget is read again after it', () => {
   let left = 60000, limit = null, spawned = false;
   const result = runCheck(261, { gh: fakeGh(), git, busy: () => null, terms: () => [], budget: () => left, spawn: () => { spawned = true; return { status: 0 }; }, waitGuard: ({ limitMs }) => { limit = limitMs; left = 0; return null; } });
@@ -147,45 +126,32 @@ test('r1 P1: the guard wait is bounded by the budget and the budget is read agai
   assert.equal(limit, log.guardWaitMs);
 });
 
-test('r1 P2: a lock is never visible without its PID, and a live lock is never reclaimed', () => {
-  const path = join(home, 'race.lock');
-  const a = log.takeGuardLock({ path, checkHolder: () => null });
-  assert.equal(a.status, 'ok');
-  assert.equal(readFileSync(path, 'utf8'), String(process.pid), 'the lock appears with its PID already written');
-  assert.equal(log.takeGuardLock({ path, checkHolder: () => null }).status, 'held');
-  assert.deepEqual(readdirSync(home).filter(name => name.startsWith('race.lock.')), [], 'no temp file is left');
-  a.release();
+test('r3 P2: a dead holder\'s lock is never reclaimed, so two guards can never both hold it', () => {
+  const path = join(home, 'stale.lock');
+  writeFileSync(path, '999999999');
+  const b = log.takeGuardLock({ path, checkHolder: () => null });
+  const c = log.takeGuardLock({ path, checkHolder: () => null });
+  assert.equal(b.status, 'stale');
+  assert.equal(c.status, 'stale');
+  assert.equal(b.pid, 999999999);
+  assert.equal(readFileSync(path, 'utf8'), '999999999', 'the stale lock is left for the owner');
+  const live = join(home, 'live.lock');
+  const first = log.takeGuardLock({ path: live, checkHolder: () => null });
+  assert.equal(first.status, 'ok');
+  assert.equal(readFileSync(live, 'utf8'), String(process.pid));
+  assert.equal(log.takeGuardLock({ path: live, checkHolder: () => null }).status, 'held');
+  first.release();
+  let said = '';
+  assert.equal(runGuarded('true', [], { take: () => ({ status: 'stale', pid: 7, path: '/x/test-guard.lock' }), spawn: () => { throw new Error('must not run'); }, log: t => { said = t; } }), refusedCode);
+  assert.match(said, /khóa cũ của PID 7; xóa \/x\/test-guard\.lock nếu chắc chắn/);
 });
 
-test('r2 P1: escaped and nested credential keys are dropped (deny by default)', () => {
-  const variants = [
-    JSON.stringify(JSON.stringify({ api_key: 'synthetic' })),
-    JSON.stringify({ apiKey: 'synthetic' }),
-    '{\\"Authorization\\":\\"synthetic\\"}',
-    'pass\\word=synthetic'.replace('\\', ''),
-    "headers={'Cookie': 'synthetic'}",
-    'PRIVATE_KEY=synthetic', 'SENTRY_DSN=synthetic', 'client.credentials = synthetic',
-    'see https://synthetic:synthetic@example.test/x', 'TOKEN synthetic',
-  ];
-  for (const line of variants) assert.match(log.scrubLines(line)[0], /dòng ẩn/, line);
-  assert.equal(log.scrubLines('✓ renders the reading card')[0], '✓ renders the reading card');
-});
-
-test('r2 P2: two reclaimers and a new lock interleave without losing the live lock', () => {
-  const path = join(home, 'interleave.lock');
+test('r3 P2: the author check ignores a dead lock older than 30 minutes for its wait, without deleting it', () => {
+  const path = join(home, 'wait.lock');
   writeFileSync(path, '999999999');
-  const reclaimed = log.reclaimStale(path, {
-    pause: step => {
-      if (step !== 'judged') return;
-      // Another caller reclaims the same stale lock and a third takes a fresh live lock.
-      assert.equal(log.reclaimStale(path), true);
-      writeFileSync(path, String(process.pid));
-    },
-  });
-  assert.equal(reclaimed, false, 'the slow reclaimer finds a different file and steps back');
-  assert.equal(readFileSync(path, 'utf8'), String(process.pid), 'the live lock is still in place');
-  assert.deepEqual(readdirSync(home).filter(name => name.startsWith('interleave.lock.stale')), []);
-  writeFileSync(path, '999999999');
-  assert.equal(log.reclaimStale(path), true);
-  assert.equal(existsSync(path), false);
+  assert.equal(log.guardHolder(path), 999999999, 'a fresh dead lock still counts');
+  assert.equal(log.guardHolder(path, { now: () => Date.now() + 31 * 60000 }), null);
+  assert.ok(existsSync(path));
+  writeFileSync(path, String(process.pid));
+  assert.equal(log.guardHolder(path, { now: () => Date.now() + 99 * 60000 }), process.pid, 'a live holder always counts');
 });

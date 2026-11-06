@@ -15,6 +15,7 @@ export function runGuarded(cmd, args, { busy = machineBusy, take = takeGuardLock
   const until = now() + waitMs;
   for (;;) {
     const lock = take();
+    if (lock.status === 'stale') { log(`collab-test-guard: khóa cũ của PID ${lock.pid ?? '?'}; xóa ${lock.path} nếu chắc chắn không còn test nào chạy.`); return refusedCode; }
     if (lock.status === 'check') { log('collab-test-guard: author check đang chạy, không chạy test. Thử lại sau.'); return refusedCode; }
     if (lock.status === 'ok') {
       const other = busy();

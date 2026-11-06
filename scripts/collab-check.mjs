@@ -189,9 +189,7 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const timeoutMs = budget();
   if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
   const started = now();
-  // The terms read for the scan are the ones used to redact the receipt; no second read (#258 r1).
-  let loaded = null;
-  const guard = privateHits(pr, git, () => (loaded = terms()));
+  const guard = privateHits(pr, git, terms);
   if (guard.length) {
     gh.comment('pr', pr.number, renderCheck({ head, status: 'FAIL', exitCode: 'guard', seconds: 0, date: new Date(started).toISOString(), guard }));
     return { status: 'FAIL', guard };
@@ -221,8 +219,8 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
     let steps = [];
     try { steps = checkSteps(JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')).scripts?.check); } catch {}
     const output = out.read();
-    // Without the scan's term list the tail cannot be redacted, so it is not published.
-    details = failDetails({ output, steps, terms: loaded ?? [], tail: Array.isArray(loaded), logPath: out.keep() });
+    // No log line is published (#258 r3): the receipt names the step and the local log file only.
+    details = failDetails({ output, steps, logPath: out.keep() });
   } else out.drop();
   gh.comment('pr', pr.number, renderCheck({ head, status, exitCode, details, seconds: Math.round((now() - started) / 1000), date: new Date(started).toISOString() }));
   return { status, exitCode, dirty };

@@ -1,16 +1,17 @@
 // Failure logs and the agent test guard for the author check (05.11.2026: a FAIL on #248 kept no
 // log, and an agent's tests probably ran during the check).
 // - The full `pnpm check` output goes to logs/check-<pr>-<sha12>.log (last 30 kept); a FAIL
-//   receipt names the failing `pnpm <step>` and quotes the last 40 scrubbed lines.
+//   receipt names only the failing `pnpm <step>` and the log file name; no log line is published.
 // - scripts/collab-test-guard.mjs holds test-guard.lock while an agent's tests run; the author
-//   check waits up to 5 minutes for it, and the guard refuses while check.lock is held.
+//   check waits up to 5 minutes for it, and the guard refuses while check.lock is held. A lock left
+//   by a dead process is never removed automatically (#258 r3).
 import { closeSync, linkSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { stateDir } from './collab-trust.mjs';
 
 export const logDir = () => join(stateDir, 'logs');
 export const keepLogs = 30;
-export const tailLines = 40;
+export const staleGuardMs = 30 * 60000;
 export const checkLockPath = () => join(stateDir, 'check.lock');
 export const guardLockPath = () => join(stateDir, 'test-guard.lock');
 export const guardWaitMs = 5 * 60000;
@@ -30,40 +31,17 @@ export function failedStep(output = '', steps = []) {
   let last = null;
   for (const line of String(output).split('\n')) {
     const match = /^> \S+ (\S+)(\s|$)/.exec(line.trim());
-    if (match && (!steps.length || steps.includes(match[1]))) last = match[1];
+    if (match && steps.includes(match[1])) last = match[1];
   }
   return last;
 }
 
-// Secrets never reach a public comment: the owner's private terms become [ẩn], and any line that
-// could hold a credential is dropped. Deny by default (#258 r2): the line is lowered and stripped of
-// backslashes and quotes first, so escaped or JSON-in-JSON keys match the same words.
-export const secretWords = ['token', 'secret', 'password', 'passwd', 'api_key', 'apikey', 'api-key', 'authorization', 'bearer', 'cookie', 'private_key', 'privatekey', 'dsn', 'credential'];
-const tokenShapes = /\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,}|sk-[A-Za-z0-9_-]{16,}|xox[abpr]-[\w-]{10,}|AKIA[0-9A-Z]{16}|eyJ[\w-]{10,}\.[\w-]{10,})/;
-export function secretLine(line = '') {
-  const flat = String(line).toLowerCase().replace(/[\\"'`]/g, '');
-  if (secretWords.some(word => flat.includes(word))) return true;
-  if (flat.includes('://') && flat.slice(flat.indexOf('://')).includes('@')) return true;
-  return tokenShapes.test(String(line));
-}
-const escapeRe = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-export function scrubLines(text = '', terms = []) {
-  const ansi = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[A-Za-z]`, 'g');
-  return String(text).normalize('NFC').replace(ansi, '').split('\n')
-    .map(line => terms.reduce((out, term) => out.replace(new RegExp(escapeRe(term), 'gi'), '[ẩn]'), line))
-    .map(line => (secretLine(line) ? '[dòng ẩn: có thể chứa bí mật]' : line))
-    .map(line => line.replaceAll('```', "'''"));
-}
-export const lastLines = (text, terms, n = tailLines) => scrubLines(String(text).replace(/\n+$/, ''), terms).slice(-n);
-
-// Markdown for the FAIL receipt: the step and the scrubbed tail, plus where the full log is kept.
-export function failDetails({ output = '', steps = [], terms = [], tail: withTail = true, logPath = null }) {
+// The public receipt carries no log content at all (#258 r3): only the step and the log file name.
+// The full log stays on the owner's Mac (0600).
+export function failDetails({ output = '', steps = [], logPath = null }) {
   const step = failedStep(output, steps);
-  const tail = withTail ? lastLines(output, terms) : [];
-  return [
-    `Bước lỗi: ${step ? `\`pnpm ${step}\`` : 'không xác định'}.${logPath ? ` Log đầy đủ trên máy owner: \`${logPath.replace(/^.*\/(logs\/[^/]+)$/, '~/.cache/la-lanh-collab/$1')}\`.` : ''}`,
-    ...(withTail ? ['', `${tail.length} dòng cuối (đã ẩn bí mật):`, '```text', ...tail, '```'] : ['', 'Không đăng dòng log: danh sách ẩn dữ liệu riêng tư không đọc được.']),
-  ];
+  const name = logPath ? String(logPath).split('/').pop() : null;
+  return [`Bước lỗi: ${step ? `\`pnpm ${step}\`` : 'không xác định'}.${name ? ` Log đầy đủ chỉ trên máy owner: \`logs/${name}\`.` : ''}`];
 }
 
 export const logName = (pr, sha) => `check-${Number(pr)}-${String(sha).slice(0, 12)}.log`;
@@ -91,8 +69,17 @@ export function openCheckLog(pr, sha, dir = logDir()) {
   };
 }
 
+// What the author check waits for: a live holder, or a dead holder's lock younger than 30 minutes.
+// An older dead lock is ignored for this wait only; it is not deleted.
+export function guardHolder(path = guardLockPath(), { now = Date.now, staleMs = staleGuardMs } = {}) {
+  let pid, at;
+  try { pid = Number(readFileSync(path, 'utf8')); at = statSync(path).mtimeMs; } catch { return null; }
+  if (alive(pid)) return pid;
+  return now() - at > staleMs ? null : (pid || -1);
+}
+
 // The author check waits for an agent's guarded tests to finish, at most `limitMs`.
-export function waitForGuard({ limitMs = guardWaitMs, holder = () => lockHolder(guardLockPath()), sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms), now = Date.now, stepMs = 5000 } = {}) {
+export function waitForGuard({ limitMs = guardWaitMs, holder = () => guardHolder(), sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms), now = Date.now, stepMs = 5000 } = {}) {
   const until = now() + limitMs;
   for (;;) {
     const pid = holder();
@@ -102,37 +89,23 @@ export function waitForGuard({ limitMs = guardWaitMs, holder = () => lockHolder(
   }
 }
 
-// Removes a lock whose PID is dead without ever removing a newer live lock (#258 r2). The stale file
-// is renamed atomically to a unique tombstone; if the tombstone is not the file that was judged
-// stale (other inode) or its PID is alive, it is linked back (link never overwrites) instead.
-// `pause` is a test hook between the steps.
-export function reclaimStale(path, { pause = () => {} } = {}) {
-  let seen;
-  try { seen = statSync(path); } catch { return false; }
-  if (lockHolder(path)) return false;
-  pause('judged');
-  const tomb = `${path}.stale.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-  try { renameSync(path, tomb); } catch { return false; }
-  pause('renamed');
-  let same = false;
-  try { same = statSync(tomb).ino === seen.ino && !lockHolder(tomb); } catch {}
-  if (!same) { try { linkSync(tomb, path); } catch {} rmSync(tomb, { force: true }); return false; }
-  rmSync(tomb, { force: true });
-  return true;
-}
-
-// Guard side: take test-guard.lock only while no author check holds check.lock.
-// Returns { status: 'ok', release } | { status: 'check' } | { status: 'held', pid }.
+// Guard side: take test-guard.lock only while no author check holds check.lock. The lock is never
+// reclaimed automatically (#258 r3): a dead holder's lock makes the guard refuse with its path.
+// Returns { status: 'ok', release } | { status: 'check' } | { status: 'held', pid } | { status: 'stale', pid, path }.
 export function takeGuardLock({ checkHolder = () => lockHolder(checkLockPath()), path = guardLockPath() } = {}) {
   mkdirSync(stateDir, { recursive: true });
   if (checkHolder()) return { status: 'check' };
-  reclaimStale(path);
   // The PID is written to a private temp file first and linked into place, so the lock never exists
-  // empty and another caller cannot mistake a lock being created for a stale one (#258 r1).
+  // empty; link never replaces an existing lock.
   const temp = `${path}.${process.pid}.tmp`;
   const fd = openSync(temp, 'w', 0o600);
   writeSync(fd, String(process.pid)); closeSync(fd);
-  try { linkSync(temp, path); } catch { return { status: 'held', pid: lockHolder(path) }; } finally { rmSync(temp, { force: true }); }
+  try { linkSync(temp, path); } catch {
+    const pid = lockHolder(path);
+    if (pid) return { status: 'held', pid };
+    let old = null; try { old = Number(readFileSync(path, 'utf8')) || null; } catch {}
+    return { status: 'stale', pid: old, path };
+  } finally { rmSync(temp, { force: true }); }
   // A check that started in the gap between the two looks wins; the guard steps back.
   if (checkHolder()) { rmSync(path, { force: true }); return { status: 'check' }; }
   return { status: 'ok', release: () => { if (lockHolder(path) === process.pid) rmSync(path, { force: true }); } };
