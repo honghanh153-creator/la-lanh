@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { alertMissed, defaultChannels, missedRuns } from './collab-missed-run.mjs';
+import { alertMissed, defaultChannels, emailChannel, missedRuns, readAlertEmail } from './collab-missed-run.mjs';
 
 const vn = s => Date.parse(`${s}+07:00`);
 const fakeIssues = () => {
@@ -79,12 +79,24 @@ test('stored misses expire after 48h undelivered', () => {
   assert.deepEqual(Object.keys(store.load().slots), []);
 });
 
-test('phone channel is a disabled stub; a plugged channel receives the miss once', () => {
-  assert.equal(defaultChannels({}).phone, null);
-  const got = []; const store = mem();
+test('email channel is off without a local address file and sends once per miss through osascript argv', () => {
+  assert.equal(readAlertEmail(() => { throw new Error('ENOENT'); }), null);
+  assert.equal(readAlertEmail(() => '\n'), null);
+  assert.equal(emailChannel({ address: null }), null);
+  assert.equal(defaultChannels({}, () => {}, null).email, null);
+  const calls = []; const store = mem();
+  const email = emailChannel({ address: 'owner@example.test', run: (cmd, args, opts) => calls.push({ cmd, args, opts }) });
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
-  const channels = { phone: m => got.push(m.task), off: null };
+  const channels = { email, off: null };
   alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), channels, ...store });
   alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), channels, ...store });
-  assert.deepEqual(got, ['la-lanh-autopilot']);
+  assert.equal(calls.length, 1);
+  const { cmd, args, opts } = calls[0];
+  assert.equal(cmd, '/usr/bin/osascript');
+  assert.ok(opts.timeout <= 20000);
+  const tail = args.slice(-3);
+  assert.equal(tail[0], 'owner@example.test');
+  assert.equal(tail[1], 'Lá Lành: la-lanh-autopilot lỡ lượt 05.11 10:37');
+  assert.match(tail[2], /Mở Claude để chạy bù/);
+  assert.ok(!args.slice(0, -3).join(' ').includes('owner@example.test'));
 });
