@@ -43,6 +43,9 @@ export { runGroup };
 // The budget ends at the exact 23:55:00 instant minus the cleanup reserve, so SIGTERM, the grace
 // period and SIGKILL all finish before the cutoff (#140).
 export const cleanupReserveMs = 15000;
+// After pnpm check: two git calls and one gh comment (fixed 60 s) must still fit before the Git/GitHub
+// cutoff, or the receipt is lost and the same head is checked again (#243).
+export const finalizeReserveMs = 2 * 60000;
 export function checkBudgetMs({ auto, clock = vnNow, nowMs = Date.now }) {
   if (!auto) return 90 * 60000;
   const t = clock();
@@ -268,7 +271,8 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
-    const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
+    // pnpm stops early enough that the receipt still fits inside leftMs (#243).
+    const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs() - cleanupReserveMs - finalizeReserveMs);
     return checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
   });
 }

@@ -244,14 +244,13 @@ test('self-heal 1 r2 (P2): a legacy body record is re-evaluated; the clone path 
 });
 
 test('self-heal 3 r3 (P1): a stuck step queues its alert; delivery obeys an advancing deadline', () => {
-  const { writeFileSync: put } = await_fs;
-  put(heal.pendingAlertsPath(), '[]\n');
+  for (const { path } of heal.pendingAlerts()) rmSync(path);
   // Default alert: nothing sent inline, the alert is queued and the stuck beat is still written.
   const r = heal.runGroup('/bin/sh', ['-c', 'sleep 1'], { timeoutMs: 5000, stuckMs: 200, stdio: 'ignore' });
   assert.equal(r.status, 0);
   assert.ok(JSON.parse(readText(heal.stepBeatPath(), 'utf8')).stuckAt, 'stuck beat written at once');
   heal.queueAlert('second');
-  assert.equal(JSON.parse(readText(heal.pendingAlertsPath(), 'utf8')).length, 2);
+  assert.equal(heal.pendingAlerts().length, 2);
   // Fake clock: each gh call takes its full 60 s; the deadline allows only one.
   let clock = 0;
   const sent = [];
@@ -263,7 +262,19 @@ test('self-heal 3 r3 (P1): a stuck step queues its alert; delivery obeys an adva
   const w = watch({ nowMs: Date.now(), alert: t => later.push(t), notify: () => {} });
   assert.equal(w.queued.sent, 1);
   assert.ok(later.includes('second'));
-  assert.deepEqual(JSON.parse(readText(heal.pendingAlertsPath(), 'utf8')), []);
+  assert.deepEqual(heal.pendingAlerts(), []);
+});
+
+test('#241: an alert queued while a delivery runs survives it', () => {
+  for (const { path } of heal.pendingAlerts()) rmSync(path);
+  heal.queueAlert('A');
+  const sent = [];
+  const out = heal.deliverPendingAlerts({ alert: t => { sent.push(t); heal.queueAlert('B'); } });
+  assert.deepEqual(out, { sent: 1, left: 0 });
+  assert.deepEqual(sent, ['A']);
+  assert.deepEqual(heal.pendingAlerts().map(e => e.item.text), ['B'], 'B queued during delivery is kept');
+  heal.deliverPendingAlerts({ alert: () => {} });
+  assert.deepEqual(heal.pendingAlerts(), []);
 });
 
 // Deadline on every call (05.11.2026): gh, post-clone git and review git follow the time left.
@@ -295,6 +306,24 @@ test('deadline: git after the author clone follows the same deadline', async () 
   const after = seen.slice(seen.findIndex(s => s.args === 'rev-parse HEAD') + 1);
   assert.ok(after.length >= 1, 'git ran after the clone');
   assert.ok(after.every(s => s.timeout <= s.left), `post-clone git past the deadline: ${JSON.stringify(after)}`);
+});
+
+test('#243: a check that uses its whole pnpm budget still posts its receipt', async () => {
+  const { runCheckInClone } = await import('./collab-check.mjs');
+  for (const auto of [false, true]) {
+    let clock = 0;
+    const deadline = auto ? 26 * 60000 - 15000 : 90 * 60000;
+    const comments = [];
+    const run = (cmd, args) => { clock += 1000; return args[0] === 'rev-parse' ? SHA : ''; };
+    const gh = trustMod.makeGh((cmd, args, opts) => { if (args.includes('comment')) comments.push({ timeout: opts.timeout, left: deadline - clock }); return JSON.stringify(fakePr); });
+    const fakePr = { number: 507, author: { login: 'honghanh153-creator' }, isCrossRepository: false, headRefName: 'feat/x', headRefOid: SHA, body: 'b', comments: [], files: [] };
+    // pnpm runs until its own timeout (args[2] of the group runner).
+    const spawn = (exe, args) => { clock += Number(args[2]); return { status: 0 }; };
+    const result = runCheckInClone(507, { gh, run, auto, clock: () => ({ date: 'd', hour: 23, minute: 29 }), nowMs: () => clock, group: () => ({ status: 0 }), busy: () => null, terms: () => [], preflight: () => ({ status: 'PASS' }), spawn });
+    assert.equal(result.status, 'PASS', `auto=${auto}: ${JSON.stringify(result)}`);
+    assert.equal(comments.length, 1, 'receipt posted');
+    assert.equal(comments[0].timeout, 60000, 'gh comment had its full 60 s');
+  }
 });
 
 test('deadline: the review clone git calls follow the time left', () => {

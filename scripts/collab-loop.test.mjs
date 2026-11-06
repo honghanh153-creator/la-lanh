@@ -165,6 +165,22 @@ test('review posts verdict, files fix-forward first, and records the output hash
   assert.equal(review.runReview(7, { gh, run: runner.run, readOut: () => raw }).status, 'refused', 'no second verdict for the same head');
 });
 
+test('fix-forward #238: a finding that lists 30 places keeps all of them in the verdict and the issue', () => {
+  const places = Array.from({ length: 30 }, (_, i) => `apps/web/src/features/synthetic/place${String(i).padStart(2, '0')}.tsx:${100 + i}`);
+  const detail = `Same pattern at: ${places.join(', ')}.`;
+  assert.ok(detail.length > 1200);
+  const state = { pr: pr({ comments: [check(A)] }) };
+  const gh = fakeGh(state);
+  const raw = JSON.stringify(output({ findings: [{ ...finding('P2', 'docs'), detail }] }));
+  assert.equal(review.runReview(7, { gh, run: fakeRun().run, readOut: () => raw, now: { date: '2026-11-05', hour: 11, minute: 0 } }).status, 'posted');
+  const body = gh.calls.find(c => c[0] === 'comment')[3];
+  const issue = gh.calls.find(c => c[0] === 'raw' && c[1][0] === 'issue' && c[1][1] === 'create')[2];
+  for (const text of [body, issue]) {
+    for (const place of places) assert.ok(text.includes(place), `${place} kept`);
+    assert.ok(!text.includes('[...truncated]'));
+  }
+});
+
 test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => {
   let asked;
   trust.makeGh((cmd, args) => { asked = args; return '[]'; }).openPrs();
@@ -341,10 +357,14 @@ test('r2 (#131): scheduled reviews read the clock after preparing the clone', ()
   assert.equal(late.status, 'refused');
   const runner = fakeRun();
   review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-06', hour: 23, minute: 25 }) });
-  assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000);
+  // #243: Codex ends early enough to publish the verdict before 23:55.
+  assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000 - review.reviewFinalizeReserveMs);
   const tight = fakeRun();
   review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
-  assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000);
+  assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000 - review.reviewFinalizeReserveMs);
+  const none = fakeRun();
+  assert.equal(review.runReview(9, { auto: true, gh: fakeGh({ pr: pr({ number: 9, comments: [check(A)] }) }), run: none.run, now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 50 }) }).status, 'refused');
+  assert.ok(!none.calls.some(c => c[0] === review.codexBin), 'no Codex run without room to publish');
 });
 
 test('r3: the tick runs one author check itself, then reviews that PR', () => {
