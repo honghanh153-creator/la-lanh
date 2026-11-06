@@ -10,6 +10,7 @@ import { pathToFileURL } from 'node:url';
 import { agentMarker, boundedTimeout, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
+import { checkSteps, failDetails, openCheckLog, waitForGuard } from './collab-check-log.mjs';
 
 // A heavy test process anywhere on the machine, matched on the program actually running.
 // `pgrep -f` matched any command line that merely mentioned these words, including the agent
@@ -128,20 +129,21 @@ export function guardHits(terms, { diff = '', texts = {} } = {}) {
   return hits;
 }
 
-export function renderCheck({ head, status, exitCode, seconds, date, guard = null }) {
+export function renderCheck({ head, status, exitCode, seconds, date, guard = null, details = [] }) {
   return [
     `Author check: ${status} @ ${head}`,
     '',
     `Lệnh: \`pnpm check\` · exit ${exitCode} · ${seconds}s · ${date}. Chạy trên checkout sạch, \`HEAD == ${head.slice(0, 12)}\`.`,
     ...(guard?.length ? [`**Chặn: dữ liệu riêng tư** trong danh sách cục bộ của owner xuất hiện ở ${guard.slice(0, 20).map(h => `\`${clean(h, 120)}\``).join(', ')}. Không chạy \`pnpm check\`. Thay bằng dữ liệu giả, sửa cả lịch sử nhánh nếu nằm trong commit.`] : []),
+    ...(status === 'FAIL' && details.length ? ['', ...details, ''] : []),
     status === 'PASS' ? 'Đây là bằng chứng của tác giả, không thay review.' : 'Lượt tiếp theo là Claude sửa.',
     '',
     `${agentMarker} author-check sha=${head} -->`,
   ].join('\n');
 }
 
-export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy, terms = readGuardTerms } = {}) {
-  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, budget: () => 90 * 60000 }));
+export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy, terms = readGuardTerms, waitGuard = waitForGuard } = {}) {
+  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, waitGuard, budget: () => 90 * 60000 }));
 }
 
 // Git's pre-push input: `<local ref> <local sha> <remote ref> <remote sha>` per pushed ref. Each
@@ -173,7 +175,7 @@ export function privateHits(pr, git, terms, ranges = [[`origin/${integration}..H
   } catch { return ['lịch sử nhánh không đọc được']; }
 }
 
-function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null }) {
+function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null, waitGuard = waitForGuard }) {
   const pr = gh.pr(number);
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   const head = git(['rev-parse', 'HEAD']);
@@ -196,13 +198,26 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const left = budget();
   if (left <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
   if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
+  // Agent tests run through collab-test-guard.mjs; wait up to 5 minutes for them (05.11.2026).
+  const guarded = waitGuard();
+  if (guarded) return { status: 'busy', reason: `test của agent đang chạy qua collab-test-guard (pid ${guarded})` };
+  const out = openCheckLog(pr.number, head);
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
-  const result = runGroup('pnpm', ['check'], { cwd, timeoutMs: left, env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn);
+  let result;
+  try { result = runGroup('pnpm', ['check'], { cwd, timeoutMs: left, stdio: ['ignore', out.fd, out.fd], env: { ...process.env, CI: '1', PATH: withSystemPath(process.env.PATH) } }, spawn); } catch (error) { out.drop(); throw error; }
   const exitCode = result.status ?? 1;
   // A file the check rewrote means the receipt would not describe the committed head.
   const dirty = Boolean(git(['status', '--porcelain']));
   const status = exitCode === 0 && !dirty && git(['rev-parse', 'HEAD']) === head ? 'PASS' : 'FAIL';
-  gh.comment('pr', pr.number, renderCheck({ head, status, exitCode, seconds: Math.round((now() - started) / 1000), date: new Date(started).toISOString() }));
+  let details = [];
+  if (status === 'FAIL') {
+    let steps = [], list = [];
+    try { steps = checkSteps(JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')).scripts?.check); } catch {}
+    try { list = terms(); } catch {}
+    const output = out.read();
+    details = failDetails({ output, steps, terms: list, logPath: out.keep() });
+  } else out.drop();
+  gh.comment('pr', pr.number, renderCheck({ head, status, exitCode, details, seconds: Math.round((now() - started) / 1000), date: new Date(started).toISOString() }));
   return { status, exitCode, dirty };
 }
 
@@ -269,7 +284,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs());
-    return checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
+    return checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, waitGuard: rest.waitGuard ?? waitForGuard, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
   });
 }
 
