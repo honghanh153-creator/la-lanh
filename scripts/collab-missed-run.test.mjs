@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { alertMissed, defaultChannels, missedRuns } from './collab-missed-run.mjs';
+import { alertMissed, defaultChannels, emailChannel, missedRuns, readAlertEmail } from './collab-missed-run.mjs';
 
 const vn = s => Date.parse(`${s}+07:00`);
 const fakeIssues = () => {
@@ -31,7 +31,7 @@ test('slots before the watchdog first saw a task are not misses', () => {
 test('one miss gives one alert; second miss same day comments on the same issue', () => {
   const issues = fakeIssues(); const store = mem(); const notes = [];
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
-  const run = t => alertMissed({ beats, nowMs: vn(t), issues, notify: x => notes.push(x), ...store });
+  const run = t => alertMissed({ beats, nowMs: vn(t), issues, notify: x => notes.push(x), email: null, ...store });
   run('2026-11-05T11:20:00'); run('2026-11-05T11:30:00');
   assert.equal(issues.log.length, 1); assert.equal(notes.length, 1);
   assert.equal(issues.log[0].op, 'create');
@@ -47,9 +47,9 @@ test('a failed issue call retries next tick without a second notification', () =
   const store = mem(); const notes = []; let fail = true; const log = [];
   const issues = { find: () => null, create: () => { if (fail) throw new Error('offline'); log.push('create'); return 9; }, comment: () => {} };
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
-  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), issues, notify: x => notes.push(x), ...store });
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), issues, notify: x => notes.push(x), email: null, ...store });
   fail = false;
-  alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), issues, notify: x => notes.push(x), ...store });
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), issues, notify: x => notes.push(x), email: null, ...store });
   assert.deepEqual(log, ['create']); assert.equal(notes.length, 1);
 });
 
@@ -62,10 +62,10 @@ test('undelivered issue retries after the task ran again (fails 11:20, done 11:2
   const store = mem(); const notes = []; let fail = true; const log = [];
   const issues = { find: () => null, create: () => { if (fail) throw new Error('offline'); log.push('create'); return 9; }, comment: () => {} };
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
-  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), issues, notify: x => notes.push(x), ...store });
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), issues, notify: x => notes.push(x), email: null, ...store });
   beats['la-lanh-autopilot'] = { doneAt: new Date(vn('2026-11-05T11:25:00')).toISOString() };
   fail = false;
-  alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), issues, notify: x => notes.push(x), ...store });
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), issues, notify: x => notes.push(x), email: null, ...store });
   assert.deepEqual(log, ['create']); assert.equal(notes.length, 1);
 });
 
@@ -73,18 +73,46 @@ test('stored misses expire after 48h undelivered', () => {
   const store = mem();
   const issues = { find: () => null, create: () => { throw new Error('offline'); }, comment: () => {} };
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
-  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), issues, notify: () => {}, ...store });
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), issues, notify: () => {}, email: null, ...store });
   const later = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-07T12:45:00')).toISOString() }, 'la-lanh-ops-watch': { doneAt: new Date(vn('2026-11-07T10:30:00')).toISOString() }, 'la-lanh-retro': { doneAt: new Date(vn('2026-11-06T23:40:00')).toISOString() } };
-  alertMissed({ beats: later, nowMs: vn('2026-11-07T13:00:00'), issues, notify: () => {}, ...store });
+  alertMissed({ beats: later, nowMs: vn('2026-11-07T13:00:00'), issues, notify: () => {}, email: null, ...store });
   assert.deepEqual(Object.keys(store.load().slots), []);
 });
 
-test('phone channel is a disabled stub; a plugged channel receives the miss once', () => {
-  assert.equal(defaultChannels({}).phone, null);
-  const got = []; const store = mem();
+test('email channel is off without a local address file and sends once per miss through osascript argv', () => {
+  assert.equal(readAlertEmail(() => { throw new Error('ENOENT'); }), null);
+  assert.equal(readAlertEmail(() => '\n'), null);
+  assert.equal(emailChannel({ address: null }), null);
+  assert.equal(defaultChannels({}, () => {}, null).email, null);
+  const calls = []; const store = mem();
+  const email = emailChannel({ address: 'owner@example.test', run: (cmd, args, opts) => calls.push({ cmd, args, opts }) });
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
-  const channels = { phone: m => got.push(m.task), off: null };
+  const channels = { email, off: null };
   alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), channels, ...store });
   alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), channels, ...store });
-  assert.deepEqual(got, ['la-lanh-autopilot']);
+  assert.equal(calls.length, 1);
+  const { cmd, args, opts } = calls[0];
+  assert.equal(cmd, '/usr/bin/osascript');
+  assert.ok(opts.timeout <= 20000);
+  const tail = args.slice(-3);
+  assert.equal(tail[0], 'owner@example.test');
+  assert.equal(tail[1], 'Lá Lành: la-lanh-autopilot lỡ lượt 05.11 10:37');
+  assert.match(tail[2], /Mở Claude để chạy bù/);
+  assert.ok(!args.slice(0, -3).join(' ').includes('owner@example.test'));
+});
+
+test('Mail send returning false is a failed delivery and retries next tick', () => {
+  const store = mem(); let reply = 'false\n'; const calls = [];
+  const email = emailChannel({ address: 'owner@example.test', run: (cmd, args) => { calls.push(args); return reply; } });
+  const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-05T09:45:00')).toISOString() } };
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:20:00'), channels: { email }, ...store });
+  reply = 'true\n';
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:30:00'), channels: { email }, ...store });
+  alertMissed({ beats, nowMs: vn('2026-11-05T11:40:00'), channels: { email }, ...store });
+  assert.equal(calls.length, 2);
+  assert.ok(calls[0].some(a => /if not \(send m\) then error/.test(a)));
+});
+
+test('default email channel stays off inside the test runner even with a local address file', () => {
+  assert.equal(emailChannel({ address: undefined, read: () => 'owner@example.test\n' }), null);
 });

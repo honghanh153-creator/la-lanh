@@ -115,6 +115,9 @@ export function runReview(number, options = {}) {
   finally { closeSync(fd); rmSync(path, { force: true }); }
 }
 
+// Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
+export const reviewFinalizeReserveMs = 5 * 60000;
+
 function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now } = {}) {
   // Scheduled runs: every gh and git call ends by 23:55 (minus 15 s cleanup); direct runs keep fixed caps.
   const cutoff = Date.parse(`${now.date}T23:55:00+07:00`) - 15000;
@@ -169,8 +172,11 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   const startAt = clock();
   const startMinute = startAt.hour * 60 + startAt.minute;
   if (auto && (startMinute < 8 * 60 + 50 || startMinute >= 23 * 60 + 30)) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
-  const untilCutoff = ((23 * 60 + 55) - startMinute) * 60000;
-  const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.max(60000, Math.min(30 * 60000, untilCutoff)) : 30 * 60000, run });
+  // Codex must end early enough that the verdict, labels and fix-forward issue still fit before
+  // the Git/GitHub cutoff (#243); without that room, it does not start.
+  const untilCutoff = Math.min(((23 * 60 + 55) - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
+  if (auto && untilCutoff < 60000) return { status: 'refused', reason: 'không đủ thời gian để đăng kết quả trước 23:55' };
+  const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.min(30 * 60000, untilCutoff) : 30 * 60000, run });
   if (result.status === 'limit') return { status: 'limit', reason: result.error };
   writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
   if (result.status !== 'ok') return { status: 'error', reason: result.error };
