@@ -51,14 +51,7 @@ test("aspect lines with long Vietnamese names fit at 360 and 390px (#233)", asyn
     await page.goto("/insights/moon-sign?tradition=western");
     await page.getByText("Căn cứ trong lá số").click();
     for (const line of EVIDENCE) await expect(page.getByText(line, { exact: true })).toBeVisible();
-    const layout = await page.evaluate(() => ({
-      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      vw: window.innerWidth,
-      items: Array.from(document.querySelectorAll(".reading-evidence li")).map((el) => {
-        const r = el.getBoundingClientRect();
-        return { text: el.textContent ?? "", left: r.left, right: r.right, clipped: el.scrollWidth > el.clientWidth };
-      }),
-    }));
+    const layout = await page.evaluate(measureLayout);
     expect(layout.overflow, `no horizontal scroll at ${width}px`).toBeLessThanOrEqual(0);
     expect(layout.items).toHaveLength(EVIDENCE.length);
     for (const item of layout.items) {
@@ -67,4 +60,20 @@ test("aspect lines with long Vietnamese names fit at 360 and 390px (#233)", asyn
       expect(item.clipped, `${item.text} is not clipped at ${width}px`).toBe(false);
     }
   }
+  // Negative control (#271): a height cap below one line (li line-height is 1.5) must count as clipping.
+  await page.addStyleTag({ content: ".reading-evidence li { max-height: 1em !important; overflow: hidden !important; }" });
+  const capped = await page.evaluate(measureLayout);
+  expect(capped.items.some((item) => item.clipped), "vertical clipping is detected").toBe(true);
 });
+
+// Runs in the page. An item is clipped when its content overflows either axis.
+function measureLayout() {
+  return {
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    vw: window.innerWidth,
+    items: Array.from(document.querySelectorAll(".reading-evidence li")).map((el) => {
+      const r = el.getBoundingClientRect();
+      return { text: el.textContent ?? "", left: r.left, right: r.right, clipped: el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight };
+    }),
+  };
+}
