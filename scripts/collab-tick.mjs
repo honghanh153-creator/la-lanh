@@ -11,6 +11,7 @@ import { opsAlert, tick } from './collab-turn.mjs';
 import { renderBoard, upsertBoard } from './collab-status.mjs';
 import { planIssue } from './collab-plan.mjs';
 import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
+import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 
 // Tools the loop and pnpm check need. A missing one used to surface as a false FAIL receipt
 // (31.10.2026: sha256sum, pnpm); now the tick stops with an error and alerts instead.
@@ -24,7 +25,10 @@ export function missingTools(path = process.env.PATH, run = execFileSync) {
 export function runTick(gh = makeGh(), preflight = () => missingTools()) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
   return tick({ gh, preflight, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
-    watchdog: () => watch({ alert: text => opsAlert(gh, text, 'tác vụ hẹn giờ bị treo') }), health: () => healthLines(readBeats()) });
+    watchdog: () => {
+      try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
+      return watch({ alert: text => opsAlert(gh, text, 'tác vụ hẹn giờ bị treo') });
+    }, health: () => healthLines(readBeats()) });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
