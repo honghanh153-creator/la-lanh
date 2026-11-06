@@ -39,6 +39,26 @@ test("a rejected reading stays usable at 360 and 390px (#225)", async ({ page })
     expect(layout.overflow).toBeLessThanOrEqual(0);
     expect(layout.left).toBeGreaterThanOrEqual(0);
     expect(layout.right).toBeLessThanOrEqual(layout.vw);
+    // The heading and message must be fully readable: no overflow clipping inside the
+    // element or by any clipping ancestor up to the alert.
+    const clipped = await page.evaluate(() => {
+      const root = document.querySelector(".cosmic-state[role=alert]") as HTMLElement;
+      const out: string[] = [];
+      for (const el of Array.from(root.querySelectorAll<HTMLElement>("h1, h2, h3, p"))) {
+        if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) out.push(`${el.tagName} overflows itself`);
+        const r = el.getBoundingClientRect();
+        for (let a = el.parentElement; a; a = a.parentElement) {
+          const st = getComputedStyle(a);
+          if (st.overflowX !== "visible" || st.overflowY !== "visible" || a === root) {
+            const c = a.getBoundingClientRect();
+            if (r.left < c.left - 1 || r.right > c.right + 1 || r.top < c.top - 1 || r.bottom > c.bottom + 1) out.push(`${el.tagName} clipped by ${a.tagName}`);
+          }
+          if (a === root) break;
+        }
+      }
+      return out;
+    });
+    expect(clipped, `error text is not clipped at ${width}px`).toEqual([]);
   }
 });
 
@@ -55,7 +75,10 @@ test("a rejected reading can be left by keyboard (#225)", async ({ page, isMobil
       const el = document.activeElement as HTMLElement | null;
       if (!el || el === document.body) return null;
       const r = el.getBoundingClientRect();
-      return { name: el.getAttribute("aria-label") ?? el.textContent?.trim() ?? "", visible: r.width > 0 && r.height > 0 };
+      let shown = el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+      for (let a: HTMLElement | null = el; a && shown; a = a.parentElement) if (Number(getComputedStyle(a).opacity) === 0) shown = false;
+      const inViewport = r.width > 0 && r.height > 0 && r.right > 0 && r.bottom > 0 && r.left < window.innerWidth && r.top < window.innerHeight;
+      return { name: el.getAttribute("aria-label") ?? el.textContent?.trim() ?? "", visible: shown && inViewport };
     });
     if (!focused) continue;
     expect(focused.visible, `${focused.name} is visible when focused`).toBe(true);
