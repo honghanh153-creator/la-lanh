@@ -26,6 +26,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.domains.content import copy_approval
 from app.domains.radar import reading as radar_reading
 from app.domains.readings import companion, daily_psychology, gates, renderers, voice
 from app.domains.readings.application import DETERMINISTIC_CONTENT_VERSION
@@ -215,6 +216,12 @@ def current() -> dict[str, Any]:
             "gate_version": radar_reading.GATE_VERSION,
             "tables": {**module_tables(radar_reading), **function_literals(radar_reading)},
         },
+        # New copy behind the pending flag (owner 06.11.2026): only approved entries are pinned,
+        # so a pending entry does not need the owner; approving one changes this pin.
+        "copy_registry": {
+            "version": copy_approval.REGISTRY_VERSION,
+            "approved": copy_approval.approved_pin(copy_approval.load_registry()),
+        },
         "gate_versions": {
             "anti_influence": gates.ANTI_INFLUENCE_GATE_VERSION,
             "editorial": gates.EDITORIAL_GATE_VERSION,
@@ -231,6 +238,9 @@ def main() -> None:
     args = parser.parse_args()
     approval = json.loads(APPROVAL.read_text())
     computed = current()
+    problems = copy_approval.registry_problems(copy_approval.load_registry())
+    if problems:
+        sys.exit(f"copy registry invalid: {problems[:8]}")
     if args.check:
         if approval.get("approved") != computed:
             approved = approval.get("approved", {})
