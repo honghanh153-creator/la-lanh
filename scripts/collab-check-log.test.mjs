@@ -156,3 +156,36 @@ test('r1 P2: a lock is never visible without its PID, and a live lock is never r
   assert.deepEqual(readdirSync(home).filter(name => name.startsWith('race.lock.')), [], 'no temp file is left');
   a.release();
 });
+
+test('r2 P1: escaped and nested credential keys are dropped (deny by default)', () => {
+  const variants = [
+    JSON.stringify(JSON.stringify({ api_key: 'synthetic' })),
+    JSON.stringify({ apiKey: 'synthetic' }),
+    '{\\"Authorization\\":\\"synthetic\\"}',
+    'pass\\word=synthetic'.replace('\\', ''),
+    "headers={'Cookie': 'synthetic'}",
+    'PRIVATE_KEY=synthetic', 'SENTRY_DSN=synthetic', 'client.credentials = synthetic',
+    'see https://synthetic:synthetic@example.test/x', 'TOKEN synthetic',
+  ];
+  for (const line of variants) assert.match(log.scrubLines(line)[0], /dòng ẩn/, line);
+  assert.equal(log.scrubLines('✓ renders the reading card')[0], '✓ renders the reading card');
+});
+
+test('r2 P2: two reclaimers and a new lock interleave without losing the live lock', () => {
+  const path = join(home, 'interleave.lock');
+  writeFileSync(path, '999999999');
+  const reclaimed = log.reclaimStale(path, {
+    pause: step => {
+      if (step !== 'judged') return;
+      // Another caller reclaims the same stale lock and a third takes a fresh live lock.
+      assert.equal(log.reclaimStale(path), true);
+      writeFileSync(path, String(process.pid));
+    },
+  });
+  assert.equal(reclaimed, false, 'the slow reclaimer finds a different file and steps back');
+  assert.equal(readFileSync(path, 'utf8'), String(process.pid), 'the live lock is still in place');
+  assert.deepEqual(readdirSync(home).filter(name => name.startsWith('interleave.lock.stale')), []);
+  writeFileSync(path, '999999999');
+  assert.equal(log.reclaimStale(path), true);
+  assert.equal(existsSync(path), false);
+});
