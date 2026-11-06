@@ -12,6 +12,8 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.responses import Response
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.api.v1.routes.guest_sessions import ProblemResponse
 
@@ -21,19 +23,67 @@ _PROBLEM_REF = "#/components/schemas/ProblemResponse"
 _DEFAULT_SCHEMAS = ("HTTPValidationError", "ValidationError")
 
 
-async def input_invalid(_request: Request, _error: Exception) -> JSONResponse:
-    # The error is deliberately unused: its details hold the submitted values.
+_PROBLEM_BODY = {
+    "type": "about:blank",
+    "title": "Request input was rejected",
+    "status": 422,
+    "code": INPUT_INVALID,
+}
+
+
+def _input_invalid_response() -> JSONResponse:
     return JSONResponse(
         status_code=422,
-        content={
-            "type": "about:blank",
-            "title": "Request input was rejected",
-            "status": 422,
-            "code": INPUT_INVALID,
-        },
+        content=_PROBLEM_BODY,
         media_type=PROBLEM_MEDIA_TYPE,
         headers={"Cache-Control": "no-store, max-age=0"},
     )
+
+
+async def input_invalid(_request: Request, _error: Exception) -> JSONResponse:
+    # The error is deliberately unused: its details hold the submitted values.
+    return _input_invalid_response()
+
+
+class EmptyInputProblem:
+    """Give a domain route's bodiless 422 (e.g. RadarInvalid) the same documented problem body.
+
+    Headers the route set (cookies) are kept; only the empty body, its length and type change.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        held: Message | None = None
+
+        async def wrapped(message: Message) -> None:
+            nonlocal held
+            if message["type"] == "http.response.start" and message["status"] == 422:
+                length = dict(message.get("headers", [])).get(b"content-length")
+                if length == b"0":
+                    held = message
+                    return
+            if held is not None and message["type"] == "http.response.body":
+                await send(_replace_start(held))
+                body: Response = _input_invalid_response()
+                await send({"type": "http.response.body", "body": body.body})
+                held = None
+                return
+            await send(message)
+
+        await self.app(scope, receive, wrapped)
+
+
+def _replace_start(start: Message) -> Message:
+    problem = _input_invalid_response()
+    replaced = {b"content-length", b"content-type", b"cache-control"}
+    headers = [(k, v) for k, v in start.get("headers", []) if k.lower() not in replaced]
+    headers.extend(problem.raw_headers)
+    return {**start, "headers": headers}
 
 
 def document_input_problems(schema: dict[str, Any]) -> dict[str, Any]:
@@ -60,6 +110,7 @@ def document_input_problems(schema: dict[str, Any]) -> dict[str, Any]:
 
 def install_input_problem(application: FastAPI) -> None:
     application.add_exception_handler(RequestValidationError, input_invalid)
+    application.add_middleware(EmptyInputProblem)
     generate: Callable[[], dict[str, Any]] = application.openapi
 
     def openapi() -> dict[str, Any]:
