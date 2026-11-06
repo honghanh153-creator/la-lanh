@@ -7,7 +7,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { checksPerTick, fileBlocker, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
+const { checksPerTick, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const preflightMod = await import('./collab-preflight.mjs');
 const { committedTurns, copyReview, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
@@ -633,7 +633,7 @@ test('plan top-up: fewer than two machine jobs before 23:30 asks Claude to add t
   const one = [pr({ number: 1, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }), pr({ number: 2 })];
   tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, true);
-  const busy = [pr({ number: 3 }), pr({ number: 4 }), pr({ number: 5 })];
+  const busy = [3, 4, 5, 6, 10].map(number => pr({ number, headRefName: `agent/claude/t${number}` }));
   tick({ gh: plannedGh(busy, date), now: { date, hour: 16, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, false);
 });
@@ -650,7 +650,7 @@ test('retro S1: runs in a row with no area ask for a top-up from the third and a
   }
   assert.equal(alerts.length, 1, 'one alert at the sixth idle run, not on every run after it');
   assert.match(alerts[0], /chạy không 6 lượt liền/);
-  run([pr({ number: 7 }), pr({ number: 8 }), pr({ number: 9 })], 30);
+  run([7, 8, 9, 10, 11].map(number => pr({ number, headRefName: `agent/claude/t${number}` })), 30);
   assert.equal(queue().idleRuns, 0, 'a run with an area resets the count');
   assert.equal(queue().topUp, false);
 });
@@ -814,4 +814,26 @@ test('review 228: a deleted Python file is not linted by default', () => {
   const calls = [];
   assert.deepEqual(preflightMod.lintProblems(['app/deleted_for_test_only.py'], { cwd: '/nonexistent-la-lanh', spawn: () => { calls.push(1); return { status: 1 }; } }), []);
   assert.equal(calls.length, 0);
+});
+
+// ---- #253: buffer rule and flow samples on the scheduled path ----
+test('#253: the persisted queue uses the ready-buffer rule and the tick samples the flow metric', () => {
+  const date = '2026-11-14';
+  const three = [1, 2, 3].map(number => pr({ number, headRefName: `agent/claude/b${number}` }));
+  tick({ gh: plannedGh(three, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+  assert.equal(queue.topUp, true, 'three ready PRs are below the target of five');
+  assert.equal(queue.topUpCount, 2);
+  assert.equal(queue.buffer, 3);
+  const flow = trust.readJson(join(trust.stateDir, 'beats', `flow-${trust.vnNow().date}.json`), null);
+  assert.ok(flow?.samples >= 1, 'the scheduled tick records a flow sample without any CLI read');
+});
+
+test('#253: report turns leave out PRs dropped from today\'s plan', () => {
+  const date = trust.vnNow().date;
+  const gh = plannedGh([pr({ number: 999 })], date);
+  const base = gh.json;
+  gh.json = args => { const out = base(args); return Array.isArray(out) ? out : { comments: [...out.comments, { authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: 'Bỏ #999' }] }; };
+  const { turns } = planTurns(gh);
+  assert.ok(!turns.some(t => t.number === 999 && ['claude-check', 'codex-review', 'merge'].includes(t.turn)), 'a dropped PR is not actionable');
 });

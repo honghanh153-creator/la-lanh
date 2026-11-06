@@ -128,7 +128,11 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       }
       // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
       // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
-      const turns = turnsFor(gh.openPrs(), { dropped: plan.dropped });
+      const prs = gh.openPrs();
+      const turns = turnsFor(prs, { dropped: plan.dropped });
+      // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
+      // persisted queue and --status agree and the metric does not depend on report reads.
+      const { queue: buffer } = bufferStatus(prs, turns);
       const area = activeArea(turns);
       const work = turns.filter(t => t.area === area);
       const done = [];
@@ -174,9 +178,10 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       writeJson(dayPath, { ...readJson(dayPath, day), idleRuns });
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: turns.filter(t => t.turn === 'claude-fix'),
-        // Plan top-up (owner 31.10.2026): fewer than two machine jobs left while the day still runs,
-        // so Claude adds the next backlog task in priority order before the machine goes idle.
-        topUp: (turns.filter(t => machineTurns.has(t.turn)).length < 2 || idleRuns >= idleTopUpRuns) && !late(),
+        // Plan top-up (owner 31.10.2026, buffer rule 05.11): below the ready-buffer target while the
+        // day still runs, so Claude adds the next backlog task in priority order before the machine goes idle.
+        topUp: (buffer.topUp || idleRuns >= idleTopUpRuns) && !late(),
+        topUpCount: late() ? 0 : Math.max(buffer.topUpCount, idleRuns >= idleTopUpRuns ? 1 : 0), buffer: buffer.buffer,
         idleRuns,
       });
       if (idleRuns === idleAlertRuns && alert) alert(`collab tick chạy không ${idleRuns} lượt liền (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): plan không còn PR nào để làm, cần bổ sung việc từ backlog`);
@@ -209,6 +214,14 @@ export function tickGap(last, nowMs = Date.now()) {
   return { from: hhmm(at), to: hhmm(nowMs) };
 }
 
+// #253: --status and --report count the same plan-aware turns as the tick, so a PR dropped from
+// today's plan is never sampled as actionable.
+export function planTurns(gh, now) {
+  const plan = readPlanStatus(gh, now);
+  const prs = gh.openPrs();
+  return { plan, prs, turns: turnsFor(prs, { dropped: plan.dropped }) };
+}
+
 export function opsAlert(gh, text, subject = 'collab loop') {
   gh.raw(['label', 'create', 'ops-alert', '--repo', repo, '--color', 'B60205', '--force']);
   gh.raw(['issue', 'create', '--repo', repo, '--title', `[ops-alert] ${subject} ${vnNow().date}`, '--label', 'ops-alert', '--body-file', '-'],
@@ -223,13 +236,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       // codex-review imports this module, so the tick entry lives in collab-tick.mjs (no import cycle).
       process.stderr.write('Use: node scripts/collab-tick.mjs\n'); process.exitCode = 2;
     } else if (args.includes('--status')) {
-      const plan = readPlanStatus(gh);
-      const prs = gh.openPrs();
-      const { queue: buffer } = bufferStatus(prs, turnsFor(prs, { dropped: plan.dropped }));
+      const { plan, prs, turns } = planTurns(gh);
+      const { queue: buffer } = bufferStatus(prs, turns);
       process.stdout.write(`${JSON.stringify({ plan: plan.state, reason: plan.reason, dropped: plan.dropped, queue: { ...readJson(join(stateDir, 'claude-queue.json'), null), ...buffer } })}\n`);
     } else {
-      const prs = gh.openPrs();
-      const turns = turnsFor(prs);
+      const { prs, turns } = planTurns(gh);
       const { lines } = bufferStatus(prs, turns);
       process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines].join('\n')}\n`);
     }
