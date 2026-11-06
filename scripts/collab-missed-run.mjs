@@ -2,9 +2,10 @@
 // autopilot, server check and 23:35 retro skipped runs and nobody noticed: the watchdog wrote local
 // beats only. Here a scheduled slot with no done beat by slot + jitter + 30 minutes is a miss. One
 // miss raises one alert per channel: a local notification and one ops-alert issue per task per
-// day. A phone channel is a disabled stub until the owner chooses one. launchd cannot start a Claude
+// day. An email through Mail.app when a local address file exists. launchd cannot start a Claude
 // scheduled task, so the alert asks the owner to open Claude and run it again.
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { clean, readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 
@@ -73,10 +74,37 @@ export function ghIssues(run) {
 const osNotify = text => execFileSync('/usr/bin/osascript', ['-e', `display notification ${JSON.stringify(clean(text, 200))} with title "Lá Lành: tác vụ hẹn giờ lỡ lượt"`], { stdio: 'ignore', timeout: 10000 });
 const statePath = () => join(stateDir, 'beats', 'missed-alerts.json');
 
-// Delivery channels are pluggable: each is `send(miss, state)` or null (disabled). `phone` is a
-// disabled stub until the owner picks a channel; no new service is added here.
-export const disabledPhone = null;
-export function defaultChannels(issues, notify = osNotify) {
+// Email (owner 06.11.2026) goes through the Mac's own Mail.app. The address lives only in a local
+// file outside git (stateDir/alert-email, one line); the repo is public, so it is never in code.
+// No file or an empty one disables the channel. Values reach AppleScript as argv, never as code.
+export const alertEmailPath = () => join(stateDir, 'alert-email');
+export function readAlertEmail(read = p => readFileSync(p, 'utf8')) {
+  try { const v = String(read(alertEmailPath())).split('\n')[0].trim(); return /^[^\s@]+@[^\s@]+$/.test(v) ? v : null; } catch { return null; }
+}
+const mailScript = [
+  'on run argv',
+  'tell application "Mail"',
+  'set m to make new outgoing message with properties {subject:item 2 of argv, content:item 3 of argv, visible:false}',
+  'tell m to make new to recipient at end of to recipients with properties {address:item 1 of argv}',
+  'if not (send m) then error "Mail send returned false"',
+  'end tell',
+  'end run',
+];
+export const emailSubject = m => `Lá Lành: ${m.task} lỡ lượt ${hhmm(ms(m.slot))}`;
+// Mail's `send` returns false on failure without a non-zero exit, so the script raises an error
+// and stdout 'false' is also treated as failure; either way the channel throws and retries next tick.
+// Inside node:test (NODE_TEST_CONTEXT) the default address is ignored so tests never send real mail.
+export function emailChannel({ address, read, run = execFileSync, env = process.env } = {}) {
+  if (address === undefined) address = env.NODE_TEST_CONTEXT ? null : readAlertEmail(read);
+  if (!address) return null;
+  return m => {
+    const out = run('/usr/bin/osascript', [...mailScript.flatMap(line => ['-e', line]), address, emailSubject(m), clean(m.text, 1000)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 20000 });
+    if (String(out ?? '').trim() === 'false') throw new Error('Mail send returned false');
+  };
+}
+
+// Delivery channels are pluggable: each is `send(miss, state)` or null (disabled).
+export function defaultChannels(issues, notify = osNotify, email = emailChannel()) {
   return {
     notify: m => notify(m.text),
     issue: (m, state) => {
@@ -86,7 +114,7 @@ export function defaultChannels(issues, notify = osNotify) {
       if (number) issues.comment(number, body); else state.issues[dayKey] = issues.create(issueTitle(m), body);
       if (number) state.issues[dayKey] = number;
     },
-    phone: disabledPhone,
+    email,
   };
 }
 
@@ -96,8 +124,8 @@ export const expireMs = 48 * hourMs;
 // not delivered, for every stored slot, even after the task has run again, until delivered or 48h
 // old. One miss gives one alert per channel; the first miss of a day opens the task's issue, later
 // misses that day comment on it.
-export function alertMissed({ beats, nowMs = Date.now(), channels, issues, notify = osNotify, load = () => readJson(statePath(), {}), save = s => writeJson(statePath(), s) }) {
-  const send = channels ?? defaultChannels(issues, notify);
+export function alertMissed({ beats, nowMs = Date.now(), channels, issues, notify = osNotify, email, load = () => readJson(statePath(), {}), save = s => writeJson(statePath(), s) }) {
+  const send = channels ?? defaultChannels(issues, notify, email === undefined ? emailChannel() : email);
   const enabled = Object.keys(send).filter(name => typeof send[name] === 'function');
   const state = load();
   state.slots ??= {}; state.issues ??= {};
