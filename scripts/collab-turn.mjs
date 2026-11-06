@@ -6,6 +6,8 @@ import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integratio
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { bodyHash } from './collab-heal.mjs';
 import { preflightFailure, readPreflight, recordPreflight } from './collab-preflight.mjs';
+import { withRepeatNote } from './collab-size.mjs';
+import { bufferStatus } from './collab-buffer.mjs';
 
 export { codexDailyCap };
 
@@ -57,7 +59,7 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
 
 export function turnsFor(prs, options = {}) {
   const preflight = options.preflight ?? readPreflight();
-  return sortByPriority(prs).map(pr => prTurn(pr, { ...options, open: prs, preflight }));
+  return sortByPriority(prs).map(pr => withRepeatNote(prTurn(pr, { ...options, open: prs, preflight }), pr));
 }
 
 // Owner order: finish every content PR before privacy, and privacy before features.
@@ -222,10 +224,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       process.stderr.write('Use: node scripts/collab-tick.mjs\n'); process.exitCode = 2;
     } else if (args.includes('--status')) {
       const plan = readPlanStatus(gh);
-      process.stdout.write(`${JSON.stringify({ plan: plan.state, reason: plan.reason, dropped: plan.dropped, queue: readJson(join(stateDir, 'claude-queue.json'), null) })}\n`);
+      const prs = gh.openPrs();
+      const { queue: buffer } = bufferStatus(prs, turnsFor(prs, { dropped: plan.dropped }));
+      process.stdout.write(`${JSON.stringify({ plan: plan.state, reason: plan.reason, dropped: plan.dropped, queue: { ...readJson(join(stateDir, 'claude-queue.json'), null), ...buffer } })}\n`);
     } else {
-      const turns = turnsFor(gh.openPrs());
-      process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : renderReport(turns)}\n`);
+      const prs = gh.openPrs();
+      const turns = turnsFor(prs);
+      const { lines } = bufferStatus(prs, turns);
+      process.stdout.write(`${args.includes('--json') ? JSON.stringify(turns, null, 2) : [renderReport(turns), ...lines].join('\n')}\n`);
     }
   } catch (error) { process.stderr.write(`collab-turn failed: ${clean(error.message, 500)}\n`); process.exitCode = 1; }
 }

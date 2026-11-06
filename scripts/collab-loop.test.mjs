@@ -165,6 +165,22 @@ test('review posts verdict, files fix-forward first, and records the output hash
   assert.equal(review.runReview(7, { gh, run: runner.run, readOut: () => raw }).status, 'refused', 'no second verdict for the same head');
 });
 
+test('fix-forward #238: a finding that lists 30 places keeps all of them in the verdict and the issue', () => {
+  const places = Array.from({ length: 30 }, (_, i) => `apps/web/src/features/synthetic/place${String(i).padStart(2, '0')}.tsx:${100 + i}`);
+  const detail = `Same pattern at: ${places.join(', ')}.`;
+  assert.ok(detail.length > 1200);
+  const state = { pr: pr({ comments: [check(A)] }) };
+  const gh = fakeGh(state);
+  const raw = JSON.stringify(output({ findings: [{ ...finding('P2', 'docs'), detail }] }));
+  assert.equal(review.runReview(7, { gh, run: fakeRun().run, readOut: () => raw, now: { date: '2026-11-05', hour: 11, minute: 0 } }).status, 'posted');
+  const body = gh.calls.find(c => c[0] === 'comment')[3];
+  const issue = gh.calls.find(c => c[0] === 'raw' && c[1][0] === 'issue' && c[1][1] === 'create')[2];
+  for (const text of [body, issue]) {
+    for (const place of places) assert.ok(text.includes(place), `${place} kept`);
+    assert.ok(!text.includes('[...truncated]'));
+  }
+});
+
 test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => {
   let asked;
   trust.makeGh((cmd, args) => { asked = args; return '[]'; }).openPrs();
