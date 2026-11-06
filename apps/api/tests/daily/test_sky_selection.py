@@ -42,9 +42,9 @@ from app.domains.daily.sky_selection import (
     ContactEligibility,
     DayContact,
     DayTone,
-    PassKind,
     SkyTier,
     TimeKind,
+    TrendContact,
     contact_eligibility,
     day_bounds,
     day_tone,
@@ -56,7 +56,6 @@ from app.domains.daily.sky_selection import (
     select_daily_sky,
     tier_for,
     trend_weight,
-    trend_window,
     worst_orb,
 )
 
@@ -422,7 +421,8 @@ def test_south_node_relabel_and_generational_contacts_dropped(
     trend = {item.contact.id: item for item in selection.trend}
     south = trend["saturn:conjunction:south_node"]
     assert south.contact.natal_body is BodyName.SOUTH_NODE and south.contact.exact_angle == 0.0
-    assert south.window is not None and south.window.start_date <= START <= south.window.end_date
+    assert south.episode is not None
+    assert south.episode.start_date <= START <= south.episode.end_date
 
 
 @pytest.mark.parametrize(("hour", "minute"), [(23, 40), (0, 20), (3, 0)])
@@ -791,124 +791,11 @@ def test_trend_weight_is_planet_times_aspect_times_target() -> None:
     assert trend_weight(node_chiron) == 1.0 * 1.5 * 1.0
 
 
-def test_trend_windows_contain_today_and_their_closest_approaches(
-    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
-) -> None:
-    seen = 0
-    for chart in charts:
-        for item in select_daily_sky(engine, chart, START).trend:
-            window = item.window
-            assert window is not None
-            assert window.start_date <= START <= window.end_date
-            assert window.passes
-            assert list(window.closest_dates) == sorted(window.closest_dates)
-            assert all(window.start_date <= day <= window.end_date for day in window.closest_dates)
-            assert isinstance(item.contact.natal_body, BodyName)  # no frame: no angle
-            natal = chart.body(item.contact.natal_body).longitude
-            for edge, open_edge, step in (
-                (window.start_date, window.start_open, -1),
-                (window.end_date, window.end_open, 1),
-            ):
-                for day, inside in ((edge, True), (edge + timedelta(days=step), False)):
-                    # Today is in the window even when in orb for only part of it.
-                    if (open_edge and not inside) or (inside and day == START):
-                        continue
-                    at = datetime.combine(day, time(12), tzinfo=DAILY_TIMEZONE)
-                    position = engine.transiting_position(
-                        item.contact.transit_body, at, chart.config
-                    )
-                    orb = abs(
-                        angular_distance(position.longitude, natal) - item.contact.exact_angle
-                    )
-                    assert (orb <= item.contact.orb_limit) is inside
-            for found in window.passes:
-                at = datetime.combine(found.date, time(12), tzinfo=DAILY_TIMEZONE)
-                position = engine.transiting_position(item.contact.transit_body, at, chart.config)
-                orb = abs(angular_distance(position.longitude, natal) - item.contact.exact_angle)
-                assert found.orb <= orb + 1e-6
-                assert (found.kind is PassKind.EXACT) is (found.orb <= EXACT_ORB)
-            seen += 1
-    assert seen >= 4
-
-
-def _saturn_station(engine: NatalChartEngine, after: date) -> date:
-    day = after
-    speed = engine.transiting_position(BodyName.SATURN, _local(day, 12)).longitude_speed
-    while True:
-        day += timedelta(days=1)
-        current = engine.transiting_position(BodyName.SATURN, _local(day, 12)).longitude_speed
-        if (current > 0) != (speed > 0) and current < 0:
-            return day
-        speed = current
-
-
-def test_trend_window_bridges_retrograde_passes(
-    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
-) -> None:
-    station = _saturn_station(engine, START)
-    station_longitude = engine.transiting_position(BodyName.SATURN, _local(station, 12)).longitude
-    natal_longitude = station_longitude - 2.4  # Saturn leaves orb at the station, then returns
-    first_pass = START
-    while (
-        abs(
-            angular_distance(
-                engine.transiting_position(BodyName.SATURN, _local(first_pass, 12)).longitude,
-                natal_longitude,
-            )
-        )
-        > 0.2
-    ):
-        first_pass += timedelta(days=1)
-    chart = _move_natal(charts[3], BodyName.MARS, natal_longitude)
-    contact = {item.id: item for item in scan_day(engine, chart, first_pass)}[
-        "saturn:conjunction:mars"
-    ]
-    window = trend_window(engine, chart, contact, first_pass)
-    assert not window.start_open and not window.end_open
-    assert window.start_date < first_pass < station < window.end_date
-    exact = [item for item in window.passes if item.kind is PassKind.EXACT]
-    assert len(exact) == 3  # direct, retrograde, direct again (AS-2)
-    assert abs((exact[0].date - first_pass).days) <= 1
-    # The window really spans an out-of-orb gap around the station.
-    gap = [
-        day
-        for day in (
-            window.start_date + timedelta(days=offset)
-            for offset in range((window.end_date - window.start_date).days)
-        )
-        if abs(
-            angular_distance(
-                engine.transiting_position(BodyName.SATURN, _local(day, 12)).longitude,
-                natal_longitude,
-            )
-        )
-        > contact.orb_limit
-    ]
-    assert gap and window.start_date < gap[0] < gap[-1] < window.end_date
-
-
-def test_trend_window_finds_todays_exact_pass_and_flags_the_scan_bound(
-    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
-) -> None:
-    noon = _local(START, 12)
-    saturn = engine.transiting_position(BodyName.SATURN, noon, charts[3].config)
-    chart = _move_natal(charts[3], BodyName.MARS, saturn.longitude)
-    contact = {item.id: item for item in scan_day(engine, chart, START)}["saturn:conjunction:mars"]
-    assert contact.tier is SkyTier.TREND
-
-    window = trend_window(engine, chart, contact, START)
-    assert window.start_date < START < window.end_date
-    assert not window.start_open and not window.end_open
-    assert any(abs((day - START).days) <= 1 for day in window.closest_dates)
-    assert any(item.kind is PassKind.EXACT for item in window.passes)
-
-    bounded = trend_window(engine, chart, contact, START, max_scan_days=5)
-    assert bounded.start_open and bounded.end_open
-    assert (bounded.start_date, bounded.end_date) == (
-        START - timedelta(days=5),
-        START + timedelta(days=5),
-    )
-    assert bounded.closest_dates and START - timedelta(days=1) <= bounded.closest_dates[0]
+def test_trend_contacts_carry_only_the_episode() -> None:
+    # Issue #217: the old noon-sampled window bridged to the far-side aspect and merged real
+    # retrograde passes. Trend timing now comes from ``transit_episodes`` alone.
+    assert "window" not in TrendContact.__slots__
+    assert "episode" in TrendContact.__slots__
 
 
 def test_sampling_step_must_divide_the_day(
