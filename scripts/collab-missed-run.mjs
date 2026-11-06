@@ -86,14 +86,21 @@ const mailScript = [
   'tell application "Mail"',
   'set m to make new outgoing message with properties {subject:item 2 of argv, content:item 3 of argv, visible:false}',
   'tell m to make new to recipient at end of to recipients with properties {address:item 1 of argv}',
-  'send m',
+  'if not (send m) then error "Mail send returned false"',
   'end tell',
   'end run',
 ];
 export const emailSubject = m => `Lá Lành: ${m.task} lỡ lượt ${hhmm(ms(m.slot))}`;
-export function emailChannel({ address = readAlertEmail(), run = execFileSync } = {}) {
+// Mail's `send` returns false on failure without a non-zero exit, so the script raises an error
+// and stdout 'false' is also treated as failure; either way the channel throws and retries next tick.
+// Inside node:test (NODE_TEST_CONTEXT) the default address is ignored so tests never send real mail.
+export function emailChannel({ address, read, run = execFileSync, env = process.env } = {}) {
+  if (address === undefined) address = env.NODE_TEST_CONTEXT ? null : readAlertEmail(read);
   if (!address) return null;
-  return m => run('/usr/bin/osascript', [...mailScript.flatMap(line => ['-e', line]), address, emailSubject(m), clean(m.text, 1000)], { stdio: 'ignore', timeout: 20000 });
+  return m => {
+    const out = run('/usr/bin/osascript', [...mailScript.flatMap(line => ['-e', line]), address, emailSubject(m), clean(m.text, 1000)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 20000 });
+    if (String(out ?? '').trim() === 'false') throw new Error('Mail send returned false');
+  };
 }
 
 // Delivery channels are pluggable: each is `send(miss, state)` or null (disabled).
@@ -117,8 +124,8 @@ export const expireMs = 48 * hourMs;
 // not delivered, for every stored slot, even after the task has run again, until delivered or 48h
 // old. One miss gives one alert per channel; the first miss of a day opens the task's issue, later
 // misses that day comment on it.
-export function alertMissed({ beats, nowMs = Date.now(), channels, issues, notify = osNotify, load = () => readJson(statePath(), {}), save = s => writeJson(statePath(), s) }) {
-  const send = channels ?? defaultChannels(issues, notify);
+export function alertMissed({ beats, nowMs = Date.now(), channels, issues, notify = osNotify, email, load = () => readJson(statePath(), {}), save = s => writeJson(statePath(), s) }) {
+  const send = channels ?? defaultChannels(issues, notify, email === undefined ? emailChannel() : email);
   const enabled = Object.keys(send).filter(name => typeof send[name] === 'function');
   const state = load();
   state.slots ??= {}; state.issues ??= {};
