@@ -10,7 +10,7 @@ import { pathToFileURL } from 'node:url';
 import { agentMarker, boundedTimeout, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
-import { checkSteps, failDetails, openCheckLog, waitForGuard } from './collab-check-log.mjs';
+import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
 
 // A heavy test process anywhere on the machine, matched on the program actually running.
 // `pgrep -f` matched any command line that merely mentioned these words, including the agent
@@ -145,8 +145,8 @@ export function renderCheck({ head, status, exitCode, seconds, date, guard = nul
   ].join('\n');
 }
 
-export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy, terms = readGuardTerms, waitGuard = waitForGuard } = {}) {
-  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, waitGuard, budget: () => 90 * 60000 }));
+export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy, terms = readGuardTerms, waitGuard = waitForGuard, budget = () => 90 * 60000 } = {}) {
+  return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, waitGuard, budget }));
 }
 
 // Git's pre-push input: `<local ref> <local sha> <remote ref> <remote sha>` per pushed ref. Each
@@ -189,7 +189,9 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const timeoutMs = budget();
   if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
   const started = now();
-  const guard = privateHits(pr, git, terms);
+  // The terms read for the scan are the ones used to redact the receipt; no second read (#258 r1).
+  let loaded = null;
+  const guard = privateHits(pr, git, () => (loaded = terms()));
   if (guard.length) {
     gh.comment('pr', pr.number, renderCheck({ head, status: 'FAIL', exitCode: 'guard', seconds: 0, date: new Date(started).toISOString(), guard }));
     return { status: 'FAIL', guard };
@@ -198,12 +200,14 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   // records the reasons and the PR goes to claude-fix without spending the 15-minute check.
   // The lint is bounded by the same deadline, and the budget is read again before pnpm (K: 23:55).
   const pre = preflight?.(pr, cwd, budget);
-  const left = budget();
-  if (left <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
+  if (budget() <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
   if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
-  // Agent tests run through collab-test-guard.mjs; wait up to 5 minutes for them (05.11.2026).
-  const guarded = waitGuard();
+  // Agent tests run through collab-test-guard.mjs; wait up to 5 minutes for them (05.11.2026),
+  // never past the budget, and the budget is read again after the wait (#258 r1).
+  const guarded = waitGuard({ limitMs: Math.min(guardWaitMs, budget()) });
   if (guarded) return { status: 'busy', reason: `test của agent đang chạy qua collab-test-guard (pid ${guarded})` };
+  const left = budget();
+  if (left <= 0) return { status: 'refused', reason: 'hết giờ khi chờ test của agent (sau 23:30)' };
   const out = openCheckLog(pr.number, head);
   // CI=1: Playwright starts its own preview server instead of reusing one left by another checkout.
   let result;
@@ -214,11 +218,11 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const status = exitCode === 0 && !dirty && git(['rev-parse', 'HEAD']) === head ? 'PASS' : 'FAIL';
   let details = [];
   if (status === 'FAIL') {
-    let steps = [], list = [];
+    let steps = [];
     try { steps = checkSteps(JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')).scripts?.check); } catch {}
-    try { list = terms(); } catch {}
     const output = out.read();
-    details = failDetails({ output, steps, terms: list, logPath: out.keep() });
+    // Without the scan's term list the tail cannot be redacted, so it is not published.
+    details = failDetails({ output, steps, terms: loaded ?? [], tail: Array.isArray(loaded), logPath: out.keep() });
   } else out.drop();
   gh.comment('pr', pr.number, renderCheck({ head, status, exitCode, details, seconds: Math.round((now() - started) / 1000), date: new Date(started).toISOString() }));
   return { status, exitCode, dirty };

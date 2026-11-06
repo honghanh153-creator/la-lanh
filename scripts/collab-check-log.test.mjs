@@ -116,3 +116,43 @@ test('real locks: the guard steps back from check.lock, and a held guard lock bl
   first.release();
   assert.equal(existsSync(log.guardLockPath()), false);
 });
+
+test('r1 P1: credential formats in the log tail never reach the receipt', () => {
+  for (const line of ['TOKEN=synthetic-credential', 'SECRET=synthetic-credential', 'password: synthetic', '{"Authorization":"Bearer synthetic-credential"}', '"api_key": "synthetic"', 'postgresql+asyncpg://synthetic:synthetic@localhost/db', 'redis://:synthetic@localhost:6379', 'curl -H "Cookie: sid=synthetic"', 'Authorization: Basic c3ludGhldGljOnN5bnRo']) {
+    assert.match(log.scrubLines(line)[0], /dòng ẩn/, line);
+  }
+  assert.equal(log.scrubLines('FAIL src/a.test.ts > renders')[0], 'FAIL src/a.test.ts > renders', 'ordinary test lines stay');
+});
+
+test('r1 P1: the receipt uses the terms read for the scan, and drops the tail without them', () => {
+  let reads = 0;
+  const terms = () => { reads += 1; if (reads > 1) throw new Error('unreadable now'); return ['ZZ-PRIVATE']; };
+  const gh = fakeGh();
+  runCheck(260, { gh, git, busy: () => null, spawn: (c, a, opts) => { writeSync(opts.stdio[1], 'owner term ZZ-PRIVATE here\n'); return { status: 1 }; }, terms, waitGuard: () => null });
+  assert.equal(reads, 1, 'the private list is read once per check');
+  assert.doesNotMatch(gh.calls[0], /ZZ-PRIVATE/);
+  assert.match(gh.calls[0], /\[ẩn\]/);
+  const none = log.failDetails({ output: 'ZZ-PRIVATE', terms: [], tail: false }).join('\n');
+  assert.doesNotMatch(none, /ZZ-PRIVATE/);
+});
+
+test('r1 P1: the guard wait is bounded by the budget and the budget is read again after it', () => {
+  let left = 60000, limit = null, spawned = false;
+  const result = runCheck(261, { gh: fakeGh(), git, busy: () => null, terms: () => [], budget: () => left, spawn: () => { spawned = true; return { status: 0 }; }, waitGuard: ({ limitMs }) => { limit = limitMs; left = 0; return null; } });
+  assert.equal(limit, 60000, 'the wait never outlasts the time left');
+  assert.equal(result.status, 'refused', 'no pnpm check once the wait used the budget');
+  assert.equal(spawned, false);
+  left = 10 * 60000;
+  runCheck(262, { gh: fakeGh(), git, busy: () => null, terms: () => [], budget: () => left, spawn: () => ({ status: 0 }), waitGuard: ({ limitMs }) => { limit = limitMs; return null; } });
+  assert.equal(limit, log.guardWaitMs);
+});
+
+test('r1 P2: a lock is never visible without its PID, and a live lock is never reclaimed', () => {
+  const path = join(home, 'race.lock');
+  const a = log.takeGuardLock({ path, checkHolder: () => null });
+  assert.equal(a.status, 'ok');
+  assert.equal(readFileSync(path, 'utf8'), String(process.pid), 'the lock appears with its PID already written');
+  assert.equal(log.takeGuardLock({ path, checkHolder: () => null }).status, 'held');
+  assert.deepEqual(readdirSync(home).filter(name => name.startsWith('race.lock.')), [], 'no temp file is left');
+  a.release();
+});
