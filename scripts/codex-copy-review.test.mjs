@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -59,4 +59,51 @@ test('dry run with a fake Codex touches no git and returns the batch', () => {
 
 test('python and node digests agree', () => {
   assert.equal(digest('Câu thử A.'), digest('Câu thử A.'.normalize('NFD')));
+});
+
+test('generated batch PR body passes the preflight gate check at level M', async () => {
+  const { bodyProblems } = await import('./collab-preflight.mjs');
+  const body = renderBody([{ id: 'tarot.a', decision: 'approve', reason: 'rõ' }], '2026-11-06');
+  assert.deepEqual(bodyProblems(body), []);
+  assert.match(body, /^Mức: M/m);
+});
+
+test('an entry changed after review is not approved', () => {
+  const pending = selectPending(registry);
+  const reviewed = new Map(pending.map(e => [e.id, digest(e.text)]));
+  const edited = { ...registry, entries: registry.entries.map(e => e.id === 'tarot.a' ? { ...e, text: 'Câu đã đổi.' } : e) };
+  const next = applyDecisions(edited, decisions.decisions, '2026-11-06', reviewed);
+  assert.equal(next.entries[0].status, 'pending');
+});
+
+test('a batch with no approvals publishes nothing', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'copy-review-test-'));
+  writeFileSync(join(dir, 'reg.json'), JSON.stringify(registry));
+  writeFileSync(join(dir, 'fake.json'), JSON.stringify({ decisions: [{ id: 'tarot.a', decision: 'reject', reason: 'x' }] }));
+  const calls = [];
+  const result = main(['--fake-codex', join(dir, 'fake.json')],
+    { run: (...args) => { calls.push(args); }, out: { write() {} }, registryPath: join(dir, 'reg.json') });
+  assert.equal(result.status, 'no-approvals');
+  assert.deepEqual(calls, []);
+});
+
+test('publishing reviews and branches from the same pinned integration commit', () => {
+  const sha = 'a'.repeat(40);
+  const calls = [];
+  const run = (cmd, args) => {
+    calls.push([cmd, ...args]);
+    if (args[0] === 'rev-parse') return `${sha}\n`;
+    if (args[0] === 'show') return JSON.stringify(registry);
+    if (args[0] === 'worktree') mkdirSync(join(args[5], 'apps/api/app/domains/content'), { recursive: true });
+    if (cmd === 'gh') return 'https://example.test/pr/1\n';
+    return '';
+  };
+  const dir = mkdtempSync(join(tmpdir(), 'copy-review-test-'));
+  writeFileSync(join(dir, 'fake.json'), JSON.stringify(decisions));
+  const result = main(['--fake-codex', join(dir, 'fake.json')], { run, out: { write() {} } });
+  assert.equal(result.status, 'opened');
+  assert.ok(calls.some(c => c[1] === 'show' && c[2] === `${sha}:apps/api/app/domains/content/copy_registry.json`));
+  const add = calls.find(c => c[1] === 'worktree');
+  assert.equal(add.at(-1), sha);
+  assert.ok(!calls.some(c => c[0] === 'git' && c[1] === 'fetch' && calls.indexOf(c) > calls.indexOf(add)));
 });

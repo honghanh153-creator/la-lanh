@@ -30,7 +30,7 @@ def _entry(**overrides: Any) -> dict[str, Any]:
 
 
 def _use(monkeypatch: pytest.MonkeyPatch, *entries: dict[str, Any]) -> None:
-    registry = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": entries})
+    registry = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": list(entries)})
     monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: registry)
 
 
@@ -135,3 +135,31 @@ def test_registry_rejects_codex_approval_of_safety_copy() -> None:
 
 def test_checked_in_registry_is_valid() -> None:
     assert copy_approval.registry_problems(copy_approval.load_registry()) == []
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [],
+        {"version": copy_approval.REGISTRY_VERSION, "entries": {}},
+        {"version": copy_approval.REGISTRY_VERSION, "entries": [None]},
+        {"version": copy_approval.REGISTRY_VERSION, "entries": [{**_entry(), "text": None}]},
+        {"version": copy_approval.REGISTRY_VERSION, "entries": [{**_entry(), "digest": 1}]},
+        {"version": copy_approval.REGISTRY_VERSION, "entries": [{**_entry(), "extra": "x"}]},
+    ],
+)
+def test_malformed_registry_shapes_fall_back(
+    data: object, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import json
+
+    with pytest.raises(ValueError):
+        parse_registry(data)
+    path = tmp_path / "copy_registry.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    monkeypatch.setattr(copy_approval, "REGISTRY_PATH", path)
+    copy_approval._runtime_registry.cache_clear()
+    try:
+        assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
+    finally:
+        copy_approval._runtime_registry.cache_clear()

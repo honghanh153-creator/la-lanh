@@ -55,10 +55,12 @@ export function validateDecisions(out, pending) {
   return (out?.decisions ?? []);
 }
 
-export function applyDecisions(registry, decisions, date) {
+// `reviewed` maps id -> digest of the text Codex saw; an entry whose text changed since is left alone.
+export function applyDecisions(registry, decisions, date, reviewed = null) {
   const approve = new Set(decisions.filter(d => d.decision === 'approve').map(d => d.id));
   const entries = registry.entries.map(e =>
     e.status === 'pending' && !ownerOnly.has(e.category) && approve.has(e.id)
+      && (!reviewed || reviewed.get(e.id) === digest(e.text))
       ? { ...e, status: 'approved', approver: 'codex', date, digest: digest(e.text) }
       : e);
   return { ...registry, entries };
@@ -71,7 +73,19 @@ export function renderBody(decisions, date) {
     'Câu bị reject vẫn ở trạng thái pending; app vẫn dùng câu đã duyệt hiện tại.',
     'Copy về quyền riêng tư, đồng ý, khủng hoảng, an toàn không có trong lô này (chỉ owner duyệt).',
     '', '| Mục | Kết quả | Lý do |', '| --- | --- | --- |', ...rows, '',
-    'Mức: S', '', `${agentMarker} copy-batch date=${date} -->`, '',
+    '## Cổng (docs/operations/product-development-process.md §3–4)', '',
+    'Mức: M — câu đã duyệt sẽ hiện cho người dùng.', '',
+    '- G1 Tài liệu / US-AC: luật cờ chờ duyệt trong docs/operations/decision-checklist.md (owner 06.11.2026).',
+    '- G2 UI/UX: không đổi giao diện; chỉ đổi câu đã có chỗ hiển thị.',
+    '- G3 Câu chữ (owner duyệt nếu có câu mới): Codex duyệt lô theo quyết định owner 06.11; không có nhóm owner-only.',
+    '- G4 BE + kiến trúc: chỉ đổi copy_registry.json và hash trong fallback-approval.json.',
+    '- G5 FE: không áp dụng.',
+    '- G6 QC (test đỏ→xanh, author check): scripts.fallback_approval --check chạy trong author check.',
+    '- G7 Bảo mật: không đụng phiên, quyền, secret hay log; Codex chạy read-only.',
+    '- G8 Data privacy: không có dữ liệu cá nhân; chỉ câu mẫu trong repo.',
+    '- G9 Release: không áp dụng cho PR vào integration',
+    '- G10 Chi phí / license: một lượt Codex CLI có sẵn, không thêm chi phí.', '',
+    `${agentMarker} copy-batch date=${date} -->`, '',
     '🤖 Generated with [Claude Code](https://claude.com/claude-code)',
   ].join('\n'));
 }
@@ -83,13 +97,13 @@ function runCodex(prompt, outPath, run) {
   return JSON.parse(readFileSync(outPath, 'utf8'));
 }
 
-// Writes the batch on its own branch from origin/collab/integration and opens a PR.
-function openBatchPr(registry, body, date, run) {
+// Writes the batch on its own branch from the reviewed integration commit and opens a PR, so a
+// newer integration change to the registry is merged by git, never overwritten.
+function openBatchPr(registry, body, date, base, run) {
   const branch = `agent/claude/copy-batch-${date.replaceAll('-', '')}`;
   const dir = mkdtempSync(join(tmpdir(), 'copy-batch-'));
   const git = args => run('git', args, { cwd: root, encoding: 'utf8' });
-  git(['fetch', '-q', 'origin', integration]);
-  git(['worktree', 'add', '-q', '-b', branch, join(dir, 'w'), `origin/${integration}`]);
+  git(['worktree', 'add', '-q', '-b', branch, join(dir, 'w'), base]);
   const work = join(dir, 'w');
   writeFileSync(join(work, registryRel), `${JSON.stringify(registry, null, 1)}\n`);
   run('uv', ['run', 'python', '-m', 'scripts.fallback_approval'], { cwd: join(work, 'apps/api'), encoding: 'utf8' });
@@ -104,10 +118,20 @@ function openBatchPr(registry, body, date, run) {
   { cwd: work, encoding: 'utf8' }).trim();
 }
 
-export function main(argv, { run = execFileSync, out = process.stdout, registryPath = join(root, registryRel) } = {}) {
+export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null } = {}) {
   const dryRun = argv.includes('--dry-run');
   const fakeAt = argv.indexOf('--fake-codex');
-  const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+  // Review a pinned integration snapshot unless a test passes its own registry file.
+  let base = null;
+  let registry;
+  if (registryPath) {
+    registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+  } else {
+    const git = args => String(run('git', args, { cwd: root, encoding: 'utf8' }) ?? '').trim();
+    git(['fetch', '-q', 'origin', integration]);
+    base = git(['rev-parse', `origin/${integration}`]);
+    registry = JSON.parse(git(['show', `${base}:${registryRel}`]));
+  }
   const pending = selectPending(registry);
   if (!pending.length) { out.write('no pending copy\n'); return { status: 'empty' }; }
   const date = vnNow().date;
@@ -115,10 +139,14 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
     ? JSON.parse(readFileSync(argv[fakeAt + 1], 'utf8'))
     : runCodex(buildPrompt(pending), join(mkdtempSync(join(tmpdir(), 'copy-codex-')), 'out.json'), run);
   const decisions = validateDecisions(result, pending);
-  const next = applyDecisions(registry, decisions, date);
+  const reviewed = new Map(pending.map(e => [e.id, digest(e.text)]));
+  const next = applyDecisions(registry, decisions, date, reviewed);
+  const changed = next.entries.some((e, i) => e !== registry.entries[i]);
   const body = renderBody(decisions, date);
   if (dryRun) { out.write(`${JSON.stringify({ registry: next, body }, null, 1)}\n`); return { status: 'dry-run', registry: next, body }; }
-  const url = openBatchPr(next, body, date, run);
+  if (!changed) { out.write('no copy approved in this batch\n'); return { status: 'no-approvals', registry: next, body }; }
+  if (!base) throw new Error('publishing needs the integration snapshot (no --registry file)');
+  const url = openBatchPr(next, body, date, base, run);
   out.write(`${url}\n`);
   return { status: 'opened', url };
 }

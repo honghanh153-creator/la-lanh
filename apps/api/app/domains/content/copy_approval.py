@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
 
 REGISTRY_PATH = Path(__file__).with_name("copy_registry.json")
 REGISTRY_VERSION = "copy-registry/v1"
@@ -60,12 +59,31 @@ class CopyEntry:
         return self.status == "approved" and not self.problems()
 
 
-def parse_registry(data: dict[str, Any]) -> dict[str, CopyEntry]:
-    if data.get("version") != REGISTRY_VERSION:
-        raise ValueError(f"copy registry version must be {REGISTRY_VERSION}")
+_REQUIRED_TEXT = ("id", "category", "text", "status")
+_OPTIONAL_TEXT = ("approver", "date", "digest")
+
+
+def _entry(raw: object) -> CopyEntry:
+    if not isinstance(raw, dict) or set(raw) - {*_REQUIRED_TEXT, *_OPTIONAL_TEXT}:
+        raise ValueError("copy entry must be an object with known fields")
+    for key in _REQUIRED_TEXT:
+        if not isinstance(raw.get(key), str):
+            raise ValueError(f"copy entry field {key} must be a string")
+    for key in _OPTIONAL_TEXT:
+        if raw.get(key) is not None and not isinstance(raw[key], str):
+            raise ValueError(f"copy entry field {key} must be a string or null")
+    return CopyEntry(**raw)
+
+
+def parse_registry(data: object) -> dict[str, CopyEntry]:
+    if not isinstance(data, dict) or data.get("version") != REGISTRY_VERSION:
+        raise ValueError(f"copy registry must be an object with version {REGISTRY_VERSION}")
+    raw_entries = data.get("entries", [])
+    if not isinstance(raw_entries, list):
+        raise ValueError("copy registry entries must be a list")
     entries: dict[str, CopyEntry] = {}
-    for raw in data.get("entries", []):
-        entry = CopyEntry(**raw)
+    for raw in raw_entries:
+        entry = _entry(raw)
         if entry.id in entries:
             raise ValueError(f"duplicate copy entry: {entry.id}")
         entries[entry.id] = entry
@@ -94,7 +112,7 @@ def approved_pin(entries: dict[str, CopyEntry]) -> str:
 @lru_cache(maxsize=1)
 def _runtime_registry() -> dict[str, CopyEntry]:
     try:
-        return load_registry()
+        return load_registry(REGISTRY_PATH)
     except (OSError, ValueError, TypeError):
         # Fail closed: an unreadable registry serves the current approved sentences.
         return {}
