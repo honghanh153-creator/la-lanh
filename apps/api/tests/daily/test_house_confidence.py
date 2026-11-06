@@ -484,8 +484,14 @@ def test_no_new_stored_data() -> None:
 # Independent reference (C2b, issue #223): the cusps are recomputed here with closed-form
 # spherical astronomy, without Swiss Ephemeris. Recorded settings: tropical zodiac, Placidus,
 # mean sidereal time (IAU 1982) and mean obliquity (IAU 1980), no nutation. The nutation the
-# engine adds moves the angles by a few thousandths of a degree, inside REFERENCE_TOLERANCE_DEG.
-REFERENCE_TOLERANCE_DEG = 0.05
+# engine adds moves the angles by a few thousandths of a degree, inside this tolerance. It has its
+# own name so the tighter REFERENCE_TOLERANCE_DEG above is not overwritten (issue #262).
+PLACIDUS_REFERENCE_TOLERANCE_DEG = 0.05
+
+
+def test_the_angle_reference_keeps_its_own_tolerance() -> None:
+    assert REFERENCE_TOLERANCE_DEG == 0.01
+    assert PLACIDUS_REFERENCE_TOLERANCE_DEG == 0.05
 
 
 def _reference_placidus(born: datetime, place: Birthplace) -> dict[int, float]:
@@ -546,8 +552,14 @@ def test_engine_cusps_match_an_independent_placidus_reference(
         reference = _reference_placidus(born, PLACE)
         for house in chart.houses:
             assert angular_distance(house.longitude, reference[house.number]) < (
-                REFERENCE_TOLERANCE_DEG
+                PLACIDUS_REFERENCE_TOLERANCE_DEG
             ), (born, house.number)
             assert house.sign == sign_for_longitude(reference[house.number])
-        assert angular_distance(chart.angles.ascendant, reference[1]) < REFERENCE_TOLERANCE_DEG
-        assert angular_distance(chart.angles.midheaven, reference[10]) < REFERENCE_TOLERANCE_DEG
+        assert (
+            angular_distance(chart.angles.ascendant, reference[1])
+            < PLACIDUS_REFERENCE_TOLERANCE_DEG
+        )
+        assert (
+            angular_distance(chart.angles.midheaven, reference[10])
+            < PLACIDUS_REFERENCE_TOLERANCE_DEG
+        )
