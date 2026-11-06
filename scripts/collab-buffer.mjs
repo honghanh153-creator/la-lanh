@@ -40,7 +40,7 @@ export function recordFlow(actionable, { dir, nowMs = Date.now() } = {}) {
 
 export const renderFlow = day => `Hàng chờ trống hôm nay: ${day?.emptyMinutes ?? 0} phút (không có PR nào để máy làm).`;
 
-// The one call collab-turn makes for --status and --report: buffer, top-up and today's flow metric.
+// The one call collab-turn makes for the tick (#253), --status and --report: buffer, top-up and today's flow metric.
 // `actionable` counts PRs the machine can work on now (check, review, merge).
 const machine = new Set(['claude-check', 'codex-review', 'merge']);
 export function bufferStatus(prs, turns = [], options = {}) {
