@@ -27,7 +27,12 @@ from app.domains.daily.variant_rotation import (
     sensitive_day_open,
     variant_slot,
 )
-from app.domains.readings.daily_rotation import daily_variety_seed, day_index, derive_variety_key
+from app.domains.readings.daily_rotation import (
+    _shuffled,
+    daily_variety_seed,
+    day_index,
+    derive_variety_key,
+)
 from app.domains.readings.house_meanings import (
     HOUSE_MEANINGS,
     MeaningSource,
@@ -81,6 +86,33 @@ def test_one_reader_sees_every_variant_once_per_cycle_and_never_twice_in_a_row()
         first_full_cycle = (-start) % n
         for cycle_start in range(first_full_cycle, len(values) - n + 1, n):
             assert sorted(values[cycle_start : cycle_start + n]) == list(range(n))
+
+
+def test_cycle_boundary_collision_keeps_both_cycles_unique() -> None:
+    """#302: when a new cycle's raw shuffle opens with yesterday's variant, the boundary rule
+    swaps its first two positions. A swap keeps the cycle a permutation; "take the next
+    element" would show that element again the following day."""
+
+    forced = []
+    for n in (3, 5, 10):
+        for reader in READERS[:200]:
+            seed = reader_seed(KEY, reader)
+            for cycle in range(1, 40):
+                if _shuffled(seed, f"c2d:{SLOT}", cycle, n)[0] == _shuffled(
+                    seed, f"c2d:{SLOT}", cycle - 1, n
+                )[-1]:
+                    forced.append((n, seed, cycle))
+    assert len(forced) >= 30, "the collision case must actually be exercised"
+    for n, seed, cycle in forced:
+        prev_last, first, second = (
+            variant_slot(seed, SLOT, n, cycle * n + offset) for offset in (-1, 0, 1)
+        )
+        assert prev_last != first
+        assert first != second
+        new_cycle = [variant_slot(seed, SLOT, n, cycle * n + day) for day in range(n)]
+        assert sorted(new_cycle) == list(range(n))
+        old_cycle = [variant_slot(seed, SLOT, n, (cycle - 1) * n + day) for day in range(n)]
+        assert sorted(old_cycle) == list(range(n))
 
 
 def test_slots_rotate_independently() -> None:
