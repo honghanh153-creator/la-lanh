@@ -1989,7 +1989,7 @@
   {
    "id": "daily.scene.automatic-caretaking.02",
    "category": "reading",
-   "text": "Khi thấy người kia lúng túng, bạn có thể làm hộ luôn mà chưa hỏi họ có cần không.",
+   "text": "Khi thấy người kia lúng túng, bạn có thể làm giúp luôn mà chưa hỏi họ có cần không.",
    "status": "pending"
   },
   {
@@ -2049,7 +2049,7 @@
   {
    "id": "daily.scene.avoid-small-conflict.02",
    "category": "reading",
-   "text": "Khi người kia hỏi bạn làm hộ được không, bạn có thể nói được trước khi nghĩ.",
+   "text": "Khi người kia nhờ bạn làm hộ, bạn có thể nói được trước khi nghĩ.",
    "status": "pending"
   },
   {
@@ -2061,7 +2061,7 @@
   {
    "id": "daily.scene.avoid-small-conflict.04",
    "category": "reading",
-   "text": "Khi câu hỏi đến bất ngờ, bạn có thể trả lời được dù trong lòng muốn nói không.",
+   "text": "Khi lời nhờ đến bất ngờ, bạn có thể trả lời được dù trong lòng muốn nói không.",
    "status": "pending"
   },
   {
@@ -2109,7 +2109,7 @@
   {
    "id": "daily.scene.capacity-before-agreement.02",
    "category": "reading",
-   "text": "Khi người kia hỏi bạn rảnh không, bạn có thể nói có trước khi biết việc mất bao lâu.",
+   "text": "Khi người kia nhờ và hỏi bạn rảnh không, bạn có thể nói có trước khi biết việc mất bao lâu.",
    "status": "pending"
   },
   {
@@ -2229,7 +2229,7 @@
   {
    "id": "daily.scene.comparison-loop.02",
    "category": "reading",
-   "text": "Khi nghe một người làm nhanh hơn mình, bạn có thể quên lý do mình chọn làm chậm.",
+   "text": "Khi nghe người khác làm nhanh hơn mình, bạn có thể quên lý do mình chọn làm chậm.",
    "status": "pending"
   },
   {
@@ -2403,7 +2403,7 @@
   {
    "id": "daily.scene.group-pressure.01",
    "category": "reading",
-   "text": "Khi cuộc họp sắp hết giờ, bạn có thể đồng ý cho nhanh dù còn một chỗ muốn hỏi.",
+   "text": "Khi cuộc họp nhóm sắp hết giờ, bạn có thể đồng ý cho nhanh dù còn một chỗ muốn hỏi.",
    "status": "pending"
   },
   {
@@ -2421,7 +2421,7 @@
   {
    "id": "daily.scene.group-pressure.04",
    "category": "reading",
-   "text": "Khi người nói đầu tiên rất chắc, bạn có thể ngại đưa ra câu hỏi khác.",
+   "text": "Khi người nói đầu tiên trong nhóm rất chắc, bạn có thể ngại đưa ra câu hỏi khác.",
    "status": "pending"
   },
   {
@@ -2523,7 +2523,7 @@
   {
    "id": "daily.scene.name-the-need.01",
    "category": "reading",
-   "text": "Khi việc nhà dồn lại, bạn có thể nói mình mệt mà chưa nhờ ai làm phần nào.",
+   "text": "Khi việc nhà dồn lại, bạn có thể nói mình mệt mà chưa nhờ ai giúp phần nào.",
    "status": "pending"
   },
   {
@@ -2541,7 +2541,7 @@
   {
    "id": "daily.scene.name-the-need.04",
    "category": "reading",
-   "text": "Khi kể về một ngày nhiều việc, bạn có thể chưa nói việc nào người kia làm được.",
+   "text": "Khi kể về một ngày nhiều việc, bạn có thể chưa nói việc nào người kia giúp được.",
    "status": "pending"
   },
   {
@@ -2721,7 +2721,7 @@
   {
    "id": "daily.scene.repair-reply.04",
    "category": "reading",
-   "text": "Khi bình tĩnh lại sau một câu trả lời nhanh, bạn có thể thấy mình nói chưa đúng ý.",
+   "text": "Khi đọc lại một câu trả lời nhanh lúc đã bình tĩnh, bạn có thể thấy mình nói chưa đúng ý.",
    "status": "pending"
   },
   {
@@ -2769,7 +2769,7 @@
   {
    "id": "daily.scene.specific-feedback.02",
    "category": "reading",
-   "text": "Khi chỉ muốn hỏi về tiêu đề, bạn có thể gửi cả bài mà chưa nói phần cần xem.",
+   "text": "Khi chỉ cần góp ý về tiêu đề, bạn có thể gửi cả bài mà chưa nói phần cần xem.",
    "status": "pending"
   },
   {
@@ -2781,7 +2781,7 @@
   {
    "id": "daily.scene.specific-feedback.04",
    "category": "reading",
-   "text": "Khi lo một đoạn khó hiểu, bạn có thể hỏi chung chung thay vì chỉ đoạn đó.",
+   "text": "Khi lo một đoạn trong bản nháp khó hiểu, bạn có thể hỏi chung chung thay vì chỉ đoạn đó.",
    "status": "pending"
   },
   {
