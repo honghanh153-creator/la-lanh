@@ -45,3 +45,29 @@ test('after two REQUEST_CHANGES the next fix turn asks for a repo-wide sweep', (
   assert.equal(withRepeatNote({ turn: 'codex-review', reason: 'x' }, pr).reason, 'x');
   assert.match(readFileSync(new URL('./collab-turn.mjs', import.meta.url), 'utf8'), /withRepeatNote\(prTurn\(/);
 });
+
+test('#254: a blank Size-exception does not borrow the next line as its reason', () => {
+  const big = [{ path: 'scripts/b.mjs', additions: 401, deletions: 0 }];
+  assert.notEqual(sizeProblem({ files: big, body: 'Size-exception:\n- G1: existing gate evidence\n' }), null);
+  assert.notEqual(sizeProblem({ files: big, body: 'Size-exception:   \nMức: S\n' }), null);
+  assert.notEqual(sizeProblem({ files: big, body: '-\nSize-exception: \n' }), null);
+  assert.equal(sizeProblem({ files: big, body: '- Size-exception:\tmột migration\n' }), null);
+});
+
+test('#254: an oversized PR with an existing author check goes back to Claude, not review or merge', async () => {
+  const { renderCheck } = await import('./collab-check.mjs');
+  const { prTurn } = await import('./collab-turn.mjs');
+  const head = 'c'.repeat(40);
+  const owner = b => ({ authorAssociation: 'OWNER', createdAt: '2026-11-07T01:00:00Z', body: b });
+  const checked = owner(renderCheck({ head, status: 'PASS', exitCode: 0, seconds: 1, date: 'x' }));
+  const approved = { ...owner(`Review verdict: APPROVE @ ${head}\nReviewer: Codex`), createdAt: '2026-11-07T02:00:00Z' };
+  const big = [{ path: 'scripts/b.mjs', additions: 401, deletions: 0 }];
+  const pr = extra => ({ number: 11, title: 'ops(collab): x', author: { login: 'honghanh153-creator' }, isCrossRepository: false, isDraft: false, baseRefName: 'collab/integration', headRefOid: head, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-11-07T00:00:00Z', body, files: big, ...extra });
+  for (const comments of [[checked], [checked, approved]]) {
+    const t = prTurn(pr({ comments }));
+    assert.equal(t.turn, 'claude-fix');
+    assert.match(t.reason, /PR quá lớn \(401 dòng mã\)/);
+  }
+  assert.equal(prTurn(pr({ comments: [checked], body: `${body}Size-exception: tách sẽ hỏng contract\n` })).turn, 'codex-review');
+  assert.equal(prTurn(pr({ comments: [checked, approved], files: [{ path: 'scripts/b.mjs', additions: 40, deletions: 0 }] })).turn, 'merge');
+});
