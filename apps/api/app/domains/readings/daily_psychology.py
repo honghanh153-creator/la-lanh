@@ -1013,10 +1013,13 @@ def _expand_daily_issue(issue: DailyIssuePattern) -> DailyIssuePattern:
         scenes=tuple(
             dict.fromkeys((*issue.scenes, *scenes, *approved_texts(f"daily.scene.{issue.key}.")))
         ),
-        advice=tuple(dict.fromkeys((*issue.advice, *actions))),
+        # Approved action variants join the general pool; relationship actions stay matched.
+        advice=tuple(
+            dict.fromkeys((*issue.advice, *actions, *approved_texts(f"daily.action.{issue.key}.")))
+        ),
         relationship_advice=_RELATIONSHIP_ACTIONS.get(issue.key, ()),
     )
-    if len(expanded.headlines) < 6 or len(expanded.scenes) < 8 or len(expanded.advice) != 8:
+    if len(expanded.headlines) < 6 or len(expanded.scenes) < 8 or len(expanded.advice) < 8:
         raise ValueError(f"Daily issue {issue.key} requires 384 distinct bounded variants")
     if SemanticArena.RELATIONSHIPS in issue.arenas and len(set(expanded.relationship_advice)) != 8:
         raise ValueError(f"Daily issue {issue.key} requires eight matched relationship actions")

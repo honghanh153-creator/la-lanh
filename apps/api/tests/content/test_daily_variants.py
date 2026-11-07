@@ -29,7 +29,7 @@ from app.domains.readings.clarity_lint import (
 )
 from app.domains.readings.daily_rotation import axis_slot
 
-PARTS = {"headline": "headlines", "scene": "scenes"}
+PARTS = {"headline": "headlines", "scene": "scenes", "action": "advice"}
 ID = re.compile(r"^daily\.(?P<part>[a-z]+)\.(?P<issue>[a-z-]+)\.\d{2}$")
 ISSUES = {issue.key: issue for issue in daily_psychology.DAILY_ISSUES}
 REGISTRY = load_registry()
