@@ -15,8 +15,9 @@ export const codeLines = (files = []) => files
   .filter(f => f?.path && !isTest(f.path) && !isDoc(f.path) && !isLock(f.path))
   .reduce((n, f) => n + (Number(f.additions) || 0) + (Number(f.deletions) || 0), 0);
 
+// Horizontal whitespace only (#254): `\s` crossed the newline and took the next body line as the reason.
 export function sizeProblem(pr) {
-  if (/^\s*[-*]?\s*Size-exception:\s*\S/m.test(String(pr.body ?? ''))) return null;
+  if (/^[ \t]*[-*]?[ \t]*Size-exception:[ \t]*\S/m.test(String(pr.body ?? ''))) return null;
   const n = codeLines(pr.files ?? []);
   return n > sizeCap ? `PR quá lớn (${n} dòng mã) — tách nhỏ hoặc ghi \`Size-exception: <lý do>\` trong body` : null;
 }

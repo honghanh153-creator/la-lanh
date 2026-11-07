@@ -6,7 +6,7 @@ import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integratio
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { bodyHash } from './collab-heal.mjs';
 import { preflightFailure, readPreflight, recordPreflight } from './collab-preflight.mjs';
-import { withRepeatNote } from './collab-size.mjs';
+import { sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus } from './collab-buffer.mjs';
 
@@ -52,6 +52,10 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   const pre = check ? null : preflightFailure(preflight, pr);
   if (pre) return out('claude-fix', `preflight: ${clean(pre.join('; '), 200)}`);
   if (!check) return out('claude-check', 'chưa có Author check @ head');
+  // #254: preflight runs only before a check, so a PR checked before the size cap would reach
+  // review or merge without it. The cap is applied here too, before review and merge routing.
+  const size = sizeProblem(pr);
+  if (size) return out('claude-fix', `preflight: ${clean(size, 200)}`);
   if (check.status === 'FAIL') return out('claude-fix', 'Author check FAIL @ head');
   if (!last || last.sha !== head) return out('codex-review', last ? `verdict cuối cho ${last.sha.slice(0, 7)}` : 'chưa có verdict');
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
