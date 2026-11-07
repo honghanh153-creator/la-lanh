@@ -138,3 +138,12 @@ def test_action_variant_passes_card_gates(key: str) -> None:
     folded = _fold(DAILY[key].text)
     assert any(folded.startswith(_fold(verb)) for verb in _ACTION_VERBS), key
     assert any(_fold(a) in folded for a in ISSUES[match["issue"]].action_anchors), key
+
+
+@pytest.mark.parametrize("key", sorted(k for k in DAILY if k.startswith("daily.scene.")))
+def test_scene_variant_carries_its_issue_anchor(key: str) -> None:
+    # meaning_gate rejects a card whose scene drifts from its issue's scene anchors.
+    match = ID.match(key)
+    assert match
+    folded = _fold(DAILY[key].text)
+    assert any(_fold(a) in folded for a in ISSUES[match["issue"]].scene_anchors), key
