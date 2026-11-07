@@ -70,7 +70,7 @@ export function withSystemPath(path = '') {
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
 // Fix E: the heavy-job lock is free when no live process holds check.lock and no heavy test runs.
 export function heavyJobFree(busy = machineBusy) {
-  try { const pid = Number(readFileSync(join(stateDir, 'check.lock'), 'utf8')); if (alive(pid)) return false; } catch {}
+  try { const pid = Number.parseInt(readFileSync(join(stateDir, 'check.lock'), 'utf8'), 10); if (alive(pid)) return false; } catch {}
   return !busy();
 }
 export function withCheckLock(fn) {
