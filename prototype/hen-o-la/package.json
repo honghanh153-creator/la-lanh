@@ -1,0 +1,8 @@
+{
+  "name": "la-lanh-hen-o-la",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test event.test.cjs world.test.cjs"
+  }
+}
