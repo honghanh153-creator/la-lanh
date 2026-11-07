@@ -341,3 +341,15 @@ test('deadline: the review clone git calls follow the time left', () => {
   assert.ok(seen.every(s => s.timeout <= s.left), JSON.stringify(seen));
   assert.deepEqual(seen.map(s => s.timeout).slice(0, 2), [300000, 200000]);
 });
+
+test('#229: a start seen first by the watchdog (no done beat) still alerts after 30 minutes', () => {
+  const t0 = ms('2026-11-10T03:00:00Z'); // 10:00 VN, before autopilot's 11:00 window
+  const beats = {
+    'la-lanh-autopilot': { startedAt: new Date(t0).toISOString(), baselineAt: new Date(t0 + 10 * 60000).toISOString() },
+    'la-lanh-ops-watch': { doneAt: new Date(t0).toISOString() },
+    'la-lanh-retro': { doneAt: new Date(t0).toISOString() },
+  };
+  const stale = staleTasks(beats, t0 + 40 * 60000, { date: '2026-11-10', hour: 10, minute: 40 });
+  assert.deepEqual(stale.map(s => s.task), ['la-lanh-autopilot']);
+  assert.equal(stale[0].stuckSince, new Date(t0).toISOString());
+});
