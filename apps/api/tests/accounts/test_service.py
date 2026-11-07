@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 import httpx
@@ -235,8 +236,13 @@ async def test_device_revocations_are_journaled_and_replayed_after_restore(
 
     _, first = await runtime.link()
     second = await second_device(runtime)
-    later = NOW + timedelta(days=1)
+    later = NOW + timedelta(seconds=160)  # inside the pending challenge's lifetime
     live, dump = tmp_path / "accounts.db", tmp_path / "dump.db"
+    # The second device starts a restore flow that is still pending at snapshot time.
+    as_guest: Any = second
+    pending_challenge = await runtime.challenge(as_guest, now=NOW + timedelta(seconds=130))
+    pending = await runtime.verify(pending_challenge, as_guest, now=NOW + timedelta(seconds=131))
+    assert pending.status == "restore_required"
     shutil.copyfile(live, dump)  # snapshot taken while both devices are signed in
     assert not await runtime.accounts.revoke_devices(
         first.token, first.csrf_token, others=True, now=later
@@ -260,6 +266,15 @@ async def test_device_revocations_are_journaled_and_replayed_after_restore(
         for token in (first.token, second.token):
             with pytest.raises(AccountError, match="ACCOUNT_SESSION_UNAVAILABLE"):
                 await runtime.accounts.devices(token, now=later)
+        # A restored proof started by the revoked device cannot issue a new session.
+        with pytest.raises(AccountError):
+            await runtime.accounts.restore(
+                cookie=pending_challenge.cookie,
+                csrf=pending_challenge.csrf_token,
+                token=second.token,
+                proof=pending.restore_token,
+                now=NOW + timedelta(seconds=190),
+            )
         async with restored.sessions() as session:
             before = sorted(
                 (row.id, row.revoked_at) for row in await session.scalars(select(AccountDeviceRow))
