@@ -51,6 +51,9 @@ class ErasureKind(StrEnum):
     # HISTORY_CLEARED, because the clear selects by status and a snapshot taken earlier can hold
     # the same request in a status that clear would skip (Codex #126 P1).
     HUMAN_TAROT_REQUEST_CLEARED = "human_tarot_request_cleared"
+    # Account device sign-out (logout, revoke one, revoke others), keyed by the device row id,
+    # empty scope. Replay keeps the device revoked, so a restore never revives its session (#206).
+    DEVICE_REVOKED = "device_revoked"
 
 
 class ErasureJournal:
