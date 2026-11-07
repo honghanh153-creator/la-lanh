@@ -1,3 +1,4 @@
+import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { alertMissed, defaultChannels, emailChannel, missedRuns, readAlertEmail } from './collab-missed-run.mjs';
