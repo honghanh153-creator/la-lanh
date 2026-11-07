@@ -353,17 +353,17 @@ test('r2: every CLI entry loads and exits without hanging on an import cycle', (
 });
 
 test('r2 (#131): scheduled reviews read the clock after preparing the clone', () => {
-  const late = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now: { date: '2026-11-06', hour: 23, minute: 29 }, clock: () => ({ date: '2026-11-06', hour: 23, minute: 33 }) });
+  const late = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now: { date: '2026-11-06', hour: 23, minute: 29 }, nowMs: () => Date.parse('2026-11-06T12:00:00+07:00'), clock: () => ({ date: '2026-11-06', hour: 23, minute: 33 }) });
   assert.equal(late.status, 'refused');
   const runner = fakeRun();
-  review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-06', hour: 23, minute: 25 }) });
+  review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-06T12:00:00+07:00'), clock: () => ({ date: '2026-11-06', hour: 23, minute: 25 }) });
   // #243: Codex ends early enough to publish the verdict before 23:55.
   assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000 - review.reviewFinalizeReserveMs);
   const tight = fakeRun();
-  review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
+  review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-07T12:00:00+07:00'), clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
   assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000 - review.reviewFinalizeReserveMs);
   const none = fakeRun();
-  assert.equal(review.runReview(9, { auto: true, gh: fakeGh({ pr: pr({ number: 9, comments: [check(A)] }) }), run: none.run, now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 50 }) }).status, 'refused');
+  assert.equal(review.runReview(9, { auto: true, gh: fakeGh({ pr: pr({ number: 9, comments: [check(A)] }) }), run: none.run, now: { date: '2026-11-07', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-07T12:00:00+07:00'), clock: () => ({ date: '2026-11-07', hour: 23, minute: 50 }) }).status, 'refused');
   assert.ok(!none.calls.some(c => c[0] === review.codexBin), 'no Codex run without room to publish');
 });
 
@@ -830,10 +830,11 @@ test('#253: the persisted queue uses the ready-buffer rule and the tick samples 
 });
 
 test('#253: report turns leave out PRs dropped from today\'s plan', () => {
-  const date = trust.vnNow().date;
+  const date = '2026-11-14';
+  const now = { date, hour: 15, minute: 5 };
   const gh = plannedGh([pr({ number: 999 })], date);
   const base = gh.json;
   gh.json = args => { const out = base(args); return Array.isArray(out) ? out : { comments: [...out.comments, { authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: 'Bỏ #999' }] }; };
-  const { turns } = planTurns(gh);
+  const { turns } = planTurns(gh, now);
   assert.ok(!turns.some(t => t.number === 999 && ['claude-check', 'codex-review', 'merge'].includes(t.turn)), 'a dropped PR is not actionable');
 });
