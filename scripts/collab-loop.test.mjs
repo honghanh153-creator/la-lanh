@@ -759,6 +759,11 @@ test('fix C: the plan lists committed PRs with new copy or a clarity-ratchet cha
   assert.deepEqual(copyReview(['apps/api/app/domains/content/daily.py', 'apps/api/tests/content/test_daily.py', 'scripts/x.mjs']), { copy: ['apps/api/app/domains/content/daily.py'], ratchet: [] });
   assert.deepEqual(copyReview(['apps/api/scripts/content_clarity_exceptions.json']), { copy: [], ratchet: ['apps/api/scripts/content_clarity_exceptions.json'] });
   assert.equal(copyReview(['scripts/collab-plan.mjs']), null);
+  // #229: reading content outside content/ also needs owner review.
+  for (const f of ['apps/api/app/domains/tarot/action_copy.py', 'apps/api/app/domains/relationships/knowledge.py', 'apps/api/app/domains/readings/voice.py']) {
+    assert.deepEqual(copyReview([f]), { copy: [f], ratchet: [] }, f);
+  }
+  assert.equal(copyReview(['apps/api/app/domains/relationships/service.py']), null);
   const turns = turnsFor([
     pr({ number: 31, createdAt: '2026-11-01T00:00:00Z', files: [{ path: 'apps/api/app/domains/content/daily.py' }] }),
     pr({ number: 32, createdAt: '2026-11-02T00:00:00Z', files: [{ path: 'apps/api/scripts/content_clarity_baseline.json' }] }),
