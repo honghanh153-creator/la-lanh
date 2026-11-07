@@ -22,9 +22,15 @@ export function missingTools(path = process.env.PATH, run = execFileSync) {
   });
 }
 
-export function runTick(gh = makeGh(), preflight = () => missingTools()) {
+// #292: tick() logs failed deliveries (idle alert) through log(); without one they vanished.
+// stderr lands in the launchd error log next to the stdout result line.
+export function tickLog(line, write = text => process.stderr.write(text)) {
+  write(`${new Date().toISOString()} collab-tick: ${clean(String(line), 2000)}\n`);
+}
+
+export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog } = {}) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
-  return tick({ gh, preflight, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
+  return run({ gh, preflight, log, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, 'tác vụ hẹn giờ bị treo') });
