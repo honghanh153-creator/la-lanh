@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 
 from app.domains.astro.models import TimePrecision, Tradition
+from app.domains.content.copy_approval import approved_texts
 from app.domains.readings.daily_personalization import (
     BODY_DOMAINS,
     CAPACITY_AT_WORK_MEANING,
@@ -1000,14 +1001,20 @@ _RELATIONSHIP_ACTIONS = {
 
 def _expand_daily_issue(issue: DailyIssuePattern) -> DailyIssuePattern:
     titles, scenes, actions = _DAILY_VARIATIONS[issue.key]
+    # Daily v2 variants live in copy_registry.json as pending until Codex approves the
+    # daily batch; only approved, digest-matching ones join the rotated pool.
     expanded = replace(
         issue,
-        headlines=tuple(dict.fromkeys((*issue.headlines, *titles))),
+        headlines=tuple(
+            dict.fromkeys(
+                (*issue.headlines, *titles, *approved_texts(f"daily.headline.{issue.key}."))
+            )
+        ),
         scenes=tuple(dict.fromkeys((*issue.scenes, *scenes))),
         advice=tuple(dict.fromkeys((*issue.advice, *actions))),
         relationship_advice=_RELATIONSHIP_ACTIONS.get(issue.key, ()),
     )
-    if (len(expanded.headlines), len(expanded.scenes), len(expanded.advice)) != (6, 8, 8):
+    if len(expanded.headlines) < 6 or (len(expanded.scenes), len(expanded.advice)) != (8, 8):
         raise ValueError(f"Daily issue {issue.key} requires 384 distinct bounded variants")
     if SemanticArena.RELATIONSHIPS in issue.arenas and len(set(expanded.relationship_advice)) != 8:
         raise ValueError(f"Daily issue {issue.key} requires eight matched relationship actions")
