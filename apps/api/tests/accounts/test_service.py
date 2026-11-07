@@ -1,8 +1,10 @@
 import asyncio
+import shutil
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 import httpx
@@ -22,6 +24,9 @@ from app.domains.accounts.tables import (
     LoginChallengeRow,
     LoginQuotaRow,
 )
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
+from app.domains.erasure_journal.replay import export_entries, replay
+from app.domains.erasure_journal.tables import ErasureJournalRow
 from app.domains.guest.errors import AccountErasurePending, GuestDomainError, GuestExpired
 from app.domains.guest.models import CreationResult
 from app.domains.guest.postgres import PostgresGuestRepository
@@ -139,6 +144,7 @@ async def runtime(tmp_path: Path) -> AsyncIterator[Runtime]:
             envelope,
             SupabaseOtpProvider(config, transport=httpx.MockTransport(fake.handle)),
             config,
+            erasure_journal=ErasureJournal(hasher),
         ),
         GuestSessionService(
             PostgresGuestRepository(
@@ -221,6 +227,67 @@ async def test_revoke_other_devices_preserves_profile_and_current_device(runtime
     with pytest.raises(AccountError, match="ACCOUNT_SESSION_UNAVAILABLE"):
         await runtime.accounts.devices(first.token, now=NOW + timedelta(days=1))
     assert await count(runtime, GuestSessionRow) == 1
+
+
+async def test_device_revocations_are_journaled_and_replayed_after_restore(
+    runtime: Runtime, tmp_path: Path
+) -> None:
+    """#206: a restore of an older dump must not revive a revoked device session."""
+
+    _, first = await runtime.link()
+    second = await second_device(runtime)
+    later = NOW + timedelta(seconds=160)  # inside the pending challenge's lifetime
+    live, dump = tmp_path / "accounts.db", tmp_path / "dump.db"
+    # The second device starts a restore flow that is still pending at snapshot time.
+    as_guest: Any = second
+    pending_challenge = await runtime.challenge(as_guest, now=NOW + timedelta(seconds=130))
+    pending = await runtime.verify(pending_challenge, as_guest, now=NOW + timedelta(seconds=131))
+    assert pending.status == "restore_required"
+    shutil.copyfile(live, dump)  # snapshot taken while both devices are signed in
+    assert not await runtime.accounts.revoke_devices(
+        first.token, first.csrf_token, others=True, now=later
+    )
+    await runtime.accounts.logout(first.token, first.csrf_token, now=later)
+    async with runtime.database.sessions() as session:
+        rows = list(await session.scalars(select(ErasureJournalRow)))
+        assert {row.kind for row in rows} == {ErasureKind.DEVICE_REVOKED.value}
+        assert len(rows) == 2 and {row.scope for row in rows} == {""}
+    exported = await export_entries(runtime.database.sessions)
+    await runtime.database.dispose()
+    shutil.copyfile(dump, live)  # the restore brings both sessions back
+    restored = Database(runtime.config.database_url)
+    runtime.database = restored
+    runtime.accounts._sessions = restored.sessions
+    try:
+        assert len(await runtime.accounts.devices(second.token, now=later)) == 2
+        journal = ErasureJournal(runtime.hasher)
+        report = await replay(restored.sessions, journal, runtime.envelope, exported)
+        assert report.applied[ErasureKind.DEVICE_REVOKED.value] == 2
+        for token in (first.token, second.token):
+            with pytest.raises(AccountError, match="ACCOUNT_SESSION_UNAVAILABLE"):
+                await runtime.accounts.devices(token, now=later)
+        # A restored proof started by the revoked device cannot issue a new session.
+        with pytest.raises(AccountError):
+            await runtime.accounts.restore(
+                cookie=pending_challenge.cookie,
+                csrf=pending_challenge.csrf_token,
+                token=second.token,
+                proof=pending.restore_token,
+                now=NOW + timedelta(seconds=190),
+            )
+        async with restored.sessions() as session:
+            before = sorted(
+                (row.id, row.revoked_at) for row in await session.scalars(select(AccountDeviceRow))
+            )
+        again = await replay(restored.sessions, journal, runtime.envelope, exported)
+        assert not again.applied and again.reflected[ErasureKind.DEVICE_REVOKED.value] == 2
+        async with restored.sessions() as session:
+            after = sorted(
+                (row.id, row.revoked_at) for row in await session.scalars(select(AccountDeviceRow))
+            )
+        assert after == before
+    finally:
+        await restored.dispose()
 
 
 async def test_wrong_code_five_attempts_then_locked_without_provider_or_guest_mutation(

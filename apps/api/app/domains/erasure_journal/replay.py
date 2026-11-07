@@ -26,6 +26,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.accounts.tables import AccountDeviceRow, LoginChallengeRow
 from app.domains.birth.postgres import PostgresBirthRepository
 from app.domains.content_rewrite.tables import ContentRewriteJobRow
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
@@ -75,6 +76,7 @@ _ARTIFACT_IDS = {
     ErasureKind.EXPERIMENT_UNDONE: DailyExperimentRow.id,
     ErasureKind.HUMAN_TAROT_REQUEST_CANCELLED: HumanTarotRequestRow.id,
     ErasureKind.HUMAN_TAROT_REQUEST_CLEARED: HumanTarotRequestRow.id,
+    ErasureKind.DEVICE_REVOKED: AccountDeviceRow.id,
 }
 
 
@@ -314,6 +316,25 @@ async def _apply(
             await session.execute(
                 update(ShareArtifactRow)
                 .where(ShareArtifactRow.id == subject, ShareArtifactRow.revoked_at.is_(None))
+                .values(revoked_at=at)
+            )
+    elif kind is ErasureKind.DEVICE_REVOKED:
+        async with sessions() as session, session.begin():
+            # Keeps an earlier revocation; a restored device credential never works again.
+            # Like the live paths, drop login challenges the device started, so a restored
+            # restore proof cannot issue a new session either (Codex #278 P1).
+            await session.execute(
+                delete(LoginChallengeRow).where(
+                    LoginChallengeRow.initiating_credential_digest.in_(
+                        select(AccountDeviceRow.credential_digest).where(
+                            AccountDeviceRow.id == subject
+                        )
+                    )
+                )
+            )
+            await session.execute(
+                update(AccountDeviceRow)
+                .where(AccountDeviceRow.id == subject, AccountDeviceRow.revoked_at.is_(None))
                 .values(revoked_at=at)
             )
     elif kind is ErasureKind.SAVED_NOTE_REMOVED:
