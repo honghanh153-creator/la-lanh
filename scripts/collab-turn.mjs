@@ -177,7 +177,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Retro S1 (K26/K31: 02.11 and 03.11 ran about two hours with no area): count runs in a row
       // with no area. From the third Claude is told to top up from the backlog; the sixth alerts.
       const idleRuns = area ? 0 : (readJson(dayPath, day).idleRuns ?? 0) + 1;
-      writeJson(dayPath, { ...readJson(dayPath, day), idleRuns });
+      // #237: remember whether the idle alert was delivered, so a failed delivery retries next run.
+      const idleAlerted = idleRuns ? Boolean(readJson(dayPath, day).idleAlerted) : false;
+      writeJson(dayPath, { ...readJson(dayPath, day), idleRuns, idleAlerted });
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: turns.filter(t => t.turn === 'claude-fix'),
         // Plan top-up (owner 31.10.2026, buffer rule 05.11): below the ready-buffer target while the
@@ -186,7 +188,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         topUpCount: late() ? 0 : Math.max(buffer.topUpCount, idleRuns >= idleTopUpRuns ? 1 : 0), buffer: buffer.buffer,
         idleRuns,
       });
-      if (idleRuns === idleAlertRuns && alert) alert(`collab tick chạy không ${idleRuns} lượt liền (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): plan không còn PR nào để làm, cần bổ sung việc từ backlog`);
+      if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {
+        try {
+          alert(`collab tick chạy không ${idleRuns} lượt liền (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): plan không còn PR nào để làm, cần bổ sung việc từ backlog`);
+          writeJson(dayPath, { ...readJson(dayPath, day), idleAlerted: true });
+        } catch (error) { log(`idle alert failed, retry next run: ${clean(error.message, 200)}`); }
+      }
       const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
       writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures });
