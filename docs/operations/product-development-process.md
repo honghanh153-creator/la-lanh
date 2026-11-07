@@ -184,7 +184,9 @@ hay log không; nếu có thì nâng lên M.
 - Research note: comment trên issue task.
 - Mức và cổng: PR body (mục "Cổng") ghi mức và bằng chứng từng cổng bắt buộc.
 - Codex review tự động đọc file này: kiểm PR có đủ bằng chứng cho mức đã khai; thiếu cổng bắt buộc là
-  REQUEST_CHANGES (P1 nếu là G7/G8, P2 nếu khác).
+  một phát hiện: P1 nếu là G7/G8 (chặn, REQUEST_CHANGES), P2 `docs` nếu khác. Theo chính sách P2 của
+  owner (30.10.2026), P2 `docs` không chặn: verdict APPROVE kèm issue fix-forward. Chỉ phát hiện chặn
+  theo chính sách đó mới dẫn tới REQUEST_CHANGES.
 
 Chuyển tiếp: PR mở trước 01.11.2026 không bắt buộc khai mức và mục "Cổng"; Codex vẫn review theo ba cổng
 của `AGENTS.md` như trước. PR mở từ 01.11.2026 theo đủ file này.
