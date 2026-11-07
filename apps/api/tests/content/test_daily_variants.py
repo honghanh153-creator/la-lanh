@@ -29,7 +29,7 @@ from app.domains.readings.clarity_lint import (
 )
 from app.domains.readings.daily_rotation import axis_slot
 
-PARTS = {"headline": "headlines"}
+PARTS = {"headline": "headlines", "scene": "scenes"}
 ID = re.compile(r"^daily\.(?P<part>[a-z]+)\.(?P<issue>[a-z-]+)\.\d{2}$")
 ISSUES = {issue.key: issue for issue in daily_psychology.DAILY_ISSUES}
 REGISTRY = load_registry()
@@ -76,6 +76,11 @@ def test_variant_passes_clarity_hard_zero(key: str) -> None:
     assert not any(count_safety(rule, text) for rule in SAFETY)
     assert count_jargon(text) == count_meta_talk(text) == count_placeholders(text) == 0
     assert english_words(text) == ()
+    if key.startswith("daily.scene."):
+        # The arena lead ("Với người kia, khi …") needs every scene to open with "Khi".
+        assert text.startswith("Khi ")
+        longest = max(syllables(scene) for issue in ISSUES.values() for scene in issue.scenes)
+        assert syllables(text) <= longest
 
 
 def test_variants_are_new_wording() -> None:
