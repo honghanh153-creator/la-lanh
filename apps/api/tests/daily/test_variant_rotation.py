@@ -98,9 +98,10 @@ def test_cycle_boundary_collision_keeps_both_cycles_unique() -> None:
         for reader in READERS[:200]:
             seed = reader_seed(KEY, reader)
             for cycle in range(1, 40):
-                if _shuffled(seed, f"c2d:{SLOT}", cycle, n)[0] == _shuffled(
-                    seed, f"c2d:{SLOT}", cycle - 1, n
-                )[-1]:
+                if (
+                    _shuffled(seed, f"c2d:{SLOT}", cycle, n)[0]
+                    == _shuffled(seed, f"c2d:{SLOT}", cycle - 1, n)[-1]
+                ):
                     forced.append((n, seed, cycle))
     assert len(forced) >= 30, "the collision case must actually be exercised"
     for n, seed, cycle in forced:
