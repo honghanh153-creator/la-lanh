@@ -1,4 +1,545 @@
 {
- "entries": [],
+ "entries": [
+  {
+   "id": "daily.headline.automatic-caretaking.01",
+   "category": "reading",
+   "text": "Bạn nói được trước khi xem mình còn sức.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.automatic-caretaking.02",
+   "category": "reading",
+   "text": "Việc giúp người khác chiếm giờ của việc mình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.automatic-caretaking.03",
+   "category": "reading",
+   "text": "Bạn nhận giúp rồi mới tính lại lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.automatic-caretaking.04",
+   "category": "reading",
+   "text": "Bạn lo việc người khác trước việc của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.automatic-caretaking.05",
+   "category": "reading",
+   "text": "Lời nhờ đến, bạn gật đầu gần như ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.automatic-caretaking.06",
+   "category": "reading",
+   "text": "Bạn muốn giúp mà chưa hỏi mình còn bao nhiêu sức.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.avoid-small-conflict.01",
+   "category": "reading",
+   "text": "Bạn nói được để khỏi phải từ chối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.avoid-small-conflict.02",
+   "category": "reading",
+   "text": "Bạn dễ nhận lời trước khi xem có tiện không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.avoid-small-conflict.03",
+   "category": "reading",
+   "text": "Bạn định từ chối, cuối cùng lại nhận lời.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.avoid-small-conflict.04",
+   "category": "reading",
+   "text": "Bạn đồng ý cho cuộc nói chuyện xong nhanh.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.avoid-small-conflict.05",
+   "category": "reading",
+   "text": "Bạn nhận một việc mình không muốn làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.avoid-small-conflict.06",
+   "category": "reading",
+   "text": "Bạn chọn nói được thay vì nói thật.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.capacity-before-agreement.01",
+   "category": "reading",
+   "text": "Bạn muốn nhận việc trước khi xem lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.capacity-before-agreement.02",
+   "category": "reading",
+   "text": "Lịch của bạn chưa có chỗ cho việc mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.capacity-before-agreement.03",
+   "category": "reading",
+   "text": "Bạn muốn giúp, giờ trống thì chưa rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.capacity-before-agreement.04",
+   "category": "reading",
+   "text": "Bạn nhận lời rồi mới tìm giờ để làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.capacity-before-agreement.05",
+   "category": "reading",
+   "text": "Việc được nhờ chưa có chỗ trong ngày bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.capacity-before-agreement.06",
+   "category": "reading",
+   "text": "Muốn làm và có giờ làm là hai chuyện.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.changed-plan.01",
+   "category": "reading",
+   "text": "Giờ hẹn đổi kéo theo cả buổi của bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.changed-plan.02",
+   "category": "reading",
+   "text": "Bạn sắp lại lịch khi giờ mới chưa chốt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.changed-plan.03",
+   "category": "reading",
+   "text": "Một cuộc hẹn dời giờ làm lịch bạn xô lệch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.changed-plan.04",
+   "category": "reading",
+   "text": "Bạn chờ giờ hẹn mới để xếp việc còn lại.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.changed-plan.05",
+   "category": "reading",
+   "text": "Lịch cũ không còn khớp với giờ hẹn mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.changed-plan.06",
+   "category": "reading",
+   "text": "Bạn cần chốt giờ trước khi đổi việc khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.comparison-loop.01",
+   "category": "reading",
+   "text": "Nhìn việc người khác, bạn quên việc mình đã làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.comparison-loop.02",
+   "category": "reading",
+   "text": "Bạn đo phần mình bằng thước của người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.comparison-loop.03",
+   "category": "reading",
+   "text": "Thành quả người khác làm bạn thấy mình chậm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.comparison-loop.04",
+   "category": "reading",
+   "text": "Phần bạn đã xong bỗng thấy nhỏ đi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.comparison-loop.05",
+   "category": "reading",
+   "text": "Bạn đếm việc còn thiếu nhiều hơn việc đã làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.comparison-loop.06",
+   "category": "reading",
+   "text": "Bạn so bản nháp của mình với bản xong của người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.decision-fatigue.01",
+   "category": "reading",
+   "text": "Một lựa chọn nhỏ chiếm cả buổi suy nghĩ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.decision-fatigue.02",
+   "category": "reading",
+   "text": "Bạn xem thêm phương án thay vì chọn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.decision-fatigue.03",
+   "category": "reading",
+   "text": "Càng so nhiều, bạn càng khó chốt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.decision-fatigue.04",
+   "category": "reading",
+   "text": "Bạn mệt nhưng vẫn muốn chọn cho thật đúng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.decision-fatigue.05",
+   "category": "reading",
+   "text": "Danh sách lựa chọn cứ dài thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.decision-fatigue.06",
+   "category": "reading",
+   "text": "Bạn đọc lại các phương án mà chưa chốt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.defend-old-choice.01",
+   "category": "reading",
+   "text": "Bạn tiếc công sức nên chưa muốn đổi cách.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.defend-old-choice.02",
+   "category": "reading",
+   "text": "Cách làm chưa hiệu quả vẫn được làm tiếp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.defend-old-choice.03",
+   "category": "reading",
+   "text": "Bạn ngại đổi một cách đã theo lâu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.defend-old-choice.04",
+   "category": "reading",
+   "text": "Công sức đã bỏ ra giữ bạn ở cách cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.defend-old-choice.05",
+   "category": "reading",
+   "text": "Bạn làm thêm thay vì xem lại kết quả.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.defend-old-choice.06",
+   "category": "reading",
+   "text": "Kết quả chưa đổi, cách làm cũng chưa đổi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.group-pressure.01",
+   "category": "reading",
+   "text": "Nhóm chốt nhanh, câu hỏi của bạn chưa kịp nói.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.group-pressure.02",
+   "category": "reading",
+   "text": "Bạn gật đầu cùng mọi người khi còn thắc mắc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.group-pressure.03",
+   "category": "reading",
+   "text": "Bạn ngại hỏi lại khi nhóm đã đồng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.group-pressure.04",
+   "category": "reading",
+   "text": "Một chỗ chưa rõ bị bỏ qua vì nhóm vội.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.group-pressure.05",
+   "category": "reading",
+   "text": "Bạn đồng ý cho nhanh dù chưa hiểu hết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.group-pressure.06",
+   "category": "reading",
+   "text": "Câu hỏi của bạn có thể giúp cả nhóm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.missing-context.01",
+   "category": "reading",
+   "text": "Một tin nhắn ngắn khiến bạn phải đoán ý.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.missing-context.02",
+   "category": "reading",
+   "text": "Bạn hiểu từng chữ, chưa hiểu điều người kia cần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.missing-context.03",
+   "category": "reading",
+   "text": "Bạn tự trả lời thay người gửi tin nhắn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.missing-context.04",
+   "category": "reading",
+   "text": "Câu nhắn còn thiếu một phần để bạn hiểu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.missing-context.05",
+   "category": "reading",
+   "text": "Bạn nghĩ về tin nhắn lâu hơn cần thiết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.missing-context.06",
+   "category": "reading",
+   "text": "Một câu hỏi lại có thể gỡ chỗ chưa rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.name-the-need.01",
+   "category": "reading",
+   "text": "Lời than mệt chưa nói rõ bạn cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.name-the-need.02",
+   "category": "reading",
+   "text": "Người kia muốn giúp nhưng chưa biết giúp gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.name-the-need.03",
+   "category": "reading",
+   "text": "Bạn mong người kia tự hiểu điều mình cần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.name-the-need.04",
+   "category": "reading",
+   "text": "Bạn kể việc nhiều mà chưa nhờ việc nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.name-the-need.05",
+   "category": "reading",
+   "text": "Một lời nhờ cụ thể dễ được giúp hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.name-the-need.06",
+   "category": "reading",
+   "text": "Bạn chưa gọi tên việc mình cần người kia làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.perfect-before-start.01",
+   "category": "reading",
+   "text": "Bản nháp đủ dùng vẫn nằm trong máy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.perfect-before-start.02",
+   "category": "reading",
+   "text": "Bạn sửa câu chữ thay vì gửi đi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.perfect-before-start.03",
+   "category": "reading",
+   "text": "Bạn chờ bản nháp hoàn hảo rồi mới gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.perfect-before-start.04",
+   "category": "reading",
+   "text": "Bạn đọc lại lần nữa trước khi bấm gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.perfect-before-start.05",
+   "category": "reading",
+   "text": "Việc gần xong cứ được sửa thêm một chút.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.perfect-before-start.06",
+   "category": "reading",
+   "text": "Bạn lo người đọc chê nên chưa gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.quick-reply.01",
+   "category": "reading",
+   "text": "Bạn trả lời trước khi đọc hết tin nhắn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.quick-reply.02",
+   "category": "reading",
+   "text": "Câu đáp đã gõ xong khi tin còn dở.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.quick-reply.03",
+   "category": "reading",
+   "text": "Bạn đáp ý đầu, bỏ qua các ý sau.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.quick-reply.04",
+   "category": "reading",
+   "text": "Một câu khó nghe làm bạn muốn đáp ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.quick-reply.05",
+   "category": "reading",
+   "text": "Bạn gửi nhanh hơn bạn đọc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.quick-reply.06",
+   "category": "reading",
+   "text": "Đọc hết tin nhắn có thể đổi câu bạn đáp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.repair-reply.01",
+   "category": "reading",
+   "text": "Một câu trả lời vội có thể nghe gắt hơn ý bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.repair-reply.02",
+   "category": "reading",
+   "text": "Bạn muốn nói lại một ý cho rõ hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.repair-reply.03",
+   "category": "reading",
+   "text": "Tin nhắn đã đi, ý bạn chưa tới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.repair-reply.04",
+   "category": "reading",
+   "text": "Bạn thấy câu mình gửi hơi vội.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.repair-reply.05",
+   "category": "reading",
+   "text": "Một câu nói lại có thể làm rõ ý bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.repair-reply.06",
+   "category": "reading",
+   "text": "Đọc lại tin nhắn của mình, bạn thấy chưa đúng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.specific-feedback.01",
+   "category": "reading",
+   "text": "Bạn hỏi ổn chưa mà chưa nói phần cần xem.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.specific-feedback.02",
+   "category": "reading",
+   "text": "Người đọc chưa biết bạn cần góp ý chỗ nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.specific-feedback.03",
+   "category": "reading",
+   "text": "Câu hỏi chung nhận về góp ý chung.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.specific-feedback.04",
+   "category": "reading",
+   "text": "Bạn gửi cả bản nháp cho một câu hỏi nhỏ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.specific-feedback.05",
+   "category": "reading",
+   "text": "Phần bạn cần góp ý chưa được chỉ ra.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.specific-feedback.06",
+   "category": "reading",
+   "text": "Một câu hỏi rõ giúp người đọc góp ý đúng chỗ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.too-many-open-loops.01",
+   "category": "reading",
+   "text": "Nhiều việc mở ra, ít việc được khép lại.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.too-many-open-loops.02",
+   "category": "reading",
+   "text": "Bạn làm mỗi việc một chút rồi chuyển đi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.too-many-open-loops.03",
+   "category": "reading",
+   "text": "Danh sách việc dở dài hơn việc đã xong.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.too-many-open-loops.04",
+   "category": "reading",
+   "text": "Một thông báo kéo bạn khỏi việc đang làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.too-many-open-loops.05",
+   "category": "reading",
+   "text": "Bạn quay lại việc cũ mà quên đang dở ở đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.headline.too-many-open-loops.06",
+   "category": "reading",
+   "text": "Một việc làm xong có thể nhẹ hơn ba việc dở.",
+   "status": "pending"
+  }
+ ],
  "version": "copy-registry/v1"
 }
