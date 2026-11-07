@@ -4,10 +4,11 @@
 //        node scripts/collab-check.mjs --guard          (private-data scan of this branch, for pre-push)
 // One check on the machine at a time: two checks share the API and e2e ports and give false receipts.
 import { spawnSync, execFileSync } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { agentMarker, boundedTimeout, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { withFileLock } from './collab-lock.mjs';
 import { runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
@@ -74,14 +75,8 @@ export function heavyJobFree(busy = machineBusy) {
 }
 export function withCheckLock(fn) {
   mkdirSync(stateDir, { recursive: true });
-  const path = join(stateDir, 'check.lock');
-  try {
-    const pid = Number(readFileSync(path, 'utf8'));
-    if (!alive(pid) || Date.now() - statSync(path).mtimeMs > 2 * 3600000) rmSync(path);
-  } catch {}
-  let fd;
-  try { fd = openSync(path, 'wx'); } catch { return { status: 'busy', reason: 'một author check khác đang chạy' }; }
-  try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
+  // Reclaim of a dead or 2-hour-old lock runs under the reclaim mutex (collab-lock.mjs, Codex #258).
+  return withFileLock(join(stateDir, 'check.lock'), { staleMs: 2 * 3600000, busy: { status: 'busy', reason: 'một author check khác đang chạy' } }, fn);
 }
 
 // Private-data guard (owner data in public #179, 03.11.2026). The owner's terms live only on the

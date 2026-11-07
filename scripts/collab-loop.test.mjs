@@ -628,7 +628,7 @@ test('busy check matches the running program, not a command line that mentions i
   assert.match(machineBusy(() => '  77 sh -c pnpm contracts:check && x\n'), /^77 sh -c pnpm contracts:check/);
 });
 
-test('plan top-up: fewer than two machine jobs before 23:30 asks Claude to add the next task', () => {
+test('plan top-up: fewer than five ready PRs before 23:30 asks Claude to add the next task', () => {
   const date = '2026-11-12';
   const one = [pr({ number: 1, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }), pr({ number: 2 })];
   tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
@@ -830,10 +830,11 @@ test('#253: the persisted queue uses the ready-buffer rule and the tick samples 
 });
 
 test('#253: report turns leave out PRs dropped from today\'s plan', () => {
-  const date = trust.vnNow().date;
+  const date = '2026-11-14';
+  const now = { date, hour: 15, minute: 5 };
   const gh = plannedGh([pr({ number: 999 })], date);
   const base = gh.json;
   gh.json = args => { const out = base(args); return Array.isArray(out) ? out : { comments: [...out.comments, { authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: 'Bỏ #999' }] }; };
-  const { turns } = planTurns(gh);
+  const { turns } = planTurns(gh, now);
   assert.ok(!turns.some(t => t.number === 999 && ['claude-check', 'codex-review', 'merge'].includes(t.turn)), 'a dropped PR is not actionable');
 });
