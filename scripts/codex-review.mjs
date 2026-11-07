@@ -2,9 +2,10 @@
 // Usage: node scripts/codex-review.mjs --pr N [--auto]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { acquireLock } from './collab-lock.mjs';
 import { DeadlineError, agentMarker, boundedTimeout, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { codexDailyCap, prTurn } from './collab-turn.mjs';
 import { groupExec } from './collab-heal.mjs';
@@ -106,13 +107,12 @@ function ensureLabel(gh, name, color, description) {
 // One review at a time: every review shares the clone, so a second caller waits for the next run.
 export function runReview(number, options = {}) {
   mkdirSync(stateDir, { recursive: true });
-  const path = join(stateDir, 'review.lock');
-  try { if (Date.now() - statSync(path).mtimeMs > 45 * 60000) rmSync(path); } catch {}
-  let fd;
-  try { fd = openSync(path, 'wx'); } catch { return { status: 'busy', reason: 'một review khác đang chạy' }; }
+  // Reclaim of a dead or 45-minute-old lock runs under the reclaim mutex (collab-lock.mjs, Codex #258).
+  const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
+  if (!release) return { status: 'busy', reason: 'một review khác đang chạy' };
   try { return reviewOnce(number, options); }
   catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: 'hết giờ (23:55) trong lúc review' }; throw error; }
-  finally { closeSync(fd); rmSync(path, { force: true }); }
+  finally { release(); }
 }
 
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
