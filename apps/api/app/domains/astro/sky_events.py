@@ -729,16 +729,21 @@ def _moon_phase(sky: _Sky, reference: float) -> MoonPhaseAt:
     )
 
 
-def _orb_to_domain(longitude: float, low: float, high: float, angle: float) -> float:
-    """Smallest ``|separation - angle|`` between ``longitude`` and any point of ``[low, high]``."""
-    best = 360.0
+def _max_orb_to_domain(longitude: float, low: float, high: float, angle: float) -> float:
+    """Largest ``|separation - angle|`` over ``[low, high]``: the orb certain across the domain.
+
+    The orb is the smaller circular distance to the two targets ``longitude ± angle``. Its maximum
+    over an arc lies at an endpoint, at a target's antipode, or where both targets are equidistant
+    (``longitude`` and its antipode), so only those points are evaluated.
+    """
+    targets = (longitude + angle, longitude - angle)
     width = high - low
-    for target in (longitude + angle, longitude - angle):
-        distance = (target - low) % 360.0
+    candidates = [low, high]
+    for point in (targets[0] + 180.0, targets[1] + 180.0, longitude, longitude + 180.0):
+        distance = (point - low) % 360.0
         if distance <= width:
-            return 0.0
-        best = min(best, distance - width, 360.0 - distance)
-    return best
+            candidates.append(low + distance)
+    return max(min(abs(_wrap180(point - target)) for target in targets) for point in candidates)
 
 
 def _natal_points(engine: NatalChartEngine, chart: NatalChart) -> list[tuple[str, float, float]]:
@@ -774,13 +779,13 @@ def _natal_hooks(
         NatalStationContact(station=station, natal_point=name, orb=round(orb, 4))
         for station in stations
         for name, low, high in points
-        if (orb := _orb_to_domain(station.longitude, low, high, 0.0)) <= station_orb
+        if (orb := _max_orb_to_domain(station.longitude, low, high, 0.0)) <= station_orb
     ]
     lunation_contacts: list[NatalLunationContact] = []
     for lunation in lunations:
         for name, low, high in points:
             for angle, aspect in _LUNATION_ASPECTS:
-                orb = _orb_to_domain(lunation.longitude, low, high, angle)
+                orb = _max_orb_to_domain(lunation.longitude, low, high, angle)
                 if orb <= lunation_orb:
                     lunation_contacts.append(
                         NatalLunationContact(
@@ -794,7 +799,7 @@ def _natal_hooks(
         return _wrap180(sky.longitude(julian_day_ut, BodyName.SUN) - natal_sun)
 
     f_start, f_end = offset(start), offset(end)
-    if f_start < 0.0 <= f_end and f_end - f_start < 90.0:
+    if f_start <= 0.0 < f_end and f_end - f_start < 90.0:
         instant = _find_root(offset, start, end, f_start, f_end)
         if instant < end:
             solar_return = SolarReturn(

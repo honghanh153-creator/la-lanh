@@ -52,6 +52,7 @@ from app.domains.astro.sky_events import (
     MoonPhase,
     RetrogradePhase,
     StationKind,
+    _max_orb_to_domain,
     datetime_from_julian_day,
     day_sky_events,
     julian_day,
@@ -648,6 +649,46 @@ def test_solar_return_day(engine: NatalChartEngine) -> None:
     sun = _longitude(engine, julian_day(solar_return.at), BodyName.SUN)
     assert abs(_wrap180(sun - 238.4)) < 1e-3
     assert _vietnam_date(solar_return.at) == local_date
+
+
+def test_solar_return_exactly_at_day_start_is_kept(engine: NatalChartEngine) -> None:
+    # Synthetic natal Sun placed on the transiting Sun at the Vietnam midnight of 2027-11-20.
+    local_date = date(2027, 11, 20)
+    day_start, _ = vietnam_day_bounds(local_date)
+    natal_sun = _longitude(engine, julian_day(day_start), BodyName.SUN)
+    chart = _synthetic_chart(engine, sun=natal_sun)
+    events = day_sky_events(engine, local_date, chart)
+    assert events.natal is not None and events.natal.solar_return is not None
+    assert events.natal.solar_return.at == day_start
+    previous = day_sky_events(engine, local_date - timedelta(days=1), chart)
+    assert previous.natal is not None and previous.natal.solar_return is None
+
+
+def test_natal_contact_orb_holds_across_the_whole_domain() -> None:
+    # Synthetic unknown-time domain [0°, 2°]: a station at 359.5° is 0.5° from one end only.
+    assert _max_orb_to_domain(359.5, 0.0, 2.0, 0.0) == pytest.approx(2.5)
+    assert _max_orb_to_domain(1.0, 0.5, 1.5, 0.0) == pytest.approx(0.5)
+    assert _max_orb_to_domain(100.0, 10.0, 10.0, 90.0) == pytest.approx(0.0)
+    assert _max_orb_to_domain(100.0, 5.0, 15.0, 90.0) == pytest.approx(5.0)
+    assert _max_orb_to_domain(0.0, 170.0, 190.0, 0.0) == pytest.approx(180.0)
+
+
+def test_possible_but_uncertain_station_contact_is_not_hooked(engine: NatalChartEngine) -> None:
+    # Mars stations at ~160.43° on 2027-01-10; a synthetic Venus domain [160.0°, 162.5°] only
+    # reaches it at one end, so the contact is possible but not certain within 1°.
+    chart = _synthetic_chart(engine, venus=160.0)
+    original = engine.longitude_domains
+
+    def domains(value: NatalChart, **kwargs: float | None) -> dict[BodyName, tuple[float, float]]:
+        result = dict(original(value, **kwargs))
+        result[BodyName.VENUS] = (160.0, 162.5)
+        return result
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(engine, "longitude_domains", domains)
+        events = day_sky_events(engine, date(2027, 1, 10), chart)
+    assert events.natal is not None
+    assert all(item.natal_point != "venus" for item in events.natal.stations)
 
 
 def test_unknown_birth_time_skips_moon_and_marks_return_approximate(
