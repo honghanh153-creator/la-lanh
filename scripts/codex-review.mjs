@@ -46,6 +46,18 @@ export function fillPrompt(template, values) {
   return template.replace(/\{\{([A-Z_]+)\}\}/g, (_, key) => values[key] ?? '');
 }
 
+// #208: the S/M/L and gate-evidence check starts with PRs created on 01.11.2026 (Vietnam time). The
+// reviewer has no network, so the script states the trusted creation time and the rule that applies.
+export const gateCutoff = Date.parse('2026-11-01T00:00:00+07:00');
+export function gateRule(createdAt) {
+  const at = Date.parse(createdAt ?? '');
+  if (!Number.isFinite(at)) return 'The PR creation time is unknown: apply the S/M/L and gate-evidence check.';
+  const when = `This PR was created at ${new Date(at).toISOString()} (from GitHub, trusted).`;
+  return at < gateCutoff
+    ? `${when} It was created before 2026-11-01 (Vietnam time), so it is exempt from the S/M/L and gate-evidence check; review it against the AGENTS.md gates as before.`
+    : `${when} It was created on or after 2026-11-01 (Vietnam time), so the S/M/L and gate-evidence check applies.`;
+}
+
 const cell = (text, limit = 900) => clean(text, limit).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 // A detail may list every occurrence of one class (prompt rule S2); keep the whole list (fix-forward #238).
 const detailCell = text => cell(text, 6000);
@@ -155,7 +167,7 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
     writeFileSync(deltaPath, patch);
   }
   const prompt = fillPrompt(readFileSync(promptPath, 'utf8'), {
-    PR: String(pr.number), HEAD: head, BASE_REF: pr.baseRefName, MERGE_BASE: mergeBase,
+    PR: String(pr.number), HEAD: head, BASE_REF: pr.baseRefName, MERGE_BASE: mergeBase, GATE_RULE: gateRule(pr.createdAt),
     DELTA_LINE: deltaFrom
       ? mergesBase
         ? `Re-review: the previous automatic review was at \`${deltaFrom}\`, and the delta merges \`${integration}\` in. Read \`.git/la-lanh-review-delta.patch\` closely: it is \`git diff ${deltaFrom}..${head}\` limited to this PR's own files, including conflict resolutions and confirm each earlier blocking finding is fixed. Files changed only by the merged \`${integration}\` were reviewed in their own PRs: do not read them and do not mark the review incomplete because of them.`

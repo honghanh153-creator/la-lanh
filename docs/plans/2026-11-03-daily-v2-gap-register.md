@@ -50,7 +50,7 @@ Có 138 mục. Sau khi gộp các mục trùng nhau còn khoảng 75 lỗ hổng
    thúc đã hiện, vì engine không nối các lần đi qua do nghịch hành (AS-2).
 7. **C2d không thể vừa lưu lịch sử 30 ngày vừa giữ thời hạn 24 giờ của Daily.** Mã mảnh còn để lộ
    đầu nhà, từ đó suy ra giờ sinh. Cách sửa: chọn biến thể không cần lưu trạng thái, bằng HMAC theo
-   người, theo góc và theo chu kỳ trăng (PV-1, PL-17).
+   người, theo góc và theo chu kỳ trăng (PV-1, PL-17), cộng xoay theo ngày (#187, xem C2d).
 8. **A/B chưa làm được như plan.**
    - Domain `experiments` là tính năng "việc nhỏ", không phải công cụ A/B (GT-32, PL-15, PV-3).
    - App chưa có sự kiện đo nào (PL-16).
@@ -142,7 +142,8 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 
 | Mã | Lỗ hổng | Mức | Sửa |
 |---|---|---|---|
-| PV-1, PL-17, PV-2 | Lưu 30 ngày mâu thuẫn với thời hạn 24 giờ; mã mảnh để lộ giờ sinh | P1 | Không lưu gì: biến thể = HMAC(khóa, hồ sơ, mã góc, số chu kỳ trăng) |
+| PV-1, PL-17, PV-2 | Lưu 30 ngày mâu thuẫn với thời hạn 24 giờ; mã mảnh để lộ giờ sinh | P1 | Không lưu gì. HMAC(khóa, hồ sơ, mã góc, số chu kỳ trăng) chỉ chọn một hoán vị của quỹ mảnh; biến thể của ngày = phần tử thứ (số thứ tự ngày theo giờ Việt Nam) mod cỡ quỹ trong hoán vị đó. Cùng một góc kéo dài nhiều ngày (ví dụ Mặt Trời đi qua) nhận mảnh khác nhau mỗi ngày cho tới khi hết quỹ. Ở ngày đầu chu kỳ trăng mới, nếu mảnh trùng mảnh hôm trước (tính lại được, không cần lưu) thì lấy phần tử kế |
+| #187 | HMAC chỉ theo chu kỳ trăng cho cùng đầu vào trong các ngày liên tiếp, nên một góc kéo dài nhiều ngày lặp cùng một mảnh, trái mục tiêu 0 lặp của C2d | P2 | Xoay theo ngày như dòng trên. Test bắt buộc: cùng hồ sơ, cùng góc, N ngày liên tiếp trong một chu kỳ trăng (N ≤ cỡ quỹ) cho N mảnh khác nhau; qua ranh chu kỳ trăng vẫn không lặp ở ngày kề nhau |
 | PL-18, PL-7 | Quỹ mảnh không đủ cho "0 lặp trong 30 ngày"; US-21 đòi 90 ngày | P1 | Tính số biến thể cần cho mỗi loại thẻ từ số lặp đo được (≥10 cho thẻ Mặt Trăng); chốt một cửa sổ |
 
 ### C3a — bộ chuẩn và bộ mẫu vàng
