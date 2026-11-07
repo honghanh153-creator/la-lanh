@@ -19,6 +19,12 @@ export const commitMax = 20;
 // exceptions file (a change there means the ratchet expects more flagged sentences).
 export const copyPatterns = [
   /^apps\/api\/app\/domains\/(content|content_rewrite)\//,
+  // #229: reading content that lives outside content/: the modules fallback_approval.py hashes,
+  // plus the relationship knowledge base.
+  /^apps\/api\/app\/domains\/radar\/reading\.py$/,
+  /^apps\/api\/app\/domains\/readings\/(companion|daily_psychology|gates|renderers|voice)\.py$/,
+  /^apps\/api\/app\/domains\/tarot\/(action_copy|engine|examples|knowledge|meaning_brief|phrasing|question_frame|roles|stance|variants|voice)\.py$/,
+  /^apps\/api\/app\/domains\/relationships\/knowledge\.py$/,
   /^apps\/api\/app\/.*\.(json|ya?ml|md)$/,
   /^apps\/web\/src\/.*(copy|strings|messages|i18n)[^/]*\.(ts|tsx|json)$/i,
 ];
