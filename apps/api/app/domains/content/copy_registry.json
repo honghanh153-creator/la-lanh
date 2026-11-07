@@ -3,7 +3,7 @@
   {
    "id": "daily.action.automatic-caretaking.01",
    "category": "reading",
-   "text": "Trả lời người nhờ rằng bạn cần xem lịch rồi báo lại.",
+   "text": "Nói với người nhờ rằng bạn cần xem lịch rồi báo lại.",
    "status": "pending"
   },
   {
@@ -21,13 +21,13 @@
   {
    "id": "daily.action.automatic-caretaking.04",
    "category": "reading",
-   "text": "Làm xong một việc của mình trước khi nhận thêm việc giúp.",
+   "text": "Đặt một việc của mình lên trước rồi mới nhận thêm việc giúp.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.01",
    "category": "reading",
-   "text": "Trả lời: Để mình xem lại rồi báo bạn, thay vì nói được ngay.",
+   "text": "Nói: Để mình xem lại rồi báo bạn, thay vì nhận ngay.",
    "status": "pending"
   },
   {
@@ -45,31 +45,31 @@
   {
    "id": "daily.action.avoid-small-conflict.04",
    "category": "reading",
-   "text": "Đề nghị một phần nhỏ bạn làm được thay cho cả việc.",
+   "text": "Xin chỉ nhận một phần nhỏ bạn làm được thay cho cả việc.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.01",
    "category": "reading",
-   "text": "Hỏi người nhờ việc cần xong lúc nào trước khi trả lời.",
+   "text": "Hỏi người nhờ việc cần xong lúc nào rồi mới xem lịch.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.02",
    "category": "reading",
-   "text": "Ước lượng thời gian việc cần rồi tìm chỗ trống trong lịch.",
+   "text": "Ghi thời gian việc cần rồi tìm chỗ trống trong lịch.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.03",
    "category": "reading",
-   "text": "Trả lời: Mình làm được vào giờ này, có kịp cho bạn không?",
+   "text": "Nói: Lịch mình trống vào giờ này, có kịp cho bạn không?",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.04",
    "category": "reading",
-   "text": "Nói rõ việc nào của bạn sẽ lùi lại nếu nhận thêm việc này.",
+   "text": "Nói rõ việc nào trong lịch của bạn sẽ lùi lại nếu nhận thêm.",
    "status": "pending"
   },
   {
@@ -81,7 +81,7 @@
   {
    "id": "daily.action.changed-plan.02",
    "category": "reading",
-   "text": "Xem việc nào bị ảnh hưởng bởi giờ mới và báo cho bên đó.",
+   "text": "Kiểm tra việc nào bị ảnh hưởng bởi giờ mới và báo cho bên đó.",
    "status": "pending"
   },
   {
@@ -99,19 +99,19 @@
   {
    "id": "daily.action.comparison-loop.01",
    "category": "reading",
-   "text": "Viết ba việc bạn đã làm được trong tuần này.",
+   "text": "Viết ra ba việc nhỏ của mình đã xong trong tuần này.",
    "status": "pending"
   },
   {
    "id": "daily.action.comparison-loop.02",
    "category": "reading",
-   "text": "Đóng trang đang xem và quay lại một phần việc của mình.",
+   "text": "Đặt điện thoại xuống và quay lại một phần việc của mình.",
    "status": "pending"
   },
   {
    "id": "daily.action.comparison-loop.03",
    "category": "reading",
-   "text": "So tiến độ của bạn với chính bạn, không với người khác.",
+   "text": "Ghi một bước tiến nhỏ của mình trong hôm nay.",
    "status": "pending"
   },
   {
@@ -135,13 +135,13 @@
   {
    "id": "daily.action.decision-fatigue.03",
    "category": "reading",
-   "text": "Gạch bớt các phương án cho đến khi chỉ còn hai.",
+   "text": "Bỏ bớt các phương án cho đến khi chỉ còn hai.",
    "status": "pending"
   },
   {
    "id": "daily.action.decision-fatigue.04",
    "category": "reading",
-   "text": "Hoãn lựa chọn không gấp sang lúc bạn đã nghỉ.",
+   "text": "Đặt lựa chọn không gấp sang lúc bạn đã nghỉ xong.",
    "status": "pending"
   },
   {
@@ -159,7 +159,7 @@
   {
    "id": "daily.action.defend-old-choice.03",
    "category": "reading",
-   "text": "Thử cách mới trong một ngày rồi so kết quả với cách cũ.",
+   "text": "Đổi sang cách mới trong một ngày rồi so kết quả với cách cũ.",
    "status": "pending"
   },
   {
@@ -171,7 +171,7 @@
   {
    "id": "daily.action.group-pressure.01",
    "category": "reading",
-   "text": "Nhắn riêng cho người phụ trách câu hỏi bạn chưa kịp hỏi.",
+   "text": "Nhắn riêng người phụ trách nhóm câu hỏi bạn chưa kịp hỏi.",
    "status": "pending"
   },
   {
@@ -195,7 +195,7 @@
   {
    "id": "daily.action.missing-context.01",
    "category": "reading",
-   "text": "Nhắn lại một câu: Ý bạn là phần này đúng không?",
+   "text": "Nhắn lại người gửi một câu: Ý bạn là phần này đúng không?",
    "status": "pending"
   },
   {
@@ -207,7 +207,7 @@
   {
    "id": "daily.action.missing-context.03",
    "category": "reading",
-   "text": "Chờ hỏi xong rồi mới trả lời phần bạn chưa chắc.",
+   "text": "Hỏi người gửi phần còn chưa rõ rồi mới trả lời phần đó.",
    "status": "pending"
   },
   {
@@ -219,25 +219,25 @@
   {
    "id": "daily.action.name-the-need.01",
    "category": "reading",
-   "text": "Nhờ người kia làm một việc cụ thể trong hôm nay.",
+   "text": "Nhắn nhờ giúp một việc cụ thể trong hôm nay.",
    "status": "pending"
   },
   {
    "id": "daily.action.name-the-need.02",
    "category": "reading",
-   "text": "Nói: Mình cần bạn làm giúp việc này, bạn làm được không?",
+   "text": "Nói: Mình cần giúp việc này, bạn làm được không?",
    "status": "pending"
   },
   {
    "id": "daily.action.name-the-need.03",
    "category": "reading",
-   "text": "Viết danh sách việc rồi đánh dấu một việc muốn nhờ.",
+   "text": "Viết danh sách việc rồi đánh dấu một việc cụ thể muốn nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.action.name-the-need.04",
    "category": "reading",
-   "text": "Trả lời câu có cần giúp không bằng một việc cụ thể.",
+   "text": "Nói một việc cụ thể khi được hỏi có cần giúp không.",
    "status": "pending"
   },
   {
@@ -261,7 +261,7 @@
   {
    "id": "daily.action.perfect-before-start.04",
    "category": "reading",
-   "text": "Ghi một điều bạn còn lo ở bản nháp rồi hỏi người đọc về điều đó.",
+   "text": "Ghi một điều bạn còn lo ở bản nháp rồi xin góp ý về điều đó.",
    "status": "pending"
   },
   {
@@ -273,13 +273,13 @@
   {
    "id": "daily.action.quick-reply.02",
    "category": "reading",
-   "text": "Gạch đầu dòng các ý người kia hỏi rồi trả lời từng ý.",
+   "text": "Ghi các ý người kia hỏi rồi đặt câu trả lời cho từng ý.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.03",
    "category": "reading",
-   "text": "Hỏi lại phần bạn chưa chắc thay vì trả lời theo đoán.",
+   "text": "Hỏi lại phần bạn chưa chắc trước khi gửi câu trả lời.",
    "status": "pending"
   },
   {
@@ -297,13 +297,13 @@
   {
    "id": "daily.action.repair-reply.02",
    "category": "reading",
-   "text": "Viết lại câu đã gửi theo cách bạn muốn nghe nếu là người nhận.",
+   "text": "Viết lại điều bạn muốn nói theo cách bạn muốn được nghe.",
    "status": "pending"
   },
   {
    "id": "daily.action.repair-reply.03",
    "category": "reading",
-   "text": "Nhắn thêm một câu giải thích phần câu trước còn thiếu.",
+   "text": "Nhắn lại một câu thêm phần câu trước còn thiếu.",
    "status": "pending"
   },
   {
@@ -315,13 +315,13 @@
   {
    "id": "daily.action.specific-feedback.01",
    "category": "reading",
-   "text": "Đánh dấu một đoạn và hỏi: Đoạn này đọc có dễ hiểu không?",
+   "text": "Chọn một phần và hỏi: Đoạn này đọc có dễ hiểu không?",
    "status": "pending"
   },
   {
    "id": "daily.action.specific-feedback.02",
    "category": "reading",
-   "text": "Ghi ở đầu bản nháp phần bạn cần góp ý nhất.",
+   "text": "Ghi ở đầu bản nháp đúng phần bạn cần góp ý nhất.",
    "status": "pending"
   },
   {
@@ -333,25 +333,25 @@
   {
    "id": "daily.action.specific-feedback.04",
    "category": "reading",
-   "text": "Gửi riêng phần cần góp ý thay vì gửi cả bản nháp.",
+   "text": "Gửi riêng một phần cần góp ý thay vì gửi cả bản nháp.",
    "status": "pending"
   },
   {
    "id": "daily.action.too-many-open-loops.01",
    "category": "reading",
-   "text": "Tắt thông báo trong 25 phút và làm tiếp một việc đang dở.",
+   "text": "Đặt hẹn giờ 20 phút, tắt thông báo và làm tiếp một việc đang dở.",
    "status": "pending"
   },
   {
    "id": "daily.action.too-many-open-loops.02",
    "category": "reading",
-   "text": "Viết bước tiếp theo của việc đang làm trước khi chuyển sang việc khác.",
+   "text": "Viết bước tiếp theo của một việc đang làm rồi mới chuyển sang việc khác.",
    "status": "pending"
   },
   {
    "id": "daily.action.too-many-open-loops.03",
    "category": "reading",
-   "text": "Đóng các thẻ không dùng và giữ lại một việc để làm xong.",
+   "text": "Chọn một việc để làm xong và đóng các thẻ không dùng.",
    "status": "pending"
   },
   {

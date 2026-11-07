@@ -14,6 +14,7 @@ from app.domains.content.copy_approval import (
     parse_registry,
     registry_problems,
 )
+from app.domains.content_rewrite.gates import _ACTION_VERBS, _fold
 from app.domains.readings import daily_psychology
 from app.domains.readings.clarity_lint import (
     HARD_ZERO_RULES,
@@ -127,3 +128,13 @@ def test_real_registry_serves_no_pending_daily_text() -> None:
     for issue in daily_psychology.DAILY_ISSUES:
         for field in PARTS.values():
             assert not pending & set(getattr(issue, field))
+
+
+@pytest.mark.parametrize("key", sorted(k for k in DAILY if k.startswith("daily.action.")))
+def test_action_variant_passes_card_gates(key: str) -> None:
+    # Same verb and anchor rules meaning_gate applies to an assembled card (#288).
+    match = ID.match(key)
+    assert match
+    folded = _fold(DAILY[key].text)
+    assert any(folded.startswith(_fold(verb)) for verb in _ACTION_VERBS), key
+    assert any(_fold(a) in folded for a in ISSUES[match["issue"]].action_anchors), key
