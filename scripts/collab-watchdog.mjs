@@ -61,12 +61,15 @@ export function staleTasks(beats, nowMs = Date.now(), vn = vnNow(new Date(nowMs)
     const b = beats[task] ?? {};
     const lastMs = Date.parse(b.doneAt ?? b.baselineAt ?? 0) || 0;
     const startedMs = Date.parse(b.startedAt ?? 0) || 0;
-    // A run stuck for 30 minutes is reported at any hour, before its schedule limit.
-    const stuckRun = startedMs > lastMs && nowMs - startedMs > stuckMinutes * 60000;
+    // A run stuck for 30 minutes is reported at any hour, before its schedule limit. #229: an
+    // unfinished start is judged against the done beat only; the first-sight baseline is later
+    // than a start that was already running, and markStuck releases that run anyway.
+    const doneMs = ms(b.doneAt);
+    const stuckRun = startedMs > doneMs && nowMs - startedMs > stuckMinutes * 60000;
     if (!stuckRun && rule.activeFrom && at < rule.activeFrom) return [];
     if (!stuckRun && nowMs - lastMs <= rule.maxMinutes * 60000) return [];
     // Started after the last done and never finished: the usual shape of a permission prompt.
-    const stuckSince = startedMs > lastMs ? startedMs : null;
+    const stuckSince = startedMs > doneMs ? startedMs : null;
     return [{ task, label: rule.label, lastDoneAt: b.doneAt ?? null, stuckSince: stuckSince ? new Date(stuckSince).toISOString() : null }];
   });
 }
