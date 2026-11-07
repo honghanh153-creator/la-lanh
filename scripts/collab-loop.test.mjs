@@ -655,6 +655,20 @@ test('retro S1: runs in a row with no area ask for a top-up from the third and a
   assert.equal(queue().topUp, false);
 });
 
+test('#237: a failed idle alert is retried on the next idle run until it is delivered', () => {
+  const date = '2026-11-14';
+  const alerts = [];
+  let fail = true;
+  const alert = text => { if (fail) { fail = false; throw new Error('gh down'); } alerts.push(text); };
+  const run = minute => tick({ gh: plannedGh([], date), now: { date, hour: 18, minute }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}), alert });
+  for (let i = 1; i <= 6; i += 1) run(i);
+  assert.equal(alerts.length, 0, 'the sixth run tried and failed');
+  run(7);
+  assert.equal(alerts.length, 1, 'the seventh run retries the failed alert');
+  run(8); run(9);
+  assert.equal(alerts.length, 1, 'no repeat once delivered');
+});
+
 // ---- Loop fixes A–E (owner 04.11.2026) ----
 const goodBody = [
   '- Mức: M — script vòng tự động',
