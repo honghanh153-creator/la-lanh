@@ -54,8 +54,12 @@ child.on('exit', c => { code = c ?? 1; clearTimeout(timer); finish(); });
 // One file per alert, so an alert queued while a delivery runs is never overwritten (#241).
 export const pendingAlertsDir = () => join(stateDir, 'beats', 'pending-alerts');
 const legacyAlertsPath = () => join(stateDir, 'beats', 'pending-alerts.json');
+// Names sort in queue order: two alerts in the same millisecond keep their order by a counter
+// (the random suffix alone made the order a coin flip, author check #281).
+let alertSeq = 0;
 export function queueAlert(text, nowMs = Date.now()) {
-  const name = `${String(nowMs).padStart(15, '0')}-${process.pid}-${randomBytes(4).toString('hex')}.json`;
+  alertSeq += 1;
+  const name = `${String(nowMs).padStart(15, '0')}-${process.pid}-${String(alertSeq).padStart(6, '0')}-${randomBytes(4).toString('hex')}.json`;
   writeJson(join(pendingAlertsDir(), name), { at: new Date(nowMs).toISOString(), text: clean(text, 1000) });
 }
 export function pendingAlerts() {

@@ -1,5 +1,5 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
-import { closeSync, mkdirSync, openSync, rmSync, statSync, writeSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
@@ -7,6 +7,7 @@ import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { bodyHash } from './collab-heal.mjs';
 import { preflightFailure, readPreflight, recordPreflight } from './collab-preflight.mjs';
 import { withRepeatNote } from './collab-size.mjs';
+import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus } from './collab-buffer.mjs';
 
 export { codexDailyCap };
@@ -81,14 +82,11 @@ export function renderReport(turns) {
   return ['PR\tnhóm\tlượt\thead\tlý do\ttiêu đề', ...rows].join('\n');
 }
 
-// One tick at a time; a lock older than 90 minutes belongs to a crashed run.
+// One tick at a time; a lock whose PID is dead or older than 90 minutes belongs to a crashed run.
+// The reclaim runs under the reclaim mutex (collab-lock.mjs, Codex #258).
 function withLock(fn) {
   mkdirSync(stateDir, { recursive: true });
-  const path = join(stateDir, 'tick.lock');
-  try { if (Date.now() - statSync(path).mtimeMs > 90 * 60000) rmSync(path); } catch {}
-  let fd;
-  try { fd = openSync(path, 'wx'); } catch { return { status: 'locked' }; }
-  try { writeSync(fd, String(process.pid)); return fn(); } finally { closeSync(fd); rmSync(path, { force: true }); }
+  return withFileLock(join(stateDir, 'tick.lock'), { staleMs: 90 * 60000, busy: { status: 'locked' } }, fn);
 }
 
 export const idleTopUpRuns = 3;

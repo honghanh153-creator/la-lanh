@@ -143,6 +143,7 @@ def create_app(
             envelope,
             SupabaseOtpProvider(resolved_settings, transport=auth_transport),
             resolved_settings,
+            erasure_journal=erasure_journal,
         )
         app.state.history_service = HistoryService(
             PostgresHistoryRepository(database.sessions, envelope, erasure_journal),

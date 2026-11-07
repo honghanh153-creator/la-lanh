@@ -265,6 +265,13 @@ test('self-heal 3 r3 (P1): a stuck step queues its alert; delivery obeys an adva
   assert.deepEqual(heal.pendingAlerts(), []);
 });
 
+test('#281: alerts queued in the same millisecond are delivered in queue order', () => {
+  for (const { path } of heal.pendingAlerts()) rmSync(path);
+  for (let i = 0; i < 20; i++) heal.queueAlert(`a${i}`, 1000);
+  assert.deepEqual(heal.pendingAlerts().map(e => e.item.text), Array.from({ length: 20 }, (_, i) => `a${i}`));
+  heal.deliverPendingAlerts({ alert: () => {} });
+});
+
 test('#241: an alert queued while a delivery runs survives it', () => {
   for (const { path } of heal.pendingAlerts()) rmSync(path);
   heal.queueAlert('A');
