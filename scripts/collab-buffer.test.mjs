@@ -1,3 +1,4 @@
+import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

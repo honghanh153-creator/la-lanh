@@ -35,6 +35,7 @@ def test_every_explicit_erasure_path_gets_the_same_journal(tmp_path: Path) -> No
             "saved": state.saved_note_service._repository._erasure_journal,
             "la_chung": state.la_chung_service._erasure_journal,
             "experiments": state.experiment_service._repository._erasure_journal,
+            "accounts": state.account_service._erasure_journal,
         }
         assert {name: value is journal for name, value in wired.items()} == dict.fromkeys(
             wired, True

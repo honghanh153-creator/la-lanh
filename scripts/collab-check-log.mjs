@@ -18,7 +18,7 @@ export const guardWaitMs = 5 * 60000;
 
 const alive = pid => { if (!Number.isInteger(pid) || pid <= 0) return false; try { process.kill(pid, 0); return true; } catch { return false; } };
 export function lockHolder(path) {
-  try { const pid = Number(readFileSync(path, 'utf8')); return alive(pid) ? pid : null; } catch { return null; }
+  try { const pid = Number.parseInt(readFileSync(path, 'utf8'), 10); return alive(pid) ? pid : null; } catch { return null; }
 }
 
 // The steps of the `check` script, in order: `pnpm a && pnpm b` -> ['a', 'b'].
