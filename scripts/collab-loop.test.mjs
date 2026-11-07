@@ -21,7 +21,7 @@ let clock = 0;
 const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
 const outsider = body => ({ ...owner(body), authorAssociation: 'NONE' });
 const check = (sha, status = 'PASS') => owner(renderCheck({ head: sha, status, exitCode: status === 'PASS' ? 0 : 1, seconds: 1, date: 'x' }));
-const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: 'PR body', ...extra });
+const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra });
 
 function fakeGh(state) {
   const calls = [];
@@ -738,6 +738,26 @@ test('fix A: the clone check stops on a lint failure before pnpm and posts nothi
     preflight: () => ({ status: 'FAIL', reasons: ['ruff lỗi: x'] }), spawn: () => { throw new Error('pnpm check must not start'); } });
   assert.deepEqual(result, { status: 'preflight', reasons: ['ruff lỗi: x'] });
   assert.deepEqual(posted, []);
+  assert.equal(turnsFor([pr()])[0].turn, 'claude-fix', 'a lint failure is recorded for this head');
+  preflightMod.recordPreflight(7, A, { status: 'PASS' });
+});
+
+test('#306: a direct clone check with a failing body records it, routes to claude-fix and stops retrying', () => {
+  const bad = pr({ number: 306, body: 'no gates here' });
+  let fetched = 0;
+  const gh = { ...fakeGh({ pr: bad }), pr: () => { fetched += 1; return bad; } };
+  const never = () => { throw new Error('no clone, lock or pnpm before a body fix'); };
+  const first = runCheckInClone(306, { gh, run: never, group: never, busy: () => null, spawn: never });
+  assert.equal(first.status, 'preflight');
+  assert.ok(first.reasons.includes('PR body thiếu mức rủi ro S/M/L'));
+  const turn = turnsFor([bad]).find(t => t.number === 306);
+  assert.equal(turn.turn, 'claude-fix', 'held until the body changes, not claude-check');
+  assert.match(turn.reason, /^preflight: /);
+  const again = runCheckInClone(306, { gh, run: never, group: never, busy: () => null, spawn: never, held: { quick: never } });
+  assert.equal(again.held, true, 'the recorded failure answers the second call');
+  const fixed = { ...bad, body: goodBody };
+  assert.equal(turnsFor([fixed])[0].turn, 'claude-check', 'an edited body clears the hold');
+  preflightMod.recordPreflight(306, A, { status: 'PASS' });
 });
 
 test('fix B: a later PR on the same file waits for the earlier one', () => {

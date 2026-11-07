@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { agentMarker, boundedTimeout, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
-import { runPreflight } from './collab-preflight.mjs';
+import { preflightFailure, readPreflight, recordPreflight, runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
 
@@ -140,6 +140,19 @@ export function renderCheck({ head, status, exitCode, seconds, date, guard = nul
   ].join('\n');
 }
 
+// 07.11: a PR whose body failed the preflight was re-checked every minute for 45 minutes (#306),
+// since a direct check neither read nor wrote the preflight record. The body and size preflight now
+// runs before any lock or clone, its failure is recorded (so --report shows claude-fix) and a
+// recorded failure for the same head and body is returned at once until the body or head changes.
+export function heldPreflight(pr, { records = readPreflight, quick = p => runPreflight(p), record = recordPreflight } = {}) {
+  const held = preflightFailure(records(), pr);
+  if (held) return { status: 'preflight', reasons: held, held: true };
+  const pre = quick(pr);
+  if (pre?.status !== 'FAIL') return null;
+  record(pr.number, pr.headRefOid, pre);
+  return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
+}
+
 export function runCheck(number, { gh = makeGh(), cwd = process.cwd(), git = args => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).trim(), spawn = spawnSync, now = () => Date.now(), busy = machineBusy, terms = readGuardTerms, waitGuard = waitForGuard, budget = () => 90 * 60000 } = {}) {
   return withCheckLock(() => checkOnce(number, { gh, cwd, git, spawn, now, busy, terms, waitGuard, budget }));
 }
@@ -265,6 +278,8 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   // Never fetch, build or run a PR that is not the owner's own branch (fork or outside author).
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   if (checkBudgetMs({ auto, clock }) <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  const held = heldPreflight({ ...pr, number: pr.number ?? number }, rest.held);
+  if (held) return held;
   // Refuse before touching the clone when another check owns the machine.
   const other = (rest.busy ?? machineBusy)();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
@@ -285,7 +300,10 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs() - cleanupReserveMs - finalizeReserveMs);
-    return checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
+    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
+    // A lint failure is recorded too, keyed by head, so the next tick routes the PR to claude-fix.
+    if (result?.status === 'preflight') (rest.held?.record ?? recordPreflight)(number, pr.headRefOid, { status: 'FAIL', reasons: result.reasons ?? [], ...(result.bodyHash ? { bodyHash: result.bodyHash } : {}) });
+    return result;
   });
 }
 
