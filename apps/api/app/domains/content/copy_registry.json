@@ -539,6 +539,366 @@
    "category": "reading",
    "text": "Một việc làm xong có thể nhẹ hơn ba việc dở.",
    "status": "pending"
+  },
+  {
+   "id": "daily.scene.automatic-caretaking.01",
+   "category": "reading",
+   "text": "Khi có người nhắn nhờ một việc nhỏ, bạn có thể nhận ngay dù việc của mình còn dở.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.automatic-caretaking.02",
+   "category": "reading",
+   "text": "Khi thấy người kia lúng túng, bạn có thể làm hộ luôn mà chưa hỏi họ có cần không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.automatic-caretaking.03",
+   "category": "reading",
+   "text": "Khi được nhờ vào cuối ngày, bạn có thể nhận lời dù đã định nghỉ sớm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.automatic-caretaking.04",
+   "category": "reading",
+   "text": "Khi giúp xong một việc, bạn có thể nhận thêm việc thứ hai mà chưa xem giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.avoid-small-conflict.01",
+   "category": "reading",
+   "text": "Khi được rủ vào một buổi bạn không muốn đi, bạn có thể nhận lời cho xong.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.avoid-small-conflict.02",
+   "category": "reading",
+   "text": "Khi người kia hỏi bạn làm hộ được không, bạn có thể nói được trước khi nghĩ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.avoid-small-conflict.03",
+   "category": "reading",
+   "text": "Khi từ chối có vẻ làm người kia buồn, bạn có thể nhận một việc mình không tiện làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.avoid-small-conflict.04",
+   "category": "reading",
+   "text": "Khi câu hỏi đến bất ngờ, bạn có thể trả lời được dù trong lòng muốn nói không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.capacity-before-agreement.01",
+   "category": "reading",
+   "text": "Khi được nhờ trong lúc đang vội, bạn có thể nhận lời mà chưa mở lịch xem.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.capacity-before-agreement.02",
+   "category": "reading",
+   "text": "Khi người kia hỏi bạn rảnh không, bạn có thể nói có trước khi biết việc mất bao lâu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.capacity-before-agreement.03",
+   "category": "reading",
+   "text": "Khi muốn giúp một người quen, bạn có thể nhận việc dù tuần này lịch đã kín.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.capacity-before-agreement.04",
+   "category": "reading",
+   "text": "Khi việc được nhờ nghe có vẻ nhanh, bạn có thể nhận mà chưa tính thời gian thật cần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.changed-plan.01",
+   "category": "reading",
+   "text": "Khi buổi hẹn bị dời sang chiều, bạn có thể phải đổi việc đã định làm vào giờ đó.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.changed-plan.02",
+   "category": "reading",
+   "text": "Khi người kia nói để xem lại giờ, bạn có thể giữ trống cả buổi mà chưa biết có hẹn không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.changed-plan.03",
+   "category": "reading",
+   "text": "Khi cuộc hẹn đổi địa điểm, bạn có thể cần thêm thời gian đi lại so với dự tính.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.changed-plan.04",
+   "category": "reading",
+   "text": "Khi giờ hẹn mới sát giờ một việc khác, bạn có thể chưa biết nên báo bên nào trước.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.comparison-loop.01",
+   "category": "reading",
+   "text": "Khi xem bài khoe kết quả của người khác, bạn có thể thấy việc mình đang làm chưa đủ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.comparison-loop.02",
+   "category": "reading",
+   "text": "Khi nghe một người làm nhanh hơn mình, bạn có thể quên lý do mình chọn làm chậm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.comparison-loop.03",
+   "category": "reading",
+   "text": "Khi so bản nháp của mình với bản hoàn chỉnh của người khác, bạn có thể chê phần mình sớm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.comparison-loop.04",
+   "category": "reading",
+   "text": "Khi đọc danh sách việc người khác đã xong, bạn có thể bỏ qua việc mình vừa làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.decision-fatigue.01",
+   "category": "reading",
+   "text": "Khi chọn món cho bữa tối sau một ngày dài, bạn có thể xem rất lâu mà chưa chọn được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.decision-fatigue.02",
+   "category": "reading",
+   "text": "Khi so ba món đồ gần giống nhau, bạn có thể đọc thêm đánh giá dù đã đủ để chọn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.decision-fatigue.03",
+   "category": "reading",
+   "text": "Khi phải chọn giờ cho nhiều việc, bạn có thể đổi đi đổi lại mà chưa chốt giờ nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.decision-fatigue.04",
+   "category": "reading",
+   "text": "Khi một lựa chọn không quá quan trọng, bạn có thể vẫn cân nhắc như một việc lớn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.defend-old-choice.01",
+   "category": "reading",
+   "text": "Khi đã làm theo một cách nhiều tuần, bạn có thể ngại thử cách khác dù kết quả chưa tốt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.defend-old-choice.02",
+   "category": "reading",
+   "text": "Khi có người góp ý đổi cách làm, bạn có thể giải thích cách cũ thay vì xem góp ý.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.defend-old-choice.03",
+   "category": "reading",
+   "text": "Khi kết quả tuần này giống tuần trước, bạn có thể làm thêm giờ theo cách cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.defend-old-choice.04",
+   "category": "reading",
+   "text": "Khi tiếc công đã bỏ ra, bạn có thể làm tiếp một việc mà chưa xem nó còn cần không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.group-pressure.01",
+   "category": "reading",
+   "text": "Khi cuộc họp sắp hết giờ, bạn có thể đồng ý cho nhanh dù còn một chỗ muốn hỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.group-pressure.02",
+   "category": "reading",
+   "text": "Khi mọi người thả tim cho một đề xuất, bạn có thể ngại nói mình chưa hiểu phần nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.group-pressure.03",
+   "category": "reading",
+   "text": "Khi nhóm chốt cách làm qua tin nhắn, bạn có thể đồng ý trước khi đọc kỹ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.group-pressure.04",
+   "category": "reading",
+   "text": "Khi người nói đầu tiên rất chắc, bạn có thể ngại đưa ra câu hỏi khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.missing-context.01",
+   "category": "reading",
+   "text": "Khi tin nhắn chỉ có một chữ ừ, bạn có thể đoán người kia đồng ý đến đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.missing-context.02",
+   "category": "reading",
+   "text": "Khi tin nhắn hỏi xong chưa mà không nói việc nào, bạn có thể đoán sai việc được hỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.missing-context.03",
+   "category": "reading",
+   "text": "Khi tin nhắn kết thúc bằng dấu chấm, bạn có thể đọc ra một giọng khác người gửi định nói.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.missing-context.04",
+   "category": "reading",
+   "text": "Khi được nhắn để mai tính, bạn có thể chưa biết người kia cần bạn chuẩn bị gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.name-the-need.01",
+   "category": "reading",
+   "text": "Khi việc nhà dồn lại, bạn có thể nói mình mệt mà chưa nhờ ai làm phần nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.name-the-need.02",
+   "category": "reading",
+   "text": "Khi người kia hỏi có cần giúp không, bạn có thể nói không sao dù đang cần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.name-the-need.03",
+   "category": "reading",
+   "text": "Khi chờ người kia tự nhận ra, bạn có thể thấy mệt hơn vì chưa ai giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.name-the-need.04",
+   "category": "reading",
+   "text": "Khi kể về một ngày nhiều việc, bạn có thể chưa nói việc nào người kia làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.perfect-before-start.01",
+   "category": "reading",
+   "text": "Khi bản nháp đã đủ để người khác góp ý, bạn có thể vẫn giữ lại để sửa thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.perfect-before-start.02",
+   "category": "reading",
+   "text": "Khi chỉ còn bấm gửi, bạn có thể đọc lại thêm một lần và đổi vài chữ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.perfect-before-start.03",
+   "category": "reading",
+   "text": "Khi lo người đọc chê một chỗ, bạn có thể sửa chỗ đó mãi thay vì hỏi họ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.perfect-before-start.04",
+   "category": "reading",
+   "text": "Khi hạn gửi còn xa, bạn có thể dùng thời gian đó để sửa phần đã ổn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.quick-reply.01",
+   "category": "reading",
+   "text": "Khi tin nhắn dài đến lúc bạn đang bận, bạn có thể đáp ý đầu rồi bỏ qua phần sau.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.quick-reply.02",
+   "category": "reading",
+   "text": "Khi một câu trong tin nhắn làm bạn khó chịu, bạn có thể trả lời câu đó trước.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.quick-reply.03",
+   "category": "reading",
+   "text": "Khi thấy thông báo tin nhắn mới, bạn có thể đáp ngay từ dòng xem trước.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.quick-reply.04",
+   "category": "reading",
+   "text": "Khi tin nhắn hỏi hai việc, bạn có thể chỉ trả lời việc bạn đọc thấy trước.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.repair-reply.01",
+   "category": "reading",
+   "text": "Khi đọc lại câu trả lời vội, bạn có thể thấy nó nghe lạnh hơn ý bạn muốn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.repair-reply.02",
+   "category": "reading",
+   "text": "Khi người kia im lặng sau tin bạn gửi, bạn có thể đọc lại và thấy câu mình hơi gắt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.repair-reply.03",
+   "category": "reading",
+   "text": "Khi câu đã gửi thiếu một lời giải thích, bạn có thể muốn nhắn thêm cho rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.repair-reply.04",
+   "category": "reading",
+   "text": "Khi bình tĩnh lại sau một câu trả lời nhanh, bạn có thể thấy mình nói chưa đúng ý.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.specific-feedback.01",
+   "category": "reading",
+   "text": "Khi gửi bản nháp kèm câu thấy sao, bạn có thể nhận về góp ý cho phần không cần sửa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.specific-feedback.02",
+   "category": "reading",
+   "text": "Khi chỉ muốn hỏi về tiêu đề, bạn có thể gửi cả bài mà chưa nói phần cần xem.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.specific-feedback.03",
+   "category": "reading",
+   "text": "Khi người đọc bận, bạn có thể nhận góp ý chung vì câu hỏi chưa chỉ đúng chỗ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.specific-feedback.04",
+   "category": "reading",
+   "text": "Khi lo một đoạn khó hiểu, bạn có thể hỏi chung chung thay vì chỉ đoạn đó.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.too-many-open-loops.01",
+   "category": "reading",
+   "text": "Khi mở nhiều cửa sổ cùng lúc, bạn có thể quên việc nào đang chờ mình làm tiếp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.too-many-open-loops.02",
+   "category": "reading",
+   "text": "Khi trả lời một tin nhắn giữa chừng, bạn có thể quay lại mà không nhớ việc cũ đang ở bước nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.too-many-open-loops.03",
+   "category": "reading",
+   "text": "Khi danh sách việc có thêm vài mục, bạn có thể làm mục mới trước mục đang dở.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.scene.too-many-open-loops.04",
+   "category": "reading",
+   "text": "Khi đang nấu dở một món, bạn có thể bắt đầu dọn chỗ khác rồi để món đó chờ.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
