@@ -17,7 +17,9 @@
   // Acts here: a quiet subset of the evening's acts, plus a bow and sitting down.
   const ACTS = Object.assign({}, H.ACTS, {
     chaptay: { label: 'Chắp tay', verb: 'chắp tay chào', icon: '🙏' },
-    ngoi: { label: 'Ngồi', verb: 'ngồi xuống', icon: '🪑' }
+    ngoi: { label: 'Ngồi', verb: 'ngồi xuống', icon: '🪑' },
+    lamviec: { label: 'Lấy đồ ra', verb: 'lấy đồ ra', icon: '💼' },
+    cat: { label: 'Cất đồ', verb: 'cất đồ', icon: '👜' }
   });
   const FREE = ['chaptay', 'vaytay', 'ngugat'];
   const rand = Math.random;
@@ -37,7 +39,7 @@
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y) / T; }
   function body(id, name, look, npc) {
     return Object.assign({ id, name, npc, dir: 'up', path: null, then: null, act: null, actUntil: 0, sit: false, sitUntil: 0, bubble: null, walkMs: 0, moving: false,
-      blinkAt: rand() * 4, sheet: E.buildSheet(look), drink: null, greeted: false }, feetOf(...W.ENTRY));
+      blinkAt: rand() * 4, sheet: E.buildSheet(look), drink: null, greeted: false, gear: Q.packBag(rand), task: false, steamT: rand() * 3 }, feetOf(...W.ENTRY));
   }
   let me = null, myNotes = [], myDrink = null, myCard = null, myLine = null;
   function enter() {
@@ -46,7 +48,7 @@
     people.set('you', me);
     // guests already sitting when you arrive
     for (let i = 0; i < Q.crowd(nowHour()); i++) spawnGuest(true);
-    renderPanel(); renderNotes(); renderCard();
+    renderPanel(); renderNotes(); renderCard(); renderGear();
     toast('Bạn vào quán với tên ' + me.name + '.');
     hostSay(Q.hostLine(nowHour(), rand));
   }
@@ -55,7 +57,7 @@
   function walkTo(b, tx, ty, then) {
     const path = W.findPath(tileOf(b), [tx, ty]);
     if (!path) return false;
-    b.sit = false; b.act = null;
+    b.sit = false; b.act = null; b.task = false;
     b.path = path.slice(1); b.then = then || null;
     if (!b.path.length) { b.path = null; const t = b.then; b.then = null; if (t) t(); }
     return true;
@@ -82,12 +84,13 @@
   function sitDown(b) {
     const here = seatAt(...tileOf(b));
     if (!here) return false;
-    b.sit = true; b.act = null; b.path = null; b.goingTo = null;
+    b.sit = true; b.act = null; b.path = null; b.goingTo = null; b.task = false;
     b.dir = b.x < here.table.tx * T + 8 ? 'right' : 'left';
     return true;
   }
   function startAct(b, act) {
     if (act === 'ngoi') return sitDown(b);
+    if (act === 'lamviec' || act === 'cat') { if (!b.sit) return false; b.task = act === 'lamviec'; b.act = null; return true; }
     const a = ACTS[act];
     if (!a) return false;
     if (a.at) {
@@ -97,7 +100,7 @@
       const [x, y] = tileOf(b), dx = spot.tx - x, dy = spot.ty - y;
       b.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
     }
-    if (act !== 'ngugat' && act !== 'chaptay' && act !== 'vaytay') b.sit = false;
+    if (act !== 'ngugat' && act !== 'chaptay' && act !== 'vaytay') { b.sit = false; b.task = false; }
     b.act = act; b.actUntil = clock + (act === 'ngugat' ? 8 : act === 'chaptay' ? 2.5 : 6);
     if (act === 'ngammua') b.dir = 'up';
     if (act === 'chaptay' && !b.sit) b.dir = 'down';
@@ -110,6 +113,7 @@
     const s = W.spotAt(x, y);
     if (s && W.SPOTS[s].act !== 'goido') list.push(W.SPOTS[s].act);
     if (seatAt(x, y) && !b.sit) list.push('ngoi');
+    if (b.sit) list.push(b.task ? 'cat' : 'lamviec');
     return list;
   }
 
@@ -125,7 +129,7 @@
     if (alreadyIn) {
       const seats = W.TABLES.flatMap(t => t.seats).filter(s => !seatTaken(s));
       const s = pick(seats);
-      if (s) { Object.assign(g, feetOf(...s)); people.set(g.id, g); sitDown(g); g.sitUntil = clock + 10 + rand() * 30; g.drink = pick(Object.keys(Q.DRINKS)); return g; }
+      if (s) { Object.assign(g, feetOf(...s)); people.set(g.id, g); sitDown(g); g.task = true; g.sitUntil = clock + 20 + rand() * 40; g.drink = pick(Object.keys(Q.DRINKS)); return g; }
     }
     people.set(g.id, g);
     return g;
@@ -138,7 +142,7 @@
   function guestThink(g, dt) {
     if (g.path || g.leaving) return;
     if (g.act && g.actUntil > clock) return;
-    if (g.sit && g.sitUntil > clock) { if (!g.act && rand() < dt * 0.04) startAct(g, 'ngugat'); return; }
+    if (g.sit && g.sitUntil > clock) { if (!g.act && rand() < dt * (g.task ? 0.012 : 0.04)) startAct(g, 'ngugat'); return; }
     g.idle -= dt;
     if (g.idle > 0) return;
     g.idle = 1 + rand() * 3;
@@ -149,7 +153,7 @@
       const s = pick(seats);
       if (!s) return;
       g.goingTo = s;
-      walkTo(g, s[0], s[1], () => { sitDown(g); g.sitUntil = clock + 15 + rand() * 25; });
+      walkTo(g, s[0], s[1], () => { sitDown(g); g.sitUntil = clock + 20 + rand() * 35 + (g.gear.thing === 'laptop' ? 20 : 0); setTimeout(() => { if (g.sit) g.task = true; }, 1200); });
       return;
     }
     const spots = Object.values(W.SPOTS).filter(s => s.act === next);
@@ -237,6 +241,25 @@
       el('p', 'note-hint', 'Bối cảnh: ' + ev.setting + '. Mỗi buổi chọn 10–12 người.'),
       btn('Mình muốn hẹn', 'pickbtn', () => toast('Bản thử chưa nhận đăng ký. Ở bản thật, bạn nhận thư mời nếu được chọn.')));
   }
+  function renderGear() {
+    const box = $('gearBox'); box.replaceChildren();
+    const g = me.gear;
+    const row = (title, table, key) => {
+      const wrap = el('div', 'choices gear');
+      wrap.setAttribute('role', 'group'); wrap.setAttribute('aria-label', title);
+      for (const [k, v] of Object.entries(table)) {
+        const b = btn(v.icon + ' ' + v.label, '', () => { g[key] = k; if (key === 'thing') me.task = false; actsKey = ''; renderGear(); });
+        b.setAttribute('aria-pressed', g[key] === k ? 'true' : 'false');
+        wrap.append(b);
+      }
+      box.append(el('div', 'field', title), wrap);
+    };
+    row('Mang theo để làm', Q.THINGS, 'thing');
+    row('Túi', Q.BAGS, 'bag');
+    const u = btn((g.umbrella ? '☂️ Có mang ô' : '🌂 Không mang ô'), '', () => { g.umbrella = !g.umbrella; renderGear(); });
+    u.setAttribute('aria-pressed', g.umbrella ? 'true' : 'false');
+    const w = el('div', 'choices gear'); w.append(u); box.append(w);
+  }
   function renderCard() {
     const box = $('cardBox'); box.replaceChildren();
     if (!myCard) { box.append(el('b', '', '🃏 Lá bài hôm nay'), el('div', '', 'Hỏi Cô Lá ở quầy để xin. Lá bài chỉ gợi một việc nhỏ, không phán gì về bạn.')); return; }
@@ -312,13 +335,15 @@
   let actsKey = '';
   function renderActs() {
     const list = availableActs(me);
-    const key = list.join(',') + me.sit;
+    const key = list.join(',') + me.sit + me.gear.thing;
     if (key === actsKey) return;
     actsKey = key;
     const box = $('acts'); box.replaceChildren();
     list.forEach((a, i) => {
-      const b = btn('', ACTS[a].at || a === 'ngoi' ? 'spot' : '', () => doAct(a));
-      b.append(document.createTextNode(ACTS[a].icon + ' ' + ACTS[a].label), el('small', '', String(i + 1)));
+      const th = Q.THINGS[me.gear.thing];
+      const label = a === 'lamviec' ? th.icon + ' ' + th.verb : a === 'cat' ? '👜 Cất ' + th.label.toLowerCase() : ACTS[a].icon + ' ' + ACTS[a].label;
+      const b = btn('', ACTS[a].at || a === 'ngoi' || a === 'lamviec' ? 'spot' : '', () => doAct(a));
+      b.append(document.createTextNode(label), el('small', '', String(i + 1)));
       box.append(b);
     });
   }
@@ -357,7 +382,8 @@
   $('actBtn').addEventListener('click', interact);
 
   // ---------- drawing ----------
-  const bg = R.background();
+  const night = () => nowHour() >= 18 || nowHour() < 6;
+  const bg = R.background({ day: !night() });
   function drawCup(c, x, y, kind) {
     const col = Q.DRINKS[kind].color;
     c.fillStyle = '#f3ead8'; c.fillRect(x, y + 2, 7, 7);
@@ -365,28 +391,48 @@
     c.fillStyle = '#f3ead8'; c.fillRect(x + 7, y + 4, 2, 3);
     c.fillStyle = 'rgba(232,228,220,.7)'; c.fillRect(x + 2, y, 1, 2); c.fillRect(x + 4, y - 1, 1, 2);
   }
+  function cupSpot(b) {
+    const here = seatAt(...tileOf(b));
+    if (!here) return null;
+    const left = b.x < here.table.tx * T + 8;
+    return { table: here.table, left, x: here.table.tx * T + (left ? 2 : 10), y: here.table.ty * T + 3 };
+  }
   function drawCupsOnTables() {
     for (const b of people.values()) {
+      if (!b.sit) continue;
+      const c = cupSpot(b);
+      if (!c) continue;
+      if (b.task) R.tableThing(ctx, c.table, c.left, b.gear.thing, clock + (b.blinkAt || 0), still());
+      if (!b.drink) continue;
+      ctx.fillStyle = '#f3ead8'; ctx.fillRect(c.x, c.y, 4, 4); ctx.fillRect(c.left ? c.x + 4 : c.x - 1, c.y + 1, 1, 2);
+      ctx.fillStyle = Q.DRINKS[b.drink].color; ctx.fillRect(c.x + 1, c.y + 1, 2, 1);
+    }
+  }
+  function steam(dt) {
+    if (motion !== 'full') return;
+    for (const b of people.values()) {
       if (!b.sit || !b.drink) continue;
-      const here = seatAt(...tileOf(b));
-      if (!here) continue;
-      const left = b.x < here.table.tx * T + 8;
-      const x = here.table.tx * T + (left ? 2 : 8), y = here.table.ty * T + 2;
-      ctx.fillStyle = '#f3ead8'; ctx.fillRect(x, y + 1, 4, 4); ctx.fillStyle = Q.DRINKS[b.drink].color; ctx.fillRect(x + 1, y + 2, 2, 1);
+      b.steamT -= dt; if (b.steamT > 0) continue;
+      b.steamT = 1.2 + rand() * 1.5;
+      const c = cupSpot(b);
+      if (c) particles.push({ kind: 'steam', x: c.x + 1 + rand() * 2, y: c.y - 1, vx: rand() * 2 - 1, vy: -5, life: 1.3 });
     }
   }
   function render() {
     ctx.drawImage(bg, 0, 0);
     R.rain(ctx, clock, still());
     R.cat(ctx, clock, still(), [...people.values()].some(b => b.act === 'vuotmeo'));
-    R.lamps(ctx, nowHour() >= 18 || nowHour() < 6 ? 0.1 : 0.05);
+    R.lamps(ctx, night() ? 0.075 : 0.035);
     R.person(ctx, host, clock, still(), 0);
     R.counterFront(ctx);
     drawCupsOnTables();
     for (const b of [...people.values()].sort((a, c) => a.y - c.y)) R.person(ctx, b, clock, still(), 0);
+    R.pendants(ctx);
     R.drawParticles(ctx, particles);
     // the small hours are dim
     if (nowHour() < 5) { ctx.fillStyle = 'rgba(10,8,20,.28)'; ctx.fillRect(0, 0, VW, VH); }
+    R.glow(ctx, night());
+    R.vignette(ctx, night() ? 0.4 : 0.22);
     drawOverlay();
   }
 
@@ -402,7 +448,7 @@
         t.bubble.hidden = true; t.tag.append(t.nm, t.doing); t.root.append(t.bubble, t.tag); overlay.append(t.root); tags.set(b.id, t);
       }
       const name = b.host ? '☕ Cô Lá' : b.name + (b.id === 'you' ? ' (bạn)' : '');
-      const doing = b.act ? ' ' + ACTS[b.act].icon : b.sit ? ' 🪑' : '';
+      const doing = b.act ? ' ' + ACTS[b.act].icon : b.sit && b.task && b.gear ? ' ' + Q.THINGS[b.gear.thing].icon : b.sit ? ' 🪑' : '';
       if (t.nm.textContent !== name) t.nm.textContent = name;
       if (t.doing.textContent !== doing) t.doing.textContent = doing;
       const bub = b.bubble && b.bubble.until > clock ? b.bubble.text : '';
@@ -443,7 +489,7 @@
       if (ix || iy) {
         const len = Math.hypot(ix, iy), sp = 60 * dt;
         const moved = W.moveWithSlide({ x: me.x - 4, y: me.y - 4, w: 8, h: 5 }, ix / len * sp, iy / len * sp);
-        me.x = moved.x + 4; me.y = moved.y + 4; me.moving = true; me.act = null; me.sit = false;
+        me.x = moved.x + 4; me.y = moved.y + 4; me.moving = true; me.act = null; me.sit = false; me.task = false;
         me.dir = Math.abs(ix) >= Math.abs(iy) && ix ? (ix > 0 ? 'right' : 'left') : (iy > 0 ? 'down' : 'up');
       }
     }
@@ -458,6 +504,7 @@
       greetTimer -= dt; if (greetTimer <= 0) { greetTimer = 0.5; greetings(); }
     }
     R.actParticles(people.values(), particles, dt, still());
+    if (!modalOpen) steam(dt);
     R.stepParticles(particles, dt);
     renderActs();
     panelTimer -= dt; if (panelTimer <= 0) { panelTimer = 2; renderPanel(); }

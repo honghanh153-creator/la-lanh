@@ -81,5 +81,34 @@
     return out;
   }
 
-  return { LEAVES, MOODS, randomName, crowd, crowdLabel, DRINKS, CARDS, dailyCard, dateKey, HOST, band, hostLine, GREETINGS, NOTE_MAX, NOTE_LIMIT, sanitizeNote, NEXT_EVENT, VISIT_ACTS, visitPlan };
+  // What people bring. Purely a look and a quiet thing to do at the table; nothing here is bought, ranked or rewarded.
+  const THINGS = {
+    laptop: { label: 'Laptop', icon: '💻', verb: 'Mở laptop' },
+    sach: { label: 'Cuốn sách', icon: '📖', verb: 'Mở sách' },
+    sove: { label: 'Sổ vẽ', icon: '✏️', verb: 'Vẽ vời' },
+    tainghe: { label: 'Tai nghe', icon: '🎧', verb: 'Nghe nhạc' },
+    len: { label: 'Cuộn len', icon: '🧶', verb: 'Đan len' },
+    mayanh: { label: 'Máy ảnh film', icon: '📷', verb: 'Xem ảnh' }
+  };
+  const BAGS = {
+    balo: { label: 'Balo', icon: '🎒' },
+    tuivai: { label: 'Túi vải', icon: '👜' },
+    tuicheo: { label: 'Túi đeo chéo', icon: '👝' },
+    khong: { label: 'Tay không', icon: '🤲' }
+  };
+  const BAG_COLORS = ['#c0605a', '#4f8a6b', '#e3b23c', '#6aa7e8', '#a995d8', '#d8c8a8', '#3a3550', '#b0603c'];
+  const UMBRELLA_COLORS = ['#ef8a7a', '#6aa7e8', '#f2b45a', '#7fc8a0', '#2a2a34'];
+  function packBag(rand) {
+    const at = list => list[Math.floor(rand() * list.length)];
+    const bags = Object.keys(BAGS);
+    return {
+      thing: at(Object.keys(THINGS)),
+      bag: rand() < 0.12 ? 'khong' : at(bags.filter(b => b !== 'khong')),
+      color: at(BAG_COLORS),
+      umbrella: rand() < 0.6, // it is raining outside
+      ucolor: at(UMBRELLA_COLORS)
+    };
+  }
+
+  return { THINGS, BAGS, BAG_COLORS, packBag, LEAVES, MOODS, randomName, crowd, crowdLabel, DRINKS, CARDS, dailyCard, dateKey, HOST, band, hostLine, GREETINGS, NOTE_MAX, NOTE_LIMIT, sanitizeNote, NEXT_EVENT, VISIT_ACTS, visitPlan };
 });

@@ -112,6 +112,8 @@ body.reduced .bubble.pop, body.still .bubble.pop { animation: none; }
 .choices { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
 .choices button { min-height: 44px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); }
 .choices button[aria-pressed="true"] { border-color: var(--leaf); background: #21382c; }
+.choices.gear { margin: 4px 0 8px; }
+.choices.gear button { min-height: 44px; padding: 4px 10px; font-size: 13px; }
 .choices canvas { display: block; image-rendering: pixelated; width: 42px; height: 54px; }
 .field { margin: 10px 0 2px; font-weight: 700; font-size: 14px; }
 .letter { padding: 10px 12px; margin: 6px 0; border-radius: 8px; background: #fbf4e6; color: #2a1f3d; font-size: 14px; }

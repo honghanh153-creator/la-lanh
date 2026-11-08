@@ -59,10 +59,13 @@ Quán mở mọi ngày, không có buổi hẹn. Giống đi chùa online (Sansa
 - **Khách:** khách hư cấu tự ra vào. Đông vào sáng sớm và buổi tối; từ 0 tới 4 giờ sáng thì vắng, chỉ có Cô Lá và mèo Mướp. Theo giờ của máy; thêm `?gio=21` để thử một giờ khác.
 - **Làm gì:** chắp tay, vẫy tay, ngủ gật, ngồi vào bàn. Ở đúng chỗ thì tưới cây, vuốt mèo, ngắm mưa, đọc sách, đánh đàn. Ở quầy thì gọi một ly (ly đặt lên bàn khi bạn ngồi), xin lá bài hôm nay, hoặc nói chuyện với Cô Lá.
 - **Nói:** chỉ có câu chào sẵn ("Chào bạn 🙏", "Bình yên nha"…), không gõ chữ tự do. Khách đi ngang thường chắp tay chào; bạn chào thì người gần nhất chào lại.
+- **Đồ mang theo:** mỗi người có một túi (balo, túi vải, túi đeo chéo hoặc tay không), có khi kèm ô vì trời mưa, và một thứ để làm: laptop, sách, sổ vẽ, tai nghe, cuộn len, máy ảnh film. Đứng thì đeo túi, cầm ô; ngồi thì túi để cạnh ghế, đồ bày lên bàn. Bạn tự chọn đồ ở cột bên, ngồi xuống rồi bấm "Lấy đồ ra". Chỉ để nhìn, không mua bán hay xếp hạng.
 - **Note cho chính mình:** tối đa 3 tờ, mỗi tờ 60 ký tự. Lúc về đọc lại; chỉ nằm trong tab.
 - **Bảng ở quầy:** báo buổi hẹn sắp tới, có nút "Mình muốn hẹn" (bản thử chưa nhận đăng ký).
 - **Lúc về mang theo:** ly của bạn (hình pixel), lá bài hôm nay kèm một việc nhỏ, một câu của Cô Lá, các note của bạn.
 - **Không có:** điểm, chuỗi ngày, thời gian ngồi, thưởng khi quay lại. Lá bài giống nhau cho mọi người trong một ngày và chỉ gợi việc nhỏ.
+
+Quán có bảng menu phấn, kệ lọ và ly, tranh hoàng hôn, đèn neon hình lá, chậu trầu bà treo, dây đèn nhỏ dọc tường, rèm cửa sổ, đèn thả trên từng bàn, ghế mây, bình hoa nhỏ, thảm dệt giữa lối đi và thảm chùi chân ở cửa. Ban ngày cửa sổ sáng hơn, neon tắt; ban đêm đèn ấm và góc phòng tối dần. Ly trên bàn bốc hơi nhẹ (chỉ khi cử động đầy đủ).
 
 Hình quán (`room.js`) dùng chung cho cả buổi hẹn và quán ngày thường. Luật quán nằm ở `cafe.js`.
 
@@ -72,7 +75,7 @@ Hình quán (`room.js`) dùng chung cho cả buổi hẹn và quán ngày thư�
 node --test event.test.cjs world.test.cjs cafe.test.cjs
 ```
 
-29 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
+30 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.
@@ -83,7 +86,7 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs
 - Mọi chỗ ngồi và đồ vật đều tới được.
 - Sprite của lab 14 vẽ được mọi dáng.
 
-`cafe.test.cjs` (9) kiểm:
+`cafe.test.cjs` (10) kiểm:
 - Tên ngẫu nhiên đúng dạng.
 - Giờ vắng và giờ đông.
 - Lá bài giữ nguyên trong ngày.
@@ -91,6 +94,7 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs
 - Chỉ có câu chào sẵn.
 - Note bị cắt sạch.
 - Module quán không có thứ gì giữ điểm.
+- Đồ mang theo chỉ là hình và một việc để làm.
 
 Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Quán ngày thường đã thử lúc 3 giờ, 7 giờ, 20 giờ và 21 giờ (giả lập bằng `?gio`): gọi ly, ngồi, xin lá bài, cất note, ra về; ở 1100×820 và 375×812. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
 

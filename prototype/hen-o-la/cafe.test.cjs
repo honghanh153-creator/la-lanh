@@ -67,3 +67,16 @@ test('every visit act is something the café can host', () => {
 test('the café exports nothing that keeps score', () => {
   for (const k of Object.keys(Q)) assert.doesNotMatch(k, /point|score|streak|merit|reward|xp/i);
 });
+
+test('what people bring is only a look and a quiet thing to do', () => {
+  let i = 0; const rand = () => (i++ * 0.37) % 1;
+  for (let k = 0; k < 40; k++) {
+    const g = Q.packBag(rand);
+    assert.ok(Q.THINGS[g.thing], g.thing);
+    assert.ok(Q.BAGS[g.bag], g.bag);
+    assert.match(g.color, /^#[0-9a-f]{6}$/);
+    assert.equal(typeof g.umbrella, 'boolean');
+  }
+  for (const t of Object.values(Q.THINGS)) assert.ok(t.label && t.icon && t.verb);
+  for (const k of [...Object.keys(Q.THINGS), ...Object.keys(Q.BAGS)]) assert.doesNotMatch(k, /vip|premium|gia|price|coin/i);
+});
