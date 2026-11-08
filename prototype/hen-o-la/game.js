@@ -7,7 +7,8 @@
   const T = W.TILE, VW = W.W * T, VH = W.H * T;
   const FAST = new URLSearchParams(location.search).has('nhanh');
   // "Quán sau giờ đóng cửa": the same evening after hours, mildly eerie (?buoi=dem).
-  const NIGHT = new URLSearchParams(location.search).get('buoi') === 'dem' ? window.Quan.NIGHT : null;
+  const Q = window.Quan;
+  const NIGHT = new URLSearchParams(location.search).get('buoi') === 'dem' ? Q.NIGHT : null;
   let courage = 'nhe', lightsOn = !NIGHT, dim = 0, beatAt = 0, beatIx = 0;
   if (NIGHT) {
     const link = $('nightLink'); link.textContent = '☕ Buổi thường'; link.href = 'index.html';
@@ -171,16 +172,24 @@
       const spot = W.SPOTS[s]; face(b, spot.tx, spot.ty);
     }
     b.act = act; b.actUntil = clock + (act === 'ngugat' ? 6 : 4.5); b.path = null;
-    if (act === 'goido') b.drink = true;
-    standUp(b);
+    if (act === 'goido' && !b.drink) b.drink = 'caphesua';
+    // small gestures keep you in your seat; anything else gets you up
+    if (!['ngugat', 'vaytay', 'chaptay', 'mathe'].includes(act)) standUp(b);
     if (act === 'ngammua') b.dir = 'up';
     if (act === 'mathe' || act === 'vaytay' || act === 'ngugat') b.dir = 'down';
     return true;
   }
+  function tableSeatAt(tx, ty) {
+    for (const t of W.TABLES) for (const s of t.seats) if (s[0] === tx && s[1] === ty) return t;
+    return null;
+  }
+  function seatFree(tx, ty, except) { return ![...people.values()].some(o => o !== except && (o.sit || o.goingTo) && (() => { const [x, y] = o.goingTo || tileOf(o); return x === tx && y === ty; })()); }
   function availableActs(b) {
     const [x, y] = tileOf(b);
     const s = W.spotAt(x, y);
     const list = H.FREE_ACTS.slice();
+    if (tableSeatAt(x, y) && !b.sit && !b.locked) list.push('ngoi');
+    if (b.sit && b.seatKind === 'table') list.push(b.task ? 'catdo' : 'layra');
     if (s && !b.lie) list.push(W.SPOTS[s].act);
     if (b.drink) list.push('uong');
     if (L.windowSeatAt(x, y) && !b.sit) list.push('cuaso');
@@ -192,9 +201,11 @@
   const L = window.Life;
   const bo = L.createDog({ clock: () => clock, rand: Math.random, still: () => still(), particles, me: () => me() }, 'Bơ');
   function startPlaceAct(b, act) {
+    if (act === 'ngoi') { const t = tableSeatAt(...tileOf(b)); if (!t || !seatFree(...tileOf(b), b)) return false; Object.assign(b, feetOf(...tileOf(b))); faceToward(b, t); b.act = null; return true; }
+    if (act === 'layra' || act === 'catdo') { if (!b.sit || b.seatKind !== 'table') return false; b.task = act === 'layra'; return true; }
     if (act === 'cuaso') { if (!L.sitWindow(b)) return false; b.act = 'cuaso'; b.actUntil = clock + 12; return true; }
     if (act === 'nam') { if (!L.lieDown(b)) return false; b.act = 'nam'; b.actUntil = clock + 12; return true; }
-    if (act === 'uong') { if (!b.drink) return false; b.act = 'uong'; b.actUntil = clock + 3; b.drinkColor = '#a0724a'; return true; }
+    if (act === 'uong') { if (!b.drink) return false; b.act = 'uong'; b.actUntil = clock + 3; b.drinkColor = (Q.DRINKS[b.drink] || Q.DRINKS.caphesua).color; return true; }
     if (act === 'vuotcho') {
       const d = bo.dog;
       if (dist(b, d) > 1.6) return false;
@@ -206,7 +217,7 @@
     return false;
   }
   // Walking off a bench or a bean bag ends sitting or lying.
-  function standUp(b) { b.sit = false; b.lie = false; b.seatKind = null; }
+  function standUp(b) { b.sit = false; b.lie = false; b.seatKind = null; b.task = false; }
 
   // Everyone in the room watches; guests only notice what is within SEE_TILES. You see the whole room.
   let observeTimer = 0;
@@ -236,9 +247,15 @@
       b.nextLine = 9 + Math.random() * 10;
     }
     if (b.locked || b.path || (b.act && b.actUntil > clock)) return;
+    if (b.sit && b.seatKind === 'table' && b.sitUntil > clock) return;
     b.nextIdea -= dt;
     if (b.nextIdea > 0) return;
     b.nextIdea = 1.5 + Math.random() * 3;
+    if (phase === 'tudo' && Math.random() < 0.15) {
+      const seats = W.TABLES.flatMap(t => t.seats).filter(st => seatFree(st[0], st[1], b));
+      const st = pick(seats);
+      if (st) { b.goingTo = st; walkTo(b, st[0], st[1], () => { b.goingTo = null; if (startAct(b, 'ngoi')) { b.sitUntil = clock + 10 + Math.random() * 10; b.task = true; b.actUntil = clock + 8; b.act = Math.random() < 0.5 ? 'uong' : null; if (b.act === 'uong' && !b.drink) b.act = null; } }); return; }
+    }
     const act = Math.random() < 0.75 ? pick(g.does) : pick(H.FREE_ACTS);
     if (H.ACTS[act].place) { guestPlace(b, act); return; }
     if (H.ACTS[act].at) {
@@ -334,7 +351,8 @@
     banner('Màn 2 · Lượt ' + (round + 1) + '/' + ev.rounds.length + (pt ? ' · bạn ngồi với ' + pt.name : ''), 3, true);
     renderPhaseCard();
   }
-  function faceToward(b, t) { b.dir = b.x < t.tx * T + 8 ? 'right' : 'left'; }
+  // Arriving at a table seat means sitting on its chair, like in the everyday café.
+  function faceToward(b, t) { b.dir = b.x < t.tx * T + 8 ? 'right' : 'left'; b.sit = true; b.seatKind = 'table'; b.lie = false; }
   function endRound() {
     if (!roundState) return;
     for (const [a, b] of roundState.pairs) {
@@ -716,7 +734,8 @@
     const box = $('acts'); box.replaceChildren();
     list.forEach((a, i) => {
       const b = btn('', H.ACTS[a].at ? 'spot' : '', () => doAct(a));
-      b.append(document.createTextNode(H.ACTS[a].icon + ' ' + H.ACTS[a].label), el('small', '', String(i + 1)));
+      const label = a === 'layra' ? 'Lấy ' + (m.item || 'đồ') + ' ra' : a === 'catdo' ? 'Cất ' + (m.item || 'đồ') : H.ACTS[a].label;
+      b.append(document.createTextNode(H.ACTS[a].icon + ' ' + label), el('small', '', String(i + 1)));
       b.disabled = !ev || phase === 'loivao' || phase === 'het' || (m.locked && H.ACTS[a].at);
       box.append(b);
     });
@@ -772,6 +791,8 @@
     const d = bo.dog;
     if (Math.abs(d.x - x) < 8 && y > d.y - 14 && y < d.y + 2) { const st = bo.besideTile(tileOf(m)); if (st) walkTo(m, st[0], st[1], () => startAct(m, 'vuotcho')); return; }
     if (L.windowSeatAt(tx, ty) || L.nookAt(tx, ty)) { const act = L.windowSeatAt(tx, ty) ? 'cuaso' : 'nam'; walkTo(m, tx, ty, () => startAct(m, act)); return; }
+    const table = W.TABLES.find(t2 => t2.tx === tx && t2.ty === ty);
+    if (table && phase !== 'xoayban') { const s2 = table.seats.find(st => seatFree(st[0], st[1], m)); if (s2) walkTo(m, s2[0], s2[1], () => startAct(m, 'ngoi')); return; }
     const spotName = Object.keys(W.SPOTS).find(n => W.SPOTS[n].tx === tx && W.SPOTS[n].ty === ty);
     if (spotName) {
       const s = W.SPOTS[spotName], stand = W.standTiles(s.tx, s.ty, tileOf(m))[0];
@@ -789,6 +810,7 @@
     if (dist(bo.dog, m) < 1.4) return { kind: 'dog', label: 'chó Bơ' };
     const [x, y] = tileOf(m);
     if (L.windowSeatAt(x, y) && !m.sit) return { kind: 'window', label: 'ghế cạnh cửa sổ' };
+    if (tableSeatAt(x, y) && !m.sit && !m.locked) return { kind: 'seat', label: 'ghế bàn' };
     if (L.nookAt(x, y) && !m.lie) return { kind: 'nook', label: 'góc gối lười' };
     const s = W.spotAt(x, y);
     if (s) return { kind: 'spot', name: s, label: W.SPOTS[s].label };
@@ -801,13 +823,21 @@
     if (n.kind === 'person') { faceEachOther(me(), people.get(n.id)); openPerson(n.id); }
     else if (n.kind === 'dog') startAct(me(), 'vuotcho');
     else if (n.kind === 'window') startAct(me(), 'cuaso');
+    else if (n.kind === 'seat') startAct(me(), 'ngoi');
     else if (n.kind === 'nook') startAct(me(), 'nam');
     else if (n.name === 'counter') talkHost();
     else startAct(me(), W.SPOTS[n.name].act);
   }
   function talkHost() {
-    startAct(me(), 'goido'); me().drink = true;
-    hostSay(phase === 'tudo' ? 'Cứ tự nhiên nha. Thấy ai dễ thương thì thả lá, không ai biết đâu.' : 'Ly này Cô Lá mời nè.');
+    const m = me();
+    const body = openModal('QUẦY', 'Cô Lá · uống gì nè?');
+    const row = el('div', 'choices');
+    for (const [k, d] of Object.entries(Q.DRINKS)) {
+      const b = btn(d.label, '', () => { closeModal(); m.drink = k; startAct(m, 'goido'); hostSay('Một ly ' + d.label.toLowerCase() + ' nè. ' + (phase === 'tudo' ? 'Thấy ai dễ thương thì thả lá, không ai biết đâu.' : 'Ly này Cô Lá mời.')); });
+      b.setAttribute('aria-pressed', m.drink === k ? 'true' : 'false');
+      row.append(b);
+    }
+    body.append(row, el('p', 'note', 'Có ly rồi thì bấm "Uống một ngụm" ở đâu cũng được. Ngồi vào bàn thì ly đặt lên bàn.'));
   }
   $('actBtn').addEventListener('click', interact);
 
@@ -857,6 +887,20 @@
     }
   }
 
+  // What people put on the table: their item when taken out, and their drink.
+  function drawTables() {
+    for (const b of people.values()) {
+      if (!b.sit || b.seatKind !== 'table') continue;
+      const t = tableSeatAt(...tileOf(b));
+      if (!t) continue;
+      const left = b.x < t.tx * T + 8;
+      if (b.task) R.tableThing(ctx, t, left, H.itemThing(b.item), clock + (b.blinkAt || 0), still());
+      if (b.drink) {
+        const x = t.tx * T + (left ? 2 : 10), y = t.ty * T + 3, col = (Q.DRINKS[b.drink] || Q.DRINKS.caphesua).color;
+        ctx.fillStyle = '#f3ead8'; ctx.fillRect(x, y, 4, 4); ctx.fillRect(left ? x + 4 : x - 1, y + 1, 1, 2); ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, 2, 1);
+      }
+    }
+  }
   function render() {
     ctx.drawImage(bg, 0, 0);
     R.rain(ctx, clock, still());
@@ -865,6 +909,7 @@
     drawSprite(host, 0);
     R.counterFront(ctx);
     R.dogBed(ctx);
+    drawTables();
     const order = [...people.values(), bo.dog].sort((a, b) => a.y - b.y);
     for (const b of order) { if (b.isDog) R.dog(ctx, b, clock, still()); else drawSprite(b, b.hop > 0 && fx() ? Math.sin((b.hop / 300) * Math.PI) * 4 : 0); }
     drawParticles();
@@ -1000,7 +1045,7 @@
       if (key !== lastNear) {
         lastNear = key;
         const b = $('actBtn');
-        if (n) { b.disabled = false; b.textContent = (n.kind === 'person' ? 'Gặp ' : n.kind === 'dog' ? 'Chơi với ' : n.kind === 'window' ? 'Ngồi · ' : n.kind === 'nook' ? 'Nằm đọc sách · ' : n.name === 'counter' ? 'Gọi đồ · ' : H.ACTS[W.SPOTS[n.name].act].label + ' · ') + n.label + ' (E)'; $('near').textContent = 'Gần ' + n.label + '.'; }
+        if (n) { b.disabled = false; b.textContent = (n.kind === 'person' ? 'Gặp ' : n.kind === 'dog' ? 'Chơi với ' : n.kind === 'window' || n.kind === 'seat' ? 'Ngồi · ' : n.kind === 'nook' ? 'Nằm đọc sách · ' : n.name === 'counter' ? 'Gọi đồ · ' : H.ACTS[W.SPOTS[n.name].act].label + ' · ') + n.label + ' (E)'; $('near').textContent = 'Gần ' + n.label + '.'; }
         else { b.disabled = true; b.textContent = 'Lại gần ai đó hoặc đồ vật'; $('near').textContent = ''; }
       }
     }

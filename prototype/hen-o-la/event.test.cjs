@@ -158,3 +158,10 @@ test('openers and reactions are short, ask nothing private, and every guest act 
   for (const g of H.GUESTS) for (const a of [...g.does, ...g.loves]) assert.ok(H.ACTS[a], g.id + ' ' + a);
   for (const a of H.PLACE_ACTS) assert.ok(!H.FREE_ACTS.includes(a) && !H.ACTS[a].at, a);
 });
+
+test('every carried item has something to put on the table', () => {
+  const kinds = new Set(['sove', 'mayanh', 'len', 'sach', 'tainghe', 'banh', 'xuongrong', 'ukulele', 'dieu']);
+  for (const item of [...H.ITEMS, ...H.GUESTS.map(g => g.item)]) assert.ok(kinds.has(H.itemThing(item)), item);
+  assert.equal(H.itemThing('máy ảnh film'), 'mayanh');
+  assert.equal(H.itemThing('diều giấy'), 'dieu');
+});

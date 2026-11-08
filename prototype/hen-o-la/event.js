@@ -45,6 +45,7 @@
     mathe: { label: 'Làm mặt hề', verb: 'làm mặt hề', icon: '🤪' },
     ngugat: { label: 'Ngủ gật', verb: 'ngủ gật', icon: '💤' },
     vaytay: { label: 'Vẫy tay', verb: 'vẫy tay chào cả quán', icon: '👋' },
+    chaptay: { label: 'Chắp tay', verb: 'chắp tay chào', icon: '🙏' },
     docsach: { label: 'Đọc sách', verb: 'đọc sách ở kệ', icon: '📖', at: true },
     tuoicay: { label: 'Tưới cây', verb: 'tưới cây', icon: '🪴', at: true },
     vuotmeo: { label: 'Vuốt mèo', verb: 'vuốt mèo Mướp', icon: '🐈', at: true },
@@ -55,11 +56,17 @@
     uong: { label: 'Uống một ngụm', verb: 'nhâm nhi ly của mình', icon: '☕', place: true },
     cuaso: { label: 'Ngồi cạnh cửa sổ', verb: 'ngồi cạnh cửa sổ', icon: '🪟', place: true },
     nam: { label: 'Nằm đọc sách', verb: 'nằm đọc sách ở góc gối lười', icon: '📚', place: true },
-    vuotcho: { label: 'Chơi với Bơ', verb: 'chơi với chó Bơ', icon: '🐶', place: true }
+    vuotcho: { label: 'Chơi với Bơ', verb: 'chơi với chó Bơ', icon: '🐶', place: true },
+    ngoi: { label: 'Ngồi vào bàn', verb: 'ngồi vào bàn', icon: '🪑', place: true },
+    layra: { label: 'Lấy đồ ra', verb: 'bày đồ mang theo lên bàn', icon: '🎒', place: true },
+    catdo: { label: 'Cất đồ', verb: 'cất đồ', icon: '👜', place: true }
   };
   const FREE_ACTS = Object.keys(ACTS).filter(k => !ACTS[k].at && !ACTS[k].place);
   const PLACE_ACTS = Object.keys(ACTS).filter(k => ACTS[k].place);
   // What a guest says when they turn to you. Short, no questions about where you live or how to reach you.
+  // What someone's carried item looks like when they take it out on a table (Room.tableThing kinds).
+  const ITEM_THINGS = [[/sổ/, 'sove'], [/máy ảnh/, 'mayanh'], [/len/, 'len'], [/sách/, 'sach'], [/tai nghe/, 'tainghe'], [/bánh/, 'banh'], [/xương rồng/, 'xuongrong'], [/ukulele|đàn/, 'ukulele'], [/diều/, 'dieu']];
+  function itemThing(item) { const hit = ITEM_THINGS.find(([re]) => re.test(String(item || ''))); return hit ? hit[1] : 'sach'; }
   const OPENERS = ['Bạn cũng thích nghe mưa hả?', 'Hồi nãy thấy bạn vui ghê.', 'Bạn mang theo gì vậy?', 'Quán này ấm ha?', 'Bạn thích uống gì nhất?', 'Bơ có vẻ quý bạn đó.'];
   // A guest's short reply when you say something that is not a question.
   const REACTIONS = ['Haha thật hả?', 'Mình cũng vậy nè.', 'Ồ, hay ghê.', 'Kể thêm đi!', 'Nghe dễ thương ghê.', '🙂'];
@@ -300,7 +307,7 @@
     return out;
   }
 
-  return { rng, shuffle, PHASES, LANTERNS, ACTS, FREE_ACTS, PLACE_ACTS, OPENERS, REACTIONS, INGREDIENTS, drinkName, QUESTIONS, TAROT, ADJECTIVES, GUESTS, NICKNAMES, ITEMS, LOOKS,
+  return { itemThing, rng, shuffle, PHASES, LANTERNS, ACTS, FREE_ACTS, PLACE_ACTS, OPENERS, REACTIONS, INGREDIENTS, drinkName, QUESTIONS, TAROT, ADJECTIVES, GUESTS, NICKNAMES, ITEMS, LOOKS,
     rotation, sanitizeBubble, guest, createEvening, person, observe, wave, compareHalves, LEAF_LIMIT, dropLeaf, npcLeafTargets,
     tableRound, npcIngredient, LETTER_LIMIT, writeLetter, letterText, npcLetters, npcPicks, couples };
 });

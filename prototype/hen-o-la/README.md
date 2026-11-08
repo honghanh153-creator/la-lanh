@@ -52,6 +52,11 @@ Mỗi khách có việc hay làm, việc thích thấy người khác làm, và 
 - **Mình đang nói với ai:** dòng "Nói với: Lá X" ngay trên ô Nói. Mặc định là người gần nhất, có nút "Đổi người", hoặc chọn "💬 Nói với…" khi bấm vào một người. Ở bàn xoay thì luôn là người cùng bàn.
   - Người được nói sẽ đáp: hỏi thì trả lời, nói thường thì thường có câu đáp ngắn.
   - Khách đứng gần đôi khi chủ động bắt chuyện với bạn.
+- **Buổi hẹn làm được như lúc ngồi quán bình thường:**
+  - Ngồi vào bàn lúc tự do. Ở bàn xoay và ly cuối thì ngồi hẳn lên ghế.
+  - Lấy món đồ mang theo ra bàn: sổ tay, máy ảnh, hộp bánh, sách, đàn, xương rồng, khăn len.
+  - Chọn ly ở quầy (5 món); ly đặt lên bàn khi ngồi. Chắp tay chào.
+  - Nhảy, mặt hề, vẫy tay, chắp tay và ngủ gật không làm bạn đứng dậy.
 - **Buổi hẹn có thêm việc để làm** (dùng chung `life.js` với quán ngày thường):
   - Ngồi ghế cạnh cửa sổ, nằm đọc sách ở góc gối lười.
   - Gọi đồ ở quầy rồi uống một ngụm, chơi với chó Bơ.
@@ -147,7 +152,7 @@ Cho người chưa muốn ghép đôi, chỉ muốn ngồi cho có không khí. 
 node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.test.cjs
 ```
 
-54 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
+55 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.
