@@ -177,3 +177,10 @@ body.reduced .bubble.pop, body.still .bubble.pop { animation: none; }
 .lamp.lit { filter: none; }
 .lamp.ours { filter: drop-shadow(0 0 4px #f2b45a); }
 body.reduced .notes li, body.still .notes li { transform: none; }
+
+/* Khách quán */
+.mezz-label { margin: 0 0 4px; color: var(--muted); font-size: 12px; }
+.mezz { display: block; width: 100%; aspect-ratio: 240 / 30; image-rendering: pixelated; border: 2px solid var(--line); border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; background: #2a2236; }
+.play.khach .stage { border-radius: 0 0 var(--radius) var(--radius); }
+.memory { display: block; width: 100%; image-rendering: pixelated; border: 6px solid #f3ead8; border-bottom-width: 18px; border-radius: 2px; margin: 6px 0; }
+.play.khach .stage, .play.duo .stage { touch-action: auto; }

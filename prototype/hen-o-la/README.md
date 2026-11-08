@@ -86,13 +86,34 @@ Level 1 "Sĩ số +1" của đội đôi (xem `docs/research/2026-11-08-hen-o-la
 - **Góc nghỉ:** mỗi người hỏi một câu tuỳ chọn, rồi chọn kín "Đi tiếp cùng nhau?". Chỉ khi cả hai cùng muốn mới đi tiếp chung đội. Màn hình không nói ai đã chọn gì.
 - Sổ khách là hồ sơ hư cấu, không bao giờ trỏ vào người trong buổi. L2, L3 làm sau.
 
+## Khách quán (`khach.html`)
+
+Cho người chưa muốn ghép đôi, chỉ muốn ngồi cho có không khí. Bạn ngồi trên **tầng lửng** nhìn xuống buổi hẹn.
+
+- **Vào quán:** tầng lửng có 40 chỗ. Hết chỗ thì xếp hàng; hàng ngắn, tự lên khi có người về. Mỗi người được một tên Lá ngẫu nhiên.
+- **Xem ba khoảnh khắc chung:**
+  - Tự do: người hẹn đi lại, làm trò.
+  - Thả đèn: các đôi đèn bay lên, chỉ biết có mấy đôi, không biết ai chọn ai.
+  - Tái hiện: Cô Lá kể lại vụ án.
+- **Không xem được:** bàn xoay, thư, thử thách đôi, ly cuối. Người hẹn không hiện tên, không bấm vào hay đi theo được.
+- **Làm gì:**
+  - 👏 Vỗ tay hoặc 🍃 thả lá cổ vũ cho cả khoảnh khắc. Hàm cổ vũ không nhận tên ai.
+  - Gọi ly, xin lá bài tối nay, chào khách bên cạnh bằng câu sẵn.
+  - Viết note cho chính mình.
+- **Mang về:**
+  - Ảnh kỷ niệm của quán lúc thả đèn (chỉ nằm trong tab).
+  - Ly của tối nay và lá bài.
+  - **Ghi chép của Cô Lá:** 3 khoảnh khắc dễ thương, không nói ai là ai, để học cách làm quen mà không nhìn trộm.
+  - Note của bạn và nút "Lần sau mình muốn hẹn".
+- Người hẹn chỉ thấy tầng lửng là một hàng dáng ngồi. Không có bộ đếm người xem.
+
 ## Kiểm tra
 
 ```sh
-node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs
+node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.test.cjs
 ```
 
-39 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
+44 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.
@@ -124,7 +145,14 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs
 - "Đi tiếp cùng nhau" cần hai lần đồng ý, không lộ ai từ chối.
 - Không có gì giữ điểm, không có chữ máu me.
 
-Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Quán ngày thường đã thử lúc 3 giờ, 7 giờ, 20 giờ và 21 giờ (giả lập bằng `?gio`): gọi ly, ngồi, xin lá bài, cất note, ra về; ở 1100×820 và 375×812. Thử thách đôi đã chơi trọn hai vòng và góc nghỉ ở cả hai mode, trả lời sai và đếm sai, ở 1100×820 và 375×812. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
+`spectate.test.cjs` (5) kiểm:
+- Hàng chờ ngắn.
+- Chỉ xem khoảnh khắc chung.
+- Cổ vũ không có đích.
+- Ghi chép của Cô Lá không lộ tên hay số.
+- Đèn chỉ là con số.
+
+Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Quán ngày thường đã thử lúc 3 giờ, 7 giờ, 20 giờ và 21 giờ (giả lập bằng `?gio`): gọi ly, ngồi, xin lá bài, cất note, ra về; ở 1100×820 và 375×812. Thử thách đôi đã chơi trọn hai vòng và góc nghỉ ở cả hai mode, trả lời sai và đếm sai, ở 1100×820 và 375×812. Khách quán đã xem trọn ba khoảnh khắc, vỗ tay, thả lá, gọi ly, nhận đồ mang về, ở 1100×820 và 375×812. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
 
 `window.__hen` (`hold`, `step`, `begin`, `next`…) chỉ để kiểm thử trong pane bị ẩn, không phải API sản phẩm.
 
