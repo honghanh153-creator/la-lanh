@@ -41,6 +41,22 @@ Mỗi khách có việc hay làm, việc thích thấy người khác làm, và 
 
 Đây là mô phỏng cho vui để cảm nhịp buổi, không phải mô hình khoa học. Nghiên cứu hiện có cho thấy không thuật toán nào đoán trước được ai hợp ai, nên bản thật không hiện "điểm hợp".
 
+## Giao diện và nói chuyện
+
+- **Giao diện theo app** (hệ "Tím đêm dịu" của `apps/web`): một cột cỡ điện thoại, nền sáng, các ô trắng bo tròn. Cảnh pixel nằm trong **một card tím đêm**, nút chính màu tím, hộp thoại trượt lên từ dưới. Chế độ tối theo cài đặt máy.
+- **Biết ai đang nói với mình:**
+  - Lời nói với bạn có bong bóng viền xanh lá và dòng "nói với bạn", thẻ tên người nói sáng lên, và người đó quay về phía bạn.
+  - Dưới cảnh hiện "Lá X vừa nói với bạn: …" với nút **Trả lời**.
+  - Mục **Lời nói** giữ 12 câu gần nhất, có đánh dấu "→ bạn" và số câu chưa trả lời.
+  - Trên màn hình nhỏ, chỉ lời nói ở gần mới hiện đủ chữ, còn lời nói với bạn thì luôn hiện đủ.
+- **Mình đang nói với ai:** dòng "Nói với: Lá X" ngay trên ô Nói. Mặc định là người gần nhất, có nút "Đổi người", hoặc chọn "💬 Nói với…" khi bấm vào một người. Ở bàn xoay thì luôn là người cùng bàn.
+  - Người được nói sẽ đáp: hỏi thì trả lời, nói thường thì thường có câu đáp ngắn.
+  - Khách đứng gần đôi khi chủ động bắt chuyện với bạn.
+- **Buổi hẹn có thêm việc để làm** (dùng chung `life.js` với quán ngày thường):
+  - Ngồi ghế cạnh cửa sổ, nằm đọc sách ở góc gối lười.
+  - Gọi đồ ở quầy rồi uống một ngụm, chơi với chó Bơ.
+  - Khách hư cấu cũng làm những việc này, và người khác thấy được như mọi hoạt động khác.
+
 ## Chạy
 
 Mở `hen-o-la/index.html` qua một máy chủ tĩnh, phục vụ từ thư mục `prototype/` để `../game-lab-14/engine.js` tải được. Thêm `?nhanh` vào URL để rút ngắn các màn (45 s tự do, 25 s mỗi lượt bàn).
@@ -131,7 +147,7 @@ Cho người chưa muốn ghép đôi, chỉ muốn ngồi cho có không khí. 
 node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.test.cjs
 ```
 
-53 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
+54 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.

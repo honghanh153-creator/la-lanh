@@ -78,32 +78,20 @@
     for (const t of W.TABLES) for (const s of t.seats) if (s[0] === tx && s[1] === ty) return { table: t, seat: s };
     return null;
   }
-  const onList = (list, tx, ty) => list.some(([x, y]) => x === tx && y === ty);
-  const windowSeatAt = (tx, ty) => onList(W.WINDOW_SEATS, tx, ty);
-  const nookAt = (tx, ty) => onList(W.NOOK, tx, ty);
+  const L = window.Life, windowSeatAt = L.windowSeatAt, nookAt = L.nookAt;
   function seatTaken(s, except) {
     return [...people.values()].some(b => b !== except && (b.sit || b.lie || b.goingTo) && (() => { const [x, y] = b.goingTo || tileOf(b); return x === s[0] && y === s[1]; })());
   }
   function sitDown(b) {
     const [tx, ty] = tileOf(b);
-    if (windowSeatAt(tx, ty)) {
-      Object.assign(b, feetOf(tx, ty));
-      b.sit = true; b.seatKind = 'window'; b.lie = false; b.act = null; b.path = null; b.goingTo = null; b.task = false; b.dir = 'up';
-      return true;
-    }
+    if (windowSeatAt(tx, ty)) { b.task = false; return L.sitWindow(b); }
     const here = seatAt(tx, ty);
     if (!here) return false;
     b.sit = true; b.seatKind = 'table'; b.lie = false; b.act = null; b.path = null; b.goingTo = null; b.task = false;
     b.dir = b.x < here.table.tx * T + 8 ? 'right' : 'left';
     return true;
   }
-  function lieDown(b) {
-    const [tx, ty] = tileOf(b);
-    if (!nookAt(tx, ty)) return false;
-    Object.assign(b, feetOf(tx, ty));
-    b.lie = true; b.sit = false; b.seatKind = null; b.act = null; b.path = null; b.goingTo = null; b.task = false;
-    return true;
-  }
+  function lieDown(b) { b.task = false; return L.lieDown(b); }
   function startAct(b, act) {
     if (act === 'ngoi' || act === 'cuaso') return sitDown(b);
     if (act === 'nam') return lieDown(b);
@@ -117,7 +105,7 @@
       b.sit = false; b.lie = false; b.seatKind = null; b.task = false;
       b.dir = Math.abs(dog.x - b.x) >= Math.abs(dog.y - b.y) ? (dog.x > b.x ? 'right' : 'left') : (dog.y > b.y ? 'down' : 'up');
       b.act = 'vuotcho'; b.actUntil = clock + 4;
-      petDog(b);
+      bo.pet(b);
       return true;
     }
     if (act === 'lamviec' || act === 'cat') { if (!b.sit) return false; b.task = act === 'lamviec'; b.act = null; return true; }
@@ -237,41 +225,8 @@
     if (guests < Q.crowd(nowHour())) spawnGuest(false);
   }
 
-  // ---------- Bơ, the café dog ----------
-  const dog = Object.assign({ id: 'dog', isDog: true, name: Q.DOG.name, dir: 'right', path: null, then: null, idle: 2, moving: false, walkMs: 0, sitting: true, petted: 0, hop: 0, bubble: null }, feetOf(...W.DOG_BED));
-  function dogWalk(tx, ty, then) {
-    const path = W.findPath(tileOf(dog), [tx, ty]);
-    if (!path) return;
-    dog.sitting = false; dog.path = path.slice(1); dog.then = then || null;
-    if (!dog.path.length) { dog.path = null; if (then) then(); }
-  }
-  function dogFollow(dt) {
-    const [tx, ty] = dog.path[0], goal = feetOf(tx, ty);
-    const dx = goal.x - dog.x, dy = goal.y - dog.y, d = Math.hypot(dx, dy), step = 34 * dt;
-    if (d <= step) { dog.x = goal.x; dog.y = goal.y; dog.path.shift(); if (!dog.path.length) { dog.path = null; const t = dog.then; dog.then = null; if (t) t(); } }
-    else { dog.x += dx / d * step; dog.y += dy / d * step; }
-    if (Math.abs(dx) > 0.5) dog.dir = dx > 0 ? 'right' : 'left';
-    dog.moving = true;
-  }
-  function petDog(by) {
-    dog.path = null; dog.then = null; dog.sitting = true; dog.petted = clock + 3.5; dog.idle = 4;
-    dog.dir = by.x < dog.x ? 'left' : 'right';
-    if (!still()) { dog.hop = 2; for (let i = 0; i < 3; i++) particles.push({ kind: 'heart', x: dog.x - 2 + i * 3, y: dog.y - 16, vx: 0, vy: -8, life: 1 + i * 0.2 }); }
-  }
-  function dogThink(dt) {
-    if (dog.hop > 0) dog.hop = Math.max(0, dog.hop - dt * 8);
-    if (dog.path) { dogFollow(dt); return; }
-    if (dog.petted > clock) return;
-    dog.idle -= dt; if (dog.idle > 0) return;
-    dog.idle = 3 + rand() * 5;
-    const r = rand(), free = W.freeTiles().filter(([x, y]) => y >= 3);
-    if (r < 0.3 && me) {
-      // trot over and sit next to you
-      const st = W.standTiles(...tileOf(me), tileOf(dog)).find(([x, y]) => !W.solidTile(x, y));
-      if (st) dogWalk(st[0], st[1], () => { dog.sitting = true; dog.dir = me.x < dog.x ? 'left' : 'right'; });
-    } else if (r < 0.5) dogWalk(W.DOG_BED[0], W.DOG_BED[1], () => { dog.sitting = true; dog.idle = 8 + rand() * 6; });
-    else { const t = pick(free); dogWalk(t[0], t[1], () => { dog.sitting = rand() < 0.5; }); }
-  }
+  // ---------- Bơ, the café dog (shared with the evening, life.js) ----------
+  const bo = L.createDog({ clock: () => clock, rand, still, particles, me: () => me }, Q.DOG.name), dog = bo.dog;
 
   // ---------- player actions ----------
   function doAct(a) {
@@ -473,7 +428,7 @@
       return;
     }
     if (Math.abs(dog.x - x) < 8 && y > dog.y - 14 && y < dog.y + 2) {
-      const [dx, dy] = tileOf(dog), st = W.standTiles(dx, dy, tileOf(me)).find(([a, b2]) => !W.solidTile(a, b2));
+      const st = bo.besideTile(tileOf(me));
       if (st) walkTo(me, st[0], st[1], () => doAct('vuotcho'));
       return;
     }
@@ -598,8 +553,7 @@
         me.dir = Math.abs(ix) >= Math.abs(iy) && ix ? (ix > 0 ? 'right' : 'left') : (iy > 0 ? 'down' : 'up');
       }
     }
-    if (!modalOpen) dogThink(dt);
-    dog.walkMs = dog.moving ? dog.walkMs + dt * 1000 : 0;
+    if (!modalOpen) bo.think(dt);
     for (const b of [...people.values()]) {
       if (b.npc) { if (b.path) followPath(b, dt); else if (!modalOpen) guestThink(b, dt); }
       if (b.act && b.actUntil <= clock) b.act = null;
@@ -628,7 +582,6 @@
     }
     render();
     for (const b of people.values()) b.moving = false;
-    dog.moving = false;
   }
   function frame(now) {
     try { if (!held) { const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; tick(dt); } }

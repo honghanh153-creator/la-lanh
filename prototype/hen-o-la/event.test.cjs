@@ -149,3 +149,12 @@ test('same seed, same evening', () => {
   assert.deepEqual(a.rounds, b.rounds);
   assert.deepEqual(a.halves, b.halves);
 });
+
+test('openers and reactions are short, ask nothing private, and every guest act exists', () => {
+  for (const line of [...H.OPENERS, ...H.REACTIONS]) {
+    assert.ok(Array.from(line).length <= 40, line);
+    assert.doesNotMatch(line, /\d|@|zalo|facebook|số điện thoại|nhà ở đâu|ở đâu|bao nhiêu tuổi/i, line);
+  }
+  for (const g of H.GUESTS) for (const a of [...g.does, ...g.loves]) assert.ok(H.ACTS[a], g.id + ' ' + a);
+  for (const a of H.PLACE_ACTS) assert.ok(!H.FREE_ACTS.includes(a) && !H.ACTS[a].at, a);
+});

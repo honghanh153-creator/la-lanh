@@ -27,26 +27,32 @@
   <main class="play">
     <section class="stage-col">
       <div class="stage" id="stage">
-        <canvas id="game" role="img" aria-label="Quán cà phê pixel trời mưa với mười người được mời. Đi bằng phím hoặc chạm vào sàn; danh sách người trong quán ở cột bên."></canvas>
+        <canvas id="game" role="img" aria-label="Quán cà phê pixel trời mưa với mười người được mời. Đi bằng phím hoặc chạm vào sàn; danh sách người trong quán ở bên dưới."></canvas>
         <div class="overlay" id="overlay" aria-hidden="true"></div>
         <div class="toast" id="toast" role="status" hidden></div>
         <div class="banner" id="banner" hidden></div>
       </div>
+      <div class="reply-cue" id="replyCue" role="status" hidden><span id="replyText"></span><button type="button" id="replyBtn">Trả lời</button></div>
+      <button class="act" id="actBtn" disabled>Lại gần ai đó hoặc đồ vật</button>
       <button class="scared" id="scaredBtn" hidden>🕯️ Mình sợ quá · bật đèn</button>
       <div class="acts" id="acts" aria-label="Làm gì đó"></div>
+      <div class="talk-to" id="talkTo" aria-live="polite"></div>
       <form class="say" id="sayForm" autocomplete="off">
         <label class="sr-only" for="sayInput">Nói (hiện thành bong bóng trên đầu, tối đa 40 ký tự)</label>
         <input id="sayInput" maxlength="40" placeholder="Nói gì đó… (T)" enterkeyhint="send">
         <button type="submit" class="say-btn">Nói</button>
       </form>
       <div class="quick" id="quick" aria-label="Câu nói nhanh"></div>
-      <button class="act" id="actBtn" disabled>Lại gần ai đó hoặc đồ vật</button>
       <p class="sr-only" id="near" aria-live="polite"></p>
       <p class="hint">Đi: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / mũi tên hoặc chạm sàn · Tương tác: <kbd>E</kbd> · Làm trò: <kbd>1</kbd>–<kbd>6</kbd> · Nói: <kbd>T</kbd></p>
     </section>
 
     <aside class="book" id="book" aria-label="Sổ của bạn">
       <section class="phase-card" id="phaseCard"></section>
+      <section class="talk">
+        <h2>Lời nói <span class="badge" id="talkBadge" hidden></span></h2>
+        <ul class="talklog" id="talkLog"></ul>
+      </section>
       <section class="half" id="half"></section>
       <section class="guests">
         <h2>Người trong quán</h2>
@@ -67,6 +73,7 @@
 <script src="../game-lab-14/engine.js"></script>
 <script src="world.js"></script>
 <script src="room.js"></script>
+<script src="life.js"></script>
 <script src="event.js"></script>
 <script src="cafe.js"></script>
 <script src="game.js"></script>

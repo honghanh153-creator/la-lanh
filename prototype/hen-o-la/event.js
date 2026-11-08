@@ -50,9 +50,19 @@
     vuotmeo: { label: 'Vuốt mèo', verb: 'vuốt mèo Mướp', icon: '🐈', at: true },
     ngammua: { label: 'Ngắm mưa', verb: 'ngắm mưa bên cửa sổ', icon: '🌧', at: true },
     danhdan: { label: 'Đánh đàn', verb: 'đánh đàn', icon: '🎵', at: true },
-    goido: { label: 'Gọi đồ uống', verb: 'gọi đồ uống ở quầy', icon: '🧋', at: true }
+    goido: { label: 'Gọi đồ uống', verb: 'gọi đồ uống ở quầy', icon: '🧋', at: true },
+    // place acts: they happen at a window bench, the reading nook, beside Bơ the dog, or with a drink in hand
+    uong: { label: 'Uống một ngụm', verb: 'nhâm nhi ly của mình', icon: '☕', place: true },
+    cuaso: { label: 'Ngồi cạnh cửa sổ', verb: 'ngồi cạnh cửa sổ', icon: '🪟', place: true },
+    nam: { label: 'Nằm đọc sách', verb: 'nằm đọc sách ở góc gối lười', icon: '📚', place: true },
+    vuotcho: { label: 'Chơi với Bơ', verb: 'chơi với chó Bơ', icon: '🐶', place: true }
   };
-  const FREE_ACTS = Object.keys(ACTS).filter(k => !ACTS[k].at);
+  const FREE_ACTS = Object.keys(ACTS).filter(k => !ACTS[k].at && !ACTS[k].place);
+  const PLACE_ACTS = Object.keys(ACTS).filter(k => ACTS[k].place);
+  // What a guest says when they turn to you. Short, no questions about where you live or how to reach you.
+  const OPENERS = ['Bạn cũng thích nghe mưa hả?', 'Hồi nãy thấy bạn vui ghê.', 'Bạn mang theo gì vậy?', 'Quán này ấm ha?', 'Bạn thích uống gì nhất?', 'Bơ có vẻ quý bạn đó.'];
+  // A guest's short reply when you say something that is not a question.
+  const REACTIONS = ['Haha thật hả?', 'Mình cũng vậy nè.', 'Ồ, hay ghê.', 'Kể thêm đi!', 'Nghe dễ thương ghê.', '🙂'];
 
   const INGREDIENTS = {
     caphe: 'Cà phê', sua: 'Sữa đặc', gung: 'Gừng', trala: 'Trà lài',
@@ -86,7 +96,7 @@
 
   // Nine fictional guests. look feeds Engine.buildSheet from game lab 14.
   const GUESTS = [
-    { id: 'me', name: 'Lá Me', item: 'sổ vẽ', lantern: 'thuong', does: ['docsach', 'ngammua', 'vuotmeo'], loves: ['danhdan', 'tuoicay', 'mathe'], taste: ['trala', 'dua', 'cam'],
+    { id: 'me', name: 'Lá Me', item: 'sổ vẽ', lantern: 'thuong', does: ['docsach', 'ngammua', 'vuotmeo', 'cuaso'], loves: ['danhdan', 'tuoicay', 'mathe', 'nam'], taste: ['trala', 'dua', 'cam'],
       look: { H: '#3b2420', T: '#c0605a', C: '#ef9a8a', P: '#3a3550', B: '#1d1b26', longHair: true },
       idle: ['Mưa thế này hợp vẽ tranh ghê.', 'Mèo Mướp ngủ giỏi hơn mình.', 'Có ai vẽ cùng không?'],
       answer: ['Chắc là hôm mình vẽ con mèo mà ra con heo.', 'Mình nghĩ hoài mới ra… chắc là chiều mưa ở Hội An.'],
@@ -96,27 +106,27 @@
       idle: ['Ánh đèn quán này chụp film đẹp lắm.', 'Còn đúng ba kiểu phim thôi.', 'Ai đứng yên cho mình chụp với?'],
       answer: ['Hôm mình chụp nhầm ngón tay cả cuộn phim.', 'Một quán nhỏ ở Đà Lạt, mưa mà ấm.'],
       last: ['Mình chưa kịp chụp bạn, tiếc ghê.', 'Ngồi đây nghe mưa thêm chút nữa nhé.'] },
-    { id: 'sen', name: 'Lá Sen', item: 'khăn len', lantern: 'ban', does: ['tuoicay', 'vuotmeo', 'ngugat'], loves: ['tuoicay', 'ngugat', 'vaytay'], taste: ['trala', 'gung', 'sua'],
+    { id: 'sen', name: 'Lá Sen', item: 'khăn len', lantern: 'ban', does: ['tuoicay', 'vuotmeo', 'ngugat', 'nam'], loves: ['tuoicay', 'ngugat', 'vaytay', 'vuotcho'], taste: ['trala', 'gung', 'sua'],
       look: { H: '#4a3028', T: '#3d9a96', C: '#3d9a96', P: '#2f2f38', B: '#1d1b26', longHair: true },
       idle: ['Cây này cần nắng hơn một chút.', 'Đan xong cái khăn là hết mùa lạnh mất.', 'Ngủ gật ở quán cũng là một kỹ năng.'],
       answer: ['Đan sai một mũi mà ra hình trái tim.', 'Một ly trà gừng lúc mất điện.'],
       last: ['Mai mình mang khăn cho bạn xem.', 'Ngồi im thế này cũng vui.'] },
-    { id: 'tre', name: 'Lá Tre', item: 'đàn ukulele', lantern: 'thuong', does: ['danhdan', 'nhay', 'mathe'], loves: ['nhay', 'mathe', 'danhdan'], taste: ['caphe', 'sua', 'dua'],
+    { id: 'tre', name: 'Lá Tre', item: 'đàn ukulele', lantern: 'thuong', does: ['danhdan', 'nhay', 'mathe', 'vuotcho'], loves: ['nhay', 'mathe', 'danhdan'], taste: ['caphe', 'sua', 'dua'],
       look: { H: '#26201c', T: '#3f6b55', C: '#7fc8a0', P: '#30303a', B: '#1d1b26', hat: true },
       idle: ['Ai biết hợp âm Đô trưởng không?', 'Đàn hơi lạc dây nhưng tim không lạc.', 'Nhảy chung đi, ngại gì!'],
       answer: ['Mình hát sai lời trước cả lớp, cả lớp hát theo.', 'Cơm mẹ nấu, nghĩ tới là đói.'],
       last: ['Bài vừa nãy là mình chế đó.', 'Lần sau mình đàn bạn hát nhé.'] },
-    { id: 'lot', name: 'Lá Lốt', item: 'hộp bánh', lantern: 'choi', does: ['goido', 'vaytay', 'nhay'], loves: ['goido', 'vaytay', 'nhay'], taste: ['sua', 'dua', 'cam'],
+    { id: 'lot', name: 'Lá Lốt', item: 'hộp bánh', lantern: 'choi', does: ['goido', 'vaytay', 'nhay', 'uong'], loves: ['goido', 'vaytay', 'nhay', 'vuotcho'], taste: ['sua', 'dua', 'cam'],
       look: { H: '#211d24', T: '#c0605a', C: '#f2b45a', P: '#3a3550', B: '#1d1b26' },
       idle: ['Ai ăn bánh bông lan không?', 'Mình tới vì nghe nói quán có mèo.', 'Ly này ngọt vừa ghê.'],
       answer: ['Lần mình làm bánh quên bỏ đường.', 'Ly sữa nóng lúc ba giờ sáng.'],
       last: ['Còn hai miếng bánh, chia nhau nhé.', 'Vui ghê, lần sau mình lại ghé.'] },
-    { id: 'che', name: 'Lá Chè', item: 'cuốn sách cũ', lantern: 'thuong', does: ['docsach', 'ngugat', 'tuoicay'], loves: ['docsach', 'ngammua', 'danhdan'], taste: ['trala', 'gung', 'que'],
+    { id: 'che', name: 'Lá Chè', item: 'cuốn sách cũ', lantern: 'thuong', does: ['docsach', 'ngugat', 'tuoicay', 'nam'], loves: ['docsach', 'ngammua', 'danhdan', 'cuaso'], taste: ['trala', 'gung', 'que'],
       look: { H: '#2b2230', T: '#6a4fa0', C: '#a995d8', P: '#2f2f38', B: '#1d1b26', longHair: true, glasses: true },
       idle: ['Trang này có người gạch chân trước mình.', 'Đọc tới đoạn hay thì mưa tạnh.', 'Bạn đang đọc gì vậy?'],
       answer: ['Một câu thơ dở tới mức buồn cười.', 'Thư viện cũ ở quê, mùi giấy ẩm.'],
       last: ['Mình cho bạn mượn cuốn này nhé.', 'Nói chuyện với bạn dễ chịu thật.'] },
-    { id: 'bang', name: 'Lá Bàng', item: 'diều giấy', lantern: 'ban', does: ['nhay', 'vaytay', 'vuotmeo'], loves: ['mathe', 'vuotmeo', 'nhay'], taste: ['caphe', 'cam', 'muoi'],
+    { id: 'bang', name: 'Lá Bàng', item: 'diều giấy', lantern: 'ban', does: ['nhay', 'vaytay', 'vuotmeo', 'vuotcho'], loves: ['mathe', 'vuotmeo', 'nhay', 'vuotcho'], taste: ['caphe', 'cam', 'muoi'],
       look: { H: '#3a2a22', T: '#3f6b55', C: '#4f8a6b', P: '#2f3b4a', B: '#1d1b26', hat: true },
       idle: ['Mưa thế này thả diều hơi khó.', 'Con mèo nhìn mình như chủ nợ.', 'Có ai chơi oẳn tù tì không?'],
       answer: ['Diều mắc lên cây, mình leo lên rồi kẹt luôn.', 'Bánh tráng nướng đầu hẻm.'],
@@ -126,7 +136,7 @@
       idle: ['Xương rồng của mình tên là Gai.', 'Tưới ít thôi, nó dễ dỗi.', 'Bạn có nuôi cây không?'],
       answer: ['Cây chết mà mình vẫn tưới thêm một tuần.', 'Gỏi cuốn của bà ngoại.'],
       last: ['Gai gửi lời chào bạn.', 'Hôm nay nhẹ lòng ghê.'] },
-    { id: 'duala', name: 'Lá Dứa', item: 'tai nghe', lantern: 'thuong', does: ['ngammua', 'danhdan', 'ngugat'], loves: ['ngammua', 'danhdan', 'ngugat'], taste: ['muoi', 'caphe', 'que'],
+    { id: 'duala', name: 'Lá Dứa', item: 'tai nghe', lantern: 'thuong', does: ['ngammua', 'danhdan', 'ngugat', 'cuaso'], loves: ['ngammua', 'danhdan', 'ngugat', 'cuaso'], taste: ['muoi', 'caphe', 'que'],
       look: { H: '#1f1c1c', T: '#3f6b55', C: '#9fd3bd', P: '#30303a', B: '#1d1b26' },
       idle: ['Tiếng mưa nghe hay hơn playlist.', 'Đàn này còn phím La bị kẹt.', 'Mình hay ngồi một mình, hôm nay thử khác.'],
       answer: ['Bài hát chế về con mèo nhà hàng xóm.', 'Một bến xe lúc mưa, chả hiểu sao.'],
@@ -290,7 +300,7 @@
     return out;
   }
 
-  return { rng, shuffle, PHASES, LANTERNS, ACTS, FREE_ACTS, INGREDIENTS, drinkName, QUESTIONS, TAROT, ADJECTIVES, GUESTS, NICKNAMES, ITEMS, LOOKS,
+  return { rng, shuffle, PHASES, LANTERNS, ACTS, FREE_ACTS, PLACE_ACTS, OPENERS, REACTIONS, INGREDIENTS, drinkName, QUESTIONS, TAROT, ADJECTIVES, GUESTS, NICKNAMES, ITEMS, LOOKS,
     rotation, sanitizeBubble, guest, createEvening, person, observe, wave, compareHalves, LEAF_LIMIT, dropLeaf, npcLeafTargets,
     tableRound, npcIngredient, LETTER_LIMIT, writeLetter, letterText, npcLetters, npcPicks, couples };
 });
