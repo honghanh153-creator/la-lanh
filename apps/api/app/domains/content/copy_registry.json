@@ -1749,7 +1749,7 @@
   {
    "id": "daily.headline.capacity-before-agreement.16",
    "category": "reading",
-   "text": "Bạn chưa so việc mới với những việc đã có trong lịch.",
+   "text": "Bạn chưa so việc mới với lịch đang có.",
    "status": "pending"
   },
   {
@@ -1761,7 +1761,7 @@
   {
    "id": "daily.headline.capacity-before-agreement.18",
    "category": "reading",
-   "text": "Biết mình còn bao nhiêu giờ giúp lời nhận dễ giữ hơn.",
+   "text": "Biết mình còn bao nhiêu giờ, lời nhận dễ giữ hơn.",
    "status": "pending"
   },
   {
@@ -1905,7 +1905,7 @@
   {
    "id": "daily.headline.comparison-loop.06",
    "category": "reading",
-   "text": "Bạn so bản nháp của mình với bản xong của người khác.",
+   "text": "Bạn so bản nháp của mình với bản đã xong.",
    "status": "pending"
   },
   {
@@ -1965,7 +1965,7 @@
   {
    "id": "daily.headline.comparison-loop.16",
    "category": "reading",
-   "text": "Bạn so ngày đầu của mình với chặng giữa của người khác.",
+   "text": "Ngày đầu của bạn đang bị so với chặng giữa.",
    "status": "pending"
   },
   {
@@ -2499,7 +2499,7 @@
   {
    "id": "daily.headline.name-the-need.15",
    "category": "reading",
-   "text": "Người kia sẵn lòng, chỉ chờ bạn nói cần gì.",
+   "text": "Lời nhờ rõ ràng giúp người kia dễ trả lời hơn.",
    "status": "pending"
   },
   {
@@ -2607,7 +2607,7 @@
   {
    "id": "daily.headline.perfect-before-start.15",
    "category": "reading",
-   "text": "Bạn giữ bản nháp lâu hơn người đọc cần.",
+   "text": "Bạn giữ bản nháp lâu hơn mức cần để bắt đầu.",
    "status": "pending"
   },
   {
@@ -2619,7 +2619,7 @@
   {
    "id": "daily.headline.perfect-before-start.17",
    "category": "reading",
-   "text": "Một bản nháp gửi đi sớm có thể nhận góp ý sớm.",
+   "text": "Bản nháp gửi sớm thì góp ý cũng đến sớm.",
    "status": "pending"
   },
   {
@@ -2739,7 +2739,7 @@
   {
    "id": "daily.headline.repair-reply.01",
    "category": "reading",
-   "text": "Một câu trả lời vội có thể nghe gắt hơn ý bạn.",
+   "text": "Câu trả lời vội có thể nghe gắt hơn ý bạn.",
    "status": "pending"
   },
   {
@@ -2949,7 +2949,7 @@
   {
    "id": "daily.headline.specific-feedback.18",
    "category": "reading",
-   "text": "Câu hỏi cụ thể vẫn nằm trong đầu bạn, chưa đi cùng bản nháp.",
+   "text": "Câu hỏi cụ thể của bạn chưa đi cùng bản nháp.",
    "status": "pending"
   },
   {
