@@ -63,6 +63,10 @@
   };
   const FREE_ACTS = Object.keys(ACTS).filter(k => !ACTS[k].at && !ACTS[k].place);
   const PLACE_ACTS = Object.keys(ACTS).filter(k => ACTS[k].place);
+  // Small gestures you can make from a chair. Doing one keeps you seated, also at a locked rotation table
+  // where you cannot sit down again until the round ends (README: they "không làm bạn đứng dậy").
+  const SEATED_GESTURES = ['nhay', 'mathe', 'vaytay', 'chaptay', 'ngugat'];
+  function keepsSeat(act) { return SEATED_GESTURES.includes(act); }
   // What a guest says when they turn to you. Short, no questions about where you live or how to reach you.
   // What someone's carried item looks like when they take it out on a table (Room.tableThing kinds).
   const ITEM_THINGS = [[/sổ/, 'sove'], [/máy ảnh/, 'mayanh'], [/len/, 'len'], [/sách/, 'sach'], [/tai nghe/, 'tainghe'], [/bánh/, 'banh'], [/xương rồng/, 'xuongrong'], [/ukulele|đàn/, 'ukulele'], [/diều/, 'dieu']];
@@ -307,7 +311,7 @@
     return out;
   }
 
-  return { itemThing, rng, shuffle, PHASES, LANTERNS, ACTS, FREE_ACTS, PLACE_ACTS, OPENERS, REACTIONS, INGREDIENTS, drinkName, QUESTIONS, TAROT, ADJECTIVES, GUESTS, NICKNAMES, ITEMS, LOOKS,
+  return { itemThing, rng, shuffle, PHASES, LANTERNS, ACTS, FREE_ACTS, PLACE_ACTS, SEATED_GESTURES, keepsSeat, OPENERS, REACTIONS, INGREDIENTS, drinkName, QUESTIONS, TAROT, ADJECTIVES, GUESTS, NICKNAMES, ITEMS, LOOKS,
     rotation, sanitizeBubble, guest, createEvening, person, observe, wave, compareHalves, LEAF_LIMIT, dropLeaf, npcLeafTargets,
     tableRound, npcIngredient, LETTER_LIMIT, writeLetter, letterText, npcLetters, npcPicks, couples };
 });
