@@ -165,3 +165,21 @@ test('every carried item has something to put on the table', () => {
   assert.equal(H.itemThing('máy ảnh film'), 'mayanh');
   assert.equal(H.itemThing('diều giấy'), 'dieu');
 });
+
+test('gestures at a locked rotation table keep you seated (fix-forward #320)', () => {
+  // Every free gesture is one you can make from a chair (README: they do not make you stand up).
+  assert.deepEqual([...H.SEATED_GESTURES].sort(), [...H.FREE_ACTS].sort());
+  for (const act of H.FREE_ACTS) {
+    const b = { sit: true, seatKind: 'table', task: true, locked: true };
+    if (!H.keepsSeat(act)) Object.assign(b, { sit: false, seatKind: null, task: false });
+    assert.equal(b.sit, true, act + ' must not stand you up at a locked table');
+    assert.equal(b.seatKind, 'table', act);
+  }
+  for (const act of ['docsach', 'tuoicay', 'goido', 'vuotcho', 'nam']) assert.equal(H.keepsSeat(act), false, act + ' gets you up');
+  // Both controllers use the shared rule instead of their own lists (the old lists left out Nhảy).
+  const fs = require('node:fs'), path = require('node:path');
+  for (const f of ['game.js', 'quan.js']) {
+    const src = fs.readFileSync(path.join(__dirname, f), 'utf8');
+    assert.match(src, /if \(!H\.keepsSeat\(act\)\)/, f);
+  }
+});

@@ -118,7 +118,7 @@
       const [x, y] = tileOf(b), dx = spot.tx - x, dy = spot.ty - y;
       b.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
     }
-    if (act !== 'ngugat' && act !== 'chaptay' && act !== 'vaytay') { b.sit = false; b.seatKind = null; b.task = false; }
+    if (!H.keepsSeat(act)) { b.sit = false; b.seatKind = null; b.task = false; }
     if (act !== 'ngugat') b.lie = false;
     b.act = act; b.actUntil = clock + (act === 'ngugat' ? 8 : act === 'chaptay' ? 2.5 : 6);
     if (act === 'ngammua') b.dir = 'up';

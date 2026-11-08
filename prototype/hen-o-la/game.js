@@ -174,7 +174,7 @@
     b.act = act; b.actUntil = clock + (act === 'ngugat' ? 6 : 4.5); b.path = null;
     if (act === 'goido' && !b.drink) b.drink = 'caphesua';
     // small gestures keep you in your seat; anything else gets you up
-    if (!['ngugat', 'vaytay', 'chaptay', 'mathe'].includes(act)) standUp(b);
+    if (!H.keepsSeat(act)) standUp(b);
     if (act === 'ngammua') b.dir = 'up';
     if (act === 'mathe' || act === 'vaytay' || act === 'ngugat') b.dir = 'down';
     return true;
