@@ -24,7 +24,10 @@ Owner cần cảm nhịp của một buổi ghép đôi dạng sự kiện trư�
   - `prototype/hen-o-la/README.md`, `AGENTS.md`
   
   Phải viết US/AC trước khi đưa vào sản phẩm.
-- **Câu chữ là bản nháp** (G3). Câu chữ chưa được duyệt để vào sản phẩm. Người dùng thật chưa thấy vì chưa có đường deploy. Owner duyệt câu chữ ở bước đưa vào app; câu về quyền riêng tư và an toàn luôn do owner duyệt.
+- **Câu chữ là bản nháp** (G3). Đây là ngoại lệ cho bản thử: **owner đã đồng ý trong chat ngày 08/11/2026** ("Đồng ý ngoại lệ").
+  - Câu chữ trong `prototype/hen-o-la/` chưa được duyệt để vào sản phẩm. Người dùng thật chưa thấy vì chưa có đường deploy.
+  - Owner duyệt câu chữ khi đưa vào app. Câu về quyền riêng tư và an toàn luôn do owner duyệt.
+  - Ngoại lệ chỉ áp dụng cho bản thử này, không áp dụng cho câu chữ trong `apps/`.
 - **Threat model ngắn** (G7):
   - Không có endpoint, phiên hay lưu trữ.
   - Đầu vào tự do duy nhất là bong bóng (≤ 40 ký tự) và note (≤ 60 ký tự). Cả hai được làm sạch ký tự điều khiển và render bằng `textContent`.
