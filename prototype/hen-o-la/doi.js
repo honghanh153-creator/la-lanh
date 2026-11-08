@@ -16,6 +16,9 @@
   // Timers belong to one play-through: "Chơi lại" drops anything still pending.
   let gen = 0;
   function later(ms, fn) { const g = gen; setTimeout(() => { if (g === gen) fn(); }, still() ? Math.min(ms, 300) : ms); }
+  // Round-scoped timers: a teammate's reply, lock or result for a round that already ended never runs.
+  let roundGen = 0;
+  function laterRound(ms, fn) { const r = roundGen; later(ms, () => { if (r === roundGen) fn(); }); }
 
   // ---------- the team ----------
   const TABLE = W.TABLES[1];
@@ -97,6 +100,7 @@
 
   // ---------- rounds ----------
   function startRound(i) {
+    roundGen += 1;
     S.round = i; S.answer = {}; S.locks = {}; S.tally = {}; S.struck = new Set(); S.mateRead = false; S.holding = false; S.seenDoor = false;
     for (const f of round().fields) S.tally[f] = D.FIELDS[f].labels.map(() => 0);
     const r = round();
@@ -238,7 +242,7 @@
     const note = D.noteFromCounts(r, S.tally);
     addNote('you', 'Ảnh: ' + note);
     say(me, 'Mình dán note số ly rồi nha', 3);
-    later(1400, () => {
+    laterRound(1400, () => {
       const name = D.mateNameFromCounts(r, S.tally);
       if (name) { S.answer.name = name; say(mate, 'Theo note thì sổ thừa đúng một dòng. Mình điền rồi!', 4); }
       else { delete S.answer.name; say(mate, 'Theo note thì sổ chưa khớp dòng nào. Đếm lại giúp mình?', 5); }
@@ -264,7 +268,7 @@
     if (id === 'dem') {
       const n = [3, 2, 1];
       n.forEach((k, i) => later(i * 700, () => { say(me, String(k), 0.7); say(mate, String(k), 0.7); }));
-      later(2100, () => { lock('you'); });
+      laterRound(2100, () => { lock('you'); });
     }
   }
 
@@ -296,13 +300,13 @@
     const r = round();
     if (r.kind === 'route') {
       delete S.answer.logged;
-      later(1300, () => { S.answer.logged = D.mateLogged(r, name); say(mate, 'Sổ ghi ' + name + ' đi mất ' + S.answer.logged + ' phút. Mình điền rồi!', 4); renderAnswer(); });
+      laterRound(1300, () => { S.answer.logged = D.mateLogged(r, name); say(mate, 'Sổ ghi ' + name + ' đi mất ' + S.answer.logged + ' phút. Mình điền rồi!', 4); renderAnswer(); });
     } else if (r.ledger === 'you') mateFillsReason(name);
   }
   function mateFillsReason(name) {
     const r = round();
     for (const f of r.fields) delete S.answer[f];
-    later(1300, () => {
+    laterRound(1300, () => {
       const out = D.mateReasonFor(r, name);
       for (const f of r.fields) S.answer[f] = out[f];
       say(mate, out.fits ? 'Dòng đó khớp cả hai ảnh. Mình điền phần ảnh rồi!' : 'Phần ảnh xong, mà dòng đó chưa khớp cả hai ảnh', 4.5);
@@ -311,30 +315,36 @@
   }
   function lock(who) {
     if (S.stage !== 'play') return;
+    if (S.locks[who]) return; // already locked: a second click is not a second submission
     if (who === 'you' && S.holding) { say(mate, 'Mình còn giữ công tắc. Xong thì bảo mình về nha', 4); return; }
     S.locks[who] = true;
     if (who === 'you') {
       const ready = D.blanks(round()).filter(b => b.owner === 'mate').every(b => S.answer[b.key]);
-      later(900, () => { if (ready) { S.locks.mate = true; say(mate, 'Chốt!', 2); } else say(mate, 'Đợi mình chút, phần mình chưa điền', 3.5); renderAnswer(); maybeJudge(); });
+      laterRound(900, () => {
+        if (S.stage !== 'play' || !S.locks.you) return; if (ready) { S.locks.mate = true; say(mate, 'Chốt!', 2); } else say(mate, 'Đợi mình chút, phần mình chưa điền', 3.5); renderAnswer(); maybeJudge(); });
     }
     renderAnswer(); maybeJudge();
   }
   function maybeJudge() {
-    if (!S.locks.you || !S.locks.mate) return;
+    if (S.stage !== 'play' || !S.locks.you || !S.locks.mate) return;
     const res = D.judge(round(), S.answer, S.locks);
     if (res.status === 'solved') solved(res); else { S.locks = {}; banner(res.text, 4); renderAnswer(); }
   }
   function solved(res) {
+    // Settle the round once: bump the round token so any pending lock or reply for it is dropped.
     S.lamps += 1; S.stage = 'reveal'; me.task = false; mate.task = false;
+    const token = ++roundGen;
     say(me, '🙌', 2); say(mate, '🙌', 2);
     renderAll();
     later(900, () => {
+      if (token !== roundGen || S.stage !== 'reveal') return;
       const lastOfLevel = S.round === rounds().length - 1;
       const body = openModal('L' + S.level + ' · VÒNG ' + (S.round + 1) + ' XONG', 'Cả đội cùng về đích', false);
       body.append(el('p', '', res.text));
       if (lastOfLevel) body.append(el('div', 'letter', (D.MODES[S.mode].icon) + ' ' + (S.level === 1 ? D.MODES[S.mode].reveal : D.MODES[S.mode].reveal2)));
       body.append(btn(!lastOfLevel ? 'Sang vòng ' + (S.round + 2) + ' · đổi vai' : 'Ra góc nghỉ', 'primary', () => {
         closeModal();
+        if (token !== roundGen || S.stage !== 'reveal') return;
         if (!lastOfLevel) { S.stage = 'play'; startRound(S.round + 1); } else breakCorner();
       }));
     });
