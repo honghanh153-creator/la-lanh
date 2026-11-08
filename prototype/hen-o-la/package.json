@@ -3,6 +3,6 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "test": "node --test event.test.cjs world.test.cjs cafe.test.cjs"
+    "test": "node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs"
   }
 }

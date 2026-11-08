@@ -26,7 +26,7 @@ kbd { display: inline-block; min-width: 1.6em; padding: 0 .35em; margin: 0 1px; 
 .brand b { font-size: 22px; letter-spacing: .5px; }
 .brand em { color: var(--leaf); font-style: normal; }
 .brand span { display: block; color: var(--muted); font-size: 12px; letter-spacing: .3px; }
-.top-actions { display: flex; gap: 8px; }
+.top-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { display: inline-flex; align-items: center; text-decoration: none; color: inherit; min-height: 44px; padding: 6px 14px; white-space: nowrap; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
 
 .track { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 12px 0; }
@@ -139,3 +139,41 @@ body.reduced .bubble.pop, body.still .bubble.pop { animation: none; }
 .board .pickbtn { margin-top: 4px; }
 .takeaway { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
 .takeaway .cup { width: 36px; height: 36px; image-rendering: pixelated; }
+
+/* Thử thách đôi */
+.duo-track { grid-template-columns: repeat(4, 1fr); }
+.play.duo .stage { aspect-ratio: 2 / 1; }
+.scared { display: block; width: 100%; margin-top: 8px; min-height: 44px; border: 1px solid var(--amber); border-radius: 10px; background: #3a2e1a; font-weight: 700; }
+.mine { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.mine:empty { display: none; }
+.mine h2 { margin: 0 0 4px; font-size: 15px; }
+.mine .primary { min-height: 44px; margin-top: 10px; padding: 6px 14px; border: 1px solid var(--amber); border-radius: 10px; background: #3a2e1a; font-weight: 700; }
+.photo { display: block; width: 100%; max-width: 480px; aspect-ratio: 120 / 64; image-rendering: pixelated; border: 6px solid #f3ead8; border-bottom-width: 14px; border-radius: 2px; box-shadow: 0 4px 0 rgba(0, 0, 0, .35); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend canvas { width: 20px; height: 24px; image-rendering: pixelated; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.tally .cell { display: grid; grid-template-columns: auto 44px 2ch 44px; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); font-size: 13px; }
+.tally .cell button { min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 18px; }
+.tally .cell b { text-align: center; font: 700 16px ui-monospace, Menlo, monospace; }
+.ledger { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 14px; }
+.ledger th, .ledger td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.ledger tr[role="button"] { cursor: pointer; }
+.ledger tr.struck td { color: var(--muted); text-decoration: line-through; }
+.sentence { padding: 10px 12px; border-radius: 8px; background: #fbf4e6; color: #2a1f3d; font-size: 14px; line-height: 2; }
+.blank { display: inline-block; min-width: 72px; padding: 0 8px; border-bottom: 2px dashed #8a7a9a; color: #8a7a9a; line-height: 1.6; }
+.blank.filled { border-bottom-style: solid; color: #2a1f3d; font-weight: 700; }
+.blank.yours { border-bottom-color: #3f8a5a; }
+.answer h2 { margin: 0 0 6px; font-size: 15px; }
+.answer .lockbtn { min-height: 48px; width: 100%; border: 2px solid var(--amber); border-radius: 12px; background: #3a2e1a; font-weight: 700; }
+.notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.notes li { padding: 6px 10px; border-radius: 6px; background: #fff3b8; color: #2a1f3d; font-size: 13px; transform: rotate(-.6deg); box-shadow: 0 2px 0 rgba(0, 0, 0, .3); }
+.notes li:nth-child(even) { transform: rotate(.6deg); background: #ffe1d8; }
+.notes li.me { background: #d8f0e0; }
+.notes li b { margin-right: 6px; }
+.notes li.empty { background: transparent; color: var(--muted); box-shadow: none; transform: none; padding: 0; }
+.lamprow { display: flex; gap: 6px; font-size: 22px; }
+.lamp { filter: grayscale(1) brightness(.5); }
+.lamp.lit { filter: none; }
+.lamp.ours { filter: drop-shadow(0 0 4px #f2b45a); }
+body.reduced .notes li, body.still .notes li { transform: none; }

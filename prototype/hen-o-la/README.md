@@ -69,13 +69,30 @@ Quán có bảng menu phấn, kệ lọ và ly, tranh hoàng hôn, đèn neon h�
 
 Hình quán (`room.js`) dùng chung cho cả buổi hẹn và quán ngày thường. Luật quán nằm ở `cafe.js`.
 
+## Thử thách đôi (`doi.html`)
+
+Level 1 "Sĩ số +1" của đội đôi (xem `docs/research/2026-11-08-hen-o-la-doi-pha-an.md`). Bạn và một đồng đội hư cấu ngồi chung bàn. **Mỗi người giữ một nửa thông tin và một nửa câu trả lời**, nên không ai giải một mình được.
+
+- **Trước khi vào:** chọn màu chơi 😂 Hài (chiều ấm, Mướp nhảy vào ảnh) hoặc 👻 Hơi rợn (quán tối, đèn pin, bóng mờ sau hàng ghế). Ở mode rợn, mỗi người chọn mức gan; đội chơi ở mức nhẹ hơn.
+- **Vòng 1:** sổ khách tối qua có 6 dòng nhưng ảnh chỉ có 5 ly.
+  - Bạn cầm ảnh: đếm từng loại ly rồi dán note số ly.
+  - Đồng đội cầm sổ: đọc sổ khi bạn bấm "Đọc giúp mình". Đọc note của bạn rồi điền tên dòng thừa. Đếm sai thì đồng đội nói "chưa khớp dòng nào", không đoán bừa.
+  - Bạn điền loại ly bị thiếu.
+- **Vòng 2 · đổi vai:** đồng đội cầm hai ảnh (ly và giá ô), bạn cầm sổ, gạch bớt dòng, điền tên. Mỗi ảnh riêng lẻ cho 3 khả năng; ghép cả hai mới ra đúng một dòng.
+- **Chốt:** cả hai cùng bấm "Chốt" (hoặc cử chỉ 3-2-1). Nếu sai, cả đội nhận một câu chung, không nói ô nào sai hay ai sai, và chốt lại được.
+- **Về đích:** mỗi vòng thắp một đèn trên mái quán, cạnh đèn của các đội khác. Không có bảng xếp hạng. Mode rợn kết thúc bằng một cú lộ hài.
+- **Cử chỉ và note:** đọc giúp, đợi mình, 3-2-1, đập tay; note ≤ 60 ký tự dán lên bàn, không có trả lời qua lại.
+- **"Mình sợ quá":** bật đèn cho cả đội, không ai phải giải thích. Phòng tối dần chậm tới một mức trần, không bao giờ nhấp nháy.
+- **Góc nghỉ:** mỗi người hỏi một câu tuỳ chọn, rồi chọn kín "Đi tiếp cùng nhau?". Chỉ khi cả hai cùng muốn mới đi tiếp chung đội. Màn hình không nói ai đã chọn gì.
+- Sổ khách là hồ sơ hư cấu, không bao giờ trỏ vào người trong buổi. L2, L3 làm sau.
+
 ## Kiểm tra
 
 ```sh
-node --test event.test.cjs world.test.cjs cafe.test.cjs
+node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs
 ```
 
-30 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
+39 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.
@@ -96,7 +113,18 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs
 - Module quán không có thứ gì giữ điểm.
 - Đồ mang theo chỉ là hình và một việc để làm.
 
-Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Quán ngày thường đã thử lúc 3 giờ, 7 giờ, 20 giờ và 21 giờ (giả lập bằng `?gio`): gọi ly, ngồi, xin lá bài, cất note, ra về; ở 1100×820 và 375×812. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
+`duo.test.cjs` (9) kiểm:
+- Mỗi vòng có đúng một dòng thừa; ở vòng 2, một ảnh riêng lẻ không đủ.
+- Ảnh khớp sổ trừ dòng thừa.
+- Dòng thừa không trùng tên khách hay người chơi.
+- Đổi vai giữa hai vòng; mỗi chỗ trống thuộc về một người.
+- Cần cả hai chốt; câu báo sai giống nhau dù sai chỗ nào.
+- Đồng đội chỉ kết luận từ note của bạn.
+- Đội chơi ở mức gan nhẹ hơn.
+- "Đi tiếp cùng nhau" cần hai lần đồng ý, không lộ ai từ chối.
+- Không có gì giữ điểm, không có chữ máu me.
+
+Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Quán ngày thường đã thử lúc 3 giờ, 7 giờ, 20 giờ và 21 giờ (giả lập bằng `?gio`): gọi ly, ngồi, xin lá bài, cất note, ra về; ở 1100×820 và 375×812. Thử thách đôi đã chơi trọn hai vòng và góc nghỉ ở cả hai mode, trả lời sai và đếm sai, ở 1100×820 và 375×812. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
 
 `window.__hen` (`hold`, `step`, `begin`, `next`…) chỉ để kiểm thử trong pane bị ẩn, không phải API sản phẩm.
 
