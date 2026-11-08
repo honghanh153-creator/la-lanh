@@ -32,3 +32,32 @@ export function withRepeatNote(turn, pr) {
   const note = turn.turn === 'claude-fix' ? repeatFixReason(pr) : null;
   return note ? { ...turn, reason: `${turn.reason}; ${note}` } : turn;
 }
+
+// Mass-deletion guard (owner 08.11.2026). An agent that "cleans up" can delete working code and the
+// reviewer may approve it. A PR that removes many files or many more lines than it adds is never
+// auto-merged: it waits until the owner adds the `owner-ok-deletion` label. Lockfiles do not count.
+export const deletionCap = { files: 10, lines: 500 };
+export const deletionOkLabel = 'owner-ok-deletion';
+
+export function deletionProblem(pr) {
+  const labels = (pr.labels ?? []).map(l => l.name ?? l);
+  if (labels.includes(deletionOkLabel)) return null;
+  const files = (pr.files ?? []).filter(f => f?.path && !isLock(f.path));
+  const removed = files.filter(f => (Number(f.deletions) || 0) > 0 && !(Number(f.additions) || 0)).length;
+  const del = files.reduce((n, f) => n + (Number(f.deletions) || 0), 0);
+  const add = files.reduce((n, f) => n + (Number(f.additions) || 0), 0);
+  if (removed > deletionCap.files) return `PR xoá ${removed} file — chờ owner gắn label ${deletionOkLabel}`;
+  if (del > deletionCap.lines && del > 2 * add) return `PR xoá ${del} dòng (thêm ${add}) — chờ owner gắn label ${deletionOkLabel}`;
+  return null;
+}
+
+// CI: node scripts/collab-size.mjs --deletion <base> <head> '<labels json>'  (exit 1 on a mass deletion)
+if (process.argv[2] === '--deletion') {
+  const { execFileSync } = await import('node:child_process');
+  const [base, head, labelsJson = '[]'] = process.argv.slice(3);
+  const files = execFileSync('git', ['diff', '--numstat', '--no-renames', base, head], { encoding: 'utf8' })
+    .split('\n').filter(Boolean).map(l => l.split('\t')).map(([a, d, path]) => ({ path, additions: Number(a) || 0, deletions: Number(d) || 0 }));
+  const why = deletionProblem({ files, labels: JSON.parse(labelsJson) });
+  console.log(why ?? 'deletion guard: ok');
+  if (why) process.exit(1);
+}

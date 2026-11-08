@@ -2,7 +2,7 @@
 // Usage: node scripts/codex-review.mjs --pr N [--auto]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
@@ -122,9 +122,15 @@ export function runReview(number, options = {}) {
   // Reclaim of a dead or 45-minute-old lock runs under the reclaim mutex (collab-lock.mjs, Codex #258).
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
   if (!release) return { status: 'busy', reason: 'một review khác đang chạy' };
-  try { return reviewOnce(number, options); }
+  const started = Date.now();
+  let result;
+  try { result = reviewOnce(number, options); return result; }
   catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: 'hết giờ (23:55) trong lúc review' }; throw error; }
-  finally { release(); }
+  finally {
+    release();
+    // Per-PR cost proxy for collab-pr-metrics.mjs (owner 08.11.2026): one line per Codex review.
+    try { appendFileSync(join(stateDir, 'review-runs.jsonl'), `${JSON.stringify({ pr: Number(number), at: new Date(started).toISOString(), ms: Date.now() - started, status: result?.status ?? 'error' })}\n`); } catch {}
+  }
 }
 
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.

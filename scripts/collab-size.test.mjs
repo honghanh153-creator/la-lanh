@@ -71,3 +71,14 @@ test('#254: an oversized PR with an existing author check goes back to Claude, n
   assert.equal(prTurn(pr({ comments: [checked], body: `${body}Size-exception: tách sẽ hỏng contract\n` })).turn, 'codex-review');
   assert.equal(prTurn(pr({ comments: [checked, approved], files: [{ path: 'scripts/b.mjs', additions: 40, deletions: 0 }] })).turn, 'merge');
 });
+
+test('mass deletion holds the PR until the owner labels it', async () => {
+  const { deletionProblem } = await import('./collab-size.mjs');
+  const gone = n => Array.from({ length: n }, (_, i) => ({ path: `apps/web/f${i}.ts`, additions: 0, deletions: 5 }));
+  assert.equal(deletionProblem({ files: gone(10) }), null);
+  assert.match(deletionProblem({ files: gone(11) }), /xoá 11 file/);
+  assert.equal(deletionProblem({ files: gone(11), labels: [{ name: 'owner-ok-deletion' }] }), null);
+  assert.match(deletionProblem({ files: [{ path: 'a.ts', additions: 100, deletions: 600 }] }), /xoá 600 dòng/);
+  assert.equal(deletionProblem({ files: [{ path: 'a.ts', additions: 400, deletions: 600 }] }), null);
+  assert.equal(deletionProblem({ files: [{ path: 'pnpm-lock.yaml', additions: 0, deletions: 5000 }] }), null);
+});

@@ -6,7 +6,8 @@ import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integratio
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { bodyHash } from './collab-heal.mjs';
 import { preflightFailure, readPreflight, recordPreflight } from './collab-preflight.mjs';
-import { sizeProblem, withRepeatNote } from './collab-size.mjs';
+import { syncStatusLabels } from './collab-labels.mjs';
+import { deletionProblem, sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, queueTopUp, readyBuffer } from './collab-buffer.mjs';
 
@@ -39,6 +40,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
+  const deletion = deletionProblem(pr);
+  if (deletion) return out('hold', deletion);
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
   if (pr.baseRefName !== integration) return out('hold', `xếp chồng trên ${pr.baseRefName}`);
   const blocker = fileBlocker(pr, open, { dropped });
@@ -132,6 +135,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const prs = gh.openPrs();
       const turns = turnsFor(prs, { dropped: plan.dropped });
+      try { if (gh.raw) syncStatusLabels(gh, prs, turns); } catch (error) { log(`status labels: ${String(error.message ?? error).slice(0, 200)}`); }
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns);
