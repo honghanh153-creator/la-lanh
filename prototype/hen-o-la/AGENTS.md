@@ -9,4 +9,5 @@
 - Speech bubbles are plain text (textContent), single line, ≤ 40 characters for the player.
 - Motion: honour prefers-reduced-motion and the Full/Reduced/Off setting. No flashing, shake or autoplay sound. Touch targets ≥ 44 px where they are the main control.
 - No XP, coins, streaks, paid features or return pressure.
-- Keep `event.test.cjs` and `world.test.cjs` green. Report browser-pane checks and real-device checks separately.
+- Keep `event.test.cjs`, `world.test.cjs` and `cafe.test.cjs` green. Report browser-pane checks and real-device checks separately.
+- The everyday café (`quan.html`) has no free text (preset greetings only), no points, streaks, visit counters, time-spent displays or return rewards. Take-aways are a drink, the card of the day (same for everyone, suggests a small action, never predicts) and a kind sentence.

@@ -51,13 +51,28 @@ Mở `hen-o-la/index.html` qua một máy chủ tĩnh, phục vụ từ thư m�
 - **Nói:** T, hoặc ô Nói và các câu nói nhanh.
 - **Cử động:** Đầy đủ / Giảm / Tắt. Mặc định theo `prefers-reduced-motion`. Không nhấp nháy, không rung, không âm thanh.
 
+## Quán ngày thường (`quan.html`)
+
+Quán mở mọi ngày, không có buổi hẹn. Giống đi chùa online (Sansa) nhưng là quán cà phê mưa.
+
+- **Vào là ngồi:** không phải đăng ký. Mỗi lần vào được đặt một tên Lá ngẫu nhiên, ví dụ "Lá Sen Hay Cười".
+- **Khách:** khách hư cấu tự ra vào. Đông vào sáng sớm và buổi tối; từ 0 tới 4 giờ sáng thì vắng, chỉ có Cô Lá và mèo Mướp. Theo giờ của máy; thêm `?gio=21` để thử một giờ khác.
+- **Làm gì:** chắp tay, vẫy tay, ngủ gật, ngồi vào bàn. Ở đúng chỗ thì tưới cây, vuốt mèo, ngắm mưa, đọc sách, đánh đàn. Ở quầy thì gọi một ly (ly đặt lên bàn khi bạn ngồi), xin lá bài hôm nay, hoặc nói chuyện với Cô Lá.
+- **Nói:** chỉ có câu chào sẵn ("Chào bạn 🙏", "Bình yên nha"…), không gõ chữ tự do. Khách đi ngang thường chắp tay chào; bạn chào thì người gần nhất chào lại.
+- **Note cho chính mình:** tối đa 3 tờ, mỗi tờ 60 ký tự. Lúc về đọc lại; chỉ nằm trong tab.
+- **Bảng ở quầy:** báo buổi hẹn sắp tới, có nút "Mình muốn hẹn" (bản thử chưa nhận đăng ký).
+- **Lúc về mang theo:** ly của bạn (hình pixel), lá bài hôm nay kèm một việc nhỏ, một câu của Cô Lá, các note của bạn.
+- **Không có:** điểm, chuỗi ngày, thời gian ngồi, thưởng khi quay lại. Lá bài giống nhau cho mọi người trong một ngày và chỉ gợi việc nhỏ.
+
+Hình quán (`room.js`) dùng chung cho cả buổi hẹn và quán ngày thường. Luật quán nằm ở `cafe.js`.
+
 ## Kiểm tra
 
 ```sh
-node --test event.test.cjs world.test.cjs
+node --test event.test.cjs world.test.cjs cafe.test.cjs
 ```
 
-20 test kiểm:
+29 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.
@@ -68,7 +83,16 @@ node --test event.test.cjs world.test.cjs
 - Mọi chỗ ngồi và đồ vật đều tới được.
 - Sprite của lab 14 vẽ được mọi dáng.
 
-Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
+`cafe.test.cjs` (9) kiểm:
+- Tên ngẫu nhiên đúng dạng.
+- Giờ vắng và giờ đông.
+- Lá bài giữ nguyên trong ngày.
+- Lá bài và lời Cô Lá không đoán hay phán gì.
+- Chỉ có câu chào sẵn.
+- Note bị cắt sạch.
+- Module quán không có thứ gì giữ điểm.
+
+Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Quán ngày thường đã thử lúc 3 giờ, 7 giờ, 20 giờ và 21 giờ (giả lập bằng `?gio`): gọi ly, ngồi, xin lá bài, cất note, ra về; ở 1100×820 và 375×812. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
 
 `window.__hen` (`hold`, `step`, `begin`, `next`…) chỉ để kiểm thử trong pane bị ẩn, không phải API sản phẩm.
 
