@@ -20,8 +20,8 @@
     ngoi: { label: 'Ngồi', verb: 'ngồi xuống', icon: '🪑' },
     lamviec: { label: 'Lấy đồ ra', verb: 'lấy đồ ra', icon: '💼' },
     cat: { label: 'Cất đồ', verb: 'cất đồ', icon: '👜' }
-  });
-  const FREE = ['chaptay', 'vaytay', 'ngugat'];
+  }, Q.PLACE_ACTS);
+  const FREE = ['chaptay', 'vaytay', 'nhay', 'ngugat'];
   const rand = Math.random;
 
   function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
@@ -39,7 +39,7 @@
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y) / T; }
   function body(id, name, look, npc) {
     return Object.assign({ id, name, npc, dir: 'up', path: null, then: null, act: null, actUntil: 0, sit: false, sitUntil: 0, bubble: null, walkMs: 0, moving: false,
-      blinkAt: rand() * 4, sheet: E.buildSheet(look), drink: null, greeted: false, gear: Q.packBag(rand), task: false, steamT: rand() * 3 }, feetOf(...W.ENTRY));
+      blinkAt: rand() * 4, sheet: E.buildSheet(look), drink: null, greeted: false, gear: Q.packBag(rand), task: false, steamT: rand() * 3, lie: false, seatKind: null }, feetOf(...W.ENTRY));
   }
   let me = null, myNotes = [], myDrink = null, myCard = null, myLine = null;
   function enter() {
@@ -57,7 +57,7 @@
   function walkTo(b, tx, ty, then) {
     const path = W.findPath(tileOf(b), [tx, ty]);
     if (!path) return false;
-    b.sit = false; b.act = null; b.task = false;
+    b.sit = false; b.lie = false; b.seatKind = null; b.act = null; b.task = false;
     b.path = path.slice(1); b.then = then || null;
     if (!b.path.length) { b.path = null; const t = b.then; b.then = null; if (t) t(); }
     return true;
@@ -78,18 +78,48 @@
     for (const t of W.TABLES) for (const s of t.seats) if (s[0] === tx && s[1] === ty) return { table: t, seat: s };
     return null;
   }
+  const onList = (list, tx, ty) => list.some(([x, y]) => x === tx && y === ty);
+  const windowSeatAt = (tx, ty) => onList(W.WINDOW_SEATS, tx, ty);
+  const nookAt = (tx, ty) => onList(W.NOOK, tx, ty);
   function seatTaken(s, except) {
-    return [...people.values()].some(b => b !== except && (b.sit || b.goingTo) && (() => { const [x, y] = b.goingTo || tileOf(b); return x === s[0] && y === s[1]; })());
+    return [...people.values()].some(b => b !== except && (b.sit || b.lie || b.goingTo) && (() => { const [x, y] = b.goingTo || tileOf(b); return x === s[0] && y === s[1]; })());
   }
   function sitDown(b) {
-    const here = seatAt(...tileOf(b));
+    const [tx, ty] = tileOf(b);
+    if (windowSeatAt(tx, ty)) {
+      Object.assign(b, feetOf(tx, ty));
+      b.sit = true; b.seatKind = 'window'; b.lie = false; b.act = null; b.path = null; b.goingTo = null; b.task = false; b.dir = 'up';
+      return true;
+    }
+    const here = seatAt(tx, ty);
     if (!here) return false;
-    b.sit = true; b.act = null; b.path = null; b.goingTo = null; b.task = false;
+    b.sit = true; b.seatKind = 'table'; b.lie = false; b.act = null; b.path = null; b.goingTo = null; b.task = false;
     b.dir = b.x < here.table.tx * T + 8 ? 'right' : 'left';
     return true;
   }
+  function lieDown(b) {
+    const [tx, ty] = tileOf(b);
+    if (!nookAt(tx, ty)) return false;
+    Object.assign(b, feetOf(tx, ty));
+    b.lie = true; b.sit = false; b.seatKind = null; b.act = null; b.path = null; b.goingTo = null; b.task = false;
+    return true;
+  }
   function startAct(b, act) {
-    if (act === 'ngoi') return sitDown(b);
+    if (act === 'ngoi' || act === 'cuaso') return sitDown(b);
+    if (act === 'nam') return lieDown(b);
+    if (act === 'uong') {
+      if (!b.drink) return false;
+      b.drinkColor = Q.DRINKS[b.drink].color; b.act = 'uong'; b.actUntil = clock + 3;
+      return true;
+    }
+    if (act === 'vuotcho') {
+      if (dist(b, dog) > 1.6) return false;
+      b.sit = false; b.lie = false; b.seatKind = null; b.task = false;
+      b.dir = Math.abs(dog.x - b.x) >= Math.abs(dog.y - b.y) ? (dog.x > b.x ? 'right' : 'left') : (dog.y > b.y ? 'down' : 'up');
+      b.act = 'vuotcho'; b.actUntil = clock + 4;
+      petDog(b);
+      return true;
+    }
     if (act === 'lamviec' || act === 'cat') { if (!b.sit) return false; b.task = act === 'lamviec'; b.act = null; return true; }
     const a = ACTS[act];
     if (!a) return false;
@@ -100,7 +130,8 @@
       const [x, y] = tileOf(b), dx = spot.tx - x, dy = spot.ty - y;
       b.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
     }
-    if (act !== 'ngugat' && act !== 'chaptay' && act !== 'vaytay') { b.sit = false; b.task = false; }
+    if (act !== 'ngugat' && act !== 'chaptay' && act !== 'vaytay') { b.sit = false; b.seatKind = null; b.task = false; }
+    if (act !== 'ngugat') b.lie = false;
     b.act = act; b.actUntil = clock + (act === 'ngugat' ? 8 : act === 'chaptay' ? 2.5 : 6);
     if (act === 'ngammua') b.dir = 'up';
     if (act === 'chaptay' && !b.sit) b.dir = 'down';
@@ -109,11 +140,15 @@
   function say(b, text, secs) { b.bubble = { text: H.sanitizeBubble(text, 40), until: clock + (secs || 3.5) }; }
   function availableActs(b) {
     const list = FREE.slice();
+    if (b.drink) list.push('uong');
     const [x, y] = tileOf(b);
     const s = W.spotAt(x, y);
-    if (s && W.SPOTS[s].act !== 'goido') list.push(W.SPOTS[s].act);
+    if (s && W.SPOTS[s].act !== 'goido' && !b.lie) list.push(W.SPOTS[s].act);
     if (seatAt(x, y) && !b.sit) list.push('ngoi');
-    if (b.sit) list.push(b.task ? 'cat' : 'lamviec');
+    if (windowSeatAt(x, y) && !b.sit) list.push('cuaso');
+    if (nookAt(x, y) && !b.lie) list.push('nam');
+    if (dist(b, dog) < 1.6) list.push('vuotcho');
+    if (b.sit && b.seatKind === 'table') list.push(b.task ? 'cat' : 'lamviec');
     return list;
   }
 
@@ -142,12 +177,31 @@
   function guestThink(g, dt) {
     if (g.path || g.leaving) return;
     if (g.act && g.actUntil > clock) return;
-    if (g.sit && g.sitUntil > clock) { if (!g.act && rand() < dt * (g.task ? 0.012 : 0.04)) startAct(g, 'ngugat'); return; }
+    if ((g.sit || g.lie) && g.sitUntil > clock) {
+      if (!g.act && g.drink && rand() < dt * 0.05) startAct(g, 'uong');
+      else if (!g.act && rand() < dt * (g.task ? 0.012 : g.lie ? 0.05 : 0.04)) startAct(g, 'ngugat');
+      return;
+    }
     g.idle -= dt;
     if (g.idle > 0) return;
     g.idle = 1 + rand() * 3;
     if (clock > g.leaveAt || !g.plan.length) { leave(g); return; }
     const next = g.plan.shift();
+    if (next === 'cuaso' || next === 'nam') {
+      const list = (next === 'cuaso' ? W.WINDOW_SEATS : W.NOOK).filter(s => !seatTaken(s, g));
+      const s = pick(list);
+      if (!s) return;
+      g.goingTo = s;
+      walkTo(g, s[0], s[1], () => { g.goingTo = null; if (next === 'cuaso') sitDown(g); else lieDown(g); g.sitUntil = clock + 18 + rand() * 25; });
+      return;
+    }
+    if (next === 'vuotcho') {
+      const [dx, dy] = tileOf(dog);
+      const stand = W.standTiles(dx, dy, tileOf(g)).concat([[dx, dy]]).find(([x, y]) => !W.solidTile(x, y));
+      if (stand) walkTo(g, stand[0], stand[1], () => startAct(g, 'vuotcho'));
+      return;
+    }
+    if (next === 'nhay') { startAct(g, 'nhay'); g.actUntil = clock + 4; return; }
     if (next === 'ngoi') {
       const seats = W.TABLES.flatMap(t => t.seats).filter(s => !seatTaken(s, g));
       const s = pick(seats);
@@ -183,6 +237,42 @@
     if (guests < Q.crowd(nowHour())) spawnGuest(false);
   }
 
+  // ---------- Bơ, the café dog ----------
+  const dog = Object.assign({ id: 'dog', isDog: true, name: Q.DOG.name, dir: 'right', path: null, then: null, idle: 2, moving: false, walkMs: 0, sitting: true, petted: 0, hop: 0, bubble: null }, feetOf(...W.DOG_BED));
+  function dogWalk(tx, ty, then) {
+    const path = W.findPath(tileOf(dog), [tx, ty]);
+    if (!path) return;
+    dog.sitting = false; dog.path = path.slice(1); dog.then = then || null;
+    if (!dog.path.length) { dog.path = null; if (then) then(); }
+  }
+  function dogFollow(dt) {
+    const [tx, ty] = dog.path[0], goal = feetOf(tx, ty);
+    const dx = goal.x - dog.x, dy = goal.y - dog.y, d = Math.hypot(dx, dy), step = 34 * dt;
+    if (d <= step) { dog.x = goal.x; dog.y = goal.y; dog.path.shift(); if (!dog.path.length) { dog.path = null; const t = dog.then; dog.then = null; if (t) t(); } }
+    else { dog.x += dx / d * step; dog.y += dy / d * step; }
+    if (Math.abs(dx) > 0.5) dog.dir = dx > 0 ? 'right' : 'left';
+    dog.moving = true;
+  }
+  function petDog(by) {
+    dog.path = null; dog.then = null; dog.sitting = true; dog.petted = clock + 3.5; dog.idle = 4;
+    dog.dir = by.x < dog.x ? 'left' : 'right';
+    if (!still()) { dog.hop = 2; for (let i = 0; i < 3; i++) particles.push({ kind: 'heart', x: dog.x - 2 + i * 3, y: dog.y - 16, vx: 0, vy: -8, life: 1 + i * 0.2 }); }
+  }
+  function dogThink(dt) {
+    if (dog.hop > 0) dog.hop = Math.max(0, dog.hop - dt * 8);
+    if (dog.path) { dogFollow(dt); return; }
+    if (dog.petted > clock) return;
+    dog.idle -= dt; if (dog.idle > 0) return;
+    dog.idle = 3 + rand() * 5;
+    const r = rand(), free = W.freeTiles().filter(([x, y]) => y >= 3);
+    if (r < 0.3 && me) {
+      // trot over and sit next to you
+      const st = W.standTiles(...tileOf(me), tileOf(dog)).find(([x, y]) => !W.solidTile(x, y));
+      if (st) dogWalk(st[0], st[1], () => { dog.sitting = true; dog.dir = me.x < dog.x ? 'left' : 'right'; });
+    } else if (r < 0.5) dogWalk(W.DOG_BED[0], W.DOG_BED[1], () => { dog.sitting = true; dog.idle = 8 + rand() * 6; });
+    else { const t = pick(free); dogWalk(t[0], t[1], () => { dog.sitting = rand() < 0.5; }); }
+  }
+
   // ---------- player actions ----------
   function doAct(a) {
     if (!startAct(me, a)) return;
@@ -192,10 +282,13 @@
   function nearestThing() {
     const p = [...people.values()].filter(b => b.npc && dist(b, me) < 1.4).sort((a, b) => dist(a, me) - dist(b, me))[0];
     if (p) return { kind: 'person', id: p.id, label: p.name };
+    if (dist(dog, me) < 1.4) return { kind: 'dog', label: Q.DOG.name };
     const [x, y] = tileOf(me);
     const s = W.spotAt(x, y);
     if (s) return { kind: 'spot', name: s, label: W.SPOTS[s].label };
     if (seatAt(x, y) && !me.sit) return { kind: 'seat', label: 'ghế' };
+    if (windowSeatAt(x, y) && !me.sit) return { kind: 'window', label: 'ghế cạnh cửa sổ' };
+    if (nookAt(x, y) && !me.lie) return { kind: 'nook', label: 'góc đọc sách' };
     return null;
   }
   function interact() {
@@ -203,7 +296,9 @@
     const n = nearestThing();
     if (!n) return;
     if (n.kind === 'person') { const g = people.get(n.id); me.dir = g.x < me.x ? 'left' : g.x > me.x ? 'right' : me.dir; doAct('chaptay'); }
-    else if (n.kind === 'seat') sitDown(me);
+    else if (n.kind === 'seat' || n.kind === 'window') sitDown(me);
+    else if (n.kind === 'nook') lieDown(me);
+    else if (n.kind === 'dog') doAct('vuotcho');
     else if (n.name === 'counter') openCounter();
     else doAct(W.SPOTS[n.name].act);
   }
@@ -377,6 +472,12 @@
       if (stand) walkTo(me, stand[0], stand[1], () => { if (spotName === 'counter') openCounter(); else doAct(s.act); });
       return;
     }
+    if (Math.abs(dog.x - x) < 8 && y > dog.y - 14 && y < dog.y + 2) {
+      const [dx, dy] = tileOf(dog), st = W.standTiles(dx, dy, tileOf(me)).find(([a, b2]) => !W.solidTile(a, b2));
+      if (st) walkTo(me, st[0], st[1], () => doAct('vuotcho'));
+      return;
+    }
+    if ((windowSeatAt(tx, ty) || nookAt(tx, ty)) && !seatTaken([tx, ty], me)) { walkTo(me, tx, ty, () => { if (windowSeatAt(tx, ty)) sitDown(me); else lieDown(me); }); return; }
     const table = W.TABLES.find(t => t.tx === tx && t.ty === ty);
     if (table) { const s = table.seats.find(s2 => !seatTaken(s2, me)); if (s) walkTo(me, s[0], s[1], () => sitDown(me)); return; }
     if (!W.solidTile(tx, ty)) walkTo(me, tx, ty);
@@ -428,7 +529,8 @@
     R.person(ctx, host, clock, still(), 0);
     R.counterFront(ctx);
     drawCupsOnTables();
-    for (const b of [...people.values()].sort((a, c) => a.y - c.y)) R.person(ctx, b, clock, still(), 0);
+    R.dogBed(ctx);
+    for (const b of [...people.values(), dog].sort((a, c) => a.y - c.y)) { if (b.isDog) R.dog(ctx, dog, clock, still()); else R.person(ctx, b, clock, still(), 0); }
     R.pendants(ctx);
     R.drawParticles(ctx, particles);
     // the small hours are dim
@@ -440,7 +542,7 @@
 
   const tags = new Map();
   function drawOverlay() {
-    const all = [host, ...people.values()];
+    const all = [host, dog, ...people.values()];
     const live = new Set(all.map(b => b.id));
     for (const [id, t] of tags) if (!live.has(id)) { t.root.remove(); tags.delete(id); }
     for (const b of all) {
@@ -449,13 +551,14 @@
         t = { root: el('div', 'who'), bubble: el('div', 'bubble'), tag: el('div', 'tag' + (b.id === 'you' ? ' you' : b.host ? ' host' : '')), nm: el('span', 'nm'), doing: el('span'), last: '' };
         t.bubble.hidden = true; t.tag.append(t.nm, t.doing); t.root.append(t.bubble, t.tag); overlay.append(t.root); tags.set(b.id, t);
       }
-      const name = b.host ? '☕ Cô Lá' : b.name + (b.id === 'you' ? ' (bạn)' : '');
-      const doing = b.act ? ' ' + ACTS[b.act].icon : b.sit && b.task && b.gear ? ' ' + Q.THINGS[b.gear.thing].icon : b.sit ? ' 🪑' : '';
+      const name = b.host ? '☕ Cô Lá' : b.isDog ? Q.DOG.icon + ' ' + Q.DOG.name : b.name + (b.id === 'you' ? ' (bạn)' : '');
+      const doing = b.isDog ? '' : b.act ? ' ' + ACTS[b.act].icon : b.lie ? ' 📖' : b.sit && b.task && b.gear ? ' ' + Q.THINGS[b.gear.thing].icon : b.seatKind === 'window' ? ' 🪟' : b.sit ? ' 🪑' : '';
       if (t.nm.textContent !== name) t.nm.textContent = name;
       if (t.doing.textContent !== doing) t.doing.textContent = doing;
       const bub = b.bubble && b.bubble.until > clock ? b.bubble.text : '';
       if (bub !== t.last) { t.last = bub; t.bubble.textContent = bub; t.bubble.hidden = !bub; t.bubble.className = 'bubble' + (bub ? ' pop' : ''); }
-      const above = (b.y - 19 + (b.sit ? 3 : 0)) * scale, below = above - t.root.offsetHeight < 0;
+      const top = b.isDog ? b.y - 15 : b.lie ? b.y - 13 : b.y - 19 + (b.sit ? 3 : 0);
+      const above = top * scale, below = above - t.root.offsetHeight < 0;
       t.root.classList.toggle('below', below);
       const half = t.root.offsetWidth / 2, room = VW * scale;
       t.root.style.left = Math.min(room - half - 2, Math.max(half + 2, b.x * scale)) + 'px';
@@ -491,10 +594,12 @@
       if (ix || iy) {
         const len = Math.hypot(ix, iy), sp = 60 * dt;
         const moved = W.moveWithSlide({ x: me.x - 4, y: me.y - 4, w: 8, h: 5 }, ix / len * sp, iy / len * sp);
-        me.x = moved.x + 4; me.y = moved.y + 4; me.moving = true; me.act = null; me.sit = false; me.task = false;
+        me.x = moved.x + 4; me.y = moved.y + 4; me.moving = true; me.act = null; me.sit = false; me.lie = false; me.seatKind = null; me.task = false;
         me.dir = Math.abs(ix) >= Math.abs(iy) && ix ? (ix > 0 ? 'right' : 'left') : (iy > 0 ? 'down' : 'up');
       }
     }
+    if (!modalOpen) dogThink(dt);
+    dog.walkMs = dog.moving ? dog.walkMs + dt * 1000 : 0;
     for (const b of [...people.values()]) {
       if (b.npc) { if (b.path) followPath(b, dt); else if (!modalOpen) guestThink(b, dt); }
       if (b.act && b.actUntil <= clock) b.act = null;
@@ -517,12 +622,13 @@
       const b = $('actBtn');
       if (n) {
         b.disabled = false;
-        b.textContent = (n.kind === 'person' ? 'Chắp tay chào ' : n.kind === 'seat' ? 'Ngồi xuống' : n.name === 'counter' ? 'Gọi Cô Lá · ' : ACTS[W.SPOTS[n.name].act].label + ' · ') + (n.kind === 'seat' ? '' : n.label) + ' (E)';
+        b.textContent = (n.kind === 'person' ? 'Chắp tay chào ' + n.label : n.kind === 'seat' ? 'Ngồi xuống' : n.kind === 'window' ? 'Ngồi cạnh cửa sổ' : n.kind === 'nook' ? 'Nằm đọc sách' : n.kind === 'dog' ? 'Chơi với ' + n.label + ' 🐶' : n.name === 'counter' ? 'Gọi Cô Lá · ' + n.label : ACTS[W.SPOTS[n.name].act].label + ' · ' + n.label) + ' (E)';
         $('near').textContent = 'Gần ' + n.label + '.';
-      } else { b.disabled = true; b.textContent = 'Lại gần quầy, cửa sổ, kệ sách, cây hay mèo'; $('near').textContent = ''; }
+      } else { b.disabled = true; b.textContent = 'Lại gần quầy, cửa sổ, góc sách, mèo hay chó Bơ'; $('near').textContent = ''; }
     }
     render();
     for (const b of people.values()) b.moving = false;
+    dog.moving = false;
   }
   function frame(now) {
     try { if (!held) { const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; tick(dt); } }
@@ -546,6 +652,7 @@
   window.__quan = {
     hold: v => { held = v; }, step: ms => { for (let t = 0; t < ms; t += 16) tick(0.016); },
     people, me: () => me, walkTo: (tx, ty) => walkTo(me, tx, ty), act: doAct, greet, interact, openCounter, openLeave, closeModal,
+    dog: () => ({ x: dog.x, y: dog.y, sitting: dog.sitting, petted: dog.petted > clock, tile: tileOf(dog) }), callDog: () => { dog.idle = 0; },
     notes: () => myNotes.slice(), drink: () => myDrink, card: () => myCard, spawn: () => spawnGuest(false), modalOpen: () => modalOpen
   };
 })();

@@ -49,3 +49,13 @@ test('every guest and every player look renders with the lab 14 sprite builder',
     assert.equal(Object.keys(sheet).length, 24);
   }
 });
+
+test('window benches, the reading nook and the dog bed are free, reachable and not shared with table seats', () => {
+  const tableSeats = new Set(W.TABLES.flatMap(t => t.seats).map(s => s.join(',')));
+  for (const s of [...W.WINDOW_SEATS, ...W.NOOK, W.DOG_BED]) {
+    assert.ok(!W.solidTile(...s), s.join(','));
+    assert.ok(W.findPath(W.ENTRY, s), s.join(',') + ' unreachable');
+    assert.ok(!tableSeats.has(s.join(',')), s.join(',') + ' is a table seat');
+  }
+  for (const [x, y] of W.WINDOW_SEATS) assert.equal(W.tileAt(x, y - 1), 'w', 'a window bench sits under a window');
+});

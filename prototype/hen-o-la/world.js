@@ -38,6 +38,12 @@
 
   // Six two-seat tables for the rotation. Seats are the free tiles left and right of each table.
   const TABLES = [[3, 4], [7, 4], [11, 4], [3, 7], [7, 7], [11, 7]].map(([x, y], i) => ({ n: i + 1, tx: x, ty: y, seats: [[x - 1, y], [x + 1, y]] }));
+  // Cushioned benches under the two street windows: sit facing the rain.
+  const WINDOW_SEATS = [[6, 2], [7, 2], [10, 2], [11, 2]];
+  // Reading nook: two floor bean bags in the corner where you can lie down with a book.
+  const NOOK = [[12, 8], [13, 8]];
+  // Where the café dog naps when nobody is playing with it.
+  const DOG_BED = [0, 5];
   const ENTRY = [7, 8];
   const HOST = { tx: 2, ty: 2 }; // drawn standing behind the counter
   const LOUNGE = 2; // index of the window-side table used for "Ly cuối"
@@ -106,5 +112,5 @@
     return out;
   }
 
-  return { TILE, MAP, W, H, SPOTS, TABLES, ENTRY, HOST, LOUNGE, tileAt, solidTile, boxHitsSolid, moveWithSlide, findPath, standTiles, spotAt, freeTiles };
+  return { TILE, MAP, W, H, SPOTS, TABLES, WINDOW_SEATS, NOOK, DOG_BED, ENTRY, HOST, LOUNGE, tileAt, solidTile, boxHitsSolid, moveWithSlide, findPath, standTiles, spotAt, freeTiles };
 });

@@ -93,6 +93,19 @@
     r('#7a3a34', rx, ry, rw, rh); r('#b86a4a', rx + 2, ry + 2, rw - 4, rh - 4); r('#d9b48a', rx + 4, ry + 4, rw - 8, rh - 8); r('#b86a4a', rx + 6, ry + 6, rw - 12, rh - 12);
     for (let i = 0; i < rw - 16; i += 8) { const cx = rx + 10 + i, cy = ry + rh / 2 - 1; r('#7a3a34', cx, cy - 2, 2, 1); r('#7a3a34', cx - 2, cy, 6, 2); r('#7a3a34', cx, cy + 3, 2, 1); r('#f3ead8', cx, cy, 2, 2); }
     for (let i = 0; i < rh; i += 2) { r('#d9b48a', rx - 2, ry + i, 2, 1); r('#d9b48a', rx + rw, ry + i, 2, 1); }
+    // cushioned benches under the street windows
+    for (const tx of [6, 10]) {
+      const x = tx * T + 1, y = 2 * T, w = 2 * T - 2;
+      r('#5a3a26', x, y + 9, w, 5); r('#8a6a4a', x, y + 9, w, 1); r('#a9616a', x, y + 5, w, 4); r('#c97a80', x + 1, y + 5, w - 2, 1);
+      r('#f3ead8', x + 2, y + 2, 5, 4); r('#ef9a8a', x + 3, y + 3, 3, 2); // a little pillow
+    }
+    // reading nook: a green rug, two bean bags, a book stack and a reading lamp
+    { const x = W.NOOK[0][0] * T, y = W.NOOK[0][1] * T;
+      r('#4f7a64', x + 1, y + 3, 2 * T - 2, 12); r('#5f8a74', x + 2, y + 4, 2 * T - 4, 10);
+      for (const [i, c, d] of [[0, '#e3b23c', '#c08a2a'], [1, '#ef8a7a', '#c0605a']]) { const bx = x + i * T; r(d, bx + 2, y + 6, 12, 7); r(c, bx + 3, y + 5, 10, 6); r(c, bx + 2, y + 7, 12, 4); }
+      r('#6aa7e8', x - 6, y + 10, 5, 2); r('#f2b45a', x - 6, y + 8, 5, 2); r('#a995d8', x - 5, y + 6, 4, 2);
+      r('#3a2418', x - 10, y - 4, 1, 16); r('#f2b45a', x - 12, y - 6, 5, 3); r('#ffe8a8', x - 11, y - 3, 3, 1);
+    }
     // a welcome mat inside the door
     r('#6b5a3a', W.ENTRY[0] * T + 2, W.ENTRY[1] * T + 6, 12, 8); for (let i = 0; i < 12; i += 3) r('#8a7650', W.ENTRY[0] * T + 2 + i, W.ENTRY[1] * T + 6, 1, 8);
     // round tables with a bud vase, and rattan chairs on both sides
@@ -145,6 +158,31 @@
     const tail = petted && !still ? Math.round(Math.sin(clock * 8) * 2) : 0;
     px(ctx, '#d9a050', x + 1, y + 6 + tail, 3, 1);
     if (!petted) px(ctx, '#2a1f3d', x + 12, y + 3 - breathe, 2, 1);
+  }
+
+  // The café dog (Bơ): a small corgi-ish pixel dog. d: { x, y, dir, moving, walkMs, sitting, petted }.
+  function dogBed(ctx) {
+    const x = W.DOG_BED[0] * T, y = W.DOG_BED[1] * T;
+    px(ctx, '#3a4a6a', x + 1, y + 7, 14, 7); px(ctx, '#6a8ab0', x + 2, y + 6, 12, 7); px(ctx, '#8aa8c8', x + 4, y + 8, 8, 3);
+  }
+  function dog(ctx, d, clock, still) {
+    const flip = d.dir === 'left';
+    const bob = d.moving && !still ? Math.floor(d.walkMs / 120) % 2 : 0;
+    const p = (dx, dy, w, h, c) => px(ctx, c, flip ? d.x - dx - w : d.x + dx, d.y + dy - (d.hop || 0), w, h);
+    const fur = '#d9954f', dark = '#a86a30', cream = '#f3ead8';
+    ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(Math.round(d.x - 6), Math.round(d.y - 1), 13, 2);
+    const wag = still ? 0 : Math.round(Math.sin(clock * (d.petted ? 18 : 6)) * (d.petted ? 2 : 1));
+    if (d.sitting) {
+      p(-5, -7, 8, 5, fur); p(-3, -3, 5, 2, cream); p(-4, -2, 2, 2, fur); p(1, -2, 2, 2, fur);
+      p(1, -11, 6, 5, fur); p(5, -9, 2, 2, cream); p(6, -9, 1, 1, '#1d1b26'); p(3, -10, 1, 1, '#1d1b26'); p(1, -13, 2, 2, dark); p(5, -13, 2, 2, dark);
+      p(-7, -6 + wag, 2, 2, dark);
+      return;
+    }
+    p(-6, -7 - bob, 11, 4, fur); p(-4, -4 - bob, 7, 1, cream);
+    p(3, -11 - bob, 5, 5, fur); p(7, -8 - bob, 2, 2, cream); p(8, -8 - bob, 1, 1, '#1d1b26'); p(5, -10 - bob, 1, 1, '#1d1b26'); p(3, -13 - bob, 2, 2, dark); p(6, -13 - bob, 2, 2, dark);
+    p(-8, -9 - bob + wag, 2, 2, dark);
+    const step = d.moving && !still ? Math.floor(d.walkMs / 120) % 2 : 0;
+    p(-5, -3, 1, 3 - step, fur); p(-2, -3, 1, 2 + step, fur); p(1, -3, 1, 3 - step, fur); p(3, -3, 1, 2 + step, fur);
   }
 
   // Warm light pools over the tables, in soft steps.
@@ -245,12 +283,23 @@
     let dir = b.dir, dx = 0, dy = 0;
     if (b.act === 'nhay' && !still) { dy = -Math.abs(Math.sin(clock * 9)) * 3; dir = Math.floor(clock * 3) % 2 ? 'left' : 'right'; frame = Math.floor(clock * 6) % 2 ? 'a' : 'b'; }
     if (b.act === 'mathe' && !still) dx = Math.floor(clock * 10) % 2 ? 1 : -1;
-    if (b.act === 'ngugat' || b.act === 'chaptay') dy = 1;
+    if (b.act === 'ngugat' || b.act === 'chaptay' || b.act === 'vuotcho') dy = 1;
+    if (b.lie) {
+      // lying on a bean bag, head to the left, a book held up
+      const lx = Math.round(b.x), ly = Math.round(b.y - 5);
+      ctx.save(); ctx.translate(lx, ly); ctx.rotate(-Math.PI / 2); E.drawSprite(ctx, b.sheet['down:stand:' + blink], -7, -9); ctx.restore();
+      if (!blink || b.act !== 'ngugat') { px(ctx, '#ef8a7a', lx - 6, ly - 10, 5, 3); px(ctx, '#f3ead8', lx - 4, ly - 10, 1, 3); }
+      return;
+    }
     const spr = b.sheet[dir + ':' + frame + ':' + blink] || b.sheet['down:stand:0'];
     const x = Math.round(b.x - 7 + dx), y = Math.round(b.y - 17 + dy - (hop || 0) + (b.sit ? 3 : 0));
     if (!b.host) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(Math.round(b.x - 5), Math.round(b.y - 1), 10, 2); }
     const left = dir === 'right';
-    if (b.sit) {
+    if (b.sit && b.seatKind === 'window') {
+      // on the window bench, facing the rain: the bench front hides the legs
+      ctx.save(); ctx.beginPath(); ctx.rect(x - 2, y - 2, 18, 13); ctx.clip(); E.drawSprite(ctx, spr, x, y); ctx.restore();
+      px(ctx, '#a9616a', b.x - 8, b.y - 6, 16, 2); px(ctx, '#5a3a26', b.x - 8, b.y - 4, 16, 3);
+    } else if (b.sit) {
       if (b.gear) gearSeated(ctx, b.gear, b, left);
       ctx.save(); ctx.beginPath(); ctx.rect(x - 2, y - 2, 18, 15); ctx.clip();
       E.drawSprite(ctx, spr, x, y); ctx.restore();
@@ -269,6 +318,11 @@
     if (b.act === 'tuoicay') px(ctx, '#7fa8c8', x + (dir === 'left' ? -2 : 12), y + 10, 4, 3);
     if (b.act === 'goido') px(ctx, '#f3ead8', x + 11, y + 10, 3, 3);
     if (b.act === 'mathe') px(ctx, '#ef8a7a', x + 6, y + 8, 2, 1);
+    if (b.act === 'uong' && dir !== 'up') {
+      const cx = dir === 'left' ? x + 1 : dir === 'right' ? x + 10 : x + 9, cy = y + 7 - (still ? 0 : Math.round(Math.abs(Math.sin(clock * 2)) * 1));
+      px(ctx, '#f3ead8', cx, cy, 3, 3); px(ctx, (b.drinkColor || '#a0724a'), cx, cy, 3, 1);
+      if (!still) px(ctx, 'rgba(232,228,220,.7)', cx + 1, cy - 2 - (Math.floor(clock * 3) % 2), 1, 1);
+    }
   }
 
   // Little effects tied to what people are doing.
@@ -306,5 +360,5 @@
     }
   }
 
-  root.Room = { VW, VH, px, background, rain, cat, lamps, pendants, glow, vignette, counterFront, tableThing, person, actParticles, stepParticles, drawParticles };
+  root.Room = { VW, VH, px, background, rain, cat, dog, dogBed, lamps, pendants, glow, vignette, counterFront, tableThing, person, actParticles, stepParticles, drawParticles };
 })(globalThis);

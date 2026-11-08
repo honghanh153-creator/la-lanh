@@ -55,7 +55,7 @@ test('self notes are trimmed, single-line and capped', () => {
 
 test('every visit act is something the café can host', () => {
   for (const a of Q.VISIT_ACTS) {
-    if (a === 'ngoi') continue;
+    if (Q.PLACE_ACTS[a]) continue;
     assert.ok(H.ACTS[a], a);
     assert.ok(Object.values(W.SPOTS).some(s => s.act === a), a + ' has a spot');
   }
@@ -88,4 +88,10 @@ test('the after-hours evening stays mild: every eerie beat ends in a funny revea
     assert.doesNotMatch(b.scare + b.reveal, /máu|chết|giết|xác|ma quỷ|nhấp nháy|hét/i);
   }
   assert.ok(Q.NIGHT.dimCap.nhe < Q.NIGHT.dimCap.vua && Q.NIGHT.dimCap.vua < 0.8, 'the room never goes fully dark');
+});
+
+test('café-only acts have a label and icon, and the dog is a café pet with a name', () => {
+  for (const [k, a] of Object.entries(Q.PLACE_ACTS)) assert.ok(a.label && a.icon, k);
+  assert.ok(Q.VISIT_ACTS.includes('cuaso') && Q.VISIT_ACTS.includes('nam') && Q.VISIT_ACTS.includes('vuotcho'));
+  assert.equal(Q.DOG.kind, 'chó');
 });

@@ -57,7 +57,13 @@ Quán mở mọi ngày, không có buổi hẹn. Giống đi chùa online (Sansa
 
 - **Vào là ngồi:** không phải đăng ký. Mỗi lần vào được đặt một tên Lá ngẫu nhiên, ví dụ "Lá Sen Hay Cười".
 - **Khách:** khách hư cấu tự ra vào. Đông vào sáng sớm và buổi tối; từ 0 tới 4 giờ sáng thì vắng, chỉ có Cô Lá và mèo Mướp. Theo giờ của máy; thêm `?gio=21` để thử một giờ khác.
-- **Làm gì:** chắp tay, vẫy tay, ngủ gật, ngồi vào bàn. Ở đúng chỗ thì tưới cây, vuốt mèo, ngắm mưa, đọc sách, đánh đàn. Ở quầy thì gọi một ly (ly đặt lên bàn khi bạn ngồi), xin lá bài hôm nay, hoặc nói chuyện với Cô Lá.
+- **Làm gì:** chắp tay, vẫy tay, nhảy, ngủ gật, ngồi vào bàn.
+  - **Ghế cạnh cửa sổ:** băng ghế nệm dưới hai cửa sổ, ngồi quay mặt ra mưa.
+  - **Góc đọc sách:** hai gối lười trên thảm xanh ở góc dưới phải, nằm đọc sách (có thể ngủ gật luôn).
+  - **Uống cà phê:** có ly thì nhấp một ngụm, ly bốc hơi.
+  - **Làm việc:** ngồi vào bàn rồi mở laptop (hoặc sách, sổ vẽ…).
+  - **Chó Bơ:** chú chó của quán đi lòng vòng, có lúc chạy lại ngồi cạnh bạn, ngủ ở ổ bên trái. Lại gần thì chơi với Bơ, Bơ vẫy đuôi, nhảy lên.
+  - Khách hư cấu cũng làm những việc này. Ở đúng chỗ thì tưới cây, vuốt mèo, ngắm mưa, đọc sách, đánh đàn. Ở quầy thì gọi một ly (ly đặt lên bàn khi bạn ngồi), xin lá bài hôm nay, hoặc nói chuyện với Cô Lá.
 - **Nói:** chỉ có câu chào sẵn ("Chào bạn 🙏", "Bình yên nha"…), không gõ chữ tự do. Khách đi ngang thường chắp tay chào; bạn chào thì người gần nhất chào lại.
 - **Đồ mang theo:** mỗi người có một túi (balo, túi vải, túi đeo chéo hoặc tay không), có khi kèm ô vì trời mưa, và một thứ để làm: laptop, sách, sổ vẽ, tai nghe, cuộn len, máy ảnh film. Đứng thì đeo túi, cầm ô; ngồi thì túi để cạnh ghế, đồ bày lên bàn. Bạn tự chọn đồ ở cột bên, ngồi xuống rồi bấm "Lấy đồ ra". Chỉ để nhìn, không mua bán hay xếp hạng.
 - **Note cho chính mình:** tối đa 3 tờ, mỗi tờ 60 ký tự. Lúc về đọc lại; chỉ nằm trong tab.
@@ -125,7 +131,7 @@ Cho người chưa muốn ghép đôi, chỉ muốn ngồi cho có không khí. 
 node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.test.cjs
 ```
 
-51 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
+53 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.

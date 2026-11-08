@@ -89,7 +89,18 @@
   };
 
   // What a guest does on one visit: a few small things, then they leave.
-  const VISIT_ACTS = ['goido', 'ngammua', 'tuoicay', 'vuotmeo', 'docsach', 'danhdan', 'ngoi', 'ngoi'];
+  // Café-only things to do beyond the evening's acts. No spot needed: they happen at a seat, the nook,
+  // next to the dog or anywhere on the floor.
+  const PLACE_ACTS = {
+    ngoi: { label: 'Ngồi', icon: '🪑' },
+    cuaso: { label: 'Ngồi cạnh cửa sổ', icon: '🪟' },
+    nam: { label: 'Nằm đọc sách', icon: '📖' },
+    vuotcho: { label: 'Chơi với Bơ', icon: '🐶' },
+    uong: { label: 'Uống một ngụm', icon: '☕' },
+    nhay: { label: 'Nhảy', icon: '💃' }
+  };
+  const DOG = { name: 'Bơ', kind: 'chó', icon: '🐶' };
+  const VISIT_ACTS = ['goido', 'ngammua', 'tuoicay', 'vuotmeo', 'docsach', 'danhdan', 'ngoi', 'ngoi', 'cuaso', 'cuaso', 'nam', 'vuotcho', 'nhay'];
   function visitPlan(rand) {
     const n = 2 + Math.floor(rand() * 3), out = [];
     for (let i = 0; i < n; i++) out.push(VISIT_ACTS[Math.floor(rand() * VISIT_ACTS.length)]);
@@ -125,5 +136,5 @@
     };
   }
 
-  return { NIGHT, THINGS, BAGS, BAG_COLORS, packBag, LEAVES, MOODS, randomName, crowd, crowdLabel, DRINKS, CARDS, dailyCard, dateKey, HOST, band, hostLine, GREETINGS, NOTE_MAX, NOTE_LIMIT, sanitizeNote, NEXT_EVENT, VISIT_ACTS, visitPlan };
+  return { PLACE_ACTS, DOG, NIGHT, THINGS, BAGS, BAG_COLORS, packBag, LEAVES, MOODS, randomName, crowd, crowdLabel, DRINKS, CARDS, dailyCard, dateKey, HOST, band, hostLine, GREETINGS, NOTE_MAX, NOTE_LIMIT, sanitizeNote, NEXT_EVENT, VISIT_ACTS, visitPlan };
 });
