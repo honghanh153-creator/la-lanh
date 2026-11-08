@@ -101,7 +101,7 @@
   // ---------- rounds ----------
   function startRound(i) {
     roundGen += 1;
-    S.round = i; S.answer = {}; S.locks = {}; S.tally = {}; S.struck = new Set(); S.mateRead = false; S.holding = false; S.seenDoor = false;
+    S.round = i; S.answer = {}; S.conf = D.newConfirm(false); S.locks = S.conf.locks; S.tally = {}; S.struck = new Set(); S.mateRead = false; S.holding = false; S.seenDoor = false;
     for (const f of round().fields) S.tally[f] = D.FIELDS[f].labels.map(() => 0);
     const r = round();
     banner('L' + S.level + ' · Vòng ' + (i + 1) + ' · ' + r.title, 4);
@@ -244,9 +244,12 @@
     say(me, 'Mình dán note số ly rồi nha', 3);
     laterRound(1400, () => {
       const name = D.mateNameFromCounts(r, S.tally);
+      const was = S.answer.name;
       if (name) { S.answer.name = name; say(mate, 'Theo note thì sổ thừa đúng một dòng. Mình điền rồi!', 4); }
       else { delete S.answer.name; say(mate, 'Theo note thì sổ chưa khớp dòng nào. Đếm lại giúp mình?', 5); }
-      S.locks = {}; renderAnswer();
+      // Filling an empty blank keeps your lock; changing a name you may have locked on asks both to confirm again.
+      if (was && was !== S.answer.name) step('answerChanged');
+      mateUpdated();
     });
   }
 
@@ -287,7 +290,7 @@
     for (const b of D.blanks(r).filter(x => x.owner === 'you')) {
       const row = el('div', 'choices'); row.setAttribute('role', 'group'); row.setAttribute('aria-label', b.label);
       for (const o of b.options) {
-        const c = btn(o + (b.unit ? ' ' + b.unit : ''), '', () => { S.answer[b.key] = o; S.locks = {}; renderAnswer(); if (b.key === 'name') onNamePicked(o); });
+        const c = btn(o + (b.unit ? ' ' + b.unit : ''), '', () => pickBlank(b.key, o));
         c.setAttribute('aria-pressed', S.answer[b.key] === o ? 'true' : 'false');
         row.append(c);
       }
@@ -296,39 +299,53 @@
     const st = el('p', 'note-hint', S.locks.you && !S.locks.mate ? 'Bạn đã chốt, đang đợi ' + short + '.' : S.locks.mate && !S.locks.you ? short + ' đã chốt, đang đợi bạn.' : 'Cả hai cùng bấm Chốt thì mới nộp.');
     box.append(st, btn(S.locks.you ? '✓ Đã chốt' : 'Chốt', 'primary lockbtn', () => lock('you')));
   }
+  function pickBlank(key, value) {
+    if (S.stage !== 'play') return;
+    S.answer[key] = value; step('answerChanged');
+    if (key === 'name') onNamePicked(value);
+  }
   function onNamePicked(name) {
     const r = round();
     if (r.kind === 'route') {
-      delete S.answer.logged;
-      laterRound(1300, () => { S.answer.logged = D.mateLogged(r, name); say(mate, 'Sổ ghi ' + name + ' đi mất ' + S.answer.logged + ' phút. Mình điền rồi!', 4); renderAnswer(); });
+      delete S.answer.logged; mateUpdated();
+      laterRound(1300, () => { S.answer.logged = D.mateLogged(r, name); say(mate, 'Sổ ghi ' + name + ' đi mất ' + S.answer.logged + ' phút. Mình điền rồi!', 4); mateUpdated(); });
     } else if (r.ledger === 'you') mateFillsReason(name);
   }
   function mateFillsReason(name) {
     const r = round();
     for (const f of r.fields) delete S.answer[f];
+    mateUpdated();
     laterRound(1300, () => {
       const out = D.mateReasonFor(r, name);
       for (const f of r.fields) S.answer[f] = out[f];
       say(mate, out.fits ? 'Dòng đó khớp cả hai ảnh. Mình điền phần ảnh rồi!' : 'Phần ảnh xong, mà dòng đó chưa khớp cả hai ảnh', 4.5);
-      renderAnswer();
+      mateUpdated();
     });
   }
-  function lock(who) {
+  // Confirmation goes through Duo.confirmStep: the teammate locks as soon as you have locked and
+  // their half is filled, whichever comes first, and a round is judged once.
+  const mateReady = () => D.blanks(round()).filter(b => b.owner === 'mate').every(b => S.answer[b.key]);
+  function step(ev) {
     if (S.stage !== 'play') return;
-    if (S.locks[who]) return; // already locked: a second click is not a second submission
-    if (who === 'you' && S.holding) { say(mate, 'Mình còn giữ công tắc. Xong thì bảo mình về nha', 4); return; }
-    S.locks[who] = true;
-    if (who === 'you') {
-      const ready = D.blanks(round()).filter(b => b.owner === 'mate').every(b => S.answer[b.key]);
-      laterRound(900, () => {
-        if (S.stage !== 'play' || !S.locks.you) return; if (ready) { S.locks.mate = true; say(mate, 'Chốt!', 2); } else say(mate, 'Đợi mình chút, phần mình chưa điền', 3.5); renderAnswer(); maybeJudge(); });
-    }
-    renderAnswer(); maybeJudge();
+    const hadMate = !!S.locks.mate;
+    const out = D.confirmStep(S.conf, ev);
+    S.conf = out.state; S.locks = S.conf.locks;
+    if (!hadMate && S.locks.mate) say(mate, 'Chốt!', 2);
+    renderAnswer();
+    if (out.judge) judgeNow();
   }
-  function maybeJudge() {
-    if (S.stage !== 'play' || !S.locks.you || !S.locks.mate) return;
+  function mateUpdated() { step(mateReady() ? 'mateReady' : 'mateNotReady'); }
+  function lock(who) {
+    if (S.stage !== 'play' || who !== 'you') return;
+    if (S.holding) { say(mate, 'Mình còn giữ công tắc. Xong thì bảo mình về nha', 4); return; }
+    if (S.locks.you) return; // already locked: a second click is not a second submission
+    step('youLock');
+    if (S.stage === 'play' && !S.locks.mate) say(mate, 'Đợi mình điền xong, mình chốt luôn nha', 3.5);
+  }
+  function judgeNow() {
     const res = D.judge(round(), S.answer, S.locks);
-    if (res.status === 'solved') solved(res); else { S.locks = {}; banner(res.text, 4); renderAnswer(); }
+    if (res.status === 'solved') { step('solved'); solved(res); }
+    else { step('retry'); banner(res.text, 4); }
   }
   function solved(res) {
     // Settle the round once: bump the round token so any pending lock or reply for it is dropped.
@@ -583,7 +600,7 @@
   window.__doi = {
     hold: v => { held = v; }, step: ms => { for (let t = 0; t < ms; t += 16) tick(0.016); },
     S, start: (mode, courage) => { S.mode = mode || 'hai'; S.courage = courage || 'nhe'; bg = null; closeModal(); start(); },
-    setTally: (f, arr) => { S.tally[f] = arr.slice(); renderMine(); }, sendCounts, gesture, pickName: n => { S.answer.name = n; renderAnswer(); onNamePicked(n); }, level: () => S.level, holding: () => S.holding, goto: (lv, i) => { S.level = lv; S.stage = 'play'; startRound(i); }, mate: () => ({ x: mate.x, y: mate.y, sit: mate.sit, path: !!mate.path }),
-    pick: (k, v) => { S.answer[k] = v; renderAnswer(); }, lock, round: () => S.round, stage: () => S.stage, answer: () => Object.assign({}, S.answer), modalOpen: () => modalOpen
+    setTally: (f, arr) => { S.tally[f] = arr.slice(); renderMine(); }, sendCounts, gesture, pickName: n => pickBlank('name', n), level: () => S.level, holding: () => S.holding, goto: (lv, i) => { S.level = lv; S.stage = 'play'; startRound(i); }, mate: () => ({ x: mate.x, y: mate.y, sit: mate.sit, path: !!mate.path }),
+    pick: (k, v) => pickBlank(k, v), lock, round: () => S.round, stage: () => S.stage, answer: () => Object.assign({}, S.answer), modalOpen: () => modalOpen
   };
 })();

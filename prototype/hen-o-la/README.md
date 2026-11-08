@@ -125,7 +125,7 @@ Cho người chưa muốn ghép đôi, chỉ muốn ngồi cho có không khí. 
 node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.test.cjs
 ```
 
-48 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
+51 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.
@@ -147,7 +147,7 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.te
 - Đồ mang theo chỉ là hình và một việc để làm.
 - Buổi rợn: mỗi chuyện lạ đều có cú lộ hài, không chữ máu me hay nhấp nháy, phòng không tối hẳn.
 
-`duo.test.cjs` (12) kiểm:
+`duo.test.cjs` (15) kiểm:
 - Mỗi vòng có đúng một dòng thừa; ở vòng 2, một ảnh riêng lẻ không đủ.
 - Ảnh khớp sổ trừ dòng thừa.
 - Dòng thừa không trùng tên khách hay người chơi.
@@ -160,6 +160,7 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.te
 - L2 ảnh qua gương: đọc y như ảnh thì không ra ai; đảo trái/phải thì ra đúng một dòng.
 - L2 cửa một chiều: coi cửa hai chiều thì không ra ai; chỉ chiều đúng mới ra một dòng.
 - Hai level nối nhau; câu hỏi L2 có câu trả lời; lá gợi cách kiểm không nêu tên.
+- Luồng chốt: bấm Chốt sớm rồi đồng đội mới điền vẫn chốt được; bấm nhiều lần không chốt hai lần; sửa câu hay trả lời sai thì nhả cả hai.
 
 `spectate.test.cjs` (5) kiểm:
 - Hàng chờ ngắn.

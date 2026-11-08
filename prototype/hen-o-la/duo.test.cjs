@@ -103,3 +103,40 @@ test('levels chain and later questions stay optional with answers', () => {
   for (const q of D.QUESTIONS_L2) assert.ok(D.MATE_ANSWERS[q], q);
   for (const r of D.L2) assert.ok(r.method && !/An|Bình|Chi|Duy|Hà|Linh/.test(r.method), 'method cards never name a line');
 });
+
+// Controller timing (review of #319 @ bbe0886): the confirmation flow must neither stall nor settle twice.
+function run(events, mateReadyAtStart) {
+  let st = D.newConfirm(mateReadyAtStart), judged = 0;
+  for (const ev of events) {
+    const out = D.confirmStep(st, ev);
+    st = out.state;
+    if (out.judge) { judged++; st = D.confirmStep(st, 'solved').state; }
+  }
+  return { st, judged };
+}
+
+test('an early Chốt before the teammate has filled their half does not stall', () => {
+  const r = run(['youLock', 'mateReady']);
+  assert.equal(r.judged, 1, 'the teammate locks when their half arrives and the round is judged once');
+});
+
+test('Chốt after the teammate is ready settles at once; repeated Chốt never settles twice', () => {
+  assert.equal(run(['mateReady', 'youLock']).judged, 1);
+  assert.equal(run(['mateReady', 'youLock', 'youLock', 'youLock', 'mateReady']).judged, 1);
+  assert.equal(run(['youLock', 'youLock', 'mateReady', 'youLock']).judged, 1);
+});
+
+test('editing the sentence or a wrong answer releases both locks; nothing moves after settling', () => {
+  let st = D.newConfirm(true);
+  st = D.confirmStep(st, 'answerChanged').state;
+  assert.deepEqual(st.locks, {});
+  st = D.confirmStep(D.newConfirm(false), 'youLock').state;
+  st = D.confirmStep(st, 'mateNotReady').state;
+  assert.equal(!!st.locks.mate, false);
+  const retry = D.confirmStep({ locks: { you: true, mate: true }, mateReady: true, settled: false }, 'retry');
+  assert.deepEqual(retry.state.locks, {});
+  const after = D.confirmStep({ locks: { you: true, mate: true }, mateReady: true, settled: true }, 'youLock');
+  assert.equal(after.judge, false);
+  // after a wrong answer, locking again with the teammate still ready is judged again exactly once
+  assert.equal(D.confirmStep(retry.state, 'youLock').judge, true);
+});

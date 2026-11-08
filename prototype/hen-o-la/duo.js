@@ -112,6 +112,25 @@
       : { status: 'retry', text: 'Chưa khớp. Đọc lại cùng nhau rồi chốt lần nữa, không mất gì.' };
   }
 
+  // The confirmation flow, pure so timing orders can be tested. Events:
+  // youLock (you press Chốt), mateReady / mateNotReady (the teammate's blanks are filled or cleared),
+  // answerChanged (someone edits the sentence), retry (a wrong answer), solved.
+  // The teammate locks as soon as you have locked and their half is ready, in either order, so an
+  // early Chốt never stalls. judge is true only on the step where both locks first become true, and
+  // nothing happens after the round is settled, so one round can never be settled twice.
+  function newConfirm(mateReady) { return { locks: {}, mateReady: !!mateReady, settled: false }; }
+  function confirmStep(st, ev) {
+    const s = { locks: Object.assign({}, st.locks), mateReady: !!st.mateReady, settled: !!st.settled };
+    if (s.settled) return { state: s, judge: false };
+    const before = !!(s.locks.you && s.locks.mate);
+    if (ev === 'youLock') { s.locks.you = true; if (s.mateReady) s.locks.mate = true; }
+    else if (ev === 'mateReady') { s.mateReady = true; if (s.locks.you) s.locks.mate = true; }
+    else if (ev === 'mateNotReady') { s.mateReady = false; s.locks.mate = false; }
+    else if (ev === 'answerChanged' || ev === 'retry') s.locks = {};
+    else if (ev === 'solved') { s.settled = true; return { state: s, judge: false }; }
+    return { state: s, judge: !before && !!(s.locks.you && s.locks.mate) };
+  }
+
   // What the teammate concludes from a note. They only use what the note says plus their own half.
   // r1: the teammate has the book; the note carries your photo counts.
   function mateNameFromCounts(round, counts) {
@@ -195,6 +214,6 @@
   const NOTE_MAX = 60;
 
   LEVELS[1] = ROUNDS;
-  return { L2, LEVELS, PLACES, PATHS, earliest, seenCounts, answerOf, logLines, mateLogged, QUESTIONS_L2, MATE_ASKS_L2, YOUR_ANSWERS_L2, NAMES, FIELDS, ROUNDS, PHOTOS, tally, extraOf, photoCounts, candidates, blanks, judge, mateNameFromCounts, mateReasonFor,
+  return { newConfirm, confirmStep, L2, LEVELS, PLACES, PATHS, earliest, seenCounts, answerOf, logLines, mateLogged, QUESTIONS_L2, MATE_ASKS_L2, YOUR_ANSWERS_L2, NAMES, FIELDS, ROUNDS, PHOTOS, tally, extraOf, photoCounts, candidates, blanks, judge, mateNameFromCounts, mateReasonFor,
     photoLines, ledgerLines, noteFromCounts, MODES, COURAGE, teamCourage, QUESTIONS, MATE_ANSWERS, MATE_ASKS, YOUR_ANSWERS, together, GESTURES, NOTE_MAX };
 });
