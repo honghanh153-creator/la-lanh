@@ -166,20 +166,50 @@ test('every carried item has something to put on the table', () => {
   assert.equal(H.itemThing('diều giấy'), 'dieu');
 });
 
-test('gestures at a locked rotation table keep you seated (fix-forward #320)', () => {
-  // Every free gesture is one you can make from a chair (README: they do not make you stand up).
+test('every free gesture is one you can make from a chair (fix-forward #320)', () => {
+  // README: free gestures do not make you stand up; the controllers are exercised in the next test.
   assert.deepEqual([...H.SEATED_GESTURES].sort(), [...H.FREE_ACTS].sort());
-  for (const act of H.FREE_ACTS) {
-    const b = { sit: true, seatKind: 'table', task: true, locked: true };
-    if (!H.keepsSeat(act)) Object.assign(b, { sit: false, seatKind: null, task: false });
-    assert.equal(b.sit, true, act + ' must not stand you up at a locked table');
-    assert.equal(b.seatKind, 'table', act);
-  }
+  for (const act of H.FREE_ACTS) assert.equal(H.keepsSeat(act), true, act);
   for (const act of ['docsach', 'tuoicay', 'goido', 'vuotcho', 'nam']) assert.equal(H.keepsSeat(act), false, act + ' gets you up');
-  // Both controllers use the shared rule instead of their own lists (the old lists left out Nhảy).
-  const fs = require('node:fs'), path = require('node:path');
-  for (const f of ['game.js', 'quan.js']) {
-    const src = fs.readFileSync(path.join(__dirname, f), 'utf8');
-    assert.match(src, /if \(!H\.keepsSeat\(act\)\)/, f);
+});
+
+// Pull one named function out of a browser controller so its real code runs here (fix-forward #324).
+function controllerFunction(file, name) {
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, file), 'utf8');
+  const start = src.indexOf('function ' + name + '(');
+  assert.ok(start >= 0, file + ' has ' + name);
+  let depth = 0, i = src.indexOf('{', start);
+  for (; i < src.length; i++) {
+    if (src[i] === '{') depth++;
+    else if (src[i] === '}' && --depth === 0) break;
+  }
+  return src.slice(start, i + 1);
+}
+function loadStartAct(file, extra, stubs) {
+  const vm = require('node:vm');
+  const code = [controllerFunction(file, 'startAct'), ...extra.map(n => controllerFunction(file, n))].join('\n') + '\nstartAct;';
+  return vm.runInNewContext(code, Object.assign({ H, clock: 0, tileOf: () => [0, 0], W: { spotAt: () => 'cay', SPOTS: { cay: { act: 'tuoicay', tx: 1, ty: 0 } } } }, stubs));
+}
+
+test('dancing and other gestures at a locked table keep the seat in both real controllers (fix-forward #324)', () => {
+  const refuse = () => { throw new Error('place act reached for a free gesture'); };
+  const controllers = {
+    'game.js': loadStartAct('game.js', ['standUp'], { startPlaceAct: refuse, face: () => {} }),
+    'quan.js': loadStartAct('quan.js', [], { ACTS: H.ACTS, sitDown: refuse, lieDown: refuse, Q: { DRINKS: {} }, dist: () => 99, dog: {}, bo: {} })
+  };
+  for (const [file, startAct] of Object.entries(controllers)) {
+    for (const act of H.FREE_ACTS) {
+      const b = { sit: true, seatKind: 'table', task: true, locked: true, lie: false, dir: 'left', act: null };
+      assert.equal(startAct(b, act), true, file + ' ' + act + ' starts');
+      assert.equal(b.act, act, file + ' ' + act);
+      assert.equal(b.sit, true, file + ': ' + act + ' must not stand you up at a locked table');
+      assert.equal(b.seatKind, 'table', file + ' ' + act);
+      assert.equal(b.task, true, file + ' ' + act + ' keeps your item on the table');
+      assert.equal(b.locked, true, file + ' ' + act);
+    }
+    // A non-gesture (watering the plant beside you) still gets you up, so the check above is not passing by doing nothing.
+    const b = { sit: true, seatKind: 'table', task: true, locked: true, lie: false };
+    assert.equal(startAct(b, 'tuoicay'), true, file + ' tuoicay starts');
+    assert.equal(b.sit, false, file + ' tuoicay gets you up');
   }
 });
