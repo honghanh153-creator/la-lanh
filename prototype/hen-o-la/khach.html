@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Khách quán · tầng lửng</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>Khách <em>quán</em></b><span>Tầng lửng của buổi hẹn · ngồi cho có không khí, không ghép đôi</span></div>
+    <div class="top-actions">
+      <a class="chip" href="index.html">Buổi hẹn</a>
+      <a class="chip" href="quan.html">Quán</a>
+      <button id="motionBtn" class="chip">Cử động: đầy đủ</button>
+      <button id="leaveBtn" class="chip">Về thôi</button>
+    </div>
+  </header>
+
+  <main class="play khach">
+    <section class="stage-col">
+      <p class="mezz-label" id="mezzLabel"></p>
+      <canvas id="mezz" class="mezz" role="img" aria-label="Tầng lửng: hàng ghế khách quán nhìn xuống quán."></canvas>
+      <div class="stage" id="stage">
+        <canvas id="game" role="img" aria-label="Quán cà phê pixel nhìn từ tầng lửng. Người hẹn ở dưới, không hiện tên."></canvas>
+        <div class="overlay" id="overlay" aria-hidden="true"></div>
+        <div class="toast" id="toast" role="status" hidden></div>
+        <div class="banner" id="banner" hidden></div>
+      </div>
+      <div class="acts" id="acts" aria-label="Cổ vũ và gọi đồ"></div>
+      <div class="quick" id="quick" aria-label="Chào khách bên cạnh"></div>
+      <p class="hint">Cổ vũ cho cả khoảnh khắc, không cho riêng ai. Người hẹn ở dưới không thấy ai đang xem.</p>
+    </section>
+
+    <aside class="book" aria-label="Tối nay">
+      <section class="phase-card" id="momentCard"></section>
+      <section class="half" id="cardBox"></section>
+      <section class="guests">
+        <h2>Ghi chép của Cô Lá</h2>
+        <div id="hostNotes"><p class="note-hint">Cô Lá ghi lại vài khoảnh khắc dễ thương, không nói ai là ai. Cuối buổi sẽ có.</p></div>
+      </section>
+      <section class="guests">
+        <h2>Note cho chính mình</h2>
+        <form class="say" id="noteForm" autocomplete="off">
+          <label class="sr-only" for="noteInput">Note cho chính mình, tối đa 60 ký tự</label>
+          <input id="noteInput" maxlength="60" placeholder="Tối nay mình thấy…">
+          <button type="submit" class="say-btn">Cất</button>
+        </form>
+        <p class="note-hint" id="noteCount">Chỉ nằm trong tab này.</p>
+      </section>
+    </aside>
+  </main>
+  <footer class="foot">Bản thử: chạy trong tab này, không tài khoản, không mạng, không lưu. Người hẹn và khách khác là nhân vật hư cấu. Khách quán không bấm vào, đi theo hay thả lá cho riêng người hẹn nào.</footer>
+</div>
+
+<div class="shade" id="shade" hidden>
+  <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <header class="m-head"><div><small id="mKicker"></small><h2 id="mTitle"></h2></div><button class="m-close" id="mClose" aria-label="Đóng">×</button></header>
+    <div class="m-body" id="mBody"></div>
+  </section>
+</div>
+
+<script src="../game-lab-14/engine.js"></script>
+<script src="world.js"></script>
+<script src="room.js"></script>
+<script src="event.js"></script>
+<script src="cafe.js"></script>
+<script src="spectate.js"></script>
+<script src="khach.js"></script>
+</body>
+</html>

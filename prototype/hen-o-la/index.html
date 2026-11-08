@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Hẹn ở Lá · bản thử</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>Hẹn ở <em>Lá</em></b><span>Quán cà phê mưa · bản thử chạy trên máy · khách mời hư cấu 18+</span></div>
+    <div class="top-actions">
+      <a class="chip" href="quan.html">Quán ngày thường</a>
+      <a class="chip" href="doi.html">Thử thách đôi</a>
+      <a class="chip" href="khach.html">Khách quán</a>
+      <a class="chip" id="nightLink" href="index.html?buoi=dem">👻 Buổi rợn</a>
+      <button id="motionBtn" class="chip">Cử động: đầy đủ</button>
+      <button id="restartBtn" class="chip">Buổi khác</button>
+    </div>
+  </header>
+
+  <nav class="track" id="track" aria-label="Các màn của buổi hẹn"></nav>
+
+  <main class="play">
+    <section class="stage-col">
+      <div class="stage" id="stage">
+        <canvas id="game" role="img" aria-label="Quán cà phê pixel trời mưa với mười người được mời. Đi bằng phím hoặc chạm vào sàn; danh sách người trong quán ở bên dưới."></canvas>
+        <div class="overlay" id="overlay" aria-hidden="true"></div>
+        <div class="toast" id="toast" role="status" hidden></div>
+        <div class="banner" id="banner" hidden></div>
+      </div>
+      <div class="reply-cue" id="replyCue" role="status" hidden><span id="replyText"></span><button type="button" id="replyBtn">Trả lời</button></div>
+      <button class="act" id="actBtn" disabled>Lại gần ai đó hoặc đồ vật</button>
+      <button class="scared" id="scaredBtn" hidden>🕯️ Mình sợ quá · bật đèn</button>
+      <div class="acts" id="acts" aria-label="Làm gì đó"></div>
+      <div class="talk-to" id="talkTo" aria-live="polite"></div>
+      <form class="say" id="sayForm" autocomplete="off">
+        <label class="sr-only" for="sayInput">Nói (hiện thành bong bóng trên đầu, tối đa 40 ký tự)</label>
+        <input id="sayInput" maxlength="40" placeholder="Nói gì đó… (T)" enterkeyhint="send">
+        <button type="submit" class="say-btn">Nói</button>
+      </form>
+      <div class="quick" id="quick" aria-label="Câu nói nhanh"></div>
+      <p class="sr-only" id="near" aria-live="polite"></p>
+      <p class="hint">Đi: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / mũi tên hoặc chạm sàn · Tương tác: <kbd>E</kbd> · Làm trò: <kbd>1</kbd>–<kbd>6</kbd> · Nói: <kbd>T</kbd></p>
+    </section>
+
+    <aside class="book" id="book" aria-label="Sổ của bạn">
+      <section class="phase-card" id="phaseCard"></section>
+      <section class="talk">
+        <h2>Lời nói <span class="badge" id="talkBadge" hidden></span></h2>
+        <ul class="talklog" id="talkLog"></ul>
+      </section>
+      <section class="half" id="half"></section>
+      <section class="guests">
+        <h2>Người trong quán</h2>
+        <ul id="guestList"></ul>
+      </section>
+    </aside>
+  </main>
+  <footer class="foot">Bản thử: chỉ chạy trong tab này, không tài khoản, không mạng, không lưu. Mọi khách mời là nhân vật hư cấu. Lá bài chỉ gợi chủ đề nói chuyện, không đoán gì về ai.</footer>
+</div>
+
+<div class="shade" id="shade" hidden>
+  <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <header class="m-head"><div><small id="mKicker"></small><h2 id="mTitle"></h2></div><button class="m-close" id="mClose" aria-label="Đóng">×</button></header>
+    <div class="m-body" id="mBody"></div>
+  </section>
+</div>
+
+<script src="../game-lab-14/engine.js"></script>
+<script src="world.js"></script>
+<script src="room.js"></script>
+<script src="life.js"></script>
+<script src="event.js"></script>
+<script src="cafe.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
