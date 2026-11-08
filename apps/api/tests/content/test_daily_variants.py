@@ -14,7 +14,14 @@ from app.domains.content.copy_approval import (
     parse_registry,
     registry_problems,
 )
-from app.domains.content_rewrite.gates import _ACTION_VERBS, _fold
+from app.domains.content_rewrite.gates import (
+    _ACTION_VERBS,
+    _ASTRO_TERMS,
+    _OPAQUE_FILLER,
+    _SCENE_MARKERS,
+    _fold,
+    _words,
+)
 from app.domains.readings import daily_psychology
 from app.domains.readings.clarity_lint import (
     HARD_ZERO_RULES,
@@ -29,6 +36,8 @@ from app.domains.readings.clarity_lint import (
     syllables,
 )
 from app.domains.readings.daily_rotation import axis_slot
+from app.domains.readings.gates import scene_contains_advice
+from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS, OPAQUE_CORE_FRAGMENTS
 
 PARTS = {"headline": "headlines", "scene": "scenes", "action": "advice"}
 ID = re.compile(r"^daily\.(?P<part>[a-z]+)\.(?P<issue>[a-z-]+)\.\d{2}$")
@@ -147,3 +156,84 @@ def test_scene_variant_carries_its_issue_anchor(key: str) -> None:
     assert match
     folded = _fold(DAILY[key].text)
     assert any(_fold(a) in folded for a in ISSUES[match["issue"]].scene_anchors), key
+
+
+# Per-field Daily gates (#288 follow-up). Every number and word list below is read from
+# content_rewrite/gates.py (evaluate_daily_rewrite) or readings/gates.py
+# (scene_contains_advice); nothing here sets a new threshold.
+_OPAQUE = (*_OPAQUE_FILLER, *BANNED_CORE_FRAGMENTS, *OPAQUE_CORE_FRAGMENTS)
+_CERTAINTY = ("chac chan", "nhat dinh", "se luon", "luon luon")
+# A served scene carries one arena lead ("Với người kia, khi …"); the gate sees the led text.
+_LEADS = tuple(daily_psychology._ARENA_LEADS.values())
+
+# Known exceptions: registry copy that fails a field gate today. Test-only PR, so the copy
+# is not rewritten here; these go to the Codex copy batch and leave this list once fixed.
+# All are pending, so none is served. strict=True makes a fixed entry fail until removed.
+_KNOWN_FIELD_GATE_EXCEPTIONS: dict[str, str] = {
+    "daily.headline.capacity-before-agreement.16": "daily_title_budget: 12 words > 11",
+    "daily.headline.capacity-before-agreement.18": "daily_title_budget: 12 words > 11",
+    "daily.headline.comparison-loop.06": "daily_title_budget: 12 words > 11",
+    "daily.headline.comparison-loop.16": "daily_title_budget: 12 words > 11",
+    "daily.headline.defend-old-choice.12": "scene_contains_advice: opens with 'Thử'",
+    "daily.headline.perfect-before-start.17": "daily_title_budget: 12 words > 11",
+    "daily.headline.repair-reply.01": "daily_title_budget: 12 words > 11",
+    "daily.headline.specific-feedback.18": "daily_title_budget: 14 words > 11",
+    "daily.scene.name-the-need.01": "daily_astro_term: 'việc nhà' matches the 'nhà ' term",
+}
+
+
+def _field_params(part: str) -> list[Any]:
+    return [
+        pytest.param(
+            key,
+            marks=pytest.mark.xfail(reason=_KNOWN_FIELD_GATE_EXCEPTIONS[key], strict=True),
+        )
+        if key in _KNOWN_FIELD_GATE_EXCEPTIONS
+        else key
+        for key in sorted(k for k in DAILY if k.startswith(f"daily.{part}."))
+    ]
+
+
+def test_known_field_gate_exceptions_are_pending_registry_entries() -> None:
+    for key in _KNOWN_FIELD_GATE_EXCEPTIONS:
+        assert key in DAILY and DAILY[key].status == "pending", key
+
+
+def _shared_failures(text: str) -> list[str]:
+    folded = _fold(text)
+    failures: list[str] = []
+    if any(_fold(term) in folded for term in _ASTRO_TERMS):
+        failures.append("daily_astro_term")
+    if any(_fold(term) in folded for term in _OPAQUE):
+        failures.append("daily_opaque_filler")
+    if scene_contains_advice(text):
+        failures.append("scene_contains_advice")
+    return failures
+
+
+@pytest.mark.parametrize("key", _field_params("headline"))
+def test_headline_variant_passes_title_gates(key: str) -> None:
+    text = DAILY[key].text
+    failures = _shared_failures(text)
+    if not 3 <= _words(text) <= 11:
+        failures.append("daily_title_budget")
+    assert failures == [], (key, failures)
+
+
+@pytest.mark.parametrize("key", _field_params("scene"))
+def test_scene_variant_passes_scene_gates(key: str) -> None:
+    text = DAILY[key].text
+    failures = _shared_failures(text)
+    for led in (text, *(daily_psychology.lead_scene(lead, text) for lead in _LEADS)):
+        if not 8 <= _words(led) <= 40:
+            failures.append("daily_scene_budget")
+        if any(_words(s) > 28 for s in re.split(r"[.!?]+", led) if s.strip()):
+            failures.append("daily_dense_sentence")
+        folded = _fold(led)
+        if re.search(r"(?:^|[.!?]\s+)(?:hay|thu|nen|dung)\s", folded):
+            failures.append("daily_advice_in_scene")
+        if any(term in folded for term in _CERTAINTY):
+            failures.append("daily_unwarranted_certainty")
+        if not any(_fold(marker) in folded for marker in _SCENE_MARKERS):
+            failures.append("daily_unobservable_scene")
+    assert list(dict.fromkeys(failures)) == [], (key, failures)
