@@ -84,7 +84,19 @@ Level 1 "Sĩ số +1" của đội đôi (xem `docs/research/2026-11-08-hen-o-la
 - **Cử chỉ và note:** đọc giúp, đợi mình, 3-2-1, đập tay; note ≤ 60 ký tự dán lên bàn, không có trả lời qua lại.
 - **"Mình sợ quá":** bật đèn cho cả đội, không ai phải giải thích. Phòng tối dần chậm tới một mức trần, không bao giờ nhấp nháy.
 - **Góc nghỉ:** mỗi người hỏi một câu tuỳ chọn, rồi chọn kín "Đi tiếp cùng nhau?". Chỉ khi cả hai cùng muốn mới đi tiếp chung đội. Màn hình không nói ai đã chọn gì.
-- Sổ khách là hồ sơ hư cấu, không bao giờ trỏ vào người trong buổi. L2, L3 làm sau.
+- **L2 · Sĩ số +1 khó** (sau góc nghỉ L1; nếu một trong hai không muốn đi tiếp thì sang L2 với đồng đội mới):
+  - **Vòng 1 · ảnh qua gương:** ảnh quai ly có dấu "chụp qua gương tủ kính". Đếm y như ảnh thì sổ không khớp dòng nào; phải đảo trái/phải mới ra đúng một dòng. Lá gợi cách kiểm chỉ nói cách nhìn, không nói tên.
+  - **Vòng 2 · cửa một chiều:** bạn cầm sơ đồ quán, đồng đội cầm sổ quét thẻ. Bảng cửa sau tối, phải nhờ đồng đội ra **giữ công tắc đèn** thì mới đọc được cửa chỉ mở từ Sân sau vào Kho. Lúc đồng đội đang giữ công tắc thì chưa chốt được. Coi cửa là hai chiều thì không ra dòng nào.
+  - Góc nghỉ L2 có câu hỏi sâu hơn một chút, vẫn bỏ qua được.
+- Sổ khách là hồ sơ hư cấu, không bao giờ trỏ vào người trong buổi. L3 (vụ cà phê) làm sau, khi hình chứng cứ đã duyệt.
+
+## Buổi rợn "Quán sau giờ đóng cửa" (`index.html?buoi=dem`)
+
+Cùng 5 màn của buổi hẹn, nhưng sau giờ đóng cửa.
+- Thư mời có thêm **mức gan** (Nhẹ/Vừa). Quán tối dần chậm tới một mức trần, chỉ còn vùng sáng đèn pin quanh bạn. Không bao giờ tối hẳn, không nhấp nháy.
+- Trong Màn 1, cứ khoảng nửa phút có một **chuyện lạ**, vài giây sau Cô Lá **lộ ra là chuyện buồn cười**: cửa kho kẽo kẹt là Mướp, bóng cạnh kệ sách là cây treo áo, tiếng hát chậm là radio cũ.
+- Nút **"Mình sợ quá · bật đèn"** luôn hiện. Bấm thì cả quán sáng đèn, hết chuyện lạ, không ai phải giải thích.
+- Không máu me, không hù bất ngờ, không âm thanh. Bảng ở quầy của quán ngày thường có nút chơi thử buổi này.
 
 ## Khách quán (`khach.html`)
 
@@ -113,7 +125,7 @@ Cho người chưa muốn ghép đôi, chỉ muốn ngồi cho có không khí. 
 node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.test.cjs
 ```
 
-44 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
+48 test. `event.test.cjs` và `world.test.cjs` (20) kiểm:
 - Xoay bàn không lặp cặp.
 - Nửa lá tarot ghép đúng hai người, chủ đề lá bài không đoán gì về ai.
 - Lá và thư ẩn danh, có giới hạn, và không làm tăng cảm tình với người gửi.
@@ -124,7 +136,7 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.te
 - Mọi chỗ ngồi và đồ vật đều tới được.
 - Sprite của lab 14 vẽ được mọi dáng.
 
-`cafe.test.cjs` (10) kiểm:
+`cafe.test.cjs` (11) kiểm:
 - Tên ngẫu nhiên đúng dạng.
 - Giờ vắng và giờ đông.
 - Lá bài giữ nguyên trong ngày.
@@ -133,8 +145,9 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.te
 - Note bị cắt sạch.
 - Module quán không có thứ gì giữ điểm.
 - Đồ mang theo chỉ là hình và một việc để làm.
+- Buổi rợn: mỗi chuyện lạ đều có cú lộ hài, không chữ máu me hay nhấp nháy, phòng không tối hẳn.
 
-`duo.test.cjs` (9) kiểm:
+`duo.test.cjs` (12) kiểm:
 - Mỗi vòng có đúng một dòng thừa; ở vòng 2, một ảnh riêng lẻ không đủ.
 - Ảnh khớp sổ trừ dòng thừa.
 - Dòng thừa không trùng tên khách hay người chơi.
@@ -144,6 +157,9 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.te
 - Đội chơi ở mức gan nhẹ hơn.
 - "Đi tiếp cùng nhau" cần hai lần đồng ý, không lộ ai từ chối.
 - Không có gì giữ điểm, không có chữ máu me.
+- L2 ảnh qua gương: đọc y như ảnh thì không ra ai; đảo trái/phải thì ra đúng một dòng.
+- L2 cửa một chiều: coi cửa hai chiều thì không ra ai; chỉ chiều đúng mới ra một dòng.
+- Hai level nối nhau; câu hỏi L2 có câu trả lời; lá gợi cách kiểm không nêu tên.
 
 `spectate.test.cjs` (5) kiểm:
 - Hàng chờ ngắn.
@@ -152,7 +168,7 @@ node --test event.test.cjs world.test.cjs cafe.test.cjs duo.test.cjs spectate.te
 - Ghi chép của Cô Lá không lộ tên hay số.
 - Đèn chỉ là con số.
 
-Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Quán ngày thường đã thử lúc 3 giờ, 7 giờ, 20 giờ và 21 giờ (giả lập bằng `?gio`): gọi ly, ngồi, xin lá bài, cất note, ra về; ở 1100×820 và 375×812. Thử thách đôi đã chơi trọn hai vòng và góc nghỉ ở cả hai mode, trả lời sai và đếm sai, ở 1100×820 và 375×812. Khách quán đã xem trọn ba khoảnh khắc, vỗ tay, thả lá, gọi ly, nhận đồ mang về, ở 1100×820 và 375×812. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
+Đã chơi trọn 5 màn trong pane trình duyệt Chromium của app desktop ở 800×600 và 375×812: cả nhánh có cặp lẫn không có cặp. Quán ngày thường đã thử lúc 3 giờ, 7 giờ, 20 giờ và 21 giờ (giả lập bằng `?gio`): gọi ly, ngồi, xin lá bài, cất note, ra về; ở 1100×820 và 375×812. Thử thách đôi đã chơi trọn L1 và L2 (cả nhánh đi tiếp lẫn đổi đồng đội), giữ công tắc, trả lời sai và đếm sai, ở cả hai mode. Buổi rợn đã chạy Màn 1 với chuyện lạ, cú lộ và nút bật đèn. Mọi trang đã kiểm ở 360×780 và 390×844: không cuộn ngang, nút chính ≥ 44 px. Khách quán đã xem trọn ba khoảnh khắc, vỗ tay, thả lá, gọi ly, nhận đồ mang về, ở 1100×820 và 375×812. Chưa thử Safari iOS hay Chrome Android thật, chưa có người chơi thật.
 
 `window.__hen` (`hold`, `step`, `begin`, `next`…) chỉ để kiểm thử trong pane bị ẩn, không phải API sản phẩm.
 

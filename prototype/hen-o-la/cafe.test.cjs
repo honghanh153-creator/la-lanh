@@ -80,3 +80,12 @@ test('what people bring is only a look and a quiet thing to do', () => {
   for (const t of Object.values(Q.THINGS)) assert.ok(t.label && t.icon && t.verb);
   for (const k of [...Object.keys(Q.THINGS), ...Object.keys(Q.BAGS)]) assert.doesNotMatch(k, /vip|premium|gia|price|coin/i);
 });
+
+test('the after-hours evening stays mild: every eerie beat ends in a funny reveal', () => {
+  assert.ok(Q.NIGHT.beats.length >= 4);
+  for (const b of Q.NIGHT.beats) {
+    assert.ok(b.scare && b.reveal, 'each beat has a reveal');
+    assert.doesNotMatch(b.scare + b.reveal, /máu|chết|giết|xác|ma quỷ|nhấp nháy|hét/i);
+  }
+  assert.ok(Q.NIGHT.dimCap.nhe < Q.NIGHT.dimCap.vua && Q.NIGHT.dimCap.vua < 0.8, 'the room never goes fully dark');
+});

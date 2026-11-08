@@ -6,6 +6,14 @@
   const $ = id => document.getElementById(id);
   const T = W.TILE, VW = W.W * T, VH = W.H * T;
   const FAST = new URLSearchParams(location.search).has('nhanh');
+  // "Quán sau giờ đóng cửa": the same evening after hours, mildly eerie (?buoi=dem).
+  const NIGHT = new URLSearchParams(location.search).get('buoi') === 'dem' ? window.Quan.NIGHT : null;
+  let courage = 'nhe', lightsOn = !NIGHT, dim = 0, beatAt = 0, beatIx = 0;
+  if (NIGHT) {
+    const link = $('nightLink'); link.textContent = '☕ Buổi thường'; link.href = 'index.html';
+    document.querySelector('.brand span').textContent = NIGHT.title + ' · bản thử chạy trên máy · khách mời hư cấu 18+';
+    document.title = 'Hẹn ở Lá · ' + NIGHT.title;
+  }
   const DUR = FAST ? { tudo: 45, round: 25, lycuoi: 40 } : { tudo: 150, round: 50, lycuoi: 90 }; // seconds
   const SEE_TILES = 6; // guests notice what happens within this many tiles; bubbles further away show as "…"
 
@@ -26,6 +34,9 @@
   const particles = [], lanterns = [];
   const host = { id: 'host', host: true, name: 'Cô Lá', x: W.HOST.tx * T + 8, y: W.HOST.ty * T + 7, dir: 'down', bubble: null, sheet: E.buildSheet({ H: '#2b2230', T: '#3f6b55', C: '#7fc8a0', P: '#30303a', B: '#1d1b26', longHair: true, hat: true }) };
 
+  // Evening-scoped timers: a callback from an evening that was restarted never runs.
+  let gen = 0;
+  function later(ms, fn) { const g = gen; setTimeout(() => { if (g === gen && ev) fn(); }, ms); }
   function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function btn(text, cls, fn) { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', fn); return b; }
   function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
@@ -268,7 +279,7 @@
     } else {
       lastDrink = null;
       banner('Màn 5 · Ly cuối', 3, true);
-      setTimeout(() => openHostLetter(), 300);
+      later(300, () => openHostLetter());
     }
     renderPhaseCard();
   }
@@ -314,9 +325,16 @@
   // Lối vào: nickname, look, item and lantern colour. Nothing real is asked.
   function openSetup() {
     const choice = { name: H.NICKNAMES[0], look: 0, item: H.ITEMS[0], lantern: 'thuong' };
-    const body = openModal('LỐI VÀO · THƯ MỜI', 'Bạn được mời tới quán cà phê mưa', false);
+    const body = openModal('LỐI VÀO · THƯ MỜI', NIGHT ? 'Bạn được mời tới "' + NIGHT.title + '"' : 'Bạn được mời tới quán cà phê mưa', false);
     body.append(el('p', '', 'Tối nay có 10 người được chọn. Cô Lá dẫn buổi qua 5 màn: tự do, xoay bàn, thư giữa giờ, thả đèn và ly cuối.'),
       el('p', 'note', 'Mọi người chỉ thấy tên Lá, dáng, món đồ mang theo và màu đèn của bạn.'));
+    if (NIGHT) {
+      body.append(el('p', '', NIGHT.intro), el('div', 'field', 'Mức gan của bạn'));
+      const row = el('div', 'choices'); body.append(row);
+      const opts = [['nhe', 'Nhẹ'], ['vua', 'Vừa']];
+      const bs = opts.map(([k, l]) => { const b = btn(l, '', () => { courage = k; bs.forEach(x => x.setAttribute('aria-pressed', String(x === b))); }); b.setAttribute('aria-pressed', String(k === courage)); row.append(b); return b; });
+      body.append(el('p', 'note', 'Không máu me, không hù bất ngờ, không nhấp nháy, không âm thanh. Lúc nào cũng có nút "Mình sợ quá" để bật đèn cả quán.'));
+    }
     const group = (label, items, render, onPick) => {
       body.append(el('div', 'field', label));
       const row = el('div', 'choices'); body.append(row);
@@ -342,6 +360,7 @@
     particles.length = 0; lanterns.length = 0;
     spawnAll();
     renderHalf(); renderGuests();
+    if (NIGHT) { lightsOn = false; dim = 0; beatIx = 0; beatAt = clock + 12; $('scaredBtn').hidden = false; }
     const h = ev.halves.you;
     toast('Bạn giữ nửa ' + h.side + ' lá ' + h.card + '. Ai giữ nửa còn lại?');
     setPhase('tudo');
@@ -372,7 +391,7 @@
     }
     body.append(btn('👋 Vẫy tay chào', 'ghost', () => {
       closeModal(); faceEachOther(me(), b); startAct(me(), 'vaytay');
-      if (H.wave(ev, 'you', id)) setTimeout(() => say(b, pick(['Chào bạn nha!', 'Hí, chào!', 'Ơ chào!']), 3), 500);
+      if (H.wave(ev, 'you', id)) later(500, () => say(b, pick(['Chào bạn nha!', 'Hí, chào!', 'Ơ chào!']), 3));
     }));
   }
 
@@ -446,14 +465,14 @@
     }
     const mine = couples.find(c => c.a === 'you' || c.b === 'you');
     banner(couples.length ? couples.length + ' chiếc đèn đôi bay lên' : 'Tối nay chưa có đèn đôi nào', 3, true);
-    setTimeout(() => openResults(mine), still() ? 300 : 2600);
+    later(still() ? 300 : 2600, () => openResults(mine));
   }
   function openResults(mine) {
     const body = openModal('MÀN 4 · ĐÈN BAY', mine ? 'Đèn của bạn đã bay lên' : 'Đèn của bạn còn ở lại', false);
     if (mine) {
       const o = H.person(ev, mine.a === 'you' ? mine.b : mine.a);
       body.append(el('div', 'result mine', (mine.kind === 'hen' ? '🌸 Bạn và ' + o.name + ' chọn nhau. Một đôi hẹn.' : '🍃 Bạn và ' + o.name + ' chọn nhau. Một tình bạn mới.')));
-    } else body.append(el('p', '', myPicks.length ? 'Lần này chưa ai chọn lại người bạn chọn. Không ai biết bạn đã chọn ai.' : 'Bạn chưa chọn ai. Vậy cũng được.'));
+    } else body.append(el('p', '', myPicks.length ? 'Lần này đèn của bạn chưa thành đôi. Không ai biết bạn đã chọn ai.' : 'Bạn chưa chọn ai. Vậy cũng được.'));
     body.append(el('div', 'field', 'Các đèn đôi tối nay'));
     if (!couples.length) body.append(el('p', 'note', 'Chưa có.'));
     for (const c of couples) {
@@ -466,7 +485,7 @@
     const body = openModal('MÀN 5 · THƯ CỦA CÔ LÁ', 'Gửi ' + you.name);
     const noticed = ev.leaves.you + ev.letters.you.length > 0;
     body.append(el('div', 'letter', 'Tối nay bạn nhận ' + ev.leaves.you + ' chiếc lá và ' + ev.letters.you.length + ' lá thư. ' +
-      (noticed ? 'Có người đã để ý bạn đó, chỉ là chưa kịp trùng nhau.' : 'Buổi đầu ai cũng ngại, không sao cả.') + ' Ngồi lại uống thêm ly nữa nha.'),
+      (noticed ? 'Có người đã để ý bạn đó.' : 'Buổi đầu ai cũng ngại, không sao cả.') + ' Ngồi lại uống thêm ly nữa nha.'),
       btn('Cảm ơn Cô Lá', 'primary', closeModal));
   }
   function openEnd() {
@@ -604,7 +623,7 @@
     // guests nearby sometimes answer a question
     if (/\?/.test(t) && phase !== 'xoayban') {
       const near = [...people.values()].filter(b => b.npc && dist(b, me()) < 2.5).sort((a, b) => dist(a, me()) - dist(b, me()))[0];
-      if (near) setTimeout(() => say(near, pick(H.person(ev, near.id).answer), 5), 700);
+      if (near) later(700, () => say(near, pick(H.person(ev, near.id).answer), 5));
     }
   }
   $('sayForm').addEventListener('submit', e => { e.preventDefault(); speak($('sayInput').value); $('sayInput').value = ''; });
@@ -618,7 +637,9 @@
     if (typing) { if (e.key === 'Escape') e.target.blur(); return; }
     const k = e.key.toLowerCase();
     if (MOVE_KEYS[k]) { keys.add(MOVE_KEYS[k]); if (me()) { me().path = null; me().then = null; } e.preventDefault(); return; }
-    if (k === 'e' || k === 'enter') { interact(); e.preventDefault(); return; }
+    // Enter only interacts from the page or the game; a focused button or link keeps its own Enter.
+    const onControl = e.target && e.target.closest && e.target.closest('button, a, [role="button"]');
+    if (k === 'e' || (k === 'enter' && !onControl)) { interact(); e.preventDefault(); return; }
     if (k === 't') { $('sayInput').focus(); e.preventDefault(); return; }
     if (/^[1-9]$/.test(k) && me()) { const a = availableActs(me())[Number(k) - 1]; if (a) doAct(a); }
   });
@@ -722,6 +743,14 @@
     const order = [...people.values()].sort((a, b) => a.y - b.y);
     for (const b of order) drawSprite(b, b.hop > 0 && fx() ? Math.sin((b.hop / 300) * Math.PI) * 4 : 0);
     drawParticles();
+    if (NIGHT && !lightsOn && ev) {
+      // A small torch around you; the rest of the room dims slowly to a cap. Never flickers.
+      const cap = NIGHT.dimCap[courage];
+      dim = Math.min(cap, dim + (still() ? cap : 0.003));
+      const m = me(), gr = ctx.createRadialGradient(m.x, m.y - 8, 12, m.x, m.y - 8, 64);
+      gr.addColorStop(0, 'rgba(8,6,16,0)'); gr.addColorStop(1, 'rgba(8,6,16,' + dim + ')');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH);
+    }
     drawOverlay();
   }
 
@@ -816,6 +845,12 @@
       }
       if (host.bubble && host.bubble.until <= clock) host.bubble = null;
       if (!modalOpen) {
+        if (NIGHT && !lightsOn && phase === 'tudo' && clock >= beatAt && beatIx < NIGHT.beats.length) {
+          const beat = NIGHT.beats[beatIx++];
+          banner('👻 ' + beat.scare, 4);
+          later(4000, () => hostSay(beat.reveal));
+          beatAt = clock + (FAST ? 12 : 26);
+        }
         observeAll(dt);
         if (phase === 'tudo') guestSocial(dt);
         if (phase === 'xoayban') roundTick();
@@ -858,11 +893,17 @@
   }
   $('motionBtn').addEventListener('click', () => { motion = { full: 'reduced', reduced: 'off', off: 'full' }[motion]; applyMotion(); toast(MOTION_LABEL[motion]); });
   function restart() {
+    gen += 1; // drop callbacks scheduled for the evening that just ended
+    if (NIGHT) { lightsOn = false; dim = 0; $('scaredBtn').hidden = true; }
     seed = Math.floor(Math.random() * 1e9);
     ev = null; phase = 'loivao'; clock = 0; people.clear(); couples = []; particles.length = 0; lanterns.length = 0;
     renderTrack(); renderPhaseCard(); renderHalf(); renderGuests(); renderActs(true);
     openSetup();
   }
+  $('scaredBtn').addEventListener('click', () => {
+    lightsOn = true; $('scaredBtn').hidden = true;
+    hostSay('Đèn quán bật sáng rồi. Ai bấm cũng được, không cần giải thích.');
+  });
   $('restartBtn').addEventListener('click', () => {
     if (!ev) return;
     const body = openModal('CHỈ TRONG TAB NÀY', 'Bắt đầu một buổi khác?');
@@ -880,6 +921,6 @@
     step: ms => { for (let t = 0; t < ms; t += 16) tick(0.016); },
     ev: () => ev, phase: () => phase, people, me, clock: () => clock, round: () => round, roundState: () => roundState, couples: () => couples,
     begin: c => { closeModal(); beginEvening(Object.assign({ name: H.NICKNAMES[0], look: 0, item: H.ITEMS[0], lantern: 'thuong' }, c || {})); },
-    next: nextPhase, act: doAct, speak, interact, goToPerson, walkTo: (tx, ty) => walkTo(me(), tx, ty), pickIngredient, closeModal, modalOpen: () => modalOpen
+    next: nextPhase, release: () => releaseLanterns(), restart: () => restart(), act: doAct, speak, interact, goToPerson, walkTo: (tx, ty) => walkTo(me(), tx, ty), pickIngredient, closeModal, modalOpen: () => modalOpen
   };
 })();

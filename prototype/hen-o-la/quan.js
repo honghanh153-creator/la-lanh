@@ -239,7 +239,8 @@
     const ev = Q.NEXT_EVENT;
     board.append(el('p', '', 'Buổi hẹn sắp tới: ' + ev.title + ' · ' + ev.mode + ' · ' + ev.when + '.'),
       el('p', 'note-hint', 'Bối cảnh: ' + ev.setting + '. Mỗi buổi chọn 10–12 người.'),
-      btn('Mình muốn hẹn', 'pickbtn', () => toast('Bản thử chưa nhận đăng ký. Ở bản thật, bạn nhận thư mời nếu được chọn.')));
+      btn('Mình muốn hẹn', 'pickbtn', () => toast('Bản thử chưa nhận đăng ký. Ở bản thật, bạn nhận thư mời nếu được chọn.')), document.createTextNode(' '),
+      (() => { const l = el('a', 'chip', '👻 Chơi thử buổi này'); l.href = 'index.html?buoi=dem'; return l; })());
   }
   function renderGear() {
     const box = $('gearBox'); box.replaceChildren();
@@ -357,7 +358,8 @@
     if (e.target && e.target.tagName === 'INPUT') { if (e.key === 'Escape') e.target.blur(); return; }
     const k = e.key.toLowerCase();
     if (MOVE_KEYS[k]) { keys.add(MOVE_KEYS[k]); me.path = null; me.then = null; e.preventDefault(); return; }
-    if (k === 'e' || k === 'enter') { interact(); e.preventDefault(); return; }
+    const onControl = e.target && e.target.closest && e.target.closest('button, a, [role="button"]');
+    if (k === 'e' || (k === 'enter' && !onControl)) { interact(); e.preventDefault(); return; }
     if (/^[1-9]$/.test(k)) { const a = availableActs(me)[Number(k) - 1]; if (a) doAct(a); }
   });
   window.addEventListener('keyup', e => { const d = MOVE_KEYS[e.key.toLowerCase()]; if (d) keys.delete(d); });

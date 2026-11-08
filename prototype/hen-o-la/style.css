@@ -141,7 +141,8 @@ body.reduced .bubble.pop, body.still .bubble.pop { animation: none; }
 .takeaway .cup { width: 36px; height: 36px; image-rendering: pixelated; }
 
 /* Thử thách đôi */
-.duo-track { grid-template-columns: repeat(4, 1fr); }
+.duo-track { grid-template-columns: repeat(7, 1fr); }
+@media (max-width: 900px) { .duo-track { grid-template-columns: repeat(4, 1fr); } }
 .play.duo .stage { aspect-ratio: 2 / 1; }
 .scared { display: block; width: 100%; margin-top: 8px; min-height: 44px; border: 1px solid var(--amber); border-radius: 10px; background: #3a2e1a; font-weight: 700; }
 .mine { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
@@ -184,3 +185,9 @@ body.reduced .notes li, body.still .notes li { transform: none; }
 .play.khach .stage { border-radius: 0 0 var(--radius) var(--radius); }
 .memory { display: block; width: 100%; image-rendering: pixelated; border: 6px solid #f3ead8; border-bottom-width: 18px; border-radius: 2px; margin: 6px 0; }
 .play.khach .stage, .play.duo .stage { touch-action: auto; }
+
+.stamp { display: inline-block; margin: 4px 0; padding: 2px 8px; border: 1px dashed var(--amber); border-radius: 6px; color: var(--amber); font-size: 12px; }
+.method { padding: 6px 8px; border-radius: 8px; background: #2a2236; color: var(--text) !important; }
+.map { display: block; width: 100%; max-width: 480px; border-radius: 8px; border: 1px solid var(--line); }
+.paths { margin: 8px 0 0; padding-left: 18px; font-size: 13px; }
+.paths li.door { color: var(--amber); }

@@ -71,3 +71,35 @@ test('break questions are optional, gentle and have answers; nothing keeps score
   for (const k of Object.keys(D)) assert.doesNotMatch(k, /score|point|rank(?!s)|streak|xp/i);
   for (const m of Object.values(D.MODES)) assert.doesNotMatch(m.intro + m.reveal, /máu|chết|giết|xác/i);
 });
+
+test('L2 mirror: the photo read as-is matches nobody; read through the mirror it matches one line', () => {
+  const g1 = D.L2[0];
+  assert.equal(D.candidates(g1, D.photoCounts(g1)).length, 1);
+  assert.equal(D.candidates(g1, D.seenCounts(g1)).length, 0, 'forgetting the mirror gives no line');
+  assert.notDeepEqual(D.seenCounts(g1).handle, D.photoCounts(g1).handle);
+  assert.ok(D.candidates({ ...g1, fields: ['cup'] }, D.photoCounts(g1)).length > 1, 'cups alone are not enough');
+  assert.equal(D.mateNameFromCounts(g1, D.seenCounts(g1)), null);
+  assert.equal(D.mateNameFromCounts(g1, D.photoCounts(g1)), D.NAMES[D.extraOf(g1)]);
+});
+
+test('L2 route: the one-way back door is what makes exactly one line impossible', () => {
+  const g2 = D.L2[1];
+  assert.equal(D.candidates(g2).length, 1);
+  assert.equal(D.candidates(g2, { ignoreOneWay: true }).length, 0, 'treating the door as two-way finds nothing');
+  const exp = D.answerOf(g2);
+  assert.ok(Number(exp.shortest) > Number(exp.logged));
+  assert.equal(D.mateLogged(g2, exp.name), exp.logged);
+  assert.equal(D.logLines(g2).length, 6);
+  const owners = new Set(D.blanks(g2).map(b => b.owner));
+  assert.deepEqual([...owners].sort(), ['mate', 'you']);
+  const right = { ...exp };
+  assert.equal(D.judge(g2, right, { you: true, mate: true }).status, 'solved');
+  assert.equal(D.judge(g2, { ...right, shortest: '1' }, { you: true, mate: true }).status, 'retry');
+});
+
+test('levels chain and later questions stay optional with answers', () => {
+  assert.equal(D.LEVELS[1], D.ROUNDS);
+  assert.equal(D.LEVELS[2], D.L2);
+  for (const q of D.QUESTIONS_L2) assert.ok(D.MATE_ANSWERS[q], q);
+  for (const r of D.L2) assert.ok(r.method && !/An|Bình|Chi|Duy|Hà|Linh/.test(r.method), 'method cards never name a line');
+});

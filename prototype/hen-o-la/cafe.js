@@ -73,6 +73,21 @@
 
   const NEXT_EVENT = { title: 'Quán sau giờ đóng cửa', mode: '👻 hơi rợn', when: 'tối thứ Bảy', setting: 'quán cà phê, sau khi tắt đèn' };
 
+  // The mild-horror evening. Every eerie beat ends in a funny reveal a few seconds later; nothing jumps,
+  // nothing flashes, no gore. The room dims slowly to a cap set by the gentler courage level.
+  const NIGHT = {
+    title: 'Quán sau giờ đóng cửa',
+    intro: 'Quán đã tắt đèn lớn. Mỗi người cầm một đèn pin nhỏ. Có gì lạ thì cứ nhìn kỹ, thường là chuyện buồn cười.',
+    dimCap: { nhe: 0.5, vua: 0.72 },
+    beats: [
+      { scare: 'Cửa kho kêu kẽo kẹt…', reveal: 'À, Mướp vừa đẩy cửa đi ra, mặt tỉnh bơ.' },
+      { scare: 'Có bóng ai đứng im cạnh kệ sách…', reveal: 'Là cây treo áo khoác của Cô Lá thôi.' },
+      { scare: 'Đàn piano tự kêu một nốt trầm…', reveal: 'Mướp vừa nhảy lên phím đàn rồi bỏ đi.' },
+      { scare: 'Có tiếng hát rất chậm từ phía quầy…', reveal: 'Cái radio cũ phát bài sinh nhật chậm một nửa.' },
+      { scare: 'Ai đó vừa thổi nhẹ sau gáy…', reveal: 'Quạt trần bật số nhỏ nhất. Cô Lá xin lỗi cả nhà.' }
+    ]
+  };
+
   // What a guest does on one visit: a few small things, then they leave.
   const VISIT_ACTS = ['goido', 'ngammua', 'tuoicay', 'vuotmeo', 'docsach', 'danhdan', 'ngoi', 'ngoi'];
   function visitPlan(rand) {
@@ -110,5 +125,5 @@
     };
   }
 
-  return { THINGS, BAGS, BAG_COLORS, packBag, LEAVES, MOODS, randomName, crowd, crowdLabel, DRINKS, CARDS, dailyCard, dateKey, HOST, band, hostLine, GREETINGS, NOTE_MAX, NOTE_LIMIT, sanitizeNote, NEXT_EVENT, VISIT_ACTS, visitPlan };
+  return { NIGHT, THINGS, BAGS, BAG_COLORS, packBag, LEAVES, MOODS, randomName, crowd, crowdLabel, DRINKS, CARDS, dailyCard, dateKey, HOST, band, hostLine, GREETINGS, NOTE_MAX, NOTE_LIMIT, sanitizeNote, NEXT_EVENT, VISIT_ACTS, visitPlan };
 });
