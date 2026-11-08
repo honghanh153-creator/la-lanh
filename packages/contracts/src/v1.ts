@@ -6398,7 +6398,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Request input was rejected */
+            /** @description Request input was rejected, or the reading content was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
