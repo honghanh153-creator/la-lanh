@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Quán Lá · ngày thường</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>Quán <em>Lá</em></b><span>Ngày thường · không có buổi hẹn · ghé ngồi bao lâu cũng được</span></div>
+    <div class="top-actions">
+      <a class="chip" href="index.html">Buổi hẹn</a>
+      <a class="chip" href="doi.html">Thử thách đôi</a>
+      <a class="chip" href="khach.html">Khách quán</a>
+      <button id="motionBtn" class="chip">Cử động: đầy đủ</button>
+      <button id="leaveBtn" class="chip">Về thôi</button>
+    </div>
+  </header>
+
+  <main class="play quan">
+    <section class="stage-col">
+      <div class="stage" id="stage">
+        <canvas id="game" role="img" aria-label="Quán cà phê pixel trời mưa. Cô Lá đứng sau quầy, mèo Mướp nằm trên nệm, vài vị khách ghé ngồi."></canvas>
+        <div class="overlay" id="overlay" aria-hidden="true"></div>
+        <div class="toast" id="toast" role="status" hidden></div>
+        <div class="banner" id="banner" hidden></div>
+      </div>
+      <button class="act" id="actBtn" disabled>Lại gần quầy, cửa sổ, góc sách, mèo hay chó Bơ</button>
+      <div class="acts" id="acts" aria-label="Làm gì đó"></div>
+      <div class="quick" id="quick" aria-label="Chào"></div>
+      <p class="sr-only" id="near" aria-live="polite"></p>
+      <p class="hint">Đi: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / mũi tên hoặc chạm sàn · Tương tác: <kbd>E</kbd> · Làm: <kbd>1</kbd>–<kbd>6</kbd></p>
+    </section>
+
+    <aside class="book" aria-label="Quán lúc này">
+      <section class="phase-card">
+        <small id="clockLabel"></small>
+        <h2 id="crowdLabel"></h2>
+        <p id="youName"></p>
+      </section>
+      <section class="half" id="cardBox"></section>
+      <section class="guests">
+        <h2>Đồ mang theo</h2>
+        <p class="note-hint">Chỉ để nhìn cho vui. Ngồi xuống rồi lấy đồ ra.</p>
+        <div id="gearBox"></div>
+      </section>
+      <section class="guests">
+        <h2>Note cho chính mình</h2>
+        <p class="note-hint">Viết vài chữ, cuối buổi đọc lại. Chỉ nằm trong tab này.</p>
+        <form class="say" id="noteForm" autocomplete="off">
+          <label class="sr-only" for="noteInput">Note cho chính mình, tối đa 60 ký tự</label>
+          <input id="noteInput" maxlength="60" placeholder="Hôm nay mình…">
+          <button type="submit" class="say-btn">Cất</button>
+        </form>
+        <p class="note-hint" id="noteCount"></p>
+      </section>
+      <section class="board">
+        <h2>Bảng ở quầy</h2>
+        <div id="eventBoard"></div>
+      </section>
+    </aside>
+  </main>
+  <footer class="foot">Bản thử: chỉ chạy trong tab này, không tài khoản, không mạng, không lưu. Khách khác là nhân vật hư cấu. Không điểm, không chuỗi ngày.</footer>
+</div>
+
+<div class="shade" id="shade" hidden>
+  <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <header class="m-head"><div><small id="mKicker"></small><h2 id="mTitle"></h2></div><button class="m-close" id="mClose" aria-label="Đóng">×</button></header>
+    <div class="m-body" id="mBody"></div>
+  </section>
+</div>
+
+<script src="../game-lab-14/engine.js"></script>
+<script src="world.js"></script>
+<script src="room.js"></script>
+<script src="life.js"></script>
+<script src="event.js"></script>
+<script src="cafe.js"></script>
+<script src="quan.js"></script>
+</body>
+</html>
