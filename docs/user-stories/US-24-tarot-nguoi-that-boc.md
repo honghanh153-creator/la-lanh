@@ -8,7 +8,9 @@
 > Story liên quan: US-20 (Tarot tự bốc, intake an toàn), US-01 (phiên khách, xoá dữ liệu), US-05 (lưu), P07 (nhật ký
 > xoá), P09/P10 (đánh giá quyền riêng tư, owner/engineering).
 
-**Trạng thái:** đặc tả và code sau cờ tắt. Không có dữ liệu thật, không có kết nối Google, không bật ở staging hay
+**Trạng thái:** đặc tả. Trên `collab/integration` mới có phần backend U4, sau cờ tắt (`human_tarot_enabled = false`).
+U5 (cầu nối Google Sheet, PR #127) và U6 (giao diện web, PR #128) chưa có trên integration và đang tạm dừng; những gì
+mục 9 ghi cho U5/U6 là đích triển khai, chưa phải code đã giao. Không có dữ liệu thật, không có kết nối Google, không bật ở staging hay
 production. Ba lựa chọn ở mục 9 phải được owner chốt trước dữ liệu thật.
 
 ## 1. User story
@@ -175,17 +177,18 @@ riêng (huỷ yêu cầu, không sửa âm thầm).
 
 ## 9. Lựa chọn owner phải chốt trước dữ liệu thật
 
-| # | Lựa chọn | Đề xuất | Hiện trạng code |
+| # | Lựa chọn | Đề xuất | Hiện trạng trên integration (U4) và đích còn lại (U5/U6, chưa có trên integration) |
 |---|---|---|---|
-| OD1 | Giờ ngừng nhận và giờ trả bài (A1) | **Owner chốt 30/10: ngừng nhận 18:00, trả bài 22:00** để kịp bốc và viết | `RELEASE_TIME = 22:00`; `human_tarot_intake_closes_at` mặc định 18:00, không được muộn hơn 22:00. |
-| OD2 | Retention (A3) và bản sao Google | Câu hỏi trong app: xoá 24 giờ sau giờ hẹn. Bài đóng băng: 30 ngày sau giờ hẹn. Hàng trên Sheet: xoá khi huỷ/xoá, và chậm nhất lúc hết ngày (≤ 2 giờ sau giờ hẹn). Lịch sử phiên bản của Sheet không xoá được qua API: thay file Sheet định kỳ (đề xuất mỗi tháng), chuyển file cũ vào thùng rác rồi dọn thùng rác. | Hằng số trong `human_tarot/policy.py`; chưa có quy trình thay file. |
-| OD3 | Danh tính Google và quyền (A4) | Service account riêng, chỉ được chia sẻ quyền Editor trên đúng một file; scope `spreadsheets`; khoá là file secret trên VPS. Không dùng OAuth tài khoản cá nhân (quyền rộng hơn). | Adapter có sẵn nhưng chỉ chạy khi cấu hình đủ; không có credential nào trong repo. |
+| OD1 | Giờ ngừng nhận và giờ trả bài (A1) | **Owner chốt 30/10: ngừng nhận 18:00, trả bài 22:00** để kịp bốc và viết | U4 đã có: `RELEASE_TIME = 22:00`, `INTAKE_CLOSES = 18:00` trong `human_tarot/policy.py`; `human_tarot_intake_closes_at` mặc định 18:00, config từ chối giá trị muộn hơn 22:00. |
+| OD2 | Retention (A3) và bản sao Google | Câu hỏi trong app: xoá 24 giờ sau giờ hẹn. Bài đóng băng: 30 ngày sau giờ hẹn. Hàng trên Sheet: xoá khi huỷ/xoá, và chậm nhất lúc hết ngày (≤ 2 giờ sau giờ hẹn). Lịch sử phiên bản của Sheet không xoá được qua API: thay file Sheet định kỳ (đề xuất mỗi tháng), chuyển file cũ vào thùng rác rồi dọn thùng rác. | U4 đã có: hằng số giữ dữ liệu trong app ở `human_tarot/policy.py`. Đích U5 (PR #127): xoá hàng trên Sheet; chưa có quy trình thay file. Kiểm chứng phần Sheet còn chờ. |
+| OD3 | Danh tính Google và quyền (A4) | Service account riêng, chỉ được chia sẻ quyền Editor trên đúng một file; scope `spreadsheets`; khoá là file secret trên VPS. Không dùng OAuth tài khoản cá nhân (quyền rộng hơn). | Đích U5 (PR #127): adapter Google chỉ chạy khi đủ cấu hình. Integration chưa có adapter Google nào; không có credential nào trong repo. Kiểm chứng còn chờ. |
 | OD4 | Copy mục 4 và câu đồng ý | — | Bản nháp. |
-| OD5 | Hiện số lượt còn lại cho mọi người | Có (không lộ ai đã gửi) | Có. |
+| OD5 | Hiện số lượt còn lại cho mọi người | Có (không lộ ai đã gửi) | U4 đã có: API availability trả `remaining`. Đích U6 (PR #128): hiện số này trên màn hình; kiểm chứng giao diện còn chờ. |
 | OD6 | P09/P10: thêm bên nhận Google (có thể ngoài Việt Nam) và người bốc; cập nhật thông báo quyền riêng tư, store privacy | Cập nhật trước tester thật | Bản nháp ở U7. |
 
-Khi chưa chốt đủ, cờ `human_tarot_enabled` chỉ được bật ở local/test với Sheet giả; config từ chối bật ở staging hay
-production nếu thiếu `human_tarot_launch_approved`.
+Khi chưa chốt đủ, cờ `human_tarot_enabled` chỉ được bật ở local/test (Sheet giả là đích U5, chưa có trên integration).
+U4 đã có kiểm tra trong `apps/api/app/config.py`: config từ chối bật ở staging hay production nếu thiếu
+`human_tarot_launch_approved`.
 
 ## 10. Acceptance Criteria
 
