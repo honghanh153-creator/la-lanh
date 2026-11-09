@@ -1,6 +1,6 @@
 import logging
 from datetime import date, datetime
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Header, Query, Request, Response
@@ -27,6 +27,7 @@ from app.domains.readings.application import (
     ReadingActivationConflict,
     ReadingApplicationError,
     ReadingApplicationService,
+    ReadingContentRejected,
 )
 from app.domains.readings.models import BackgroundLens, ReadingProjection, ReadingPurpose
 from app.domains.readings.voice import ReadingVoice, roast_legacy_text
@@ -37,6 +38,16 @@ from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# #143 E2: a 422 on the context projection is either bad body input (INPUT_INVALID) or
+# READING_CONTENT_REJECTED, when the content gates reject every candidate. Both are
+# problem+json; neither is a retry prompt.
+_REJECTED_RESPONSE: dict[str, Any] = {
+    "description": "Request input was rejected, or the reading content was rejected",
+    "content": {
+        "application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemResponse"}}
+    },
+}
 
 
 class AuraAwakeningResponse(BaseModel):
@@ -329,7 +340,7 @@ async def get_daily_note(
 @router.post(
     "/daily-note/context",
     response_model=ReadingProjection,
-    responses={401: {}, 403: {}, 404: {}, 422: {}, 503: {}},
+    responses={401: {}, 403: {}, 404: {}, 422: _REJECTED_RESPONSE, 503: {}},
 )
 async def project_daily_note_context(
     body: ContextProjectionRequest,
@@ -365,6 +376,11 @@ async def project_daily_note_context(
         return projection
     except BirthDomainError as error:
         return _problem(error)
+    except ReadingContentRejected:
+        # #143 E2: the gates rejected every candidate (already logged without content by the
+        # application service). Retrying the same lens cannot help, so this is a content
+        # error, not an outage. Must stay before ReadingApplicationError (its base class).
+        return _reading_problem(422, "READING_CONTENT_REJECTED")
     except ReadingApplicationError:
         logger.exception(
             "Private contextual Daily reading projection failed",

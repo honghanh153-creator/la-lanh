@@ -867,6 +867,21 @@ test('review 228: a deleted Python file is not linted by default', () => {
   assert.equal(calls.length, 0);
 });
 
+test('#158/#159: top-up is computed from the queue left after this tick merges', () => {
+  const date = '2026-11-15';
+  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  // Five ready PRs fill the buffer when the tick starts; two of them are merge-ready.
+  const open = [1, 2, 3, 4, 5].map(number => pr({ number, headRefName: `agent/claude/q${number}`, comments: number <= 2 ? approved : [] }));
+  const merged = [];
+  const merge = n => { merged.push(n); open.splice(open.findIndex(p => p.number === n), 1); return { status: 'merged' }; };
+  tick({ gh: plannedGh(open, date), now: { date, hour: 15, minute: 5 }, merge, check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.deepEqual(merged, [1, 2], 'both merge-ready PRs merged in this tick');
+  const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+  assert.equal(queue.buffer, 3, 'the buffer counts the PRs still open after the merges');
+  assert.equal(queue.topUp, true, 'the drained buffer asks Claude for a top-up in the same tick');
+  assert.equal(queue.topUpCount, 2);
+});
+
 // ---- #253: buffer rule and flow samples on the scheduled path ----
 test('#253: the persisted queue uses the ready-buffer rule and the tick samples the flow metric', () => {
   const date = '2026-11-14';
