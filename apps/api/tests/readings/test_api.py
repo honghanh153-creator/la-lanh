@@ -10,11 +10,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, func, select
 
 from app.config import Settings
+from app.domains.astro.models import NatalChart
 from app.domains.birth.errors import BirthProfileChanged
 from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
 from app.domains.daily.tables import DailyNoteRow
 from app.domains.readings.application import ReadingApplicationService, ReadingContentRejected
 from app.domains.readings.models import ReadingPurpose
+from app.domains.readings.planner import time_stable_bodies
 from app.domains.readings.tables import ReadingPlanRow
 from app.main import create_app
 from tests.birth.test_birth_api import (
@@ -686,6 +688,85 @@ def test_explore_tiles_read_at_the_same_data_level_as_the_synthesis(
             assert time_bound not in visible, (claim["id"], time_bound, visible)
         refs = cast(list[str], claim["factor_refs"])
         assert not any(":longitude:" in ref or ":aspect:" in ref for ref in refs), refs
+
+
+def _overview_with_chart(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tradition: str
+) -> tuple[dict[str, object], NatalChart]:
+    """The overview payload and the chart the route calculated for it."""
+
+    birth = cast(FastAPI, client.app).state.birth_chart_service
+    chart_for_config = birth.chart_for_config
+    seen: list[NatalChart] = []
+
+    async def capture(guest_id, config):  # type: ignore[no-untyped-def]
+        chart = await chart_for_config(guest_id, config)
+        seen.append(chart)
+        return chart
+
+    monkeypatch.setattr(birth, "chart_for_config", capture)
+    response = client.get(f"/v1/insights/overview?tradition={tradition}")
+    assert response.status_code == 200, response.text
+    assert len(seen) == 1
+    return cast(dict[str, object], response.json()), seen[0]
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_overview_bodies_read_at_the_same_data_level_as_the_tiles(
+    reading_client: TestClient, monkeypatch: pytest.MonkeyPatch, tradition: str
+) -> None:
+    """#143 follow-up (PR #345 note): with an approximate time the overview's ``bodies`` came
+    from the full midpoint chart, so they still stated the Moon and the degrees of signs that
+    change inside the window, which the tiles withhold. Synthetic profile: 2001-01-15, morning."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+
+    payload, chart = _overview_with_chart(reading_client, monkeypatch, tradition)
+
+    assert payload["time_precision"] == "approximate"
+    stable = {body.value for body in time_stable_bodies(chart)}
+    assert stable, "the synthetic window still has stable signs to show"
+    assert len(stable) < len(chart.bodies), "the synthetic window has time-bound bodies"
+    bodies = cast(list[dict[str, object]], payload["bodies"])
+    assert {str(item["body"]) for item in bodies} == stable
+    assert "moon" not in {item["body"] for item in bodies}
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_overview_bodies_for_an_exact_time_are_unchanged(
+    reading_client: TestClient, monkeypatch: pytest.MonkeyPatch, tradition: str
+) -> None:
+    """An exact time keeps every body of the chart, Moon included, in chart order."""
+
+    _create_deep_profile(reading_client)
+
+    payload, chart = _overview_with_chart(reading_client, monkeypatch, tradition)
+
+    assert payload["time_precision"] == "exact"
+    assert payload["houses_available"] is True
+    assert payload["bodies"] == [
+        {
+            "body": position.body.value,
+            "sign": position.sign.value,
+            "degree_in_sign": position.degree_in_sign,
+            "retrograde": position.retrograde,
+        }
+        for position in chart.bodies
+    ]
+    assert "moon" in {item["body"] for item in cast(list[dict[str, object]], payload["bodies"])}
 
 
 @pytest.mark.parametrize(

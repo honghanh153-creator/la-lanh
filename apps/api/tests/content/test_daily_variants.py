@@ -170,15 +170,10 @@ _LEADS = tuple(daily_psychology._ARENA_LEADS.values())
 # is not rewritten here; these go to the Codex copy batch and leave this list once fixed.
 # All are pending, so none is served. strict=True makes a fixed entry fail until removed.
 _KNOWN_FIELD_GATE_EXCEPTIONS: dict[str, str] = {
-    "daily.headline.capacity-before-agreement.16": "daily_title_budget: 12 words > 11",
-    "daily.headline.capacity-before-agreement.18": "daily_title_budget: 12 words > 11",
-    "daily.headline.comparison-loop.06": "daily_title_budget: 12 words > 11",
-    "daily.headline.comparison-loop.16": "daily_title_budget: 12 words > 11",
+    "daily.headline.automatic-caretaking.21": "scene_contains_advice: flags 'Bạn hay là …'",
     "daily.headline.defend-old-choice.12": "scene_contains_advice: opens with 'Thử'",
-    "daily.headline.perfect-before-start.17": "daily_title_budget: 12 words > 11",
-    "daily.headline.repair-reply.01": "daily_title_budget: 12 words > 11",
-    "daily.headline.specific-feedback.18": "daily_title_budget: 14 words > 11",
     "daily.scene.name-the-need.01": "daily_astro_term: 'việc nhà' matches the 'nhà ' term",
+    "daily.scene.name-the-need.19": "daily_astro_term: 'chăm nhà' matches the 'nhà ' term",
 }
 
 
@@ -237,3 +232,13 @@ def test_scene_variant_passes_scene_gates(key: str) -> None:
         if not any(_fold(marker) in folded for marker in _SCENE_MARKERS):
             failures.append("daily_unobservable_scene")
     assert list(dict.fromkeys(failures)) == [], (key, failures)
+
+
+def test_every_headline_fits_the_home_title_budget() -> None:
+    """Same counter as the daily_title_budget gate; pending headlines included."""
+    over = {
+        key: _words(entry.text)
+        for key, entry in DAILY.items()
+        if key.startswith("daily.headline.") and not 3 <= _words(entry.text) <= 11
+    }
+    assert not over, over

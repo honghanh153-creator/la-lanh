@@ -10005,7 +10005,7 @@
                 }
               }
             },
-            "description": "Request input was rejected"
+            "description": "Request input was rejected, or the reading content was rejected"
           },
           "503": {
             "description": "Service Unavailable"

@@ -8,7 +8,7 @@ import { bodyHash } from './collab-heal.mjs';
 import { preflightFailure, readPreflight, recordPreflight } from './collab-preflight.mjs';
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
-import { bufferStatus } from './collab-buffer.mjs';
+import { bufferStatus, queueTopUp, readyBuffer } from './collab-buffer.mjs';
 
 export { codexDailyCap };
 
@@ -134,7 +134,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const turns = turnsFor(prs, { dropped: plan.dropped });
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
-      const { queue: buffer } = bufferStatus(prs, turns);
+      const { queue: startBuffer } = bufferStatus(prs, turns);
       const area = activeArea(turns);
       const work = turns.filter(t => t.area === area);
       const done = [];
@@ -180,8 +180,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // #237: remember whether the idle alert was delivered, so a failed delivery retries next run.
       const idleAlerted = idleRuns ? Boolean(readJson(dayPath, day).idleAlerted) : false;
       writeJson(dayPath, { ...readJson(dayPath, day), idleRuns, idleAlerted });
+      // #158/#159: after merges, checks or reviews the queue and buffer are read again, so the
+      // top-up describes what is left now, not the list fetched before this run's work.
+      const left = done.length ? gh.openPrs() : prs;
+      const leftTurns = done.length ? turnsFor(left, { dropped: plan.dropped }) : turns;
+      const buffer = done.length ? queueTopUp(readyBuffer(left)) : startBuffer;
       writeJson(join(stateDir, 'claude-queue.json'), {
-        at: new Date().toISOString(), plan: plan.state, area, items: turns.filter(t => t.turn === 'claude-fix'),
+        at: new Date().toISOString(), plan: plan.state, area, items: leftTurns.filter(t => t.turn === 'claude-fix'),
         // Plan top-up (owner 31.10.2026, buffer rule 05.11): below the ready-buffer target while the
         // day still runs, so Claude adds the next backlog task in priority order before the machine goes idle.
         topUp: (buffer.topUp || idleRuns >= idleTopUpRuns) && !late(),

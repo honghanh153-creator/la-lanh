@@ -228,6 +228,9 @@ async def insight_overview(
                 extra={"surface": "insight_overview"},
             )
             return _reading_problem(503, "READING_UNAVAILABLE")
+    # #143 E4 follow-up: an approximate time lists only the bodies the tiles read (time-stable
+    # signs, never the Moon); an exact time keeps the whole chart.
+    readable = InsightReadingService.readable_chart(chart)
     return InsightOverviewResponse(
         status="ready",
         reading=reading,
@@ -238,7 +241,7 @@ async def insight_overview(
                 degree_in_sign=position.degree_in_sign,
                 retrograde=position.retrograde,
             )
-            for position in chart.bodies
+            for position in readable.bodies
         ),
         houses_available=chart.houses is not None,
         time_precision=chart.time_precision.value,
