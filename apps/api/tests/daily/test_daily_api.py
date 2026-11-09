@@ -1,9 +1,11 @@
 from datetime import datetime
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.domains.experiments.service import ExperimentService
+from app.domains.readings.application import ReadingApplicationService, ReadingContentRejected
 from app.main import create_app
 
 
@@ -125,6 +127,35 @@ def test_context_projection_requires_origin_csrf_and_closed_enum_body() -> None:
             ).status_code
             == 422
         )
+    finally:
+        client.__exit__(None, None, None)
+
+
+def test_context_projection_rejected_by_gates_is_a_content_error_not_a_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#143 E2: when the gates reject every candidate for a lens, retrying cannot help, so
+    the context route answers 422 READING_CONTENT_REJECTED (never cached), not 503."""
+
+    client, headers = _date_only_client()
+    try:
+
+        async def rejected(*_args: object, **_kwargs: object) -> None:
+            raise ReadingContentRejected
+
+        monkeypatch.setattr(ReadingApplicationService, "project", rejected)
+
+        response = client.post(
+            "/v1/daily-note/context", json={"background_lens": "work"}, headers=headers
+        )
+
+        assert response.status_code == 422
+        assert response.headers["content-type"].startswith("application/problem+json")
+        assert response.headers["cache-control"] == "no-store, max-age=0"
+        assert response.json()["code"] == "READING_CONTENT_REJECTED"
+
+        operation = client.get("/openapi.json").json()["paths"]["/v1/daily-note/context"]["post"]
+        assert "application/problem+json" in operation["responses"]["422"]["content"]
     finally:
         client.__exit__(None, None, None)
 
