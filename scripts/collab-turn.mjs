@@ -236,10 +236,34 @@ export function planTurns(gh, now) {
   return { plan, prs, turns: turnsFor(prs, { dropped: plan.dropped }) };
 }
 
-export function opsAlert(gh, text, subject = 'collab loop') {
+// S8 (retro 08.11, K35): one open ops-alert per subject. A repeat becomes a comment on the open
+// issue (an older dated title counts too), so the owner closes one thread once it is fixed
+// instead of sweeping a new issue per alert. After the owner closes it, the next alert opens a
+// fresh one. If the lookup itself fails, the alert is still raised as a new issue.
+export const opsAlertTitle = subject => `[ops-alert] ${subject}`;
+
+export function openOpsAlert(issues, subject) {
+  const base = opsAlertTitle(subject);
+  const same = title => title === base || (title.startsWith(`${base} `) && /^\d{4}-\d{2}-\d{2}$/.test(title.slice(base.length + 1)));
+  return (issues ?? []).filter(i => typeof i?.title === 'string' && same(i.title))
+    .reduce((newest, i) => (newest === null || i.number > newest ? i.number : newest), null);
+}
+
+export function opsAlert(gh, text, subject = 'collab loop', now = vnNow()) {
+  const body = `${clean(text, 1000)}\n\nKiểm tra log ở ~/.cache/la-lanh-collab/logs trên máy owner.\n\n<!-- la-lanh-agent ops-alert -->`;
+  let open = null;
+  try {
+    open = openOpsAlert(gh.json(['issue', 'list', '--repo', repo, '--label', 'ops-alert', '--state', 'open',
+      '--search', `"${opsAlertTitle(subject)}" in:title`, '--json', 'number,title', '--limit', '50']), subject);
+  } catch { open = null; }
+  if (open !== null) {
+    const at = `${now.date} ${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}`;
+    gh.raw(['issue', 'comment', String(open), '--repo', repo, '--body-file', '-'], `Lặp lại lúc ${at}: ${body}`);
+    return { number: open, created: false };
+  }
   gh.raw(['label', 'create', 'ops-alert', '--repo', repo, '--color', 'B60205', '--force']);
-  gh.raw(['issue', 'create', '--repo', repo, '--title', `[ops-alert] ${subject} ${vnNow().date}`, '--label', 'ops-alert', '--body-file', '-'],
-    `${clean(text, 1000)}\n\nKiểm tra log ở ~/.cache/la-lanh-collab/logs trên máy owner.\n\n<!-- la-lanh-agent ops-alert -->`);
+  gh.raw(['issue', 'create', '--repo', repo, '--title', opsAlertTitle(subject), '--label', 'ops-alert', '--body-file', '-'], body);
+  return { number: null, created: true };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

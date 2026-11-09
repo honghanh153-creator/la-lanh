@@ -7,7 +7,7 @@ import test from 'node:test';
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-status-'));
 const trust = await import('./collab-trust.mjs');
 const { boardMarker, renderBoard, upsertBoard } = await import('./collab-status.mjs');
-const { tick } = await import('./collab-turn.mjs');
+const { openOpsAlert, opsAlert, tick } = await import('./collab-turn.mjs');
 
 const A = 'a'.repeat(40);
 const now = { date: '2026-11-01', hour: 14, minute: 5 };
@@ -72,6 +72,35 @@ test('every tick updates the board, before heavy work too, and a board failure n
   assert.deepEqual(shown.map(s => s[0]), ['closed']);
   const result = tick({ gh, now: { date, hour: 12, minute: 5 }, board: () => { throw new Error('GitHub down'); }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   assert.notEqual(result.status, 'error', 'a failing board does not fail the tick');
+});
+
+test('S8: a repeat ops-alert comments on the open issue of its subject instead of opening a new one', () => {
+  const at = { date: '2026-11-09', hour: 17, minute: 8 };
+  const calls = [];
+  let open = [];
+  const gh = {
+    json: args => { calls.push(['list', args.join(' ')]); return open; },
+    raw: (args, input) => { calls.push([args.slice(0, 3).join(' '), input ?? '']); if (args[1] === 'create') open = [{ number: 370, title: args[5] }]; return ''; },
+  };
+  assert.deepEqual(opsAlert(gh, 'tick lỗi 2 lần', 'collab loop', at), { number: null, created: true });
+  const created = calls.find(c => c[0].startsWith('issue create'));
+  assert.ok(created, 'the first alert opens an issue');
+  assert.equal(open[0].title, '[ops-alert] collab loop', 'the title carries no date, so one thread spans days');
+  calls.length = 0;
+  assert.deepEqual(opsAlert(gh, 'tick lỗi lần nữa', 'collab loop', at), { number: 370, created: false });
+  assert.equal(calls.filter(c => c[0].startsWith('issue create')).length, 0, 'no second issue');
+  const comment = calls.find(c => c[0] === 'issue comment 370');
+  assert.match(comment[1], /^Lặp lại lúc 2026-11-09 17:08: tick lỗi lần nữa/);
+  assert.match(comment[1], /<!-- la-lanh-agent ops-alert -->$/);
+  // Older dated titles of the same subject are reused (newest first); other subjects are not.
+  assert.equal(openOpsAlert([{ number: 368, title: '[ops-alert] collab loop 2026-11-09' }, { number: 322, title: '[ops-alert] collab loop 2026-11-08' },
+    { number: 350, title: '[ops-alert] tác vụ hẹn giờ bị treo 2026-11-08' }, { number: 352, title: '[ops-alert] collab loop failed 2026-11-08' }], 'collab loop'), 368);
+  assert.equal(openOpsAlert([{ number: 350, title: '[ops-alert] tác vụ hẹn giờ bị treo 2026-11-08' }], 'collab loop'), null);
+  // A failing lookup still raises the alert as a new issue.
+  calls.length = 0;
+  const down = { json: () => { throw new Error('gh down'); }, raw: (args, input) => { calls.push([args.slice(0, 2).join(' '), input ?? '']); return ''; } };
+  assert.deepEqual(opsAlert(down, 'x', 'tác vụ hẹn giờ bị treo', at), { number: null, created: true });
+  assert.ok(calls.some(c => c[0] === 'issue create'));
 });
 
 test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not "no work"', () => {
