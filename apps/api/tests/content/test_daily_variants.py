@@ -147,3 +147,15 @@ def test_scene_variant_carries_its_issue_anchor(key: str) -> None:
     assert match
     folded = _fold(DAILY[key].text)
     assert any(_fold(a) in folded for a in ISSUES[match["issue"]].scene_anchors), key
+
+
+def test_every_headline_fits_the_home_title_budget() -> None:
+    """Same counter as the daily_title_budget gate; pending headlines included."""
+    from app.domains.content_rewrite.gates import _words
+
+    over = {
+        key: _words(entry.text)
+        for key, entry in DAILY.items()
+        if key.startswith("daily.headline.") and not 3 <= _words(entry.text) <= 11
+    }
+    assert not over, over
