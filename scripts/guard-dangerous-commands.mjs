@@ -6,7 +6,24 @@
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-const throwaway = /^(\/tmp\/|\/private\/tmp\/|\/private\/var\/folders\/|\$TMPDIR|"\$TMPDIR|node_modules\b|\.\/node_modules\b|[\w./-]*\/(node_modules|dist|build|\.next|\.turbo|coverage|test-results|playwright-report)\/?$|(dist|build|\.next|\.turbo|coverage|test-results|playwright-report)\/?$)/;
+const tempRoots = ['/tmp/', '/private/tmp/', '/private/var/folders/', '$TMPDIR/', '${TMPDIR}/'];
+const generated = new Set(['node_modules', 'dist', 'build', '.next', '.turbo', 'coverage', 'test-results', 'playwright-report']);
+
+// A deletion target is throwaway only when its path components say so: a temp root, a path inside
+// node_modules, or a path whose last component is a generated folder. `..` anywhere is never throwaway,
+// so `node_modules/../apps` and look-alike names such as `node_modules-backup` stay blocked.
+export function isThrowaway(target = '') {
+  const t = String(target);
+  const parts = t.split('/').filter(p => p && p !== '.');
+  if (!parts.length || parts.includes('..')) return false;
+  if (tempRoots.some(r => t.startsWith(r) && t.length > r.length)) return true;
+  if (/[*?[\]{}$~`]/.test(t)) return false;
+  return parts.includes('node_modules') || generated.has(parts.at(-1));
+}
+
+const shells = /(^|[\s|;&(])(bash|sh|zsh|dash|ksh|eval|source|\.|xargs|env)(\s|$)/;
+const runsCode = s => /\$\(|`/.test(s);
+const messageFlag = /(\s(?:-m|--message|--title|--body|-t|-b|--notes|--subject)(?:=|\s+))("(?:[^"\\]|\\.)*"|'[^']*')/g;
 
 const rules = [
   [/\bgit\s+(-C\s+\S+\s+)?reset\s+[^;&|]*--hard\b/, 'git reset --hard xoá thay đổi chưa commit'],
@@ -19,13 +36,18 @@ const rules = [
 ];
 
 export function blockReason(command = '') {
-  // Text handed to a command (heredoc bodies, quoted messages) is not run: a PR body or commit message
-  // that mentions these commands must not be blocked. This guards against accidents, not a hostile agent.
+  // Only text that is provably inert is dropped: a message-flag value (-m, --body, …) and a heredoc fed
+  // to a non-shell command, both only when they hold no $(…)/backtick substitution. Every other quoted
+  // string is unquoted and inspected, because `bash -c '…'`, `git restore "."` and `"$(…)"` do run.
+  // This guards against accidents, not a hostile agent.
   const cmd = String(command)
-    .replace(/<<-?\s*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n\s*\2(?=\s|$)/g, '<<HEREDOC')
-    .replace(/"(?:[^"\\]|\\.)*"|'[^']*'/g, '""');
+    .replace(/(^|\n)([^\n]*?)<<-?\s*(['"]?)(\w+)\3([^\n]*)\n([\s\S]*?)\n\s*\4(?=\s|$)/g,
+      (all, lead, before, quote, _tag, after, body) =>
+        shells.test(`${before} ${after}`) || (!quote && runsCode(body)) ? `${lead}${before} ${after}\n${body}` : `${lead}${before}<<HEREDOC${after}`)
+    .replace(messageFlag, (all, flag, value) => (value.startsWith('"') && runsCode(value) ? all : `${flag}""`))
+    .replace(/"((?:[^"\\]|\\.)*)"|'([^']*)'/g, (all, dq, sq) => (dq ?? sq).replace(/\\(.)/g, '$1'));
   for (const [re, why] of rules) if (re.test(cmd)) return why;
-  for (const seg of cmd.split(/&&|\|\||;|\n|\|/)) {
+  for (const seg of cmd.split(/&&|\|\||;|\n|\||\$\(|`|\)/)) {
     const words = seg.trim().split(/\s+/);
     const i = words.findIndex(w => w === 'rm' || w.endsWith('/rm'));
     if (i < 0) continue;
@@ -33,7 +55,7 @@ export function blockReason(command = '') {
     const flags = args.filter(a => a.startsWith('-')).join('');
     if (!/r|R|recursive/.test(flags) || !/f|force/.test(flags)) continue;
     const targets = args.filter(a => !a.startsWith('-'));
-    if (!targets.length || targets.some(t => !throwaway.test(t))) return 'rm -rf ngoài thư mục tạm';
+    if (!targets.length || targets.some(t => !isThrowaway(t))) return 'rm -rf ngoài thư mục tạm';
   }
   return null;
 }

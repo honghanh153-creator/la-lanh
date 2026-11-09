@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { blockReason } from './guard-dangerous-commands.mjs';
 
 test('blocks commands that wipe unpushed work', () => {
@@ -18,8 +19,24 @@ test('allows normal and throwaway work', () => {
     assert.equal(blockReason(c), null, c);
 });
 
+test('quoted operands, shell -c, shell heredocs and substitutions are still inspected (review P1)', () => {
+  for (const c of ['git restore "."', "git checkout -- '.'", "bash -c 'git reset --hard'", 'sh -c "rm -rf apps"',
+    "bash <<'EOF'\ngit reset --hard\nEOF", "cat <<'EOF' | bash\nrm -rf apps\nEOF", 'cat <<EOF > x\n$(git reset --hard)\nEOF',
+    'echo "$(git reset --hard)"', 'git commit -m "$(git reset --hard)"', 'echo `rm -rf apps`', "eval 'git clean -fd'"])
+    assert.ok(blockReason(c), c);
+});
+
+test('deletion exemptions follow path components, not prefixes (review P1)', () => {
+  for (const c of ['rm -rf node_modules-backup', 'rm -rf node_modules/../apps', 'rm -rf ./node_modules/../../x', 'rm -rf /tmp/../Users/x',
+    'rm -rf apps/dist/../src', 'rm -rf distribution', 'rm -rf build-scripts', 'rm -rf node_modules*', 'rm -rf "$HOME"'])
+    assert.ok(blockReason(c), c);
+  for (const c of ['rm -rf ./node_modules', 'rm -rf apps/web/node_modules', 'rm -rf node_modules/.cache', 'rm -rf dist/',
+    'rm -rf "$TMPDIR/la-x"', 'rm -rf "/tmp/a"', 'gh pr comment 1 --body "never rm -rf apps"', "git commit -m 'no git reset --hard'"])
+    assert.equal(blockReason(c), null, c);
+});
+
 test('hook exits 2 with a reason on stdin JSON', () => {
-  const run = cmd => spawnSync(process.execPath, ['scripts/guard-dangerous-commands.mjs'], { input: JSON.stringify({ tool_input: { command: cmd } }), encoding: 'utf8' });
+  const run = cmd => spawnSync(process.execPath, [fileURLToPath(new URL('./guard-dangerous-commands.mjs', import.meta.url))], { input: JSON.stringify({ tool_input: { command: cmd } }), encoding: 'utf8' });
   const bad = run('git reset --hard');
   assert.equal(bad.status, 2);
   assert.match(bad.stderr, /Đã chặn/);
