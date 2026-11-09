@@ -50,8 +50,10 @@ Mọi giờ là giờ Việt Nam. File chỉ có metadata kỹ thuật, không c
 ## 4. Cách làm đã đổi hôm nay
 
 1. Việc nặng nối tiếp và đi qua tick; Claude làm việc nhẹ song song, không ngồi chờ (§3.2).
-2. Checklist quyết định 5 câu hỏi (`decision-checklist.md`, #145). Cải thiện trải nghiệm người dùng mà không vướng Q1–Q5 thì làm luôn.
-3. Bảng trạng thái trên issue plan, cập nhật mỗi tick và trước mỗi việc nặng (#145).
+2. Checklist quyết định 5 câu hỏi (`decision-checklist.md`, #145). Cải thiện trải nghiệm người dùng mà không vướng Q1–Q5 thì làm luôn. Lúc viết bài này (31.10), #145 còn mở: checklist mới là đề xuất chờ merge.
+3. Bảng trạng thái trên issue plan, cập nhật mỗi tick và trước mỗi việc nặng (#145). Lúc viết bài này (31.10), #145 còn mở: bảng chưa chạy.
+
+> Ghi chú 09.11.2026: #145 merge vào `collab/integration` lúc 19:55 ngày 31.10 (commit `f87e53b`), sau khi bài nhìn lại này merge (#148, 18:49). Từ đó checklist (`docs/operations/decision-checklist.md`) và bảng "Trạng thái vòng tự động" (`scripts/collab-status.mjs`) mới có hiệu lực.
 4. Mỗi PR sửa vòng tự động chạy thử trong đúng môi trường launchd (`env -i` + PATH của cron) trước khi merge.
 
 ## 5. Đề xuất cho Codex review
