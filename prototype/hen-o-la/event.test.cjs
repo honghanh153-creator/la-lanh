@@ -166,20 +166,76 @@ test('every carried item has something to put on the table', () => {
   assert.equal(H.itemThing('diều giấy'), 'dieu');
 });
 
-test('gestures at a locked rotation table keep you seated (fix-forward #320)', () => {
+test('the shared seat rule: every free gesture keeps you seated, place acts get you up (fix-forward #320)', () => {
   // Every free gesture is one you can make from a chair (README: they do not make you stand up).
   assert.deepEqual([...H.SEATED_GESTURES].sort(), [...H.FREE_ACTS].sort());
-  for (const act of H.FREE_ACTS) {
-    const b = { sit: true, seatKind: 'table', task: true, locked: true };
-    if (!H.keepsSeat(act)) Object.assign(b, { sit: false, seatKind: null, task: false });
-    assert.equal(b.sit, true, act + ' must not stand you up at a locked table');
-    assert.equal(b.seatKind, 'table', act);
-  }
+  for (const act of H.FREE_ACTS) assert.equal(H.keepsSeat(act), true, act);
   for (const act of ['docsach', 'tuoicay', 'goido', 'vuotcho', 'nam']) assert.equal(H.keepsSeat(act), false, act + ' gets you up');
-  // Both controllers use the shared rule instead of their own lists (the old lists left out Nhảy).
-  const fs = require('node:fs'), path = require('node:path');
-  for (const f of ['game.js', 'quan.js']) {
-    const src = fs.readFileSync(path.join(__dirname, f), 'utf8');
-    assert.match(src, /if \(!H\.keepsSeat\(act\)\)/, f);
+});
+
+// Runs a page controller (game.js / quan.js) in node with an inert DOM, so tests drive its real
+// action path through the window.__hen / window.__quan hooks instead of copying its logic.
+function loadController(file) {
+  const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
+  const handler = {
+    get(t, k) {
+      if (k === Symbol.toPrimitive) return hint => (hint === 'number' ? 0 : '');
+      if (k === Symbol.iterator) return function* () {};
+      if (k === 'length') return 0;
+      if (k === 'then') return undefined;
+      if (!Object.prototype.hasOwnProperty.call(t, k)) t[k] = node();
+      return t[k];
+    },
+    apply: () => node(),
+    construct: () => node()
+  };
+  function node() { return new Proxy(function () {}, handler); }
+  const document = node();
+  document.hidden = false;
+  const math = Object.create(Math);
+  math.random = H.rng(7);
+  const g = {
+    console, Math: math, URLSearchParams, document, location: { search: '' },
+    performance: { now: () => 0 }, setTimeout: () => 0, clearTimeout() {}, requestAnimationFrame: () => 0,
+    matchMedia: () => ({ matches: false, addEventListener() {} }), addEventListener() {}, devicePixelRatio: 1
+  };
+  g.window = g;
+  vm.createContext(g);
+  for (const f of ['../game-lab-14/engine.js', 'world.js', 'room.js', 'life.js', 'event.js', 'cafe.js', file]) {
+    const full = path.join(__dirname, f);
+    vm.runInContext(fs.readFileSync(full, 'utf8'), g, { filename: full });
   }
+  return g;
+}
+const seatState = b => ({ sit: b.sit, seatKind: b.seatKind, task: b.task, locked: b.locked });
+
+test('dancing at a locked rotation seat keeps you seated (game.js, fix-forward #320/#324)', () => {
+  const hen = loadController('game.js').__hen;
+  hen.begin();
+  hen.next(); // Màn 2: the host locks everyone to a rotation seat
+  assert.equal(hen.phase(), 'xoayban');
+  for (let i = 0; i < 40 && !hen.me().sit; i++) hen.step(250);
+  hen.act('layra');
+  const before = seatState(hen.me());
+  assert.deepEqual(before, { sit: true, seatKind: 'table', task: true, locked: true });
+  hen.act('nhay');
+  assert.equal(hen.me().act, 'nhay', 'the dance actually ran');
+  assert.deepEqual(seatState(hen.me()), before);
+});
+
+test('dancing at a table seat keeps you seated with your things out (quan.js, fix-forward #320/#324)', () => {
+  const quan = loadController('quan.js').__quan;
+  const W = require('./world.js');
+  const [tx, ty] = W.TABLES[0].seats[0];
+  for (const b of quan.people.values()) if (b.npc) quan.people.delete(b.id); // keep the seat free
+  assert.ok(quan.walkTo(tx, ty) !== false);
+  for (let i = 0; i < 40 && quan.me().path; i++) quan.step(250);
+  quan.act('ngoi');
+  quan.act('lamviec');
+  quan.me().locked = true; // the café has no rotation lock; dancing must still leave the flag alone
+  const before = seatState(quan.me());
+  assert.deepEqual(before, { sit: true, seatKind: 'table', task: true, locked: true });
+  quan.act('nhay');
+  assert.equal(quan.me().act, 'nhay', 'the dance actually ran');
+  assert.deepEqual(seatState(quan.me()), before);
 });
