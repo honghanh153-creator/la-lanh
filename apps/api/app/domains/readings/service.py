@@ -192,7 +192,7 @@ class InsightReadingService:
 
     def overview(self, chart: NatalChart, *, observed_at: datetime) -> InsightReading:
         provenance, config_hash = chart.provenance, chart.config_hash
-        chart = self._readable_chart(chart)
+        chart = self.readable_chart(chart)
         claims = list(
             self._jyotish_claims(chart)
             if chart.config.tradition is Tradition.JYOTISH
@@ -237,7 +237,7 @@ class InsightReadingService:
         )
 
     @staticmethod
-    def _readable_chart(chart: NatalChart) -> NatalChart:
+    def readable_chart(chart: NatalChart) -> NatalChart:
         """The tiles read at the same data level as the synthesis (#143 E4).
 
         An approximate time computes the chart at the window's midpoint. The synthesis keeps only
