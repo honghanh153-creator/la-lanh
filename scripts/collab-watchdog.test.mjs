@@ -127,6 +127,36 @@ test('the tick runs the watchdog even when the plan is closed, and a watchdog er
   assert.equal(ran, 2);
 });
 
+test('S8 part 2: the shared ops-alert closes only when every stalled task has a new done beat', () => {
+  const t0 = ms('2026-11-20T03:00:00Z'); // 10:00 VN
+  for (const task of ['la-lanh-autopilot', 'la-lanh-ops-watch', 'la-lanh-retro']) beat(task, 'done', t0);
+  const resolved = [];
+  let ghUp = true;
+  const run = at => watch({ nowMs: at, alert: () => {}, notify: () => {}, resolve: t => { if (!ghUp) throw new Error('gh down'); resolved.push(t); } });
+  run(t0); // drains any queued alert left by earlier tests
+  resolved.length = 0;
+  // Autopilot (13:00 VN) and the server check (18:00 VN) both stall and alert.
+  assert.deepEqual(run(t0 + 3 * H).alerted, ['la-lanh-autopilot']);
+  assert.deepEqual(run(t0 + 8 * H).alerted, ['la-lanh-ops-watch']);
+  // Autopilot recovers while the server check still stalls: the issue stays open.
+  beat('la-lanh-autopilot', 'done', t0 + 8 * H + 60000);
+  assert.deepEqual(run(t0 + 8 * H + 120000).resolved, []);
+  assert.equal(resolved.length, 0, 'one task still stalls, so nothing is closed');
+  // The server check recovers too, but GitHub is down: retried on the next tick.
+  beat('la-lanh-ops-watch', 'done', t0 + 9 * H);
+  ghUp = false;
+  assert.deepEqual(run(t0 + 9 * H + 60000).resolved, []);
+  ghUp = true;
+  const r = run(t0 + 9 * H + 600000);
+  assert.deepEqual(r.resolved, ['la-lanh-ops-watch']);
+  assert.equal(resolved.length, 1);
+  assert.match(resolved[0], /Kiểm tra server.*đã chạy xong lại lúc 20\.11 \d\d:\d\d, không còn tác vụ hẹn giờ nào bị treo/);
+  // Closed once; a quiet tick afterwards does not close again.
+  beat('la-lanh-autopilot', 'done', t0 + 9 * H + 900000);
+  assert.deepEqual(run(t0 + 9 * H + 1200000).resolved, []);
+  assert.equal(resolved.length, 1);
+});
+
 test('fix D: a start with no done for over 30 minutes is stuck, recorded and alerted, never killed', async () => {
   const { isRunning, isStuck, stuckMinutes } = await import('./collab-watchdog.mjs');
   const t0 = ms('2026-11-10T03:00:00Z'); // 10:00 VN, before autopilot's 11:00 watch window

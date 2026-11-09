@@ -96,13 +96,21 @@ const osNotify = text => execFileSync('/usr/bin/osascript', ['-e', `display noti
 // One alert per stale episode and channel. A channel that failed is retried on the next tick; a
 // new done beat ends the episode, so the next stall alerts again. Hours when a task is not watched
 // (autopilot before 11:00) keep the marker, so one stall does not alert again every morning.
-export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify } = {}) {
+// S8 part 2 (retro 08.11, K35): every task shares one ops-alert issue, so it is resolved only when
+// a task whose alert reached GitHub has a new done beat AND no task is stale or has a queued alert
+// this tick. One task recovering while another still stalls keeps the issue open.
+export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify, resolve = () => {} } = {}) {
   const beats = readBeats(nowMs);
   const stale = staleTasks(beats, nowMs);
   const stuck = markStuck(beats, nowMs);
   const sent = readJson(alertPath(), {});
   const episode = task => beats[task]?.doneAt ?? 'none';
-  for (const task of Object.keys(sent)) if (sent[task]?.episode !== episode(task)) delete sent[task];
+  const recovered = [];
+  for (const task of Object.keys(sent)) {
+    if (sent[task]?.episode === episode(task)) continue;
+    if (sent[task]?.alert) recovered.push(task);
+    delete sent[task];
+  }
   const alerted = [];
   for (const s of stale) {
     const mark = sent[s.task] ?? { episode: episode(s.task), notify: false, alert: false };
@@ -119,10 +127,18 @@ export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify 
     sent[s.task] = mark;
     alerted.push(s.task);
   }
-  writeJson(alertPath(), sent);
   // Stuck-step alerts queued by runGroup during a check (never sent inline).
   const queued = deliverPendingAlerts({ alert });
-  return { stale: stale.map(s => s.task), alerted, stuck, queued };
+  let resolved = [];
+  if (recovered.length && !stale.length && !queued.sent && !queued.left) {
+    const labels = recovered.map(task => watched[task].label).join(', ');
+    try { resolve(`${labels}: đã chạy xong lại lúc ${hhmm(nowMs)}, không còn tác vụ hẹn giờ nào bị treo.`); resolved = recovered; } catch {
+      // GitHub down: keep the marker so the next tick tries to close the issue again.
+      for (const task of recovered) sent[task] = { episode: 'resolve-pending', notify: true, alert: true };
+    }
+  }
+  writeJson(alertPath(), sent);
+  return { stale: stale.map(s => s.task), alerted, stuck, queued, resolved };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
