@@ -19,6 +19,8 @@ execution: code
 
 ---
 
+> **Đã thay lịch 10:00 (owner 30/10).** Lịch "ngừng nhận và trả bài lúc 10:00" trong plan này đã được thay bằng quyết định owner 30/10: **ngừng nhận 18:00, trả bài 22:00** cùng ngày, giờ Việt Nam. Nguồn chuẩn: `docs/user-stories/US-24-tarot-nguoi-that-boc.md` (OD1, KD2, AC08, AC10) và `docs/foundation/la-lanh-srs.md` §5.7. Các chỗ 10:00 bên dưới (Summary, R6, R9, KD2, F2, F3, A1, U4) được giữ dạng gạch ngang để đọc lại lịch sử; khi triển khai và kiểm thử, dùng giờ ở US-24/SRS.
+
 ## Product Contract
 
 ### Summary
@@ -26,7 +28,7 @@ execution: code
 Mình có thêm đường sửa ngày sinh sau khi lưu.
 Tarot có hai lựa chọn: tự bốc với luồng hiện tại, hoặc nhờ người thật bốc và viết bài.
 Lựa chọn người thật nhận tối đa 10 lượt một ngày; mỗi lượt đi vào một Google Sheet riêng của owner ngay sau khi app ghi nhận.
-Owner viết bài trong Sheet, đánh dấu hoàn tất, app lấy bài và mở cho đúng người dùng từ 10h cùng ngày theo giờ Việt Nam.
+Owner viết bài trong Sheet, đánh dấu hoàn tất, app lấy bài và mở cho đúng người dùng từ ~~10h~~ 22:00 cùng ngày theo giờ Việt Nam (đã thay theo US-24 OD1, owner 30/10).
 
 ### Problem Frame
 
@@ -46,10 +48,10 @@ Người dùng cần phân biệt rõ bài tự bốc và bài người thật, 
 
 - R4. Lựa chọn người thật là một luồng riêng, có người thật bốc và viết; không dùng AI thay thế âm thầm. Luồng tự bốc hiện tại vẫn dùng được và không tiêu hạn mức người thật.
 - R5. Server nhận tối đa 10 yêu cầu thành công toàn app mỗi ngày lịch `Asia/Ho_Chi_Minh`, mỗi phiên chủ thể tối đa một lượt trong ngày. Huỷ, xoá, retry, restart và nhiều worker không hoàn lại hạn mức đã nhận. Đây là cận trên 10 lượt, không phải bằng chứng nhận diện 10 con người khác nhau.
-- R6. Không nhận yêu cầu mới từ 10:00 tới hết ngày; không tự xếp sang hôm sau. Bài của lượt nhận hôm nay có giờ hẹn 10:00 hôm nay, không cho chọn giờ khác. Retry lượt đã nhận vẫn xem được biên nhận sau giờ đóng.
+- R6. Không nhận yêu cầu mới từ ~~10:00~~ 18:00 tới hết ngày; không tự xếp sang hôm sau. Bài của lượt nhận hôm nay có giờ hẹn ~~10:00~~ 22:00 hôm nay, không cho chọn giờ khác. (Đã thay theo US-24 OD1, owner 30/10.) Retry lượt đã nhận vẫn xem được biên nhận sau giờ đóng.
 - R7. App cố gắng ghi ngay lượt đã nhận vào đúng một file Sheet của owner; nếu Google lỗi phải hiện trạng thái đồng bộ, giữ việc đã nhận và không để gửi lại tạo lượt thứ hai. Mục tiêu bình thường là đồng bộ trong 5 giây; chưa chuyển được không được báo là owner đã thấy.
 - R8. Owner điền các lá, bài đọc và bước nhỏ trong Sheet, rồi đánh dấu `Sẵn sàng`. App chỉ nhập bài đầy đủ, hợp lệ của đúng mã yêu cầu; bản nháp không bao giờ được trả cho người dùng.
-- R9. Trước 10h API chỉ trả trạng thái và giờ hẹn. Từ 10h API cho chủ thể đọc bản người thật đã nhập và đóng băng; nếu chưa có bài hợp lệ thì hiện đang chờ, không tự tạo kết quả để đủ giờ. 10h là thời điểm trả bài dự kiến, không phải cam kết con người hoặc mạng luôn hoàn thành đúng giây.
+- R9. Trước ~~10h~~ 22:00 API chỉ trả trạng thái và giờ hẹn. Từ ~~10h~~ 22:00 API cho chủ thể đọc bản người thật đã nhập và đóng băng; nếu chưa có bài hợp lệ thì hiện đang chờ, không tự tạo kết quả để đủ giờ. ~~10h~~ 22:00 là thời điểm trả bài dự kiến, không phải cam kết con người hoặc mạng luôn hoàn thành đúng giây. (Đã thay theo US-24 OD1/AC08, owner 30/10.)
 - R10. Người dùng quay lại app để xem bài, có nút kiểm tra lại; không cần mở app liên tục. Không thêm push, email, SMS, chat hay thanh toán trong bản đầu.
 
 #### Privacy and operating limits
@@ -62,16 +64,16 @@ Người dùng cần phân biệt rõ bài tự bốc và bài người thật, 
 ### Key decisions
 
 - KD1. Người thật bốc và viết, không phải người dùng tự chọn rồi chỉ hẹn giờ hiện. `(session-settled: user-directed, chosen over scheduled self-draw: owner xác nhận người thật.)` Governs R4, R8.
-- KD2. Một đợt trả bài 10h cùng ngày và đóng nhận sau 10h; không nhận cho hôm sau. `(session-settled: user-directed, chosen over next-day queue: owner yêu cầu hôm sau mở lại.)` Governs R6, R9.
+- KD2. Một đợt trả bài ~~10h~~ 22:00 cùng ngày và đóng nhận ~~sau 10h~~ từ 18:00 (đã thay theo US-24 OD1, owner 30/10); không nhận cho hôm sau. `(session-settled: user-directed, chosen over next-day queue: owner yêu cầu hôm sau mở lại.)` Governs R6, R9.
 - KD3. Owner nhận và viết trong một Google Sheet, thay cho công cụ quản trị riêng. `(session-settled: user-directed, chosen over operator dashboard/CLI: owner chọn nơi làm việc quen thuộc.)` Governs R7, R8, R12.
 
 ### Flows and copy draft
 
 F1. Mình → Ngày sinh → Sửa → xem tác động → nhập ngày hai lần → xác nhận → Lá mới. Bảng tác động của #113 phải nói lời mời chưa được chấp nhận sẽ ngừng hoạt động, gồm lời mời đã mở. Người dùng vẫn quản lý được bản lưu/link cũ.
 
-F2. Tarot → "Tự bốc ngay" hoặc "Nhờ người bốc". Lựa chọn người thật hiện "Tối đa 10 lượt/ngày · Trả bài lúc 10:00 hôm nay". Bên dưới có giờ Việt Nam, tình trạng còn lượt và thông tin consent R11 trước nút gửi. Hết lượt hiện "Hôm nay đã đủ 10 lượt. Bạn có thể quay lại ngày mai hoặc tự bốc ngay." Sau giờ nhận hiện "Hôm nay đã ngừng nhận lượt. Ngày mai bạn quay lại nhé."
+F2. Tarot → "Tự bốc ngay" hoặc "Nhờ người bốc". Lựa chọn người thật hiện "Tối đa 10 lượt/ngày · Trả bài lúc ~~10:00~~ 22:00 hôm nay" (copy hiện hành ở US-24 mục copy). Bên dưới có giờ Việt Nam, tình trạng còn lượt và thông tin consent R11 trước nút gửi. Hết lượt hiện "Hôm nay đã đủ 10 lượt. Bạn có thể quay lại ngày mai hoặc tự bốc ngay." Sau giờ nhận hiện "Hôm nay đã ngừng nhận lượt. Ngày mai bạn quay lại nhé."
 
-F3. Gửi thành công → "Đã nhận câu hỏi · Hẹn bạn lúc 10:00, dd/MM". Chưa chuyển sang Sheet hiện thêm "Đang chuyển tới người bốc". Sau khi chuyển được mới đổi thành "Người bốc đã nhận câu hỏi". App không dùng câu này làm bằng chứng owner đã đọc.
+F3. Gửi thành công → "Đã nhận câu hỏi · Hẹn bạn lúc ~~10:00~~ 22:00, dd/MM" (copy hiện hành ở US-24). Chưa chuyển sang Sheet hiện thêm "Đang chuyển tới người bốc". Sau khi chuyển được mới đổi thành "Người bốc đã nhận câu hỏi". App không dùng câu này làm bằng chứng owner đã đọc.
 
 F4. Owner xem hàng mới trong Sheet → bốc theo số lá đã hiện → điền bài và bước nhỏ → kiểm câu hỏi tương ứng → tick Sẵn sàng → thấy cột app xác nhận "Đã nhận bài" hoặc lỗi trường cần sửa. Không nhập nội dung qua GitHub, email hoặc cuộc chat agent.
 
@@ -87,7 +89,7 @@ Không lấy connector Google của cuộc chat làm kết nối production ch�
 
 ### Assumptions and open choices
 
-- A1. Giờ nhận sớm hơn 10h chưa được owner chốt. Đề xuất 09:00 để có thời gian bốc/viết. Không tự đưa 09:00 vào hành vi chính thức; trước khi có quyết định, R6 là cận đóng 10h và R9 có trạng thái chậm rõ ràng. Muốn quảng bá bảo đảm đúng 10h phải chốt giờ ngừng nhận và khả năng phục vụ của owner trước launch.
+- A1. **Đã chốt (owner 30/10, US-24 OD1): ngừng nhận 18:00, trả bài 22:00.** Ghi chú cũ giữ để đọc lịch sử: ~~Giờ nhận sớm hơn 10h chưa được owner chốt. Đề xuất 09:00 để có thời gian bốc/viết. Không tự đưa 09:00 vào hành vi chính thức; trước khi có quyết định, R6 là cận đóng 10h và R9 có trạng thái chậm rõ ràng. Muốn quảng bá bảo đảm đúng 10h phải chốt giờ ngừng nhận và khả năng phục vụ của owner trước launch.~~
 - A2. Một lượt mỗi phiên chủ thể/ngày là chính sách chống chiếm lượt nhẹ, không thêm đăng nhập bắt buộc hay lấy số điện thoại. Giới hạn toàn app vẫn là R5 dù tạo nhiều phiên.
 - A3. Đề xuất retention cho luồng mới: bản live trong Sheet và câu hỏi thô trong app hết mục đích sau khi nhận bài, tối đa 24h từ giờ hẹn; bài đã đóng băng trong app tối đa 30 ngày từ giờ hẹn, có thể mất sớm theo guest deletion/clear. Bài chưa hoàn tất hết ngày thì kết thúc không có kết quả. Owner cần duyệt retention/copy này trước dữ liệu thật; không kế thừa 30 ngày cho câu hỏi trên Google một cách ngầm định.
 - A4. Cần xác minh một identity kết nối Google server-side có quyền chỉ trên file đã duyệt. Chưa có chứng cứ credential phù hợp đã tồn tại; cấu hình quyền/secret là việc riêng cần owner cho phép. Không mở Google login cho người dùng vì tính năng này.
@@ -118,7 +120,7 @@ Không có solutions corpus hoặc Compound Pack được khai báo cho chủ đ
 
 Không chọn Sheet làm nguồn quota/quyền xem vì chỉnh hàng, timeout và nhiều request đồng thời không chứng minh được R5.
 Không chọn tự động Apps Script hoặc webhook vì cần thêm bề mặt xác thực và phụ thuộc vận hành không cần cho 10 lượt.
-Việc mở đúng giờ là kiểm thời gian khi đọc dữ liệu đã nhập; không cần một job riêng để "phát hành" 10h.
+Việc mở đúng giờ là kiểm thời gian khi đọc dữ liệu đã nhập; không cần một job riêng để "phát hành" ~~10h~~ 22:00.
 
 ### High-level technical design
 
@@ -131,7 +133,7 @@ flowchart TB
   Owner[Owner bốc và viết] --> Sheet
   Sync[Job nhập bài / retry / xoá] <--> Sheet
   Sync --> DB
-  API --> Time{Server đã tới 10h và có bài hợp lệ?}
+  API --> Time{Server đã tới 22:00 và có bài hợp lệ?}
   DB --> Time
   Time -->|Có| Result[Bài riêng cho đúng chủ thể]
   Time -->|Chưa| Waiting[Trạng thái chờ, không có bài nháp]
@@ -210,7 +212,7 @@ Giá/quota Google phải xác minh lại ở lúc bật thật. Trần phút nà
 
 ### Launch choices still requiring a decision or evidence
 
-1. Giờ ngừng nhận trước 10h và mức cam kết đúng giờ theo A1.
+1. ~~Giờ ngừng nhận trước 10h và mức cam kết đúng giờ theo A1.~~ Đã chốt owner 30/10 (US-24 OD1): ngừng nhận 18:00, trả bài 22:00.
 2. Retention/copy A3 và xử lý Google history/backup; không coi checkbox consent là đã giải quyết hết P09/P10.
 3. File/identity Google cụ thể, quyền truy cập và điều kiện dịch vụ theo A4/KTD7. Không nhờ khách đăng nhập Google.
 
@@ -263,9 +265,9 @@ Files: domain mới `apps/api/app/domains/human_tarot/`, route mới `apps/api/a
 Approach: Schema chặt, tái dùng intake an toàn và số lá/map đã chọn; APIs nhỏ gồm availability, create, get-current/get-owned và cancel/delete; session/CSRF/Origin/no-store như Tarot. Lưu consent, idempotency, encrypted payload và quota transaction. Không gửi Google trong lock.
 Test scenarios:
 - 20 chủ thể gửi đồng thời cho tối đa 10 thành công; cùng key/nhiều worker vẫn một receipt và một debit.
-- Khoá chờ qua 10h thì request mới bị từ chối; replay cũ vẫn có receipt; local-day rollover đúng giờ Việt Nam.
+- Khoá chờ qua giờ đóng nhận (~~10h~~ 18:00, US-24 OD1) thì request mới bị từ chối; replay cũ vẫn có receipt; local-day rollover đúng giờ Việt Nam.
 - Huỷ/xoá/clear/expiry/restore không giảm quota hoặc hồi sinh yêu cầu.
-- GET trái chủ thể không thấy bài; 09:59:59 không thấy payload dù đã Ready; 10:00:00 có bài nếu đã Ready.
+- GET trái chủ thể không thấy bài; ~~09:59:59~~ 21:59:59 không thấy payload dù đã Ready; ~~10:00:00~~ 22:00:00 có bài nếu đã Ready (đã thay theo US-24 AC08, owner 30/10).
 Verification: Có chứng cứ concurrency DB cho cap và xoá; không dùng middleware memory làm bằng chứng cap toàn app.
 
 ### U5. Add the bounded two-way Sheet bridge
@@ -301,7 +303,7 @@ Dependencies: U1–U6; tách release sửa ngày sinh và pilot người thật 
 Files: US-23, US-20 bổ sung luồng người thật, SRS, `docs/legal/store-privacy-data-map.md`, privacy policy, runbook Google mới, registry, E2E và receipt review.
 Approach: Giữ ma trận AC, full check exact combined head, copy mẫu người dùng/owner, rehearsal synthetic ngày/mạng/xoá. Liệt kê riêng operator evidence còn thiếu và các launch choices; không tự gỡ P07/B.
 Test scenarios:
-- Chuỗi nhận → Sheet → owner ghi → import → mở lúc10h → xoá/clear Google không đổi người hoặc lộ sớm.
+- Chuỗi nhận → Sheet → owner ghi → import → mở lúc ~~10h~~ 22:00 → xoá/clear Google không đổi người hoặc lộ sớm.
 - Backup/replay, Google unavailable và owner không hoàn thành không dẫn tới giả thành công.
 Verification: Reviewer có receipt độc lập và owner có hướng dẫn 10 lượt/giờ hẹn rõ; không tuyên bố full compliance hoặc release Go từ test xanh.
 
@@ -318,7 +320,7 @@ Mỗi receipt ghi exact SHA, môi trường và pass/fail; giữ cả red setup/
 | Nhóm | Bằng chứng cần có |
 | --- | --- |
 | Sửa ngày sinh | Lifecycle upgrade/downgrade; pointer/delete ordering; same-date/stale/age/rollback; gửi đang bay; hai phía dump; unsave/revoke sau sửa |
-| Nhận 10 lượt | DB contention, unique/idempotency, quota không hoàn, restart, 10h boundary, local day |
+| Nhận 10 lượt | DB contention, unique/idempotency, quota không hoàn, restart, ~~10h~~ 18:00/22:00 boundary, local day |
 | Sheet | RAW, retry ambiguous write, mapping/mismatch, ready validation, freeze, 429/credential failure, late day/cancel fencing |
 | Privacy | Payload inventory mới; consent riêng; at-rest encryption; API/log canaries; scope/file ACL; erasure và bản sao Google |
 | Frontend | Tự bốc giữ hành vi; người thật đủ states; cache/owner change; mobile/accessibility; E2E tổng hợp |
