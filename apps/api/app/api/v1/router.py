@@ -3,8 +3,10 @@ from fastapi import APIRouter
 from app.api.v1.routes.accounts import router as accounts_router
 from app.api.v1.routes.birth_profiles import router as birth_profiles_router
 from app.api.v1.routes.daily_notes import router as daily_notes_router
+from app.api.v1.routes.data_export import router as data_export_router
 from app.api.v1.routes.guest_sessions import router as guest_sessions_router
 from app.api.v1.routes.history import router as history_router
+from app.api.v1.routes.human_tarot import router as human_tarot_router
 from app.api.v1.routes.identity import router as identity_router
 from app.api.v1.routes.insights import router as insights_router
 from app.api.v1.routes.la_chung import public_router as la_chung_public_router
@@ -21,6 +23,7 @@ router = APIRouter()
 router.include_router(system_router, tags=["system"])
 router.include_router(guest_sessions_router, tags=["guest"])
 router.include_router(history_router, tags=["history"])
+router.include_router(data_export_router, tags=["privacy"])
 router.include_router(accounts_router, tags=["account"])
 router.include_router(identity_router, tags=["identity"])
 router.include_router(birth_profiles_router, tags=["birth-chart"])
@@ -34,3 +37,4 @@ router.include_router(daily_notes_router, tags=["daily-note"])
 router.include_router(saved_notes_router, tags=["saved-notes"])
 router.include_router(share_artifacts_router, tags=["share"])
 router.include_router(tarot_router, tags=["tarot"])
+router.include_router(human_tarot_router, tags=["human-tarot"])

@@ -18,7 +18,7 @@ Architecture and API matrix: [account IAM and retention](../architecture/account
 
 ## Browser proof
 
-Dedicated ephemeral QA at `http://localhost:5350`, API 8050; synthetic DOB 15/03/1990. Auth delivery and paid rewriting disabled. Different hostname from the user's `127.0.0.1:5310` protects that review session from cookie replacement.
+Dedicated ephemeral QA at `http://localhost:5350`, API 8050; synthetic DOB 08/03/1991. Auth delivery and paid rewriting disabled. Different hostname from the user's `127.0.0.1:5310` protects that review session from cookie replacement.
 
 Observed: invalid old QA cookie → one click on welcome → DOB → Vibe · Mộng → correct current note → Mình; cancel history deletion preserves the profile; optional login accurately reports delivery off; continuing as guest keeps the same note. Returning to welcome and pressing the ordinary start button resumes Home instead of creating a new profile. Tarot question → server-locked spread → three selected cards → reveal → summary and expandable chapters completed without login or paid provider.
 

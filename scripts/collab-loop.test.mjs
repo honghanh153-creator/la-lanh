@@ -1,17 +1,18 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
-const { planState, renderPlan } = await import('./collab-plan.mjs');
+const { checksPerTick, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
+const preflightMod = await import('./collab-preflight.mjs');
+const { committedTurns, copyReview, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { checkBudgetMs, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { heavyJobFree, checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -20,7 +21,7 @@ let clock = 0;
 const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
 const outsider = body => ({ ...owner(body), authorAssociation: 'NONE' });
 const check = (sha, status = 'PASS') => owner(renderCheck({ head: sha, status, exitCode: status === 'PASS' ? 0 : 1, seconds: 1, date: 'x' }));
-const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: 'PR body', ...extra });
+const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra });
 
 function fakeGh(state) {
   const calls = [];
@@ -77,6 +78,9 @@ test('turns follow check → review → fix/merge on the exact head', () => {
   assert.equal(prTurn({ ...p, baseRefName: 'main' }).turn, 'hold');
   assert.equal(prTurn({ ...p, labels: [{ name: 'needs-owner' }] }).turn, 'hold');
   assert.equal(prTurn(p, { dropped: [7] }).turn, 'hold');
+  assert.equal(prTurn({ ...p, mergeable: 'CONFLICTING' }).turn, 'claude-fix', 'an approved PR in conflict goes to Claude, not to merge');
+  assert.equal(prTurn({ ...p, comments: [], mergeable: 'CONFLICTING' }).turn, 'claude-fix', 'no check on a head that cannot merge');
+  assert.equal(prTurn({ ...p, mergeable: 'UNKNOWN' }).turn, 'merge', 'GitHub still computing: collab-merge decides');
 });
 
 test('queue order is ops → content → privacy → feature, oldest first', () => {
@@ -161,6 +165,48 @@ test('review posts verdict, files fix-forward first, and records the output hash
   assert.equal(review.runReview(7, { gh, run: runner.run, readOut: () => raw }).status, 'refused', 'no second verdict for the same head');
 });
 
+test('fix-forward #238: a finding that lists 30 places keeps all of them in the verdict and the issue', () => {
+  const places = Array.from({ length: 30 }, (_, i) => `apps/web/src/features/synthetic/place${String(i).padStart(2, '0')}.tsx:${100 + i}`);
+  const detail = `Same pattern at: ${places.join(', ')}.`;
+  assert.ok(detail.length > 1200);
+  const state = { pr: pr({ comments: [check(A)] }) };
+  const gh = fakeGh(state);
+  const raw = JSON.stringify(output({ findings: [{ ...finding('P2', 'docs'), detail }] }));
+  assert.equal(review.runReview(7, { gh, run: fakeRun().run, readOut: () => raw, now: { date: '2026-11-05', hour: 11, minute: 0 } }).status, 'posted');
+  const body = gh.calls.find(c => c[0] === 'comment')[3];
+  const issue = gh.calls.find(c => c[0] === 'raw' && c[1][0] === 'issue' && c[1][1] === 'create')[2];
+  for (const text of [body, issue]) {
+    for (const place of places) assert.ok(text.includes(place), `${place} kept`);
+    assert.ok(!text.includes('[...truncated]'));
+  }
+});
+
+test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => {
+  let asked;
+  trust.makeGh((cmd, args) => { asked = args; return '[]'; }).openPrs();
+  assert.ok(asked.at(-1).split(',').includes('mergeable'));
+});
+
+test('a re-review across an integration merge reads only the PR files (K25)', () => {
+  const prior = owner(`Review verdict: REQUEST_CHANGES @ ${B}\n${trust.agentMarker} codex-auto-review sha=${B} p2=0 -->`);
+  const raw = JSON.stringify(output());
+  for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
+    const runner = fakeRun();
+    const base = runner.run;
+    const run = (cmd, args, opts) => {
+      if (cmd === '/usr/bin/git' && args[0] === 'rev-list' && args[1] === '--merges') return merges;
+      if (cmd === '/usr/bin/git' && args[0] === 'diff' && args[1] === '-z') return 'Open QA.command\0a"b.txt\0';
+      return base(cmd, args, opts);
+    };
+    review.runReview(7, { gh: fakeGh({ pr: pr({ comments: [prior, check(A)] }) }), run, readOut: () => raw, now: { date: '2026-11-02', hour: 11, minute: 0 } });
+    const input = runner.calls.find(c => c[0] === review.codexBin)[2].input;
+    assert.match(input, new RegExp(`git diff ${B}\\.\\.${A}`));
+    assert.equal(input.includes('la-lanh-review-delta.patch'), scoped);
+    const scopedDiff = runner.calls.find(c => c[0] === '/usr/bin/git' && c[1][0] === 'diff' && c[1].includes('--'));
+    assert.deepEqual(scopedDiff?.[1].slice(-2), scoped ? [':(literal)Open QA.command', ':(literal)a"b.txt'] : undefined, 'names reach git as literal paths');
+  }
+});
+
 test('review refuses without an author check, stops on limits, and escalates to the owner', () => {
   const now = { date: '2026-10-31', hour: 11, minute: 0 };
   assert.equal(review.runReview(7, { gh: fakeGh({ pr: pr() }), run: fakeRun().run, now }).status, 'refused');
@@ -184,7 +230,7 @@ test('review refuses without an author check, stops on limits, and escalates to 
 
 test('daily cap refuses automatic reviews', () => {
   const now = { date: '2026-11-01', hour: 12, minute: 0 };
-  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: 12 });
+  trust.writeJson(trust.dayStatePath(now.date), { codexRuns: trust.codexDailyCap });
   const result = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now });
   assert.equal(result.status, 'refused');
 });
@@ -276,7 +322,7 @@ test('r1: review errors count as tick failures and alert on the second', () => {
   assert.equal(alerts.length, 1);
 });
 
-test('r1: privacy and features wait until no content PR is in play', () => {
+test('r1: privacy and features wait while content has machine work; a content PR waiting for Claude does not block', () => {
   const date = '2026-11-05';
   const open = [
     pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
@@ -284,14 +330,17 @@ test('r1: privacy and features wait until no content PR is in play', () => {
     pr({ number: 3, title: 'feat(tarot): held', isDraft: true }),
   ];
   const merged = [];
-  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
-  assert.equal(result.area, 'content');
+  const content = pr({ number: 4, title: 'feat(tarot): needs a check' });
+  open.push(content);
+  const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, check: () => ({ status: 'FAIL' }), review: () => ({ status: 'posted' }) });
+  assert.equal(result.area, 'content', 'content machine work (#4 check) goes first');
   assert.deepEqual(merged, []);
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
-  assert.deepEqual(queue.items.map(i => i.number), [1]);
-  open[0].isDraft = true;
-  tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
-  assert.deepEqual(merged, [2], 'once content is only held, privacy proceeds');
+  assert.deepEqual(queue.items.map(i => i.number), [1], 'Claude still fixes content first');
+  open.pop();
+  const next = tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: n => { merged.push(n); return { status: 'merged' }; }, review: () => ({ status: 'posted' }) });
+  assert.equal(next.area, 'privacy', 'a content PR waiting for Claude does not stall the machine');
+  assert.deepEqual(merged, [2]);
 });
 
 test('r2: every CLI entry loads and exits without hanging on an import cycle', () => {
@@ -304,14 +353,18 @@ test('r2: every CLI entry loads and exits without hanging on an import cycle', (
 });
 
 test('r2 (#131): scheduled reviews read the clock after preparing the clone', () => {
-  const late = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now: { date: '2026-11-06', hour: 23, minute: 29 }, clock: () => ({ date: '2026-11-06', hour: 23, minute: 33 }) });
+  const late = review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: fakeRun().run, now: { date: '2026-11-06', hour: 23, minute: 29 }, nowMs: () => Date.parse('2026-11-06T12:00:00+07:00'), clock: () => ({ date: '2026-11-06', hour: 23, minute: 33 }) });
   assert.equal(late.status, 'refused');
   const runner = fakeRun();
-  review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-06', hour: 23, minute: 25 }) });
-  assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000);
+  review.runReview(7, { auto: true, gh: fakeGh({ pr: pr({ comments: [check(A)] }) }), run: runner.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-06', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-06T12:00:00+07:00'), clock: () => ({ date: '2026-11-06', hour: 23, minute: 25 }) });
+  // #243: Codex ends early enough to publish the verdict before 23:55.
+  assert.equal(runner.calls.find(c => c[0] === review.codexBin)[2].timeout, 30 * 60000 - review.reviewFinalizeReserveMs);
   const tight = fakeRun();
-  review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
-  assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000);
+  review.runReview(8, { auto: true, gh: fakeGh({ pr: pr({ number: 8, comments: [check(A)] }) }), run: tight.run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-07', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-07T12:00:00+07:00'), clock: () => ({ date: '2026-11-07', hour: 23, minute: 29 }) });
+  assert.equal(tight.calls.find(c => c[0] === review.codexBin)[2].timeout, 26 * 60000 - review.reviewFinalizeReserveMs);
+  const none = fakeRun();
+  assert.equal(review.runReview(9, { auto: true, gh: fakeGh({ pr: pr({ number: 9, comments: [check(A)] }) }), run: none.run, now: { date: '2026-11-07', hour: 23, minute: 0 }, nowMs: () => Date.parse('2026-11-07T12:00:00+07:00'), clock: () => ({ date: '2026-11-07', hour: 23, minute: 50 }) }).status, 'refused');
+  assert.ok(!none.calls.some(c => c[0] === review.codexBin), 'no Codex run without room to publish');
 });
 
 test('r3: the tick runs one author check itself, then reviews that PR', () => {
@@ -321,10 +374,89 @@ test('r3: the tick runs one author check itself, then reviews that PR', () => {
   const result = tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}),
     check: n => { calls.push(['check', n]); return { status: 'PASS' }; }, review: n => { calls.push(['review', n]); return { status: 'posted' }; } });
   assert.equal(result.status, 'ran');
-  assert.deepEqual(calls, [['check', 1], ['review', 1]], 'one check per tick, reviewed in the same tick');
+  assert.deepEqual(calls, [['check', 1], ['check', 2], ['review', 1], ['review', 2]], 'fix E: ready PRs are checked back to back, then reviewed in the same tick');
   const failed = [];
   tick({ gh: plannedGh(open, date), now: { date, hour: 12, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: n => { failed.push(n); return {}; } });
   assert.deepEqual(failed, [], 'a FAIL is not reviewed');
+});
+
+test('owner data 03.11: the private guard expands dates and finds added lines, never removed ones', () => {
+  const terms = guardTerms('# synthetic only\ndate:2001-02-03\nZz Secret\n\n');
+  for (const spelling of ['2001-02-03', '03/02/2001', '3/2/2001', '03.02.2001', '20010203', 'zz secret']) assert.ok(terms.includes(spelling), spelling);
+  const diff = ['+++ b/apps/x.py', '@@ -1,0 +5,2 @@', '+ok line', '+born 03.02.2001', '+++ b/docs/y.md', '@@ -7 +7 @@', '-old ZZ SECRET', '+clean'].join('\n');
+  assert.deepEqual(guardHits(terms, { diff }), ['apps/x.py:6']);
+  assert.deepEqual(guardHits(terms, { diff: '', texts: { 'commit message': 'fix\nZZ secret here' } }), ['commit message']);
+  assert.deepEqual(guardHits([], { diff }), [], 'no list, nothing to block');
+});
+
+test('owner data 03.11: a guarded term fails the author check before pnpm runs and is never echoed', () => {
+  const never = () => { throw new Error('must not run pnpm'); };
+  const terms = () => guardTerms('zz-secret-term');
+  const gh = fakeGh({ pr: pr() });
+  const git = args => (args[0] === 'rev-parse' ? A : args.includes('-p') ? '+++ b/apps/fixture.ts\n@@ -0,0 +12 @@\n+const x = "zz-secret-term";' : '');
+  const result = runCheck(7, { gh, git, busy: () => null, spawn: never, terms });
+  assert.equal(result.status, 'FAIL');
+  const receipt = gh.calls.find(c => c[0] === 'comment')[3];
+  assert.equal(trust.parseAuthorCheck(receipt).status, 'FAIL');
+  assert.match(receipt, /dữ liệu riêng tư[\s\S]*apps\/fixture\.ts:12/);
+  assert.doesNotMatch(receipt, /zz-secret-term/);
+  assert.equal(runCheck(7, { gh: fakeGh({ pr: pr({ body: 'see ZZ-SECRET-TERM' }) }), git: args => (args[0] === 'rev-parse' ? A : ''), busy: () => null, spawn: never, terms }).status, 'FAIL', 'PR body is scanned');
+  const broken = args => { if (args.includes('-p')) throw new Error('no base'); return args[0] === 'rev-parse' ? A : ''; };
+  assert.equal(runCheck(7, { gh: fakeGh({ pr: pr() }), git: broken, busy: () => null, spawn: never, terms }).status, 'FAIL', 'fails closed without a diff');
+});
+
+test('#198 r1: every outgoing commit is scanned, the pushed refs are scanned, paths are masked', () => {
+  const terms = guardTerms('date:2001-02-03');
+  // Commit A adds the value, commit B removes it: the net diff is clean, the log patch is not.
+  const seen = [];
+  const git = args => { seen.push(args); return args.includes('-p') ? '+++ b/apps/a.ts\n@@ -0,0 +3 @@\n+x = "2001-02-03"\n+++ b/apps/a.ts\n@@ -3 +2,0 @@\n-x = "2001-02-03"' : ''; };
+  assert.deepEqual(privateHits({}, git, () => terms), ['apps/a.ts:3']);
+  assert.ok(seen.every(a => a.includes('log') && a.includes('-m') && a.includes('origin/collab/integration..HEAD')), 'author check scans the PR commits, merges included');
+  // Pre-push: each pushed ref, every commit the remote lacks; a deleted ref sends nothing.
+  const Z = '0'.repeat(40);
+  assert.deepEqual(prePushRanges(`refs/heads/a ${A} refs/heads/a ${Z}\nrefs/heads/b ${B} refs/heads/b ${A}\n(delete) ${Z} refs/heads/c ${A}\n`), [[A, '--not', '--remotes=origin'], [B, '--not', '--remotes=origin']]);
+  const ranges = [];
+  privateHits({}, args => { if (args.includes('-p')) ranges.push(args.slice(-3)); return ''; }, () => terms, prePushRanges(`refs/heads/b ${B} refs/heads/b ${A}`));
+  assert.deepEqual(ranges, [[B, '--not', '--remotes=origin']]);
+  // A path holding the value is a hit, and the receipt masks it.
+  const hits = guardHits(terms, { diff: '+++ b/fixtures/2001-02-03.txt\n@@ -0,0 +1 @@\n+fine' });
+  assert.deepEqual(hits, ['fixtures/[ẩn].txt']);
+  assert.doesNotMatch(renderCheck({ head: A, status: 'FAIL', exitCode: 'guard', seconds: 0, date: 'd', guard: hits }), /2001-02-03/);
+});
+
+test('#198 r2: real git history — a merge resolution and a rename-only change are caught', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-repo-'));
+  const run = args => String(execFileSync('/usr/bin/git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'commit.gpgsign=false', ...args], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).trim();
+  const write = (name, text) => writeFileSync(join(dir, name), text);
+  const terms = () => guardTerms('date:2001-02-03');
+  run(['init', '-q', '-b', 'main']);
+  write('a.txt', 'base\n'); write('sample.txt', 'same\n');
+  run(['add', '.']); run(['commit', '-qm', 'base']);
+  run(['update-ref', 'refs/remotes/origin/collab/integration', 'HEAD']);
+  run(['checkout', '-qb', 'side']); write('b.txt', 'side\n'); run(['add', '.']); run(['commit', '-qm', 'side']);
+  run(['checkout', '-q', 'main']); write('c.txt', 'main\n'); run(['add', '.']); run(['commit', '-qm', 'main']);
+  assert.deepEqual(privateHits({}, run, terms), [], 'clean history passes');
+  // The merge resolution alone adds the value: neither parent nor any message has it.
+  run(['merge', '-q', '--no-ff', '--no-commit', 'side']); write('a.txt', 'base\nresolved 2001-02-03\n'); run(['add', '.']); run(['commit', '-qm', 'merge side']);
+  assert.deepEqual(privateHits({}, run, terms), ['a.txt:2']);
+  run(['reset', '-q', '--hard', 'HEAD~1']);
+  // A rename with no content change: no +++ header with the new name, still a hit, shown masked.
+  run(['mv', 'sample.txt', '2001-02-03.txt']); run(['commit', '-qm', 'rename']);
+  assert.deepEqual(privateHits({}, run, terms), ['[ẩn].txt']);
+  // An empty new file has no hunk at all.
+  run(['reset', '-q', '--hard', 'HEAD~1']); write('03.02.2001', ''); run(['add', '.']); run(['commit', '-qm', 'empty']);
+  assert.deepEqual(privateHits({}, run, terms), ['[ẩn]']);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('#198 r1: an unreadable guard list blocks instead of switching the guard off', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-'));
+  assert.deepEqual(readGuardTerms(join(dir, 'absent.txt')), [], 'no file: no guard');
+  assert.throws(() => readGuardTerms(dir), /unreadable/, 'a directory at the path is an error');
+  assert.deepEqual(privateHits({}, () => '', () => readGuardTerms(dir)), ['danh sách chặn không đọc được']);
+  const never = () => { throw new Error('must not run pnpm'); };
+  assert.equal(runCheck(7, { gh: fakeGh({ pr: pr() }), git: args => (args[0] === 'rev-parse' ? A : ''), busy: () => null, spawn: never, terms: () => readGuardTerms(dir) }).status, 'FAIL');
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test('r3: author check runs alone, with CI=1, in the given checkout', () => {
@@ -425,6 +557,22 @@ test('retro D3: the plan says when the Mac stopped ticking', () => {
   assert.doesNotThrow(() => trust.assertAgentBody(body));
 });
 
+test('owner 03.11: the plan commits 16–20 PRs and says how the % is counted', () => {
+  const many = turnsFor(Array.from({ length: 24 }, (_, i) => pr({ number: 20 + i, createdAt: `2026-10-${10 + i}T00:00:00Z` })).concat(pr({ number: 99, isDraft: true })));
+  const committed = committedTurns(many);
+  assert.equal(committed.length, 20, 'never more than 20');
+  assert.ok(!committed.some(t => t.number === 99), 'a held PR is not committed');
+  const body = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, many, { codexLeft: 12 });
+  assert.match(body, /Cam kết hôm nay \(16–20 PR\):\*\* #\d+(, #\d+){19}\./);
+  assert.match(body, /Lượt Codex tự động còn hôm nay: 12\/32\./);
+  assert.match(body, /% hôm nay = số PR cam kết đã merge/);
+  assert.doesNotMatch(body, /Còn thiếu/);
+  const few = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 12 });
+  assert.match(few, /Cam kết hôm nay \(16–20 PR\):\*\* #7\./);
+  assert.match(few, /Còn thiếu 15 PR so với mức 16/);
+  assert.doesNotThrow(() => trust.assertAgentBody(body));
+});
+
 test('false FAIL 31.10: pnpm check always sees the system tool directories', () => {
   assert.equal(withSystemPath('/a:/usr/bin'), '/a:/usr/bin:/bin:/usr/sbin:/sbin');
   assert.equal(withSystemPath(''), '/usr/bin:/bin:/usr/sbin:/sbin');
@@ -478,4 +626,281 @@ test('busy check matches the running program, not a command line that mentions i
   const ps = () => `  ${process.pid} sh -c pnpm contracts:check\n  41405 /bin/zsh -c pgrep -f contracts:check\n  9 /bin/zsh\n`;
   assert.equal(machineBusy(ps), null, 'its own process and agent shells are ignored');
   assert.match(machineBusy(() => '  77 sh -c pnpm contracts:check && x\n'), /^77 sh -c pnpm contracts:check/);
+});
+
+test('plan top-up: fewer than five ready PRs before 23:30 asks Claude to add the next task', () => {
+  const date = '2026-11-12';
+  const one = [pr({ number: 1, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }), pr({ number: 2 })];
+  tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, true);
+  const busy = [3, 4, 5, 6, 10].map(number => pr({ number, headRefName: `agent/claude/t${number}` }));
+  tick({ gh: plannedGh(busy, date), now: { date, hour: 16, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, false);
+});
+
+test('retro S1: runs in a row with no area ask for a top-up from the third and alert on the sixth', () => {
+  const date = '2026-11-13';
+  const alerts = [];
+  const queue = () => JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+  const run = (open, minute) => tick({ gh: plannedGh(open, date), now: { date, hour: 18, minute }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}), alert: text => alerts.push(text) });
+  for (let i = 1; i <= 7; i += 1) {
+    run([], i);
+    assert.equal(queue().idleRuns, i);
+    assert.equal(queue().topUp, true);
+  }
+  assert.equal(alerts.length, 1, 'one alert at the sixth idle run, not on every run after it');
+  assert.match(alerts[0], /chạy không 6 lượt liền/);
+  run([7, 8, 9, 10, 11].map(number => pr({ number, headRefName: `agent/claude/t${number}` })), 30);
+  assert.equal(queue().idleRuns, 0, 'a run with an area resets the count');
+  assert.equal(queue().topUp, false);
+});
+
+test('#237: a failed idle alert is retried on the next idle run until it is delivered', () => {
+  const date = '2026-11-14';
+  const alerts = [];
+  let fail = true;
+  const logs = [];
+  const alert = text => { if (fail) { fail = false; throw new Error('gh down'); } alerts.push(text); };
+  const run = minute => tick({ gh: plannedGh([], date), now: { date, hour: 18, minute }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}), alert, log: line => logs.push(line) });
+  for (let i = 1; i <= 6; i += 1) run(i);
+  assert.equal(alerts.length, 0, 'the sixth run tried and failed');
+  assert.equal(logs.filter(line => /idle alert failed, retry next run: gh down/.test(line)).length, 1, '#292: the failed delivery is logged with its error');
+  run(7);
+  assert.equal(alerts.length, 1, 'the seventh run retries the failed alert');
+  run(8); run(9);
+  assert.equal(alerts.length, 1, 'no repeat once delivered');
+});
+
+test('#292: the launchd tick hands tick() a stderr logger, so a failed delivery is not silent', async () => {
+  const { runTick, tickLog } = await import('./collab-tick.mjs');
+  const opts = runTick(fakeGh({ pr: pr(), open: [] }), () => [], { run: given => given });
+  assert.equal(opts.log, tickLog, 'the production caller supplies the logger');
+  const written = [];
+  tickLog('idle alert failed, retry next run: gh down', text => written.push(text));
+  assert.equal(written.length, 1);
+  assert.match(written[0], /^\d{4}-\d{2}-\d{2}T\S+ collab-tick: idle alert failed, retry next run: gh down\n$/);
+});
+
+// ---- Loop fixes A–E (owner 04.11.2026) ----
+const goodBody = [
+  '- Mức: M — script vòng tự động',
+  ...['G1 Tài liệu: plan §3', 'G2 UI/UX: không áp dụng, không đụng giao diện', 'G3 Câu chữ: không có câu mới', 'G4 BE: không áp dụng', 'G5 FE: không áp dụng',
+    'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`),
+].join('\n');
+
+test('fix A: the preflight names a blank gate, a missing level and an unanswered G7', () => {
+  assert.deepEqual(preflightMod.bodyProblems(goodBody), []);
+  const template = readFileSync(new URL('../.github/pull_request_template.md', import.meta.url), 'utf8');
+  const blank = preflightMod.bodyProblems(template);
+  assert.match(blank[0], /thiếu cổng G1, G2, G3, G4, G5, G6, G7, G8, G10$/, 'G9 is pre-filled by the template');
+  assert.ok(blank.includes('PR body thiếu mức rủi ro S/M/L'), 'the template "S | M | L" is not a choice');
+  assert.deepEqual(preflightMod.bodyProblems(goodBody.replace(/- G7 [^\n]*/, '- G7 Bảo mật: ok')), ['G7 chưa trả lời checklist (phiên, quyền, dữ liệu cá nhân, log)']);
+  assert.deepEqual(preflightMod.bodyProblems(goodBody.replace('- G10 Chi phí / license: không', '')), ['PR body thiếu cổng G10'], 'G1 never stands in for G10');
+});
+
+test('fix A: ruff and mypy run only on the changed Python files of apps/api', () => {
+  assert.deepEqual(preflightMod.changedPython([{ path: 'apps/api/app/x.py' }, { path: 'apps/web/a.ts' }, { path: 'scripts/y.py' }, 'apps/api/tests/t.py']), ['app/x.py', 'tests/t.py']);
+  const runs = [];
+  const spawn = (cmd, args) => { runs.push([cmd, ...args].join(' ')); return { status: args.includes('mypy') ? 1 : 0, stdout: 'app/x.py:3: error: bad' }; };
+  const result = preflightMod.runPreflight({ body: goodBody, files: [{ path: 'apps/api/app/x.py' }, { path: 'README.md' }] }, { cwd: '/repo', spawn, exists: () => true });
+  assert.deepEqual(runs, ['uv run --directory apps/api ruff check app/x.py', 'uv run --directory apps/api ruff format --check app/x.py', 'uv run --directory apps/api mypy app/x.py']);
+  assert.equal(result.status, 'FAIL');
+  assert.match(result.reasons[0], /^mypy lỗi: app\/x\.py:3/);
+  const none = [];
+  assert.equal(preflightMod.runPreflight({ body: goodBody, files: [{ path: 'docs/a.md' }] }, { cwd: '/repo', spawn: () => { none.push(1); return { status: 1 }; } }).status, 'PASS');
+  assert.deepEqual(none, [], 'no Python changed: uv never starts');
+  assert.equal(preflightMod.runPreflight({ body: '', files: [{ path: 'apps/api/app/x.py' }] }, { cwd: '/repo', spawn: () => { throw new Error('no lint when the body fails'); } }).status, 'FAIL');
+});
+
+test('fix A: a preflight failure posts nothing, skips the check and sends the PR to claude-fix', () => {
+  const date = '2026-11-12';
+  const open = [pr({ number: 1, headRefOid: A }), pr({ number: 2, headRefOid: B })];
+  const gh = plannedGh(open, date);
+  const checked = [];
+  const result = tick({ gh, now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }),
+    prPreflight: n => n === 1 ? { status: 'FAIL', reasons: ['PR body thiếu mức rủi ro S/M/L'] } : { status: 'PASS' },
+    check: n => { checked.push(n); return { status: 'PASS' }; } });
+  assert.equal(result.status, 'ran');
+  assert.deepEqual(checked, [2], 'the failing PR spends no check; the next ready PR runs');
+  assert.ok(!gh.calls.some(c => c[0] === 'comment' && c[2] === 1), 'preflight posts nothing on the PR');
+  const turn = turnsFor(open).find(t => t.number === 1);
+  assert.equal(turn.turn, 'claude-fix');
+  assert.equal(turn.reason, 'preflight: PR body thiếu mức rủi ro S/M/L');
+  assert.equal(turnsFor([{ ...open[0], headRefOid: C }])[0].turn, 'claude-check', 'a new head clears the record');
+  preflightMod.recordPreflight(1, A, { status: 'PASS' });
+});
+
+test('fix A: the clone check stops on a lint failure before pnpm and posts nothing', () => {
+  const posted = [];
+  const gh = { ...fakeGh({ pr: pr() }), comment: (...a) => posted.push(a) };
+  const run = (cmd, args) => args[0] === 'rev-parse' ? A : '';
+  const result = runCheckInClone(7, { gh, run, group: () => ({ status: 0 }), busy: () => null, terms: () => [],
+    preflight: () => ({ status: 'FAIL', reasons: ['ruff lỗi: x'] }), spawn: () => { throw new Error('pnpm check must not start'); } });
+  assert.deepEqual(result, { status: 'preflight', reasons: ['ruff lỗi: x'] });
+  assert.deepEqual(posted, []);
+  assert.equal(turnsFor([pr()])[0].turn, 'claude-fix', 'a lint failure is recorded for this head');
+  preflightMod.recordPreflight(7, A, { status: 'PASS' });
+});
+
+test('#306: a direct clone check with a failing body records it, routes to claude-fix and stops retrying', () => {
+  const bad = pr({ number: 306, body: 'no gates here' });
+  let fetched = 0;
+  const gh = { ...fakeGh({ pr: bad }), pr: () => { fetched += 1; return bad; } };
+  const never = () => { throw new Error('no clone, lock or pnpm before a body fix'); };
+  const first = runCheckInClone(306, { gh, run: never, group: never, busy: () => null, spawn: never });
+  assert.equal(first.status, 'preflight');
+  assert.ok(first.reasons.includes('PR body thiếu mức rủi ro S/M/L'));
+  const turn = turnsFor([bad]).find(t => t.number === 306);
+  assert.equal(turn.turn, 'claude-fix', 'held until the body changes, not claude-check');
+  assert.match(turn.reason, /^preflight: /);
+  const again = runCheckInClone(306, { gh, run: never, group: never, busy: () => null, spawn: never, held: { quick: never } });
+  assert.equal(again.held, true, 'the recorded failure answers the second call');
+  const fixed = { ...bad, body: goodBody };
+  assert.equal(turnsFor([fixed])[0].turn, 'claude-check', 'an edited body clears the hold');
+  preflightMod.recordPreflight(306, A, { status: 'PASS' });
+});
+
+test('fix B: a later PR on the same file waits for the earlier one', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const first = pr({ number: 10, createdAt: '2026-11-01T00:00:00Z', files: f('scripts/a.mjs', 'docs/x.md') });
+  const second = pr({ number: 11, createdAt: '2026-11-02T00:00:00Z', files: f('scripts/a.mjs') });
+  const other = pr({ number: 12, createdAt: '2026-11-03T00:00:00Z', files: f('scripts/b.mjs') });
+  const draft = pr({ number: 9, createdAt: '2026-10-01T00:00:00Z', isDraft: true, files: f('scripts/b.mjs') });
+  const stacked = pr({ number: 8, createdAt: '2026-10-01T00:00:00Z', baseRefName: 'feat/base', files: f('docs/x.md') });
+  const turns = Object.fromEntries(turnsFor([first, second, other, draft, stacked]).map(t => [t.number, t]));
+  assert.equal(turns[10].turn, 'claude-check', 'the earliest PR goes first');
+  assert.equal(turns[11].turn, 'hold');
+  assert.equal(turns[11].reason, 'chờ PR #10 cùng file');
+  assert.equal(turns[12].turn, 'claude-check', 'a draft or a PR stacked off integration holds nothing');
+  assert.equal(fileBlocker(second, [second]), null);
+});
+
+test('fix C: the plan lists committed PRs with new copy or a clarity-ratchet change as "cần duyệt câu"', () => {
+  assert.deepEqual(copyReview(['apps/api/app/domains/content/daily.py', 'apps/api/tests/content/test_daily.py', 'scripts/x.mjs']), { copy: ['apps/api/app/domains/content/daily.py'], ratchet: [] });
+  assert.deepEqual(copyReview(['apps/api/scripts/content_clarity_exceptions.json']), { copy: [], ratchet: ['apps/api/scripts/content_clarity_exceptions.json'] });
+  assert.equal(copyReview(['scripts/collab-plan.mjs']), null);
+  // #229: reading content outside content/ also needs owner review.
+  for (const f of ['apps/api/app/domains/tarot/action_copy.py', 'apps/api/app/domains/relationships/knowledge.py', 'apps/api/app/domains/readings/voice.py']) {
+    assert.deepEqual(copyReview([f]), { copy: [f], ratchet: [] }, f);
+  }
+  assert.equal(copyReview(['apps/api/app/domains/relationships/service.py']), null);
+  const turns = turnsFor([
+    pr({ number: 31, createdAt: '2026-11-01T00:00:00Z', files: [{ path: 'apps/api/app/domains/content/daily.py' }] }),
+    pr({ number: 32, createdAt: '2026-11-02T00:00:00Z', files: [{ path: 'apps/api/scripts/content_clarity_baseline.json' }] }),
+    pr({ number: 33, createdAt: '2026-11-03T00:00:00Z', files: [{ path: 'scripts/x.mjs' }] }),
+  ]);
+  const body = renderPlan({ date: '2026-11-04', hour: 8, minute: 50 }, turns, { codexLeft: 10 });
+  assert.match(body, /#31 \*\*cần duyệt câu\*\*: câu mới ở `apps\/api\/app\/domains\/content\/daily\.py`\./);
+  assert.match(body, /#32 \*\*cần duyệt câu\*\*: clarity ratchet có thể tăng \(`content_clarity_baseline\.json`\)\./);
+  assert.doesNotMatch(body, /#33 \*\*cần duyệt câu/);
+  assert.doesNotThrow(() => trust.assertAgentBody(body));
+  assert.doesNotMatch(renderPlan({ date: '2026-11-04', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 10 }), /cần duyệt câu/);
+});
+
+test('fix E: one heavy job at a time — no new check while the lock is busy, at most checksPerTick', () => {
+  const date = '2026-11-13';
+  const open = Array.from({ length: 5 }, (_, i) => pr({ number: 40 + i, createdAt: `2026-11-0${i + 1}T00:00:00Z` }));
+  let running = 0; let peak = 0;
+  const checked = [];
+  const check = n => { running++; peak = Math.max(peak, running); checked.push(n); running--; return { status: 'PASS' }; };
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), check });
+  assert.equal(checked.length, checksPerTick);
+  assert.equal(peak, 1, 'strictly serial');
+  const busy = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 15 }, merge: () => ({}), review: () => ({ status: 'posted' }), heavyFree: () => false, check: n => { busy.push(n); return { status: 'PASS' }; } });
+  assert.equal(busy.length, 1, 'a busy lock stops the drain after the scheduled check');
+  const stopped = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 25 }, merge: () => ({}), review: () => ({ status: 'posted' }), check: n => { stopped.push(n); return { status: 'busy' }; } });
+  assert.equal(stopped.length, 1, 'a refused or busy check ends the drain');
+  let t = 0;
+  const slow = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 35 }, nowMs: () => t, merge: () => ({}), review: () => ({ status: 'posted' }), check: n => { slow.push(n); t += 61 * 60000; return { status: 'PASS' }; } });
+  assert.equal(slow.length, 1, 'no new check after 60 minutes, before the 90-minute tick lock expires');
+  assert.equal(heavyJobFree(() => '1 pnpm check'), false);
+  assert.equal(heavyJobFree(() => null), true);
+});
+
+test('review 228 P1: the budget is read again after the preflight, and lint is bounded by it', () => {
+  let t = 0;
+  const gh = { ...fakeGh({ pr: pr() }), comment: () => { throw new Error('nothing posted'); } };
+  const run = (cmd, args) => args[0] === 'rev-parse' ? A : '';
+  const seen = [];
+  const result = runCheckInClone(7, { gh, run, nowMs: () => t, group: () => ({ status: 0 }), busy: () => null, terms: () => [],
+    preflight: (p, dir, left) => { seen.push(left()); t += 200 * 60000; return { status: 'PASS', reasons: [] }; },
+    spawn: () => { throw new Error('pnpm check must not start past the deadline'); } });
+  assert.equal(result.status, 'refused');
+  assert.ok(seen[0] > 0, 'the preflight gets the remaining budget');
+  const timeouts = [];
+  let left = 1000;
+  preflightMod.lintProblems(['app/x.py'], { cwd: '/repo', exists: () => true, left: () => left, spawn: (c, a, o) => { timeouts.push(o.timeout); left = 0; return { status: 0 }; } });
+  assert.deepEqual(timeouts, [1000], 'no lint step starts after the deadline');
+});
+
+test('review 228 P2: a fork or outside PR never holds an owner PR on a shared file', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const outside = pr({ number: 20, createdAt: '2026-11-01T00:00:00Z', author: { login: 'someone-else' }, files: f('scripts/a.mjs') });
+  const fork = pr({ number: 21, createdAt: '2026-11-01T00:00:01Z', isCrossRepository: true, files: f('scripts/a.mjs') });
+  const mine = pr({ number: 22, createdAt: '2026-11-02T00:00:00Z', files: f('scripts/a.mjs') });
+  assert.equal(fileBlocker(mine, [outside, fork, mine]), null);
+  assert.equal(turnsFor([outside, fork, mine]).find(t => t.number === 22).turn, 'claude-check');
+});
+
+test('fix B fix-forward: a PR that is itself on hold never holds another PR on a shared file', () => {
+  const f = (...paths) => paths.map(path => ({ path }));
+  const parked = pr({ number: 127, createdAt: '2026-10-20T00:00:00Z', labels: [{ name: 'needs-owner' }], files: f('app/privacy.py') });
+  const dropped = pr({ number: 130, createdAt: '2026-10-21T00:00:00Z', files: f('app/privacy.py') });
+  const privacy = pr({ number: 199, createdAt: '2026-11-03T00:00:00Z', files: f('app/privacy.py') });
+  const all = [parked, dropped, privacy];
+  assert.equal(fileBlocker(privacy, all, { dropped: [130] }), null);
+  const turns = Object.fromEntries(turnsFor(all, { dropped: [130] }).map(t => [t.number, t]));
+  assert.equal(turns[199].turn, 'claude-check', 'a needs-owner or dropped PR does not hold #199');
+  assert.equal(fileBlocker(privacy, all), 130, 'a blocker that can move still holds');
+  const feature = pr({ number: 120, title: 'feat: noi binh yen prototype', labels: [{ name: 'area:feature' }], createdAt: '2026-10-01T00:00:00Z', files: f('app/privacy.py') });
+  const priv = pr({ number: 199, title: 'fix(privacy): erasure', labels: [{ name: 'area:privacy' }], createdAt: '2026-11-03T00:00:00Z', files: f('app/privacy.py') });
+  assert.equal(fileBlocker(priv, [feature, priv]), null, 'a later group never holds an earlier group');
+  assert.equal(fileBlocker(feature, [feature, priv]), 199, 'the earlier group goes first on a shared file');
+});
+
+test('review 228: a deleted Python file is not linted by default', () => {
+  const calls = [];
+  assert.deepEqual(preflightMod.lintProblems(['app/deleted_for_test_only.py'], { cwd: '/nonexistent-la-lanh', spawn: () => { calls.push(1); return { status: 1 }; } }), []);
+  assert.equal(calls.length, 0);
+});
+
+test('#158/#159: top-up is computed from the queue left after this tick merges', () => {
+  const date = '2026-11-15';
+  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  // Five ready PRs fill the buffer when the tick starts; two of them are merge-ready.
+  const open = [1, 2, 3, 4, 5].map(number => pr({ number, headRefName: `agent/claude/q${number}`, comments: number <= 2 ? approved : [] }));
+  const merged = [];
+  const merge = n => { merged.push(n); open.splice(open.findIndex(p => p.number === n), 1); return { status: 'merged' }; };
+  tick({ gh: plannedGh(open, date), now: { date, hour: 15, minute: 5 }, merge, check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  assert.deepEqual(merged, [1, 2], 'both merge-ready PRs merged in this tick');
+  const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+  assert.equal(queue.buffer, 3, 'the buffer counts the PRs still open after the merges');
+  assert.equal(queue.topUp, true, 'the drained buffer asks Claude for a top-up in the same tick');
+  assert.equal(queue.topUpCount, 2);
+});
+
+// ---- #253: buffer rule and flow samples on the scheduled path ----
+test('#253: the persisted queue uses the ready-buffer rule and the tick samples the flow metric', () => {
+  const date = '2026-11-14';
+  const three = [1, 2, 3].map(number => pr({ number, headRefName: `agent/claude/b${number}` }));
+  tick({ gh: plannedGh(three, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+  assert.equal(queue.topUp, true, 'three ready PRs are below the target of five');
+  assert.equal(queue.topUpCount, 2);
+  assert.equal(queue.buffer, 3);
+  const flow = trust.readJson(join(trust.stateDir, 'beats', `flow-${trust.vnNow().date}.json`), null);
+  assert.ok(flow?.samples >= 1, 'the scheduled tick records a flow sample without any CLI read');
+});
+
+test('#253: report turns leave out PRs dropped from today\'s plan', () => {
+  const date = '2026-11-14';
+  const now = { date, hour: 15, minute: 5 };
+  const gh = plannedGh([pr({ number: 999 })], date);
+  const base = gh.json;
+  gh.json = args => { const out = base(args); return Array.isArray(out) ? out : { comments: [...out.comments, { authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: 'Bỏ #999' }] }; };
+  const { turns } = planTurns(gh, now);
+  assert.ok(!turns.some(t => t.number === 999 && ['claude-check', 'codex-review', 'merge'].includes(t.turn)), 'a dropped PR is not actionable');
 });

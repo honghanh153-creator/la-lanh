@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -17,7 +17,11 @@ import {
   getHistoryRetention,
   clearReadingHistory,
   logoutAccount,
+  exportMyData,
+  ApiProblem,
+  type DataExport,
 } from "../../shared/api/client";
+import { saveDataExport } from "./downloadMyData";
 import { ProfilePage } from "./ProfilePage";
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 
@@ -37,8 +41,11 @@ vi.mock("../../shared/api/client", async (original) => {
     getHistoryRetention: vi.fn(),
     clearReadingHistory: vi.fn(),
     logoutAccount: vi.fn(),
+    exportMyData: vi.fn(),
   };
 });
+
+vi.mock("./downloadMyData", () => ({ saveDataExport: vi.fn() }));
 
 vi.mock("../../shared/theme/useTheme", () => ({
   useTheme: () => ({ theme: "dark", setTheme: vi.fn() }),
@@ -208,5 +215,106 @@ describe("ProfilePage resonance privacy controls", () => {
     await waitFor(() => {
       for (const key of keys) expect(client.getQueryData(key)).toBeUndefined();
     });
+  });
+
+  it("downloads the owner's own data only after explaining what the private file holds", async () => {
+    const file = { format: "la-lanh-data-export-v1" } as DataExport;
+    vi.mocked(exportMyData).mockResolvedValue(file);
+    vi.mocked(saveDataExport).mockResolvedValue("downloaded");
+    const user = userEvent.setup(); renderPage();
+    await user.click(await screen.findByRole("button", { name: /Tải dữ liệu của tôi/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("không có mã đăng nhập, link chia sẻ hay dữ liệu sinh của người khác");
+    expect(dialog).toHaveTextContent("Hãy cất ở nơi chỉ bạn mở được");
+    await user.click(screen.getByRole("button", { name: "Để sau" }));
+    expect(exportMyData).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /Tải dữ liệu của tôi/ }));
+    await user.click(screen.getByRole("button", { name: "Tải về" }));
+    await waitFor(() => expect(saveDataExport).toHaveBeenCalledWith(file));
+    expect(exportMyData).toHaveBeenCalledOnce();
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã tạo tệp dữ liệu của bạn");
+  });
+
+  it("explains a rate limit and a failed export without claiming a file was saved", async () => {
+    vi.mocked(exportMyData).mockRejectedValueOnce(new ApiProblem(429, "ADMISSION_LIMITED", "limited"));
+    vi.mocked(exportMyData).mockRejectedValueOnce(new TypeError("offline"));
+    const user = userEvent.setup(); renderPage();
+    await user.click(await screen.findByRole("button", { name: /Tải dữ liệu của tôi/ }));
+    await user.click(screen.getByRole("button", { name: "Tải về" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Đợi khoảng một phút");
+    await user.click(screen.getByRole("button", { name: "Tải về" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa tải được dữ liệu");
+    expect(saveDataExport).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Đã tạo tệp dữ liệu/)).not.toBeInTheDocument();
+  });
+
+  it("links an invited person to their received Radar results", async () => {
+    renderPage();
+    expect(await screen.findByRole("link", { name: /Khi bạn là người được mời Hợp gu/ })).toHaveAttribute("href", "/radar/received");
+  });
+});
+
+describe("ProfilePage birth-data rows (US-23)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getBirthProfile).mockResolvedValue({
+      profile_id: "p", snapshot_id: "s", birth_date: "2001-03-12", calculation_kind: "date_only_sun",
+      calculation: { status: "certain", sign: "pisces", candidates: [] }, created_at: "2026-10-01T00:00:00Z",
+      resumed: true, profile_revision: "2026-10-29T08:00:00Z",
+    } as unknown as Awaited<ReturnType<typeof getBirthProfile>>);
+    vi.mocked(getBirthSupplement).mockResolvedValue({
+      profile_id: "p", profile_level: 1, time_precision: "unknown", birth_time_mode: "unknown",
+      approx_window: null, place_display_name: null, timezone_id: null,
+    });
+    vi.mocked(getDailyNote).mockRejectedValue(new Error("not available"));
+    vi.mocked(getResonanceStatus).mockResolvedValue({ consented: false, feedback_count: 0, last_choice: null });
+    vi.mocked(getContentRewriteStatus).mockResolvedValue({ enabled: false, consented: false, pilot_eligible: false });
+    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365 });
+    vi.mocked(getHistoryRetention).mockResolvedValue({ enabled: true, history_days: 30, daily_note_hours: 24, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
+  });
+
+  it("shows the saved date with Sửa, 'Chưa thêm' for time and place, and a confirm sheet before editing", async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/profile"]}>
+          <Routes>
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/birth" element={<h1>Trang sửa ngày</h1>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const row = await screen.findByRole("button", { name: /Ngày sinh: 12\/03\/2001 · Sửa/ });
+    expect(screen.getByRole("link", { name: /Giờ và nơi sinh: Chưa thêm · Thêm/ })).toHaveAttribute("href", "/birth-time");
+
+    await user.click(row);
+    const sheet = screen.getByRole("dialog");
+    expect(sheet).toHaveTextContent("Đổi ngày sinh sẽ tạo lại Lá của bạn.");
+    expect(sheet).toHaveTextContent("giờ và nơi sinh bị xoá");
+    expect(sheet).toHaveTextContent("kết quả Hợp gu tạo từ ngày cũ bị xoá");
+    // AC14 (Codex r54 P3): invites not yet accepted stop working, even if the link was opened.
+    expect(sheet).toHaveTextContent("lời mời Hợp gu bạn đã gửi mà chưa được chấp nhận sẽ ngừng hoạt động");
+    expect(sheet).toHaveTextContent("note đã lưu và link đã chia sẻ");
+    await user.click(within(sheet).getByRole("button", { name: "Giữ như cũ" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await user.click(row);
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Đổi ngày sinh" }));
+    expect(await screen.findByRole("heading", { name: "Trang sửa ngày" })).toBeInTheDocument();
+  });
+
+  it("opens the full-deletion sheet when the date editor sends a minor here", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[{ pathname: "/profile", state: { confirmDelete: true } }]}>
+          <ProfilePage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Xoá hồ sơ sinh, mọi bản đọc");
   });
 });

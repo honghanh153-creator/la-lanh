@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getInsightOverview, getBirthSupplement } from "../../shared/api/client";
+import { ApiProblem, getInsightOverview, getBirthSupplement } from "../../shared/api/client";
 import { InsightsPage } from "./InsightsPage";
 
 const claimDetail = {
@@ -78,6 +78,11 @@ describe("InsightsPage", () => {
     expect(await screen.findByText("Mạch suy nghĩ")).toBeInTheDocument();
     expect(screen.getByText("Vùng nở rộng")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Thêm.*sinh/ })).not.toBeInTheDocument();
+    // #143 E4: engine version and config hash stay folded under "Chi tiết kỹ thuật".
+    const tech = screen.getByText("Chi tiết kỹ thuật").closest("details");
+    expect(tech).not.toBeNull();
+    expect(tech).not.toHaveAttribute("open");
+    expect(tech).toContainElement(screen.getByText(/Engine 2\.10\.03 · abc12345/));
   });
 
   it("asks only for the missing place, not an already supplied birth time", async () => {
@@ -86,6 +91,23 @@ describe("InsightsPage", () => {
     renderPage();
     expect(await screen.findByRole("link", { name: "Thêm nơi sinh" })).toHaveAttribute("href", "/birth-time");
     expect(screen.queryByRole("link", { name: "Thêm giờ sinh" })).not.toBeInTheDocument();
+  });
+
+  it("tells a reading the gates could not produce apart from a dropped connection (#143 E2)", async () => {
+    vi.mocked(getInsightOverview).mockRejectedValue(new ApiProblem(422, "READING_CONTENT_REJECTED", "Insight reading is temporarily unavailable"));
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Chưa mở được bản đọc." })).toBeInTheDocument();
+    expect(screen.getByText("Không cần điền lại khi thông tin đã đủ.")).toBeInTheDocument();
+    expect(screen.queryByText(/kết nối/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
+  });
+
+  it("still asks for a retry when the connection drops", async () => {
+    vi.mocked(getInsightOverview).mockRejectedValue(new TypeError("Failed to fetch"));
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Chart chưa về kịp." })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Chưa mở được bản đọc." })).not.toBeInTheDocument();
   });
 
   it("offers a recovery path when the private chart session is gone", async () => {
@@ -97,5 +119,26 @@ describe("InsightsPage", () => {
     expect(await screen.findByRole("heading", { name: "Phiên đọc đã khép lại." })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mở lại Trạm Bắt Sóng" })).toHaveAttribute("href", "/welcome");
     expect(screen.queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
+  });
+  it("tells an approximate-time reader, in everyday words, what an exact time adds (#143 E1)", async () => {
+    vi.mocked(getInsightOverview).mockResolvedValue({
+      status: "ready", required_fields: [], houses_available: false, time_precision: "approximate", bodies: [],
+      reading: null,
+      reading_projection: {
+        scope_key: "a".repeat(64), available_update: null,
+        aura_transition: { profile_readiness: "aura_ready", transition_id: "b".repeat(64), acknowledged: true, unlock_layers: ["multi_factor"] },
+        active: {
+          revision_id: "00000000-0000-4000-8000-000000000011", source: "deterministic",
+          mode: "full_synthesis", purpose: "reading_detail", tradition: "western", precision: "approximate",
+          sections: { hook: "Một lớp đọc từ ngày sinh.", thesis: "Một ý chính.", manifestation: "Một cảnh.", transit: null, micro_action: "Một việc nhỏ." },
+          evidence: { title: "Căn cứ trong lá số", claims: ["Sao Kim ở Song Tử"], framework_disclosure: "Khung diễn giải." },
+          disclaimer: "Lá gợi một góc nhìn — quyền quyết định vẫn ở bạn.", created_at: "2026-10-31T00:00:00Z",
+        },
+      },
+    });
+    renderPage();
+    expect(await screen.findByText(/Bạn biết giờ sinh chính xác\?/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Thêm vào nhé" })).toHaveAttribute("href", "/birth-time");
+    expect(screen.getByText(/cách người khác nhìn thấy bạn lúc mới gặp/)).not.toHaveTextContent(/nhà|cung mọc|vận hạn/);
   });
 });

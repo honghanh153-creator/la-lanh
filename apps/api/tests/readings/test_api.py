@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 from typing import cast
+from uuid import UUID
 
 import pytest
 from fastapi import FastAPI
@@ -9,10 +10,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, func, select
 
 from app.config import Settings
+from app.domains.astro.models import NatalChart
 from app.domains.birth.errors import BirthProfileChanged
 from app.domains.birth.tables import BirthProfileRow, ChartSnapshotRow
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.readings.application import ReadingApplicationService, ReadingContentRejected
 from app.domains.readings.models import ReadingPurpose
+from app.domains.readings.planner import time_stable_bodies
 from app.domains.readings.tables import ReadingPlanRow
 from app.main import create_app
 from tests.birth.test_birth_api import (
@@ -68,6 +72,19 @@ def _create_deep_profile(client: TestClient) -> str:
     )
 
     return csrf
+
+
+async def _replace_subject(app: FastAPI, guest_id: UUID, birth_date: date) -> None:
+    """A concurrent birth-date correction (US-23): the explicit, fenced replacement."""
+
+    service = app.state.birth_chart_service
+    current = await service.current(guest_id)
+    await service.correct_date(
+        guest_id=guest_id,
+        birth_date=birth_date,
+        confirm_birth_date=birth_date,
+        expected_revision=current.profile_revision,
+    )
 
 
 def _restore_legacy_date_only_pointer(client: TestClient) -> None:
@@ -164,9 +181,7 @@ def test_birth_change_before_publication_cannot_reactivate_previous_subject(
     async def change_before_publish(guest_id, profile_id, scope_key, revision_id):  # type: ignore[no-untyped-def]
         nonlocal changed
         changed = True
-        await app.state.birth_chart_service.create_date_only(
-            guest_id=guest_id, birth_date=date(1991, 11, 15)
-        )
+        await _replace_subject(app, guest_id, date(1991, 11, 15))
         return await publish(guest_id, profile_id, scope_key, revision_id)
 
     monkeypatch.setattr(repository, "publish_available", change_before_publish)
@@ -206,9 +221,7 @@ def test_daily_response_never_mixes_birth_sources(
         nonlocal changed
         result = await original(*args, **kwargs)
         guest_id = args[0] if args else kwargs["guest_id"]
-        await app.state.birth_chart_service.create_date_only(
-            guest_id=guest_id, birth_date=date(1991, 11, 15)
-        )
+        await _replace_subject(app, guest_id, date(1991, 11, 15))
         changed = True
         return result
 
@@ -233,9 +246,7 @@ def test_late_legacy_daily_write_cannot_replace_current_subject_note(
         nonlocal changed
         if not changed:
             changed = True
-            await app.state.birth_chart_service.create_date_only(
-                guest_id=record.guest_id, birth_date=date(1991, 11, 15)
-            )
+            await _replace_subject(app, record.guest_id, date(1991, 11, 15))
             await daily.today(record.guest_id)
         return await save(record)
 
@@ -417,3 +428,387 @@ def test_reading_detail_and_personalized_sky_expose_one_safe_rich_contract(
         "provider",
     ):
         assert forbidden not in serialized
+
+
+def test_an_approximate_birth_time_reads_the_time_stable_chart(
+    reading_client: TestClient,
+) -> None:
+    """#143 E1: an approximate time used to give an empty "limited" reading that talked about
+    itself. Planet signs (except the Moon) and aspects do not move within a time window, so the
+    reading uses them and leaves houses, angles and the Moon out."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "1990-09-01"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+
+    overview = reading_client.get("/v1/insights/overview?tradition=western")
+
+    assert overview.status_code == 200
+    active = cast(
+        dict[str, object], cast(dict[str, object], overview.json()["reading_projection"])["active"]
+    )
+    assert active["mode"] == "full_synthesis"
+    assert active["precision"] == "approximate", "never labelled exact"
+    assert active.get("experiment") is None, "exact-only experiment stays closed"
+    sections = cast(dict[str, str], active["sections"])
+    prose = " ".join(text for text in sections.values() if text)
+    assert "Chưa cần đoán cho đầy trang" not in prose
+    evidence = " ".join(cast(list[str], cast(dict[str, object], active["evidence"])["claims"]))
+    for time_bound in ("Mặt Trăng", "Nhà ", "Cung mọc", "Thiên đỉnh", "Nakshatra"):
+        assert time_bound not in evidence, (time_bound, evidence)
+
+
+def test_a_stored_limited_approximate_reading_upgrades_through_activation(
+    reading_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#150 review: a user whose approximate-time reading was stored as "limited" before E1
+    must be able to activate the new synthesis; the snapshot pin still applies."""
+
+    from app.domains.readings.planner import ReadingPlanner
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "1990-09-01"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+    with monkeypatch.context() as patch:  # the pre-E1 planner had no approximate synthesis
+        patch.setattr(ReadingPlanner, "_approximate_plan", lambda *_args, **_kwargs: None)
+        before = reading_client.get("/v1/insights/overview?tradition=western")
+    assert before.status_code == 200
+    stored = cast(dict[str, object], before.json()["reading_projection"])
+    assert cast(dict[str, object], stored["active"])["mode"] == "limited"
+
+    after = reading_client.get("/v1/insights/overview?tradition=western")
+    assert after.status_code == 200
+    projection = cast(dict[str, object], after.json()["reading_projection"])
+    assert cast(dict[str, object], projection["active"])["mode"] == "limited"
+    update = cast(dict[str, object], projection["available_update"])
+    assert cast(dict[str, object], update["content"])["mode"] == "full_synthesis"
+
+    activated = reading_client.put(
+        f"/v1/reading-projections/{projection['scope_key']}/activate",
+        json={"expected_revision_id": update["revision_id"]},
+        headers=headers,
+    )
+
+    assert activated.status_code == 200, activated.text
+    active = cast(dict[str, object], activated.json()["active"])
+    assert active["mode"] == "full_synthesis"
+    assert active["precision"] == "approximate"
+    assert activated.json()["available_update"] is None
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_an_approximate_birth_time_still_opens_a_reading_in_both_traditions(
+    reading_client: TestClient, tradition: str
+) -> None:
+    """#143 E2: a limited Jyotish reading failed the meaning gate (arena), so the overview
+    answered 503 and the Explore page offered a retry that could never succeed."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    assert (
+        reading_client.post(
+            "/v1/birth-profile", json={"birth_date": "1990-09-01"}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        reading_client.post(
+            "/v1/birth-profile/supplement",
+            json={
+                "birth_time_mode": "approx_window",
+                "birth_time_local": None,
+                "approx_window": "morning",
+                "place_id": "vn-ho-chi-minh",
+                "consent_version": "birth-profile-deep-v1",
+            },
+            headers=headers,
+        ).status_code
+        == 200
+    )
+
+    overview = reading_client.get(f"/v1/insights/overview?tradition={tradition}")
+
+    assert overview.status_code == 200
+    payload = cast(dict[str, object], overview.json())
+    assert payload["time_precision"] == "approximate"
+    projection = cast(dict[str, object], payload["reading_projection"])
+    active = cast(dict[str, object], projection["active"])
+    assert active["tradition"] == tradition
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+@pytest.mark.parametrize("window", ["morning", "evening"])
+def test_an_approximate_window_reads_on_every_explore_surface(
+    reading_client: TestClient, tradition: str, window: str
+) -> None:
+    """#143 E2 (synthetic input): an approximate time window opens every private reading
+    surface in both traditions instead of a 503."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    assert (
+        reading_client.post(
+            "/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        reading_client.post(
+            "/v1/birth-profile/supplement",
+            json={
+                "birth_time_mode": "approx_window",
+                "birth_time_local": None,
+                "approx_window": window,
+                "place_id": "vn-hanoi",
+                "consent_version": "birth-profile-deep-v1",
+            },
+            headers=headers,
+        ).status_code
+        == 200
+    )
+
+    for path in (
+        "/v1/insights/overview",
+        "/v1/insights/readings/aura",
+        "/v1/insights/readings/reading_detail",
+        "/v1/insights/readings/personalized_sky",
+    ):
+        response = reading_client.get(f"{path}?tradition={tradition}")
+        assert response.status_code == 200, (path, response.text)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/insights/overview?tradition=jyotish",
+        "/v1/insights/readings/reading_detail?tradition=jyotish",
+    ],
+)
+def test_a_rejected_reading_answers_a_content_error_not_a_503(
+    reading_client: TestClient, monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    """#143 E2: when the gates reject every candidate, retrying cannot help. The route says
+    so with its own code, so Explore does not ask the reader to check the connection."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    assert (
+        reading_client.post(
+            "/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        reading_client.post(
+            "/v1/birth-profile/supplement",
+            json={
+                "birth_time_mode": "approx_window",
+                "birth_time_local": None,
+                "approx_window": "morning",
+                "place_id": "vn-hanoi",
+                "consent_version": "birth-profile-deep-v1",
+            },
+            headers=headers,
+        ).status_code
+        == 200
+    )
+
+    async def rejected(*_args: object, **_kwargs: object) -> None:
+        raise ReadingContentRejected
+
+    monkeypatch.setattr(ReadingApplicationService, "project", rejected)
+
+    response = reading_client.get(path)
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "READING_CONTENT_REJECTED"
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_explore_tiles_read_at_the_same_data_level_as_the_synthesis(
+    reading_client: TestClient, tradition: str
+) -> None:
+    """#143 E4: with an approximate time the synthesis reads only the time-stable signs, while the
+    tiles on the same page still stated the Moon, aspect orbs and the Moon's nakshatra as exact.
+    Synthetic profile: 2001-01-15, morning window."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+
+    overview = reading_client.get(f"/v1/insights/overview?tradition={tradition}")
+
+    assert overview.status_code == 200
+    payload = cast(dict[str, object], overview.json())
+    assert payload["time_precision"] == "approximate"
+    projection = cast(dict[str, object], payload["reading_projection"])
+    active = cast(dict[str, object], projection["active"])
+    assert active["precision"] == "approximate"
+    claims = cast(list[dict[str, object]], cast(dict[str, object], payload["reading"])["claims"])
+    assert claims, "the stable signs still give tiles"
+    for claim in claims:
+        visible = " ".join(
+            [str(claim[key]) for key in ("title", "summary", "hook", "meaning", "watch_for")]
+            + cast(list[str], claim["evidence"])
+        )
+        for time_bound in ("Mặt Trăng", "Nhà ", "nhà ", "orb", "Góc ", "Nakshatra", "Pada"):
+            assert time_bound not in visible, (claim["id"], time_bound, visible)
+        refs = cast(list[str], claim["factor_refs"])
+        assert not any(":longitude:" in ref or ":aspect:" in ref for ref in refs), refs
+
+
+def _overview_with_chart(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tradition: str
+) -> tuple[dict[str, object], NatalChart]:
+    """The overview payload and the chart the route calculated for it."""
+
+    birth = cast(FastAPI, client.app).state.birth_chart_service
+    chart_for_config = birth.chart_for_config
+    seen: list[NatalChart] = []
+
+    async def capture(guest_id, config):  # type: ignore[no-untyped-def]
+        chart = await chart_for_config(guest_id, config)
+        seen.append(chart)
+        return chart
+
+    monkeypatch.setattr(birth, "chart_for_config", capture)
+    response = client.get(f"/v1/insights/overview?tradition={tradition}")
+    assert response.status_code == 200, response.text
+    assert len(seen) == 1
+    return cast(dict[str, object], response.json()), seen[0]
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_overview_bodies_read_at_the_same_data_level_as_the_tiles(
+    reading_client: TestClient, monkeypatch: pytest.MonkeyPatch, tradition: str
+) -> None:
+    """#143 follow-up (PR #345 note): with an approximate time the overview's ``bodies`` came
+    from the full midpoint chart, so they still stated the Moon and the degrees of signs that
+    change inside the window, which the tiles withhold. Synthetic profile: 2001-01-15, morning."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    reading_client.post("/v1/birth-profile", json={"birth_date": "2001-01-15"}, headers=headers)
+    reading_client.post(
+        "/v1/birth-profile/supplement",
+        json={
+            "birth_time_mode": "approx_window",
+            "birth_time_local": None,
+            "approx_window": "morning",
+            "place_id": "vn-ho-chi-minh",
+            "consent_version": "birth-profile-deep-v1",
+        },
+        headers=headers,
+    )
+
+    payload, chart = _overview_with_chart(reading_client, monkeypatch, tradition)
+
+    assert payload["time_precision"] == "approximate"
+    stable = {body.value for body in time_stable_bodies(chart)}
+    assert stable, "the synthetic window still has stable signs to show"
+    assert len(stable) < len(chart.bodies), "the synthetic window has time-bound bodies"
+    bodies = cast(list[dict[str, object]], payload["bodies"])
+    assert {str(item["body"]) for item in bodies} == stable
+    assert "moon" not in {item["body"] for item in bodies}
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_overview_bodies_for_an_exact_time_are_unchanged(
+    reading_client: TestClient, monkeypatch: pytest.MonkeyPatch, tradition: str
+) -> None:
+    """An exact time keeps every body of the chart, Moon included, in chart order."""
+
+    _create_deep_profile(reading_client)
+
+    payload, chart = _overview_with_chart(reading_client, monkeypatch, tradition)
+
+    assert payload["time_precision"] == "exact"
+    assert payload["houses_available"] is True
+    assert payload["bodies"] == [
+        {
+            "body": position.body.value,
+            "sign": position.sign.value,
+            "degree_in_sign": position.degree_in_sign,
+            "retrograde": position.retrograde,
+        }
+        for position in chart.bodies
+    ]
+    assert "moon" in {item["body"] for item in cast(list[dict[str, object]], payload["bodies"])}
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/insights/overview?tradition=jyotish",
+        "/v1/insights/readings/aura?tradition=jyotish",
+        "/v1/insights/readings/reading_detail?tradition=jyotish",
+        "/v1/insights/readings/personalized_sky?tradition=jyotish",
+    ],
+)
+def test_a_jyotish_chart_without_graha_drishti_opens_instead_of_503(
+    reading_client: TestClient, path: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """PL-3 (#180): with no graha drishti the planner names two placements as heroes; the
+    Jyotish frame cited only one, so every request was rejected, logged an exception and
+    answered 503. Synthetic input (audit seed 20261103): every body sits in Aries to Gemini."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    assert (
+        reading_client.post(
+            "/v1/birth-profile", json={"birth_date": "2002-04-16"}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        reading_client.post(
+            "/v1/birth-profile/supplement",
+            json={
+                "birth_time_mode": "exact",
+                "birth_time_local": "22:20",
+                "approx_window": None,
+                "place_id": "vn-ho-chi-minh",
+                "consent_version": "birth-profile-deep-v1",
+            },
+            headers=headers,
+        ).status_code
+        == 200
+    )
+
+    response = reading_client.get(path)
+
+    assert response.status_code == 200, response.text
+    assert not [record for record in caplog.records if record.exc_info]

@@ -13,10 +13,14 @@ from app.domains.grammar.models import DEFAULT_BUCKET, Frame, SlotKind, Value
 
 COMPOSER_VERSION = "grammar-composer-v2"
 NO_BUCKET = "_all"
-_SPACE_BEFORE_PUNCT = re.compile(r"\s+([,.!?;:…])")
+# Both patterns start only where their run starts (the lookbehind), so a long run that does not
+# end in punctuation or at the end of the text is read once instead of once per character
+# (CodeQL py/polynomial-redos). The leftmost match of the old forms always started there too,
+# so the results are unchanged.
+_SPACE_BEFORE_PUNCT = re.compile(r"(?<!\s)\s+([,.!?;:…])")
 # Measurement spec §2 (same rule as scripts/variety_baseline.normalize): sentences that differ
 # only in case, spacing or terminal punctuation are the same sentence for commitment (b).
-_TRAILING = re.compile(r"[\s.!?…,;:]+$")
+_TRAILING = re.compile(r"(?<![\s.!?…,;:])[\s.!?…,;:]+$")
 
 
 class CombinationLimitExceeded(ValueError):

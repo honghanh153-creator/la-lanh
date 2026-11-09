@@ -1,8 +1,12 @@
 {
  "approved": {
+  "copy_registry": {
+   "approved": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "version": "copy-registry/v1"
+  },
   "daily": {
    "companion_version": "la-companion-v1",
-   "content_version": "deterministic-reading-v4",
+   "content_version": "deterministic-reading-v5",
    "psychology_version": "daily-direct-meaning-v7",
    "renderer_version": "deterministic-vi-v12",
    "tables": {
@@ -30,9 +34,9 @@
     "app.domains.readings.daily_psychology.BODY_DOMAINS": "720c749c24e511f8c1b9a56ca7202900b5464d68cc63ef84c54c67a8dd2b598d",
     "app.domains.readings.daily_psychology.CAPACITY_AT_WORK_MEANING": "a73c7a630f0adbde452aa2a31180d452bc6f873bdc40a5c4b981bb97c4ada228",
     "app.domains.readings.daily_psychology.DAILY_ISSUES": "3a5b5b342a8b619e6d224494c77e288ce9895317f90817a994176d5473158e1f",
-    "app.domains.readings.daily_psychology.DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT": "c9ef96148139a8d1421c9f9196e91328dba7cccbba71e265cf25761684ce42d8",
+    "app.domains.readings.daily_psychology.DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT": "5d45872dd2210c042c654df6165c38a7d80c310269b9fd2ac6f37d680805d22f",
     "app.domains.readings.daily_psychology.FALLBACK_ISSUE_KEY": "275d3363598b1b243540ebb6a9616f650dc3ad740279da44a9af3da9f1442a58",
-    "app.domains.readings.daily_psychology.HOUSE_ARENAS": "83b06f56bf902442aa06f26363bbc599d5d4ffd4dae10faac606ad4e8a39894e",
+    "app.domains.readings.daily_psychology.HOUSE_ARENAS": "bf39f41134bbb536b1f4b99eb91087cde11a221426561047869e57ae9f8b24b7",
     "app.domains.readings.daily_psychology.INSUFFICIENT_CONTEXT_RULE": "9a5a781e6c0c9d26f7873afcafccf668dbafb3dcdc428ee3e94a5532bff10827",
     "app.domains.readings.daily_psychology.LEGACY_ARENA_LEADS": "5122a9bc03276b7fb64e1c3af838375a475221ea65d1481fb82b0694de253880",
     "app.domains.readings.daily_psychology.NO_PERSONAL_MEANING": "d3d17af7d8180e74be4ec227cf51ace567ed6c01b9d7864239e2af9906bbcb4f",
@@ -73,7 +77,7 @@
    "gate_version": "conditional-reflection-v4",
    "renderer_version": "radar-readable-v2",
    "tables": {
-    "app.domains.radar.reading#function_literals": "28efec0d3bf05d9e719da8f0ad6704c187edc10870d576e1934edd7463e66b63",
+    "app.domains.radar.reading#function_literals": "1211bddfdfb3d3667f6234f4f818665554e52d14abcd14bd15f385563a08ed7e",
     "app.domains.radar.reading.AREAS": "5ce93cdf560cb656358c182db874e5171b525216ac2634b14b8ced921331fa06",
     "app.domains.radar.reading.ASPECT_CHANNELS": "7b716946333191662850df8c2bab53317a45f7c928bee165d01e1b9f90eea815",
     "app.domains.radar.reading.ASPECT_LABELS": "6451608df6ce08324ba2456735b8ce29917936987bc2e250a0976f7112bdcf99",
@@ -243,10 +247,14 @@
  "evidence": {
   "content_audit": "pnpm content:audit (scripts.audit_content_matrix) and docs/operations/content-matrix-baseline.json",
   "content_review": "pnpm content:review (scripts.review_content_release), direct and roast voices",
+  "copy_pending_flag": "Owner decision 06.11.2026: new copy enters app/domains/content/copy_registry.json as pending and is not served; this file pins approved entries only (copy_registry.approved). Codex may approve a daily batch via scripts/codex-copy-review.mjs; privacy, consent, crisis and safety entries need approver owner. Wiring tarot closing_prompt through copy_text changes no sentence.",
   "function_literals": "docs/reviews/2026-10-22-function-literal-pin.md: in-function copy (non-ASCII literals) of the pinned Daily, Tarot and Radar modules pinned at c3fab3311d65, byte-identical to the production release code; no copy change (audit O04)",
+  "house_meanings_hm23": "Issue #190 item 3 (HM-2/HM-3): daily_psychology.HOUSE_ARENAS is now one HouseContext per house built from house_meanings.many_doors (12 distinct door sets; only lead-eligible, non-⚠ doors pick a Daily scene lead), and the content fingerprint follows (personalization daily-semantic-eligibility-v5). No sentence in a pinned table changed; which existing scene lead a house opens changes for houses 1, 3, 6 and 11. Copy listed before→after in the PR. Owner approved this copy in chat on 04.11.2026 (\"215 duyệt, đổi nhà 6, giữ 3\": keep three meanings per house; house 6 reads \"công việc hằng ngày, thói quen chăm sóc cơ thể hay vật nuôi nhỏ\" by an explicit owner override, house_meanings.OWNER_DOOR_ORDER); approved_release unchanged.",
   "owner_receipt": "docs/reviews/production-release-2026-10-26/receipt.md (previous: docs/reviews/production-release-2026-10-21/receipt.md)",
   "owner_workbook": "docs/reviews/production-release-2026-10-16/content-approval.xlsx (owner content review of 16/10/2026)",
+  "radar_deep_dive_138": "PR #139 / issue #138: DEEP_DIVE practice actions keep the follow-up question (\"Sau đó đối chiếu phản hồi thật…\") on the first action only, so the page no longer repeats a sentence; no new sentence. Owner approved this copy in chat on 31/10/2026 (\"duyệt copy #139\"); approved_release unchanged.",
   "radar_readable_v2": "docs/reviews/2026-10-29-hop-gu-readable.md: Hợp gu renderer radar-readable-v2 / conditional-reflection-v4 / radar-tier-ref-v1 (named tiers, context areas, threshold-gated friction, one Xem thêm layer), built on the owner's order of 29/10/2026 from the owner's feedback and the research report Phần B; the new copy is NOT yet read by the owner and must be read before any release; approved_release unchanged; Codex r55 (30/10/2026): UNCLEAR_FIT_HEADLINES, NO_CLEAR_FIT_REASON, UNCLEAR_FIT_LABEL and BALANCED_FIT_COPY for pairs without a good theme (draft copy, owner reading pending with the rest of US-22), tests/radar/test_readable_r55.py",
+  "radar_titles_211": "PR #211 / issue #194: two fixed Radar titles reworded (why section: \"Những điều Lá đã dựa vào\"; perspectives: \"Cùng một lần gặp, mỗi người để tâm một chuyện khác\"). Owner approved in chat on 04.11.2026 (\"211 duyệt\"); approved_release unchanged.",
   "release": "production release 89ebdb0cf6b9 (docs/reviews/production-release-2026-10-26/); previous c3fab3311d65 (docs/reviews/production-release-2026-10-21/)",
   "tarot_action_copy": "docs/reviews/2026-10-22-t02-t03-tarot-copy-workbook.md and .xlsx: T02/T03 scenes and steps decided row by row under the owner's delegation of 26/10/2026 (Codex polish of four rows reviewed by Claude); wiring edits listed in the workbook document (19 topic openings, one shortened step); Codex r47 fixes listed there (24 preparation steps and one choice step chosen from the stance, 10 openings made event-neutral, partner-only relationships scenes gated on a named partner, two existing Roast lead-ins reused for cautious readings); tarot-action-copy-v1, renderer v8 / knowledge v6, not yet released",
   "tarot_b2_audit": "pnpm tarot:audit (bank x 6 maps x 4 voices: provenance, psychology checklist, T4, worst length) and Codex APPROVE of PR #23-#27",

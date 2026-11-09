@@ -3,6 +3,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createBirthProfile, createGuest } from "./client";
 import { testLocks } from "../session/testLocks";
 
+// The device erase on a new session epoch removes any orphaned data-export file through
+// @capacitor/filesystem. Loading the real plugin pulls in @capacitor/core, which rewrites
+// window.Capacitor.isNativePlatform with its own bridge detection; jsdom has no native bridge, so
+// the fake bridge below would turn into "web". Mock the plugin, as downloadMyData.test.ts does.
+const filesystem = vi.hoisted(() => ({
+  deleteFile: vi.fn(() => Promise.resolve()),
+  stat: vi.fn(() => Promise.reject(new Error("File does not exist"))),
+}));
+vi.mock("@capacitor/filesystem", () => ({
+  Filesystem: filesystem,
+  Directory: { Cache: "CACHE" },
+  Encoding: { UTF8: "utf8" },
+}));
+
 const nativeBridge = {
   isNativePlatform: () => true,
   getPlatform: () => "ios",
@@ -46,6 +60,7 @@ describe("native API session bridge", () => {
     expect(new Headers(init?.headers).get("X-La-Lanh-Client")).toBe("capacitor-v1");
     expect(localStorage.getItem("la-lanh-native-csrf-v1")).toBe("csrf-native-token");
     expect(localStorage.getItem("la_lanh_guest")).toBeNull();
+    expect(filesystem.deleteFile).toHaveBeenCalledWith({ path: "la-lanh-du-lieu-cua-toi.json", directory: "CACHE" });
   });
 
   it("reuses the native CSRF token for a mutation when the API cookie is not DOM-visible", async () => {

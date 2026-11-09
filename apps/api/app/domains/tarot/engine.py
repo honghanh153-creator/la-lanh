@@ -4,6 +4,7 @@ import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
+from app.domains.content.copy_approval import copy_text
 from app.domains.readings.review_agent import (
     OPAQUE_CORE_FRAGMENTS,
     ContentReviewAgent,
@@ -567,9 +568,10 @@ class TarotReadingEngine:
             voice=voice,
             positions=tuple(rendered),
             stance=reading_stance,
-            closing_prompt=(
+            closing_prompt=copy_text(
+                "tarot.closing_prompt",
                 "Đừng cố nhớ hết cả bài. Chọn một điều đúng với chuyện thật và một việc "
-                "bạn có thể làm trong 24 giờ tới."
+                "bạn có thể làm trong 24 giờ tới.",
             ),
             disclaimer=(
                 "Bài Tarot là một góc tự soi từ lá bạn đã chọn, không phải dự đoán "

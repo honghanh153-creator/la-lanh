@@ -478,6 +478,41 @@ def test_private_check_without_birth_time_excludes_time_sensitive_layers(tmp_pat
         _assert_no_raw_birth_data(payload)
 
 
+def test_private_check_with_unresolved_historical_offset_says_time_is_approximate(
+    tmp_path: Path,
+) -> None:
+    # Synthetic person: merged Quảng Trị straddles the 1954 line, so a 1965 clock time has no
+    # known UTC offset (vn-offset-uncertain-v1) and the chart is read as approximate.
+    with _client(tmp_path / "radar-private-uncertain-offset.db") as owner:
+        csrf = _full_profile(owner, "radar-private-uncertain-owner", "1994-03-12", "08:15")
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf}
+        assert owner.post("/v1/identity/claim", headers=headers).status_code == 200
+        response = owner.post(
+            "/v1/radar/private-checks",
+            headers=headers,
+            json={
+                "recipient_label": "Người sinh ở Quảng Trị",
+                "context": "friend",
+                "birth_date": "1965-05-01",
+                "birth_time_mode": "exact",
+                "birth_time_local": "08:00",
+                "place_id": "vn-quang-tri",
+                "consent_version": "radar-authorized-input-v1",
+                "authorization_attested": True,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["metadata"]["time_precision"] == "approximate"
+        assert payload["metadata"]["precision_note"] == (
+            "Giờ gần đúng: không dùng để khẳng định cung Mọc hay nhà chính xác."
+        )
+        evidence = [item for section in payload["sections"] for item in section.get("evidence", [])]
+        assert all(item["source"] != "house_overlay" for item in evidence)
+        _assert_no_raw_birth_data(payload)
+
+
 def test_owner_cannot_create_radar_without_exact_chart(tmp_path: Path) -> None:
     with _client(tmp_path / "radar-missing.db") as owner:
         guest = owner.post(

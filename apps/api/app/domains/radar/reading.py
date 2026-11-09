@@ -971,7 +971,7 @@ def build_radar_reading(
         _section(
             "why",
             layer="more",
-            title="Những điểm chạm Lá đã dùng",
+            title="Những điều Lá đã dựa vào",
             body=(
                 "Mỗi dòng là một điểm chạm giữa hai lá số, kèm tên gọi trong chiêm tinh cho ai "
                 "muốn tra thêm. Bậc được xếp bằng cách so cặp này với nhiều cặp mẫu."
@@ -987,7 +987,7 @@ def build_radar_reading(
         _section(
             "perspective",
             layer="more",
-            title="Cùng một lần gặp, mỗi người có thể để tâm chuyện khác",
+            title="Cùng một lần gặp, mỗi người để tâm một chuyện khác",
             body=perspective_body,
             perspectives=perspective_items,
             evidence=perspective_receipts,
@@ -1350,10 +1350,15 @@ def _render_prompt(
             "Để kiểm chứng điều này ngoài đời, ",
             "Thay vì kết luận từ lá số, ",
         )
-        return (
-            f"{prefixes[index % len(prefixes)]}{base} Sau đó đối chiếu phản hồi thật: "
+        # The follow-up question closes the first action only: repeated on every action it made
+        # the page repeat a sentence, which the readable contract (AC11) rejects (#138).
+        follow_up = (
+            " Sau đó đối chiếu phản hồi thật: "
             "hai người có nói rõ hơn, tôn trọng ranh giới hơn hay vẫn phải đoán nhau?"
+            if index == 0
+            else ""
         )
+        return f"{prefixes[index % len(prefixes)]}{base}{follow_up}"
     return prompt.prompt_pattern
 
 
@@ -1378,14 +1383,14 @@ def _low_signal_reading(
         _section(
             "why",
             layer="more",
-            title="Những điểm chạm Lá đã dùng",
+            title="Những điều Lá đã dựa vào",
             body=LOW_SIGNAL_COPY["why"],
             factors=[],
         ),
         _section(
             "perspective",
             layer="more",
-            title="Cùng một lần gặp, mỗi người có thể để tâm chuyện khác",
+            title="Cùng một lần gặp, mỗi người để tâm một chuyện khác",
             body=perspective_body,
             perspectives=perspective_items,
             evidence=perspective_receipts,

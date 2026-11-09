@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 
 from app.domains.astro.models import TimePrecision, Tradition
+from app.domains.content.copy_approval import approved_texts
 from app.domains.readings.daily_personalization import (
     BODY_DOMAINS,
     CAPACITY_AT_WORK_MEANING,
@@ -1000,14 +1001,25 @@ _RELATIONSHIP_ACTIONS = {
 
 def _expand_daily_issue(issue: DailyIssuePattern) -> DailyIssuePattern:
     titles, scenes, actions = _DAILY_VARIATIONS[issue.key]
+    # Daily v2 variants live in copy_registry.json as pending until Codex approves the
+    # daily batch; only approved, digest-matching ones join the rotated pool.
     expanded = replace(
         issue,
-        headlines=tuple(dict.fromkeys((*issue.headlines, *titles))),
-        scenes=tuple(dict.fromkeys((*issue.scenes, *scenes))),
-        advice=tuple(dict.fromkeys((*issue.advice, *actions))),
+        headlines=tuple(
+            dict.fromkeys(
+                (*issue.headlines, *titles, *approved_texts(f"daily.headline.{issue.key}."))
+            )
+        ),
+        scenes=tuple(
+            dict.fromkeys((*issue.scenes, *scenes, *approved_texts(f"daily.scene.{issue.key}.")))
+        ),
+        # Approved action variants join the general pool; relationship actions stay matched.
+        advice=tuple(
+            dict.fromkeys((*issue.advice, *actions, *approved_texts(f"daily.action.{issue.key}.")))
+        ),
         relationship_advice=_RELATIONSHIP_ACTIONS.get(issue.key, ()),
     )
-    if (len(expanded.headlines), len(expanded.scenes), len(expanded.advice)) != (6, 8, 8):
+    if len(expanded.headlines) < 6 or len(expanded.scenes) < 8 or len(expanded.advice) < 8:
         raise ValueError(f"Daily issue {issue.key} requires 384 distinct bounded variants")
     if SemanticArena.RELATIONSHIPS in issue.arenas and len(set(expanded.relationship_advice)) != 8:
         raise ValueError(f"Daily issue {issue.key} requires eight matched relationship actions")
@@ -1075,7 +1087,7 @@ DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
             "sign_elements": SIGN_ELEMENTS,
             "sun_issues": SUN_ISSUES,
             "body_domains": BODY_DOMAINS,
-            "house_arenas": HOUSE_ARENAS,
+            "house_arenas": {house: asdict(context) for house, context in HOUSE_ARENAS.items()},
             "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
             "why_today": WHY_TODAY_GISTS,
             "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
@@ -1157,7 +1169,7 @@ def _situation_pool(
 
     # A known house refines context, not personality. User's explicit lens wins.
     def rank(situation: SupportedSituation) -> tuple[int, int, int, int]:
-        return (*situation.rank, int(situation.arena is arena))
+        return (*situation.rank, int(arena in situation.arenas))
 
     if plan.daily_variety is not None:
         # B3-1a top-K: the strongest situation of each issue, ranked by score then
@@ -1306,7 +1318,10 @@ def apply_daily_psychology(
     scene_arena = (
         arena
         if arena is not SemanticArena.GENERAL
-        else (selected.arena if selected and selected.arena in issue.arenas else arena)
+        else next(
+            (item for item in (selected.arenas if selected else ()) if item in issue.arenas),
+            arena,
+        )
     )
     lead = _ARENA_LEADS.get(scene_arena)
     manifestation = issue.scenes[scene_slot]

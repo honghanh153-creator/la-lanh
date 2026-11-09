@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
@@ -19,6 +20,7 @@ from app.domains.guest.errors import GuestExpired
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.history.errors import HistoryBusy
 from app.domains.history.tables import HistoryRetentionPolicyRow
+from app.domains.human_tarot.tables import HumanTarotRequestRow
 from app.domains.mood.tables import MoodCheckInRow
 from app.domains.radar.tables import RadarRequestRow
 from app.domains.readings.tables import (
@@ -154,6 +156,15 @@ async def require_available_projection(
         raise HistoryUnavailable
 
 
+# Rows the manual clear selects by a status that can differ in an earlier snapshot. Each one it
+# removes is journaled by its own id beside the guest's HISTORY_CLEARED.
+_NAMED_ON_CLEAR: tuple[tuple[Any, ErasureKind], ...] = (
+    (TarotSessionRow, ErasureKind.TAROT_SESSION_DELETED),
+    (HumanTarotRequestRow, ErasureKind.HUMAN_TAROT_REQUEST_CLEARED),
+    (RadarRequestRow, ErasureKind.RADAR_DELETED),
+)
+
+
 class PostgresHistoryRepository:
     def __init__(
         self,
@@ -225,9 +236,24 @@ class PostgresHistoryRepository:
         Every manual clear path, the HTTP service included, goes through here.
         """
 
-        if self._erasure_journal is not None:
-            self._erasure_journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
-        return await self._erase(session, guest_id, now, manual=True, batch_size=None)
+        journal = self._erasure_journal
+        if journal is None:
+            return await self._erase(session, guest_id, now, manual=True, batch_size=None)
+        journal.record(session, ErasureKind.HISTORY_CLEARED, guest_id, now)
+        # Replaying HISTORY_CLEARED re-judges status-selected rows by their restored status;
+        # a snapshot taken mid-session, or while a request still waited, would keep them
+        # (Codex #126 P1, #169). Name each such row removed here with a kind whose replay
+        # deletes it whatever status it was restored with. The ids come from the DELETE itself
+        # (RETURNING), not a prior SELECT: a Tarot completion committing between the two would
+        # otherwise be deleted without its entry (Codex #199 P1).
+        named = dict(_NAMED_ON_CLEAR)
+
+        def record(model: Any, row_id: UUID) -> None:
+            journal.record(session, named[model], row_id, now)
+
+        return await self._erase(
+            session, guest_id, now, manual=True, batch_size=None, on_named=record
+        )
 
     async def replay_clear(self, guest_id: UUID, cleared_at: datetime) -> int:
         """Re-apply a journaled manual clear after a restore, judged at its original time."""
@@ -289,6 +315,8 @@ class PostgresHistoryRepository:
         )
         moods = MoodCheckInRow.guest_id == guest_id
         tarot = TarotSessionRow.guest_id == guest_id
+        # US-24: removing a request also clears its Google Sheet row (the slot loses its link).
+        human_tarot = HumanTarotRequestRow.guest_id == guest_id
         radar = RadarRequestRow.owner_guest_id == guest_id
         resonance = ResonanceFeedbackRow.guest_id == guest_id
         experiments = DailyExperimentRow.guest_id == guest_id
@@ -300,6 +328,10 @@ class PostgresHistoryRepository:
         )
         if manual:
             tarot &= TarotSessionRow.state == "complete"
+            # Finished ones only; a request still waiting for its reading is cancelled explicitly.
+            human_tarot &= HumanTarotRequestRow.status.in_(
+                ("ready", "unfulfilled", "cancelled")
+            ) & (HumanTarotRequestRow.release_at <= now)
             radar &= RadarRequestRow.completed_at.is_not(None)
         else:
             daily &= expired_history(
@@ -309,6 +341,7 @@ class PostgresHistoryRepository:
                 MoodCheckInRow.guest_id, MoodCheckInRow.created_at, now, physical=True
             )
             tarot &= TarotSessionRow.expires_at <= now
+            human_tarot &= HumanTarotRequestRow.expires_at <= now
             radar &= RadarRequestRow.expires_at <= now
             resonance &= ResonanceFeedbackRow.expires_at <= now
             experiments &= DailyExperimentRow.expires_at <= now
@@ -319,6 +352,7 @@ class PostgresHistoryRepository:
             (DailyExperimentRow, experiments),
             (ShareArtifactRow, shares),
             (TarotSessionRow, tarot),
+            (HumanTarotRequestRow, human_tarot),
             (RadarRequestRow, radar),
             (DailyNoteRow, daily),
         ]
@@ -421,12 +455,25 @@ class PostgresHistoryRepository:
         *,
         manual: bool,
         batch_size: int | None,
+        on_named: Callable[[Any, UUID], None] | None = None,
     ) -> int:
+        named = dict(_NAMED_ON_CLEAR)
         removed = 0
         for model, criteria in self._criteria(guest_id, now, manual=manual):
             remaining = None if batch_size is None else batch_size - removed
             if remaining == 0:
                 return removed
+            if model is DailyNoteRow:
+                removed += await self._erase_daily(session, criteria, remaining)
+                continue
+            if remaining is None and on_named is not None and model in named:
+                deleted = list(
+                    await session.scalars(delete(model).where(criteria).returning(model.id))
+                )
+                for row_id in deleted:
+                    on_named(model, row_id)
+                removed += len(deleted)
+                continue
             if remaining is None:
                 result = await session.execute(delete(model).where(criteria))
                 removed += int(cast(CursorResult[Any], result).rowcount or 0)
@@ -449,6 +496,47 @@ class PostgresHistoryRepository:
             limit=remaining,
         )
         if ids:
+            revisions = select(ReadingRevisionRow.id).where(ReadingRevisionRow.plan_id.in_(ids))
+            await _delete_copies(
+                session,
+                SavedNoteRow.revision_id.in_(revisions),
+                ShareArtifactRow.revision_id.in_(revisions),
+            )
             result = await session.execute(delete(ReadingPlanRow).where(ReadingPlanRow.id.in_(ids)))
             removed += int(cast(CursorResult[Any], result).rowcount or 0)
         return removed
+
+    @staticmethod
+    async def _erase_daily(
+        session: AsyncSession, criteria: ColumnElement[bool], limit: int | None
+    ) -> int:
+        """Delete Daily roots and, explicitly, any copy still attached to them.
+
+        Until migration 20261029_0039 a deleted root cascaded into its saved notes and share
+        links; the compatibility release added these deletes first, so either schema gives the
+        same result. The criteria already keep a saved root, and automatic cleanup
+        keeps a root with a live link, so this only removes what the cascade removes: the live
+        links on unsaved roots of a manual clear. Ids are read first so the copy deletes cannot
+        correlate with the criteria's own share/saved subqueries.
+        """
+
+        query = select(DailyNoteRow.id).where(criteria).order_by(DailyNoteRow.id)
+        if limit is not None:
+            query = query.limit(limit)
+        ids = list(await session.scalars(query))
+        if not ids:
+            return 0
+        await _delete_copies(
+            session,
+            SavedNoteRow.daily_note_id.in_(ids),
+            ShareArtifactRow.daily_note_id.in_(ids),
+        )
+        result = await session.execute(delete(DailyNoteRow).where(DailyNoteRow.id.in_(ids)))
+        return int(cast(CursorResult[Any], result).rowcount or 0)
+
+
+async def _delete_copies(
+    session: AsyncSession, saved: ColumnElement[bool], shares: ColumnElement[bool]
+) -> None:
+    await session.execute(delete(SavedNoteRow).where(saved))
+    await session.execute(delete(ShareArtifactRow).where(shares))

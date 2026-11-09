@@ -79,7 +79,7 @@ try {
       origin,
       "x-csrf-token": guest.csrf_token,
     },
-    body: JSON.stringify({ birth_date: "1990-03-15" }),
+    body: JSON.stringify({ birth_date: "2000-03-03" }),
   });
   assert.equal(birthResponse.status, 200);
   assert.equal((await birthResponse.json()).calculation_kind, "date_only_sun");

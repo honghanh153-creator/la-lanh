@@ -211,18 +211,44 @@ def evidence_gate(plan: ReadingPlan, candidate: ReadingCandidate) -> GateReport:
     return _report(GateName.EVIDENCE, EVIDENCE_GATE_VERSION, failures)
 
 
+_QUOTE_OPEN = frozenset('"\u201c\u2018\u00ab')
+_QUOTE_CLOSE = frozenset('"\u201d\u2019\u00bb')
+
+
+def _quoted_spans(text: str) -> list[tuple[int, int]]:
+    """Spans of the quoted pieces of ``text``, in one left-to-right pass.
+
+    Same spans as the former ``finditer`` of one ``_QUOTE_OPEN`` mark, one or more characters
+    outside ``_QUOTE_CLOSE``, then one ``_QUOTE_CLOSE`` mark. That regex rescanned to the end of
+    the text from every opening mark with no closing mark after it, which is quadratic on a long
+    run of opening marks (CodeQL py/polynomial-redos); this walk reads each character once.
+    """
+
+    spans: list[tuple[int, int]] = []
+    start = -1
+    for index, char in enumerate(text):
+        if start >= 0 and char in _QUOTE_CLOSE:
+            if index > start + 1:
+                spans.append((start, index + 1))
+                start = -1
+                continue
+            # An empty quote: the regex gives up on that opening mark and retries one
+            # character later, where this closing mark may itself open a quote (`"`).
+            start = -1
+        if start < 0 and char in _QUOTE_OPEN:
+            start = index
+    return spans
+
+
 def _without_safe_examples(text: str) -> str:
     folded = _fold(text)
-    quote_pattern = re.compile(
-        '["\u201c\u2018\u00ab]([^"\u201d\u2019\u00bb]+)["\u201d\u2019\u00bb]'
-    )
     pieces: list[str] = []
     cursor = 0
-    for match in quote_pattern.finditer(folded):
-        prefix = folded[max(0, match.start() - 45) : match.start()]
+    for start, end in _quoted_spans(folded):
+        prefix = folded[max(0, start - 45) : start]
         if re.search(r"(?:vi du|cum tu|cau can tranh|khong nen noi|tranh noi)\s*:?\s*$", prefix):
-            pieces.append(folded[cursor : match.start()])
-            cursor = match.end()
+            pieces.append(folded[cursor:start])
+            cursor = end
     pieces.append(folded[cursor:])
     return " ".join(pieces)
 
@@ -545,10 +571,17 @@ def privacy_gate(candidate: ReadingCandidate) -> GateReport:
     return _report(GateName.PRIVACY, PRIVACY_GATE_VERSION, ())
 
 
+# E-mail, on the unfolded text. Only `search` truthiness is used. The old local part
+# `\b[A-Z0-9._%+-]+@` holds exactly when the last word boundary inside that run is followed only
+# by word characters ([A-Z0-9_]) or only by [.%+-] up to "@". Neither kind of run has an inner
+# word boundary, so each run is tried once and a long run without "@" stays linear (CodeQL
+# py/polynomial-redos).
+_PRIVACY_EMAIL = re.compile(r"\b(?:[A-Z0-9_]+|[.%+-]+)@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+
+
 def privacy_failures(text: str) -> list[GateFailureCode]:
     folded = _fold(text)
     patterns = (
-        r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
         r"\b(?:\+?84|0)(?:[ .-]?\d){9,10}\b",
         r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b",
         r"\b\d{4}-\d{2}-\d{2}\b",
@@ -557,9 +590,7 @@ def privacy_failures(text: str) -> list[GateFailureCode]:
         r"\b(?:vi do|kinh do|latitude|longitude)\s*[:=]?\s*-?\d{1,3}\.\d+",
         r"\bngay sinh\b.{0,30}\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b",
     )
-    if re.search(patterns[0], text, flags=re.IGNORECASE) or any(
-        re.search(pattern, folded) for pattern in patterns[1:]
-    ):
+    if _PRIVACY_EMAIL.search(text) or any(re.search(pattern, folded) for pattern in patterns):
         return [GateFailureCode.PRIVACY_PERSONAL_DATA]
     return []
 

@@ -3,11 +3,13 @@ import {
   OWNER_SESSION_EPOCH_KEY,
   SESSION_EPOCH_KEY,
 } from "../api/client";
+import { setPendingChartQuarantine } from "./chartQuarantineGate";
 import { clearMatchingIntroExposure } from "./matchingIntroExposure";
 import { clearCachedDailyNote } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
 import { PENDING_MOOD_ACK_KEY, PENDING_MOOD_KEY } from "./pendingMood";
 import { clearSavedNoteMutationQueue, fenceSavedNoteCallbacks } from "./savedNoteMutationQueue";
+import { removeOrphanedNativeExport } from "../../features/profile/downloadMyData";
 import { RADAR_PENDING_REQUEST_KEY } from "../../features/radar/radarOptions";
 import { invalidateSessionRequests, SESSION_RESTART_REQUIRED_KEY } from "../session/sessionIdentity";
 
@@ -68,11 +70,18 @@ export async function clearPersonalDataOnDevice(): Promise<void> {
   attempt(() => sessionStorage.removeItem(OWNER_SESSION_EPOCH_KEY));
   attempt(() => sessionStorage.removeItem("la-lanh-owner-session-until-v1"));
   attempt(() => sessionStorage.removeItem(SESSION_RESTART_REQUIRED_KEY));
+  attempt(() => setPendingChartQuarantine(null));
   attempt(() => sessionStorage.removeItem("la-lanh-radar-pending"));
   attempt(() => sessionStorage.removeItem(RADAR_PENDING_REQUEST_KEY));
   attempt(() => sessionStorage.removeItem("la-lanh-radar-owner-start"));
   attempt(() => sessionStorage.removeItem("la-lanh-tarot-start"));
   attempt(() => sessionStorage.removeItem("la-lanh-tarot-guest-key"));
+
+  try {
+    await removeOrphanedNativeExport();
+  } catch (error) {
+    failures.push(error);
+  }
 
   if ("caches" in window) {
     const results = await Promise.allSettled(

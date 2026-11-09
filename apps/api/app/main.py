@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.input_problem import install_input_problem
 from app.api.v1.router import router as v1_router
 from app.api.v1.routes.content_studio import router as content_studio_router
 from app.config import Settings, get_settings
@@ -31,6 +32,7 @@ from app.domains.content_rewrite.rollout import SurfaceRolloutPolicy
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.daily.postgres import PostgresDailyNoteRepository
 from app.domains.daily.service import DailyNoteService
+from app.domains.data_export.service import DataExportService
 from app.domains.erasure_journal.journal import ErasureJournal
 from app.domains.experiments.postgres import PostgresExperimentRepository
 from app.domains.experiments.service import ExperimentService
@@ -39,6 +41,7 @@ from app.domains.guest.repository import GuestRepository
 from app.domains.guest.service import GuestSessionService
 from app.domains.history.postgres import PostgresHistoryRepository
 from app.domains.history.service import HistoryService
+from app.domains.human_tarot.service import HumanTarotService
 from app.domains.identity.service import OwnerIdentityService
 from app.domains.la_chung.service import LaChungService
 from app.domains.matching.postgres import PostgresMatchingRepository
@@ -140,6 +143,7 @@ def create_app(
             envelope,
             SupabaseOtpProvider(resolved_settings, transport=auth_transport),
             resolved_settings,
+            erasure_journal=erasure_journal,
         )
         app.state.history_service = HistoryService(
             PostgresHistoryRepository(database.sessions, envelope, erasure_journal),
@@ -202,6 +206,14 @@ def create_app(
             ),
             erasure_journal=erasure_journal,
         )
+        app.state.human_tarot_service = HumanTarotService(
+            database.sessions,
+            envelope,
+            credential_hasher,
+            enabled=resolved_settings.human_tarot_enabled,
+            intake_closes_at=resolved_settings.human_tarot_intake_closes_at,
+            erasure_journal=erasure_journal,
+        )
         app.state.la_chung_service = LaChungService(
             database.sessions,
             credential_hasher,
@@ -210,6 +222,13 @@ def create_app(
         )
         birth_repo = birth_repository or PostgresBirthRepository(
             database.sessions, envelope, erasure_journal
+        )
+        app.state.data_export_service = DataExportService(
+            database.sessions,
+            envelope,
+            birth_repo,
+            app.state.tarot_session_service,
+            app.state.human_tarot_service,
         )
         app.state.birth_chart_service = (
             BirthChartService(
@@ -395,6 +414,7 @@ def create_app(
             prefix=f"/{resolved_settings.api_version}",
             tags=["content-studio"],
         )
+    install_input_problem(application)
     application.add_api_route(
         "/metrics",
         metrics_response,

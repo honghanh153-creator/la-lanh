@@ -1,0 +1,71 @@
+# Checklist quyết định: Claude tự quyết hay hỏi owner
+
+Owner yêu cầu ngày 31.10.2026. Áp dụng cho Claude và Codex trong vòng tự động (`collab-auto-loop-plan.md`).
+Mục tiêu: owner chỉ được hỏi những việc thật sự cần owner. Mọi việc khác agent tự quyết, làm, rồi báo lại.
+
+## 1. Năm câu hỏi trước mỗi quyết định
+
+Trả lời lần lượt. Gặp **"có"** ở câu nào thì dừng ở câu đó và làm theo cột "Kết quả".
+
+| # | Câu hỏi | Kết quả nếu "có" |
+|---|---|---|
+| Q1 | Việc này **có nằm trong danh sách cấm** ở mục 2 không? | Không làm. Hỏi owner, kèm đề xuất. |
+| Q2 | Có **câu chữ mới mà người dùng nhìn thấy** không (copy, nhãn, thông báo, bản đọc)? | Làm bản nháp + PR gắn `needs-owner`. Owner duyệt copy rồi mới merge. **Ngoại lệ cho bản đọc** (owner, 03.11.2026): xem dưới bảng. |
+| Q3 | Có **thu thập, lưu, chia sẻ hay suy ra thêm dữ liệu cá nhân** không, hoặc đổi mục đích/thời hạn lưu? | Hỏi owner, kèm phân tích privacy (AGENTS.md mục 3). |
+| Q4 | Có **đổi hướng sản phẩm** không (tính năng mới, bỏ tính năng, đổi thứ tự ưu tiên owner đã chốt)? | Hỏi owner, kèm 2 lựa chọn và khuyến nghị. |
+| Q5 | Có **tốn tiền, không hoàn tác được, hoặc ảnh hưởng người dùng thật ngay** không? | Hỏi owner. |
+| — | Cả năm câu đều "không" | **Tự quyết, làm, báo lại** trong tóm tắt cuối lượt. |
+
+**Q2 cho bản đọc (owner giao Claude chốt, 03.11.2026):**
+- Bản đọc (Daily, Tarot, Khám phá, Hợp gu) do nhà máy nội dung sinh theo bộ chuẩn và đã qua đủ cổng tự động (lớp A lint, lớp B giám khảo, lớp C người đọc giả lập) thì không cần owner duyệt từng câu.
+- Owner chỉ xem câu bị cổng gắn cờ và báo cáo điểm của mỗi đợt.
+- Bộ chuẩn (C3a, `docs/plans/2026-11-02-daily-v2-content-quality-plan.md`) do Claude chốt và Codex review.
+- Đổi bộ chuẩn thì qua PR như mọi tài liệu khác.
+- **Cờ chờ duyệt (owner, 06.11.2026):** câu mới ghi vào `apps/api/app/domains/content/copy_registry.json` với `status: pending` và gọi qua `copy_text(id, câu đã duyệt hiện tại)`. Câu pending không bao giờ tới người dùng, nên PR được merge **không cần** `needs-owner`. Mỗi ngày `node scripts/codex-copy-review.mjs` nhờ Codex (read-only) chấm lô pending và mở PR `agent/claude/copy-batch-YYYYMMDD`; câu Codex duyệt mới được phục vụ. Nhóm `privacy`, `consent`, `crisis`, `safety` vẫn chỉ owner duyệt (cổng `scripts.fallback_approval` từ chối duyệt của Codex cho nhóm này) và PR của chúng vẫn gắn `needs-owner`.
+- Vẫn cần owner duyệt: copy giao diện (nút, thông báo, nhãn mới hiện ra cho người dùng; bảng nghĩa 12 nhà và bảng hành tinh × nhà thuộc bản đọc, đi qua cổng), lời giải thích quyền riêng tư, nội dung pháp lý, và mọi ngoại lệ của luật an toàn S1–S7.
+
+**Cải thiện trải nghiệm người dùng (owner, 31.10.2026):** việc giúp người dùng dùng app dễ, rõ, êm hơn mà không vướng Q1–Q5 thì agent **chủ động làm luôn**, không chờ được giao: sửa lỗi hiển thị, trạng thái lỗi/đang tải rõ ràng hơn, bỏ thông tin kỹ thuật lộ ra người dùng, tránh lặp, tăng khả năng tiếp cận, tăng tốc. Nếu việc đó cần câu chữ mới thì vẫn qua Q2 (bản nháp + owner duyệt copy).
+
+## 2. Danh sách cấm (luôn cần lệnh riêng của owner)
+
+- Merge vào `main`, release, deploy, SSH hay chạm server/database thật.
+- Bật provider, đổi IAM, secret, budget, gọi API trả phí ngoài review Codex trong vòng tự động.
+- Đọc dữ liệu thật của người dùng trên production, kể cả của owner (owner có thể tự xem rồi gửi đúng trường cần).
+- Cài PostgreSQL hoặc chạy probe #106 (owner loại trừ riêng ngày 29.10).
+- Đăng dữ liệu cá nhân, ngày/giờ/nơi sinh thật, ảnh chụp tài khoản lên repo public.
+- Viết `Duyệt`, `Giữ`, `Bỏ #N` thay owner trên issue plan.
+
+## 3. Việc Claude tự quyết (ví dụ đã chốt)
+
+| Loại việc | Tiêu chí đã thỏa | Ví dụ |
+|---|---|---|
+| Sửa lỗi kỹ thuật không đổi câu chữ | Q1–Q5 đều "không"; có test đỏ→xanh | #144 Jyotish 503, #142 kiểm tra "máy bận" |
+| Thay đổi quy trình trong vòng tự động | Miễn phí, hoàn tác được; vẫn qua Codex review | Ops đi trước (#135), tick tự check (#137) |
+| Sửa fix-forward P2 | Đã có verdict; không đổi copy | #140 |
+| Hướng kỹ thuật khi dữ liệu thiếu | Không đổi dữ liệu thu thập | E1 #143: giờ khoảng vẫn đọc hành tinh, bỏ nhà/cung mọc |
+| Việc local, miễn phí, riêng tư | Không chạm production | Cài job launchd, dọn lượt autopilot treo |
+| Cải thiện trải nghiệm không đổi câu chữ | Q1–Q5 đều "không" | Thống nhất mức dữ liệu trên trang Khám phá, giấu footer kỹ thuật (#143 E4) |
+
+## 4. Input cần có trước khi quyết
+
+Trước khi push: chạy nhanh lint/format/test của đúng phần đã sửa (vài giây), để author check không fail vì lỗi định dạng (bài học #144).
+
+
+| Input | Lấy ở đâu |
+|---|---|
+| Yêu cầu gốc và AC | PRD/SRS/US, issue task |
+| Quyết định owner đã chốt | `collab-auto-loop-plan.md` §2, hub #2, memory của Claude |
+| Bằng chứng | Repro (dữ liệu tổng hợp), test đỏ trên code cũ, log |
+| Ảnh hưởng | Copy? Dữ liệu? Chi phí? Hoàn tác được không? |
+| Cổng tự động | `pnpm check` (gồm `fallback_approval`, content audits), Codex review |
+
+## 5. Khi phải hỏi owner
+
+- Một câu hỏi, có **lựa chọn đánh số + khuyến nghị**, nói rõ hậu quả mỗi lựa chọn.
+- Không hỏi lại điều owner đã chốt; không hỏi việc thuộc mục 3.
+- Trong lúc chờ owner, làm tiếp việc khác (§3.2 cách làm hằng ngày); không ngồi chờ.
+- Việc chờ owner được gắn `needs-owner` và hiện ở bảng trạng thái trên issue plan.
+
+## 6. Ghi lại
+
+Mỗi quyết định owner mới: ghi ngay vào `collab-auto-loop-plan.md` §2 hoặc hub #2 để mọi session đều đọc được. Quyết định Claude tự đưa ra: ghi trong PR/issue liên quan, nêu câu hỏi nào trong mục 1 đã được trả lời "không".

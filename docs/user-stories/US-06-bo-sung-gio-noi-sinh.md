@@ -122,7 +122,7 @@ flowchart TD
 |---|---|---|---|
 | `birth_time_mode` | Enum | Có | `exact`, `approx_window`, `unknown`. |
 | `birth_time_local` | String HH:mm | Có nếu exact | `00:00`–`23:59`; không parse text tự do. |
-| `approx_window` | Enum | Có nếu approx | `morning`, `noon`, `afternoon`, `evening`, `night`; mapping sang range nằm phía server/config. |
+| `approx_window` | Enum | Có nếu approx | `dawn` (00–06h), `morning` (06–10h), `noon` (10–14h), `afternoon` (14–18h), `evening` (18–22h), `night` (22–24h); server lưu điểm giữa trên ngày sinh đã nhập (03, 08, 12, 15, 19, 23 giờ). `dawn` thêm theo PL-37 (owner 03.11.2026). |
 | `time_precision` | Enum | Auto | `exact`, `approximate`, `unknown`; dùng để gắn disclaimer. |
 
 ### S26 — Tìm nơi sinh
@@ -202,7 +202,7 @@ flowchart TD
 | Field | Loại | Required | Validation |
 |---|---|---|---|
 | `profile_id` | Opaque id | Có | Thuộc guest/account session hiện tại; không dùng raw trong URL public. |
-| `birth_date` | Date | Đã có từ US-02 | Không sửa ở US-06 trừ khi user vào edit profile riêng. |
+| `birth_date` | Date | Đã có từ US-02 | Không sửa ở US-06. Sửa ngày sinh thuộc [US-23](US-23-sua-thong-tin-sinh.md) (`PUT /v1/birth-profile/date`); đổi ngày xoá giờ, nơi và đồng ý sâu. |
 | `birth_time_mode` | Enum | Có | `exact`, `approx_window`, `unknown`. |
 | `birth_time_local` | HH:mm | Conditional | Required nếu exact; 00:00–23:59; timezone local của nơi sinh. |
 | `approx_window` | Enum | Conditional | Required nếu approx; mapping server-configurable. |
@@ -357,7 +357,7 @@ Không ghi raw giờ sinh, nơi sinh, query text, `place_id`, tọa độ, DOB, 
 | Exit defer/decline | No new sensitive data persisted; prompt snoozed or flow closed; existing Vibe/profile/Note remains usable. |
 | Exit failure | Atomic rollback to prior active snapshot + retry/status operation. |
 | Story sở hữu | Time mode, city-level place, purpose consent, geocode/timezone, recompute, readiness, edit/remove/downgrade. |
-| Không sở hữu | Deep reading content (US-07), DOB edit (profile story), auth claim (US-19), Daily Note mutation (US-03). |
+| Không sở hữu | Deep reading content (US-07), DOB edit ([US-23](US-23-sua-thong-tin-sinh.md)), auth claim (US-19), Daily Note mutation (US-03). |
 
 ## 15. Route/state matrix
 
@@ -377,7 +377,7 @@ Không ghi raw giờ sinh, nơi sinh, query text, `place_id`, tọa độ, DOB, 
 |---|---|---|---|
 | `birth_time_mode` | enum | Có | `exact/approx_window/unknown`. |
 | `birth_time_local` | `HH:mm` | If exact | Strict 00:00–23:59, local to birthplace. |
-| `approx_window` | enum | If approx | `morning/noon/afternoon/evening/night`; versioned range mapping. |
+| `approx_window` | enum | If approx | `dawn/morning/noon/afternoon/evening/night` (00–06, 06–10, 10–14, 14–18, 18–22, 22–24h); versioned range mapping. |
 | `time_precision` | enum | Server | `exact/approximate/unknown`; cannot be upgraded by client. |
 | `place_id` | opaque provider/server id | If selected | Validate server-side; never public. |
 | `place_display_name` | string 2–120 | If selected | City/province/country only; sanitize street detail. |

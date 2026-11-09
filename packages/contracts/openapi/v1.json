@@ -140,6 +140,7 @@
       },
       "ApproxWindow": {
         "enum": [
+          "dawn",
           "morning",
           "noon",
           "afternoon",
@@ -277,6 +278,17 @@
         "title": "AuraUnlockLayer",
         "type": "string"
       },
+      "AvailabilityReason": {
+        "enum": [
+          "open",
+          "full",
+          "closed",
+          "already_requested",
+          "disabled"
+        ],
+        "title": "AvailabilityReason",
+        "type": "string"
+      },
       "AvailableReadingUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -337,6 +349,34 @@
         "title": "BasicBirthConsentRequest",
         "type": "object"
       },
+      "BirthDateCorrectionRequest": {
+        "additionalProperties": false,
+        "description": "US-23: the new date twice (typo check) and the revision fence read from GET.",
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "confirm_birth_date": {
+            "format": "date",
+            "title": "Confirm Birth Date",
+            "type": "string"
+          },
+          "expected_revision": {
+            "format": "date-time",
+            "title": "Expected Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "birth_date",
+          "confirm_birth_date",
+          "expected_revision"
+        ],
+        "title": "BirthDateCorrectionRequest",
+        "type": "object"
+      },
       "BirthDateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -387,6 +427,18 @@
             "format": "uuid",
             "title": "Profile Id",
             "type": "string"
+          },
+          "profile_revision": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Revision"
           },
           "resumed": {
             "title": "Resumed",
@@ -1085,6 +1137,184 @@
         "title": "DailyNoteResponse",
         "type": "object"
       },
+      "DataExport": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportAccount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "birth_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportBirthProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "consents": {
+            "items": {
+              "$ref": "#/components/schemas/ExportConsent"
+            },
+            "title": "Consents",
+            "type": "array"
+          },
+          "daily_experiments": {
+            "items": {
+              "$ref": "#/components/schemas/ExportDailyExperiment"
+            },
+            "title": "Daily Experiments",
+            "type": "array"
+          },
+          "daily_notes": {
+            "items": {
+              "$ref": "#/components/schemas/ExportDailyNote"
+            },
+            "title": "Daily Notes",
+            "type": "array"
+          },
+          "format": {
+            "const": "la-lanh-data-export-v1",
+            "default": "la-lanh-data-export-v1",
+            "title": "Format",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "history_retention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportHistoryRetention"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "human_tarot_requests": {
+            "items": {
+              "$ref": "#/components/schemas/ExportHumanTarotRequest"
+            },
+            "title": "Human Tarot Requests",
+            "type": "array"
+          },
+          "la_chung_invites": {
+            "items": {
+              "$ref": "#/components/schemas/ExportLaChungInvite"
+            },
+            "title": "La Chung Invites",
+            "type": "array"
+          },
+          "matching": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportMatching"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "not_included": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Included",
+            "type": "array"
+          },
+          "note_feedback": {
+            "items": {
+              "$ref": "#/components/schemas/ExportNoteFeedback"
+            },
+            "title": "Note Feedback",
+            "type": "array"
+          },
+          "notice": {
+            "title": "Notice",
+            "type": "string"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ExportProfile"
+          },
+          "radar_received": {
+            "items": {
+              "$ref": "#/components/schemas/ExportRadarReceived"
+            },
+            "title": "Radar Received",
+            "type": "array"
+          },
+          "radar_sent": {
+            "items": {
+              "$ref": "#/components/schemas/ExportRadarSent"
+            },
+            "title": "Radar Sent",
+            "type": "array"
+          },
+          "saved_notes": {
+            "items": {
+              "$ref": "#/components/schemas/ExportSavedNote"
+            },
+            "title": "Saved Notes",
+            "type": "array"
+          },
+          "share_links": {
+            "items": {
+              "$ref": "#/components/schemas/ExportShareLink"
+            },
+            "title": "Share Links",
+            "type": "array"
+          },
+          "tarot_sessions": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTarotSession"
+            },
+            "title": "Tarot Sessions",
+            "type": "array"
+          },
+          "truncated": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Truncated",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at",
+          "notice",
+          "profile",
+          "account",
+          "consents",
+          "history_retention",
+          "birth_profile",
+          "daily_notes",
+          "saved_notes",
+          "share_links",
+          "tarot_sessions",
+          "human_tarot_requests",
+          "note_feedback",
+          "daily_experiments",
+          "radar_sent",
+          "radar_received",
+          "la_chung_invites",
+          "matching",
+          "not_included",
+          "truncated"
+        ],
+        "title": "DataExport",
+        "type": "object"
+      },
       "DateOnlySunResult": {
         "properties": {
           "candidates": {
@@ -1479,6 +1709,1280 @@
         "title": "ExperimentState",
         "type": "string"
       },
+      "ExportAccount": {
+        "additionalProperties": false,
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/ExportDevice"
+            },
+            "title": "Devices",
+            "type": "array"
+          },
+          "linked_at": {
+            "format": "date-time",
+            "title": "Linked At",
+            "type": "string"
+          },
+          "masked_email": {
+            "title": "Masked Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "masked_email",
+          "linked_at",
+          "devices"
+        ],
+        "title": "ExportAccount",
+        "type": "object"
+      },
+      "ExportBirthProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "approx_window": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approx Window"
+          },
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "birth_time_local": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Time Local"
+          },
+          "birth_time_mode": {
+            "title": "Birth Time Mode",
+            "type": "string"
+          },
+          "calculated_at": {
+            "format": "date-time",
+            "title": "Calculated At",
+            "type": "string"
+          },
+          "calculation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DateOnlySunResult"
+              },
+              {
+                "$ref": "#/components/schemas/NatalChart"
+              }
+            ],
+            "title": "Calculation"
+          },
+          "calculation_kind": {
+            "enum": [
+              "date_only_sun",
+              "natal_chart"
+            ],
+            "title": "Calculation Kind",
+            "type": "string"
+          },
+          "place_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Display Name"
+          },
+          "profile_level": {
+            "title": "Profile Level",
+            "type": "integer"
+          },
+          "supplement_consent_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplement Consent Version"
+          },
+          "time_precision": {
+            "title": "Time Precision",
+            "type": "string"
+          },
+          "timezone_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone Id"
+          }
+        },
+        "required": [
+          "birth_date",
+          "profile_level",
+          "time_precision",
+          "birth_time_mode",
+          "birth_time_local",
+          "approx_window",
+          "place_display_name",
+          "timezone_id",
+          "supplement_consent_version",
+          "calculated_at",
+          "calculation_kind",
+          "calculation"
+        ],
+        "title": "ExportBirthProfile",
+        "type": "object"
+      },
+      "ExportConsent": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted_at": {
+            "format": "date-time",
+            "title": "Accepted At",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "version",
+          "accepted_at",
+          "revoked_at"
+        ],
+        "title": "ExportConsent",
+        "type": "object"
+      },
+      "ExportDailyExperiment": {
+        "additionalProperties": false,
+        "properties": {
+          "background_lens": {
+            "title": "Background Lens",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "reflected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reflected At"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "background_lens",
+          "outcome",
+          "created_at",
+          "expires_at",
+          "reflected_at"
+        ],
+        "title": "ExportDailyExperiment",
+        "type": "object"
+      },
+      "ExportDailyNote": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "context_label": {
+            "title": "Context Label",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "full_body": {
+            "title": "Full Body",
+            "type": "string"
+          },
+          "mood": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mood"
+          },
+          "mood_checked_in_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mood Checked In At"
+          },
+          "note_date": {
+            "format": "date",
+            "title": "Note Date",
+            "type": "string"
+          },
+          "persona_label": {
+            "title": "Persona Label",
+            "type": "string"
+          },
+          "persona_mode": {
+            "title": "Persona Mode",
+            "type": "string"
+          },
+          "readings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ExportSavedReading"
+            },
+            "title": "Readings",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "note_date",
+          "title",
+          "body",
+          "full_body",
+          "context_label",
+          "persona_mode",
+          "persona_label",
+          "created_at",
+          "mood",
+          "mood_checked_in_at"
+        ],
+        "title": "ExportDailyNote",
+        "type": "object"
+      },
+      "ExportDevice": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "last_active_at": {
+            "format": "date-time",
+            "title": "Last Active At",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          }
+        },
+        "required": [
+          "created_at",
+          "last_active_at",
+          "expires_at",
+          "revoked_at"
+        ],
+        "title": "ExportDevice",
+        "type": "object"
+      },
+      "ExportHistoryRetention": {
+        "additionalProperties": false,
+        "properties": {
+          "activated_at": {
+            "format": "date-time",
+            "title": "Activated At",
+            "type": "string"
+          },
+          "consent_version": {
+            "title": "Consent Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "consent_version",
+          "activated_at"
+        ],
+        "title": "ExportHistoryRetention",
+        "type": "object"
+      },
+      "ExportHumanTarotReading": {
+        "additionalProperties": false,
+        "description": "The frozen reading a human reader wrote, once its release time has passed (US-24 R9).",
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTarotCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "imported_at": {
+            "format": "date-time",
+            "title": "Imported At",
+            "type": "string"
+          },
+          "reader": {
+            "const": "human",
+            "title": "Reader",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reader",
+          "cards",
+          "reading",
+          "step",
+          "imported_at"
+        ],
+        "title": "ExportHumanTarotReading",
+        "type": "object"
+      },
+      "ExportHumanTarotRequest": {
+        "additionalProperties": false,
+        "description": "The person's own request as the app shows it (US-24 view), never the Sheet copy's state.\n\nNo request code, Sheet row, slot, delivery state, idempotency/request hash or day tally: those\nare operational, not something the person gave or received.",
+        "properties": {
+          "consent_version": {
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "consented_at": {
+            "format": "date-time",
+            "title": "Consented At",
+            "type": "string"
+          },
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "local_date": {
+            "format": "date",
+            "title": "Local Date",
+            "type": "string"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportHumanTarotReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "release_at": {
+            "format": "date-time",
+            "title": "Release At",
+            "type": "string"
+          },
+          "spread": {
+            "title": "Spread",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "waiting",
+              "ready",
+              "late",
+              "unfulfilled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "local_date",
+          "context",
+          "spread",
+          "question",
+          "consent_version",
+          "consented_at",
+          "release_at",
+          "reading",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportHumanTarotRequest",
+        "type": "object"
+      },
+      "ExportLaChungInvite": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "has_response": {
+            "title": "Has Response",
+            "type": "boolean"
+          },
+          "nickname": {
+            "title": "Nickname",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nickname",
+          "context",
+          "status",
+          "has_response",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportLaChungInvite",
+        "type": "object"
+      },
+      "ExportMatching": {
+        "additionalProperties": false,
+        "properties": {
+          "consents": {
+            "items": {
+              "$ref": "#/components/schemas/ExportConsent"
+            },
+            "title": "Consents",
+            "type": "array"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportMatchingProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verification_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Status"
+          }
+        },
+        "required": [
+          "profile",
+          "consents",
+          "verification_status"
+        ],
+        "title": "ExportMatching",
+        "type": "object"
+      },
+      "ExportMatchingProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "gender_identity": {
+            "title": "Gender Identity",
+            "type": "string"
+          },
+          "gender_preference": {
+            "title": "Gender Preference",
+            "type": "string"
+          },
+          "intent": {
+            "title": "Intent",
+            "type": "string"
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Joined At"
+          },
+          "max_age": {
+            "title": "Max Age",
+            "type": "integer"
+          },
+          "min_age": {
+            "title": "Min Age",
+            "type": "integer"
+          },
+          "region_code": {
+            "title": "Region Code",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "weekly_intent": {
+            "title": "Weekly Intent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "gender_identity",
+          "intent",
+          "gender_preference",
+          "min_age",
+          "max_age",
+          "region_code",
+          "weekly_intent",
+          "active",
+          "joined_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ExportMatchingProfile",
+        "type": "object"
+      },
+      "ExportNoteFeedback": {
+        "additionalProperties": false,
+        "properties": {
+          "background_lens": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Background Lens"
+          },
+          "choice": {
+            "title": "Choice",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "choice",
+          "background_lens",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportNoteFeedback",
+        "type": "object"
+      },
+      "ExportProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "last_active_at": {
+            "format": "date-time",
+            "title": "Last Active At",
+            "type": "string"
+          },
+          "onboarding_status": {
+            "title": "Onboarding Status",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "onboarding_status",
+          "created_at",
+          "last_active_at",
+          "expires_at"
+        ],
+        "title": "ExportProfile",
+        "type": "object"
+      },
+      "ExportRadarReceived": {
+        "additionalProperties": false,
+        "description": "B's own side: B's consent, never the nickname the sender chose for B.",
+        "properties": {
+          "accepted_at": {
+            "format": "date-time",
+            "title": "Accepted At",
+            "type": "string"
+          },
+          "consent_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consent Version"
+          },
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "context",
+          "consent_version",
+          "accepted_at",
+          "expires_at"
+        ],
+        "title": "ExportRadarReceived",
+        "type": "object"
+      },
+      "ExportRadarSent": {
+        "additionalProperties": false,
+        "description": "A's own side only: the nickname A typed and the request's lifecycle, never B's data.",
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "nickname": {
+            "title": "Nickname",
+            "type": "string"
+          },
+          "permission_attested_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permission Attested At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nickname",
+          "context",
+          "voice",
+          "mode",
+          "status",
+          "permission_attested_at",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportRadarSent",
+        "type": "object"
+      },
+      "ExportReadingEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "framework_disclosure": {
+            "title": "Framework Disclosure",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "claims",
+          "framework_disclosure"
+        ],
+        "title": "ExportReadingEvidence",
+        "type": "object"
+      },
+      "ExportReadingSections": {
+        "additionalProperties": false,
+        "properties": {
+          "companion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companion"
+          },
+          "hook": {
+            "title": "Hook",
+            "type": "string"
+          },
+          "manifestation": {
+            "title": "Manifestation",
+            "type": "string"
+          },
+          "micro_action": {
+            "title": "Micro Action",
+            "type": "string"
+          },
+          "thesis": {
+            "title": "Thesis",
+            "type": "string"
+          },
+          "transit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transit"
+          }
+        },
+        "required": [
+          "hook",
+          "thesis",
+          "manifestation",
+          "transit",
+          "micro_action",
+          "companion"
+        ],
+        "title": "ExportReadingSections",
+        "type": "object"
+      },
+      "ExportSavedNote": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "context_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Label"
+          },
+          "full_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Body"
+          },
+          "note_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note Date"
+          },
+          "persona_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Label"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportSavedReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "saved_at": {
+            "format": "date-time",
+            "title": "Saved At",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "saved_at",
+          "note_date",
+          "title",
+          "body",
+          "full_body",
+          "context_label",
+          "persona_label",
+          "reading"
+        ],
+        "title": "ExportSavedNote",
+        "type": "object"
+      },
+      "ExportSavedReading": {
+        "additionalProperties": false,
+        "properties": {
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/ExportReadingEvidence"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/ExportReadingSections"
+          }
+        },
+        "required": [
+          "sections",
+          "evidence",
+          "disclaimer"
+        ],
+        "title": "ExportSavedReading",
+        "type": "object"
+      },
+      "ExportShareLink": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "revoked",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "status",
+          "created_at",
+          "expires_at",
+          "revoked_at"
+        ],
+        "title": "ExportShareLink",
+        "type": "object"
+      },
+      "ExportTarotCard": {
+        "additionalProperties": false,
+        "properties": {
+          "card": {
+            "title": "Card",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "card"
+        ],
+        "title": "ExportTarotCard",
+        "type": "object"
+      },
+      "ExportTarotPosition": {
+        "additionalProperties": false,
+        "properties": {
+          "card": {
+            "title": "Card",
+            "type": "string"
+          },
+          "everyday_scene": {
+            "title": "Everyday Scene",
+            "type": "string"
+          },
+          "meaning_here": {
+            "title": "Meaning Here",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "reflection_question": {
+            "title": "Reflection Question",
+            "type": "string"
+          },
+          "small_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Small Action"
+          }
+        },
+        "required": [
+          "position",
+          "card",
+          "meaning_here",
+          "everyday_scene",
+          "reflection_question",
+          "small_action"
+        ],
+        "title": "ExportTarotPosition",
+        "type": "object"
+      },
+      "ExportTarotReading": {
+        "additionalProperties": false,
+        "properties": {
+          "closing_prompt": {
+            "title": "Closing Prompt",
+            "type": "string"
+          },
+          "conclusion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conclusion"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTarotPosition"
+            },
+            "title": "Positions",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "headline",
+          "summary",
+          "positions",
+          "conclusion",
+          "closing_prompt",
+          "disclaimer"
+        ],
+        "title": "ExportTarotReading",
+        "type": "object"
+      },
+      "ExportTarotSession": {
+        "additionalProperties": false,
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/ExportTarotCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "context": {
+            "title": "Context",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportTarotReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spread": {
+            "title": "Spread",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "voice": {
+            "title": "Voice",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "context",
+          "spread",
+          "voice",
+          "question",
+          "cards",
+          "reading",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "ExportTarotSession",
+        "type": "object"
+      },
       "FallbackReason": {
         "enum": [
           "ambiguous_sun",
@@ -1663,19 +3167,6 @@
         "title": "GuestSessionResponse",
         "type": "object"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
-        "type": "object"
-      },
       "HealthResponse": {
         "properties": {
           "api_version": {
@@ -1796,6 +3287,264 @@
         ],
         "title": "HouseSystem",
         "type": "string"
+      },
+      "HumanTarotAvailability": {
+        "properties": {
+          "accepting": {
+            "title": "Accepting",
+            "type": "boolean"
+          },
+          "closes_at": {
+            "format": "date-time",
+            "title": "Closes At",
+            "type": "string"
+          },
+          "consent_version": {
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "current_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Request Id"
+          },
+          "daily_limit": {
+            "title": "Daily Limit",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "local_date": {
+            "format": "date",
+            "title": "Local Date",
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/AvailabilityReason"
+          },
+          "release_at": {
+            "format": "date-time",
+            "title": "Release At",
+            "type": "string"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "accepting",
+          "reason",
+          "local_date",
+          "closes_at",
+          "release_at",
+          "daily_limit",
+          "remaining",
+          "consent_version"
+        ],
+        "title": "HumanTarotAvailability",
+        "type": "object"
+      },
+      "HumanTarotCardPosition": {
+        "properties": {
+          "card": {
+            "$ref": "#/components/schemas/TarotCard"
+          },
+          "position_key": {
+            "title": "Position Key",
+            "type": "string"
+          },
+          "position_label": {
+            "title": "Position Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position_key",
+          "position_label",
+          "card"
+        ],
+        "title": "HumanTarotCardPosition",
+        "type": "object"
+      },
+      "HumanTarotCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "context": {
+            "$ref": "#/components/schemas/TarotContext"
+          },
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 22,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 280,
+            "minLength": 8,
+            "title": "Question",
+            "type": "string"
+          },
+          "spread": {
+            "$ref": "#/components/schemas/TarotSpread"
+          }
+        },
+        "required": [
+          "context",
+          "question",
+          "spread",
+          "consent_version",
+          "idempotency_key"
+        ],
+        "title": "HumanTarotCreateRequest",
+        "type": "object"
+      },
+      "HumanTarotRequestView": {
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/TarotContext"
+          },
+          "copy_cleared": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy Cleared"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "delivered",
+                  "error"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "local_date": {
+            "format": "date",
+            "title": "Local Date",
+            "type": "string"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "release_at": {
+            "format": "date-time",
+            "title": "Release At",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HumanTarotResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spread": {
+            "$ref": "#/components/schemas/TarotSpread"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VisibleStatus"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "local_date",
+          "release_at",
+          "context",
+          "spread",
+          "expires_at"
+        ],
+        "title": "HumanTarotRequestView",
+        "type": "object"
+      },
+      "HumanTarotResult": {
+        "description": "The owner's frozen reading. Never rewritten by the engine or Luna.",
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/HumanTarotCardPosition"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "imported_at": {
+            "format": "date-time",
+            "title": "Imported At",
+            "type": "string"
+          },
+          "reader": {
+            "const": "human",
+            "default": "human",
+            "title": "Reader",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cards",
+          "reading",
+          "step",
+          "imported_at"
+        ],
+        "title": "HumanTarotResult",
+        "type": "object"
       },
       "IdentityMode": {
         "enum": [
@@ -4030,6 +5779,91 @@
         "title": "ShareFormat",
         "type": "string"
       },
+      "ShareLinkListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ShareLinkResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ShareLinkListResponse",
+        "type": "object"
+      },
+      "ShareLinkResponse": {
+        "description": "One of the owner's links: dates, format and status only (US-23).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/ShareFormat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ShareLinkStatus"
+          }
+        },
+        "required": [
+          "id",
+          "format",
+          "status",
+          "created_at",
+          "expires_at",
+          "revoked_at"
+        ],
+        "title": "ShareLinkResponse",
+        "type": "object"
+      },
+      "ShareLinkStatus": {
+        "enum": [
+          "active",
+          "revoked",
+          "expired"
+        ],
+        "title": "ShareLinkStatus",
+        "type": "string"
+      },
       "SkyChapterResponse": {
         "properties": {
           "disclaimer": {
@@ -4937,46 +6771,6 @@
         "title": "TransitPhase",
         "type": "string"
       },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError",
-        "type": "object"
-      },
       "VerificationStatus": {
         "enum": [
           "not_started",
@@ -5003,6 +6797,18 @@
         ],
         "title": "VerifyRequest",
         "type": "object"
+      },
+      "VisibleStatus": {
+        "description": "What the owner of a request sees; decided by the server clock on every read (R9).",
+        "enum": [
+          "waiting",
+          "ready",
+          "late",
+          "unfulfilled",
+          "cancelled"
+        ],
+        "title": "VisibleStatus",
+        "type": "string"
       },
       "WeeklyIntent": {
         "enum": [
@@ -7657,7 +9463,14 @@
             "description": "Successful Response"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -7709,13 +9522,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -7774,13 +9587,98 @@
             "description": "Forbidden"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
           }
         },
         "summary": "Create Birth Profile",
+        "tags": [
+          "birth-chart"
+        ]
+      }
+    },
+    "/v1/birth-profile/date": {
+      "put": {
+        "description": "Correct a saved birth date (US-23). Success is returned only after the old subject is\ngone and every provider send admitted before the change has finished.",
+        "operationId": "correct_birth_date_v1_birth_profile_date_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BirthDateCorrectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BirthRevealResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Correct Birth Date",
         "tags": [
           "birth-chart"
         ]
@@ -7838,7 +9736,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -7928,7 +9833,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -8019,13 +9931,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Daily Note",
@@ -8086,7 +9998,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected, or the reading content was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -8143,7 +10062,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Undo Experiment",
@@ -8234,7 +10160,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Reflect On Experiment",
@@ -8286,13 +10219,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Clear Resonance",
@@ -8388,7 +10321,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Choose Experiment",
@@ -8439,13 +10379,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Current Mood",
@@ -8514,7 +10454,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Check In Mood",
@@ -8585,7 +10532,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Record Resonance",
@@ -8640,13 +10594,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Unsave Note",
@@ -8723,13 +10677,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Save Note",
@@ -8800,7 +10754,14 @@
             "description": "Not Found"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Create Share Artifact",
@@ -8856,13 +10817,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "503": {
             "content": {
@@ -8917,13 +10878,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Create Guest Session",
@@ -8950,6 +10911,661 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/v1/human-tarot/availability": {
+      "get": {
+        "description": "Public counts and times, so a visitor sees the option without a session being created.\n\nOnly a valid session adds its own request id; nothing here names anyone else's.",
+        "operationId": "human_tarot_availability_v1_human_tarot_availability_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTarotAvailability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Human Tarot Availability",
+        "tags": [
+          "human-tarot"
+        ]
+      }
+    },
+    "/v1/human-tarot/requests": {
+      "post": {
+        "operationId": "create_human_tarot_request_v1_human_tarot_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanTarotCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTarotRequestView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          }
+        },
+        "summary": "Create Human Tarot Request",
+        "tags": [
+          "human-tarot"
+        ]
+      }
+    },
+    "/v1/human-tarot/requests/current": {
+      "get": {
+        "operationId": "current_human_tarot_request_v1_human_tarot_requests_current_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTarotRequestView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          }
+        },
+        "summary": "Current Human Tarot Request",
+        "tags": [
+          "human-tarot"
+        ]
+      }
+    },
+    "/v1/human-tarot/requests/{request_id}": {
+      "delete": {
+        "operationId": "cancel_human_tarot_request_v1_human_tarot_requests__request_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          }
+        },
+        "summary": "Cancel Human Tarot Request",
+        "tags": [
+          "human-tarot"
+        ]
+      },
+      "get": {
+        "operationId": "get_human_tarot_request_v1_human_tarot_requests__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanTarotRequestView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "title": "Code",
+                      "type": "string"
+                    },
+                    "status": {
+                      "title": "Status",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "title": "Title",
+                      "type": "string"
+                    },
+                    "type": {
+                      "default": "about:blank",
+                      "title": "Type",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "title": "ProblemResponse",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Human Tarot request was rejected"
+          }
+        },
+        "summary": "Get Human Tarot Request",
+        "tags": [
+          "human-tarot"
         ]
       }
     },
@@ -8993,13 +11609,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Claim Identity",
@@ -9056,13 +11672,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Current Sky",
@@ -9148,13 +11764,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected, or the reading content was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -9257,13 +11873,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected, or the reading content was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -9347,7 +11963,14 @@
             "description": "Gone"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Create Invite",
@@ -9403,13 +12026,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Replace Invite",
@@ -9465,13 +12088,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Resend Invite",
@@ -9517,13 +12140,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Revoke Invite",
@@ -9569,13 +12192,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Delete Owner Result",
@@ -9610,13 +12233,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Owner Result",
@@ -9662,13 +12285,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Hide Owner Result",
@@ -9710,13 +12333,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw Consent",
@@ -9768,7 +12391,14 @@
             "description": "Gone"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           }
         },
         "summary": "Grant Consent",
@@ -9830,13 +12460,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Set Pool Membership",
@@ -9898,13 +12528,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Put Profile",
@@ -9967,13 +12597,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw Response",
@@ -10012,13 +12642,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Public Invite",
@@ -10062,13 +12692,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Report Invite",
@@ -10117,13 +12747,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Submit Response",
@@ -10166,13 +12796,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Current Invite",
@@ -10241,13 +12871,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Accept Invite",
@@ -10293,13 +12923,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Decline Invite",
@@ -10328,13 +12958,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw By Invite",
@@ -10377,13 +13007,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Receipt Result",
@@ -10429,13 +13059,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw Result",
@@ -10471,13 +13101,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Public Preview",
@@ -10588,13 +13218,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "429": {
             "content": {
@@ -10692,13 +13322,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Received Results",
@@ -10735,13 +13365,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Received Result",
@@ -10787,13 +13417,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Withdraw Received",
@@ -10869,13 +13499,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "List Requests",
@@ -10984,13 +13614,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "429": {
             "content": {
@@ -11077,13 +13707,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Revoke Request",
@@ -11136,13 +13766,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Share Request",
@@ -11188,13 +13818,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Delete Owner Result",
@@ -11229,13 +13859,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Owner Result",
@@ -11311,13 +13941,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -11395,7 +14025,14 @@
             "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Content"
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
           },
           "503": {
             "description": "Service Unavailable"
@@ -11479,13 +14116,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "List Saved Notes",
@@ -11538,13 +14175,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Session",
@@ -11590,13 +14227,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Accept Basic Birth Consent",
@@ -11661,13 +14298,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Revoke Content Rewrite Consent",
@@ -11760,18 +14397,79 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Grant Content Rewrite Consent",
         "tags": [
           "guest"
+        ]
+      }
+    },
+    "/v1/session/data-export": {
+      "post": {
+        "operationId": "export_my_data_v1_session_data_export_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataExport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Export My Data",
+        "tags": [
+          "privacy"
         ]
       }
     },
@@ -11802,13 +14500,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Clear History",
@@ -11880,13 +14578,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Activate History Retention",
@@ -11959,13 +14657,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Update Onboarding Status",
@@ -12028,18 +14726,84 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Renew Session",
         "tags": [
           "guest"
+        ]
+      }
+    },
+    "/v1/share-artifacts": {
+      "get": {
+        "description": "The session owner's own links, newest first. Never a token (only its hash is stored),\nnever the snapshot, never the Daily note it came from.",
+        "operationId": "list_share_artifacts_v1_share_artifacts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            },
+            "description": "Request input was rejected"
+          }
+        },
+        "summary": "List Share Artifacts",
+        "tags": [
+          "share"
         ]
       }
     },
@@ -12089,13 +14853,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Revoke Share Artifact",
@@ -12134,13 +14898,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Share Artifact",
@@ -12193,13 +14957,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Start Tarot Session",
@@ -12245,13 +15009,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Delete Tarot Session",
@@ -12286,13 +15050,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Get Tarot Session",
@@ -12355,13 +15119,13 @@
           },
           "422": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Request input was rejected"
           }
         },
         "summary": "Select Tarot Card",

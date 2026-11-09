@@ -282,7 +282,11 @@ _SENSITIVE_KEY = re.compile(
     re.IGNORECASE,
 )
 _SENSITIVE_VALUE_PATTERNS = (
-    re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b"),
+    # E-mail. Only `search` truthiness is used. `\b[\w.+-]+@` holds exactly when the
+    # local-part run before "@" contains a word character, i.e. when its last word
+    # character is followed only by [.+-] up to "@". That form has one start per "@"
+    # and stays linear on long runs without "@" (CodeQL py/polynomial-redos).
+    re.compile(r"\w[.+-]*@[\w.-]+\.[A-Za-z]{2,}\b"),
     re.compile(r"(?<!\d)(?:\+?84|0)\d{8,10}(?!\d)"),
     re.compile(r"\b\d{4}-\d{2}-\d{2}\b"),
     re.compile(r"\b(?:[01]?\d|2[0-3]):[0-5]\d\b"),

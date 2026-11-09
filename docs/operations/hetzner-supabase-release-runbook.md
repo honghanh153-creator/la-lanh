@@ -296,6 +296,17 @@ separation, and prints only persona/surface/rule metadata. Never replace these f
 production birth data, Tarot questions or reading prose. `infra/hetzner/deploy.sh` runs this reviewer
 again inside the newly built app image before any migration or public container replacement.
 
+The same command then runs the plain-language clarity ratchet (spec layer A,
+`docs/research/2026-11-01-content-clarity-gate.md`): `app/domains/readings/clarity_lint.py` counts
+jargon, coined labels, engine metaphors, meta talk, near-duplicate and shared sentences, hedges,
+long sentences, English words, placeholders and past actions stated as fact on synthetic Daily (64),
+Tarot (240, `playful_grounded` and `roast`), Radar (96, four contexts) and Khám phá overview (88,
+Western and Jyotish) readings. It fails when any count rises above
+`apps/api/scripts/content_clarity_baseline.json` or sample coverage drops; a rule at 0 is therefore
+a hard block. After an intended content change, rewrite the baseline with
+`uv run --directory apps/api python -m scripts.review_content_release --update-baseline` and
+explain the new numbers in the PR. Only rule ids, counts and surface names are printed.
+
 For a release containing Lá Hỏi, also complete both spread sizes from `/tarot`, refresh the private
 session route, verify an unsafe question receives a reframe, delete the result, and follow one Daily
 Note and one owner-only Radar prompt into Tarot. Public/recipient Radar must not show the private
