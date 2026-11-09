@@ -7,7 +7,7 @@ import { runMerge } from './collab-merge.mjs';
 import { heavyJobFree, runCheckInClone } from './collab-check.mjs';
 import { runPreflight } from './collab-preflight.mjs';
 import { clean, makeGh } from './collab-trust.mjs';
-import { opsAlert, tick } from './collab-turn.mjs';
+import { opsAlert, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { renderBoard, upsertBoard } from './collab-status.mjs';
 import { planIssue } from './collab-plan.mjs';
 import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
@@ -28,12 +28,14 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
   write(`${new Date().toISOString()} collab-tick: ${clean(String(line), 2000)}\n`);
 }
 
+const watchdogSubject = 'tác vụ hẹn giờ bị treo';
+
 export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog } = {}) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
   return run({ gh, preflight, log, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
-      return watch({ alert: text => opsAlert(gh, text, 'tác vụ hẹn giờ bị treo') });
+      return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
     }, health: () => healthLines(readBeats()) });
 }
 

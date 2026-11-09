@@ -7,7 +7,7 @@ import test from 'node:test';
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-status-'));
 const trust = await import('./collab-trust.mjs');
 const { boardMarker, renderBoard, upsertBoard } = await import('./collab-status.mjs');
-const { openOpsAlert, opsAlert, tick } = await import('./collab-turn.mjs');
+const { openOpsAlert, opsAlert, resolveOpsAlert, tick } = await import('./collab-turn.mjs');
 
 const A = 'a'.repeat(40);
 const now = { date: '2026-11-01', hour: 14, minute: 5 };
@@ -101,6 +101,21 @@ test('S8: a repeat ops-alert comments on the open issue of its subject instead o
   const down = { json: () => { throw new Error('gh down'); }, raw: (args, input) => { calls.push([args.slice(0, 2).join(' '), input ?? '']); return ''; } };
   assert.deepEqual(opsAlert(down, 'x', 'tác vụ hẹn giờ bị treo', at), { number: null, created: true });
   assert.ok(calls.some(c => c[0] === 'issue create'));
+});
+
+test('S8 part 2: resolving closes the open issue of that subject only, and a failed lookup throws for a retry', () => {
+  const calls = [];
+  const gh = {
+    json: () => [{ number: 350, title: '[ops-alert] tác vụ hẹn giờ bị treo 2026-11-08' }, { number: 370, title: '[ops-alert] collab loop' }],
+    raw: args => { calls.push(args); return ''; },
+  };
+  assert.deepEqual(resolveOpsAlert(gh, 'Autopilot (mỗi giờ): đã chạy xong lại', 'tác vụ hẹn giờ bị treo'), { number: 350, closed: true });
+  assert.deepEqual(calls[0].slice(0, 3), ['issue', 'close', '350']);
+  assert.match(calls[0][calls[0].indexOf('--comment') + 1], /^Tự đóng: Autopilot[\s\S]*<!-- la-lanh-agent ops-alert -->$/);
+  calls.length = 0;
+  assert.deepEqual(resolveOpsAlert({ json: () => [], raw: args => { calls.push(args); } }, 'x', 'tác vụ hẹn giờ bị treo'), { number: null, closed: false });
+  assert.equal(calls.length, 0, 'nothing open, nothing closed');
+  assert.throws(() => resolveOpsAlert({ json: () => { throw new Error('gh down'); }, raw: () => '' }, 'x', 'tác vụ hẹn giờ bị treo'), /gh down/);
 });
 
 test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not "no work"', () => {

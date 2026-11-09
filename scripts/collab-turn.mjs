@@ -266,6 +266,16 @@ export function opsAlert(gh, text, subject = 'collab loop', now = vnNow()) {
   return { number: null, created: true };
 }
 
+// S8 part 2: the alert's own cause is gone, so the open issue for that subject is closed with a
+// short note. A failed lookup throws, so the caller keeps its marker and retries on the next tick.
+export function resolveOpsAlert(gh, text, subject) {
+  const open = openOpsAlert(gh.json(['issue', 'list', '--repo', repo, '--label', 'ops-alert', '--state', 'open',
+    '--search', `"${opsAlertTitle(subject)}" in:title`, '--json', 'number,title', '--limit', '50']), subject);
+  if (open === null) return { number: null, closed: false };
+  gh.raw(['issue', 'close', String(open), '--repo', repo, '--comment', `Tự đóng: ${clean(text, 500)}\n\n<!-- la-lanh-agent ops-alert -->`]);
+  return { number: open, closed: true };
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
   try {
