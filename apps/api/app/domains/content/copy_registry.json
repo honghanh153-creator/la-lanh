@@ -5355,7 +5355,7 @@
   {
    "id": "daily.scene.name-the-need.05",
    "category": "reading",
-   "text": "Khi cuối tuần dồn nhiều việc, bạn có thể làm một mình dù người kia sẵn lòng giúp.",
+   "text": "Khi cuối tuần dồn nhiều việc, bạn có thể làm hết một mình mà chưa hỏi ai giúp.",
    "status": "pending"
   },
   {
@@ -5811,7 +5811,7 @@
   {
    "id": "daily.scene.repair-reply.15",
    "category": "reading",
-   "text": "Khi đã gửi một lời từ chối ngắn, bạn có thể muốn nhắn thêm lý do cho người kia đỡ hụt.",
+   "text": "Khi đã gửi một lời từ chối ngắn, bạn có thể muốn nhắn thêm lý do cho rõ.",
    "status": "pending"
   },
   {
