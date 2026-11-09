@@ -6,7 +6,10 @@ name: pr-check
 on:
   pull_request:
     branches: [collab/integration]
-    types: [opened, synchronize, reopened, ready_for_review]
+    # `edited` covers a stacked PR that collab-merge retargets to collab/integration (#164).
+    # Deliberately not filtered to base changes only: a skipped run on a title/body edit would
+    # replace an earlier failed `check` with a skipped (passing) one on the same head SHA.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 permissions:
   contents: read
@@ -34,7 +37,9 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          files="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          # --no-renames lists both the old and new path of a rename, so a moved script
+          # is classified by where it came from as well as where it went (#164).
+          files="$(git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA")"
           printf '%s\n' "$files"
           level=docs
           while IFS= read -r f; do
