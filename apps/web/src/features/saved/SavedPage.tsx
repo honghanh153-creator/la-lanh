@@ -34,6 +34,11 @@ export function SavedPage() {
     ),
     onSuccess: async (_data, { dailyNoteId }) => {
       unsaveNoteLocally(dailyNoteId);
+      // PV-21: the removed note's text leaves the in-memory cache now, not only after a refetch
+      // that can fail offline (the removal itself is then queued and still reaches the server).
+      queryClient.setQueryData<SavedNote[]>(["saved-notes"], (current) => (
+        current?.filter((item) => item.daily_note_id !== dailyNoteId)
+      ));
       setMessage("Đã bỏ lưu note.");
       await queryClient.invalidateQueries({ queryKey: ["saved-notes"] });
     },
