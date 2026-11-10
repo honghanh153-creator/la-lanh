@@ -130,12 +130,14 @@ export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify,
   // Stuck-step alerts queued by runGroup during a check (never sent inline).
   const queued = deliverPendingAlerts({ alert });
   let resolved = [];
-  if (recovered.length && !stale.length && !queued.sent && !queued.left) {
-    const labels = recovered.map(task => watched[task].label).join(', ');
-    try { resolve(`${labels}: đã chạy xong lại lúc ${hhmm(nowMs)}, không còn tác vụ hẹn giờ nào bị treo.`); resolved = recovered; } catch {
-      // GitHub down: keep the marker so the next tick tries to close the issue again.
-      for (const task of recovered) sent[task] = { episode: 'resolve-pending', notify: true, alert: true };
+  if (recovered.length) {
+    if (!stale.length && !queued.sent && !queued.left) {
+      const labels = recovered.map(task => watched[task].label).join(', ');
+      try { resolve(`${labels}: đã chạy xong lại lúc ${hhmm(nowMs)}, không còn tác vụ hẹn giờ nào bị treo.`); resolved = recovered; } catch {}
     }
+    // #373: closing was deferred (another task stalls, or an alert was queued) or GitHub was down.
+    // Keep the marker so a later healthy tick closes the issue; a task stalled again keeps its new mark.
+    if (!resolved.length) for (const task of recovered) sent[task] ??= { episode: 'resolve-pending', notify: true, alert: true };
   }
   writeJson(alertPath(), sent);
   return { stale: stale.map(s => s.task), alerted, stuck, queued, resolved };
