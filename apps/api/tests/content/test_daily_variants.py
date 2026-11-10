@@ -35,6 +35,12 @@ from app.domains.readings.clarity_lint import (
     sentences,
     syllables,
 )
+from app.domains.readings.daily_psychology import (
+    _ARENA_LEADS,
+    current_scene_lead,
+    lead_scene,
+    split_scene_lead,
+)
 from app.domains.readings.daily_rotation import axis_slot
 from app.domains.readings.gates import scene_contains_advice
 from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS, OPAQUE_CORE_FRAGMENTS
@@ -87,8 +93,6 @@ def test_variant_passes_clarity_hard_zero(key: str) -> None:
     assert count_jargon(text) == count_meta_talk(text) == count_placeholders(text) == 0
     assert english_words(text) == ()
     if key.startswith("daily.scene."):
-        # The arena lead ("Với người kia, khi …") needs every scene to open with "Khi".
-        assert text.startswith("Khi ")
         longest = max(syllables(scene) for issue in ISSUES.values() for scene in issue.scenes)
         assert syllables(text) <= longest
 
@@ -237,3 +241,21 @@ def test_every_headline_fits_the_home_title_budget() -> None:
         if key.startswith("daily.headline.") and not 3 <= _words(entry.text) <= 11
     }
     assert not over, over
+
+
+@pytest.mark.parametrize("lead", sorted(_ARENA_LEADS.values()))
+def test_any_scene_opening_composes_with_every_arena_lead(lead: str) -> None:
+    arena = next(key for key, value in _ARENA_LEADS.items() if value == lead)
+    khi = "Khi bạn nhận thêm việc, lịch tối nay kín dần."
+    other = "Bạn nhận thêm việc rồi thấy lịch tối nay kín dần."
+    spliced = lead_scene(lead, khi)
+    assert spliced == f"{lead} khi bạn nhận thêm việc, lịch tối nay kín dần."
+    assert split_scene_lead(spliced) == (arena, khi)
+    colon = lead_scene(lead, other)
+    assert colon == f"{lead.rstrip(',')}: {other}"
+    assert split_scene_lead(colon) == (arena, other)
+    assert current_scene_lead(spliced) == lead
+    assert current_scene_lead(colon) == f"{lead.rstrip(',')}:"
+    for key, entry in DAILY.items():
+        if key.startswith("daily.scene."):
+            assert split_scene_lead(lead_scene(lead, entry.text)) == (arena, entry.text)
