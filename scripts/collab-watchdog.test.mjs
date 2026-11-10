@@ -148,13 +148,35 @@ test('S8 part 2: the shared ops-alert closes only when every stalled task has a 
   assert.deepEqual(run(t0 + 9 * H + 60000).resolved, []);
   ghUp = true;
   const r = run(t0 + 9 * H + 600000);
-  assert.deepEqual(r.resolved, ['la-lanh-ops-watch']);
+  // #373: autopilot's earlier, deferred recovery is kept and named in the closing comment too.
+  assert.deepEqual(r.resolved, ['la-lanh-ops-watch', 'la-lanh-autopilot']);
   assert.equal(resolved.length, 1);
-  assert.match(resolved[0], /Kiểm tra server.*đã chạy xong lại lúc 20\.11 \d\d:\d\d, không còn tác vụ hẹn giờ nào bị treo/);
+  assert.match(resolved[0], /Kiểm tra server.*Autopilot.*đã chạy xong lại lúc 20\.11 \d\d:\d\d, không còn tác vụ hẹn giờ nào bị treo/);
   // Closed once; a quiet tick afterwards does not close again.
   beat('la-lanh-autopilot', 'done', t0 + 9 * H + 900000);
   assert.deepEqual(run(t0 + 9 * H + 1200000).resolved, []);
   assert.equal(resolved.length, 1);
+});
+
+test('#373: a recovery deferred by a queued alert still closes the shared ops-alert on a later tick', async () => {
+  const { queueAlert } = await import('./collab-heal.mjs');
+  const t0 = ms('2026-11-21T03:00:00Z'); // 10:00 VN
+  for (const task of ['la-lanh-autopilot', 'la-lanh-ops-watch', 'la-lanh-retro']) beat(task, 'done', t0);
+  const resolved = [];
+  const run = at => { beat('la-lanh-autopilot', 'done', at); beat('la-lanh-retro', 'done', at); return watch({ nowMs: at, alert: () => {}, notify: () => {}, resolve: t => resolved.push(t) }); };
+  run(t0); // drains any queued alert left by earlier tests
+  resolved.length = 0;
+  assert.deepEqual(run(t0 + 8 * H).alerted, ['la-lanh-ops-watch']);
+  // The server check recovers in the same tick that delivers a queued step alert: closing waits.
+  beat('la-lanh-ops-watch', 'done', t0 + 9 * H);
+  queueAlert('Bước kiểm tra bị treo (dữ liệu giả cho test).', t0 + 9 * H);
+  const deferred = run(t0 + 9 * H + 60000);
+  assert.equal(deferred.queued.sent, 1);
+  assert.deepEqual(deferred.resolved, []);
+  // The next healthy tick closes the issue instead of forgetting the recovery.
+  assert.deepEqual(run(t0 + 9 * H + 600000).resolved, ['la-lanh-ops-watch']);
+  assert.equal(resolved.length, 1);
+  assert.deepEqual(run(t0 + 9 * H + 1200000).resolved, [], 'closed once');
 });
 
 test('fix D: a start with no done for over 30 minutes is stuck, recorded and alerted, never killed', async () => {
