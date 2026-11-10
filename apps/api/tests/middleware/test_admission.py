@@ -138,6 +138,70 @@ def test_global_limit_rejects_a_new_peer_without_charging_its_bucket() -> None:
     asyncio.run(exercise())
 
 
+def test_daily_and_insight_reads_are_bounded_per_peer() -> None:
+    """PV-5: each chart-computing GET recomputes ephemeris work, so one peer is bounded."""
+    app = FastAPI()
+    calls = {"daily": 0, "insight": 0, "configs": 0, "save": 0}
+
+    @app.get("/v1/daily-note")
+    @app.get("/v1/daily-note/experiment")
+    @app.get("/v1/daily-note/resonance")
+    @app.get("/v1/daily-note/{daily_note_id}/mood")
+    async def daily_read(daily_note_id: str = "today") -> dict[str, str]:
+        calls["daily"] += 1
+        return {"id": daily_note_id}
+
+    @app.get("/v1/insights/overview")
+    @app.get("/v1/insights/current-sky")
+    @app.get("/v1/insights/readings/{purpose}")
+    async def insight_read(purpose: str = "overview") -> dict[str, str]:
+        calls["insight"] += 1
+        return {"purpose": purpose}
+
+    @app.get("/v1/insights/configs")
+    async def configs() -> dict[str, str]:
+        calls["configs"] += 1
+        return {"status": "static"}
+
+    @app.put("/v1/daily-note/{daily_note_id}/mood")
+    async def save_mood(daily_note_id: str) -> dict[str, str]:
+        calls["save"] += 1
+        return {"id": daily_note_id}
+
+    app.add_middleware(AdmissionControlMiddleware, window_seconds=60)
+    with TestClient(app) as client, TestClient(app, client=("203.0.113.9", 50000)) as other:
+        for _ in range(30):
+            assert client.get("/v1/daily-note").status_code == 200
+            assert client.get("/v1/daily-note/experiment").status_code == 200
+            assert client.get("/v1/daily-note/resonance").status_code == 200
+            assert client.get("/v1/daily-note/note-1/mood").status_code == 200
+        limited = client.get("/v1/daily-note")
+        assert limited.status_code == 429
+        assert limited.headers["retry-after"]
+        assert limited.headers["cache-control"] == "no-store"
+        assert limited.json()["code"] == "ADMISSION_LIMITED"
+        assert client.get("/v1/daily-note/note-1/mood").status_code == 429
+
+        for _ in range(40):
+            assert client.get("/v1/insights/overview").status_code == 200
+            assert client.get("/v1/insights/current-sky").status_code == 200
+            assert client.get("/v1/insights/readings/love").status_code == 200
+        limited = client.get("/v1/insights/readings/work")
+        assert limited.status_code == 429
+        assert limited.headers["retry-after"]
+        assert limited.headers["cache-control"] == "no-store"
+        assert limited.json()["code"] == "ADMISSION_LIMITED"
+
+        # Another peer keeps its own bucket; static configs and writes are not metered here.
+        assert other.get("/v1/daily-note").status_code == 200
+        assert other.get("/v1/insights/overview").status_code == 200
+        for _ in range(150):
+            assert client.get("/v1/insights/configs").status_code == 200
+        assert client.put("/v1/daily-note/note-1/mood").status_code == 200
+
+    assert calls == {"daily": 121, "insight": 121, "configs": 150, "save": 1}
+
+
 def test_tarot_creation_and_selection_have_separate_limits() -> None:
     app = FastAPI()
 

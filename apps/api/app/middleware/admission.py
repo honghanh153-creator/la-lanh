@@ -109,6 +109,16 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         }
     ) or (request.method == "PUT" and path == "/v1/birth-profile/date"):
         return AdmissionPolicy("birth-compute", per_peer=20, global_limit=120)
+    if request.method == "GET" and (path == "/v1/daily-note" or path.startswith("/v1/daily-note/")):
+        # PV-5: every Daily read rebuilds today's selection from the chart; bound one peer.
+        return AdmissionPolicy("daily-read", per_peer=120, global_limit=1200)
+    if (
+        request.method == "GET"
+        and path.startswith("/v1/insights/")
+        and path != "/v1/insights/configs"
+    ):
+        # PV-5: overview, readings and current sky recompute ephemeris work; configs is static.
+        return AdmissionPolicy("insights-read", per_peer=120, global_limit=1200)
     if request.method == "GET" and path == "/v1/share-artifacts":
         # The owner's link list (US-23): metadata only, but bounded like other private reads.
         return AdmissionPolicy("share-list", per_peer=60, global_limit=600)
