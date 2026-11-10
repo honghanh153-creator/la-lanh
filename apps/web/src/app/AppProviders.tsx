@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { RouterProviderProps } from "react-router-dom";
 import { RouterProvider } from "react-router-dom";
 
+import { shouldRetryQuery } from "./queryRetry";
 import { ThemeProvider } from "../shared/theme/ThemeProvider";
 import { VibeProvider } from "../shared/vibe/VibeProvider";
 import { resumeChartQuarantine } from "../shared/storage/clearChartDerivedData";
@@ -16,7 +17,7 @@ export function AppProviders({ router }: AppProvidersProps) {
     defaultOptions: {
       queries: {
         staleTime: 30_000,
-        retry: 1,
+        retry: shouldRetryQuery,
         refetchOnWindowFocus: false,
       },
       mutations: {
