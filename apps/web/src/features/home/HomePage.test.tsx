@@ -86,6 +86,40 @@ describe("HomePage rich reading", () => {
     expect(client.getQueryData(["daily-note-context", "work"])).toBeUndefined();
   });
 
+  it("treats a rejected contextual reading as a content error without a retry hint", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    vi.mocked(getContextualReading).mockRejectedValue(
+      new ApiProblem(422, "READING_CONTENT_REJECTED", "Reading content rejected"),
+    );
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Góc đang đọc Lá chọn" }));
+    await user.click(screen.getByRole("button", { name: "Việc cần chốt" }));
+
+    const rejected = "Chưa mở được bản đọc. Không cần điền lại khi thông tin đã đủ.";
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(rejected));
+    expect(screen.getByRole("status")).toHaveTextContent(rejected);
+    expect(screen.queryByText(/thử lại/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chưa bắt được góc mới/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: vibe.sections.hook })).toBeInTheDocument();
+  });
+
+  it("keeps the retry hint when a contextual reading fails on the network", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    vi.mocked(getContextualReading).mockRejectedValue(new ApiProblem(503, "READING_UNAVAILABLE", "Reading unavailable"));
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Góc đang đọc Lá chọn" }));
+    await user.click(screen.getByRole("button", { name: "Việc cần chốt" }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(
+      "Chưa đổi được góc. Note hiện tại vẫn được giữ nguyên; bạn có thể thử lại.",
+    ));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Chưa bắt được góc mới. Note đang thấy vẫn được giữ nguyên, không có nội dung mới nào được nhận.",
+    );
+  });
+
   it("disables Home motion under reduced-motion and keeps the pause rule scoped to decoration", () => {
     const reducedMotion = ultravioletStyles.slice(ultravioletStyles.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
     expect(reducedMotion).toContain("animation: none !important");
