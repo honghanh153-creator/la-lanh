@@ -21,6 +21,7 @@ import {
   getDailyNote,
   getResonanceStatus,
   isGuestSessionUnavailable,
+  isReadingContentRejected,
   recordResonance,
   type DailyNote,
   type MoodValue,
@@ -185,9 +186,12 @@ export function HomePage() {
       setResonance(null);
       setMessage(nextContext === "auto" ? "Đã trở về góc tự động." : "Đã đổi góc nhìn cho note này.");
     },
-    onError: (_error, _input, requestContext) => {
+    onError: (error, _input, requestContext) => {
       if (!requestContext || requestContext.revision !== chartDataRevision(queryClient)) return;
-      setMessage("Chưa bắt được góc mới. Note đang thấy vẫn được giữ nguyên, không có nội dung mới nào được nhận.");
+      // #143 E2: a content rejection is not a dropped connection; reuses approved Insights sentences.
+      setMessage(isReadingContentRejected(error)
+        ? "Chưa mở được bản đọc. Không cần điền lại khi thông tin đã đủ."
+        : "Chưa bắt được góc mới. Note đang thấy vẫn được giữ nguyên, không có nội dung mới nào được nhận.");
     },
   });
 
@@ -288,7 +292,11 @@ export function HomePage() {
   const pendingContext = contextMutation.isPending ? contextMutation.variables : null;
   const noteDecoration = <SignalContextPicker
     appearance="moon"
-    error={contextMutation.isError ? "Chưa đổi được góc. Note hiện tại vẫn được giữ nguyên; bạn có thể thử lại." : null}
+    error={!contextMutation.isError
+      ? null
+      : isReadingContentRejected(contextMutation.error)
+        ? "Chưa mở được bản đọc. Không cần điền lại khi thông tin đã đủ."
+        : "Chưa đổi được góc. Note hiện tại vẫn được giữ nguyên; bạn có thể thử lại."}
     onOpenChange={(open) => {
       if (open) contextMutation.reset();
       setContextSheetOpen(open);

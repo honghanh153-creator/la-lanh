@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
+  isReadingContentRejected,
   listSavedNotes,
   saveDailyNote,
 } from "../../shared/api/client";
@@ -181,7 +182,14 @@ export function NoteDetailPage() {
           <Link className="text-link note-detail-back" to="/home">Cập nhật cảm xúc hôm nay</Link>
         </>
       ) : null}
-      {!query.isLoading && !note ? (
+      {!query.isLoading && !note && isReadingContentRejected(query.error) ? (
+        // #143 E2: a content error, not a dropped connection; reuses approved Insights sentences.
+        <section className="empty-state uv-empty" role="alert">
+          <div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div>
+          <h1>Chưa mở được bản đọc.</h1>
+          <p>Không cần điền lại khi thông tin đã đủ.</p>
+        </section>
+      ) : !query.isLoading && !note ? (
         <section className="empty-state uv-empty" role="alert">
           <div aria-hidden="true" className="uv-empty-art"><img alt="" src="/assets/ultraviolet/moon.webp" /></div>
           <h1>Chưa mở được note.</h1>
