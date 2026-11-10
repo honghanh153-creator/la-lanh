@@ -169,12 +169,7 @@ _LEADS = tuple(daily_psychology._ARENA_LEADS.values())
 # Known exceptions: registry copy that fails a field gate today. Test-only PR, so the copy
 # is not rewritten here; these go to the Codex copy batch and leave this list once fixed.
 # All are pending, so none is served. strict=True makes a fixed entry fail until removed.
-_KNOWN_FIELD_GATE_EXCEPTIONS: dict[str, str] = {
-    "daily.headline.automatic-caretaking.21": "scene_contains_advice: flags 'Bạn hay là …'",
-    "daily.headline.defend-old-choice.12": "scene_contains_advice: opens with 'Thử'",
-    "daily.scene.name-the-need.01": "daily_astro_term: 'việc nhà' matches the 'nhà ' term",
-    "daily.scene.name-the-need.19": "daily_astro_term: 'chăm nhà' matches the 'nhà ' term",
-}
+_KNOWN_FIELD_GATE_EXCEPTIONS: dict[str, str] = {}
 
 
 def _field_params(part: str) -> list[Any]:
