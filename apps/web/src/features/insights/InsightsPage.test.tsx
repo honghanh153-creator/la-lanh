@@ -141,4 +141,21 @@ describe("InsightsPage", () => {
     expect(screen.getByRole("link", { name: "Thêm vào nhé" })).toHaveAttribute("href", "/birth-time");
     expect(screen.getByText(/cách người khác nhìn thấy bạn lúc mới gặp/)).not.toHaveTextContent(/nhà|cung mọc|vận hạn/);
   });
+
+  it("hides the technical layers block when an approximate time leaves no stable planet (#143 E4)", async () => {
+    vi.mocked(getInsightOverview).mockResolvedValue({
+      status: "ready", required_fields: [], houses_available: false, time_precision: "approximate", bodies: [],
+      reading: {
+        tradition: "western", config_hash: "def456789012", observed_at: "2026-11-10T00:00:00Z",
+        disclaimer: "Nội dung tham khảo.",
+        provenance: { engine: "swiss_ephemeris", version: "2.10.03", release_commit: "x", ephemeris_set: "se1", profile: "v2", tradition: "western", zodiac: "tropical", ayanamsa: null, config_hash: "def456789012" },
+        claims: [],
+      },
+    });
+    renderPage();
+    expect(await screen.findByText("Chi tiết kỹ thuật")).toBeInTheDocument();
+    expect(screen.queryByText("Các lớp kỹ thuật")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Điều gì đang ảnh hưởng tới cách bạn phản ứng?" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Xem bối cảnh chung của hôm nay/ })).toBeInTheDocument();
+  });
 });

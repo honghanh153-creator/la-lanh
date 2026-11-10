@@ -126,6 +126,9 @@ export function InsightsPage() {
 
       {insight.data?.reading ? (
         <>
+          {/* An approximate time can leave no planet stable across the window (#143 E4):
+              hide the whole block, heading included, rather than show it empty. */}
+          {insight.data.reading.claims.length > 0 ? (
           <section className="insight-factors" aria-labelledby="factor-heading">
             <header>
               <p className="eyebrow">Các lớp kỹ thuật</p>
@@ -141,6 +144,7 @@ export function InsightsPage() {
               ))}
             </div>
           </section>
+          ) : null}
 
           <Link className="sky-signal" to={`/insights/current-sky?tradition=${tradition}`}>
             <span><Sparkle aria-hidden="true" weight="fill" /> Bầu trời hiện tại · không phải natal</span>
