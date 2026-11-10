@@ -178,7 +178,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 
 | Mã | Lỗ hổng | Mức | Sửa | Trạng thái |
 |---|---|---|---|---|
-| PV-5 | Tính lại lựa chọn ở mỗi GET, không giới hạn tần suất | P1 | Tính một lần cho mỗi (snapshot, ngày), lưu trong note đã mã hóa; thêm policy `daily-read` | Mở |
+| PV-5 | Tính lại lựa chọn ở mỗi GET, không giới hạn tần suất | P1 | Tính một lần cho mỗi (snapshot, ngày), lưu trong note đã mã hóa; thêm policy `daily-read` | Mở — phần giới hạn tần suất đã xong: policy `daily-read` (mọi GET `/v1/daily-note…`) và `insights-read` (GET `/v1/insights/…` trừ `configs`), 120 lần/phút mỗi peer, 1200 lần/phút toàn hệ thống; còn phần tính một lần và lưu |
 | PV-6 | Trường v2 nằm ở cột không mã hóa | P1 | Mọi trường v2 vào envelope; test bảng không có cột mới ở dạng rõ | Mở |
 | PV-28 | Đường viết lại bằng LLM lúc chạy vẫn nằm cạnh Daily; allowlist có `house` | P2 | Loại Daily v2 khỏi registry viết lại; test | Mở |
 | PL-8, PL-10, PL-12 | Cảnh mất ở trang chi tiết; không làm mới sau nửa đêm; ngày UTC lúc đang tải | P2 | Sửa cùng UI v2 | Mở |
