@@ -399,133 +399,133 @@
   {
    "id": "daily.action.changed-plan.01",
    "category": "reading",
-   "text": "Hỏi người kia giờ hẹn mới đã chắc chưa rồi mới sửa lịch.",
+   "text": "Nhắn người kia hai khung giờ bạn còn trống để họ chọn.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.02",
    "category": "reading",
-   "text": "Kiểm tra lịch tuần này trước khi nhận giờ hẹn mới.",
+   "text": "Hỏi người kia khi nào họ báo được giờ hẹn mới.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.03",
    "category": "reading",
-   "text": "Nhắn lại người kia ngày và giờ hẹn mới trong một tin.",
+   "text": "Ghi chú vào lịch rằng buổi hẹn đang chờ giờ mới.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.04",
    "category": "reading",
-   "text": "Ghi giờ hẹn mới vào lịch kèm một lời nhắc trước nửa tiếng.",
+   "text": "Kiểm tra lịch của bạn xem còn trống những giờ nào.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.05",
    "category": "reading",
-   "text": "Nói rõ giờ nào bạn không gặp được và đề nghị một giờ hẹn khác.",
+   "text": "Nói với người kia giờ nào bạn không gặp được.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.06",
    "category": "reading",
-   "text": "Hỏi người kia khi nào báo được giờ hẹn mới để bạn sắp lịch.",
+   "text": "Hỏi người kia buổi hẹn mới hợp buổi sáng hay buổi chiều hơn.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.07",
    "category": "reading",
-   "text": "Chọn một việc trong lịch để dời, giữ nguyên các việc còn lại.",
+   "text": "Đặt cho mình một giờ chờ, quá giờ đó chưa có hẹn mới thì xếp việc khác.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.08",
    "category": "reading",
-   "text": "Đặt một hạn chờ tin giờ hẹn, quá hạn thì dùng buổi đó cho việc khác.",
+   "text": "Chọn một việc nhỏ để làm trong khoảng giờ vừa trống.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.09",
    "category": "reading",
-   "text": "Đổi lời nhắc trong điện thoại theo giờ hẹn mới.",
+   "text": "Xin người kia báo giờ hẹn mới trước tối nay.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.10",
    "category": "reading",
-   "text": "Nhắn người kia giờ muộn nhất bạn còn gặp được trong ngày.",
+   "text": "Nói với người kia bạn cần biết giờ hẹn mới để xếp lịch.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.11",
    "category": "reading",
-   "text": "Kiểm tra giờ hẹn mới có trùng việc nào trong lịch không.",
+   "text": "Viết ra những việc đang chờ giờ hẹn mới để xếp.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.12",
    "category": "reading",
-   "text": "Ghi giờ hẹn cũ và giờ hẹn mới cạnh nhau để khỏi nhầm.",
+   "text": "Đổi nhắc nhở của buổi hẹn cũ thành nhắc hỏi lại giờ mới.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.13",
    "category": "reading",
-   "text": "Nhắn cho những người có việc liên quan ngay khi lịch hẹn đổi.",
+   "text": "Hỏi người kia giờ nào họ đến được mà không phải dời nữa.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.14",
    "category": "reading",
-   "text": "Chọn hai giờ bạn rảnh và nhắn người kia chọn một giờ hẹn.",
+   "text": "Gửi người kia một tin ngắn hỏi giờ hẹn mới.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.15",
    "category": "reading",
-   "text": "Dừng sửa lịch cho tới khi người kia xác nhận giờ hẹn mới.",
+   "text": "Chọn trước một giờ bạn muốn đề nghị nếu người kia hỏi lại.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.16",
    "category": "reading",
-   "text": "Xác nhận giờ hẹn mới bằng tin nhắn, không chỉ nói miệng.",
+   "text": "Bỏ bớt một việc không gấp để lịch còn chỗ cho giờ hẹn mới.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.17",
    "category": "reading",
-   "text": "Viết lại thứ tự việc trong ngày theo giờ hẹn mới.",
+   "text": "Ghi lại giờ hẹn cũ và các giờ đang bàn để khỏi nhầm.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.18",
    "category": "reading",
-   "text": "Đặt báo thức theo giờ hẹn mới ngay khi biết giờ.",
+   "text": "Xác nhận giờ hẹn mới bằng một tin nhắn khi hai bên đã chọn xong.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.19",
    "category": "reading",
-   "text": "Nói thật với người kia nếu giờ hẹn mới làm bạn khó xếp lịch.",
+   "text": "Đọc lại tin nhắn của người kia để xem có giờ hẹn mới nào chưa.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.20",
    "category": "reading",
-   "text": "Hỏi người kia buổi hẹn mới kéo dài bao lâu để xếp lịch sau đó.",
+   "text": "Dừng sắp lại cả ngày, chỉ đổi những việc dính vào giờ hẹn.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.21",
    "category": "reading",
-   "text": "Đổi một việc ít gấp sang ngày khác để có chỗ cho giờ hẹn mới.",
+   "text": "Giảm bớt việc trong ngày có giờ hẹn mới để lịch không quá sát.",
    "status": "pending"
   },
   {
    "id": "daily.action.changed-plan.22",
    "category": "reading",
-   "text": "Giảm bớt một việc trong lịch hôm đó để không bị gấp trước giờ hẹn.",
+   "text": "Nhắn người kia giờ trễ nhất bạn còn gặp được trong ngày.",
    "status": "pending"
   },
   {
@@ -2415,145 +2415,145 @@
   {
    "id": "daily.headline.changed-plan.01",
    "category": "reading",
-   "text": "Bạn xin về sớm để đi hẹn, rồi hẹn bị dời.",
+   "text": "Buổi hẹn bị dời mà chưa có giờ mới.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.02",
    "category": "reading",
-   "text": "Bạn đặt bàn xong thì người kia nhắn dời hẹn.",
+   "text": "Bạn chờ người kia chốt giờ hẹn mới.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.03",
    "category": "reading",
-   "text": "Bạn chuẩn bị xong để đi thì nhận tin dời hẹn.",
+   "text": "Giờ hẹn cũ không dùng được, giờ mới chưa có.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.04",
    "category": "reading",
-   "text": "Bạn từ chối lời mời khác để giữ buổi hẹn này.",
+   "text": "Người kia xin dời hẹn, lịch bạn phải sắp lại.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.05",
    "category": "reading",
-   "text": "Bạn đổi ca làm cho kịp hẹn, rồi giờ hẹn lại đổi.",
+   "text": "Bạn chưa biết xếp việc khác vào giờ nào.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.06",
    "category": "reading",
-   "text": "Bạn chờ người kia báo giờ hẹn mới mà chưa thấy tin.",
+   "text": "Một buổi hẹn bị dời làm lịch bạn đổi theo.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.07",
    "category": "reading",
-   "text": "Bạn ngại nói giờ hẹn mới không tiện với mình.",
+   "text": "Bạn đã xếp lịch theo giờ hẹn cũ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.08",
    "category": "reading",
-   "text": "Bạn nhận giờ hẹn mới dù trùng việc khác.",
+   "text": "Giờ hẹn mới có thể trùng việc bạn đã xếp.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.09",
    "category": "reading",
-   "text": "Bạn bỏ buổi tập thể dục vì giờ hẹn đổi.",
+   "text": "Bạn muốn chốt giờ hẹn trước khi đổi việc khác.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.10",
    "category": "reading",
-   "text": "Bạn để trống cả buổi tối chờ người kia chốt giờ.",
+   "text": "Bạn đang nhắn qua lại để tìm giờ hẹn mới.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.11",
    "category": "reading",
-   "text": "Bạn nhắn qua lại mấy lần mà chưa chốt được giờ hẹn.",
+   "text": "Hôm nay bạn phải sắp lại lịch vì một buổi hẹn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.12",
    "category": "reading",
-   "text": "Bạn ra tới cửa thì biết hẹn bị dời.",
+   "text": "Bạn giữ trống một buổi mà chưa biết có hẹn không.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.13",
    "category": "reading",
-   "text": "Bạn bực vì đây là lần thứ hai hẹn bị dời.",
+   "text": "Bạn chưa nói rõ giờ nào mình còn gặp được.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.14",
    "category": "reading",
-   "text": "Bạn nhắn không sao dù thật ra hơi buồn vì hẹn dời.",
+   "text": "Một tin xin dời hẹn làm bạn phải tính lại lịch.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.15",
    "category": "reading",
-   "text": "Bạn phải báo lại người khác vì giờ hẹn đổi.",
+   "text": "Người kia chưa chốt giờ, bạn chưa xếp được việc.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.16",
    "category": "reading",
-   "text": "Bạn dời bữa tối với gia đình cho vừa giờ hẹn mới.",
+   "text": "Lịch của bạn đang chờ một buổi hẹn được chốt.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.17",
    "category": "reading",
-   "text": "Bạn ngồi ở quán chờ thì người kia nhắn xin dời.",
+   "text": "Bạn chưa biết giữ hay bỏ giờ hẹn cũ trong lịch.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.18",
    "category": "reading",
-   "text": "Bạn mua vé xem phim theo giờ hẹn cũ.",
+   "text": "Buổi hẹn bị dời, các việc xếp quanh nó cũng đổi.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.19",
    "category": "reading",
-   "text": "Bạn quên sửa nhắc hẹn trong điện thoại sau khi dời giờ.",
+   "text": "Bạn đã sẵn sàng cho giờ cũ thì hẹn bị dời.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.20",
    "category": "reading",
-   "text": "Bạn ngại hỏi lại giờ hẹn mới vì sợ làm phiền.",
+   "text": "Giờ hẹn mới chưa có, bạn khó nhận thêm việc.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.21",
    "category": "reading",
-   "text": "Bạn đồng ý dời hẹn mà chưa mở lịch xem.",
+   "text": "Bạn cần biết giờ hẹn mới để xếp nốt lịch.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.22",
    "category": "reading",
-   "text": "Bạn bỏ việc riêng để hợp giờ hẹn mới của người kia.",
+   "text": "Bạn khó chịu vì phải sắp lại lịch đã xếp xong.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.23",
    "category": "reading",
-   "text": "Bạn nghỉ trưa vội cho kịp hẹn, rồi hẹn lại dời.",
+   "text": "Bạn và người kia chưa tìm được giờ hẹn chung.",
    "status": "pending"
   },
   {
    "id": "daily.headline.changed-plan.24",
    "category": "reading",
-   "text": "Bạn nhờ người trông việc giúp, rồi hẹn lại dời giờ.",
+   "text": "Bạn chờ một tin nhắn chốt giờ hẹn.",
    "status": "pending"
   },
   {
@@ -4539,133 +4539,133 @@
   {
    "id": "daily.scene.changed-plan.01",
    "category": "reading",
-   "text": "Người kia nhắn dời hẹn sang chiều mai, đúng giờ bạn có lịch họp.",
+   "text": "Người kia nhắn xin dời buổi hẹn chiều nay, nhưng chưa nói dời sang giờ nào.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.02",
    "category": "reading",
-   "text": "Lúc bạn đang thay đồ để đi, người kia nhắn xin dời hẹn sang tối.",
+   "text": "Bạn đã xin về sớm để kịp giờ hẹn, rồi người kia nhắn xin dời sang hôm khác.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.03",
    "category": "reading",
-   "text": "Bạn xin về sớm để kịp hẹn, rồi người kia báo dời sang tuần sau.",
+   "text": "Khi người kia xin dời hẹn, bạn để trống cả buổi để chờ họ báo giờ mới.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.04",
    "category": "reading",
-   "text": "Khi người kia xin dời hẹn, bạn trả lời được ngay dù chưa xem lịch.",
+   "text": "Lịch tuần này bạn đã xếp xong thì buổi hẹn thứ Năm bị xin dời.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.05",
    "category": "reading",
-   "text": "Người kia nói để xem lại giờ hẹn, và bạn để trống cả buổi tối chờ tin.",
+   "text": "Người kia đề nghị dời hẹn sang tối mai, đúng lúc bạn đã hứa đi ăn với gia đình.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.06",
    "category": "reading",
-   "text": "Bạn ngồi ở quán đợi thì nhận tin nhắn xin dời hẹn sang hôm khác.",
+   "text": "Bạn nhắn hỏi giờ mới hai lần mà người kia vẫn chưa chốt buổi hẹn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.07",
    "category": "reading",
-   "text": "Khi giờ hẹn mới trùng giờ tập thể dục, bạn bỏ buổi tập mà không nói gì.",
+   "text": "Khi buổi hẹn bị dời, bạn chưa biết có nhận thêm việc vào khoảng giờ cũ không.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.08",
    "category": "reading",
-   "text": "Bạn nhắn qua lại năm sáu lần với người kia mà lịch hẹn vẫn chưa chốt.",
+   "text": "Từ lúc buổi hẹn bị xin dời, bạn vẫn chưa sắp lại được lịch cho buổi chiều.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.09",
    "category": "reading",
-   "text": "Hẹn bị dời lần thứ hai trong tuần, và bạn phải sửa lịch thêm một lần nữa.",
+   "text": "Khi buổi hẹn chưa có giờ mới, bạn chưa biết có nhận lời một lời rủ khác không.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.10",
    "category": "reading",
-   "text": "Lúc nhận tin dời hẹn, bạn nhắn không sao dù thật ra hơi buồn.",
+   "text": "Lúc người kia hỏi dời hẹn, bạn chưa mở lịch xem mình còn trống hôm nào.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.11",
    "category": "reading",
-   "text": "Khi hẹn dời sang tối, bạn phải đổi giờ ăn tối với gia đình.",
+   "text": "Buổi hẹn bị xin dời lần thứ hai trong tuần, bạn thấy mệt vì phải sắp lại lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.12",
    "category": "reading",
-   "text": "Bạn mua vé xem phim theo giờ hẹn cũ, rồi người kia xin đổi giờ.",
+   "text": "Bạn đã chuẩn bị xong giấy tờ cho buổi hẹn thì nghe người kia xin dời.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.13",
    "category": "reading",
-   "text": "Khi người kia đề nghị giờ hẹn mới, bạn ngại nói giờ đó mình bận.",
+   "text": "Người kia xin dời hẹn sang cuối tuần, mà cuối tuần bạn đã có việc riêng trong lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.14",
    "category": "reading",
-   "text": "Bạn đổi ca với đồng nghiệp để kịp hẹn, rồi người kia lại xin dời.",
+   "text": "Khi giờ hẹn người kia đưa ra rơi vào giờ nghỉ trưa, bạn ngại nói là giờ đó không tiện.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.15",
    "category": "reading",
-   "text": "Hẹn dời sang sáng sớm, và bạn phải đặt báo thức sớm hơn mọi ngày.",
+   "text": "Bạn từ chối một việc khác để giữ buổi hẹn chiều nay, rồi người kia xin dời hẹn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.16",
    "category": "reading",
-   "text": "Khi hẹn đổi giờ, bạn quên sửa lời nhắc trong điện thoại theo lịch mới.",
+   "text": "Bạn và người kia nhắn qua lại mấy lần mà vẫn chưa tìm được giờ hẹn mới.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.17",
    "category": "reading",
-   "text": "Bạn từ chối một lời mời để giữ buổi hẹn, rồi buổi hẹn bị dời.",
+   "text": "Buổi hẹn được xin lùi một tiếng, mà sau đó bạn đã có lịch khác.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.18",
    "category": "reading",
-   "text": "Lúc đang làm dở việc, bạn nhận tin dời hẹn và chưa kịp xem lại cả ngày.",
+   "text": "Khi đang bận họp, bạn nhận tin người kia xin dời hẹn mà chưa kịp trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.19",
    "category": "reading",
-   "text": "Bạn hỏi giờ hẹn mới hai lần mà người kia vẫn chưa trả lời.",
+   "text": "Bạn đã báo giờ hẹn cũ cho người đi cùng, và cần chờ người kia chốt giờ mới để báo lại.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.20",
    "category": "reading",
-   "text": "Khi hẹn dời sang cuối tuần, bạn phải báo người khác là mình không đi chơi được.",
+   "text": "Lịch của bạn vẫn còn ghi buổi hẹn cũ, vì người kia chưa nói giờ mới.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.21",
    "category": "reading",
-   "text": "Bạn chuẩn bị tài liệu cho buổi hẹn, rồi nghe báo dời sang tháng sau.",
+   "text": "Người kia hẹn lại tuần sau nhưng chưa nói ngày nào, nên bạn chưa dám xếp việc khác vào lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.changed-plan.22",
    "category": "reading",
-   "text": "Giờ hẹn mới sát giờ tan làm, và bạn lo không kịp đi qua đường đông xe.",
+   "text": "Nếu buổi hẹn dời sang tối như người kia hỏi, bạn phải đổi giờ ăn và giờ đi ngủ.",
    "status": "pending"
   },
   {
