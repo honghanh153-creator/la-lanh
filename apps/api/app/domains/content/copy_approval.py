@@ -173,7 +173,8 @@ def approved_bundles(situation: str) -> tuple[tuple[str, str, str], ...]:
     )
     bundles: list[tuple[str, str, str]] = []
     for number in numbers:
-        lines = [registry.get(f"{prefix}{number}.{part}") for part in BUNDLE_PARTS]
-        if all(line is not None and line.servable for line in lines):
-            bundles.append(tuple(line.text for line in lines))  # type: ignore[union-attr,misc]
+        found = [registry.get(f"{prefix}{number}.{part}") for part in BUNDLE_PARTS]
+        lines = [line for line in found if line is not None and line.servable]
+        if len(lines) == len(BUNDLE_PARTS):
+            bundles.append((lines[0].text, lines[1].text, lines[2].text))
     return tuple(bundles)
