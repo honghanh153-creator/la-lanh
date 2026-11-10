@@ -186,4 +186,34 @@ describe("RadarResultView", () => {
     expect(screen.getByText("Nói đúng nhịp là bắt được ý khá nhanh")).toBeInTheDocument();
     expect(screen.getByText("Chart nào tạo ra điều này?")).toBeInTheDocument();
   });
+
+  it("labels the compatibility map in Vietnamese", () => {
+    const { container } = render(<MemoryRouter><RadarResultView result={result} /></MemoryRouter>);
+
+    const heading = container.querySelector(".radar-compatibility-map .radar-section-heading");
+    expect(heading).toHaveTextContent("Bản đồ để hiểu nhau");
+    expect(heading).not.toHaveTextContent(/compatibility map/i);
+  });
+
+  it("explains legacy dimensions without the English words contact or chart", () => {
+    const v1Result: RadarResult = {
+      version: "radar-result-v1",
+      headline: "Hai bạn bắt sóng theo hai nhịp khác nhau.",
+      summary: "Có lực hút và cũng có điểm cần nói rõ.",
+      dimensions: [
+        { key: "communication", label: "Giao tiếp", signal: "Có tín hiệu", body: "Synthetic body", evidence_ids: ["syn:a", "syn:b"] },
+        { key: "emotion", label: "Cảm xúc", signal: "Chưa rõ", body: "Synthetic body", evidence_ids: [] },
+      ],
+      strongest_contacts: [],
+      disclaimer: "Synthetic only",
+    };
+
+    const { container } = render(<MemoryRouter><RadarResultView result={v1Result} /></MemoryRouter>);
+
+    expect(screen.getByText(/Dựa trên 2 điểm chạm giữa hai lá số\./)).toBeInTheDocument();
+    expect(screen.getByText("Lớp này chưa có đủ điểm chạm mạnh để kết luận.")).toBeInTheDocument();
+    const explanations = Array.from(container.querySelectorAll(".radar-dimensions details")).map((node) => node.textContent ?? "");
+    expect(explanations).toHaveLength(2);
+    for (const text of explanations) expect(text).not.toMatch(/\bcontact\b|\bchart\b/i);
+  });
 });
