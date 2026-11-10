@@ -234,6 +234,11 @@ def test_radar_minimiser_refuses_chart_facts_matching_still_allows_labels(
 
     with pytest.raises(UnsafeRewritePayload):
         PrivacyMinimiser().minimise(RewriteSurface.RADAR, payload)
+    if evidence_patch == {"labels": [{"name": "house", "value": "7"}]}:
+        # PV-28: a house label follows from the birth time and is refused on every surface.
+        with pytest.raises(UnsafeRewritePayload):
+            PrivacyMinimiser().minimise(RewriteSurface.MATCHING, payload)
+        return
     assert PrivacyMinimiser().minimise(RewriteSurface.MATCHING, payload)
 
 

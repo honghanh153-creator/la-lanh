@@ -216,14 +216,13 @@ def compile_reading_rewrite_request(
         claim = canonical_evidence_claim(factor)
         labels: list[dict[str, JsonValue]] = []
         for slot in claim.slots:
+            # PV-28: house and angle slots stay local; both follow from the birth time.
             safe_name = {
                 ClaimSlotName.BODY: "body",
                 ClaimSlotName.BODY_A: "body",
                 ClaimSlotName.BODY_B: "other_body",
                 ClaimSlotName.SIGN: "sign",
-                ClaimSlotName.HOUSE: "house",
                 ClaimSlotName.ASPECT: "aspect",
-                ClaimSlotName.ANGLE: "angle",
                 ClaimSlotName.PHASE: "phase",
                 ClaimSlotName.MOTION: "motion",
             }.get(slot.name)
