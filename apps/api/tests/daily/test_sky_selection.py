@@ -35,6 +35,7 @@ from app.domains.daily.sky_selection import (
     EXACT_ORB,
     INTERVAL_NATAL_BODIES,
     MAX_MOON_PICKS,
+    MAX_TREND_TAGS,
     NATAL_MOON_WINDOW_EXTRA_ORB,
     OUTER_BODIES,
     PEAK_ORB,
@@ -45,6 +46,7 @@ from app.domains.daily.sky_selection import (
     SkyTier,
     TimeKind,
     TrendContact,
+    cap_trend_tags,
     contact_eligibility,
     day_bounds,
     day_tone,
@@ -58,6 +60,7 @@ from app.domains.daily.sky_selection import (
     trend_weight,
     worst_orb,
 )
+from app.domains.daily.transit_episodes import trend_episode
 
 SYNTHETIC_BIRTHS = (
     (datetime(1988, 6, 4, 3, 20, tzinfo=UTC), 16.05, 108.2),
@@ -417,12 +420,12 @@ def test_south_node_relabel_and_generational_contacts_dropped(
         )
     saturn = engine.transiting_position(BodyName.SATURN, _local(START, 12), charts[0].config)
     chart = _move_natal(charts[0], BodyName.TRUE_NODE, saturn.longitude + 180.0)
-    selection = select_daily_sky(engine, chart, START)
-    trend = {item.contact.id: item for item in selection.trend}
-    south = trend["saturn:conjunction:south_node"]
-    assert south.contact.natal_body is BodyName.SOUTH_NODE and south.contact.exact_angle == 0.0
-    assert south.episode is not None
-    assert south.episode.start_date <= START <= south.episode.end_date
+    # Read from the full scan: the two-tag cap (AS-8/PL-23) may leave this light contact out.
+    south = _find(scan_day(engine, chart, START), "saturn:conjunction:south_node")
+    assert south.tier is SkyTier.TREND
+    assert south.natal_body is BodyName.SOUTH_NODE and south.exact_angle == 0.0
+    episode = trend_episode(engine, chart, south, START)
+    assert episode.start_date <= START <= episode.end_date
 
 
 @pytest.mark.parametrize(("hour", "minute"), [(23, 40), (0, 20), (3, 0)])
@@ -789,6 +792,47 @@ def test_trend_weight_is_planet_times_aspect_times_target() -> None:
     node_chiron = _contact(BodyName.TRUE_NODE, BodyName.CHIRON, 0.1, peak_hour=None, kind="sextile")
     assert trend_weight(pluto_sun) == 3.0 * 2.5 * 3.0
     assert trend_weight(node_chiron) == 1.0 * 1.5 * 1.0
+
+
+def test_at_most_two_trend_tags_keep_the_heaviest(
+    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
+) -> None:
+    """AS-8/PL-23: one or two tags; the cap only cuts the trend_weight ranking."""
+
+    chart = charts[0]
+    # Natal personal points on today's slow bodies: at least three trend candidates.
+    for natal, transit in (
+        (BodyName.SUN, BodyName.SATURN),
+        (BodyName.MOON, BodyName.JUPITER),
+        (BodyName.MERCURY, BodyName.URANUS),
+        (BodyName.VENUS, BodyName.NEPTUNE),
+    ):
+        noon = engine.transiting_position(transit, _local(START, 12), chart.config)
+        chart = _move_natal(chart, natal, noon.longitude)
+    candidates = sorted(
+        (item for item in scan_day(engine, chart, START) if item.tier is SkyTier.TREND),
+        key=lambda item: (-trend_weight(item), item.min_orb, item.id),
+    )
+    assert len(candidates) >= 3
+    selection = select_daily_sky(engine, chart, START, include_trend_windows=False)
+    assert MAX_TREND_TAGS == 2
+    assert [item.contact.id for item in selection.trend] == [
+        item.id for item in candidates[:MAX_TREND_TAGS]
+    ]
+
+
+def test_trend_tag_cap_leaves_short_days_unchanged() -> None:
+    ranked = tuple(
+        _contact(body, BodyName.SUN, 1.0, peak_hour=None)
+        for body in (BodyName.PLUTO, BodyName.SATURN, BodyName.JUPITER)
+    )
+    assert cap_trend_tags(()) == ()
+    assert cap_trend_tags(ranked[:1]) == ranked[:1]
+    assert cap_trend_tags(ranked[:2]) == ranked[:2]
+    assert cap_trend_tags(ranked) == ranked[:2]
+    assert cap_trend_tags(ranked, limit=1) == ranked[:1]
+    with pytest.raises(ValueError, match="limit"):
+        cap_trend_tags(ranked, limit=0)
 
 
 def test_trend_contacts_carry_only_the_episode() -> None:
