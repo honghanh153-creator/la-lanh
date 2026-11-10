@@ -1455,133 +1455,133 @@
   {
    "id": "daily.action.quick-reply.01",
    "category": "reading",
-   "text": "Đọc hết tin nhắn rồi đợi một phút trước khi gõ.",
+   "text": "Kiểm tra câu trả lời đã đáp đủ mọi câu hỏi chưa rồi mới gửi.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.02",
    "category": "reading",
-   "text": "Ghi các ý người kia hỏi rồi đặt câu trả lời cho từng ý.",
+   "text": "Viết câu trả lời nháp, đọc lại tin nhắn gốc rồi mới gửi.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.03",
    "category": "reading",
-   "text": "Hỏi lại phần bạn chưa chắc trước khi gửi câu trả lời.",
+   "text": "Xác nhận lại giờ và ngày trong câu trả lời trước khi gửi.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.04",
    "category": "reading",
-   "text": "Viết câu trả lời rồi đọc lại một lần trước khi gửi.",
+   "text": "Đọc hết tin nhắn, thấy bực thì đợi một phút rồi mới trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.05",
    "category": "reading",
-   "text": "Đọc hết tin nhắn rồi đợi một phút trước khi gửi câu trả lời.",
+   "text": "Kiểm tra lại đang ở đúng khung chat trước khi gửi câu trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.06",
    "category": "reading",
-   "text": "Viết câu trả lời nháp, đọc hết lần nữa rồi mới gửi.",
+   "text": "Đặt điện thoại xuống trong cuộc họp, họp xong rồi mới đọc hết tin nhắn.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.07",
    "category": "reading",
-   "text": "Đọc hết tin nhắn và đánh số các câu hỏi trong đó.",
+   "text": "Viết câu trả lời có đủ giờ và địa điểm nếu tin nhắn hỏi cả hai.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.08",
    "category": "reading",
-   "text": "Hỏi lại người gửi nếu đọc hết vẫn chưa rõ họ cần gì.",
+   "text": "Hỏi lại đúng một chỗ bạn chưa hiểu, ví dụ giờ hẹn, sau khi đọc hết.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.09",
    "category": "reading",
-   "text": "Đọc hết tin nhắn rồi trả lời câu hỏi quan trọng nhất trước.",
+   "text": "Đọc hết các tin mới trong nhóm rồi mới trả lời câu cũ.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.10",
    "category": "reading",
-   "text": "Đặt câu trả lời sang bên một lúc nếu tin nhắn làm bạn khó chịu.",
+   "text": "Gửi trước một câu ngắn báo bạn đang bận, câu trả lời đầy đủ gửi sau.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.11",
    "category": "reading",
-   "text": "Đọc hết tin nhắn rồi gạch dưới điều người kia cần bạn làm.",
+   "text": "Đọc hết tin nhắn dài khi đã về tới nơi, thay vì đọc lúc đang đi đường.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.12",
    "category": "reading",
-   "text": "Gửi một câu ngắn báo bạn đang xem, rồi trả lời sau khi đọc hết.",
+   "text": "Đọc hết tin nhắn góp ý một lượt rồi mới viết câu trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.13",
    "category": "reading",
-   "text": "Kiểm tra câu trả lời đã đáp đủ các câu hỏi chưa trước khi gửi.",
+   "text": "Viết câu trả lời theo đúng thứ tự câu hỏi của người kia.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.14",
    "category": "reading",
-   "text": "Hỏi mình người kia cần gì nhất sau khi đọc hết tin nhắn.",
+   "text": "Đọc hết phần chữ bên dưới ảnh trước khi khen ảnh.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.15",
    "category": "reading",
-   "text": "Viết lại câu hỏi của người kia ở đầu câu trả lời để chắc mình đáp đúng.",
+   "text": "Đọc hết tin nhắn có lời cảm ơn để tìm lời nhờ ở cuối.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.16",
    "category": "reading",
-   "text": "Dừng gõ giữa chừng để đọc hết phần còn lại của tin nhắn.",
+   "text": "Đọc hết tệp đính kèm trước khi gửi câu trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.17",
    "category": "reading",
-   "text": "Đọc hết tin nhắn một lượt rồi mới đặt tay gõ câu trả lời.",
+   "text": "Bỏ nhãn dán, viết câu trả lời bằng một câu đủ ý.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.18",
    "category": "reading",
-   "text": "Đọc hết rồi đếm có mấy câu hỏi trước khi gửi câu trả lời.",
+   "text": "Nhắn hỏi lại người kia nếu đọc hết vẫn chưa rõ họ cần gì.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.19",
    "category": "reading",
-   "text": "Đọc hết tin nhắn và ghi một ý chính trước khi trả lời.",
+   "text": "Dừng gõ khi thấy người kia còn đang nhắn, đọc hết rồi mới trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.20",
    "category": "reading",
-   "text": "Đặt câu trả lời nháp sang bên một phút sau khi đọc hết.",
+   "text": "Chọn trả lời từng người một, đọc hết tin người này rồi mới sang người khác.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.21",
    "category": "reading",
-   "text": "Kiểm tra câu trả lời có đáp câu cuối sau khi đọc hết tin nhắn.",
+   "text": "Đọc hết tin nhắn chuyển tiếp để biết ai nói gì rồi mới trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.action.quick-reply.22",
    "category": "reading",
-   "text": "Hỏi lại một chỗ chưa chắc sau khi đọc hết, rồi mới gửi câu trả lời.",
+   "text": "Đọc hết số tiền và ngày trả trong tin nhắn trước khi đồng ý.",
    "status": "pending"
   },
   {
@@ -3567,145 +3567,145 @@
   {
    "id": "daily.headline.quick-reply.01",
    "category": "reading",
-   "text": "Bạn trả lời trước khi đọc hết tin nhắn.",
+   "text": "Bạn trả lời tin nhắn dài bằng một chữ ừ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.02",
    "category": "reading",
-   "text": "Câu đáp đã gõ xong khi tin còn dở.",
+   "text": "Bạn nhắn lại liền để người kia khỏi chờ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.03",
    "category": "reading",
-   "text": "Bạn đáp ý đầu, bỏ qua các ý sau.",
+   "text": "Bạn phải nhắn thêm vì lần đầu trả lời thiếu ý.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.04",
    "category": "reading",
-   "text": "Một câu khó nghe làm bạn muốn đáp ngay.",
+   "text": "Bạn nhắn lại cho xong để còn làm việc khác.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.05",
    "category": "reading",
-   "text": "Bạn gửi nhanh hơn bạn đọc.",
+   "text": "Tin nhắn có ba câu hỏi, bạn chỉ trả lời một.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.06",
    "category": "reading",
-   "text": "Đọc hết tin nhắn có thể đổi câu bạn đáp.",
+   "text": "Bạn quên trả lời câu hỏi nằm ở cuối tin.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.07",
    "category": "reading",
-   "text": "Bạn trả lời theo ý mình đoán trước.",
+   "text": "Bạn nhận lời hẹn trong tin nhắn khi chưa xem ngày.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.08",
    "category": "reading",
-   "text": "Ngón tay gõ nhanh hơn lúc bạn đọc.",
+   "text": "Bạn gõ trả lời trong lúc người kia còn đang nhắn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.09",
    "category": "reading",
-   "text": "Bạn đáp vội để tin nhắn khỏi chờ lâu.",
+   "text": "Một chữ làm bạn bực, bạn trả lời gắt ngay.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.10",
    "category": "reading",
-   "text": "Bạn chưa đọc tới ý người kia cần nhất.",
+   "text": "Bạn đọc dòng xem trước rồi trả lời luôn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.11",
    "category": "reading",
-   "text": "Một tin nhắn dài làm bạn muốn đáp cho xong.",
+   "text": "Bạn trả lời nhầm người vì đọc tên quá nhanh.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.12",
    "category": "reading",
-   "text": "Đọc hết một lượt giúp câu trả lời trúng hơn.",
+   "text": "Bạn trả lời trong cuộc họp mà chưa đọc kỹ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.13",
    "category": "reading",
-   "text": "Bạn muốn trả lời cho kịp hơn là cho đúng.",
+   "text": "Bạn cảm ơn lời khen mà quên lời nhờ phía sau.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.14",
    "category": "reading",
-   "text": "Câu đầu tin nhắn làm bạn quên đọc tiếp.",
+   "text": "Bạn đoán người kia đang trách rồi trả lời phòng thủ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.15",
    "category": "reading",
-   "text": "Bạn đáp lại cảm giác trước khi đọc hết ý.",
+   "text": "Họ hỏi giờ, bạn lại trả lời địa điểm.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.16",
    "category": "reading",
-   "text": "Bạn trả lời một câu người kia chưa hỏi.",
+   "text": "Đang xem phim, bạn trả lời khi chưa đọc hết.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.17",
    "category": "reading",
-   "text": "Bạn bỏ sót một câu hỏi ở cuối tin nhắn.",
+   "text": "Bạn thả tim cho tin nhắn đang chờ bạn trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.18",
    "category": "reading",
-   "text": "Chậm lại một chút giúp bạn đáp đúng điều được hỏi.",
+   "text": "Người kia hỏi câu mới, bạn còn trả lời câu cũ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.19",
    "category": "reading",
-   "text": "Bạn trả lời nhanh hơn nhịp đọc của mình.",
+   "text": "Bạn trả lời theo trí nhớ, chưa mở lại tin cũ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.20",
    "category": "reading",
-   "text": "Câu cuối tin nhắn có thể là câu quan trọng.",
+   "text": "Bạn trả lời nửa chừng rồi bấm gửi vì đang vội.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.21",
    "category": "reading",
-   "text": "Một phút đọc hết giúp câu đáp vừa vặn.",
+   "text": "Bạn viết cả đoạn dài mà chưa rõ họ hỏi gì.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.22",
    "category": "reading",
-   "text": "Bạn đáp phần dễ trước, phần chính còn chờ.",
+   "text": "Bạn xin lỗi vội khi chưa đọc hết tin nhắn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.23",
    "category": "reading",
-   "text": "Đọc chậm lại một chút cũng là tôn trọng người gửi.",
+   "text": "Bạn trả lời người gửi trước, quên người gửi sau.",
    "status": "pending"
   },
   {
    "id": "daily.headline.quick-reply.24",
    "category": "reading",
-   "text": "Bạn muốn xong tin nhắn hơn là hiểu tin nhắn.",
+   "text": "Bạn trả lời mà chưa mở tệp người kia gửi kèm.",
    "status": "pending"
   },
   {
@@ -5595,133 +5595,133 @@
   {
    "id": "daily.scene.quick-reply.01",
    "category": "reading",
-   "text": "Khi tin nhắn dài đến lúc bạn đang bận, bạn có thể đáp ý đầu rồi bỏ qua phần sau.",
+   "text": "Khi tin nhắn có câu hỏi nằm giữa đoạn, bạn lướt qua mà không thấy.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.02",
    "category": "reading",
-   "text": "Khi một câu trong tin nhắn làm bạn khó chịu, bạn có thể trả lời câu đó trước.",
+   "text": "Khi tin nhắn làm bạn chột dạ, bạn giải thích dài trước khi đọc hết.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.03",
    "category": "reading",
-   "text": "Khi thấy thông báo tin nhắn mới, bạn có thể đáp ngay từ dòng xem trước.",
+   "text": "Khi tin nhắn đến lúc bạn sắp ngủ, bạn trả lời vội để tắt điện thoại.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.04",
    "category": "reading",
-   "text": "Khi tin nhắn hỏi hai việc, bạn có thể chỉ trả lời việc bạn đọc thấy trước.",
+   "text": "Khi tin nhắn nhờ xem tệp đính kèm, bạn trả lời mà chưa mở tệp.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.05",
    "category": "reading",
-   "text": "Khi tin nhắn đến lúc bạn đang bận, bạn có thể đáp nhanh dù chưa đọc hết.",
+   "text": "Khi sếp nhắn hỏi gấp, bạn trả lời liền và quên câu hỏi phụ trong tin nhắn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.06",
    "category": "reading",
-   "text": "Khi đọc lướt tin nhắn trên đường, bạn có thể trả lời một ý mà người kia không hỏi.",
+   "text": "Khi đang họp mà tin nhắn tới, bạn trả lời vội khi chưa đọc hết.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.07",
    "category": "reading",
-   "text": "Khi tin nhắn có nhiều đoạn, bạn có thể đáp đoạn đầu dù chưa đọc hết đoạn cuối.",
+   "text": "Khi tin nhắn có danh sách năm việc, bạn chỉ trả lời việc đầu.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.08",
    "category": "reading",
-   "text": "Khi thấy tên người gửi, bạn có thể đoán nội dung tin nhắn và đáp theo đoán đó.",
+   "text": "Khi tin nhắn rủ đi ăn tối thứ Sáu, bạn đồng ý ngay mà chưa xem lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.09",
    "category": "reading",
-   "text": "Khi tin nhắn trong nhóm trôi nhanh, bạn có thể đáp một câu cũ dù chưa đọc hết các câu mới.",
+   "text": "Khi tin nhắn có kèm ảnh, bạn khen ảnh mà quên câu hỏi bên dưới.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.10",
    "category": "reading",
-   "text": "Khi muốn trả lời cho kịp, bạn có thể bấm gửi trước khi đọc lại tin nhắn của người kia.",
+   "text": "Khi nhóm chat trôi nhanh, bạn trả lời một câu cũ mà chưa đọc hết tin mới.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.11",
    "category": "reading",
-   "text": "Khi tin nhắn có kèm ảnh, bạn có thể đáp về ảnh mà bỏ qua câu hỏi bên dưới.",
+   "text": "Khi thấy dòng xem trước của tin nhắn, bạn trả lời luôn mà chưa mở ra.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.12",
    "category": "reading",
-   "text": "Khi tin nhắn mở đầu bằng lời khen, bạn có thể cảm ơn rồi bỏ lỡ lời nhờ ở cuối.",
+   "text": "Khi người kia còn đang gõ, bạn đã trả lời dù chưa đọc hết ý họ.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.13",
    "category": "reading",
-   "text": "Khi tin nhắn có một dòng in đậm, bạn có thể chỉ đáp dòng đó dù chưa đọc hết.",
+   "text": "Khi đọc tin nhắn lúc xếp hàng, bạn gõ trả lời một chữ rồi cất máy.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.14",
    "category": "reading",
-   "text": "Khi nhiều tin nhắn đến cùng lúc, bạn có thể đáp nhầm câu của người này cho người kia.",
+   "text": "Khi tin nhắn mở đầu bằng lời cảm ơn, bạn đáp lại rồi bỏ sót lời nhờ ở cuối.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.15",
    "category": "reading",
-   "text": "Khi tin nhắn nói về chuyện bạn quan tâm, bạn có thể gõ ý của mình trước khi đọc hết.",
+   "text": "Khi mẹ nhắn một tin dài, bạn đáp ừ mà chưa đọc hết.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.16",
    "category": "reading",
-   "text": "Khi người kia nhắn hỏi gấp, bạn có thể trả lời liền và quên câu hỏi phụ trong tin nhắn.",
+   "text": "Khi tin nhắn hỏi cả giờ lẫn địa điểm, bạn chỉ trả lời giờ.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.17",
    "category": "reading",
-   "text": "Khi tin nhắn đến giữa một cuộc họp, bạn có thể đáp ngay dù chưa đọc hết.",
+   "text": "Khi đồng nghiệp gửi tin nhắn góp ý, bạn đáp lại ngay một câu bênh mình.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.18",
    "category": "reading",
-   "text": "Khi tin nhắn có danh sách nhiều mục, bạn có thể đáp mục đầu rồi gửi luôn.",
+   "text": "Khi bạn bè hỏi mượn tiền qua tin nhắn, bạn đồng ý trước khi đọc hết số tiền.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.19",
    "category": "reading",
-   "text": "Khi đang vội ra ngoài, bạn có thể đáp tin nhắn bằng một chữ mà chưa đọc hết.",
+   "text": "Khi tin nhắn dài ba đoạn, bạn trả lời đoạn đầu rồi gửi luôn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.20",
    "category": "reading",
-   "text": "Khi tin nhắn có câu hỏi nằm giữa đoạn, bạn có thể lướt qua mà chưa đọc hết.",
+   "text": "Khi khách nhắn hỏi giá, bạn báo giá cũ mà chưa đọc hết họ cần loại nào.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.21",
    "category": "reading",
-   "text": "Khi đọc tin nhắn trên màn hình khóa, bạn có thể đáp ngay mà chưa mở ra xem hết.",
+   "text": "Khi nhiều tin nhắn đến cùng lúc, bạn trả lời người này bằng câu dành cho người kia.",
    "status": "pending"
   },
   {
    "id": "daily.scene.quick-reply.22",
    "category": "reading",
-   "text": "Khi tin nhắn nhắc lại một chuyện cũ, bạn có thể đáp theo trí nhớ mà chưa đọc hết.",
+   "text": "Khi tin nhắn đến lúc bạn đang nấu ăn, bạn đọc vài chữ rồi trả lời luôn.",
    "status": "pending"
   },
   {
