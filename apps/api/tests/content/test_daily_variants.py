@@ -243,6 +243,31 @@ def test_every_headline_fits_the_home_title_budget() -> None:
     assert not over, over
 
 
+# Lesson from #404: headline, scene and action rotate independently, so every changed-plan
+# text must fit one situation — the other person asked to move the appointment and the new
+# time is not set yet (the frame of the served pool). Cancelled, shortened, late, moved-place
+# or group meetings break that frame, and no line may assume the new time is already fixed.
+_CHANGED_PLAN_OFF_FRAME = re.compile(
+    r"\b(?:hủy|rút ngắn|đến muộn|địa điểm|cả nhóm|tất cả|gọi điện)\b"
+)
+_CHANGED_PLAN_SETTLED = re.compile(
+    r"giờ hẹn cuối cùng|theo giờ hẹn mới|vừa giờ hẹn mới|trước giờ hẹn mới|hai bên đã chốt"
+)
+
+
+def test_changed_plan_lines_fit_one_rescheduling_situation() -> None:
+    issue = ISSUES["changed-plan"]
+    registry = [
+        entry.text for key, entry in DAILY.items() if key.split(".")[2:3] == ["changed-plan"]
+    ]
+    assert len(registry) == 68
+    pool = (*issue.headlines, *issue.scenes, *issue.advice, *issue.relationship_advice)
+    texts = (*pool, *registry)
+    off_frame = [text for text in texts if _CHANGED_PLAN_OFF_FRAME.search(text.lower())]
+    settled = [text for text in texts if _CHANGED_PLAN_SETTLED.search(text.lower())]
+    assert off_frame == [] and settled == [], (off_frame, settled)
+
+
 @pytest.mark.parametrize("lead", sorted(_ARENA_LEADS.values()))
 def test_any_scene_opening_composes_with_every_arena_lead(lead: str) -> None:
     arena = next(key for key, value in _ARENA_LEADS.items() if value == lead)
