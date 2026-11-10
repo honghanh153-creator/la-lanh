@@ -17,9 +17,9 @@ type RadarSection = NonNullable<RadarResult["sections"]>[number];
 
 function evidenceSourceLabel(source: RadarSection["evidence"][number]["source"]) {
   const labels: Record<string, string> = {
-    synastry: "Giữa hai chart",
+    synastry: "Giữa hai lá số",
     house_overlay: "Vùng tác động",
-    composite_midpoint: "Nhịp chart chung",
+    composite_midpoint: "Nhịp lá số chung",
   };
   return labels[source] ?? "Nguồn dữ liệu chưa hỗ trợ";
 }
@@ -41,7 +41,7 @@ function RadarLegacyReading({ sections }: { sections: RadarSection[] }) {
       <small>{section.label}</small>
       <h2>{section.title}</h2>
       <p>{section.body}</p>
-      <RadarEvidence evidence={section.evidence} summary="Chart nào tạo ra điều này?" />
+      <RadarEvidence evidence={section.evidence} summary="Điểm chạm nào tạo ra điều này?" />
     </div>
   </article>)}</section>;
 }
