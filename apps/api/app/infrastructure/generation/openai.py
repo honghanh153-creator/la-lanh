@@ -278,7 +278,15 @@ def _safe_payload(plan: ReadingPlan) -> dict[str, Any]:
         labels = [
             {"name": slot.name.value, "value": slot.value}
             for slot in claim.slots
-            if slot.name not in {ClaimSlotName.LONGITUDE, ClaimSlotName.ORB}
+            # PV-28: house and angle slots follow from the birth time and stay local.
+            if slot.name
+            not in {
+                ClaimSlotName.LONGITUDE,
+                ClaimSlotName.ORB,
+                ClaimSlotName.HOUSE,
+                ClaimSlotName.ANGLE,
+                ClaimSlotName.HOUSES_APART,
+            }
         ]
         factors.append(
             {

@@ -180,7 +180,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 |---|---|---|---|---|
 | PV-5 | Tính lại lựa chọn ở mỗi GET, không giới hạn tần suất | P1 | Tính một lần cho mỗi (snapshot, ngày), lưu trong note đã mã hóa; thêm policy `daily-read` | Mở |
 | PV-6 | Trường v2 nằm ở cột không mã hóa | P1 | Mọi trường v2 vào envelope; test bảng không có cột mới ở dạng rõ | Mở |
-| PV-28 | Đường viết lại bằng LLM lúc chạy vẫn nằm cạnh Daily; allowlist có `house` | P2 | Loại Daily v2 khỏi registry viết lại; test | Mở |
+| PV-28 | Đường viết lại bằng LLM lúc chạy vẫn nằm cạnh Daily; allowlist có `house` | P2 | Loại Daily v2 khỏi registry viết lại; test | Xong: `daily_detail` không sinh ở mọi chế độ rollout; `house`/`angle` bỏ khỏi allowlist gửi đi và khỏi payload (`test_daily_v2_no_runtime_rewrite.py`). Còn lại: khi nối Daily v2 vào thẻ home, nối qua đường không gọi LLM |
 | PL-8, PL-10, PL-12 | Cảnh mất ở trang chi tiết; không làm mới sau nửa đêm; ngày UTC lúc đang tải | P2 | Sửa cùng UI v2 | Mở |
 | PL-30, PL-31, PL-32, PL-33 | Lưu note, chia sẻ, lịch sử; ngày triển khai; bộ chọn ngữ cảnh; "việc nhỏ" | P2 | Ghi điều kiện xong cho từng mục | Mở |
 | PV-13, PV-21, PV-22, PV-23 | Chia sẻ không được mang trường v2; cache sống lâu hơn lệnh xóa; khóa trên thiết bị; log | P2 | Test cho từng mục | Mở |
