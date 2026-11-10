@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 
 from app.domains.astro.models import TimePrecision, Tradition
-from app.domains.content.copy_approval import approved_texts
+from app.domains.content.copy_approval import approved_bundles, approved_texts
 from app.domains.readings.daily_personalization import (
     BODY_DOMAINS,
     CAPACITY_AT_WORK_MEANING,
@@ -1332,6 +1332,23 @@ def apply_daily_psychology(
                 ("action", len(actions)),
             )
         )
+    headline, scene, action = issue.headlines[headline_slot], issue.scenes[scene_slot], ""
+    scene_key = f"psychology:{issue.key}:scene-{scene_slot}"
+    action_key = f"psychology:{issue.key}:{arena.value}-advice-{advice_slot}"
+    # Owner 10.11: once a situation has approved bundles, the day serves one whole bundle
+    # (headline, scene, action written together) so lines never mismatch. No bundles:
+    # the independent rotation above stays exactly as before.
+    bundles = approved_bundles(issue.key)
+    if bundles:
+        if variety is None:
+            (bundle_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (len(bundles),))
+        else:
+            bundle_slot = axis_slot(variety.seed, "bundle", len(bundles), variety.day_index)
+        headline, scene, action = bundles[bundle_slot]
+        scene_key = f"psychology:{issue.key}:bundle-{bundle_slot}"
+        action_key = f"psychology:{issue.key}:bundle-{bundle_slot}"
+    else:
+        action = actions[advice_slot]
     scene_arena = (
         arena
         if arena is not SemanticArena.GENERAL
@@ -1341,10 +1358,9 @@ def apply_daily_psychology(
         )
     )
     lead = _ARENA_LEADS.get(scene_arena)
-    manifestation = issue.scenes[scene_slot]
+    manifestation = scene
     if lead is not None:
         manifestation = lead_scene(lead, manifestation)
-    action = actions[advice_slot]
     source_refs = tuple(f"psychology-source:{source_id}" for source_id in issue.source_ids)
     personal_meaning = selected.meaning if selected else NO_PERSONAL_MEANING
     # The rewrite brief keeps the situation's meaning; the reader sees two
@@ -1379,7 +1395,7 @@ def apply_daily_psychology(
 
     return replace(
         frame,
-        hook=issue.headlines[headline_slot],
+        hook=headline,
         thesis=f"{personal_meaning} {takeaway}",
         manifestation=manifestation,
         micro_action=action,
@@ -1393,8 +1409,8 @@ def apply_daily_psychology(
         arena=arena,
         evidence_factor_refs=evidence_refs,
         mechanism_key=f"psychology:{issue.key}",
-        scene_key=f"psychology:{issue.key}:scene-{scene_slot}",
-        action_key=f"psychology:{issue.key}:{arena.value}-advice-{advice_slot}",
+        scene_key=scene_key,
+        action_key=action_key,
         daily_meaning=DailyMeaningBrief(
             core_meaning=core_meaning,
             reader_takeaway=takeaway,
