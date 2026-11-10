@@ -12,6 +12,10 @@ what changes *within the user's day*:
   fast contact longer than ``WEEKS_TIER_MAX_DAYS``;
 * picks are ranked by a documented weighted score (``score_contact``), at most two Moon picks
   and one slow pick a day, and one sky event touching two aspected natal points is one factor;
+* the day's natal sky events (``sky_events.NatalHooks``) come before the score (K-3, K-7,
+  AS-22): the solar return (transiting Sun conjunct natal Sun) first, then a planet stationing
+  in conjunction with a natal point. They only re-rank contacts the scan already found, within
+  ``DEFAULT_STATION_ORB`` under the same worst-case orb, so no factor is invented;
 * each contact carries its timing: ``time_kind``, the in-orb window and the tight 1° peak window
   inside the day, and a closest moment only when the closest approach really falls inside it;
 * trend contacts carry a weight and their ``episode`` (``transit_episodes``); generational
@@ -88,6 +92,7 @@ from app.domains.astro.models import (
     TransitPhase,
     ZodiacSign,
 )
+from app.domains.astro.sky_events import DEFAULT_STATION_ORB, NatalHooks, day_sky_events
 from app.domains.daily.house_confidence import (
     EXACT_TIME_ERROR_MINUTES,
     Birthplace,
@@ -100,7 +105,7 @@ from app.domains.daily.house_confidence import (
 if TYPE_CHECKING:
     from app.domains.daily.transit_episodes import TransitEpisode
 
-DAILY_SELECTION_VERSION = "daily-sky-selection-v3"
+DAILY_SELECTION_VERSION = "daily-sky-selection-v4"
 DAILY_TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 DEFAULT_SAMPLE_MINUTES = 30
 DEFAULT_PICK_LIMIT = 3
@@ -312,6 +317,21 @@ class PassKind(StrEnum):
     CLOSEST = "closest"
 
 
+class SkyEventPriority(StrEnum):
+    """A natal sky event carried by a contact; it ranks before any score (K-3, K-7, AS-22)."""
+
+    SOLAR_RETURN = "solar_return"
+    NATAL_STATION = "natal_station"
+
+
+# Lower comes first: the solar return, then a station on a natal point, then everything else.
+_SKY_EVENT_RANK: dict[SkyEventPriority | None, int] = {
+    SkyEventPriority.SOLAR_RETURN: 0,
+    SkyEventPriority.NATAL_STATION: 1,
+    None: 2,
+}
+
+
 @dataclass(frozen=True, slots=True)
 class DayContact:
     """One transit-to-natal contact as it ran during the local day.
@@ -354,6 +374,7 @@ class DayContact:
     transit_house: int | None = None
     natal_house: int | None = None
     ruled_houses: tuple[int, ...] = ()
+    sky_event: SkyEventPriority | None = None
 
     @property
     def preferred_natal(self) -> bool:
@@ -911,10 +932,58 @@ def score_contact(contact: DayContact) -> float:
     return round(score, 4)
 
 
-def rank_key(contact: DayContact) -> tuple[float, bool, float, str]:
-    """Higher score first, then a waking-hours peak (K-5), then the tighter orb, then the id."""
+def rank_key(contact: DayContact) -> tuple[int, float, bool, float, str]:
+    """A natal sky event first (``SkyEventPriority``), then the higher score, then a waking-hours
+    peak (K-5), then the tighter orb, then the id. Without events this is the score order."""
 
-    return (-contact.score, not contact.waking, contact.min_orb, contact.id)
+    return (
+        _SKY_EVENT_RANK[contact.sky_event],
+        -contact.score,
+        not contact.waking,
+        contact.min_orb,
+        contact.id,
+    )
+
+
+def mark_sky_events(
+    contacts: tuple[DayContact, ...], hooks: NatalHooks | None
+) -> tuple[DayContact, ...]:
+    """Tag the contacts that carry the day's natal sky events and re-sort by ``rank_key``.
+
+    The solar return is the transiting Sun conjunct natal Sun; a natal station is the stationing
+    planet conjunct the natal point it stations on. A contact is tagged only when it is that
+    conjunction and its worst-case in-day orb is within ``DEFAULT_STATION_ORB``, so the hook never
+    adds a point or a precision the scan did not allow (AS-1). A merged factor carries the event
+    of any contact folded into it (AS-4).
+    """
+
+    if hooks is None:
+        return contacts
+    wanted: dict[tuple[BodyName, str], SkyEventPriority] = {
+        (item.station.body, item.natal_point): SkyEventPriority.NATAL_STATION
+        for item in hooks.stations
+    }
+    if hooks.solar_return is not None:
+        wanted[(BodyName.SUN, BodyName.SUN.value)] = SkyEventPriority.SOLAR_RETURN
+
+    def event_of(item: DayContact) -> SkyEventPriority | None:
+        if item.kind != "conjunction" or item.min_orb > DEFAULT_STATION_ORB:
+            return None
+        return wanted.get((item.transit_body, item.natal_body.value))
+
+    marked = []
+    for item in contacts:
+        parts = (item, *item.merged)
+        tagged = [(event, part) for part in parts if (event := event_of(part)) is not None]
+        if tagged:
+            event, head = min(tagged, key=lambda pair: _SKY_EVENT_RANK[pair[0]])
+            if head is not item:
+                # The event contact leads its merged factor, so the factor is named by it.
+                head = replace(head, merged=tuple(part for part in parts if part is not head))
+                head = replace(head, score=score_contact(head))
+            item = replace(head, sky_event=event)
+        marked.append(item)
+    return tuple(sorted(marked, key=rank_key))
 
 
 def _score_all(contacts: list[DayContact]) -> list[DayContact]:
@@ -982,13 +1051,20 @@ def pick_daily_factors(
 ) -> tuple[DayContact, ...]:
     """Up to ``limit`` factors by ``rank_key``; at most two Moon picks and one slow pick.
 
-    Pass 1 takes one contact per natal Sun/Moon/Mercury/Venus/Mars. With ``allow_fallback``,
-    pass 2 takes a second contact on one of those points and pass 3 any other natal point
-    (AS-11). Trend-tier contacts are picked only when they perfect today (K-2).
+    Pass 0 takes the contacts tagged with a natal sky event (``mark_sky_events``: the solar
+    return, then a station on a natal point), on any natal point. Pass 1 takes one contact per
+    natal Sun/Moon/Mercury/Venus/Mars. With ``allow_fallback``, pass 2 takes a second contact on
+    one of those points and pass 3 any other natal point (AS-11). Trend-tier contacts are picked
+    only when they perfect today (K-2) or carry a sky event (a slow planet stationing on a natal
+    point, K-7). The Moon and slow caps hold in every pass.
     """
 
     ranked = sorted(
-        (item for item in contacts if item.tier is not SkyTier.TREND or item.exact_today),
+        (
+            item
+            for item in contacts
+            if item.tier is not SkyTier.TREND or item.exact_today or item.sky_event is not None
+        ),
         key=rank_key,
     )
     chosen: list[DayContact] = []
@@ -1004,11 +1080,12 @@ def pick_daily_factors(
         return True
 
     passes: tuple[Callable[[DayContact], bool], ...] = (
+        lambda item: item.sky_event is not None,
         lambda item: item.preferred_natal and not used & set(item.natal_points),
         lambda item: item.preferred_natal,
         lambda item: not used & set(item.natal_points),
     )
-    for accept in passes if allow_fallback else passes[:1]:
+    for accept in passes if allow_fallback else passes[:2]:
         for contact in ranked:
             if len(chosen) == limit:
                 return tuple(chosen)
@@ -1165,6 +1242,8 @@ def select_daily_sky(
         birth_timezone=birth_timezone,
         houses=houses,
     )
+    if contacts:
+        contacts = mark_sky_events(contacts, day_sky_events(engine, local_date, chart).natal)
     trend_contacts = tuple(
         sorted(
             (item for item in contacts if item.tier is SkyTier.TREND),

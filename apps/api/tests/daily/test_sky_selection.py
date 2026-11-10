@@ -26,6 +26,15 @@ from app.domains.astro.models import (
     NatalChart,
     TimePrecision,
     TransitPhase,
+    ZodiacSign,
+)
+from app.domains.astro.sky_events import (
+    NatalHooks,
+    NatalStationContact,
+    SolarReturn,
+    Station,
+    StationKind,
+    day_sky_events,
 )
 from app.domains.daily.house_confidence import Birthplace, CuspSample, HouseFrame
 from app.domains.daily.sky_selection import (
@@ -42,12 +51,14 @@ from app.domains.daily.sky_selection import (
     ContactEligibility,
     DayContact,
     DayTone,
+    SkyEventPriority,
     SkyTier,
     TimeKind,
     TrendContact,
     contact_eligibility,
     day_bounds,
     day_tone,
+    mark_sky_events,
     moon_context,
     natal_domains,
     pick_daily_factors,
@@ -762,7 +773,7 @@ def test_selection_is_versioned_and_deterministic(
     place = Birthplace(latitude=lat, longitude=lon)
     first = select_daily_sky(engine, charts[2], START, birthplace=place)
     assert first == select_daily_sky(engine, charts[2], START, birthplace=place)
-    assert first.version == DAILY_SELECTION_VERSION == "daily-sky-selection-v3"
+    assert first.version == DAILY_SELECTION_VERSION == "daily-sky-selection-v4"
     assert first.timezone == "Asia/Ho_Chi_Minh"
     assert first.eligibility is ContactEligibility.EXACT_TIME
     assert first.moon.natal_house is not None
@@ -803,3 +814,133 @@ def test_sampling_step_must_divide_the_day(
 ) -> None:
     with pytest.raises(ValueError, match="sample_minutes"):
         scan_day(engine, charts[0], START, sample_minutes=7)
+
+
+# Issue #364 (K-3, K-7, AS-22): the day's natal sky events come before the score.
+
+
+@pytest.mark.parametrize(
+    ("born", "precision", "birthday"),
+    [
+        # Synthetic births whose birthday the plain score order missed: an exact time where
+        # Mercury on natal Sun and two Moon contacts filled the picks, and a date-only chart
+        # where a Moon square led.
+        (datetime(1990, 1, 21, 5, 0, tzinfo=UTC), TimePrecision.EXACT, date(2026, 1, 21)),
+        (datetime(1990, 5, 18, 5, 0, tzinfo=UTC), TimePrecision.UNKNOWN, date(2026, 5, 18)),
+    ],
+)
+def test_solar_return_day_picks_the_return_first(
+    engine: NatalChartEngine, born: datetime, precision: TimePrecision, birthday: date
+) -> None:
+    chart = engine.calculate_chart(
+        ChartInput(utc_datetime=born, latitude=21.03, longitude=105.85)
+    ).model_copy(update={"time_precision": precision})
+    hooks = day_sky_events(engine, birthday, chart).natal
+    assert hooks is not None and hooks.solar_return is not None
+    plain = pick_daily_factors(scan_day(engine, chart, birthday))
+    assert plain[0].id != "sun:conjunction:sun"  # the gap: the score alone did not lead with it
+    picks = select_daily_sky(engine, chart, birthday, include_trend_windows=False).picks
+    assert picks[0].id == "sun:conjunction:sun"
+    assert picks[0].sky_event is SkyEventPriority.SOLAR_RETURN
+    assert all(item.sky_event is None for item in picks[1:])
+    # The day before is an ordinary day for this chart.
+    before = select_daily_sky(
+        engine, chart, birthday - timedelta(days=1), include_trend_windows=False
+    ).picks
+    assert all(item.sky_event is None for item in before)
+
+
+@pytest.mark.parametrize(
+    ("day", "planet", "natal", "offset"),
+    [
+        # A slow planet stationing 0.5° from natal Venus: a trend contact that never perfects,
+        # so the score order dropped it entirely.
+        (date(2026, 12, 11), BodyName.SATURN, BodyName.VENUS, 0.5),
+        # Mercury stationing 0.4° from natal Jupiter, a point outside the preferred five.
+        (date(2026, 11, 13), BodyName.MERCURY, BodyName.JUPITER, 0.4),
+    ],
+)
+def test_station_on_a_natal_point_ranks_above_moon_contacts(
+    engine: NatalChartEngine,
+    charts: tuple[NatalChart, ...],
+    day: date,
+    planet: BodyName,
+    natal: BodyName,
+    offset: float,
+) -> None:
+    station = next(item for item in day_sky_events(engine, day).stations if item.body is planet)
+    chart = _move_natal(charts[3], natal, station.longitude + offset)
+    hooks = day_sky_events(engine, day, chart).natal
+    assert hooks is not None and [
+        (item.station.body, item.natal_point) for item in hooks.stations
+    ] == [(planet, natal.value)]
+    key = f"{planet.value}:conjunction:{natal.value}"
+    plain = pick_daily_factors(scan_day(engine, chart, day))
+    assert key not in {item.id for item in plain}
+    assert any(item.transit_body is BodyName.MOON for item in plain)
+    picks = select_daily_sky(engine, chart, day, include_trend_windows=False).picks
+    assert picks[0].id == key and picks[0].sky_event is SkyEventPriority.NATAL_STATION
+    moon_picks = [item for item in picks if item.transit_body is BodyName.MOON]
+    assert moon_picks and all(picks[0].score < item.score for item in moon_picks)
+    assert sum(item.transit_body is BodyName.MOON for item in picks) <= MAX_MOON_PICKS
+
+
+def test_ordinary_days_keep_the_score_order(
+    engine: NatalChartEngine, charts: tuple[NatalChart, ...]
+) -> None:
+    checked = 0
+    for chart in charts[:2]:
+        for offset in (0, 5, 17):
+            day = START + timedelta(days=offset)
+            hooks = day_sky_events(engine, day, chart).natal
+            assert hooks is not None and hooks.solar_return is None and not hooks.stations
+            contacts = scan_day(engine, chart, day)
+            assert mark_sky_events(contacts, hooks) == contacts
+            assert mark_sky_events(contacts, None) is contacts
+            selection = select_daily_sky(engine, chart, day, include_trend_windows=False)
+            assert selection.picks == pick_daily_factors(contacts)
+            assert all(item.sky_event is None for item in selection.picks)
+            checked += 1
+    assert checked == 6
+
+
+def test_sky_event_tags_only_the_matching_tight_conjunction() -> None:
+    at = _local(START, 12)
+    station = Station(BodyName.MARS, StationKind.RETROGRADE, at, 10.0, ZodiacSign.ARIES)
+    hooks = NatalHooks(
+        stations=(NatalStationContact(station=station, natal_point="venus", orb=0.3),),
+        lunations=(),
+        solar_return=SolarReturn(at=at, natal_sun_longitude=200.0, approximate=False),
+    )
+    moon_peak = _contact(BodyName.MOON, BodyName.MOON, 0.0, exact_today=True, stack=2)
+    sun_return = _contact(BodyName.SUN, BodyName.SUN, 0.6, kind="conjunction")
+    loose_return = _contact(BodyName.SUN, BodyName.SUN, 1.5, kind="conjunction")
+    mars_station = _contact(BodyName.MARS, BodyName.VENUS, 0.3, kind="conjunction", peak_hour=None)
+    mars_square = _contact(BodyName.MARS, BodyName.VENUS, 0.3, kind="square", peak_hour=None)
+    marked = {
+        item.id: item
+        for item in mark_sky_events((moon_peak, sun_return, mars_station, mars_square), hooks)
+    }
+    assert marked["sun:conjunction:sun"].sky_event is SkyEventPriority.SOLAR_RETURN
+    assert marked["mars:conjunction:venus"].sky_event is SkyEventPriority.NATAL_STATION
+    assert marked["moon:trine:moon"].sky_event is None
+    assert marked["mars:square:venus"].sky_event is None  # only the conjunction is the station
+    # Beyond the 1° station orb the contact is not the event (worst-case orb, AS-1).
+    assert mark_sky_events((loose_return,), hooks)[0].sky_event is None
+    ranked = mark_sky_events((moon_peak, mars_station, sun_return), hooks)
+    assert [item.id for item in ranked] == [
+        "sun:conjunction:sun",
+        "mars:conjunction:venus",
+        "moon:trine:moon",
+    ]
+    assert [item.id for item in pick_daily_factors(ranked, allow_fallback=False)] == [
+        "sun:conjunction:sun",
+        "mars:conjunction:venus",  # natal Venus is preferred, but pass 0 takes it regardless
+        "moon:trine:moon",
+    ]
+    # An event folded into a merged factor leads that factor.
+    merged_parent = replace(moon_peak, merged=(sun_return,))
+    (head,) = mark_sky_events((merged_parent,), hooks)
+    assert head.id == "sun:conjunction:sun" and head.sky_event is SkyEventPriority.SOLAR_RETURN
+    assert [item.id for item in head.merged] == ["moon:trine:moon"]
+    assert head.score == score_contact(head)
