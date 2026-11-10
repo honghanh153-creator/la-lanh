@@ -97,12 +97,12 @@ Daily (việc của C4). "Xong" nghĩa là đã có trên integration, không c�
 | AS-1, PL-14 | Giờ gần đúng hoặc không có giờ thì không có yếu tố cá nhân | P1 | 100% nhóm này | Dùng `orb_bounds` cho Mặt Trời…Diêm Vương gốc; Mặt Trăng gốc chỉ khi biết khung giờ, orb rộng hơn; không dùng nhà | Xong (26a3162) |
 | K-1 | Không có tông nền cho ngày nặng | P1 | 34% số ngày | Trường `tone` suy từ hình học khi tính, không lưu (PV-11) | Xong (26a3162) |
 | K-2, AS-3 | Hành tinh chậm chạm đúng trong ngày, hoặc yếu tố nhanh kích hoạt một xu hướng đang chạy | P1 | ~19% / 58% số ngày | Đưa lên lựa chọn chính; liên kết `triggers_trend` | Xong (26a3162) |
-| K-3, AS-14, AS-19 | Sự kiện hiếm thua Mặt Trăng; không phân biệt góc đang tiến hay đang tách; không tính nhiều góc cùng dồn vào một điểm | P1 | Sự kiện hiếm vắng mặt hẳn ở 48% số ngày có nó; ngày sinh nhật vắng 43% | Xếp hạng theo trọng số hành tinh × điểm gốc × độ hiếm; ưu tiên góc đang tiến; cộng điểm khi dồn | Xong (26a3162) |
+| K-3, AS-14, AS-19 | Sự kiện hiếm thua Mặt Trăng; không phân biệt góc đang tiến hay đang tách; không tính nhiều góc cùng dồn vào một điểm | P1 | Sự kiện hiếm vắng mặt hẳn ở 48% số ngày có nó; ngày sinh nhật vắng 43% | Xếp hạng theo trọng số hành tinh × điểm gốc × độ hiếm; ưu tiên góc đang tiến; cộng điểm khi dồn | Xong ở tầng engine: trọng số, góc đang tiến, cộng điểm khi dồn (26a3162); ngày sinh nhật luôn đứng đầu lựa chọn khi chọn yếu tố (#364). Bộ chọn chưa nối vào luồng ghi chú |
 | K-4, PL-22, AS-15 | Cả ba lựa chọn là Mặt Trăng; orb rộng | P2 | 39–40% số ngày | Tối đa 1–2 Mặt Trăng; orb chặt 1° để xếp hạng và làm chip | Xong (26a3162) |
 | AS-4, PL-19 | Một sự kiện thành hai thẻ; hai chip cùng lĩnh vực | P2 | 23% / 36% số ngày | Gộp thành một yếu tố "góc gốc được kích hoạt"; mỗi lĩnh vực một chip | Mở: AS-4 xong (26a3162); PL-19 (mỗi lĩnh vực một chip) chưa |
 | K-5, AS-5, AS-6, PL-21, PL-27 | Giờ giả, giờ ngủ, Mặt Trăng không có khung giờ | P2 | ~35% lựa chọn | `time_kind`; khung vào/ra và đỉnh (orb ≤1°); ưu tiên giờ thức | Xong (26a3162) |
 | AS-7 | Tầng chỉ theo hành tinh; Sao Hỏa có lúc kéo dài 58 ngày | P2 | Sao Hỏa >14 ngày: 22% | Đặt tầng theo độ dài thật | Xong (26a3162) |
-| K-7, K-8, AS-18, AS-17, K-11, AS-22 | Trạm, trăng non/tròn, thực, đổi cung, Trăng vô hướng, nghịch hành, sinh nhật | P2 | Đổi cung 12,9%; Trăng vô hướng ≥4 giờ thức 30% | Thêm "sự kiện bầu trời"; ưu tiên sinh nhật và trạm trên điểm gốc | Xong (c65cf73, 69df540) |
+| K-7, K-8, AS-18, AS-17, K-11, AS-22 | Trạm, trăng non/tròn, thực, đổi cung, Trăng vô hướng, nghịch hành, sinh nhật | P2 | Đổi cung 12,9%; Trăng vô hướng ≥4 giờ thức 30% | Thêm "sự kiện bầu trời"; ưu tiên sinh nhật và trạm trên điểm gốc | Xong ở tầng engine: phát hiện sự kiện và móc vào điểm gốc (c65cf73, 69df540); bộ chọn đặt sinh nhật rồi trạm trên điểm gốc lên trước mọi yếu tố khác, kể cả Mặt Trăng (#364). Chưa có lời văn cho sự kiện; bộ chọn chưa nối vào luồng ghi chú |
 | K-10 | Mặt Trăng đổi cung giữa ngày nhưng chỉ lấy lúc 12 giờ | P2 | 43% số ngày | Trả về cả hai cung kèm giờ đổi | Xong (26a3162) |
 | AS-11, AS-12, K-9 | Dự phòng rơi vào điểm mỏng; Nút Bắc đối = Nút Nam hội; góc thế hệ | P3 | 10,9% / 2,5% / 38% | Thứ tự dự phòng mới; đổi nhãn Nút Nam; loại góc ngoài–ngoài | Xong (26a3162) |
 | AS-13 | Nhãn "chính xác" cả ngày; hai ngưỡng 0,3° và 0,2° | P3 | 67% lựa chọn | Một ngưỡng, có giờ tham chiếu | Xong (26a3162) |
@@ -139,7 +139,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 | Mã | Lỗ hổng | Mức | Sửa | Trạng thái |
 |---|---|---|---|---|
 | AS-2 | Cửa sổ dừng ở lần ra khỏi orb đầu tiên, mất các lần đi qua do nghịch hành | P1 | Nối các khoảng hở ngắn hơn một chu kỳ (~400 ngày); trả về mọi lần chạm đúng | Xong (26a3162, 8df64d2, 3e02f6d) |
-| AS-8, PL-23 | Nút/Chiron đứng đầu 26,7% số ngày; trung vị 6,5 ứng viên; 55% không mang tính cá nhân | P2 | Trọng số hành tinh × góc × điểm gốc; chọn 1–2 tag | Mở: trọng số xong (26a3162); giới hạn 1–2 tag chưa thấy trong code |
+| AS-8, PL-23 | Nút/Chiron đứng đầu 26,7% số ngày; trung vị 6,5 ứng viên; 55% không mang tính cá nhân | P2 | Trọng số hành tinh × góc × điểm gốc; chọn 1–2 tag | Xong: trọng số (26a3162); tối đa 2 tag, giữ tag nặng nhất theo trọng số (`sky_selection.MAX_TREND_TAGS`, `cap_trend_tags`) |
 | AS-16 | "Ngày rõ nhất" không phải ngày chạm đúng (19%) | P3 | Trả kèm orb, nhãn "gần nhất" hoặc "chính xác" | Xong (26a3162) |
 
 ### C2d — chống lặp (đổi thiết kế)
