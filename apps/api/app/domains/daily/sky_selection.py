@@ -18,6 +18,7 @@ what changes *within the user's day*:
   ``DEFAULT_STATION_ORB`` under the same worst-case orb, so no factor is invented;
 * each contact carries its timing: ``time_kind``, the in-orb window and the tight 1° peak window
   inside the day, and a closest moment only when the closest approach really falls inside it;
+* at most ``MAX_TREND_TAGS`` trend contacts are kept, the heaviest by ``trend_weight``;
 * trend contacts carry a weight and their ``episode`` (``transit_episodes``); generational
   outer-to-outer contacts are dropped. The episode is the C2c contract: one aspect point, every
   pass with its motion, and a key that is the same on every day of the episode.
@@ -265,6 +266,9 @@ ASPECT_WEIGHT = {
     "trine": 2.0,
     "sextile": 1.5,
 }
+# At most this many trend tags ("Xu hướng hiện tại") a day, the top ones by ``trend_weight``
+# (AS-8/PL-23: one or two tags). ``day_tone`` still reads every trend contact in orb.
+MAX_TREND_TAGS = 2
 
 
 class SkyTier(StrEnum):
@@ -1183,6 +1187,19 @@ def trend_weight(contact: DayContact) -> float:
     )
 
 
+def cap_trend_tags(
+    ranked: tuple[DayContact, ...], limit: int = MAX_TREND_TAGS
+) -> tuple[DayContact, ...]:
+    """The first ``limit`` of trend contacts already ranked by ``trend_weight`` (AS-8/PL-23).
+
+    Only cuts; the order is the caller's ranking and is never changed here.
+    """
+
+    if limit < 1:
+        raise ValueError("limit must be at least 1")
+    return ranked[:limit]
+
+
 def _contact_domain(
     engine: NatalChartEngine,
     chart: NatalChart,
@@ -1260,7 +1277,7 @@ def select_daily_sky(
             if include_trend_windows
             else None,
         )
-        for contact in trend_contacts
+        for contact in cap_trend_tags(trend_contacts)
     )
     picks = pick_daily_factors(contacts, limit=limit, allow_fallback=allow_fallback)
     return DailySkySelection(

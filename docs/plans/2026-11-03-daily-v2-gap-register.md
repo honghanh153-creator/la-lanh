@@ -139,7 +139,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 | Mã | Lỗ hổng | Mức | Sửa | Trạng thái |
 |---|---|---|---|---|
 | AS-2 | Cửa sổ dừng ở lần ra khỏi orb đầu tiên, mất các lần đi qua do nghịch hành | P1 | Nối các khoảng hở ngắn hơn một chu kỳ (~400 ngày); trả về mọi lần chạm đúng | Xong (26a3162, 8df64d2, 3e02f6d) |
-| AS-8, PL-23 | Nút/Chiron đứng đầu 26,7% số ngày; trung vị 6,5 ứng viên; 55% không mang tính cá nhân | P2 | Trọng số hành tinh × góc × điểm gốc; chọn 1–2 tag | Mở: trọng số xong (26a3162); giới hạn 1–2 tag chưa thấy trong code |
+| AS-8, PL-23 | Nút/Chiron đứng đầu 26,7% số ngày; trung vị 6,5 ứng viên; 55% không mang tính cá nhân | P2 | Trọng số hành tinh × góc × điểm gốc; chọn 1–2 tag | Xong: trọng số (26a3162); tối đa 2 tag, giữ tag nặng nhất theo trọng số (`sky_selection.MAX_TREND_TAGS`, `cap_trend_tags`) |
 | AS-16 | "Ngày rõ nhất" không phải ngày chạm đúng (19%) | P3 | Trả kèm orb, nhãn "gần nhất" hoặc "chính xác" | Xong (26a3162) |
 
 ### C2d — chống lặp (đổi thiết kế)
