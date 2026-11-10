@@ -3,265 +3,265 @@
   {
    "id": "daily.action.automatic-caretaking.01",
    "category": "reading",
-   "text": "Nói với người nhờ rằng bạn cần xem lịch rồi báo lại.",
+   "text": "Nói với người nhờ: để mình xem lịch rồi báo lại.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.02",
    "category": "reading",
-   "text": "Hỏi người kia việc nào cần nhất để chỉ giúp phần đó.",
+   "text": "Nhắn người kia giờ bạn giúp được, ví dụ từ tám đến chín giờ tối.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.03",
    "category": "reading",
-   "text": "Nói rõ giờ bạn bắt đầu và giờ bạn dừng giúp.",
+   "text": "Nói thật hôm nay bạn mệt và chưa giúp được.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.04",
    "category": "reading",
-   "text": "Đặt một việc của mình lên trước rồi mới nhận thêm việc giúp.",
+   "text": "Hỏi người kia việc này có ai khác giúp được không, rồi mới nhận.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.05",
    "category": "reading",
-   "text": "Hỏi người nhờ việc này cần xong lúc nào rồi mới nhận.",
+   "text": "Nhắn bạn cùng nhóm: Phần này bạn nhận lại nhé, mình làm không kịp.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.06",
    "category": "reading",
-   "text": "Nói rõ bạn giúp được trong lịch hôm nay đến mấy giờ.",
+   "text": "Xin người thân giúp một tay khi bạn nấu cơm.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.07",
    "category": "reading",
-   "text": "Đặt giờ nghỉ của mình vào lịch trước khi nhận giúp thêm.",
+   "text": "Hỏi người kia muốn bạn làm giúp hay chỉ cách để họ tự làm.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.08",
    "category": "reading",
-   "text": "Chọn một việc giúp để nhận, các việc khác hẹn lúc khác.",
+   "text": "Gửi người kia bài hướng dẫn thay vì ngồi làm giúp.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.09",
    "category": "reading",
-   "text": "Ghi việc riêng cần xong hôm nay trước khi nhận lời giúp.",
+   "text": "Ghi giờ nghỉ trưa vào lịch, đến giờ thì tắt máy đi ăn.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.10",
    "category": "reading",
-   "text": "Hỏi người kia có ai khác giúp được phần còn lại không.",
+   "text": "Viết ra ba việc của bạn cần xong hôm nay rồi mới nhận giúp.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.11",
    "category": "reading",
-   "text": "Dừng một chút trước khi nhận lời giúp và hỏi mình còn sức không.",
+   "text": "Kiểm tra mình đã ăn trưa chưa trước khi nhận giúp thêm.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.12",
    "category": "reading",
-   "text": "Hỏi người nhờ họ đã thử cách nào trước khi bạn giúp.",
+   "text": "Nói: Mình giúp được nửa tiếng thôi nhé.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.13",
    "category": "reading",
-   "text": "Nói: Hôm nay mình giúp được phần này, phần còn lại để mai nhé.",
+   "text": "Hỏi người nhờ việc này cần xong trước mấy giờ rồi mới nhận.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.14",
    "category": "reading",
-   "text": "Đặt một giờ trong lịch chỉ dành cho việc của mình.",
+   "text": "Nhắn cả gia đình chia lịch rửa bát, mỗi người một tối.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.15",
    "category": "reading",
-   "text": "Ghi lại các việc giúp đã nhận tuần này rồi xem lịch còn chỗ không.",
+   "text": "Chọn việc giúp gấp nhất hôm nay, việc còn lại hẹn ngày khác.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.16",
    "category": "reading",
-   "text": "Chọn cách chỉ người kia tự làm thay vì nhận làm giúp cả việc.",
+   "text": "Đặt lịch giúp vào buổi bạn rảnh, thay vì nhận ngay tối nay.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.17",
    "category": "reading",
-   "text": "Hỏi mình còn bao nhiêu sức trước khi nhận giúp.",
+   "text": "Nói lại với người nhờ khi bị trùng lịch, thay vì cố chạy cả hai nơi.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.18",
    "category": "reading",
-   "text": "Nói một giờ bạn giúp được, rồi giữ đúng giờ đó.",
+   "text": "Xác nhận với người kia bạn giúp phần gõ chữ, phần còn lại họ tự làm.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.19",
    "category": "reading",
-   "text": "Ghi giờ nghỉ hôm nay vào lịch như một việc đã hẹn.",
+   "text": "Đọc lại lịch tuần này rồi chỉ nhận thêm một việc giúp.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.20",
    "category": "reading",
-   "text": "Chọn một phần nhỏ để giúp thay vì nhận cả việc.",
+   "text": "Giảm bớt một buổi giúp trong tuần để có một tối nghỉ.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.21",
    "category": "reading",
-   "text": "Đặt một câu trả lời sẵn khi được nhờ, như để mình xem lịch đã.",
+   "text": "Xin người khác trong nhóm nhận lo việc đặt bàn lần này.",
    "status": "pending"
   },
   {
    "id": "daily.action.automatic-caretaking.22",
    "category": "reading",
-   "text": "Dừng lại một nhịp thở rồi mới nói bạn nhận giúp.",
+   "text": "Dừng một phút, hỏi mình còn sức không, rồi mới trả lời tin nhờ giúp.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.01",
    "category": "reading",
-   "text": "Nói: Để mình xem lại rồi báo bạn, thay vì nhận ngay.",
+   "text": "Hỏi lại việc cần xong lúc nào trước khi nhận.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.02",
    "category": "reading",
-   "text": "Nói rõ bạn không nhận được lần này và cảm ơn lời nhờ của người kia.",
+   "text": "Nhắn: Để mình xem lại rồi báo, thay vì nhận ngay.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.03",
    "category": "reading",
-   "text": "Nhắn lại để rút lời nhận nếu việc đó không hợp với lịch của bạn.",
+   "text": "Nhắn đồng nghiệp: Hôm đó mình có hẹn rồi, không tiện đổi ca.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.04",
    "category": "reading",
-   "text": "Xin chỉ nhận một phần nhỏ bạn làm được thay cho cả việc.",
+   "text": "Kiểm tra lịch tuần này trước khi nhận lời đi chơi.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.05",
    "category": "reading",
-   "text": "Nói: Lần này mình không tiện, cảm ơn bạn đã nghĩ đến mình.",
+   "text": "Nói: Lần này mình không tiện, cảm ơn bạn đã rủ.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.06",
    "category": "reading",
-   "text": "Hỏi thêm thời gian để xem mình có nhận được không.",
+   "text": "Nhắn bạn cùng phòng chia lịch rửa bát, mỗi người nhận một tối.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.07",
    "category": "reading",
-   "text": "Nhắn lại phần bạn làm được và phần bạn không nhận.",
+   "text": "Gửi tin nhắn: Tuần này mình không tiện, tuần sau mình đi được nhé.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.08",
    "category": "reading",
-   "text": "Nói không tiện bằng một câu ngắn, không cần xin lỗi nhiều.",
+   "text": "Nhắn sớm cho người kia: Việc này mình cần thêm một ngày mới làm được.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.09",
    "category": "reading",
-   "text": "Nói một giờ khác nếu giờ được nhờ không tiện.",
+   "text": "Hỏi mình có muốn đi thật không trước khi nhận lời rủ.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.10",
    "category": "reading",
-   "text": "Viết sẵn một câu từ chối nhẹ để dùng khi chưa muốn nhận.",
+   "text": "Nói với nhóm: Lần này mình nhận phần nhỏ thôi.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.11",
    "category": "reading",
-   "text": "Viết sẵn câu trả lời trước khi gặp người hay nhờ, để khỏi nhận vội.",
+   "text": "Nói: Mình làm được thứ Bảy, hôm nay thì không tiện.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.12",
    "category": "reading",
-   "text": "Hỏi mình có muốn làm không trước khi nhận lời.",
+   "text": "Xin một ngày để nghĩ rồi mới trả lời nhận hay không.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.13",
    "category": "reading",
-   "text": "Nói thời hạn bạn làm được nếu chưa thể làm ngay.",
+   "text": "Ghi ra các việc đã nhận tuần này trước khi nhận thêm.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.14",
    "category": "reading",
-   "text": "Gửi lời từ chối bằng tin nhắn nếu nói trực tiếp thấy không tiện.",
+   "text": "Đặt giới hạn: Mình chỉ làm được đến chín giờ tối.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.15",
    "category": "reading",
-   "text": "Nhắn rõ việc gì bạn làm được trước khi người kia chuyển việc sang.",
+   "text": "Nói ngắn: Việc này mình không nhận được, không cần giải thích dài.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.16",
    "category": "reading",
-   "text": "Xác nhận lại với người kia phần đã nhận để không phải làm thêm.",
+   "text": "Nhắn người bán xin đổi món hàng giao nhầm thay vì nhận cho qua.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.17",
    "category": "reading",
-   "text": "Nói lần này bạn không tiện, rồi gợi ý một lúc khác.",
+   "text": "Nói với người hay đến trễ: Mình không tiện chờ quá mười lăm phút.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.18",
    "category": "reading",
-   "text": "Nhắn rõ phần bạn làm được trong tuần này.",
+   "text": "Xin đồng nghiệp ghi tên bạn trong báo cáo cho phần bạn nhận làm.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.19",
    "category": "reading",
-   "text": "Viết sẵn một câu không tiện ngắn để dùng khi cần.",
+   "text": "Nói: Hôm nay mình không tiện cho mượn xe, mình cần đi.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.20",
    "category": "reading",
-   "text": "Hỏi lại việc cần gì trước khi nói bạn nhận.",
+   "text": "Chọn phần bạn làm được, ví dụ soạn nội dung, rồi báo nhóm tìm người làm phần còn lại.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.21",
    "category": "reading",
-   "text": "Đặt một ngày trả lời thay vì nhận ngay khi không tiện.",
+   "text": "Xác nhận với người kia bạn nhận soạn bài, không nhận phần in ấn.",
    "status": "pending"
   },
   {
    "id": "daily.action.avoid-small-conflict.22",
    "category": "reading",
-   "text": "Nói cảm ơn lời nhờ, rồi nói rõ phần bạn không nhận.",
+   "text": "Nhắn bạn bè: Mười giờ mình về, mình không tiện ở khuya.",
    "status": "pending"
   },
   {
@@ -1983,289 +1983,289 @@
   {
    "id": "daily.headline.automatic-caretaking.01",
    "category": "reading",
-   "text": "Bạn nói được trước khi xem mình còn sức.",
+   "text": "Bạn nhận lời rồi mới mở lịch ra xem.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.02",
    "category": "reading",
-   "text": "Việc giúp người khác chiếm giờ của việc mình.",
+   "text": "Bạn nhận trông con giúp dù chiều đó bạn bận.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.03",
    "category": "reading",
-   "text": "Bạn nhận giúp rồi mới tính lại lịch.",
+   "text": "Bạn bỏ bữa trưa để làm báo cáo giúp đồng nghiệp.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.04",
    "category": "reading",
-   "text": "Bạn lo việc người khác trước việc của mình.",
+   "text": "Bạn mệt rã rời vẫn nấu cơm cho cả nhà.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.05",
    "category": "reading",
-   "text": "Lời nhờ đến, bạn gật đầu gần như ngay.",
+   "text": "Tiệc nào bạn cũng ở lại rửa bát sau cùng.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.06",
    "category": "reading",
-   "text": "Bạn muốn giúp mà chưa hỏi mình còn bao nhiêu sức.",
+   "text": "Bạn giúp người khác xong mới nhớ mình chưa ăn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.07",
    "category": "reading",
-   "text": "Lời nhờ đến lúc bạn cũng đang cần nghỉ.",
+   "text": "Bạn nói xem giúp năm phút, rồi ngồi làm cả buổi.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.08",
    "category": "reading",
-   "text": "Bạn quen nhận giúp trước rồi mới nghĩ tới mình.",
+   "text": "Đang mệt, bạn vẫn thức khuya sửa bài giúp bạn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.09",
    "category": "reading",
-   "text": "Phần việc của bạn lại xếp sau việc người khác.",
+   "text": "Đang ăn tối, bạn vẫn trả lời tin nhờ vả.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.10",
    "category": "reading",
-   "text": "Bạn giúp nhiều mà ít khi hỏi mình còn sức không.",
+   "text": "Bạn cho mượn xe dù chiều đó mình cần đi.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.11",
    "category": "reading",
-   "text": "Lịch của bạn đầy dần vì những việc giúp.",
+   "text": "Bạn chở bạn về dù đường đó ngược hẳn hướng mình.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.12",
    "category": "reading",
-   "text": "Giúp người khác dễ hơn khi bạn còn đủ sức.",
+   "text": "Bạn nhắc mọi người ăn đúng giờ, còn mình ăn trễ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.13",
    "category": "reading",
-   "text": "Chưa nhận giúp ngay cũng là một lựa chọn.",
+   "text": "Bạn dọn bàn giúp người khác, bàn mình còn bừa.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.14",
    "category": "reading",
-   "text": "Bạn lo cho người khác mà quên hỏi mình cần gì.",
+   "text": "Bạn dùng hết ngày phép để đưa đón người thân.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.15",
    "category": "reading",
-   "text": "Lời nhờ nào bạn cũng thấy khó để chưa nhận.",
+   "text": "Bạn nhận lo quà sinh nhật cho cả nhóm lần nữa.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.16",
    "category": "reading",
-   "text": "Bạn nhận giúp vì quen, không phải vì còn sức.",
+   "text": "Bạn ôm điện thoại nghe bạn kể chuyện tới khuya.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.17",
    "category": "reading",
-   "text": "Sức của bạn cũng cần được để dành.",
+   "text": "Tối nào bạn cũng rửa bát giúp bạn cùng phòng.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.18",
    "category": "reading",
-   "text": "Bạn ôm thêm việc giúp vào một ngày đã đầy.",
+   "text": "Đi chơi lần nào, bạn cũng lo đặt chỗ một mình.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.19",
    "category": "reading",
-   "text": "Bạn giúp người khác trước khi hỏi lòng mình.",
+   "text": "Bạn giặt, rửa, đổ rác một mình, chưa nhờ ai.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.20",
    "category": "reading",
-   "text": "Một ngày tốt cũng cần chỗ cho bạn.",
+   "text": "Bạn nấu cơm một mình mà chưa nhờ ai phụ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.21",
    "category": "reading",
-   "text": "Bạn thường là người đầu tiên đưa tay ra.",
+   "text": "Đồng nghiệp vắng, bạn làm luôn phần họ tới tối.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.22",
    "category": "reading",
-   "text": "Lời nhận giúp đến nhanh hơn lời hỏi mình.",
+   "text": "Bạn nhận trực thay vào đúng ngày nghỉ của mình.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.23",
    "category": "reading",
-   "text": "Việc của bạn cũng đáng được giữ giờ.",
+   "text": "Cuối tuần nào bạn cũng chạy việc giúp người khác.",
    "status": "pending"
   },
   {
    "id": "daily.headline.automatic-caretaking.24",
    "category": "reading",
-   "text": "Bạn chăm người khác giỏi hơn chăm chính mình.",
+   "text": "Bạn tưới cây giúp hàng xóm dù đi làm về muộn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.01",
    "category": "reading",
-   "text": "Bạn nói được để khỏi phải từ chối.",
+   "text": "Bạn đổi ca cho đồng nghiệp dù đã có hẹn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.02",
    "category": "reading",
-   "text": "Bạn dễ nhận lời trước khi xem có tiện không.",
+   "text": "Bạn nhắn làm lành trước dù mình không sai.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.03",
    "category": "reading",
-   "text": "Bạn định từ chối, cuối cùng lại nhận lời.",
+   "text": "Bạn nhận lời đi chơi dù chỉ muốn ở nhà.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.04",
    "category": "reading",
-   "text": "Bạn đồng ý cho cuộc nói chuyện xong nhanh.",
+   "text": "Bạn gật đầu trong cuộc họp dù chưa đồng ý.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.05",
    "category": "reading",
-   "text": "Bạn nhận một việc mình không muốn làm.",
+   "text": "Bạn nói không sao dù thật ra bạn khó chịu.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.06",
    "category": "reading",
-   "text": "Bạn chọn nói được thay vì nói thật.",
+   "text": "Bạn nhận thêm việc rồi thức khuya làm cho kịp.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.07",
    "category": "reading",
-   "text": "Bạn nói được cho khỏi ngại, rồi thấy nặng lòng.",
+   "text": "Bạn soạn tin từ chối rồi lại xóa đi.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.08",
    "category": "reading",
-   "text": "Lời từ chối đến miệng rồi lại thôi.",
+   "text": "Bạn cười cho qua khi bị trêu về ngoại hình.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.09",
    "category": "reading",
-   "text": "Bạn nhận việc chỉ để giữ không khí êm.",
+   "text": "Bạn ngại đòi lại món đồ đã cho mượn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.10",
    "category": "reading",
-   "text": "Bạn chưa tìm được cách nói không cho nhẹ nhàng.",
+   "text": "Bạn không nhắc khi người kia lại đến trễ.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.11",
    "category": "reading",
-   "text": "Một lời nhận vội làm lịch bạn thêm chật.",
+   "text": "Bạn ăn món người khác gọi dù bạn không thích.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.12",
    "category": "reading",
-   "text": "Nói thật điều mình tiện có thể nhẹ hơn bạn nghĩ.",
+   "text": "Bạn ở lại buổi tiệc dù đã muốn về từ lâu.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.13",
    "category": "reading",
-   "text": "Bạn ngại làm người kia hụt hẫng nên nhận lời.",
+   "text": "Đi ăn, bạn để người khác chọn quán cho khỏi bàn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.14",
    "category": "reading",
-   "text": "Chữ không với bạn hôm nay hơi khó nói.",
+   "text": "Bạn cho mượn sạc dù máy mình sắp hết pin.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.15",
    "category": "reading",
-   "text": "Bạn làm việc đã nhận mà lòng chưa muốn.",
+   "text": "Bạn góp tiền quà dù thấy mức góp quá cao.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.16",
    "category": "reading",
-   "text": "Bạn chưa nói được điều mình không tiện.",
+   "text": "Bạn im lặng khi bị chia phần việc nặng hơn.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.17",
    "category": "reading",
-   "text": "Bạn nhận lời nhanh để tránh một lúc khó xử.",
+   "text": "Bạn nhận lỗi về mình để cuộc cãi nhau dừng lại.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.18",
    "category": "reading",
-   "text": "Một lời từ chối nhẹ vẫn giữ được sự tử tế.",
+   "text": "Phòng bên bật nhạc tới khuya, bạn không nhắc.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.19",
    "category": "reading",
-   "text": "Bạn giữ êm bên ngoài, lòng thì hơi chật.",
+   "text": "Bạn giữ món hàng lỗi vì ngại nhắn người bán đổi.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.20",
    "category": "reading",
-   "text": "Lời không tiện của bạn cũng đáng được nói.",
+   "text": "Bạn để người khác chen hàng trước mặt mà không nói.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.21",
    "category": "reading",
-   "text": "Bạn nhận lời nhanh hơn lòng mình kịp nghĩ.",
+   "text": "Bạn nhận ghi biên bản họp vì không ai giơ tay.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.22",
    "category": "reading",
-   "text": "Một chữ chưa tiện có thể nói thật nhẹ.",
+   "text": "Bạn trả tiền phần ăn chung dù mình ăn rất ít.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.23",
    "category": "reading",
-   "text": "Bạn ngại một phút khó xử hơn một buổi bận.",
+   "text": "Bạn cho người quen mượn tiền vì ngại nói không.",
    "status": "pending"
   },
   {
    "id": "daily.headline.avoid-small-conflict.24",
    "category": "reading",
-   "text": "Nói thật điều mình tiện cũng là tử tế.",
+   "text": "Bạn để đồng nghiệp nhận công phần việc bạn làm.",
    "status": "pending"
   },
   {
@@ -4143,265 +4143,265 @@
   {
    "id": "daily.scene.automatic-caretaking.01",
    "category": "reading",
-   "text": "Khi có người nhắn nhờ một việc nhỏ, bạn có thể nhận ngay dù việc của mình còn dở.",
+   "text": "Khi bố mẹ nhờ đi chợ giúp, bạn bỏ dở việc đang làm để đi ngay.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.02",
    "category": "reading",
-   "text": "Khi thấy người kia lúng túng, bạn có thể làm giúp luôn mà chưa hỏi họ có cần không.",
+   "text": "Khi có khách tới chơi, bạn lo hết cơm nước mà không nhờ ai phụ.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.03",
    "category": "reading",
-   "text": "Khi được nhờ vào cuối ngày, bạn có thể nhận lời dù đã định nghỉ sớm.",
+   "text": "Khi ba người cùng nhắn nhờ một lúc, bạn cố giúp cả ba.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.04",
    "category": "reading",
-   "text": "Khi giúp xong một việc, bạn có thể nhận thêm việc thứ hai mà chưa xem giờ.",
+   "text": "Khi người kia nói việc chỉ mất năm phút, bạn ngồi giúp cả tiếng.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.05",
    "category": "reading",
-   "text": "Khi người thân nhờ một việc gấp, bạn có thể bỏ ngay việc mình đang làm dù chưa tiện.",
+   "text": "Khi đồng nghiệp nhờ sửa giúp một tài liệu, bạn nhận ngay dù việc mình chưa xong.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.06",
    "category": "reading",
-   "text": "Khi thấy người khác mệt, bạn có thể nhận phần việc của họ mà chưa hỏi họ có cần giúp không.",
+   "text": "Khi hàng xóm nhờ trông con một buổi, bạn nhận dù tuần này kín lịch.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.07",
    "category": "reading",
-   "text": "Khi có người nhờ giúp trong lúc bạn đang nghỉ, bạn có thể nhận lời ngay dù đã định nghỉ trọn.",
+   "text": "Khi bạn cùng phòng nhờ dọn hộ một lần, bạn dọn luôn phần của họ cả tuần.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.08",
    "category": "reading",
-   "text": "Khi người kia cần bạn lắng nghe, bạn có thể ngồi lâu hơn sức mình còn cho phép.",
+   "text": "Khi nhóm cần người đặt bàn, bạn lại lo từ đặt chỗ tới chia tiền.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.09",
    "category": "reading",
-   "text": "Khi được nhờ một việc bạn làm giỏi, bạn có thể nhận ngay mà quên việc riêng còn dở.",
+   "text": "Khi đang nghỉ trưa mà có người nhờ, bạn đứng dậy đi giúp ngay.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.10",
    "category": "reading",
-   "text": "Khi nhiều người cùng nhờ một lúc, bạn có thể cố giúp hết dù sức mình chỉ đủ cho một người.",
+   "text": "Khi được nhờ mua đồ hộ, bạn đi luôn dù trời đã tối và bạn đang mệt.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.11",
    "category": "reading",
-   "text": "Khi điện thoại báo có người cần bạn, bạn có thể bỏ bữa ăn dở để trả lời ngay.",
+   "text": "Khi đồng nghiệp nhờ trực thay, bạn nhận dù đó là ngày nghỉ của bạn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.12",
    "category": "reading",
-   "text": "Khi người kia nói chỉ mất năm phút, bạn có thể nhận giúp rồi ngồi lâu hơn dự tính.",
+   "text": "Khi người kia than chưa làm xong, bạn ngồi làm phần của họ dù họ chưa nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.13",
    "category": "reading",
-   "text": "Khi được nhờ đón đưa một người thân, bạn có thể đổi cả lịch của mình mà chưa nói ra.",
+   "text": "Khi nhóm cần người trực cuối tuần, bạn giơ tay đầu tiên dù đang mệt.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.14",
    "category": "reading",
-   "text": "Khi bạn là người hay được nhờ nhất, bạn có thể nhận tiếp dù tuần này đã giúp nhiều.",
+   "text": "Khi điện thoại có tin nhờ, bạn trả lời ngay giữa bữa ăn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.15",
    "category": "reading",
-   "text": "Khi giúp người kia xong, bạn có thể còn ít sức cho phần việc của chính mình.",
+   "text": "Khi bạn thân cần bạn nghe tâm sự, bạn thức tới khuya dù sáng mai đi làm sớm.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.16",
    "category": "reading",
-   "text": "Khi đang nghỉ mà nghe có người cần bạn, bạn có thể thấy khó ngồi yên dù họ chưa nhờ.",
+   "text": "Khi người thân cần bạn đưa đi làm giấy tờ, bạn xin nghỉ dù đang có việc gấp.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.17",
    "category": "reading",
-   "text": "Khi người kia kể một việc khó, bạn có thể nhận giúp ngay dù họ chưa nhờ.",
+   "text": "Khi được nhờ ở lại làm thêm, bạn gật đầu dù đã hẹn bạn đi ăn tối.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.18",
    "category": "reading",
-   "text": "Khi được nhờ ở lại thêm một lúc, bạn có thể gật đầu dù đã muốn về.",
+   "text": "Khi lớp cần người gom tiền quỹ, bạn lại nhận giúp dù năm nào cũng là bạn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.19",
    "category": "reading",
-   "text": "Khi nhóm cần người giúp dọn dẹp, bạn có thể đứng ra trước dù đang mệt.",
+   "text": "Khi người lớn tuổi nhờ chỉ cách dùng điện thoại, bạn ngồi chỉ tới quá giờ cơm.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.20",
    "category": "reading",
-   "text": "Khi được nhờ xem giúp một việc nhỏ, bạn có thể làm luôn cả phần còn lại.",
+   "text": "Khi bạn bè nhờ chở ra sân bay lúc năm giờ sáng, bạn nhận dù tám giờ phải đi làm.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.21",
    "category": "reading",
-   "text": "Khi người thân cần bạn đi cùng, bạn có thể hủy giờ nghỉ mà chưa nói gì.",
+   "text": "Khi cả nhóm đi chơi xa, bạn nhận lo hết vé, phòng và tiền ăn giúp mọi người.",
    "status": "pending"
   },
   {
    "id": "daily.scene.automatic-caretaking.22",
    "category": "reading",
-   "text": "Khi giúp ai đó thành thói quen, bạn có thể quên hỏi lịch mình còn trống không.",
+   "text": "Khi giúp người khác xong lúc chín giờ tối, bạn mới bắt đầu làm việc của mình.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.01",
    "category": "reading",
-   "text": "Khi được rủ vào một buổi bạn không muốn đi, bạn có thể nhận lời cho xong.",
+   "text": "Khi bạn bè rủ đi chơi tối nay, bạn nhận lời dù chỉ muốn nằm nghỉ.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.02",
    "category": "reading",
-   "text": "Khi người kia nhờ bạn làm hộ, bạn có thể nói được trước khi nghĩ.",
+   "text": "Khi sếp giao thêm việc lúc sắp về, bạn gật đầu dù đã hẹn ăn tối.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.03",
    "category": "reading",
-   "text": "Khi từ chối có vẻ làm người kia buồn, bạn có thể nhận một việc mình không tiện làm.",
+   "text": "Khi đã nhận việc rồi mới thấy không kịp, bạn vẫn cố làm vì ngại nói lại.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.04",
    "category": "reading",
-   "text": "Khi lời nhờ đến bất ngờ, bạn có thể trả lời được dù trong lòng muốn nói không.",
+   "text": "Khi bạn cùng phòng để lại việc rửa bát, bạn rửa luôn cho êm chuyện.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.05",
    "category": "reading",
-   "text": "Khi bạn bè nhờ một việc vào cuối tuần, bạn có thể nhận lời dù đã định nghỉ.",
+   "text": "Khi người kia khen bạn giỏi rồi nhờ sửa máy tính, bạn nhận dù đang bận.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.06",
    "category": "reading",
-   "text": "Khi người kia nhờ lần thứ ba, bạn có thể nhận tiếp vì ngại làm họ buồn.",
+   "text": "Khi đồng nghiệp nhờ làm nốt báo cáo, bạn làm tới khuya mà không nói mình mệt.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.07",
    "category": "reading",
-   "text": "Khi được nhờ một việc bạn không giỏi, bạn có thể vẫn nhận cho khỏi phải giải thích.",
+   "text": "Khi nhóm chat hỏi ai nhận dẫn đoàn, bạn nhận vì không ai trả lời.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.08",
    "category": "reading",
-   "text": "Khi người kia nhờ ngay trước mặt người khác, bạn có thể khó nói không hơn.",
+   "text": "Khi người kia nhờ góp tiền mua quà, bạn góp dù số tiền quá sức mình.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.09",
    "category": "reading",
-   "text": "Khi chưa chắc mình làm được, bạn có thể vẫn nhận việc để không khí khỏi gượng.",
+   "text": "Khi được nhờ cho mượn xe, bạn đưa luôn rồi phải hủy việc riêng chiều đó.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.10",
    "category": "reading",
-   "text": "Khi người nhờ là người bạn quý, bạn có thể nhận việc dù lịch đang rất chật.",
+   "text": "Khi hai người giận nhau vì một việc nhỏ, bạn nhắn làm lành trước dù mình không sai.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.11",
    "category": "reading",
-   "text": "Khi đồng nghiệp nhờ đổi ca, bạn có thể nhận dù ngày đó bạn đã có việc riêng.",
+   "text": "Khi được nhờ trước mặt cả phòng, bạn nhận việc vì thấy khó nói không.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.12",
    "category": "reading",
-   "text": "Khi lời nhờ đi kèm một lời khen, bạn có thể thấy khó từ chối việc đó hơn.",
+   "text": "Khi người kia đổi giờ hẹn sát giờ, bạn nhận lời và tự dời việc của mình.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.13",
    "category": "reading",
-   "text": "Khi lời nhờ đến trong nhóm chat, bạn có thể nhận việc để khỏi ai phải chờ.",
+   "text": "Khi nhóm chia việc chưa đều, bạn nhận phần nặng mà không hỏi lại.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.14",
    "category": "reading",
-   "text": "Khi đã nhận rồi mới thấy không tiện, bạn có thể làm tiếp vì ngại nói lại.",
+   "text": "Khi người kia nhờ ở lại họp thêm, bạn ngồi lại và lỡ chuyến xe về.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.15",
    "category": "reading",
-   "text": "Khi người kia nói chỉ có bạn làm được, bạn có thể thấy mình phải nhận.",
+   "text": "Khi được nhờ đi ăn cưới thay, bạn nhận lời và hủy buổi đi chơi đã hẹn.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.16",
    "category": "reading",
-   "text": "Khi được nhờ cho mượn đồ bạn đang cần, bạn có thể vẫn nhận lời cho êm.",
+   "text": "Khi người kia nhắn nhờ sửa bài lúc mười một giờ đêm, bạn nhận ngay cho xong chuyện.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.17",
    "category": "reading",
-   "text": "Khi được nhờ trực tiếp trước mặt, bạn có thể nhận việc vì thấy khó từ chối.",
+   "text": "Khi được nhờ làm thiết kế mà bạn không giỏi, bạn vẫn nhận vì ngại giải thích.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.18",
    "category": "reading",
-   "text": "Khi lời nhờ đến lúc bạn đang vui, bạn có thể nhận mà quên mình đã bận.",
+   "text": "Khi người kia nhờ lần thứ ba trong tuần, bạn vẫn nhận dù đã thấy phiền.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.19",
    "category": "reading",
-   "text": "Khi người kia nhờ bằng giọng gấp, bạn có thể nhận việc dù chưa tiện chút nào.",
+   "text": "Khi đồng nghiệp nhờ đổi ca, bạn đồng ý rồi tự hủy buổi học tiếng Anh.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.20",
    "category": "reading",
-   "text": "Khi lỡ nhận một việc nhỏ, bạn có thể nhận thêm việc kèm theo cho khỏi ngại.",
+   "text": "Khi người bán giao nhầm hàng, bạn nhận luôn vì ngại nhắn đổi.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.21",
    "category": "reading",
-   "text": "Khi được nhờ đi chung một chuyến, bạn có thể nhận lời dù đã có việc riêng.",
+   "text": "Khi người kia nhắn nhờ gấp, bạn bỏ dở việc mình để làm cho họ trước.",
    "status": "pending"
   },
   {
    "id": "daily.scene.avoid-small-conflict.22",
    "category": "reading",
-   "text": "Khi lời nhờ được gửi lúc khuya, bạn có thể nhận ngay để khỏi phải trả lời dài.",
+   "text": "Khi họ hàng nhờ chở đi đám giỗ, bạn nhận dù cuối tuần đó bạn phải làm thêm.",
    "status": "pending"
   },
   {
