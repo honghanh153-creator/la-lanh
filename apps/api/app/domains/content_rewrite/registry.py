@@ -11,6 +11,12 @@ from app.domains.content_rewrite.models import (
 
 CANONICAL_REWRITE_SURFACES = frozenset(RewriteSurface)
 
+# PV-28: Daily v2 calls no LLM at run time (its pieces are written offline, see
+# docs/plans/2026-11-02-daily-v2-content-quality-plan.md section 6), and the Daily detail
+# payload carried chart evidence. The surface stays registered so an old queued job still
+# resolves, but no rollout mode may generate it (rollout.SurfaceRolloutPolicy).
+RUNTIME_REWRITE_EXCLUDED_SURFACES = frozenset({RewriteSurface.DAILY_DETAIL})
+
 
 class SurfaceRegistry:
     def __init__(self, specs: Iterable[RewriteSurfaceSpec]) -> None:
