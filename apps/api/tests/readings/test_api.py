@@ -430,12 +430,14 @@ def test_reading_detail_and_personalized_sky_expose_one_safe_rich_contract(
         assert forbidden not in serialized
 
 
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
 def test_an_approximate_birth_time_reads_the_time_stable_chart(
-    reading_client: TestClient,
+    reading_client: TestClient, tradition: str
 ) -> None:
     """#143 E1: an approximate time used to give an empty "limited" reading that talked about
     itself. Planet signs (except the Moon) and aspects do not move within a time window, so the
-    reading uses them and leaves houses, angles and the Moon out."""
+    reading uses them and leaves houses, angles and the Moon out. Jyotish too (plan 10.11 item 7):
+    it kept the limited reading until its frame could read a lone placement."""
 
     csrf = create_guest(reading_client)
     headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
@@ -452,20 +454,23 @@ def test_an_approximate_birth_time_reads_the_time_stable_chart(
         headers=headers,
     )
 
-    overview = reading_client.get("/v1/insights/overview?tradition=western")
+    overview = reading_client.get(f"/v1/insights/overview?tradition={tradition}")
 
     assert overview.status_code == 200
     active = cast(
         dict[str, object], cast(dict[str, object], overview.json()["reading_projection"])["active"]
     )
+    assert active["tradition"] == tradition
     assert active["mode"] == "full_synthesis"
     assert active["precision"] == "approximate", "never labelled exact"
     assert active.get("experiment") is None, "exact-only experiment stays closed"
     sections = cast(dict[str, str], active["sections"])
     prose = " ".join(text for text in sections.values() if text)
     assert "Chưa cần đoán cho đầy trang" not in prose
+    assert "Bạn có thể xem vị trí hành tinh và nhà" not in prose, "houses are not read"
     evidence = " ".join(cast(list[str], cast(dict[str, object], active["evidence"])["claims"]))
-    for time_bound in ("Mặt Trăng", "Nhà ", "Cung mọc", "Thiên đỉnh", "Nakshatra"):
+    assert evidence, "the synthesis cites the placements it read"
+    for time_bound in ("Mặt Trăng", "Nhà ", "nhà ", "Cung mọc", "Thiên đỉnh", "Nakshatra"):
         assert time_bound not in evidence, (time_bound, evidence)
 
 
