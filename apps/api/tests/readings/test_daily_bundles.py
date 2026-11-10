@@ -18,7 +18,6 @@ from app.domains.content.copy_approval import (
     load_registry,
     parse_registry,
 )
-from app.domains.readings import daily_psychology
 from app.domains.readings.daily_psychology import DAILY_ISSUES, apply_daily_psychology
 from app.domains.readings.knowledge import full_frame
 from tests.readings.test_daily_rotation import OWNER_A, OWNER_B, START, _date_only_plan, _variety
@@ -98,7 +97,7 @@ def test_pending_line_keeps_the_bundle_out(monkeypatch: pytest.MonkeyPatch) -> N
         for part in BUNDLE_PARTS
     ]
     _use(monkeypatch, entries)
-    assert daily_psychology.approved_bundles(ISSUES[0]) == ()
+    assert copy_approval.approved_bundles(ISSUES[0]) == ()
     assert all(":bundle-" not in key for key, *_ in _notes())
 
 
