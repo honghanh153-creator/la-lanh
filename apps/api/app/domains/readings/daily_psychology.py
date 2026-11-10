@@ -1102,7 +1102,8 @@ DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
 NO_PERSONAL_MEANING = "Lá chưa đủ dữ kiện để nói riêng về bạn ở góc này."
 
 # A lead opens the scene sentence ("Với người kia, khi …") so the context reads
-# as one sentence, not a fragment. Every scene starts with "Khi".
+# as one sentence, not a fragment. Only a "Khi …" scene is spliced after the comma;
+# any other opening keeps its own capital after a colon ("Với người kia: Bạn …").
 _ARENA_LEADS = {
     SemanticArena.RELATIONSHIPS: "Với người kia,",
     SemanticArena.COMMUNICATION: "Trong một cuộc nói chuyện,",
@@ -1120,15 +1121,28 @@ LEGACY_ARENA_LEADS = {
 }
 
 
+def _colon_lead(lead: str) -> str:
+    return f"{lead.rstrip(',')}:"
+
+
 def lead_scene(lead: str, scene: str) -> str:
-    return f"{lead} {scene[:1].lower()}{scene[1:]}"
+    """Join an arena lead and a scene so any scene opening reads naturally."""
+
+    if scene.startswith("Khi "):
+        return f"{lead} {scene[:1].lower()}{scene[1:]}"
+    return f"{_colon_lead(lead)} {scene}"
 
 
 def current_scene_lead(manifestation: str) -> str | None:
-    """The v7 context clause opening a scene ("Với người kia,"), if any."""
+    """The v7 context clause opening a scene ("Với người kia," or "Với người kia:")."""
 
     return next(
-        (lead for lead in _ARENA_LEADS.values() if manifestation.startswith(f"{lead} ")),
+        (
+            form
+            for lead in _ARENA_LEADS.values()
+            for form in (lead, _colon_lead(lead))
+            if manifestation.startswith(f"{form} ")
+        ),
         None,
     )
 
@@ -1140,6 +1154,9 @@ def split_scene_lead(manifestation: str) -> tuple[SemanticArena | None, str]:
         if manifestation.startswith(f"{lead} "):
             rest = manifestation[len(lead) + 1 :]
             return arena, f"{rest[:1].upper()}{rest[1:]}"
+        colon = _colon_lead(lead)
+        if manifestation.startswith(f"{colon} "):
+            return arena, manifestation[len(colon) + 1 :]
     for arena, lead in LEGACY_ARENA_LEADS.items():
         if manifestation.startswith(f"{lead} "):
             return arena, manifestation[len(lead) + 1 :]
