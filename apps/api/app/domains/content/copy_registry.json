@@ -273,13 +273,13 @@
   {
    "id": "daily.action.capacity-before-agreement.02",
    "category": "reading",
-   "text": "Kiểm tra lịch tuần này trước khi trả lời người nhờ.",
+   "text": "Kiểm tra lịch tuần này và chọn một buổi trống cho việc được nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.03",
    "category": "reading",
-   "text": "Nói với sếp: em xem lịch rồi báo lại trong hôm nay.",
+   "text": "Nhắn người nhờ giờ bạn sẽ làm, chọn theo chỗ trống trong lịch.",
    "status": "pending"
   },
   {
@@ -297,7 +297,7 @@
   {
    "id": "daily.action.capacity-before-agreement.06",
    "category": "reading",
-   "text": "Nói rõ việc nào trong lịch của bạn phải dời nếu nhận thêm.",
+   "text": "Nói rõ việc nào trong lịch của bạn phải dời để làm việc được nhờ.",
    "status": "pending"
   },
   {
@@ -345,7 +345,7 @@
   {
    "id": "daily.action.capacity-before-agreement.14",
    "category": "reading",
-   "text": "Kiểm tra lịch cuối tuần trước khi hứa với mẹ về quê.",
+   "text": "Kiểm tra lịch cuối tuần rồi báo người nhờ ngày bạn đi được.",
    "status": "pending"
   },
   {
@@ -357,13 +357,13 @@
   {
    "id": "daily.action.capacity-before-agreement.16",
    "category": "reading",
-   "text": "Bỏ một việc ít gấp khỏi lịch nếu muốn nhận thêm việc được nhờ.",
+   "text": "Bỏ một việc ít gấp khỏi lịch để có giờ cho việc được nhờ.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.17",
    "category": "reading",
-   "text": "Xin người nhờ thêm một ngày để xem lịch rồi mới trả lời.",
+   "text": "Hỏi người nhờ có lùi hạn thêm một ngày được không để xếp lại lịch.",
    "status": "pending"
   },
   {
@@ -381,13 +381,13 @@
   {
    "id": "daily.action.capacity-before-agreement.20",
    "category": "reading",
-   "text": "Kiểm tra lịch ngày mai trước khi nhận thêm việc lúc tối muộn.",
+   "text": "Đặt giờ dừng cho việc được nhờ tối nay để còn đủ thời gian ngủ.",
    "status": "pending"
   },
   {
    "id": "daily.action.capacity-before-agreement.21",
    "category": "reading",
-   "text": "Nói với người quen bạn chỉ có thời gian giúp một buổi trong tuần này.",
+   "text": "Nói với người nhờ bạn chỉ có thời gian giúp một buổi trong tuần này.",
    "status": "pending"
   },
   {
