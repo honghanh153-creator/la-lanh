@@ -455,6 +455,21 @@ describe("HomePage rich reading", () => {
     expect(screen.queryByRole("dialog", { name: "Hôm nay bạn đang ở mood nào?" })).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Mood hôm nay: Chill" })).toBeInTheDocument();
   });
+
+  it("dates the loading hero by the Vietnam day, not the UTC day (PL-12)", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      // 18:30 UTC on 10.03 is 01:30 on 11.03 in Vietnam.
+      vi.setSystemTime(new Date("2026-03-10T18:30:00Z"));
+      vi.mocked(getDailyNote).mockReturnValue(new Promise<DailyNote>(() => {}));
+      const { container } = renderPage();
+      const hero = container.querySelector(".home-value-hero time");
+      expect(hero).toHaveTextContent("Hôm nay");
+      expect(hero).toHaveAttribute("datetime", "2026-03-11");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 const baseNoteId = "00000000-0000-4000-8000-000000000001";
