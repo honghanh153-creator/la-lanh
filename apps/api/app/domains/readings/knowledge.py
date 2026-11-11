@@ -897,9 +897,9 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
         for ref in body_refs
         if ref in by_id and by_id[ref].kind is FactorKind.PLANET_PLACEMENT
     ]
-    if len(placements) < 2:
-        # A Jyotish nakshatra hero names one placement; its paired hero placement completes
-        # the planet x sign reading, and every hero stays cited.
+    if plan.tradition is Tradition.JYOTISH and len(placements) < 2:
+        # A Jyotish hero pair can mix a placement and a nakshatra; read both heroes' placements
+        # so every hero stays cited.
         for ref in plan.hero_factor_refs:
             for placement_ref in (ref, *by_id[ref].child_refs) if ref in by_id else ():
                 factor = by_id.get(placement_ref)
@@ -939,7 +939,11 @@ def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     context_phrase = _context_phrase(plan, context)
     evidence_refs = [
         hero.id,
-        *(ref for ref in plan.hero_factor_refs if ref in by_id),
+        *(
+            ref
+            for ref in plan.hero_factor_refs
+            if ref in by_id and plan.tradition is Tradition.JYOTISH
+        ),
         *(item.id for item in placements),
     ]
     knowledge_refs = [
