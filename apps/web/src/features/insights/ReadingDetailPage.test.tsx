@@ -12,11 +12,11 @@ vi.mock("../../shared/api/client", async (original) => {
   return { ...actual, getInsightOverview: vi.fn(), getPrivateReading: vi.fn() };
 });
 
-function renderPage() {
+function renderPage(entry = "/insights/moon-sign?tradition=western") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/insights/moon-sign?tradition=western"]}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes><Route path="/insights/:claimId" element={<ReadingDetailPage />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -91,5 +91,17 @@ describe("ReadingDetailPage", () => {
     expect(screen.getByText(/khung để tự đối chiếu/)).toBeInTheDocument();
     expect(screen.getByText("Nội dung tham khảo.")).toBeInTheDocument();
     expect(getPrivateReading).not.toHaveBeenCalled();
+  });
+
+  it("opens the full overview: synthesis plus every natal claim section", async () => {
+    renderPage("/insights/synthesis?tradition=jyotish");
+
+    expect(await screen.findByText(/Mặt Trăng mô tả cách bạn xử lý cảm xúc/)).toBeInTheDocument();
+    expect(screen.getByText("Bản đọc tổng quan · Jyotish")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Bạn không lạnh, bạn chỉ cần đúng tần số." })).toBeInTheDocument();
+    expect(screen.getByText("Giữ kín quá lâu có thể khiến áp lực nói thay mình.")).toBeInTheDocument();
+    expect(screen.getByText("Viết một câu mình cảm thấy và một câu mình cần.")).toBeInTheDocument();
+    expect(getPrivateReading).toHaveBeenCalled();
+    expect(vi.mocked(getInsightOverview).mock.lastCall?.[0]).toMatchObject({ tradition: "jyotish" });
   });
 });
