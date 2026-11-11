@@ -1,5 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import { fenceChartDataWriters } from "./clearChartDerivedData";
+import { discardActiveQueryData } from "./discardActiveQueryData";
 import { clearCachedDailyNote } from "./noteCache";
 
 // Every query that holds Daily-note text: the auto note, its roast voice and each background lens.
@@ -14,9 +16,11 @@ const isDailyNoteQuery = (query: { queryKey: readonly unknown[] }) =>
  * every Daily-note entry and the offline fallback, then let open screens reload today's note.
  */
 export async function dropCachedDailyNotes(client: QueryClient): Promise<void> {
+  // Pending Daily writers (a context switch, an Aura acknowledgement) started before the clear
+  // check this revision and must not write their old note back.
+  fenceChartDataWriters(client);
   await client.cancelQueries({ predicate: isDailyNoteQuery });
   clearCachedDailyNote();
   client.removeQueries({ predicate: isDailyNoteQuery, type: "inactive" });
-  // resetQueries clears the old data at once; a failed reload leaves the screen empty, not stale.
-  await client.resetQueries({ predicate: isDailyNoteQuery, type: "active" });
+  await discardActiveQueryData(client, isDailyNoteQuery);
 }
