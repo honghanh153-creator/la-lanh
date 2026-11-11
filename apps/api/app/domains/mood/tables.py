@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, Index, String, Uuid, text
+from sqlalchemy import ForeignKey, Index, String, Text, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -21,7 +21,10 @@ class MoodCheckInRow(Base):
     daily_note_id: Mapped[UUID] = mapped_column(
         ForeignKey("daily_notes.id", ondelete="CASCADE"), nullable=False
     )
-    mood: Mapped[str] = mapped_column(String(32), nullable=False)
+    # Legacy plain value (rows written before migration 20261111_0042). New writes leave it NULL
+    # and store only `mood_ciphertext`; read it through `app.domains.mood.postgres.mood_value`.
+    mood: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    mood_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
     checked_in_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         UtcDateTime(), nullable=False, server_default=text("CURRENT_TIMESTAMP")

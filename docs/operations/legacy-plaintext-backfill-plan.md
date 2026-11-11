@@ -66,5 +66,9 @@ not claim every historic record is encrypted.
 
 - Backups taken before the backfill still contain legacy rows until they expire (P07).
 - Provider-side copies and logs follow their own lifecycles (P08).
-- `mood_check_ins.mood`, Radar and Tarot context/voice/state columns are plaintext **by design** (closed
-  operational values), not legacy; they are inventoried separately in the data map.
+- Radar and Tarot context/voice/state columns are plaintext **by design** (closed operational values),
+  not legacy; they are inventoried separately in the data map.
+- Mood check-ins (gap register PV-26): since migration `20261111_0042` new and changed check-ins are stored
+  only in `mood_check_ins.mood_ciphertext`. Rows written earlier keep the plain `mood` value until the
+  person changes that day's mood or the row expires with its Daily note or history window; no SQL
+  backfill is run. The plain column can be dropped once a count of non-NULL `mood` rows reaches zero.

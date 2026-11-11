@@ -29,6 +29,9 @@ Last reviewed: 2026-10-29 (data export delta; earlier local engineering delta 20
 - Daily meaning selection reuses existing derived chart factors. No new birth, mood, free text,
   background, location or relationship fields are collected. Static synthetic collision evaluation
   is offline; other users' private readings are not scanned to enforce unique prose.
+- The Daily mood check-in is application-encrypted at rest for new and changed entries (migration
+  `20261111_0042`). Entries written earlier keep a plain value until changed or expired with their
+  Daily note; collection, purpose, retention, export and deletion are unchanged.
 - These local fixes are not a production deployment, native release approval or complete legal
   compliance assessment. The signed release/runtime remains the disclosure authority.
 
