@@ -522,7 +522,6 @@ class RadarService:
         row = await self._pending_by_token(token)
         return RadarPublicInvite(
             request_id=row.id,
-            recipient_label=self._label(row),
             context=row.context,
             voice=row.voice,
             expires_at=row.expires_at,
