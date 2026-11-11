@@ -4,19 +4,19 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getInsightOverview, getPrivateReading } from "../../shared/api/client";
+import { getBirthSupplement, getInsightOverview, getPrivateReading } from "../../shared/api/client";
 import { ReadingDetailPage } from "./ReadingDetailPage";
 
 vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
-  return { ...actual, getInsightOverview: vi.fn(), getPrivateReading: vi.fn() };
+  return { ...actual, getBirthSupplement: vi.fn(), getInsightOverview: vi.fn(), getPrivateReading: vi.fn() };
 });
 
-function renderPage() {
+function renderPage(entry = "/insights/moon-sign?tradition=western") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/insights/moon-sign?tradition=western"]}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes><Route path="/insights/:claimId" element={<ReadingDetailPage />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -91,5 +91,59 @@ describe("ReadingDetailPage", () => {
     expect(screen.getByText(/khung để tự đối chiếu/)).toBeInTheDocument();
     expect(screen.getByText("Nội dung tham khảo.")).toBeInTheDocument();
     expect(getPrivateReading).not.toHaveBeenCalled();
+  });
+
+  it("opens the full overview with every natal claim section", async () => {
+    renderPage("/insights/overview?tradition=jyotish");
+
+    expect(await screen.findByText(/Mặt Trăng mô tả cách bạn xử lý cảm xúc/)).toBeInTheDocument();
+    expect(screen.getByText("Bản đọc tổng quan · Jyotish")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Bạn không lạnh, bạn chỉ cần đúng tần số." })).toBeInTheDocument();
+    expect(screen.getByText("Giữ kín quá lâu có thể khiến áp lực nói thay mình.")).toBeInTheDocument();
+    expect(screen.getByText("Viết một câu mình cảm thấy và một câu mình cần.")).toBeInTheDocument();
+    expect(vi.mocked(getInsightOverview).mock.lastCall?.[0]).toMatchObject({ tradition: "jyotish" });
+  });
+
+  it("keeps Lá đọc sâu and links to the overview", async () => {
+    renderPage("/insights/synthesis?tradition=western");
+    expect(await screen.findByRole("link", { name: "Xem bản đọc tổng quan" })).toHaveAttribute("href", "/insights/overview?tradition=western");
+    expect(screen.getByText("Lá đọc sâu · Tây phương")).toBeInTheDocument();
+  });
+
+  it("gives the overview a page heading and a retry when the chart fails", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    vi.mocked(getInsightOverview).mockRejectedValue(new Error("offline"));
+    renderPage("/insights/overview?tradition=western");
+
+    expect(await screen.findByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Bản đọc tổng quan · Tây phương" })).toBeInTheDocument();
+  });
+
+  it("shows the birth-time line and no house note for an approximate time", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    const ready = await vi.mocked(getInsightOverview).getMockImplementation()?.({ tradition: "western" } as never);
+    vi.mocked(getInsightOverview).mockResolvedValue({ ...ready, time_precision: "unknown", houses_available: false } as never);
+    renderPage("/insights/overview?tradition=western");
+
+    expect(await screen.findByText(/Bạn biết giờ sinh chính xác/)).toBeInTheDocument();
+    expect(screen.queryByText(/nhà và góc chiếu/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the retry on a single claim page when the chart fails", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    vi.mocked(getInsightOverview).mockRejectedValue(new Error("offline"));
+    renderPage("/insights/moon-sign?tradition=western");
+
+    expect(await screen.findByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+    expect(screen.queryByText("Lớp này chưa có trong chart.")).not.toBeInTheDocument();
+  });
+
+  it("shows the locked recovery on a single claim page", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    vi.mocked(getInsightOverview).mockResolvedValue({ status: "locked", required_fields: ["birth_time"], houses_available: false, time_precision: "unknown", bodies: [], reading: null } as never);
+    renderPage("/insights/moon-sign?tradition=western");
+
+    expect(await screen.findByRole("button", { name: "Thử tải lại bản đọc" })).toBeInTheDocument();
+    expect(screen.queryByText("Lớp này chưa có trong chart.")).not.toBeInTheDocument();
   });
 });
