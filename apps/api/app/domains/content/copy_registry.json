@@ -6983,6 +6983,222 @@
    "category": "reading",
    "text": "Thợ sửa máy lạnh gửi tin nhắn: chiều em qua, và bạn ngồi chờ từ một giờ chưa dám đi đâu.",
    "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.01.action",
+   "category": "reading",
+   "text": "Nói với đồng nghiệp là bạn giúp được sau năm giờ, khi đã gửi báo cáo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.01.headline",
+   "category": "reading",
+   "text": "Báo cáo còn dở, bạn vẫn nhận sửa bài giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.01.scene",
+   "category": "reading",
+   "text": "Lúc bốn giờ chiều, đồng nghiệp nhờ sửa bài trình bày, bạn nhận ngay dù báo cáo hạn năm giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.02.action",
+   "category": "reading",
+   "text": "Nhắn bạn thân là bạn giúp được buổi chiều, sáng chủ nhật để ngủ bù.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.02.headline",
+   "category": "reading",
+   "text": "Cả tuần chưa nghỉ, bạn vẫn hứa giúp chuyển đồ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.02.scene",
+   "category": "reading",
+   "text": "Bạn làm thêm giờ cả tuần, nhưng khi bạn thân nhờ chuyển đồ sáng chủ nhật, bạn nhận lời ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.03.action",
+   "category": "reading",
+   "text": "Nhắn lại nhóm là bạn in được một nửa, cần thêm một người nhận phần còn lại.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.03.headline",
+   "category": "reading",
+   "text": "Nhóm hỏi ai in tài liệu, bạn nhận đầu tiên.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.03.scene",
+   "category": "reading",
+   "text": "Trong nhóm lớp, ai đó hỏi ai in giúp tài liệu, bạn nhận ngay dù tối nay còn đi làm ca.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.04.action",
+   "category": "reading",
+   "text": "Nói với em là bạn giúp thêm hai mươi phút, phần còn lại để tối mai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.04.headline",
+   "category": "reading",
+   "text": "Gần nửa đêm, bạn vẫn sửa máy giúp em.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.04.scene",
+   "category": "reading",
+   "text": "Em bạn nhờ cài lại máy tính lúc mười giờ tối, bạn làm đến gần nửa đêm dù mai đi làm sớm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.05.action",
+   "category": "reading",
+   "text": "Kiểm tra lịch cuối tuần rồi nói với hàng xóm ngày nào bạn giúp được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.05.headline",
+   "category": "reading",
+   "text": "Bạn nhận trông chó giúp hàng xóm cả cuối tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.05.scene",
+   "category": "reading",
+   "text": "Hàng xóm nhờ trông con chó hai ngày, bạn gật đầu dù cuối tuần đã có lịch đi thăm bà.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.06.action",
+   "category": "reading",
+   "text": "Nói với đồng nghiệp là tối nay bạn không nhận thêm ca, có thể đổi sang hôm khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.06.headline",
+   "category": "reading",
+   "text": "Xong ca sáng, bạn còn nhận làm thay ca tối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.06.scene",
+   "category": "reading",
+   "text": "Lúc sắp tan ca sáng, đồng nghiệp nhờ làm thay ca tối, bạn đồng ý dù chân đã mỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.07.action",
+   "category": "reading",
+   "text": "Nói với bạn thân là bạn nghe thêm mười phút, rồi ghi vào lịch giờ gọi lại ngày mai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.07.headline",
+   "category": "reading",
+   "text": "Một giờ sáng, bạn vẫn nghe bạn thân kể.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.07.scene",
+   "category": "reading",
+   "text": "Bạn thân gọi lúc khuya vì cần bạn nghe, bạn nghe đến một giờ dù sáng mai họp sớm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.08.action",
+   "category": "reading",
+   "text": "Nói với đồng nghiệp là bạn đi ăn trước, nửa tiếng sau quay lại giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.08.headline",
+   "category": "reading",
+   "text": "Bạn bỏ bữa trưa để sửa bảng tính giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.08.scene",
+   "category": "reading",
+   "text": "Lúc định đi ăn trưa, đồng nghiệp nhờ xem lỗi bảng tính, bạn ngồi sửa đến hết giờ nghỉ mà chưa ăn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.09.action",
+   "category": "reading",
+   "text": "Nhắn bạn cùng nhóm là bạn giúp sửa phần đó, còn phần viết họ tự làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.09.headline",
+   "category": "reading",
+   "text": "Bạn nhận làm luôn phần bài của bạn cùng nhóm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.09.scene",
+   "category": "reading",
+   "text": "Một bạn trong nhóm nhắn nhờ làm hộ phần của họ, bạn nhận luôn dù phần mình còn chưa xong.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.10.action",
+   "category": "reading",
+   "text": "Nhắn dì là bạn đang muộn giờ học, tan học sẽ mua giúp nếu dì còn cần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.10.headline",
+   "category": "reading",
+   "text": "Muộn giờ rồi, bạn vẫn ghé chợ mua giúp dì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.10.scene",
+   "category": "reading",
+   "text": "Bạn sắp trễ buổi học tối thì dì gửi tin nhắn nhờ mua ít rau, bạn quay xe ra chợ ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.11.action",
+   "category": "reading",
+   "text": "Nhắn người bạn đó là sáng mai bạn đọc giúp, rồi tắt máy đi ngủ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.11.headline",
+   "category": "reading",
+   "text": "Gần khuya, bạn vẫn nhận đọc hồ sơ xin việc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.11.scene",
+   "category": "reading",
+   "text": "Lúc gần khuya, một người bạn nhờ đọc hồ sơ xin việc, bạn đọc ngay dù đã buồn ngủ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.12.action",
+   "category": "reading",
+   "text": "Hỏi người quen có thể đi xe đặt qua ứng dụng không, rồi mới nhận chở.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.12.headline",
+   "category": "reading",
+   "text": "Bạn nhận chở người quen ra sân bay sáng sớm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.automatic-caretaking.12.scene",
+   "category": "reading",
+   "text": "Người quen nhờ chở ra sân bay lúc năm giờ sáng mai, bạn nhận ngay dù tối nay làm muộn.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
