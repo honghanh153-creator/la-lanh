@@ -129,7 +129,10 @@ describe("AuraCutoverPage", () => {
     await act(() => dropCachedDailyNotes(client));
     await waitFor(() => expect(client.getQueryData<DailyNote>(["daily-note"])?.id).toBe(freshNote.id));
 
-    await act(async () => releaseAck({ ...oldNote.reading_projection!, aura_transition: { ...oldNote.reading_projection!.aura_transition, acknowledged: true } }));
+    await act(async () => {
+      releaseAck({ ...oldNote.reading_projection!, aura_transition: { ...oldNote.reading_projection!.aura_transition, acknowledged: true } });
+      await Promise.resolve();
+    });
 
     expect(client.getQueryData<DailyNote>(["daily-note"])?.reading_projection).toEqual(freshNote.reading_projection);
     expect(readCachedDailyNote()?.note.reading_projection).toEqual(freshNote.reading_projection);
