@@ -32,7 +32,6 @@ export function ReadingDetailPage() {
   const overviewQuery = useQuery({
     queryKey: ["insight-overview", tradition, houseSystem, ayanamsa],
     queryFn: ({ signal }) => getInsightOverview({ tradition, houseSystem, ayanamsa }, signal),
-    enabled: claimId !== "synthesis",
     retry: false,
   });
   const focusedClaim = claimId === "synthesis"
@@ -43,7 +42,7 @@ export function ReadingDetailPage() {
     <main className="flow-page reading-page cosmic-reading-page">
       <header className="cosmic-header reading-detail-header">
         <Link aria-label="Quay lại Bản đồ Lá" className="icon-button" to={`/insights?${configQuery}`}><ArrowLeft aria-hidden="true" /></Link>
-        <span className="eyebrow">Lá đọc sâu · {tradition === "jyotish" ? "Jyotish" : "Tây phương"}</span>
+        <span className="eyebrow">{claimId === "synthesis" ? "Bản đọc tổng quan" : "Lá đọc sâu"} · {tradition === "jyotish" ? "Jyotish" : "Tây phương"}</span>
         <span />
       </header>
 
@@ -58,7 +57,20 @@ export function ReadingDetailPage() {
           housesAndAspects={overviewQuery.data.time_precision === "exact" && overviewQuery.data.houses_available}
         />
       ) : null}
-      {claimId === "synthesis" && readingQuery.isError ? (
+      {claimId === "synthesis" && overviewQuery.data?.reading?.claims.length ? (
+        <div className="overview-claims">
+          {overviewQuery.data.reading.claims.map((claim) => (
+            <FocusedClaimContent
+              claim={claim}
+              housesAndAspects={overviewQuery.data?.time_precision === "exact" && Boolean(overviewQuery.data?.houses_available)}
+              key={claim.id}
+              nested
+            />
+          ))}
+          <ReadingDisclaimer>{overviewQuery.data.reading.disclaimer}</ReadingDisclaimer>
+        </div>
+      ) : null}
+      {claimId === "synthesis" && readingQuery.isError && !overviewQuery.data?.reading?.claims.length ? (
         <section className="cosmic-state" role="alert">
           <h1>Bản đọc sâu chưa về kịp.</h1>
           <p>Dữ liệu hiện tại vẫn được giữ nguyên. Bạn có thể thử lại mà không cần nhập lại thông tin sinh.</p>
@@ -78,28 +90,30 @@ export function ReadingDetailPage() {
 
 type FocusedClaim = NonNullable<NonNullable<Awaited<ReturnType<typeof getInsightOverview>>["reading"]>["claims"]>[number];
 
-function FocusedClaimContent({ claim, disclaimer, housesAndAspects }: { claim: FocusedClaim; disclaimer: string; housesAndAspects: boolean }) {
+function FocusedClaimContent({ claim, disclaimer, housesAndAspects, nested = false }: { claim: FocusedClaim; disclaimer?: string; housesAndAspects: boolean; nested?: boolean }) {
+  const Title = nested ? "h2" : "h1";
+  const Sub = nested ? "h3" : "h2";
   const evidence = claim.evidence.length > 0 ? claim.evidence : [claim.summary];
   return (
     <article className="reading-content focused-reading-content">
       <header className="reading-content__intro">
         <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {claim.title}</p>
-        <h1>{claim.hook || claim.summary}</h1>
+        <Title>{claim.hook || claim.summary}</Title>
         <p>{claim.meaning || claim.summary}</p>
       </header>
       <section>
-        <h2>Ngoài đời có thể trông như…</h2>
+        <Sub>Ngoài đời có thể trông như…</Sub>
         <p>{claim.manifestation || claim.summary}</p>
       </section>
       {claim.watch_for ? (
         <section className="focused-reading-content__watch">
-          <h2>Chỗ dễ lệch nhịp</h2>
+          <Sub>Chỗ dễ lệch nhịp</Sub>
           <p>{claim.watch_for}</p>
         </section>
       ) : null}
       {claim.micro_action ? (
         <section className="reading-content__action">
-          <h2>Thử một việc nhỏ</h2>
+          <Sub>Thử một việc nhỏ</Sub>
           <p>{claim.micro_action}</p>
         </section>
       ) : null}
@@ -109,7 +123,7 @@ function FocusedClaimContent({ claim, disclaimer, housesAndAspects }: { claim: F
         {/* An approximate time reads no houses or aspects (#143 E4): only say so when the chart has them. */}
         {housesAndAspects ? <p>Vị trí, nhà và góc chiếu được tính từ chart; phần diễn giải là một khung để tự đối chiếu.</p> : null}
       </details>
-      <ReadingDisclaimer>{disclaimer}</ReadingDisclaimer>
+      {disclaimer ? <ReadingDisclaimer>{disclaimer}</ReadingDisclaimer> : null}
     </article>
   );
 }
