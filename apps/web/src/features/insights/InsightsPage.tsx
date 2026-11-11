@@ -105,12 +105,13 @@ export function InsightsPage() {
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(richReading)}</p>
           <h2>{richReading.sections.hook}</h2>
           <p>{richReading.sections.thesis}</p>
-          <span>Mở bản đọc Natal đầy đủ <ArrowRight aria-hidden="true" /></span>
+          <span>Mở Lá đọc sâu <ArrowRight aria-hidden="true" /></span>
         </Link>
       ) : null}
 
       {insight.data?.reading ? (
         <>
+          <Link className="electric-button" to={`/insights/overview?${configQuery}`}>Xem bản đọc tổng quan <ArrowRight aria-hidden="true" /></Link>
           <section className="insight-factors" aria-labelledby="factor-heading">
             <header>
               <p className="eyebrow">Các lớp kỹ thuật</p>
