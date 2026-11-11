@@ -6767,6 +6767,222 @@
    "category": "reading",
    "text": "Nửa năm chép từ vựng mà chưa nói thành câu, nhưng khi ai đó gợi ý cách khác bạn chưa muốn đổi.",
    "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.01.action",
+   "category": "reading",
+   "text": "Chọn bản gần xong nhất, viết cho xong và gửi đi rồi mới mở bản khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.01.headline",
+   "category": "reading",
+   "text": "Ba bản báo cáo đều mở, chưa bản nào gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.01.scene",
+   "category": "reading",
+   "text": "Từ sáng bạn viết mỗi bản báo cáo vài dòng, đến lúc nghỉ trưa cả ba vẫn còn dở.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.02.action",
+   "category": "reading",
+   "text": "Đặt hẹn giờ 20 phút, gấp xong chỗ quần áo còn lại rồi mới vào bếp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.02.headline",
+   "category": "reading",
+   "text": "Quần áo gấp dở, bạn đã vào bếp nấu cơm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.02.scene",
+   "category": "reading",
+   "text": "Đống quần áo mới gấp được một nửa, bạn bỏ dở lúc nhớ ra chưa nấu cơm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.03.action",
+   "category": "reading",
+   "text": "Chọn hai thư gấp nhất, trả lời xong rồi mới làm tiếp bài thuyết trình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.03.headline",
+   "category": "reading",
+   "text": "Năm thư chờ trả lời, bạn soạn bài thuyết trình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.03.scene",
+   "category": "reading",
+   "text": "Năm thư còn chờ câu trả lời thì bạn đã chuyển sang việc làm bài thuyết trình mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.04.action",
+   "category": "reading",
+   "text": "Chọn một môn, làm xong một bài tập của môn đó rồi mới đổi môn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.04.headline",
+   "category": "reading",
+   "text": "Bạn ôn ba môn, môn nào cũng mới vài trang.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.04.scene",
+   "category": "reading",
+   "text": "Tối qua bạn ôn toán được một lúc thì chuyển sang tiếng Anh, rồi lại mở sách lý, môn nào cũng dở.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.05.action",
+   "category": "reading",
+   "text": "Chọn một tờ khai, điền xong và mang đi nộp trong hôm nay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.05.headline",
+   "category": "reading",
+   "text": "Ba tờ khai cần nộp, chưa tờ nào điền xong.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.05.scene",
+   "category": "reading",
+   "text": "Hôm qua bạn điền mỗi tờ khai vài ô, đến lúc đi ngủ cả ba tờ vẫn dở trên bàn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.06.action",
+   "category": "reading",
+   "text": "Đặt cuộn len mới vào tủ, tối nay đan tiếp chiếc khăn 20 phút.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.06.headline",
+   "category": "reading",
+   "text": "Khăn đan còn dở, bạn lại mua len đan áo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.06.scene",
+   "category": "reading",
+   "text": "Chiếc khăn mới đan được một nửa thì bạn mua len về đan áo, khăn dở để trong giỏ từ lúc đó.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.07.action",
+   "category": "reading",
+   "text": "Đặt 20 phút xếp lại đồ vào tủ bếp, xong rồi mới lau sàn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.07.headline",
+   "category": "reading",
+   "text": "Tủ bếp dọn dở, bạn chuyển sang lau sàn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.07.scene",
+   "category": "reading",
+   "text": "Đồ trong tủ bếp còn bày dở trên bàn lúc bạn đi lấy cây lau sàn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.08.action",
+   "category": "reading",
+   "text": "Chọn cuốn còn ít trang nhất, đọc xong rồi mới mở cuốn khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.08.headline",
+   "category": "reading",
+   "text": "Bốn cuốn sách đọc dở nằm cạnh giường.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.08.scene",
+   "category": "reading",
+   "text": "Cuốn nào bạn cũng đọc dở vài chương, lúc rảnh lại mua thêm cuốn mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.09.action",
+   "category": "reading",
+   "text": "Nhắn đồng nghiệp hẹn sửa bài sau một tiếng, rồi làm xong một việc: điền hai cột còn thiếu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.09.headline",
+   "category": "reading",
+   "text": "Đồng nghiệp nhờ việc mới, bảng tính vẫn dở.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.09.scene",
+   "category": "reading",
+   "text": "Bảng tính còn thiếu hai cột, đúng lúc đồng nghiệp nhờ sửa bài đăng và bạn làm việc đó ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.10.action",
+   "category": "reading",
+   "text": "Chọn một tin nhắn, viết nốt và bấm gửi rồi mới mở tin tiếp theo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.10.headline",
+   "category": "reading",
+   "text": "Ba tin nhắn gõ dở, chưa tin nào gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.10.scene",
+   "category": "reading",
+   "text": "Bạn gõ dở câu trả lời cho ba người, nhưng chưa bấm gửi tin nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.11.action",
+   "category": "reading",
+   "text": "Chọn sửa chân ghế cho xong trước, bóng đèn thay sau.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.11.headline",
+   "category": "reading",
+   "text": "Chân ghế còn lỏng, bạn đã đi thay bóng đèn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.11.scene",
+   "category": "reading",
+   "text": "Bạn đang vặn dở chân ghế thì thấy bóng đèn hỏng, lúc đi tìm bóng mới thì để tua vít trên sàn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.12.action",
+   "category": "reading",
+   "text": "Dừng dọn hộp thư, xoá nốt chỗ ảnh còn lại trong 20 phút.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.12.headline",
+   "category": "reading",
+   "text": "Ảnh xoá dở, bạn lại đi dọn hộp thư.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.too-many-open-loops.12.scene",
+   "category": "reading",
+   "text": "Lúc xoá được nửa số ảnh trong điện thoại, bạn chuyển qua dọn hộp thư, giờ cả hai việc đều dở.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
