@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { BIRTH_CORRECTION_TIMEOUT_MS, clearActiveDailyReading, getBirthProfile } from "../api/client";
 import { currentSessionEpoch, sessionGeneration } from "../session/sessionIdentity";
+import { discardActiveQueryData } from "./discardActiveQueryData";
 import { pendingChartQuarantine, setPendingChartQuarantine, type PendingChartQuarantine } from "./chartQuarantineGate";
 import { clearCachedDailyNote, suspendDailyNoteCacheWrites } from "./noteCache";
 import { clearLocalSavedNotes } from "./savedNoteCache";
@@ -22,9 +23,14 @@ export function chartDataRevision(client: QueryClient): number {
   return chartRevisions.get(client) ?? 0;
 }
 
+/** Any deletion of derived data: pending writers started before it see a new revision and stop. */
+export function fenceChartDataWriters(client: QueryClient): void {
+  chartRevisions.set(client, chartDataRevision(client) + 1);
+}
+
 /** Drop old precision before reloading; invalidation alone keeps erased prose visible. */
 export async function clearChartDerivedData(client: QueryClient): Promise<void> {
-  chartRevisions.set(client, chartDataRevision(client) + 1);
+  fenceChartDataWriters(client);
   const predicate = (query: { queryKey: readonly unknown[] }) =>
     typeof query.queryKey[0] === "string" && CHART_DERIVED_KEYS.has(query.queryKey[0]);
   await client.cancelQueries({ predicate });
@@ -33,7 +39,7 @@ export async function clearChartDerivedData(client: QueryClient): Promise<void> 
   clearLocalSavedNotes();
   clearSavedNoteMutationQueue();
   client.removeQueries({ predicate, type: "inactive" });
-  await client.resetQueries({ predicate, type: "active" });
+  await discardActiveQueryData(client, predicate);
 }
 
 /** Queries a birth-date correction keeps on the server (US-23 D2): refetch, never discard. */
@@ -180,8 +186,8 @@ export function endQuarantine(): void {
  * quarantine gate, which the caller releases (wrapped so the async return does not await it).
  */
 async function withdrawChart(client: QueryClient, sourceDeleted: boolean): Promise<{ refetch: Promise<unknown> }> {
-  chartRevisions.set(client, chartDataRevision(client) + 1);
-  const derived = (query: { queryKey: readonly unknown[] }) =>
+  fenceChartDataWriters(client);
+  const derived =(query: { queryKey: readonly unknown[] }) =>
     typeof query.queryKey[0] === "string"
     && CHART_DERIVED_KEYS.has(query.queryKey[0])
     && !RETAINED_COPY_KEYS.has(query.queryKey[0]);
@@ -196,9 +202,10 @@ async function withdrawChart(client: QueryClient, sourceDeleted: boolean): Promi
     dropQueuedSaves();
   }
   client.removeQueries({ predicate: derived, type: "inactive" });
-  // resetQueries drops the old data synchronously; its refetch may wait behind the quarantine gate.
+  // The old data goes synchronously (not back to an initialData snapshot); the refetch may wait
+  // behind the quarantine gate.
   const refetch = Promise.all([
-    client.resetQueries({ predicate: derived, type: "active" }),
+    discardActiveQueryData(client, derived),
     // listSavedNotes flushes the kept unsaves before it reads the list.
     client.invalidateQueries({ predicate: retained }),
   ]);

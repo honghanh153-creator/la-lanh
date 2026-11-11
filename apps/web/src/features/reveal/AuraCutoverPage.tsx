@@ -11,6 +11,7 @@ import {
   type ReadingContent,
 } from "../../shared/api/client";
 import { useReadingUpdateActivation } from "../../shared/hooks/useReadingUpdateActivation";
+import { chartDataRevision } from "../../shared/storage/clearChartDerivedData";
 import { readCachedDailyNote, writeCachedDailyNote } from "../../shared/storage/noteCache";
 import "../../shared/styles/signal-note.css";
 import { NightSky } from "../../shared/ui/NightSky";
@@ -99,8 +100,11 @@ export function AuraCutoverPage() {
       scopeKey: string;
       currentTransitionId: string;
     }) => acknowledgeAuraTransition(scopeKey, currentTransitionId),
-    onSuccess: (updatedProjection, variables) => {
+    onMutate: () => ({ revision: chartDataRevision(queryClient) }),
+    onSuccess: (updatedProjection, variables, requestContext) => {
       acknowledge(variables.currentTransitionId);
+      // A history clear or chart change since the request: its old note must not come back.
+      if (requestContext.revision !== chartDataRevision(queryClient)) return;
       queryClient.setQueryData<DailyNote>(["daily-note"], (current) => {
         if (!current) return current;
         const updated = { ...current, reading_projection: updatedProjection };
