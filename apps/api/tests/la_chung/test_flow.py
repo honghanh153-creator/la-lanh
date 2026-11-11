@@ -135,6 +135,10 @@ def test_anonymous_recipient_flow_is_real_idempotent_and_withdrawable(tmp_path: 
         assert preview.headers["cache-control"].startswith("no-store")
         assert preview.headers["referrer-policy"] == "no-referrer"
         assert preview.headers["x-robots-tag"] == "noindex, nofollow, noarchive"
+        # The sender's private label is owner-only (issue #95): never in the public preview.
+        assert created.json()["recipient_label"] == "một người bạn"
+        assert "recipient_label" not in preview.json()
+        assert "một người bạn" not in preview.text
         statement_ids = [item["id"] for item in preview.json()["statements"][:3]]
         reported = recipient.post(
             f"/v1/public/la-chung/{token}/report",
