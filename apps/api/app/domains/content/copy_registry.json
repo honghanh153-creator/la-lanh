@@ -6767,6 +6767,222 @@
    "category": "reading",
    "text": "Nửa năm chép từ vựng mà chưa nói thành câu, nhưng khi ai đó gợi ý cách khác bạn chưa muốn đổi.",
    "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.01.action",
+   "category": "reading",
+   "text": "Hỏi sếp ngay trong tin nhắn đó: cần sửa phần nào ạ?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.01.headline",
+   "category": "reading",
+   "text": "Sếp bảo làm lại, chưa nói sửa chỗ nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.01.scene",
+   "category": "reading",
+   "text": "Sếp gửi lại tệp báo cáo kèm tin nhắn: làm lại cái này nhé, và bạn định sửa cả bài cho chắc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.02.action",
+   "category": "reading",
+   "text": "Nhắn hỏi người kia phần chưa rõ: mình gặp lúc mấy giờ?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.02.headline",
+   "category": "reading",
+   "text": "Bạn rủ đi ăn, người kia chỉ đáp: được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.02.scene",
+   "category": "reading",
+   "text": "Bạn nhắn rủ đi ăn tối thứ sáu, người kia đáp đúng một chữ được, không nói mấy giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.03.action",
+   "category": "reading",
+   "text": "Hỏi trong nhóm đúng chỗ chưa rõ: họp ở phòng nào hay qua mạng?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.03.headline",
+   "category": "reading",
+   "text": "Nhóm chốt giờ họp nhưng chưa ghi ở đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.03.scene",
+   "category": "reading",
+   "text": "Tin nhắn nhóm ghi họp lúc ba giờ chiều mai, không kèm tên phòng hay đường dẫn họp qua mạng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.04.action",
+   "category": "reading",
+   "text": "Nhắn hỏi mẹ phần chưa rõ: tối nay có việc gì cần con giúp không?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.04.headline",
+   "category": "reading",
+   "text": "Mẹ dặn tối về sớm mà không nói vì sao.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.04.scene",
+   "category": "reading",
+   "text": "Đang ở chỗ làm, bạn nhận tin nhắn mẹ dặn tối nay về sớm, rồi ngồi đoán có chuyện gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.05.action",
+   "category": "reading",
+   "text": "Hỏi lớp trưởng chỗ chưa rõ trong tin nhắn: chương ba của cuốn nào?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.05.headline",
+   "category": "reading",
+   "text": "Thầy giao đọc chương ba, không nói sách nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.05.scene",
+   "category": "reading",
+   "text": "Nhóm lớp có tin nhắn của thầy dặn tuần sau đọc trước chương ba, trong khi môn này dùng hai cuốn sách.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.06.action",
+   "category": "reading",
+   "text": "Nhắn lại người gửi: anh đang đứng ở cổng nào ạ?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.06.headline",
+   "category": "reading",
+   "text": "Người giao hàng nhắn đã tới, không nói chỗ nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.06.scene",
+   "category": "reading",
+   "text": "Lúc bạn xuống lấy hàng, chỉ có tin nhắn em tới rồi, còn cổng trước và cổng sau đều không thấy ai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.07.action",
+   "category": "reading",
+   "text": "Hỏi người gửi đúng tên tệp cần trước khi gửi đi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.07.headline",
+   "category": "reading",
+   "text": "Đồng nghiệp xin tệp đó, bạn không chắc tệp nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.07.scene",
+   "category": "reading",
+   "text": "Đồng nghiệp nhắn gửi mình tệp đó nhé, trong khi tuần này hai người làm chung ba bản báo cáo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.08.action",
+   "category": "reading",
+   "text": "Hỏi bạn thân phần tin nhắn chưa nói: mai rảnh để làm gì?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.08.headline",
+   "category": "reading",
+   "text": "Bạn thân chỉ hỏi: mai rảnh không?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.08.scene",
+   "category": "reading",
+   "text": "Nhận tin nhắn đó lúc trưa, bạn đã tính dời buổi tập thể dục dù chưa biết mai rảnh để làm gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.09.action",
+   "category": "reading",
+   "text": "Hỏi khách trong tin nhắn: phần nào chưa ổn nhất, màu hay chữ?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.09.headline",
+   "category": "reading",
+   "text": "Khách nhắn bản thiết kế chưa ổn, thế thôi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.09.scene",
+   "category": "reading",
+   "text": "Bạn ngồi sửa cả màu lẫn chữ, chỉ dựa vào một tin nhắn khách ghi chưa ổn lắm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.10.action",
+   "category": "reading",
+   "text": "Hỏi em một câu về tin nhắn đó: em muốn hỏi gì ở bài này?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.10.headline",
+   "category": "reading",
+   "text": "Em gửi một bài báo, không kèm câu nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.10.scene",
+   "category": "reading",
+   "text": "Em gửi qua tin nhắn một bài báo không kèm lời nào, và bạn đọc hết bài để đoán em cần gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.11.action",
+   "category": "reading",
+   "text": "Hỏi trưởng nhóm trong tin nhắn nhóm: phần của mình là phần nào?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.11.headline",
+   "category": "reading",
+   "text": "Nhóm bài tập chia việc mà chưa ghi tên ai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.11.scene",
+   "category": "reading",
+   "text": "Trưởng nhóm nhắn mỗi bạn làm một phần nhé, và bạn tự nhận phần mở đầu mà chưa hỏi ai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.12.action",
+   "category": "reading",
+   "text": "Hỏi người gửi giờ cụ thể: khoảng mấy giờ anh tới?",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.12.headline",
+   "category": "reading",
+   "text": "Thợ hẹn chiều qua sửa, không nói mấy giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.missing-context.12.scene",
+   "category": "reading",
+   "text": "Thợ sửa máy lạnh gửi tin nhắn: chiều em qua, và bạn ngồi chờ từ một giờ chưa dám đi đâu.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
