@@ -52,8 +52,7 @@ export function ReadingDetailPage() {
 
       {focusedClaim ? <p className="reading-context">Bạn mở từ: {focusedClaim.title}</p> : null}
       {claimId === "synthesis" && readingQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
-      {claimId === "overview" ? <InsightQueryStates insight={overviewQuery} /> : null}
-      {claimId !== "synthesis" && claimId !== "overview" && overviewQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
+      {claimId !== "synthesis" ? <InsightQueryStates insight={overviewQuery} /> : null}
       {claimId === "synthesis" && readingQuery.data ? <ReadingContent content={readingQuery.data.active} /> : null}
       {focusedClaim && overviewQuery.data?.reading ? (
         <FocusedClaimContent
@@ -65,7 +64,7 @@ export function ReadingDetailPage() {
       {claimId === "synthesis" && readingQuery.data ? (
         <Link className="electric-button" to={`/insights/overview?${configQuery}`}>Xem bản đọc tổng quan</Link>
       ) : null}
-      {claimId === "overview" && overviewQuery.data?.reading?.claims.length ? (
+      {claimId === "overview" && (overviewQuery.data?.reading?.claims.length ?? 0) > 0 && overviewQuery.data?.reading ? (
         <div className="overview-claims">
           {overviewQuery.data.time_precision !== "exact" ? (
             <p className="insight-precision-note">
@@ -90,7 +89,7 @@ export function ReadingDetailPage() {
           <button className="electric-button" onClick={() => void readingQuery.refetch()} type="button">Thử lại</button>
         </section>
       ) : null}
-      {claimId !== "synthesis" && !overviewQuery.isLoading && !overviewQuery.isError && overviewQuery.data?.status !== "locked" && !focusedClaim && (claimId !== "overview" || !overviewQuery.data?.reading?.claims.length) ? (
+      {claimId !== "synthesis" && !overviewQuery.isLoading && !overviewQuery.isError && overviewQuery.data?.status !== "locked" && !focusedClaim && (claimId !== "overview" || (overviewQuery.data?.reading?.claims.length ?? 0) === 0) ? (
         <section className="cosmic-state" role="alert">
           <WarningCircle aria-hidden="true" size={30} />
           <h1>Lớp này chưa có trong chart.</h1>

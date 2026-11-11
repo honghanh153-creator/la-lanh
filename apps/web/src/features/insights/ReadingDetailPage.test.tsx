@@ -149,4 +149,22 @@ describe("ReadingDetailPage", () => {
     expect(await screen.findByText(/Bạn biết giờ sinh chính xác/)).toBeInTheDocument();
     expect(screen.queryByText(/nhà và góc chiếu/)).not.toBeInTheDocument();
   });
+
+  it("keeps the retry on a single claim page when the chart fails", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    vi.mocked(getInsightOverview).mockRejectedValue(new Error("offline"));
+    renderPage("/insights/moon-sign?tradition=western");
+
+    expect(await screen.findByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+    expect(screen.queryByText("Lớp này chưa có trong chart.")).not.toBeInTheDocument();
+  });
+
+  it("shows the locked recovery on a single claim page", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    vi.mocked(getInsightOverview).mockResolvedValue({ status: "locked", required_fields: ["birth_time"], houses_available: false, time_precision: "unknown", bodies: [], reading: null } as never);
+    renderPage("/insights/moon-sign?tradition=western");
+
+    expect(await screen.findByRole("button", { name: "Thử tải lại bản đọc" })).toBeInTheDocument();
+    expect(screen.queryByText("Lớp này chưa có trong chart.")).not.toBeInTheDocument();
+  });
 });
