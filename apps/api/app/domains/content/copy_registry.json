@@ -1981,6 +1981,222 @@
    "status": "pending"
   },
   {
+   "id": "daily.bundle.comparison-loop.01.action",
+   "category": "reading",
+   "text": "Ghi số tiền mình để dành được tháng này trước khi lướt tiếp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.01.headline",
+   "category": "reading",
+   "text": "Bạn bè khoe xe mới, bạn thấy mình kém.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.01.scene",
+   "category": "reading",
+   "text": "Lúc lướt điện thoại tối nay, bạn thấy người khác khoe xe mới và nghĩ mình chưa mua nổi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.02.action",
+   "category": "reading",
+   "text": "Viết ra một điểm tốt trong báo cáo của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.02.headline",
+   "category": "reading",
+   "text": "Đồng nghiệp được khen, bạn thấy báo cáo mình kém.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.02.scene",
+   "category": "reading",
+   "text": "Lúc sếp khen kết quả trong báo cáo của đồng nghiệp, bạn thấy báo cáo mình sơ sài.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.03.action",
+   "category": "reading",
+   "text": "Đọc lại một đoạn trong bản nháp của mình và sửa đúng một câu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.03.headline",
+   "category": "reading",
+   "text": "Bạn so bản nháp của mình với bài đã đăng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.03.scene",
+   "category": "reading",
+   "text": "Khi đọc bài người khác vừa đăng, bạn mở bản nháp của mình ra và thấy nó còn vụng quá.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.04.action",
+   "category": "reading",
+   "text": "Viết ra một việc mình đang làm giỏi ở chỗ làm hiện tại.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.04.headline",
+   "category": "reading",
+   "text": "Bạn cũ lên trưởng phòng, bạn vẫn là nhân viên.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.04.scene",
+   "category": "reading",
+   "text": "Khi đọc tin bạn cũ lên trưởng phòng, bạn so kết quả đó với mình và thấy mình vẫn là nhân viên.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.05.action",
+   "category": "reading",
+   "text": "Ghi số cây số mình chạy mỗi buổi vào một cuốn sổ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.05.headline",
+   "category": "reading",
+   "text": "Người khác chạy mười cây, bạn chê mình chạy ít.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.05.scene",
+   "category": "reading",
+   "text": "Khi thấy người khác khoe chạy mười cây số sáng nay, bạn thấy hai cây số của mình chẳng đáng kể.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.06.action",
+   "category": "reading",
+   "text": "Viết một câu mình làm sai trong bài thi này và cách sửa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.06.headline",
+   "category": "reading",
+   "text": "Cả nhóm khoe điểm thi, bạn giấu điểm mình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.06.scene",
+   "category": "reading",
+   "text": "Trong nhóm chat lớp, mọi người khoe kết quả thi, còn bạn đọc hết rồi tắt máy mà không nói điểm mình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.07.action",
+   "category": "reading",
+   "text": "Ghi mức lương mình muốn có và một việc mình cần làm để tới đó.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.07.headline",
+   "category": "reading",
+   "text": "Bạn bè kể lương mới, bạn thấy lương mình thấp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.07.scene",
+   "category": "reading",
+   "text": "Lúc ngồi cà phê, nghe người khác kể mức lương mới, bạn nhẩm lại lương mình và thấy thấp hẳn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.08.action",
+   "category": "reading",
+   "text": "Đặt hẹn giờ hai mươi phút và viết tiếp bài của mình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.08.headline",
+   "category": "reading",
+   "text": "Đang viết dở, bạn mở xem bài người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.08.scene",
+   "category": "reading",
+   "text": "Lúc đang viết dở bài của mình, bạn mở bài của người khác ra đọc, rồi đọc liền cả tiếng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.09.action",
+   "category": "reading",
+   "text": "Ghi một môn con mình đang khá lên trước khi nói chuyện điểm với con.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.09.headline",
+   "category": "reading",
+   "text": "Nghe đồng nghiệp khoe điểm con, bạn lo cho con.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.09.scene",
+   "category": "reading",
+   "text": "Khi đồng nghiệp khoe kết quả thi của con, bạn mở xem điểm của con mình và thấy sốt ruột.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.10.action",
+   "category": "reading",
+   "text": "Đặt điện thoại xuống và không mở lại bài đăng của mình trong một giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.10.headline",
+   "category": "reading",
+   "text": "Bạn so lượt thích của mình với người khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.10.scene",
+   "category": "reading",
+   "text": "Sau khi đăng ảnh, bạn mở ra xem lượt thích mấy lần, rồi so với bài người khác đăng cùng lúc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.11.action",
+   "category": "reading",
+   "text": "Chọn một bài học của mình để làm xong trong hôm nay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.11.headline",
+   "category": "reading",
+   "text": "Bạn bè sắp học hết khóa, bạn mới bắt đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.11.scene",
+   "category": "reading",
+   "text": "Khi biết người khác sắp học hết khóa mà bạn vừa đăng ký, bạn thấy mình bắt đầu quá trễ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.12.action",
+   "category": "reading",
+   "text": "Đổi thứ tự: làm việc của mình mười lăm phút rồi mới mở mạng xã hội.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.12.headline",
+   "category": "reading",
+   "text": "Bạn xem bạn bè khoe rồi mới bắt tay làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.comparison-loop.12.scene",
+   "category": "reading",
+   "text": "Vừa ngồi vào bàn, bạn xem người khác khoe dự án mới, và lúc bắt tay làm việc thì đã nản.",
+   "status": "pending"
+  },
+  {
    "id": "daily.headline.automatic-caretaking.01",
    "category": "reading",
    "text": "Bạn nhận lời rồi mới mở lịch ra xem.",
