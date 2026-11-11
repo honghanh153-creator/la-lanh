@@ -4,7 +4,7 @@ import type { ReadingContent } from "../api/client";
 export const WHY_TODAY_ID = "vi-sao-hom-nay";
 
 export function readingModeLabel(content: ReadingContent): string {
-  if (content.tradition === "jyotish") return "Lá số Ấn Độ · Vị trí đã tính";
+  if (content.tradition === "jyotish") return "Lá số Ấn Độ";
   return content.mode === "full_synthesis"
     ? "Aura · Tổng hòa lá số"
     : content.mode === "vibe_fallback"
