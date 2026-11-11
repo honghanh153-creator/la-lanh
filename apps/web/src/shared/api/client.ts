@@ -227,9 +227,9 @@ export type RadarPrivateCheckInput = {
   place_id: string;
   authorization_attested: boolean;
 };
+/** What a link holder sees: never the private label the sender set (issue #95). */
 export type PublicRadarInvite = {
   request_id: string;
-  recipient_label: string;
   context: string;
   voice: RadarVoice;
   expires_at: string;

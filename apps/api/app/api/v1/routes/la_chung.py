@@ -43,7 +43,7 @@ class PublicStatementResponse(BaseModel):
 
 
 class PublicInviteResponse(BaseModel):
-    recipient_label: str
+    # No recipient_label: the sender's private label is owner-only (US-08 S37, issue #95).
     context: str
     expires_at: datetime
     statements: tuple[PublicStatementResponse, ...]
@@ -293,7 +293,6 @@ async def public_invite(
     except LaChungError:
         return Response(status_code=404, headers=dict(response.headers))
     return PublicInviteResponse(
-        recipient_label=invite.recipient_label,
         context=invite.context,
         expires_at=invite.expires_at,
         statements=tuple(

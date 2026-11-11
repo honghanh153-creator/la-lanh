@@ -3276,8 +3276,6 @@ export interface components {
              * @default Không cần tài khoản, ngày sinh hay danh bạ.
              */
             privacy_note: string;
-            /** Recipient Label */
-            recipient_label: string;
             /** Statements */
             statements: components["schemas"]["PublicStatementResponse"][];
         };
@@ -3300,8 +3298,6 @@ export interface components {
              * @default Người mời không nhìn thấy ngày, giờ hoặc nơi sinh của bạn. Kết quả chỉ mở sau khi bạn tự nhập và đồng ý.
              */
             privacy_note: string;
-            /** Recipient Label */
-            recipient_label: string;
             /**
              * Request Id
              * Format: uuid
@@ -3314,6 +3310,49 @@ export interface components {
             requires_exact_birth_profile: boolean;
             /** Voice */
             voice: string;
+        };
+        /**
+         * PublicRadarResultResponse
+         * @description A pair result as B sees it: never carries A's private label (issue #95).
+         */
+        PublicRadarResultResponse: {
+            /** Compatibility Map */
+            compatibility_map?: {
+                [key: string]: unknown;
+            }[];
+            /** Dimensions */
+            dimensions?: {
+                [key: string]: unknown;
+            }[];
+            /** Disclaimer */
+            disclaimer: string;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Headline */
+            headline: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            mode?: components["schemas"]["RadarMode"] | null;
+            /** Pair Signature */
+            pair_signature?: {
+                [key: string]: unknown;
+            } | null;
+            /** Request Id */
+            request_id?: string | null;
+            /** Sections */
+            sections?: {
+                [key: string]: unknown;
+            }[];
+            /** Strongest Contacts */
+            strongest_contacts?: {
+                [key: string]: unknown;
+            }[];
+            /** Summary */
+            summary: string;
+            /** Version */
+            version: string;
         };
         /** PublicShareArtifactResponse */
         PublicShareArtifactResponse: {
@@ -3465,7 +3504,10 @@ export interface components {
             /** Next Before */
             next_before?: string | null;
         };
-        /** RadarResultResponse */
+        /**
+         * RadarResultResponse
+         * @description Owner (A) views only: adds the label A set to manage the invite.
+         */
         RadarResultResponse: {
             /** Compatibility Map */
             compatibility_map?: {
@@ -8479,7 +8521,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RadarResultResponse"];
+                    "application/json": components["schemas"]["PublicRadarResultResponse"];
                 };
             };
             /** @description Request input was rejected */
@@ -8574,7 +8616,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RadarResultResponse"];
+                    "application/json": components["schemas"]["PublicRadarResultResponse"];
                 };
             };
             /** @description Request input was rejected */
@@ -8785,7 +8827,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RadarResultResponse"];
+                    "application/json": components["schemas"]["PublicRadarResultResponse"];
                 };
             };
             /** @description Request input was rejected */
