@@ -37,7 +37,9 @@ _LINT_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
         "contains a link",
         re.compile(
             r"[a-z][a-z0-9+.-]*://|\bwww\.|"
-            r"\b[a-z0-9-]+\.(?:com|net|org|vn|io|app|me|co|info|link|ly|xyz|page|dev)\b",
+            # Any bare domain: ASCII labels joined by dots, ending in a 2+ letter suffix,
+            # with no word character touching either end (so "việc.Rồi" or "1.5" pass).
+            r"(?<![\w-])[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.[a-z]{2,24}(?![\w-])",
             re.IGNORECASE,
         ),
     ),

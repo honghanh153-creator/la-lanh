@@ -137,6 +137,13 @@ _LINT_BAD = [
     "Xem thêm tại https://vi-du.test/bai-viet nhé.",
     "Mở www.vi-du nếu cần đọc thêm.",
     "Ghé vidu.vn để xem thêm.",
+    # Bare domains with any suffix, not only a fixed list (review of #411, PV-15).
+    "Ghé vi-du.ai để đọc thêm.",
+    "Ghé vi-du.site để đọc thêm.",
+    "Ghé vi-du.edu để đọc thêm.",
+    "Ghé VI-DU.SHOP để đọc thêm.",
+    "Ghé bai.vi-du.com.vn/trang để đọc thêm.",
+    "Đọc thêm ở vi-du.travel.",
     "Gửi thư cho ban-tro-giup@vi-du.test nếu cần.",
     "Theo dõi @lalanh_thu để nhận thêm.",
     "Gọi 0900 000 000 nếu cần nói chuyện.",
@@ -178,6 +185,9 @@ def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: 
         "Uống một cốc nước, rồi hít thở chậm 3 lần.",
         "Nghỉ 5-10 phút… rồi quay lại việc chính.",
         "Hỏi: “Mình cần gì lúc này?” — rồi ghi ra một dòng.",
+        "Xong việc nhỏ.Rồi nghỉ.",  # missing space after a full stop is not a link
+        "Ghi 1.5 giờ ngủ thêm vào sổ.",
+        "Bạn ở TP. Hồ Chí Minh, v.v. vẫn ổn.",
     ],
 )
 def test_registry_lint_accepts_plain_sentences(text: str) -> None:
