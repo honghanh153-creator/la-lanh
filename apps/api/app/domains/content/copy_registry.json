@@ -1981,6 +1981,222 @@
    "status": "pending"
   },
   {
+   "id": "daily.bundle.decision-fatigue.01.action",
+   "category": "reading",
+   "text": "Chọn chiếc rẻ nhất trong ba chiếc bán chạy nhất rồi mua.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.01.headline",
+   "category": "reading",
+   "text": "Bạn so mười chiếc nồi cơm điện mà chưa mua.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.01.scene",
+   "category": "reading",
+   "text": "Tối nay bạn so giá mười chiếc nồi cơm điện, và lúc đi ngủ vẫn chưa chọn được chiếc nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.02.action",
+   "category": "reading",
+   "text": "Chọn món đầu tiên bạn nghĩ ra và nói luôn với người kia.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.02.headline",
+   "category": "reading",
+   "text": "Ai hỏi tối ăn gì, bạn cũng ngại trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.02.scene",
+   "category": "reading",
+   "text": "Sau một ngày làm việc, khi người kia hỏi tối nay ăn gì, bạn chỉ muốn ai đó chọn giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.03.action",
+   "category": "reading",
+   "text": "Chọn món bạn đã ăn và thấy ngon ở lần trước.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.03.headline",
+   "category": "reading",
+   "text": "Bạn lật thực đơn mãi mà chưa gọi món.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.03.scene",
+   "category": "reading",
+   "text": "Ở quán, cả nhóm đã gọi món xong, còn bạn vẫn lật thực đơn mà chưa chọn được món nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.04.action",
+   "category": "reading",
+   "text": "Chọn lại chiếc áo đầu tiên bạn đã thử rồi ra cửa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.04.headline",
+   "category": "reading",
+   "text": "Bạn đứng trước tủ đồ chọn áo mười phút.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.04.scene",
+   "category": "reading",
+   "text": "Sáng đi làm, bạn thay ba cái áo, và lúc ra cửa đã thấy mệt vì phải chọn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.05.action",
+   "category": "reading",
+   "text": "Đọc thêm mười phút nhận xét, hết giờ thì chọn đôi bạn thích hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.05.headline",
+   "category": "reading",
+   "text": "Hai đôi giày nằm trong giỏ hàng, bạn chưa mua.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.05.scene",
+   "category": "reading",
+   "text": "Khi đã bỏ hai đôi giày vào giỏ hàng, bạn vẫn đọc nhận xét đến khuya vì sợ chọn sai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.06.action",
+   "category": "reading",
+   "text": "Viết ra việc chính bạn dùng máy tính rồi chọn máy hợp việc đó.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.06.headline",
+   "category": "reading",
+   "text": "Bạn hỏi năm người nên mua máy tính nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.06.scene",
+   "category": "reading",
+   "text": "Khi hỏi năm người nên mua máy tính nào, bạn nghe mỗi người khuyên một máy và càng khó quyết định.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.07.action",
+   "category": "reading",
+   "text": "Nói với đồng nghiệp bạn sẽ chọn màu vào sáng mai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.07.headline",
+   "category": "reading",
+   "text": "Sắp tan làm, chọn màu cũng làm bạn bực.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.07.scene",
+   "category": "reading",
+   "text": "Lúc sắp tan làm, đồng nghiệp nhờ bạn chọn màu cho bản trình bày, và bạn thấy bực ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.08.action",
+   "category": "reading",
+   "text": "Chọn chuyến bay rẻ nhất trong buổi sáng rồi đặt ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.08.headline",
+   "category": "reading",
+   "text": "Bạn xem vé máy bay cả tối mà chưa đặt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.08.scene",
+   "category": "reading",
+   "text": "Khi xem vé máy bay cả tối, bạn so mãi giờ bay và giá mà chưa chọn được chuyến.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.09.action",
+   "category": "reading",
+   "text": "Chọn phim đầu tiên trong danh sách đã lưu và xem mười phút.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.09.headline",
+   "category": "reading",
+   "text": "Bạn kéo danh sách phim mãi mà chưa bật phim.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.09.scene",
+   "category": "reading",
+   "text": "Lúc tối rảnh, bạn kéo danh sách phim nửa tiếng mà chưa chọn được phim nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.10.action",
+   "category": "reading",
+   "text": "Chọn loại bạn đang dùng nếu chưa có lý do để đổi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.10.headline",
+   "category": "reading",
+   "text": "Bạn đứng ở kệ hàng lâu mà chưa lấy gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.10.scene",
+   "category": "reading",
+   "text": "Lúc ở siêu thị, bạn cầm lên đặt xuống ba loại dầu gội mà chưa quyết định được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.11.action",
+   "category": "reading",
+   "text": "Chọn hai phòng gần chỗ làm nhất rồi hẹn đi xem.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.11.headline",
+   "category": "reading",
+   "text": "Bạn lưu năm phòng cho thuê mà chưa đi xem.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.11.scene",
+   "category": "reading",
+   "text": "Bạn lưu năm phòng cho thuê, tối nào cũng xem lại mà chưa chọn được phòng nào để đặt lịch hẹn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.12.action",
+   "category": "reading",
+   "text": "Nói với bạn bè bạn muốn quán gần, rồi để họ chọn quán.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.12.headline",
+   "category": "reading",
+   "text": "Bạn bè hỏi đi đâu, bạn nói sao cũng được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.decision-fatigue.12.scene",
+   "category": "reading",
+   "text": "Khi bạn bè hỏi tối nay đi quán nào, bạn mệt đến mức để họ chọn hết.",
+   "status": "pending"
+  },
+  {
    "id": "daily.headline.automatic-caretaking.01",
    "category": "reading",
    "text": "Bạn nhận lời rồi mới mở lịch ra xem.",
