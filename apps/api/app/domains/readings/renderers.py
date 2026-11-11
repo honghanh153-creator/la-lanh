@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.domains.astro.models import Tradition
 from app.domains.readings.daily_psychology import (
     DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT,
     apply_daily_psychology,
@@ -37,6 +38,7 @@ from app.domains.readings.models import (
 )
 
 DETERMINISTIC_RENDERER_VERSION = "deterministic-vi-v12"
+JYOTISH_MEANINGS_VERSION = "jyotish-meanings-v2"
 
 _SIGN_LABELS = {
     "aries": "Bạch Dương",
@@ -396,6 +398,10 @@ class DeterministicVietnameseRenderer:
             if frame.daily_meaning is not None
             else self.version
         )
+        if plan.tradition is Tradition.JYOTISH:
+            # Jyotish prose moved from position-only text to planet x sign x house meanings;
+            # a new identity keeps stored revisions from colliding with the new prose.
+            base_version = f"{base_version}+{JYOTISH_MEANINGS_VERSION}"
         renderer_version = (
             f"{base_version}+content-{catalog_version}"
             if catalog_version is not None
