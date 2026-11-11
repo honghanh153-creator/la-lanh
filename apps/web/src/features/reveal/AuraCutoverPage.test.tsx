@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,7 +12,8 @@ import {
   type DailyNote,
   type ReadingProjection,
 } from "../../shared/api/client";
-import { clearCachedDailyNote } from "../../shared/storage/noteCache";
+import { dropCachedDailyNotes } from "../../shared/storage/dropCachedDailyNotes";
+import { clearCachedDailyNote, readCachedDailyNote } from "../../shared/storage/noteCache";
 import { AuraCutoverPage } from "./AuraCutoverPage";
 
 vi.mock("../../shared/api/client", async (original) => {
@@ -113,11 +114,34 @@ describe("AuraCutoverPage", () => {
     expect(await screen.findByText("Bản Aura đã thay đổi ở nơi khác. Lá Lành đã tải lại trạng thái hiện tại; bạn không mất bản Note đang dùng.")).toBeInTheDocument();
     await waitFor(() => expect(vi.mocked(getDailyNote).mock.calls.length).toBeGreaterThan(fetchesBeforeActivation));
   });
+
+  it("does not write an acknowledgement's old note back after a history clear (PV-21)", async () => {
+    const user = userEvent.setup();
+    const oldNote = noteWith(projection(active, aura, "aura_ready"));
+    const freshNote = { ...noteWith(projection(active, null, "limited")), id: "00000000-0000-4000-8000-000000000002", note_date: "2026-09-17" };
+    vi.mocked(getDailyNote).mockResolvedValueOnce(oldNote).mockResolvedValue(freshNote);
+    let releaseAck: (value: ReadingProjection) => void = () => undefined;
+    vi.mocked(acknowledgeAuraTransition).mockReturnValue(new Promise((resolve) => { releaseAck = resolve; }));
+    const { client } = renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Giữ Note hiện tại" }));
+    await waitFor(() => expect(acknowledgeAuraTransition).toHaveBeenCalled());
+    await act(() => dropCachedDailyNotes(client));
+    await waitFor(() => expect(client.getQueryData<DailyNote>(["daily-note"])?.id).toBe(freshNote.id));
+
+    await act(async () => {
+      releaseAck({ ...oldNote.reading_projection!, aura_transition: { ...oldNote.reading_projection!.aura_transition, acknowledged: true } });
+      await Promise.resolve();
+    });
+
+    expect(client.getQueryData<DailyNote>(["daily-note"])?.reading_projection).toEqual(freshNote.reading_projection);
+    expect(readCachedDailyNote()?.note.reading_projection).toEqual(freshNote.reading_projection);
+  });
 });
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}><MemoryRouter><AuraCutoverPage /></MemoryRouter></QueryClientProvider>);
+  return { client, ...render(<QueryClientProvider client={client}><MemoryRouter><AuraCutoverPage /></MemoryRouter></QueryClientProvider>) };
 }
 
 function content(revisionId: string, mode: "vibe_fallback" | "full_synthesis", hook: string) {
