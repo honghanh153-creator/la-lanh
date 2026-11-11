@@ -6983,6 +6983,222 @@
    "category": "reading",
    "text": "Thợ sửa máy lạnh gửi tin nhắn: chiều em qua, và bạn ngồi chờ từ một giờ chưa dám đi đâu.",
    "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.01.action",
+   "category": "reading",
+   "text": "Đặt giờ gửi báo cáo cho trưởng nhóm, đến giờ đó gửi luôn bản đang có.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.01.headline",
+   "category": "reading",
+   "text": "Báo cáo tuần xong rồi mà bạn chưa gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.01.scene",
+   "category": "reading",
+   "text": "Trưởng nhóm đang chờ báo cáo tuần, bạn vẫn sửa câu mở đầu thêm một lần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.02.action",
+   "category": "reading",
+   "text": "Gửi ý đó vào nhóm lớp và nhờ mọi người góp ý thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.02.headline",
+   "category": "reading",
+   "text": "Bạn sửa mãi tin nhắn đề xuất trong nhóm lớp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.02.scene",
+   "category": "reading",
+   "text": "Bạn muốn đề xuất một ý trong nhóm lớp, nhưng cứ sửa câu chữ mãi mà chưa gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.03.action",
+   "category": "reading",
+   "text": "Hỏi người chủ trì cuộc họp có muốn góp ý trước không, rồi gửi bài trình bày.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.03.headline",
+   "category": "reading",
+   "text": "Bạn sửa màu chữ dù bài trình bày đã đủ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.03.scene",
+   "category": "reading",
+   "text": "Trước cuộc họp mai, bài trình bày đã đủ nội dung, bạn vẫn sửa màu chữ từng trang.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.04.action",
+   "category": "reading",
+   "text": "Gửi bài luận cho thầy cô tối nay, chỉ sửa lỗi chính tả còn sót.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.04.headline",
+   "category": "reading",
+   "text": "Còn một ngày, bài luận vẫn chưa được nộp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.04.scene",
+   "category": "reading",
+   "text": "Hạn nộp bài luận là tối mai, nhưng lúc nào mở ra bạn cũng sửa thêm vài chữ rồi đóng lại.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.05.action",
+   "category": "reading",
+   "text": "Gửi bản nháp lịch vào nhóm, ghi rõ giờ xuất phát còn có thể đổi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.05.headline",
+   "category": "reading",
+   "text": "Cả nhóm chờ lịch đi chơi, bạn vẫn đang sửa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.05.scene",
+   "category": "reading",
+   "text": "Nhóm bạn hỏi lịch đi chơi cuối tuần, bạn có bản nháp từ thứ ba nhưng vẫn sửa giờ xuất phát.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.06.action",
+   "category": "reading",
+   "text": "Gửi câu trả lời cho khách ngay, giữ câu chào đang có.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.06.headline",
+   "category": "reading",
+   "text": "Bạn sửa câu chào trong khi khách đang chờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.06.scene",
+   "category": "reading",
+   "text": "Khách hỏi lịch giao hàng từ trưa, câu trả lời đã soạn xong, bạn vẫn sửa câu chào ở đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.07.action",
+   "category": "reading",
+   "text": "Gửi tin nhắn cảm ơn như bạn đang có, không thêm câu nào nữa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.07.headline",
+   "category": "reading",
+   "text": "Bạn sửa tin nhắn cảm ơn từ chiều đến giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.07.scene",
+   "category": "reading",
+   "text": "Chị đồng nghiệp giúp bạn xong dự án, tin nhắn cảm ơn bạn sửa đi sửa lại từ chiều vẫn chưa gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.08.action",
+   "category": "reading",
+   "text": "Nhắn nhóm là phần của bạn xong rồi, gửi kèm và nhờ mọi người góp ý.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.08.headline",
+   "category": "reading",
+   "text": "Phần bài nhóm xong hai ngày, bạn vẫn giữ lại.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.08.scene",
+   "category": "reading",
+   "text": "Phần bài nhóm của bạn xong được hai ngày rồi, nhưng bạn vẫn giữ lại để sửa cho gọn hơn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.09.action",
+   "category": "reading",
+   "text": "Gửi thông báo có đủ ngày giờ và địa điểm, chưa cần sửa lời chào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.09.headline",
+   "category": "reading",
+   "text": "Có người hỏi lịch, thông báo vẫn là bản nháp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.09.scene",
+   "category": "reading",
+   "text": "Thông báo của câu lạc bộ vẫn là bản nháp vì bạn chưa ưng câu chữ, dù đã có người hỏi lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.10.action",
+   "category": "reading",
+   "text": "Chọn một tiêu đề trong số đã viết rồi gửi bài cho bản tin.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.10.headline",
+   "category": "reading",
+   "text": "Bạn đổi tiêu đề bài viết lần thứ sáu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.10.scene",
+   "category": "reading",
+   "text": "Khi bản tin công ty sắp hết hạn nhận bài, bạn vẫn đổi tiêu đề bản nháp lần thứ sáu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.11.action",
+   "category": "reading",
+   "text": "Gửi tin nhắn xin đổi ca cho quản lý trước giờ nghỉ trưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.11.headline",
+   "category": "reading",
+   "text": "Tin nhắn xin đổi ca soạn xong vẫn chưa gửi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.11.scene",
+   "category": "reading",
+   "text": "Tin nhắn xin quản lý đổi ca tuần sau soạn xong rồi, bạn vẫn sửa từng chữ cho thật lịch sự.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.12.action",
+   "category": "reading",
+   "text": "Gửi mười tấm ảnh đẹp nhất vào nhóm, những tấm còn lại sửa sau.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.12.headline",
+   "category": "reading",
+   "text": "Ảnh chuyến đi chưa gửi vì bạn còn sửa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.perfect-before-start.12.scene",
+   "category": "reading",
+   "text": "Ảnh chuyến đi biển cả nhóm đang chờ, nhưng bạn muốn sửa ánh sáng xong từng tấm mới gửi.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
