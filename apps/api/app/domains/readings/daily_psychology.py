@@ -1076,27 +1076,41 @@ def render_why_today(plan: ReadingPlan) -> str | None:
     )
 
 
-DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
-    json.dumps(
-        {
-            "version": DAILY_PSYCHOLOGY_MATRIX_VERSION,
-            "situations": [asdict(issue) for issue in DAILY_ISSUES],
-            "personalization": PERSONALIZATION_VERSION,
-            "placements": PLACEMENT_ISSUES,
-            "placement_meanings": PLACEMENT_MEANINGS,
-            "sign_elements": SIGN_ELEMENTS,
-            "sun_issues": SUN_ISSUES,
-            "body_domains": BODY_DOMAINS,
-            "house_arenas": {house: asdict(context) for house, context in HOUSE_ARENAS.items()},
-            "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
-            "why_today": WHY_TODAY_GISTS,
-            "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
-        },
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode()
-).hexdigest()[:8]
+def daily_content_fingerprint() -> str:
+    """Hash of every Daily text that can render, approved bundles included.
+
+    Bundles are read from the runtime registry (cached per process), so approving or
+    revising a bundle changes the renderer version and a stored note never re-renders
+    differently under the same revision.
+    """
+
+    bundles = {issue.key: found for issue in DAILY_ISSUES if (found := approved_bundles(issue.key))}
+    return sha256(
+        json.dumps(
+            {
+                "version": DAILY_PSYCHOLOGY_MATRIX_VERSION,
+                "situations": [asdict(issue) for issue in DAILY_ISSUES],
+                "personalization": PERSONALIZATION_VERSION,
+                "placements": PLACEMENT_ISSUES,
+                "placement_meanings": PLACEMENT_MEANINGS,
+                "sign_elements": SIGN_ELEMENTS,
+                "sun_issues": SUN_ISSUES,
+                "body_domains": BODY_DOMAINS,
+                "house_arenas": {house: asdict(context) for house, context in HOUSE_ARENAS.items()},
+                "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
+                "why_today": WHY_TODAY_GISTS,
+                "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
+                # Only present once a bundle is approved, so today's revision stays put.
+                **({"bundles": bundles} if bundles else {}),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()[:8]
+
+
+DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = daily_content_fingerprint()
 
 
 NO_PERSONAL_MEANING = "Lá chưa đủ dữ kiện để nói riêng về bạn ở góc này."

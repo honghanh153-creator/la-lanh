@@ -18,7 +18,11 @@ from app.domains.content.copy_approval import (
     load_registry,
     parse_registry,
 )
-from app.domains.readings.daily_psychology import DAILY_ISSUES, apply_daily_psychology
+from app.domains.readings.daily_psychology import (
+    DAILY_ISSUES,
+    apply_daily_psychology,
+    daily_content_fingerprint,
+)
 from app.domains.readings.knowledge import full_frame
 from tests.readings.test_daily_rotation import OWNER_A, OWNER_B, START, _date_only_plan, _variety
 
@@ -131,3 +135,33 @@ def test_registry_bundles_are_complete_and_name_a_real_situation() -> None:
     for key in entries:
         if key.startswith(copy_approval.BUNDLE_PREFIX):
             assert key.split(".")[2] in ISSUES, key
+
+
+def test_fingerprint_changes_when_a_bundle_is_approved_or_revised(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pending = [_line(ISSUES[0], "01", part, approved=False) for part in BUNDLE_PARTS]
+    _use(monkeypatch, pending)
+    before = daily_content_fingerprint()
+
+    approved = [_line(ISSUES[0], "01", part) for part in BUNDLE_PARTS]
+    _use(monkeypatch, approved)
+    after_approval = daily_content_fingerprint()
+    assert after_approval != before
+
+    revised = [*approved[:2], _line(ISSUES[0], "01", "action")]
+    revised[2]["text"] = "Câu thử action đã sửa của bộ này."
+    revised[2]["digest"] = copy_digest(revised[2]["text"])
+    _use(monkeypatch, revised)
+    assert daily_content_fingerprint() not in {before, after_approval}
+
+
+def test_stored_note_reopens_stable_under_the_same_fingerprint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _use(monkeypatch, _all_bundles())
+    fingerprint = daily_content_fingerprint()
+    first = _notes(days=10)
+    # Reopening the same day's note with the same registry renders identically.
+    assert daily_content_fingerprint() == fingerprint
+    assert _notes(days=10) == first
