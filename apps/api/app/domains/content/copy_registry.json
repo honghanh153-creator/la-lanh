@@ -7185,19 +7185,19 @@
   {
    "id": "daily.bundle.too-many-open-loops.12.action",
    "category": "reading",
-   "text": "Dừng dọn hộp thư, xoá nốt chỗ ảnh còn lại trong 20 phút.",
+   "text": "Dừng dọn hộp thư, xoá nốt chỗ ảnh chụp trùng còn lại trong 20 phút.",
    "status": "pending"
   },
   {
    "id": "daily.bundle.too-many-open-loops.12.headline",
    "category": "reading",
-   "text": "Ảnh xoá dở, bạn lại đi dọn hộp thư.",
+   "text": "Ảnh chụp trùng xoá dở, bạn lại đi dọn hộp thư.",
    "status": "pending"
   },
   {
    "id": "daily.bundle.too-many-open-loops.12.scene",
    "category": "reading",
-   "text": "Lúc xoá được nửa số ảnh trong điện thoại, bạn chuyển qua dọn hộp thư, giờ cả hai việc đều dở.",
+   "text": "Lúc xoá được nửa số ảnh chụp trùng trong máy, bạn chuyển qua dọn hộp thư, giờ cả hai việc đều dở.",
    "status": "pending"
   }
  ],
