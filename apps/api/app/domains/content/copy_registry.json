@@ -6767,6 +6767,222 @@
    "category": "reading",
    "text": "Nửa năm chép từ vựng mà chưa nói thành câu, nhưng khi ai đó gợi ý cách khác bạn chưa muốn đổi.",
    "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.01.action",
+   "category": "reading",
+   "text": "Nhắn lại nhóm chốt 9 giờ rồi mới đổi việc buổi chiều.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.01.headline",
+   "category": "reading",
+   "text": "Nhóm bạn dời bữa tối sang 9 giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.01.scene",
+   "category": "reading",
+   "text": "Nhóm bạn nhắn dời bữa tối từ 7 giờ sang 9 giờ, và bạn bắt đầu đổi cả lịch buổi chiều.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.02.action",
+   "category": "reading",
+   "text": "Hỏi sếp giờ họp mới đã chắc chưa, rồi mới sắp lại lịch chiều.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.02.headline",
+   "category": "reading",
+   "text": "Sếp dời cuộc họp sáng sang 2 giờ chiều.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.02.scene",
+   "category": "reading",
+   "text": "Sếp báo cuộc họp dời sang 2 giờ chiều, bạn định dời luôn lịch ăn trưa và hai việc khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.03.action",
+   "category": "reading",
+   "text": "Kiểm tra lịch tối thứ Năm rồi nhắn cô xác nhận giờ học mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.03.headline",
+   "category": "reading",
+   "text": "Lớp học thêm tuần này đổi sang tối thứ Năm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.03.scene",
+   "category": "reading",
+   "text": "Cô giáo báo tuần này học tối thứ Năm thay vì thứ Ba, bạn chưa biết lịch tối đó còn trống không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.04.action",
+   "category": "reading",
+   "text": "Hỏi tiệm còn giờ nào sáng mai không, chốt xong mới dời việc đi chợ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.04.headline",
+   "category": "reading",
+   "text": "Tiệm cắt tóc báo dời lịch sang chiều mai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.04.scene",
+   "category": "reading",
+   "text": "Tiệm cắt tóc gọi đổi lịch hẹn của bạn từ sáng mai sang 4 giờ chiều, trùng giờ bạn đi chợ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.05.action",
+   "category": "reading",
+   "text": "Hỏi mẹ mấy giờ ăn trưa thứ Bảy rồi mới dời lịch đi bơi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.05.headline",
+   "category": "reading",
+   "text": "Mẹ đổi bữa cơm cuối tuần sang trưa thứ Bảy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.05.scene",
+   "category": "reading",
+   "text": "Mẹ nhắn bữa cơm cả gia đình dời sang trưa thứ Bảy, đúng hôm bạn có lịch đi bơi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.06.action",
+   "category": "reading",
+   "text": "Nhắn thợ hỏi giờ đến cụ thể rồi mới dời việc lúc 10 rưỡi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.06.headline",
+   "category": "reading",
+   "text": "Thợ máy lạnh xin lùi giờ hẹn sang 11 giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.06.scene",
+   "category": "reading",
+   "text": "Thợ sửa máy lạnh hẹn 9 giờ rồi nhắn lùi sang 11 giờ, mà lúc 10 rưỡi bạn phải ra ngoài.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.07.action",
+   "category": "reading",
+   "text": "Nói với đồng nghiệp giờ bạn còn trống chiều thứ Tư để hai bên chốt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.07.headline",
+   "category": "reading",
+   "text": "Đồng nghiệp xin kéo buổi bàn giao lên thứ Tư.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.07.scene",
+   "category": "reading",
+   "text": "Đồng nghiệp muốn dời buổi bàn giao từ thứ Sáu lên chiều thứ Tư, mà lịch thứ Tư của bạn đã kín.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.08.action",
+   "category": "reading",
+   "text": "Hỏi nhóm 8 giờ đã chốt chưa rồi mới quyết có bỏ buổi chạy bộ không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.08.headline",
+   "category": "reading",
+   "text": "Sát giờ, buổi ôn thi lùi sang tối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.08.scene",
+   "category": "reading",
+   "text": "Còn một tiếng là ôn thi thì nhóm báo lùi sang 8 giờ tối, bạn định bỏ luôn lịch chạy bộ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.09.action",
+   "category": "reading",
+   "text": "Nhắn bạn chọn một ngày giờ cụ thể tuần sau rồi ghi vào lịch.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.09.headline",
+   "category": "reading",
+   "text": "Bạn thân xin dời cà phê sang tuần sau.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.09.scene",
+   "category": "reading",
+   "text": "Lúc trưa, bạn thân nhắn xin dời buổi cà phê đã hẹn chiều nay sang tuần sau, nhưng chưa nói ngày nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.10.action",
+   "category": "reading",
+   "text": "Xác nhận với khách giờ 8 giờ sáng hoặc đề nghị giờ khác, rồi mới đặt báo thức.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.10.headline",
+   "category": "reading",
+   "text": "Khách hàng đổi cuộc gọi sang sáng sớm mai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.10.scene",
+   "category": "reading",
+   "text": "Khách hàng xin dời cuộc gọi đã hẹn từ chiều nay sang 8 giờ sáng mai, sớm hơn lịch làm của bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.11.action",
+   "category": "reading",
+   "text": "Hỏi quản lý ca tối đã chốt chưa rồi mới nhắn bạn bè dời giờ xem phim.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.11.headline",
+   "category": "reading",
+   "text": "Ca làm thứ Bảy của bạn bị đổi sang tối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.11.scene",
+   "category": "reading",
+   "text": "Quản lý báo ca thứ Bảy của bạn đổi từ sáng sang tối, trùng lịch xem phim với bạn bè.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.12.action",
+   "category": "reading",
+   "text": "Nhắn người mua xác nhận giờ cụ thể tối mai rồi mới sắp lại việc khác.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.12.headline",
+   "category": "reading",
+   "text": "Người mua xe đạp cũ xin lùi giờ đến lấy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.changed-plan.12.scene",
+   "category": "reading",
+   "text": "Người mua chiếc xe đạp cũ hẹn đến lấy lúc 6 giờ chiều, sát giờ lại nhắn xin lùi sang tối mai.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"
