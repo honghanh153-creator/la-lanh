@@ -4483,10 +4483,6 @@
             "title": "Privacy Note",
             "type": "string"
           },
-          "recipient_label": {
-            "title": "Recipient Label",
-            "type": "string"
-          },
           "statements": {
             "items": {
               "$ref": "#/components/schemas/PublicStatementResponse"
@@ -4496,7 +4492,6 @@
           }
         },
         "required": [
-          "recipient_label",
           "context",
           "expires_at",
           "statements"
@@ -4525,10 +4520,6 @@
             "title": "Privacy Note",
             "type": "string"
           },
-          "recipient_label": {
-            "title": "Recipient Label",
-            "type": "string"
-          },
           "request_id": {
             "format": "uuid",
             "title": "Request Id",
@@ -4546,12 +4537,130 @@
         },
         "required": [
           "request_id",
-          "recipient_label",
           "context",
           "voice",
           "expires_at"
         ],
         "title": "PublicRadarInviteResponse",
+        "type": "object"
+      },
+      "PublicRadarResultResponse": {
+        "description": "A pair result as B sees it: never carries A's private label (issue #95).",
+        "properties": {
+          "compatibility_map": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Compatibility Map",
+            "type": "array"
+          },
+          "dimensions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Dimensions",
+            "type": "array"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadarMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pair_signature": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pair Signature"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "sections": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "strongest_contacts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Strongest Contacts",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "headline",
+          "summary",
+          "disclaimer"
+        ],
+        "title": "PublicRadarResultResponse",
         "type": "object"
       },
       "PublicShareArtifactResponse": {
@@ -4894,6 +5003,7 @@
         "type": "object"
       },
       "RadarResultResponse": {
+        "description": "Owner (A) views only: adds the label A set to manage the invite.",
         "properties": {
           "compatibility_map": {
             "items": {
@@ -12863,7 +12973,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RadarResultResponse"
+                  "$ref": "#/components/schemas/PublicRadarResultResponse"
                 }
               }
             },
@@ -12999,7 +13109,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RadarResultResponse"
+                  "$ref": "#/components/schemas/PublicRadarResultResponse"
                 }
               }
             },
@@ -13357,7 +13467,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RadarResultResponse"
+                  "$ref": "#/components/schemas/PublicRadarResultResponse"
                 }
               }
             },
