@@ -114,15 +114,20 @@ describe("ReadingDetailPage", () => {
     expect(screen.queryByText(/nhà và góc chiếu/)).not.toBeInTheDocument();
   });
 
-  it("opens the full overview: synthesis plus every natal claim section", async () => {
-    renderPage("/insights/synthesis?tradition=jyotish");
+  it("opens the full overview with every natal claim section", async () => {
+    renderPage("/insights/overview?tradition=jyotish");
 
     expect(await screen.findByText(/Mặt Trăng mô tả cách bạn xử lý cảm xúc/)).toBeInTheDocument();
     expect(screen.getByText("Bản đọc tổng quan · Jyotish")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Bạn không lạnh, bạn chỉ cần đúng tần số." })).toBeInTheDocument();
     expect(screen.getByText("Giữ kín quá lâu có thể khiến áp lực nói thay mình.")).toBeInTheDocument();
     expect(screen.getByText("Viết một câu mình cảm thấy và một câu mình cần.")).toBeInTheDocument();
-    expect(getPrivateReading).toHaveBeenCalled();
     expect(vi.mocked(getInsightOverview).mock.lastCall?.[0]).toMatchObject({ tradition: "jyotish" });
+  });
+
+  it("keeps Lá đọc sâu and links to the overview", async () => {
+    renderPage("/insights/synthesis?tradition=western");
+    expect(await screen.findByRole("link", { name: "Xem bản đọc tổng quan" })).toHaveAttribute("href", "/insights/overview?tradition=western");
+    expect(screen.getByText("Lá đọc sâu · Tây phương")).toBeInTheDocument();
   });
 });

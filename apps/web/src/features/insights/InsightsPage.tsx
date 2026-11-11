@@ -113,7 +113,7 @@ export function InsightsPage() {
           <p className="reading-mode"><Sparkle aria-hidden="true" weight="fill" /> {readingModeLabel(richReading)}</p>
           <h2>{richReading.sections.hook}</h2>
           <p>{richReading.sections.thesis}</p>
-          <span>Mở bản đọc Natal đầy đủ <ArrowRight aria-hidden="true" /></span>
+          <span>Mở Lá đọc sâu <ArrowRight aria-hidden="true" /></span>
         </Link>
       ) : null}
       {/* Approximate-time synthesis (#143 E1): what an exact time would add, in everyday words.
@@ -126,6 +126,7 @@ export function InsightsPage() {
 
       {insight.data?.reading ? (
         <>
+          {insight.data.reading.claims.length > 0 ? <Link className="electric-button" to={`/insights/overview?${configQuery}`}>Xem bản đọc tổng quan <ArrowRight aria-hidden="true" /></Link> : null}
           {/* An approximate time can leave no planet stable across the window (#143 E4):
               hide the whole block, heading included, rather than show it empty. */}
           {insight.data.reading.claims.length > 0 ? (

@@ -30,11 +30,12 @@ export function ReadingDetailPage() {
     retry: false,
   });
   const overviewQuery = useQuery({
+    enabled: claimId !== "synthesis",
     queryKey: ["insight-overview", tradition, houseSystem, ayanamsa],
     queryFn: ({ signal }) => getInsightOverview({ tradition, houseSystem, ayanamsa }, signal),
     retry: false,
   });
-  const focusedClaim = claimId === "synthesis"
+  const focusedClaim = claimId === "synthesis" || claimId === "overview"
     ? null
     : overviewQuery.data?.reading?.claims.find((claim) => claim.id === claimId);
 
@@ -42,7 +43,7 @@ export function ReadingDetailPage() {
     <main className="flow-page reading-page cosmic-reading-page">
       <header className="cosmic-header reading-detail-header">
         <Link aria-label="Quay lại Bản đồ Lá" className="icon-button" to={`/insights?${configQuery}`}><ArrowLeft aria-hidden="true" /></Link>
-        <span className="eyebrow">{claimId === "synthesis" ? "Bản đọc tổng quan" : "Lá đọc sâu"} · {tradition === "jyotish" ? "Jyotish" : "Tây phương"}</span>
+        <span className="eyebrow">{claimId === "overview" ? "Bản đọc tổng quan" : "Lá đọc sâu"} · {tradition === "jyotish" ? "Jyotish" : "Tây phương"}</span>
         <span />
       </header>
 
@@ -57,7 +58,10 @@ export function ReadingDetailPage() {
           housesAndAspects={overviewQuery.data.time_precision === "exact" && overviewQuery.data.houses_available}
         />
       ) : null}
-      {claimId === "synthesis" && overviewQuery.data?.reading?.claims.length ? (
+      {claimId === "synthesis" && readingQuery.data ? (
+        <Link className="electric-button" to={`/insights/overview?${configQuery}`}>Xem bản đọc tổng quan</Link>
+      ) : null}
+      {claimId === "overview" && overviewQuery.data?.reading?.claims.length ? (
         <div className="overview-claims">
           {overviewQuery.data.reading.claims.map((claim) => (
             <FocusedClaimContent
@@ -70,14 +74,14 @@ export function ReadingDetailPage() {
           <ReadingDisclaimer>{overviewQuery.data.reading.disclaimer}</ReadingDisclaimer>
         </div>
       ) : null}
-      {claimId === "synthesis" && readingQuery.isError && !overviewQuery.data?.reading?.claims.length ? (
+      {claimId === "synthesis" && readingQuery.isError ? (
         <section className="cosmic-state" role="alert">
           <h1>Bản đọc sâu chưa về kịp.</h1>
           <p>Dữ liệu hiện tại vẫn được giữ nguyên. Bạn có thể thử lại mà không cần nhập lại thông tin sinh.</p>
           <button className="electric-button" onClick={() => void readingQuery.refetch()} type="button">Thử lại</button>
         </section>
       ) : null}
-      {claimId !== "synthesis" && !overviewQuery.isLoading && !focusedClaim ? (
+      {claimId !== "synthesis" && claimId !== "overview" && !overviewQuery.isLoading && !focusedClaim ? (
         <section className="cosmic-state" role="alert">
           <WarningCircle aria-hidden="true" size={30} />
           <h1>Lớp này chưa có trong chart.</h1>
