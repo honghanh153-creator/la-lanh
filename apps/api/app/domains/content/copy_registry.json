@@ -1981,219 +1981,219 @@
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.01.action",
+   "id": "daily.bundle.comparison-loop.01.action",
    "category": "reading",
-   "text": "Ghi tổng tiền sửa xe năm nay rồi hỏi giá xe khác để so cách nào đỡ tốn.",
+   "text": "Ghi số tiền mình để dành được tháng này trước khi lướt tiếp.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.01.headline",
+   "id": "daily.bundle.comparison-loop.01.headline",
    "category": "reading",
-   "text": "Bạn sửa tiếp xe cũ dù tháng nào cũng hỏng.",
+   "text": "Bạn bè khoe xe mới, bạn thấy mình kém.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.01.scene",
+   "id": "daily.bundle.comparison-loop.01.scene",
    "category": "reading",
-   "text": "Khi xe hỏng lần thứ ba trong tháng, bạn vẫn mang đi sửa vì đã tốn nhiều tiền làm lại máy.",
+   "text": "Lúc lướt điện thoại tối nay, bạn thấy người khác khoe xe mới và nghĩ mình chưa mua nổi.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.02.action",
+   "id": "daily.bundle.comparison-loop.02.action",
    "category": "reading",
-   "text": "Đổi cách viết phần mở đầu rồi gửi năm chỗ xem có ai gọi không.",
+   "text": "Viết ra một điểm tốt trong báo cáo của mình.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.02.headline",
+   "id": "daily.bundle.comparison-loop.02.headline",
    "category": "reading",
-   "text": "Chưa ai gọi phỏng vấn, bạn vẫn gửi mẫu cũ.",
+   "text": "Đồng nghiệp được khen, bạn thấy báo cáo mình kém.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.02.scene",
+   "id": "daily.bundle.comparison-loop.02.scene",
    "category": "reading",
-   "text": "Bạn gửi một mẫu hồ sơ đi hai mươi chỗ, chưa có lịch phỏng vấn, mà vẫn ngại sửa cách viết.",
+   "text": "Lúc sếp khen kết quả trong báo cáo của đồng nghiệp, bạn thấy báo cáo mình sơ sài.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.03.action",
+   "id": "daily.bundle.comparison-loop.03.action",
    "category": "reading",
-   "text": "Đổi cách trình bày một trang theo góp ý rồi hỏi sếp thấy thế nào.",
+   "text": "Đọc lại một đoạn trong bản nháp của mình và sửa đúng một câu.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.03.headline",
+   "id": "daily.bundle.comparison-loop.03.headline",
    "category": "reading",
-   "text": "Sếp góp ý, bạn vẫn làm báo cáo như cũ.",
+   "text": "Bạn so bản nháp của mình với bài đã đăng.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.03.scene",
+   "id": "daily.bundle.comparison-loop.03.scene",
    "category": "reading",
-   "text": "Khi sếp góp ý cách trình bày báo cáo, bạn giải thích vì sao mình vẫn muốn làm như cũ.",
+   "text": "Khi đọc bài người khác vừa đăng, bạn mở bản nháp của mình ra và thấy nó còn vụng quá.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.04.action",
+   "id": "daily.bundle.comparison-loop.04.action",
    "category": "reading",
-   "text": "Đổi cách đi một sáng bằng đường người đó chỉ, rồi ghi số phút.",
+   "text": "Viết ra một việc mình đang làm giỏi ở chỗ làm hiện tại.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.04.headline",
+   "id": "daily.bundle.comparison-loop.04.headline",
    "category": "reading",
-   "text": "Bạn vẫn đi đường quen dù ngày nào cũng kẹt.",
+   "text": "Bạn cũ lên trưởng phòng, bạn vẫn là nhân viên.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.04.scene",
+   "id": "daily.bundle.comparison-loop.04.scene",
    "category": "reading",
-   "text": "Sáng nào bạn cũng kẹt xe, nhưng khi ai đó chỉ đường khác, bạn vẫn chưa muốn đổi cách đi.",
+   "text": "Khi đọc tin bạn cũ lên trưởng phòng, bạn so kết quả đó với mình và thấy mình vẫn là nhân viên.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.05.action",
+   "id": "daily.bundle.comparison-loop.05.action",
    "category": "reading",
-   "text": "Đổi cách nêm canh lần tới, bớt nửa thìa muối.",
+   "text": "Ghi số cây số mình chạy mỗi buổi vào một cuốn sổ.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.05.headline",
+   "id": "daily.bundle.comparison-loop.05.headline",
    "category": "reading",
-   "text": "Người kia chê canh mặn, bạn giải thích ngay.",
+   "text": "Người khác chạy mười cây, bạn chê mình chạy ít.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.05.scene",
+   "id": "daily.bundle.comparison-loop.05.scene",
    "category": "reading",
-   "text": "Khi người kia nói món canh hôm nay hơi mặn, bạn giải thích ngay rằng mình nấu theo cách này lâu rồi.",
+   "text": "Khi thấy người khác khoe chạy mười cây số sáng nay, bạn thấy hai cây số của mình chẳng đáng kể.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.06.action",
+   "id": "daily.bundle.comparison-loop.06.action",
    "category": "reading",
-   "text": "Chọn một bảng nhỏ để nhập bằng phần mềm mới, rồi so số giờ với cách cũ.",
+   "text": "Viết một câu mình làm sai trong bài thi này và cách sửa.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.06.headline",
+   "id": "daily.bundle.comparison-loop.06.headline",
    "category": "reading",
-   "text": "Bạn nhập tay cả chiều mà ngại phần mềm mới.",
+   "text": "Cả nhóm khoe điểm thi, bạn giấu điểm mình.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.06.scene",
+   "id": "daily.bundle.comparison-loop.06.scene",
    "category": "reading",
-   "text": "Bạn nhập tay số liệu cả chiều, nhưng khi nhóm đề xuất phần mềm mới, bạn ngại học cách dùng.",
+   "text": "Trong nhóm chat lớp, mọi người khoe kết quả thi, còn bạn đọc hết rồi tắt máy mà không nói điểm mình.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.07.action",
+   "id": "daily.bundle.comparison-loop.07.action",
    "category": "reading",
-   "text": "Đổi cách chia tiền: đặt khoản ăn ngoài bằng mức bạn thật sự tiêu.",
+   "text": "Ghi mức lương mình muốn có và một việc mình cần làm để tới đó.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.07.headline",
+   "id": "daily.bundle.comparison-loop.07.headline",
    "category": "reading",
-   "text": "Tiền ăn tháng nào cũng lố, bạn vẫn để nguyên.",
+   "text": "Bạn bè kể lương mới, bạn thấy lương mình thấp.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.07.scene",
+   "id": "daily.bundle.comparison-loop.07.scene",
    "category": "reading",
-   "text": "Tháng nào tiền ăn ngoài cũng lố, nhưng khi lập kế hoạch tháng mới, bạn vẫn chép lại cách chia cũ.",
+   "text": "Lúc ngồi cà phê, nghe người khác kể mức lương mới, bạn nhẩm lại lương mình và thấy thấp hẳn.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.08.action",
+   "id": "daily.bundle.comparison-loop.08.action",
    "category": "reading",
-   "text": "Viết ra những bài trong khóa bạn dùng được khi làm việc, rồi quyết định học tiếp hay thay đổi.",
+   "text": "Đặt hẹn giờ hai mươi phút và viết tiếp bài của mình.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.08.headline",
+   "id": "daily.bundle.comparison-loop.08.headline",
    "category": "reading",
-   "text": "Bạn vẫn học khóa không dùng được vì tiếc tiền.",
+   "text": "Đang viết dở, bạn mở xem bài người khác.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.08.scene",
+   "id": "daily.bundle.comparison-loop.08.scene",
    "category": "reading",
-   "text": "Khóa học dạy những thứ bạn không dùng khi làm việc, nhưng lúc nghĩ đến chuyện nghỉ, bạn lại tiếc tiền.",
+   "text": "Lúc đang viết dở bài của mình, bạn mở bài của người khác ra đọc, rồi đọc liền cả tiếng.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.09.action",
+   "id": "daily.bundle.comparison-loop.09.action",
    "category": "reading",
-   "text": "Đổi một buổi tập trong tuần sang bài mới rồi ghi kết quả cân sau hai tuần.",
+   "text": "Ghi một môn con mình đang khá lên trước khi nói chuyện điểm với con.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.09.headline",
+   "id": "daily.bundle.comparison-loop.09.headline",
    "category": "reading",
-   "text": "Bạn tập một bài ba tháng mà cân vẫn vậy.",
+   "text": "Nghe đồng nghiệp khoe điểm con, bạn lo cho con.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.09.scene",
+   "id": "daily.bundle.comparison-loop.09.scene",
    "category": "reading",
-   "text": "Ba tháng tập một bài mà cân vẫn vậy, nhưng lúc được gợi ý cách tập khác bạn vẫn giữ bài cũ.",
+   "text": "Khi đồng nghiệp khoe kết quả thi của con, bạn mở xem điểm của con mình và thấy sốt ruột.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.10.action",
+   "id": "daily.bundle.comparison-loop.10.action",
    "category": "reading",
-   "text": "Đọc số liệu tiến độ rồi nói với nhóm một chỗ trong cách làm cần thay đổi.",
+   "text": "Đặt điện thoại xuống và không mở lại bài đăng của mình trong một giờ.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.10.headline",
+   "id": "daily.bundle.comparison-loop.10.headline",
    "category": "reading",
-   "text": "Nhóm hỏi vì sao chậm, bạn bênh cách làm cũ.",
+   "text": "Bạn so lượt thích của mình với người khác.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.10.scene",
+   "id": "daily.bundle.comparison-loop.10.scene",
    "category": "reading",
-   "text": "Trong cuộc họp, khi nhóm hỏi vì sao việc chậm, bạn bảo cách làm cũ vẫn ổn.",
+   "text": "Sau khi đăng ảnh, bạn mở ra xem lượt thích mấy lần, rồi so với bài người khác đăng cùng lúc.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.11.action",
+   "id": "daily.bundle.comparison-loop.11.action",
    "category": "reading",
-   "text": "Đặt loại hàng cũ bằng nửa lần trước và thêm một loại mới để so kết quả bán.",
+   "text": "Chọn một bài học của mình để làm xong trong hôm nay.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.11.headline",
+   "id": "daily.bundle.comparison-loop.11.headline",
    "category": "reading",
-   "text": "Bạn vẫn nhập loại hàng cũ dù bán chậm.",
+   "text": "Bạn bè sắp học hết khóa, bạn mới bắt đầu.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.11.scene",
+   "id": "daily.bundle.comparison-loop.11.scene",
    "category": "reading",
-   "text": "Hàng tháng trước còn tồn gần nửa, nhưng lúc đặt hàng mới bạn vẫn nhập loại đó vì quen cách bán.",
+   "text": "Khi biết người khác sắp học hết khóa mà bạn vừa đăng ký, bạn thấy mình bắt đầu quá trễ.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.12.action",
+   "id": "daily.bundle.comparison-loop.12.action",
    "category": "reading",
-   "text": "Đổi cách học: mỗi tối nói to năm câu thay vì chép từ.",
+   "text": "Đổi thứ tự: làm việc của mình mười lăm phút rồi mới mở mạng xã hội.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.12.headline",
+   "id": "daily.bundle.comparison-loop.12.headline",
    "category": "reading",
-   "text": "Chép từ nửa năm, bạn vẫn chưa nói thành câu.",
+   "text": "Bạn xem bạn bè khoe rồi mới bắt tay làm.",
    "status": "pending"
   },
   {
-   "id": "daily.bundle.defend-old-choice.12.scene",
+   "id": "daily.bundle.comparison-loop.12.scene",
    "category": "reading",
-   "text": "Nửa năm chép từ vựng mà chưa nói thành câu, nhưng khi ai đó gợi ý cách khác bạn chưa muốn đổi.",
+   "text": "Vừa ngồi vào bàn, bạn xem người khác khoe dự án mới, và lúc bắt tay làm việc thì đã nản.",
    "status": "pending"
   },
   {
@@ -6334,6 +6334,222 @@
    "id": "daily.scene.too-many-open-loops.22",
    "category": "reading",
    "text": "Khi nhiều người cùng nhắc việc, bạn có thể mở thêm việc mà để việc cũ dở dang.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.01.action",
+   "category": "reading",
+   "text": "Ghi tổng tiền sửa xe năm nay rồi hỏi giá xe khác để so cách nào đỡ tốn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.01.headline",
+   "category": "reading",
+   "text": "Bạn sửa tiếp xe cũ dù tháng nào cũng hỏng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.01.scene",
+   "category": "reading",
+   "text": "Khi xe hỏng lần thứ ba trong tháng, bạn vẫn mang đi sửa vì đã tốn nhiều tiền làm lại máy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.02.action",
+   "category": "reading",
+   "text": "Đổi cách viết phần mở đầu rồi gửi năm chỗ xem có ai gọi không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.02.headline",
+   "category": "reading",
+   "text": "Chưa ai gọi phỏng vấn, bạn vẫn gửi mẫu cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.02.scene",
+   "category": "reading",
+   "text": "Bạn gửi một mẫu hồ sơ đi hai mươi chỗ, chưa có lịch phỏng vấn, mà vẫn ngại sửa cách viết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.03.action",
+   "category": "reading",
+   "text": "Đổi cách trình bày một trang theo góp ý rồi hỏi sếp thấy thế nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.03.headline",
+   "category": "reading",
+   "text": "Sếp góp ý, bạn vẫn làm báo cáo như cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.03.scene",
+   "category": "reading",
+   "text": "Khi sếp góp ý cách trình bày báo cáo, bạn giải thích vì sao mình vẫn muốn làm như cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.04.action",
+   "category": "reading",
+   "text": "Đổi cách đi một sáng bằng đường người đó chỉ, rồi ghi số phút.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.04.headline",
+   "category": "reading",
+   "text": "Bạn vẫn đi đường quen dù ngày nào cũng kẹt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.04.scene",
+   "category": "reading",
+   "text": "Sáng nào bạn cũng kẹt xe, nhưng khi ai đó chỉ đường khác, bạn vẫn chưa muốn đổi cách đi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.05.action",
+   "category": "reading",
+   "text": "Đổi cách nêm canh lần tới, bớt nửa thìa muối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.05.headline",
+   "category": "reading",
+   "text": "Người kia chê canh mặn, bạn giải thích ngay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.05.scene",
+   "category": "reading",
+   "text": "Khi người kia nói món canh hôm nay hơi mặn, bạn giải thích ngay rằng mình nấu theo cách này lâu rồi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.06.action",
+   "category": "reading",
+   "text": "Chọn một bảng nhỏ để nhập bằng phần mềm mới, rồi so số giờ với cách cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.06.headline",
+   "category": "reading",
+   "text": "Bạn nhập tay cả chiều mà ngại phần mềm mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.06.scene",
+   "category": "reading",
+   "text": "Bạn nhập tay số liệu cả chiều, nhưng khi nhóm đề xuất phần mềm mới, bạn ngại học cách dùng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.07.action",
+   "category": "reading",
+   "text": "Đổi cách chia tiền: đặt khoản ăn ngoài bằng mức bạn thật sự tiêu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.07.headline",
+   "category": "reading",
+   "text": "Tiền ăn tháng nào cũng lố, bạn vẫn để nguyên.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.07.scene",
+   "category": "reading",
+   "text": "Tháng nào tiền ăn ngoài cũng lố, nhưng khi lập kế hoạch tháng mới, bạn vẫn chép lại cách chia cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.08.action",
+   "category": "reading",
+   "text": "Viết ra những bài trong khóa bạn dùng được khi làm việc, rồi quyết định học tiếp hay thay đổi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.08.headline",
+   "category": "reading",
+   "text": "Bạn vẫn học khóa không dùng được vì tiếc tiền.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.08.scene",
+   "category": "reading",
+   "text": "Khóa học dạy những thứ bạn không dùng khi làm việc, nhưng lúc nghĩ đến chuyện nghỉ, bạn lại tiếc tiền.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.09.action",
+   "category": "reading",
+   "text": "Đổi một buổi tập trong tuần sang bài mới rồi ghi kết quả cân sau hai tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.09.headline",
+   "category": "reading",
+   "text": "Bạn tập một bài ba tháng mà cân vẫn vậy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.09.scene",
+   "category": "reading",
+   "text": "Ba tháng tập một bài mà cân vẫn vậy, nhưng lúc được gợi ý cách tập khác bạn vẫn giữ bài cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.10.action",
+   "category": "reading",
+   "text": "Đọc số liệu tiến độ rồi nói với nhóm một chỗ trong cách làm cần thay đổi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.10.headline",
+   "category": "reading",
+   "text": "Nhóm hỏi vì sao chậm, bạn bênh cách làm cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.10.scene",
+   "category": "reading",
+   "text": "Trong cuộc họp, khi nhóm hỏi vì sao việc chậm, bạn bảo cách làm cũ vẫn ổn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.11.action",
+   "category": "reading",
+   "text": "Đặt loại hàng cũ bằng nửa lần trước và thêm một loại mới để so kết quả bán.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.11.headline",
+   "category": "reading",
+   "text": "Bạn vẫn nhập loại hàng cũ dù bán chậm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.11.scene",
+   "category": "reading",
+   "text": "Hàng tháng trước còn tồn gần nửa, nhưng lúc đặt hàng mới bạn vẫn nhập loại đó vì quen cách bán.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.12.action",
+   "category": "reading",
+   "text": "Đổi cách học: mỗi tối nói to năm câu thay vì chép từ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.12.headline",
+   "category": "reading",
+   "text": "Chép từ nửa năm, bạn vẫn chưa nói thành câu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.defend-old-choice.12.scene",
+   "category": "reading",
+   "text": "Nửa năm chép từ vựng mà chưa nói thành câu, nhưng khi ai đó gợi ý cách khác bạn chưa muốn đổi.",
    "status": "pending"
   }
  ],
