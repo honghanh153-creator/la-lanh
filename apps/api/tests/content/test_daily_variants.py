@@ -243,6 +243,38 @@ def test_every_headline_fits_the_home_title_budget() -> None:
     assert not over, over
 
 
+# Codex review @ 7fd009e (#404): scenes and actions rotate independently, so every action a
+# capacity-before-agreement card can draw must fit every scene. Rewritten scenes say the reader
+# already said yes, so no action may require going back to before the reply, and no action may
+# name a recipient that only one scene has.
+_PRE_AGREEMENT = re.compile(
+    r"trước khi (?:trả lời|nhận|hứa|đồng ý)|rồi mới (?:trả lời|chốt)|nếu (?:muốn )?nhận"
+)
+# Live shared-pool lines: changing them needs a fallback-approval refresh, tracked in #405.
+_LIVE_PENDING_FIX = {
+    "Ghi thời gian bắt đầu và dừng trước khi nhận phần việc giúp.",
+    "Nói mình cần xem lịch rồi mới trả lời phần có thể giúp.",
+    "Nói với người kia mình cần xem lịch rồi mới chốt thời gian giúp.",
+}
+_RECIPIENTS = re.compile(r"\b(?:sếp|mẹ|bố|đồng nghiệp|hàng xóm|khách|bạn thân|người quen)\b")
+
+
+def test_capacity_actions_fit_every_scene_in_rotation() -> None:
+    issue = ISSUES["capacity-before-agreement"]
+    registry = [
+        entry.text
+        for key, entry in DAILY.items()
+        if key.startswith("daily.action.capacity-before-agreement.")
+    ]
+    assert registry
+    live = (*issue.advice, *issue.relationship_advice)
+    assert _LIVE_PENDING_FIX <= set(live), "#405 fixed: drop the exemption"
+    pool = (*(text for text in live if text not in _LIVE_PENDING_FIX), *registry)
+    timing = [text for text in pool if _PRE_AGREEMENT.search(text.lower())]
+    named = [text for text in pool if _RECIPIENTS.search(text.lower())]
+    assert timing == [] and named == [], (timing, named)
+
+
 @pytest.mark.parametrize("lead", sorted(_ARENA_LEADS.values()))
 def test_any_scene_opening_composes_with_every_arena_lead(lead: str) -> None:
     arena = next(key for key, value in _ARENA_LEADS.items() if value == lead)
