@@ -18,13 +18,24 @@ from app.domains.content.copy_approval import (
     load_registry,
     parse_registry,
 )
+from app.domains.readings import renderers
 from app.domains.readings.daily_psychology import (
     DAILY_ISSUES,
     apply_daily_psychology,
     daily_content_fingerprint,
 )
 from app.domains.readings.knowledge import full_frame
-from tests.readings.test_daily_rotation import OWNER_A, OWNER_B, START, _date_only_plan, _variety
+from tests.readings.test_application import MemoryReadingRepository, _date_only_snapshot
+from tests.readings.test_daily_rotation import (
+    GUEST,
+    OWNER_A,
+    OWNER_B,
+    START,
+    _date_only_plan,
+    _open,
+    _service,
+    _variety,
+)
 
 ISSUES = tuple(issue.key for issue in DAILY_ISSUES)
 
@@ -68,6 +79,9 @@ def _notes(owner: Any = OWNER_A, days: int = 20) -> list[tuple[str, str, str, st
 
 
 def test_no_bundles_keeps_todays_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Baseline from an empty synthetic registry, so approved bundles in the real
+    # registry never change what this test compares against (#415).
+    _use(monkeypatch, [])
     before = _notes()
     _use(monkeypatch, [_line(issue, "01", "headline") for issue in ISSUES])  # incomplete
     assert _notes() == before
@@ -165,3 +179,74 @@ def test_stored_note_reopens_stable_under_the_same_fingerprint(
     # Reopening the same day's note with the same registry renders identically.
     assert daily_content_fingerprint() == fingerprint
     assert _notes(days=10) == first
+
+
+def _restart(monkeypatch: pytest.MonkeyPatch, entries: list[dict[str, Any]]) -> None:
+    """A process start: the renderer freezes the fingerprint of the registry it loads."""
+
+    _use(monkeypatch, entries)
+    monkeypatch.setattr(
+        renderers, "DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT", daily_content_fingerprint()
+    )
+
+
+def _stored(repository: MemoryReadingRepository) -> dict[str, str]:
+    return {r.revision_key: r.renderer_version for r in repository.revisions.values()}
+
+
+def _scene_key(projection: Any, repository: MemoryReadingRepository) -> str:
+    revision = repository.revisions[(GUEST, OWNER_A, projection.active.revision_id)]
+    candidate = revision.evaluation.publishable_candidate
+    assert candidate is not None and candidate.semantic_blueprint is not None
+    return candidate.semantic_blueprint.scene_key
+
+
+def _gate_passing_bundle() -> list[dict[str, Any]]:
+    """One approved bundle for START's situation, built from lines that already pass
+    the Daily meaning gates, so the restarted service can publish it."""
+
+    empty = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": []})
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(copy_approval, "_runtime_registry", lambda: empty)
+        plan = _date_only_plan(_variety(OWNER_A, START))
+        frame = apply_daily_psychology(plan, full_frame(plan))
+    situation = frame.scene_key.split(":")[1]
+    texts = {"headline": frame.hook, "scene": frame.manifestation, "action": frame.micro_action}
+    return [
+        {**_line(situation, "01", part), "text": text, "digest": copy_digest(text)}
+        for part, text in texts.items()
+    ]
+
+
+async def test_persisted_note_survives_a_bundle_approval_restart(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#415: approving a bundle after a note was stored gives the bundle its own
+    revision key (never a replay of the old key with new text), and a later restart
+    under the same registry replays that revision unchanged."""
+
+    repository = MemoryReadingRepository()
+    snapshot = _date_only_snapshot(GUEST, OWNER_A)
+
+    _restart(monkeypatch, [])
+    opened = await _open(_service(repository, START), snapshot, START)
+    before = _stored(repository)
+    assert len(before) == 1
+    assert ":bundle-" not in _scene_key(opened, repository)
+
+    bundle = _gate_passing_bundle()
+    _restart(monkeypatch, bundle)
+    served = await _open(_service(repository, START), snapshot, START, hour=10)
+    after = _stored(repository)
+    new_keys = set(after) - set(before)
+    assert len(new_keys) == 1  # the old revision is kept, not overwritten
+    (new_key,) = new_keys
+    assert after[new_key] != next(iter(before.values()))
+    assert served.active.revision_id != opened.active.revision_id
+    assert ":bundle-" in _scene_key(served, repository)
+
+    _restart(monkeypatch, bundle)
+    replayed = await _open(_service(repository, START), snapshot, START, hour=12)
+    assert replayed.active.revision_id == served.active.revision_id
+    assert replayed.active.sections == served.active.sections
+    assert _stored(repository) == after
