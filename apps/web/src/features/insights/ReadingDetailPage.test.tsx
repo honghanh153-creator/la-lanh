@@ -4,12 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getInsightOverview, getPrivateReading } from "../../shared/api/client";
+import { getBirthSupplement, getInsightOverview, getPrivateReading } from "../../shared/api/client";
 import { ReadingDetailPage } from "./ReadingDetailPage";
 
 vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
-  return { ...actual, getInsightOverview: vi.fn(), getPrivateReading: vi.fn() };
+  return { ...actual, getBirthSupplement: vi.fn(), getInsightOverview: vi.fn(), getPrivateReading: vi.fn() };
 });
 
 function renderPage(entry = "/insights/moon-sign?tradition=western") {
@@ -129,5 +129,24 @@ describe("ReadingDetailPage", () => {
     renderPage("/insights/synthesis?tradition=western");
     expect(await screen.findByRole("link", { name: "Xem bản đọc tổng quan" })).toHaveAttribute("href", "/insights/overview?tradition=western");
     expect(screen.getByText("Lá đọc sâu · Tây phương")).toBeInTheDocument();
+  });
+
+  it("gives the overview a page heading and a retry when the chart fails", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    vi.mocked(getInsightOverview).mockRejectedValue(new Error("offline"));
+    renderPage("/insights/overview?tradition=western");
+
+    expect(await screen.findByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Bản đọc tổng quan · Tây phương" })).toBeInTheDocument();
+  });
+
+  it("shows the birth-time line and no house note for an approximate time", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    const ready = await vi.mocked(getInsightOverview).getMockImplementation()?.({ tradition: "western" } as never);
+    vi.mocked(getInsightOverview).mockResolvedValue({ ...ready, time_precision: "unknown", houses_available: false } as never);
+    renderPage("/insights/overview?tradition=western");
+
+    expect(await screen.findByText(/Bạn biết giờ sinh chính xác/)).toBeInTheDocument();
+    expect(screen.queryByText(/nhà và góc chiếu/)).not.toBeInTheDocument();
   });
 });

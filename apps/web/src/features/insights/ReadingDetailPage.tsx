@@ -8,6 +8,7 @@ import {
 } from "../../shared/api/client";
 import { ReadingContent } from "../../shared/ui/ReadingContent";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
+import { InsightQueryStates } from "./InsightQueryStates";
 import { parseAyanamsa, parseHouseSystem, parseTradition } from "./insightConfig";
 import "./insights.css";
 import { LaLoading } from "../../shared/ui/la/LaLoading";
@@ -43,13 +44,16 @@ export function ReadingDetailPage() {
     <main className="flow-page reading-page cosmic-reading-page">
       <header className="cosmic-header reading-detail-header">
         <Link aria-label="Quay lại Bản đồ Lá" className="icon-button" to={`/insights?${configQuery}`}><ArrowLeft aria-hidden="true" /></Link>
-        <span className="eyebrow">{claimId === "overview" ? "Bản đọc tổng quan" : "Lá đọc sâu"} · {tradition === "jyotish" ? "Jyotish" : "Tây phương"}</span>
+        {claimId === "overview"
+          ? <h1 className="eyebrow">Bản đọc tổng quan · {tradition === "jyotish" ? "Jyotish" : "Tây phương"}</h1>
+          : <span className="eyebrow">Lá đọc sâu · {tradition === "jyotish" ? "Jyotish" : "Tây phương"}</span>}
         <span />
       </header>
 
       {focusedClaim ? <p className="reading-context">Bạn mở từ: {focusedClaim.title}</p> : null}
       {claimId === "synthesis" && readingQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
-      {claimId !== "synthesis" && overviewQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
+      {claimId === "overview" ? <InsightQueryStates insight={overviewQuery} /> : null}
+      {claimId !== "synthesis" && claimId !== "overview" && overviewQuery.isLoading ? <LaLoading delayMs={0} text="Lá đang mở bản đọc…" variant="reading" /> : null}
       {claimId === "synthesis" && readingQuery.data ? <ReadingContent content={readingQuery.data.active} /> : null}
       {focusedClaim && overviewQuery.data?.reading ? (
         <FocusedClaimContent
@@ -63,6 +67,11 @@ export function ReadingDetailPage() {
       ) : null}
       {claimId === "overview" && overviewQuery.data?.reading?.claims.length ? (
         <div className="overview-claims">
+          {overviewQuery.data.time_precision !== "exact" ? (
+            <p className="insight-precision-note">
+              Bạn biết giờ sinh chính xác? <Link to="/birth-time">Thêm vào nhé</Link>, Lá sẽ đọc thêm được cách người khác nhìn thấy bạn lúc mới gặp, và những chuyện bạn hay gặp trong cuộc sống thường xoay quanh điều gì.
+            </p>
+          ) : null}
           {overviewQuery.data.reading.claims.map((claim) => (
             <FocusedClaimContent
               claim={claim}
@@ -81,7 +90,7 @@ export function ReadingDetailPage() {
           <button className="electric-button" onClick={() => void readingQuery.refetch()} type="button">Thử lại</button>
         </section>
       ) : null}
-      {claimId !== "synthesis" && claimId !== "overview" && !overviewQuery.isLoading && !focusedClaim ? (
+      {claimId !== "synthesis" && !overviewQuery.isLoading && !overviewQuery.isError && overviewQuery.data?.status !== "locked" && !focusedClaim && (claimId !== "overview" || !overviewQuery.data?.reading?.claims.length) ? (
         <section className="cosmic-state" role="alert">
           <WarningCircle aria-hidden="true" size={30} />
           <h1>Lớp này chưa có trong chart.</h1>
