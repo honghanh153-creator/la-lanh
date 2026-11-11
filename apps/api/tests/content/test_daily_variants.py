@@ -252,6 +252,8 @@ _CHANGED_PLAN_OFF_FRAME = re.compile(
 )
 _CHANGED_PLAN_SETTLED = re.compile(
     r"giờ hẹn cuối cùng|theo giờ hẹn mới|vừa giờ hẹn mới|trước giờ hẹn mới|hai bên đã chốt"
+    # Actions must be doable now, while the new day/time is still unknown.
+    r"|đã chọn xong|khi hai bên đã|ngày có giờ hẹn mới|hôm có giờ hẹn mới"
 )
 
 

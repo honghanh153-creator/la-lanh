@@ -501,7 +501,7 @@
   {
    "id": "daily.action.changed-plan.18",
    "category": "reading",
-   "text": "Xác nhận giờ hẹn mới bằng một tin nhắn khi hai bên đã chọn xong.",
+   "text": "Nhắn người kia rằng bạn vẫn muốn gặp và đang chờ họ báo giờ.",
    "status": "pending"
   },
   {
@@ -519,7 +519,7 @@
   {
    "id": "daily.action.changed-plan.21",
    "category": "reading",
-   "text": "Giảm bớt việc trong ngày có giờ hẹn mới để lịch không quá sát.",
+   "text": "Chọn hai buổi còn trống trong mấy ngày tới và để dành cho buổi hẹn.",
    "status": "pending"
   },
   {
