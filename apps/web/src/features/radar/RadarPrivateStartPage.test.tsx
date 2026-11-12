@@ -5,8 +5,10 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  ApiProblem,
   claimOwner,
   createPrivateRadarCheck,
+  getBirthSupplement,
   getSession,
   listRadarInvites,
   OWNER_SESSION_EPOCH_KEY,
@@ -23,10 +25,32 @@ vi.mock("../../shared/api/client", async (loadOriginal) => {
     getSession: vi.fn(),
     createPrivateRadarCheck: vi.fn(),
     deleteRadarResult: vi.fn(),
+    getBirthSupplement: vi.fn(),
     listRadarInvites: vi.fn(),
     searchBirthPlaces: vi.fn(),
   };
 });
+
+function supplement(profileLevel: 1 | 2 | 3) {
+  const full = profileLevel === 3;
+  return {
+    profile_id: "00000000-0000-4000-8000-0000000000aa",
+    profile_level: profileLevel,
+    time_precision: full ? "exact" : "unknown",
+    birth_time_mode: full ? "exact" : "unknown",
+    approx_window: null,
+    place_display_name: full ? "Thành phố mẫu" : null,
+    timezone_id: full ? "Asia/Ho_Chi_Minh" : null,
+  } as Awaited<ReturnType<typeof getBirthSupplement>>;
+}
+
+function renderPage(queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter><RadarPrivateStartPage /></MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
 describe("RadarPrivateStartPage", () => {
   const scrollIntoView = vi.fn();
@@ -52,6 +76,7 @@ describe("RadarPrivateStartPage", () => {
     });
     vi.mocked(listRadarInvites).mockResolvedValue([]);
     vi.mocked(searchBirthPlaces).mockResolvedValue([]);
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
     scrollIntoView.mockReset();
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -193,5 +218,75 @@ describe("RadarPrivateStartPage", () => {
 
     expect(screen.queryByText("Old private result")).not.toBeInTheDocument();
     expect(screen.getByText("Đang nối Radar với phiên chart hiện tại…")).toBeInTheDocument();
+  });
+  it("shows the add-birth-time gate instead of the form to a date-only user", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
+    renderPage();
+
+    const cta = await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" });
+    expect(cta).toHaveAttribute("href", "/birth-time");
+    expect(screen.getByRole("heading", { name: "Radar cần chart đủ giờ và nơi sinh của bạn trước." })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Tên gọi để bạn dễ nhớ")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ngày sinh — ngày")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Check kín ngay/ })).not.toBeInTheDocument();
+    await user.click(cta);
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("1");
+  });
+
+  it("shows the form to a user whose own chart has birth time and place", async () => {
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
+    renderPage();
+
+    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
+  });
+
+  it("waits for the precision check without showing the form, then shows it", async () => {
+    let resolve: ((value: Awaited<ReturnType<typeof getBirthSupplement>>) => void) | null = null;
+    vi.mocked(getBirthSupplement).mockImplementation(() => new Promise((done) => { resolve = done; }));
+    renderPage();
+
+    await waitFor(() => expect(resolve).not.toBeNull());
+    expect(screen.getByText("Đang nối Radar với phiên chart hiện tại…")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Tên gọi để bạn dễ nhớ")).not.toBeInTheDocument();
+    resolve!(supplement(3));
+    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
+    expect(screen.queryByText("Đang nối Radar với phiên chart hiện tại…")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the form when the precision check fails or times out", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("Request timed out"));
+    renderPage();
+
+    expect(await screen.findByLabelText("Tên gọi để bạn dễ nhớ")).toBeInTheDocument();
+    expect(screen.queryByText("Đang nối Radar với phiên chart hiện tại…")).not.toBeInTheDocument();
+  });
+
+  it("keeps the server 409 as a fallback and stores no draft of the other person", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    vi.mocked(searchBirthPlaces).mockResolvedValue([{
+      place_id: "vn-hanoi", display_name: "Hà Nội", timezone_id: "Asia/Ho_Chi_Minh",
+      country_code: "VN", confidence: "current-province-centroid",
+    }]);
+    vi.mocked(createPrivateRadarCheck).mockRejectedValue(new ApiProblem(409, "RADAR_CHART_REQUIRED", "chart"));
+    renderPage();
+
+    await user.type(await screen.findByLabelText("Tên gọi để bạn dễ nhớ"), "QA");
+    await user.type(screen.getByLabelText("Ngày sinh — ngày"), "15");
+    await user.type(screen.getByLabelText("Ngày sinh — tháng"), "03");
+    await user.type(screen.getByLabelText("Ngày sinh — năm"), "1990");
+    await user.click(screen.getByRole("button", { name: "Không rõ giờ" }));
+    await user.type(screen.getByLabelText("Thành phố / tỉnh nơi sinh"), "Hà");
+    await user.click(await screen.findByRole("button", { name: /Hà Nội/ }));
+    await user.click(screen.getByLabelText("Xác nhận đã được phép dùng thông tin sinh"));
+    await user.click(screen.getByRole("button", { name: /Check kín ngay/ }));
+
+    expect(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).toHaveAttribute("href", "/birth-time");
+    expect(screen.getByRole("alert")).toHaveTextContent("Chart của bạn còn thiếu giờ hoặc nơi sinh.");
+    const stored = JSON.stringify({ ...sessionStorage }) + JSON.stringify({ ...localStorage });
+    expect(stored).not.toContain("1990");
+    expect(stored).not.toContain("vn-hanoi");
   });
 });

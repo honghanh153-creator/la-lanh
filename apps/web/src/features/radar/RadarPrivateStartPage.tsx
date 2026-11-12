@@ -19,9 +19,11 @@ import "./radar.css";
 import { RadarEraseSheet } from "./RadarEraseSheet";
 import { useRadarEraseTarget } from "./useRadarEraseTarget";
 import { RadarFlowSteps } from "./RadarFlowSteps";
+import { RadarPrecisionGate } from "./RadarPrecisionGate";
 import { formatRadarExpiry, RADAR_CONTEXT_OPTIONS, RADAR_VOICE_OPTIONS } from "./radarOptions";
 import { RADAR_HISTORY_QUERY_KEY, useRadarOwnerBinding } from "./useRadarOwnerBinding";
 import { useRadarCreateKey, useRadarHistory } from "./useRadarHistory";
+import { useRadarOwnerPrecision } from "./useRadarOwnerPrecision";
 
 function adultBirthDate(day: string, month: string, year: string): string | null {
   if (!/^\d{1,2}$/.test(day) || !/^\d{1,2}$/.test(month) || !/^\d{4}$/.test(year)) return null;
@@ -67,6 +69,7 @@ export function RadarPrivateStartPage() {
   const history = useRadarHistory(owner.epoch, owner.isReady, "private_check");
   const erase = useRadarEraseTarget(owner);
   const retryKey = useRadarCreateKey(owner.epoch);
+  const precision = useRadarOwnerPrecision(owner);
 
   const effectivePlaceQuery = debouncedPlaceQuery.length >= 2 ? debouncedPlaceQuery : "";
   const places = useQuery({
@@ -186,7 +189,9 @@ export function RadarPrivateStartPage() {
 
     {owner.isError ? <section className="radar-public__card radar-owner-gate"><Sparkle /><h2>{owner.error instanceof ApiProblem && owner.error.status === 401 ? "Chart của bạn cần có trước." : "Chưa nối lại được phiên riêng."}</h2><p>{owner.error instanceof ApiProblem && owner.error.status === 401 ? "Chưa cần tài khoản. Tạo chart riêng, thêm giờ và nơi sinh rồi Lá đưa bạn quay lại Radar." : "Dữ liệu cũ vẫn được giữ kín. Kiểm tra mạng rồi thử nối lại nhé."}</p>{owner.error instanceof ApiProblem && owner.error.status === 401 ? <Link className="matching-primary" onClick={startOwnerProfile} to="/consent">Tạo chart của mình <ArrowRight /></Link> : <button className="matching-primary" onClick={owner.retry} type="button">Thử nối lại <ArrowRight /></button>}</section> : null}
 
-    {ownerReady ? <form className="radar-create radar-private-form" onSubmit={submit}>
+    {ownerReady && precision === "needs_birth_time" ? <RadarPrecisionGate onStart={startOwnerProfile} /> : null}
+
+    {ownerReady && precision === "ready" ? <form className="radar-create radar-private-form" onSubmit={submit}>
       <div className="radar-form-heading"><span>01</span><div><strong>Người bạn muốn check</strong><p>Thông tin này không được gửi cho người ấy.</p></div></div>
       <label><span>Tên gọi để bạn dễ nhớ</span><input autoComplete="off" maxLength={40} onChange={(event) => setLabel(event.target.value)} placeholder="Ví dụ: An, Mèo, người hay seen…" required value={label} /></label>
       <fieldset><legend>Hai bạn đang là…</legend><div className="radar-contexts">{RADAR_CONTEXT_OPTIONS.map(([value, text]) => <button aria-pressed={context === value} className={context === value ? "is-selected" : ""} key={value} onClick={() => setContext(value)} type="button">{text}</button>)}</div></fieldset>
@@ -209,7 +214,7 @@ export function RadarPrivateStartPage() {
       <button className="matching-primary" disabled={!complete || create.isPending || owner.isPending} type="submit">{create.isPending ? "Đang bắt hai tín hiệu…" : "Check kín ngay"}<ArrowRight /></button>
       <div className="radar-no-permission"><ShieldCheck /><p><strong>Chưa được phép dùng dữ liệu?</strong><br />Để người ấy tự nhập và tự đồng ý.</p><Link to="/radar/invite">Mời họ tự nhập</Link></div>
     </form> : null}
-    {owner.isPending && !owner.isError ? <section aria-live="polite" className="radar-owner-refresh"><Sparkle className="matching-pulse" /><p>Đang nối Radar với phiên chart hiện tại…</p></section> : null}
+    {(owner.isPending || (ownerReady && precision === "checking")) && !owner.isError ? <section aria-live="polite" className="radar-owner-refresh"><Sparkle className="matching-pulse" /><p>Đang nối Radar với phiên chart hiện tại…</p></section> : null}
     {message && !owner.isError ? <p className="matching-message" role="alert">{message}</p> : null}
     {create.isError && create.error instanceof ApiProblem && create.error.status === 409 && create.error.code !== "RADAR_IDEMPOTENCY_CONFLICT" ? <Link className="matching-secondary" onClick={startOwnerProfile} to="/birth-time">Thêm giờ & nơi sinh của mình</Link> : null}
 
