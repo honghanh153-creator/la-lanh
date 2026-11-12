@@ -132,17 +132,32 @@ export function guardHits(terms, { diff = '', texts = {} } = {}) {
 // Anything else keeps the local `pnpm check`. Rollback: drop LA_LANH_CHECK_SOURCE from collab-cron.sh.
 export const checkSource = (env = process.env) => (env.LA_LANH_CHECK_SOURCE === 'ci' ? 'ci' : 'local');
 
-// The newest `check` run from GitHub Actions on this exact head. Only `success` passes; a run that
-// has not finished is pending; any other conclusion (failure, cancelled, skipped, timed_out…) fails.
+// The `check` job of the newest pr-check workflow run on this exact head. Only `success` passes; a
+// run or job that has not finished is pending; any other conclusion (failure, cancelled, skipped,
+// timed_out…) fails, and a finished run without a `check` job fails too. The lookup goes through
+// the workflow file, never through check names: any other workflow may define a job called
+// `check` (Codex #443 r1).
+export const ciWorkflow = '.github/workflows/pr-check.yml';
 export function ciCheck(gh, head) {
   if (!isSha(head)) throw new Error('head SHA unavailable');
-  const runs = (gh.json(['api', `repos/${repo}/commits/${head}/check-runs?check_name=check&filter=latest&per_page=20`]).check_runs ?? [])
-    .filter(r => r.app?.slug === 'github-actions' && r.head_sha === head)
-    .sort((a, b) => String(b.started_at ?? '').localeCompare(String(a.started_at ?? '')));
+  const runs = (gh.json(['api', `repos/${repo}/actions/workflows/pr-check.yml/runs?head_sha=${head}&per_page=20`]).workflow_runs ?? [])
+    .filter(r => r.head_sha === head && String(r.path ?? '').split('@')[0] === ciWorkflow)
+    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')) || Number(b.run_attempt ?? 0) - Number(a.run_attempt ?? 0));
   const run = runs[0];
   if (!run || run.status !== 'completed') return { state: 'pending', url: run?.html_url ?? '' };
-  return { state: run.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(run.conclusion ?? 'unknown'), url: run.html_url ?? '' };
+  const jobs = (gh.json(['api', `repos/${repo}/actions/runs/${Number(run.id)}/jobs?filter=latest&per_page=100`]).jobs ?? [])
+    .filter(j => j.name === 'check' && j.head_sha === head && Number(j.run_id) === Number(run.id));
+  const job = jobs[0];
+  if (!job) return { state: 'FAIL', conclusion: 'missing', url: run.html_url ?? '' };
+  if (job.status !== 'completed') return { state: 'pending', url: job.html_url ?? '' };
+  return { state: job.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '' };
 }
+
+// CI mode keeps only the metadata preflight (body, level, size). ruff and mypy read config and
+// plugins from the PR itself, so they run in CI's `pnpm check`, never on the Mac (Codex #443 r1).
+export const clonePreflight = (source, { spawn, exists } = {}) => (source === 'ci'
+  ? p => runPreflight(p)
+  : (p, dir, left) => runPreflight(p, { cwd: dir, left, ...(spawn ? { spawn } : {}), ...(exists ? { exists } : {}) }));
 
 export function renderCheck({ head, status, exitCode, seconds, date, guard = null, details = [], ci = null }) {
   return [
@@ -329,7 +344,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs() - cleanupReserveMs - finalizeReserveMs);
-    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, source, ci: rest.ci ?? ciCheck, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
+    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, source, ci: rest.ci ?? ciCheck, preflight: rest.preflight === undefined ? clonePreflight(source) : rest.preflight });
     // A lint failure is recorded too, keyed by head, so the next tick routes the PR to claude-fix.
     if (result?.status === 'preflight') (rest.held?.record ?? recordPreflight)(number, pr.headRefOid, { status: 'FAIL', reasons: result.reasons ?? [], ...(result.bodyHash ? { bodyHash: result.bodyHash } : {}) });
     return result;

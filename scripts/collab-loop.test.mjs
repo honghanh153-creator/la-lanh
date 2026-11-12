@@ -12,7 +12,7 @@ const preflightMod = await import('./collab-preflight.mjs');
 const { committedTurns, copyReview, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { ciCheck, checkSource, heavyJobFree, checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { ciCheck, clonePreflight, checkSource, heavyJobFree, checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -763,20 +763,63 @@ test('12.11 trial: CI source reads pr-check at the head and never installs, buil
   assert.equal(posted.length, 2, 'a pending CI posts nothing');
 });
 
-test('12.11 trial: ciCheck passes only a completed success from GitHub Actions at the exact head', () => {
-  const at = runs => ({ json: () => ({ check_runs: runs }) });
-  const r = (o) => ({ app: { slug: 'github-actions' }, head_sha: A, status: 'completed', conclusion: 'success', started_at: '2026-11-12T01:00:00Z', html_url: 'u', ...o });
+test('12.11 trial: ciCheck passes only a completed success of the pr-check check job at the exact head', () => {
+  // Synthetic GitHub API: workflow runs of pr-check.yml by head, then the jobs of one run.
+  const at = (runs, jobsByRun = {}) => ({ json: args => {
+    const path = args[1];
+    if (/\/actions\/workflows\/pr-check\.yml\/runs\?head_sha=/.test(path)) return { workflow_runs: runs };
+    const id = /\/actions\/runs\/(\d+)\/jobs/.exec(path)?.[1];
+    if (id) return { jobs: jobsByRun[id] ?? [] };
+    throw new Error(`unexpected api ${path}`);
+  } });
+  const w = o => ({ id: 1, path: '.github/workflows/pr-check.yml', head_sha: A, status: 'completed', created_at: '2026-11-12T01:00:00Z', html_url: 'r', ...o });
+  const j = o => ({ name: 'check', run_id: 1, head_sha: A, status: 'completed', conclusion: 'success', html_url: 'u', ...o });
   assert.equal(ciCheck(at([]), A).state, 'pending');
-  assert.equal(ciCheck(at([r({ status: 'in_progress', conclusion: null })]), A).state, 'pending');
-  assert.equal(ciCheck(at([r()]), A).state, 'PASS');
-  for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out', 'neutral', 'action_required']) assert.equal(ciCheck(at([r({ conclusion })]), A).state, 'FAIL', conclusion);
-  assert.equal(ciCheck(at([r({ app: { slug: 'someone-else' } })]), A).state, 'pending', 'another app cannot pass the check');
-  assert.equal(ciCheck(at([r({ head_sha: C })]), A).state, 'pending', 'another head does not count');
-  assert.equal(ciCheck(at([r({ conclusion: 'failure' }), r({ started_at: '2026-11-12T02:00:00Z' })]), A).state, 'PASS', 'the newest run decides');
-  assert.equal(ciCheck(at([r({ started_at: '2026-11-12T02:00:00Z', conclusion: 'failure' }), r()]), A).state, 'FAIL');
+  assert.equal(ciCheck(at([w({ status: 'in_progress' })], { 1: [j({ status: 'in_progress', conclusion: null })] }), A).state, 'pending');
+  assert.equal(ciCheck(at([w()], { 1: [j()] }), A).state, 'PASS');
+  for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out', 'neutral', 'action_required']) assert.equal(ciCheck(at([w()], { 1: [j({ conclusion })] }), A).state, 'FAIL', conclusion);
+  assert.equal(ciCheck(at([w()], { 1: [j({ name: 'scope' })] }), A).conclusion, 'missing', 'a finished run without a check job fails');
+  assert.equal(ciCheck(at([w({ head_sha: C })], { 1: [j()] }), A).state, 'pending', 'another head does not count');
+  assert.equal(ciCheck(at([w()], { 1: [j({ head_sha: C })] }), A).state, 'FAIL', 'a job at another head does not count');
+  assert.equal(ciCheck(at([w({ id: 1, conclusion: 'failure' }), w({ id: 2, created_at: '2026-11-12T02:00:00Z' })], { 1: [j({ conclusion: 'failure' })], 2: [j({ run_id: 2 })] }), A).state, 'PASS', 'the newest run decides');
+  assert.equal(ciCheck(at([w({ id: 2, created_at: '2026-11-12T02:00:00Z' }), w()], { 1: [j()], 2: [j({ run_id: 2, conclusion: 'failure' })] }), A).state, 'FAIL');
   assert.throws(() => ciCheck(at([]), 'nope'));
   assert.equal(checkSource({ LA_LANH_CHECK_SOURCE: 'ci' }), 'ci');
   assert.equal(checkSource({}), 'local');
+});
+
+test('Codex #443 r1: a check job of another workflow never passes a head whose pr-check failed', () => {
+  const calls = [];
+  const gh = { json: args => {
+    calls.push(args[1]);
+    if (args[1].includes('/actions/workflows/')) return { workflow_runs: [
+      { id: 9, path: '.github/workflows/other.yml', head_sha: A, status: 'completed', created_at: '2026-11-12T03:00:00Z' },
+      { id: 1, path: '.github/workflows/pr-check.yml', head_sha: A, status: 'completed', created_at: '2026-11-12T01:00:00Z' },
+    ] };
+    if (args[1].includes('/actions/runs/1/')) return { jobs: [
+      { name: 'check', run_id: 1, head_sha: A, status: 'completed', conclusion: 'failure' },
+      { name: 'check', run_id: 9, head_sha: A, status: 'completed', conclusion: 'success' },
+    ] };
+    return { jobs: [{ name: 'check', run_id: 9, head_sha: A, status: 'completed', conclusion: 'success' }] };
+  } };
+  const result = ciCheck(gh, A);
+  assert.equal(result.state, 'FAIL');
+  assert.equal(result.conclusion, 'failure');
+  assert.match(calls[0], /\/actions\/workflows\/pr-check\.yml\/runs\?head_sha=a{40}/, 'runs are looked up through the pr-check workflow file');
+  assert.ok(!calls.some(c => c.includes('check-runs')), 'check names are never trusted on their own');
+  assert.ok(!calls.some(c => c.includes('/runs/9/')), 'the other workflow is never read');
+});
+
+test('Codex #443 r1: CI mode keeps only the metadata preflight and never starts uv on PR files', () => {
+  const never = () => { throw new Error('ruff/mypy must not run on the Mac in CI mode'); };
+  const py = pr({ files: [{ path: 'apps/api/app/x.py', additions: 1, deletions: 0 }] });
+  assert.equal(clonePreflight('ci', { spawn: never, exists: () => true })(py, '/clone', () => 60000).status, 'PASS');
+  const bad = clonePreflight('ci', { spawn: never, exists: () => true })(pr({ body: 'no gates' }), '/clone', () => 60000);
+  assert.equal(bad.status, 'FAIL', 'the body template is still checked locally');
+  const ran = [];
+  const local = clonePreflight('local', { spawn: (cmd, args) => { ran.push([cmd, ...args].join(' ')); return { status: 0 }; }, exists: () => true })(py, '/clone', () => 60000);
+  assert.equal(local.status, 'PASS');
+  assert.ok(ran.some(c => c.startsWith('uv run')), 'local mode still lints the changed Python files');
 });
 
 test('#306: a direct clone check with a failing body records it, routes to claude-fix and stops retrying', () => {
