@@ -5893,6 +5893,222 @@
    "status": "pending"
   },
   {
+   "id": "daily.bundle.name-the-need.01.action",
+   "category": "reading",
+   "text": "Nhắn trưởng nhóm nhờ giúp đúng một báo cáo, ghi rõ hạn thứ Sáu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.01.headline",
+   "category": "reading",
+   "text": "Bạn có ba báo cáo cùng hạn thứ Sáu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.01.scene",
+   "category": "reading",
+   "text": "Cuối giờ chiều, bạn định nhắn trưởng nhóm là mình quá tải, nhưng chưa ghi phần nào cần giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.02.action",
+   "category": "reading",
+   "text": "Nhắn nhóm hai việc cụ thể còn thiếu, như đặt xe và tìm chỗ ăn, rồi hỏi ai nhận.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.02.headline",
+   "category": "reading",
+   "text": "Bạn lo hết việc chuẩn bị chuyến đi của nhóm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.02.scene",
+   "category": "reading",
+   "text": "Nhóm bạn hỏi chuyến đi chuẩn bị tới đâu, và bạn sắp trả lời là mệt quá mà chưa nhờ ai giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.03.action",
+   "category": "reading",
+   "text": "Hỏi em gái có làm giúp được một việc cụ thể không, như nhặt rau hoặc rửa chén.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.03.headline",
+   "category": "reading",
+   "text": "Bạn nấu một mình cho bữa họp mặt gia đình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.03.scene",
+   "category": "reading",
+   "text": "Lúc khách sắp tới, bạn định than với em gái là làm không kịp mà chưa nhờ giúp món nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.04.action",
+   "category": "reading",
+   "text": "Chọn hai phần cụ thể còn thiếu của bài và hỏi từng bạn trong nhóm có nhận được không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.04.headline",
+   "category": "reading",
+   "text": "Bài nhóm sắp nộp mà bạn làm gần hết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.04.scene",
+   "category": "reading",
+   "text": "Tối nay bạn định nhắn cả nhóm là mình quá tải, nhưng chưa nói phần nào cần ai giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.05.action",
+   "category": "reading",
+   "text": "Nhắn người kia nhờ giúp mua hai món cụ thể trên đường về.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.05.headline",
+   "category": "reading",
+   "text": "Bạn đi chợ một mình với danh sách dài.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.05.scene",
+   "category": "reading",
+   "text": "Trước khi ra chợ, bạn định nhắn người kia là hôm nay mệt quá, mà chưa nói cần giúp mua món nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.06.action",
+   "category": "reading",
+   "text": "Nói với đồng nghiệp một việc cụ thể họ có thể làm giúp trong chiều nay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.06.headline",
+   "category": "reading",
+   "text": "Đồng nghiệp hỏi bạn có cần giúp gì không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.06.scene",
+   "category": "reading",
+   "text": "Đồng nghiệp hỏi có cần giúp không, và câu trả lời bạn sắp nói là không sao dù đang quá tải.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.07.action",
+   "category": "reading",
+   "text": "Nói với người kia một việc cụ thể cần giúp, như phơi đồ hoặc lau sàn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.07.headline",
+   "category": "reading",
+   "text": "Bạn dọn dẹp một mình cả buổi cuối tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.07.scene",
+   "category": "reading",
+   "text": "Người kia hỏi sao trông bạn mệt, và bạn định nói không có gì dù đang cần giúp dọn dẹp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.08.action",
+   "category": "reading",
+   "text": "Nhắn bạn cùng phòng nhờ giúp một việc cụ thể, như mua đồ ăn tối trên đường về.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.08.headline",
+   "category": "reading",
+   "text": "Bạn về trễ mà còn phải lo bữa tối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.08.scene",
+   "category": "reading",
+   "text": "Tin nhắn của bạn cùng phòng hỏi tối nay ăn gì, và bạn đang gõ chữ mệt quá mà chưa nhờ giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.09.action",
+   "category": "reading",
+   "text": "Nói với mẹ một việc cụ thể mẹ giúp được trong tuần thi, như nấu sẵn bữa trưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.09.headline",
+   "category": "reading",
+   "text": "Tuần thi, mẹ gọi hỏi bạn có cần gì không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.09.scene",
+   "category": "reading",
+   "text": "Khi mẹ gọi hỏi tuần thi thế nào, bạn sắp than là quá tải mà chưa nói cần mẹ giúp việc gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.10.action",
+   "category": "reading",
+   "text": "Nói với sếp một đầu việc cụ thể bạn cần giúp trong tuần này.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.10.headline",
+   "category": "reading",
+   "text": "Cuối cuộc họp, sếp hỏi ai cần hỗ trợ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.10.scene",
+   "category": "reading",
+   "text": "Cuộc họp sắp kết thúc, sếp hỏi ai cần giúp, và bạn định im lặng dù lịch tuần này đang quá tải.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.11.action",
+   "category": "reading",
+   "text": "Nhắn nhóm câu lạc bộ nhờ giúp một việc cụ thể, như dựng bàn lúc 7 giờ sáng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.11.headline",
+   "category": "reading",
+   "text": "Bạn phụ trách gian hàng câu lạc bộ ở hội chợ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.11.scene",
+   "category": "reading",
+   "text": "Sáng mai là hội chợ, bạn định nhắn trong nhóm câu lạc bộ là làm không xuể mà chưa nhờ ai giúp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.12.action",
+   "category": "reading",
+   "text": "Nhắn chủ quán nhờ giúp một khâu cụ thể, như thu ngân từ 11 giờ đến 1 giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.12.headline",
+   "category": "reading",
+   "text": "Quán đông khách mà chỉ mình bạn đứng quầy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.name-the-need.12.scene",
+   "category": "reading",
+   "text": "Lúc quán đông giờ trưa, bạn định nhắn chủ quán là quá tải mà chưa nói cần giúp ở khâu nào.",
+   "status": "pending"
+  },
+  {
    "id": "daily.scene.perfect-before-start.01",
    "category": "reading",
    "text": "Khi bản nháp đã đủ để người khác góp ý, bạn có thể vẫn giữ lại để sửa thêm.",
