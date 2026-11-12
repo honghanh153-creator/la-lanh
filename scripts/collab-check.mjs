@@ -127,11 +127,31 @@ export function guardHits(terms, { diff = '', texts = {} } = {}) {
   return hits;
 }
 
-export function renderCheck({ head, status, exitCode, seconds, date, guard = null, details = [] }) {
+// Where the author check comes from (owner 12.11.2026, trial): `ci` reads the `check` job of the
+// pr-check workflow at the exact head instead of running the PR's install/build/check on the Mac.
+// Anything else keeps the local `pnpm check`. Rollback: drop LA_LANH_CHECK_SOURCE from collab-cron.sh.
+export const checkSource = (env = process.env) => (env.LA_LANH_CHECK_SOURCE === 'ci' ? 'ci' : 'local');
+
+// The newest `check` run from GitHub Actions on this exact head. Only `success` passes; a run that
+// has not finished is pending; any other conclusion (failure, cancelled, skipped, timed_out…) fails.
+export function ciCheck(gh, head) {
+  if (!isSha(head)) throw new Error('head SHA unavailable');
+  const runs = (gh.json(['api', `repos/${repo}/commits/${head}/check-runs?check_name=check&filter=latest&per_page=20`]).check_runs ?? [])
+    .filter(r => r.app?.slug === 'github-actions' && r.head_sha === head)
+    .sort((a, b) => String(b.started_at ?? '').localeCompare(String(a.started_at ?? '')));
+  const run = runs[0];
+  if (!run || run.status !== 'completed') return { state: 'pending', url: run?.html_url ?? '' };
+  return { state: run.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(run.conclusion ?? 'unknown'), url: run.html_url ?? '' };
+}
+
+export function renderCheck({ head, status, exitCode, seconds, date, guard = null, details = [], ci = null }) {
   return [
     `Author check: ${status} @ ${head}`,
     '',
-    `Lệnh: \`pnpm check\` · exit ${exitCode} · ${seconds}s · ${date}. Chạy trên checkout sạch, \`HEAD == ${head.slice(0, 12)}\`.`,
+    ci
+      ? `Nguồn: CI \`pr-check / check\` · ${clean(ci.conclusion, 40)} · ${date}. Mã của PR không chạy trên Mac. ${clean(ci.url, 200)}`
+      : `Lệnh: \`pnpm check\` · exit ${exitCode} · ${seconds}s · ${date}. Chạy trên checkout sạch, \`HEAD == ${head.slice(0, 12)}\`.`,
+    ...(ci && ci.conclusion === 'cancelled' ? ['CI bị huỷ và chưa có lượt mới ở head này: chạy lại job (`gh run rerun <run> --failed`) hoặc push lại, không phải lỗi code.'] : []),
     ...(guard?.length ? [`**Chặn: dữ liệu riêng tư** trong danh sách cục bộ của owner xuất hiện ở ${guard.slice(0, 20).map(h => `\`${clean(h, 120)}\``).join(', ')}. Không chạy \`pnpm check\`. Thay bằng dữ liệu giả, sửa cả lịch sử nhánh nếu nằm trong commit.`] : []),
     ...(status === 'FAIL' && details.length ? ['', ...details, ''] : []),
     status === 'PASS' ? 'Đây là bằng chứng của tác giả, không thay review.' : 'Lượt tiếp theo là Claude sửa.',
@@ -186,13 +206,13 @@ export function privateHits(pr, git, terms, ranges = [[`origin/${integration}..H
   } catch { return ['lịch sử nhánh không đọc được']; }
 }
 
-function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null, waitGuard = waitForGuard }) {
+function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null, waitGuard = waitForGuard, source = 'local', ci = ciCheck }) {
   const pr = gh.pr(number);
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   const head = git(['rev-parse', 'HEAD']);
   if (!isSha(pr.headRefOid) || head !== pr.headRefOid) return { status: 'refused', reason: `HEAD ${head.slice(0, 12)} không phải head của PR ${String(pr.headRefOid).slice(0, 12)}` };
   if (git(['status', '--porcelain'])) return { status: 'refused', reason: 'checkout có thay đổi chưa commit' };
-  const other = busy();
+  const other = source === 'ci' ? null : busy();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
   const timeoutMs = budget();
   if (timeoutMs <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
@@ -208,6 +228,12 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   const pre = preflight?.(pr, cwd, budget);
   if (budget() <= 0) return { status: 'refused', reason: 'hết giờ sau preflight (sau 23:30)' };
   if (pre?.status === 'FAIL') return { status: 'preflight', reasons: pre.reasons, ...(pre.bodyHash ? { bodyHash: pre.bodyHash } : {}) };
+  if (source === 'ci') {
+    const result = ci(gh, head);
+    if (result.state === 'pending') return { status: 'ci-pending', reason: 'CI pr-check chưa xong ở head này' };
+    gh.comment('pr', pr.number, renderCheck({ head, status: result.state, ci: result, date: new Date(started).toISOString() }));
+    return { status: result.state, ci: result.conclusion };
+  }
   // Agent tests run through collab-test-guard.mjs; wait up to 5 minutes for them (05.11.2026),
   // never past the budget, and the budget is read again after the wait (#258 r1).
   const guarded = waitGuard({ limitMs: Math.min(guardWaitMs, budget()) });
@@ -242,7 +268,7 @@ export class DeadlineError extends Error {}
 
 // Every preparation step is bounded by the time left before the absolute deadline;
 // install and make run as process groups so nothing they start survives the cutoff.
-export function prepareAuthorClone(number, head, run = execFileSync, { deadlineMs = Infinity, nowMs = Date.now, group = runGroup } = {}) {
+export function prepareAuthorClone(number, head, run = execFileSync, { deadlineMs = Infinity, nowMs = Date.now, group = runGroup, source = 'local' } = {}) {
   const left = cap => {
     const ms = Math.min(cap, deadlineMs - nowMs());
     if (ms <= 0) throw new DeadlineError('hết giờ khi đang chuẩn bị clone');
@@ -264,6 +290,8 @@ export function prepareAuthorClone(number, head, run = execFileSync, { deadlineM
   step(['clean', '-fdq'], dir, 120000);
   const actual = step(['rev-parse', 'HEAD'], dir, 60000);
   if (actual !== head) throw new Error(`Author clone is at ${actual}, not ${head}.`);
+  // CI mode: the clone is only for the private-data scan, preflight and branch sync; nothing of the PR runs.
+  if (source === 'ci') return dir;
   if (!build('pnpm', ['install', '--frozen-lockfile', '--offline'], 900000)) {
     if (!build('pnpm', ['install', '--frozen-lockfile'], 900000)) throw new Error('pnpm install failed in the author clone');
   }
@@ -280,14 +308,15 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   if (checkBudgetMs({ auto, clock }) <= 0) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
   const held = heldPreflight({ ...pr, number: pr.number ?? number }, rest.held);
   if (held) return held;
-  // Refuse before touching the clone when another check owns the machine.
-  const other = (rest.busy ?? machineBusy)();
+  const source = rest.source ?? checkSource();
+  // Refuse before touching the clone when another check owns the machine (local mode only).
+  const other = source === 'ci' ? null : (rest.busy ?? machineBusy)();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
   const nowMs = rest.nowMs ?? Date.now;
   const deadlineMs = nowMs() + checkBudgetMs({ auto, clock, nowMs });
   return withCheckLock(() => {
     let cwd;
-    try { cwd = prepareAuthorClone(number, pr.headRefOid, run, { deadlineMs, nowMs, group: rest.group ?? runGroup }); }
+    try { cwd = prepareAuthorClone(number, pr.headRefOid, run, { deadlineMs, nowMs, group: rest.group ?? runGroup, source }); }
     catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: error.message }; throw error; }
     // A branch behind integration is merged and pushed first; the new head gets its own check.
     // Bounded by the same absolute deadline as the clone preparation, with the cleanup reserve.
@@ -300,7 +329,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs() - cleanupReserveMs - finalizeReserveMs);
-    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
+    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, source, ci: rest.ci ?? ciCheck, preflight: rest.preflight === undefined ? (p, dir, left) => runPreflight(p, { cwd: dir, left }) : rest.preflight });
     // A lint failure is recorded too, keyed by head, so the next tick routes the PR to claude-fix.
     if (result?.status === 'preflight') (rest.held?.record ?? recordPreflight)(number, pr.headRefOid, { status: 'FAIL', reasons: result.reasons ?? [], ...(result.bodyHash ? { bodyHash: result.bodyHash } : {}) });
     return result;

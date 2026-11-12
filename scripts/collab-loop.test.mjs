@@ -12,7 +12,7 @@ const preflightMod = await import('./collab-preflight.mjs');
 const { committedTurns, copyReview, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
-const { heavyJobFree, checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
+const { ciCheck, checkSource, heavyJobFree, checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -740,6 +740,43 @@ test('fix A: the clone check stops on a lint failure before pnpm and posts nothi
   assert.deepEqual(posted, []);
   assert.equal(turnsFor([pr()])[0].turn, 'claude-fix', 'a lint failure is recorded for this head');
   preflightMod.recordPreflight(7, A, { status: 'PASS' });
+});
+
+test('12.11 trial: CI source reads pr-check at the head and never installs, builds or runs the PR', () => {
+  const posted = [];
+  const gh = { ...fakeGh({ pr: pr() }), comment: (...a) => posted.push(a) };
+  const run = (cmd, args) => args[0] === 'rev-parse' ? A : '';
+  const never = () => { throw new Error('nothing of the PR may run on the Mac in CI mode'); };
+  const ci = (_, head) => { assert.equal(head, A); return { state: 'PASS', conclusion: 'success', url: 'https://github.com/x/actions/runs/1' }; };
+  const result = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci });
+  assert.equal(result.status, 'PASS');
+  assert.equal(posted.length, 1);
+  assert.match(posted[0][2], new RegExp(`^Author check: PASS @ ${A}`));
+  assert.match(posted[0][2], /Nguồn: CI `pr-check \/ check` · success/);
+  assert.match(posted[0][2], new RegExp(`author-check sha=${A}`));
+  const fail = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'FAIL', conclusion: 'cancelled', url: '' }) });
+  assert.equal(fail.status, 'FAIL');
+  assert.match(posted[1][2], /^Author check: FAIL @/);
+  assert.match(posted[1][2], /CI bị huỷ/);
+  const wait = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }) });
+  assert.equal(wait.status, 'ci-pending');
+  assert.equal(posted.length, 2, 'a pending CI posts nothing');
+});
+
+test('12.11 trial: ciCheck passes only a completed success from GitHub Actions at the exact head', () => {
+  const at = runs => ({ json: () => ({ check_runs: runs }) });
+  const r = (o) => ({ app: { slug: 'github-actions' }, head_sha: A, status: 'completed', conclusion: 'success', started_at: '2026-11-12T01:00:00Z', html_url: 'u', ...o });
+  assert.equal(ciCheck(at([]), A).state, 'pending');
+  assert.equal(ciCheck(at([r({ status: 'in_progress', conclusion: null })]), A).state, 'pending');
+  assert.equal(ciCheck(at([r()]), A).state, 'PASS');
+  for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out', 'neutral', 'action_required']) assert.equal(ciCheck(at([r({ conclusion })]), A).state, 'FAIL', conclusion);
+  assert.equal(ciCheck(at([r({ app: { slug: 'someone-else' } })]), A).state, 'pending', 'another app cannot pass the check');
+  assert.equal(ciCheck(at([r({ head_sha: C })]), A).state, 'pending', 'another head does not count');
+  assert.equal(ciCheck(at([r({ conclusion: 'failure' }), r({ started_at: '2026-11-12T02:00:00Z' })]), A).state, 'PASS', 'the newest run decides');
+  assert.equal(ciCheck(at([r({ started_at: '2026-11-12T02:00:00Z', conclusion: 'failure' }), r()]), A).state, 'FAIL');
+  assert.throws(() => ciCheck(at([]), 'nope'));
+  assert.equal(checkSource({ LA_LANH_CHECK_SOURCE: 'ci' }), 'ci');
+  assert.equal(checkSource({}), 'local');
 });
 
 test('#306: a direct clone check with a failing body records it, routes to claude-fix and stops retrying', () => {

@@ -8,6 +8,9 @@ runtime="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies"
 # pnpm lives in the runtime fallback dir; it goes last so /usr/bin/git wins over its own git.
 export PATH="$runtime/node/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$runtime/bin/fallback"
 ops="$home_dir/ops"
+# Trial 12.11.2026 (owner): author check reads the pr-check CI result; the PR's code no longer runs here.
+# Rollback: delete this line.
+export LA_LANH_CHECK_SOURCE=ci
 log="$home_dir/logs/tick-$(date +%Y-%m-%d).log"
 mkdir -p "$home_dir/logs"
 
