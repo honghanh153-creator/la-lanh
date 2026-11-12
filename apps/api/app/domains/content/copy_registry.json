@@ -5413,6 +5413,222 @@
    "status": "pending"
   },
   {
+   "id": "daily.bundle.group-pressure.01.action",
+   "category": "reading",
+   "text": "Hỏi nhóm ai làm phần nào trước khi gật đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.01.headline",
+   "category": "reading",
+   "text": "Nhóm chốt kế hoạch mới lúc cuộc họp sắp hết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.01.scene",
+   "category": "reading",
+   "text": "Còn năm phút là hết cuộc họp, mọi người đã gật, bạn định gật theo dù chưa rõ ai làm gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.02.action",
+   "category": "reading",
+   "text": "Nhắn vào nhóm hỏi đi bằng gì rồi mới thả tim.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.02.headline",
+   "category": "reading",
+   "text": "Nhóm bạn chốt chuyến đi biển chỉ sau năm phút.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.02.scene",
+   "category": "reading",
+   "text": "Trong nhóm tin nhắn, mọi người thả tim chuyến đi biển, bạn sắp thả theo dù chưa biết đi bằng gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.03.action",
+   "category": "reading",
+   "text": "Hỏi nhóm họ hàng quán đó có món mềm cho bà không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.03.headline",
+   "category": "reading",
+   "text": "Họ hàng chọn quán cho tiệc mừng thọ bà.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.03.scene",
+   "category": "reading",
+   "text": "Nhóm họ hàng chọn quán nướng mừng thọ bà, bạn sắp đồng ý dù chưa biết quán có món mềm không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.04.action",
+   "category": "reading",
+   "text": "Xin nhóm giải thích đề tài đó gồm những phần nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.04.headline",
+   "category": "reading",
+   "text": "Nhóm làm bài chọn đề tài khi bạn còn phân vân.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.04.scene",
+   "category": "reading",
+   "text": "Lúc nhóm biểu quyết đề tài, bạn sắp giơ tay theo số đông dù chưa hiểu đề tài cần làm gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.05.action",
+   "category": "reading",
+   "text": "Nhắn nhóm hỏi ai đi mua quà và mua ở đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.05.headline",
+   "category": "reading",
+   "text": "Cả phòng góp chung mua quà sinh nhật đồng nghiệp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.05.scene",
+   "category": "reading",
+   "text": "Mọi người chọn quà sinh nhật đồng nghiệp trong nhóm, bạn sắp gõ đồng ý dù chưa rõ ai đi mua.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.06.action",
+   "category": "reading",
+   "text": "Xin đội trưởng giải thích vị trí của bạn trước khi cả nhóm ra về.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.06.headline",
+   "category": "reading",
+   "text": "Đội bóng chốt đội hình mới cho trận cuối tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.06.scene",
+   "category": "reading",
+   "text": "Sau buổi tập, cả nhóm gật với đội hình mới, bạn sắp gật dù chưa rõ mình đá chỗ nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.07.action",
+   "category": "reading",
+   "text": "Đọc lại bảng rồi hỏi nhóm hôm nào đến lượt bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.07.headline",
+   "category": "reading",
+   "text": "Phòng trọ chia lịch dọn dẹp qua tin nhắn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.07.scene",
+   "category": "reading",
+   "text": "Nhóm cùng phòng trọ gửi bảng chia lịch dọn dẹp, bạn sắp đồng ý dù chưa rõ hôm nào đến lượt mình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.08.action",
+   "category": "reading",
+   "text": "Hỏi người phụ trách trong nhóm phần ghi danh bắt đầu từ đâu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.08.headline",
+   "category": "reading",
+   "text": "Câu lạc bộ chia việc cho buổi quyên góp sách.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.08.scene",
+   "category": "reading",
+   "text": "Cuối buổi sinh hoạt, cả nhóm nhận việc rất nhanh, bạn sắp nhận phần ghi danh dù chưa hiểu cách làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.09.action",
+   "category": "reading",
+   "text": "Nói với nhóm bước bạn chưa hiểu và xin xem làm mẫu một lần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.09.headline",
+   "category": "reading",
+   "text": "Ngày đầu đi làm, bạn chưa quen cách nhóm làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.09.scene",
+   "category": "reading",
+   "text": "Trưởng nhóm hỏi bạn hiểu cách nhập đơn chưa, mọi người đang chờ và bạn sắp nói hiểu rồi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.10.action",
+   "category": "reading",
+   "text": "Hỏi người lập bình chọn trong nhóm vì sao cần đổi giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.10.headline",
+   "category": "reading",
+   "text": "Nhóm chung cư bỏ phiếu đổi giờ đóng cổng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.10.scene",
+   "category": "reading",
+   "text": "Trong nhóm chung cư, mọi người bỏ phiếu đổi giờ đóng cổng, bạn sắp bấm chọn dù chưa biết lý do.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.11.action",
+   "category": "reading",
+   "text": "Xin nhóm bạn giải thích món đó có gì trước khi gật đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.11.headline",
+   "category": "reading",
+   "text": "Cả bàn gọi món đặc biệt theo ý số đông.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.11.scene",
+   "category": "reading",
+   "text": "Ở quán, nhóm bạn gọi món đặc biệt cho cả bàn, bạn sắp gật dù chưa biết món đó có gì.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.12.action",
+   "category": "reading",
+   "text": "Nhắn nhóm hỏi phần mềm mới khác cái cũ ở chỗ nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.12.headline",
+   "category": "reading",
+   "text": "Nhóm chọn phần mềm mới qua một cuộc bình chọn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.group-pressure.12.scene",
+   "category": "reading",
+   "text": "Đồng nghiệp gửi bình chọn phần mềm mới, cả nhóm chọn cùng một cái, bạn sắp chọn theo dù chưa dùng thử.",
+   "status": "pending"
+  },
+  {
    "id": "daily.scene.missing-context.01",
    "category": "reading",
    "text": "Khi tin nhắn chỉ có một chữ ừ, bạn có thể đoán người kia đồng ý đến đâu.",
