@@ -6373,6 +6373,222 @@
    "status": "pending"
   },
   {
+   "id": "daily.bundle.quick-reply.01.action",
+   "category": "reading",
+   "text": "Đọc hết tin nhắn của sếp rồi trả lời đúng phần sếp hỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.01.headline",
+   "category": "reading",
+   "text": "Sếp nhắn hỏi tiến độ báo cáo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.01.scene",
+   "category": "reading",
+   "text": "Sếp nhắn hỏi tiến độ báo cáo, bạn định gõ là sắp xong dù chưa đọc hết tin nhắn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.02.action",
+   "category": "reading",
+   "text": "Đọc hết tin nhắn rồi hỏi lại ngày đi trước khi nhận lời.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.02.headline",
+   "category": "reading",
+   "text": "Bạn thân nhắn rủ đi biển cuối tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.02.scene",
+   "category": "reading",
+   "text": "Lúc thấy tin nhắn rủ đi biển cuối tuần, bạn sắp gõ đồng ý dù chưa đọc hết ngày đi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.03.action",
+   "category": "reading",
+   "text": "Đọc hết tin nhắn của mẹ rồi trả lời từng việc một.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.03.headline",
+   "category": "reading",
+   "text": "Mẹ nhắn dặn ba việc cho cuối tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.03.scene",
+   "category": "reading",
+   "text": "Mẹ gửi tin nhắn dài dặn việc cuối tuần, bạn định trả lời là biết rồi khi chưa đọc hết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.04.action",
+   "category": "reading",
+   "text": "Đọc hết danh sách chia phần rồi mới nhắn phần bạn nhận.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.04.headline",
+   "category": "reading",
+   "text": "Nhóm học vừa chia phần thuyết trình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.04.scene",
+   "category": "reading",
+   "text": "Nhóm học vừa có tin nhắn chia phần thuyết trình, bạn định nhận phần đầu dù chưa đọc hết danh sách.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.05.action",
+   "category": "reading",
+   "text": "Đọc hết tin nhắn của khách rồi trả lời đúng điều khách hỏi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.05.headline",
+   "category": "reading",
+   "text": "Khách nhắn hỏi vì sao đơn hàng giao chậm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.05.scene",
+   "category": "reading",
+   "text": "Khách nhắn hỏi đơn giao chậm, bạn định gửi câu xin lỗi mẫu dù chưa đọc hết tin nhắn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.06.action",
+   "category": "reading",
+   "text": "Đọc hết ba góp ý rồi viết câu trả lời cho từng chỗ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.06.headline",
+   "category": "reading",
+   "text": "Đồng nghiệp góp ý ba chỗ trong bản báo cáo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.06.scene",
+   "category": "reading",
+   "text": "Đồng nghiệp gửi tin nhắn góp ý ba chỗ, bạn định gõ lời giải thích khi mới đọc chỗ đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.07.action",
+   "category": "reading",
+   "text": "Đọc hết thông báo rồi mới gửi câu hỏi còn thiếu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.07.headline",
+   "category": "reading",
+   "text": "Ban quản lý chung cư nhắn báo cắt nước.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.07.scene",
+   "category": "reading",
+   "text": "Ban quản lý gửi tin nhắn báo cắt nước, bạn định hỏi lại mấy giờ dù chưa đọc hết thông báo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.08.action",
+   "category": "reading",
+   "text": "Hỏi người kia muốn bạn nghe hay góp ý, rồi mới viết câu trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.08.headline",
+   "category": "reading",
+   "text": "Người yêu nhắn một tin dài lúc khuya.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.08.scene",
+   "category": "reading",
+   "text": "Người yêu gửi tin nhắn dài kể chuyện chỗ làm, bạn định khuyên ngay khi mới đọc hai dòng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.09.action",
+   "category": "reading",
+   "text": "Đọc hết tin nhắn của thầy rồi ghi lại hạn nộp mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.09.headline",
+   "category": "reading",
+   "text": "Thầy nhắn đổi hạn nộp bài tập nhóm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.09.scene",
+   "category": "reading",
+   "text": "Thầy gửi tin nhắn đổi hạn nộp bài, bạn định trả lời là đã rõ dù chưa đọc hết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.10.action",
+   "category": "reading",
+   "text": "Đọc hết tin nhắn rồi trả lời cả màu và cỡ áo.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.10.headline",
+   "category": "reading",
+   "text": "Người bán nhắn hỏi bạn chọn màu áo nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.10.scene",
+   "category": "reading",
+   "text": "Người bán gửi tin nhắn hỏi màu và cỡ áo, bạn sắp trả lời màu mà chưa đọc hết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.11.action",
+   "category": "reading",
+   "text": "Đọc hết tin nhắn rồi góp ý đúng đoạn mở bài em nhờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.11.headline",
+   "category": "reading",
+   "text": "Em gái nhắn nhờ góp ý bài luận.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.11.scene",
+   "category": "reading",
+   "text": "Em gái gửi tin nhắn nhờ góp ý đoạn mở bài, bạn định sửa cả bài khi chưa đọc hết.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.12.action",
+   "category": "reading",
+   "text": "Kiểm tra giờ đá trong tin nhắn rồi mới gửi câu trả lời.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.12.headline",
+   "category": "reading",
+   "text": "Nhóm đá bóng nhắn hỏi ai đi tối nay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.quick-reply.12.scene",
+   "category": "reading",
+   "text": "Lúc nhóm đá bóng gửi tin nhắn điểm danh, bạn định gõ có ngay mà chưa đọc hết giờ đá đã đổi.",
+   "status": "pending"
+  },
+  {
    "id": "daily.scene.repair-reply.01",
    "category": "reading",
    "text": "Khi đọc lại câu trả lời vội, bạn có thể thấy nó nghe lạnh hơn ý bạn muốn.",
