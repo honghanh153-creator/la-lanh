@@ -272,7 +272,12 @@ def create_app(
             )
             app.state.daily_note_service = daily_service
             app.state.mood_service = MoodService(
-                PostgresMoodRepository(database.sessions, envelope), daily_service
+                PostgresMoodRepository(
+                    database.sessions,
+                    envelope,
+                    encrypt_writes=resolved_settings.mood_encrypted_writes,
+                ),
+                daily_service,
             )
             app.state.resonance_service = ResonanceService(
                 PostgresResonanceRepository(database.sessions, envelope, erasure_journal)

@@ -212,7 +212,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 | PL-37 | Không có lựa chọn cho người sinh 00–06h. "Đêm (sau 22h)" được lưu thành 23:00 của ngày đã nhập, nên người sinh 3h sáng bị tính lệch khoảng 20 giờ | P1 | **Owner chốt 03.11.2026:** thêm "Rạng sáng 00–06h" (lưu 03:00), "Đêm" thành 22–24h; không báo người dùng vì đang thử nghiệm. Engine chọn góc coi 03:00 là khung hẹp, còn bản ghi "Đêm" cũ vẫn theo luật rộng (#178) | Xong (e59d299, bf6a1f7) |
 | AS-10 | Hỏi "bạn biết giờ sinh từ đâu" và cho chọn theo canh giờ (Tý…Hợi) | P2 | Cần review quyền riêng tư trước, vì đây là trường mới | Mở |
 | PV-24 | `/metrics` mở công khai | P3 | Trả 404 ở Caddy hoặc yêu cầu token | Xong (a6394e3) |
-| PV-26 | Nhãn persona và mood lưu dạng rõ | P3 | Đưa vào envelope ở lần migration tới | Mở: mood đã mã hoá cho bản ghi mới và bản ghi được đổi (migration 0042); bản ghi cũ hết hạn tự nhiên; nhãn persona còn mở |
+| PV-26 | Nhãn persona và mood lưu dạng rõ | P3 | Đưa vào envelope ở lần migration tới | Mở: đã có migration 0042 và bản đọc mood mã hoá; ghi mã hoá bật bằng `LA_LANH_MOOD_ENCRYPTED_WRITES` ở bản phát hành sau; bản ghi cũ hết hạn tự nhiên; nhãn persona còn mở |
 
 ### Hồ sơ pháp lý và app native
 

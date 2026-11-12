@@ -34,7 +34,7 @@ async def storage(tmp_path: Path) -> AsyncIterator[Database]:
 async def test_new_check_in_stores_no_plain_mood_and_round_trips(storage: Database) -> None:
     guest_id = await owner(storage)
     daily = await note(storage, guest_id, NOW)
-    moods = PostgresMoodRepository(storage.sessions, cipher())
+    moods = PostgresMoodRepository(storage.sessions, cipher(), encrypt_writes=True)
     saved = await moods.upsert(
         MoodCheckInRecord(
             id=uuid4(),
@@ -72,7 +72,7 @@ async def test_ciphertext_is_bound_to_its_row(storage: Database) -> None:
     first_guest, second_guest = await owner(storage), await owner(storage)
     first = await note(storage, first_guest, NOW)
     second = await note(storage, second_guest, NOW)
-    moods = PostgresMoodRepository(storage.sessions, cipher())
+    moods = PostgresMoodRepository(storage.sessions, cipher(), encrypt_writes=True)
     a = await moods.upsert(MoodCheckInRecord(uuid4(), first_guest, first.id, MoodValue.CHILL, NOW))
     b = await moods.upsert(MoodCheckInRecord(uuid4(), second_guest, second.id, MoodValue.CANG, NOW))
     assert a.id != b.id
@@ -103,7 +103,7 @@ async def test_legacy_plain_row_stays_readable_and_is_encrypted_on_next_change(
                 created_at=NOW,
             )
         )
-    moods = PostgresMoodRepository(storage.sessions, cipher())
+    moods = PostgresMoodRepository(storage.sessions, cipher(), encrypt_writes=True)
     found = await moods.find(guest_id, daily.id)
     assert found is not None and found.mood is MoodValue.DUOI
 
@@ -113,6 +113,56 @@ async def test_legacy_plain_row_stays_readable_and_is_encrypted_on_next_change(
         assert row is not None and row.mood is None and row.mood_ciphertext is not None
     found = await moods.find(guest_id, daily.id)
     assert found is not None and found.mood is MoodValue.CHILL
+
+
+async def test_writes_stay_readable_by_older_images_until_encryption_is_turned_on(
+    storage: Database,
+) -> None:
+    # An older image reads only the plain column; with the default the stored row must still
+    # carry it, for both a new check-in and a change to an encrypted one.
+    guest_id = await owner(storage)
+    daily = await note(storage, guest_id, NOW)
+    saved = await PostgresMoodRepository(storage.sessions, cipher()).upsert(
+        MoodCheckInRecord(uuid4(), guest_id, daily.id, MoodValue.CANG, NOW)
+    )
+    async with storage.sessions() as session:
+        row = await session.get(MoodCheckInRow, saved.id)
+        assert row is not None and row.mood == MoodValue.CANG.value
+        assert row.mood_ciphertext is None
+
+    await PostgresMoodRepository(storage.sessions, cipher(), encrypt_writes=True).upsert(
+        MoodCheckInRecord(uuid4(), guest_id, daily.id, MoodValue.RUC, NOW)
+    )
+    plain_again = PostgresMoodRepository(storage.sessions, cipher())
+    found = await plain_again.find(guest_id, daily.id)
+    assert found is not None and found.mood is MoodValue.RUC  # new image reads encrypted rows
+    await plain_again.upsert(MoodCheckInRecord(uuid4(), guest_id, daily.id, MoodValue.DUOI, NOW))
+    async with storage.sessions() as session:
+        row = await session.get(MoodCheckInRow, saved.id)
+        assert row is not None and row.mood == MoodValue.DUOI.value
+        assert row.mood_ciphertext is None
+
+
+def test_mood_writes_are_off_by_default_in_settings() -> None:
+    from app.config import Settings
+
+    assert Settings.model_fields["mood_encrypted_writes"].default is False
+
+
+async def test_every_mood_has_the_same_ciphertext_length(storage: Database) -> None:
+    lengths = set()
+    for mood in MoodValue:
+        guest_id = await owner(storage)
+        daily = await note(storage, guest_id, NOW)
+        moods = PostgresMoodRepository(storage.sessions, cipher(), encrypt_writes=True)
+        saved = await moods.upsert(MoodCheckInRecord(uuid4(), guest_id, daily.id, mood, NOW))
+        async with storage.sessions() as session:
+            row = await session.get(MoodCheckInRow, saved.id)
+            assert row is not None and row.mood_ciphertext is not None
+            lengths.add(len(row.mood_ciphertext))
+        found = await moods.find(guest_id, daily.id)
+        assert found is not None and found.mood is mood
+    assert len(lengths) == 1
 
 
 def test_migration_adds_ciphertext_and_relaxes_plain_column() -> None:

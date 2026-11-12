@@ -68,7 +68,12 @@ not claim every historic record is encrypted.
 - Provider-side copies and logs follow their own lifecycles (P08).
 - Radar and Tarot context/voice/state columns are plaintext **by design** (closed operational values),
   not legacy; they are inventoried separately in the data map.
-- Mood check-ins (gap register PV-26): since migration `20261111_0042` new and changed check-ins are stored
-  only in `mood_check_ins.mood_ciphertext`. Rows written earlier keep the plain `mood` value until the
+- Mood check-ins (gap register PV-26): migration `20261111_0042` adds `mood_check_ins.mood_ciphertext`.
+  Cutover is two releases. Release 1 ships the reader with `LA_LANH_MOOD_ENCRYPTED_WRITES=false`
+  (default), so writes stay plain and an older or rollback image can still read every row. Release 2
+  turns the setting on only when every running image and the rollback image are release 1 or newer;
+  from then new and changed check-ins are stored only encrypted (padded to one length, so the
+  ciphertext size does not reveal the mood). Never roll back below release 1 after turning it on;
+  turning the setting off again is the safe rollback. Rows written earlier keep the plain `mood` value until the
   person changes that day's mood or the row expires with its Daily note or history window; no SQL
   backfill is run. The plain column can be dropped once a count of non-NULL `mood` rows reaches zero.

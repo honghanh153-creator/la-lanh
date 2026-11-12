@@ -29,9 +29,11 @@ Last reviewed: 2026-10-29 (data export delta; earlier local engineering delta 20
 - Daily meaning selection reuses existing derived chart factors. No new birth, mood, free text,
   background, location or relationship fields are collected. Static synthetic collision evaluation
   is offline; other users' private readings are not scanned to enforce unique prose.
-- The Daily mood check-in is application-encrypted at rest for new and changed entries (migration
-  `20261111_0042`). Entries written earlier keep a plain value until changed or expired with their
-  Daily note; collection, purpose, retention, export and deletion are unchanged.
+- The Daily mood check-in can be stored application-encrypted at rest (migration `20261111_0042`).
+  The first release ships only the reader and keeps writing plain values; new and changed entries
+  are encrypted once `LA_LANH_MOOD_ENCRYPTED_WRITES` is turned on in a later release. Entries
+  written before that keep a plain value until changed or expired with their Daily note; collection,
+  purpose, retention, export and deletion are unchanged.
 - These local fixes are not a production deployment, native release approval or complete legal
   compliance assessment. The signed release/runtime remains the disclosure authority.
 

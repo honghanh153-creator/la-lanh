@@ -3,7 +3,8 @@
 Revision ID: 20261111_0042
 Revises: 20261030_0041
 
-Adds `mood_check_ins.mood_ciphertext` and lets the plain `mood` column be NULL. New check-ins
+Adds `mood_check_ins.mood_ciphertext` and lets the plain `mood` column be NULL. Once the setting
+`mood_encrypted_writes` is on (a later release; legacy-plaintext-backfill-plan.md), new check-ins
 store only the application envelope (it carries its own key version, as in 0012). Existing plain
 rows are left as they are and stay readable; a SQL-only migration cannot create envelopes, and a
 mood row is short-lived anyway (it goes with its Daily note or its own history window).
