@@ -6205,6 +6205,222 @@
    "status": "pending"
   },
   {
+   "id": "daily.bundle.specific-feedback.01.action",
+   "category": "reading",
+   "text": "Hỏi sếp góp ý riêng phần số liệu, chỗ bạn còn phân vân nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.01.headline",
+   "category": "reading",
+   "text": "Bạn sắp gửi sếp bản nháp báo cáo tháng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.01.scene",
+   "category": "reading",
+   "text": "Báo cáo tháng có bản nháp rồi, bạn định gửi sếp kèm tin nhắn: anh xem giúp em ổn chưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.02.action",
+   "category": "reading",
+   "text": "Nhắn nhóm đọc đúng phần mở bài và hỏi ý chính đã rõ chưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.02.headline",
+   "category": "reading",
+   "text": "Bạn nhờ nhóm học đọc bài luận trước khi nộp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.02.scene",
+   "category": "reading",
+   "text": "Bài luận nộp thứ Hai, bạn định gửi bản nháp vào nhóm học và chỉ hỏi mọi người thấy được không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.03.action",
+   "category": "reading",
+   "text": "Hỏi nhóm góp ý riêng đoạn kể chuyện hồi đi học, chỗ bạn sợ hơi dài.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.03.headline",
+   "category": "reading",
+   "text": "Bạn soạn lời chúc cho đám cưới bạn thân.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.03.scene",
+   "category": "reading",
+   "text": "Đám cưới còn ba ngày, bạn định gửi bản nháp lời chúc vào nhóm bạn cũ và chỉ hỏi ổn không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.04.action",
+   "category": "reading",
+   "text": "Hỏi nhóm xem đúng phần giá đồ uống có dễ đọc không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.04.headline",
+   "category": "reading",
+   "text": "Quán của bạn sắp in thực đơn mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.04.scene",
+   "category": "reading",
+   "text": "Trước khi đem thực đơn mới đi in, bạn định gửi bản nháp vào nhóm quán và hỏi thấy sao.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.05.action",
+   "category": "reading",
+   "text": "Hỏi mẹ xem đúng phần giờ giấc và địa chỉ, chỗ dễ ghi sai nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.05.headline",
+   "category": "reading",
+   "text": "Bạn lo phần tin mời cho sinh nhật bà.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.05.scene",
+   "category": "reading",
+   "text": "Mẹ giao bạn soạn tin nhắn mời họ hàng, bạn định gửi bản nháp cho mẹ và chỉ hỏi được chưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.06.action",
+   "category": "reading",
+   "text": "Chọn một phần là trang kết luận và hỏi trưởng nhóm phần đó đã rõ chưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.06.headline",
+   "category": "reading",
+   "text": "Mai họp nhóm, bài trình bày còn ở bản nháp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.06.scene",
+   "category": "reading",
+   "text": "Chiều nay bạn định gửi bản nháp bài trình bày cho trưởng nhóm, chỉ hỏi chung là ổn chưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.07.action",
+   "category": "reading",
+   "text": "Hỏi nhóm góp ý riêng phần giờ xuất phát, chỗ bạn chưa chắc nhất.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.07.headline",
+   "category": "reading",
+   "text": "Bạn lên lịch trình chuyến đi chơi cho nhóm bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.07.scene",
+   "category": "reading",
+   "text": "Lịch trình chuyến đi đã có bản nháp, bạn định gửi vào nhóm bạn rồi hỏi mọi người thấy thế nào.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.08.action",
+   "category": "reading",
+   "text": "Viết thêm trong thư một câu hỏi về đúng phần phương pháp, chỗ bạn còn phân vân.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.08.headline",
+   "category": "reading",
+   "text": "Chương hai khóa luận sắp gửi thầy hướng dẫn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.08.scene",
+   "category": "reading",
+   "text": "Khi gửi bản nháp chương hai cho thầy, bạn định chỉ viết một câu: nhờ thầy xem giúp em.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.09.action",
+   "category": "reading",
+   "text": "Hỏi chị đọc đúng phần mô tả tình trạng máy, xem có chỗ nào khó hiểu không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.09.headline",
+   "category": "reading",
+   "text": "Bạn sắp đăng bài bán chiếc máy ảnh cũ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.09.scene",
+   "category": "reading",
+   "text": "Tối nay bạn định đăng bài bán máy ảnh cũ, nên gửi bản nháp qua tin nhắn cho chị, hỏi được không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.10.action",
+   "category": "reading",
+   "text": "Nhắn đồng nghiệp xem đúng phần trả lời về ngày giao hàng, rồi mới gửi khách.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.10.headline",
+   "category": "reading",
+   "text": "Khách hàng đang chờ thư trả lời của bạn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.10.scene",
+   "category": "reading",
+   "text": "Cần gửi thư cho khách lúc 5 giờ chiều, bạn định nhờ đồng nghiệp đọc bản nháp và chỉ hỏi ổn không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.11.action",
+   "category": "reading",
+   "text": "Ghi một dòng hỏi nhóm về đúng phần thời hạn đăng ký, chỗ bạn sợ chưa rõ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.11.headline",
+   "category": "reading",
+   "text": "Câu lạc bộ cần thông báo tuyển người mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.11.scene",
+   "category": "reading",
+   "text": "Bản nháp thông báo tuyển người đã xong, bạn định gửi vào nhóm điều hành kèm câu: mọi người xem nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.12.action",
+   "category": "reading",
+   "text": "Hỏi người quen đọc đúng phần kể kinh nghiệm làm việc, xem đoạn đó đã rõ chưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.12.headline",
+   "category": "reading",
+   "text": "Bạn chuẩn bị nộp đơn xin việc ở chỗ mới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.specific-feedback.12.scene",
+   "category": "reading",
+   "text": "Hạn nộp là thứ Sáu, bạn định gửi bản nháp thư xin việc cho người quen qua tin nhắn, hỏi được không.",
+   "status": "pending"
+  },
+  {
    "id": "daily.scene.too-many-open-loops.01",
    "category": "reading",
    "text": "Khi mở nhiều cửa sổ cùng lúc, bạn có thể quên việc nào đang chờ mình làm tiếp.",
