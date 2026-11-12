@@ -1,0 +1,50 @@
+# Screenshots of the key web screens at 390x844 for every PR that touches apps/web, so a
+# reviewer can look at the running UI, not only the diff (apps/web/tests/screens).
+# Security: `pull_request` only (no secrets, read-only token), never `pull_request_target`;
+# actions pinned to commit SHAs (same pins as pr-check.yml); no PR comments, no write scopes.
+# Data: every /v1 call is mocked with synthetic fixtures; artifacts expire after 14 days.
+name: ui-screens
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/ui-screens.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-screens-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  screens:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @la-lanh/web exec playwright install --with-deps chromium
+      - name: Build and capture key screens (390x844, fake data)
+        env:
+          CI: '1'
+        # The spec's own config builds the app (tsc -b + vite build) and serves it with vite preview.
+        run: pnpm --filter @la-lanh/web exec playwright test -c tests/screens/playwright.config.ts
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-screens-pr-${{ github.event.pull_request.number }}
+          path: apps/web/test-results/ui-screens/*.png
+          if-no-files-found: warn
+          retention-days: 14
