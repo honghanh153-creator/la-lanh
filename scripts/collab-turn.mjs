@@ -5,10 +5,10 @@ import { pathToFileURL } from 'node:url';
 import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { bodyHash } from './collab-heal.mjs';
-import { preflightFailure, readPreflight, recordPreflight } from './collab-preflight.mjs';
+import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees } from './collab-preflight.mjs';
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
-import { bufferStatus, queueTopUp, readyBuffer } from './collab-buffer.mjs';
+import { bufferStatus, queueTopUp, wipCount } from './collab-buffer.mjs';
 
 export { codexDailyCap };
 
@@ -33,7 +33,8 @@ export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
 
 export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   const head = pr.headRefOid;
-  const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body) });
+  const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
+    source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body) });
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (!isOwnPr(pr)) return out('hold', 'PR không phải của owner hoặc từ fork: không chạy, không review');
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
@@ -93,7 +94,6 @@ function withLock(fn) {
   return withFileLock(join(stateDir, 'tick.lock'), { staleMs: 90 * 60000, busy: { status: 'locked' } }, fn);
 }
 
-export const idleTopUpRuns = 3;
 export const idleAlertRuns = 6;
 
 export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [] } = {}) {
@@ -176,7 +176,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         if (['limit', 'busy'].includes(result?.status)) break;
       }
       // Retro S1 (K26/K31: 02.11 and 03.11 ran about two hours with no area): count runs in a row
-      // with no area. From the third Claude is told to top up from the backlog; the sixth alerts.
+      // with no area; the sixth alerts. A top-up still waits for room under WIP 1 + 1 (owner 12.11).
       const idleRuns = area ? 0 : (readJson(dayPath, day).idleRuns ?? 0) + 1;
       // #237: remember whether the idle alert was delivered, so a failed delivery retries next run.
       const idleAlerted = idleRuns ? Boolean(readJson(dayPath, day).idleAlerted) : false;
@@ -185,13 +185,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // top-up describes what is left now, not the list fetched before this run's work.
       const left = done.length ? gh.openPrs() : prs;
       const leftTurns = done.length ? turnsFor(left, { dropped: plan.dropped }) : turns;
-      const buffer = done.length ? queueTopUp(readyBuffer(left)) : startBuffer;
+      const buffer = done.length ? queueTopUp(wipCount(left, leftTurns)) : startBuffer;
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: leftTurns.filter(t => t.turn === 'claude-fix'),
-        // Plan top-up (owner 31.10.2026, buffer rule 05.11): below the ready-buffer target while the
-        // day still runs, so Claude adds the next backlog task in priority order before the machine goes idle.
-        topUp: (buffer.topUp || idleRuns >= idleTopUpRuns) && !late(),
-        topUpCount: late() ? 0 : Math.max(buffer.topUpCount, idleRuns >= idleTopUpRuns ? 1 : 0), buffer: buffer.buffer,
+        // Plan top-up (owner 31.10.2026), WIP 1 + 1 since 12.11: Claude opens the next backlog task
+        // only when nothing is in progress and review has room, and never after 23:30.
+        topUp: buffer.topUp && !late(),
+        topUpCount: late() ? 0 : buffer.topUpCount, buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
         idleRuns,
       });
       if (idleRuns >= idleAlertRuns && !idleAlerted && alert) {

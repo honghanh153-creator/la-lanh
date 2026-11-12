@@ -9,7 +9,7 @@ process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
 const { checksPerTick, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const preflightMod = await import('./collab-preflight.mjs');
-const { committedTurns, copyReview, planState, renderPlan } = await import('./collab-plan.mjs');
+const { committedTurns, copyReview, planMax, planMin, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
 const { ciCheck, clonePreflight, checkSource, heavyJobFree, checkBudgetMs, guardHits, guardTerms, prePushRanges, privateHits, readGuardTerms, isHeavy, machineBusy, withSystemPath, prepareAuthorClone, renderCheck, runCheck, runCheckInClone, runGroup, withCheckLock } = await import('./collab-check.mjs');
@@ -557,20 +557,37 @@ test('retro D3: the plan says when the Mac stopped ticking', () => {
   assert.doesNotThrow(() => trust.assertAgentBody(body));
 });
 
-test('owner 03.11: the plan commits 16–20 PRs and says how the % is counted', () => {
-  const many = turnsFor(Array.from({ length: 24 }, (_, i) => pr({ number: 20 + i, createdAt: `2026-10-${10 + i}T00:00:00Z` })).concat(pr({ number: 99, isDraft: true })));
+test('owner 12.11: the plan picks 3–5 work items with a source and what the user sees, no PR quota', () => {
+  const body5 = n => goodBody.replace('G1 Tài liệu: plan §3', `G1 Tài liệu: US-${n} AC2`).replace(/Người dùng thấy gì:[^\n]*/, `Người dùng thấy gì: câu số ${n} dễ đọc hơn`);
+  const many = turnsFor(Array.from({ length: 8 }, (_, i) => pr({ number: 20 + i, body: body5(20 + i), createdAt: `2026-10-${10 + i}T00:00:00Z` })).concat(pr({ number: 99, isDraft: true })));
   const committed = committedTurns(many);
-  assert.equal(committed.length, 20, 'never more than 20');
-  assert.ok(!committed.some(t => t.number === 99), 'a held PR is not committed');
+  assert.equal(committed.length, planMax, 'never more than 5 work items');
+  assert.equal(planMin, 3);
+  assert.ok(!committed.some(t => t.number === 99), 'a held PR is not picked');
   const body = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, many, { codexLeft: 12 });
-  assert.match(body, /Cam kết hôm nay \(16–20 PR\):\*\* #\d+(, #\d+){19}\./);
+  assert.match(body, /\*\*Việc chọn hôm nay \(3–5 việc\):\*\*/);
+  assert.match(body, /1\. #20 feat\(tarot\): plain summary\n {3}- Nguồn \/ AC: US-20 AC2\n {3}- Người dùng thấy gì: câu số 20 dễ đọc hơn/);
+  assert.match(body, /Tiến độ hôm nay = việc xong \/ việc đã chọn/);
   assert.match(body, /Lượt Codex tự động còn hôm nay: 12\/32\./);
-  assert.match(body, /% hôm nay = số PR cam kết đã merge/);
-  assert.doesNotMatch(body, /Còn thiếu/);
+  assert.doesNotMatch(body, /16|20 PR|% hôm nay|Cam kết/, 'no PR quota and no % of committed PRs');
   const few = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 12 });
-  assert.match(few, /Cam kết hôm nay \(16–20 PR\):\*\* #7\./);
-  assert.match(few, /Còn thiếu 15 PR so với mức 16/);
+  assert.match(few, /1\. #7 [^\n]*\n {3}- Nguồn \/ AC: plan §3\n {3}- Người dùng thấy gì: không trực tiếp \(vận hành\)/);
+  const bare = renderPlan({ date: '2026-11-03', hour: 8, minute: 50 }, turnsFor([pr({ body: '' })]), { codexLeft: 12 });
+  assert.match(bare, /- Nguồn \/ AC: chưa ghi\n {3}- Người dùng thấy gì: chưa ghi/);
+  assert.match(few, /Còn thiếu 2 việc so với mức 3/);
+  assert.match(few, /1 việc đang làm \+ 1 việc đang review/);
   assert.doesNotThrow(() => trust.assertAgentBody(body));
+  assert.doesNotThrow(() => trust.assertAgentBody(few));
+});
+
+test('owner 12.11: the preflight asks for a "Người dùng thấy gì:" line; ops PRs may say not directly', () => {
+  assert.deepEqual(preflightMod.bodyProblems(goodBody), []);
+  const without = goodBody.replace(/\nNgười dùng thấy gì:[^\n]*/, '');
+  assert.deepEqual(preflightMod.bodyProblems(without), ['PR body thiếu dòng "Người dùng thấy gì:"']);
+  assert.deepEqual(preflightMod.bodyProblems(`${without}\nNgười dùng thấy gì:   `), ['PR body thiếu dòng "Người dùng thấy gì:"'], 'a blank answer is not an answer');
+  assert.deepEqual(preflightMod.bodyProblems(`${without}\nNgười dùng thấy gì: không trực tiếp (vận hành)`), []);
+  assert.deepEqual(preflightMod.bodyProblems(`${without}\n- **Người dùng thấy gì:** nút lưu rõ hơn`), []);
+  assert.deepEqual(preflightMod.bodyProblems(`${without}\nGhi chú: Người dùng thấy gì: x`), ['PR body thiếu dòng "Người dùng thấy gì:"'], 'the line must start with it');
 });
 
 test('false FAIL 31.10: pnpm check always sees the system tool directories', () => {
@@ -628,14 +645,24 @@ test('busy check matches the running program, not a command line that mentions i
   assert.match(machineBusy(() => '  77 sh -c pnpm contracts:check && x\n'), /^77 sh -c pnpm contracts:check/);
 });
 
-test('plan top-up: fewer than five ready PRs before 23:30 asks Claude to add the next task', () => {
+test('WIP 1 + 1 (owner 12.11): the tick asks for a new task only when nothing is in progress and review has room', () => {
   const date = '2026-11-12';
-  const one = [pr({ number: 1, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }), pr({ number: 2 })];
-  tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
-  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, true);
-  const busy = [3, 4, 5, 6, 10].map(number => pr({ number, headRefName: `agent/claude/t${number}` }));
-  tick({ gh: plannedGh(busy, date), now: { date, hour: 16, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
-  assert.equal(JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8')).topUp, false);
+  const queue = () => JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
+  const agent = (number, extra = {}) => pr({ number, headRefName: `agent/claude/t${number}`, ...extra });
+  const inFix = [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)];
+  const run = (open, minute) => tick({ gh: plannedGh(open, date), now: { date, hour: 15, minute }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({ status: 'posted' }) });
+  run([agent(1, { comments: inFix }), agent(2, { comments: [check(A)] })], 5);
+  assert.equal(queue().topUp, false, '1 in progress + 1 in review: no new task');
+  assert.deepEqual([queue().inProgress, queue().inReview], [1, 1]);
+  run([agent(3, { comments: [check(A)] })], 15);
+  assert.equal(queue().topUp, true, 'one in review and nothing in progress: Claude starts one task');
+  assert.equal(queue().topUpCount, 1);
+  run([agent(4, { comments: [check(A)] }), agent(5, { comments: [check(A)] })], 25);
+  assert.equal(queue().topUp, false, 'two in review: finish before starting');
+  run([agent(6, { comments: inFix })], 35);
+  assert.equal(queue().topUp, false, 'a task in progress fills the slot even with review empty');
+  run([pr({ number: 7, comments: inFix })], 45);
+  assert.equal(queue().topUp, true, 'an owner branch is not agent work in progress');
 });
 
 test('retro S1: runs in a row with no area ask for a top-up from the third and alert on the sixth', () => {
@@ -686,6 +713,7 @@ const goodBody = [
   '- Mức: M — script vòng tự động',
   ...['G1 Tài liệu: plan §3', 'G2 UI/UX: không áp dụng, không đụng giao diện', 'G3 Câu chữ: không có câu mới', 'G4 BE: không áp dụng', 'G5 FE: không áp dụng',
     'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`),
+  'Người dùng thấy gì: không trực tiếp (vận hành)',
 ].join('\n');
 
 test('fix A: the preflight names a blank gate, a missing level and an unanswered G7', () => {
@@ -950,27 +978,27 @@ test('review 228: a deleted Python file is not linted by default', () => {
 test('#158/#159: top-up is computed from the queue left after this tick merges', () => {
   const date = '2026-11-15';
   const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
-  // Five ready PRs fill the buffer when the tick starts; two of them are merge-ready.
-  const open = [1, 2, 3, 4, 5].map(number => pr({ number, headRefName: `agent/claude/q${number}`, comments: number <= 2 ? approved : [] }));
+  // Two agent PRs are merge-ready when the tick starts, so WIP is full before the merges.
+  const open = [1, 2].map(number => pr({ number, headRefName: `agent/claude/q${number}`, comments: approved }));
   const merged = [];
   const merge = n => { merged.push(n); open.splice(open.findIndex(p => p.number === n), 1); return { status: 'merged' }; };
   tick({ gh: plannedGh(open, date), now: { date, hour: 15, minute: 5 }, merge, check: () => ({ status: 'FAIL' }), review: () => ({}) });
   assert.deepEqual(merged, [1, 2], 'both merge-ready PRs merged in this tick');
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
-  assert.equal(queue.buffer, 3, 'the buffer counts the PRs still open after the merges');
-  assert.equal(queue.topUp, true, 'the drained buffer asks Claude for a top-up in the same tick');
-  assert.equal(queue.topUpCount, 2);
+  assert.equal(queue.buffer, 0, 'WIP counts the PRs still open after the merges');
+  assert.equal(queue.topUp, true, 'the emptied WIP asks Claude for the next task in the same tick');
+  assert.equal(queue.topUpCount, 1);
 });
 
 // ---- #253: buffer rule and flow samples on the scheduled path ----
-test('#253: the persisted queue uses the ready-buffer rule and the tick samples the flow metric', () => {
+test('#253: the persisted queue uses the WIP rule and the tick samples the flow metric', () => {
   const date = '2026-11-14';
-  const three = [1, 2, 3].map(number => pr({ number, headRefName: `agent/claude/b${number}` }));
-  tick({ gh: plannedGh(three, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
+  const one = [pr({ number: 1, headRefName: 'agent/claude/b1' })];
+  tick({ gh: plannedGh(one, date), now: { date, hour: 15, minute: 5 }, merge: () => ({}), check: () => ({ status: 'FAIL' }), review: () => ({}) });
   const queue = JSON.parse(readFileSync(join(trust.stateDir, 'claude-queue.json'), 'utf8'));
-  assert.equal(queue.topUp, true, 'three ready PRs are below the target of five');
-  assert.equal(queue.topUpCount, 2);
-  assert.equal(queue.buffer, 3);
+  assert.equal(queue.topUp, true, 'one PR in review and nothing in progress');
+  assert.equal(queue.topUpCount, 1);
+  assert.equal(queue.buffer, 1);
   const flow = trust.readJson(join(trust.stateDir, 'beats', `flow-${trust.vnNow().date}.json`), null);
   assert.ok(flow?.samples >= 1, 'the scheduled tick records a flow sample without any CLI read');
 });

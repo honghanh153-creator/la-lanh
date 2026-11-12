@@ -75,6 +75,7 @@ export function renderBody(decisions, date) {
     '', '| Mục | Kết quả | Lý do |', '| --- | --- | --- |', ...rows, '',
     '## Cổng (docs/operations/product-development-process.md §3–4)', '',
     'Mức: M — câu đã duyệt sẽ hiện cho người dùng.', '',
+    'Người dùng thấy gì: một số câu đọc đã được duyệt sẽ hiện thay cho câu cũ.', '',
     '- G1 Tài liệu / US-AC: luật cờ chờ duyệt trong docs/operations/decision-checklist.md (owner 06.11.2026).',
     '- G2 UI/UX: không đổi giao diện; chỉ đổi câu đã có chỗ hiển thị.',
     '- G3 Câu chữ (owner duyệt nếu có câu mới): Codex duyệt lô theo quyết định owner 06.11; không có nhóm owner-only.',

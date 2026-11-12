@@ -65,7 +65,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 5. **Trong ngày.** Một quyết định mới của owner được ghi ngay vào file này hoặc vào issue hub #2, để mọi session đều đọc được (bài học từ #136).
 6. **Cuối ngày.** Claude nhìn lại quy trình trong ngày, viết report ở `docs/reviews/YYYY-MM-DD-collab-loop-retro.md` (số liệu, chỗ kẹt, đã sửa, đề xuất) và mở PR `area:ops` để Codex review qua vòng tự động.
 
-7. **Bổ sung plan khi còn giờ** (owner 31.10.2026). Khi số PR sẵn sàng dưới mục tiêu 5 mà chưa tới 23:30 (quy tắc buffer 05.11), tick ghi `topUp: true` và `topUpCount` (mỗi tick bổ sung tối đa 3 PR) trong hàng đợi của Claude; khi tick chạy không từ 3 lượt liền, `topUp` cũng bật dù buffer đủ. Claude lấy việc kế tiếp theo thứ tự ưu tiên: issue task mở có nhãn `area:*` và không `needs-owner` trước, rồi việc `auto: yes` trong backlog. Mỗi việc đi qua checklist quyết định (Q1–Q5). Claude đăng một comment "Bổ sung plan HH:MM" trên issue plan (mang marker agent, không dùng cú pháp trả lời của owner), ghi việc gì, vì sao chọn, và mở PR để máy chạy tiếp. Việc cần owner (copy mới, dữ liệu cá nhân, hướng sản phẩm) vẫn mở PR nhưng gắn `needs-owner`.
+7. **Bổ sung plan khi còn chỗ** (owner 31.10.2026; WIP 1 + 1 từ 12.11.2026). Tick đếm PR mở của agent (nhánh `agent/*` vào integration, không tính `needs-owner`): PR đang tới lượt máy (check, review, merge) là "đang review", PR còn lại là "đang làm". Tick chỉ ghi `topUp: true` (`topUpCount` luôn là 1) khi không có việc nào đang làm, tối đa 1 PR đang review và chưa tới 23:30. Claude lấy việc kế tiếp theo thứ tự ưu tiên: issue task mở có nhãn `area:*` và không `needs-owner` trước, rồi việc `auto: yes` trong backlog. Mỗi việc đi qua checklist quyết định (Q1–Q5). Claude đăng một comment "Bổ sung plan HH:MM" trên issue plan (mang marker agent, không dùng cú pháp trả lời của owner), ghi việc gì, nguồn / AC, dòng "Người dùng thấy gì", và mở PR để máy chạy tiếp. Việc cần owner (copy mới, dữ liệu cá nhân, hướng sản phẩm) vẫn mở PR nhưng gắn `needs-owner`.
 
 ### 3.3 Plan trong ngày gồm
 
@@ -74,7 +74,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 - Việc trong backlog Claude sẽ làm khi hàng đợi review trống (theo cùng thứ tự ưu tiên, chỉ việc `auto: yes`).
 - PR đang giữ và lý do (`needs-owner`, xếp chồng, draft).
 - Hạn mức: lượt Codex còn trong ngày.
-- **Cam kết 16–20 PR** (owner 02.11.2026, nâng ngày 03.11.2026). Plan liệt kê tối đa 20 PR không bị giữ, theo đúng thứ tự ưu tiên trên. Nếu chưa đủ 16, Claude mở thêm từ backlog `auto: yes` và ghi số PR vào issue plan. % trong ngày = số PR cam kết đã merge vào integration / số PR cam kết. PR ngoài danh sách làm nếu kịp, không tính vào %. Lý do nâng: ngày 03.11 merge 16 PR và xong mức 6–8 lúc 15:37, nên mức cũ thấp hơn sức chạy thật. Trần Codex 32 lượt/ngày (khoảng 1,4 lượt mỗi PR merge) đủ cho 20 PR.
+- **3–5 việc, không đếm PR** (owner 12.11.2026, thay mức 16–20 PR của 03.11). Plan chọn 3–5 việc không bị giữ theo thứ tự ưu tiên trên; mỗi việc ghi nguồn / AC (dòng G1 của PR) và dòng "Người dùng thấy gì". Tiến độ trong ngày = việc xong / việc đã chọn (xong là đã merge vào integration). Mọi PR body phải có dòng bắt đầu bằng `Người dùng thấy gì:`; PR docs hoặc vận hành ghi `Người dùng thấy gì: không trực tiếp (vận hành)` (preflight chặn nếu thiếu). Trần Codex 32 lượt/ngày giữ nguyên.
 
 ## 4. Thành phần
 

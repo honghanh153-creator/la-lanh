@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { applyDecisions, buildPrompt, digest, main, renderBody, selectPending, validateDecisions } from './codex-copy-review.mjs';
+import { bodyProblems } from './collab-preflight.mjs';
 
 // Synthetic sentences only.
 const registry = {
@@ -43,6 +44,10 @@ test('PR body never uses the owner reply words and carries the agent marker', ()
   const body = renderBody([{ id: 'tarot.a', decision: 'approve', reason: 'Duyệt\nGiữ' }], '2026-11-06');
   assert.ok(!/^(Duyệt|Giữ|Bỏ)/m.test(body));
   assert.match(body, /<!-- la-lanh-agent copy-batch/);
+});
+
+test('the batch PR body passes the loop preflight, including "Người dùng thấy gì:" (owner 12.11)', () => {
+  assert.deepEqual(bodyProblems(renderBody([{ id: 'tarot.a', decision: 'approve', reason: 'rõ' }], '2026-11-12')), []);
 });
 
 test('dry run with a fake Codex touches no git and returns the batch', () => {
