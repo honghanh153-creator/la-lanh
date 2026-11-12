@@ -62,7 +62,7 @@ CLAIM_BODIES = (
 
 BODY_FUNCTION = {
     BodyName.SUN: "cách bạn chủ động, tạo dấu ấn và cảm thấy mình đang sống đúng hướng",
-    BodyName.MOON: "cách bạn xử lý cảm xúc, tìm an toàn và hồi phục sau một ngày nhiều tín hiệu",
+    BodyName.MOON: "cách bạn xử lý cảm xúc, tìm an toàn và hồi phục sau một ngày mệt",
     BodyName.MERCURY: "cách bạn thu nhận thông tin, nối ý và nói điều mình nghĩ",
     BodyName.VENUS: "cách bạn nhận ra điều có giá trị và cảm thấy được trân trọng trong kết nối",
     BodyName.MARS: "cách bạn khởi động, theo đuổi điều mình muốn và đặt ranh giới",
@@ -72,7 +72,7 @@ BODY_FUNCTION = {
 }
 
 SIGN_MODE = {
-    "aries": "nhịp nhanh, thẳng và một điểm bắt đầu rõ ràng",
+    "aries": "tốc độ, sự thẳng thắn và một điểm bắt đầu rõ ràng",
     "taurus": "sự ổn định, cảm giác thật và đủ thời gian để tin",
     "gemini": "trao đổi, tò mò và nhiều hơn một góc nhìn",
     "cancer": "sự thân thuộc, chăm sóc và một không gian đủ an toàn",
@@ -81,20 +81,20 @@ SIGN_MODE = {
     "libra": "đối thoại, cân bằng và cách cư xử có qua có lại",
     "scorpio": "chiều sâu, sự riêng tư và niềm tin đã được kiểm chứng",
     "sagittarius": "khoảng rộng, ý nghĩa và quyền được thử một hướng mới",
-    "capricorn": "cấu trúc, cam kết và tiến bộ có thể nhìn thấy",
+    "capricorn": "cấu trúc, cam kết và tiến bộ nhìn thấy được",
     "aquarius": "khoảng thở, logic và cảm giác được kết nối mà vẫn là mình",
     "pisces": "trực giác, tưởng tượng và ranh giới đủ mềm để cảm nhận",
 }
 
 SIGN_EVERYDAY = {
     "aries": "phản ứng khá nhanh, rồi mới quay lại xem cảm giác hoặc quyết định ấy cần gì thêm",
-    "taurus": "cần chạm vào điều cụ thể và giữ cách quen một lúc trước khi thật sự mở lòng",
+    "taurus": "cần thấy điều cụ thể, cầm nắm được và giữ cách quen một lúc trước khi thật sự mở lòng",
     "gemini": (
         "nói, viết hoặc đặt câu hỏi để hiểu điều đang diễn ra thay vì ngồi yên với một đáp án"
     ),
     "cancer": "đọc không khí rất sớm và chỉ nói phần mềm nhất khi biết mình đang ở nơi an toàn",
     "leo": (
-        "muốn thể hiện điều mình thật sự quan tâm và hụt hẫng khi tín hiệu ấy không được đón nhận"
+        "muốn thể hiện điều mình thật sự quan tâm và hụt hẫng khi điều ấy không được đón nhận"
     ),
     "virgo": "biến cảm giác mơ hồ thành danh sách, chi tiết hoặc một việc nhỏ có thể xử lý ngay",
     "libra": "nghĩ qua phản ứng của người kia và đôi lúc trì hoãn câu trả lời riêng của mình",
@@ -106,14 +106,14 @@ SIGN_EVERYDAY = {
         "rồi mới nói sâu"
     ),
     "pisces": (
-        "bắt tín hiệu rất nhanh, dễ hòa vào bầu không khí và cần thời gian tách đâu là "
-        "phần của mình"
+        "nhận ra không khí xung quanh rất nhanh, hay hòa theo nó và cần thời gian tách "
+        "đâu là phần của mình"
     ),
 }
 
 SIGN_SHADOW = {
     "aries": "đi quá nhanh nên bỏ lỡ điều mình thật sự cần",
-    "taurus": "giữ một nhịp quen quá lâu dù nó đã không còn dễ chịu",
+    "taurus": "giữ một thói quen quá lâu dù nó đã không còn dễ chịu",
     "gemini": "phân tích thêm để tránh ở lại với một cảm giác chưa có tên",
     "cancer": "ôm phần của người khác rồi quên hỏi mình đang cần gì",
     "leo": "đồng nhất việc chưa được đáp lại với việc mình không đủ quan trọng",
@@ -122,8 +122,8 @@ SIGN_SHADOW = {
     "scorpio": "giữ kín quá lâu rồi để áp lực nói thay mình",
     "sagittarius": "đổi hướng quá sớm trước khi một chuyện kịp được xử lý",
     "capricorn": "biến sức chịu đựng thành tiêu chuẩn duy nhất của sự ổn",
-    "aquarius": "đứng ngoài cảm xúc quá lâu nên bị hiểu thành lạnh hoặc không cần ai",
-    "pisces": "nhận quá nhiều tín hiệu cùng lúc và khó biết giới hạn nằm ở đâu",
+    "aquarius": "đứng ngoài cảm xúc quá lâu nên bị hiểu thành lạnh lùng hoặc xa cách",
+    "pisces": "ôm quá nhiều cảm xúc của người khác cùng lúc và khó biết giới hạn nằm ở đâu",
 }
 
 BODY_ACTION = {
@@ -150,13 +150,13 @@ HOUSE_TOPIC = {
     3: "giao tiếp hằng ngày, học hỏi và môi trường gần",
     4: "đời sống riêng, gia đình và nơi bạn hạ cảnh giác",
     5: "sáng tạo, niềm vui, hẹn hò và quyền được chơi",
-    6: "nhịp làm việc, thói quen và cách chăm cơ thể",
+    6: "cách làm việc, thói quen và cách chăm cơ thể",
     7: "quan hệ một-một, cam kết và cách thương lượng",
     8: "tin cậy, thân mật, quyền lực và những gì được chia sẻ sâu",
     9: "niềm tin, học xa và cách bạn mở rộng thế giới",
     10: "vai trò công khai, hướng nghề nghiệp và điều bạn muốn xây",
     11: "bạn bè, cộng đồng và một tương lai có thể cùng làm",
-    12: "đời sống bên trong, khoảng nghỉ và những tín hiệu chưa thành lời",
+    12: "đời sống bên trong, khoảng nghỉ và những điều chưa nói thành lời",
 }
 
 ASPECT_VI = {
@@ -232,11 +232,11 @@ class InsightReadingService:
     def _planet_claims(self, chart: NatalChart) -> tuple[ReadingClaim, ...]:
         definitions = (
             (BodyName.SUN, ReadingDomain.CORE, "Lõi sáng"),
-            (BodyName.MOON, ReadingDomain.EMOTIONS, "Nhịp cảm xúc"),
+            (BodyName.MOON, ReadingDomain.EMOTIONS, "Cảm xúc"),
             (BodyName.MERCURY, ReadingDomain.MIND, "Mạch suy nghĩ"),
             (BodyName.VENUS, ReadingDomain.RELATING, "Cách kết nối"),
             (BodyName.MARS, ReadingDomain.DRIVE, "Động lực"),
-            (BodyName.JUPITER, ReadingDomain.CORE, "Vùng nở rộng"),
+            (BodyName.JUPITER, ReadingDomain.CORE, "Điều giúp bạn mở rộng"),
         )
         claims: list[ReadingClaim] = []
         for body, domain, title in definitions:
@@ -279,8 +279,8 @@ class InsightReadingService:
     def _hook(body: BodyName, sign: str) -> str:
         lead = {
             BodyName.SUN: "Bạn sáng rõ hơn",
-            BodyName.MOON: "Cảm xúc của bạn dễ thở hơn",
-            BodyName.MERCURY: "Đầu óc bạn bắt sóng nhanh hơn",
+            BodyName.MOON: "Cảm xúc của bạn nhẹ hơn",
+            BodyName.MERCURY: "Đầu óc bạn làm việc nhanh hơn",
             BodyName.VENUS: "Bạn thấy mình được trân trọng hơn",
             BodyName.MARS: "Bạn vào guồng rõ hơn",
             BodyName.JUPITER: "Thế giới của bạn mở rộng hơn",
@@ -291,21 +291,21 @@ class InsightReadingService:
     def _meaning(chart: NatalChart, body: BodyName, longitude: float, sign: str) -> str:
         label = BODY_VI[body]
         text = (
-            f"{label} không nói bạn là gì; nó mô tả {BODY_FUNCTION[body]}. "
-            f"Ở {SIGN_VI[sign]}, phần này có thể ưu tiên {SIGN_MODE[sign]}."
+            f"{label} cho thấy {BODY_FUNCTION[body]}. "
+            f"Ở {SIGN_VI[sign]}, bạn thường cần {SIGN_MODE[sign]}."
         )
         house = InsightReadingService._house_for_longitude(chart, longitude)
         if house is not None:
-            text += f" Nhà {house} đưa nhịp này vào {HOUSE_TOPIC[house]}."
+            text += f" Điều này hiện rõ nhất ở {HOUSE_TOPIC[house]}."
         return text
 
     @staticmethod
     def _manifestation(sign: str) -> str:
-        return f"Trong đời thường, bạn có thể {SIGN_EVERYDAY[sign]}."
+        return f"Trong đời thường, bạn hay {SIGN_EVERYDAY[sign]}."
 
     @staticmethod
     def _watch_for(chart: NatalChart, body: BodyName, sign: str) -> str:
-        text = f"Khi căng, bạn dễ {SIGN_SHADOW[sign]}."
+        text = f"Khi căng, bạn hay {SIGN_SHADOW[sign]}."
         related = sorted(
             (aspect for aspect in chart.aspects if body in {aspect.body_a, aspect.body_b}),
             key=lambda aspect: aspect.orb,
@@ -314,9 +314,9 @@ class InsightReadingService:
             aspect = related[0]
             other = aspect.body_b if aspect.body_a is body else aspect.body_a
             dynamic = (
-                "tạo thêm một điểm kéo-ngược cần điều tiết"
+                "tạo thêm chỗ giằng co cần cân lại"
                 if aspect.kind in {"square", "opposition", "quincunx"}
-                else "tạo một đường phối hợp khá tự nhiên"
+                else "tạo sự phối hợp khá tự nhiên"
             )
             text += (
                 f" Góc {ASPECT_VI.get(aspect.kind, aspect.kind)} gần nhất với "

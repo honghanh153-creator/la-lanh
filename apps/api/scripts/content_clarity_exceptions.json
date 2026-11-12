@@ -3,45 +3,12 @@
   "exceptions": [
     {
       "rule": "S7",
-      "surface": "kham_pha",
-      "keys": [
-        "b8b545bb54"
-      ],
-      "reason": "pre-existing, fix in C3",
-      "approver": "owner in chat 03.11.2026 (keep until C3 rewrites)"
-    },
-    {
-      "rule": "S7",
       "surface": "radar",
       "keys": [
         "1fb170d7fa"
       ],
       "reason": "pre-existing, fix in C3",
       "approver": "owner in chat 03.11.2026 (keep until C3 rewrites)"
-    },
-    {
-      "rule": "A4",
-      "surface": "kham_pha",
-      "keys": [
-        "075770f027",
-        "142f695dc7",
-        "7142904766",
-        "bdcefef8c6",
-        "d02fc46b4a",
-        "e298e3b350"
-      ],
-      "reason": "pre-existing, fix in C3 (Khám phá rewrite)",
-      "approver": "owner in chat 04.11.2026 (temporary until C4 / copy rewrite)"
-    },
-    {
-      "rule": "A11",
-      "surface": "kham_pha",
-      "keys": [
-        "6db59f56df",
-        "7caf3b9e02"
-      ],
-      "reason": "pre-existing, fix in C3 (Khám phá Jyotish meanings)",
-      "approver": "owner in chat 04.11.2026 (temporary until C4 / copy rewrite)"
     },
     {
       "rule": "A14",
