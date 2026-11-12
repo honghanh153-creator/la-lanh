@@ -6073,6 +6073,222 @@
    "status": "pending"
   },
   {
+   "id": "daily.bundle.repair-reply.01.action",
+   "category": "reading",
+   "text": "Nhắn lại cho đồng nghiệp rằng bạn muốn nói bản báo cáo cần sửa phần số liệu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.01.headline",
+   "category": "reading",
+   "text": "Câu bạn trả lời đồng nghiệp nghe hơi cộc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.01.scene",
+   "category": "reading",
+   "text": "Lúc đọc lại câu trả lời gửi đồng nghiệp về báo cáo, bạn thấy nó cộc và định nhắn thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.02.action",
+   "category": "reading",
+   "text": "Nhắn lại cho bạn ấy rằng bạn chỉ sợ lỡ giờ hẹn, không phải trách bạn ấy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.02.headline",
+   "category": "reading",
+   "text": "Bạn thân đến trễ và câu bạn nhắn khá gắt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.02.scene",
+   "category": "reading",
+   "text": "Ngồi chờ bạn thân đến trễ, bạn đọc lại tin nhắn mình gửi và thấy nó gắt hơn ý định.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.03.action",
+   "category": "reading",
+   "text": "Nhắn lại cho mẹ rằng tuần này bạn bận, và nói rõ hôm nào bạn ghé được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.03.headline",
+   "category": "reading",
+   "text": "Mẹ hỏi chuyện cuối tuần và bạn trả lời cụt lủn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.03.scene",
+   "category": "reading",
+   "text": "Đọc lại câu trả lời gửi mẹ về bữa cơm cuối tuần, bạn thấy nó cụt và định nhắn thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.04.action",
+   "category": "reading",
+   "text": "Nói lại trong nhóm rằng hạn nộp là tối thứ Sáu và hỏi bạn ấy cần gì thêm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.04.headline",
+   "category": "reading",
+   "text": "Bạn cùng nhóm hỏi hạn nộp, bạn đáp hơi gắt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.04.scene",
+   "category": "reading",
+   "text": "Khi đọc lại tin nhắn trả lời bạn cùng nhóm về hạn nộp, bạn thấy mình hơi gắt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.05.action",
+   "category": "reading",
+   "text": "Nhắn lại địa chỉ đầy đủ một lần nữa và cảm ơn người bán vì hỏi kỹ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.05.headline",
+   "category": "reading",
+   "text": "Người bán hỏi lại địa chỉ, bạn trả lời khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.05.scene",
+   "category": "reading",
+   "text": "Lúc người bán hỏi lại địa chỉ giao hàng, bạn đọc lại câu mình đáp và thấy nó cộc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.06.action",
+   "category": "reading",
+   "text": "Nói lại với em là tối nay bạn cần máy để làm bài, mai em mượn được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.06.headline",
+   "category": "reading",
+   "text": "Em trai hỏi mượn máy tính, bạn từ chối khá gắt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.06.scene",
+   "category": "reading",
+   "text": "Em trai hỏi mượn máy tính tối nay, bạn đọc lại tin nhắn từ chối và thấy nó nặng lời.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.07.action",
+   "category": "reading",
+   "text": "Nhắn lại rằng tối nay bạn sẽ rửa chén, và hỏi bạn ấy có muốn chia lịch không.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.07.headline",
+   "category": "reading",
+   "text": "Bạn cùng phòng nhắc rửa chén, bạn đáp lại cộc lốc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.07.scene",
+   "category": "reading",
+   "text": "Bạn cùng phòng nhắc rửa chén qua tin nhắn, bạn trả lời ngay rồi đọc lại thấy mình gắt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.08.action",
+   "category": "reading",
+   "text": "Nhắn lại cho khách tình trạng đơn hàng trong một câu rõ và xin lỗi vì trả lời cộc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.08.headline",
+   "category": "reading",
+   "text": "Khách hỏi lần thứ ba, bạn trả lời hơi cộc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.08.scene",
+   "category": "reading",
+   "text": "Trong ca trực, bạn đọc lại câu trả lời gửi khách về đơn hàng và thấy nó cộc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.09.action",
+   "category": "reading",
+   "text": "Nhắn lại trong nhóm là bạn đi được, và nói rõ bạn đến lúc mấy giờ.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.09.headline",
+   "category": "reading",
+   "text": "Nhóm đá bóng hỏi ai đi, bạn trả lời khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.09.scene",
+   "category": "reading",
+   "text": "Nhóm đá bóng hỏi ai đi tối thứ Bảy, bạn đọc lại câu mình trả lời và thấy nó khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.10.action",
+   "category": "reading",
+   "text": "Nhắn lại cho hàng xóm rằng bạn sẽ dời xe ngay, và cảm ơn vì lời nhắc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.10.headline",
+   "category": "reading",
+   "text": "Hàng xóm nhờ dời xe, bạn đáp hơi gắt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.10.scene",
+   "category": "reading",
+   "text": "Khi đọc lại tin nhắn trả lời hàng xóm về chỗ để xe, bạn thấy mình nói gắt.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.11.action",
+   "category": "reading",
+   "text": "Nhắn lại cho người yêu là bạn đang trên xe buýt, hai mươi phút nữa tới.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.11.headline",
+   "category": "reading",
+   "text": "Người yêu hỏi bạn đang ở đâu, bạn đáp cộc.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.11.scene",
+   "category": "reading",
+   "text": "Ngồi trên xe buýt, bạn đọc lại câu trả lời gửi người yêu và thấy nó cộc hơn ý mình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.12.action",
+   "category": "reading",
+   "text": "Nhắn lại cho sếp phần việc đã xong, phần còn lại và giờ bạn gửi bản cuối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.12.headline",
+   "category": "reading",
+   "text": "Sếp hỏi tiến độ, bạn đáp hơi khó chịu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.repair-reply.12.scene",
+   "category": "reading",
+   "text": "Sếp nhắn hỏi việc tới đâu, bạn đọc lại tin nhắn mình trả lời và thấy nó như đang cãi.",
+   "status": "pending"
+  },
+  {
    "id": "daily.scene.specific-feedback.01",
    "category": "reading",
    "text": "Khi gửi bản nháp kèm câu thấy sao, bạn có thể nhận về góp ý cho phần không cần sửa.",
