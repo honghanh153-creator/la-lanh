@@ -89,6 +89,9 @@ class Settings(BaseSettings):
     human_tarot_launch_approved: bool = False
     # OD1 (owner, 30/10/2026): intake closes at 18:00 for the 22:00 release, never later than it.
     human_tarot_intake_closes_at: time = time(18, 0)
+    # PV-26: new mood check-ins are stored encrypted only when this is on. Turn it on in a later
+    # release, once every running image and the rollback image read encrypted moods.
+    mood_encrypted_writes: bool = False
     content_studio_enabled: bool = False
     content_studio_api_token: SecretStr | None = None
     content_studio_max_body_bytes: int = Field(default=262_144, ge=16_384, le=1_048_576)

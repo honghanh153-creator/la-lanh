@@ -179,7 +179,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 | Mã | Lỗ hổng | Mức | Sửa | Trạng thái |
 |---|---|---|---|---|
 | PV-5 | Tính lại lựa chọn ở mỗi GET, không giới hạn tần suất | P1 | Tính một lần cho mỗi (snapshot, ngày), lưu trong note đã mã hóa; thêm policy `daily-read` | Mở — phần giới hạn tần suất đã xong: policy `daily-read` (mọi GET `/v1/daily-note…`) và `insights-read` (GET `/v1/insights/…` trừ `configs`), 120 lần/phút mỗi peer, 1200 lần/phút toàn hệ thống; còn phần tính một lần và lưu |
-| PV-6 | Trường v2 nằm ở cột không mã hóa | P1 | Mọi trường v2 vào envelope; test bảng không có cột mới ở dạng rõ | Mở |
+| PV-6 | Trường v2 nằm ở cột không mã hóa | P1 | Mọi trường v2 vào envelope; test bảng không có cột mới ở dạng rõ | Xong — rà bảng: mọi trường v2 đã nằm trong `plan_ciphertext` / `evaluation_ciphertext` / `content_ciphertext`, không có cột rõ; `tests/privacy/test_daily_v2_plaintext_columns.py` khóa danh sách cột của 6 bảng Daily và chặn cột trùng tên trường v2 |
 | PV-28 | Đường viết lại bằng LLM lúc chạy vẫn nằm cạnh Daily; allowlist có `house` | P2 | Loại Daily v2 khỏi registry viết lại; test | Xong: `daily_detail` không sinh ở mọi chế độ rollout; `house`/`angle` bỏ khỏi allowlist gửi đi và khỏi payload (`test_daily_v2_no_runtime_rewrite.py`). Còn lại: khi nối Daily v2 vào thẻ home, nối qua đường không gọi LLM |
 | PL-8, PL-10, PL-12 | Cảnh mất ở trang chi tiết; không làm mới sau nửa đêm; ngày UTC lúc đang tải | P2 | Sửa cùng UI v2 | Mở |
 | PL-30, PL-31, PL-32, PL-33 | Lưu note, chia sẻ, lịch sử; ngày triển khai; bộ chọn ngữ cảnh; "việc nhỏ" | P2 | Ghi điều kiện xong cho từng mục | Mở |
@@ -212,7 +212,7 @@ Một nhà có nhiều nghĩa. Ví dụ của owner: Sao Mộc qua nhà 5 có th
 | PL-37 | Không có lựa chọn cho người sinh 00–06h. "Đêm (sau 22h)" được lưu thành 23:00 của ngày đã nhập, nên người sinh 3h sáng bị tính lệch khoảng 20 giờ | P1 | **Owner chốt 03.11.2026:** thêm "Rạng sáng 00–06h" (lưu 03:00), "Đêm" thành 22–24h; không báo người dùng vì đang thử nghiệm. Engine chọn góc coi 03:00 là khung hẹp, còn bản ghi "Đêm" cũ vẫn theo luật rộng (#178) | Xong (e59d299, bf6a1f7) |
 | AS-10 | Hỏi "bạn biết giờ sinh từ đâu" và cho chọn theo canh giờ (Tý…Hợi) | P2 | Cần review quyền riêng tư trước, vì đây là trường mới | Mở |
 | PV-24 | `/metrics` mở công khai | P3 | Trả 404 ở Caddy hoặc yêu cầu token | Xong (a6394e3) |
-| PV-26 | Nhãn persona và mood lưu dạng rõ | P3 | Đưa vào envelope ở lần migration tới | Mở |
+| PV-26 | Nhãn persona và mood lưu dạng rõ | P3 | Đưa vào envelope ở lần migration tới | Mở: đã có migration 0042 và bản đọc mood mã hoá; ghi mã hoá bật bằng `LA_LANH_MOOD_ENCRYPTED_WRITES` ở bản phát hành sau; bản ghi cũ hết hạn tự nhiên; nhãn persona còn mở |
 
 ### Hồ sơ pháp lý và app native
 

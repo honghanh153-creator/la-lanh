@@ -163,7 +163,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         done.push({ pr: t.number, check: result });
         if (result?.status === 'preflight') { recordPreflight(t.number, t.head, { status: 'FAIL', reasons: result.reasons ?? [], bodyHash: result.bodyHash ?? t.bodyHash }); checks -= 1; continue; }
         if (result?.status === 'PASS') checked.push(t);
-        if (!['PASS', 'FAIL'].includes(result?.status)) break;
+        // ci-pending: this head's CI is still running; the next PR may already have its result.
+        if (!['PASS', 'FAIL', 'ci-pending'].includes(result?.status)) break;
       }
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);
