@@ -6687,19 +6687,19 @@
   {
    "id": "daily.bundle.repair-reply.11.action",
    "category": "reading",
-   "text": "Nhắn lại cho người yêu là bạn đang trên xe buýt, hai mươi phút nữa tới.",
+   "text": "Nhắn lại cho người đang đợi là bạn đang trên xe buýt, hai mươi phút nữa tới.",
    "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.11.headline",
    "category": "reading",
-   "text": "Người yêu hỏi bạn đang ở đâu, bạn đáp cộc.",
+   "text": "Người đang đợi hỏi bạn đang ở đâu, bạn đáp cộc.",
    "status": "pending"
   },
   {
    "id": "daily.bundle.repair-reply.11.scene",
    "category": "reading",
-   "text": "Ngồi trên xe buýt, bạn đọc lại câu trả lời gửi người yêu và thấy nó cộc hơn ý mình.",
+   "text": "Ngồi trên xe buýt, bạn đọc lại câu trả lời gửi người đang đợi và thấy nó cộc hơn ý mình.",
    "status": "pending"
   },
   {
