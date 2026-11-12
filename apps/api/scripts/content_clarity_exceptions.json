@@ -1,5 +1,5 @@
 {
-  "note": "Owner-approved exceptions to the content clarity gate (scripts/review_content_release.py). Each entry needs rule, surface, reason and approver. A ratcheted rule (see RULES in clarity_lint.py) listed here may rise to the PR's own baseline for that surface, but only up to the approved max_count and only for the approved key set (keys_digest: SHA-256 of the sorted, newline-joined keys); any further rise fails. A hard-zero rule (A4, A9, A11, A13, A14, A15, S1-S9, H1) also needs the exact keys it tolerates; any other hit still fails. Keep this list empty unless the owner approved an entry. The two S7 entries below were already in production copy when the hard-zero rule was introduced (#179). The C1-3 entries were already in production copy when C1-3 made their rules hard zero; the owner approved them in chat on 04.11.2026 as temporary until C4 rewrites the copy. The #219 ratchet waivers (A1, A3, A5, A8, A16 on kham_pha) cover the Vietnamese body-name rewrite (owner, 04.11.2026).",
+  "note": "Owner-approved exceptions to the content clarity gate (scripts/review_content_release.py). Each entry needs rule, surface, reason and approver. A ratcheted rule (see RULES in clarity_lint.py) listed here may rise to the PR's own baseline for that surface, but only up to the approved max_count and only for the approved key set (keys_digest: SHA-256 of the sorted, newline-joined keys); any further rise fails. A hard-zero rule (A4, A9, A11, A13, A14, A15, S1-S9, H1) also needs the exact keys it tolerates; any other hit still fails. Keep this list empty unless the owner approved an entry. The two S7 entries below were already in production copy when the hard-zero rule was introduced (#179). The C1-3 entries were already in production copy when C1-3 made their rules hard zero; the owner approved them in chat on 04.11.2026 as temporary until C4 rewrites the copy. The #219 ratchet waivers (A1, A3, A5, A8, A16 on kham_pha) cover the Vietnamese body-name rewrite (owner, 04.11.2026); replaced by the #428 waivers (A1, A5, A6, A8, A10, A16 on kham_pha) for the plainer meaning rewrite (owner, 12.11.2026).",
   "exceptions": [
     {
       "rule": "S7",
@@ -152,42 +152,50 @@
     {
       "rule": "A1",
       "surface": "kham_pha",
-      "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
-      "approver": "owner in chat 04.11.2026 (#219)",
-      "max_count": 1663,
-      "keys_digest": "21a8a78944cc59bd15fe7dc5e0b9d09f67d30142066185efdf00650ee2d6c95c"
-    },
-    {
-      "rule": "A3",
-      "surface": "kham_pha",
-      "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
-      "approver": "owner in chat 04.11.2026 (#219)",
-      "max_count": 1320,
-      "keys_digest": "8c098a75636551bee42e6fc5d5916361c73b0f54b9bc20dc4faa1d66e9b89ef2"
+      "reason": "#428 plainer Western/Jyotish meaning sentences change template sentence hashes; counts fall",
+      "approver": "owner in chat 12.11.2026 (#428)",
+      "max_count": 915,
+      "keys_digest": "f31090c1edd317d65164e2cd092395e8586952dae8a372e2e6ce408bd4f1f63f"
     },
     {
       "rule": "A5",
       "surface": "kham_pha",
-      "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
-      "approver": "owner in chat 04.11.2026 (#219)",
-      "max_count": 6050,
-      "keys_digest": "cce064592f4f09e482621b96908e5d364b55080fe5c4cfdb36c9ad4c475d2e0c"
+      "reason": "#428 plainer Western/Jyotish meaning sentences change template sentence hashes; counts fall",
+      "approver": "owner in chat 12.11.2026 (#428)",
+      "max_count": 4409,
+      "keys_digest": "fccc4a8da85bcffccee196ca7e0041f3e56c37de9ebcf834561ac93f6c009130"
+    },
+    {
+      "rule": "A6",
+      "surface": "kham_pha",
+      "reason": "#428 plainer Western/Jyotish meaning sentences change template sentence hashes; counts fall",
+      "approver": "owner in chat 12.11.2026 (#428)",
+      "max_count": 63,
+      "keys_digest": "9ce5a405d4f9e47eac7e90b7231475be5609fcf07a11a74a85712e528f195ffb"
     },
     {
       "rule": "A8",
       "surface": "kham_pha",
-      "reason": "#219 Vietnamese body names change aspect-line sentence hashes (775 to 892)",
-      "approver": "owner in chat 04.11.2026 (#219)",
-      "max_count": 892,
-      "keys_digest": "da7c5bfbde6975ba62f1e4af4ff57e4a9aca931b517bba04599c6b9bdf42cf50"
+      "reason": "#428 plainer Western/Jyotish meaning sentences change template sentence hashes; counts fall",
+      "approver": "owner in chat 12.11.2026 (#428)",
+      "max_count": 540,
+      "keys_digest": "a570fc8197523b4c8f223f716e5db3c89b512553d12acec86c44a6d62e743e4a"
+    },
+    {
+      "rule": "A10",
+      "surface": "kham_pha",
+      "reason": "#428 plainer Western/Jyotish meaning sentences change template sentence hashes; counts fall",
+      "approver": "owner in chat 12.11.2026 (#428)",
+      "max_count": 258,
+      "keys_digest": "a7fa7c2db43568949a9b1bac46df8ffbf215034da96d6114a3c14d483af6c6c3"
     },
     {
       "rule": "A16",
       "surface": "kham_pha",
-      "reason": "#219 Vietnamese body names change aspect-line sentence hashes",
-      "approver": "owner in chat 04.11.2026 (#219)",
-      "max_count": 1619,
-      "keys_digest": "39ca18c689f8b2ee55886f31a3e1cf71ce39f36d99fa99791cfbc933cefbdd90"
+      "reason": "#428 plainer Western/Jyotish meaning sentences change template sentence hashes; counts fall",
+      "approver": "owner in chat 12.11.2026 (#428)",
+      "max_count": 915,
+      "keys_digest": "f31090c1edd317d65164e2cd092395e8586952dae8a372e2e6ce408bd4f1f63f"
     }
   ]
 }
