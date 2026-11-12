@@ -8,7 +8,8 @@ import { heavyJobFree, runCheckInClone } from './collab-check.mjs';
 import { runPreflight } from './collab-preflight.mjs';
 import { clean, makeGh } from './collab-trust.mjs';
 import { opsAlert, resolveOpsAlert, tick } from './collab-turn.mjs';
-import { renderBoard, upsertBoard } from './collab-status.mjs';
+import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
+import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
 import { planIssue } from './collab-plan.mjs';
 import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
@@ -37,7 +38,9 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
-    }, health: () => healthLines(readBeats()), copyPending: () => pendingCount(), copyBatch: () => runCopyBatch() });
+    }, health: () => healthLines(readBeats()), copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(),
+    notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
+    metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })) });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

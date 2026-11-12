@@ -3,7 +3,8 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
-import { autoStartAt, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
+import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
+import { ownerNotes } from './collab-status.mjs';
 import { bodyHash } from './collab-heal.mjs';
 import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees } from './collab-preflight.mjs';
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
@@ -96,7 +97,7 @@ function withLock(fn) {
 
 export const idleAlertRuns = 6;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, notify = () => {}, metrics = () => null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -105,10 +106,23 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
     const heartbeat = status => writeJson(join(stateDir, 'heartbeat.json'), { at: new Date().toISOString(), vn: now, status });
     // The phone-visible board must never break a tick.
+    // Outcome numbers (collab-metrics.mjs) are read once per tick, never at night.
+    let metricLines = null;
+    const measure = (prs, turns) => { try { metricLines = metrics({ prs, turns }); } catch (error) { log(`metrics failed: ${clean(error.message, 200)}`); } };
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, ...info }); } catch {}
     };
+    // Owner notes (collab-status.mjs): a new comment only for merges, a 2-tick failure streak,
+    // a new needs-owner and the 12:00/22:00 digest. Never breaks a tick.
+    const tell = ({ turns = [], comments = [], dropped = [], digest = true } = {}) => {
+      try {
+        const d = readJson(dayPath, day);
+        const notes = ownerNotes({ now: time(), merged: d.mergedToday ?? [], failures: d.failures ?? 0, streakAt: d.streakAt ?? null, turns, planned: d.planned ?? [], dropped, metrics: metricLines ?? [], digest });
+        if (notes.length) notify(notes, comments);
+      } catch (error) { log(`owner note failed, retry next run: ${clean(error.message, 200)}`); }
+    };
+    const streak = (failures, prev) => (failures === 0 ? null : failures === 1 ? `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}` : prev ?? null);
     // The scheduled-run watchdog runs before the plan gate, so it also watches at night; it never breaks a tick.
     try { watchdog(); } catch {}
     try {
@@ -117,7 +131,11 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       if (missing.length) throw new Error(`thiếu công cụ trên PATH: ${missing.join(', ')}`);
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
-        const turns = turnsFor(gh.openPrs());
+        const prs = gh.openPrs();
+        const turns = turnsFor(prs);
+        measure(prs, turns);
+        // Progress is items done / items picked (owner 12.11.2026): remember what was picked.
+        writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number) });
         makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: (() => { try { return health(); } catch { return []; } })() });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
@@ -125,7 +143,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       }
       if (plan.state !== 'open') {
         heartbeat(plan.state);
-        show({ status: plan.state, turns: plan.state === 'closed' ? [] : turnsFor(gh.openPrs(), { dropped: plan.dropped }) });
+        if (plan.state === 'closed') { show({ status: plan.state, turns: [] }); return { status: plan.state }; }
+        const prs = gh.openPrs();
+        const turns = turnsFor(prs, { dropped: plan.dropped });
+        measure(prs, turns);
+        show({ status: plan.state, turns });
+        tell({ turns, comments: plan.comments, dropped: plan.dropped });
         return { status: plan.state };
       }
       // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
@@ -135,6 +158,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns);
+      measure(prs, turns);
       const area = activeArea(turns);
       const work = turns.filter(t => t.area === area);
       const done = [];
@@ -142,7 +166,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       for (const t of work.filter(t => t.turn === 'merge').slice(0, 2)) {
         if (late()) break;
         show({ status: 'running', doing: `merge #${t.number}`, expectMinutes: 5, area, turns, done });
-        done.push({ pr: t.number, merge: merge(t.number) });
+        const result = merge(t.number);
+        done.push({ pr: t.number, merge: result });
+        if (result?.status === 'merged') {
+          const d = readJson(dayPath, day);
+          writeJson(dayPath, { ...d, mergedToday: [...(d.mergedToday ?? []).filter(m => m.number !== t.number), { number: t.number, title: t.title }] });
+        }
       }
       // Author checks need no AI: the tick runs them in the dedicated clone, one at a time, then reviews.
       // Fix A: a fast preflight first; a failure is recorded (nothing posted) and costs no check slot.
@@ -224,19 +253,22 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       }
       const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error' || d.copy?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
-      writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures });
+      writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures, streakAt: streak(failures, readJson(dayPath, day).streakAt) });
       heartbeat(errors.length ? 'ran-with-errors' : 'ran');
       // A review waiting while the daily Codex cap is spent is a budget stop, not "no work" (#145 r2).
       const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= codexDailyCap;
       show({ status: errors.length ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: errors.length ? JSON.stringify(errors) : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
+      tell({ turns: leftTurns, comments: plan.comments, dropped: plan.dropped });
       log(JSON.stringify(done));
       return { status: errors.length ? 'ran-with-errors' : 'ran', area, done };
     } catch (error) {
       const failures = (readJson(dayPath, day).failures ?? 0) + 1;
-      writeJson(dayPath, { ...readJson(dayPath, day), failures });
+      writeJson(dayPath, { ...readJson(dayPath, day), failures, streakAt: streak(failures, readJson(dayPath, day).streakAt) });
       heartbeat(`error: ${clean(error.message, 200)}`);
       show({ status: 'error', error: error.message });
+      // Only the failure streak: with no PR list a digest would say nothing is running.
+      tell({ digest: false });
       if (failures === 2 && alert) alert(`collab tick lỗi 2 lần liên tiếp (${now.date} ${now.hour}:${String(now.minute).padStart(2, '0')}): ${clean(error.message, 300)}`);
       return { status: 'error', error: clean(error.message, 300) };
     }

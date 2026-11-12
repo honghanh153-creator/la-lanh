@@ -129,7 +129,7 @@ export function planIssue(gh) {
 export function readPlanStatus(gh, now = vnNow()) {
   const number = planIssue(gh);
   const issue = gh.json(['issue', 'view', String(number), '--repo', repo, '--json', 'comments']);
-  return { issue: number, ...planState(now, issue.comments ?? []) };
+  return { issue: number, comments: issue.comments ?? [], ...planState(now, issue.comments ?? []) };
 }
 
 export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [] }) {
