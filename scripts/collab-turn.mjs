@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
-import { lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
+import { autoStartAt, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { bodyHash } from './collab-heal.mjs';
 import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees } from './collab-preflight.mjs';
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
@@ -96,7 +96,7 @@ function withLock(fn) {
 
 export const idleAlertRuns = 6;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [] } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -175,6 +175,28 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // Usage limit: wait for the reset; busy: a direct review holds the clone. The next run retries.
         if (['limit', 'busy'].includes(result?.status)) break;
       }
+      // Owner 06.11.2026: Codex approves one batch of non-sensitive copy a day. The tick runs it at
+      // most once a day, from the 10:00 auto-start, only while copy outside the owner-only groups is
+      // pending, inside the daily Codex cap, and never next to an open batch PR on the same file.
+      // A busy review lock starts nothing and is retried on the next run.
+      if (copyBatch && !late() && (t => t.hour * 60 + t.minute)(time()) >= autoStartAt) {
+        const today = readJson(dayPath, day);
+        const batchOpen = prs.some(p => /^agent\/claude\/copy-batch-/.test(p.headRefName ?? ''));
+        let pending = 0;
+        if (!today.copyBatch && (today.codexRuns ?? 0) < codexDailyCap && !batchOpen) {
+          try { pending = copyPending(); } catch (error) { log(`copy batch: registry unreadable: ${clean(error.message, 200)}`); }
+        }
+        if (pending > 0) {
+          show({ status: 'running', doing: 'Codex duyệt lô câu chữ hằng ngày', expectMinutes: 25, area, turns, done });
+          const result = copyBatch();
+          done.push({ copy: result });
+          if (result?.status !== 'busy') {
+            const fresh = readJson(dayPath, day);
+            const spent = result?.status === 'empty' ? 0 : 1;
+            writeJson(dayPath, { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + spent, copyBatch: { status: result?.status ?? 'unknown', at: new Date().toISOString() } });
+          }
+        }
+      }
       // Retro S1 (K26/K31: 02.11 and 03.11 ran about two hours with no area): count runs in a row
       // with no area; the sixth alerts. A top-up still waits for room under WIP 1 + 1 (owner 12.11).
       const idleRuns = area ? 0 : (readJson(dayPath, day).idleRuns ?? 0) + 1;
@@ -200,7 +222,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
           writeJson(dayPath, { ...readJson(dayPath, day), idleAlerted: true });
         } catch (error) { log(`idle alert failed, retry next run: ${clean(error.message, 200)}`); }
       }
-      const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error');
+      const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error' || d.copy?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
       writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures });
       heartbeat(errors.length ? 'ran-with-errors' : 'ran');

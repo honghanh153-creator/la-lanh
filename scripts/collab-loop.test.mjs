@@ -1012,3 +1012,61 @@ test('#253: report turns leave out PRs dropped from today\'s plan', () => {
   const { turns } = planTurns(gh, now);
   assert.ok(!turns.some(t => t.number === 999 && ['claude-check', 'codex-review', 'merge'].includes(t.turn)), 'a dropped PR is not actionable');
 });
+
+// ---- owner 06.11 / 12.11: the tick runs the Codex copy batch once a day ----
+test('copy batch: once a day after 10:00, only with pending copy, inside the Codex cap and the review lock', () => {
+  const date = '2026-11-20';
+  const runs = [];
+  const at = (hour, minute, extra = {}) => tick({ gh: plannedGh(extra.open ?? [], extra.date ?? date), now: { date: extra.date ?? date, hour, minute }, merge: () => ({}), review: () => ({}),
+    copyPending: () => extra.pending ?? 12, copyBatch: () => { runs.push(`${extra.date ?? date} ${hour}:${minute}`); return extra.result ?? { status: 'opened' }; } });
+  const day = d => trust.readJson(trust.dayStatePath(d), {});
+  at(9, 40);
+  assert.deepEqual(runs, [], 'nothing before the plan opens');
+  at(10, 5);
+  assert.deepEqual(runs, ['2026-11-20 10:5']);
+  assert.equal(day(date).codexRuns, 1, 'the batch spends one Codex run of the daily cap');
+  assert.equal(day(date).copyBatch.status, 'opened');
+  at(10, 15);
+  at(14, 5);
+  assert.equal(runs.length, 1, 'at most once per day');
+  at(10, 5, { date: '2026-11-21' });
+  assert.equal(runs.length, 2, 'the next day runs again');
+
+  const empty = '2026-11-22';
+  at(10, 5, { date: empty, pending: 0 });
+  assert.equal(runs.length, 2, 'nothing pending outside the owner-only groups: skipped');
+  assert.equal(day(empty).copyBatch, undefined, 'a skip does not use up the day');
+  assert.equal(day(empty).codexRuns ?? 0, 0);
+
+  const busy = '2026-11-23';
+  at(10, 5, { date: busy, result: { status: 'busy' } });
+  assert.equal(day(busy).copyBatch, undefined, 'a busy review lock retries on the next tick');
+  assert.equal(day(busy).codexRuns ?? 0, 0);
+  at(10, 15, { date: busy });
+  assert.equal(day(busy).copyBatch.status, 'opened');
+
+  const capped = '2026-11-24';
+  trust.writeJson(trust.dayStatePath(capped), { codexRuns: trust.codexDailyCap, failures: 0 });
+  const before = runs.length;
+  at(10, 5, { date: capped });
+  assert.equal(runs.length, before, 'no batch once the Codex cap is spent');
+
+  const stillOpen = '2026-11-25';
+  at(10, 5, { date: stillOpen, open: [pr({ number: 61, headRefName: 'agent/claude/copy-batch-20261124', comments: [check(A)] })] });
+  assert.equal(runs.length, before, 'yesterday\'s batch PR still open: no second batch on the same file');
+  at(23, 35, { date: '2026-11-26' });
+  assert.equal(runs.length, before, 'nothing after 23:30');
+});
+
+test('copy batch: an owner "Duyệt" before 10:00 still waits for the 10:00 auto-start', () => {
+  const date = '2026-11-27';
+  const gh = plannedGh([], date);
+  const base = gh.json;
+  gh.json = args => { const out = base(args); return Array.isArray(out) ? out : { comments: [...out.comments, { authorAssociation: 'OWNER', createdAt: `${date}T02:10:00Z`, body: 'Duyệt' }] }; };
+  const runs = [];
+  const deps = (hour, minute) => ({ gh, now: { date, hour, minute }, merge: () => ({}), review: () => ({}), copyPending: () => 3, copyBatch: () => { runs.push(hour); return { status: 'no-approvals' }; } });
+  assert.equal(tick(deps(9, 30)).status, 'ran', 'the plan is open early');
+  assert.deepEqual(runs, []);
+  tick(deps(10, 0));
+  assert.deepEqual(runs, [10]);
+});
