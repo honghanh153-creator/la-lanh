@@ -181,7 +181,7 @@ test("guest can reveal, save mood, and create a share card", async ({ page }) =>
   await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByText("Lá Chứng")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Chọn mood hôm nay" }).click();
+  await page.getByRole("button", { name: "Chọn cảm giác hôm nay" }).click();
   await page.getByRole("button", { name: /Chill/ }).click();
   await expect.poll(() => moodSaved).toBe("Chill");
 

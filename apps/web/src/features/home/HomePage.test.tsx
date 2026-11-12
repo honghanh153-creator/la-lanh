@@ -436,7 +436,21 @@ describe("HomePage rich reading", () => {
     expect(recordResonance).not.toHaveBeenCalled();
   });
 
-  it("keeps mood check-in behind one playful icon and saves the selected mood", async () => {
+  it("asks the US-04 mood question below the Note, never in the hero (AC-GWT-01, US-03 AC21)", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
+    const { container } = renderPage();
+
+    const moodHeading = await screen.findByRole("heading", { name: "Hôm nay bạn thấy sao?" });
+    const note = screen.getByRole("region", { name: "Note hôm nay" });
+    expect(note.compareDocumentPosition(moodHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(note).not.toContainElement(moodHeading);
+    expect(container.querySelector(".home-value-hero")).not.toContainElement(
+      screen.getByRole("button", { name: "Chọn cảm giác hôm nay" }),
+    );
+    expect(screen.queryByText("Chọn mood")).not.toBeInTheDocument();
+  });
+
+  it("saves the selected mood from the check-in below the Note", async () => {
     const user = userEvent.setup();
     vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(vibe)));
     vi.mocked(checkInMood).mockResolvedValue({
@@ -447,13 +461,14 @@ describe("HomePage rich reading", () => {
     });
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
-    expect(screen.getByRole("dialog", { name: "Hôm nay bạn đang ở mood nào?" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Chọn cảm giác hôm nay" }));
+    expect(screen.getByRole("dialog", { name: "Hôm nay bạn thấy sao?" })).toBeInTheDocument();
+    expect(screen.queryByText("Hôm nay bạn đang ở mood nào?")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Chill/ }));
 
     await waitFor(() => expect(checkInMood).toHaveBeenCalledWith(baseNoteId, "Chill"));
-    expect(screen.queryByRole("dialog", { name: "Hôm nay bạn đang ở mood nào?" })).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Mood hôm nay: Chill" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Hôm nay bạn thấy sao?" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Cảm giác hôm nay: Chill" })).toBeInTheDocument();
   });
 
   it("dates the loading hero by the Vietnam day, not the UTC day (PL-12)", () => {

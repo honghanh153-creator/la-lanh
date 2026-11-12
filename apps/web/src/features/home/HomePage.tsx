@@ -89,6 +89,8 @@ const moods: readonly { value: MoodValue; emoji: string; hint: string }[] = [
   { value: "Căng", emoji: "😵‍💫", hint: "Đầu đang quay, người đang gồng" },
   { value: "Lạc trôi", emoji: "🥴", hint: "Chưa biết mình đang ở nhịp nào" },
 ];
+/** Verbatim from US-04 AC-GWT-01. */
+const MOOD_QUESTION = "Hôm nay bạn thấy sao?";
 const isMoodValue = (value: unknown): value is MoodValue => moods.some((item) => item.value === value);
 
 export function HomePage() {
@@ -253,9 +255,19 @@ export function HomePage() {
 
   useEffect(() => {
     prunePendingMood();
-    if (!note || !navigator.onLine) return;
-    const pending = takePendingMood(note.id, isMoodValue);
-    if (pending) moodMutation.mutate(pending);
+    if (!note) return;
+    const noteId = note.id;
+    // takePendingMood removes the stored choice before it is sent, so repeated `online` events
+    // cannot send it twice; a failed resend is queued again by onError for the next reconnect.
+    const resendPendingMood = () => {
+      if (!navigator.onLine) return;
+      prunePendingMood();
+      const pending = takePendingMood(noteId, isMoodValue);
+      if (pending) moodMutation.mutate(pending);
+    };
+    resendPendingMood();
+    window.addEventListener("online", resendPendingMood);
+    return () => window.removeEventListener("online", resendPendingMood);
   }, [note]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (noteQuery.isLoading) return <HomeLoading />;
@@ -329,9 +341,7 @@ export function HomePage() {
           {motionPaused ? <Play aria-hidden="true" size={19} /> : <Pause aria-hidden="true" size={19} />}
         </button>
       } />
-      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? `${dailyContextPath("/note/today", context)}#${WHY_TODAY_ID}` : undefined}>
-        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate({ mood: value, intent: captureMoodIntent() }); }} open={moodSheetOpen} pending={moodMutation.isPending} />
-      </HomeValueHero>
+      <HomeValueHero date={note.note_date} moon={moonLabel} whyPath={activeReading?.sections.transit ? `${dailyContextPath("/note/today", context)}#${WHY_TODAY_ID}` : undefined} />
 
       {noteQuery.isError ? (
         <p className="cache-status" role="status">
@@ -364,6 +374,12 @@ export function HomePage() {
           </article>
         </section>
       )}
+
+      {/* US-04 AC-GWT-01 / US-03 AC21: a secondary check-in after the Note, never before it. */}
+      <section aria-labelledby="home-mood-title" className="home-mood-check">
+        <h2 id="home-mood-title">{MOOD_QUESTION}</h2>
+        <MoodPicker mood={mood} onOpenChange={setMoodSheetOpen} onSelect={(value) => { tapFeedback(); moodMutation.mutate({ mood: value, intent: captureMoodIntent() }); }} open={moodSheetOpen} pending={moodMutation.isPending} />
+      </section>
 
       <HomeCompanion line={lineDismissed ? null : homeCompanionLine({ vibe, companion: activeReading?.sections.companion }).text} onDismissLine={() => setLineDismissed(true)}>
         {showGift && availableUpdate && note.reading_projection ? (
@@ -436,20 +452,20 @@ function MoodPicker({
       <button
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={selected ? `Mood hôm nay: ${selected.value}` : "Chọn mood hôm nay"}
+        aria-label={selected ? `Cảm giác hôm nay: ${selected.value}` : "Chọn cảm giác hôm nay"}
         className="mood-quick-trigger"
         onClick={() => onOpenChange(true)}
         type="button"
       >
         <span aria-hidden="true">{selected ? <span className="mood-quick-trigger__emoji">{selected.emoji}</span> : <Smiley weight="regular" size={22} />}</span>
-        <span aria-hidden="true" className="mood-quick-trigger__label">{selected?.value ?? "Chọn mood"}</span>
+        <span aria-hidden="true" className="mood-quick-trigger__label">{selected?.value ?? "Chọn"}</span>
       </button>
       <AppSheet
         closeDisabled={pending}
         eyebrow="Check-in riêng"
         onClose={() => onOpenChange(false)}
         open={open}
-        title="Hôm nay bạn đang ở mood nào?"
+        title={MOOD_QUESTION}
       >
         <div className="mood-sheet__options">
           {moods.map((option) => (
