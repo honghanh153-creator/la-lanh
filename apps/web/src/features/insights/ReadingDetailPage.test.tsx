@@ -115,13 +115,43 @@ describe("ReadingDetailPage", () => {
   });
 
   it("opens the full overview with every natal claim section", async () => {
+    const user = userEvent.setup();
+    const western = await vi.mocked(getInsightOverview).getMockImplementation()?.({ tradition: "western" } as never);
+    const moon = western!.reading!.claims[0];
+    vi.mocked(getInsightOverview).mockResolvedValue({
+      ...western!,
+      reading: {
+        ...western!.reading!,
+        tradition: "jyotish",
+        claims: [
+          moon,
+          {
+            id: "sun-sign", domain: "core", title: "Lõi sáng", summary: "Mặt Trời ở Ma Kết.", confidence: "high",
+            hook: "Bạn hay nhận việc khó về mình trước.",
+            meaning: "Mặt Trời mô tả điều bạn muốn làm cho tốt.",
+            manifestation: "Bạn thường lập danh sách trước khi bắt đầu một việc mới.",
+            watch_for: "Nhận quá nhiều việc cùng lúc dễ làm bạn mệt.",
+            micro_action: "Chọn một việc trong danh sách để nhờ người khác.",
+            evidence: ["Mặt Trời ở Ma Kết"], factor_refs: ["natal:sun:sign:capricorn"],
+          },
+        ],
+      },
+    } as never);
     renderPage("/insights/overview?tradition=jyotish");
 
     expect(await screen.findByText(/Mặt Trăng mô tả cách bạn xử lý cảm xúc/)).toBeInTheDocument();
     expect(screen.getByText("Bản đọc tổng quan · Jyotish")).toBeInTheDocument();
+    // Every claim renders its own sections, not only the first one.
     expect(screen.getByRole("heading", { level: 2, name: "Bạn không lạnh, bạn chỉ cần đúng tần số." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Bạn hay nhận việc khó về mình trước." })).toBeInTheDocument();
     expect(screen.getByText("Giữ kín quá lâu có thể khiến áp lực nói thay mình.")).toBeInTheDocument();
+    expect(screen.getByText("Nhận quá nhiều việc cùng lúc dễ làm bạn mệt.")).toBeInTheDocument();
     expect(screen.getByText("Viết một câu mình cảm thấy và một câu mình cần.")).toBeInTheDocument();
+    expect(screen.getByText("Chọn một việc trong danh sách để nhờ người khác.")).toBeInTheDocument();
+    expect(screen.getAllByText("Căn cứ trong lá số")).toHaveLength(2);
+    for (const summary of screen.getAllByText("Căn cứ trong lá số")) await user.click(summary);
+    expect(screen.getByText("Mặt Trăng ở Nhà 8")).toBeVisible();
+    expect(screen.getByText("Mặt Trời ở Ma Kết")).toBeVisible();
     expect(vi.mocked(getInsightOverview).mock.lastCall?.[0]).toMatchObject({ tradition: "jyotish" });
   });
 
