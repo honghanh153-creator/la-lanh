@@ -40,7 +40,7 @@ Hôm nay là ngày đầu đếm theo "việc" (luật owner duyệt 10.11).
 | P2 trên PR bị chặn | 6 | #411 (1 rồi 2), #410 (1), #423 (1), #424 (1) |
 | P2 trên PR đã APPROVE | 6 | #407 (2), #413 (2), #409 (1), #419 (1); không chặn |
 
-13/13 PR merge đều được APPROVE; 9 ở vòng đầu, 4 ở vòng 2 (#406, #407 từ hôm qua; #410, #423, #424).
+13/13 PR merge đều được APPROVE; 8 ở vòng đầu, 5 ở vòng 2 (#406, #407 từ hôm qua; #410, #423, #424).
 
 ## 3. Thời gian mất và nguyên nhân
 
@@ -77,7 +77,7 @@ Ngày kiểm tra: 11.11.2026.
 
 | Vấn đề | Cách làm phổ biến | Nguồn | Áp dụng ở mình |
 |---|---|---|---|
-| Comment check không nêu bước lỗi | Mỗi bước ghi tóm tắt Markdown vào job summary, gộp lên trang chạy, để người xem biết ngay bước nào hỏng mà không cần mở log | [GitHub Blog — Supercharging GitHub Actions with Job Summaries (09.05.2022)](https://github.blog/news-insights/product-news/supercharging-github-actions-with-job-summaries/) | S19: author check tìm dòng lỗi cuối (`... failed`, `FAILED`, `✖`) trong log và dán 5 dòng quanh đó vào comment |
+| Comment check không nêu bước lỗi | Mỗi bước ghi tóm tắt Markdown vào job summary, gộp lên trang chạy, để người xem biết ngay bước nào hỏng mà không cần mở log | [GitHub Blog — Supercharging GitHub Actions with Job Summaries (09.05.2022)](https://github.blog/news-insights/product-news/supercharging-github-actions-with-job-summaries/) | S19: author check nhận ra thêm tên bước từ các dòng lỗi đã biết (ví dụ `Clarity ratchet failed`) và chỉ ghi tên bước đó cùng tên file log cục bộ vào comment. Không dán dòng log thô nào lên comment công khai, vì log có thể chứa giá trị nhạy cảm (đúng luật ở `collab-auto-loop-plan.md` và `scripts/collab-check-log.mjs`) |
 | Test tốc độ trượt khi máy bận | Google có bài riêng về cách giảm test chập chờn trong CI. Cách làm phổ biến: test nên kiểm điều kiện, không kiểm thời gian đồng hồ, hoặc đo bằng thời gian CPU với ngưỡng rộng (nguồn chỉ nêu chung; phần "đồng hồ" là cách làm phổ biến, chưa có trích dẫn chính thức) | [Google Testing Blog — Flaky Tests at Google and How We Mitigate Them (27.05.2016)](https://testing.googleblog.com/2016/05/flaky-tests-at-google-and-how-we.html) | Đã sửa trong #410 (đo `process_time`, ngưỡng 1,0 giây). S20: rà các test còn đo thời gian đồng hồ |
 | Lỗi "Merge already in progress" | API merge trả lỗi khi một merge khác đang chờ, tức merge đang chạy | [GitHub REST — Merge a pull request](https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request) (đã kiểm 10.11) | S18 giữ nguyên |
 | Check bận thì bỏ lượt | `concurrency` cho lần chạy mới chờ ở trạng thái pending | [GitHub Docs — concurrency](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/control-the-concurrency-of-workflows-and-jobs) (đã kiểm 09.11) | S13 giữ nguyên |
@@ -112,7 +112,7 @@ PR quy trình mở của Claude là #354 và #134 (chờ owner), nên theo WIP 1
 | # | Giải pháp | Học từ | Q1–Q5 | Loại | Trạng thái |
 |---|---|---|---|---|---|
 | S21 | Hàng chờ thiếu PR: ưu tiên việc không đụng `copy_registry.json` (sửa lỗi, P1 #412, quyền riêng tư) để không phải chờ nhau cùng file | retro 09.11 S15 | cả 5 "không" | AUTO | Hàng đợi autopilot (không phải PR quy trình) |
-| S19 | Comment author check nêu bước lỗi và vài dòng log quanh đó | GitHub Blog — Job Summaries | cả 5 "không" | AUTO | Hàng đợi (sau WIP 1) |
+| S19 | Comment author check nêu đúng tên bước lỗi (nhận diện có cấu trúc); log thô vẫn chỉ ở máy cục bộ | GitHub Blog — Job Summaries | cả 5 "không" | AUTO | Hàng đợi (sau WIP 1) |
 | S18 | Tick coi "Merge already in progress" là đang merge | GitHub REST merge | cả 5 "không" | AUTO | Hàng đợi (từ 10.11) |
 | S13 | Check bận thì xếp hàng, không bỏ lượt | GitHub Actions concurrency | cả 5 "không" | AUTO | Hàng đợi (từ 09.11) |
 | S20 | Rà test còn đo thời gian đồng hồ, đổi sang thời gian CPU hoặc kiểm điều kiện | Google Testing Blog | cả 5 "không" | AUTO | Hàng đợi |
