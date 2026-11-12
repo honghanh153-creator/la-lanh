@@ -116,3 +116,23 @@ class HumanTarotSlotRow(Base):
     exported_at: Mapped[datetime | None] = mapped_column(UtcDateTime(), nullable=True)
     cleared_at: Mapped[datetime | None] = mapped_column(UtcDateTime(), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+
+
+class HumanTarotGoogleUsageRow(Base):
+    """Google calls made by the Sheet bridge per minute and per day (US-24 AC18). No content."""
+
+    __tablename__ = "human_tarot_google_usage"
+
+    bucket: Mapped[str] = mapped_column(String(32), primary_key=True)
+    used: Mapped[int] = mapped_column(Integer, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
+
+
+class HumanTarotSyncLeaseRow(Base):
+    """One minute-job pass at a time across processes."""
+
+    __tablename__ = "human_tarot_sync_lease"
+
+    name: Mapped[str] = mapped_column(String(16), primary_key=True)
+    holder: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
+    lease_until: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)

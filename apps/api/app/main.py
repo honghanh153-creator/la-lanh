@@ -42,6 +42,7 @@ from app.domains.guest.service import GuestSessionService
 from app.domains.history.postgres import PostgresHistoryRepository
 from app.domains.history.service import HistoryService
 from app.domains.human_tarot.service import HumanTarotService
+from app.domains.human_tarot.sheets import GoogleBudget, HumanTarotSheetBridge
 from app.domains.identity.service import OwnerIdentityService
 from app.domains.la_chung.service import LaChungService
 from app.domains.matching.postgres import PostgresMatchingRepository
@@ -69,6 +70,11 @@ from app.infrastructure.crypto import (
 from app.infrastructure.generation.openai import (
     OPENAI_PROMPT_VERSION,
     OPENAI_REWRITE_PROMPT_VERSION,
+)
+from app.infrastructure.google_sheets.client import (
+    FileTokenCache,
+    GoogleSheetsClient,
+    ServiceAccount,
 )
 from app.infrastructure.log_redaction import install_log_redaction
 from app.middleware.admission import AdmissionControlMiddleware
@@ -214,6 +220,23 @@ def create_app(
             intake_closes_at=resolved_settings.human_tarot_intake_closes_at,
             erasure_journal=erasure_journal,
         )
+        if resolved_settings.human_tarot_sheet_sync_enabled:
+            sheet_id, credentials_file = resolved_settings.human_tarot_sheet()
+            budget = GoogleBudget(database.sessions, app.state.human_tarot_service.now)
+            app.state.human_tarot_service.bridge = HumanTarotSheetBridge(
+                database.sessions,
+                app.state.human_tarot_service,
+                GoogleSheetsClient(
+                    sheet_id,
+                    ServiceAccount.from_file(credentials_file),
+                    reserve=budget.reserve,
+                    # Shared with the minute job, so neither mints a token the other holds.
+                    token_cache=FileTokenCache.default(
+                        resolved_settings.human_tarot_google_token_cache_dir
+                    ),
+                ),
+                budget=budget,
+            )
         app.state.la_chung_service = LaChungService(
             database.sessions,
             credential_hasher,

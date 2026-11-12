@@ -1,0 +1,17 @@
+[Unit]
+Description=Lá Lành human Tarot Sheet bridge, one pass (US-24)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+OnFailure=la-lanh-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/la-lanh/current
+ExecStart=/usr/local/sbin/la-lanh-human-tarot-sync
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+TimeoutStartSec=50s
+UMask=0077

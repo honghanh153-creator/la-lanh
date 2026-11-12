@@ -127,8 +127,8 @@ flowchart TD
 | `human_tarot_days` | `day` (PK), `accepted_count` (CHECK 0–10), `intake_closed`, `created_at` | Không có ID người. Không bao giờ giảm. `intake_closed` đặt sau restore. |
 | `human_tarot_requests` | `id`, `guest_id` (FK cascade), `day`, `idempotency_hash` (unique theo guest), `status` (`accepted`/`ready`/`unfulfilled`/`cancelled`), `context`, `spread`, `spread_map`, `consent_version`, `consented_at`, `payload_ciphertext` (AES-GCM, context `human-tarot-request:{id}`; câu hỏi, sau khi nhập thêm bài đóng băng), `release_at`, `imported_at`, `cancelled_at`, `question_purged_at`, `expires_at`, `created_at`, `updated_at` | Xoá cùng phiên khách. |
 | `human_tarot_slots` | `id`, `day`, `slot_no` (1–10), `request_code` (unique, `LL-` + 6 ký tự), `guest_id` (FK SET NULL), `request_id` (FK SET NULL), `sheet_state`, `sheet_error`, `attempts`, `next_attempt_at`, `lease_token`, `lease_until`, `exported_at`, `cleared_at`, `created_at` | Sổ cấp lượt và trạng thái Sheet. Unique (`day`, `slot_no`) và (`day`, `guest_id`). Không chứa câu hỏi. Yêu cầu biến mất (xoá phiên, hết hạn, replay) → `request_id` thành NULL → job xoá hàng trên Sheet. |
-| `human_tarot_google_usage` (U5) | `bucket`, `used`, `expires_at` | Trần 30 request Google/phút và 2.000/ngày, gồm retry; chạm trần → dừng, thử lại sau. |
-| `human_tarot_sync_lease` (U5) | `name`, `holder`, `lease_until` | Một lượt nhập bài tại một thời điểm. |
+| `human_tarot_google_usage` (U5) | `bucket`, `used`, `expires_at` | Trần 30 request Google/phút và 2.000/ngày, gồm retry và request lấy token OAuth; chạm trần → dừng, thử lại sau. Token truy cập (1 giờ) được dùng lại giữa các lượt job qua một file riêng 0600 trong `/tmp` (RAM) của container, nên một ngày có yêu cầu tốn khoảng 1 lần đọc mỗi phút và 1 lần OAuth mỗi giờ. |
+| `human_tarot_sync_lease` (U5) | `name`, `holder`, `lease_until` | Một lượt nhập bài tại một thời điểm (`sync`); hàng `reconcile` ghi lúc job phải kiểm Sheet tìm mã lạ dù không có yêu cầu nào đang chạy. |
 
 `sheet_state`: `pending_export` → `on_sheet` → `clear_due` → `clear_sent` → `cleared`. Export, import, clear đều
 kiểm mã yêu cầu và ngày ở đúng hàng; không xác thực bằng số hàng.
@@ -172,7 +172,8 @@ Một file production và một file tổng hợp cho staging. Tab **"Hôm nay"*
 
 Quy tắc an toàn: không append mù; export chỉ ghi vào hàng trống hoặc hàng đã mang đúng mã của nó; header sai, hàng bị
 sort, mã trùng hay mã khác ở hàng đã cấp → lỗi đồng bộ, không ghi đè. Bài đã nhập không bị thay bởi lần sửa Sheet sau
-đó. Mã đúng dạng nhưng DB không biết (ví dụ sau restore) → xoá hàng. Owner sửa bài sau khi đã nhập phải qua quy trình
+đó. Mã đúng dạng nhưng DB không biết (ví dụ sau restore) → xoá hàng, kể cả khi DB không còn yêu cầu nào đang chạy:
+job kiểm Sheet ngay lượt sau replay/`close-today`, và khi rảnh thì tối đa 15 phút một lần (≤ 96 lần đọc/ngày). Owner sửa bài sau khi đã nhập phải qua quy trình
 riêng (huỷ yêu cầu, không sửa âm thầm).
 
 ## 9. Lựa chọn owner phải chốt trước dữ liệu thật

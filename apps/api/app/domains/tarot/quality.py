@@ -36,6 +36,16 @@ _UNSAFE = tuple(
 )
 
 
+def unsafe_claim(text: str) -> bool:
+    """A known unsafe claim (certainty, mind reading, medical or timed promises) in any text.
+
+    Also used for the owner-written human Tarot readings (US-24 AC15).
+    """
+
+    folded = _fold(text)
+    return any(pattern.search(folded) for pattern in _UNSAFE)
+
+
 def prose_is_safe(reading: TarotReading) -> bool:
     values = [reading.headline, reading.summary, reading.closing_prompt]
     values.extend(
@@ -49,7 +59,7 @@ def prose_is_safe(reading: TarotReading) -> bool:
         )
     )
     text = _fold(" ".join(values))
-    if any(pattern.search(text) for pattern in _UNSAFE):
+    if unsafe_claim(text):
         return False
     selected = {position.card.id for position in reading.positions}
     for card in all_cards():
