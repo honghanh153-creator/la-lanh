@@ -95,9 +95,7 @@ SIGN_EVERYDAY = {
         "nói, viết hoặc đặt câu hỏi để hiểu điều đang diễn ra thay vì ngồi yên với một đáp án"
     ),
     "cancer": "đọc không khí rất sớm và chỉ nói phần mềm nhất khi biết mình đang ở nơi an toàn",
-    "leo": (
-        "muốn thể hiện điều mình thật sự quan tâm và hụt hẫng khi điều ấy không được đón nhận"
-    ),
+    "leo": ("muốn thể hiện điều mình thật sự quan tâm và hụt hẫng khi điều ấy không được đón nhận"),
     "virgo": "biến cảm giác mơ hồ thành danh sách, chi tiết hoặc một việc nhỏ có thể xử lý ngay",
     "libra": "nghĩ qua phản ứng của người kia và đôi lúc trì hoãn câu trả lời riêng của mình",
     "scorpio": "quan sát rất kỹ trước khi tin, nhưng một khi đã vào thì thường muốn đi đến tận lõi",
