@@ -210,7 +210,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // A busy review lock starts nothing and is retried on the next run.
       if (copyBatch && !late() && (t => t.hour * 60 + t.minute)(time()) >= autoStartAt) {
         const today = readJson(dayPath, day);
-        const batchOpen = prs.some(p => /^agent\/claude\/copy-batch-/.test(p.headRefName ?? ''));
+        // Only our own batch PR into integration counts: a fork branch with the same name must not
+        // stop the daily copy review.
+        const batchOpen = prs.some(p => isOwnPr(p) && p.baseRefName === integration && /^agent\/claude\/copy-batch-/.test(p.headRefName ?? ''));
         let pending = 0;
         if (!today.copyBatch && (today.codexRuns ?? 0) < codexDailyCap && !batchOpen) {
           try { pending = copyPending(); } catch (error) { log(`copy batch: registry unreadable: ${clean(error.message, 200)}`); }

@@ -36,12 +36,25 @@ export function selectPending(registry) {
 // One daily batch: a PR body with one row per entry must stay well under GitHub's 65 536-character
 // limit, and one Codex run must finish inside its 20 minutes. The rest waits for the next days.
 export const batchSize = 200;
-export const batchFor = registry => selectPending(registry).slice(0, batchSize);
+// Rejected copy stays pending (it must not be served), so the next batch skips entries whose
+// current text Codex already rejected; an edited text has a new digest and is reviewed again.
+// Without this, 200 rejected entries would fill every later batch and nothing after them is read.
+export const rejectedPath = join(stateDir, 'copy-rejected.json');
+export const readRejected = (path = rejectedPath) => { try { return JSON.parse(readFileSync(path, 'utf8')) ?? {}; } catch { return {}; } };
+const unreviewed = (registry, rejected) => selectPending(registry).filter(e => rejected[e.id] !== digest(e.text));
+export const batchFor = (registry, rejected = {}) => unreviewed(registry, rejected).slice(0, batchSize);
+export function recordRejected(decisions, reviewed, path = rejectedPath) {
+  const rejected = readRejected(path);
+  for (const d of decisions) if (d.decision === 'reject' && reviewed.has(d.id)) rejected[d.id] = reviewed.get(d.id);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(rejected, null, 1)}\n`);
+  return rejected;
+}
 
 // The tick's cheap check: pending entries Codex may approve, read from this checkout (the ops clone
 // is pinned to collab/integration before each tick).
 export const readLocalRegistry = () => JSON.parse(readFileSync(join(root, registryRel), 'utf8'));
-export const pendingCount = (registry = readLocalRegistry()) => selectPending(registry).length;
+export const pendingCount = (registry = readLocalRegistry(), rejected = readRejected()) => unreviewed(registry, rejected).length;
 
 export function buildPrompt(pending) {
   const rows = pending.map(e => JSON.stringify({ id: e.id, category: e.category, text: e.text })).join('\n');
@@ -138,7 +151,7 @@ function publishBatch(registry, body, date, branch, work, dir, run) {
   { cwd: work, encoding: 'utf8' }).trim();
 }
 
-export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null } = {}) {
+export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null, rejectedFile = registryPath ? null : rejectedPath } = {}) {
   const dryRun = argv.includes('--dry-run');
   const fakeAt = argv.indexOf('--fake-codex');
   // Review a pinned integration snapshot unless a test passes its own registry file.
@@ -152,7 +165,7 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
     base = git(['rev-parse', `origin/${integration}`]);
     registry = JSON.parse(git(['show', `${base}:${registryRel}`]));
   }
-  const pending = batchFor(registry);
+  const pending = batchFor(registry, rejectedFile ? readRejected(rejectedFile) : {});
   if (!pending.length) { out.write('no pending copy\n'); return { status: 'empty' }; }
   const date = vnNow().date;
   const result = fakeAt >= 0
@@ -163,6 +176,7 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
   const next = applyDecisions(registry, decisions, date, reviewed);
   const changed = next.entries.some((e, i) => e !== registry.entries[i]);
   const body = renderBody(decisions, date);
+  if (!dryRun && rejectedFile) recordRejected(decisions, reviewed, rejectedFile);
   if (dryRun) { out.write(`${JSON.stringify({ registry: next, body }, null, 1)}\n`); return { status: 'dry-run', registry: next, body }; }
   if (!changed) { out.write('no copy approved in this batch\n'); return { status: 'no-approvals', registry: next, body }; }
   if (!base) throw new Error('publishing needs the integration snapshot (no --registry file)');

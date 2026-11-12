@@ -248,8 +248,10 @@ test('merge gate needs APPROVE and PASS on head, integration base and a fix-forw
 
   const state = { pr: ok, open: [ok, pr({ number: 8, baseRefName: 'feat/x' })] };
   const gh = fakeGh(state);
-  assert.equal(runMerge(7, { gh }).status, 'merged');
-  const merge = gh.calls.find(c => c[0] === 'raw' && c[1][1] === 'merge')[1];
+  assert.equal(runMerge(7, { gh, date: '2026-12-01' }).status, 'merged');
+  // Codex #451 P1: the direct merge command also records the merge for owner notes and the digest.
+  assert.deepEqual((trust.readJson(trust.dayStatePath('2026-12-01'), {}).mergedToday ?? []).map(m => m.number), [7]);
+  const merge =gh.calls.find(c => c[0] === 'raw' && c[1][1] === 'merge')[1];
   assert.deepEqual(merge.slice(-3), ['--merge', '--match-head-commit', A]);
   assert.ok(!merge.includes('--admin') && !merge.includes('--auto') && !merge.includes('--squash'));
   assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1][1] === 'edit' && c[1][2] === '8' && c[1].includes('collab/integration')));
@@ -1056,6 +1058,9 @@ test('copy batch: once a day after 10:00, only with pending copy, inside the Cod
   assert.equal(runs.length, before, 'yesterday\'s batch PR still open: no second batch on the same file');
   at(23, 35, { date: '2026-11-26' });
   assert.equal(runs.length, before, 'nothing after 23:30');
+  // Codex #451 P2: a fork branch with the batch name must not stop the daily review.
+  at(10, 5, { date: '2026-11-28', open: [pr({ number: 62, headRefName: 'agent/claude/copy-batch-x', isCrossRepository: true })] });
+  assert.equal(runs.length, before + 1, 'a fork PR named like a batch does not block the batch');
 });
 
 test('copy batch: an owner "Duyệt" before 10:00 still waits for the 10:00 auto-start', () => {

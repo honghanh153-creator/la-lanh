@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { applyDecisions, batchFor, batchSize, buildPrompt, digest, main, pendingCount, renderBody, runCopyBatch, selectPending, validateDecisions } from './codex-copy-review.mjs';
+import { applyDecisions, batchFor, batchSize, buildPrompt, digest, main, pendingCount, readRejected, recordRejected, renderBody, runCopyBatch, selectPending, validateDecisions } from './codex-copy-review.mjs';
 import { bodyProblems } from './collab-preflight.mjs';
 
 // Synthetic sentences only.
@@ -122,6 +122,19 @@ test('owner-only copy stays pending even if a decision for it slips past validat
     assert.equal(pendingCount(reg), 0, `${category} is never counted as Codex work`);
     assert.equal(applyDecisions(reg, [{ id: `${category}.x`, decision: 'approve' }], '2026-11-12').entries[0].status, 'pending');
   }
+});
+
+test('rejected copy does not fill every later batch; edited text is reviewed again (Codex #451 P1)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'copy-review-test-'));
+  const file = join(dir, 'rejected.json');
+  const big = { entries: Array.from({ length: batchSize + 1 }, (_, i) => ({ id: `q.${i}`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })) };
+  const first = batchFor(big, readRejected(file));
+  recordRejected(first.map(e => ({ id: e.id, decision: 'reject', reason: 'x' })), new Map(first.map(e => [e.id, digest(e.text)])), file);
+  const next = batchFor(big, readRejected(file));
+  assert.deepEqual(next.map(e => e.id), [`q.${batchSize}`], 'the day after, the unread entry is reviewed');
+  assert.equal(pendingCount(big, readRejected(file)), 1);
+  const edited = { entries: big.entries.map(e => e.id === 'q.0' ? { ...e, text: 'Câu đã sửa.' } : e) };
+  assert.ok(batchFor(edited, readRejected(file)).some(e => e.id === 'q.0'), 'an edited sentence comes back for review');
 });
 
 test('one daily batch holds at most batchSize entries, so the PR body stays readable', () => {
