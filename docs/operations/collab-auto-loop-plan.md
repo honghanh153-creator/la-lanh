@@ -107,7 +107,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 6. Lỗi hạn mức (usage/rate limit) → ghi `limit`, không tính vào trần, không đăng gì; lượt lưới sau thử lại.
 7. Kiểm JSON: đúng khuôn, `sha` trùng head, mỗi finding có mức/loại/file/lý do.
 8. Áp chính sách; script **chỉ nâng** verdict, không hạ.
-9. Đăng comment PR: dòng đầu `Review verdict: … @ <SHA>`, `Reviewer: Codex (auto)`, bảng finding, SHA-256 của JSON, số vòng, đánh dấu ẩn `<!-- la-lanh-agent codex-auto-review sha=… -->`.
+9. Đăng comment PR: dòng đầu `Review verdict: … @ <SHA>`, `Reviewer: Codex (auto)`, bảng finding, SHA-256 của JSON, số vòng, đánh dấu ẩn `<!-- la-lanh-agent codex-auto-review sha=… p2=… base=… receipt=… -->` (dòng cuối; biên nhận cục bộ ghi trước khi đăng, §4.2).
 10. P2 không chặn → mở issue `fix-forward`, gắn link vào comment.
 11. REQUEST_CHANGES tự động thứ 2 trên PR → gắn `needs-owner`.
 12. JSON và log lưu ở `~/.cache/la-lanh-collab/logs/`, không vào repo.
@@ -115,11 +115,16 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 ### 4.2 `collab-merge.mjs` — điều kiện merge (tất cả phải đúng)
 
 - Base đúng `collab/integration`; không draft; không `needs-owner`; GitHub báo mergeable.
-- `Review verdict: APPROVE @ <headRefOid>` mới nhất từ comment tin cậy; không có `REQUEST_CHANGES` nào mới hơn cho bất kỳ SHA nào.
-- `Author check: PASS @ <headRefOid>` từ comment tin cậy.
-- Verdict có P2 không chặn → issue fix-forward đã được liên kết.
+- `Review verdict: APPROVE @ <headRefOid>` mới nhất **có biên nhận cục bộ**; không có `REQUEST_CHANGES` nào mới hơn cho bất kỳ SHA nào (REQUEST_CHANGES không có biên nhận vẫn chặn, vì chỉ làm chặt hơn).
+- `Author check: PASS @ <headRefOid>` mới nhất **có biên nhận** và đã thử **đúng SHA hiện tại** của `collab/integration` (đọc trực tiếp từ nhánh; `baseRefOid` của PR bị trễ nên không dùng). Một FAIL cho head ở base nào cũng chặn.
+- Base đã đổi kể từ lúc review: APPROVE vẫn dùng được khi không file nào đổi trên base kể từ đó trùng file của PR (chỉ cần author check PASS mới trên base mới). Trùng file, không đọc được danh sách file (lỗi API, từ 300 file, base không đi tiếp) hoặc không biết base lúc review: phải review lại.
+- Verdict có P2 không chặn → issue fix-forward đã được liên kết (số P2 lấy từ dòng niêm có biên nhận).
 - `--merge --match-head-commit`. Không `--admin`, `--auto`, squash.
-- PR xếp chồng không merge; sau khi PR cha merge, script đổi base sang `collab/integration` (chỉ khi PR cha đã merge) và PR quay lại vòng review vì diff đổi.
+- PR xếp chồng không merge; sau khi PR cha merge, script đổi base sang `collab/integration` (chỉ khi PR cha đã merge). Dấu `retarget` chỉ để người đọc: chính việc đổi base làm bằng chứng cũ hết khớp.
+
+**Biên nhận (12.11.2026, P1-B).** Claude và Codex đăng bằng chung tài khoản owner, nên comment một mình có thể bị giả. Đường review tự động (`codex-review.mjs`) và author check (`collab-check.mjs`) ghi thêm một biên nhận cục bộ ở `~/.cache/la-lanh-collab/state/receipts/`: HMAC-SHA256 trên (loại, PR, head, base, kết quả, số P2) bằng khóa `~/.cache/la-lanh-collab/keys/verdict.key` (tạo tự động, quyền 600, thư mục 700, nằm ngoài mọi checkout). Dòng cuối của comment ghi `base=` và `receipt=`; gate chỉ đếm comment có biên nhận khớp, không có đường lui. Mỗi ngày một lần tick liệt kê các merge trong 24 giờ qua thiếu biên nhận và mở `[ops-alert] merge thiếu biên nhận`. Đây là phát hiện và nâng rào, chưa phải cách ly: tiến trình cùng user macOS (kể cả `pnpm check` chạy mã PR ở chế độ local) vẫn đọc được khóa; cách ly thật cần phiên Claude trong sandbox cấm đọc `~/.cache/la-lanh-collab/keys` hoặc một broker giữ khóa.
+
+**Base đã thử (P1-A).** Chế độ local: check chỉ chạy khi `collab/integration` đã nằm trong head (tự đồng bộ cho nhánh `agent/*`; nhánh khác sang Claude merge vào), base ghi là SHA đó. Chế độ CI: job `check` của `pr-check` ghi annotation `pr-check-tested-base` từ parent đầu của merge commit nó thật sự thử; không có annotation hoặc khác SHA hiện tại thì không đăng PASS, chờ lượt CI mới.
 
 ### 4.3 `collab-turn.mjs` — bảng lượt
 
@@ -133,7 +138,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 
 `--tick`: chỉ làm việc trong **nhóm ưu tiên đang mở**: nhóm sớm nhất còn việc cho máy (author check, Codex review, merge). PR đang chờ Claude sửa không chặn máy; Claude vẫn sửa theo thứ tự nhóm (sửa 31.10.2026 sau 2 giờ đứng yên): PR quy trình trước, rồi content xong hết mới tới privacy, rồi tính năng mới. Tối đa 2 lượt Codex và 2 merge mỗi lần; giờ được đọc lại trước mỗi việc nên không bắt đầu việc mới sau 23:30. Lượt Claude ghi vào `~/.cache/la-lanh-collab/claude-queue.json` cho autopilot.
 
-Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dùng chung clone; review thứ hai trả `busy` và chờ lượt sau. Author check mới nhất cho head quyết định (FAIL sau PASS thì chặn). Sau khi đổi base, verdict cũ hết hiệu lực.
+Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dùng chung clone; review thứ hai trả `busy` và chờ lượt sau. Author check mới nhất cho head quyết định (FAIL sau PASS thì chặn). Khi `collab/integration` đi tiếp, PASS cũ hết hiệu lực và PR quay lại author check; APPROVE cũ chỉ hết hiệu lực khi base đổi trên file của PR (§4.2).
 
 ## 5. An toàn
 

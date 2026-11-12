@@ -122,7 +122,10 @@ test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not 
   const date = '2026-11-13';
   trust.writeJson(trust.dayStatePath(date), { codexRuns: trust.codexDailyCap });
   const comments = [{ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` }];
-  const checked = pr({ number: 9, comments: [{ authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${trust.agentMarker} x -->` }] });
+  // A signed PASS on the live base (P1-A/P1-B), so the PR waits for review.
+  const base = 'e'.repeat(40);
+  const seal = trust.checkSeal({ head: A, base, receipt: trust.signReceipt({ kind: 'check', pr: 9, head: A, base, result: 'PASS' }) });
+  const checked = pr({ number: 9, baseTipOid: base, comments: [{ authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${seal}` }] });
   const gh = {
     pr: () => checked, openPrs: () => [checked], raw: () => '', comment: () => {},
     json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments }),

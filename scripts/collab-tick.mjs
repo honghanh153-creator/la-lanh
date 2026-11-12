@@ -3,10 +3,10 @@
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { runReview } from './codex-review.mjs';
-import { runMerge } from './collab-merge.mjs';
+import { dailyReceiptAudit, runMerge } from './collab-merge.mjs';
 import { heavyJobFree, runCheckInClone } from './collab-check.mjs';
 import { runPreflight } from './collab-preflight.mjs';
-import { clean, makeGh } from './collab-trust.mjs';
+import { clean, makeGh, vnNow } from './collab-trust.mjs';
 import { opsAlert, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { renderBoard, upsertBoard } from './collab-status.mjs';
 import { planIssue } from './collab-plan.mjs';
@@ -29,12 +29,15 @@ export function tickLog(line, write = text => process.stderr.write(text)) {
 }
 
 const watchdogSubject = 'tác vụ hẹn giờ bị treo';
+const receiptSubject = 'merge thiếu biên nhận';
 
 export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog } = {}) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
   return run({ gh, preflight, log, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
+      // P1-B: once a day, any merge of the last 24 hours without signed evidence opens an ops alert.
+      try { dailyReceiptAudit({ gh, alert: text => opsAlert(gh, text, receiptSubject), now: vnNow() }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
     }, health: () => healthLines(readBeats()) });
 }
