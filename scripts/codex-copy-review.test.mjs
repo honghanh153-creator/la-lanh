@@ -4,7 +4,8 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { applyDecisions, buildPrompt, digest, main, renderBody, selectPending, validateDecisions } from './codex-copy-review.mjs';
+import { applyDecisions, batchFor, batchSize, buildPrompt, digest, main, pendingCount, readRejected, recordRejected, renderBody, runCopyBatch, selectPending, validateDecisions } from './codex-copy-review.mjs';
+import { bodyProblems } from './collab-preflight.mjs';
 
 // Synthetic sentences only.
 const registry = {
@@ -43,6 +44,10 @@ test('PR body never uses the owner reply words and carries the agent marker', ()
   const body = renderBody([{ id: 'tarot.a', decision: 'approve', reason: 'Duyệt\nGiữ' }], '2026-11-06');
   assert.ok(!/^(Duyệt|Giữ|Bỏ)/m.test(body));
   assert.match(body, /<!-- la-lanh-agent copy-batch/);
+});
+
+test('the batch PR body passes the loop preflight, including "Người dùng thấy gì:" (owner 12.11)', () => {
+  assert.deepEqual(bodyProblems(renderBody([{ id: 'tarot.a', decision: 'approve', reason: 'rõ' }], '2026-11-12')), []);
 });
 
 test('dry run with a fake Codex touches no git and returns the batch', () => {
@@ -107,4 +112,47 @@ test('publishing reviews and branches from the same pinned integration commit', 
   const add = calls.find(c => c[1] === 'worktree');
   assert.equal(add.at(-1), sha);
   assert.ok(!calls.some(c => c[0] === 'git' && c[1] === 'fetch' && calls.indexOf(c) > calls.indexOf(add)));
+});
+
+test('owner-only copy stays pending even if a decision for it slips past validation', () => {
+  const forced = applyDecisions(registry, [{ id: 'privacy.c', decision: 'approve', reason: 'x' }], '2026-11-12');
+  assert.equal(forced.entries[2].status, 'pending');
+  for (const category of ['privacy', 'consent', 'crisis', 'safety']) {
+    const reg = { entries: [{ id: `${category}.x`, category, text: 'Câu thử.', status: 'pending' }] };
+    assert.equal(pendingCount(reg), 0, `${category} is never counted as Codex work`);
+    assert.equal(applyDecisions(reg, [{ id: `${category}.x`, decision: 'approve' }], '2026-11-12').entries[0].status, 'pending');
+  }
+});
+
+test('rejected copy does not fill every later batch; edited text is reviewed again (Codex #451 P1)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'copy-review-test-'));
+  const file = join(dir, 'rejected.json');
+  const big = { entries: Array.from({ length: batchSize + 1 }, (_, i) => ({ id: `q.${i}`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })) };
+  const first = batchFor(big, readRejected(file));
+  recordRejected(first.map(e => ({ id: e.id, decision: 'reject', reason: 'x' })), new Map(first.map(e => [e.id, digest(e.text)])), file);
+  const next = batchFor(big, readRejected(file));
+  assert.deepEqual(next.map(e => e.id), [`q.${batchSize}`], 'the day after, the unread entry is reviewed');
+  assert.equal(pendingCount(big, readRejected(file)), 1);
+  const edited = { entries: big.entries.map(e => e.id === 'q.0' ? { ...e, text: 'Câu đã sửa.' } : e) };
+  assert.ok(batchFor(edited, readRejected(file)).some(e => e.id === 'q.0'), 'an edited sentence comes back for review');
+});
+
+test('one daily batch holds at most batchSize entries, so the PR body stays readable', () => {
+  const big = { entries: Array.from({ length: batchSize + 30 }, (_, i) => ({ id: `r.${i}`, category: 'reading', text: `Câu thử ${i}.`, status: 'pending' })) };
+  assert.equal(batchFor(big).length, batchSize);
+  assert.equal(pendingCount(big), batchSize + 30);
+  assert.ok(renderBody(batchFor(big).map(e => ({ id: e.id, decision: 'reject', reason: 'chưa rõ chủ thể trong câu' })), '2026-11-12').length < 60000, 'under the GitHub body limit');
+  assert.match(renderBody([], '2026-11-12'), /^Size-exception: /m, 'a generated registry batch is not split by the size cap');
+});
+
+test('the tick runner takes the review lock and reports busy without starting Codex', () => {
+  let started = 0;
+  assert.deepEqual(runCopyBatch({ lock: () => null, run: () => { started += 1; } }), { status: 'busy' });
+  assert.equal(started, 0);
+  let released = 0;
+  const out = runCopyBatch({ lock: () => () => { released += 1; }, run: () => ({ status: 'opened', url: 'https://example.invalid/pr/1' }) });
+  assert.deepEqual(out, { status: 'opened', url: 'https://example.invalid/pr/1' });
+  assert.equal(released, 1);
+  assert.equal(runCopyBatch({ lock: () => () => { released += 1; }, run: () => { throw new Error('push refused'); } }).status, 'error');
+  assert.equal(released, 2, 'the lock is released after an error');
 });

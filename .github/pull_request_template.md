@@ -6,6 +6,8 @@ Agent review:
 
 ## Mục tiêu và thay đổi
 
+Người dùng thấy gì:
+
 ## Ảnh hưởng tới task khác
 
 File đang thay đổi / contract / migration / các bên cần sync:
