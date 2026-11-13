@@ -231,7 +231,7 @@ describe("RadarPrivateStartPage", () => {
     expect(screen.queryByLabelText("Ngày sinh — ngày")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Check kín ngay/ })).not.toBeInTheDocument();
     await user.click(cta);
-    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("1");
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("private");
   });
 
   it("shows the form to a user whose own chart has birth time and place", async () => {

@@ -74,6 +74,15 @@ describe("RadarStartPage birth-precision gate", () => {
     expect(screen.queryByRole("button", { name: /Tạo link bật Radar/ })).not.toBeInTheDocument();
   });
 
+  it("remembers invite mode when the gate sends the owner to add birth time", async () => {
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
+    const user = userEvent.setup();
+    renderInvitePage();
+
+    await user.click(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" }));
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("invite");
+  });
+
   it("shows the invite form to a user with birth time and place", async () => {
     vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
     renderInvitePage();

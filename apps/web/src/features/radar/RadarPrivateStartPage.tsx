@@ -21,6 +21,7 @@ import { useRadarEraseTarget } from "./useRadarEraseTarget";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { RadarPrecisionGate } from "./RadarPrecisionGate";
 import { formatRadarExpiry, RADAR_CONTEXT_OPTIONS, RADAR_VOICE_OPTIONS } from "./radarOptions";
+import { markRadarOwnerReturn } from "./radarOwnerReturn";
 import { RADAR_HISTORY_QUERY_KEY, useRadarOwnerBinding } from "./useRadarOwnerBinding";
 import { useRadarCreateKey, useRadarHistory } from "./useRadarHistory";
 import { useRadarOwnerPrecision } from "./useRadarOwnerPrecision";
@@ -164,7 +165,7 @@ export function RadarPrivateStartPage() {
     setMessage(null);
     if (complete) create.mutate();
   };
-  const startOwnerProfile = () => sessionStorage.setItem("la-lanh-radar-owner-start", "1");
+  const startOwnerProfile = () => markRadarOwnerReturn("private");
   const privateHistory = history.items;
   useEffect(() => {
     if (location.hash !== "#radar-history") {

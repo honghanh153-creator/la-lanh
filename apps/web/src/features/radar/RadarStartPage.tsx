@@ -20,6 +20,7 @@ import { useRadarEraseTarget } from "./useRadarEraseTarget";
 import { RadarFlowSteps } from "./RadarFlowSteps";
 import { RadarPrecisionGate } from "./RadarPrecisionGate";
 import { RADAR_CONTEXT_OPTIONS, RADAR_VOICE_OPTIONS } from "./radarOptions";
+import { markRadarOwnerReturn } from "./radarOwnerReturn";
 import { RADAR_HISTORY_QUERY_KEY, useRadarOwnerBinding } from "./useRadarOwnerBinding";
 import { useRadarCreateKey, useRadarHistory } from "./useRadarHistory";
 import { useRadarOwnerPrecision } from "./useRadarOwnerPrecision";
@@ -116,7 +117,7 @@ export function RadarStartPage() {
     create.mutate();
   };
 
-  const startOwnerProfile = () => sessionStorage.setItem("la-lanh-radar-owner-start", "1");
+  const startOwnerProfile = () => markRadarOwnerReturn("invite");
   const inviteHistory = query.items;
 
   const copy = async (value: string) => {
@@ -159,7 +160,7 @@ export function RadarStartPage() {
     </form> : null}
     {(owner.isPending || (owner.isReady && precision === "checking")) && !owner.isError ? <section aria-live="polite" className="radar-owner-refresh"><Sparkle className="matching-pulse" /><p>Đang nối Radar với phiên chart hiện tại…</p></section> : null}
     {message && !owner.isError ? <p className="matching-message" role="status">{message}</p> : null}
-    {create.isError && create.error instanceof ApiProblem && create.error.status === 409 && create.error.code !== "RADAR_IDEMPOTENCY_CONFLICT" ? <Link className="matching-secondary" to="/birth-time">Thêm giờ & nơi sinh của mình</Link> : null}
+    {create.isError && create.error instanceof ApiProblem && create.error.status === 409 && create.error.code !== "RADAR_IDEMPOTENCY_CONFLICT" ? <Link className="matching-secondary" onClick={startOwnerProfile} to="/birth-time">Thêm giờ & nơi sinh của mình</Link> : null}
     {shareUrl && owner.isReady ? <section className="radar-share" aria-live="polite"><Sparkle weight="fill" /><div><strong>Link riêng đã sẵn sàng</strong><p>Hết hạn sau 7 ngày. Bạn có thể thu hồi trước khi người kia bật Radar.</p></div><button onClick={() => void copy(shareUrl)} type="button"><Copy /> Copy link</button></section> : null}
 
     {owner.isReady ? <section className="radar-history" id="radar-history"><p className="eyebrow">Đang chờ & đã mở</p>{inviteHistory.length ? inviteHistory.map((invite) => <article key={invite.id}><span className={`radar-status is-${invite.status}`}>{invite.status === "completed" ? <Check /> : <HeartStraight />}</span><div><strong>{invite.recipient_label}</strong><p>{statusText(invite.status)}</p></div>{invite.status === "pending" ? <><button aria-label={`Copy link cho ${invite.recipient_label}`} onClick={() => void revealLink(invite)} type="button"><Copy /></button><button aria-label={`Thu hồi link cho ${invite.recipient_label}`} onClick={() => revoke.mutate(invite.id)} type="button"><Trash /></button></> : <>{invite.status === "completed" ? <Link to={`/radar/result/${invite.id}`}>Mở</Link> : null}<button aria-label={`Xoá lần Radar với ${invite.recipient_label}`} disabled={erase.isPending} onClick={() => eraseTarget.request(invite.id, invite.recipient_label)} type="button"><Trash /></button></>}</article>) : query.isPending ? <p role="status">Đang tải lời mời…</p> : !query.isError ? <p className="radar-history__empty">Chưa có lời mời nào. Link đầu tiên sẽ nằm ở đây để bạn theo dõi.</p> : null}</section> : null}
