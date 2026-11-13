@@ -1,10 +1,11 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { applyDecisions, batchBranch, batchFor, batchSize, codexBin, readSaved, buildPrompt, digest, main, pendingCount, readRejected, recordRejected, renderBody, runCopyBatch, selectPending, validateDecisions } from './codex-copy-review.mjs';
+import { applyDecisions, batchBranch, commitArgs, batchFor, batchSize, codexBin, readSaved, buildPrompt, digest, main, pendingCount, readRejected, recordRejected, renderBody, runCopyBatch, selectPending, validateDecisions } from './codex-copy-review.mjs';
 import { bodyProblems } from './collab-preflight.mjs';
 
 // Synthetic sentences only.
@@ -215,4 +216,21 @@ test('runCopyBatch says whether Codex was called, also when the run fails', () =
     { status: 'error', codex: true, reason: 'push rejected' });
   assert.deepEqual(runCopyBatch({ lock, run: p => { p.reused = true; return { status: 'opened', url: 'https://example.invalid/pr/3' }; } }),
     { status: 'opened', codex: false, url: 'https://example.invalid/pr/3' });
+});
+
+// Codex 13.11 on #462: the identity fix was only tested against a fake git. This commits with the
+// exact arguments in a real repository whose git has no user name or email at all.
+test('the batch commit works in a real git with no configured identity', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'copy-git-'));
+  const home = mkdtempSync(join(tmpdir(), 'copy-home-'));
+  // useConfigOnly: git may not guess a name from the machine, as on the ops clone where it failed.
+  writeFileSync(join(home, 'gitconfig'), '[user]\n\tuseConfigOnly = true\n');
+  const env = { PATH: process.env.PATH, HOME: home, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: join(home, 'gitconfig') };
+  const git = args => execFileSync('/usr/bin/git', args, { cwd: dir, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  git(['init', '-q']);
+  writeFileSync(join(dir, 'f.txt'), 'x\n');
+  git(['add', 'f.txt']);
+  assert.throws(() => git(['commit', '-q', '-m', 'plain']), /identity|empty ident|user\.email|Please tell me who you are/i, 'this git really has no identity');
+  git(commitArgs('2026-11-13'));
+  assert.equal(git(['log', '-1', '--format=%an <%ae>']).trim(), 'la-lanh-agent <la-lanh-agent@users.noreply.github.com>');
 });

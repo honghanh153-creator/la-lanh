@@ -1096,6 +1096,43 @@ test('copy batch: a failed batch alerts, retries on later ticks without a second
   assert.match(batchAlerts.at(-1), /Đã hết lượt thử hôm nay/);
 });
 
+// Codex 13.11 on #480: after the last retry a quiet tick looked healthy, a failed alert was lost,
+// and saved decisions could not be published once the Codex cap was spent.
+test('copy batch: an unresolved error keeps the run red, a lost alert is resent, saved decisions publish past the cap', () => {
+  const date = '2026-12-01';
+  const alerts = [];
+  let deliver = false;
+  const deps = (minute, extra = {}) => ({ gh: plannedGh([], date), now: { date, hour: 12, minute }, merge: () => ({}), review: () => ({}),
+    alert: text => { if (!deliver) throw new Error('gh: HTTP 502'); alerts.push(text); },
+    copyPending: () => extra.pending ?? 40, copySaved: () => extra.saved ?? false, copyBatch: () => extra.result ?? { status: 'error', codex: false, reason: 'push rejected' } });
+  const day = () => trust.readJson(trust.dayStatePath(date), {});
+  tick(deps(0));
+  assert.equal(alerts.length, 0);
+  assert.equal(day().copyBatch.alerted, false, 'an alert that could not be delivered is remembered');
+  deliver = true;
+  tick(deps(10, { pending: 0 }));
+  assert.equal(day().copyBatch.attempts, 1, 'no retry ran on this tick');
+  assert.ok(alerts.some(t => t.includes('lần 1/3')), 'the lost alert is sent on the next tick');
+  assert.equal(day().copyBatch.alerted, true);
+  tick(deps(15));
+  tick(deps(20));
+  assert.equal(day().copyBatch.attempts, copyBatchAttempts);
+  const quiet = tick(deps(30, { result: { status: 'opened', codex: false } }));
+  assert.equal(day().copyBatch.status, 'error', 'no more attempts today');
+  assert.equal(quiet.status, 'ran-with-errors', 'a quiet tick after the last retry is still red');
+
+  const capped = '2026-12-02';
+  trust.writeJson(trust.dayStatePath(capped), { codexRuns: trust.codexDailyCap, failures: 0 });
+  const runs = [];
+  const at = saved => tick({ gh: plannedGh([], capped), now: { date: capped, hour: 13, minute: 0 }, merge: () => ({}), review: () => ({}),
+    copyPending: () => 40, copySaved: () => saved, copyBatch: () => { runs.push(saved); return { status: 'opened', codex: false }; } });
+  at(false);
+  assert.deepEqual(runs, [], 'cap spent and nothing saved: no new Codex batch');
+  at(true);
+  assert.deepEqual(runs, [true], 'saved decisions are published although the cap is spent');
+  assert.equal(trust.readJson(trust.dayStatePath(capped), {}).codexRuns, trust.codexDailyCap, 'and spend no Codex run');
+});
+
 test('copy batch: an owner "Duyệt" before 10:00 still waits for the 10:00 auto-start', () => {
   const date = '2026-11-27';
   const gh = plannedGh([], date);

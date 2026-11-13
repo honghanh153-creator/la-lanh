@@ -164,13 +164,16 @@ function openBatchPr(registry, body, date, base, run, at) {
   }
 }
 
+// The ops clone has no git identity; name the agent as the auto-sync merge does (13.11: the first
+// batch failed here). Exported so a test commits with these exact arguments in a real repository.
+export const commitArgs = date => ['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', `content(copy): Codex copy batch ${date}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`];
+
 function publishBatch(registry, body, date, branch, work, dir, run) {
   writeFileSync(join(work, registryRel), `${JSON.stringify(registry, null, 1)}\n`);
   run('uv', ['run', 'python', '-m', 'scripts.fallback_approval'], { cwd: join(work, 'apps/api'), encoding: 'utf8' });
   const at = args => run('git', args, { cwd: work, encoding: 'utf8' });
   at(['add', registryRel, 'docs/operations/fallback-approval.json']);
-  // The ops clone has no git identity; name the agent as the auto-sync merge does (13.11: the first batch failed here).
-  at(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', `content(copy): Codex copy batch ${date}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`]);
+  at(commitArgs(date));
   at(['push', '-q', 'origin', `HEAD:${branch}`]);
   const bodyPath = join(dir, 'body.md');
   writeFileSync(bodyPath, body);
