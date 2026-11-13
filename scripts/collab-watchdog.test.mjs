@@ -14,7 +14,7 @@ const H = 3600000;
 
 // A body that passes the preflight, so these checks reach the clone (#307 holds bodies that fail it).
 const VALID_BODY = ['- Mức: S', ...['G1 Tài liệu: plan §3', 'G2 UI/UX: không đụng giao diện', 'G3 Câu chữ: không có câu mới', 'G4 BE: không đổi', 'G5 FE: không đổi',
-  'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`)].join('\n');
+  'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`), 'Người dùng thấy gì: không trực tiếp (vận hành)'].join('\n');
 
 test('a run that started and never finished is reported as waiting on a prompt', () => {
   const beats = { 'la-lanh-autopilot': { doneAt: '2026-10-31T11:00:00Z', startedAt: '2026-10-31T12:48:00Z' }, 'la-lanh-ops-watch': { doneAt: '2026-11-03T01:00:00Z' }, 'la-lanh-retro': { doneAt: '2026-11-02T16:40:00Z' } };
@@ -125,6 +125,58 @@ test('the tick runs the watchdog even when the plan is closed, and a watchdog er
   assert.equal(tick({ gh, now: night, watchdog: () => { ran++; } }).status, 'closed');
   assert.equal(tick({ gh, now: night, watchdog: () => { ran++; throw new Error('boom'); } }).status, 'closed');
   assert.equal(ran, 2);
+});
+
+test('S8 part 2: the shared ops-alert closes only when every stalled task has a new done beat', () => {
+  const t0 = ms('2026-11-20T03:00:00Z'); // 10:00 VN
+  for (const task of ['la-lanh-autopilot', 'la-lanh-ops-watch', 'la-lanh-retro']) beat(task, 'done', t0);
+  const resolved = [];
+  let ghUp = true;
+  const run = at => watch({ nowMs: at, alert: () => {}, notify: () => {}, resolve: t => { if (!ghUp) throw new Error('gh down'); resolved.push(t); } });
+  run(t0); // drains any queued alert left by earlier tests
+  resolved.length = 0;
+  // Autopilot (13:00 VN) and the server check (18:00 VN) both stall and alert.
+  assert.deepEqual(run(t0 + 3 * H).alerted, ['la-lanh-autopilot']);
+  assert.deepEqual(run(t0 + 8 * H).alerted, ['la-lanh-ops-watch']);
+  // Autopilot recovers while the server check still stalls: the issue stays open.
+  beat('la-lanh-autopilot', 'done', t0 + 8 * H + 60000);
+  assert.deepEqual(run(t0 + 8 * H + 120000).resolved, []);
+  assert.equal(resolved.length, 0, 'one task still stalls, so nothing is closed');
+  // The server check recovers too, but GitHub is down: retried on the next tick.
+  beat('la-lanh-ops-watch', 'done', t0 + 9 * H);
+  ghUp = false;
+  assert.deepEqual(run(t0 + 9 * H + 60000).resolved, []);
+  ghUp = true;
+  const r = run(t0 + 9 * H + 600000);
+  // #373: autopilot's earlier, deferred recovery is kept and named in the closing comment too.
+  assert.deepEqual(r.resolved, ['la-lanh-ops-watch', 'la-lanh-autopilot']);
+  assert.equal(resolved.length, 1);
+  assert.match(resolved[0], /Kiểm tra server.*Autopilot.*đã chạy xong lại lúc 20\.11 \d\d:\d\d, không còn tác vụ hẹn giờ nào bị treo/);
+  // Closed once; a quiet tick afterwards does not close again.
+  beat('la-lanh-autopilot', 'done', t0 + 9 * H + 900000);
+  assert.deepEqual(run(t0 + 9 * H + 1200000).resolved, []);
+  assert.equal(resolved.length, 1);
+});
+
+test('#373: a recovery deferred by a queued alert still closes the shared ops-alert on a later tick', async () => {
+  const { queueAlert } = await import('./collab-heal.mjs');
+  const t0 = ms('2026-11-21T03:00:00Z'); // 10:00 VN
+  for (const task of ['la-lanh-autopilot', 'la-lanh-ops-watch', 'la-lanh-retro']) beat(task, 'done', t0);
+  const resolved = [];
+  const run = at => { beat('la-lanh-autopilot', 'done', at); beat('la-lanh-retro', 'done', at); return watch({ nowMs: at, alert: () => {}, notify: () => {}, resolve: t => resolved.push(t) }); };
+  run(t0); // drains any queued alert left by earlier tests
+  resolved.length = 0;
+  assert.deepEqual(run(t0 + 8 * H).alerted, ['la-lanh-ops-watch']);
+  // The server check recovers in the same tick that delivers a queued step alert: closing waits.
+  beat('la-lanh-ops-watch', 'done', t0 + 9 * H);
+  queueAlert('Bước kiểm tra bị treo (dữ liệu giả cho test).', t0 + 9 * H);
+  const deferred = run(t0 + 9 * H + 60000);
+  assert.equal(deferred.queued.sent, 1);
+  assert.deepEqual(deferred.resolved, []);
+  // The next healthy tick closes the issue instead of forgetting the recovery.
+  assert.deepEqual(run(t0 + 9 * H + 600000).resolved, ['la-lanh-ops-watch']);
+  assert.equal(resolved.length, 1);
+  assert.deepEqual(run(t0 + 9 * H + 1200000).resolved, [], 'closed once');
 });
 
 test('fix D: a start with no done for over 30 minutes is stuck, recorded and alerted, never killed', async () => {

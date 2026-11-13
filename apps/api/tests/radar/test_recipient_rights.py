@@ -68,7 +68,7 @@ def test_recipient_session_views_and_withdraws_without_the_receipt(tmp_path: Pat
         assert viewed.json()["mode"] == "consented_invite"
         # The whole directional projection B saw at acceptance, not only the headline.
         assert viewed.json() == accepted
-        assert viewed.json()["recipient_label"] is None and "Mèo" not in viewed.text
+        assert "recipient_label" not in viewed.json() and "Mèo" not in viewed.text
         _assert_no_raw_birth_data(viewed.json())
 
         # Withdrawal is a mutation: it needs B's CSRF token and a trusted origin.

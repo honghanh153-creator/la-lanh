@@ -95,7 +95,8 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, CopyEntry]:
 
 
 def registry_problems(entries: dict[str, CopyEntry]) -> list[str]:
-    return [problem for entry in entries.values() for problem in entry.problems()]
+    found = [problem for entry in entries.values() for problem in entry.problems()]
+    return [*found, *bundle_problems(entries)]
 
 
 def approved_pin(entries: dict[str, CopyEntry]) -> str:
@@ -134,3 +135,46 @@ def copy_text(entry_id: str, fallback: str) -> str:
 
     entry = _runtime_registry().get(entry_id)
     return entry.text if entry is not None and entry.servable else fallback
+
+
+# Daily bundles (owner decision 10.11.2026): headline, scene and action written together as
+# ``daily.bundle.<situation>.<nn>.<part>`` and served only as a whole.
+BUNDLE_PREFIX = "daily.bundle."
+BUNDLE_PARTS = ("headline", "scene", "action")
+
+
+def bundle_problems(entries: dict[str, CopyEntry]) -> list[str]:
+    """Every bundle id must be ``daily.bundle.<situation>.<nn>.<part>`` with all three parts."""
+
+    groups: dict[str, set[str]] = {}
+    found: list[str] = []
+    for key in entries:
+        if not key.startswith(BUNDLE_PREFIX):
+            continue
+        parts = key[len(BUNDLE_PREFIX) :].split(".")
+        if len(parts) != 3 or not all(parts) or parts[2] not in BUNDLE_PARTS:
+            found.append(f"{key}: bundle id must be daily.bundle.<situation>.<nn>.<part>")
+            continue
+        groups.setdefault(f"{parts[0]}.{parts[1]}", set()).add(parts[2])
+    for bundle, present in sorted(groups.items()):
+        missing = [part for part in BUNDLE_PARTS if part not in present]
+        if missing:
+            found.append(f"daily.bundle.{bundle}: missing {', '.join(missing)}")
+    return found
+
+
+def approved_bundles(situation: str) -> tuple[tuple[str, str, str], ...]:
+    """(headline, scene, action) bundles of ``situation`` whose three lines are all approved."""
+
+    registry = _runtime_registry()
+    prefix = f"{BUNDLE_PREFIX}{situation}."
+    numbers = sorted(
+        {key[len(prefix) :].split(".")[0] for key in registry if key.startswith(prefix)}
+    )
+    bundles: list[tuple[str, str, str]] = []
+    for number in numbers:
+        found = [registry.get(f"{prefix}{number}.{part}") for part in BUNDLE_PARTS]
+        lines = [line for line in found if line is not None and line.servable]
+        if len(lines) == len(BUNDLE_PARTS):
+            bundles.append((lines[0].text, lines[1].text, lines[2].text))
+    return tuple(bundles)

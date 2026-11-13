@@ -22,7 +22,7 @@ from app.domains.history.postgres import (
 )
 from app.domains.history.tables import HistoryRetentionPolicyRow
 from app.domains.mood.models import MoodCheckInRecord, MoodValue
-from app.domains.mood.postgres import PostgresMoodRepository
+from app.domains.mood.postgres import PostgresMoodRepository, mood_value
 from app.domains.mood.tables import MoodCheckInRow
 from app.domains.saved.errors import SavedRevisionUnavailable
 from app.domains.saved.models import SavedNoteRecord
@@ -84,7 +84,7 @@ async def note(database: Database, guest_id: UUID, created: datetime) -> DailyNo
 async def test_mood_edit_keeps_original_creation_clock(storage: Database) -> None:
     guest_id = await owner(storage)
     daily = await note(storage, guest_id, NOW)
-    moods = PostgresMoodRepository(storage.sessions)
+    moods = PostgresMoodRepository(storage.sessions, cipher())
     first = await moods.upsert(
         MoodCheckInRecord(
             id=uuid4(),
@@ -260,7 +260,7 @@ async def test_reopening_and_rewriting_do_not_extend_daily_clock(storage: Databa
 async def test_expired_mood_hidden_and_cannot_be_extended_by_edit(storage: Database) -> None:
     guest_id = await owner(storage)
     daily = await note(storage, guest_id, NOW)
-    moods = PostgresMoodRepository(storage.sessions)
+    moods = PostgresMoodRepository(storage.sessions, cipher())
     original = await moods.upsert(
         MoodCheckInRecord(
             id=uuid4(),
@@ -285,7 +285,8 @@ async def test_expired_mood_hidden_and_cannot_be_extended_by_edit(storage: Datab
         )
     async with storage.sessions() as session:
         row = await session.get(MoodCheckInRow, original.id)
-        assert row is not None and row.created_at == OLD and row.mood == MoodValue.CHILL
+        assert row is not None and row.created_at == OLD
+        assert mood_value(row, cipher()) == MoodValue.CHILL
 
 
 async def test_save_rechecks_missing_expired_and_other_owner_sources(storage: Database) -> None:
@@ -561,7 +562,7 @@ async def test_physical_daily_cleanup_starts_at_18_hours_and_takes_its_mood(
     created = (vn_today - timedelta(hours=23)).astimezone(UTC)  # 01:00 yesterday, Vietnam time
     daily = await note(storage, guest_id, created)
     kept = await note(storage, guest_id, created - timedelta(days=1))
-    moods = PostgresMoodRepository(storage.sessions)
+    moods = PostgresMoodRepository(storage.sessions, cipher())
     mood = await moods.upsert(
         MoodCheckInRecord(
             id=uuid4(),
@@ -607,7 +608,7 @@ async def test_mood_without_a_daily_purge_keeps_the_30_day_window(storage: Datab
 
     guest_id = await owner(storage)
     current = await note(storage, guest_id, NOW)
-    mood = await PostgresMoodRepository(storage.sessions).upsert(
+    mood = await PostgresMoodRepository(storage.sessions, cipher()).upsert(
         MoodCheckInRecord(
             id=uuid4(),
             guest_id=guest_id,
