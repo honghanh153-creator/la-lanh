@@ -9,10 +9,11 @@ const minutes = now => now.hour * 60 + now.minute;
 export const planOpensAt = 8 * 60 + 50;
 export const autoStartAt = 10 * 60;
 export const lastStartAt = 23 * 60 + 30;
-// Owner decision 02.11.2026: the day's % is merged / committed. Owner 03.11.2026: commit at least
-// 16 PRs (03.11 merged 16 and finished the 6–8 commitment by 15:37). 20 stays inside the Codex cap.
-export const commitMin = 16;
-export const commitMax = 20;
+// Owner 12.11.2026: no PR quota. The plan picks 3–5 work items, each with its source (US/AC) and
+// what the user sees; progress is items done / items picked. Claude works under WIP 1 + 1
+// (collab-buffer.mjs), so the plan is a short list, not a count to reach.
+export const planMin = 3;
+export const planMax = 5;
 
 // Fix C (04.11.2026): the owner approves new user-facing copy and clarity-ratchet rises together
 // with the plan. Detected from the PR's files: content sources, and the clarity baseline or
@@ -35,7 +36,7 @@ export function copyReview(files = []) {
   return copy.length || ratchet.length ? { copy, ratchet } : null;
 }
 
-export const committedTurns = turns => turns.filter(t => t.turn !== 'hold').slice(0, commitMax);
+export const committedTurns = turns => turns.filter(t => t.turn !== 'hold').slice(0, planMax);
 
 export function planState(now, comments = []) {
   const at = minutes(now);
@@ -68,8 +69,13 @@ function copyLines(committed) {
 export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
   const committed = committedTurns(turns);
-  const short = commitMin - committed.length;
-  const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\|/g, '\\|')} |`);
+  const short = planMin - committed.length;
+  const items = committed.map((t, i) => [
+    `${i + 1}. #${t.number} ${clean(t.title, 90)}`,
+    `   - Nguồn / AC: ${clean(t.source ?? 'chưa ghi', 160)}`,
+    `   - Người dùng thấy gì: ${clean(t.userSees ?? 'chưa ghi', 160)}`,
+  ].join('\n'));
+  const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} |`);
   return [
     `## Plan ${now.date}`,
     '',
@@ -80,10 +86,11 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     // Health of the unattended Claude runs (watchdog, owner 03.11.2026): a stall shows every morning.
     ...(health.length ? ['', '**Tác vụ hẹn giờ:**', ...health] : []),
     '',
-    `**Cam kết hôm nay (${commitMin}–${commitMax} PR):** ${committed.length ? committed.map(t => `#${t.number}`).join(', ') : 'chưa có PR nào sẵn sàng'}.`,
-    ...(short > 0 ? [`Còn thiếu ${short} PR so với mức ${commitMin}: Claude mở thêm từ backlog \`auto: yes\` và ghi số PR vào issue này.`] : []),
+    `**Việc chọn hôm nay (${planMin}–${planMax} việc):**`,
+    ...(items.length ? items : ['Chưa có việc nào sẵn sàng.']),
+    ...(short > 0 ? [`Còn thiếu ${short} việc so với mức ${planMin}: Claude chọn tiếp từ backlog \`auto: yes\` khi có chỗ (mỗi lúc 1 việc đang làm + 1 việc đang review), và ghi nguồn / AC cùng dòng "Người dùng thấy gì" vào issue này.`] : []),
     ...copyLines(committed),
-    `% hôm nay = số PR cam kết đã merge vào integration / số PR cam kết. PR còn lại trong bảng làm nếu kịp, không tính vào %.`,
+    'Tiến độ hôm nay = việc xong / việc đã chọn (xong là đã merge vào integration). PR khác trong bảng làm nếu kịp.',
     '',
     '| PR | Nhóm | Lượt kế tiếp | Lý do | Tiêu đề |',
     '|---|---|---|---|---|',
@@ -122,7 +129,7 @@ export function planIssue(gh) {
 export function readPlanStatus(gh, now = vnNow()) {
   const number = planIssue(gh);
   const issue = gh.json(['issue', 'view', String(number), '--repo', repo, '--json', 'comments']);
-  return { issue: number, ...planState(now, issue.comments ?? []) };
+  return { issue: number, comments: issue.comments ?? [], ...planState(now, issue.comments ?? []) };
 }
 
 export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [] }) {

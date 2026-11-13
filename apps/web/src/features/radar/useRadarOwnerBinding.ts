@@ -13,7 +13,8 @@ export const RADAR_HISTORY_QUERY_KEY = ["radar-invites"] as const;
 function isPrivateRadarQuery(queryKey: readonly unknown[]) {
   return queryKey[0] === "radar-invites"
     || queryKey[0] === "radar-result"
-    || queryKey[0] === "radar-places";
+    || queryKey[0] === "radar-places"
+    || queryKey[0] === "radar-owner-precision";
 }
 
 export function useRadarOwnerBinding() {

@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   claimOwner,
   deleteRadarResult,
+  getBirthSupplement,
   getSession,
   listRadarInvites,
   OWNER_SESSION_EPOCH_KEY,
@@ -20,9 +21,82 @@ vi.mock("../../shared/api/client", async (loadOriginal) => {
     ...actual,
     claimOwner: vi.fn(),
     deleteRadarResult: vi.fn(),
+    getBirthSupplement: vi.fn(),
     getSession: vi.fn(),
     listRadarInvites: vi.fn(),
   };
+});
+
+function supplement(profileLevel: 1 | 3) {
+  const full = profileLevel === 3;
+  return {
+    profile_id: "00000000-0000-4000-8000-0000000000aa",
+    profile_level: profileLevel,
+    time_precision: full ? "exact" : "unknown",
+    birth_time_mode: full ? "exact" : "unknown",
+    approx_window: null,
+    place_display_name: full ? "Thành phố mẫu" : null,
+    timezone_id: full ? "Asia/Ho_Chi_Minh" : null,
+  } as Awaited<ReturnType<typeof getBirthSupplement>>;
+}
+
+function renderInvitePage() {
+  return render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter><RadarStartPage /></MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+describe("RadarStartPage birth-precision gate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    sessionStorage.setItem(SESSION_EPOCH_KEY, "session-a");
+    sessionStorage.setItem(OWNER_SESSION_EPOCH_KEY, "session-a");
+    sessionStorage.setItem("la-lanh-owner-session-until-v1", "2100-01-01T00:00:00Z");
+    vi.mocked(getSession).mockResolvedValue({
+      csrf_token: "csrf", expires_at: "2026-10-01T00:00:00Z", onboarding_status: "complete",
+      resumed: true, session_epoch: "session-a", state: "active",
+    });
+    vi.mocked(claimOwner).mockResolvedValue({
+      expires_at: "2026-10-01T00:00:00Z", principal_id: "00000000-0000-4000-8000-000000000001", resumed: true,
+    });
+    vi.mocked(listRadarInvites).mockResolvedValue([]);
+  });
+
+  it("shows the add-birth-time gate instead of the invite form to a date-only user", async () => {
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
+    renderInvitePage();
+
+    expect(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).toHaveAttribute("href", "/birth-time");
+    expect(screen.queryByLabelText("Tên gọi của người ấy")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Tạo link bật Radar/ })).not.toBeInTheDocument();
+  });
+
+  it("remembers invite mode when the gate sends the owner to add birth time", async () => {
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(1));
+    const user = userEvent.setup();
+    renderInvitePage();
+
+    await user.click(await screen.findByRole("link", { name: "Thêm giờ & nơi sinh của mình" }));
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("invite");
+  });
+
+  it("shows the invite form to a user with birth time and place", async () => {
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
+    renderInvitePage();
+
+    expect(await screen.findByLabelText("Tên gọi của người ấy")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Thêm giờ & nơi sinh của mình" })).not.toBeInTheDocument();
+  });
+
+  it("falls back to the invite form when the precision check fails", async () => {
+    vi.mocked(getBirthSupplement).mockRejectedValue(new Error("offline"));
+    renderInvitePage();
+
+    expect(await screen.findByLabelText("Tên gọi của người ấy")).toBeInTheDocument();
+  });
 });
 
 describe("RadarStartPage delete confirmation", () => {
@@ -44,6 +118,7 @@ describe("RadarStartPage delete confirmation", () => {
       status: "completed", created_at: "2026-10-01T00:00:00Z", expires_at: "2026-10-08T00:00:00Z",
     }]);
     vi.mocked(deleteRadarResult).mockResolvedValue(undefined);
+    vi.mocked(getBirthSupplement).mockResolvedValue(supplement(3));
   });
 
   it("asks in an in-app sheet and deletes only after an explicit Xoá", async () => {
