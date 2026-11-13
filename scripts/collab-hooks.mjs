@@ -12,11 +12,12 @@ import { dirname, isAbsolute, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const claudeClone = process.env.LA_LANH_CLAUDE_CLONE || join(homedir(), 'Documents', 'New project', 'la-lanh-claude');
-export const hookMarker = '# la-lanh pre-push v1';
+export const hookMarker = '# la-lanh pre-push';
+const hookVersion = `${hookMarker} v2`;
 
 export const prePushHook = [
   '#!/bin/bash',
-  hookMarker,
+  hookVersion,
   '# Installed by scripts/collab-hooks.mjs. Runs the reviewed scripts of the ops clone.',
   'set -uo pipefail',
   `ops="\${LA_LANH_COLLAB_HOME:-$HOME/.cache/la-lanh-collab}/ops"`,
@@ -27,7 +28,11 @@ export const prePushHook = [
   'fi',
   'refs="$(cat)"',
   '# Private-data guard: every commit the remote does not have yet.',
-  'printf \'%s\\n\' "$refs" | node "$ops/scripts/collab-check.mjs" --guard || exit 1',
+  '# Fail closed: only an explicit "private-guard: ok" lets the push through (a script that ran',
+  '# nothing and exited 0 must not count as a pass).',
+  'guard="$(printf \'%s\\n\' "$refs" | node "$ops/scripts/collab-check.mjs" --guard)" || { printf \'%s\\n\' "$guard"; exit 1; }',
+  'printf \'%s\\n\' "$guard"',
+  'case "$guard" in *"private-guard: ok"*) ;; *) echo "pre-push: quét dữ liệu riêng tư không trả kết quả rõ ràng; chặn push" >&2; exit 1 ;; esac',
   '# Ruff and mypy on changed Python files, with the locked tool versions CI uses.',
   'node "$ops/scripts/collab-preflight.mjs" --lint || { echo "pre-push: lint trượt, sửa rồi push lại" >&2; exit 1; }',
   '',
