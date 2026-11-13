@@ -2,7 +2,7 @@
 // Usage: node scripts/collab-merge.mjs --pr N [--dry-run]
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { agentMarker, clean, fixForwardIssue, integration, isOwnPr, isSha, keyCreatedMs, makeGh, readJson, repo, reviewState, sealValid, stateDir, trustedComments, writeJson } from './collab-trust.mjs';
+import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr, isSha, keyCreatedMs, makeGh, readJson, repo, reviewState, sealValid, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 
 // Merge-queue rules (P1-A/P1-B, 12.11.2026): the latest signed PASS must be for the live tip of
 // collab/integration, and the latest signed APPROVE must be for the head and still valid for that tip
@@ -30,7 +30,15 @@ export function mergeGate(pr, { baseFiles } = {}) {
   return { ok: reasons.length === 0, head, base: pr.baseTipOid ?? null, reasons };
 }
 
-export function runMerge(number, { gh = makeGh(), dryRun = false } = {}) {
+// Every merge, by the tick or by the direct command, lands in the day's list, so owner notes and
+// the digest count it.
+export function recordMerged(pr, date = vnNow().date) {
+  const path = dayStatePath(date);
+  const day = readJson(path, { codexRuns: 0, failures: 0 });
+  writeJson(path, { ...day, mergedToday: [...(day.mergedToday ?? []).filter(m => m.number !== pr.number), { number: pr.number, title: pr.title }] });
+}
+
+export function runMerge(number, { gh = makeGh(), dryRun = false, date } = {}) {
   const pr = gh.pr(number);
   const gate = mergeGate(pr, { baseFiles: gh.compareFiles });
   if (!gate.ok) return { status: 'refused', reasons: gate.reasons };
@@ -44,6 +52,7 @@ export function runMerge(number, { gh = makeGh(), dryRun = false } = {}) {
     gh.comment('pr', child.number, `PR cha #${pr.number} đã merge vào \`${integration}\`; base của PR này được đổi sang \`${integration}\`. Head không đổi; author check và verdict cũ không còn khớp base, PR cần check lại trên base mới.\n\n${agentMarker} retarget parent=${pr.number} -->`);
     retargeted.push(child.number);
   }
+  try { recordMerged(pr, date); } catch {}
   writeJson(join(stateDir, 'logs', `merge-pr${pr.number}-${gate.head.slice(0, 12)}.json`), { pr: pr.number, head: gate.head, base: gate.base, retargeted, at: new Date().toISOString() });
   return { status: 'merged', head: gate.head, retargeted };
 }

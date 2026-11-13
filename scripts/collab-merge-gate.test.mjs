@@ -20,7 +20,7 @@ const H2 = 'c'.repeat(40);
 const B1 = '1'.repeat(40);
 const B2 = '2'.repeat(40);
 const N = 7;
-const goodBody = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'].map(g => `- ${g}: ${g === 'G7' ? 'không đụng phiên, quyền, dữ liệu, log' : 'ok'}`).join('\n') + '\nMức: S\n';
+const goodBody = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'].map(g => `- ${g}: ${g === 'G7' ? 'không đụng phiên, quyền, dữ liệu, log' : 'ok'}`).join('\n') + '\nMức: S\nNgười dùng thấy gì: không trực tiếp (vận hành)\n';
 
 let tick = 0;
 const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-11-12T0${Math.floor(tick / 60)}:${String(tick++ % 60).padStart(2, '0')}:00Z`, body });

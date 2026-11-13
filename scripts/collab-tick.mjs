@@ -8,10 +8,12 @@ import { heavyJobFree, runCheckInClone } from './collab-check.mjs';
 import { runPreflight } from './collab-preflight.mjs';
 import { clean, makeGh, vnNow } from './collab-trust.mjs';
 import { opsAlert, resolveOpsAlert, tick } from './collab-turn.mjs';
-import { renderBoard, upsertBoard } from './collab-status.mjs';
+import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
+import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
 import { planIssue } from './collab-plan.mjs';
 import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
+import { pendingCount, runCopyBatch } from './codex-copy-review.mjs';
 
 // Tools the loop and pnpm check need. A missing one used to surface as a false FAIL receipt
 // (31.10.2026: sha256sum, pnpm); now the tick stops with an error and alerts instead.
@@ -39,7 +41,9 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       // P1-B: once a day, any merge of the last 24 hours without signed evidence opens an ops alert.
       try { dailyReceiptAudit({ gh, alert: text => opsAlert(gh, text, receiptSubject), now: vnNow() }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
-    }, health: () => healthLines(readBeats()) });
+    }, health: () => healthLines(readBeats()), copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(),
+    notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
+    metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })) });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
