@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.domains.astro.models import TimePrecision
 from app.domains.birth.tables import BirthProfileRow
 from app.domains.daily.tables import DailyNoteRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.experiments.errors import (
     ExperimentConflict,
     ExperimentReplaceRequired,
@@ -44,9 +45,11 @@ class PostgresExperimentRepository:
         self,
         sessions: async_sessionmaker[AsyncSession],
         envelope: EnvelopeCipher,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
         self._envelope = envelope
+        self._erasure_journal = erasure_journal
 
     async def choose_with_consent(
         self,
@@ -134,7 +137,12 @@ class PostgresExperimentRepository:
                     DailyExperimentRow.expires_at > now,
                 )
             )
-            return cast(CursorResult[Any], result).rowcount == 1
+            undone = cast(CursorResult[Any], result).rowcount == 1
+            if undone and self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    session, ErasureKind.EXPERIMENT_UNDONE, experiment_id, now
+                )
+            return undone
 
     async def reflect(
         self,

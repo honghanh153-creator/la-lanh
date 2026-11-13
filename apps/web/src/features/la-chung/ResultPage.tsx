@@ -1,5 +1,6 @@
 import { ArrowLeft, EyeSlash, Sparkle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -13,14 +14,23 @@ export function ResultPage() {
   const { requestId = "" } = useParams();
   const navigate = useNavigate();
   const cache = useQueryClient();
+  // Set once a hide or delete succeeds: from then on this page neither reads nor shows the result,
+  // even if it re-renders before navigation unmounts it (Codex r34).
+  const [closed, setClosed] = useState(false);
+  const queryKey = ["la-chung-result", requestId];
   const query = useQuery({
-    queryKey: ["la-chung-result", requestId],
+    queryKey,
     queryFn: ({ signal }) => getLaChungResult(requestId, signal),
+    enabled: !closed,
+    gcTime: 0,
     retry: false,
   });
   const finish = async () => {
-    // A hidden or deleted result must not stay renderable from the cache (audit P03 RC-07).
-    cache.removeQueries({ queryKey: ["la-chung-result", requestId], exact: true });
+    // A hidden or deleted result must not stay renderable from the cache (audit P03 RC-07): fence
+    // further reads, cancel one still in flight, then drop the cached copy.
+    setClosed(true);
+    await cache.cancelQueries({ queryKey, exact: true });
+    cache.removeQueries({ queryKey, exact: true });
     await cache.invalidateQueries({ queryKey: ["la-chung-invites"] });
     void navigate("/la-chung/history", { replace: true });
   };
@@ -38,7 +48,7 @@ export function ResultPage() {
       <Link className="icon-button" to="/la-chung/history"><ArrowLeft /></Link>
       <span className="eyebrow">Một Lá Chứng</span><span />
     </header>
-    {query.data && !query.isError ? <>
+    {!closed && query.data && !query.isError ? <>
       <section className="result-hero"><Sparkle weight="fill" /><p>{query.data.display_alias ? `Từ ${query.data.display_alias}` : "Một người đã chọn ẩn danh"}</p><h1>Họ nhìn thấy<br />những điều này ở bạn.</h1></section>
       <section className="result-stack">{query.data.statements.map((statement, index) => <article key={statement}><span>0{index + 1}</span><p>{statement}</p></article>)}</section>
       <aside className="result-privacy"><EyeSlash /><p>Kết quả này đứng riêng, không được dùng để chấm điểm hay đưa vào matching.</p></aside>

@@ -21,7 +21,7 @@ from enum import StrEnum
 
 from app.domains.tarot.models import TarotQuestionForm
 
-ROLE_COPY_VERSION = "tarot-roles-v2"
+ROLE_COPY_VERSION = "tarot-roles-v3"  # v3: Tarot pass 2, no header labels (29/10/2026)
 FRAME_VARIANTS = 3  # role frames per voice register (US-20 AC15)
 LEAD_VARIANTS = 5  # one lead per position of the longest spread, never repeated in a reading
 
@@ -36,69 +36,75 @@ class RoleField(StrEnum):
 @dataclass(frozen=True)
 class PositionRole:
     field: RoleField
-    # Direct-voice frames around the field ({core} {tension} {resource}). Frame i of ``roast``
-    # is the Roast version of frame i: both carry the code "<position_key>.<i>" (AC19).
+    # Direct-voice frames around the field ({core_sentence} {tension} {resource}). Frame i of
+    # ``roast`` is the Roast version of frame i: both carry the code "<position_key>.<i>" (AC19).
     frames: tuple[str, str, str]
     roast: tuple[str, str, str]
     step: bool = False  # only step roles carry the reading's small action
 
 
 # Word budget per sentence (the review's 28-word density limit) with a lead of at most 4 words
-# and the longest card fields (core 19, tension 16, resource 17 words): frame words before or
-# around the field stay <= 5 for core, <= 8 for tension and <= 7 for resource. Option roles and
-# the one-card focus use two sentences; the lead joins the first. audit_frame_lengths checks
-# every frame x lead x card x topic.
+# and the longest card fields (core sentence 18, tension 16, resource 17 words): frame words in
+# the sentence around the field stay <= 6 for the core sentence, <= 8 for tension and <= 7 for
+# resource. Option roles and the one-card focus use two sentences; the lead joins the first.
+# Tests check every frame x the longest lead x card x topic.
+#
+# Tarot pass 2 (owner, 29/10/2026): frames no longer restate the position header as a label
+# ("Bằng chứng thật: …", "Kịch bản tự viết: …"). Core roles read the card's core as a complete
+# clause ({core_sentence}, phrasing.core_sentence); tension roles say "có thể bạn đang …";
+# resource roles say "bạn có thể …"; option roles name the gain and the cost. Roast keeps a
+# playful tag instead of a label. Slots and codes "<key>.<i>" are unchanged (AC19).
 # Keyed by the position keys of engine._POSITIONS.
 ROLES: dict[str, PositionRole] = {
     # One card: what to look at, then what is in reach; it is also the step.
     "focus": PositionRole(
         RoleField.CORE,
         (
-            "Lá này cho thấy {core}. Phần nằm trong tay bạn: {resource}.",
-            "Điều lá này chỉ ra: {core}. Việc bạn làm được: {resource}.",
-            "Điểm đáng nhìn ở đây: {core}. Bước trong tầm tay: {resource}.",
+            "{core_sentence}. Bạn có thể bắt đầu bằng việc {resource}.",
+            "Có thể thấy {core_sentence}. Việc trong tầm tay bạn là {resource}.",
+            "Có vẻ {core_sentence}. Một bước nhỏ bạn làm được là {resource}.",
         ),
         (
-            "Lá này bóc trần: {core}. Phần bạn tự lo được: {resource}.",
-            "Nói gọn cho bạn: {core}. Việc làm được ngay: {resource}.",
-            "Lá này nói thẳng: {core}. Khỏi chờ ai, bạn có thể {resource}.",
+            "{core_sentence}, nói thẳng vậy đó. Khỏi chờ ai, bạn có thể {resource}.",
+            "{core_sentence}, khỏi vòng vo. Phần bạn tự lo được là {resource}.",
+            "Nói gọn thì {core_sentence}. Việc làm được ngay là {resource}.",
         ),
         step=True,
     ),
     # Three cards.
     "clear": PositionRole(
         RoleField.CORE,
-        ("Lá này cho thấy {core}.", "Điều đã khá rõ: {core}.", "Phần đang có sẵn: {core}."),
+        ("{core_sentence}.", "Có thể thấy {core_sentence}.", "{core_sentence}, điều này khá rõ."),
         (
-            "Rõ như ban ngày: {core}.",
-            "Khỏi đoán, lá này nói: {core}.",
-            "Chuyện đã rõ mười mươi: {core}.",
+            "{core_sentence}, rõ như ban ngày.",
+            "{core_sentence}, khỏi đoán nữa.",
+            "{core_sentence}, rõ mười mươi rồi.",
         ),
     ),
     "missed": PositionRole(
         RoleField.TENSION,
         (
-            "Điều dễ trượt qua: có thể bạn đang {tension}.",
-            "Chỗ dễ bỏ sót: bạn có thể đang {tension}.",
-            "Điều ít được để ý: có lúc bạn {tension}.",
+            "Có thể bạn chưa để ý mình đang {tension}.",
+            "Có lúc bạn {tension} mà không nhận ra.",
+            "Bạn có thể đang {tension}.",
         ),
         (
-            "Chỗ bạn hay lướt qua: có khi đang {tension}.",
-            "Chỗ sót kinh điển: bạn có thể {tension}.",
-            "Góc khuất nhỏ: có lúc bạn {tension}.",
+            "Có khi bạn đang {tension} mà không hay biết.",
+            "Không chừng bạn đang {tension}, nghe quen không?",
+            "Lỡ đâu bạn đang {tension} mà chưa nhận ra.",
         ),
     ),
     "next": PositionRole(
         RoleField.RESOURCE,
         (
-            "Điều cần tính tới: {core}.",
-            "Bước tiếp dựa vào: {core}.",
-            "Hành trang cho bước tiếp: {core}.",
+            "{core_sentence}, đó là điểm tựa.",
+            "Nhớ rằng {core_sentence}.",
+            "Mang theo điều này: {core_sentence}.",
         ),
         (
-            "Mang theo khi bước: {core}.",
-            "Nhớ kỹ trước khi lao: {core}.",
-            "Hành lý cho bước tiếp: {core}.",
+            "{core_sentence}, nhớ mang theo nha.",
+            "{core_sentence}, nhớ kỹ trước khi lao.",
+            "{core_sentence}, bỏ túi nha.",
         ),
         step=True,
     ),
@@ -106,153 +112,173 @@ ROLES: dict[str, PositionRole] = {
     "facts": PositionRole(
         RoleField.CORE,
         (
-            "Điều có thể dựa vào: {core}.",
-            "Dữ kiện đáng tin: {core}.",
-            "Chỗ đứng vững lúc này: {core}.",
+            "{core_sentence}.",
+            "Điều có thể dựa vào là {core_sentence}.",
+            "Có một điều khá chắc: {core_sentence}.",
         ),
         (
-            "Bằng chứng thật: {core}.",
-            "Dữ kiện, không phải phim: {core}.",
-            "Cái chắc tay nhất: {core}.",
+            "{core_sentence}, cái này có thật nha.",
+            "{core_sentence}, không phải phim đâu.",
+            "{core_sentence}, chắc tay đó.",
         ),
     ),
     "assumption": PositionRole(
         RoleField.TENSION,
         (
             "Có thể bạn đang {tension}. Phần này chưa phải dữ kiện.",
-            "Một giả định dễ có: bạn đang {tension}.",
-            "Đây mới là phỏng đoán: có lúc bạn {tension}.",
+            "Bạn có thể đang {tension} mà chưa kiểm tra.",
+            "Có lúc bạn {tension}, dù chưa có gì chắc.",
         ),
         (
-            "Kịch bản tự viết: bạn đang {tension}. Phần này chưa phải dữ kiện.",
-            "Não tự điền chỗ trống: bạn đang {tension}.",
-            "Phần đoán mò: có lúc bạn {tension}.",
+            "Không chừng bạn đang {tension}. Phần này chưa phải dữ kiện đâu.",
+            "Có khi bạn đang {tension}, rồi tin luôn.",
+            "Lỡ đâu bạn đang {tension} mà chưa kiểm chứng.",
         ),
     ),
     "need": PositionRole(
         RoleField.CORE,
-        ("Điều bạn cần giữ: {core}.", "Nhu cầu thật ở đây: {core}.", "Điều đáng được giữ: {core}."),
         (
-            "Thứ bạn thật cần: {core}.",
-            "Điều bạn cần, nói thật: {core}.",
-            "Nhu cầu chính chủ: {core}.",
+            "{core_sentence}.",
+            "{core_sentence}, điều này đáng được giữ.",
+            "Thật ra {core_sentence}.",
+        ),
+        (
+            "{core_sentence}, nói thật lòng đó.",
+            "{core_sentence}, nhu cầu chính chủ đó.",
+            "Thật ra {core_sentence}, khỏi chối.",
         ),
     ),
     "agency": PositionRole(
         RoleField.RESOURCE,
         (
-            "Phần nằm trong tay bạn: {resource}.",
-            "Việc bạn tự làm được: {resource}.",
-            "Trong tầm tay bạn: {resource}.",
+            "Bạn có thể {resource}.",
+            "Việc bạn tự làm được là {resource}.",
+            "Bạn không cần chờ ai để {resource}.",
         ),
         (
-            "Việc bạn tự xử được: {resource}.",
-            "Khỏi chờ ai, bạn có thể {resource}.",
-            "Nút bấm trong tay bạn: {resource}.",
+            "Việc bạn tự xử được là {resource}.",
+            "Khỏi chờ ai mới được {resource}.",
+            "{resource}, nút này bạn tự bấm được.",
         ),
     ),
     # Five cards: loop.
     "trigger": PositionRole(
         RoleField.CORE,
-        ("Điểm khởi phát: {core}.", "Chuyện hay bắt đầu từ: {core}.", "Cái cớ thường gặp: {core}."),
         (
-            "Ngòi nổ quen mặt: {core}.",
-            "Cảnh mở màn thường là: {core}.",
-            "Chuyện hay nổ ra từ: {core}.",
+            "{core_sentence}.",
+            "Chuyện thường bắt đầu khi {core_sentence}.",
+            "Hay có cảnh này: {core_sentence}.",
+        ),
+        (
+            "{core_sentence}, ngòi nổ quen mặt đó.",
+            "{core_sentence}, cảnh mở màn quen thuộc.",
+            "Chuyện hay nổ ra khi {core_sentence}.",
         ),
     ),
     "habit": PositionRole(
         RoleField.TENSION,
         (
-            "Phản xạ quen dễ là {tension}.",
-            "Cách phản ứng quen thuộc: {tension}.",
-            "Theo thói quen, bạn dễ {tension}.",
+            "Thói quen khiến bạn dễ {tension}.",
+            "Bạn hay {tension} mà chưa kịp nghĩ.",
+            "Hễ gặp chuyện là bạn dễ {tension}.",
         ),
         (
-            "Phản xạ tủ của bạn: {tension}.",
-            "Như cài sẵn, bạn dễ {tension}.",
-            "Lặp lại như phim cũ: bạn dễ {tension}.",
+            "Bạn dễ {tension}, như được cài sẵn.",
+            "Bạn lại {tension}, y như phim cũ.",
+            "Phản xạ tủ của bạn là {tension}.",
         ),
     ),
     "payoff": PositionRole(
         RoleField.CORE,
-        ("Phản xạ ấy đem lại: {core}.", "Cái lợi ngắn hạn: {core}.", "Lý do nó còn đó: {core}."),
-        ("Lợi lộc trước mắt: {core}.", "Nó cứu bạn lúc đó: {core}.", "Lý do nó bám dai: {core}."),
+        (
+            "{core_sentence}.",
+            "Phản xạ ấy giúp được vì {core_sentence}.",
+            "Nó còn đó vì {core_sentence}.",
+        ),
+        (
+            "{core_sentence}, thế nên nó bám dai.",
+            "Nó cứu bạn lúc đó vì {core_sentence}.",
+            "Lợi trước mắt là {core_sentence}.",
+        ),
     ),
     "cost": PositionRole(
         RoleField.TENSION,
         (
             "Nếu cứ như cũ, về sau bạn dễ {tension}.",
-            "Cái giá về sau: bạn dễ {tension}.",
-            "Giữ mãi cách này, bạn dễ {tension}.",
+            "Để lâu thì bạn dễ {tension}.",
+            "Giữ mãi cách này thì bạn dễ {tension}.",
         ),
         (
             "Cứ thế mãi thì bạn dễ {tension}.",
-            "Hóa đơn về sau: bạn dễ {tension}.",
-            "Phần phí ẩn: dễ {tension}.",
+            "Kéo dài kiểu này thì bạn dễ {tension}.",
+            "Phí ẩn ở đây là bạn dễ {tension}.",
         ),
     ),
     "alternative": PositionRole(
         RoleField.RESOURCE,
         (
-            "Nền cho cách mới: {core}.",
-            "Đổi cách cần tính tới: {core}.",
-            "Cách mới dựa vào: {core}.",
+            "{core_sentence}, đó là nền cho cách mới.",
+            "Cách mới dựa vào chỗ {core_sentence}.",
+            "Muốn đổi cách, nhớ rằng {core_sentence}.",
         ),
-        ("Đổi kịch bản cần: {core}.", "Bản mới dựa vào: {core}.", "Trước khi đổi vai: {core}."),
+        (
+            "Đổi kịch bản thì nhớ rằng {core_sentence}.",
+            "{core_sentence}, bản mới dựa vào đó.",
+            "{core_sentence}, nhớ trước khi đổi vai.",
+        ),
         step=True,
     ),
     # Five cards: choice.
     "option_a": PositionRole(
         RoleField.OPTION,
         (
-            "Hướng này mang lại: {core}. Cái giá cần tính: dễ {tension}.",
-            "Phần được: {core}. Phần mất: dễ {tension}.",
-            "Hướng này cho bạn: {core}. Nhưng cũng dễ khiến bạn {tension}.",
+            "Hướng này cho thấy {core_sentence}. Đổi lại, bạn dễ {tension}.",
+            "Chọn hướng này thì {core_sentence}. Cái giá là bạn dễ {tension}.",
+            "Theo hướng này thì {core_sentence}. Nhưng bạn cũng dễ {tension}.",
         ),
         (
-            "Hướng này cho bạn: {core}. Phí phải trả: dễ {tension}.",
-            "Điểm cộng: {core}. Điểm trừ: dễ {tension}.",
-            "Món hời ở đây: {core}. Kèm theo đó, bạn dễ {tension}.",
+            "Điểm cộng là {core_sentence}. Điểm trừ là bạn dễ {tension}.",
+            "Món hời ở đây là {core_sentence}. Kèm theo đó, bạn dễ {tension}.",
+            "Chọn hướng này thì {core_sentence}. Phí phải trả là bạn dễ {tension}.",
         ),
     ),
     "option_b": PositionRole(
         RoleField.OPTION,
         (
-            "Hướng này mang lại: {core}. Cái giá cần tính: dễ {tension}.",
-            "Phần được: {core}. Phần mất: dễ {tension}.",
-            "Hướng này cho bạn: {core}. Nhưng cũng dễ khiến bạn {tension}.",
+            "Hướng này cho thấy {core_sentence}. Đổi lại, bạn dễ {tension}.",
+            "Chọn hướng này thì {core_sentence}. Cái giá là bạn dễ {tension}.",
+            "Theo hướng này thì {core_sentence}. Nhưng bạn cũng dễ {tension}.",
         ),
         (
-            "Hướng này cho bạn: {core}. Phí phải trả: dễ {tension}.",
-            "Điểm cộng: {core}. Điểm trừ: dễ {tension}.",
-            "Món hời ở đây: {core}. Kèm theo đó, bạn dễ {tension}.",
+            "Điểm cộng là {core_sentence}. Điểm trừ là bạn dễ {tension}.",
+            "Món hời ở đây là {core_sentence}. Kèm theo đó, bạn dễ {tension}.",
+            "Chọn hướng này thì {core_sentence}. Phí phải trả là bạn dễ {tension}.",
         ),
     ),
     "tradeoff": PositionRole(
         RoleField.TENSION,
         (
-            "Điểm cần cân giữa hai hướng: dễ {tension}.",
-            "Chỗ khó ở giữa: dễ {tension}.",
+            "Chỗ khó là bạn dễ {tension}.",
             "Cán cân dễ lệch khi bạn {tension}.",
+            "Bạn dễ {tension} khi so hai bên.",
         ),
         (
-            "Bàn cân hai bên: dễ {tension}.",
-            "Chỗ kẹt ở giữa: dễ {tension}.",
-            "Điểm khó cân: dễ {tension}.",
+            "Chỗ kẹt là bạn dễ {tension}.",
+            "Bàn cân dễ lệch khi bạn {tension}.",
+            "Cân tới cân lui thì bạn dễ {tension}.",
         ),
     ),
     "criterion": PositionRole(
         RoleField.RESOURCE,
         (
-            "Một tiêu chí để tự chốt: {resource}.",
-            "Thước đo của riêng bạn: {resource}.",
-            "Cách tự chốt: {resource}.",
+            "Bạn có thể tự chốt bằng cách {resource}.",
+            "Một cách tự chốt là {resource}.",
+            "Thước đo riêng của bạn là {resource}.",
         ),
         (
-            "Thước đo tự chế: {resource}.",
-            "Bài test nhỏ để chốt: {resource}.",
-            "Tiêu chí của chính bạn: {resource}.",
+            "Bài test nhỏ để chốt là {resource}.",
+            "Thước đo tự chế là {resource}.",
+            "Muốn chốt thì cứ {resource}.",
         ),
         step=True,
     ),
@@ -260,29 +286,41 @@ ROLES: dict[str, PositionRole] = {
     "feeling": PositionRole(
         RoleField.CORE,
         (
-            "Cảm xúc gắn với: {core}.",
-            "Điều đang chạm tới bạn: {core}.",
-            "Phía sau cảm xúc: {core}.",
+            "{core_sentence}.",
+            "Cảm xúc này đến từ chỗ {core_sentence}.",
+            "Điều nằm dưới cảm xúc là {core_sentence}.",
         ),
-        ("Cảm xúc đang gõ cửa: {core}.", "Tim đang nói: {core}.", "Bên dưới cảm xúc: {core}."),
+        (
+            "{core_sentence}, tim đang nói vậy đó.",
+            "Cảm xúc đang gõ cửa vì {core_sentence}.",
+            "Dưới lớp cảm xúc là chỗ {core_sentence}.",
+        ),
     ),
     "boundary": PositionRole(
         RoleField.RESOURCE,
         (
-            "Ranh giới có thể nói rõ: {resource}.",
-            "Một giới hạn đáng nói ra: {resource}.",
-            "Giữ ranh giới bằng cách: {resource}.",
+            "Một cách giữ ranh giới là {resource}.",
+            "Ranh giới có thể là {resource}.",
+            "Bạn giữ phần mình bằng cách {resource}.",
         ),
         (
-            "Vạch ranh giới kiểu này: {resource}.",
-            "Giới hạn đáng nói to: {resource}.",
-            "Giữ phần mình bằng cách: {resource}.",
+            "Ranh giới gọn nhất là {resource}.",
+            "Muốn giữ phần mình thì {resource}.",
+            "Bạn hoàn toàn có thể {resource}.",
         ),
     ),
     "opening": PositionRole(
         RoleField.RESOURCE,
-        ("Trước khi mở lời: {core}.", "Để mở lời dễ hơn: {core}.", "Nền cho câu mở đầu: {core}."),
-        ("Trước khi gõ phím: {core}.", "Mở lời cho mượt: {core}.", "Chuẩn bị câu đầu: {core}."),
+        (
+            "Trước khi mở lời, nhớ rằng {core_sentence}.",
+            "{core_sentence}, nhớ điều này khi mở lời.",
+            "Câu mở đầu dựa vào chỗ {core_sentence}.",
+        ),
+        (
+            "Trước khi gõ phím, nhớ rằng {core_sentence}.",
+            "{core_sentence}, mở lời từ đó cho mượt.",
+            "Câu chào sân dựa vào chỗ {core_sentence}.",
+        ),
         step=True,
     ),
 }
@@ -374,20 +412,23 @@ def lead_for(form: TarotQuestionForm, offset: int, position_index: int) -> str:
 def meaning_for(
     position_key: str,
     *,
-    core: str,
+    core_sentence: str,
     tension: str,
     resource: str,
     frame: int = 0,
     roast: bool = False,
     lead: str | None = None,
 ) -> str:
-    """The role's sentence: frame ``frame`` of the voice register, after an optional lead."""
+    """The role's sentence: frame ``frame`` of the voice register, after an optional lead.
+
+    ``core_sentence`` is the card's core as a clause (phrasing.core_sentence); a frame that opens
+    on a field gets its first letter capitalized, or lowered after a lead."""
 
     role = ROLES[position_key]
     template = (role.roast if roast else role.frames)[frame % FRAME_VARIANTS]
-    text = template.format(core=core, tension=tension, resource=resource)
+    text = template.format(core_sentence=core_sentence, tension=tension, resource=resource)
     if lead is None:
-        return text
+        return f"{text[:1].upper()}{text[1:]}"
     return f"{lead} {text[:1].lower()}{text[1:]}"
 
 

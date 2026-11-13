@@ -1,0 +1,84 @@
+{
+  "question_frame": {
+    "action": "xin_loi",
+    "form": "yes_no",
+    "topic": "relationships",
+    "version": "tarot-question-frame-v2"
+  },
+  "question_intent": "clarity",
+  "reading": {
+    "closing_prompt": "Đừng cố nhớ hết cả bài. Chọn một điều đúng với chuyện thật và một việc bạn có thể làm trong 24 giờ tới.",
+    "context": "relationships",
+    "disclaimer": "Bài Tarot là một góc tự soi từ lá bạn đã chọn, không phải dự đoán chắc chắn hay lời thay cho quyết định của bạn.",
+    "headline": "Kẻ Khờ: các lá nghiêng về thử xin lỗi.",
+    "positions": [
+      {
+        "card": {
+          "arcana": "major",
+          "core": "cho phép mình bắt đầu khi chưa có đủ mọi câu trả lời",
+          "id": "major-fool",
+          "rank": null,
+          "resource": "thử một bước nhỏ còn đường quay lại",
+          "source_concept_ids": [
+            "archetype-depth",
+            "self-reflection",
+            "non-determinism"
+          ],
+          "suit": null,
+          "tension": "lao đi chỉ để thoát cảm giác mắc kẹt",
+          "title_en": "The Fool",
+          "title_vi": "Kẻ Khờ"
+        },
+        "everyday_scene": "Có lần bạn muốn rủ người mới quen đi chơi nhưng chưa biết họ có muốn không.",
+        "key": "focus",
+        "label": "Điều đáng nhìn lúc này",
+        "meaning_here": "Để tự trả lời, lá này cho thấy muốn thử làm quen mà chưa biết chuyện sẽ đi đến đâu. Phần nằm trong tay bạn: rủ một cuộc gặp đơn giản, chưa hứa chuyện lâu dài.",
+        "reflection_question": "Bạn muốn nhận lỗi về việc gì, và có thể sửa bằng hành động nào?",
+        "small_action": "Mở lời: “Mình xin lỗi về việc mình đã làm. Mình muốn nghe bạn nói.”"
+      }
+    ],
+    "provenance": {
+      "deck_version": "tarot-78-v1",
+      "draw_actor": "self",
+      "draw_purpose": "first_reading",
+      "gate_version": "tarot-gates-v5",
+      "knowledge_version": "tarot-knowledge-v5",
+      "methodology_version": "tarot-methodology-v1",
+      "question_rules_version": "tarot-question-rules-v2",
+      "renderer_version": "tarot-renderer-v7",
+      "schema_version": "tarot-reading/v1",
+      "source_ids": [
+        "bunning-learning-tarot",
+        "burger-fiebig-spreads",
+        "cynova-kitchen-table-tarot",
+        "greer-tarot-for-yourself",
+        "pollack-78-degrees",
+        "tishman-mindful-tarot",
+        "wen-holistic-tarot"
+      ],
+      "spread_version": "tarot-spreads-v1"
+    },
+    "question": "Mình có nên xin lỗi người yêu sau lần cãi nhau tối qua không?",
+    "question_intent": "clarity",
+    "spread": "one_card",
+    "spread_map": "one_focus",
+    "stance": {
+      "action": "xin_loi",
+      "conclusion": "Các lá nghiêng về thử xin lỗi.",
+      "kind": "yes_no",
+      "level": "lean_try",
+      "options": null,
+      "reasons": [
+        {
+          "card_id": "major-fool",
+          "position_key": "focus",
+          "text": "Điều đáng nhìn lúc này: Kẻ Khờ gợi ý bạn có thể rủ một cuộc gặp đơn giản, chưa hứa chuyện lâu dài."
+        }
+      ],
+      "topic": "relationships",
+      "version": "tarot-stance-v2"
+    },
+    "summary": "Khi muốn xin lỗi, nói rõ việc mình đã làm trước khi giải thích lý do. Kẻ Khờ cho thấy muốn thử làm quen mà chưa biết chuyện sẽ đi đến đâu.",
+    "voice": "playful_grounded"
+  }
+}

@@ -46,7 +46,7 @@ def reservation_estimate(
     paid evaluation so both draw on one ledger with one sizing rule.
     """
 
-    contract = surface_output_contract(request.key.surface)
+    contract = surface_output_contract(request.key.surface, request.safe_payload)
     input_reserve = (
         len(
             json.dumps(

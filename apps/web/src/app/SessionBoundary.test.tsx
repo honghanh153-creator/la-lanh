@@ -275,6 +275,10 @@ it("gives focus back to the open sheet when the same owner is verified again", a
   render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>);
 
   const keep = await screen.findByRole("button", { name: "Giữ lại" });
+  // findBy* can resolve right after the commit, before the sheet's mount effects focus its close
+  // button (the scheduler yields between them when rendering is slow). Let that settle first, or
+  // the next act() flushes it and moves focus off `keep`.
+  await waitFor(() => expect(screen.getByRole("button", { name: "Đóng" })).toHaveFocus());
   act(() => { keep.focus(); });
   act(() => { window.dispatchEvent(new Event("focus")); });
   expect(keep).not.toBeVisible();
@@ -286,7 +290,8 @@ it("gives focus back to the open sheet when the same owner is verified again", a
 
   await act(async () => { releaseSecondCheck(response("epoch-a")); await Promise.resolve(); });
   await waitFor(() => expect(keep).toBeVisible());
-  expect(document.activeElement).toBe(keep);
+  // Focus returns in a passive effect after the region is shown, which can land a task later.
+  await waitFor(() => expect(keep).toHaveFocus());
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

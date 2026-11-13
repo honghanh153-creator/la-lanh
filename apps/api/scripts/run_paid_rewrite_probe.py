@@ -83,7 +83,7 @@ def _synthetic_request() -> RewriteRequestEnvelope:
 
 
 def _estimated_max_cost_usd(request: RewriteRequestEnvelope) -> Decimal:
-    contract = surface_output_contract(request.key.surface)
+    contract = surface_output_contract(request.key.surface, request.safe_payload)
     # UTF-8 bytes are a deliberately conservative upper bound for prompt token count here.
     input_upper_bound = (
         len(json.dumps(request.safe_payload, ensure_ascii=False).encode())

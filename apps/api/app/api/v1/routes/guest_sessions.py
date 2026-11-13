@@ -147,13 +147,22 @@ async def create_guest_session(
         pass
     if previous_guest is None or previous_guest.id != result.guest.id:
         response.delete_cookie(
-            settings.owner_cookie_name, path="/v1", domain=settings.cookie_domain
+            settings.owner_cookie_name,
+            path="/v1",
+            domain=settings.cookie_domain,
+            secure=settings.guest_cookie_secure,
         )
     if previous_guest is not None and previous_guest.id != result.guest.id:
         # A first-time invite visitor needs their just-opened capability through
         # consent/onboarding. A known guest switch must not retain old receipts.
-        response.delete_cookie("la_lanh_radar_invite", path="/v1/public/radar")
-        response.delete_cookie("la_lanh_radar_receipt", path="/v1/public/radar/receipt")
+        response.delete_cookie(
+            "la_lanh_radar_invite", path="/v1/public/radar", secure=settings.guest_cookie_secure
+        )
+        response.delete_cookie(
+            "la_lanh_radar_receipt",
+            path="/v1/public/radar/receipt",
+            secure=settings.guest_cookie_secure,
+        )
     response.set_cookie(
         key=settings.guest_cookie_name,
         value=result.token,
@@ -250,11 +259,32 @@ async def delete_guest_session(
         await _service(request).delete(token)
     except GuestDomainError as error:
         return _problem(error)
-    response.delete_cookie(settings.guest_cookie_name, path="/", domain=settings.cookie_domain)
-    response.delete_cookie(settings.guest_csrf_cookie_name, path="/", domain=settings.cookie_domain)
-    response.delete_cookie(settings.owner_cookie_name, path="/v1", domain=settings.cookie_domain)
-    response.delete_cookie("la_lanh_radar_invite", path="/v1/public/radar")
-    response.delete_cookie("la_lanh_radar_receipt", path="/v1/public/radar/receipt")
+    response.delete_cookie(
+        settings.guest_cookie_name,
+        path="/",
+        domain=settings.cookie_domain,
+        secure=settings.guest_cookie_secure,
+    )
+    response.delete_cookie(
+        settings.guest_csrf_cookie_name,
+        path="/",
+        domain=settings.cookie_domain,
+        secure=settings.guest_cookie_secure,
+    )
+    response.delete_cookie(
+        settings.owner_cookie_name,
+        path="/v1",
+        domain=settings.cookie_domain,
+        secure=settings.guest_cookie_secure,
+    )
+    response.delete_cookie(
+        "la_lanh_radar_invite", path="/v1/public/radar", secure=settings.guest_cookie_secure
+    )
+    response.delete_cookie(
+        "la_lanh_radar_receipt",
+        path="/v1/public/radar/receipt",
+        secure=settings.guest_cookie_secure,
+    )
     response.status_code = 204
     return response
 

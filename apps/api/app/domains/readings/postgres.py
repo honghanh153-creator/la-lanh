@@ -646,6 +646,9 @@ class PostgresReadingRepository:
         started_at: datetime,
     ) -> bool:
         async with self._sessions() as session, session.begin():
+            # Reads, then writes: on local SQLite take the write lock first, so a concurrent
+            # deletion serializes with this send boundary instead of failing the upgrade.
+            await session.connection(execution_options={"sqlite_write": True})
             guest_id = await session.scalar(
                 select(ReadingGenerationAttemptRow.guest_id).where(
                     ReadingGenerationAttemptRow.id == attempt_id,
@@ -772,6 +775,8 @@ class PostgresReadingRepository:
         completed_at: datetime,
     ) -> bool:
         async with self._sessions() as session, session.begin():
+            # Reads, then writes the revision: lock first on local SQLite (see the send marker).
+            await session.connection(execution_options={"sqlite_write": True})
             attempt = cast(
                 ReadingGenerationAttemptRow | None,
                 await session.scalar(

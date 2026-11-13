@@ -3,6 +3,7 @@
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import cast
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
@@ -220,12 +221,14 @@ def _clone_received(database: Path, request_id: str, count: int, **changes: obje
             "SELECT id, source_guest_id FROM principals WHERE id != ?", (base["principal_id"],)
         ).fetchone()
         start = datetime.fromisoformat(base["completed_at"])
+        same_stamp = changes.pop("completed_at", None)
         ids = []
         for index in range(count):
             row = dict(base)
             row.update(
                 id=uuid4().hex,
-                completed_at=(start + timedelta(seconds=index + 1)).isoformat(sep=" "),
+                completed_at=same_stamp
+                or (start + timedelta(seconds=index + 1)).isoformat(sep=" "),
                 token_hash=None,
                 receipt_hash=None,
                 idempotency_hash=None,
@@ -321,3 +324,65 @@ def test_missing_or_untrusted_origin_is_a_client_error_and_changes_nothing(
             assert session.status_code == 404
         assert owner.get(f"/v1/radar/results/{request_id}").status_code == 200
         assert recipient.get(f"/v1/radar/received/{request_id}").status_code == 200
+
+
+def _page(client: TestClient, before: str | None, limit: int) -> dict[str, object]:
+    params: dict[str, str | int] = {"limit": limit, **({"before": before} if before else {})}
+    response = client.get("/v1/radar/received", params=params)
+    assert response.status_code == 200
+    return cast(dict[str, object], response.json())
+
+
+def test_equal_timestamps_page_through_a_withdrawn_cursor(tmp_path: Path) -> None:
+    database = tmp_path / "radar.db"
+    with _client(database) as owner:
+        recipient, _, request_id, _, _ = _accepted_invite(owner)
+        _second_sender(owner)
+        # Same storage format as the app's own rows (SQLite keeps UTC without an offset suffix).
+        stamp = (datetime.now(UTC) - timedelta(hours=1)).replace(tzinfo=None).isoformat(sep=" ")
+        clones = _clone_received(database, request_id, 5, completed_at=stamp)
+
+        first = _page(recipient, None, 2)
+        first_ids = [item["request_id"] for item in cast(list[dict[str, str]], first["items"])]
+        cursor: str | None = cast(str, first["next_before"])
+        # The cursor row is withdrawn between pages: paging still continues from its position.
+        with sqlite3.connect(database) as connection:
+            connection.execute(
+                "UPDATE radar_requests SET status = 'withdrawn', withdrawn_at = ?, "
+                "result_ciphertext = NULL WHERE id = ?",
+                (datetime.now(UTC).isoformat(sep=" "), cast(str, cursor).replace("-", "")),
+            )
+        seen = list(first_ids)
+        while cursor:
+            page = _page(recipient, cursor, 2)
+            seen += [item["request_id"] for item in cast(list[dict[str, str]], page["items"])]
+            cursor = cast(str | None, page["next_before"])
+
+        assert len(seen) == len(set(seen)) == 6
+        assert set(seen) == {str(UUID(value)) for value in clones} | {request_id}
+
+
+def test_a_cursor_from_another_recipient_is_refused(tmp_path: Path) -> None:
+    database = tmp_path / "radar.db"
+    with _client(database) as owner:
+        recipient, _, request_id, _, _ = _accepted_invite(owner)
+        with sqlite3.connect(database) as connection:
+            owner_guest = connection.execute(
+                "SELECT owner_guest_id FROM radar_requests WHERE id = ?",
+                (request_id.replace("-", ""),),
+            ).fetchone()[0]
+        # A real received row whose recipient is someone else (here A's own guest).
+        (foreign,) = _clone_received(database, request_id, 1, recipient_guest_id=owner_guest)
+        refused = recipient.get("/v1/radar/received", params={"before": str(UUID(foreign))})
+        assert refused.status_code == 404
+
+
+def test_an_exactly_full_last_page_is_followed_by_one_empty_page(tmp_path: Path) -> None:
+    database = tmp_path / "radar.db"
+    with _client(database) as owner:
+        recipient, _, request_id, _, _ = _accepted_invite(owner)
+        _clone_received(database, request_id, 1)
+        full = _page(recipient, None, 2)
+        assert len(cast(list[object], full["items"])) == 2 and full["next_before"]
+        empty = _page(recipient, cast(str, full["next_before"]), 2)
+        assert empty == {"items": [], "next_before": None}

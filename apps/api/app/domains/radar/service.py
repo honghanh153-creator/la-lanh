@@ -240,14 +240,11 @@ class RadarService:
         metadata = cast(dict[str, Any], projection.setdefault("metadata", {}))
         metadata["time_precision"] = chart_b.time_precision.value
         if chart_b.time_precision.value == "unknown":
+            # Plain words (radar-readable-v2): the closing line stays one fixed sentence, so the
+            # time caveat lives only in this note next to the headline.
             metadata["precision_note"] = (
-                "Không rõ giờ sinh của người kia: Radar đã bỏ Moon của họ, Rising, House "
-                "và các lớp phụ thuộc giờ. Kết quả hiện tại ngắn hơn nhưng không giả vờ "
-                "chính xác."
-            )
-            projection["disclaimer"] = (
-                f"{projection['disclaimer']} Không rõ giờ sinh nên các tín hiệu phụ thuộc giờ "
-                "đã được loại khỏi bản đọc."
+                "Không rõ giờ sinh của người kia, nên Lá bỏ qua những dữ kiện cần giờ sinh. "
+                "Bài đọc ngắn hơn một chút nhưng không đoán bừa."
             )
         request_id = uuid4()
         row = RadarRequestRow(
@@ -509,6 +506,10 @@ class RadarService:
                 row.status = RadarStatus.REVOKED.value
                 row.revoked_at = current
                 row.token_ciphertext = None
+                if self._erasure_journal is not None:
+                    self._erasure_journal.record(
+                        session, ErasureKind.RADAR_INVITE_REVOKED, row.id, current
+                    )
 
     async def preview(self, token: str) -> RadarPublicInvite:
         row = await self._pending_by_token(token)

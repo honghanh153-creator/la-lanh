@@ -42,7 +42,7 @@ Hai workspace là clone độc lập, không phải managed worktree. Công cụ
 - `bash scripts/collaboration-sync.sh --check` fetch bản chung và liệt kê commit mới.
 - `--apply` chỉ merge vào branch agent sạch, dừng khi conflict, không push/deploy.
 
-Không có bot gọi Claude/OpenAI, webhook tự khởi chạy agent, GitHub Actions mới hay lịch chạy nền. Không có bot tự merge PR hoặc gửi thông tin người dùng sang dịch vụ AI. Hai agent thực hiện các bước này trong session được người dùng giao việc. Muốn tự chạy agent nền cần duyệt thêm công cụ, phạm vi và chi phí, không được suy ra từ setup này.
+**Cập nhật 30.10.2026 (owner duyệt):** vòng tự động Claude ⇄ Codex trong [collab-auto-loop-plan.md](collab-auto-loop-plan.md). Claude gọi Codex CLI read-only trên máy owner (`scripts/codex-review.mjs`), script tự đăng verdict và merge vào `collab/integration` (`scripts/collab-merge.mjs`). Một job launchd mỗi 10 phút là lưới an toàn, theo lịch ngày: plan 08:50, owner trả lời `Duyệt`/`Giữ`/`Bỏ #N` trên issue plan, 10:00 tự chạy, dừng lúc 23:30. Không có GitHub Actions, webhook hay dịch vụ cloud mới; không gửi dữ liệu người dùng sang dịch vụ AI. Mở rộng phạm vi (merge `main`, deploy, agent trả phí khác) vẫn cần owner duyệt riêng.
 
 ## Bắt đầu một task
 
@@ -68,6 +68,8 @@ Bàn giao cần có agent, task, branch, commit, file thay đổi, quyết đị
 Chỉ stage file của mình rồi commit/test/push branch agent. PR có base `collab/integration`, body dùng template. Không tạo PR rỗng. Reviewer đọc diff trên head hiện tại, không chỉ đọc lời báo test. Hai PR cần được merge lần lượt sau review, ưu tiên merge commit để giữ ancestry. Khi PR task đã đóng, task tiếp theo bắt đầu từ integration mới, không force-reset branch còn code chưa bàn giao.
 
 ## Review và quyền merge vào integration
+
+**Từ 30.10.2026** điều kiện merge là: comment tin cậy (`authorAssociation = OWNER`) `Review verdict: APPROVE @ <head>` mới nhất, `Author check: PASS @ <head>`, base `collab/integration`, mergeable, không nhãn `needs-owner`, và issue fix-forward khi verdict tự động có P2 không chặn. Chính sách mức lỗi: P0/P1 chặn; P2 về privacy, bảo mật, lời văn gửi người dùng chặn; P2 khác APPROVE kèm issue `fix-forward`; P3 không chặn. Hai vòng REQUEST_CHANGES tự động trên một PR thì gắn `needs-owner` và dừng. Quy tắc gốc ngày 11.10 dưới đây vẫn áp dụng cho review thủ công. PR registry ngừng; trạng thái đọc bằng `node scripts/collab-turn.mjs --report`.
 
 Owner quyết định ngày 11.10.2026: agent thực hiện được merge PR task của mình vào `collab/integration` khi đủ cả ba điều kiện sau. `main`, release và deploy vẫn chỉ owner quyết.
 
@@ -99,7 +101,7 @@ Issue, PR, comment và branch đều ai cũng đọc được. Chỉ đăng meta
 
 ## Báo cho bên kia
 
-Không có bot tự đánh thức agent. Sau khi mở PR hoặc đăng verdict, owner nhắn agent kia một dòng (ví dụ "review PR #N"). Agent nhận việc chạy inbox, đọc đủ PR, và trả lời trên GitHub chứ không chỉ trong chat.
+Từ 30.10.2026 owner không cần nhắn chuyển lời: Claude gọi `codex-review.mjs` ngay khi có `Author check: PASS`, và lưới launchd bắt các lượt bị bỏ dở. Owner chỉ duyệt plan buổi sáng và gọi buổi review sâu lời văn/giọng Lá mỗi đợt. Review thủ công (owner nhắn "review PR #N") vẫn được, và trả lời trên GitHub chứ không chỉ trong chat.
 
 ## Nhận cập nhật và xử lý conflict
 

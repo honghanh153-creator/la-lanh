@@ -103,7 +103,12 @@ class TarotPositionSource(SafeModel):
     )
     gentle: bool
     reflection: str = Field(pattern=r"^(?:role|goal\.[a-z_]{2,20})$")
-    action: str | None = Field(default=None, pattern=r"^(?:card|goal\.[a-z_]{2,20})$")
+    action: str | None = Field(
+        default=None,
+        pattern=r"^(?:card|goal\.[a-z_]{2,20}|act\.[a-z_]{2,20}\.[a-z_]{2,20}|prep\.[a-z_]{2,20})$",
+    )
+    # T02/T03: null = the card x topic scene; else the asked action's scene for a topic.
+    scene: str | None = Field(default=None, pattern=r"^act\.[a-z_]{2,20}\.[a-z_]{2,20}$")
 
 
 class TarotPosition(SafeModel):

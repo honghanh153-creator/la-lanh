@@ -189,6 +189,18 @@ export type RadarInvite = {
   expires_at: string;
   share_url?: string | null;
 };
+/** A consented result as B sees it in B's own session (P09 D2): never the label A chose for B. */
+export type RadarReceivedItem = {
+  request_id: string;
+  context: RadarInvite["context"];
+  voice: RadarVoice;
+  completed_at: string;
+  expires_at: string;
+};
+export type RadarReceivedList = {
+  items: RadarReceivedItem[];
+  next_before?: string | null;
+};
 export type RadarVoice = "straight_warm" | "gentle_specific" | "playful_grounded" | "deep_dive";
 export type RadarPrivateCheckInput = {
   recipient_label: string;
@@ -226,6 +238,19 @@ export type RadarResult = {
       key: string;
       label: string;
     }>;
+    /** radar-readable-v2: a named tier per context; `score` only if the owner switch is on. */
+    tier?: {
+      key: string;
+      label: string;
+      score?: number | null;
+    };
+    areas?: Array<{
+      key: string;
+      label: string;
+      level: "good" | "balanced" | "watch" | "quiet";
+      level_label: string;
+      note: string;
+    }>;
   } | null;
   compatibility_map?: Array<{
     key: "resonance" | "coordination" | "friction";
@@ -240,10 +265,21 @@ export type RadarResult = {
     }>;
   }>;
   sections?: Array<{
-    key: "fit" | "friction" | "perspective" | "check";
+    key: "fit" | "friction" | "perspective" | "check" | "why" | "practice";
+    /** radar-readable-v2: "main" shows by default, "more" sits behind one "Xem thêm". */
+    layer?: "main" | "more";
     label: string;
     title: string;
     body: string;
+    question?: string;
+    factors?: Array<{
+      key: string;
+      label: string;
+      level: "good" | "balanced" | "watch";
+      level_label: string;
+      technical_note: string;
+      evidence_ids: string[];
+    }>;
     topics?: string[];
     depth?: "focused" | "layered";
     highlights?: Array<{
@@ -299,6 +335,8 @@ export type RadarResult = {
     concept_ids: string[];
     voice: RadarVoice;
     voice_label: string;
+    /** radar-readable-v2 only. */
+    tier_calibration_version?: string;
     time_precision?: "exact" | "unknown";
     precision_note?: string;
   } | null;
@@ -1310,6 +1348,31 @@ export function withdrawRadarResult(requestId: string): Promise<void> {
     method: "POST",
     headers: { "Content-Type": "application/json", ...csrfHeader() },
     body: JSON.stringify({ request_id: requestId }),
+  });
+}
+
+export function listReceivedRadar(signal?: AbortSignal, before?: string): Promise<RadarReceivedList> {
+  const query = before ? `?before=${encodeURIComponent(before)}` : "";
+  return request<RadarReceivedList>(`/radar/received${query}`, { signal });
+}
+
+export function getReceivedRadarResult(requestId: string, signal?: AbortSignal): Promise<RadarResult> {
+  return request<RadarResult>(`/radar/received/${encodeURIComponent(requestId)}`, { signal });
+}
+
+export function withdrawReceivedRadar(requestId: string): Promise<void> {
+  return request<void>(`/radar/received/${encodeURIComponent(requestId)}/withdraw`, {
+    method: "POST",
+    headers: csrfHeader(),
+  });
+}
+
+// The invite token travels in the body, never in the URL, and the call never opens a reading.
+export function withdrawRadarByInvite(token: string): Promise<void> {
+  return request<void>("/public/radar/invite/withdraw", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
   });
 }
 

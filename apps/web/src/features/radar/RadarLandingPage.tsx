@@ -19,6 +19,7 @@ export function RadarLandingPage() {
       <div className="matching-landing__hero-action">
         <Link className="matching-primary" to="/radar/start">Check kín một người <ArrowRight /></Link>
         <Link className="radar-history-link" to="/radar/start#radar-history">Xem kết quả đã có</Link>
+        <Link className="radar-history-link" to="/radar/received">Kết quả bạn đã nhận</Link>
         <small>Bạn chỉ nhập thông tin sinh khi đã được người ấy cho phép dùng.</small>
       </div>
     </section>
@@ -38,7 +39,7 @@ export function RadarLandingPage() {
       <ol>
         <li><span>1</span><div><strong>Bạn nhập thông tin đã được cho phép</strong><p>Ngày, giờ và nơi sinh chỉ dùng trong lúc tính; không được lưu thành hồ sơ.</p></div></li>
         <li><span>2</span><div><strong>Radar đọc hai chart</strong><p>Tìm điểm chạm về giao tiếp, cảm xúc, sức hút, nhịp hành động và chỗ dễ lệch sóng.</p></div></li>
-        <li><span>3</span><div><strong>Bạn nhận bản đọc riêng</strong><p>Ba chỉ báo giúp nhìn điểm hợp và điểm dễ cấn. Đây không phải xác suất thành đôi; hãy đối chiếu với cách hai bạn thật sự tương tác.</p></div></li>
+        <li><span>3</span><div><strong>Bạn nhận bản đọc riêng</strong><p>Một bậc có tên kèm lý do, vài mảng hợp hoặc cần để ý, và một gợi ý nhỏ để thử. Đây không phải xác suất thành đôi; hãy đối chiếu với cách hai bạn thật sự tương tác.</p></div></li>
       </ol>
     </section>
 

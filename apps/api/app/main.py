@@ -200,11 +200,13 @@ def create_app(
             variety_key=derive_variety_key(
                 resolved_settings.guest_hash_key.get_secret_value().encode()
             ),
+            erasure_journal=erasure_journal,
         )
         app.state.la_chung_service = LaChungService(
             database.sessions,
             credential_hasher,
             envelope,
+            erasure_journal,
         )
         birth_repo = birth_repository or PostgresBirthRepository(
             database.sessions, envelope, erasure_journal
@@ -257,14 +259,14 @@ def create_app(
                 PostgresResonanceRepository(database.sessions, envelope, erasure_journal)
             )
             app.state.experiment_service = ExperimentService(
-                PostgresExperimentRepository(database.sessions, envelope)
+                PostgresExperimentRepository(database.sessions, envelope, erasure_journal)
             )
             app.state.saved_note_service = SavedNoteService(
-                PostgresSavedNoteRepository(database.sessions, envelope),
+                PostgresSavedNoteRepository(database.sessions, envelope, erasure_journal),
                 daily_service,
             )
             app.state.share_artifact_service = ShareArtifactService(
-                PostgresShareArtifactRepository(database.sessions, envelope),
+                PostgresShareArtifactRepository(database.sessions, envelope, erasure_journal),
                 daily_service,
             )
             if birth_repository is None or reading_repository is not None:

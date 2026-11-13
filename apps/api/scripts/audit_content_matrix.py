@@ -7,15 +7,20 @@ from typing import Any
 
 from app.domains.astro.models import BodyName, RelationshipDimension
 from app.domains.radar.reading import (
+    AREAS,
     ASPECT_CHANNELS,
     ASPECT_LABELS,
-    BODY_ACTIONS,
-    BODY_FUNCTIONS,
     BODY_LABELS,
-    BODY_RECEPTIONS,
     BODY_SHARED_ROLES,
-    CONTEXT_CHECKS,
-    SCENE_COPY,
+    BODY_WEIGHT,
+    CONTEXTS,
+    FACTOR_COPY,
+    FIT_COPY,
+    HEADLINES,
+    SUGGESTIONS,
+    TENSION_COPY,
+    THEME_PLAIN,
+    TIER_LABELS,
 )
 from app.domains.readings.companion import companion_metrics, validate_companion_catalog
 from app.domains.readings.daily_psychology import (
@@ -85,8 +90,8 @@ def current_metrics() -> dict[str, int]:
         "relationship_concepts": len(EDITORIAL_CONCEPTS),
         "relationship_dimensions": len(RelationshipDimension),
         "relationship_voice_profiles": len(VOICE_PROFILES),
-        "radar_themes": len(SCENE_COPY),
-        "radar_contexts": len(CONTEXT_CHECKS),
+        "radar_themes": len(THEME_PLAIN),
+        "radar_contexts": len(CONTEXTS),
         "tarot_sources": len(TAROT_BOOK_SOURCES),
         **companion_metrics(),
     }
@@ -97,12 +102,10 @@ def validate_matrix() -> list[str]:
     # Lời của Lá: coverage of every Daily issue, both voices, word budgets, forbidden claims.
     failures.extend(validate_companion_catalog())
     expected_bodies = set(BodyName)
-    body_maps = {
+    body_maps: dict[str, dict[BodyName, Any]] = {
         "BODY_LABELS": BODY_LABELS,
-        "BODY_FUNCTIONS": BODY_FUNCTIONS,
-        "BODY_ACTIONS": BODY_ACTIONS,
-        "BODY_RECEPTIONS": BODY_RECEPTIONS,
         "BODY_SHARED_ROLES": BODY_SHARED_ROLES,
+        "BODY_WEIGHT": BODY_WEIGHT,
     }
     for name, mapping in body_maps.items():
         if set(mapping) != expected_bodies:
@@ -123,10 +126,27 @@ def validate_matrix() -> list[str]:
 
     if set(ASPECT_CHANNELS) != set(ASPECT_LABELS):
         failures.append("Radar aspect scoring and labels have different coverage")
-    if set(SCENE_COPY) != RADAR_THEME_KEYS:
-        failures.append("Radar scene copy does not cover the complete theme catalog")
-    if set(CONTEXT_CHECKS) != {"crush", "friend", "partner", "someone"}:
+    # radar-readable-v2: every theme has copy for every context, every context has its tier names
+    # and areas, and each theme belongs to exactly one area of each context.
+    radar_contexts = {"crush", "friend", "partner", "someone"}
+    if set(CONTEXTS) != radar_contexts or set(TIER_LABELS) != radar_contexts:
         failures.append("Radar context copy is incomplete")
+    for name, table in (
+        ("HEADLINES", HEADLINES),
+        ("FIT_COPY", FIT_COPY),
+        ("TENSION_COPY", TENSION_COPY),
+        ("SUGGESTIONS", SUGGESTIONS),
+    ):
+        if set(table) != RADAR_THEME_KEYS or any(
+            set(row) != radar_contexts for row in table.values()
+        ):
+            failures.append(f"Radar {name} does not cover every theme and context")
+    if set(FACTOR_COPY) != RADAR_THEME_KEYS or set(THEME_PLAIN) != RADAR_THEME_KEYS:
+        failures.append("Radar factor copy does not cover the complete theme catalog")
+    for context in radar_contexts:
+        covered = sorted(theme for _, _, themes in AREAS.get(context, ()) for theme in themes)
+        if covered != sorted(RADAR_THEME_KEYS):
+            failures.append(f"Radar areas for {context} do not hold each theme exactly once")
 
     if set(PLANETS) - set(PLANET_PERSPECTIVES):
         failures.append("Some Daily Note planets have no interpretive perspective")

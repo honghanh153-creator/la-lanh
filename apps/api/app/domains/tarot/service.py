@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.domains.content_rewrite.send_fence import drain_sends, pending_sends
 from app.domains.content_rewrite.service import ContentRewriteService
 from app.domains.content_rewrite.tables import ContentRewriteJobRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.tarot.engine import TarotContentRejected, TarotReadingEngine
 from app.domains.tarot.errors import (
@@ -65,8 +66,10 @@ class TarotSessionService:
         generation_prompt_version: str = "surface-rewrite-v1",
         content_rewrite_service: ContentRewriteService | None = None,
         variety_key: bytes | None = None,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
+        self._erasure_journal = erasure_journal
         self._envelope = envelope
         self._hasher = hasher
         self._engine = engine or TarotReadingEngine()
@@ -311,6 +314,10 @@ class TarotSessionService:
             )
             if cast(CursorResult[Any], result).rowcount != 1:
                 raise TarotSessionNotFound
+            if self._erasure_journal is not None:
+                self._erasure_journal.record(
+                    database, ErasureKind.TAROT_SESSION_DELETED, session_id, datetime.now(UTC)
+                )
         await drain_sends(self._sessions, sends)
 
     async def cleanup(self, *, batch_size: int = 500, now: datetime | None = None) -> int:

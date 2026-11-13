@@ -417,3 +417,43 @@ def test_reading_detail_and_personalized_sky_expose_one_safe_rich_contract(
         "provider",
     ):
         assert forbidden not in serialized
+
+
+@pytest.mark.parametrize("tradition", ["western", "jyotish"])
+def test_an_approximate_birth_time_still_opens_a_reading_in_both_traditions(
+    reading_client: TestClient, tradition: str
+) -> None:
+    """#143 E2: a limited Jyotish reading failed the meaning gate (arena), so the overview
+    answered 503 and the Explore page offered a retry that could never succeed."""
+
+    csrf = create_guest(reading_client)
+    headers = {"Origin": "http://127.0.0.1:5173", "X-CSRF-Token": csrf}
+    assert (
+        reading_client.post(
+            "/v1/birth-profile", json={"birth_date": "1990-09-01"}, headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        reading_client.post(
+            "/v1/birth-profile/supplement",
+            json={
+                "birth_time_mode": "approx_window",
+                "birth_time_local": None,
+                "approx_window": "morning",
+                "place_id": "vn-ho-chi-minh",
+                "consent_version": "birth-profile-deep-v1",
+            },
+            headers=headers,
+        ).status_code
+        == 200
+    )
+
+    overview = reading_client.get(f"/v1/insights/overview?tradition={tradition}")
+
+    assert overview.status_code == 200
+    payload = cast(dict[str, object], overview.json())
+    assert payload["time_precision"] == "approximate"
+    projection = cast(dict[str, object], payload["reading_projection"])
+    active = cast(dict[str, object], projection["active"])
+    assert active["tradition"] == tradition

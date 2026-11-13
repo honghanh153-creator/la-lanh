@@ -87,20 +87,28 @@ def _shift_completion(database: Path, request_id: str, *, days: int) -> None:
 
 
 def _assert_dossier_payload(payload: dict[str, Any]) -> None:
+    """radar-readable-v2: a named tier, plain main sections and one "Xem thêm" layer."""
+
     assert payload["version"] == "radar-result-v2"
-    assert len(payload["compatibility_map"]) == 3
+    # No 0-100 numbers any more (owner feedback 29/10/2026); the tier has no score by default.
+    assert payload["compatibility_map"] == []
+    signature = payload["pair_signature"]
+    assert signature["tier"]["label"] and "score" not in signature["tier"]
+    assert len(signature["areas"]) == 3
     sections = payload["sections"]
-    assert isinstance(sections, list) and len(sections) == 4
-    assert [section["key"] for section in sections] == [
-        "fit",
-        "friction",
-        "perspective",
-        "check",
-    ]
+    keys = [section["key"] for section in sections]
+    main = [section["key"] for section in sections if section["layer"] == "main"]
+    assert main in (["fit", "check"], ["fit", "friction", "check"])
+    assert {"why", "perspective"} <= set(keys)
     assert all("topics" in section and "highlights" in section for section in sections)
     metadata = payload["metadata"]
     assert isinstance(metadata, dict)
-    assert metadata["renderer_version"] == "radar-living-dossier-v1"
+    assert metadata["renderer_version"] == "radar-readable-v2"
+
+
+def _perspective_texts(payload: dict[str, Any]) -> list[str]:
+    section = next(item for item in payload["sections"] if item["key"] == "perspective")
+    return [section["body"], *(item["title"] for item in section["perspectives"])]
 
 
 def _assert_no_raw_birth_data(payload: object) -> None:
@@ -207,10 +215,7 @@ def test_private_radar_requires_both_people_and_supports_withdrawal(tmp_path: Pa
         assert owner_result.status_code == 200
         _assert_dossier_payload(owner_result.json())
         _assert_no_raw_birth_data(owner_result.json())
-        assert (
-            owner_result.json()["sections"][2]["perspectives"][0]["body"]
-            != result.json()["sections"][2]["perspectives"][0]["body"]
-        )
+        assert _perspective_texts(owner_result.json()) != _perspective_texts(result.json())
         assert "birth_date" not in owner_result.text
         assert "latitude" not in owner_result.text
         with sqlite3.connect(database) as connection:
@@ -388,7 +393,9 @@ def test_private_check_computes_without_persisting_other_person_birth_input(
         assert stored.json()["mode"] == "private_check"
         _assert_dossier_payload(stored.json())
         _assert_no_raw_birth_data(stored.json())
-        assert stored.json()["sections"][0]["highlights"] == payload["sections"][0]["highlights"]
+        # Reopening returns the reading exactly as created (stored text, not a re-render).
+        assert stored.json()["sections"] == payload["sections"]
+        assert stored.json()["pair_signature"] == payload["pair_signature"]
         # The owner sees this result's own expiry, on creation and on reopening.
         expires_at = datetime.fromisoformat(stored.json()["expires_at"])
         assert datetime.fromisoformat(payload["expires_at"]) == expires_at

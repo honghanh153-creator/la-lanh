@@ -1,10 +1,19 @@
 # Backup, restore and deletion reconciliation
 
 Audit 2026-10-22: P07 (backup/restore/physical deletion evidence) and O02 (daily backup). This file
-prepares the operator and owner steps. Nothing here has been installed or run on the VPS by an
-agent; each step below names who does it and what evidence closes it.
+prepares the operator and owner steps; each step below names who does it and what evidence closes it.
 
-## What the code now provides (FIXED_LOCAL)
+**Current state (2026-10-26, production release `89ebdb0cf6b9`):**
+- **Deployed:** the timers, freshness check, failure marker and erasure journal (migration 0038). The
+  installer ran, and the first backup, check and journal export passed. A restore probe of the new
+  backup passed ([receipt](../reviews/production-release-2026-10-26/receipt.md)).
+- **Still open:** the interleaved PostgreSQL replay probe, delivery of failure alerts to a person, the
+  Supabase backup/PITR record, and the erasure kinds not yet journaled.
+- **B stays the operating rule: no restore into service.**
+
+Passages below marked as of 2026-10-22 describe the state before the release.
+
+## What the code provides (deployed 2026-10-26)
 
 | Piece | File | Behaviour |
 |---|---|---|
@@ -14,7 +23,12 @@ agent; each step below names who does it and what evidence closes it.
 | Installer | `infra/hetzner/install-backup-timer.sh` | Root only, refuses to run from a release other than `/opt/la-lanh/current`, installs the units, enables both timers, runs one backup and one check. |
 | Tests | `apps/api/tests/scripts/test_backup_timer.py` | Unit contents and the real freshness script against synthetic files (fresh, stale, empty, missing checksum, tampered newest dump, bad setting). No systemd in CI: whether timers fire on the VPS is operator evidence. |
 
-## Operator steps (not done; evidence still missing)
+## Operator steps
+
+Steps 1, 2 and the first restore probe were **done on 2026-10-26** with release `89ebdb0cf6b9`. Evidence is in
+[production-release-2026-10-26](../reviews/production-release-2026-10-26/receipt.md): timers active; first backup
+`la-lanh-20261026T102155Z.dump` with checksum OK and freshness check OK; first journal export. Steps 3 and 5 and the
+interleaved probe below are still open.
 
 1. After the release that contains these files is live and `/opt/la-lanh/current` points at it:
    `sudo /opt/la-lanh/current/infra/hetzner/install-backup-timer.sh`.
@@ -22,6 +36,14 @@ agent; each step below names who does it and what evidence closes it.
    result, and the freshness check output. Do not paste database URLs or dump contents.
 3. Choose and record how failures reach a person (journal forwarding, uptime monitor on the marker
    directory, or a mail relay). Until then the marker is local only.
+   **Owner choice (26/10/2026):** a local scheduled task, `la-lanh-ops-watch`, on the owner's Mac.
+   - It runs every six hours and only reads the server over SSH: timers, failed units, alert markers,
+     backup age and checksum, journal copy, disk and `/v1/ready`.
+   - On a failure it opens a public `ops-alert` issue with data-free facts and fix prompts. It never
+     changes production.
+   - It runs only while the Mac app is open.
+   - Its first run (26/10 15:28 UTC) stalled, most likely on a tool approval, so delivery is **not yet
+     proven**. The owner should approve the tools once with "Run now".
 4. Monthly and after each schema-changing release, run the restore probe below and record the
    output summary.
 5. Check the Supabase plan's own backups/PITR and their retention in the dashboard; provider
@@ -42,12 +64,13 @@ LA_LANH_RELEASE_ID=<current release> infra/hetzner/rehearse-migration.sh
 Evidence to record: backup file name, checksum OK, `database-privacy-isolation-ok`, readiness OK,
 container removed. It proves a backup can be restored; it does not prove deletion reconciliation.
 
-## Deletion reconciliation after a restore: option A chosen (journal not built yet)
+## Deletion reconciliation after a restore: option A chosen (journal deployed 2026-10-26)
 
 A restore brings back every row deleted after the backup was taken: guest erasure, history clears,
-Radar deletions, withdrawn consents and the 24-hour Daily/Radar purges. Today there is **no
-mechanism** to replay those deletions, so a restore can resurrect data that users or retention
-removed. Options:
+Radar deletions, withdrawn consents and the 24-hour Daily/Radar purges. As of 2026-10-22 there was **no
+mechanism** to replay those deletions, so a restore could resurrect data that users or retention
+removed. The journal below has been the mechanism since 2026-10-26, but it is unproven on an interleaved
+PostgreSQL dump. Options considered:
 
 | Option | How | Trade-off |
 |---|---|---|
@@ -62,13 +85,14 @@ owner decides and the journal exists, the runbook must treat B as the rule: no r
 **Decision (22/10/2026):** the owner delegated this choice to the recommendation above: **A**, scoped to
 explicit user actions, with C's immediate re-run of retention cleanups for everything else.
 
-## Option A implementation (FIXED_LOCAL, not deployed)
+## Option A implementation (deployed 2026-10-26; interleaved probe still open)
 
 | Piece | Where | Behaviour |
 |---|---|---|
 | Journal table | `erasure_journal` (migration `20261023_0038`), `domains/erasure_journal/` | `{kind, HMAC-SHA256(server hash key, "erasure-journal:<kind>" + root id), scope, occurred_at}`. No id or content. RLS on; no `anon`/`authenticated` access. |
-| Recording | same transaction as the erasure | guest erasure (with the DELETING marker), history clear (through `clear_in_session`, which the HTTP service and `repository.clear` both use), birth supplement removal (`time`/`place`), switch to an unknown birth time, Radar delete, Radar withdraw, consent withdrawal (purpose as scope), resonance clear (`consent` when withdrawn), Vòng Lá matching consent withdrawal. |
-| Not yet journaled | follow-up PR | Tarot session delete, share-link revoke, La Chung withdraw/delete/revoke/hide, saved-note unsave, experiment undo, pending Radar invite revoke. Until then a restore can bring these back; C covers only their time-based expiry. |
+| Recording | same transaction as the erasure | guest erasure (with the DELETING marker), history clear (through `clear_in_session`, which the HTTP service and `repository.clear` both use), birth supplement removal (`time`/`place`), switch to an unknown birth time, Radar delete, Radar withdraw, consent withdrawal (purpose as scope), resonance clear (`consent` when withdrawn), Vòng Lá matching consent withdrawal. Batch 1 of the deferred kinds (in `collab/integration` once merged, not released): Tarot session delete, share-link revoke and saved-note unsave, each keyed by the row's own id, so a later reading, link or re-save is never touched. Replay deletes the Tarot session (and its rewrite jobs), sets `revoked_at` only on a link that is not already revoked, and deletes the saved-note row. Batch 2 (stacked on batch 1, not merged or released): La Chung invite revoke (request id), response withdraw and result hide (response id), result delete (request id), experiment undo (experiment id) and pending Radar invite revoke (request id). Each records only when the owner check passed and something changed; a failed journal write rolls the erasure back. Replay revokes only a still-pending invite (clearing its encrypted link), withdraws the response and marks a completed request withdrawn, keeps an earlier hide time, deletes the La Chung request with its response and reports, and deletes the experiment row. |
+| Birth date correction (US-23, branch `feat/birth-date-correction`, not merged or released) | `PUT /v1/birth-profile/date`, same transaction as the replacement | Kind `birth_date_replaced`, keyed by the guest id like the other birth kinds, empty scope: no date, value or snapshot id. Replay follows the checkpoint rule. A dump taken **after** the correction holds the entry, so replay reports it `reflected` and leaves the new subject alone. A dump taken **before** the correction holds only the old subject and no replacement value exists to restore, so replay **fails closed** (`PostgresBirthRepository.replay_date_replacement`): it deletes every chart snapshot, plan, revision, projection, Daily note, experiment, Radar row of either perspective and Reading/Radar rewrite job of that guest, clears the date-bearing pointer, time, place and deep consent, and sets the guest back to `birth_pending`. No active birth subject remains; the app asks for the birth date again on the next visit and `POST /v1/birth-profile` accepts it because no subject exists. Saved notes and share links stay (they no longer cascade from their source since migration `20261029_0039`); their own unsave/revoke kinds still replay. PostgreSQL replay tests for both dump sides are written (gated on the disposable probe URL) and have **not run**. |
+| Not yet journaled | in production until batches 1 and 2 are merged and released | Tarot session delete, share revoke and saved-note unsave (batch 1) and the six batch 2 kinds above. Until a release a restore can bring these back; C covers only their time-based expiry. No other explicit erasure from the P07 list remains without a kind; a new erasure path must add one. |
 | Snapshot checkpoint | `backup-database.sh` dumps `public` with the journal rows | Each journal row commits with its erasure, and `pg_dump` reads one consistent snapshot, so the rows in a dump are exactly the erasures that snapshot reflects. No wall-clock cutoff is used. |
 | Purge horizon | `erasure_journal_horizon` (one row: `purged_before`, a time only), written in each purge's own transaction | Retention removes old rows, but an export taken before the purge can still carry them. Every entry older than the horizon committed long before that purge, so a snapshot holding the horizon reflects it: replay counts such an entry as `reflected` and never applies it again, which keeps history created after an old clear. Entries newer than the horizon still go by row presence. |
 | Host copy | `export-erasure-journal.sh`, `la-lanh-erasure-journal.{service,timer}` (hourly at :05, installed by `install-backup-timer.sh`) | `scripts.erasure_journal export` to `/opt/la-lanh/backups/erasure-journal/journal-<UTC>.jsonl` (0600), then `purge` of entries older than `LA_LANH_ERASURE_JOURNAL_RETENTION_DAYS` (default 15, minimum 15). Older export files are kept about two days. The six-hourly expired cleanup applies the same retention, so it holds before this timer is installed. |
@@ -83,7 +107,7 @@ Losses the design accepts, so the runbook must not hide them:
 - Linked accounts: the Supabase Auth identity was already deleted at erasure time; replay finishes the local
   deletion through the guest cleanup job, which retries the identity call.
 
-### Restore procedure (only after this PR is reviewed and deployed)
+### Restore procedure (journal deployed 2026-10-26; usable only after the interleaved probe below passes)
 
 1. If the damaged database is still readable: `scripts.erasure_journal export > pre-restore.jsonl` (root-only).
 2. Restore the chosen dump (`pg_restore --no-owner --role=<backend>`); its journal rows come with it.
@@ -93,6 +117,9 @@ Losses the design accepts, so the runbook must not hide them:
 5. Privacy isolation check and readiness, then serve.
 
 ### Disposable PostgreSQL restore probe (operator, before B can be lifted)
+
+Executable steps and checks: [disposable-postgres-journal-probe.md](disposable-postgres-journal-probe.md)
+(prepared 27/10/2026, **not executed**).
 
 SQLite tests model the snapshot as a file copy. The real interleaving must be shown once on a disposable
 PostgreSQL with synthetic data, not on staging or production:
@@ -111,5 +138,5 @@ PostgreSQL with synthetic data, not on staging or production:
    and a sane server clock. Request deadlines make this expected; SQLite tests and this document do not prove
    PostgreSQL commit order in general, so steps 1–5 are the evidence.
 
-Until the journal is deployed, the hourly copy has run and this probe has passed, **B stays the operating
+The journal has been deployed and its hourly copy running since 2026-10-26. Until this probe has passed, **B stays the operating
 rule: no restore into service.**
