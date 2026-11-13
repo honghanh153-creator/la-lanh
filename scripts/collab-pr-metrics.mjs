@@ -32,7 +32,7 @@ export function summary(rows) {
 }
 
 export const reworkRefs = items => new Set(items
-  .filter(i => /fix-forward|^revert/i.test(`${(i.labels ?? []).map(l => l.name ?? l).join(' ')} ${i.title}`))
+  .filter(i => /^\s*revert\b/i.test(i.title ?? '') || (i.labels ?? []).some(l => /^(fix-forward|revert)$/i.test(l.name ?? l)))
   .flatMap(i => [...`${i.title} ${i.body ?? ''}`.matchAll(/#(\d+)/g)].map(m => Number(m[1]))));
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

@@ -13,3 +13,10 @@ test('per-PR numbers and summary', () => {
   const clean = prMetrics({ ...pr, number: 8, comments: [] }, runs, rework);
   assert.deepEqual(summary([row, clean]), { prs: 2, avgHours: 3, avgCodexRuns: 1.5, avgChangeRequests: 0.5, firstPassRate: 50, reworkRate: 50 });
 });
+
+test('a revert title counts as rework on its own, without labels (Codex #354 P2)', () => {
+  assert.deepEqual([...reworkRefs([{ title: 'Revert "synthetic change (#7)"' }])], [7]);
+  assert.deepEqual([...reworkRefs([{ title: 'revert: drop x', body: 'undoes #12', labels: [] }])], [12]);
+  assert.deepEqual([...reworkRefs([{ title: 'docs: how to revert #5' }, { title: 'feat: x #6', labels: [{ name: 'enhancement' }] }])], []);
+  assert.deepEqual([...reworkRefs([{ title: 'x #8', labels: ['fix-forward'] }])], [8]);
+});

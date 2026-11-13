@@ -35,6 +35,31 @@ test('deletion exemptions follow path components, not prefixes (review P1)', () 
     assert.equal(blockReason(c), null, c);
 });
 
+test('heredocs run by an absolute-path or quoted shell are inspected (Codex #354 P1)', () => {
+  for (const sh of ['/bin/bash', '/bin/sh', '/bin/zsh', '/usr/local/bin/bash', '"bash"', "'/bin/bash'", '"/bin/sh"', '\\bash', '/usr/bin/env bash', 'sudo /bin/sh', '/bin/bash -s'])
+    for (const body of ['git reset --hard', 'rm -rf apps', 'git --no-pager clean -fd']) {
+      assert.ok(blockReason(`${sh} <<'EOF'\n${body}\nEOF`), `${sh} heredoc: ${body}`);
+      assert.ok(blockReason(`cat <<'EOF' | ${sh}\n${body}\nEOF`), `cat | ${sh} heredoc: ${body}`);
+      assert.ok(blockReason(`cd x && ${sh} <<EOF\n${body}\nEOF`), `cd && ${sh} heredoc: ${body}`);
+    }
+  for (const c of ["cat <<'EOF' > /bin/notes.txt\ngit reset --hard\nEOF", "gh pr comment 1 --body-file - <<'EOF'\nrm -rf apps\nEOF", "git commit -F - <<'EOF'\ngit --no-pager reset --hard\nEOF"])
+    assert.equal(blockReason(c), null, c);
+});
+
+const gitGlobalForms = ['--no-pager', '-P', '-p', '--paginate', '-c core.pager=cat', '-c "user.name=A B"', '--git-dir=.git', '--git-dir .git',
+  '--work-tree=.', '--work-tree .', '-C path', '-C "New project/la lanh"', "-C 'a b'", '-C New\\ project', '--no-optional-locks',
+  '--no-pager -c a=b -C x --git-dir=x/.git', '"--no-pager"'];
+const destructive = ['reset --hard', 'reset --hard origin/main', 'clean -fd', 'clean -xdf', 'push --force origin main', 'push -f', 'push origin +main',
+  'push origin --delete feat', 'push origin :feat', 'worktree remove --force ../x', 'worktree remove -f ../x', 'restore .', 'checkout -- .', 'branch -D feat'];
+
+test('git global options before the subcommand do not bypass any rule (Codex #354 P1)', () => {
+  for (const g of gitGlobalForms) for (const sub of destructive)
+    for (const c of [`git ${g} ${sub}`, `/usr/bin/git ${g} ${sub}`, `cd x && git ${g} ${sub}`, `bash -c 'git ${g.replace(/'/g, '"')} ${sub}'`])
+      assert.ok(blockReason(c), c);
+  for (const g of gitGlobalForms) for (const sub of ['status', 'reset --soft HEAD~1', 'push origin feat', 'push --force-with-lease', 'branch -d done', 'restore apps/web/a.ts', 'commit -m "never git reset --hard"', 'log -p'])
+    assert.equal(blockReason(`git ${g} ${sub}`), null, `git ${g} ${sub}`);
+});
+
 test('hook exits 2 with a reason on stdin JSON', () => {
   const run = cmd => spawnSync(process.execPath, [fileURLToPath(new URL('./guard-dangerous-commands.mjs', import.meta.url))], { input: JSON.stringify({ tool_input: { command: cmd } }), encoding: 'utf8' });
   const bad = run('git reset --hard');

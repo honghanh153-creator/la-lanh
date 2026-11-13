@@ -162,7 +162,13 @@ test('review posts verdict, files fix-forward first, and records the output hash
   assert.match(body, /p2=1 -->/);
   assert.match(body, /Output SHA-256: `[0-9a-f]{64}`/);
   assert.equal(prTurn(state.pr).turn, 'merge');
+  // Cost records (Codex #354 P2): the real run wrote one line; a refusal writes none.
+  const runsLog = () => { try { return readFileSync(join(trust.stateDir, 'review-runs.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch { return []; } };
+  const logged = runsLog();
+  assert.equal(logged.at(-1).pr, 7);
+  assert.equal(logged.at(-1).status, 'posted');
   assert.equal(review.runReview(7, { gh, run: runner.run, readOut: () => raw }).status, 'refused', 'no second verdict for the same head');
+  assert.equal(runsLog().length, logged.length, 'a refused review is not a Codex run');
 });
 
 test('fix-forward #238: a finding that lists 30 places keeps all of them in the verdict and the issue', () => {
