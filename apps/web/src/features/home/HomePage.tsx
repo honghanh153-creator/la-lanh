@@ -10,7 +10,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import {
@@ -35,6 +35,7 @@ import {
   captureMoodIntent,
   keepPendingMood,
   prunePendingMood,
+  retireOlderPendingMood,
   takePendingMood,
   type MoodIntent,
 } from "../../shared/storage/pendingMood";
@@ -67,6 +68,7 @@ import "./home-vitality.css";
 
 const RITUAL_KEY = "la-lanh-daily-ritual-v1";
 const UNLOCK_SNOOZE_KEY = "la-lanh-birth-supplement-snooze-until";
+const MOOD_MUTATION_KEY = ["mood-checkin"] as const;
 
 /** True once per note date: the first open of the day plays the unfold ritual. */
 function useDailyRitual(noteDate: string | undefined): boolean {
@@ -219,27 +221,39 @@ export function HomePage() {
     onError: () => setMessage("Phản hồi chưa gửi được. Không có lựa chọn nào được lưu trên máy."),
   });
 
+  // Capture time of the newest mood choice shown on screen: an older replay or a late completion
+  // never takes the screen back from a newer choice (Codex #449).
+  const latestMoodAt = useRef(0);
   const moodMutation = useMutation({
+    mutationKey: MOOD_MUTATION_KEY,
+    // One queue for every check-in, so requests reach the server in the order they were made.
+    scope: { id: "mood-checkin" },
     // The owner and first-capture time travel with the choice, so a late callback can neither
     // relabel it under a new session nor renew its deadline (audit P04).
     mutationFn: ({ mood: value }: { mood: MoodValue; intent: MoodIntent }) => {
       if (!note) throw new Error("Missing daily note");
       return checkInMood(note.id, value);
     },
-    onMutate: ({ mood: value }) => {
+    onMutate: ({ mood: value, intent }) => {
       const previous = mood;
-      setMood(value);
       setMoodSheetOpen(false);
-      setMessage("Đang lưu cảm xúc này cho bạn…");
+      if (note) retireOlderPendingMood(note.id, intent);
+      if (intent.savedAt >= latestMoodAt.current) {
+        latestMoodAt.current = intent.savedAt;
+        setMood(value);
+        setMessage("Đang lưu cảm xúc này cho bạn…");
+      }
       return { previous };
     },
     onSuccess: (payload, { intent }) => {
       if (note) acknowledgePendingMood(note.id, intent);
+      if (intent.savedAt < latestMoodAt.current) return;
       setMood(payload.mood);
       setMessage(laMoodReaction(payload.mood, vibe));
     },
     onError: (_error, { mood: value, intent }) => {
       if (note) keepPendingMood(note.id, value, intent);
+      if (intent.savedAt < latestMoodAt.current) return;
       setMessage("Đã giữ cảm xúc trên máy. Lá Lành sẽ đồng bộ khi có mạng.");
     },
   });
@@ -259,9 +273,12 @@ export function HomePage() {
     const noteId = note.id;
     // takePendingMood removes the stored choice before it is sent, so repeated `online` events
     // cannot send it twice; a failed resend is queued again by onError for the next reconnect.
+    // A check-in that is still queued or paused offline is the newest choice: it resumes on its
+    // own, so nothing older is replayed beside it (Codex #449).
     const resendPendingMood = () => {
       if (!navigator.onLine) return;
       prunePendingMood();
+      if (queryClient.isMutating({ mutationKey: MOOD_MUTATION_KEY }) > 0) return;
       const pending = takePendingMood(noteId, isMoodValue);
       if (pending) moodMutation.mutate(pending);
     };

@@ -137,6 +137,45 @@ describe("Home pending mood lifecycle (P04)", () => {
   expect(checkInMood).toHaveBeenCalledTimes(1);
   expect(localStorage.getItem("la-lanh-pending-mood-v1")).toBeNull();
  });
+ it("never replays an older queued mood over a newer choice made offline (Codex #449)", async () => {
+  const rực={id:"00000000-0000-4000-8000-000000000099",daily_note_id:baseNoteId,mood:"Rực" as const,checked_in_at:"2026-10-22T00:00:00Z"};
+  vi.mocked(checkInMood).mockRejectedValueOnce(new Error("server error")).mockResolvedValue(rực);
+  const user=userEvent.setup(); renderPage();
+  await user.click(await screen.findByRole("button",{name:"Chọn cảm giác hôm nay"}));
+  await user.click(screen.getByRole("button",{name:/Chill/}));
+  await waitFor(()=>expect(localStorage.getItem("la-lanh-pending-mood-v1")).not.toBeNull());
+  Object.defineProperty(navigator,"onLine",{value:false,configurable:true});
+  act(()=>{window.dispatchEvent(new Event("offline"));});
+  await user.click(screen.getByRole("button",{name:"Cảm giác hôm nay: Chill"}));
+  await user.click(screen.getByRole("button",{name:/Rực/}));
+  await screen.findByRole("button",{name:"Cảm giác hôm nay: Rực"});
+  expect(checkInMood).toHaveBeenCalledTimes(1);
+  expect(localStorage.getItem("la-lanh-pending-mood-v1")).toBeNull();
+  Object.defineProperty(navigator,"onLine",{value:true,configurable:true});
+  act(()=>{window.dispatchEvent(new Event("online"));});
+  await waitFor(()=>expect(checkInMood).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(checkInMood).mock.calls.map((call)=>call[1])).toEqual(["Chill","Rực"]);
+  await screen.findByRole("button",{name:"Cảm giác hôm nay: Rực"});
+  expect(localStorage.getItem("la-lanh-pending-mood-v1")).toBeNull();
+ });
+ it("sends only the newer offline choice when an older one was queued on an earlier visit (Codex #449)", async () => {
+  localStorage.setItem("la-lanh-pending-mood-v1",JSON.stringify({session_epoch:"epoch-a",note_id:baseNoteId,mood:"Chill",saved_at:Date.now()-60*1000}));
+  vi.mocked(checkInMood).mockResolvedValue({id:"00000000-0000-4000-8000-000000000098",daily_note_id:baseNoteId,mood:"Rực",checked_in_at:"2026-10-22T00:01:00Z"});
+  Object.defineProperty(navigator,"onLine",{value:false,configurable:true});
+  act(()=>{window.dispatchEvent(new Event("offline"));});
+  const user=userEvent.setup(); renderPage();
+  await user.click(await screen.findByRole("button",{name:"Chọn cảm giác hôm nay"}));
+  await user.click(screen.getByRole("button",{name:/Rực/}));
+  await screen.findByRole("button",{name:"Cảm giác hôm nay: Rực"});
+  expect(localStorage.getItem("la-lanh-pending-mood-v1")).toBeNull();
+  Object.defineProperty(navigator,"onLine",{value:true,configurable:true});
+  act(()=>{window.dispatchEvent(new Event("online"));});
+  await waitFor(()=>expect(checkInMood).toHaveBeenCalledTimes(1));
+  expect(checkInMood).toHaveBeenCalledWith(baseNoteId,"Rực");
+  await screen.findByRole("button",{name:"Cảm giác hôm nay: Rực"});
+  act(()=>{window.dispatchEvent(new Event("online"));});
+  expect(checkInMood).toHaveBeenCalledTimes(1);
+ });
  it("stops listening for reconnects once Home unmounts", async () => {
   Object.defineProperty(navigator,"onLine",{value:false,configurable:true});
   const view=renderPage(); await screen.findByRole("heading",{name:vibe.sections.hook});

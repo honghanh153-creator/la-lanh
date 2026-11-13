@@ -85,6 +85,17 @@ export function keepPendingMood<Mood extends string>(noteId: string, mood: Mood,
   try { localStorage.setItem(PENDING_MOOD_KEY, JSON.stringify(pending)); } catch { /* Storage may be unavailable. */ }
 }
 
+/**
+ * A newer choice was just made for this note: an older waiting choice must never be replayed
+ * over it, even if the newer request is still paused offline (Codex #449).
+ */
+export function retireOlderPendingMood(noteId: string, intent: MoodIntent): void {
+  if (!intent.sessionEpoch) return;
+  const pending = read();
+  if (pending && pending.note_id === noteId && pending.session_epoch === intent.sessionEpoch
+    && Number(pending.saved_at) < intent.savedAt) remove();
+}
+
 /** Drop anything that can no longer be replayed (expired, another session, old format), online or not. */
 export function prunePendingMood(): void {
   const pending = read();
