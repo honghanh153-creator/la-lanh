@@ -622,7 +622,7 @@ test('busy check matches the running program, not a command line that mentions i
   for (const heavy of [
     'sh -c pnpm contracts:check && pnpm verify:runtime && pnpm grammar:check',
     '/Users/x/apps/api/.venv/bin/python /Users/x/apps/api/.venv/bin/pytest -q',
-    'uv run --directory apps/api pytest',
+    'uv run --locked --directory apps/api pytest',
     '/x/node/bin/node /x/node_modules/.bin/../vitest/vitest.mjs run',
     '/x/node/bin/node /x/node_modules/@playwright/test/cli.js test',
     // #142 r1: the current check wrapper and bare interpreters.
@@ -733,7 +733,7 @@ test('fix A: ruff and mypy run only on the changed Python files of apps/api', ()
   const runs = [];
   const spawn = (cmd, args) => { runs.push([cmd, ...args].join(' ')); return { status: args.includes('mypy') ? 1 : 0, stdout: 'app/x.py:3: error: bad' }; };
   const result = preflightMod.runPreflight({ body: goodBody, files: [{ path: 'apps/api/app/x.py' }, { path: 'README.md' }] }, { cwd: '/repo', spawn, exists: () => true });
-  assert.deepEqual(runs, ['uv run --directory apps/api ruff check app/x.py', 'uv run --directory apps/api ruff format --check app/x.py', 'uv run --directory apps/api mypy app/x.py']);
+  assert.deepEqual(runs, ['uv run --locked --directory apps/api ruff check app/x.py', 'uv run --locked --directory apps/api ruff format --check app/x.py', 'uv run --locked --directory apps/api mypy app/x.py']);
   assert.equal(result.status, 'FAIL');
   assert.match(result.reasons[0], /^mypy lỗi: app\/x\.py:3/);
   const none = [];
