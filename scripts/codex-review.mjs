@@ -58,7 +58,7 @@ export function gateRule(createdAt) {
     : `${when} It was created on or after 2026-11-01 (Vietnam time), so the S/M/L and gate-evidence check applies.`;
 }
 
-const cell = (text, limit = 900) => clean(text, limit).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+const cell = (text, limit = 900) => clean(text, limit).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 // A detail may list every occurrence of one class (prompt rule S2); keep the whole list (fix-forward #238).
 const detailCell = text => cell(text, 6000);
 

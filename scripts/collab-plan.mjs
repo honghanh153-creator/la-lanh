@@ -75,7 +75,7 @@ export function renderPlan(now, turns, { codexLeft, gap = null, health = [] }) {
     `   - Nguồn / AC: ${clean(t.source ?? 'chưa ghi', 160)}`,
     `   - Người dùng thấy gì: ${clean(t.userSees ?? 'chưa ghi', 160)}`,
   ].join('\n'));
-  const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} |`);
+  const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\|/g, '\\|')} |`);
   return [
     `## Plan ${now.date}`,
     '',
