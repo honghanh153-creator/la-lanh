@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { append, entry, read } from './collab-disagree.mjs';
+import { append, entry, override, read } from './collab-disagree.mjs';
 
 test('experiment arm 1: a disagreement needs both positions, a PR and a known winner, and is kept in order', () => {
   const path = join(mkdtempSync(join(tmpdir(), 'disagree-')), 'd.jsonl');
@@ -14,8 +14,14 @@ test('experiment arm 1: a disagreement needs both positions, a PR and a known wi
   append(entry({ pr: 481, claude: 'a', codex: 'b', winner: 'owner', note: 'owner lật lại', at }), path);
   assert.deepEqual(read(path).map(e => [e.pr, e.winner, e.date]), [[480, 'codex', '2026-11-14'], [481, 'owner', '2026-11-14']]);
   assert.throws(() => entry({ pr: 'x', claude: 'a', codex: 'b', winner: 'codex' }), /PR number/);
+  assert.deepEqual(entry({ task: 'L21', claude: 'a', codex: 'b', winner: 'codex', at }).task, 'L21', 'a plan disagreement before any PR');
+  const first = read(path)[0];
+  append(override({ of: first.at, winner: 'claude', note: 'owner chọn ý Claude', at }), path);
+  assert.deepEqual(read(path).at(-1), { at: at.toISOString(), date: '2026-11-14', type: 'override', of: first.at, winner: 'claude', note: 'owner chọn ý Claude' });
+  assert.deepEqual(read(path)[0], first, 'the original line is never edited');
+  assert.throws(() => override({ of: first.at, winner: 'claude', note: '' }), /note/);
   assert.throws(() => entry({ pr: 1, claude: '', codex: 'b', winner: 'codex' }), /both positions/);
   assert.throws(() => entry({ pr: 1, claude: 'a', codex: 'b', winner: 'nobody' }), /winner/);
   writeFileSync(path, `${JSON.stringify({ pr: 1 })}\nnot json\n`, { flag: 'a' });
-  assert.equal(read(path).length, 3, 'a broken line is skipped, the rest is kept');
+  assert.equal(read(path).length, 4, 'a broken line is skipped, the rest is kept');
 });

@@ -2,7 +2,8 @@
 // Arm 1 (Claude's way, 14–16.11): Claude records each disagreement with Codex itself. The nightly
 // audit reads this file and checks it against the PR comments, so an unrecorded disagreement shows
 // up as a gap (metric M8). Arm 2 replaces Claude's own entry with a record made by the program.
-// Usage: node scripts/collab-disagree.mjs --add --pr N --claude "…" --codex "…" --winner codex|claude|owner [--note "…"]
+// Usage: node scripts/collab-disagree.mjs --add (--pr N | --task ID) --claude "…" --codex "…" --winner codex|claude|owner [--note "…"]
+//        node scripts/collab-disagree.mjs --override --of <at of the entry> --winner owner|claude|codex --note "…"   (owner reverses later)
 //        node scripts/collab-disagree.mjs --list [--date YYYY-MM-DD]
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -12,12 +13,22 @@ import { clean, stateDir, vnNow } from './collab-trust.mjs';
 export const logPath = join(stateDir, 'disagreements.jsonl');
 export const winners = ['codex', 'claude', 'owner'];
 
-export function entry({ pr, claude, codex, winner, note = '', at = new Date(), date = vnNow(at).date }) {
+// Codex 13.11: a disagreement can come before any PR exists (a plan), so a task id is accepted too.
+export function entry({ pr, task, claude, codex, winner, note = '', at = new Date(), date = vnNow(at).date }) {
   const n = Number(pr);
-  if (!Number.isInteger(n) || n <= 0) throw new Error('--pr must be a PR number');
+  const ref = pr !== undefined ? (Number.isInteger(n) && n > 0 ? { pr: n } : null) : (/^[A-Za-z][\w.-]{0,40}$/.test(task ?? '') ? { task } : null);
+  if (!ref) throw new Error('--pr must be a PR number, or --task an id such as L21');
   if (!String(claude ?? '').trim() || !String(codex ?? '').trim()) throw new Error('both positions are required');
   if (!winners.includes(winner)) throw new Error(`--winner must be one of ${winners.join(', ')}`);
-  return { at: at.toISOString(), date, pr: n, claude: clean(claude, 600), codex: clean(codex, 600), winner, ...(note ? { note: clean(note, 300) } : {}) };
+  return { at: at.toISOString(), date, ...ref, claude: clean(claude, 600), codex: clean(codex, 600), winner, ...(note ? { note: clean(note, 300) } : {}) };
+}
+
+// The owner reversing a decision later is its own record, so the original line is never edited.
+export function override({ of, winner, note, at = new Date() }) {
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(of ?? '')) throw new Error('--of must be the at of the original entry');
+  if (!winners.includes(winner)) throw new Error(`--winner must be one of ${winners.join(', ')}`);
+  if (!String(note ?? '').trim()) throw new Error('--note is required for an override');
+  return { at: at.toISOString(), date: vnNow(at).date, type: 'override', of, winner, note: clean(note, 300) };
 }
 
 export function append(e, path = logPath) {
@@ -33,12 +44,15 @@ export function read(path = logPath) {
 
 const flag = (args, name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 
+// Moves to isMain() (#484) once that is in integration; its test flags any script left behind.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
   try {
     if (args.includes('--add')) {
-      const e = append(entry({ pr: flag(args, '--pr'), claude: flag(args, '--claude'), codex: flag(args, '--codex'), winner: flag(args, '--winner'), note: flag(args, '--note') }));
+      const e = append(entry({ pr: flag(args, '--pr'), task: flag(args, '--task'), claude: flag(args, '--claude'), codex: flag(args, '--codex'), winner: flag(args, '--winner'), note: flag(args, '--note') }));
       process.stdout.write(`${JSON.stringify(e)}\n`);
+    } else if (args.includes('--override')) {
+      process.stdout.write(`${JSON.stringify(append(override({ of: flag(args, '--of'), winner: flag(args, '--winner'), note: flag(args, '--note') })))}\n`);
     } else if (args.includes('--list')) {
       const date = flag(args, '--date');
       for (const e of read().filter(e => !date || e.date === date)) process.stdout.write(`${JSON.stringify(e)}\n`);
