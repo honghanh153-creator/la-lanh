@@ -8,7 +8,7 @@ dependencies = [
   "alembic>=1.18.0,<2",
   "aiosqlite>=0.22.0,<1",
   "asyncpg>=0.31.0,<1",
-  "cryptography>=45.0.0,<47",
+  "cryptography>=50.0.2,<51",
   "fastapi>=0.128.0,<1",
   "openai==3.8.0",
   "prometheus-client>=0.24.1,<1",
@@ -24,6 +24,7 @@ dev = [
   "pytest>=9.0.2,<10",
   "pytest-asyncio>=1.3.0,<2",
   "ruff>=0.15.0,<1",
+  "time-machine>=2,<4",
 ]
 
 [tool.uv]

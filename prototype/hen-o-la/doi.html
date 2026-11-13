@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Thử thách đôi · Sĩ số +1</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>Thử thách <em>đôi</em></b><span>L1 · Sĩ số +1 · hai người một đội, mỗi người giữ một nửa</span></div>
+    <div class="top-actions">
+      <a class="chip" href="index.html">Buổi hẹn</a>
+      <a class="chip" href="quan.html">Quán</a>
+      <button id="motionBtn" class="chip">Cử động: đầy đủ</button>
+    </div>
+  </header>
+
+  <nav class="track duo-track" id="track" aria-label="Tiến trình"></nav>
+
+  <main class="play duo">
+    <section class="stage-col">
+      <div class="stage" id="stage">
+        <canvas id="game" role="img" aria-label="Quán cà phê pixel. Bạn và đồng đội ngồi cùng một bàn."></canvas>
+        <div class="overlay" id="overlay" aria-hidden="true"></div>
+        <div class="toast" id="toast" role="status" hidden></div>
+        <div class="banner" id="banner" hidden></div>
+      </div>
+      <div class="acts" id="gestures" aria-label="Cử chỉ nhanh"></div>
+      <button class="scared" id="scaredBtn" hidden>🕯️ Mình sợ quá · bật đèn</button>
+      <section class="mine" id="mine" aria-live="polite"></section>
+    </section>
+
+    <aside class="book" aria-label="Đội của bạn">
+      <section class="phase-card" id="roundCard"></section>
+      <section class="answer" id="answer" aria-label="Câu trả lời của đội"></section>
+      <section class="guests">
+        <h2>Note trên bàn</h2>
+        <ul class="notes" id="notes"></ul>
+        <form class="say" id="noteForm" autocomplete="off">
+          <label class="sr-only" for="noteInput">Dán một note, tối đa 60 ký tự</label>
+          <input id="noteInput" maxlength="60" placeholder="Dán note cho đồng đội…">
+          <button type="submit" class="say-btn">Dán</button>
+        </form>
+        <p class="note-hint">Note chỉ dán lên bàn, không có trả lời qua lại.</p>
+      </section>
+      <section class="lamps" id="lamps" aria-label="Đèn trên mái quán"></section>
+    </aside>
+  </main>
+  <footer class="foot">Bản thử: chạy trong tab này, không tài khoản, không mạng, không lưu. Đồng đội là nhân vật hư cấu. Sổ khách là hồ sơ hư cấu, không phải ai trong buổi. Không điểm, không xếp hạng.</footer>
+</div>
+
+<div class="shade" id="shade" hidden>
+  <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <header class="m-head"><div><small id="mKicker"></small><h2 id="mTitle"></h2></div><button class="m-close" id="mClose" aria-label="Đóng">×</button></header>
+    <div class="m-body" id="mBody"></div>
+  </section>
+</div>
+
+<script src="../game-lab-14/engine.js"></script>
+<script src="world.js"></script>
+<script src="room.js"></script>
+<script src="event.js"></script>
+<script src="cafe.js"></script>
+<script src="duo.js"></script>
+<script src="doi.js"></script>
+</body>
+</html>

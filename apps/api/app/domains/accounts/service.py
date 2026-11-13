@@ -28,6 +28,7 @@ from app.domains.accounts.postgres import (
 )
 from app.domains.accounts.provider import SupabaseOtpProvider
 from app.domains.accounts.tables import AccountDeviceRow, AccountRow, LoginChallengeRow
+from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
 from app.domains.guest.models import GuestSessionRecord, GuestState, OnboardingStatus
 from app.domains.guest.tables import ConsentRow, GuestCreationRow, GuestSessionRow
 from app.domains.identity.tables import OwnerSessionRow, PrincipalRow
@@ -45,8 +46,11 @@ class AccountService:
         envelope: EnvelopeCipher,
         provider: SupabaseOtpProvider,
         settings: Settings,
+        *,
+        erasure_journal: ErasureJournal | None = None,
     ) -> None:
         self._sessions = sessions
+        self._erasure_journal = erasure_journal
         self._hasher = hasher
         self._envelope = envelope
         self._provider = provider
@@ -585,6 +589,7 @@ class AccountService:
             if not csrf or not self._hasher.verify("guest-csrf", csrf, device.csrf_digest):
                 raise AccountError("LOGIN_CSRF_REJECTED", 403)
             device.revoked_at = current
+            self._journal_revoke(session, device.id, current)
             # Revocation is device-only. The account data clock and other devices
             # are unchanged. The route clears the legacy owner cookie separately.
             await session.execute(
@@ -654,6 +659,7 @@ class AccountService:
             for row in rows:
                 if row.revoked_at is None:
                     row.revoked_at = current
+                    self._journal_revoke(session, row.id, current)
             if rows:
                 await session.execute(
                     delete(LoginChallengeRow).where(
@@ -668,6 +674,11 @@ class AccountService:
                     )
                 )
             return any(row.id == device.id for row in rows)
+
+    def _journal_revoke(self, session: AsyncSession, device_id: UUID, at: datetime) -> None:
+        # Same transaction as the revocation; only a keyed digest of the device id (#206).
+        if self._erasure_journal is not None:
+            self._erasure_journal.record(session, ErasureKind.DEVICE_REVOKED, device_id, at)
 
 
 def _active(guest: GuestSessionRow | None, now: datetime) -> TypeGuard[GuestSessionRow]:

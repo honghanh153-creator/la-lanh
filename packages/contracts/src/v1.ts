@@ -226,6 +226,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/birth-profile/date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Correct Birth Date
+         * @description Correct a saved birth date (US-23). Success is returned only after the old subject is
+         *     gone and every provider send admitted before the change has finished.
+         */
+        put: operations["correct_birth_date_v1_birth_profile_date_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/birth-profile/supplement": {
         parameters: {
             query?: never;
@@ -482,6 +503,80 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/human-tarot/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Human Tarot Availability
+         * @description Public counts and times, so a visitor sees the option without a session being created.
+         *
+         *     Only a valid session adds its own request id; nothing here names anyone else's.
+         */
+        get: operations["human_tarot_availability_v1_human_tarot_availability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/human-tarot/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Human Tarot Request */
+        post: operations["create_human_tarot_request_v1_human_tarot_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/human-tarot/requests/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Human Tarot Request */
+        get: operations["current_human_tarot_request_v1_human_tarot_requests_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/human-tarot/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Human Tarot Request */
+        get: operations["get_human_tarot_request_v1_human_tarot_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        /** Cancel Human Tarot Request */
+        delete: operations["cancel_human_tarot_request_v1_human_tarot_requests__request_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1199,6 +1294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/session/data-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export My Data */
+        post: operations["export_my_data_v1_session_data_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/session/history": {
         parameters: {
             query?: never;
@@ -1262,6 +1374,27 @@ export interface paths {
         put?: never;
         /** Renew Session */
         post: operations["renew_session_v1_session_renew_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/share-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Share Artifacts
+         * @description The session owner's own links, newest first. Never a token (only its hash is stored),
+         *     never the snapshot, never the Daily note it came from.
+         */
+        get: operations["list_share_artifacts_v1_share_artifacts_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1423,7 +1556,7 @@ export interface components {
          * ApproxWindow
          * @enum {string}
          */
-        ApproxWindow: "morning" | "noon" | "afternoon" | "evening" | "night";
+        ApproxWindow: "dawn" | "morning" | "noon" | "afternoon" | "evening" | "night";
         /** Aspect */
         Aspect: {
             /** Applying */
@@ -1473,6 +1606,11 @@ export interface components {
          * @enum {string}
          */
         AuraUnlockLayer: "multi_factor" | "house_arena" | "rising_angles" | "current_sky";
+        /**
+         * AvailabilityReason
+         * @enum {string}
+         */
+        AvailabilityReason: "open" | "full" | "closed" | "already_requested" | "disabled";
         /** AvailableReadingUpdate */
         AvailableReadingUpdate: {
             content: components["schemas"]["ReadingContentProjection"];
@@ -1504,6 +1642,27 @@ export interface components {
              * @constant
              */
             consent_version: "birth-profile-v1";
+        };
+        /**
+         * BirthDateCorrectionRequest
+         * @description US-23: the new date twice (typo check) and the revision fence read from GET.
+         */
+        BirthDateCorrectionRequest: {
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /**
+             * Confirm Birth Date
+             * Format: date
+             */
+            confirm_birth_date: string;
+            /**
+             * Expected Revision
+             * Format: date-time
+             */
+            expected_revision: string;
         };
         /** BirthDateRequest */
         BirthDateRequest: {
@@ -1537,6 +1696,8 @@ export interface components {
              * Format: uuid
              */
             profile_id: string;
+            /** Profile Revision */
+            profile_revision?: string | null;
             /** Resumed */
             resumed: boolean;
             /**
@@ -1772,6 +1933,53 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** DataExport */
+        DataExport: {
+            account: components["schemas"]["ExportAccount"] | null;
+            birth_profile: components["schemas"]["ExportBirthProfile"] | null;
+            /** Consents */
+            consents: components["schemas"]["ExportConsent"][];
+            /** Daily Experiments */
+            daily_experiments: components["schemas"]["ExportDailyExperiment"][];
+            /** Daily Notes */
+            daily_notes: components["schemas"]["ExportDailyNote"][];
+            /**
+             * Format
+             * @default la-lanh-data-export-v1
+             * @constant
+             */
+            format: "la-lanh-data-export-v1";
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            history_retention: components["schemas"]["ExportHistoryRetention"] | null;
+            /** Human Tarot Requests */
+            human_tarot_requests: components["schemas"]["ExportHumanTarotRequest"][];
+            /** La Chung Invites */
+            la_chung_invites: components["schemas"]["ExportLaChungInvite"][];
+            matching: components["schemas"]["ExportMatching"] | null;
+            /** Not Included */
+            not_included: string[];
+            /** Note Feedback */
+            note_feedback: components["schemas"]["ExportNoteFeedback"][];
+            /** Notice */
+            notice: string;
+            profile: components["schemas"]["ExportProfile"];
+            /** Radar Received */
+            radar_received: components["schemas"]["ExportRadarReceived"][];
+            /** Radar Sent */
+            radar_sent: components["schemas"]["ExportRadarSent"][];
+            /** Saved Notes */
+            saved_notes: components["schemas"]["ExportSavedNote"][];
+            /** Share Links */
+            share_links: components["schemas"]["ExportShareLink"][];
+            /** Tarot Sessions */
+            tarot_sessions: components["schemas"]["ExportTarotSession"][];
+            /** Truncated */
+            truncated: string[];
+        };
         /** DateOnlySunResult */
         DateOnlySunResult: {
             /** Candidates */
@@ -1950,6 +2158,509 @@ export interface components {
          * @enum {string}
          */
         ExperimentState: "chosen" | "reflected";
+        /** ExportAccount */
+        ExportAccount: {
+            /** Devices */
+            devices: components["schemas"]["ExportDevice"][];
+            /**
+             * Linked At
+             * Format: date-time
+             */
+            linked_at: string;
+            /** Masked Email */
+            masked_email: string;
+        };
+        /** ExportBirthProfile */
+        ExportBirthProfile: {
+            /** Approx Window */
+            approx_window: string | null;
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /** Birth Time Local */
+            birth_time_local: string | null;
+            /** Birth Time Mode */
+            birth_time_mode: string;
+            /**
+             * Calculated At
+             * Format: date-time
+             */
+            calculated_at: string;
+            /** Calculation */
+            calculation: components["schemas"]["DateOnlySunResult"] | components["schemas"]["NatalChart"];
+            /**
+             * Calculation Kind
+             * @enum {string}
+             */
+            calculation_kind: "date_only_sun" | "natal_chart";
+            /** Place Display Name */
+            place_display_name: string | null;
+            /** Profile Level */
+            profile_level: number;
+            /** Supplement Consent Version */
+            supplement_consent_version: string | null;
+            /** Time Precision */
+            time_precision: string;
+            /** Timezone Id */
+            timezone_id: string | null;
+        };
+        /** ExportConsent */
+        ExportConsent: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /** Purpose */
+            purpose: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Version */
+            version: string;
+        };
+        /** ExportDailyExperiment */
+        ExportDailyExperiment: {
+            /** Background Lens */
+            background_lens: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Outcome */
+            outcome: string | null;
+            /** Reflected At */
+            reflected_at: string | null;
+            /** State */
+            state: string;
+        };
+        /** ExportDailyNote */
+        ExportDailyNote: {
+            /** Body */
+            body: string;
+            /** Context Label */
+            context_label: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Full Body */
+            full_body: string;
+            /** Mood */
+            mood: string | null;
+            /** Mood Checked In At */
+            mood_checked_in_at: string | null;
+            /**
+             * Note Date
+             * Format: date
+             */
+            note_date: string;
+            /** Persona Label */
+            persona_label: string;
+            /** Persona Mode */
+            persona_mode: string;
+            /**
+             * Readings
+             * @default []
+             */
+            readings: components["schemas"]["ExportSavedReading"][];
+            /** Title */
+            title: string;
+        };
+        /** ExportDevice */
+        ExportDevice: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Last Active At
+             * Format: date-time
+             */
+            last_active_at: string;
+            /** Revoked At */
+            revoked_at: string | null;
+        };
+        /** ExportHistoryRetention */
+        ExportHistoryRetention: {
+            /**
+             * Activated At
+             * Format: date-time
+             */
+            activated_at: string;
+            /** Consent Version */
+            consent_version: string;
+        };
+        /**
+         * ExportHumanTarotReading
+         * @description The frozen reading a human reader wrote, once its release time has passed (US-24 R9).
+         */
+        ExportHumanTarotReading: {
+            /** Cards */
+            cards: components["schemas"]["ExportTarotCard"][];
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+            /**
+             * Reader
+             * @constant
+             */
+            reader: "human";
+            /** Reading */
+            reading: string;
+            /** Step */
+            step: string;
+        };
+        /**
+         * ExportHumanTarotRequest
+         * @description The person's own request as the app shows it (US-24 view), never the Sheet copy's state.
+         *
+         *     No request code, Sheet row, slot, delivery state, idempotency/request hash or day tally: those
+         *     are operational, not something the person gave or received.
+         */
+        ExportHumanTarotRequest: {
+            /** Consent Version */
+            consent_version: string;
+            /**
+             * Consented At
+             * Format: date-time
+             */
+            consented_at: string;
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /** Question */
+            question: string | null;
+            reading: components["schemas"]["ExportHumanTarotReading"] | null;
+            /**
+             * Release At
+             * Format: date-time
+             */
+            release_at: string;
+            /** Spread */
+            spread: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "waiting" | "ready" | "late" | "unfulfilled";
+        };
+        /** ExportLaChungInvite */
+        ExportLaChungInvite: {
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Has Response */
+            has_response: boolean;
+            /** Nickname */
+            nickname: string;
+            /** Status */
+            status: string;
+        };
+        /** ExportMatching */
+        ExportMatching: {
+            /** Consents */
+            consents: components["schemas"]["ExportConsent"][];
+            profile: components["schemas"]["ExportMatchingProfile"] | null;
+            /** Verification Status */
+            verification_status: string | null;
+        };
+        /** ExportMatchingProfile */
+        ExportMatchingProfile: {
+            /** Active */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string;
+            /** Gender Identity */
+            gender_identity: string;
+            /** Gender Preference */
+            gender_preference: string;
+            /** Intent */
+            intent: string;
+            /** Joined At */
+            joined_at: string | null;
+            /** Max Age */
+            max_age: number;
+            /** Min Age */
+            min_age: number;
+            /** Region Code */
+            region_code: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Weekly Intent */
+            weekly_intent: string;
+        };
+        /** ExportNoteFeedback */
+        ExportNoteFeedback: {
+            /** Background Lens */
+            background_lens: string | null;
+            /** Choice */
+            choice: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /** ExportProfile */
+        ExportProfile: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Last Active At
+             * Format: date-time
+             */
+            last_active_at: string;
+            /** Onboarding Status */
+            onboarding_status: string;
+            /** State */
+            state: string;
+        };
+        /**
+         * ExportRadarReceived
+         * @description B's own side: B's consent, never the nickname the sender chose for B.
+         */
+        ExportRadarReceived: {
+            /**
+             * Accepted At
+             * Format: date-time
+             */
+            accepted_at: string;
+            /** Consent Version */
+            consent_version: string | null;
+            /** Context */
+            context: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /**
+         * ExportRadarSent
+         * @description A's own side only: the nickname A typed and the request's lifecycle, never B's data.
+         */
+        ExportRadarSent: {
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Mode */
+            mode: string;
+            /** Nickname */
+            nickname: string;
+            /** Permission Attested At */
+            permission_attested_at: string | null;
+            /** Status */
+            status: string;
+            /** Voice */
+            voice: string;
+        };
+        /** ExportReadingEvidence */
+        ExportReadingEvidence: {
+            /** Claims */
+            claims: string[];
+            /** Framework Disclosure */
+            framework_disclosure: string;
+            /** Title */
+            title: string;
+        };
+        /** ExportReadingSections */
+        ExportReadingSections: {
+            /** Companion */
+            companion: string | null;
+            /** Hook */
+            hook: string;
+            /** Manifestation */
+            manifestation: string;
+            /** Micro Action */
+            micro_action: string;
+            /** Thesis */
+            thesis: string;
+            /** Transit */
+            transit: string | null;
+        };
+        /** ExportSavedNote */
+        ExportSavedNote: {
+            /** Body */
+            body: string | null;
+            /** Context Label */
+            context_label: string | null;
+            /** Full Body */
+            full_body: string | null;
+            /** Note Date */
+            note_date: string | null;
+            /** Persona Label */
+            persona_label: string | null;
+            reading: components["schemas"]["ExportSavedReading"] | null;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Title */
+            title: string | null;
+        };
+        /** ExportSavedReading */
+        ExportSavedReading: {
+            /** Disclaimer */
+            disclaimer: string;
+            evidence: components["schemas"]["ExportReadingEvidence"];
+            sections: components["schemas"]["ExportReadingSections"];
+        };
+        /** ExportShareLink */
+        ExportShareLink: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Format */
+            format: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "revoked" | "expired";
+        };
+        /** ExportTarotCard */
+        ExportTarotCard: {
+            /** Card */
+            card: string;
+            /** Position */
+            position: string;
+        };
+        /** ExportTarotPosition */
+        ExportTarotPosition: {
+            /** Card */
+            card: string;
+            /** Everyday Scene */
+            everyday_scene: string;
+            /** Meaning Here */
+            meaning_here: string;
+            /** Position */
+            position: string;
+            /** Reflection Question */
+            reflection_question: string;
+            /** Small Action */
+            small_action: string | null;
+        };
+        /** ExportTarotReading */
+        ExportTarotReading: {
+            /** Closing Prompt */
+            closing_prompt: string;
+            /** Conclusion */
+            conclusion: string | null;
+            /** Disclaimer */
+            disclaimer: string;
+            /** Headline */
+            headline: string;
+            /** Positions */
+            positions: components["schemas"]["ExportTarotPosition"][];
+            /** Summary */
+            summary: string;
+        };
+        /** ExportTarotSession */
+        ExportTarotSession: {
+            /** Cards */
+            cards: components["schemas"]["ExportTarotCard"][];
+            /** Context */
+            context: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Question */
+            question: string;
+            reading: components["schemas"]["ExportTarotReading"] | null;
+            /** Spread */
+            spread: string;
+            /** State */
+            state: string;
+            /** Voice */
+            voice: string;
+        };
         /**
          * FallbackReason
          * @enum {string}
@@ -2018,11 +2729,6 @@ export interface components {
             /** State */
             state: string;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
         /** HealthResponse */
         HealthResponse: {
             /** Api Version */
@@ -2084,6 +2790,112 @@ export interface components {
          * @enum {string}
          */
         HouseSystem: "placidus" | "whole_sign" | "equal";
+        /** HumanTarotAvailability */
+        HumanTarotAvailability: {
+            /** Accepting */
+            accepting: boolean;
+            /**
+             * Closes At
+             * Format: date-time
+             */
+            closes_at: string;
+            /** Consent Version */
+            consent_version: string;
+            /** Current Request Id */
+            current_request_id?: string | null;
+            /** Daily Limit */
+            daily_limit: number;
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            reason: components["schemas"]["AvailabilityReason"];
+            /**
+             * Release At
+             * Format: date-time
+             */
+            release_at: string;
+            /** Remaining */
+            remaining: number;
+        };
+        /** HumanTarotCardPosition */
+        HumanTarotCardPosition: {
+            card: components["schemas"]["TarotCard"];
+            /** Position Key */
+            position_key: string;
+            /** Position Label */
+            position_label: string;
+        };
+        /** HumanTarotCreateRequest */
+        HumanTarotCreateRequest: {
+            /** Consent Version */
+            consent_version: string;
+            context: components["schemas"]["TarotContext"];
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Question */
+            question: string;
+            spread: components["schemas"]["TarotSpread"];
+        };
+        /** HumanTarotRequestView */
+        HumanTarotRequestView: {
+            context: components["schemas"]["TarotContext"];
+            /** Copy Cleared */
+            copy_cleared?: boolean | null;
+            /** Delivery */
+            delivery?: ("pending" | "delivered" | "error") | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /** Question */
+            question?: string | null;
+            /**
+             * Release At
+             * Format: date-time
+             */
+            release_at: string;
+            result?: components["schemas"]["HumanTarotResult"] | null;
+            spread: components["schemas"]["TarotSpread"];
+            status: components["schemas"]["VisibleStatus"];
+        };
+        /**
+         * HumanTarotResult
+         * @description The owner's frozen reading. Never rewritten by the engine or Luna.
+         */
+        HumanTarotResult: {
+            /** Cards */
+            cards: components["schemas"]["HumanTarotCardPosition"][];
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+            /**
+             * Reader
+             * @default human
+             * @constant
+             */
+            reader: "human";
+            /** Reading */
+            reading: string;
+            /** Step */
+            step: string;
+        };
         /**
          * IdentityMode
          * @enum {string}
@@ -2464,8 +3276,6 @@ export interface components {
              * @default Không cần tài khoản, ngày sinh hay danh bạ.
              */
             privacy_note: string;
-            /** Recipient Label */
-            recipient_label: string;
             /** Statements */
             statements: components["schemas"]["PublicStatementResponse"][];
         };
@@ -2488,8 +3298,6 @@ export interface components {
              * @default Người mời không nhìn thấy ngày, giờ hoặc nơi sinh của bạn. Kết quả chỉ mở sau khi bạn tự nhập và đồng ý.
              */
             privacy_note: string;
-            /** Recipient Label */
-            recipient_label: string;
             /**
              * Request Id
              * Format: uuid
@@ -2502,6 +3310,49 @@ export interface components {
             requires_exact_birth_profile: boolean;
             /** Voice */
             voice: string;
+        };
+        /**
+         * PublicRadarResultResponse
+         * @description A pair result as B sees it: never carries A's private label (issue #95).
+         */
+        PublicRadarResultResponse: {
+            /** Compatibility Map */
+            compatibility_map?: {
+                [key: string]: unknown;
+            }[];
+            /** Dimensions */
+            dimensions?: {
+                [key: string]: unknown;
+            }[];
+            /** Disclaimer */
+            disclaimer: string;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Headline */
+            headline: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            mode?: components["schemas"]["RadarMode"] | null;
+            /** Pair Signature */
+            pair_signature?: {
+                [key: string]: unknown;
+            } | null;
+            /** Request Id */
+            request_id?: string | null;
+            /** Sections */
+            sections?: {
+                [key: string]: unknown;
+            }[];
+            /** Strongest Contacts */
+            strongest_contacts?: {
+                [key: string]: unknown;
+            }[];
+            /** Summary */
+            summary: string;
+            /** Version */
+            version: string;
         };
         /** PublicShareArtifactResponse */
         PublicShareArtifactResponse: {
@@ -2653,7 +3504,10 @@ export interface components {
             /** Next Before */
             next_before?: string | null;
         };
-        /** RadarResultResponse */
+        /**
+         * RadarResultResponse
+         * @description Owner (A) views only: adds the label A set to manage the invite.
+         */
         RadarResultResponse: {
             /** Compatibility Map */
             compatibility_map?: {
@@ -3008,6 +3862,43 @@ export interface components {
          * @enum {string}
          */
         ShareFormat: "story_9_16" | "square_1_1";
+        /** ShareLinkListResponse */
+        ShareLinkListResponse: {
+            /** Items */
+            items: components["schemas"]["ShareLinkResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * ShareLinkResponse
+         * @description One of the owner's links: dates, format and status only (US-23).
+         */
+        ShareLinkResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            format: components["schemas"]["ShareFormat"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            status: components["schemas"]["ShareLinkStatus"];
+        };
+        /**
+         * ShareLinkStatus
+         * @enum {string}
+         */
+        ShareLinkStatus: "active" | "revoked" | "expired";
         /** SkyChapterResponse */
         SkyChapterResponse: {
             /** Disclaimer */
@@ -3364,19 +4255,6 @@ export interface components {
          * @enum {string}
          */
         TransitPhase: "approaching" | "exact" | "separating";
-        /** ValidationError */
-        ValidationError: {
-            /** Context */
-            ctx?: Record<string, never>;
-            /** Input */
-            input?: unknown;
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-        };
         /**
          * VerificationStatus
          * @enum {string}
@@ -3387,6 +4265,12 @@ export interface components {
             /** Code */
             code: string;
         };
+        /**
+         * VisibleStatus
+         * @description What the owner of a request sees; decided by the server clock on every read (R9).
+         * @enum {string}
+         */
+        VisibleStatus: "waiting" | "ready" | "late" | "unfulfilled" | "cancelled";
         /**
          * WeeklyIntent
          * @enum {string}
@@ -5053,12 +5937,14 @@ export interface operations {
                     "application/json": components["schemas"]["PlaceResultResponse"][];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
             /** @description Service Unavailable */
             503: {
@@ -5103,13 +5989,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
             /** @description Service Unavailable */
@@ -5159,8 +6045,87 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    correct_birth_date_v1_birth_profile_date_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BirthDateCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BirthRevealResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5261,12 +6226,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
             /** @description Service Unavailable */
             503: {
@@ -5322,12 +6289,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
             /** @description Service Unavailable */
             503: {
@@ -5415,13 +6384,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -5471,12 +6440,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected, or the reading content was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
             /** @description Service Unavailable */
             503: {
@@ -5557,12 +6528,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
         };
     };
@@ -5611,12 +6584,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
         };
     };
@@ -5683,13 +6658,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -5748,12 +6723,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
         };
     };
@@ -5791,13 +6768,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -5849,12 +6826,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
         };
     };
@@ -5905,12 +6884,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
         };
     };
@@ -5961,13 +6942,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6013,13 +6994,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6071,12 +7052,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
         };
     };
@@ -6116,13 +7099,13 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
             /** @description Service Unavailable */
@@ -6167,13 +7150,13 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProblemResponse"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6194,6 +7177,410 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    human_tarot_availability_v1_human_tarot_availability_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanTarotAvailability"];
+                };
+            };
+        };
+    };
+    create_human_tarot_request_v1_human_tarot_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HumanTarotCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanTarotRequestView"];
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    current_human_tarot_request_v1_human_tarot_requests_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanTarotRequestView"];
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    get_human_tarot_request_v1_human_tarot_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanTarotRequestView"];
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+        };
+    };
+    cancel_human_tarot_request_v1_human_tarot_requests__request_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Human Tarot request was rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
+                };
+            };
+            /** @description Human Tarot request was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Code */
+                        code: string;
+                        /** Status */
+                        status: number;
+                        /** Title */
+                        title: string;
+                        /**
+                         * Type
+                         * @default about:blank
+                         */
+                        type: string;
+                    };
                 };
             };
         };
@@ -6232,13 +7619,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6283,13 +7670,13 @@ export interface operations {
                     "application/json": components["schemas"]["CurrentSkyResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6338,13 +7725,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected, or the reading content was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
             /** @description Service Unavailable */
@@ -6402,13 +7789,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected, or the reading content was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
             /** @description Service Unavailable */
@@ -6478,12 +7865,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
         };
     };
@@ -6516,13 +7905,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6556,13 +7945,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6587,13 +7976,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6618,13 +8007,13 @@ export interface operations {
                     "application/json": components["schemas"]["OwnerResultResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6649,13 +8038,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6680,13 +8069,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6734,12 +8123,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
         };
     };
@@ -6775,13 +8166,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6831,13 +8222,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6887,13 +8278,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6950,13 +8341,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -6988,13 +8379,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7023,13 +8414,13 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7065,13 +8456,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7096,13 +8487,13 @@ export interface operations {
                     "application/json": components["schemas"]["PublicRadarInviteResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7130,16 +8521,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RadarResultResponse"];
+                    "application/json": components["schemas"]["PublicRadarResultResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7166,13 +8557,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7197,13 +8588,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7225,16 +8616,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RadarResultResponse"];
+                    "application/json": components["schemas"]["PublicRadarResultResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7261,13 +8652,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7292,13 +8683,13 @@ export interface operations {
                     "application/json": components["schemas"]["PublicRadarInviteResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7352,13 +8743,13 @@ export interface operations {
                     };
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
             /** @description Radar capacity reached or admission rate limited */
@@ -7408,13 +8799,13 @@ export interface operations {
                     "application/json": components["schemas"]["RadarReceivedListResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7436,16 +8827,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RadarResultResponse"];
+                    "application/json": components["schemas"]["PublicRadarResultResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7470,13 +8861,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7503,13 +8894,13 @@ export interface operations {
                     "application/json": components["schemas"]["RadarInviteResponse"][];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7563,13 +8954,13 @@ export interface operations {
                     };
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
             /** @description Radar capacity reached or admission rate limited */
@@ -7618,13 +9009,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7651,13 +9042,13 @@ export interface operations {
                     "application/json": components["schemas"]["RadarInviteResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7682,13 +9073,13 @@ export interface operations {
                     "application/json": components["schemas"]["RadarResultResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7713,13 +9104,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7778,13 +9169,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
             /** @description Service Unavailable */
@@ -7850,12 +9241,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Content */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
             };
             /** @description Service Unavailable */
             503: {
@@ -7922,13 +9315,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7962,13 +9355,13 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -7995,13 +9388,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8075,13 +9468,13 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8124,14 +9517,73 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
+            };
+        };
+    };
+    export_my_data_v1_session_data_export_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataExport"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8153,13 +9605,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8208,13 +9660,13 @@ export interface operations {
                     "application/json": components["schemas"]["HistoryRetentionStatus"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8261,13 +9713,13 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8310,13 +9762,52 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    list_share_artifacts_v1_share_artifacts_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareLinkListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request input was rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8362,13 +9853,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8400,13 +9891,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8435,13 +9926,13 @@ export interface operations {
                     "application/json": components["schemas"]["TarotSessionView"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8466,13 +9957,13 @@ export interface operations {
                     "application/json": components["schemas"]["TarotSessionView"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8497,13 +9988,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -8534,13 +10025,13 @@ export interface operations {
                     "application/json": components["schemas"]["TarotSessionView"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Request input was rejected */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/problem+json": components["schemas"]["ProblemResponse"];
                 };
             };
         };

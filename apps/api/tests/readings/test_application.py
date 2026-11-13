@@ -519,6 +519,43 @@ async def test_authorized_natal_uses_generic_rewrite_queue_instead_of_legacy_que
 
 
 @pytest.mark.asyncio
+async def test_jyotish_daily_without_graha_drishti_publishes_a_note_every_day() -> None:
+    """PL-3 (#180): this chart used to be rejected on every day, so Daily always fell back."""
+    chart = NatalChartEngine().calculate_chart(
+        ChartInput(
+            # Synthetic (audit seed 20261103): every body sits in Aries to Gemini.
+            utc_datetime=datetime(2002, 4, 16, 15, 20, tzinfo=UTC),
+            latitude=15.6364,
+            longitude=104.2697,
+        ),
+        CalculationConfig.jyotish_recommended(),
+    )
+    assert chart.graha_drishti == ()
+    repository = MemoryReadingRepository()
+    service = ReadingApplicationService(repository, NatalChartEngine())
+    guest_id = UUID("20000000-0000-4000-8000-000000000180")
+    snapshot = BirthSnapshotRecord(
+        id=UUID("10000000-0000-4000-8000-000000000180"),
+        guest_id=guest_id,
+        profile_id=UUID("30000000-0000-4000-8000-000000000180"),
+        input_hash=b"jyotish",
+        birth_date_ciphertext="encrypted",
+        result=chart,
+        created_at=NOW,
+    )
+
+    for day in (3, 4, 5):
+        projection = await service.project(
+            guest_id=guest_id,
+            snapshot=snapshot,
+            purpose=ReadingPurpose.DAILY_NOTE,
+            requested_at=datetime(2026, 11, day, 1, tzinfo=UTC),
+        )
+        assert projection.active.mode is PlanMode.FULL_SYNTHESIS
+        assert len(projection.active.evidence.claims) >= 2
+
+
+@pytest.mark.asyncio
 async def test_rejected_renderer_cannot_publish_a_revision_or_projection() -> None:
     class RejectingRenderer(DeterministicVietnameseRenderer):
         def render(self, plan):  # type: ignore[no-untyped-def]
@@ -849,7 +886,8 @@ async def test_projection_scope_separates_chart_calculation_configs() -> None:
 
 
 @pytest.mark.asyncio
-async def test_approximate_chart_is_limited_without_houses_or_empty_transit() -> None:
+async def test_approximate_chart_reads_time_stable_factors_without_houses_or_transit() -> None:
+    """#143 E1 (31.10.2026): an approximate time reads planet signs and aspects; it was limited."""
     repository = MemoryReadingRepository()
     engine = NatalChartEngine()
     service = ReadingApplicationService(repository, engine)
@@ -879,11 +917,11 @@ async def test_approximate_chart_is_limited_without_houses_or_empty_transit() ->
         requested_at=NOW,
     )
 
-    assert projection.active.mode is PlanMode.LIMITED
+    assert projection.active.mode is PlanMode.FULL_SYNTHESIS
     assert projection.active.precision is TimePrecision.APPROXIMATE
-    assert projection.aura_transition.profile_readiness is ProfileReadiness.LIMITED
-    assert projection.aura_transition.transition_id is None
-    assert projection.aura_transition.unlock_layers == ()
+    # Only the multi-factor layer opens; house and rising layers need an exact time.
+    assert projection.aura_transition.profile_readiness is ProfileReadiness.AURA_READY
+    assert projection.aura_transition.unlock_layers == (AuraUnlockLayer.MULTI_FACTOR,)
     assert projection.active.experiment is None
     assert projection.active.sections.transit is None
     serialized = projection.active.model_dump_json().lower()
@@ -916,6 +954,30 @@ async def test_transit_engine_failure_keeps_deterministic_natal_content() -> Non
         AuraUnlockLayer.MULTI_FACTOR,
         AuraUnlockLayer.HOUSE_ARENA,
     )
+
+
+@pytest.mark.asyncio
+async def test_exact_reading_detail_names_the_sourced_house_meanings() -> None:
+    # HM-2 (#190, PR #215): the non-Daily route renders the default lens, so the house's own
+    # sourced meanings must reach that lens too, not only the Daily growth/regulation copy.
+    from app.domains.readings.house_meanings import house_phrase
+
+    repository = MemoryReadingRepository()
+    engine = NatalChartEngine()
+    service = ReadingApplicationService(repository, engine)
+    guest_id = UUID("20000000-0000-4000-8000-000000000215")
+    profile_id = UUID("30000000-0000-4000-8000-000000000215")
+    snapshot = _exact_snapshot(guest_id, profile_id, engine)
+
+    projection = await service.project(
+        guest_id=guest_id,
+        snapshot=snapshot,
+        purpose=ReadingPurpose.READING_DETAIL,
+        requested_at=NOW.replace(day=8),
+    )
+
+    text = str(projection.active.sections)
+    assert any(f"chuyện {house_phrase(house)}" in text for house in range(1, 13))
 
 
 @pytest.mark.asyncio

@@ -24,6 +24,9 @@ class ErasureKind(StrEnum):
     HISTORY_CLEARED = "history_cleared"
     BIRTH_SUPPLEMENT_REMOVED = "birth_supplement_removed"
     BIRTH_TIME_DOWNGRADED = "birth_time_downgraded"
+    # US-23: a corrected birth date replaced the subject. Keyed by the guest id, empty scope: no
+    # date or value. Replaying it on a pre-correction dump leaves no active subject (fail closed).
+    BIRTH_DATE_REPLACED = "birth_date_replaced"
     RADAR_DELETED = "radar_deleted"
     RADAR_WITHDRAWN = "radar_withdrawn"
     CONSENT_REVOKED = "consent_revoked"
@@ -42,6 +45,15 @@ class ErasureKind(StrEnum):
     LA_CHUNG_RESULT_DELETED = "la_chung_result_deleted"
     EXPERIMENT_UNDONE = "experiment_undone"
     RADAR_INVITE_REVOKED = "radar_invite_revoked"
+    # Human Tarot (US-24): cancel or delete of one request; replay also clears its Sheet row.
+    HUMAN_TAROT_REQUEST_CANCELLED = "human_tarot_request_cancelled"
+    # A request removed by a manual history clear. Journaled per request, beside the guest's
+    # HISTORY_CLEARED, because the clear selects by status and a snapshot taken earlier can hold
+    # the same request in a status that clear would skip (Codex #126 P1).
+    HUMAN_TAROT_REQUEST_CLEARED = "human_tarot_request_cleared"
+    # Account device sign-out (logout, revoke one, revoke others), keyed by the device row id,
+    # empty scope. Replay keeps the device revoked, so a restore never revives its session (#206).
+    DEVICE_REVOKED = "device_revoked"
 
 
 class ErasureJournal:

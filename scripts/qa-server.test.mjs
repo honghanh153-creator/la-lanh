@@ -9,6 +9,7 @@ import {
   createQaServer,
   DEFAULT_QA_API_PORT,
   DEFAULT_QA_WEB_PORT,
+  loopbackApiTarget,
   prepareQaDatabase,
 } from "./qa-server.mjs";
 
@@ -145,4 +146,66 @@ test("a scheme-relative request target never leaves the configured API origin", 
   assert.equal(status, 200);
   assert.deepEqual(seen.other, []);
   assert.deepEqual(seen.api, ["/v1/session"]);
+});
+
+test("the QA proxy upstream is fixed to an http loopback origin", () => {
+  assert.deepEqual(
+    { ...loopbackApiTarget("http://127.0.0.1:8010") },
+    { hostname: "127.0.0.1", port: 8010, host: "127.0.0.1:8010" },
+  );
+  assert.equal(loopbackApiTarget("http://localhost:8010").hostname, "localhost");
+  assert.equal(loopbackApiTarget("http://[::1]:8010").hostname, "::1");
+  assert.equal(loopbackApiTarget("http://127.0.0.1").port, 80);
+  for (const origin of [
+    "https://127.0.0.1:8010",
+    "http://example.com:8010",
+    "http://127.0.0.2:8010",
+    "http://10.0.0.1:8010",
+    "http://user:pass@127.0.0.1:8010",
+    "http://127.0.0.1:8010/v1",
+    "http://127.0.0.1:8010/?x=1",
+    "file:///etc/passwd",
+    "not a url",
+  ]) {
+    assert.throws(() => loopbackApiTarget(origin), TypeError, origin);
+    assert.throws(() => createQaServer({ distDir: "/nonexistent", apiOrigin: origin }), TypeError, origin);
+  }
+});
+
+test("absolute-form request targets keep only their path on the loopback API", async (context) => {
+  const distDir = await mkdtemp(join(tmpdir(), "la-lanh-qa-"));
+  await writeFile(join(distDir, "index.html"), "<main>Lá Lành QA</main>");
+  const seen = { api: [], other: [] };
+  const api = createServer((request, response) => {
+    seen.api.push({ url: request.url, host: request.headers.host });
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end("{}");
+  });
+  const other = createServer((request, response) => {
+    seen.other.push(request.url);
+    response.end("{}");
+  });
+  await new Promise((resolve) => api.listen(0, "127.0.0.1", resolve));
+  await new Promise((resolve) => other.listen(0, "127.0.0.1", resolve));
+  const apiPort = api.address().port;
+  const qa = createQaServer({ distDir, apiOrigin: `http://127.0.0.1:${apiPort}` });
+  await new Promise((resolve) => qa.listen(0, "127.0.0.1", resolve));
+  context.after(async () => {
+    await Promise.all([api, other, qa].map((server) => new Promise((resolve) => server.close(resolve))));
+    await rm(distDir, { recursive: true, force: true });
+  });
+
+  const { request: httpRequest } = await import("node:http");
+  const status = await new Promise((resolve, reject) => {
+    const outgoing = httpRequest({
+      host: "127.0.0.1",
+      port: qa.address().port,
+      path: `http://127.0.0.1:${other.address().port}/v1/ready?probe=1`,
+    }, (response) => { response.resume(); response.on("end", () => resolve(response.statusCode)); });
+    outgoing.on("error", reject);
+    outgoing.end();
+  });
+  assert.equal(status, 200);
+  assert.deepEqual(seen.other, []);
+  assert.deepEqual(seen.api, [{ url: "/v1/ready?probe=1", host: `127.0.0.1:${apiPort}` }]);
 });

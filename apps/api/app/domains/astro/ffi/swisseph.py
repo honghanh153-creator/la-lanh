@@ -28,6 +28,14 @@ class SwissEphemerisError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class NativeEclipse:
+    """Type flags (``SE_ECL_*``) and the UT Julian day of maximum eclipse."""
+
+    flags: int
+    maximum_julian_day_ut: float
+
+
+@dataclass(frozen=True)
 class NativePosition:
     longitude: float
     latitude: float
@@ -132,6 +140,19 @@ class SwissEphemerisNative:
             ctypes.POINTER(ctypes.c_double),
         ]
         self._library.swe_houses_ex.restype = ctypes.c_int
+        for eclipse_search in (
+            self._library.swe_sol_eclipse_when_glob,
+            self._library.swe_lun_eclipse_when,
+        ):
+            eclipse_search.argtypes = [
+                ctypes.c_double,
+                ctypes.c_int32,
+                ctypes.c_int32,
+                ctypes.POINTER(ctypes.c_double),
+                ctypes.c_int32,
+                ctypes.c_char_p,
+            ]
+            eclipse_search.restype = ctypes.c_int32
         self._library.swe_version.argtypes = [ctypes.c_char_p]
         self._library.swe_version.restype = ctypes.c_char_p
         self._library.swe_close.argtypes = []
@@ -219,3 +240,24 @@ class SwissEphemerisNative:
             armc=float(angles[2]),
             vertex=float(angles[3]),
         )
+
+    def next_solar_eclipse(self, julian_day_ut: float) -> NativeEclipse:
+        """First solar eclipse anywhere on Earth after ``julian_day_ut`` (any type)."""
+        return self._eclipse_when("swe_sol_eclipse_when_glob", julian_day_ut)
+
+    def next_lunar_eclipse(self, julian_day_ut: float) -> NativeEclipse:
+        """First lunar eclipse after ``julian_day_ut``, penumbral ones included."""
+        return self._eclipse_when("swe_lun_eclipse_when", julian_day_ut)
+
+    def _eclipse_when(self, function_name: str, julian_day_ut: float) -> NativeEclipse:
+        times = (ctypes.c_double * 10)()
+        error = ctypes.create_string_buffer(ERROR_BUFFER_SIZE)
+        with self._lock:
+            self._ensure_thread_ephemeris()
+            flags = getattr(self._library, function_name)(
+                julian_day_ut, SEFLG_SWIEPH, 0, times, 0, error
+            )
+        if flags < 0:
+            message = error.value.decode(errors="replace") or f"{function_name} failed"
+            raise SwissEphemerisError(message)
+        return NativeEclipse(flags=int(flags), maximum_julian_day_ut=float(times[0]))

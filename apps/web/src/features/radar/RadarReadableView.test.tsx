@@ -46,7 +46,7 @@ const readable: RadarResult = {
       topics: [], depth: "focused", highlights: [], scene: null, perspectives: [], observation: null, evidence: [],
     },
     {
-      key: "why", layer: "more", label: "Vì sao ra kết quả này?", title: "Những điểm chạm Lá đã dùng",
+      key: "why", layer: "more", label: "Vì sao ra kết quả này?", title: "Những điều Lá đã dựa vào",
       body: "Mỗi dòng là một điểm chạm giữa hai lá số.",
       factors: [{
         key: "communication", label: "Cách nói chuyện", level: "good", level_label: "hợp",

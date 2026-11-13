@@ -1,9 +1,13 @@
+import logging
+from collections.abc import Callable, Coroutine
 from datetime import date, datetime
-from typing import Annotated, Literal, cast
+from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Header, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domains.astro.models import DateOnlySunResult, NatalChart
@@ -15,13 +19,56 @@ from app.domains.guest.models import OnboardingStatus
 from app.domains.guest.service import GuestSessionService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 
-router = APIRouter()
+
+class PrivateBirthRoute(APIRoute):
+    """Birth input never comes back in an error (US-23 AC10, Codex r55).
+
+    FastAPI's default 422 body repeats the submitted fields, birth dates and times included, for a
+    missing field, a malformed value or an extra key. Every birth route answers one fixed code
+    instead, like the account routes.
+    """
+
+    def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
+        original = super().get_route_handler()
+
+        async def safe(request: Request) -> Response:
+            try:
+                return await original(request)
+            except RequestValidationError:
+                problem = JSONResponse(
+                    status_code=422,
+                    content={
+                        "type": "about:blank",
+                        "title": "Birth chart request was rejected",
+                        "status": 422,
+                        "code": "BIRTH_INPUT_INVALID",
+                    },
+                    media_type="application/problem+json",
+                )
+                problem.headers["Cache-Control"] = "no-store, max-age=0"
+                return problem
+
+        return safe
+
+
+router = APIRouter(route_class=PrivateBirthRoute)
+logger = logging.getLogger(__name__)
 
 
 class BirthDateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     birth_date: date
+
+
+class BirthDateCorrectionRequest(BaseModel):
+    """US-23: the new date twice (typo check) and the revision fence read from GET."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    birth_date: date
+    confirm_birth_date: date
+    expected_revision: datetime
 
 
 class BirthRevealResponse(BaseModel):
@@ -32,6 +79,8 @@ class BirthRevealResponse(BaseModel):
     calculation: DateOnlySunResult | NatalChart
     created_at: datetime
     resumed: bool
+    # Opaque revision fence for PUT /birth-profile/date (the profile's last update time).
+    profile_revision: datetime | None = None
 
 
 class PlaceResultResponse(BaseModel):
@@ -128,6 +177,7 @@ def _response(reveal: BirthReveal) -> BirthRevealResponse:
         calculation=reveal.result,
         created_at=reveal.created_at,
         resumed=reveal.resumed,
+        profile_revision=reveal.profile_revision,
     )
 
 
@@ -168,6 +218,43 @@ async def create_birth_profile(
         )
     except (BirthDomainError, GuestDomainError) as error:
         return _problem(error)
+    return _response(reveal)
+
+
+@router.put(
+    "/birth-profile/date",
+    response_model=BirthRevealResponse,
+    responses={401: {}, 403: {}, 404: {}, 409: {}, 422: {}, 429: {}, 503: {}},
+)
+async def correct_birth_date(
+    body: BirthDateCorrectionRequest,
+    request: Request,
+    response: Response,
+    csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
+) -> BirthRevealResponse | Response:
+    """Correct a saved birth date (US-23). Success is returned only after the old subject is
+    gone and every provider send admitted before the change has finished."""
+
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    settings = request.app.state.settings
+    token = request.cookies.get(settings.guest_cookie_name)
+    try:
+        require_trusted_origin(request, trusted_origins(request))
+        guest = await _guest_service(request).verify_csrf(token, csrf_token)
+        await _guest_service(request).require_basic_birth_consent(guest.id)
+        reveal = await _birth_service(request).correct_date(
+            guest_id=guest.id,
+            birth_date=body.birth_date,
+            confirm_birth_date=body.confirm_birth_date,
+            expected_revision=body.expected_revision,
+        )
+    except (BirthDomainError, GuestDomainError) as error:
+        # Event name and result code only: never a date, a guest id or a chart value (AC10).
+        logger.info("profile date edit rejected code=%s", error.code)
+        problem = _problem(error)
+        problem.headers["Cache-Control"] = "no-store, max-age=0"
+        return problem
+    logger.info("profile date edit accepted")
     return _response(reveal)
 
 

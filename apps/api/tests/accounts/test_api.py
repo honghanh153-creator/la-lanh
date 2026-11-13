@@ -86,7 +86,7 @@ def test_tarot_guest_cannot_store_dob_until_separate_birth_consent(tmp_path: Pat
         ).json()
         old_cookie = client.cookies.get("la_lanh_guest")
         csrf = session["csrf_token"]
-        data = {"birth_date": "1990-03-15"}
+        data = {"birth_date": "1991-03-08"}
         denied = client.post("/v1/birth-profile", headers=headers(csrf), json=data)
         assert denied.status_code == 403
         assert denied.json()["code"] == "BIRTH_CONSENT_REQUIRED"

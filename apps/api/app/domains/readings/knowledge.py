@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from threading import Lock
 
 from app.domains.astro.models import Tradition
+from app.domains.readings.house_meanings import house_phrase
 from app.domains.readings.interpretive_lenses import (
     CURRENT_FORCES,
     METHODOLOGY_VERSION,
@@ -376,54 +377,26 @@ SIGNS: dict[str, SignMeaning] = {
 }
 
 
+# One everyday scene per house; the scene is not a house label. Which life areas a house names
+# comes from the sourced meanings in ``house_meanings`` (plan 1.1, N-1/N-3, HM-2): every house
+# keeps its own set, house 5 opens with joy and ends with children in the broad form.
+_HOUSE_SCENES: dict[int, str] = {
+    1: "khi vừa xuất hiện ở một nhóm mới hoặc phải tự giới thiệu mình",
+    2: "khi định giá công sức, mua sắm hoặc quyết định giữ lại điều gì",
+    3: "khi nhắn một câu quan trọng, học điều mới hoặc xử lý quá nhiều thông tin",
+    4: "khi về nhà, ở cạnh người thân hoặc cần một chỗ thật sự được thả lỏng",
+    5: "khi muốn làm điều vui chỉ vì nó vui, không vì thành tích",
+    6: "khi lịch kín, việc vụn tăng hoặc cơ thể bắt đầu mệt rõ",
+    7: "khi hai người cần nói rõ kỳ vọng thay vì chờ nhau tự hiểu",
+    8: "khi phải chia sẻ điều riêng, vay-mượn hoặc bàn về ranh giới sâu hơn",
+    9: "khi một trải nghiệm mới làm bạn xem lại điều mình từng tin chắc",
+    10: "khi nhận trách nhiệm, trình bày năng lực hoặc chọn thứ muốn xây lâu dài",
+    11: "trong quan hệ với một nhóm, khi muốn thuộc về mà vẫn giữ tiếng nói riêng",
+    12: "khi cần rút bớt kích thích để nghe xem mình đang mệt, buồn hay chỉ quá tải",
+}
+
 HOUSES: dict[int, HouseMeaning] = {
-    1: HouseMeaning(
-        "cách bạn bước vào tình huống",
-        "khi vừa xuất hiện ở một nhóm mới hoặc phải tự giới thiệu mình",
-    ),
-    2: HouseMeaning(
-        "tiền bạc, nguồn lực và cảm giác đủ",
-        "khi định giá công sức, mua sắm hoặc quyết định giữ lại điều gì",
-    ),
-    3: HouseMeaning(
-        "giao tiếp và việc học hằng ngày",
-        "khi nhắn một câu quan trọng, học điều mới hoặc xử lý quá nhiều thông tin",
-    ),
-    4: HouseMeaning(
-        "đời sống riêng và nơi bạn hạ cảnh giác",
-        "khi về nhà, ở cạnh người thân hoặc cần một chỗ thật sự được thả lỏng",
-    ),
-    5: HouseMeaning(
-        "niềm vui, sáng tạo và hẹn hò", "khi muốn làm điều vui chỉ vì nó vui, không vì thành tích"
-    ),
-    6: HouseMeaning(
-        "công việc thường ngày và cách chăm cơ thể",
-        "khi lịch kín, việc vụn tăng hoặc cơ thể bắt đầu mệt rõ",
-    ),
-    7: HouseMeaning(
-        "quan hệ một-một và cách thương lượng",
-        "khi hai người cần nói rõ kỳ vọng thay vì chờ nhau tự hiểu",
-    ),
-    8: HouseMeaning(
-        "tin cậy, thân mật và nguồn lực chung",
-        "khi phải chia sẻ điều riêng, vay-mượn hoặc bàn về ranh giới sâu hơn",
-    ),
-    9: HouseMeaning(
-        "niềm tin, học xa và góc nhìn lớn",
-        "khi một trải nghiệm mới làm bạn xem lại điều mình từng tin chắc",
-    ),
-    10: HouseMeaning(
-        "hướng nghề nghiệp và vai trò công khai",
-        "khi nhận trách nhiệm, trình bày năng lực hoặc chọn thứ muốn xây lâu dài",
-    ),
-    11: HouseMeaning(
-        "quan hệ bạn bè, cộng đồng và kế hoạch tương lai",
-        "trong quan hệ với một nhóm, khi muốn thuộc về mà vẫn giữ tiếng nói riêng",
-    ),
-    12: HouseMeaning(
-        "đời sống bên trong và khoảng nghỉ",
-        "khi cần rút bớt kích thích để nghe xem mình đang mệt, buồn hay chỉ quá tải",
-    ),
+    house: HouseMeaning(house_phrase(house), scene) for house, scene in _HOUSE_SCENES.items()
 }
 
 
@@ -902,11 +875,22 @@ def vibe_frame(plan: ReadingPlan) -> InterpretationFrame:
 def full_frame(plan: ReadingPlan) -> InterpretationFrame:
     by_id = {factor.id: factor for factor in plan.factors}
     hero = next((by_id[ref] for ref in plan.hero_factor_refs if ref in by_id), plan.factors[0])
-    body_refs = hero.child_refs or tuple(
-        factor.id
-        for factor in plan.factors
-        if factor.kind is FactorKind.PLANET_PLACEMENT
-        and set(factor.subjects).intersection(hero.subjects)
+    # A placement-only plan (approximate birth time, #143 E1) names an independent pair of
+    # placements as its heroes; both must be cited, or the evidence gate rejects the reading.
+    hero_placements = tuple(
+        ref
+        for ref in plan.hero_factor_refs
+        if ref in by_id and by_id[ref].kind is FactorKind.PLANET_PLACEMENT
+    )
+    body_refs = hero.child_refs or (
+        hero_placements
+        if hero.kind is FactorKind.PLANET_PLACEMENT and len(hero_placements) > 1
+        else tuple(
+            factor.id
+            for factor in plan.factors
+            if factor.kind is FactorKind.PLANET_PLACEMENT
+            and set(factor.subjects).intersection(hero.subjects)
+        )
     )
     placements = [
         by_id[ref]
@@ -1075,7 +1059,8 @@ def _lens_copy(
 ) -> tuple[str, str, str]:
     # These objects come from the immutable interpretation catalog. Keeping this
     # assembly here makes the semantic frame auditable before any prose renderer.
-    arena = context[1].arena if context else "tình huống này"
+    # A house names a set of areas ("a, b hay c"), so it reads as "chuyện a, b hay c".
+    arena = f"chuyện {context[1].arena}" if context else "tình huống này"
     if lens is InterpretiveLens.RELATIONSHIPS:
         hook = f"Trong quan hệ, bạn vừa muốn {hook_need_a}, vừa muốn {hook_need_b}."
         manifestation = (
@@ -1105,7 +1090,7 @@ def _lens_copy(
             f"Bạn {element_a.rhythm}. Khi quá tải, bạn dễ {element_a.overload}."
         )
         action = (
-            f"Trước khi xử lý chuyện ở {context[1].arena if context else 'tình huống này'}, "
+            f"Trước khi xử lý {arena if context else 'chuyện ở tình huống này'}, "
             f"thử {perspective_a.regulation}. Chỉ cần xem bạn có bớt căng không."
         )
     elif lens is InterpretiveLens.COMMUNICATION:
@@ -1134,8 +1119,16 @@ def _lens_copy(
         )
     else:
         hook = f"Điểm khó không phải chọn một bên: bạn cần cả {hook_need_a} lẫn {hook_need_b}."
+        # The default lens is what non-Daily readings render, so it names the house's own
+        # sourced meanings too (HM-2, PR #215); Daily replaces this prose with its own scene.
+        # The house list and the scene are two sentences so neither passes A8's 25 syllables.
+        where = (
+            f"Trong {arena}, điều này thường xảy ra. Nhất là {context_phrase}."
+            if context
+            else f"Điều này thường xảy ra {context_phrase}."
+        )
         manifestation = (
-            f"Điều này thường xảy ra {context_phrase}. Bạn có thể {default_reaction}; "
+            f"{where} Bạn có thể {default_reaction}; "
             f"bên dưới thường là phản xạ {perspective_a.protection}."
         )
         action = f"Thử thế này: {planet_a.action}. Chỉ quan sát phản ứng, không chấm điểm mình."
@@ -1191,26 +1184,6 @@ def _lens_copy(
         manifestation,
         f"{action_variants[action_slot]} {reflection}",
     )
-
-
-def _short_arena(context: tuple[DerivedFactor, HouseMeaning] | None) -> str:
-    if context is None:
-        return "chuyện hôm nay"
-    house = int(_parts(context[0])[3])
-    return {
-        1: "cách bạn xuất hiện",
-        2: "nguồn lực",
-        3: "giao tiếp",
-        4: "đời sống riêng",
-        5: "hẹn hò",
-        6: "công việc",
-        7: "quan hệ",
-        8: "ranh giới",
-        9: "niềm tin",
-        10: "công việc",
-        11: "quan hệ",
-        12: "đời sống riêng",
-    }[house]
 
 
 def _context_phrase(

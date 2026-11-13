@@ -151,7 +151,7 @@ describe("RadarResultView", () => {
     expect(screen.getByText("Bạn có thể tạo tín hiệu này")).toBeInTheDocument();
     expect(screen.getByText("Vì sao có con số này?")).toBeInTheDocument();
     expect(screen.getAllByText("Vì sao Lá đọc vậy?")).toHaveLength(4);
-    expect(screen.getAllByText("Giữa hai chart").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Giữa hai lá số").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Mercury của bạn tạo góc tam hợp với Mặt Trăng của người kia.").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Mặt Trăng của bạn tạo góc lục hợp với Mercury của người kia.")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Tiến độ Radar" })).toBeInTheDocument();
@@ -184,6 +184,62 @@ describe("RadarResultView", () => {
     render(<MemoryRouter><RadarResultView result={legacyResult} /></MemoryRouter>);
 
     expect(screen.getByText("Nói đúng nhịp là bắt được ý khá nhanh")).toBeInTheDocument();
-    expect(screen.getByText("Chart nào tạo ra điều này?")).toBeInTheDocument();
+    expect(screen.getByText("Điểm chạm nào tạo ra điều này?")).toBeInTheDocument();
+  });
+
+  it("labels the compatibility map in Vietnamese", () => {
+    const { container } = render(<MemoryRouter><RadarResultView result={result} /></MemoryRouter>);
+
+    const heading = container.querySelector(".radar-compatibility-map .radar-section-heading");
+    expect(heading).toHaveTextContent("Bản đồ để hiểu nhau");
+    expect(heading).not.toHaveTextContent(/compatibility map/i);
+  });
+
+  it("explains legacy dimensions without the English words contact or chart", () => {
+    const v1Result: RadarResult = {
+      version: "radar-result-v1",
+      headline: "Hai bạn bắt sóng theo hai nhịp khác nhau.",
+      summary: "Có lực hút và cũng có điểm cần nói rõ.",
+      dimensions: [
+        { key: "communication", label: "Giao tiếp", signal: "Có tín hiệu", body: "Synthetic body", evidence_ids: ["syn:a", "syn:b"] },
+        { key: "emotion", label: "Cảm xúc", signal: "Chưa rõ", body: "Synthetic body", evidence_ids: [] },
+      ],
+      strongest_contacts: [],
+      disclaimer: "Synthetic only",
+    };
+
+    const { container } = render(<MemoryRouter><RadarResultView result={v1Result} /></MemoryRouter>);
+
+    expect(screen.getByText(/Dựa trên 2 điểm chạm giữa hai lá số\./)).toBeInTheDocument();
+    expect(screen.getByText("Lớp này chưa có đủ điểm chạm mạnh để kết luận.")).toBeInTheDocument();
+    const explanations = Array.from(container.querySelectorAll(".radar-dimensions details")).map((node) => node.textContent ?? "");
+    expect(explanations).toHaveLength(2);
+    for (const text of explanations) expect(text).not.toMatch(/\bcontact\b|\bchart\b/i);
+  });
+
+  it("names evidence sources and the evidence disclosure without the English word chart", () => {
+    const legacyResult: RadarResult = {
+      ...result,
+      sections: [{
+        key: "fit",
+        label: "Điểm hợp",
+        title: "Synthetic title",
+        body: "Synthetic body",
+        evidence: [
+          { evidence_id: "syn:a", source: "synastry", plain: "Synthetic synastry line.", technical: {} },
+          { evidence_id: "overlay:a", source: "house_overlay", plain: "Synthetic overlay line.", technical: {} },
+          { evidence_id: "comp:a", source: "composite_midpoint", plain: "Synthetic composite line.", technical: {} },
+        ],
+      }],
+    };
+
+    const { container } = render(<MemoryRouter><RadarResultView result={legacyResult} /></MemoryRouter>);
+
+    expect(screen.getByText("Điểm chạm nào tạo ra điều này?")).toBeInTheDocument();
+    expect(screen.getAllByText("Giữa hai lá số").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Nhịp lá số chung").length).toBeGreaterThanOrEqual(1);
+    const disclosures = Array.from(container.querySelectorAll(".radar-evidence-disclosure"));
+    expect(disclosures.length).toBeGreaterThanOrEqual(1);
+    for (const node of disclosures) expect(node.textContent ?? "").not.toMatch(/\bchart\b/i);
   });
 });

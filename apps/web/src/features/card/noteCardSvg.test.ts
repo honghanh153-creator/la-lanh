@@ -37,12 +37,12 @@ describe("note card export", () => {
   });
 
   it("escapes content and excludes unrelated private data", () => {
-    const privateInput = { ...note, title: "<script> & câu thử", birth_date: "1990-03-15" };
+    const privateInput = { ...note, title: "<script> & câu thử", birth_date: "1999-03-05" };
     const svg = cardSvg(privateInput, "square_1_1");
     expect(svg).toContain("&lt;script&gt;");
     expect(svg).toContain("&amp;");
     expect(svg).not.toContain("<script>");
-    expect(svg).not.toContain("1990-03-15");
+    expect(svg).not.toContain("1999-03-05");
   });
 
   it("strips control and bidi characters from shared text", () => {

@@ -96,7 +96,7 @@ def test_google_pkce_links_same_guest_without_email_delivery_or_browser_bearers(
             client.post(
                 "/v1/birth-profile",
                 headers=headers(created["csrf_token"]),
-                json={"birth_date": "1990-03-15"},
+                json={"birth_date": "1993-03-02"},
             ).status_code
             == 200
         )
@@ -228,7 +228,7 @@ def test_google_existing_account_restores_only_after_confirmation_without_guest_
             client.post(
                 "/v1/birth-profile",
                 headers=headers(first["csrf_token"]),
-                json={"birth_date": "1990-03-15"},
+                json={"birth_date": "1993-03-02"},
             ).status_code
             == 200
         )

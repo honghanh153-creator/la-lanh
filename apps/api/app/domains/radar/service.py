@@ -246,6 +246,13 @@ class RadarService:
                 "Không rõ giờ sinh của người kia, nên Lá bỏ qua những dữ kiện cần giờ sinh. "
                 "Bài đọc ngắn hơn một chút nhưng không đoán bừa."
             )
+        elif chart_b.time_precision.value == "approximate":
+            # An exact clock time whose historical UTC offset is unresolved (vn-offset-uncertain-v1)
+            # is read as approximate: no Ascendant or houses. Reuses the shipped approximate-time
+            # label from the birth form until owner-approved wording names the offset itself.
+            metadata["precision_note"] = (
+                "Giờ gần đúng: không dùng để khẳng định cung Mọc hay nhà chính xác."
+            )
         request_id = uuid4()
         row = RadarRequestRow(
             id=request_id,
@@ -515,7 +522,6 @@ class RadarService:
         row = await self._pending_by_token(token)
         return RadarPublicInvite(
             request_id=row.id,
-            recipient_label=self._label(row),
             context=row.context,
             voice=row.voice,
             expires_at=row.expires_at,

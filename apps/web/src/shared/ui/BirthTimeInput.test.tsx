@@ -26,6 +26,19 @@ describe("BirthTimeInput", () => {
     expect(screen.getByText("Không đoán giờ sinh. Bạn có thể thêm sau.")).toBeInTheDocument();
   });
 
+  it("offers a dawn window before morning so births 00–06h are not filed as night (PL-37)", async () => {
+    const user = userEvent.setup();
+    render(<Example />);
+    await user.click(screen.getByRole("button", { name: "Nhớ khoảng" }));
+    const windows = screen.getAllByRole("button").filter((button) => button.closest(".window-grid"));
+    expect(windows.map((button) => button.textContent)).toEqual([
+      "Rạng sáng00–06h", "Sáng06–10h", "Trưa10–14h", "Chiều14–18h", "Tối18–22h", "Đêm22–24h",
+    ]);
+    await user.click(screen.getByRole("button", { name: "Rạng sáng 00–06h" }));
+    expect(screen.getByRole("button", { name: "Rạng sáng 00–06h" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Đêm 22–24h" })).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("does not expose approximate time to an API which does not support it", () => {
     render(<BirthTimeInput mode="unknown" onModeChange={vi.fn()} time="" onTimeChange={vi.fn()} modes={["exact", "unknown"]} />);
     expect(screen.queryByRole("button", { name: "Nhớ khoảng" })).not.toBeInTheDocument();

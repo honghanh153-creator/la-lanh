@@ -7,8 +7,10 @@ from app.config import get_settings
 from app.db.session import Database
 from app.domains.erasure_journal.replay import purge_entries
 from app.domains.history.postgres import PostgresHistoryRepository
+from app.domains.human_tarot.service import HumanTarotService
 from app.infrastructure.crypto import (
     AesGcmEnvelopeCipher,
+    SecretHasher,
     StaticDataKeyProvider,
     decode_key,
 )
@@ -50,6 +52,16 @@ async def _cleanup(batch_size: int) -> int:
             before=now - timedelta(days=settings.erasure_journal_retention_days),
         )
         print(f"Deletion journal: purged={journal}", flush=True)
+        # US-24 retention also runs when the Sheet bridge is off: day end, questions, expiry.
+        human_tarot = await HumanTarotService(
+            database.sessions,
+            envelope,
+            SecretHasher(decode_key(settings.guest_hash_key.get_secret_value())),
+        ).finalize_and_purge(batch_size=batch_size)
+        print(
+            "Human Tarot: " + " ".join(f"{key}={value}" for key, value in human_tarot.items()),
+            flush=True,
+        )
         return removed
     finally:
         await database.dispose()

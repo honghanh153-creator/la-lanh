@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.domains.astro.models import TimePrecision
+from app.domains.readings.house_meanings import HOUSE_MEANINGS, many_doors
 from app.domains.readings.models import (
     DerivedFactor,
     FactorConfidence,
@@ -20,7 +21,7 @@ from app.domains.readings.models import (
     SemanticArena,
 )
 
-PERSONALIZATION_VERSION = "daily-semantic-eligibility-v4"
+PERSONALIZATION_VERSION = "daily-semantic-eligibility-v5"
 
 # Sun-only angles follow the existing sign catalog's distinct stresses, not a
 # numeric offset into unrelated situations. They remain general editorial lenses.
@@ -165,20 +166,49 @@ PAIR_RULES = (
     ),
 )
 
-HOUSE_ARENAS = {
-    1: SemanticArena.SELF_CARE,
-    2: SemanticArena.WORK,
-    3: SemanticArena.COMMUNICATION,
-    4: SemanticArena.SELF_CARE,
-    5: SemanticArena.SELF_CARE,
-    6: SemanticArena.ENERGY,
-    7: SemanticArena.RELATIONSHIPS,
-    8: SemanticArena.RELATIONSHIPS,
-    9: SemanticArena.WORK,
-    10: SemanticArena.WORK,
-    11: SemanticArena.COMMUNICATION,
-    12: SemanticArena.SELF_CARE,
+# Which Daily scene a house door may open (plan 1.1, N-4 under the source rule). Only doors a
+# classical source stands behind and that are not ⚠ are tagged, so a modern-only door (love in
+# house 5) or a ⚠ door (children) never picks the scene. A door with no everyday scene is absent.
+DOOR_ARENAS: dict[str, SemanticArena] = {
+    "body_appearance": SemanticArena.ENERGY,
+    "vitality": SemanticArena.ENERGY,
+    "money_wealth": SemanticArena.WORK,
+    "gain_loss": SemanticArena.WORK,
+    "siblings": SemanticArena.RELATIONSHIPS,
+    "messages_news": SemanticArena.COMMUNICATION,
+    "everyday_learning": SemanticArena.WORK,
+    "home_dwelling": SemanticArena.SELF_CARE,
+    "pleasure_feasts": SemanticArena.SELF_CARE,
+    "love": SemanticArena.RELATIONSHIPS,
+    "business_partners": SemanticArena.RELATIONSHIPS,
+    "open_opponents": SemanticArena.RELATIONSHIPS,
+    "shared_money": SemanticArena.RELATIONSHIPS,
+    "higher_learning": SemanticArena.WORK,
+    "career": SemanticArena.WORK,
+    "reputation": SemanticArena.WORK,
+    "position": SemanticArena.WORK,
+    "friends": SemanticArena.RELATIONSHIPS,
+    "trust": SemanticArena.RELATIONSHIPS,
+    "rest_sleep": SemanticArena.SELF_CARE,
 }
+
+
+@dataclass(frozen=True)
+class HouseContext:
+    """One house as a Daily situation sees it: its own doors, never a shared group label."""
+
+    house: int
+    doors: tuple[str, ...]
+    arenas: tuple[SemanticArena, ...]
+
+
+def _house_context(house: int) -> HouseContext:
+    doors = tuple(meaning.key for meaning in many_doors(house))
+    arenas = tuple(dict.fromkeys(DOOR_ARENAS[key] for key in doors if key in DOOR_ARENAS))
+    return HouseContext(house, doors, arenas)
+
+
+HOUSE_ARENAS: dict[int, HouseContext] = {house: _house_context(house) for house in HOUSE_MEANINGS}
 
 
 @dataclass(frozen=True)
@@ -188,7 +218,11 @@ class SupportedSituation:
     factor_refs: tuple[str, ...]
     rule_key: str
     rank: tuple[int, int, int]
-    arena: SemanticArena | None = None
+    house: HouseContext | None = None
+
+    @property
+    def arenas(self) -> tuple[SemanticArena, ...]:
+        return self.house.arenas if self.house else ()
 
 
 def eligible_daily_situations(plan: ReadingPlan) -> tuple[SupportedSituation, ...]:
@@ -346,7 +380,7 @@ def _pair_house_context(
     return min(
         candidates,
         key=lambda factor: (
-            HOUSE_ARENAS[int(factor.id.split(":")[3])].value != topic,
+            topic not in HOUSE_ARENAS[int(factor.id.split(":")[3])].arenas,
             int(factor.id.split(":")[3]),
             factor.subjects[0],
         ),

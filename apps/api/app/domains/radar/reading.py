@@ -971,7 +971,7 @@ def build_radar_reading(
         _section(
             "why",
             layer="more",
-            title="Những điểm chạm Lá đã dùng",
+            title="Những điều Lá đã dựa vào",
             body=(
                 "Mỗi dòng là một điểm chạm giữa hai lá số, kèm tên gọi trong chiêm tinh cho ai "
                 "muốn tra thêm. Bậc được xếp bằng cách so cặp này với nhiều cặp mẫu."
@@ -987,7 +987,7 @@ def build_radar_reading(
         _section(
             "perspective",
             layer="more",
-            title="Cùng một lần gặp, mỗi người có thể để tâm chuyện khác",
+            title="Cùng một lần gặp, mỗi người để tâm một chuyện khác",
             body=perspective_body,
             perspectives=perspective_items,
             evidence=perspective_receipts,
@@ -1383,14 +1383,14 @@ def _low_signal_reading(
         _section(
             "why",
             layer="more",
-            title="Những điểm chạm Lá đã dùng",
+            title="Những điều Lá đã dựa vào",
             body=LOW_SIGNAL_COPY["why"],
             factors=[],
         ),
         _section(
             "perspective",
             layer="more",
-            title="Cùng một lần gặp, mỗi người có thể để tâm chuyện khác",
+            title="Cùng một lần gặp, mỗi người để tâm một chuyện khác",
             body=perspective_body,
             perspectives=perspective_items,
             evidence=perspective_receipts,

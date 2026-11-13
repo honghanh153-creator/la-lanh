@@ -5,6 +5,7 @@ from enum import StrEnum
 from hashlib import sha256
 
 from app.domains.content_rewrite.models import RewriteArtifactKey, RewriteSurface
+from app.domains.content_rewrite.registry import RUNTIME_REWRITE_EXCLUDED_SURFACES
 
 
 class RewriteRolloutMode(StrEnum):
@@ -40,9 +41,13 @@ class SurfaceRolloutPolicy:
         return self._modes.get(surface, self._unspecified)
 
     def should_generate(self, surface: RewriteSurface) -> bool:
+        if surface in RUNTIME_REWRITE_EXCLUDED_SURFACES:
+            return False
         return self.mode_for(surface) is not RewriteRolloutMode.OFF
 
     def should_publish(self, key: RewriteArtifactKey) -> bool:
+        if key.surface in RUNTIME_REWRITE_EXCLUDED_SURFACES:
+            return False
         mode = self.mode_for(key.surface)
         if mode in {
             RewriteRolloutMode.OFF,

@@ -16,7 +16,8 @@ và sau đó không có dữ liệu cũ nào lẫn vào dữ liệu mới.
 **Bao gồm:**
 
 - Dòng "Ngày sinh: dd/mm/yyyy · Sửa" trong Mình → Chiếc Lá của bạn, và dòng "Giờ và nơi sinh: … · Sửa" (hoặc
-  "Chưa thêm · Thêm") tóm tắt lớp dữ liệu US-06 đang có.
+  "Chưa thêm · Thêm") tóm tắt lớp dữ liệu US-06 đang có. Tóm tắt chỉ nêu độ chính xác và thành phố ("đã có giờ
+  sinh, Hà Nội"), không hiện giờ thô: trạng thái chung không bao giờ chứa giờ sinh; giờ chỉ có ở form sửa riêng.
 - Sheet xác nhận, trang sửa (BirthDatePage ở chế độ sửa), API `PUT /v1/birth-profile/date`, giới hạn đổi, cổng
   18+, loại nhật ký xoá `birth_date_replaced`.
 - Điều kiện tiên quyết: bản lưu và link chia sẻ sống lâu hơn nguồn của chúng (bỏ FK cascade, migration
@@ -44,12 +45,13 @@ và sau đó không có dữ liệu cũ nào lẫn vào dữ liệu mới.
 
 ## 4. User flow
 
-1. **Mình → Chiếc Lá của bạn**: "Ngày sinh: 12/03/2001 · Sửa"; dưới đó "Giờ và nơi sinh: 07:30, Huế · Sửa" hoặc
-   "Chưa thêm · Thêm" (mở `/birth-time`, US-06).
+1. **Mình → Chiếc Lá của bạn**: "Ngày sinh: 12/03/2001 · Sửa"; dưới đó "Giờ và nơi sinh: đã có giờ sinh, Huế · Sửa"
+   hoặc "Chưa thêm · Thêm" (mở `/birth-time`, US-06).
 2. **Sửa ngày sinh** mở sheet:
    - Tiêu đề: "Đổi ngày sinh sẽ tạo lại Lá của bạn."
    - Sẽ thay đổi: Lá Khai Sinh, note hôm nay và gợi ý được tính lại; giờ và nơi sinh bị xoá, bạn có thể thêm lại;
-     kết quả Hợp gu tạo từ ngày cũ bị xoá; **lời mời Hợp gu bạn đã gửi mà chưa ai mở sẽ ngừng hoạt động.**
+     kết quả Hợp gu tạo từ ngày cũ bị xoá; **lời mời Hợp gu bạn đã gửi mà chưa được chấp nhận sẽ ngừng hoạt động,
+     kể cả khi người nhận đã mở link** (Codex r54 P3).
    - Được giữ: note đã lưu và link đã chia sẻ. Bạn có thể bỏ lưu hoặc thu hồi link trong Đã lưu.
    - Nút: "Đổi ngày sinh" / "Giữ như cũ".
 3. **Trang sửa** (`/birth?edit=1`): ngày hiện tại điền sẵn; trước khi gửi hỏi lại ngày một lần nữa để tránh gõ nhầm;
@@ -112,7 +114,7 @@ Không body lỗi nào chứa ngày, giờ, nơi sinh hay giá trị chart.
 | Job Luna đang gửi provider lúc đổi | Bản viết lại của ngày cũ hiện sau khi đổi | Lượt gửi được ghi nhận trong khoá và chờ xong trước khi trả thành công; kết quả muộn của job đã xoá bị loại bởi lease/epoch của worker. |
 | Bỏ lưu lúc offline rồi đổi ngày | Mất yêu cầu bỏ lưu, bản lưu còn trên server | Web chỉ bỏ các lệnh *lưu* đang chờ; lệnh *bỏ lưu* được giữ và gửi lại theo `daily_note_id` của bản lưu còn giữ. |
 | Link chia sẻ tạo trước khi đổi | Không tìm lại được để thu hồi | Liệt kê trong Đã lưu → Link đã chia sẻ; thu hồi bằng id như mọi link. |
-| Lời mời Hợp gu chưa ai mở | Người nhận mở link hỏng | Sheet báo trước; lời mời bị xoá, link trả lời như link không tồn tại. |
+| Lời mời Hợp gu chưa được chấp nhận (kể cả đã mở) | Người nhận mở link hỏng | Sheet báo trước; lời mời bị xoá, link trả lời như link không tồn tại. |
 | Người kia trong kết quả Hợp gu | Thấy kết quả biến mất | Kết quả bị xoá ở cả hai phía, không nêu lý do (như khi xoá giờ/nơi sinh). |
 | Đổi lần thứ 4 trong 24 giờ | "Chart shopping", lách tuổi | `429`, không đổi gì. |
 | Người thực sự dưới 18 | Bị giữ trong sản phẩm 18+ | Từ chối như onboarding, không xoá dữ liệu vì một lần gõ nhầm; gợi ý "Xóa Lá và dữ liệu". |
@@ -171,7 +173,8 @@ DELETE /v1/share-artifacts/{id}  (đã có) thu hồi, kể cả link đã tách
 - **AC12:** Link chia sẻ tạo trước khi đổi → sau khi đổi và tải lại vẫn được liệt kê trong Đã lưu và thu hồi được;
   link công khai sau đó trả lời như link đã thu hồi.
 - **AC13:** Lệnh bỏ lưu xếp hàng lúc offline trước khi đổi → sau khi đổi và tải lại, lệnh tới được server.
-- **AC14:** Có lời mời Hợp gu đang chờ → sheet xác nhận nói nó sẽ ngừng hoạt động trước khi người dùng xác nhận.
+- **AC14:** Có lời mời Hợp gu chưa được chấp nhận (kể cả đã được mở) → sheet xác nhận nói nó sẽ ngừng hoạt động
+  trước khi người dùng xác nhận.
 
 ## 11. Definition of Done
 

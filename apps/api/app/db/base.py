@@ -14,6 +14,7 @@ from app.domains.erasure_journal import tables as erasure_journal_tables  # noqa
 from app.domains.experiments import tables as experiment_tables  # noqa: E402,F401
 from app.domains.guest import tables as guest_tables  # noqa: E402,F401
 from app.domains.history import tables as history_tables  # noqa: E402,F401
+from app.domains.human_tarot import tables as human_tarot_tables  # noqa: E402,F401
 from app.domains.identity import tables as identity_tables  # noqa: E402,F401
 from app.domains.la_chung import tables as la_chung_tables  # noqa: E402,F401
 from app.domains.matching import tables as matching_tables  # noqa: E402,F401

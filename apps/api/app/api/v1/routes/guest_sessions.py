@@ -12,7 +12,7 @@ from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.models import GuestSessionRecord, OnboardingStatus
 from app.domains.guest.service import GuestSessionService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
-from app.infrastructure.session_cookies import set_profile_cookies
+from app.infrastructure.session_cookies import set_profile_cookies, token_cookie_value
 
 router = APIRouter()
 
@@ -165,7 +165,7 @@ async def create_guest_session(
         )
     response.set_cookie(
         key=settings.guest_cookie_name,
-        value=result.token,
+        value=token_cookie_value(result.token),
         max_age=settings.guest_ttl_days * 24 * 60 * 60,
         secure=settings.guest_cookie_secure,
         httponly=True,
@@ -175,7 +175,7 @@ async def create_guest_session(
     )
     response.set_cookie(
         key=settings.guest_csrf_cookie_name,
-        value=result.csrf_token,
+        value=token_cookie_value(result.csrf_token),
         max_age=settings.guest_ttl_days * 24 * 60 * 60,
         secure=settings.guest_cookie_secure,
         httponly=False,

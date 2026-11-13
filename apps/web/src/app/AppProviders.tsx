@@ -3,25 +3,32 @@ import { useEffect, useState } from "react";
 import type { RouterProviderProps } from "react-router-dom";
 import { RouterProvider } from "react-router-dom";
 
+import { shouldRetryQuery } from "./queryRetry";
 import { ThemeProvider } from "../shared/theme/ThemeProvider";
 import { VibeProvider } from "../shared/vibe/VibeProvider";
+import { resumeChartQuarantine } from "../shared/storage/clearChartDerivedData";
 import { PERSONAL_DATA_CLEARED_EVENT } from "../shared/storage/clearPersonalData";
 
 type AppProvidersProps = Pick<RouterProviderProps, "router">;
 
 export function AppProviders({ router }: AppProvidersProps) {
-  const [queryClient] = useState(() => new QueryClient({
+  const [queryClient] = useState(() => {
+    const client = new QueryClient({
     defaultOptions: {
       queries: {
         staleTime: 30_000,
-        retry: 1,
+        retry: shouldRetryQuery,
         refetchOnWindowFocus: false,
       },
       mutations: {
         retry: false,
       },
     },
-  }));
+    });
+    // A reload during an unknown birth-correction outcome keeps the old chart hidden (US-23).
+    resumeChartQuarantine(client);
+    return client;
+  });
 
   useEffect(() => {
     const clearQueries = () => queryClient.clear();

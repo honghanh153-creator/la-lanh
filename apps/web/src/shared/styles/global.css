@@ -959,6 +959,11 @@ a:focus-visible {
 .saved-note h2 { font-family: var(--font-app); font-size: 2.2rem; line-height: 1.15; }
 .saved-note > p:not(.eyebrow), .saved-note small { color: #765b7d; font-size: 0.8rem; line-height: 1.45; }
 .saved-note .detail-link { display: inline-flex; margin-top: 0.75rem; align-items: center; gap: 0.35rem; }
+.share-links__list { display: grid; gap: 0.75rem; margin: 0.75rem 0 0; padding: 0; list-style: none; }
+.share-links__item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.share-links__item > div { display: grid; gap: 0.2rem; }
+.share-links__item small { color: var(--muted); font-size: 0.8rem; }
+.share-links__item .detail-link { display: inline-flex; align-items: center; gap: 0.35rem; }
 .empty-state { display: grid; min-height: 65vh; padding: 2rem; place-content: center; place-items: center; text-align: center; }
 .empty-state svg { color: var(--lavender); }
 .empty-state p { max-width: 19rem; color: var(--muted); line-height: 1.5; }

@@ -76,10 +76,18 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         # This is only the cheap backstop. Durable database peer/email/global
         # quotas and challenge attempt limits are enforced by AccountService.
         return AdmissionPolicy("account-login", per_peer=30, global_limit=240)
+    if request.method == "POST" and path == "/v1/session/data-export":
+        # A full decrypting read of one profile: a person needs it rarely, a scraper often.
+        return AdmissionPolicy("data-export", per_peer=5, global_limit=60)
     if request.method == "POST" and path == "/v1/guest-sessions":
         return AdmissionPolicy("guest-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path == "/v1/tarot/sessions":
         return AdmissionPolicy("tarot-session-create", per_peer=20, global_limit=240)
+    if request.method == "GET" and path == "/v1/human-tarot/availability":
+        return AdmissionPolicy("human-tarot-availability", per_peer=120, global_limit=1200)
+    if request.method == "POST" and path == "/v1/human-tarot/requests":
+        # The durable cap (10 a day, one per guest) is in the database; this only sheds floods.
+        return AdmissionPolicy("human-tarot-create", per_peer=10, global_limit=120)
     if request.method == "POST" and path in {"/v1/radar/requests", "/v1/radar/private-checks"}:
         return AdmissionPolicy("radar-create", per_peer=10, global_limit=120)
     if request.method == "GET" and path.startswith("/v1/radar/"):
@@ -92,11 +100,28 @@ def _policy(request: Request) -> AdmissionPolicy | None:
         return AdmissionPolicy("la-chung-invite-create", per_peer=10, global_limit=120)
     if request.method == "POST" and _INVITE_RESEND_PATH.fullmatch(path):
         return AdmissionPolicy("la-chung-invite-resend", per_peer=20, global_limit=240)
-    if request.method == "POST" and path in {
-        "/v1/birth-profile",
-        "/v1/birth-profile/supplement",
-    }:
+    if (
+        request.method == "POST"
+        and path
+        in {
+            "/v1/birth-profile",
+            "/v1/birth-profile/supplement",
+        }
+    ) or (request.method == "PUT" and path == "/v1/birth-profile/date"):
         return AdmissionPolicy("birth-compute", per_peer=20, global_limit=120)
+    if request.method == "GET" and (path == "/v1/daily-note" or path.startswith("/v1/daily-note/")):
+        # PV-5: every Daily read rebuilds today's selection from the chart; bound one peer.
+        return AdmissionPolicy("daily-read", per_peer=120, global_limit=1200)
+    if (
+        request.method == "GET"
+        and path.startswith("/v1/insights/")
+        and path != "/v1/insights/configs"
+    ):
+        # PV-5: overview, readings and current sky recompute ephemeris work; configs is static.
+        return AdmissionPolicy("insights-read", per_peer=120, global_limit=1200)
+    if request.method == "GET" and path == "/v1/share-artifacts":
+        # The owner's link list (US-23): metadata only, but bounded like other private reads.
+        return AdmissionPolicy("share-list", per_peer=60, global_limit=600)
     if path.startswith("/v1/public/") or path.startswith("/v1/share-artifacts/"):
         return AdmissionPolicy("public-capability", per_peer=120, global_limit=1200)
     return None

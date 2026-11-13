@@ -236,6 +236,69 @@ def test_private_radar_requires_both_people_and_supports_withdrawal(tmp_path: Pa
         assert owner.get(f"/v1/radar/results/{request_id}").status_code == 404
 
 
+def test_invite_link_holder_never_sees_the_private_recipient_label(tmp_path: Path) -> None:
+    """Issue #95 PR A: the label A sets to manage an invite is owner-only (US-08 S37)."""
+
+    canary = "CanaryNhanRieng7f3a"
+    database = tmp_path / "radar-label.db"
+    with _client(database) as owner:
+        owner_csrf = _full_profile(owner, "radar-label-owner-123456789", "1994-03-12", "08:15")
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": owner_csrf}
+        assert owner.post("/v1/identity/claim", headers=headers).status_code == 200
+        created = owner.post(
+            "/v1/radar/requests",
+            headers=headers,
+            json={"recipient_label": canary, "context": "friend"},
+        )
+        assert created.status_code == 200
+        assert created.json()["recipient_label"] == canary
+        request_id = created.json()["id"]
+        token = created.json()["share_url"].rsplit("/", 1)[-1]
+
+        recipient = TestClient(owner.app, base_url=ORIGIN)
+        public_bodies = []
+        preview = recipient.get(f"/v1/public/radar/{token}")
+        assert preview.status_code == 200
+        public_bodies.append(preview)
+        # After the path token becomes a cookie, the bootstrap view must stay label-free too.
+        current = recipient.get("/v1/public/radar/current")
+        assert current.status_code == 200
+        assert current.json()["request_id"] == request_id
+        public_bodies.append(current)
+
+        recipient_csrf = _full_profile(
+            recipient, "radar-label-recipient-1234567", "1996-07-21", "19:40"
+        )
+        accepted = recipient.post(
+            "/v1/public/radar/current/accept",
+            headers={"Origin": ORIGIN, "X-CSRF-Token": recipient_csrf},
+            json={"request_id": request_id, "consent_version": "radar-pair-v1"},
+        )
+        assert accepted.status_code == 200
+        public_bodies.append(accepted)
+        receipt = recipient.get("/v1/public/radar/receipt")
+        assert receipt.status_code == 200
+        public_bodies.append(receipt)
+        received = recipient.get("/v1/radar/received")
+        assert received.status_code == 200
+        public_bodies.append(received)
+        received_item = recipient.get(f"/v1/radar/received/{request_id}")
+        assert received_item.status_code == 200
+        public_bodies.append(received_item)
+
+        for response in public_bodies:
+            assert canary not in response.text, response.request.url
+            assert "recipient_label" not in response.text, response.request.url
+
+        # The owner still sees and manages the label.
+        listed = owner.get("/v1/radar/requests")
+        assert listed.status_code == 200
+        assert [item["recipient_label"] for item in listed.json()] == [canary]
+        owner_result = owner.get(f"/v1/radar/results/{request_id}")
+        assert owner_result.status_code == 200
+        assert owner_result.json()["recipient_label"] == canary
+
+
 @pytest.mark.parametrize("withdraw_subject", ["owner", "recipient"])
 def test_inflight_invite_accept_cannot_save_after_precision_erasure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, withdraw_subject: str
@@ -475,6 +538,41 @@ def test_private_check_without_birth_time_excludes_time_sensitive_layers(tmp_pat
         evidence = [item for section in payload["sections"] for item in section.get("evidence", [])]
         assert all(item["source"] != "house_overlay" for item in evidence)
         assert all(item["body_b"] != "moon" for item in payload["strongest_contacts"])
+        _assert_no_raw_birth_data(payload)
+
+
+def test_private_check_with_unresolved_historical_offset_says_time_is_approximate(
+    tmp_path: Path,
+) -> None:
+    # Synthetic person: merged Quảng Trị straddles the 1954 line, so a 1965 clock time has no
+    # known UTC offset (vn-offset-uncertain-v1) and the chart is read as approximate.
+    with _client(tmp_path / "radar-private-uncertain-offset.db") as owner:
+        csrf = _full_profile(owner, "radar-private-uncertain-owner", "1994-03-12", "08:15")
+        headers = {"Origin": ORIGIN, "X-CSRF-Token": csrf}
+        assert owner.post("/v1/identity/claim", headers=headers).status_code == 200
+        response = owner.post(
+            "/v1/radar/private-checks",
+            headers=headers,
+            json={
+                "recipient_label": "Người sinh ở Quảng Trị",
+                "context": "friend",
+                "birth_date": "1965-05-01",
+                "birth_time_mode": "exact",
+                "birth_time_local": "08:00",
+                "place_id": "vn-quang-tri",
+                "consent_version": "radar-authorized-input-v1",
+                "authorization_attested": True,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["metadata"]["time_precision"] == "approximate"
+        assert payload["metadata"]["precision_note"] == (
+            "Giờ gần đúng: không dùng để khẳng định cung Mọc hay nhà chính xác."
+        )
+        evidence = [item for section in payload["sections"] for item in section.get("evidence", [])]
+        assert all(item["source"] != "house_overlay" for item in evidence)
         _assert_no_raw_birth_data(payload)
 
 
