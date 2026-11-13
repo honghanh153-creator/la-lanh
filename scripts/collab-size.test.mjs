@@ -58,8 +58,9 @@ test('#254: an oversized PR with an existing author check goes back to Claude, n
   const { renderCheck } = await import('./collab-check.mjs');
   const { prTurn } = await import('./collab-turn.mjs');
   const head = 'c'.repeat(40);
-  const owner = b => ({ authorAssociation: 'OWNER', createdAt: '2026-11-07T01:00:00Z', body: b });
   const trust = await import('./collab-trust.mjs');
+  const { asPosted } = await import('./collab-test-post.mjs');
+  const owner = b => asPosted(trust, { authorAssociation: 'OWNER', createdAt: '2026-11-07T01:00:00Z', body: b });
   // Signed for PR 11 on the live base, as the scripted check and review paths post them (P1-A/P1-B).
   const base = 'e'.repeat(40);
   const checked = owner(renderCheck({ head, base, receipt: trust.signReceipt({ kind: 'check', pr: 11, head, base, result: 'PASS' }), status: 'PASS', exitCode: 0, seconds: 1, date: 'x' }));

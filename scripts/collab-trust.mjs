@@ -129,30 +129,65 @@ export function signReceipt(claims) {
   return id;
 }
 
-// True only when the receipt named by the comment exists, its fields equal the comment's claims and
-// its MAC verifies under the local key. Any read or parse problem is a refusal.
-export function verifyReceipt(claims, id) {
+// Replay (Codex auto-1 on #456, 13.11.2026): the receipt id is public in the comment, so a copy of
+// a valid comment posted later would carry a valid receipt and outrank a newer FAIL or
+// REQUEST_CHANGES. After posting, the publisher binds the receipt to the immutable GitHub id of the
+// comment it just created (written once, HMAC under the same key). A comment counts only when its
+// own id is the bound one, so a copy, or a later comment edited to look like the original, never does.
+export const commentRef = url => /#issuecomment-(\d{1,20})$/.exec(String(url ?? '').trim())?.[1] ?? null;
+const bindPath = (kind, pr, id) => join(receiptDir(), `${kind}-pr${Number(pr)}-${id}.comment.json`);
+const bindMac = (key, kind, pr, id, ref) => createHmac('sha256', key).update(JSON.stringify(['la-lanh-receipt-bind/v1', kind, Number(pr), id, ref])).digest('hex');
+
+// Called with the URL `gh pr comment` printed. False (nothing written) when anything is off: the
+// comment then never counts, which can only make the gate stricter.
+export function bindReceipt({ kind, pr, id, url }) {
+  const ref = commentRef(url);
+  if (!receiptKinds[kind] || !Number.isInteger(Number(pr)) || Number(pr) <= 0 || !isReceiptId(id) || !ref) return false;
+  const key = readKey();
+  if (!key) return false;
+  try { readFileSync(receiptPath(kind, pr, id)); } catch { return false; }
+  try {
+    writeFileSync(bindPath(kind, pr, id), `${JSON.stringify({ kind, pr: Number(pr), id, comment: ref, mac: bindMac(key, kind, pr, id, ref) })}\n`, { mode: 0o600, flag: 'wx' });
+    return true;
+  } catch { return false; }
+}
+
+const macEqual = (got, want) => {
+  const a = Buffer.from(String(got ?? ''), 'hex');
+  const b = Buffer.from(want, 'hex');
+  return a.length === b.length && timingSafeEqual(a, b);
+};
+
+// True only when the receipt named by the comment exists, its fields equal the comment's claims, its
+// MAC verifies under the local key, and it is bound to this very comment (`url`). Any read or parse
+// problem is a refusal.
+export function verifyReceipt(claims, id, url) {
   const fields = receiptFields(claims);
-  if (!fields || !isReceiptId(id)) return false;
+  const ref = commentRef(url);
+  if (!fields || !isReceiptId(id) || !ref) return false;
   const key = readKey();
   if (!key) return false;
   let stored;
-  try { stored = JSON.parse(readFileSync(receiptPath(fields.kind, fields.pr, id), 'utf8')); } catch { return false; }
+  let bound;
+  try {
+    stored = JSON.parse(readFileSync(receiptPath(fields.kind, fields.pr, id), 'utf8'));
+    bound = JSON.parse(readFileSync(bindPath(fields.kind, fields.pr, id), 'utf8'));
+  } catch { return false; }
   if (['kind', 'pr', 'head', 'base', 'result', 'p2'].some(k => stored?.[k] !== fields[k]) || stored.id !== id) return false;
-  const want = Buffer.from(receiptMac(key, fields, id), 'hex');
-  const got = Buffer.from(String(stored.mac ?? ''), 'hex');
-  return got.length === want.length && timingSafeEqual(got, want);
+  if (!macEqual(stored.mac, receiptMac(key, fields, id))) return false;
+  if (bound?.kind !== fields.kind || bound?.pr !== fields.pr || bound?.id !== id || bound?.comment !== ref) return false;
+  return macEqual(bound.mac, bindMac(key, fields.kind, fields.pr, id, ref));
 }
 
-// The comment's own claims, checked against its receipt for this PR.
+// The comment's own claims, checked against its receipt for this PR and its own comment id.
 export function sealValid(comment, prNumber) {
   if (comment?.check) {
     const { status, sha, base, receipt } = comment.check;
-    return Boolean(receipt) && verifyReceipt({ kind: 'check', pr: prNumber, head: sha, base, result: status }, receipt);
+    return Boolean(receipt) && verifyReceipt({ kind: 'check', pr: prNumber, head: sha, base, result: status }, receipt, comment.url);
   }
   if (comment?.verdict) {
     const s = parseVerdictSeal(comment.body, comment.verdict.sha);
-    return Boolean(s?.receipt) && verifyReceipt({ kind: 'verdict', pr: prNumber, head: comment.verdict.sha, base: s.base, result: comment.verdict.verdict, p2: s.p2 }, s.receipt);
+    return Boolean(s?.receipt) && verifyReceipt({ kind: 'verdict', pr: prNumber, head: comment.verdict.sha, base: s.base, result: comment.verdict.verdict, p2: s.p2 }, s.receipt, comment.url);
   }
   return false;
 }

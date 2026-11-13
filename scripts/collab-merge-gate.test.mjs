@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 const trust = await import('./collab-trust.mjs');
+const { asPosted, freshUrl } = await import('./collab-test-post.mjs');
 const { auditMerges, dailyReceiptAudit, mergeGate, runMerge } = await import('./collab-merge.mjs');
 const { prTurn } = await import('./collab-turn.mjs');
 const { ciCheck, renderCheck, runCheck, runCheckInClone } = await import('./collab-check.mjs');
@@ -23,7 +24,10 @@ const N = 7;
 const goodBody = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'].map(g => `- ${g}: ${g === 'G7' ? 'không đụng phiên, quyền, dữ liệu, log' : 'ok'}`).join('\n') + '\nMức: S\nNgười dùng thấy gì: không trực tiếp (vận hành)\n';
 
 let tick = 0;
-const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-11-12T0${Math.floor(tick / 60)}:${String(tick++ % 60).padStart(2, '0')}:00Z`, body });
+const stamp = () => `2026-11-12T0${Math.floor(tick / 60)}:${String(tick++ % 60).padStart(2, '0')}:00Z`;
+const owner = body => asPosted(trust, { authorAssociation: 'OWNER', createdAt: stamp(), body });
+// What `gh pr comment` prints for a fake post: the new comment's URL.
+const postUrl = () => freshUrl();
 const checkBody = ({ head = H, base = B1, status = 'PASS', receipt }) => renderCheck({ head, base, receipt, status, exitCode: status === 'PASS' ? 0 : 1, seconds: 1, date: 'x' });
 const verdictBody = ({ head = H, base = B1, verdict = 'APPROVE', p2 = 0, receipt, fix = null }) =>
   [`Review verdict: ${verdict} @ ${head}`, 'Reviewer: Codex (auto, scripts/codex-review.mjs)', '', 'ok', '', ...(fix ? [`Fix-forward: #${fix}`, ''] : []), trust.verdictSeal({ head, p2, base, receipt })].join('\n');
@@ -120,7 +124,7 @@ test('P1-B: a tampered receipt is refused; a valid one is allowed', () => {
   const ok = pr({ comments: [check, verdict] });
   assert.deepEqual(mergeGate(ok, { baseFiles: noFiles }).reasons, []);
   const id = /receipt=([0-9a-f]{32})/.exec(verdict.body)[1];
-  const file = join(trust.receiptDir(), readdirSync(trust.receiptDir()).find(f => f.includes(id)));
+  const file = join(trust.receiptDir(), readdirSync(trust.receiptDir()).find(f => f.endsWith(`-${id}.json`)));
   const original = readFileSync(file, 'utf8');
   const receipt = JSON.parse(original);
   writeFileSync(file, JSON.stringify({ ...receipt, mac: `${receipt.mac.slice(0, -1)}${receipt.mac.endsWith('0') ? '1' : '0'}` }));
@@ -131,6 +135,37 @@ test('P1-B: a tampered receipt is refused; a valid one is allowed', () => {
   assert.equal(mergeGate(ok, { baseFiles: noFiles }).ok, false, 'receipt gone');
   writeFileSync(file, original);
   assert.deepEqual(mergeGate(ok, { baseFiles: noFiles }).reasons, []);
+});
+
+test('replay (#456 auto-1): copies of a signed PASS and APPROVE posted after a newer FAIL and REQUEST_CHANGES never count', () => {
+  const pass = sealedCheck();
+  const approve = sealedVerdict();
+  const fail = sealedCheck({ status: 'FAIL' });
+  const changes = sealedVerdict({ verdict: 'REQUEST_CHANGES' });
+  // Same public bodies, receipt ids included, but new comments: new ids, later times.
+  const copy = c => ({ ...c, url: freshUrl(), createdAt: stamp() });
+  const replayed = pr({ comments: [pass, approve, fail, changes, copy(pass), copy(approve)] });
+  const gate = mergeGate(replayed, { baseFiles: noFiles });
+  assert.equal(gate.ok, false, gate.reasons.join(' | '));
+  assert.equal(prTurn(replayed, { baseFiles: noFiles }).turn, 'claude-fix');
+  assert.equal(trust.sealValid(trust.trustedComments([copy(approve)])[0], N), false, 'a copied verdict has no valid receipt');
+  assert.equal(trust.sealValid(trust.trustedComments([approve])[0], N), true, 'the original still verifies');
+  // A newer comment edited to the original body keeps its own id: refused too.
+  const edited = { ...fail, body: pass.body, createdAt: stamp() };
+  assert.equal(mergeGate(pr({ comments: [approve, fail, edited] }), { baseFiles: noFiles }).ok, false);
+  // A receipt binds once; rebinding it to another comment is refused.
+  const id = /receipt=([0-9a-f]{32})/.exec(pass.body)[1];
+  assert.equal(trust.bindReceipt({ kind: 'check', pr: N, id, url: freshUrl() }), false);
+  assert.equal(trust.bindReceipt({ kind: 'check', pr: N, id: 'd'.repeat(32), url: freshUrl() }), false, 'no receipt, no binding');
+  // No URL at all (an old fixture or an API without ids): refused.
+  assert.equal(trust.sealValid({ ...trust.trustedComments([pass])[0], url: undefined }, N), false);
+  // The daily audit sees the replayed merge as missing receipts.
+  const nowMs = Date.parse('2026-11-12T12:00:00Z');
+  const merged = { number: N, headRefOid: H, mergedAt: '2026-11-12T11:00:00Z', comments: replayed.comments };
+  const found = auditMerges({ gh: { json: () => [merged] }, nowMs, since: 0 });
+  assert.deepEqual(found.map(f => [f.pr, f.missing]), [[N, ['verdict', 'author check']]]);
+  // Without the replay the same PR is clean: original PASS then APPROVE.
+  assert.deepEqual(mergeGate(pr({ comments: [pass, approve] }), { baseFiles: noFiles }).reasons, []);
 });
 
 test('P1-B: the key lives outside any checkout with mode 600; no key means no valid receipt', () => {
@@ -196,7 +231,7 @@ test('makeGh attaches the live tip of collab/integration, not the stale baseRefO
 
 test('author check records the base it tested; a branch behind integration is not checked', () => {
   const posted = [];
-  const gh = { pr: () => pr(), comment: (kind, n, body) => posted.push(body), withDeadline: () => gh };
+  const gh = { pr: () => pr(), comment: (kind, n, body) => { posted.push(body); return `${postUrl()}\n`; }, withDeadline: () => gh };
   const behind = args => {
     if (args[0] === 'rev-parse') return args[1] === 'HEAD' ? H : B2;
     if (args[0] === 'merge-base') throw new Error('not ancestor');
@@ -217,7 +252,7 @@ test('author check records the base it tested; a branch behind integration is no
 
 test('CI mode: the PASS counts only for the base the pr-check run actually merged', () => {
   const posted = [];
-  const gh = { pr: () => pr({ baseTipOid: B2 }), comment: (kind, n, body) => posted.push(body) };
+  const gh = { pr: () => pr({ baseTipOid: B2 }), comment: (kind, n, body) => { posted.push(body); return postUrl(); } };
   const run = (cmd, args) => (args[0] === 'rev-parse' ? H : '');
   const never = () => { throw new Error('nothing runs on the Mac in CI mode'); };
   const opts = ci => ({ gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci });

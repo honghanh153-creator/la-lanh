@@ -7,7 +7,7 @@ import { spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { boundedTimeout, checkSeal, clean, integration, isOwnPr, isSha, makeGh, repo, signReceipt, stateDir, vnNow } from './collab-trust.mjs';
+import { bindReceipt, boundedTimeout, checkSeal, clean, integration, isOwnPr, isSha, makeGh, repo, signReceipt, stateDir, vnNow } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { preflightFailure, readPreflight, recordPreflight, runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
@@ -256,8 +256,13 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   try { git(['merge-base', '--is-ancestor', base, 'HEAD']); }
   catch { return { status: 'preflight', reasons: [`nhánh chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): merge ${integration} vào nhánh rồi push`] }; }
   const prNumber = pr.number ?? number;
-  // P1-B: the local receipt is written before the comment, so every posted result has one.
-  const post = (status, extra) => gh.comment('pr', prNumber, renderCheck({ head, status, ...extra, receipt: signReceipt({ kind: 'check', pr: prNumber, head, base: extra.base, result: status }) }));
+  // P1-B: the local receipt is written before the comment, so every posted result has one; after
+  // posting it is bound to the new comment's id, so a later copy of the comment never counts.
+  const post = (status, extra) => {
+    const receipt = signReceipt({ kind: 'check', pr: prNumber, head, base: extra.base, result: status });
+    const url = gh.comment('pr', prNumber, renderCheck({ head, status, ...extra, receipt }));
+    if (!bindReceipt({ kind: 'check', pr: prNumber, id: receipt, url })) process.stderr.write(`collab-check: receipt ${receipt} not bound to a comment id; the result will not count\n`);
+  };
   const other = source === 'ci' ? null : busy();
   if (other) return { status: 'busy', reason: `máy đang chạy check khác: ${clean(other, 120)}` };
   const timeoutMs = budget();

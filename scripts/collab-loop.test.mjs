@@ -18,7 +18,8 @@ const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
 let clock = 0;
-const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
+const { asPosted } = await import('./collab-test-post.mjs');
+const owner = body => asPosted(trust, { authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
 const outsider = body => ({ ...owner(body), authorAssociation: 'NONE' });
 // The live tip of collab/integration in every fixture (P1-A).
 const BASE = 'e'.repeat(40);
@@ -34,7 +35,7 @@ const sealable = (kind, claims) => ({ ...owner(sealBody(kind, claims, 7)), seal:
 const check = (sha, status = 'PASS', base = BASE) => sealable('check', { head: sha, result: status, base });
 const approve = (sha, { p2 = 0, base = BASE, fix = null } = {}) => sealable('verdict', { head: sha, result: 'APPROVE', base, p2, fix });
 const requestChanges = (sha, base = BASE) => sealable('verdict', { head: sha, result: 'REQUEST_CHANGES', base });
-const resign = (n, c) => (c?.seal && n !== 7 ? { ...c, body: sealBody(c.seal.kind, c.seal.claims, n) } : c);
+const resign = (n, c) => (c?.seal && n !== 7 ? asPosted(trust, { ...c, body: sealBody(c.seal.kind, c.seal.claims, n) }) : c);
 const pr = (extra = {}) => {
   const p = { number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, baseTipOid: BASE, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra };
   return { ...p, comments: p.comments.map(c => resign(p.number, c)) };
@@ -52,7 +53,7 @@ function fakeGh(state) {
       if (args[0] === 'issue' && args[1] === 'create') return 'https://github.com/x/y/issues/901\n';
       return '';
     },
-    comment: (kind, number, body) => { trust.assertAgentBody(body); calls.push(['comment', kind, number, body]); state.pr.comments.push(owner(body)); },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); calls.push(['comment', kind, number, body]); const c = owner(body); state.pr.comments.push(c); return c.url; },
   };
 }
 

@@ -6,6 +6,7 @@ import test from 'node:test';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-status-'));
 const trust = await import('./collab-trust.mjs');
+const { asPosted } = await import('./collab-test-post.mjs');
 const { boardMarker, ownerNotes, plainTitle, postOwnerNotes, renderBoard, sentNoteKeys, upsertBoard } = await import('./collab-status.mjs');
 const { openOpsAlert, opsAlert, resolveOpsAlert, tick } = await import('./collab-turn.mjs');
 const { renderCheck } = await import('./collab-check.mjs');
@@ -128,7 +129,7 @@ test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not 
   // A signed PASS on the live base (P1-A/P1-B), so the PR waits for review.
   const base = 'e'.repeat(40);
   const seal = trust.checkSeal({ head: A, base, receipt: trust.signReceipt({ kind: 'check', pr: 9, head: A, base, result: 'PASS' }) });
-  const checked = pr({ number: 9, baseTipOid: base, comments: [{ authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${seal}` }] });
+  const checked = pr({ number: 9, baseTipOid: base, comments: [asPosted(trust, { authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${seal}` })] });
   const gh = {
     pr: () => checked, openPrs: () => [checked], raw: () => '', comment: () => {},
     json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments }),
@@ -156,7 +157,8 @@ const notifier = gh => { const cachePath = join(trust.stateDir, `notes-${cacheN+
 const approved = (sha, n) => {
   const receipt = (kind, result) => trust.signReceipt({ kind, pr: n, head: sha, base: BASE, result, p2: 0 });
   return [{ authorAssociation: 'OWNER', createdAt: '2026-11-01T00:00:00Z', body: renderCheck({ head: sha, status: 'PASS', base: BASE, receipt: receipt('check', 'PASS'), exitCode: 0, seconds: 1, date: 'x' }) },
-    { authorAssociation: 'OWNER', createdAt: '2026-11-01T00:01:00Z', body: [`Review verdict: APPROVE @ ${sha}`, 'Reviewer: Codex (auto, scripts/codex-review.mjs)', '', trust.verdictSeal({ head: sha, p2: 0, base: BASE, receipt: receipt('verdict', 'APPROVE') })].join('\n') }];
+    { authorAssociation: 'OWNER', createdAt: '2026-11-01T00:01:00Z', body: [`Review verdict: APPROVE @ ${sha}`, 'Reviewer: Codex (auto, scripts/codex-review.mjs)', '', trust.verdictSeal({ head: sha, p2: 0, base: BASE, receipt: receipt('verdict', 'APPROVE') })].join('\n') }]
+    .map(c => asPosted(trust, c));
 };
 
 test('merges post one new comment per tick, one plain line each, and a re-run never posts twice', () => {
