@@ -1,16 +1,18 @@
 // Codex approves the daily batch of pending copy (owner decision 06.11.2026).
 // Usage: node scripts/codex-copy-review.mjs [--dry-run] [--fake-codex decisions.json]
+// The scheduled tick (collab-turn.mjs) runs it once a day after 10:00 through runCopyBatch (12.11.2026).
 // Codex runs read-only, the same way scripts/codex-review.mjs calls it. Privacy, consent, crisis
 // and safety copy is never sent: it stays owner-only. The result goes into a PR on
 // agent/claude/copy-batch-YYYYMMDD; the script never writes main or collab/integration and
 // never posts owner reply words.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { agentMarker, assertAgentBody, integration, repo, vnNow } from './collab-trust.mjs';
+import { acquireLock } from './collab-lock.mjs';
+import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -30,6 +32,29 @@ export const digest = text => createHash('sha256').update(String(text).normalize
 export function selectPending(registry) {
   return (registry.entries ?? []).filter(e => e.status === 'pending' && !ownerOnly.has(e.category));
 }
+
+// One daily batch: a PR body with one row per entry must stay well under GitHub's 65 536-character
+// limit, and one Codex run must finish inside its 20 minutes. The rest waits for the next days.
+export const batchSize = 200;
+// Rejected copy stays pending (it must not be served), so the next batch skips entries whose
+// current text Codex already rejected; an edited text has a new digest and is reviewed again.
+// Without this, 200 rejected entries would fill every later batch and nothing after them is read.
+export const rejectedPath = join(stateDir, 'copy-rejected.json');
+export const readRejected = (path = rejectedPath) => { try { return JSON.parse(readFileSync(path, 'utf8')) ?? {}; } catch { return {}; } };
+const unreviewed = (registry, rejected) => selectPending(registry).filter(e => rejected[e.id] !== digest(e.text));
+export const batchFor = (registry, rejected = {}) => unreviewed(registry, rejected).slice(0, batchSize);
+export function recordRejected(decisions, reviewed, path = rejectedPath) {
+  const rejected = readRejected(path);
+  for (const d of decisions) if (d.decision === 'reject' && reviewed.has(d.id)) rejected[d.id] = reviewed.get(d.id);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(rejected, null, 1)}\n`);
+  return rejected;
+}
+
+// The tick's cheap check: pending entries Codex may approve, read from this checkout (the ops clone
+// is pinned to collab/integration before each tick).
+export const readLocalRegistry = () => JSON.parse(readFileSync(join(root, registryRel), 'utf8'));
+export const pendingCount = (registry = readLocalRegistry(), rejected = readRejected()) => unreviewed(registry, rejected).length;
 
 export function buildPrompt(pending) {
   const rows = pending.map(e => JSON.stringify({ id: e.id, category: e.category, text: e.text })).join('\n');
@@ -75,6 +100,8 @@ export function renderBody(decisions, date) {
     '', '| Mục | Kết quả | Lý do |', '| --- | --- | --- |', ...rows, '',
     '## Cổng (docs/operations/product-development-process.md §3–4)', '',
     'Mức: M — câu đã duyệt sẽ hiện cho người dùng.', '',
+    'Size-exception: lô sinh tự động, chỉ đổi trạng thái duyệt trong copy_registry.json và hash đi kèm.', '',
+    'Người dùng thấy gì: một số câu đọc đã được duyệt sẽ hiện thay cho câu cũ.', '',
     '- G1 Tài liệu / US-AC: luật cờ chờ duyệt trong docs/operations/decision-checklist.md (owner 06.11.2026).',
     '- G2 UI/UX: không đổi giao diện; chỉ đổi câu đã có chỗ hiển thị.',
     '- G3 Câu chữ (owner duyệt nếu có câu mới): Codex duyệt lô theo quyết định owner 06.11; không có nhóm owner-only.',
@@ -105,6 +132,12 @@ function openBatchPr(registry, body, date, base, run) {
   const git = args => run('git', args, { cwd: root, encoding: 'utf8' });
   git(['worktree', 'add', '-q', '-b', branch, join(dir, 'w'), base]);
   const work = join(dir, 'w');
+  // The tick runs this daily from the ops clone: drop the worktree (and its venv) when done.
+  try { return publishBatch(registry, body, date, branch, work, dir, run); }
+  finally { try { git(['worktree', 'remove', '--force', work]); } catch {} }
+}
+
+function publishBatch(registry, body, date, branch, work, dir, run) {
   writeFileSync(join(work, registryRel), `${JSON.stringify(registry, null, 1)}\n`);
   run('uv', ['run', 'python', '-m', 'scripts.fallback_approval'], { cwd: join(work, 'apps/api'), encoding: 'utf8' });
   const at = args => run('git', args, { cwd: work, encoding: 'utf8' });
@@ -118,7 +151,7 @@ function openBatchPr(registry, body, date, base, run) {
   { cwd: work, encoding: 'utf8' }).trim();
 }
 
-export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null } = {}) {
+export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null, rejectedFile = registryPath ? null : rejectedPath } = {}) {
   const dryRun = argv.includes('--dry-run');
   const fakeAt = argv.indexOf('--fake-codex');
   // Review a pinned integration snapshot unless a test passes its own registry file.
@@ -132,7 +165,7 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
     base = git(['rev-parse', `origin/${integration}`]);
     registry = JSON.parse(git(['show', `${base}:${registryRel}`]));
   }
-  const pending = selectPending(registry);
+  const pending = batchFor(registry, rejectedFile ? readRejected(rejectedFile) : {});
   if (!pending.length) { out.write('no pending copy\n'); return { status: 'empty' }; }
   const date = vnNow().date;
   const result = fakeAt >= 0
@@ -143,12 +176,26 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
   const next = applyDecisions(registry, decisions, date, reviewed);
   const changed = next.entries.some((e, i) => e !== registry.entries[i]);
   const body = renderBody(decisions, date);
+  if (!dryRun && rejectedFile) recordRejected(decisions, reviewed, rejectedFile);
   if (dryRun) { out.write(`${JSON.stringify({ registry: next, body }, null, 1)}\n`); return { status: 'dry-run', registry: next, body }; }
   if (!changed) { out.write('no copy approved in this batch\n'); return { status: 'no-approvals', registry: next, body }; }
   if (!base) throw new Error('publishing needs the integration snapshot (no --registry file)');
   const url = openBatchPr(next, body, date, base, run);
   out.write(`${url}\n`);
   return { status: 'opened', url };
+}
+
+// The tick's entry: shares review.lock with codex-review.mjs (one Codex job on the machine at a
+// time). Busy means nothing started; the tick retries on its next run.
+export function runCopyBatch({ lock = () => { mkdirSync(stateDir, { recursive: true }); return acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 }); },
+  run = () => main([], { out: { write: () => {} } }) } = {}) {
+  const release = lock();
+  if (!release) return { status: 'busy' };
+  try {
+    const result = run();
+    return { status: result.status, ...(result.url ? { url: result.url } : {}) };
+  } catch (error) { return { status: 'error', reason: clean(error.message, 300) }; }
+  finally { release(); }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
