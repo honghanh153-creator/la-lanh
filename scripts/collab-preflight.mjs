@@ -7,10 +7,10 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { bodyHash, runGroup } from './collab-heal.mjs';
 import { sizeProblem } from './collab-size.mjs';
 import { clean, integration, makeGh, readJson, stateDir, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const gates = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'];
 
@@ -99,7 +99,7 @@ export const preflightFailure = (records, pr) => {
   return r.bodyHash === bodyHash(pr.body) ? r.reasons : null;
 };
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   try {
     let result;

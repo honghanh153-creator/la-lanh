@@ -3,10 +3,10 @@
 // pinned to collab/integration), git refs and merged PRs on GitHub. A source that cannot be read
 // prints "chưa đo được (lý do)"; nothing is estimated.
 import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 import { digest, ownerOnly, readLocalRegistry, root } from './codex-copy-review.mjs';
 import { wipCount, wipLimit } from './collab-buffer.mjs';
 import { clean, integration, makeGh, repo } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 // Same rule as CopyEntry.servable and approved_bundles() in apps/api/app/domains/content/copy_approval.py.
 export const bundlePrefix = 'daily.bundle.';
@@ -89,7 +89,7 @@ export function renderMetrics(m) {
   ];
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   try {
     const gh = makeGh();
     const { turnsFor } = await import('./collab-turn.mjs');
