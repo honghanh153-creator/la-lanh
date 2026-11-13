@@ -27,7 +27,7 @@ test('more than 400 code lines fails unless the body has Size-exception', () => 
   assert.notEqual(sizeProblem({ files: big, body: 'Size-exception:\n' }), null);
 });
 
-const body = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'].map(g => `- ${g}: ${g === 'G7' ? 'không đụng phiên, dữ liệu, log' : 'ok'}`).join('\n') + '\nMức: S\n';
+const body = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'].map(g => `- ${g}: ${g === 'G7' ? 'không đụng phiên, dữ liệu, log' : 'ok'}`).join('\n') + '\nMức: S\nNgười dùng thấy gì: không trực tiếp (vận hành)\n';
 test('preflight reports the size cap', () => {
   const big = [{ path: 'scripts/b.mjs', additions: 401, deletions: 0 }];
   assert.deepEqual(runPreflight({ body, files: big }).reasons, ['PR quá lớn (401 dòng mã) — tách nhỏ hoặc ghi `Size-exception: <lý do>` trong body']);

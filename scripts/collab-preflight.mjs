@@ -15,7 +15,7 @@ import { clean, integration, makeGh, readJson, stateDir, writeJson } from './col
 export const gates = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'];
 
 // The value after `- Gn <name>:` on its own line; empty when the template line was left blank.
-const gateValue = (body, gate) => {
+export const gateValue = (body, gate) => {
   const line = String(body ?? '').split('\n').find(row => new RegExp(`^\\s*[-*]?\\s*\\**${gate}\\b(?!\\d)`).test(row));
   if (line === undefined) return null;
   const at = line.indexOf(':');
@@ -26,6 +26,14 @@ const gateValue = (body, gate) => {
 // touches sessions, permissions, personal data or logs. A blank or "N/A" is not an answer.
 export const g7Terms = /phiên|session|quyền|permission|auth|dữ liệu|data|log|bí mật|secret|token|csrf|không đụng|không chạm/i;
 
+// Owner 12.11.2026: every PR says what the user gets, in one plain line. Docs and ops PRs write
+// `Người dùng thấy gì: không trực tiếp (vận hành)`. The line must start with the label.
+export function userSees(body) {
+  const m = /^[ \t]*[-*]?[ \t]*\**Người dùng thấy gì[ \t]*:\**[ \t]*(.*)$/mu.exec(String(body ?? '').normalize('NFC'));
+  const value = m ? m[1].replace(/[*_`]/g, '').trim() : '';
+  return value || null;
+}
+
 export function bodyProblems(body) {
   const text = String(body ?? '');
   const problems = [];
@@ -35,6 +43,7 @@ export function bodyProblems(body) {
   if (!level) problems.push('PR body thiếu mức rủi ro S/M/L');
   const g7 = gateValue(text, 'G7');
   if (g7 && !g7Terms.test(g7)) problems.push('G7 chưa trả lời checklist (phiên, quyền, dữ liệu cá nhân, log)');
+  if (!userSees(text)) problems.push('PR body thiếu dòng "Người dùng thấy gì:"');
   return problems;
 }
 
