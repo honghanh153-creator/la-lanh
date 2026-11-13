@@ -172,41 +172,11 @@ class InsightReadingService:
         )
 
     def overview(self, chart: NatalChart, *, observed_at: datetime) -> InsightReading:
-        claims = list(
-            self._jyotish_claims(chart)
-            if chart.config.tradition is Tradition.JYOTISH
-            else self._planet_claims(chart)
-        )
-        if chart.config.tradition is Tradition.JYOTISH and chart.nakshatras:
-            moon = next(item for item in chart.nakshatras if item.body is BodyName.MOON)
-            claims.insert(
-                2,
-                ReadingClaim(
-                    id="moon-nakshatra",
-                    domain=ReadingDomain.EMOTIONS,
-                    title=f"Nakshatra {moon.name}",
-                    summary=(
-                        f"Mặt Trăng nằm trong vùng {moon.name}, phần {moon.pada} trong bốn phần."
-                    ),
-                    hook=f"Mặt Trăng của bạn đi qua vùng {moon.name}, pada {moon.pada}.",
-                    meaning=(
-                        "Trong chiêm tinh Ấn Độ, mỗi cung còn được chia thành các vùng nhỏ hơn. "
-                        "Vị trí này đã tính từ ngày, giờ và nơi "
-                        "sinh. Phần giải nghĩa riêng chưa sẵn sàng."
-                    ),
-                    manifestation=(
-                        f"Mặt Trăng nằm ở phần {moon.pada} của vùng {moon.name}. "
-                        "Đây là thông tin vị trí, không phải mô tả cảm xúc của bạn."
-                    ),
-                    watch_for=(
-                        "Hai hệ chiêm tinh có thể cho vị trí khác nhau vì dùng mốc tính khác nhau."
-                    ),
-                    micro_action=("Xem lại giờ và nơi sinh trước khi so sánh với lá số khác."),
-                    evidence=(f"Mặt Trăng ở Nakshatra {moon.name}", f"Pada {moon.pada}"),
-                    factor_refs=(f"moon:nakshatra:{moon.index}:pada:{moon.pada}",),
-                    confidence="high",
-                ),
-            )
+        # Jyotish reads the same planet x sign x house meanings as the Western cards; only the
+        # sidereal positions differ. Western aspects never enter a Jyotish card.
+        if chart.config.tradition is Tradition.JYOTISH:
+            chart = chart.model_copy(update={"aspects": ()})
+        claims = list(self._planet_claims(chart))
         return InsightReading(
             tradition=chart.config.tradition,
             config_hash=chart.config_hash,
@@ -214,42 +184,6 @@ class InsightReadingService:
             claims=tuple(claims[:6]),
             provenance=chart.provenance,
         )
-
-    @staticmethod
-    def _jyotish_claims(chart: NatalChart) -> tuple[ReadingClaim, ...]:
-        claims: list[ReadingClaim] = []
-        for body, label in BODY_VI.items():
-            try:
-                position = chart.body(body)
-            except KeyError:
-                continue
-            house = InsightReadingService._house_for_longitude(chart, position.longitude)
-            house_text = f", nhà {house}" if house is not None else ""
-            placement = f"{label} ở {SIGN_VI[position.sign.value]}{house_text}"
-            claims.append(
-                ReadingClaim(
-                    id=f"{body.value}-sign",
-                    domain=ReadingDomain.CORE,
-                    title=placement,
-                    summary=f"{placement}. Vị trí đã tính theo hệ chiêm tinh Ấn Độ.",
-                    hook=f"{placement}.",
-                    meaning=(
-                        "Lá số này dùng mốc tính của chiêm tinh Ấn Độ. "
-                        "Phần giải nghĩa riêng cho hệ này chưa sẵn sàng."
-                    ),
-                    manifestation=f"Vị trí đã tính: {placement.lower()}.",
-                    watch_for=(
-                        "Vị trí có thể khác lá số phương Tây vì hai hệ dùng mốc tính khác nhau."
-                    ),
-                    micro_action=(
-                        "Xem lại giờ, nơi sinh và cách tính đã chọn trước khi so sánh lá số."
-                    ),
-                    evidence=(placement,),
-                    factor_refs=(f"jyotish:{body.value}:sign:{position.sign.value}",),
-                    confidence="high",
-                )
-            )
-        return tuple(claims)
 
     def _planet_claims(self, chart: NatalChart) -> tuple[ReadingClaim, ...]:
         definitions = (

@@ -63,7 +63,10 @@ from app.domains.readings.models import (
     experiment_projection_for,
 )
 from app.domains.readings.planner import ReadingPlanner
-from app.domains.readings.renderers import DeterministicVietnameseRenderer
+from app.domains.readings.renderers import (
+    JYOTISH_MEANINGS_VERSION,
+    DeterministicVietnameseRenderer,
+)
 from app.domains.readings.repository import ReadingProjectionRepository
 from app.domains.readings.review_agent import BANNED_CORE_FRAGMENTS
 from app.domains.readings.rewrite import (
@@ -847,6 +850,12 @@ def _requires_forced_copy_repair(
         return False
     candidate = active.evaluation.publishable_candidate
     if candidate is None:
+        return True
+    if (
+        JYOTISH_MEANINGS_VERSION in replacement.renderer_version
+        and JYOTISH_MEANINGS_VERSION not in active.renderer_version
+    ):
+        # Position-only Jyotish prose is replaced by the planet x sign x house reading.
         return True
     replacement_candidate = replacement.evaluation.publishable_candidate
     if (
