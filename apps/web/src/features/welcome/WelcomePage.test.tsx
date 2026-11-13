@@ -255,13 +255,13 @@ describe("WelcomePage", () => {
   it("creates a guest directly and moves to DOB with one affirmative action", async () => {
     const user = userEvent.setup();
     sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, "radar-request-1");
-    sessionStorage.setItem("la-lanh-radar-owner-start", "1");
+    sessionStorage.setItem("la-lanh-radar-owner-start", "invite");
     renderPage();
     await user.click(screen.getByRole("button", { name: "Đồng ý & bắt đầu" }));
 
     expect(createGuest).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY)).toBe("radar-request-1");
-    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("1");
+    expect(sessionStorage.getItem("la-lanh-radar-owner-start")).toBe("invite");
     expect(await screen.findByRole("heading", { name: "Ngày sinh" })).toBeInTheDocument();
   });
 

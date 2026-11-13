@@ -55,7 +55,7 @@ it is deferred to avoid changing verified transaction boundaries in this release
 ## Browser and content evidence
 
 Observed on the separate synthetic local QA origin `http://localhost:5351`: Welcome has exactly
-the guest and login entry actions; guest birth 15 March 1990 reveals Mộng; Home shows the daily note;
+the guest and login entry actions; guest birth 8 March 1991 reveals Mộng; Home shows the daily note;
 Tarot question -> five-card fan -> selected-card reveal -> summary first -> expandable card meanings.
 The deterministic content uses ordinary direct Vietnamese and never enables external AI itself.
 The browser's native screenshot operation failed with zero viewport width during this session;

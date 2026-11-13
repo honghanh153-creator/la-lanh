@@ -6,7 +6,7 @@
 
 Reference: [ảnh người dùng](../../design-directions/ultraviolet-paper-2026-10-06/reference.png). [Danh sách toàn bộ route / trạng thái](../../design-directions/ultraviolet-paper-2026-10-06/README.md). [Gallery ảnh chạy thật](gallery.html).
 
-Preview đang chạy: `http://127.0.0.1:5207/welcome`. QA API port 8027, web port 5207, local SQLite tách biệt production. Dùng hồ sơ giả định 15/03/1990, 07:30, Hà Nội; người thứ hai giả định 20/06/1992, không rõ giờ. Không đưa dữ liệu thật của khách vào test.
+Preview đang chạy: `http://127.0.0.1:5207/welcome`. QA API port 8027, web port 5207, local SQLite tách biệt production. Dùng hồ sơ giả định 02/03/1993, 07:30, Hà Nội; người thứ hai giả định 20/06/1992, không rõ giờ. Không đưa dữ liệu thật của khách vào test.
 
 ## Gate tài liệu / nghiệp vụ
 

@@ -1,0 +1,101 @@
+# Author check in CI for every PR into collab/integration (decision docs/decisions/2026-10-31-ci-pr-check.md).
+# Security (GitHub Security Lab "pwn requests"): `pull_request` only (no secrets, read-only token),
+# never `pull_request_target`; actions pinned to commit SHAs; minimal permissions.
+name: pr-check
+
+on:
+  pull_request:
+    branches: [collab/integration]
+    # `edited` covers a stacked PR that collab-merge retargets to collab/integration (#164).
+    # Deliberately not filtered to base changes only: a skipped run on a title/body edit would
+    # replace an earlier failed `check` with a skipped (passing) one on the same head SHA.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      level: ${{ steps.scope.outputs.level }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: scope
+        name: Classify changed paths (docs / loop / full)
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # --no-renames lists both the old and new path of a rename, so a moved script
+          # is classified by where it came from as well as where it went (#164).
+          files="$(git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA")"
+          printf '%s\n' "$files"
+          level=docs
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              docs/*.md|docs/*/*.md|docs/*/*/*.md|*.md) ;;
+              scripts/collab-*|scripts/codex-review*|scripts/collaboration-*|scripts/launchd/*|.claude/skills/*)
+                [ "$level" = docs ] && level=loop ;;
+              *) level=full ;;
+            esac
+          done <<< "$files"
+          echo "level=$level" >> "$GITHUB_OUTPUT"
+          echo "scope: $level"
+
+  check:
+    needs: scope
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Docs-only PR
+        if: needs.scope.outputs.level == 'docs'
+        run: echo "Docs only; the full check is not required for this level."
+      - name: Loop-script PR
+        if: needs.scope.outputs.level == 'loop'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm collab:test
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        if: needs.scope.outputs.level == 'full'
+        with:
+          # Same interpreter as the Mac author check: the OpenAPI export differs under 3.12.
+          python-version: '3.13'
+      - name: Fetch the PR base for the content clarity ratchet
+        if: needs.scope.outputs.level == 'full'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        # The ratchet reads content_clarity_baseline.json from the base branch so a PR cannot
+        # loosen the gate by editing its own copy (C1, GT-2). Public repo: no credentials needed.
+        run: git fetch --no-tags --depth=1 origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+      - name: Full author check (same command as the Mac author check)
+        if: needs.scope.outputs.level == 'full'
+        env:
+          CI: '1'
+          CONTENT_CLARITY_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
+        run: |
+          # qa-server looks for uv at ~/.local/bin unless UV_BIN says where setup-uv put it.
+          export UV_BIN="$(command -v uv)"
+          pnpm install --frozen-lockfile
+          make -C vendor/swisseph
+          pnpm --filter @la-lanh/web exec playwright install --with-deps chromium webkit
+          pnpm check

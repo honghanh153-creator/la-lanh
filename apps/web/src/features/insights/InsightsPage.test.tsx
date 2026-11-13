@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getInsightOverview, getBirthSupplement } from "../../shared/api/client";
+import { ApiProblem, getInsightOverview, getBirthSupplement } from "../../shared/api/client";
 import { InsightsPage } from "./InsightsPage";
 
 const claimDetail = {
@@ -93,6 +93,23 @@ describe("InsightsPage", () => {
     expect(screen.queryByRole("link", { name: "Thêm giờ sinh" })).not.toBeInTheDocument();
   });
 
+  it("tells a reading the gates could not produce apart from a dropped connection (#143 E2)", async () => {
+    vi.mocked(getInsightOverview).mockRejectedValue(new ApiProblem(422, "READING_CONTENT_REJECTED", "Insight reading is temporarily unavailable"));
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Chưa mở được bản đọc." })).toBeInTheDocument();
+    expect(screen.getByText("Không cần điền lại khi thông tin đã đủ.")).toBeInTheDocument();
+    expect(screen.queryByText(/kết nối/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
+  });
+
+  it("still asks for a retry when the connection drops", async () => {
+    vi.mocked(getInsightOverview).mockRejectedValue(new TypeError("Failed to fetch"));
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Chart chưa về kịp." })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Chưa mở được bản đọc." })).not.toBeInTheDocument();
+  });
+
   it("offers a recovery path when the private chart session is gone", async () => {
     vi.mocked(getInsightOverview).mockRejectedValue(
       { status: 401, code: "GUEST_SESSION_MISSING" },
@@ -123,5 +140,22 @@ describe("InsightsPage", () => {
     expect(await screen.findByText(/Bạn biết giờ sinh chính xác\?/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Thêm vào nhé" })).toHaveAttribute("href", "/birth-time");
     expect(screen.getByText(/cách người khác nhìn thấy bạn lúc mới gặp/)).not.toHaveTextContent(/nhà|cung mọc|vận hạn/);
+  });
+
+  it("hides the technical layers block when an approximate time leaves no stable planet (#143 E4)", async () => {
+    vi.mocked(getInsightOverview).mockResolvedValue({
+      status: "ready", required_fields: [], houses_available: false, time_precision: "approximate", bodies: [],
+      reading: {
+        tradition: "western", config_hash: "def456789012", observed_at: "2026-11-10T00:00:00Z",
+        disclaimer: "Nội dung tham khảo.",
+        provenance: { engine: "swiss_ephemeris", version: "2.10.03", release_commit: "x", ephemeris_set: "se1", profile: "v2", tradition: "western", zodiac: "tropical", ayanamsa: null, config_hash: "def456789012" },
+        claims: [],
+      },
+    });
+    renderPage();
+    expect(await screen.findByText("Chi tiết kỹ thuật")).toBeInTheDocument();
+    expect(screen.queryByText("Các lớp kỹ thuật")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Điều gì đang ảnh hưởng tới cách bạn phản ứng?" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Xem bối cảnh chung của hôm nay/ })).toBeInTheDocument();
   });
 });

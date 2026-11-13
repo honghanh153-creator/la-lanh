@@ -13,23 +13,26 @@ vi.mock("../../shared/api/client", async (original) => {
 
 describe("PublicRadarPage", () => {
   it("shows purpose and privacy before collecting any recipient data", async () => {
-    vi.mocked(getPublicRadarInvite).mockResolvedValue({
+    // An older API may still send the sender's private label; the page must never show it (issue #95).
+    const staleInvite = {
       request_id: "request-1",
-      recipient_label: "Mèo",
+      recipient_label: "CanaryNhanRieng7f3a",
       context: "crush",
       voice: "straight_warm",
       expires_at: "2026-09-27T00:00:00Z",
       consent_version: "radar-pair-v1",
       requires_exact_birth_profile: true,
       privacy_note: "private",
-    });
-    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    } as const;
+    vi.mocked(getPublicRadarInvite).mockResolvedValue(staleInvite);
+    const { container } = render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={["/radar/i/token"]}>
         <Routes><Route element={<PublicRadarPage />} path="/radar/i/:token" /></Routes>
       </MemoryRouter>
     </QueryClientProvider>);
 
-    expect(await screen.findByRole("heading", { name: "Mèo, bật Radar cùng họ?" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Hai bạn hợp nhau ở điểm nào? Mở ra xem cùng nhau nhé." })).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("CanaryNhanRieng7f3a");
     expect(screen.getByText("Dữ liệu sinh không được trao đổi")).toBeInTheDocument();
     expect(screen.getByText("Bạn quyết định riêng cho lần này")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Tiến độ Radar" })).toBeInTheDocument();

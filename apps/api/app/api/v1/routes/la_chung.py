@@ -13,6 +13,7 @@ from app.domains.la_chung.models import IdentityMode, RequestStatus
 from app.domains.la_chung.service import LaChungError, LaChungService
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 from app.infrastructure.owner_session import resume_owner_for_guest
+from app.infrastructure.session_cookies import token_cookie_value
 
 router = APIRouter()
 public_router = APIRouter()
@@ -42,7 +43,7 @@ class PublicStatementResponse(BaseModel):
 
 
 class PublicInviteResponse(BaseModel):
-    recipient_label: str
+    # No recipient_label: the sender's private label is owner-only (US-08 S37, issue #95).
     context: str
     expires_at: datetime
     statements: tuple[PublicStatementResponse, ...]
@@ -292,7 +293,6 @@ async def public_invite(
     except LaChungError:
         return Response(status_code=404, headers=dict(response.headers))
     return PublicInviteResponse(
-        recipient_label=invite.recipient_label,
         context=invite.context,
         expires_at=invite.expires_at,
         statements=tuple(
@@ -329,7 +329,7 @@ async def submit_response(
     settings = request.app.state.settings
     response.set_cookie(
         "la_lanh_lc_receipt",
-        result.receipt_token,
+        token_cookie_value(result.receipt_token),
         httponly=True,
         secure=settings.guest_cookie_secure,
         samesite="strict",

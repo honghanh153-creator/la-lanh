@@ -289,7 +289,7 @@ async def test_surface_rewrite_rejects_extra_output_and_unsafe_input_without_sen
         update={
             "safe_payload": {
                 **_rewrite_envelope().safe_payload,
-                "birth_date": "1990-03-15",
+                "birth_date": "1997-02-26",
             }
         }
     )

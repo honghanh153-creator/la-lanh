@@ -1,13 +1,12 @@
 """Codex r56 P1 on #122: dropping the source cascades must not strand an older app's deletions.
 
-The deploy runs migrations before it replaces the app, so a release whose migration drops the
-cascades would leave the previous app running for a while on a schema where its time/place
-removal no longer reaches saved notes and share links. This release is the compatibility step:
-it adds the explicit deletes and keeps the cascades. 20261029_0039 drops them in the next release,
-and refuses to run in the same upgrade as this release's marker (tested there).
-
-The older writer is simulated by turning the explicit copy delete off: the rest of the removal
-is exactly the pre-US-23 method. Synthetic data, SQLite with foreign keys on.
+The deploy runs migrations before it replaces the app. The previous release (#122) added the
+explicit deletes and kept the cascades; this release's 20261029_0039 drops them, revises that
+release's marker 20261029_0038a and refuses to run in the same upgrade that applies it
+(tests/db/test_detached_copy_migration.py). So the app running during this upgrade is at least
+the compatibility release, whose removal deletes every copy itself; a pre-US-23 writer on this
+schema is exactly the configuration the guard excludes, and is no longer exercised here.
+Synthetic data, SQLite with foreign keys on.
 """
 
 from __future__ import annotations
@@ -17,11 +16,9 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
 from alembic.script import ScriptDirectory
 from fastapi.testclient import TestClient
 
-import app.domains.birth.postgres as birth_postgres
 from app.domains.saved.tables import SavedNoteRow
 from app.domains.share.tables import ShareArtifactRow
 from tests.erasure_journal.test_postgres_restore_probe import MIGRATIONS
@@ -44,26 +41,16 @@ def _cascades(table: Any) -> set[tuple[str, str]]:
     }
 
 
-def test_this_release_keeps_the_source_cascades() -> None:
-    assert ScriptDirectory(str(MIGRATIONS)).get_current_head() == MARKER.revision
+def test_this_release_drops_the_cascades_only_after_the_marker() -> None:
+    assert ScriptDirectory(str(MIGRATIONS)).get_revision("20261029_0039").down_revision == (
+        MARKER.revision
+    )
     for row in (SavedNoteRow, ShareArtifactRow):
-        assert _cascades(row.__table__) == {
-            ("daily_notes", "CASCADE"),
-            ("reading_revisions", "CASCADE"),
-        }
+        assert _cascades(row.__table__) == set()
 
 
-async def _old_writer(*_: Any, **__: Any) -> None:
-    """A pre-US-23 app: its removal never deleted copies itself."""
-
-
-@pytest.mark.parametrize("writer", ["previous", "this"])
-def test_time_or_place_removal_removes_every_copy_on_this_schema(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, writer: str
-) -> None:
-    if writer == "previous":
-        monkeypatch.setattr(birth_postgres, "delete_copies", _old_writer)
-    path = tmp_path / f"{writer}.db"
+def test_time_or_place_removal_removes_every_copy_without_the_cascades(tmp_path: Path) -> None:
+    path = tmp_path / "this.db"
     app = make_app(path)
     with TestClient(app, base_url=ORIGIN) as client:
         headers = start_guest(client)

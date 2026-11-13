@@ -48,7 +48,7 @@ try {
   csrf = guest.csrf_token;
   createdGuest = true;
   const { data: birth } = await request("/v1/birth-profile", {
-    method: "POST", body: { birth_date: "1990-03-15" },
+    method: "POST", body: { birth_date: "2001-03-07" },
   });
   assert.equal(birth.calculation_kind, "date_only_sun");
   const { data: basic } = await request("/v1/daily-note");
@@ -67,7 +67,7 @@ try {
   );
   assert.equal(preview.safe_snapshot.title, work.active.sections.hook);
   assert.equal(previewResponse.headers.get("referrer-policy"), "no-referrer");
-  assert.ok(!JSON.stringify(preview).includes("1990-03-15"));
+  assert.ok(!JSON.stringify(preview).includes("2001-03-07"));
   await request(`/v1/share-artifacts/${share.id}`, { method: "DELETE", expected: 204 });
   await request(`/v1/share-artifacts/${share.token}`, { anonymous: true, expected: 404 });
   completed.push("work context → safe share → revoke");
@@ -128,7 +128,12 @@ try {
       },
     });
     assert.equal(radar.mode, "private_check");
-    assert.equal(radar.sections.length, 4);
+    // radar-result-v2: 2–3 main sections plus the "Xem thêm" layer; mirror the API contract, not a count.
+    assert.equal(radar.version, "radar-result-v2");
+    const mainKeys = radar.sections.filter((s) => s.layer === "main").map((s) => s.key).join(",");
+    assert.ok(["fit,check", "fit,friction,check"].includes(mainKeys), `radar main sections: ${mainKeys}`);
+    const keys = new Set(radar.sections.map((s) => s.key));
+    assert.ok(keys.has("why") && keys.has("perspective"), "radar thiếu phần why/perspective");
     assert.ok(!JSON.stringify(radar).includes("1996-07-21"));
     await request(`/v1/radar/results/${radar.request_id}`, { anonymous: true, expected: 404 });
     await request(`/v1/radar/results/${radar.request_id}`, { method: "DELETE", expected: 204 });

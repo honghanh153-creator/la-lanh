@@ -1,20 +1,29 @@
 import asyncio
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time
+from time import monotonic
 from typing import TypeVar
 from uuid import UUID, uuid4
-from zoneinfo import ZoneInfo
 
 from app.domains.astro.engine import NatalChartEngine
 from app.domains.astro.models import CalculationConfig, ChartInput, NatalChart, TimePrecision
 from app.domains.birth.errors import (
     BirthChartBusy,
+    BirthCorrectionExpired,
+    BirthDateChangeLimited,
+    BirthDateChangeRequiresEdit,
+    BirthDateConfirmationMismatch,
     BirthDateOutOfRange,
+    BirthDateUnchanged,
+    BirthProfileChanged,
     BirthProfileNotFound,
     BirthSupplementConsentInvalid,
     BirthSupplementInvalid,
 )
 from app.domains.birth.models import (
+    DATE_CHANGE_COMMIT_DEADLINE_SECONDS,
+    DATE_CHANGE_LIMIT,
+    DATE_CHANGE_WINDOW,
     ApproxWindow,
     BirthReveal,
     BirthSnapshotRecord,
@@ -25,6 +34,7 @@ from app.domains.birth.models import (
     BirthTimeMode,
 )
 from app.domains.birth.repository import BirthRepository
+from app.domains.geo.historical_offset import ResolvedBirthInstant, resolve_birth_instant
 from app.domains.geo.models import PlaceResult
 from app.domains.geo.service import PlaceSearchService
 from app.infrastructure.crypto import EnvelopeCipher, SecretHasher
@@ -57,10 +67,11 @@ class BirthChartService:
         now: datetime | None = None,
     ) -> BirthReveal:
         current = now or datetime.now(UTC)
-        youngest_allowed = _years_before(current.date(), 18)
-        oldest_allowed = _years_before(current.date(), 120)
-        if birth_date < oldest_allowed or birth_date > youngest_allowed:
-            raise BirthDateOutOfRange
+        _require_adult_date(birth_date, current)
+        active = await self._repository.find_current(guest_id)
+        if active is not None and self._stored_date(active) != birth_date:
+            # D4, checked again under the lock in save_or_replay; this only avoids the compute.
+            raise BirthDateChangeRequiresEdit
         canonical_input = f"{guest_id}:date-only-v1:{birth_date.isoformat()}"
         input_hash = self._hasher.digest("birth-input", canonical_input)
         replay = await self._repository.find_by_input_hash(guest_id, input_hash)
@@ -84,6 +95,73 @@ class BirthChartService:
             )
         )
         return self._reveal(stored, resumed=resumed)
+
+    async def correct_date(
+        self,
+        *,
+        guest_id: UUID,
+        birth_date: date,
+        confirm_birth_date: date,
+        expected_revision: datetime,
+        now: datetime | None = None,
+        commit_deadline: float | None = None,
+    ) -> BirthReveal:
+        """Replace a saved birth date (US-23).
+
+        Phase 1 here: validate (confirmation, the 18+ rule before anything is read or computed,
+        an active subject, a different date, the revision fence, the rolling limit), then compute
+        and encrypt the new date-only chart without any lock or write. A failure leaves everything
+        as it was. Phases 2 and 3 are ``BirthRepository.replace_date``. No value is logged.
+        """
+
+        deadline = commit_deadline or monotonic() + DATE_CHANGE_COMMIT_DEADLINE_SECONDS
+        current = now or datetime.now(UTC)
+        if confirm_birth_date != birth_date:
+            raise BirthDateConfirmationMismatch
+        _require_adult_date(birth_date, current)  # D6: refused before compute, nothing kept
+        stored = await self._repository.find_current(guest_id)
+        if stored is None:
+            raise BirthProfileNotFound
+        if self._stored_date(stored) == birth_date:
+            raise BirthDateUnchanged
+        if stored.profile_revision != expected_revision:
+            raise BirthProfileChanged
+        since = current - DATE_CHANGE_WINDOW
+        if await self._repository.recent_date_changes(guest_id, since=since) >= DATE_CHANGE_LIMIT:
+            raise BirthDateChangeLimited
+        result = await self._run_compute(self._engine.calculate_date_only_sun, birth_date)
+        if monotonic() >= deadline:
+            raise BirthCorrectionExpired
+        replaced = await self._repository.replace_date(
+            BirthSnapshotRecord(
+                id=uuid4(),
+                guest_id=guest_id,
+                profile_id=stored.profile_id,
+                input_hash=self._hasher.digest(
+                    "birth-input", f"{guest_id}:date-only-v1:{birth_date.isoformat()}"
+                ),
+                birth_date_ciphertext=self._envelope.encrypt(
+                    birth_date.isoformat().encode(),
+                    context=f"birth-date:{guest_id}".encode(),
+                ),
+                result=result,
+                created_at=current,
+            ),
+            expected_revision=expected_revision,
+            now=current,
+            limit=DATE_CHANGE_LIMIT,
+            window=DATE_CHANGE_WINDOW,
+            commit_deadline=deadline,
+        )
+        return self._reveal(replaced, resumed=False)
+
+    def _stored_date(self, stored: BirthSnapshotRecord) -> date:
+        return date.fromisoformat(
+            self._envelope.decrypt(
+                stored.birth_date_ciphertext,
+                context=f"birth-date:{stored.guest_id}".encode(),
+            ).decode()
+        )
 
     async def current(self, guest_id: UUID) -> BirthReveal:
         stored = await self._repository.find_current(guest_id)
@@ -146,19 +224,18 @@ class BirthChartService:
             profile_level = 2
         if place is not None and local_time is not None:
             profile_level = 3
-            local_datetime = datetime.combine(
-                birth_date,
-                local_time,
-                tzinfo=ZoneInfo(place.timezone_id),
-            )
+            instant = _birth_instant(place.place_id, place.timezone_id, birth_date, local_time)
             chart_input = ChartInput(
-                utc_datetime=local_datetime.astimezone(UTC),
+                utc_datetime=instant.utc,
                 latitude=place.latitude,
                 longitude=place.longitude,
             )
+            # The rule suffix exists only when a historical Vietnamese offset applied, so every
+            # other input keeps its replay key and an affected one never replays the old chart.
             canonical_input = (
                 f"supplement-v1:{birth_date.isoformat()}:{birth_time_mode.value}:"
                 f"{birth_time_local}:{approx_window}:{place.place_id}"
+                + (f":{instant.rule}" if instant.rule else "")
             ).encode()
             input_hash = self._hasher.digest("birth-input", canonical_input.decode())
             replay = await self._repository.find_by_input_hash(guest_id, input_hash)
@@ -167,7 +244,13 @@ class BirthChartService:
                 if replay is not None and isinstance(replay.result, NatalChart)
                 else await self._run_compute(self._engine.calculate_chart, chart_input)
             )
-            chart = chart.model_copy(update={"time_precision": precision})
+            chart = chart.model_copy(
+                update={"time_precision": _effective_precision(precision, instant)}
+            )
+            if instant.offset_uncertain:
+                # Houses and angles at the invented midpoint offset must not be stored or
+                # returned; chart_for_config withholds them on read as well.
+                chart = chart.model_copy(update={"houses": None, "angles": None})
 
         encrypted_time = (
             self._envelope.encrypt(
@@ -354,14 +437,11 @@ class BirthChartService:
             supplement.birth_place_ciphertext,
             context=f"birth-place:{guest_id}".encode(),
         ).decode()
-        _, _, timezone_id, latitude, longitude = raw_place.split("|", maxsplit=4)
-        local_datetime = datetime.combine(
-            birth_date,
-            local_time,
-            tzinfo=ZoneInfo(timezone_id),
-        )
+        place_id, _, timezone_id, latitude, longitude = raw_place.split("|", maxsplit=4)
+        instant = _birth_instant(place_id, timezone_id, birth_date, local_time)
+        precision = _effective_precision(precision, instant)
         chart_input = ChartInput(
-            utc_datetime=local_datetime.astimezone(UTC),
+            utc_datetime=instant.utc,
             latitude=float(latitude),
             longitude=float(longitude),
             house_system=config.house_system,
@@ -405,13 +485,10 @@ class BirthChartService:
         place = self._places.get(place_id)
         if place is None or local_time is None:
             raise BirthSupplementInvalid
-        local_datetime = datetime.combine(
-            birth_date,
-            local_time,
-            tzinfo=ZoneInfo(place.timezone_id),
-        )
+        instant = _birth_instant(place.place_id, place.timezone_id, birth_date, local_time)
+        precision = _effective_precision(precision, instant)
         chart_input = ChartInput(
-            utc_datetime=local_datetime.astimezone(UTC),
+            utc_datetime=instant.utc,
             latitude=place.latitude,
             longitude=place.longitude,
             house_system=config.house_system,
@@ -437,6 +514,10 @@ class BirthChartService:
                     "angles": None,
                 }
             )
+        elif precision is TimePrecision.APPROXIMATE:
+            # Only reachable through an uncertain historical offset: houses and angles move
+            # about 15 degrees per hour, so they are withheld as chart_for_config does.
+            chart = chart.model_copy(update={"houses": None, "angles": None})
         return chart
 
     async def remove_supplement(
@@ -450,6 +531,24 @@ class BirthChartService:
             remove_place=remove_place,
         )
         return await self.supplement_state(guest_id)
+
+
+def _birth_instant(
+    place_id: str, timezone_id: str, birth_date: date, local_time: time
+) -> ResolvedBirthInstant:
+    return resolve_birth_instant(
+        place_id=place_id,
+        timezone_id=timezone_id,
+        local=datetime.combine(birth_date, local_time),
+    )
+
+
+def _effective_precision(precision: TimePrecision, instant: ResolvedBirthInstant) -> TimePrecision:
+    """An exact clock reading is only as exact as the UTC offset it is read against."""
+
+    if instant.offset_uncertain and precision is TimePrecision.EXACT:
+        return TimePrecision.APPROXIMATE
+    return precision
 
 
 def _resolve_time(
@@ -468,6 +567,7 @@ def _resolve_time(
     if approx_window is None:
         raise BirthSupplementInvalid
     midpoint = {
+        ApproxWindow.DAWN: time(hour=3),
         ApproxWindow.MORNING: time(hour=8),
         ApproxWindow.NOON: time(hour=12),
         ApproxWindow.AFTERNOON: time(hour=15),
@@ -475,6 +575,13 @@ def _resolve_time(
         ApproxWindow.NIGHT: time(hour=23),
     }[approx_window]
     return midpoint, TimePrecision.APPROXIMATE
+
+
+def _require_adult_date(birth_date: date, now: datetime) -> None:
+    """The product-wide 18+ rule (US-02), identical at onboarding and correction (US-23 D6)."""
+
+    if birth_date < _years_before(now.date(), 120) or birth_date > _years_before(now.date(), 18):
+        raise BirthDateOutOfRange
 
 
 def _years_before(value: date, years: int) -> date:

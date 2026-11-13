@@ -144,6 +144,50 @@ def normalized_vietnamese_word_count(text: str) -> int:
     return _normalized_vietnamese_word_count(text)
 
 
+# Every approximate window is shorter than a day, so a placement is time-stable when the planet
+# cannot reach a sign boundary within half a day either way. The midpoint speed does not bound
+# motion across the window (it is ~0 at a station, while the planet still moves as it turns), so
+# the bound is each body's maximum geocentric |speed| in degrees/day over any date, with a margin.
+# Displacement over the window is at most that maximum times half the window, at stations too.
+# A body without a known bound fails closed and is not read.
+_HALF_WINDOW_DAYS = 0.5
+_SPEED_MARGIN = 1.5
+_MAX_SPEED_DEG_PER_DAY: dict[BodyName, float] = {
+    BodyName.SUN: 1.02,
+    BodyName.MERCURY: 2.21,
+    BodyName.VENUS: 1.27,
+    BodyName.MARS: 0.80,
+    BodyName.JUPITER: 0.25,
+    BodyName.SATURN: 0.14,
+    BodyName.URANUS: 0.07,
+    BodyName.NEPTUNE: 0.04,
+    BodyName.PLUTO: 0.04,
+    BodyName.MEAN_NODE: 0.06,
+    BodyName.CHIRON: 0.16,
+}
+
+
+def _sign_is_time_stable(body: BodyName, degree_in_sign: float) -> bool:
+    max_speed = _MAX_SPEED_DEG_PER_DAY.get(body)
+    if max_speed is None:
+        return False
+    margin = max_speed * _HALF_WINDOW_DAYS * _SPEED_MARGIN
+    return margin < degree_in_sign < 30.0 - margin
+
+
+def time_stable_bodies(chart: NatalChart) -> frozenset[BodyName]:
+    """Bodies whose sign holds across the whole birth-time window; never the Moon.
+
+    The synthesis and the Explore tiles both read from this one set (#143 E4)."""
+
+    return frozenset(
+        position.body
+        for position in chart.bodies
+        if position.body is not BodyName.MOON
+        and _sign_is_time_stable(position.body, position.degree_in_sign)
+    )
+
+
 class ReadingPlanner:
     """Select and compose immutable reading factors without calculating a chart."""
 
@@ -169,7 +213,16 @@ class ReadingPlanner:
             )
         self._validate_transits(chart, transits)
         if chart.time_precision is not TimePrecision.EXACT:
-            return self._limited_plan(
+            approximate = (
+                self._approximate_plan(chart, purpose, background_lens, editorial_seed)
+                if chart.time_precision is TimePrecision.APPROXIMATE
+                and purpose is not ReadingPurpose.DAILY_NOTE
+                # Jyotish frames carry no evidence for a lone placement yet; Jyotish keeps the
+                # limited reading (no 503 since #144) until its frame does.
+                and chart.config.tradition is Tradition.WESTERN
+                else None
+            )
+            return approximate or self._limited_plan(
                 chart, purpose, background_lens, editorial_seed, daily_variety
             )
 
@@ -308,6 +361,42 @@ class ReadingPlanner:
             background_lens=background_lens,
             editorial_seed=editorial_seed,
             daily_variety=daily_variety,
+        )
+
+    def _approximate_plan(
+        self,
+        chart: NatalChart,
+        purpose: ReadingPurpose,
+        background_lens: BackgroundLens | None,
+        editorial_seed: str | None,
+    ) -> ReadingPlan | None:
+        # Few people know their exact birth time (#143 E1). The chart is computed at the window's
+        # midpoint, so only facts proven stable across the whole window are used: a planet's sign
+        # when it cannot reach a boundary (never the Moon). Midpoint-only values (degree, motion,
+        # aspect orb and applying/separating phase) are not proven for the window, so placements
+        # keep only their sign and aspects are left out (an aspect also references both
+        # placements, which may have been removed). Houses, angles, nakshatra and graha drishti
+        # are left out too.
+        stable_bodies = {body.value for body in time_stable_bodies(chart)}
+        stable = tuple(
+            factor.model_copy(update={"evidence_refs": (factor.id,)})
+            for factor in self._natal_candidates(chart, purpose)
+            if factor.kind is FactorKind.PLANET_PLACEMENT and factor.subjects[0] in stable_bodies
+        )
+        selected, hero_refs = self._select_natal(stable, purpose, editorial_seed)
+        if not hero_refs:
+            return None
+        return self._build_plan(
+            tradition=chart.config.tradition,
+            config_hash=chart.config_hash,
+            purpose=purpose,
+            precision=chart.time_precision,
+            mode=PlanMode.FULL_SYNTHESIS,
+            factors=tuple(self._assign_roles(selected, hero_refs)),
+            hero_factor_refs=hero_refs,
+            composition=self._composition(has_transit=False),
+            background_lens=background_lens,
+            editorial_seed=editorial_seed,
         )
 
     def _limited_plan(

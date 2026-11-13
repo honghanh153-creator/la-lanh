@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 
 from app.domains.astro.models import TimePrecision, Tradition
+from app.domains.content.copy_approval import approved_bundles, approved_texts
 from app.domains.readings.daily_personalization import (
     BODY_DOMAINS,
     CAPACITY_AT_WORK_MEANING,
@@ -1000,14 +1001,25 @@ _RELATIONSHIP_ACTIONS = {
 
 def _expand_daily_issue(issue: DailyIssuePattern) -> DailyIssuePattern:
     titles, scenes, actions = _DAILY_VARIATIONS[issue.key]
+    # Daily v2 variants live in copy_registry.json as pending until Codex approves the
+    # daily batch; only approved, digest-matching ones join the rotated pool.
     expanded = replace(
         issue,
-        headlines=tuple(dict.fromkeys((*issue.headlines, *titles))),
-        scenes=tuple(dict.fromkeys((*issue.scenes, *scenes))),
-        advice=tuple(dict.fromkeys((*issue.advice, *actions))),
+        headlines=tuple(
+            dict.fromkeys(
+                (*issue.headlines, *titles, *approved_texts(f"daily.headline.{issue.key}."))
+            )
+        ),
+        scenes=tuple(
+            dict.fromkeys((*issue.scenes, *scenes, *approved_texts(f"daily.scene.{issue.key}.")))
+        ),
+        # Approved action variants join the general pool; relationship actions stay matched.
+        advice=tuple(
+            dict.fromkeys((*issue.advice, *actions, *approved_texts(f"daily.action.{issue.key}.")))
+        ),
         relationship_advice=_RELATIONSHIP_ACTIONS.get(issue.key, ()),
     )
-    if (len(expanded.headlines), len(expanded.scenes), len(expanded.advice)) != (6, 8, 8):
+    if len(expanded.headlines) < 6 or len(expanded.scenes) < 8 or len(expanded.advice) < 8:
         raise ValueError(f"Daily issue {issue.key} requires 384 distinct bounded variants")
     if SemanticArena.RELATIONSHIPS in issue.arenas and len(set(expanded.relationship_advice)) != 8:
         raise ValueError(f"Daily issue {issue.key} requires eight matched relationship actions")
@@ -1064,33 +1076,48 @@ def render_why_today(plan: ReadingPlan) -> str | None:
     )
 
 
-DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = sha256(
-    json.dumps(
-        {
-            "version": DAILY_PSYCHOLOGY_MATRIX_VERSION,
-            "situations": [asdict(issue) for issue in DAILY_ISSUES],
-            "personalization": PERSONALIZATION_VERSION,
-            "placements": PLACEMENT_ISSUES,
-            "placement_meanings": PLACEMENT_MEANINGS,
-            "sign_elements": SIGN_ELEMENTS,
-            "sun_issues": SUN_ISSUES,
-            "body_domains": BODY_DOMAINS,
-            "house_arenas": HOUSE_ARENAS,
-            "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
-            "why_today": WHY_TODAY_GISTS,
-            "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
-        },
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode()
-).hexdigest()[:8]
+def daily_content_fingerprint() -> str:
+    """Hash of every Daily text that can render, approved bundles included.
+
+    Bundles are read from the runtime registry (cached per process), so approving or
+    revising a bundle changes the renderer version and a stored note never re-renders
+    differently under the same revision.
+    """
+
+    bundles = {issue.key: found for issue in DAILY_ISSUES if (found := approved_bundles(issue.key))}
+    return sha256(
+        json.dumps(
+            {
+                "version": DAILY_PSYCHOLOGY_MATRIX_VERSION,
+                "situations": [asdict(issue) for issue in DAILY_ISSUES],
+                "personalization": PERSONALIZATION_VERSION,
+                "placements": PLACEMENT_ISSUES,
+                "placement_meanings": PLACEMENT_MEANINGS,
+                "sign_elements": SIGN_ELEMENTS,
+                "sun_issues": SUN_ISSUES,
+                "body_domains": BODY_DOMAINS,
+                "house_arenas": {house: asdict(context) for house, context in HOUSE_ARENAS.items()},
+                "pairs": [{**asdict(rule), "bodies": sorted(rule.bodies)} for rule in PAIR_RULES],
+                "why_today": WHY_TODAY_GISTS,
+                "context_meanings": [CAPACITY_AT_WORK_MEANING, REPAIR_REPLY_MEANING],
+                # Only present once a bundle is approved, so today's revision stays put.
+                **({"bundles": bundles} if bundles else {}),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()[:8]
+
+
+DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT = daily_content_fingerprint()
 
 
 NO_PERSONAL_MEANING = "Lá chưa đủ dữ kiện để nói riêng về bạn ở góc này."
 
 # A lead opens the scene sentence ("Với người kia, khi …") so the context reads
-# as one sentence, not a fragment. Every scene starts with "Khi".
+# as one sentence, not a fragment. Only a "Khi …" scene is spliced after the comma;
+# any other opening keeps its own capital after a colon ("Với người kia: Bạn …").
 _ARENA_LEADS = {
     SemanticArena.RELATIONSHIPS: "Với người kia,",
     SemanticArena.COMMUNICATION: "Trong một cuộc nói chuyện,",
@@ -1108,15 +1135,28 @@ LEGACY_ARENA_LEADS = {
 }
 
 
+def _colon_lead(lead: str) -> str:
+    return f"{lead.rstrip(',')}:"
+
+
 def lead_scene(lead: str, scene: str) -> str:
-    return f"{lead} {scene[:1].lower()}{scene[1:]}"
+    """Join an arena lead and a scene so any scene opening reads naturally."""
+
+    if scene.startswith("Khi "):
+        return f"{lead} {scene[:1].lower()}{scene[1:]}"
+    return f"{_colon_lead(lead)} {scene}"
 
 
 def current_scene_lead(manifestation: str) -> str | None:
-    """The v7 context clause opening a scene ("Với người kia,"), if any."""
+    """The v7 context clause opening a scene ("Với người kia," or "Với người kia:")."""
 
     return next(
-        (lead for lead in _ARENA_LEADS.values() if manifestation.startswith(f"{lead} ")),
+        (
+            form
+            for lead in _ARENA_LEADS.values()
+            for form in (lead, _colon_lead(lead))
+            if manifestation.startswith(f"{form} ")
+        ),
         None,
     )
 
@@ -1128,6 +1168,9 @@ def split_scene_lead(manifestation: str) -> tuple[SemanticArena | None, str]:
         if manifestation.startswith(f"{lead} "):
             rest = manifestation[len(lead) + 1 :]
             return arena, f"{rest[:1].upper()}{rest[1:]}"
+        colon = _colon_lead(lead)
+        if manifestation.startswith(f"{colon} "):
+            return arena, manifestation[len(colon) + 1 :]
     for arena, lead in LEGACY_ARENA_LEADS.items():
         if manifestation.startswith(f"{lead} "):
             return arena, manifestation[len(lead) + 1 :]
@@ -1157,7 +1200,7 @@ def _situation_pool(
 
     # A known house refines context, not personality. User's explicit lens wins.
     def rank(situation: SupportedSituation) -> tuple[int, int, int, int]:
-        return (*situation.rank, int(situation.arena is arena))
+        return (*situation.rank, int(arena in situation.arenas))
 
     if plan.daily_variety is not None:
         # B3-1a top-K: the strongest situation of each issue, ranked by score then
@@ -1303,16 +1346,35 @@ def apply_daily_psychology(
                 ("action", len(actions)),
             )
         )
+    headline, scene, action = issue.headlines[headline_slot], issue.scenes[scene_slot], ""
+    scene_key = f"psychology:{issue.key}:scene-{scene_slot}"
+    action_key = f"psychology:{issue.key}:{arena.value}-advice-{advice_slot}"
+    # Owner 10.11: once a situation has approved bundles, the day serves one whole bundle
+    # (headline, scene, action written together) so lines never mismatch. No bundles:
+    # the independent rotation above stays exactly as before.
+    bundles = approved_bundles(issue.key)
+    if bundles:
+        if variety is None:
+            (bundle_slot,) = daily_mixed_radix_slots(plan.editorial_seed, (len(bundles),))
+        else:
+            bundle_slot = axis_slot(variety.seed, "bundle", len(bundles), variety.day_index)
+        headline, scene, action = bundles[bundle_slot]
+        scene_key = f"psychology:{issue.key}:bundle-{bundle_slot}"
+        action_key = f"psychology:{issue.key}:bundle-{bundle_slot}"
+    else:
+        action = actions[advice_slot]
     scene_arena = (
         arena
         if arena is not SemanticArena.GENERAL
-        else (selected.arena if selected and selected.arena in issue.arenas else arena)
+        else next(
+            (item for item in (selected.arenas if selected else ()) if item in issue.arenas),
+            arena,
+        )
     )
     lead = _ARENA_LEADS.get(scene_arena)
-    manifestation = issue.scenes[scene_slot]
+    manifestation = scene
     if lead is not None:
         manifestation = lead_scene(lead, manifestation)
-    action = actions[advice_slot]
     source_refs = tuple(f"psychology-source:{source_id}" for source_id in issue.source_ids)
     personal_meaning = selected.meaning if selected else NO_PERSONAL_MEANING
     # The rewrite brief keeps the situation's meaning; the reader sees two
@@ -1347,7 +1409,7 @@ def apply_daily_psychology(
 
     return replace(
         frame,
-        hook=issue.headlines[headline_slot],
+        hook=headline,
         thesis=f"{personal_meaning} {takeaway}",
         manifestation=manifestation,
         micro_action=action,
@@ -1361,8 +1423,8 @@ def apply_daily_psychology(
         arena=arena,
         evidence_factor_refs=evidence_refs,
         mechanism_key=f"psychology:{issue.key}",
-        scene_key=f"psychology:{issue.key}:scene-{scene_slot}",
-        action_key=f"psychology:{issue.key}:{arena.value}-advice-{advice_slot}",
+        scene_key=scene_key,
+        action_key=action_key,
         daily_meaning=DailyMeaningBrief(
             core_meaning=core_meaning,
             reader_takeaway=takeaway,

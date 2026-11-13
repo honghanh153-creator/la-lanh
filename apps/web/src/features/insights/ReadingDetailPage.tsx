@@ -132,6 +132,7 @@ function FocusedClaimContent({ claim, disclaimer, housesAndAspects, nested = fal
       <details className="reading-evidence">
         <summary><ChartBar aria-hidden="true" /><span>Căn cứ trong lá số</span></summary>
         <ul>{evidence.map((item) => <li key={item}>{item}</li>)}</ul>
+        {/* An approximate time reads no houses or aspects (#143 E4): only say so when the chart has them. */}
         {housesAndAspects ? <p>Vị trí, nhà và góc chiếu được tính từ chart; phần diễn giải là một khung để tự đối chiếu.</p> : null}
       </details>
       {disclaimer ? <ReadingDisclaimer>{disclaimer}</ReadingDisclaimer> : null}

@@ -10,6 +10,10 @@ staging.la-lanh.2-28-136-44.sslip.io {
 		Referrer-Policy "no-referrer"
 		X-Robots-Tag "noindex, nofollow, noarchive"
 	}
+	# Route counters stay internal (PV-24, #180): only callers inside the
+	# compose network reach the app's /metrics; the public site answers 404.
+	respond /metrics* 404
+
 	reverse_proxy staging-app:8080 {
 		health_uri /v1/ready
 		health_interval 30s

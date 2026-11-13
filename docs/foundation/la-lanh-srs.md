@@ -559,6 +559,23 @@ GET    /la-dan/{id}/payout-status        → array<PayoutCalculation>
 
 ---
 
+### 5.7. Tarot người thật bốc (US-24, sau cờ `human_tarot_enabled`, mặc định tắt)
+
+```
+GET    /v1/human-tarot/availability      → enabled, accepting, reason, local_date, closes_at, release_at,
+                                          daily_limit (10), remaining, consent_version, current_request_id
+POST   /v1/human-tarot/requests          { context, question, spread, consent_version: "human-tarot-v1",
+                                          idempotency_key } → 201 biên nhận; CSRF; tối đa 10 lượt toàn app
+                                          và 1 lượt/phiên mỗi ngày Asia/Ho_Chi_Minh; không nhận sau giờ đóng
+GET    /v1/human-tarot/requests/current  → yêu cầu gần nhất còn hạn của phiên (404 nếu không có)
+GET    /v1/human-tarot/requests/{id}     → view chủ sở hữu; result chỉ có từ release_at (22:00 cùng ngày)
+DELETE /v1/human-tarot/requests/{id}     → huỷ/xoá; chặn đọc và nhập ngay, job xoá hàng trên Google Sheet
+```
+
+DB (`human_tarot_days`, `human_tarot_slots`, `human_tarot_requests`) quyết hạn mức, quyền xem, giờ mở và trạng thái
+xoá. Google Sheet của owner chỉ là bàn làm việc: app ghi hàng ngay sau khi nhận, job mỗi phút nhập bài Sẵn sàng, thử
+lại và xoá bản sao (US-24 mục 6–8). Không có AI, Apps Script, webhook hay dashboard trong luồng này.
+
 ## 6. Hạ tầng & Vận hành (Infrastructure)
 
 ### 6.1. Data store
@@ -621,7 +638,8 @@ Client poll hoặc nhận WebSocket event để cập nhật UI khi content sẵ
 
 | Loại dữ liệu | Mã hóa | Ai truy cập được |
 |---|---|---|
-| birthDate, birthTime, birthPlace | Encrypt at rest (cột riêng, key quản lý tập trung) | Chỉ Astro Engine module qua internal call; không expose API trả thẳng dữ liệu thô này ra client sau khi đã tính chart |
+| birthDate, birthTime, birthPlace | Encrypt at rest (cột riêng, key quản lý tập trung) | Chỉ Astro Engine module qua internal call; không expose API trả thẳng dữ liệu thô này ra client sau khi đã tính chart. Ngoại lệ chỉ cho chính chủ hồ sơ: form sửa giờ/nơi sinh riêng và bản sao dữ liệu `POST /v1/session/data-export` (cookie + CSRF + origin tin cậy, no-store, giới hạn tần suất; không bao giờ chứa dữ liệu sinh của người khác) |
+| Bản sao dữ liệu ("Tải dữ liệu của tôi") | Tạo khi yêu cầu, không lưu trên server, không cache | Chỉ chủ hồ sơ; không chứa id, hash, token, receipt, nội dung kết quả Radar hay câu trả lời Lá Chứng của người khác. Danh mục: `docs/plans/2026-10-29-privacy-export-and-b-rights.md` |
 | NatalChart/reading suy ra (sign/house/aspect/factor) | Encrypt at rest; đây vẫn là personal data và có thể giúp suy ngược dữ liệu sinh | Chỉ module/consumer được allowlist theo purpose; public/share dùng DTO đã redact |
 | Ảnh xác minh | Object Storage riêng, access qua signed URL có TTL ngắn | Chỉ hệ thống kiểm duyệt, không public |
 | GPS/live device location | Không thu hoặc lưu cho birth chart; matching chỉ dùng region user chọn | Theo yêu cầu Safety ở PRD Phần 4.3 |

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, CheckConstraint, ForeignKey, ForeignKeyConstraint, Index, Text, Uuid
+from sqlalchemy import JSON, CheckConstraint, ForeignKey, Index, Text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -11,17 +11,11 @@ from app.db.types import UtcDateTime
 
 class SavedNoteRow(Base):
     __tablename__ = "saved_notes"
+    # A saved note is a frozen copy the person chose to keep (US-23 D2). Since migration
+    # 20261029_0039 it no longer cascades from its Daily note or reading revision: the ids stay as
+    # plain identifiers for unsave and queued unsaves, and every source-deleting path that must
+    # also remove copies deletes them explicitly. Guest deletion still cascades through guest_id.
     __table_args__ = (
-        ForeignKeyConstraint(
-            ("revision_id", "guest_id", "profile_id"),
-            (
-                "reading_revisions.id",
-                "reading_revisions.guest_id",
-                "reading_revisions.profile_id",
-            ),
-            name="fk_saved_notes_revision_owner",
-            ondelete="CASCADE",
-        ),
         CheckConstraint(
             "(revision_id IS NULL AND profile_id IS NULL AND reading_snapshot IS NULL) OR "
             "(revision_id IS NOT NULL AND profile_id IS NOT NULL AND reading_snapshot IS NOT NULL)",
@@ -34,9 +28,7 @@ class SavedNoteRow(Base):
     guest_id: Mapped[UUID] = mapped_column(
         ForeignKey("guest_sessions.id", ondelete="CASCADE"), nullable=False
     )
-    daily_note_id: Mapped[UUID] = mapped_column(
-        ForeignKey("daily_notes.id", ondelete="CASCADE"), nullable=False
-    )
+    daily_note_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
     note_snapshot: Mapped[dict[str, object]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"), nullable=False
     )

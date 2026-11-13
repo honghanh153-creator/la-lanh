@@ -21,6 +21,7 @@ import {
   getDailyNote,
   getResonanceStatus,
   isGuestSessionUnavailable,
+  isReadingContentRejected,
   recordResonance,
   type DailyNote,
   type MoodValue,
@@ -185,9 +186,12 @@ export function HomePage() {
       setResonance(null);
       setMessage(nextContext === "auto" ? "Đã trở về góc tự động." : "Đã đổi góc nhìn cho note này.");
     },
-    onError: (_error, _input, requestContext) => {
+    onError: (error, _input, requestContext) => {
       if (!requestContext || requestContext.revision !== chartDataRevision(queryClient)) return;
-      setMessage("Chưa bắt được góc mới. Note đang thấy vẫn được giữ nguyên, không có nội dung mới nào được nhận.");
+      // #143 E2: a content rejection is not a dropped connection; reuses approved Insights sentences.
+      setMessage(isReadingContentRejected(error)
+        ? "Chưa mở được bản đọc. Không cần điền lại khi thông tin đã đủ."
+        : "Chưa bắt được góc mới. Note đang thấy vẫn được giữ nguyên, không có nội dung mới nào được nhận.");
     },
   });
 
@@ -288,7 +292,11 @@ export function HomePage() {
   const pendingContext = contextMutation.isPending ? contextMutation.variables : null;
   const noteDecoration = <SignalContextPicker
     appearance="moon"
-    error={contextMutation.isError ? "Chưa đổi được góc. Note hiện tại vẫn được giữ nguyên; bạn có thể thử lại." : null}
+    error={!contextMutation.isError
+      ? null
+      : isReadingContentRejected(contextMutation.error)
+        ? "Chưa mở được bản đọc. Không cần điền lại khi thông tin đã đủ."
+        : "Chưa đổi được góc. Note hiện tại vẫn được giữ nguyên; bạn có thể thử lại."}
     onOpenChange={(open) => {
       if (open) contextMutation.reset();
       setContextSheetOpen(open);
@@ -482,8 +490,18 @@ function HomeHeader({ motionControl }: { motionControl?: ReactNode }) {
   );
 }
 
+const VIETNAM_DAY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit",
+});
+
+/** Today's civil date in Vietnam (YYYY-MM-DD), the same day the API uses for the daily note. */
+function vietnamToday(now: Date = new Date()): string {
+  const parts = Object.fromEntries(VIETNAM_DAY.formatToParts(now).map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
 function HomeValueHero({ date, moon, whyPath, children }: { date?: string; moon?: string; whyPath?: string; children?: ReactNode }) {
-  const displayDate = date ?? new Date().toISOString().slice(0, 10);
+  const displayDate = date ?? vietnamToday();
   return (
     <section className="home-value-hero">
       <div className="home-value-hero__lead">

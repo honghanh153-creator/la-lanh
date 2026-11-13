@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import {
   getBirthSupplement,
   isGuestSessionUnavailable,
+  isReadingContentRejected,
   type getInsightOverview,
 } from "../../shared/api/client";
 import { birthCompletionPrompt } from "../../shared/astro/birthReadiness";
@@ -25,6 +26,13 @@ export function InsightQueryStates({ insight }: { insight: UseQueryResult<Overvi
           <h2>Phiên đọc đã khép lại.</h2>
           <p>Mở lại Trạm Bắt Sóng để nối đúng Bản đồ của bạn. Chưa cần tạo tài khoản.</p>
           <Link className="electric-button" to="/welcome">Mở lại Trạm Bắt Sóng</Link>
+        </section>
+      ) : isReadingContentRejected(insight.error) ? (
+        // #143 E2: a content error, not a dropped connection; reuses approved sentences.
+        <section className="cosmic-state" role="alert">
+          <Planet size={36} />
+          <h2>Chưa mở được bản đọc.</h2>
+          <p>Không cần điền lại khi thông tin đã đủ.</p>
         </section>
       ) : insight.isError ? (
         <section className="cosmic-state" role="alert">

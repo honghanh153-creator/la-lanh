@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from enum import StrEnum
 from uuid import UUID
 
@@ -7,6 +7,12 @@ from app.domains.astro.models import DateOnlySunResult, NatalChart
 from app.domains.geo.models import PlaceResult
 
 ChartResult = DateOnlySunResult | NatalChart
+# A correction that has not committed this long after it started rolls back instead (Codex r59).
+# The web client keeps its quarantine until well past this, so a late commit cannot slip by.
+DATE_CHANGE_COMMIT_DEADLINE_SECONDS = 60.0
+# US-23 D5: at most this many birth-date corrections per person in a rolling window.
+DATE_CHANGE_LIMIT = 3
+DATE_CHANGE_WINDOW = timedelta(hours=24)
 
 
 class BirthTimeMode(StrEnum):
@@ -16,6 +22,9 @@ class BirthTimeMode(StrEnum):
 
 
 class ApproxWindow(StrEnum):
+    # Local clock ranges the web picker shows: dawn 00-06, morning 06-10, noon 10-14,
+    # afternoon 14-18, evening 18-22, night 22-24 (PL-37). All on the entered birth date.
+    DAWN = "dawn"
     MORNING = "morning"
     NOON = "noon"
     AFTERNOON = "afternoon"

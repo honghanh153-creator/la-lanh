@@ -24,6 +24,7 @@ from app.domains.radar.service import (
 from app.domains.relationships.models import RelationshipVoice
 from app.infrastructure.csrf import require_trusted_origin, trusted_origins
 from app.infrastructure.owner_session import resume_owner_for_guest
+from app.infrastructure.session_cookies import is_token_cookie_value, token_cookie_value
 
 router = APIRouter()
 public_router = APIRouter()
@@ -120,8 +121,8 @@ class RadarInviteResponse(BaseModel):
 
 
 class PublicRadarInviteResponse(BaseModel):
+    # No recipient_label: the sender's private label is owner-only (US-08 S37, issue #95).
     request_id: UUID
-    recipient_label: str
     context: str
     voice: str
     expires_at: datetime
@@ -167,9 +168,10 @@ class RadarReceivedListResponse(BaseModel):
     next_before: UUID | None = None
 
 
-class RadarResultResponse(BaseModel):
+class PublicRadarResultResponse(BaseModel):
+    """A pair result as B sees it: never carries A's private label (issue #95)."""
+
     request_id: UUID | None = None
-    recipient_label: str | None = None
     mode: RadarMode | None = None
     # Owner views only: when this stored result is hidden and queued for deletion.
     expires_at: datetime | None = None
@@ -183,6 +185,12 @@ class RadarResultResponse(BaseModel):
     strongest_contacts: list[dict[str, Any]] = Field(default_factory=list)
     metadata: dict[str, Any] | None = None
     disclaimer: str
+
+
+class RadarResultResponse(PublicRadarResultResponse):
+    """Owner (A) views only: adds the label A set to manage the invite."""
+
+    recipient_label: str | None = None
 
 
 def _service(request: Request) -> RadarService:
@@ -413,15 +421,17 @@ async def received_results(
     )
 
 
-@router.get("/radar/received/{request_id}", response_model=RadarResultResponse)
-async def received_result(request_id: UUID, request: Request) -> RadarResultResponse | Response:
+@router.get("/radar/received/{request_id}", response_model=PublicRadarResultResponse)
+async def received_result(
+    request_id: UUID, request: Request
+) -> PublicRadarResultResponse | Response:
     try:
         result = await _service(request).received_result(
             await _recipient_guest(request), request_id
         )
     except (GuestDomainError, RadarError):
         return Response(status_code=404)
-    return RadarResultResponse.model_validate(result)
+    return PublicRadarResultResponse.model_validate(result)
 
 
 @router.post("/radar/received/{request_id}/withdraw", status_code=204)
@@ -475,21 +485,20 @@ async def current_invite(
         return Response(status_code=404, headers=dict(response.headers))
     return PublicRadarInviteResponse(
         request_id=invite.request_id,
-        recipient_label=invite.recipient_label,
         context=invite.context,
         voice=invite.voice,
         expires_at=invite.expires_at,
     )
 
 
-@public_router.post("/public/radar/current/accept", response_model=RadarResultResponse)
+@public_router.post("/public/radar/current/accept", response_model=PublicRadarResultResponse)
 async def accept_invite(
     body: RadarAcceptRequest,
     request: Request,
     response: Response,
     token: Annotated[str | None, Cookie(alias=RADAR_COOKIE)] = None,
     csrf_token: Annotated[str | None, Header(alias="X-CSRF-Token")] = None,
-) -> RadarResultResponse | Response:
+) -> PublicRadarResultResponse | Response:
     _safe_public(response)
     settings = request.app.state.settings
     try:
@@ -511,7 +520,7 @@ async def accept_invite(
         return Response(status_code=422, headers=dict(response.headers))
     response.set_cookie(
         RADAR_RECEIPT_COOKIE,
-        result.receipt_token,
+        token_cookie_value(result.receipt_token),
         httponly=True,
         secure=settings.guest_cookie_secure,
         samesite="strict",
@@ -519,7 +528,7 @@ async def accept_invite(
         path="/v1/public/radar/receipt",
     )
     response.delete_cookie(RADAR_COOKIE, path="/v1/public/radar")
-    return RadarResultResponse.model_validate(
+    return PublicRadarResultResponse.model_validate(
         {
             "request_id": result.request_id,
             "mode": RadarMode.CONSENTED_INVITE,
@@ -566,18 +575,18 @@ async def withdraw_result(
     return response
 
 
-@public_router.get("/public/radar/receipt", response_model=RadarResultResponse)
+@public_router.get("/public/radar/receipt", response_model=PublicRadarResultResponse)
 async def receipt_result(
     request: Request,
     response: Response,
     receipt: Annotated[str | None, Cookie(alias=RADAR_RECEIPT_COOKIE)] = None,
-) -> RadarResultResponse | Response:
+) -> PublicRadarResultResponse | Response:
     _safe_public(response)
     try:
         result = await _service(request).receipt_result(receipt or "")
     except RadarError:
         return Response(status_code=404, headers=dict(response.headers))
-    return RadarResultResponse.model_validate(result)
+    return PublicRadarResultResponse.model_validate(result)
 
 
 @public_router.get("/public/radar/{token}", response_model=PublicRadarInviteResponse)
@@ -585,6 +594,10 @@ async def public_preview(
     token: str, request: Request, response: Response
 ) -> PublicRadarInviteResponse | Response:
     _safe_public(response)
+    # The path token becomes a cookie below. Refuse anything that is not the issued
+    # capability shape up front (the service would also answer 404 for it).
+    if not is_token_cookie_value(token):
+        return Response(status_code=404, headers=dict(response.headers))
     try:
         invite = await _service(request).preview(token)
     except RadarError:
@@ -592,7 +605,7 @@ async def public_preview(
     settings = request.app.state.settings
     response.set_cookie(
         RADAR_COOKIE,
-        token,
+        token_cookie_value(token),
         httponly=True,
         secure=settings.guest_cookie_secure,
         samesite="lax",
@@ -601,7 +614,6 @@ async def public_preview(
     )
     return PublicRadarInviteResponse(
         request_id=invite.request_id,
-        recipient_label=invite.recipient_label,
         context=invite.context,
         voice=invite.voice,
         expires_at=invite.expires_at,

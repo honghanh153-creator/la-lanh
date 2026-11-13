@@ -100,6 +100,30 @@ describe("NoteDetailPage rich reading", () => {
     expect(screen.queryByRole("heading", { name: note.reading_projection.active.sections.hook })).not.toBeInTheDocument();
   });
 
+  it("treats a rejected contextual reading as a content error without a retry button", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(note);
+    vi.mocked(getContextualReading).mockRejectedValue(
+      new ApiProblem(422, "READING_CONTENT_REJECTED", "Reading content rejected"),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/note/today?context=work"]}><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    expect(await screen.findByRole("heading", { name: "Chưa mở được bản đọc." })).toBeInTheDocument();
+    expect(screen.getByText("Không cần điền lại khi thông tin đã đủ.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Chưa mở được note." })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the retry button when the selected context fails on the network", async () => {
+    vi.mocked(getDailyNote).mockResolvedValue(note);
+    vi.mocked(getContextualReading).mockRejectedValue(new ApiProblem(503, "READING_UNAVAILABLE", "Reading unavailable"));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/note/today?context=work"]}><NoteDetailPage /></MemoryRouter></QueryClientProvider>);
+
+    expect(await screen.findByRole("heading", { name: "Chưa mở được note." })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+  });
+
   it("lets a user open the full-chart update from the note they are reading", async () => {
     const user = userEvent.setup();
     const update = {

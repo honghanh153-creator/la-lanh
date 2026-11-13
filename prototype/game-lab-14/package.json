@@ -1,0 +1,8 @@
+{
+  "name": "la-lanh-game-lab-14",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test cases.test.cjs engine.test.cjs"
+  }
+}

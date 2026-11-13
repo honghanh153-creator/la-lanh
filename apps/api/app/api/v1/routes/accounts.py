@@ -27,7 +27,11 @@ from app.infrastructure.csrf import (
     normalize_origin,
     trusted_origins,
 )
-from app.infrastructure.session_cookies import clear_profile_cookies, set_profile_cookies
+from app.infrastructure.session_cookies import (
+    clear_profile_cookies,
+    set_profile_cookies,
+    token_cookie_value,
+)
 
 
 class PrivateAccountRoute(APIRoute):
@@ -267,7 +271,7 @@ def _peer(request: Request) -> str:
 def _login_cookie(response: Response, settings: Settings, name: str, value: str, age: int) -> None:
     response.set_cookie(
         name,
-        value,
+        token_cookie_value(value),
         max_age=age,
         httponly=True,
         secure=settings.guest_cookie_secure,

@@ -26,6 +26,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.domains.accounts.tables import AccountDeviceRow, LoginChallengeRow
 from app.domains.birth.postgres import PostgresBirthRepository
 from app.domains.content_rewrite.tables import ContentRewriteJobRow
 from app.domains.erasure_journal.journal import ErasureJournal, ErasureKind
@@ -35,6 +36,8 @@ from app.domains.guest.models import GuestState
 from app.domains.guest.postgres import PostgresGuestRepository
 from app.domains.guest.tables import GuestSessionRow
 from app.domains.history.postgres import PostgresHistoryRepository
+from app.domains.human_tarot.service import schedule_clear, tombstone
+from app.domains.human_tarot.tables import HumanTarotRequestRow, HumanTarotSlotRow
 from app.domains.la_chung.models import RequestStatus
 from app.domains.la_chung.tables import LaChungReportRow, LaChungRequestRow, LaChungResponseRow
 from app.domains.matching.postgres import PostgresMatchingRepository
@@ -53,6 +56,7 @@ _GUEST_KINDS = frozenset(
         ErasureKind.HISTORY_CLEARED,
         ErasureKind.BIRTH_SUPPLEMENT_REMOVED,
         ErasureKind.BIRTH_TIME_DOWNGRADED,
+        ErasureKind.BIRTH_DATE_REPLACED,
         ErasureKind.CONSENT_REVOKED,
         ErasureKind.RESONANCE_CLEARED,
     }
@@ -70,6 +74,9 @@ _ARTIFACT_IDS = {
     ErasureKind.LA_CHUNG_RESPONSE_WITHDRAWN: LaChungResponseRow.id,
     ErasureKind.LA_CHUNG_RESULT_HIDDEN: LaChungResponseRow.id,
     ErasureKind.EXPERIMENT_UNDONE: DailyExperimentRow.id,
+    ErasureKind.HUMAN_TAROT_REQUEST_CANCELLED: HumanTarotRequestRow.id,
+    ErasureKind.HUMAN_TAROT_REQUEST_CLEARED: HumanTarotRequestRow.id,
+    ErasureKind.DEVICE_REVOKED: AccountDeviceRow.id,
 }
 
 
@@ -281,6 +288,10 @@ async def _apply(
             return  # no birth profile left in the restored copy: nothing to remove
     elif kind is ErasureKind.BIRTH_TIME_DOWNGRADED:
         await birth.replay_time_downgrade(subject)
+    elif kind is ErasureKind.BIRTH_DATE_REPLACED:
+        # Reached only for a copy that does not hold the entry, i.e. one taken before the
+        # correction: it holds the old subject and no replacement value. Fail closed.
+        await birth.replay_date_replacement(subject)
     elif kind is ErasureKind.CONSENT_REVOKED:
         await guests.revoke_consent(subject, entry.scope, at)
     elif kind is ErasureKind.RESONANCE_CLEARED:
@@ -305,6 +316,25 @@ async def _apply(
             await session.execute(
                 update(ShareArtifactRow)
                 .where(ShareArtifactRow.id == subject, ShareArtifactRow.revoked_at.is_(None))
+                .values(revoked_at=at)
+            )
+    elif kind is ErasureKind.DEVICE_REVOKED:
+        async with sessions() as session, session.begin():
+            # Keeps an earlier revocation; a restored device credential never works again.
+            # Like the live paths, drop login challenges the device started, so a restored
+            # restore proof cannot issue a new session either (Codex #278 P1).
+            await session.execute(
+                delete(LoginChallengeRow).where(
+                    LoginChallengeRow.initiating_credential_digest.in_(
+                        select(AccountDeviceRow.credential_digest).where(
+                            AccountDeviceRow.id == subject
+                        )
+                    )
+                )
+            )
+            await session.execute(
+                update(AccountDeviceRow)
+                .where(AccountDeviceRow.id == subject, AccountDeviceRow.revoked_at.is_(None))
                 .values(revoked_at=at)
             )
     elif kind is ErasureKind.SAVED_NOTE_REMOVED:
@@ -367,6 +397,29 @@ async def _apply(
         async with sessions() as session, session.begin():
             await session.execute(
                 delete(DailyExperimentRow).where(DailyExperimentRow.id == subject)
+            )
+    elif kind is ErasureKind.HUMAN_TAROT_REQUEST_CANCELLED:
+        async with sessions() as session, session.begin():
+            # Question and reading go again; the Sheet bridge clears the restored row's copy.
+            request = await session.get(HumanTarotRequestRow, subject, with_for_update=True)
+            if request is not None and request.status != "cancelled":
+                tombstone(request, at)
+            slot = await session.scalar(
+                select(HumanTarotSlotRow).where(HumanTarotSlotRow.request_id == subject)
+            )
+            if slot is not None:
+                schedule_clear(slot)
+    elif kind is ErasureKind.HUMAN_TAROT_REQUEST_CLEARED:
+        async with sessions() as session, session.begin():
+            # Whatever status the restored row has: the clear removed it, so it goes again,
+            # and its Sheet row is cleared like any request that disappears.
+            slot = await session.scalar(
+                select(HumanTarotSlotRow).where(HumanTarotSlotRow.request_id == subject)
+            )
+            if slot is not None:
+                schedule_clear(slot)
+            await session.execute(
+                delete(HumanTarotRequestRow).where(HumanTarotRequestRow.id == subject)
             )
     elif kind is ErasureKind.RADAR_WITHDRAWN:
         async with sessions() as session, session.begin():
