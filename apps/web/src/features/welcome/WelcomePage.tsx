@@ -9,6 +9,7 @@ import { NightSky } from "../../shared/ui/NightSky";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
+import { markRadarOwnerReturn, readRadarOwnerReturn } from "../radar/radarOwnerReturn";
 import { useVibe } from "../../shared/vibe/useVibe";
 import "./welcome-intro.css";
 
@@ -49,7 +50,7 @@ export function WelcomePage() {
     // Explicit replay starts the ordinary onboarding, not a stale Radar draft.
     // Visiting the page alone never clears a session; consent is still required.
     const radarPending = restart ? null : sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY);
-    const radarOwnerStart = !restart && sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
+    const radarOwnerStart = restart ? null : readRadarOwnerReturn();
     try {
       {
         try {
@@ -78,7 +79,7 @@ export function WelcomePage() {
         sessionStorage.removeItem("la-lanh-radar-owner-start");
       }
       if (radarPending) sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, radarPending);
-      if (radarOwnerStart) sessionStorage.setItem("la-lanh-radar-owner-start", "1");
+      if (radarOwnerStart) markRadarOwnerReturn(radarOwnerStart);
       sessionStorage.removeItem("la-lanh-guest-create-key");
       void navigate("/birth", { replace: true });
     } catch {
