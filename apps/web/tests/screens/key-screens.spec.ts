@@ -221,7 +221,7 @@ const screens: Array<{ name: string; scenario: Scenario; path: string; ready: (p
   },
   {
     name: "04-home-note-mood", path: "/home", scenario: signedIn,
-    ready: (page) => page.getByRole("button", { name: "Chọn mood hôm nay" }),
+    ready: (page) => page.getByRole("region", { name: "Hôm nay bạn thấy sao?" }).getByRole("button", { name: "Chọn cảm giác hôm nay" }),
     before: async (page) => {
       await expect(page.getByRole("region", { name: "Note hôm nay" }).getByRole("heading", { name: "Đừng biến mình thành deadline." })).toBeVisible();
     },
