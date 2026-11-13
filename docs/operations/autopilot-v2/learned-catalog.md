@@ -1,0 +1,234 @@
+# Catalog of everything learned or required (traceability base, 12.11.2026)
+
+Each item has an ID. The final design must map EVERY ID to a component and phase. Nothing may be dropped without an explicit owner decision.
+
+## R: Owner requirements (from this conversation)
+- R1. The loop runs on its own while the owner sleeps.
+- R2. A "full auto" mode the owner can switch on that still meets every quality bar.
+- R3. The owner only states outcome goals (traffic, better content, better UX score), and the system develops toward them by itself.
+- R4. Metrics drive actions: improve the metric itself, never game it; a clear path from metric to action.
+- R5. Critique any plan, including the owner's, against the known rules.
+- R6. Report progress to the owner (notification gates); never work silently.
+- R7. Get ideas into the app as running code with proof, not as plans.
+- R8. Learn from outside sources and apply them in an optimised way, not mechanically, and never cut scope silently.
+- R9. Claude and Codex both design, then cross-review each other.
+- R10. Existing constraints:
+  - main, deploy, paid and provider decisions need the owner's order;
+  - the owner approves privacy and crisis copy;
+  - no owner personal data in public;
+  - Luna budget is private;
+  - the owner reviews about 1h every 2–3 days;
+  - roadmap order: content → go-live → security+privacy → Lá Dám → café.
+
+## G: Gaps found in the current loop (code read on 12.11)
+- G1. The tick stops at 23:30 and the plan opens at 08:50. Claude's autopilot runs only from 9 to 23 and only while the Mac app is open.
+- G2. Task selection is Claude's own pick from queue.md, plus a 16–20 PR quota.
+- G3. Metrics are display only. Codex copy approval was coded but never called, so 0/1488 copy entries and 0/156 Daily bundles are servable.
+- G4. The loop stops at merge into integration. Integration is 791 commits ahead of main, with no journey test, no release packet and no testers.
+- G5. Rules are scattered across memory, SKILL files, constants and retros.
+- G6. Nobody looks at the running UI. The first screenshot already showed an X button overlapping text.
+- G7. Owner notifications come from the owner's own account, so GitHub does not notify by default.
+- G8. No analytics; the site is set to `noindex`; no Lighthouse or a11y checks.
+
+## D: AI Native DevCon 2026 (42 talks)
+- D1. **Lopopolo (OpenAI).**
+  - D1a. Never give the same review comment twice: it becomes a lint or test with an agent-directed fix message.
+  - D1b. Strict structural rules (no any, snapshot tests).
+  - D1c. The agent must convince you to merge with screenshots or video.
+  - D1d. Reviewer personas run as a CI matrix.
+  - D1e. Nightly "dreaming" over reviews, failures and production errors.
+- D2. **Syme (GitHub Next).**
+  - D2a. Agentic workflows run read-only with a narrow safe output.
+  - D2b. Continuous accessibility walkthroughs.
+  - D2c. Repo Assist: a daily workflow with a memory file and a task menu.
+  - D2d. When the factory jams, add a quality gate instead of fixing by hand.
+- D3. **Stack.**
+  - D3a. Planner versus a grumpy adversarial reviewer, capped rounds, structured disagreement digest.
+  - D3b. UAT in a separate repo agents can't edit; tests are the source of truth.
+  - D3c. A self-debugging product that reproduces errors.
+  - D3d. CLAUDE.md line: record non-obvious problems and propose an update.
+  - D3e. A fresh worktree every run.
+  - D3f. Bottleneck = deciding what to build.
+- D4. **Dubnov.**
+  - D4a. Merge rate and no-touch merge rate.
+  - D4b. A risk/size label on every PR; the owner reviews only high risk.
+  - D4c. The person who cares edits directly (copy sheet → PR).
+  - D4d. Feature-flag everything.
+  - D4e. New stored fields need owner review.
+- D5. **Debois.**
+  - D5a. Turns-to-right as a harness KPI.
+  - D5b. Feed production signals back into generation.
+  - D5c. A versioned prompt/skill registry with evals.
+  - D5d. A research agent for external patterns.
+  - D5e. Raise the lowest stave first.
+- D6. **Stoneham ("product brain").**
+  - D6a. A wiki refreshed nightly from merged work, plus a principles file.
+  - D6b. Ticket triage into a 2-option decision card, or a PRD first.
+  - D6c. Pseudonymise user data before LLM indexing.
+- D7. **Thomas (Meta).**
+  - D7a. A different AI judges AI-written tests (catches tautological tests).
+  - D7b. Teach one pattern, then agents apply it at scale (codemods).
+  - D7c. A learned risk score decides what ships fast.
+  - D7d. Test priority from churn × coverage.
+- D8. **Walter (Hud).**
+  - D8a. A weekly reliability agent ranks findings by impact × risk.
+  - D8b. Automate the investigation, not blind PRs.
+  - D8c. Reject lazy fixes.
+- D9. **Lawson (Netlify).**
+  - D9a. Machine-readable error codes.
+  - D9b. A preview URL plus screenshots per change.
+  - D9c. Blueprints: skills + recipes + ADRs.
+  - D9d. Event subscription instead of polling.
+  - D9e. One-tap ratings feed the eval set.
+- D10. **Batey.**
+  - D10a. ADR-first with a diagram, enforced by agents.
+  - D10b. "You build it, you run it, you drive adoption"; PR count is a vanity metric.
+  - D10c. Full test suite ≤15 min.
+- D11. **Foxwell.**
+  - D11a. Prototype with real people before building.
+  - D11b. Feature flags separate deploy from release; SLOs and error budgets.
+  - D11c. Review the spec, not the diff.
+  - D11d. Keep/trash/try audit of rituals.
+- D12. **Lamis (Anthropic).**
+  - D12a. Dreaming batch job with counted evidence and human accept/reject.
+  - D12b. Versioned memory with a hash check before writes; per-agent scratch.
+  - D12c. Per-user preference memory, with consent.
+- D13. **Podjarny.**
+  - D13a. Hard harness rules (block an action unless a skill is loaded).
+  - D13b. Evals from old PRs, try cheaper models.
+  - D13c. Mine logs to improve skills.
+  - D13d. Factory lines of harnesses.
+- D14. **Moss.**
+  - D14a. Five skill failure modes (overlap, drift, non-activation, rot, overload).
+  - D14b. An AI judge scores skills in CI.
+  - D14c. pnpm `minimumReleaseAge`; audit global hooks.
+  - D14d. Skills in the repo, split.
+- D15. **Sloan.**
+  - D15a. A component map so agents reuse design-system parts.
+  - D15b. Voice notes or call transcripts → tickets checked against a roadmap skill.
+  - D15c. Product and design context kept in the repo.
+  - D15d. A harness per role.
+- D16. **Obstbaum and Willoughby (Stanford).**
+  - D16a. A judge calibrated to experts.
+  - D16b. Measure discovery, trajectory and outcome.
+  - D16c. Skills pay off on local conventions.
+  - D16d. Whole-system testing.
+- D17. **Martinelli.**
+  - D17a. Use-case template with alternative flows.
+  - D17b. Black-box Playwright from use cases, written by a separate party.
+  - D17c. Regeneration check.
+- D18. **Azriel.**
+  - D18a. One verifier sub-agent per AC on preview.
+  - D18b. The verifier reads spec and base code before the diff.
+  - D18c. Critical journeys run on every PR.
+- D19. **Graziano.**
+  - D19a. EARS requirements; "ask me questions" before planning.
+  - D19b. Adversarial spec review in a fresh context.
+  - D19c. Retro-specs plus a non-functional requirement per slice.
+- D20. **Cormack.**
+  - D20a. A test oracle (swetest / ephemeris).
+  - D20b. Zero flaky tests; overnight repeat runs.
+  - D20c. "What test should have caught this?" after every fix.
+  - D20d. Invariants in types (ConsentedBirthData, an unloggable ShareToken).
+  - D20e. Whole-codebase security review.
+- D21. **Farley.**
+  - D21a. An executable spec DSL with hidden held-out values in a pipeline the agent can't change.
+- D22. **Wotherspoon.**
+  - D22a. A Playwright skill records video or screenshots per change.
+  - D22b. Issue-first: only approved issues, cap on active PRs.
+  - D22c. "OSS vacation": a freeze to drain the backlog before release.
+  - D22d. Vouch system (for café matchmaking).
+- D23. **Böckeler.** Short sessions; a model-per-task map.
+- D24. **Kerr.**
+  - D24a. Regulators vs dysregulators (mood chip).
+  - D24b. Calm stopping points, draw cap, no streak pressure.
+  - D24c. No mood-swing alarms.
+- D25. **Lübken.**
+  - D25a. Draft-only tools plus hooks that check outputs.
+  - D25b. Don't expose tools you don't want used (remove merge-to-main and deploy creds from agents).
+  - D25c. Interactive widgets in results.
+- D26. **Douglas.**
+  - D26a. Archive sessions plus a "check the tapes" skill.
+  - D26b. observation.md: every claimed win backed by a check.
+  - D26c. A Haiku sweep for rule violations.
+- D27. **Groetzinger (Cisco).**
+  - D27a. Changes classified by severity: minor auto-release, major to a human.
+  - D27b. JSONL golden eval sets run identically locally, on staging and in CI.
+  - D27c. Skill versioning as a trust signal.
+- D28. **Jones and Tomasz.**
+  - D28a. Track experiments per week (boldness).
+  - D28b. TRIZ "make it as bad as possible".
+  - D28c. Meeting/voice → PRD → tasks.
+- D29. **Maleix.**
+  - D29a. A per-agent "WTF diary" promoted into packs.
+  - D29b. With/without eval; hand-score before trusting an LLM judge.
+  - D29c. Retire packs that stop helping.
+- D30. **Overweg.**
+  - D30a. Owner taste stored as data.
+  - D30b. A lesson reaches AGENTS.md only after it has been validated twice.
+
+## L: Lauren Tan (3 videos)
+- L1. A verification skill as the base of trust: the agent runs the real app (CDP, simulator, traces, snapshots); fixed parts live in a CLI.
+- L2. A feature map inside the skill, with create and maintain skills.
+- L3. A trust curve per change class; autonomy widens step by step, with no shortcut.
+- L4. Coordinator ("chief of staff") agents per area; group related issues so the root cause shows.
+- L5. Buffer findings in a document; batch fixes at the root cause.
+- L6. Full-autopilot merge with 1–10 verifier agents fuzzing per PR; review on main every morning; revert or add a lint.
+- L7. Spot-check sampling instead of blocking review; fix the setup only when a mistake repeats.
+- L8. One-way vs two-way doors: anything irreversible stays human.
+- L9. Mine transcripts for skills; a recall skill.
+- L10. Hard layers (architecture, lint, types, import graph) beat soft layers (rules, skills, review bots). A review comment is a code smell.
+- L11. The shortest path should be the right path: feature folders, banned footguns, import-boundary CI.
+- L12. Skill evals: rubric, neutral folder names, a different-model judge, multiple models, re-run on every skill change.
+- L13. Hill-climb on a scored rubric (Karpathy autoresearch).
+- L14. A repro bot (Benny) reproduces each bug report on its own machine.
+- L15. An outer loop (routines watching signals) feeds the inner coding loop.
+- L16. Atomic PRs; git history is context.
+- L17. Greenfield is the biggest risk, so invest in constraints early.
+- L18. Warnings:
+  - she does not hand business goals to agents;
+  - correct is not the same as good;
+  - PR volume is not understanding.
+
+## E: External research (Anthropic best practices, GitHub Copilot agent docs, DORA, METR, Shape Up)
+- E1. Spec, then a fresh session, then review against the spec; "done" means a runnable check plus human approval.
+- E2. One feature per issue, with AC and the files to touch or not touch.
+- E3. Small batches; measure delivery and stability (DORA).
+- E4. Perceived speed is not real speed (METR −19%); measure time to user.
+- E5. Fixed time, variable scope (appetite).
+- E6. UX benchmarks:
+  - value inside onboarding;
+  - a daily action that takes seconds;
+  - the daily push is the product;
+  - compatibility with friends as the growth loop;
+  - widgets and a companion;
+  - low baseline retention;
+  - avoid a harsh tone.
+
+## U: UI/UX review findings (12.11, code read plus screenshot)
+- U1. Radar dead end: the form is lost after a 409 (fixed in #450).
+- U2. Jargon, English words and shifting names; five names for the pair feature.
+- U3. Mood position and copy vs the AC; online resend (fixed in #449).
+- U4. No reason to come back tomorrow.
+- U5. Save is buried (unsave exists in Saved).
+- U6. Welcome has no demo path. This was an owner decision on 10.10 to remove it, so it stays removed unless the owner reopens it.
+- U7. Khám phá is locked with no preview.
+- U8. Tap targets under 44px (fixed in #448).
+- U9. The X button overlaps text on the Home card (screenshot).
+
+## C: Codex review findings already raised (must stay addressed)
+- C1. L4 rollback is unsafe: an old image can't read new data. Needs a drill, preservation of deletes and revocations, a path for a failed rollback, and canary minimum sample, observation time and control group.
+- C2. Recovery paths: incident lane, infra retry cap, quarantine for stuck work, execute-or-skip.
+- C3. Night profile: unify the hour gates; Codex cap retry and incident reserve; one shared counter for copy review; owner cards deduped with age and a cap; unseen samples count as not passed.
+- C4. Policy needs a diff lock because both agents share the owner's account; check authorisation on every merge and deploy; changing level must not grant permission; add UI copy, retention purpose and birth time/place to the hard list.
+- C5. Metrics can be gamed:
+  - count defects by root cause, not "fix on the same file";
+  - p95 lead time plus age of open PRs;
+  - total owner load;
+  - Daily bundles served proven at runtime;
+  - minimum sample size before acting.
+- C6. The critic must challenge goals: opportunity cost, the do-nothing option, falsifying evidence, exceptions with an expiry.
+- C7. Shadow mode before control.
+- C8. A clear tester goal (who the first 5 are, what they get, continue/stop signals); a release packet.
+- C9. Extend the existing swetest golden test; don't rebuild it.
+- C10. Claims must separate "PR opened", "merged" and "running".
