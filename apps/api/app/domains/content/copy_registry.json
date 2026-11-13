@@ -4621,6 +4621,222 @@
    "status": "pending"
   },
   {
+   "id": "daily.bundle.avoid-small-conflict.01.action",
+   "category": "reading",
+   "text": "Nói với đồng nghiệp: Tối nay mình không tiện, sáng mai mình làm được phần đầu.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.01.headline",
+   "category": "reading",
+   "text": "Đồng nghiệp nhờ bạn làm nốt bản trình bày.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.01.scene",
+   "category": "reading",
+   "text": "Lúc năm giờ chiều, đồng nghiệp nhờ bạn làm nốt bản trình bày, bạn định nhận dù tối nay có hẹn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.02.action",
+   "category": "reading",
+   "text": "Nhắn lại nhóm: Tối nay mình không tiện, cuối tuần mình đi được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.02.headline",
+   "category": "reading",
+   "text": "Nhóm bạn thân rủ đi xem phim tối nay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.02.scene",
+   "category": "reading",
+   "text": "Nhóm bạn thân nhắn rủ đi xem phim lúc chín giờ, bạn sắp nhận lời dù mai phải dậy sớm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.03.action",
+   "category": "reading",
+   "text": "Nói với mẹ: Sáng mai con không tiện, con đặt giúp dì một chiếc xe nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.03.headline",
+   "category": "reading",
+   "text": "Mẹ nhờ bạn chở dì ra bến xe sáng mai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.03.scene",
+   "category": "reading",
+   "text": "Mẹ nhờ bạn chở dì ra bến xe lúc sáu giờ sáng mai, bạn định nhận dù trùng ca làm.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.04.action",
+   "category": "reading",
+   "text": "Nói với bạn cùng lớp: Mình chỉ nhận soát lỗi, phần nội dung bạn tự làm nhé.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.04.headline",
+   "category": "reading",
+   "text": "Bạn cùng lớp nhờ bạn làm thay phần thuyết trình.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.04.scene",
+   "category": "reading",
+   "text": "Bạn cùng lớp nhờ bạn làm thay phần của họ trong nhóm học, bạn sắp nhận dù đang ôn thi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.05.action",
+   "category": "reading",
+   "text": "Nói với chủ tiệm: Mai mình không tiện ghé, thứ Bảy mình qua lấy được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.05.headline",
+   "category": "reading",
+   "text": "Chủ tiệm sửa đồ nhờ bạn mai quay lại lấy.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.05.scene",
+   "category": "reading",
+   "text": "Lúc bạn ghé lấy áo sửa, chủ tiệm nhờ bạn mai quay lại, bạn định gật đầu dù mai bận cả ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.06.action",
+   "category": "reading",
+   "text": "Nói với hàng xóm: Thứ Bảy mình không tiện, mình chỉ nhận được tối Chủ nhật.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.06.headline",
+   "category": "reading",
+   "text": "Hàng xóm nhờ bạn cho chó ăn hai ngày.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.06.scene",
+   "category": "reading",
+   "text": "Hàng xóm nhờ bạn cho con chó ăn hai ngày họ đi vắng, bạn định nhận dù lịch cuối tuần đã kín.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.07.action",
+   "category": "reading",
+   "text": "Nói với trưởng nhóm: Hôm nay mình không tiện trực, mình nhận trực ngày mai.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.07.headline",
+   "category": "reading",
+   "text": "Trưởng nhóm nhờ bạn trực điện thoại giờ nghỉ trưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.07.scene",
+   "category": "reading",
+   "text": "Gần trưa, trưởng nhóm nhờ bạn ở lại trực điện thoại giờ nghỉ, bạn sắp nói được dù đã hẹn ăn trưa.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.08.action",
+   "category": "reading",
+   "text": "Nói với bạn cùng phòng: Tối nay mình không tiện, sau mười giờ bạn dùng được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.08.headline",
+   "category": "reading",
+   "text": "Bạn cùng phòng hỏi mượn máy tính tối nay.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.08.scene",
+   "category": "reading",
+   "text": "Tối nay bạn cần máy tính để nộp bài, đúng lúc bạn cùng phòng nhờ mượn, và bạn định đưa luôn.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.09.action",
+   "category": "reading",
+   "text": "Nhắn em gái là tối nay bạn không tiện, sáng mai bạn giảng được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.09.headline",
+   "category": "reading",
+   "text": "Em gái nhờ bạn giảng bài toán lúc mười giờ tối.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.09.scene",
+   "category": "reading",
+   "text": "Mười giờ tối, em gái gửi tin nhắn nhờ bạn giảng bài toán, bạn định nhận dù đang làm dở việc riêng.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.10.action",
+   "category": "reading",
+   "text": "Nhắn vào nhóm: Tháng này mình bận, mình chỉ nhận gom danh sách người đi.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.10.headline",
+   "category": "reading",
+   "text": "Nhóm lớp cũ hỏi ai nhận đặt chỗ họp lớp.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.10.scene",
+   "category": "reading",
+   "text": "Trong nhóm lớp cũ, chưa ai nhận đặt chỗ họp lớp, và bạn sắp gõ nhận dù tháng này rất bận.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.11.action",
+   "category": "reading",
+   "text": "Nói với câu lạc bộ: Chủ nhật này mình không tiện, tuần sau mình dẫn được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.11.headline",
+   "category": "reading",
+   "text": "Câu lạc bộ nhờ bạn dẫn buổi chạy Chủ nhật.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.11.scene",
+   "category": "reading",
+   "text": "Sau buổi tập, câu lạc bộ nhờ bạn dẫn nhóm chạy Chủ nhật, bạn định nhận dù có lịch về quê.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.12.action",
+   "category": "reading",
+   "text": "Nhắn khách: Cuối tuần mình không nhận sửa, sáng thứ Hai mình làm được.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.12.headline",
+   "category": "reading",
+   "text": "Khách nhờ bạn sửa thêm bản thiết kế cuối tuần.",
+   "status": "pending"
+  },
+  {
+   "id": "daily.bundle.avoid-small-conflict.12.scene",
+   "category": "reading",
+   "text": "Chiều thứ Sáu, khách hàng gửi tin nhắn nhờ sửa thêm ba chỗ, bạn sắp nhận dù cuối tuần bạn nghỉ.",
+   "status": "pending"
+  },
+  {
    "id": "daily.scene.capacity-before-agreement.01",
    "category": "reading",
    "text": "Khi được nhờ trong lúc đang vội, bạn có thể nhận lời mà chưa mở lịch xem.",
