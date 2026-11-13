@@ -14,7 +14,7 @@ const H = 3600000;
 
 // A body that passes the preflight, so these checks reach the clone (#307 holds bodies that fail it).
 const VALID_BODY = ['- Mức: S', ...['G1 Tài liệu: plan §3', 'G2 UI/UX: không đụng giao diện', 'G3 Câu chữ: không có câu mới', 'G4 BE: không đổi', 'G5 FE: không đổi',
-  'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`)].join('\n');
+  'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`), 'Người dùng thấy gì: không trực tiếp (vận hành)'].join('\n');
 
 test('a run that started and never finished is reported as waiting on a prompt', () => {
   const beats = { 'la-lanh-autopilot': { doneAt: '2026-10-31T11:00:00Z', startedAt: '2026-10-31T12:48:00Z' }, 'la-lanh-ops-watch': { doneAt: '2026-11-03T01:00:00Z' }, 'la-lanh-retro': { doneAt: '2026-11-02T16:40:00Z' } };
