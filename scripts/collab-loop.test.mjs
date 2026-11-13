@@ -7,7 +7,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
-const { checksPerTick, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
+const { checksPerTick, copyBatchAttempts, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const preflightMod = await import('./collab-preflight.mjs');
 const { committedTurns, copyReview, planMax, planMin, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
@@ -1061,6 +1061,39 @@ test('copy batch: once a day after 10:00, only with pending copy, inside the Cod
   // Codex #451 P2: a fork branch with the batch name must not stop the daily review.
   at(10, 5, { date: '2026-11-28', open: [pr({ number: 62, headRefName: 'agent/claude/copy-batch-x', isCrossRepository: true })] });
   assert.equal(runs.length, before + 1, 'a fork PR named like a batch does not block the batch');
+});
+
+// 13.11.2026: the batch failed at 10:48 and the tick treated it as the day's batch: no retry,
+// failures back to 0 on the next tick, no alert. 1 524 sentences stayed pending.
+test('copy batch: a failed batch alerts, retries on later ticks without a second Codex run, and stops after the attempt limit', () => {
+  const date = '2026-11-29';
+  const alerts = [];
+  const results = [];
+  const at = (hour, minute, result) => tick({ gh: plannedGh([], date), now: { date, hour, minute }, merge: () => ({}), review: () => ({}), alert: text => alerts.push(text),
+    copyPending: () => 40, copyBatch: () => { results.push(result.status); return result; } });
+  const day = () => trust.readJson(trust.dayStatePath(date), {});
+  at(10, 48, { status: 'error', codex: true, reason: 'Author identity unknown' });
+  assert.equal(day().codexRuns, 1, 'the Codex run that answered is counted');
+  assert.deepEqual({ status: day().copyBatch.status, attempts: day().copyBatch.attempts, reason: day().copyBatch.reason }, { status: 'error', attempts: 1, reason: 'Author identity unknown' });
+  assert.equal(alerts.length, 1, 'the first failure reaches the owner at once');
+  assert.match(alerts[0], /lần 1\/3.*Author identity unknown/);
+  at(10, 58, { status: 'opened', codex: false });
+  assert.equal(results.length, 2, 'the next tick retries the failed batch');
+  assert.equal(day().codexRuns, 1, 'publishing saved decisions spends no Codex run');
+  assert.equal(day().copyBatch.status, 'opened');
+  at(11, 8, { status: 'opened', codex: true });
+  assert.equal(results.length, 2, 'after a success the day is done');
+
+  const other = '2026-11-30';
+  const runs = [];
+  const alerts2 = [];
+  const fail = minute => tick({ gh: plannedGh([], other), now: { date: other, hour: 11, minute }, merge: () => ({}), review: () => ({}), alert: text => alerts2.push(text),
+    copyPending: () => 40, copyBatch: () => { runs.push(minute); return { status: 'error', codex: false, reason: 'push rejected' }; } });
+  for (const minute of [0, 10, 20, 30, 40]) fail(minute);
+  assert.equal(runs.length, copyBatchAttempts, 'at most the attempt limit per day');
+  const batchAlerts = alerts2.filter(text => text.startsWith('Lô duyệt câu'));
+  assert.equal(batchAlerts.length, copyBatchAttempts, 'one alert per failed attempt (the generic two-failures alert may come too)');
+  assert.match(batchAlerts.at(-1), /Đã hết lượt thử hôm nay/);
 });
 
 test('copy batch: an owner "Duyệt" before 10:00 still waits for the 10:00 auto-start', () => {

@@ -97,6 +97,9 @@ function withLock(fn) {
 
 export const idleAlertRuns = 6;
 
+// A failed daily copy batch is retried on later ticks, at most this many attempts a day.
+export const copyBatchAttempts = 3;
+
 export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, notify = () => {}, metrics = () => null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
@@ -214,7 +217,10 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // stop the daily copy review.
         const batchOpen = prs.some(p => isOwnPr(p) && p.baseRefName === integration && /^agent\/claude\/copy-batch-/.test(p.headRefName ?? ''));
         let pending = 0;
-        if (!today.copyBatch && (today.codexRuns ?? 0) < codexDailyCap && !batchOpen) {
+        // 13.11: a failed batch used to count as the day's batch, so nothing retried and nobody was
+        // told. An error now retries on later ticks, up to copyBatchAttempts a day.
+        const retry = today.copyBatch?.status === 'error' && (today.copyBatch.attempts ?? 1) < copyBatchAttempts;
+        if ((!today.copyBatch || retry) && (today.codexRuns ?? 0) < codexDailyCap && !batchOpen) {
           try { pending = copyPending(); } catch (error) { log(`copy batch: registry unreadable: ${clean(error.message, 200)}`); }
         }
         if (pending > 0) {
@@ -223,8 +229,21 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
           done.push({ copy: result });
           if (result?.status !== 'busy') {
             const fresh = readJson(dayPath, day);
-            const spent = result?.status === 'empty' ? 0 : 1;
-            writeJson(dayPath, { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + spent, copyBatch: { status: result?.status ?? 'unknown', at: new Date().toISOString() } });
+            // Only a run that called Codex spends the cap; a retry publishes saved decisions.
+            const spent = result?.codex === false || result?.status === 'empty' ? 0 : 1;
+            const attempts = (fresh.copyBatch?.status === 'error' ? fresh.copyBatch.attempts ?? 1 : 0) + 1;
+            writeJson(dayPath, { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + spent, copyBatch: {
+              status: result?.status ?? 'unknown', at: new Date().toISOString(), attempts,
+              ...(result?.reason ? { reason: clean(result.reason, 300) } : {}) } });
+            // Every failed attempt reaches the owner's alert thread; it never waits for a second
+            // failing tick, because the next tick may have nothing else to fail.
+            if (result?.status === 'error' && alert) {
+              const last = attempts >= copyBatchAttempts;
+              try {
+                alert(`Lô duyệt câu chữ hằng ngày lỗi (lần ${attempts}/${copyBatchAttempts}, ${now.date}): ${clean(result.reason ?? 'không rõ', 300)}. `
+                  + (last ? 'Đã hết lượt thử hôm nay, Claude cần sửa nguyên nhân.' : 'Lượt sau thử lại; quyết định Codex đã lưu nên không tốn thêm lượt Codex.'));
+              } catch (error) { log(`copy batch alert failed: ${clean(error.message, 200)}`); }
+            }
           }
         }
       }
