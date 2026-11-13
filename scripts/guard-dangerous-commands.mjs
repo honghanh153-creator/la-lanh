@@ -34,11 +34,7 @@ export function isWholeTree(spec = '') {
     p = p.slice(magic.length);
   }
   const stack = [];
-  for (const seg of p.split('/')) {
-    if (!seg || seg === '.') continue;
-    if (seg === '..') stack.pop();
-    else stack.push(seg);
-  }
+  for (const seg of p.split('/')) if (seg === '..') stack.pop(); else if (seg && seg !== '.') stack.push(seg);
   return stack.every(s => /^\*+$/.test(s));
 }
 
@@ -53,8 +49,7 @@ const commandName = seg => {
   return (words[i] ?? '').replace(/["'\\]/g, '').replace(/^.*\//, '');
 };
 const readsDataOnly = seg => {
-  const name = commandName(seg);
-  const s = ` ${seg} `;
+  const [name, s] = [commandName(seg), ` ${seg} `];
   if (dataCommands.has(name)) return true;
   if (name === 'gh') return /\s(--body-file|-F|--input)(=|\s+)-\s/.test(s);
   if (name === 'git') return /\scommit\s/.test(s) && /\s(-F|--file)(=|\s+)-\s/.test(s);
@@ -135,11 +130,7 @@ function gitReason(argv) {
   while (i < argv.length && argv[i].startsWith('-')) i += gitOptsWithValue.has(argv[i]) ? 2 : 1;
   let sub = argv[i];
   let args = argv.slice(i + 1);
-  if (sub === 'worktree') {
-    if (args[0] !== 'remove') return null;
-    sub = 'worktree remove';
-    args = args.slice(1);
-  }
+  if (sub === 'worktree' && args[0] === 'remove') [sub, args] = ['worktree remove', args.slice(1)];
   const dd = args.indexOf('--');
   const opts = dd < 0 ? args : args.slice(0, dd);
   const short = new Set(opts.filter(a => /^-[^-]/.test(a)).flatMap(a => [...a.slice(1)]));
@@ -169,10 +160,8 @@ function gitReason(argv) {
   }
 }
 
-const MAX_DEPTH = 8;
-
 export function blockReason(command = '', depth = 0) {
-  if (depth > MAX_DEPTH) return null;
+  if (depth > 8) return null; // nested substitutions deeper than this are not inspected
   // Only text that is provably inert is dropped: a message-flag value (-m, --body, …) without $(…) or
   // backticks, and a heredoc read by a data consumer. Every other quoted string is unquoted and
   // inspected, because `bash -c '…'`, `git restore "."` and `"$(…)"` do run.
