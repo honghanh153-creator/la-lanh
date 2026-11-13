@@ -9,10 +9,11 @@
 //   close a lesson by editing the file);
 // - an open lesson past its due date is reported as overdue in the board and the owner digest.
 // Usage: node scripts/collab-lessons.mjs   (prints the summary; exit 1 if the register is invalid)
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { clean, integration, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { clean, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -63,18 +64,24 @@ export function problems(register, { base = root, ciFiles = ciTestFiles() } = {}
 // Online check, run by the tick: the closing PR is merged into integration and carries a trusted
 // Codex APPROVE. Results are cached per lesson and PR, so each PR is read from GitHub once.
 export const verifiedPath = join(stateDir, 'lessons-verified.json');
+// Codex 13.11: any earlier APPROVE is not enough. The last trusted verdict must be Codex's
+// automatic APPROVE of the head that was merged.
 export function confirmClosed(pr) {
   const merged = pr?.state === 'MERGED' && pr?.baseRefName === integration;
-  const approved = trustedComments(pr?.comments ?? []).some(c => c.auto && c.verdict?.verdict === 'APPROVE');
-  return merged && approved;
+  const last = reviewState({ ...pr, comments: pr?.comments ?? [] }).last;
+  return merged && Boolean(last?.auto) && last.verdict?.verdict === 'APPROVE' && last.verdict.sha === pr?.headRefOid;
 }
 
-export function verify(register, { view = n => makeGh().json(['pr', 'view', String(n), '--repo', repo, '--json', 'state,baseRefName,comments']), cachePath = verifiedPath } = {}) {
+// The cache key includes the evidence, so changing the test, the caller or the PR asks GitHub again.
+const evidenceKey = l => `${l.id}:${createHash('sha256').update(JSON.stringify([l.test ?? null, l.caller ?? null, l.closedBy ?? null])).digest('hex').slice(0, 16)}`;
+
+export const prFields = 'state,baseRefName,headRefOid,comments';
+export function verify(register, { view = n => makeGh().json(['pr', 'view', String(n), '--repo', repo, '--json', prFields]), cachePath = verifiedPath } = {}) {
   const cache = readJson(cachePath, {});
   let changed = false;
   for (const l of register.lessons ?? []) {
     if (l.status !== 'done' || !Number.isInteger(l.closedBy?.pr)) continue;
-    const key = `${l.id}:${l.closedBy.pr}`;
+    const key = evidenceKey(l);
     if (cache[key] === true) continue;
     cache[key] = confirmClosed(view(l.closedBy.pr));
     changed = true;
@@ -85,21 +92,23 @@ export function verify(register, { view = n => makeGh().json(['pr', 'view', Stri
 
 export function summarize(register, { today = vnNow().date, verified = null, invalid = [] } = {}) {
   const lessons = register.lessons ?? [];
-  const confirmed = l => verified === null || verified[`${l.id}:${l.closedBy?.pr}`] === true;
+  // Without the online check (verified === null) nothing counts as running: offline output must
+  // never say "đã chạy thật" (Codex 13.11).
+  const confirmed = l => verified !== null && verified[evidenceKey(l)] === true;
   const done = lessons.filter(l => l.status === 'done' && confirmed(l));
   const unconfirmed = lessons.filter(l => l.status === 'done' && !confirmed(l));
   const owner = lessons.filter(l => l.status === 'waiting-owner');
   const open = lessons.filter(l => l.status === 'open' || unconfirmed.includes(l));
   const overdue = open.filter(l => isDate(l.due) && l.due < today);
-  return { total: lessons.length, done: done.length, open: open.length, owner: owner.length, overdue: overdue.map(l => l.id), unconfirmed: unconfirmed.map(l => l.id), invalid: invalid.length };
+  return { total: lessons.length, done: done.length, open: open.length, owner: owner.length, overdue: overdue.map(l => l.id), unconfirmed: unconfirmed.map(l => l.id), invalid: invalid.length, offline: verified === null };
 }
 
 export function renderLessons(s) {
   if (s.invalid) return `Lời hứa sửa quy trình: sổ đang sai ${s.invalid} chỗ, cần sửa trước khi tính.`;
-  const parts = [`${s.done}/${s.total} đã chạy thật (đã merge, Codex duyệt)`, `${s.open} đang làm`];
+  const parts = [s.offline ? `chưa xác minh trên GitHub (${s.unconfirmed.length} mục ghi xong)` : `${s.done}/${s.total} đã chạy thật (đã merge, Codex duyệt)`, `${s.open} đang làm`];
   if (s.owner) parts.push(`${s.owner} chờ owner`);
   parts.push(s.overdue.length ? `**${s.overdue.length} quá hạn** (${s.overdue.join(', ')})` : 'không có mục quá hạn');
-  if (s.unconfirmed.length) parts.push(`ghi xong nhưng chưa có bằng chứng merge + Codex duyệt: ${s.unconfirmed.join(', ')}`);
+  if (s.unconfirmed.length && !s.offline) parts.push(`ghi xong nhưng chưa có bằng chứng merge + Codex duyệt: ${s.unconfirmed.join(', ')}`);
   return `Lời hứa sửa quy trình: ${parts.join(', ')}.`;
 }
 

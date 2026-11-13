@@ -8,9 +8,17 @@
    "who": "claude",
    "due": "2026-11-15",
    "status": "open",
-   "test": { "file": "scripts/collab-loop.test.mjs", "name": "copy batch: a failed batch alerts, retries on later ticks" },
-   "caller": { "file": "scripts/collab-turn.mjs", "contains": "copyBatchAttempts" },
-   "closedBy": { "pr": 480 }
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "copy batch: a failed batch alerts, retries on later ticks"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "copyBatchAttempts"
+   },
+   "closedBy": {
+    "pr": 480
+   }
   },
   {
    "id": "L02",
@@ -19,8 +27,14 @@
    "who": "claude",
    "due": "2026-11-15",
    "status": "open",
-   "test": { "file": "scripts/collab-lessons.test.mjs", "name": "a lesson cannot be closed by editing the register" },
-   "caller": { "file": "scripts/collab-metrics.mjs", "contains": "lessonsLine" }
+   "test": {
+    "file": "scripts/collab-lessons.test.mjs",
+    "name": "a lesson cannot be closed by editing the register"
+   },
+   "caller": {
+    "file": "scripts/collab-metrics.mjs",
+    "contains": "lessonsLine"
+   }
   },
   {
    "id": "L03",
@@ -124,6 +138,43 @@
    "who": "claude",
    "due": "2026-11-17",
    "status": "open"
+  },
+  {
+   "id": "L16",
+   "title": "Script vận hành gọi qua đường dẫn tắt (symlink) thì không chạy gì mà vẫn báo thành công; mọi điểm vào phải chặn khi không chạy",
+   "from": "test đầu–cuối hook trước push, 13.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "open"
+  },
+  {
+   "id": "L17",
+   "title": "Broker tối thiểu: chương trình riêng gọi Codex, giữ biên nhận và quyền merge; Claude không nộp kết quả thay Codex (lát 3 thiết kế Codex kiểm soát)",
+   "from": "owner 13.11: Codex kiểm soát, Claude thực thi",
+   "who": "owner",
+   "status": "waiting-owner"
+  },
+  {
+   "id": "L18",
+   "title": "Phiếu giao việc: Codex chốt plan 3–5 việc, duyệt phạm vi Q1–Q5, ưu tiên nợ quá hạn, quyết vòng review thứ 3 trở đi (lát 4)",
+   "from": "owner 13.11: Codex kiểm soát, Claude thực thi",
+   "who": "owner",
+   "status": "waiting-owner"
+  },
+  {
+   "id": "L19",
+   "title": "Báo cáo 08/14/22 và retro lấy dữ kiện từ một bản chụp nguồn chung; sự cố giữ trạng thái tới khi có bằng chứng phục hồi (lát 5)",
+   "from": "owner 13.11: báo cáo trung thực",
+   "who": "claude",
+   "due": "2026-11-18",
+   "status": "open"
+  },
+  {
+   "id": "L20",
+   "title": "Kiểm chính Codex: cài lại lỗi #451/#462, lỗi lọt thì mở lại bài học và ghi trách nhiệm reviewer (lát 6)",
+   "from": "Codex tự nhận 13.11",
+   "who": "owner",
+   "status": "waiting-owner"
   }
  ]
 }

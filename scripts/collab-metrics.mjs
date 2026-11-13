@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { digest, ownerOnly, readLocalRegistry, root } from './codex-copy-review.mjs';
 import { wipCount, wipLimit } from './collab-buffer.mjs';
 import { clean, integration, makeGh, repo } from './collab-trust.mjs';
-import { lessonsLine } from './collab-lessons.mjs';
+import { lessonsLine, prFields } from './collab-lessons.mjs';
 
 // Same rule as CopyEntry.servable and approved_bundles() in apps/api/app/domains/content/copy_approval.py.
 export const bundlePrefix = 'daily.bundle.';
@@ -48,7 +48,7 @@ const measure = fn => { try { return fn(); } catch (error) { return { error: rea
 
 // Sources. `run` is execFileSync-shaped; tests pass their own.
 export function collectMetrics({ registry = readLocalRegistry, run = execFileSync, gh = makeGh(), prs = [], turns = [], nowMs = Date.now(),
-  lessons = () => lessonsLine({ view: n => gh.json(['pr', 'view', String(n), '--repo', repo, '--json', 'state,baseRefName,comments']) }) } = {}) {
+  lessons = () => lessonsLine({ view: n => gh.json(['pr', 'view', String(n), '--repo', repo, '--json', prFields]) }) } = {}) {
   const git = args => String(run('/usr/bin/git', args, { cwd: root, encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'] })).trim();
   const reg = measure(() => ({ value: registry() }));
   const fromRegistry = fn => (reg.error ? { error: `không đọc được kho câu chữ: ${reg.error}` } : measure(() => fn(reg.value)));

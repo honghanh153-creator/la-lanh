@@ -33,4 +33,5 @@ test('owner 13.11: the review checks that a closed workflow lesson has a test th
   assert.match(fixed, /scripts\/collab-lessons\.json/);
   assert.match(fixed, /would fail on the code before the fix/);
   assert.match(fixed, /closed without\s+that proof is a P1 `test` finding/);
+  assert.match(fixed, /Removing a lesson, moving its due date later, or changing it to `waiting-owner` is a P1 `docs` finding/);
 });
