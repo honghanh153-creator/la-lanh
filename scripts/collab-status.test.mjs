@@ -6,7 +6,7 @@ import test from 'node:test';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-status-'));
 const trust = await import('./collab-trust.mjs');
-const { boardMarker, renderBoard, upsertBoard } = await import('./collab-status.mjs');
+const { boardMarker, ownerNotes, plainTitle, postOwnerNotes, renderBoard, sentNoteKeys, upsertBoard } = await import('./collab-status.mjs');
 const { openOpsAlert, opsAlert, resolveOpsAlert, tick } = await import('./collab-turn.mjs');
 
 const A = 'a'.repeat(40);
@@ -131,4 +131,124 @@ test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not 
   tick({ gh, now: { date, hour: 15, minute: 5 }, board: info => shown.push(info.status), merge: () => ({}), review: () => ({ status: 'posted' }) });
   assert.deepEqual(shown, ['cap']);
   assert.match(renderBoard({ now, status: 'cap' }), /HẾT LƯỢT CODEX HÔM NAY/);
+});
+
+// ---- owner 12.11: notify the owner with new comments, not silent edits ----
+const planComment = date => ({ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` });
+const noteGh = (date, open, comments = [planComment(date)]) => {
+  const posted = [];
+  return {
+    posted, comments,
+    pr: () => open[0], openPrs: () => open, raw: () => '',
+    comment: (kind, number, body) => { trust.assertAgentBody(body); posted.push(body); comments.push({ authorAssociation: 'OWNER', createdAt: `${date}T09:00:00Z`, body }); },
+    json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments }),
+  };
+};
+let cacheN = 0;
+const notifier = gh => { const cachePath = join(trust.stateDir, `notes-${cacheN++}.json`); return (notes, comments) => postOwnerNotes(gh, 50, notes, comments, { cachePath }); };
+const approved = sha => [{ authorAssociation: 'OWNER', createdAt: '2026-11-01T00:00:00Z', body: `Author check: PASS @ ${sha}\n${trust.agentMarker} x -->` },
+  { authorAssociation: 'OWNER', createdAt: '2026-11-01T00:01:00Z', body: `Review verdict: APPROVE @ ${sha}` }];
+
+test('merges post one new comment per tick, one plain line each, and a re-run never posts twice', () => {
+  const date = '2026-12-01';
+  const open = [pr({ number: 11, title: 'feat(daily): clearer mood note', comments: approved(A) }), pr({ number: 12, title: 'fix(radar): shorter hint', comments: approved(A) })];
+  const gh = noteGh(date, open);
+  const notify = notifier(gh);
+  const run = minute => tick({ gh, now: { date, hour: 15, minute }, merge: () => ({ status: 'merged' }), review: () => ({}), notify });
+  run(5);
+  assert.equal(gh.posted.length, 1, 'both merges in one comment');
+  assert.match(gh.posted[0], /^Đã gộp vào integration: clearer mood note \(#11\)\.\nĐã gộp vào integration: shorter hint \(#12\)\.\n/);
+  assert.match(gh.posted[0], /<!-- la-lanh-agent owner-note keys=merged-11,merged-12 -->$/);
+  run(15);
+  assert.equal(gh.posted.length, 1, 'the same merges are never announced again');
+  // A lost local cache still dedupes on the marker in the posted comment.
+  assert.equal(postOwnerNotes(gh, 50, [{ key: 'merged-11', lines: ['x'] }], gh.comments, { cachePath: join(trust.stateDir, 'fresh-cache.json') }), null);
+  assert.deepEqual([...sentNoteKeys([{ authorAssociation: 'NONE', body: `${trust.agentMarker} owner-note keys=merged-99 -->` }])], [], 'an outsider cannot suppress a note');
+});
+
+test('two failing ticks in a row post one note; the streak ending and starting again posts again', () => {
+  const date = '2026-12-02';
+  const gh = noteGh(date, []);
+  const notify = notifier(gh);
+  const run = (minute, preflight) => tick({ gh, now: { date, hour: 16, minute }, preflight, merge: () => ({}), review: () => ({}), notify });
+  run(5, () => ['uv']);
+  assert.equal(gh.posted.length, 0, 'one failure is not a streak');
+  run(15, () => ['uv']);
+  run(25, () => ['uv']);
+  assert.equal(gh.posted.length, 1);
+  assert.match(gh.posted[0], /^Vòng tự động bị lỗi 2 lượt liền từ 16:05\. Chi tiết ở bảng trạng thái\./);
+  run(35, () => []);
+  run(45, () => ['uv']);
+  run(55, () => ['uv']);
+  assert.equal(gh.posted.length, 2, 'a new streak is a new event');
+  assert.match(gh.posted[1], /từ 16:45/);
+});
+
+test('a PR newly labelled needs-owner posts once; a new head that needs the owner again posts again', () => {
+  const date = '2026-12-03';
+  const open = [pr({ number: 21, title: 'content(daily): new bundle', labels: [{ name: 'needs-owner' }] })];
+  const gh = noteGh(date, open);
+  const notify = notifier(gh);
+  const run = minute => tick({ gh, now: { date, hour: 14, minute }, merge: () => ({}), review: () => ({}), notify });
+  run(5); run(15);
+  assert.deepEqual(gh.posted.map(b => b.split('\n')[0]), ['Cần bạn xem: new bundle (#21).']);
+  open[0] = { ...open[0], headRefOid: 'c'.repeat(40) };
+  run(25);
+  assert.equal(gh.posted.length, 2);
+});
+
+test('the digest posts once near 12:00 and 22:00 with done, doing, waiting, next and the metrics', () => {
+  const date = '2026-12-04';
+  const open = [pr({ number: 31, title: 'content(daily): calmer start', comments: approved(A) }), pr({ number: 32, title: 'content(tarot): plain card', headRefName: 'agent/claude/x' }),
+    pr({ number: 33, title: 'feat(radar): fewer words', labels: [{ name: 'needs-owner' }] })];
+  const gh = noteGh(date, open);
+  const notify = notifier(gh);
+  const metrics = () => ['Bộ Daily phục vụ được: 1/3 bộ.'];
+  const merge = n => { open.splice(open.findIndex(p => p.number === n), 1); return { status: 'merged' }; };
+  trust.writeJson(trust.dayStatePath(date), { codexRuns: 0, failures: 0, planned: [31, 32] });
+  const run = (hour, minute) => tick({ gh, now: { date, hour, minute }, merge, check: () => ({ status: 'FAIL' }), review: () => ({}), notify, metrics });
+  run(11, 50);
+  const beforeNoon = gh.posted.length;
+  assert.ok(!gh.posted.some(b => /Tóm tắt/.test(b)), 'no digest before 12:00');
+  run(12, 5);
+  run(12, 15);
+  const digests = gh.posted.filter(b => /Tóm tắt 12:00/.test(b));
+  assert.equal(digests.length, 1, 'one digest per slot');
+  assert.ok(gh.posted.length - beforeNoon === 1);
+  const lines = digests[0].split('\n');
+  assert.deepEqual(lines.slice(0, 6), [
+    '**Tóm tắt 12:00**',
+    '- Xong: 1/2 việc đã chọn hôm nay; đã gộp 1 PR.',
+    '- Đang làm: plain card (#32).',
+    '- Chờ bạn: fewer words (#33).',
+    '- Tiếp theo: Claude chọn việc kế tiếp từ backlog khi có chỗ.',
+    '- Bộ Daily phục vụ được: 1/3 bộ.',
+  ]);
+  assert.ok(lines.length <= 12, 'short');
+  run(13, 30);
+  run(22, 10);
+  assert.equal(gh.posted.filter(b => /Tóm tắt 22:00/.test(b)).length, 1);
+  assert.ok(gh.posted.every(b => !/REQUEST_CHANGES|APPROVE|claude-fix|codex-review|[0-9a-f]{40}/.test(b)), 'no codes');
+});
+
+test('notes are plain, carry the agent marker and never use the owner reply words', () => {
+  const now = { date: '2026-12-05', hour: 12, minute: 1 };
+  const notes = ownerNotes({ now, merged: [{ number: 1, title: 'Duyệt: tricky title' }], failures: 2, streakAt: '11:40', turns: [{ number: 2, turn: 'hold', reason: 'needs-owner', title: 'Giữ đúng', head: A }] });
+  assert.deepEqual(notes.map(n => n.key), ['merged-1', 'stuck-2026-12-05-1140', `owner-2-${A.slice(0, 7)}`, 'digest-2026-12-05-12']);
+  const gh = { comment: (kind, n, body) => trust.assertAgentBody(body) };
+  assert.doesNotThrow(() => postOwnerNotes(gh, 50, notes, [], { cachePath: join(trust.stateDir, 'plain.json') }));
+  assert.equal(plainTitle('feat(home)!: calmer start'), 'calmer start');
+  assert.deepEqual(ownerNotes({ now: { ...now, hour: 13, minute: 5 } }), [], 'nothing happened: nothing posted');
+});
+
+test('the board shows the metric lines', () => {
+  const body = renderBoard({ now, status: 'ran', metrics: ['Việc đang làm: 1/1, đang chờ review: 0/1.'] });
+  assert.match(body, /\*\*Số đo\*\*\n- Việc đang làm: 1\/1, đang chờ review: 0\/1\./);
+  const date = '2026-12-06';
+  const shown = [];
+  tick({ gh: noteGh(date, []), now: { date, hour: 15, minute: 5 }, board: info => shown.push(info.metrics), merge: () => ({}), review: () => ({}), metrics: () => ['m1'] });
+  assert.deepEqual(shown.at(-1), ['m1']);
+  shown.length = 0;
+  tick({ gh: noteGh(date, []), now: { date, hour: 23, minute: 45 }, board: info => shown.push(info.metrics), merge: () => ({}), review: () => ({}), metrics: () => { throw new Error('should not run at night'); } });
+  assert.deepEqual(shown, [null], 'metrics are not read at night');
 });

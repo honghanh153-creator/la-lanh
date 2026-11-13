@@ -31,7 +31,7 @@ describe("PublicRadarPage", () => {
       </MemoryRouter>
     </QueryClientProvider>);
 
-    expect(await screen.findByRole("heading", { name: "Bạn nhận được một lời mời xem độ hợp." })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Hai bạn hợp nhau ở điểm nào? Mở ra xem cùng nhau nhé." })).toBeInTheDocument();
     expect(container).not.toHaveTextContent("CanaryNhanRieng7f3a");
     expect(screen.getByText("Dữ liệu sinh không được trao đổi")).toBeInTheDocument();
     expect(screen.getByText("Bạn quyết định riêng cho lần này")).toBeInTheDocument();
