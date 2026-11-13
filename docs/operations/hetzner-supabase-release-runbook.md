@@ -13,8 +13,8 @@ day: R1 `f22a755f7128` (#464, compatibility marker `20261029_0038a`), then R2 (`
 `0040`–`0042` additive). New flags `LA_LANH_HUMAN_TAROT_*` and `LA_LANH_MOOD_ENCRYPTED_WRITES` stay off (absent from
 `app.env`). Staging runs the same image ID. **Any later release must start from `0042`; never apply `0038a` and
 `0039` in one upgrade.** Rollback anchor: `la-lanh:f22a755f7128` for 0038a only; after 0039, prefer a forward fix.
-**No restore into service** (P07/B). Staging DB TLS certificates from `make-db-tls.sh` last 30 days: renew before
-they expire (they lapsed on 2026-11-10). Receipt:
+**No restore into service** (P07/B). Staging DB TLS certificates from `make-db-tls.sh` last 30 days (they lapsed on
+2026-11-10); `la-lanh-staging-db-tls.timer` now renews them (see "Staging database TLS renewal" below). Receipt:
 [production-release-2026-11-13](../reviews/production-release-2026-11-13/receipt.md).
 
 ## Previous production — 2026-10-26
@@ -396,6 +396,27 @@ deletion-reconciliation procedure (option A, journal FIXED_LOCAL):
 and the disposable PostgreSQL restore probe (interleaved dump) has replayed it, **do not restore a backup into service**; restore only into a
 disposable copy.
 Staging: `infra/hetzner/staging/up.sh` (own empty database and keys; auth/generation off).
+
+### Staging database TLS renewal
+
+Staging's own PostgreSQL uses a private CA and server pair from `make-db-tls.sh`, valid 30 days. On
+2026-11-10 the pair expired unnoticed and staging was down for about 44 hours.
+
+- `la-lanh-staging-db-tls.timer` runs daily at 03:40 UTC (`Persistent=true`) and starts
+  `infra/hetzner/staging/renew-db-tls.sh` from `/opt/la-lanh/staging/source`.
+- With more than 10 days left (`LA_LANH_STAGING_TLS_RENEW_DAYS`) and the app's `db_ca.pem` equal to the
+  CA, it only logs the expiry date.
+- Otherwise it makes and verifies a new pair, keeps one previous pair as `tls.prev-<UTC stamp>` (older
+  ones are deleted; they hold a private key), writes the new files in place (owners and modes kept),
+  restarts `la-lanh-staging-db-1`, then `la-lanh-staging-staging-app-1`, and waits for both to be healthy.
+  A pair that fails to build or verify leaves the current one untouched.
+- Any failure triggers `la-lanh-alert@`, whose marker `la-lanh-ops-watch` reports as an `ops-alert` issue.
+- It reads certificate dates only and never prints keys, passwords or certificate contents. Production
+  is not affected: it verifies Supabase's CA and has no pair of its own.
+- Install once, as root, after refreshing `/opt/la-lanh/staging/source/infra` from the release:
+  `/opt/la-lanh/staging/source/infra/hetzner/staging/install-db-tls-timer.sh`. Later infra refreshes keep
+  the timer working because it runs the script from that same path.
+- Tests: `apps/api/tests/scripts/test_staging_db_tls_renewal.py` (real OpenSSL pairs, stubbed `docker`).
 
 Normally, keep the existing secret files. Recreate the database URL only after a password rotation or
 if the file is missing. From an interactive VPS terminal:
