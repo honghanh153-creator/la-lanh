@@ -72,6 +72,32 @@ service.
 - The synthetic guest was deleted afterwards (204).
 - Observation: the page shows only the background for about 4–6 s while the overview loads.
 
+## Product journey
+
+Run after the owner asked for it on 13.11 evening; from this release on it is a required release step
+(runbook "Product journey review"). Production `f6246ed2fb7a`, 13.11.2026 ~21:40 Vietnam time.
+
+- Run: `pnpm qa:journey` (Chromium, 390 px, one synthetic person with date, time and place), 22 steps,
+  `required failed: 0; guest deleted: true`. No 5xx, no horizontal scroll. The only console error is
+  the expected 401 of the first session check. Ready times: most screens under 0.8 s; full note,
+  Jyotish overview and Aura about 1.8–2.0 s.
+- Claude review: works end to end (onboarding, note, mood, share link and revoke, charts, sky, Aura,
+  Tarot draw, Radar start, delete). Main problems:
+  - a blank screen with only a loading line after "Đọc đầy đủ";
+  - English and mechanism words on Aura ("Receipt", "House", "Preview"), on sharing ("Tạo safe link",
+    "Copy link", "Story 9:16") and in Tarot ("trên máy chủ");
+  - odd or poetic onboarding lines ("Bạn xuất hiện ngày nào?", "Khớp tín hiệu");
+  - a "Đăng nhập để giữ hồ sơ" button while Google sign-in is off;
+  - four controls under 44 px.
+- Codex review: two passes.
+  - The HTTP pass covered every flow including Tarot 3/5 and Radar exact/unknown, with no P0 or P1.
+    Its P2s: the Natal "keep the small step" button does nothing; Current Sky shows the page-open time
+    instead of the 12:00 UTC calculation time; Aura copy explains internals; the first note can read
+    as a judgement; one Tarot 3-card reading drifts from the question.
+  - The screenshot pass scored the 22 captured screens with the same criteria.
+- Owner report: sent in chat on 13.11.2026 evening with verdict, scores, fix order and what works.
+- Follow-ups are filed as issues; none blocks the running release.
+
 ## Rollback
 
 - Image `la-lanh:f22a755f7128` (`sha256:a0e57af3ad11…`, R1) is the immediate anchor. It runs on 0038a but not
