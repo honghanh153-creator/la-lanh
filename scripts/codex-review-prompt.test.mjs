@@ -27,3 +27,10 @@ test('#208: the process doc no longer rejects every missing gate', () => {
   assert.doesNotMatch(doc, /thiếu cổng bắt buộc là\s+REQUEST_CHANGES \(P1 nếu là G7\/G8, P2 nếu khác\)/);
   assert.match(doc, /P2 `docs` không chặn: verdict APPROVE kèm issue fix-forward/);
 });
+
+test('owner 13.11: the review checks that a closed workflow lesson has a test that reproduces the old failure', () => {
+  const fixed = readFileSync(promptPath, 'utf8');
+  assert.match(fixed, /scripts\/collab-lessons\.json/);
+  assert.match(fixed, /would fail on the code before the fix/);
+  assert.match(fixed, /closed without\s+that proof is a P1 `test` finding/);
+});
