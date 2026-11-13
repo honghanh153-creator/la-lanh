@@ -7,6 +7,7 @@ import { acceptBasicBirthConsent, addBirthSupplement, ApiProblem, createBirthPro
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
+import { clearRadarOwnerReturn, radarOwnerReturnPath, readRadarOwnerReturn } from "../radar/radarOwnerReturn";
 import { BirthDateEdit } from "./BirthDateEdit";
 import { isUnder18, validDate } from "./birthDateInput";
 import { OptionalBirthDetails } from "./OptionalBirthDetails";
@@ -107,11 +108,12 @@ function BirthDateOnboarding() {
       });
       const exactComplete = details.mode === "exact" && Boolean(details.place);
       const radarPending = Boolean(sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY));
-      const radarOwner = sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
+      const radarOwnerMode = readRadarOwnerReturn();
+      const radarOwner = radarOwnerMode !== null;
       if (exactComplete && (radarPending || radarOwner)) {
         await updateOnboardingStatus("completed");
-        if (radarOwner) sessionStorage.removeItem("la-lanh-radar-owner-start");
-        void navigate(radarPending ? "/radar/continue" : "/radar/start", { replace: true });
+        if (radarOwner) clearRadarOwnerReturn();
+        void navigate(radarPending ? "/radar/continue" : radarOwnerReturnPath(radarOwnerMode ?? "private"), { replace: true });
         return;
       }
       void navigate(
