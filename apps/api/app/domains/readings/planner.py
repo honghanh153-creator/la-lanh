@@ -217,9 +217,6 @@ class ReadingPlanner:
                 self._approximate_plan(chart, purpose, background_lens, editorial_seed)
                 if chart.time_precision is TimePrecision.APPROXIMATE
                 and purpose is not ReadingPurpose.DAILY_NOTE
-                # Jyotish frames carry no evidence for a lone placement yet; Jyotish keeps the
-                # limited reading (no 503 since #144) until its frame does.
-                and chart.config.tradition is Tradition.WESTERN
                 else None
             )
             return approximate or self._limited_plan(

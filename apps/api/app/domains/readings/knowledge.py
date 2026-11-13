@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from threading import Lock
 
-from app.domains.astro.models import Tradition
+from app.domains.astro.models import TimePrecision, Tradition
 from app.domains.readings.house_meanings import house_phrase
 from app.domains.readings.interpretive_lenses import (
     CURRENT_FORCES,
@@ -1184,8 +1184,25 @@ def _jyotish_structural_frame(plan: ReadingPlan) -> InterpretationFrame:
     # placements as its heroes (planner `_independent_pair`). Every hero must be cited,
     # or the evidence gate rejects the reading on every day for that chart (PL-3, #180).
     evidence_refs = [hero.id, *hero_refs, *hero.child_refs]
+    manifestation = "Mở phần căn cứ để xem vị trí và liên hệ giữa các hành tinh đã tính."
+    micro_action = "Xem lại giờ, nơi sinh và cách tính đã chọn trước khi so sánh với lá số khác."
 
-    if hero.kind is FactorKind.GRAHA_DRISHTI:
+    if plan.precision is TimePrecision.APPROXIMATE:
+        # An approximate birth time reads only signs proven stable across the window (#143 E1):
+        # no houses, ascendant, nakshatra or graha drishti, so the copy never names them as read.
+        # New copy: pending owner approval on the PR that introduced it.
+        hook = f"{body_label(hero.subjects[0])} là điểm rõ nhất trong lá số Ấn Độ của bạn lúc này."
+        thesis = (
+            "Lá chỉ đọc cung của những hành tinh không đổi trong khung giờ sinh bạn nhập. "
+            "Đây là vị trí đã tính theo hệ chiêm tinh Ấn Độ, chưa phải "
+            "diễn giải về tính cách hay chuyện sẽ xảy ra."
+        )
+        manifestation = "Mở phần căn cứ để xem cung của từng hành tinh đã tính."
+        micro_action = (
+            "Bạn có thể bổ sung giờ sinh chính xác khi sẵn sàng; "
+            "Lá sẽ đọc thêm những phần cần giờ sinh đúng."
+        )
+    elif hero.kind is FactorKind.GRAHA_DRISHTI:
         parts = _parts(hero)
         body_a, body_b, houses_apart = parts[2], parts[3], parts[5]
         hook = (
@@ -1219,10 +1236,8 @@ def _jyotish_structural_frame(plan: ReadingPlan) -> InterpretationFrame:
     return InterpretationFrame(
         hook=hook,
         thesis=thesis,
-        manifestation=("Mở phần căn cứ để xem vị trí và liên hệ giữa các hành tinh đã tính."),
-        micro_action=(
-            "Xem lại giờ, nơi sinh và cách tính đã chọn trước khi so sánh với lá số khác."
-        ),
+        manifestation=manifestation,
+        micro_action=micro_action,
         evidence_factor_refs=tuple(dict.fromkeys(evidence_refs)),
         knowledge_refs=("tradition:jyotish", "mode:structural"),
         arena=SemanticArena.STRUCTURAL,
