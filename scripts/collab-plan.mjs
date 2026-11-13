@@ -31,7 +31,7 @@ export function planState(now, comments = []) {
 
 export function renderPlan(now, turns, { codexLeft, gap = null }) {
   const label = { 'claude-check': 'Claude chạy author check', 'codex-review': 'Codex review', 'claude-fix': 'Claude sửa', merge: 'Merge integration', hold: 'Giữ' };
-  const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\|/g, '\\|')} |`);
+  const rows = turns.map(t => `| #${t.number} | ${t.area} | ${label[t.turn] ?? t.turn} | ${clean(t.reason, 120).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} | ${clean(t.title, 90).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} |`);
   return [
     `## Plan ${now.date}`,
     '',

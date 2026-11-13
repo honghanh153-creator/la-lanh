@@ -44,7 +44,7 @@ export function fillPrompt(template, values) {
   return template.replace(/\{\{([A-Z_]+)\}\}/g, (_, key) => values[key] ?? '');
 }
 
-const cell = text => clean(text, 900).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+const cell = text => clean(text, 900).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue }) {
   const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${cell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);

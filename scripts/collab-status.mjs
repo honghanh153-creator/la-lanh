@@ -18,7 +18,7 @@ const STATES = {
   error: ['🔴 LỖI', 'tick không chạy được, xem lỗi bên dưới'],
 };
 
-const cell = text => clean(text, 120).replace(/\|/g, '\\|');
+const cell = text => clean(text, 120).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 const hhmm = t => `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`;
 
 const addMinutes = (t, minutes) => {
