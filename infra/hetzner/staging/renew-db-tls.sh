@@ -6,7 +6,9 @@
 # - if the server certificate and the CA are both valid for more than RENEW_DAYS, print the
 #   expiry and exit 0;
 # - otherwise make a new pair, keep one copy of the previous pair, write the new files in place,
-#   update the app's CA copy, restart the staging database and app, and wait until both are healthy.
+#   update the app's CA copy, restart the staging database, app and (when running) the generation
+#   worker, and wait until each is healthy;
+# - if an earlier run stopped before every restart was healthy, finish those restarts first.
 # Any failure exits non-zero, so OnFailure= records an alert marker that la-lanh-ops-watch reports.
 #
 # Reads certificate dates only. Never prints keys, passwords or certificate contents.
@@ -19,8 +21,10 @@ RENEW_DAYS="${LA_LANH_STAGING_TLS_RENEW_DAYS:-10}"
 MAKE_TLS="${LA_LANH_MAKE_DB_TLS:-$HERE/../make-db-tls.sh}"
 DB_CONTAINER="${LA_LANH_STAGING_DB_CONTAINER:-la-lanh-staging-db-1}"
 APP_CONTAINER="${LA_LANH_STAGING_APP_CONTAINER:-la-lanh-staging-staging-app-1}"
+WORKER_CONTAINER="${LA_LANH_STAGING_WORKER_CONTAINER:-la-lanh-staging-staging-rewrite-worker-1}"
 HEALTH_TIMEOUT="${LA_LANH_STAGING_HEALTH_TIMEOUT_SECONDS:-180}"
 TLS="$SECRETS/tls"
+PENDING="$SECRETS/tls.pending-restart"
 
 [[ "$RENEW_DAYS" =~ ^[1-9][0-9]?$ && "$RENEW_DAYS" -lt 30 ]] \
   || { echo "LA_LANH_STAGING_TLS_RENEW_DAYS must be 1-29" >&2; exit 2; }
@@ -35,6 +39,41 @@ done
 window=$((RENEW_DAYS * 86400))
 valid_beyond() { openssl x509 -checkend "$2" -noout -in "$1" >/dev/null 2>&1; }
 not_after() { openssl x509 -enddate -noout -in "$1" | cut -d= -f2; }
+
+health() { docker inspect --format '{{.State.Health.Status}}' "$1" 2>/dev/null || echo missing; }
+wait_healthy() {
+  local deadline=$((SECONDS + HEALTH_TIMEOUT))
+  while (( SECONDS < deadline )); do
+    [[ "$(health "$1")" == "healthy" ]] && return 0
+    sleep 3
+  done
+  echo "$1 is not healthy ${HEALTH_TIMEOUT}s after the restart (status: $(health "$1"))" >&2
+  return 1
+}
+
+# Every process that loaded the old CA or pair must restart. The marker is written before the new
+# files go in and removed only after every restart is healthy, so a run that stopped half-way is
+# finished by the next run instead of reporting fresh files on disk as success.
+activate() {
+  docker restart "$DB_CONTAINER" >/dev/null
+  wait_healthy "$DB_CONTAINER"
+  docker restart "$APP_CONTAINER" >/dev/null
+  wait_healthy "$APP_CONTAINER"
+  # The optional generation worker loads db_ca.pem once at start. Restart it only when it runs;
+  # never start a worker that the generation opt-in left off.
+  if [[ -n "$(docker ps -q --filter "name=^/${WORKER_CONTAINER}\$")" ]]; then
+    docker restart "$WORKER_CONTAINER" >/dev/null
+    wait_healthy "$WORKER_CONTAINER"
+  fi
+  rm -f "$PENDING"
+}
+
+if [[ -e "$PENDING" ]]; then
+  echo "Staging DB TLS: an earlier renewal did not finish its restarts; restarting now"
+  activate
+  echo "Staging DB TLS restarts finished: certificate valid until $(not_after "$TLS/server.crt")"
+  exit 0
+fi
 
 if valid_beyond "$TLS/server.crt" "$window" && valid_beyond "$TLS/ca.pem" "$window" \
   && cmp -s "$TLS/ca.pem" "$SECRETS/db_ca.pem"; then
@@ -61,6 +100,7 @@ umask 077
 find "$SECRETS" -maxdepth 1 -name 'tls.prev-*' -type d -exec rm -rf {} +
 cp -Rp "$TLS" "$SECRETS/tls.prev-$stamp"
 
+: > "$PENDING"
 # Write in place so the directory and file inodes the containers mount stay the same;
 # cp -p keeps the postgres owner (uid 70) and 0600 on the key when run as root.
 for f in ca.pem server.crt server.key; do
@@ -69,20 +109,6 @@ done
 # The app's CA copy keeps its own owner (65532) and 0600: overwrite the content only.
 cat "$TLS/ca.pem" > "$SECRETS/db_ca.pem"
 
-health() { docker inspect --format '{{.State.Health.Status}}' "$1" 2>/dev/null || echo missing; }
-wait_healthy() {
-  local deadline=$((SECONDS + HEALTH_TIMEOUT))
-  while (( SECONDS < deadline )); do
-    [[ "$(health "$1")" == "healthy" ]] && return 0
-    sleep 3
-  done
-  echo "$1 is not healthy ${HEALTH_TIMEOUT}s after the restart (status: $(health "$1"))" >&2
-  return 1
-}
-
-docker restart "$DB_CONTAINER" >/dev/null
-wait_healthy "$DB_CONTAINER"
-docker restart "$APP_CONTAINER" >/dev/null
-wait_healthy "$APP_CONTAINER"
+activate
 
 echo "Staging DB TLS renewed: certificate valid until $(not_after "$TLS/server.crt"); previous pair kept as tls.prev-$stamp"

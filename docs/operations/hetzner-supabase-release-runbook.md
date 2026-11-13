@@ -408,8 +408,12 @@ Staging's own PostgreSQL uses a private CA and server pair from `make-db-tls.sh`
   CA, it only logs the expiry date.
 - Otherwise it makes and verifies a new pair, keeps one previous pair as `tls.prev-<UTC stamp>` (older
   ones are deleted; they hold a private key), writes the new files in place (owners and modes kept),
-  restarts `la-lanh-staging-db-1`, then `la-lanh-staging-staging-app-1`, and waits for both to be healthy.
-  A pair that fails to build or verify leaves the current one untouched.
+  restarts `la-lanh-staging-db-1`, then `la-lanh-staging-staging-app-1`, then the generation worker
+  `la-lanh-staging-staging-rewrite-worker-1` only if it is running (it is never started here), and waits
+  for each to be healthy. A pair that fails to build or verify leaves the current one untouched.
+- `tls.pending-restart` is written before the new files go in and removed only after every restart is
+  healthy. If a restart fails, the next run finishes the restarts first instead of reporting the fresh
+  files as OK. Run the script by hand to retry sooner.
 - Any failure triggers `la-lanh-alert@`, whose marker `la-lanh-ops-watch` reports as an `ops-alert` issue.
 - It reads certificate dates only and never prints keys, passwords or certificate contents. Production
   is not affected: it verifies Supabase's CA and has no pair of its own.

@@ -75,7 +75,8 @@ def fake_docker(tmp_path: Path) -> Path:
     stub.write_text(
         "#!/bin/sh\n"
         'echo "$*" >> "$FAKE_DOCKER_LOG"\n'
-        'if [ "$1" = inspect ]; then echo "${FAKE_HEALTH:-healthy}"; fi\n',
+        'if [ "$1" = inspect ]; then echo "${FAKE_HEALTH:-healthy}"; fi\n'
+        'if [ "$1" = ps ]; then echo "${FAKE_WORKER_ID:-}"; fi\n',
         encoding="utf-8",
     )
     stub.chmod(0o755)
@@ -146,6 +147,7 @@ def test_an_expiring_pair_is_renewed_and_staging_restarted(
     assert len(archives) == 1
     assert (archives[0] / "server.crt").read_bytes() == old_cert
     assert not (secrets / "tls.new").exists()
+    assert not (secrets / "tls.pending-restart").exists()
     calls = _docker_calls(tmp_path)
     assert calls[0] == "restart la-lanh-staging-db-1"
     assert "restart la-lanh-staging-staging-app-1" in calls
@@ -193,6 +195,43 @@ def test_an_unhealthy_database_after_restart_fails_loudly(
     assert result.returncode == 1
     assert "la-lanh-staging-db-1 is not healthy" in result.stderr
     assert "restart la-lanh-staging-staging-app-1" not in _docker_calls(tmp_path)
+    assert (secrets / "tls.pending-restart").exists()
+
+    # The next run sees fresh files on disk but must still finish the restarts, not report success.
+    (tmp_path / "docker.log").unlink()
+    again = _renew(tmp_path, secrets, fake_docker)
+    assert again.returncode == 0, again.stderr
+    assert "did not finish its restarts" in again.stdout
+    calls = _docker_calls(tmp_path)
+    assert "restart la-lanh-staging-db-1" in calls
+    assert "restart la-lanh-staging-staging-app-1" in calls
+    assert not (secrets / "tls.pending-restart").exists()
+
+    # Only then does a run report the pair as OK and leave the containers alone.
+    (tmp_path / "docker.log").unlink()
+    third = _renew(tmp_path, secrets, fake_docker)
+    assert "Staging DB TLS OK" in third.stdout
+    assert _docker_calls(tmp_path) == []
+
+
+@pytest.mark.parametrize("running", [True, False])
+def test_the_generation_worker_reloads_the_ca_only_when_it_runs(
+    tmp_path: Path, fake_docker: Path, running: bool
+) -> None:
+    secrets = _secrets(tmp_path, 5)
+    env = {"FAKE_WORKER_ID": "abc123"} if running else {}
+    result = _renew(tmp_path, secrets, fake_docker, **env)
+    assert result.returncode == 0, result.stderr
+    calls = _docker_calls(tmp_path)
+    worker = "la-lanh-staging-staging-rewrite-worker-1"
+    if running:
+        app = "restart la-lanh-staging-staging-app-1"
+        assert calls.index(f"restart {worker}") > calls.index(app)
+        assert f"inspect --format {{{{.State.Health.Status}}}} {worker}" in calls
+    else:
+        assert not any(worker in c and not c.startswith("ps ") for c in calls)
+        assert not any(c.startswith(("start", "up", "compose")) for c in calls)
+    assert not (secrets / "tls.pending-restart").exists()
 
 
 def test_missing_pair_or_bad_setting_fails(tmp_path: Path, fake_docker: Path) -> None:
