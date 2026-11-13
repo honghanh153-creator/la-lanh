@@ -94,7 +94,11 @@ Run after the owner asked for it on 13.11 evening; from this release on it is a 
     Its P2s: the Natal "keep the small step" button does nothing; Current Sky shows the page-open time
     instead of the 12:00 UTC calculation time; Aura copy explains internals; the first note can read
     as a judgement; one Tarot 3-card reading drifts from the question.
-  - The screenshot pass scored the 22 captured screens with the same criteria.
+  - The screenshot pass scored the 22 screens 3/5 overall, with one P1: the app invites the user to
+    keep their profile by signing in (reveal, profile) while Google sign-in is off. Its P2s: the
+    daily line can ignore the mood just chosen; mechanism words and English labels; repeated
+    patterns in long readings; no next step on Current Sky; small controls; after creating a link,
+    "Tạo safe link" stays the main button; the Tarot fan looks faint.
 - Owner report: sent in chat on 13.11.2026 evening with verdict, scores, fix order and what works.
 - Follow-ups are filed as issues; none blocks the running release.
 
