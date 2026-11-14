@@ -1,7 +1,7 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -21,6 +21,10 @@ const decisions = { decisions: [
   { id: 'tarot.a', decision: 'approve', reason: 'rõ' },
   { id: 'tarot.b', decision: 'reject', reason: 'khó hiểu' },
 ] };
+
+// The worktree here is faked by `run`; the real preflight is tested in collab-dispatch.test.mjs.
+// Like the real preflight, it returns the real path.
+const passGate = { preflight: ({ dir }) => ({ status: 'PASS', reasons: [], dir: realpathSync(dir) }), lock: () => () => {} };
 
 test('owner-only categories are never sent to Codex', () => {
   assert.deepEqual(selectPending(registry).map(e => e.id), ['tarot.a', 'tarot.b']);
@@ -107,7 +111,7 @@ test('publishing reviews and branches from the same pinned integration commit', 
   };
   const dir = mkdtempSync(join(tmpdir(), 'copy-review-test-'));
   writeFileSync(join(dir, 'fake.json'), JSON.stringify(decisions));
-  const result = main(['--fake-codex', join(dir, 'fake.json')], { run, out: { write() {} } });
+  const result = main(['--fake-codex', join(dir, 'fake.json')], { run, out: { write() {} }, gate: passGate });
   assert.equal(result.status, 'opened');
   assert.ok(calls.some(c => c[1] === 'show' && c[2] === `${sha}:apps/api/app/domains/content/copy_registry.json`));
   const add = calls.find(c => c[1] === 'worktree');
@@ -179,7 +183,7 @@ test('a batch that fails after Codex decided is published on retry without a sec
     if (cmd === 'gh') return 'https://example.test/pr/2\n';
     return '';
   };
-  const opts = { run, out: { write() {} }, rejectedFile: join(dir, 'rejected.json'), savedFile };
+  const opts = { run, out: { write() {} }, rejectedFile: join(dir, 'rejected.json'), savedFile, gate: passGate };
   const first = {};
   assert.throws(() => main([], { ...opts, progress: first, at: { date: '2026-11-13', hour: 10, minute: 48 } }), /Author identity/);
   assert.equal(first.codexRan, true);

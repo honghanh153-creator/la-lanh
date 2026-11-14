@@ -79,7 +79,8 @@
    "from": "thỏa thuận 12.11 mục D",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open"
+   "status": "open",
+   "note": "helper and copy-batch wiring merged; child-agent dispatch still unchecked"
   },
   {
    "id": "L07",
