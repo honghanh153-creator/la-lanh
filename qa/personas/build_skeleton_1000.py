@@ -253,6 +253,8 @@ def main() -> None:
         if young and rng.random() < 0.1:
             platforms.append("Threads")
         main_app = "TikTok" if tiktok_main else ("Zalo" if age >= 50 else "Facebook")
+        if main_app not in platforms:  # no rng draw, so later attributes stay the same
+            platforms.insert(0, main_app)
         pick_a_pile = "TikTok" in platforms and rng.random() < (0.3 if young else 0.1)
         digital = "low" if seg == "low_digital" or (old and rng.random() < 0.4) else (
             "mid" if old or rng.random() < 0.15 else "high")

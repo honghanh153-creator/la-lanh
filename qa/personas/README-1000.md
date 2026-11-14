@@ -53,7 +53,7 @@ Hai chỗ lệch đã thấy ở bộ 100 được sửa trong 900 người mớ
 
 ## Thuộc tính mới
 
-Người mới có thêm `attributes`: `gen_z`, `lives_in`, `living_area`, `income`, `platforms`, `main_app`, `pick_a_pile_watcher`, `lgbtq`, `shared_phone`, `no_safe_person`, `digital_literacy`, `sleeps_after_midnight`, `stress`. P001–P100 không có trường này; báo cáo theo thuộc tính chỉ dùng P101–P1000, trừ khi ghi khác.
+Người mới có thêm `attributes`: `gen_z`, `lives_in`, `living_area`, `income`, `platforms`, `main_app`, `pick_a_pile_watcher`, `lgbtq`, `shared_phone`, `no_safe_person`, `digital_literacy`, `sleeps_after_midnight`, `stress`. `main_app` luôn nằm trong `platforms` (17 người được thêm Facebook vào danh sách sau khi người viết phát hiện; validator kiểm). Tên chỉ gồm tên gọi hai chữ nên trùng nhiều (509/900), id mới là khóa. P001–P100 không có trường này; báo cáo theo thuộc tính chỉ dùng P101–P1000, trừ khi ghi khác.
 
 Lưu ý: ở các lần chấm mock trước, "dùng chung máy" và "không có ai an toàn" là **tình huống hôm nay** gán cho từng người. Ở bộ 1000, đây là **thuộc tính lâu dài** của người mới; tình huống hôm nay vẫn có thể gán thêm khi chấm mock.
 

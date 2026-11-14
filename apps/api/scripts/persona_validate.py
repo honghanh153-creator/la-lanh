@@ -199,6 +199,8 @@ def problems_1000(data: Mapping[str, Any]) -> list[str]:
         missing = [k for k in ATTRIBUTE_KEYS if k not in p.get("attributes", {})]
         if missing:
             out.append(f"{p['id']}: attributes missing {missing}")
+        elif p["attributes"]["main_app"] not in p["attributes"]["platforms"]:
+            out.append(f"{p['id']}: main_app is not in platforms")
     out += persona_problems(personas)
     return out
 
