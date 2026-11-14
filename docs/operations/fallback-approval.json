@@ -1,7 +1,7 @@
 {
  "approved": {
   "copy_registry": {
-   "approved": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "approved": "9972aceff27ff5de3a7ea63358aa99b348f5babeb0adbd16facace2dd9aa225c",
    "version": "copy-registry/v1"
   },
   "daily": {
@@ -19,7 +19,7 @@
     "app.domains.readings.companion.COMPANION_LOADING": "15d04d5f28d51f9b14f26e0fbf7c136d5ce2530b3ae6a303fc374b57818bfff5",
     "app.domains.readings.companion.COMPANION_MOOD_NUDGE": "9163dcaa1eced8f979c70bcebe57c971ff71ce5a871125545a6b3804e74d59c2",
     "app.domains.readings.companion.COMPANION_MOOD_REACTIONS": "bd73f573466723daaaccf2e4f2397da27e9582d8d84adee82f81938a72cb8bfd",
-    "app.domains.readings.companion.DAILY_ISSUES": "3a5b5b342a8b619e6d224494c77e288ce9895317f90817a994176d5473158e1f",
+    "app.domains.readings.companion.DAILY_ISSUES": "5b53cd89741127eabd9609a6e6b808d0a13d6732859ca4b787feee0c1bcdbc7c",
     "app.domains.readings.companion.DAY_PARTS": "578d229ffc72ee43d2cd159ac824ba73820fa354385642cd7523adffa3e9cc6d",
     "app.domains.readings.companion._ACTION_ADVERBS": "6bc53095dd59d5227e5ee41cd53f099be73e1cda2b0a8b84d4ce5f7c0a0672c2",
     "app.domains.readings.companion._CONTRARY_DISMISSALS": "dea9cab4b8a1a008d2b2385e78f158c91ecb7b5ea27b136770d73082a2044b9d",
@@ -33,8 +33,8 @@
     "app.domains.readings.daily_psychology#function_literals": "c82be53772a5ad31754f3877a74b037b67eacae535a056e82f773701f1136da9",
     "app.domains.readings.daily_psychology.BODY_DOMAINS": "720c749c24e511f8c1b9a56ca7202900b5464d68cc63ef84c54c67a8dd2b598d",
     "app.domains.readings.daily_psychology.CAPACITY_AT_WORK_MEANING": "a73c7a630f0adbde452aa2a31180d452bc6f873bdc40a5c4b981bb97c4ada228",
-    "app.domains.readings.daily_psychology.DAILY_ISSUES": "3a5b5b342a8b619e6d224494c77e288ce9895317f90817a994176d5473158e1f",
-    "app.domains.readings.daily_psychology.DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT": "5d45872dd2210c042c654df6165c38a7d80c310269b9fd2ac6f37d680805d22f",
+    "app.domains.readings.daily_psychology.DAILY_ISSUES": "5b53cd89741127eabd9609a6e6b808d0a13d6732859ca4b787feee0c1bcdbc7c",
+    "app.domains.readings.daily_psychology.DAILY_PSYCHOLOGY_CONTENT_FINGERPRINT": "4f7701730671d842745031dd0b1a3637164bebf5e07ecb66cf4f8469e95d791f",
     "app.domains.readings.daily_psychology.FALLBACK_ISSUE_KEY": "275d3363598b1b243540ebb6a9616f650dc3ad740279da44a9af3da9f1442a58",
     "app.domains.readings.daily_psychology.HOUSE_ARENAS": "bf39f41134bbb536b1f4b99eb91087cde11a221426561047869e57ae9f8b24b7",
     "app.domains.readings.daily_psychology.INSUFFICIENT_CONTEXT_RULE": "9a5a781e6c0c9d26f7873afcafccf668dbafb3dcdc428ee3e94a5532bff10827",
@@ -54,15 +54,15 @@
     "app.domains.readings.daily_psychology._WHY_TODAY_VERBS": "c0848a6a923e2955153f1793de7618a96ddb63feb4a45521d5619bee1c12a383",
     "app.domains.readings.renderers#function_literals": "786fec9b8ef9bb859302db96eb9710ede39486875a63749c218e40fd26d1d8ce",
     "app.domains.readings.voice#function_literals": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "app.domains.readings.voice.DAILY_ISSUES": "3a5b5b342a8b619e6d224494c77e288ce9895317f90817a994176d5473158e1f",
+    "app.domains.readings.voice.DAILY_ISSUES": "5b53cd89741127eabd9609a6e6b808d0a13d6732859ca4b787feee0c1bcdbc7c",
     "app.domains.readings.voice.PLACEMENT_MEANINGS": "0cf8829ca42bbfc76eea418905e7a30041714848309c0431fcee1e534ee2cd3e",
     "app.domains.readings.voice.ROAST_ISSUES": "db342d9822c1bdda743624de9cd2e5b72df09c3e6302b27937d5b98800d60794",
     "app.domains.readings.voice.ROAST_PLACEMENT_MEANINGS": "3f232cfd0e8caa436d64f3b17e251da21132ced10e450fd6a22e113e59bf06af",
-    "app.domains.readings.voice._ACTION_ISSUE": "edaef238d69d1e419ea047bd0a8a368f0d9e216db227561635d98aee01689da5",
+    "app.domains.readings.voice._ACTION_ISSUE": "213390e14482fd1d4f837104d02824aede609a5e5ed0f377555aca2e11c807c9",
     "app.domains.readings.voice._GENTLE_ARENAS": "ae7317c63095b471d1bda63c548eac8a2883ed5895ccecb179d35f5079ee1307",
     "app.domains.readings.voice._HEADLINE_ISSUE": "cbda06b176e85ecab5f0f4ba7e936cb9595903067f4c508975e2a58839240325",
     "app.domains.readings.voice._HEADLINE_ROAST": "f07cfbc9e577cee4bae2e61bd1f1bd41eca7a183602c78a909e644616e1b5ccd",
-    "app.domains.readings.voice._ISSUES": "d6a8eaa1fd7ea8b6f27b5945bd5b5f924f4b2cebcc57ac6e06810d9f77d630f9",
+    "app.domains.readings.voice._ISSUES": "52db7d8b2149238f1b43eb2f04d9c7e1669cc446b3d875290a19f39e8f30f99f",
     "app.domains.readings.voice._PLACEMENT_ROAST": "5c4367e01006034928eca891f0ce753e8dacc1f0b2a253a6cdda912e45b1edba"
    }
   },
