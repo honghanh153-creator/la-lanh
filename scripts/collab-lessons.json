@@ -7,7 +7,7 @@
    "from": "Codex rà soát 13.11, mục 3",
    "who": "claude",
    "due": "2026-11-15",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-loop.test.mjs",
     "name": "copy batch: a failed batch alerts, retries on later ticks"
@@ -26,7 +26,7 @@
    "from": "thỏa thuận 12.11 mục I và K; Codex rà soát 13.11, đề xuất 1",
    "who": "claude",
    "due": "2026-11-15",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/collab-lessons.test.mjs",
     "name": "a lesson cannot be closed by editing the register"
@@ -34,6 +34,9 @@
    "caller": {
     "file": "scripts/collab-metrics.mjs",
     "contains": "lessonsLine"
+   },
+   "closedBy": {
+    "pr": 481
    }
   },
   {
@@ -159,7 +162,7 @@
    "from": "Codex rà soát 13.11, mục 4 (#462)",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open",
+   "status": "done",
    "test": {
     "file": "scripts/codex-copy-review.test.mjs",
     "name": "the batch commit works in a real git with no configured identity"
@@ -231,6 +234,9 @@
    "caller": {
     "file": "docs/operations/workflow-experiment-2026-11.md",
     "contains": "disagreements.jsonl"
+   },
+   "closedBy": {
+    "pr": 481
    }
   },
   {
