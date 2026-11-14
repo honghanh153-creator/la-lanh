@@ -10,6 +10,8 @@ import { auditMarker, auditWindow, baselineMarker, baselinePath, buildPrompt, da
 import { agentMarker, codexDailyCap, dayStatePath, readJson, writeJson } from './collab-trust.mjs';
 import { renderCheck } from './collab-check.mjs';
 import { tick } from './collab-turn.mjs';
+import { append, entry } from './collab-disagree.mjs';
+import { nightAudit } from './collab-tick.mjs';
 
 const head = 'e'.repeat(40);
 // A full approving review output (the receipt check validates it, Codex r1 on #486).
@@ -24,7 +26,7 @@ const merged = (n, extra = {}) => ({ number: n, title: `fix: ${n}`, body: 'thân
 const report = (id, at, body) => ({ id, author_association: 'OWNER', created_at: at, body });
 
 // A GitHub stand-in: the plan issue's comments, merged PRs, open PRs, ops alerts, and comment edits.
-function fakeGh({ reports = [report(1, '2026-11-14T07:00:00Z', 'agent: Claude — báo cáo\nĐã merge #7.')], prs = [merged(7)], alerts = [], fail = {} } = {}) {
+function fakeGh({ reports = [report(1, '2026-11-14T07:00:00Z', 'agent: Claude — báo cáo\nĐã merge #7.')], prs = [merged(7)], alerts = [], fixForward = [], older = [], fail = {} } = {}) {
   const state = { comments: [...reports], calls: [], nextId: 900 };
   const gh = {
     state,
@@ -32,8 +34,14 @@ function fakeGh({ reports = [report(1, '2026-11-14T07:00:00Z', 'agent: Claude �
     json: args => {
       state.calls.push(args.join(' '));
       if (args[0] === 'api') { if (fail.list) throw new Error('gh: HTTP 502'); return [state.comments]; }
+      if (args[0] === 'pr' && args[1] === 'view') {
+        if (fail.view) throw new Error('gh: HTTP 502');
+        const p = [...prs, ...older].find(x => x.number === Number(args[2]));
+        if (!p) throw new Error('GraphQL: Could not resolve to a PullRequest with the number of 1.');
+        return structuredClone(p);
+      }
       if (args[0] === 'pr') { if (fail.merged) throw new Error('gh: HTTP 502'); return structuredClone(prs); }
-      if (args[0] === 'issue') return structuredClone(alerts);
+      if (args[0] === 'issue') { if (args.includes('fix-forward')) { if (fail.fixForward) throw new Error('gh: HTTP 502'); return structuredClone(fixForward); } return structuredClone(alerts); }
       throw new Error(`unexpected ${args.join(' ')}`);
     },
     raw: (args, input) => {
@@ -366,4 +374,87 @@ test('baseline days: M4 and M8 stay unmeasured even when the logs exist today', 
   const ev = gatherEvidence({ date: '2026-11-12', gh, facts, issue: 133, outputs, disagreements: log, day: null });
   assert.equal(validateJudgement(good, ev).unrecorded.value, null);
   assert.equal(collectFacts({ date: '2026-11-14', gh, now: at('2026-11-14T16:00:00Z'), outputs: () => outputs, day: () => null }).metrics.M8.value, null, 'no log module: never 0');
+});
+
+// Codex r1 on #493: M3 sees fix-forward issues and older origin PRs; a failed source is never 0.
+const evidenceFor = (gh, extra = {}) => gatherEvidence({ date: '2026-11-14', gh, facts: collectFacts({ date: '2026-11-14', gh, now: at('2026-11-14T16:05:00Z'), outputs: () => outputs, day: () => null }),
+  issue: 133, outputs, disagreements: () => [], day: null, ...extra });
+const linked = (candidate, pr) => ({ ...good, M3: { measured: true, missing: '', items: [{ candidate, pr, why: 'thay đổi đã merge gây ra lỗi' }] } });
+const fixForwardIssue = { number: 20, title: '[fix-forward] PR #7 @ eeeeeee: 1 P2', body: `Từ review tự động của PR #7.\n${agentMarker} fix-forward pr=7 -->`, createdAt: '2026-11-14T05:00:00Z' };
+
+test('M3: a fix-forward issue alone is an escape candidate linked to the PR it names', () => {
+  const gh = fakeGh({ fixForward: [fixForwardIssue] });
+  const ev = evidenceFor(gh);
+  assert.deepEqual(ev.fixForward.map(f => f.key), ['fixforward#20']);
+  assert.deepEqual(ev.approved.map(p => p.key), ['pr#7']);
+  assert.deepEqual(collectFacts({ date: '2026-11-14', gh, now: at('2026-11-14T16:05:00Z'), outputs: () => outputs, day: () => null }).metrics.M3.candidates.fixForward, [{ issue: 20, title: fixForwardIssue.title }]);
+  const out = validateJudgement(linked('fixforward#20', 'pr#7'), ev);
+  assert.deepEqual([out.M3.value, out.M3.of], [1, 1]);
+  assert.match(buildPrompt(ev), /fixforward#20/);
+});
+
+test('M3: an alert naming a PR merged five days earlier is linked to it', () => {
+  const old = merged(3, { createdAt: '2026-11-09T01:00:00Z', mergedAt: '2026-11-09T04:00:00Z', baseRefName: 'collab/integration', comments: [{ ...approve, createdAt: '2026-11-09T03:00:00Z' }] });
+  const gh = fakeGh({ older: [old], alerts: [{ number: 12, title: 'tick lỗi', body: 'Lỗi từ khi merge PR #3.', createdAt: '2026-11-14T05:00:00Z', comments: [] }] });
+  const outs = [...outputs, { ...outputs[0], pr: 3 }];
+  const ev = evidenceFor(gh, { outputs: outs });
+  assert.ok(gh.state.calls.some(c => c.startsWith('pr view 3 ')), 'the named PR is fetched by number');
+  assert.deepEqual(ev.approved.map(p => p.key), ['pr#3', 'pr#7']);
+  assert.equal(validateJudgement(linked('alert#12', 'pr#3'), ev).M3.value, 1);
+  const notPr = evidenceFor(fakeGh({ alerts: [{ number: 12, title: 'tick lỗi', body: 'Xem PR #404.', createdAt: '2026-11-14T05:00:00Z', comments: [] }] }));
+  assert.equal(notPr.errors.origins, undefined, 'a number that is not a PR is skipped, not a read failure');
+});
+
+test('M3: a failed fetch of fix-forward issues or of a named PR leaves M3 unmeasured, never 0', () => {
+  const alert = { number: 12, title: 'tick lỗi', body: 'Lỗi từ khi merge PR #3.', createdAt: '2026-11-14T05:00:00Z', comments: [] };
+  const view = evidenceFor(fakeGh({ alerts: [alert], fail: { view: true } }));
+  assert.match(view.errors.origins, /PR #3/);
+  const a = validateJudgement(good, view).M3;
+  assert.equal(a.value, null);
+  assert.match(a.missing, /PR #3/);
+  const ff = evidenceFor(fakeGh({ fail: { fixForward: true } }));
+  assert.equal(ff.fixForward, null);
+  assert.equal(validateJudgement(good, ff).M3.value, null);
+  const facts = collectFacts({ date: '2026-11-14', gh: fakeGh({ fail: { fixForward: true } }), now: at('2026-11-14T16:05:00Z'), outputs: () => outputs, day: () => null });
+  assert.match(facts.metrics.M3.missing, /fix-forward/);
+});
+
+test('M1: every key a source cites must be in the pack; day needs day evidence', () => {
+  const ev = evidenceFor(fakeGh());
+  const m1 = source => validateJudgement({ ...good, M1: { measured: true, missing: '', items: [{ report: 'r1', claim: 'Đã merge #7.', source, why: 'x' }] } }, ev).M1.value;
+  assert.equal(m1('pr#7'), 1);
+  assert.equal(m1('pr#7 and pr#999999'), null, 'one invented key voids the item');
+  assert.equal(m1('day'), null, 'no day evidence: day is not a source');
+  assert.equal(m1('fact:M1'), null, 'an unmeasured fact is not a source');
+  const withDay = evidenceFor(fakeGh(), { day: { planned: [7], mergedToday: [] } });
+  assert.equal(validateJudgement({ ...good, M1: { measured: true, missing: '', items: [{ report: 'r1', claim: 'x', source: 'day', why: 'x' }] } }, withDay).M1.value, 1);
+});
+
+test('a throwing output reader leaves M2 and M3 unmeasured with a reason', () => {
+  const date = '2026-11-14';
+  writeJson(dayStatePath(date), { codexRuns: 0 });
+  const dir = fresh();
+  const gh = fakeGh({ fixForward: [fixForwardIssue] });
+  runNightAudit({ gh, now: at('2026-11-14T16:05:00Z'), dir, codex: fakeCodex(linked('fixforward#20', 'pr#7')), ...deps({ outputs: () => { throw new Error('EACCES: logs'); } }) });
+  const M = readRecord(date, dir).metrics;
+  assert.equal(M.M2.value, null);
+  assert.match(M.M2.missing, /output Codex.*EACCES/);
+  assert.equal(M.M3.value, null);
+  assert.match(M.M3.missing, /output Codex/);
+  assert.equal(M.M1.value, 0, 'M1 does not need the receipts');
+});
+
+test('L22: the tick night audit reads the disagreement log written by collab-disagree', () => {
+  const date = '2026-11-14';
+  writeJson(dayStatePath(date), { codexRuns: 0 });
+  append(entry({ pr: 7, claude: 'giữ cách cũ', codex: 'đổi tên hàm', winner: 'codex', at: at('2026-11-14T05:00:00Z') }));
+  const dir = fresh();
+  const codex = fakeCodex();
+  // Only the tick's own wiring supplies the log: no disagreements option is passed here.
+  const result = nightAudit(fakeGh(), { window: { date, final: false }, dir, codex, lock: () => () => {}, outputs: () => outputs, issue: 133, lessons: null, post: false, clock: () => at('2026-11-14T16:05:00Z') });
+  assert.equal(result.status, 'judged');
+  const M8 = readRecord(date, dir).metrics.M8;
+  assert.equal(M8.value, 1, JSON.stringify(M8));
+  assert.equal(M8.codex, 1);
+  assert.match(codex.calls[0], /"winner":"codex"/, 'Codex sees the log to find unrecorded disagreements');
 });

@@ -250,12 +250,12 @@
    "due": "2026-11-14",
    "status": "done",
    "test": {
-    "file": "scripts/collab-disagree.test.mjs",
-    "name": "experiment arm 1: a disagreement needs both positions"
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "L22: the tick night audit reads the disagreement log written by collab-disagree"
    },
    "caller": {
-    "file": "scripts/collab-audit.mjs",
-    "contains": "import('./collab-disagree.mjs')"
+    "file": "scripts/collab-tick.mjs",
+    "contains": "runNightAudit({ gh, issue: () => planIssue(gh), ...auditDeps, ...opts })"
    },
    "closedBy": {
     "pr": 493

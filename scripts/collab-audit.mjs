@@ -84,14 +84,17 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
     }
   }
 
-  // M3: escape candidates (reverts merged, ops alerts opened). Codex links them to approved PRs in
-  // part (b); a fix-forward issue opened at review time is not an escape.
+  // M3: escape candidates (reverts merged, ops alerts and fix-forward issues opened, §4). Codex
+  // links them to approved PRs in part (b).
   try {
-    const alerts = gh.json(['issue', 'list', '--repo', repo, '--label', 'ops-alert', '--state', 'all', '--search', `created:${dayRange(date)}`, '--limit', '100', '--json', 'number,title,createdAt']);
+    const issues = label => gh.json(['issue', 'list', '--repo', repo, '--label', label, '--state', 'all', '--search', `created:${dayRange(date)}`, '--limit', '100', '--json', 'number,title,createdAt'])
+      .map(a => ({ issue: a.number, title: clean(a.title, 120) }));
+    const alerts = issues('ops-alert');
+    const fixForward = issues('fix-forward');
     const reverts = (merged ?? []).filter(pr => /^revert\b/i.test(pr.title ?? '')).map(pr => ({ pr: pr.number, title: clean(pr.title, 120) }));
-    M.M3 = merged ? { value: null, candidates: { reverts, alerts: alerts.map(a => ({ issue: a.number, title: clean(a.title, 120) })) }, missing: 'chờ Codex nối với PR đã duyệt (L21b)' }
+    M.M3 = merged ? { value: null, candidates: { reverts, alerts, fixForward }, missing: 'chờ Codex nối với PR đã duyệt (L21b)' }
       : unmeasured(`không đọc được PR đã merge: ${facts.mergedError}`);
-  } catch (error) { M.M3 = unmeasured(`không đọc được ops-alert: ${reason(error)}`); }
+  } catch (error) { M.M3 = unmeasured(`không đọc được ops-alert hoặc fix-forward: ${reason(error)}`); }
 
   // M4: promises (scripts/collab-lessons.mjs when present). The register only has its current
   // state, so a day that has ended cannot be rebuilt from it (Codex r1 on #486): an audit after the
