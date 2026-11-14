@@ -151,7 +151,9 @@ export function ciCheck(gh, head) {
   if (!job) return { state: 'FAIL', conclusion: 'missing', url: run.html_url ?? '' };
   if (job.status !== 'completed') return { state: 'pending', url: job.html_url ?? '' };
   const state = job.conclusion === 'success' ? 'PASS' : 'FAIL';
-  return { state, conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '', base: state === 'PASS' ? testedBase(gh, job, head) : null };
+  // #508: the run id, attempt and the job's own end time let the tick spot a green re-run.
+  return { state, conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '', base: state === 'PASS' ? testedBase(gh, job, head) : null,
+    runId: Number(run.id), attempt: Number(run.run_attempt ?? 1), completedAt: String(job.completed_at ?? '') };
 }
 
 // P1-A: the `pull_request` run tests refs/pull/N/merge as it was when the run started. The check
