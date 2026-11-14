@@ -266,7 +266,7 @@ Bản mẫu xem được ngay (chỉ chị mở được): https://claude.ai/art
   - rà quy định của Apple và Google Play về tính năng hẹn hò và nội dung người dùng gửi nhau.
 - Thiết kế đầy đủ ở Phụ lục D. Màn mẫu ở cuối trang mẫu Lá nhây.
 
-**Chốt đêm 14.11 và bản mock 7.** Chị chốt: đưa Lá nhây và Học (dựa trên thông tin của chính người dùng) vào gói, chấm nốt; Lá pixel vẽ theo đúng hình Lá hiện có trong app; hoãn "Mời hẹn thử".
+**Chốt đêm 14.11 và bản mock 7.** Chị chốt: đưa Lá nhây và Học (dựa trên thông tin của chính người dùng) vào gói, chấm nốt; Lá pixel vẽ theo hình đã có trong app (chị nhắc tới con lá màu xanh; mình làm cả hai phương án Mầm xanh và Lá tím để chị chọn); hoãn "Mời hẹn thử".
 - **Bản mock 7** = gói cũ + Lá nhây + "Học theo bạn" + 5 điểm sửa từ lượt chấm 1000.
 - **Học theo bạn dùng ba thông tin của chính người dùng:**
   - chuyện vừa chọn trong ba lô (đang lo tìm việc thì ra bài "Phỏng vấn đỡ run");
@@ -373,7 +373,7 @@ Mô tả từng ý (mock đầy đủ 4–8 màn ở Phụ lục A):
 | 2 | Kho việc theo sức; mood đổi việc; nội dung sinh viên (có góc Tiền bạc nếu chị duyệt) | **Giữ.** Mỗi việc gắn vào 1 trong 6 nhóm hình. Chốt cách chia chuyện tiền (thiếu học phí, cuối tháng cạn, gửi tiền về nhà, bị rủ đi chơi) trước khi viết câu |
 | 3 | Xoay chủ đề; "vì sao hôm nay có note này"; nội dung người đi làm | Xoay chủ đề theo **chương tuần**, tuần theo lịch chung, có kiểm tự động mọi cặp tuần–ngày. "Vì sao có note này" thành **lá số không cần giờ sinh**. Việc này lớn hơn đổi một câu: phải tính trong cả khoảng giờ có thể sinh và kiểm lý do khớp bài. Nội dung người đi làm giữ |
 | 4 | Ba lối Nghỉ / Gỡ / Tarot trên Trang chủ | **Trang chủ gọn + Gánh hôm nay + mở lá chọn góc.** Ưu tiên Gánh hôm nay và đường nghỉ 1 chạm; hiệu ứng lật lá bỏ nếu vượt giờ. Đo đủ mốc tuần 4 |
-| 5 | 4 chuyện minh họa | **Lá pixel nhây thay "Vibe"** (điểm nhấn, đưa lên sớm theo ý chị): Lá vẽ theo đúng hình Lá hiện có; làm thật 4 động tác trước để đo giờ làm và dung lượng, rồi làm tiếp tới 12 động tác; luật chọn dáng; nút "Lá yên chút"; bỏ nút giọng và nội dung Cà khịa (sửa US-20 AC19, luật nội dung); đổi nhãn "Vibe" |
+| 5 | 4 chuyện minh họa | **Lá pixel nhây thay "Vibe"** (điểm nhấn, đưa lên sớm theo ý chị): Lá vẽ theo hình chị chọn (Mầm xanh hoặc Lá tím, đều là hình đã có trong app); làm thật 4 động tác trước để đo giờ làm và dung lượng, rồi làm tiếp tới 12 động tác; luật chọn dáng; nút "Lá yên chút"; bỏ nút giọng và nội dung Cà khịa (sửa US-20 AC19, luật nội dung); đổi nhãn "Vibe" |
 | 6 | 4 chuyện vui chọn kết thúc | **Học theo bạn, bản đầu:** 8 bài khớp với các món hay gặp trong ba lô; lối vào "Lá diễn hôm nay" và dòng [Xem bài] trong ba lô; kiểu luyện chọn sẵn theo lá số của chính người dùng (đổi được); thẻ "Bạn đáp câu nào?"; bản đồ dữ liệu và kiểm đường mạng. Chị duyệt chữ từng bài |
 | 7 *(thêm)* | — | **Phần dời từ tuần 5:** một truyện ngắn 3 khung (4 bản nhân vật), lời mở có lối lui, bộ sticker (hiện ở 3 chỗ) |
 | 8 *(thêm)* | — | **Khóa "Tán crush kiểu tử tế" trọn 7 bài** (có "Bạn đang ở đoạn nào?", dòng dẫn từ kết quả Check kín sang khóa chung, mở rộng bộ kiểm chặn câu thao túng). **Phần dời từ tuần 6:** mục Chơi với 1 chuyện vui về tiền và "Phụ đề khác nhau"; Lá Dám thử bằng thẻ giấy |
@@ -415,7 +415,7 @@ Thứ tự này đã đổi theo ý chị đêm 14.11: Lá nhây và Học vào 
     - Khóa 1 là Tán crush kiểu tử tế, chỉ cho 18+.
     - Chị đã chốt Học dựa trên thông tin của chính người dùng (chuyện trong ba lô, lá số, mood). Đây là mục đích dùng dữ liệu mới, nên còn cần chị duyệt câu đồng ý và chính sách quyền riêng tư trước khi bật.
 13. **Tiến độ Học:** không lưu trong đợt này (đề xuất). Sau này nếu cần nhớ thì lưu theo tài khoản và có nút xóa.
-14. **Thứ tự và người vẽ:** chị đã chốt đưa Lá nhây và Học vào gói; thứ tự mới ở mục 5 (Lá nhây tuần 5, Học tuần 6). Còn cần chị quyết: ai làm 12 động tác chính, Claude làm bằng code hay thuê họa sĩ sửa tay; và có giữ hai tay nhỏ của Lá pixel không.
+14. **Thứ tự và người vẽ:** chị đã chốt đưa Lá nhây và Học vào gói; thứ tự mới ở mục 5 (Lá nhây tuần 5, Học tuần 6). Còn cần chị quyết: **hình của Lá pixel là Mầm xanh hay Lá tím** (trang mẫu có hai phương án đặt cạnh nhau; mình nghiêng về Mầm xanh vì nổi trên nền app và biểu cảm rõ hơn, nhưng khi đó phải thay Lá tím ở các màn hiện có để app chỉ còn một nhân vật); ai làm 12 động tác chính, Claude làm bằng code hay thuê họa sĩ sửa tay; và có giữ hai tay nhỏ không.
 15. **Lời khuyên tán crush dựa trên Check kín.** Đề xuất: tầng 1 và 2 làm ở tuần 8; tầng 3 (lời mời có đồng ý, cả hai cùng thấy) làm sau. Nếu chị vẫn muốn lời khuyên riêng từ Check kín thì phải xin đồng ý trực tiếp từ người kia, và việc này thành rủi ro khi đưa app lên kho.
 16. **Cập nhật tài liệu cho khớp thực tế:** US-22 AC10 còn yêu cầu Cà khịa; US-12 AC08 còn ghi 30 ngày.
 
