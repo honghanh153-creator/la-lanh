@@ -48,11 +48,11 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 |---|---|
 | Claude và Codex brainstorm riêng, không xem của nhau | Claude 46 ý, Codex 40 ý. Trùng khoảng một phần ba; Codex mạnh ở "gọi tên gánh nặng", Claude mạnh ở trò chơi và vật chia sẻ |
 | Tra bằng chứng trên web | Font pixel có tiếng Việt, quy tắc dễ đọc WCAG, kích thước thư viện hoạt hình, nghiên cứu về lan truyền và cô đơn, luật dữ liệu, lịch Việt Nam (mục 9) |
-| Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 117 góp ý có mã qua 6 vòng phản biện và 3 lần chấm thử (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
+| Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 130 góp ý có mã qua 7 vòng phản biện và 3 lần chấm thử (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
 | Rút gọn, viết mock 4–8 màn mỗi ý, vẽ bản mẫu pixel; chấm thử hai lần bằng Codex trên 20 người giả rồi sửa (bản 3 → bản 6) | 13 ý: 10 ý vào "gói", 3 ý thử có điều kiện |
 | Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện mới chấm một phần (56, 90 và 34 cặp) vì hết hạn mức; phiên chấm sẽ chấm nốt và cập nhật |
 
-Lượt Codex dùng cho việc này: 10 trên 15 lượt được giao (brainstorm 1, phản biện 6 vòng, chấm thử 3 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
+Lượt Codex dùng cho việc này: 11 trên 15 lượt được giao (brainstorm 1, phản biện 7 vòng, chấm thử 3 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
 
 ## 3. Trả lời 5 câu hỏi của chị
 
@@ -362,7 +362,7 @@ Mô tả từng ý (mock đầy đủ 4–8 màn ở Phụ lục A):
 
 ## 5. Đề xuất sửa kế hoạch 6 tuần
 
-**Bản trình bày theo từng tuần, kèm mốc đạt của từng tính năng đo bằng 1000 người giả, nằm ở `docs/plans/2026-11-15-ke-hoach-9-tuan-moc-do.md`. Bản đó là bản hiện hành; bảng dưới đây giữ lại để thấy kế hoạch cũ đổi thành gì.**
+**Kế hoạch hiện hành là bản 7 tuần ở `docs/plans/2026-11-15-ke-hoach-7-tuan-moc-do.md`.** Bản đó trình bày theo từng tuần, có mốc đạt cho từng tính năng đo bằng 1000 người giả, và đã sửa theo Codex vòng 7 (rút từ 9 xuống 7 tuần, giữ đủ việc). Bảng dưới đây giữ lại để thấy kế hoạch cũ đổi thành gì; chỗ nào khác bản 7 tuần thì theo bản 7 tuần.
 
 **Nguyên tắc:**
 - Giữ nguyên phần nền đã duyệt: an toàn, #503, mood đổi việc, kho việc, nội dung sinh viên, xoay chủ đề.
@@ -846,6 +846,24 @@ Không thu thêm gì; chỉ đổi cách tính và câu chữ.
 | T3-4 | Phải chọn lại chuyện tìm việc, lịch ca mỗi lần; app chưa thành chỗ ghi hằng ngày | Ghi nhận, chưa sửa: cần chị quyết về lưu dữ liệu (ghim chuyện đang lo) |
 | T3-5 | Màn đầu vẫn nhiều thứ với người rất mệt; phần chọn trong ba lô chiếm nhiều thời gian | Ghi nhận. Trang chủ giữ 3 khối; không thêm bước vào ba lô |
 | T3-6 | Người dùng chung máy vẫn ngại tên món hiện lúc đang chọn | Ghi nhận, chưa có cách sửa tốt hơn Che nhanh; nêu trong báo cáo |
+
+### Vòng 7 (14.11 đêm) — Codex kiểm kế hoạch theo tuần và các mốc đo
+
+| Mã | Mức | Góp ý | Xử lý |
+|---|---|---|---|
+| R7-L | — | 9 tuần dài vì xếp nối tiếp nội dung, hình, khóa học; đề xuất 7 tuần giữ đủ phạm vi | Nhận. Kế hoạch bản 2 là 7 tuần; nội dung chạy nền từ tuần 1, hình thử từ tuần 2, khung Học từ tuần 3 |
+| R7-H | — | Danh sách hoãn nếu muốn ngắn nữa: Lá Dám thẻ giấy, truyện 3 khung, Phụ đề khác nhau; không hoãn sticker | Ghi thành lựa chọn cho chị, không tự cắt |
+| R7-1 | P1 | Người giả không chứng minh chú ý hình, hành vi mở, gửi, quay lại, hiệu quả học, an toàn dữ liệu | Nhận. Ghi nhãn mô phỏng; bỏ mốc "90% để ý tới Lá"; việc đo được bằng máy thì đo bằng máy |
+| R7-2 | P1 | Số "hiện tại" trộn mô tả, app, 20 và 1000 người; không lấy điểm mô tả làm nền cho code | Nhận. Đổi cột thành "Số tham khảo"; bản trước và sau chấm cùng dạng đầu vào, cùng người |
+| R7-3 | P1 | Bảng tổng thiếu điều kiện đã ghi trước (nêu cụ thể ≥30%, chạm đau ≤1%, nội dung nguy hiểm, hai nhóm yếu không tụt) | Nhận. Chép lại đủ 9 điều kiện |
+| R7-4 | P2 | Mốc riêng không được bỏ luật chung: người đi làm 3,3; nhây 5%; lá số +0,16 | Nhận. Người đi làm lên 3,5; nhây xuống 3%; lá số ghi rõ chưa đạt điều 3 |
+| R7-5 | P2 | Tỉ lệ mở dễ lách bằng ép hiện; cần mẫu số, số người tối thiểu, tách gặp, mở, hoàn tất; giữ cách phân loại câu chê | Nhận. Tối thiểu 30 người; tách ba bước; cấm ép hiện |
+| R7-6 | P2 | Lệch trung bình 0,15 che được sai lệch ngược chiều | Nhận. Thêm kiểm từng người, cờ hại, hai giám khảo |
+| R7-7 | P1 | Bắt 100% câu mẫu chỉ chứng minh bộ mẫu | Nhận. Thêm câu nói kín, phủ định, tiếng lóng; kiểm đường nhập thật; không công bố "bắt mọi câu" |
+| R7-8 | P2 | Thiếu kiểm nút "Lá yên chút", đủ 34 động tác, 24 sticker, ảnh không chứa dữ liệu; số câu chê 125 và 68 lệch nhau | Nhận. Thêm các kiểm bằng máy. Đối chiếu nguồn: 68 là số câu chê, 125 là số câu "còn thiếu" trong cùng báo cáo; kế hoạch dùng 68 |
+| R7-9 | P2 | Mốc 25% và 50% thấp hơn số mô phỏng, chỉ là sàn; 35% chưa chứng minh khả thi; không cộng mức tăng chấm riêng vào cả app | Nhận. Ghi là mức sàn; ghi rõ 35% chưa có căn cứ đạt |
+| R7-C | — | Chi phí đo 4.100–4.700 lượt; đề xuất 100 ca cố định mỗi tuần, 1000 ở hai mốc, đối chiếu 40 ca | Nhận |
+| R7-Đ | — | Điều kiện bắt đầu còn thiếu: mục đích dùng mood và lá số, rút đồng ý, tiến độ, Check kín, 18+, góc tiền, lá số thiếu giờ, câu hỗ trợ, nguồn, kiểm log và ảnh | Nhận. Thành danh sách chốt trong tuần 1 |
 
 ## Phụ lục C. Thiết kế Lá nhây và màn Học (bản 2, sau phản biện vòng 4)
 
