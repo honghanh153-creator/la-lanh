@@ -242,7 +242,7 @@ export function privateHits(pr, git, terms, ranges = [[`origin/${integration}..H
   } catch { return ['lịch sử nhánh không đọc được']; }
 }
 
-function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null, waitGuard = waitForGuard, source = 'local', ci = ciCheck }) {
+function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = readGuardTerms, preflight = null, waitGuard = waitForGuard, source = 'local', ci = ciCheck, waiting = false }) {
   const pr = gh.pr(number);
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork: không chạy code của nó' };
   const head = git(['rev-parse', 'HEAD']);
@@ -253,8 +253,13 @@ function checkOnce(number, { gh, cwd, git, spawn, now, busy, budget, terms = rea
   let base;
   try { base = git(['rev-parse', `origin/${integration}`]); } catch { base = ''; }
   if (!isSha(base)) return { status: 'refused', reason: `không đọc được origin/${integration}` };
+  // L14: a PR waiting behind the front of its area is not synced (sync=false), so being behind is
+  // its normal state, not a failure for Claude to fix. It waits; the sync comes when it is the front.
   try { git(['merge-base', '--is-ancestor', base, 'HEAD']); }
-  catch { return { status: 'preflight', reasons: [`nhánh chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): merge ${integration} vào nhánh rồi push`] }; }
+  catch {
+    if (waiting) return { status: source === 'ci' ? 'ci-pending' : 'waiting', reason: `chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): đồng bộ khi tới lượt đầu hàng` };
+    return { status: 'preflight', reasons: [`nhánh chưa chứa ${integration} mới nhất (${base.slice(0, 7)}): merge ${integration} vào nhánh rồi push`] };
+  }
   const prNumber = pr.number ?? number;
   // P1-B: the local receipt is written before the comment, so every posted result has one; after
   // posting it is bound to the new comment's id, so a later copy of the comment never counts.
@@ -379,12 +384,14 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // Every gh and git call after the clone is bounded by the same deadline (05.11.2026).
     const ghD = gh.withDeadline?.(leftMs) ?? gh;
     const gitD = args => git(args, cwd, run, boundedTimeout(600000, leftMs));
-    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
+    // L14: the tick passes sync=false for every PR except the front of its area queue; a manual
+    // `--clone` run keeps the old behaviour.
+    const synced = rest.sync === false ? null : syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).
     const budget = () => Math.min(checkBudgetMs({ auto, clock, nowMs }), deadlineMs - nowMs() - cleanupReserveMs - finalizeReserveMs);
-    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, source, ci: rest.ci ?? ciCheck, preflight: rest.preflight === undefined ? clonePreflight(source) : rest.preflight });
+    const result = checkOnce(number, { gh: ghD, cwd, git: gitD, spawn: rest.spawn ?? spawnSync, now: rest.now ?? (() => Date.now()), busy: rest.busy ?? machineBusy, terms: rest.terms ?? readGuardTerms, budget, source, ci: rest.ci ?? ciCheck, preflight: rest.preflight === undefined ? clonePreflight(source) : rest.preflight, waiting: rest.sync === false });
     // A lint failure is recorded too, keyed by head, so the next tick routes the PR to claude-fix.
     if (result?.status === 'preflight') (rest.held?.record ?? recordPreflight)(number, pr.headRefOid, { status: 'FAIL', reasons: result.reasons ?? [], ...(result.bodyHash ? { bodyHash: result.bodyHash } : {}) });
     return result;

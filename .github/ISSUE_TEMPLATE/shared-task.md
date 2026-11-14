@@ -10,7 +10,7 @@ title: "[Task] "
 
 - Mức: S | M | L — lý do
 - Đã có trong repo (issue/PR/verdict/doc/quyết định liên quan):
-- Bên ngoài (prior art trên GitHub, chuẩn chính thức) — bắt buộc với mức L:
+- Bên ngoài (prior art trên GitHub, chuẩn chính thức) — bắt buộc với mức L. Mỗi kết luận ghi nguồn đã đọc và phần đã đọc; báo cáo trong docs/research/ theo khóa [S1] (L09):
 - Lựa chọn và đề xuất:
 - Cổng bị ảnh hưởng (G1–G10):
 
