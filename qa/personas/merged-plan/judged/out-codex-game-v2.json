@@ -1,0 +1,182 @@
+[
+  {
+    "persona": "P001",
+    "played_game": true,
+    "why": "Đang rối mà phòng lại vắng, mình bấm thử một chuyện ngắn cho đỡ nghĩ ngợi.",
+    "game_understood": true,
+    "game_could_stop": true,
+    "game_hurt": true,
+    "quote": "Cả nhà hẹn tối nay đi ăn."
+  },
+  {
+    "persona": "P015",
+    "played_game": false,
+    "why": "Mình hết sức rồi, chỉ muốn nằm chứ không muốn đọc rồi chọn thêm gì.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P016",
+    "played_game": false,
+    "why": "Đầu óc đang rối, mình muốn đọc vài câu cho bình tĩnh hơn là chơi.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P017",
+    "played_game": true,
+    "why": "Hôm nay đang vui, mình muốn thử chọn kết thúc xem chuyện có buồn cười không.",
+    "game_understood": true,
+    "game_could_stop": true,
+    "game_hurt": false,
+    "quote": ""
+  },
+  {
+    "persona": "P022",
+    "played_game": false,
+    "why": "Mình đang lo chuyện xin việc, muốn tìm một gợi ý cho chuyện đó hơn là chơi.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P024",
+    "played_game": false,
+    "why": "Mình chỉ mở xem nhanh rồi sửa hồ sơ tiếp, chưa thấy muốn chơi chuyện chọn kết thúc.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P027",
+    "played_game": false,
+    "why": "Mình muốn xem có gì giúp được chuyện khóa luận và tìm việc, trò này chưa khiến mình muốn bấm.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P033",
+    "played_game": true,
+    "why": "Mình muốn tạm nghỉ nghĩ một phút, chọn kết thúc một câu chuyện nghe cũng nhẹ đầu.",
+    "game_understood": true,
+    "game_could_stop": true,
+    "game_hurt": true,
+    "quote": "Cả nhà hẹn tối nay đi ăn."
+  },
+  {
+    "persona": "P035",
+    "played_game": false,
+    "why": "Hôm nay mệt, mình chỉ muốn đọc một câu nhẹ nhàng rồi nghỉ.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P037",
+    "played_game": false,
+    "why": "Mệt quá rồi, mình không muốn đọc thêm chuyện dù chỉ mất một phút.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P038",
+    "played_game": false,
+    "why": "Đang căng vì thiếu học phí, mình chưa có hứng chơi chuyện vui.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P042",
+    "played_game": true,
+    "why": "Đang căng nên thấy có trò mới ngắn ngắn, mình bấm thử cho đổi tâm trạng.",
+    "game_understood": true,
+    "game_could_stop": true,
+    "game_hurt": false,
+    "quote": ""
+  },
+  {
+    "persona": "P048",
+    "played_game": true,
+    "why": "Hôm nay vui, mình muốn chọn thử một cái kết ngớ ngẩn cho có cái cười.",
+    "game_understood": true,
+    "game_could_stop": true,
+    "game_hurt": false,
+    "quote": ""
+  },
+  {
+    "persona": "P050",
+    "played_game": false,
+    "why": "Mình đang muốn xem Tarot về chuyện ở lại hay về quê, chưa muốn ghé sang chơi.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P061",
+    "played_game": true,
+    "why": "Hôm nay thấy bình thường, mình thử một chuyện vui trong lúc ngồi lướt điện thoại.",
+    "game_understood": true,
+    "game_could_stop": true,
+    "game_hurt": false,
+    "quote": ""
+  },
+  {
+    "persona": "P065",
+    "played_game": false,
+    "why": "Đang rối mà mình chỉ định xem vài giây, chưa muốn dành một phút đọc chuyện.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P080",
+    "played_game": true,
+    "why": "Hôm nay có sức, mình muốn chơi một phút cho thoải mái trước ca.",
+    "game_understood": true,
+    "game_could_stop": true,
+    "game_hurt": false,
+    "quote": ""
+  },
+  {
+    "persona": "P082",
+    "played_game": true,
+    "why": "Đang căng mà chưa có ai để nói chuyện, mình thử đọc chuyện vui cho bớt nghĩ.",
+    "game_understood": true,
+    "game_could_stop": true,
+    "game_hurt": true,
+    "quote": "Cả nhà hẹn tối nay đi ăn."
+  },
+  {
+    "persona": "P083",
+    "played_game": false,
+    "why": "Mình muốn xem lại tâm trạng trong ngày, hôm nay không có hứng chọn kết thúc chuyện vui.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  },
+  {
+    "persona": "P095",
+    "played_game": false,
+    "why": "Hôm nay mệt, tôi chỉ muốn đọc vài câu lúc uống trà rồi thôi.",
+    "game_understood": null,
+    "game_could_stop": null,
+    "game_hurt": null,
+    "quote": ""
+  }
+]
