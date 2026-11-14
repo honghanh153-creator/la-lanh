@@ -320,13 +320,46 @@ export function disputeView(events = read(disputePath)) {
 export const afterDecision = (pr, view) => (view?.since
   ? { ...pr, comments: (pr.comments ?? []).filter(c => timeOf(c.createdAt) > timeOf(view.since)) } : pr);
 
-// Another reason still waiting on the owner keeps needs-owner: an open question of another dispute
-// on the same PR or issue, or an automatic REQUEST_CHANGES after our label (codex-review adds the
-// label itself after the second one, and adding an existing label changes nothing).
-function otherOwnerReason(d, tg, all, labelEvent) {
+// Another dispute question still open on the same PR or issue keeps needs-owner.
+function otherOwnerReason(d, all) {
   const key = targetKey(targetOf(d));
-  if ([...all.values()].some(o => o.id !== d.id && targetKey(targetOf(o)) === key && isOpenQuestion(o))) return true;
-  return tg.comments.some(c => isTrusted(c) && isAutoReview(c.body) && parseVerdict(c.body)?.verdict === 'REQUEST_CHANGES' && timeOf(c.createdAt) > timeOf(labelEvent?.at));
+  return [...all.values()].some(o => o.id !== d.id && targetKey(targetOf(o)) === key && isOpenQuestion(o));
+}
+
+// Codex 15.11 (security): needs-owner is shared with codex-review.mjs and the owner, so a dispute
+// removes it only when it added the label and nothing touched the owner hold since. Fail closed:
+// any doubt keeps the label and the owner removes it.
+const isDisputeComment = body => /<!-- la-lanh-agent disagree(-decided)? id=/.test(body);
+// A bare "Theo Claude/Codex [id]" answers the dispute; anything longer may carry another hold.
+const isBareReply = body => {
+  const lines = String(body ?? '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  return lines.length === 1 && Boolean(parseDisputeReply(lines[0])) && !/needs-owner|\bgiu\b/.test(fold(lines[0]));
+};
+function holdTouched(tg, since) {
+  for (const c of tg.comments) {
+    if (!isTrusted(c) || timeOf(c.createdAt) < since) continue;
+    const body = String(c.body ?? '');
+    if (body.includes(agentMarker)) {
+      if (isDisputeComment(body)) continue;
+      // codex-review adds the label after its second REQUEST_CHANGES; adding an existing label leaves no event.
+      if (/needs-owner/i.test(body) || (isAutoReview(body) && parseVerdict(body)?.verdict === 'REQUEST_CHANGES')) return true;
+      continue;
+    }
+    if (!isBareReply(body)) return true;
+  }
+  return false;
+}
+// The needs-owner label events since ours must be exactly our own "labeled"; an unreadable history,
+// a removal or another add is someone else's hold. Two minutes of clock skew are allowed.
+export const labelSkewMs = 2 * 60000;
+function onlyOurLabelEvent(gh, t, since) {
+  let events;
+  try {
+    events = String(gh.raw(['api', `repos/${repo}/issues/${t.number}/events`, '--paginate', '--jq',
+      '.[] | select(.label.name == "needs-owner") | {event: .event, at: .created_at}']) ?? '').split('\n').filter(Boolean).map(line => JSON.parse(line));
+  } catch { return false; }
+  const recent = events.filter(e => timeOf(e?.at) >= since - labelSkewMs || !Number.isFinite(timeOf(e?.at)));
+  return recent.length === 1 && recent[0].event === 'labeled';
 }
 
 function finish(d, { gh, nowMs, path, logFile, all, labels }) {
@@ -342,7 +375,9 @@ function finish(d, { gh, nowMs, path, logFile, all, labels }) {
     if (!tg.comments.some(c => isTrusted(c) && String(c.body ?? '').includes(decidedMarker(d.id)))) gh.comment(t.kind, t.number, decidedBody(d, decided));
     const key = targetKey(t);
     const ours = labels.get(key);
-    if (tg.labels.includes('needs-owner') && ours?.type === 'label-added' && !otherOwnerReason(d, tg, all, ours)) {
+    const since = timeOf(ours?.at);
+    if (tg.labels.includes('needs-owner') && ours?.type === 'label-added' && Number.isFinite(since) && !otherOwnerReason(d, all)
+      && !holdTouched(tg, since) && onlyOurLabelEvent(gh, t, since)) {
       gh.raw([t.kind, 'edit', String(t.number), '--repo', repo, '--remove-label', 'needs-owner']);
       record(path, nowMs, { type: 'label-removed', id: d.id, target: key });
       labels.set(key, { type: 'label-removed', at: iso(nowMs) });

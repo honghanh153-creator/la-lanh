@@ -37,14 +37,21 @@ const isoAt = ms => new Date(ms).toISOString();
 
 // One PR (or issue) on a fake GitHub; comments get the time of the shared test clock.
 function world({ head = A, labels = [], number = 515 } = {}) {
-  const w = { now: vn(14, 10), head, labels: [...labels], comments: [], posts: [], notes: [], failComment: false, failNotify: false, state: 'OPEN' };
+  const w = { now: vn(14, 10), head, labels: [...labels], labelEvents: [], comments: [], posts: [], notes: [], failComment: false, failNotify: false, failEvents: false, state: 'OPEN' };
   const view = () => ({ number, state: w.state, headRefOid: w.head, labels: w.labels.map(name => ({ name })), comments: structuredClone(w.comments) });
   w.gh = {
     pr: () => view(),
     json: () => { const v = view(); delete v.headRefOid; return v; },
     raw: args => {
-      const i = args.indexOf('--add-label'); if (i >= 0 && !w.labels.includes(args[i + 1])) w.labels.push(args[i + 1]);
-      const j = args.indexOf('--remove-label'); if (j >= 0) w.labels = w.labels.filter(l => l !== args[j + 1]);
+      // GitHub's issue events for needs-owner, one JSON object per line as the --jq filter prints them.
+      if (args[0] === 'api') {
+        if (w.failEvents) throw new Error('api down');
+        return w.labelEvents.map(e => `${JSON.stringify(e)}\n`).join('');
+      }
+      const i = args.indexOf('--add-label');
+      if (i >= 0 && !w.labels.includes(args[i + 1])) { w.labels.push(args[i + 1]); w.labelEvents.push({ event: 'labeled', at: isoAt(w.now) }); }
+      const j = args.indexOf('--remove-label');
+      if (j >= 0 && w.labels.includes(args[j + 1])) { w.labels = w.labels.filter(l => l !== args[j + 1]); w.labelEvents.push({ event: 'unlabeled', at: isoAt(w.now) }); }
       return '';
     },
     comment: (kind, n, body) => {
@@ -151,6 +158,7 @@ test('L25: a crash after sending does not send a second question', () => {
   append({ at: isoAt(w.now), type: 'escalate', id }, w.path);
   w.comments.push({ authorAssociation: 'OWNER', createdAt: isoAt(w.now), body: `câu hỏi\n${L25.questionMarker(id, 1, true)}` });
   w.labels.push('needs-owner');
+  w.labelEvents.push({ event: 'labeled', at: isoAt(w.now) });
   append({ at: isoAt(w.now), type: 'label-added', id, target: 'pr:515' }, w.path);
   w.now = vn(14, 10, 10);
   assert.equal(w.settle()[0].status, 'sent');
@@ -379,4 +387,33 @@ test('L25: a decision uses the round that was sent, also after a crash between t
   assert.equal(w2.settle()[0].chosen, 'codex');
   assert.equal(w2.state_(id2).decided.rounds, 2);
   assert.equal(w2.state_(id2).decided.conclusion, 'Giữ ba lần thử rồi báo lỗi');
+});
+
+test('L25: a timeout removes needs-owner only when the dispute added it and nothing touched the hold since', () => {
+  // Clean case: only the dispute's own comments and a bare owner reply to another question.
+  const clean = world();
+  const id = clean.open();
+  clean.escalate(id);
+  clean.now = vn(14, 10, 30);
+  clean.settle();
+  assert.deepEqual(clean.labels, [], 'the label the escalation added is removed');
+  const keeps = (touch, why) => {
+    const w = world();
+    const d = w.open();
+    w.escalate(d);
+    w.now = vn(14, 10, 10);
+    touch(w);
+    w.now = vn(14, 10, 30);
+    const posts = w.posts.length;
+    assert.equal(w.settle()[0].status, 'decided', why);
+    assert.deepEqual(w.labels, ['needs-owner'], why);
+    assert.equal(w.posts.length, posts + 1, `${why}: only the decision is posted, nothing about the label`);
+    assert.ok(!read(w.path).some(e => e.type === 'label-removed'), why);
+  };
+  keeps(w => w.ownerSays('Giữ needs-owner: lời UI ở màn Hợp gu chưa được duyệt.'), 'an owner comment after the escalation');
+  keeps(w => w.ownerSays('Theo Codex\nNhưng lời UI chưa duyệt, đừng merge.'), 'a reply that says more than the choice');
+  keeps(w => w.ownerSays(`Review verdict: REQUEST_CHANGES @ ${A}\n${agentMarker} codex-auto-review sha=${A} p2=0 -->`), 'codex-review stopped for the owner');
+  keeps(w => w.ownerSays(`Bàn giao: chờ owner duyệt copy, giữ needs-owner.\n${agentMarker} handoff -->`), 'an agent comment about needs-owner');
+  keeps(w => { w.labels = []; w.labelEvents.push({ event: 'unlabeled', at: isoAt(w.now) }); w.labels.push('needs-owner'); w.labelEvents.push({ event: 'labeled', at: isoAt(w.now) }); }, 'the owner removed and re-added the label');
+  keeps(w => { w.failEvents = true; }, 'the label history cannot be read');
 });
