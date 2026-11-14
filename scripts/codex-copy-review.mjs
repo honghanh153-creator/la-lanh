@@ -1,6 +1,6 @@
 // Codex approves the daily batch of pending copy (owner decision 06.11.2026).
 // Usage: node scripts/codex-copy-review.mjs [--dry-run] [--fake-codex decisions.json]
-// The scheduled tick (collab-turn.mjs) runs it once a day after 10:00 through runCopyBatch (12.11.2026).
+// The scheduled tick (collab-turn.mjs) runs it once a day after the auto-start (autoStartAt) through runCopyBatch (12.11.2026).
 // Codex runs read-only, the same way scripts/codex-review.mjs calls it. Privacy, consent, crisis
 // and safety copy is never sent: it stays owner-only. The result goes into a PR on
 // agent/claude/copy-batch-YYYYMMDD; the script never writes main or collab/integration and
