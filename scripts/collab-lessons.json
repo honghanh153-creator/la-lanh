@@ -324,7 +324,18 @@
    "from": "owner 14.11 + Codex 14.11",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-merge-audit.test.mjs",
+    "name": "a merge into integration without an automatic APPROVE receipt"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "mergeAudit"
+   },
+   "closedBy": {
+    "pr": 517
+   }
   }
  ]
 }
