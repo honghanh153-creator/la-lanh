@@ -292,7 +292,7 @@
    "who": "claude",
    "due": "2026-11-18",
    "status": "open",
-   "note": "snapshot helper and tick digest wired; scheduled owner report and retro still to be pointed at collab-snapshot --slot"
+   "note": "wrapper step snapshot SLOT added (#534); owner report and retro prompts still to be pointed at it and their use verified"
   },
   {
    "id": "L20",
@@ -377,7 +377,18 @@
    "from": "owner 14.11 + Codex 14.11",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L25: the tick never runs a disputed PR, and after a timeout the PR needs a new check and review at its head"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "try { settle({ gh, log }); }"
+   },
+   "closedBy": {
+    "pr": 520
+   }
   },
   {
    "id": "L26",
@@ -415,6 +426,25 @@
    },
    "closedBy": {
     "pr": 516
+   }
+  },
+  {
+   "id": "L28",
+   "title": "Soát đêm: báo động cũ được cập nhật vào ngày sau vẫn vào bằng chứng M3 của đúng ngày nó xảy ra (#530)",
+   "from": "Codex review #493 (fix-forward #530, #536)",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "M3: an alert of a past day stays a candidate after it is updated on a later day"
+   },
+   "caller": {
+    "file": "scripts/collab-audit-night.mjs",
+    "contains": "updated:>="
+   },
+   "closedBy": {
+    "pr": 531
    }
   }
  ]

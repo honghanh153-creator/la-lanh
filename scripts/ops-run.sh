@@ -34,5 +34,12 @@ case "$step" in
     else
       echo "ops-run: preflight needs a positive PR number" >&2; exit 2
     fi ;;
-  *) echo "ops-run: unknown step '$step' (status|report|busy|beat NAME start|done|preflight N)" >&2; exit 2 ;;
+  # L19: the owner report (08/14/22) and the retro read one shared source snapshot per slot.
+  snapshot)
+    if [[ "${1:-}" =~ ^(08|14|22|retro)$ ]]; then
+      refresh && cd "$clone" && node "$ops/scripts/collab-snapshot.mjs" --slot "$1"
+    else
+      echo "ops-run: snapshot needs a slot (08|14|22|retro)" >&2; exit 2
+    fi ;;
+  *) echo "ops-run: unknown step '$step' (status|report|busy|beat NAME start|done|preflight N|snapshot SLOT)" >&2; exit 2 ;;
 esac
