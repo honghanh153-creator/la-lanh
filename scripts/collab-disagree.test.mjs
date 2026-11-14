@@ -417,3 +417,29 @@ test('L25: a timeout removes needs-owner only when the dispute added it and noth
   keeps(w => { w.labels = []; w.labelEvents.push({ event: 'unlabeled', at: isoAt(w.now) }); w.labels.push('needs-owner'); w.labelEvents.push({ event: 'labeled', at: isoAt(w.now) }); }, 'the owner removed and re-added the label');
   keeps(w => { w.failEvents = true; }, 'the label history cannot be read');
 });
+
+test('L25: a reply names any id that --open accepts, and a malformed id never counts', () => {
+  assert.deepEqual(L25.parseDisputeReply('Theo Claude privacy-review-1'), { chosen: 'claude', id: 'privacy-review-1' });
+  assert.deepEqual(L25.parseDisputeReply('`Theo Codex L21.a-12`.'), { chosen: 'codex', id: 'l21.a-12' });
+  assert.deepEqual(L25.parseDisputeReply('Theo Codex, pr515-2 nhé'), { chosen: 'codex', id: 'pr515-2' });
+  assert.deepEqual(L25.parseDisputeReply('Theo Codex nhé'), { chosen: 'codex', id: null });
+  assert.equal(L25.parseDisputeReply('Theo Codex pr515').invalid, 'pr515');
+  assert.throws(() => L25.openRound({ id: 'privacy', pr: 515, round: 1, claude: 'a', codex: 'b', head: A, path: join(mkdtempSync(join(tmpdir(), 'id-')), 'd.jsonl') }), /--id must/);
+  // Two questions on one issue, both with hyphenated generated ids.
+  const w = world({ number: 600, head: null });
+  const ids = [1, 2].map(() => {
+    const r1 = L25.openRound({ task: 'privacy-review', issue: 600, round: 1, claude: 'a', codex: 'b', path: w.path, nowMs: w.now });
+    L25.openRound({ id: r1.id, round: 2, claude: 'a2', codex: 'b2', path: w.path, nowMs: w.now });
+    w.escalate(r1.id);
+    return r1.id;
+  });
+  assert.deepEqual(ids, ['privacy-review-1', 'privacy-review-2']);
+  w.now = vn(14, 10, 5);
+  w.ownerSays('Theo Claude privacy-review-2');
+  assert.deepEqual(w.settle().map(r => [r.id, r.status, r.chosen]), [[ids[0], 'waiting', undefined], [ids[1], 'decided', 'claude']]);
+  // A malformed id is refused, not read as a reply to the one question left.
+  w.now = vn(14, 10, 10);
+  w.ownerSays('Theo Codex privacy-review');
+  assert.equal(w.settle()[0].status, 'waiting');
+  assert.equal(w.state_(ids[0]).decided, null);
+});

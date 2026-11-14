@@ -143,6 +143,9 @@ const isOpenQuestion = d => ['sending', 'asked', 'stale', 'superseded'].includes
 // A new head or a new recorded argument is a substantive change; anything else is the same question.
 const questionKey = (head, rounds) => `${head ?? '-'}|${rounds}`;
 const lastRound = d => d.rounds.at(-1);
+// One id grammar for --open and the owner's reply (Codex 15.11): generated ids are pr515-1 or
+// <task>-N, and a task may contain '-' or '.', e.g. privacy-review-1.
+export const disputeIdRe = /^[a-z][\w.-]{0,60}-\d{1,6}$/i;
 // Codex 15.11: the owner answers the arguments that were sent. A round recorded after the newest
 // question supersedes it: no reply and no timeout applies to it until a fresh --escalate, and a
 // decision always uses the round that was sent, never a newer one.
@@ -156,7 +159,7 @@ export function openRound({ id, pr, task, issue, round, claude, codex, codexConc
   const r = Number(round);
   if (![1, 2].includes(r)) throw new Error('--round must be 1 or 2 (at most two rounds)');
   if (!String(claude ?? '').trim() || !String(codex ?? '').trim()) throw new Error('both positions are required');
-  if (id !== undefined && !/^[A-Za-z][\w.-]{0,60}$/.test(id)) throw new Error('--id must look like pr515-1');
+  if (id !== undefined && !disputeIdRe.test(id)) throw new Error('--id must look like pr515-1 or privacy-review-2 (ends in -N)');
   const all = disputes(read(path));
   const d = id ? all.get(id) : null;
   if (r === 2 && !d) throw new Error(id ? `no dispute ${id}; record round 1 first` : 'round 2 needs --id of the dispute');
@@ -179,9 +182,14 @@ export function openRound({ id, pr, task, issue, round, claude, codex, codexConc
 const fold = text => String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
 const firstLine = body => String(body ?? '').split(/\r?\n/).map(l => l.trim()).find(Boolean) ?? '';
 // "Theo Claude" / "Theo Codex", optionally followed by the dispute id when a PR has two questions open.
+// A next word that looks like an id (a digit, '-', '_' or '.') but is not a valid one is marked
+// invalid: it never counts, not even as a reply without an id.
 export function parseDisputeReply(body) {
-  const m = /^theo\s+(claude|codex)\b\s*([a-z][\w.]*-\d+)?/.exec(fold(firstLine(body)));
-  return m ? { chosen: m[1], id: m[2] ?? null } : null;
+  const m = /^theo\s+(claude|codex)\b[\s,:;]*(\S*)/.exec(fold(firstLine(body).replace(/`/g, '')));
+  if (!m) return null;
+  const word = m[2].replace(/^[([]+/, '').replace(/[)\].,;:!?]+$/, '');
+  if (disputeIdRe.test(word)) return { chosen: m[1], id: word };
+  return /[\d_.-]/.test(word) ? { chosen: m[1], id: null, invalid: word } : { chosen: m[1], id: null };
 }
 
 const markerRe = /<!-- la-lanh-agent disagree id=(\S+) q=(\d+)(?: r=(\d+))?( label=added)? -->/;
@@ -416,7 +424,7 @@ function settleOne(d, ctx) {
   const reply = tg.comments
     .filter(c => isTrusted(c) && !String(c.body ?? '').includes(agentMarker) && timeOf(c.createdAt) > timeOf(q.askedAt))
     .sort((a, b) => timeOf(a.createdAt) - timeOf(b.createdAt))
-    .map(c => ({ ...parseDisputeReply(c.body), at: timeOf(c.createdAt) })).filter(r => r.chosen && (r.id ? r.id === d.id.toLowerCase() : alone(r.at))).at(-1);
+    .map(c => ({ ...parseDisputeReply(c.body), at: timeOf(c.createdAt) })).filter(r => r.chosen && !r.invalid && (r.id ? r.id === d.id.toLowerCase() : alone(r.at))).at(-1);
   if (reply && !superseded) { decide(d, { decidedBy: 'owner', chosen: reply.chosen, q, head: tg.head, nowMs, path }); return finish(d, ctx); }
   if (status === 'sending') return send(d, ctx);
   if (!q.notifiedAt) return notifyOwner(d, q.q, ctx);
