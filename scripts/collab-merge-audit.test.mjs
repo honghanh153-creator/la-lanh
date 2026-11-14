@@ -82,7 +82,7 @@ const created = gh => gh.calls.filter(a => a[0] === 'issue' && a[1] === 'create'
 const logLines = path => (existsSync(path) ? readFileSync(path, 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l)) : []);
 const state = path => JSON.parse(readFileSync(path, 'utf8'));
 
-test('a merge into integration without an automatic APPROVE receipt at the merged head raises one ops-alert', () => {
+test('a merge into integration without an automatic APPROVE receipt at the merged head raises one ops-alert', async () => {
   const w = world();
   w.add(1); w.add(2, { kind: 'wrong-head' }); w.add(3, { kind: 'none' }); w.add(4, { kind: 'fake' });
   const gh = fakeGh(w);
@@ -104,6 +104,16 @@ test('a merge into integration without an automatic APPROVE receipt at the merge
   assert.ok(created(gh).every(a => a.includes('ops-alert')), 'raised as ops-alert issues');
   assert.deepEqual(logLines(paths.logPath).map(l => [l.pr, l.head]), [[2, headOf(2)], [3, headOf(3)], [4, headOf(4)]]);
   assert.deepEqual(state(paths.statePath).cursor, { mergedAt: at(4), number: 4 });
+  // The launchd entry wires the audit into tick() (Codex: prove the production caller): the same
+  // gaps come out of runTick's mergeAudit on a fresh world.
+  const { runTick } = await import('./collab-tick.mjs');
+  const w2 = world();
+  w2.add(5); w2.add(6, { kind: 'none' });
+  const gh2 = fakeGh(w2);
+  const opts = runTick(gh2, () => [], { run: given => given });
+  assert.equal(typeof opts.mergeAudit, 'function', 'runTick wires mergeAudit');
+  const wired = opts.mergeAudit({ gh: gh2, now: after(10), outputs: () => w2.outputs, force: true, ...home() });
+  assert.deepEqual(wired.missing.map(m => m.pr), [6]);
 });
 
 test('the alert marker survives the 1000-character cut of opsAlert', async () => {
