@@ -26,7 +26,9 @@ const addMinutes = (t, minutes) => {
   return { hour: Math.floor(total / 60) % 24, minute: total % 60 };
 };
 
-export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null, metrics = null }) {
+const warnings = lines => (Array.isArray(lines) ? lines : []).filter(l => String(l).includes('⚠️')).map(l => (String(l).startsWith('- ') ? String(l) : `- ${l}`));
+
+export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null, metrics = null, health = [] }) {
   const [label, why] = STATES[status] ?? [status, ''];
   const waitingOwner = turns.filter(t => t.turn === 'hold' && /needs-owner|owner bỏ/.test(t.reason));
   const queue = turns.filter(t => t.turn !== 'hold').slice(0, 8);
@@ -45,6 +47,8 @@ export function renderBoard({ now, status, doing = null, expectMinutes = null, a
     `Nhóm đang làm: ${area ?? '—'} · Codex hôm nay: ${codexRuns}/${cap} · Lỗi liên tiếp: ${failures}`,
     ...(lastDone ? [`Lượt vừa rồi: ${cell(lastDone)}`] : []),
     ...(error ? ['', `Lỗi: \`${cell(error)}\``] : []),
+    // Only what needs a look; healthy lines stay in the morning plan.
+    ...(warnings(health).length ? ['', '**Cần xem**', ...warnings(health)] : []),
     '',
     '| PR | Nhóm | Lượt kế tiếp | Lý do |',
     '|---|---|---|---|',

@@ -73,7 +73,18 @@
    "from": "thỏa thuận 12.11 mục E",
    "who": "claude",
    "due": "2026-11-15",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "fix A: ruff and mypy run only on the changed Python files of apps/api"
+   },
+   "caller": {
+    "file": "scripts/collab-hooks.mjs",
+    "contains": "collab-preflight.mjs\" --lint"
+   },
+   "closedBy": {
+    "pr": 482
+   }
   },
   {
    "id": "L08",
@@ -113,7 +124,18 @@
    "from": "thỏa thuận 12.11 mục L",
    "who": "claude",
    "due": "2026-11-15",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-hooks.test.mjs",
+    "name": "the loop plan describes the author check the cron really runs"
+   },
+   "caller": {
+    "file": "scripts/collab-cron.sh",
+    "contains": "LA_LANH_CHECK_SOURCE=ci"
+   },
+   "closedBy": {
+    "pr": 482
+   }
   },
   {
    "id": "L13",
