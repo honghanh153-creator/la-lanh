@@ -205,6 +205,17 @@ def _rate(rows: Sequence[Mapping[str, Any]], side: str) -> str:
     return _pct(round(_send_rate(rows, side) * len(rows)), len(rows))
 
 
+MIN_REACHED = 30
+
+
+def _verdict(reached: int, passed: bool) -> str:
+    """Codex round 7: fewer than 30 personas reaching a feature is not enough to conclude."""
+
+    if reached < MIN_REACHED:
+        return f"chưa đủ bằng chứng (dưới {MIN_REACHED} người)"
+    return "đạt" if passed else "trượt"
+
+
 def _count(rows: Sequence[Mapping[str, Any]], key: str) -> int:
     return sum(1 for r in rows if r["treat"].get(key))
 
@@ -294,24 +305,28 @@ def cmd_report(personas_path: Path, judged: Path, v6_judged: Path | None, out: P
     h_und = _mean([float(r["treat"]["understood"]) for r in lesson])
     h_pe = _mean([float(r["treat"]["peaceful"]) for r in lesson])
     h_press = sum(1 for r in lesson if r["treat"].get("lesson_pressure"))
+    h_rows = [r for r in rows if part_of[r["batch"]] in ("package7", "H")]
+    seen = sum(1 for r in h_rows if r["treat"].get("lesson_seen"))
+    finished = sum(1 for r in lesson if r["treat"].get("lesson_finished"))
     lines += [
         "",
-        "## Lá nhây (mốc bản 3)",
+        "## Lá nhây (mốc bản 3, siết còn 3%)",
         "",
-        f"- Thấy Lá chọc hoặc phán xét mình: {_pct(teased, len(ln_rows))} "
-        f"({teased}/{len(ln_rows)}); mốc ≤ 5%: "
-        f"{'đạt' if teased <= 0.05 * len(ln_rows) else 'trượt'}.",
+        f"- Thấy Lá chọc, phán xét hoặc ra lệnh cho mình: {_pct(teased, len(ln_rows))} "
+        f"({teased}/{len(ln_rows)}); mốc ≤ 3%: "
+        f"{_verdict(len(ln_rows), teased <= 0.03 * len(ln_rows))}.",
         f'- Lá nhây sai lúc (mood thấp, "Chỉ cần được nghe", phần hỗ trợ): {wrong}; mốc 0: '
-        f"{'đạt' if wrong == 0 else 'trượt'}.",
+        f"{_verdict(len(ln_rows), wrong == 0)}.",
         "",
         "## Học theo bạn (mốc bản 3)",
         "",
-        f"- Người có mở bài: {len(lesson)} (từ lời mời của Lá {entry.get('la', 0)}, "
-        f"từ ba lô {entry.get('ba_lo', 0)}, từ Khám phá {entry.get('kham_pha', 0)}).",
+        f"- Thấy lối vào bài: {seen}; mở bài: {len(lesson)} (từ lời mời của Lá "
+        f"{entry.get('la', 0)}, từ ba lô {entry.get('ba_lo', 0)}, từ Khám phá "
+        f"{entry.get('kham_pha', 0)}); đọc hết tới phần việc thử: {finished}.",
         f"- Hiểu mình {_fmt(h_und)}, bình yên {_fmt(h_pe)} (mốc mỗi số ≥ 3,5): "
-        f"{'đạt' if (h_und or 0) >= 3.5 and (h_pe or 0) >= 3.5 else 'trượt'}.",
+        f"{_verdict(len(lesson), (h_und or 0) >= 3.5 and (h_pe or 0) >= 3.5)}.",
         f"- Bài học làm thấy bị ép hoặc bị dắt: {h_press}; mốc 0: "
-        f"{'đạt' if h_press == 0 else 'trượt'}.",
+        f"{_verdict(len(lesson), h_press == 0)}.",
         f"- Dòng lý do theo lá số: thấy hợp {chart.get('right', 0)}, thấy nói quá "
         f"{chart.get('overclaim', 0)}, không để ý {chart.get('unnoticed', 0)}.",
     ]

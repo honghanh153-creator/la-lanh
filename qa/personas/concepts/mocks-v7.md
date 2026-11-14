@@ -138,7 +138,7 @@ Không lưu gì; lựa chọn chỉ sống trong lần mở đó.
 
 ## LN. Lá nhây (Lá pixel thay nút chọn giọng)
 
-Không còn nút "Giọng của Lá". Note và Tarot chỉ có một giọng rõ, đời thường. Lá là hình pixel của chính chiếc Lá tím hiện có trong app, tự đổi dáng và câu nói theo lúc. Không lưu gì.
+Không còn nút "Giọng của Lá". Note và Tarot chỉ có một giọng rõ, đời thường. Lá là hình pixel của mầm xanh đã có trong app (thân tròn màu xanh, hai lá trên đầu, mắt đen, má hồng), tự đổi dáng và câu nói theo lúc. Không lưu gì.
 
 1. **Trang chủ, khối đầu**: Lá pixel (bấm được) + một câu của Lá + nút nhỏ [Lá yên chút]. Chưa chọn mood: Lá vẫy tay, câu trung tính "Chào bạn. Note hôm nay Lá để sẵn rồi." Câu của Lá không bao giờ ra lệnh (không có "đọc đi", "làm đi").
    **Lá diễn hôm nay**: mỗi ngày nhiều nhất một lần, khi mood ổn, vui hoặc chưa chọn, câu của Lá là một lời mời: "Hôm nay Lá diễn một chiêu 3 phút: 'Hỏi tiếp một câu'. [Xem Lá diễn]". Bấm thì mở bài học (xem H). Không bấm thì thôi, Lá không nhắc lại. Không hiện khi mood thấp.

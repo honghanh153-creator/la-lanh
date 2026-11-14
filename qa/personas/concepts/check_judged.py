@@ -36,7 +36,7 @@ for r in out:
                                                   ("game_understood", "game_could_stop", "game_hurt")):
             probs.append(f"{pid} {side}: game fields must be null when game_played is false")
         if V2:
-            for k in ("teased", "la_nhay_wrong_time", "quiz_card_shared"):
+            for k in ("teased", "la_nhay_wrong_time", "quiz_card_shared", "lesson_seen"):
                 if not isinstance(b.get(k), bool):
                     probs.append(f"{pid} {side}: {k} must be true/false")
             if b.get("lesson_entry", "x") not in ("la", "ba_lo", "kham_pha", None):
@@ -44,6 +44,11 @@ for r in out:
             if (b.get("lesson_entry") is None) != (b.get("lesson_pressure", "x") is None) or (
                     b.get("lesson_pressure") not in (True, False, None)):
                 probs.append(f"{pid} {side}: lesson_pressure is true/false when a lesson was opened, else null")
+            if (b.get("lesson_entry") is None) != (b.get("lesson_finished", "x") is None) or (
+                    b.get("lesson_finished") not in (True, False, None)):
+                probs.append(f"{pid} {side}: lesson_finished is true/false when a lesson was opened, else null")
+            if b.get("lesson_entry") is not None and b.get("lesson_seen") is not True:
+                probs.append(f"{pid} {side}: a lesson was opened, so lesson_seen must be true")
             if b.get("chart_line", "x") not in ("right", "overclaim", "unnoticed", None):
                 probs.append(f"{pid} {side}: chart_line must be right, overclaim, unnoticed or null")
         if not isinstance(b.get("quotes"), dict):
