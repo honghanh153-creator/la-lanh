@@ -8,10 +8,11 @@ import { deliverPendingAlerts } from './collab-heal.mjs';
 import { clean, readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 
-// maxMinutes = schedule interval + jitter + a normal run. activeFrom: autopilot only runs 9–23,
-// so the overnight gap is not a miss; from 11:00 its 09:37 and 10:37 runs should have finished.
+// maxMinutes = schedule interval + jitter + a normal run. activeFrom: autopilot only runs 7–23
+// (owner 14.11.2026, was 9–23), so the overnight gap is not a miss; from 09:00 its 07:37 and 08:37
+// runs should have finished.
 export const watched = {
-  'la-lanh-autopilot': { label: 'Autopilot (mỗi giờ)', maxMinutes: 120, activeFrom: 11 * 60 },
+  'la-lanh-autopilot': { label: 'Autopilot (mỗi giờ)', maxMinutes: 120, activeFrom: 9 * 60 },
   'la-lanh-ops-watch': { label: 'Kiểm tra server (6 giờ/lần)', maxMinutes: 7 * 60 },
   'la-lanh-retro': { label: 'Báo cáo cuối ngày (23:35)', maxMinutes: 26 * 60 },
 };
@@ -95,7 +96,7 @@ const osNotify = text => execFileSync('/usr/bin/osascript', ['-e', `display noti
 
 // One alert per stale episode and channel. A channel that failed is retried on the next tick; a
 // new done beat ends the episode, so the next stall alerts again. Hours when a task is not watched
-// (autopilot before 11:00) keep the marker, so one stall does not alert again every morning.
+// (autopilot before 09:00) keep the marker, so one stall does not alert again every morning.
 // S8 part 2 (retro 08.11, K35): every task shares one ops-alert issue, so it is resolved only when
 // a task whose alert reached GitHub has a new done beat AND no task is stale or has a queued alert
 // this tick. One task recovering while another still stalls keeps the issue open.
