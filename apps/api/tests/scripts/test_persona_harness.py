@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 
 from scripts.persona_metrics import (
     BENCHMARK_D7,
@@ -108,7 +109,7 @@ def test_merged_plan_packets_use_plain_moods_and_reproduce_baseline() -> None:
 def test_merged_plan_game_checks_not_applicable_for_non_players() -> None:
     from scripts.persona_plan import drop_not_played, share
 
-    rows = [
+    rows: list[dict[str, Any]] = [
         {"persona": "P1", "moment": "B", "checks": {"game_understood": False, "game_hurt": False}},
         {"persona": "P2", "moment": "B", "checks": {"game_understood": True}},
         {"persona": "P3", "moment": "B", "checks": {"game_understood": None}},
