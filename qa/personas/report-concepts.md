@@ -4,7 +4,7 @@
 
 - Ngưỡng ghi trước: `thresholds-1000.md` mục 6 (bản 1 + bản 2).
 - Mỗi người giả đọc hai bản gọi là X và Y; nhãn và thứ tự đọc cân bằng giữa các lô. Giám khảo viết đường bấm trước rồi mới chấm.
-- Gói: 1000 cặp. Từng concept: 910 cặp. Phần thử có điều kiện (S2, S11): 180 cặp. Codex: 40 cặp.
+- Gói: 1000 cặp. Từng concept: 910 cặp. Phần thử có điều kiện (S2, S11): 214 cặp. Codex: 40 cặp.
 
 ## Tóm tắt dễ đọc
 
@@ -37,7 +37,7 @@ Các câu cụ thể hay gặp: ba lô chưa có món "áp lực từ sếp"; c�
 
 ## Phần chưa chấm xong
 
-- Hết hạn mức sử dụng lúc 20:25. Phần thử có điều kiện còn thiếu S2-02, S12-02 và S12-03 (S12 mới có 34 cặp), sẽ chấm sau 22:50 rồi cập nhật báo cáo này. Gói, 10 concept riêng lẻ và Codex đã đủ.
+- Hết hạn mức sử dụng lúc 20:25. Phần thử có điều kiện còn thiếu S2-02 và S12-03 (hai lô bị dừng giữa chừng), sẽ chấm sau 22:50 rồi cập nhật báo cáo này. Gói, 10 concept riêng lẻ và Codex đã đủ.
 
 ## Gói đề xuất so với đối chứng: 9 điều kiện
 
@@ -85,7 +85,7 @@ Các câu cụ thể hay gặp: ba lô chưa có món "áp lực từ sếp"; c�
 
 - S2 (56 cặp, so với gói): chênh hiểu mình 0,11, chênh bình yên 0,25, cờ lo riêng tư 1, lộ dữ liệu 0.
 - S11 (90 cặp, so với gói): chênh hiểu mình 0,12, chênh bình yên -0,06, cờ lo riêng tư 15, lộ dữ liệu 0.
-- S12 (34 cặp, so với gói): chênh hiểu mình 0,00, chênh bình yên -0,03, cờ lo riêng tư 2, lộ dữ liệu 0.
+- S12 (68 cặp, so với gói): chênh hiểu mình 0,21, chênh bình yên -0,03, cờ lo riêng tư 7, lộ dữ liệu 0.
 
 ## Codex chấm đối chiếu (40 người giả, chọn đều theo nhóm)
 
