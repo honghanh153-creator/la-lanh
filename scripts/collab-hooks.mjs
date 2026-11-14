@@ -8,7 +8,7 @@
 import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, isAbsolute, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const claudeClone = process.env.LA_LANH_CLAUDE_CLONE || join(homedir(), 'Documents', 'New project', 'la-lanh-claude');
@@ -38,12 +38,14 @@ export const prePushHook = [
   '',
 ].join('\n');
 
-// The hooks directory Git really uses for this clone (core.hooksPath or the common .git/hooks).
+// The hooks directory Git really uses for this clone. Git resolves it itself: core.hooksPath with
+// `~` expanded, relative to the worktree root, or the common .git/hooks (Codex r1 on #482: a
+// hand-made join turned '~/.config/git/hooks' into '<clone>/~/.config/git/hooks', so install and
+// verify passed for a hook Git never ran).
 export function hooksDir(clone, run = (args, cwd) => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8' })).trim()) {
-  const custom = (() => { try { return run(['config', '--get', 'core.hooksPath'], clone); } catch { return ''; } })();
-  if (custom) return isAbsolute(custom) ? custom : join(clone, custom);
-  const common = run(['rev-parse', '--git-common-dir'], clone);
-  return join(isAbsolute(common) ? common : join(clone, common), 'hooks');
+  const path = run(['rev-parse', '--git-path', 'hooks'], clone);
+  if (!path) throw new Error('git không trả thư mục hook');
+  return resolve(clone, path);
 }
 
 export function verifyHook(clone = claudeClone, { dir = () => hooksDir(clone) } = {}) {

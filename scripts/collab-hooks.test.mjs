@@ -2,7 +2,7 @@ import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -29,6 +29,31 @@ test('a clone without the pre-push hook is reported; installing it makes the che
   writeFileSync(path, prePushHook);
   chmodSync(path, 0o644);
   assert.match(verifyHook(clone).join('\n'), /không có quyền chạy/);
+});
+
+// Codex r1 on #482 (P1): Git expands '~' in core.hooksPath and resolves a relative path from the
+// worktree root; a hand-made join pointed install and verify at a directory Git never runs.
+test('the hook directory is the one Git really runs: ~, relative, absolute, worktree', () => {
+  const clone = realpathSync(repoDir());
+  const git = (...args) => execFileSync('/usr/bin/git', args, { cwd: clone, encoding: 'utf8' }).trim();
+  assert.equal(hooksDir(clone), join(clone, '.git', 'hooks'));
+  git('config', 'core.hooksPath', '~/.config/git/hooks');
+  assert.equal(hooksDir(clone), join(homedir(), '.config', 'git', 'hooks'), 'never <clone>/~/…');
+  git('config', 'core.hooksPath', 'tools/hooks');
+  mkdirSync(join(clone, 'apps', 'web'), { recursive: true });
+  assert.equal(hooksDir(join(clone, 'apps', 'web')), join(clone, 'tools', 'hooks'), 'relative to the worktree root, not the cwd');
+  const abs = mkdtempSync(join(tmpdir(), 'hooks-abs-'));
+  git('config', 'core.hooksPath', abs);
+  assert.equal(hooksDir(clone), abs);
+  // Installed where Git looks: a real push from the clone runs it.
+  installHook(clone);
+  assert.deepEqual(verifyHook(clone), []);
+  git('config', '--unset', 'core.hooksPath');
+  assert.match(verifyHook(clone).join('\n'), /chưa cài/, 'the hook in the old directory no longer counts');
+  git('-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-q', '--allow-empty', '-m', 'x');
+  const wt = join(mkdtempSync(join(tmpdir(), 'hooks-wt-')), 'wt');
+  git('worktree', 'add', '-q', '-b', 'side', wt);
+  assert.equal(realpathSync(hooksDir(wt)), realpathSync(join(clone, '.git', 'hooks')), 'a worktree shares the clone hooks');
 });
 
 test('the installer never overwrites a pre-push hook it did not write', () => {
@@ -108,4 +133,22 @@ test('a guard reached through a symlink runs nothing; the hook therefore refuses
   const out = spawnSync(hook, [], { cwd: clone, input: '', encoding: 'utf8', env: { ...process.env, LA_LANH_COLLAB_HOME: home } });
   assert.equal(out.status, 1);
   assert.match(out.stderr, /không trả kết quả rõ ràng/);
+});
+
+// L12 (thỏa thuận 12.11 mục L): the loop plan must describe the author check the cron really runs.
+// Since 12.11 the cron reads the CI pr-check job; the doc still said "pnpm check" on the Mac.
+test('the loop plan describes the author check the cron really runs', async () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const cron = readFileSync(join(root, 'scripts', 'collab-cron.sh'), 'utf8');
+  const doc = readFileSync(join(root, 'docs', 'operations', 'collab-auto-loop-plan.md'), 'utf8');
+  const { checkSource } = await import('./collab-check.mjs');
+  const exported = cron.match(/^export LA_LANH_CHECK_SOURCE=(\S+)/m)?.[1];
+  assert.equal(checkSource({ LA_LANH_CHECK_SOURCE: exported }), 'ci', 'the cron reads CI');
+  const flow = doc.slice(doc.indexOf('## 3. Luồng chuẩn'), doc.indexOf('## 4.'));
+  assert.match(flow, /CI pr-check chạy trên đúng head/);
+  assert.doesNotMatch(flow, /pnpm check trên đúng head/, 'the old local check is not the described flow');
+  assert.match(doc, /LA_LANH_CHECK_SOURCE=ci/);
+  // L07: the doc promises a pre-push hook with the locked lint; the hook really runs it.
+  assert.match(doc, /collab-hooks\.mjs --install/);
+  assert.match(prePushHook, /collab-preflight\.mjs" --lint/);
 });
