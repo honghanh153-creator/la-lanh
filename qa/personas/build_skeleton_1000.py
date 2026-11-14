@@ -70,6 +70,12 @@ PLACES = {
         "rural": ["An Giang", "Bến Tre", "Sóc Trăng", "Long An", "Tây Ninh", "Cà Mau"],
     },
 }
+# Birth place must be a name the app's place catalog resolves (province level); towns map here.
+PROVINCE_OF = {
+    "Biên Hòa": "Đồng Nai", "Buôn Ma Thuột": "Đắk Lắk", "Long Xuyên": "An Giang",
+    "Nha Trang": "Khánh Hòa", "Quy Nhơn": "Bình Định", "Thủ Dầu Một": "Bình Dương",
+    "Vinh": "Nghệ An", "Vũng Tàu": "Bà Rịa - Vũng Tàu",
+}
 # Student monthly spend excluding tuition, Cốc Cốc 12/2025 (youth-stats finding 4).
 STUDENT_SPEND = [
     ("<1tr", 20), ("1-3tr", 35), ("3-5tr", 24), ("5-7tr", 12), ("7-10tr", 4),
@@ -213,10 +219,10 @@ def main() -> None:
         birth: dict[str, object] = {"precision": prec, "birth_date": born.isoformat()}
         if prec == "exact":
             birth["birth_time_local"] = f"{rng.randrange(24):02d}:{rng.randrange(60):02d}"
-            birth["birth_place"] = hometown
+            birth["birth_place"] = PROVINCE_OF.get(hometown, hometown)
         elif prec == "approximate":
             birth["approx_window"] = rng.choice(APPROX_WINDOWS)
-            birth["birth_place"] = hometown
+            birth["birth_place"] = PROVINCE_OF.get(hometown, hometown)
         # Income or spend band.
         if row["group"] == "student":
             high = rng.random() < HIGH_SPEND_SHARE.get(lives_in, 0.19)

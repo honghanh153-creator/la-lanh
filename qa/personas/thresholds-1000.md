@@ -48,8 +48,30 @@ Thêm hai câu cho concept viral (thống nhất với phiên "Sáng tạo + vir
 
 ## 6. Ngưỡng concept (điền trước khi chấm concept)
 
-Chưa có.
+Chép nguyên văn từ phiên "Sáng tạo + viral" (`viral-concepts-thresholds-preregistered.md` trong thư mục ghi chú chung), ghi ngày 14.11.2026 trước mọi lần chấm concept. Phiên đó tự chạy giám khảo trên `personas-1000.json`.
+
+Phiên concept (side session của local_74a04d2d). Ngưỡng này ghi TRƯỚC khi có bất kỳ điểm nào. Không sửa sau khi thấy kết quả; nếu phải đổi cách đo thì ghi lý do và chạy lại cả đối chứng.
+
+### Thiết kế chấm
+- Mỗi persona chấm cặp: **Đối chứng** = trải nghiệm kế hoạch 6 tuần hiện tại ở tuần 6 (mock B của merged-plan), và **Gói đề xuất** = cùng nền đó cộng các concept trong danh sách rút gọn. Cùng persona, cùng tình huống, cùng mood → so theo cặp.
+- Mỗi concept còn được chấm riêng (dùng hay không; nếu dùng thì các điểm dưới).
+- Giám khảo Claude mù với ngưỡng. Codex chấm độc lập một mẫu nhỏ chọn đều theo nhóm.
+- Đây là ý kiến mô hình trên mock chữ, là **mức trần**, không phải số đo người thật.
+
+### Ngưỡng của Gói đề xuất (tất cả phải đạt)
+1. "Hiểu mình" trung bình ≥ **3,7**.
+2. "Bớt thấy một mình" ≥ **3,5** và "Thấy bình yên" ≥ **3,5**.
+3. Bốn nhóm sinh viên yếu (năm cuối tìm việc, tiền eo hẹp, áp lực gia đình, vừa học vừa làm): **mỗi nhóm** "hiểu mình" ≥ **3,5**.
+4. Lan truyền (đại diện): ≥ **35%** persona nói **sẽ chia sẻ một thẻ hoặc mời một người** (có/không), **và** ≥ **30%** nêu được cụ thể gửi gì, cho ai, vì sao (giám khảo ghi lại; câu chung chung không tính).
+5. Không hại: mỗi cờ bị trách / bị ép / lo riêng tư / phụ thuộc / "phải xem Lá mới dám quyết" ≤ **3%**; trò chơi chạm nỗi đau ≤ **1%** người đã chơi; **0** ca thử thách nguy hiểm hoặc làm nhục trong nội dung mẫu.
+6. Không tụt so với đối chứng ở "bình yên" (chênh trung bình ≥ −0,05).
+
+### Tham khảo, không phải điều kiện đạt
+- "Tuần sau mình sẽ quay lại vì điều này" 1–5: báo, mong ≥ 3,5.
+- Theo từng concept: concept được giữ khi "hiểu mình" của người dùng nó ≥ 3,5, cờ hại ≤ 3%, và nó kéo "hiểu mình" lên ≥ +0,2 hoặc tỉ lệ chia sẻ lên ≥ 5 điểm % so với đối chứng.
+- Claude đạt mà Codex trượt thì ghi "chưa kết luận".
 
 ## Nhật ký thay đổi
 
 - v1 (14.11.2026): bản đầu, viết trước mọi lần chấm trên bộ 1000.
+- v1, bổ sung cùng ngày: chép ngưỡng concept của phiên "Sáng tạo + viral" vào mục 6, trước khi chấm concept. Không đổi ngưỡng nào khác.
