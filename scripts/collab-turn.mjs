@@ -5,6 +5,7 @@ import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integratio
 import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { ownerNotes } from './collab-status.mjs';
 import { bodyHash } from './collab-heal.mjs';
+import { plannedWork, renderProgress, workRef } from './collab-work.mjs';
 import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees } from './collab-preflight.mjs';
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
@@ -35,7 +36,7 @@ export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
 export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   const head = pr.headRefOid;
   const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
-    source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body) });
+    source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body), item: workRef(pr.body) });
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (!isOwnPr(pr)) return out('hold', 'PR không phải của owner hoặc từ fork: không chạy, không review');
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
@@ -100,7 +101,7 @@ export const idleAlertRuns = 6;
 // A failed daily copy batch is retried on later ticks, at most this many attempts a day.
 export const copyBatchAttempts = 3;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, progress = null, snapshot = null, incidents = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -116,16 +117,19 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     // only in the morning plan: a hook removed at noon shows on the next tick (Codex r1 on #482).
     let healthNow;
     const readHealth = () => { if (healthNow === undefined) { try { healthNow = health(); } catch { healthNow = []; } } return healthNow; };
+    // L19: open incidents are read from GitHub once per tick and shown on every board update.
+    let openIncidents;
+    const readIncidents = () => { if (openIncidents === undefined) { try { openIncidents = incidents ? incidents() : []; } catch { openIncidents = null; } } return openIncidents; };
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), incidents: readIncidents(), ...info }); } catch {}
     };
     // Owner notes (collab-status.mjs): a new comment only for merges, a 2-tick failure streak,
     // a new needs-owner and the 12:00/22:00 digest. Never breaks a tick.
     const tell = ({ turns = [], comments = [], dropped = [], digest = true } = {}) => {
       try {
         const d = readJson(dayPath, day);
-        const notes = ownerNotes({ now: time(), merged: d.mergedToday ?? [], failures: d.failures ?? 0, streakAt: d.streakAt ?? null, turns, planned: d.planned ?? [], dropped, metrics: metricLines ?? [], digest });
+        const notes = ownerNotes({ now: time(), merged: d.mergedToday ?? [], failures: d.failures ?? 0, streakAt: d.streakAt ?? null, turns, planned: d.planned ?? [], dropped, metrics: metricLines ?? [], digest, work: progress ? () => renderProgress(progress(d, time().date)) : null, snapshot });
         if (notes.length) notify(notes, comments);
       } catch (error) { log(`owner note failed, retry next run: ${clean(error.message, 200)}`); }
     };
@@ -142,7 +146,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         const turns = turnsFor(prs);
         measure(prs, turns);
         // Progress is items done / items picked (owner 12.11.2026): remember what was picked.
-        writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number) });
+        // L11: the items picked are recorded now, so a PR body edited later cannot change the count.
+        writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number), plannedItems: plannedWork(committedTurns(turns)) });
         makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth() });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
