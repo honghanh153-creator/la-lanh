@@ -1,0 +1,793 @@
+{
+  "$comment": "Feature map for the web app (apps/web/src/app/router.tsx). One entry per user-facing feature: how a user reaches it, its routes, role selectors that exist in source today, states to check and the fake-data fixture. Used by scripts/verify/verify.mjs and checked by scripts/verify/feature-map-check.mjs. The app has no data-testid attributes; selectors are ARIA role + accessible name. A selector with \"source\": \"fixture\" names text that comes from apps/web/tests/verify/fixtures.ts, not from app source. Update this file in the same PR that adds or changes a route.",
+  "version": 1,
+  "router": "apps/web/src/app/router.tsx",
+  "fixtures_file": "apps/web/tests/verify/fixtures.ts",
+  "features": [
+    {
+      "id": "entry",
+      "title": "Điểm vào app (/)",
+      "us": ["US-01"],
+      "ac": ["US-01 AC07", "US-01 AC21"],
+      "routes": ["/"],
+      "source_files": ["apps/web/src/features/entry/EntryPage.tsx"],
+      "user_path": ["Mở app ở /", "Khách chưa có phiên được đưa tới /welcome; người đã có hồ sơ được đưa tới /home"],
+      "owner_only": false,
+      "states": {
+        "guest": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/" }],
+          "ready": { "role": "button", "name": "Đồng ý & bắt đầu" }
+        },
+        "returning": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/" }],
+          "ready": { "role": "button", "name": "Chọn mood hôm nay" }
+        },
+        "offline": { "manual": "Tắt mạng rồi mở /: app không trắng trang." }
+      }
+    },
+    {
+      "id": "welcome",
+      "title": "Welcome và đồng ý cơ bản",
+      "us": ["US-01"],
+      "ac": ["US-01 AC02", "US-01 AC03", "US-01 AC04", "US-01 AC09"],
+      "routes": ["/welcome", "/consent"],
+      "source_files": ["apps/web/src/features/welcome/WelcomePage.tsx", "apps/web/src/features/welcome/welcome-intro.css"],
+      "user_path": ["Mở app lần đầu", "Thấy Welcome với nút Đồng ý & bắt đầu"],
+      "owner_only": true,
+      "owner_only_reason": "Consent copy: only the owner writes or changes it.",
+      "key_selectors": [
+        { "role": "button", "name": "Đồng ý & bắt đầu" },
+        { "role": "link", "name": "Xem chi tiết" },
+        { "role": "button", "name": "Tạm dừng chuyển động" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/welcome" }],
+          "ready": { "role": "button", "name": "Đồng ý & bắt đầu" }
+        },
+        "error": { "manual": "POST /v1/guest-sessions trả 503: nút vẫn bấm lại được, có thông báo lỗi." }
+      }
+    },
+    {
+      "id": "privacy",
+      "title": "Chi tiết quyền riêng tư",
+      "us": ["US-01"],
+      "ac": ["US-01 AC04"],
+      "routes": ["/privacy"],
+      "source_files": ["apps/web/src/features/consent/ConsentPage.tsx"],
+      "user_path": ["Welcome", "Bấm Xem chi tiết"],
+      "owner_only": true,
+      "owner_only_reason": "Privacy copy: only the owner writes or changes it.",
+      "key_selectors": [
+        { "role": "heading", "name": "Lá Lành dùng dữ liệu thế nào?" },
+        { "role": "button", "name": "Mình hiểu rồi" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/welcome" }, { "click": { "role": "link", "name": "Xem chi tiết" } }],
+          "ready": { "role": "heading", "name": "Lá Lành dùng dữ liệu thế nào?" }
+        }
+      }
+    },
+    {
+      "id": "demo",
+      "title": "Bản xem thử khi chưa đồng ý",
+      "us": ["US-01"],
+      "ac": ["US-01 AC06"],
+      "routes": ["/demo"],
+      "source_files": ["apps/web/src/features/consent/DemoPage.tsx"],
+      "user_path": ["Welcome", "Chọn chưa đồng ý / xem thử"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "heading", "name": "Đừng vội rep." },
+        { "role": "button", "name": "Thoát bản xem thử" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/demo" }],
+          "ready": { "role": "button", "name": "Thoát bản xem thử" }
+        }
+      }
+    },
+    {
+      "id": "companion-lab",
+      "title": "So sánh bạn đồng hành (chỉ để QA)",
+      "us": [],
+      "ac": [],
+      "gap": "QA-only page, no user story. Reads and writes no personal data.",
+      "routes": ["/companion-lab"],
+      "source_files": ["apps/web/src/features/companion-lab/CompanionLabPage.tsx", "apps/web/src/features/companion-lab/companion-lab.css"],
+      "user_path": ["Không có lối vào cho người dùng; mở trực tiếp /companion-lab"],
+      "owner_only": false,
+      "key_selectors": [{ "role": "region", "name": "Bảng điều khiển" }],
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/companion-lab" }],
+          "ready": { "role": "heading", "name": "Bạn đồng hành lớn dần" }
+        }
+      }
+    },
+    {
+      "id": "birth-date",
+      "title": "Nhập ngày sinh",
+      "us": ["US-02"],
+      "ac": ["US-02 AC01", "US-02 AC02", "US-02 AC03", "US-02 AC05", "US-02 AC06"],
+      "routes": ["/birth"],
+      "source_files": ["apps/web/src/features/birth/BirthDatePage.tsx", "apps/web/src/features/birth/birthDateInput.ts", "apps/web/src/features/birth/OptionalBirthDetails.tsx"],
+      "user_path": ["Welcome", "Bấm Đồng ý & bắt đầu", "Màn nhập ngày sinh"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "heading", "name": "Bạn xuất hiện ngày nào?" },
+        { "role": "textbox", "name": "Ngày" },
+        { "role": "button", "name": "Khớp tín hiệu" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "birth-pending",
+          "walk": [{ "goto": "/birth" }],
+          "ready": { "role": "button", "name": "Khớp tín hiệu" }
+        },
+        "from-welcome": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/welcome" }, { "click": { "role": "button", "name": "Đồng ý & bắt đầu" } }],
+          "ready": { "role": "heading", "name": "Bạn xuất hiện ngày nào?" }
+        },
+        "error": { "manual": "Nhập ngày dưới 18 tuổi: có thông báo lỗi (tests/e2e/product-flow.spec.ts đã kiểm)." }
+      }
+    },
+    {
+      "id": "birth-time",
+      "title": "Thêm giờ và nơi sinh",
+      "us": ["US-06", "US-23"],
+      "ac": ["US-06 AC01", "US-06 AC02", "US-06 AC03", "US-06 AC09"],
+      "routes": ["/birth-time"],
+      "source_files": ["apps/web/src/features/birth/BirthSupplementPage.tsx", "apps/web/src/features/birth/optionalBirthInput.ts", "apps/web/src/shared/ui/BirthTimeInput.tsx", "apps/web/src/shared/ui/BirthTimePicker.tsx"],
+      "user_path": ["Home", "Bấm Thêm giờ & nơi sinh"],
+      "owner_only": true,
+      "owner_only_reason": "Separate consent for birth time and place: only the owner writes or changes that copy.",
+      "key_selectors": [
+        { "role": "heading", "name": "Mở thêm một lớp bí mật?" },
+        { "role": "button", "name": "Thêm để mở lớp mới" },
+        { "role": "button", "name": "Để sau" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/home" }, { "click": { "role": "link", "name": "Thêm giờ & nơi sinh" } }],
+          "ready": { "role": "button", "name": "Thêm để mở lớp mới" }
+        }
+      }
+    },
+    {
+      "id": "reveal",
+      "title": "Lá Khai Sinh (reveal)",
+      "us": ["US-02"],
+      "ac": ["US-02 AC09", "US-02 AC11", "US-02 AC12"],
+      "routes": ["/reveal"],
+      "source_files": ["apps/web/src/features/reveal/RevealPage.tsx", "apps/web/src/features/reveal/reveal-vitality.css"],
+      "user_path": ["Welcome", "Đồng ý", "Nhập ngày sinh", "Bấm Khớp tín hiệu"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "button", "name": "Mở Note hôm nay" },
+        { "role": "note", "name": "Lưu ý về bản đọc" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/reveal" }],
+          "ready": { "role": "button", "name": "Mở Note hôm nay" }
+        },
+        "loading": { "manual": "Làm chậm GET /v1/birth-profile: có trạng thái đang tải, không trắng trang (US-02 AC10)." }
+      }
+    },
+    {
+      "id": "aura-cutover",
+      "title": "Chuyển sang Aura sau khi thêm giờ/nơi sinh",
+      "us": ["US-06", "US-07"],
+      "ac": ["US-06 AC12"],
+      "routes": ["/aura-cutover", "/reveal/aura"],
+      "source_files": ["apps/web/src/features/reveal/AuraCutoverPage.tsx"],
+      "user_path": ["Home", "Thêm giờ & nơi sinh", "Đồng ý và lưu", "Màn chuyển Aura"],
+      "owner_only": false,
+      "key_selectors": [{ "role": "link", "name": "Về Home" }],
+      "states": {
+        "not-ready": {
+          "fixture": "signed-in-deep",
+          "walk": [{ "goto": "/aura-cutover" }],
+          "ready": { "role": "heading", "name": "Aura chưa sẵn sàng." }
+        },
+        "ready": { "manual": "Cần projection có available_update; luồng đầy đủ nằm ở tests/e2e/product-flow.spec.ts." }
+      }
+    },
+    {
+      "id": "home",
+      "title": "Home / Note hôm nay",
+      "us": ["US-03", "US-21"],
+      "ac": ["US-03 AC01", "US-03 AC02", "US-03 AC06", "US-03 AC13"],
+      "routes": ["/home"],
+      "source_files": ["apps/web/src/features/home/HomePage.tsx", "apps/web/src/features/home/HomeRituals.tsx", "apps/web/src/features/home/home-vitality.css", "apps/web/src/features/home/companionLine.ts", "apps/web/src/features/home/homeRitualState.ts", "apps/web/src/shared/ui/AppNav.tsx"],
+      "user_path": ["Welcome", "Đồng ý", "Nhập ngày sinh", "Reveal", "Bấm Mở Note hôm nay"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "heading", "name": "Hôm nay có gì đáng để ý?" },
+        { "role": "region", "name": "Note hôm nay" },
+        { "role": "link", "name": "Đọc đầy đủ" },
+        { "role": "navigation", "name": "Điều hướng chính" },
+        { "role": "complementary", "name": "Còn lá ẩn chờ bạn mở" },
+        { "role": "button", "name": "Để 3 ngày sau" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/home" }],
+          "ready": { "role": "heading", "name": "Đừng biến mình thành deadline.", "source": "fixture" }
+        },
+        "from-reveal": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/reveal" }, { "click": { "role": "button", "name": "Mở Note hôm nay" } }],
+          "ready": { "role": "heading", "name": "Hôm nay có gì đáng để ý?" }
+        },
+        "loading": { "manual": "Làm chậm GET /v1/daily-note: thấy khung Đang mở tín hiệu hôm nay." },
+        "offline": { "manual": "Có cache hôm nay rồi tắt mạng: vẫn thấy note (US-03 AC08)." },
+        "error": { "manual": "GET /v1/daily-note lỗi: Home không trống, có fallback (US-03 AC09)." }
+      }
+    },
+    {
+      "id": "mood",
+      "title": "Chọn mood hôm nay",
+      "us": ["US-04"],
+      "ac": ["US-04 AC01", "US-04 AC02", "US-04 AC04", "US-04 AC13"],
+      "routes": ["/home"],
+      "source_files": ["apps/web/src/features/home/HomePage.tsx", "apps/web/src/shared/storage/pendingMood.ts"],
+      "user_path": ["Home", "Bấm Chọn mood hôm nay", "Chọn một mood"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "button", "name": "Chọn mood hôm nay" },
+        { "role": "button", "name": "Chill" }
+      ],
+      "states": {
+        "sheet-open": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/home" }, { "click": { "role": "button", "name": "Chọn mood hôm nay" } }],
+          "ready": { "role": "button", "name": "Chill" }
+        },
+        "offline": { "manual": "Chọn mood khi offline: giữ trên máy và đồng bộ sau (US-04 AC07)." }
+      }
+    },
+    {
+      "id": "note-detail",
+      "title": "Note đầy đủ và lưu note",
+      "us": ["US-03", "US-05"],
+      "ac": ["US-03 AC07", "US-05 AC01", "US-05 AC02"],
+      "routes": ["/note/today"],
+      "source_files": ["apps/web/src/features/home/NoteDetailPage.tsx", "apps/web/src/shared/ui/ReadingContent.tsx", "apps/web/src/shared/ui/ReadingDisclaimer.tsx"],
+      "user_path": ["Home", "Trong Note hôm nay bấm Đọc đầy đủ"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "button", "name": "Lưu note" },
+        { "role": "link", "name": "Chia sẻ" },
+        { "role": "note", "name": "Lưu ý về bản đọc" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/home" }, { "click": { "role": "link", "name": "Đọc đầy đủ" } }],
+          "ready": { "role": "button", "name": "Lưu note" }
+        }
+      }
+    },
+    {
+      "id": "saved",
+      "title": "Note đã lưu và link đã chia sẻ",
+      "us": ["US-05"],
+      "ac": ["US-05 AC03", "US-05 AC04"],
+      "routes": ["/saved"],
+      "source_files": ["apps/web/src/features/saved/SavedPage.tsx", "apps/web/src/features/saved/ShareLinksSection.tsx"],
+      "user_path": ["Home", "Bấm Trang cá nhân", "Bấm Note đã lưu"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "region", "name": "Những note đã lưu" },
+        { "role": "button", "name": "Bỏ lưu" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/saved" }],
+          "ready": { "role": "button", "name": "Bỏ lưu" }
+        },
+        "empty": { "manual": "GET /v1/saved-notes trả []: có trạng thái trống (US-05 AC03)." }
+      }
+    },
+    {
+      "id": "card",
+      "title": "Card chia sẻ note và safe link",
+      "us": ["US-05"],
+      "ac": ["US-05 AC06", "US-05 AC07", "US-05 AC08", "US-05 AC11"],
+      "routes": ["/card"],
+      "source_files": ["apps/web/src/features/card/CardPage.tsx", "apps/web/src/features/card/ShareArtPreview.tsx", "apps/web/src/features/card/shareArt.ts", "apps/web/src/features/card/shareArt.css", "apps/web/src/features/card/noteCardSvg.ts", "apps/web/src/features/card/useShareArt.ts"],
+      "user_path": ["Home", "Note đầy đủ", "Bấm Chia sẻ"],
+      "owner_only": false,
+      "share_sensitive": true,
+      "key_selectors": [
+        { "role": "region", "name": "Định dạng card" },
+        { "role": "button", "name": "Chia sẻ card" },
+        { "role": "button", "name": "Tạo safe link" },
+        { "role": "button", "name": "Tải ảnh PNG" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/note/today" }, { "click": { "role": "link", "name": "Chia sẻ" } }],
+          "ready": { "role": "button", "name": "Tạo safe link" }
+        },
+        "safe-link": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/card" }, { "click": { "role": "button", "name": "Tạo safe link" } }],
+          "ready": { "role": "status" }
+        }
+      }
+    },
+    {
+      "id": "birth-card",
+      "title": "Thẻ Lá Khai Sinh",
+      "us": ["US-02"],
+      "ac": ["US-02 AC12"],
+      "routes": ["/birth-card"],
+      "source_files": ["apps/web/src/features/card/BirthCardPage.tsx", "apps/web/src/features/card/birthCardArt.ts"],
+      "user_path": ["Home", "Trang cá nhân", "Bấm Tạo thẻ chia sẻ"],
+      "owner_only": false,
+      "share_sensitive": true,
+      "key_selectors": [{ "role": "region", "name": "Định dạng Lá Khai Sinh" }],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/birth-card" }],
+          "ready": { "role": "region", "name": "Định dạng Lá Khai Sinh" }
+        }
+      }
+    },
+    {
+      "id": "share-preview",
+      "title": "Trang công khai của link chia sẻ",
+      "us": ["US-05"],
+      "ac": ["US-05 AC13"],
+      "routes": ["/share/:token"],
+      "source_files": ["apps/web/src/features/card/SharePreviewPage.tsx"],
+      "user_path": ["Người nhận mở link /share/<token> từ người gửi"],
+      "owner_only": false,
+      "share_sensitive": true,
+      "key_selectors": [{ "role": "link", "name": "Mở Lá Lành của mình" }],
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/share/share-token-test" }],
+          "ready": { "role": "link", "name": "Mở Lá Lành của mình" }
+        },
+        "error": { "manual": "Token hết hạn hoặc bị thu hồi: không lộ dữ liệu, có lời giải thích." }
+      }
+    },
+    {
+      "id": "insights",
+      "title": "Khám phá (Bản đồ Lá)",
+      "us": ["US-07"],
+      "ac": ["US-07 AC01", "US-07 AC02", "US-07 AC06", "US-07 AC08", "US-07 AC09"],
+      "routes": ["/insights", "/natal"],
+      "source_files": ["apps/web/src/features/insights/InsightsPage.tsx", "apps/web/src/features/insights/insights.css", "apps/web/src/features/insights/insightConfig.ts"],
+      "user_path": ["Home", "Thanh điều hướng: bấm Khám phá"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "region", "name": "Chọn hệ đọc" },
+        { "role": "link", "name": "Cách tính" }
+      ],
+      "states": {
+        "locked": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/home" }, { "click": { "role": "link", "name": "Khám phá", "within": { "role": "navigation", "name": "Điều hướng chính" } } }],
+          "ready": { "role": "link", "name": "Thêm giờ & nơi sinh" }
+        },
+        "unlocked": {
+          "fixture": "signed-in-deep",
+          "walk": [{ "goto": "/insights" }],
+          "ready": { "role": "heading", "name": "Nhiều lớp trong bạn đang nói cùng lúc.", "source": "fixture" }
+        },
+        "error": {
+          "fixture": "insights-error",
+          "walk": [{ "goto": "/insights" }],
+          "ready": { "role": "heading", "name": "Chưa mở được bản đọc." }
+        }
+      }
+    },
+    {
+      "id": "insights-settings",
+      "title": "Cách tính chart",
+      "us": ["US-07"],
+      "ac": ["US-07 AC03"],
+      "routes": ["/insights/settings"],
+      "source_files": ["apps/web/src/features/insights/CalculationSettingsPage.tsx"],
+      "user_path": ["Khám phá", "Bấm Cách tính"],
+      "owner_only": false,
+      "key_selectors": [{ "role": "button", "name": "Đặt lại khuyên dùng" }],
+      "states": {
+        "default": {
+          "fixture": "signed-in-deep",
+          "walk": [{ "goto": "/insights" }, { "click": { "role": "link", "name": "Cách tính" } }],
+          "ready": { "role": "heading", "name": "Biết chart được tính thế nào." }
+        }
+      }
+    },
+    {
+      "id": "current-sky",
+      "title": "Bầu trời hôm nay",
+      "us": ["US-07"],
+      "ac": ["US-07 AC05"],
+      "routes": ["/insights/current-sky"],
+      "source_files": ["apps/web/src/features/insights/CurrentSkyPage.tsx"],
+      "user_path": ["Khám phá (đã mở)", "Bấm Bầu trời hiện tại"],
+      "owner_only": false,
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/insights/current-sky" }],
+          "ready": { "role": "heading", "name": "Bầu trời hôm nay đang ở đâu?" }
+        }
+      }
+    },
+    {
+      "id": "reading-detail",
+      "title": "Chi tiết một lớp đọc",
+      "us": ["US-07"],
+      "ac": ["US-07 AC07", "US-07 AC08"],
+      "routes": ["/insights/:claimId"],
+      "source_files": ["apps/web/src/features/insights/ReadingDetailPage.tsx"],
+      "user_path": ["Khám phá (đã mở)", "Bấm một thẻ, ví dụ Mạch suy nghĩ"],
+      "owner_only": false,
+      "key_selectors": [{ "role": "link", "name": "Quay lại Bản đồ Lá" }],
+      "states": {
+        "default": {
+          "fixture": "signed-in-deep",
+          "walk": [{ "goto": "/insights" }, { "click": { "role": "link", "name": "Mạch suy nghĩ", "source": "fixture" } }],
+          "ready": { "role": "link", "name": "Quay lại Bản đồ Lá" }
+        }
+      }
+    },
+    {
+      "id": "radar-landing",
+      "title": "Hợp gu (Radar) — trang đầu",
+      "us": ["US-12", "US-22"],
+      "ac": ["US-12 AC01"],
+      "routes": ["/radar", "/vong-la"],
+      "source_files": ["apps/web/src/features/radar/RadarLandingPage.tsx", "apps/web/src/features/radar/radar.css"],
+      "user_path": ["Home", "Thanh điều hướng: bấm Hợp gu"],
+      "owner_only": false,
+      "key_selectors": [
+        { "role": "link", "name": "Check kín một người" },
+        { "role": "link", "name": "Kết quả bạn đã nhận" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/home" }, { "click": { "role": "link", "name": "Hợp gu", "within": { "role": "navigation", "name": "Điều hướng chính" } } }],
+          "ready": { "role": "heading", "name": "Check thử hai bạn bắt sóng ở đâu." }
+        }
+      }
+    },
+    {
+      "id": "radar-start",
+      "title": "Radar — check kín một người",
+      "us": ["US-12"],
+      "ac": ["US-12 AC01", "US-12 AC02", "US-12 AC05", "US-12 AC09", "US-12 AC10"],
+      "routes": ["/radar/start"],
+      "source_files": ["apps/web/src/features/radar/RadarPrivateStartPage.tsx", "apps/web/src/features/radar/RadarFlowSteps.tsx", "apps/web/src/features/radar/radarOptions.ts"],
+      "user_path": ["Hợp gu", "Bấm Check kín một người"],
+      "owner_only": true,
+      "owner_only_reason": "Attestation for another person's birth data: only the owner writes or changes that copy.",
+      "key_selectors": [
+        { "role": "navigation", "name": "Tiến độ Radar" },
+        { "role": "button", "name": "Check kín ngay" }
+      ],
+      "states": {
+        "needs-chart": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/radar" }, { "click": { "role": "link", "name": "Check kín một người", "exact": true } }],
+          "ready": { "role": "heading", "name": "Chart của bạn cần có trước." }
+        },
+        "form": {
+          "fixture": "signed-in-deep",
+          "walk": [{ "goto": "/radar/start" }],
+          "ready": { "role": "button", "name": "Check kín ngay" }
+        }
+      }
+    },
+    {
+      "id": "radar-invite",
+      "title": "Radar — tạo link mời",
+      "us": ["US-12", "US-13"],
+      "ac": ["US-12 AC10", "US-13 AC10"],
+      "routes": ["/radar/invite", "/vong-la/setup"],
+      "source_files": ["apps/web/src/features/radar/RadarStartPage.tsx"],
+      "user_path": ["Hợp gu", "Check kín một người", "Bấm Mời họ tự nhập"],
+      "owner_only": false,
+      "share_sensitive": true,
+      "key_selectors": [{ "role": "button", "name": "Tạo link bật Radar" }],
+      "states": {
+        "default": {
+          "fixture": "signed-in-deep",
+          "walk": [{ "goto": "/radar/invite" }],
+          "ready": { "role": "heading", "name": "Bạn muốn check ai?" }
+        }
+      }
+    },
+    {
+      "id": "radar-continue",
+      "title": "Radar — người nhận quay lại",
+      "us": ["US-13"],
+      "ac": ["US-13 AC10"],
+      "routes": ["/radar/continue"],
+      "source_files": ["apps/web/src/features/radar/RadarContinuePage.tsx"],
+      "user_path": ["Người nhận mở link mời", "Tạo chart của mình", "Quay lại /radar/continue"],
+      "owner_only": false,
+      "states": {
+        "no-invite": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/radar/continue" }],
+          "ready": { "role": "heading", "name": "Mở lại đúng link mời nhé." }
+        }
+      }
+    },
+    {
+      "id": "radar-public-invite",
+      "title": "Radar — trang công khai của link mời",
+      "us": ["US-13"],
+      "ac": ["US-13 AC10"],
+      "routes": ["/radar/i/:token"],
+      "source_files": ["apps/web/src/features/radar/PublicRadarPage.tsx"],
+      "user_path": ["Người nhận mở link /radar/i/<token> từ người gửi"],
+      "owner_only": true,
+      "owner_only_reason": "Pair consent and withdrawal copy for the invited person.",
+      "share_sensitive": true,
+      "key_selectors": [
+        { "role": "link", "name": "Xem mình cần làm gì" },
+        { "role": "button", "name": "Không tham gia" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "radar-public-invite",
+          "walk": [{ "goto": "/radar/i/invite-token-test" }],
+          "ready": { "role": "button", "name": "Không tham gia" }
+        },
+        "error": { "manual": "Token hết hạn/thu hồi: không lộ thông tin của người mời (US-09 AC06)." }
+      }
+    },
+    {
+      "id": "radar-receipt",
+      "title": "Radar — biên nhận của người được mời",
+      "us": ["US-13"],
+      "ac": ["US-13 AC10"],
+      "routes": ["/radar/receipt"],
+      "source_files": ["apps/web/src/features/radar/RadarReceiptPage.tsx", "apps/web/src/features/radar/RadarEraseSheet.tsx"],
+      "user_path": ["Người nhận đồng ý tham gia từ link mời", "Xem kết quả"],
+      "owner_only": true,
+      "owner_only_reason": "Withdrawal copy for the invited person.",
+      "key_selectors": [{ "role": "button", "name": "Rút chart của tôi khỏi kết quả này" }],
+      "states": {
+        "default": {
+          "fixture": "radar-result",
+          "walk": [{ "goto": "/radar/receipt" }],
+          "ready": { "role": "button", "name": "Rút chart của tôi khỏi kết quả này" }
+        }
+      }
+    },
+    {
+      "id": "radar-received",
+      "title": "Radar — kết quả bạn đã nhận",
+      "us": ["US-13"],
+      "ac": ["US-13 AC06", "US-13 AC10"],
+      "routes": ["/radar/received", "/radar/received/:requestId"],
+      "source_files": ["apps/web/src/features/radar/RadarReceivedPage.tsx", "apps/web/src/features/radar/radarReadingCache.ts"],
+      "user_path": ["Hợp gu", "Bấm Kết quả bạn đã nhận", "Mở một kết quả"],
+      "owner_only": false,
+      "key_selectors": [{ "role": "link", "name": "Về Radar Hợp Gu" }],
+      "states": {
+        "list": {
+          "fixture": "radar-result",
+          "walk": [{ "goto": "/radar" }, { "click": { "role": "link", "name": "Kết quả bạn đã nhận" } }],
+          "ready": { "role": "heading", "name": "Kết quả bạn đã nhận" }
+        },
+        "detail": {
+          "fixture": "radar-result",
+          "walk": [{ "goto": "/radar/received/00000000-0000-4000-8000-000000000020" }],
+          "ready": { "role": "button", "name": "Rút chart của tôi khỏi kết quả này" }
+        },
+        "empty": { "manual": "GET /v1/radar/received trả danh sách rỗng: có trạng thái trống." }
+      }
+    },
+    {
+      "id": "radar-result",
+      "title": "Radar — kết quả của người check",
+      "us": ["US-13", "US-22"],
+      "ac": ["US-13 AC01", "US-13 AC02", "US-13 AC05", "US-13 AC06", "US-13 AC07"],
+      "routes": ["/radar/result/:requestId"],
+      "source_files": ["apps/web/src/features/radar/RadarOwnerResultPage.tsx", "apps/web/src/features/radar/useRadarHistory.ts", "apps/web/src/features/radar/useRadarOwnerBinding.ts", "apps/web/src/features/radar/useRadarEraseTarget.ts"],
+      "user_path": ["Hợp gu", "Check kín một người", "Nhập thông tin và bấm Check kín ngay", "Màn kết quả"],
+      "owner_only": false,
+      "key_selectors": [{ "role": "button", "name": "Xóa kết quả này" }],
+      "states": {
+        "default": {
+          "fixture": "radar-result",
+          "walk": [{ "goto": "/radar/result/00000000-0000-4000-8000-000000000020" }],
+          "ready": { "role": "button", "name": "Xóa kết quả này" }
+        }
+      }
+    },
+    {
+      "id": "profile",
+      "title": "Mình (hồ sơ, giao diện, dữ liệu)",
+      "us": ["US-19", "US-23"],
+      "ac": ["US-23 AC1", "US-19 AC02"],
+      "routes": ["/profile"],
+      "source_files": ["apps/web/src/features/profile/ProfilePage.tsx", "apps/web/src/features/profile/profile-identity.css", "apps/web/src/features/profile/downloadMyData.ts", "apps/web/src/features/birth/BirthDateEdit.tsx"],
+      "user_path": ["Home", "Thanh điều hướng: bấm Mình"],
+      "owner_only": true,
+      "owner_only_reason": "Data export, deletion and retention copy.",
+      "key_selectors": [
+        { "role": "list", "name": "Bộ ba của bạn" },
+        { "role": "switch", "name": "Bật chế độ tối" },
+        { "role": "navigation", "name": "Lối tắt" }
+      ],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/home" }, { "click": { "role": "link", "name": "Mình", "exact": true, "within": { "role": "navigation", "name": "Điều hướng chính" } } }],
+          "ready": { "role": "list", "name": "Bộ ba của bạn" }
+        }
+      }
+    },
+    {
+      "id": "existing-user",
+      "title": "Đăng nhập để giữ hồ sơ",
+      "us": ["US-19"],
+      "ac": ["US-19 AC01", "US-19 AC02", "US-19 AC08"],
+      "routes": ["/existing-user", "/auth/callback"],
+      "source_files": ["apps/web/src/features/account/ExistingUserPage.tsx", "apps/web/src/features/account/account.css"],
+      "user_path": ["Welcome", "Bấm Đăng nhập"],
+      "owner_only": true,
+      "owner_only_reason": "Login and account data copy.",
+      "key_selectors": [{ "role": "button", "name": "Tiếp tục không đăng nhập" }],
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/welcome" }, { "click": { "role": "link", "name": "Đăng nhập" } }],
+          "ready": { "role": "heading", "name": "Đổi máy, vẫn là hồ sơ của bạn." }
+        },
+        "callback-error": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/auth/callback" }],
+          "ready": { "role": "link", "name": "Đăng nhập lại bằng Google" }
+        }
+      }
+    },
+    {
+      "id": "tarot",
+      "title": "Tarot",
+      "us": ["US-20", "US-24"],
+      "ac": ["US-20 AC04"],
+      "routes": ["/tarot", "/tarot/:sessionId"],
+      "source_files": ["apps/web/src/features/tarot/TarotPage.tsx", "apps/web/src/features/tarot/TarotRevealCeremony.tsx", "apps/web/src/features/tarot/TarotPickFlight.tsx", "apps/web/src/features/tarot/TarotCardArt.tsx", "apps/web/src/features/tarot/tarot.css", "apps/web/src/features/tarot/tarot-art.css", "apps/web/src/features/tarot/tarot-polish.css", "apps/web/src/features/tarot/tarot-reveal.css"],
+      "user_path": ["Home", "Bấm Rút Tarot"],
+      "owner_only": false,
+      "key_selectors": [{ "role": "group", "name": "Chủ đề câu hỏi" }],
+      "states": {
+        "question": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/home" }, { "click": { "role": "link", "name": "Rút Tarot" } }],
+          "ready": { "role": "heading", "name": "Bạn đang muốn gỡ chuyện gì?" }
+        },
+        "session-missing": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/tarot/00000000-0000-4000-8000-000000000030" }],
+          "ready": { "role": "link", "name": "Bắt đầu lần mới" }
+        }
+      }
+    },
+    {
+      "id": "la-chung-retired",
+      "title": "Lá Chứng đã ngừng (trang báo)",
+      "us": ["US-08", "US-09"],
+      "ac": ["US-09 AC06"],
+      "routes": ["/la-chung/*", "/la-chung/i/:token"],
+      "source_files": ["apps/web/src/features/la-chung/RetiredFeaturePage.tsx", "apps/web/src/features/la-chung/retired-feature.css"],
+      "user_path": ["Mở link Lá Chứng cũ"],
+      "owner_only": false,
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/la-chung/i/invite-token-test" }],
+          "ready": { "role": "heading", "name": "Lá Chứng không còn nhận phản hồi mới." }
+        }
+      }
+    },
+    {
+      "id": "la-chung-history",
+      "title": "Lá Chứng — quản lý dữ liệu cũ",
+      "us": ["US-08"],
+      "ac": ["US-09 AC11"],
+      "routes": ["/la-chung/history", "/la-chung/result/:requestId"],
+      "source_files": ["apps/web/src/features/la-chung/InviteHistoryPage.tsx", "apps/web/src/features/la-chung/ResultPage.tsx", "apps/web/src/features/la-chung/la-chung.css"],
+      "user_path": ["Mở link Lá Chứng cũ", "Bấm Quản lý dữ liệu cũ"],
+      "owner_only": false,
+      "states": {
+        "empty": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/la-chung/history" }],
+          "ready": { "role": "heading", "name": "Quản lý những gì đã có." }
+        },
+        "result-gone": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/la-chung/result/00000000-0000-4000-8000-000000000020" }],
+          "ready": { "role": "heading", "name": "Lá Chứng này không còn mở." }
+        }
+      }
+    },
+    {
+      "id": "la-chung-manage-response",
+      "title": "Lá Chứng — rút phản hồi đã gửi",
+      "us": ["US-09"],
+      "ac": ["US-09 AC11"],
+      "routes": ["/la-chung/manage-response"],
+      "source_files": ["apps/web/src/features/la-chung/ResponseManagementPage.tsx"],
+      "user_path": ["Mở link Lá Chứng cũ", "Bấm Rút phản hồi trên thiết bị này"],
+      "owner_only": true,
+      "owner_only_reason": "Withdrawal copy.",
+      "key_selectors": [{ "role": "button", "name": "Rút phản hồi đã gửi" }],
+      "states": {
+        "default": {
+          "fixture": "signed-in",
+          "walk": [{ "goto": "/la-chung/manage-response" }],
+          "ready": { "role": "button", "name": "Rút phản hồi đã gửi" }
+        }
+      }
+    },
+    {
+      "id": "studio",
+      "title": "Content Studio (nội bộ)",
+      "us": [],
+      "ac": [],
+      "gap": "Internal review tool, no user story.",
+      "routes": ["/studio"],
+      "source_files": ["apps/web/src/features/studio/ContentStudioPage.tsx", "apps/web/src/features/studio/studio.css", "apps/web/src/shared/api/studioClient.ts"],
+      "user_path": ["Không có lối vào cho người dùng; mở trực tiếp /studio"],
+      "owner_only": false,
+      "states": {
+        "locked": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/studio" }],
+          "ready": { "role": "button", "name": "Mở Content Studio" }
+        }
+      }
+    },
+    {
+      "id": "not-found",
+      "title": "Trang không tồn tại",
+      "us": [],
+      "ac": [],
+      "gap": "Router errorElement; no user story.",
+      "routes": [],
+      "source_files": ["apps/web/src/app/router.tsx"],
+      "user_path": ["Mở một đường dẫn không có trong app"],
+      "owner_only": false,
+      "states": {
+        "default": {
+          "fixture": "guest",
+          "walk": [{ "goto": "/khong-co-trang-nay" }],
+          "ready": { "role": "link", "name": "Về trang chào" }
+        }
+      }
+    }
+  ]
+}
