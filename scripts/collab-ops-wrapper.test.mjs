@@ -64,6 +64,35 @@ test('ops wrapper runs from another cwd with spaced paths and preserves failures
   assert.equal(calls(w).length, before, 'and nothing runs after it');
 });
 
+test('Codex #487: install reads the reviewed integration revision; a local edit or another revision is refused', () => {
+  const w = world();
+  const ops = join(w.home, 'ops');
+  const reviewed = readFileSync(join(ops, 'scripts', 'ops-run.sh'), 'utf8');
+  // A local edit in the ops clone is never installed.
+  writeFileSync(join(ops, 'scripts', 'ops-run.sh'), `${reviewed}\necho unreviewed\n`);
+  assert.throws(() => installWrapper({ root: ops, home: w.home }), /thay đổi chưa commit/);
+  git(ops, 'checkout', '-q', '--', 'scripts/ops-run.sh');
+  // A local commit that is not the reviewed revision is refused too.
+  writeFileSync(join(ops, 'scripts', 'ops-run.sh'), `${reviewed}\necho task commit\n`);
+  git(ops, '-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-q', '-am', 'local');
+  assert.throws(() => installWrapper({ root: ops, home: w.home }), /không phải bản collab\/integration đã review/);
+  git(ops, 'reset', '-q', '--hard', 'origin/collab/integration');
+  // At the reviewed revision the installed bytes are the reviewed ones.
+  installWrapper({ root: ops, home: w.home });
+  assert.equal(readFileSync(installedPath(w.home), 'utf8'), reviewed);
+  // A working-tree edit after install is drift against the reviewed revision, not a match.
+  writeFileSync(join(ops, 'scripts', 'ops-run.sh'), `${reviewed}\necho later edit\n`);
+  writeFileSync(installedPath(w.home), `${reviewed}\necho later edit\n`);
+  assert.match(verifyWrapper({ root: ops, home: w.home }).join(), /khác bản đã review/);
+  // A newer reviewed revision on origin that the clone has not checked out is refused.
+  git(ops, 'checkout', '-q', '--', 'scripts/ops-run.sh');
+  const seed = join(w.base, 'seed');
+  writeFileSync(join(seed, 'scripts', 'ops-run.sh'), `${reviewed}\n# newer\n`);
+  git(seed, 'commit', '-q', '-am', 'newer');
+  git(seed, 'push', '-q', w.origin, 'collab/integration');
+  assert.throws(() => installWrapper({ root: ops, home: w.home }), /không phải bản collab\/integration đã review/);
+});
+
 test('the wrapper installs only from the ops clone, atomically, and drift is reported', () => {
   const w = world();
   assert.throws(() => installWrapper({ root: repoRoot, home: w.home }), /chỉ cài từ clone ops/, 'an unreviewed checkout never installs');
