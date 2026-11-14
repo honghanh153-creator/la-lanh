@@ -243,6 +243,34 @@ test('the digest posts once near 12:00 and 22:00 with done, doing, waiting, next
   assert.ok(gh.posted.every(b => !/REQUEST_CHANGES|APPROVE|claude-fix|codex-review|[0-9a-f]{40}/.test(b)), 'no codes');
 });
 
+// L11 (Codex r1 on #496, P1): the digest the launchd tick posts counts items by their criteria.
+// Two merged PRs of one item used to read "Xong: 2/2 việc" because the digest counted PRs.
+test('the production tick digest counts two merged PRs of one item as one item, not two', async () => {
+  const { runTick } = await import('./collab-tick.mjs');
+  const date = '2026-12-08';
+  const B = 'b'.repeat(40);
+  // Signed PASS and APPROVE for each PR (#456 P1-B), as the real check and review paths post them.
+  const open = [pr({ number: 41, title: 'feat(daily): shorter card', headRefOid: A, body: 'Việc: #12\nTiêu chí đạt: TC1', comments: approved(A, 41) }),
+    pr({ number: 42, title: 'feat(daily): clearer hint', headRefOid: B, body: 'Việc: #12\nTiêu chí đạt: TC2', comments: approved(B, 42) })];
+  const done = [];
+  const gh = noteGh(date, open, []);
+  const base = gh.json;
+  // Synthetic task issue #12 with two criteria; the merged PRs are what gh pr list returns.
+  gh.json = args => args[0] === 'issue' && args[1] === 'view' && args[2] === '12' ? { body: '## Tiêu chí đạt\n\n- [ ] Thẻ ngắn hơn\n- [ ] Gợi ý rõ hơn\n' }
+    : args[0] === 'pr' && args[1] === 'list' ? done : base(args);
+  const merge = n => { const [p] = open.splice(open.findIndex(x => x.number === n), 1); done.push({ ...p, state: 'MERGED', mergedAt: `${date}T05:00:00Z` }); return { status: 'merged' }; };
+  const run = (hour, minute) => runTick(gh, () => [], { run: given => tick({ ...given, now: { date, hour, minute }, merge, check: () => ({ status: 'FAIL' }), review: () => ({}),
+    board: () => {}, log: () => {}, watchdog: () => {}, health: () => [], copyBatch: null, metrics: () => null, notify: notifier(gh) }) });
+  assert.equal(run(8, 52).status, 'plan-made');
+  run(12, 5);
+  assert.deepEqual(done.map(p => p.number), [41, 42]);
+  const digest = gh.posted.find(b => /Tóm tắt 12:00/.test(b));
+  assert.ok(digest, 'the 12:00 digest is posted');
+  assert.match(digest, /^- Việc đạt tiêu chí: 1\/1 việc đã chọn đạt đủ tiêu chí\.$/m, 'two PRs of one item are one finished item');
+  assert.match(digest, /^- Đã gộp 2 PR hôm nay \(số PR, không phải số việc\)\.$/m);
+  assert.doesNotMatch(digest, /Xong: 2\/2/, 'merged PRs are not finished items');
+});
+
 test('notes are plain, carry the agent marker and never use the owner reply words', () => {
   const now = { date: '2026-12-05', hour: 12, minute: 1 };
   const notes = ownerNotes({ now, merged: [{ number: 1, title: 'Duyệt: tricky title' }], failures: 2, streakAt: '11:40', turns: [{ number: 2, turn: 'hold', reason: 'needs-owner', title: 'Giữ đúng', head: A }] });
