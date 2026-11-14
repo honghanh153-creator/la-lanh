@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
-import { DeadlineError, agentMarker, boundedTimeout, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { DeadlineError, agentMarker, boundedTimeout, clean, cutoffAt, cutoffMs, isOwnPr, dayStatePath, hhmmOf, integration, isSha, lastStartAt, makeGh, planOpensAt, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { codexDailyCap, prTurn } from './collab-turn.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
@@ -103,7 +103,7 @@ export function runReview(number, options = {}) {
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
   if (!release) return { status: 'busy', reason: 'một review khác đang chạy' };
   try { return reviewOnce(number, options); }
-  catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: 'hết giờ (23:55) trong lúc review' }; throw error; }
+  catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: `hết giờ (${hhmmOf(cutoffAt)}) trong lúc review` }; throw error; }
   finally { release(); }
 }
 
@@ -111,8 +111,8 @@ export function runReview(number, options = {}) {
 export const reviewFinalizeReserveMs = 5 * 60000;
 
 function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now } = {}) {
-  // Scheduled runs: every gh and git call ends by 23:55 (minus 15 s cleanup); direct runs keep fixed caps.
-  const cutoff = Date.parse(`${now.date}T23:55:00+07:00`) - 15000;
+  // Scheduled runs: every gh and git call ends by cutoffAt (minus 15 s cleanup); direct runs keep fixed caps.
+  const cutoff = cutoffMs(now.date) - 15000;
   const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
   const gh = ghIn.withDeadline?.(left) ?? ghIn;
   const pr = gh.pr(number);
@@ -160,14 +160,14 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   const outPath = join(stateDir, 'logs', `codex-${stamp}.json`);
   mkdirSync(dirname(outPath), { recursive: true });
   // Fetching can be slow, so read the clock again right before Codex starts (fix-forward #131).
-  // Scheduled runs start nothing after 23:30 and stop by 23:55; direct runs get 30 minutes.
+  // Scheduled runs start nothing from lastStartAt and stop by cutoffAt; direct runs get 30 minutes.
   const startAt = clock();
   const startMinute = startAt.hour * 60 + startAt.minute;
-  if (auto && (startMinute < 8 * 60 + 50 || startMinute >= 23 * 60 + 30)) return { status: 'refused', reason: 'ngoài giờ chạy tự động (sau 23:30)' };
+  if (auto && (startMinute < planOpensAt || startMinute >= lastStartAt)) return { status: 'refused', reason: `ngoài giờ chạy tự động (sau ${hhmmOf(lastStartAt)})` };
   // Codex must end early enough that the verdict, labels and fix-forward issue still fit before
   // the Git/GitHub cutoff (#243); without that room, it does not start.
-  const untilCutoff = Math.min(((23 * 60 + 55) - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
-  if (auto && untilCutoff < 60000) return { status: 'refused', reason: 'không đủ thời gian để đăng kết quả trước 23:55' };
+  const untilCutoff = Math.min((cutoffAt - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
+  if (auto && untilCutoff < 60000) return { status: 'refused', reason: `không đủ thời gian để đăng kết quả trước ${hhmmOf(cutoffAt)}` };
   const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.min(30 * 60000, untilCutoff) : 30 * 60000, run });
   if (result.status === 'limit') return { status: 'limit', reason: result.error };
   writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
