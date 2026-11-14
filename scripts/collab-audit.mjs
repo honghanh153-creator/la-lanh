@@ -18,6 +18,10 @@ export const unmeasured = why => ({ value: null, missing: clean(why || 'không r
 // One Codex run a day is kept back from reviews and the copy batch, so the night audit (L21b) is
 // not starved by a busy day (Codex 14.11). Every automatic path stops at codexDailyCap - auditReserve.
 export const auditReserve = 1;
+// The promise register and the disagreement log are measured from the first experiment day. Before
+// it (the 11–13.11 baseline) they did not exist in this form, so M4 and M8 are "chưa đo được",
+// never 0 or a value rebuilt from today's register (Codex 14.11, L23).
+export const logsStart = '2026-11-14';
 const median = xs => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 export const dayRange = date => `${date}T00:00:00+07:00..${date}T23:59:59+07:00`;
 
@@ -47,7 +51,7 @@ export function readOutputs(dir = join(stateDir, 'logs')) {
 }
 
 export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = () => readOutputs(), day = d => readJson(dayStatePath(d), null),
-  lessons = null, disagreements = () => [] } = {}) {
+  lessons = null, disagreements = null } = {}) {
   const final = vnNow(now).date > date;
   const facts = { date, final, collectedAt: now.toISOString(), metrics: {} };
   const M = facts.metrics;
@@ -80,7 +84,8 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
   } catch (error) { M.M3 = unmeasured(`không đọc được ops-alert: ${reason(error)}`); }
 
   // M4: promises (scripts/collab-lessons.mjs when present).
-  try {
+  if (date < logsStart) M.M4 = unmeasured('giai đoạn nền: sổ lời hứa chưa có, không dựng lại từ sổ hôm nay');
+  else try {
     const s = lessons ? lessons() : null;
     M.M4 = s ? { value: { done: s.done, open: s.open, overdue: s.overdue, owner: s.owner, unconfirmed: s.unconfirmed } } : unmeasured('chưa có sổ lời hứa ở bản này');
   } catch (error) { M.M4 = unmeasured(`không đọc được sổ lời hứa: ${reason(error)}`); }
@@ -104,7 +109,9 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
   }
 
   // M8: disagreements recorded today (arm 1: Claude records them; Codex checks for gaps in part b).
-  try {
+  if (date < logsStart) M.M8 = unmeasured('giai đoạn nền: chưa có sổ bất đồng');
+  else if (!disagreements) M.M8 = unmeasured('chưa có sổ bất đồng ở bản này');
+  else try {
     const all = disagreements().filter(d => d.date === date);
     const entries = all.filter(d => d.type !== 'override');
     M.M8 = { value: entries.length, codex: entries.filter(d => d.winner === 'codex').length, claude: entries.filter(d => d.winner === 'claude').length,
@@ -113,7 +120,8 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
 
   // M9: Codex runs the loop counted (runs outside the counter are not seen).
   const state = (() => { try { return day(date); } catch { return null; } })();
-  M.M9 = state && Number.isInteger(state.codexRuns) ? { value: state.codexRuns, missing: 'chỉ tính lượt được vòng ghi nhận' } : unmeasured('không có file trạng thái ngày');
+  // Baseline runs made on this day stay in M9 and are shown apart (Codex 14.11), never subtracted.
+  M.M9 = state && Number.isInteger(state.codexRuns) ? { value: state.codexRuns, ...(state.baselineRuns ? { baseline: state.baselineRuns } : {}), missing: 'chỉ tính lượt được vòng ghi nhận' } : unmeasured('không có file trạng thái ngày');
 
   // M10: stalls and owner questions need an event history the loop does not keep yet.
   M.M10 = unmeasured('watchdog chỉ giữ beat mới nhất; chưa có lịch sử kẹt và câu hỏi gửi owner');
@@ -169,8 +177,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) throw new Error('--date YYYY-MM-DD');
     const deps = await loadAuditDeps();
     const lessons = deps.lessons ? () => deps.lessons(date) : null;
-    const disagreements = deps.disagreements ?? (() => []);
-    const facts = collectFacts({ date, lessons, disagreements });
+    const facts = collectFacts({ date, lessons, disagreements: deps.disagreements });
     const saved = saveFacts(facts);
     process.stdout.write(`${JSON.stringify({ ...facts, saved })}\n`);
   } catch (error) { process.stderr.write(`collab-audit failed: ${reason(error)}\n`); process.exitCode = 1; }

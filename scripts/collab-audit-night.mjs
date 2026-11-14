@@ -12,6 +12,7 @@
 //   back from reviews and the copy batch for this audit (auditReserve, collab-audit.mjs).
 // Windows: 23:00–23:29 judges day D provisionally; the first tick 00:00–09:59 of D+1 finalizes D.
 // Usage: node scripts/collab-audit-night.mjs --date YYYY-MM-DD [--final] [--no-post]
+//        node scripts/collab-audit-night.mjs --baseline 2026-11-11..2026-11-13 [--no-post]   (L23)
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -19,7 +20,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { groupExec } from './collab-heal.mjs';
-import { collectFacts, dayRange, experimentDir, readOutputs, receipt, unmeasured, withJudgement } from './collab-audit.mjs';
+import { auditReserve, collectFacts, dayRange, experimentDir, logsStart, readOutputs, receipt, unmeasured, withJudgement } from './collab-audit.mjs';
 import { agentMarker, assertAgentBody, clean, codexDailyCap, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -29,6 +30,7 @@ export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Cont
 export const codexModel = 'gpt-6.1-sol';
 export const promptVersion = 'l21b-1';
 export const auditMarker = date => `${agentMarker} experiment-audit date=${date} -->`;
+export const baselineMarker = (from, to) => `${agentMarker} experiment-baseline range=${from}..${to} -->`;
 const boardMarker = `${agentMarker} status-board -->`;
 const reportLimit = 6000;
 const reportBudget = 40000;
@@ -75,7 +77,7 @@ export function gatherEvidence({ date, gh, facts, issue, outputs = [], disagreem
   const reports = tryRead('reports', () => {
     const all = gh.json(['api', `repos/${repo}/issues/${Number(issue)}/comments?since=${dayStart(date)}&per_page=100`, '--paginate', '--slurp']).flat();
     const picked = all.filter(c => c.author_association === 'OWNER' && inDay(c.created_at, date))
-      .filter(c => !String(c.body ?? '').includes(boardMarker) && !String(c.body ?? '').includes(`${agentMarker} experiment-audit`))
+      .filter(c => !String(c.body ?? '').includes(boardMarker) && !String(c.body ?? '').includes(`${agentMarker} experiment-`))
       .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
     return budgeted(picked.map((c, i) => ({ key: `r${i + 1}`, at: hhmm(c.created_at), body: clean(c.body, 20000) })), reportBudget, reportLimit);
   }, null);
@@ -122,7 +124,8 @@ export function gatherEvidence({ date, gh, facts, issue, outputs = [], disagreem
     : approvedAll.map(p => ({ key: `pr#${p.number}`, title: clean(p.title, 120), mergedAt: hhmm(p.mergedAt), body: clean(p.body, 400), files: (p.files ?? []).slice(0, 20).map(f => f.path) }));
 
   let log = null;
-  if (disagreements) log = tryRead('disagreements', () => disagreements().filter(d => d.date === date)
+  if (date < logsStart) errors.disagreements = 'giai đoạn nền: chưa có sổ bất đồng';
+  else if (disagreements) log = tryRead('disagreements', () => disagreements().filter(d => d.date === date)
     .map(d => ({ at: hhmm(d.at), ...(d.pr ? { pr: `pr#${d.pr}` } : { task: d.task }), ...(d.type ? { type: d.type } : {}), claude: d.claude ?? '', codex: d.codex ?? '', winner: d.winner, ...(d.note ? { note: d.note } : {}) })), null);
   else errors.disagreements = 'không có sổ bất đồng ở bản này';
 
@@ -258,7 +261,7 @@ export function renderAudit(record) {
     line('M8 bất đồng đã ghi sổ', M.M8, m => `${m.value} (Codex thắng ${m.codex}, Claude ${m.claude}, owner ${m.owner}; owner lật lại ${m.overrides})`),
     un ? line('M8 bất đồng chưa ghi sổ', un, m => `${m.value}`) : '- M8 bất đồng chưa ghi sổ: chưa đo được',
     ...items(un?.items, i => `${i.pr} (${i.evidence}): Claude "${clean(i.claude, 120)}" / Codex "${clean(i.codex, 120)}"`),
-    line('M9 lượt Codex', M.M9, m => `${m.value}`),
+    line('M9 lượt Codex', M.M9, m => `${m.value}${m.baseline ? ` (trong đó ${m.baseline} lượt đo nền)` : ''}`),
     line('M10 câu hỏi gửi owner, lần kẹt', M.M10, m => `${m.value}`),
     '',
     'Nguồn: GitHub, file trạng thái của vòng tự động, sổ lời hứa, sổ bất đồng. M1, M3 và bất đồng chưa ghi sổ do Codex chấm từ gói bằng chứng.',
@@ -269,9 +272,9 @@ export function renderAudit(record) {
 
 // Edit the day's comment in place; create it once. A failed edit never posts a second comment:
 // the marker is looked up first, and a comment that still exists means "retry next tick".
-export function upsertAudit(gh, issue, date, body, posted = null) {
+export function upsertAudit(gh, issue, date, body, posted = null, marker = auditMarker(date)) {
   const find = () => gh.json(['api', `repos/${repo}/issues/${Number(issue)}/comments?since=${dayStart(date)}&per_page=100`, '--paginate', '--slurp']).flat()
-    .find(c => c.author_association === 'OWNER' && String(c.body ?? '').includes(auditMarker(date)))?.id ?? null;
+    .find(c => c.author_association === 'OWNER' && String(c.body ?? '').includes(marker))?.id ?? null;
   const patch = id => gh.raw(['api', '-X', 'PATCH', `repos/${repo}/issues/comments/${Number(id)}`, '--input', '-'], JSON.stringify({ body }));
   let id = posted?.issue === issue ? posted.commentId : null;
   if (!id) id = find();
@@ -291,13 +294,15 @@ const defaultLock = () => { mkdirSync(stateDir, { recursive: true }); return acq
 // The tick's entry. Returns { status } and never throws for an expected stop.
 export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditWindow(now), dir = experimentDir, lock = defaultLock,
   codex = prompt => runAuditCodex(prompt), outputs = () => readOutputs(), lessons = null, disagreements = null, issue = null, post = true,
-  clock = () => new Date() } = {}) {
+  clock = () => new Date(), cap = codexDailyCap, purpose = 'audit' } = {}) {
   if (!window) return { status: 'idle' };
   const { date, final } = window;
   const existing = readRecord(date, dir);
   // Done already: the final judgement was attempted (or the provisional one, in its window) and
   // the comment shows exactly this record. Nothing to read from GitHub.
-  const attempted = existing?.judgement && (final ? existing.judgement.final : true);
+  // A stop that did not reach Codex (cap spent, nothing readable) is retried; a judgement or a
+  // Codex error is not (Codex 14.11: a cap stop must not lock the final record).
+  const attempted = Boolean(existing?.judgement) && !existing.judgement.retry && (final ? existing.judgement.final : true);
   const shown = !post || (existing?.posted?.bodyDigest && existing.posted.bodyDigest === sha(renderAudit(existing)));
   if (attempted && shown && (!final || existing.final)) return { status: 'done', date };
   const release = lock();
@@ -314,25 +319,26 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
     let record = existing;
     let ran = false;
     if (!attempted || (final && !existing.final)) {
-      const facts = collectFacts({ date, gh, now, outputs: () => outs, day: () => dayState, lessons: lessons ? () => lessons(date) : null, disagreements: disagreements ?? (() => []) });
+      const facts = collectFacts({ date, gh, now, outputs: () => outs, day: () => dayState, lessons: lessons ? () => lessons(date) : null, disagreements });
       facts.final = final;
       const evidence = gatherEvidence({ date, gh, facts, issue: target(), outputs: outs, disagreements, day: dayState });
       const digest = evidenceDigest(evidence);
       let judgement = existing?.judgement ?? null;
-      const reusable = judgement?.result && judgement.inputDigest === digest;
+      const reusable = Boolean(judgement?.result) && judgement.inputDigest === digest;
       if (reusable) judgement = { ...judgement, final };
       else if (!attempted || final) {
         const usable = ['reports', 'prComments', 'alerts'].some(k => evidence[k] !== null);
         const countDay = vnNow(clock()).date;
         const counts = readJson(dayStatePath(countDay), { codexRuns: 0, failures: 0 });
-        if (!usable) judgement = { final, inputDigest: digest, judgedAt: clock().toISOString(), missing: 'không đọc được nguồn nào trên GitHub' };
-        else if ((counts.codexRuns ?? 0) >= codexDailyCap) judgement = { final, inputDigest: digest, judgedAt: clock().toISOString(), missing: `hết ${codexDailyCap} lượt Codex hôm nay` };
+        if (!usable) judgement = { final, retry: true, inputDigest: digest, judgedAt: clock().toISOString(), missing: 'không đọc được nguồn nào trên GitHub' };
+        else if ((counts.codexRuns ?? 0) >= cap) judgement = { final, retry: true, inputDigest: digest, judgedAt: clock().toISOString(), missing: `hết lượt Codex (${counts.codexRuns ?? 0}/${codexDailyCap}${cap < codexDailyCap ? `, ${codexDailyCap - cap} lượt giữ cho soát đêm` : ''})` };
         else {
           const result = codex(buildPrompt(evidence));
           if (result?.status === 'limit') return { status: 'limit', date };
           ran = true;
           const fresh = readJson(dayStatePath(countDay), counts);
-          writeJson(dayStatePath(countDay), { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + 1, ...(countDay === date ? { auditRuns: (fresh.auditRuns ?? 0) + 1 } : {}) });
+          const tag = purpose === 'baseline' ? { baselineRuns: (fresh.baselineRuns ?? 0) + 1 } : countDay === date ? { auditRuns: (fresh.auditRuns ?? 0) + 1 } : {};
+          writeJson(dayStatePath(countDay), { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + 1, ...tag });
           judgement = result?.status === 'ok'
             ? { final, inputDigest: digest, judgedAt: clock().toISOString(), result: validateJudgement(result.out, evidence), notes: clean(result.out?.notes, 300) }
             : { final, inputDigest: digest, judgedAt: clock().toISOString(), missing: `Codex lỗi: ${clean(result?.error, 200)}` };
@@ -354,15 +360,83 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
   } finally { release(); }
 }
 
+// Baseline (L23): the days before the experiment measured by the same collector, final, without a
+// comment per day. Each day is one runNightAudit; it keeps the night audit's reserved run.
+export const datesIn = (from, to) => { const out = []; for (let d = from; d <= to && out.length < 31; d = new Date(Date.parse(`${d}T12:00:00Z`) + 86400000).toISOString().slice(0, 10)) out.push(d); return out; };
+export const baselinePath = (from, to, dir = experimentDir) => join(dir, `baseline-${from}..${to}.json`);
+
+export function renderBaseline(from, to, days) {
+  const cell = (m, fmt) => (m?.value === null || m?.value === undefined ? 'chưa đo được' : fmt(m));
+  const rows = [
+    ['M1 câu báo cáo sai với nguồn', m => `${m.value}${m.of !== undefined ? `/${m.of} báo cáo` : ''}`],
+    ['M2 merge thiếu biên nhận', m => `${m.value}/${m.of}`],
+    ['M3 lỗi lọt sau Codex duyệt', m => `${m.value}`],
+    ['M4 lời hứa', m => `xong ${m.value.done}, quá hạn ${m.value.overdue}`],
+    ['M5 việc đạt tiêu chí', m => `${m.value}`],
+    ['M6 trung vị mở → merge (giờ)', m => `${m.value}`],
+    ['M7 vòng review (trung vị)', m => `${m.value}`],
+    ['M8 bất đồng', m => `${m.value}`],
+    ['M9 lượt Codex', m => `${m.value}`],
+    ['M10 câu hỏi owner, lần kẹt', m => `${m.value}`],
+  ];
+  const head = days.map(d => `${d.date.slice(8)}.${d.date.slice(5, 7)}`);
+  return assertAgentBody([
+    `**Đo nền thử nghiệm workflow ${head[0]}–${head.at(-1)}** (cùng bộ đo với soát đêm, đã chốt)`,
+    '',
+    `| Số đo | ${head.join(' | ')} |`,
+    `| --- | ${head.map(() => '---').join(' | ')} |`,
+    ...rows.map(([name, fmt], i) => `| ${name} | ${days.map(d => (d.record ? cell(d.record.metrics?.[`M${i + 1}`], fmt) : `chưa chạy: ${d.status}`)).join(' | ')} |`),
+    '',
+    'M4 và M8: sổ lời hứa và sổ bất đồng bắt đầu từ ngày thử nghiệm đầu tiên, nên giai đoạn nền ghi "chưa đo được", không coi là 0.',
+    'M5 và M10 chưa đo được ở mọi ngày (plan chưa có mã việc; chưa có lịch sử kẹt).',
+    '',
+    baselineMarker(from, to),
+  ].join('\n'));
+}
+
+export function runBaseline({ from, to, gh = makeGh(), dir = experimentDir, post = true, issue = null, audit = runNightAudit, ...deps } = {}) {
+  const days = [];
+  let stopped = null;
+  for (const date of datesIn(from, to)) {
+    if (stopped) { days.push({ date, status: stopped, record: readRecord(date, dir) }); continue; }
+    const result = audit({ gh, dir, window: { date, final: true }, post: false, issue, cap: codexDailyCap - auditReserve, purpose: 'baseline', ...deps });
+    if (['limit', 'busy'].includes(result.status)) stopped = result.status;
+    days.push({ date, status: result.status, record: readRecord(date, dir) });
+  }
+  const summary = { from, to, at: new Date().toISOString(), days: days.map(d => ({ date: d.date, status: d.status, final: d.record?.final ?? false, metrics: d.record?.metrics ?? null })) };
+  const path = baselinePath(from, to, dir);
+  const old = readJson(path, null);
+  let posted = old?.posted ?? null;
+  if (post) {
+    const body = renderBaseline(from, to, days);
+    const bodyDigest = sha(body);
+    if (posted?.bodyDigest !== bodyDigest) {
+      const target = Number(typeof issue === 'function' ? issue() : issue);
+      const commentId = upsertAudit(gh, target, to, body, posted, baselineMarker(from, to));
+      posted = { issue: target, commentId, bodyDigest };
+    }
+  }
+  mkdirSync(dir, { recursive: true });
+  writeJson(path, { ...summary, posted });
+  return { status: stopped ?? 'ok', days: days.map(d => ({ date: d.date, status: d.status })) };
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
-  const date = args.includes('--date') ? args[args.indexOf('--date') + 1] : null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) { process.stderr.write('Usage: collab-audit-night.mjs --date YYYY-MM-DD [--final] [--no-post]\n'); process.exit(2); }
+  const flag = name => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
+  const date = flag('--date');
+  const range = /^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$/.exec(flag('--baseline') ?? '');
+  if (!range && !/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) {
+    process.stderr.write('Usage: collab-audit-night.mjs --date YYYY-MM-DD [--final] [--no-post] | --baseline FROM..TO [--no-post]\n');
+    process.exit(2);
+  }
   const { loadAuditDeps } = await import('./collab-audit.mjs');
   const { planIssue } = await import('./collab-plan.mjs');
   const gh = makeGh();
   const deps = await loadAuditDeps();
-  const result = runNightAudit({ gh, window: { date, final: args.includes('--final') }, post: !args.includes('--no-post'), issue: () => planIssue(gh), ...deps });
+  const common = { gh, post: !args.includes('--no-post'), issue: () => planIssue(gh), ...deps };
+  const result = range ? runBaseline({ from: range[1], to: range[2], ...common })
+    : runNightAudit({ window: { date, final: args.includes('--final') }, ...common });
   process.stdout.write(`${JSON.stringify(result)}\n`);
   if (result.status === 'error') process.exitCode = 1;
 }

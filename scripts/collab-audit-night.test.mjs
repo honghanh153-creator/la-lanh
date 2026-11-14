@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { auditReserve, collectFacts, saveFacts } from './collab-audit.mjs';
-import { auditMarker, auditWindow, buildPrompt, evidenceDigest, gatherEvidence, readRecord, runAuditCodex, runNightAudit, upsertAudit, validateJudgement } from './collab-audit-night.mjs';
+import { auditMarker, auditWindow, baselineMarker, baselinePath, buildPrompt, datesIn, evidenceDigest, gatherEvidence, readRecord, runAuditCodex, runBaseline, runNightAudit, upsertAudit, validateJudgement } from './collab-audit-night.mjs';
 import { agentMarker, codexDailyCap, dayStatePath, readJson, writeJson } from './collab-trust.mjs';
 import { renderCheck } from './collab-check.mjs';
 import { tick } from './collab-turn.mjs';
@@ -101,7 +101,8 @@ test('cap spent: M1 is "chưa đo được" and Codex is not called', () => {
   assert.equal(readJson(dayStatePath(date), {}).codexRuns, codexDailyCap);
   const M1 = readRecord(date, dir).metrics.M1;
   assert.equal(M1.value, null);
-  assert.match(M1.missing, /hết 32 lượt Codex/);
+  assert.match(M1.missing, /hết lượt Codex \(32\/32\)/);
+  assert.equal(readRecord(date, dir).judgement.retry, true, 'a cap stop is retried, it does not lock the record');
 });
 
 test('busy review lock or a usage limit: nothing counted, retried on the next tick', () => {
@@ -297,4 +298,69 @@ test('tick: reviews stop one run short of the cap, which is kept for the night a
   tick({ gh: plannedGh(date), now: { date, hour: 12, minute: 10 }, merge: () => ({}), review: number => { started.push(number); return { status: 'posted' }; } });
   assert.deepEqual(started, [7]);
   assert.ok(readFileSync(new URL('./codex-review.mjs', import.meta.url), 'utf8').includes('codexDailyCap - auditReserve'), 'direct automatic reviews keep the reserve too');
+});
+
+// L23: the 11–13.11 baseline with the same collector.
+const baseReports = () => ['11', '12', '13'].map((d, i) => report(i + 1, `2026-11-${d}T07:00:00Z`, `agent: Claude — báo cáo ${d}.11`));
+
+test('baseline: each day goes through the night collector once, one summary comment, re-runs cost nothing', () => {
+  writeJson(dayStatePath('2026-11-14'), { codexRuns: 6 });
+  const dir = fresh();
+  const gh = fakeGh({ reports: baseReports() });
+  const codex = fakeCodex();
+  const seen = [];
+  const audit = opts => { seen.push(opts.window); return runNightAudit(opts); };
+  const result = runBaseline({ from: '2026-11-11', to: '2026-11-13', gh, dir, audit, codex, ...deps() });
+  assert.deepEqual(datesIn('2026-11-11', '2026-11-13'), ['2026-11-11', '2026-11-12', '2026-11-13']);
+  assert.deepEqual(seen, ['11', '12', '13'].map(d => ({ date: `2026-11-${d}`, final: true })));
+  assert.equal(result.status, 'ok');
+  assert.equal(codex.calls.length, 3);
+  const day14 = readJson(dayStatePath('2026-11-14'), {});
+  assert.deepEqual([day14.codexRuns, day14.baselineRuns, day14.auditRuns], [9, 3, undefined], 'counted on the day it ran, labelled as baseline');
+  const posts = () => gh.state.comments.filter(c => c.body.includes(baselineMarker('2026-11-11', '2026-11-13')));
+  assert.equal(posts().length, 1);
+  assert.equal(gh.state.comments.filter(c => c.body.includes('experiment-audit')).length, 0, 'no comment per day');
+  assert.match(posts()[0].body, /\| M8 bất đồng \| chưa đo được \| chưa đo được \| chưa đo được \|/);
+  runBaseline({ from: '2026-11-11', to: '2026-11-13', gh, dir, codex, ...deps() });
+  assert.equal(codex.calls.length, 3, 'final days are not judged again');
+  assert.equal(posts().length, 1);
+  assert.equal(readJson(dayStatePath('2026-11-14'), {}).codexRuns, 9);
+  assert.ok(readJson(baselinePath('2026-11-11', '2026-11-13', dir), null).days.every(d => d.final));
+  const ev = gatherEvidence({ date: '2026-11-14', gh, facts: collectFacts({ date: '2026-11-14', gh, now: at('2026-11-14T16:05:00Z'), outputs: () => outputs, day: () => null }), issue: 133, outputs, disagreements: () => [], day: null });
+  assert.ok(ev.reports.every(r => !String(r.body).includes('experiment-baseline')), 'the baseline comment is not an owner report for M1');
+});
+
+test('baseline keeps the night audit\'s reserved run; a cap stop keeps finished days and retries later', () => {
+  writeJson(dayStatePath('2026-11-14'), { codexRuns: codexDailyCap - auditReserve - 1 });
+  const dir = fresh();
+  const gh = fakeGh({ reports: baseReports() });
+  const codex = fakeCodex();
+  runNightAudit({ gh, dir, window: { date: '2026-11-13', final: true }, post: false, codex, ...deps({ clock: () => at('2026-11-13T10:00:00Z') }) });
+  const before13 = readRecord('2026-11-13', dir).judgement.judgedAt;
+  runBaseline({ from: '2026-11-11', to: '2026-11-13', gh, dir, codex, ...deps() });
+  assert.equal(codex.calls.length, 2, 'day 11 judged with the last free run; day 12 stopped by the reserve; day 13 already final');
+  assert.equal(readJson(dayStatePath('2026-11-14'), {}).codexRuns, codexDailyCap - auditReserve);
+  assert.equal(readRecord('2026-11-12', dir).judgement.retry, true);
+  assert.equal(typeof readRecord('2026-11-12', dir).metrics.M2.value, 'number', 'machine facts are kept without Codex');
+  assert.equal(readRecord('2026-11-13', dir).judgement.judgedAt, before13);
+  assert.equal(runNightAudit({ gh, now: at('2026-11-14T16:10:00Z'), dir, codex, ...deps() }).status, 'judged', 'the night audit still has its run');
+  writeJson(dayStatePath('2026-11-15'), { codexRuns: 0 });
+  runBaseline({ from: '2026-11-11', to: '2026-11-13', gh, dir, codex, ...deps({ clock: () => at('2026-11-15T03:00:00Z') }) });
+  assert.equal(readRecord('2026-11-12', dir).judgement.retry, undefined, 'the stopped day is judged on a later run');
+  const limited = fakeCodex(null, 'limit');
+  const dir2 = fresh();
+  const r = runBaseline({ from: '2026-11-11', to: '2026-11-13', gh, dir: dir2, codex: limited, post: false, ...deps({ clock: () => at('2026-11-15T03:00:00Z') }) });
+  assert.deepEqual(r.days.map(d => d.status), ['limit', 'limit', 'limit']);
+  assert.equal(limited.calls.length, 1, 'a usage limit stops the run');
+});
+
+test('baseline days: M4 and M8 stay unmeasured even when the logs exist today', () => {
+  const gh = fakeGh();
+  const log = () => [{ date: '2026-11-12', pr: 7, winner: 'codex' }];
+  const facts = collectFacts({ date: '2026-11-12', gh, now: at('2026-11-14T16:00:00Z'), outputs: () => outputs, day: () => null, disagreements: log, lessons: () => ({ done: 1, open: 2, overdue: 0 }) });
+  assert.equal(facts.metrics.M8.value, null);
+  assert.equal(facts.metrics.M4.value, null);
+  const ev = gatherEvidence({ date: '2026-11-12', gh, facts, issue: 133, outputs, disagreements: log, day: null });
+  assert.equal(validateJudgement(good, ev).unrecorded.value, null);
+  assert.equal(collectFacts({ date: '2026-11-14', gh, now: at('2026-11-14T16:00:00Z'), outputs: () => outputs, day: () => null }).metrics.M8.value, null, 'no log module: never 0');
 });
