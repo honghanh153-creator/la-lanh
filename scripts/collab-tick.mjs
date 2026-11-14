@@ -16,6 +16,7 @@ import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 import { pendingCount, readSaved, runCopyBatch, savedPath } from './codex-copy-review.mjs';
 import { hookHealth } from './collab-hooks.mjs';
+import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
 
 // Tools the loop and pnpm check need. A missing one used to surface as a false FAIL receipt
@@ -47,7 +48,8 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     // No recorded list is unmeasured, not "no work picked" (Codex r1 on #497).
     progress: (day, date) => (Array.isArray(day.plannedItems) ? workProgress({ date, planned: day.plannedItems, fetch: ghFetch(gh) }) : { unmeasured: 'chưa có danh sách việc đã chọn' }),
     snapshot: (slot, date) => takeSnapshot({ slot, date, gh }),
-    incidents: () => realSources(gh, vnNow().date).alerts() });
+    incidents: () => realSources(gh, vnNow().date).alerts(),
+    mergeAudit: options => runMergeAudit(options) });
 }
 
 if (isMain(import.meta.url)) {
