@@ -49,6 +49,8 @@ const prFields = 'number,title,body,headRefOid,createdAt,mergedAt,comments,files
 // PR numbers a candidate names: "PR #N", a pull link, the fix-forward marker pr=N, "Reverts owner/repo#N".
 export const prRefs = text => [...String(text ?? '').matchAll(/(?:\bPR\s*#|\/pull\/|\bpr=|\bReverts\s+\S*#)(\d+)/gi)].map(m => Number(m[1]));
 const notFound = text => /could not resolve to a pullrequest|not found|\b404\b/i.test(text);
+// The search API returns at most 1000 results; a full page means some alerts may be missing.
+export const alertLimit = 1000;
 const linkRange = date => `${new Date(Date.parse(`${date}T12:00:00Z`) - (linkDays - 1) * 86400000).toISOString().slice(0, 10)}T00:00:00+07:00..${date}T23:59:59+07:00`;
 
 // When the tick may judge, and which day: provisional for today 23:00–23:29, final for yesterday
@@ -117,13 +119,23 @@ export function gatherEvidence({ date, gh, facts, issue, outputs = [], disagreem
   })();
 
   // Escape candidates. An alert that recurs adds a comment to an old issue (opsAlert), so issues
-  // updated today count when they were opened or commented on today.
-  const alerts = tryRead('alerts', () => gh.json(['issue', 'list', '--repo', repo, '--label', 'ops-alert', '--state', 'all', '--search', `updated:${dayRange(date)}`,
-    '--limit', '100', '--json', 'number,title,body,createdAt,comments'])
-    .map(a => ({ a, events: [...(inDay(a.createdAt, date) ? [{ at: hhmm(a.createdAt), text: clean(a.body, 800) }] : []),
-      ...(a.comments ?? []).filter(c => inDay(c.createdAt, date)).slice(0, 10).map(c => ({ at: hhmm(c.createdAt), text: clean(c.body, 400) }))] }))
-    .filter(x => x.events.length).sort((x, y) => x.a.number - y.a.number)
-    .map(({ a, events }) => ({ key: `alert#${a.number}`, title: clean(a.title, 160), events })), null);
+  // count when they were opened or commented on the audited day. `updated:` only holds an issue's
+  // latest update, so the search starts at the day and keeps later updates; the day's events are
+  // then picked by their own dates (Codex P2 on #493). Past the search cap the day is unmeasured.
+  const alerts = tryRead('alerts', () => {
+    const list = gh.json(['issue', 'list', '--repo', repo, '--label', 'ops-alert', '--state', 'all', '--search', `updated:>=${date}T00:00:00+07:00`,
+      '--limit', String(alertLimit), '--json', 'number,title,body,createdAt,comments']);
+    if (list.length >= alertLimit) throw new Error(`từ ${date} có ${alertLimit}+ issue ops-alert cập nhật, quá giới hạn tìm kiếm`);
+    // gh lists at most the first 100 comments of an issue; a longer one is read in full from the day on.
+    const comments = a => ((a.comments ?? []).length < 100 ? a.comments ?? []
+      : gh.json(['api', `repos/${repo}/issues/${Number(a.number)}/comments?since=${dayStart(date)}&per_page=100`, '--paginate', '--slurp']).flat()
+        .map(c => ({ createdAt: c.created_at, body: c.body })));
+    return list.map(a => ({ a, events: [...(inDay(a.createdAt, date) ? [{ at: hhmm(a.createdAt), text: clean(a.body, 800) }] : []),
+      ...comments(a).filter(c => inDay(c.createdAt, date)).sort((x, y) => String(x.createdAt).localeCompare(String(y.createdAt)))
+        .slice(0, 10).map(c => ({ at: hhmm(c.createdAt), text: clean(c.body, 400) }))] }))
+      .filter(x => x.events.length).sort((x, y) => x.a.number - y.a.number)
+      .map(({ a, events }) => ({ key: `alert#${a.number}`, title: clean(a.title, 160), events }));
+  }, null);
   const reverts = week === null ? null : mergedToday.filter(p => /^revert\b/i.test(p.title ?? '')).map(p => ({ key: `revert#${p.number}`, title: clean(p.title, 160), body: clean(p.body, 600) }));
   // Fix-forward issues opened today (codex-review.mjs, P2 left for after the merge): M3 counts them too (§4).
   const fixForward = tryRead('fixForward', () => gh.json(['issue', 'list', '--repo', repo, '--label', 'fix-forward', '--state', 'all', '--search', `created:${dayRange(date)}`,
