@@ -10,9 +10,21 @@ export const integration = 'collab/integration';
 export const ownerLogin = repo.split('/')[0];
 export const agentMarker = '<!-- la-lanh-agent';
 export const stateDir = process.env.LA_LANH_COLLAB_HOME || join(homedir(), '.cache', 'la-lanh-collab');
-// Automatic Codex reviews per day. Owner 03.11.2026: up to 32, so the 16-PR commitment fits
-// (about 1.4 reviews per merged PR on 03.11). One constant for the tick, the review script and the board.
-export const codexDailyCap = 32;
+// Automatic Codex runs per day, one constant for the tick, the review script and the board.
+// Owner 03.11.2026: 32; owner 14.11.2026: 60.
+export const codexDailyCap = 60;
+// Loop hours, Vietnam time, in minutes after midnight (owner 14.11.2026: start the day's PRs at 08:00
+// instead of 10:00 and end at 23:59; the earlier steps moved up with it). The one place to change them:
+// plan gate, tick, author check, Codex review, board and plan text all read these.
+export const planOpensAt = 6 * 60 + 50;
+export const autoStartAt = 8 * 60;
+// Nothing new starts from lastStartAt; every automatic run ends by cutoffAt (24 minutes later, the
+// same room the old 23:30/23:55 pair gave a review or a check to finish and publish).
+export const lastStartAt = 23 * 60 + 35;
+export const cutoffAt = 23 * 60 + 59;
+export const hhmmOf = minutes => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+// The cutoff as an absolute instant for a Vietnam date (no daylight saving there).
+export const cutoffMs = date => Date.parse(`${date}T${hhmmOf(cutoffAt)}:00+07:00`);
 export const blockingP2 = new Set(['privacy', 'security', 'user_copy']);
 // Process PRs (the loop itself, CI, test hardening) go first: a broken loop stalls every other group.
 export const areaOrder = ['ops', 'content', 'privacy', 'feature'];
