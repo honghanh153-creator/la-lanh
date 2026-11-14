@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { auditReserve, collectFacts, keepDayM4, saveFacts } from './collab-audit.mjs';
-import { auditMarker, auditWindow, baselineMarker, baselinePath, buildPrompt, datesIn, evidenceDigest, gatherEvidence, readRecord, runAuditCodex, runBaseline, runNightAudit, upsertAudit, validateJudgement } from './collab-audit-night.mjs';
+import { alertLimit, auditMarker, auditWindow, baselineMarker, baselinePath, buildPrompt, datesIn, evidenceDigest, gatherEvidence, readRecord, runAuditCodex, runBaseline, runNightAudit, upsertAudit, validateJudgement } from './collab-audit-night.mjs';
 import { agentMarker, codexDailyCap, dayStatePath, readJson, writeJson } from './collab-trust.mjs';
 import { renderCheck } from './collab-check.mjs';
 import { tick } from './collab-turn.mjs';
@@ -25,6 +25,18 @@ const merged = (n, extra = {}) => ({ number: n, title: `fix: ${n}`, body: 'thân
   comments: [approve, rebuttal], files: [{ path: 'scripts/x.mjs' }], ...extra });
 const report = (id, at, body) => ({ id, author_association: 'OWNER', created_at: at, body });
 
+// GitHub's `updated:` qualifier matches only an issue's latest update (updatedAt, else its last event).
+const updatedMatches = args => {
+  const q = String(args[args.indexOf('--search') + 1] ?? '').match(/updated:(\S+)/)?.[1];
+  return a => {
+    if (!q) return true;
+    const t = Date.parse(a.updatedAt ?? [a.createdAt, ...(a.comments ?? []).map(c => c.createdAt)].sort().at(-1));
+    if (q.startsWith('>=')) return t >= Date.parse(q.slice(2));
+    const [from, to] = q.split('..').map(Date.parse);
+    return t >= from && t <= to;
+  };
+};
+
 // A GitHub stand-in: the plan issue's comments, merged PRs, open PRs, ops alerts, and comment edits.
 function fakeGh({ reports = [report(1, '2026-11-14T07:00:00Z', 'agent: Claude — báo cáo\nĐã merge #7.')], prs = [merged(7)], alerts = [], fixForward = [], older = [], fail = {} } = {}) {
   const state = { comments: [...reports], calls: [], nextId: 900 };
@@ -33,7 +45,11 @@ function fakeGh({ reports = [report(1, '2026-11-14T07:00:00Z', 'agent: Claude �
     openPrs: () => [],
     json: args => {
       state.calls.push(args.join(' '));
-      if (args[0] === 'api') { if (fail.list) throw new Error('gh: HTTP 502'); return [state.comments]; }
+      if (args[0] === 'api') {
+        if (fail.list) throw new Error('gh: HTTP 502');
+        const own = alerts.find(a => args[1].includes(`/issues/${a.number}/comments`));
+        return [own ? structuredClone(own.allComments) : state.comments];
+      }
       if (args[0] === 'pr' && args[1] === 'view') {
         if (fail.view) throw new Error('gh: HTTP 502');
         const p = [...prs, ...older].find(x => x.number === Number(args[2]));
@@ -41,7 +57,7 @@ function fakeGh({ reports = [report(1, '2026-11-14T07:00:00Z', 'agent: Claude �
         return structuredClone(p);
       }
       if (args[0] === 'pr') { if (fail.merged) throw new Error('gh: HTTP 502'); return structuredClone(prs); }
-      if (args[0] === 'issue') { if (args.includes('fix-forward')) { if (fail.fixForward) throw new Error('gh: HTTP 502'); return structuredClone(fixForward); } return structuredClone(alerts); }
+      if (args[0] === 'issue') { if (args.includes('fix-forward')) { if (fail.fixForward) throw new Error('gh: HTTP 502'); return structuredClone(fixForward); } return structuredClone(alerts.filter(updatedMatches(args))); }
       throw new Error(`unexpected ${args.join(' ')}`);
     },
     raw: (args, input) => {
@@ -417,6 +433,39 @@ test('M3: a failed fetch of fix-forward issues or of a named PR leaves M3 unmeas
   assert.equal(validateJudgement(good, ff).M3.value, null);
   const facts = collectFacts({ date: '2026-11-14', gh: fakeGh({ fail: { fixForward: true } }), now: at('2026-11-14T16:05:00Z'), outputs: () => outputs, day: () => null });
   assert.match(facts.metrics.M3.missing, /fix-forward/);
+});
+
+// A past day audited later (baseline): its alerts have been updated since (#530).
+const pastDay = '2026-11-11';
+const evidenceOn = (gh, date = pastDay) => gatherEvidence({ date, gh, facts: collectFacts({ date, gh, now: at('2026-11-14T16:05:00Z'), outputs: () => outputs, day: () => null }),
+  issue: 133, outputs, disagreements: () => [], day: null });
+
+test('M3: an alert of a past day stays a candidate after it is updated on a later day', () => {
+  const opened = { number: 12, title: 'tick lỗi', body: 'mở ngày 11', createdAt: '2026-11-11T05:00:00Z', comments: [{ createdAt: '2026-11-14T03:00:00Z', body: 'Lặp lại ngày 14' }] };
+  const recurred = { number: 13, title: 'merge lỗi', body: 'mở ngày 9', createdAt: '2026-11-09T05:00:00Z',
+    comments: [{ createdAt: '2026-11-11T02:00:00Z', body: 'Lặp lại ngày 11' }, { createdAt: '2026-11-14T02:00:00Z', body: 'Lặp lại ngày 14' }] };
+  const otherDay = { number: 14, title: 'khác', body: 'mở ngày 9', createdAt: '2026-11-09T05:00:00Z', comments: [{ createdAt: '2026-11-14T02:00:00Z', body: 'Lặp lại ngày 14' }] };
+  const gh = fakeGh({ alerts: [opened, recurred, otherDay] });
+  const ev = evidenceOn(gh);
+  assert.ok(gh.state.calls.some(c => c.includes('ops-alert') && c.includes(`updated:>=${pastDay}T00:00:00+07:00`)), 'the search keeps later updates');
+  assert.deepEqual(ev.alerts.map(a => a.key), ['alert#12', 'alert#13'], 'picked by the audited day, not by the latest update');
+  assert.deepEqual(ev.alerts.map(a => a.events.map(e => e.text)), [['mở ngày 11'], ['Lặp lại ngày 11']], 'only that day\'s events');
+  assert.equal(validateJudgement(good, ev).M3.of, 2);
+});
+
+test('M3: an alert past 100 comments is read in full; a full search page leaves M3 unmeasured', () => {
+  const old = Array.from({ length: 100 }, (_, i) => ({ createdAt: `2026-11-01T0${i % 10}:00:00Z`, body: `cũ ${i}` }));
+  const busy = { number: 15, title: 'tick lỗi', body: 'mở ngày 1', createdAt: '2026-11-01T05:00:00Z', updatedAt: '2026-11-14T02:00:00Z', comments: old,
+    allComments: [{ created_at: '2026-11-11T04:00:00Z', body: 'Lặp lại ngày 11' }, { created_at: '2026-11-14T02:00:00Z', body: 'Lặp lại ngày 14' }] };
+  const gh = fakeGh({ alerts: [busy] });
+  const ev = evidenceOn(gh);
+  assert.ok(gh.state.calls.some(c => c.startsWith(`api repos/honghanh153-creator/la-lanh/issues/15/comments?since=${new Date(`${pastDay}T00:00:00+07:00`).toISOString()}`)));
+  assert.deepEqual(ev.alerts.map(a => [a.key, a.events.map(e => e.text)]), [['alert#15', ['Lặp lại ngày 11']]]);
+  const many = Array.from({ length: alertLimit }, (_, i) => ({ number: 100 + i, title: 'x', body: 'x', createdAt: '2026-11-11T05:00:00Z', comments: [] }));
+  const capped = evidenceOn(fakeGh({ alerts: many }));
+  assert.equal(capped.alerts, null);
+  assert.match(capped.errors.alerts, /1000/);
+  assert.equal(validateJudgement(good, capped).M3.value, null, 'never 0');
 });
 
 test('M1: every key a source cites must be in the pack; day needs day evidence', () => {
