@@ -68,7 +68,18 @@
    "from": "thỏa thuận 12.11 mục D",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-dispatch.test.mjs",
+    "name": "failed preflight never invokes the worker"
+   },
+   "caller": {
+    "file": "scripts/codex-copy-review.mjs",
+    "contains": "dispatch({"
+   },
+   "closedBy": {
+    "pr": 494
+   }
   },
   {
    "id": "L07",
