@@ -118,7 +118,8 @@ export function disputeStates(events = []) {
     const d = map.get(e.id);
     if (!d) continue;
     if (e.type === 'escalate') d.requested = e;
-    else if (e.type === 'sent') { d.questions.push({ ...e, notifiedAt: null, clockFrom: null, morningAt: null }); d.requested = null; d.stale = null; }
+    // rounds: how many rounds existed when the question was posted; the question is about that one.
+    else if (e.type === 'sent') { d.questions.push({ ...e, rounds: e.rounds ?? d.rounds.length, notifiedAt: null, clockFrom: null, morningAt: null }); d.requested = null; d.stale = null; }
     else if (e.type === 'notified') { const q = d.questions.find(x => x.q === e.q); if (q) Object.assign(q, { notifiedAt: e.at, clockFrom: e.clockFrom ?? null, morningAt: e.morningAt ?? null }); }
     else if (e.type === 'stale') d.stale = e;
     else if (e.type === 'decided') d.decided = e;
@@ -135,12 +136,21 @@ export function disputeStatus(d) {
   if (!d.rounds.some(r => r.round === 2)) return 'debating';
   if (d.requested) return 'sending';
   if (d.stale) return 'stale';
+  if (isSuperseded(d)) return 'superseded';
   return d.questions.length ? 'asked' : 'ready';
 }
-const isOpenQuestion = d => ['sending', 'asked', 'stale'].includes(disputeStatus(d)) && d.questions.length > 0;
+const isOpenQuestion = d => ['sending', 'asked', 'stale', 'superseded'].includes(disputeStatus(d)) && d.questions.length > 0;
 // A new head or a new recorded argument is a substantive change; anything else is the same question.
-const questionKey = (head, d) => `${head ?? '-'}|${d.rounds.length}`;
+const questionKey = (head, rounds) => `${head ?? '-'}|${rounds}`;
 const lastRound = d => d.rounds.at(-1);
+// Codex 15.11: the owner answers the arguments that were sent. A round recorded after the newest
+// question supersedes it: no reply and no timeout applies to it until a fresh --escalate, and a
+// decision always uses the round that was sent, never a newer one.
+const askedRound = (d, q) => d.rounds[q.rounds - 1];
+function isSuperseded(d) {
+  const q = d.questions.at(-1);
+  return Boolean(q) && !(q.rounds === d.rounds.length && askedRound(d, q));
+}
 
 export function openRound({ id, pr, task, issue, round, claude, codex, codexConclusion, head, ownerOnly = false, group, nowMs = Date.now(), path = disputePath } = {}) {
   const r = Number(round);
@@ -174,8 +184,9 @@ export function parseDisputeReply(body) {
   return m ? { chosen: m[1], id: m[2] ?? null } : null;
 }
 
-const markerRe = /<!-- la-lanh-agent disagree id=(\S+) q=(\d+)( label=added)? -->/;
-export const questionMarker = (id, q, label) => `${agentMarker} disagree id=${id} q=${q}${label ? ' label=added' : ''} -->`;
+const markerRe = /<!-- la-lanh-agent disagree id=(\S+) q=(\d+)(?: r=(\d+))?( label=added)? -->/;
+// r is the number of rounds the question shows, so a crash recovery knows which arguments were sent.
+export const questionMarker = (id, q, label, rounds) => `${agentMarker} disagree id=${id} q=${q}${rounds ? ` r=${rounds}` : ''}${label ? ' label=added' : ''} -->`;
 export const decidedMarker = id => `${agentMarker} disagree-decided id=${id} -->`;
 const findQuestion = (comments, id, q) => comments.filter(isTrusted).find(c => { const m = markerRe.exec(c.body ?? ''); return m && m[1] === id && Number(m[2]) === q; });
 
@@ -185,7 +196,7 @@ function readTarget(gh, t) {
 }
 
 const quote = text => clean(text, 500).replace(/<!--/g, '&lt;!--').split('\n').map(l => `> ${l}`).join('\n');
-function questionBody(d, q, label) {
+function questionBody(d, q, label, rounds) {
   const last = lastRound(d);
   const where = d.pr ? `PR #${d.pr}` : `việc ${d.task}`;
   return [
@@ -197,7 +208,7 @@ function questionBody(d, q, label) {
     d.ownerOnly
       ? 'Việc này chỉ owner quyết, nên vòng tự động chờ owner và không tự chốt.'
       : 'Ban ngày (08:00–22:00), sau 30 phút chưa có trả lời thì làm theo Codex và ghi "chốt do hết giờ". Ngoài giờ đó thì chờ tới sáng, hỏi lại rồi mới tính 30 phút.',
-    '', questionMarker(d.id, q, label),
+    '', questionMarker(d.id, q, label, rounds),
   ].join('\n');
 }
 
@@ -238,6 +249,8 @@ function send(d, { gh, notify, nowMs, path, labels }) {
   const key = targetKey(t);
   const found = findQuestion(tg.comments, d.id, q);
   let askedAt = found?.createdAt ?? null;
+  // The body shows the latest round of this snapshot; a recovered comment says which round it showed.
+  const rounds = found ? Number(markerRe.exec(found.body ?? '')?.[3]) || d.rounds.length : d.rounds.length;
   if (!found) {
     try {
       if (!tg.labels.includes('needs-owner')) {
@@ -246,13 +259,13 @@ function send(d, { gh, notify, nowMs, path, labels }) {
         labels.set(key, { type: 'label-added', at: iso(nowMs) });
       }
       askedAt = iso(nowMs);
-      gh.comment(t.kind, t.number, questionBody(d, q, labels.get(key)?.type === 'label-added'));
+      gh.comment(t.kind, t.number, questionBody(d, q, labels.get(key)?.type === 'label-added', rounds));
     } catch (error) {
       record(path, nowMs, { type: 'send-failed', id: d.id, q, error: clean(error.message, 200) });
       throw error;
     }
   }
-  record(path, nowMs, { type: 'sent', id: d.id, q, askedAt, head: tg.head, key: questionKey(tg.head, d), ...(found ? { recovered: true } : {}) });
+  record(path, nowMs, { type: 'sent', id: d.id, q, askedAt, head: tg.head, rounds, key: questionKey(tg.head, rounds), ...(found ? { recovered: true } : {}) });
   return notifyOwner(d, q, { notify, nowMs, path });
 }
 
@@ -270,7 +283,7 @@ export function escalate({ id, gh = makeGh(), notify = osNotify, nowMs = Date.no
     if (!t) throw new Error('a task dispute needs --issue N on a round, so the owner has somewhere to answer');
     if (!d.requested) {
       const head = t.kind === 'pr' ? readTarget(gh, t).head : null;
-      if (d.questions.some(q => q.key === questionKey(head, d))) {
+      if (d.questions.some(q => q.key === questionKey(head, d.rounds.length))) {
         return { status: 'already-asked', reason: 'owner đã được hỏi; chưa có head mới hay lý lẽ mới' };
       }
       record(path, nowMs, { type: 'escalate', id });
@@ -296,8 +309,9 @@ export function disputeView(events = read(disputePath)) {
     const v = view[d.pr] ??= { hold: null, since: null };
     if (d.decided && (!v.since || timeOf(d.decided.at) > timeOf(v.since))) v.since = d.decided.at;
     const s = disputeStatus(d);
-    if (!v.hold && ['ready', 'sending', 'asked', 'stale'].includes(s)) {
+    if (!v.hold && ['ready', 'sending', 'asked', 'stale', 'superseded'].includes(s)) {
       v.hold = s === 'stale' ? `bất đồng ${d.id}: head đổi sau câu hỏi, cần hỏi lại hoặc rút`
+        : s === 'superseded' ? `bất đồng ${d.id}: lý lẽ đổi sau câu hỏi, cần hỏi lại hoặc rút`
         : s === 'ready' ? `bất đồng ${d.id}: chưa hỏi owner` : `bất đồng ${d.id}: chờ owner`;
     }
   }
@@ -319,7 +333,7 @@ function finish(d, { gh, nowMs, path, logFile, all, labels }) {
   const t = targetOf(d);
   const decided = d.decided;
   if (decided && !read(logFile).some(e => e.dispute === d.id)) {
-    const last = lastRound(d);
+    const last = d.rounds[(decided.rounds ?? d.rounds.length) - 1];
     append({ ...entry({ ...(d.pr ? { pr: d.pr } : { task: d.task }), claude: last.claude, codex: last.codex, winner: decided.chosen, note: decided.note ?? '', at: new Date(timeOf(decided.at)) }),
       dispute: d.id, decidedBy: decided.decidedBy, chosen: decided.chosen }, logFile);
   }
@@ -339,8 +353,8 @@ function finish(d, { gh, nowMs, path, logFile, all, labels }) {
 }
 
 function decide(d, { decidedBy, chosen, q, head, nowMs, path }) {
-  const last = lastRound(d);
-  d.decided = record(path, nowMs, { type: 'decided', id: d.id, q: q.q, decidedBy, chosen, head,
+  const last = askedRound(d, q);
+  d.decided = record(path, nowMs, { type: 'decided', id: d.id, q: q.q, rounds: q.rounds, decidedBy, chosen, head,
     conclusion: chosen === 'codex' ? last.codexConclusion ?? last.codex : last.claude, ...(decidedBy === 'timeout' ? { note: 'chốt do hết giờ' } : {}) });
 }
 
@@ -354,6 +368,9 @@ function settleOne(d, ctx) {
   const q = d.questions.at(-1);
   // A failed send (or a crash before it was recorded) is retried; its clock has not started.
   if (!q) return send(d, ctx);
+  // A newer round superseded the question: nothing the owner said to it and no clock applies.
+  const superseded = isSuperseded(d);
+  if (superseded && status !== 'sending') return { status: 'superseded' };
   const tg = readTarget(gh, t);
   if (tg.state !== 'OPEN') return { status: 'target-closed' };
   // Replies are read before anything else, also in the morning before a second question.
@@ -365,7 +382,7 @@ function settleOne(d, ctx) {
     .filter(c => isTrusted(c) && !String(c.body ?? '').includes(agentMarker) && timeOf(c.createdAt) > timeOf(q.askedAt))
     .sort((a, b) => timeOf(a.createdAt) - timeOf(b.createdAt))
     .map(c => ({ ...parseDisputeReply(c.body), at: timeOf(c.createdAt) })).filter(r => r.chosen && (r.id ? r.id === d.id.toLowerCase() : alone(r.at))).at(-1);
-  if (reply) { decide(d, { decidedBy: 'owner', chosen: reply.chosen, q, head: tg.head, nowMs, path }); return finish(d, ctx); }
+  if (reply && !superseded) { decide(d, { decidedBy: 'owner', chosen: reply.chosen, q, head: tg.head, nowMs, path }); return finish(d, ctx); }
   if (status === 'sending') return send(d, ctx);
   if (!q.notifiedAt) return notifyOwner(d, q.q, ctx);
   if (status === 'stale') return { status: 'stale' };

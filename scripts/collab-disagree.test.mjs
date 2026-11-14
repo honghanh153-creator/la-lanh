@@ -317,3 +317,66 @@ test('L25: a task dispute asks on its issue and escalation needs round 2', () =>
   assert.equal(w.settle()[0].decidedBy, 'timeout');
   assert.equal(read(w.logFile)[0].task, 'L21');
 });
+
+test('L25: a round recorded after the question supersedes it: no timeout on the old clock, no reply to it decides, a fresh ask works', () => {
+  // Without any reply: the old question's 30 minutes pass after the change and decide nothing.
+  const w0 = world();
+  const id0 = w0.open();
+  w0.escalate(id0);
+  w0.now = vn(14, 10, 29);
+  L25.openRound({ id: id0, round: 2, claude: 'Claude B', codex: 'Codex B', head: A, nowMs: w0.now, path: w0.path });
+  w0.now = vn(14, 10, 30);
+  assert.deepEqual(w0.settle()[0], { id: id0, status: 'superseded' });
+  assert.equal(w0.state_(id0).decided, null);
+  const w = world();
+  const id = w.open();
+  assert.equal(w.escalate(id).clock, 'started');
+  w.now = vn(14, 10, 20);
+  w.ownerSays('Theo Claude');
+  // Before any tick reads the reply, a changed round 2 is recorded, then the 30 minutes pass.
+  w.now = vn(14, 10, 29);
+  L25.openRound({ id, round: 2, claude: 'Claude đề xuất B', codex: 'Codex đề xuất B', codexConclusion: 'Làm theo B', head: A, nowMs: w.now, path: w.path });
+  w.now = vn(14, 10, 30);
+  assert.deepEqual(w.settle()[0], { id, status: 'superseded' }, 'no timeout on the old question');
+  w.now = vn(14, 11, 30);
+  assert.equal(w.settle()[0].status, 'superseded', 'the old clock never decides the new proposal');
+  assert.equal(w.state_(id).decided, null, 'the reply to the old question decides nothing');
+  assert.match(L25.disputeView(read(w.path))[515].hold, /lý lẽ đổi/);
+  assert.deepEqual(w.labels, ['needs-owner'], 'still waiting on the owner');
+  // A fresh question shows the new round and starts its own clock.
+  assert.equal(w.escalate(id).clock, 'started');
+  assert.equal(w.questions().length, 2);
+  assert.match(w.questions()[1].body, /Làm theo B[\s\S]*q=2 r=3/);
+  w.now = vn(14, 11, 59);
+  assert.equal(w.settle()[0].status, 'waiting', 'the reply before the fresh question does not count');
+  w.now = vn(14, 12, 0);
+  assert.equal(w.settle()[0].decidedBy, 'timeout');
+  assert.equal(w.state_(id).decided.conclusion, 'Làm theo B');
+  assert.equal(read(w.logFile)[0].claude, 'Claude đề xuất B');
+});
+
+test('L25: a decision uses the round that was sent, also after a crash between the post and the record', () => {
+  const w = world();
+  const id = w.open();
+  // The first run posted question 1 showing round 2 (r=2) and died before writing "sent".
+  append({ at: isoAt(w.now), type: 'escalate', id }, w.path);
+  w.comments.push({ authorAssociation: 'OWNER', createdAt: isoAt(w.now), body: `câu hỏi\n${L25.questionMarker(id, 1, false, 2)}` });
+  // A changed round is recorded before the recovery.
+  L25.openRound({ id, round: 2, claude: 'Claude đề xuất B', codex: 'Codex đề xuất B', head: A, nowMs: w.now, path: w.path });
+  w.now = vn(14, 10, 5);
+  assert.equal(w.settle()[0].status, 'sent');
+  assert.equal(w.state_(id).questions[0].rounds, 2, 'the recovered question is about the round it showed');
+  w.now = vn(14, 10, 10);
+  w.ownerSays('Theo Codex');
+  assert.equal(w.settle()[0].status, 'superseded', 'a reply to proposal A does not pick proposal B');
+  assert.equal(w.state_(id).decided, null);
+  // Without a newer round, an owner reply decides with exactly the sent snapshot.
+  const w2 = world();
+  const id2 = w2.open();
+  w2.escalate(id2);
+  w2.now = vn(14, 10, 3);
+  w2.ownerSays('Theo Codex');
+  assert.equal(w2.settle()[0].chosen, 'codex');
+  assert.equal(w2.state_(id2).decided.rounds, 2);
+  assert.equal(w2.state_(id2).decided.conclusion, 'Giữ ba lần thử rồi báo lỗi');
+});
