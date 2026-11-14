@@ -3,9 +3,10 @@
 import { join } from 'node:path';
 import { deletionProblem } from './collab-size.mjs';
 import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr, isSha, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { afterDecision, disputeView } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
 
-export function mergeGate(pr) {
+export function mergeGate(pr, { disputes = disputeView() } = {}) {
   const reasons = [];
   const head = pr.headRefOid;
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
@@ -18,7 +19,9 @@ export function mergeGate(pr) {
   const deletion = deletionProblem(pr);
   if (deletion) reasons.push(deletion);
   if (pr.mergeable !== 'MERGEABLE') reasons.push(`GitHub báo mergeable=${pr.mergeable}`);
-  const { check, last } = reviewState(pr);
+  // L25: no merge while a dispute is open; after a decision only a newer check and review count.
+  if (disputes[pr.number]?.hold) reasons.push(disputes[pr.number].hold);
+  const { check, last } = reviewState(afterDecision(pr, disputes[pr.number]));
   if (!last || last.verdict.verdict !== 'APPROVE' || last.verdict.sha !== head) reasons.push('verdict mới nhất (sau lần đổi base gần nhất) không phải APPROVE @ head');
   // The newest author check for the head decides; an older PASS does not outvote a later FAIL.
   if (check?.status !== 'PASS') reasons.push('Author check mới nhất @ head không phải PASS');
