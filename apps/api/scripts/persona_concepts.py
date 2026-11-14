@@ -98,8 +98,11 @@ def packet(p: Mapping[str, Any], situation: str) -> dict[str, Any]:
     return out
 
 
-def split_concepts(text: str) -> dict[str, str]:
-    """Sections of viral-concepts-mocks.md: intro rules plus one block per S-code."""
+CODE = r"(?:S\d+|LN|H)"
+
+
+def split_concepts(text: str, required: Sequence[str] = (*PACKAGE, *ADDONS)) -> dict[str, str]:
+    """Sections of viral-concepts-mocks.md: intro rules plus one block per concept code."""
 
     parts: dict[str, str] = {}
     body = text.split("# Bản A", 1)[1] if "# Bản A" in text else text
@@ -111,18 +114,18 @@ def split_concepts(text: str) -> dict[str, str]:
     parts["_rules"] = "\n\n".join(rules)
     table = {
         m.group(1): m.group(2).strip()
-        for m in re.finditer(r"^\| (S\d+)[^|]*\| (.+?) \|$", intro, flags=re.M)
+        for m in re.finditer(rf"^\| ({CODE})\b[^|]*\| (.+?) \|$", intro, flags=re.M)
     }
     for code, rel in table.items():
         parts[f"_rel_{code}"] = rel
     for m in re.finditer(
-        r"^#{2,3} (S\d+)\. (.+?)$(.*?)(?=^#{2,3} S\d+\.|^## Thử có điều kiện|\Z)",
+        rf"^#{{2,3}} ({CODE})\. (.+?)$(.*?)(?=^#{{2,3}} {CODE}\.|^## Thử có điều kiện|\Z)",
         body,
         flags=re.M | re.S,
     ):
         block = m.group(3).strip().rstrip("-").strip()
         parts[m.group(1)] = f"### {m.group(1)}. {m.group(2).strip()}\n\n{block}"
-    missing = [c for c in (*PACKAGE, *ADDONS) if c not in parts]
+    missing = [c for c in required if c not in parts]
     if missing:
         raise SystemExit(f"concept sections missing in mock file: {missing}")
     return parts
