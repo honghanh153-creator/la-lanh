@@ -95,7 +95,7 @@ Codex xếp theo "ít mất nhất trước", dựa trên điểm 1000 người 
 | Thứ tự | Hoãn | Số trên 1000 người giả | Mất gì |
 |---|---|---|---|
 | 1 | Lá Dám bằng thẻ giấy | 4 người dùng; "thấy được hiểu" không tăng | Gần như không mất; cũng tiết kiệm ít công |
-| 2 | Truyện ngắn 3 khung | 33 người mở; chấm 3,12; không ai chia sẻ | Mất ít |
+| 2 | Truyện ngắn 3 khung | 33 người mở; chấm 3,12; không ai chia sẻ | Mất ít về số người, nhưng người đọc truyện là nhóm duy nhất đạt mốc "bớt một mình" (3,70) |
 | 3 | "Phụ đề khác nhau" | 26 người dùng; "thấy được hiểu" tăng 0,01 | Mất một trò rủ bạn: chấm riêng, gửi hoặc rủ tăng 14,3 điểm |
 
 - **Không nên hoãn sticker.** Ít người gặp, nhưng chấm riêng thì gửi hoặc rủ tăng 40,7 điểm.
@@ -226,5 +226,5 @@ Các mục này cần chị duyệt:
 ## Đã hoãn hoặc chưa có trong kế hoạch
 
 - **"Mời hẹn thử":** chị chốt chưa làm.
-- **Lá nhớ hoàn cảnh của người dùng:** điều người giả muốn nhất (179 câu chê trên 1000). Chưa vào kế hoạch vì cần chị quyết về lưu dữ liệu. Hai cách "nhớ" đã thử gần như không nâng điểm và làm nhiều người lo riêng tư.
+- **Lá nhớ hoàn cảnh của người dùng:** điều người giả muốn nhất (179 câu chê trên 1000). Chưa vào kế hoạch vì cần chị quyết về lưu dữ liệu. Hai cách "nhớ" đã thử chỉ nâng điểm ít (0,12 và 0,21) và làm 10% đến 17% người lo riêng tư.
 - **Lá Dám trong app, phòng chơi từ xa, ô viết "Kể ra rồi thả":** để sau 7 tuần.

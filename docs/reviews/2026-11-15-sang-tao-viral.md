@@ -24,11 +24,11 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 - **Nhưng gói chưa đạt mốc đã ghi trước: đạt 4 trên 9 điều kiện.** Mình không hạ mốc.
   - Đạt: 4 nhóm sinh viên yếu (3,55 đến 4,11); bình yên không tụt; hơn kế hoạch hiện tại 0,86 điểm "thấy được hiểu"; không lộ dữ liệu.
   - Chưa đạt: thấy được hiểu (3,56, mốc 3,7); bớt một mình (3,24, mốc 3,5); gửi hoặc rủ (10,5%, mốc 35%); người dùng chung máy (3,47, mốc 3,5); 1 trong 75 người chơi gặp chuyện chạm nỗi buồn (mốc không quá 1%).
-- **Ý góp nhiều nhất là "Gánh hôm nay"**: hơn một nửa người giả dùng, và người dùng nó chấm "thấy được hiểu" 3,77.
+- **Ý góp nhiều nhất là "Gánh hôm nay"**: hơn một nửa người giả dùng, và người dùng nó chấm "thấy được hiểu" 3,77. Đây là ý duy nhất đạt mốc 3,7. Không ý nào đạt cả ba mốc (bảng ở mục 4).
 - Codex chấm đối chiếu 40 người giả cho kết quả gần giống: thấy được hiểu 3,55; gửi hoặc rủ 12,5%.
 
 **Điều gì chặn (nói thẳng):**
-1. **Thấy được hiểu dừng ở 3,56** vì 380 người giả chỉ chấm 3, và giám khảo gần như không bao giờ cho 5 (13 trên 1000). Nhóm chấm 3 muốn nhất là **Lá nhớ hoàn cảnh và lần trước của họ** (khoảng 180 câu chê), rồi tới một bước cụ thể để làm, nội dung hợp ca làm, và chuyện sếp, chỗ làm. Nhưng hai ý "nhớ" mình đã thử thì gần như không nâng điểm (cao nhất +0,12) và làm 15 trên 90 người lo về riêng tư. Tức là "nhớ" chưa phải cách sửa nhanh, và nó cần chị quyết về lưu dữ liệu.
+1. **Thấy được hiểu dừng ở 3,56** vì 380 người giả chỉ chấm 3, và giám khảo gần như không bao giờ cho 5 (13 trên 1000). Nhóm chấm 3 muốn nhất là **Lá nhớ hoàn cảnh và lần trước của họ** (khoảng 180 câu chê), rồi tới một bước cụ thể để làm, nội dung hợp ca làm, và chuyện sếp, chỗ làm. Hai ý "nhớ" mình đã thử chỉ nâng điểm ít (0,12 và 0,21) và làm 10% đến 17% người lo về riêng tư. Tức là "nhớ" có giúp một chút nhưng đổi lại là lo riêng tư, và nó cần chị quyết về lưu dữ liệu.
 2. **Bớt một mình thấp** vì các ý có người khác (lời mở, trò hai người, Lá Dám) hầu như không ai dùng: 85, 26 và 4 trên 1000. Tình huống của người giả đều là mở app một mình.
 3. **Gửi hoặc rủ chỉ 10,5%** vì ít người gặp được thứ đáng gửi, không phải vì không muốn gửi. Khi cho xem riêng bộ sticker, tỉ lệ gửi tăng thêm 40,7 điểm phần trăm; trong gói thì chỉ 53 trên 1000 người tìm thấy sticker. Ngoài ra, mô tả bằng chữ không đo được hành vi chia sẻ thật.
 4. **Chuyện vui có thể chạm nỗi buồn.** Một người đang lo tìm việc và hay so mình với người khác gặp chuyện "cả nhóm rủ đi lẩu". Ở các lượt chấm riêng, chuyện "cả nhà hẹn đi ăn" của kế hoạch hiện tại cũng làm sinh viên xa nhà chạnh lòng. Cần lọc chuyện theo điều người dùng vừa nói là đang nặng.
@@ -50,7 +50,7 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 | Tra bằng chứng trên web | Font pixel có tiếng Việt, quy tắc dễ đọc WCAG, kích thước thư viện hoạt hình, nghiên cứu về lan truyền và cô đơn, luật dữ liệu, lịch Việt Nam (mục 9) |
 | Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 139 góp ý có mã qua 9 lượt phản biện và 3 lần chấm thử (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
 | Rút gọn, viết mock 4–8 màn mỗi ý, vẽ bản mẫu pixel; chấm thử hai lần bằng Codex trên 20 người giả rồi sửa (bản 3 → bản 6) | 13 ý: 10 ý vào "gói", 3 ý thử có điều kiện |
-| Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện mới chấm một phần (56, 90 và 34 cặp) vì hết hạn mức; phiên chấm sẽ chấm nốt và cập nhật |
+| Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện đã chấm 56, 90 và 68 cặp; còn hai lô chưa chấm xong |
 
 Lượt Codex dùng cho việc này: 13 trên 15 lượt được giao (brainstorm 1, phản biện 9 lượt, chấm thử 3 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
 
@@ -307,7 +307,28 @@ Bản mẫu xem được ngay (chỉ chị mở được): https://claude.ai/art
 
 Codex chấm đối chiếu 40 người: thấy được hiểu 3,55; bớt một mình 3,50; bình yên 3,95; gửi hoặc rủ 12,5%. Codex đạt điều kiện 2, còn lại giống trên. Chỗ hai bên khác nhau ghi là chưa kết luận.
 
-**Từng ý:**
+**Từng ý so với mốc** (điểm của những người giả có dùng tới ý đó, trong gói):
+
+| Ý | Số người dùng (trên 1000) | Ý đó làm thấy được hiểu (mốc 3,7) | Bớt một mình (mốc 3,5) | Bình yên (mốc 3,5) |
+|---|---|---|---|---|
+| Gánh hôm nay | 531 | **3,77, đạt** | 3,40, chưa | **3,71, đạt** |
+| Mở lá chọn góc | 568 | 3,22, chưa | 3,14, chưa | **3,54, đạt** |
+| Tuần có mạch | 260 | 3,38, chưa | 3,19, chưa | **3,60, đạt** |
+| Lá số không cần giờ sinh | 251 | 3,37, chưa | 3,24, chưa | **3,51, đạt** |
+| Lá ngồi cùng | 159 | 3,50, chưa | 3,18, chưa | **3,92, đạt** |
+| Chuyện tiền và lời mở | 85 | 3,27, chưa | 3,46, chưa | 3,47, chưa |
+| Sticker | 53 | 3,23, chưa | 3,47, chưa | **3,58, đạt** |
+| Truyện ngắn 3 khung | 33 | 3,12, chưa | **3,70, đạt** | **3,61, đạt** |
+| Phụ đề khác nhau | 26 | Chưa đủ người để kết luận (dưới 30) | — | — |
+| Lá Dám | 4 | Chưa đủ người để kết luận | — | — |
+
+- **Chỉ "Gánh hôm nay" đạt mốc 3,7 về "thấy được hiểu".** Không ý nào đạt cả ba mốc.
+- **"Bình yên" đạt ở hầu hết các ý.**
+- **"Bớt một mình" là chỗ yếu nhất:** chỉ người đọc truyện ngắn đạt (3,70), nhưng mới có 33 người mở truyện.
+- Cột đầu là điểm giám khảo chấm riêng cho ý đó. Hai cột sau là điểm cả lần dùng app của những người có dùng ý đó, vì giám khảo không chấm hai giá trị này riêng cho từng ý.
+- Các mốc giữ nguyên, không hạ.
+
+**Từng ý: mức dùng và mức tăng khi chấm riêng:**
 
 | Ý | Số người dùng trong gói (trên 1000) | "Thấy được hiểu" của người dùng ý đó | Chấm riêng: tăng "thấy được hiểu" | Chấm riêng: tăng gửi hoặc rủ | Kết luận |
 |---|---|---|---|---|---|
@@ -324,10 +345,11 @@ Codex chấm đối chiếu 40 người: thấy được hiểu 3,55; bớt mộ
 
 Theo luật ghi trước của phiên chấm, chỉ S1 được xếp "giữ"; cột Kết luận ở trên là đề xuất của mình sau khi đọc số, không phải kết quả đạt mốc.
 
-**Phần thử có điều kiện (so với gói, mới chấm một phần):**
+**Phần thử có điều kiện (so với gói; hai lô chưa chấm xong):**
 - S2 "Kể ra rồi thả" (56 cặp): thấy được hiểu +0,11; bình yên +0,25; 1 người lo riêng tư.
 - S11 "Lá nhớ 7 ngày" (90 cặp): thấy được hiểu +0,12; bình yên −0,06; **15 người lo riêng tư**.
-- S12 "Ghim chuyện đang lo" (34 cặp): thấy được hiểu 0,00; 2 người lo riêng tư.
+- S12 "Ghim chuyện đang lo" (68 cặp): thấy được hiểu +0,21; bình yên −0,03; **7 người lo riêng tư**.
+- Chưa chấm xong: một lô của "Kể ra rồi thả" và một lô của "Ghim chuyện đang lo". Phiên chấm đang chạy nốt; hai số của hai ý này có thể đổi nhẹ.
 
 **Người giả còn muốn gì** (đếm từ 1000 câu chê): Lá nhớ hoàn cảnh và lần trước (179); một bước cụ thể để làm (68); hợp ca làm, giờ giấc (81); được hỏi lại, được trò chuyện (73); chuyện tiền (61); nhớ nhà (59); chuyện sếp, chỗ làm (34).
 
@@ -340,7 +362,7 @@ Theo luật ghi trước của phiên chấm, chỉ S1 được xếp "giữ"; c
 
 Ngoài ra, phần lớn cờ "lo riêng tư" đến từ một dòng có sẵn trong app hiện tại ("Hồ sơ của bạn đang lưu trên trình duyệt này"), không phải từ ý mới. Dòng này nên được viết lại cho rõ ai xem được và xóa thế nào; câu chữ về quyền riêng tư do chị duyệt.
 
-Báo cáo đầy đủ của phiên chấm: `qa/personas/report-concepts.md` trên nhánh `agent/claude/persona-harness` (PR #506, commit 2dd4ddb7).
+Báo cáo đầy đủ của phiên chấm: `qa/personas/report-concepts.md` trên nhánh `agent/claude/persona-harness` (PR #506, đọc lúc 22:53 ngày 14.11, commit 6dead0e5).
 
 Mô tả từng ý (mock đầy đủ 4–8 màn ở Phụ lục A):
 
