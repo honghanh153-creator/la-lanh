@@ -197,7 +197,7 @@ test('a PR newly labelled needs-owner posts once; a new head that needs the owne
   assert.equal(gh.posted.length, 2);
 });
 
-test('the digest posts once near 12:00 and 22:00 with done, doing, waiting, next and the metrics', () => {
+test('the digest posts once near 14:00 and 22:00 with done, doing, waiting, next and the metrics', () => {
   const date = '2026-12-04';
   const open = [pr({ number: 31, title: 'content(daily): calmer start', comments: approved(A) }), pr({ number: 32, title: 'content(tarot): plain card', headRefName: 'agent/claude/x' }),
     pr({ number: 33, title: 'feat(radar): fewer words', labels: [{ name: 'needs-owner' }] })];
@@ -207,17 +207,17 @@ test('the digest posts once near 12:00 and 22:00 with done, doing, waiting, next
   const merge = n => { open.splice(open.findIndex(p => p.number === n), 1); return { status: 'merged' }; };
   trust.writeJson(trust.dayStatePath(date), { codexRuns: 0, failures: 0, planned: [31, 32] });
   const run = (hour, minute) => tick({ gh, now: { date, hour, minute }, merge, check: () => ({ status: 'FAIL' }), review: () => ({}), notify, metrics });
-  run(11, 50);
+  run(13, 50);
   const beforeNoon = gh.posted.length;
-  assert.ok(!gh.posted.some(b => /Tóm tắt/.test(b)), 'no digest before 12:00');
-  run(12, 5);
-  run(12, 15);
-  const digests = gh.posted.filter(b => /Tóm tắt 12:00/.test(b));
+  assert.ok(!gh.posted.some(b => /Tóm tắt/.test(b)), 'no digest before 14:00');
+  run(14, 5);
+  run(14, 15);
+  const digests = gh.posted.filter(b => /Tóm tắt 14:00/.test(b));
   assert.equal(digests.length, 1, 'one digest per slot');
   assert.ok(gh.posted.length - beforeNoon === 1);
   const lines = digests[0].split('\n');
   assert.deepEqual(lines.slice(0, 6), [
-    '**Tóm tắt 12:00**',
+    '**Tóm tắt 14:00**',
     '- Xong: 1/2 việc đã chọn hôm nay; đã gộp 1 PR.',
     '- Đang làm: plain card (#32).',
     '- Chờ bạn: fewer words (#33).',
@@ -225,16 +225,16 @@ test('the digest posts once near 12:00 and 22:00 with done, doing, waiting, next
     '- Bộ Daily phục vụ được: 1/3 bộ.',
   ]);
   assert.ok(lines.length <= 12, 'short');
-  run(13, 30);
+  run(15, 30);
   run(22, 10);
   assert.equal(gh.posted.filter(b => /Tóm tắt 22:00/.test(b)).length, 1);
   assert.ok(gh.posted.every(b => !/REQUEST_CHANGES|APPROVE|claude-fix|codex-review|[0-9a-f]{40}/.test(b)), 'no codes');
 });
 
 test('notes are plain, carry the agent marker and never use the owner reply words', () => {
-  const now = { date: '2026-12-05', hour: 12, minute: 1 };
+  const now = { date: '2026-12-05', hour: 14, minute: 1 };
   const notes = ownerNotes({ now, merged: [{ number: 1, title: 'Duyệt: tricky title' }], failures: 2, streakAt: '11:40', turns: [{ number: 2, turn: 'hold', reason: 'needs-owner', title: 'Giữ đúng', head: A }] });
-  assert.deepEqual(notes.map(n => n.key), ['merged-1', 'stuck-2026-12-05-1140', `owner-2-${A.slice(0, 7)}`, 'digest-2026-12-05-12']);
+  assert.deepEqual(notes.map(n => n.key), ['merged-1', 'stuck-2026-12-05-1140', `owner-2-${A.slice(0, 7)}`, 'digest-2026-12-05-14']);
   const gh = { comment: (kind, n, body) => trust.assertAgentBody(body) };
   assert.doesNotThrow(() => postOwnerNotes(gh, 50, notes, [], { cachePath: join(trust.stateDir, 'plain.json') }));
   assert.equal(plainTitle('feat(home)!: calmer start'), 'calmer start');

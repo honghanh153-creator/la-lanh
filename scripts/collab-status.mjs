@@ -2,6 +2,7 @@
 // from a phone whether the loop is running and why it stopped (owner request 31.10.2026).
 import { join } from 'node:path';
 import { agentMarker, assertAgentBody, clean, codexDailyCap, isTrusted, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
+import { incidentLines, renderSnapshot } from './collab-snapshot.mjs';
 
 export const boardMarker = `${agentMarker} status-board -->`;
 
@@ -26,7 +27,7 @@ const addMinutes = (t, minutes) => {
   return { hour: Math.floor(total / 60) % 24, minute: total % 60 };
 };
 
-export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null, metrics = null }) {
+export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null, metrics = null, incidents = [] }) {
   const [label, why] = STATES[status] ?? [status, ''];
   const waitingOwner = turns.filter(t => t.turn === 'hold' && /needs-owner|owner bỏ/.test(t.reason));
   const queue = turns.filter(t => t.turn !== 'hold').slice(0, 8);
@@ -45,6 +46,10 @@ export function renderBoard({ now, status, doing = null, expectMinutes = null, a
     `Nhóm đang làm: ${area ?? '—'} · Codex hôm nay: ${codexRuns}/${cap} · Lỗi liên tiếp: ${failures}`,
     ...(lastDone ? [`Lượt vừa rồi: ${cell(lastDone)}`] : []),
     ...(error ? ['', `Lỗi: \`${cell(error)}\``] : []),
+    // L19: open incidents come from GitHub, not from the failure counter, so a clean tick does not
+    // hide them; an incident ends when its issue is closed with recovery evidence.
+    ...(incidents === null ? ['', '**Sự cố đang mở:** chưa đọc được từ GitHub.']
+      : incidents.length ? ['', '**Sự cố đang mở** (chỉ đóng khi có bằng chứng phục hồi)', ...incidentLines(incidents).map(l => `- ${cell(l)}`)] : []),
     '',
     '| PR | Nhóm | Lượt kế tiếp | Lý do |',
     '|---|---|---|---|',
@@ -86,7 +91,9 @@ export function upsertBoard(gh, issue, body) {
 // needs-owner, and a digest at about 12:00 and 22:00. Each event has a key; the keys ride in the
 // comment's agent marker and in a local cache, so a re-run of a tick never posts twice.
 export const notePrefix = `${agentMarker} owner-note keys=`;
-export const digestHours = [12, 22];
+// L19: the digest shares the 14:00 and 22:00 slots of the owner reports (08/14/22), so both read one
+// snapshot (collab-snapshot.mjs).
+export const digestHours = [14, 22];
 const digestWindow = 60;
 
 export function sentNoteKeys(comments = []) {
@@ -103,7 +110,12 @@ export const plainTitle = title => clean(String(title ?? ''), 90).replace(/^[a-z
 const named = t => `${plainTitle(t.title)} (#${t.number})`;
 const list = (items, none) => (items.length ? items.map(named).join('; ') : none);
 
-export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, turns = [], planned = [], dropped = [], metrics = [], digest = true, work = null }) {
+const snapshotLines = (take, slot) => {
+  try { return renderSnapshot(take(String(slot).padStart(2, '0'))); }
+  catch (error) { return [`- Bản chụp nguồn: chưa đo được (${clean(error.message, 160)}).`]; }
+};
+
+export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, turns = [], planned = [], dropped = [], metrics = [], digest = true, work = null, snapshot = null }) {
   const notes = merged.map(m => ({ key: `merged-${m.number}`, lines: [`Đã gộp vào integration: ${named(m)}.`] }));
   if (failures >= 2 && streakAt) notes.push({ key: `stuck-${now.date}-${streakAt.replace(':', '')}`, lines: [`Vòng tự động bị lỗi ${failures} lượt liền từ ${streakAt}. Chi tiết ở bảng trạng thái.`] });
   const waiting = turns.filter(t => t.turn === 'hold' && t.reason === 'needs-owner');
@@ -117,13 +129,16 @@ export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, tu
     const active = turns.filter(t => t.turn !== 'hold');
     notes.push({ key: `digest-${now.date}-${slot}`, lines: [
       `**Tóm tắt ${slot}:00**`,
+      // L19: with a snapshot, every number comes from the slot's one snapshot, which the owner
+      // report of the same slot prints too; nothing is counted here again.
+      ...(snapshot ? snapshotLines(snapshot, slot) : []),
       // L11: progress is items whose criteria are met; merges are reported on their own line.
-      ...(work ? [`- ${work() ?? 'Việc đạt tiêu chí: chưa đo được.'}`, `- Đã gộp ${merged.length} PR hôm nay (số PR, không phải số việc).`]
+      ...(snapshot ? [] : work ? [`- ${work() ?? 'Việc đạt tiêu chí: chưa đo được.'}`, `- Đã gộp ${merged.length} PR hôm nay (số PR, không phải số việc).`]
         : [picked.length ? `- Xong: ${finished}/${picked.length} việc đã chọn hôm nay; đã gộp ${merged.length} PR.` : `- Xong: đã gộp ${merged.length} PR hôm nay.`]),
       `- Đang làm: ${list(active.slice(0, 2), 'không có')}.`,
       `- Chờ bạn: ${list(waiting, 'không có')}.`,
       `- Tiếp theo: ${active[2] ? named(active[2]) : 'Claude chọn việc kế tiếp từ backlog khi có chỗ'}.`,
-      ...metrics.map(l => `- ${l}`),
+      ...(snapshot ? [] : metrics.map(l => `- ${l}`)),
     ] });
   }
   return notes;
