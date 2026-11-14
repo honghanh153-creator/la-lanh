@@ -189,7 +189,18 @@
    "from": "owner 13.11: báo cáo trung thực",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-snapshot.test.mjs",
+    "name": "two reports in one slot read one snapshot and print the same numbers"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "takeSnapshot("
+   },
+   "closedBy": {
+    "pr": 497
+   }
   },
   {
    "id": "L20",
