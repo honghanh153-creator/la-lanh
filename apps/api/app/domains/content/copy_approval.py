@@ -10,6 +10,7 @@ only, so adding a pending entry does not trip the owner gate.
 from __future__ import annotations
 
 import json
+import re
 import unicodedata
 from dataclasses import dataclass
 from functools import lru_cache
@@ -25,6 +26,47 @@ OWNER_ONLY_CATEGORIES = frozenset({"privacy", "consent", "crisis", "safety"})
 
 def copy_digest(text: str) -> str:
     return sha256(unicodedata.normalize("NFC", text).encode()).hexdigest()
+
+
+# Copy lint (register #177, PV-15). Machine-written copy goes through an auto loop, so text
+# shown to users must never carry a link, a contact detail or an unfilled template slot.
+# Every rule applies to pending and approved entries alike; an approved entry that breaks
+# one is not servable, so runtime falls back to the caller's current approved sentence.
+_LINT_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "contains a link",
+        re.compile(
+            r"[a-z][a-z0-9+.-]*://|\bwww\.|"
+            # Any bare domain: ASCII labels joined by dots, ending in a 2+ letter suffix,
+            # with no word character touching either end (so "việc.Rồi" or "1.5" pass).
+            r"(?<![\w-])[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.[a-z]{2,24}(?![\w-])",
+            re.IGNORECASE,
+        ),
+    ),
+    ("contains an email address or handle", re.compile(r"@\w")),
+    # Eight or more digits in one run (spaces, dots, dashes, brackets allowed between them).
+    ("contains a phone number", re.compile(r"\+?\d(?:[\s.()-]*\d){7,}")),
+    ("contains a placeholder bracket", re.compile(r"[{}<>\[\]]")),
+    (
+        "contains a template slot",
+        re.compile(r"%(?:\(\w+\))?[sdif]|\$\w|\$\{|_{3,}"),
+    ),
+    (
+        "contains a draft marker",
+        re.compile(r"\b(?:TODO|TBD|FIXME|XXX+|PLACEHOLDER)\b|lorem ipsum", re.IGNORECASE),
+    ),
+)
+
+
+@lru_cache(maxsize=4096)
+def text_lint_problems(text: str) -> tuple[str, ...]:
+    """Reasons ``text`` cannot be shown to users, in rule order (empty when it is clean)."""
+
+    found: list[str] = []
+    if unicodedata.normalize("NFC", text) != text:
+        found.append("text is not Unicode NFC")
+    found.extend(reason for reason, pattern in _LINT_RULES if pattern.search(text))
+    return tuple(found)
 
 
 @dataclass(frozen=True)
@@ -43,6 +85,7 @@ class CopyEntry:
             found.append(f"{self.id}: status must be pending or approved")
         if not self.text.strip():
             found.append(f"{self.id}: empty text")
+        found.extend(f"{self.id}: {reason}" for reason in text_lint_problems(self.text))
         if self.status == "approved":
             if self.approver not in APPROVERS:
                 found.append(f"{self.id}: approved entry needs approver codex or owner")

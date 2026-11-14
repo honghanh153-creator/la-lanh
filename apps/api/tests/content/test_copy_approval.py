@@ -133,6 +133,67 @@ def test_registry_rejects_codex_approval_of_safety_copy() -> None:
     assert any("owner" in problem for problem in entry.problems())
 
 
+_LINT_BAD = [
+    "Xem thêm tại https://vi-du.test/bai-viet nhé.",
+    "Mở www.vi-du nếu cần đọc thêm.",
+    "Ghé vidu.vn để xem thêm.",
+    # Bare domains with any suffix, not only a fixed list (review of #411, PV-15).
+    "Ghé vi-du.ai để đọc thêm.",
+    "Ghé vi-du.site để đọc thêm.",
+    "Ghé vi-du.edu để đọc thêm.",
+    "Ghé VI-DU.SHOP để đọc thêm.",
+    "Ghé bai.vi-du.com.vn/trang để đọc thêm.",
+    "Đọc thêm ở vi-du.travel.",
+    "Gửi thư cho ban-tro-giup@vi-du.test nếu cần.",
+    "Theo dõi @lalanh_thu để nhận thêm.",
+    "Gọi 0900 000 000 nếu cần nói chuyện.",
+    "Gọi +84 90-000-0000 nếu cần.",
+    "Chào {name}, hôm nay thế nào?",
+    "Chào {{ten}}, hôm nay thế nào?",
+    "Hôm nay hợp để <việc cần làm>.",
+    "Hôm nay hợp để [điền việc].",
+    "Chào %s, hôm nay thế nào?",
+    "Chào %(name)s, hôm nay thế nào?",
+    "Chào $ten, hôm nay thế nào?",
+    "Hôm nay hợp để ___.",
+    "TODO viết lại câu này.",
+    "Câu này XXX chưa xong.",
+    "Lorem ipsum dolor sit amet.",
+    "Câu thù nghiệm chưa chuẩn hoá.",  # decomposed grave accent, not NFC
+]
+
+
+@pytest.mark.parametrize("text", _LINT_BAD)
+@pytest.mark.parametrize("status", ["pending", "approved"])
+def test_registry_lint_rejects_links_contacts_and_placeholders(text: str, status: str) -> None:
+    raw = _approved(text) if status == "approved" else _entry(text=text)
+    entries = parse_registry({"version": copy_approval.REGISTRY_VERSION, "entries": [raw]})
+    assert copy_approval.registry_problems(entries)
+
+
+@pytest.mark.parametrize("text", _LINT_BAD)
+def test_linted_approved_copy_falls_back(monkeypatch: pytest.MonkeyPatch, text: str) -> None:
+    _use(monkeypatch, _approved(text))
+    assert copy_approval.copy_text("tarot.closing_prompt", "cũ") == "cũ"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        APPROVED,
+        "Đặt hẹn giờ 20 phút rồi làm tiếp một việc đang dở.",
+        "Uống một cốc nước, rồi hít thở chậm 3 lần.",
+        "Nghỉ 5-10 phút… rồi quay lại việc chính.",
+        "Hỏi: “Mình cần gì lúc này?” — rồi ghi ra một dòng.",
+        "Xong việc nhỏ.Rồi nghỉ.",  # missing space after a full stop is not a link
+        "Ghi 1.5 giờ ngủ thêm vào sổ.",
+        "Bạn ở TP. Hồ Chí Minh, v.v. vẫn ổn.",
+    ],
+)
+def test_registry_lint_accepts_plain_sentences(text: str) -> None:
+    assert copy_approval.text_lint_problems(text) == ()
+
+
 def test_checked_in_registry_is_valid() -> None:
     assert copy_approval.registry_problems(copy_approval.load_registry()) == []
 
