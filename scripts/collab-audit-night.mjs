@@ -17,11 +17,12 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { auditReserve, collectFacts, dayRange, experimentDir, logsStart, readOutputs, receipt, unmeasured, withJudgement } from './collab-audit.mjs';
 import { agentMarker, assertAgentBody, clean, codexDailyCap, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -421,7 +422,7 @@ export function runBaseline({ from, to, gh = makeGh(), dir = experimentDir, post
   return { status: stopped ?? 'ok', days: days.map(d => ({ date: d.date, status: d.status })) };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const flag = name => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
   const date = flag('--date');

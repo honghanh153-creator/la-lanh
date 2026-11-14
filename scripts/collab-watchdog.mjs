@@ -4,9 +4,9 @@
 // which needs no AI and no prompt, reports a task whose done beat is older than its schedule allows.
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { deliverPendingAlerts } from './collab-heal.mjs';
 import { clean, readJson, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 // maxMinutes = schedule interval + jitter + a normal run. activeFrom: autopilot only runs 9–23,
 // so the overnight gap is not a miss; from 11:00 its 09:37 and 10:37 runs should have finished.
@@ -143,7 +143,7 @@ export function watch({ nowMs = Date.now(), alert = () => {}, notify = osNotify,
   return { stale: stale.map(s => s.task), alerted, stuck, queued, resolved };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   try {
     if (args[0] === '--beat') process.stdout.write(`${JSON.stringify(beat(args[1], args[2]))}\n`);

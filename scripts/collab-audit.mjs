@@ -9,8 +9,8 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { clean, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const experimentDir = join(stateDir, 'experiment');
 const reason = error => clean(String(error?.message ?? error).split('\n')[0], 160);
@@ -170,7 +170,7 @@ export async function loadAuditDeps() {
   return { lessons, disagreements };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
     const date = args.includes('--date') ? args[args.indexOf('--date') + 1] : vnNow().date;

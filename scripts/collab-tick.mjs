@@ -1,7 +1,6 @@
 // launchd entry for the collab safety net: one tick (plan, owner gate, merges, Codex reviews).
 // Kept apart from collab-turn.mjs because codex-review.mjs imports collab-turn.mjs.
 import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 import { runReview } from './codex-review.mjs';
 import { runMerge } from './collab-merge.mjs';
 import { heavyJobFree, runCheckInClone } from './collab-check.mjs';
@@ -15,6 +14,7 @@ import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 import { pendingCount, readSaved, runCopyBatch, savedPath } from './codex-copy-review.mjs';
 import { hookHealth } from './collab-hooks.mjs';
+import { isMain } from './is-main.mjs';
 import { loadAuditDeps } from './collab-audit.mjs';
 import { runNightAudit } from './collab-audit-night.mjs';
 
@@ -49,7 +49,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     audit: () => runNightAudit({ gh, issue: () => planIssue(gh), ...auditDeps }) });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   if (process.argv.includes('--self-test')) {
     // Proves the entry loads all modules without hanging; touches nothing.
     process.stdout.write('collab-tick ok\n');
