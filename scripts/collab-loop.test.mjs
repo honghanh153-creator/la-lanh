@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -9,6 +9,7 @@ process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-loop-'));
 const trust = await import('./collab-trust.mjs');
 const { checksPerTick, copyBatchAttempts, fileBlocker, planTurns, prTurn, tickGap, turnsFor, tick } = await import('./collab-turn.mjs');
 const preflightMod = await import('./collab-preflight.mjs');
+const { renderBoard } = await import('./collab-status.mjs');
 const { committedTurns, copyReview, planMax, planMin, planState, renderPlan } = await import('./collab-plan.mjs');
 const review = await import('./codex-review.mjs');
 const { mergeGate, runMerge } = await import('./collab-merge.mjs');
@@ -273,6 +274,26 @@ test('merge gate needs APPROVE and PASS on head, integration base and a fix-forw
   assert.deepEqual(merge.slice(-3), ['--merge', '--match-head-commit', A]);
   assert.ok(!merge.includes('--admin') && !merge.includes('--auto') && !merge.includes('--squash'));
   assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1][1] === 'edit' && c[1][2] === '8' && c[1].includes('collab/integration')));
+});
+
+// Codex r1 on #482 (P2): health reached only the morning plan, so a hook removed later in the day
+// was never shown. Every tick's board now lists what needs a look.
+test('a pre-push hook removed after the plan shows on the next tick board', async () => {
+  const { hookHealth, installHook } = await import('./collab-hooks.mjs');
+  const clone = mkdtempSync(join(tmpdir(), 'tick-hook-'));
+  execFileSync('/usr/bin/git', ['init', '-q', clone]);
+  const hook = installHook(clone);
+  const comments = [];
+  const gh = { ...fakeGh({ pr: null, open: [] }),
+    json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-12-08T01:50:00Z', body }); } };
+  const boards = [];
+  const deps = now => ({ gh, now: { date: '2026-12-08', ...now }, merge: () => ({}), review: () => ({}), health: () => hookHealth(clone), board: info => boards.push(renderBoard(info)) });
+  assert.equal(tick(deps({ hour: 8, minute: 52 })).status, 'plan-made');
+  assert.doesNotMatch(boards.at(-1), /Cần xem/, 'healthy: nothing to look at');
+  unlinkSync(hook);
+  tick(deps({ hour: 9, minute: 20 }));
+  assert.match(boards.at(-1), /Cần xem[\s\S]*⚠️ Hook trước push ở clone Claude: chưa cài/);
 });
 
 test('tick makes the plan once, waits for the owner, then runs merges and capped reviews', () => {
@@ -640,7 +661,7 @@ test('busy check matches the running program, not a command line that mentions i
   for (const heavy of [
     'sh -c pnpm contracts:check && pnpm verify:runtime && pnpm grammar:check',
     '/Users/x/apps/api/.venv/bin/python /Users/x/apps/api/.venv/bin/pytest -q',
-    'uv run --directory apps/api pytest',
+    'uv run --locked --directory apps/api pytest',
     '/x/node/bin/node /x/node_modules/.bin/../vitest/vitest.mjs run',
     '/x/node/bin/node /x/node_modules/@playwright/test/cli.js test',
     // #142 r1: the current check wrapper and bare interpreters.
@@ -751,7 +772,7 @@ test('fix A: ruff and mypy run only on the changed Python files of apps/api', ()
   const runs = [];
   const spawn = (cmd, args) => { runs.push([cmd, ...args].join(' ')); return { status: args.includes('mypy') ? 1 : 0, stdout: 'app/x.py:3: error: bad' }; };
   const result = preflightMod.runPreflight({ body: goodBody, files: [{ path: 'apps/api/app/x.py' }, { path: 'README.md' }] }, { cwd: '/repo', spawn, exists: () => true });
-  assert.deepEqual(runs, ['uv run --directory apps/api ruff check app/x.py', 'uv run --directory apps/api ruff format --check app/x.py', 'uv run --directory apps/api mypy app/x.py']);
+  assert.deepEqual(runs, ['uv run --locked --directory apps/api ruff check app/x.py', 'uv run --locked --directory apps/api ruff format --check app/x.py', 'uv run --locked --directory apps/api mypy app/x.py']);
   assert.equal(result.status, 'FAIL');
   assert.match(result.reasons[0], /^mypy lỗi: app\/x\.py:3/);
   const none = [];
