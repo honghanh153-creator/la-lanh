@@ -1186,3 +1186,32 @@ test('copy batch: an owner "Duyệt" before 10:00 still waits for the 10:00 auto
   tick(deps(10, 0));
   assert.deepEqual(runs, [10]);
 });
+
+// ---- L25: the tick holds a disputed PR and a timeout still needs a new check and review ----
+test('L25: the tick never runs a disputed PR, and after a timeout the PR needs a new check and review at its head', async () => {
+  const L25 = await import('./collab-disagree.mjs');
+  const date = '2026-11-14';
+  const at = (hour, minute) => Date.UTC(2026, 10, 14, hour - 7, minute);
+  const open = [pr({ number: 7, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] })];
+  const gh = plannedGh(open, date);
+  try {
+    const first = L25.openRound({ pr: 7, round: 1, claude: 'giữ', codex: 'bỏ', head: A, nowMs: at(15, 0) });
+    L25.openRound({ id: first.id, round: 2, claude: 'giữ, có số đo', codex: 'bỏ, vì rủi ro', head: A, nowMs: at(15, 0) });
+    assert.equal(L25.escalate({ id: first.id, gh, notify: () => {}, nowMs: at(15, 0) }).clock, 'started');
+    assert.equal(turnsFor(open)[0].turn, 'hold', 'held by the dispute even without the label');
+    assert.match(mergeGate(open[0]).reasons.join(' '), /bất đồng pr7-1/);
+    const done = { merge: [], review: [], check: [] };
+    const run = minute => tick({ gh, now: { date, hour: 15, minute }, settle: o => L25.settleDisputes({ ...o, notify: () => {}, nowMs: at(15, minute) }),
+      merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; }, check: n => { done.check.push(n); return { status: 'FAIL' }; } });
+    run(10);
+    assert.deepEqual(done, { merge: [], review: [], check: [] }, 'nothing runs on a PR while its dispute waits for the owner');
+    run(31);
+    assert.equal(L25.disputes().get(first.id).decided.decidedBy, 'timeout');
+    assert.deepEqual(done.merge, [], 'the old APPROVE no longer counts after the decision');
+    assert.deepEqual(done.check, [7], 'a new author check comes first');
+    assert.ok(!mergeGate(open[0]).ok);
+  } finally {
+    rmSync(L25.disputePath, { force: true });
+    rmSync(L25.logPath, { force: true });
+  }
+});
