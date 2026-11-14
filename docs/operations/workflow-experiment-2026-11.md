@@ -57,6 +57,10 @@ Lấy từ nguồn gốc, không từ lời tự kể của agent. Nguồn nào 
 | M9 | Lượt Codex mỗi ngày | state ngày | ≤ 32 |
 | M10 | Câu hỏi gửi owner, và lần vòng tự động bị kẹt quá 1 giờ | báo cáo, watchdog | thấp |
 
+Cách đo:
+- Soát đêm (`scripts/collab-audit-night.mjs`, tick gọi `runNightAudit`): dữ kiện M2–M10 lấy từ nguồn; Codex chấm M1, M3 và bất đồng chưa ghi sổ. Bản tạm tính lúc 23:00, bản chốt sau nửa đêm, mỗi bản 1 lượt Codex.
+- Nền so sánh 11–13.11 (L23): `node scripts/collab-audit-night.mjs --baseline 2026-11-11..2026-11-13` chạy cùng bộ thu thập. Kết quả là một bảng M1–M10 theo ngày, đăng một lần trên issue kế hoạch.
+
 ## 5. Cách so sánh ngày 20.11
 
 - Thứ tự ưu tiên: **trung thực** (M1, M2), rồi **chất lượng** (M3, M4), rồi **tốc độ** (M5–M7), rồi **chi phí** (M9, M10).

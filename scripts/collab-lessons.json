@@ -218,7 +218,18 @@
    "from": "thử nghiệm 3+3 (owner 13.11), docs/operations/workflow-experiment-2026-11.md",
    "who": "claude",
    "due": "2026-11-14",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "23:00 judges once, counts the run, posts one comment; later ticks do nothing"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "runNightAudit("
+   },
+   "closedBy": {
+    "pr": 493
+   }
   },
   {
    "id": "L22",
@@ -245,7 +256,18 @@
    "from": "thử nghiệm 3+3 (owner 13.11)",
    "who": "claude",
    "due": "2026-11-16",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "baseline: each day goes through the night collector once, one summary comment, re-runs cost nothing"
+   },
+   "caller": {
+    "file": "docs/operations/workflow-experiment-2026-11.md",
+    "contains": "collab-audit-night.mjs --baseline"
+   },
+   "closedBy": {
+    "pr": 493
+   }
   },
   {
    "id": "L24",
