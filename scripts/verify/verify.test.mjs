@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildReport, judge, parseArgs, renderMarkdown, resolveFeatureIds } from "./verify.mjs";
+import { acReport, buildReport, judge, parseArgs, renderMarkdown, resolveFeatureIds } from "./verify.mjs";
 
 const clean = {
   feature: "home", state: "default", width: 390, fixture: "signed-in", url: "/home", ready: true, ready_selector: 'button "Chọn mood hôm nay"',
@@ -80,4 +80,25 @@ test("buildReport merges the same finding across widths and flags missing runs",
   assert.match(markdown, /^# Verification run — PASS/);
   assert.match(markdown, /\| `home` \| pass \| 0 \| 0 \|/);
   assert.match(markdown, /`home` offline: Tắt mạng\./);
+});
+
+// L04: the browser part is proven by apps/web/tests/e2e/ac-vs-screen.spec.ts; here the judging and
+// the per-AC report.
+test("an unmet acceptance check fails a ready run; manual parts are never called met", () => {
+  const ac = [
+    { ac: "US-07 AC01", part: "tổng hòa trên màn", check: 'link "Mở Lá đọc sâu" contains "x"', result: "not-met", detail: "text not on screen", manual: "đúng dữ kiện: API" },
+    { ac: "US-07 AC06", part: "giờ ước lượng", check: "manual", result: "manual", manual: "chưa có trạng thái" },
+  ];
+  const verdict = judge({ ...clean, feature: "insights", ac });
+  assert.equal(verdict.status, "fail");
+  assert.deepEqual(verdict.failures, ['AC US-07 AC01 chưa đạt: tổng hòa trên màn (link "Mở Lá đọc sâu" contains "x": text not on screen)']);
+  const map = { features: [{ id: "insights", ac: ["US-07 AC01", "US-07 AC06", "US-07 AC13"] }] };
+  const met = { ...clean, feature: "insights", state: "unlocked", ac: [{ ...ac[0], result: "met" }, ac[1]] };
+  const report = acReport(map, ["insights"], [met, { ...met, width: 360 }], { generatedAt: "t", commit: "abc1234" });
+  assert.deepEqual(report.acs.map((row) => [row.ac, row.result, row.commit]), [
+    ["US-07 AC01", "đạt phần tự động", "abc1234"], ["US-07 AC06", "không tự động", "abc1234"], ["US-07 AC13", "không tự động (chưa có kiểm)", "abc1234"],
+  ]);
+  assert.deepEqual(report.acs[0].manual, ["đúng dữ kiện: API"], "what the screen cannot prove stays listed");
+  const notMet = acReport(map, ["insights"], [met, { ...met, width: 360, ac: [ac[0]] }], { generatedAt: "t", commit: "abc1234" });
+  assert.equal(notMet.acs[0].result, "chưa đạt", "one width without the content is enough");
 });

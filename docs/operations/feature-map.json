@@ -394,12 +394,30 @@
         "unlocked": {
           "fixture": "signed-in-deep",
           "walk": [{ "goto": "/insights" }],
-          "ready": { "role": "heading", "name": "Nhiều lớp trong bạn đang nói cùng lúc.", "source": "fixture" }
+          "ready": { "role": "heading", "name": "Nhiều lớp trong bạn đang nói cùng lúc.", "source": "fixture" },
+          "ac_checks": [
+            { "ac": "US-07 AC01", "part": "Màn hình hiện phần tổng hòa (câu mở và ý chính) lấy từ API, không phải câu Sun/Moon dựng sẵn",
+              "expect": { "role": "link", "name": "Mở Lá đọc sâu" }, "text": "Bạn vừa cần tự do, vừa cần một nơi đủ chắc để quay về.",
+              "manual": "Tổng hòa có dùng đúng dữ kiện của chart hay không cần bằng chứng ở API/engine (test của readings); màn hình không chứng minh được." },
+            { "ac": "US-07 AC02", "part": "Có công tắc Tây phương / Jyotish trên màn",
+              "expect": { "role": "button", "name": "Jyotish", "within": { "role": "region", "name": "Chọn hệ đọc" } },
+              "manual": "Mỗi hệ lấy đúng snapshot riêng và giải thích vị trí có thể đổi: kiểm ở API." },
+            { "ac": "US-07 AC06", "part": "Dữ liệu thiếu hoặc giờ ước lượng chỉ hiện yếu tố ổn định",
+              "manual": "Trạng thái này dùng giờ chính xác; cần một trạng thái giờ ước lượng để kiểm tự động (chưa có)." },
+            { "ac": "US-07 AC08", "part": "Tổng quan có từ 1 tới 6 thẻ nhận định",
+              "count": { "selector": { "role": "link", "within": { "role": "region", "name": "Điều gì đang ảnh hưởng tới cách bạn phản ứng?" } }, "min": 1, "max": 6 },
+              "manual": "Căn cứ mở dần nằm ở trang chi tiết (reading-detail)." }
+          ]
         },
         "error": {
           "fixture": "insights-error",
           "walk": [{ "goto": "/insights" }],
-          "ready": { "role": "heading", "name": "Chưa mở được bản đọc." }
+          "ready": { "role": "heading", "name": "Chưa mở được bản đọc." },
+          "ac_checks": [
+            { "ac": "US-07 AC09", "part": "Lỗi không làm trắng màn: công tắc hệ đọc vẫn còn",
+              "expect": { "role": "region", "name": "Chọn hệ đọc" },
+              "manual": "Giữ snapshot cũ và không hỏng lựa chọn đã lưu: kiểm ở API và test đơn vị." }
+          ]
         }
       }
     },
