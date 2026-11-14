@@ -145,7 +145,9 @@ def birth_date_for(segment: str, rng: random.Random) -> date:
         years = (1998, 2004) if segment in {s for s, _, _ in WORKER_SEGMENTS} else (2003, 2008)
     start = date(years[0], 1, 1)
     span = (date(years[1], 12, 31) - start).days
-    return start + timedelta(days=rng.randrange(span))
+    born = start + timedelta(days=rng.randrange(span))
+    # The app is 18+ (US-02): a draw younger than 18 on day 0 moves back one year.
+    return born.replace(year=born.year - 1) if born > date(2008, 11, 14) else born
 
 
 def main() -> None:

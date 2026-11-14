@@ -1,0 +1,19 @@
+{
+ "labels": {
+  "bỏ các phương án không phù hợp rồi so hai lựa chọn còn lại": "not_light",
+  "chọn một việc có thể xong trong mười phút và làm riêng việc đó": "not_light",
+  "chọn người cần xem rồi gửi bản nháp, chưa chỉnh thêm cách trình bày": "not_light",
+  "chọn phần còn phân vân và hỏi một câu cụ thể về phần đó": "not_light",
+  "ghi kết quả của một lần thử cách khác rồi so với cách cũ": "not_light",
+  "ghi một việc cụ thể cần giúp rồi nói đề nghị bằng một câu": "not_light",
+  "ghi một ý muốn trả lời, đọc hết tin nhắn rồi kiểm tra lại ý đó": "light",
+  "hỏi lại ngày và giờ hẹn trước khi ghi vào lịch": "not_light",
+  "hỏi nhóm bước đầu tiên cần làm nếu phần vừa chốt còn chưa rõ": "not_light",
+  "nhắn lại câu hỏi chính để người kia biết bạn muốn nói gì": "not_light",
+  "nhắn lại phần bạn nhận được và phần cần người kia tự sắp xếp": "not_light",
+  "nói giới hạn thời gian mình dành để giúp, chưa nhận thêm phần khác": "not_light",
+  "nói rõ bạn cần bao nhiêu thời gian để làm phần được nhờ": "not_light",
+  "nói điều bạn còn chưa hiểu, chưa thêm lý do thay người gửi": "not_light"
+ },
+ "rubric": "judge-rubric-v1-2026-11-14"
+}

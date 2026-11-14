@@ -1,0 +1,11 @@
+{
+ "git_head": "8b9c97e7d71427ee568df24bb484c81fff2e7914",
+ "start": "2026-11-14",
+ "days": 29,
+ "personas": 100,
+ "rows": 2900,
+ "seconds": 123.2,
+ "database": "local SQLite per worker (synthetic, deleted with the temp dir)",
+ "clock": "time_machine.travel per call, 12:01-12:05 Asia/Ho_Chi_Minh",
+ "generation": "off (Settings default); no provider call"
+}

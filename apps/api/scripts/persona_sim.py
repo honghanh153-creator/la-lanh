@@ -263,6 +263,19 @@ def run_persona(
             row["wants_keep"], row["kept"] = wants, False
             if wants and experiment is not None and active.get("revision_id"):
                 with time_machine.travel(_instant(day, 4), tick=False):
+                    # As the web does (NoteDetailPage): a still-held earlier action is replaced
+                    # explicitly with its id and version; the persona agrees to the swap.
+                    held = client.get("/v1/daily-note/experiment")
+                    held_body = held.json() if held.status_code == 200 and held.content else None
+                    replace = (
+                        {
+                            "expected_experiment_id": held_body["id"],
+                            "expected_version": held_body["version"],
+                        }
+                        if isinstance(held_body, dict) and held_body.get("id")
+                        else {}
+                    )
+                    row["replaced_held_action"] = bool(replace)
                     kept = client.put(
                         f"/v1/daily-note/{note['id']}/experiment",
                         json={
@@ -270,6 +283,7 @@ def run_persona(
                             "background_lens": "auto",
                             "action_key": experiment["action_key"],
                             "consent_version": "action-experiment-v1",
+                            **replace,
                         },
                         headers=headers,
                     )
@@ -293,7 +307,20 @@ def _worker(batch: list[dict[str, Any]]) -> list[dict[str, Any]]:
     db_url = f"sqlite+aiosqlite:///{tmp}/personas-{os.getpid()}.db"
     for persona in batch:
         started = time.monotonic()
-        rows = run_persona(persona, db_url, labels)
+        try:
+            rows = run_persona(persona, db_url, labels)
+        except Exception as error:  # one broken persona must not hide the other 99
+            detail = getattr(getattr(error, "response", None), "text", "") or str(error)
+            rows = [
+                {
+                    "persona": persona["id"],
+                    "day": day,
+                    "mood": persona["mood_29"][day],
+                    "status": 0,
+                    "error": f"setup: {type(error).__name__}: {detail[:200]}",
+                }
+                for day in range(DAYS)
+            ]
         out.extend(rows)
         print(
             f"{persona['id']} {len(rows)} days {time.monotonic() - started:.1f}s",

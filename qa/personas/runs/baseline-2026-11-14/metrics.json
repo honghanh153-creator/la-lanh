@@ -1,0 +1,409 @@
+{
+ "thresholds_version": "persona-thresholds-v1-2026-11-14",
+ "run": {
+  "git_head": "8b9c97e7d71427ee568df24bb484c81fff2e7914",
+  "start": "2026-11-14",
+  "days": 29,
+  "personas": 100,
+  "rows": 2900,
+  "seconds": 123.2,
+  "database": "local SQLite per worker (synthetic, deleted with the temp dir)",
+  "clock": "time_machine.travel per call, 12:01-12:05 Asia/Ho_Chi_Minh",
+  "generation": "off (Settings default); no provider call"
+ },
+ "repetition": {
+  "all": {
+   "personas": 100,
+   "windows": 200,
+   "windows_ge5": 19,
+   "windows_ge5_pct": 9.5,
+   "situations_per_14d_median": 1.0,
+   "situations_per_14d_min": 1,
+   "headline_repeat_days": 1479,
+   "personas_with_headline_repeat": 86,
+   "la_line_repeat_pct": 94.0,
+   "la_line_repeat_median_persona_pct": 98.2
+  },
+  "precision:date_only": {
+   "personas": 30,
+   "windows": 60,
+   "windows_ge5": 0,
+   "windows_ge5_pct": 0.0,
+   "situations_per_14d_median": 1.0,
+   "situations_per_14d_min": 1,
+   "headline_repeat_days": 690,
+   "personas_with_headline_repeat": 30,
+   "la_line_repeat_pct": 100.0,
+   "la_line_repeat_median_persona_pct": 100.0
+  },
+  "precision:approximate": {
+   "personas": 20,
+   "windows": 40,
+   "windows_ge5": 0,
+   "windows_ge5_pct": 0.0,
+   "situations_per_14d_median": 1.0,
+   "situations_per_14d_min": 1,
+   "headline_repeat_days": 460,
+   "personas_with_headline_repeat": 20,
+   "la_line_repeat_pct": 100.0,
+   "la_line_repeat_median_persona_pct": 100.0
+  },
+  "precision:exact": {
+   "personas": 50,
+   "windows": 100,
+   "windows_ge5": 19,
+   "windows_ge5_pct": 19.0,
+   "situations_per_14d_median": 4.0,
+   "situations_per_14d_min": 1,
+   "headline_repeat_days": 329,
+   "personas_with_headline_repeat": 36,
+   "la_line_repeat_pct": 88.1,
+   "la_line_repeat_median_persona_pct": 89.3
+  }
+ },
+ "mood": {
+  "low_days": 449,
+  "low_light": 46,
+  "low_light_pct": 10.2,
+  "light_sources_low_days": {
+   "label": 449
+  },
+  "la_contradictions": 0,
+  "la_contradiction_examples": [],
+  "headline_contradictions": 9,
+  "headline_contradiction_examples": [
+   [
+    "Chill",
+    "Bạn đang mệt, vẫn nhận thêm việc giúp người khác.",
+    "Bạn dễ muốn giúp người khác dù sức mình có giới hạn. Giúp quá sức thường khiến việc của chính bạn bị dồn lại sau."
+   ],
+   [
+    "Chill",
+    "Bạn đang mệt, vẫn nhận thêm việc giúp người khác.",
+    "Bạn dễ muốn giúp người khác dù sức mình có giới hạn. Giúp quá sức thường khiến việc của chính bạn bị dồn lại sau."
+   ],
+   [
+    "Chill",
+    "Bạn đang mệt, vẫn nhận thêm việc giúp người khác.",
+    "Bạn dễ muốn giúp người khác dù sức mình có giới hạn. Giúp quá sức thường khiến việc của chính bạn bị dồn lại sau."
+   ],
+   [
+    "Chill",
+    "Bạn đang mệt, vẫn nhận thêm việc giúp người khác.",
+    "Bạn dễ muốn giúp người khác dù sức mình có giới hạn. Giúp quá sức thường khiến việc của chính bạn bị dồn lại sau."
+   ],
+   [
+    "Chill",
+    "Bạn đang mệt, vẫn nhận thêm việc giúp người khác.",
+    "Bạn dễ muốn giúp người khác dù sức mình có giới hạn. Giúp quá sức thường khiến việc của chính bạn bị dồn lại sau."
+   ]
+  ],
+  "days_action_changed_after_mood_pct": 0.0
+ },
+ "crisis": {
+  "crisis_inputs": 13,
+  "crisis_caught": 0,
+  "crisis_caught_pct": 0.0,
+  "figurative_inputs": 21,
+  "figurative_flagged": 0,
+  "figurative_fp_pct": 0.0,
+  "ordinary_questions": 418,
+  "ordinary_flagged": 0,
+  "crisis_statuses": {
+   "201": 8,
+   "422": 5
+  }
+ },
+ "understood": {
+  "items_needed": 400,
+  "items_scored": 400,
+  "mean": 2.23,
+  "personas_scored": 100,
+  "personas_ge3_pct": 11.0,
+  "distribution": {
+   "1": 12,
+   "2": 298,
+   "3": 78,
+   "4": 12
+  }
+ },
+ "return_model": {
+  "calibration": {
+   "k_hazard": 0.61885,
+   "alpha": 0.88188,
+   "reference": {
+    "D1": 0.3297,
+    "D7": 0.13,
+    "D14": 0.0823,
+    "D28": 0.05
+   }
+  },
+  "all": {
+   "D1": 0.1334,
+   "D7": 0.023,
+   "D14": 0.0097,
+   "D28": 0.0034
+  },
+  "by": {
+   "all": {
+    "D1": 0.1334,
+    "D7": 0.023,
+    "D14": 0.0097,
+    "D28": 0.0034
+   },
+   "precision:date_only": {
+    "D1": 0.1574,
+    "D7": 0.0281,
+    "D14": 0.0108,
+    "D28": 0.0029
+   },
+   "precision:approximate": {
+    "D1": 0.0825,
+    "D7": 0.0096,
+    "D14": 0.0052,
+    "D28": 0.0029
+   },
+   "precision:exact": {
+    "D1": 0.1393,
+    "D7": 0.0253,
+    "D14": 0.0108,
+    "D28": 0.004
+   },
+   "group:student": {
+    "D1": 0.1339,
+    "D7": 0.0232,
+    "D14": 0.0098,
+    "D28": 0.0033
+   },
+   "group:worker": {
+    "D1": 0.1288,
+    "D7": 0.0212,
+    "D14": 0.0079,
+    "D28": 0.0025
+   },
+   "group:other": {
+    "D1": 0.1379,
+    "D7": 0.0249,
+    "D14": 0.0117,
+    "D28": 0.0051
+   }
+  },
+  "segments_worst_first": [
+   {
+    "segment": "Năm cuối, đang tìm việc",
+    "n": 8,
+    "D7": 0.0011,
+    "D28": 0.0,
+    "understood": 2.25,
+    "precision": {
+     "exact": 5,
+     "approximate": 3
+    },
+    "situations_14d_median": 2.0
+   },
+   {
+    "segment": "Người lớn tuổi",
+    "n": 5,
+    "D7": 0.0057,
+    "D28": 0.0001,
+    "understood": 2.0,
+    "precision": {
+     "exact": 3,
+     "date_only": 2
+    },
+    "situations_14d_median": 3.0
+   },
+   {
+    "segment": "Tiền eo hẹp",
+    "n": 6,
+    "D7": 0.008,
+    "D28": 0.0003,
+    "understood": 2.21,
+    "precision": {
+     "exact": 4,
+     "approximate": 1,
+     "date_only": 1
+    },
+    "situations_14d_median": 3.0
+   },
+   {
+    "segment": "Áp lực gia đình",
+    "n": 6,
+    "D7": 0.0106,
+    "D28": 0.0002,
+    "understood": 2.04,
+    "precision": {
+     "approximate": 2,
+     "exact": 1,
+     "date_only": 3
+    },
+    "situations_14d_median": 1.0
+   },
+   {
+    "segment": "Vừa học vừa làm thêm",
+    "n": 8,
+    "D7": 0.0152,
+    "D28": 0.0012,
+    "understood": 2.16,
+    "precision": {
+     "exact": 4,
+     "approximate": 1,
+     "date_only": 3
+    },
+    "situations_14d_median": 2.0
+   },
+   {
+    "segment": "Đang mùa thi",
+    "n": 8,
+    "D7": 0.0162,
+    "D28": 0.0008,
+    "understood": 2.31,
+    "precision": {
+     "approximate": 3,
+     "exact": 4,
+     "date_only": 1
+    },
+    "situations_14d_median": 1.5
+   },
+   {
+    "segment": "Làm theo ca",
+    "n": 6,
+    "D7": 0.0172,
+    "D28": 0.0052,
+    "understood": 2.0,
+    "precision": {
+     "exact": 1,
+     "date_only": 3,
+     "approximate": 2
+    },
+    "situations_14d_median": 1.0
+   },
+   {
+    "segment": "Deadline dày",
+    "n": 7,
+    "D7": 0.0198,
+    "D28": 0.0026,
+    "understood": 2.29,
+    "precision": {
+     "date_only": 3,
+     "exact": 3,
+     "approximate": 1
+    },
+    "situations_14d_median": 1.0
+   },
+   {
+    "segment": "Cha mẹ có con nhỏ",
+    "n": 5,
+    "D7": 0.0211,
+    "D28": 0.0012,
+    "understood": 2.3,
+    "precision": {
+     "exact": 5
+    },
+    "situations_14d_median": 4.0
+   },
+   {
+    "segment": "Áp lực từ sếp",
+    "n": 6,
+    "D7": 0.0217,
+    "D28": 0.0016,
+    "understood": 2.17,
+    "precision": {
+     "approximate": 1,
+     "date_only": 3,
+     "exact": 2
+    },
+    "situations_14d_median": 1.0
+   },
+   {
+    "segment": "Ít quen dùng điện thoại",
+    "n": 4,
+    "D7": 0.0253,
+    "D28": 0.0117,
+    "understood": 2.12,
+    "precision": {
+     "exact": 1,
+     "date_only": 1,
+     "approximate": 2
+    },
+    "situations_14d_median": 1.0
+   },
+   {
+    "segment": "Công việc đầu tiên",
+    "n": 6,
+    "D7": 0.0262,
+    "D28": 0.0008,
+    "understood": 2.38,
+    "precision": {
+     "approximate": 1,
+     "date_only": 1,
+     "exact": 4
+    },
+    "situations_14d_median": 3.0
+   },
+   {
+    "segment": "Ở ký túc xá / phòng trọ",
+    "n": 7,
+    "D7": 0.0331,
+    "D28": 0.0058,
+    "understood": 2.18,
+    "precision": {
+     "approximate": 2,
+     "exact": 2,
+     "date_only": 3
+    },
+    "situations_14d_median": 1.0
+   },
+   {
+    "segment": "Người LGBTQ+",
+    "n": 5,
+    "D7": 0.0477,
+    "D28": 0.0087,
+    "understood": 2.2,
+    "precision": {
+     "exact": 3,
+     "approximate": 1,
+     "date_only": 1
+    },
+    "situations_14d_median": 1.5
+   },
+   {
+    "segment": "Sinh viên năm nhất xa nhà",
+    "n": 8,
+    "D7": 0.048,
+    "D28": 0.0035,
+    "understood": 2.38,
+    "precision": {
+     "date_only": 4,
+     "exact": 4
+    },
+    "situations_14d_median": 1.5
+   },
+   {
+    "segment": "So sánh trên mạng xã hội",
+    "n": 5,
+    "D7": 0.0623,
+    "D28": 0.0194,
+    "understood": 2.55,
+    "precision": {
+     "date_only": 1,
+     "exact": 4
+    },
+    "situations_14d_median": 3.5
+   }
+  ]
+ },
+ "coverage": {
+  "persona_days": 2900,
+  "http_errors": 0,
+  "action_texts": 14,
+  "action_texts_unlabelled": 0,
+  "judge_items_missing": 0,
+  "experiment_offered_pct": 50.0,
+  "kept_days": 362,
+  "wants_keep_days": 602,
+  "return_path_days": 0,
+  "memory_days": 0,
+  "why_today_days": 365
+ }
+}

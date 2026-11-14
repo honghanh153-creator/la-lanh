@@ -100,6 +100,8 @@ def problems(data: Mapping[str, Any]) -> list[str]:
         age = 2026 - born.year - ((11, 14) < (born.month, born.day))
         if abs(int(p["age"]) - age) > 0:
             out.append(f"{pid}: age {p['age']} != {age}")
+        if age < 18:
+            out.append(f"{pid}: under 18; the app is 18+ (US-02)")
         if len(p["mood_29"]) != 29 or not set(p["mood_29"]) <= MOODS:
             out.append(f"{pid}: mood_29 invalid")
         if not set(p["quit_triggers"]) <= TRIGGERS or not 1 <= len(p["quit_triggers"]) <= 3:
