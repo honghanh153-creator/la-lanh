@@ -106,7 +106,22 @@
    "from": "thỏa thuận 12.11 mục F",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-lessons.test.mjs",
+    "name": "an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise"
+   },
+   "check": {
+    "file": "apps/web/tests/e2e/kham-pha-portrait.spec.ts",
+    "name": "Khám phá reads, opens a claim and its evidence, and comes back at 360/390px, 200% text, reduced motion"
+   },
+   "caller": {
+    "file": "scripts/collab-lessons.mjs",
+    "contains": "for (const f of playwrightCiFiles(pkg, { base })) files.add(f);"
+   },
+   "closedBy": {
+    "pr": 500
+   }
   },
   {
    "id": "L09",
@@ -152,7 +167,18 @@
    "from": "thỏa thuận 12.11 mục J",
    "who": "claude",
    "due": "2026-11-20",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-status.test.mjs",
+    "name": "the production tick digest counts two merged PRs of one item as one item, not two"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "work: progress ? () => renderProgress(progress("
+   },
+   "closedBy": {
+    "pr": 496
+   }
   },
   {
    "id": "L12",
@@ -264,7 +290,8 @@
    "from": "owner 13.11: báo cáo trung thực",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "open"
+   "status": "open",
+   "note": "snapshot helper and tick digest wired; scheduled owner report and retro still to be pointed at collab-snapshot --slot"
   },
   {
    "id": "L20",
@@ -368,6 +395,25 @@
    },
    "closedBy": {
     "pr": 517
+   }
+  },
+  {
+   "id": "L27",
+   "title": "FAIL do CI cũ, chạy lại xanh ở cùng head thì check lại (#508)",
+   "from": "sự cố 14.11 (#508)",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "a CI FAIL that turns green on a re-run at the same head"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "ciRechecks(turnsFor("
+   },
+   "closedBy": {
+    "pr": 516
    }
   }
  ]

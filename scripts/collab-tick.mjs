@@ -3,12 +3,14 @@
 import { execFileSync } from 'node:child_process';
 import { runReview } from './codex-review.mjs';
 import { runMerge } from './collab-merge.mjs';
-import { heavyJobFree, runCheckInClone } from './collab-check.mjs';
+import { ciCheck, heavyJobFree, runCheckInClone } from './collab-check.mjs';
 import { runPreflight } from './collab-preflight.mjs';
 import { clean, makeGh, vnNow } from './collab-trust.mjs';
 import { opsAlert, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
 import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
+import { ghFetch, workProgress } from './collab-work.mjs';
+import { realSources, takeSnapshot } from './collab-snapshot.mjs';
 import { planIssue } from './collab-plan.mjs';
 import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
@@ -43,7 +45,7 @@ const watchdogSubject = 'tác vụ hẹn giờ bị treo';
 
 export function runTick(gh = makeGh(), preflight = () => missingTools(), { run = tick, log = tickLog } = {}) {
   const board = info => upsertBoard(gh, planIssue(gh), renderBoard(info));
-  return run({ gh, preflight, log, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
+  return run({ gh, preflight, log, prPreflight: n => runPreflight(gh.pr(n)), heavyFree: () => heavyJobFree(), board, check: (n, o) => runCheckInClone(n, { ...o, gh }), ciStatus: head => ciCheck(gh, head), review: (n, o) => runReview(n, { ...o, gh }), merge: n => runMerge(n, { gh }), alert: text => opsAlert(gh, text),
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
@@ -51,6 +53,11 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
     audit: () => nightAudit(gh),
+    progress: (day, date) => workProgress({ date, planned: day.plannedItems ?? [], fetch: ghFetch(gh) }),
+    // No recorded list is unmeasured, not "no work picked" (Codex r1 on #497).
+    progress: (day, date) => (Array.isArray(day.plannedItems) ? workProgress({ date, planned: day.plannedItems, fetch: ghFetch(gh) }) : { unmeasured: 'chưa có danh sách việc đã chọn' }),
+    snapshot: (slot, date) => takeSnapshot({ slot, date, gh }),
+    incidents: () => realSources(gh, vnNow().date).alerts(),
     mergeAudit: options => runMergeAudit(options) });
 }
 
