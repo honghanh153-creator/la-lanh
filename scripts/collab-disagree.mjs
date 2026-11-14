@@ -7,8 +7,8 @@
 //        node scripts/collab-disagree.mjs --list [--date YYYY-MM-DD]
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { clean, stateDir, vnNow } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const logPath = join(stateDir, 'disagreements.jsonl');
 export const winners = ['codex', 'claude', 'owner'];
@@ -44,8 +44,7 @@ export function read(path = logPath) {
 
 const flag = (args, name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 
-// Moves to isMain() (#484) once that is in integration; its test flags any script left behind.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   try {
     if (args.includes('--add')) {

@@ -1,9 +1,9 @@
 // Merge one PR into collab/integration only when every condition in the auto-loop plan §4.2 holds.
 // Usage: node scripts/collab-merge.mjs --pr N [--dry-run]
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { deletionProblem } from './collab-size.mjs';
 import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr, isSha, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export function mergeGate(pr) {
   const reasons = [];
@@ -54,7 +54,7 @@ export function runMerge(number, { gh = makeGh(), dryRun = false, date } = {}) {
   return { status: 'merged', head: gate.head, retargeted };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const number = Number(args[args.indexOf('--pr') + 1]);
   if (!args.includes('--pr') || !Number.isInteger(number) || number <= 0) {
