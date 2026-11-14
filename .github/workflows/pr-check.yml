@@ -9,7 +9,7 @@ on:
     # `edited` covers a stacked PR that collab-merge retargets to collab/integration (#164).
     # Deliberately not filtered to base changes only: a skipped run on a title/body edit would
     # replace an earlier failed `check` with a skipped (passing) one on the same head SHA.
-    types: [opened, synchronize, reopened, ready_for_review, edited]
+    types: [opened, synchronize, reopened, ready_for_review, edited, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -53,6 +53,12 @@ jobs:
           done <<< "$files"
           echo "level=$level" >> "$GITHUB_OUTPUT"
           echo "scope: $level"
+      - name: Mass-deletion guard (owner label owner-ok-deletion lets it through)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: node scripts/collab-size.mjs --deletion "$BASE_SHA" "$HEAD_SHA" "$LABELS"
 
   check:
     needs: scope

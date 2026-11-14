@@ -2,7 +2,7 @@
 // Usage: node scripts/codex-review.mjs --pr N [--auto]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
@@ -102,15 +102,22 @@ export function runReview(number, options = {}) {
   // Reclaim of a dead or 45-minute-old lock runs under the reclaim mutex (collab-lock.mjs, Codex #258).
   const release = acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 });
   if (!release) return { status: 'busy', reason: 'một review khác đang chạy' };
-  try { return reviewOnce(number, options); }
+  // The cost record is written only when Codex really started, not for refusals (approved, held, budget).
+  let codexStarted = null;
+  let result;
+  try { result = reviewOnce(number, { ...options, onCodexStart: () => { codexStarted = Date.now(); } }); return result; }
   catch (error) { if (error instanceof DeadlineError) return { status: 'refused', reason: 'hết giờ (23:55) trong lúc review' }; throw error; }
-  finally { release(); }
+  finally {
+    release();
+    // Per-PR cost proxy for collab-pr-metrics.mjs (owner 08.11.2026): one line per Codex invocation.
+    if (codexStarted !== null) try { appendFileSync(join(stateDir, 'review-runs.jsonl'), `${JSON.stringify({ pr: Number(number), at: new Date(codexStarted).toISOString(), ms: Date.now() - codexStarted, status: result?.status ?? 'error' })}\n`); } catch {}
+  }
 }
 
 // Time kept after Codex for the git check and up to five gh calls (60 s each) that publish the result.
 export const reviewFinalizeReserveMs = 5 * 60000;
 
-function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now } = {}) {
+function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileSync, now = vnNow(), clock = vnNow, readOut, nowMs = Date.now, onCodexStart = () => {} } = {}) {
   // Scheduled runs: every gh and git call ends by 23:55 (minus 15 s cleanup); direct runs keep fixed caps.
   const cutoff = Date.parse(`${now.date}T23:55:00+07:00`) - 15000;
   const left = auto && Number.isFinite(cutoff) ? () => cutoff - nowMs() : () => Infinity;
@@ -168,6 +175,7 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   // the Git/GitHub cutoff (#243); without that room, it does not start.
   const untilCutoff = Math.min(((23 * 60 + 55) - startMinute) * 60000, left()) - reviewFinalizeReserveMs;
   if (auto && untilCutoff < 60000) return { status: 'refused', reason: 'không đủ thời gian để đăng kết quả trước 23:55' };
+  onCodexStart();
   const result = runCodex({ dir, prompt, outPath, timeoutMs: auto ? Math.min(30 * 60000, untilCutoff) : 30 * 60000, run });
   if (result.status === 'limit') return { status: 'limit', reason: result.error };
   writeJson(dayPath, { ...readJson(dayPath, day), codexRuns: (readJson(dayPath, day).codexRuns ?? 0) + 1 });
