@@ -1,0 +1,77 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["complete", "notes", "M1", "M3", "unrecorded"],
+  "properties": {
+    "complete": { "type": "boolean" },
+    "notes": { "type": "string" },
+    "M1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measured", "missing", "items"],
+      "properties": {
+        "measured": { "type": "boolean" },
+        "missing": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["report", "claim", "source", "why"],
+            "properties": {
+              "report": { "type": "string" },
+              "claim": { "type": "string" },
+              "source": { "type": "string" },
+              "why": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "M3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measured", "missing", "items"],
+      "properties": {
+        "measured": { "type": "boolean" },
+        "missing": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["candidate", "pr", "why"],
+            "properties": {
+              "candidate": { "type": "string" },
+              "pr": { "type": "string" },
+              "why": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "unrecorded": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measured", "missing", "items"],
+      "properties": {
+        "measured": { "type": "boolean" },
+        "missing": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["pr", "evidence", "claude", "codex"],
+            "properties": {
+              "pr": { "type": "string" },
+              "evidence": { "type": "string" },
+              "claude": { "type": "string" },
+              "codex": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
