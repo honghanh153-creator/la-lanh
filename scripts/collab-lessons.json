@@ -111,7 +111,18 @@
    "from": "thỏa thuận 12.11 mục H",
    "who": "claude",
    "due": "2026-11-16",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "ops wrapper runs from another cwd with spaced paths and preserves failures"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "wrapperHealth()"
+   },
+   "closedBy": {
+    "pr": 487
+   }
   },
   {
    "id": "L11",
