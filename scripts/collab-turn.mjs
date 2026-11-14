@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
+import { auditReserve } from './collab-audit.mjs';
 import { ownerNotes } from './collab-status.mjs';
 import { bodyHash } from './collab-heal.mjs';
 import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees } from './collab-preflight.mjs';
@@ -100,7 +101,7 @@ export const idleAlertRuns = 6;
 // A failed daily copy batch is retried on later ticks, at most this many attempts a day.
 export const copyBatchAttempts = 3;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past 23:30.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -132,6 +133,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     const streak = (failures, prev) => (failures === 0 ? null : failures === 1 ? `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}` : prev ?? null);
     // The scheduled-run watchdog runs before the plan gate, so it also watches at night; it never breaks a tick.
     try { watchdog(); } catch {}
+    // Night audit (L21b): 23:00–23:29 provisional, before 10:00 final for yesterday. It runs before
+    // the plan gate so a held or closed plan does not skip it, and it never breaks a tick.
+    if (audit) {
+      try { const result = audit(); if (result && !['idle', 'done'].includes(result.status)) log(`night audit: ${JSON.stringify(result)}`); }
+      catch (error) { log(`night audit failed: ${clean(error.message, 200)}`); }
+    }
     try {
       // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.
       const missing = tools();
@@ -204,7 +211,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       }
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);
-        if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= codexDailyCap || late()) break;
+        if (done.filter(d => d.review).length >= 2 || fresh.codexRuns >= codexDailyCap - auditReserve || late()) break;
         show({ status: 'running', doing: `Codex review #${t.number}`, expectMinutes: 30, area, turns, done });
         const result = review(t.number, { auto: true, now: time() });
         done.push({ pr: t.number, review: result });
@@ -225,7 +232,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // told. An error now retries on later ticks, up to copyBatchAttempts a day.
         const retry = today.copyBatch?.status === 'error' && (today.copyBatch.attempts ?? 1) < copyBatchAttempts;
         // Publishing saved decisions calls no Codex, so it may run after the cap is spent (Codex 13.11).
-        const budgetOk = (today.codexRuns ?? 0) < codexDailyCap || copySaved();
+        const budgetOk = (today.codexRuns ?? 0) < codexDailyCap - auditReserve || copySaved();
         if ((!today.copyBatch || retry) && budgetOk && !batchOpen) {
           try { pending = copyPending(); } catch (error) { log(`copy batch: registry unreadable: ${clean(error.message, 200)}`); }
         }
@@ -296,7 +303,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const red = errors.length || stuck;
       heartbeat(red ? 'ran-with-errors' : 'ran');
       // A review waiting while the daily Codex cap is spent is a budget stop, not "no work" (#145 r2).
-      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= codexDailyCap;
+      const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= codexDailyCap - auditReserve;
       show({ status: red ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: red ? [errors.length ? JSON.stringify(errors) : null, stuck].filter(Boolean).join(' · ') : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
       tell({ turns: leftTurns, comments: plan.comments, dropped: plan.dropped });

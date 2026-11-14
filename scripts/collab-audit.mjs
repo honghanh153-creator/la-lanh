@@ -15,7 +15,14 @@ import { applyPolicy, validateOutput } from './collab-review-policy.mjs';
 
 export const experimentDir = join(stateDir, 'experiment');
 const reason = error => clean(String(error?.message ?? error).split('\n')[0], 160);
-const unmeasured = why => ({ value: null, missing: why });
+export const unmeasured = why => ({ value: null, missing: clean(why || 'không rõ lý do', 300) });
+// One Codex run a day is kept back from reviews and the copy batch, so the night audit (L21b) is
+// not starved by a busy day (Codex 14.11). Every automatic path stops at codexDailyCap - auditReserve.
+export const auditReserve = 1;
+// The promise register and the disagreement log are measured from the first experiment day. Before
+// it (the 11–13.11 baseline) they did not exist in this form, so M4 and M8 are "chưa đo được",
+// never 0 or a value rebuilt from today's register (Codex 14.11, L23).
+export const logsStart = '2026-11-14';
 const median = xs => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 export const dayRange = date => `${date}T00:00:00+07:00..${date}T23:59:59+07:00`;
 
@@ -54,7 +61,7 @@ export function readOutputs(dir = join(stateDir, 'logs')) {
 }
 
 export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = () => readOutputs(), day = d => readJson(dayStatePath(d), null),
-  lessons = null, disagreements = () => [] } = {}) {
+  lessons = null, disagreements = null } = {}) {
   const final = vnNow(now).date > date;
   const facts = { date, final, collectedAt: now.toISOString(), metrics: {} };
   const M = facts.metrics;
@@ -89,7 +96,8 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
   // M4: promises (scripts/collab-lessons.mjs when present). The register only has its current
   // state, so a day that has ended cannot be rebuilt from it (Codex r1 on #486): an audit after the
   // day leaves M4 unmeasured, and saveFacts keeps the value measured during the day itself.
-  if (final) M.M4 = unmeasured('ngày đã qua: sổ lời hứa chỉ có trạng thái hiện tại, không dựng lại được ngày cũ');
+  if (date < logsStart) M.M4 = unmeasured('giai đoạn nền: sổ lời hứa chưa có, không dựng lại từ sổ hôm nay');
+  else if (final) M.M4 = { ...unmeasured('ngày đã qua: sổ lời hứa chỉ có trạng thái hiện tại, không dựng lại được ngày cũ'), ended: true };
   else try {
     const s = lessons ? lessons() : null;
     M.M4 = s ? { value: { done: s.done, open: s.open, overdue: s.overdue, owner: s.owner, unconfirmed: s.unconfirmed } } : unmeasured('chưa có sổ lời hứa ở bản này');
@@ -114,7 +122,9 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
   }
 
   // M8: disagreements recorded today (arm 1: Claude records them; Codex checks for gaps in part b).
-  try {
+  if (date < logsStart) M.M8 = unmeasured('giai đoạn nền: chưa có sổ bất đồng');
+  else if (!disagreements) M.M8 = unmeasured('chưa có sổ bất đồng ở bản này');
+  else try {
     const all = disagreements().filter(d => d.date === date);
     const entries = all.filter(d => d.type !== 'override');
     M.M8 = { value: entries.length, codex: entries.filter(d => d.winner === 'codex').length, claude: entries.filter(d => d.winner === 'claude').length,
@@ -123,7 +133,8 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
 
   // M9: Codex runs the loop counted (runs outside the counter are not seen).
   const state = (() => { try { return day(date); } catch { return null; } })();
-  M.M9 = state && Number.isInteger(state.codexRuns) ? { value: state.codexRuns, missing: 'chỉ tính lượt được vòng ghi nhận' } : unmeasured('không có file trạng thái ngày');
+  // Baseline runs made on this day stay in M9 and are shown apart (Codex 14.11), never subtracted.
+  M.M9 = state && Number.isInteger(state.codexRuns) ? { value: state.codexRuns, ...(state.baselineRuns ? { baseline: state.baselineRuns } : {}), missing: 'chỉ tính lượt được vòng ghi nhận' } : unmeasured('không có file trạng thái ngày');
 
   // M10: stalls and owner questions need an event history the loop does not keep yet.
   M.M10 = unmeasured('watchdog chỉ giữ beat mới nhất; chưa có lịch sử kẹt và câu hỏi gửi owner');
@@ -132,21 +143,57 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
   return facts;
 }
 
+// The record = facts of part (a) + Codex's judgement (part b, collab-audit-night.mjs); M1 and M3
+// in `metrics` come from the judgement.
+export function withJudgement(facts, judgement) {
+  const metrics = { ...facts.metrics };
+  if (judgement?.result) {
+    metrics.M1 = judgement.result.M1;
+    metrics.M3 = { ...judgement.result.M3, candidates: facts.metrics.M3?.candidates };
+  } else if (judgement?.missing) {
+    metrics.M1 = unmeasured(judgement.missing);
+    metrics.M3 = { ...unmeasured(judgement.missing), candidates: facts.metrics.M3?.candidates };
+  }
+  return { ...facts, metrics, ...(judgement ? { judgement } : {}) };
+}
+
 // Same date, same file: a re-run replaces the provisional facts, never duplicates them, and a
-// final record is never replaced by a provisional one.
+// final record is never replaced by a provisional one. A re-run by hand keeps Codex's judgement
+// and the posted comment of part (b).
+// M4 measured on the day itself is kept when a later run cannot measure it (Codex r1 on #486).
+// The night audit calls it too, so its after-midnight evidence matches the 23:00 one.
+export function keepDayM4(facts, old) {
+  const sameDay = old?.collectedAt && vnNow(new Date(old.collectedAt)).date === facts.date;
+  if (facts.metrics?.M4?.ended && old?.metrics?.M4 && sameDay) {
+    const at = vnNow(new Date(old.collectedAt));
+    facts.metrics.M4 = old.metrics.M4.value == null ? old.metrics.M4
+      : { ...old.metrics.M4, measuredAt: `${String(at.hour).padStart(2, '0')}:${String(at.minute).padStart(2, '0')} ${facts.date}` };
+  }
+  return facts;
+}
+
 export function saveFacts(facts, dir = experimentDir) {
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${facts.date}.json`);
   const old = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
   if (old?.final && !facts.final) return { path, kept: true };
-  // M4 measured on the day itself is kept when a later run cannot measure it.
-  const sameDay = old?.collectedAt && vnNow(new Date(old.collectedAt)).date === facts.date;
-  if (facts.metrics?.M4?.value == null && old?.metrics?.M4?.value != null && sameDay) {
-    const at = vnNow(new Date(old.collectedAt));
-    facts.metrics.M4 = { ...old.metrics.M4, measuredAt: `${String(at.hour).padStart(2, '0')}:${String(at.minute).padStart(2, '0')} ${facts.date}` };
-  }
-  writeFileSync(path, `${JSON.stringify(facts, null, 1)}\n`);
+  keepDayM4(facts, old);
+  const record = old?.judgement ? { ...withJudgement(facts, old.judgement), posted: old.posted ?? null } : facts;
+  writeFileSync(path, `${JSON.stringify(record, null, 1)}\n`);
   return { path, kept: false };
+}
+
+// The register and the disagreement log arrive in other PRs (#481); without them M4/M8 stay
+// unmeasured. lessons(date) returns the register summary for that day.
+export async function loadAuditDeps() {
+  let lessons = null;
+  try {
+    const mod = await import('./collab-lessons.mjs');
+    lessons = date => { const reg = mod.readRegister(); return mod.summarize(reg, { today: date, verified: mod.verify(reg) }); };
+  } catch { lessons = null; }
+  let disagreements = null;
+  try { const mod = await import('./collab-disagree.mjs'); disagreements = () => mod.read(); } catch { disagreements = null; }
+  return { lessons, disagreements };
 }
 
 if (isMain(import.meta.url)) {
@@ -154,14 +201,9 @@ if (isMain(import.meta.url)) {
     const args = process.argv.slice(2);
     const date = args.includes('--date') ? args[args.indexOf('--date') + 1] : vnNow().date;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) throw new Error('--date YYYY-MM-DD');
-    let lessons = null;
-    try {
-      const mod = await import('./collab-lessons.mjs');
-      lessons = () => { const reg = mod.readRegister(); return mod.summarize(reg, { today: date, verified: mod.verify(reg) }); };
-    } catch { lessons = null; }
-    let disagreements = () => [];
-    try { const mod = await import('./collab-disagree.mjs'); disagreements = () => mod.read(); } catch {}
-    const facts = collectFacts({ date, lessons, disagreements });
+    const deps = await loadAuditDeps();
+    const lessons = deps.lessons ? () => deps.lessons(date) : null;
+    const facts = collectFacts({ date, lessons, disagreements: deps.disagreements });
     const saved = saveFacts(facts);
     process.stdout.write(`${JSON.stringify({ ...facts, saved })}\n`);
   } catch (error) { process.stderr.write(`collab-audit failed: ${reason(error)}\n`); process.exitCode = 1; }

@@ -15,6 +15,10 @@ import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 import { pendingCount, readSaved, runCopyBatch, savedPath } from './codex-copy-review.mjs';
 import { hookHealth } from './collab-hooks.mjs';
 import { isMain } from './is-main.mjs';
+import { loadAuditDeps } from './collab-audit.mjs';
+import { runNightAudit } from './collab-audit-night.mjs';
+
+const auditDeps = await loadAuditDeps();
 
 // Tools the loop and pnpm check need. A missing one used to surface as a false FAIL receipt
 // (31.10.2026: sha256sum, pnpm); now the tick stops with an error and alerts instead.
@@ -41,7 +45,8 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
     }, health: () => [...healthLines(readBeats()), ...hookHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
-    metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })) });
+    metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
+    audit: () => runNightAudit({ gh, issue: () => planIssue(gh), ...auditDeps }) });
 }
 
 if (isMain(import.meta.url)) {
