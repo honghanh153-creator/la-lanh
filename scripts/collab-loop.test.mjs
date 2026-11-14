@@ -1108,12 +1108,12 @@ test('copy batch: an unresolved error keeps the run red, a lost alert is resent,
   const day = () => trust.readJson(trust.dayStatePath(date), {});
   tick(deps(0));
   assert.equal(alerts.length, 0);
-  assert.equal(day().copyBatch.alerted, false, 'an alert that could not be delivered is remembered');
+  assert.equal(day().copyAlerts.length, 1, 'an alert that could not be delivered is remembered');
   deliver = true;
   tick(deps(10, { pending: 0 }));
   assert.equal(day().copyBatch.attempts, 1, 'no retry ran on this tick');
   assert.ok(alerts.some(t => t.includes('lần 1/3')), 'the lost alert is sent on the next tick');
-  assert.equal(day().copyBatch.alerted, true);
+  assert.deepEqual(day().copyAlerts, []);
   tick(deps(15));
   tick(deps(20));
   assert.equal(day().copyBatch.attempts, copyBatchAttempts);
@@ -1131,6 +1131,26 @@ test('copy batch: an unresolved error keeps the run red, a lost alert is resent,
   at(true);
   assert.deepEqual(runs, [true], 'saved decisions are published although the cap is spent');
   assert.equal(trust.readJson(trust.dayStatePath(capped), {}).codexRuns, trust.codexDailyCap, 'and spend no Codex run');
+});
+
+// Codex 13.11 on #480 (P2): a failed attempt whose alert could not be delivered, followed by a
+// successful retry, delivered nothing: the success replaced the batch state that held the alert.
+test('copy batch: a successful retry does not erase an alert that was not delivered yet', () => {
+  const date = '2026-12-03';
+  const alerts = [];
+  let deliver = false;
+  const at = (minute, result) => tick({ gh: plannedGh([], date), now: { date, hour: 12, minute }, merge: () => ({}), review: () => ({}),
+    alert: text => { if (!deliver) throw new Error('gh: HTTP 502'); alerts.push(text); },
+    copyPending: () => 40, copyBatch: () => result });
+  const day = () => trust.readJson(trust.dayStatePath(date), {});
+  at(0, { status: 'error', codex: true, reason: 'gh pr create failed' });
+  assert.equal(alerts.length, 0);
+  deliver = true;
+  at(10, { status: 'opened', codex: false });
+  assert.equal(day().copyBatch.status, 'opened', 'the retry succeeded');
+  assert.equal(alerts.filter(t => t.startsWith('Lô duyệt câu')).length, 1, 'the failure is still reported');
+  assert.match(alerts.find(t => t.startsWith('Lô duyệt câu')), /lần 1\/3.*gh pr create failed/);
+  assert.deepEqual(day().copyAlerts, []);
 });
 
 test('copy batch: an owner "Duyệt" before 10:00 still waits for the 10:00 auto-start', () => {

@@ -6,7 +6,7 @@
 // agent/claude/copy-batch-YYYYMMDD; the script never writes main or collab/integration and
 // never posts owner reply words.
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -146,12 +146,15 @@ function runCodex(prompt, outPath, run) {
 
 // Writes the batch on its own branch from the reviewed integration commit and opens a PR, so a
 // newer integration change to the registry is merged by git, never overwritten.
-// One branch per attempt (date and time), so a retry never collides with the local or remote
-// branch a failed attempt left behind; the tick's open-batch check matches the prefix.
-export const batchBranch = (date, at = vnNow()) => `agent/claude/copy-batch-${date.replaceAll('-', '')}-${String(at.hour).padStart(2, '0')}${String(at.minute).padStart(2, '0')}`;
+// One branch per attempt, named by the attempt's own date and time plus a random suffix, so a
+// retry never collides with the local or remote branch a failed attempt left behind, also when
+// saved decisions from an earlier day are retried at the same clock time (Codex 13.11 on #480).
+// The tick's open-batch check matches the prefix.
+export const batchBranch = (at = vnNow(), nonce = randomBytes(3).toString('hex')) =>
+  `agent/claude/copy-batch-${at.date.replaceAll('-', '')}-${String(at.hour).padStart(2, '0')}${String(at.minute).padStart(2, '0')}-${nonce}`;
 
 function openBatchPr(registry, body, date, base, run, at) {
-  const branch = batchBranch(date, at);
+  const branch = batchBranch(at);
   const dir = mkdtempSync(join(tmpdir(), 'copy-batch-'));
   const git = args => run('git', args, { cwd: root, encoding: 'utf8' });
   git(['worktree', 'add', '-q', '-b', branch, join(dir, 'w'), base]);

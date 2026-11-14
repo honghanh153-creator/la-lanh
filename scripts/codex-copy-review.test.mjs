@@ -190,14 +190,18 @@ test('a batch that fails after Codex decided is published on retry without a sec
 
   failCommit = false;
   const second = {};
-  const result = main([], { ...opts, progress: second, at: { date: '2026-11-13', hour: 11, minute: 5 } });
+  // Codex 13.11 on #480: the retry runs the next day at the same clock time as the failed attempt.
+  const result = main([], { ...opts, progress: second, at: { date: '2026-11-14', hour: 10, minute: 48 } });
   assert.equal(result.status, 'opened');
   assert.equal(codexCalls(), 1, 'the retry does not call Codex again');
   assert.equal(second.reused, true);
   assert.ok(!existsSync(savedFile), 'saved decisions are dropped once published');
   const branches = calls.filter(c => c[1] === 'worktree' && c[2] === 'add').map(c => c[5]);
-  assert.deepEqual(branches, [batchBranch('2026-11-13', { hour: 10, minute: 48 }), batchBranch('2026-11-13', { hour: 11, minute: 5 })]);
+  assert.match(branches[0], /^agent\/claude\/copy-batch-20261113-1048-[0-9a-f]{6}$/);
+  assert.match(branches[1], /^agent\/claude\/copy-batch-20261114-1048-[0-9a-f]{6}$/, 'a retry is named by its own day, not the saved decisions\' day');
   assert.notEqual(branches[0], branches[1], 'a retry never reuses the failed attempt\'s branch');
+  const same = { date: '2026-11-14', hour: 10, minute: 48 };
+  assert.notEqual(batchBranch(same), batchBranch(same), 'two attempts in the same minute still get different branches');
   assert.match(branches[0], /^agent\/claude\/copy-batch-/, 'the tick still sees the batch PR as open');
 });
 

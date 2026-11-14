@@ -234,24 +234,28 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
             // Only a run that called Codex spends the cap; a retry publishes saved decisions.
             const spent = result?.codex === false || result?.status === 'empty' ? 0 : 1;
             const attempts = (fresh.copyBatch?.status === 'error' ? fresh.copyBatch.attempts ?? 1 : 0) + 1;
-            writeJson(dayPath, { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + spent, copyBatch: {
+            const reason = clean(result?.reason ?? 'không rõ', 300);
+            // Each failed attempt queues its own alert; a later success never erases one that
+            // has not been delivered yet (Codex 13.11 on #480).
+            const copyAlerts = [...(fresh.copyAlerts ?? []), ...(result?.status === 'error'
+              ? [`Lô duyệt câu chữ hằng ngày lỗi (lần ${attempts}/${copyBatchAttempts}, ${now.date}): ${reason}. `
+                + (attempts >= copyBatchAttempts ? 'Đã hết lượt thử hôm nay, Claude cần sửa nguyên nhân.' : 'Lượt sau thử lại; quyết định Codex đã lưu nên không tốn thêm lượt Codex.')]
+              : [])];
+            writeJson(dayPath, { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + spent, copyAlerts, copyBatch: {
               status: result?.status ?? 'unknown', at: new Date().toISOString(), attempts,
-              ...(result?.reason ? { reason: clean(result.reason, 300) } : {}),
-              ...(result?.status === 'error' ? { alerted: false } : {}) } });
+              ...(result?.reason ? { reason } : {}) } });
           }
         }
       }
       // Every failed attempt reaches the owner's alert thread at once, and a failed delivery is
       // retried on the next tick until it goes through (Codex 13.11).
-      const batchState = readJson(dayPath, day).copyBatch;
-      if (batchState?.status === 'error' && batchState.alerted === false && alert) {
-        const attempts = batchState.attempts ?? 1;
+      for (const text of readJson(dayPath, day).copyAlerts ?? []) {
+        if (!alert) break;
         try {
-          alert(`Lô duyệt câu chữ hằng ngày lỗi (lần ${attempts}/${copyBatchAttempts}, ${now.date}): ${clean(batchState.reason ?? 'không rõ', 300)}. `
-            + (attempts >= copyBatchAttempts ? 'Đã hết lượt thử hôm nay, Claude cần sửa nguyên nhân.' : 'Lượt sau thử lại; quyết định Codex đã lưu nên không tốn thêm lượt Codex.'));
+          alert(text);
           const latest = readJson(dayPath, day);
-          writeJson(dayPath, { ...latest, copyBatch: { ...latest.copyBatch, alerted: true } });
-        } catch (error) { log(`copy batch alert failed, retry next run: ${clean(error.message, 200)}`); }
+          writeJson(dayPath, { ...latest, copyAlerts: (latest.copyAlerts ?? []).filter(t => t !== text) });
+        } catch (error) { log(`copy batch alert failed, retry next run: ${clean(error.message, 200)}`); break; }
       }
       // Retro S1 (K26/K31: 02.11 and 03.11 ran about two hours with no area): count runs in a row
       // with no area; the sixth alerts. A top-up still waits for room under WIP 1 + 1 (owner 12.11).
