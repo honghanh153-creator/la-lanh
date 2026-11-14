@@ -13,7 +13,7 @@ Owner quyết trong chat tối 14.11. Codex phản biện cùng tối: cả ba �
     - xếp rủi ro theo file;
     - luật bất đồng mới (dưới đây);
     - soát đêm;
-    - kiểm toán sau merge: merge vào integration mà thiếu verdict tự động đúng head thì báo ops-alert và ghi M2 đúng một lần (L26).
+    - kiểm toán sau merge: merge vào integration mà thiếu verdict tự động đúng head thì báo ops-alert và ghi M2 đúng một lần (L26). Kiểm toán này (`scripts/collab-merge-audit.mjs`) chỉ đối chiếu sự nhất quán giữa verdict, file output Codex và chính sách, không chứng minh Codex đã review độc lập: cùng quyền trên máy, Claude vẫn sửa được output, comment hoặc chính chương trình.
   - Báo cáo 20.11 **không** được coi đây là phép so sánh với cách 2 gốc ở §3. Rủi ro còn nguyên: Claude vẫn đọc được khóa, tự đăng verdict và merge được. Kiểm toán sau merge chỉ phát hiện, không chặn trước.
   - L17 và L24 ghi trạng thái `declined-owner`, kèm lý do và rủi ro còn lại. Hai mục này không tính là đã sửa xong.
 - **Luật bất đồng mới, thay câu "còn khác ý thì làm theo Codex" ở §2 và câu "Codex chốt" ở §3 (L25):**
