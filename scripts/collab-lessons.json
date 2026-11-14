@@ -285,12 +285,12 @@
    "due": "2026-11-17",
    "status": "done",
    "test": {
-    "file": "scripts/collab-disagree.test.mjs",
-    "name": "a dispute after two rounds asks the owner once"
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L25: the tick never runs a disputed PR, and after a timeout the PR needs a new check and review at its head"
    },
    "caller": {
     "file": "scripts/collab-turn.mjs",
-    "contains": "settleDisputes"
+    "contains": "try { settle({ gh, log }); }"
    },
    "closedBy": {
     "pr": 520

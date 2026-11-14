@@ -1210,6 +1210,11 @@ test('L25: the tick never runs a disputed PR, and after a timeout the PR needs a
     assert.deepEqual(done.merge, [], 'the old APPROVE no longer counts after the decision');
     assert.deepEqual(done.check, [7], 'a new author check comes first');
     assert.ok(!mergeGate(open[0]).ok);
+    // Production wiring: runTick passes no settle, so tick() falls back to settleDisputes.
+    const { runTick } = await import('./collab-tick.mjs');
+    assert.equal(runTick(fakeGh({ pr: pr(), open: [] }), () => [], { run: given => given }).settle, undefined, 'runTick leaves settle to the default');
+    const { defaultSettle } = await import('./collab-turn.mjs');
+    assert.equal(defaultSettle, L25.settleDisputes, 'the default is the real settleDisputes');
   } finally {
     rmSync(L25.disputePath, { force: true });
     rmSync(L25.logPath, { force: true });
