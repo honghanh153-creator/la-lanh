@@ -13,7 +13,8 @@
   "nhắn lại phần bạn nhận được và phần cần người kia tự sắp xếp": "not_light",
   "nói giới hạn thời gian mình dành để giúp, chưa nhận thêm phần khác": "not_light",
   "nói rõ bạn cần bao nhiêu thời gian để làm phần được nhờ": "not_light",
-  "nói điều bạn còn chưa hiểu, chưa thêm lý do thay người gửi": "not_light"
+  "nói điều bạn còn chưa hiểu, chưa thêm lý do thay người gửi": "not_light",
+  "viết một điều mình đã học được từ việc vừa làm": "light"
  },
  "rubric": "judge-rubric-v1-2026-11-14"
 }
