@@ -19,6 +19,12 @@ import { hookHealth } from './collab-hooks.mjs';
 import { wrapperHealth } from './collab-ops-wrapper.mjs';
 import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
+import { loadAuditDeps } from './collab-audit.mjs';
+import { runNightAudit } from './collab-audit-night.mjs';
+
+const auditDeps = await loadAuditDeps();
+// The tick's night audit, with the promise register and the disagreement log (L22) wired in.
+export const nightAudit = (gh, opts = {}) => runNightAudit({ gh, issue: () => planIssue(gh), ...auditDeps, ...opts });
 
 // Tools the loop and pnpm check need. A missing one used to surface as a false FAIL receipt
 // (31.10.2026: sha256sum, pnpm); now the tick stops with an error and alerts instead.
@@ -46,6 +52,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
+    audit: () => nightAudit(gh),
     // No recorded list is unmeasured, not "no work picked" (Codex r1 on #497).
     progress: (day, date) => (Array.isArray(day.plannedItems) ? workProgress({ date, planned: day.plannedItems, fetch: ghFetch(gh) }) : { unmeasured: 'chưa có danh sách việc đã chọn' }),
     snapshot: (slot, date) => takeSnapshot({ slot, date, gh }),
