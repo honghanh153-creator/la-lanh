@@ -275,8 +275,18 @@
    "from": "owner 13.11: báo cáo trung thực",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "open",
-   "note": "snapshot helper and tick digest wired; scheduled owner report and retro still to be pointed at collab-snapshot --slot"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-ops-wrapper.test.mjs",
+    "name": "L19: the scheduled reports read the shared slot snapshot through the wrapper"
+   },
+   "caller": {
+    "file": "scripts/ops-run.sh",
+    "contains": "collab-snapshot.mjs\" --slot"
+   },
+   "closedBy": {
+    "pr": 0
+   }
   },
   {
    "id": "L20",
