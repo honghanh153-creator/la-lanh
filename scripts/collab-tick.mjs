@@ -15,6 +15,7 @@ import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 import { pendingCount, readSaved, runCopyBatch, savedPath } from './codex-copy-review.mjs';
 import { hookHealth } from './collab-hooks.mjs';
 import { wrapperHealth } from './collab-ops-wrapper.mjs';
+import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
 
 // Tools the loop and pnpm check need. A missing one used to surface as a false FAIL receipt
@@ -42,7 +43,8 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
     }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
-    metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })) });
+    metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
+    mergeAudit: options => runMergeAudit(options) });
 }
 
 if (isMain(import.meta.url)) {
