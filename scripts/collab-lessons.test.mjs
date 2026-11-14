@@ -1,9 +1,10 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import * as lessons from './collab-lessons.mjs';
 import { ciTestFiles, confirmClosed, lessonsLine, problems, readRegister, renderLessons, summarize, verify } from './collab-lessons.mjs';
 
 const sha = 'c'.repeat(40);
@@ -88,4 +89,27 @@ test('the board line never throws and says when the register is broken', () => {
 
 test('the lessons test itself runs in CI', () => {
   assert.ok(ciTestFiles().has('scripts/collab-lessons.test.mjs'));
+});
+
+// L08 (Codex 14.11): a Playwright spec counts only through the chain CI runs, and only unskipped.
+test('a lesson test may live in a Playwright spec that CI runs', () => {
+  const pkg = JSON.parse(readFileSync(join(lessons.root, 'package.json'), 'utf8'));
+  const files = lessons.ciTestFiles(pkg);
+  assert.ok(files.has('apps/web/tests/e2e/kham-pha-portrait.spec.ts'), 'the real chain: check -> web:e2e -> playwright test -> tests/e2e');
+  assert.ok(files.has('scripts/collab-lessons.test.mjs'));
+  assert.deepEqual(lessons.playwrightCiFiles({ scripts: { ...pkg.scripts, check: 'pnpm collab:test' } }), [], 'not run by pnpm check: not counted');
+  const base = mkdtempSync(join(tmpdir(), 'lessons-pw-'));
+  mkdirSync(join(base, 'apps/web/tests/e2e'), { recursive: true });
+  writeFileSync(join(base, 'apps/web/package.json'), JSON.stringify({ scripts: { e2e: 'playwright test' } }));
+  writeFileSync(join(base, 'apps/web/playwright.config.ts'), 'export default { testDir: "./tests/e2e" };');
+  writeFileSync(join(base, 'apps/web/tests/e2e/a.spec.ts'), 'test("works at 360px", async () => {});\n');
+  assert.deepEqual(lessons.playwrightCiFiles(pkg, { base }), ['apps/web/tests/e2e/a.spec.ts']);
+  writeFileSync(join(base, 'apps/web/playwright.config.ts'), 'export default { testDir: "./tests/e2e", testIgnore: "a.spec.ts" };');
+  assert.deepEqual(lessons.playwrightCiFiles(pkg, { base }), [], 'a config that can drop specs proves nothing');
+  writeFileSync(join(base, 'apps/web/playwright.config.ts'), 'export default { testDir: "./tests/e2e" };');
+  const done = { lessons: [{ id: 'L99', title: 't', who: 'claude', due: '2026-11-20', status: 'done',
+    test: { file: 'apps/web/tests/e2e/a.spec.ts', name: 'works at 360px' }, caller: { file: 'apps/web/playwright.config.ts', contains: 'tests/e2e' }, closedBy: { pr: 1 } }] };
+  assert.deepEqual(lessons.problems(done, { base, ciFiles: lessons.ciTestFiles(pkg, { base }) }), []);
+  writeFileSync(join(base, 'apps/web/tests/e2e/a.spec.ts'), 'test.skip("works at 360px", async () => {});\ntest("works at 360px", async () => {});\n');
+  assert.match(lessons.problems(done, { base, ciFiles: lessons.ciTestFiles(pkg, { base }) })[0], /skips, marks fixme or focuses a test/);
 });
