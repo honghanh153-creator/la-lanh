@@ -415,6 +415,25 @@
    "closedBy": {
     "pr": 516
    }
+  },
+  {
+   "id": "L28",
+   "title": "Soát đêm: báo động cũ được cập nhật vào ngày sau vẫn vào bằng chứng M3 của đúng ngày nó xảy ra (#530)",
+   "from": "Codex review #493 (fix-forward #530, #536)",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-audit-night.test.mjs",
+    "name": "M3: an alert of a past day stays a candidate after it is updated on a later day"
+   },
+   "caller": {
+    "file": "scripts/collab-audit-night.mjs",
+    "contains": "updated:>="
+   },
+   "closedBy": {
+    "pr": 531
+   }
   }
  ]
 }
