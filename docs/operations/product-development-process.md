@@ -69,6 +69,15 @@ Research note (<agent>, <ngày>)
 - Câu hỏi cho owner (chỉ khi Q1–Q5 có "có")
 ```
 
+**Báo cáo nghiên cứu trong `docs/research/` (L09, thỏa thuận 12.11 mục G, từ 14.11.2026).**
+- Mỗi kết luận nằm dưới `## Kết luận` và trỏ tới ít nhất một nguồn đã đọc bằng khóa `[S1]`. Kết luận dạng gạch đầu dòng, dòng bảng hay đoạn văn đều tính.
+- `## Nguồn đã đọc` liệt kê mỗi khóa theo dạng `- S1: <URL https hoặc đường dẫn trong repo> — đọc: <mục, trang, bảng hoặc trích ngắn đã đọc>`.
+- Điều không tìm được nguồn đưa vào `## Bị bác / chưa có nguồn`. Nhiều URL không thay được khóa nguồn.
+- CI (`pr-check`, bước "Research conclusions cite read sources") chạy `node scripts/research-sources.mjs`:
+  - file nghiên cứu mới bị kiểm toàn bộ, kể cả khi ghi ngày cũ;
+  - file cũ chỉ bị kiểm các dòng thêm hoặc sửa.
+- Script chỉ kiểm cấu trúc. Nguồn có thật sự đỡ kết luận hay không là việc của reviewer: Codex đối chiếu ít nhất 2 kết luận với nguồn đã nêu.
+
 ## 2. Quyết định
 
 Chạy Q1–Q5 của `decision-checklist.md`. Tất cả "không" → agent tự quyết, làm và báo lại. Có "có" → hỏi

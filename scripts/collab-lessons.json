@@ -103,7 +103,18 @@
    "from": "thỏa thuận 12.11 mục G",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/research-sources.test.mjs",
+    "name": "a conclusion without a read source is rejected even with many URLs"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "research-sources.mjs"
+   },
+   "closedBy": {
+    "pr": 499
+   }
   },
   {
    "id": "L10",
