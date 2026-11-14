@@ -29,4 +29,4 @@ Các câu cụ thể hay gặp: ba lô chưa có món "áp lực từ sếp"; c�
 
 ## Phần chưa chấm xong
 
-- Hết hạn mức sử dụng lúc 20:25. Phần thử có điều kiện còn thiếu S2-02 và S12-01/02/03, sẽ chấm sau 22:50 rồi cập nhật báo cáo này. Gói, 10 concept riêng lẻ và Codex đã đủ.
+- Hết hạn mức sử dụng lúc 20:25. Phần thử có điều kiện còn thiếu S2-02, S12-02 và S12-03 (S12 mới có 34 cặp), sẽ chấm sau 22:50 rồi cập nhật báo cáo này. Gói, 10 concept riêng lẻ và Codex đã đủ.
