@@ -35,7 +35,9 @@ export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
   return order.slice(0, order.indexOf(pr)).find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;
 }
 
-export function prTurn(pr, { dropped = [], open = [], preflight = {}, disputes = {} } = {}) {
+// L25: the dispute state is read by default, so the review command (codex-review.mjs) routes the
+// same way as the tick and the merge gate (Codex 15.11: a caller without it refused after a decision).
+export function prTurn(pr, { dropped = [], open = [], preflight = {}, disputes = disputeView() } = {}) {
   const head = pr.headRefOid;
   const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
     source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body) });

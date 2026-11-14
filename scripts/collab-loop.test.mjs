@@ -1261,3 +1261,31 @@ test('L25: the tick never runs a disputed PR, and after a timeout the PR needs a
     rmSync(L25.logPath, { force: true });
   }
 });
+
+test('L25: after a timeout and a new PASS at the same head, the review command takes its turn and a newer APPROVE merges', async () => {
+  const L25 = await import('./collab-disagree.mjs');
+  const at = (hour, minute) => Date.UTC(2026, 10, 14, hour - 7, minute);
+  const stamp = (hour, minute) => new Date(at(hour, minute)).toISOString();
+  const state = { pr: pr({ number: 7, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }) };
+  const gh = fakeGh(state);
+  try {
+    const first = L25.openRound({ pr: 7, round: 1, claude: 'giữ', codex: 'bỏ', head: A, nowMs: at(15, 0) });
+    L25.openRound({ id: first.id, round: 2, claude: 'giữ, có số đo', codex: 'bỏ, vì rủi ro', head: A, nowMs: at(15, 0) });
+    L25.escalate({ id: first.id, gh, notify: () => {}, nowMs: at(15, 0) });
+    L25.settleDisputes({ gh, notify: () => {}, nowMs: at(15, 31) });
+    assert.equal(L25.disputes().get(first.id).decided.decidedBy, 'timeout');
+    assert.equal(prTurn(state.pr).turn, 'claude-check', 'the check and APPROVE from before the decision no longer count');
+    state.pr.comments.push({ ...check(A), createdAt: stamp(15, 40) });
+    assert.equal(prTurn(state.pr).turn, 'codex-review', 'every caller of prTurn reads the dispute state by default');
+    const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-14', hour: 15, minute: 45 } });
+    assert.equal(result.status, 'posted', 'the review command accepts the turn the tick asked for');
+    assert.ok(!mergeGate(state.pr).ok, 'no merge until the new APPROVE is newer than the decision');
+    state.pr.comments.at(-1).createdAt = stamp(15, 50);
+    assert.match(state.pr.comments.at(-1).body, new RegExp(`^Review verdict: APPROVE @ ${A}`));
+    assert.deepEqual(mergeGate(state.pr).reasons, []);
+    assert.equal(mergeGate(state.pr).ok, true);
+  } finally {
+    rmSync(L25.disputePath, { force: true });
+    rmSync(L25.logPath, { force: true });
+  }
+});
