@@ -9,6 +9,7 @@ import { clean, makeGh, vnNow } from './collab-trust.mjs';
 import { opsAlert, resolveOpsAlert, tick } from './collab-turn.mjs';
 import { postOwnerNotes, renderBoard, upsertBoard } from './collab-status.mjs';
 import { collectMetrics, renderMetrics } from './collab-metrics.mjs';
+import { ghFetch, workProgress } from './collab-work.mjs';
 import { planIssue } from './collab-plan.mjs';
 import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
@@ -51,6 +52,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
     audit: () => nightAudit(gh),
+    progress: (day, date) => workProgress({ date, planned: day.plannedItems ?? [], fetch: ghFetch(gh) }),
     mergeAudit: options => runMergeAudit(options) });
 }
 
