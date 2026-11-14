@@ -64,7 +64,8 @@ export function lintProblems(pyFiles, { cwd = process.cwd(), spawn = groupSpawn,
   for (const [name, args] of [['ruff', ['ruff', 'check', ...files]], ['ruff format', ['ruff', 'format', '--check', ...files]], ['mypy', ['mypy', ...files]]]) {
     const ms = Math.min(600000, left());
     if (ms <= 0) break;
-    const result = spawn('uv', ['run', '--directory', 'apps/api', ...args], { cwd, encoding: 'utf8', timeout: ms });
+    // --locked: the tool versions of uv.lock, as in CI; a stale lock fails instead of being rewritten (L07).
+    const result = spawn('uv', ['run', '--locked', '--directory', 'apps/api', ...args], { cwd, encoding: 'utf8', timeout: ms });
     if (result.status !== 0) problems.push(`${name} lỗi: ${clean(`${result.stdout ?? ''}${result.stderr ?? ''}`, 300) || `exit ${result.status}`}`);
   }
   return problems;
