@@ -101,7 +101,7 @@ export const idleAlertRuns = 6;
 export const copyBatchAttempts = 3;
 
 export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null } = {}) {
-  // The clock is read again before each action, so a long review cannot push the next one past 23:30.
+  // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
   return withLock(() => {
@@ -186,6 +186,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // it at once instead of waiting 10 minutes for the next run. Checks stay strictly serial here,
       // and the check lock still refuses a second heavy job from anywhere else.
       const checked = [];
+      // L14 (retro 12.11 S25): only the PR at the front of the area queue is merged with
+      // integration before its check. Every waiting PR used to be re-synced whenever integration
+      // moved (22 re-syncs on 12.11, #441 five times, 7 PRs never checked). The front is read after
+      // this tick's merges (Codex 14.11), so a PR merged a moment ago never holds the place. A PR
+      // that cannot merge cleanly goes to claude-fix: conflicts are Claude's to resolve.
+      const mergedNow = new Set(done.filter(d => d.merge?.status === 'merged').map(d => d.pr));
+      const front = work.find(t => t.turn !== 'merge' && !mergedNow.has(t.number))?.number ?? null;
       const startedMs = nowMs();
       let checks = 0;
       for (const t of work.filter(t => t.turn === 'claude-check')) {
@@ -194,13 +201,14 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         if (pre?.status === 'FAIL') { recordPreflight(t.number, t.head, { ...pre, bodyHash: pre.bodyHash ?? t.bodyHash }); done.push({ pr: t.number, preflight: pre }); continue; }
         if (checks > 0 && !heavyFree()) break;
         show({ status: 'running', doing: `author check #${t.number} (thường 10–35 phút)`, expectMinutes: 90, area, turns, done });
-        const result = check(t.number, { auto: true, clock: time });
+        const result = check(t.number, { auto: true, clock: time, sync: t.number === front });
         checks += 1;
         done.push({ pr: t.number, check: result });
         if (result?.status === 'preflight') { recordPreflight(t.number, t.head, { status: 'FAIL', reasons: result.reasons ?? [], bodyHash: result.bodyHash ?? t.bodyHash }); checks -= 1; continue; }
         if (result?.status === 'PASS') checked.push(t);
         // ci-pending: this head's CI is still running; the next PR may already have its result.
-        if (!['PASS', 'FAIL', 'ci-pending'].includes(result?.status)) break;
+        // synced: the front got a new head (CI runs on it); the PRs behind it still read their CI.
+        if (!['PASS', 'FAIL', 'ci-pending', 'synced'].includes(result?.status)) break;
       }
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);
@@ -212,7 +220,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         if (['limit', 'busy'].includes(result?.status)) break;
       }
       // Owner 06.11.2026: Codex approves one batch of non-sensitive copy a day. The tick runs it at
-      // most once a day, from the 10:00 auto-start, only while copy outside the owner-only groups is
+      // most once a day, from the auto-start (autoStartAt), only while copy outside the owner-only groups is
       // pending, inside the daily Codex cap, and never next to an open batch PR on the same file.
       // A busy review lock starts nothing and is retried on the next run.
       if (copyBatch && !late() && (t => t.hour * 60 + t.minute)(time()) >= autoStartAt) {
@@ -275,7 +283,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: leftTurns.filter(t => t.turn === 'claude-fix'),
         // Plan top-up (owner 31.10.2026), WIP 1 + 1 since 12.11: Claude opens the next backlog task
-        // only when nothing is in progress and review has room, and never after 23:30.
+        // only when nothing is in progress and review has room, and never from lastStartAt on.
         topUp: buffer.topUp && !late(),
         topUpCount: late() ? 0 : buffer.topUpCount, buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
         idleRuns,
