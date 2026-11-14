@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join } from 'node:path';
 import { clean, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
+import { applyPolicy, validateOutput } from './collab-review-policy.mjs';
 
 export const experimentDir = join(stateDir, 'experiment');
 const reason = error => clean(String(error?.message ?? error).split('\n')[0], 160);
@@ -32,6 +33,10 @@ export function receipt(pr, outputs) {
   if (!digest) return { ok: false, why: 'verdict không có mã băm output' };
   const match = outputs.find(o => o.pr === pr.number && o.head12 === pr.headRefOid.slice(0, 12) && o.digest === digest);
   if (!match) return { ok: false, why: 'không có file output Codex khớp mã băm' };
+  // Codex r1 on #486: a forged APPROVE can copy the digest of a real REQUEST_CHANGES output. The
+  // output itself must be a valid review of this exact head that gives APPROVE under the policy.
+  try { validateOutput(match.out, pr.headRefOid); } catch { return { ok: false, why: 'file output Codex không hợp lệ hoặc không phải của head này' }; }
+  if (applyPolicy(match.out).verdict !== 'APPROVE') return { ok: false, why: 'file output Codex không cho APPROVE (yêu cầu sửa, review chưa đủ hoặc có lỗi chặn)' };
   return { ok: true };
 }
 
@@ -40,7 +45,12 @@ export function readOutputs(dir = join(stateDir, 'logs')) {
   if (!existsSync(dir)) return [];
   const pattern = /^codex-\d{4}-\d{2}-\d{2}-pr(\d+)-([0-9a-f]{12})-\d+\.json$/;
   return readdirSync(dir).map(name => ({ name, m: pattern.exec(name) })).filter(x => x.m)
-    .map(({ name, m }) => ({ pr: Number(m[1]), head12: m[2], digest: createHash('sha256').update(readFileSync(join(dir, name))).digest('hex') }));
+    .map(({ name, m }) => {
+      const raw = readFileSync(join(dir, name));
+      let out = null;
+      try { out = JSON.parse(String(raw)); } catch { out = null; }
+      return { pr: Number(m[1]), head12: m[2], digest: createHash('sha256').update(raw).digest('hex'), out };
+    });
 }
 
 export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = () => readOutputs(), day = d => readJson(dayStatePath(d), null),
@@ -76,8 +86,11 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
       : unmeasured(`không đọc được PR đã merge: ${facts.mergedError}`);
   } catch (error) { M.M3 = unmeasured(`không đọc được ops-alert: ${reason(error)}`); }
 
-  // M4: promises (scripts/collab-lessons.mjs when present).
-  try {
+  // M4: promises (scripts/collab-lessons.mjs when present). The register only has its current
+  // state, so a day that has ended cannot be rebuilt from it (Codex r1 on #486): an audit after the
+  // day leaves M4 unmeasured, and saveFacts keeps the value measured during the day itself.
+  if (final) M.M4 = unmeasured('ngày đã qua: sổ lời hứa chỉ có trạng thái hiện tại, không dựng lại được ngày cũ');
+  else try {
     const s = lessons ? lessons() : null;
     M.M4 = s ? { value: { done: s.done, open: s.open, overdue: s.overdue, owner: s.owner, unconfirmed: s.unconfirmed } } : unmeasured('chưa có sổ lời hứa ở bản này');
   } catch (error) { M.M4 = unmeasured(`không đọc được sổ lời hứa: ${reason(error)}`); }
@@ -126,6 +139,12 @@ export function saveFacts(facts, dir = experimentDir) {
   const path = join(dir, `${facts.date}.json`);
   const old = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
   if (old?.final && !facts.final) return { path, kept: true };
+  // M4 measured on the day itself is kept when a later run cannot measure it.
+  const sameDay = old?.collectedAt && vnNow(new Date(old.collectedAt)).date === facts.date;
+  if (facts.metrics?.M4?.value == null && old?.metrics?.M4?.value != null && sameDay) {
+    const at = vnNow(new Date(old.collectedAt));
+    facts.metrics.M4 = { ...old.metrics.M4, measuredAt: `${String(at.hour).padStart(2, '0')}:${String(at.minute).padStart(2, '0')} ${facts.date}` };
+  }
   writeFileSync(path, `${JSON.stringify(facts, null, 1)}\n`);
   return { path, kept: false };
 }
