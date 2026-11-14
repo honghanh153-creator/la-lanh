@@ -79,3 +79,21 @@ test("changed files map to features; shared web files select every feature", () 
   const docsOnly = featuresForChangedFiles(map, ["docs/user-stories/US-03-doc-note-hom-nay.md", "apps/web/src/features/home/HomePage.test.tsx"]);
   assert.deepEqual(docsOnly, { ids: [], all: false, shared: [] });
 });
+
+// L04: acceptance checks name an AC of the feature, say what they prove, and their selectors are checked.
+test("acceptance checks are tied to the feature's AC and say what they prove", () => {
+  const withChecks = (ac_checks, ac = ["US-02 AC01"]) => feature({ ac, states: { default: { ...feature().states.default, ac_checks } } });
+  const ok = checkMap({ features: [withChecks([{ ac: "US-02 AC01", part: "nút khớp hiện", expect: { role: "button", name: "Khớp tín hiệu" } }, { ac: "US-02 AC01", part: "phần còn lại", manual: "kiểm tay" }])] }, { routes: ["/birth"], appSource, fixtureSource });
+  assert.deepEqual(ok, []);
+  const bad = checkMap({ features: [withChecks([
+    { ac: "US-09 AC01", part: "x", expect: { role: "button", name: "Khớp tín hiệu" } },
+    { ac: "US-02 AC01", part: "", expect: { role: "button", name: "Không có trong mã" } },
+    { ac: "US-02 AC01", part: "y" },
+    { ac: "US-02 AC01", part: "z", text: "chữ", count: { selector: { role: "link" }, max: 6 } },
+  ])] }, { routes: ["/birth"], appSource, fixtureSource });
+  assert.ok(bad.some((p) => p.includes('"US-09 AC01" is not in the feature\'s "ac" list')));
+  assert.ok(bad.some((p) => p.includes('says no "part"')));
+  assert.ok(bad.some((p) => p.includes("Không có trong mã")), "an AC selector name is checked against the source");
+  assert.ok(bad.some((p) => p.includes('needs "expect", "count" or a "manual" note')));
+  assert.ok(bad.some((p) => p.includes('"text" needs an "expect" selector')));
+});

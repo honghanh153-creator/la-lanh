@@ -87,6 +87,11 @@ export function judge(record) {
     else failures.push(`${finding.kind} text: "${finding.text}" (${finding.detail})`);
   }
   if (record.layout?.horizontalOverflow > 0) failures.push(`page scrolls sideways by ${record.layout.horizontalOverflow}px`);
+  // L04: a configured acceptance check whose content is missing fails the run, even when the
+  // state was reached and every other check is green.
+  for (const entry of record.ac ?? []) {
+    if (entry.result === "not-met") failures.push(`AC ${entry.ac} chưa đạt: ${entry.part} (${entry.check}${entry.detail ? `: ${entry.detail}` : ""})`);
+  }
   for (const call of record.unmocked ?? []) warnings.push(`no fake answer for ${call} (got 503)`);
   for (const call of record.external_requests ?? []) warnings.push(`request to another host: ${call}`);
   return { status: failures.length ? "fail" : "pass", failures, warnings };
@@ -132,6 +137,29 @@ export function buildReport(map, featureIds, records, meta) {
     totals: { features: features.length, passed: features.length - failed, failed, runs: features.reduce((sum, feature) => sum + feature.runs.length, 0) },
     features,
   };
+}
+
+// L04: one line per acceptance criterion of the run, with the commit it was judged on. "đạt phần
+// tự động" means only the parts named were seen on screen; the manual notes say what is left.
+export function acReport(map, featureIds, records, meta) {
+  const rows = [];
+  for (const id of featureIds) {
+    const feature = map.features.find((entry) => entry.id === id);
+    const runs = records.filter((record) => record.feature === id);
+    for (const ac of feature.ac ?? []) {
+      const entries = runs.flatMap((record) => (record.ac ?? []).filter((entry) => entry.ac === ac)
+        .map((entry) => ({ ...entry, state: record.state, width: record.width, screenshot: record.screenshot })));
+      const automated = entries.filter((entry) => entry.result !== "manual");
+      const result = !entries.length ? "không tự động (chưa có kiểm)"
+        : automated.some((entry) => entry.result !== "met") ? "chưa đạt"
+        : automated.length ? "đạt phần tự động" : "không tự động";
+      rows.push({ ac, feature: id, result, commit: meta.commit,
+        parts: [...new Set(entries.map((entry) => entry.part))],
+        manual: [...new Set(entries.map((entry) => entry.manual).filter(Boolean))],
+        runs: entries.map(({ state, width, result: r, check, detail, screenshot }) => ({ state, width, result: r, check, ...(detail ? { detail } : {}), screenshot })) });
+    }
+  }
+  return { generated_at: meta.generatedAt, commit: meta.commit, acs: rows };
 }
 
 export function renderMarkdown(report) {
@@ -280,6 +308,7 @@ function main(argv) {
   }
   writeFileSync(join(outDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
   writeFileSync(join(outDir, "summary.md"), renderMarkdown(report));
+  writeFileSync(join(outDir, "verify-ac.json"), `${JSON.stringify(acReport(map, featureIds, records, { generatedAt: report.generated_at, commit }), null, 2)}\n`);
   console.log(`verify: ${report.status.toUpperCase()} — ${report.totals.passed}/${report.totals.features} features pass`);
   for (const feature of report.features.filter((entry) => entry.status === "fail")) {
     console.log(`  ✗ ${feature.id}: ${feature.reasons[0]}${feature.reasons.length > 1 ? ` (+${feature.reasons.length - 1} more)` : ""}`);

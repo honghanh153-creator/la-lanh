@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { runAcChecks, type AcCheck } from "./ac-check";
 import { mockApi, type FixtureName } from "./fixtures";
 import { layoutCheck, type LayoutFinding } from "./layout-check";
 
@@ -14,7 +15,7 @@ import { layoutCheck, type LayoutFinding } from "./layout-check";
 
 type Selector = { role: string; name?: string; exact?: boolean; within?: Selector; source?: string };
 type Step = { goto?: string; click?: Selector; fill?: Selector; value?: string; check?: Selector; press?: string; expect?: Selector };
-type StateSpec = { fixture: FixtureName; walk: Step[]; ready: Selector; manual?: string };
+type StateSpec = { fixture: FixtureName; walk: Step[]; ready: Selector; manual?: string; ac_checks?: AcCheck[] };
 type Feature = { id: string; title: string; states: Record<string, StateSpec | { manual: string }> };
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -95,6 +96,9 @@ for (const feature of features) {
       }
       await page.evaluate(() => document.fonts.ready).catch(() => undefined);
       await page.waitForLoadState("networkidle", { timeout: 3_000 }).catch(() => undefined);
+      // L04: acceptance criteria judged on this page, this state and this width.
+      const ac = ready ? await runAcChecks(page, spec.ac_checks ?? [])
+        : (spec.ac_checks ?? []).map((c) => ({ ac: c.ac, part: c.part, check: "state not reached", result: "not-run" as const }));
 
       let layout: { findings: LayoutFinding[]; horizontalOverflow: number } = { findings: [], horizontalOverflow: 0 };
       let axe: Array<{ id: string; impact: string | null; help: string; nodes: number; targets: string[] }> = [];
@@ -144,6 +148,7 @@ for (const feature of features) {
         external_requests: Array.from(new Set(externalRequests)),
         axe,
         layout,
+        ac,
         duration_ms: Date.now() - started,
       };
       writeFileSync(resolve(outDir, "raw", `${base}.json`), `${JSON.stringify(record, null, 2)}\n`);
