@@ -6,12 +6,12 @@
 import { spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { agentMarker, boundedTimeout, clean, integration, isOwnPr, isSha, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { preflightFailure, readPreflight, recordPreflight, runPreflight } from './collab-preflight.mjs';
 import { runGroup, syncWithIntegration } from './collab-heal.mjs';
 import { checkSteps, failDetails, guardWaitMs, openCheckLog, waitForGuard } from './collab-check-log.mjs';
+import { isMain } from './is-main.mjs';
 
 // A heavy test process anywhere on the machine, matched on the program actually running.
 // `pgrep -f` matched any command line that merely mentioned these words, including the agent
@@ -351,7 +351,7 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
   });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   // `--busy`: the one shared answer to "is a heavy check running?" for agents and schedules.
   if (args.includes('--busy')) {
