@@ -41,7 +41,7 @@ Những chỗ chậm thật, không rút được:
 
 **Rủi ro của lịch ngắn:**
 
-- **Thời gian duyệt chữ của chị là chỗ hẹp nhất.** Có khoảng 29 bài học cùng truyện và lời mở phải duyệt, trong khi chị có khoảng 1 giờ mỗi 2–3 ngày. Tuần 1 sẽ đo xem một giờ chị duyệt được mấy bài, rồi chốt số bài của hai khóa cuối.
+- **Duyệt chữ.** Có khoảng 29 bài học cùng truyện và lời mở. Chị đã chốt: chị duyệt bài đầu của mỗi khóa (4 bài, gồm cả nhóm bài khớp ba lô) và danh sách lằn ranh đỏ; Codex duyệt các bài sau. Phần của chị vì vậy vừa với khoảng 1 giờ mỗi 2–3 ngày. Rủi ro còn lại: Codex trả bài nhiều vòng.
 - Tuần 5 và tuần 6 dồn nhiều việc. Chữ bị trả lại nhiều thì hai tuần này trễ.
 - Mốc tuần 4 không đạt thì tuần 5–6 chỉ sửa nền, cả lịch lùi lại.
 - Hết hạn mức chấm, hoặc không tìm được 2 nhóm bạn thử Lá Dám, thì chỉ phần liên quan bị chặn.
@@ -178,7 +178,7 @@ Các mục này cần chị duyệt:
 6. **Phạm vi "lá số không cần giờ sinh".**
 7. **Câu hỗ trợ khi khủng hoảng** và nguồn của từng bài học.
 8. **Kiểm nhật ký, đường mạng và ảnh chia sẻ** không chứa dữ liệu riêng.
-9. **Ai duyệt chữ bài học:** chị duyệt từng bài (như hiện nay), hay chị duyệt bài đầu của mỗi khóa cùng danh sách lằn ranh đỏ, còn Codex duyệt các bài sau. Cách sau giúp lịch 7 tuần chắc hơn.
+9. **Ai duyệt chữ bài học: đã chốt 14.11.** Chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ. Codex duyệt các bài sau theo đúng danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng vẫn do chị duyệt.
 
 ## Đã hoãn hoặc chưa có trong kế hoạch
 
