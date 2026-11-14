@@ -40,7 +40,7 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 - Sửa ngay 5 điểm rút ra từ lượt chấm (mục 4). Các sửa này chưa được chấm lại.
 - Không sửa chữ thêm để đuổi điểm.
 
-**Phần thêm tối 14.11** (Lá pixel nhây thay "Vibe", màn Học, lời khuyên tán crush, thử thách mời hẹn thử) chưa được chấm. Mốc cho phần này đã ghi riêng từ trước, sẽ chấm ở lượt sau.
+**Phần thêm tối 14.11:** Lá pixel nhây và "Học theo bạn" đã vào gói (bản mock 7). Codex chấm thử trên 20 người giả: thấy được hiểu 3,70; bớt một mình 3,65; ai cũng để ý tới Lá; bài học tốt nhưng ít người gặp, đã sửa lối vào. Lượt chấm lớn chạy sau 22:50. Chi tiết ở cuối mục 3. "Mời hẹn thử" đã hoãn theo ý chị.
 
 ## 2. Đã làm gì
 
@@ -48,11 +48,11 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 |---|---|
 | Claude và Codex brainstorm riêng, không xem của nhau | Claude 46 ý, Codex 40 ý. Trùng khoảng một phần ba; Codex mạnh ở "gọi tên gánh nặng", Claude mạnh ở trò chơi và vật chia sẻ |
 | Tra bằng chứng trên web | Font pixel có tiếng Việt, quy tắc dễ đọc WCAG, kích thước thư viện hoạt hình, nghiên cứu về lan truyền và cô đơn, luật dữ liệu, lịch Việt Nam (mục 9) |
-| Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 111 góp ý có mã qua 6 vòng (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
+| Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 117 góp ý có mã qua 6 vòng phản biện và 3 lần chấm thử (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
 | Rút gọn, viết mock 4–8 màn mỗi ý, vẽ bản mẫu pixel; chấm thử hai lần bằng Codex trên 20 người giả rồi sửa (bản 3 → bản 6) | 13 ý: 10 ý vào "gói", 3 ý thử có điều kiện |
 | Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện mới chấm một phần (56, 90 và 34 cặp) vì hết hạn mức; phiên chấm sẽ chấm nốt và cập nhật |
 
-Lượt Codex dùng cho việc này: 9 trên 15 lượt được giao (brainstorm 1, phản biện 6 vòng, chấm thử 2 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
+Lượt Codex dùng cho việc này: 10 trên 15 lượt được giao (brainstorm 1, phản biện 6 vòng, chấm thử 3 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
 
 ## 3. Trả lời 5 câu hỏi của chị
 
@@ -266,6 +266,29 @@ Bản mẫu xem được ngay (chỉ chị mở được): https://claude.ai/art
   - rà quy định của Apple và Google Play về tính năng hẹn hò và nội dung người dùng gửi nhau.
 - Thiết kế đầy đủ ở Phụ lục D. Màn mẫu ở cuối trang mẫu Lá nhây.
 
+**Chốt đêm 14.11 và bản mock 7.** Chị chốt: đưa Lá nhây và Học (dựa trên thông tin của chính người dùng) vào gói, chấm nốt; Lá pixel vẽ theo đúng hình Lá hiện có trong app; hoãn "Mời hẹn thử".
+- **Bản mock 7** = gói cũ + Lá nhây + "Học theo bạn" + 5 điểm sửa từ lượt chấm 1000.
+- **Học theo bạn dùng ba thông tin của chính người dùng:**
+  - chuyện vừa chọn trong ba lô (đang lo tìm việc thì ra bài "Phỏng vấn đỡ run");
+  - lá số của họ, để chọn sẵn một kiểu luyện, có ghi rõ đã dùng gì và đổi được;
+  - mood hôm đó, để chọn việc thử nặng hay nhẹ.
+- **Codex chấm thử trên cùng 20 người giả như hai lần trước** (20 người là mẫu nhỏ, chỉ là tín hiệu):
+
+| | Bản 4 (chưa có Lá nhây, Học) | Bản 7 |
+|---|---|---|
+| Thấy được hiểu | 3,60 | 3,70 |
+| Bớt một mình | 3,50 | 3,65 |
+| Bình yên | 3,95 | 3,85 |
+| Muốn quay lại | 3,25 | 3,45 |
+| Tuần sau quay lại | 2,80 | 3,25 |
+| Gửi hoặc rủ | 2/20 | 3/20 |
+
+- **Lá nhây:** cả 20 người đều để ý tới Lá, chấm Lá 4,1 trên 5; 2 người chọn Lá là phần thích nhất. Một người thấy bị sai khiến vì câu "Thôi đọc note đi." Mình đã bỏ câu đó và thêm luật: câu của Lá không ra lệnh.
+- **Học:** chỉ 1 trên 20 người mở bài học. Người đó chấm 5 và chọn Học là phần thích nhất. Hai người khác thoát trước khi thấy dòng dẫn tới bài. Tức là bài học tốt nhưng khó gặp.
+- **Sửa thành bản 7.1 trước lượt chấm lớn:** thêm lối vào bài học ngay từ câu của Lá ở Trang chủ ("Hôm nay Lá diễn một chiêu 3 phút"), không thêm khối mới; đưa dòng [Xem bài] trong ba lô lên cao hơn; thêm món "Chăm người nhà" cho người lớn tuổi.
+- **Điểm nhấn mình đề xuất: "Lá diễn".** Lá pixel nhây là thứ ai cũng thấy ngay ở màn đầu, và chính Lá dẫn vào bài học 3 phút khớp với chuyện của người dùng. Lá là thứ dễ chụp và dễ gửi; bài học là thứ làm người dùng thấy được giúp đúng chuyện của mình.
+- **Chấm lớn bản 7.1:** phiên chấm sẽ chạy sau 22:50 trên 300 người giả (gói), và từng phần riêng trên khoảng 91 cặp. Mốc đạt giữ nguyên. Nếu tài khoản chạm giới hạn chi tiêu theo tháng thì lượt này chưa chạy được.
+
 ## 4. 13 ý đã rút gọn và điểm chấm
 
 **Chín điều kiện đã ghi trước, và kết quả:**
@@ -350,15 +373,15 @@ Mô tả từng ý (mock đầy đủ 4–8 màn ở Phụ lục A):
 | 2 | Kho việc theo sức; mood đổi việc; nội dung sinh viên (có góc Tiền bạc nếu chị duyệt) | **Giữ.** Mỗi việc gắn vào 1 trong 6 nhóm hình. Chốt cách chia chuyện tiền (thiếu học phí, cuối tháng cạn, gửi tiền về nhà, bị rủ đi chơi) trước khi viết câu |
 | 3 | Xoay chủ đề; "vì sao hôm nay có note này"; nội dung người đi làm | Xoay chủ đề theo **chương tuần**, tuần theo lịch chung, có kiểm tự động mọi cặp tuần–ngày. "Vì sao có note này" thành **lá số không cần giờ sinh**. Việc này lớn hơn đổi một câu: phải tính trong cả khoảng giờ có thể sinh và kiểm lý do khớp bài. Nội dung người đi làm giữ |
 | 4 | Ba lối Nghỉ / Gỡ / Tarot trên Trang chủ | **Trang chủ gọn + Gánh hôm nay + mở lá chọn góc.** Ưu tiên Gánh hôm nay và đường nghỉ 1 chạm; hiệu ứng lật lá bỏ nếu vượt giờ. Đo đủ mốc tuần 4 |
-| 5 | 4 chuyện minh họa | **Một truyện ngắn 3 khung** (có lựa chọn, có bản sinh viên và người đi làm), **lời mở có lối lui**, **bộ sticker nhỏ**. Thay phần thử "2 nhóm hình pixel" bằng **mẫu Lá pixel 4 động tác làm thật**: đo giờ làm, dung lượng, trợ năng trên máy thật |
-| 6 | 4 chuyện vui chọn kết thúc | **Mục Chơi:** 1 chuyện vui về tiền + **Phụ đề khác nhau**. Lá Dám chơi thử bằng thẻ giấy với 2 nhóm bạn |
-| 7 *(thêm)* | — | **Lá nhây thay "Vibe".** Bỏ nút giọng và bỏ hẳn nội dung Cà khịa (chị chốt 14.11), sửa US-20 AC19 và luật nội dung; luật chọn dáng; nút "Lá yên chút"; đổi nhãn "Vibe"; 12 động tác (chỉ khi mẫu tuần 5 đạt) |
-| 8 *(thêm)* | — | **Màn Học trong Khám phá, Khóa 1 "Tán crush kiểu tử tế" trọn 7 bài**, có "Bạn đang ở đoạn nào?" và dòng dẫn từ kết quả Check kín sang bài chung. Mở rộng bộ kiểm để chặn thêm các kiểu câu thao túng. Gồm nguồn từng bài, bài kiểm lằn ranh đỏ (hiểu theo nghĩa, vẫn cho câu dạy "đừng theo dõi"), thẻ "Bạn đáp câu nào?", bản đồ dữ liệu, kiểm đường mạng. Chị duyệt chữ từng bài |
-| 9 *(thêm)* | — | **Khóa 2 "Tự tin hơn", Khóa 3 "Kết bạn ở chỗ mới", 22 động tác còn lại, 24 sticker.** Chấm lại bằng người giả. Người giả chỉ giúp tìm lỗi kịch bản, không chứng minh được độ vui, hiệu quả học hay lan truyền |
-| 10 *(dự kiến, chưa cam kết)* | — | **Thử thách "Mời hẹn thử", bản đầu:** câu mời mẫu, gói hẹn thử chung, chặn và báo cáo, kiểm tuổi, bảo vệ link. Việc lớn; chỉ làm sau khi Khóa 1 xong và chị đã quyết các mục 17 |
+| 5 | 4 chuyện minh họa | **Lá pixel nhây thay "Vibe"** (điểm nhấn, đưa lên sớm theo ý chị): Lá vẽ theo đúng hình Lá hiện có; làm thật 4 động tác trước để đo giờ làm và dung lượng, rồi làm tiếp tới 12 động tác; luật chọn dáng; nút "Lá yên chút"; bỏ nút giọng và nội dung Cà khịa (sửa US-20 AC19, luật nội dung); đổi nhãn "Vibe" |
+| 6 | 4 chuyện vui chọn kết thúc | **Học theo bạn, bản đầu:** 8 bài khớp với các món hay gặp trong ba lô; lối vào "Lá diễn hôm nay" và dòng [Xem bài] trong ba lô; kiểu luyện chọn sẵn theo lá số của chính người dùng (đổi được); thẻ "Bạn đáp câu nào?"; bản đồ dữ liệu và kiểm đường mạng. Chị duyệt chữ từng bài |
+| 7 *(thêm)* | — | **Phần dời từ tuần 5:** một truyện ngắn 3 khung (4 bản nhân vật), lời mở có lối lui, bộ sticker (hiện ở 3 chỗ) |
+| 8 *(thêm)* | — | **Khóa "Tán crush kiểu tử tế" trọn 7 bài** (có "Bạn đang ở đoạn nào?", dòng dẫn từ kết quả Check kín sang khóa chung, mở rộng bộ kiểm chặn câu thao túng). **Phần dời từ tuần 6:** mục Chơi với 1 chuyện vui về tiền và "Phụ đề khác nhau"; Lá Dám thử bằng thẻ giấy |
+| 9 *(thêm)* | — | **Khóa "Tự tin hơn", khóa "Kết bạn ở chỗ mới", 22 động tác còn lại.** Chấm lại bằng người giả. Người giả chỉ giúp tìm lỗi kịch bản, không chứng minh được độ vui, hiệu quả học hay lan truyền |
+| Hoãn (chị chốt đêm 14.11) | — | **Thử thách "Mời hẹn thử".** Thiết kế giữ ở Phụ lục D để dùng khi chị muốn làm |
 | Đợt sau | — | "Mời hẹn thử" bản sau (gợi ý theo lá số hai người khi cả hai đồng ý, câu mời tự do, hẹn lần nữa); Lá Dám trong app (nếu thẻ giấy đạt); ô viết "Kể ra rồi thả" (khi bộ nhận diện trên máy được kiểm riêng); nhớ trên máy và ghim chuyện đang lo (khi chị duyệt cách lưu); thẻ tuần có số thật; phòng chơi từ xa; theme pixel tự bật; các khóa Học 4–8; lưu tiến độ Học theo tài khoản (nếu chị duyệt) |
 
-Tuần 7–9 nằm sau 6 tuần vì Codex chỉ ra tuần 3–5 đã quá tải. Đây không phải cắt việc: chị có thể đổi thứ tự, ví dụ đưa Khóa 1 lên trước trò chơi ở tuần 6. Điều kiện đi tiếp vẫn như cũ: nền tuần 4 phải đạt, và đủ điều hướng, nguồn, quyền riêng tư, nội dung an toàn.
+Thứ tự này đã đổi theo ý chị đêm 14.11: Lá nhây và Học vào gói và lên tuần 5–6 làm điểm nhấn; truyện ngắn, sticker và mục Chơi dời sang tuần 7–8. Không cắt việc nào. Lý do dời: trên 1000 người giả, truyện ngắn và hai trò chơi là các phần ít người dùng nhất (33, 26 và 4 trên 1000). Tuần 3–4 giữ nguyên vì Codex đã chỉ ra hai tuần này đầy việc. Điều kiện đi tiếp vẫn như cũ: nền tuần 4 phải đạt, và đủ điều hướng, nguồn, quyền riêng tư, nội dung an toàn.
 
 **Dừng theo từng tuần:** dừng phần liên quan khi có lỗi nặng, có ca lộ dữ liệu, lời giải thích sai với bằng chứng, hoặc vượt trần giờ của tuần đó.
 
@@ -390,13 +413,13 @@ Tuần 7–9 nằm sau 6 tuần vì Codex chỉ ra tuần 3–5 đã quá tải.
 12. **Màn Học:**
     - Đặt trong Khám phá, thanh dưới giữ nguyên.
     - Khóa 1 là Tán crush kiểu tử tế, chỉ cho 18+.
-    - Dùng lá số để gợi ý trong Học là mục đích mới, cần chị duyệt câu đồng ý và chính sách quyền riêng tư.
+    - Chị đã chốt Học dựa trên thông tin của chính người dùng (chuyện trong ba lô, lá số, mood). Đây là mục đích dùng dữ liệu mới, nên còn cần chị duyệt câu đồng ý và chính sách quyền riêng tư trước khi bật.
 13. **Tiến độ Học:** không lưu trong đợt này (đề xuất). Sau này nếu cần nhớ thì lưu theo tài khoản và có nút xóa.
-14. **Tuần 7–9 và thứ tự:** giữ sau 6 tuần, hay đưa Học lên trước. Ai vẽ lại 12 động tác chính: Claude làm bằng code, hay thuê họa sĩ sửa tay.
+14. **Thứ tự và người vẽ:** chị đã chốt đưa Lá nhây và Học vào gói; thứ tự mới ở mục 5 (Lá nhây tuần 5, Học tuần 6). Còn cần chị quyết: ai làm 12 động tác chính, Claude làm bằng code hay thuê họa sĩ sửa tay; và có giữ hai tay nhỏ của Lá pixel không.
 15. **Lời khuyên tán crush dựa trên Check kín.** Đề xuất: tầng 1 và 2 làm ở tuần 8; tầng 3 (lời mời có đồng ý, cả hai cùng thấy) làm sau. Nếu chị vẫn muốn lời khuyên riêng từ Check kín thì phải xin đồng ý trực tiếp từ người kia, và việc này thành rủi ro khi đưa app lên kho.
 16. **Cập nhật tài liệu cho khớp thực tế:** US-22 AC10 còn yêu cầu Cà khịa; US-12 AC08 còn ghi 30 ngày.
 
-17. **Thử thách "Mời hẹn thử":**
+17. **Thử thách "Mời hẹn thử": chị đã chốt đêm 14.11 là chưa làm.** Các mục dưới đây để dành cho lúc làm:
     - Có làm bản đầu không.
     - Người gửi phải có tài khoản đã liên kết.
     - Cách kiểm tuổi người nhận.
@@ -811,6 +834,17 @@ Không thu thêm gì; chỉ đổi cách tính và câu chữ.
 | R6-12 | P1 | Luật 91/2025: đồng ý sau không hợp thức hóa lần check trước; cần đánh giá tác động, sửa trang đồng ý | Nhận. Không dùng lần Check kín; sửa trang đồng ý và chính sách là việc bắt buộc |
 | R6-K | — | Bản đầu: mẫu cố định, gói chung; hoãn câu tự do, lá số, phản hồi sau hẹn, hẹn lần nữa; mức L, sau tuần 8, thay tầng 3 | Nhận. Các phần hoãn vẫn ghi trong kế hoạch "bản sau", chị quyết thứ tự |
 
+### Chấm thử 3 (Codex, cùng 20 người giả, mock bản 7: thêm Lá nhây và Học theo bạn)
+
+| Mã | Lời chê hoặc điều thấy | Xử lý |
+|---|---|---|
+| T3-1 | Câu "Thôi đọc note đi." làm 1 người thấy bị sai khiến | Nhận. Bỏ; thêm luật câu của Lá không ra lệnh |
+| T3-2 | Học chỉ 1/20 người mở (người đó chấm 5): dòng [Xem bài] nằm quá sâu, hai người thoát trước khi tới | Nhận. Thêm lối "Lá diễn hôm nay" từ câu của Lá; đưa dòng [Xem bài] lên ngay dưới câu công nhận |
+| T3-3 | Người lớn tuổi không thấy chuyện của mình trong ba lô (chăm người nhà) | Nhận. Thêm món "Chăm người nhà" |
+| T3-4 | Phải chọn lại chuyện tìm việc, lịch ca mỗi lần; app chưa thành chỗ ghi hằng ngày | Ghi nhận, chưa sửa: cần chị quyết về lưu dữ liệu (ghim chuyện đang lo) |
+| T3-5 | Màn đầu vẫn nhiều thứ với người rất mệt; phần chọn trong ba lô chiếm nhiều thời gian | Ghi nhận. Trang chủ giữ 3 khối; không thêm bước vào ba lô |
+| T3-6 | Người dùng chung máy vẫn ngại tên món hiện lúc đang chọn | Ghi nhận, chưa có cách sửa tốt hơn Che nhanh; nêu trong báo cáo |
+
 ## Phụ lục C. Thiết kế Lá nhây và màn Học (bản 2, sau phản biện vòng 4)
 
 Yêu cầu của chị:
@@ -1199,3 +1233,48 @@ Chị hỏi: có Check kín, rồi có thử thách mời hẹn thử, và khi n
 - Có cho mời lại cùng một người sau khi lời mời đóng không. Đề xuất: không, trong 30 ngày.
 - Ai xử lý báo cáo, trong bao lâu.
 
+## Phụ lục E. Phần thêm của bản mock 7.1 (Lá nhây và Học theo bạn)
+
+Bản mock 7.1 đầy đủ nằm ở thư mục ghi chú chung của các phiên (`viral-concepts-mocks-v7.md`). Dưới đây là hai phần mới so với Phụ lục A.
+
+### LN. Lá nhây (Lá pixel thay nút chọn giọng)
+
+Không còn nút "Giọng của Lá". Note và Tarot chỉ có một giọng rõ, đời thường. Lá là hình pixel của chính chiếc Lá tím hiện có trong app, tự đổi dáng và câu nói theo lúc. Không lưu gì.
+
+1. **Trang chủ, khối đầu**: Lá pixel (bấm được) + một câu của Lá + nút nhỏ [Lá yên chút]. Chưa chọn mood: Lá vẫy tay, câu trung tính "Chào bạn. Note hôm nay Lá để sẵn rồi." Câu của Lá không bao giờ ra lệnh (không có "đọc đi", "làm đi").
+   **Lá diễn hôm nay**: mỗi ngày nhiều nhất một lần, khi mood ổn, vui hoặc chưa chọn, câu của Lá là một lời mời: "Hôm nay Lá diễn một chiêu 3 phút: 'Hỏi tiếp một câu'. [Xem Lá diễn]". Bấm thì mở bài học (xem H). Không bấm thì thôi, Lá không nhắc lại. Không hiện khi mood thấp.
+2. **Mood ổn hoặc vui**: nhiều nhất 1 trong 3 lần, Lá tự làm hỏng việc của chính mình cho vui: đeo kính đen thì kính rơi ("Lá đeo kính cho ngầu, kính tự rơi. Thôi kệ kính."), thổi trà thì bỏng lưỡi, giơ bảng bị ngược, ăn mừng thì vấp. Lá không bao giờ đùa về việc người dùng làm: đọc nhanh hay chậm, bỏ việc, bấm "để mai", vắng mấy ngày, mở app lúc khuya; không đùa ngoại hình, tiền, điểm số, chuyện độc thân, gia đình.
+3. **Xong một việc**: Lá xoay vòng tung giấy màu, "Xong một việc! Lá tung giấy màu, dọn thì để Lá." Không đếm chuỗi ngày. Ngay dưới có [Gửi một sticker cho bạn] (xem mục 6).
+4. **Bấm "để mai"**: Lá cất việc vào ba lô, "Mai tính. Việc này mai vẫn còn đó." Không lườm, không đếm.
+5. **Mood thấp, chọn "Chỉ cần được nghe", đang ở phần hỗ trợ, đang Che nhanh, lá Tarot nặng, chuyện mất mát hay bị từ chối**: Lá không nhây. Lá ngồi cạnh một chiếc lá nhỏ, vỗ vai, "Hôm nay nặng ha. Lá ngồi đây với bạn, không cần nói gì." App lỗi: Lá héo, tự nhận lỗi "Lá làm rớt mất rồi, lỗi của Lá."
+6. **Chạm Lá để chơi** (người dùng tự chạm): Lá đổi dáng nhây: lè lưỡi, nhếch mép, lườm, hóng chuyện bên tách trà. **24 sticker Lá** ("Nghe thôi, không cần khuyên", "Ừ rồi sao", "Đang hóng", "Hôm nay héo", "Đang sạc, đừng nhắn", "Kính rơi rồi", "Xong rồi, ghê chưa", "Cố lên") nằm ở ba chỗ: sau khi xong một việc, trong mục Chơi, và khi chạm Lá. [Lưu ảnh] rồi tự gửi qua Zalo/Messenger. Sticker không có mood, cung hay tên người dùng.
+7. **[Lá yên chút]**: tới hết ngày Lá chỉ vui hoặc trung tính, không làm trò. Không lưu.
+8. Hình chỉ chuyển động khi mở màn hoặc khi chạm, tối đa vài giây rồi đứng yên; ai tắt chuyển động thì thấy hình đứng. Câu của Lá luôn là chữ thật.
+
+---
+
+### H. Học theo bạn (bài 3 phút, Lá diễn)
+
+Mục "Học" nằm trong Khám phá. Trang chủ không thêm khối mới: bài học tới qua ba đường dưới đây. Không lưu tiến độ, không chuỗi ngày, bài nào cũng mở sẵn. Không có chỗ nào nhập thông tin về người khác.
+
+0. **Vào từ Lá (LN)**: lời mời "Lá diễn hôm nay" ở khối đầu Trang chủ. Chưa mở ba lô thì bài được chọn theo chương tuần và lá số của chính người dùng, có ghi rõ đã dùng gì.
+1. **Vào từ ba lô (S1)**: nếu người dùng đã chọn [Một bước đầu], ngay dưới câu công nhận của Lá (trước phần chọn việc) có một dòng: "Có bài 3 phút cho đúng chuyện này. [Xem bài]". Không hiện khi chọn [Chỉ cần được nghe] hoặc [Được phép nghỉ]. Bài theo món đã chọn:
+   - Tìm việc, phỏng vấn → "Phỏng vấn đỡ run" · Đồ án, thi → "Bắt đầu việc khó bằng 10 phút"
+   - Nhà: bố mẹ kỳ vọng / có chuyện chưa dám nói → "Nói điều khó với nhà" (có lối lui nếu nói với nhà không an toàn)
+   - Tiền (bốn chuyện) → "Nói chuyện tiền: hỏi gia hạn, từ chối đi chơi, xin ứng lương"
+   - Ca làm, việc làm thêm chen giờ học → "Xin đổi ca mà không mất lòng" · Sếp, chỗ làm → "Nói 'không' với việc thêm"
+   - Về quê hay ở lại, phòng trọ, không có ai → "Kết bạn ở chỗ mới" · So mình với người khác → "Không ai soi bạn kỹ như bạn nghĩ"
+   - Một người làm mình nghĩ nhiều → "Tán crush kiểu tử tế" (hỏi trước "Bạn đang ở đoạn nào?": chưa nói chuyện · nói chuyện nhạt · họ trả lời chậm, ngắn · muốn rủ gặp · vừa bị từ chối · không biết họ có thích mình không)
+2. **Vào từ Khám phá**: ba khóa mở sẵn (Tán crush kiểu tử tế · Tự tin hơn · Kết bạn ở chỗ mới), năm khóa "sắp có". Mỗi khóa 7 bài.
+3. **Một bài** (ví dụ "Phỏng vấn đỡ run", cho người đã chọn món Tìm việc):
+   - Ý chính, 2 câu: "Run là bình thường. Người phỏng vấn nhớ câu trả lời của bạn, ít khi nhớ bạn run."
+   - **Lá diễn** (hình pixel, Lá cầm micro run run): câu nên tránh "Em… em không có kinh nghiệm gì ạ." → câu nên nói "Em chưa đi làm chính thức, nhưng em đã làm đồ án nhóm 4 người và lo phần lịch."
+   - **Theo thông tin của bạn** (đổi được, tắt được): Lá chọn sẵn một kiểu luyện theo lá số của chính người dùng và nói rõ đã dùng gì. Ví dụ có đủ giờ sinh: "Sao Thủy của bạn ở Kim Ngưu. Người xem chiêm tinh hay gắn vị trí này với kiểu nói chậm, chắc. Lá chọn sẵn kiểu 'viết ra 3 ý rồi nói'. [Đổi kiểu: nói thử trước gương · kể cho một người bạn]". Chỉ có ngày sinh: Lá dùng hành tinh tính đủ chắc từ ngày sinh; không đủ chắc thì không nhắc lá số và để người dùng tự chọn kiểu. Lá số không đoán kết quả phỏng vấn.
+   - **Việc thử** hợp mood hôm nay: mood thấp → bản nhẹ "viết một câu giới thiệu mình, chưa cần nói ra"; mood ổn → "nói to câu đó một lần". [Làm rồi] [Ngại quá] [Chưa thử] · [Đổi việc khác] [Chưa sẵn sàng, để sau]. Bấm [Làm rồi]: Lá khoác áo choàng, "Làm được rồi đó." Bấm [Ngại quá]: Lá ngồi cùng, "Ngại là bình thường. Mai thử bản nhẹ hơn cũng được."
+   - Dòng nhỏ: "Ý này lấy từ đâu, dùng được tới đâu" (tên nghiên cứu hoặc sách, và giới hạn).
+4. **Khóa "Tán crush kiểu tử tế"** (18+): bài 1 là ranh giới (im lặng hay trả lời xã giao không phải lời mời tiếp; không tập với người say, người đang phục vụ mình, người lệ thuộc mình; "không" là xong). Các bài sau: không ai soi bạn kỹ như bạn nghĩ · có thể bạn đang tự chấm mình quá khắt khe · hỏi tiếp một câu · kể về mình từng nấc · mở lời bằng thứ trước mắt · rủ một việc có lối lui và khi họ nói không. Không dạy chê khéo, gây ghen, theo dõi, "cưa lại". Không xem hợp hay không hợp với người kia.
+5. **Thẻ "Bạn đáp câu nào?"** (2 ảnh pixel để gửi bạn): ảnh 1 là tình huống và hai câu đáp A, B; ảnh 2 là lời giải, có Lá diễn. Ảnh không có gì của người dùng và không nói người gửi đang học khóa nào. [Lưu 2 ảnh] rồi tự gửi.
+6. **Vừa bị từ chối và thấy rất tệ**: bài chuyển sang "Chỉ cần được nghe" (S1), không giao việc.
+7. **Dữ liệu**: món trong ba lô, đoạn đang vướng, kiểu luyện và nút tự chấm chỉ dùng trong lần mở, không lưu, không gửi đi. Lá số dùng ở đây là của chính người dùng, đã có sẵn trong app.
+
+---
