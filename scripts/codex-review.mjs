@@ -11,6 +11,7 @@ import { codexDailyCap, prTurn } from './collab-turn.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
 import { isMain } from './is-main.mjs';
+import { auditReserve } from './collab-audit.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const promptPath = join(here, '..', 'docs', 'operations', 'codex-review-prompt.md');
@@ -124,7 +125,7 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   if (turn.turn !== 'codex-review') return { status: 'refused', reason: `lượt hiện tại là ${turn.turn}: ${turn.reason}` };
   const dayPath = dayStatePath(now.date);
   const day = readJson(dayPath, { codexRuns: 0, failures: 0 });
-  if (auto && day.codexRuns >= codexDailyCap) return { status: 'refused', reason: `hết ${codexDailyCap} lượt Codex tự động hôm nay` };
+  if (auto && day.codexRuns >= codexDailyCap - auditReserve) return { status: 'refused', reason: `hết ${codexDailyCap - auditReserve} lượt Codex tự động hôm nay (1 lượt giữ cho soát đêm)` };
 
   const trusted = trustedComments(pr.comments);
   const priorAuto = trusted.filter(c => c.auto && c.verdict).at(-1);
