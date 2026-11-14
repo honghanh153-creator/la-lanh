@@ -5,7 +5,8 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { isMain } from './is-main.mjs';
 
 export const claudeMaxLines = 200;
 export const agentsMaxBytes = 32 * 1024;
@@ -33,7 +34,7 @@ export function repoDocs(root) {
   return Object.fromEntries(paths.map(p => [p, readFileSync(join(root, p), 'utf8')]));
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const problems = docSizeProblems(repoDocs(join(dirname(fileURLToPath(import.meta.url)), '..')));
   for (const p of problems) process.stderr.write(`${p}\n`);
   process.exitCode = problems.length ? 1 : 0;

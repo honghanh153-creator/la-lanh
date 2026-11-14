@@ -15,10 +15,10 @@
 import { createHash } from 'node:crypto';
 import { linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { lessonsLine, prFields } from './collab-lessons.mjs';
 import { clean, codexDailyCap, dayStatePath, integration, makeGh, readJson, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { ghFetch, renderProgress, workProgress } from './collab-work.mjs';
+import { isMain } from './is-main.mjs';
 
 export const slots = ['08', '14', '22', 'retro'];
 export const snapshotDir = () => join(stateDir, 'snapshots');
@@ -108,7 +108,7 @@ export function renderSnapshot(s) {
   ];
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const flag = name => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
   try {
