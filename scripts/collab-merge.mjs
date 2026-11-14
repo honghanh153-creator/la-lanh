@@ -2,13 +2,15 @@
 // Usage: node scripts/collab-merge.mjs --pr N [--dry-run]
 import { join } from 'node:path';
 import { agentMarker, clean, dayStatePath, fixForwardIssue, integration, isOwnPr, isSha, keyCreatedMs, makeGh, readJson, repo, reviewState, sealValid, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { afterDecision, disputeView } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
 
 // Merge-queue rules (P1-A/P1-B, 12.11.2026): the latest signed PASS must be for the live tip of
 // collab/integration, and the latest signed APPROVE must be for the head and still valid for that tip
 // (see approvalDrift). `baseFiles(from, to)` lists files changed on the base; without it any base
-// move needs a new review.
-export function mergeGate(pr, { baseFiles } = {}) {
+// move needs a new review. L25: an open dispute holds the merge; after a decision only a newer
+// check and review count.
+export function mergeGate(pr, { baseFiles, disputes = disputeView() } = {}) {
   const reasons = [];
   const head = pr.headRefOid;
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
@@ -20,7 +22,8 @@ export function mergeGate(pr, { baseFiles } = {}) {
   if (labels.includes('needs-owner')) reasons.push('needs-owner');
   if (pr.mergeable !== 'MERGEABLE') reasons.push(`GitHub báo mergeable=${pr.mergeable}`);
   if (!isSha(pr.baseTipOid)) reasons.push(`không đọc được SHA hiện tại của ${integration}`);
-  const { check, last, stale } = reviewState(pr, { baseFiles });
+  if (disputes[pr.number]?.hold) reasons.push(disputes[pr.number].hold);
+  const { check, last, stale } = reviewState(afterDecision(pr, disputes[pr.number]), { baseFiles });
   if (!last?.seal || last.verdict.verdict !== 'APPROVE' || last.verdict.sha !== head) reasons.push('verdict mới nhất có biên nhận không phải APPROVE @ head');
   else if (stale) reasons.push(`APPROVE cần review lại: ${stale}`);
   // The newest author check for the head decides; an older PASS does not outvote a later FAIL.

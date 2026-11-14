@@ -1366,3 +1366,65 @@ test('#508: a preflight FAIL on a recheck holds only that body; a body-only fix 
   assert.deepEqual(fixed.checked, [164], 'a body-only correction is rechecked');
   assert.deepEqual(rechecked(date), [key, `164@${A}#5.2`]);
 });
+
+// ---- L25: the tick holds a disputed PR and a timeout still needs a new check and review ----
+test('L25: the tick never runs a disputed PR, and after a timeout the PR needs a new check and review at its head', async () => {
+  const L25 = await import('./collab-disagree.mjs');
+  const date = '2026-11-14';
+  const at = (hour, minute) => Date.UTC(2026, 10, 14, hour - 7, minute);
+  const open = [pr({ number: 7, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] })];
+  const gh = plannedGh(open, date);
+  try {
+    const first = L25.openRound({ pr: 7, round: 1, claude: 'giữ', codex: 'bỏ', head: A, nowMs: at(15, 0) });
+    L25.openRound({ id: first.id, round: 2, claude: 'giữ, có số đo', codex: 'bỏ, vì rủi ro', head: A, nowMs: at(15, 0) });
+    assert.equal(L25.escalate({ id: first.id, gh, notify: () => {}, nowMs: at(15, 0) }).clock, 'started');
+    assert.equal(turnsFor(open)[0].turn, 'hold', 'held by the dispute even without the label');
+    assert.match(mergeGate(open[0]).reasons.join(' '), /bất đồng pr7-1/);
+    const done = { merge: [], review: [], check: [] };
+    const run = minute => tick({ gh, now: { date, hour: 15, minute }, settle: o => L25.settleDisputes({ ...o, notify: () => {}, nowMs: at(15, minute) }),
+      merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; }, check: n => { done.check.push(n); return { status: 'FAIL' }; } });
+    run(10);
+    assert.deepEqual(done, { merge: [], review: [], check: [] }, 'nothing runs on a PR while its dispute waits for the owner');
+    run(31);
+    assert.equal(L25.disputes().get(first.id).decided.decidedBy, 'timeout');
+    assert.deepEqual(done.merge, [], 'the old APPROVE no longer counts after the decision');
+    assert.deepEqual(done.check, [7], 'a new author check comes first');
+    assert.ok(!mergeGate(open[0]).ok);
+    // Production wiring: runTick passes no settle, so tick() falls back to settleDisputes.
+    const { runTick } = await import('./collab-tick.mjs');
+    assert.equal(runTick(fakeGh({ pr: pr(), open: [] }), () => [], { run: given => given }).settle, undefined, 'runTick leaves settle to the default');
+    const { defaultSettle } = await import('./collab-turn.mjs');
+    assert.equal(defaultSettle, L25.settleDisputes, 'the default is the real settleDisputes');
+  } finally {
+    rmSync(L25.disputePath, { force: true });
+    rmSync(L25.logPath, { force: true });
+  }
+});
+
+test('L25: after a timeout and a new PASS at the same head, the review command takes its turn and a newer APPROVE merges', async () => {
+  const L25 = await import('./collab-disagree.mjs');
+  const at = (hour, minute) => Date.UTC(2026, 10, 14, hour - 7, minute);
+  const stamp = (hour, minute) => new Date(at(hour, minute)).toISOString();
+  const state = { pr: pr({ number: 7, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }) };
+  const gh = fakeGh(state);
+  try {
+    const first = L25.openRound({ pr: 7, round: 1, claude: 'giữ', codex: 'bỏ', head: A, nowMs: at(15, 0) });
+    L25.openRound({ id: first.id, round: 2, claude: 'giữ, có số đo', codex: 'bỏ, vì rủi ro', head: A, nowMs: at(15, 0) });
+    L25.escalate({ id: first.id, gh, notify: () => {}, nowMs: at(15, 0) });
+    L25.settleDisputes({ gh, notify: () => {}, nowMs: at(15, 31) });
+    assert.equal(L25.disputes().get(first.id).decided.decidedBy, 'timeout');
+    assert.equal(prTurn(state.pr).turn, 'claude-check', 'the check and APPROVE from before the decision no longer count');
+    state.pr.comments.push({ ...check(A), createdAt: stamp(15, 40) });
+    assert.equal(prTurn(state.pr).turn, 'codex-review', 'every caller of prTurn reads the dispute state by default');
+    const result = review.runReview(7, { gh, run: fakeRun().run, readOut: () => JSON.stringify(output()), now: { date: '2026-11-14', hour: 15, minute: 45 } });
+    assert.equal(result.status, 'posted', 'the review command accepts the turn the tick asked for');
+    assert.ok(!mergeGate(state.pr).ok, 'no merge until the new APPROVE is newer than the decision');
+    state.pr.comments.at(-1).createdAt = stamp(15, 50);
+    assert.match(state.pr.comments.at(-1).body, new RegExp(`^Review verdict: APPROVE @ ${A}`));
+    assert.deepEqual(mergeGate(state.pr).reasons, []);
+    assert.equal(mergeGate(state.pr).ok, true);
+  } finally {
+    rmSync(L25.disputePath, { force: true });
+    rmSync(L25.logPath, { force: true });
+  }
+});

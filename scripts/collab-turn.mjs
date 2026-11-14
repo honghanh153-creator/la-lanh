@@ -11,9 +11,12 @@ import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees }
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, queueTopUp, wipCount } from './collab-buffer.mjs';
+import { afterDecision, disputeView, settleDisputes } from './collab-disagree.mjs';
 import { isMain } from './is-main.mjs';
 
 export { codexDailyCap };
+// L25: the launchd tick passes no settle, so this default is the production caller.
+export const defaultSettle = settleDisputes;
 
 export const prFiles = pr => (pr.files ?? []).map(f => f.path ?? f).filter(Boolean);
 
@@ -34,7 +37,9 @@ export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
   return order.slice(0, order.indexOf(pr)).find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;
 }
 
-export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles } = {}) {
+// L25: the dispute state is read by default, so the review command (codex-review.mjs) routes the
+// same way as the tick and the merge gate (Codex 15.11: a caller without it refused after a decision).
+export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles, disputes = disputeView() } = {}) {
   const head = pr.headRefOid;
   const out = (turn, reason, extra = {}) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
     source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body), item: workRef(pr.body), ...extra });
@@ -43,6 +48,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles 
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
   if (pr.isDraft) return out('hold', 'draft');
   if (labels.includes('needs-owner')) return out('hold', 'needs-owner');
+  // L25: an open dispute holds the PR; after a decision only a newer check and review count.
+  if (disputes[pr.number]?.hold) return out('hold', disputes[pr.number].hold);
   if (dropped.includes(pr.number)) return out('hold', 'owner bỏ khỏi plan hôm nay');
   if (pr.baseRefName !== integration) return out('hold', `xếp chồng trên ${pr.baseRefName}`);
   const blocker = fileBlocker(pr, open, { dropped });
@@ -51,7 +58,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles 
   // refused merge for three hours, and checking or reviewing a head that cannot merge wastes the run (K24).
   if (pr.mergeable === 'CONFLICTING') return out('claude-fix', 'xung đột với collab/integration');
   // P1-A: the check must be for the live base; a base move sends the PR back to claude-check.
-  const state = reviewState(pr, { baseFiles });
+  // L25: after a dispute decision only a newer check and review count.
+  const state = reviewState(afterDecision(pr, disputes[pr.number]), { baseFiles });
   const check = state.check;
   const last = state.last?.verdict;
   const pre = check ? null : preflightFailure(preflight, pr);
@@ -71,7 +79,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles 
 
 export function turnsFor(prs, options = {}) {
   const preflight = options.preflight ?? readPreflight();
-  return sortByPriority(prs).map(pr => withRepeatNote(prTurn(pr, { ...options, open: prs, preflight }), pr));
+  const disputes = options.disputes ?? disputeView();
+  return sortByPriority(prs).map(pr => withRepeatNote(prTurn(pr, { ...options, open: prs, preflight, disputes }), pr));
 }
 
 // Owner order: finish every content PR before privacy, and privacy before features.
@@ -137,7 +146,7 @@ export const idleAlertRuns = 6;
 // A failed daily copy batch is retried on later ticks, at most this many attempts a day.
 export const copyBatchAttempts = 3;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, progress = null, snapshot = null, incidents = null, ciStatus = null, mergeAudit = null } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, progress = null, snapshot = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -178,6 +187,8 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       try { const result = audit(); if (result && !['idle', 'done'].includes(result.status)) log(`night audit: ${JSON.stringify(result)}`); }
       catch (error) { log(`night audit failed: ${clean(error.message, 200)}`); }
     }
+    // L25: owner replies, the 30-minute clock and the morning resend for disputes; never breaks a tick.
+    try { settle({ gh, log }); } catch (error) { log(`disputes failed: ${clean(error.message, 200)}`); }
     try {
       // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.
       const missing = tools();
