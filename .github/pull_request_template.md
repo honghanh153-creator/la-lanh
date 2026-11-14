@@ -1,6 +1,8 @@
 ## Task
 
 Related: #ISSUE_NUMBER
+Việc: #ISSUE_NUMBER
+Tiêu chí đạt: <mã tiêu chí trong mục "Tiêu chí đạt" của issue mà PR này làm xong, cách nhau dấu phẩy; để trống nếu chưa xong>
 Agent thực hiện:
 Agent review:
 

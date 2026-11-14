@@ -257,6 +257,23 @@ test('merge gate needs APPROVE and PASS on head, integration base and a fix-forw
   assert.ok(gh.calls.some(c => c[0] === 'raw' && c[1][1] === 'edit' && c[1][2] === '8' && c[1].includes('collab/integration')));
 });
 
+// L11 (Codex 14.11): the items picked are recorded when the plan is made; a PR body edited later
+// does not change them.
+test('the plan records the picked items once; a later body edit changes nothing', () => {
+  const comments = [];
+  const ghFor = open => ({ ...fakeGh({ pr: open[0], open }),
+    json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-12-09T01:50:00Z', body }); } });
+  const date = '2026-12-09';
+  const open = [pr({ number: 81, body: `${goodBody}\nViệc: #12` }), pr({ number: 82, body: `${goodBody}\nViệc: #12` }), pr({ number: 83 })];
+  assert.equal(tick({ gh: ghFor(open), now: { date, hour: 8, minute: 52 }, merge: () => ({}), review: () => ({}) }).status, 'plan-made');
+  const day = () => trust.readJson(trust.dayStatePath(date), {});
+  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+  const edited = open.map(p => p.number === 83 ? { ...p, body: `${goodBody}\nViệc: #99` } : p);
+  tick({ gh: ghFor(edited), now: { date, hour: 9, minute: 20 }, merge: () => ({}), review: () => ({}) });
+  assert.deepEqual(day().plannedItems, [{ item: 12 }, { pr: 83 }]);
+});
+
 test('tick makes the plan once, waits for the owner, then runs merges and capped reviews', () => {
   const comments = [];
   const ghFor = open => ({
