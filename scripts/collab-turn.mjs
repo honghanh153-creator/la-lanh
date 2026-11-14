@@ -182,6 +182,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // it at once instead of waiting 10 minutes for the next run. Checks stay strictly serial here,
       // and the check lock still refuses a second heavy job from anywhere else.
       const checked = [];
+      // L14 (retro 12.11 S25): only the PR at the front of the area queue is merged with
+      // integration before its check. Every waiting PR used to be re-synced whenever integration
+      // moved (22 re-syncs on 12.11, #441 five times, 7 PRs never checked). The front is read after
+      // this tick's merges (Codex 14.11), so a PR merged a moment ago never holds the place. A PR
+      // that cannot merge cleanly goes to claude-fix: conflicts are Claude's to resolve.
+      const mergedNow = new Set(done.filter(d => d.merge?.status === 'merged').map(d => d.pr));
+      const front = work.find(t => t.turn !== 'merge' && !mergedNow.has(t.number))?.number ?? null;
       const startedMs = nowMs();
       let checks = 0;
       for (const t of work.filter(t => t.turn === 'claude-check')) {
@@ -190,13 +197,14 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         if (pre?.status === 'FAIL') { recordPreflight(t.number, t.head, { ...pre, bodyHash: pre.bodyHash ?? t.bodyHash }); done.push({ pr: t.number, preflight: pre }); continue; }
         if (checks > 0 && !heavyFree()) break;
         show({ status: 'running', doing: `author check #${t.number} (thường 10–35 phút)`, expectMinutes: 90, area, turns, done });
-        const result = check(t.number, { auto: true, clock: time });
+        const result = check(t.number, { auto: true, clock: time, sync: t.number === front });
         checks += 1;
         done.push({ pr: t.number, check: result });
         if (result?.status === 'preflight') { recordPreflight(t.number, t.head, { status: 'FAIL', reasons: result.reasons ?? [], bodyHash: result.bodyHash ?? t.bodyHash }); checks -= 1; continue; }
         if (result?.status === 'PASS') checked.push(t);
         // ci-pending: this head's CI is still running; the next PR may already have its result.
-        if (!['PASS', 'FAIL', 'ci-pending'].includes(result?.status)) break;
+        // synced: the front got a new head (CI runs on it); the PRs behind it still read their CI.
+        if (!['PASS', 'FAIL', 'ci-pending', 'synced'].includes(result?.status)) break;
       }
       for (const t of [...checked, ...work.filter(t => t.turn === 'codex-review')]) {
         const fresh = readJson(dayPath, day);

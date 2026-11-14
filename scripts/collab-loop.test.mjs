@@ -907,6 +907,45 @@ test('fix C: the plan lists committed PRs with new copy or a clarity-ratchet cha
   assert.doesNotMatch(renderPlan({ date: '2026-11-04', hour: 8, minute: 50 }, turnsFor([pr()]), { codexLeft: 10 }), /cần duyệt câu/);
 });
 
+// L14 (retro 12.11 S25): every waiting PR was merged with integration on every tick.
+test('only the front PR of the area is synced before its check; waiting PRs get no merge commit', () => {
+  const date = '2026-11-16';
+  const open = Array.from({ length: 3 }, (_, i) => pr({ number: 60 + i, createdAt: `2026-11-0${i + 1}T00:00:00Z` }));
+  const calls = [];
+  const check = (n, o) => { calls.push([n, o.sync]); return { status: 'ci-pending' }; };
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), check });
+  assert.deepEqual(calls, [[60, true], [61, false], [62, false]]);
+  // The front got a new head: the PRs behind it still read their CI in the same tick.
+  const after = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 15 }, merge: () => ({}), review: () => ({ status: 'posted' }),
+    check: (n, o) => { after.push([n, o.sync]); return n === 60 ? { status: 'synced' } : { status: 'ci-pending' }; } });
+  assert.deepEqual(after, [[60, true], [61, false], [62, false]]);
+  // The check itself: sync=false never merges integration into the branch, even when it is behind.
+  const gitCalls = [];
+  const run = (cmd, args) => { gitCalls.push(args.join(' ')); if (args[0] === 'merge-base') throw new Error('behind'); return args[0] === 'rev-parse' ? A : ''; };
+  const never = () => { throw new Error('nothing of the PR may run on the Mac in CI mode'); };
+  const gh = { ...fakeGh({ pr: pr({ headRefName: 'agent/claude/x' }) }), comment: () => {} };
+  const waiting = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: false });
+  assert.equal(waiting.status, 'ci-pending');
+  assert.ok(!gitCalls.some(c => /^merge\b|^-c .*merge|push/.test(c) || c.includes('auto-sync')), gitCalls.join(' | '));
+  const front = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: true });
+  assert.equal(front.status, 'synced', 'the front PR behind integration is merged and pushed');
+});
+
+test('after a merge in the same tick, the next PR becomes the front', () => {
+  const date = '2026-11-17';
+  const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+    pr({ number: 71, createdAt: '2026-11-02T00:00:00Z' }), pr({ number: 72, createdAt: '2026-11-03T00:00:00Z' })];
+  const calls = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({ status: 'merged' }), review: () => ({ status: 'posted' }),
+    check: (n, o) => { calls.push([n, o.sync]); return { status: 'ci-pending' }; } });
+  assert.deepEqual(calls, [[71, true], [72, false]]);
+  const failed = [];
+  tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 15 }, merge: () => ({ status: 'error' }), review: () => ({ status: 'posted' }),
+    check: (n, o) => { failed.push([n, o.sync]); return { status: 'ci-pending' }; } });
+  assert.deepEqual(failed, [[71, true], [72, false]], 'a PR waiting to merge is never synced (its approval is for its head); the next PR to check is the front');
+});
+
 test('fix E: one heavy job at a time — no new check while the lock is busy, at most checksPerTick', () => {
   const date = '2026-11-13';
   const open = Array.from({ length: 5 }, (_, i) => pr({ number: 40 + i, createdAt: `2026-11-0${i + 1}T00:00:00Z` }));
