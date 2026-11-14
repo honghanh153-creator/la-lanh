@@ -106,7 +106,22 @@
    "from": "thỏa thuận 12.11 mục F",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-lessons.test.mjs",
+    "name": "an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise"
+   },
+   "check": {
+    "file": "apps/web/tests/e2e/kham-pha-portrait.spec.ts",
+    "name": "Khám phá reads, opens a claim and its evidence, and comes back at 360/390px, 200% text, reduced motion"
+   },
+   "caller": {
+    "file": "scripts/collab-lessons.mjs",
+    "contains": "for (const f of playwrightCiFiles(pkg, { base })) files.add(f);"
+   },
+   "closedBy": {
+    "pr": 500
+   }
   },
   {
    "id": "L09",
