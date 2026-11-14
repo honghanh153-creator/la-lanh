@@ -227,7 +227,7 @@ Trước khi đủ điều kiện, bật L4 chỉ có tác dụng như L3, và t
 ## 6. Bộ phản biện (R5, C6, D3a, D19b, D6b, E1, E2, D11c, D15b, D28c, D19a, D17a)
 
 **Đầu vào:**
-- plan 08:50 của máy;
+- plan buổi sáng của máy (08:50; từ 14.11.2026 là 06:50);
 - mục tiêu hoặc plan của owner, cả ghi âm và ghi chú (D15b, D28c: chuyển thành PRD rồi thành việc);
 - spec mới.
 
@@ -283,7 +283,7 @@ Việc mơ hồ phải có PRD ngắn hoặc thẻ 2 phương án (D6b). Owner d
 | P1 | T0.1 policy + T0.2 khoá diff tại `mergeGate` + T2.1 chỉ số đáng tin (C5) + sổ phát hiện T2.6 | P0 | PR sửa policy, bộ chấm hay workflow tự bị giữ (test với dữ liệu giả); chỉ số có nguồn và đối trọng |
 | P2 | T1.1 verify + T1.2 bản đồ + Lighthouse/a11y + T1.5 bằng chứng + T0.3 hàng rào đầu tiên + T3.1 lỗi lặp → luật | P1 | Mọi PR UI có bằng chứng; ≥ 3 luật cứng từ finding |
 | P3 | T2.2 `decide()` + phục hồi + hồ sơ đêm + chạy bóng 3 ngày + phép thử crash/quota | P1, P2 | ≥ 90% khớp; dừng an toàn đúng |
-| P4 | Chuyển quyền cho `decide()`; mở đêm theo ma trận lòng tin; bản sáng; T2.4 critic cho plan 08:50 | P3 | Một đêm chạy hết không ai can thiệp; critic phản biện đúng 3 plan mẫu |
+| P4 | Chuyển quyền cho `decide()`; mở đêm theo ma trận lòng tin; bản sáng; T2.4 critic cho plan buổi sáng (06:50 từ 14.11.2026) | P3 | Một đêm chạy hết không ai can thiệp; critic phản biện đúng 3 plan mẫu |
 | P5 | T1.3 UAT khoá (mock + staging) + T1.6 bot tái hiện + T1.7 eval nội dung (mẫu vàng + giữ kín + swetest) + T1.8 test sạch | P2 | UAT xanh mỗi đêm; eval có điểm xuất phát |
 | P6 | T2.3 tầng mục tiêu, mục tiêu đầu "UX tốt hơn" + T1.4 verifier theo AC + T3.4 ghi gu owner | P4, P5 | Owner nói 1 câu → sáng sau có cây chỉ số, giả thuyết, việc đầu đã chạy |
 | P7 | Gói phát hành + đóng băng phát hành + cờ + 5 tester (C8) + phản hồi 1 chạm + telemetry ẩn danh (cổng riêng tư) | P5 | Owner bấm phát hành; tester dùng; chỉ số thật có số |

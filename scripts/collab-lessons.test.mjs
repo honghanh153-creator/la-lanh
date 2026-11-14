@@ -94,6 +94,17 @@ test('the board line never throws and says when the register is broken', () => {
   assert.match(lessonsLine({ online: false }), /^Lời hứa sửa quy trình: /);
 });
 
+test('owner 14.11: a lesson the owner declined is neither done nor open, and keeps its risk in view', () => {
+  const declined = extra => ({ id: 'L05', title: 'Người gác cổng riêng', who: 'owner', status: 'declined-owner', declined: { on: '2026-11-14', reason: 'owner không cài', risk: 'Claude vẫn tự merge được' }, ...extra });
+  assert.deepEqual(problems({ lessons: [declined()] }, { base: fixture(), ciFiles: ci }), []);
+  assert.deepEqual(problems({ lessons: [declined({ declined: { on: '2026-11-14', reason: 'owner không cài' } })] }, { base: fixture(), ciFiles: ci }), ['lesson L05: declined-owner needs the risk that stays']);
+  assert.equal(problems({ lessons: [declined({ declined: undefined })] }, { base: fixture(), ciFiles: ci }).length, 3);
+  const reg = { lessons: [declined(), { id: 'L06', title: 'b', who: 'claude', due: '2026-11-20', status: 'open' }] };
+  const s = summarize(reg, { today: '2026-11-21', verified: {} });
+  assert.deepEqual({ open: s.open, done: s.done, declined: s.declined, overdue: s.overdue }, { open: 1, done: 0, declined: ['L05'], overdue: ['L06'] });
+  assert.match(renderLessons(s), /1 owner quyết không làm, rủi ro vẫn còn \(L05\)/);
+});
+
 test('the lessons test itself runs in CI', () => {
   assert.ok(ciTestFiles().has('scripts/collab-lessons.test.mjs'));
 });

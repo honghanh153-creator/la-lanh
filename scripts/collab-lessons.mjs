@@ -19,7 +19,10 @@ import { isMain } from './is-main.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
 export const registerPath = join(here, 'collab-lessons.json');
-export const statuses = ['open', 'waiting-owner', 'done'];
+// declined-owner (owner 14.11.2026, Codex SỬA): the owner chose not to build it. Not done and not
+// open: it needs the date, the owner's reason and the risk that stays, and the report names it.
+export const statuses = ['open', 'waiting-owner', 'declined-owner', 'done'];
+const noDue = new Set(['waiting-owner', 'declined-owner']);
 const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s ?? '');
 
 export const readRegister = (path = registerPath) => JSON.parse(readFileSync(path, 'utf8'));
@@ -46,7 +49,12 @@ export function problems(register, { base = root, ciFiles = ciTestFiles() } = {}
     if (!String(l.title ?? '').trim()) out.push(`${at}: no title`);
     if (!['claude', 'codex', 'owner'].includes(l.who)) out.push(`${at}: who must be claude, codex or owner`);
     if (!statuses.includes(l.status)) out.push(`${at}: status must be one of ${statuses.join(', ')}`);
-    if (l.status !== 'waiting-owner' && !isDate(l.due)) out.push(`${at}: due date YYYY-MM-DD required`);
+    if (!noDue.has(l.status) && !isDate(l.due)) out.push(`${at}: due date YYYY-MM-DD required`);
+    if (l.status === 'declined-owner') {
+      if (!isDate(l.declined?.on)) out.push(`${at}: declined-owner needs declined.on YYYY-MM-DD`);
+      if (!String(l.declined?.reason ?? '').trim()) out.push(`${at}: declined-owner needs the owner's reason`);
+      if (!String(l.declined?.risk ?? '').trim()) out.push(`${at}: declined-owner needs the risk that stays`);
+    }
     if (l.status !== 'done') continue;
     const testText = l.test?.file ? read(base, l.test.file) : null;
     if (!l.test?.file || !l.test?.name) out.push(`${at}: done without a regression test`);
@@ -100,15 +108,17 @@ export function summarize(register, { today = vnNow().date, verified = null, inv
   const done = lessons.filter(l => l.status === 'done' && confirmed(l));
   const unconfirmed = lessons.filter(l => l.status === 'done' && !confirmed(l));
   const owner = lessons.filter(l => l.status === 'waiting-owner');
+  const declined = lessons.filter(l => l.status === 'declined-owner');
   const open = lessons.filter(l => l.status === 'open' || unconfirmed.includes(l));
   const overdue = open.filter(l => isDate(l.due) && l.due < today);
-  return { total: lessons.length, done: done.length, open: open.length, owner: owner.length, overdue: overdue.map(l => l.id), unconfirmed: unconfirmed.map(l => l.id), invalid: invalid.length, offline: verified === null };
+  return { total: lessons.length, done: done.length, open: open.length, owner: owner.length, declined: declined.map(l => l.id), overdue: overdue.map(l => l.id), unconfirmed: unconfirmed.map(l => l.id), invalid: invalid.length, offline: verified === null };
 }
 
 export function renderLessons(s) {
   if (s.invalid) return `Lời hứa sửa quy trình: sổ đang sai ${s.invalid} chỗ, cần sửa trước khi tính.`;
   const parts = [s.offline ? `chưa xác minh trên GitHub (${s.unconfirmed.length} mục ghi xong)` : `${s.done}/${s.total} đã chạy thật (đã merge, Codex duyệt)`, `${s.open} đang làm`];
   if (s.owner) parts.push(`${s.owner} chờ owner`);
+  if (s.declined?.length) parts.push(`${s.declined.length} owner quyết không làm, rủi ro vẫn còn (${s.declined.join(', ')})`);
   parts.push(s.overdue.length ? `**${s.overdue.length} quá hạn** (${s.overdue.join(', ')})` : 'không có mục quá hạn');
   if (s.unconfirmed.length && !s.offline) parts.push(`ghi xong nhưng chưa có bằng chứng merge + Codex duyệt: ${s.unconfirmed.join(', ')}`);
   return `Lời hứa sửa quy trình: ${parts.join(', ')}.`;

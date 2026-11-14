@@ -102,7 +102,7 @@ export const idleAlertRuns = 6;
 // A failed daily copy batch is retried on later ticks, at most this many attempts a day.
 export const copyBatchAttempts = 3;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, mergeAudit = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -138,6 +138,15 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Missing tools fail inside the handler, so the heartbeat, the counter and the alert still work.
       const missing = tools();
       if (missing.length) throw new Error(`thiếu công cụ trên PATH: ${missing.join(', ')}`);
+      // L26 (cách 2-nhẹ): the post-merge audit (collab-merge-audit.mjs, at most once an hour) runs
+      // before the plan gate, so it also runs while the plan is closed or not made. It checks
+      // consistency only, not that Codex reviewed independently. It never breaks a tick.
+      if (mergeAudit) {
+        try {
+          const audit = mergeAudit({ gh, now: new Date(nowMs()) });
+          if (audit?.status === 'error') log(`merge audit stopped, retry next run: ${clean(audit.error, 200)}`);
+        } catch (error) { log(`merge audit failed, retry next run: ${clean(error.message, 200)}`); }
+      }
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
         const prs = gh.openPrs();

@@ -344,7 +344,7 @@ const plannedGh = (open, date) => {
   return { ...fakeGh({ pr: open[0], open }), json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments } };
 };
 
-test('r1: the clock is re-read before each review, so nothing new starts after 23:30', () => {
+test('r1: the clock is re-read before each review, so nothing new starts from 23:35', () => {
   const date = '2026-11-03';
   const open = [pr({ number: 1, comments: [check(A)] }), pr({ number: 2, comments: [check(A)] })];
   const times = [{ hour: 23, minute: 20 }, { hour: 23, minute: 20 }, { hour: 23, minute: 41 }];
@@ -563,7 +563,7 @@ test('r5 (#137 r2 P1): clone preparation is bounded by the nightly deadline', ()
   // Worst case: every build step uses its whole budget and times out.
   const group = (cmd, args, opts) => { calls.push({ cmd, ms: opts.timeoutMs, left: 26 * minute - fake }); fake += opts.timeoutMs; return { status: 124 }; };
   const run = (cmd, args) => (args[0] === 'rev-parse' ? A : '');
-  // Selected at 23:29: 26 minutes to 23:55.
+  // Selected at 23:29: 26 minutes to the old 23:55 cutoff; the deadline here is given directly.
   assert.throws(() => prepareAuthorClone(7, A, run, { deadlineMs: 26 * minute, nowMs: () => fake, group }), /hết giờ/);
   assert.ok(calls.length >= 1);
   assert.ok(calls.every(c => c.ms <= c.left), 'no step may run past the deadline');
