@@ -74,11 +74,13 @@ function logOnce(path, entry) {
 }
 
 export function alertText(pr, why) {
+  // The marker goes first: opsAlert cuts the text at 1000 characters, and a lost marker would
+  // let a crash after the issue was created alert twice.
   return [
+    auditMarker(pr.number),
     `Merge #${pr.number} vào ${integration} lúc ${pr.mergedAt} (head ${String(pr.headRefOid).slice(0, 12)}) thiếu biên nhận review tự động: ${why}.`,
     'Cần xem PR này: merge không có Codex APPROVE tự động đúng head, kèm file output Codex hợp lệ cho head đó.',
     'Giới hạn: kiểm toán này chỉ đối chiếu sự nhất quán. Cùng quyền trên máy, Claude có thể sửa file output, comment hoặc chính chương trình này, nên nó không chứng minh Codex đã review độc lập.',
-    auditMarker(pr.number),
   ].join('\n');
 }
 

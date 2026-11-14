@@ -106,6 +106,12 @@ test('a merge into integration without an automatic APPROVE receipt at the merge
   assert.deepEqual(state(paths.statePath).cursor, { mergedAt: at(4), number: 4 });
 });
 
+test('the alert marker survives the 1000-character cut of opsAlert', async () => {
+  const { alertText, auditMarker } = await import('./collab-merge-audit.mjs');
+  const text = alertText({ number: 9, mergedAt: '2026-11-15T01:00:00Z', headRefOid: 'a'.repeat(40) }, 'x'.repeat(2000));
+  assert.ok(text.slice(0, 1000).includes(auditMarker(9)));
+});
+
 test('a good merge raises no alert and writes no audit line', () => {
   const w = world();
   w.add(1); w.add(2);
