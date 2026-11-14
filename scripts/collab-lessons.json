@@ -78,7 +78,7 @@
    "title": "Trước khi giao việc cho dev con: kiểm thư mục, nhánh và công cụ; sai thì dừng trước khi ghi",
    "from": "thỏa thuận 12.11 mục D",
    "who": "claude",
-   "due": "2026-11-18",
+   "due": "2026-11-17",
    "status": "open",
    "note": "helper and copy-batch wiring merged; child-agent dispatch still unchecked"
   },
