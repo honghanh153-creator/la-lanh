@@ -1,0 +1,426 @@
+{
+ "extra": {
+  "P001": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P002": {
+   "situation": "shared_phone",
+   "belief": "high"
+  },
+  "P003": {
+   "situation": "away_2w",
+   "belief": "low"
+  },
+  "P004": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P005": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P006": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P007": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P008": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P009": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P010": {
+   "situation": "no_safe_person",
+   "belief": "high"
+  },
+  "P011": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P012": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P013": {
+   "situation": "shared_phone",
+   "belief": "low"
+  },
+  "P014": {
+   "situation": "tired",
+   "belief": "low"
+  },
+  "P015": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P016": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P017": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P018": {
+   "situation": "shared_phone",
+   "belief": "high"
+  },
+  "P019": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P020": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P021": {
+   "situation": "tired",
+   "belief": "high"
+  },
+  "P022": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P023": {
+   "situation": "no_safe_person",
+   "belief": "high"
+  },
+  "P024": {
+   "situation": "away_2w",
+   "belief": "low"
+  },
+  "P025": {
+   "situation": "shared_phone",
+   "belief": "low"
+  },
+  "P026": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P027": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P028": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P029": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P030": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P031": {
+   "situation": "shared_phone",
+   "belief": "low"
+  },
+  "P032": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P033": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P034": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P035": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P036": {
+   "situation": "shared_phone",
+   "belief": "high"
+  },
+  "P037": {
+   "situation": "tired",
+   "belief": "low"
+  },
+  "P038": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P039": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P040": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P041": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P042": {
+   "situation": "away_2w",
+   "belief": "low"
+  },
+  "P043": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P044": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P045": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P046": {
+   "situation": "tired",
+   "belief": "low"
+  },
+  "P047": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P048": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P049": {
+   "situation": "away_2w",
+   "belief": "low"
+  },
+  "P050": {
+   "situation": "shared_phone",
+   "belief": "high"
+  },
+  "P051": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P052": {
+   "situation": "no_safe_person",
+   "belief": "high"
+  },
+  "P053": {
+   "situation": "no_safe_person",
+   "belief": "high"
+  },
+  "P054": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P055": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P056": {
+   "situation": "tired",
+   "belief": "low"
+  },
+  "P057": {
+   "situation": "shared_phone",
+   "belief": "low"
+  },
+  "P058": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P059": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P060": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P061": {
+   "situation": "shared_phone",
+   "belief": "high"
+  },
+  "P062": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P063": {
+   "situation": "shared_phone",
+   "belief": "high"
+  },
+  "P064": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P065": {
+   "situation": "shared_phone",
+   "belief": "low"
+  },
+  "P066": {
+   "situation": "away_2w",
+   "belief": "low"
+  },
+  "P067": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P068": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P069": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P070": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P071": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P072": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P073": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P074": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P075": {
+   "situation": "shared_phone",
+   "belief": "low"
+  },
+  "P076": {
+   "situation": "tired",
+   "belief": "high"
+  },
+  "P077": {
+   "situation": "tired",
+   "belief": "high"
+  },
+  "P078": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P079": {
+   "situation": "tired",
+   "belief": "mid"
+  },
+  "P080": {
+   "situation": "no_safe_person",
+   "belief": "high"
+  },
+  "P081": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P082": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P083": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P084": {
+   "situation": "no_safe_person",
+   "belief": "high"
+  },
+  "P085": {
+   "situation": "shared_phone",
+   "belief": "high"
+  },
+  "P086": {
+   "situation": "tired",
+   "belief": "high"
+  },
+  "P087": {
+   "situation": "away_2w",
+   "belief": "low"
+  },
+  "P088": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  },
+  "P089": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P090": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P091": {
+   "situation": "away_2w",
+   "belief": "mid"
+  },
+  "P092": {
+   "situation": "shared_phone",
+   "belief": "high"
+  },
+  "P093": {
+   "situation": "tired",
+   "belief": "low"
+  },
+  "P094": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P095": {
+   "situation": "no_safe_person",
+   "belief": "low"
+  },
+  "P096": {
+   "situation": "tired",
+   "belief": "low"
+  },
+  "P097": {
+   "situation": "away_2w",
+   "belief": "high"
+  },
+  "P098": {
+   "situation": "shared_phone",
+   "belief": "mid"
+  },
+  "P099": {
+   "situation": "away_2w",
+   "belief": "low"
+  },
+  "P100": {
+   "situation": "no_safe_person",
+   "belief": "mid"
+  }
+ },
+ "codex_sample": [
+  "P001",
+  "P015",
+  "P016",
+  "P017",
+  "P022",
+  "P024",
+  "P027",
+  "P033",
+  "P035",
+  "P037",
+  "P038",
+  "P042",
+  "P048",
+  "P050",
+  "P061",
+  "P065",
+  "P080",
+  "P082",
+  "P083",
+  "P095"
+ ]
+}

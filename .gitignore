@@ -85,3 +85,8 @@ prototype/node_modules/
 prototype/dist/
 prototype/.DS_Store
 infra/hetzner/staging/generation.env
+
+# Persona harness: full transcripts and unscored packets stay local (re-run to regenerate)
+qa/personas/runs/*/transcript.jsonl
+qa/personas/runs/*/judge-packets.jsonl
+qa/personas/runs/*/label-packets.jsonl
