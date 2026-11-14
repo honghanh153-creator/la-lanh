@@ -1,7 +1,6 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { ownerNotes } from './collab-status.mjs';
@@ -10,6 +9,7 @@ import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees }
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, queueTopUp, wipCount } from './collab-buffer.mjs';
+import { isMain } from './is-main.mjs';
 
 export { codexDailyCap };
 
@@ -112,9 +112,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     // Outcome numbers (collab-metrics.mjs) are read once per tick, never at night.
     let metricLines = null;
     const measure = (prs, turns) => { try { metricLines = metrics({ prs, turns }); } catch (error) { log(`metrics failed: ${clean(error.message, 200)}`); } };
+    // Health (watchdog, pre-push hook) is read once per tick and shown on every board update, not
+    // only in the morning plan: a hook removed at noon shows on the next tick (Codex r1 on #482).
+    let healthNow;
+    const readHealth = () => { if (healthNow === undefined) { try { healthNow = health(); } catch { healthNow = []; } } return healthNow; };
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), ...info }); } catch {}
     };
     // Owner notes (collab-status.mjs): a new comment only for merges, a 2-tick failure streak,
     // a new needs-owner and the 12:00/22:00 digest. Never breaks a tick.
@@ -139,7 +143,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         measure(prs, turns);
         // Progress is items done / items picked (owner 12.11.2026): remember what was picked.
         writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number) });
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: (() => { try { return health(); } catch { return []; } })() });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth() });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
         return { status: 'plan-made' };
@@ -367,7 +371,7 @@ export function resolveOpsAlert(gh, text, subject) {
   return { number: open, closed: true };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   try {
     const gh = makeGh();

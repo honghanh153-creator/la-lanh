@@ -7,10 +7,10 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { bodyHash, runGroup } from './collab-heal.mjs';
 import { sizeProblem } from './collab-size.mjs';
 import { clean, integration, makeGh, readJson, stateDir, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const gates = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10'];
 
@@ -64,7 +64,8 @@ export function lintProblems(pyFiles, { cwd = process.cwd(), spawn = groupSpawn,
   for (const [name, args] of [['ruff', ['ruff', 'check', ...files]], ['ruff format', ['ruff', 'format', '--check', ...files]], ['mypy', ['mypy', ...files]]]) {
     const ms = Math.min(600000, left());
     if (ms <= 0) break;
-    const result = spawn('uv', ['run', '--directory', 'apps/api', ...args], { cwd, encoding: 'utf8', timeout: ms });
+    // --locked: the tool versions of uv.lock, as in CI; a stale lock fails instead of being rewritten (L07).
+    const result = spawn('uv', ['run', '--locked', '--directory', 'apps/api', ...args], { cwd, encoding: 'utf8', timeout: ms });
     if (result.status !== 0) problems.push(`${name} lỗi: ${clean(`${result.stdout ?? ''}${result.stderr ?? ''}`, 300) || `exit ${result.status}`}`);
   }
   return problems;
@@ -99,7 +100,7 @@ export const preflightFailure = (records, pr) => {
   return r.bodyHash === bodyHash(pr.body) ? r.reasons : null;
 };
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   try {
     let result;
