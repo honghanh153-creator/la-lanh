@@ -28,7 +28,7 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 - Codex chấm đối chiếu 40 người giả cho kết quả gần giống: thấy được hiểu 3,55; gửi hoặc rủ 12,5%.
 
 **Điều gì chặn (nói thẳng):**
-1. **Thấy được hiểu dừng ở 3,56** vì 380 người giả chỉ chấm 3, và giám khảo gần như không bao giờ cho 5 (13 trên 1000). Nhóm chấm 3 muốn nhất là **Lá nhớ hoàn cảnh và lần trước của họ** (khoảng 180 câu chê), rồi tới một bước cụ thể để làm, nội dung hợp ca làm, và chuyện sếp, chỗ làm. Hai ý "nhớ" mình đã thử chỉ nâng điểm ít (0,12 và 0,21) và làm 10% đến 17% người lo về riêng tư. Tức là "nhớ" có giúp một chút nhưng đổi lại là lo riêng tư, và nó cần chị quyết về lưu dữ liệu.
+1. **Thấy được hiểu dừng ở 3,56** vì 380 người giả chỉ chấm 3, và giám khảo gần như không bao giờ cho 5 (13 trên 1000). Nhóm chấm 3 muốn nhất là **Lá nhớ hoàn cảnh và lần trước của họ** (khoảng 180 câu chê), rồi tới một bước cụ thể để làm, nội dung hợp ca làm, và chuyện sếp, chỗ làm. Hai ý "nhớ" mình đã thử chỉ nâng điểm ít (0,12 và 0,24) và làm 10% đến 17% người lo về riêng tư. Tức là "nhớ" có giúp một chút nhưng đổi lại là lo riêng tư, và nó cần chị quyết về lưu dữ liệu.
 2. **Bớt một mình thấp** vì các ý có người khác (lời mở, trò hai người, Lá Dám) hầu như không ai dùng: 85, 26 và 4 trên 1000. Tình huống của người giả đều là mở app một mình.
 3. **Gửi hoặc rủ chỉ 10,5%** vì ít người gặp được thứ đáng gửi, không phải vì không muốn gửi. Khi cho xem riêng bộ sticker, tỉ lệ gửi tăng thêm 40,7 điểm phần trăm; trong gói thì chỉ 53 trên 1000 người tìm thấy sticker. Ngoài ra, mô tả bằng chữ không đo được hành vi chia sẻ thật.
 4. **Chuyện vui có thể chạm nỗi buồn.** Một người đang lo tìm việc và hay so mình với người khác gặp chuyện "cả nhóm rủ đi lẩu". Ở các lượt chấm riêng, chuyện "cả nhà hẹn đi ăn" của kế hoạch hiện tại cũng làm sinh viên xa nhà chạnh lòng. Cần lọc chuyện theo điều người dùng vừa nói là đang nặng.
@@ -40,7 +40,7 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 - Sửa ngay 5 điểm rút ra từ lượt chấm (mục 4). Các sửa này chưa được chấm lại.
 - Không sửa chữ thêm để đuổi điểm.
 
-**Phần thêm tối 14.11:** Lá pixel nhây và "Học theo bạn" đã vào gói (bản mock 7). Codex chấm thử trên 20 người giả: thấy được hiểu 3,70; bớt một mình 3,65; ai cũng để ý tới Lá; bài học tốt nhưng ít người gặp, đã sửa lối vào. Lượt chấm lớn chạy sau 22:50. Chi tiết ở cuối mục 3. "Mời hẹn thử" đã hoãn theo ý chị.
+**Phần thêm tối 14.11, đã chấm trên 300 người giả:** gói có Lá nhây và Học đạt 5 trên 9 điều kiện. Thấy được hiểu 3,63; bớt một mình 3,38; bình yên 3,66; gửi hoặc rủ 16,7%. Lá nhây là phần kéo "bớt một mình", "muốn quay lại" và chia sẻ lên nhiều nhất. Học làm người mở bài thấy được hiểu (3,91) nhưng chưa êm (bình yên 3,41). Chi tiết ở cuối mục 3. "Mời hẹn thử" đã hoãn theo ý chị.
 
 ## 2. Đã làm gì
 
@@ -50,7 +50,7 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 | Tra bằng chứng trên web | Font pixel có tiếng Việt, quy tắc dễ đọc WCAG, kích thước thư viện hoạt hình, nghiên cứu về lan truyền và cô đơn, luật dữ liệu, lịch Việt Nam (mục 9) |
 | Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 139 góp ý có mã qua 9 lượt phản biện và 3 lần chấm thử (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
 | Rút gọn, viết mock 4–8 màn mỗi ý, vẽ bản mẫu pixel; chấm thử hai lần bằng Codex trên 20 người giả rồi sửa (bản 3 → bản 6) | 13 ý: 10 ý vào "gói", 3 ý thử có điều kiện |
-| Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện đã chấm 56, 90 và 68 cặp; còn hai lô chưa chấm xong |
+| Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện đã chấm đủ 90 cặp mỗi ý. Bản có Lá nhây và Học được chấm thêm trên 300 người: đạt 5 trên 9 điều kiện |
 
 Lượt Codex dùng cho việc này: 13 trên 15 lượt được giao (brainstorm 1, phản biện 9 lượt, chấm thử 3 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
 
@@ -287,7 +287,40 @@ Bản mẫu xem được ngay (chỉ chị mở được): https://claude.ai/art
 - **Học:** chỉ 1 trên 20 người mở bài học. Người đó chấm 5 và chọn Học là phần thích nhất. Hai người khác thoát trước khi thấy dòng dẫn tới bài. Tức là bài học tốt nhưng khó gặp.
 - **Sửa thành bản 7.1 trước lượt chấm lớn:** thêm lối vào bài học ngay từ câu của Lá ở Trang chủ ("Hôm nay Lá diễn một chiêu 3 phút"), không thêm khối mới; đưa dòng [Xem bài] trong ba lô lên cao hơn; thêm món "Chăm người nhà" cho người lớn tuổi.
 - **Điểm nhấn mình đề xuất: "Lá diễn".** Lá pixel nhây là thứ ai cũng thấy ngay ở màn đầu, và chính Lá dẫn vào bài học 3 phút khớp với chuyện của người dùng. Lá là thứ dễ chụp và dễ gửi; bài học là thứ làm người dùng thấy được giúp đúng chuyện của mình.
-- **Chấm lớn bản 7.1:** phiên chấm sẽ chạy sau 22:50 trên 300 người giả (gói), và từng phần riêng trên khoảng 91 cặp. Mốc đạt giữ nguyên.
+- **Chấm lớn bản 7.1 (xong 14.11 đêm):** gói có Lá nhây và Học so với kế hoạch cũ, trên 300 người giả chọn đều theo nhóm. **Đạt 5 trên 9 điều kiện** (bản chưa có Lá nhây và Học đạt 4 trên 9). Các mốc giữ nguyên.
+
+| | Kế hoạch cũ | Gói có Lá nhây và Học | Mốc | |
+|---|---|---|---|---|
+| Thấy được hiểu | 2,69 | 3,63 | 3,7 | chưa đạt |
+| Bớt một mình | 2,67 | 3,38 | 3,5 | chưa đạt |
+| Bình yên | 3,15 | 3,66 | 3,5 | đạt |
+| Muốn quay lại | 2,98 | 3,78 | — | — |
+| Gửi ảnh hoặc rủ ai đó | 0% | 16,7% | 35% | chưa đạt |
+
+  - **Mới đạt:** không còn ca chuyện vui chạm nỗi buồn (0 trên 7 người chơi); người dùng chung máy lên 3,55.
+  - **Mới trượt:** nhóm vừa học vừa làm được 3,33 (mốc 3,5). Nhóm này chỉ có 18 người trong mẫu 300, nên mới là tín hiệu.
+  - **Hai nhóm thấp nhất:** người ít quen điện thoại (2,50, 10 người) và người lớn tuổi (2,83, 18 người). Gói này vẫn nghiêng về người trẻ.
+  - Dự đoán mình ghi trước lượt chấm: thấy được hiểu 3,60–3,70; gửi hoặc rủ 12–18%; vẫn trượt "bớt một mình" và mốc 35%. Kết quả rơi đúng các khoảng đó. Điều mình không đoán trước là nhóm vừa học vừa làm tụt.
+
+- **Từng phần mới, chấm riêng trên 100 cặp** (so với gói chưa có phần đó):
+
+| Phần | Thấy được hiểu | Bớt một mình | Bình yên | Muốn quay lại | Gửi hoặc rủ |
+|---|---|---|---|---|---|
+| Lá nhây | +0,04 | **+0,36** | +0,15 | **+0,37** | **+17 điểm** |
+| Học theo bạn | +0,11 | +0,07 | +0,03 | +0,22 | +4 điểm |
+| 5 điểm sửa | **+0,24** | +0,06 | +0,15 | +0,21 | +4 điểm |
+
+- **Lá nhây là điểm nhấn rõ nhất theo số.** Nó kéo "bớt một mình", "muốn quay lại" và chia sẻ lên nhiều nhất trong mọi thứ đã thử, đúng vào ba chỗ gói đang yếu.
+  - Thấy bị Lá chọc hay phán xét: 1,8% (7 trên 400 người gặp Lá), đạt mốc 3%. Không ca nào Lá nhây sai lúc.
+  - Cả 7 người đều phản ứng với cùng một chỗ: các dáng "lè lưỡi, nhếch mép, lườm" khi chạm Lá. Mình sẽ bỏ dáng "lườm" khỏi nhóm này.
+- **Học theo bạn: được hiểu nhưng chưa êm.**
+  - 236 trên 300 người thấy lối vào, 104 người mở bài (25 từ lời mời của Lá, 70 từ ba lô, 9 từ Khám phá), 91 người đọc tới phần việc thử.
+  - Người mở bài chấm "thấy được hiểu" 3,91, cao hơn cả mốc 3,7. Nhưng "bình yên" chỉ 3,41, dưới mốc 3,5. Không ai thấy bị ép.
+  - Mình đọc là: bài học giống thêm một việc phải làm. Trước khi dựng sẽ sửa: việc thử là tùy chọn và nằm sau nút "Muốn thử", mood thấp thì bài chỉ có phần đọc.
+  - Chấm riêng, Học chưa đạt luật giữ (tăng thấy được hiểu 0,11, cần 0,2; tăng gửi hoặc rủ 4 điểm, cần 5).
+  - Dòng "theo lá số của bạn": 203 người thấy hợp, 4 người thấy nói quá (1,4%), 79 người không để ý.
+- **5 điểm sửa** làm "thấy được hiểu" tăng 0,24, đạt luật giữ.
+- Báo cáo đầy đủ: `qa/personas/report-concepts-v7.md` trên PR #506 (commit 3c74ccbd).
 
 ## 4. 13 ý đã rút gọn và điểm chấm
 
@@ -345,11 +378,11 @@ Codex chấm đối chiếu 40 người: thấy được hiểu 3,55; bớt mộ
 
 Theo luật ghi trước của phiên chấm, chỉ S1 được xếp "giữ"; cột Kết luận ở trên là đề xuất của mình sau khi đọc số, không phải kết quả đạt mốc.
 
-**Phần thử có điều kiện (so với gói; hai lô chưa chấm xong):**
-- S2 "Kể ra rồi thả" (56 cặp): thấy được hiểu +0,11; bình yên +0,25; 1 người lo riêng tư.
+**Phần thử có điều kiện (so với gói, đã chấm đủ):**
+- S2 "Kể ra rồi thả" (90 cặp): thấy được hiểu +0,08; bình yên +0,24; 2 người lo riêng tư.
 - S11 "Lá nhớ 7 ngày" (90 cặp): thấy được hiểu +0,12; bình yên −0,06; **15 người lo riêng tư**.
-- S12 "Ghim chuyện đang lo" (68 cặp): thấy được hiểu +0,21; bình yên −0,03; **7 người lo riêng tư**.
-- Chưa chấm xong: một lô của "Kể ra rồi thả" và một lô của "Ghim chuyện đang lo". Phiên chấm đang chạy nốt; hai số của hai ý này có thể đổi nhẹ.
+- S12 "Ghim chuyện đang lo" (90 cặp): thấy được hiểu +0,24; bình yên −0,03; **9 người lo riêng tư**.
+- Cả ba phần đã chấm đủ 90 cặp.
 
 **Người giả còn muốn gì** (đếm từ 1000 câu chê): Lá nhớ hoàn cảnh và lần trước (179); một bước cụ thể để làm (68); hợp ca làm, giờ giấc (81); được hỏi lại, được trò chuyện (73); chuyện tiền (61); nhớ nhà (59); chuyện sếp, chỗ làm (34).
 

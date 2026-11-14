@@ -165,12 +165,12 @@ Luật này đã ghi trước lượt chấm 14.11. Mốc riêng của từng t�
 
 | Việc | Mốc đạt | Số tham khảo |
 |---|---|---|
-| Mầm xanh ở màn đầu | Người giả chấm Lá từ 4,0; "muốn quay lại" tăng ít nhất 0,15; "bình yên" không giảm quá 0,05 | Chấm thử 20 người: 4,1; tăng 0,20; bình yên giảm 0,10, cần theo dõi |
-| Luật nhây | Thấy bị chọc, phán xét hay sai khiến không quá 3%; không ca nào Lá nhây khi mood thấp, khi chọn "Chỉ cần được nghe", hay ở phần hỗ trợ; nút "Lá yên chút" tắt được nhây tới hết ngày (đo bằng máy) | Chấm thử: 1 trên 20, đã bỏ câu gây ra |
+| Mầm xanh ở màn đầu | Người giả chấm Lá từ 4,0; "muốn quay lại" tăng ít nhất 0,15; "bình yên" không giảm quá 0,05 | Chấm riêng 100 cặp trên mô tả: muốn quay lại tăng 0,37; bình yên tăng 0,15; bớt một mình tăng 0,36; gửi hoặc rủ tăng 17 điểm |
+| Luật nhây | Thấy bị chọc, phán xét hay sai khiến không quá 3%; không ca nào Lá nhây khi mood thấp, khi chọn "Chỉ cần được nghe", hay ở phần hỗ trợ; nút "Lá yên chút" tắt được nhây tới hết ngày (đo bằng máy) | 300 người trên mô tả: 1,8%, không ca nào sai lúc. Cả 7 ca đều do dáng "lè lưỡi, nhếch mép, lườm"; sẽ bỏ dáng "lườm" |
 | Bỏ nút giọng và Cà khịa; thay Lá tím | Không còn màn nào hiện Lá tím hay nút giọng; bài đã lưu vẫn mở được (đo bằng máy) | Chưa làm |
-| Lối vào bài học | Trong người gặp lời mời, ít nhất 15% mở bài; trong người chọn "Một bước đầu", ít nhất 40% mở. Không ép hiện | Chấm thử: 1 trên 20, trước khi sửa lối vào |
-| 8 bài khớp chuyện trong ba lô | Người mở bài chấm từ 3,5 (mốc đã ghi trước); người mở bài nêu được việc mình sẽ thử; câu chê "thiếu một bước cụ thể để làm" giảm một nửa | Người duy nhất mở bài chấm 5; 68 câu chê trên 1000 |
-| Kiểu luyện theo lá số | Thấy nói quá không quá 3% | Chưa đủ số để nói |
+| Lối vào bài học | Trong người gặp lời mời, ít nhất 15% mở bài; trong người chọn "Một bước đầu", ít nhất 40% mở. Không ép hiện | 300 người trên mô tả: 236 thấy lối vào, 104 mở bài (44% số người thấy), 91 đọc tới việc thử |
+| 8 bài khớp chuyện trong ba lô | Người mở bài chấm "thấy được hiểu" và "bình yên" đều từ 3,5 (mốc đã ghi trước); người mở bài nêu được việc mình sẽ thử; câu chê "thiếu một bước cụ thể để làm" giảm một nửa | Trên mô tả: thấy được hiểu 3,91, đạt; **bình yên 3,41, chưa đạt**. Sửa trước khi dựng: việc thử là tùy chọn, mood thấp thì bài chỉ có phần đọc |
+| Kiểu luyện theo lá số | Thấy nói quá không quá 3% | Trên mô tả: 4 trên 286, tức 1,4% |
 | Thẻ "Bạn đáp câu nào?" và sticker ở 3 chỗ | Chấm riêng mỗi thứ: gửi hoặc rủ tăng ít nhất 5 điểm; ảnh không chứa dữ liệu riêng (đo bằng máy); gửi hoặc rủ của cả app từ 18% | Sticker chấm riêng tăng 40,7 điểm; cả app 10,5%. Không cộng mức tăng chấm riêng vào số cả app |
 
 ### Tuần 6. Khóa Tán crush, truyện, lời mở, mục Chơi
@@ -206,7 +206,7 @@ Chấm đủ 1000 người, Codex đối chiếu 40 người.
 8. Người dùng chung máy và người không có ai an toàn: từ 3,5, và không tụt quá 0,05.
 9. Không ca lộ dữ liệu riêng nào.
 
-Số tham khảo: đạt 4 trên 9 trên bản mô tả chưa có Mầm xanh và Học. Mốc gửi hoặc rủ 35% chưa có gì cho thấy đạt được bằng người giả.
+Số tham khảo: bản mô tả chưa có Mầm xanh và Học đạt 4 trên 9 (1000 người); bản có Mầm xanh và Học đạt 5 trên 9 (300 người), còn trượt thấy được hiểu (3,63), bớt một mình (3,38), nhóm vừa học vừa làm (3,33) và gửi hoặc rủ (16,7%). Hai nhóm thấp nhất là người ít quen điện thoại và người lớn tuổi. Mốc gửi hoặc rủ 35% chưa có gì cho thấy đạt được bằng người giả.
 
 ## Điều kiện bắt đầu còn thiếu, chốt trong tuần 1
 
@@ -226,5 +226,5 @@ Các mục này cần chị duyệt:
 ## Đã hoãn hoặc chưa có trong kế hoạch
 
 - **"Mời hẹn thử":** chị chốt chưa làm.
-- **Lá nhớ hoàn cảnh của người dùng:** điều người giả muốn nhất (179 câu chê trên 1000). Chưa vào kế hoạch vì cần chị quyết về lưu dữ liệu. Hai cách "nhớ" đã thử chỉ nâng điểm ít (0,12 và 0,21) và làm 10% đến 17% người lo riêng tư.
+- **Lá nhớ hoàn cảnh của người dùng:** điều người giả muốn nhất (179 câu chê trên 1000). Chưa vào kế hoạch vì cần chị quyết về lưu dữ liệu. Hai cách "nhớ" đã thử chỉ nâng điểm ít (0,12 và 0,24) và làm 10% đến 17% người lo riêng tư.
 - **Lá Dám trong app, phòng chơi từ xa, ô viết "Kể ra rồi thả":** để sau 7 tuần.
