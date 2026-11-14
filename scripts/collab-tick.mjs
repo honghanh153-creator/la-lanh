@@ -14,6 +14,7 @@ import { healthLines, readBeats, watch } from './collab-watchdog.mjs';
 import { alertMissed, ghIssues } from './collab-missed-run.mjs';
 import { pendingCount, readSaved, runCopyBatch, savedPath } from './codex-copy-review.mjs';
 import { hookHealth } from './collab-hooks.mjs';
+import { wrapperHealth } from './collab-ops-wrapper.mjs';
 import { runMergeAudit } from './collab-merge-audit.mjs';
 import { isMain } from './is-main.mjs';
 import { loadAuditDeps } from './collab-audit.mjs';
@@ -46,7 +47,7 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     watchdog: () => {
       try { alertMissed({ beats: readBeats(), issues: ghIssues(gh.raw) }); } catch {}
       return watch({ alert: text => opsAlert(gh, text, watchdogSubject), resolve: text => resolveOpsAlert(gh, text, watchdogSubject) });
-    }, health: () => [...healthLines(readBeats()), ...hookHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
+    }, health: () => [...healthLines(readBeats()), ...hookHealth(), ...wrapperHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
     audit: () => nightAudit(gh),
