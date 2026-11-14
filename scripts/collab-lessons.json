@@ -192,7 +192,18 @@
    "from": "test đầu–cuối hook trước push, 13.11",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/is-main.test.mjs",
+    "name": "symlinked CLI executes and preserves exit status"
+   },
+   "caller": {
+    "file": "scripts/collab-tick.mjs",
+    "contains": "isMain(import.meta.url)"
+   },
+   "closedBy": {
+    "pr": 484
+   }
   },
   {
    "id": "L17",

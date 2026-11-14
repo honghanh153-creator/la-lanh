@@ -19,9 +19,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { appendFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { integration, stateDir } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const dispatchLog = () => join(stateDir, 'dispatch.jsonl');
 const projectDir = join(homedir(), 'Documents', 'New project');
@@ -138,7 +138,7 @@ export async function realCanary() {
   } catch { return () => 'hook-checker-missing'; }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const all = process.argv.slice(2);
   const cut = all.indexOf('--');
   const args = cut >= 0 ? all.slice(0, cut) : all;

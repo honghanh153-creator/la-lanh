@@ -10,10 +10,11 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { dispatch } from './collab-dispatch.mjs';
 import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -261,6 +262,6 @@ export function runCopyBatch({ lock = () => { mkdirSync(stateDir, { recursive: t
   finally { release(); }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (isMain(import.meta.url)) {
   try { main(process.argv.slice(2)); } catch (error) { process.stderr.write(`codex-copy-review failed: ${error.message}\n`); process.exitCode = 1; }
 }
