@@ -35,10 +35,12 @@ export function claimedCriteria(body) {
 
 // The criteria of a task issue: each list item under "## Tiêu chí đạt". An item that names an id
 // (AC01, TC2) keeps it; otherwise it is TC<n> by position. An empty template line is not a criterion.
-export function issueCriteria(body) {
+// Two criteria with one id (a repeated id, or a positional TC<n> that another line names) are
+// ambiguous: a PR claiming that id would meet both (Codex r1 on #496), so they are reported.
+function parseCriteria(body) {
   const lines = String(body ?? '').normalize('NFC').split('\n');
   const start = lines.findIndex(l => /^##\s+Tiêu chí đạt\s*$/u.test(l.trim()));
-  if (start < 0) return [];
+  if (start < 0) return { ids: [], repeated: [] };
   const ids = [];
   for (const line of lines.slice(start + 1)) {
     if (/^##\s/.test(line.trim())) break;
@@ -47,13 +49,15 @@ export function issueCriteria(body) {
     const named = /\b(AC[\w-]*\d+|TC\d+)\b/.exec(m[2]);
     ids.push(named ? named[1].toUpperCase() : `TC${ids.length + 1}`);
   }
-  return [...new Set(ids)];
+  return { ids: [...new Set(ids)], repeated: [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))] };
 }
+export const issueCriteria = body => parseCriteria(body).ids;
 
 // One item: met when every criterion is claimed by a reviewed merged PR; metAt is the merge time
-// of the PR that completed the set (PRs are taken in merge order).
+// of the PR that completed the set (PRs are taken in merge order). Ambiguous criteria are never met.
 export function itemStatus(issueBody, prs, { reviewed = confirmClosed } = {}) {
-  const criteria = issueCriteria(issueBody);
+  const { ids: criteria, repeated } = parseCriteria(issueBody);
+  if (repeated.length) return { criteria, met: [], missing: criteria, metAt: null, prs: [], ambiguous: repeated };
   const met = new Set();
   let metAt = null;
   const counted = [];
@@ -80,37 +84,45 @@ export function plannedWork(turns) {
 }
 
 // Progress of the day's items. fetch(n) → { body, prs } for task issue n (prs: merged PRs into
-// integration that name it). A fetch that fails leaves the day unmeasured instead of reading as 0.
+// integration that name it). A fetch that fails leaves the day unmeasured instead of reading as 0;
+// an item with ambiguous criteria is unmeasured on its own (unclear) and never counts as finished.
 export function workProgress({ date, planned = [], fetch, reviewed = confirmClosed }) {
   const items = planned.filter(p => p.item);
   const unlinked = planned.filter(p => !p.item).map(p => p.pr);
   const finished = [];
   const open = [];
+  const unclear = [];
   try {
     for (const { item } of items) {
       const { body, prs } = fetch(item);
       const s = itemStatus(body, prs, { reviewed });
-      if (s.metAt && vnNow(new Date(s.metAt)).date === date) finished.push(item);
+      if (s.ambiguous) unclear.push({ item, ids: s.ambiguous });
+      else if (s.metAt && vnNow(new Date(s.metAt)).date === date) finished.push(item);
       else if (!s.metAt) open.push({ item, missing: s.criteria.length ? s.missing : ['chưa có tiêu chí'] });
     }
   } catch (error) { return { unmeasured: String(error?.message ?? error).slice(0, 200), picked: items.length, unlinked }; }
-  return { picked: items.length, finished, open, unlinked };
+  return { picked: items.length, finished, open, unlinked, unclear };
 }
 
 export function renderProgress(p) {
   if (!p) return null;
   if (p.unmeasured) return `Việc đạt tiêu chí: chưa đo được (${p.unmeasured}).`;
   const parts = [p.picked ? `${p.finished.length}/${p.picked} việc đã chọn đạt đủ tiêu chí` : 'chưa chọn việc nào có mã việc'];
+  if (p.unclear?.length) parts.push(`${p.unclear.length} việc chưa đo được vì có tiêu chí trùng mã (${p.unclear.map(u => `#${u.item}: ${u.ids.join(', ')}`).join('; ')})`);
   if (p.unlinked.length) parts.push(`${p.unlinked.length} PR chưa gắn việc (${p.unlinked.map(n => `#${n}`).join(', ')}), không tính`);
   return `Việc đạt tiêu chí: ${parts.join('; ')}.`;
 }
 
-// The real fetch: the issue body and the merged PRs into integration that name it.
-export function ghFetch(gh) {
+// The real fetch: the issue body and the merged PRs into integration that name it. gh pr list
+// returns at most `limit` PRs; a full page may hide older PRs, so it is unmeasured, not complete
+// (Codex r1 on #496).
+export const workHistoryLimit = 50;
+export function ghFetch(gh, { limit = workHistoryLimit } = {}) {
   return item => {
     const issue = gh.json(['issue', 'view', String(item), '--repo', repo, '--json', 'body']);
-    const found = gh.json(['pr', 'list', '--repo', repo, '--state', 'merged', '--base', integration, '--limit', '50',
+    const found = gh.json(['pr', 'list', '--repo', repo, '--state', 'merged', '--base', integration, '--limit', String(limit),
       '--search', `"Việc: #${item}" in:body`, '--json', 'number,body,state,baseRefName,headRefOid,comments,mergedAt']);
+    if (found.length >= limit) throw new Error(`việc #${item} có từ ${limit} PR trở lên, chưa đọc hết`);
     return { body: issue.body, prs: found.filter(pr => workRef(pr.body) === item) };
   };
 }

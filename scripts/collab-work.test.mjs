@@ -4,7 +4,7 @@ import { join } from 'node:path';
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-work-'));
 const assert = (await import('node:assert/strict')).default;
 const test = (await import('node:test')).default;
-const { claimedCriteria, issueCriteria, itemStatus, plannedWork, renderProgress, workProgress, workRef } = await import('./collab-work.mjs');
+const { claimedCriteria, ghFetch, issueCriteria, itemStatus, plannedWork, renderProgress, workHistoryLimit, workProgress, workRef } = await import('./collab-work.mjs');
 const { ownerNotes } = await import('./collab-status.mjs');
 
 // Synthetic issue and PRs only.
@@ -59,4 +59,32 @@ test('the items of the day are fixed at plan time and a failed read is unmeasure
   assert.match(digest, /Việc đạt tiêu chí: 0\/1 việc đã chọn đạt đủ tiêu chí\./);
   assert.match(digest, /Đã gộp 2 PR hôm nay \(số PR, không phải số việc\)\./);
   assert.doesNotMatch(digest, /Xong: 2\/2/, 'two merges are not two finished items');
+});
+
+// Codex r1 on #496 (P2): a positional TC2 collided with a line that names TC2, so one PR claiming
+// TC2 met both criteria. Ambiguous criteria now leave the item unmeasured and never finished.
+test('a criterion id used by two lines leaves the item unmeasured; one claim never meets both', () => {
+  const body = '## Tiêu chí đạt\n\n- [ ] TC2: render summary\n- [ ] preserve offline state\n';
+  const s = itemStatus(body, [merged(1, 'Việc: #12\nTiêu chí đạt: TC2', '2026-11-14T03:00:00Z')]);
+  assert.equal(s.metAt, null, 'a PR claiming only TC2 does not finish both criteria');
+  assert.deepEqual(s.ambiguous, ['TC2']);
+  const p = workProgress({ date: '2026-11-14', planned: [{ item: 12 }], fetch: () => ({ body, prs: [merged(1, 'Việc: #12\nTiêu chí đạt: TC2', '2026-11-14T03:00:00Z')] }) });
+  assert.deepEqual({ finished: p.finished, open: p.open, unclear: p.unclear }, { finished: [], open: [], unclear: [{ item: 12, ids: ['TC2'] }] });
+  assert.equal(renderProgress(p), 'Việc đạt tiêu chí: 0/1 việc đã chọn đạt đủ tiêu chí; 1 việc chưa đo được vì có tiêu chí trùng mã (#12: TC2).');
+  assert.deepEqual(itemStatus('## Tiêu chí đạt\n\n- [ ] AC01 a\n- [ ] AC01 b\n', []).ambiguous, ['AC01'], 'a repeated explicit id is ambiguous too');
+  assert.equal(itemStatus('## Tiêu chí đạt\n\n- [ ] TC1: a\n- [ ] b\n', []).ambiguous, undefined, 'a named id in its own position is not a collision');
+});
+
+// Codex r1 on #496 (P2): the history read took at most 50 PRs and treated them as all of them.
+test('a PR history that fills the read limit is unmeasured, not complete', () => {
+  const issueBody = { body: issue };
+  const many = n => Array.from({ length: n }, (_, i) => merged(100 + i, 'Việc: #12\nTiêu chí đạt: TC1', '2026-11-14T03:00:00Z'));
+  const gh = prs => ({ calls: [], json(args) { this.calls.push(args); return args[0] === 'issue' ? issueBody : prs; } });
+  const full = gh(many(workHistoryLimit));
+  const p = workProgress({ date: '2026-11-14', planned: [{ item: 12 }], fetch: ghFetch(full) });
+  assert.equal(renderProgress(p), `Việc đạt tiêu chí: chưa đo được (việc #12 có từ ${workHistoryLimit} PR trở lên, chưa đọc hết).`);
+  assert.equal(full.calls[1][full.calls[1].indexOf('--limit') + 1], String(workHistoryLimit));
+  const below = workProgress({ date: '2026-11-14', planned: [{ item: 12 }], fetch: ghFetch(gh(many(workHistoryLimit - 1))) });
+  assert.equal(below.unmeasured, undefined, 'one PR under the limit is the whole history');
+  assert.deepEqual(below.open, [{ item: 12, missing: ['AC07'] }]);
 });
