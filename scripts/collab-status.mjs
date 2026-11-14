@@ -107,7 +107,7 @@ export const plainTitle = title => clean(String(title ?? ''), 90).replace(/^[a-z
 const named = t => `${plainTitle(t.title)} (#${t.number})`;
 const list = (items, none) => (items.length ? items.map(named).join('; ') : none);
 
-export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, turns = [], planned = [], dropped = [], metrics = [], digest = true }) {
+export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, turns = [], planned = [], dropped = [], metrics = [], digest = true, work = null }) {
   const notes = merged.map(m => ({ key: `merged-${m.number}`, lines: [`Đã gộp vào integration: ${named(m)}.`] }));
   if (failures >= 2 && streakAt) notes.push({ key: `stuck-${now.date}-${streakAt.replace(':', '')}`, lines: [`Vòng tự động bị lỗi ${failures} lượt liền từ ${streakAt}. Chi tiết ở bảng trạng thái.`] });
   const waiting = turns.filter(t => t.turn === 'hold' && t.reason === 'needs-owner');
@@ -121,7 +121,9 @@ export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, tu
     const active = turns.filter(t => t.turn !== 'hold');
     notes.push({ key: `digest-${now.date}-${slot}`, lines: [
       `**Tóm tắt ${slot}:00**`,
-      picked.length ? `- Xong: ${finished}/${picked.length} việc đã chọn hôm nay; đã gộp ${merged.length} PR.` : `- Xong: đã gộp ${merged.length} PR hôm nay.`,
+      // L11: progress is items whose criteria are met; merges are reported on their own line.
+      ...(work ? [`- ${work() ?? 'Việc đạt tiêu chí: chưa đo được.'}`, `- Đã gộp ${merged.length} PR hôm nay (số PR, không phải số việc).`]
+        : [picked.length ? `- Xong: ${finished}/${picked.length} việc đã chọn hôm nay; đã gộp ${merged.length} PR.` : `- Xong: đã gộp ${merged.length} PR hôm nay.`]),
       `- Đang làm: ${list(active.slice(0, 2), 'không có')}.`,
       `- Chờ bạn: ${list(waiting, 'không có')}.`,
       `- Tiếp theo: ${active[2] ? named(active[2]) : 'Claude chọn việc kế tiếp từ backlog khi có chỗ'}.`,
