@@ -1233,9 +1233,9 @@ test('copy batch: an owner "Duyệt" before 08:00 still waits for the 08:00 auto
 // #508 (Codex 14.11): synthetic CI results; the fake check posts nothing, so only the key stops a repeat.
 const ciFail = (sha, extra = {}) => owner(renderCheck({ head: sha, status: 'FAIL', date: 'x', ci: { conclusion: 'failure', url: 'u' }, ...extra }));
 const green = (extra = {}) => () => ({ state: 'PASS', conclusion: 'success', url: 'u', runId: 5, attempt: 2, completedAt: '2026-11-14T03:00:00Z', ...extra });
-const recheckTick = (date, open, { ci = green(), check = () => ({ status: 'PASS' }), gh = plannedGh(open, date) } = {}) => {
+const recheckTick = (date, open, { ci = green(), check = () => ({ status: 'PASS' }), gh = plannedGh(open, date), preflight } = {}) => {
   const checked = [];
-  const result = tick({ gh, now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), ciStatus: ci, check: (n, o) => { checked.push(n); return check(n, o); } });
+  const result = tick({ gh, now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }), ciStatus: ci, ...(preflight ? { prPreflight: preflight } : {}), check: (n, o) => { checked.push(n); return check(n, o); } });
   return { checked, result };
 };
 const rechecked = date => JSON.parse(readFileSync(trust.dayStatePath(date), 'utf8')).rechecked ?? [];
@@ -1286,4 +1286,31 @@ test('#508: a busy or failed recheck keeps no key and is retried; a head change 
   assert.deepEqual(rechecked(date), [], 'the head moved during the check: nothing recorded');
   assert.deepEqual(recheckTick(date, open).checked, [162]);
   assert.deepEqual(rechecked(date), [`162@${A}#5.2`]);
+});
+
+test('#508: two older REQUEST_CHANGES verdicts add a repeat note but the green re-run is still rechecked', () => {
+  const date = '2026-12-14';
+  const rc = owner(`Review verdict: REQUEST_CHANGES @ ${B}`);
+  const open = [pr({ number: 163, comments: [rc, owner(`Review verdict: REQUEST_CHANGES @ ${B}`), ciFail(A)] })];
+  const [turn] = turnsFor(open, { preflight: {} });
+  assert.match(turn.reason, /lần REQUEST_CHANGES/, 'the display reason carries the repeat note');
+  assert.deepEqual(recheckTick(date, open).checked, [163], 'rechecked despite the note');
+  assert.equal(turn.cause, 'author-fail', 'the routing cause survives the note');
+  assert.deepEqual(rechecked(date), [`163@${A}#5.2`]);
+});
+
+test('#508: a preflight FAIL on a recheck holds only that body; a body-only fix is rechecked', () => {
+  const date = '2026-12-15';
+  const noG1 = goodBody.replace(/^.*G1 Tài liệu:.*\n/m, '');
+  const before = [pr({ number: 164, body: noG1, comments: [ciFail(A)] })];
+  const pre = n => preflightMod.runPreflight(before.find(p => p.number === n));
+  assert.equal(pre(164).status, 'FAIL', 'the synthetic body misses G1');
+  const key = `164@${A}#5.2|body:${turnsFor(before, { preflight: {} })[0].bodyHash}`;
+  assert.deepEqual(recheckTick(date, before, { preflight: pre }).checked, [], 'preflight stops before the check');
+  assert.deepEqual(rechecked(date), [key], 'the key is spent for this body only');
+  assert.deepEqual(recheckTick(date, before, { preflight: pre }).checked, [], 'the same body is not rechecked');
+  const after = [{ ...before[0], body: goodBody }];
+  const fixed = recheckTick(date, after, { preflight: n => preflightMod.runPreflight(after.find(p => p.number === n)) });
+  assert.deepEqual(fixed.checked, [164], 'a body-only correction is rechecked');
+  assert.deepEqual(rechecked(date), [key, `164@${A}#5.2`]);
 });

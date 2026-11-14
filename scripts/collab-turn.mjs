@@ -32,12 +32,10 @@ export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
   return order.slice(0, order.indexOf(pr)).find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;
 }
 
-export const failReason = 'Author check FAIL @ head';
-
 export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   const head = pr.headRefOid;
-  const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
-    source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body) });
+  const out = (turn, reason, extra = {}) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
+    source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body), ...extra });
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (!isOwnPr(pr)) return out('hold', 'PR không phải của owner hoặc từ fork: không chạy, không review');
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
@@ -60,7 +58,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   // review or merge without it. The cap is applied here too, before review and merge routing.
   const size = sizeProblem(pr);
   if (size) return out('claude-fix', `preflight: ${clean(size, 200)}`);
-  if (check.status === 'FAIL') return out('claude-fix', failReason);
+  // #508: `cause` routes the CI recheck; the reason text may gain a repeat note (collab-size).
+  if (check.status === 'FAIL') return out('claude-fix', 'Author check FAIL @ head', { cause: 'author-fail' });
   if (!last || last.sha !== head) return out('codex-review', last ? `verdict cuối cho ${last.sha.slice(0, 7)}` : 'chưa có verdict');
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
   return out('merge', 'APPROVE @ head');
@@ -96,6 +95,8 @@ export function ciFailAtHead(pr) {
   return last;
 }
 export const recheckKey = (number, head, ci) => `${number}@${head}#${ci.runId}.${ci.attempt}`;
+// A preflight FAIL spends the key only for that PR body, so a body-only fix is checked again.
+const bodyKey = (key, hash) => `${key}|body:${hash}`;
 const prevDate = date => new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
 // Keys live in the day state; yesterday's file is read too, so midnight does not reset them.
 export const recheckedKeys = date => new Set([prevDate(date), date].flatMap(d => readJson(dayStatePath(d), {}).rechecked ?? []));
@@ -103,14 +104,14 @@ export const recheckedKeys = date => new Set([prevDate(date), date].flatMap(d =>
 export function ciRechecks(turns, prs, { ci, seen = new Set(), log = () => {} } = {}) {
   if (!ci) return turns;
   return turns.map(t => {
-    const pr = t.turn === 'claude-fix' && t.reason === failReason ? prs.find(p => p.number === t.number) : null;
+    const pr = t.turn === 'claude-fix' && t.cause === 'author-fail' ? prs.find(p => p.number === t.number) : null;
     const fail = pr ? ciFailAtHead(pr) : null;
     if (!fail) return t;
     let run;
     try { run = ci(t.head); } catch (error) { log(`ci recheck #${t.number}: ${clean(error.message, 200)}`); return t; }
     const green = run?.state === 'PASS' && run.conclusion === 'success' && Date.parse(run.completedAt) > Date.parse(fail.createdAt);
     const key = green ? recheckKey(t.number, t.head, run) : null;
-    if (!key || seen.has(key)) return t;
+    if (!key || seen.has(key) || seen.has(bodyKey(key, t.bodyHash))) return t;
     return { ...t, turn: 'claude-check', reason: 'CI chạy lại xanh ở cùng head: check lại (#508)', recheck: key };
   });
 }
@@ -227,15 +228,16 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const front = work.find(t => t.turn !== 'merge' && !mergedNow.has(t.number))?.number ?? null;
       const startedMs = nowMs();
       let checks = 0;
-      // #508: a recheck is spent only by a receipt or a preflight result on an unchanged head;
-      // busy, pending, refused or a throw leaves the key unset, so the next tick retries.
+      // #508: a recheck is spent only by a receipt or a preflight result on an unchanged head (a
+      // preflight result only for that body); busy, pending, refused or a throw leaves the key unset.
       const markRechecked = (t, status) => {
         if (!t.recheck || !['PASS', 'FAIL', 'preflight'].includes(status)) return;
         let head = null;
         try { head = gh.pr(t.number).headRefOid; } catch (error) { log(`recheck head #${t.number}: ${clean(error.message, 200)}`); }
         if (head !== t.head) return;
+        const key = status === 'preflight' ? bodyKey(t.recheck, t.bodyHash) : t.recheck;
         const d = readJson(dayPath, day);
-        writeJson(dayPath, { ...d, rechecked: [...new Set([...(d.rechecked ?? []), t.recheck])] });
+        writeJson(dayPath, { ...d, rechecked: [...new Set([...(d.rechecked ?? []), key])] });
       };
       for (const t of work.filter(t => t.turn === 'claude-check')) {
         if (late() || checks >= checksPerTick || nowMs() - startedMs > drainMinutes * 60000) break;
