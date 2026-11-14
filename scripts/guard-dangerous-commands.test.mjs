@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { copyFileSync, mkdtempSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { blockReason, isWholeTree } from './guard-dangerous-commands.mjs';
@@ -134,4 +137,19 @@ test('hook exits 2 with a reason on stdin JSON', () => {
   assert.equal(bad.status, 2);
   assert.match(bad.stderr, /Đã chặn/);
   assert.equal(run('ls').status, 0);
+});
+
+// Lesson L16: started through a symlink, or as the lone copy in ~/.claude/hooks/, the hook must still
+// block; the old entry check exited 0 there without looking at the command.
+test('the hook blocks when started through a symlink or as a standalone copy', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-hook-'));
+  const copy = join(dir, 'guard-dangerous-commands.mjs');
+  copyFileSync(fileURLToPath(new URL('./guard-dangerous-commands.mjs', import.meta.url)), copy);
+  const link = join(dir, 'link.mjs');
+  symlinkSync(copy, link);
+  for (const script of [copy, link]) {
+    const run = cmd => spawnSync(process.execPath, [script], { input: JSON.stringify({ tool_input: { command: cmd } }), encoding: 'utf8' });
+    assert.equal(run('git push --force origin main').status, 2, script);
+    assert.equal(run('git status').status, 0, script);
+  }
 });

@@ -5,8 +5,8 @@
 // Installed in .claude/settings.json; a copy lives in ~/.claude/hooks/ for every clone.
 // Best-effort layer behind the sandbox and the main ruleset: a shell parser cannot be complete, so a new
 // bypass class is a follow-up issue, not a reason to trust this hook alone.
-import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { readFileSync, realpathSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const tempRoots = ['/tmp/', '/private/tmp/', '/private/var/folders/', '$TMPDIR/', '${TMPDIR}/'];
 const generated = new Set(['node_modules', 'dist', 'build', '.next', '.turbo', 'coverage', 'test-results', 'playwright-report']);
@@ -208,7 +208,14 @@ export function blockReason(command = '', depth = 0) {
   return null;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+// Same check as scripts/is-main.mjs (lesson L16: a symlinked path must not skip the guard and exit 0),
+// inlined because the hook is also copied on its own to ~/.claude/hooks/.
+function startedHere(argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  try { return realpathSync(argv1) === realpathSync(fileURLToPath(import.meta.url)); }
+  catch { return import.meta.url === pathToFileURL(argv1).href; }
+}
+if (startedHere()) {
   let input = {};
   try { input = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch { process.exit(0); }
   const why = blockReason(input?.tool_input?.command);

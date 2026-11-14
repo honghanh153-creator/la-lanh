@@ -5,8 +5,8 @@
 // Usage: node scripts/collab-pr-metrics.mjs [--days 7] [--json]
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { integration, makeGh, repo, stateDir } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 const verdicts = body => [...String(body ?? '').matchAll(/Review verdict:\s*(APPROVE|REQUEST_CHANGES)/g)].map(m => m[1]);
 
@@ -35,7 +35,7 @@ export const reworkRefs = items => new Set(items
   .filter(i => /^\s*revert\b/i.test(i.title ?? '') || (i.labels ?? []).some(l => /^(fix-forward|revert)$/i.test(l.name ?? l)))
   .flatMap(i => [...`${i.title} ${i.body ?? ''}`.matchAll(/#(\d+)/g)].map(m => Number(m[1]))));
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (isMain(import.meta.url)) {
   const days = Number(process.argv[process.argv.indexOf('--days') + 1]) || 7;
   const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
   const gh = makeGh();
