@@ -6,8 +6,8 @@
 // agent/claude/copy-batch-YYYYMMDD; the script never writes main or collab/integration and
 // never posts owner reply words.
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -53,6 +53,26 @@ export function recordRejected(decisions, reviewed, path = rejectedPath) {
 
 // The tick's cheap check: pending entries Codex may approve, read from this checkout (the ops clone
 // is pinned to collab/integration before each tick).
+// 13.11.2026: the first live batch failed at the commit, after Codex had already decided, and the
+// tick then skipped the rest of the day, so a whole Codex run was lost and nobody was told. Codex's
+// decisions are now saved before anything is published; a later run publishes the saved decisions
+// without calling Codex again. The digest check in applyDecisions still leaves any text that
+// changed since the review untouched. Saved decisions older than savedMaxDays are dropped.
+export const savedPath = join(stateDir, 'copy-decisions.json');
+export const savedMaxDays = 3;
+export function readSaved(path, today) {
+  let saved;
+  try { saved = JSON.parse(readFileSync(path, 'utf8')); } catch { return null; }
+  if (!saved || !Array.isArray(saved.decisions) || !Array.isArray(saved.reviewed) || !/^\d{4}-\d{2}-\d{2}$/.test(saved.date ?? '')) return null;
+  const age = (Date.parse(today) - Date.parse(saved.date)) / 86400000;
+  return age >= 0 && age <= savedMaxDays ? saved : null;
+}
+export function writeSaved(path, saved) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(saved)}\n`);
+}
+export const dropSaved = path => { try { rmSync(path, { force: true }); } catch {} };
+
 export const readLocalRegistry = () => JSON.parse(readFileSync(join(root, registryRel), 'utf8'));
 export const pendingCount = (registry = readLocalRegistry(), rejected = readRejected()) => unreviewed(registry, rejected).length;
 
@@ -126,24 +146,37 @@ function runCodex(prompt, outPath, run) {
 
 // Writes the batch on its own branch from the reviewed integration commit and opens a PR, so a
 // newer integration change to the registry is merged by git, never overwritten.
-function openBatchPr(registry, body, date, base, run) {
-  const branch = `agent/claude/copy-batch-${date.replaceAll('-', '')}`;
+// One branch per attempt, named by the attempt's own date and time plus a random suffix, so a
+// retry never collides with the local or remote branch a failed attempt left behind, also when
+// saved decisions from an earlier day are retried at the same clock time (Codex 13.11 on #480).
+// The tick's open-batch check matches the prefix.
+export const batchBranch = (at = vnNow(), nonce = randomBytes(3).toString('hex')) =>
+  `agent/claude/copy-batch-${at.date.replaceAll('-', '')}-${String(at.hour).padStart(2, '0')}${String(at.minute).padStart(2, '0')}-${nonce}`;
+
+function openBatchPr(registry, body, date, base, run, at) {
+  const branch = batchBranch(at);
   const dir = mkdtempSync(join(tmpdir(), 'copy-batch-'));
   const git = args => run('git', args, { cwd: root, encoding: 'utf8' });
   git(['worktree', 'add', '-q', '-b', branch, join(dir, 'w'), base]);
   const work = join(dir, 'w');
   // The tick runs this daily from the ops clone: drop the worktree (and its venv) when done.
   try { return publishBatch(registry, body, date, branch, work, dir, run); }
-  finally { try { git(['worktree', 'remove', '--force', work]); } catch {} }
+  finally {
+    try { git(['worktree', 'remove', '--force', work]); } catch {}
+    try { git(['branch', '-D', branch]); } catch {}
+  }
 }
+
+// The ops clone has no git identity; name the agent as the auto-sync merge does (13.11: the first
+// batch failed here). Exported so a test commits with these exact arguments in a real repository.
+export const commitArgs = date => ['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', `content(copy): Codex copy batch ${date}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`];
 
 function publishBatch(registry, body, date, branch, work, dir, run) {
   writeFileSync(join(work, registryRel), `${JSON.stringify(registry, null, 1)}\n`);
   run('uv', ['run', 'python', '-m', 'scripts.fallback_approval'], { cwd: join(work, 'apps/api'), encoding: 'utf8' });
   const at = args => run('git', args, { cwd: work, encoding: 'utf8' });
   at(['add', registryRel, 'docs/operations/fallback-approval.json']);
-  // The ops clone has no git identity; name the agent as the auto-sync merge does (13.11: the first batch failed here).
-  at(['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', `content(copy): Codex copy batch ${date}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`]);
+  at(commitArgs(date));
   at(['push', '-q', 'origin', `HEAD:${branch}`]);
   const bodyPath = join(dir, 'body.md');
   writeFileSync(bodyPath, body);
@@ -152,7 +185,8 @@ function publishBatch(registry, body, date, branch, work, dir, run) {
   { cwd: work, encoding: 'utf8' }).trim();
 }
 
-export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null, rejectedFile = registryPath ? null : rejectedPath } = {}) {
+export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null, rejectedFile = registryPath ? null : rejectedPath,
+  savedFile = registryPath ? null : savedPath, progress = {}, at = vnNow() } = {}) {
   const dryRun = argv.includes('--dry-run');
   const fakeAt = argv.indexOf('--fake-codex');
   // Review a pinned integration snapshot unless a test passes its own registry file.
@@ -166,36 +200,54 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
     base = git(['rev-parse', `origin/${integration}`]);
     registry = JSON.parse(git(['show', `${base}:${registryRel}`]));
   }
-  const pending = batchFor(registry, rejectedFile ? readRejected(rejectedFile) : {});
-  if (!pending.length) { out.write('no pending copy\n'); return { status: 'empty' }; }
-  const date = vnNow().date;
-  const result = fakeAt >= 0
-    ? JSON.parse(readFileSync(argv[fakeAt + 1], 'utf8'))
-    : runCodex(buildPrompt(pending), join(mkdtempSync(join(tmpdir(), 'copy-codex-')), 'out.json'), run);
-  const decisions = validateDecisions(result, pending);
-  const reviewed = new Map(pending.map(e => [e.id, digest(e.text)]));
+  const saved = dryRun || !savedFile ? null : readSaved(savedFile, at.date);
+  let date, decisions, reviewed;
+  if (saved) {
+    // Publish what Codex already decided; no new Codex run.
+    progress.reused = true;
+    ({ date, decisions } = saved);
+    reviewed = new Map(saved.reviewed);
+  } else {
+    const pending = batchFor(registry, rejectedFile ? readRejected(rejectedFile) : {});
+    if (!pending.length) { out.write('no pending copy\n'); return { status: 'empty' }; }
+    date = at.date;
+    if (fakeAt < 0) progress.codexRan = true;
+    const result = fakeAt >= 0
+      ? JSON.parse(readFileSync(argv[fakeAt + 1], 'utf8'))
+      : runCodex(buildPrompt(pending), join(mkdtempSync(join(tmpdir(), 'copy-codex-')), 'out.json'), run);
+    decisions = validateDecisions(result, pending);
+    reviewed = new Map(pending.map(e => [e.id, digest(e.text)]));
+    if (!dryRun && savedFile) writeSaved(savedFile, { date, decisions, reviewed: [...reviewed] });
+  }
   const next = applyDecisions(registry, decisions, date, reviewed);
   const changed = next.entries.some((e, i) => e !== registry.entries[i]);
   const body = renderBody(decisions, date);
   if (!dryRun && rejectedFile) recordRejected(decisions, reviewed, rejectedFile);
   if (dryRun) { out.write(`${JSON.stringify({ registry: next, body }, null, 1)}\n`); return { status: 'dry-run', registry: next, body }; }
-  if (!changed) { out.write('no copy approved in this batch\n'); return { status: 'no-approvals', registry: next, body }; }
+  if (!changed) {
+    if (savedFile) dropSaved(savedFile);
+    out.write('no copy approved in this batch\n'); return { status: 'no-approvals', registry: next, body };
+  }
   if (!base) throw new Error('publishing needs the integration snapshot (no --registry file)');
-  const url = openBatchPr(next, body, date, base, run);
+  const url = openBatchPr(next, body, date, base, run, at);
+  if (savedFile) dropSaved(savedFile);
   out.write(`${url}\n`);
   return { status: 'opened', url };
 }
 
 // The tick's entry: shares review.lock with codex-review.mjs (one Codex job on the machine at a
 // time). Busy means nothing started; the tick retries on its next run.
+// `codex` says whether this run spent a Codex call, so the tick counts the daily cap honestly,
+// also when the run failed after Codex answered.
 export function runCopyBatch({ lock = () => { mkdirSync(stateDir, { recursive: true }); return acquireLock(join(stateDir, 'review.lock'), { staleMs: 45 * 60000 }); },
-  run = () => main([], { out: { write: () => {} } }) } = {}) {
+  run = progress => main([], { out: { write: () => {} }, progress }) } = {}) {
   const release = lock();
   if (!release) return { status: 'busy' };
+  const progress = {};
   try {
-    const result = run();
-    return { status: result.status, ...(result.url ? { url: result.url } : {}) };
-  } catch (error) { return { status: 'error', reason: clean(error.message, 300) }; }
+    const result = run(progress);
+    return { status: result.status, codex: Boolean(progress.codexRan), ...(result.url ? { url: result.url } : {}) };
+  } catch (error) { return { status: 'error', codex: Boolean(progress.codexRan), reason: clean(error.message, 300) }; }
   finally { release(); }
 }
 
