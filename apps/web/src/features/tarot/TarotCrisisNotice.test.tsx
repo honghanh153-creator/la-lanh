@@ -27,7 +27,7 @@ vi.mock("../../shared/api/client", async (original) => {
   };
 });
 
-const NOTICE = "Ứng dụng không hỗ trợ nội dung này.";
+const NOTICE = "Mình rất tiếc vì bạn đang phải chịu điều này. Tarot không thể hỗ trợ tình huống này. Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ hỗ trợ khẩn cấp.";
 
 function crisisProblem() {
   return new ApiProblem(422, "CRISIS_NOTICE", "Content is not supported", {

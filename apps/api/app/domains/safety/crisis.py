@@ -33,10 +33,14 @@ from app.domains.content.copy_approval import copy_text
 MAX_SCAN_CHARS = 2048
 
 CRISIS_COPY_ID = "crisis.self_harm.notice"
-# Owner decision 14.11.2026, owner's own wording ("app không hỗ trợ"): the only text shown on a
+# Owner decision 14.11.2026 (owner chose the sentence Codex proposed): the only text shown on a
 # match; no hotline numbers and no links. Registered in copy_registry.json (category crisis,
 # approver owner). A test keeps this identical to the registry entry; change both or neither.
-CRISIS_NOTICE_TEXT = "Ứng dụng không hỗ trợ nội dung này."
+CRISIS_NOTICE_TEXT = (
+    "Mình rất tiếc vì bạn đang phải chịu điều này. Tarot không thể hỗ trợ tình huống này. "
+    "Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ hỗ "
+    "trợ khẩn cấp."
+)
 
 
 @dataclass(frozen=True)

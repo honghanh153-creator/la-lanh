@@ -9147,11 +9147,11 @@
   {
    "id": "crisis.self_harm.notice",
    "category": "crisis",
-   "text": "Ứng dụng không hỗ trợ nội dung này.",
+   "text": "Mình rất tiếc vì bạn đang phải chịu điều này. Tarot không thể hỗ trợ tình huống này. Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ hỗ trợ khẩn cấp.",
    "status": "approved",
    "approver": "owner",
    "date": "2026-11-14",
-   "digest": "1694296bfab3caae09262acbfcb67baaf23573e2a49bc7b880ac76c1bca6ef40"
+   "digest": "8035992f7ac5142cf7daea5a242e02c432f3ef0912829d1938f83de79806ea63"
   }
  ],
  "version": "copy-registry/v1"

@@ -14,6 +14,13 @@ from app.domains.safety.crisis import (
 )
 from tests.safety.crisis_phrases import NEGATIVES, POSITIVES
 
+# The owner's exact sentence (chat, 14.11.2026; owner chose the sentence Codex proposed).
+OWNER_TEXT_14_11 = (
+    "Mình rất tiếc vì bạn đang phải chịu điều này. Tarot không thể hỗ trợ tình huống này. "
+    "Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ "
+    "hỗ trợ khẩn cấp."
+)
+
 
 def test_the_table_is_large_and_has_no_overlap() -> None:
     assert len(POSITIVES) + len(NEGATIVES) >= 60
@@ -54,7 +61,7 @@ def test_notice_is_the_owner_approved_registry_entry() -> None:
     assert entry.status == "approved" and entry.approver == "owner"
     assert entry.date == "2026-11-14"
     assert entry.digest == copy_digest(CRISIS_NOTICE_TEXT)
-    assert entry.text == CRISIS_NOTICE_TEXT == "Ứng dụng không hỗ trợ nội dung này."
+    assert entry.text == CRISIS_NOTICE_TEXT == OWNER_TEXT_14_11
     assert entry.servable
     assert crisis_notice().text == CRISIS_NOTICE_TEXT
 
