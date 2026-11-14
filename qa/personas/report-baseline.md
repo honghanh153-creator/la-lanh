@@ -63,7 +63,7 @@ Nhóm khá nhất là sinh viên hay so sánh trên mạng xã hội (2,55 đi�
 - Bốn lô giám khảo (mục được xáo ngẫu nhiên) cho trung bình 2,18–2,29, mục 2 điểm 67–80/99 mỗi lô. Chưa đo độ khớp giữa hai giám khảo trên **cùng** mục.
 - Mô hình quay lại là luật tự đặt. Hiệu chỉnh khớp D7 và D28 công bố, nhưng D1 tham chiếu (33%) cao hơn số công bố (25%).
 - Phần web chỉ lấy câu Lá đáp lại mood. Không chạy trình duyệt cho 2.900 ngày-người.
-- Hồ sơ người giả hiện do Claude viết trên bộ khung có tỉ lệ cố định. Owner muốn neo thêm vào số liệu tổng hợp đã công bố về giới trẻ Việt Nam (dùng điện thoại, mạng xã hội, game, chi tiêu). Việc đó đang làm, sẽ chạy lại khi xong.
+- Hồ sơ người giả hiện do Claude viết trên bộ khung có tỉ lệ cố định. Owner muốn neo thêm vào số liệu tổng hợp đã công bố về giới trẻ Việt Nam. Kết quả tra cứu đã qua kiểm chứng: [youth-stats-2026-11-14.md](youth-stats-2026-11-14.md). So với số đó, mức tin chiêm tinh của người giả đã khớp (72% so với 75%). Hai chỗ lệch: chỉ 21/78 người giả từ 26 tuổi trở xuống nhắc TikTok, trong khi TikTok là app dùng nhiều nhất ở nhóm này; và không sinh viên giả nào tiêu từ 5 triệu/tháng trở lên, trong khi số đo là 19–32% tùy thành phố. Game, làm thêm, ví điện tử và Tarot chưa có số qua kiểm chứng.
 - Không dùng dữ liệu của người thật nào, kể cả mạng xã hội.
 
 ## Trong lúc làm đã sửa
