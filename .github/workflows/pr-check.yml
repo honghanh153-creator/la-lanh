@@ -53,6 +53,13 @@ jobs:
           done <<< "$files"
           echo "level=$level" >> "$GITHUB_OUTPUT"
           echo "scope: $level"
+      # L09 (agreement 12.11 item G): every research conclusion points to a source that was read.
+      # Runs on every PR, docs-only included; new research files in full, older ones by their added lines.
+      - name: Research conclusions cite read sources
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/research-sources.mjs --base "$BASE_SHA" --head "$HEAD_SHA"
 
   check:
     needs: scope
