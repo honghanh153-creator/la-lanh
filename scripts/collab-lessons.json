@@ -45,7 +45,18 @@
    "from": "thỏa thuận 12.11 mục A",
    "who": "claude",
    "due": "2026-11-20",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/qa-journey-lib.test.mjs",
+    "name": "a dropped synthesis or placeholder text fails; valid sparse data passes"
+   },
+   "caller": {
+    "file": "scripts/qa-cli-smoke.mjs",
+    "contains": "contentVerdict("
+   },
+   "closedBy": {
+    "pr": 498
+   }
   },
   {
    "id": "L04",
@@ -104,7 +115,18 @@
    "from": "thỏa thuận 12.11 mục G",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/research-sources.test.mjs",
+    "name": "a conclusion without a read source is rejected even with many URLs"
+   },
+   "caller": {
+    "file": ".github/workflows/pr-check.yml",
+    "contains": "research-sources.mjs"
+   },
+   "closedBy": {
+    "pr": 499
+   }
   },
   {
    "id": "L10",
@@ -155,7 +177,18 @@
    "from": "retro 12.11 S25",
    "who": "claude",
    "due": "2026-11-20",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "only the front PR of the area is synced before its check; waiting PRs get no merge commit"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "sync: t.number === front"
+   },
+   "closedBy": {
+    "pr": 495
+   }
   },
   {
    "id": "L15",
