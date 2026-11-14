@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.crisis_guard import install_crisis_guard
 from app.api.input_problem import install_input_problem
 from app.api.v1.router import router as v1_router
 from app.api.v1.routes.content_studio import router as content_studio_router
@@ -420,6 +421,7 @@ def create_app(
             tags=["content-studio"],
         )
     install_input_problem(application)
+    install_crisis_guard(application)
     application.add_api_route(
         "/metrics",
         metrics_response,

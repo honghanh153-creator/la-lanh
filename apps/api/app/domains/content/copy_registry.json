@@ -9143,6 +9143,15 @@
    "category": "reading",
    "text": "Ảnh chuyến đi biển cả nhóm đang chờ, nhưng bạn muốn sửa ánh sáng xong từng tấm mới gửi.",
    "status": "pending"
+  },
+  {
+   "id": "crisis.self_harm.notice",
+   "category": "crisis",
+   "text": "Ứng dụng không hỗ trợ nội dung này.",
+   "status": "approved",
+   "approver": "owner",
+   "date": "2026-11-14",
+   "digest": "1694296bfab3caae09262acbfcb67baaf23573e2a49bc7b880ac76c1bca6ef40"
   }
  ],
  "version": "copy-registry/v1"
