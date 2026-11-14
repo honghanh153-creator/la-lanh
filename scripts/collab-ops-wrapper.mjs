@@ -5,8 +5,9 @@
 // Usage: node scripts/collab-ops-wrapper.mjs --install | --verify
 import { chmodSync, existsSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { stateDir } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const sourcePath = (root = repoRoot) => join(root, 'scripts', 'ops-run.sh');
@@ -43,7 +44,7 @@ export function wrapperHealth(opts) {
   } catch (error) { return [`- ⚠️ ops-run.sh của tác vụ hẹn giờ: chưa kiểm được (${error.message})`]; }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   try {
     if (process.argv.includes('--install')) process.stdout.write(`installed ${installWrapper()}\n`);
     else if (process.argv.includes('--verify')) {
