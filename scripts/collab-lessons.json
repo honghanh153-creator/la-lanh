@@ -1,0 +1,231 @@
+{
+ "about": "Sổ lời hứa sửa quy trình (owner 13.11.2026). Mỗi mục chỉ được ghi done khi có test bắt lại lỗi cũ (file nằm trong pnpm collab:test), chỗ gọi trong vòng tự động và PR đã đóng nó; tick kiểm trên GitHub rằng PR đó đã merge vào collab/integration với Codex APPROVE. Kiểm: node scripts/collab-lessons.mjs. Nguồn: thỏa thuận Claude–Codex 12.11 (A–L) và rà soát của Codex 13.11.",
+ "lessons": [
+  {
+   "id": "L01",
+   "title": "Lô duyệt câu hằng ngày lỗi thì giữ quyết định của Codex, thử lại và báo owner, không bỏ cả ngày",
+   "from": "Codex rà soát 13.11, mục 3",
+   "who": "claude",
+   "due": "2026-11-15",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "copy batch: a failed batch alerts, retries on later ticks"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "copyBatchAttempts"
+   },
+   "closedBy": {
+    "pr": 480
+   }
+  },
+  {
+   "id": "L02",
+   "title": "Sổ lời hứa này: mục ghi xong phải có test, chỗ gọi và PR đã merge có Codex duyệt; mục quá hạn hiện trong báo cáo",
+   "from": "thỏa thuận 12.11 mục I và K; Codex rà soát 13.11, đề xuất 1",
+   "who": "claude",
+   "due": "2026-11-15",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-lessons.test.mjs",
+    "name": "a lesson cannot be closed by editing the register"
+   },
+   "caller": {
+    "file": "scripts/collab-metrics.mjs",
+    "contains": "lessonsLine"
+   }
+  },
+  {
+   "id": "L03",
+   "title": "Kiểm trang qua API thật với dữ liệu giả: mất phần tổng hợp hoặc còn chữ tạm thì kiểm trượt (chế độ báo cáo trước)",
+   "from": "thỏa thuận 12.11 mục A",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "open"
+  },
+  {
+   "id": "L04",
+   "title": "Đối chiếu tiêu chí nghiệm thu với màn hình: test xanh nhưng màn hình thiếu nội dung thì ghi chưa đạt (nối #457)",
+   "from": "thỏa thuận 12.11 mục B",
+   "who": "codex",
+   "due": "2026-11-20",
+   "status": "open"
+  },
+  {
+   "id": "L05",
+   "title": "Đổi luật chặn lỗi nội dung theo từng nhóm lỗi",
+   "from": "thỏa thuận 12.11 mục C",
+   "who": "owner",
+   "status": "waiting-owner"
+  },
+  {
+   "id": "L06",
+   "title": "Trước khi giao việc cho dev con: kiểm thư mục, nhánh và công cụ; sai thì dừng trước khi ghi",
+   "from": "thỏa thuận 12.11 mục D",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "open"
+  },
+  {
+   "id": "L07",
+   "title": "Kiểm Ruff bằng đúng bản khóa của CI trước khi đẩy code",
+   "from": "thỏa thuận 12.11 mục E",
+   "who": "claude",
+   "due": "2026-11-15",
+   "status": "open"
+  },
+  {
+   "id": "L08",
+   "title": "Thử chân dung Khám phá với chữ thật ở 360/390 px, chữ 200% và giảm chuyển động",
+   "from": "thỏa thuận 12.11 mục F",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "open"
+  },
+  {
+   "id": "L09",
+   "title": "Báo cáo nghiên cứu: mỗi kết luận phải trỏ tới nguồn đã đọc; kết luận không có nguồn bị bác",
+   "from": "thỏa thuận 12.11 mục G",
+   "who": "claude",
+   "due": "2026-11-22",
+   "status": "open"
+  },
+  {
+   "id": "L10",
+   "title": "Đưa ops-run.sh vào repo, có test chạy được từ thư mục bất kỳ và đường dẫn có khoảng trắng",
+   "from": "thỏa thuận 12.11 mục H",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "open"
+  },
+  {
+   "id": "L11",
+   "title": "Đếm việc theo tiêu chí đạt: nhiều PR cho cùng một việc chỉ tính một việc",
+   "from": "thỏa thuận 12.11 mục J",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "open"
+  },
+  {
+   "id": "L12",
+   "title": "Tài liệu vòng tự động khớp cách kiểm hiện tại (đọc kết quả CI, không chạy pnpm check trên Mac)",
+   "from": "thỏa thuận 12.11 mục L",
+   "who": "claude",
+   "due": "2026-11-15",
+   "status": "open"
+  },
+  {
+   "id": "L13",
+   "title": "Bằng chứng merge gắn với đúng base và biên nhận có chữ ký (#456, Autopilot v2 P0)",
+   "from": "Autopilot v2 P0; Codex rà soát 13.11, đề xuất 3",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "open"
+  },
+  {
+   "id": "L14",
+   "title": "Chỉ đồng bộ PR đang tới lượt, không merge integration vào mọi PR chờ ở mỗi tick",
+   "from": "retro 12.11 S25",
+   "who": "claude",
+   "due": "2026-11-20",
+   "status": "open"
+  },
+  {
+   "id": "L15",
+   "title": "Lô câu chữ dùng commit thật trong Git tạm không có danh tính (không chỉ giả lập lệnh)",
+   "from": "Codex rà soát 13.11, mục 4 (#462)",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "open",
+   "test": {
+    "file": "scripts/codex-copy-review.test.mjs",
+    "name": "the batch commit works in a real git with no configured identity"
+   },
+   "caller": {
+    "file": "scripts/codex-copy-review.mjs",
+    "contains": "commitArgs(date)"
+   },
+   "closedBy": {
+    "pr": 480
+   }
+  },
+  {
+   "id": "L16",
+   "title": "Script vận hành gọi qua đường dẫn tắt (symlink) thì không chạy gì mà vẫn báo thành công; mọi điểm vào phải chặn khi không chạy",
+   "from": "test đầu–cuối hook trước push, 13.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "open"
+  },
+  {
+   "id": "L17",
+   "title": "Broker tối thiểu: chương trình riêng gọi Codex, giữ biên nhận và quyền merge; Claude không nộp kết quả thay Codex (lát 3 thiết kế Codex kiểm soát)",
+   "from": "owner 13.11: Codex kiểm soát, Claude thực thi",
+   "who": "owner",
+   "status": "waiting-owner"
+  },
+  {
+   "id": "L18",
+   "title": "Phiếu giao việc: Codex chốt plan 3–5 việc, duyệt phạm vi Q1–Q5, ưu tiên nợ quá hạn, quyết vòng review thứ 3 trở đi (lát 4)",
+   "from": "owner 13.11: Codex kiểm soát, Claude thực thi",
+   "who": "owner",
+   "status": "waiting-owner"
+  },
+  {
+   "id": "L19",
+   "title": "Báo cáo 08/14/22 và retro lấy dữ kiện từ một bản chụp nguồn chung; sự cố giữ trạng thái tới khi có bằng chứng phục hồi (lát 5)",
+   "from": "owner 13.11: báo cáo trung thực",
+   "who": "claude",
+   "due": "2026-11-18",
+   "status": "open"
+  },
+  {
+   "id": "L20",
+   "title": "Kiểm chính Codex: cài lại lỗi #451/#462, lỗi lọt thì mở lại bài học và ghi trách nhiệm reviewer (lát 6)",
+   "from": "Codex tự nhận 13.11",
+   "who": "owner",
+   "status": "waiting-owner"
+  },
+  {
+   "id": "L21",
+   "title": "Soát đêm: Codex ghi số đo M1–M10 của thử nghiệm từ nguồn gốc, chạy lần đầu tối 14.11",
+   "from": "thử nghiệm 3+3 (owner 13.11), docs/operations/workflow-experiment-2026-11.md",
+   "who": "claude",
+   "due": "2026-11-14",
+   "status": "open"
+  },
+  {
+   "id": "L22",
+   "title": "Sổ bất đồng bản Claude cho cách 1 (scripts/collab-disagree.mjs)",
+   "from": "thử nghiệm 3+3 (owner 13.11)",
+   "who": "claude",
+   "due": "2026-11-14",
+   "status": "open",
+   "test": {
+    "file": "scripts/collab-disagree.test.mjs",
+    "name": "experiment arm 1: a disagreement needs both positions"
+   },
+   "caller": {
+    "file": "docs/operations/workflow-experiment-2026-11.md",
+    "contains": "disagreements.jsonl"
+   }
+  },
+  {
+   "id": "L23",
+   "title": "Đo nền 11–13.11 theo M1–M10",
+   "from": "thử nghiệm 3+3 (owner 13.11)",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "open"
+  },
+  {
+   "id": "L24",
+   "title": "Chương trình giữ biên nhận review, đường merge và trạng thái xong cho cách 2 (nối #456)",
+   "from": "thử nghiệm 3+3 (owner 13.11): điều kiện bắt đầu cách 2",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "open"
+  }
+ ]
+}
