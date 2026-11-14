@@ -32,7 +32,7 @@ export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
   return order.slice(0, order.indexOf(pr)).find(o => prFiles(o).some(f => mine.has(f)))?.number ?? null;
 }
 
-export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
+export function prTurn(pr, { dropped = [], open = [], preflight = {}, baseFiles } = {}) {
   const head = pr.headRefOid;
   const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
     source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body) });
@@ -48,12 +48,13 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   // A conflict needs Claude at any stage: on 02.11 an approved PR in conflict kept every tick on a
   // refused merge for three hours, and checking or reviewing a head that cannot merge wastes the run (K24).
   if (pr.mergeable === 'CONFLICTING') return out('claude-fix', 'xung đột với collab/integration');
-  const state = reviewState(pr);
+  // P1-A: the check must be for the live base; a base move sends the PR back to claude-check.
+  const state = reviewState(pr, { baseFiles });
   const check = state.check;
   const last = state.last?.verdict;
   const pre = check ? null : preflightFailure(preflight, pr);
   if (pre) return out('claude-fix', `preflight: ${clean(pre.join('; '), 200)}`);
-  if (!check) return out('claude-check', 'chưa có Author check @ head');
+  if (!check) return out('claude-check', 'chưa có Author check có biên nhận @ head trên base hiện tại');
   // #254: preflight runs only before a check, so a PR checked before the size cap would reach
   // review or merge without it. The cap is applied here too, before review and merge routing.
   const size = sizeProblem(pr);
@@ -61,6 +62,7 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {} } = {}) {
   if (check.status === 'FAIL') return out('claude-fix', 'Author check FAIL @ head');
   if (!last || last.sha !== head) return out('codex-review', last ? `verdict cuối cho ${last.sha.slice(0, 7)}` : 'chưa có verdict');
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
+  if (state.stale) return out('codex-review', `review lại: ${clean(state.stale, 200)}`);
   return out('merge', 'APPROVE @ head');
 }
 
@@ -139,7 +141,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       let plan = readPlanStatus(gh, now);
       if (plan.state === 'not-made') {
         const prs = gh.openPrs();
-        const turns = turnsFor(prs);
+        const turns = turnsFor(prs, { baseFiles: gh.compareFiles });
         measure(prs, turns);
         // Progress is items done / items picked (owner 12.11.2026): remember what was picked.
         writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number) });
@@ -152,7 +154,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         heartbeat(plan.state);
         if (plan.state === 'closed') { show({ status: plan.state, turns: [] }); return { status: plan.state }; }
         const prs = gh.openPrs();
-        const turns = turnsFor(prs, { dropped: plan.dropped });
+        const turns = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
         measure(prs, turns);
         show({ status: plan.state, turns });
         tell({ turns, comments: plan.comments, dropped: plan.dropped });
@@ -161,7 +163,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
       // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const prs = gh.openPrs();
-      const turns = turnsFor(prs, { dropped: plan.dropped });
+      const turns = turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles });
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns);
@@ -270,7 +272,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // #158/#159: after merges, checks or reviews the queue and buffer are read again, so the
       // top-up describes what is left now, not the list fetched before this run's work.
       const left = done.length ? gh.openPrs() : prs;
-      const leftTurns = done.length ? turnsFor(left, { dropped: plan.dropped }) : turns;
+      const leftTurns = done.length ? turnsFor(left, { dropped: plan.dropped, baseFiles: gh.compareFiles }) : turns;
       const buffer = done.length ? queueTopUp(wipCount(left, leftTurns)) : startBuffer;
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: leftTurns.filter(t => t.turn === 'claude-fix'),
@@ -328,7 +330,7 @@ export function tickGap(last, nowMs = Date.now()) {
 export function planTurns(gh, now) {
   const plan = readPlanStatus(gh, now);
   const prs = gh.openPrs();
-  return { plan, prs, turns: turnsFor(prs, { dropped: plan.dropped }) };
+  return { plan, prs, turns: turnsFor(prs, { dropped: plan.dropped, baseFiles: gh.compareFiles }) };
 }
 
 // S8 (retro 08.11, K35): one open ops-alert per subject. A repeat becomes a comment on the open

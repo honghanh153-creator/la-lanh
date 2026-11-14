@@ -76,7 +76,8 @@ export function confirmClosed(pr) {
 // The cache key includes the evidence, so changing the test, the caller or the PR asks GitHub again.
 const evidenceKey = l => `${l.id}:${createHash('sha256').update(JSON.stringify([l.test ?? null, l.caller ?? null, l.closedBy ?? null])).digest('hex').slice(0, 16)}`;
 
-export const prFields = 'state,baseRefName,headRefOid,comments';
+// `number` lets reviewState match the verdict's receipt to this PR (#456).
+export const prFields = 'number,state,baseRefName,headRefOid,comments';
 export function verify(register, { view = n => makeGh().json(['pr', 'view', String(n), '--repo', repo, '--json', prFields]), cachePath = verifiedPath } = {}) {
   const cache = readJson(cachePath, {});
   let changed = false;

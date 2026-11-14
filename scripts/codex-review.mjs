@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
-import { DeadlineError, agentMarker, boundedTimeout, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { DeadlineError, agentMarker, bindReceipt, boundedTimeout, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, reviewState, signReceipt, stateDir, trustedComments, verdictSeal, vnNow, writeJson } from './collab-trust.mjs';
 import { codexDailyCap, prTurn } from './collab-turn.mjs';
 import { groupExec } from './collab-heal.mjs';
 import { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
@@ -42,7 +42,8 @@ const cell = (text, limit = 900) => clean(text, limit).replace(/\\/g, '\\\\').re
 // A detail may list every occurrence of one class (prompt rule S2); keep the whole list (fix-forward #238).
 const detailCell = text => cell(text, 6000);
 
-export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue }) {
+// `base`: the collab/integration tip when the review started (P1-A); `receipt`: the local receipt id (P1-B).
+export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue, base = null, receipt = null }) {
   const rows = out.findings.map(f => `| ${f.severity} | ${f.category} | \`${cell(f.file)}${f.line ? `:${f.line}` : ''}\` | ${cell(f.title)}: ${detailCell(f.detail)} | ${isBlocking(f) ? 'có' : 'không'} |`);
   return [
     `Review verdict: ${policy.verdict} @ ${pr.headRefOid}`,
@@ -54,7 +55,8 @@ export function renderVerdict({ pr, out, policy, round, range, digest, fixIssue 
     ...(rows.length ? ['| Mức | Loại | Vị trí | Vấn đề | Chặn merge |', '|---|---|---|---|---|', ...rows, ''] : ['Không có phát hiện.', '']),
     ...(fixIssue ? [`Fix-forward: #${fixIssue}`, ''] : []),
     `Output SHA-256: \`${digest}\``,
-    `${agentMarker} codex-auto-review sha=${pr.headRefOid} p2=${policy.fixForward.length} -->`,
+    `Base lúc review: \`${integration}\` @ ${isSha(base) ? `\`${base.slice(0, 12)}\`` : 'không rõ'}`,
+    verdictSeal({ head: pr.headRefOid, p2: policy.fixForward.length, base, receipt }),
   ].join('\n');
 }
 
@@ -118,6 +120,10 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   const pr = gh.pr(number);
   const head = pr.headRefOid;
   if (!isSha(head)) throw new Error('PR head SHA unavailable.');
+  // P1-A: the verdict records the integration tip it was reviewed against; without it the APPROVE
+  // could never be compared with a later base, so no review starts.
+  const reviewedBase = pr.baseTipOid;
+  if (!isSha(reviewedBase)) return { status: 'refused', reason: `không đọc được SHA hiện tại của ${integration}` };
   // prTurn holds fork/outside PRs; checked here too so a direct call never reviews one.
   if (!isOwnPr(pr)) return { status: 'refused', reason: 'PR không phải của owner hoặc từ fork' };
   const turn = prTurn(pr);
@@ -127,7 +133,9 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
   if (auto && day.codexRuns >= codexDailyCap) return { status: 'refused', reason: `hết ${codexDailyCap} lượt Codex tự động hôm nay` };
 
   const trusted = trustedComments(pr.comments);
-  const priorAuto = trusted.filter(c => c.auto && c.verdict).at(-1);
+  // Only a signed earlier review narrows the re-review to a delta: an unsigned one could be forged to
+  // point Codex at a harmless range (P1-B).
+  const priorAuto = reviewState(pr).sealed.filter(c => c.auto && c.verdict).at(-1);
   const dir = prepareClone(number, head, run, left);
   let deltaFrom = null;
   if (priorAuto && priorAuto.verdict.sha !== head) {
@@ -195,14 +203,18 @@ function reviewOnce(number, { auto = false, gh: ghIn = makeGh(), run = execFileS
 
   const priorRequests = trusted.filter(c => c.auto && c.verdict?.verdict === 'REQUEST_CHANGES').length;
   const round = trusted.filter(c => c.auto && c.verdict).length + 1;
-  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue });
-  gh.comment('pr', pr.number, body);
+  // P1-B: the receipt is written before the comment, so every posted verdict has one.
+  const receipt = signReceipt({ kind: 'verdict', pr: pr.number, head, base: reviewedBase, result: policy.verdict, p2: policy.fixForward.length });
+  const body = renderVerdict({ pr, out, policy, round, range: deltaFrom ? `${deltaFrom.slice(0, 7)}..${head.slice(0, 7)}` : `${mergeBase.slice(0, 7)}..${head.slice(0, 7)}`, digest, fixIssue, base: reviewedBase, receipt });
+  const posted = gh.comment('pr', pr.number, body);
+  // Bound to the new comment's id: a later copy of this verdict never counts (replay, #456 auto-1).
+  if (!bindReceipt({ kind: 'verdict', pr: pr.number, id: receipt, url: posted })) process.stderr.write(`codex-review: receipt ${receipt} not bound to a comment id; the verdict will not count\n`);
   const needsOwner = policy.verdict === 'REQUEST_CHANGES' && (!out.complete || priorRequests + 1 >= maxAutoRequestChanges);
   if (needsOwner) {
     ensureLabel(gh, 'needs-owner', 'D93F0B', 'Vòng tự động dừng, chờ owner');
     gh.raw(['pr', 'edit', String(pr.number), '--repo', repo, '--add-label', 'needs-owner']);
   }
-  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, verdict: policy.verdict, digest, fixIssue, needsOwner, at: new Date().toISOString() });
+  writeJson(join(stateDir, 'logs', `review-${stamp}.json`), { pr: pr.number, head, base: reviewedBase, verdict: policy.verdict, receipt, digest, fixIssue, needsOwner, at: new Date().toISOString() });
   return { status: 'posted', verdict: policy.verdict, blocking: policy.blocking.length, fixIssue, needsOwner };
 }
 

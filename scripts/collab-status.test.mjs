@@ -6,13 +6,17 @@ import test from 'node:test';
 
 process.env.LA_LANH_COLLAB_HOME = mkdtempSync(join(tmpdir(), 'collab-status-'));
 const trust = await import('./collab-trust.mjs');
+const { asPosted } = await import('./collab-test-post.mjs');
 const { boardMarker, ownerNotes, plainTitle, postOwnerNotes, renderBoard, sentNoteKeys, upsertBoard } = await import('./collab-status.mjs');
 const { openOpsAlert, opsAlert, resolveOpsAlert, tick } = await import('./collab-turn.mjs');
+const { renderCheck } = await import('./collab-check.mjs');
 
 const A = 'a'.repeat(40);
+// The live tip of collab/integration in every fixture (P1-A).
+const BASE = 'e'.repeat(40);
 const now = { date: '2026-11-01', hour: 14, minute: 5 };
 const own = { author: { login: 'honghanh153-creator' }, isCrossRepository: false };
-const pr = extra => ({ number: 7, title: 'feat(tarot): x', state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'b', headRefOid: A, labels: [], createdAt: '2026-10-30T00:00:00Z', comments: [], ...own, ...extra });
+const pr = extra => ({ number: 7, title: 'feat(tarot): x', state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'b', headRefOid: A, baseTipOid: BASE, labels: [], createdAt: '2026-10-30T00:00:00Z', comments: [], ...own, ...extra });
 
 test('the board says the state, when it was updated and what waits on the owner', () => {
   const body = renderBoard({ now, status: 'running', doing: 'author check #7', expectMinutes: 90, area: 'content', codexRuns: 3,
@@ -122,7 +126,10 @@ test('#145 r2: a review waiting at the daily Codex cap shows a budget stop, not 
   const date = '2026-11-13';
   trust.writeJson(trust.dayStatePath(date), { codexRuns: trust.codexDailyCap });
   const comments = [{ authorAssociation: 'OWNER', createdAt: `${date}T01:50:00Z`, body: `${trust.agentMarker} daily-plan date=${date} -->` }];
-  const checked = pr({ number: 9, comments: [{ authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${trust.agentMarker} x -->` }] });
+  // A signed PASS on the live base (P1-A/P1-B), so the PR waits for review.
+  const base = 'e'.repeat(40);
+  const seal = trust.checkSeal({ head: A, base, receipt: trust.signReceipt({ kind: 'check', pr: 9, head: A, base, result: 'PASS' }) });
+  const checked = pr({ number: 9, baseTipOid: base, comments: [asPosted(trust, { authorAssociation: 'OWNER', createdAt: `${date}T02:00:00Z`, body: `Author check: PASS @ ${A}\n${seal}` })] });
   const gh = {
     pr: () => checked, openPrs: () => [checked], raw: () => '', comment: () => {},
     json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments }),
@@ -146,12 +153,17 @@ const noteGh = (date, open, comments = [planComment(date)]) => {
 };
 let cacheN = 0;
 const notifier = gh => { const cachePath = join(trust.stateDir, `notes-${cacheN++}.json`); return (notes, comments) => postOwnerNotes(gh, 50, notes, comments, { cachePath }); };
-const approved = sha => [{ authorAssociation: 'OWNER', createdAt: '2026-11-01T00:00:00Z', body: `Author check: PASS @ ${sha}\n${trust.agentMarker} x -->` },
-  { authorAssociation: 'OWNER', createdAt: '2026-11-01T00:01:00Z', body: `Review verdict: APPROVE @ ${sha}` }];
+// Merge evidence needs a local receipt for this PR, head and base (P1-B), as the real check and review paths write it.
+const approved = (sha, n) => {
+  const receipt = (kind, result) => trust.signReceipt({ kind, pr: n, head: sha, base: BASE, result, p2: 0 });
+  return [{ authorAssociation: 'OWNER', createdAt: '2026-11-01T00:00:00Z', body: renderCheck({ head: sha, status: 'PASS', base: BASE, receipt: receipt('check', 'PASS'), exitCode: 0, seconds: 1, date: 'x' }) },
+    { authorAssociation: 'OWNER', createdAt: '2026-11-01T00:01:00Z', body: [`Review verdict: APPROVE @ ${sha}`, 'Reviewer: Codex (auto, scripts/codex-review.mjs)', '', trust.verdictSeal({ head: sha, p2: 0, base: BASE, receipt: receipt('verdict', 'APPROVE') })].join('\n') }]
+    .map(c => asPosted(trust, c));
+};
 
 test('merges post one new comment per tick, one plain line each, and a re-run never posts twice', () => {
   const date = '2026-12-01';
-  const open = [pr({ number: 11, title: 'feat(daily): clearer mood note', comments: approved(A) }), pr({ number: 12, title: 'fix(radar): shorter hint', comments: approved(A) })];
+  const open = [pr({ number: 11, title: 'feat(daily): clearer mood note', comments: approved(A, 11) }), pr({ number: 12, title: 'fix(radar): shorter hint', comments: approved(A, 12) })];
   const gh = noteGh(date, open);
   const notify = notifier(gh);
   const run = minute => tick({ gh, now: { date, hour: 15, minute }, merge: () => ({ status: 'merged' }), review: () => ({}), notify });
@@ -199,7 +211,7 @@ test('a PR newly labelled needs-owner posts once; a new head that needs the owne
 
 test('the digest posts once near 12:00 and 22:00 with done, doing, waiting, next and the metrics', () => {
   const date = '2026-12-04';
-  const open = [pr({ number: 31, title: 'content(daily): calmer start', comments: approved(A) }), pr({ number: 32, title: 'content(tarot): plain card', headRefName: 'agent/claude/x' }),
+  const open = [pr({ number: 31, title: 'content(daily): calmer start', comments: approved(A, 31) }), pr({ number: 32, title: 'content(tarot): plain card', headRefName: 'agent/claude/x' }),
     pr({ number: 33, title: 'feat(radar): fewer words', labels: [{ name: 'needs-owner' }] })];
   const gh = noteGh(date, open);
   const notify = notifier(gh);
