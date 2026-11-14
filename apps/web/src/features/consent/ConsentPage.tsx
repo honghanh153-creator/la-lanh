@@ -7,6 +7,7 @@ import { acceptBasicBirthConsent, enableHistoryRetention, createGuest, getSessio
 import { OPENAI_ABUSE_RETENTION_NOTICE, OPENAI_REWRITE_SCOPE_NOTICE } from "../../shared/config/externalRewriteDisclosure";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
+import { markRadarOwnerReturn, readRadarOwnerReturn } from "../radar/radarOwnerReturn";
 
 function idempotencyKey(): string {
   const existing = sessionStorage.getItem("la-lanh-guest-create-key");
@@ -27,7 +28,7 @@ export function ConsentPage() {
   const accept = async () => {
     if (pending) return;
     const radarPending = sessionStorage.getItem(RADAR_PENDING_REQUEST_KEY);
-    const radarOwnerStart = sessionStorage.getItem("la-lanh-radar-owner-start") === "1";
+    const radarOwnerStart = readRadarOwnerReturn();
     setPending(true);
     setError(null);
     try {
@@ -43,7 +44,7 @@ export function ConsentPage() {
       }
       await createGuest(idempotencyKey());
       if (radarPending) sessionStorage.setItem(RADAR_PENDING_REQUEST_KEY, radarPending);
-      if (radarOwnerStart) sessionStorage.setItem("la-lanh-radar-owner-start", "1");
+      if (radarOwnerStart) markRadarOwnerReturn(radarOwnerStart);
       queryClient.clear();
       sessionStorage.removeItem("la-lanh-guest-create-key");
       void navigate("/birth", { replace: true });
