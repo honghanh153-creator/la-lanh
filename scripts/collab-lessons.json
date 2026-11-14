@@ -79,7 +79,8 @@
    "from": "thỏa thuận 12.11 mục D",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open"
+   "status": "open",
+   "note": "helper and copy-batch wiring merged; child-agent dispatch still unchecked"
   },
   {
    "id": "L07",
@@ -376,7 +377,18 @@
    "from": "owner 14.11 + Codex 14.11",
    "who": "claude",
    "due": "2026-11-17",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "L25: the tick never runs a disputed PR, and after a timeout the PR needs a new check and review at its head"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "try { settle({ gh, log }); }"
+   },
+   "closedBy": {
+    "pr": 520
+   }
   },
   {
    "id": "L26",
