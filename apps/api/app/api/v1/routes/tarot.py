@@ -1,10 +1,11 @@
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Request, Response
+from fastapi import APIRouter, Depends, Header, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.crisis_guard import crisis_guard
 from app.domains.guest.errors import GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.tarot.errors import TarotDomainError, TarotQuestionRejected
@@ -89,7 +90,12 @@ async def _guest_for_mutation(request: Request, csrf_token: str | None):  # type
     )
 
 
-@router.post("/tarot/sessions", response_model=TarotSessionView, status_code=201)
+@router.post(
+    "/tarot/sessions",
+    response_model=TarotSessionView,
+    status_code=201,
+    dependencies=[Depends(crisis_guard("question"))],
+)
 async def start_tarot_session(
     body: TarotStartRequest,
     request: Request,

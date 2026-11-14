@@ -16,6 +16,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import {
   ApiProblem,
+  crisisNoticeFrom,
   currentSessionEpoch,
   createTarotGuest,
   deleteTarotSession,
@@ -30,6 +31,7 @@ import {
 } from "../../shared/api/client";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { BrandMark } from "../../shared/ui/BrandMark";
+import { CrisisNotice } from "../../shared/ui/CrisisNotice";
 import { NightSky } from "../../shared/ui/NightSky";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { TarotCardArt, TarotCardBack } from "./TarotCardArt";
@@ -209,6 +211,7 @@ export function TarotPage() {
   const finishReveal = useCallback(() => setRevealSessionId(null), []);
   useEffect(() => () => finishReveal(), [sessionId, finishReveal]);
   const [reframe, setReframe] = useState<{ explanation: string; question: string } | null>(null);
+  const [crisis, setCrisis] = useState<string | null>(null);
   const motion = useTarotMotion();
   const [flight, setFlight] = useState<PickFlight | null>(null);
   const endFlight = useCallback(() => setFlight(null), []);
@@ -244,6 +247,7 @@ export function TarotPage() {
         ...(vibe === "roast" ? { voice: vibe } : {}),
       });
     },
+    onMutate: () => setCrisis(null),
     onSuccess: (created) => {
       startKey.reset();
       setReframe(null);
@@ -253,6 +257,13 @@ export function TarotPage() {
     onError: (error) => {
       if (error instanceof ApiProblem && error.code === "SESSION_CHANGED") {
         void navigate("/welcome?restart=1", { replace: true, state: { sessionChanged: true } });
+        return;
+      }
+      // Self-harm language: no reading and no session; the server sent its notice instead.
+      const notice = crisisNoticeFrom(error);
+      if (notice) {
+        setReframe(null);
+        setCrisis(notice);
         return;
       }
       if (error instanceof ApiProblem && error.code === "TAROT_QUESTION_REFRAME_REQUIRED") {
@@ -474,7 +485,8 @@ export function TarotPage() {
         {reframe ? <aside className="tarot-reframe" role="alert"><strong>Đổi góc một chút để bài không nói hộ bạn.</strong><p>{reframe.explanation}</p><button onClick={() => { setQuestion(reframe.question); setSpreadOverride(null); setReframe(null); }} type="button">Dùng câu: “{reframe.question}”</button></aside> : null}
       </section>
 
-      {start.isError && !reframe ? <p className="tarot-error" role="alert">Chưa xòe bài được. Câu hỏi vẫn ở đây; kiểm tra mạng rồi thử lại.</p> : null}
+      {crisis ? <CrisisNotice className="tarot-error" text={crisis} /> : null}
+      {start.isError && !reframe && !crisis ? <p className="tarot-error" role="alert">Chưa xòe bài được. Câu hỏi vẫn ở đây; kiểm tra mạng rồi thử lại.</p> : null}
       <footer className="tarot-start-actions">
         <button
           aria-describedby={questionTooShort && !start.isPending ? "tarot-start-hint" : undefined}

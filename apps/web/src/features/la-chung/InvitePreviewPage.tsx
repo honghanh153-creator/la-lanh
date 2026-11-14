@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { ApiProblem, claimOwner, createLaChungInvite, type LaChungInvite } from "../../shared/api/client";
+import { ApiProblem, claimOwner, createLaChungInvite, crisisNoticeFrom, type LaChungInvite } from "../../shared/api/client";
 import "./la-chung.css";
 
 type Draft = { recipientLabel: string; context: "bff" | "crush" | "couple" | "friend" | "workmate" };
@@ -23,7 +23,7 @@ export function InvitePreviewPage() {
       idempotency_key: idempotencyKey,
     }),
     onSuccess: (payload) => { setInvite(payload); setMessage("Link đã sẵn sàng. Chưa có trạng thái đã gửi hay đã xem."); },
-    onError: (error) => { if (error instanceof ApiProblem && error.status === 401) setCheckpoint(true); else setMessage("Chưa tạo được link. Draft vẫn còn nguyên."); },
+    onError: (error) => { const notice = crisisNoticeFrom(error); if (notice) setMessage(notice); else if (error instanceof ApiProblem && error.status === 401) setCheckpoint(true); else setMessage("Chưa tạo được link. Draft vẫn còn nguyên."); },
   });
   const claim = useMutation({
     mutationFn: claimOwner,

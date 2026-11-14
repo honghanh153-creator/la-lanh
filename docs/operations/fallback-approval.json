@@ -1,7 +1,7 @@
 {
  "approved": {
   "copy_registry": {
-   "approved": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+   "approved": "c36d2b0922a6930e46881c1247cd5070c6f6df37b6f1da12ced83b8520404c36",
    "version": "copy-registry/v1"
   },
   "daily": {
@@ -248,6 +248,7 @@
   "content_audit": "pnpm content:audit (scripts.audit_content_matrix) and docs/operations/content-matrix-baseline.json",
   "content_review": "pnpm content:review (scripts.review_content_release), direct and roast voices",
   "copy_pending_flag": "Owner decision 06.11.2026: new copy enters app/domains/content/copy_registry.json as pending and is not served; this file pins approved entries only (copy_registry.approved). Codex may approve a daily batch via scripts/codex-copy-review.mjs; privacy, consent, crisis and safety entries need approver owner. Wiring tarot closing_prompt through copy_text changes no sentence.",
+  "crisis_notice": "Owner decision 14.11.2026, owner chọn câu Codex đề xuất, 14.11: copy_registry entry crisis.self_harm.notice, category crisis, approver owner, text \"Mình rất tiếc vì bạn đang phải chịu điều này. Tarot không thể hỗ trợ tình huống này. Nếu bạn có thể làm hại bản thân lúc này, hãy tìm một người bạn tin cậy ở cạnh và nhờ hỗ trợ khẩn cấp.\" Replaces the earlier notice of the same day. Served by app/domains/safety/crisis.py instead of a result on every free-text endpoint whose text reads as self-harm; no hotline numbers or links by owner decision. No other sentence changed.",
   "function_literals": "docs/reviews/2026-10-22-function-literal-pin.md: in-function copy (non-ASCII literals) of the pinned Daily, Tarot and Radar modules pinned at c3fab3311d65, byte-identical to the production release code; no copy change (audit O04)",
   "house_meanings_hm23": "Issue #190 item 3 (HM-2/HM-3): daily_psychology.HOUSE_ARENAS is now one HouseContext per house built from house_meanings.many_doors (12 distinct door sets; only lead-eligible, non-⚠ doors pick a Daily scene lead), and the content fingerprint follows (personalization daily-semantic-eligibility-v5). No sentence in a pinned table changed; which existing scene lead a house opens changes for houses 1, 3, 6 and 11. Copy listed before→after in the PR. Owner approved this copy in chat on 04.11.2026 (\"215 duyệt, đổi nhà 6, giữ 3\": keep three meanings per house; house 6 reads \"công việc hằng ngày, thói quen chăm sóc cơ thể hay vật nuôi nhỏ\" by an explicit owner override, house_meanings.OWNER_DOOR_ORDER); approved_release unchanged.",
   "owner_receipt": "docs/reviews/production-release-2026-10-26/receipt.md (previous: docs/reviews/production-release-2026-10-21/receipt.md)",

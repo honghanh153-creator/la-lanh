@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Header, Request, Response
+from fastapi import APIRouter, Cookie, Depends, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.crisis_guard import crisis_guard
 from app.domains.guest.errors import CsrfRejected, GuestDomainError
 from app.domains.guest.service import GuestSessionService
 from app.domains.identity.models import OwnerIdentity
@@ -130,6 +131,7 @@ def _invite_response(view, *, share_url: str | None = None) -> InviteResponse:  
     "/la-chung/requests",
     response_model=InviteResponse,
     responses={401: {}, 410: {}, 422: {}},
+    dependencies=[Depends(crisis_guard("recipient_label"))],
 )
 async def create_invite(
     body: InviteCreateRequest,
@@ -306,6 +308,7 @@ async def public_invite(
     "/public/la-chung/{token}/responses",
     response_model=SubmitResponseResult,
     responses={410: {}},
+    dependencies=[Depends(crisis_guard("display_alias"))],
 )
 async def submit_response(
     token: str,
