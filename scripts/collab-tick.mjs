@@ -44,8 +44,9 @@ export function runTick(gh = makeGh(), preflight = () => missingTools(), { run =
     }, health: () => [...healthLines(readBeats()), ...hookHealth()], copyPending: () => pendingCount(), copyBatch: () => runCopyBatch(), copySaved: () => Boolean(readSaved(savedPath, vnNow().date)),
     notify: (notes, comments) => postOwnerNotes(gh, planIssue(gh), notes, comments),
     metrics: ({ prs, turns }) => renderMetrics(collectMetrics({ gh, prs, turns })),
-    progress: (day, date) => workProgress({ date, planned: day.plannedItems ?? [], fetch: ghFetch(gh) }),
-    snapshot: slot => takeSnapshot({ slot, gh }),
+    // No recorded list is unmeasured, not "no work picked" (Codex r1 on #497).
+    progress: (day, date) => (Array.isArray(day.plannedItems) ? workProgress({ date, planned: day.plannedItems, fetch: ghFetch(gh) }) : { unmeasured: 'chưa có danh sách việc đã chọn' }),
+    snapshot: (slot, date) => takeSnapshot({ slot, date, gh }),
     incidents: () => realSources(gh, vnNow().date).alerts() });
 }
 

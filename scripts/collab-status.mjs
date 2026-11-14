@@ -114,8 +114,8 @@ export const plainTitle = title => clean(String(title ?? ''), 90).replace(/^[a-z
 const named = t => `${plainTitle(t.title)} (#${t.number})`;
 const list = (items, none) => (items.length ? items.map(named).join('; ') : none);
 
-const snapshotLines = (take, slot) => {
-  try { return renderSnapshot(take(String(slot).padStart(2, '0'))); }
+const snapshotLines = (take, slot, date) => {
+  try { return renderSnapshot(take(String(slot).padStart(2, '0'), date)); }
   catch (error) { return [`- Bản chụp nguồn: chưa đo được (${clean(error.message, 160)}).`]; }
 };
 
@@ -135,14 +135,17 @@ export function ownerNotes({ now, merged = [], failures = 0, streakAt = null, tu
       `**Tóm tắt ${slot}:00**`,
       // L19: with a snapshot, every number comes from the slot's one snapshot, which the owner
       // report of the same slot prints too; nothing is counted here again.
-      ...(snapshot ? snapshotLines(snapshot, slot) : []),
+      ...(snapshot ? snapshotLines(snapshot, slot, now.date) : []),
       // L11: progress is items whose criteria are met; merges are reported on their own line.
       ...(snapshot ? [] : work ? [`- ${work() ?? 'Việc đạt tiêu chí: chưa đo được.'}`, `- Đã gộp ${merged.length} PR hôm nay (số PR, không phải số việc).`]
         : [picked.length ? `- Xong: ${finished}/${picked.length} việc đã chọn hôm nay; đã gộp ${merged.length} PR.` : `- Xong: đã gộp ${merged.length} PR hôm nay.`]),
       `- Đang làm: ${list(active.slice(0, 2), 'không có')}.`,
       `- Chờ bạn: ${list(waiting, 'không có')}.`,
       `- Tiếp theo: ${active[2] ? named(active[2]) : 'Claude chọn việc kế tiếp từ backlog khi có chỗ'}.`,
-      ...(snapshot ? [] : metrics.map(l => `- ${l}`)),
+      // The outcome metrics of §2.11 (Daily, approved copy, release lag, merge latency, WIP) stay in
+      // every digest; with a snapshot only the lessons line is left out, because the snapshot
+      // carries it (Codex r1 on #497).
+      ...(snapshot ? metrics.filter(l => !/^Lời hứa sửa quy trình/.test(l)) : metrics).map(l => `- ${l}`),
     ] });
   }
   return notes;

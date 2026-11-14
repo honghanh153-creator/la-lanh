@@ -16,7 +16,7 @@ import { createHash } from 'node:crypto';
 import { linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { lessonsLine, prFields } from './collab-lessons.mjs';
-import { clean, codexDailyCap, dayStatePath, integration, makeGh, readJson, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { clean, codexDailyCap, dayStatePath, integration, makeGh, repo, stateDir, vnNow } from './collab-trust.mjs';
 import { ghFetch, renderProgress, workProgress } from './collab-work.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -28,6 +28,7 @@ const hhmm = t => `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStar
 const why = error => `chưa đo được: ${clean(String(error?.message ?? error), 160)}`;
 // Each source is read on its own; a failure is recorded, never turned into an empty list.
 const read = (sources, name, fn) => { try { const v = fn(); sources[name] = 'ok'; return v; } catch (error) { sources[name] = why(error); return null; } };
+const count = v => { if (v === undefined) return 0; if (!Number.isInteger(v) || v < 0) throw new Error('trạng thái ngày hỏng'); return v; };
 export const snapshotDigest = snap => createHash('sha256').update(JSON.stringify({ ...snap, digest: undefined })).digest('hex').slice(0, 12);
 
 export function collect({ date, slot, gh, clock = () => new Date(), base, merged, openPrs, alerts, day, lessons, work }) {
@@ -46,9 +47,18 @@ export function collect({ date, slot, gh, clock = () => new Date(), base, merged
     return { count: prs.length, needsOwner: prs.filter(p => (p.labels ?? []).some(l => (l.name ?? l) === 'needs-owner')).map(p => p.number) };
   });
   snap.alerts = read(sources, 'alerts', () => alerts().map(i => ({ number: i.number, title: clean(i.title ?? '', 120), createdAt: i.createdAt })));
-  snap.day = read(sources, 'day', () => { const d = day(); return { codexRuns: d.codexRuns ?? 0, failures: d.failures ?? 0, plannedItems: d.plannedItems ?? [] }; });
+  snap.day = read(sources, 'day', () => {
+    const d = day();
+    return { codexRuns: count(d.codexRuns), failures: count(d.failures), plannedItems: Array.isArray(d.plannedItems) ? d.plannedItems : null };
+  });
   snap.lessons = read(sources, 'lessons', lessons);
-  snap.work = read(sources, 'work', () => work(snap.day?.plannedItems ?? []));
+  // The picked items come from the day state; without it there is no list to count, which is not
+  // "no work picked" (Codex r1 on #497). The work source gets the cut-off too.
+  snap.work = read(sources, 'work', () => {
+    if (!snap.day) throw new Error('chưa đọc được trạng thái ngày');
+    if (!snap.day.plannedItems) throw new Error('chưa có danh sách việc đã chọn');
+    return work(snap.day.plannedItems, at);
+  });
   snap.sources = sources;
   snap.digest = snapshotDigest(snap);
   return snap;
@@ -65,7 +75,26 @@ export function saveOnce(snap, path) {
   finally { rmSync(tmp, { force: true }); }
 }
 
-export function realSources(gh, date) {
+// The day state, read strictly: a missing, unreadable or malformed file is an error, never {}
+// (readJson's fallback would report zero Codex runs and no picked work; Codex r1 on #497).
+export function readDay(path) {
+  let text;
+  try { text = readFileSync(path, 'utf8'); }
+  catch (error) { throw new Error(error.code === 'ENOENT' ? 'chưa có trạng thái ngày' : `không đọc được trạng thái ngày (${error.code ?? error.message})`); }
+  let d;
+  try { d = JSON.parse(text); } catch { throw new Error('trạng thái ngày hỏng'); }
+  if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('trạng thái ngày hỏng');
+  return d;
+}
+
+// Evidence after the cut-off is not in the snapshot: a PR merged after takenAt cannot finish an
+// item, just as it is not in the merged count (Codex r1 on #497).
+export const upTo = (fetch, at) => item => {
+  const found = fetch(item);
+  return { ...found, prs: (found.prs ?? []).filter(p => p.mergedAt && Date.parse(p.mergedAt) <= at.getTime()) };
+};
+
+export function realSources(gh, date, { fetch = ghFetch(gh) } = {}) {
   return {
     base: () => gh.json(['api', `repos/${repo}/git/ref/heads/${integration}`]).object.sha,
     merged: () => {
@@ -77,9 +106,9 @@ export function realSources(gh, date) {
     },
     openPrs: () => gh.openPrs(),
     alerts: () => gh.json(['issue', 'list', '--repo', repo, '--label', 'ops-alert', '--state', 'open', '--limit', '100', '--json', 'number,title,createdAt']),
-    day: () => readJson(dayStatePath(date), {}),
+    day: () => readDay(dayStatePath(date)),
     lessons: () => lessonsLine({ view: n => gh.json(['pr', 'view', String(n), '--repo', repo, '--json', prFields]) }),
-    work: planned => workProgress({ date, planned, fetch: ghFetch(gh) }),
+    work: (planned, at) => workProgress({ date, planned, fetch: upTo(fetch, at) }),
   };
 }
 
@@ -98,7 +127,7 @@ export const incidentLines = alerts => (alerts.length ? alerts.map(a => `#${a.nu
 export function renderSnapshot(s) {
   const src = s.sources ?? {};
   return [
-    `- Đã gộp vào integration hôm nay: ${or(s.merged, m => `${m.length} PR`, src.merged)}.`,
+    `- Đã gộp vào integration hôm nay: ${or(s.merged, m => `${m.length} PR (số PR, không phải số việc)`, src.merged)}.`,
     `- ${s.work === null ? `Việc đạt tiêu chí: ${or(null, null, src.work)}.` : renderProgress(s.work)}`,
     `- PR đang mở: ${or(s.open, o => `${o.count}${o.needsOwner.length ? ` (chờ owner: ${o.needsOwner.map(n => `#${n}`).join(', ')})` : ''}`, src.open)}.`,
     `- Sự cố đang mở: ${or(s.alerts, a => (a.length ? incidentLines(a).join('; ') : 'không có'), src.alerts)}.`,
