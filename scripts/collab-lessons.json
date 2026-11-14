@@ -275,7 +275,8 @@
    "from": "owner 13.11: báo cáo trung thực",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "open"
+   "status": "open",
+   "note": "snapshot helper and tick digest wired; scheduled owner report and retro still to be pointed at collab-snapshot --slot"
   },
   {
    "id": "L20",
