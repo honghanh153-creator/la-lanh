@@ -1,7 +1,7 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { auditReserve } from './collab-audit.mjs';
 import { ownerNotes } from './collab-status.mjs';
@@ -41,8 +41,8 @@ export function fileBlocker(pr, prs = [], { dropped = [] } = {}) {
 // same way as the tick and the merge gate (Codex 15.11: a caller without it refused after a decision).
 export function prTurn(pr, { dropped = [], open = [], preflight = {}, disputes = disputeView() } = {}) {
   const head = pr.headRefOid;
-  const out = (turn, reason) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
-    source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body), item: workRef(pr.body) });
+  const out = (turn, reason, extra = {}) => ({ number: pr.number, title: pr.title, area: classifyArea(pr), head, base: pr.baseRefName, turn, reason, files: prFiles(pr), bodyHash: bodyHash(pr.body),
+    source: gateValue(pr.body, 'G1') || null, userSees: userSees(pr.body), item: workRef(pr.body), ...extra });
   const labels = (pr.labels ?? []).map(l => l.name ?? l);
   if (!isOwnPr(pr)) return out('hold', 'PR không phải của owner hoặc từ fork: không chạy, không review');
   if (pr.baseRefName === 'main') return out('hold', 'base là main: chỉ owner');
@@ -67,7 +67,8 @@ export function prTurn(pr, { dropped = [], open = [], preflight = {}, disputes =
   // review or merge without it. The cap is applied here too, before review and merge routing.
   const size = sizeProblem(pr);
   if (size) return out('claude-fix', `preflight: ${clean(size, 200)}`);
-  if (check.status === 'FAIL') return out('claude-fix', 'Author check FAIL @ head');
+  // #508: `cause` routes the CI recheck; the reason text may gain a repeat note (collab-size).
+  if (check.status === 'FAIL') return out('claude-fix', 'Author check FAIL @ head', { cause: 'author-fail' });
   if (!last || last.sha !== head) return out('codex-review', last ? `verdict cuối cho ${last.sha.slice(0, 7)}` : 'chưa có verdict');
   if (last.verdict === 'REQUEST_CHANGES') return out('claude-fix', 'REQUEST_CHANGES @ head');
   return out('merge', 'APPROVE @ head');
@@ -93,6 +94,38 @@ export function activeArea(turns) {
   return areaOrder.find(area => turns.some(t => t.area === area && machineTurns.has(t.turn))) ?? null;
 }
 
+// #508 (Codex 14.11): a FAIL read from CI stayed in claude-fix after the job was re-run and
+// turned green at the same head, and nothing checked it again. Such a PR gets one new author
+// check per (PR, head, run, attempt). A local FAIL, a guard hit or an older green run stays.
+export function ciFailAtHead(pr) {
+  const last = trustedComments(pr.comments).filter(c => c.check?.sha === pr.headRefOid).at(-1);
+  if (last?.check.status !== 'FAIL') return null;
+  const rows = String(last.body ?? '').normalize('NFC').split(/\r?\n/).map(l => l.trim());
+  if (!rows.some(l => l.startsWith('Nguồn: CI')) || rows.some(l => l.includes('Chặn: dữ liệu riêng tư'))) return null;
+  return last;
+}
+export const recheckKey = (number, head, ci) => `${number}@${head}#${ci.runId}.${ci.attempt}`;
+// A preflight FAIL spends the key only for that PR body, so a body-only fix is checked again.
+const bodyKey = (key, hash) => `${key}|body:${hash}`;
+const prevDate = date => new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+// Keys live in the day state; yesterday's file is read too, so midnight does not reset them.
+export const recheckedKeys = date => new Set([prevDate(date), date].flatMap(d => readJson(dayStatePath(d), {}).rechecked ?? []));
+
+export function ciRechecks(turns, prs, { ci, seen = new Set(), log = () => {} } = {}) {
+  if (!ci) return turns;
+  return turns.map(t => {
+    const pr = t.turn === 'claude-fix' && t.cause === 'author-fail' ? prs.find(p => p.number === t.number) : null;
+    const fail = pr ? ciFailAtHead(pr) : null;
+    if (!fail) return t;
+    let run;
+    try { run = ci(t.head); } catch (error) { log(`ci recheck #${t.number}: ${clean(error.message, 200)}`); return t; }
+    const green = run?.state === 'PASS' && run.conclusion === 'success' && Date.parse(run.completedAt) > Date.parse(fail.createdAt);
+    const key = green ? recheckKey(t.number, t.head, run) : null;
+    if (!key || seen.has(key) || seen.has(bodyKey(key, t.bodyHash))) return t;
+    return { ...t, turn: 'claude-check', reason: 'CI chạy lại xanh ở cùng head: check lại (#508)', recheck: key };
+  });
+}
+
 export function renderReport(turns) {
   const rows = turns.map(t => `#${t.number}\t${t.area}\t${t.turn}\t${t.head?.slice(0, 7)}\t${clean(t.reason, 80)}\t${clean(t.title, 80)}`);
   return ['PR\tnhóm\tlượt\thead\tlý do\ttiêu đề', ...rows].join('\n');
@@ -110,7 +143,7 @@ export const idleAlertRuns = 6;
 // A failed daily copy batch is retried on later ticks, at most this many attempts a day.
 export const copyBatchAttempts = 3;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, progress = null, snapshot = null, incidents = null, settle = defaultSettle, mergeAudit = null } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, progress = null, snapshot = null, incidents = null, ciStatus = null, settle = defaultSettle, mergeAudit = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -192,7 +225,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // Every tick works when the plan is open (retro D1, 31.10.2026): the locks keep heavy jobs
       // serial and the state on GitHub keeps work from repeating, so an hourly gate only cost time.
       const prs = gh.openPrs();
-      const turns = turnsFor(prs, { dropped: plan.dropped });
+      const turns = ciRechecks(turnsFor(prs, { dropped: plan.dropped }), prs, { ci: ciStatus, seen: recheckedKeys(now.date), log });
       // #253: the scheduled tick samples the flow metric and owns the buffer top-up, so the
       // persisted queue and --status agree and the metric does not depend on report reads.
       const { queue: startBuffer } = bufferStatus(prs, turns);
@@ -228,15 +261,27 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const front = work.find(t => ['claude-check', 'codex-review'].includes(t.turn) && !mergedNow.has(t.number))?.number ?? null;
       const startedMs = nowMs();
       let checks = 0;
+      // #508: a recheck is spent only by a receipt or a preflight result on an unchanged head (a
+      // preflight result only for that body); busy, pending, refused or a throw leaves the key unset.
+      const markRechecked = (t, status) => {
+        if (!t.recheck || !['PASS', 'FAIL', 'preflight'].includes(status)) return;
+        let head = null;
+        try { head = gh.pr(t.number).headRefOid; } catch (error) { log(`recheck head #${t.number}: ${clean(error.message, 200)}`); }
+        if (head !== t.head) return;
+        const key = status === 'preflight' ? bodyKey(t.recheck, t.bodyHash) : t.recheck;
+        const d = readJson(dayPath, day);
+        writeJson(dayPath, { ...d, rechecked: [...new Set([...(d.rechecked ?? []), key])] });
+      };
       for (const t of work.filter(t => t.turn === 'claude-check')) {
         if (late() || checks >= checksPerTick || nowMs() - startedMs > drainMinutes * 60000) break;
         const pre = preflight(t.number);
-        if (pre?.status === 'FAIL') { recordPreflight(t.number, t.head, { ...pre, bodyHash: pre.bodyHash ?? t.bodyHash }); done.push({ pr: t.number, preflight: pre }); continue; }
+        if (pre?.status === 'FAIL') { recordPreflight(t.number, t.head, { ...pre, bodyHash: pre.bodyHash ?? t.bodyHash }); done.push({ pr: t.number, preflight: pre }); markRechecked(t, 'preflight'); continue; }
         if (checks > 0 && !heavyFree()) break;
         show({ status: 'running', doing: `author check #${t.number} (thường 10–35 phút)`, expectMinutes: 90, area, turns, done });
         const result = check(t.number, { auto: true, clock: time, sync: t.number === front });
         checks += 1;
         done.push({ pr: t.number, check: result });
+        markRechecked(t, result?.status);
         if (result?.status === 'preflight') { recordPreflight(t.number, t.head, { status: 'FAIL', reasons: result.reasons ?? [], bodyHash: result.bodyHash ?? t.bodyHash }); checks -= 1; continue; }
         if (result?.status === 'PASS') checked.push(t);
         // ci-pending: this head's CI is still running; the next PR may already have its result.
