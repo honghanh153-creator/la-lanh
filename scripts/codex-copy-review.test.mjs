@@ -112,6 +112,9 @@ test('publishing reviews and branches from the same pinned integration commit', 
   const add = calls.find(c => c[1] === 'worktree');
   assert.equal(add.at(-1), sha);
   assert.ok(!calls.some(c => c[0] === 'git' && c[1] === 'fetch' && calls.indexOf(c) > calls.indexOf(add)));
+  // The ops clone has no global git identity: the commit names the agent itself.
+  const commit = calls.find(c => c[0] === 'git' && c.includes('commit'));
+  assert.deepEqual(commit.slice(1, 5), ['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com']);
 });
 
 test('owner-only copy stays pending even if a decision for it slips past validation', () => {

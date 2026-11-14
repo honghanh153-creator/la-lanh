@@ -128,7 +128,12 @@ try {
       },
     });
     assert.equal(radar.mode, "private_check");
-    assert.equal(radar.sections.length, 4);
+    // radar-result-v2: 2–3 main sections plus the "Xem thêm" layer; mirror the API contract, not a count.
+    assert.equal(radar.version, "radar-result-v2");
+    const mainKeys = radar.sections.filter((s) => s.layer === "main").map((s) => s.key).join(",");
+    assert.ok(["fit,check", "fit,friction,check"].includes(mainKeys), `radar main sections: ${mainKeys}`);
+    const keys = new Set(radar.sections.map((s) => s.key));
+    assert.ok(keys.has("why") && keys.has("perspective"), "radar thiếu phần why/perspective");
     assert.ok(!JSON.stringify(radar).includes("1996-07-21"));
     await request(`/v1/radar/results/${radar.request_id}`, { anonymous: true, expected: 404 });
     await request(`/v1/radar/results/${radar.request_id}`, { method: "DELETE", expected: 204 });
