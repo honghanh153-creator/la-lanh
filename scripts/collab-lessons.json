@@ -95,7 +95,18 @@
    "from": "thỏa thuận 12.11 mục F",
    "who": "claude",
    "due": "2026-11-22",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "apps/web/tests/e2e/kham-pha-portrait.spec.ts",
+    "name": "Khám phá reads, opens a claim and its evidence, and comes back at 360/390px, 200% text, reduced motion"
+   },
+   "caller": {
+    "file": "apps/web/playwright.config.ts",
+    "contains": "testDir: \"./tests/e2e\""
+   },
+   "closedBy": {
+    "pr": 500
+   }
   },
   {
    "id": "L09",
