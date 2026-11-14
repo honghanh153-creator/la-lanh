@@ -362,6 +362,8 @@ Mô tả từng ý (mock đầy đủ 4–8 màn ở Phụ lục A):
 
 ## 5. Đề xuất sửa kế hoạch 6 tuần
 
+**Bản trình bày theo từng tuần, kèm mốc đạt của từng tính năng đo bằng 1000 người giả, nằm ở `docs/plans/2026-11-15-ke-hoach-9-tuan-moc-do.md`. Bản đó là bản hiện hành; bảng dưới đây giữ lại để thấy kế hoạch cũ đổi thành gì.**
+
 **Nguyên tắc:**
 - Giữ nguyên phần nền đã duyệt: an toàn, #503, mood đổi việc, kho việc, nội dung sinh viên, xoay chủ đề.
 - Chỉ thay hoặc thêm những chỗ ý mới làm tốt hơn.
@@ -415,7 +417,7 @@ Thứ tự này đã đổi theo ý chị đêm 14.11: Lá nhây và Học vào 
     - Khóa 1 là Tán crush kiểu tử tế, chỉ cho 18+.
     - Chị đã chốt Học dựa trên thông tin của chính người dùng (chuyện trong ba lô, lá số, mood). Đây là mục đích dùng dữ liệu mới, nên còn cần chị duyệt câu đồng ý và chính sách quyền riêng tư trước khi bật.
 13. **Tiến độ Học:** không lưu trong đợt này (đề xuất). Sau này nếu cần nhớ thì lưu theo tài khoản và có nút xóa.
-14. **Thứ tự và người vẽ:** chị đã chốt đưa Lá nhây và Học vào gói; thứ tự mới ở mục 5 (Lá nhây tuần 5, Học tuần 6). **Hình của Lá pixel: chị đã chốt Mầm xanh** (đêm 14.11). Việc kéo theo: thay Lá tím ở các màn hiện có bằng Mầm xanh, để app chỉ còn một nhân vật. Còn cần chị quyết: ai làm 12 động tác chính, Claude làm bằng code hay thuê họa sĩ sửa tay; và có giữ hai tay nhỏ không.
+14. **Thứ tự và người vẽ:** chị đã chốt đưa Lá nhây và Học vào gói; thứ tự mới ở mục 5 (Lá nhây tuần 5, Học tuần 6). **Hình của Lá pixel: chị đã chốt Mầm xanh** (đêm 14.11). Việc kéo theo: thay Lá tím ở các màn hiện có bằng Mầm xanh, để app chỉ còn một nhân vật. **Chị cũng đã chốt làm động tác bằng code, không thuê họa sĩ.** Còn cần chị quyết: có giữ hai tay nhỏ không.
 15. **Lời khuyên tán crush dựa trên Check kín.** Đề xuất: tầng 1 và 2 làm ở tuần 8; tầng 3 (lời mời có đồng ý, cả hai cùng thấy) làm sau. Nếu chị vẫn muốn lời khuyên riêng từ Check kín thì phải xin đồng ý trực tiếp từ người kia, và việc này thành rủi ro khi đưa app lên kho.
 16. **Cập nhật tài liệu cho khớp thực tế:** US-22 AC10 còn yêu cầu Cà khịa; US-12 AC08 còn ghi 30 ngày.
 
