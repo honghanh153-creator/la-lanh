@@ -49,7 +49,7 @@ const timer = setTimeout(() => { timedOut = true; finish(); }, Number(ms));
 child.on('exit', c => { code = c ?? 1; clearTimeout(timer); finish(); });
 `;
 
-// Stuck alerts are never sent inline (a gh call here could run past 23:55): each one is queued as
+// Stuck alerts are never sent inline (a gh call here could run past the cutoff): each one is queued as
 // its own file (atomic write) and the watchdog delivers them at the start of its next tick.
 // One file per alert, so an alert queued while a delivery runs is never overwritten (#241).
 export const pendingAlertsDir = () => join(stateDir, 'beats', 'pending-alerts');

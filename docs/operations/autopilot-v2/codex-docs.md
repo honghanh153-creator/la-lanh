@@ -1,0 +1,11 @@
+**CHỐT NẾU SỬA.** Hướng gắn app với US đúng, nhưng cần sửa bốn điểm:
+
+1. **Khớp quy trình.** Thay “S/M/L cần bộ doc…” bằng bảng cổng [§4](docs/operations/product-development-process.md): S không đổi hành vi; M không mặc định cần SRS; API/contract/migration thuộc L. Claude/Codex là vai trò theo task, không cố định. [README US](docs/user-stories/README.md) đã thiếu US-20–24; phải cập nhật ownership trước khi kiểm chồng chéo. Ghi nguồn ưu tiên: [SRS](docs/foundation/la-lanh-srs.md:11) nhường contract tính toán cho engine spec; không ép app khớp mọi đoạn PRD/SRS cũ.
+
+2. **Ready có thể bị lách hoặc treo.** Điểm 3/4, AC dễ và “đã thành thẻ owner” không chứng minh đủ điều kiện. Sửa thành readiness cho lát cắt task/AC; trạng thái không áp dụng cần lý do; câu hỏi ảnh hưởng phạm vi/privacy chưa trả lời phải `blocked`. Cho research, sửa lỗi, vận hành và prototype đã được phép chạy theo cổng tương ứng. Sau hai vòng, ghi blocker, người xử lý, hạn xem lại; scheduler chọn việc khác. Test đỏ bắt buộc với hồi quy; UAT thủ công cần bằng chứng phù hợp.
+
+3. **Drift cần kiểm chứng, không chỉ đếm.** [Preflight](scripts/collab-preflight.mjs:29) hiện chưa xác thực AC. Thêm liên kết US/AC tồn tại, phiên bản spec, test và SHA; ngoại lệ “vận hành” phải được reviewer xác nhận. Drift đêm chỉ tạo phát hiện đã khử trùng, phân mức và hạn xử lý; không khóa toàn backlog hoặc tự sửa doc theo code. Retro-spec phải đối chiếu ý định đã duyệt. Bằng chứng cần ghi môi trường, thời điểm; web xanh không chứng minh native/production đạt.
+
+4. **Owner load chưa được chứng minh.** Hai mươi phút chỉ chứa 4–6 thẻ, chưa tính bất đồng, copy và privacy. Thử đo hai tuần, giới hạn hàng chờ, gộp câu hỏi. Theo [Q1–Q5](docs/operations/decision-checklist.md), kiến trúc không mặc định hỏi owner; privacy cần đủ [data map](docs/legal/store-privacy-data-map.md), không chỉ cờ “nhạy cảm”. Doc/code dùng chung trần review và WIP.
+
+Đã đối chiếu PRD, năm ADR và GitHub #2/#133, PR #449–452. Inbox không chạy được vì thiếu Node. Chỉ đọc; các sửa đổi trên chưa thực hiện.

@@ -1,7 +1,6 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { ownerNotes } from './collab-status.mjs';
@@ -10,6 +9,7 @@ import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees }
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, queueTopUp, wipCount } from './collab-buffer.mjs';
+import { isMain } from './is-main.mjs';
 
 export { codexDailyCap };
 
@@ -97,8 +97,11 @@ function withLock(fn) {
 
 export const idleAlertRuns = 6;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, notify = () => {}, metrics = () => null } = {}) {
-  // The clock is read again before each action, so a long review cannot push the next one past 23:30.
+// A failed daily copy batch is retried on later ticks, at most this many attempts a day.
+export const copyBatchAttempts = 3;
+
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null } = {}) {
+  // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
   return withLock(() => {
@@ -109,9 +112,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     // Outcome numbers (collab-metrics.mjs) are read once per tick, never at night.
     let metricLines = null;
     const measure = (prs, turns) => { try { metricLines = metrics({ prs, turns }); } catch (error) { log(`metrics failed: ${clean(error.message, 200)}`); } };
+    // Health (watchdog, pre-push hook) is read once per tick and shown on every board update, not
+    // only in the morning plan: a hook removed at noon shows on the next tick (Codex r1 on #482).
+    let healthNow;
+    const readHealth = () => { if (healthNow === undefined) { try { healthNow = health(); } catch { healthNow = []; } } return healthNow; };
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), ...info }); } catch {}
     };
     // Owner notes (collab-status.mjs): a new comment only for merges, a 2-tick failure streak,
     // a new needs-owner and the 12:00/22:00 digest. Never breaks a tick.
@@ -136,7 +143,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         measure(prs, turns);
         // Progress is items done / items picked (owner 12.11.2026): remember what was picked.
         writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number) });
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: (() => { try { return health(); } catch { return []; } })() });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth() });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
         return { status: 'plan-made' };
@@ -205,7 +212,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         if (['limit', 'busy'].includes(result?.status)) break;
       }
       // Owner 06.11.2026: Codex approves one batch of non-sensitive copy a day. The tick runs it at
-      // most once a day, from the 10:00 auto-start, only while copy outside the owner-only groups is
+      // most once a day, from the auto-start (autoStartAt), only while copy outside the owner-only groups is
       // pending, inside the daily Codex cap, and never next to an open batch PR on the same file.
       // A busy review lock starts nothing and is retried on the next run.
       if (copyBatch && !late() && (t => t.hour * 60 + t.minute)(time()) >= autoStartAt) {
@@ -214,7 +221,12 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         // stop the daily copy review.
         const batchOpen = prs.some(p => isOwnPr(p) && p.baseRefName === integration && /^agent\/claude\/copy-batch-/.test(p.headRefName ?? ''));
         let pending = 0;
-        if (!today.copyBatch && (today.codexRuns ?? 0) < codexDailyCap && !batchOpen) {
+        // 13.11: a failed batch used to count as the day's batch, so nothing retried and nobody was
+        // told. An error now retries on later ticks, up to copyBatchAttempts a day.
+        const retry = today.copyBatch?.status === 'error' && (today.copyBatch.attempts ?? 1) < copyBatchAttempts;
+        // Publishing saved decisions calls no Codex, so it may run after the cap is spent (Codex 13.11).
+        const budgetOk = (today.codexRuns ?? 0) < codexDailyCap || copySaved();
+        if ((!today.copyBatch || retry) && budgetOk && !batchOpen) {
           try { pending = copyPending(); } catch (error) { log(`copy batch: registry unreadable: ${clean(error.message, 200)}`); }
         }
         if (pending > 0) {
@@ -223,10 +235,31 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
           done.push({ copy: result });
           if (result?.status !== 'busy') {
             const fresh = readJson(dayPath, day);
-            const spent = result?.status === 'empty' ? 0 : 1;
-            writeJson(dayPath, { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + spent, copyBatch: { status: result?.status ?? 'unknown', at: new Date().toISOString() } });
+            // Only a run that called Codex spends the cap; a retry publishes saved decisions.
+            const spent = result?.codex === false || result?.status === 'empty' ? 0 : 1;
+            const attempts = (fresh.copyBatch?.status === 'error' ? fresh.copyBatch.attempts ?? 1 : 0) + 1;
+            const reason = clean(result?.reason ?? 'không rõ', 300);
+            // Each failed attempt queues its own alert; a later success never erases one that
+            // has not been delivered yet (Codex 13.11 on #480).
+            const copyAlerts = [...(fresh.copyAlerts ?? []), ...(result?.status === 'error'
+              ? [`Lô duyệt câu chữ hằng ngày lỗi (lần ${attempts}/${copyBatchAttempts}, ${now.date}): ${reason}. `
+                + (attempts >= copyBatchAttempts ? 'Đã hết lượt thử hôm nay, Claude cần sửa nguyên nhân.' : 'Lượt sau thử lại; quyết định Codex đã lưu nên không tốn thêm lượt Codex.')]
+              : [])];
+            writeJson(dayPath, { ...fresh, codexRuns: (fresh.codexRuns ?? 0) + spent, copyAlerts, copyBatch: {
+              status: result?.status ?? 'unknown', at: new Date().toISOString(), attempts,
+              ...(result?.reason ? { reason } : {}) } });
           }
         }
+      }
+      // Every failed attempt reaches the owner's alert thread at once, and a failed delivery is
+      // retried on the next tick until it goes through (Codex 13.11).
+      for (const text of readJson(dayPath, day).copyAlerts ?? []) {
+        if (!alert) break;
+        try {
+          alert(text);
+          const latest = readJson(dayPath, day);
+          writeJson(dayPath, { ...latest, copyAlerts: (latest.copyAlerts ?? []).filter(t => t !== text) });
+        } catch (error) { log(`copy batch alert failed, retry next run: ${clean(error.message, 200)}`); break; }
       }
       // Retro S1 (K26/K31: 02.11 and 03.11 ran about two hours with no area): count runs in a row
       // with no area; the sixth alerts. A top-up still waits for room under WIP 1 + 1 (owner 12.11).
@@ -242,7 +275,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: leftTurns.filter(t => t.turn === 'claude-fix'),
         // Plan top-up (owner 31.10.2026), WIP 1 + 1 since 12.11: Claude opens the next backlog task
-        // only when nothing is in progress and review has room, and never after 23:30.
+        // only when nothing is in progress and review has room, and never from lastStartAt on.
         topUp: buffer.topUp && !late(),
         topUpCount: late() ? 0 : buffer.topUpCount, buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
         idleRuns,
@@ -256,14 +289,19 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       const errors = done.filter(d => d.review?.status === 'error' || d.merge?.status === 'error' || d.check?.status === 'error' || d.copy?.status === 'error');
       const failures = errors.length ? (readJson(dayPath, day).failures ?? 0) + 1 : 0;
       writeJson(dayPath, { ...readJson(dayPath, day), lastRunHour: now.hour, failures, streakAt: streak(failures, readJson(dayPath, day).streakAt) });
-      heartbeat(errors.length ? 'ran-with-errors' : 'ran');
+      // An unresolved copy batch error keeps the run red until a batch succeeds; a quiet tick after
+      // the last retry must not look healthy (Codex 13.11). It is not counted as a new failure.
+      const stuckBatch = readJson(dayPath, day).copyBatch;
+      const stuck = stuckBatch?.status === 'error' ? `Lô duyệt câu chữ còn lỗi chưa xử lý (lần ${stuckBatch.attempts ?? 1}/${copyBatchAttempts}): ${clean(stuckBatch.reason ?? 'không rõ', 200)}` : null;
+      const red = errors.length || stuck;
+      heartbeat(red ? 'ran-with-errors' : 'ran');
       // A review waiting while the daily Codex cap is spent is a budget stop, not "no work" (#145 r2).
       const capped = !done.length && work.some(t => t.turn === 'codex-review') && (readJson(dayPath, day).codexRuns ?? 0) >= codexDailyCap;
-      show({ status: errors.length ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: errors.length ? JSON.stringify(errors) : null });
+      show({ status: red ? 'ran-with-errors' : done.length ? 'ran' : capped ? 'cap' : 'idle', area, turns, done, error: red ? [errors.length ? JSON.stringify(errors) : null, stuck].filter(Boolean).join(' · ') : null });
       if (failures === 2 && alert) alert(`collab tick có lỗi 2 lần liên tiếp (${now.date} ${now.hour}h): ${clean(JSON.stringify(errors), 300)}`);
       tell({ turns: leftTurns, comments: plan.comments, dropped: plan.dropped });
       log(JSON.stringify(done));
-      return { status: errors.length ? 'ran-with-errors' : 'ran', area, done };
+      return { status: red ? 'ran-with-errors' : 'ran', area, done };
     } catch (error) {
       const failures = (readJson(dayPath, day).failures ?? 0) + 1;
       writeJson(dayPath, { ...readJson(dayPath, day), failures, streakAt: streak(failures, readJson(dayPath, day).streakAt) });
@@ -333,7 +371,7 @@ export function resolveOpsAlert(gh, text, subject) {
   return { number: open, closed: true };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   try {
     const gh = makeGh();

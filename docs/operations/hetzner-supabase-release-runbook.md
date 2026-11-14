@@ -5,7 +5,19 @@ operator or Codex session should be able to use it without relying on chat histo
 status checklist is
 `docs/plans/2026-09-26-hetzner-supabase-public-beta-deployment-plan.md`.
 
-## Current production — 2026-10-26
+## Current production — 2026-11-13
+
+Release `f6246ed2fb7a` is live (`main` = `f6246ed2fb7a5033247ad6b41af33f35022cab12`, #472: full `collab/integration`
+merged with `main`; image `sha256:b9e860240f01…`; Alembic head `20261111_0042`). It went out in two steps the same
+day: R1 `f22a755f7128` (#464, compatibility marker `20261029_0038a`), then R2 (`0039` drops the saved/share cascades,
+`0040`–`0042` additive). New flags `LA_LANH_HUMAN_TAROT_*` and `LA_LANH_MOOD_ENCRYPTED_WRITES` stay off (absent from
+`app.env`). Staging runs the same image ID. **Any later release must start from `0042`; never apply `0038a` and
+`0039` in one upgrade.** Rollback anchor: `la-lanh:f22a755f7128` for 0038a only; after 0039, prefer a forward fix.
+**No restore into service** (P07/B). Staging DB TLS certificates from `make-db-tls.sh` last 30 days: renew before
+they expire (they lapsed on 2026-11-10). Receipt:
+[production-release-2026-11-13](../reviews/production-release-2026-11-13/receipt.md).
+
+## Previous production — 2026-10-26
 
 Release `89ebdb0cf6b9` is live (`main` = `89ebdb0cf6b974994b7f67807873ac320b5ed228`, the #75 merge of
 `collab/integration` `7e6d69e`; image digest `sha256:8fcab2f44e27…`; Alembic head `20261023_0038`, the erasure
@@ -71,9 +83,9 @@ The current deploy.sh does not itself prove a protected backup/restore rehearsal
 until that release gate has evidence. A local or isolated PostgreSQL test is not a production
 backup, processor-erasure or real-Google-account proof.
 
-## Pending consolidated candidate — 2026-10-10
+## Pending consolidated candidate — 2026-10-10 (superseded)
 
-**Not deployed.** Read [content + Google release review](../reviews/2026-10-10-content-google-consolidated-release-review.md) and [execution plan](../plans/2026-10-10-content-google-release-completion.md) before using this playbook. Include tracked **and untracked** IAM/history/content/contracts/migrations in the release manifest; do not ship only the CMS or frontend.
+**Superseded:** every item below shipped in later releases; see "Current production". Kept for history. **Not deployed as such.** Read [content + Google release review](../reviews/2026-10-10-content-google-consolidated-release-review.md) and [execution plan](../plans/2026-10-10-content-google-release-completion.md) before using this playbook. Include tracked **and untracked** IAM/history/content/contracts/migrations in the release manifest; do not ship only the CMS or frontend.
 
 - Back up with the approved retention policy, record actual running image/Alembic head/flags, and rehearse the exact image + least-privileged role before deployment. No secret connection URL in artifacts.
 - Apply the candidate chain through `20261011_0036` before the new API starts: 0029/0030 preserve spend and isolate rewrite authority, 0031/0032 add IAM/history, 0033 adds Google PKCE, 0034 adds send fences, 0035 fixes trigger search paths and 0036 adds Radar retry digests. Verify RLS and revoked browser grants on every new private table. Local disposable-PG proof is not production-role proof.
@@ -579,6 +591,40 @@ Then complete a synthetic data-writing test:
 4. delete the synthetic result/profile and verify revoked capability URLs are no longer readable.
 
 Do not use real birth or relationship data for this operator test.
+
+### Product journey review (required since 2026-11-13)
+
+The scripts above prove the API contract. They do not show what a person sees. On 2026-11-13 a
+release passed every technical check, but nobody had used the product on a phone afterwards, and
+the owner had to ask for it. From that release on, a release is not finished until all four steps
+below are done and recorded in the receipt.
+
+1. From a trusted local checkout of the released commit, with web dependencies installed:
+
+   ```sh
+   LA_LANH_SMOKE_WRITE_CONSENT=synthetic-only pnpm qa:journey https://la-lanh.2-28-136-44.sslip.io <out-dir>
+   ```
+
+   Headless Chromium at 390 px goes through: welcome → consent → synthetic date, time and place →
+   reveal → home → full note → share link → revoke → mood → overview (Western, Jyotish) → current sky
+   → Aura → birth card → Tarot (one card drawn) → Radar → saved → profile → delete via
+   "Xóa Lá và dữ liệu". It writes `journey.json` (routes with IDs redacted, ready time, horizontal
+   overflow, controls under 44 px, console and 5xx errors), one screenshot and one text file per step.
+   It never writes cookies, tokens, share links or IDs. Exit 0 needs every required step to pass and
+   the guest to be deleted. Keep `<out-dir>` outside git; it holds screenshots of synthetic data only.
+2. **Claude review:** look at every screenshot. Score each flow on working, clarity, feel (calm,
+   joyful, "feel understood"), speed and phone layout, and list copy that is poetic, explains
+   mechanism or mixes English.
+3. **Codex review:** `codex exec -s read-only` in `<out-dir>`, with the same criteria and the
+   released source tree for reference. Codex works from the files; it needs no network.
+4. **Owner report:** one plain Vietnamese report in chat and a push: verdict, scores, top problems
+   with the fix order, and what works. A GitHub comment alone does not count.
+
+Record it in the receipt under `## Product journey` with the line
+`required failed: 0; guest deleted: true` and the bullets `- Claude review: …`,
+`- Codex review: …` and `- Owner report: …`. `scripts/qa-journey-lib.test.mjs` (part of
+`pnpm collab:test`, so of CI) fails for any receipt dated 2026-11-13 or later without them.
+Problems found become issues; P0/P1 block the next release.
 
 ## Phase 6 — operations gates
 
