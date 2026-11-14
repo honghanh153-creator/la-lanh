@@ -104,7 +104,7 @@ export const idleAlertRuns = 6;
 // A failed daily copy batch is retried on later ticks, at most this many attempts a day.
 export const copyBatchAttempts = 3;
 
-export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, progress = null, mergeAudit = null } = {}) {
+export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null, audit = null, progress = null, snapshot = null, incidents = null, mergeAudit = null } = {}) {
   // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
@@ -120,16 +120,19 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     // only in the morning plan: a hook removed at noon shows on the next tick (Codex r1 on #482).
     let healthNow;
     const readHealth = () => { if (healthNow === undefined) { try { healthNow = health(); } catch { healthNow = []; } } return healthNow; };
+    // L19: open incidents are read from GitHub once per tick and shown on every board update.
+    let openIncidents;
+    const readIncidents = () => { if (openIncidents === undefined) { try { openIncidents = incidents ? incidents() : []; } catch { openIncidents = null; } } return openIncidents; };
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), incidents: readIncidents(), ...info }); } catch {}
     };
     // Owner notes (collab-status.mjs): a new comment only for merges, a 2-tick failure streak,
     // a new needs-owner and the 12:00/22:00 digest. Never breaks a tick.
     const tell = ({ turns = [], comments = [], dropped = [], digest = true } = {}) => {
       try {
         const d = readJson(dayPath, day);
-        const notes = ownerNotes({ now: time(), merged: d.mergedToday ?? [], failures: d.failures ?? 0, streakAt: d.streakAt ?? null, turns, planned: d.planned ?? [], dropped, metrics: metricLines ?? [], digest, work: progress ? () => renderProgress(progress(d, time().date)) : null });
+        const notes = ownerNotes({ now: time(), merged: d.mergedToday ?? [], failures: d.failures ?? 0, streakAt: d.streakAt ?? null, turns, planned: d.planned ?? [], dropped, metrics: metricLines ?? [], digest, work: progress ? () => renderProgress(progress(d, time().date)) : null, snapshot });
         if (notes.length) notify(notes, comments);
       } catch (error) { log(`owner note failed, retry next run: ${clean(error.message, 200)}`); }
     };
