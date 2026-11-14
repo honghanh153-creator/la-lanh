@@ -10,6 +10,8 @@ import { SignalStationFrame } from "../../shared/ui/SignalStationFrame";
 import { ReadingDisclaimer } from "../../shared/ui/ReadingDisclaimer";
 import { NightSky } from "../../shared/ui/NightSky";
 import { LaSpirit } from "../../shared/ui/la/LaSpirit";
+import { useLoginAvailability } from "../../shared/account/useLoginAvailability";
+import { personaTag } from "../card/shareArt";
 import "./reveal-vitality.css";
 
 const elementBySign = {
@@ -21,6 +23,7 @@ const elementBySign = {
 
 export function RevealPage() {
   const navigate = useNavigate();
+  const login = useLoginAvailability();
   const corrected = (useLocation().state as { corrected?: boolean } | null)?.corrected === true;
   const [completing, setCompleting] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -76,7 +79,9 @@ export function RevealPage() {
       </button>
       {corrected ? <Link className="signal-station__secondary" to="/birth-time">Thêm giờ và nơi sinh để Lá rõ hơn</Link> : null}
       {hasExactChart ? <button className="signal-station__secondary" disabled={completing} onClick={() => void complete("/natal")} type="button">Đọc tổng quan về mình</button> : null}
-      <Link className="signal-station__secondary" to="/existing-user?returnTo=/reveal">Giữ hồ sơ khi đổi máy · đăng nhập tuỳ chọn</Link>
+      {login.googleLoginEnabled
+        ? <Link className="signal-station__secondary" to="/existing-user?returnTo=/reveal">Giữ hồ sơ khi đổi máy · đăng nhập tuỳ chọn</Link>
+        : login.storageNote ? <p className="signal-station__notice">{login.storageNote}</p> : null}
       <ReadingDisclaimer compact>
         Nội dung dùng để tự soi và đối chiếu; quyết định vẫn thuộc về bạn.
       </ReadingDisclaimer>
@@ -90,7 +95,7 @@ export function RevealPage() {
         <div aria-hidden="true" className="reveal-emblem">
           {(isCusp ? signs : signs.slice(0, 1)).map((sign) => <span key={sign}>{signDetails[sign].symbol}</span>)}
         </div>
-        <h1 id="reveal-title">{noteQuery.data?.persona_mode === "aura" ? "Aura" : "Vibe"} · {vibeLabel}</h1>
+        <h1 id="reveal-title">{personaTag(vibeLabel)}</h1>
         <p className="signal-reveal-card__pill">
           {isCusp
             ? `Mặt Trời ở ranh giới ${signs.map((sign) => signDetails[sign].label).join(" · ")}`

@@ -137,6 +137,16 @@ def copy_text(entry_id: str, fallback: str) -> str:
     return entry.text if entry is not None and entry.servable else fallback
 
 
+def approved_copy(entry_id: str) -> str | None:
+    """The approved sentence for ``entry_id``, or ``None`` while it is pending or broken.
+
+    For copy that has no current approved sentence to fall back to: the caller shows nothing.
+    """
+
+    entry = _runtime_registry().get(entry_id)
+    return entry.text if entry is not None and entry.servable else None
+
+
 # Daily bundles (owner decision 10.11.2026): headline, scene and action written together as
 # ``daily.bundle.<situation>.<nn>.<part>`` and served only as a whole.
 BUNDLE_PREFIX = "daily.bundle."

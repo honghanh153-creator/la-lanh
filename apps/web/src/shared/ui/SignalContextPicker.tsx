@@ -52,7 +52,7 @@ export function SignalContextPicker({
 
     <AppSheet
       closeDisabled={pending !== null}
-      eyebrow="Context Dial · riêng cho Note này"
+      eyebrow="Đổi góc đọc · riêng cho Note này"
       onClose={() => onOpenChange(false)}
       open={open}
       title="Bạn muốn Note giúp nhìn rõ điều gì?"

@@ -60,6 +60,17 @@
             "title": "Guest Inactivity Days",
             "type": "integer"
           },
+          "guest_storage_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guest Storage Note"
+          },
           "history_days": {
             "default": 30,
             "title": "History Days",

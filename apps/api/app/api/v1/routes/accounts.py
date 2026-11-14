@@ -19,6 +19,7 @@ from app.domains.accounts.models import (
     LoginResult,
 )
 from app.domains.accounts.service import LOGIN_COOKIE, RESTORE_COOKIE, AccountService
+from app.domains.content.copy_approval import approved_copy
 from app.domains.guest.service import GuestSessionService
 from app.infrastructure.csrf import (
     NATIVE_APP_ORIGINS,
@@ -88,6 +89,10 @@ router = APIRouter(
 )
 
 
+# Privacy copy: owner-only approval (copy_registry.json, category "privacy").
+GUEST_STORAGE_NOTE_ID = "account.guest-storage-note"
+
+
 class AccountStatus(BaseModel):
     login_enabled: bool
     google_login_enabled: bool = False
@@ -98,6 +103,8 @@ class AccountStatus(BaseModel):
     history_days: int = 30
     daily_note_hours: int = 24
     account_inactivity_days: int = ACCOUNT_DAYS
+    # Shown while Google sign-in is off; null until the owner approves the sentence.
+    guest_storage_note: str | None = None
 
 
 class DeviceResponse(BaseModel):
@@ -300,6 +307,7 @@ async def status(request: Request, response: Response) -> AccountStatus:
         masked_email=email,
         profile_expires_at=expiry.isoformat() if expiry else None,
         guest_inactivity_days=settings.guest_ttl_days,
+        guest_storage_note=approved_copy(GUEST_STORAGE_NOTE_ID),
     )
 
 

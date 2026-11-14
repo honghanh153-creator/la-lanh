@@ -43,10 +43,22 @@ describe("Google account", () => {
     renderPage();
     expect(await screen.findByText(/Đăng nhập Google chưa bật/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Email của bạn")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Tiếp tục với Google" })).toBeDisabled();
+    // Wave 1 (#479 P1): no locked Google button, consent box or provider footnote while sign-in is off.
+    expect(screen.queryByRole("button", { name: "Tiếp tục với Google" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Supabase/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Đổi máy, vẫn là hồ sơ của bạn.")).not.toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Tiếp tục không đăng nhập" }));
     expect(await screen.findByRole("heading", { name: "Tiếp tục phiên" })).toBeInTheDocument();
     expect(requestGoogleLogin).not.toHaveBeenCalled();
+  });
+
+  it("shows the approved storage sentence instead of the fallback once the owner approves it", async () => {
+    const note = "Câu tổng hợp đã duyệt: hồ sơ đang ở trình duyệt này.";
+    vi.mocked(getAccountStatus).mockResolvedValue({ login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365, guest_storage_note: note });
+    renderPage();
+    expect(await screen.findByText(note)).toBeInTheDocument();
+    expect(screen.queryByText(/Đăng nhập Google chưa bật/)).not.toBeInTheDocument();
   });
 
   it("needs consent, resumes the existing guest, rejects unsafe navigation without discarding data", async () => {

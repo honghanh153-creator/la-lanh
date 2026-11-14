@@ -10,7 +10,8 @@ test("welcome stays usable at supported mobile widths", async ({ page }) => {
     await expect(page.getByLabel("Lá Lành")).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
     await expect(page.getByRole("button", { name: "Đồng ý & bắt đầu" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Đăng nhập" })).toBeVisible();
+    // Wave 1: no sign-in invite while Google sign-in is off on this build (the e2e API runs with it off).
+    await expect(page.getByRole("link", { name: "Đăng nhập" })).toHaveCount(0);
     await expect(page.getByText("Chỉ cần ngày sinh · Chưa cần tài khoản")).toBeVisible();
     await expect(page.getByRole("link", { name: "Xem chi tiết" })).toHaveAttribute("href", "/privacy");
 

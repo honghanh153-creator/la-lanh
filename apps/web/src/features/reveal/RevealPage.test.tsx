@@ -10,6 +10,7 @@ vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
   return {
     ...actual,
+    getAccountStatus: vi.fn(() => new Promise(() => undefined)),
     getBirthProfile: vi.fn(),
     getDailyNote: vi.fn(),
     updateOnboardingStatus: vi.fn(),
@@ -55,5 +56,27 @@ describe("RevealPage", () => {
     expect(screen.getByRole("note", { name: "Lưu ý về bản đọc" })).toHaveTextContent(
       /quyết định vẫn thuộc về bạn/i,
     );
+  });
+
+  it("names the personality label one way, whatever the profile holds, and hides the locked sign-in (Wave 1)", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData<BirthReveal>(["birth-profile"], {
+      profile_id: "profile-synthetic",
+      snapshot_id: "snapshot-synthetic",
+      birth_date: "1990-05-05",
+      calculation_kind: "date_only_sun",
+      calculation: { status: "certain", sign: "taurus", candidates: ["taurus"], provenance: { engine: "swiss_ephemeris", version: "2.10.3", ephemeris_set: "sepl_18+semo_18+seas_18", profile: "natal-date-only-v1" } },
+      created_at: "2026-09-14T00:00:00Z",
+      resumed: false,
+    } as unknown as BirthReveal);
+    client.setQueryData<DailyNote>(["daily-note"], { persona_label: "Bền", persona_mode: "aura" } as DailyNote);
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter><RevealPage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("heading", { name: "Vibe · Bền" })).toBeInTheDocument();
+    expect(screen.queryByText(/Aura/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /đăng nhập/i })).not.toBeInTheDocument();
   });
 });
