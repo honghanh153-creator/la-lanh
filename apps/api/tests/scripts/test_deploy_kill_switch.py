@@ -79,13 +79,17 @@ def _deploy(tmp_path: Path, *, auth: bool = False, **fake: str) -> Run:
     return _deploy_with(tmp_path, fake, auth=auth)
 
 
-def _deploy_with(tmp_path: Path, fake: dict[str, str], *, auth: bool = False) -> Run:
-    infra = tmp_path / "root" / "infra" / "hetzner"
+def _deploy_with(
+    tmp_path: Path, fake: dict[str, str], *, auth: bool = False, root: str = "root"
+) -> Run:
+    infra = tmp_path / root / "infra" / "hetzner"
     infra.mkdir(parents=True)
     for name in ("deploy.sh", "compose-files.sh"):
         shutil.copy(REPO_ROOT / "infra/hetzner" / name, infra / name)
     for name in ("compose.yaml", "compose.auth.yaml", "run-retention-job.sh"):
         (infra / name).write_text("# synthetic\n")
+    (infra / "backup-database.sh").write_text("#!/bin/sh\n")
+    (infra / "backup-database.sh").chmod(0o755)
     (infra / "app.env").write_text("LA_LANH_SWISSEPH_LICENSE_MODE=agpl\n")
     secrets = tmp_path / "secrets"
     secrets.mkdir()
@@ -379,3 +383,31 @@ def test_real_compose_proof_on_a_disposable_host() -> None:
         ["/bin/bash", str(PROOF)], capture_output=True, text=True, check=False
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_a_release_under_the_releases_root_moves_the_active_link(tmp_path: Path) -> None:
+    # 13.11.2026: the link was once set by hand to releases/<id> instead of releases/<id>/source.
+    link = tmp_path / "current"
+    link.symlink_to(tmp_path)  # a stale target that must be replaced
+    run = _deploy_with(
+        tmp_path,
+        {
+            "LA_LANH_RELEASES_ROOT": str(tmp_path / "releases"),
+            "LA_LANH_CURRENT_LINK": str(link),
+        },
+        root=f"releases/{RELEASE}/source",
+    )
+    assert run.returncode == 0, run.stderr
+    assert link.resolve() == (tmp_path / "releases" / RELEASE / "source").resolve()
+    assert (link / "infra/hetzner/backup-database.sh").exists()
+
+
+def test_a_checkout_outside_the_releases_root_leaves_the_link_alone(tmp_path: Path) -> None:
+    link = tmp_path / "current"
+    link.symlink_to(tmp_path)
+    run = _deploy_with(
+        tmp_path,
+        {"LA_LANH_RELEASES_ROOT": str(tmp_path / "releases"), "LA_LANH_CURRENT_LINK": str(link)},
+    )
+    assert run.returncode == 0, run.stderr
+    assert link.resolve() == tmp_path.resolve()
