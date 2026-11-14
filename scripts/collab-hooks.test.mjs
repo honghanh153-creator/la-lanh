@@ -122,15 +122,25 @@ test('the real hook and the real guard block a push that adds a forbidden value'
   assert.ok(!blocked.stdout.includes('ZZ-SYNTHETIC') && !blocked.stderr.includes('ZZ-SYNTHETIC'), 'the value itself is never printed');
 });
 
-test('a guard reached through a symlink runs nothing; the hook therefore refuses to pass it', () => {
+// #484 (L16): a script reached through a symlink used to run nothing and exit 0. Now it runs, so the
+// guard through a symlinked ops clone really scans; the hook still fails closed when a guard prints
+// no explicit result.
+test('a guard reached through a symlink now runs; a guard that prints nothing is still refused', () => {
   const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
   const home = mkdtempSync(join(tmpdir(), 'hooks-link-'));
   symlinkSync(repoRoot, join(home, 'ops'));
-  const hook = join(home, 'pre-push');
+  const guard = spawnSync(process.execPath, [join(home, 'ops', 'scripts', 'collab-check.mjs'), '--guard'], { cwd: repoDir(), input: '', encoding: 'utf8' });
+  assert.equal(guard.status, 0, guard.stderr);
+  assert.match(guard.stdout, /private-guard: ok/, 'the symlinked guard ran and answered');
+
+  const silent = mkdtempSync(join(tmpdir(), 'hooks-silent-'));
+  mkdirSync(join(silent, 'ops', 'scripts'), { recursive: true });
+  writeFileSync(join(silent, 'ops', 'scripts', 'collab-check.mjs'), '');
+  writeFileSync(join(silent, 'ops', 'scripts', 'collab-preflight.mjs'), '');
+  const hook = join(silent, 'pre-push');
   writeFileSync(hook, prePushHook);
   chmodSync(hook, 0o755);
-  const clone = repoDir();
-  const out = spawnSync(hook, [], { cwd: clone, input: '', encoding: 'utf8', env: { ...process.env, LA_LANH_COLLAB_HOME: home } });
+  const out = spawnSync(hook, [], { cwd: repoDir(), input: '', encoding: 'utf8', env: { ...process.env, LA_LANH_COLLAB_HOME: silent } });
   assert.equal(out.status, 1);
   assert.match(out.stderr, /không trả kết quả rõ ràng/);
 });

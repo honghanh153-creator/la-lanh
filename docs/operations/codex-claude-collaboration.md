@@ -42,7 +42,7 @@ Hai workspace là clone độc lập, không phải managed worktree. Công cụ
 - `bash scripts/collaboration-sync.sh --check` fetch bản chung và liệt kê commit mới.
 - `--apply` chỉ merge vào branch agent sạch, dừng khi conflict, không push/deploy.
 
-**Cập nhật 30.10.2026 (owner duyệt):** vòng tự động Claude ⇄ Codex trong [collab-auto-loop-plan.md](collab-auto-loop-plan.md). Claude gọi Codex CLI read-only trên máy owner (`scripts/codex-review.mjs`), script tự đăng verdict và merge vào `collab/integration` (`scripts/collab-merge.mjs`). Một job launchd mỗi 10 phút là lưới an toàn, theo lịch ngày: plan 08:50, owner trả lời `Duyệt`/`Giữ`/`Bỏ #N` trên issue plan, 10:00 tự chạy, dừng lúc 23:30. Không có GitHub Actions, webhook hay dịch vụ cloud mới; không gửi dữ liệu người dùng sang dịch vụ AI. Mở rộng phạm vi (merge `main`, deploy, agent trả phí khác) vẫn cần owner duyệt riêng.
+**Cập nhật 30.10.2026 (owner duyệt):** vòng tự động Claude ⇄ Codex trong [collab-auto-loop-plan.md](collab-auto-loop-plan.md). Claude gọi Codex CLI read-only trên máy owner (`scripts/codex-review.mjs`), script tự đăng verdict và merge vào `collab/integration` (`scripts/collab-merge.mjs`). Một job launchd mỗi 10 phút là lưới an toàn, theo lịch ngày (đổi 14.11.2026): plan 06:50, owner trả lời `Duyệt`/`Giữ`/`Bỏ #N` trên issue plan, 08:00 tự chạy, không bắt đầu lượt mới từ 23:35, dừng lúc 23:59. Không có GitHub Actions, webhook hay dịch vụ cloud mới; không gửi dữ liệu người dùng sang dịch vụ AI. Mở rộng phạm vi (merge `main`, deploy, agent trả phí khác) vẫn cần owner duyệt riêng.
 
 ## Bắt đầu một task
 

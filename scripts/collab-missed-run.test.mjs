@@ -19,7 +19,8 @@ test('autopilot slot without done beat is a miss only after jitter + 30 min grac
 
 test('overnight gap is not an autopilot miss; retro missed at 23:35 is', () => {
   const beats = { ...fresh, 'la-lanh-autopilot': { doneAt: new Date(vn('2026-11-04T23:45:00')).toISOString() }, 'la-lanh-retro': { doneAt: new Date(vn('2026-11-03T23:40:00')).toISOString() } };
-  const misses = missedRuns(beats, vn('2026-11-05T09:00:00'));
+  // 08:00: the 07:37 autopilot slot is not due yet (jitter + grace), the 23:35 retro is.
+  const misses = missedRuns(beats, vn('2026-11-05T08:00:00'));
   assert.deepEqual(misses.map(m => m.task), ['la-lanh-retro']);
   assert.equal(misses[0].day, '2026-11-04');
 });
