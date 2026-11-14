@@ -9143,6 +9143,12 @@
    "category": "reading",
    "text": "Ảnh chuyến đi biển cả nhóm đang chờ, nhưng bạn muốn sửa ánh sáng xong từng tấm mới gửi.",
    "status": "pending"
+  },
+  {
+   "id": "account.guest-storage-note",
+   "category": "privacy",
+   "text": "Hồ sơ của bạn đang lưu trên trình duyệt này. Đổi máy hoặc xoá dữ liệu trình duyệt thì hồ sơ sẽ mất.",
+   "status": "pending"
   }
  ],
  "version": "copy-registry/v1"

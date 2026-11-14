@@ -11,6 +11,7 @@ import { useOnboardingMotion } from "../../shared/ui/onboardingMotion";
 import { RADAR_PENDING_REQUEST_KEY } from "../radar/radarOptions";
 import { markRadarOwnerReturn, readRadarOwnerReturn } from "../radar/radarOwnerReturn";
 import { useVibe } from "../../shared/vibe/useVibe";
+import { useLoginAvailability } from "../../shared/account/useLoginAvailability";
 import "./welcome-intro.css";
 
 function idempotencyKey(): string {
@@ -27,6 +28,7 @@ export function WelcomePage() {
   const queryClient = useQueryClient();
   const motion = useOnboardingMotion();
   const { vibe } = useVibe();
+  const login = useLoginAvailability();
   const routeState = location.state as { expired?: boolean; offline?: boolean; sessionChanged?: boolean } | null;
   const restart = new URLSearchParams(location.search).get("restart") === "1";
   const [pending, setPending] = useState(false);
@@ -136,11 +138,14 @@ export function WelcomePage() {
           <span>{pending ? "Đang bắt đầu…" : "Đồng ý & bắt đầu"}</span>
           <ArrowRight aria-hidden="true" size={24} weight="bold" />
         </button>
-        <Link className="welcome-intro__secondary" to="/existing-user?returnTo=/home"
-          aria-disabled={creating || undefined} tabIndex={creating ? -1 : undefined}
-          onClick={(event) => { if (creating) event.preventDefault(); }}>Đăng nhập</Link>
+        {login.googleLoginEnabled ? (
+          <Link className="welcome-intro__secondary" to="/existing-user?returnTo=/home"
+            aria-disabled={creating || undefined} tabIndex={creating ? -1 : undefined}
+            onClick={(event) => { if (creating) event.preventDefault(); }}>Đăng nhập</Link>
+        ) : null}
         <div className="welcome-intro__privacy">
           <p>Chỉ cần ngày sinh · Chưa cần tài khoản</p>
+          {!login.googleLoginEnabled && login.storageNote ? <p>{login.storageNote}</p> : null}
           <p>Khách: 30 ngày không hoạt động. Note ngày tự động hiện tối đa 24 giờ (có thể được dọn sớm hơn), lịch sử khác tối đa 30 ngày; note đã lưu giữ cùng hồ sơ.</p>
           <p>Dữ liệu riêng tư · <Link to="/privacy">Xem chi tiết</Link></p>
         </div>

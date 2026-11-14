@@ -1525,6 +1525,8 @@ export interface components {
             google_login_enabled: boolean;
             /** Guest Inactivity Days */
             guest_inactivity_days: number;
+            /** Guest Storage Note */
+            guest_storage_note?: string | null;
             /**
              * History Days
              * @default 30

@@ -5,7 +5,7 @@ import { StrictMode } from "react";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApiProblem, acceptBasicBirthConsent, enableHistoryRetention, createGuest, getBirthProfile, getSession } from "../../shared/api/client";
+import { ApiProblem, acceptBasicBirthConsent, enableHistoryRetention, createGuest, getAccountStatus, getBirthProfile, getSession, type AccountStatus } from "../../shared/api/client";
 import { SESSION_RESTART_REQUIRED_KEY } from "../../shared/session/sessionIdentity";
 import { EntryPage } from "../entry/EntryPage";
 import { AppShell } from "../../app/AppShell";
@@ -15,8 +15,12 @@ import { WelcomePage } from "./WelcomePage";
 
 vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
-  return { ...actual, acceptBasicBirthConsent: vi.fn(), enableHistoryRetention: vi.fn(), createGuest: vi.fn(), getBirthProfile: vi.fn(), getSession: vi.fn() };
+  return { ...actual, acceptBasicBirthConsent: vi.fn(), enableHistoryRetention: vi.fn(), createGuest: vi.fn(), getAccountStatus: vi.fn(), getBirthProfile: vi.fn(), getSession: vi.fn() };
 });
+
+function accountStatus(overrides: Partial<AccountStatus> = {}): AccountStatus {
+  return { login_enabled: true, google_login_enabled: true, signed_in: false, masked_email: null, profile_expires_at: null, guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365, guest_storage_note: null, ...overrides };
+}
 
 function renderPage(entry = "/welcome") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -50,6 +54,7 @@ describe("WelcomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(acceptBasicBirthConsent).mockResolvedValue(undefined);
+    vi.mocked(getAccountStatus).mockResolvedValue(accountStatus());
     vi.mocked(enableHistoryRetention).mockResolvedValue({ enabled: true, history_days: 30, daily_note_hours: 24, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
     sessionStorage.clear();
     vi.mocked(getSession).mockRejectedValue(new ApiProblem(401, "GUEST_SESSION_MISSING", "missing"));
@@ -79,7 +84,7 @@ describe("WelcomePage", () => {
     await user.click(screen.getByRole("button", { name: "Đồng ý & bắt đầu" }));
     expect(screen.getByRole("button", { name: "Đang bắt đầu…" })).toBeDisabled();
     const signal = vi.mocked(getSession).mock.calls[0][0];
-    await user.click(screen.getByRole("link", { name: "Đăng nhập" }));
+    await user.click(await screen.findByRole("link", { name: "Đăng nhập" }));
     expect(screen.getByRole("heading", { name: "Đăng nhập với Google" })).toBeInTheDocument();
     await act(async () => {
       if (outcome === "active") {
@@ -105,7 +110,7 @@ describe("WelcomePage", () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByRole("button", { name: "Đồng ý & bắt đầu" }));
-    await user.click(screen.getByRole("link", { name: "Đăng nhập" }));
+    await user.click(await screen.findByRole("link", { name: "Đăng nhập" }));
     await user.click(screen.getByRole("link", { name: "Quay lại" }));
     await user.click(screen.getByRole("button", { name: "Đồng ý & bắt đầu" }));
     expect(getSession).toHaveBeenCalledTimes(2);
@@ -139,7 +144,7 @@ describe("WelcomePage", () => {
     renderPage();
     await user.click(screen.getByRole("button", { name: "Đồng ý & bắt đầu" }));
     expect(acceptBasicBirthConsent).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByRole("link", { name: "Đăng nhập" }));
+    await user.click(await screen.findByRole("link", { name: "Đăng nhập" }));
     await act(async () => {
       consent.resolve(undefined);
       await consent.promise;
@@ -158,7 +163,7 @@ describe("WelcomePage", () => {
     renderPage();
     await user.click(screen.getByRole("button", { name: "Đồng ý & bắt đầu" }));
     expect(enableHistoryRetention).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByRole("link", { name: "Đăng nhập" }));
+    await user.click(await screen.findByRole("link", { name: "Đăng nhập" }));
     await act(async () => {
       consent.resolve({ enabled: true, history_days: 30, daily_note_hours: 24, activated_at: "2026-10-10T00:00:00Z", saved_notes_kept: true });
       await consent.promise;
@@ -180,7 +185,7 @@ describe("WelcomePage", () => {
     expect(createGuest).toHaveBeenCalledTimes(1);
     view.client.setQueryData(["login-operation"], "keep-cache");
     const key = sessionStorage.getItem("la-lanh-guest-create-key");
-    await user.click(screen.getByRole("link", { name: "Đăng nhập" }));
+    await user.click(await screen.findByRole("link", { name: "Đăng nhập" }));
     expect(screen.getByRole("link", { name: "Đăng nhập" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("heading", { name: "Hiểu mình hơn. Bớt đoán mò." })).toBeVisible();
     await user.click(screen.getByRole("link", { name: "Xem chi tiết" }));
@@ -210,15 +215,15 @@ describe("WelcomePage", () => {
     expect(sessionStorage.getItem("existing-profile")).toBe("keep");
   });
 
-  it("shows one concise consent step without a carousel or login wall", () => {
+  it("shows one concise consent step without a carousel or login wall", async () => {
     renderPage();
+    expect(await screen.findByRole("link", { name: "Đăng nhập" })).toHaveAttribute("href", "/existing-user?returnTo=/home");
 
     expect(screen.getByLabelText("Lá Lành")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Hiểu mình hơn. Bớt đoán mò." })).toBeInTheDocument();
     expect(screen.getByText("Đọc lá số để hiểu mình, rút Tarot cho chuyện đang vướng, hoặc xem mình và người ấy hợp nhau ở đâu.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Đồng ý & bắt đầu" })).toBeEnabled();
     expect(screen.queryByRole("link", { name: "Xem bản mẫu" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Đăng nhập" })).toHaveAttribute("href", "/existing-user?returnTo=/home");
     expect(screen.queryByRole("link", { name: /hồ sơ khác/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Tiếp tục hồ sơ trên máy này" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Xem chi tiết" })).toHaveAttribute("href", "/privacy");
@@ -226,6 +231,28 @@ describe("WelcomePage", () => {
     expect(screen.queryByLabelText("Tiến độ giới thiệu")).not.toBeInTheDocument();
     expect(screen.queryByText("Mình đã có tài khoản")).not.toBeInTheDocument();
     expect(createGuest).not.toHaveBeenCalled();
+  });
+
+  it("offers no sign-in while Google sign-in is off, and says where the profile lives only once approved", async () => {
+    vi.mocked(getAccountStatus).mockResolvedValue(accountStatus({ google_login_enabled: false }));
+    const pending = renderPage();
+    await vi.waitFor(() => expect(getAccountStatus).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole("link", { name: "Đăng nhập" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/trình duyệt này/)).not.toBeInTheDocument();
+    pending.unmount();
+
+    const note = "Câu tổng hợp đã duyệt: hồ sơ đang ở trình duyệt này.";
+    vi.mocked(getAccountStatus).mockResolvedValue(accountStatus({ google_login_enabled: false, guest_storage_note: note }));
+    renderPage();
+    expect(await screen.findByText(note)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Đăng nhập" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the sign-in link hidden while availability is unknown", () => {
+    vi.mocked(getAccountStatus).mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    expect(screen.queryByRole("link", { name: "Đăng nhập" })).not.toBeInTheDocument();
   });
 
   it("pauses every hero layer without recording consent or blocking the CTA", async () => {

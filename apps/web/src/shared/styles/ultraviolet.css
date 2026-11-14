@@ -296,7 +296,7 @@
 :root .ultraviolet-app .mood-quick-trigger__emoji { font-size: 1.25rem; line-height: 1; }
 :root .ultraviolet-app .mood-quick-trigger__label { white-space: nowrap; }
 
-/* The night card. Moon = Context Dial trigger, half outside the corner. */
+/* The night card. Moon = "Đổi góc đọc" trigger, half outside the corner. */
 :root .ultraviolet-app .home-daily-signal { margin: 1.125rem 0 0; }
 :root .ultraviolet-app .home-daily-signal__paper { display: block; min-height: 0; padding: 0; margin: 0; transform: none; }
 :root .ultraviolet-app .home-daily-signal__paper::after { display: none; }
@@ -650,7 +650,10 @@
 :root .ultraviolet-app .uv-topbar .uv-topbar__icon--action { margin: 0 -0.5rem 0 0; color: var(--uv-action); justify-self: end; }
 :root .ultraviolet-app .uv-topbar .uv-topbar__title { overflow: hidden; margin: 0; letter-spacing: normal; text-transform: none; color: var(--uv-text); font-size: 1rem; font-weight: 700; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 :root .ultraviolet-app .note-detail-page .reading-content { margin-top: 1.375rem; }
-:root .ultraviolet-app .note-detail-page { padding-bottom: 8rem; }
+:root .ultraviolet-app .note-detail-page { padding-bottom: 2rem; }
+/* Wave 1: the Note's save button sits in the page flow. Fixed to the screen bottom it covered
+   "Giữ để thử hôm nay" and any focused control under it (WCAG 2.2 SC 2.4.11). */
+:root .ultraviolet-app .note-detail-page .uv-sticky-action { position: static; width: 100%; padding: 1rem 0 0; transform: none; background: none; }
 :root .ultraviolet-app .uv-sticky-action { position: fixed; z-index: 15; right: 0; bottom: 0; left: 50%; display: block; width: min(100%, 35rem); padding: 0.875rem 1.25rem max(1.625rem, env(safe-area-inset-bottom)); margin: 0; transform: translateX(-50%); background: linear-gradient(180deg, rgb(245 242 248 / 0%) 0%, var(--uv-page) 30%); }
 :root[data-theme="dark"] .ultraviolet-app .uv-sticky-action { background: linear-gradient(180deg, rgb(20 16 42 / 0%) 0%, var(--uv-page) 30%); }
 :root .ultraviolet-app .uv-sticky-action > :is(.electric-button, button, a) { width: 100%; min-height: 3.375rem; font-size: 1rem; }

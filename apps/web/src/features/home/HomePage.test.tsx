@@ -25,6 +25,7 @@ import { clearCachedDailyNote, writeCachedDailyNote } from "../../shared/storage
 import { clearChartDerivedData } from "../../shared/storage/clearChartDerivedData";
 import ultravioletStyles from "../../shared/styles/ultraviolet.css?raw";
 import { HomePage } from "./HomePage";
+import { LA_MOOD_REACTIONS } from "../../shared/ui/la/laVoice";
 
 vi.mock("../../shared/api/client", async (original) => {
   const actual = await original<typeof import("../../shared/api/client")>();
@@ -454,6 +455,20 @@ describe("HomePage rich reading", () => {
     await waitFor(() => expect(checkInMood).toHaveBeenCalledWith(baseNoteId, "Chill"));
     expect(screen.queryByRole("dialog", { name: "Hôm nay bạn đang ở mood nào?" })).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Mood hôm nay: Chill" })).toBeInTheDocument();
+  });
+
+  it("lets Lá answer the chosen mood instead of a card line that assumes another mood (Wave 1)", async () => {
+    const user = userEvent.setup();
+    const tired = { ...vibe, sections: { ...vibe.sections, companion: "Thu hẹp lựa chọn khi đang mệt." } };
+    vi.mocked(getDailyNote).mockResolvedValue(noteWith(projection(tired)));
+    vi.mocked(checkInMood).mockResolvedValue({ id: "00000000-0000-4000-8000-000000000098", daily_note_id: baseNoteId, mood: "Chill", checked_in_at: "2026-09-28T00:00:00Z" });
+    renderPage();
+
+    expect(await screen.findByText("Thu hẹp lựa chọn khi đang mệt.")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Chọn mood hôm nay" }));
+    await user.click(screen.getByRole("button", { name: /Chill/ }));
+    await waitFor(() => expect(screen.queryByText("Thu hẹp lựa chọn khi đang mệt.")).not.toBeInTheDocument());
+    expect(screen.getAllByText(LA_MOOD_REACTIONS.Chill).length).toBeGreaterThan(0);
   });
 
   it("dates the loading hero by the Vietnam day, not the UTC day (PL-12)", () => {

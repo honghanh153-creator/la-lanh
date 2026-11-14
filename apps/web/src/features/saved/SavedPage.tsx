@@ -7,16 +7,12 @@ import { listSavedNotes, unsaveDailyNote, type SavedNote } from "../../shared/ap
 import { readLocalSavedNotes, unsaveNoteLocally } from "../../shared/storage/savedNoteCache";
 import { AppNav } from "../../shared/ui/AppNav";
 import { LaLoading } from "../../shared/ui/la/LaLoading";
+import { personaTag } from "../card/shareArt";
 import { ShareLinksSection } from "./ShareLinksSection";
 
 function noteText(saved: SavedNote, key: "title" | "body" | "context_label" | "persona_mode" | "persona_label"): string {
   const value = saved.note_snapshot[key];
   return typeof value === "string" ? value : "";
-}
-
-function readingMode(saved: SavedNote): string {
-  if (!saved.reading_snapshot) return noteText(saved, "persona_mode") === "aura" ? "Aura" : "Vibe";
-  return saved.reading_snapshot.mode === "vibe_fallback" ? "Vibe" : "Aura";
 }
 
 export function SavedPage() {
@@ -77,7 +73,7 @@ export function SavedPage() {
         <section className="saved-list" aria-label="Những note đã lưu">
           {notes.map((saved) => (
             <article className="paper-panel saved-note" key={saved.id}>
-              <p className="eyebrow">{noteText(saved, "persona_label") ? `${readingMode(saved)} · ${noteText(saved, "persona_label")}` : "Một note bạn không muốn bỏ lỡ"}</p>
+              <p className="eyebrow">{personaTag(noteText(saved, "persona_label")) ?? "Một note bạn không muốn bỏ lỡ"}</p>
               <h2>{saved.reading_snapshot?.sections.hook || noteText(saved, "title") || "Một lời nhắc đã lưu"}</h2>
               <p>{saved.reading_snapshot?.sections.manifestation || noteText(saved, "body")}</p>
               {saved.reading_snapshot ? (

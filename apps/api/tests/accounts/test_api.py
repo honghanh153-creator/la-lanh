@@ -13,6 +13,7 @@ from httpx2 import Response as ClientResponse
 from pydantic import SecretStr
 from starlette.types import Message, Receive, Scope, Send
 
+from app.api.v1.routes.accounts import GUEST_STORAGE_NOTE_ID
 from app.config import Settings
 from app.domains.accounts.models import Challenge
 from app.domains.accounts.service import LOGIN_COOKIE, RESTORE_COOKIE, AccountService
@@ -185,6 +186,8 @@ def test_disabled_status_is_honest_and_code_never_creates_guest(tmp_path: Path) 
             "history_days": 30,
             "daily_note_hours": 24,
             "account_inactivity_days": 365,
+            # Pending privacy copy never reaches users (owner approval only).
+            "guest_storage_note": None,
         }
         denied = client.post(
             "/v1/account/login/code",
@@ -196,6 +199,47 @@ def test_disabled_status_is_honest_and_code_never_creates_guest(tmp_path: Path) 
         assert client.get("/v1/session").status_code == 401
         assert fake.calls == []
         assert status.headers["Cache-Control"] == "no-store, max-age=0"
+
+
+def test_guest_storage_note_is_served_only_once_the_owner_approves_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.domains.content import copy_approval
+
+    text = "Câu tổng hợp để thử: hồ sơ đang ở trình duyệt này."
+
+    def registry(**entry: str) -> None:
+        raw = {"id": GUEST_STORAGE_NOTE_ID, "category": "privacy", "text": text, **entry}
+        parsed = copy_approval.parse_registry(
+            {"version": copy_approval.REGISTRY_VERSION, "entries": [raw]}
+        )
+        monkeypatch.setattr(copy_approval, "_runtime_registry", lambda: parsed)
+
+    app = create_app(
+        Settings(
+            _env_file=None,
+            environment="test",
+            database_url=f"sqlite+aiosqlite:///{tmp_path / 'note.db'}",
+            cors_origins=[ORIGIN],
+        )
+    )
+    digest = copy_approval.copy_digest(text)
+    with TestClient(app, base_url=ORIGIN) as client:
+        registry(status="pending")
+        assert client.get("/v1/account").json()["guest_storage_note"] is None
+        # Codex may not approve privacy copy: the entry is broken, so nothing is served.
+        registry(status="approved", approver="codex", date="2026-11-14", digest=digest)
+        assert client.get("/v1/account").json()["guest_storage_note"] is None
+        registry(status="approved", approver="owner", date="2026-11-14", digest=digest)
+        assert client.get("/v1/account").json()["guest_storage_note"] == text
+
+
+def test_guest_storage_note_is_registered_as_pending_privacy_copy() -> None:
+    from app.domains.content.copy_approval import load_registry
+
+    entry = load_registry()[GUEST_STORAGE_NOTE_ID]
+    assert entry.category == "privacy"
+    assert entry.status == "pending"
 
 
 def rows(path: Path, table: str) -> list[tuple[object, ...]]:

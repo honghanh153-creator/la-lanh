@@ -39,6 +39,8 @@ export function ExistingUserPage() {
   });
   const exchange = useRef<Promise<AccountLoginResult> | null>(null);
   const restoreNonce = callback?.state ?? null;
+  // Google sign-in off: no locked button, no sign-in invite; say where the profile lives (#479 P1).
+  const loginOff = !callback && !restore && Boolean(account.data && !account.data.signed_in && !account.data.google_login_enabled);
   const guestKey = useRef(crypto.randomUUID());
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -106,9 +108,14 @@ export function ExistingUserPage() {
     <header className="flow-header uv-topbar"><button aria-label="Quay lại" className="icon-button uv-topbar__icon" disabled={pending} onClick={() => void cancel()} type="button"><ArrowLeft /></button><span /><span aria-hidden="true" className="uv-topbar__spacer" /></header>
     <section className="account-card" aria-labelledby="account-title">
       <img alt="" className="account-card__art" src="/assets/ultraviolet/pair.webp" />
-      <p className="accent-kicker eyebrow">Đăng nhập tuỳ chọn</p>
-      <h1 id="account-title">Đổi máy, vẫn là hồ sơ của bạn.</h1>
-      <p>Đăng nhập bằng Google để mở lại hồ sơ. Không đăng nhập vẫn dùng được trên máy này.</p>
+      {loginOff ? <>
+        <h1 id="account-title">Hồ sơ khách</h1>
+        <p role="status">{account.data?.guest_storage_note?.trim() || "Đăng nhập Google chưa bật trên bản này. Hồ sơ khách vẫn dùng bình thường."}</p>
+      </> : <>
+        <p className="accent-kicker eyebrow">Đăng nhập tuỳ chọn</p>
+        <h1 id="account-title">Đổi máy, vẫn là hồ sơ của bạn.</h1>
+        <p>Đăng nhập bằng Google để mở lại hồ sơ. Không đăng nhập vẫn dùng được trên máy này.</p>
+      </>}
       {pending ? <p role="status">Đang xác nhận với Google…</p> : null}
       {restore ? <>
         <h2>Mở lại hồ sơ đã giữ?</h2>
@@ -119,10 +126,9 @@ export function ExistingUserPage() {
           setPending(true); setError(null);
           void restoreAccount(restoreNonce).then(adopt).catch((failure: unknown) => setError(loginError(failure))).finally(() => { if (alive.current) setPending(false); });
         }} type="button">Mở hồ sơ của tài khoản này</button>
-      </> : callback ? <>{outcome ? <p role="status">Tài khoản chưa liên kết được với hồ sơ trên máy này. Hồ sơ hiện tại vẫn được giữ.</p> : null}{!pending ? <Link className="electric-button" to="/existing-user">Đăng nhập lại bằng Google</Link> : null}</> : account.isPending ? <p role="status">Đang kiểm tra đăng nhập…</p> : account.isError ? <><p role="alert">Chưa kiểm tra được. Hồ sơ khách vẫn được giữ.</p><button className="text-button" onClick={() => void account.refetch()} type="button">Thử lại</button></> : account.data.signed_in ? <><p role="status">Đã đăng nhập · {account.data.masked_email}</p><Link className="electric-button" to="/profile">Về hồ sơ của mình</Link></> : <>
+      </> : callback ? <>{outcome ? <p role="status">Tài khoản chưa liên kết được với hồ sơ trên máy này. Hồ sơ hiện tại vẫn được giữ.</p> : null}{!pending ? <Link className="electric-button" to="/existing-user">Đăng nhập lại bằng Google</Link> : null}</> : account.isPending ? <p role="status">Đang kiểm tra đăng nhập…</p> : account.isError ? <><p role="alert">Chưa kiểm tra được. Hồ sơ khách vẫn được giữ.</p><button className="text-button" onClick={() => void account.refetch()} type="button">Thử lại</button></> : account.data.signed_in ? <><p role="status">Đã đăng nhập · {account.data.masked_email}</p><Link className="electric-button" to="/profile">Về hồ sơ của mình</Link></> : loginOff ? null : <>
         <label className="account-consent"><input checked={consent} disabled={pending} onChange={(event) => setConsent(event.target.checked)} type="checkbox" /><span>Đồng ý dùng thông tin sinh bạn nhập để tạo hồ sơ và giữ hồ sơ tới 365 ngày không sử dụng. Note ngày tự động hiện tối đa 24 giờ (có thể được dọn sớm hơn), lịch sử khác tối đa 30 ngày; note chủ động lưu giữ cùng hồ sơ. Có thể xoá trong Mình.</span></label>
         <p className="account-footnote">Google và Supabase xác thực tài khoản. Lá chỉ giữ mã tài khoản và email đã che bớt; không đọc Gmail hay danh bạ. Đăng nhập không đồng nghĩa đồng ý gửi nội dung cho AI. <Link to="/privacy">Quyền riêng tư</Link>.</p>
-        {!account.data.google_login_enabled ? <p role="status">Đăng nhập Google chưa bật trên bản này. Hồ sơ khách vẫn dùng bình thường.</p> : null}
         <button className="electric-button" disabled={pending || !consent || !account.data.google_login_enabled} onClick={() => void signIn()} type="button"><GoogleLogo aria-hidden="true" /> Tiếp tục với Google</button>
       </>}
       {error ? <p className="inline-error" role="alert">{error}</p> : null}
