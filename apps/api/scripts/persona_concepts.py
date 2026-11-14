@@ -31,8 +31,8 @@ ROOT = Path(__file__).resolve().parents[3]
 QA = ROOT / "qa" / "personas"
 SEED = 20261114 + 1000
 CONTROL_MOCK = QA / "plan-variants" / "mocks" / "V0-codex.md"
-PACKAGE = ("S1", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10")
-ADDONS = ("S2", "S11")
+PACKAGE = ("S1", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S13")
+ADDONS = ("S2", "S11", "S12")
 EXTRA_SITUATIONS = {"normal": "Hôm nay là một ngày bình thường của bạn."}
 ATTR_KEYS = (
     "gen_z",
@@ -106,9 +106,7 @@ def split_concepts(text: str) -> dict[str, str]:
     intro_end = body.find("## S1.")
     intro = body[:intro_end]
     rules = [
-        line
-        for line in intro.splitlines()
-        if line.startswith("Giao diện") or line.startswith("**Ảnh để lưu")
+        line for line in intro.splitlines() if line.startswith("Giao diện") or line.startswith("**")
     ]
     parts["_rules"] = "\n\n".join(rules)
     table = {
@@ -166,7 +164,13 @@ def added_text(parts: Mapping[str, str], codes: Sequence[str], base: str, intro:
         "Mọi câu là ví dụ chưa duyệt. Mọi người trong mock là hư cấu."
     )
     table = f"| Phần | Quan hệ với {base} |\n|---|---|\n{rel}"
-    return f"{intro}\n\n{table}\n\n{parts['_rules']}\n\n{blocks}"
+    rules = "\n\n".join(
+        para
+        for para in parts["_rules"].split("\n\n")
+        # The compact home layout is built from S1 + S5; only the full package has it.
+        if not para.startswith("**Trang chủ gọn") or set(PACKAGE) <= set(codes)
+    )
+    return f"{intro}\n\n{table}\n\n{rules}\n\n{blocks}"
 
 
 def mock_for(
@@ -214,12 +218,12 @@ def cmd_packets(personas_path: Path, concepts_md: Path, out: Path) -> None:
     order = stratified_order(people)
     bins: dict[int, list[str]] = defaultdict(list)
     for rank, pid in enumerate(order):
-        bins[rank % 10].append(pid)
+        bins[rank % (len(PACKAGE) + 1)].append(pid)
     jobs: list[tuple[str, str, tuple[str, ...], list[str]]] = [
         ("package", "package", PACKAGE, order)
     ]
     jobs += [("single", code, (code,), bins[i]) for i, code in enumerate(PACKAGE)]
-    jobs += [("addon", code, (code,), bins[9]) for code in ADDONS]
+    jobs += [("addon", code, (code,), bins[len(PACKAGE)]) for code in ADDONS]
     out.mkdir(parents=True, exist_ok=True)
     manifest = []
     combos = [("Bản X", "X"), ("Bản Y", "X"), ("Bản X", "Y"), ("Bản Y", "Y")]
