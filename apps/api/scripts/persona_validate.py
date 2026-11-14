@@ -50,6 +50,9 @@ REQUIRED = (
     "traits",
     "tests",
 )
+_UNDER_AGE = re.compile(
+    r"chưa đủ 18|chưa tròn 18|chưa 18 tuổi|vị thành niên|(?:mới|còn|chỉ) 1[0-7] tuổi"
+)
 _FORBIDDEN_IN_QUESTIONS = re.compile(
     r"chết|chet\b|tự tử|tu tu\b|tự làm đau|biến mất|không muốn sống"
 )
@@ -131,6 +134,9 @@ def persona_problems(personas: Sequence[Mapping[str, Any]]) -> list[str]:
                 out.append(f"{pid}: tarot question invalid: {q['text'][:30]}")
             if _FORBIDDEN_IN_QUESTIONS.search(q["text"].casefold()):
                 out.append(f"{pid}: ordinary tarot question touches the crisis/figurative test set")
+        about = " ".join(str(p[k]) for k in ("situation", "personality", "daily_rhythm"))
+        if _UNDER_AGE.search(about.casefold()):
+            out.append(f"{pid}: narrative says under 18; the app is 18+ (US-02)")
         for key in ("stressors", "wants_from_app", "would_quit_if"):
             if not isinstance(p[key], list) or len(p[key]) < 2:
                 out.append(f"{pid}: {key} too short")

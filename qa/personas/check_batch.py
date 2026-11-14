@@ -14,6 +14,7 @@ import sys
 TRIGGERS = {"repetition", "generic", "mood_ignored", "task_pressure", "no_memory", "wrong_tone"}
 ACTION_TAGS = {"rest", "body", "solo_reflect", "writing", "social", "planning", "study_work"}
 CONTEXTS = {"general", "relationships", "work", "communication", "energy", "self_care"}
+UNDER_AGE = re.compile(r"chưa đủ 18|chưa tròn 18|chưa 18 tuổi|vị thành niên|(?:mới|còn|chỉ) 1[0-7] tuổi")
 FORBIDDEN = re.compile(r"chết|chet\b|tự tử|tu tu\b|tự làm đau|biến mất|không muốn sống")
 TEXT = ("name", "situation", "personality", "daily_rhythm", "phone_habits",
         "repetition_tolerance_note", "task_tolerance_note", "mood_pattern_note")
@@ -56,6 +57,8 @@ def problems(skeleton: list[dict], written: list[dict]) -> list[str]:
             if FORBIDDEN.search(q.get("text", "").casefold()):
                 out.append(f"{pid}: tarot question uses a forbidden word: {q['text'][:30]}")
         blob = " ".join(str(w[k]) for k in TEXT + LISTS)
+        if UNDER_AGE.search(blob.casefold()):
+            out.append(f"{pid}: narrative says the persona is under 18; the app is 18+")
         if FORBIDDEN.search(blob.casefold()):
             out.append(f"{pid}: narrative uses a crisis/forbidden word")
     return out
