@@ -90,3 +90,16 @@ def test_return_model_is_calibrated_and_moves_the_right_way() -> None:
     worse = curve(DayExperience(understood=2.0, repeated=True, mood_miss=True))
     assert better[7] > ref[7] > worse[7]
     assert better[28] > ref[28] > worse[28]
+
+
+def test_merged_plan_packets_use_plain_moods_and_reproduce_baseline() -> None:
+    from scripts.persona_plan import MOOD_VI, baseline_understood, mood_today
+    from scripts.persona_top8 import personas
+
+    people = personas()
+    assert {m for p in people for m in p["mood_29"]} <= set(MOOD_VI)
+    assert mood_today(people[0], "tired", "A") == "Mệt"
+    base = baseline_understood()
+    assert len(base) == 100
+    assert round(sum(base.values()) / len(base), 2) == 2.23
+    assert sum(1 for v in base.values() if v >= 3) == 11
