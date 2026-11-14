@@ -13,7 +13,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { isMain } from "../is-main.mjs";
 
 import { automatedStates, featuresForChangedFiles, loadMap, REPO_ROOT } from "./feature-map.mjs";
 
@@ -288,6 +288,6 @@ function main(argv) {
   return report.status === "pass" ? 0 : 1;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+if (isMain(import.meta.url)) {
   process.exitCode = main(process.argv.slice(2));
 }

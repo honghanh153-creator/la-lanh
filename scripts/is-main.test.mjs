@@ -33,6 +33,7 @@ test('import does not execute CLI', () => {
 
 test('no script keeps the old entry check', () => {
   const old = /import\.meta\.url === pathToFileURL\(process\.argv\[1\]/;
-  const left = readdirSync(scripts).filter(f => f.endsWith('.mjs') && !f.endsWith('.test.mjs')).filter(f => old.test(readFileSync(join(scripts, f), 'utf8')));
+  // Recursive: scripts/verify/ had the old check too (found when #457 met #484).
+  const left = readdirSync(scripts, { recursive: true }).filter(f => !f.includes('node_modules') && f.endsWith('.mjs') && !f.endsWith('.test.mjs')).filter(f => old.test(readFileSync(join(scripts, f), 'utf8')));
   assert.deepEqual(left, []);
 });
