@@ -265,6 +265,25 @@
    "who": "claude",
    "due": "2026-11-16",
    "status": "open"
+  },
+  {
+   "id": "L27",
+   "title": "FAIL do CI cũ, chạy lại xanh ở cùng head thì check lại (#508)",
+   "from": "sự cố 14.11 (#508)",
+   "who": "claude",
+   "due": "2026-11-16",
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "a CI FAIL that turns green on a re-run at the same head"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "ciRechecks(turnsFor("
+   },
+   "closedBy": {
+    "pr": 0
+   }
   }
  ]
 }

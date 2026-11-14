@@ -150,7 +150,9 @@ export function ciCheck(gh, head) {
   const job = jobs[0];
   if (!job) return { state: 'FAIL', conclusion: 'missing', url: run.html_url ?? '' };
   if (job.status !== 'completed') return { state: 'pending', url: job.html_url ?? '' };
-  return { state: job.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '' };
+  // #508: the run id, attempt and the job's own end time let the tick spot a green re-run.
+  return { state: job.conclusion === 'success' ? 'PASS' : 'FAIL', conclusion: String(job.conclusion ?? 'unknown'), url: job.html_url ?? '',
+    runId: Number(run.id), attempt: Number(run.run_attempt ?? 1), completedAt: String(job.completed_at ?? '') };
 }
 
 // CI mode keeps only the metadata preflight (body, level, size). ruff and mypy read config and
