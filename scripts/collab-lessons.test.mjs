@@ -92,7 +92,7 @@ test('the lessons test itself runs in CI', () => {
 });
 
 // L08 (Codex 14.11): a Playwright spec counts only through the chain CI runs, and only unskipped.
-test('a lesson test may live in a Playwright spec that CI runs', () => {
+test('an e2e spec is accepted as a lesson test only when CI runs it, and rejected otherwise', () => {
   const pkg = JSON.parse(readFileSync(join(lessons.root, 'package.json'), 'utf8'));
   const files = lessons.ciTestFiles(pkg);
   assert.ok(files.has('apps/web/tests/e2e/kham-pha-portrait.spec.ts'), 'the real chain: check -> web:e2e -> playwright test -> tests/e2e');
@@ -110,6 +110,8 @@ test('a lesson test may live in a Playwright spec that CI runs', () => {
   const done = { lessons: [{ id: 'L99', title: 't', who: 'claude', due: '2026-11-20', status: 'done',
     test: { file: 'apps/web/tests/e2e/a.spec.ts', name: 'works at 360px' }, caller: { file: 'apps/web/playwright.config.ts', contains: 'tests/e2e' }, closedBy: { pr: 1 } }] };
   assert.deepEqual(lessons.problems(done, { base, ciFiles: lessons.ciTestFiles(pkg, { base }) }), []);
+  const noE2e = { scripts: { ...pkg.scripts, check: 'pnpm collab:test' } };
+  assert.match(lessons.problems(done, { base, ciFiles: lessons.ciTestFiles(noE2e, { base }) })[0], /CI never runs it/, 'a spec CI does not run is rejected');
   writeFileSync(join(base, 'apps/web/tests/e2e/a.spec.ts'), 'test.skip("works at 360px", async () => {});\ntest("works at 360px", async () => {});\n');
   assert.match(lessons.problems(done, { base, ciFiles: lessons.ciTestFiles(pkg, { base }) })[0], /skips, marks fixme or focuses a test/);
 });

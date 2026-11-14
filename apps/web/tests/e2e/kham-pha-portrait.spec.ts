@@ -63,6 +63,9 @@ test.afterEach(() => {
   expect(unmocked, "API calls without a mock").toEqual([]);
 });
 
+// The rendered summary sentences must reach about twice their size at 200% text.
+const DOUBLED = 1.9;
+
 // 200% text, then wait until the browser applied it: with reduced motion the app keeps a near-zero
 // transition, so the computed size changes on the next frames, not at once.
 async function bigText(page: Page) {
@@ -82,9 +85,11 @@ test("Khám phá reads, opens a claim and its evidence, and comes back at 360/39
     const before = await page.evaluate(measureSummary);
     await bigText(page);
     const after = await page.evaluate(measureSummary);
-    // The real size doubled; a style that did not apply would leave it unchanged.
+    // The real size doubled; a style that did not apply would leave it unchanged. Both summary
+    // sentences are measured: a capped size (min(), clamp()) would scale the root but not them.
     expect(after.rootPx, `root text at ${width}px`).toBeGreaterThanOrEqual(before.rootPx * 1.95);
-    expect(after.thesisPx, `summary text at ${width}px`).toBeGreaterThanOrEqual(before.thesisPx * 1.5);
+    expect(after.hookPx / before.hookPx, `hook text doubles at ${width}px`).toBeGreaterThanOrEqual(DOUBLED);
+    expect(after.thesisPx / before.thesisPx, `summary text doubles at ${width}px`).toBeGreaterThanOrEqual(DOUBLED);
     expect(after.overflow, `no horizontal scroll at ${width}px`).toBeLessThanOrEqual(0);
     for (const part of after.parts) {
       expect(part.text.replace(/\s+/g, " ").trim(), "the whole sentence is in the page").toBe(part.expected);
@@ -107,11 +112,18 @@ test("Khám phá reads, opens a claim and its evidence, and comes back at 360/39
   }
 });
 
-test("the checks see a cut summary and a running animation (negative controls)", async ({ page }) => {
+test("the checks see a capped size, a cut summary and a running animation (negative controls)", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/insights?tradition=western");
   await expect(page.locator(".insight-synthesis").getByRole("heading", { name: SECTIONS.hook })).toBeVisible();
+  const before = await page.evaluate(measureSummary);
   await bigText(page);
+  // A size capped at 24px grows from 15px to 24px (1.6x) while the root doubles: the check sees it.
+  const cap = await page.addStyleTag({ content: ".insight-synthesis p { font-size: min(0.9375rem, 24px) !important; }" });
+  const capped = await page.evaluate(measureSummary);
+  expect(capped.rootPx, "the root still doubled").toBeGreaterThanOrEqual(before.rootPx * 1.95);
+  expect(capped.thesisPx / before.thesisPx, "a capped summary size fails the 200% check").toBeLessThan(DOUBLED);
+  await cap.evaluate((el) => el.parentNode?.removeChild(el));
   await page.addStyleTag({ content: ".insight-synthesis p { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }" });
   const clamped = await page.evaluate(measureSummary);
   expect(clamped.parts.find((p) => p.name === "thesis")?.clipped, "a one-line clamp counts as cut").toBe(true);
@@ -143,7 +155,7 @@ function measureSummary() {
     return animated || seconds(s.transitionDuration) > 0.01 && s.transitionProperty !== "none";
   }).map((el) => `${el.tagName.toLowerCase()}.${String((el as HTMLElement).className).split(" ")[0]}`).slice(0, 10);
   return {
-    rootPx: px(document.documentElement), thesisPx: px(card?.querySelector("p:not(.reading-mode)") ?? null),
+    rootPx: px(document.documentElement), hookPx: px(card?.querySelector("h2") ?? null), thesisPx: px(card?.querySelector("p:not(.reading-mode)") ?? null),
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, vw: window.innerWidth, parts, moving,
   };
 }
