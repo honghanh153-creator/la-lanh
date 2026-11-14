@@ -71,7 +71,31 @@ Phiên concept (side session của local_74a04d2d). Ngưỡng này ghi TRƯỚC 
 - Theo từng concept: concept được giữ khi "hiểu mình" của người dùng nó ≥ 3,5, cờ hại ≤ 3%, và nó kéo "hiểu mình" lên ≥ +0,2 hoặc tỉ lệ chia sẻ lên ≥ 5 điểm % so với đối chứng.
 - Claude đạt mà Codex trượt thì ghi "chưa kết luận".
 
+### Bản 2 (14.11, sau phản biện vòng 2 của Codex, VẪN TRƯỚC khi có điểm nào)
+
+Chỉ **thêm** điều kiện, không hạ ngưỡng nào ở trên. Lý do: Codex chỉ ra thiết kế "đối chứng + gói" có thể thiên vị gói nhiều tính năng.
+
+Đổi cách chấm:
+- Nhãn trung tính: đối chứng và gói gọi là "Bản X" / "Bản Y", **đảo thứ tự cân bằng** (nửa số lô đọc X trước).
+- Giám khảo **ghi đường bấm trước** (người này làm gì trong khoảng 3 phút mở app), rồi chỉ chấm nội dung người đó đã gặp. Bước thừa, rối thì trừ.
+- S2 (Kể ra rồi thả) và S11 (Nhớ 7 ngày) **không tính vào điểm gói**; chấm riêng như phần thử có điều kiện.
+- Chia sẻ tách ba ý: lưu ảnh / gửi hoặc đăng / rủ một người. **Lưu ảnh riêng không tính** vào ngưỡng 35%. Hỏi chia sẻ và cờ hại **cho cả đối chứng**.
+- Đóng góp từng concept: chấm "đối chứng + chỉ một concept" trên mẫu phân tầng (khoảng 100 người mỗi concept), không suy từ điểm concept trong gói.
+
+Thêm điều kiện đạt cho gói:
+7. "Hiểu mình" của gói cao hơn đối chứng ít nhất **+0,2** (theo cặp).
+8. Hai nhóm "dùng chung máy" và "không có ai an toàn": mỗi nhóm "hiểu mình" ≥ **3,5**; "bình yên" và "bớt một mình" không thấp hơn đối chứng quá **0,05**.
+9. Lộ dữ liệu riêng đã xác nhận (ảnh, màn hình, lịch sử lộ hoàn cảnh cho người khác): **0 ca**, không dùng mức 3%.
+10. Báo mẫu số người đã chơi cho mốc trò chơi 1%; báo phân bố điểm và số người dùng từng concept.
+
+Cách gọi kết quả: "mô phỏng trên người giả", không phải số đo người thật. 1000 người giả không phải 1000 quan sát độc lập.
+
+Dự đoán ghi trước (để so sau):
+- Codex: gói đạt 3,4–3,6, chưa tới 3,7. S1 và S9 cao nhất, S4 sát ngưỡng; S2, S3, S5, S6, S7, S8, S10 dễ dưới 3,5 "hiểu mình" (vì là công cụ vui/đồng hành/biểu đạt, không phải phản hồi theo chuyện).
+- Claude: gói 3,5–3,7; S1 cao nhất; S8, S6, S10 kéo chia sẻ chứ không kéo "hiểu mình"; tỉ lệ "gửi hoặc rủ" khoảng 30–40%, sát ngưỡng.
+
 ## Nhật ký thay đổi
 
 - v1 (14.11.2026): bản đầu, viết trước mọi lần chấm trên bộ 1000.
 - v1, bổ sung cùng ngày: chép ngưỡng concept của phiên "Sáng tạo + viral" vào mục 6, trước khi chấm concept. Không đổi ngưỡng nào khác.
+- v1, bổ sung lần 2 cùng ngày: chép nguyên văn mục "Bản 2" của phiên "Sáng tạo + viral" vào mục 6 (chỉ thêm điều kiện, không hạ ngưỡng), vẫn trước mọi lần chấm concept.
