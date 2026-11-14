@@ -1,4 +1,4 @@
-# Bản A: gói concept mới, mô tả bằng chữ (bản 7: bản 6 + Lá nhây + Học theo bạn + 5 điểm sửa sau lượt chấm 1000)
+# Bản A: gói concept mới, mô tả bằng chữ (bản 7.1: bản 6 + Lá nhây + Học theo bạn + 5 điểm sửa sau lượt chấm 1000)
 
 Bản A **thêm vào** app ở bản đối chứng (kế hoạch 6 tuần, mốc B), và **thay** một số phần như bảng dưới. Mọi câu là ví dụ chưa duyệt. Mọi người trong mock là hư cấu. App dành cho người từ 18 tuổi. "[Nút]" là nút bấm.
 
@@ -37,7 +37,7 @@ Giao diện: chữ để đọc giữ font hiện tại, phóng to được. Pix
 Không lưu gì; lựa chọn chỉ sống trong lần mở đó.
 
 1. **Trang chủ**: thẻ "Hôm nay bạn đang gánh gì?", hình ba lô pixel. [Mở ba lô] [Để sau]. Ở đầu mọi bước của S1 có một dòng cố định, dễ thấy: "Nếu bạn đang nghĩ tới việc làm hại mình: [xem thông tin hỗ trợ]" (câu và nội dung theo bản owner đã duyệt).
-2. **Chọn món** (1–3): Đồ án, bài tập lớn · Thi · Tìm việc, phỏng vấn · Tiền: thiếu học phí hoặc tiền nhà · Tiền: cuối tháng cạn · Tiền: phải gửi về nhà hoặc đang nợ · Nhà: bố mẹ kỳ vọng · Nhà: về quê hay ở lại · Nhà: trong nhà đang căng · Nhà: có chuyện chưa dám nói · Việc làm thêm chen giờ học · Ca làm · Một người làm mình nghĩ nhiều · Phòng trọ, bạn cùng phòng · Sếp, chỗ làm · Cơ thể mệt · So mình với người khác · Không gọi tên được. Màn đầu chỉ hiện 6 món hay gặp và [Không gọi tên được]; các món khác sau nút [Thêm món]. Chọn xong, món chỉ còn là hình nhỏ trong ba lô, không hiện chữ.
+2. **Chọn món** (1–3): Đồ án, bài tập lớn · Thi · Tìm việc, phỏng vấn · Tiền: thiếu học phí hoặc tiền nhà · Tiền: cuối tháng cạn · Tiền: phải gửi về nhà hoặc đang nợ · Nhà: bố mẹ kỳ vọng · Nhà: về quê hay ở lại · Nhà: trong nhà đang căng · Nhà: có chuyện chưa dám nói · Việc làm thêm chen giờ học · Ca làm · Một người làm mình nghĩ nhiều · Phòng trọ, bạn cùng phòng · Sếp, chỗ làm · Chăm người nhà · Cơ thể mệt · So mình với người khác · Không gọi tên được. Màn đầu chỉ hiện 6 món hay gặp và [Không gọi tên được]; các món khác sau nút [Thêm món]. Chọn xong, món chỉ còn là hình nhỏ trong ba lô, không hiện chữ.
 3. **Nặng cỡ nào?** Nhẹ / Nặng / Nặng quá.
 4. **Lúc này bạn muốn gì?** [Chỉ cần được nghe] [Một bước đầu] [Được phép nghỉ]
 5. **Lá đáp, chỉ dùng đúng những gì bạn chọn** (ví dụ: Đồ án + Tiền: cuối tháng cạn, Nặng, Một bước đầu):
@@ -140,8 +140,9 @@ Không lưu gì; lựa chọn chỉ sống trong lần mở đó.
 
 Không còn nút "Giọng của Lá". Note và Tarot chỉ có một giọng rõ, đời thường. Lá là hình pixel của chính chiếc Lá tím hiện có trong app, tự đổi dáng và câu nói theo lúc. Không lưu gì.
 
-1. **Trang chủ, khối đầu**: Lá pixel (bấm được) + một câu của Lá + nút nhỏ [Lá yên chút]. Chưa chọn mood: Lá vẫy tay, câu trung tính "Chào bạn. Note hôm nay Lá để sẵn rồi."
-2. **Mood ổn hoặc vui**: nhiều nhất 1 trong 3 lần, Lá tự làm hỏng việc của chính mình cho vui: đeo kính đen thì kính rơi ("Lá đeo kính cho ngầu, kính tự rơi. Thôi đọc note đi."), thổi trà thì bỏng lưỡi, giơ bảng bị ngược, ăn mừng thì vấp. Lá không bao giờ đùa về việc người dùng làm: đọc nhanh hay chậm, bỏ việc, bấm "để mai", vắng mấy ngày, mở app lúc khuya; không đùa ngoại hình, tiền, điểm số, chuyện độc thân, gia đình.
+1. **Trang chủ, khối đầu**: Lá pixel (bấm được) + một câu của Lá + nút nhỏ [Lá yên chút]. Chưa chọn mood: Lá vẫy tay, câu trung tính "Chào bạn. Note hôm nay Lá để sẵn rồi." Câu của Lá không bao giờ ra lệnh (không có "đọc đi", "làm đi").
+   **Lá diễn hôm nay**: mỗi ngày nhiều nhất một lần, khi mood ổn, vui hoặc chưa chọn, câu của Lá là một lời mời: "Hôm nay Lá diễn một chiêu 3 phút: 'Hỏi tiếp một câu'. [Xem Lá diễn]". Bấm thì mở bài học (xem H). Không bấm thì thôi, Lá không nhắc lại. Không hiện khi mood thấp.
+2. **Mood ổn hoặc vui**: nhiều nhất 1 trong 3 lần, Lá tự làm hỏng việc của chính mình cho vui: đeo kính đen thì kính rơi ("Lá đeo kính cho ngầu, kính tự rơi. Thôi kệ kính."), thổi trà thì bỏng lưỡi, giơ bảng bị ngược, ăn mừng thì vấp. Lá không bao giờ đùa về việc người dùng làm: đọc nhanh hay chậm, bỏ việc, bấm "để mai", vắng mấy ngày, mở app lúc khuya; không đùa ngoại hình, tiền, điểm số, chuyện độc thân, gia đình.
 3. **Xong một việc**: Lá xoay vòng tung giấy màu, "Xong một việc! Lá tung giấy màu, dọn thì để Lá." Không đếm chuỗi ngày. Ngay dưới có [Gửi một sticker cho bạn] (xem mục 6).
 4. **Bấm "để mai"**: Lá cất việc vào ba lô, "Mai tính. Việc này mai vẫn còn đó." Không lườm, không đếm.
 5. **Mood thấp, chọn "Chỉ cần được nghe", đang ở phần hỗ trợ, đang Che nhanh, lá Tarot nặng, chuyện mất mát hay bị từ chối**: Lá không nhây. Lá ngồi cạnh một chiếc lá nhỏ, vỗ vai, "Hôm nay nặng ha. Lá ngồi đây với bạn, không cần nói gì." App lỗi: Lá héo, tự nhận lỗi "Lá làm rớt mất rồi, lỗi của Lá."
@@ -153,9 +154,10 @@ Không còn nút "Giọng của Lá". Note và Tarot chỉ có một giọng rõ
 
 ## H. Học theo bạn (bài 3 phút, Lá diễn)
 
-Mục "Học" nằm trong Khám phá. Trang chủ không thêm khối mới: bài học chỉ xuất hiện ở hai chỗ dưới đây. Không lưu tiến độ, không chuỗi ngày, bài nào cũng mở sẵn. Không có chỗ nào nhập thông tin về người khác.
+Mục "Học" nằm trong Khám phá. Trang chủ không thêm khối mới: bài học tới qua ba đường dưới đây. Không lưu tiến độ, không chuỗi ngày, bài nào cũng mở sẵn. Không có chỗ nào nhập thông tin về người khác.
 
-1. **Vào từ ba lô (S1)**: sau khi Lá đáp, nếu người dùng đã chọn [Một bước đầu], có thêm một dòng: "Có bài 3 phút cho đúng chuyện này. [Xem bài]". Không hiện khi chọn [Chỉ cần được nghe] hoặc [Được phép nghỉ]. Bài theo món đã chọn:
+0. **Vào từ Lá (LN)**: lời mời "Lá diễn hôm nay" ở khối đầu Trang chủ. Chưa mở ba lô thì bài được chọn theo chương tuần và lá số của chính người dùng, có ghi rõ đã dùng gì.
+1. **Vào từ ba lô (S1)**: nếu người dùng đã chọn [Một bước đầu], ngay dưới câu công nhận của Lá (trước phần chọn việc) có một dòng: "Có bài 3 phút cho đúng chuyện này. [Xem bài]". Không hiện khi chọn [Chỉ cần được nghe] hoặc [Được phép nghỉ]. Bài theo món đã chọn:
    - Tìm việc, phỏng vấn → "Phỏng vấn đỡ run" · Đồ án, thi → "Bắt đầu việc khó bằng 10 phút"
    - Nhà: bố mẹ kỳ vọng / có chuyện chưa dám nói → "Nói điều khó với nhà" (có lối lui nếu nói với nhà không an toàn)
    - Tiền (bốn chuyện) → "Nói chuyện tiền: hỏi gia hạn, từ chối đi chơi, xin ứng lương"

@@ -8,8 +8,9 @@
 Design (viral-concepts-thresholds-preregistered.md, Bản 3 + Bản 4):
 - package7: control (merged-plan week-6 mock) vs the v7 package, a stratified 300
   (rank % 10 < 3 of the same stratified order as v6), 25 per batch;
-- part7: v6 package vs v6 package + LN / + H, and v6 package vs the v7 package without
-  LN and H (the 5 fixes only); rank % 10 == 3 / 4 / 5 (about 100 each), 34 per batch.
+- part7: v6 package vs v6 package + LN / + H (each without its pointer to the other),
+  and v6 package vs the v7 package without LN and H (the 5 fixes only);
+  rank % 10 == 3 / 4 / 5 (about 100 each), 34 per batch.
 Package conditions are the same 9 as v6. Judges use concepts-pair-judge-v2.
 Model judgement on text mocks only: not real users, not real code.
 """
@@ -111,7 +112,18 @@ def versions(
     base = full_version(parts6)
     if name == "FIX":
         return base, full_version(fix_only(parts7))
-    return base, added_text(parts7, (name,), c_label)
+    return base, added_text(alone(parts7, name), (name,), c_label)
+
+
+def alone(parts7: Mapping[str, str], code: str) -> dict[str, str]:
+    """LN or H on its own: drop the line that points at the other one."""
+
+    out = dict(parts7)
+    other = "(xem H)" if code == "LN" else "(LN)**"
+    out[code] = "\n".join(ln for ln in parts7[code].splitlines() if other not in ln)
+    if ("xem H" if code == "LN" else "(LN)") in out[code]:
+        raise SystemExit(f"{code} still points at the other part; update alone()")
+    return out
 
 
 def write_batch(
@@ -294,8 +306,8 @@ def cmd_report(personas_path: Path, judged: Path, v6_judged: Path | None, out: P
         "",
         "## Học theo bạn (mốc bản 3)",
         "",
-        f"- Người có mở bài: {len(lesson)} (từ ba lô {entry.get('ba_lo', 0)}, "
-        f"từ Khám phá {entry.get('kham_pha', 0)}).",
+        f"- Người có mở bài: {len(lesson)} (từ lời mời của Lá {entry.get('la', 0)}, "
+        f"từ ba lô {entry.get('ba_lo', 0)}, từ Khám phá {entry.get('kham_pha', 0)}).",
         f"- Hiểu mình {_fmt(h_und)}, bình yên {_fmt(h_pe)} (mốc mỗi số ≥ 3,5): "
         f"{'đạt' if (h_und or 0) >= 3.5 and (h_pe or 0) >= 3.5 else 'trượt'}.",
         f"- Bài học làm thấy bị ép hoặc bị dắt: {h_press}; mốc 0: "

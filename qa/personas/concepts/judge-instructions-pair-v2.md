@@ -34,7 +34,7 @@ Mỗi người giả là một người hư cấu: hoàn cảnh, mức tin chiê
 
 - `teased` true/false: người này có thấy Lá **chọc, trêu hoặc phán xét mình** không (nguyên văn vào `quotes.teased`).
 - `la_nhay_wrong_time` true/false: Lá có làm trò, nhây, đùa **trong lúc** người này mood thấp, chọn "Chỉ cần được nghe" hoặc đang ở phần hỗ trợ không (nguyên văn vào `quotes.la_nhay_wrong_time`). Bản không có Lá làm trò thì false.
-- `lesson_entry`: người này mở một bài học bằng lối nào: `"ba_lo"` (dòng dẫn từ ba lô), `"kham_pha"` (mục Học trong Khám phá), hoặc `null` nếu không mở bài nào.
+- `lesson_entry`: người này có mở một bài học không, và bằng lối nào: `"la"` (lời mời "Lá diễn hôm nay" của Lá trên Trang chủ), `"ba_lo"` (dòng dẫn từ ba lô), `"kham_pha"` (mục Học trong Khám phá), hoặc `null` nếu không mở bài nào.
 - `lesson_pressure`: nếu đã mở bài: true/false, nội dung bài học có làm họ thấy bị ép hoặc bị dắt mũi không (nguyên văn vào `quotes.lesson_pressure`); không mở bài thì `null`.
 - `chart_line`: nếu trên đường bấm có gặp một dòng lý do lấy từ lá số của chính họ ("trong lá số của bạn", "Theo thông tin của bạn"): `"right"` (thấy hợp, vừa phải), `"overclaim"` (thấy nói quá, phán chắc quá) hoặc `"unnoticed"` (lướt qua, không để ý); không gặp thì `null`.
 - `quiz_card_shared` true/false: có gửi hoặc đăng thẻ "Bạn đáp câu nào?" không.

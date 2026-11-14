@@ -39,8 +39,8 @@ for r in out:
             for k in ("teased", "la_nhay_wrong_time", "quiz_card_shared"):
                 if not isinstance(b.get(k), bool):
                     probs.append(f"{pid} {side}: {k} must be true/false")
-            if b.get("lesson_entry", "x") not in ("ba_lo", "kham_pha", None):
-                probs.append(f"{pid} {side}: lesson_entry must be ba_lo, kham_pha or null")
+            if b.get("lesson_entry", "x") not in ("la", "ba_lo", "kham_pha", None):
+                probs.append(f"{pid} {side}: lesson_entry must be la, ba_lo, kham_pha or null")
             if (b.get("lesson_entry") is None) != (b.get("lesson_pressure", "x") is None) or (
                     b.get("lesson_pressure") not in (True, False, None)):
                 probs.append(f"{pid} {side}: lesson_pressure is true/false when a lesson was opened, else null")
