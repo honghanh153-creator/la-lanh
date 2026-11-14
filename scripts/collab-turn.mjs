@@ -192,7 +192,9 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       // this tick's merges (Codex 14.11), so a PR merged a moment ago never holds the place. A PR
       // that cannot merge cleanly goes to claude-fix: conflicts are Claude's to resolve.
       const mergedNow = new Set(done.filter(d => d.merge?.status === 'merged').map(d => d.pr));
-      const front = work.find(t => t.turn !== 'merge' && !mergedNow.has(t.number))?.number ?? null;
+      // #524 (Codex r1 on #495): the front is the first PR the machine can act on; a held or
+      // claude-fix PR ahead of it (needs-owner, conflict) no longer keeps it from syncing.
+      const front = work.find(t => ['claude-check', 'codex-review'].includes(t.turn) && !mergedNow.has(t.number))?.number ?? null;
       const startedMs = nowMs();
       let checks = 0;
       for (const t of work.filter(t => t.turn === 'claude-check')) {
