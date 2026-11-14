@@ -339,7 +339,9 @@ export function runCheckInClone(number, { gh = makeGh(), run = execFileSync, aut
     // Every gh and git call after the clone is bounded by the same deadline (05.11.2026).
     const ghD = gh.withDeadline?.(leftMs) ?? gh;
     const gitD = args => git(args, cwd, run, boundedTimeout(600000, leftMs));
-    const synced = syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
+    // L14: the tick passes sync=false for every PR except the front of its area queue; a manual
+    // `--clone` run keeps the old behaviour.
+    const synced = rest.sync === false ? null : syncWithIntegration(pr, { git: (args, ms) => git(args, cwd, run, ms), gh: ghD, left: leftMs });
     if (synced) return synced;
     // The clock is read again after the clone and install, which can take minutes.
     // pnpm stops early enough that the receipt still fits inside leftMs (#243).

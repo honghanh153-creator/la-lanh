@@ -129,7 +129,18 @@
    "from": "retro 12.11 S25",
    "who": "claude",
    "due": "2026-11-20",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-loop.test.mjs",
+    "name": "only the front PR of the area is synced before its check; waiting PRs get no merge commit"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "sync: t.number === front"
+   },
+   "closedBy": {
+    "pr": 495
+   }
   },
   {
    "id": "L15",
