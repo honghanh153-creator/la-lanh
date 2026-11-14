@@ -153,7 +153,18 @@
    "from": "thỏa thuận 12.11 mục J",
    "who": "claude",
    "due": "2026-11-20",
-   "status": "open"
+   "status": "done",
+   "test": {
+    "file": "scripts/collab-status.test.mjs",
+    "name": "the production tick digest counts two merged PRs of one item as one item, not two"
+   },
+   "caller": {
+    "file": "scripts/collab-turn.mjs",
+    "contains": "work: progress ? () => renderProgress(progress("
+   },
+   "closedBy": {
+    "pr": 496
+   }
   },
   {
    "id": "L12",
