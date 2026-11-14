@@ -290,7 +290,11 @@ def cmd_report(personas_path: Path, judged: Path, v6_judged: Path | None, out: P
             f"{_gain(prow, 'less_alone')} | {_gain(prow, 'peaceful')} | "
             f"{_gain(prow, 'want_return')} | {d_share} | {harm} |"
         )
-    ln_rows = pkg + [r for r in rows if part_of[r["batch"]] == "LN"]
+    ln_rows = [
+        r
+        for r in pkg + [r for r in rows if part_of[r["batch"]] == "LN"]
+        if (r.get("concepts") or {}).get("LN", {}).get("used")
+    ]
     teased, wrong = _count(ln_rows, "teased"), _count(ln_rows, "la_nhay_wrong_time")
     low = [r for r in ln_rows if r["treat"].get("teased")]
     lesson = [
@@ -317,6 +321,12 @@ def cmd_report(personas_path: Path, judged: Path, v6_judged: Path | None, out: P
         f"{_verdict(len(ln_rows), teased <= 0.03 * len(ln_rows))}.",
         f'- Lá nhây sai lúc (mood thấp, "Chỉ cần được nghe", phần hỗ trợ): {wrong}; mốc 0: '
         f"{_verdict(len(ln_rows), wrong == 0)}.",
+    ]
+    examples = list(dict.fromkeys(r["treat"]["quotes"].get("teased", "") for r in low))
+    if examples:
+        lines += ["", "Câu bị coi là chọc (mỗi câu một lần):", ""]
+        lines += [f"- {q}" for q in examples[:8] if q]
+    lines += [
         "",
         "## Học theo bạn (mốc bản 3)",
         "",
@@ -330,10 +340,6 @@ def cmd_report(personas_path: Path, judged: Path, v6_judged: Path | None, out: P
         f"- Dòng lý do theo lá số: thấy hợp {chart.get('right', 0)}, thấy nói quá "
         f"{chart.get('overclaim', 0)}, không để ý {chart.get('unnoticed', 0)}.",
     ]
-    if low:
-        lines += ["", "Ví dụ câu bị coi là chọc:", ""] + [
-            f"- {r['treat']['quotes'].get('teased', '')}" for r in low[:5]
-        ]
     lines += [
         "",
         "## Giới hạn",
