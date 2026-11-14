@@ -588,9 +588,10 @@ def cmd_report(personas_path: Path, judged: Path, out: Path, summary: str | None
             and harm <= 0.03 * max(len(srows), 1)
             and ((d_und or 0) >= 0.2 or (d_share or 0) >= 5)
         )
+        share_txt = "—" if d_share is None else f"{d_share:+.1f} điểm %".replace(".", ",")
         lines.append(
             f"| {code} | {len(used)}/{len(pkg)} | {_fmt(u_und)} | {shared} | {_fmt(d_und)} "
-            f"({len(srows)} cặp) | {'—' if d_share is None else f'{d_share:+.1f} điểm %'.replace('.', ',')} "
+            f"({len(srows)} cặp) | {share_txt} "
             f"| {harm} | {'giữ' if keep else 'chưa'} |"
         )
     lines += ["", "## Phần thử có điều kiện (không tính vào điểm gói)", ""]
