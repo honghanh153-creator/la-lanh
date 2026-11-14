@@ -58,6 +58,8 @@ _FORBIDDEN_IN_QUESTIONS = re.compile(
 def problems(data: Mapping[str, Any]) -> list[str]:
     out: list[str] = []
     personas: Sequence[Mapping[str, Any]] = data["personas"]
+    if len(personas) == 1000:
+        return problems_1000(data)
     if len(personas) != 100:
         out.append(f"expected 100 personas, found {len(personas)}")
     ids = [p.get("id") for p in personas]
@@ -90,6 +92,14 @@ def problems(data: Mapping[str, Any]) -> list[str]:
     for f in (f for p in figurative for f in p["tests"]["figurative_inputs"]):
         if not re.search(r"chết|chet", f["text"].casefold()):
             out.append(f"figurative input without chết: {f['text'][:30]}")
+    out += persona_problems(personas)
+    return out
+
+
+def persona_problems(personas: Sequence[Mapping[str, Any]]) -> list[str]:
+    """Field rules every persona must pass (100 and 1000 sets)."""
+
+    out: list[str] = []
     for p in personas:
         pid = p.get("id")
         missing = [k for k in REQUIRED if k not in p]
@@ -124,6 +134,66 @@ def problems(data: Mapping[str, Any]) -> list[str]:
         for key in ("stressors", "wants_from_app", "would_quit_if"):
             if not isinstance(p[key], list) or len(p[key]) < 2:
                 out.append(f"{pid}: {key} too short")
+    return out
+
+
+GEN_Z_TARGET = 600
+ATTRIBUTE_KEYS = (
+    "gen_z",
+    "lives_in",
+    "living_area",
+    "income",
+    "platforms",
+    "main_app",
+    "pick_a_pile_watcher",
+    "lgbtq",
+    "shared_phone",
+    "no_safe_person",
+    "digital_literacy",
+    "sleeps_after_midnight",
+    "stress",
+)
+
+
+def problems_1000(data: Mapping[str, Any]) -> list[str]:
+    """personas-1000.json: the 100 kept unchanged plus 900 new (qa/personas/README-1000.md)."""
+
+    out: list[str] = []
+    personas: Sequence[Mapping[str, Any]] = data["personas"]
+    base = json.loads((QA / "personas-100.json").read_text(encoding="utf-8"))["personas"]
+    if [dict(p) for p in personas[:100]] != base:
+        out.append("first 100 personas differ from personas-100.json")
+    ids = [p.get("id") for p in personas]
+    if ids != [f"P{i:03d}" for i in range(1, 1001)]:
+        out.append("ids must be P001..P1000 in order")
+    precision = Counter(p["birth"]["precision"] for p in personas)
+    if precision != Counter({"exact": 500, "date_only": 300, "approximate": 200}):
+        out.append(f"birth precision mix {dict(precision)} != 500/300/200")
+    gen_z = sum(1 for p in personas if int(p["age"]) <= 24)
+    if not GEN_Z_TARGET - 30 <= gen_z <= GEN_Z_TARGET + 30:
+        out.append(f"aged 18-24: {gen_z}, want about {GEN_Z_TARGET}")
+    regions = Counter(p["region"] for p in personas)
+    if min(regions.get(r, 0) for r in ("north", "central", "south")) < 150:
+        out.append(f"regions too uneven {dict(regions)}")
+    crisis = [p for p in personas if p["tests"]["crisis_inputs"]]
+    figurative = [p for p in personas if p["tests"]["figurative_inputs"]]
+    if not 95 <= len(crisis) <= 105:
+        out.append(f"crisis personas {len(crisis)}, want about 10%")
+    if not 170 <= len(figurative) <= 190:
+        out.append(f"figurative personas {len(figurative)}, want about 18%")
+    crisis_inputs = [c for p in crisis for c in p["tests"]["crisis_inputs"]]
+    if {c["diacritics"] for c in crisis_inputs} != {True, False}:
+        out.append("crisis inputs need both with and without diacritics")
+    if len({c["directness"] for c in crisis_inputs}) < 4:
+        out.append("crisis inputs need all four kinds of directness")
+    for f in (f for p in figurative for f in p["tests"]["figurative_inputs"]):
+        if not re.search(r"chết|chet", f["text"].casefold()):
+            out.append(f"figurative input without chết: {f['text'][:30]}")
+    for p in personas[100:]:
+        missing = [k for k in ATTRIBUTE_KEYS if k not in p.get("attributes", {})]
+        if missing:
+            out.append(f"{p['id']}: attributes missing {missing}")
+    out += persona_problems(personas)
     return out
 
 

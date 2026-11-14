@@ -23,7 +23,6 @@ from typing import Any
 
 from scripts.persona_metrics import (
     BENCHMARK_D7,
-    JUDGED_DAYS,
     LOW_MOOD,
     THRESHOLDS_VERSION,
     DayExperience,
@@ -31,6 +30,7 @@ from scripts.persona_metrics import (
     calibrate,
     contradicts_mood,
     distinct_in_windows,
+    judged_days,
     population_curve,
     repeats_ever,
     repeats_within,
@@ -156,7 +156,9 @@ def experiences(
         pid = persona["id"]
         rows = rows_by_p[pid]
         judged = [
-            scores[item_id(r)] for r in rows if r["day"] in JUDGED_DAYS and item_id(r) in scores
+            scores[item_id(r)]
+            for r in rows
+            if r["day"] in judged_days(r["persona"]) and item_id(r) in scores
         ]
         mean = statistics.fmean(judged) if judged else None
         persona_mean[pid] = mean
@@ -233,7 +235,7 @@ def main() -> None:
     judge_needed = [
         judge_packet(by_id[r["persona"]], r)
         for r in rows
-        if r["day"] in JUDGED_DAYS and r.get("status") == 200
+        if r["day"] in judged_days(r["persona"]) and r.get("status") == 200
     ]
     missing_judge = [p for p in judge_needed if p["item_id"] not in scores]
     actions = sorted({r["action_norm"] for r in rows if r.get("action_norm")})

@@ -16,6 +16,20 @@ from typing import Any
 
 THRESHOLDS_VERSION = "persona-thresholds-v1-2026-11-14"
 JUDGED_DAYS = (1, 8, 15, 22)  # one per week, same weekday (Sunday) for every persona
+
+
+def judged_days(persona_id: str) -> tuple[int, ...]:
+    """Days the blind judge scores for one persona.
+
+    P001-P100 keep all four weekly days (comparable with the v1 baseline). P101-P1000 get one
+    day each, rotated over the same four days by id, so 900 personas cost 900 judge items
+    instead of 3,600 (pre-registered in qa/personas/thresholds-1000.md).
+    """
+
+    number = int(persona_id.lstrip("P"))
+    return JUDGED_DAYS if number <= 100 else (JUDGED_DAYS[number % len(JUDGED_DAYS)],)
+
+
 LOW_MOOD = "Đuối"
 POSITIVE_MOODS = frozenset({"Rực", "Chill"})
 STRAINED_MOODS = frozenset({"Đuối", "Căng", "Lạc trôi"})
