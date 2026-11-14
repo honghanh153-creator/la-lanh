@@ -121,12 +121,12 @@
    "due": "2026-11-20",
    "status": "done",
    "test": {
-    "file": "scripts/collab-work.test.mjs",
-    "name": "two PRs for one item count once; a merge without all criteria is not a finished item"
+    "file": "scripts/collab-status.test.mjs",
+    "name": "the production tick digest counts two merged PRs of one item as one item, not two"
    },
    "caller": {
-    "file": "scripts/collab-tick.mjs",
-    "contains": "workProgress("
+    "file": "scripts/collab-turn.mjs",
+    "contains": "work: progress ? () => renderProgress(progress("
    },
    "closedBy": {
     "pr": 496
