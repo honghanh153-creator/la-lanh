@@ -10,7 +10,7 @@
 // - an open lesson past its due date is reported as overdue in the board and the owner digest.
 // Usage: node scripts/collab-lessons.mjs   (prints the summary; exit 1 if the register is invalid)
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { clean, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
@@ -24,9 +24,33 @@ const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s ?? '');
 export const readRegister = (path = registerPath) => JSON.parse(readFileSync(path, 'utf8'));
 
 // Test files that CI runs: a lesson's test must be one of them, or it never runs.
-export function ciTestFiles(pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))) {
-  return new Set(String(pkg.scripts?.['collab:test'] ?? '').split(/\s+/).filter(f => f.endsWith('.test.mjs')));
+export function ciTestFiles(pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')), { base = root } = {}) {
+  const files = new Set(String(pkg.scripts?.['collab:test'] ?? '').split(/\s+/).filter(f => f.endsWith('.test.mjs')));
+  for (const f of playwrightCiFiles(pkg, { base })) files.add(f);
+  return files;
 }
+
+// L08 (Codex 14.11): a lesson test may be a Playwright spec, but only one CI really runs. The proof
+// is the chain itself: `pnpm check` (CI pr-check) runs `web:e2e`, which runs the web package's
+// `e2e` script, `playwright test`, whose config collects `*.spec.ts` from its testDir. Each spec
+// in that directory counts; a skipped test inside it is caught in problems().
+export const webConfig = 'apps/web/playwright.config.ts';
+export function playwrightCiFiles(pkg, { base = root } = {}) {
+  const check = String(pkg.scripts?.check ?? '');
+  const e2e = String(pkg.scripts?.['web:e2e'] ?? '');
+  const web = read(base, 'apps/web/package.json');
+  const config = read(base, webConfig);
+  if (!/\bpnpm web:e2e\b/.test(check) || !/--filter @la-lanh\/web e2e\b/.test(e2e) || !web || !config) return [];
+  if (!/^playwright test$/.test(String(JSON.parse(web).scripts?.e2e ?? '').trim())) return [];
+  if (/\btestMatch\b|\btestIgnore\b|\bgrep(Invert)?\b/.test(config)) return [];
+  const dir = /testDir:\s*["']\.\/([\w/-]+)["']/.exec(config)?.[1];
+  if (!dir) return [];
+  const full = join(base, 'apps/web', dir);
+  if (!existsSync(full)) return [];
+  return readdirSync(full).filter(f => f.endsWith('.spec.ts')).map(f => `apps/web/${dir}/${f}`);
+}
+// A Playwright test that is skipped, marked fixme or focused never proves anything in CI.
+const skipped = text => /\btest\.(skip|fixme|only)\s*\(|\btest\.describe\.(skip|fixme|only)\s*\(/.test(code(text));
 
 const read = (base, file) => { const p = join(base, file); return existsSync(p) ? readFileSync(p, 'utf8') : null; };
 // A test is found by its exact name in a test('…') call, not by any matching text.
@@ -52,6 +76,7 @@ export function problems(register, { base = root, ciFiles = ciTestFiles() } = {}
     else if (testText === null) out.push(`${at}: test file ${l.test.file} does not exist`);
     else if (!hasTest(testText, l.test.name)) out.push(`${at}: no test named "${l.test.name}" in ${l.test.file}`);
     else if (!ciFiles.has(l.test.file)) out.push(`${at}: ${l.test.file} is not in pnpm collab:test, so CI never runs it`);
+    else if (l.test.file.endsWith('.spec.ts') && skipped(testText)) out.push(`${at}: ${l.test.file} skips, marks fixme or focuses a test, so CI does not run all of it`);
     const callerText = l.caller?.file ? read(base, l.caller.file) : null;
     if (!l.caller?.file || !l.caller?.contains) out.push(`${at}: done without a caller in the loop`);
     else if (callerText === null) out.push(`${at}: caller file ${l.caller.file} does not exist`);
