@@ -1,7 +1,7 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -23,7 +23,8 @@ const decisions = { decisions: [
 ] };
 
 // The worktree here is faked by `run`; the real preflight is tested in collab-dispatch.test.mjs.
-const passGate = { preflight: ({ dir }) => ({ status: 'PASS', reasons: [], dir }), lock: () => () => {} };
+// Like the real preflight, it returns the real path.
+const passGate = { preflight: ({ dir }) => ({ status: 'PASS', reasons: [], dir: realpathSync(dir) }), lock: () => () => {} };
 
 test('owner-only categories are never sent to Codex', () => {
   assert.deepEqual(selectPending(registry).map(e => e.id), ['tarot.a', 'tarot.b']);

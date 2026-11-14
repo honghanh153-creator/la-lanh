@@ -1,11 +1,12 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { dispatch, hookCanary, preflightWorkspace } from './collab-dispatch.mjs';
+import { dispatch, hookCanary, lockFor, preflightWorkspace } from './collab-dispatch.mjs';
+import { acquireLock } from './collab-lock.mjs';
 import { publishBatch, registryRel } from './codex-copy-review.mjs';
 
 const git = (cwd, ...args) => String(execFileSync('/usr/bin/git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).trim();
@@ -81,6 +82,39 @@ test('two dispatches into one worktree: only one worker runs, also through a par
   } });
   assert.deepEqual(inner.map(r => r.reasons), [['busy'], ['busy']]);
   assert.equal(dispatch({ dir: s.work, branch: 'agent/claude/x', ...tools, ...okHook, log, worker: () => 'free again' }).result, 'free again', 'the lock is released');
+});
+
+test('the check runs under the lock: a commit made just before the lock is taken is refused', () => {
+  const s = setup();
+  const log = join(s.root, 'dispatch.jsonl');
+  let ran = 0;
+  // Dispatch A commits and releases between the moment B was scheduled and B taking the lock.
+  const lock = at => { git(s.work, ...ident, 'commit', '-q', '--allow-empty', '-m', 'A'); return acquireLock(lockFor(at), { staleMs: Infinity }) ?? null; };
+  mkdirSync(dirname(lockFor(s.work)), { recursive: true });
+  const r = dispatch({ dir: s.work, branch: 'agent/claude/x', expectHead: s.head, ...tools, ...okHook, log, lock, worker: () => { ran += 1; } });
+  assert.equal(r.status, 'FAIL');
+  assert.ok(r.reasons.includes('head-moved'), r.reasons.join(','));
+  assert.equal(ran, 0, 'the worker never runs on a stale check');
+});
+
+test('the dispatcher keeps a lock older than its age limit while the holder is alive', () => {
+  const s = setup();
+  const log = join(s.root, 'dispatch.jsonl');
+  const file = lockFor(s.work);
+  mkdirSync(dirname(file), { recursive: true });
+  const old = (Date.now() - 4 * 3600000) / 1000;
+  writeFileSync(file, `${process.pid} live-holder\n`);
+  utimesSync(file, old, old);
+  let ran = 0;
+  const r = dispatch({ dir: s.work, branch: 'agent/claude/x', ...tools, ...okHook, log, worker: () => { ran += 1; } });
+  assert.deepEqual(r, { status: 'FAIL', reasons: ['busy'] });
+  assert.equal(ran, 0);
+  assert.match(readFileSync(file, 'utf8'), /live-holder/, 'the live holder keeps its lock');
+  // A dead holder is reclaimed.
+  const dead = spawnSync('/usr/bin/true').pid;
+  writeFileSync(file, `${dead} dead-holder\n`);
+  utimesSync(file, old, old);
+  assert.equal(dispatch({ dir: s.work, branch: 'agent/claude/x', ...tools, ...okHook, log, worker: () => 'ran' }).result, 'ran');
 });
 
 // The canary: the installed hook must block a synthetic term in a scratch repo.

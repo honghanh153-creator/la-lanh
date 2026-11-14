@@ -112,21 +112,30 @@ export function preflightWorkspace({ dir, branch, profile = 'agent', path = proc
   return { status: unique.length ? 'FAIL' : 'PASS', reasons: unique, dir: at };
 }
 
-const lockFor = at => join(stateDir, 'dispatch', `${createHash('sha256').update(at).digest('hex').slice(0, 16)}.lock`);
-const defaultLock = at => { mkdirSync(join(stateDir, 'dispatch'), { recursive: true }); return acquireLock(lockFor(at), { staleMs: 3 * 3600000 }); };
+export const lockFor = at => join(stateDir, 'dispatch', `${createHash('sha256').update(at).digest('hex').slice(0, 16)}.lock`);
+// A worker has no deadline, so the lock never expires by age while its dispatcher (which waits for
+// the worker) is alive; it is reclaimed only when that PID is dead (Codex on #494). An owner that
+// cannot be read stays busy: this fails closed and needs a manual look.
+const defaultLock = at => { mkdirSync(join(stateDir, 'dispatch'), { recursive: true }); return acquireLock(lockFor(at), { staleMs: Infinity }); };
 const record = (line, path) => { try { mkdirSync(dirname(path), { recursive: true }); appendFileSync(path, `${JSON.stringify(line)}\n`); } catch {} };
 
-// Preflight, then the worker under an exclusive lock on the real path. FAIL: the worker is never
-// called and the only write is one log line outside the worktree.
+// An exclusive lock on the real path, then the preflight under that lock, then the worker. The check
+// runs while the lock is held, so a dispatch that finished just before cannot move HEAD or dirty
+// the tree between the check and the worker (Codex on #494). FAIL: the worker is never called and
+// the only write is one log line outside the worktree.
 export function dispatch({ dir, branch, profile = 'agent', worker, lock = defaultLock, log = dispatchLog(), now = () => new Date(), preflight = preflightWorkspace, ...checks }) {
-  const pre = preflight({ dir, branch, profile, ...checks });
   const base = { at: now().toISOString(), profile, branch: String(branch ?? '').slice(0, 120) };
-  if (pre.status !== 'PASS') { record({ ...base, status: 'FAIL', reasons: pre.reasons }, log); return { status: 'FAIL', reasons: pre.reasons }; }
-  const release = lock(pre.dir);
-  if (!release) { record({ ...base, status: 'FAIL', reasons: ['busy'] }, log); return { status: 'FAIL', reasons: ['busy'] }; }
+  const fail = reasons => { record({ ...base, status: 'FAIL', reasons }, log); return { status: 'FAIL', reasons }; };
+  // A missing directory is locked by its given name; the preflight then fails it with no-dir.
+  const at = real(dir) ?? String(dir ?? '');
+  const release = lock(at);
+  if (!release) return fail(['busy']);
   try {
+    const pre = preflight({ dir, branch, profile, ...checks });
+    if (pre.status !== 'PASS') return fail(pre.reasons);
+    if (pre.dir !== at) return fail(['dir-moved']);
     record({ ...base, status: 'PASS' }, log);
-    return { status: 'PASS', result: worker(pre.dir) };
+    return { status: 'PASS', result: worker(at) };
   } finally { release(); }
 }
 
