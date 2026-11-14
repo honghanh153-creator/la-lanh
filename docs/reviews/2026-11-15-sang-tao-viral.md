@@ -48,11 +48,11 @@ Bản mẫu để chị xem (riêng tư, chỉ chị mở được):
 |---|---|
 | Claude và Codex brainstorm riêng, không xem của nhau | Claude 46 ý, Codex 40 ý. Trùng khoảng một phần ba; Codex mạnh ở "gọi tên gánh nặng", Claude mạnh ở trò chơi và vật chia sẻ |
 | Tra bằng chứng trên web | Font pixel có tiếng Việt, quy tắc dễ đọc WCAG, kích thước thư viện hoạt hình, nghiên cứu về lan truyền và cô đơn, luật dữ liệu, lịch Việt Nam (mục 9) |
-| Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 130 góp ý có mã qua 7 vòng phản biện và 3 lần chấm thử (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
+| Phản biện chéo 3 vòng, mọi góp ý đều ghi sổ | 139 góp ý có mã qua 9 lượt phản biện và 3 lần chấm thử (3 vòng chính, thêm 3 vòng cho phần bổ sung tối 14.11), dòng nào cũng có ghi nhận, nhận một phần hoặc từ chối kèm lý do (Phụ lục B) |
 | Rút gọn, viết mock 4–8 màn mỗi ý, vẽ bản mẫu pixel; chấm thử hai lần bằng Codex trên 20 người giả rồi sửa (bản 3 → bản 6) | 13 ý: 10 ý vào "gói", 3 ý thử có điều kiện |
 | Ghi ngưỡng trước khi chấm, rồi chấm bằng 1000 người giả | Gói so với kế hoạch hiện tại trên đủ 1000 người giả; từng ý riêng lẻ trên 91 cặp mỗi ý; Codex chấm đối chiếu 40 người. Kết quả: đạt 4 trên 9 điều kiện (mục 1 và mục 4). Phần thử có điều kiện mới chấm một phần (56, 90 và 34 cặp) vì hết hạn mức; phiên chấm sẽ chấm nốt và cập nhật |
 
-Lượt Codex dùng cho việc này: 11 trên 15 lượt được giao (brainstorm 1, phản biện 7 vòng, chấm thử 3 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
+Lượt Codex dùng cho việc này: 13 trên 15 lượt được giao (brainstorm 1, phản biện 9 lượt, chấm thử 3 lần) (trong số lượt chị cấp thêm hôm nay; không đụng trần review tự động).
 
 ## 3. Trả lời 5 câu hỏi của chị
 
@@ -287,7 +287,7 @@ Bản mẫu xem được ngay (chỉ chị mở được): https://claude.ai/art
 - **Học:** chỉ 1 trên 20 người mở bài học. Người đó chấm 5 và chọn Học là phần thích nhất. Hai người khác thoát trước khi thấy dòng dẫn tới bài. Tức là bài học tốt nhưng khó gặp.
 - **Sửa thành bản 7.1 trước lượt chấm lớn:** thêm lối vào bài học ngay từ câu của Lá ở Trang chủ ("Hôm nay Lá diễn một chiêu 3 phút"), không thêm khối mới; đưa dòng [Xem bài] trong ba lô lên cao hơn; thêm món "Chăm người nhà" cho người lớn tuổi.
 - **Điểm nhấn mình đề xuất: "Lá diễn".** Lá pixel nhây là thứ ai cũng thấy ngay ở màn đầu, và chính Lá dẫn vào bài học 3 phút khớp với chuyện của người dùng. Lá là thứ dễ chụp và dễ gửi; bài học là thứ làm người dùng thấy được giúp đúng chuyện của mình.
-- **Chấm lớn bản 7.1:** phiên chấm sẽ chạy sau 22:50 trên 300 người giả (gói), và từng phần riêng trên khoảng 91 cặp. Mốc đạt giữ nguyên. Nếu tài khoản chạm giới hạn chi tiêu theo tháng thì lượt này chưa chạy được.
+- **Chấm lớn bản 7.1:** phiên chấm sẽ chạy sau 22:50 trên 300 người giả (gói), và từng phần riêng trên khoảng 91 cặp. Mốc đạt giữ nguyên.
 
 ## 4. 13 ý đã rút gọn và điểm chấm
 
@@ -864,6 +864,20 @@ Không thu thêm gì; chỉ đổi cách tính và câu chữ.
 | R7-9 | P2 | Mốc 25% và 50% thấp hơn số mô phỏng, chỉ là sàn; 35% chưa chứng minh khả thi; không cộng mức tăng chấm riêng vào cả app | Nhận. Ghi là mức sàn; ghi rõ 35% chưa có căn cứ đạt |
 | R7-C | — | Chi phí đo 4.100–4.700 lượt; đề xuất 100 ca cố định mỗi tuần, 1000 ở hai mốc, đối chiếu 40 ca | Nhận |
 | R7-Đ | — | Điều kiện bắt đầu còn thiếu: mục đích dùng mood và lá số, rút đồng ý, tiến độ, Check kín, 18+, góc tiền, lá số thiếu giờ, câu hỗ trợ, nguồn, kiểm log và ảnh | Nhận. Thành danh sách chốt trong tuần 1 |
+
+### Vòng 8 và lượt chốt (14.11 đêm) — Codex kiểm kế hoạch 7 tuần, tranh luận với Claude
+
+| Mã | Mức | Góp ý | Xử lý |
+|---|---|---|---|
+| R8-1 | P2 | "Chưa có code nào" sai với phần nền (#503, #505, #506 đã có code; xoay chủ đề có commit chưa đẩy) | Nhận. Thêm bảng "việc nào đã có gì" |
+| R8-2 | P1 | Lời hứa lớp an toàn "không gửi đi" lệch cách làm: chữ tới máy chủ rồi mới chặn; web khóa nút khi câu dưới 8 ký tự | Nhận. Sửa mốc: không lưu, không ghi nhật ký, không chuyển bên thứ ba; thêm đường câu ngắn |
+| R8-3 | P1 | Câu "Hồ sơ đang lưu trên trình duyệt này" có thể sai với bản đồ dữ liệu (hồ sơ ở máy chủ) | Nhận. Câu phải đúng trước rồi mới đo; chờ chị duyệt |
+| R8-4 | P2 | Chạy nền vẫn dùng chung sức của Claude, Codex và lượt review | Nhận. Ghi vào rủi ro; mỗi việc nền là một việc trong plan ngày |
+| R8-5 | P2 | Quyết định duyệt chữ bài Học chưa khớp tài liệu quy trình | Nhận. Ghi ngoại lệ vào bảng quyết định (cùng PR tài liệu) |
+| BĐ-1 | — | Codex: không chạy Đợt 1 nguyên trạng vì còn "Vibe · X" | Thống nhất. Sửa phạm vi #502/#503: giữ tên tính cách, bỏ chữ "Vibe" |
+| BĐ-2 | — | Codex: #505 chưa xong lớp an toàn tuần 1. Claude: không chuyển nhận diện sang máy người dùng trong tuần 1 | Thống nhất. Xử lý ở máy chủ được nếu lời công bố đúng và câu ngắn tới được hỗ trợ |
+| BĐ-3 | — | Codex: song song chưa chứng minh đủ 7 tuần. Claude: thứ tự ưu tiên của plan ngày còn xếp tính năng sau cùng | Thống nhất. 7 tuần là mốc lập kế hoạch; đề nghị chị cho dành ít nhất 2 việc mỗi ngày; cuối tuần 1 đo sức chứa và báo lịch mới nếu lệch |
+| R9-P | — | Danh sách 5 việc ngày 15.11 (xem kế hoạch); #456 dời sang 16.11; #449 dời | Nhận |
 
 ## Phụ lục C. Thiết kế Lá nhây và màn Học (bản 2, sau phản biện vòng 4)
 

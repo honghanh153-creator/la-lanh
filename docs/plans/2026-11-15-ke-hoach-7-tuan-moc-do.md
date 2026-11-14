@@ -10,7 +10,45 @@ Các quyết định của chị đã ghi vào đây:
 - "Mời hẹn thử" hoãn.
 - Mỗi tính năng có mốc đạt, tạm thời đo bằng 1000 người giả.
 
-**Chưa có code nào được viết.** Đây là lịch làm xong để chị duyệt, chưa phải lịch đưa lên cho người dùng. Các mốc là đề xuất. Mốc nào đã ghi trước lượt chấm 14.11 thì giữ nguyên, không hạ.
+Đây là lịch làm xong để chị duyệt, chưa phải lịch đưa lên cho người dùng, và **7 tuần là mốc lập kế hoạch, chưa phải cam kết**. Các mốc là đề xuất. Mốc nào đã ghi trước lượt chấm 14.11 thì giữ nguyên, không hạ.
+
+**Việc nào đã có gì** (kiểm trên GitHub đêm 14.11):
+
+| Trạng thái | Việc |
+|---|---|
+| Đã có code, đang giữ chờ chị, chưa review xong | Sửa nhãn, nút và lời mời đăng nhập (PR #503, nháp); lớp an toàn khi gõ câu nguy hiểm (PR #505); bộ người giả và mốc đo (PR #506, nháp); sửa ô cảm xúc (PR #449) |
+| Có code trên máy, chưa đẩy lên | Xoay chủ đề cho người chỉ có ngày sinh |
+| Chưa có code | Mọi việc từ tuần 2 trở đi, kể cả Mầm xanh và Học. Các ý mới mới chỉ có bản mô tả và trang mẫu |
+
+## Plan ngày 15.11 (Claude và Codex đã tranh luận và thống nhất)
+
+Codex kiểm kế hoạch này thêm một lần (vòng 8), nêu ba điểm bất đồng, Claude trả lời, Codex chốt. Cả ba điểm đã thống nhất:
+
+1. **Không chạy tiếp Đợt 1 nguyên trạng.** Phần sửa nhãn đang dở phải đổi thành "giữ tên tính cách, bỏ chữ Vibe".
+2. **Lớp an toàn chưa xong chỉ vì PR đã có.** Kiểm ở máy chủ là được, miễn lời công bố nói đúng và câu ngắn vẫn tới được thông báo hỗ trợ.
+3. **7 tuần là mốc lập kế hoạch.** Cuối tuần 1 đo số việc xong rồi báo lịch mới nếu lệch. Không tự cắt việc.
+
+Năm việc đề xuất cho ngày 15.11, theo thứ tự. Mỗi lúc 1 việc đang làm và 1 việc đang review. Claude làm, Codex review.
+
+| Thứ tự | Nguồn | Người dùng thấy gì | Điều kiện xong |
+|---|---|---|---|
+| 1 | PR #487, báo cáo ở #133 | Không trực tiếp (vận hành) | Xác minh PR này có đang chặn các PR khác không; review đúng bản mới nhất; gỡ phụ thuộc thật |
+| 2 | Kế hoạch 7 tuần, báo cáo ý tưởng, issue #502 | Không trực tiếp (vận hành) | Tài liệu lên nhánh chung; sửa phạm vi và tiêu chí của Đợt 1; ghi quyết định duyệt chữ bài Học vào quy trình |
+| 3 | Issue #504, PR #506 | Không trực tiếp (vận hành) | Chốt cách chấm; chạy lại được số nền; kiểm hai giám khảo chấm khớp nhau |
+| 4 | PR #505 | Gõ câu ngắn vẫn nhận được hỗ trợ | Kiểm đường nhập trên web, nhật ký, lưu trữ, chuyển tiếp; lời công bố đúng với cách làm |
+| 5 | Issue #502, PR #503 | Nhãn rõ, nút bấm được, thông tin hồ sơ đúng | Bỏ chữ "Vibe"; kiểm ở màn 360 và 390 px với cả 3 loại hồ sơ; câu quyền riêng tư được chị duyệt |
+
+- Chuẩn bị cho giai đoạn "làm theo cách Codex" (PR #456) dời sang 16.11. Sửa ô cảm xúc (PR #449) dời, lỗi nặng của nó vẫn chặn merge.
+- Thử nghiệm quy trình 3+3 giữ nguyên: ngày 15–16.11 Claude làm, Codex review.
+
+**Chị cần quyết để plan ngày mai chạy được:**
+
+1. **Duyệt 5 việc trên** (trả lời trên issue plan buổi sáng như mọi ngày).
+2. **Cho dành ít nhất 2 trong 3–5 việc mỗi ngày cho kế hoạch 7 tuần.** Thứ tự ưu tiên hiện nay xếp tính năng mới sau cùng, sau vận hành, nội dung và quyền riêng tư. Không có quy tắc này thì kế hoạch 7 tuần có thể không được lượt nào. Sự cố nghiêm trọng vẫn được chen trước. Hàng việc vận hành sẽ tồn lâu hơn.
+3. **Gỡ giữ cho PR #503 và #505** trong đúng phạm vi đã nêu.
+4. **Duyệt câu quyền riêng tư của PR #503** (câu báo nơi lưu hồ sơ, sau khi sửa cho đúng) và **lời công bố của lớp an toàn ở PR #505**.
+
+Câu hỗ trợ khủng hoảng cho Tarot và quyền duyệt chữ bài Học chị đã chốt, không hỏi lại. Các quyết định của tuần sau không chặn ngày mai.
 
 ## Vì sao rút được từ 9 xuống 7 tuần
 
@@ -40,6 +78,10 @@ Những chỗ chậm thật, không rút được:
 | 7 | Khóa "Tự tin hơn" và "Kết bạn ở chỗ mới"; 22 động tác còn lại, đủ 24 sticker; kiểm gộp, sửa lỗi. **Chấm đủ 1000 người** | — |
 
 **Rủi ro của lịch ngắn:**
+
+- **Chạy nền không miễn phí.** Viết chữ, dựng hình và dựng màn đều dùng chung thời gian của Claude, Codex và lượt review. Mỗi việc nền vẫn là một việc trong plan ngày, và mỗi lúc chỉ có 1 việc đang làm cùng 1 việc đang review.
+- **Thứ tự ưu tiên của plan ngày đang xếp tính năng mới sau cùng** (vận hành, rồi nội dung, rồi quyền riêng tư, rồi tính năng), mỗi ngày 3–5 việc. Kế hoạch này có khoảng 48 việc. Nếu không dành chỗ cho nó thì 7 tuần không giữ được. Xem mục chị cần quyết ở cuối.
+- Cuối tuần 1 sẽ so số việc xong với số đã định. Lệch thì báo lịch mới, không tự cắt việc.
 
 - **Duyệt chữ.** Có khoảng 29 bài học cùng truyện và lời mở. Chị đã chốt: chị duyệt bài đầu của mỗi khóa (4 bài, gồm cả nhóm bài khớp ba lô) và danh sách lằn ranh đỏ; Codex duyệt các bài sau. Phần của chị vì vậy vừa với khoảng 1 giờ mỗi 2–3 ngày. Rủi ro còn lại: Codex trả bài nhiều vòng.
 - Tuần 5 và tuần 6 dồn nhiều việc. Chữ bị trả lại nhiều thì hai tuần này trễ.
@@ -86,8 +128,8 @@ Luật này đã ghi trước lượt chấm 14.11. Mốc riêng của từng t�
 | Việc | Mốc đạt | Số tham khảo |
 |---|---|---|
 | Bộ đo | Chấm lại cùng 100 người: trung bình lệch không quá 0,15; không quá 10% số người lệch từ 2 điểm; cờ hại trùng nhau. Hai giám khảo chấm cùng ca, không biết bản nào là bản mới, đổi thứ tự đọc | Chưa đo |
-| Lớp an toàn khi gõ câu nguy hiểm | Bắt 100% bộ câu mẫu (135 câu có ý định tự hại, thêm câu nói kín, câu phủ định, tiếng lóng); báo nhầm không quá 2% trong 205 câu nghĩa bóng; kiểm trên đường nhập thật; nội dung không bị lưu hay gửi đi. Không công bố là "bắt được mọi câu nguy hiểm" | Đo ở tuần này |
-| Dòng báo nơi lưu hồ sơ, nhãn tiếng Việt, nút không bị che | Người lo riêng tư không quá 3% | 3,5%, phần lớn do dòng "Hồ sơ của bạn đang lưu trên trình duyệt này" |
+| Lớp an toàn khi gõ câu nguy hiểm | Bắt 100% bộ câu mẫu (135 câu có ý định tự hại, thêm câu nói kín, câu phủ định, tiếng lóng); báo nhầm không quá 2% trong 205 câu nghĩa bóng; kiểm trên đường nhập thật của web, kể cả câu ngắn dưới 8 ký tự; chữ người dùng gõ có tới máy chủ của Lá Lành để kiểm, nhưng không được lưu, không vào nhật ký, không chuyển cho bên thứ ba hay dịch vụ AI. Lời công bố phải nói đúng như vậy. Không công bố là "bắt được mọi câu nguy hiểm" | Đo ở tuần này |
+| Dòng báo nơi lưu hồ sơ, nhãn tiếng Việt, nút không bị che | Câu báo nơi lưu phải đúng với thực tế trước (hồ sơ nằm ở máy chủ, trình duyệt chỉ giữ quyền mở); sau đó mới đo: người lo riêng tư không quá 3%. Nhãn tính cách giữ tên, bỏ chữ "Vibe" | 3,5%, phần lớn do dòng "Hồ sơ của bạn đang lưu trên trình duyệt này" |
 | Giữ việc cho cả 3 loại hồ sơ | Không có ca lỗi nào trong 300 đường bấm (đo bằng máy) | Chưa đo |
 
 ### Tuần 2. Việc hợp sức, mood đổi việc, nội dung sinh viên
@@ -179,6 +221,7 @@ Các mục này cần chị duyệt:
 7. **Câu hỗ trợ khi khủng hoảng** và nguồn của từng bài học.
 8. **Kiểm nhật ký, đường mạng và ảnh chia sẻ** không chứa dữ liệu riêng.
 9. **Ai duyệt chữ bài học: đã chốt 14.11.** Chị duyệt bài đầu của mỗi khóa và danh sách lằn ranh đỏ. Codex duyệt các bài sau theo đúng danh sách đó. Câu về quyền riêng tư, đồng ý và hỗ trợ khi khủng hoảng vẫn do chị duyệt.
+10. **Ghi quyết định duyệt chữ bài Học vào tài liệu quy trình và kho câu chữ** (việc của agent, không hỏi lại chị), để khớp với quy tắc "câu mới cần chị duyệt" đang có.
 
 ## Đã hoãn hoặc chưa có trong kế hoạch
 
