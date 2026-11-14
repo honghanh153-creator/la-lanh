@@ -14,7 +14,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { LOADING, PERSONA, redactRoute } from "./qa-journey-lib.mjs";
+import { LOADING, PERSONA, contentExit, contentMode, contentVerdict, redactRoute } from "./qa-journey-lib.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const requireFromWeb = createRequire(resolve(here, "../apps/web/package.json"));
@@ -132,6 +132,14 @@ const context = await browser.newContext({
   serviceWorkers: "block",
 });
 const page = await context.newPage();
+// L03: the Western overview answer the Khám phá screen is built from, kept to compare the screen
+// with the API. The persona gives an exact birth time, so a synthesis is expected.
+const content = [];
+let overviewAnswer = null;
+page.on("response", async (response) => {
+  if (!/\/v1\/insights\/overview(\?(?!.*tradition=jyotish)|$)/.test(response.url()) || !response.ok()) return;
+  try { overviewAnswer ??= await response.json(); } catch {}
+});
 page.on("console", (message) => {
   if (message.type() === "error") consoleErrors.push(message.text().replace(/[A-Za-z0-9_-]{24,}/g, ":redacted").slice(0, 160));
 });
@@ -189,6 +197,14 @@ try {
     await page.waitForTimeout(1500);
   }, { required: false });
   await step(page, "insights-overview", () => go(page, "/insights"));
+  content.push({ step: "insights-overview", ...contentVerdict({
+    expect: { synthesis: true },
+    api: overviewAnswer?.reading_projection?.active ?? null,
+    ui: {
+      text: await page.locator("main").innerText({ timeout: 5_000 }).catch(() => ""),
+      synthesis: await page.locator(".insight-synthesis").first().innerText({ timeout: 5_000 }).catch(() => ""),
+    },
+  }) });
   await step(page, "insights-jyotish", () => go(page, "/insights/overview?tradition=jyotish"));
   await step(page, "current-sky", () => go(page, "/insights/current-sky"));
   await step(page, "aura", () => go(page, "/reveal/aura"));
@@ -233,8 +249,10 @@ const summary = {
   requiredFailed: steps.filter((s) => s.required && !s.ok).map((s) => s.id),
   consoleErrors: [...new Set(consoleErrors)].slice(0, 20),
   serverErrors: [...new Set(serverErrors)].slice(0, 20),
+  content: { mode: contentMode(), verdicts: content },
   steps,
 };
 writeFileSync(join(outDir, "journey.json"), `${JSON.stringify(summary, null, 2)}\n`);
 console.log(`required failed: ${summary.requiredFailed.length}; guest deleted: ${deleted}`);
-process.exit(summary.requiredFailed.length === 0 && deleted ? 0 : 1);
+for (const v of content) console.log(`content (${summary.content.mode}) ${v.status} ${v.step}${v.findings.length ? `: ${v.findings.join(", ")}` : ""}`);
+process.exit(summary.requiredFailed.length === 0 && deleted ? contentExit(content, summary.content.mode) : 1);
