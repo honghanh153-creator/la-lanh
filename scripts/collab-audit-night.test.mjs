@@ -102,7 +102,7 @@ test('cap spent: M1 is "chưa đo được" and Codex is not called', () => {
   assert.equal(readJson(dayStatePath(date), {}).codexRuns, codexDailyCap);
   const M1 = readRecord(date, dir).metrics.M1;
   assert.equal(M1.value, null);
-  assert.match(M1.missing, /hết lượt Codex \(32\/32\)/);
+  assert.ok(M1.missing.includes(`hết lượt Codex (${codexDailyCap}/${codexDailyCap})`), M1.missing);
   assert.equal(readRecord(date, dir).judgement.retry, true, 'a cap stop is retried, it does not lock the record');
 });
 
