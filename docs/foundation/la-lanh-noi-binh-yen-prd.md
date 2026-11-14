@@ -1,8 +1,17 @@
 # Lá Lành — PRD "Nơi bình yên"
 
-> Phiên bản: 0.6 (nháp) · Cập nhật: 22/10/2026 · Trạng thái: **chờ chủ sản phẩm duyệt**, chưa được duyệt để triển khai.
+> Phiên bản: 0.7 (nháp) · Cập nhật: 22/10/2026 · Trạng thái: **chờ chủ sản phẩm duyệt**, chưa được duyệt để triển khai.
 > Tài liệu này là requirement gốc cho tính năng "Nơi bình yên". Nó bổ sung cho [la-lanh-prd.md](la-lanh-prd.md) và [US-03](../user-stories/US-03-doc-note-hom-nay.md), không thay đổi AC của US-01 đến US-19.
 > Nền nghiên cứu (máy chủ sản phẩm, ngoài git): `reports/Học từ app thư giãn.md`, `reports/Safe place thư giãn Lá Lành.md`, `reports/Note buổi sáng nơi bình yên.md`, và các ghi chú trong `research_notes/Nơi bình yên video AI/`, `research_notes/Note buổi sáng nơi bình yên/`. Các kết luận cần thiết đã được chép vào PRD này.
+>
+> **Thay đổi so với 0.6** (chủ sản phẩm chốt 22/10/2026: nơi bình yên **không thêm dịch vụ trả phí hay tích hợp mới** ngoài hệ thống đang chạy; mức chi phí cụ thể giữ ngoài repo):
+> 1. **Video do chủ sản phẩm tự tạo** bằng công cụ AI bên ngoài, trên gói cho phép dùng thương mại. Lá Lành không gọi, không tích hợp và không trả phí dịch vụ tạo video nào. Video vẫn gắn nhãn AI (D8, D9, §8.6).
+> 2. **Nhạc do chủ sản phẩm tự tải lên**, mỗi file có license dùng trong app và bằng chứng license đi kèm; nhạc là tùy chọn (D10, §8.3).
+> 3. **Xử lý media bằng một script ffmpeg chạy trên máy quản trị** ([scripts/media/nby-media.sh](../../scripts/media/nby-media.sh)): kiểm đầu vào, cắt, lặp liền mạch, chỉnh màu, chuyển mã, poster, chuẩn hóa âm lượng, SHA-256. Không dùng dịch vụ đám mây (NBY-09 AC02, §7.6).
+> 4. **Đồ họa vẽ bằng code, kiểu A "giấy vẽ tay"** (D21): rót nước, cốc, chiếc lá thả đi, thanh phụ đề và chip vẽ bằng SVG/CSS cùng chất trang giấy của Note. Bỏ clip rót, ảnh cốc và ảnh lá tạo bằng AI (NBY-05, NBY-07, §7.4). Cảnh vẫn là video; không dựng cảnh bằng code.
+> 5. **Giọng Mầm v1 chỉ có phụ đề.** Tùy chọn: chủ sản phẩm tự thu giọng thật, dùng cùng cơ chế gói. Giọng AI và giọng nhân bản để sau. Đây là đề xuất thay D16, chờ owner xác nhận; D17 hoãn. Các yêu cầu về người cho giọng rời khỏi v1 (NBY-04 AC10, §8.3, §8.5).
+> 6. **Media origin** là hostname thứ hai trên máy chủ hiện có, **anh em** với host app, không nằm dưới host app (D19, §7.1).
+> 7. Giữ nguyên mọi sửa của 0.5 và 0.6.
 >
 > **Thay đổi so với 0.5** (review Codex PR #44 @ `53df113`, hai P2):
 > 1. Origin WebView iOS là `capacitor://localhost` (mặc định `server.iosScheme`), không phải `la-lanh://localhost`; `ios.scheme` là scheme build Xcode. Sửa mô tả, CORS allowlist và yêu cầu bằng chứng (§7.1, §14). Không đổi cấu hình native.
@@ -33,7 +42,7 @@
 
 ## 0. Tóm tắt một đoạn
 
-Mỗi sáng, người dùng mở Lá Lành và đọc **Note hôm nay** như thường lệ. Ngay dưới Note là ô **"Sáng nay ở nơi bình yên"** với ảnh tĩnh của cảnh hôm nay. Chạm vào, một video thiên nhiên chân thực, gần như tĩnh, được chọn ngẫu nhiên từ thư viện mà chủ sản phẩm cập nhật mỗi ngày, mở ra toàn màn hình. Sau vài giây để mắt ổn định, **Mầm** khẽ đọc một câu ngắn của ngày, có phụ đề. Người dùng có thể chạm nhẹ vào cảnh (nước gợn, ánh sáng lan), rót cho mình một cốc nước, hoặc viết điều đang nặng lòng rồi thả nó đi. Cảnh được tạo bằng AI và được gắn nhãn. Không có đồng hồ, không có streak, không ai đọc những gì người dùng viết, kể cả Lá Lành.
+Mỗi sáng, người dùng mở Lá Lành và đọc **Note hôm nay** như thường lệ. Ngay dưới Note là ô **"Sáng nay ở nơi bình yên"** với ảnh tĩnh của cảnh hôm nay. Chạm vào, một video thiên nhiên chân thực, gần như tĩnh, được chọn ngẫu nhiên từ thư viện mà chủ sản phẩm cập nhật mỗi ngày, mở ra toàn màn hình. Sau vài giây để mắt ổn định, **Mầm** đưa lên một câu ngắn của ngày bằng phụ đề (và khẽ đọc nếu có bản thu giọng). Người dùng có thể chạm nhẹ vào cảnh (nước gợn, ánh sáng lan), giữ để rót cho mình một cốc nước trên tấm thẻ giấy vẽ tay, hoặc viết điều đang nặng lòng rồi thả nó đi. Cảnh do chủ sản phẩm tạo bằng công cụ AI và được gắn nhãn; cốc, lá và Mầm là đồ họa vẽ bằng code. Không có đồng hồ, không có streak, không ai đọc những gì người dùng viết, kể cả Lá Lành.
 
 ### 0.1. Bản chất Lá Lành (chủ sản phẩm, 22/10/2026)
 
@@ -43,7 +52,7 @@ Mỗi bề mặt buổi sáng phục vụ một phần của câu này, và khô
 
 | Phần | Bề mặt | Cách phục vụ |
 |---|---|---|
-| Cảm giác được hiểu | Note hôm nay (trang giấy) | Câu mở gọi đúng một tình huống đời thường ("Bạn bận cả buổi, việc vẫn chưa xong."); Mầm đọc nó bằng giọng ấm khi người dùng chạm |
+| Cảm giác được hiểu | Note hôm nay (trang giấy) | Câu mở gọi đúng một tình huống đời thường ("Bạn bận cả buổi, việc vẫn chưa xong."); Mầm đưa câu lên khi người dùng chạm, đọc bằng giọng ấm nếu có bản thu (D16) |
 | Thư giãn, bình yên | Nơi bình yên (ô cửa sổ) | Cảnh video chậm, âm thanh, câu của ngày, chạm nhẹ, thả đi |
 | Vui vẻ | Mầm | Một nhân vật nhỏ, ấm, hơi tinh nghịch; phản ứng khi được chạm; không bao giờ phán xét hay gây áy náy |
 
@@ -66,7 +75,7 @@ Khi một yêu cầu mới làm một phần tốt hơn nhưng làm phần khác
 |---|---|---|
 | G1 | Người dùng thấy dịu lại chỉ sau vài giây ngồi | Test người dùng có đồng ý (8–12 người 18–25): ≥ 70% mô tả bằng từ như "dịu", "yên", "dễ chịu" sau 30 giây |
 | G2 | Cảnh trông như thước phim thật, đủ chậm để mắt nghỉ | ≥ 70% không chỉ ra được lỗi hình (méo, chớp, đường nối) trong 2 phút xem; không ai thấy chóng mặt |
-| G3 | Buổi sáng có một nghi thức ngắn nối với Note: đọc Note → vào cảnh → nghe Mầm đọc câu của ngày | Toàn bộ nghi thức gói gọn trong 60–90 giây nếu người dùng muốn; ≥ 70% người test nói muốn mở lại sáng hôm sau mà không cần nhắc |
+| G3 | Buổi sáng có một nghi thức ngắn nối với Note: đọc Note → vào cảnh → nhận câu của ngày từ Mầm | Toàn bộ nghi thức gói gọn trong 60–90 giây nếu người dùng muốn; ≥ 70% người test nói muốn mở lại sáng hôm sau mà không cần nhắc |
 | G4 | Mỗi ngày có cái mới mà vẫn đồng nhất | Không người test nào nhận xét cảnh "lạc tông" hay "giật mình" giữa các ngày; thư viện qua kiểm tra phong cách §7.5 |
 | G5 | Có chỗ để viết ra rồi buông, với lời hứa riêng tư đúng sự thật | Kiểm thử chứng minh chữ không rời máy, không nằm trong storage sau khi thả |
 | G6 | Không tạo rủi ro pháp lý hay đạo đức mới | Không trường dữ liệu người dùng mới trên server; nhãn privacy Apple/Google không đổi; nội dung AI gắn nhãn đúng Luật 134/2025 và Nghị định 142/2026; không claim sức khỏe |
@@ -75,6 +84,7 @@ Khi một yêu cầu mới làm một phần tốt hơn nhưng làm phần khác
 
 - Không trị liệu, không chẩn đoán, không claim giúp ngủ hay "đổi vận".
 - Không AI đọc hoặc trả lời nội dung tâm sự. **Không gọi API AI nào lúc chạy**: video, giọng đọc và câu của ngày được tạo và duyệt trước khi đăng.
+- **Không thêm dịch vụ trả phí hay tích hợp bên thứ ba mới** (tạo video, giọng, nhạc, CDN, analytics) cho nơi bình yên trong v1. Công cụ chủ sản phẩm tự dùng bên ngoài để tạo video hay nhạc không phải tích hợp của Lá Lành.
 - Không chia sẻ tâm sự cho người khác.
 - **Không ghép cảm xúc hay câu của ngày với chiêm tinh**: cảnh, câu và hiệu ứng không được chọn theo cung, lá số, mood hay nội dung Note. Trong v1 không có ngoại lệ nào (kể cả mood US-04). Nếu owner duyệt phương án D6-B ở §12, ngoại lệ duy nhất được phép là thay câu của ngày bằng **câu đồng hành "cho phép" được xuất bản cùng ngày** (NBY-04 AC08); quy tắc này phải được sửa ngay trong §2.2 và NBY-04 khi duyệt, không tồn tại song song như một AC riêng.
 - Không streak, không đếm phút, không phần thưởng, không push trong v1, không badge "video mới".
@@ -94,7 +104,7 @@ Khi một yêu cầu mới làm một phần tốt hơn nhưng làm phần khác
 5. **Mầm là người kể, không phải nhân vật trong cảnh.** Mầm Aura xuất hiện nhỏ trong thanh phụ đề (lớp giao diện), không đặt vào khung video; Mầm chỉ đọc, không khuyên, không tiên đoán, không "nhớ bạn".
 6. **Cho phép, không ép vui.** Câu của ngày mời và cho phép ("không cần phải ổn ngay"), không ra lệnh tích cực, không khẳng định ngôi thứ nhất.
 7. **An toàn, dư dả, mềm mại.** Không có gì héo, nguội, hết hạn hay khan hiếm.
-8. **Trung thực.** Cảnh và giọng AI được gắn nhãn; "Không ai đọc, kể cả Lá Lành" chỉ được viết khi runtime thực sự không gửi, không lưu, không log.
+8. **Trung thực.** Cảnh AI được gắn nhãn (giọng cũng vậy, nếu sau này dùng giọng AI); "Không ai đọc, kể cả Lá Lành" chỉ được viết khi runtime thực sự không gửi, không lưu, không log.
 
 ### 2.4. Tham chiếu phong cách (chủ sản phẩm gửi 21/10/2026)
 
@@ -118,7 +128,7 @@ Ba thứ mới (video đổi mỗi ngày, lớp chạm, Mầm đọc câu) đề
 | Video ngẫu nhiên | Ngẫu nhiên mỗi lần mở biến thành "lướt feed"; cảnh lệch tông gây giật mình | Chọn **một lần cho mỗi buổi sáng** và giữ nguyên cả ngày; chỉ chọn trong thư viện đã qua kiểm tra phong cách; không lặp trong 7 ngày gần nhất; "Cảnh khác" tối đa 2 lần/ngày, chuyển bằng crossfade chậm |
 | Đăng hằng ngày | Ngày quên đăng thành "trống"; chất lượng không đều | App không phụ thuộc video mới: luôn chọn được từ thư viện cũ; mỗi video phải qua cổng duyệt §7.6 trước khi vào thư viện |
 | Lớp chạm | Hiệu ứng mạnh, giả, hoặc lệch với cảnh phá cảm giác thật (bài học của 3 bản mẫu) | Hiệu ứng rất nhẹ, cấu hình theo từng video (chỉ "nước" khi có mặt nước thật trong cảnh); mặc định "không có" nếu chưa cấu hình; tự tắt khi máy yếu |
-| Mầm đọc câu | Giọng bật ra đột ngột; câu "lên dây cót" kiểu tích cực độc hại | Chờ 3–5 giây sau khi cảnh mở mới đọc; giọng nhỏ, chậm, tăng dần; có phụ đề; tôn trọng chế độ im lặng; một câu ≤ 20 từ, cho phép chứ không ra lệnh |
+| Mầm đọc câu (khi có bản thu) | Giọng bật ra đột ngột; câu "lên dây cót" kiểu tích cực độc hại | Chờ 3–5 giây sau khi cảnh mở mới đọc; giọng nhỏ, chậm, tăng dần; có phụ đề; tôn trọng chế độ im lặng; một câu ≤ 20 từ, cho phép chứ không ra lệnh |
 | Tổng thể | Thêm bước, thêm chữ, thêm lựa chọn | Nghi thức sáng tối đa 3 bước (Note → cảnh → câu); không màn hướng dẫn; không câu hỏi; người dùng có thể rời bất kỳ lúc nào |
 
 Bằng chứng nền (đã nghiên cứu, mức độ khiêm tốn): tâm trạng đầu ngày có ảnh hưởng tới phần còn lại của ngày làm việc (Rothbard & Wilk 2011, mẫu nhỏ); can thiệp tâm lý tích cực ngắn qua app có hiệu ứng nhỏ (g ≈ 0,29, sát ngưỡng ý nghĩa); xem cảnh thiên nhiên giúp hồi phục căng thẳng ngắn hạn, nhiều hơn ở người đang buồn; đặt tên một chuỗi hành động là "nghi thức" giảm lo âu (Brooks 2016); thói quen cần trung vị 66 ngày để thành tự động (Lally 2010); câu tự khẳng định tích cực làm người tự ti thấy tệ hơn (Wood 2009); áp lực "phải vui" đi trước triệu chứng trầm cảm ở người đang trầm cảm (Bastian 2012). Kết luận: hứa "một khoảng lặng nhỏ đầu ngày", không hứa "năng lượng cho cả ngày".
@@ -126,7 +136,7 @@ Bằng chứng nền (đã nghiên cứu, mức độ khiêm tốn): tâm trạn
 ## 3. Người dùng, lối vào và phạm vi release
 
 - **Actor:** guest hoặc account user, **18+** theo chính sách hiện hành. Không yêu cầu login, không yêu cầu ngày sinh.
-- **Actor quản trị:** chủ sản phẩm (và người được ủy quyền) đăng video, câu của ngày và giọng đọc qua công cụ quản trị (NBY-09).
+- **Actor quản trị:** chủ sản phẩm (và người được ủy quyền) tự tạo video bên ngoài, xử lý bằng script local, rồi đăng video, nhạc, câu của ngày và (tùy chọn) bản thu giọng qua công cụ quản trị (NBY-09).
 - **Lối vào v1:**
   - **Buổi sáng (05:00–10:59 theo giờ máy):** ngay dưới thẻ Note hôm nay, ô "Sáng nay ở nơi bình yên" với poster của video hôm nay, nhãn "Cảnh tạo bằng AI" và một dòng mời ngắn. Ô không được đẩy thẻ Note xuống ở khung 390×844.
   - **Các giờ khác:** ô nhỏ hơn "Nơi bình yên" ở cùng vị trí, không nhắc "sáng nay".
@@ -140,7 +150,7 @@ Repo hiện có 6 mốc thời gian khác nhau. Nơi bình yên chỉ dùng gi�
 
 | Khoảng | Tên | Hành vi |
 |---|---|---|
-| 05:00–10:59 | Sáng | Ô "Sáng nay…", Mầm đọc câu của ngày lần đầu vào cảnh |
+| 05:00–10:59 | Sáng | Ô "Sáng nay…", Mầm đưa câu của ngày lần đầu vào cảnh (đọc nếu có bản thu) |
 | 11:00–20:59 | Ngày | Biến thể ánh sáng ngày; câu của ngày chỉ hiện dạng chữ khi người dùng chạm vào Mầm |
 | 21:00–22:59 | Tối | Biến thể đêm; không đọc giọng; câu hiện dạng chữ |
 | 23:00–04:59 | Khuya | Biến thể đêm; Mầm chỉ hiện một câu chúc ngủ viết sẵn, không đọc giọng, không gợi ý gì thêm |
@@ -152,13 +162,14 @@ Repo hiện có 6 mốc thời gian khác nhau. Nơi bình yên chỉ dùng gi�
 | Hạng mục | v1 | v1.1 (cần quyết định riêng) | Không làm |
 |---|---|---|---|
 | Thư viện video | Chủ sản phẩm đăng qua công cụ quản trị; app chọn ngẫu nhiên một video mỗi buổi sáng; bộ khởi đầu ≥ 14 video đã duyệt trước khi bật | Bộ sưu tập theo mùa, Tết, Trung thu | Video người dùng tải lên; video có người thật |
-| Cảnh | Video AI lặp 12–20 giây, 9:16, gần như tĩnh, gắn nhãn; biến thể ngày/đêm theo thẻ | Camera trôi chậm kiểu R4 | 3D, cảnh dựng bằng code |
+| Cảnh | Video AI do chủ sản phẩm tự tạo bên ngoài, xử lý bằng script local (§7.6); lặp 12–20 giây, 9:16, gần như tĩnh, gắn nhãn; biến thể ngày/đêm theo thẻ | Camera trôi chậm kiểu R4 | 3D, cảnh dựng bằng code; tích hợp API tạo video |
+| Đồ họa lớp đồng hành | Kiểu A "giấy vẽ tay" (D21): thẻ giấy kem, nét mực hơi run; cho cốc và rót nước, chiếc lá, thanh phụ đề cùng Mầm, chip (§7.4) | Thêm họa tiết theo mùa | Ảnh chụp/AI cho cốc và lá; đồ họa phẳng kiểu icon |
 | Lớp chạm | Hiệu ứng "nước" (khúc xạ trong vùng nước có mặt nạ) và "ánh sáng" (quầng sáng mềm lan nhẹ) cấu hình theo video; mặc định "không" | Hiệu ứng "gió" (tiếng gió lớn dần, video lá lay nhanh hơn chút) | Kéo mây, vuốt cỏ, hạt lấp lánh, hiệu ứng kiểu game |
-| Câu của ngày | Một câu mỗi ngày, Mầm đọc bằng giọng đã ghi sẵn + phụ đề vào buổi sáng | Nhiều giọng đọc | Câu sinh bằng AI lúc chạy; câu theo cung/mood |
-| Mầm | Mầm Aura dạng nhỏ trong thanh phụ đề, chỉ đọc câu và chúc ngủ; trên Note (US-03 §24) Mầm ngồi ở góc trang giấy và đọc câu mở khi được chạm | Mầm lớn dần theo số ngày ghé (theo báo cáo companion) | Mầm trò chuyện, khuyên, tiên đoán, đọc phần chiêm tinh |
-| Note hôm nay | Thuộc US-03 §24: chất trang giấy, một câu chính lớn, Mầm đọc câu mở (audio dựng sẵn cho 90 câu direct) | Đọc thêm phần tình huống | Video sau chữ Note; đọc evidence, chart, roast voice |
-| Rót nước | 4 món, clip rót ngắn + ảnh cốc cùng chất liệu | Thêm món | Món phải mua, suy mood từ đồ uống |
-| Âm thanh | Âm thanh nền theo thẻ cảnh + nhạc êm tùy chọn; chỉ phát khi app mở | Phát nền khi khóa màn hình (D1) | Âm thanh/nhạc từ YouTube, noise/binaural |
+| Câu của ngày | Một câu mỗi ngày, Mầm đưa lên bằng phụ đề vào buổi sáng; chỉ đọc thành tiếng khi có bản thu của chủ sản phẩm (D16) | Giọng AI hoặc nhân bản (quyết định riêng) | Câu sinh bằng AI lúc chạy; câu theo cung/mood |
+| Mầm | Mầm Aura dạng nhỏ trong thanh phụ đề, chỉ đưa câu và chúc ngủ; trên Note (US-03 §24) Mầm ngồi ở góc trang giấy, phản ứng khi được chạm và đọc câu mở nếu có bản thu | Mầm lớn dần theo số ngày ghé (theo báo cáo companion) | Mầm trò chuyện, khuyên, tiên đoán, đọc phần chiêm tinh |
+| Note hôm nay | Thuộc US-03 §24: chất trang giấy, một câu chính lớn; audio câu mở chỉ khi chủ sản phẩm đã thu đủ 90 câu direct | Đọc thêm phần tình huống | Video sau chữ Note; đọc evidence, chart, roast voice |
+| Rót nước | 4 món, đồ họa SVG kiểu A: giữ để rót, nước dâng có mặt sóng, hơi bốc với đồ nóng (NBY-05) | Thêm món | Clip rót hay ảnh cốc tạo bằng AI; món phải mua; suy mood từ đồ uống |
+| Âm thanh | Âm thanh nền theo thẻ cảnh + nhạc êm tùy chọn do chủ sản phẩm tải lên có license; chỉ phát khi app mở | Phát nền khi khóa màn hình (D1) | Âm thanh/nhạc từ YouTube, noise/binaural; dịch vụ nhạc thuê bao tích hợp vào app |
 | Tâm sự | Chip cảm xúc tùy chọn + ô viết; thả đi | Giữ lại trên máy (D3) | AI, server, chia sẻ |
 | An toàn | Lối "Mình thấy không ổn" mọi lúc; thẻ hỗ trợ tĩnh offline | Gợi ý thẻ khi có từ khóa trên máy (D5) | Tự báo cáo, chặn |
 | Nhắc buổi sáng | Không | Thông báo cục bộ, tắt mặc định, tối đa 1 lần/ngày, chữ chung chung (D13) | Push từ server, nhắc kiểu "bạn đã bỏ lỡ" |
@@ -174,7 +185,7 @@ flowchart TD
   N --> S
   S --> V["Video hôm nay chạy; âm thanh tăng dần nếu không im lặng"]
   V --> Q{"Sáng và chưa nghe câu hôm nay?"}
-  Q -->|Có| R["Chờ 3–5 giây → Mầm đọc câu của ngày, có phụ đề"]
+  Q -->|Có| R["Chờ 3–5 giây → Mầm đưa câu của ngày lên bằng phụ đề (đọc nếu có bản thu)"]
   Q -->|Không| SC["Ngắm cảnh"]
   R --> SC
   SC --> TC["Chạm nhẹ: nước gợn / ánh sáng lan (nếu video có cấu hình)"]
@@ -185,7 +196,7 @@ flowchart TD
   SC -.-> C["Mình thấy không ổn: thẻ hỗ trợ tĩnh"]
 ```
 
-**Nghi thức sáng chuẩn (60–90 giây nếu người dùng muốn):** đọc Note (~20–30 giây) → chạm ô nơi bình yên → 3–5 giây để mắt ổn định với cảnh → Mầm đọc câu (~5–8 giây) → ngồi tiếp bao lâu tùy thích. Mục "Thử một việc nhỏ" của Note là phần "chủ động" của buổi sáng; nơi bình yên là phần "thả lỏng". Hai phần không chia sẻ nội dung.
+**Nghi thức sáng chuẩn (60–90 giây nếu người dùng muốn):** đọc Note (~20–30 giây) → chạm ô nơi bình yên → 3–5 giây để mắt ổn định với cảnh → câu của ngày (~5–8 giây) → ngồi tiếp bao lâu tùy thích. Mục "Thử một việc nhỏ" của Note là phần "chủ động" của buổi sáng; nơi bình yên là phần "thả lỏng". Hai phần không chia sẻ nội dung.
 
 Bố cục trong cảnh: video toàn khung dọc; nhãn AI góc trên; **thanh phụ đề ở đáy** gồm Mầm nhỏ bên trái và dòng chữ; thanh điều khiển mờ phía dưới gồm: cảnh khác, cốc nước, âm thanh, viết ra, tạm dừng, "Mình thấy không ổn", rời đi. Thanh điều khiển tự mờ sau 6 giây không chạm (luôn hiện khi bật VoiceOver/TalkBack hoặc phóng chữ lớn).
 
@@ -263,11 +274,13 @@ AC đánh mã `NBY-xx-ACyy`. Mỗi story là một kết quả người dùng đ
 | AC09 | Mọi chức năng đều làm được bằng nút thường; cảnh có mô tả ngắn cho trình đọc màn hình. |
 | AC10 | Mỗi kiểu hiệu ứng được chủ sản phẩm duyệt trên ít nhất 3 video thật trước khi bật; nếu bị đánh giá "giả", kiểu đó tắt bằng cấu hình, không cần phát hành app mới. |
 
-### NBY-04 — Mầm đọc câu của ngày
+### NBY-04 — Mầm đưa câu của ngày
 
-> Là người bắt đầu buổi sáng, tôi muốn nghe một câu ngắn, dịu dàng khi ngồi xuống, để có một điều nhỏ mang theo vào ngày.
+> Là người bắt đầu buổi sáng, tôi muốn nhận một câu ngắn, dịu dàng khi ngồi xuống, để có một điều nhỏ mang theo vào ngày.
 
-**Nội dung:** mỗi ngày một câu do quản trị đăng (NBY-09), kèm file giọng đọc đã ghi sẵn. Câu là của Lá Lành viết, hoặc trích dẫn có nguồn đã xác minh (§8.6). Nếu ngày đó chưa có câu mới, app chọn ngẫu nhiên một câu đã xuất bản không lặp trong 60 ngày.
+**v1 (0.7):** câu hiện bằng phụ đề cạnh Mầm. Giọng chỉ có khi chủ sản phẩm đã tự thu file cho câu đó (D16). Các AC về giọng dưới đây chỉ áp dụng khi có bản thu; khi không có, Mầm và phụ đề vẫn chạy đúng nhịp như có giọng.
+
+**Nội dung:** mỗi ngày một câu do quản trị đăng (NBY-09), kèm bản thu giọng nếu có. Câu là của Lá Lành viết, hoặc trích dẫn có nguồn đã xác minh (§8.6). Nếu ngày đó chưa có câu mới, app chọn ngẫu nhiên một câu đã xuất bản không lặp trong 60 ngày.
 
 **Loại câu được dùng:** quan sát giác quan ("Nắng sớm đến chậm thôi, không vội gì."), cho phép ("Không cần phải ổn ngay. Ngồi đây một chút cũng được."), một việc nhỏ có thể làm ("Uống một ngụm nước ấm trước khi mở tin nhắn đầu tiên."), biết ơn nhẹ không bắt buộc. Các câu ví dụ trong PRD là **bản nháp cần duyệt**.
 
@@ -275,34 +288,35 @@ AC đánh mã `NBY-xx-ACyy`. Mỗi story là một kết quả người dùng đ
 
 | AC | Tiêu chí |
 |---|---|
-| AC01 | 05:00–10:59, **lần đầu** vào cảnh trong ngày: sau 3–5 giây kể từ khi video bắt đầu, Mầm đọc câu của ngày; giọng tăng từ 0 lên mức đã chọn trong ~1 giây; phụ đề hiện cùng lúc, chạy theo câu đọc. |
-| AC02 | Nếu đang ở chế độ im lặng hoặc âm lượng hệ thống tắt: không phát giọng; chỉ hiện phụ đề. Lần đầu dùng có một dòng: "Mầm sẽ đọc một câu nhỏ mỗi sáng. Bạn có thể tắt giọng đọc." |
-| AC03 | Có công tắc "Mầm đọc câu buổi sáng" (bật/tắt giọng) trong cài đặt của nơi bình yên; nhớ trên máy. |
+| AC01 | 05:00–10:59, **lần đầu** vào cảnh trong ngày: sau 3–5 giây kể từ khi video bắt đầu, phụ đề câu của ngày hiện dần cạnh Mầm (~1 giây). Nếu câu có bản thu và giọng đang bật, giọng tăng từ 0 lên mức đã chọn trong ~1 giây và phụ đề chạy theo câu đọc. |
+| AC02 | Nếu đang ở chế độ im lặng hoặc âm lượng hệ thống tắt: không phát giọng; chỉ hiện phụ đề. Dòng giới thiệu lần đầu "Mầm sẽ đọc một câu nhỏ mỗi sáng. Bạn có thể tắt giọng đọc." chỉ hiện khi câu hôm nay có bản thu. |
+| AC03 | Khi thư viện có bản thu giọng: có công tắc "Mầm đọc câu buổi sáng" (bật/tắt giọng) trong cài đặt của nơi bình yên, nhớ trên máy. Khi không có bản thu nào, công tắc không hiện. |
 | AC04 | Đọc xong, phụ đề giữ ~6 giây rồi mờ; Mầm trở về trạng thái nghỉ. Chạm vào Mầm bất cứ lúc nào trong ngày để xem lại câu dạng chữ (không đọc lại giọng ngoài khung sáng, trừ khi người dùng chạm nút nghe). |
 | AC05 | Mỗi ngày Mầm chỉ tự đọc **một lần**; vào lại cảnh trong ngày không tự đọc nữa. |
 | AC06 | 21:00–04:59: không đọc giọng; 23:00–04:59 Mầm chỉ hiện một câu chúc ngủ viết sẵn. |
 | AC07 | Câu ≤ 20 từ, giọng đọc ≤ 10 giây; tốc độ đọc chậm, âm lượng chuẩn hóa thấp hơn âm thanh cảnh 3–6 dB khi cả hai cùng phát; âm thanh cảnh tự hạ nhẹ (ducking) khi Mầm đọc. |
 | AC08 | **v1:** câu và giọng **không** được chọn theo cung, lá số, mood, chip, nội dung Note hay dữ liệu cá nhân nào; mọi người dùng cùng ngày nghe cùng câu (trừ khi lấy câu dự phòng ngẫu nhiên không lặp 60 ngày). Vì không có nhánh theo mood, **mọi câu của ngày phải tự an toàn cho người đang buồn**: cổng nội dung NBY-09 AC05 từ chối câu chỉ hợp với người đang vui (biết ơn bắt buộc, "việc nhỏ" đòi năng lượng, hứa kết quả). Nếu owner duyệt D6-B (§12), AC này được thay bằng: "mọi người cùng ngày nghe cùng câu chính; người có mood hôm nay `drained`/`tense` nghe **câu đồng hành 'cho phép' của cùng ngày** do quản trị xuất bản cùng câu chính; mood chỉ đọc trên máy, không gửi đi" — và §2.2, NBY-08 AC08 được sửa cùng lúc. |
 | AC09 | Mầm Aura hiển thị nhỏ (≤ 44 px) trong thanh phụ đề, có `aria-hidden`; phụ đề đọc qua `aria-live="polite"`. Mầm không đặt lên khung video và không có bong bóng thoại kiểu truyện tranh. |
-| AC10 | Giọng của Mầm là **giọng AI** (D16), có thể nhân bản từ giọng của **một người thật đã đồng ý bằng văn bản** theo §8.3. Mỗi lần giọng phát, thanh phụ đề hiện chip nhỏ "Giọng AI" cạnh Mầm (Nghị định 142/2026 Điều 18(2)(a) yêu cầu nhãn hiển thị cho âm thanh AI mô phỏng giọng người thật, và nhãn phải có trước hoặc ngay khi người dùng nghe); tấm ⓘ ghi đầy đủ theo NBY-AI-AC03. Không dùng giọng mô phỏng người nổi tiếng, nghệ sĩ, người dưới 18 tuổi, hay bất kỳ ai chưa ký đồng ý; không dùng giọng trong thư viện giọng cộng đồng của nhà cung cấp. |
-| AC11 | Nếu không tải được file giọng: chỉ hiện phụ đề, không báo lỗi. App không dùng giọng đọc tổng hợp của hệ điều hành thay thế (giọng máy làm mất calm). |
+| AC10 | **v1 (D16 đề xuất ở 0.7):** Mầm không có giọng AI. Nếu có giọng, đó là **giọng thật do chủ sản phẩm (hoặc một người trong team đã đồng ý) tự thu**, không qua dịch vụ giọng nào; tấm ⓘ ghi theo NBY-AI-AC03; không có chip "Giọng AI". Người đọc có thể rút: bản thu được gỡ khỏi manifest và gói ở lần phát hành kế tiếp, Mầm quay về chỉ phụ đề. Giọng AI hay giọng nhân bản là quyết định riêng sau v1 (nhà cung cấp, chi phí, đồng ý của người có giọng, chip "Giọng AI" theo Nghị định 142/2026 Điều 18(2)(a)); không bao giờ dùng giọng mô phỏng người nổi tiếng, nghệ sĩ hay người dưới 18 tuổi. |
+| AC11 | Nếu câu không có bản thu hoặc không tải được file giọng: chỉ hiện phụ đề, không báo lỗi. App không dùng giọng đọc tổng hợp của hệ điều hành thay thế (giọng máy làm mất calm). |
 | AC12 | Mọi câu đã qua cổng nội dung (NBY-09 AC05) và danh sách cấm ở §6 trước khi xuất bản. |
 
 ### NBY-05 — Rót cho mình một cốc
 
 > Là người đang ngồi, tôi muốn tự rót một cốc nước mình thích, để có một nghi thức nhỏ báo cho mình biết giờ là lúc nghỉ.
 
-**Menu v1 (nháp):** trà nóng, cà phê sữa, cacao nóng, nước chanh mát; mỗi món một clip rót 2–3 giây và một ảnh cốc cắt nền cùng chất liệu, có biến thể ngày/đêm. Vì video thay đổi hằng ngày, cốc hiển thị trong **khung cốc** phía trên thanh phụ đề (lớp giao diện, nền mờ), không ghép vào khung video.
+**Menu v1 (nháp):** trà nóng, cà phê sữa, cacao nóng, nước chanh mát. Mỗi món là **đồ họa SVG kiểu A** (§7.4): ấm hoặc bình, cốc và màu nước riêng, vẽ bằng nét mực hơi run trên **thẻ giấy kem** phía trên thanh phụ đề (lớp giao diện), không ghép vào khung video. Vì video đổi hằng ngày, thẻ giấy giữ cho cốc hợp với mọi cảnh mà không cần ảnh riêng.
 
 | AC | Tiêu chí |
 |---|---|
 | AC01 | Tùy chọn; ngồi không rót vẫn đầy đủ. |
-| AC02 | Chạm cốc → chọn món → clip rót chạy trong khung mềm → cốc nằm lại trong khung cốc. |
-| AC03 | Ảnh cốc khớp biến thể ngày/đêm; đồ nóng có hơi bốc nhẹ cùng chất liệu. |
+| AC02 | Chạm cốc → chọn món → thẻ giấy hiện ấm và cốc rỗng → **giữ để rót**: ấm nghiêng, dòng nước chảy, nước trong cốc dâng lên với mặt sóng nhẹ; buông tay thì ngừng rót và giữ mức hiện tại; đầy cốc thì tự dừng, ấm trở về. Không cần giữ: một chạm vào nút "Rót" thay thế (trợ năng, NBY-03 AC09). |
+| AC03 | Màu thẻ giấy và nước theo biến thể ngày/đêm của cảnh; đồ nóng có hơi bốc (2–3 nét cong mờ dần), đồ mát có giọt đọng; không hạt, không lấp lánh. |
 | AC04 | Tên cốc từ template viết sẵn; không AI lúc chạy. |
 | AC05 | **Đồ uống thuần trang trí:** không gửi đi, không suy ra mood, không gắn cung, không thành "điềm". |
 | AC06 | Món gần nhất lưu trên máy (khóa tiền tố `la-lanh-binh-yen-`), không timestamp, trong `clearPersonalDataOnDevice()`. |
-| AC07 | Rót lại bất cứ lúc nào; không đếm. Với giảm chuyển động: bỏ clip rót. |
+| AC07 | Rót lại bất cứ lúc nào; không đếm, không chấm điểm độ đầy. Với giảm chuyển động: không có ấm nghiêng hay sóng, cốc hiện đầy ngay. |
+| AC08 | Hoạt ảnh chỉ dùng `transform`/`opacity` và path SVG đã vẽ sẵn, không thư viện mới; đạt ≥ 50 fps trên Android tầm trung; dừng khi hidden. |
 
 ### NBY-06 — Âm thanh và nhạc
 
@@ -319,15 +333,15 @@ AC đánh mã `NBY-xx-ACyy`. Mỗi story là một kết quả người dùng đ
 | AC05 | Hẹn giờ tùy chọn (15/30/60 phút) với fade dài; mặc định không hẹn giờ. |
 | AC06 | **Chỉ phát khi app đang mở (D1).** Hidden: fade và dừng. Lần đầu: "Âm thanh sẽ dừng khi bạn khóa màn hình hoặc rời app." |
 | AC07 | Quay lại app: tiếp tục nếu được; nếu AudioContext bị treo, nút "Bật lại âm thanh", không phát lớn đột ngột. |
-| AC08 | Nhạc chỉ từ nguồn có license **dùng trong app** (§8.3). |
-| AC09 | Âm thanh và nhạc là asset đóng gói của app hoặc được tải từ media origin đã allowlist theo §7.1 (`credentials: "omit"`, `no-referrer`, kiểm SHA-256 rồi phát từ `blob:`); không tải từ CDN bên thứ ba khác; AAC/M4A; ≤ 5 MB lớp âm thanh mỗi thẻ, ≤ 4 MB mỗi bản nhạc. |
+| AC08 | Nhạc chỉ từ file chủ sản phẩm tải lên kèm bằng chứng license **dùng trong app** (§8.3). Khi thư viện chưa có bản nhạc nào: không hiện công tắc và thanh trượt nhạc; chỉ có âm thanh cảnh. |
+| AC09 | Âm thanh và nhạc là asset đóng gói của app hoặc được tải từ media origin đã allowlist theo §7.1 (`credentials: "omit"`, `no-referrer`, kiểm SHA-256 rồi phát từ `blob:`); không tải từ CDN bên thứ ba khác; AAC/M4A do script §7.6 xuất (lặp liền mạch, chuẩn hóa âm lượng, nhạc thấp hơn âm thanh cảnh ~9 LU); ≤ 5 MB lớp âm thanh mỗi thẻ, ≤ 4 MB mỗi bản nhạc. |
 | AC10 | Không claim giúp ngủ, giảm stress hay cải thiện sức khỏe. |
 
 ### NBY-07 — Tâm sự rồi thả đi
 
 > Là người đang có điều nặng lòng, tôi muốn viết nó ra rồi thả đi, để thấy nhẹ hơn mà không lo có ai đọc được.
 
-**Luồng:** "Viết ra" → (tùy chọn) chip cảm giác → viết trên tờ giấy mờ phủ lên cảnh → giữ "Thả đi" → tờ giấy gấp thành chiếc lá thật (ảnh cắt nền), **bay lên và tan vào ánh sáng của cảnh** (hướng trôi không phụ thuộc nội dung video, vì video đổi hằng ngày; nếu video có thẻ `nuoc` thì lá rơi xuống vùng mặt nạ nước và trôi theo hướng chảy được khai báo) → Mầm hiện một câu viết sẵn theo chip.
+**Luồng:** "Viết ra" → (tùy chọn) chip cảm giác → viết trên tờ giấy mờ phủ lên cảnh → giữ "Thả đi" → tờ giấy gấp thành chiếc lá vẽ tay (SVG kiểu A, §7.4), **bay lên và tan vào ánh sáng của cảnh** (hướng trôi không phụ thuộc nội dung video, vì video đổi hằng ngày; nếu video có thẻ `nuoc` thì lá rơi xuống vùng mặt nạ nước và trôi theo hướng chảy được khai báo) → Mầm hiện một câu viết sẵn theo chip.
 
 **Chip v1 (nháp, chỉ là nhãn):** Mệt · Buồn · Bực · Rối · Lo · Chưa gọi tên được.
 
@@ -361,18 +375,20 @@ AC đánh mã `NBY-xx-ACyy`. Mỗi story là một kết quả người dùng đ
 | AC07 | Dòng: "Nơi bình yên là chỗ nghỉ, không phải trị liệu hay hỗ trợ khẩn cấp." |
 | AC08 | **v1:** thẻ hỗ trợ và câu của ngày **không** đọc mood US-04 hay chip của NBY-07. An toàn cho người đang buồn được bảo đảm bằng nội dung: mọi câu của ngày tự an toàn (NBY-04 AC08), nút "Mình thấy không ổn" luôn hiện (AC01). Cách dùng mood, nếu có, chỉ được thêm qua quyết định D6-B ở §12 và khi đó sửa đồng thời §2.2, NBY-04 AC08 và AC này; không có AC mood tồn tại song song với quy tắc cấm. |
 
-### NBY-09 — Quản trị thư viện: đăng video, câu và giọng đọc hằng ngày
+### NBY-09 — Quản trị thư viện: đăng video, nhạc, câu và bản thu hằng ngày
 
-> Là chủ sản phẩm, tôi muốn đăng video mới, câu của ngày và giọng đọc mỗi ngày một cách an toàn, để người dùng luôn có thứ mới mà không phải phát hành app.
+> Là chủ sản phẩm, tôi muốn đăng video tự tạo, nhạc, câu của ngày và (nếu có) bản thu giọng mỗi ngày một cách an toàn, để người dùng luôn có thứ mới mà không phải phát hành app.
+
+**Xử lý media (v1, 0.7):** chủ sản phẩm chạy [scripts/media/nby-media.sh](../../scripts/media/nby-media.sh) trên máy của mình (ffmpeg, miễn phí, không gửi file đi đâu), theo [nby-media-pipeline.md](../operations/nby-media-pipeline.md). Studio mục "Nơi bình yên" sau này gọi cùng script, không viết lại pipeline.
 
 **Kênh phát hành (D14):** Content Studio hiện **chỉ chạy local/beta và tự từ chối khởi động ở production** ([content-studio-runbook.md](../operations/content-studio-runbook.md)). Đề xuất: mở rộng Studio thêm mục "Nơi bình yên" chạy ở local/beta; khi **Xuất bản**, Studio đẩy file đã duyệt lên object storage của media origin (§7.1) và ghi một **manifest có ký, có revision và hạn dùng** (§7.7). Production chỉ đọc manifest; không có endpoint ghi nào mở ở production. Bước xuất bản là quyền ghi nội dung tới mọi người dùng, nên phải đạt điều kiện publisher trong runbook liên kết (MFA/allowlist, role riêng, origin/session/CSRF, release và audit bất biến); bearer token beta hiện tại của Studio **không** đủ làm publisher.
 
 | AC | Tiêu chí |
 |---|---|
-| AC01 | Quản trị tải lên: video (MP4/MOV), poster (tự trích nếu không có), thẻ ánh sáng (`ngay`/`dem`), thẻ âm thanh, kiểu chạm (`nuoc`/`anh_sang`/`khong`) và — với `nuoc` — vẽ đa giác mặt nạ và hướng chảy trên khung xem trước. |
-| AC02 | Pipeline tự động khi nhận file: kiểm định dạng bằng ffprobe (chỉ H.264/HEVC/ProRes vào, không rãnh âm thanh lạ), giới hạn ≤ 200 MB đầu vào và 8–30 giây; chuyển mã ra HEVC + H.264 theo §7.2; tạo poster; xóa metadata vị trí/thiết bị; **ghi metadata nguồn gốc AI** (§8.5); tính SHA-256. |
-| AC03 | **Cổng duyệt video** (chặn xuất bản nếu thiếu): kiểm tra nhấp nháy (WCAG 2.3.1) qua công cụ tự động; xem trước vòng lặp 3 lần liên tiếp để kiểm đường nối; checklist phong cách §7.5 (người duyệt tick từng mục); checklist lỗi AI (hoa biến hình, chữ giả, người lẫn vào); điền nguồn công cụ, phiên bản model, ngày tạo, ảnh chụp điều khoản (§8.6). |
-| AC04 | Quản trị nhập câu của ngày (≤ 20 từ), loại câu (quan sát/cho phép/việc nhỏ/biết ơn), nguồn (Lá Lành viết hoặc trích dẫn có nguồn), và tải file giọng (AAC/M4A, ≤ 10 giây) kèm: dịch vụ và model đã dùng, mã giọng, giọng là giọng có sẵn của dịch vụ hay giọng nhân bản, và nếu nhân bản thì mã hợp đồng người cho giọng còn hiệu lực. Studio chặn xuất bản nếu hợp đồng đã hết hạn hoặc bị rút. Studio gắn metadata nguồn gốc AI cho file giọng (NBY-AI-AC04). |
+| AC01 | Quản trị tải lên: video đã qua script (H.264 + HEVC + poster + mục manifest), thẻ ánh sáng (`ngay`/`dem`), thẻ âm thanh, kiểu chạm (`nuoc`/`anh_sang`/`khong`) và — với `nuoc` — vẽ đa giác mặt nạ và hướng chảy trên khung xem trước. Tùy chọn: bản nhạc đã qua script, kèm bằng chứng license (§8.3). |
+| AC02 | **Script media** ([nby-media.sh](../../scripts/media/nby-media.sh)): kiểm đầu vào bằng ffmpeg, không cần ffprobe (video chỉ H.264/HEVC/ProRes, ≤ 200 MB, 8–30 giây; âm thanh phải có rãnh audio, ≤ 50 MB) và từ chối file khác; cắt tối đa 16 giây; **lặp liền mạch** bằng cách hòa 1 giây cuối vào đầu; 1080×1920, 24 fps; chỉnh màu mềm kiểu phim; xuất H.264 + HEVC **không rãnh âm thanh**, poster JPEG; **xóa toàn bộ metadata gốc** (gồm vị trí/thiết bị) rồi ghi thẻ nguồn gốc AI dạng chữ (`comment`, công cụ do quản trị khai) vào file video; âm thanh: lặp 60 giây hòa 3 giây ở chỗ nối, chuẩn hóa EBU R128 (âm thanh cảnh −23 LUFS, nhạc −32 LUFS), AAC 48 kHz; tính SHA-256 mọi file và ghi mục manifest. **Còn thiếu, phải có trước khi bật flag:** metadata IPTC/XMP `digitalSourceType` và ký lại C2PA cho file phát hành (§8.5 AC04–AC05), kiểm nhấp nháy tự động (AC03). |
+| AC03 | **Cổng duyệt video** (chặn xuất bản nếu thiếu): kiểm tra nhấp nháy (WCAG 2.3.1) qua công cụ tự động chạy local; xem trước vòng lặp 3 lần liên tiếp để kiểm đường nối; checklist phong cách §7.5 (người duyệt tick từng mục); checklist lỗi AI (hoa biến hình, chữ giả, người lẫn vào); điền công cụ và gói chủ sản phẩm đã dùng, model nếu công cụ ghi, ngày tạo, ảnh chụp điều khoản thương mại của gói đó tại ngày tạo (§8.6). |
+| AC04 | Quản trị nhập câu của ngày (≤ 20 từ), loại câu (quan sát/cho phép/việc nhỏ/biết ơn), nguồn (Lá Lành viết hoặc trích dẫn có nguồn), và tùy chọn tải bản thu giọng (AAC/M4A, ≤ 10 giây) kèm người đọc và ngày thu. v1 không nhận file giọng AI; Studio chặn file khai là giọng AI cho tới khi có quyết định riêng (NBY-04 AC10). |
 | AC05 | **Cổng nội dung câu** (chặn xuất bản): độ dài; danh sách cấm §6 (kể cả "năng lượng tích cực", từ ngữ mê tín, khẳng định ngôi thứ nhất, ra lệnh vui, chiêm tinh); không trùng câu đã xuất bản trong 60 ngày; nếu là trích dẫn thì bắt buộc có nguồn và người duyệt xác nhận đã kiểm nguồn. |
 | AC06 | Có thể lên lịch câu của ngày trước nhiều ngày; video không cần lịch (vào thư viện ngay khi xuất bản). |
 | AC07 | Mỗi lần xuất bản tạo một manifest mới **revision tăng dần**, có chữ ký và hạn dùng (§7.7). "Gỡ video/câu", "rút giọng" và "**quay lại release trước**" đều là **một lần xuất bản mới** có revision cao hơn (rollback = ký lại nội dung cũ dưới revision mới, kèm danh sách thu hồi), không bao giờ là trỏ lại file manifest cũ. App áp dụng ở lần làm mới manifest kế tiếp; manifest cũ phát lại từ cache/CDN bị app từ chối (§7.7). |
@@ -380,8 +396,8 @@ AC đánh mã `NBY-xx-ACyy`. Mỗi story là một kết quả người dùng đ
 | AC09 | Manifest production chỉ liệt kê nội dung đã qua cả hai cổng; app từ chối mục thiếu trường bắt buộc (nhãn AI, poster, thẻ ánh sáng) thay vì hiển thị sai. |
 | AC10 | Bộ khởi đầu ≥ 14 video (≥ 10 ngày, ≥ 4 đêm) và ≥ 60 câu đã duyệt trước khi bật flag production, để thư viện không cạn khi quản trị bận. |
 | AC11 | Nếu không có release mới trong 7 ngày, app vẫn hoạt động bình thường với thư viện hiện có; không có trạng thái "hết nội dung". |
-| AC12 | **Audio câu mở của Note (cho US-03 §24):** Studio liệt kê mọi câu mở giọng direct trong catalog Daily hiện hành (hiện 90 câu), trạng thái đã có/chưa có audio với giọng Mầm đang dùng; tạo audio offline theo lô; đóng **một gói duy nhất** `note-voice` cho toàn bộ câu mở (một file pack + chỉ mục bên trong: SHA-256 của chính xác chuỗi văn bản sau chuẩn hóa Unicode NFC và khoảng trắng → vị trí trong pack, giọng, model, ngày tạo, nhãn AI). Gói này đóng sẵn trong app native và được PWA tải **trọn gói** một lần; không bao giờ có URL hay request theo từng câu (§8.1, US-03 AC47). Gói được liệt kê trong manifest có ký như mọi media khác. |
-| AC13 | Khi catalog Daily đổi câu mở (Content Studio publish hoặc đổi code), CI/Studio báo các câu thiếu audio; câu thiếu audio vẫn hiển thị bình thường, chỉ không có nút nghe — không chặn release Daily. Khi đổi giọng Mầm (D16/D17, rút đồng ý), toàn bộ audio câu mở được tạo lại hoặc gỡ cùng lúc. |
+| AC12 | **Audio câu mở của Note (cho US-03 §24), chỉ khi có bản thu:** Studio liệt kê mọi câu mở giọng direct trong catalog Daily hiện hành (hiện 90 câu), trạng thái đã có/chưa có bản thu với giọng Mầm đang dùng; nhận bản thu theo lô (chủ sản phẩm tự thu, mỗi câu một file, chuẩn hóa âm lượng bằng script); đóng **một gói duy nhất** `note-voice` cho toàn bộ câu mở (một file pack + chỉ mục bên trong: SHA-256 của chính xác chuỗi văn bản sau chuẩn hóa Unicode NFC và khoảng trắng → vị trí trong pack, người đọc, ngày thu, loại giọng `human`/`ai`). Chưa thu đủ thì không phát hành gói; Mầm trên Note chỉ phản ứng khi chạm (US-03 AC48). Gói này đóng sẵn trong app native và được PWA tải **trọn gói** một lần; không bao giờ có URL hay request theo từng câu (§8.1, US-03 AC47). Gói được liệt kê trong manifest có ký như mọi media khác. |
+| AC13 | Khi catalog Daily đổi câu mở (Content Studio publish hoặc đổi code), CI/Studio báo các câu thiếu audio; câu thiếu audio vẫn hiển thị bình thường, chỉ không có nút nghe — không chặn release Daily. Khi đổi giọng Mầm (D16) hoặc người đọc rút bản thu, toàn bộ audio câu mở được thu lại hoặc gỡ cùng lúc. |
 
 ### NBY-10 — Rời đi và quay lại
 
@@ -414,7 +430,8 @@ Giữ nguyên ranh giới của 0.2: chỉ bật sau D3 và review MASVS-STORAGE
 - Video: `<video muted playsinline>` với lặp liền mạch (hai thẻ video crossfade nếu `loop` gốc để lộ khoảng hở); poster cho mọi video. Lớp chạm: WebGL 1 viết tay đọc texture video, chỉ bật khi đạt hiệu năng. Âm thanh và giọng đọc: Web Audio API với ducking. **Không thêm thư viện, font, plugin native** (quyết định 11/10/2026).
 - **Phục vụ media — một cơ chế chung cho web và Capacitor (đề xuất D19, chờ duyệt):**
   - **Vì sao không dùng `/media/` cùng origin:** cookie guest/CSRF đặt `Path=/` với `Domain` = host API (`settings.cookie_domain`, bắt buộc khi bật native), nên mọi request cùng origin hoặc tới subdomain của host đó đều mang cookie, kể cả `<video crossorigin="anonymous">` (Anonymous vẫn gửi credentials khi cùng origin). Bỏ cookie ở proxy không xóa việc trình duyệt đã gửi. Còn WebView của app Capacitor chạy ở `capacitor://localhost` (iOS: `server.iosScheme` mặc định `capacitor`, `server.hostname` mặc định `localhost`) và `https://localhost` (Android: `server.androidScheme = "https"`), nên server HTTPS luôn là cross-origin với app native. `ios.scheme = "la-lanh"` trong `capacitor.config.ts` là **scheme build của Xcode**, không phải origin WebView. Đổi scheme runtime của WebView (đặt `server.iosScheme`) là một quyết định riêng vì ảnh hưởng tới origin, cookie và storage hiện có của app; PRD này không đề xuất đổi.
-  - **Media origin riêng:** một host chỉ phục vụ media, **không phải host API và không nằm dưới `cookie_domain`** (ví dụ host anh em `media.<miền chính>`, không phải `media.<host API>`), không bao giờ đặt cookie, không có endpoint ghi. Ghi chú vận hành: cần DNS/TLS mới — việc của operator, PRD chỉ đặt yêu cầu.
+  - **Media origin riêng:** một host chỉ phục vụ media, **không phải host API và không nằm dưới `cookie_domain`**, không bao giờ đặt cookie, không có endpoint ghi.
+  - **Cách làm v1 (D19, 0.7) — không thêm dịch vụ:** hostname thứ hai trên máy chủ Hetzner đang chạy, **anh em** với host app hiện tại `la-lanh.<IP>.sslip.io`, ví dụ `la-lanh-media.<IP>.sslip.io`. **Không** dùng `media.la-lanh.<IP>.sslip.io`: host đó nằm dưới host app, nên sẽ nhận cookie ngay khi `cookie_domain` được đặt cho native. sslip.io đã là cách phân giải tên của production hiện nay; Caddy hiện có tự cấp TLS. Site media trong Caddy chỉ phục vụ một thư mục tĩnh chỉ đọc (`file_server`, không `reverse_proxy` tới app), đặt các header CORS/cache dưới đây, access log không ghi query string. Staging hiện ở `staging.la-lanh.<IP>.sslip.io`, tức nằm dưới host production; media của staging cũng phải là một host anh em riêng, không dùng chung host media production (bài học sự cố định tuyến staging, `6a85c6f`). Khi chuyển sang miền riêng theo kế hoạch đã có, media chuyển theo cùng quy tắc "anh em, không nằm dưới".
   - **Tải:** mọi manifest, video, poster và gói âm thanh được tải bằng `fetch(url, { credentials: "omit", referrerPolicy: "no-referrer" })` **trọn file** (không Range), kiểm SHA-256 bằng Web Crypto với giá trị trong manifest đã kiểm chữ ký, rồi mới tạo `blob:` URL cho `<video>`, `<img>`, Web Audio. Không bao giờ gán URL media origin trực tiếp vào `src`. Với Capacitor, `CapacitorHttp` đang bật vá `fetch` và có thể đi đường HTTP native (không qua CORS của WebView); media origin không có cookie trong cookie jar nên không có gì để gửi. E2E trên máy thật phải chứng minh cả hai đường: đường WebView (CORS với origin `capacitor://localhost`/`https://localhost`) và đường `CapacitorHttp`, đều không có header `Cookie`/`Referer`. Không coi việc `CapacitorHttp` bỏ qua CORS là bằng chứng allowlist đúng.
   - **CORS tại media origin:** `Access-Control-Allow-Origin` là danh sách cố định (origin web production/staging, `capacitor://localhost`, `https://localhost`; nếu sau này đổi `server.iosScheme`/`server.hostname` thì cập nhật allowlist cùng lúc), **không** `Access-Control-Allow-Credentials`; chỉ `GET`/`HEAD`; `Access-Control-Expose-Headers: Content-Length`; `Cross-Origin-Resource-Policy: cross-origin`; `X-Content-Type-Options: nosniff`; `Cache-Control: public, max-age=31536000, immutable` cho file theo hash và `no-cache` cho manifest. Video phát từ `blob:` cùng origin với trang nên WebGL đọc texture không bị "taint".
   - **Range:** client không dùng Range. Media origin vẫn có thể hỗ trợ Range cho công cụ khác, nhưng service worker không bao giờ lưu phản hồi 206.
@@ -431,8 +448,9 @@ Giữ nguyên ranh giới của 0.2: chỉ bật sau D3 và review MASVS-STORAGE
 | Chỉ số | Ngưỡng |
 |---|---|
 | Video | 1080×1920, 24 fps, 12–20 giây; HEVC ~3–6 MB, H.264 ~5–9 MB; không rãnh âm thanh |
-| Dữ liệu mỗi ngày | Một video (≤ 9 MB) + poster (≤ 200 KB) + giọng đọc (≤ 200 KB); tải trước ngày mai chỉ khi Wi-Fi |
-| Bộ khởi đầu đóng gói | ≤ 60 MB (gồm 4–6 video, poster, âm thanh, cốc, lá) |
+| Dữ liệu mỗi ngày | Một video (≤ 9 MB) + poster (≤ 200 KB) + bản thu giọng nếu có (≤ 200 KB); tải trước ngày mai chỉ khi Wi-Fi |
+| Bộ khởi đầu đóng gói | ≤ 60 MB (gồm 4–6 video, poster, âm thanh); cốc, ấm, lá là SVG nằm trong bundle JS/CSS |
+| Đồ họa SVG kiểu A | ≥ 50 fps khi rót và thả lá trên Android tầm trung; chỉ `transform`/`opacity`/path dựng sẵn; bộ lọc "nét run" (nếu dùng `feTurbulence`) tính một lần, không chạy mỗi khung hình |
 | Poster | Hiện trong ≤ 1 giây khi đã có trên máy |
 | Lớp chạm | ≥ 45 fps trên Android tầm trung, tự tắt nếu không đạt |
 | Pin / nhiệt | 15 phút tốn ≤ 5% pin; không throttling nhiệt |
@@ -446,9 +464,11 @@ Giữ nguyên ranh giới của 0.2: chỉ bật sau D3 và review MASVS-STORAGE
 
 ### 7.4. Thiết kế hình ảnh
 
-- Ultraviolet Paper giữ cho Home và ô lối vào. Trong route, video toàn khung; điều khiển và phụ đề trắng trên nền mờ (D7).
+- Ultraviolet Paper giữ cho Home và ô lối vào. Trong route, video toàn khung; nút điều khiển trắng trên nền mờ (D7).
+- **Lớp đồng hành kiểu A "giấy vẽ tay" (D21, chủ sản phẩm chọn 22/10/2026):** thanh phụ đề cùng Mầm, thẻ rót nước, chiếc lá thả đi và chip cảm giác là **thẻ giấy kem** có vân rất nhẹ, góc bo mềm, bóng đổ dịu; nét vẽ màu mực nâu sẫm, dày không đều, hơi run như vẽ tay. Cùng chất với Note "trang giấy" (US-03 §24) và Mầm, để Note → nơi bình yên là một bộ đồ dùng. Thẻ giấy bán trong suốt vừa đủ để chữ đạt tương phản 4,5:1 trên mọi video.
+- Đồ họa chỉ nằm ở lớp đồng hành, **không** thay video và không vẽ cảnh (ba bản mẫu cảnh dựng bằng code đã bị đánh giá "giả"). Không đồ họa phẳng kiểu icon, không ảnh chụp hay ảnh AI cho cốc và lá.
 - Mầm Aura dùng đúng thiết kế đã có ở [AuraSproutCompanion.tsx](../../apps/web/src/shared/ui/companion/AuraSproutCompanion.tsx), thu nhỏ, chỉ trong thanh phụ đề. Đây là lần đầu Mầm rời `/companion-lab`; các trạng thái lớn dần, phụ kiện, lễ hội **không** dùng trong v1.
-- Cốc và chiếc lá là lớp ảnh chân thực trong khung giao diện; không vẽ phẳng.
+- Bản mẫu tương tác (giữ để rót, sóng nước, hơi bốc, lá bay) đã dựng trong phiên thiết kế 22/10/2026 nhưng **chưa thử trên máy thật**; kiểu A phải được chủ sản phẩm duyệt trên iPhone và Android tầm trung, đặt trên ít nhất 3 video thật, trước khi bật.
 
 ### 7.5. Hướng dẫn phong cách cho thư viện (checklist duyệt)
 
@@ -456,12 +476,11 @@ Mỗi video phải đạt tất cả: (1) khung dọc 9:16, chủ thể thiên n
 
 ### 7.6. Sản xuất video (cho quản trị)
 
-1. Tạo ảnh chủ đạo 9:16 (công cụ ảnh, §8.6), duyệt bố cục theo §7.5.
-2. Hoạt hóa bằng image-to-video có **khung đầu = khung cuối** để có đoạn lặp; nối/kéo dài lên 12–20 giây.
-3. Cinemagraph: đóng băng vùng không cần động bằng mặt nạ; chỉ giữ nước, lá, mây.
-4. Crossfade 0,5–1 giây ở điểm nối; không ping-pong cho nước chảy.
-5. Chỉnh màu mềm kiểu phim; hạt phim thêm lúc chạy, không nướng vào file.
-6. Xuất file gốc chất lượng cao, lưu bản gốc từ công cụ (kèm C2PA nếu có), rồi tải lên Studio (NBY-09).
+1. **Chủ sản phẩm tạo video** bằng công cụ AI tự chọn, trên gói cho phép dùng thương mại (§8.6). Ưu tiên image-to-video với **khung đầu gần giống khung cuối**, máy đứng yên, 9:16 (hoặc ngang đủ rộng để cắt dọc), dài 8–30 giây. Duyệt bố cục theo §7.5 trước khi xử lý.
+2. **Lưu bản gốc** đúng như công cụ xuất (kèm C2PA/watermark nếu có), ảnh chụp điều khoản của gói tại ngày tạo, và ghi dòng mới vào sổ đăng ký (§8.3).
+3. **Chạy script** trên máy quản trị, theo [nby-media-pipeline.md](../operations/nby-media-pipeline.md): `scripts/media/nby-media.sh -v <video> -g "<tên công cụ>" -o <thư mục ra>`. Script kiểm đầu vào, cắt, lặp liền mạch (hòa 1 giây cuối vào đầu, không ping-pong), chỉnh màu mềm, chuyển mã, tạo poster, xóa metadata gốc, ghi thẻ nguồn gốc AI và SHA-256. Không thêm hạt phim.
+4. **Nhạc và âm thanh cảnh:** `-m <nhạc>` và/hoặc `-a <âm thanh cảnh>`; mỗi lớp thành một file lặp 60 giây riêng, vì app trộn hai lớp lúc chạy bằng hai thanh trượt (NBY-06 AC02).
+5. **Duyệt** theo NBY-09 AC03 (xem 3 vòng lặp, kiểm nhấp nháy, checklist §7.5 và lỗi AI), rồi tải file ra và mục manifest lên Studio (NBY-09). Bản gốc không bao giờ được phát trong app.
 
 ### 7.7. Manifest: chữ ký, độ mới, thu hồi và rollback
 
@@ -471,7 +490,7 @@ Chữ ký và hash chỉ chứng minh nội dung đã từng được phát hàn
 |---|---|
 | `revision` | Số nguyên tăng dần, mỗi lần xuất bản +1 (kể cả gỡ, rút giọng, rollback). |
 | `issued_at`, `expires_at` | Thời điểm ký và hạn dùng do server ký (UTC); đề xuất `expires_at = issued_at + 7 ngày`. Studio phát hành lại ít nhất 3 ngày/lần dù không có nội dung mới, để manifest không hết hạn khi owner bận. |
-| `revoked` | Danh sách hash/ID bị thu hồi (video gỡ, câu gỡ, file giọng của người cho giọng đã rút). Giữ trong manifest ít nhất 30 ngày sau khi thu hồi. |
+| `revoked` | Danh sách hash/ID bị thu hồi (video gỡ, câu gỡ, bản thu giọng đã rút). Giữ trong manifest ít nhất 30 ngày sau khi thu hồi. |
 | `key_id` + chữ ký | Ed25519 trên toàn bộ nội dung manifest (kể cả `revision`, `expires_at`, `revoked`). App nhúng khóa công khai hiện hành và khóa kế tiếp; xoay khóa bằng một bản app có khóa mới, sau đó manifest ký bằng khóa mới. |
 | Chống phát lại | App lưu `revision` cao nhất đã chấp nhận (không phải dữ liệu cá nhân) và **từ chối** manifest có revision thấp hơn hoặc bằng nhưng khác nội dung, dù chữ ký hợp lệ. Manifest đã quá `expires_at` không được chấp nhận như bản mới. |
 | Làm mới | Khi mở nơi bình yên hoặc ô buổi sáng: tải manifest với `cache: "no-cache"`; CDN/proxy giữ manifest `no-cache`. |
@@ -500,7 +519,8 @@ Chữ ký và hash chỉ chứng minh nội dung đã từng được phát hàn
 | Mood hôm nay | **Không dùng trong v1** (chỉ dùng nếu owner duyệt D6-B) | — | — | — | — | — |
 | Request tải manifest/media tới media origin | App | Log của media origin/CDN/proxy (IP, giờ, đường dẫn, kích thước) | Theo chính sách log của media origin, đề xuất ≤ 7 ngày | Có (như mọi request) | IP là dữ liệu cá nhân; đường dẫn chỉ là hash nội dung video/poster/gói chung, **không** có đường dẫn theo câu mở của Note | Media origin không nhận cookie nên không ghép được với guest/account; access log không bật ghi query string; error/report không chứa câu mở hay hash của câu mở |
 | Tài khoản quản trị, audit log | Quản trị | Môi trường Studio | Theo chính sách hồ sơ | — | Dữ liệu nhân sự nội bộ | Theo quy trình nội bộ |
-| Bản thu giọng, clone giọng, hồ sơ đồng ý và hợp đồng của **người cho giọng** (không phải người dùng app) | Người cho giọng cung cấp | Tài khoản nhà cung cấp giọng (clone); kho hồ sơ nội bộ có kiểm soát truy cập (bản thu gốc, đồng ý, hợp đồng) | Theo hợp đồng; xóa khi hết hạn/rút | **Có** — gửi tới nhà cung cấp nước ngoài | **Nhạy cảm** (sinh trắc học, giả định thận trọng) | Xóa clone ở nhà cung cấp, xóa bản thu gốc, giữ bằng chứng đồng ý theo thời hạn luật sư tư vấn |
+| Bản thu giọng của **người đọc trong team** (nếu có; không phải người dùng app) | Người đọc tự thu và tự nguyện cung cấp | Máy quản trị/Studio; file phát hành nằm trong manifest và gói `note-voice` | Tới khi người đọc rút hoặc đổi giọng | Có — phát cho mọi người dùng như mọi media; **không** gửi tới dịch vụ giọng nào | Giọng nói của một người được nhận biết; ghi đồng ý ngắn bằng văn bản của người đọc nếu không phải chủ sản phẩm | Gỡ khỏi manifest và gói ở lần phát hành kế tiếp (§7.7 `revoked`) |
+| Video, nhạc gốc và bằng chứng license/điều khoản | Chủ sản phẩm | Máy quản trị, sổ đăng ký asset | Theo vòng đời asset | Chỉ file đã xử lý được phát | Không phải dữ liệu cá nhân (không người, không địa danh, §7.5) | Gỡ asset theo NBY-09 AC07 |
 
 Không có trường dữ liệu người dùng mới trên server, không lịch sử xem, không analytics, không SDK bên thứ ba, không gọi API AI lúc chạy.
 
@@ -516,23 +536,21 @@ Không có trường dữ liệu người dùng mới trên server, không lịc
 ### 8.3. Bản quyền âm thanh, nhạc và giọng đọc
 
 - **Âm thanh cảnh:** tự thu; tổng hợp Web Audio; Freesound CC0; NPS public domain; Sonniss GDC v2.0. Không YouTube (kể cả Audio Library), BBC, xeno-canto, license NC, Uppbeat miễn phí.
-- **Nhạc dùng trong app:** đặt sáng tác riêng (hợp đồng chuyển quyền tài sản, đồng ý chỉnh sửa, **chuyển riêng quyền nhà sản xuất bản ghi âm**, điều khoản VCPMC và không đăng ký Content ID); Uppbeat Business (cần xác nhận bằng văn bản cho nhạc nền cảnh thư giãn); Epidemic Sound Business Plus/Enterprise; nhạc AI gói trả phí ElevenLabs Music. Không Artlist gói thường, Musicbed chưa license, Pixabay Music, Udio (đã tắt tải), Suno (không bảo đảm bản quyền), nhạc trong reel tham chiếu. License mạng xã hội không gồm dùng trong app.
-- **Giọng đọc của Mầm (D16: giọng AI, có thể nhân bản từ người thật đã đồng ý; chủ sản phẩm chọn 22/10/2026):**
+- **Nhạc dùng trong app (D10, 0.7):** chủ sản phẩm tự tải file lên; Lá Lành không thuê bao hay tích hợp dịch vụ nhạc nào. Mỗi file chỉ được dùng khi có **bằng chứng license** lưu trong sổ đăng ký: nguồn, gói, ngày, mã license hoặc hóa đơn, ảnh chụp điều khoản tại ngày tải. License phải cho phép (1) dùng trong **ứng dụng di động và web** — license chỉ cho mạng xã hội/YouTube **không** đủ; (2) chỉnh sửa (cắt, lặp, đổi âm lượng, trộn với âm thanh cảnh); (3) phát cho số người dùng không giới hạn; (4) tiếp tục dùng file đã phát hành nếu gói kết thúc, hoặc ghi rõ phải gỡ khi gói kết thúc. Nhạc tự sáng tác hay nhạc tự tạo bằng AI theo cùng quy tắc với gói của công cụ. Không dùng: nhạc trong reel tham chiếu, YouTube Audio Library, Pixabay Music, Udio (đã tắt tải), file không rõ nguồn; Suno chỉ khi gói hiện hành cho phép thương mại và chủ sản phẩm chấp nhận việc Suno không bảo đảm đầu ra không vi phạm. Nhạc là tùy chọn: không có nhạc thì nơi bình yên chỉ có âm thanh cảnh (NBY-06 AC08).
+- **Giọng đọc của Mầm (D16 đề xuất ở 0.7, chờ owner xác nhận):** v1 **không có giọng AI**. Mầm đưa câu bằng phụ đề. Tùy chọn: chủ sản phẩm hoặc một người trong team tự thu giọng thật (điện thoại + phòng yên tĩnh là đủ), chuẩn hóa âm lượng bằng script §7.6, dùng cho câu của ngày và gói `note-voice`. Nếu người đọc không phải chủ sản phẩm thì có đồng ý ngắn bằng văn bản cho việc phát giọng trong app và có thể rút bất cứ lúc nào. Tấm ⓘ ghi người thật đọc (NBY-AI-AC03). Câu Mầm đọc do Lá Lành viết và duyệt.
+- **Giọng AI hoặc nhân bản (để sau v1, cần quyết định riêng):** cần chọn nhà cung cấp (chi phí định kỳ, tích hợp mới), đồng ý của người có giọng, chip "Giọng AI" và cập nhật inventory. Nghiên cứu ngày 22/10/2026 dưới đây giữ làm tài liệu tham khảo, **không** phải yêu cầu của v1:
   - **Đường chính — giọng nhân bản có đồng ý:** ElevenLabs Eleven v4 (Multilingual v2 **không** hỗ trợ tiếng Việt), Professional Voice Clone. Người cho giọng phải **tự tạo và xác minh clone trên tài khoản của chính họ** (ElevenLabs chỉ cho nhân bản giọng của chính mình), rồi chia sẻ riêng cho tài khoản Lá Lành. Cần 30 phút–3 giờ thu âm sạch. Đầu ra thuộc bên dùng; audio có watermark ẩn kiểm được bằng công cụ phát hiện của ElevenLabs; người cho giọng xóa được clone. Không có SSML: nhịp chậm điều chỉnh bằng audio tag và cách viết câu.
   - **Đường dự phòng — giọng có sẵn, không nhân bản:** Google Cloud TTS Chirp 3 HD `vi-VN` (khả dụng chung, `speaking_rate` 0,25–2,0, SSML/ngắt nghỉ; Google không nhận quyền đầu ra). Dùng khi hợp đồng người cho giọng chưa xong hoặc bị rút. Không cần thủ tục dữ liệu người cho giọng; vẫn gắn nhãn "Giọng AI".
   - **Lựa chọn trong nước:** Vbee AIVoice (nhân bản tiếng Việt; điều khoản 01/07/2026 ghi đầu ra thuộc khách hàng và có thể yêu cầu bằng chứng đồng ý) — chưa rõ nơi lưu dữ liệu, có dùng để huấn luyện không, có watermark không; chỉ dùng sau khi hỏi rõ bằng văn bản.
   - **Không dùng:** OpenAI TTS (các model TTS hiện tại ngừng 6/1/2027; giọng tùy chỉnh chỉ qua sales); giọng trong Voice Library của ElevenLabs (phần lớn là clone của người khác, chủ giọng có thể rút); model mã nguồn mở tiếng Việt mạnh nhất hiện có license phi thương mại (F5-TTS-Vietnamese CC-BY-NC-SA, viXTTS); Google Instant Custom Voice và Azure Professional/Personal Voice (chỉ cho khách được duyệt; Azure giữ bản ghi đồng ý và model "as long as necessary").
   - **Chọn giọng:** thử nghe mù với ≥ 15 người nghe Việt giữa clone và 2–3 giọng Chirp 3 HD, chấm độ tự nhiên, độ ấm, độ "dịu"; chưa có benchmark độc lập cho tiếng Việt.
-  - **Người cho giọng và dữ liệu của họ:** bản thu giọng là dữ liệu cá nhân của người cho giọng (Luật 91/2025), nhiều khả năng là **dữ liệu sinh trắc học nhạy cảm** (Nghị định 356 Điều 4; Luật Căn cước 2023 Điều 15 coi giọng nói là sinh trắc học) — giả định thận trọng là nhạy cảm. Yêu cầu: đồng ý bằng văn bản/điện tử, tách riêng từng mục đích (thu âm, tạo clone, tạo câu mới, phát trong app), không tick sẵn, nói rõ đây là dữ liệu nhạy cảm, lưu bằng chứng; xử lý yêu cầu rút trong thời hạn luật định (xác nhận 2 ngày làm việc, dừng xử lý 15 ngày); **DPIA trong 60 ngày** kể từ khi bắt đầu xử lý (không áp dụng miễn trừ doanh nghiệp nhỏ vì là dữ liệu nhạy cảm); gửi bản thu cho nhà cung cấp nước ngoài là **chuyển dữ liệu ra nước ngoài** → hồ sơ đánh giá tác động chuyển dữ liệu trong 60 ngày.
-  - **Hợp đồng người cho giọng** (khung 15 điểm trong ghi chú `voice_clone_legal.md`): là **giấy phép kèm đồng ý**, không phải "mua bán giọng" (quyền nhân thân không chuyển nhượng được, Bộ luật Dân sự Điều 25); phạm vi dùng (chỉ giọng của Mầm trong Lá Lành), đồng ý cho tạo câu mới chưa từng đọc, danh sách nội dung người cho giọng được quyền từ chối, thời hạn, thù lao, ghi tên hay ẩn danh, quyền của người biểu diễn với các buổi thu, tài khoản nhà cung cấp do ai giữ, xóa dữ liệu khi kết thúc, và **điều gì xảy ra khi rút** (các file đã xuất bản có được giữ không — cần luật sư; tối thiểu: xóa clone ở nhà cung cấp, gỡ file khỏi manifest, thay bằng giọng dự phòng, loại khỏi gói offline ở bản phát hành kế tiếp).
-  - **Nếu người cho giọng là thành viên team:** thỏa thuận riêng ngoài hợp đồng lao động, thù lao riêng, cam kết từ chối không ảnh hưởng công việc; nói rõ giấy phép có còn sau khi người đó nghỉ việc không; luôn có giọng dự phòng.
-  - Câu Mầm đọc do Lá Lành viết và duyệt, **không phải lời của người cho giọng**; tấm ⓘ phải nói điều này.
-- **Sổ đăng ký:** `docs/legal/media-asset-register.md` (hoặc bảng trong Studio, đồng bộ ra file): mỗi asset một dòng gồm mã, loại, nguồn/công cụ, phiên bản model, URL, tác giả/người đọc, license, ảnh chụp điều khoản có ngày, ngày tạo/tải, SHA-256 gốc và phát hành, chỉnh sửa, trạng thái nhãn AI/C2PA, kết quả kiểm nhấp nháy, người duyệt.
+  - **Khi mở lại giọng nhân bản:** việc gửi bản thu của người cho giọng tới nhà cung cấp nước ngoài kéo theo các nghĩa vụ dữ liệu cá nhân và hợp đồng riêng (ghi chú `voice_clone_legal.md`). Các nghĩa vụ này chỉ phát sinh khi chọn đường nhân bản, nên không nằm trong v1.
+- **Sổ đăng ký:** `docs/legal/media-asset-register.md` (hoặc bảng trong Studio, đồng bộ ra file): mỗi asset một dòng gồm mã, loại, công cụ và **gói** chủ sản phẩm đã dùng, model nếu công cụ ghi, tác giả/người đọc, license, ảnh chụp điều khoản có ngày, ngày tạo/tải, SHA-256 gốc và phát hành, các bước script đã chạy, trạng thái nhãn AI/C2PA, kết quả kiểm nhấp nháy, người duyệt. File chỉ chứa thông tin asset; không chứa hóa đơn, thông tin thanh toán hay số tiền.
 - Không có tính năng tải hay xuất file media gốc.
 
 ### 8.4. Bản quyền hình ảnh và video
 
-- Video, poster, clip rót, ảnh cốc và chiếc lá tạo bằng công cụ AI có điều khoản thương mại (§8.6) hoặc tự quay/chụp có hợp đồng.
+- Video và poster do chủ sản phẩm tạo bằng công cụ AI trên gói cho phép dùng thương mại (§8.6), hoặc tự quay. Cốc, ấm, lá, thẻ giấy và Mầm do Lá Lành vẽ bằng code, không dùng AI. Script §7.6 chỉ biến đổi kỹ thuật (cắt, lặp, chỉnh màu, chuyển mã), không làm mất nghĩa vụ gắn nhãn AI.
 - Nội dung thuần AI có thể không được bảo hộ quyền tác giả ở Việt Nam; giá trị nằm ở trải nghiệm. Cần luật sư xác nhận.
 - Không dùng hình từ reel tham chiếu; prompt không nêu tên nghệ sĩ, nhiếp ảnh gia hay thương hiệu.
 
@@ -544,23 +562,27 @@ Không có trường dữ liệu người dùng mới trên server, không lịc
 |---|---|
 | NBY-AI-AC01 | Ô lối vào và poster có nhãn chữ "Cảnh tạo bằng AI" đọc được, có nhãn cho trình đọc màn hình. |
 | NBY-AI-AC02 | Mỗi lần vào cảnh, nhãn hiện rõ vài giây rồi thu thành ⓘ luôn hiện; không ẩn hoàn toàn. |
-| NBY-AI-AC03 | ⓘ mở tấm thông tin: video hôm nay tạo bằng công cụ nào (từ manifest); giọng Mầm, ví dụ với giọng nhân bản: "Giọng của Mầm được tạo bằng AI, từ giọng thu âm của một người thật đã đồng ý bằng văn bản cho việc này. Những câu Mầm đọc do Lá Lành viết và duyệt, không phải lời của người cho giọng." (với giọng có sẵn: "Giọng của Mầm là giọng tổng hợp bằng AI."); âm thanh và nhạc từ đâu; dòng ghi công nếu license yêu cầu. |
-| NBY-AI-AC04 | Mọi file video, poster, ảnh và giọng AI phát hành mang metadata nguồn gốc: IPTC `digitalSourceType = trainedAlgorithmicMedia`; giữ bản gốc kèm C2PA nếu có và ký lại C2PA cho file phát hành; kiểm trên file thực sự ship. |
-| NBY-AI-AC05 | Không xóa watermark hay metadata nguồn gốc nếu điều khoản công cụ cấm. |
-| NBY-AI-AC06 | Mô tả store và `/privacy` có một câu về cảnh và giọng tạo bằng AI; không chỗ nào nói "quay thật". |
-| NBY-AI-AC07 | Không nội dung nào chứa người, khuôn mặt, địa danh nhận diện được hay sự kiện có thật. Ngoại lệ duy nhất: giọng của Mầm nhân bản từ người cho giọng có hợp đồng còn hiệu lực, luôn kèm chip "Giọng AI" khi phát (NBY-04 AC10). |
-| NBY-AI-AC08 | Ô lối vào và nhãn khi vào cảnh dùng chữ "Cảnh và giọng tạo bằng AI" khi Mầm có giọng; mô tả store thêm một câu về giọng AI. |
-| NBY-AI-AC09 | Khi Mầm đọc câu mở trên Note (US-03 §24), chip "Giọng AI" hiện cạnh Mầm trong suốt lúc phát; ⓘ cạnh Mầm mở cùng tấm thông tin giọng của NBY-AI-AC03. |
+| NBY-AI-AC03 | ⓘ mở tấm thông tin: video hôm nay tạo bằng công cụ AI nào (từ manifest, chủ sản phẩm khai); "Cốc, lá và Mầm do Lá Lành vẽ."; nếu Mầm có giọng: "Giọng của Mầm do một người trong team Lá Lành đọc." (v1 không có giọng AI; nếu sau này có, câu này đổi theo loại giọng trong manifest); âm thanh và nhạc từ đâu; dòng ghi công nếu license yêu cầu. |
+| NBY-AI-AC04 | Mọi file video và poster phát hành mang metadata nguồn gốc. v1 script đã ghi thẻ chữ `comment` (AI-generated + công cụ) vào MP4. Trước khi bật flag phải có thêm: IPTC/XMP `digitalSourceType = trainedAlgorithmicMedia` cho video và poster, và C2PA ký lại cho file phát hành với bản gốc làm thành phần (công cụ local miễn phí, ví dụ exiftool, c2patool). Giữ bản gốc kèm C2PA nếu có. Kiểm trên file thực sự ship. |
+| NBY-AI-AC05 | Chuyển mã luôn làm mất C2PA nhúng trong file gốc. Vì vậy trước khi dùng một công cụ, đọc điều khoản về watermark và Content Credentials: nếu điều khoản cấm xóa, file phát hành **phải** được ký lại C2PA với bản gốc làm thành phần trước khi xuất bản, hoặc không dùng công cụ đó. Không dùng bước nào để xóa watermark nhìn thấy được. |
+| NBY-AI-AC06 | Mô tả store và `/privacy` có một câu về cảnh tạo bằng AI; không chỗ nào nói "quay thật". |
+| NBY-AI-AC07 | Không nội dung nào chứa người, khuôn mặt, địa danh nhận diện được hay sự kiện có thật. v1 không có ngoại lệ. Giọng người thật của người đọc trong team không phải nội dung AI mô phỏng người thật. |
+| NBY-AI-AC08 | Ô lối vào và nhãn khi vào cảnh dùng chữ "Cảnh tạo bằng AI". Chỉ khi một quyết định sau v1 đưa giọng AI vào, chữ mới đổi thành "Cảnh và giọng tạo bằng AI" và mô tả store thêm một câu về giọng AI. |
+| NBY-AI-AC09 | Chip "Giọng AI" chỉ hiện khi file đang phát có loại giọng `ai` trong manifest (không có trong v1). Với giọng người thật: không chip; ⓘ cạnh Mầm mở cùng tấm thông tin của NBY-AI-AC03. |
 
 ### 8.6. Công cụ tạo nội dung AI và trích dẫn
 
-| Vai trò | Công cụ (tại 21/10/2026) | Lưu ý |
-|---|---|---|
-| Video chính | Google Veo 3.1 qua Vertex AI (`veo-3.1-generate-001`) | Bồi thường IP cho đầu ra chưa chỉnh sửa (lưu bản gốc); first + last frame; SynthID; model có thể bị thay từ 17/11/2026 — kiểm lại trước mỗi đợt; điều khoản dưới-18 của Google: chỉ tạo offline, không gọi từ app, cần luật sư xác nhận cho app 18+ |
-| Ảnh chủ đạo | Midjourney gói trả phí | Không bồi thường IP; bên dùng bồi thường cho Midjourney |
-| Dự phòng | Kling 3.0 gói thành viên | Bản miễn phí không dùng thương mại; có thể dùng dữ liệu để huấn luyện (opt-out qua email) |
-| Hợp đồng doanh nghiệp | Adobe Firefly Video | Bồi thường IP với hợp đồng enterprise; cấm xóa Content Credentials |
-| Không dùng | Sora (đã ngừng 2026); Pika Free/Starter; ứng dụng Hailuo khi quyền thương mại chưa rõ | — |
+**v1 (D9, 0.7):** chủ sản phẩm tự chọn và tự trả phí công cụ tạo video ngoài Lá Lành. Lá Lành không gọi API, không giữ tài khoản và không tích hợp công cụ nào. PRD chỉ đặt **yêu cầu** cho công cụ và gói được dùng:
+
+| Yêu cầu | Vì sao / kiểm thế nào |
+|---|---|
+| Gói hiện hành cho phép **dùng thương mại** đầu ra, gồm hiển thị trong app | Nhiều gói miễn phí cấm thương mại (ví dụ Kling Free, Pika Free/Starter tại 21/10/2026). Chụp điều khoản tại ngày tạo, lưu vào sổ đăng ký |
+| Công cụ không giữ quyền hạn chế việc dùng trong app, không đòi ghi công trong sản phẩm, hoặc ghi công được đặt trong tấm ⓘ | Đọc mục quyền sở hữu đầu ra của điều khoản |
+| Biết điều khoản về watermark và Content Credentials | Quyết định phải ký lại C2PA hay không (NBY-AI-AC05) |
+| Không đưa ảnh có người thật, ảnh của người khác hay ảnh từ reel tham chiếu làm đầu vào; prompt không nêu tên nghệ sĩ, nhiếp ảnh gia, thương hiệu | §8.4, §7.5 |
+| Ghi tên công cụ, gói, model (nếu công cụ ghi), ngày tạo vào manifest và sổ đăng ký | Tấm ⓘ đọc trường này (NBY-AI-AC03) |
+
+**Tham khảo đã nghiên cứu ngày 21/10/2026 (không phải khuyến nghị mua; điều khoản có thể đã đổi):** Google Veo 3.1 qua Vertex AI có bồi thường IP cho đầu ra chưa chỉnh sửa, có first + last frame và SynthID; Midjourney không bồi thường IP; Kling gói miễn phí không cho dùng thương mại; Adobe Firefly cấm xóa Content Credentials; Sora đã ngừng.
 
 **Trích dẫn trong câu của ngày:** ưu tiên câu do Lá Lành viết. Nếu trích người khác: chỉ câu ngắn, ghi tên tác giả, nguồn đã kiểm (sách/bài gốc, không lấy từ trang tổng hợp "quote" vì sai tác giả rất phổ biến), không trích tác phẩm còn bảo hộ quá mức cần thiết; bản dịch tiếng Việt do Lá Lành dịch phải ghi "Lá Lành dịch". Không trích lời bài hát. Không dùng tên Thích Nhất Hạnh/Làng Mai theo cách ngụ ý bảo trợ.
 
@@ -569,11 +591,11 @@ Không có trường dữ liệu người dùng mới trên server, không lịc
 | Hạng mục | Đánh giá v1 | Yêu cầu |
 |---|---|---|
 | Quản trị (mới) | Lần đầu có luồng đăng nội dung đi tới production | Studio chỉ chạy local/beta (giữ quy tắc hiện có); quyền ghi object storage chỉ cấp cho bước xuất bản, khóa riêng, không nằm trong app; manifest ký và có hash; audit log; không có endpoint ghi ở production (D14) |
-| Kiểm file tải lên | File media do bên thứ ba tạo, có thể dị dạng | ffprobe + chuyển mã lại toàn bộ (không phát file gốc của người tải lên); giới hạn kích thước/thời lượng; từ chối định dạng lạ; xóa metadata vị trí/thiết bị |
+| Kiểm file tải lên | File media do công cụ bên thứ ba tạo, có thể dị dạng; ffmpeg phân tích file trên máy quản trị | Script chạy trên máy quản trị, chỉ với file của chủ sản phẩm; kiểm codec/kích thước/thời lượng trước khi xử lý; chuyển mã lại toàn bộ (không phát file gốc); xóa toàn bộ metadata gốc; tên file đầu ra chỉ gồm `[A-Za-z0-9._-]`; giữ ffmpeg cập nhật bản vá. Script không có quyền ghi media origin; tải lên là bước riêng (D14) |
 | MASVS-STORAGE | Chỉ ID video, khóa ngày, sở thích trong localStorage; tâm sự chỉ trong bộ nhớ | E2E NBY-07; xác minh sao lưu WebView; khóa mới trong `clearPersonalDataOnDevice()` |
 | MASVS-PRIVACY | Không thu mới, không SDK, không analytics, không AI lúc chạy | Network log e2e (web và Capacitor trên máy thật): request media chỉ tới media origin, không header `Cookie`/`Authorization`/`Referer`; không request nào chứa câu mở hay hash của câu mở |
 | MASVS-PLATFORM | Không permission mới, không plugin mới trong v1 | `AndroidManifest`/`Info.plist` không đổi (D13, D15 có thể mở lại) |
-| MASVS-NETWORK | Media qua HTTPS từ media origin không cookie (§7.1) | CSP `media-src 'self' blob:`, `connect-src` liệt kê tường minh media origin; CORS allowlist cố định, không `Allow-Credentials`; media origin không lộ URL bucket gốc |
+| MASVS-NETWORK | Media qua HTTPS từ media origin không cookie (§7.1), là host anh em trên máy chủ hiện có | CSP `media-src 'self' blob:`, `connect-src` liệt kê tường minh media origin; CORS allowlist cố định, không `Allow-Credentials`; site media chỉ `file_server` thư mục tĩnh, không `reverse_proxy` tới app, không liệt kê thư mục; bằng chứng: header thực tế từ staging, không có `Set-Cookie` |
 | Toàn vẹn và độ mới nội dung | App hiển thị nội dung tải về hằng ngày; manifest cũ hợp lệ có thể bị phát lại | Kiểm chữ ký Ed25519 và SHA-256 trước khi phát; revision tăng dần, `expires_at`, danh sách `revoked`, chống phát lại và rollback bằng phát hành mới (§7.7); test cho manifest revision thấp hơn, hết hạn, sai chữ ký, mục bị thu hồi |
 | Log của media origin | Access log có IP, giờ, đường dẫn | Đường dẫn chỉ là hash nội dung chung; không có đường dẫn theo câu mở; không ghi query string; lưu ≤ 7 ngày (đề xuất); bằng chứng: mẫu log từ staging sau khi phát gói `note-voice` |
 | Web/PWA | Service worker cache sai phản hồi 206 | Chỉ lưu `status === 200`, bỏ qua request có `Range`, áp dụng cả `/assets/` (§7.1) |
@@ -584,23 +606,26 @@ Không có trường dữ liệu người dùng mới trên server, không lịc
 
 ### 10.1. Definition of Done (v1)
 
-- [ ] PRD được chủ sản phẩm duyệt; D1–D20 có câu trả lời ghi vào §12.
+- [ ] PRD được chủ sản phẩm duyệt; D1–D22 có câu trả lời ghi vào §12.
 - [ ] SRS/user story chi tiết trong `docs/user-stories/` cho NBY-01 đến NBY-10 (trừ NBY-11); cập nhật [README user stories](../user-stories/README.md) và US-03 (ô nơi bình yên dưới Note).
 - [ ] Mọi AC của NBY-01–10 và NBY-AI có test tự động hoặc bằng chứng kiểm thử trên máy thật.
-- [ ] Studio mục "Nơi bình yên" với hai cổng duyệt; pipeline chuyển mã, metadata AI, hash, manifest ký; rollback hoạt động.
+- [ ] Script media `scripts/media/nby-media.sh` có test tự động (đã có ở 0.7) và đủ phần còn thiếu của NBY-09 AC02: IPTC/XMP `digitalSourceType`, ký lại C2PA, kiểm nhấp nháy.
+- [ ] Studio mục "Nơi bình yên" với hai cổng duyệt, gọi đúng script trên; manifest ký; rollback hoạt động.
+- [ ] Media origin anh em (D19) trên máy chủ hiện có, bằng chứng header thực tế từ staging và production.
+- [ ] Đồ họa kiểu A (thanh phụ đề cùng Mầm, rót nước, lá, chip) đạt NBY-05 AC08, §7.2 và giảm chuyển động; chủ sản phẩm duyệt trên máy thật với ít nhất 3 video.
 - [ ] Bộ khởi đầu ≥ 14 video và ≥ 60 câu đã duyệt; bộ đóng gói offline có trong app.
 - [ ] E2E (web và Capacitor): request của nơi bình yên chỉ gồm (a) asset đóng gói của app và (b) `fetch` tới **media origin đã allowlist** (D19) với `credentials: "omit"`, `referrerPolicy: "no-referrer"`, không header `Cookie`/`Authorization`/`Referer`, kiểm SHA-256 trước khi tạo `blob:`; không request nào tới API chứa dữ liệu nơi bình yên; nội dung tâm sự không rời máy; tâm sự không còn trong DOM/storage sau khi thả; khóa mới trong `clearPersonalDataOnDevice()`; chọn video ổn định trong ngày, đổi lúc 05:00, không lặp 7 ngày, giới hạn "Cảnh khác".
 - [ ] Sửa service worker (chỉ lưu `200`, bỏ qua `Range`, cả `/assets/`); CSP `media-src 'self' blob:` và `connect-src` tường minh media origin; có test.
 - [ ] Máy thật (iPhone hiện hành, Android tầm trung; PWA và Capacitor): vòng lặp video 10 phút, Low Power Mode, tải từ media origin không cookie (kiểm header thực tế), kiểm hash rồi phát `blob:`, kho blob IndexedDB, lớp chạm `nuoc` và `anh_sang`, giọng Mầm và ducking, pin/nhiệt §7.2, khóa màn hình, ngắt nhạc của người dùng.
 - [ ] Trợ năng: VoiceOver, TalkBack, 200%, 320 px, giảm chuyển động, tạm dừng, phụ đề, kiểm nhấp nháy mọi video.
 - [ ] Nhãn AI và metadata nguồn gốc kiểm trên file ship; tấm ⓘ đúng nguồn theo từng video.
-- [ ] Sổ đăng ký asset đầy đủ; license nhạc có hiệu lực.
-- [ ] Giọng Mầm: hợp đồng và đồng ý của người cho giọng đã ký (nếu nhân bản); DPIA và hồ sơ chuyển dữ liệu ra nước ngoài cho bản thu giọng đã nộp trong 60 ngày; thử nghe mù đã chạy; giọng dự phòng có sẵn; quy trình rút đồng ý đã diễn tập (gỡ file, thay giọng dự phòng).
+- [ ] Sổ đăng ký asset đầy đủ: điều khoản gói công cụ video tại ngày tạo cho từng video; bằng chứng license dùng trong app cho từng file nhạc.
+- [ ] Giọng Mầm: v1 chạy đúng khi không có bản thu (chỉ phụ đề, không công tắc giọng). Nếu có bản thu: người đọc đã đồng ý (nếu không phải chủ sản phẩm), chủ sản phẩm nghe duyệt, việc gỡ bản thu qua `revoked` đã diễn tập.
 - [ ] Thẻ hỗ trợ xác minh ≤ 30 ngày trước release.
 - [ ] Chuyên gia tâm lý duyệt bộ câu khởi đầu, câu chip, thẻ hỗ trợ.
 - [ ] Cổng danh sách cấm chạy trong Studio và CI.
-- [ ] Store map, `/privacy`, mô tả store cập nhật câu về cảnh/giọng AI; nhãn privacy xác nhận không đổi; ghi bằng chứng vào [store-privacy-data-map.md](../legal/store-privacy-data-map.md).
-- [ ] US-03 §24 (trang giấy, Mầm đọc câu mở) đạt AC40–AC49; audio 90 câu mở đã tạo, duyệt và nằm trong gói chung `note-voice` được liệt kê trong manifest có ký.
+- [ ] Store map, `/privacy`, mô tả store cập nhật câu về cảnh AI; nhãn privacy xác nhận không đổi; ghi bằng chứng vào [store-privacy-data-map.md](../legal/store-privacy-data-map.md).
+- [ ] US-03 §24 (trang giấy, Mầm trên Note) đạt AC40–AC49. Nếu có bản thu: đủ 90 câu mở, đã duyệt, nằm trong gói chung `note-voice` được liệt kê trong manifest có ký; nếu chưa: không phát hành gói, Mầm chỉ phản ứng (AC48).
 - [ ] Bàn giao theo AGENTS.md.
 
 ### 10.2. Rollout
@@ -619,7 +644,9 @@ Không có trường dữ liệu người dùng mới trên server, không lịc
 | Service worker | Không lưu phản hồi 206; bỏ qua request có `Range`; video đóng gói dưới `/assets/` phát được khi đã cài PWA |
 | Video | Lặp 10 phút; Low Power Mode; tạm dừng; giảm chuyển động → poster; hidden dừng |
 | Lớp chạm | `nuoc` chỉ trong mặt nạ; `anh_sang` mọi nơi; `khong`; tự tắt khi chậm; tắt khi giảm chuyển động |
-| Mầm đọc câu | Chờ 3–5 giây; một lần mỗi ngày; phụ đề; im lặng chỉ phụ đề; tắt giọng; tối/khuya không đọc; ducking; thiếu file giọng chỉ phụ đề; câu dự phòng không lặp 60 ngày |
+| Mầm đưa câu | Chờ 3–5 giây; một lần mỗi ngày; phụ đề; không có bản thu thì không công tắc giọng; có bản thu: im lặng chỉ phụ đề, tắt giọng, ducking; tối/khuya không đọc; thiếu file giọng chỉ phụ đề; câu dự phòng không lặp 60 ngày |
+| Rót nước | Giữ để rót, buông giữa chừng giữ mức, đầy tự dừng; nút "Rót" một chạm; ngày/đêm; giảm chuyển động hiện cốc đầy; ≥ 50 fps; không request |
+| Script media | Test tự động trên đầu vào tổng hợp: 1080×1920, 24 fps, không rãnh âm thanh, độ dài lặp, đường nối, loudness, SHA-256 khớp mục manifest, metadata gốc bị xóa, thẻ AI có mặt, từ chối đầu vào sai codec/quá ngắn/không có audio |
 | An toàn | Nút ở mọi màn; thẻ offline; v1 không đọc mood; mọi câu của ngày qua cổng "an toàn cho người đang buồn" (NBY-04 AC08) |
 | Tâm sự | Thả; lá bay/trôi; không còn trong DOM/storage; không request |
 | Quản trị | Cổng video và cổng câu chặn đúng; lịch câu; rollback; audit log; xuất bản thiếu nhãn AI bị chặn |
@@ -636,20 +663,22 @@ Không có trường dữ liệu người dùng mới trên server, không lịc
 | D4 | Âm thanh cảnh lấy từ đâu? | Tự thu + Web Audio + Freesound CC0 | Chờ duyệt |
 | D5 | Quét từ khóa khủng hoảng trên máy? | Không trong v1 | Chờ duyệt |
 | D6 | Có dùng mood US-04 cho câu của ngày không? | **D6-A (mặc định v1, đang ghi trong PRD):** không dùng mood; mọi câu của ngày phải tự an toàn cho người đang buồn; mọi người cùng ngày nghe cùng câu. **D6-B:** mỗi ngày xuất bản thêm một câu đồng hành "cho phép"; người có mood hôm nay `drained`/`tense` nghe câu đồng hành; mood chỉ đọc trên máy. Hệ quả của B: thêm việc biên tập mỗi ngày, cần hợp đồng enum mood được duyệt theo US-04, phải sửa đồng thời §2.2, NBY-04 AC08, NBY-08 AC08 và inventory; mood trở thành đầu vào cá nhân hóa của bề mặt bình yên | Chờ owner chọn A hoặc B |
-| D7 | Ngoại lệ Ultraviolet Paper trong route | Video toàn khung, điều khiển trắng nền mờ | Chờ duyệt |
-| D8 | Nguồn cảnh | Video AI có gắn nhãn | **Đã chọn** 21/10/2026 |
-| D9 | Công cụ tạo video | Veo 3.1 (Vertex) + Midjourney; Kling dự phòng | Chờ duyệt |
-| D10 | Nguồn nhạc | Đặt sáng tác riêng; tạm Uppbeat Business sau xác nhận | Chờ duyệt |
+| D7 | Ngoại lệ Ultraviolet Paper trong route | Video toàn khung, nút điều khiển trắng nền mờ; phụ đề, cốc, lá, chip trên thẻ giấy kiểu A (D21) | Chờ duyệt |
+| D8 | Nguồn cảnh | Video AI có gắn nhãn, **do chủ sản phẩm tự tạo bên ngoài** | **Đã chọn** 21/10/2026; cách tạo chốt 22/10/2026 |
+| D9 | Công cụ tạo video | Chủ sản phẩm tự chọn, trên gói cho phép thương mại; Lá Lành không tích hợp; ghi công cụ, gói, điều khoản vào sổ đăng ký (§8.6) | **Đã chọn** 22/10/2026 |
+| D10 | Nguồn nhạc | Chủ sản phẩm tự tải file có license dùng trong app, kèm bằng chứng; script lặp và chuẩn hóa; nhạc tùy chọn (§8.3) | **Đã chọn** 22/10/2026 |
 | D11 | Chọn video thế nào? | Ngẫu nhiên trên máy, một lần mỗi buổi sáng, không lặp 7 ngày, "Cảnh khác" ≤ 2 | **Hướng đã chọn** 22/10/2026 (đăng hằng ngày + random); chi tiết chờ duyệt |
 | D12 | Lớp chạm | `nuoc` + `anh_sang` theo cấu hình video, mặc định `khong` | **Hướng đã chọn** 22/10/2026; kiểu hiệu ứng chờ duyệt trên video thật |
 | D13 | Nhắc buổi sáng | v1.1: thông báo cục bộ (`@capacitor/local-notifications`), tắt mặc định, tối đa 1 lần/ngày, chữ chung chung, không exact alarm | Chờ duyệt (là thay đổi quyết định "không plugin") |
 | D14 | Kênh đăng nội dung hằng ngày | Studio local/beta + xuất bản lên object storage với manifest ký; không endpoint ghi ở production | Chờ duyệt |
 | D15 | Lưu đệm video trên app native | Thử Cache Storage trong WebView trước; plugin lưu file là quyết định riêng | Chờ duyệt |
-| D16 | Giọng của Mầm | **Giọng AI**, ưu tiên nhân bản từ một người thật đã ký đồng ý (ElevenLabs v4 PVC do người cho giọng tự tạo), dự phòng giọng có sẵn Google Chirp 3 HD `vi-VN`; chọn cuối cùng qua thử nghe mù; luôn có chip "Giọng AI" | **Đã chọn hướng** 22/10/2026 (giọng AI, có thể dựa trên người thật); người cho giọng và nhà cung cấp chờ chốt |
-| D19 | Phục vụ media thế nào để không mang cookie? | **Đề xuất:** media origin riêng ngoài `cookie_domain`, `fetch` trọn file với `credentials: "omit"`, kiểm hash, phát qua `blob:` (§7.1). Phương án khác: (a) cùng origin `/media/` + `fetch` `credentials: "omit"` + `blob:` — tránh DNS mới nhưng mọi request `<video src>` sai về sau sẽ mang cookie và app native vẫn cross-origin; (b) đóng gói mọi video vào app — không đăng hằng ngày được. Hệ quả của đề xuất: thêm DNS/TLS/CORS do operator làm, bộ nhớ RAM cho file ≤ 9 MB khi kiểm hash | Chờ duyệt |
+| D16 | Giọng của Mầm | **Đề xuất 0.7:** v1 không có giọng AI; Mầm đưa câu bằng phụ đề; tùy chọn chủ sản phẩm (hoặc người trong team đã đồng ý) tự thu giọng thật cho câu của ngày và 90 câu mở. Giọng AI/nhân bản là quyết định riêng sau v1 vì cần dịch vụ trả phí và tích hợp mới. Hướng cũ (22/10/2026: giọng AI, có thể nhân bản từ người thật) giữ ở §8.3 làm tham khảo | **Chờ owner xác nhận** thay hướng cũ; và chọn: chỉ phụ đề, hay tự thu |
+| D17 | Ai là người cho giọng nhân bản? | Không cần trong v1 (D16 đề xuất 0.7) | **Hoãn** cùng giọng nhân bản |
+| D18 | Note hôm nay theo hướng nào? | **Hướng B**: Note là trang giấy minh họa, Mầm phản ứng khi được chạm và đọc câu mở nếu có bản thu, nơi bình yên là ô cửa sổ video | **Đã chọn** 22/10/2026; chi tiết ở US-03 §24 |
+| D19 | Phục vụ media thế nào để không mang cookie? | **Đề xuất:** media origin riêng ngoài `cookie_domain`, `fetch` trọn file với `credentials: "omit"`, kiểm hash, phát qua `blob:` (§7.1). **Cách làm 0.7:** hostname anh em `la-lanh-media.<IP>.sslip.io` trên máy chủ hiện có, Caddy `file_server` tĩnh; không thêm dịch vụ. Phương án khác: (a) cùng origin `/media/` + `fetch` `credentials: "omit"` + `blob:` — không cần hostname mới nhưng mọi request `<video src>` sai về sau sẽ mang cookie và app native vẫn cross-origin; (b) đóng gói mọi video vào app — không đăng hằng ngày được. Hệ quả: một site Caddy mới (operator làm), băng thông dùng chung máy chủ, bộ nhớ RAM cho file ≤ 9 MB khi kiểm hash | Chờ duyệt |
 | D20 | Note do Luna viết lại nhưng giữ nguyên câu mở catalog có được Mầm đọc không? | **Mặc định:** không — chỉ đọc khi nguồn bản đọc là `deterministic` (US-03 AC43). Phương án khác: cho phép đọc mọi câu mở trùng chính xác catalog bất kể nguồn — người dùng Luna pilot nghe được nhiều hơn, nhưng audio gắn với bản đọc do AI sinh và phải sửa AC43/AC44, tấm thông tin ⓘ phải nói rõ phần nào do AI | Chờ duyệt |
-| D18 | Note hôm nay theo hướng nào? | **Hướng B**: Note là trang giấy minh họa, Mầm đọc câu mở khi được chạm (audio dựng sẵn), nơi bình yên là ô cửa sổ video | **Đã chọn** 22/10/2026; chi tiết ở US-03 §24 |
-| D17 | Ai là người cho giọng? | Người ngoài team có hợp đồng (tránh rủi ro khi nghỉ việc); nếu là thành viên team thì thỏa thuận riêng và có giọng dự phòng | Chờ duyệt |
+| D21 | Phong cách đồ họa lớp đồng hành | **Kiểu A "giấy vẽ tay"**: thẻ giấy kem, nét mực hơi run, cùng chất Note và Mầm (§7.4) | **Đã chọn** 22/10/2026 |
+| D22 | Ràng buộc chi phí và tích hợp của nơi bình yên | Không thêm dịch vụ trả phí hay tích hợp mới ngoài hệ thống đang chạy; video, nhạc do chủ sản phẩm tự tạo/tải; xử lý bằng script local; đồ họa bằng code (§2.2) | **Đã chọn** 22/10/2026; mức chi phí giữ ngoài repo |
 
 ## 13. Truy vết requirement
 
@@ -666,10 +695,14 @@ Không có trường dữ liệu người dùng mới trên server, không lịc
 | Nhắc buổi sáng | Quy tắc N1–N3 (báo cáo companion): không push mặc định, không FOMO, ≤ 1/ngày, bỏ qua nếu đã ghé | Áp dụng cho D13 |
 | Nhãn AI | store-privacy-data-map "External generation disclosure gate" | Loại mới: media hiển thị, không sinh lúc chạy |
 | Sửa service worker, CSP | `sw.js`, `_headers` | Lỗi 206 có sẵn |
+| Script media (NBY-09 AC02, §7.6) | [scripts/media/nby-media.sh](../../scripts/media/nby-media.sh), [test_nby_media_pipeline.py](../../apps/api/tests/scripts/test_nby_media_pipeline.py), [nby-media-pipeline.md](../operations/nby-media-pipeline.md) | Chạy local; Studio sau này gọi lại, không viết lại |
+| Media origin anh em (D19) | `infra/hetzner/Caddyfile`, `infra/hetzner/staging/staging.caddy.example`, `apps/api/app/config.py` (`cookie_domain`) | Host app production `la-lanh.<IP>.sslip.io`; staging nằm dưới host production; native chưa bật nên cookie hiện là host-only |
 
 ## 14. Nguồn đã kiểm tra, rủi ro còn mở và AC/DoD chưa hoàn tất
 
 **Nguồn đã kiểm tra (21–22/10/2026):** ba báo cáo nghiên cứu nêu ở đầu tài liệu và các bộ ghi chú đi kèm, gồm: bằng chứng tâm lý buổi sáng (Rothbard & Wilk 2011; meta-analysis can thiệp tâm lý tích cực; Gollwitzer if-then; Brooks 2016; Lally 2010; Wood 2009; Ford; Bastian 2012), mẫu buổi sáng của Calm, Headspace, Finch, Stoic, Fabulous, Co-Star, CHANI, The Pattern; nghiên cứu thông báo (Kushlev 2016; Fitz 2019), tài liệu Capacitor local-notifications v8, Apple 4.5.4, Google Play; Luật 134/2025, Nghị định 142/2026, Luật 91/2025, Nghị định 356/2025, Nghị định 330/2026, Nghị định 91/2020 (qua bản tóm tắt), Bộ luật Hình sự Điều 320, Nghị định 38/2021; điều khoản các công cụ video AI và nhạc; tài liệu và điều khoản giọng AI của ElevenLabs (terms 9/10/2026, use policy, PVC), Google Cloud TTS (Chirp 3 HD, Instant Custom Voice), Azure (transparency note, limited access), OpenAI TTS, Vbee (điều khoản 01/07/2026); Luật 91/2025 Điều 9, 19, 20, 21, 31, 38, Nghị định 356 Điều 4–6, 17, Luật Căn cước 2023 Điều 15, Bộ luật Dân sự Điều 25, 32, Nghị định 134/2026 (ghi chú `ai_voice_vendors.md`, `voice_clone_legal.md`); WebKit, Workbox, MDN, Capacitor 8; WCAG 2.2. Trong repo: US-03, US-04, `daily/service.py`, `noteCache.ts`, `HomePage.tsx`, `growth.ts`, `laVoice.ts`, `AuraSproutCompanion.tsx`, `CompanionLabPage.tsx`, `clearPersonalData.ts`, `sw.js`, `_headers`, `content-studio-runbook.md`, `routes/content_studio.py`, store-privacy-data-map.
+
+**Đã kiểm cho bản 0.7 (22/10/2026):** host production `la-lanh.<IP>.sslip.io` và staging `staging.la-lanh.<IP>.sslip.io` trong `infra/hetzner/` và runbook; `LA_LANH_NATIVE_APP_ENABLED=false` trong `app.env.example` nên production chưa cần `cookie_domain`; quy tắc `cookie_domain` trong `apps/api/app/config.py`. Script media chạy trên đầu vào tổng hợp (ffmpeg 7.1; sóng sin trôi 20 giây, tiếng sine, pink noise) và có 16 test tự động: video ra 15,0 giây, 1080×1920, SAR 1:1, 24 fps, không rãnh âm thanh; chỗ nối chênh 1,46 so với bước khung trung vị 1,37 (thang xám 0–255), trong khi một nhát cắt thẳng của cùng đầu vào chênh 95,8; metadata vị trí bị xóa (bản đột biến bỏ bước xóa thì lộ vị trí, test bắt được); âm thanh 60 giây, AAC 48 kHz stereo, đo được −23,2 và −32,0 LUFS; khoảng 20 giây xử lý mỗi cảnh trên máy Apple Silicon. Kết quả với video AI thật chưa có.
 
 **Lỗi đã sửa trong tài liệu:** mâu thuẫn mốc đêm của 0.2 (thống nhất ở §3.1); câu ví dụ gần như dịch lại caption reel R3 (đã bỏ); việc tái dùng khóa nghi thức theo `note_date` (đã cấm). Bản 0.5: sáu P2 của review Codex PR #44 (xem đầu tài liệu) và viện dẫn Nghị định 38/2021 đã hết hiệu lực (đã đọc trực tiếp trang 1 và trang 98, Điều 93 của PDF Nghị định 87/2026). **Chưa sửa trong code:** service worker cache phản hồi 206 (cả `/assets/`); CSP chưa có `media-src`/`connect-src` tường minh; US-03 mô tả mốc đổi ngày và luồng "chạm thông báo mở Note" lệch với runtime (chưa có deep-link handler).
 
@@ -680,17 +713,18 @@ Không có trường dữ liệu người dùng mới trên server, không lịc
 - Lần đầu Lá Lành có **luồng nội dung hằng ngày tới production**: tài khoản quản trị bị chiếm có thể phát nội dung xấu cho mọi người dùng; cần MFA, khóa xuất bản tách riêng, rollback.
 - Gánh nặng vận hành đăng hằng ngày; chất lượng có thể không đều; giảm bằng cổng duyệt và bộ khởi đầu.
 - Lớp chạm trên video tùy ý có thể trông giả; phải duyệt trên video thật, có thể phải tắt kiểu `anh_sang`.
-- Giọng đọc có thể làm mất calm nếu chất giọng không hợp; cần thử nghe mù và thử với người dùng.
-- Giọng nhân bản kéo theo dữ liệu nhạy cảm của người cho giọng, DPIA, hồ sơ chuyển dữ liệu ra nước ngoài và rủi ro người cho giọng rút đồng ý; không nhà cung cấp nào thu hồi được file đã tạo, nên phải có giọng dự phòng.
-- ElevenLabs v4 không có SSML; điều khiển nhịp chậm chỉ bằng audio tag, cần thử thực tế với câu tiếng Việt ngắn.
+- Không có giọng, nghi thức sáng có thể kém "ấm" hơn bản có Mầm đọc; bản thu tự làm có thể không đều chất lượng. Cần thử với người dùng cả hai cách.
+- Chất lượng và tính lặp của video phụ thuộc công cụ chủ sản phẩm chọn: nếu khung đầu và cuối khác xa, đoạn hòa 1 giây có thể lộ "bóng ma" ở chỗ nối; phải xem 3 vòng trước khi đăng. Điều khoản các gói công cụ đổi nhanh; bồi thường IP (nếu có) thường chỉ cho đầu ra chưa chỉnh sửa, mà script luôn chỉnh sửa.
+- Chuyển mã làm mất C2PA gốc; chưa có bước ký lại C2PA và XMP `digitalSourceType` (NBY-AI-AC04–AC05).
+- Đồ họa vẽ bằng code có thể trông lạc giữa video chân thực; kiểu A mới là bản mẫu, chưa thử trên máy thật.
+- Media origin dùng chung băng thông và máy chủ với app: lượt tải video lớn có thể ảnh hưởng app; cần theo dõi lưu lượng sau khi bật. sslip.io là dịch vụ phân giải tên bên ngoài mà production đã dựa vào; thay bằng miền riêng theo kế hoạch đã có.
 - Phát video hằng ngày qua mạng: dung lượng dữ liệu di động, đệm trên app native chưa xác minh (D15).
-- Model video thay đổi nhanh; bồi thường IP của Google chỉ cho đầu ra chưa chỉnh sửa.
 - Mầm Aura chưa từng ra sản phẩm; thiết kế thu nhỏ trong thanh phụ đề chưa có.
 - Ô lối vào dưới Note có thể bị xem là "đẩy" Home khỏi Note-first; cần kiểm ở 390×844.
 - Hành vi audio/video trong WKWebView và Android WebView chưa test trên máy thật.
 - Danh bạ hỗ trợ chưa gọi xác minh; giờ Ngày Mai mâu thuẫn giữa các nguồn.
 - Chưa có nghiên cứu người dùng Việt; chưa đọc được `docs/reviews/2026-10-16-duyet-noi-dung-la-va-ui.xlsx`.
 
-**Cần luật sư Việt Nam xác nhận:** Điều 18(1) Nghị định 142/2026 với cảnh thiên nhiên và mức nhãn đủ; Điều 18(2)(a) với giọng mascot nhân bản và cách đặt chip "Giọng AI"; giọng nói có là dữ liệu sinh trắc học theo Luật 91/2025 Điều 31(2) không; file đã xuất bản có được giữ sau khi người cho giọng rút đồng ý không (Điều 19(1)(d)); quyền của người biểu diễn có phủ tới câu tổng hợp chưa từng đọc không; mức phạt chính xác của Nghị định 330/2026; quyền tác giả của nội dung có AI hỗ trợ; điều khoản dưới-18 của Google với app 18+; xử lý thuần trên máy theo Luật 91/2025/Nghị định 356; ID video đã xem trên máy có là dữ liệu hành vi không; trích dẫn câu của người khác và bản dịch; từ ngữ có thể bị coi là mê tín; EU AI Act khi hosting ở EU; hợp đồng nhạc đặt sáng tác.
+**Cần luật sư Việt Nam xác nhận:** Điều 18(1) Nghị định 142/2026 với cảnh thiên nhiên và mức nhãn đủ; nghĩa vụ đánh dấu máy đọc được (Điều 17) khi Lá Lành chỉnh sửa video do chủ sản phẩm tạo bằng công cụ của bên khác; các câu hỏi về giọng nhân bản chỉ cần khi mở lại hướng đó; mức phạt chính xác của Nghị định 330/2026; quyền tác giả của nội dung có AI hỗ trợ; điều khoản dưới-18 của Google với app 18+; xử lý thuần trên máy theo Luật 91/2025/Nghị định 356; ID video đã xem trên máy có là dữ liệu hành vi không; trích dẫn câu của người khác và bản dịch; từ ngữ có thể bị coi là mê tín; EU AI Act khi hosting ở EU; hợp đồng nhạc đặt sáng tác.
 
-**AC/DoD chưa hoàn tất:** toàn bộ. PRD ở trạng thái nháp; chưa có SRS, user story chi tiết, test, quyết định D1–D7, D9, D10, D13–D15, D17, D19, D20 (D11, D12, D16 mới có hướng), media origin, khóa ký manifest, Studio mục nơi bình yên, bộ khởi đầu, sổ đăng ký, license nhạc, giọng đọc, duyệt chuyên môn hay xác minh danh bạ hỗ trợ.
+**AC/DoD chưa hoàn tất:** gần như toàn bộ. PRD ở trạng thái nháp. Đã có: script media và test tự động (một phần NBY-09 AC02). Chưa có: SRS, user story chi tiết, code app; quyết định D1–D7, D13–D15, D16 (đề xuất 0.7 chờ xác nhận), D19, D20 (D11, D12 mới có hướng; D17 hoãn); XMP/C2PA và kiểm nhấp nháy trong script; media origin; khóa ký manifest; Studio mục nơi bình yên; đồ họa kiểu A trong app; bộ khởi đầu; sổ đăng ký; license nhạc; duyệt chuyên môn; xác minh danh bạ hỗ trợ.

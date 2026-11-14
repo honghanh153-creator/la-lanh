@@ -484,7 +484,7 @@ Tap compact control hoặc `Đổi góc` mở cùng một scoped sheet. Sheet h�
 
 ## 24. Canonical delta — Trang giấy buổi sáng và Mầm đọc câu mở (2026-10-22)
 
-Trạng thái: **nháp, chờ chủ sản phẩm duyệt.** Nguồn: [PRD Nơi bình yên v0.4](../foundation/la-lanh-noi-binh-yen-prd.md) §0.1, D18. Phần này không thay content contract, cache, provenance, lens hay evidence của các mục trước; chỉ thêm hình thức trang giấy, giọng đọc câu mở và lối sang nơi bình yên.
+Trạng thái: **nháp, chờ chủ sản phẩm duyệt.** Nguồn: [PRD Nơi bình yên v0.7](../foundation/la-lanh-noi-binh-yen-prd.md) §0.1, D16, D18. **Từ PRD 0.7:** giọng Mầm là bản thu giọng thật do chủ sản phẩm (hoặc người trong team đã đồng ý) tự thu, không phải giọng AI (D16, chờ owner xác nhận). Khi chưa thu đủ, gói `note-voice` không được phát hành và mọi AC về phát giọng dưới đây chưa áp dụng; Mầm chỉ phản ứng khi chạm (AC48). Phần này không thay content contract, cache, provenance, lens hay evidence của các mục trước; chỉ thêm hình thức trang giấy, giọng đọc câu mở và lối sang nơi bình yên.
 
 ### Bản chất cần phục vụ
 
@@ -499,8 +499,8 @@ Lá Lành là nơi tìm được những giây phút thư giãn bình yên, vui 
 
 ### Mầm đọc câu mở
 
-- Chạm Mầm → Mầm đọc **chỉ câu mở** bằng giọng Mầm (giọng AI, PRD D16), chip "Giọng AI" hiện cạnh Mầm khi phát. Mầm **không** đọc tình huống, việc nhỏ, evidence, thông tin chart hay disclaimer.
-- Audio dựng sẵn offline cho từng câu mở giọng direct trong catalog Daily **raw deterministic** (hiện 90 câu: 15 nhóm tình huống × 6, mỗi câu 8–11 từ — `daily_psychology.py`, `hook = issue.headlines[headline_slot]`), đóng thành **một gói chung** `note-voice` (PRD NBY-09 AC12): đóng sẵn trong app native, PWA tải trọn gói một lần. Không có URL hay request theo từng câu. App chỉ tra gói khi bản đọc thỏa **điều kiện nguồn** của AC43; khi đó băm SHA-256 câu mở đang hiển thị (sau chuẩn hóa NFC/khoảng trắng) và tra chỉ mục bên trong gói. Có mục thì Mầm có trạng thái "có thể nghe"; không thì Mầm chỉ phản ứng vui khi chạm, không phát gì.
+- Chạm Mầm → nếu có bản thu, Mầm đọc **chỉ câu mở** bằng giọng Mầm (bản thu giọng thật, PRD D16); không có chip "Giọng AI" vì đây không phải giọng AI. Mầm **không** đọc tình huống, việc nhỏ, evidence, thông tin chart hay disclaimer.
+- Audio thu sẵn cho từng câu mở giọng direct trong catalog Daily **raw deterministic** (hiện 90 câu: 15 nhóm tình huống × 6, mỗi câu 8–11 từ — `daily_psychology.py`, `hook = issue.headlines[headline_slot]`), đóng thành **một gói chung** `note-voice` (PRD NBY-09 AC12): đóng sẵn trong app native, PWA tải trọn gói một lần. Không có URL hay request theo từng câu. App chỉ tra gói khi bản đọc thỏa **điều kiện nguồn** của AC43; khi đó băm SHA-256 câu mở đang hiển thị (sau chuẩn hóa NFC/khoảng trắng) và tra chỉ mục bên trong gói. Có mục thì Mầm có trạng thái "có thể nghe"; không thì Mầm chỉ phản ứng vui khi chạm, không phát gì.
 - Không có audio cho giọng Roast, bản Luna rewrite, Jyotish, fallback hay bất kỳ câu nào không khớp chính xác; không dùng giọng tổng hợp của hệ điều hành và không gọi dịch vụ giọng lúc chạy.
 
 ### AC bổ sung
@@ -510,7 +510,7 @@ Lá Lành là nơi tìm được những giây phút thư giãn bình yên, vui 
 - **AC42 — Chỉ phát khi được chạm:** Given Home vừa mở, When chưa có chạm vào Mầm, Then không có âm thanh nào phát; giọng chỉ bắt đầu sau chạm Mầm hoặc nút "Nghe câu này" tương đương cho trình đọc màn hình.
 - **AC43 — Đúng nguồn, đúng câu, đúng file:** Given Note hôm nay có `fallback_used = false`, bản đọc đang hiển thị `reading_projection.active` có `source = "deterministic"`, `tradition = "western"`, `purpose = "daily_note"`, và Note được yêu cầu bằng giọng direct (không `?voice=roast`), And câu mở khớp chính xác một mục trong chỉ mục gói `note-voice`, When chạm Mầm, Then phát đúng đoạn audio đó trong ≤ 500 ms; Given **bất kỳ** điều kiện nguồn nào không thỏa — kể cả bản `generated` của Luna giữ nguyên câu mở catalog — Then không tra gói, không phát và không báo lỗi. Không suy nguồn từ nội dung hay từ việc hash có khớp (cho phép đọc bản Luna giữ nguyên câu mở là quyết định owner D20, chưa duyệt).
 - **AC44 — Không đọc ngoài câu mở:** Given bất kỳ Note nào, When Mầm đọc, Then chỉ câu mở được phát; không có audio cho scene, advice, evidence, chart, disclaimer, giọng Roast hay bất kỳ bản `generated` nào (kể cả khi câu mở trùng catalog), nhất quán với điều kiện nguồn ở AC43.
-- **AC45 — Nhãn AI:** Given giọng đang phát, When nhìn vào Mầm, Then chip "Giọng AI" hiện; ⓘ cạnh Mầm mở tấm thông tin giọng (PRD NBY-AI-AC03); chip có nhãn cho trình đọc màn hình.
+- **AC45 — Nguồn giọng và nhãn AI:** Given giọng đang phát, When nhìn vào Mầm, Then ⓘ cạnh Mầm mở tấm thông tin giọng (PRD NBY-AI-AC03: "Giọng của Mầm do một người trong team Lá Lành đọc."). Chip "Giọng AI" chỉ hiện khi file đang phát có loại giọng `ai` trong chỉ mục gói (không có trong v1, PRD NBY-AI-AC09); khi hiện, chip có nhãn cho trình đọc màn hình.
 - **AC46 — Tôn trọng im lặng và người dùng:** Given `navigator.audioSession.type = "ambient"` khả dụng, When công tắc im lặng bật, Then không nghe giọng; Given người dùng tắt "Mầm đọc Note" trong cài đặt, Then chạm Mầm chỉ có phản ứng hình; phát giọng không ngắt nhạc người dùng đang nghe (kiểm trên máy thật).
 - **AC47 — Riêng tư:** Given chạm Mầm, When phát, Then **không có request mạng nào** phát sinh từ lần chạm (gói `note-voice` đã có trên máy: đóng sẵn trong app native, hoặc PWA đã tải trọn gói giống nhau cho mọi người từ media origin không cookie, PRD §7.1); không URL, log, error report hay analytics nào chứa câu mở, hash của câu mở hay chỉ số trong gói; trạng thái chỉ trong bộ nhớ. Ranh giới context/private prose của §21 và AC23 giữ nguyên.
 - **AC48 — Vui vẻ, không áp lực:** Given chạm Mầm, When không có audio hoặc đang tắt giọng, Then Mầm có một phản ứng nhỏ (nghiêng đầu, chớp mắt) ≤ 600 ms; Mầm không có badge, chấm đỏ, đếm số lần, lời nhắc "nghe đi" hay câu gây áy náy; Reduce Motion tắt phản ứng chuyển động.
@@ -525,5 +525,5 @@ Lá Lành là nơi tìm được những giây phút thư giãn bình yên, vui 
 
 - AC40–AC49 có test tự động hoặc bằng chứng trên máy thật (iPhone, Android tầm trung; PWA và Capacitor).
 - Ảnh chụp 390×844 trước/sau chứng minh AC40.
-- Gói `note-voice` có đủ 90 câu direct hiện hành; test CI phát hiện câu mở mới thiếu audio (cảnh báo, không chặn); e2e chứng minh chạm Mầm không tạo request và bản `generated`/roast/fallback không phát.
-- Chủ sản phẩm duyệt chất giọng trên ít nhất 10 câu mở trước khi bật.
+- Không có gói `note-voice`: chạm Mầm chỉ có phản ứng hình (AC48), không công tắc "Mầm đọc Note", không request.
+- Nếu phát hành gói: có đủ 90 câu direct hiện hành; test CI phát hiện câu mở mới thiếu audio (cảnh báo, không chặn); e2e chứng minh chạm Mầm không tạo request và bản `generated`/roast/fallback không phát; chủ sản phẩm duyệt chất giọng trên ít nhất 10 câu mở trước khi bật.
