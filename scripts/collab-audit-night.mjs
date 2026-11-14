@@ -20,7 +20,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { groupExec } from './collab-heal.mjs';
-import { auditReserve, collectFacts, dayRange, experimentDir, logsStart, readOutputs, receipt, unmeasured, withJudgement } from './collab-audit.mjs';
+import { auditReserve, collectFacts, keepDayM4, dayRange, experimentDir, logsStart, readOutputs, receipt, unmeasured, withJudgement } from './collab-audit.mjs';
 import { agentMarker, assertAgentBody, clean, codexDailyCap, dayStatePath, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { isMain } from './is-main.mjs';
 
@@ -133,6 +133,8 @@ export function gatherEvidence({ date, gh, facts, issue, outputs = [], disagreem
   // Facts without the collection time and without the audit's own Codex runs (so M9 does not
   // change because the audit ran).
   const metrics = Object.fromEntries(Object.entries(facts.metrics).filter(([k]) => !['M1', 'M3'].includes(k)));
+  // When M4 was taken during the day, its time is a note, not evidence (the digest must not change).
+  if (metrics.M4?.measuredAt) { const { measuredAt, ...rest } = metrics.M4; metrics.M4 = rest; }
   if (metrics.M9?.value !== undefined && metrics.M9.value !== null) metrics.M9 = { ...metrics.M9, value: metrics.M9.value - (day?.auditRuns ?? 0) };
   const dayInfo = day ? { planned: day.planned ?? [], mergedToday: (day.mergedToday ?? []).map(m => m.number) } : null;
 
@@ -322,6 +324,7 @@ export function runNightAudit({ gh = makeGh(), now = new Date(), window = auditW
     if (!attempted || (final && !existing.final)) {
       const facts = collectFacts({ date, gh, now, outputs: () => outs, day: () => dayState, lessons: lessons ? () => lessons(date) : null, disagreements });
       facts.final = final;
+      keepDayM4(facts, existing);
       const evidence = gatherEvidence({ date, gh, facts, issue: target(), outputs: outs, disagreements, day: dayState });
       const digest = evidenceDigest(evidence);
       let judgement = existing?.judgement ?? null;

@@ -6,9 +6,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
-import { DeadlineError, agentMarker, boundedTimeout, blockingP2, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
+import { DeadlineError, agentMarker, boundedTimeout, clean, isOwnPr, dayStatePath, integration, isSha, makeGh, readJson, repo, stateDir, trustedComments, vnNow, writeJson } from './collab-trust.mjs';
 import { codexDailyCap, prTurn } from './collab-turn.mjs';
 import { groupExec } from './collab-heal.mjs';
+import { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
 import { isMain } from './is-main.mjs';
 import { auditReserve } from './collab-audit.mjs';
 
@@ -18,30 +19,8 @@ export const schemaPath = join(here, 'codex-review-schema.json');
 export const codexBin = process.env.CODEX_BIN || '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex';
 export const codexModel = 'gpt-6.1-sol';
 export const maxAutoRequestChanges = 2;
-const severities = ['P0', 'P1', 'P2', 'P3'];
-const categories = ['privacy', 'security', 'user_copy', 'correctness', 'test', 'docs', 'other'];
-
-export const isBlocking = f => f.severity === 'P0' || f.severity === 'P1' || (f.severity === 'P2' && blockingP2.has(f.category));
-
-export function validateOutput(out, head) {
-  const bad = message => { throw new Error(`Codex output rejected: ${message}`); };
-  if (!out || typeof out !== 'object') bad('not an object');
-  if (!['APPROVE', 'REQUEST_CHANGES'].includes(out.verdict)) bad('verdict');
-  if (out.sha !== head) bad(`sha ${clean(out.sha, 60)} is not head ${head}`);
-  if (typeof out.complete !== 'boolean' || typeof out.summary !== 'string' || !Array.isArray(out.findings)) bad('shape');
-  for (const f of out.findings) {
-    if (!severities.includes(f?.severity) || !categories.includes(f?.category) || typeof f.file !== 'string' || typeof f.title !== 'string') bad('finding shape');
-  }
-  return out;
-}
-
-// The script may only make a verdict stricter, never more lenient.
-export function applyPolicy(out) {
-  const blocking = out.findings.filter(isBlocking);
-  const verdict = out.verdict === 'REQUEST_CHANGES' || blocking.length || !out.complete ? 'REQUEST_CHANGES' : 'APPROVE';
-  const fixForward = verdict === 'APPROVE' ? out.findings.filter(f => f.severity === 'P2') : [];
-  return { verdict, blocking, fixForward, escalated: verdict !== out.verdict };
-}
+// The policy lives in collab-review-policy.mjs so the night audit checks receipts with the same rule.
+export { applyPolicy, isBlocking, validateOutput } from './collab-review-policy.mjs';
 
 export function fillPrompt(template, values) {
   // Single pass, so a placeholder inside PR text is never expanded.

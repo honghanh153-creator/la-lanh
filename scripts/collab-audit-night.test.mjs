@@ -5,16 +5,17 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { auditReserve, collectFacts, saveFacts } from './collab-audit.mjs';
+import { auditReserve, collectFacts, keepDayM4, saveFacts } from './collab-audit.mjs';
 import { auditMarker, auditWindow, baselineMarker, baselinePath, buildPrompt, datesIn, evidenceDigest, gatherEvidence, readRecord, runAuditCodex, runBaseline, runNightAudit, upsertAudit, validateJudgement } from './collab-audit-night.mjs';
 import { agentMarker, codexDailyCap, dayStatePath, readJson, writeJson } from './collab-trust.mjs';
 import { renderCheck } from './collab-check.mjs';
 import { tick } from './collab-turn.mjs';
 
 const head = 'e'.repeat(40);
-const output = JSON.stringify({ verdict: 'APPROVE', sha: head });
+// A full approving review output (the receipt check validates it, Codex r1 on #486).
+const output = JSON.stringify({ verdict: 'APPROVE', sha: head, complete: true, summary: 'ok', findings: [] });
 const digest = createHash('sha256').update(output).digest('hex');
-const outputs = [{ pr: 7, head12: head.slice(0, 12), digest }];
+const outputs = [{ pr: 7, head12: head.slice(0, 12), digest, out: JSON.parse(output) }];
 const approve = { authorAssociation: 'OWNER', createdAt: '2026-11-14T03:00:00Z',
   body: `Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto)\n\nOutput SHA-256: \`${digest}\`\n${agentMarker} codex-auto-review sha=${head} p2=0 -->` };
 const rebuttal = { authorAssociation: 'OWNER', createdAt: '2026-11-14T03:30:00Z', body: 'agent: Claude — không sửa P2 vì đã có test khác' };
@@ -160,7 +161,9 @@ test('evidence digest ignores collection time and the audit\'s own Codex run', (
   const gh = fakeGh();
   const facts = now => collectFacts({ date, gh, now, outputs: () => outputs, day: () => null });
   const one = gatherEvidence({ date, gh, facts: { ...facts(at('2026-11-14T16:05:00Z')), metrics: { ...facts(at('2026-11-14T16:05:00Z')).metrics, M9: { value: 10 } } }, issue: 133, outputs, disagreements: () => [], day: { auditRuns: 0 } });
-  const two = gatherEvidence({ date, gh, facts: { ...facts(at('2026-11-14T17:10:00Z')), metrics: { ...facts(at('2026-11-14T17:10:00Z')).metrics, M9: { value: 11 } } }, issue: 133, outputs, disagreements: () => [], day: { auditRuns: 1 } });
+  // After midnight the night audit keeps the M4 taken during the day (keepDayM4), as runNightAudit does.
+  const later = keepDayM4(facts(at('2026-11-14T17:10:00Z')), facts(at('2026-11-14T16:05:00Z')));
+  const two = gatherEvidence({ date, gh, facts: { ...later, metrics: { ...later.metrics, M9: { value: 11 } } }, issue: 133, outputs, disagreements: () => [], day: { auditRuns: 1 } });
   assert.equal(evidenceDigest(one), evidenceDigest(two));
   gh.state.comments[0].body += '\nThêm một câu.';
   const three = gatherEvidence({ date, gh, facts: facts(at('2026-11-14T16:05:00Z')), issue: 133, outputs, disagreements: () => [], day: null });
