@@ -4,9 +4,9 @@
 // test-guard.lock while the command runs. Refuses (exit 75) while an author check holds check.lock;
 // the author check waits up to 5 minutes for this lock before it starts `pnpm check`.
 import { spawnSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 import { machineBusy } from './collab-check.mjs';
 import { takeGuardLock } from './collab-check-log.mjs';
+import { isMain } from './is-main.mjs';
 
 export const refusedCode = 75;
 const pause = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -30,7 +30,7 @@ export function runGuarded(cmd, args, { busy = machineBusy, take = takeGuardLock
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (isMain(import.meta.url)) {
   const argv = process.argv.slice(2);
   const dash = argv.indexOf('--');
   const wait = argv.indexOf('--wait-min');

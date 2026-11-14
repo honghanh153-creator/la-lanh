@@ -12,8 +12,9 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { clean, integration, makeGh, readJson, repo, reviewState, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -123,7 +124,7 @@ export function lessonsLine({ register = () => readRegister(), online = true, to
   } catch (error) { return `Lời hứa sửa quy trình: chưa đo được (${clean(error.message, 120)}).`; }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const reg = readRegister();
   const bad = problems(reg);
   for (const p of bad) process.stderr.write(`collab-lessons: ${p}\n`);

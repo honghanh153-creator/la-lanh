@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
+import { isMain } from './is-main.mjs';
 
 const repo = 'honghanh153-creator/la-lanh';
 const text = (value, limit = 4000) => {
@@ -40,7 +40,7 @@ export function readInbox(run = execFileSync) {
   return renderInbox(issues, prs);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   try { process.stdout.write(`${readInbox()}\n`); }
   catch { process.stderr.write('Inbox unavailable. Check gh installation/auth/network. Do not assume no other agent is working.\n'); process.exitCode = 1; }
 }
