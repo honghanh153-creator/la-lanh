@@ -610,6 +610,11 @@ below are done and recorded in the receipt.
    → Aura → birth card → Tarot (one card drawn) → Radar → saved → profile → delete via
    "Xóa Lá và dữ liệu". It writes `journey.json` (routes with IDs redacted, ready time, horizontal
    overflow, controls under 44 px, console and 5xx errors), one screenshot and one text file per step.
+   Since 14.11.2026 (L03) it also records a content verdict for the Khám phá overview: the
+   Western synthesis (hook, thesis, manifestation, micro action) must be in the API answer and in
+   the synthesis block on screen, and no temporary text (lorem, TODO, template braces, `undefined`)
+   may show. The verdict is reported (`journey.json` → `content`); `LA_LANH_QA_CONTENT=enforce`
+   makes a content finding fail the run. `pnpm qa:test` runs the same check on the local API in CI.
    It never writes cookies, tokens, share links or IDs. Exit 0 needs every required step to pass and
    the guest to be deleted. Keep `<out-dir>` outside git; it holds screenshots of synthetic data only.
 2. **Claude review:** look at every screenshot. Score each flow on working, clarity, feel (calm,
