@@ -93,7 +93,7 @@ test('Codex #487: install reads the reviewed integration revision; a local edit 
   assert.throws(() => installWrapper({ root: ops, home: w.home }), /không phải bản collab\/integration đã review/);
 });
 
-test('L19: the scheduled reports read the shared slot snapshot through the wrapper', () => {
+test('L19: the wrapper exposes the shared slot snapshot step and refuses any other slot', () => {
   const w = world();
   for (const slot of ['08', '14', '22', 'retro']) {
     const res = run(w, ['snapshot', slot]);
@@ -103,8 +103,6 @@ test('L19: the scheduled reports read the shared slot snapshot through the wrapp
   const before = calls(w).length;
   for (const bad of [['snapshot'], ['snapshot', '12'], ['snapshot', '08;id'], ['snapshot', 'retro x']]) assert.equal(run(w, bad).status, 2, `refused: ${bad.join(' ')}`);
   assert.equal(calls(w).length, before, 'a refused slot runs nothing');
-  // The owner report and the retro tasks call this step (their prompts live outside the repo).
-  assert.match(readFileSync(join(repoRoot, 'docs', 'operations', 'collab-auto-loop-plan.md'), 'utf8'), /ops-run\.sh snapshot/);
 });
 
 test('the wrapper installs only from the ops clone, atomically, and drift is reported', () => {

@@ -291,18 +291,8 @@
    "from": "owner 13.11: báo cáo trung thực",
    "who": "claude",
    "due": "2026-11-18",
-   "status": "done",
-   "test": {
-    "file": "scripts/collab-ops-wrapper.test.mjs",
-    "name": "L19: the scheduled reports read the shared slot snapshot through the wrapper"
-   },
-   "caller": {
-    "file": "scripts/ops-run.sh",
-    "contains": "collab-snapshot.mjs\" --slot"
-   },
-   "closedBy": {
-    "pr": 534
-   }
+   "status": "open",
+   "note": "wrapper step snapshot SLOT added (#534); owner report and retro prompts still to be pointed at it and their use verified"
   },
   {
    "id": "L20",
