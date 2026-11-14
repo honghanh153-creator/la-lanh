@@ -28,6 +28,11 @@ prove the behaviour, and say so when they do not.
 
 ## Severity and the owner's merge policy (decided 30.10.2026)
 
+- Research (`docs/research/*.md`, lesson L09). `scripts/research-sources.mjs` checks only that every conclusion
+  names a source key and that the key lists a real URL or repo path with the part read. If the diff adds or
+  changes conclusions, open at least two of the cited sources at the part named and check that they support the
+  conclusion. A conclusion its source does not support is a P2 `docs` finding, P1 when a product decision in the
+  PR rests on it. Do not call a source verified unless you read it.
 - P0: data loss, personal-data leak, auth/ownership bypass, secret exposure, irreversible harm. Blocks.
 - P1: real user-visible bug, broken contract, missing consent/deletion path, failing gate. Blocks.
 - P2: should fix. **Blocks only when category is `privacy`, `security` or `user_copy`** (any text a user
