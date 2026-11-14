@@ -9,7 +9,7 @@
 
 - Tìm được chỗ chọn mood và đổi góc đọc 92/100; câu trái mood được sửa 100/100.
 - Ai cũng thấy dừng được. 25/25 người quay lại sau 2 tuần không thấy bị trách, không thấy việc tồn.
-- Chuyện minh họa: 100/100 hiểu là minh họa, 0 thấy bị hứa suông. Trò chơi: 100/100 hiểu cách chơi.
+- Chuyện minh họa: 100/100 hiểu là minh họa, 0 thấy bị hứa suông. Trò chơi: 67/67 người đã vào chơi hiểu cách chơi và dừng được (33 người không vào chơi: không áp dụng).
 - 0 ca "phải xem Lá mới dám quyết", 0 ca phụ thuộc.
 
 ## Điều chưa đạt và vì sao
@@ -26,7 +26,8 @@
 
 - Trên cùng 20 người, điểm trung bình lệch tối đa 0,35 mỗi câu chấm; không người nào lệch điểm "hiểu mình" từ 2 trở lên.
 - Codex khắt khe hơn ở ba chỗ: việc nhỏ hợp sau khi đổi (Codex 11/20), phân biệt lý do với diễn giải (9/20), tìm đúng đường (14/20). Theo kế hoạch, Claude đạt mà Codex trượt thì **chưa kết luận, phải chấm thêm**.
-- Codex ghi "chưa hiểu cách chơi" cho 11/20 người chỉ vì họ không vào chơi. Đây là khác cách hiểu câu hỏi, không phải người giả hiểu nhầm trò chơi.
+- Bản đầu, Codex ghi "chưa hiểu cách chơi" và "không dừng được" cho 11/20 người chỉ vì họ không vào chơi. Theo cách chấm v2, hai câu này chỉ tính cho người đã vào chơi: Codex 9/9 đạt cả hai, Claude 67/67 đạt cả hai. Hết lệch.
+- **Một cờ "bị trách" của Codex** (người giả P027, cả hai mốc, cùng một câu): "Việc treo lâu thường nặng hơn khi nghĩ tới so với khi làm." Người này là sinh viên năm cuối đang làm khóa luận và đi phỏng vấn, không có ai để tâm sự. Đọc câu đó, họ hiểu là Lá cho rằng việc chỉ nặng vì mình nghĩ nhiều, trong khi việc của họ khó thật. Lời chê: "Khóa luận với bài tuyển dụng khó thật, nói như mình chỉ nghĩ nhiều nên thấy nặng thì khó chịu." Giám khảo Claude không gắn cờ này cho P027. Câu này là ví dụ trong mock, không phải câu kế hoạch đã chốt. Bài học cho kho câu: lời của Lá không ngụ ý nỗi khó là do người dùng tự nghĩ ra.
 
 ## Gợi ý chỉnh kế hoạch (suy ra từ lời chê, chưa thử lại)
 

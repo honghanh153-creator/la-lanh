@@ -6,6 +6,7 @@
 - Mock hai mốc và biến thể hỏi lại: [merged-plan/mocks.md](merged-plan/mocks.md). Câu hỏi chấm: [merged-plan/judge-instructions.md](merged-plan/judge-instructions.md).
 - 100 người giả hư cấu. Tình huống hôm nay giữ như lần chấm 8 ý (25 người mỗi loại: rất mệt, quay lại sau 2 tuần, điện thoại dùng chung, không có ai an toàn). Loại hồ sơ theo người giả: 30 chỉ ngày sinh, 20 giờ khoảng, 50 giờ và nơi chính xác.
 - Giám khảo: 7 Claude subagent riêng, mù với ngưỡng và số nền, chấm 300 mục. Codex chấm độc lập 60 mục (20 người chọn đều theo nhóm, cùng mẫu lần trước).
+- Cách chấm v2 (14.11, góp ý P-8 của Codex): 'hiểu cách chơi' và 'dừng chơi được' chỉ tính cho người đã vào chơi. Người không vào chơi ghi 'không áp dụng', không tính là trượt: 33/100 người ở giám khảo Claude, 11/20 ở Codex. Ai đã vào chơi được đánh dấu tay theo đường đi mỗi giám khảo ghi lại (`merged-plan/judged/played-game.json`), không chấm lại.
 
 ## Đọc nhanh
 
@@ -18,7 +19,7 @@
 
 - Tìm được chỗ chọn mood và đổi góc đọc 92/100; câu trái mood được sửa 100/100.
 - Ai cũng thấy dừng được. 25/25 người quay lại sau 2 tuần không thấy bị trách, không thấy việc tồn.
-- Chuyện minh họa: 100/100 hiểu là minh họa, 0 thấy bị hứa suông. Trò chơi: 100/100 hiểu cách chơi.
+- Chuyện minh họa: 100/100 hiểu là minh họa, 0 thấy bị hứa suông. Trò chơi: 67/67 người đã vào chơi hiểu cách chơi và dừng được (33 người không vào chơi: không áp dụng).
 - 0 ca "phải xem Lá mới dám quyết", 0 ca phụ thuộc.
 
 ## Điều chưa đạt và vì sao
@@ -35,7 +36,8 @@
 
 - Trên cùng 20 người, điểm trung bình lệch tối đa 0,35 mỗi câu chấm; không người nào lệch điểm "hiểu mình" từ 2 trở lên.
 - Codex khắt khe hơn ở ba chỗ: việc nhỏ hợp sau khi đổi (Codex 11/20), phân biệt lý do với diễn giải (9/20), tìm đúng đường (14/20). Theo kế hoạch, Claude đạt mà Codex trượt thì **chưa kết luận, phải chấm thêm**.
-- Codex ghi "chưa hiểu cách chơi" cho 11/20 người chỉ vì họ không vào chơi. Đây là khác cách hiểu câu hỏi, không phải người giả hiểu nhầm trò chơi.
+- Bản đầu, Codex ghi "chưa hiểu cách chơi" và "không dừng được" cho 11/20 người chỉ vì họ không vào chơi. Theo cách chấm v2, hai câu này chỉ tính cho người đã vào chơi: Codex 9/9 đạt cả hai, Claude 67/67 đạt cả hai. Hết lệch.
+- **Một cờ "bị trách" của Codex** (người giả P027, cả hai mốc, cùng một câu): "Việc treo lâu thường nặng hơn khi nghĩ tới so với khi làm." Người này là sinh viên năm cuối đang làm khóa luận và đi phỏng vấn, không có ai để tâm sự. Đọc câu đó, họ hiểu là Lá cho rằng việc chỉ nặng vì mình nghĩ nhiều, trong khi việc của họ khó thật. Lời chê: "Khóa luận với bài tuyển dụng khó thật, nói như mình chỉ nghĩ nhiều nên thấy nặng thì khó chịu." Giám khảo Claude không gắn cờ này cho P027. Câu này là ví dụ trong mock, không phải câu kế hoạch đã chốt. Bài học cho kho câu: lời của Lá không ngụ ý nỗi khó là do người dùng tự nghĩ ra.
 
 ## Gợi ý chỉnh kế hoạch (suy ra từ lời chê, chưa thử lại)
 
@@ -71,8 +73,8 @@
 | PR 13: hiểu là chuyện minh họa | 100% | — | 100/100 (đạt) |
 | PR 13: không thấy bị phủ nhận nỗi khó | 100% | — | 99/100 (trượt) |
 | PR 13: không thấy bị hứa suông | 100% | — | 100/100 (đạt) |
-| PR 14: hiểu cách chơi | ≥ 90% | — | 100/100 (đạt) |
-| PR 14: dừng chơi được | 100% | — | 100/100 (đạt) |
+| PR 14: hiểu cách chơi (người đã vào chơi) | ≥ 90% | — | 67/67 (đạt) |
+| PR 14: dừng chơi được (người đã vào chơi) | 100% | — | 67/67 (đạt) |
 | PR 14: không thấy bị chạm nỗi đau | 100% | — | 93/100 (trượt) |
 | PR 12: quay lại sau 2 tuần không bị trách, không việc tồn (mốc A) | 100% | bị trách 0/25, việc tồn 0/25 (đạt) |  |
 | PR 12: quay lại sau 2 tuần không bị trách, không việc tồn (mốc B) | 100% | bị trách 0/25, việc tồn 0/25 (đạt) |  |
@@ -206,7 +208,7 @@ Lượt nền không có tình huống hôm nay; cột nền ở bảng này và
 - Codex, biến thể hỏi lại: thấy bị kiểm tra 12/20, giúp 1,50.
 - Mốc A: câu kiểm trả lời ngược nhau: `found_right_path` 8, `reason_vs_interpretation_clear` 5, `fits_after_change` 4, `found_mood_and_angle` 3, `profile_notice_clear` 2. Lệch điểm hiểu mình từ 2 trở lên: không có.
   - Cờ trên 20 người: Codex bị trách 1, bị ép 0, lo riêng tư 2, phụ thuộc 0, phải xem Lá mới dám quyết 0; Claude bị trách 0, bị ép 1, lo riêng tư 2, phụ thuộc 0, phải xem Lá mới dám quyết 0.
-- Mốc B: câu kiểm trả lời ngược nhau: `game_understood` 11, `game_could_stop` 11, `fits_after_change` 7, `found_right_path` 7, `reason_vs_interpretation_clear` 5, `game_hurt` 2, `found_mood_and_angle` 2, `profile_notice_clear` 2, `story_denied_difficulty` 1. Lệch điểm hiểu mình từ 2 trở lên: không có.
+- Mốc B: câu kiểm trả lời ngược nhau: `fits_after_change` 7, `found_right_path` 7, `reason_vs_interpretation_clear` 5, `game_hurt` 2, `found_mood_and_angle` 2, `profile_notice_clear` 2, `story_denied_difficulty` 1. Lệch điểm hiểu mình từ 2 trở lên: không có.
   - Cờ trên 20 người: Codex bị trách 1, bị ép 1, lo riêng tư 2, phụ thuộc 0, phải xem Lá mới dám quyết 0; Claude bị trách 0, bị ép 3, lo riêng tư 2, phụ thuộc 0, phải xem Lá mới dám quyết 0.
 - Vài lời chê của Codex (mốc B):
   - "Mình năm ba rồi, chuyện mới vào trường chỉ giống mỗi đoạn ngồi một mình."

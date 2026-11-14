@@ -103,3 +103,18 @@ def test_merged_plan_packets_use_plain_moods_and_reproduce_baseline() -> None:
     assert len(base) == 100
     assert round(sum(base.values()) / len(base), 2) == 2.23
     assert sum(1 for v in base.values() if v >= 3) == 11
+
+
+def test_merged_plan_game_checks_not_applicable_for_non_players() -> None:
+    from scripts.persona_plan import drop_not_played, share
+
+    rows = [
+        {"persona": "P1", "moment": "B", "checks": {"game_understood": False, "game_hurt": False}},
+        {"persona": "P2", "moment": "B", "checks": {"game_understood": True}},
+        {"persona": "P3", "moment": "B", "checks": {"game_understood": None}},
+        {"persona": "P1", "moment": "A", "checks": {"found_right_path": True}},
+    ]
+    assert drop_not_played(rows, {"P1": False, "P2": True}) == 1
+    assert "game_understood" not in rows[0]["checks"]
+    assert rows[0]["checks"]["game_hurt"] is False
+    assert share(rows, "game_understood", True) == (1, 1)

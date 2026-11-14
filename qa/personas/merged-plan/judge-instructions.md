@@ -1,6 +1,8 @@
 # Giám khảo mù: kế hoạch gộp, hai mốc
 
-Phiên bản `merged-plan-judge-v1-2026-11-14`. Giám khảo chỉ đọc file này, `mocks.md` và gói người giả của mình.
+Phiên bản `merged-plan-judge-v2-2026-11-14`. Giám khảo chỉ đọc file này, `mocks.md` và gói người giả của mình.
+
+Đổi ở v2 (14.11, góp ý P-8 của Codex): `game_understood` và `game_could_stop` chỉ chấm cho người giả **đã vào** "Chơi một chút". Người không vào chơi ghi `null` cho hai khóa này, nghĩa là "không áp dụng", không phải trượt. Các điểm đã chấm bằng v1 không chấm lại: ai đã vào chơi được đánh dấu tay theo `path_chosen` của chính giám khảo đó, lưu ở `judged/played-game.json`, và báo cáo bỏ hai khóa này với người không vào chơi.
 
 Mỗi người giả là một người hư cấu: hoàn cảnh, mức tin chiêm tinh, dữ liệu đã nhập vào app, **tình huống hôm nay** (rất mệt / vừa quay lại sau hai tuần / điện thoại dùng chung / không có ai an toàn để tâm sự) và **mood hôm nay**.
 
@@ -43,8 +45,8 @@ Chấm từ góc nhìn người giả, không chấm độ hay của câu chữ.
 | `story_understood_as_illustration` | Hiểu chuyện ngắn là chuyện minh họa, không phải lời kể của người thật. | B |
 | `story_denied_difficulty` | Thấy chuyện ngắn coi nhẹ nỗi khó của mình. | B |
 | `story_false_promise` | Thấy chuyện ngắn hứa suông kiểu "rồi sẽ ổn". | B |
-| `game_understood` | Hiểu cách chơi chuyện vui ngay. | B |
-| `game_could_stop` | Thấy dừng chơi được bất cứ lúc nào. | B |
+| `game_understood` | Hiểu cách chơi chuyện vui ngay. Không vào chơi thì `null`. | B |
+| `game_could_stop` | Thấy dừng chơi được bất cứ lúc nào. Không vào chơi thì `null`. | B |
 | `game_hurt` | Có chỗ trong chuyện vui chạm vào nỗi đau của mình. | B |
 
 ## Mục ask: trả lời

@@ -87,8 +87,8 @@ TARGETS: list[tuple[str, str, bool, float, tuple[str, ...]]] = [
     ("PR 13: hiểu là chuyện minh họa", "story_understood_as_illustration", True, 1.0, ("B",)),
     ("PR 13: không thấy bị phủ nhận nỗi khó", "story_denied_difficulty", False, 1.0, ("B",)),
     ("PR 13: không thấy bị hứa suông", "story_false_promise", False, 1.0, ("B",)),
-    ("PR 14: hiểu cách chơi", "game_understood", True, 0.90, ("B",)),
-    ("PR 14: dừng chơi được", "game_could_stop", True, 1.0, ("B",)),
+    ("PR 14: hiểu cách chơi (người đã vào chơi)", "game_understood", True, 0.90, ("B",)),
+    ("PR 14: dừng chơi được (người đã vào chơi)", "game_could_stop", True, 1.0, ("B",)),
     ("PR 14: không thấy bị chạm nỗi đau", "game_hurt", False, 1.0, ("B",)),
 ]
 CODE_ONLY = [
@@ -158,6 +158,26 @@ def cmd_packets(out: Path, batches: int) -> None:
     print(f"{len(rows)} personas in {batches} batches; codex sample {len(sample)}")
 
 
+GAME_ONLY_CHECKS = ("game_understood", "game_could_stop")
+PLAYED = QA / "merged-plan" / "judged" / "played-game.json"
+
+
+def drop_not_played(rows: Sequence[dict[str, Any]], played: Mapping[str, bool]) -> int:
+    """Judge rubric v2 (P-8): the two game checks apply only to personas who entered the game.
+
+    Rows of personas who did not play lose those keys, so they count as "không áp dụng",
+    not as a fail. Returns how many moment-B rows were marked not applicable.
+    """
+
+    marked = 0
+    for r in rows:
+        if r["moment"] == "B" and not played.get(r["persona"], True):
+            for key in GAME_ONLY_CHECKS:
+                r.get("checks", {}).pop(key, None)
+            marked += 1
+    return marked
+
+
 def load_rows(paths: Iterable[str]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for path in paths:
@@ -199,7 +219,7 @@ def baseline_understood() -> dict[str, float]:
 
 
 def share(rows: Sequence[Mapping[str, Any]], check: str, wanted: bool) -> tuple[int, int]:
-    answered = [r for r in rows if check in r.get("checks", {})]
+    answered = [r for r in rows if r.get("checks", {}).get(check) is not None]
     return sum(1 for r in answered if bool(r["checks"][check]) is wanted), len(answered)
 
 
@@ -221,6 +241,9 @@ def cmd_report(claude: list[str], codex: list[str], out: Path, summary: str | No
     base = baseline_understood()
     rows = load_rows(claude)
     crows = load_rows(codex) if codex else []
+    played = json.loads(PLAYED.read_text(encoding="utf-8")) if PLAYED.exists() else {}
+    na_claude = drop_not_played(rows, played.get("claude", {}))
+    na_codex = drop_not_played(crows, played.get("codex", {}))
     for r in rows + crows:
         p = people[r["persona"]]
         r["group"] = GROUPS[p["segment"]]
@@ -255,6 +278,12 @@ def cmd_report(claude: list[str], codex: list[str], out: Path, summary: str | No
         "Loại hồ sơ theo người giả: 30 chỉ ngày sinh, 20 giờ khoảng, 50 giờ và nơi chính xác.",
         f"- Giám khảo: 7 Claude subagent riêng, mù với ngưỡng và số nền, chấm {len(rows)} mục. "
         f"Codex chấm độc lập {len(crows)} mục (20 người chọn đều theo nhóm, cùng mẫu lần trước).",
+        "- Cách chấm v2 (14.11, góp ý P-8 của Codex): 'hiểu cách chơi' và 'dừng chơi được' chỉ "
+        "tính cho người đã vào chơi. Người không vào chơi ghi 'không áp dụng', "
+        "không tính là trượt: "
+        f"{na_claude}/100 người ở giám khảo Claude, {na_codex}/20 ở Codex. Ai đã vào chơi được "
+        "đánh dấu tay theo đường đi mỗi giám khảo ghi lại "
+        "(`merged-plan/judged/played-game.json`), không chấm lại.",
         "",
     ]
     if missing:
@@ -573,7 +602,8 @@ def cmd_report(claude: list[str], codex: list[str], out: Path, summary: str | No
                 if not x:
                     continue
                 for chk, val in c.get("checks", {}).items():
-                    if chk in x.get("checks", {}) and bool(val) != bool(x["checks"][chk]):
+                    other = x.get("checks", {}).get(chk)
+                    if val is not None and other is not None and bool(val) != bool(other):
                         disagree[chk] += 1
             far = [
                 c["persona"]
