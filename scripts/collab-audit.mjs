@@ -14,7 +14,10 @@ import { clean, dayStatePath, integration, makeGh, readJson, repo, reviewState, 
 
 export const experimentDir = join(stateDir, 'experiment');
 const reason = error => clean(String(error?.message ?? error).split('\n')[0], 160);
-const unmeasured = why => ({ value: null, missing: why });
+export const unmeasured = why => ({ value: null, missing: clean(why || 'không rõ lý do', 300) });
+// One Codex run a day is kept back from reviews and the copy batch, so the night audit (L21b) is
+// not starved by a busy day (Codex 14.11). Every automatic path stops at codexDailyCap - auditReserve.
+export const auditReserve = 1;
 const median = xs => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 export const dayRange = date => `${date}T00:00:00+07:00..${date}T23:59:59+07:00`;
 
@@ -119,15 +122,44 @@ export function collectFacts({ date, gh = makeGh(), now = new Date(), outputs = 
   return facts;
 }
 
+// The record = facts of part (a) + Codex's judgement (part b, collab-audit-night.mjs); M1 and M3
+// in `metrics` come from the judgement.
+export function withJudgement(facts, judgement) {
+  const metrics = { ...facts.metrics };
+  if (judgement?.result) {
+    metrics.M1 = judgement.result.M1;
+    metrics.M3 = { ...judgement.result.M3, candidates: facts.metrics.M3?.candidates };
+  } else if (judgement?.missing) {
+    metrics.M1 = unmeasured(judgement.missing);
+    metrics.M3 = { ...unmeasured(judgement.missing), candidates: facts.metrics.M3?.candidates };
+  }
+  return { ...facts, metrics, ...(judgement ? { judgement } : {}) };
+}
+
 // Same date, same file: a re-run replaces the provisional facts, never duplicates them, and a
-// final record is never replaced by a provisional one.
+// final record is never replaced by a provisional one. A re-run by hand keeps Codex's judgement
+// and the posted comment of part (b).
 export function saveFacts(facts, dir = experimentDir) {
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${facts.date}.json`);
   const old = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
   if (old?.final && !facts.final) return { path, kept: true };
-  writeFileSync(path, `${JSON.stringify(facts, null, 1)}\n`);
+  const record = old?.judgement ? { ...withJudgement(facts, old.judgement), posted: old.posted ?? null } : facts;
+  writeFileSync(path, `${JSON.stringify(record, null, 1)}\n`);
   return { path, kept: false };
+}
+
+// The register and the disagreement log arrive in other PRs (#481); without them M4/M8 stay
+// unmeasured. lessons(date) returns the register summary for that day.
+export async function loadAuditDeps() {
+  let lessons = null;
+  try {
+    const mod = await import('./collab-lessons.mjs');
+    lessons = date => { const reg = mod.readRegister(); return mod.summarize(reg, { today: date, verified: mod.verify(reg) }); };
+  } catch { lessons = null; }
+  let disagreements = null;
+  try { const mod = await import('./collab-disagree.mjs'); disagreements = () => mod.read(); } catch { disagreements = null; }
+  return { lessons, disagreements };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -135,13 +167,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const args = process.argv.slice(2);
     const date = args.includes('--date') ? args[args.indexOf('--date') + 1] : vnNow().date;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '')) throw new Error('--date YYYY-MM-DD');
-    let lessons = null;
-    try {
-      const mod = await import('./collab-lessons.mjs');
-      lessons = () => { const reg = mod.readRegister(); return mod.summarize(reg, { today: date, verified: mod.verify(reg) }); };
-    } catch { lessons = null; }
-    let disagreements = () => [];
-    try { const mod = await import('./collab-disagree.mjs'); disagreements = () => mod.read(); } catch {}
+    const deps = await loadAuditDeps();
+    const lessons = deps.lessons ? () => deps.lessons(date) : null;
+    const disagreements = deps.disagreements ?? (() => []);
     const facts = collectFacts({ date, lessons, disagreements });
     const saved = saveFacts(facts);
     process.stdout.write(`${JSON.stringify({ ...facts, saved })}\n`);
