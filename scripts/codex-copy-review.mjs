@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
+import { dispatch } from './collab-dispatch.mjs';
 import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -153,14 +154,14 @@ function runCodex(prompt, outPath, run) {
 export const batchBranch = (at = vnNow(), nonce = randomBytes(3).toString('hex')) =>
   `agent/claude/copy-batch-${at.date.replaceAll('-', '')}-${String(at.hour).padStart(2, '0')}${String(at.minute).padStart(2, '0')}-${nonce}`;
 
-function openBatchPr(registry, body, date, base, run, at) {
+function openBatchPr(registry, body, date, base, run, at, gate = {}) {
   const branch = batchBranch(at);
   const dir = mkdtempSync(join(tmpdir(), 'copy-batch-'));
   const git = args => run('git', args, { cwd: root, encoding: 'utf8' });
   git(['worktree', 'add', '-q', '-b', branch, join(dir, 'w'), base]);
   const work = join(dir, 'w');
   // The tick runs this daily from the ops clone: drop the worktree (and its venv) when done.
-  try { return publishBatch(registry, body, date, branch, work, dir, run); }
+  try { return publishBatch(registry, body, date, branch, work, dir, run, { base, gate }); }
   finally {
     try { git(['worktree', 'remove', '--force', work]); } catch {}
     try { git(['branch', '-D', branch]); } catch {}
@@ -171,7 +172,16 @@ function openBatchPr(registry, body, date, base, run, at) {
 // batch failed here). Exported so a test commits with these exact arguments in a real repository.
 export const commitArgs = date => ['-c', 'user.name=la-lanh-agent', '-c', 'user.email=la-lanh-agent@users.noreply.github.com', 'commit', '-q', '-m', `content(copy): Codex copy batch ${date}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`];
 
-function publishBatch(registry, body, date, branch, work, dir, run) {
+// L06: the batch worktree is checked before the first write (its own branch, on the reviewed
+// commit, clean, not a shared clone, tools present, nobody else in it); a failed check writes
+// nothing and the tick reports the error. `gate` is for tests.
+export function publishBatch(registry, body, date, branch, work, dir, run, { base = null, gate = {} } = {}) {
+  const pass = dispatch({ dir: work, branch, profile: 'batch', expectHead: base, ...gate, worker: () => writeBatch(registry, body, date, branch, work, dir, run) });
+  if (pass.status !== 'PASS') throw new Error(`kiểm trước khi ghi trượt: ${pass.reasons.join(', ')}`);
+  return pass.result;
+}
+
+function writeBatch(registry, body, date, branch, work, dir, run) {
   writeFileSync(join(work, registryRel), `${JSON.stringify(registry, null, 1)}\n`);
   run('uv', ['run', 'python', '-m', 'scripts.fallback_approval'], { cwd: join(work, 'apps/api'), encoding: 'utf8' });
   const at = args => run('git', args, { cwd: work, encoding: 'utf8' });
@@ -186,7 +196,7 @@ function publishBatch(registry, body, date, branch, work, dir, run) {
 }
 
 export function main(argv, { run = execFileSync, out = process.stdout, registryPath = null, rejectedFile = registryPath ? null : rejectedPath,
-  savedFile = registryPath ? null : savedPath, progress = {}, at = vnNow() } = {}) {
+  savedFile = registryPath ? null : savedPath, progress = {}, at = vnNow(), gate = {} } = {}) {
   const dryRun = argv.includes('--dry-run');
   const fakeAt = argv.indexOf('--fake-codex');
   // Review a pinned integration snapshot unless a test passes its own registry file.
@@ -229,7 +239,7 @@ export function main(argv, { run = execFileSync, out = process.stdout, registryP
     out.write('no copy approved in this batch\n'); return { status: 'no-approvals', registry: next, body };
   }
   if (!base) throw new Error('publishing needs the integration snapshot (no --registry file)');
-  const url = openBatchPr(next, body, date, base, run, at);
+  const url = openBatchPr(next, body, date, base, run, at, gate);
   if (savedFile) dropSaved(savedFile);
   out.write(`${url}\n`);
   return { status: 'opened', url };
