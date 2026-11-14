@@ -1,6 +1,7 @@
 import './collab-test-home.mjs';
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
+import { withFileLock } from './collab-lock.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -513,4 +514,22 @@ test('L25: a crash recovery keeps the head the question was asked at; a moved or
     assert.equal(old.w.settle()[0].status, 'stale', 'fail closed: no timeout');
     assert.equal(old.w.state_(old.id).decided, null);
   }
+});
+
+test('L25: a round or a withdrawal cannot land while settlement holds the dispute lock', () => {
+  const path = join(mkdtempSync(join(tmpdir(), 'disputes-lock-')), 'disputes.jsonl');
+  const head = 'b'.repeat(40);
+  const first = L25.openRound({ pr: 777, round: 1, claude: 'a', codex: 'b', head, path });
+  L25.openRound({ id: first.id, round: 2, claude: 'a2', codex: 'b2', head, path });
+  const before = read(path).length;
+  // Settlement holds the lock from its snapshot to its decision; a writer in that window is refused.
+  const inside = withFileLock(L25.disputeLockPath(), { staleMs: 60000, busy: 'outer-busy' }, () => ({
+    round: L25.openRound({ id: first.id, round: 2, claude: 'lý lẽ mới', codex: 'b3', head, path }),
+    withdraw: L25.withdraw({ id: first.id, note: 'rút', path }),
+  }));
+  assert.deepEqual(inside, { round: { status: 'busy' }, withdraw: { status: 'busy' } });
+  assert.equal(read(path).length, before, 'nothing was appended while the lock was held');
+  // Once released, the same writes go through.
+  assert.notEqual(L25.openRound({ id: first.id, round: 2, claude: 'lý lẽ mới', codex: 'b3', head, path })?.status, 'busy');
+  assert.notEqual(L25.withdraw({ id: first.id, note: 'rút', path })?.status, 'busy');
 });

@@ -155,7 +155,14 @@ function isSuperseded(d) {
   return Boolean(q) && !(q.rounds === d.rounds.length && askedRound(d, q));
 }
 
-export function openRound({ id, pr, task, issue, round, claude, codex, codexConclusion, head, ownerOnly = false, group, nowMs = Date.now(), path = disputePath } = {}) {
+// Codex r3 on #520: every writer holds the same lock as settlement for its whole
+// read/validate/append, so a round or a withdrawal cannot land between settlement's snapshot and
+// its decision. A busy lock returns { status: 'busy' } and writes nothing; the caller retries.
+export const disputeLockPath = () => join(stateDir, 'disputes.lock');
+const locked = fn => withFileLock(disputeLockPath(), { staleMs: 15 * 60000, busy: { status: 'busy' } }, fn);
+
+export function openRound(args = {}) { return locked(() => openRoundUnlocked(args)); }
+function openRoundUnlocked({ id, pr, task, issue, round, claude, codex, codexConclusion, head, ownerOnly = false, group, nowMs = Date.now(), path = disputePath } = {}) {
   const r = Number(round);
   if (![1, 2].includes(r)) throw new Error('--round must be 1 or 2 (at most two rounds)');
   if (!String(claude ?? '').trim() || !String(codex ?? '').trim()) throw new Error('both positions are required');
@@ -288,8 +295,6 @@ function send(d, { gh, notify, nowMs, path, labels }) {
   return notifyOwner(d, q, { notify, nowMs, path });
 }
 
-const lockPath = () => join(stateDir, 'disputes.lock');
-const locked = fn => withFileLock(lockPath(), { staleMs: 15 * 60000, busy: { status: 'busy' } }, fn);
 
 export function escalate({ id, gh = makeGh(), notify = osNotify, nowMs = Date.now(), path = disputePath } = {}) {
   return locked(() => {
@@ -311,7 +316,8 @@ export function escalate({ id, gh = makeGh(), notify = osNotify, nowMs = Date.no
   });
 }
 
-export function withdraw({ id, note, nowMs = Date.now(), path = disputePath } = {}) {
+export function withdraw(args = {}) { return locked(() => withdrawUnlocked(args)); }
+function withdrawUnlocked({ id, note, nowMs = Date.now(), path = disputePath } = {}) {
   if (!String(note ?? '').trim()) throw new Error('--note is required to withdraw a dispute');
   const d = disputes(read(path)).get(id);
   if (!d) throw new Error(`no dispute ${id}`);
