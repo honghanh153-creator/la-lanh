@@ -156,7 +156,7 @@ test('L25: a crash after sending does not send a second question', () => {
   const id = w.open();
   // The first run posted the comment and died before writing "sent".
   append({ at: isoAt(w.now), type: 'escalate', id }, w.path);
-  w.comments.push({ authorAssociation: 'OWNER', createdAt: isoAt(w.now), body: `câu hỏi\n${L25.questionMarker(id, 1, true)}` });
+  w.comments.push({ authorAssociation: 'OWNER', createdAt: isoAt(w.now), body: `câu hỏi\n${L25.questionMarker(id, 1, true, undefined, A)}` });
   w.labels.push('needs-owner');
   w.labelEvents.push({ event: 'labeled', at: isoAt(w.now) });
   append({ at: isoAt(w.now), type: 'label-added', id, target: 'pr:515' }, w.path);
@@ -368,7 +368,7 @@ test('L25: a decision uses the round that was sent, also after a crash between t
   const id = w.open();
   // The first run posted question 1 showing round 2 (r=2) and died before writing "sent".
   append({ at: isoAt(w.now), type: 'escalate', id }, w.path);
-  w.comments.push({ authorAssociation: 'OWNER', createdAt: isoAt(w.now), body: `câu hỏi\n${L25.questionMarker(id, 1, false, 2)}` });
+  w.comments.push({ authorAssociation: 'OWNER', createdAt: isoAt(w.now), body: `câu hỏi\n${L25.questionMarker(id, 1, false, 2, A)}` });
   // A changed round is recorded before the recovery.
   L25.openRound({ id, round: 2, claude: 'Claude đề xuất B', codex: 'Codex đề xuất B', head: A, nowMs: w.now, path: w.path });
   w.now = vn(14, 10, 5);
@@ -442,4 +442,75 @@ test('L25: a reply names any id that --open accepts, and a malformed id never co
   w.ownerSays('Theo Codex privacy-review');
   assert.equal(w.settle()[0].status, 'waiting');
   assert.equal(w.state_(ids[0]).decided, null);
+});
+
+test('L25: a one-line reply that also holds the PR decides but keeps needs-owner; only an exact bare reply frees it', () => {
+  const run = (body, number = 515) => {
+    const w = world({ number });
+    const id = w.open();
+    w.escalate(id);
+    assert.deepEqual(w.labels, ['needs-owner']);
+    w.now = vn(14, 10, 10);
+    w.ownerSays(body);
+    const r = w.settle()[0];
+    return { w, r, removed: read(w.path).some(e => e.type === 'label-removed') };
+  };
+  // Codex 15.11, verbatim: picks Codex and asks for an independent hold on the same line.
+  const held = run('Theo Codex, nhưng đừng merge vì chưa duyệt lời UI.');
+  assert.deepEqual([held.r.status, held.r.decidedBy, held.r.chosen], ['decided', 'owner', 'codex']);
+  assert.deepEqual(held.w.labels, ['needs-owner'], 'the independent hold keeps the label');
+  assert.equal(held.removed, false, 'nothing removes the label');
+  // Extra words fail closed: the choice counts, the label stays.
+  const nhe = run('Theo Codex nhé');
+  assert.deepEqual([nhe.r.status, nhe.r.chosen], ['decided', 'codex']);
+  assert.deepEqual(nhe.w.labels, ['needs-owner']);
+  assert.equal(nhe.removed, false);
+  // An exact bare reply, with or without its id and a final '.', still frees the label it added.
+  for (const [body, number] of [['Theo Codex', 515], ['  theo   codex  ', 515], ['Theo Codex pr520-1.', 520], ['Theo Claude!', 515]]) {
+    const bare = run(body, number);
+    assert.equal(bare.r.status, 'decided', body);
+    assert.deepEqual(bare.w.labels, [], `${body}: the label the escalation added is removed`);
+    assert.equal(bare.removed, true, body);
+  }
+});
+
+test('L25: a crash recovery keeps the head the question was asked at; a moved or unknown head is stale, never timed out', () => {
+  const crash = marker => {
+    const w = world();
+    const id = w.open();
+    // The first run posted question 1 at head A and died before writing "sent"; then B was pushed.
+    append({ at: isoAt(w.now), type: 'escalate', id }, w.path);
+    w.comments.push({ authorAssociation: 'OWNER', createdAt: isoAt(w.now), body: `câu hỏi\n${marker(id)}` });
+    w.labels.push('needs-owner');
+    w.labelEvents.push({ event: 'labeled', at: isoAt(w.now) });
+    append({ at: isoAt(w.now), type: 'label-added', id, target: 'pr:515' }, w.path);
+    return { w, id };
+  };
+  const { w, id } = crash(d => L25.questionMarker(d, 1, true, 2, A));
+  w.head = B;
+  w.now = vn(14, 10, 5);
+  assert.equal(w.settle()[0].status, 'stale');
+  assert.equal(w.questions().length, 0, 'nothing new was posted');
+  assert.equal(w.notes.length, 0, 'the owner is not told about a stale question');
+  const q = w.state_(id).questions;
+  assert.deepEqual([q.length, q[0].head, q[0].recovered], [1, A, true], 'the question head is A, not B');
+  w.now = vn(14, 11);
+  assert.equal(w.settle()[0].status, 'stale', 'no timeout decision');
+  assert.equal(w.state_(id).decided, null);
+  assert.deepEqual(read(w.logFile), []);
+  assert.match(L25.disputeView(read(w.path))[515].hold, /head đổi/);
+  assert.equal(w.escalate(id).clock, 'started', 'the new head may be asked');
+  assert.equal(w.state_(id).questions[1].head, B);
+  // The marker a question carries names its head.
+  assert.match(w.questions()[0].body, new RegExp(`q=2 r=2 h=${B}`));
+  // A marker without h= (or a malformed one) recovers as stale even when the head did not move.
+  for (const marker of [d => L25.questionMarker(d, 1, true, 2), d => L25.questionMarker(d, 1, true, 2, 'not-a-sha')]) {
+    const old = crash(marker);
+    old.w.now = vn(14, 10, 5);
+    assert.equal(old.w.settle()[0].status, 'stale');
+    assert.equal(old.w.state_(old.id).questions[0].head, null);
+    old.w.now = vn(14, 11);
+    assert.equal(old.w.settle()[0].status, 'stale', 'fail closed: no timeout');
+    assert.equal(old.w.state_(old.id).decided, null);
+  }
 });

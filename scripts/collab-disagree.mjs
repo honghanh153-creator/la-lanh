@@ -192,9 +192,11 @@ export function parseDisputeReply(body) {
   return /[\d_.-]/.test(word) ? { chosen: m[1], id: null, invalid: word } : { chosen: m[1], id: null };
 }
 
-const markerRe = /<!-- la-lanh-agent disagree id=(\S+) q=(\d+)(?: r=(\d+))?( label=added)? -->/;
-// r is the number of rounds the question shows, so a crash recovery knows which arguments were sent.
-export const questionMarker = (id, q, label, rounds) => `${agentMarker} disagree id=${id} q=${q}${rounds ? ` r=${rounds}` : ''}${label ? ' label=added' : ''} -->`;
+const markerRe = /<!-- la-lanh-agent disagree id=(\S+) q=(\d+)(?: r=(\d+))?(?: h=(\S+))?( label=added)? -->/;
+// r is the number of rounds the question shows and h the PR head it was asked at, so a crash
+// recovery knows which arguments and which head were sent (Codex 15.11: the head may move between
+// the post and the recovery).
+export const questionMarker = (id, q, label, rounds, head) => `${agentMarker} disagree id=${id} q=${q}${rounds ? ` r=${rounds}` : ''}${head ? ` h=${head}` : ''}${label ? ' label=added' : ''} -->`;
 export const decidedMarker = id => `${agentMarker} disagree-decided id=${id} -->`;
 const findQuestion = (comments, id, q) => comments.filter(isTrusted).find(c => { const m = markerRe.exec(c.body ?? ''); return m && m[1] === id && Number(m[2]) === q; });
 
@@ -204,7 +206,7 @@ function readTarget(gh, t) {
 }
 
 const quote = text => clean(text, 500).replace(/<!--/g, '&lt;!--').split('\n').map(l => `> ${l}`).join('\n');
-function questionBody(d, q, label, rounds) {
+function questionBody(d, q, label, rounds, head) {
   const last = lastRound(d);
   const where = d.pr ? `PR #${d.pr}` : `việc ${d.task}`;
   return [
@@ -216,7 +218,7 @@ function questionBody(d, q, label, rounds) {
     d.ownerOnly
       ? 'Việc này chỉ owner quyết, nên vòng tự động chờ owner và không tự chốt.'
       : 'Ban ngày (08:00–22:00), sau 30 phút chưa có trả lời thì làm theo Codex và ghi "chốt do hết giờ". Ngoài giờ đó thì chờ tới sáng, hỏi lại rồi mới tính 30 phút.',
-    '', questionMarker(d.id, q, label, rounds),
+    '', questionMarker(d.id, q, label, rounds, head),
   ].join('\n');
 }
 
@@ -257,8 +259,12 @@ function send(d, { gh, notify, nowMs, path, labels }) {
   const key = targetKey(t);
   const found = findQuestion(tg.comments, d.id, q);
   let askedAt = found?.createdAt ?? null;
-  // The body shows the latest round of this snapshot; a recovered comment says which round it showed.
-  const rounds = found ? Number(markerRe.exec(found.body ?? '')?.[3]) || d.rounds.length : d.rounds.length;
+  // The body shows the latest round of this snapshot; a recovered comment says which round it showed
+  // and at which head. A recovered PR question without a valid h= is treated as asked at an unknown
+  // head (fail closed): stale, never current.
+  const marker = found ? markerRe.exec(found.body ?? '') : null;
+  const rounds = found ? Number(marker?.[3]) || d.rounds.length : d.rounds.length;
+  const head = found ? (t.kind === 'pr' && isSha(marker?.[4]) ? marker[4] : null) : tg.head;
   if (!found) {
     try {
       if (!tg.labels.includes('needs-owner')) {
@@ -267,13 +273,18 @@ function send(d, { gh, notify, nowMs, path, labels }) {
         labels.set(key, { type: 'label-added', at: iso(nowMs) });
       }
       askedAt = iso(nowMs);
-      gh.comment(t.kind, t.number, questionBody(d, q, labels.get(key)?.type === 'label-added', rounds));
+      gh.comment(t.kind, t.number, questionBody(d, q, labels.get(key)?.type === 'label-added', rounds, t.kind === 'pr' ? head : null));
     } catch (error) {
       record(path, nowMs, { type: 'send-failed', id: d.id, q, error: clean(error.message, 200) });
       throw error;
     }
   }
-  record(path, nowMs, { type: 'sent', id: d.id, q, askedAt, head: tg.head, rounds, key: questionKey(tg.head, rounds), ...(found ? { recovered: true } : {}) });
+  record(path, nowMs, { type: 'sent', id: d.id, q, askedAt, head, rounds, key: questionKey(head, rounds), ...(found ? { recovered: true } : {}) });
+  // A recovered question asked at another (or an unknown) head is stale: no notification, no clock.
+  if (t.kind === 'pr' && head !== tg.head) {
+    record(path, nowMs, { type: 'stale', id: d.id, q, head, newHead: tg.head });
+    return { status: 'stale', q };
+  }
   return notifyOwner(d, q, { notify, nowMs, path });
 }
 
@@ -338,10 +349,12 @@ function otherOwnerReason(d, all) {
 // removes it only when it added the label and nothing touched the owner hold since. Fail closed:
 // any doubt keeps the label and the owner removes it.
 const isDisputeComment = body => /<!-- la-lanh-agent disagree(-decided)? id=/.test(body);
-// A bare "Theo Claude/Codex [id]" answers the dispute; anything longer may carry another hold.
+// Codex 15.11: only a WHOLE comment that is exactly "Theo Claude|Codex [id][.!]" leaves the hold
+// alone. Any other word, even on the same line ("Theo Codex, nhưng đừng merge"), still picks a side
+// but may carry another hold, so needs-owner stays.
 const isBareReply = body => {
-  const lines = String(body ?? '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  return lines.length === 1 && Boolean(parseDisputeReply(lines[0])) && !/needs-owner|\bgiu\b/.test(fold(lines[0]));
+  const m = /^theo (claude|codex)(?: (\S+?))?[.!]?$/i.exec(String(body ?? '').normalize('NFC').replace(/\s+/g, ' ').trim());
+  return Boolean(m) && (m[2] === undefined || disputeIdRe.test(m[2]));
 };
 function holdTouched(tg, since) {
   for (const c of tg.comments) {
@@ -427,8 +440,8 @@ function settleOne(d, ctx) {
     .map(c => ({ ...parseDisputeReply(c.body), at: timeOf(c.createdAt) })).filter(r => r.chosen && !r.invalid && (r.id ? r.id === d.id.toLowerCase() : alone(r.at))).at(-1);
   if (reply && !superseded) { decide(d, { decidedBy: 'owner', chosen: reply.chosen, q, head: tg.head, nowMs, path }); return finish(d, ctx); }
   if (status === 'sending') return send(d, ctx);
-  if (!q.notifiedAt) return notifyOwner(d, q.q, ctx);
   if (status === 'stale') return { status: 'stale' };
+  if (!q.notifiedAt) return notifyOwner(d, q.q, ctx);
   // The head moved since the question: the owner was asked about something else, so no auto decision.
   if (t.kind === 'pr' && tg.head !== q.head) {
     record(path, nowMs, { type: 'stale', id: d.id, q: q.q, head: q.head, newHead: tg.head });
