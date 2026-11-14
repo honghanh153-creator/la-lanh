@@ -592,6 +592,40 @@ Then complete a synthetic data-writing test:
 
 Do not use real birth or relationship data for this operator test.
 
+### Product journey review (required since 2026-11-13)
+
+The scripts above prove the API contract. They do not show what a person sees. On 2026-11-13 a
+release passed every technical check, but nobody had used the product on a phone afterwards, and
+the owner had to ask for it. From that release on, a release is not finished until all four steps
+below are done and recorded in the receipt.
+
+1. From a trusted local checkout of the released commit, with web dependencies installed:
+
+   ```sh
+   LA_LANH_SMOKE_WRITE_CONSENT=synthetic-only pnpm qa:journey https://la-lanh.2-28-136-44.sslip.io <out-dir>
+   ```
+
+   Headless Chromium at 390 px goes through: welcome → consent → synthetic date, time and place →
+   reveal → home → full note → share link → revoke → mood → overview (Western, Jyotish) → current sky
+   → Aura → birth card → Tarot (one card drawn) → Radar → saved → profile → delete via
+   "Xóa Lá và dữ liệu". It writes `journey.json` (routes with IDs redacted, ready time, horizontal
+   overflow, controls under 44 px, console and 5xx errors), one screenshot and one text file per step.
+   It never writes cookies, tokens, share links or IDs. Exit 0 needs every required step to pass and
+   the guest to be deleted. Keep `<out-dir>` outside git; it holds screenshots of synthetic data only.
+2. **Claude review:** look at every screenshot. Score each flow on working, clarity, feel (calm,
+   joyful, "feel understood"), speed and phone layout, and list copy that is poetic, explains
+   mechanism or mixes English.
+3. **Codex review:** `codex exec -s read-only` in `<out-dir>`, with the same criteria and the
+   released source tree for reference. Codex works from the files; it needs no network.
+4. **Owner report:** one plain Vietnamese report in chat and a push: verdict, scores, top problems
+   with the fix order, and what works. A GitHub comment alone does not count.
+
+Record it in the receipt under `## Product journey` with the line
+`required failed: 0; guest deleted: true` and the bullets `- Claude review: …`,
+`- Codex review: …` and `- Owner report: …`. `scripts/qa-journey-lib.test.mjs` (part of
+`pnpm collab:test`, so of CI) fails for any receipt dated 2026-11-13 or later without them.
+Problems found become issues; P0/P1 block the next release.
+
 ## Phase 6 — operations gates
 
 Run both retention jobs once, record aggregate counts only, and then schedule them at least every six
