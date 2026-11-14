@@ -974,6 +974,17 @@ test('only the front PR of the area is synced before its check; waiting PRs get 
   assert.equal(front.status, 'synced', 'the front PR behind integration is merged and pushed');
 });
 
+test('#524: a held or conflicting older PR is not the front; the first actionable PR is synced', () => {
+  const date = '2026-11-18';
+  for (const older of [{ labels: [{ name: 'needs-owner' }] }, { mergeable: 'CONFLICTING' }]) {
+    const open = [pr({ number: 160, createdAt: '2026-11-01T00:00:00Z', ...older }), pr({ number: 161, createdAt: '2026-11-02T00:00:00Z' }), pr({ number: 162, createdAt: '2026-11-03T00:00:00Z' })];
+    const calls = [];
+    tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({}), review: () => ({ status: 'posted' }),
+      check: (n, o) => { calls.push([n, o.sync]); return { status: 'ci-pending' }; } });
+    assert.deepEqual(calls, [[161, true], [162, false]], JSON.stringify(older));
+  }
+});
+
 test('after a merge in the same tick, the next PR becomes the front', () => {
   const date = '2026-11-17';
   const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
