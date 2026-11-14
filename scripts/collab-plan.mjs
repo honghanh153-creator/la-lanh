@@ -1,7 +1,7 @@
 // Daily plan gate: 08:50 plan, owner replies Duyệt/Giữ/Bỏ #N between 9 and 10, 10:00 auto start, stop at 23:30.
-import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { agentMarker, clean, codexDailyCap, isTrusted, makeGh, parseOwnerReply, readJson, repo, stateDir, vnNow, writeJson } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 export const planTitle = 'Kế hoạch chạy tự động hằng ngày';
 const planMarker = date => `${agentMarker} daily-plan date=${date} -->`;
@@ -138,7 +138,7 @@ export function makePlan(gh, now, turns, { codexLeft, gap = null, health = [] })
   return number;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   try {
     const status = readPlanStatus(makeGh());
     process.stdout.write(`${JSON.stringify({ issue: status.issue, state: status.state, reason: status.reason, dropped: status.dropped })}\n`);

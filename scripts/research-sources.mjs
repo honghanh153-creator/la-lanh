@@ -17,7 +17,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { isMain } from './is-main.mjs';
 
 export const researchDir = 'docs/research/';
 const CONCLUSIONS = /^##\s+Kết luận\s*$/u;
@@ -151,7 +151,7 @@ export function changedResearch({ base, head = 'HEAD', root = process.cwd(), run
   return out;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   const flag = name => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
   const root = process.cwd();

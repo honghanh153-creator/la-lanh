@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { isMain } from "./is-main.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -77,4 +78,4 @@ function run() {
   console.log(`Mobile release guard passed for ${root}.`);
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) run();
+if (isMain(import.meta.url)) run();
