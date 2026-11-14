@@ -1201,7 +1201,16 @@ const recheckTick = (date, open, { ci = green(), check = () => ({ status: 'PASS'
 };
 const rechecked = date => JSON.parse(readFileSync(trust.dayStatePath(date), 'utf8')).rechecked ?? [];
 
-test('a CI FAIL that turns green on a re-run at the same head is checked again, not left in claude-fix', () => {
+test('a CI FAIL that turns green on a re-run at the same head is checked again, not left in claude-fix', async () => {
+  // The launchd entry hands tick() a ciStatus that reads the real pr-check job (Codex: prove the
+  // production caller, not only an injected one).
+  const { runTick } = await import('./collab-tick.mjs');
+  const asked = [];
+  const gh = { ...fakeGh({ pr: pr(), open: [] }), json: args => { asked.push(args.join(' ')); return { workflow_runs: [] }; } };
+  const opts = runTick(gh, () => [], { run: given => given });
+  assert.equal(typeof opts.ciStatus, 'function', 'runTick wires ciStatus');
+  assert.equal(opts.ciStatus(A).state, 'pending');
+  assert.ok(asked.some(a => a.includes(`pr-check.yml/runs?head_sha=${A}`)), asked.join(' | '));
   const open = [pr({ number: 160, comments: [ciFail(A)] })];
   assert.equal(prTurn(open[0]).turn, 'claude-fix');
   assert.ok(ciFailAtHead(open[0]));
