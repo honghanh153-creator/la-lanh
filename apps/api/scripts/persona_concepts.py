@@ -504,8 +504,8 @@ def cmd_report(personas_path: Path, judged: Path, out: Path, summary: str | None
         "- Ngưỡng ghi trước: `thresholds-1000.md` mục 6 (bản 1 + bản 2).",
         "- Mỗi người giả đọc hai bản gọi là X và Y; nhãn và thứ tự đọc cân bằng giữa các lô. "
         "Giám khảo viết đường bấm trước rồi mới chấm.",
-        f"- Gói: {len(pkg)} cặp. Từng concept: {len(single)} cặp. Phần thử có điều kiện (S2, S11): "
-        f"{len(addon)} cặp. Codex: {len(codex)} cặp.",
+        f"- Gói: {len(pkg)} cặp. Từng concept: {len(single)} cặp. "
+        f"Phần thử có điều kiện (S2, S11, S12): {len(addon)} cặp. Codex: {len(codex)} cặp.",
         "",
     ]
     if summary:

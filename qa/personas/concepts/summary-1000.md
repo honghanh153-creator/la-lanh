@@ -27,6 +27,6 @@ Các câu cụ thể hay gặp: ba lô chưa có món "áp lực từ sếp"; c�
 - Mock v6 (bản cuối của phiên concept), chép vào `qa/personas/concepts/mocks-v6.md`.
 - Mock của gói có một chỗ nhắc tới S12 ("xem S12 nếu muốn Lá nhớ") trong phần S1. Codex đã chấm thêm khóa S12 cho gói; không ai dùng, nên khóa đó được bỏ trước khi tính.
 
-## Phần chưa chấm xong
+## Lô chấm bù
 
-- Hết hạn mức sử dụng lúc 20:25. Phần thử có điều kiện còn thiếu S2-02 và S12-03 (hai lô bị dừng giữa chừng), sẽ chấm sau 22:50 rồi cập nhật báo cáo này. Gói, 10 concept riêng lẻ và Codex đã đủ.
+- Hết hạn mức sử dụng lúc 20:25 làm dừng hai lô thử có điều kiện S2-02 và S12-03. Hai lô này đã được chấm bù sau 22:50 bằng cùng hướng dẫn chấm; báo cáo này đã đủ mọi lô.
