@@ -30,7 +30,7 @@ test('the board says the state, when it was updated and what waits on the owner'
   assert.match(renderBoard({ now, status: 'ran' }), /cũ hơn 20 phút/);
   assert.match(body, /\| #7 \| content \| claude-check \|/);
   assert.match(body, /Chờ owner: #139\./);
-  assert.match(body, /Codex hôm nay: 3\/32/);
+  assert.match(body, /Codex hôm nay: 3\/60/);
   assert.doesNotThrow(() => trust.assertAgentBody(body));
   assert.match(renderBoard({ now, status: 'closed' }), /NGOÀI GIỜ/);
   assert.match(renderBoard({ now, status: 'error', error: 'thiếu công cụ trên PATH: pnpm' }), /LỖI[\s\S]*thiếu công cụ/);
