@@ -292,7 +292,7 @@
    "who": "claude",
    "due": "2026-11-18",
    "status": "open",
-   "note": "snapshot helper and tick digest wired; scheduled owner report and retro still to be pointed at collab-snapshot --slot"
+   "note": "wrapper step snapshot SLOT added (#534); owner report and retro prompts still to be pointed at it and their use verified"
   },
   {
    "id": "L20",
