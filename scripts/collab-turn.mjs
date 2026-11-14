@@ -1,7 +1,6 @@
 // Whose turn is it on each open PR? `--report` replaces the registry PRs; `--tick` is the launchd safety net.
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { areaOrder, classifyArea, clean, codexDailyCap, dayStatePath, integration, isOwnPr, makeGh, readJson, repo, reviewState, sortByPriority, stateDir, vnNow, writeJson } from './collab-trust.mjs';
 import { autoStartAt, committedTurns, lastStartAt, makePlan, readPlanStatus } from './collab-plan.mjs';
 import { ownerNotes } from './collab-status.mjs';
@@ -10,6 +9,7 @@ import { gateValue, preflightFailure, readPreflight, recordPreflight, userSees }
 import { sizeProblem, withRepeatNote } from './collab-size.mjs';
 import { withFileLock } from './collab-lock.mjs';
 import { bufferStatus, queueTopUp, wipCount } from './collab-buffer.mjs';
+import { isMain } from './is-main.mjs';
 
 export { codexDailyCap };
 
@@ -101,7 +101,7 @@ export const idleAlertRuns = 6;
 export const copyBatchAttempts = 3;
 
 export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], prPreflight: preflight = () => ({ status: 'PASS' }), heavyFree = () => true, nowMs = Date.now, check = () => ({ status: 'skipped' }), review, merge, alert, board = () => {}, log = () => {}, watchdog = () => {}, health = () => [], copyPending = () => 0, copyBatch = null, copySaved = () => false, notify = () => {}, metrics = () => null } = {}) {
-  // The clock is read again before each action, so a long review cannot push the next one past 23:30.
+  // The clock is read again before each action, so a long review cannot push the next one past lastStartAt.
   const time = clock ?? (now ? () => now : () => vnNow());
   now = time();
   return withLock(() => {
@@ -112,9 +112,13 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
     // Outcome numbers (collab-metrics.mjs) are read once per tick, never at night.
     let metricLines = null;
     const measure = (prs, turns) => { try { metricLines = metrics({ prs, turns }); } catch (error) { log(`metrics failed: ${clean(error.message, 200)}`); } };
+    // Health (watchdog, pre-push hook) is read once per tick and shown on every board update, not
+    // only in the morning plan: a hook removed at noon shows on the next tick (Codex r1 on #482).
+    let healthNow;
+    const readHealth = () => { if (healthNow === undefined) { try { healthNow = health(); } catch { healthNow = []; } } return healthNow; };
     const show = info => {
       const counts = readJson(dayPath, day);
-      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, ...info }); } catch {}
+      try { board({ now: time(), codexRuns: counts.codexRuns ?? 0, failures: counts.failures ?? 0, metrics: metricLines, health: readHealth(), ...info }); } catch {}
     };
     // Owner notes (collab-status.mjs): a new comment only for merges, a 2-tick failure streak,
     // a new needs-owner and the 12:00/22:00 digest. Never breaks a tick.
@@ -139,7 +143,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         measure(prs, turns);
         // Progress is items done / items picked (owner 12.11.2026): remember what was picked.
         writeJson(dayPath, { ...readJson(dayPath, day), planned: committedTurns(turns).map(t => t.number) });
-        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: (() => { try { return health(); } catch { return []; } })() });
+        makePlan(gh, now, turns, { codexLeft: Math.max(0, codexDailyCap - day.codexRuns), gap: tickGap(readJson(join(stateDir, 'heartbeat.json'), null)), health: readHealth() });
         heartbeat('plan-made');
         show({ status: 'plan-made', turns });
         return { status: 'plan-made' };
@@ -216,7 +220,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
         if (['limit', 'busy'].includes(result?.status)) break;
       }
       // Owner 06.11.2026: Codex approves one batch of non-sensitive copy a day. The tick runs it at
-      // most once a day, from the 10:00 auto-start, only while copy outside the owner-only groups is
+      // most once a day, from the auto-start (autoStartAt), only while copy outside the owner-only groups is
       // pending, inside the daily Codex cap, and never next to an open batch PR on the same file.
       // A busy review lock starts nothing and is retried on the next run.
       if (copyBatch && !late() && (t => t.hour * 60 + t.minute)(time()) >= autoStartAt) {
@@ -279,7 +283,7 @@ export function tick({ gh = makeGh(), now, clock, preflight: tools = () => [], p
       writeJson(join(stateDir, 'claude-queue.json'), {
         at: new Date().toISOString(), plan: plan.state, area, items: leftTurns.filter(t => t.turn === 'claude-fix'),
         // Plan top-up (owner 31.10.2026), WIP 1 + 1 since 12.11: Claude opens the next backlog task
-        // only when nothing is in progress and review has room, and never after 23:30.
+        // only when nothing is in progress and review has room, and never from lastStartAt on.
         topUp: buffer.topUp && !late(),
         topUpCount: late() ? 0 : buffer.topUpCount, buffer: buffer.buffer, inProgress: buffer.inProgress, inReview: buffer.inReview,
         idleRuns,
@@ -375,7 +379,7 @@ export function resolveOpsAlert(gh, text, subject) {
   return { number: open, closed: true };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMain(import.meta.url)) {
   const args = process.argv.slice(2);
   try {
     const gh = makeGh();

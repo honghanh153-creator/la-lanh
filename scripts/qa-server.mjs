@@ -5,7 +5,8 @@ import { stat } from "node:fs/promises";
 import { createServer, request as requestUpstream } from "node:http";
 import { homedir, tmpdir } from "node:os";
 import { extname, join, normalize, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { isMain } from "./is-main.mjs";
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -299,7 +300,7 @@ async function startCli() {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+if (isMain(import.meta.url)) {
   startCli().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

@@ -1,6 +1,6 @@
 // Codex approves the daily batch of pending copy (owner decision 06.11.2026).
 // Usage: node scripts/codex-copy-review.mjs [--dry-run] [--fake-codex decisions.json]
-// The scheduled tick (collab-turn.mjs) runs it once a day after 10:00 through runCopyBatch (12.11.2026).
+// The scheduled tick (collab-turn.mjs) runs it once a day after the auto-start (autoStartAt) through runCopyBatch (12.11.2026).
 // Codex runs read-only, the same way scripts/codex-review.mjs calls it. Privacy, consent, crisis
 // and safety copy is never sent: it stays owner-only. The result goes into a PR on
 // agent/claude/copy-batch-YYYYMMDD; the script never writes main or collab/integration and
@@ -10,9 +10,10 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { acquireLock } from './collab-lock.mjs';
 import { agentMarker, assertAgentBody, clean, integration, repo, stateDir, vnNow } from './collab-trust.mjs';
+import { isMain } from './is-main.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const root = join(here, '..');
@@ -251,6 +252,6 @@ export function runCopyBatch({ lock = () => { mkdirSync(stateDir, { recursive: t
   finally { release(); }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (isMain(import.meta.url)) {
   try { main(process.argv.slice(2)); } catch (error) { process.stderr.write(`codex-copy-review failed: ${error.message}\n`); process.exitCode = 1; }
 }

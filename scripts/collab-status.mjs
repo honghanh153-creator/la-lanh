@@ -1,7 +1,7 @@
 // One status board on the daily plan issue, edited in place by every tick, so the owner can see
 // from a phone whether the loop is running and why it stopped (owner request 31.10.2026).
 import { join } from 'node:path';
-import { agentMarker, assertAgentBody, clean, codexDailyCap, isTrusted, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
+import { agentMarker, assertAgentBody, autoStartAt, clean, codexDailyCap, cutoffAt, hhmmOf, isTrusted, planOpensAt, readJson, repo, stateDir, writeJson } from './collab-trust.mjs';
 
 export const boardMarker = `${agentMarker} status-board -->`;
 
@@ -9,11 +9,11 @@ const STATES = {
   running: ['🟢 ĐANG CHẠY', ''],
   ran: ['🟢 ĐANG CHẠY', 'vừa xong một lượt, tick kế tiếp sau tối đa 10 phút'],
   'ran-with-errors': ['🟠 CHẠY CÓ LỖI', 'xem lỗi bên dưới'],
-  'plan-made': ['🟡 CHỜ DUYỆT PLAN', 'plan hôm nay vừa đăng; trả lời Duyệt/Giữ, hoặc 10:00 tự chạy'],
-  waiting: ['🟡 CHỜ DUYỆT PLAN', 'chưa có trả lời; 10:00 tự chạy'],
+  'plan-made': ['🟡 CHỜ DUYỆT PLAN', `plan hôm nay vừa đăng; trả lời Duyệt/Giữ, hoặc ${hhmmOf(autoStartAt)} tự chạy`],
+  waiting: ['🟡 CHỜ DUYỆT PLAN', `chưa có trả lời; ${hhmmOf(autoStartAt)} tự chạy`],
   held: ['⏸ DỪNG THEO OWNER', 'owner trả lời Giữ hôm nay'],
-  closed: ['🌙 NGOÀI GIỜ', 'chạy từ 08:50 tới 23:30'],
-  cap: ['⏸ HẾT LƯỢT CODEX HÔM NAY', 'còn PR chờ review; ngày mai chạy tiếp từ 08:50'],
+  closed: ['🌙 NGOÀI GIỜ', `chạy từ ${hhmmOf(planOpensAt)} tới ${hhmmOf(cutoffAt)}`],
+  cap: ['⏸ HẾT LƯỢT CODEX HÔM NAY', `còn PR chờ review; ngày mai chạy tiếp từ ${hhmmOf(autoStartAt)}`],
   idle: ['⚪ HẾT VIỆC TRONG PLAN', 'Claude bổ sung việc kế tiếp từ backlog (§3.2 mục 7)'],
   error: ['🔴 LỖI', 'tick không chạy được, xem lỗi bên dưới'],
 };
@@ -26,7 +26,9 @@ const addMinutes = (t, minutes) => {
   return { hour: Math.floor(total / 60) % 24, minute: total % 60 };
 };
 
-export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null, metrics = null }) {
+const warnings = lines => (Array.isArray(lines) ? lines : []).filter(l => String(l).includes('⚠️')).map(l => (String(l).startsWith('- ') ? String(l) : `- ${l}`));
+
+export function renderBoard({ now, status, doing = null, expectMinutes = null, area = null, turns = [], done = [], codexRuns = 0, cap = codexDailyCap, failures = 0, error = null, metrics = null, health = [] }) {
   const [label, why] = STATES[status] ?? [status, ''];
   const waitingOwner = turns.filter(t => t.turn === 'hold' && /needs-owner|owner bỏ/.test(t.reason));
   const queue = turns.filter(t => t.turn !== 'hold').slice(0, 8);
@@ -36,7 +38,7 @@ export function renderBoard({ now, status, doing = null, expectMinutes = null, a
     '',
     `**${label}**${doing ? ` — ${cell(doing)}` : why ? ` — ${why}` : ''}`,
     '',
-    `Cập nhật lúc **${hhmm(now)} ${now.date}**. Tick chạy 10 phút một lần từ 08:50 tới 23:30.`,
+    `Cập nhật lúc **${hhmm(now)} ${now.date}**. Tick chạy 10 phút một lần từ ${hhmmOf(planOpensAt)} tới ${hhmmOf(cutoffAt)}.`,
     // A long check or review holds the tick, so the stale rule names its own deadline (#145 r1).
     status === 'running' && expectMinutes
       ? `Việc này có thể chạy tới khoảng **${hhmm(addMinutes(now, expectMinutes))}**. **Qua ${hhmm(addMinutes(now, expectMinutes + 10))} mà bảng chưa đổi: vòng bị kẹt hoặc Mac đang ngủ.**`
@@ -45,6 +47,8 @@ export function renderBoard({ now, status, doing = null, expectMinutes = null, a
     `Nhóm đang làm: ${area ?? '—'} · Codex hôm nay: ${codexRuns}/${cap} · Lỗi liên tiếp: ${failures}`,
     ...(lastDone ? [`Lượt vừa rồi: ${cell(lastDone)}`] : []),
     ...(error ? ['', `Lỗi: \`${cell(error)}\``] : []),
+    // Only what needs a look; healthy lines stay in the morning plan.
+    ...(warnings(health).length ? ['', '**Cần xem**', ...warnings(health)] : []),
     '',
     '| PR | Nhóm | Lượt kế tiếp | Lý do |',
     '|---|---|---|---|',

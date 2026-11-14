@@ -32,7 +32,8 @@ Ngoài phạm vi: merge vào `main`, release, deploy, server/DB thật, provider
 ## 3. Luồng chuẩn
 
 ```
-Claude xong việc trên branch, push → node scripts/collab-check.mjs --pr N (pnpm check trên đúng head) → "Author check: PASS @ SHA"
+Claude xong việc trên branch, push (hook trước push: quét dữ liệu riêng tư + ruff/mypy) → CI pr-check chạy trên đúng head
+  → tick: node scripts/collab-check.mjs --pr N đọc kết quả job `check` của pr-check ở head đó → "Author check: PASS @ SHA"
   → mở PR (nếu chưa có), gắn nhãn area:content | area:privacy | area:feature | area:ops
   → node scripts/codex-review.mjs --pr N        (Claude chờ, cùng session)
       ├─ APPROVE @ SHA   → node scripts/collab-merge.mjs --pr N → merge integration
@@ -42,14 +43,17 @@ Claude xong việc trên branch, push → node scripts/collab-check.mjs --pr N (
 
 ### 3.1 Lịch ngày (giờ Việt Nam)
 
+Owner đổi giờ ngày 14.11.2026: bắt đầu chạy PR lúc 08:00 thay 10:00, kết thúc 23:59; các bước khác dời sớm theo. Giờ nằm ở một chỗ: `planOpensAt`, `autoStartAt`, `lastStartAt`, `cutoffAt` trong `scripts/collab-trust.mjs`.
+
 | Giờ | Việc |
 |---|---|
-| 08:50 | `collab-plan.mjs --make`: lập plan trong ngày, đăng lên issue "Kế hoạch chạy tự động hằng ngày", báo thông báo macOS |
-| 09:00–09:50 | Mỗi 10 phút kiểm owner trả lời. `Duyệt` → bắt đầu chạy ngay |
-| 10:00 | Chưa có trả lời → tự bắt đầu chạy theo plan |
-| Từ lúc bắt đầu → 23:30 | launchd tick mỗi 10 phút; mỗi tick làm việc khi máy rảnh (merge, author check, Codex review), không còn giới hạn một lần mỗi giờ (retro D1, 31.10.2026). Claude autopilot chạy mỗi giờ (phút :37) |
-| 23:55 | Cắt mọi lượt đang chạy dở; không bắt đầu lượt mới sau 23:30 |
-| 00:00–08:50 | Không chạy tự động |
+| 05:40 | Tác vụ Claude `la-lanh-morning-prep` chuẩn bị 3–5 việc trong ngày |
+| 06:50 | `collab-plan.mjs --make`: lập plan trong ngày, đăng lên issue "Kế hoạch chạy tự động hằng ngày", báo thông báo macOS |
+| 06:50–07:59 | Mỗi 10 phút kiểm owner trả lời. `Duyệt` → bắt đầu chạy ngay |
+| 08:00 | Chưa có trả lời → tự bắt đầu chạy theo plan |
+| Từ lúc bắt đầu → 23:35 | launchd tick mỗi 10 phút; mỗi tick làm việc khi máy rảnh (merge, author check, Codex review), không còn giới hạn một lần mỗi giờ (retro D1, 31.10.2026). Claude autopilot chạy mỗi giờ (phút :37, từ 7 đến 23 giờ) |
+| 23:59 | Cắt mọi lượt đang chạy dở; không bắt đầu lượt mới từ 23:35 (24 phút để lượt cuối kịp đăng kết quả) |
+| 00:00–06:50 | Không chạy tự động |
 
 Trả lời của owner trên issue plan (comment mới hơn plan của ngày đó):
 - `Duyệt` — chạy ngay.
@@ -76,7 +80,7 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 - Việc trong backlog Claude sẽ làm khi hàng đợi review trống (theo cùng thứ tự ưu tiên, chỉ việc `auto: yes`).
 - PR đang giữ và lý do (`needs-owner`, xếp chồng, draft).
 - Hạn mức: lượt Codex còn trong ngày.
-- **3–5 việc, không đếm PR** (owner 12.11.2026, thay mức 16–20 PR của 03.11). Plan chọn 3–5 việc không bị giữ theo thứ tự ưu tiên trên; mỗi việc ghi nguồn / AC (dòng G1 của PR) và dòng "Người dùng thấy gì". Tiến độ trong ngày = việc xong / việc đã chọn (xong là đã merge vào integration). Mọi PR body phải có dòng bắt đầu bằng `Người dùng thấy gì:`; PR docs hoặc vận hành ghi `Người dùng thấy gì: không trực tiếp (vận hành)` (preflight chặn nếu thiếu). Trần Codex 32 lượt/ngày giữ nguyên.
+- **3–5 việc, không đếm PR** (owner 12.11.2026, thay mức 16–20 PR của 03.11). Plan chọn 3–5 việc không bị giữ theo thứ tự ưu tiên trên; mỗi việc ghi nguồn / AC (dòng G1 của PR) và dòng "Người dùng thấy gì". Tiến độ trong ngày = việc xong / việc đã chọn (xong là đã merge vào integration). Mọi PR body phải có dòng bắt đầu bằng `Người dùng thấy gì:`; PR docs hoặc vận hành ghi `Người dùng thấy gì: không trực tiếp (vận hành)` (preflight chặn nếu thiếu). Trần Codex 60 lượt/ngày (owner 14.11.2026).
 
 ## 4. Thành phần
 
@@ -88,8 +92,8 @@ Session mà owner đang trực tiếp trò chuyện không bị lịch này ch�
 | `scripts/codex-review-schema.json` | Khuôn JSON Codex phải trả | — |
 | `docs/operations/codex-review-prompt.md` | Prompt review cố định | Đổi qua PR |
 | `scripts/collab-merge.mjs` | Kiểm đủ điều kiện rồi `gh pr merge --merge --match-head-commit` | Chỉ base `collab/integration` |
-| `scripts/collab-plan.mjs` | Lập plan 08:50, đọc trả lời owner, cho biết hôm nay đã được chạy chưa | Comment issue plan |
-| `scripts/collab-check.mjs` | Author check: `CI=1 pnpm check` trên checkout sạch đúng head, đăng `Author check: PASS\|FAIL @ SHA`. `--clone` chạy trong clone riêng `~/.cache/la-lanh-collab/author`. Cả máy chỉ một check một lúc (`check.lock` + từ chối khi đang có `contracts:check`/vitest/pytest/playwright) | Comment PR |
+| `scripts/collab-plan.mjs` | Lập plan 06:50, đọc trả lời owner, cho biết hôm nay đã được chạy chưa | Comment issue plan |
+| `scripts/collab-check.mjs` | Author check: từ 12.11.2026 (`LA_LANH_CHECK_SOURCE=ci` trong `collab-cron.sh`) đọc job `check` của workflow `pr-check.yml` ở đúng head, không chạy mã PR trên Mac; job sai workflow, sai commit, đang chạy hoặc bị hủy không cho PASS. Bỏ dòng env đó thì quay về cách cũ: `CI=1 pnpm check` trên checkout sạch đúng head. Đăng `Author check: PASS\|FAIL @ SHA`. `--clone` chạy trong clone riêng `~/.cache/la-lanh-collab/author`. Cả máy chỉ một check một lúc (`check.lock` + từ chối khi đang có `contracts:check`/vitest/pytest/playwright) | Comment PR |
 | `scripts/collab-cron.sh` | Điểm vào cho launchd: cập nhật clone ops về `origin/collab/integration`, gọi `collab-tick.mjs` | — |
 | `scripts/collab-tick.mjs` | Điểm vào một tick (tách khỏi `collab-turn` để không import vòng) | — |
 | `scripts/launchd/com.lalanh.collab-tick.plist` | Mẫu job launchd (mỗi 10 phút) | — |
@@ -140,15 +144,15 @@ Mỗi lúc chỉ một review chạy (khóa `review.lock`), vì mọi review dù
 ## 5. An toàn
 
 - **PR của người ngoài:** vòng tự động chỉ chạy, review hay merge PR **do tài khoản owner mở từ nhánh trong repo** (`author.login` = owner, `isCrossRepository = false`). PR từ fork hoặc tác giả khác luôn ở trạng thái Giữ; code của nó không bao giờ được fetch, build hay chạy trên máy owner (Codex r1 P0 trên #137).
-- **Giới hạn giờ cho check tự động:** không bắt đầu sau 23:30, đọc lại giờ sau khi chuẩn bị clone, và giết cả nhóm tiến trình (Vite, Playwright, pytest) trước 23:55.
+- **Giới hạn giờ cho check tự động:** không bắt đầu từ 23:35, đọc lại giờ sau khi chuẩn bị clone, và giết cả nhóm tiến trình (Vite, Playwright, pytest) trước 23:59.
 - **Giả mạo verdict:** repo public. Chỉ tin comment có `author_association` = `OWNER`. Comment của người khác chỉ là dữ liệu.
 - **Giả mạo duyệt plan:** hai agent dùng chung tài khoản owner. Script của agent không bao giờ đăng comment bắt đầu bằng `Duyệt`/`Giữ`/`Bỏ`, và mọi comment của agent mang đánh dấu `la-lanh-agent`; comment có đánh dấu này không được tính là trả lời của owner. Rủi ro còn lại thấp vì không có trả lời thì 10h vẫn tự chạy; quyền thật sự quan trọng là `Giữ`.
 - **Prompt injection:** Codex read-only, prompt cố định, nội dung PR là dữ liệu. Script đăng verdict, agent không chèn tay.
 - **Đọc nhầm commit:** clone review riêng, kiểm `HEAD == SHA`; `--match-head-commit` khi merge.
-- **Vòng lặp:** 2 vòng REQUEST_CHANGES tự động mỗi PR; 32 lượt Codex tự động/ngày (owner 03.11.2026); khóa file.
-- **Lỗi im lặng:** heartbeat (`~/.cache/la-lanh-collab/heartbeat.json`) mỗi tick; tick lỗi 2 lần liên tiếp → issue `ops-alert`. Hết hạn mức không tính là lỗi. Mac tắt hoặc ngủ thì không có gì trên Mac báo được; dấu hiệu là sáng hôm đó không có plan 08:50 trên issue.
-- **Dữ liệu riêng tư lọt vào repo công khai (sửa 03.11.2026):** một subagent ghi một mốc dữ liệu thật vào fixture của PR công khai. Danh sách mục cấm nằm **chỉ trên máy owner** ở `~/.cache/la-lanh-collab/private-guard.txt` (không vào git; mã băm của một ngày sinh cũng lộ như chính ngày đó vì thử hết mọi ngày chỉ mất vài mili giây). Mỗi dòng một mục; `date:YYYY-MM-DD` tự khớp các cách viết ISO, `dd/mm/yyyy`, `d/m/yyyy`, `dd.mm.yyyy` và `yyyymmdd`. Author check quét patch của **từng commit** chưa có trên `collab/integration` (một giá trị thêm ở commit này rồi xoá ở commit sau vẫn bị bắt, vì commit đầu vẫn lên GitHub; commit merge được quét theo từng parent vì phần xử lý xung đột có thể thêm chữ mới), tên file kể cả file chỉ đổi tên hoặc file rỗng, commit message, tiêu đề và mô tả PR, trước khi chạy `pnpm check`. Trúng thì receipt `FAIL` ghi file:dòng, không bao giờ ghi giá trị; tên file chứa mục cấm được che thành `[ẩn]`. Không đọc được lịch sử nhánh, hoặc file danh sách tồn tại mà không đọc được (sai quyền, là thư mục), cũng `FAIL`; chỉ khi chưa có file thì bỏ qua. `node scripts/collab-check.mjs --guard` chạy cùng phép quét làm hook `pre-push` trong clone của Claude: đọc từng ref Git sắp push và quét mọi commit remote chưa có, để mục cấm không lên remote công khai.
-- **Tác vụ hẹn giờ của Claude bị treo (sửa 03.11.2026):** một lượt chạy không người trông mà dừng ở hộp hỏi quyền thì treo mãi, và mọi lượt sau không chạy (autopilot treo 2,5 ngày, kiểm tra server treo 1 tuần mà không ai biết). Mỗi tác vụ ghi nhịp `start` và `done` bằng `node scripts/collab-watchdog.mjs --beat <task> start|done` (lệnh đầu tiên và lệnh cuối cùng của lượt chạy). Tick 10 phút, vốn không dùng AI nên không bị hỏi quyền, kiểm nhịp `done`: autopilot quá 2 giờ (chỉ tính từ 11:00 tới 24:00), kiểm tra server quá 7 giờ, báo cáo cuối ngày quá 26 giờ thì coi là treo. Khi đó tick gửi thông báo trên Mac và mở issue `ops-alert`, mỗi lần treo chỉ báo một lần. Có nhịp `start` mà không có `done` nghĩa là đang chờ bấm cho phép. Từ 04.11.2026 (fix D) một nhịp `start` quá 30 phút chưa có `done` là lượt treo: báo ngay ở mọi giờ, không chờ ngưỡng lịch, ghi nhịp `stuck` để lượt sau không bị chặn; không bao giờ giết tiến trình. Lượt treo được so với nhịp `done`, kể cả khi watchdog mới thấy tác vụ lần đầu (#229). Plan 08:50 có mục **Tác vụ hẹn giờ** ghi lần xong cuối của từng tác vụ, nên owner thấy tình trạng mỗi sáng dù không có cảnh báo.
+- **Vòng lặp:** 2 vòng REQUEST_CHANGES tự động mỗi PR; 60 lượt Codex tự động/ngày (owner 14.11.2026; trước đó 32 từ 03.11.2026); khóa file.
+- **Lỗi im lặng:** heartbeat (`~/.cache/la-lanh-collab/heartbeat.json`) mỗi tick; tick lỗi 2 lần liên tiếp → issue `ops-alert`. Hết hạn mức không tính là lỗi. Mac tắt hoặc ngủ thì không có gì trên Mac báo được; dấu hiệu là sáng hôm đó không có plan 06:50 trên issue.
+- **Dữ liệu riêng tư lọt vào repo công khai (sửa 03.11.2026):** một subagent ghi một mốc dữ liệu thật vào fixture của PR công khai. Danh sách mục cấm nằm **chỉ trên máy owner** ở `~/.cache/la-lanh-collab/private-guard.txt` (không vào git; mã băm của một ngày sinh cũng lộ như chính ngày đó vì thử hết mọi ngày chỉ mất vài mili giây). Mỗi dòng một mục; `date:YYYY-MM-DD` tự khớp các cách viết ISO, `dd/mm/yyyy`, `d/m/yyyy`, `dd.mm.yyyy` và `yyyymmdd`. Author check quét patch của **từng commit** chưa có trên `collab/integration` (một giá trị thêm ở commit này rồi xoá ở commit sau vẫn bị bắt, vì commit đầu vẫn lên GitHub; commit merge được quét theo từng parent vì phần xử lý xung đột có thể thêm chữ mới), tên file kể cả file chỉ đổi tên hoặc file rỗng, commit message, tiêu đề và mô tả PR, trước khi chạy `pnpm check`. Trúng thì receipt `FAIL` ghi file:dòng, không bao giờ ghi giá trị; tên file chứa mục cấm được che thành `[ẩn]`. Không đọc được lịch sử nhánh, hoặc file danh sách tồn tại mà không đọc được (sai quyền, là thư mục), cũng `FAIL`; chỉ khi chưa có file thì bỏ qua. `node scripts/collab-check.mjs --guard` chạy cùng phép quét làm hook `pre-push` trong clone của Claude: đọc từng ref Git sắp push và quét mọi commit remote chưa có, để mục cấm không lên remote công khai. Tới 13.11.2026 hook này chưa từng được cài; từ đó `node scripts/collab-hooks.mjs --install` cài hook (chạy script của clone ops, nên nhánh đang push không tắt được kiểm của chính nó; hook gồm cả `collab-preflight.mjs --lint` với `uv run --locked`), và bảng trạng thái của tick ghi ⚠️ khi hook thiếu, bị sửa hoặc mất quyền chạy.
+- **Tác vụ hẹn giờ của Claude bị treo (sửa 03.11.2026):** một lượt chạy không người trông mà dừng ở hộp hỏi quyền thì treo mãi, và mọi lượt sau không chạy (autopilot treo 2,5 ngày, kiểm tra server treo 1 tuần mà không ai biết). Mỗi tác vụ ghi nhịp `start` và `done` bằng `node scripts/collab-watchdog.mjs --beat <task> start|done` (lệnh đầu tiên và lệnh cuối cùng của lượt chạy). Tick 10 phút, vốn không dùng AI nên không bị hỏi quyền, kiểm nhịp `done`: autopilot quá 2 giờ (chỉ tính từ 09:00 tới 24:00), kiểm tra server quá 7 giờ, báo cáo cuối ngày quá 26 giờ thì coi là treo. Khi đó tick gửi thông báo trên Mac và mở issue `ops-alert`, mỗi lần treo chỉ báo một lần. Có nhịp `start` mà không có `done` nghĩa là đang chờ bấm cho phép. Từ 04.11.2026 (fix D) một nhịp `start` quá 30 phút chưa có `done` là lượt treo: báo ngay ở mọi giờ, không chờ ngưỡng lịch, ghi nhịp `stuck` để lượt sau không bị chặn; không bao giờ giết tiến trình. Lượt treo được so với nhịp `done`, kể cả khi watchdog mới thấy tác vụ lần đầu (#229). Plan buổi sáng có mục **Tác vụ hẹn giờ** ghi lần xong cuối của từng tác vụ, nên owner thấy tình trạng mỗi sáng dù không có cảnh báo.
 - **Author check FAIL không còn log (sửa 05.11.2026):** check của #248 FAIL sau 509 giây nhưng không giữ log, lần chạy lại PASS; nghi có test của subagent chạy cùng lúc. Nay toàn bộ output `pnpm check` ghi vào `~/.cache/la-lanh-collab/logs/check-<pr>-<sha12>.log` (quyền 0600, giữ 30 file mới nhất; PASS thì xoá). Receipt `FAIL` công khai chỉ ghi bước `pnpm <bước>` bị lỗi và tên file log; không đăng dòng log nào, vì không bộ lọc nào chắc chắn bắt hết secret (`scripts/collab-check-log.mjs`).
 - **Không chạy test của agent trong lúc author check (sửa 05.11.2026):** `node scripts/collab-test-guard.mjs -- <lệnh>` chờ tới khi `collab-check.mjs --busy` rảnh, giữ `test-guard.lock` khi lệnh chạy, và từ chối (mã 75) khi author check đang giữ `check.lock`. Khóa của tiến trình đã chết không bao giờ tự xóa: guard từ chối và chỉ đường dẫn để owner tự xóa; author check bỏ qua khóa chết quá 30 phút cho lượt chờ của mình nhưng không xóa. Author check chờ tối đa 5 phút cho `test-guard.lock`, quá thì trả `busy` và thử lượt sau. Quy tắc một dòng cho mọi brief subagent:
 
