@@ -199,14 +199,20 @@
    "title": "Broker tối thiểu: chương trình riêng gọi Codex, giữ biên nhận và quyền merge; Claude không nộp kết quả thay Codex (lát 3 thiết kế Codex kiểm soát)",
    "from": "owner 13.11: Codex kiểm soát, Claude thực thi",
    "who": "owner",
-   "status": "waiting-owner"
+   "status": "declined-owner",
+   "declined": {
+    "on": "2026-11-14",
+    "reason": "Owner 14.11: không cài gì, không tạo ứng dụng; giao Claude và Codex tự thống nhất.",
+    "risk": "Không có ranh giới quyền: Claude vẫn đọc được khóa, tự đăng verdict và merge. Cách 2-nhẹ chỉ kiểm toán sau merge, không chặn trước (P1 của Codex 14.11 còn nguyên)."
+   }
   },
   {
    "id": "L18",
-   "title": "Phiếu giao việc: Codex chốt plan 3–5 việc, duyệt phạm vi Q1–Q5, ưu tiên nợ quá hạn, quyết vòng review thứ 3 trở đi (lát 4)",
+   "title": "Người lập plan ngày đổi theo tuần: Claude 16–22.11, Codex 23–29.11; Q1–Q5, ưu tiên nợ, luật vòng review ≥3 giống nhau cả hai tuần (owner 14.11, Codex SỬA)",
    "from": "owner 13.11: Codex kiểm soát, Claude thực thi",
-   "who": "owner",
-   "status": "waiting-owner"
+   "who": "claude",
+   "status": "open",
+   "due": "2026-11-23"
   },
   {
    "id": "L19",
@@ -218,10 +224,11 @@
   },
   {
    "id": "L20",
-   "title": "Kiểm chính Codex: cài lại lỗi #451/#462, lỗi lọt thì mở lại bài học và ghi trách nhiệm reviewer (lát 6)",
+   "title": "Kiểm chính Codex mỗi tuần: review một bản chụp cài lại lỗi #451/#462 ngoài mọi đường merge; lỗi lọt ghi riêng (không cộng M3), mở lại bài học gốc (owner 14.11, Codex SỬA)",
    "from": "Codex tự nhận 13.11",
-   "who": "owner",
-   "status": "waiting-owner"
+   "who": "claude",
+   "status": "open",
+   "due": "2026-11-21"
   },
   {
    "id": "L21",
@@ -263,7 +270,27 @@
    "title": "Chương trình giữ biên nhận review, đường merge và trạng thái xong cho cách 2 (nối #456)",
    "from": "thử nghiệm 3+3 (owner 13.11): điều kiện bắt đầu cách 2",
    "who": "claude",
-   "due": "2026-11-16",
+   "status": "declined-owner",
+   "declined": {
+    "on": "2026-11-14",
+    "reason": "Owner 14.11: không cài gì, không tạo ứng dụng; giao Claude và Codex tự thống nhất.",
+    "risk": "Không có ranh giới quyền: Claude vẫn đọc được khóa, tự đăng verdict và merge. Cách 2-nhẹ chỉ kiểm toán sau merge, không chặn trước (P1 của Codex 14.11 còn nguyên)."
+   }
+  },
+  {
+   "id": "L25",
+   "title": "Luật bất đồng mới (owner 14.11, Codex SỬA): tối đa hai vòng, còn khác ý thì giữ bước đó và hỏi owner một lần; ban ngày 30 phút không trả lời thì theo kết luận của Codex, ghi \"chốt do hết giờ\"; ban đêm giữ tới sáng",
+   "from": "owner 14.11 + Codex 14.11",
+   "who": "claude",
+   "due": "2026-11-17",
+   "status": "open"
+  },
+  {
+   "id": "L26",
+   "title": "Cách 2-nhẹ: kiểm toán sau merge, merge vào integration thiếu verdict tự động đúng head thì ops-alert và ghi M2 đúng một lần, kể cả khi soát lỗi rồi chạy lại",
+   "from": "owner 14.11 + Codex 14.11",
+   "who": "claude",
+   "due": "2026-11-17",
    "status": "open"
   }
  ]
