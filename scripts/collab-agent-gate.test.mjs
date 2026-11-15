@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { decide, gate, readOnlyBash, realBase, releaseAgent, repoOf, setupCommand, shellWords, targets } from './collab-agent-gate.mjs';
+import { bashPaths, decide, gate, readOnlyBash, realBase, releaseAgent, repoOf, setupCommand, shellWords, targets } from './collab-agent-gate.mjs';
 import { claimPath, dispatch, lockFor, preflightWorkspace } from './collab-dispatch.mjs';
 import { acquireLock } from './collab-lock.mjs';
 import { agentGateWatch, gateHooks, installAgentGate, verifyAgentGate } from './collab-ops-wrapper.mjs';
@@ -330,4 +330,26 @@ test('L06 gate: git diff with a configured external program and find -exec are c
     assert.deepEqual(seen, [s.repo], `${command}: the workspace check ran`);
     assert.equal(r.allow, false, command);
   }
+});
+
+// Codex auto-5 on #542 (in scope: ordinary accidents). Relative destinations, cd within the command
+// and redirections are resolved against the directory each part runs in.
+test('L06 gate: a relative write from a parent folder, after cd, or by redirection is checked', () => {
+  const s = setup();
+  // s.root holds repo/ (main branch: not allowed) and work/; it is not a Git repository itself.
+  for (const command of ['printf synthetic > repo/a.txt', 'cp /tmp/x repo/b.txt', 'cd repo && touch c.txt', 'cd repo; echo x > d.txt', 'echo x >repo/e.txt', `cd ${s.root} && mv x ./repo/f.txt`]) {
+    const r = gate(call('q5', 'Bash', { cwd: s.root, input: { command } }), opts);
+    assert.equal(r.allow, false, command);
+  }
+  // A plain write next to the parent folder, outside any repository, is fine.
+  assert.equal(gate(call('q5', 'Bash', { cwd: s.root, input: { command: 'printf synthetic > notes.txt' } }), opts).allow, true);
+  assert.ok(bashPaths('cd repo && echo x > y/z.txt', '/base').includes('/base/repo/y/z.txt'));
+  assert.equal(bashPaths('curl https://example.invalid/a/b', '/base').some(p => p.includes('example')), false, 'a URL is not a path');
+});
+
+test('L06 gate: 60 named paths are allowed outside Git (the symlink depth is not the path index)', () => {
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'gate-60-')));
+  const many = Array.from({ length: 60 }, (_, i) => join(scratch, `f${i}.txt`)).join(' ');
+  assert.ok(targets({ tool_name: 'Bash', cwd: scratch, tool_input: { command: `touch ${many}` } }).length > 60, 'no resolve-error past 41 paths');
+  assert.equal(gate(call('q6', 'Bash', { cwd: scratch, input: { command: `touch ${many}` } }), opts).allow, true);
 });

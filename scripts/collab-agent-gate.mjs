@@ -16,9 +16,10 @@
 //   directory inside the workspace; age alone never frees it (6 h only marks it as suspect);
 // - every failure denies (exit 2 inside, `onFailure: "block"` in the installed settings).
 // Limits (same machine rights as L24): Claude can remove the hook or start without it; the verify
-// in collab-ops-wrapper.mjs and the tick alert only detect that. Bash is checked by its working
-// directory and the absolute paths it names; a relative path after `cd` in the same command is not
-// seen. The main session is not gated.
+// in collab-ops-wrapper.mjs and the tick alert only detect that. Bash is checked by the working
+// directory of each part (cd included), absolute paths, relative paths with a slash and redirection
+// targets; paths built at run time ($VAR, $(…)) are not seen. The gate stops accidents, not a child
+// that crafts a command to run a program through an allowed read tool. The main session is not gated.
 // Usage (from the hook): node scripts/collab-agent-gate.mjs            (PreToolUse, JSON on stdin)
 //                         node scripts/collab-agent-gate.mjs --release  (SubagentStop, JSON on stdin)
 import { spawnSync } from 'node:child_process';
@@ -224,23 +225,42 @@ export function setupCommand(command) {
     || (w[0] === 'git' && w[1] === '-C' && w[3] === 'worktree' && w[4] === 'add' && w[6] === '-b' && /^agent\/claude\/[\w./-]+$/.test(w[7] ?? '') && (w.length === 8 || (w.length === 9 && ref.test(w[8])))));
 }
 
-// Absolute paths a command names, from shell words (quoted spaces kept; `--x=/path` too).
-const absPaths = command => {
+// The paths a Bash command may write to, resolved against its effective working directory (Codex
+// auto-5 on #542: `printf x > shared/f` from a parent folder is an ordinary accident). `cd` segments
+// move that directory; every segment's directory counts; absolute and `~/` paths count; relative
+// words that contain a slash and every redirection target count, each resolved against the
+// directory of its own segment. Quoted spaces are kept; `--x=/path` too.
+export function bashPaths(command, cwd) {
   let words;
   try { words = shellWords(command); } catch { throw new Error('unbalanced-quote'); }
   const out = [];
-  for (const w of words) {
-    if (typeof w !== 'string') continue;
+  let here = cwd;
+  const at = p => (p.startsWith('~/') ? join(homedir(), p.slice(2)) : isAbsolute(p) ? p : resolve(here, p));
+  let segStart = true;
+  let redirect = false;
+  for (let i = 0; i < words.length; i += 1) {
+    const w = words[i];
+    if (typeof w === 'object') {
+      if (['|', '||', '&&', ';', '&'].includes(w.op)) segStart = true;
+      redirect = /[<>]/.test(w.op);
+      continue;
+    }
+    if (segStart) {
+      out.push(here);
+      if (w === 'cd' && typeof words[i + 1] === 'string') { here = at(words[i + 1]); out.push(here); i += 1; segStart = false; continue; }
+    }
+    segStart = false;
+    if (redirect) { out.push(at(w)); redirect = false; continue; }
     for (const part of [w, ...(w.includes('=') ? [w.slice(w.indexOf('=') + 1)] : [])]) {
-      if (part.startsWith('/')) out.push(part);
-      else if (part.startsWith('~/')) out.push(join(homedir(), part.slice(2)));
+      if (part.startsWith('/') || part.startsWith('~/')) out.push(at(part));
+      else if (part.includes('/') && !part.startsWith('-') && !/^[a-z][\w+.-]*:\/\//i.test(part)) out.push(at(part));
     }
   }
   const unique = [...new Set(out)];
   // Every path is checked; a command naming more than 100 is denied, never cut (Codex auto-2 on #542).
   if (unique.length > 100) throw new Error('too-many-paths');
   return unique;
-};
+}
 
 // The directories a tool call writes in, or [] for a read-only Bash call.
 export function targets(input) {
@@ -254,7 +274,7 @@ export function targets(input) {
   if (tool === 'Bash') {
     const command = input.tool_input?.command ?? '';
     if (readOnlyBash(command)) return [];
-    return [realBase(cwd), ...absPaths(command).map(realBase)];
+    return [realBase(cwd), ...bashPaths(command, cwd).map(p => realBase(p))];
   }
   return [];
 }
