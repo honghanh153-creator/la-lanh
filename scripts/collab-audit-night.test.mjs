@@ -8,6 +8,8 @@ import test from 'node:test';
 import { auditReserve, collectFacts, keepDayM4, saveFacts } from './collab-audit.mjs';
 import { alertLimit, auditMarker, auditWindow, baselineMarker, baselinePath, buildPrompt, datesIn, evidenceDigest, gatherEvidence, readRecord, runAuditCodex, runBaseline, runNightAudit, upsertAudit, validateJudgement } from './collab-audit-night.mjs';
 import { agentMarker, codexDailyCap, dayStatePath, readJson, writeJson } from './collab-trust.mjs';
+import * as trust from './collab-trust.mjs';
+import { asPosted } from './collab-test-post.mjs';
 import { renderCheck } from './collab-check.mjs';
 import { tick } from './collab-turn.mjs';
 import { append, entry } from './collab-disagree.mjs';
@@ -18,8 +20,11 @@ const head = 'e'.repeat(40);
 const output = JSON.stringify({ verdict: 'APPROVE', sha: head, complete: true, summary: 'ok', findings: [] });
 const digest = createHash('sha256').update(output).digest('hex');
 const outputs = [{ pr: 7, head12: head.slice(0, 12), digest, out: JSON.parse(output) }];
-const approve = { authorAssociation: 'OWNER', createdAt: '2026-11-14T03:00:00Z',
-  body: `Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto)\n\nOutput SHA-256: \`${digest}\`\n${agentMarker} codex-auto-review sha=${head} p2=0 -->` };
+// #456 P1-B: an automatic APPROVE is signed for its PR and bound to its comment URL, as
+// codex-review.mjs posts it; an unsigned copy never counts.
+const approveFor = (n, createdAt) => asPosted(trust, { authorAssociation: 'OWNER', createdAt,
+  body: `Review verdict: APPROVE @ ${head}\nReviewer: Codex (auto)\n\nOutput SHA-256: \`${digest}\`\n${trust.verdictSeal({ head, p2: 0, base: null, receipt: trust.signReceipt({ kind: 'verdict', pr: n, head, base: null, result: 'APPROVE', p2: 0 }) })}` });
+const approve = approveFor(7, '2026-11-14T03:00:00Z');
 const rebuttal = { authorAssociation: 'OWNER', createdAt: '2026-11-14T03:30:00Z', body: 'agent: Claude — không sửa P2 vì đã có test khác' };
 const merged = (n, extra = {}) => ({ number: n, title: `fix: ${n}`, body: 'thân PR', headRefOid: head, createdAt: '2026-11-14T01:00:00Z', mergedAt: '2026-11-14T04:00:00Z',
   comments: [approve, rebuttal], files: [{ path: 'scripts/x.mjs' }], ...extra });
@@ -298,9 +303,13 @@ const goodBody = [
     'G6 QC: node --test', 'G7 Bảo mật: không đụng phiên, quyền, dữ liệu cá nhân hay log', 'G8 Data privacy: không thu dữ liệu', 'G9 Release: không áp dụng cho PR vào integration', 'G10 Chi phí / license: không'].map(l => `- ${l}`),
   'Người dùng thấy gì: không trực tiếp (vận hành)',
 ].join('\n');
+// The live tip of integration, and a PASS signed for it (#456 P1-A and P1-B).
+const BASE = 'f'.repeat(40);
+const passed = asPosted(trust, { authorAssociation: 'OWNER', createdAt: '2026-11-13T01:00:00Z',
+  body: renderCheck({ head: A, status: 'PASS', exitCode: 0, seconds: 1, date: 'x', base: BASE, receipt: trust.signReceipt({ kind: 'check', pr: 7, head: A, base: BASE, result: 'PASS' }) }) });
 const tickPr = () => ({ number: 7, title: 'ops: x', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration',
-  headRefName: 'agent/claude/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-11-13T00:00:00Z', body: goodBody, files: [{ path: 'scripts/x.mjs' }],
-  comments: [{ authorAssociation: 'OWNER', createdAt: '2026-11-13T01:00:00Z', body: renderCheck({ head: A, status: 'PASS', exitCode: 0, seconds: 1, date: 'x' }) }] });
+  headRefName: 'agent/claude/x', headRefOid: A, baseTipOid: BASE, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-11-13T00:00:00Z', body: goodBody, files: [{ path: 'scripts/x.mjs' }],
+  comments: [passed] });
 const plannedGh = date => ({
   pr: () => tickPr(), openPrs: () => [tickPr()], raw: () => '',
   json: args => (args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }]
@@ -410,7 +419,7 @@ test('M3: a fix-forward issue alone is an escape candidate linked to the PR it n
 });
 
 test('M3: an alert naming a PR merged five days earlier is linked to it', () => {
-  const old = merged(3, { createdAt: '2026-11-09T01:00:00Z', mergedAt: '2026-11-09T04:00:00Z', baseRefName: 'collab/integration', comments: [{ ...approve, createdAt: '2026-11-09T03:00:00Z' }] });
+  const old = merged(3, { createdAt: '2026-11-09T01:00:00Z', mergedAt: '2026-11-09T04:00:00Z', baseRefName: 'collab/integration', comments: [approveFor(3, '2026-11-09T03:00:00Z')] });
   const gh = fakeGh({ older: [old], alerts: [{ number: 12, title: 'tick lỗi', body: 'Lỗi từ khi merge PR #3.', createdAt: '2026-11-14T05:00:00Z', comments: [] }] });
   const outs = [...outputs, { ...outputs[0], pr: 3 }];
   const ev = evidenceFor(gh, { outputs: outs });

@@ -35,8 +35,9 @@ const reason = error => clean(String(error?.message ?? error).split('\n')[0], 20
 const listQuery = `query($owner:String!,$name:String!,$base:String!,$after:String){repository(owner:$owner,name:$name){
 pullRequests(baseRefName:$base,states:MERGED,first:100,after:$after,orderBy:{field:CREATED_AT,direction:ASC}){
 pageInfo{hasNextPage endCursor} nodes{number mergedAt headRefOid}}}}`;
+// url: a verdict counts only with a local receipt bound to its comment id (#456 P1-B).
 const commentsQuery = `query($owner:String!,$name:String!,$number:Int!,$after:String){repository(owner:$owner,name:$name){
-pullRequest(number:$number){comments(first:100,after:$after){pageInfo{hasNextPage endCursor} nodes{authorAssociation createdAt body}}}}}`;
+pullRequest(number:$number){comments(first:100,after:$after){pageInfo{hasNextPage endCursor} nodes{authorAssociation createdAt body url}}}}}`;
 const alertsQuery = `query($owner:String!,$name:String!,$after:String){repository(owner:$owner,name:$name){
 issues(labels:["ops-alert"],states:[OPEN,CLOSED],first:100,after:$after,orderBy:{field:CREATED_AT,direction:ASC}){
 pageInfo{hasNextPage endCursor} nodes{number body}}}}`;

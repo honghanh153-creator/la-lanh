@@ -19,10 +19,28 @@ const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
 const C = 'c'.repeat(40);
 let clock = 0;
-const owner = body => ({ authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
+const { asPosted } = await import('./collab-test-post.mjs');
+const owner = body => asPosted(trust, { authorAssociation: 'OWNER', createdAt: `2026-10-30T0${Math.floor(clock / 60)}:${String(clock++ % 60).padStart(2, '0')}:00Z`, body });
 const outsider = body => ({ ...owner(body), authorAssociation: 'NONE' });
-const check = (sha, status = 'PASS') => owner(renderCheck({ head: sha, status, exitCode: status === 'PASS' ? 0 : 1, seconds: 1, date: 'x' }));
-const pr = (extra = {}) => ({ number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra });
+// The live tip of collab/integration in every fixture (P1-A).
+const BASE = 'e'.repeat(40);
+// Scripted comments come with a local receipt (P1-B). A fixture is signed for PR 7 and re-signed by
+// pr() for another number, the way the real check and review paths sign for their own PR.
+const sealBody = (kind, c, n) => {
+  const receipt = trust.signReceipt({ kind, pr: n, head: c.head, base: c.base, result: c.result, p2: c.p2 ?? 0 });
+  return kind === 'check'
+    ? renderCheck({ head: c.head, status: c.result, base: c.base, receipt, exitCode: c.result === 'PASS' ? 0 : 1, seconds: 1, date: 'x' })
+    : [`Review verdict: ${c.result} @ ${c.head}`, 'Reviewer: Codex (auto, scripts/codex-review.mjs)', '', ...(c.fix ? [`Fix-forward: #${c.fix}`, ''] : []), trust.verdictSeal({ head: c.head, p2: c.p2 ?? 0, base: c.base, receipt })].join('\n');
+};
+const sealable = (kind, claims) => ({ ...owner(sealBody(kind, claims, 7)), seal: { kind, claims } });
+const check = (sha, status = 'PASS', base = BASE) => sealable('check', { head: sha, result: status, base });
+const approve = (sha, { p2 = 0, base = BASE, fix = null } = {}) => sealable('verdict', { head: sha, result: 'APPROVE', base, p2, fix });
+const requestChanges = (sha, base = BASE) => sealable('verdict', { head: sha, result: 'REQUEST_CHANGES', base });
+const resign = (n, c) => (c?.seal && n !== 7 ? asPosted(trust, { ...c, body: sealBody(c.seal.kind, c.seal.claims, n) }) : c);
+const pr = (extra = {}) => {
+  const p = { number: 7, title: 'feat(tarot): plain summary', author: { login: 'honghanh153-creator' }, isCrossRepository: false, state: 'OPEN', isDraft: false, baseRefName: 'collab/integration', headRefName: 'feat/x', headRefOid: A, baseTipOid: BASE, mergeable: 'MERGEABLE', labels: [], createdAt: '2026-10-29T00:00:00Z', comments: [], body: goodBody, ...extra };
+  return { ...p, comments: p.comments.map(c => resign(p.number, c)) };
+};
 
 function fakeGh(state) {
   const calls = [];
@@ -36,7 +54,7 @@ function fakeGh(state) {
       if (args[0] === 'issue' && args[1] === 'create') return 'https://github.com/x/y/issues/901\n';
       return '';
     },
-    comment: (kind, number, body) => { trust.assertAgentBody(body); calls.push(['comment', kind, number, body]); state.pr.comments.push(owner(body)); },
+    comment: (kind, number, body) => { trust.assertAgentBody(body); calls.push(['comment', kind, number, body]); const c = owner(body); state.pr.comments.push(c); return c.url; },
   };
 }
 
@@ -73,7 +91,7 @@ test('turns follow check → review → fix/merge on the exact head', () => {
   assert.equal(prTurn(p).turn, 'claude-fix');
   p.comments.push(check(B));
   assert.equal(prTurn(p).turn, 'codex-review');
-  p.comments.push(owner(`Review verdict: APPROVE @ ${B}`));
+  p.comments.push(approve(B));
   assert.equal(prTurn(p).turn, 'merge');
   assert.equal(prTurn({ ...p, baseRefName: 'feat/parent' }).turn, 'hold');
   assert.equal(prTurn({ ...p, baseRefName: 'main' }).turn, 'hold');
@@ -162,7 +180,7 @@ test('review posts verdict, files fix-forward first, and records the output hash
   const body = gh.calls.find(c => c[0] === 'comment')[3];
   assert.equal(trust.parseVerdict(body).sha, A);
   assert.match(body, /Fix-forward: #901/);
-  assert.match(body, /p2=1 -->/);
+  assert.match(body, new RegExp(`p2=1 base=${BASE} receipt=[0-9a-f]{32} -->$`));
   assert.match(body, /Output SHA-256: `[0-9a-f]{64}`/);
   assert.equal(prTurn(state.pr).turn, 'merge');
   // Cost records (Codex #354 P2): the real run wrote one line; a refusal writes none.
@@ -197,7 +215,7 @@ test('the scheduled PR list asks GitHub for mergeability (K24 needs it)', () => 
 });
 
 test('a re-review across an integration merge reads only the PR files (K25)', () => {
-  const prior = owner(`Review verdict: REQUEST_CHANGES @ ${B}\n${trust.agentMarker} codex-auto-review sha=${B} p2=0 -->`);
+  const prior = requestChanges(B);
   const raw = JSON.stringify(output());
   for (const [merges, scoped] of [['d'.repeat(40), true], ['', false]]) {
     const runner = fakeRun();
@@ -227,7 +245,7 @@ test('review refuses without an author check, stops on limits, and escalates to 
   assert.equal(trust.readJson(trust.dayStatePath(now.date), {}).codexRuns ?? 0, 0, 'limits do not use a daily run');
 
   const blocking = JSON.stringify(output({ verdict: 'REQUEST_CHANGES', findings: [finding('P1', 'correctness')] }));
-  const state = { pr: pr({ headRefOid: B, comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}\n${trust.agentMarker} codex-auto-review sha=${A} p2=0 -->`), check(B)] }) };
+  const state = { pr: pr({ headRefOid: B, comments: [check(A), requestChanges(A), check(B)] }) };
   const gh = fakeGh(state);
   const runner = fakeRun({ head: B });
   const result = review.runReview(7, { gh, run: runner.run, readOut: () => blocking.replace(A, B), now });
@@ -245,15 +263,15 @@ test('daily cap refuses automatic reviews', () => {
 });
 
 test('merge gate needs APPROVE and PASS on head, integration base and a fix-forward link', () => {
-  const ok = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] });
+  const ok = pr({ comments: [check(A), approve(A)] });
   assert.deepEqual(mergeGate(ok).reasons, []);
   assert.ok(!mergeGate({ ...ok, baseRefName: 'main' }).ok);
   assert.ok(!mergeGate({ ...ok, mergeable: 'CONFLICTING' }).ok);
   assert.ok(!mergeGate({ ...ok, labels: ['needs-owner'] }).ok);
-  assert.ok(!mergeGate(pr({ comments: [owner(`Review verdict: APPROVE @ ${A}`)] })).ok, 'needs author check');
-  assert.ok(!mergeGate(pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] })).ok);
+  assert.ok(!mergeGate(pr({ comments: [approve(A)] })).ok, 'needs author check');
+  assert.ok(!mergeGate(pr({ comments: [check(A), approve(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] })).ok);
   assert.ok(!mergeGate(pr({ comments: [check(A), outsider(`Review verdict: APPROVE @ ${A}`)] })).ok);
-  assert.ok(!mergeGate(pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}\n${trust.agentMarker} codex-auto-review sha=${A} p2=2 -->`)] })).ok);
+  assert.ok(!mergeGate(pr({ comments: [check(A), approve(A, { p2: 2 })] })).ok);
 
   const state = { pr: ok, open: [ok, pr({ number: 8, baseRefName: 'feat/x' })] };
   const gh = fakeGh(state);
@@ -310,7 +328,7 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
     json: args => args[0] === 'issue' && args[1] === 'list' ? [{ number: 50, title: 'Kế hoạch chạy tự động hằng ngày' }] : { comments },
     comment: (kind, number, body) => { trust.assertAgentBody(body); comments.push({ authorAssociation: 'OWNER', createdAt: '2026-11-02T01:50:00Z', body }); },
   });
-  const open = [pr({ number: 1, comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }), pr({ number: 2, comments: [check(A)] }), pr({ number: 3, comments: [check(A)] }), pr({ number: 4, comments: [check(A)] }), pr({ number: 5 })];
+  const open = [pr({ number: 1, comments: [check(A), approve(A)] }), pr({ number: 2, comments: [check(A)] }), pr({ number: 3, comments: [check(A)] }), pr({ number: 4, comments: [check(A)] }), pr({ number: 5 })];
   const date = '2026-11-02';
   const done = { merge: [], review: [] };
   const deps = now => ({ gh: ghFor(open), now: { date, ...now }, merge: n => { done.merge.push(n); return { status: 'merged' }; }, review: n => { done.review.push(n); return { status: 'posted' }; } });
@@ -324,14 +342,14 @@ test('tick makes the plan once, waits for the owner, then runs merges and capped
   assert.deepEqual(queue.items, [], 'author checks are the tick\'s job, not Claude\'s queue');
 });
 
-test('r1: a newer FAIL outvotes an older PASS, and a retarget voids earlier verdicts', () => {
-  const failedLater = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), check(A, 'FAIL')] });
+test('r1: a newer FAIL outvotes an older PASS; a base change (not the retarget marker) voids the evidence', () => {
+  const failedLater = pr({ comments: [check(A), approve(A), check(A, 'FAIL')] });
   assert.ok(!mergeGate(failedLater).ok);
   assert.equal(prTurn(failedLater).turn, 'claude-fix');
-  const retargeted = pr({ comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`), owner(`Base changed.\n\n${trust.agentMarker} retarget parent=6 -->`)] });
+  const retargeted = pr({ baseTipOid: C, comments: [check(A), approve(A), owner(`Base changed.\n\n${trust.agentMarker} retarget parent=6 -->`)] });
   assert.ok(!mergeGate(retargeted).ok);
-  assert.equal(prTurn(retargeted).turn, 'codex-review');
-  retargeted.comments.push(owner(`Review verdict: APPROVE @ ${A}`));
+  assert.equal(prTurn(retargeted).turn, 'claude-check');
+  retargeted.comments.push(check(A, 'PASS', C), approve(A, { base: C }));
   assert.ok(mergeGate(retargeted).ok);
 });
 
@@ -374,7 +392,7 @@ test('r1: privacy and features wait while content has machine work; a content PR
   const date = '2026-11-05';
   const open = [
     pr({ number: 1, title: 'feat(tarot): copy', comments: [check(A), owner(`Review verdict: REQUEST_CHANGES @ ${A}`)] }),
-    pr({ number: 2, title: 'feat(privacy): export', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+    pr({ number: 2, title: 'feat(privacy): export', comments: [check(A), approve(A)] }),
     pr({ number: 3, title: 'feat(tarot): held', isDraft: true }),
   ];
   const merged = [];
@@ -523,7 +541,7 @@ test('r3: author check runs alone, with CI=1, in the given checkout', () => {
 });
 
 test('r4 (P0): fork or outside PRs are never checked, reviewed or merged', () => {
-  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  const approved = [check(A), approve(A)];
   for (const hostile of [pr({ isCrossRepository: true, comments: approved }), pr({ author: { login: 'someone-else' }, comments: approved }), pr({ author: undefined, comments: approved })]) {
     assert.equal(prTurn(hostile).turn, 'hold');
     assert.ok(!mergeGate(hostile).ok);
@@ -823,7 +841,7 @@ test('12.11 trial: CI source reads pr-check at the head and never installs, buil
   const gh = { ...fakeGh({ pr: pr() }), comment: (...a) => posted.push(a) };
   const run = (cmd, args) => args[0] === 'rev-parse' ? A : '';
   const never = () => { throw new Error('nothing of the PR may run on the Mac in CI mode'); };
-  const ci = (_, head) => { assert.equal(head, A); return { state: 'PASS', conclusion: 'success', url: 'https://github.com/x/actions/runs/1' }; };
+  const ci = (_, head) => { assert.equal(head, A); return { state: 'PASS', conclusion: 'success', url: 'https://github.com/x/actions/runs/1', base: BASE }; };
   const result = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci });
   assert.equal(result.status, 'PASS');
   assert.equal(posted.length, 1);
@@ -975,7 +993,13 @@ test('only the front PR of the area is synced before its check; waiting PRs get 
   const gh = { ...fakeGh({ pr: pr({ headRefName: 'agent/claude/x' }) }), comment: () => {} };
   const waiting = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: false });
   assert.equal(waiting.status, 'ci-pending');
-  assert.ok(!gitCalls.some(c => /^merge\b|^-c .*merge|push/.test(c) || c.includes('auto-sync')), gitCalls.join(' | '));
+  // #456 P1-A + L14: behind integration is a waiting PR's normal state, never a failure sent to Claude.
+  const unheld = { record: () => { throw new Error('a waiting PR is not recorded as a preflight failure'); } };
+  assert.match(runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'success' }), sync: false, held: unheld }).reason, /đồng bộ khi tới lượt đầu hàng/);
+  const local = runCheckInClone(7, { gh, run, group: () => ({ status: 0 }), spawn: never, busy: () => null, terms: () => [], preflight: () => null, source: 'local', sync: false, held: unheld });
+  assert.equal(local.status, 'waiting', JSON.stringify(local));
+  // merge-base only reads; a merge, a merge commit or a push would change the branch.
+  assert.ok(!gitCalls.some(c => /^merge(?!-base)\b|^-c .*merge|push/.test(c) || c.includes('auto-sync')), gitCalls.join(' | '));
   const front = runCheckInClone(7, { gh, run, group: never, spawn: never, busy: never, terms: () => [], preflight: () => null, source: 'ci', ci: () => ({ state: 'pending' }), sync: true });
   assert.equal(front.status, 'synced', 'the front PR behind integration is merged and pushed');
 });
@@ -993,7 +1017,7 @@ test('#524: a held or conflicting older PR is not the front; the first actionabl
 
 test('after a merge in the same tick, the next PR becomes the front', () => {
   const date = '2026-11-17';
-  const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), owner(`Review verdict: APPROVE @ ${A}`)] }),
+  const open = [pr({ number: 70, createdAt: '2026-11-01T00:00:00Z', comments: [check(A), approve(A)] }),
     pr({ number: 71, createdAt: '2026-11-02T00:00:00Z' }), pr({ number: 72, createdAt: '2026-11-03T00:00:00Z' })];
   const calls = [];
   tick({ gh: plannedGh(open, date), now: { date, hour: 11, minute: 5 }, merge: () => ({ status: 'merged' }), review: () => ({ status: 'posted' }),
@@ -1077,7 +1101,7 @@ test('review 228: a deleted Python file is not linted by default', () => {
 
 test('#158/#159: top-up is computed from the queue left after this tick merges', () => {
   const date = '2026-11-15';
-  const approved = [check(A), owner(`Review verdict: APPROVE @ ${A}`)];
+  const approved = [check(A), approve(A)];
   // Two agent PRs are merge-ready when the tick starts, so WIP is full before the merges.
   const open = [1, 2].map(number => pr({ number, headRefName: `agent/claude/q${number}`, comments: approved }));
   const merged = [];
