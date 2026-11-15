@@ -101,6 +101,23 @@ export function verifyAgentGate({ home = stateDir, settings = settingsPath(), ex
   return bad;
 }
 
+// L19 (Codex auto-1 on #552): the two scheduled reports must read the shared slot snapshot through
+// the wrapper. Their prompts live outside the repo, so the tick checks them every run and shows a
+// warning when either no longer calls its snapshot step.
+export const reportConsumers = [
+  { task: 'la-lanh-owner-report', label: 'báo cáo owner 08/14/22', step: /ops-run\.sh snapshot 08\b/ },
+  { task: 'la-lanh-retro-2026-11-02', label: 'retro 23:35', step: /ops-run\.sh snapshot retro\b/ },
+];
+export function verifyReportPrompts({ dir = join(homedir(), '.claude', 'scheduled-tasks') } = {}) {
+  const bad = [];
+  for (const c of reportConsumers) {
+    let text = '';
+    try { text = readFileSync(join(dir, c.task, 'SKILL.md'), 'utf8'); } catch { bad.push(`không đọc được prompt ${c.label}`); continue; }
+    if (!c.step.test(text)) bad.push(`${c.label} không gọi bước bản chụp chung`);
+  }
+  return bad;
+}
+
 // Tick hook (Codex r2 on the L06 plan: health lines alone open no alert): a broken gate opens one
 // ops-alert a day; the marker is written only after the alert was delivered. When the gate is
 // healthy again the open alert is closed once.
@@ -121,9 +138,9 @@ export function agentGateWatch({ verify = () => verifyAgentGate(), alert, resolv
   return { status: 'ok' };
 }
 
-export function wrapperHealth(opts) {
+export function wrapperHealth(opts = {}) {
   try {
-    const bad = verifyWrapper(opts);
+    const bad = [...verifyWrapper(opts), ...verifyReportPrompts(opts.prompts ? { dir: opts.prompts } : {})];
     return bad.length ? [`- ⚠️ ops-run.sh của tác vụ hẹn giờ: ${bad.join('; ')}`] : ['- ✅ ops-run.sh của tác vụ hẹn giờ: khớp bản đã review'];
   } catch (error) { return [`- ⚠️ ops-run.sh của tác vụ hẹn giờ: chưa kiểm được (${error.message})`]; }
 }
