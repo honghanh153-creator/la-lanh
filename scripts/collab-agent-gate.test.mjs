@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { decide, gate, readOnlyBash, realBase, releaseAgent, repoOf, setupCommand, targets } from './collab-agent-gate.mjs';
+import { decide, gate, readOnlyBash, realBase, releaseAgent, repoOf, setupCommand, shellWords, targets } from './collab-agent-gate.mjs';
 import { claimPath, dispatch, lockFor, preflightWorkspace } from './collab-dispatch.mjs';
 import { acquireLock } from './collab-lock.mjs';
 import { agentGateWatch, gateHooks, installAgentGate, verifyAgentGate } from './collab-ops-wrapper.mjs';
@@ -231,4 +231,42 @@ test('L06 gate: a broken gate opens one alert a day from the real tick, and clos
   const given = runTick({ raw: () => '', json: () => [] }, () => [], { run: g => g, gateWatch: args => { seen = args; return { status: 'ok' }; } });
   given.watchdog();
   assert.ok(seen && typeof seen.alert === 'function' && typeof seen.resolve === 'function' && /^\d{4}-\d{2}-\d{2}$/.test(seen.today));
+});
+
+// Codex auto-1 on #542 (P1 ×3): options that write, quoted paths with spaces, dangling symlinks.
+test('L06 gate: "read-only" commands with a writing option or script are writes', () => {
+  for (const c of ['sort -o /tmp/protected/file input', 'sort --output=/tmp/p f', "sed -n 'w /tmp/protected/file' input", "sed -n '1p;w /tmp/x' f", "sed -n -e '1p' -i f",
+    'git diff --output=/tmp/protected/file', 'git log --output /tmp/x', 'git -c core.pager=sh log', 'git grep -Ovi x', 'rg --pre ./run.sh x', 'uniq a b', 'date -s 2020-01-01', 'cat <<EOF', 'cat "a" > "b c"'])
+    assert.equal(readOnlyBash(c), false, c);
+  for (const c of ["sed -n '10,20p' f", "sed -n '$p' f", 'git log --oneline', 'sort -n f', 'rg -n x', 'cat "/tmp/a b/c"'])
+    assert.equal(readOnlyBash(c), true, c);
+});
+
+test('L06 gate: a quoted path with a space is one path, for targets and for workspace setup', () => {
+  assert.deepEqual(shellWords(`cp /tmp/a "/tmp/shared clone/f.txt" 'x y' z\\ w`), ['cp', '/tmp/a', '/tmp/shared clone/f.txt', 'x y', 'z w']);
+  assert.throws(() => shellWords('cp "a b'), /unbalanced-quote/);
+  const s = setup();
+  const spaced = join(s.root, 'shared clone');
+  symlinkSync(s.repo, spaced);
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'gate-sp-')));
+  const t = targets({ tool_name: 'Bash', cwd: scratch, tool_input: { command: `cp /tmp/synthetic.txt "${spaced}/a.txt"` } });
+  assert.ok(t.includes(s.repo), `targets ${t.join(',')}`);
+  assert.equal(gate(call('q1', 'Bash', { cwd: scratch, input: { command: `cp /tmp/synthetic.txt "${spaced}/a.txt"` } }), opts).allow, false);
+  assert.equal(setupCommand(`git -C "/Users/x/Documents/New project/la-lanh-claude" fetch -q origin collab/integration && git -C "/Users/x/Documents/New project/la-lanh-claude" worktree add "/tmp/my wt" -b agent/claude/x FETCH_HEAD`), true);
+  assert.equal(setupCommand(`git -C "/a b" worktree add /tmp/w -b agent/claude/x FETCH_HEAD; rm -rf /a`), false);
+});
+
+test('L06 gate: a dangling symlink counts where it points, not where the link sits', () => {
+  const s = setup();
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'gate-dang-')));
+  symlinkSync(join(s.repo, 'not-yet', 'new.txt'), join(scratch, 'link'));
+  assert.equal(realBase(join(scratch, 'link')), s.repo);
+  const w = gate(call('q2', 'Write', { cwd: scratch, input: { file_path: join(scratch, 'link') } }), opts);
+  assert.equal(w.allow, false, 'the write lands in the main checkout');
+  const b = gate(call('q2', 'Bash', { cwd: scratch, input: { command: `printf synthetic > ${join(scratch, 'link')}` } }), opts);
+  assert.equal(b.allow, false);
+  // A link loop is a resolve error, which denies.
+  symlinkSync(join(scratch, 'loop-b'), join(scratch, 'loop-a'));
+  symlinkSync(join(scratch, 'loop-a'), join(scratch, 'loop-b'));
+  assert.throws(() => realBase(join(scratch, 'loop-a')), /resolve-error/);
 });

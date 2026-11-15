@@ -23,7 +23,7 @@
 //                         node scripts/collab-agent-gate.mjs --release  (SubagentStop, JSON on stdin)
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { acquireLock } from './collab-lock.mjs';
@@ -40,16 +40,23 @@ const inside = (path, root) => path === root || path.startsWith(root.endsWith(se
 const git = (dir, args) => spawnSync('/usr/bin/git', ['-C', dir, ...args], { encoding: 'utf8', timeout: 20000 });
 
 // The real directory a write lands in: an existing target by its real path (a symlink counts where
-// it points), a new one from its nearest existing ancestor.
-export function realBase(target) {
+// it points, even when that destination does not exist yet: Codex auto-1 on #542), a new one from
+// its nearest existing ancestor. Links are followed with lstat/readlink, never existsSync.
+export function realBase(target, depth = 0) {
+  if (depth > 40) throw new Error('resolve-error');
   let p = target;
-  while (!existsSync(p)) {
+  for (;;) {
+    let st = null;
+    try { st = lstatSync(p); } catch (error) { if (!['ENOENT', 'ENOTDIR'].includes(error?.code)) throw new Error('resolve-error'); }
+    if (st?.isSymbolicLink()) return realBase(resolve(dirname(p), readlinkSync(p)), depth + 1);
+    if (st) {
+      const at = real(p);
+      return statSync(at).isDirectory() ? at : dirname(at);
+    }
     const up = dirname(p);
     if (up === p) throw new Error('resolve-error');
     p = up;
   }
-  const at = real(p);
-  return statSync(at).isDirectory() ? at : dirname(at);
 }
 
 // { kind: 'outside' } when Git says the directory is not a repository; { kind: 'repo', top, ours }
@@ -67,23 +74,85 @@ export function repoOf(dir, run = git) {
   return { kind: 'repo', top: at, ours: repoRe.test(url.stdout.trim()) };
 }
 
-// Bash that only reads. Anything not on this list is treated as a write (fail closed).
-const readers = new Set(['cat', 'ls', 'head', 'tail', 'wc', 'grep', 'rg', 'jq', 'sort', 'uniq', 'cut', 'tr', 'echo', 'printf', 'pwd', 'stat', 'file', 'diff', 'which', 'date', 'cd', 'true', 'basename', 'dirname', 'realpath', 'test', '[']);
+// Shell words with quotes and backslashes honoured (Codex auto-1 on #542: a quoted path with a space
+// was cut at the space). Operators come back as { op }. An unbalanced quote throws (deny).
+export function shellWords(command) {
+  const text = String(command ?? '');
+  const out = [];
+  let cur = '';
+  let has = false;
+  let q = null;
+  const push = () => { if (has) out.push(cur); cur = ''; has = false; };
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (q === "'") { if (ch === "'") q = null; else cur += ch; continue; }
+    if (q === '"') {
+      if (ch === '"') q = null;
+      else if (ch === '\\' && i + 1 < text.length && '"\\$`'.includes(text[i + 1])) cur += text[++i];
+      else cur += ch;
+      continue;
+    }
+    if (ch === "'" || ch === '"') { q = ch; has = true; continue; }
+    if (ch === '\\' && i + 1 < text.length) { cur += text[++i]; has = true; continue; }
+    if (ch === '\n') { push(); out.push({ op: ';' }); continue; }
+    if (/\s/.test(ch)) { push(); continue; }
+    if ('|&;<>()'.includes(ch)) {
+      push();
+      let op = ch;
+      while (i + 1 < text.length && '|&;<>'.includes(text[i + 1])) op += text[++i];
+      out.push({ op });
+      continue;
+    }
+    cur += ch;
+    has = true;
+  }
+  if (q) throw new Error('unbalanced-quote');
+  push();
+  return out;
+}
+const segmentsOf = words => {
+  const segs = [[]];
+  for (const w of words) {
+    if (typeof w === 'object' && ['|', '||', '&&', ';', '&'].includes(w.op)) segs.push([]);
+    else segs.at(-1).push(w);
+  }
+  return segs.filter(s => s.length);
+};
+
+// Bash that only reads. Anything not on this list, and any option that writes a file or runs a
+// program (sort -o, sed w/e, git --output, rg --pre, git -c), is treated as a write (fail closed).
+const readers = new Set(['cat', 'ls', 'head', 'tail', 'wc', 'grep', 'rg', 'jq', 'sort', 'cut', 'tr', 'echo', 'printf', 'pwd', 'stat', 'diff', 'which', 'date', 'cd', 'true', 'basename', 'dirname', 'realpath', 'test', '[']);
 const gitReaders = new Set(['log', 'show', 'diff', 'status', 'grep', 'rev-parse', 'ls-files', 'ls-tree', 'blame', 'cat-file', 'merge-base', 'describe', 'shortlog', 'rev-list']);
+const writingOption = {
+  sort: w => /^(-[a-zA-Z]*o|--output|--compress-program)/.test(w),
+  rg: w => /^--pre/.test(w),
+  date: w => /^(-[a-zA-Z]*s|--set)/.test(w),
+};
 export function readOnlyBash(command) {
-  const text = String(command ?? '').replace(/\d?>&\d/g, '').replace(/\d?>\s*\/dev\/null/g, '');
-  if (/[>`]|\$\(|<\(|\btee\b/.test(text)) return false;
-  return text.split(/&&|\|\||;|\||\n/).map(s => s.trim()).filter(Boolean).every(segment => {
-    const words = segment.split(/\s+/).filter(w => !/^[A-Z_][A-Z0-9_]*=/.test(w));
-    const [cmd, ...rest] = words;
+  const raw = String(command ?? '');
+  if (/`|\$\(|<\(|>\(/.test(raw)) return false;
+  let words;
+  try { words = shellWords(raw.replace(/(^|\s)\d?>&\d(?=\s|$)/g, '$1').replace(/(^|\s)\d?>\s*\/dev\/null(?=\s|$)/g, '$1')); } catch { return false; }
+  if (words.some(w => typeof w === 'object' && /[<>]/.test(w.op))) return false;
+  return segmentsOf(words).every(segment => {
+    if (segment.some(w => typeof w === 'object')) return false;
+    const plain = segment.filter(w => !/^[A-Z_][A-Z0-9_]*=/.test(w));
+    const [cmd, ...rest] = plain;
     if (!cmd) return true;
-    if (readers.has(cmd)) return true;
-    if (cmd === 'sed') return rest.includes('-n') && !rest.some(w => /^-[a-zA-Z]*i/.test(w) || w === '--in-place');
-    if (cmd === 'find') return !rest.some(w => /^-(delete|exec|execdir|ok|okdir|fprint|fprintf|fls)$/.test(w));
+    if (cmd === 'tee') return false;
+    if (readers.has(cmd)) return !rest.some(w => writingOption[cmd]?.(w));
+    if (cmd === 'sed') {
+      // Only print-by-line-number scripts: no w/W/e/r commands, no in-place.
+      const flags = rest.filter(w => w.startsWith('-'));
+      const args = rest.filter(w => !w.startsWith('-'));
+      return flags.length > 0 && flags.every(f => f === '-n') && args.length >= 1 && /^(\d+|\$)(,(\d+|\$))?p$/.test(args[0]);
+    }
+    if (cmd === 'find') return !rest.some(w => /^-(delete|exec|execdir|ok|okdir|fprint|fprint0|fprintf|fls)$/.test(w));
     if (cmd === 'git') {
-      const sub = rest.filter((w, i) => !(w.startsWith('-') || rest[i - 1] === '-C' || rest[i - 1] === '-c'))[0];
+      if (rest.some(w => w === '-c' || /^--(output|ext-diff|open-files-in-pager|exec-path)/.test(w) || /^-O/.test(w) || /^--config-env/.test(w))) return false;
+      const sub = rest.filter((w, i) => !(w.startsWith('-') || rest[i - 1] === '-C'))[0];
       if (sub === 'config') return rest.includes('--get') || rest.includes('--list');
-      if (sub === 'branch') return rest.every(w => ['branch', '--show-current', '-a', '-r', '--list', '-v', '-vv'].includes(w) || rest[rest.indexOf(w) - 1] === '-C' || w === '-C');
+      if (sub === 'branch') return rest.every((w, i) => ['branch', '--show-current', '-a', '-r', '--list', '-v', '-vv', '-C'].includes(w) || rest[i - 1] === '-C');
       return gitReaders.has(sub);
     }
     return false;
@@ -91,14 +160,33 @@ export function readOnlyBash(command) {
 }
 
 // Workspace setup a sub-agent may run against a shared clone: it writes only Git metadata there and
-// the new worktree is checked on its first write.
+// the new worktree is checked on its first write. Parsed with shell words, so quoted paths work.
 export function setupCommand(command) {
-  const segs = String(command ?? '').split(/&&|;|\n/).map(s => s.trim()).filter(Boolean);
-  return segs.length > 0 && segs.every(s => /^cd\s+\S+$/.test(s) || /^git\s+-C\s+\S+\s+(fetch(\s+-q|\s+--quiet)?\s+origin(\s+[\w./:+-]+)*|worktree\s+add\s+\S+\s+-b\s+agent\/claude\/[\w./-]+(\s+[\w./-]+)?)$/.test(s));
+  let words;
+  try { words = shellWords(command); } catch { return false; }
+  if (words.some(w => typeof w === 'object' && !['&&', ';'].includes(w.op))) return false;
+  const segs = segmentsOf(words);
+  const ref = /^[\w./:+-]+$/;
+  return segs.length > 0 && segs.every(w =>
+    (w.length === 2 && w[0] === 'cd')
+    || (w[0] === 'git' && w[1] === '-C' && w.length >= 5 && w[3] === 'fetch' && w.slice(4).every(x => ['-q', '--quiet'].includes(x) || x === 'origin' || ref.test(x)) && w.includes('origin'))
+    || (w[0] === 'git' && w[1] === '-C' && w[3] === 'worktree' && w[4] === 'add' && w[6] === '-b' && /^agent\/claude\/[\w./-]+$/.test(w[7] ?? '') && (w.length === 8 || (w.length === 9 && ref.test(w[8])))));
 }
 
-const absPaths = command => [...String(command ?? '').matchAll(/(?:^|[\s'"=:])(~\/[^\s'";|&<>()]*|\/[^\s'";|&<>()]+)/g)]
-  .map(m => (m[1].startsWith('~/') ? join(homedir(), m[1].slice(2)) : m[1])).slice(0, 25);
+// Absolute paths a command names, from shell words (quoted spaces kept; `--x=/path` too).
+const absPaths = command => {
+  let words;
+  try { words = shellWords(command); } catch { throw new Error('unbalanced-quote'); }
+  const out = [];
+  for (const w of words) {
+    if (typeof w !== 'string') continue;
+    for (const part of [w, ...(w.includes('=') ? [w.slice(w.indexOf('=') + 1)] : [])]) {
+      if (part.startsWith('/')) out.push(part);
+      else if (part.startsWith('~/')) out.push(join(homedir(), part.slice(2)));
+    }
+  }
+  return [...new Set(out)].slice(0, 25);
+};
 
 // The directories a tool call writes in, or [] for a read-only Bash call.
 export function targets(input) {
