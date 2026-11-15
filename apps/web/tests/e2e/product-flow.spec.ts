@@ -38,6 +38,11 @@ test.beforeEach(async ({ page }) => {
     state: "active", onboarding_status: "completed", expires_at: "2026-09-30T00:00:00Z", resumed: true, session_epoch: "epoch-test",
   } }));
   await page.route("**/v1/session/birth-profile-consent", async (route) => route.fulfill({ status: 204 }));
+  // Reveal and Welcome read sign-in availability (sign-in is off in this build).
+  await page.route("**/v1/account", async (route) => route.fulfill({ status: 200, json: {
+    login_enabled: false, google_login_enabled: false, signed_in: false, masked_email: null, profile_expires_at: null,
+    guest_inactivity_days: 30, history_days: 30, daily_note_hours: 24, account_inactivity_days: 365, guest_storage_note: null,
+  } }));
 });
 test.afterEach(() => {
   expect(unmocked, "API calls without a mock").toEqual([]);
