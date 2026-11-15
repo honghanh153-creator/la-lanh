@@ -2,7 +2,7 @@
 
 **Mô phỏng trên người giả, giám khảo là mô hình AI, chấm trên mô tả bằng chữ.** Không phải người dùng thật, không phải code thật. Mock là mức trần.
 
-- Ngưỡng ghi trước: `viral-concepts-thresholds-preregistered.md` bản 3 và bản 4 (9 điều kiện của gói giữ nguyên như bản 6).
+- Ngưỡng ghi trước: `thresholds-1000.md` mục 6, bản 3 và bản 4 (9 điều kiện của gói giữ nguyên như bản 6).
 - Gói bản 7 so với đối chứng: 300 cặp (mẫu phân tầng 300 trong 1000). Từng phần so với gói bản 6: Lá nhây riêng 100 cặp, Học theo bạn riêng 100 cặp, 5 điểm sửa riêng 100 cặp.
 
 ## Gói bản 7 so với đối chứng: 9 điều kiện

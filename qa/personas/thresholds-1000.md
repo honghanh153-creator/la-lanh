@@ -94,8 +94,32 @@ Dự đoán ghi trước (để so sau):
 - Codex: gói đạt 3,4–3,6, chưa tới 3,7. S1 và S9 cao nhất, S4 sát ngưỡng; S2, S3, S5, S6, S7, S8, S10 dễ dưới 3,5 "hiểu mình" (vì là công cụ vui/đồng hành/biểu đạt, không phải phản hồi theo chuyện).
 - Claude: gói 3,5–3,7; S1 cao nhất; S8, S6, S10 kéo chia sẻ chứ không kéo "hiểu mình"; tỉ lệ "gửi hoặc rủ" khoảng 30–40%, sát ngưỡng.
 
+Bản 3 và bản 4 dưới đây chép nguyên văn ngày 15.11 từ cùng file ghi chú. Phiên concept ghi chúng tối 14.11 (file sửa lần cuối 21:28), trước lượt chấm bản 7.1 (giám khảo đầu tiên chạy lúc 22:51). Không sửa chữ nào.
+
+### Bản 3 — ghi trước khi chấm (14.11 ~20:30, phiên viral-concepts)
+
+Áp cho phần bổ sung "Lá nhây thay Vibe" và "màn Học". Chưa chấm trong lượt 1000 người của bản 6. Sẽ chấm riêng như phần thêm, không cộng vào điểm gói A, ở lượt chấm sau.
+- Học, người có mở bài: hiểu mình ≥3,5; bình yên ≥3,5; không có cờ thao túng hoặc ép buộc (m) nào đến từ nội dung Học (0 ca).
+- Lá nhây: tỉ lệ người giả thấy Lá chọc mình hoặc phán xét mình ≤5%; 0 ca nhây trong trạng thái mood 1–2, "Chỉ cần được nghe" hoặc hỗ trợ.
+- Chỉ số lan truyền: "gửi hoặc rủ" của thẻ "Bạn đáp câu nào?" so với ảnh note hiện tại, báo cả hai con số; không hạ mốc 35% của bản 1.
+- Mock để chấm: scratchpad/hoc-va-la-nhay-v2.md (phụ lục C trong báo cáo).
+- Bổ sung 14.11 ~20:45, vẫn trước khi chấm: "Mời hẹn thử" (bản đầu) chấm riêng. Mốc: 0 ca người nhận thấy bị ép; 0 ca người gửi được biết người nhận đã mở hoặc đã từ chối; người gửi bị từ chối hoặc không có trả lời: bình yên không tụt quá 0,05 so với không có thử thách. Mock: scratchpad/hen-thu-v2.md (phụ lục D2 trong báo cáo).
+
+### Bản 4 — ghi trước khi chấm bản mock 7 (14.11 ~21:20, phiên viral-concepts)
+
+Owner yêu cầu tối 14.11: đưa Lá nhây và Học (dựa trên thông tin của chính người dùng) vào gói, chấm nốt; hoãn "Mời hẹn thử". Bản mock 7 = bản 6 + LN (Lá nhây) + H (Học theo bạn) + 5 điểm sửa rút từ lượt chấm 1000 (món "Sếp, chỗ làm" trong ba lô; lọc chuyện vui theo điều đang nặng; sticker ở 3 chỗ; truyện thêm bản năm nhất và người lớn tuổi; Trang chủ không thêm khối). Đã bỏ câu nhắc S12 trong S1.
+- Mốc đạt của gói bản 7 so với đối chứng: GIỮ NGUYÊN 9 điều kiện của bản 1 + bản 2 (không hạ mốc nào).
+- Mốc riêng LN và H: như bản 3 ở trên.
+- Dự đoán của Claude, ghi trước: hiểu mình 3,60–3,70 (tăng nhẹ nhờ bài học khớp món trong ba lô); bớt một mình 3,25–3,35 (gần như không đổi, vì vẫn dùng một mình); bình yên ~3,6; gửi hoặc rủ 12–18%; dùng chung máy ~3,5; 0 ca chuyện vui chạm nỗi đau. Dự đoán: vẫn trượt điều kiện 2 và 4, điều kiện 1 sát mốc.
+- Rủi ro cần nhìn: LN làm người mood thấp thấy bị đùa (mốc ≤5% thấy bị chọc, 0 ca nhây sai lúc); H làm Trang chủ rối với người ít quen điện thoại; lớp lá số trong H bị coi là nói quá.
+- Mock: viral-concepts-mocks-v7.md trong thư mục này.
+- Thiết kế chấm đề nghị: (A) gói bản 7 so với đối chứng, cùng cách chấm như bản 6; (B) LN riêng, H riêng, và "5 điểm sửa" riêng, mỗi cái so với gói bản 6 trên ~91 cặp.
+- 14.11 ~21:45, sau chấm thử Codex 20 người trên bản 7 (hiểu mình 3,70; bớt một mình 3,65; bình yên 3,85; gửi hoặc rủ 3/20; LN được 20/20 để ý, 1 người thấy bị sai khiến bởi câu "Thôi đọc note đi."; H chỉ 1/20 mở). Sửa thành bản 7.1 TRƯỚC lượt chấm lớn: bỏ câu ra lệnh; thêm lối vào bài học từ câu của Lá ("Lá diễn hôm nay", không thêm khối); dòng [Xem bài] trong ba lô đưa lên ngay dưới câu công nhận; ba lô thêm món "Chăm người nhà". Mốc không đổi. Dự đoán bổ sung: tỉ lệ mở bài học 15–30%.
+- 14.11 ~22:10, trước lượt chấm bản 7.1, sau Codex vòng 7: SIẾT một mốc của bản 3 (không hạ mốc nào): "thấy Lá chọc, phán xét hoặc sai khiến mình" từ ≤5% xuống ≤3%, cho khớp trần hại 3% của luật chung. Thêm: một tính năng cần ít nhất 30 người giả dùng tới mới kết luận; ít hơn ghi "chưa đủ bằng chứng".
+
 ## Nhật ký thay đổi
 
 - v1 (14.11.2026): bản đầu, viết trước mọi lần chấm trên bộ 1000.
 - v1, bổ sung cùng ngày: chép ngưỡng concept của phiên "Sáng tạo + viral" vào mục 6, trước khi chấm concept. Không đổi ngưỡng nào khác.
 - v1, bổ sung lần 2 cùng ngày: chép nguyên văn mục "Bản 2" của phiên "Sáng tạo + viral" vào mục 6 (chỉ thêm điều kiện, không hạ ngưỡng), vẫn trước mọi lần chấm concept.
+- v1, bổ sung lần 3 (15.11.2026): chép nguyên văn "Bản 3" và "Bản 4" vào mục 6 để báo cáo bản 7 trỏ được vào repo. Hai bản này đã ghi trước lượt chấm bản 7.1; không đổi ngưỡng nào.

@@ -5,7 +5,7 @@
     uv run --directory apps/api python -m scripts.persona_concepts7 report --judged <dir> \
         [--v6-judged ../../qa/personas/concepts/judged-1000] --out <md>
 
-Design (viral-concepts-thresholds-preregistered.md, Bản 3 + Bản 4):
+Design (qa/personas/thresholds-1000.md section 6, Bản 3 + Bản 4):
 - package7: control (merged-plan week-6 mock) vs the v7 package, a stratified 300
   (rank % 10 < 3 of the same stratified order as v6), 25 per batch;
 - part7: v6 package vs v6 package + LN / + H (each without its pointer to the other),
@@ -235,7 +235,7 @@ def cmd_report(personas_path: Path, judged: Path, v6_judged: Path | None, out: P
         "**Mô phỏng trên người giả, giám khảo là mô hình AI, chấm trên mô tả bằng chữ.** "
         "Không phải người dùng thật, không phải code thật. Mock là mức trần.",
         "",
-        "- Ngưỡng ghi trước: `viral-concepts-thresholds-preregistered.md` bản 3 và bản 4 "
+        "- Ngưỡng ghi trước: `thresholds-1000.md` mục 6, bản 3 và bản 4 "
         "(9 điều kiện của gói giữ nguyên như bản 6).",
         f"- Gói bản 7 so với đối chứng: {len(pkg)} cặp (mẫu phân tầng 300 trong 1000). "
         f"Từng phần so với gói bản 6: "
